@@ -1,23 +1,22 @@
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="../../">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.menu &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=12dfc556" />
-    <script src="../../_static/documentation_options.js?v=fbc7b204"></script>
-    <script src="../../_static/doctools.js?v=9a2dae69"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=acd72292"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   
-
   
-  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head><body>
   
@@ -46,7 +45,7 @@
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">kivy.app</span> <span class="kn">import</span> <span class="n">App</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="n">BooleanProperty</span><span class="p">,</span> <span class="n">OptionProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="n">OptionProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="kn">import</span> <span class="n">BoxLayout</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="kn">import</span> <span class="n">Button</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.dropdown</span> <span class="kn">import</span> <span class="n">DropDown</span>
@@ -54,13 +53,12 @@
 <span class="kn">from</span> <span class="nn">kivy.uix.textinput</span> <span class="kn">import</span> <span class="n">TextInput</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="kn">import</span> <span class="n">Screen</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
-<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
+
 <span class="kn">from</span> <span class="nn">.gen</span> <span class="kn">import</span> <span class="n">GridGeneratorDialog</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">load_string_once</span>
 
 
-<div class="viewcode-block" id="MenuTextInput">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuTextInput">[docs]</a>
-<span class="k">class</span> <span class="nc">MenuTextInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
+<div class="viewcode-block" id="MenuTextInput"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuTextInput">[docs]</a><span class="k">class</span> <span class="nc">MenuTextInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Special text input for setting the branch&quot;&quot;&quot;</span>
 
 	<span class="n">set_value</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -71,9 +69,7 @@
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">on_text_validate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_enter</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MenuTextInput.on_enter">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuTextInput.on_enter">[docs]</a>
-	<span class="k">def</span> <span class="nf">on_enter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="MenuTextInput.on_enter"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuTextInput.on_enter">[docs]</a>	<span class="k">def</span> <span class="nf">on_enter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Call the setter and blank myself out so that my hint text shows</span>
 <span class="sd">		up. It will be the same you just entered if everything&#39;s</span>
 <span class="sd">		working.</span>
@@ -85,50 +81,31 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">focus</span> <span class="o">=</span> <span class="kc">False</span></div>
 
-
-<div class="viewcode-block" id="MenuTextInput.on_focus">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuTextInput.on_focus">[docs]</a>
-	<span class="k">def</span> <span class="nf">on_focus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="MenuTextInput.on_focus"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuTextInput.on_focus">[docs]</a>	<span class="k">def</span> <span class="nf">on_focus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;If I&#39;ve lost focus, treat it as if the user hit Enter.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">on_enter</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
 
-
-<div class="viewcode-block" id="MenuTextInput.on_text_validate">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuTextInput.on_text_validate">[docs]</a>
-	<span class="k">def</span> <span class="nf">on_text_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="MenuTextInput.on_text_validate"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuTextInput.on_text_validate">[docs]</a>	<span class="k">def</span> <span class="nf">on_text_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Equivalent to hitting Enter.&quot;&quot;&quot;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">on_enter</span><span class="p">()</span></div>
-</div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">on_enter</span><span class="p">()</span></div></div>
 
 
-
-<div class="viewcode-block" id="MenuIntInput">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuIntInput">[docs]</a>
-<span class="k">class</span> <span class="nc">MenuIntInput</span><span class="p">(</span><span class="n">MenuTextInput</span><span class="p">):</span>
+<div class="viewcode-block" id="MenuIntInput"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuIntInput">[docs]</a><span class="k">class</span> <span class="nc">MenuIntInput</span><span class="p">(</span><span class="n">MenuTextInput</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Special text input for setting the turn or tick&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="MenuIntInput.insert_text">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuIntInput.insert_text">[docs]</a>
-	<span class="k">def</span> <span class="nf">insert_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">from_undo</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="MenuIntInput.insert_text"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.MenuIntInput.insert_text">[docs]</a>	<span class="k">def</span> <span class="nf">insert_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">from_undo</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Natural numbers only.&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">insert_text</span><span class="p">(</span>
 			<span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">&quot;0123456789&quot;</span><span class="p">),</span> <span class="n">from_undo</span>
-		<span class="p">)</span></div>
-</div>
+		<span class="p">)</span></div></div>
 
 
-
-<div class="viewcode-block" id="GeneratorButton">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.GeneratorButton">[docs]</a>
-<span class="k">class</span> <span class="nc">GeneratorButton</span><span class="p">(</span><span class="n">Button</span><span class="p">):</span>
+<div class="viewcode-block" id="GeneratorButton"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.GeneratorButton">[docs]</a><span class="k">class</span> <span class="nc">GeneratorButton</span><span class="p">(</span><span class="n">Button</span><span class="p">):</span>
 	<span class="k">pass</span></div>
 
 
-
-<div class="viewcode-block" id="WorldStartConfigurator">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.WorldStartConfigurator">[docs]</a>
-<span class="k">class</span> <span class="nc">WorldStartConfigurator</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+<div class="viewcode-block" id="WorldStartConfigurator"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.WorldStartConfigurator">[docs]</a><span class="k">class</span> <span class="nc">WorldStartConfigurator</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Give options for how to initialize the world state&quot;&quot;&quot;</span>
 
 	<span class="n">grid_config</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -139,7 +116,7 @@
 	<span class="n">init_board</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">generator_dropdown</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="nf">on_generator_dropdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_generator_dropdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">def</span> <span class="nf">select_txt</span><span class="p">(</span><span class="n">btn</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">generator_dropdown</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
 
@@ -161,7 +138,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">grid_config</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">controls</span><span class="o">.</span><span class="n">pos</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">generator_type</span> <span class="o">=</span> <span class="s2">&quot;grid&quot;</span>
 
-	<span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_type</span> <span class="o">==</span> <span class="s2">&quot;grid&quot;</span><span class="p">:</span>
 			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_config</span><span class="o">.</span><span class="n">validate</span><span class="p">():</span>
 				<span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">starter</span><span class="p">()</span>
@@ -180,13 +157,10 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">dismiss</span><span class="p">()</span></div>
 
 
-
-<div class="viewcode-block" id="DirPicker">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.DirPicker">[docs]</a>
-<span class="k">class</span> <span class="nc">DirPicker</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+<div class="viewcode-block" id="DirPicker"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.menu.DirPicker">[docs]</a><span class="k">class</span> <span class="nc">DirPicker</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 	<span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">starting_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
 		<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 		<span class="k">if</span> <span class="s2">&quot;world.db&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
@@ -207,8 +181,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 
-
-<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="n">load_string_once</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">#: import os os</span>
 <span class="s2">&lt;GeneratorButton&gt;:</span>
 <span class="s2">	size_hint_y: None</span>
@@ -298,7 +271,7 @@
   </ul></li>
 </ul>
 </div>
-<search id="searchbox" style="display: none" role="search">
+<div id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
@@ -306,7 +279,7 @@
       <input type="submit" value="Go" />
     </form>
     </div>
-</search>
+</div>
 <script>document.getElementById('searchbox').style.display = "block"</script>
 
 
@@ -321,11 +294,11 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &#169;Zachary Spector.
+      &copy;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

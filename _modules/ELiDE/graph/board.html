@@ -1,24 +1,22 @@
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="../../../">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.graph.board &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../../_static/documentation_options.js?v=fbc7b204"></script>
-    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=acd72292"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
    
   <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
   
-
   
-  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head><body>
   
@@ -62,7 +60,7 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
 <span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
-<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">mainthread</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">mainthread</span><span class="p">,</span> <span class="n">triggered</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.image</span> <span class="kn">import</span> <span class="n">Image</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.relativelayout</span> <span class="kn">import</span> <span class="n">RelativeLayout</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="kn">import</span> <span class="n">FloatLayout</span>
@@ -81,14 +79,14 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.pawn</span> <span class="kn">import</span> <span class="n">Pawn</span>
 <span class="kn">from</span> <span class="nn">..dummy</span> <span class="kn">import</span> <span class="n">Dummy</span>
-<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="n">trigger</span>
 <span class="kn">from</span> <span class="nn">..boardview</span> <span class="kn">import</span> <span class="n">BoardView</span>
 <span class="kn">from</span> <span class="nn">..boardscatter</span> <span class="kn">import</span> <span class="n">BoardScatterPlane</span>
 
+<span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+	<span class="k">return</span> <span class="n">triggered</span><span class="p">()(</span><span class="n">func</span><span class="p">)</span>
 
-<div class="viewcode-block" id="KvLayoutBack">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.KvLayoutBack">[docs]</a>
-<span class="k">class</span> <span class="nc">KvLayoutBack</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
+
+<div class="viewcode-block" id="KvLayoutBack"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.KvLayoutBack">[docs]</a><span class="k">class</span> <span class="nc">KvLayoutBack</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;What to show behind the graph.</span>
 
 <span class="sd">	By default, shows nothing.</span>
@@ -96,10 +94,7 @@
 <span class="sd">	&quot;&quot;&quot;</span></div>
 
 
-
-<div class="viewcode-block" id="KvLayoutFront">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.KvLayoutFront">[docs]</a>
-<span class="k">class</span> <span class="nc">KvLayoutFront</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
+<div class="viewcode-block" id="KvLayoutFront"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.KvLayoutFront">[docs]</a><span class="k">class</span> <span class="nc">KvLayoutFront</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;What to show in front of the graph.</span>
 
 <span class="sd">	By default, shows nothing.</span>
@@ -109,17 +104,13 @@
 	<span class="k">pass</span></div>
 
 
-
-<div class="viewcode-block" id="FinalLayout">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.FinalLayout">[docs]</a>
-<span class="k">class</span> <span class="nc">FinalLayout</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
+<div class="viewcode-block" id="FinalLayout"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.FinalLayout">[docs]</a><span class="k">class</span> <span class="nc">FinalLayout</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
 	<span class="k">def</span> <span class="nf">finalize_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
 			<span class="n">child</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">children</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_finalize_all</span><span class="p">)</span>
 
 	<span class="n">_trigger_finalize_all</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">finalize_all</span><span class="p">)</span></div>
-
 
 
 <span class="k">def</span> <span class="nf">get_label_kwargs_from_portal</span><span class="p">(</span><span class="n">portal</span><span class="p">):</span>
@@ -130,9 +121,7 @@
 	<span class="p">}</span>
 
 
-<div class="viewcode-block" id="GraphBoard">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard">[docs]</a>
-<span class="k">class</span> <span class="nc">GraphBoard</span><span class="p">(</span><span class="n">RelativeLayout</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard">[docs]</a><span class="k">class</span> <span class="nc">GraphBoard</span><span class="p">(</span><span class="n">RelativeLayout</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A graphical view onto a :class:`LiSE.Character`, resembling a game</span>
 <span class="sd">	graph.</span>
 
@@ -176,9 +165,7 @@
 	<span class="k">def</span> <span class="nf">widkwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="p">{</span><span class="s2">&quot;size_hint&quot;</span><span class="p">:</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="s2">&quot;pos&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)}</span>
 
-<div class="viewcode-block" id="GraphBoard.on_touch_down">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.on_touch_down">[docs]</a>
-	<span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.on_touch_down"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.on_touch_down">[docs]</a>	<span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Check for collisions and select an appropriate entity.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_lasttouch&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lasttouch</span> <span class="o">==</span> <span class="n">touch</span><span class="p">:</span>
 			<span class="k">return</span>
@@ -244,10 +231,7 @@
 			<span class="k">return</span> <span class="kc">True</span>
 		<span class="n">touch</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
-
-<div class="viewcode-block" id="GraphBoard.on_touch_move">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.on_touch_move">[docs]</a>
-	<span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.on_touch_move"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.on_touch_move">[docs]</a>	<span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;If an entity is selected, drag it.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_lasttouch&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lasttouch</span> <span class="o">==</span> <span class="n">touch</span><span class="p">:</span>
 			<span class="k">return</span>
@@ -286,10 +270,7 @@
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;protoportal2&quot;</span><span class="p">):</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">protoportal2</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">()</span></div>
 
-
-<div class="viewcode-block" id="GraphBoard.portal_touch_up">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.portal_touch_up">[docs]</a>
-	<span class="k">def</span> <span class="nf">portal_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.portal_touch_up"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.portal_touch_up">[docs]</a>	<span class="k">def</span> <span class="nf">portal_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Try to create a portal between the spots the user chose.&quot;&quot;&quot;</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="c1"># If the touch ended upon a spot, and there isn&#39;t</span>
@@ -347,10 +328,7 @@
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">protoportal2</span>
 		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">protodest</span></div>
 
-
-<div class="viewcode-block" id="GraphBoard.on_touch_up">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.on_touch_up">[docs]</a>
-	<span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.on_touch_up"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.on_touch_up">[docs]</a>	<span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Delegate touch handling if possible, else select something.&quot;&quot;&quot;</span>
 
 		<span class="k">def</span> <span class="nf">unsel_graph_arrow</span><span class="p">():</span>
@@ -445,7 +423,6 @@
 		<span class="n">touch</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 		<span class="k">return</span></div>
 
-
 	<span class="k">def</span> <span class="nf">_pull_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wallpaper</span><span class="o">.</span><span class="n">texture</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_size</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">)</span>
@@ -456,9 +433,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">wallpaper</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wallpaper_path</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_pull_size</span><span class="p">()</span>
 
-<div class="viewcode-block" id="GraphBoard.on_parent">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.on_parent">[docs]</a>
-	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.on_parent"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.on_parent">[docs]</a>	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Create some subwidgets and trigger the first update.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_parented&quot;</span><span class="p">):</span>
 			<span class="k">return</span>
@@ -481,7 +456,6 @@
 			<span class="k">if</span> <span class="n">wid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">wallpaper</span><span class="p">:</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">wid</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span></div>
-
 
 	<span class="k">def</span> <span class="nf">on_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -533,9 +507,7 @@
 		<span class="k">for</span> <span class="n">wid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">wids</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
 
-<div class="viewcode-block" id="GraphBoard.make_pawn">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.make_pawn">[docs]</a>
-	<span class="k">def</span> <span class="nf">make_pawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.make_pawn"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.make_pawn">[docs]</a>	<span class="k">def</span> <span class="nf">make_pawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a :class:`Pawn` to represent a :class:`Thing`, store it, and</span>
 <span class="sd">		return a dict suitable for `StackPlane.add_datum`</span>
 
@@ -565,10 +537,7 @@
 			<span class="s2">&quot;textures&quot;</span><span class="p">:</span> <span class="n">texs</span><span class="p">,</span>
 		<span class="p">}</span></div>
 
-
-<div class="viewcode-block" id="GraphBoard.make_spot">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.make_spot">[docs]</a>
-	<span class="k">def</span> <span class="nf">make_spot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.make_spot"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.make_spot">[docs]</a>	<span class="k">def</span> <span class="nf">make_spot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a :class:`Spot` to represent a :class:`Place`, store it, and</span>
 <span class="sd">		return a dict suitable for `StackPlane.add_datum`</span>
 
@@ -595,7 +564,6 @@
 			<span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">place</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
 			<span class="s2">&quot;textures&quot;</span><span class="p">:</span> <span class="n">texs</span><span class="p">,</span>
 		<span class="p">}</span></div>
-
 
 	<span class="k">def</span> <span class="nf">make_arrow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">portal</span><span class="p">):</span>
 		<span class="k">if</span> <span class="p">(</span>
@@ -637,9 +605,7 @@
 			<span class="k">for</span> <span class="n">orig</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pred_arrow</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">rm_arrow</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 
-<div class="viewcode-block" id="GraphBoard.rm_pawn">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.rm_pawn">[docs]</a>
-	<span class="k">def</span> <span class="nf">rm_pawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.rm_pawn"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.rm_pawn">[docs]</a>	<span class="k">def</span> <span class="nf">rm_pawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove the :class:`Pawn` by the given name.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No Pawn named </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
@@ -651,13 +617,10 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">selection_candidates</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">pwn</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
-
 	<span class="k">def</span> <span class="nf">_trigger_rm_pawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
 		<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rm_pawn</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
 
-<div class="viewcode-block" id="GraphBoard.rm_spot">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.rm_spot">[docs]</a>
-	<span class="k">def</span> <span class="nf">rm_spot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.rm_spot"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.rm_spot">[docs]</a>	<span class="k">def</span> <span class="nf">rm_spot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove the :class:`Spot` by the given name.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No Spot named </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
@@ -674,16 +637,13 @@
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_rm_spot</span><span class="p">:</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_rm_spot</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
 
-
 	<span class="k">def</span> <span class="nf">_trigger_rm_spot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
 		<span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rm_spot</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_rm_spot</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_rm_spot</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_rm_spot</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-<div class="viewcode-block" id="GraphBoard.rm_arrow">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.rm_arrow">[docs]</a>
-	<span class="k">def</span> <span class="nf">rm_arrow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.rm_arrow"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.rm_arrow">[docs]</a>	<span class="k">def</span> <span class="nf">rm_arrow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove the :class:`Arrow` that goes from ``orig`` to ``dest``.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">orig</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span> <span class="ow">or</span> <span class="n">dest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">orig</span><span class="p">]:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No Arrow from </span><span class="si">{}</span><span class="s2"> to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">))</span>
@@ -693,7 +653,6 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">arrow_plane</span><span class="o">.</span><span class="n">remove_edge</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
 		<span class="k">if</span> <span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_rm_arrow</span><span class="p">:</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_rm_arrow</span><span class="p">[</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">]</span></div>
-
 
 	<span class="k">def</span> <span class="nf">_trigger_rm_arrow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
 		<span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rm_arrow</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
@@ -955,9 +914,7 @@
 			<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_trigger_redraw</span>
 		<span class="p">)</span>
 
-<div class="viewcode-block" id="GraphBoard.update">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.update">[docs]</a>
-	<span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.update"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.update">[docs]</a>	<span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Force an update to match the current state of my character.</span>
 
 <span class="sd">		This polls every element of the character, and therefore</span>
@@ -994,7 +951,6 @@
 		<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
 			<span class="sa">f</span><span class="s2">&quot;GraphBoard: updated, took </span><span class="si">{</span><span class="n">monotonic</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start_ts</span><span class="si">:</span><span class="s2">,.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span>
 		<span class="p">)</span></div>
-
 
 	<span class="n">trigger_update</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">update</span><span class="p">)</span>
 
@@ -1044,17 +1000,11 @@
 			<span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;_image_paths&quot;</span><span class="p">:</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">value</span>
 
-<div class="viewcode-block" id="GraphBoard.update_spot_display">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.update_spot_display">[docs]</a>
-	<span class="k">def</span> <span class="nf">update_spot_display</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.update_spot_display"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.update_spot_display">[docs]</a>	<span class="k">def</span> <span class="nf">update_spot_display</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Change spot graphics to match the state of their place&quot;&quot;&quot;</span></div>
 
-
-<div class="viewcode-block" id="GraphBoard.update_pawn_display">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.update_pawn_display">[docs]</a>
-	<span class="k">def</span> <span class="nf">update_pawn_display</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.update_pawn_display"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.update_pawn_display">[docs]</a>	<span class="k">def</span> <span class="nf">update_pawn_display</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Change pawn graphics to match the state of their thing&quot;&quot;&quot;</span></div>
-
 
 	<span class="k">def</span> <span class="nf">update_from_character_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">edge</span><span class="p">:</span>
@@ -1080,11 +1030,8 @@
 		<span class="k">else</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">arrow_plane</span><span class="o">.</span><span class="n">remove_edge</span><span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">_origin</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">_destination</span><span class="p">)</span>
 
-<div class="viewcode-block" id="GraphBoard.update_arrow_display">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.update_arrow_display">[docs]</a>
-	<span class="k">def</span> <span class="nf">update_arrow_display</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.update_arrow_display"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.update_arrow_display">[docs]</a>	<span class="k">def</span> <span class="nf">update_arrow_display</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Change arrow graphics to match the state of their portal&quot;&quot;&quot;</span></div>
-
 
 	<span class="k">def</span> <span class="nf">_apply_node_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">spot</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -1133,48 +1080,33 @@
 			<span class="k">del</span> <span class="n">spots_only</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="n">place</span><span class="p">]</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_node_layout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph_layout</span><span class="p">(</span><span class="n">spots_only</span><span class="p">),</span> <span class="n">spots</span><span class="p">)</span>
 
-<div class="viewcode-block" id="GraphBoard.arrows">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.arrows">[docs]</a>
-	<span class="k">def</span> <span class="nf">arrows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.arrows"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.arrows">[docs]</a>	<span class="k">def</span> <span class="nf">arrows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over all my arrows.&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
 			<span class="k">for</span> <span class="n">arro</span> <span class="ow">in</span> <span class="n">o</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
 				<span class="k">yield</span> <span class="n">arro</span></div>
 
-
-<div class="viewcode-block" id="GraphBoard.pawns_at">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.pawns_at">[docs]</a>
-	<span class="k">def</span> <span class="nf">pawns_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.pawns_at"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.pawns_at">[docs]</a>	<span class="k">def</span> <span class="nf">pawns_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over pawns that collide the given point.&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">iter_collided_keys</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 		<span class="p">):</span>
 			<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">pawn</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
 
-
-<div class="viewcode-block" id="GraphBoard.spots_at">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.spots_at">[docs]</a>
-	<span class="k">def</span> <span class="nf">spots_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.spots_at"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.spots_at">[docs]</a>	<span class="k">def</span> <span class="nf">spots_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over spots that collide the given point.&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">iter_collided_keys</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 		<span class="p">):</span>
 			<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">spot</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
 
-
-<div class="viewcode-block" id="GraphBoard.arrows_at">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.arrows_at">[docs]</a>
-	<span class="k">def</span> <span class="nf">arrows_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoard.arrows_at"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoard.arrows_at">[docs]</a>	<span class="k">def</span> <span class="nf">arrows_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over arrows that collide the given point.&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow_plane</span><span class="o">.</span><span class="n">iter_collided_edges</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-			<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span></div>
-</div>
+			<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">arrow</span><span class="p">[</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span></div></div>
 
 
-
-<div class="viewcode-block" id="GraphBoardScatterPlane">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoardScatterPlane">[docs]</a>
-<span class="k">class</span> <span class="nc">GraphBoardScatterPlane</span><span class="p">(</span><span class="n">BoardScatterPlane</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoardScatterPlane"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoardScatterPlane">[docs]</a><span class="k">class</span> <span class="nc">GraphBoardScatterPlane</span><span class="p">(</span><span class="n">BoardScatterPlane</span><span class="p">):</span>
 	<span class="n">selection_candidates</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([])</span>
 	<span class="n">selection</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 	<span class="n">keep_selection</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
@@ -1182,9 +1114,7 @@
 	<span class="n">adding_portal</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 	<span class="n">reciprocal_portal</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">()</span>
 
-<div class="viewcode-block" id="GraphBoardScatterPlane.spot_from_dummy">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoardScatterPlane.spot_from_dummy">[docs]</a>
-	<span class="k">def</span> <span class="nf">spot_from_dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dummy</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoardScatterPlane.spot_from_dummy"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoardScatterPlane.spot_from_dummy">[docs]</a>	<span class="k">def</span> <span class="nf">spot_from_dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dummy</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a real place and its spot from a dummy spot.</span>
 
 <span class="sd">		Create a new :class:`graph.Spot` instance, along with the</span>
@@ -1200,10 +1130,7 @@
 		<span class="p">)</span>
 		<span class="n">dummy</span><span class="o">.</span><span class="n">num</span> <span class="o">+=</span> <span class="mi">1</span></div>
 
-
-<div class="viewcode-block" id="GraphBoardScatterPlane.pawn_from_dummy">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoardScatterPlane.pawn_from_dummy">[docs]</a>
-	<span class="k">def</span> <span class="nf">pawn_from_dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dummy</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoardScatterPlane.pawn_from_dummy"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoardScatterPlane.pawn_from_dummy">[docs]</a>	<span class="k">def</span> <span class="nf">pawn_from_dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dummy</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a real thing and its pawn from a dummy pawn.</span>
 
 <span class="sd">		Create a new :class:`graph.Pawn` instance, along with the</span>
@@ -1232,7 +1159,6 @@
 		<span class="p">)</span>
 		<span class="n">dummy</span><span class="o">.</span><span class="n">num</span> <span class="o">+=</span> <span class="mi">1</span></div>
 
-
 	<span class="k">def</span> <span class="nf">on_board</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_oldboard&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span>
@@ -1250,10 +1176,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_oldboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span></div>
 
 
-
-<div class="viewcode-block" id="GraphBoardView">
-<a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoardView">[docs]</a>
-<span class="k">class</span> <span class="nc">GraphBoardView</span><span class="p">(</span><span class="n">BoardView</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphBoardView"><a class="viewcode-back" href="../../../ELiDE/index.html#ELiDE.graph.board.GraphBoardView">[docs]</a><span class="k">class</span> <span class="nc">GraphBoardView</span><span class="p">(</span><span class="n">BoardView</span><span class="p">):</span>
 	<span class="n">adding_portal</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 	<span class="n">reciprocal_portal</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 	<span class="n">engine</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -1269,7 +1192,6 @@
 			<span class="k">return</span>
 		<span class="n">character</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">board</span> <span class="o">=</span> <span class="n">GraphBoard</span><span class="p">(</span><span class="n">character</span><span class="o">=</span><span class="n">character</span><span class="p">)</span></div>
-
 
 
 <span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
@@ -1292,7 +1214,7 @@
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="../../../index.html">LiSE</a></h1>
 
@@ -1303,16 +1225,7 @@
 
 
 
-
-<search id="searchbox" style="display: none" role="search">
-    <div class="searchformwrapper">
-    <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Introduction</a></li>
@@ -1336,6 +1249,16 @@
   </ul></li>
 </ul>
 </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -1349,11 +1272,11 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &#169;Zachary Spector.
+      &copy;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

@@ -1,24 +1,22 @@
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="../../">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ELiDE.stores &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=fbc7b204"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=acd72292"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   
-
   
-  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head><body>
   
@@ -62,8 +60,7 @@
 <span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">indent</span><span class="p">,</span> <span class="n">dedent</span>
 
 <span class="kn">from</span> <span class="nn">kivy.app</span> <span class="kn">import</span> <span class="n">App</span>
-<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
-<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">triggered</span>
 <span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="kn">import</span> <span class="n">BoxLayout</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.recycleview</span> <span class="kn">import</span> <span class="n">RecycleView</span>
@@ -71,7 +68,6 @@
 <span class="kn">from</span> <span class="nn">kivy.uix.textinput</span> <span class="kn">import</span> <span class="n">TextInput</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.recycleview.views</span> <span class="kn">import</span> <span class="n">RecycleDataViewBehavior</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.togglebutton</span> <span class="kn">import</span> <span class="n">ToggleButton</span>
-
 <span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
 	<span class="n">AliasProperty</span><span class="p">,</span>
 	<span class="n">BooleanProperty</span><span class="p">,</span>
@@ -80,22 +76,22 @@
 	<span class="n">ObjectProperty</span><span class="p">,</span>
 	<span class="n">StringProperty</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">trigger</span>
+
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">load_string_once</span>
 
 
-<div class="viewcode-block" id="RecycleToggleButton">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.RecycleToggleButton">[docs]</a>
-<span class="k">class</span> <span class="nc">RecycleToggleButton</span><span class="p">(</span><span class="n">ToggleButton</span><span class="p">,</span> <span class="n">RecycleDataViewBehavior</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+	<span class="k">return</span> <span class="n">triggered</span><span class="p">()(</span><span class="n">func</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="RecycleToggleButton"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.RecycleToggleButton">[docs]</a><span class="k">class</span> <span class="nc">RecycleToggleButton</span><span class="p">(</span><span class="n">ToggleButton</span><span class="p">,</span> <span class="n">RecycleDataViewBehavior</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Toggle button at some index in a RecycleView&quot;&quot;&quot;</span>
 
 	<span class="n">index</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">()</span>
 
-<div class="viewcode-block" id="RecycleToggleButton.on_touch_down">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.RecycleToggleButton.on_touch_down">[docs]</a>
-	<span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
+<div class="viewcode-block" id="RecycleToggleButton.on_touch_down"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.RecycleToggleButton.on_touch_down">[docs]</a>	<span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">select_with_touch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
-
 
 	<span class="k">def</span> <span class="nf">apply_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rv</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">is_selected</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">is_selected</span> <span class="ow">and</span> <span class="n">index</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
@@ -104,10 +100,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="s2">&quot;normal&quot;</span></div>
 
 
-
-<div class="viewcode-block" id="StoreButton">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StoreButton">[docs]</a>
-<span class="k">class</span> <span class="nc">StoreButton</span><span class="p">(</span><span class="n">RecycleToggleButton</span><span class="p">):</span>
+<div class="viewcode-block" id="StoreButton"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StoreButton">[docs]</a><span class="k">class</span> <span class="nc">StoreButton</span><span class="p">(</span><span class="n">RecycleToggleButton</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;RecycleToggleButton to select something to edit in a Store&quot;&quot;&quot;</span>
 
 	<span class="n">store</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -119,20 +112,17 @@
 	<span class="n">select</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Function that gets called with my ``index`` when I&#39;m selected&quot;&quot;&quot;</span>
 
-	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;+&quot;</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="s2">&quot;down&quot;</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="StoreList">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StoreList">[docs]</a>
-<span class="k">class</span> <span class="nc">StoreList</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
+<div class="viewcode-block" id="StoreList"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StoreList">[docs]</a><span class="k">class</span> <span class="nc">StoreList</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Holder for a :class:`kivy.uix.listview.ListView` that shows what&#39;s</span>
 <span class="sd">	in a store, using one of the StoreAdapter classes.</span>
 
@@ -150,14 +140,14 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_name2i</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">on_store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redata</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">redata</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="nf">on_boxl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_boxl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">boxl</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">selected_nodes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_selection</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">_pull_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_pull_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">boxl</span><span class="o">.</span><span class="n">selected_nodes</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">selection_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i2name</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">boxl</span><span class="o">.</span><span class="n">selected_nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
@@ -178,9 +168,7 @@
 		<span class="k">yield</span> <span class="s2">&quot;+&quot;</span>
 		<span class="k">yield from</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
-<div class="viewcode-block" id="StoreList.redata">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StoreList.redata">[docs]</a>
-	<span class="k">def</span> <span class="nf">redata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="StoreList.redata"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StoreList.redata">[docs]</a>	<span class="k">def</span> <span class="nf">redata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Update my ``data`` to match what&#39;s in my ``store``&quot;&quot;&quot;</span>
 		<span class="n">select_name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;select_name&quot;</span><span class="p">)</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">:</span>
@@ -190,19 +178,15 @@
 		<span class="k">if</span> <span class="n">select_name</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_select_name</span><span class="p">(</span><span class="n">select_name</span><span class="p">)</span></div>
 
-
 	<span class="k">def</span> <span class="nf">_trigger_redata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">redata</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_scheduled_redata&quot;</span><span class="p">):</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_redata</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_redata</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-<div class="viewcode-block" id="StoreList.select_name">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StoreList.select_name">[docs]</a>
-	<span class="k">def</span> <span class="nf">select_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="StoreList.select_name"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StoreList.select_name">[docs]</a>	<span class="k">def</span> <span class="nf">select_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Select an item by its name, highlighting&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">boxl</span><span class="o">.</span><span class="n">select_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name2i</span><span class="p">[</span><span class="n">name</span><span class="p">])</span></div>
-
 
 	<span class="k">def</span> <span class="nf">_trigger_select_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
 		<span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">select_name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
@@ -211,10 +195,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_select_name</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="LanguageInput">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.LanguageInput">[docs]</a>
-<span class="k">class</span> <span class="nc">LanguageInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
+<div class="viewcode-block" id="LanguageInput"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.LanguageInput">[docs]</a><span class="k">class</span> <span class="nc">LanguageInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Widget to enter the language you want to edit&quot;&quot;&quot;</span>
 
 	<span class="n">screen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -227,10 +208,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span></div>
 
 
-
-<div class="viewcode-block" id="StringsEdScreen">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringsEdScreen">[docs]</a>
-<span class="k">class</span> <span class="nc">StringsEdScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+<div class="viewcode-block" id="StringsEdScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringsEdScreen">[docs]</a><span class="k">class</span> <span class="nc">StringsEdScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A screen in which to edit strings to be presented to humans</span>
 
 <span class="sd">	Needs a ``toggle`` function to switch back to the main screen;</span>
@@ -246,7 +224,7 @@
 	<span class="n">edbox</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Widget containing editors for the current string and its name&quot;&quot;&quot;</span>
 
-	<span class="k">def</span> <span class="nf">on_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">edbox</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_language</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
@@ -254,24 +232,21 @@
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">language</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">language</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">language</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">language</span>
 
-	<span class="k">def</span> <span class="nf">on_store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">language</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">language</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">language</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_language</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">_pull_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">language</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_pull_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="n">language</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">language</span> <span class="o">=</span> <span class="n">language</span>
 
-	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">edbox</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">edbox</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
 
 
-
-<div class="viewcode-block" id="Editor">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.Editor">[docs]</a>
-<span class="k">class</span> <span class="nc">Editor</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+<div class="viewcode-block" id="Editor"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.Editor">[docs]</a><span class="k">class</span> <span class="nc">Editor</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Abstract widget for editing strings or functions&quot;&quot;&quot;</span>
 
 	<span class="n">name_wid</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -286,9 +261,7 @@
 	<span class="n">_trigger_save</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">_trigger_delete</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
-<div class="viewcode-block" id="Editor.save">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.Editor.save">[docs]</a>
-	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="Editor.save"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.Editor.save">[docs]</a>	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Put text in my store, return True if it changed&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_wid</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
@@ -347,10 +320,7 @@
 				<span class="n">do_redata</span> <span class="o">=</span> <span class="kc">True</span>
 		<span class="k">return</span> <span class="n">do_redata</span></div>
 
-
-<div class="viewcode-block" id="Editor.delete">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.Editor.delete">[docs]</a>
-	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="Editor.delete"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.Editor.delete">[docs]</a>	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove the currently selected item from my store&quot;&quot;&quot;</span>
 		<span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_wid</span><span class="o">.</span><span class="n">text</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_wid</span><span class="o">.</span><span class="n">hint_text</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
@@ -360,20 +330,16 @@
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">kee</span> <span class="k">for</span> <span class="n">kee</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">)</span> <span class="k">if</span> <span class="n">kee</span> <span class="o">&gt;</span> <span class="n">key</span><span class="p">)</span>
 		<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-			<span class="k">return</span> <span class="s2">&quot;+&quot;</span></div>
-</div>
+			<span class="k">return</span> <span class="s2">&quot;+&quot;</span></div></div>
 
 
-
-<div class="viewcode-block" id="StringInput">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringInput">[docs]</a>
-<span class="k">class</span> <span class="nc">StringInput</span><span class="p">(</span><span class="n">Editor</span><span class="p">):</span>
+<div class="viewcode-block" id="StringInput"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringInput">[docs]</a><span class="k">class</span> <span class="nc">StringInput</span><span class="p">(</span><span class="n">Editor</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Editor for human-readable strings&quot;&quot;&quot;</span>
 
 	<span class="n">validate_name_input</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Boolean function for checking if a string name is acceptable&quot;&quot;&quot;</span>
 
-	<span class="k">def</span> <span class="nf">on_name_wid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_name_wid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_name_input</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_name_wid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
@@ -383,7 +349,7 @@
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_wid</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_wid</span><span class="o">.</span><span class="n">text</span>
 
-	<span class="k">def</span> <span class="nf">_set_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_set_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_wid</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_name</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
@@ -405,10 +371,7 @@
 	<span class="n">source</span> <span class="o">=</span> <span class="n">AliasProperty</span><span class="p">(</span><span class="n">_get_source</span><span class="p">,</span> <span class="n">_set_source</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="EdBox">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.EdBox">[docs]</a>
-<span class="k">class</span> <span class="nc">EdBox</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+<div class="viewcode-block" id="EdBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.EdBox">[docs]</a><span class="k">class</span> <span class="nc">EdBox</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Box containing most of an editor&#39;s screen</span>
 
 <span class="sd">	Has a StoreList and an Editor, which in turn holds a name field and a big text entry box.</span>
@@ -430,25 +393,25 @@
 	<span class="n">disable_text_input</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Set to ``True`` to prevent entering text in the editor&quot;&quot;&quot;</span>
 
-	<span class="k">def</span> <span class="nf">on_store_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_store_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
 		<span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">engine</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_store_name</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">store</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_name</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">on_storelist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_storelist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">storelist</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">selection_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_from_storelist</span><span class="p">)</span>
 
 	<span class="nd">@trigger</span>
-	<span class="k">def</span> <span class="nf">validate_name_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">validate_name_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">disable_text_input</span> <span class="o">=</span> <span class="ow">not</span> <span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">valid_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">editor</span><span class="o">.</span><span class="n">name_wid</span><span class="o">.</span><span class="n">hint_text</span><span class="p">)</span>
 			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">editor</span><span class="o">.</span><span class="n">name_wid</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
 		<span class="p">)</span>
 
 	<span class="nd">@trigger</span>
-	<span class="k">def</span> <span class="nf">_pull_from_storelist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_pull_from_storelist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 		<span class="c1"># The + button at the top is for adding an entry yet unnamed, so don&#39;t display hint text for it</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">editor</span><span class="o">.</span><span class="n">name_wid</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storelist</span><span class="o">.</span><span class="n">selection_name</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span>
@@ -469,11 +432,11 @@
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_lock_save&quot;</span><span class="p">):</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock_save</span>
 
-	<span class="k">def</span> <span class="nf">dismiss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">dismiss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">editor</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_lock_save&quot;</span><span class="p">):</span>
@@ -490,7 +453,7 @@
 		<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
 		<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">editor</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_lock_save&quot;</span><span class="p">):</span>
@@ -504,14 +467,11 @@
 
 	<span class="n">_trigger_delete</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">delete</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">on_store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">pass</span></div>
 
 
-
-<div class="viewcode-block" id="StringNameInput">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringNameInput">[docs]</a>
-<span class="k">class</span> <span class="nc">StringNameInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
+<div class="viewcode-block" id="StringNameInput"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringNameInput">[docs]</a><span class="k">class</span> <span class="nc">StringNameInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Small text box for the names of strings&quot;&quot;&quot;</span>
 
 	<span class="n">_trigger_save</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -521,10 +481,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="StringsEdBox">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringsEdBox">[docs]</a>
-<span class="k">class</span> <span class="nc">StringsEdBox</span><span class="p">(</span><span class="n">EdBox</span><span class="p">):</span>
+<div class="viewcode-block" id="StringsEdBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.StringsEdBox">[docs]</a><span class="k">class</span> <span class="nc">StringsEdBox</span><span class="p">(</span><span class="n">EdBox</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Box containing most of the strings editing screen</span>
 
 <span class="sd">	Contains the storelist and the editor, which in turn contains the string name input</span>
@@ -543,13 +500,10 @@
 		<span class="k">return</span> <span class="n">name</span> <span class="ow">and</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;+&quot;</span></div>
 
 
-
 <span class="n">sig_ex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^ *def .+?\((.+)\):$&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="FunctionNameInput">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FunctionNameInput">[docs]</a>
-<span class="k">class</span> <span class="nc">FunctionNameInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
+<div class="viewcode-block" id="FunctionNameInput"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FunctionNameInput">[docs]</a><span class="k">class</span> <span class="nc">FunctionNameInput</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Input for the name of a function</span>
 
 <span class="sd">	Filters out illegal characters.</span>
@@ -558,9 +512,7 @@
 
 	<span class="n">_trigger_save</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
-<div class="viewcode-block" id="FunctionNameInput.insert_text">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FunctionNameInput.insert_text">[docs]</a>
-	<span class="k">def</span> <span class="nf">insert_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">from_undo</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="FunctionNameInput.insert_text"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FunctionNameInput.insert_text">[docs]</a>	<span class="k">def</span> <span class="nf">insert_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">from_undo</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
 			<span class="k">if</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span><span class="p">):</span>
 				<span class="k">return</span>
@@ -572,16 +524,12 @@
 			<span class="p">)</span>
 		<span class="p">)</span></div>
 
-
-	<span class="k">def</span> <span class="nf">on_focus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="o">*</span><span class="n">largs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_focus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">val</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="munge_source">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.munge_source">[docs]</a>
-<span class="k">def</span> <span class="nf">munge_source</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+<div class="viewcode-block" id="munge_source"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.munge_source">[docs]</a><span class="k">def</span> <span class="nf">munge_source</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Take Python source code, return a pair of its parameters and the rest of it dedented&quot;&quot;&quot;</span>
 	<span class="n">lines</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 	<span class="k">if</span> <span class="ow">not</span> <span class="n">lines</span><span class="p">:</span>
@@ -604,10 +552,7 @@
 	<span class="k">return</span> <span class="n">params</span><span class="p">,</span> <span class="n">dedent</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">))</span></div>
 
 
-
-<div class="viewcode-block" id="FuncEditor">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FuncEditor">[docs]</a>
-<span class="k">class</span> <span class="nc">FuncEditor</span><span class="p">(</span><span class="n">Editor</span><span class="p">):</span>
+<div class="viewcode-block" id="FuncEditor"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FuncEditor">[docs]</a><span class="k">class</span> <span class="nc">FuncEditor</span><span class="p">(</span><span class="n">Editor</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;The editor widget for working with any particular function.</span>
 
 <span class="sd">	Contains a one-line field for the function&#39;s name and a multi-line</span>
@@ -652,10 +597,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">codeinput</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;_text&quot;</span><span class="p">))</span></div>
 
 
-
-<div class="viewcode-block" id="FuncsEdBox">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FuncsEdBox">[docs]</a>
-<span class="k">class</span> <span class="nc">FuncsEdBox</span><span class="p">(</span><span class="n">EdBox</span><span class="p">):</span>
+<div class="viewcode-block" id="FuncsEdBox"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FuncsEdBox">[docs]</a><span class="k">class</span> <span class="nc">FuncsEdBox</span><span class="p">(</span><span class="n">EdBox</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Widget for editing the Python source of funcs to be used in LiSE sims.</span>
 
 <span class="sd">	Contains a list of functions in the store it&#39;s about, next to a</span>
@@ -675,10 +617,7 @@
 		<span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="FuncsEdScreen">
-<a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FuncsEdScreen">[docs]</a>
-<span class="k">class</span> <span class="nc">FuncsEdScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+<div class="viewcode-block" id="FuncsEdScreen"><a class="viewcode-back" href="../../ELiDE/index.html#ELiDE.stores.FuncsEdScreen">[docs]</a><span class="k">class</span> <span class="nc">FuncsEdScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Screen containing three FuncsEdBox</span>
 
 <span class="sd">	Triggers, prereqs, and actions.</span>
@@ -693,8 +632,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
 
 
-
-<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="n">load_string_once</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">#: import py3lexer pygments.lexers.Python3Lexer</span>
 <span class="s2">&lt;StoreButton&gt;:</span>
 <span class="s2">	size_hint_y: None</span>
@@ -901,7 +839,7 @@
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="../../index.html">LiSE</a></h1>
 
@@ -912,16 +850,7 @@
 
 
 
-
-<search id="searchbox" style="display: none" role="search">
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
@@ -945,6 +874,16 @@
   </ul></li>
 </ul>
 </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -958,11 +897,11 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &#169;Zachary Spector.
+      &copy;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

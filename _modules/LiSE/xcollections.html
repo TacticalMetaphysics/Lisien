@@ -1,24 +1,22 @@
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="../../">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LiSE.xcollections &#8212; LiSE 0.14.0a documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=c058f7c8" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=fbc7b204"></script>
-    <script src="../../_static/doctools.js?v=9a2dae69"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=acd72292"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   
-
   
-  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head><body>
   
@@ -120,9 +118,7 @@
 		<span class="n">inst</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">global_set</span><span class="p">(</span><span class="s2">&quot;language&quot;</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="StringStore">
-<a class="viewcode-back" href="../../LiSE/index.html#LiSE.xcollections.StringStore">[docs]</a>
-<span class="k">class</span> <span class="nc">StringStore</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
+<div class="viewcode-block" id="StringStore"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.xcollections.StringStore">[docs]</a><span class="k">class</span> <span class="nc">StringStore</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 	<span class="n">language</span> <span class="o">=</span> <span class="n">LanguageDescriptor</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">lang</span><span class="o">=</span><span class="s2">&quot;eng&quot;</span><span class="p">):</span>
@@ -186,10 +182,7 @@
 			<span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">,</span> <span class="n">outf</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="FunctionStore">
-<a class="viewcode-back" href="../../LiSE/index.html#LiSE.xcollections.FunctionStore">[docs]</a>
-<span class="k">class</span> <span class="nc">FunctionStore</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
+<div class="viewcode-block" id="FunctionStore"><a class="viewcode-back" href="../../LiSE/index.html#LiSE.xcollections.FunctionStore">[docs]</a><span class="k">class</span> <span class="nc">FunctionStore</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A module-like object that lets you alter its code and save your changes.</span>
 
 <span class="sd">	Instantiate it with a path to a file that you want to keep the code in.</span>
@@ -322,7 +315,6 @@
 		<span class="k">return</span> <span class="kc">True</span></div>
 
 
-
 <span class="k">class</span> <span class="nc">MethodStore</span><span class="p">(</span><span class="n">FunctionStore</span><span class="p">):</span>
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
@@ -396,7 +388,7 @@
 		<span class="kn">from</span> <span class="nn">.character</span> <span class="kn">import</span> <span class="n">Character</span>
 
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
-			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such character&quot;</span><span class="p">)</span>
+			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such character&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 		<span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_graph_objs</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
 			<span class="n">cache</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Character</span><span class="p">(</span>
@@ -478,7 +470,7 @@
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="../../index.html">LiSE</a></h1>
 
@@ -489,16 +481,7 @@
 
 
 
-
-<search id="searchbox" style="display: none" role="search">
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
@@ -522,6 +505,16 @@
   </ul></li>
 </ul>
 </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -535,11 +528,11 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &#169;Zachary Spector.
+      &copy;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.0.2</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 
