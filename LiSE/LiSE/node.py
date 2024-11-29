@@ -70,7 +70,7 @@ class UserMapping(Mapping):
 					if engine._unitness_cache.user_cache.retrieve(
 						charn, nn, user, b, r, t
 					):
-						yield user[0]
+						yield user
 				except KeyError:
 					continue
 
