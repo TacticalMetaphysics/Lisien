@@ -23233,6 +23233,7 @@ KEYFRAME0 = {
 			"stat": None,
 			"stoat": "bitter",
 			"unit_rulebook": ("unit_rulebook", "hello"),
+			"units": {},
 		},
 	},
 	"node_val": {
@@ -23500,7 +23501,7 @@ KEYFRAME1 = {
 		}
 	},
 	"graph_val": {
-		"hello": {"stat": "also"},
+		"hello": {"stat": "also", "units": {}},
 		"physical": {
 			"character_place_rulebook": (
 				"character_place_rulebook",
@@ -23516,6 +23517,7 @@ KEYFRAME1 = {
 				"physical",
 			),
 			"unit_rulebook": ("unit_rulebook", "physical"),
+			"units": {},
 		},
 	},
 	"node_val": {
@@ -23623,6 +23625,7 @@ KEYFRAME1 = {
 			"kobold": {
 				"_image_paths": ["atlas://rltiles/base.atlas/kobold_m"],
 				"location": (9, 9),
+				"rulebook": ("physical", "kobold"),
 				"shrub_places": [
 					(1, 9),
 					(2, 2),
@@ -23652,6 +23655,7 @@ KEYFRAME1 = {
 				"location": (0, 0),
 				"seen_kobold": False,
 				"sight_radius": 2,
+				"rulebook": ("physical", "dwarf"),
 			},
 			"shrub0": {
 				"_group": "shrub",
