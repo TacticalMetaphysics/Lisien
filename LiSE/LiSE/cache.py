@@ -320,9 +320,14 @@ class UnitRulesHandledCache(RulesHandledCache):
 			for graphname in self.engine._unitness_cache.iter_keys(
 				charname, branch, turn, tick
 			):
-				for node, ex in self.engine._unitness_cache.retrieve(
-					charname, graphname, branch, turn, tick
-				).items():
+				# Seems bad that I have to check twice like this.
+				try:
+					existences = self.engine._unitness_cache.retrieve(
+						charname, graphname, branch, turn, tick
+					)
+				except KeyError:
+					continue
+				for node, ex in existences.items():
 					if not ex:
 						continue
 					handled = self.get_handled_rules(
