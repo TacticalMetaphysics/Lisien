@@ -329,8 +329,8 @@ class QueryEngine(object):
 	def execute(self, stmt):
 		if not isinstance(stmt, Select):
 			raise TypeError("Only select statements should be executed")
+		self.flush()
 		with self._holder.lock:
-			self.flush()
 			self._inq.put(stmt)
 			return self._outq.get()
 
