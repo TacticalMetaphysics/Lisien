@@ -1049,9 +1049,9 @@ class CharSuccessorsMappingProxy(CachingProxy):
 
 	@property
 	def _cache(self):
-		if self.name not in self.engine._character_portals_cache.successors:
-			raise KeyError("No successors to this node", self.name)
-		return self.engine._character_portals_cache.successors[self.name]
+		return self.engine._character_portals_cache.successors.setdefault(
+			self.name, {}
+		)
 
 	def __init__(self, engine_proxy, charname):
 		self.engine = engine_proxy
