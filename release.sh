@@ -10,6 +10,7 @@ wine --version
 ls ~/lise_windows
 rm -rf .tox
 python -m tox
+rm -rf .tox
 python -m sphinx . docs/
 rm -rf LiSE/build LiSE/dist
 python -m build LiSE/
