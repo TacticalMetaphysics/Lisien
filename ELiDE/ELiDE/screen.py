@@ -105,27 +105,12 @@ class StatListPanel(BoxLayout):
 
 
 class SimulateButton(ToggleButton):
-	play_arrow_left = NumericProperty()
-	play_arrow_right = NumericProperty()
-	play_arrow_points = ListProperty([0] * 6)
-	graphics_top = NumericProperty()
-	graphics_bot = NumericProperty()
-	graphics_center_y = NumericProperty()
-
 	def on_state(self, *_):
 		app = App.get_running_app()
 		app.edit_locked = app.simulate_button_down = self.state == "down"
 
 
 class OneTurnButton(Button):
-	graphics_top = NumericProperty()
-	graphics_bot = NumericProperty()
-	graphics_center_y = NumericProperty()
-	step_arrow_left = NumericProperty()
-	step_center_x = NumericProperty()
-	step_bar_right = NumericProperty()
-	step_arrow_points = ListProperty([0] * 6)
-	step_rect_points = ListProperty([0] * 8)
 	screen = ObjectProperty()
 
 	def on_release(self):
@@ -655,12 +640,6 @@ load_string_once("""
 		disabled: app.edit_locked
 		on_release: root.toggle_stat_cfg()
 <SimulateButton>:
-	graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
-	graphics_bot: self.y + self.font_size + 3
-	graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
-	play_arrow_left: self.center_x - self.width / 6
-	play_arrow_right: self.center_x + self.width / 6
-	play_arrow_points: self.play_arrow_left, self.graphics_top, self.play_arrow_right, self.graphics_center_y, self.play_arrow_left, self.graphics_bot
 	Image:
 		x: root.center_x - root.width / 3
 		y: root.y + root.font_size + 3
@@ -675,14 +654,6 @@ load_string_once("""
 		size: self.texture_size
 		text: 'Simulate'
 <OneTurnButton>:
-	graphics_top: self.y + self.font_size + (self.height - self.font_size) * (3/4)
-	graphics_bot: self.y + self.font_size + 3
-	graphics_center_y: self.graphics_bot + (self.graphics_top - self.graphics_bot) / 2
-	step_arrow_left: self.center_x - (self.width / 6)
-	step_center_x: self.center_x + self.width / 6
-	step_bar_right: self.center_x + self.width / 4
-	step_arrow_points: self.step_arrow_left, self.graphics_top, self.step_center_x, self.graphics_center_y, self.step_arrow_left, self.graphics_bot
-	step_rect_points: self.step_center_x, self.graphics_top, self.step_bar_right, self.graphics_top, self.step_bar_right, self.graphics_bot, self.step_center_x, self.graphics_bot
 	Image:
 		x: root.center_x - (root.width / 3)
 		y: root.y + root.font_size + 3
