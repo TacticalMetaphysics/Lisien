@@ -61,6 +61,7 @@ from ELiDE.grid.board import GridBoard
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
 resource_add_path(ELiDE.__path__[0] + "/assets/rltiles")
+resource_add_path(ELiDE.__path__[0] + "/assets/kenney1bit")
 
 
 def trigger(func):
@@ -230,6 +231,7 @@ class ELiDEApp(App):
 				"play_speed": "1",
 				"thing_graphics": json.dumps(
 					[
+						("Kenney: 1 bit", "kenney1bit.atlas"),
 						("RLTiles: Body", "base.atlas"),
 						("RLTiles: Basic clothes", "body.atlas"),
 						("RLTiles: Armwear", "arm.atlas"),
@@ -244,6 +246,7 @@ class ELiDEApp(App):
 				),
 				"place_graphics": json.dumps(
 					[
+						("Kenney: 1 bit", "kenney1bit.atlas"),
 						("RLTiles: Dungeon", "dungeon.atlas"),
 						("RLTiles: Floor", "floor.atlas"),
 					]
