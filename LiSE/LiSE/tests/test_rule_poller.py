@@ -38,3 +38,33 @@ def test_unit_rule_poll(engy):
 	assert unit["run"]
 	assert "run" not in notunit1
 	assert "run" not in notunit2
+
+
+def test_character_thing_rule_poll(engy):
+	phys = engy.new_character("physical")
+	notphys = engy.new_character("ethereal")
+
+	there = phys.new_place("there")
+	this = there.new_thing("this")
+	that = there.new_thing("that")
+
+	yonder = notphys.new_place("yonder")
+	thother = yonder.new_thing("thother")
+
+	@phys.thing.rule(always=True)
+	def rule1(thing):
+		thing["run"] = True
+
+	@phys.thing.rule
+	def rule2(thing):
+		thing["notrun"] = False
+
+	engy.next_turn()
+
+	assert this["run"]
+	assert that["run"]
+	assert "notrun" not in that
+	assert "run" not in thother
+	assert "run" not in there
+	assert "run" not in yonder
+
