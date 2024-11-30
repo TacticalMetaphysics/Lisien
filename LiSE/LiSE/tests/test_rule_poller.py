@@ -68,3 +68,28 @@ def test_character_thing_rule_poll(engy):
 	assert "run" not in there
 	assert "run" not in yonder
 
+
+def test_character_place_rule_poll(engy):
+	phys = engy.new_character("physical")
+	notphys = engy.new_character("ethereal")
+
+	here = phys.new_place("here")
+	there = phys.new_place("there")
+
+	nowhere = notphys.new_place("nowhere")
+
+	@phys.place.rule(always=True)
+	def rule1(place):
+		place["run"] = True
+
+	@notphys.place.rule
+	def rule2(place):
+		place["notrun"] = False
+
+	engy.next_turn()
+
+	assert here["run"]
+	assert there["run"]
+	assert "run" not in nowhere
+	assert "notrun" not in here
+	assert "notrun" not in there
