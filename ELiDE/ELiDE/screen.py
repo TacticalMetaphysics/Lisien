@@ -661,11 +661,12 @@ load_string_once("""
 	play_arrow_left: self.center_x - self.width / 6
 	play_arrow_right: self.center_x + self.width / 6
 	play_arrow_points: self.play_arrow_left, self.graphics_top, self.play_arrow_right, self.graphics_center_y, self.play_arrow_left, self.graphics_bot
-	canvas:
-		Triangle:
-			points: root.play_arrow_points
-		SmoothLine:
-			points: root.play_arrow_points[:-2] + [root.play_arrow_points[-2]+1, root.play_arrow_points[-1]+1]
+	Image:
+		x: root.center_x - root.width / 3
+		y: root.y + root.font_size + 3
+		width: root.width / 1.5
+		height: root.height / 1.5
+		source: 'right.png'
 	Label:
 		id: playlabel
 		font_size: root.font_size
@@ -682,15 +683,12 @@ load_string_once("""
 	step_bar_right: self.center_x + self.width / 4
 	step_arrow_points: self.step_arrow_left, self.graphics_top, self.step_center_x, self.graphics_center_y, self.step_arrow_left, self.graphics_bot
 	step_rect_points: self.step_center_x, self.graphics_top, self.step_bar_right, self.graphics_top, self.step_bar_right, self.graphics_bot, self.step_center_x, self.graphics_bot
-	canvas:
-		Triangle:
-			points: root.step_arrow_points
-		Quad:
-			points: root.step_rect_points 
-		SmoothLine:
-			points: root.step_arrow_points
-		SmoothLine:
-			points: root.step_rect_points 
+	Image:
+		x: root.center_x - (root.width / 3)
+		y: root.y + root.font_size + 3
+		width: root.width / 1.5
+		height: root.height / 1.5
+		source: 'next.png' 
 	Label:
 		font_size: root.font_size
 		center_x: root.center_x
