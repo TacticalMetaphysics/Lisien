@@ -31,8 +31,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://tacticalmetaphysics.github.io/LiSE/"
-"Bug Tracker" = "https://github.com/TacticalMetaphysics/LiSE/issues"
+"Homepage" = "https://codeberg.org/clayote/LiSE"
+"Bug Tracker" = "https://codeberg.org/clayote/LiSE/issues"
 
 [tool.pytest.ini_options]
 markers = [
