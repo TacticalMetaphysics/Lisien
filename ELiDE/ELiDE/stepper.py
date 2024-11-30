@@ -34,48 +34,43 @@ class RuleStepper(RecycleView):
 				"height": 40,
 			}
 		]
+		all_rules = []
+		for rbtyp, rules in rules_handled_turn.items():
+			for tick, rule in rules.items():
+				all_rules.append((tick, rbtyp, rule))
+		all_rules.sort()
 		prev_tick = 0
-		for rbtyp, rules in sorted(
-			rules_handled_turn.items(),
-			key=lambda kv: min(kv[1].keys() or [-1]),
-		):
-			if not rules:
-				continue
-			last_entity = None
-			last_rulebook = None
-			typed = False
-			for tick, (entity, rulebook, rule) in sorted(rules.items()):
-				if tick == prev_tick:
-					continue
-				if not typed:
-					data.append({"widget": "RulebookTypeLabel", "name": rbtyp})
-					typed = True
-				rulebook_per_entity = rbtyp in {"thing", "place", "portal"}
-				if not rulebook_per_entity:
-					if rulebook != last_rulebook:
-						last_rulebook = rulebook
-						data.append(
-							{"widget": "RulebookLabel", "name": rulebook}
-						)
-				if entity != last_entity:
-					last_entity = entity
-					data.append({"widget": "EntityLabel", "name": entity})
-				if rulebook_per_entity:
-					if rulebook != last_rulebook:
-						rulebook = last_rulebook
-						data.append(
-							{"widget": "RulebookLabel", "name": rulebook}
-						)
-				data.append(
-					{
-						"widget": "RuleStepperRuleButton",
-						"name": rule,
-						"start_tick": prev_tick,
-						"end_tick": tick,
-						"height": 40,
-					}
-				)
-				prev_tick = tick
+		last_entity = None
+		last_rulebook = None
+		lasttyp = None
+		for tick, rbtyp, (entity, rulebook, rule) in all_rules:
+			if tick == prev_tick:
+				continue  # Rules that aren't triggered are still "handled". Ignore them.
+			if lasttyp != rbtyp:
+				data.append({"widget": "RulebookTypeLabel", "name": rbtyp})
+			lasttyp = rbtyp
+			rulebook_per_entity = rbtyp in {"thing", "place", "portal"}
+			if not rulebook_per_entity:
+				if rulebook != last_rulebook:
+					last_rulebook = rulebook
+					data.append({"widget": "RulebookLabel", "name": rulebook})
+			if entity != last_entity:
+				last_entity = entity
+				data.append({"widget": "EntityLabel", "name": entity})
+			if rulebook_per_entity:
+				if rulebook != last_rulebook:
+					rulebook = last_rulebook
+					data.append({"widget": "RulebookLabel", "name": rulebook})
+			data.append(
+				{
+					"widget": "RuleStepperRuleButton",
+					"name": rule,
+					"start_tick": prev_tick,
+					"end_tick": tick,
+					"height": 40,
+				}
+			)
+			prev_tick = tick
 		self.data = data
 
 
