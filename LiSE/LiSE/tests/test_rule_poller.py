@@ -93,3 +93,36 @@ def test_character_place_rule_poll(engy):
 	assert "run" not in nowhere
 	assert "notrun" not in here
 	assert "notrun" not in there
+
+
+def test_character_portal_rule_poll(engy):
+	phys = engy.new_character("physical")
+	nonphys = engy.new_character("ethereal")
+
+	place0 = phys.new_place(0)
+	place1 = phys.new_place(1)
+	portl0 = place0.new_portal(place1)
+	place2 = phys.new_place(2)
+	portl1 = place1.new_portal(place2)
+
+	nonplace0 = nonphys.new_place(0)
+	nonplace1 = nonphys.new_place(1)
+	nonportl = nonplace0.new_portal(nonplace1)
+
+	@phys.portal.rule(always=True)
+	def rule0(portal):
+		portal["run"] = True
+
+	@phys.portal.rule
+	def rule1(portal):
+		portal["notrun"] = False
+
+	engy.next_turn()
+
+	assert portl0["run"]
+	assert portl1["run"]
+	assert "run" not in nonportl
+	assert "notrun" not in portl0
+	assert "notrun" not in portl1
+	assert "notrun" not in nonportl
+
