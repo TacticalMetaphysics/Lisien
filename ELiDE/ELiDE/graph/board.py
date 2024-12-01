@@ -17,7 +17,6 @@
 from functools import partial
 from time import monotonic
 
-from kivy.app import App
 from kivy.properties import (
 	BooleanProperty,
 	ReferenceListProperty,
