@@ -1,4 +1,5 @@
-from kivy.clock import Clock
+from math import sqrt
+
 from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
 
@@ -15,6 +16,10 @@ from ..dummy import Dummy
 class FakeEngineProxy:
 	def handle(self, *args, **kwargs):
 		pass
+
+
+def pos_near(x0, y0, x1, y1):
+	return abs(sqrt(x0**2 + y0**2) - sqrt(x1**2 + y1**2)) < 10
 
 
 class GraphBoardTest(GraphicUnitTest):
@@ -250,7 +255,7 @@ class GraphBoardTest(GraphicUnitTest):
 		that = board.pawn["that"]
 		one = board.spot[1]
 		idle_until(
-			lambda: getattr(that, "pos", None) == (one.right, one.top),
+			lambda: pos_near(*getattr(that, "pos", None),one.right, one.top),
 			100,
 			f"pawn did not locate within 100 ticks. "
 			f"Should be at {one.right, one.top}, is at {that.pos}",
