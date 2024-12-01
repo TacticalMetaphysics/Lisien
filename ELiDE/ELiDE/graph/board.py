@@ -433,19 +433,16 @@ class GraphBoard(RelativeLayout):
 			Clock.schedule_once(self.on_character, 0)
 			return
 
-		self.engine = getattr(self.character, "engine", None)
-		self.wallpaper_path = self.character.stat.get(
-			"wallpaper", "wallpape.jpg"
+		self.wallpaper_path = self.character.stat.setdefault(
+			"wallpaper", "parchmentBasic.png"
 		)
+		self.engine = getattr(self.character, "engine", None)
 		if (
 			"_control" not in self.character.stat
 			or "wallpaper" not in self.character.stat["_control"]
 		):
 			control = self.character.stat.get("_control", {})
 			control["wallpaper"] = "textinput"
-		self.wallpaper_path = self.character.stat.setdefault(
-			"wallpaper", "wallpape.jpg"
-		)
 		self.trigger_update()
 
 	def update_from_stat(self, sender, *, k, v):

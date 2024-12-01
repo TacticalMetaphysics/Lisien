@@ -365,11 +365,9 @@ ELiDE uses third-party graphics sets:
 * The [RLTiles](http://rltiles.sourceforge.net/), available under
   [CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in
   the public domain where it exists.
-* The default wallpaper, wallpape.jpg, is copyright [Fantastic
-  Maps](http://www.fantasticmaps.com/free-stuff/), freely available
-  under the terms of [Creative Commons
-  BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 * The ELiDE icon is by Robin Hill, used with permission.
+* Everything else is by [Kenney](https://kenney.nl), available under
+  [CC0](http://creativecommons.org/publicdomain/zero/1.0/).
 
 The allegedb, LiSE, and ELiDE source files are licensed under the
 terms of the GNU Affero Public License version 3 (and no later).
