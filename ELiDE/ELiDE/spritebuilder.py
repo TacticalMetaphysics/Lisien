@@ -55,13 +55,18 @@ class SpriteSelector(BoxLayout):
 			Clock.schedule_once(self.on_imgpaths, 0)
 			return
 		if hasattr(self, "_imgstack"):
-			self.preview.remove_widget(self._imgstack)
-		self._imgstack = ImageStack(
-			paths=self.imgpaths,
-			x=self.preview.center_x - 16,
-			y=self.preview.center_y - 16,
-		)
-		self.preview.add_widget(self._imgstack)
+			self._imgstack.paths = self.imgpaths
+		else:
+			self._imgstack = ImageStack(
+				paths=self.imgpaths
+			)
+			self._imgstack.bind(pos=self._position_imgstack, size=self._position_imgstack)
+			self.preview.add_widget(self._imgstack)
+
+	@trigger
+	def _position_imgstack(self, *_):
+		self._imgstack.x = self.preview.center_x - self._imgstack.height / 2
+		self._imgstack.y = self.preview.center_y - self._imgstack.width / 2
 
 	def on_pallets(self, *_):
 		for pallet in self.pallets:
