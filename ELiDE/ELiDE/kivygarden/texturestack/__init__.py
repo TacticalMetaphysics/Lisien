@@ -104,7 +104,8 @@ class TextureStack(Widget):
 				propval = list(getattr(self, prop))
 				propval += [0] * (texlen - proplen)
 				setattr(self, prop, propval)
-		self.group.clear()
+		self.canvas.remove(self.group)
+		self.group = InstructionGroup()
 		self._texture_rectangles = {}
 		w = h = 0
 		(x, y) = self.pos
@@ -125,6 +126,7 @@ class TextureStack(Widget):
 		self.size = (w, h)
 		self.group.add(PopMatrix())
 		self.canvas.add(self.group)
+		self.canvas.ask_update()
 
 	def on_pos(self, *args):
 		"""Translate all the rectangles within this widget to reflect the widget's position."""
@@ -329,61 +331,3 @@ class TextureStackBatchWidget(Widget):
 		widget.parent = None
 		if hasattr(self, "_fbo"):
 			self.rebind_children()
-
-
-if __name__ == "__main__":
-	from kivy.base import runTouchApp
-	from itertools import cycle
-	import json
-
-	# I should come up with a prettier demo that has a whole lot of widgets in it
-
-	class DraggyStack(ImageStack):
-		def on_touch_down(self, touch):
-			if self.collide_point(*touch.pos):
-				touch.grab(self)
-				self._old_parent = parent = self.parent
-				parent.remove_widget(self)
-				parent.parent.add_widget(self)
-				assert self in parent.parent.children
-				assert self.parent == parent.parent
-				return True
-
-		def on_touch_move(self, touch):
-			if touch.grab_current is self:
-				self.center = touch.pos
-				return True
-
-		def on_touch_up(self, touch):
-			self.parent.remove_widget(self)
-			self.pos = self._old_parent.to_local(*self.pos, relative=True)
-			self._old_parent.add_widget(self)
-			return True
-
-	with open("marsh_davies_island_bg.atlas") as bgf, open(
-		"marsh_davies_island_fg.atlas"
-	) as fgf:
-		pathses = zip(
-			(
-				"atlas://marsh_davies_island_bg/" + name
-				for name in json.load(bgf)[
-					"marsh_davies_island_bg-0.png"
-				].keys()
-			),
-			(
-				"atlas://marsh_davies_island_fg/" + name
-				for name in cycle(
-					json.load(fgf)["marsh_davies_island_fg-0.png"].keys()
-				)
-			),
-		)
-	sbatch = TextureStackBatchWidget(size=(800, 600), pos=(0, 0))
-	for i, paths in enumerate(pathses):
-		sbatch.add_widget(
-			DraggyStack(
-				paths=paths, offxs=[0, 16], offys=[0, 16], pos=(0, 32 * i)
-			)
-		)
-	parent = Widget(size=(800, 600), pos=(0, 0))
-	parent.add_widget(sbatch)
-	runTouchApp(parent)
