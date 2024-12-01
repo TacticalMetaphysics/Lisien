@@ -473,8 +473,40 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 			"offxs", self._trigger_push_offxs
 		)
 		self._push_offys_binding = self.fbind(
-			"offys", self._trigger_push_offys
+			"offys",
+			self._trigger_push_offys
 		)
+
+		def upd_box_translate(*_):
+			self.box_translate.xy = self.pos
+
+		def upd_box_points(*_):
+			self.box.points = [
+				0,
+				0,
+				self.width,
+				0,
+				self.width,
+				self.height,
+				0,
+				self.height,
+				0,
+				0,
+			]
+
+		self.boxgrp = boxgrp = InstructionGroup()
+		self.color = Color(*self.linecolor)
+		self.box_translate = Translate(*self.pos)
+		boxgrp.add(PushMatrix())
+		boxgrp.add(self.box_translate)
+		boxgrp.add(self.color)
+		self.box = Line()
+		upd_box_points()
+		self._upd_box_points_binding = self.fbind("size", upd_box_points)
+		self._upd_box_translate_binding = self.fbind("pos", upd_box_translate)
+		boxgrp.add(self.box)
+		boxgrp.add(Color(1.0, 1.0, 1.0))
+		boxgrp.add(PopMatrix())
 		self._finalized = True
 
 	def unfinalize(self):
@@ -519,37 +551,6 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		"""
 		if hasattr(self, "color"):
 			self.color.rgba = self.linecolor
-			return
-
-		def upd_box_translate(*_):
-			self.box_translate.xy = self.pos
-
-		def upd_box_points(*_):
-			self.box.points = [
-				0,
-				0,
-				self.width,
-				0,
-				self.width,
-				self.height,
-				0,
-				self.height,
-				0,
-				0,
-			]
-
-		self.boxgrp = boxgrp = InstructionGroup()
-		self.color = Color(*self.linecolor)
-		self.box_translate = Translate(*self.pos)
-		boxgrp.add(PushMatrix())
-		boxgrp.add(self.box_translate)
-		boxgrp.add(self.color)
-		self.box = Line()
-		upd_box_points()
-		self.bind(size=upd_box_points, pos=upd_box_translate)
-		boxgrp.add(self.box)
-		boxgrp.add(Color(1.0, 1.0, 1.0))
-		boxgrp.add(PopMatrix())
 
 	def on_board(self, *_):
 		if not (hasattr(self, "group") and hasattr(self, "boxgrp")):
