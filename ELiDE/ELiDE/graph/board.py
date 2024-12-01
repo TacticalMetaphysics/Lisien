@@ -432,7 +432,7 @@ class GraphBoard(RelativeLayout):
 			Clock.schedule_once(self.on_character, 0)
 			return
 
-		self.wallpaper_path = self.character.stat.setdefault(
+		wallpaper_path = self.character.stat.setdefault(
 			"wallpaper", "parchmentBasic.png"
 		)
 		self.engine = getattr(self.character, "engine", None)
@@ -442,6 +442,7 @@ class GraphBoard(RelativeLayout):
 		):
 			control = self.character.stat.get("_control", {})
 			control["wallpaper"] = "textinput"
+		self.wallpaper_path = wallpaper_path
 		self.trigger_update()
 
 	def update_from_stat(self, sender, *, k, v):
