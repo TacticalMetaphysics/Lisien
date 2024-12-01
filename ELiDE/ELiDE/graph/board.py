@@ -214,7 +214,8 @@ class GraphBoard(RelativeLayout):
 			sel = self.app.selection
 			if isinstance(sel, Stack):
 				sel.center = touch.pos
-				name = sel.proxy["name"]
+				name = sel.proxy.name
+				touch.ud["grabbed_pawn_or_spot"] = name
 				for dest in self.arrow.get(name, ()):
 					self.arrow[name][dest].repoint()
 				for orig in self.pred_arrow.get(name, ()):
@@ -330,7 +331,10 @@ class GraphBoard(RelativeLayout):
 				sel.dispatch("on_touch_up", touch)
 			elif (
 				isinstance(sel, Stack)
-				and touch.pos == sel.center
+				and hasattr(sel, "proxy")
+				and hasattr(sel.proxy, "name")
+				and "grabbed_pawn_or_spot" in touch.ud
+				and sel.proxy.name == touch.ud["grabbed_pawn_or_spot"]
 				and not self.app.edit_locked
 			):
 				if hasattr(sel.proxy, "location"):
