@@ -66,40 +66,6 @@ class SwatchButton(ToggleButton):
 			if self in self.parent.selection:
 				self.parent.selection.remove(self)
 
-	@mainthread
-	def on_parent(self, *_):
-		if not self.canvas or not self.tex:
-			Clock.schedule_once(self.on_parent, 0)
-			return
-		self.canvas.after.clear()
-		with self.canvas.after:
-			self._img_rect = Rectangle(
-				pos=self._get_img_rect_pos(),
-				size=self.tex.size,
-				texture=self.tex,
-			)
-		self.fbind("pos", self._upd_img_rect_pos)
-		self.fbind("tex", self._upd_img_rect_tex)
-
-	def _get_img_rect_pos(self):
-		x, y = self.pos
-		width, height = self.size
-		tw, th = self.tex.size
-		return (x + (width / 2 - tw / 2), y + height - th)
-
-	@trigger
-	def _upd_img_rect_pos(self, *_):
-		self._img_rect.pos = self._get_img_rect_pos()
-
-	@trigger
-	def _upd_img_rect_tex(self, *_):
-		self._img_rect.texture = self.tex
-		self._img_rect.size = self.tex.size
-		self._img_rect.pos = self._get_img_rect_pos()
-
-	def on_size(self, *_):
-		self.text_size = self.size
-
 
 class Pallet(StackLayout):
 	"""Many :class:`SwatchButton`, gathered from an :class:`kivy.atlas.Atlas`."""
@@ -175,6 +141,16 @@ class Pallet(StackLayout):
 
 
 load_string_once("""
+<SwatchButton>:
+	canvas:
+		Rectangle:
+			pos:
+				(
+				root.x + (root.width / 2 - root.tex.size[0] / 2) if root.tex else 0,
+				root.y + root.height - root.tex.size[1] if root.tex else 0
+				)
+			size: root.tex.size
+			texture: root.tex
 <Pallet>:
 	orientation: 'lr-tb'
 	padding_y: 100
