@@ -216,6 +216,9 @@ load_string_once("""
 			hint_text: 'Enter name prefix'
 		Widget:
 			id: preview
+			canvas:
+				Color:
+					rgba: 1, 1, 1, 1
 		Button:
 			text: 'OK'
 			on_release: root.pressed()
