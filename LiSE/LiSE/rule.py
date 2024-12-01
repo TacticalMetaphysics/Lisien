@@ -469,9 +469,10 @@ class RuleBook(MutableSequence, Signal):
 
 	def _get_cache(self, branch, turn, tick):
 		try:
-			return self.engine._rulebooks_cache.retrieve(
+			rules, prio = self.engine._rulebooks_cache.retrieve(
 				self.name, branch, turn, tick
 			)
+			return list(rules), prio
 		except KeyError:
 			return [], 0.0
 
