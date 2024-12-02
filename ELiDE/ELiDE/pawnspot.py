@@ -1059,6 +1059,8 @@ if __name__ == "__main__":
 
 	with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "pawnspotdemo.json"), "r") as inf:
 		TEST_DATA = json.load(inf)
+	for datum in TEST_DATA:
+		datum["name"] = tuple(datum["name"])
 
 	root = BoxLayout()
 	root.add_widget(Widget())
