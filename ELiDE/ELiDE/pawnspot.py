@@ -994,7 +994,7 @@ class Stack:
 # even though the background image doesn't.
 # When BACKGROUND is False, TextureStackPlane obeys the StencilView.
 
-BACKGROUND = False  # change this to False, and the bug doesn't happen!
+BACKGROUND = True  # change this to False, and the bug doesn't happen!
 
 if __name__ == "__main__":
 	import os
