@@ -1007,56 +1007,6 @@ if __name__ == "__main__":
 	from kivy.uix.stencilview import StencilView
 	from kivy.base import runTouchApp
 
-
-	class TestTextureStackPlane(TextureStackPlane):
-		def on_touch_down(self, touch):
-			for collided in self.iter_collided_keys(*touch.pos):
-				self._gonna_select = collided
-
-		def on_touch_up(self, touch):
-			if hasattr(self, "_gonna_select"):
-				name = self._gonna_select
-				oldname = self.selected
-				insts = self._instructions[name]
-				if self._gonna_select in self.iter_collided_keys(*touch.pos):
-					Logger.info(f"TestTextureStackPlane: selecting {self._gonna_select}")
-					self.selected = name
-					if "color0" in insts:
-						insts["color0"].rgba = self.color_selected
-					else:
-						idx = self._stack_index[name]
-						left = self._left_xs[idx]
-						bot = self._bot_ys[idx]
-						right = self._right_xs[idx]
-						top = self._top_ys[idx]
-						grp = insts["group"]
-						insts["color0"] = Color(
-							rgba=self.color_selected)
-						grp.add(insts["color0"])
-						insts["line"] = Line(
-							points=[
-								left,
-								bot,
-								right,
-								bot,
-								right,
-								top,
-								left,
-								top,
-								left,
-								bot,
-							]
-						)
-						grp.add(insts["line"])
-						insts["color1"] = Color(rgba=[1.0, 1.0, 1.0, 1.0])
-						grp.add(insts["color1"])
-					if oldname in self._instructions:
-						self._instructions[oldname]["color0"].rgba = [0.0, 0.0, 0.0, 0.0]
-				else:
-					if "color0" in insts:
-						insts["color0"].rgba = [0.0, 0.0, 0.0, 0.0]
-				del self._gonna_select
-
 	with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "pawnspotdemo.json"), "r") as inf:
 		TEST_DATA = json.load(inf)
 	for datum in TEST_DATA:
@@ -1064,7 +1014,7 @@ if __name__ == "__main__":
 
 	root = BoxLayout()
 	root.add_widget(Widget())
-	texstac = TestTextureStackPlane(data=TEST_DATA, size_hint=(None, None), size=(1024,1024))
+	texstac = TextureStackPlane(data=TEST_DATA, size_hint=(None, None), size=(1024,1024))
 	flot = FloatLayout()
 	if BACKGROUND:
 		texstacbg = ImageWidget(source="parchmentBasic.png", size_hint=(None, None), size=(1024,1024))
