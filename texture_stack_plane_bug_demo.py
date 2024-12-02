@@ -1,24 +1,3 @@
-# This file is part of ELiDE, frontend to LiSE, a framework for life simulation games.
-# Copyright (c) Zachary Spector, public@zacharyspector.com
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Code that draws the box around a Pawn or Spot when it's selected"""
-
-from collections import defaultdict
-from functools import partial
-from operator import itemgetter
-from time import monotonic
-
 import numpy as np
 from kivy.core.image import Image
 from kivy.graphics.fbo import Fbo
@@ -165,7 +144,6 @@ class TextureStackPlane(Widget):
 		if not hasattr(self, "_rectangle"):
 			self._trigger_redraw()
 			return
-		start_ts = monotonic()
 		instructions = {}
 		self_width = self.width
 		self_height = self.height
@@ -183,10 +161,6 @@ class TextureStackPlane(Widget):
 		self._fbo.clear_buffer()
 		self._fbo.release()
 		self._redraw_upd_fbo(todo)
-		Logger.debug(
-			f"TextureStackPlane: redrawn in "
-			f"{monotonic() - start_ts:,.2f} seconds"
-		)
 
 
 # The following is a demonstration of a graphical error involving TextureStackPlane
