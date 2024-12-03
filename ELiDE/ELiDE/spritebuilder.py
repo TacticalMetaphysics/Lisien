@@ -57,10 +57,10 @@ class SpriteSelector(BoxLayout):
 		if hasattr(self, "_imgstack"):
 			self._imgstack.paths = self.imgpaths
 		else:
-			self._imgstack = ImageStack(
-				paths=self.imgpaths
+			self._imgstack = ImageStack(paths=self.imgpaths)
+			self._imgstack.bind(
+				pos=self._position_imgstack, size=self._position_imgstack
 			)
-			self._imgstack.bind(pos=self._position_imgstack, size=self._position_imgstack)
 			self.preview.add_widget(self._imgstack)
 
 	@trigger

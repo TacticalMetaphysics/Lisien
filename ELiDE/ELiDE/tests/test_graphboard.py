@@ -255,7 +255,7 @@ class GraphBoardTest(GraphicUnitTest):
 		that = board.pawn["that"]
 		one = board.spot[1]
 		idle_until(
-			lambda: pos_near(*getattr(that, "pos", None),one.right, one.top),
+			lambda: pos_near(*getattr(that, "pos", None), one.right, one.top),
 			100,
 			f"pawn did not locate within 100 ticks. "
 			f"Should be at {one.right, one.top}, is at {that.pos}",

@@ -263,7 +263,9 @@ class TextureStackPlane(Widget):
 		if not hasattr(self, "_rectangle"):
 			self._trigger_redraw()
 			return
-		Logger.debug(f"TextureStackPlane: redrawing, with {self.selected} selected")
+		Logger.debug(
+			f"TextureStackPlane: redrawing, with {self.selected} selected"
+		)
 		start_ts = monotonic()
 		instructions = self._instructions
 		stack_index = self._stack_index
@@ -464,8 +466,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 			"offxs", self._trigger_push_offxs
 		)
 		self._push_offys_binding = self.fbind(
-			"offys",
-			self._trigger_push_offys
+			"offys", self._trigger_push_offys
 		)
 
 		def upd_box_translate(*_):
@@ -704,10 +705,14 @@ class Stack:
 		if v:
 			stack_plane.selected = name
 			if "color0" in insts:
-				Logger.debug(f"Stack: changing {name}'s color to {stack_plane.color_selected}")
+				Logger.debug(
+					f"Stack: changing {name}'s color to {stack_plane.color_selected}"
+				)
 				insts["color0"].rgba = stack_plane.color_selected
 			else:
-				Logger.debug(f"Stack: creating Color(rgba={stack_plane.color_selected}) for {name}")
+				Logger.debug(
+					f"Stack: creating Color(rgba={stack_plane.color_selected}) for {name}"
+				)
 				idx = stack_plane._stack_index[name]
 				left = stack_plane._left_xs[idx]
 				bot = stack_plane._bot_ys[idx]
@@ -998,17 +1003,28 @@ if __name__ == "__main__":
 	from kivy.uix.stencilview import StencilView
 	from kivy.base import runTouchApp
 
-	with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "pawnspotdemo.json"), "r") as inf:
+	with open(
+		os.path.join(
+			os.path.dirname(os.path.abspath(__file__)), "pawnspotdemo.json"
+		),
+		"r",
+	) as inf:
 		TEST_DATA = json.load(inf)
 	for datum in TEST_DATA:
 		datum["name"] = tuple(datum["name"])
 
 	root = BoxLayout()
 	root.add_widget(Widget())
-	texstac = TextureStackPlane(data=TEST_DATA, size_hint=(None, None), size=(1024,1024))
+	texstac = TextureStackPlane(
+		data=TEST_DATA, size_hint=(None, None), size=(1024, 1024)
+	)
 	flot = FloatLayout()
 	if BACKGROUND:
-		texstacbg = ImageWidget(source="parchmentBasic.png", size_hint=(None, None), size=(1024,1024))
+		texstacbg = ImageWidget(
+			source="parchmentBasic.png",
+			size_hint=(None, None),
+			size=(1024, 1024),
+		)
 		flot.add_widget(texstacbg)
 	flot.add_widget(texstac)
 	splane = ScatterPlaneLayout()

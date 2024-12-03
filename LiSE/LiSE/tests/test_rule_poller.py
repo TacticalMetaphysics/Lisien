@@ -125,4 +125,3 @@ def test_character_portal_rule_poll(engy):
 	assert "notrun" not in portl0
 	assert "notrun" not in portl1
 	assert "notrun" not in nonportl
-

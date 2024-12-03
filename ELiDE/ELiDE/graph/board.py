@@ -50,6 +50,7 @@ from ..dummy import Dummy
 from ..boardview import BoardView
 from ..boardscatter import BoardScatterPlane
 
+
 def trigger(func):
 	return triggered()(func)
 

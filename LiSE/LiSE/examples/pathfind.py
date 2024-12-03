@@ -88,7 +88,7 @@ def install(eng, seed=None):
 if __name__ == "__main__":
 	from tempfile import mkdtemp
 	from LiSE import Engine
-	
+
 	td = mkdtemp()
 	with Engine(td) as eng:
 		install(eng)
