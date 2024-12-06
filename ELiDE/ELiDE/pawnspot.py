@@ -78,18 +78,6 @@ class TextureStackPlane(Widget):
 		self.bind(pos=self._trigger_redraw, size=self._trigger_redraw)
 		self._trigger_redraw()
 
-	def on_pos(self, *_):
-		if not hasattr(self, "_translate"):
-			return
-		self._translate.x, self._translate.y = self.pos
-		self.canvas.ask_update()
-
-	def on_size(self, *_):
-		if not hasattr(self, "_rectangle") or not hasattr(self, "_fbo"):
-			return
-		self._rectangle.size = self._fbo.size = self.size
-		self.redraw()
-
 	@mainthread
 	def _add_datum_upd_fbo(self, **datum):
 		name = datum["name"]
@@ -391,6 +379,8 @@ class TextureStackPlane(Widget):
 		for insts in get_rid:
 			fbo.remove(insts["group"])
 		self._rectangle.texture = fbo.texture
+		self._translate.x, self._translate.y = self.pos
+		self._rectangle.size = self._fbo.size = self.size
 		Logger.debug(
 			f"TextureStackPlane: redrawn in "
 			f"{monotonic() - start_ts:,.2f} seconds"
