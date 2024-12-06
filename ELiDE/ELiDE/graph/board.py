@@ -149,6 +149,10 @@ class GraphBoard(RelativeLayout):
 			):
 				Logger.debug("Board: hit selection")
 				touch.grab(self.app.selection)
+			else:
+				if hasattr(self.app.selection, "selected"):
+					self.app.selection.selected = False
+				self.app.selection = None
 		pawns = list(self.pawns_at(*touch.pos))
 		if pawns:
 			Logger.debug("Board: hit {} pawns".format(len(pawns)))
