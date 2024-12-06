@@ -387,6 +387,7 @@ class TextureStackPlane(Widget):
 		)
 
 	def iter_collided_keys(self, x, y):
+		"""Iterate over the keys of stacks that collide with the given point"""
 		hits = (
 			(self._left_xs <= x)
 			& (self._bot_ys <= y)
