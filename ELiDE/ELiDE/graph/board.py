@@ -144,11 +144,10 @@ class GraphBoard(RelativeLayout):
 			touch.pop()
 			return
 		if self.app.selection:
-			if self.app.selection.collide_point(*touch.pos) and hasattr(
-				self.app.selection, "__self__"
-			):
+			if self.app.selection.collide_point(*touch.pos):
 				Logger.debug("Board: hit selection")
-				touch.grab(self.app.selection)
+				if hasattr(self.app.selection, "__self__"):
+					touch.grab(self.app.selection)
 			else:
 				if hasattr(self.app.selection, "selected"):
 					self.app.selection.selected = False
