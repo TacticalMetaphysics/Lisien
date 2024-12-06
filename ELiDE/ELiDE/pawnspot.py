@@ -69,10 +69,12 @@ class TextureStackPlane(Widget):
 			return
 		with self.canvas:
 			self._fbo = Fbo(size=self.size)
+			self._push = PushMatrix()
 			self._translate = Translate(x=self.x, y=self.y)
 			self._rectangle = Rectangle(
 				size=self.size, texture=self._fbo.texture
 			)
+			self._pop = PopMatrix()
 		self.bind(pos=self._trigger_redraw, size=self._trigger_redraw)
 		self._trigger_redraw()
 
