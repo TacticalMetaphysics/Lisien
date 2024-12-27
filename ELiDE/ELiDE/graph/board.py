@@ -651,7 +651,7 @@ class GraphBoard(RelativeLayout):
 			Clock.unschedule(self._scheduled_discard_pawn[thing])
 		self._scheduled_discard_pawn[thing] = Clock.schedule_once(part, 0)
 
-	def remove_absent_pawns(self, *args):
+	def _remove_absent_pawns(self, *args):
 		Logger.debug(
 			"Board: removing pawns absent from {}".format(self.character.name)
 		)
@@ -666,7 +666,7 @@ class GraphBoard(RelativeLayout):
 	def _trigger_discard_spot(self, place):
 		Clock.schedule_once(partial(self.discard_spot, place), 0)
 
-	def remove_absent_spots(self, *args):
+	def _remove_absent_spots(self, *args):
 		Logger.debug(
 			"Board: removing spots absent from {}".format(self.character.name)
 		)
@@ -681,7 +681,7 @@ class GraphBoard(RelativeLayout):
 	def _trigger_discard_arrow(self, orig, dest):
 		Clock.schedule_once(partial(self.discard_arrow, orig, dest), 0)
 
-	def remove_absent_arrows(self, *args):
+	def _remove_absent_arrows(self, *args):
 		Logger.debug(
 			"Board: removing arrows absent from {}".format(self.character.name)
 		)
@@ -706,7 +706,7 @@ class GraphBoard(RelativeLayout):
 	def _trigger_add_spot(self, placen):
 		Clock.schedule_once(partial(self.add_spot, placen), 0)
 
-	def add_new_spots(self, *args):
+	def _add_new_spots(self, *args):
 		Logger.debug(
 			"Board: adding new spots to {}".format(self.character.name)
 		)
@@ -781,7 +781,7 @@ class GraphBoard(RelativeLayout):
 				self.pred_arrow[destn] = {}
 			self.pred_arrow[destn][orign] = the_arrow
 
-	def add_new_arrows(self, *args):
+	def _add_new_arrows(self, *args):
 		Logger.debug(
 			"Board: adding new arrows to {}".format(self.character.name)
 		)
@@ -857,8 +857,7 @@ class GraphBoard(RelativeLayout):
 			Clock.unschedule(self._scheduled_add_pawn[thingn])
 		self._scheduled_add_pawn[thingn] = Clock.schedule_once(part, 0)
 
-	@mainthread
-	def add_new_pawns(self, *args):
+	def _add_new_pawns(self, *args):
 		Logger.debug(
 			"Board: adding new pawns to {}".format(self.character.name)
 		)
@@ -909,32 +908,32 @@ class GraphBoard(RelativeLayout):
 		# remove widgets that don't represent anything anymore
 		Logger.debug("GraphBoard: updating")
 		start_ts = monotonic()
-		self.disconnect_proxy_objects()
-		self.remove_absent_pawns()
-		self.remove_absent_spots()
-		self.remove_absent_arrows()
+		self._disconnect_proxy_objects()
+		self._remove_absent_pawns()
+		self._remove_absent_spots()
+		self._remove_absent_arrows()
 		# add widgets to represent new stuff
-		self.add_new_spots()
-		self.update_spot_display()
+		self._add_new_spots()
+		self._update_spot_display()
 		if self.arrow_cls:
-			self.add_new_arrows()
-			self.update_arrow_display()
-		self.add_new_pawns()
-		self.update_pawn_display()
-		self.connect_proxy_objects()
+			self._add_new_arrows()
+			self._update_arrow_display()
+		self._add_new_pawns()
+		self._update_pawn_display()
+		self._connect_proxy_objects()
 		Logger.debug(
 			f"GraphBoard: updated, took {monotonic() - start_ts:,.2f} seconds"
 		)
 
 	trigger_update = trigger(update)
 
-	def disconnect_proxy_objects(self):
+	def _disconnect_proxy_objects(self):
 		char = self.character
 		char.stat.disconnect(self.update_from_character_stat)
 		char.node.disconnect(self.update_from_character_node)
 		char.portal.disconnect(self.update_from_character_edge)
 
-	def connect_proxy_objects(self):
+	def _connect_proxy_objects(self):
 		char = self.character
 		char.stat.connect(self.update_from_character_stat)
 		char.node.connect(self.update_from_character_node)
@@ -974,10 +973,10 @@ class GraphBoard(RelativeLayout):
 			elif key == "_image_paths":
 				self.spot[node.name].paths = value
 
-	def update_spot_display(self):
+	def _update_spot_display(self):
 		"""Change spot graphics to match the state of their place"""
 
-	def update_pawn_display(self):
+	def _update_pawn_display(self):
 		"""Change pawn graphics to match the state of their thing"""
 
 	def update_from_character_edge(self, edge, key, value):
@@ -1004,7 +1003,7 @@ class GraphBoard(RelativeLayout):
 		else:
 			self.arrow_plane.remove_edge(edge._origin, edge._destination)
 
-	def update_arrow_display(self):
+	def _update_arrow_display(self):
 		"""Change arrow graphics to match the state of their portal"""
 
 	def _apply_node_layout(self, l, spot, *args):
