@@ -180,7 +180,7 @@ class GraphBoardTest(GraphicUnitTest):
 		char = Facade()
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
-		board.connect_proxy_objects()
+		board._connect_proxy_objects()
 		view = GraphBoardView(board=board)
 		idle_until(
 			lambda: view.plane is not None, 100, "Never made BoardScatterPlane"
@@ -243,7 +243,7 @@ class GraphBoardTest(GraphicUnitTest):
 		char = Facade()
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
-		board.connect_proxy_objects()
+		board._connect_proxy_objects()
 		boardview = GraphBoardView(board=board)
 		win = window_with_widget(boardview)
 		idle_until(lambda: board.stack_plane)
