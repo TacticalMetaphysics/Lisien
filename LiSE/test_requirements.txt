@@ -9,5 +9,4 @@ build
 twine
 pytest
 tox
-kivy
 pygments
