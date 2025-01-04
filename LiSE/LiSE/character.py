@@ -666,6 +666,42 @@ class Facade(AbstractCharacter, nx.DiGraph):
 		def __delitem__(self, k):
 			self._patch[k] = None
 
+	def apply(self):
+		"""Do all my changes for real in a batch"""
+		real = self.character
+		realstat = real.stat
+		realthing = real.thing
+		realplace = real.place
+		realport = real.portal
+		with self.engine.batch():
+			for k, v in self.stat._patch.items():
+				if v is None:
+					del realstat[k]
+				else:
+					realstat[k] = v
+			for k, v in self.thing._patch.items():
+				if v is None:
+					del realthing[k]
+				elif k in realthing:
+					realthing[k].update(v)
+				else:
+					realthing[k] = v
+			for k, v in self.place._patch.items():
+				if v is None:
+					del realplace[k]
+				elif k in realplace:
+					realplace[k].update(v)
+				else:
+					realplace[k] = v
+			for orig, dests in self.portal._patch.items():
+				for dest, v in dests.items():
+					if v is None:
+						del realport[orig][dest]
+					elif orig in realport and dest in realport[orig]:
+						realport[orig][dest].update(v)
+					else:
+						real.add_portal(orig, dest, **v)
+
 
 class Character(DiGraph, AbstractCharacter, RuleFollower):
 	"""A digraph that follows game rules and has a containment hierarchy
