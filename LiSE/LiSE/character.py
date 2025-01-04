@@ -33,7 +33,9 @@ and their node in the physical world is a unit of it.
 """
 
 from abc import abstractmethod, ABC
+from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
+from contextlib import contextmanager
 from itertools import chain
 from types import MethodType
 from typing import Type
@@ -165,6 +167,90 @@ class RuleFollower(BaseRuleFollower):
 		)
 
 
+class FacadeEngine(AbstractEngine):
+	class FacadeCharacterMapping(Mapping):
+		def __init__(self, engine):
+			self.engine = engine
+			self._patch = {}
+
+		def __getitem__(self, key, /):
+			if key not in self.engine.character:
+				raise KeyError("No character", key)
+			if key not in self._patch:
+				self._patch[key] = Facade(self.engine.character[key])
+			return self._patch[key]
+
+		def __len__(self):
+			return len(self.engine.character)
+
+		def __iter__(self):
+			return iter(self.engine.character)
+
+		def apply(self):
+			for pat in self._patch.values():
+				pat.apply()
+			self._patch = {}
+
+	def __init__(self, real: AbstractEngine):
+		self._real = real
+		self.character = self.FacadeCharacterMapping(self)
+
+	@contextmanager
+	def plan(self):
+		if not hasattr(self, "_planned"):
+			self._planned = defaultdict(lambda: defaultdict(list))
+		if getattr(self, "_planning", False):
+			raise RuntimeError("Already planning")
+		self._planning = True
+		if hasattr(self, "_curplan"):
+			self._curplan += 1
+		else:
+			# Will break if used in a proxy, which I want to do eventually...
+			self._curplan = self._real._last_plan + 1
+		yield self._curplan
+		self._planning = False
+
+	def apply(self):
+		if not getattr(self, "_planned", None):
+			return
+		realeng = self._real
+		self.character.apply()
+		# Do I actually need these sorts? Insertion order's preserved...
+		for plan_num in sorted(self._planned):
+			with realeng.plan():  # resets time at end of block
+				for turn in sorted(self._planned[plan_num]):
+					realeng.turn = turn
+					for tup in self._planned[plan_num][turn]:
+						if len(tup) == 3:
+							char, k, v = tup
+							realeng.character[char].stat[k] = v
+						elif len(tup) == 4:
+							char, node, k, v = tup
+							realchar = realeng.character[char]
+							if node in realchar.node:
+								if k is None:
+									realchar.remove_node(node)
+								else:
+									realchar.node[node][k] = v
+							elif k == "location":
+								realchar.add_thing(node, v)
+							else:
+								realchar.add_place(node, k=v)
+						elif len(tup) == 5:
+							char, orig, dest, k, v = tup
+							realchar = realeng.character[char]
+							if (
+								orig in realchar.portal
+								and dest in realchar.portal[orig]
+							):
+								if k is None:
+									realchar.remove_portal(orig, dest)
+								else:
+									realchar.portal[orig][dest][k] = v
+							else:
+								realchar.add_portal(orig, dest, k=v)
+
+
 class FacadeEntity(MutableMapping, Signal, ABC):
 	exists = True
 
@@ -212,11 +298,17 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		# facade but not the original
 		return ret
 
+	@abstractmethod
+	def _set_plan(self, k, v):
+		raise NotImplementedError()
+
 	def __setitem__(self, k, v):
 		if k == "name":
 			raise KeyError("Can't change names")
 		if hasattr(v, "unwrap"):
 			v = v.unwrap()
+		if self.character.engine._planning:
+			return self._set_plan(k, v)
 		self._patch[k] = v
 
 	def __delitem__(self, k):
@@ -237,6 +329,11 @@ class FacadeNode(FacadeEntity, ABC):
 			# it seems like redundant FacadeNode are being created sometimes
 			if thing["location"] == self.name:
 				yield thing
+
+	def _set_plan(self, k, v):
+		self.character.engine._planned[self.character.engine._curplan][
+			self.character.engine.turn
+		].append((self.character.name, self.name, k, v))
 
 
 class FacadePlace(FacadeNode):
@@ -323,6 +420,11 @@ class FacadePortal(FacadeEntity):
 	@property
 	def destination(self):
 		return self.facade.node[self.dest]
+
+	def _set_plan(self, k, v):
+		self.character.engine._planned[self.character.engine._curplan][
+			self.character.engine.turn
+		].append((self.character.name, self.orig, self.dest, k, v))
 
 
 class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
@@ -458,8 +560,11 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 
 
 class Facade(AbstractCharacter, nx.DiGraph):
-	engine = getatt("character.engine")
-	db = getatt("character.engine")
+	@property
+	def engine(self):
+		return FacadeEngine(self.character.engine)
+
+	db = engine
 
 	def __getstate__(self):
 		ports = {}
@@ -661,6 +766,11 @@ class Facade(AbstractCharacter, nx.DiGraph):
 			return self._patch[k]
 
 		def __setitem__(self, k, v):
+			if self.facade.engine._planning:
+				self.facade.engine._planned[self.character.engine._curplan][
+					self.facade.engine.turn
+				].append((self.facade.name, k, v))
+				return
 			self._patch[k] = v
 
 		def __delitem__(self, k):
@@ -668,12 +778,14 @@ class Facade(AbstractCharacter, nx.DiGraph):
 
 	def apply(self):
 		"""Do all my changes for real in a batch"""
-		real = self.character
-		realstat = real.stat
-		realthing = real.thing
-		realplace = real.place
-		realport = real.portal
-		with self.engine.batch():
+		realchar = self.character
+		realstat = realchar.stat
+		realthing = realchar.thing
+		realplace = realchar.place
+		realport = realchar.portal
+		realeng = self.engine._real
+		# Will break if used in a proxy
+		with realeng.batch():
 			for k, v in self.stat._patch.items():
 				if v is None:
 					del realstat[k]
@@ -700,7 +812,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 					elif orig in realport and dest in realport[orig]:
 						realport[orig][dest].update(v)
 					else:
-						real.add_portal(orig, dest, **v)
+						realchar.add_portal(orig, dest, **v)
 
 
 class Character(DiGraph, AbstractCharacter, RuleFollower):
