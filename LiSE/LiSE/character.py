@@ -791,6 +791,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 					del realstat[k]
 				else:
 					realstat[k] = v
+			self.stat._patch = {}
 			for k, v in self.thing._patch.items():
 				if v is None:
 					del realthing[k]
@@ -798,6 +799,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 					realthing[k].update(v)
 				else:
 					realthing[k] = v
+			self.thing._patch = {}
 			for k, v in self.place._patch.items():
 				if v is None:
 					del realplace[k]
@@ -805,6 +807,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 					realplace[k].update(v)
 				else:
 					realplace[k] = v
+			self.place._patch = {}
 			for orig, dests in self.portal._patch.items():
 				for dest, v in dests.items():
 					if v is None:
@@ -813,6 +816,7 @@ class Facade(AbstractCharacter, nx.DiGraph):
 						realport[orig][dest].update(v)
 					else:
 						realchar.add_portal(orig, dest, **v)
+			self.portal._patch = {}
 
 
 class Character(DiGraph, AbstractCharacter, RuleFollower):
