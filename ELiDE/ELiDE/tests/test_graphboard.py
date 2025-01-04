@@ -4,7 +4,7 @@ from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
 
 from LiSE import Engine
-from LiSE.character import Facade
+from LiSE.character import CharacterFacade
 from ELiDE.app import ELiDEApp
 from ELiDE.graph.board import GraphBoard, GraphBoardView
 from ELiDE.pawnspot import TextureStackPlane
@@ -28,7 +28,7 @@ class GraphBoardTest(GraphicUnitTest):
 		spots_wide = 3
 		spots_tall = 3
 		graph = nx.grid_2d_graph(spots_wide, spots_tall)
-		char = Facade(graph)
+		char = CharacterFacade(graph)
 		app = ELiDEApp()
 		spotlayout = TextureStackPlane()
 		arrowlayout = ArrowPlane()
@@ -76,7 +76,7 @@ class GraphBoardTest(GraphicUnitTest):
 
 	@staticmethod
 	def test_select_arrow():
-		char = Facade()
+		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
 		char.add_place(1, _x=0.2, _y=0.1)
 		char.add_portal(0, 1)
@@ -115,7 +115,7 @@ class GraphBoardTest(GraphicUnitTest):
 
 	@staticmethod
 	def test_select_spot():
-		char = Facade()
+		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
@@ -130,7 +130,7 @@ class GraphBoardTest(GraphicUnitTest):
 
 	@staticmethod
 	def test_select_pawn():
-		char = Facade()
+		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
 		char.add_thing("that", location=0)
 		app = ELiDEApp()
@@ -144,7 +144,7 @@ class GraphBoardTest(GraphicUnitTest):
 		assert app.selection == board.pawn["that"]
 
 	def test_pawn_drag(self):
-		char = Facade()
+		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
 		char.add_place(1, _x=0.2, _y=0.1)
 		char.add_thing("that", location=0)
@@ -177,7 +177,7 @@ class GraphBoardTest(GraphicUnitTest):
 
 	@staticmethod
 	def test_spot_and_pawn_from_dummy():
-		char = Facade()
+		char = CharacterFacade()
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
 		board._connect_proxy_objects()
@@ -240,7 +240,7 @@ class GraphBoardTest(GraphicUnitTest):
 
 	@staticmethod
 	def test_pawn_add_new_place():
-		char = Facade()
+		char = CharacterFacade()
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
 		board._connect_proxy_objects()
