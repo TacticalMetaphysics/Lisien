@@ -7,7 +7,7 @@ from kivy.tests.common import UnitTestTouch
 from kivy.uix.screenmanager import ScreenManager
 
 from LiSE import Engine
-from LiSE.character import Facade
+from LiSE.character import CharacterFacade
 from ELiDE.menu import DirPicker
 from ELiDE.screen import MainScreen
 from ELiDE.spritebuilder import PawnConfigScreen, SpotConfigScreen
@@ -35,7 +35,7 @@ class ScreenTest(ELiDEAppTest):
 		app.spotcfg = SpotConfigScreen()
 		app.pawncfg = PawnConfigScreen()
 		app.statcfg = StatScreen()
-		char = Facade()
+		char = CharacterFacade()
 		char.name = "physical"
 		app.character = char
 		app.engine = MockEngine()
@@ -78,7 +78,7 @@ class ScreenTest(ELiDEAppTest):
 		app.mainmenu = DirPicker()
 		app.strings = MockStore()
 		app.funcs = MockStore()
-		char = Facade()
+		char = CharacterFacade()
 		char.name = "foo"
 		app.character = char
 		app.engine = MockEngine()

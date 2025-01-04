@@ -48,7 +48,7 @@ import msgpack
 from .allegedb import OutOfTimelineError, Key
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
-from .character import Facade
+from .character import CharacterFacade
 from .util import (
 	getatt,
 	AbstractEngine,
@@ -1994,7 +1994,7 @@ class CharacterProxy(AbstractCharacter):
 		)
 
 	def facade(self):
-		return Facade(self)
+		return CharacterFacade(self)
 
 	def grid_2d_8graph(self, m, n):
 		self.engine.handle(

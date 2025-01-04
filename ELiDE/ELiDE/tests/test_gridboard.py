@@ -3,7 +3,7 @@ from kivy.tests.common import GraphicUnitTest
 import networkx as nx
 
 from LiSE import Engine
-from LiSE.character import Facade
+from LiSE.character import CharacterFacade
 from ELiDE.grid.board import GridBoard, GridBoardView
 from .util import (
 	all_spots_placed,
@@ -22,7 +22,7 @@ class GridBoardTest(GraphicUnitTest):
 		spot_width = 32
 		spot_height = 32
 		graph = nx.grid_2d_graph(spots_wide, spots_tall)
-		char = Facade(graph)
+		char = CharacterFacade(graph)
 		char.place[1, 1].add_thing("something")
 		otherthing = char.place[2, 2].new_thing("otherthing")
 		assert len(char.thing) == 2

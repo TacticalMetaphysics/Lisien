@@ -88,7 +88,7 @@ from .query import (
 	CombinedQueryResult,
 )
 from .proxy import worker_subprocess
-from .character import Character, Facade
+from .character import Character, CharacterFacade
 from .node import Place, Thing
 from .portal import Portal
 from .query import QueryEngine
@@ -755,7 +755,9 @@ class Engine(AbstractEngine, gORM, Executor):
 		self,
 		name: Key,
 		type_s="DiGraph",
-		data: Union[Facade, Graph, nx.Graph, dict, KeyframeTuple] = None,
+		data: Union[
+			CharacterFacade, Graph, nx.Graph, dict, KeyframeTuple
+		] = None,
 	) -> None:
 		if hasattr(data, "stat"):
 			if not hasattr(data, "thing"):

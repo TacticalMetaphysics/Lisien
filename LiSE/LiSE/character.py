@@ -177,7 +177,7 @@ class FacadeEngine(AbstractEngine):
 			if key not in self.engine.character:
 				raise KeyError("No character", key)
 			if key not in self._patch:
-				self._patch[key] = Facade(self.engine.character[key])
+				self._patch[key] = CharacterFacade(self.engine.character[key])
 			return self._patch[key]
 
 		def __len__(self):
@@ -559,7 +559,7 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 		return ret
 
 
-class Facade(AbstractCharacter, nx.DiGraph):
+class CharacterFacade(AbstractCharacter, nx.DiGraph):
 	@property
 	def engine(self):
 		return FacadeEngine(self.character.engine)
@@ -1767,7 +1767,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		time travel. This makes it much speedier to work with.
 
 		"""
-		return Facade(self)
+		return CharacterFacade(self)
 
 	def add_place(self, node_for_adding, **attr):
 		"""Add a new Place"""
