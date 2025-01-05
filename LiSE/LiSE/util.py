@@ -1102,6 +1102,12 @@ def normalize_layout(l):
 class FacadeEntity(MutableMapping, Signal, ABC):
 	exists = True
 
+	@property
+	def engine(self):
+		return self.character.engine
+
+	db = engine
+
 	def __init__(self, mapping, _=None, **kwargs):
 		super().__init__()
 		self.facade = self.character = mapping.facade
