@@ -20,6 +20,8 @@ have a lot in common.
 """
 
 from __future__ import annotations
+
+from abc import ABC
 from collections.abc import Mapping, ValuesView, Set
 from typing import Optional, Union, Iterator, List
 
@@ -28,7 +30,7 @@ from networkx import shortest_path, shortest_path_length
 
 from .allegedb import graph, Key, HistoricKeyError
 
-from .util import getatt, AbstractCharacter
+from .util import getatt, AbstractCharacter, FacadeEntity
 from .query import StatusAlias
 from . import rule
 from .exc import AmbiguousUserError, TravelException
@@ -637,6 +639,9 @@ class Place(Node):
 		except:
 			return True
 
+	def facade(self):
+		return FacadePlace(self.character.facade(), self)
+
 	def delete(self) -> None:
 		"""Remove myself from the world model immediately."""
 		super().delete()
@@ -740,6 +745,9 @@ class Thing(Node):
 		return "<{}.character['{}'].thing['{}']>".format(
 			self.engine, self.character.name, self.name
 		)
+
+	def facade(self):
+		return FacadeThing(self.character.facade(), self)
 
 	def delete(self) -> None:
 		super().delete()
@@ -924,3 +932,73 @@ class Thing(Node):
 		graph = self.character if graph is None else graph
 		path = nx.shortest_path(graph, self["location"], destn, weight)
 		return self.follow_path(path, weight)
+
+
+class FacadeNode(FacadeEntity, ABC):
+	@property
+	def name(self):
+		return self["name"]
+
+	@property
+	def portal(self):
+		return self.facade.portal[self["name"]]
+
+	def contents(self):
+		for thing in self.facade.thing.values():
+			# it seems like redundant FacadeNode are being created sometimes
+			if thing["location"] == self.name:
+				yield thing
+
+	def _set_plan(self, k, v):
+		self.character.engine._planned[self.character.engine._curplan][
+			self.character.engine.turn
+		].append((self.character.name, self.name, k, v))
+
+
+class FacadePlace(FacadeNode):
+	"""Lightweight analogue of Place for Facade use."""
+
+	def __init__(self, mapping, real_or_name, **kwargs):
+		super().__init__(mapping, real_or_name, **kwargs)
+		if isinstance(real_or_name, (Place, FacadePlace)):
+			self._real = real_or_name
+		else:
+			self._real = {"name": real_or_name}
+
+	def add_thing(self, name):
+		self.facade.add_thing(name, self.name)
+
+	def new_thing(self, name):
+		return self.facade.new_thing(name, self.name)
+
+
+class FacadeThing(FacadeNode):
+	def __init__(self, mapping, real_or_name, **kwargs):
+		location = kwargs.pop("location", None)
+		super().__init__(mapping, real_or_name, **kwargs)
+		if location is None and not (
+			isinstance(real_or_name, Thing)
+			or isinstance(real_or_name, FacadeThing)
+		):
+			raise TypeError(
+				"FacadeThing needs to wrap a real Thing or another "
+				"FacadeThing, or have a location of its own."
+			)
+		self._real = {
+			"name": real_or_name.name
+			if hasattr(real_or_name, "name")
+			else real_or_name,
+			"location": location,
+		}
+
+	@property
+	def location(self):
+		return self.facade.node[self["location"]]
+
+	@location.setter
+	def location(self, v):
+		if isinstance(v, (FacadePlace, FacadeThing)):
+			v = v.name
+		if v not in self.facade.node:
+			raise KeyError("Location {} not present".format(v))
+		self["location"] = v

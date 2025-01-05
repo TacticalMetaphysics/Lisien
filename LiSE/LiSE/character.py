@@ -34,7 +34,7 @@ and their node in the physical world is a unit of it.
 
 from abc import abstractmethod, ABC
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from contextlib import contextmanager
 from itertools import chain
 from types import MethodType
@@ -54,14 +54,15 @@ from .allegedb.wrap import MutableMappingUnwrapper
 from .xcollections import CompositeDict
 from .rule import RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
-from .node import Node, Place, Thing
-from .portal import Portal
+from .node import Node, Place, Thing, FacadePlace, FacadeThing
+from .portal import Portal, FacadePortal
 from .util import (
 	getatt,
 	singleton_get,
 	timer,
 	AbstractEngine,
 	AbstractCharacter,
+	FacadeEntity,
 )
 from .exc import WorldIntegrityError
 from .query import StatusAlias
@@ -249,182 +250,6 @@ class FacadeEngine(AbstractEngine):
 									realchar.portal[orig][dest][k] = v
 							else:
 								realchar.add_portal(orig, dest, k=v)
-
-
-class FacadeEntity(MutableMapping, Signal, ABC):
-	exists = True
-
-	def __init__(self, mapping, _=None, **kwargs):
-		super().__init__()
-		self.facade = self.character = mapping.facade
-		self._real = mapping
-		self._patch = {
-			k: v.unwrap() if hasattr(v, "unwrap") else v
-			for (k, v) in kwargs.items()
-		}
-
-	def __contains__(self, item):
-		patch = self._patch
-		return item in self._real or (
-			item in patch and patch[item] is not None
-		)
-
-	def __iter__(self):
-		seen = set()
-		for k in self._real:
-			if k not in self._patch:
-				yield k
-				seen.add(k)
-		for k in self._patch:
-			if self._patch[k] is not None and k not in seen:
-				yield k
-
-	def __len__(self):
-		n = 0
-		for k in self:
-			n += 1
-		return n
-
-	def __getitem__(self, k):
-		if k in self._patch:
-			if self._patch[k] is None:
-				raise KeyError("{} has been masked.".format(k))
-			return self._patch[k]
-		ret = self._real[k]
-		if hasattr(ret, "unwrap"):  # a wrapped mutable object from the
-			# allegedb.wrap module
-			ret = ret.unwrap()
-			self._patch[k] = ret  # changes will be reflected in the
-		# facade but not the original
-		return ret
-
-	@abstractmethod
-	def _set_plan(self, k, v):
-		raise NotImplementedError()
-
-	def __setitem__(self, k, v):
-		if k == "name":
-			raise KeyError("Can't change names")
-		if hasattr(v, "unwrap"):
-			v = v.unwrap()
-		if self.character.engine._planning:
-			return self._set_plan(k, v)
-		self._patch[k] = v
-
-	def __delitem__(self, k):
-		self._patch[k] = None
-
-
-class FacadeNode(FacadeEntity, ABC):
-	@property
-	def name(self):
-		return self["name"]
-
-	@property
-	def portal(self):
-		return self.facade.portal[self["name"]]
-
-	def contents(self):
-		for thing in self.facade.thing.values():
-			# it seems like redundant FacadeNode are being created sometimes
-			if thing["location"] == self.name:
-				yield thing
-
-	def _set_plan(self, k, v):
-		self.character.engine._planned[self.character.engine._curplan][
-			self.character.engine.turn
-		].append((self.character.name, self.name, k, v))
-
-
-class FacadePlace(FacadeNode):
-	"""Lightweight analogue of Place for Facade use."""
-
-	def __init__(self, mapping, real_or_name, **kwargs):
-		super().__init__(mapping, real_or_name, **kwargs)
-		if isinstance(real_or_name, (Place, FacadePlace)):
-			self._real = real_or_name
-		else:
-			self._real = {"name": real_or_name}
-
-	def add_thing(self, name):
-		self.facade.add_thing(name, self.name)
-
-	def new_thing(self, name):
-		return self.facade.new_thing(name, self.name)
-
-
-class FacadeThing(FacadeNode):
-	def __init__(self, mapping, real_or_name, **kwargs):
-		location = kwargs.pop("location", None)
-		super().__init__(mapping, real_or_name, **kwargs)
-		if location is None and not (
-			isinstance(real_or_name, Thing)
-			or isinstance(real_or_name, FacadeThing)
-		):
-			raise TypeError(
-				"FacadeThing needs to wrap a real Thing or another "
-				"FacadeThing, or have a location of its own."
-			)
-		self._real = {
-			"name": real_or_name.name
-			if hasattr(real_or_name, "name")
-			else real_or_name,
-			"location": location,
-		}
-
-	@property
-	def location(self):
-		return self.facade.node[self["location"]]
-
-	@location.setter
-	def location(self, v):
-		if isinstance(v, (FacadePlace, FacadeThing)):
-			v = v.name
-		if v not in self.facade.node:
-			raise KeyError("Location {} not present".format(v))
-		self["location"] = v
-
-
-class FacadePortal(FacadeEntity):
-	"""Lightweight analogue of Portal for Facade use."""
-
-	def __init__(self, mapping, other, **kwargs):
-		super().__init__(mapping, other, **kwargs)
-		if hasattr(mapping, "orig"):
-			self.orig = mapping.orig
-			self.dest = other
-		else:
-			self.dest = mapping.dest
-			self.orig = other
-		try:
-			self._real = self.facade.character.portal[self.orig][self.dest]
-		except (KeyError, AttributeError):
-			self._real = {}
-
-	def __getitem__(self, item):
-		if item == "origin":
-			return self.orig
-		if item == "destination":
-			return self.dest
-		return super().__getitem__(item)
-
-	def __setitem__(self, k, v):
-		if k in ("origin", "destination"):
-			raise TypeError("Portals have fixed origin and destination")
-		super().__setitem__(k, v)
-
-	@property
-	def origin(self):
-		return self.facade.node[self.orig]
-
-	@property
-	def destination(self):
-		return self.facade.node[self.dest]
-
-	def _set_plan(self, k, v):
-		self.character.engine._planned[self.character.engine._curplan][
-			self.character.engine.turn
-		].append((self.character.name, self.orig, self.dest, k, v))
 
 
 class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):

@@ -37,11 +37,21 @@ from contextlib import contextmanager
 from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
-from typing import Mapping, Sequence, Iterable, Union, Callable, Dict, Hashable
+from typing import (
+	Mapping,
+	Sequence,
+	Iterable,
+	Union,
+	Callable,
+	Dict,
+	Hashable,
+	MutableMapping,
+)
 
 import msgpack
 import networkx as nx
 import numpy as np
+from blinker import Signal
 from networkx.exception import NetworkXException
 from tblib import Traceback
 
@@ -1087,3 +1097,67 @@ def normalize_layout(l):
 		yco = 0.98 / (maxy - miny)
 		ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
 	return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))
+
+
+class FacadeEntity(MutableMapping, Signal, ABC):
+	exists = True
+
+	def __init__(self, mapping, _=None, **kwargs):
+		super().__init__()
+		self.facade = self.character = mapping.facade
+		self._real = mapping
+		self._patch = {
+			k: v.unwrap() if hasattr(v, "unwrap") else v
+			for (k, v) in kwargs.items()
+		}
+
+	def __contains__(self, item):
+		patch = self._patch
+		return item in self._real or (
+			item in patch and patch[item] is not None
+		)
+
+	def __iter__(self):
+		seen = set()
+		for k in self._real:
+			if k not in self._patch:
+				yield k
+				seen.add(k)
+		for k in self._patch:
+			if self._patch[k] is not None and k not in seen:
+				yield k
+
+	def __len__(self):
+		n = 0
+		for k in self:
+			n += 1
+		return n
+
+	def __getitem__(self, k):
+		if k in self._patch:
+			if self._patch[k] is None:
+				raise KeyError("{} has been masked.".format(k))
+			return self._patch[k]
+		ret = self._real[k]
+		if hasattr(ret, "unwrap"):  # a wrapped mutable object from the
+			# allegedb.wrap module
+			ret = ret.unwrap()
+			self._patch[k] = ret  # changes will be reflected in the
+		# facade but not the original
+		return ret
+
+	@abstractmethod
+	def _set_plan(self, k, v):
+		raise NotImplementedError()
+
+	def __setitem__(self, k, v):
+		if k == "name":
+			raise KeyError("Can't change names")
+		if hasattr(v, "unwrap"):
+			v = v.unwrap()
+		if self.character.engine._planning:
+			return self._set_plan(k, v)
+		self._patch[k] = v
+
+	def __delitem__(self, k):
+		self._patch[k] = None
