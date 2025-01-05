@@ -36,6 +36,7 @@ from abc import abstractmethod, ABC
 from collections import defaultdict
 from collections.abc import Mapping
 from contextlib import contextmanager
+from functools import cached_property
 from itertools import chain
 from types import MethodType
 from typing import Type
@@ -385,7 +386,7 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 
 
 class CharacterFacade(AbstractCharacter, nx.DiGraph):
-	@property
+	@cached_property
 	def engine(self):
 		return FacadeEngine(self.character.engine)
 
