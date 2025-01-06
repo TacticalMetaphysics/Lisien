@@ -3219,14 +3219,16 @@ class Engine(AbstractEngine, gORM, Executor):
 					)
 					face = entity.facade()
 					try:
-						yield do_actions(rule, handled, face)
+						to_yield = do_actions(rule, handled, face)
 						self.debug(
 							f"actions for rule {rule.name} on entity "
 							f"{fmtent(entity)} have run without incident"
 						)
 					except StopIteration:
 						raise InnerStopIteration
-					face.engine.apply()
+					with self.batch():
+						face.engine.apply()
+					yield to_yield
 
 	def _advance(self) -> Any:
 		"""Follow the next rule if available.
