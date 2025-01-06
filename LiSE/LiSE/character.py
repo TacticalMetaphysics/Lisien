@@ -171,7 +171,8 @@ class RuleFollower(BaseRuleFollower):
 
 class EngineFacade(AbstractEngine):
 	class FacadeUniversalMapping(MutableMapping):
-		def __init__(self, engine):
+		def __init__(self, engine: AbstractEngine):
+			assert not isinstance(engine, EngineFacade)
 			self.engine = engine
 			self._patch = {}
 
@@ -204,7 +205,8 @@ class EngineFacade(AbstractEngine):
 			self._patch[key] = None
 
 	class FacadeCharacterMapping(Mapping):
-		def __init__(self, engine):
+		def __init__(self, engine: AbstractEngine):
+			assert not isinstance(engine, EngineFacade)
 			self.engine = engine
 			self._patch = {}
 
@@ -231,8 +233,8 @@ class EngineFacade(AbstractEngine):
 		self._real = real
 		self._planning = False
 		self._planned = defaultdict(lambda: defaultdict(list))
-		self.character = self.FacadeCharacterMapping(self)
-		self.universal = self.FacadeUniversalMapping(self)
+		self.character = self.FacadeCharacterMapping(real)
+		self.universal = self.FacadeUniversalMapping(real)
 
 	@contextmanager
 	def plan(self):
