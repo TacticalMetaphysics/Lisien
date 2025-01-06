@@ -228,6 +228,7 @@ class EngineFacade(AbstractEngine):
 
 	def __init__(self, real: AbstractEngine):
 		self._real = real
+		self._planning = False
 		self.character = self.FacadeCharacterMapping(self)
 		self.universal = self.FacadeUniversalMapping(self)
 
