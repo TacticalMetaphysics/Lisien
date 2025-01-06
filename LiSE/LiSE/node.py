@@ -960,10 +960,9 @@ class FacadePlace(FacadeNode):
 
 	def __init__(self, mapping, real_or_name, **kwargs):
 		super().__init__(mapping, real_or_name, **kwargs)
-		if isinstance(real_or_name, (Place, FacadePlace)):
-			self._real = real_or_name
-		else:
-			self._real = {"name": real_or_name}
+		assert isinstance(real_or_name, Place)
+		self._real = real_or_name
+		self.character.place._patch[real_or_name.name] = self
 
 	def add_thing(self, name):
 		self.facade.add_thing(name, self.name)
@@ -984,12 +983,9 @@ class FacadeThing(FacadeNode):
 				"FacadeThing needs to wrap a real Thing or another "
 				"FacadeThing, or have a location of its own."
 			)
-		self._real = {
-			"name": real_or_name.name
-			if hasattr(real_or_name, "name")
-			else real_or_name,
-			"location": location,
-		}
+		assert isinstance(real_or_name, Thing)
+		self._real = real_or_name
+		self.character.thing._patch[real_or_name.name] = self
 
 	@property
 	def location(self):
