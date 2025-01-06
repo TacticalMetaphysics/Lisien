@@ -2753,6 +2753,8 @@ class Engine(AbstractEngine, gORM, Executor):
 					actres.append(res)
 				if not entity:
 					break
+			with self.batch():
+				entity.engine.apply()
 			handled_fun(self.tick)
 			return actres
 
@@ -3219,16 +3221,13 @@ class Engine(AbstractEngine, gORM, Executor):
 					)
 					face = entity.facade()
 					try:
-						to_yield = do_actions(rule, handled, face)
+						yield do_actions(rule, handled, face)
 						self.debug(
 							f"actions for rule {rule.name} on entity "
 							f"{fmtent(entity)} have run without incident"
 						)
 					except StopIteration:
 						raise InnerStopIteration
-					with self.batch():
-						face.engine.apply()
-					yield to_yield
 
 	def _advance(self) -> Any:
 		"""Follow the next rule if available.
