@@ -38,8 +38,8 @@ from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
 from typing import (
+	Any,
 	Mapping,
-	Sequence,
 	Iterable,
 	Union,
 	Callable,
@@ -52,7 +52,6 @@ import msgpack
 import networkx as nx
 import numpy as np
 from blinker import Signal
-from networkx.exception import NetworkXException
 from tblib import Traceback
 
 from . import exc, allegedb
@@ -381,6 +380,7 @@ class AbstractEngine(ABC):
 	place_cls: type
 	portal_cls: type
 	char_cls: type
+	character: Mapping[Any, "char_cls"]
 
 	@cached_property
 	def pack(self):
