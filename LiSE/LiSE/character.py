@@ -169,7 +169,7 @@ class RuleFollower(BaseRuleFollower):
 		)
 
 
-class FacadeEngine(AbstractEngine):
+class EngineFacade(AbstractEngine):
 	class FacadeCharacterMapping(Mapping):
 		def __init__(self, engine):
 			self.engine = engine
@@ -388,7 +388,7 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 class CharacterFacade(AbstractCharacter, nx.DiGraph):
 	@cached_property
 	def engine(self):
-		return FacadeEngine(self.character.engine)
+		return EngineFacade(self.character.engine)
 
 	@cached_property
 	def db(self):
