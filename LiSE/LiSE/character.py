@@ -181,6 +181,9 @@ class EngineFacade(AbstractEngine):
 		def __len__(self):
 			return len(self._patch.keys() | self.engine.universal.keys())
 
+		def __contains__(self, item):
+			return item in self._patch or item in self.engine.universal
+
 		def __getitem__(self, item):
 			if item in self._patch:
 				ret = self._patch[item]
