@@ -34,7 +34,7 @@ and their node in the physical world is a unit of it.
 
 from abc import abstractmethod, ABC
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
 from functools import cached_property
 from itertools import chain
@@ -170,6 +170,36 @@ class RuleFollower(BaseRuleFollower):
 
 
 class EngineFacade(AbstractEngine):
+	class FacadeUniversalMapping(MutableMapping):
+		def __init__(self, engine):
+			self.engine = engine
+			self._patch = {}
+
+		def __iter__(self):
+			return iter(self._patch.keys() | self.engine.universal.keys())
+
+		def __len__(self):
+			return len(self._patch.keys() | self.engine.universal.keys())
+
+		def __getitem__(self, item):
+			if item in self._patch:
+				ret = self._patch[item]
+				if ret is None:
+					raise KeyError("Universal key deleted", item)
+				return ret
+			elif item in self.engine.universal:
+				return self.engine.universal[item]
+			else:
+				raise KeyError("No universal key", item)
+
+		def __setitem__(self, key, value):
+			self._patch[key] = value
+
+		def __delitem__(self, key):
+			if key not in self.engine.universal:
+				raise KeyError("No key to delete", key)
+			self._patch[key] = None
+
 	class FacadeCharacterMapping(Mapping):
 		def __init__(self, engine):
 			self.engine = engine
@@ -196,6 +226,7 @@ class EngineFacade(AbstractEngine):
 	def __init__(self, real: AbstractEngine):
 		self._real = real
 		self.character = self.FacadeCharacterMapping(self)
+		self.universal = self.FacadeUniversalMapping(self)
 
 	@contextmanager
 	def plan(self):
