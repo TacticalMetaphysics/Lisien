@@ -390,7 +390,9 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 	def engine(self):
 		return FacadeEngine(self.character.engine)
 
-	db = engine
+	@cached_property
+	def db(self):
+		return self.engine
 
 	def __getstate__(self):
 		ports = {}
