@@ -227,6 +227,7 @@ class EngineFacade(AbstractEngine):
 			self._patch = {}
 
 	def __init__(self, real: AbstractEngine):
+		assert not isinstance(real, EngineFacade)
 		self._real = real
 		self._planning = False
 		self._planned = defaultdict(lambda: defaultdict(list))
