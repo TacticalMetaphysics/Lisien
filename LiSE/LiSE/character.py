@@ -423,14 +423,6 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 
 
 class CharacterFacade(AbstractCharacter, nx.DiGraph):
-	@cached_property
-	def engine(self):
-		return EngineFacade(self.character.engine)
-
-	@cached_property
-	def db(self):
-		return self.engine
-
 	def __getstate__(self):
 		ports = {}
 		for o in self.portal:
@@ -517,9 +509,10 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 		raise NotImplementedError("Facades don't have units")
 
 	def __init__(self, character=None):
-		"""Store the character."""
 		super().__init__()
 		self.character = character
+		self.db = EngineFacade(character.engine)
+		self.db.character._patch[character.name] = self
 		self.graph = self.StatMapping(self)
 
 	class ThingMapping(FacadeEntityMapping):
@@ -668,19 +661,19 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 			for k, v in self.place._patch.items():
 				if v is None:
 					del realplace[k]
-				elif k in realplace:
-					realplace[k].update(v)
+				elif k not in realplace:
+					realchar.add_place(k, **v)
 				else:
-					realplace[k] = v
+					v.apply()
 			self.place._patch = {}
 			for orig, dests in self.portal._patch.items():
 				for dest, v in dests.items():
 					if v is None:
 						del realport[orig][dest]
-					elif orig in realport and dest in realport[orig]:
-						realport[orig][dest].update(v)
-					else:
+					elif orig not in realport or dest not in realport[orig]:
 						realchar.add_portal(orig, dest, **v)
+					else:
+						v.apply()
 			self.portal._patch = {}
 
 

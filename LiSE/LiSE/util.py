@@ -1167,3 +1167,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 
 	def __delitem__(self, k):
 		self._patch[k] = None
+
+	def apply(self):
+		self._real.update(self._patch)
+		self._patch = {}
