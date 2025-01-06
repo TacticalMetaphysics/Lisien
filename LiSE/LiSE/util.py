@@ -1110,7 +1110,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 
 	def __init__(self, mapping, _=None, **kwargs):
 		super().__init__()
-		self.facade = self.character = mapping.facade
+		self.facade = self.character = getattr(mapping, "facade", mapping)
 		self._real = mapping
 		self._patch = {
 			k: v.unwrap() if hasattr(v, "unwrap") else v
