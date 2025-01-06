@@ -642,39 +642,37 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 		realplace = realchar.place
 		realport = realchar.portal
 		realeng = self.engine._real
-		# Will break if used in a proxy
-		with realeng.batch():
-			for k, v in self.stat._patch.items():
+		for k, v in self.stat._patch.items():
+			if v is None:
+				del realstat[k]
+			else:
+				realstat[k] = v
+		self.stat._patch = {}
+		for k, v in self.thing._patch.items():
+			if v is None:
+				del realthing[k]
+			elif k in realthing:
+				realthing[k].update(v)
+			else:
+				realthing[k] = v
+		self.thing._patch = {}
+		for k, v in self.place._patch.items():
+			if v is None:
+				del realplace[k]
+			elif k not in realplace:
+				realchar.add_place(k, **v)
+			else:
+				v.apply()
+		self.place._patch = {}
+		for orig, dests in self.portal._patch.items():
+			for dest, v in dests.items():
 				if v is None:
-					del realstat[k]
-				else:
-					realstat[k] = v
-			self.stat._patch = {}
-			for k, v in self.thing._patch.items():
-				if v is None:
-					del realthing[k]
-				elif k in realthing:
-					realthing[k].update(v)
-				else:
-					realthing[k] = v
-			self.thing._patch = {}
-			for k, v in self.place._patch.items():
-				if v is None:
-					del realplace[k]
-				elif k not in realplace:
-					realchar.add_place(k, **v)
+					del realport[orig][dest]
+				elif orig not in realport or dest not in realport[orig]:
+					realchar.add_portal(orig, dest, **v)
 				else:
 					v.apply()
-			self.place._patch = {}
-			for orig, dests in self.portal._patch.items():
-				for dest, v in dests.items():
-					if v is None:
-						del realport[orig][dest]
-					elif orig not in realport or dest not in realport[orig]:
-						realchar.add_portal(orig, dest, **v)
-					else:
-						v.apply()
-			self.portal._patch = {}
+		self.portal._patch = {}
 
 
 class Character(DiGraph, AbstractCharacter, RuleFollower):
