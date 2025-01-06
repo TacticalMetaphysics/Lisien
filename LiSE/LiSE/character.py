@@ -250,10 +250,10 @@ class EngineFacade(AbstractEngine):
 		self._planning = False
 
 	def apply(self):
-		if not getattr(self, "_planned", None):
-			return
 		realeng = self._real
 		self.character.apply()
+		if not getattr(self, "_planned", None):
+			return
 		# Do I actually need these sorts? Insertion order's preserved...
 		for plan_num in sorted(self._planned):
 			with realeng.plan():  # resets time at end of block
