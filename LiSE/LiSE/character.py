@@ -229,13 +229,12 @@ class EngineFacade(AbstractEngine):
 	def __init__(self, real: AbstractEngine):
 		self._real = real
 		self._planning = False
+		self._planned = defaultdict(lambda: defaultdict(list))
 		self.character = self.FacadeCharacterMapping(self)
 		self.universal = self.FacadeUniversalMapping(self)
 
 	@contextmanager
 	def plan(self):
-		if not hasattr(self, "_planned"):
-			self._planned = defaultdict(lambda: defaultdict(list))
 		if getattr(self, "_planning", False):
 			raise RuntimeError("Already planning")
 		self._planning = True
