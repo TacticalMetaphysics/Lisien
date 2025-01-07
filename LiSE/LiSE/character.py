@@ -305,11 +305,12 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		raise NotImplementedError("Missing _get_inner_map")
 
 	def _make(self, k, v):
-		kwargs = dict(v)
-		for badkey in ("character", "engine", "name"):
-			if badkey in kwargs:
-				del kwargs[badkey]
-		return self.facadecls(self, k, **kwargs)
+		if isinstance(v, dict):
+			for badkey in ("character", "engine", "name"):
+				if badkey in v:
+					del v[badkey]
+			return self.facadecls(self, k, v)
+		return self.facadecls(self, v)
 
 	engine = getatt("facade.engine")
 
