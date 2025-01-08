@@ -13,17 +13,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.resources import resource_add_path
+
 from . import calendar
 
 resource_add_path(__path__[0] + "/assets")
 
 __all__ = [
-	"graph",
-	"app",
-	"card",
-	"dialog",
-	"game",
-	"menu",
-	"spritebuilder",
-	"calendar",
+    "graph",
+    "app",
+    "card",
+    "dialog",
+    "game",
+    "menu",
+    "spritebuilder",
+    "calendar",
 ]

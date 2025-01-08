@@ -12,17 +12,18 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from kivy.uix.modalview import ModalView
 from kivy.properties import ListProperty
+from kivy.uix.modalview import ModalView
 
 from .util import load_string_once
 
 
 class KeywordListModal(ModalView):
-	data = ListProperty([])
+    data = ListProperty([])
 
 
-Builder.load_string("""
+Builder.load_string(
+    """
 <KeywordListModal>:
 	size_hint_x: 0.6
 	BoxLayout:
@@ -34,4 +35,5 @@ Builder.load_string("""
 				text: 'Cancel'
 			Button:
 				text: 'Done'
-""")
+"""
+)

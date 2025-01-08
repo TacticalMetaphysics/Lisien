@@ -16,13 +16,9 @@ from functools import partial
 
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.uix.screenmanager import Screen
+from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.recycleview import RecycleView
-from kivy.properties import (
-	ListProperty,
-	ObjectProperty,
-	StringProperty,
-)
+from kivy.uix.screenmanager import Screen
 
 from .util import SelectableRecycleBoxLayout, load_string_once
 
@@ -31,80 +27,81 @@ from .util import SelectableRecycleBoxLayout, load_string_once
 
 
 class CharactersRecycleBoxLayout(SelectableRecycleBoxLayout):
-	character_name = StringProperty()
+    character_name = StringProperty()
 
-	def apply_selection(self, index, view, is_selected):
-		super().apply_selection(index, view, is_selected)
-		if is_selected:
-			self.character_name = view.text
+    def apply_selection(self, index, view, is_selected):
+        super().apply_selection(index, view, is_selected)
+        if is_selected:
+            self.character_name = view.text
 
 
 class CharactersView(RecycleView):
-	character_name = StringProperty()
+    character_name = StringProperty()
 
-	def __init__(self, **kwargs):
-		self.i2name = {}
-		self.name2i = {}
-		super().__init__(**kwargs)
+    def __init__(self, **kwargs):
+        self.i2name = {}
+        self.name2i = {}
+        super().__init__(**kwargs)
 
 
 class CharactersScreen(Screen):
-	toggle = ObjectProperty()
-	charsview = ObjectProperty()
-	character_name = StringProperty()
-	wallpaper_path = StringProperty()
-	names = ListProperty()
-	new_board = ObjectProperty()
-	push_character_name = ObjectProperty()
+    toggle = ObjectProperty()
+    charsview = ObjectProperty()
+    character_name = StringProperty()
+    wallpaper_path = StringProperty()
+    names = ListProperty()
+    new_board = ObjectProperty()
+    push_character_name = ObjectProperty()
 
-	@property
-	def engine(self):
-		return App.get_running_app().engine
+    @property
+    def engine(self):
+        return App.get_running_app().engine
 
-	def new_character(self, name, *_):
-		self.engine.add_character(name)
-		self.ids.newname.text = ""
-		i = len(self.charsview.data)
-		self.charsview.i2name[i] = name
-		self.charsview.name2i[name] = i
-		self.charsview.data.append({"index": i, "text": name})
-		self.names.append(name)
-		self.new_board(name)
-		self.push_character_name(name)
+    def new_character(self, name, *_):
+        self.engine.add_character(name)
+        self.ids.newname.text = ""
+        i = len(self.charsview.data)
+        self.charsview.i2name[i] = name
+        self.charsview.name2i[name] = i
+        self.charsview.data.append({"index": i, "text": name})
+        self.names.append(name)
+        self.new_board(name)
+        self.push_character_name(name)
 
-	def _trigger_new_character(self, name):
-		part = partial(self.new_character, name)
-		if hasattr(self, "_scheduled_new_character"):
-			Clock.unschedule(self._scheduled_new_character)
-		self._scheduled_new_character = Clock.schedule_once(part)
+    def _trigger_new_character(self, name):
+        part = partial(self.new_character, name)
+        if hasattr(self, "_scheduled_new_character"):
+            Clock.unschedule(self._scheduled_new_character)
+        self._scheduled_new_character = Clock.schedule_once(part)
 
-	def _munge_names(self, names):
-		for i, name in enumerate(names):
-			self.charsview.i2name[i] = name
-			self.charsview.name2i[name] = i
-			yield {"index": i, "text": name}
+    def _munge_names(self, names):
+        for i, name in enumerate(names):
+            self.charsview.i2name[i] = name
+            self.charsview.name2i[name] = i
+            yield {"index": i, "text": name}
 
-	def on_names(self, *_):
-		app = App.get_running_app()
-		if not app.character or not self.charsview:
-			Clock.schedule_once(self.on_names, 0)
-			return
-		self.charsview.data = list(self._munge_names(self.names))
-		charname = app.character.name
-		for i, name in enumerate(self.names):
-			if name == charname:
-				self.charsview.children[0].select_node(i)
-				return
+    def on_names(self, *_):
+        app = App.get_running_app()
+        if not app.character or not self.charsview:
+            Clock.schedule_once(self.on_names, 0)
+            return
+        self.charsview.data = list(self._munge_names(self.names))
+        charname = app.character.name
+        for i, name in enumerate(self.names):
+            if name == charname:
+                self.charsview.children[0].select_node(i)
+                return
 
-	def on_charsview(self, *_):
-		if not self.push_character_name:
-			Clock.schedule_once(self.on_charsview, 0)
-			return
-		self.charsview.bind(character_name=self.setter("character_name"))
-		self.bind(character_name=self.push_character_name)
+    def on_charsview(self, *_):
+        if not self.push_character_name:
+            Clock.schedule_once(self.on_charsview, 0)
+            return
+        self.charsview.bind(character_name=self.setter("character_name"))
+        self.bind(character_name=self.push_character_name)
 
 
-load_string_once("""
+load_string_once(
+    """
 #: import resource_find kivy.resources.resource_find
 <CharactersView>:
 	viewclass: 'RecycleToggleButton'
@@ -141,4 +138,5 @@ load_string_once("""
 			text: 'Close'
 			on_release: root.toggle()
 			size_hint_y: 0.05
-""")
+"""
+)

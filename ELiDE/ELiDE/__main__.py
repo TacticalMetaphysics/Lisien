@@ -15,11 +15,11 @@
 
 
 def elide():
-	from ELiDE.app import ELiDEApp
+    from ELiDE.app import ELiDEApp
 
-	app = ELiDEApp()
-	app.run()
+    app = ELiDEApp()
+    app.run()
 
 
 if __name__ == "__main__":
-	elide()
+    elide()

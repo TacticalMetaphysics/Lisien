@@ -41,3 +41,8 @@ _build
 */.idea
 */.tox
 /.tox/
+
+MG FILES
+game.py
+strings/
+venv312/

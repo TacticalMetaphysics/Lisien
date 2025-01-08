@@ -13,39 +13,39 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.lang import Builder
-from kivy.uix.recycleview.layout import LayoutSelectionBehavior
-from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.behaviors import FocusBehavior
+from kivy.uix.recycleboxlayout import RecycleBoxLayout
+from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 
 loaded_kv = set()
 
 
 def load_string_once(kv: str) -> None:
-	if kv in loaded_kv:
-		return
-	Builder.load_string(kv)
-	loaded_kv.add(kv)
+    if kv in loaded_kv:
+        return
+    Builder.load_string(kv)
+    loaded_kv.add(kv)
 
 
 class SelectableRecycleBoxLayout(
-	FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout
+    FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout
 ):
-	pass
+    pass
 
 
 def dummynum(character, name):
-	"""Count how many nodes there already are in the character whose name
-	starts the same.
+    """Count how many nodes there already are in the character whose name
+    starts the same.
 
-	"""
-	num = 0
-	for nodename in character.node:
-		nodename = str(nodename)
-		if nodename[: len(name)] != name:
-			continue
-		try:
-			nodenum = int(nodename.lstrip(name))
-		except ValueError:
-			continue
-		num = max((nodenum, num))
-	return num
+    """
+    num = 0
+    for nodename in character.node:
+        nodename = str(nodename)
+        if nodename[: len(name)] != name:
+            continue
+        try:
+            nodenum = int(nodename.lstrip(name))
+        except ValueError:
+            continue
+        num = max((nodenum, num))
+    return num

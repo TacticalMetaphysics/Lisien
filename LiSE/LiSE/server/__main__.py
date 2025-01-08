@@ -28,23 +28,23 @@ methods.
 
 """
 
-import cherrypy
 from argparse import ArgumentParser
+
+import cherrypy
+
 from . import LiSEHandleWebService
 
 parser = ArgumentParser()
 parser.add_argument("--prefix", action="store", default=".")
 args = parser.parse_args()
 conf = {
-	"/": {
-		"request.dispatch": cherrypy.dispatch.MethodDispatcher(),
-		"tools.sessions.on": True,
-		"tools.response_headers.on": True,
-		"tools.response_headers.headers": [
-			("Content-Type", "application/json")
-		],
-		"tools.encode.on": True,
-		"tools.encode.encoding": "utf-8",
-	}
+    "/": {
+        "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
+        "tools.sessions.on": True,
+        "tools.response_headers.on": True,
+        "tools.response_headers.headers": [("Content-Type", "application/json")],
+        "tools.encode.on": True,
+        "tools.encode.encoding": "utf-8",
+    }
 }
 cherrypy.quickstart(LiSEHandleWebService(args.prefix), "/", conf)
