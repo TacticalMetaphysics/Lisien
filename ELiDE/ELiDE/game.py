@@ -20,13 +20,8 @@ from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.factory import Factory
 from kivy.logger import Logger
-from kivy.properties import (
-    BooleanProperty,
-    DictProperty,
-    NumericProperty,
-    ObjectProperty,
-    StringProperty,
-)
+from kivy.properties import (BooleanProperty, DictProperty, NumericProperty,
+                             ObjectProperty, StringProperty)
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 import LiSE.proxy
