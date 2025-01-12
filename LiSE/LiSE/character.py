@@ -309,7 +309,7 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 			for badkey in ("character", "engine", "name"):
 				if badkey in v:
 					del v[badkey]
-			return self.facadecls(self, k, v)
+			return self.facadecls(self, k, **v)
 		return self.facadecls(self, v)
 
 	engine = getatt("facade.engine")
