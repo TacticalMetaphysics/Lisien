@@ -961,7 +961,11 @@ class FacadePlace(FacadeNode):
 	def __init__(self, mapping, real_or_name, **kwargs):
 		super().__init__(mapping, real_or_name, **kwargs)
 		if not isinstance(real_or_name, Place):
-			real_or_name = mapping[real_or_name]
+			if real_or_name in mapping:
+				real_or_name = mapping[real_or_name]
+			else:
+				mapping._patch[real_or_name] = self
+				return
 		self._real = real_or_name
 		self.character.place._patch[real_or_name.name] = self
 
