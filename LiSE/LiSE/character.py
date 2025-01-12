@@ -540,7 +540,7 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 
 		def _get_inner_map(self):
 			try:
-				return self.facade.character._node
+				return self.facade.character.place
 			except AttributeError:
 				return {}
 
