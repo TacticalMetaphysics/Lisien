@@ -261,6 +261,9 @@ class FacadePortal(FacadeEntity):
 	def destination(self):
 		return self.facade.node[self.dest]
 
+	def _get_real(self, name):
+		return self.character.character.portal[self._mapping.orig][name]
+
 	def _set_plan(self, k, v):
 		self.character.engine._planned[self.character.engine._curplan][
 			self.character.engine.turn

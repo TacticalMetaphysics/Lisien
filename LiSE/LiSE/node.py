@@ -966,8 +966,10 @@ class FacadePlace(FacadeNode):
 			else:
 				mapping._patch[real_or_name] = self
 				return
-		self._real = real_or_name
 		self.character.place._patch[real_or_name.name] = self
+
+	def _get_real(self, name):
+		return self.character.character.place[name]
 
 	def add_thing(self, name):
 		self.facade.add_thing(name, self.name)
@@ -989,8 +991,10 @@ class FacadeThing(FacadeNode):
 				"FacadeThing, or have a location of its own."
 			)
 		assert isinstance(real_or_name, Thing)
-		self._real = real_or_name
 		self.character.thing._patch[real_or_name.name] = self
+
+	def _get_real(self, name):
+		return self.character.character.thing[name]
 
 	@property
 	def location(self):

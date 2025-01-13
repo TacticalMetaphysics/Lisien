@@ -1108,10 +1108,22 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 
 	db = engine
 
-	def __init__(self, mapping, _=None, **kwargs):
+	@abstractmethod
+	def _get_real(self, name):
+		raise NotImplementedError()
+
+	def __init__(self, mapping, real_or_name=None, **kwargs):
 		super().__init__()
 		self.facade = self.character = getattr(mapping, "facade", mapping)
-		self._real = mapping
+		self._mapping = mapping
+		is_name = not hasattr(real_or_name, "name")
+		if is_name:
+			try:
+				self._real = self._get_real(real_or_name)
+			except KeyError:
+				pass  # Entity created for Facade. No underlying real entity.
+		else:
+			self._real = real_or_name
 		self._patch = {
 			k: v.unwrap() if hasattr(v, "unwrap") else v
 			for (k, v) in kwargs.items()
@@ -1119,13 +1131,17 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 
 	def __contains__(self, item):
 		patch = self._patch
-		return item in self._real or (
-			item in patch and patch[item] is not None
-		)
+		if item in patch:
+			return patch[item] is not None
+		if hasattr(self, "_real"):
+			return item in self._real
+		return False
 
 	def __iter__(self):
 		patch = self._patch
-		ks = patch.keys() | self._real.keys()
+		ks = patch.keys()
+		if hasattr(self, "_real"):
+			ks |= self._real.keys()
 		for k in ks:
 			if k not in patch or patch[k] is not None:
 				yield k
