@@ -1124,18 +1124,15 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		)
 
 	def __iter__(self):
-		seen = set()
-		for k in self._real:
-			if k not in self._patch:
-				yield k
-				seen.add(k)
-		for k in self._patch:
-			if self._patch[k] is not None and k not in seen:
+		patch = self._patch
+		ks = patch.keys() | self._real.keys()
+		for k in ks:
+			if k not in patch or patch[k] is not None:
 				yield k
 
 	def __len__(self):
 		n = 0
-		for k in self:
+		for _ in self:
 			n += 1
 		return n
 
