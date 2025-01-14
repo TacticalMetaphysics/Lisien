@@ -652,10 +652,10 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 		for k, v in self.thing._patch.items():
 			if v is None:
 				del realthing[k]
-			elif k in realthing:
-				realthing[k].update(v)
+			elif k not in realthing:
+				realchar.add_thing(k, **v)
 			else:
-				realthing[k] = v
+				v.apply()
 		self.thing._patch = {}
 		for k, v in self.place._patch.items():
 			if v is None:
