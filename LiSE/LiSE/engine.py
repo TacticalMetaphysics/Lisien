@@ -2746,6 +2746,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			return True
 
 		def do_actions(rule, handled_fun, entity):
+			entity = entity.facade()
 			actres = []
 			for action in rule.actions:
 				res = action(entity)
@@ -3219,9 +3220,8 @@ class Engine(AbstractEngine, gORM, Executor):
 						f"prereqs for rule {rule.name} on entity "
 						f"{fmtent(entity)} satisfied, will run actions"
 					)
-					face = entity.facade()
 					try:
-						yield do_actions(rule, handled, face)
+						yield do_actions(rule, handled, entity)
 						self.debug(
 							f"actions for rule {rule.name} on entity "
 							f"{fmtent(entity)} have run without incident"
