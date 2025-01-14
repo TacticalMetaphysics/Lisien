@@ -34,6 +34,7 @@ from operator import (
 )
 from functools import partial, wraps, cached_property
 from contextlib import contextmanager
+from random import Random
 from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
@@ -381,6 +382,7 @@ class AbstractEngine(ABC):
 	portal_cls: type
 	char_cls: type
 	character: Mapping[Any, "char_cls"]
+	_rando: Random
 
 	@cached_property
 	def pack(self):

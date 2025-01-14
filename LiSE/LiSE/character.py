@@ -32,6 +32,7 @@ and their node in the physical world is a unit of it.
 
 """
 
+import random
 from abc import abstractmethod, ABC
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
@@ -226,6 +227,11 @@ class EngineFacade(AbstractEngine):
 		def apply(self):
 			for pat in self._patch.values():
 				pat.apply()
+			rando_state = self._rando.getstate()
+			real = self._real
+			if rando_state != real._rando.getstate():
+				real._rando.setstate(rando_state)
+				real.universal["rando_state"] = rando_state
 			self._patch = {}
 
 	def __init__(self, real: AbstractEngine):
@@ -235,6 +241,8 @@ class EngineFacade(AbstractEngine):
 		self._planned = defaultdict(lambda: defaultdict(list))
 		self.character = self.FacadeCharacterMapping(real)
 		self.universal = self.FacadeUniversalMapping(real)
+		self._rando = random.Random()
+		self._rando.setstate(real._rando.getstate())
 
 	@contextmanager
 	def plan(self):
