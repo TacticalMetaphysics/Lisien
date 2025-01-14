@@ -1157,6 +1157,8 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 			if self._patch[k] is None:
 				raise KeyError("{} has been masked.".format(k))
 			return self._patch[k]
+		if not hasattr(self, "_real"):
+			return
 		ret = self._real[k]
 		if hasattr(ret, "unwrap"):  # a wrapped mutable object from the
 			# allegedb.wrap module
