@@ -992,11 +992,11 @@ class FacadePlace(FacadeNode):
 class FacadeThing(FacadeNode, AbstractThing):
 	def __init__(self, mapping, real_or_name, **kwargs):
 		location = kwargs.pop("location", None)
-		super().__init__(mapping, real_or_name, **kwargs)
 		if location is None and not (isinstance(real_or_name, Thing)):
 			raise TypeError(
 				"FacadeThing needs to wrap a real Thing, or have a location of its own"
 			)
+		super().__init__(mapping, real_or_name, **kwargs)
 		self.character.thing._patch[real_or_name.name] = self
 
 	def _get_real(self, name):
