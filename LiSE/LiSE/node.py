@@ -654,114 +654,7 @@ def roerror(*args):
 	raise RuntimeError("Read-only")
 
 
-class Thing(Node):
-	"""The sort of item that has a particular location at any given time.
-
-	Things are always in Places or other Things, and may additionally be
-	travelling through a Portal.
-
-	LiSE entities are truthy so long as they exist, falsy if they've
-	been deleted.
-
-	"""
-
-	__slots__ = (
-		"graph",
-		"db",
-		"node",
-		"_rulebook",
-		"_rulebooks",
-		"_real_rule_mapping",
-	)
-
-	_extra_keys = {"name", "location"}
-
-	def _getname(self):
-		return self.name
-
-	def _getloc(self):
-		ret = self.engine._things_cache._base_retrieve(
-			(self.character.name, self.name, *self.engine._btt())
-		)
-		if ret is None or isinstance(ret, Exception):
-			return None
-		return ret
-
-	def _validate_node_type(self):
-		return self._getloc() is not None
-
-	def _get_arrival_time(self):
-		charn = self.character.name
-		n = self.name
-		thingcache = self.engine._things_cache
-		for b, trn, tck in self.engine._iter_parent_btt():
-			try:
-				v = thingcache.turn_before(charn, n, b, trn)
-			except KeyError:
-				v = thingcache.turn_after(charn, n, b, trn)
-			if v is not None:
-				return v
-		else:
-			raise ValueError("Couldn't find arrival time")
-
-	def _set_loc(self, loc: Optional[Key]):
-		self.engine._set_thing_loc(self.character.name, self.name, loc)
-
-	_getitem_dispatch = {"name": _getname, "location": _getloc}
-
-	_setitem_dispatch = {"name": roerror, "location": _set_loc}
-
-	def __getitem__(self, key: Key):
-		"""Return one of my stats stored in the database, or special cases:
-
-		``name``: return the name that uniquely identifies me within
-		my Character
-
-		``location``: return the name of my location
-
-		"""
-		disp = self._getitem_dispatch
-		if key in disp:
-			return disp[key](self)
-		else:
-			return super().__getitem__(key)
-
-	def __setitem__(self, key, value):
-		"""Set ``key``=``value`` for the present game-time."""
-		try:
-			self._setitem_dispatch[key](self, value)
-		except HistoricKeyError as ex:
-			raise ex
-		except KeyError:
-			super().__setitem__(key, value)
-
-	def __delitem__(self, key):
-		"""As of now, this key isn't mine."""
-		if key in self._extra_keys:
-			raise ValueError("Can't delete {}".format(key))
-		super().__delitem__(key)
-
-	def __repr__(self):
-		return "<{}.character['{}'].thing['{}']>".format(
-			self.engine, self.character.name, self.name
-		)
-
-	def facade(self):
-		return FacadeThing(self.character.facade(), self)
-
-	def delete(self) -> None:
-		super().delete()
-		self._set_loc(None)
-		self.character.thing.send(
-			self.character.thing, key=self.name, val=None
-		)
-
-	def clear(self) -> None:
-		"""Unset everything."""
-		for k in list(self.keys()):
-			if k not in self._extra_keys:
-				del self[k]
-
+class AbstractThing(ABC):
 	@property
 	def location(self) -> Node:
 		"""The ``Thing`` or ``Place`` I'm in."""
@@ -934,6 +827,115 @@ class Thing(Node):
 		return self.follow_path(path, weight)
 
 
+class Thing(Node, AbstractThing):
+	"""The sort of item that has a particular location at any given time.
+
+	Things are always in Places or other Things, and may additionally be
+	travelling through a Portal.
+
+	LiSE entities are truthy so long as they exist, falsy if they've
+	been deleted.
+
+	"""
+
+	__slots__ = (
+		"graph",
+		"db",
+		"node",
+		"_rulebook",
+		"_rulebooks",
+		"_real_rule_mapping",
+	)
+
+	_extra_keys = {"name", "location"}
+
+	def _getname(self):
+		return self.name
+
+	def _getloc(self):
+		ret = self.engine._things_cache._base_retrieve(
+			(self.character.name, self.name, *self.engine._btt())
+		)
+		if ret is None or isinstance(ret, Exception):
+			return None
+		return ret
+
+	def _validate_node_type(self):
+		return self._getloc() is not None
+
+	def _get_arrival_time(self):
+		charn = self.character.name
+		n = self.name
+		thingcache = self.engine._things_cache
+		for b, trn, tck in self.engine._iter_parent_btt():
+			try:
+				v = thingcache.turn_before(charn, n, b, trn)
+			except KeyError:
+				v = thingcache.turn_after(charn, n, b, trn)
+			if v is not None:
+				return v
+		else:
+			raise ValueError("Couldn't find arrival time")
+
+	def _set_loc(self, loc: Optional[Key]):
+		self.engine._set_thing_loc(self.character.name, self.name, loc)
+
+	_getitem_dispatch = {"name": _getname, "location": _getloc}
+
+	_setitem_dispatch = {"name": roerror, "location": _set_loc}
+
+	def __getitem__(self, key: Key):
+		"""Return one of my stats stored in the database, or special cases:
+
+		``name``: return the name that uniquely identifies me within
+		my Character
+
+		``location``: return the name of my location
+
+		"""
+		disp = self._getitem_dispatch
+		if key in disp:
+			return disp[key](self)
+		else:
+			return super().__getitem__(key)
+
+	def __setitem__(self, key, value):
+		"""Set ``key``=``value`` for the present game-time."""
+		try:
+			self._setitem_dispatch[key](self, value)
+		except HistoricKeyError as ex:
+			raise ex
+		except KeyError:
+			super().__setitem__(key, value)
+
+	def __delitem__(self, key):
+		"""As of now, this key isn't mine."""
+		if key in self._extra_keys:
+			raise ValueError("Can't delete {}".format(key))
+		super().__delitem__(key)
+
+	def __repr__(self):
+		return "<{}.character['{}'].thing['{}']>".format(
+			self.engine, self.character.name, self.name
+		)
+
+	def facade(self):
+		return FacadeThing(self.character.facade(), self)
+
+	def delete(self) -> None:
+		super().delete()
+		self._set_loc(None)
+		self.character.thing.send(
+			self.character.thing, key=self.name, val=None
+		)
+
+	def clear(self) -> None:
+		"""Unset everything."""
+		for k in list(self.keys()):
+			if k not in self._extra_keys:
+				del self[k]
+
+
 class FacadeNode(FacadeEntity, ABC):
 	@property
 	def portal(self):
@@ -987,7 +989,7 @@ class FacadePlace(FacadeNode):
 		return self.facade.new_thing(name, self.name)
 
 
-class FacadeThing(FacadeNode):
+class FacadeThing(FacadeNode, AbstractThing):
 	def __init__(self, mapping, real_or_name, **kwargs):
 		location = kwargs.pop("location", None)
 		super().__init__(mapping, real_or_name, **kwargs)
