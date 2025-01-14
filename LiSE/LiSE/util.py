@@ -1184,3 +1184,9 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 	def apply(self):
 		self._real.update(self._patch)
 		self._patch = {}
+
+	def unwrap(self):
+		return {
+			k: v.unwrap() if hasattr(v, "unwrap") else v
+			for (k, v) in self.items()
+		}
