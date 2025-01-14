@@ -644,9 +644,9 @@ class Engine(AbstractEngine, gORM, Executor):
 			with lock:  # deadlock here.
 				pipein.send_bytes(b"shutdown")
 				recvd = pipeout.recv_bytes()
-				assert (
-					recvd == b"done"
-				), f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
+				assert recvd == b"done", (
+					f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
+				)
 				proc.join()
 				proc.close()
 
