@@ -1116,7 +1116,9 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		super().__init__()
 		self.facade = self.character = getattr(mapping, "facade", mapping)
 		self._mapping = mapping
-		is_name = not hasattr(real_or_name, "name")
+		is_name = not hasattr(real_or_name, "name") and not hasattr(
+			real_or_name, "orig"
+		)
 		if is_name:
 			try:
 				self._real = self._get_real(real_or_name)
