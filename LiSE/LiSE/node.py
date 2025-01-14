@@ -763,7 +763,7 @@ class AbstractThing(ABC):
 					turn_incs.append(1)
 				turns_total += turn_incs[-1]
 				turn += turn_incs[-1]
-				tick = eng._turn_end_plan.get(turn, 0)
+				tick = eng._turn_end_plan.get((branch, turn), 0)
 				if check:
 					eng._nodes_cache.retrieve(
 						charn, subplace, branch, turn, tick
