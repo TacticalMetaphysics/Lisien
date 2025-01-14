@@ -936,12 +936,21 @@ class Thing(Node):
 
 class FacadeNode(FacadeEntity, ABC):
 	@property
-	def name(self):
-		return self["name"]
-
-	@property
 	def portal(self):
 		return self.facade.portal[self["name"]]
+
+	def __init__(self, mapping, real_or_name=None, **kwargs):
+		self.name = getattr(real_or_name, "name", real_or_name)
+		super().__init__(mapping, real_or_name, **kwargs)
+
+	def __iter__(self):
+		yield "name"
+		yield from super().__iter__()
+
+	def __getitem__(self, item):
+		if item == "name":
+			return self.name
+		return super().__getitem__(item)
 
 	def contents(self):
 		for thing in self.facade.thing.values():
