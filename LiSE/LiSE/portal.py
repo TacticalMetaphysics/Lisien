@@ -166,7 +166,10 @@ class Portal(Edge, RuleFollower):
 			raise AttributeError("This portal has no reciprocal")
 
 	def facade(self):
-		return FacadePortal(self.origin, self.destination)
+		face = self.character.facade()
+		ret = FacadePortal(face.portal[self.orig], self.dest)
+		face.portal._patch = {self.orig: {self.dest: ret}}
+		return ret
 
 	def historical(self, stat: Key) -> StatusAlias:
 		"""Return a reference to the values that a stat has had in the past.
