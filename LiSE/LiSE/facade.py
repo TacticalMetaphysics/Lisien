@@ -194,6 +194,81 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		self._patch[k] = None
 
 
+class FacadeRulebook(MutableSequence, ABC):
+	name: Any
+	_fake: list
+	engine: EngineFacade
+
+	def __iter__(self):
+		return iter(self._fake)
+
+	def __getitem__(self, item):
+		_ = self._fake[item]
+		return FacadeRule(self.engine, item)
+
+	def __setitem__(self, index, value):
+		name = getattr(value, "name", value)
+		self._fake[index] = name
+
+	def __delitem__(self, index):
+		del self._fake[index]
+
+	def __len__(self):
+		return len(self._fake)
+
+
+class FacadeRule:
+	class FakeFuncList(MutableSequence):
+		def __init__(self, rule, typ):
+			self._rule = rule
+			self._type = typ
+
+		@property
+		def _me(self):
+			return getattr(self._rule, f"_fake_{self._type}s")
+
+		def __iter__(self):
+			return iter(self._me)
+
+		def __len__(self):
+			return len(self._me)
+
+		def __getitem__(self, item):
+			realeng = self._rule._engine._real
+			return getattr(realeng, self._type)
+
+		def __setitem__(self, key, value):
+			self._me[key] = getattr(value, "name", value)
+
+		def __delitem__(self, key):
+			del self._me[key]
+
+	def __init__(self, engine, name):
+		self._engine = engine
+		self.name = name
+		realeng = engine._real
+		realrule = realeng.rule[name]
+		self._fake_triggers = list(map(getname, realrule.triggers))
+		self._fake_prereqs = list(map(getname, realrule.prereqs))
+		self._fake_actions = list(map(getname, realrule.actions))
+		self.triggers = self.FakeFuncList(self, "trigger")
+		self.prereqs = self.FakeFuncList(self, "prereq")
+		self.actions = self.FakeFuncList(self, "action")
+
+	def apply(self):
+		realeng = self._engine._real
+		realrule = realeng.rule[self.name]
+		realtrigs = list(map(getname, realrule.triggers))
+		if self._fake_triggers != realtrigs:
+			realrule.triggers = self._fake_triggers
+		realpreqs = list(map(getname, realrule.prereqs))
+		if self._fake_prereqs != realpreqs:
+			realrule.prereqs = self._fake_prereqs
+		realacts = list(map(getname, realrule.actions))
+		if self._fake_actions != realacts:
+			realrule.actions = self._fake_actions
+
+
 class FacadeNode(FacadeEntity, ABC):
 	@property
 	def portal(self):
