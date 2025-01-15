@@ -3480,6 +3480,16 @@ class Engine(AbstractEngine, gORM, Executor):
 		graph_val: StatDict,
 		copy_to_branch: str = None,
 	) -> None:
+		graph_val = graph_val.copy()
+		for rbtyp in (
+			"character_rulebook",
+			"unit_rulebook",
+			"character_thing_rulebook",
+			"character_place_rulebook",
+			"character_portal_rulebook",
+		):
+			if rbtyp not in graph_val:
+				graph_val[rbtyp] = (rbtyp, graph)
 		super()._snap_keyframe_de_novo_graph(
 			graph, branch, turn, tick, nodes, edges, graph_val
 		)
