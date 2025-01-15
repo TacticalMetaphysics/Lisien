@@ -3480,6 +3480,36 @@ class Engine(AbstractEngine, gORM, Executor):
 		graph_val: StatDict,
 		copy_to_branch: str = None,
 	) -> None:
+		for rb_kf_type, rb_kf_cache in [
+			("character_rulebook", self._characters_rulebooks_cache),
+			("unit_rulebook", self._units_rulebooks_cache),
+			(
+				"character_thing_rulebook",
+				self._characters_things_rulebooks_cache,
+			),
+			(
+				"character_place_rulebook",
+				self._characters_places_rulebooks_cache,
+			),
+			(
+				"character_portal_rulebook",
+				self._characters_portals_rulebooks_cache,
+			),
+		]:
+			try:
+				kf = rb_kf_cache.get_keyframe(branch, turn, tick)
+				kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
+			except KeyError:
+				kf = {}
+				for char in self._graph_cache.iter_keys(branch, turn, tick):
+					try:
+						kf[char] = rb_kf_cache.retrieve(
+							graph, branch, turn, tick
+						)
+					except KeyError:
+						kf[char] = (rb_kf_type, graph)
+			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
+		self._characters_rulebooks_cache.set_keyframe(branch, turn, tick, kf)
 		super()._snap_keyframe_de_novo_graph(
 			graph, branch, turn, tick, nodes, edges, graph_val
 		)
