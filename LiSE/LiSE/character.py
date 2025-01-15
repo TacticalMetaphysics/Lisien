@@ -37,14 +37,16 @@ from abc import abstractmethod, ABC
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
+from copy import deepcopy
 from functools import cached_property
 from itertools import chain
+from threading import RLock
 from types import MethodType
 from typing import Type
 from blinker import Signal
 
 import networkx as nx
-from .allegedb.cache import FuturistWindowDict, PickyDefaultDict
+from .allegedb.cache import FuturistWindowDict, PickyDefaultDict, Cache
 from .allegedb.graph import (
 	DiGraph,
 	GraphNodeMapping,
@@ -234,6 +236,17 @@ class EngineFacade(AbstractEngine):
 				real.universal["rando_state"] = rando_state
 			self._patch = {}
 
+	class FacadeCache(Cache):
+		def __init__(self, cache):
+			super().__init__(cache.db)
+			self._real = cache
+
+		def retrieve(self, *args):
+			try:
+				return super().retrieve(*args)
+			except KeyError:
+				return self._real.retrieve(*args)
+
 	def __init__(self, real: AbstractEngine):
 		assert not isinstance(real, EngineFacade)
 		self._real = real
@@ -243,6 +256,19 @@ class EngineFacade(AbstractEngine):
 		self.universal = self.FacadeUniversalMapping(real)
 		self._rando = random.Random()
 		self._rando.setstate(real._rando.getstate())
+		self.world_lock = RLock()
+		self.branch, self.turn, self.tick = real._btt()
+		self._branches = deepcopy(real._branches)
+		self._turn_end_plan = deepcopy(real._turn_end_plan)
+		self._nodes_cache = self.FacadeCache(real._nodes_cache)
+		self._things_cache = self.FacadeCache(real._things_cache)
+
+	def _btt(self):
+		return self.branch, self.turn, self.tick
+
+	def _nbtt(self):
+		self.tick += 1
+		return self._btt()
 
 	@contextmanager
 	def plan(self):
