@@ -4,7 +4,7 @@ from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
 
 from LiSE import Engine
-from LiSE.character import CharacterFacade
+from LiSE.facade import CharacterFacade
 from ELiDE.app import ELiDEApp
 from ELiDE.graph.board import GraphBoard, GraphBoardView
 from ELiDE.pawnspot import TextureStackPlane

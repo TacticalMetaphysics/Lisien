@@ -18,12 +18,12 @@ from typing import Tuple, Hashable, Optional
 
 from .window import (
 	WindowDict,
-	HistoricKeyError,
 	FuturistWindowDict,
 	TurnDict,
 	SettingsTurnDict,
 	EntikeySettingsTurnDict,
 )
+from ..util import HistoricKeyError
 from collections import OrderedDict, defaultdict, deque
 from threading import RLock
 

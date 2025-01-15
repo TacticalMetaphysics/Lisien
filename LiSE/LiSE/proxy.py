@@ -48,7 +48,7 @@ import msgpack
 from .allegedb import OutOfTimelineError, Key
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
-from .character import CharacterFacade
+from .facade import CharacterFacade
 from .util import (
 	getatt,
 	AbstractEngine,
@@ -1610,9 +1610,9 @@ class CharacterProxy(AbstractCharacter):
 		return NodeMapProxy(self.engine, self.name)
 
 	def __init__(self, engine_proxy, charname, *, init_rulebooks=False):
-		assert (
-			not init_rulebooks
-		), "Can't initialize rulebooks in CharacterProxy"
+		assert not init_rulebooks, (
+			"Can't initialize rulebooks in CharacterProxy"
+		)
 		self.db = engine_proxy
 		self.name = charname
 		self.graph = CharStatProxy(self.engine, self.name)

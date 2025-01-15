@@ -52,13 +52,12 @@ from networkx import (
 )
 from blinker import Signal
 
-from .allegedb import ORM as gORM, KeyframeTuple
+from .allegedb import ORM as gORM, KeyframeTuple, Key
 from .allegedb import (
 	StatDict,
 	NodeValDict,
 	EdgeValDict,
 	DeltaDict,
-	Key,
 	world_locked,
 	OutOfTimelineError,
 )
@@ -88,7 +87,8 @@ from .query import (
 	CombinedQueryResult,
 )
 from .proxy import worker_subprocess
-from .character import Character, CharacterFacade
+from .character import Character
+from .facade import CharacterFacade
 from .node import Place, Thing
 from .portal import Portal
 from .query import QueryEngine

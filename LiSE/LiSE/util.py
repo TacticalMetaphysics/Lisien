@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Common utility functions and data structures."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Set
 from enum import Enum
@@ -46,16 +48,19 @@ from typing import (
 	Callable,
 	Dict,
 	Hashable,
-	MutableMapping,
+	Tuple,
+	FrozenSet,
 )
 
 import msgpack
 import networkx as nx
 import numpy as np
-from blinker import Signal
 from tblib import Traceback
 
 from . import exc, allegedb
+from .exc import TravelException
+
+Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
 
 
 class BadTimeException(Exception):
@@ -559,7 +564,7 @@ class AbstractEngine(ABC):
 			"CacheError": exc.CacheError,
 			"TravelException": exc.TravelException,
 			"OutOfTimelineError": allegedb.OutOfTimelineError,
-			"HistoricKeyError": allegedb.HistoricKeyError,
+			"HistoricKeyError": HistoricKeyError,
 			"NotInKeyframeError": allegedb.cache.NotInKeyframeError,
 			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
 		}
@@ -1101,98 +1106,169 @@ def normalize_layout(l):
 	return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))
 
 
-class FacadeEntity(MutableMapping, Signal, ABC):
-	exists = True
-
+class AbstractThing(ABC):
 	@property
-	def engine(self):
-		return self.character.engine
+	def location(self) -> "allegedb.Node":
+		"""The ``Thing`` or ``Place`` I'm in."""
+		locn = self["location"]
+		if locn is None:
+			raise AttributeError("Not really a Thing")
+		return self.engine._get_node(self.character, locn)
 
-	db = engine
+	@location.setter
+	def location(self, v: Union["allegedb.Node", Key]):
+		if hasattr(v, "name"):
+			v = v.name
+		self["location"] = v
 
-	@abstractmethod
-	def _get_real(self, name):
-		raise NotImplementedError()
+	def go_to_place(
+		self, place: Union["allegedb.Node", Key], weight: Key = None
+	) -> int:
+		"""Assuming I'm in a node that has a :class:`Portal` direct
+		to the given node, schedule myself to travel to the
+		given :class:`Place`, taking an amount of time indicated by
+		the ``weight`` stat on the :class:`Portal`, if given; else 1
+		turn.
 
-	def __init__(self, mapping, real_or_name=None, **kwargs):
-		super().__init__()
-		self.facade = self.character = getattr(mapping, "facade", mapping)
-		self._mapping = mapping
-		is_name = not hasattr(real_or_name, "name") and not hasattr(
-			real_or_name, "orig"
-		)
-		if is_name:
-			try:
-				self._real = self._get_real(real_or_name)
-			except KeyError:
-				pass  # Entity created for Facade. No underlying real entity.
+		Return the number of turns the travel will take.
+
+		"""
+		if hasattr(place, "name"):
+			placen = place.name
 		else:
-			self._real = real_or_name
-		self._patch = {
-			k: v.unwrap() if hasattr(v, "unwrap") else v
-			for (k, v) in kwargs.items()
-		}
+			placen = place
+		curloc = self["location"]
+		orm = self.character.engine
+		turns = (
+			1
+			if weight is None
+			else self.engine._portal_objs[
+				(self.character.name, curloc, place)
+			].get(weight, 1)
+		)
+		with self.engine.plan():
+			orm.turn += turns
+			self["location"] = placen
+		return turns
 
-	def __contains__(self, item):
-		patch = self._patch
-		if item in patch:
-			return patch[item] is not None
-		if hasattr(self, "_real"):
-			return item in self._real
-		return False
+	def follow_path(
+		self, path: list, weight: Key = None, check: bool = True
+	) -> int:
+		"""Go to several nodes in succession, deciding how long to
+		spend in each by consulting the ``weight`` stat of the
+		:class:`Portal` connecting the one node to the next,
+		default 1 turn.
 
-	def __iter__(self):
-		patch = self._patch
-		ks = patch.keys()
-		if hasattr(self, "_real"):
-			ks |= self._real.keys()
-		for k in ks:
-			if k not in patch or patch[k] is not None:
-				yield k
+		Return the total number of turns the travel will take. Raise
+		:class:`TravelException` if I can't follow the whole path,
+		either because some of its nodes don't exist, or because I'm
+		scheduled to be somewhere else. Set ``check=False`` if
+		you're really sure the path is correct, and this function
+		will be faster.
 
-	def __len__(self):
-		n = 0
-		for _ in self:
-			n += 1
-		return n
+		"""
+		if len(path) < 2:
+			raise ValueError("Paths need at least 2 nodes")
+		eng = self.character.engine
+		if check:
+			prevplace = path.pop(0)
+			if prevplace != self["location"]:
+				raise ValueError("Path does not start at my present location")
+			subpath = [prevplace]
+			for place in path:
+				if (
+					prevplace not in self.character.portal
+					or place not in self.character.portal[prevplace]
+				):
+					raise TravelException(
+						"Couldn't follow portal from {} to {}".format(
+							prevplace, place
+						),
+						path=subpath,
+						traveller=self,
+					)
+				subpath.append(place)
+				prevplace = place
+		else:
+			subpath = path.copy()
+		turns_total = 0
+		prevsubplace = subpath.pop(0)
+		turn_incs = []
+		branch, turn, tick = eng._btt()
+		for subplace in subpath:
+			if weight is not None:
+				turn_incs.append(
+					self.engine._edge_val_cache.retrieve(
+						self.character.name,
+						prevsubplace,
+						subplace,
+						0,
+						branch,
+						turn,
+						tick,
+					)
+				)
+			else:
+				turn_incs.append(1)
+			turns_total += turn_incs[-1]
+			turn += turn_incs[-1]
+			tick = eng._turn_end_plan.get(turn, 0)
+			_, start_turn, start_tick, end_turn, end_tick = eng._branches[
+				branch
+			]
+			if (
+				(start_turn < turn < end_turn)
+				or (
+					start_turn == end_turn == turn
+					and start_tick <= tick < end_tick
+				)
+				or (start_turn == turn and start_tick <= tick)
+				or (end_turn == turn and tick < end_tick)
+			):
+				eng.load_at(branch, turn, tick)
+		with eng.plan():
+			for subplace, turn_inc in zip(subpath, turn_incs):
+				eng.turn += turn_inc
+				self["location"] = subplace
+		return turns_total
 
-	def __getitem__(self, k):
-		if k in self._patch:
-			if self._patch[k] is None:
-				raise KeyError("{} has been masked.".format(k))
-			return self._patch[k]
-		if not hasattr(self, "_real"):
-			return
-		ret = self._real[k]
-		if hasattr(ret, "unwrap"):  # a wrapped mutable object from the
-			# allegedb.wrap module
-			ret = ret.unwrap()
-			self._patch[k] = ret  # changes will be reflected in the
-		# facade but not the original
-		return ret
+	def travel_to(
+		self,
+		dest: Union["allegedb.Node", Key],
+		weight: Key = None,
+		graph: nx.DiGraph = None,
+	) -> int:
+		"""Find the shortest path to the given node from where I am
+		now, and follow it.
 
-	@abstractmethod
-	def _set_plan(self, k, v):
-		raise NotImplementedError()
+		If supplied, the ``weight`` stat of each :class:`Portal` along
+		the path will be used in pathfinding, and for deciding how
+		long to stay in each Place along the way.
 
-	def __setitem__(self, k, v):
-		if k == "name":
-			raise KeyError("Can't change names")
-		if hasattr(v, "unwrap"):
-			v = v.unwrap()
-		if self.character.engine._planning:
-			return self._set_plan(k, v)
-		self._patch[k] = v
+		The ``graph`` argument may be any NetworkX-style graph. It
+		will be used for pathfinding if supplied, otherwise I'll use
+		my :class:`Character`. In either case, however, I will attempt
+		to actually follow the path using my :class:`Character`, which
+		might not be possible if the supplied ``graph`` and my
+		:class:`Character` are too different. If it's not possible,
+		I'll raise a :class:`TravelException`, whose ``subpath``
+		attribute holds the part of the path that I *can* follow. To
+		make me follow it, pass it to my ``follow_path`` method.
 
-	def __delitem__(self, k):
-		self._patch[k] = None
+		Return value is the number of turns the travel will take.
 
-	def apply(self):
-		self._real.update(self._patch)
-		self._patch = {}
+		"""
+		destn = dest.name if hasattr(dest, "name") else dest
+		if destn == self.location.name:
+			raise ValueError("I'm already at {}".format(destn))
+		graph = self.character if graph is None else graph
+		path = nx.shortest_path(graph, self["location"], destn, weight)
+		return self.follow_path(path, weight)
 
-	def unwrap(self):
-		return {
-			k: v.unwrap() if hasattr(v, "unwrap") else v
-			for (k, v) in self.items()
-		}
+
+class HistoricKeyError(KeyError):
+	"""Distinguishes deleted keys from those that were never set"""
+
+	def __init__(self, *args, deleted=False):
+		super().__init__(*args)
+		self.deleted = deleted

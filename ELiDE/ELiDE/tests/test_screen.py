@@ -7,7 +7,7 @@ from kivy.tests.common import UnitTestTouch
 from kivy.uix.screenmanager import ScreenManager
 
 from LiSE import Engine
-from LiSE.character import CharacterFacade
+from LiSE.facade import CharacterFacade
 from ELiDE.menu import DirPicker
 from ELiDE.screen import MainScreen
 from ELiDE.spritebuilder import PawnConfigScreen, SpotConfigScreen
