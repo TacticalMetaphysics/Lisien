@@ -14,13 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM"""
 
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
-from queue import Queue
-from threading import RLock, Thread
+from threading import RLock
 from typing import (
 	Callable,
 	Dict,
@@ -30,8 +27,6 @@ from typing import (
 	Optional,
 	List,
 	Iterator,
-	FrozenSet,
-	Hashable,
 	Set,
 )
 
@@ -45,10 +40,8 @@ from .query import (
 	QueryEngine,
 	TimeError,
 )
-from .window import HistoricKeyError
-from ..util import sort_set
+from ..util import sort_set, Key, HistoricKeyError
 
-Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
 """Type hint for things LiSE can use as keys
 
 They have to be serializable using LiSE's particular msgpack schema,
@@ -953,7 +946,9 @@ class ORM:
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
 			return self._get_kf(branch, turn, tick, copy=copy)
-		with self.batch():  # so that iter_keys doesn't try fetching the kf we're about to make
+		with (
+			self.batch()
+		):  # so that iter_keys doesn't try fetching the kf we're about to make
 			graphs = frozenset(self._graph_cache.iter_keys(branch, turn, tick))
 			for graph in sort_set(graphs):
 				self._snap_keyframe_de_novo_graph(
@@ -1177,9 +1172,9 @@ class ORM:
 				)
 			except KeyframeError:  # edge not present in this keyframe
 				continue
-			assert idx_ex.keys() == {
-				0
-			}, "Not doing edge indexes until multigraphs come back"
+			assert idx_ex.keys() == {0}, (
+				"Not doing edge indexes until multigraphs come back"
+			)
 			if graph in edges:
 				if orig in edges[graph]:
 					edges[graph][orig][dest] = True
@@ -1188,9 +1183,9 @@ class ORM:
 			else:
 				edges[graph] = {orig: {dest: True}}
 		for graph, orig, dest, idx in self._edge_val_cache.keyframe:
-			assert (
-				idx == 0
-			), "Not doing idx other than 0 until multigraphs come back"
+			assert idx == 0, (
+				"Not doing idx other than 0 until multigraphs come back"
+			)
 			try:
 				evv = self._edge_val_cache.get_keyframe(
 					(graph, orig, dest, idx), branch, turn, tick, copy

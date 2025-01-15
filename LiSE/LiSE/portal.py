@@ -19,9 +19,10 @@ from collections.abc import Mapping
 from typing import Union, List, Tuple, Any
 
 from .allegedb.graph import Edge
-from .allegedb import HistoricKeyError, Key
+from .allegedb import Key
 
-from .util import getatt, AbstractCharacter, FacadeEntity
+from .util import getatt, AbstractCharacter, HistoricKeyError
+from .facade import FacadePortal
 from .query import StatusAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
@@ -226,48 +227,3 @@ class Portal(Edge, RuleFollower):
 			else v
 			for (k, v) in self.items()
 		}
-
-
-class FacadePortal(FacadeEntity):
-	"""Lightweight analogue of Portal for Facade use."""
-
-	def __init__(self, mapping, other, **kwargs):
-		super().__init__(mapping, other, **kwargs)
-		if hasattr(mapping, "orig"):
-			self.orig = mapping.orig
-			self.dest = other
-		else:
-			self.dest = mapping.dest
-			self.orig = other
-		try:
-			self._real = self.facade.character.portal[self.orig][self.dest]
-		except (KeyError, AttributeError):
-			self._real = {}
-
-	def __getitem__(self, item):
-		if item == "origin":
-			return self.orig
-		if item == "destination":
-			return self.dest
-		return super().__getitem__(item)
-
-	def __setitem__(self, k, v):
-		if k in ("origin", "destination"):
-			raise TypeError("Portals have fixed origin and destination")
-		super().__setitem__(k, v)
-
-	@property
-	def origin(self):
-		return self.facade.node[self.orig]
-
-	@property
-	def destination(self):
-		return self.facade.node[self.dest]
-
-	def _get_real(self, name):
-		return self.character.character.portal[self._mapping.orig][name]
-
-	def _set_plan(self, k, v):
-		self.character.engine._planned[self.character.engine._curplan][
-			self.character.engine.turn
-		].append((self.character.name, self.orig, self.dest, k, v))

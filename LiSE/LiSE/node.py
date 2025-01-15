@@ -21,19 +21,24 @@ have a lot in common.
 
 from __future__ import annotations
 
-from abc import ABC
 from collections.abc import Mapping, ValuesView, Set
 from typing import Optional, Union, Iterator, List
 
-import networkx as nx
 from networkx import shortest_path, shortest_path_length
 
-from .allegedb import graph, Key, HistoricKeyError
+from .allegedb import graph
 
-from .util import getatt, AbstractCharacter, FacadeEntity
+from .util import (
+	getatt,
+	AbstractCharacter,
+	AbstractThing,
+	Key,
+	HistoricKeyError,
+)
+from .facade import FacadePlace, FacadeThing
 from .query import StatusAlias
 from . import rule
-from .exc import AmbiguousUserError, TravelException
+from .exc import AmbiguousUserError
 
 
 class UserMapping(Mapping):
@@ -654,164 +659,6 @@ def roerror(*args):
 	raise RuntimeError("Read-only")
 
 
-class AbstractThing(ABC):
-	@property
-	def location(self) -> Node:
-		"""The ``Thing`` or ``Place`` I'm in."""
-		locn = self["location"]
-		if locn is None:
-			raise AttributeError("Not really a Thing")
-		return self.engine._get_node(self.character, locn)
-
-	@location.setter
-	def location(self, v: Union[Node, Key]):
-		if hasattr(v, "name"):
-			v = v.name
-		self["location"] = v
-
-	def go_to_place(self, place: Union[Node, Key], weight: Key = None) -> int:
-		"""Assuming I'm in a node that has a :class:`Portal` direct
-		to the given node, schedule myself to travel to the
-		given :class:`Place`, taking an amount of time indicated by
-		the ``weight`` stat on the :class:`Portal`, if given; else 1
-		turn.
-
-		Return the number of turns the travel will take.
-
-		"""
-		if hasattr(place, "name"):
-			placen = place.name
-		else:
-			placen = place
-		curloc = self["location"]
-		orm = self.character.engine
-		turns = (
-			1
-			if weight is None
-			else self.engine._portal_objs[
-				(self.character.name, curloc, place)
-			].get(weight, 1)
-		)
-		with self.engine.plan():
-			orm.turn += turns
-			self["location"] = placen
-		return turns
-
-	def follow_path(
-		self, path: list, weight: Key = None, check: bool = True
-	) -> int:
-		"""Go to several nodes in succession, deciding how long to
-		spend in each by consulting the ``weight`` stat of the
-		:class:`Portal` connecting the one node to the next,
-		default 1 turn.
-
-		Return the total number of turns the travel will take. Raise
-		:class:`TravelException` if I can't follow the whole path,
-		either because some of its nodes don't exist, or because I'm
-		scheduled to be somewhere else. Set ``check=False`` if
-		you're really sure the path is correct, and this function
-		will be faster.
-
-		"""
-		if len(path) < 2:
-			raise ValueError("Paths need at least 2 nodes")
-		eng = self.character.engine
-		if check:
-			prevplace = path.pop(0)
-			if prevplace != self["location"]:
-				raise ValueError("Path does not start at my present location")
-			subpath = [prevplace]
-			for place in path:
-				if (
-					prevplace not in self.character.portal
-					or place not in self.character.portal[prevplace]
-				):
-					raise TravelException(
-						"Couldn't follow portal from {} to {}".format(
-							prevplace, place
-						),
-						path=subpath,
-						traveller=self,
-					)
-				subpath.append(place)
-				prevplace = place
-		else:
-			subpath = path.copy()
-		turns_total = 0
-		prevsubplace = subpath.pop(0)
-		turn_incs = []
-		branch, turn, tick = eng._btt()
-		for subplace in subpath:
-			if weight is not None:
-				turn_incs.append(
-					self.engine._edge_val_cache.retrieve(
-						self.character.name,
-						prevsubplace,
-						subplace,
-						0,
-						branch,
-						turn,
-						tick,
-					)
-				)
-			else:
-				turn_incs.append(1)
-			turns_total += turn_incs[-1]
-			turn += turn_incs[-1]
-			tick = eng._turn_end_plan.get(turn, 0)
-			_, start_turn, start_tick, end_turn, end_tick = eng._branches[
-				branch
-			]
-			if (
-				(start_turn < turn < end_turn)
-				or (
-					start_turn == end_turn == turn
-					and start_tick <= tick < end_tick
-				)
-				or (start_turn == turn and start_tick <= tick)
-				or (end_turn == turn and tick < end_tick)
-			):
-				eng.load_at(branch, turn, tick)
-		with eng.plan():
-			for subplace, turn_inc in zip(subpath, turn_incs):
-				eng.turn += turn_inc
-				self["location"] = subplace
-		return turns_total
-
-	def travel_to(
-		self,
-		dest: Union[Node, Key],
-		weight: Key = None,
-		graph: nx.DiGraph = None,
-	) -> int:
-		"""Find the shortest path to the given node from where I am
-		now, and follow it.
-
-		If supplied, the ``weight`` stat of each :class:`Portal` along
-		the path will be used in pathfinding, and for deciding how
-		long to stay in each Place along the way.
-
-		The ``graph`` argument may be any NetworkX-style graph. It
-		will be used for pathfinding if supplied, otherwise I'll use
-		my :class:`Character`. In either case, however, I will attempt
-		to actually follow the path using my :class:`Character`, which
-		might not be possible if the supplied ``graph`` and my
-		:class:`Character` are too different. If it's not possible,
-		I'll raise a :class:`TravelException`, whose ``subpath``
-		attribute holds the part of the path that I *can* follow. To
-		make me follow it, pass it to my ``follow_path`` method.
-
-		Return value is the number of turns the travel will take.
-
-		"""
-		destn = dest.name if hasattr(dest, "name") else dest
-		if destn == self.location.name:
-			raise ValueError("I'm already at {}".format(destn))
-		graph = self.character if graph is None else graph
-		path = nx.shortest_path(graph, self["location"], destn, weight)
-		return self.follow_path(path, weight)
-
-
 class Thing(Node, AbstractThing):
 	"""The sort of item that has a particular location at any given time.
 
@@ -919,82 +766,3 @@ class Thing(Node, AbstractThing):
 		for k in list(self.keys()):
 			if k not in self._extra_keys:
 				del self[k]
-
-
-class FacadeNode(FacadeEntity, ABC):
-	@property
-	def portal(self):
-		return self.facade.portal[self["name"]]
-
-	def __init__(self, mapping, real_or_name=None, **kwargs):
-		self.name = getattr(real_or_name, "name", real_or_name)
-		super().__init__(mapping, real_or_name, **kwargs)
-
-	def __iter__(self):
-		yield "name"
-		yield from super().__iter__()
-
-	def __getitem__(self, item):
-		if item == "name":
-			return self.name
-		return super().__getitem__(item)
-
-	def contents(self):
-		for thing in self.facade.thing.values():
-			# it seems like redundant FacadeNode are being created sometimes
-			if thing["location"] == self.name:
-				yield thing
-
-	def _set_plan(self, k, v):
-		self.character.engine._planned[self.character.engine._curplan][
-			self.character.engine.turn
-		].append((self.character.name, self.name, k, v))
-
-
-class FacadePlace(FacadeNode):
-	"""Lightweight analogue of Place for Facade use."""
-
-	def __init__(self, mapping, real_or_name, **kwargs):
-		super().__init__(mapping, real_or_name, **kwargs)
-		if not isinstance(real_or_name, Place):
-			if real_or_name in mapping:
-				real_or_name = mapping[real_or_name]
-			else:
-				mapping._patch[real_or_name] = self
-				return
-		self.character.place._patch[real_or_name.name] = self
-
-	def _get_real(self, name):
-		return self.character.character.place[name]
-
-	def add_thing(self, name):
-		self.facade.add_thing(name, self.name)
-
-	def new_thing(self, name):
-		return self.facade.new_thing(name, self.name)
-
-
-class FacadeThing(FacadeNode, AbstractThing):
-	def __init__(self, mapping, real_or_name, **kwargs):
-		location = kwargs.pop("location", None)
-		if location is None and not (isinstance(real_or_name, Thing)):
-			raise TypeError(
-				"FacadeThing needs to wrap a real Thing, or have a location of its own"
-			)
-		super().__init__(mapping, real_or_name, **kwargs)
-		self.character.thing._patch[real_or_name.name] = self
-
-	def _get_real(self, name):
-		return self.character.character.thing[name]
-
-	@property
-	def location(self):
-		return self.facade.node[self["location"]]
-
-	@location.setter
-	def location(self, v):
-		if isinstance(v, (FacadePlace, FacadeThing)):
-			v = v.name
-		if v not in self.facade.node:
-			raise KeyError("Location {} not present".format(v))
-		self["location"] = v

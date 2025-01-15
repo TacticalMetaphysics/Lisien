@@ -46,6 +46,8 @@ from typing import (
 )
 from enum import Enum
 
+from LiSE.util import HistoricKeyError
+
 get0 = itemgetter(0)
 get1 = itemgetter(1)
 
@@ -97,14 +99,6 @@ def update_backward_window(
 	if turn_to in branchd:
 		for future_state in reversed(branchd[turn_to][tick_to + 1 :]):
 			updfun(*future_state)
-
-
-class HistoricKeyError(KeyError):
-	"""Distinguishes deleted keys from those that were never set"""
-
-	def __init__(self, *args, deleted=False):
-		super().__init__(*args)
-		self.deleted = deleted
 
 
 class WindowDictKeysView(ABC, KeysView):

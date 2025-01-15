@@ -1,5 +1,6 @@
 from ..window import WindowDict
-from .. import HistoricKeyError, ORM
+from .. import ORM
+from ...util import HistoricKeyError
 from itertools import cycle
 import pytest
 

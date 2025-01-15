@@ -3,7 +3,7 @@ from kivy.tests.common import GraphicUnitTest
 import networkx as nx
 
 from LiSE import Engine
-from LiSE.character import CharacterFacade
+from LiSE.facade import CharacterFacade
 from ELiDE.grid.board import GridBoard, GridBoardView
 from .util import (
 	all_spots_placed,

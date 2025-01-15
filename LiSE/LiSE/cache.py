@@ -13,10 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
-from operator import sub, or_, itemgetter
+from operator import itemgetter
 from typing import Tuple
 
-from .allegedb import Key
+from .util import Key
 from .allegedb.cache import (
 	Cache,
 	StructuredDefaultDict,
