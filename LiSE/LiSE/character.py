@@ -208,16 +208,19 @@ class EngineFacade(AbstractEngine):
 			self._patch[key] = None
 
 	class FacadeCharacterMapping(Mapping):
-		def __init__(self, engine: AbstractEngine):
-			assert not isinstance(engine, EngineFacade)
+		def __init__(self, engine: "EngineFacade"):
+			assert isinstance(engine, EngineFacade)
 			self.engine = engine
 			self._patch = {}
 
 		def __getitem__(self, key, /):
-			if key not in self.engine.character:
+			realeng = self.engine._real
+			if key not in realeng.character:
 				raise KeyError("No character", key)
 			if key not in self._patch:
-				self._patch[key] = CharacterFacade(self.engine.character[key])
+				self._patch[key] = CharacterFacade(
+					realeng.character[key], engine=self.engine
+				)
 			return self._patch[key]
 
 		def __len__(self):
@@ -229,11 +232,11 @@ class EngineFacade(AbstractEngine):
 		def apply(self):
 			for pat in self._patch.values():
 				pat.apply()
-			rando_state = self._rando.getstate()
-			real = self._real
-			if rando_state != real._rando.getstate():
-				real._rando.setstate(rando_state)
-				real.universal["rando_state"] = rando_state
+			rando_state = self.engine._rando.getstate()
+			realeng = self.engine._real
+			if rando_state != realeng._rando.getstate():
+				realeng._rando.setstate(rando_state)
+				realeng.universal["rando_state"] = rando_state
 			self._patch = {}
 
 	class FacadeCache(Cache):
@@ -252,7 +255,7 @@ class EngineFacade(AbstractEngine):
 		self._real = real
 		self._planning = False
 		self._planned = defaultdict(lambda: defaultdict(list))
-		self.character = self.FacadeCharacterMapping(real)
+		self.character = self.FacadeCharacterMapping(self)
 		self.universal = self.FacadeUniversalMapping(real)
 		self._rando = random.Random()
 		self._rando.setstate(real._rando.getstate())
@@ -282,6 +285,9 @@ class EngineFacade(AbstractEngine):
 			self._curplan = self._real._last_plan + 1
 		yield self._curplan
 		self._planning = False
+
+	def load_at(self, branch, turn, tick):
+		self._real.load_at(branch, turn, tick)
 
 	def apply(self):
 		realeng = self._real
@@ -543,10 +549,10 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 	def add_unit(self, a, b=None):
 		raise NotImplementedError("Facades don't have units")
 
-	def __init__(self, character=None):
+	def __init__(self, character=None, engine=None):
 		super().__init__()
 		self.character = character
-		self.db = EngineFacade(character.engine)
+		self.db = EngineFacade(engine or character.engine)
 		self.db.character._patch[character.name] = self
 		self.graph = self.StatMapping(self)
 
