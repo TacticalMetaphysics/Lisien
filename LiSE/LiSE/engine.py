@@ -3509,7 +3509,6 @@ class Engine(AbstractEngine, gORM, Executor):
 					except KeyError:
 						kf[char] = (rb_kf_type, graph)
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
-		self._characters_rulebooks_cache.set_keyframe(branch, turn, tick, kf)
 		super()._snap_keyframe_de_novo_graph(
 			graph, branch, turn, tick, nodes, edges, graph_val
 		)
