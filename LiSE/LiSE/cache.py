@@ -60,6 +60,15 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 	__slots__ = ()
 
 
+class CharactersRulebooksCache(InitializedEntitylessCache):
+	def set_keyframe(self, branch, turn, tick, keyframe):
+		super().set_keyframe(branch, turn, tick, keyframe)
+		for char, kf in keyframe.items():
+			super(EntitylessCache, self).set_keyframe(
+				(char,), branch, turn, tick, kf
+			)
+
+
 class PortalsRulebooksCache(InitializedCache):
 	def store(
 		self,
