@@ -67,7 +67,7 @@ from .allegedb.cache import (
 	StructuredDefaultDict,
 )
 from .allegedb.window import update_window, update_backward_window
-from .cache import PortalsRulebooksCache
+from .cache import PortalsRulebooksCache, CharactersRulebooksCache
 from .util import sort_set, AbstractEngine, final_rule, normalize_layout
 from .xcollections import (
 	StringStore,
@@ -1007,17 +1007,17 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._universal_cache.name = "universal_cache"
 		self._rulebooks_cache = InitializedEntitylessCache(self)
 		self._rulebooks_cache.name = "rulebooks_cache"
-		self._characters_rulebooks_cache = InitializedEntitylessCache(self)
+		self._characters_rulebooks_cache = CharactersRulebooksCache(self)
 		self._characters_rulebooks_cache.name = "characters_rulebooks_cache"
-		self._units_rulebooks_cache = InitializedEntitylessCache(self)
+		self._units_rulebooks_cache = CharactersRulebooksCache(self)
 		self._units_rulebooks_cache.name = "units_rulebooks_cache"
-		ctrc = InitializedEntitylessCache(self)
+		ctrc = CharactersRulebooksCache(self)
 		ctrc.name = "characters_things_rulebooks_cache"
 		self._characters_things_rulebooks_cache = ctrc
-		cprc = InitializedEntitylessCache(self)
+		cprc = CharactersRulebooksCache(self)
 		cprc.name = "characters_places_rulebooks_cache"
 		self._characters_places_rulebooks_cache = cprc
-		cporc = InitializedEntitylessCache(self)
+		cporc = CharactersRulebooksCache(self)
 		cporc.name = "characters_portals_rulebooks_cache"
 		self._characters_portals_rulebooks_cache = cporc
 		self._nodes_rulebooks_cache = InitializedCache(self)
@@ -1178,6 +1178,56 @@ class Engine(AbstractEngine, gORM, Executor):
 			vals["units"] = self._unitness_cache.get_keyframe(
 				(graph,), branch, turn, tick
 			)
+			vals["character_rulebook"] = (
+				self._characters_rulebooks_cache.retrieve(
+					graph, branch, turn, tick
+				)
+			)
+			vals["unit_rulebook"] = self._units_rulebooks_cache.retrieve(
+				graph, branch, turn, tick
+			)
+			vals["character_thing_rulebook"] = (
+				self._characters_things_rulebooks_cache.retrieve(
+					graph, branch, turn, tick
+				)
+			)
+			vals["character_place_rulebook"] = (
+				self._characters_places_rulebooks_cache.retrieve(
+					graph, branch, turn, tick
+				)
+			)
+			vals["character_portal_rulebook"] = (
+				self._characters_portals_rulebooks_cache.retrieve(
+					graph, branch, turn, tick
+				)
+			)
+			node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
+				(graph,), branch, turn, tick
+			)
+			for node, rb in node_rb_kf.items():
+				if graph in kf["node_val"]:
+					if node in kf["node_val"][graph]:
+						kf["node_val"][graph][node]["rulebook"] = rb
+					else:
+						kf["node_val"][graph] = {node: {"rulebook": rb}}
+				else:
+					kf["node_val"] = {graph: {node: {"rulebook": rb}}}
+			port_rb_kf = self._portals_rulebooks_cache.get_keyframe(
+				(graph,), branch, turn, tick
+			)
+			for (orig, dest), rb in port_rb_kf.items():
+				if graph in kf["edge_val"]:
+					if orig in kf["edge_val"][graph]:
+						if dest in kf["edge_val"][graph][orig]:
+							kf["edge_val"][graph][orig][dest]["rulebook"] = rb
+						else:
+							kf["edge_val"][graph][orig][dest] = {
+								"rulebook": rb
+							}
+					else:
+						kf["edge_val"][graph][orig] = {dest: {"rulebook": rb}}
+				else:
+					kf["edge_val"][graph] = {orig: {dest: {"rulebook": rb}}}
 		kf["universal"] = self._universal_cache.get_keyframe(
 			branch, turn, tick
 		)
@@ -2243,7 +2293,9 @@ class Engine(AbstractEngine, gORM, Executor):
 		unitrbs = self._units_rulebooks_cache.get_keyframe(*then)
 		thingrbs = self._characters_things_rulebooks_cache.get_keyframe(*then)
 		placerbs = self._characters_places_rulebooks_cache.get_keyframe(*then)
-		portrbs = self._characters_portals_rulebooks_cache.get_keyframe(*then)
+		charportrbs = self._characters_portals_rulebooks_cache.get_keyframe(
+			*then
+		)
 		for graph in (
 			set(self._graph_cache.iter_keys(b, r, t)).union(delta.keys())
 			- self.illegal_graph_names
@@ -2251,6 +2303,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			delt = delta.get(graph, {})
 			if delt is None:
 				continue
+			noderbs = self._nodes_rulebooks_cache.get_keyframe((graph,), *then)
+			portrbs = self._portals_rulebooks_cache.get_keyframe(
+				(graph,), *then
+			)
 			charunit = self._unitness_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
@@ -2271,7 +2327,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			if "character_place_rulebook" in delt:
 				placerbs[graph] = delt["character_place_rulebook"]
 			if "character_portal_rulebook" in delt:
-				portrbs[graph] = delt["character_portal_rulebook"]
+				charportrbs[graph] = delt["character_portal_rulebook"]
 			locs = self._things_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
@@ -2281,6 +2337,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			conts = {key: set(value) for (key, value) in kf.items()}
 			if "node_val" in delt:
 				for node, val in delt["node_val"].items():
+					if "rulebook" in val:
+						noderbs[node] = val["rulebook"]
 					if "location" in val:
 						if node in locs:
 							oldloc = locs[node]
@@ -2291,9 +2349,23 @@ class Engine(AbstractEngine, gORM, Executor):
 							conts[loc].add(node)
 						else:
 							conts[loc] = {node}
+			if "edge_val" in delt:
+				for orig, dests in delt["edge_val"].items():
+					for dest, val in dests.items():
+						if "rulebook" in val:
+							if orig in portrbs:
+								portrbs[orig][dest] = val["rulebook"]
+							else:
+								portrbs[orig] = {dest: val["rulebook"]}
 			conts = {key: frozenset(value) for (key, value) in conts.items()}
 			self._things_cache.set_keyframe((graph,), *now, locs)
 			self._node_contents_cache.set_keyframe((graph,), *now, conts)
+			self._nodes_rulebooks_cache.set_keyframe(
+				(graph,), branch, turn, tick, noderbs
+			)
+			self._portals_rulebooks_cache.set_keyframe(
+				(graph,), branch, turn, tick, portrbs
+			)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbs
 		)
@@ -2305,7 +2377,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			branch, turn, tick, placerbs
 		)
 		self._characters_portals_rulebooks_cache.set_keyframe(
-			branch, turn, tick, portrbs
+			branch, turn, tick, charportrbs
 		)
 		self._universal_cache.set_keyframe(branch, turn, tick, univ)
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
@@ -3500,15 +3572,38 @@ class Engine(AbstractEngine, gORM, Executor):
 				kf = rb_kf_cache.get_keyframe(branch, turn, tick)
 				kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
 			except KeyError:
-				kf = {}
+				kf = {graph: graph_val.pop(rb_kf_type, (rb_kf_type, graph))}
 				for char in self._graph_cache.iter_keys(branch, turn, tick):
 					try:
 						kf[char] = rb_kf_cache.retrieve(
-							graph, branch, turn, tick
+							char, branch, turn, tick
 						)
 					except KeyError:
-						kf[char] = (rb_kf_type, graph)
+						kf[char] = (rb_kf_type, char)
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
+		self._nodes_rulebooks_cache.set_keyframe(
+			(graph,),
+			branch,
+			turn,
+			tick,
+			{
+				graph: {
+					n: nvs.pop("rulebook", (graph, n))
+					for (n, nvs) in nodes.items()
+				}
+			},
+		)
+		self._portals_rulebooks_cache.set_keyframe(
+			(graph,),
+			branch,
+			turn,
+			tick,
+			{
+				orig: {dest: port.pop("rulebook", (graph, orig, dest))}
+				for orig, dests in edges.items()
+				for dest, port in dests.items()
+			},
+		)
 		super()._snap_keyframe_de_novo_graph(
 			graph, branch, turn, tick, nodes, edges, graph_val
 		)
