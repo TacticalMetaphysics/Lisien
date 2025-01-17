@@ -96,18 +96,21 @@ class PortalsRulebooksCache(InitializedCache):
 		keyframe,
 	):
 		super().set_keyframe(graph_ent, branch, turn, tick, keyframe)
-		for (orig, dest), rulebook in keyframe.items():
-			try:
-				subkf = self.get_keyframe(
-					(*graph_ent, orig), branch, turn, tick, copy=True
+		for orig, dests in keyframe.items():
+			for dest, rulebook in dests.items():
+				try:
+					subkf = self.get_keyframe(
+						(*graph_ent, orig), branch, turn, tick, copy=True
+					)
+					if orig in subkf:
+						subkf[orig][dest] = rulebook
+					else:
+						subkf[orig] = {dest: rulebook}
+				except KeyError:
+					subkf = {orig: {dest: rulebook}}
+				super().set_keyframe(
+					(*graph_ent, orig), branch, turn, tick, subkf
 				)
-				if orig in subkf:
-					subkf[orig][dest] = rulebook
-				else:
-					subkf[orig] = {dest: rulebook}
-			except KeyError:
-				subkf = {orig: {dest: rulebook}}
-			super().set_keyframe((*graph_ent, orig), branch, turn, tick, subkf)
 
 
 class UnitnessCache(Cache):
