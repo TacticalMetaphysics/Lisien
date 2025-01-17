@@ -1201,9 +1201,12 @@ class Engine(AbstractEngine, gORM, Executor):
 					graph, branch, turn, tick
 				)
 			)
-			node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
-				(graph,), branch, turn, tick
-			)
+			try:
+				node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
+					(graph,), branch, turn, tick
+				)
+			except KeyframeError:
+				node_rb_kf = {}
 			for node, rb in node_rb_kf.items():
 				if graph in kf["node_val"]:
 					if node in kf["node_val"][graph]:
@@ -1212,9 +1215,12 @@ class Engine(AbstractEngine, gORM, Executor):
 						kf["node_val"][graph] = {node: {"rulebook": rb}}
 				else:
 					kf["node_val"] = {graph: {node: {"rulebook": rb}}}
-			port_rb_kf = self._portals_rulebooks_cache.get_keyframe(
-				(graph,), branch, turn, tick
-			)
+			try:
+				port_rb_kf = self._portals_rulebooks_cache.get_keyframe(
+					(graph,), branch, turn, tick
+				)
+			except KeyframeError:
+				port_rb_kf = {}
 			for (orig, dest), rb in port_rb_kf.items():
 				if graph in kf["edge_val"]:
 					if orig in kf["edge_val"][graph]:
@@ -2303,10 +2309,18 @@ class Engine(AbstractEngine, gORM, Executor):
 			delt = delta.get(graph, {})
 			if delt is None:
 				continue
-			noderbs = self._nodes_rulebooks_cache.get_keyframe((graph,), *then)
-			portrbs = self._portals_rulebooks_cache.get_keyframe(
-				(graph,), *then
-			)
+			try:
+				noderbs = self._nodes_rulebooks_cache.get_keyframe(
+					(graph,), *then
+				)
+			except KeyframeError:
+				noderbs = {}
+			try:
+				portrbs = self._portals_rulebooks_cache.get_keyframe(
+					(graph,), *then
+				)
+			except KeyframeError:
+				portrbs = {}
 			charunit = self._unitness_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
