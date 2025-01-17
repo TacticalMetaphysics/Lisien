@@ -1221,19 +1221,26 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 			except KeyframeError:
 				port_rb_kf = {}
-			for (orig, dest), rb in port_rb_kf.items():
-				if graph in kf["edge_val"]:
-					if orig in kf["edge_val"][graph]:
-						if dest in kf["edge_val"][graph][orig]:
-							kf["edge_val"][graph][orig][dest]["rulebook"] = rb
+			for orig, dests in port_rb_kf.items():
+				for dest, rb in dests.items():
+					if graph in kf["edge_val"]:
+						if orig in kf["edge_val"][graph]:
+							if dest in kf["edge_val"][graph][orig]:
+								kf["edge_val"][graph][orig][dest][
+									"rulebook"
+								] = rb
+							else:
+								kf["edge_val"][graph][orig][dest] = {
+									"rulebook": rb
+								}
 						else:
-							kf["edge_val"][graph][orig][dest] = {
-								"rulebook": rb
+							kf["edge_val"][graph][orig] = {
+								dest: {"rulebook": rb}
 							}
 					else:
-						kf["edge_val"][graph][orig] = {dest: {"rulebook": rb}}
-				else:
-					kf["edge_val"][graph] = {orig: {dest: {"rulebook": rb}}}
+						kf["edge_val"][graph] = {
+							orig: {dest: {"rulebook": rb}}
+						}
 		kf["universal"] = self._universal_cache.get_keyframe(
 			branch, turn, tick
 		)
