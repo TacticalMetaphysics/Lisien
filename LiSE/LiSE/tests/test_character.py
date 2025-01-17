@@ -22,7 +22,9 @@ from LiSE.engine import Engine
 class CharacterTest(LiSE.allegedb.tests.test_all.AllegedTest):
 	def setUp(self):
 		self.tempdir = tempfile.mkdtemp()
-		self.engine = Engine(self.tempdir, enforce_end_of_time=False)
+		self.engine = Engine(
+			self.tempdir, enforce_end_of_time=False, workers=0
+		)
 		self.graphmakers = (self.engine.new_character,)
 
 	def tearDown(self):
