@@ -55,17 +55,15 @@ def test_character(handle_initialized):
 	origtime = handle_initialized.get_btt()
 	handle_initialized.add_character(
 		"hello",
-		{
-			"node": {
-				"hi": {"yes": "very yes"},
-				"hello": {"you": "smart"},
-				"morning": {"good": 100},
-				"salutations": {},
-			},
-			"thing": {"me": {"location": "hi"}},
-			"edge": {"hi": {"hello": {"good": "morning"}}},
+		node={
+			"hi": {"yes": "very yes"},
+			"hello": {"you": "smart"},
+			"morning": {"good": 100},
+			"salutations": {},
+			"me": {"location": "hi"},
 		},
-		{"stat": "also"},
+		edge={"hi": {"hello": {"good": "morning"}}},
+		stat="also",
 	)
 	assert handle_initialized.node_exists("hello", "hi")
 	handle_initialized.set_character_stat("hello", "stoat", "bitter")
