@@ -421,7 +421,7 @@ class EngineHandle:
 	def add_character(self, char: Key, data: dict, attr: dict):
 		"""Make a new character, initialized with whatever data"""
 		# Probably not great that I am unpacking and then repacking the stats
-		character = self._real.new_character(char, **attr)
+		character = self._real.new_character(char, data, **attr)
 		placedata = data.get("place", data.get("node", {}))
 		for place, stats in placedata.items():
 			character.add_place(place, **stats)
