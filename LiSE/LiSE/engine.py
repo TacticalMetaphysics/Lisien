@@ -3408,6 +3408,11 @@ class Engine(AbstractEngine, gORM, Executor):
 			if not data:
 				data = DiGraph()
 			if not isinstance(data, Graph):
+				if not isinstance(data, dict):
+					raise TypeError(
+						"Need NetworkX graph or a dict like one, got "
+						+ repr(type(data))
+					)
 				try:
 					data = nx.from_dict_of_dicts(data)
 				except AttributeError:
