@@ -3343,10 +3343,20 @@ class Engine(AbstractEngine, gORM, Executor):
 	# return ex
 
 	def new_character(
-		self, name: Key, data: Graph = None, layout: bool = False, **kwargs
+		self,
+		name: Key,
+		data: Graph = None,
+		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
+		**kwargs,
 	) -> Character:
-		"""Create and return a new :class:`Character`."""
-		self.add_character(name, data, layout, **kwargs)
+		"""Create and return a new :class:`Character`.
+
+		See :meth:`add_character` for details.
+
+		"""
+		self.add_character(name, data, layout, node=node, edge=edge, **kwargs)
 		return self.character[name]
 
 	new_graph = new_character
@@ -3354,8 +3364,10 @@ class Engine(AbstractEngine, gORM, Executor):
 	def add_character(
 		self,
 		name: Key,
-		data: Union[Graph, DiGraph, dict] = None,
+		data: Union[Graph, DiGraph] = None,
 		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
 		**kwargs,
 	) -> None:
 		"""Create a new character.
@@ -3365,8 +3377,14 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		``data``, if provided, should be a :class:`networkx.Graph`
 		or :class:`networkx.DiGraph` object. The character will be
-		a copy of it. You can use a dictionary instead, and it will
-		be converted to a graph.
+		a copy of it.
+
+		``node`` may be a dictionary of dictionaries representing either
+		``Thing`` objects, if they have a ``"location"`` key, or else
+		``Place`` objects.
+
+		``edge`` may be a 3-layer dictionary representing ``Portal`` objects,
+		connecting mainly ``Place`` objects together.
 
 		With ``layout=True``, compute a layout to make the
 		graph show up nicely in ELiDE.
@@ -3376,12 +3394,16 @@ class Engine(AbstractEngine, gORM, Executor):
 		"""
 		if name in self.character:
 			raise KeyError("Already have that character", name)
-		if layout and data:
-			if not hasattr(data, "nodes"):
-				try:
-					data = from_dict_of_dicts(data)
-				except AttributeError:
-					data = from_dict_of_lists(data)
+		if layout and (data or node or edge):
+			if data is None:
+				data = nx.DiGraph()
+			if node:
+				for name, nvs in node.items():
+					data.add_node(name, **nvs)
+			if edge:
+				for orig, dests in edge.items():
+					for dest, evs in dests.items():
+						data.add_edge(orig, dest, **evs)
 			nodes = data.nodes
 			try:
 				layout = normalize_layout(
@@ -3408,15 +3430,14 @@ class Engine(AbstractEngine, gORM, Executor):
 			if not data:
 				data = DiGraph()
 			if not isinstance(data, Graph):
-				if not isinstance(data, dict):
-					raise TypeError(
-						"Need NetworkX graph or a dict like one, got "
-						+ repr(type(data))
-					)
-				try:
-					data = nx.from_dict_of_dicts(data)
-				except AttributeError:
-					data = nx.from_dict_of_lists(data)
+				raise TypeError("Need NetworkX graph, got " + repr(type(data)))
+			if node:
+				for k, v in node.items():
+					data.add_node(k, **v)
+			if edge:
+				for orig, dests in edge.items():
+					for dest, v in dests.items():
+						data.add_edge(orig, dest, **v)
 			data.graph.update(kwargs)
 		self._init_graph(name, "DiGraph", data)
 		if self._btt() not in self._keyframes_times:

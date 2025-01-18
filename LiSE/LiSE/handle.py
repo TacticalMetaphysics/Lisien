@@ -32,6 +32,7 @@ from typing import (
 )
 
 import msgpack
+import networkx as nx
 
 from .allegedb import OutOfTimelineError, Key
 from .engine import (
@@ -418,20 +419,17 @@ class EngineHandle:
 		self._real.branch = branch
 		return self.pack(branch)
 
-	def add_character(self, char: Key, data: dict, attr: dict):
+	def add_character(
+		self,
+		char: Key,
+		data: Union[nx.Graph, nx.DiGraph] = None,
+		node: dict = None,
+		edge: dict = None,
+		**attr,
+	):
 		"""Make a new character, initialized with whatever data"""
 		# Probably not great that I am unpacking and then repacking the stats
-		character = self._real.new_character(char, data, **attr)
-		placedata = data.get("place", data.get("node", {}))
-		for place, stats in placedata.items():
-			character.add_place(place, **stats)
-		thingdata = data.get("thing", {})
-		for thing, stats in thingdata.items():
-			character.add_thing(thing, **stats)
-		portdata = data.get("edge", data.get("portal", data.get("adj", {})))
-		for orig, dests in portdata.items():
-			for dest, stats in dests.items():
-				character.add_portal(orig, dest, **stats)
+		self._real.add_character(char, data=data, node=node, edge=edge, **attr)
 
 	def commit(self):
 		self._real.commit()
