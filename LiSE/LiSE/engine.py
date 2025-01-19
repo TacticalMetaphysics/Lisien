@@ -2374,10 +2374,13 @@ class Engine(AbstractEngine, gORM, Executor):
 				for orig, dests in delt["edge_val"].items():
 					for dest, val in dests.items():
 						if "rulebook" in val:
-							if orig in portrbs:
-								portrbs[orig][dest] = val["rulebook"]
+							rulebook = val.pop("rulebook")
+							if rulebook is None:
+								continue
+							elif orig in portrbs:
+								portrbs[orig][dest] = rulebook
 							else:
-								portrbs[orig] = {dest: val["rulebook"]}
+								portrbs[orig] = {dest: rulebook}
 			conts = {key: frozenset(value) for (key, value) in conts.items()}
 			self._things_cache.set_keyframe((graph,), *now, locs)
 			self._node_contents_cache.set_keyframe((graph,), *now, conts)
