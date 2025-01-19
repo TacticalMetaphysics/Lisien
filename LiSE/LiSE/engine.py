@@ -3635,16 +3635,17 @@ class Engine(AbstractEngine, gORM, Executor):
 			tick,
 			{n: nvs.pop("rulebook", (graph, n)) for (n, nvs) in nodes.items()},
 		)
+		port_rb_kf = {}
+		for orig, dests in edges.items():
+			port_rb_kf[orig] = rbs = {}
+			for dest, port in dests.items():
+				rbs[dest] = port.pop("rulebook", (graph, orig, dest))
 		self._portals_rulebooks_cache.set_keyframe(
 			(graph,),
 			branch,
 			turn,
 			tick,
-			{
-				orig: {dest: port.pop("rulebook", (graph, orig, dest))}
-				for orig, dests in edges.items()
-				for dest, port in dests.items()
-			},
+			port_rb_kf,
 		)
 		super()._snap_keyframe_de_novo_graph(
 			graph, branch, turn, tick, nodes, edges, graph_val
