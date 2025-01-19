@@ -3633,12 +3633,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			branch,
 			turn,
 			tick,
-			{
-				graph: {
-					n: nvs.pop("rulebook", (graph, n))
-					for (n, nvs) in nodes.items()
-				}
-			},
+			{n: nvs.pop("rulebook", (graph, n)) for (n, nvs) in nodes.items()},
 		)
 		self._portals_rulebooks_cache.set_keyframe(
 			(graph,),
