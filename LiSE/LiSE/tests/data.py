@@ -23193,7 +23193,12 @@ KEYFRAME0 = {
 	"edge_val": {
 		"hello": {
 			"bye": {"hi": {}},
-			"hi": {"hello": {"good": "morning"}},
+			"hi": {
+				"hello": {
+					"good": "morning",
+					"rulebook": ("hello", "hi", "hello"),
+				}
+			},
 			"moon": {"earth": {}},
 		}
 	},
@@ -23241,11 +23246,17 @@ KEYFRAME0 = {
 			"bye": {"toodles": False},
 			"earth": {},
 			"evening": {"location": "bye", "moon": 1.0},
-			"hello": {"you": "smart"},
-			"hi": {"no": "very no", "tainted": True},
-			"me": {"location": "hi"},
+			"hello": {"rulebook": ("hello", "hello"), "you": "smart"},
+			"hi": {
+				"no": "very no",
+				"rulebook": ("hello", "hi"),
+				"tainted": True,
+			},
+			"me": {"location": "hi", "rulebook": ("hello", "me")},
 			"moon": {"location": "evening", "phase": "waxing gibbous"},
+			"morning": {"rulebook": ("hello", "morning")},
 			"neal": {"location": "moon"},
+			"salutations": {"rulebook": ("hello", "salutations")},
 		}
 	},
 	"nodes": {
