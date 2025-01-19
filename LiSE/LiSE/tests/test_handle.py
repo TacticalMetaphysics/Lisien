@@ -52,6 +52,7 @@ def test_universal(handle_initialized):
 
 
 def test_character(handle_initialized):
+	handle_initialized.next_turn()
 	origtime = handle_initialized.get_btt()
 	handle_initialized.add_character(
 		"hello",
