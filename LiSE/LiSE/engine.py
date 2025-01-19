@@ -1212,7 +1212,7 @@ class Engine(AbstractEngine, gORM, Executor):
 					if node in kf["node_val"][graph]:
 						kf["node_val"][graph][node]["rulebook"] = rb
 					else:
-						kf["node_val"][graph] = {node: {"rulebook": rb}}
+						kf["node_val"][graph][node] = {"rulebook": rb}
 				else:
 					kf["node_val"] = {graph: {node: {"rulebook": rb}}}
 			try:
