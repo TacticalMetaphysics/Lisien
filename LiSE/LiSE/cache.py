@@ -102,12 +102,9 @@ class PortalsRulebooksCache(InitializedCache):
 					subkf = self.get_keyframe(
 						(*graph_ent, orig), branch, turn, tick, copy=True
 					)
-					if orig in subkf:
-						subkf[orig][dest] = rulebook
-					else:
-						subkf[orig] = {dest: rulebook}
+					subkf[dest] = rulebook
 				except KeyError:
-					subkf = {orig: {dest: rulebook}}
+					subkf = {dest: rulebook}
 				super().set_keyframe(
 					(*graph_ent, orig), branch, turn, tick, subkf
 				)
