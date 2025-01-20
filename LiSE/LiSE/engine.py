@@ -2276,6 +2276,28 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.shutdown()
 		self._closed = True
 
+	def _exist_node(self, character: Key, node: Key, exist=True) -> None:
+		if exist:
+			self._nodes_rulebooks_cache.store(
+				character, node, *self._btt(), (character, node)
+			)
+			self.query.set_node_rulebook(
+				character, node, *self._btt(), (character, node)
+			)
+		super()._exist_node(character, node, exist)
+
+	def _exist_edge(
+		self, character: Key, orig: Key, dest: Key, idx=0, exist=True
+	) -> None:
+		if exist:
+			self._portals_rulebooks_cache.store(
+				character, orig, dest, *self._btt(), (character, orig, dest)
+			)
+			self.query.set_portal_rulebook(
+				character, orig, dest, *self._btt(), (character, orig, dest)
+			)
+		super()._exist_edge(character, orig, dest, idx, exist)
+
 	def _snap_keyframe_from_delta(
 		self,
 		then: Tuple[str, int, int],
