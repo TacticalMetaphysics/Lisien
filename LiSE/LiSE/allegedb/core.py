@@ -1512,7 +1512,7 @@ class ORM:
 					elif exists:
 						nkg[node] = True
 			self._nodes_cache.set_keyframe((graph,), *now, nkg)
-			for node, ex in nodes_keyframe[graph].items():
+			for node, ex in nkg.items():
 				if ex and node not in nvkg:
 					nvkg[node] = {}
 			if deltg is not None and "node_val" in deltg:
