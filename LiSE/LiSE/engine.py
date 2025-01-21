@@ -1978,12 +1978,12 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		def updnoderb(character, node, rulebook):
 			if (character in delta) and (
-				(
+				delta[character] is None
+				or (
 					"nodes" in delta[character]
 					and node in delta[character]["nodes"]
 					and not delta[character]["nodes"][node]
 				)
-				or delta[character] is None
 			):
 				return
 			delta.setdefault(character, {}).setdefault(
