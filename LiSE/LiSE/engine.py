@@ -2419,16 +2419,42 @@ class Engine(AbstractEngine, gORM, Executor):
 							else:
 								conts[loc] = {node}
 			if "edge_val" in delt:
-				for orig, dests in delt["edge_val"].items():
-					for dest, val in dests.items():
-						if "rulebook" in val:
-							rulebook = val.pop("rulebook")
-							if rulebook is None:
-								continue
-							elif orig in portrbs:
-								portrbs[orig][dest] = rulebook
-							else:
-								portrbs[orig] = {dest: rulebook}
+				port_kf = self._edges_cache.get_keyframe((graph,), b, r, t)
+
+				def port_in_kf(orig, dest):
+					return (
+						orig in port_kf
+						and dest in port_kf[orig]
+						and port_kf[orig][dest]
+					)
+
+				def port_in_delt(orig, dest):
+					return (
+						orig in delt["edges"]
+						and dest in delt["edges"][orig]
+						and delt["edges"][orig][dest]
+					)
+
+				for orig in port_kf.keys() | delt["edge_val"].keys():
+					if orig in port_kf:
+						dests = port_kf[orig]
+						for dest, val in dests.items():
+							if "rulebook" in val:
+								rulebook = val.pop("rulebook")
+								if rulebook is None:
+									continue
+								elif orig in portrbs:
+									portrbs[orig][dest] = rulebook
+								else:
+									portrbs[orig] = {dest: rulebook}
+					else:
+						portrbs[orig] = {
+							dest: kvs["rulebook"]
+							for dest, kvs in delt["edge_val"][orig].items()
+							if port_in_kf(orig, dest)
+							or port_in_delt(orig, dest)
+						}
+
 			conts = {key: frozenset(value) for (key, value) in conts.items()}
 			self._things_cache.set_keyframe((graph,), *now, locs)
 			self._node_contents_cache.set_keyframe((graph,), *now, conts)
