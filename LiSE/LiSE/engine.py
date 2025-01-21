@@ -1206,7 +1206,9 @@ class Engine(AbstractEngine, gORM, Executor):
 					(graph,), branch, turn, tick
 				)
 			except KeyframeError:
-				node_rb_kf = {}
+				node_rb_kf = {
+					node: (graph, node) for node in kf["nodes"][graph]
+				}
 			for node, rb in node_rb_kf.items():
 				if graph in kf["node_val"]:
 					if node in kf["node_val"][graph]:
@@ -1221,6 +1223,11 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 			except KeyframeError:
 				port_rb_kf = {}
+				for orig, dests in kf["edges"][graph].items():
+					destrbs = port_rb_kf[orig] = {}
+					for dest, ex in dests.items():
+						if ex:
+							destrbs[dest] = (graph, orig, dest)
 			for orig, dests in port_rb_kf.items():
 				for dest, rb in dests.items():
 					if graph in kf["edge_val"]:
@@ -1241,6 +1248,28 @@ class Engine(AbstractEngine, gORM, Executor):
 						kf["edge_val"][graph] = {
 							orig: {dest: {"rulebook": rb}}
 						}
+			try:
+				locs_kf = self._things_cache.get_keyframe(
+					(graph,), branch, turn, tick
+				)
+			except KeyframeError:
+				locs_kf = {}
+				for thing in list(
+					self._things_cache.iter_keys(graph, branch, turn, tick)
+				):
+					locs_kf[thing] = self._things_cache.retrieve(
+						graph, thing, branch, turn, tick
+					)
+			if "node_val" not in kf:
+				kf["node_val"] = {graph: locs_kf}
+			elif graph not in kf["node_val"]:
+				kf["node_val"][graph] = locs_kf
+			else:
+				for thing, loc in locs_kf.items():
+					if thing in kf["node_val"][graph]:
+						kf["node_val"][graph][thing]["location"] = loc
+					else:
+						kf["node_val"][graph][thing] = {"location": loc}
 		kf["universal"] = self._universal_cache.get_keyframe(
 			branch, turn, tick
 		)
@@ -2376,24 +2405,27 @@ class Engine(AbstractEngine, gORM, Executor):
 			locs = self._things_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
-			kf = self._node_contents_cache.get_keyframe(
+			conts_kf = self._node_contents_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
-			conts = {key: set(value) for (key, value) in kf.items()}
+			conts = {key: set(value) for (key, value) in conts_kf.items()}
 			if "node_val" in delt:
-				for node, val in delt["node_val"].items():
-					if "rulebook" in val:
-						noderbs[node] = val["rulebook"]
-					if "location" in val:
-						if node in locs:
-							oldloc = locs[node]
-							if oldloc in conts:
-								conts[oldloc].discard(node)
-						locs[node] = loc = val["location"]
-						if loc in conts:
-							conts[loc].add(node)
-						else:
-							conts[loc] = {node}
+				node_kf = self._nodes_cache.get_keyframe((graph,), b, r, t)
+				for node in node_kf.keys() | delt.get("node_val", {}).keys():
+					if node in delt["node_val"]:
+						delt_val = delt["node_val"][node]
+						if "rulebook" in delt_val:
+							noderbs[node] = delt_val.pop("rulebook")
+						if "location" in delt_val:
+							if node in locs:
+								oldloc = locs[node]
+								if oldloc in conts:
+									conts[oldloc].discard(node)
+							locs[node] = loc = delt_val.pop("location")
+							if loc in conts:
+								conts[loc].add(node)
+							else:
+								conts[loc] = {node}
 			if "edge_val" in delt:
 				for orig, dests in delt["edge_val"].items():
 					for dest, val in dests.items():
