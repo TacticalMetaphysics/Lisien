@@ -2369,18 +2369,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			delt = delta.get(graph, {})
 			if delt is None:
 				continue
-			try:
-				noderbs = self._nodes_rulebooks_cache.get_keyframe(
-					(graph,), *then
-				)
-			except KeyframeError:
-				noderbs = {}
-			try:
-				portrbs = self._portals_rulebooks_cache.get_keyframe(
-					(graph,), *then
-				)
-			except KeyframeError:
-				portrbs = {}
+			noderbs = self._nodes_rulebooks_cache.get_keyframe((graph,), *then)
+			portrbs = self._portals_rulebooks_cache.get_keyframe(
+				(graph,), *then
+			)
 			charunit = self._unitness_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
