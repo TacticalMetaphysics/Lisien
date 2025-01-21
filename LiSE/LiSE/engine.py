@@ -1127,6 +1127,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._characters_things_rulebooks_cache,
 			self._characters_places_rulebooks_cache,
 			self._characters_portals_rulebooks_cache,
+			self._nodes_rulebooks_cache,
+			self._portals_rulebooks_cache,
 		):
 			cache.copy_keyframe(branch_from, branch_to, turn, tick)
 
