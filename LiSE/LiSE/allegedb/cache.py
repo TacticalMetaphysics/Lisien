@@ -183,8 +183,10 @@ class KeyframeError(KeyError):
 class Cache:
 	"""A data store that's useful for tracking graph revisions."""
 
-	def __init__(self, db, kfkvs=None):
-		super().__init__()
+	name: str
+
+	def __init__(self, db, name: str, kfkvs=None):
+		self.name = name
 		self.db = db
 		self.parents = StructuredDefaultDict(3, SettingsTurnDict)
 		"""Entity data keyed by the entities' parents.
@@ -1429,6 +1431,9 @@ class NodesCache(Cache):
 
 	__slots__ = ()
 
+	def __init__(self, db, kfkvs=None):
+		super().__init__(db, "nodes_cache", kfkvs)
+
 	def store(
 		self,
 		graph: Hashable,
@@ -1518,7 +1523,10 @@ class EdgesCache(Cache):
 			assert len(k) == 3, "Bad key: {}, to be set to {}".format(k, v)
 
 		Cache.__init__(
-			self, db, kfkvs={"gettest": gettest, "settest": settest}
+			self,
+			db,
+			kfkvs={"gettest": gettest, "settest": settest},
+			name="edges_cache",
 		)
 		self.destcache = PickyDefaultDict(SettingsTurnDict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
