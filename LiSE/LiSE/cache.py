@@ -114,9 +114,8 @@ class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
 	def __init__(self, db):
-		super().__init__(db)
-		self.user_cache = Cache(db)
-		self.user_cache.name = "user_cache"
+		super().__init__(db, "unitness_cache")
+		self.user_cache = Cache(db, "user_cache")
 
 	def store(
 		self,
@@ -245,9 +244,10 @@ class UnitnessCache(Cache):
 		return self.iter_entities(char, branch, turn, tick)
 
 
-class RulesHandledCache(object):
-	def __init__(self, engine):
+class RulesHandledCache:
+	def __init__(self, engine, name: str):
 		self.engine = engine
+		self.name = name
 		self.handled = {}
 		self.handled_deep = StructuredDefaultDict(1, type=WindowDict)
 		self.unhandled = {}
@@ -452,6 +452,9 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
 
 class NodeRulesHandledCache(RulesHandledCache):
+	def __init__(self, engine):
+		super().__init__(engine, "node_rules_handled_cache")
+
 	def get_rulebook(self, character, node, branch, turn, tick):
 		try:
 			return self.engine._nodes_rulebooks_cache.retrieve(
@@ -484,6 +487,9 @@ class NodeRulesHandledCache(RulesHandledCache):
 
 
 class PortalRulesHandledCache(RulesHandledCache):
+	def __init__(self, engine):
+		super().__init__(engine, "portal_rules_handled_cache")
+
 	def get_rulebook(self, character, orig, dest, branch, turn, tick):
 		try:
 			return self.engine._portals_rulebooks_cache.retrieve(
@@ -533,10 +539,8 @@ class PortalRulesHandledCache(RulesHandledCache):
 
 
 class ThingsCache(Cache):
-	name = "things_cache"
-
 	def __init__(self, db):
-		Cache.__init__(self, db)
+		Cache.__init__(self, db, name="things_cache")
 		self._make_node = db.thing_cls
 
 	def store(self, *args, planning=None, loading=False, contra=None):

@@ -920,18 +920,12 @@ class ORM:
 		self._time_plan: Dict[int, Tuple[str, int, int]] = {}
 		self._plans_uncommitted: List[Tuple[int, str, int, int]] = []
 		self._plan_ticks_uncommitted: List[Tuple[int, int, int]] = []
-		self._graph_cache = EntitylessCache(self)
-		self._graph_cache.name = "graph_cache"
-		self._graph_val_cache = Cache(self)
-		self._graph_val_cache.name = "graph_val_cache"
+		self._graph_cache = EntitylessCache(self, name="graph_cache")
+		self._graph_val_cache = Cache(self, name="graph_val_cache")
 		self._nodes_cache = NodesCache(self)
-		self._nodes_cache.name = "nodes_cache"
 		self._edges_cache = EdgesCache(self)
-		self._edges_cache.name = "edges_cache"
-		self._node_val_cache = Cache(self)
-		self._node_val_cache.name = "node_val_cache"
-		self._edge_val_cache = Cache(self)
-		self._edge_val_cache.name = "edge_val_cache"
+		self._node_val_cache = Cache(self, name="node_val_cache")
+		self._edge_val_cache = Cache(self, name="edge_val_cache")
 		self._caches = [
 			self._graph_val_cache,
 			self._nodes_cache,
