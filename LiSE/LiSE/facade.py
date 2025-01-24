@@ -794,8 +794,8 @@ class EngineFacade(AbstractEngine):
 			self._patch = {}
 
 	class FacadeCache(Cache):
-		def __init__(self, cache):
-			super().__init__(cache.db)
+		def __init__(self, cache, name):
+			super().__init__(cache.db, name)
 			self._real = cache
 
 		def retrieve(self, *args):
