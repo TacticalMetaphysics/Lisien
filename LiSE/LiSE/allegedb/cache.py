@@ -273,8 +273,8 @@ class Cache:
 		] = (self.settings, self.presettings, self._base_retrieve)
 
 	def _get_keyframe(
-		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
-	):
+		self, graph_ent: tuple, branch: str, turn: int, tick: int
+	) -> dict:
 		if graph_ent not in self.keyframe:
 			raise KeyframeError("Unknown graph-entity", graph_ent)
 		g = self.keyframe[graph_ent]
@@ -287,16 +287,17 @@ class Cache:
 		if tick not in r:
 			raise KeyframeError("Unknown tick", branch, turn, tick)
 		ret = r[tick]
-		if copy:
-			ret = ret.copy()
 		return ret
 
 	def get_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
 	):
-		return self._get_keyframe(graph_ent, branch, turn, tick, copy=copy)
+		ret = self._get_keyframe(graph_ent, branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
-	def set_keyframe(
+	def _set_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, keyframe
 	):
 		if not isinstance(graph_ent, tuple):
@@ -325,15 +326,25 @@ class Cache:
 			d[turn] = {tick: keyframe}
 			kfg[branch] = d
 
+	def set_keyframe(
+		self,
+		graph_ent: tuple,
+		branch: str,
+		turn: int,
+		tick: int,
+		keyframe: dict,
+	):
+		self._set_keyframe(graph_ent, branch, turn, tick, keyframe)
+
 	def copy_keyframe(self, branch_from, branch_to, turn, tick):
-		for graph_ent in self.iter_keys(branch_from, turn, tick):
-			self.set_keyframe(
-				graph_ent,
-				branch_to,
-				turn,
-				tick,
-				self.get_keyframe(graph_ent, branch_from, turn, tick),
-			)
+		for graph_ent in self.keyframe:
+			try:
+				kf = self._get_keyframe(graph_ent, branch_from, turn, tick)
+			except KeyframeError:
+				continue
+			if isinstance(kf, dict):
+				kf = kf.copy()
+			self._set_keyframe(graph_ent, branch_to, turn, tick, kf)
 
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
@@ -1565,15 +1576,15 @@ class EdgesCache(Cache):
 			self.successors,
 		)
 
-	def _get_keyframe(
+	def get_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
 	):
 		if len(graph_ent) == 3:
-			return super()._get_keyframe(graph_ent, branch, turn, tick, copy)
+			return super().get_keyframe(graph_ent, branch, turn, tick, copy)
 		ret = {}
 		for graph, orig, dest in self.keyframe:
 			if (graph, orig) == graph_ent:
-				ret[dest] = super()._get_keyframe(
+				ret[dest] = super().get_keyframe(
 					(graph, orig, dest), branch, turn, tick, copy
 				)
 		return ret
@@ -2002,15 +2013,10 @@ class EntitylessCache(Cache):
 		)
 
 	def get_keyframe(self, branch, turn, tick, copy=True):
-		return super()._get_keyframe((None,), branch, turn, tick, copy=copy)
+		return super().get_keyframe((None,), branch, turn, tick, copy=copy)
 
 	def set_keyframe(self, branch, turn, tick, keyframe):
 		super().set_keyframe((None,), branch, turn, tick, keyframe)
-
-	def copy_keyframe(self, branch_from, branch_to, turn, tick):
-		self.set_keyframe(
-			branch_to, turn, tick, self.get_keyframe(branch_from, turn, tick)
-		)
 
 	def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
 		return super().iter_entities_or_keys(

@@ -1161,6 +1161,15 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._unitness_cache.set_keyframe(
 				(character,), branch_to, turn, tick, units_kf
 			)
+			self._nodes_rulebooks_cache.set_keyframe(
+				(character,),
+				branch_to,
+				turn,
+				tick,
+				self._nodes_rulebooks_cache.get_keyframe(
+					(character,), branch_from, turn, tick
+				),
+			)
 		self.query.keyframe_extension_insert(
 			branch_to,
 			turn,
