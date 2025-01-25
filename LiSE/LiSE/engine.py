@@ -2470,8 +2470,11 @@ class Engine(AbstractEngine, gORM, Executor):
 						portrbs[orig] = {
 							dest: kvs["rulebook"]
 							for dest, kvs in delt["edge_val"][orig].items()
-							if port_in_kf(orig, dest)
-							or port_in_delt(orig, dest)
+							if (
+								port_in_kf(orig, dest)
+								or port_in_delt(orig, dest)
+							)
+							and "rulebook" in kvs
 						}
 
 			conts = {key: frozenset(value) for (key, value) in conts.items()}
