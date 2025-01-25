@@ -49,6 +49,7 @@ from networkx import (
 	spring_layout,
 	from_dict_of_dicts,
 	from_dict_of_lists,
+	NetworkXError,
 )
 from blinker import Signal
 
@@ -3529,7 +3530,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			if not data:
 				data = DiGraph()
 			if not isinstance(data, Graph):
-				raise TypeError("Need NetworkX graph, got " + repr(type(data)))
+				try:
+					data = from_dict_of_lists(data)
+				except NetworkXError:
+					data = from_dict_of_dicts(data)
 			if node:
 				for k, v in node.items():
 					data.add_node(k, **v)
