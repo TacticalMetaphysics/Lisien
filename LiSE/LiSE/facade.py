@@ -817,8 +817,10 @@ class EngineFacade(AbstractEngine):
 		self.branch, self.turn, self.tick = real._btt()
 		self._branches = deepcopy(real._branches)
 		self._turn_end_plan = deepcopy(real._turn_end_plan)
-		self._nodes_cache = self.FacadeCache(real._nodes_cache)
-		self._things_cache = self.FacadeCache(real._things_cache)
+		self._nodes_cache = self.FacadeCache(real._nodes_cache, "nodes_cache")
+		self._things_cache = self.FacadeCache(
+			real._things_cache, "things_cache"
+		)
 
 	def _btt(self):
 		return self.branch, self.turn, self.tick
