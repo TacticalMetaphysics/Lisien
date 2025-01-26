@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Set
+from concurrent.futures import Future
 from enum import Enum
 from operator import (
 	ge,
@@ -358,8 +359,9 @@ def fake_submit(func, *args, **kwargs):
 
 	"""
 
-	class FakeFuture:
+	class FakeFuture(Future):
 		def __init__(self, func, *args, **kwargs):
+			super().__init__()
 			self._func = func
 			self._args = args
 			self._kwargs = kwargs
