@@ -359,25 +359,10 @@ def fake_submit(func, *args, **kwargs):
 
 	"""
 
-	class NoWaitingList(list):
-		def __setitem__(self, key, value):
-			value.event.set()
-			super().__setitem__(key, value)
-
-		def append(self, __object):
-			__object.event.set()
-			super().append(__object)
-
 	class FakeFuture(Future):
 		def __init__(self, func, *args, **kwargs):
 			super().__init__()
-			self._func = func
-			self._args = args
-			self._kwargs = kwargs
-			self._waiters = NoWaitingList()
-
-		def result(self):
-			return self._func(*self._args, **self._kwargs)
+			self.set_result(func(*args, **kwargs))
 
 	return FakeFuture(func, *args, **kwargs)
 
