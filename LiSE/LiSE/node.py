@@ -481,7 +481,10 @@ class Node(graph.Node, rule.RuleFollower):
 		return k in self._extra_keys or super().__contains__(k)
 
 	def __setitem__(self, k, v):
-		super().__setitem__(k, v)
+		if k == "rulebook":
+			self._set_rulebook_name(v)
+		else:
+			super().__setitem__(k, v)
 
 	def __delitem__(self, k):
 		super().__delitem__(k)
