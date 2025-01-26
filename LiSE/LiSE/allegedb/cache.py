@@ -55,7 +55,14 @@ class PickyDefaultDict(dict):
 
 	"""
 
-	__slots__ = ["type", "args_munger", "kwargs_munger", "parent", "key"]
+	__slots__ = [
+		"type",
+		"args_munger",
+		"kwargs_munger",
+		"parent",
+		"key",
+		"_lock",
+	]
 
 	def __init__(
 		self,
@@ -63,28 +70,31 @@ class PickyDefaultDict(dict):
 		args_munger: callable = _default_args_munger,
 		kwargs_munger: callable = _default_kwargs_munger,
 	):
+		self._lock = RLock()
 		self.type = type
 		self.args_munger = args_munger
 		self.kwargs_munger = kwargs_munger
 
 	def __getitem__(self, k):
-		if k in self:
-			return super(PickyDefaultDict, self).__getitem__(k)
-		try:
-			ret = self[k] = self.type(
-				*self.args_munger(self, k), **self.kwargs_munger(self, k)
-			)
-		except TypeError:
-			raise KeyError(k)
-		return ret
+		with self._lock:
+			if k in self:
+				return super(PickyDefaultDict, self).__getitem__(k)
+			try:
+				ret = self[k] = self.type(
+					*self.args_munger(self, k), **self.kwargs_munger(self, k)
+				)
+			except TypeError:
+				raise KeyError(k)
+			return ret
 
 	def _create(self, v):
 		return self.type(v)
 
 	def __setitem__(self, k, v):
-		if type(v) is not self.type:
-			v = self._create(v)
-		super(PickyDefaultDict, self).__setitem__(k, v)
+		with self._lock:
+			if type(v) is not self.type:
+				v = self._create(v)
+			super(PickyDefaultDict, self).__setitem__(k, v)
 
 
 class StructuredDefaultDict(dict):
@@ -105,6 +115,7 @@ class StructuredDefaultDict(dict):
 		"parent",
 		"key",
 		"_stuff",
+		"_lock",
 		"gettest",
 		"settest",
 	)
@@ -120,6 +131,7 @@ class StructuredDefaultDict(dict):
 	):
 		if layers < 1:
 			raise ValueError("Not enough layers")
+		self._lock = RLock()
 		self.layer = layers
 		self.type = type
 		self.args_munger = args_munger
@@ -129,51 +141,53 @@ class StructuredDefaultDict(dict):
 		self.settest = settest
 
 	def __getitem__(self, k):
-		self.gettest(k)
-		if k in self:
-			return dict.__getitem__(self, k)
-		layer, typ, args_munger, kwargs_munger = self._stuff
-		if layer == 1:
-			if typ is None:
-				ret = {}
+		with self._lock:
+			self.gettest(k)
+			if k in self:
+				return dict.__getitem__(self, k)
+			layer, typ, args_munger, kwargs_munger = self._stuff
+			if layer == 1:
+				if typ is None:
+					ret = {}
+				else:
+					ret = PickyDefaultDict(typ, args_munger, kwargs_munger)
+					ret.parent = self
+					ret.key = k
+			elif layer < 1:
+				raise ValueError("Invalid layer")
 			else:
-				ret = PickyDefaultDict(typ, args_munger, kwargs_munger)
+				ret = StructuredDefaultDict(
+					layer - 1, typ, args_munger, kwargs_munger
+				)
 				ret.parent = self
 				ret.key = k
-		elif layer < 1:
-			raise ValueError("Invalid layer")
-		else:
-			ret = StructuredDefaultDict(
-				layer - 1, typ, args_munger, kwargs_munger
-			)
-			ret.parent = self
-			ret.key = k
-		dict.__setitem__(self, k, ret)
-		return ret
+			dict.__setitem__(self, k, ret)
+			return ret
 
 	def __setitem__(self, k, v):
-		self.settest(k, v)
-		if type(v) is StructuredDefaultDict:
-			layer, typ, args_munger, kwargs_munger = self._stuff
-			if (
-				v.layer == layer - 1
-				and (typ is None or v.type is typ)
-				and v.args_munger is args_munger
-				and v.kwargs_munger is kwargs_munger
-			):
-				super().__setitem__(k, v)
-				return
-		elif type(v) is PickyDefaultDict:
-			layer, typ, args_munger, kwargs_munger = self._stuff
-			if (
-				layer == 1
-				and v.type is typ
-				and v.args_munger is args_munger
-				and v.kwargs_munger is kwargs_munger
-			):
-				super().__setitem__(k, v)
-				return
-		raise TypeError("Can't set layer {}".format(self.layer))
+		with self._lock:
+			self.settest(k, v)
+			if type(v) is StructuredDefaultDict:
+				layer, typ, args_munger, kwargs_munger = self._stuff
+				if (
+					v.layer == layer - 1
+					and (typ is None or v.type is typ)
+					and v.args_munger is args_munger
+					and v.kwargs_munger is kwargs_munger
+				):
+					super().__setitem__(k, v)
+					return
+			elif type(v) is PickyDefaultDict:
+				layer, typ, args_munger, kwargs_munger = self._stuff
+				if (
+					layer == 1
+					and v.type is typ
+					and v.args_munger is args_munger
+					and v.kwargs_munger is kwargs_munger
+				):
+					super().__setitem__(k, v)
+					return
+			raise TypeError("Can't set layer {}".format(self.layer))
 
 
 class KeyframeError(KeyError):
