@@ -174,14 +174,13 @@ def test_updnoderb(handle):
 
 	delta = engine.unpack(b)
 
-	assert (
-		"0" in delta
-		and "node_val" in delta["0"]
-		and "0" in delta["0"]["node_val"]
-		and "0" in delta["0"]["node_val"]
-		and "rulebook" in delta["0"]["node_val"]["0"]
-		and delta["0"]["node_val"]["0"]["rulebook"] == "haha"
-	)
+	assert delta
+	assert "0" in delta
+	assert "node_val" in delta["0"]
+	assert "0" in delta["0"]["node_val"]
+	assert "0" in delta["0"]["node_val"]
+	assert "rulebook" in delta["0"]["node_val"]["0"]
+	assert delta["0"]["node_val"]["0"]["rulebook"] == "haha"
 
 
 def test_updedgerb(handle):
