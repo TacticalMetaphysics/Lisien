@@ -313,7 +313,7 @@ class FacadeThing(FacadeNode, AbstractThing):
 	def __init__(self, mapping, real_or_name, **kwargs):
 		from .node import Thing
 
-		location = kwargs.pop("location", None)
+		location = kwargs["location"]
 		if location is None and not (isinstance(real_or_name, Thing)):
 			raise TypeError(
 				"FacadeThing needs to wrap a real Thing, or have a location of its own"
