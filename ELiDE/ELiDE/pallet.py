@@ -87,6 +87,10 @@ class Pallet(StackLayout):
 	selection_mode = OptionProperty("single", options=["single", "multiple"])
 	"""Whether to allow only a 'single' selected :class:`SwatchButton` (default), or 'multiple'"""
 
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self._trigger_upd_textures = Clock.create_trigger(self.upd_textures)
+
 	def on_selection(self, *_):
 		Logger.debug(
 			"Pallet: {} got selection {}".format(self.filename, self.selection)
@@ -131,13 +135,6 @@ class Pallet(StackLayout):
 					size=swatch_size,
 				)
 				add_widget(swatches[name])
-
-	def _trigger_upd_textures(self, *_):
-		if hasattr(self, "_scheduled_upd_textures"):
-			Clock.unschedule(self._scheduled_upd_textures)
-		self._scheduled_upd_textures = Clock.schedule_once(
-			self._trigger_upd_textures
-		)
 
 
 load_string_once("""
