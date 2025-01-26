@@ -10,4 +10,5 @@ twine
 pytest
 tox
 kivy
+kivy.garden.collider
 pygments
