@@ -129,6 +129,10 @@ class CalendarSlider(Slider, CalendarWidget):
 
 
 class CalendarTextInput(CalendarWidget, TextInput):
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self._trigger_parse_text = Clock.create_trigger(self._parse_text)
+
 	def _parse_text(self, *_):
 		from ast import literal_eval
 
@@ -138,8 +142,6 @@ class CalendarTextInput(CalendarWidget, TextInput):
 			v = self.text
 		self.val = self.hint_text = v
 		self.text = ""
-
-	_trigger_parse_text = triggered(_parse_text)
 
 
 class CalendarOptionButton(CalendarWidget, Button):
