@@ -2450,7 +2450,8 @@ class Engine(AbstractEngine, gORM, Executor):
 
 				def port_in_delt(orig, dest):
 					return (
-						orig in delt["edges"]
+						"edges" in delt
+						and orig in delt["edges"]
 						and dest in delt["edges"][orig]
 						and delt["edges"][orig][dest]
 					)
