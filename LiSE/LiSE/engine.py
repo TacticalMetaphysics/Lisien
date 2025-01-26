@@ -2433,7 +2433,7 @@ class Engine(AbstractEngine, gORM, Executor):
 								oldloc = locs[node]
 								if oldloc in conts:
 									conts[oldloc].discard(node)
-							locs[node] = loc = delt_val.pop("location")
+							locs[node] = loc = delt_val["location"]
 							if loc in conts:
 								conts[loc].add(node)
 							else:
