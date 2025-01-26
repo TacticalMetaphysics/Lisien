@@ -88,8 +88,8 @@ class Pallet(StackLayout):
 	"""Whether to allow only a 'single' selected :class:`SwatchButton` (default), or 'multiple'"""
 
 	def __init__(self, **kwargs):
-		super().__init__(**kwargs)
 		self._trigger_upd_textures = Clock.create_trigger(self.upd_textures)
+		super().__init__(**kwargs)
 
 	def on_selection(self, *_):
 		Logger.debug(
