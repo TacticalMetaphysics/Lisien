@@ -652,9 +652,6 @@ class GraphBoard(RelativeLayout):
 		self._scheduled_discard_pawn[thing] = Clock.schedule_once(part, 0)
 
 	def _remove_absent_pawns(self, *args):
-		Logger.debug(
-			"Board: removing pawns absent from {}".format(self.character.name)
-		)
 		for pawn_name in list(self.pawn.keys()):
 			if pawn_name not in self.character.thing:
 				self.rm_pawn(pawn_name)
@@ -667,9 +664,6 @@ class GraphBoard(RelativeLayout):
 		Clock.schedule_once(partial(self.discard_spot, place), 0)
 
 	def _remove_absent_spots(self, *args):
-		Logger.debug(
-			"Board: removing spots absent from {}".format(self.character.name)
-		)
 		for spot_name in list(self.spot.keys()):
 			if spot_name not in self.character.place:
 				self.rm_spot(spot_name)
@@ -682,9 +676,6 @@ class GraphBoard(RelativeLayout):
 		Clock.schedule_once(partial(self.discard_arrow, orig, dest), 0)
 
 	def _remove_absent_arrows(self, *args):
-		Logger.debug(
-			"Board: removing arrows absent from {}".format(self.character.name)
-		)
 		for arrow_origin in list(self.arrow.keys()):
 			for arrow_destination in list(self.arrow[arrow_origin].keys()):
 				if (
@@ -707,9 +698,6 @@ class GraphBoard(RelativeLayout):
 		Clock.schedule_once(partial(self.add_spot, placen), 0)
 
 	def _add_new_spots(self, *args):
-		Logger.debug(
-			"Board: adding new spots to {}".format(self.character.name)
-		)
 		start_ts = monotonic()
 		places2add = []
 		spots_unposd = []
@@ -755,10 +743,6 @@ class GraphBoard(RelativeLayout):
 			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
 				"data", self.stack_plane._trigger_redraw
 			)
-		Logger.debug(
-			f"Board: added new {self.character.name} spots in "
-			f"{monotonic() - start_ts:,.2f} seconds"
-		)
 
 	def add_arrow(self, orign, destn, *args):
 		if not (
@@ -782,9 +766,6 @@ class GraphBoard(RelativeLayout):
 			self.pred_arrow[destn][orign] = the_arrow
 
 	def _add_new_arrows(self, *args):
-		Logger.debug(
-			"Board: adding new arrows to {}".format(self.character.name)
-		)
 		portmap = self.character.portal
 		arrowmap = self.arrow
 		pred_arrowmap = self.pred_arrow
@@ -858,9 +839,6 @@ class GraphBoard(RelativeLayout):
 		self._scheduled_add_pawn[thingn] = Clock.schedule_once(part, 0)
 
 	def _add_new_pawns(self, *args):
-		Logger.debug(
-			"Board: adding new pawns to {}".format(self.character.name)
-		)
 		nodes_patch = {}
 		things2add = []
 		pawns_added = []
