@@ -22,6 +22,16 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 	exists = True
 
 	@property
+	def rulebook(self):
+		if "rulebook" in self._patch:
+			return self._patch["rulebook"]
+		return self._real.rulebook
+
+	@rulebook.setter
+	def rulebook(self, rbname):
+		self._patch["rulebook"] = rbname
+
+	@property
 	def engine(self):
 		return self.character.engine
 
