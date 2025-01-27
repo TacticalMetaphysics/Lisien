@@ -58,7 +58,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		if is_name:
 			try:
 				self._real = self._get_real(real_or_name)
-			except AttributeError:
+			except (KeyError, AttributeError):
 				pass  # Entity created for Facade. No underlying real entity.
 		else:
 			self._real = real_or_name
