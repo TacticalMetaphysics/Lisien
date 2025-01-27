@@ -933,6 +933,8 @@ class Stack:
 	def top(self):
 		stack_plane = self.board.stack_plane
 		name = self.proxy["name"]
+		if name not in stack_plane._stack_index:
+			return 100
 		idx = stack_plane._stack_index[name]
 		return float(stack_plane._top_ys[idx])
 
@@ -951,6 +953,8 @@ class Stack:
 	def right(self):
 		stack_plane = self.board.stack_plane
 		name = self.proxy["name"]
+		if name not in stack_plane._stack_index:
+			return 100
 		idx = stack_plane._stack_index[name]
 		return float(stack_plane._right_xs[idx])
 
