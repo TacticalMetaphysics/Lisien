@@ -57,11 +57,22 @@ import msgpack
 import networkx as nx
 import numpy as np
 from tblib import Traceback
+from blinker import Signal
 
 from . import exc, allegedb
 from .exc import TravelException
 
 Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
+
+
+class SignalDict(Signal, dict):
+	def __setitem__(self, __key, __value):
+		super().__setitem__(__key, __value)
+		self.send(self, key=__key, value=__value)
+
+	def __delitem__(self, __key):
+		super().__delitem__(__key)
+		self.send(self, key=__key, value=None)
 
 
 class BadTimeException(Exception):

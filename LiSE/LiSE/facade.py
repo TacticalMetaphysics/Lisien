@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
 from copy import deepcopy
+from functools import cached_property
 from operator import attrgetter
 from threading import RLock
 from typing import Type, MutableMapping, Mapping, MutableSequence, Any
@@ -14,7 +15,13 @@ from blinker import Signal
 
 from LiSE.allegedb.cache import Cache
 from LiSE.allegedb.wrap import MutableMappingUnwrapper
-from LiSE.util import AbstractCharacter, getatt, AbstractEngine, AbstractThing
+from LiSE.util import (
+	AbstractCharacter,
+	getatt,
+	AbstractEngine,
+	AbstractThing,
+	SignalDict,
+)
 from LiSE.xcollections import CompositeDict
 
 
@@ -51,7 +58,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		if is_name:
 			try:
 				self._real = self._get_real(real_or_name)
-			except KeyError:
+			except AttributeError:
 				pass  # Entity created for Facade. No underlying real entity.
 		else:
 			self._real = real_or_name
@@ -89,7 +96,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 				raise KeyError("{} has been masked.".format(k))
 			return self._patch[k]
 		if not hasattr(self, "_real"):
-			return
+			raise KeyError(f"{k} unset, and no underlying Thing")
 		ret = self._real[k]
 		if hasattr(ret, "unwrap"):  # a wrapped mutable object from the
 			# allegedb.wrap module
@@ -319,7 +326,9 @@ class FacadeThing(FacadeNode, AbstractThing):
 				"FacadeThing needs to wrap a real Thing, or have a location of its own"
 			)
 		super().__init__(mapping, real_or_name, **kwargs)
-		self.character.thing._patch[real_or_name.name] = self
+		self.character.thing._patch[
+			getattr(real_or_name, "name", real_or_name)
+		] = self
 
 	def _get_real(self, name):
 		return self.character.character.thing[name]
@@ -345,8 +354,8 @@ class FacadePlace(FacadeNode):
 
 		super().__init__(mapping, real_or_name, **kwargs)
 		if not isinstance(real_or_name, Place):
-			if real_or_name in mapping:
-				real_or_name = mapping[real_or_name]
+			if real_or_name in mapping._patch:
+				real_or_name = mapping._patch[real_or_name]
 			else:
 				mapping._patch[real_or_name] = self
 				return
@@ -446,7 +455,9 @@ class FacadePortalSuccessors(FacadeEntityMapping):
 		try:
 			return self.facade.character.portal[self.orig]
 		except AttributeError:
-			return {}
+			if not hasattr(self, "_inner_map"):
+				self._inner_map = SignalDict()
+			return self._inner_map
 
 
 class FacadePortalPredecessors(FacadeEntityMapping):
@@ -557,12 +568,21 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 		raise NotImplementedError("Facades don't have units")
 
 	def __init__(self, character=None, engine=None):
-		super().__init__()
 		self.character = character
-		self.db = EngineFacade(engine or character.engine)
-		self.db.character._patch[character.name] = self
-		self.graph = self.StatMapping(self)
+		self.db = EngineFacade(engine or getattr(character, "db", None))
+		self._stat_map = self.StatMapping(self)
 		self._rb_patch = {}
+		if character:
+			self.db.character._patch[character.name] = self
+
+	@property
+	def graph(self):
+		return self._stat_map
+
+	@graph.setter
+	def graph(self, v):
+		self._stat_map.clear()
+		self._stat_map.update(v)
 
 	class ThingMapping(FacadeEntityMapping):
 		facadecls = FacadeThing
@@ -595,10 +615,17 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 		def __init__(self, facade, _=None):
 			from .node import Place
 
+			if not isinstance(facade, CharacterFacade):
+				raise TypeError("Need CharacterFacade")
+
 			self.innercls = Place
 			super().__init__(facade, _)
 
 		def _get_inner_map(self):
+			if isinstance(self.facade.character, nx.Graph) and not isinstance(
+				self.facade.character, AbstractCharacter
+			):
+				return self.facade.character._node
 			try:
 				return self.facade.character.place
 			except AttributeError:
@@ -686,9 +713,9 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 
 		def __setitem__(self, k, v):
 			if self.facade.engine._planning:
-				self.facade.engine._planned[self.character.engine._curplan][
-					self.facade.engine.turn
-				].append((self.facade.name, k, v))
+				self.facade.engine._planned[
+					self.facade.character.engine._curplan
+				][self.facade.engine.turn].append((self.facade.name, k, v))
 				return
 			self._patch[k] = v
 
@@ -822,15 +849,18 @@ class EngineFacade(AbstractEngine):
 		self.character = self.FacadeCharacterMapping(self)
 		self.universal = self.FacadeUniversalMapping(real)
 		self._rando = random.Random()
-		self._rando.setstate(real._rando.getstate())
 		self.world_lock = RLock()
-		self.branch, self.turn, self.tick = real._btt()
-		self._branches = deepcopy(real._branches)
-		self._turn_end_plan = deepcopy(real._turn_end_plan)
-		self._nodes_cache = self.FacadeCache(real._nodes_cache, "nodes_cache")
-		self._things_cache = self.FacadeCache(
-			real._things_cache, "things_cache"
-		)
+		if real is not None:
+			self._rando.setstate(real._rando.getstate())
+			self.branch, self.turn, self.tick = real._btt()
+			self._branches = deepcopy(real._branches)
+			self._turn_end_plan = deepcopy(real._turn_end_plan)
+			self._nodes_cache = self.FacadeCache(
+				real._nodes_cache, "nodes_cache"
+			)
+			self._things_cache = self.FacadeCache(
+				real._things_cache, "things_cache"
+			)
 
 	def _btt(self):
 		return self.branch, self.turn, self.tick

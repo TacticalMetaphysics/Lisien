@@ -403,6 +403,9 @@ class CompositeDict(MutableMapping, Signal):
 		"""Sum the lengths of both dictionaries"""
 		return len(self.d1) + len(self.d2)
 
+	def __contains__(self, item):
+		return item in self.d1 or item in self.d2
+
 	def __getitem__(self, k):
 		"""Get an item from ``d1`` if possible, then ``d2``"""
 		try:
