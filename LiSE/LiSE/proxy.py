@@ -2801,7 +2801,7 @@ class EngineProxy(AbstractEngine):
 			self.trigger = FuncStoreProxy(self, "trigger")
 			self.function = FuncStoreProxy(self, "function")
 			self._worker = False
-			self.rando = RandoProxy(self)
+			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
