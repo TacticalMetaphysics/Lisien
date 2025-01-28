@@ -854,13 +854,19 @@ class EngineFacade(AbstractEngine):
 			self._rando.setstate(real._rando.getstate())
 			self.branch, self.turn, self.tick = real._btt()
 			self._branches = deepcopy(real._branches)
-			self._turn_end_plan = deepcopy(real._turn_end_plan)
-			self._nodes_cache = self.FacadeCache(
-				real._nodes_cache, "nodes_cache"
-			)
-			self._things_cache = self.FacadeCache(
-				real._things_cache, "things_cache"
-			)
+			if hasattr(real, "is_proxy"):
+				self._turn_end_plan = {}
+			else:
+				self._turn_end_plan = deepcopy(real._turn_end_plan)
+				self._nodes_cache = self.FacadeCache(
+					real._nodes_cache, "nodes_cache"
+				)
+				self._things_cache = self.FacadeCache(
+					real._things_cache, "things_cache"
+				)
+		else:
+			self._branches = {}
+			self._turn_end_plan = {}
 
 	def _btt(self):
 		return self.branch, self.turn, self.tick
