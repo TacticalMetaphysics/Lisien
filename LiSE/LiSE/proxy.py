@@ -2500,6 +2500,7 @@ class EngineProxy(AbstractEngine):
 	place_cls = PlaceProxy
 	portal_cls = PortalProxy
 	time = TimeDescriptor()
+	is_proxy = True
 
 	@property
 	def main_branch(self) -> str:
