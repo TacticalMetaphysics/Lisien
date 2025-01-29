@@ -1,6 +1,5 @@
 from functools import partial
 
-from kivy.clock import Clock
 from kivy.tests.common import UnitTestTouch
 
 from abc import abstractmethod
@@ -8,12 +7,12 @@ from LiSE import Engine
 from LiSE.examples import kobold
 from LiSE.examples import polygons
 from .util import idle_until, window_with_widget, ELiDEAppTest
-from ..card import Card
+from ..card import Card, Foundation
 
 
 def builder_foundation(builder):
 	for child in builder.children:
-		if not isinstance(child, Card):
+		if isinstance(child, Foundation):
 			return True
 	return False
 
@@ -159,7 +158,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 		def have_right_foundation():
 			nonlocal right_foundation
 			for foundation in builder.children:
-				if isinstance(foundation, Card):
+				if not isinstance(foundation, Foundation):
 					continue
 				if foundation.x > breakcover.right:
 					right_foundation = foundation
@@ -252,8 +251,9 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 		)
 		aware = breakcover = None
 		for card in builder.children:
-			if not isinstance(card, Card):
+			if isinstance(card, Foundation):
 				continue
+			assert isinstance(card, Card)
 			if card.headline_text == "aware":
 				aware = card
 			elif card.headline_text == "breakcover":
