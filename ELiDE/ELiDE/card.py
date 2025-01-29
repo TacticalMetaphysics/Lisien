@@ -552,6 +552,7 @@ class DeckBuilderLayout(Layout):
 				deck_x_hint_offsets=widget.upd_pos,
 				deck_y_hint_offsets=widget.upd_pos,
 			)
+			self.unbind(size=widget.upd_size, card_size_hint=widget.upd_size)
 		super().remove_widget(widget, *args, **kwargs)
 
 	def on_decks(self, *args):
