@@ -2,7 +2,7 @@ from kivy.tests.common import UnitTestTouch
 
 from LiSE import Engine
 from LiSE.examples import polygons
-from .util import idle_until, window_with_widget, ELiDEAppTest
+from .util import idle_until, ELiDEAppTest
 
 
 class CharacterSwitcherTest(ELiDEAppTest):
@@ -13,7 +13,7 @@ class CharacterSwitcherTest(ELiDEAppTest):
 
 	def test_character_switcher(self):
 		app = self.app
-		win = window_with_widget(app.build())
+		self.Window.add_widget(app.build())
 		idle_until(
 			lambda: app.manager.current == "main",
 			100,

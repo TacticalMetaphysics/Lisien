@@ -1,7 +1,5 @@
-from textwrap import dedent
 from types import SimpleNamespace
 
-import pytest
 from kivy.base import EventLoop
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.screenmanager import ScreenManager
@@ -19,7 +17,6 @@ from .util import (
 	ListenableDict,
 	MockEngine,
 	idle_until,
-	window_with_widget,
 )
 
 
@@ -51,7 +48,7 @@ class ScreenTest(ELiDEAppTest):
 			graphboards={"physical": GraphBoard(character=char)},
 			gridboards={"physical": GridBoard(character=char)},
 		)
-		win = window_with_widget(screen)
+		self.Window.add_widget(screen)
 		idle_until(
 			lambda: "timepanel" in screen.ids, 100, "timepanel never got id"
 		)
@@ -95,7 +92,7 @@ class ScreenTest(ELiDEAppTest):
 			play_speed=1.0,
 		)
 		app.manager.add_widget(screen)
-		win = window_with_widget(app.manager)
+		self.Window.add_widget(app.manager)
 		idle_until(
 			lambda: "timepanel" in screen.ids, 100, "timepanel never got id"
 		)
@@ -106,7 +103,6 @@ class ScreenTest(ELiDEAppTest):
 			"timepanel never resized",
 		)
 		turnfield = timepanel.ids["turnfield"]
-		turn_before = int(turnfield.hint_text)
 		playbut = screen.playbut = timepanel.ids["playbut"]
 		motion = UnitTestTouch(*playbut.center)
 		motion.touch_down()
