@@ -808,7 +808,7 @@ class DeckBuilderLayout(Layout):
 		(x, y) = self.pos
 		# start assigning pos and size to cards
 		found = self._get_foundation(i)
-		if (not cards or not any(cards)) and found not in self.children:
+		if found not in self.children:
 			self.add_widget(found)
 		for card in cards:
 			if card is not None:
