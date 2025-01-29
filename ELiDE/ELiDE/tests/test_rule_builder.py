@@ -6,7 +6,7 @@ from abc import abstractmethod
 from LiSE import Engine
 from LiSE.examples import kobold
 from LiSE.examples import polygons
-from .util import idle_until, window_with_widget, ELiDEAppTest
+from .util import idle_until, ELiDEAppTest
 from ..card import Card, Foundation
 
 
@@ -32,7 +32,7 @@ class RuleBuilderTest(ELiDEAppTest):
 			self.install(eng)
 		app = self.app
 		mgr = app.build()
-		self.win = window_with_widget(mgr)
+		self.Window.add_widget(mgr)
 		screen = app.mainscreen
 		idle_until(lambda: app.rules.rulesview, 100, "Never made rules view")
 		idle_until(
@@ -304,7 +304,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 			]
 		app = self.app
 		mgr = app.build()
-		self.win = window_with_widget(mgr)
+		self.Window.add_widget(mgr)
 		idle_until(
 			lambda: getattr(app, "engine"), 100, "App never made engine"
 		)

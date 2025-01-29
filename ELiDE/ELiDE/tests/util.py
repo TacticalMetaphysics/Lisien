@@ -76,13 +76,6 @@ def idle_until(condition=None, timeout=100, message="Timed out"):
 	raise TimeoutError(message)
 
 
-def window_with_widget(wid):
-	EventLoop.ensure_window()
-	win = EventLoop.window
-	win.add_widget(wid)
-	return win
-
-
 class MockTouch(MotionEvent):
 	def depack(self, args):
 		self.is_touch = True
@@ -140,7 +133,6 @@ class ELiDEAppTest(GraphicUnitTest):
 		self.app = ELiDEApp()
 		self.app.config = ConfigParser(None)
 		self.app.build_config(self.app.config)
-		EventLoop.start()
 
 	def tearDown(self, fake=False):
 		EventLoop.idle()  # let any triggered events fire
@@ -151,4 +143,3 @@ class ELiDEAppTest(GraphicUnitTest):
 		super().tearDown(fake=fake)
 		shutil.rmtree(self.prefix)
 		sys.argv = self.old_argv
-		EventLoop.exit()

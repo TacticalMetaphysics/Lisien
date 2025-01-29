@@ -9,14 +9,12 @@ from .util import (
 	all_spots_placed,
 	all_pawns_placed,
 	idle_until,
-	window_with_widget,
 	ELiDEAppTest,
 )
 
 
 class GridBoardTest(GraphicUnitTest):
-	@staticmethod
-	def test_layout_grid():
+	def test_layout_grid(self):
 		spots_wide = 3
 		spots_tall = 3
 		spot_width = 32
@@ -27,7 +25,7 @@ class GridBoardTest(GraphicUnitTest):
 		otherthing = char.place[2, 2].new_thing("otherthing")
 		assert len(char.thing) == 2
 		board = GridBoard(character=char)
-		win = window_with_widget(GridBoardView(board=board))
+		self.Window.add_widget(GridBoardView(board=board))
 		while not (
 			all_spots_placed(board, char) and all_pawns_placed(board, char)
 		):
@@ -64,7 +62,7 @@ class SwitchGridTest(ELiDEAppTest):
 			eng.add_character("physical", nx.grid_2d_graph(10, 1))
 			eng.add_character("tall", nx.grid_2d_graph(1, 10))
 		app = self.app
-		window_with_widget(app.build())
+		self.Window.add_widget(app.build())
 		idle_until(
 			lambda: hasattr(app, "mainscreen")
 			and app.mainscreen.mainview
