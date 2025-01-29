@@ -150,3 +150,4 @@ class ELiDEAppTest(GraphicUnitTest):
 			pass
 		shutil.rmtree(self.prefix)
 		sys.argv = self.old_argv
+		EventLoop.exit()
