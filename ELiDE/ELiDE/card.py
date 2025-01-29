@@ -528,6 +528,7 @@ class DeckBuilderLayout(Layout):
 			found = Foundation(
 				pos=self._get_foundation_pos(i), size=(width, height), deck=i
 			)
+			self.add_widget(found)
 			self.bind(
 				pos=found.upd_pos,
 				card_size_hint=found.upd_pos,
@@ -540,6 +541,18 @@ class DeckBuilderLayout(Layout):
 			oldfound[i] = found
 			self._foundations = oldfound
 		return self._foundations[i]
+
+	def remove_widget(self, widget, *args, **kwargs):
+		if isinstance(widget, Foundation):
+			self.unbind(
+				pos=widget.upd_pos,
+				card_size_hint=widget.upd_pos,
+				deck_hint_step=widget.upd_pos,
+				size=widget.upd_pos,
+				deck_x_hint_offsets=widget.upd_pos,
+				deck_y_hint_offsets=widget.upd_pos,
+			)
+		super().remove_widget(widget, *args, **kwargs)
 
 	def on_decks(self, *args):
 		"""Inform the cards of their deck and their index within the deck;
@@ -795,9 +808,6 @@ class DeckBuilderLayout(Layout):
 		(x, y) = self.pos
 		# start assigning pos and size to cards
 		found = self._get_foundation(i)
-		if found in self.children:
-			self.remove_widget(found)
-		self.add_widget(found)
 		for card in cards:
 			if card is not None:
 				if card in self.children:
