@@ -413,9 +413,9 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		for cardother in builder.children:
 			if not isinstance(cardother, Card) or cardother == card:
 				continue
-			assert not cardother.collide_point(
-				startx, starty
-			), "other card will grab the touch"
+			assert not cardother.collide_point(startx, starty), (
+				"other card will grab the touch"
+			)
 		touch = UnitTestTouch(startx, starty)
 		for target in builder.children:
 			if isinstance(target, Card):
@@ -429,6 +429,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		disty = targy - starty
 		x, y = startx, starty
 		touch.touch_down()
+		self.advance_frames(1)
 		for i in range(1, 11):
 			x += distx / 10
 			y += disty / 10
