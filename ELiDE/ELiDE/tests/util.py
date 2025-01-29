@@ -140,6 +140,7 @@ class ELiDEAppTest(GraphicUnitTest):
 		self.app = ELiDEApp()
 		self.app.config = ConfigParser(None)
 		self.app.build_config(self.app.config)
+		EventLoop.start()
 
 	def tearDown(self, fake=False):
 		EventLoop.idle()  # let any triggered events fire
