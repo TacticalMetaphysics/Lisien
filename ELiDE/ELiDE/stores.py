@@ -585,6 +585,14 @@ class FuncsEdBox(EdBox):
 			not in string.digits + string.whitespace + string.punctuation
 		)
 
+	def on_data(self, *_):
+		app = App.get_running_app()
+		if app is None:
+			return
+		app.rules.rulesview.set_functions(
+			self.store_name, map(app.rules.rulesview.inspect_func, self.data)
+		)
+
 
 class FuncsEdScreen(Screen):
 	"""Screen containing three FuncsEdBox
@@ -782,7 +790,6 @@ load_string_once("""
 				id: triggers
 				toggle: root.toggle
 				store_name: 'trigger'
-				on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
 		TabbedPanelItem:
 			id: prereq
 			text: 'Prereq'
@@ -791,7 +798,6 @@ load_string_once("""
 				id: prereqs
 				toggle: root.toggle
 				store_name: 'prereq'
-				on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
 		TabbedPanelItem:
 			id: action
 			text: 'Action'
@@ -800,5 +806,4 @@ load_string_once("""
 				id: actions
 				toggle: root.toggle
 				store_name: 'action'
-				on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
 """)
