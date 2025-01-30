@@ -187,11 +187,18 @@ class ScreenTest(ELiDEAppTest):
 		)
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
+
+		loc = app.engine.character["physical"].thing[2]["location"]
+
+		def relocated():
+			nonlocal loc
+			loc = app.engine.character["physical"].thing[2]["location"]
+			return loc == (1, 1)
+
 		idle_until(
-			lambda: app.engine.character["physical"].thing[2]["location"]
-			== (1, 1),
+			relocated,
 			100,
-			"Never relocated",
+			f"Thing 2 didn't go to location (1, 1); instead, it's at {loc}",
 		)
 		idle_until(
 			lambda: almost(graphpawn.x, locspot1.right),
