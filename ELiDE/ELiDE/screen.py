@@ -432,9 +432,9 @@ class MainScreen(Screen):
 			self.dialoglayout.idx = 0
 		self._update_from_delta(command, branch, turn, tick, deltas)
 		self.dialoglayout.advance_dialog()
-		self.tmp_block = False
 		if cb is not None:
 			cb(command, branch, turn, tick, result)
+		self.tmp_block = False
 
 	def next_turn(self, cb=None, *_):
 		"""Advance time by one turn, if it's not blocked.
