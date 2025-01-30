@@ -135,7 +135,6 @@ class ELiDEAppTest(GraphicUnitTest):
 		self.app.build_config(self.app.config)
 
 	def tearDown(self, fake=False):
-		EventLoop.idle()  # let any triggered events fire
 		try:
 			self.app.on_stop()
 		except RedundantProcessError:
