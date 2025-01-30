@@ -1,3 +1,4 @@
+from functools import partial
 from types import SimpleNamespace
 
 from kivy.base import EventLoop
@@ -190,14 +191,14 @@ class ScreenTest(ELiDEAppTest):
 
 		loc = app.engine.character["physical"].thing[2]["location"]
 
-		def relocated():
+		def relocated_to(dest):
 			nonlocal loc
 			loc = app.engine.character["physical"].thing[2]["location"]
-			return loc == (1, 1)
+			return loc == dest
 
 		idle_until(
-			relocated,
-			100,
+			partial(relocated_to, (1, 1)),
+			400,
 			f"Thing 2 didn't go to location (1, 1); instead, it's at {loc}",
 		)
 		idle_until(
@@ -220,10 +221,11 @@ class ScreenTest(ELiDEAppTest):
 		locspot9 = graphboard.spot[9]
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
+		loc = app.engine.character["physical"].thing[2]["location"]
 		idle_until(
-			lambda: app.engine.character["physical"].thing[2]["location"] == 9,
-			100,
-			"Never relocated",
+			partial(relocated_to, 9),
+			400,
+			f"Thing 2 didn't relocate to 9; it's at {loc}",
 		)
 		idle_until(
 			lambda: 2 not in gridboard.pawn,
@@ -239,11 +241,11 @@ class ScreenTest(ELiDEAppTest):
 		)
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
+		loc = app.engine.character["physical"].thing[2]["location"]
 		idle_until(
-			lambda: app.engine.character["physical"].thing[2]["location"]
-			== (0, 0),
-			100,
-			"Never relocated",
+			partial(relocated_to, (0, 0)),
+			400,
+			f"Thing 2 didn't relocate to (0, 0); it's at {loc}",
 		)
 		idle_until(
 			lambda: 2 in gridboard.pawn, 100, "pawn never returned to grid"
