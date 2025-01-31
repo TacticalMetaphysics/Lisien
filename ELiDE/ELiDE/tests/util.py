@@ -135,10 +135,5 @@ class ELiDEAppTest(GraphicUnitTest):
 		self.app.build_config(self.app.config)
 
 	def tearDown(self, fake=False):
-		try:
-			self.app.on_stop()
-		except RedundantProcessError:
-			pass
 		super().tearDown(fake=fake)
-		shutil.rmtree(self.prefix)
 		sys.argv = self.old_argv
