@@ -93,6 +93,14 @@ class CachingProxy(MutableMapping, Signal):
 			raise KeyError("No such key: {}".format(k))
 		return self._cache_get_munge(k, self._cache[k])
 
+	def setdefault(self, k, default=None):
+		if k not in self:
+			if default is None:
+				raise KeyError("No such key", k)
+			self[k] = default
+			return default
+		return self[k]
+
 	def __setitem__(self, k, v):
 		if self.engine._worker:
 			raise WorkerProcessReadOnlyError(
