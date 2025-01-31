@@ -145,6 +145,8 @@ class GridBoard(Widget):
 		if self.character is None:
 			Clock.schedule_once(self.on_parent, 0)
 			return
+		if self.character.engine.closed:
+			return
 		Logger.debug("GridBoard: on_parent start")
 		start_ts = monotonic()
 		if not hasattr(self, "_pawn_plane"):

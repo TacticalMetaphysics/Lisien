@@ -843,6 +843,7 @@ class EngineFacade(AbstractEngine):
 
 	def __init__(self, real: AbstractEngine):
 		assert not isinstance(real, EngineFacade)
+		self.closed = False
 		self._real = real
 		self._planning = False
 		self._planned = defaultdict(lambda: defaultdict(list))
