@@ -3585,7 +3585,6 @@ class EngineProcessManager(object):
 		"""Close the engine in the subprocess, then join the subprocess"""
 		self.engine_proxy.close()
 		self._p.join()
-		del self.engine_proxy
 
 	def __enter__(self):
 		return self.start()
