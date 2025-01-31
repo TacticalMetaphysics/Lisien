@@ -435,10 +435,7 @@ class ELiDEApp(App):
 			and os.path.exists(sys.argv[-1])
 			and os.path.isdir(sys.argv[-1])
 		):
-			Clock.schedule_once(
-				partial(self.mainmenu.open, os.path.abspath(sys.argv[-1])),
-				0.001,
-			)
+			self.mainmenu.open(os.path.abspath(sys.argv[-1]))
 
 	def update_calendar(self, calendar, past_turns=1, future_turns=5):
 		"""Fill in a calendar widget with actual simulation data"""
