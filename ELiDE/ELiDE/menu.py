@@ -21,7 +21,7 @@ from kivy.uix.dropdown import DropDown
 from kivy.uix.modalview import ModalView
 from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import Screen
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 
 from .gen import GridGeneratorDialog
 from .util import load_string_once
@@ -131,6 +131,7 @@ class WorldStartConfigurator(BoxLayout):
 class DirPicker(Screen):
 	toggle = ObjectProperty()
 
+	@triggered()
 	def open(self, path, *_):
 		App.get_running_app().starting_dir = os.path.abspath(".")
 		os.chdir(path)
