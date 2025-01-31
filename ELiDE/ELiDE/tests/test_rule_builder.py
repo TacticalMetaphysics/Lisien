@@ -306,7 +306,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		mgr = app.build()
 		self.Window.add_widget(mgr)
 		idle_until(
-			lambda: getattr(app, "engine"), 100, "App never made engine"
+			lambda: hasattr(app, "engine"), 100, "App never made engine"
 		)
 		idle_until(
 			lambda: "triangle" in app.engine.character,

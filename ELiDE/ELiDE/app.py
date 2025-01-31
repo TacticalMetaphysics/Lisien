@@ -73,7 +73,6 @@ class ELiDEApp(App):
 
 	title = "ELiDE"
 
-	engine = ObjectProperty()
 	branch = StringProperty("trunk")
 	turn = NumericProperty(0)
 	tick = NumericProperty(0)
@@ -96,9 +95,9 @@ class ELiDEApp(App):
 		assert hasattr(selected_proxy, "origin"), "{} has no origin".format(
 			type(selected_proxy)
 		)
-		assert hasattr(
-			selected_proxy, "destination"
-		), "{} has no destination".format(type(selected_proxy))
+		assert hasattr(selected_proxy, "destination"), (
+			"{} has no destination".format(type(selected_proxy))
+		)
 		origin = selected_proxy.origin
 		destination = selected_proxy.destination
 		self.selected_proxy_name = (
@@ -496,7 +495,7 @@ class ELiDEApp(App):
 		self.selected_proxy = self._get_selected_proxy()
 
 	def on_character_name(self, *_):
-		if not self.engine:
+		if not hasattr(self, "engine"):
 			Clock.schedule_once(self.on_character_name, 0)
 			return
 		self.engine.eternal["boardchar"] = self.engine.character[
@@ -538,6 +537,7 @@ class ELiDEApp(App):
 		self.funcs.save()
 		if hasattr(self, "procman"):
 			self.procman.shutdown()
+		del self.engine
 		if hasattr(self, "starting_dir"):
 			os.chdir(self.starting_dir)
 

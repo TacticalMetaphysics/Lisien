@@ -299,7 +299,6 @@ load_string_once("""
 			viewclass: 'ConfigListItem'
 			id: cfg
 			app: app
-			engine: root.engine
 			proxy: root.proxy
 			statlist: root.statlist
 			size_hint_y: 0.95

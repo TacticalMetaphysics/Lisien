@@ -365,7 +365,7 @@ class EdBox(BoxLayout):
 
 	def on_store_name(self, *_):
 		app = App.get_running_app()
-		if app.engine is None:
+		if not hasattr(app, "engine"):
 			Clock.schedule_once(self.on_store_name, 0)
 			return
 		self.store = getattr(app.engine, self.store_name)

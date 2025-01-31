@@ -15,6 +15,8 @@
 """Generic dialog boxes and menus, for in front of a Board"""
 
 from functools import partial
+
+from kivy.app import App
 from kivy.properties import (
 	DictProperty,
 	ListProperty,
@@ -176,7 +178,6 @@ class DialogLayout(FloatLayout):
 	"""
 
 	dialog = ObjectProperty()
-	engine = ObjectProperty()
 	todo = ListProperty()
 	usermod = StringProperty("user")
 	userpkg = StringProperty(None, allownone=True)
@@ -184,15 +185,21 @@ class DialogLayout(FloatLayout):
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
 		self.dialog = Dialog()
+		self._finalize()
 
-	def on_engine(self, *_):
-		todo = self.engine.universal.get("last_result")
+	def _finalize(self, *_):
+		app = App.get_running_app()
+		if not hasattr(app, "engine"):
+			Clock.schedule_once(self._finalize, 0)
+			return
+		engine = app.engine
+		todo = engine.universal.get("last_result")
 		if isinstance(todo, list):
 			self.todo = todo
 		else:
 			self.todo = []
-		self.idx = self.engine.universal.get("last_result_idx", 0)
-		self.engine.universal.connect(self._pull)
+		self.idx = engine.universal.get("last_result_idx", 0)
+		engine.universal.connect(self._pull)
 		if self.todo:
 			self.advance_dialog()
 

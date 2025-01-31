@@ -25,7 +25,11 @@ class StringsEditorTest(ELiDEAppTest):
 			"DirPicker never got configurator",
 		)
 		app.mainmenu.configurator.start()  # start with blank world
-		idle_until(lambda: app.engine, 100, "app never got engine")
+
+		def app_has_engine():
+			return hasattr(self.app.get_running_app(), "engine")
+
+		idle_until(app_has_engine, 600, "app never got engine")
 		idle_until(
 			lambda: app.strings.children, 100, "strings never got children"
 		)

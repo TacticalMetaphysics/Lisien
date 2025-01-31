@@ -141,7 +141,7 @@ class ScreenTest(ELiDEAppTest):
 		app.starting_dir = self.prefix
 		app.build()
 		idle_until(
-			lambda: app.engine is not None, 100, "Never got engine proxy"
+			lambda: hasattr(app, "engine"), 100, "Never got engine proxy"
 		)
 		assert app.engine.character["physical"].thing[2]["location"] == (0, 0)
 		graphboard = app.mainscreen.graphboards["physical"]
