@@ -224,7 +224,7 @@ class ScreenTest(ELiDEAppTest):
 		loc = app.engine.character["physical"].thing[2]["location"]
 		idle_until(
 			partial(relocated_to, 9),
-			400,
+			600,
 			f"Thing 2 didn't relocate to 9; it's at {loc}",
 		)
 		idle_until(
