@@ -287,6 +287,45 @@ class FacadeRule:
 
 
 class FacadeNode(FacadeEntity, ABC):
+	class FacadeNodeContent(Mapping):
+		__slots__ = ("_entity",)
+
+		def __init__(self, node):
+			self._entity = node
+
+		def __iter__(self):
+			if hasattr(self._entity.engine, "_node_contents_cache"):
+				# The real contents cache is wrapped by the facade engine.
+				try:
+					return self._entity.engine._node_contents_cache.retrieve(
+						self._entity.character.name,
+						self._entity.name,
+						*self._entity.engine._btt(),
+					)
+				except KeyError:
+					return
+			char = self._entity.character
+			myname = self._entity.name
+			for name, thing in char.thing.items():
+				if thing["location"] == myname:
+					yield name
+
+		def __len__(self):
+			# slow
+			return len(set(self))
+
+		def __contains__(self, item):
+			return (
+				item in self._entity.character.thing
+				and self._entity.character.thing[item]["location"]
+				== self._entity.name
+			)
+
+		def __getitem__(self, item):
+			if item not in self:
+				raise KeyError("Not contained here", item, self._entity.name)
+			return self._entity.character.thing[item]
+
 	@property
 	def portal(self):
 		return self.facade.portal[self["name"]]
@@ -303,6 +342,10 @@ class FacadeNode(FacadeEntity, ABC):
 		if item == "name":
 			return self.name
 		return super().__getitem__(item)
+
+	@property
+	def content(self):
+		return self.FacadeNodeContent(self)
 
 	def contents(self):
 		for thing in self.facade.thing.values():
