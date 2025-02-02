@@ -310,7 +310,7 @@ class FacadeNode(FacadeEntity, ABC):
 			engine = self._entity.engine
 			charn = self._entity.character.name
 			return engine._unitness_cache.user_cache.count_keys(
-				charn, self._entity.namee, *engine._btt()
+				charn, self._entity.name, *engine._btt()
 			)
 
 		def __contains__(self, item):
