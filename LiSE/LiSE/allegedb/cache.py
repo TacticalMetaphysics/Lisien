@@ -601,7 +601,12 @@ class Cache:
 			kc = kc.difference((key,))
 		else:
 			kc = kc.union((key,))
-		self.keycache[parent + (entity, branch)][turn][tick] = kc
+		if parent + (entity, branch) not in self.keycache:
+			self.keycache[parent + (entity, branch)] = SettingsTurnDict(
+				{turn: {tick: kc}}
+			)
+		else:
+			self.keycache[parent + (entity, branch)][turn][tick] = kc
 
 	def _get_adds_dels(
 		self,
