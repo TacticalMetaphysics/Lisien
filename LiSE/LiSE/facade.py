@@ -702,6 +702,75 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 		self._stat_map.clear()
 		self._stat_map.update(v)
 
+	class UnitGraphMapping(Mapping):
+		class UnitMapping(Mapping):
+			def __init__(self, character, graph_name):
+				self.character = character
+				self.graph_name = graph_name
+
+			def __iter__(self):
+				return self.character.engine._unitness_cache.iter_keys(
+					self.character.name,
+					self.graph_name,
+					*self.character.engine._btt(),
+				)
+
+			def __len__(self):
+				return self.character.engine._unitness_cache.count_keys(
+					self.character.name,
+					self.graph_name,
+					*self.character.engine._btt(),
+				)
+
+			def __contains__(self, item):
+				return self.character.engine._unitness_cache.retrieve(
+					self.character.name,
+					self.graph_name,
+					item,
+					*self.character.engine._btt(),
+				)
+
+			def __getitem__(self, item):
+				if item not in self:
+					raise KeyError(
+						"Not a unit of this character in this graph",
+						item,
+						self.character.name,
+						self.graph_name,
+					)
+				return self.character.engine.character[self.graph_name].node[
+					item
+				]
+
+		def __init__(self, character):
+			self.character = character
+
+		def __iter__(self):
+			return self.character.engine._unitness_cache.iter_keys(
+				self.character.name, *self.character.engine._btt()
+			)
+
+		def __len__(self):
+			return self.character.engine._unitness_cache.count_keys(
+				self.character.name, *self.character.engine._btt()
+			)
+
+		def __contains__(self, item):
+			for _ in self.character.engine._unitness_cache.iter_keys(
+				self.character.name, item, *self.character.engine._btt()
+			):
+				return True
+			return False
+
+		def __getitem__(self, item):
+			if item not in self:
+				raise KeyError(
+					"Character has no units in graph",
+					self.character.name,
+					item,
+				)
+			return self.UnitMapping(self.character, item)
+
 	class ThingMapping(FacadeEntityMapping):
 		facadecls = FacadeThing
 		innercls: type
