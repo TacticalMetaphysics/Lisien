@@ -973,6 +973,9 @@ class AbstractCharacter(Mapping):
 	unit = SpecialMappingDescriptor("UnitGraphMapping")
 	stat = getatt("graph")
 
+	def units(self):
+		return self.unit.values()
+
 	def historical(self, stat):
 		from .query import StatusAlias
 
