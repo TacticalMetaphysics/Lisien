@@ -287,6 +287,45 @@ class FacadeRule:
 
 
 class FacadeNode(FacadeEntity, ABC):
+	class FacadeNodeUser(Mapping):
+		__slots__ = ("_entity",)
+
+		def __init__(self, node):
+			self._entity = node
+
+		def __iter__(self):
+			engine = self._entity.engine
+			charn = self._entity.character.name
+			return engine._unitness_cache.user_cache.iter_keys(
+				charn, self._entity.name, *engine._btt()
+			)
+
+		def __len__(self):
+			engine = self._entity.engine
+			charn = self._entity.character.name
+			return engine._unitness_cache.user_cache.count_keys(
+				charn, self._entity.namee, *engine._btt()
+			)
+
+		def __contains__(self, item):
+			engine = self._entity.engine
+			charn = self._entity.character.name
+			try:
+				return bool(
+					engine._unitness_cache.user_cache.retrieve(
+						charn, self._entity.name, item, *engine._btt()
+					)
+				)
+			except KeyError:
+				return False
+
+		def __getitem__(self, item):
+			if item not in self:
+				raise KeyError("Not used by that character", item)
+			engine = self._entity.engine
+			charn = self._entity.character.name
+			return engine.character[charn]
+
 	class FacadeNodeContent(Mapping):
 		__slots__ = ("_entity",)
 
@@ -352,6 +391,10 @@ class FacadeNode(FacadeEntity, ABC):
 			# it seems like redundant FacadeNode are being created sometimes
 			if thing["location"] == self.name:
 				yield thing
+
+	@property
+	def user(self):
+		return self.FacadeNodeUser(self)
 
 	def _set_plan(self, k, v):
 		self.character.engine._planned[self.character.engine._curplan][
@@ -571,7 +614,20 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 			self.add_portal(*it, **attrs)
 
 	def remove_unit(self, a, b=None):
-		raise NotImplementedError("Facades don't have units")
+		if b is None:
+			if not isinstance(a, FacadeNode):
+				raise TypeError("Need a node or character")
+			charn = a.character.name
+			noden = a.name
+		else:
+			charn = a
+			if isinstance(b, FacadeNode):
+				noden = b.name
+			else:
+				noden = b
+		self.engine._unitness_cache.store(
+			self.name, charn, noden, *self.engine._btt(), False
+		)
 
 	def add_place(self, name, **kwargs):
 		self.place[name] = kwargs
@@ -608,7 +664,20 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 		self.add_portal(orig, dest, **kwargs)
 
 	def add_unit(self, a, b=None):
-		raise NotImplementedError("Facades don't have units")
+		if b is None:
+			if not isinstance(a, FacadeNode):
+				raise TypeError("Need a node or character")
+			charn = a.character.name
+			noden = a.name
+		else:
+			charn = a
+			if isinstance(b, FacadeNode):
+				noden = b.name
+			else:
+				noden = b
+		self.engine._unitness_cache.store(
+			self.name, charn, noden, *self.engine._btt(), True
+		)
 
 	def __init__(self, character=None, engine=None):
 		self.character = character
@@ -907,6 +976,12 @@ class EngineFacade(AbstractEngine):
 				)
 				self._things_cache = self.FacadeCache(
 					real._things_cache, "things_cache"
+				)
+				self._unitness_cache = self.FacadeCache(
+					real._unitness_cache, "unitness_cache"
+				)
+				self._unitness_cache.user_cache = self.FacadeCache(
+					real._unitness_cache.user_cache, "user_cache"
 				)
 		else:
 			self._branches = {}
