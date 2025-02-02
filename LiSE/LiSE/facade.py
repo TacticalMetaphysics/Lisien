@@ -1068,6 +1068,21 @@ class EngineFacade(AbstractEngine):
 
 	def __init__(self, real: AbstractEngine):
 		assert not isinstance(real, EngineFacade)
+		if real is not None:
+			for alias in (
+				"submit",
+				"load_at",
+				"function",
+				"method",
+				"trigger",
+				"prereq",
+				"action",
+				"string",
+			):
+				try:
+					setattr(self, alias, getattr(real, alias))
+				except AttributeError:
+					print(f"{alias} not implemented on {type(real)}")
 		self.closed = False
 		self._real = real
 		self._planning = False
@@ -1116,12 +1131,6 @@ class EngineFacade(AbstractEngine):
 			self._curplan = self._real._last_plan + 1
 		yield self._curplan
 		self._planning = False
-
-	def submit(self, *args, **kwargs):
-		return self._real.submit(*args, **kwargs)
-
-	def load_at(self, branch, turn, tick):
-		self._real.load_at(branch, turn, tick)
 
 	def apply(self):
 		realeng = self._real
