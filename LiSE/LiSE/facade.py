@@ -330,8 +330,7 @@ class FacadeNode(FacadeEntity, ABC):
 			if item not in self:
 				raise KeyError("Not used by that character", item)
 			engine = self._entity.engine
-			charn = self._entity.character.name
-			return engine.character[charn]
+			return engine.character[item]
 
 	class FacadeNodeContent(Mapping):
 		__slots__ = ("_entity",)
