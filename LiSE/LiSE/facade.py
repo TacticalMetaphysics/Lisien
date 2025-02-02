@@ -954,11 +954,11 @@ class EngineFacade(AbstractEngine):
 			super().__init__(cache.db, name)
 			self._real = cache
 
-		def retrieve(self, *args):
+		def retrieve(self, *args, search=False):
 			try:
-				return super().retrieve(*args)
+				return super().retrieve(*args, search=search)
 			except KeyError:
-				return self._real.retrieve(*args)
+				return self._real.retrieve(*args, search=search)
 
 		def _get_keycache(
 			self, parentity, branch, turn, tick, forward: bool = None
