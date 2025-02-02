@@ -858,6 +858,10 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 			if v is None:
 				del realthing[k]
 			elif k not in realthing:
+				if isinstance(v, FacadeThing):
+					v = v._patch
+				if "name" in v:
+					assert v.pop("name") == k
 				realchar.add_thing(k, **v)
 			else:
 				v.apply()
