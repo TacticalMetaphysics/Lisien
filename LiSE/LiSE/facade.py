@@ -290,6 +290,12 @@ class FacadeNode(FacadeEntity, ABC):
 	class FacadeNodeUser(Mapping):
 		__slots__ = ("_entity",)
 
+		@property
+		def only(self):
+			if len(self) != 1:
+				raise AttributeError("No user, or more than one")
+			return self[next(iter(self))]
+
 		def __init__(self, node):
 			self._entity = node
 
