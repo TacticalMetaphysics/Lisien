@@ -928,7 +928,7 @@ class EngineFacade(AbstractEngine):
 				raise KeyError("No character", key)
 			if key not in self._patch:
 				self._patch[key] = CharacterFacade(
-					realeng.character[key], engine=self.engine
+					realeng.character[key], engine=realeng
 				)
 			return self._patch[key]
 
