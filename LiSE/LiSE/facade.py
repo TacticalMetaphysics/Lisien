@@ -1048,6 +1048,9 @@ class EngineFacade(AbstractEngine):
 		yield self._curplan
 		self._planning = False
 
+	def submit(self, *args, **kwargs):
+		return self._real.submit(*args, **kwargs)
+
 	def load_at(self, branch, turn, tick):
 		self._real.load_at(branch, turn, tick)
 
