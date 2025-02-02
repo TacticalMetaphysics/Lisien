@@ -15,6 +15,7 @@ from blinker import Signal
 
 from LiSE.allegedb.cache import Cache
 from LiSE.allegedb.wrap import MutableMappingUnwrapper
+from LiSE.cache import UnitnessCache
 from LiSE.util import (
 	AbstractCharacter,
 	getatt,
@@ -950,6 +951,7 @@ class EngineFacade(AbstractEngine):
 
 	class FacadeCache(Cache):
 		def __init__(self, cache, name):
+			self._created = cache.db._btt()
 			super().__init__(cache.db, name)
 			self._real = cache
 
@@ -958,6 +960,38 @@ class EngineFacade(AbstractEngine):
 				return super().retrieve(*args)
 			except KeyError:
 				return self._real.retrieve(*args)
+
+		def _get_keycache(
+			self, parentity, branch, turn, tick, forward: bool = None
+		):
+			if forward is None:
+				forward = self._real.db._forward
+			# Find the last effective keycache before the facade was created.
+			# Get the additions and deletions since then.
+			# Apply those to the keycache and return it.
+			kc = set(
+				self._real._get_keycache(
+					parentity, *self._created, forward=forward
+				)
+			)
+			added, deleted = self._get_adds_dels(
+				parentity, branch, turn, tick, stoptime=self._created
+			)
+			return frozenset((kc | added) - deleted)
+
+	class FacadeUnitnessCache(FacadeCache, UnitnessCache):
+		def __init__(self, cache):
+			UnitnessCache.__init__(self, cache.db)
+			self.user_cache = EngineFacade.FacadeCache(
+				cache.user_cache, "user_cache"
+			)
+			self._real = cache
+
+		def retrieve(self, *args, search=False):
+			try:
+				return super().retrieve(*args, search=search)
+			except KeyError:
+				return self._real.retrieve(*args, search=search)
 
 	def __init__(self, real: AbstractEngine):
 		assert not isinstance(real, EngineFacade)
@@ -983,11 +1017,8 @@ class EngineFacade(AbstractEngine):
 				self._things_cache = self.FacadeCache(
 					real._things_cache, "things_cache"
 				)
-				self._unitness_cache = self.FacadeCache(
-					real._unitness_cache, "unitness_cache"
-				)
-				self._unitness_cache.user_cache = self.FacadeCache(
-					real._unitness_cache.user_cache, "user_cache"
+				self._unitness_cache = self.FacadeUnitnessCache(
+					real._unitness_cache
 				)
 		else:
 			self._branches = {}
