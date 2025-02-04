@@ -2325,7 +2325,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._keyframe_on_close
 			and self._btt() not in self._keyframes_times
 		):
-			self.snap_keyframe(silent=True)
+			self.snap_keyframe(silent=True, update_worker_processes=False)
 		for store in self.stores:
 			if hasattr(store, "save"):
 				store.save(reimport=False)
