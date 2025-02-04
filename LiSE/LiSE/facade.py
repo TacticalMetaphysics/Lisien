@@ -718,11 +718,13 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 				self.graph_name = graph_name
 
 			def __iter__(self):
-				return self.character.engine._unitness_cache.iter_keys(
+				for key in self.character.engine._unitness_cache.iter_keys(
 					self.character.name,
 					self.graph_name,
 					*self.character.engine._btt(),
-				)
+				):
+					if key in self:
+						yield key
 
 			def __len__(self):
 				return self.character.engine._unitness_cache.count_keys(
@@ -758,9 +760,12 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 			self.character = character
 
 		def __iter__(self):
-			return self.character.engine._unitness_cache.iter_keys(
-				self.character.name, *self.character.engine._btt()
-			)
+			engine = self.character.engine
+			name = self.character.name
+			now = self.character.engine._btt()
+			for key in engine._unitness_cache.iter_keys(name, *now):
+				if key in self:
+					yield key
 
 		def __len__(self):
 			return self.character.engine._unitness_cache.count_keys(
@@ -768,10 +773,15 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 			)
 
 		def __contains__(self, item):
-			for _ in self.character.engine._unitness_cache.iter_keys(
-				self.character.name, item, *self.character.engine._btt()
-			):
-				return True
+			now = self.character.engine._btt()
+			name = self.character.name
+			engine = self.character.engine
+			for _ in engine._unitness_cache.iter_keys(name, item, *now):
+				try:
+					engine._unitness_cache.retrieve(name, item, *now)
+					return True
+				except KeyError:
+					continue
 			return False
 
 		def __getitem__(self, item):
