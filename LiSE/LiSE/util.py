@@ -974,7 +974,8 @@ class AbstractCharacter(Mapping):
 	stat = getatt("graph")
 
 	def units(self):
-		return self.unit.values()
+		for units in self.unit.values():
+			yield from units
 
 	def historical(self, stat):
 		from .query import StatusAlias
