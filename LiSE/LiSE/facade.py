@@ -1081,6 +1081,12 @@ class EngineFacade(AbstractEngine):
 				"prereq",
 				"action",
 				"string",
+				"log",
+				"debug",
+				"info",
+				"warning",
+				"error",
+				"critical",
 			):
 				try:
 					setattr(self, alias, getattr(real, alias))
