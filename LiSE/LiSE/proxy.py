@@ -2653,8 +2653,9 @@ class EngineProxy(AbstractEngine):
 			chars[graph].stat._apply_delta(stats)
 		nodes_to_delete = {
 			(char, node)
-			for char in self._char_cache
-			for node in things[char].keys() | places[char].keys()
+			for char in things.keys() | places.keys()
+			for node in things.get(char, {}).keys()
+			| places.get(char, {}).keys()
 		}
 		for char, nodes in result["nodes"].items():
 			for node, ex in nodes.items():
