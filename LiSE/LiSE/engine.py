@@ -1253,18 +1253,33 @@ class Engine(AbstractEngine, gORM, Executor):
 					if graph in kf["edge_val"]:
 						if orig in kf["edge_val"][graph]:
 							if dest in kf["edge_val"][graph][orig]:
+								assert (
+									graph in kf["edges"]
+									and orig in kf["edges"][graph]
+									and dest in kf["edges"][graph][orig]
+								)
 								kf["edge_val"][graph][orig][dest][
 									"rulebook"
 								] = rb
-							else:
+							elif (
+								graph in kf["edges"]
+								and orig in kf["edges"][graph]
+								and dest in kf["edges"][graph][orig]
+							):
 								kf["edge_val"][graph][orig][dest] = {
 									"rulebook": rb
 								}
-						else:
+						elif (
+							graph in kf["edges"] and orig in kf["edges"][graph]
+						):
 							kf["edge_val"][graph][orig] = {
 								dest: {"rulebook": rb}
 							}
-					else:
+					elif (
+						graph in kf["edges"]
+						and orig in kf["edges"][graph]
+						and dest in kf["edges"][graph][orig]
+					):
 						kf["edge_val"][graph] = {
 							orig: {dest: {"rulebook": rb}}
 						}
