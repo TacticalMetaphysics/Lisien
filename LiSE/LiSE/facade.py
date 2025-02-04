@@ -437,6 +437,9 @@ class FacadeThing(FacadeNode, AbstractThing):
 			raise KeyError("Location {} not present".format(v))
 		self["location"] = v
 
+	def delete(self):
+		del self.character.thing[self.name]
+
 
 class FacadePlace(FacadeNode):
 	"""Lightweight analogue of Place for Facade use."""
@@ -461,6 +464,9 @@ class FacadePlace(FacadeNode):
 
 	def new_thing(self, name):
 		return self.facade.new_thing(name, self.name)
+
+	def delete(self):
+		del self.character.place[self.name]
 
 
 class FacadePortalMapping(FacadeEntityMapping, ABC):
@@ -527,6 +533,9 @@ class FacadePortal(FacadeEntity):
 		self.character.engine._planned[self.character.engine._curplan][
 			self.character.engine.turn
 		].append((self.character.name, self.orig, self.dest, k, v))
+
+	def delete(self):
+		del self.character.portal[self.orig][self.dest]
 
 
 class FacadePortalSuccessors(FacadeEntityMapping):
