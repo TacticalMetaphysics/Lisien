@@ -2723,7 +2723,7 @@ class EngineProxy(AbstractEngine):
 				that._apply_delta(stats)
 		edges_to_delete = {
 			(char, orig, dest)
-			for char in self._char_cache
+			for char in portals.successors
 			for orig in portals.successors[char]
 			for dest in portals.successors[char][orig]
 		}
