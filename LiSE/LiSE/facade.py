@@ -375,6 +375,13 @@ class FacadeNode(FacadeEntity, ABC):
 	def portal(self):
 		return self.facade.portal[self["name"]]
 
+	def successors(self):
+		for dest in self.portal:
+			yield self.character.place[dest]
+
+	def contents(self):
+		return self.content.values()
+
 	def __init__(self, mapping, real_or_name=None, **kwargs):
 		self.name = getattr(real_or_name, "name", real_or_name)
 		super().__init__(mapping, real_or_name, **kwargs)
