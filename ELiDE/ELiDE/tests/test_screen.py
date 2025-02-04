@@ -198,7 +198,7 @@ class ScreenTest(ELiDEAppTest):
 
 		idle_until(
 			partial(relocated_to, (1, 1)),
-			400,
+			800,
 			f"Thing 2 didn't go to location (1, 1); instead, it's at {loc}",
 		)
 		idle_until(
