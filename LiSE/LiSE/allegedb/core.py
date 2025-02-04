@@ -1169,6 +1169,7 @@ class ORM:
 			assert idx_ex.keys() == {0}, (
 				"Not doing edge indexes until multigraphs come back"
 			)
+			assert idx_ex[0], "Stored a keyframe for a nonexistent edge"
 			if graph in edges:
 				if orig in edges[graph]:
 					edges[graph][orig][dest] = True
