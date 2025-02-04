@@ -723,12 +723,15 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 				)
 
 			def __contains__(self, item):
-				return self.character.engine._unitness_cache.retrieve(
-					self.character.name,
-					self.graph_name,
-					item,
-					*self.character.engine._btt(),
-				)
+				try:
+					return self.character.engine._unitness_cache.retrieve(
+						self.character.name,
+						self.graph_name,
+						item,
+						*self.character.engine._btt(),
+					)
+				except KeyError:
+					return False
 
 			def __getitem__(self, item):
 				if item not in self:
