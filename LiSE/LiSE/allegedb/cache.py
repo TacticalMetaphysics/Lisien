@@ -194,6 +194,14 @@ class KeyframeError(KeyError):
 	pass
 
 
+class TotalKeyError(KeyError):
+	"""Error class for when a key is totally absent from a cache
+
+	And was not, for instance, set at one point, then deleted later.
+
+	"""
+
+
 class Cache:
 	"""A data store that's useful for tracking graph revisions."""
 
@@ -1376,7 +1384,7 @@ class Cache:
 							return NotInKeyframeError(
 								"No value", entikey, b, r, t
 							)
-		return KeyError("No value, ever", entikey)
+		return TotalKeyError("No value, ever", entikey)
 
 	def retrieve(self, *args, search=False):
 		"""Get a value previously .store(...)'d.
