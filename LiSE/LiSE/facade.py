@@ -1129,6 +1129,13 @@ class EngineFacade(AbstractEngine):
 		return self._btt()
 
 	@contextmanager
+	def batch(self):
+		self.info(
+			"Facades already batch all changes, so this batch does nothing"
+		)
+		yield
+
+	@contextmanager
 	def plan(self):
 		if getattr(self, "_planning", False):
 			raise RuntimeError("Already planning")
