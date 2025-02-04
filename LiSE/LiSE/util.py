@@ -975,7 +975,7 @@ class AbstractCharacter(Mapping):
 
 	def units(self):
 		for units in self.unit.values():
-			yield from units
+			yield from units.values()
 
 	def historical(self, stat):
 		from .query import StatusAlias
