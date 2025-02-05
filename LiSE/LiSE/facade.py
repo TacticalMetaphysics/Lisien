@@ -13,7 +13,7 @@ from typing import Type, MutableMapping, Mapping, MutableSequence, Any
 import networkx as nx
 from blinker import Signal
 
-from LiSE.allegedb.cache import Cache, TotalKeyError
+from LiSE.allegedb.cache import Cache, TotalKeyError, NotInKeyframeError
 from LiSE.allegedb.wrap import MutableMappingUnwrapper
 from LiSE.cache import UnitnessCache
 from LiSE.util import (
@@ -1059,7 +1059,7 @@ class EngineFacade(AbstractEngine):
 		def retrieve(self, *args, search=False):
 			try:
 				return super().retrieve(*args, search=search)
-			except TotalKeyError:
+			except (NotInKeyframeError, TotalKeyError):
 				return self._real.retrieve(*args, search=search)
 
 		def _get_keycache(
