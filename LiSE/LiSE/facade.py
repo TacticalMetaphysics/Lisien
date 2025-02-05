@@ -783,13 +783,11 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 			now = self.character.engine._btt()
 			name = self.character.name
 			engine = self.character.engine
-			for _ in engine._unitness_cache.iter_keys(name, item, *now):
-				try:
-					engine._unitness_cache.retrieve(name, item, *now)
-					return True
-				except KeyError:
-					continue
-			return False
+			try:
+				engine._unitness_cache.retrieve(name, item, *now)
+				return True
+			except KeyError:
+				return False
 
 		def __getitem__(self, item):
 			if item not in self:
