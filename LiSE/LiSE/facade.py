@@ -1089,12 +1089,6 @@ class EngineFacade(AbstractEngine):
 			)
 			self._real = cache
 
-		def retrieve(self, *args, search=False):
-			try:
-				return super().retrieve(*args, search=search)
-			except TotalKeyError:
-				return self._real.retrieve(*args, search=search)
-
 	def __init__(self, real: AbstractEngine):
 		assert not isinstance(real, EngineFacade)
 		if real is not None:
