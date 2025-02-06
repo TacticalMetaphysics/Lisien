@@ -209,6 +209,11 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 	def __delitem__(self, k):
 		if k not in self:
 			raise KeyError("{} not present".format(k))
+		that = self[k]
+		if hasattr(that, "users"):
+			user: CharacterFacade
+			for user in list(that.users()):
+				user.remove_unit(self.facade.name, k)
 		self._patch[k] = None
 
 
