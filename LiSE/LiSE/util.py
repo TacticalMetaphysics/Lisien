@@ -61,6 +61,7 @@ from blinker import Signal
 
 from . import exc, allegedb
 from .exc import TravelException
+from .allegedb.graph import Node, Edge, DiGraph
 
 Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
 
@@ -429,27 +430,6 @@ class AbstractEngine(ABC):
 				MsgpackExtensionType.graph.value,
 				packer(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
 			),
-			self.char_cls: lambda char: msgpack.ExtType(
-				MsgpackExtensionType.character.value, packer(char.name)
-			),
-			self.place_cls: lambda place: msgpack.ExtType(
-				MsgpackExtensionType.place.value,
-				packer([place.character.name, place.name]),
-			),
-			self.thing_cls: lambda thing: msgpack.ExtType(
-				MsgpackExtensionType.thing.value,
-				packer([thing.character.name, thing.name]),
-			),
-			self.portal_cls: lambda port: msgpack.ExtType(
-				MsgpackExtensionType.portal.value,
-				packer(
-					[
-						port.character.name,
-						port.origin.name,
-						port.destination.name,
-					]
-				),
-			),
 			tuple: lambda tup: msgpack.ExtType(
 				MsgpackExtensionType.tuple.value, packer(list(tup))
 			),
@@ -490,6 +470,32 @@ class AbstractEngine(ABC):
 				typ = type(obj)
 			if typ in handlers:
 				return handlers[typ](obj)
+			elif isinstance(obj, DiGraph):
+				return msgpack.ExtType(
+					MsgpackExtensionType.character.value, packer(obj.name)
+				)
+			elif isinstance(obj, Node):
+				if hasattr(obj, "location"):
+					return msgpack.ExtType(
+						MsgpackExtensionType.thing.value,
+						packer([obj.character.name, obj.name]),
+					)
+				else:
+					return msgpack.ExtType(
+						MsgpackExtensionType.place.value,
+						packer([obj.character.name, obj.name]),
+					)
+			elif isinstance(obj, Edge):
+				return msgpack.ExtType(
+					MsgpackExtensionType.portal.value,
+					packer(
+						[
+							obj.character.name,
+							obj.origin.name,
+							obj.destination.name,
+						]
+					),
+				)
 			elif isinstance(obj, Mapping):
 				return dict(obj)
 			elif isinstance(obj, list):
