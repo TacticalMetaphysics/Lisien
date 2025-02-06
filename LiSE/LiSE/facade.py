@@ -396,13 +396,22 @@ class FacadeNode(FacadeEntity, Node):
 		self.name = self.node = getattr(real_or_name, "name", real_or_name)
 		super().__init__(mapping, real_or_name, **kwargs)
 
+	def __iter__(self):
+		seen_name = False
+		for k in super().__iter__():
+			if k == "name":
+				seen_name = True
+			yield k
+		if not seen_name:
+			yield "name"
+
 	def __getitem__(self, item):
 		if item == "name":
 			return self.name
 		return super().__getitem__(item)
 
 	def __eq__(self, other):
-		if not isinstance(other, Node):
+		if not callable(getattr(other, "keys")):
 			return False
 		if set(self.keys()) != set(other.keys()):
 			return False
