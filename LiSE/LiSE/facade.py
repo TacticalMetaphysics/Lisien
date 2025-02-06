@@ -399,12 +399,6 @@ class FacadeNode(FacadeEntity, ABC):
 	def content(self):
 		return self.FacadeNodeContent(self)
 
-	def contents(self):
-		for thing in self.facade.thing.values():
-			# it seems like redundant FacadeNode are being created sometimes
-			if thing["location"] == self.name:
-				yield thing
-
 	@property
 	def user(self):
 		return self.FacadeNodeUser(self)
