@@ -403,6 +403,9 @@ class FacadeNode(FacadeEntity, ABC):
 	def user(self):
 		return self.FacadeNodeUser(self)
 
+	def users(self):
+		return self.user.values()
+
 	def _set_plan(self, k, v):
 		self.character.engine._planned[self.character.engine._curplan][
 			self.character.engine.turn
