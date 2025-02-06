@@ -210,7 +210,12 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		if k not in self:
 			raise KeyError("{} not present".format(k))
 		that = self[k]
-		if hasattr(that, "users"):
+		# Units don't work when we're wrapping an EngineProxy or nothing.
+		# I'll fix that at some point I guess.
+		# 2025-02-06
+		if hasattr(self.facade.engine._real, "_unitness_cache") and hasattr(
+			that, "users"
+		):
 			user: CharacterFacade
 			for user in list(that.users()):
 				user.remove_unit(self.facade.name, k)
