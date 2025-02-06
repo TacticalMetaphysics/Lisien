@@ -97,6 +97,7 @@ class MockEngine(Signal):
 	eternal = ListenableDict()
 	universal = ListenableDict()
 	character = ListenableDict()
+	string = ListenableDict()
 	time = MockTime()
 	closed = False
 
