@@ -989,6 +989,11 @@ class CharacterFacade(AbstractCharacter, nx.DiGraph):
 
 
 class EngineFacade(AbstractEngine):
+	char_cls = CharacterFacade
+	thing_cls = FacadeThing
+	place_cls = FacadePlace
+	portal_cls = FacadePortal
+
 	class FacadeUniversalMapping(MutableMapping):
 		def __init__(self, engine: AbstractEngine):
 			assert not isinstance(engine, EngineFacade)
