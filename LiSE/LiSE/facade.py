@@ -28,6 +28,7 @@ from LiSE.xcollections import CompositeDict
 
 class FacadeEntity(MutableMapping, Signal, ABC):
 	exists = True
+	graph = getatt("character")
 
 	@property
 	def rulebook(self):
