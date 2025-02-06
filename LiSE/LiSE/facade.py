@@ -393,7 +393,7 @@ class FacadeNode(FacadeEntity, Node):
 		return self.content.values()
 
 	def __init__(self, mapping, real_or_name=None, **kwargs):
-		self.name = getattr(real_or_name, "name", real_or_name)
+		self.name = self.node = getattr(real_or_name, "name", real_or_name)
 		super().__init__(mapping, real_or_name, **kwargs)
 
 	def __iter__(self):
