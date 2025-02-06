@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
 from copy import deepcopy
-from functools import cached_property
 from operator import attrgetter
 from threading import RLock
 from typing import Type, MutableMapping, Mapping, MutableSequence, Any
@@ -14,6 +13,7 @@ import networkx as nx
 from blinker import Signal
 
 from LiSE.allegedb.cache import Cache, TotalKeyError, NotInKeyframeError
+from LiSE.allegedb.graph import DiGraph, Node, Edge
 from LiSE.allegedb.wrap import MutableMappingUnwrapper
 from LiSE.cache import UnitnessCache
 from LiSE.util import (
@@ -50,7 +50,6 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		raise NotImplementedError()
 
 	def __init__(self, mapping, real_or_name=None, **kwargs):
-		super().__init__()
 		self.facade = self.character = getattr(mapping, "facade", mapping)
 		self._mapping = mapping
 		is_name = not hasattr(real_or_name, "name") and not hasattr(
@@ -297,7 +296,7 @@ class FacadeRule:
 			realrule.actions = self._fake_actions
 
 
-class FacadeNode(FacadeEntity, ABC):
+class FacadeNode(FacadeEntity, Node):
 	class FacadeNodeUser(Mapping):
 		__slots__ = ("_entity",)
 
@@ -504,7 +503,7 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 		return ret
 
 
-class FacadePortal(FacadeEntity):
+class FacadePortal(FacadeEntity, Edge):
 	"""Lightweight analogue of Portal for Facade use."""
 
 	def __init__(self, mapping, other, **kwargs):
