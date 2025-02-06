@@ -1093,6 +1093,9 @@ class AbstractCharacter(Mapping):
 	cull_edges = cull_portals
 
 
+DiGraph.register(AbstractCharacter)
+
+
 def normalize_layout(l):
 	"""Make sure all the spots in a layout are where you can click.
 

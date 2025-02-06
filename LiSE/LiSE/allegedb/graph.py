@@ -886,7 +886,7 @@ def unwrapped_dict(d):
 	return ret
 
 
-class DiGraph(networkx.DiGraph):
+class DiGraph(networkx.DiGraph, ABC):
 	"""A version of the networkx.DiGraph class that stores its state in a
 	database.
 
