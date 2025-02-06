@@ -147,7 +147,7 @@ class UnitnessCache(Cache):
 			contra=contra,
 		)
 		try:
-			noded = self.retrieve(character, graph, branch, turn, tick)
+			noded = self.retrieve(character, graph, branch, turn, tick).copy()
 			noded[node] = is_unit
 		except KeyError:
 			noded = {node: is_unit}
