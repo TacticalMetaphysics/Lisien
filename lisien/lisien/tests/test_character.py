@@ -87,7 +87,7 @@ def set_in_mapping(mapp, stat, v):
 		mapp[stat] = v
 
 
-def update_char(char, *, stat=(), node=(), portal=()):
+def update_char(char, *, stat=(), nodes=(), portals=()):
 	"""Make a bunch of changes to a character-like object"""
 
 	def update(d, dd):
@@ -106,7 +106,7 @@ def update_char(char, *, stat=(), node=(), portal=()):
 			end_stats[stat] = v
 	end_places = char.place.unwrap()
 	end_things = char.thing.unwrap()
-	for node, v in node:
+	for node, v in nodes:
 		if v is None:
 			del char.node[node]
 			if node in end_places:
@@ -159,7 +159,7 @@ def update_char(char, *, stat=(), node=(), portal=()):
 			for k, vv in v.items():
 				set_in_mapping(me, k, vv)
 	end_edges = char.portal.unwrap()
-	for o, d, v in portal:
+	for o, d, v in portals:
 		if v is None:
 			del char.edge[o][d]
 			del end_edges[o][d]
@@ -241,7 +241,7 @@ def test_facade_creation(
 def character_updates(request, engy):
 	name, data, stat, nodestat, statup, nodeup, edgeup = request.param
 	char = engy.new_character(name, data, **stat)
-	update_char(char, node=nodestat)
+	update_char(char, nodes=nodestat)
 	yield char, statup, nodeup, edgeup
 
 
@@ -256,7 +256,7 @@ def test_facade(character_updates):
 		for d in character.edge[o]:
 			start_edge.setdefault(o, {})[d] = character.edge[o][d].unwrap()
 	facade = character.facade()
-	updated = update_char(facade, stat=statup, node=nodeup, portal=edgeup)
+	updated = update_char(facade, stat=statup, nodes=nodeup, portals=edgeup)
 	assert facade.stat == updated["stat"]
 	assert facade.place == updated["place"]
 	assert facade.thing == updated["thing"]
