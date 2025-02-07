@@ -8,7 +8,7 @@ python -m twine --version
 python -m sphinx --version
 pyclean --version
 wine --version
-ls ~/lise_windows
+ls ~/lisien_windows
 rm -rf .tox
 python -m tox
 rm -rf .tox
