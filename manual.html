@@ -1,25 +1,27 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Introduction &#8212; LiSE 0.14.0a documentation</title>
+    <title>Introduction &#8212; Lisien 0.18.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=acd72292"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Design" href="LiSE/design.html" />
-    <link rel="prev" title="Welcome to LiSE’s documentation!" href="index.html" />
+    <link rel="next" title="Design" href="lisien/design.html" />
+    <link rel="prev" title="Welcome to Lisien’s documentation!" href="index.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   
@@ -32,10 +34,10 @@
           <div class="body" role="main">
             
   <section id="introduction">
-<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h1>
+<h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">¶</a></h1>
 <p>Life sims all seem to have two problems in common:</p>
 <section id="too-much-world-state">
-<h2>Too much world state<a class="headerlink" href="#too-much-world-state" title="Permalink to this heading">¶</a></h2>
+<h2>Too much world state<a class="headerlink" href="#too-much-world-state" title="Link to this heading">¶</a></h2>
 <p>The number of variables the game is tracking – just for game logic,
 not graphics or physics or anything – is very large. Like how The
 Sims tracks sims’ opinions of one another, their likes and dislikes
@@ -44,7 +46,7 @@ interest in. If you streamline a life sim to where it doesn’t have
 extraneous detail, you lose a huge part of what makes it
 lifelike. This causes trouble for developers when even <em>they</em> don’t
 understand why sims hate each other</p>
-<p>To address all those problems, LiSE provides a state container.
+<p>To address all those problems, Lisien provides a state container.
 Everything that ever happens in a game gets recorded, so that you can
 pick through the whole history and find out exactly when the butterfly
 flapped its wings to cause the cyclone. All of that history gets saved
@@ -54,9 +56,9 @@ you to know about it, they can send you their database, and you’ll
 know everything they did and everything that happened in their game.</p>
 </section>
 <section id="too-many-rules">
-<h2>Too many rules<a class="headerlink" href="#too-many-rules" title="Permalink to this heading">¶</a></h2>
+<h2>Too many rules<a class="headerlink" href="#too-many-rules" title="Link to this heading">¶</a></h2>
 <p>Fans of life sims tend to appreciate complexity. Developers are best
-served by reducing complexity as much as possible. So LiSE makes it
+served by reducing complexity as much as possible. So Lisien makes it
 easy to compartmentalize complexity and choose what of it you want to
 deal with and when.</p>
 <p>It is a rules engine, an old concept from business software that lets
@@ -67,12 +69,12 @@ Triggers look at the world once-per-turn and return a Boolean to show
 whether their Actions should happen.</p>
 </section>
 <section id="concepts">
-<h2>Concepts<a class="headerlink" href="#concepts" title="Permalink to this heading">¶</a></h2>
-<p>LiSE is a tool for constructing turn-based simulations following rules
+<h2>Concepts<a class="headerlink" href="#concepts" title="Link to this heading">¶</a></h2>
+<p>Lisien is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation
 genre.</p>
-<p>Rules are things the game should do in certain conditions. In LiSE,
+<p>Rules are things the game should do in certain conditions. In Lisien,
 the “things to do” are called Actions, and are functions that can run
 arbitrary Python code. The conditions are divided into Triggers and
 Prereqs, of which only Triggers are truly necessary: they are also
@@ -85,32 +87,32 @@ way. Edges in a directed graph connect one node to another node, but
 not vice-versa, so you can have nodes A and B where A is connected to
 B, but B is not connected to A. But you can have edges going in both
 directions between A and B. They’re usually drawn as arrows.</p>
-<p>In LiSE, edges are called Portals, and nodes may be Places or
+<p>In Lisien, edges are called Portals, and nodes may be Places or
 Things. You can use these to represent whatever you want, but they
 have special properties to make it easier to model physical space: in
 particular, each Thing is located in exactly one node at a time
 (usually a Place), and may be travelling through one of the Portals
 leading out from there. Regardless, you can keep any data you like in
 a Thing, Place, or Portal by treating it like a dictionary.</p>
-<p>LiSE’s directed graphs are called Characters. Every time something
-about a Character changes, LiSE remembers when it happened – that is,
+<p>Lisien’s directed graphs are called Characters. Every time something
+about a Character changes, Lisien remembers when it happened – that is,
 which turn of the simulation. This allows the developer to look up the
 state of the world at some point in the past. This time travel is
 nearly real-time in most cases, to make it convenient to flip
 back and forth between a correct world state and an incorrect one
 and use your intuition to spot exactly what went wrong.</p>
-<p>See <a class="reference internal" href="LiSE/design.html"><span class="doc">Design</span></a> for details.</p>
+<p>See <a class="reference internal" href="lisien/design.html"><span class="doc">Design</span></a> for details.</p>
 </section>
 <section id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading">¶</a></h2>
-<p>The only LiSE class that you should ever instantiate yourself is
-<a class="reference internal" href="LiSE/index.html#LiSE.engine.Engine" title="LiSE.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">LiSE.engine.Engine</span></code></a>. All simulation objects should be
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<p>The only Lisien class that you should ever instantiate yourself is
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Lisien.engine.Engine</span></code>. All simulation objects should be
 created and accessed through it. By default, it keeps the simulation
 code and world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager
 (<code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">Engine()</span> <span class="pre">as</span> <span class="pre">eng:</span></code>) or call its <code class="docutils literal notranslate"><span class="pre">.close()</span></code> method when you’re done.</p>
 <section id="world-modelling">
-<h3>World Modelling<a class="headerlink" href="#world-modelling" title="Permalink to this heading">¶</a></h3>
+<h3>World Modelling<a class="headerlink" href="#world-modelling" title="Link to this heading">¶</a></h3>
 <p>Start by calling the engine’s <code class="docutils literal notranslate"><span class="pre">new_character</span></code> method with a string
 <code class="docutils literal notranslate"><span class="pre">name</span></code> to get a character object.
 Draw a graph by calling the method <code class="docutils literal notranslate"><span class="pre">new_place</span></code> with many
@@ -143,7 +145,7 @@ The engine’s <code class="docutils literal notranslate"><span class="pre">eter
 and is mainly for storing settings, not simulation data.</p>
 </section>
 <section id="rule-creation">
-<h3>Rule Creation<a class="headerlink" href="#rule-creation" title="Permalink to this heading">¶</a></h3>
+<h3>Rule Creation<a class="headerlink" href="#rule-creation" title="Link to this heading">¶</a></h3>
 <p>To create a rule, first decide what objects the rule should apply
 to. You can put a rule on a character, thing, place, or portal; and
 you can put a rule on a character’s <code class="docutils literal notranslate"><span class="pre">thing</span></code>, <code class="docutils literal notranslate"><span class="pre">place</span></code>, and
@@ -165,11 +167,11 @@ mutate the world or use any randomness.</p>
 but use the <code class="docutils literal notranslate"><span class="pre">prereq</span></code> decorator, and should return <code class="docutils literal notranslate"><span class="pre">True</span></code> <em>unless</em>
 the action should <em>not</em> happen; if a single prerequisite returns
 <code class="docutils literal notranslate"><span class="pre">False</span></code>, the action is cancelled. Prereqs may involve random elements.
-Use the <code class="docutils literal notranslate"><span class="pre">engine</span></code> property of any LiSE entity to get the engine,
+Use the <code class="docutils literal notranslate"><span class="pre">engine</span></code> property of any Lisien entity to get the engine,
 then use methods such as <code class="docutils literal notranslate"><span class="pre">percent_chance</span></code> and <code class="docutils literal notranslate"><span class="pre">dice_check</span></code>.</p>
 </section>
 <section id="time-control">
-<h3>Time Control<a class="headerlink" href="#time-control" title="Permalink to this heading">¶</a></h3>
+<h3>Time Control<a class="headerlink" href="#time-control" title="Link to this heading">¶</a></h3>
 <p>The current time is always accessible from the engine’s <code class="docutils literal notranslate"><span class="pre">branch</span></code> and
 <code class="docutils literal notranslate"><span class="pre">turn</span></code> properties. In the common case where time is advancing
 forward one tick at a time, it should be done with the engine’s
@@ -200,10 +202,10 @@ position at the start of that block. You can use the plan’s ID number,
 could call <code class="docutils literal notranslate"><span class="pre">engine.delete_plan(engine.character['alice'].stat['wake_plan'])</span></code>.</p>
 </section>
 <section id="input-prompts">
-<h3>Input Prompts<a class="headerlink" href="#input-prompts" title="Permalink to this heading">¶</a></h3>
-<p>LiSE itself doesn’t know what a player is or how to accept input from them,
+<h3>Input Prompts<a class="headerlink" href="#input-prompts" title="Link to this heading">¶</a></h3>
+<p>Lisien itself doesn’t know what a player is or how to accept input from them,
 but does use some conventions for communicating with a user interface
-such as ELiDE.</p>
+such as Elide.</p>
 <p>To ask the player to make a decision, first define a method for them to
 call, then return a menu description like this one.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@engine</span><span class="o">.</span><span class="n">method</span>
@@ -227,9 +229,9 @@ call, then return a menu description like this one.:</p>
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="index.html">LiSE</a></h1>
+<h1 class="logo"><a href="index.html">Lisien</a></h1>
 
 
 
@@ -238,7 +240,16 @@ call, then return a menu description like this one.:</p>
 
 
 
-<h3>Navigation</h3>
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
@@ -254,36 +265,26 @@ call, then return a menu description like this one.:</p>
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/design.html">Design</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html">engine</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.character">character</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.node">node</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.portal">portal</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.rule">rule</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="LiSE/index.html#module-LiSE.xcollections">xcollections</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ELiDE/index.html">ELiDE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html">engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html#module-lisien.character">character</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html#module-lisien.node">node</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html#module-lisien.portal">portal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html#module-lisien.rule">rule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html#module-lisien.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html#module-lisien.xcollections">xcollections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="elide/index.html">Elide</a></li>
 </ul>
 
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="index.html" title="previous chapter">Welcome to LiSE’s documentation!</a></li>
-      <li>Next: <a href="LiSE/design.html" title="next chapter">Design</a></li>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to Lisien’s documentation!</a></li>
+      <li>Next: <a href="lisien/design.html" title="next chapter">Design</a></li>
   </ul></li>
 </ul>
 </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -297,11 +298,11 @@ call, then return a menu description like this one.:</p>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;Zachary Spector.
+      &#169;Zachary Spector.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |
       <a href="_sources/manual.rst.txt"
