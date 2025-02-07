@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euxo
 dos2unix -V
+alias python=python3.12
 python3.12 eqversion.py
 python -m build --version
 python -m twine --version
