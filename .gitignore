@@ -16,9 +16,8 @@ elide.ini
 *.prof
 *.so
 *.csv
-ELiDE/LiSE
-ELiDE/allegedb
-LiSE/allegedb
+elide/elide
+lisien/allegedb
 *.pyc
 *~
 trigger.py
@@ -27,7 +26,6 @@ action.py
 function.py
 method.py
 strings.json
-ELiDE.ini
 .coverage
 .pytest_cache
 breakage.diff

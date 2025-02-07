@@ -1,3 +1,16 @@
+== 0.18.0 | 2025-02-07 ==
+* Changed name of "LiSE" to "Lisien"
+* Changed name of "ELiDE" to "Elide"
+(letters cased like normal English if that's what you're writing,
+"elide" and "lise" in Python)
+* Rules' actions now operate on Facade objects, which batch the changes to the
+world until the rule is done running. This improves performance for large actions,
+and seems to have acceptably small impact for others.
+* Added Kenney graphics, and changed the default background to Kenney's parchment
+* Fixed rules displaying out of order in the stepper
+* Fixed dragged objects dropping when they shouldn't
+* Improved locking for caches, fixing some intermittent data loss
+
 == 0.17.2 | 2024-11-30 ==
 * Fix rule poller. It only worked for some rulebook types before.
 * Performance improvements as a result of new caching behavior for the above.

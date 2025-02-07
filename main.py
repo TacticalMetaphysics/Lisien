@@ -3,17 +3,17 @@ import sys
 import os
 
 wd = os.getcwd()
-sys.path.extend([wd + "/LiSE", wd + "/ELiDE"])
+sys.path.extend([wd + "/lisien", wd + "/elide"])
 
 
 def get_application_config(*args):
-	return wd + "/ELiDE.ini"
+	return wd + "/elide.ini"
 
 
 if __name__ == "__main__":
 	freeze_support()
 
-	from ELiDE.app import ELiDEApp
+	from elide.app import ELiDEApp
 
 	app = ELiDEApp()
 	app.get_application_config = get_application_config
