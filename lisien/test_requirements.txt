@@ -1,0 +1,14 @@
+astunparse>=1.6.3,<2
+blinker>=1.4,<2
+msgpack>=1.0.0
+networkx>=2.4,<4
+sqlalchemy>=1.4,<3
+numpy>=1.19.5,<3
+tblib>=1.7.0,<2
+build
+twine
+pytest
+tox
+kivy
+kivy.garden.collider
+pygments

@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data=false
+
+[project]
+name = "lisien"
+version = "0.18.0"
+authors = [
+	{ name="Zachary Spector", email="public@zacharyspector.com" },
+]
+description = "Life Simulator Engine"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"License :: OSI Approved :: GNU Affero General Public License v3",
+	"Operating System :: OS Independent",
+	"Topic :: Software Development :: Libraries",
+	"Development Status :: 2 - Pre-Alpha"
+]
+dependencies = [
+	"astunparse>=1.6.3,<2",
+	"blinker>=1.4,<2",
+	"msgpack>=1.0.0,<2",
+	"networkx>=2.4,<4",
+	"sqlalchemy>=1.4,<3",
+	"numpy>=1.19.5,<3",
+	"tblib>=1.7.0,<4"
+]
+
+[project.urls]
+"Homepage" = "https://codeberg.org/clayote/lisien"
+"Bug Tracker" = "https://codeberg.org/clayote/lisien/issues"
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+	"big: marks tests as too big to diagnose specific bugs with"
+]
