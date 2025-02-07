@@ -501,9 +501,16 @@ class PortalRulesHandledCache(RulesHandledCache):
 					)
 				)
 			):
-				destrbs = self.engine._portals_rulebooks_cache.retrieve(
-					character_name, orig_name, branch, turn, tick
-				)
+				try:
+					destrbs = self.engine._portals_rulebooks_cache.retrieve(
+						character_name, orig_name, branch, turn, tick
+					)
+				except KeyError:
+					# shouldn't happen, but apparently does??
+					# Seems to be a case of too many keys showing up in the
+					# iteration. Currently demonstrated by remake_college24.py
+					# 2025-02-07
+					continue
 				for dest_name in sort_set(destrbs.keys()):
 					rulebook = destrbs[dest_name]
 					try:
