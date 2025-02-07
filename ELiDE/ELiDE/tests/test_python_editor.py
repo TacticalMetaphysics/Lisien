@@ -1,5 +1,5 @@
 from LiSE import Engine
-from .util import ELiDEAppTest, window_with_widget, idle_until
+from .util import ELiDEAppTest, idle_until
 
 
 class PythonEditorTest(ELiDEAppTest):
@@ -32,7 +32,7 @@ class PythonEditorTest(ELiDEAppTest):
 class TestShowCode(PythonEditorTest):
 	def test_show_code(self):
 		app = self.app
-		win = window_with_widget(app.build())
+		self.Window.add_widget(app.build())
 		actions_box = self._get_actions_box()
 		last = actions_box.storelist.data[-1]["name"]
 		actions_box.storelist.selection_name = last
@@ -61,7 +61,7 @@ class TestShowCode(PythonEditorTest):
 class TestCreateAction(PythonEditorTest):
 	def test_create_action(self):
 		app = self.app
-		win = window_with_widget(app.build())
+		self.Window.add_widget(app.build())
 		actions_box = self._get_actions_box()
 		actions_box.editor.ids.funname.text = "new_func"
 		actions_box.editor.ids.code.text = 'return "Hello, world!"'

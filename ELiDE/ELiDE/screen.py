@@ -85,7 +85,6 @@ class StatListPanel(BoxLayout):
 	button_text = StringProperty("Configure stats")
 	cfgstatbut = ObjectProperty()
 	statlist = ObjectProperty()
-	engine = ObjectProperty()
 	proxy = ObjectProperty()
 	toggle_stat_cfg = ObjectProperty()
 
@@ -290,7 +289,7 @@ class MainScreen(Screen):
 
 	@trigger
 	def _update_statlist(self, *_):
-		if not self.app or not self.app.engine:
+		if not self.app or not hasattr(self.app, "engine"):
 			return
 		if not self.app.selected_proxy:
 			self._update_statlist()
@@ -432,9 +431,9 @@ class MainScreen(Screen):
 			self.dialoglayout.idx = 0
 		self._update_from_delta(command, branch, turn, tick, deltas)
 		self.dialoglayout.advance_dialog()
-		self.tmp_block = False
 		if cb is not None:
 			cb(command, branch, turn, tick, result)
+		self.tmp_block = False
 
 	def next_turn(self, cb=None, *_):
 		"""Advance time by one turn, if it's not blocked.
@@ -579,7 +578,7 @@ class TurnScroll(Slider):
 
 	def _collect_engine(self, *args):
 		app = App.get_running_app()
-		if app.engine is None:
+		if not hasattr(app, "engine"):
 			Clock.schedule_once(self._collect_engine, 0)
 			return
 		engine = app.engine
@@ -741,7 +740,6 @@ load_string_once("""
 		height: root.height
 	StatListPanel:
 		id: statpanel
-		engine: app.engine
 		toggle_stat_cfg: app.statcfg.toggle
 		x: 0
 		y: timepanel.top
@@ -766,7 +764,6 @@ load_string_once("""
 		size_hint: (0.2, 0.9)
 	DialogLayout:
 		id: dialoglayout
-		engine: app.engine
 		size_hint: None, None
 		x: statpanel.right
 		y: timepanel.top

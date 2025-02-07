@@ -19,9 +19,10 @@ from collections.abc import Mapping
 from typing import Union, List, Tuple, Any
 
 from .allegedb.graph import Edge
-from .allegedb import HistoricKeyError, Key
+from .allegedb import Key
 
-from .util import getatt, AbstractCharacter
+from .util import getatt, AbstractCharacter, HistoricKeyError
+from .facade import FacadePortal
 from .query import StatusAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
@@ -164,6 +165,12 @@ class Portal(Edge, RuleFollower):
 			return self.character.portal[self.dest][self.orig]
 		except KeyError:
 			raise AttributeError("This portal has no reciprocal")
+
+	def facade(self):
+		face = self.character.facade()
+		ret = FacadePortal(face.portal[self.orig], self.dest)
+		face.portal._patch = {self.orig: {self.dest: ret}}
+		return ret
 
 	def historical(self, stat: Key) -> StatusAlias:
 		"""Return a reference to the values that a stat has had in the past.

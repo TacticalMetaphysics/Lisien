@@ -1,19 +1,18 @@
 from functools import partial
 
-from kivy.clock import Clock
 from kivy.tests.common import UnitTestTouch
 
 from abc import abstractmethod
 from LiSE import Engine
 from LiSE.examples import kobold
 from LiSE.examples import polygons
-from .util import idle_until, window_with_widget, ELiDEAppTest
-from ..card import Card
+from .util import idle_until, ELiDEAppTest
+from ..card import Card, Foundation
 
 
 def builder_foundation(builder):
 	for child in builder.children:
-		if not isinstance(child, Card):
+		if isinstance(child, Foundation):
 			return True
 	return False
 
@@ -33,7 +32,7 @@ class RuleBuilderTest(ELiDEAppTest):
 			self.install(eng)
 		app = self.app
 		mgr = app.build()
-		self.win = window_with_widget(mgr)
+		self.Window.add_widget(mgr)
 		screen = app.mainscreen
 		idle_until(lambda: app.rules.rulesview, 100, "Never made rules view")
 		idle_until(
@@ -159,7 +158,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 		def have_right_foundation():
 			nonlocal right_foundation
 			for foundation in builder.children:
-				if isinstance(foundation, Card):
+				if not isinstance(foundation, Foundation):
 					continue
 				if foundation.x > breakcover.right:
 					right_foundation = foundation
@@ -252,8 +251,9 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 		)
 		aware = breakcover = None
 		for card in builder.children:
-			if not isinstance(card, Card):
+			if isinstance(card, Foundation):
 				continue
+			assert isinstance(card, Card)
 			if card.headline_text == "aware":
 				aware = card
 			elif card.headline_text == "breakcover":
@@ -304,9 +304,9 @@ class TestCharRuleBuilder(ELiDEAppTest):
 			]
 		app = self.app
 		mgr = app.build()
-		self.win = window_with_widget(mgr)
+		self.Window.add_widget(mgr)
 		idle_until(
-			lambda: getattr(app, "engine"), 100, "App never made engine"
+			lambda: hasattr(app, "engine"), 100, "App never made engine"
 		)
 		idle_until(
 			lambda: "triangle" in app.engine.character,
@@ -413,9 +413,9 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		for cardother in builder.children:
 			if not isinstance(cardother, Card) or cardother == card:
 				continue
-			assert not cardother.collide_point(
-				startx, starty
-			), "other card will grab the touch"
+			assert not cardother.collide_point(startx, starty), (
+				"other card will grab the touch"
+			)
 		touch = UnitTestTouch(startx, starty)
 		for target in builder.children:
 			if isinstance(target, Card):
@@ -429,6 +429,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		disty = targy - starty
 		x, y = startx, starty
 		touch.touch_down()
+		self.advance_frames(1)
 		for i in range(1, 11):
 			x += distx / 10
 			y += disty / 10

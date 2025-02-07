@@ -18,12 +18,12 @@ from typing import Tuple, Hashable, Optional
 
 from .window import (
 	WindowDict,
-	HistoricKeyError,
 	FuturistWindowDict,
 	TurnDict,
 	SettingsTurnDict,
 	EntikeySettingsTurnDict,
 )
+from ..util import HistoricKeyError
 from collections import OrderedDict, defaultdict, deque
 from threading import RLock
 
@@ -55,7 +55,14 @@ class PickyDefaultDict(dict):
 
 	"""
 
-	__slots__ = ["type", "args_munger", "kwargs_munger", "parent", "key"]
+	__slots__ = [
+		"type",
+		"args_munger",
+		"kwargs_munger",
+		"parent",
+		"key",
+		"_lock",
+	]
 
 	def __init__(
 		self,
@@ -63,28 +70,31 @@ class PickyDefaultDict(dict):
 		args_munger: callable = _default_args_munger,
 		kwargs_munger: callable = _default_kwargs_munger,
 	):
+		self._lock = RLock()
 		self.type = type
 		self.args_munger = args_munger
 		self.kwargs_munger = kwargs_munger
 
 	def __getitem__(self, k):
-		if k in self:
-			return super(PickyDefaultDict, self).__getitem__(k)
-		try:
-			ret = self[k] = self.type(
-				*self.args_munger(self, k), **self.kwargs_munger(self, k)
-			)
-		except TypeError:
-			raise KeyError(k)
-		return ret
+		with self._lock:
+			if k in self:
+				return super(PickyDefaultDict, self).__getitem__(k)
+			try:
+				ret = self[k] = self.type(
+					*self.args_munger(self, k), **self.kwargs_munger(self, k)
+				)
+			except TypeError:
+				raise KeyError(k)
+			return ret
 
 	def _create(self, v):
 		return self.type(v)
 
 	def __setitem__(self, k, v):
-		if type(v) is not self.type:
-			v = self._create(v)
-		super(PickyDefaultDict, self).__setitem__(k, v)
+		with self._lock:
+			if type(v) is not self.type:
+				v = self._create(v)
+			super(PickyDefaultDict, self).__setitem__(k, v)
 
 
 class StructuredDefaultDict(dict):
@@ -105,6 +115,7 @@ class StructuredDefaultDict(dict):
 		"parent",
 		"key",
 		"_stuff",
+		"_lock",
 		"gettest",
 		"settest",
 	)
@@ -120,6 +131,7 @@ class StructuredDefaultDict(dict):
 	):
 		if layers < 1:
 			raise ValueError("Not enough layers")
+		self._lock = RLock()
 		self.layer = layers
 		self.type = type
 		self.args_munger = args_munger
@@ -129,62 +141,74 @@ class StructuredDefaultDict(dict):
 		self.settest = settest
 
 	def __getitem__(self, k):
-		self.gettest(k)
-		if k in self:
-			return dict.__getitem__(self, k)
-		layer, typ, args_munger, kwargs_munger = self._stuff
-		if layer == 1:
-			if typ is None:
-				ret = {}
+		with self._lock:
+			self.gettest(k)
+			if k in self:
+				return dict.__getitem__(self, k)
+			layer, typ, args_munger, kwargs_munger = self._stuff
+			if layer == 1:
+				if typ is None:
+					ret = {}
+				else:
+					ret = PickyDefaultDict(typ, args_munger, kwargs_munger)
+					ret.parent = self
+					ret.key = k
+			elif layer < 1:
+				raise ValueError("Invalid layer")
 			else:
-				ret = PickyDefaultDict(typ, args_munger, kwargs_munger)
+				ret = StructuredDefaultDict(
+					layer - 1, typ, args_munger, kwargs_munger
+				)
 				ret.parent = self
 				ret.key = k
-		elif layer < 1:
-			raise ValueError("Invalid layer")
-		else:
-			ret = StructuredDefaultDict(
-				layer - 1, typ, args_munger, kwargs_munger
-			)
-			ret.parent = self
-			ret.key = k
-		dict.__setitem__(self, k, ret)
-		return ret
+			dict.__setitem__(self, k, ret)
+			return ret
 
 	def __setitem__(self, k, v):
-		self.settest(k, v)
-		if type(v) is StructuredDefaultDict:
-			layer, typ, args_munger, kwargs_munger = self._stuff
-			if (
-				v.layer == layer - 1
-				and (typ is None or v.type is typ)
-				and v.args_munger is args_munger
-				and v.kwargs_munger is kwargs_munger
-			):
-				super().__setitem__(k, v)
-				return
-		elif type(v) is PickyDefaultDict:
-			layer, typ, args_munger, kwargs_munger = self._stuff
-			if (
-				layer == 1
-				and v.type is typ
-				and v.args_munger is args_munger
-				and v.kwargs_munger is kwargs_munger
-			):
-				super().__setitem__(k, v)
-				return
-		raise TypeError("Can't set layer {}".format(self.layer))
+		with self._lock:
+			self.settest(k, v)
+			if type(v) is StructuredDefaultDict:
+				layer, typ, args_munger, kwargs_munger = self._stuff
+				if (
+					v.layer == layer - 1
+					and (typ is None or v.type is typ)
+					and v.args_munger is args_munger
+					and v.kwargs_munger is kwargs_munger
+				):
+					super().__setitem__(k, v)
+					return
+			elif type(v) is PickyDefaultDict:
+				layer, typ, args_munger, kwargs_munger = self._stuff
+				if (
+					layer == 1
+					and v.type is typ
+					and v.args_munger is args_munger
+					and v.kwargs_munger is kwargs_munger
+				):
+					super().__setitem__(k, v)
+					return
+			raise TypeError("Can't set layer {}".format(self.layer))
 
 
 class KeyframeError(KeyError):
 	pass
 
 
+class TotalKeyError(KeyError):
+	"""Error class for when a key is totally absent from a cache
+
+	And was not, for instance, set at one point, then deleted later.
+
+	"""
+
+
 class Cache:
 	"""A data store that's useful for tracking graph revisions."""
 
-	def __init__(self, db, kfkvs=None):
-		super().__init__()
+	name: str
+
+	def __init__(self, db, name: str, kfkvs=None):
+		self.name = name
 		self.db = db
 		self.parents = StructuredDefaultDict(3, SettingsTurnDict)
 		"""Entity data keyed by the entities' parents.
@@ -271,8 +295,8 @@ class Cache:
 		] = (self.settings, self.presettings, self._base_retrieve)
 
 	def _get_keyframe(
-		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
-	):
+		self, graph_ent: tuple, branch: str, turn: int, tick: int
+	) -> dict:
 		if graph_ent not in self.keyframe:
 			raise KeyframeError("Unknown graph-entity", graph_ent)
 		g = self.keyframe[graph_ent]
@@ -285,16 +309,17 @@ class Cache:
 		if tick not in r:
 			raise KeyframeError("Unknown tick", branch, turn, tick)
 		ret = r[tick]
-		if copy:
-			ret = ret.copy()
 		return ret
 
 	def get_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
 	):
-		return self._get_keyframe(graph_ent, branch, turn, tick, copy=copy)
+		ret = self._get_keyframe(graph_ent, branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
-	def set_keyframe(
+	def _set_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, keyframe
 	):
 		if not isinstance(graph_ent, tuple):
@@ -323,15 +348,25 @@ class Cache:
 			d[turn] = {tick: keyframe}
 			kfg[branch] = d
 
+	def set_keyframe(
+		self,
+		graph_ent: tuple,
+		branch: str,
+		turn: int,
+		tick: int,
+		keyframe: dict,
+	):
+		self._set_keyframe(graph_ent, branch, turn, tick, keyframe)
+
 	def copy_keyframe(self, branch_from, branch_to, turn, tick):
-		for graph_ent in self.iter_keys(branch_from, turn, tick):
-			self.set_keyframe(
-				graph_ent,
-				branch_to,
-				turn,
-				tick,
-				self.get_keyframe(graph_ent, branch_from, turn, tick),
-			)
+		for graph_ent in self.keyframe:
+			try:
+				kf = self._get_keyframe(graph_ent, branch_from, turn, tick)
+			except KeyframeError:
+				continue
+			if isinstance(kf, dict):
+				kf = kf.copy()
+			self._set_keyframe(graph_ent, branch_to, turn, tick, kf)
 
 	def load(self, data):
 		"""Add a bunch of data. Must be in chronological order.
@@ -574,7 +609,12 @@ class Cache:
 			kc = kc.difference((key,))
 		else:
 			kc = kc.union((key,))
-		self.keycache[parent + (entity, branch)][turn][tick] = kc
+		if parent + (entity, branch) not in self.keycache:
+			self.keycache[parent + (entity, branch)] = SettingsTurnDict(
+				{turn: {tick: kc}}
+			)
+		else:
+			self.keycache[parent + (entity, branch)][turn][tick] = kc
 
 	def _get_adds_dels(
 		self,
@@ -1344,7 +1384,7 @@ class Cache:
 							return NotInKeyframeError(
 								"No value", entikey, b, r, t
 							)
-		return KeyError("No value, ever", entikey)
+		return TotalKeyError("No value, ever", entikey)
 
 	def retrieve(self, *args, search=False):
 		"""Get a value previously .store(...)'d.
@@ -1428,6 +1468,9 @@ class NodesCache(Cache):
 	"""A cache for remembering whether nodes exist at a given time."""
 
 	__slots__ = ()
+
+	def __init__(self, db, kfkvs=None):
+		super().__init__(db, "nodes_cache", kfkvs)
 
 	def store(
 		self,
@@ -1518,7 +1561,10 @@ class EdgesCache(Cache):
 			assert len(k) == 3, "Bad key: {}, to be set to {}".format(k, v)
 
 		Cache.__init__(
-			self, db, kfkvs={"gettest": gettest, "settest": settest}
+			self,
+			db,
+			kfkvs={"gettest": gettest, "settest": settest},
+			name="edges_cache",
 		)
 		self.destcache = PickyDefaultDict(SettingsTurnDict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
@@ -1557,15 +1603,15 @@ class EdgesCache(Cache):
 			self.successors,
 		)
 
-	def _get_keyframe(
+	def get_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
 	):
 		if len(graph_ent) == 3:
-			return super()._get_keyframe(graph_ent, branch, turn, tick, copy)
+			return super().get_keyframe(graph_ent, branch, turn, tick, copy)
 		ret = {}
 		for graph, orig, dest in self.keyframe:
 			if (graph, orig) == graph_ent:
-				ret[dest] = super()._get_keyframe(
+				ret[dest] = super().get_keyframe(
 					(graph, orig, dest), branch, turn, tick, copy
 				)
 		return ret
@@ -1994,15 +2040,10 @@ class EntitylessCache(Cache):
 		)
 
 	def get_keyframe(self, branch, turn, tick, copy=True):
-		return super()._get_keyframe((None,), branch, turn, tick, copy=copy)
+		return super().get_keyframe((None,), branch, turn, tick, copy=copy)
 
 	def set_keyframe(self, branch, turn, tick, keyframe):
 		super().set_keyframe((None,), branch, turn, tick, keyframe)
-
-	def copy_keyframe(self, branch_from, branch_to, turn, tick):
-		self.set_keyframe(
-			branch_to, turn, tick, self.get_keyframe(branch_from, turn, tick)
-		)
 
 	def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
 		return super().iter_entities_or_keys(

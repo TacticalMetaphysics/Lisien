@@ -1,13 +1,12 @@
-from textwrap import dedent
+from functools import partial
 from types import SimpleNamespace
 
-import pytest
 from kivy.base import EventLoop
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.screenmanager import ScreenManager
 
 from LiSE import Engine
-from LiSE.character import Facade
+from LiSE.facade import CharacterFacade
 from ELiDE.menu import DirPicker
 from ELiDE.screen import MainScreen
 from ELiDE.spritebuilder import PawnConfigScreen, SpotConfigScreen
@@ -19,7 +18,6 @@ from .util import (
 	ListenableDict,
 	MockEngine,
 	idle_until,
-	window_with_widget,
 )
 
 
@@ -35,7 +33,7 @@ class ScreenTest(ELiDEAppTest):
 		app.spotcfg = SpotConfigScreen()
 		app.pawncfg = PawnConfigScreen()
 		app.statcfg = StatScreen()
-		char = Facade()
+		char = CharacterFacade()
 		char.name = "physical"
 		app.character = char
 		app.engine = MockEngine()
@@ -51,7 +49,7 @@ class ScreenTest(ELiDEAppTest):
 			graphboards={"physical": GraphBoard(character=char)},
 			gridboards={"physical": GridBoard(character=char)},
 		)
-		win = window_with_widget(screen)
+		self.Window.add_widget(screen)
 		idle_until(
 			lambda: "timepanel" in screen.ids, 100, "timepanel never got id"
 		)
@@ -78,7 +76,7 @@ class ScreenTest(ELiDEAppTest):
 		app.mainmenu = DirPicker()
 		app.strings = MockStore()
 		app.funcs = MockStore()
-		char = Facade()
+		char = CharacterFacade()
 		char.name = "foo"
 		app.character = char
 		app.engine = MockEngine()
@@ -95,7 +93,7 @@ class ScreenTest(ELiDEAppTest):
 			play_speed=1.0,
 		)
 		app.manager.add_widget(screen)
-		win = window_with_widget(app.manager)
+		self.Window.add_widget(app.manager)
 		idle_until(
 			lambda: "timepanel" in screen.ids, 100, "timepanel never got id"
 		)
@@ -106,7 +104,6 @@ class ScreenTest(ELiDEAppTest):
 			"timepanel never resized",
 		)
 		turnfield = timepanel.ids["turnfield"]
-		turn_before = int(turnfield.hint_text)
 		playbut = screen.playbut = timepanel.ids["playbut"]
 		motion = UnitTestTouch(*playbut.center)
 		motion.touch_down()
@@ -144,7 +141,7 @@ class ScreenTest(ELiDEAppTest):
 		app.starting_dir = self.prefix
 		app.build()
 		idle_until(
-			lambda: app.engine is not None, 100, "Never got engine proxy"
+			lambda: hasattr(app, "engine"), 100, "Never got engine proxy"
 		)
 		assert app.engine.character["physical"].thing[2]["location"] == (0, 0)
 		graphboard = app.mainscreen.graphboards["physical"]
@@ -191,11 +188,18 @@ class ScreenTest(ELiDEAppTest):
 		)
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
+
+		loc = app.engine.character["physical"].thing[2]["location"]
+
+		def relocated_to(dest):
+			nonlocal loc
+			loc = app.engine.character["physical"].thing[2]["location"]
+			return loc == dest
+
 		idle_until(
-			lambda: app.engine.character["physical"].thing[2]["location"]
-			== (1, 1),
-			100,
-			"Never relocated",
+			partial(relocated_to, (1, 1)),
+			800,
+			f"Thing 2 didn't go to location (1, 1); instead, it's at {loc}",
 		)
 		idle_until(
 			lambda: almost(graphpawn.x, locspot1.right),
@@ -217,10 +221,11 @@ class ScreenTest(ELiDEAppTest):
 		locspot9 = graphboard.spot[9]
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
+		loc = app.engine.character["physical"].thing[2]["location"]
 		idle_until(
-			lambda: app.engine.character["physical"].thing[2]["location"] == 9,
-			100,
-			"Never relocated",
+			partial(relocated_to, 9),
+			600,
+			f"Thing 2 didn't relocate to 9; it's at {loc}",
 		)
 		idle_until(
 			lambda: 2 not in gridboard.pawn,
@@ -236,11 +241,11 @@ class ScreenTest(ELiDEAppTest):
 		)
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
+		loc = app.engine.character["physical"].thing[2]["location"]
 		idle_until(
-			lambda: app.engine.character["physical"].thing[2]["location"]
-			== (0, 0),
-			100,
-			"Never relocated",
+			partial(relocated_to, (0, 0)),
+			800,
+			f"Thing 2 didn't relocate to (0, 0); it's at {loc}",
 		)
 		idle_until(
 			lambda: 2 in gridboard.pawn, 100, "pawn never returned to grid"

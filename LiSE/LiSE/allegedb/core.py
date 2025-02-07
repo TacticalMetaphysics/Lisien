@@ -14,13 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM"""
 
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
-from queue import Queue
-from threading import RLock, Thread
+from threading import RLock
 from typing import (
 	Callable,
 	Dict,
@@ -30,8 +27,6 @@ from typing import (
 	Optional,
 	List,
 	Iterator,
-	FrozenSet,
-	Hashable,
 	Set,
 )
 
@@ -45,10 +40,8 @@ from .query import (
 	QueryEngine,
 	TimeError,
 )
-from .window import HistoricKeyError
-from ..util import sort_set
+from ..util import sort_set, Key, HistoricKeyError
 
-Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
 """Type hint for things LiSE can use as keys
 
 They have to be serializable using LiSE's particular msgpack schema,
@@ -927,18 +920,12 @@ class ORM:
 		self._time_plan: Dict[int, Tuple[str, int, int]] = {}
 		self._plans_uncommitted: List[Tuple[int, str, int, int]] = []
 		self._plan_ticks_uncommitted: List[Tuple[int, int, int]] = []
-		self._graph_cache = EntitylessCache(self)
-		self._graph_cache.name = "graph_cache"
-		self._graph_val_cache = Cache(self)
-		self._graph_val_cache.name = "graph_val_cache"
+		self._graph_cache = EntitylessCache(self, name="graph_cache")
+		self._graph_val_cache = Cache(self, name="graph_val_cache")
 		self._nodes_cache = NodesCache(self)
-		self._nodes_cache.name = "nodes_cache"
 		self._edges_cache = EdgesCache(self)
-		self._edges_cache.name = "edges_cache"
-		self._node_val_cache = Cache(self)
-		self._node_val_cache.name = "node_val_cache"
-		self._edge_val_cache = Cache(self)
-		self._edge_val_cache.name = "edge_val_cache"
+		self._node_val_cache = Cache(self, name="node_val_cache")
+		self._edge_val_cache = Cache(self, name="edge_val_cache")
 		self._caches = [
 			self._graph_val_cache,
 			self._nodes_cache,
@@ -953,7 +940,9 @@ class ORM:
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
 			return self._get_kf(branch, turn, tick, copy=copy)
-		with self.batch():  # so that iter_keys doesn't try fetching the kf we're about to make
+		with (
+			self.batch()
+		):  # so that iter_keys doesn't try fetching the kf we're about to make
 			graphs = frozenset(self._graph_cache.iter_keys(branch, turn, tick))
 			for graph in sort_set(graphs):
 				self._snap_keyframe_de_novo_graph(
@@ -1177,9 +1166,10 @@ class ORM:
 				)
 			except KeyframeError:  # edge not present in this keyframe
 				continue
-			assert idx_ex.keys() == {
-				0
-			}, "Not doing edge indexes until multigraphs come back"
+			assert idx_ex.keys() == {0}, (
+				"Not doing edge indexes until multigraphs come back"
+			)
+			assert idx_ex[0], "Stored a keyframe for a nonexistent edge"
 			if graph in edges:
 				if orig in edges[graph]:
 					edges[graph][orig][dest] = True
@@ -1188,9 +1178,9 @@ class ORM:
 			else:
 				edges[graph] = {orig: {dest: True}}
 		for graph, orig, dest, idx in self._edge_val_cache.keyframe:
-			assert (
-				idx == 0
-			), "Not doing idx other than 0 until multigraphs come back"
+			assert idx == 0, (
+				"Not doing idx other than 0 until multigraphs come back"
+			)
 			try:
 				evv = self._edge_val_cache.get_keyframe(
 					(graph, orig, dest, idx), branch, turn, tick, copy
@@ -1517,7 +1507,7 @@ class ORM:
 					elif exists:
 						nkg[node] = True
 			self._nodes_cache.set_keyframe((graph,), *now, nkg)
-			for node, ex in nodes_keyframe[graph].items():
+			for node, ex in nkg.items():
 				if ex and node not in nvkg:
 					nvkg[node] = {}
 			if deltg is not None and "node_val" in deltg:

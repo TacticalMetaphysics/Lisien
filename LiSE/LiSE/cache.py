@@ -13,10 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
-from operator import sub, or_, itemgetter
+from operator import itemgetter
 from typing import Tuple
 
-from .allegedb import Key
+from .util import Key
 from .allegedb.cache import (
 	Cache,
 	StructuredDefaultDict,
@@ -60,6 +60,15 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 	__slots__ = ()
 
 
+class CharactersRulebooksCache(InitializedEntitylessCache):
+	def set_keyframe(self, branch, turn, tick, keyframe):
+		super().set_keyframe(branch, turn, tick, keyframe)
+		for char, kf in keyframe.items():
+			super(EntitylessCache, self).set_keyframe(
+				(char,), branch, turn, tick, kf
+			)
+
+
 class PortalsRulebooksCache(InitializedCache):
 	def store(
 		self,
@@ -87,27 +96,26 @@ class PortalsRulebooksCache(InitializedCache):
 		keyframe,
 	):
 		super().set_keyframe(graph_ent, branch, turn, tick, keyframe)
-		for (orig, dest), rulebook in keyframe.items():
-			try:
-				subkf = self.get_keyframe(
-					(*graph_ent, orig), branch, turn, tick, copy=True
+		for orig, dests in keyframe.items():
+			for dest, rulebook in dests.items():
+				try:
+					subkf = self.get_keyframe(
+						(*graph_ent, orig), branch, turn, tick, copy=True
+					)
+					subkf[dest] = rulebook
+				except KeyError:
+					subkf = {dest: rulebook}
+				super().set_keyframe(
+					(*graph_ent, orig), branch, turn, tick, subkf
 				)
-				if orig in subkf:
-					subkf[orig][dest] = rulebook
-				else:
-					subkf[orig] = {dest: rulebook}
-			except KeyError:
-				subkf = {orig: {dest: rulebook}}
-			super().set_keyframe((*graph_ent, orig), branch, turn, tick, subkf)
 
 
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
 	def __init__(self, db):
-		super().__init__(db)
-		self.user_cache = Cache(db)
-		self.user_cache.name = "user_cache"
+		super().__init__(db, "unitness_cache")
+		self.user_cache = Cache(db, "user_cache")
 
 	def store(
 		self,
@@ -139,7 +147,7 @@ class UnitnessCache(Cache):
 			contra=contra,
 		)
 		try:
-			noded = self.retrieve(character, graph, branch, turn, tick)
+			noded = self.retrieve(character, graph, branch, turn, tick).copy()
 			noded[node] = is_unit
 		except KeyError:
 			noded = {node: is_unit}
@@ -206,14 +214,6 @@ class UnitnessCache(Cache):
 							{characters: is_unit},
 						)
 
-	def copy_keyframe(self, branch_from, branch_to, turn, tick):
-		for entty in list(self.keyframe):
-			try:
-				kf = self.get_keyframe(entty, branch_from, turn, tick)
-			except KeyError:
-				kf = {}
-			self.set_keyframe(entty, branch_to, turn, tick, kf)
-
 	def get_char_graph_units(self, char, graph, branch, turn, tick):
 		return set(self.iter_entities(char, graph, branch, turn, tick))
 
@@ -236,9 +236,10 @@ class UnitnessCache(Cache):
 		return self.iter_entities(char, branch, turn, tick)
 
 
-class RulesHandledCache(object):
-	def __init__(self, engine):
+class RulesHandledCache:
+	def __init__(self, engine, name: str):
 		self.engine = engine
+		self.name = name
 		self.handled = {}
 		self.handled_deep = StructuredDefaultDict(1, type=WindowDict)
 		self.unhandled = {}
@@ -443,6 +444,9 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
 
 class NodeRulesHandledCache(RulesHandledCache):
+	def __init__(self, engine):
+		super().__init__(engine, "node_rules_handled_cache")
+
 	def get_rulebook(self, character, node, branch, turn, tick):
 		try:
 			return self.engine._nodes_rulebooks_cache.retrieve(
@@ -475,6 +479,9 @@ class NodeRulesHandledCache(RulesHandledCache):
 
 
 class PortalRulesHandledCache(RulesHandledCache):
+	def __init__(self, engine):
+		super().__init__(engine, "portal_rules_handled_cache")
+
 	def get_rulebook(self, character, orig, dest, branch, turn, tick):
 		try:
 			return self.engine._portals_rulebooks_cache.retrieve(
@@ -524,10 +531,8 @@ class PortalRulesHandledCache(RulesHandledCache):
 
 
 class ThingsCache(Cache):
-	name = "things_cache"
-
 	def __init__(self, db):
-		Cache.__init__(self, db)
+		Cache.__init__(self, db, name="things_cache")
 		self._make_node = db.thing_cls
 
 	def store(self, *args, planning=None, loading=False, contra=None):

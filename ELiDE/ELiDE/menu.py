@@ -21,7 +21,7 @@ from kivy.uix.dropdown import DropDown
 from kivy.uix.modalview import ModalView
 from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import Screen
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 
 from .gen import GridGeneratorDialog
 from .util import load_string_once
@@ -81,7 +81,6 @@ class WorldStartConfigurator(BoxLayout):
 	generator_type = OptionProperty(None, options=["grid"], allownone=True)
 	dismiss = ObjectProperty()
 	toggle = ObjectProperty()
-	starter = ObjectProperty()
 	init_board = ObjectProperty()
 	generator_dropdown = ObjectProperty()
 
@@ -108,11 +107,14 @@ class WorldStartConfigurator(BoxLayout):
 			self.generator_type = "grid"
 
 	def start(self, *_):
+		app = App.get_running_app()
+		starter = app.start_subprocess
+		init_board = app.init_board
 		if self.generator_type == "grid":
 			if self.grid_config.validate():
-				engine = self.starter()
+				engine = starter()
 				self.grid_config.generate(engine)
-				self.init_board()
+				init_board()
 				self.toggle()
 				self.dismiss()
 			else:
@@ -120,8 +122,8 @@ class WorldStartConfigurator(BoxLayout):
 				return
 		elif not hasattr(self, "_starting"):
 			self._starting = True
-			self.starter()
-			self.init_board()
+			starter()
+			init_board()
 			self.toggle()
 			self.dismiss()
 
@@ -129,6 +131,7 @@ class WorldStartConfigurator(BoxLayout):
 class DirPicker(Screen):
 	toggle = ObjectProperty()
 
+	@triggered()
 	def open(self, path, *_):
 		App.get_running_app().starting_dir = os.path.abspath(".")
 		os.chdir(path)

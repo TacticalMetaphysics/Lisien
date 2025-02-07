@@ -49,16 +49,16 @@ from networkx import (
 	spring_layout,
 	from_dict_of_dicts,
 	from_dict_of_lists,
+	NetworkXError,
 )
 from blinker import Signal
 
-from .allegedb import ORM as gORM, KeyframeTuple
+from .allegedb import ORM as gORM, KeyframeTuple, Key
 from .allegedb import (
 	StatDict,
 	NodeValDict,
 	EdgeValDict,
 	DeltaDict,
-	Key,
 	world_locked,
 	OutOfTimelineError,
 )
@@ -68,7 +68,7 @@ from .allegedb.cache import (
 	StructuredDefaultDict,
 )
 from .allegedb.window import update_window, update_backward_window
-from .cache import PortalsRulebooksCache
+from .cache import PortalsRulebooksCache, CharactersRulebooksCache
 from .util import sort_set, AbstractEngine, final_rule, normalize_layout
 from .xcollections import (
 	StringStore,
@@ -88,7 +88,8 @@ from .query import (
 	CombinedQueryResult,
 )
 from .proxy import worker_subprocess
-from .character import Character, Facade
+from .character import Character
+from .facade import CharacterFacade
 from .node import Place, Thing
 from .portal import Portal
 from .query import QueryEngine
@@ -644,9 +645,9 @@ class Engine(AbstractEngine, gORM, Executor):
 			with lock:  # deadlock here.
 				pipein.send_bytes(b"shutdown")
 				recvd = pipeout.recv_bytes()
-				assert (
-					recvd == b"done"
-				), f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
+				assert recvd == b"done", (
+					f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
+				)
 				proc.join()
 				proc.close()
 
@@ -755,7 +756,9 @@ class Engine(AbstractEngine, gORM, Executor):
 		self,
 		name: Key,
 		type_s="DiGraph",
-		data: Union[Facade, Graph, nx.Graph, dict, KeyframeTuple] = None,
+		data: Union[
+			CharacterFacade, Graph, nx.Graph, dict, KeyframeTuple
+		] = None,
 	) -> None:
 		if hasattr(data, "stat"):
 			if not hasattr(data, "thing"):
@@ -1001,55 +1004,63 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._things_cache = ThingsCache(self)
 		self._node_contents_cache = NodeContentsCache(self)
 		self.character = self.graph = CharacterMapping(self)
-		self._universal_cache = EntitylessCache(self)
-		self._universal_cache.name = "universal_cache"
-		self._rulebooks_cache = InitializedEntitylessCache(self)
-		self._rulebooks_cache.name = "rulebooks_cache"
-		self._characters_rulebooks_cache = InitializedEntitylessCache(self)
-		self._characters_rulebooks_cache.name = "characters_rulebooks_cache"
-		self._units_rulebooks_cache = InitializedEntitylessCache(self)
-		self._units_rulebooks_cache.name = "units_rulebooks_cache"
-		ctrc = InitializedEntitylessCache(self)
-		ctrc.name = "characters_things_rulebooks_cache"
-		self._characters_things_rulebooks_cache = ctrc
-		cprc = InitializedEntitylessCache(self)
-		cprc.name = "characters_places_rulebooks_cache"
-		self._characters_places_rulebooks_cache = cprc
-		cporc = InitializedEntitylessCache(self)
-		cporc.name = "characters_portals_rulebooks_cache"
-		self._characters_portals_rulebooks_cache = cporc
-		self._nodes_rulebooks_cache = InitializedCache(self)
-		self._nodes_rulebooks_cache.name = "nodes_rulebooks_cache"
-		self._portals_rulebooks_cache = PortalsRulebooksCache(self)
-		self._portals_rulebooks_cache.name = "portals_rulebooks_cache"
-		self._triggers_cache = InitializedEntitylessCache(self)
-		self._triggers_cache.name = "triggers_cache"
-		self._prereqs_cache = InitializedEntitylessCache(self)
-		self._prereqs_cache.name = "prereqs_cache"
-		self._actions_cache = InitializedEntitylessCache(self)
-		self._actions_cache.name = "actions_cache"
-		self._neighborhoods_cache = InitializedEntitylessCache(self)
-		self._neighborhoods_cache.name = "neighborhoods_cache"
+		self._universal_cache = EntitylessCache(self, "universal_cache")
+		self._rulebooks_cache = InitializedEntitylessCache(
+			self, "rulebooks_cache"
+		)
+		self._characters_rulebooks_cache = CharactersRulebooksCache(
+			self, "characters_rulebooks_cache"
+		)
+		self._units_rulebooks_cache = CharactersRulebooksCache(
+			self, "units_rulebooks_cache"
+		)
+		self._characters_things_rulebooks_cache = CharactersRulebooksCache(
+			self, "characters_things_rulebooks_cache"
+		)
+		self._characters_places_rulebooks_cache = CharactersRulebooksCache(
+			self, "characters_places_rulebooks_cache"
+		)
+		self._characters_portals_rulebooks_cache = CharactersRulebooksCache(
+			self, "characters_portals_rulebooks_cache"
+		)
+		self._nodes_rulebooks_cache = InitializedCache(
+			self, "nodes_rulebooks_cache"
+		)
+		self._portals_rulebooks_cache = PortalsRulebooksCache(
+			self, "portals_rulebooks_cache"
+		)
+		self._triggers_cache = InitializedEntitylessCache(
+			self, "triggers_cache"
+		)
+		self._prereqs_cache = InitializedEntitylessCache(self, "prereqs_cache")
+		self._actions_cache = InitializedEntitylessCache(self, "actions_cache")
+		self._neighborhoods_cache = InitializedEntitylessCache(
+			self, "neighborhoods_cache"
+		)
 		self._node_rules_handled_cache = NodeRulesHandledCache(self)
-		self._node_rules_handled_cache.name = "node_rules_handled_cache"
 		self._portal_rules_handled_cache = PortalRulesHandledCache(self)
-		self._portal_rules_handled_cache.name = "portal_rules_handled_cache"
-		crhc = CharacterRulesHandledCache(self)
-		crhc.name = "character_rules_handled_cache"
-		self._character_rules_handled_cache = crhc
-		self._unit_rules_handled_cache = UnitRulesHandledCache(self)
-		self._unit_rules_handled_cache.name = "unit_rules_handled_cache"
-		ctrhc = CharacterThingRulesHandledCache(self)
-		ctrhc.name = "character_thing_rules_handled_cache"
-		self._character_thing_rules_handled_cache = ctrhc
-		cprhc = CharacterPlaceRulesHandledCache(self)
-		cprhc.name = "character_place_rules_handled_cache"
-		self._character_place_rules_handled_cache = cprhc
-		cporhc = CharacterPortalRulesHandledCache(self)
-		cporhc.name = "character_portal_rules_handled_cache"
-		self._character_portal_rules_handled_cache = cporhc
+		self._character_rules_handled_cache = CharacterRulesHandledCache(
+			self, "character_rules_handled_cache"
+		)
+		self._unit_rules_handled_cache = UnitRulesHandledCache(
+			self, "unit_rules_handled_cache"
+		)
+		self._character_thing_rules_handled_cache = (
+			CharacterThingRulesHandledCache(
+				self, "character_thing_rules_handled_cache"
+			)
+		)
+		self._character_place_rules_handled_cache = (
+			CharacterPlaceRulesHandledCache(
+				self, "character_place_rules_handled_cache"
+			)
+		)
+		self._character_portal_rules_handled_cache = (
+			CharacterPortalRulesHandledCache(
+				self, "character_portal_rules_handled_cache"
+			)
+		)
 		self._unitness_cache = UnitnessCache(self)
-		self._unitness_cache.name = "unitness_cache"
 		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
 		self._turns_completed_previous = self._turns_completed.copy()
 		"""The last turn when the rules engine ran in each branch"""
@@ -1125,6 +1136,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._characters_things_rulebooks_cache,
 			self._characters_places_rulebooks_cache,
 			self._characters_portals_rulebooks_cache,
+			self._nodes_rulebooks_cache,
+			self._portals_rulebooks_cache,
 		):
 			cache.copy_keyframe(branch_from, branch_to, turn, tick)
 
@@ -1148,6 +1161,15 @@ class Engine(AbstractEngine, gORM, Executor):
 			)
 			self._unitness_cache.set_keyframe(
 				(character,), branch_to, turn, tick, units_kf
+			)
+			self._nodes_rulebooks_cache.set_keyframe(
+				(character,),
+				branch_to,
+				turn,
+				tick,
+				self._nodes_rulebooks_cache.get_keyframe(
+					(character,), branch_from, turn, tick
+				),
 			)
 		self.query.keyframe_extension_insert(
 			branch_to,
@@ -1176,6 +1198,113 @@ class Engine(AbstractEngine, gORM, Executor):
 			vals["units"] = self._unitness_cache.get_keyframe(
 				(graph,), branch, turn, tick
 			)
+			vals["character_rulebook"] = (
+				self._characters_rulebooks_cache.retrieve(
+					graph, branch, turn, tick
+				)
+			)
+			vals["unit_rulebook"] = self._units_rulebooks_cache.retrieve(
+				graph, branch, turn, tick
+			)
+			vals["character_thing_rulebook"] = (
+				self._characters_things_rulebooks_cache.retrieve(
+					graph, branch, turn, tick
+				)
+			)
+			vals["character_place_rulebook"] = (
+				self._characters_places_rulebooks_cache.retrieve(
+					graph, branch, turn, tick
+				)
+			)
+			vals["character_portal_rulebook"] = (
+				self._characters_portals_rulebooks_cache.retrieve(
+					graph, branch, turn, tick
+				)
+			)
+			try:
+				node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
+					(graph,), branch, turn, tick
+				)
+			except KeyframeError:
+				node_rb_kf = {
+					node: (graph, node) for node in kf["nodes"][graph]
+				}
+			for node, rb in node_rb_kf.items():
+				if graph in kf["node_val"]:
+					if node in kf["node_val"][graph]:
+						kf["node_val"][graph][node]["rulebook"] = rb
+					else:
+						kf["node_val"][graph][node] = {"rulebook": rb}
+				else:
+					kf["node_val"] = {graph: {node: {"rulebook": rb}}}
+			try:
+				port_rb_kf = self._portals_rulebooks_cache.get_keyframe(
+					(graph,), branch, turn, tick
+				)
+			except KeyframeError:
+				port_rb_kf = {}
+				for orig, dests in kf["edges"][graph].items():
+					destrbs = port_rb_kf[orig] = {}
+					for dest, ex in dests.items():
+						if ex:
+							destrbs[dest] = (graph, orig, dest)
+			for orig, dests in port_rb_kf.items():
+				for dest, rb in dests.items():
+					if graph in kf["edge_val"]:
+						if orig in kf["edge_val"][graph]:
+							if dest in kf["edge_val"][graph][orig]:
+								assert (
+									graph in kf["edges"]
+									and orig in kf["edges"][graph]
+									and dest in kf["edges"][graph][orig]
+								)
+								kf["edge_val"][graph][orig][dest][
+									"rulebook"
+								] = rb
+							elif (
+								graph in kf["edges"]
+								and orig in kf["edges"][graph]
+								and dest in kf["edges"][graph][orig]
+							):
+								kf["edge_val"][graph][orig][dest] = {
+									"rulebook": rb
+								}
+						elif (
+							graph in kf["edges"] and orig in kf["edges"][graph]
+						):
+							kf["edge_val"][graph][orig] = {
+								dest: {"rulebook": rb}
+							}
+					elif (
+						graph in kf["edges"]
+						and orig in kf["edges"][graph]
+						and dest in kf["edges"][graph][orig]
+					):
+						kf["edge_val"][graph] = {
+							orig: {dest: {"rulebook": rb}}
+						}
+			try:
+				locs_kf = self._things_cache.get_keyframe(
+					(graph,), branch, turn, tick
+				)
+			except KeyframeError:
+				locs_kf = {}
+				for thing in list(
+					self._things_cache.iter_keys(graph, branch, turn, tick)
+				):
+					locs_kf[thing] = self._things_cache.retrieve(
+						graph, thing, branch, turn, tick
+					)
+			if "node_val" not in kf:
+				kf["node_val"] = {graph: locs_kf}
+			elif graph not in kf["node_val"]:
+				kf["node_val"][graph] = locs_kf
+			else:
+				for thing, loc in locs_kf.items():
+					if thing in kf["node_val"][graph]:
+						kf["node_val"][graph][thing]["location"] = loc
+					else:
+						kf["node_val"][graph][thing] = {"location": loc}
 		kf["universal"] = self._universal_cache.get_keyframe(
 			branch, turn, tick
 		)
@@ -1884,12 +2013,12 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		def updnoderb(character, node, rulebook):
 			if (character in delta) and (
-				(
+				delta[character] is None
+				or (
 					"nodes" in delta[character]
 					and node in delta[character]["nodes"]
 					and not delta[character]["nodes"][node]
 				)
-				or delta[character] is None
 			):
 				return
 			delta.setdefault(character, {}).setdefault(
@@ -2196,7 +2325,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._keyframe_on_close
 			and self._btt() not in self._keyframes_times
 		):
-			self.snap_keyframe(silent=True)
+			self.snap_keyframe(silent=True, update_worker_processes=False)
 		for store in self.stores:
 			if hasattr(store, "save"):
 				store.save(reimport=False)
@@ -2210,6 +2339,30 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.query.close()
 		self.shutdown()
 		self._closed = True
+
+	def _exist_node(self, character: Key, node: Key, exist=True) -> None:
+		super()._exist_node(character, node, exist)
+		if exist:
+			btt = self._btt()
+			self._nodes_rulebooks_cache.store(
+				character, node, *btt, (character, node)
+			)
+			self.query.set_node_rulebook(
+				character, node, *btt, (character, node)
+			)
+
+	def _exist_edge(
+		self, character: Key, orig: Key, dest: Key, idx=0, exist=True
+	) -> None:
+		super()._exist_edge(character, orig, dest, idx, exist)
+		if exist:
+			btt = self._btt()
+			self._portals_rulebooks_cache.store(
+				character, orig, dest, *btt, (character, orig, dest)
+			)
+			self.query.set_portal_rulebook(
+				character, orig, dest, *btt, (character, orig, dest)
+			)
 
 	def _snap_keyframe_from_delta(
 		self,
@@ -2241,7 +2394,9 @@ class Engine(AbstractEngine, gORM, Executor):
 		unitrbs = self._units_rulebooks_cache.get_keyframe(*then)
 		thingrbs = self._characters_things_rulebooks_cache.get_keyframe(*then)
 		placerbs = self._characters_places_rulebooks_cache.get_keyframe(*then)
-		portrbs = self._characters_portals_rulebooks_cache.get_keyframe(*then)
+		charportrbs = self._characters_portals_rulebooks_cache.get_keyframe(
+			*then
+		)
 		for graph in (
 			set(self._graph_cache.iter_keys(b, r, t)).union(delta.keys())
 			- self.illegal_graph_names
@@ -2249,6 +2404,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			delt = delta.get(graph, {})
 			if delt is None:
 				continue
+			noderbs = self._nodes_rulebooks_cache.get_keyframe((graph,), *then)
+			portrbs = self._portals_rulebooks_cache.get_keyframe(
+				(graph,), *then
+			)
 			charunit = self._unitness_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
@@ -2269,29 +2428,81 @@ class Engine(AbstractEngine, gORM, Executor):
 			if "character_place_rulebook" in delt:
 				placerbs[graph] = delt["character_place_rulebook"]
 			if "character_portal_rulebook" in delt:
-				portrbs[graph] = delt["character_portal_rulebook"]
+				charportrbs[graph] = delt["character_portal_rulebook"]
 			locs = self._things_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
-			kf = self._node_contents_cache.get_keyframe(
+			conts_kf = self._node_contents_cache.get_keyframe(
 				(graph,), b, r, t, copy=True
 			)
-			conts = {key: set(value) for (key, value) in kf.items()}
+			conts = {key: set(value) for (key, value) in conts_kf.items()}
 			if "node_val" in delt:
-				for node, val in delt["node_val"].items():
-					if "location" in val:
-						if node in locs:
-							oldloc = locs[node]
-							if oldloc in conts:
-								conts[oldloc].discard(node)
-						locs[node] = loc = val["location"]
-						if loc in conts:
-							conts[loc].add(node)
-						else:
-							conts[loc] = {node}
+				node_kf = self._nodes_cache.get_keyframe((graph,), b, r, t)
+				for node in node_kf.keys() | delt.get("node_val", {}).keys():
+					if node in delt["node_val"]:
+						delt_val = delt["node_val"][node]
+						if "rulebook" in delt_val:
+							noderbs[node] = delt_val.pop("rulebook")
+						if "location" in delt_val:
+							if node in locs:
+								oldloc = locs[node]
+								if oldloc in conts:
+									conts[oldloc].discard(node)
+							locs[node] = loc = delt_val["location"]
+							if loc in conts:
+								conts[loc].add(node)
+							else:
+								conts[loc] = {node}
+			if "edge_val" in delt:
+				port_kf = self._edges_cache.get_keyframe((graph,), b, r, t)
+
+				def port_in_kf(orig, dest):
+					return (
+						orig in port_kf
+						and dest in port_kf[orig]
+						and port_kf[orig][dest]
+					)
+
+				def port_in_delt(orig, dest):
+					return (
+						"edges" in delt
+						and orig in delt["edges"]
+						and dest in delt["edges"][orig]
+						and delt["edges"][orig][dest]
+					)
+
+				for orig in port_kf.keys() | delt["edge_val"].keys():
+					if orig in port_kf:
+						dests = port_kf[orig]
+						for dest, val in dests.items():
+							if "rulebook" in val:
+								rulebook = val.pop("rulebook")
+								if rulebook is None:
+									continue
+								elif orig in portrbs:
+									portrbs[orig][dest] = rulebook
+								else:
+									portrbs[orig] = {dest: rulebook}
+					else:
+						portrbs[orig] = {
+							dest: kvs["rulebook"]
+							for dest, kvs in delt["edge_val"][orig].items()
+							if (
+								port_in_kf(orig, dest)
+								or port_in_delt(orig, dest)
+							)
+							and "rulebook" in kvs
+						}
+
 			conts = {key: frozenset(value) for (key, value) in conts.items()}
 			self._things_cache.set_keyframe((graph,), *now, locs)
 			self._node_contents_cache.set_keyframe((graph,), *now, conts)
+			self._nodes_rulebooks_cache.set_keyframe(
+				(graph,), branch, turn, tick, noderbs
+			)
+			self._portals_rulebooks_cache.set_keyframe(
+				(graph,), branch, turn, tick, portrbs
+			)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbs
 		)
@@ -2303,7 +2514,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			branch, turn, tick, placerbs
 		)
 		self._characters_portals_rulebooks_cache.set_keyframe(
-			branch, turn, tick, portrbs
+			branch, turn, tick, charportrbs
 		)
 		self._universal_cache.set_keyframe(branch, turn, tick, univ)
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
@@ -2744,6 +2955,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			return True
 
 		def do_actions(rule, handled_fun, entity):
+			entity = entity.facade()
 			actres = []
 			for action in rule.actions:
 				res = action(entity)
@@ -2751,6 +2963,8 @@ class Engine(AbstractEngine, gORM, Executor):
 					actres.append(res)
 				if not entity:
 					break
+			with self.batch():
+				entity.engine.apply()
 			handled_fun(self.tick)
 			return actres
 
@@ -3245,10 +3459,20 @@ class Engine(AbstractEngine, gORM, Executor):
 	# return ex
 
 	def new_character(
-		self, name: Key, data: Graph = None, layout: bool = False, **kwargs
+		self,
+		name: Key,
+		data: Graph = None,
+		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
+		**kwargs,
 	) -> Character:
-		"""Create and return a new :class:`Character`."""
-		self.add_character(name, data, layout, **kwargs)
+		"""Create and return a new :class:`Character`.
+
+		See :meth:`add_character` for details.
+
+		"""
+		self.add_character(name, data, layout, node=node, edge=edge, **kwargs)
 		return self.character[name]
 
 	new_graph = new_character
@@ -3256,8 +3480,10 @@ class Engine(AbstractEngine, gORM, Executor):
 	def add_character(
 		self,
 		name: Key,
-		data: Union[Graph, DiGraph, dict] = None,
+		data: Union[Graph, DiGraph] = None,
 		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
 		**kwargs,
 	) -> None:
 		"""Create a new character.
@@ -3267,8 +3493,14 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		``data``, if provided, should be a :class:`networkx.Graph`
 		or :class:`networkx.DiGraph` object. The character will be
-		a copy of it. You can use a dictionary instead, and it will
-		be converted to a graph.
+		a copy of it.
+
+		``node`` may be a dictionary of dictionaries representing either
+		``Thing`` objects, if they have a ``"location"`` key, or else
+		``Place`` objects.
+
+		``edge`` may be a 3-layer dictionary representing ``Portal`` objects,
+		connecting mainly ``Place`` objects together.
 
 		With ``layout=True``, compute a layout to make the
 		graph show up nicely in ELiDE.
@@ -3278,12 +3510,16 @@ class Engine(AbstractEngine, gORM, Executor):
 		"""
 		if name in self.character:
 			raise KeyError("Already have that character", name)
-		if layout and data:
-			if not hasattr(data, "nodes"):
-				try:
-					data = from_dict_of_dicts(data)
-				except AttributeError:
-					data = from_dict_of_lists(data)
+		if layout and (data or node or edge):
+			if data is None:
+				data = nx.DiGraph()
+			if node:
+				for name, nvs in node.items():
+					data.add_node(name, **nvs)
+			if edge:
+				for orig, dests in edge.items():
+					for dest, evs in dests.items():
+						data.add_edge(orig, dest, **evs)
 			nodes = data.nodes
 			try:
 				layout = normalize_layout(
@@ -3311,9 +3547,16 @@ class Engine(AbstractEngine, gORM, Executor):
 				data = DiGraph()
 			if not isinstance(data, Graph):
 				try:
-					data = nx.from_dict_of_dicts(data)
-				except AttributeError:
-					data = nx.from_dict_of_lists(data)
+					data = from_dict_of_lists(data)
+				except NetworkXError:
+					data = from_dict_of_dicts(data)
+			if node:
+				for k, v in node.items():
+					data.add_node(k, **v)
+			if edge:
+				for orig, dests in edge.items():
+					for dest, v in dests.items():
+						data.add_edge(orig, dest, **v)
 			data.graph.update(kwargs)
 		self._init_graph(name, "DiGraph", data)
 		if self._btt() not in self._keyframes_times:
@@ -3475,6 +3718,54 @@ class Engine(AbstractEngine, gORM, Executor):
 		graph_val: StatDict,
 		copy_to_branch: str = None,
 	) -> None:
+		for rb_kf_type, rb_kf_cache in [
+			("character_rulebook", self._characters_rulebooks_cache),
+			("unit_rulebook", self._units_rulebooks_cache),
+			(
+				"character_thing_rulebook",
+				self._characters_things_rulebooks_cache,
+			),
+			(
+				"character_place_rulebook",
+				self._characters_places_rulebooks_cache,
+			),
+			(
+				"character_portal_rulebook",
+				self._characters_portals_rulebooks_cache,
+			),
+		]:
+			try:
+				kf = rb_kf_cache.get_keyframe(branch, turn, tick)
+				kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
+			except KeyError:
+				kf = {graph: graph_val.pop(rb_kf_type, (rb_kf_type, graph))}
+				for char in self._graph_cache.iter_keys(branch, turn, tick):
+					try:
+						kf[char] = rb_kf_cache.retrieve(
+							char, branch, turn, tick
+						)
+					except KeyError:
+						kf[char] = (rb_kf_type, char)
+			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
+		self._nodes_rulebooks_cache.set_keyframe(
+			(graph,),
+			branch,
+			turn,
+			tick,
+			{n: nvs.pop("rulebook", (graph, n)) for (n, nvs) in nodes.items()},
+		)
+		port_rb_kf = {}
+		for orig, dests in edges.items():
+			port_rb_kf[orig] = rbs = {}
+			for dest, port in dests.items():
+				rbs[dest] = port.pop("rulebook", (graph, orig, dest))
+		self._portals_rulebooks_cache.set_keyframe(
+			(graph,),
+			branch,
+			turn,
+			tick,
+			port_rb_kf,
+		)
 		super()._snap_keyframe_de_novo_graph(
 			graph, branch, turn, tick, nodes, edges, graph_val
 		)

@@ -361,16 +361,17 @@ class EdBox(BoxLayout):
 	"""Function to show or hide my screen"""
 	disable_text_input = BooleanProperty(False)
 	"""Set to ``True`` to prevent entering text in the editor"""
+	selection_name = StringProperty()
 
 	def on_store_name(self, *_):
 		app = App.get_running_app()
-		if app.engine is None:
+		if not hasattr(app, "engine"):
 			Clock.schedule_once(self.on_store_name, 0)
 			return
 		self.store = getattr(app.engine, self.store_name)
 
 	def on_storelist(self, *_):
-		self.storelist.bind(selection_name=self._pull_from_storelist)
+		self.storelist.bind(selection_name=self.setter("selection_name"))
 
 	@trigger
 	def validate_name_input(self, *_):
@@ -379,13 +380,12 @@ class EdBox(BoxLayout):
 			or self.valid_name(self.editor.name_wid.text)
 		)
 
-	@trigger
-	def _pull_from_storelist(self, *_):
+	def on_selection_name(self, _, selection_name):
+		if selection_name == self.editor.name_wid.hint_text:
+			return
 		self.save()
 		# The + button at the top is for adding an entry yet unnamed, so don't display hint text for it
-		self.editor.name_wid.hint_text = self.storelist.selection_name.strip(
-			"+"
-		)
+		self.editor.name_wid.hint_text = selection_name.strip("+")
 		self.editor.name_wid.text = ""
 		try:
 			self.editor.source = getattr(
@@ -585,6 +585,14 @@ class FuncsEdBox(EdBox):
 			not in string.digits + string.whitespace + string.punctuation
 		)
 
+	def on_data(self, *_):
+		app = App.get_running_app()
+		if app is None:
+			return
+		app.rules.rulesview.set_functions(
+			self.store_name, map(app.rules.rulesview.inspect_func, self.data)
+		)
+
 
 class FuncsEdScreen(Screen):
 	"""Screen containing three FuncsEdBox
@@ -782,7 +790,6 @@ load_string_once("""
 				id: triggers
 				toggle: root.toggle
 				store_name: 'trigger'
-				on_data: app.rules.rulesview.set_functions('trigger', map(app.rules.rulesview.inspect_func, self.data))
 		TabbedPanelItem:
 			id: prereq
 			text: 'Prereq'
@@ -791,7 +798,6 @@ load_string_once("""
 				id: prereqs
 				toggle: root.toggle
 				store_name: 'prereq'
-				on_data: app.rules.rulesview.set_functions('prereq', map(app.rules.rulesview.inspect_func, self.data))
 		TabbedPanelItem:
 			id: action
 			text: 'Action'
@@ -800,5 +806,4 @@ load_string_once("""
 				id: actions
 				toggle: root.toggle
 				store_name: 'action'
-				on_data: app.rules.rulesview.set_functions('action', map(app.rules.rulesview.inspect_func, self.data))
 """)

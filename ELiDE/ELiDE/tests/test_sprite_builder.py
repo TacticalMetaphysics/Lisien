@@ -1,13 +1,13 @@
 from kivy.base import EventLoop
 
 from ..pallet import Pallet
-from .util import ELiDEAppTest, idle_until, window_with_widget
+from .util import ELiDEAppTest, idle_until
 
 
 class TestSpriteBuilder(ELiDEAppTest):
 	def test_build_pawn(self):
 		app = self.app
-		win = window_with_widget(app.build())
+		self.Window.add_widget(app.build())
 		app.manager.current = "pawncfg"
 		idle_until(
 			lambda: "dialog" in app.pawncfg.ids,

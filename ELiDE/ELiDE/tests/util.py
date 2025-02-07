@@ -76,13 +76,6 @@ def idle_until(condition=None, timeout=100, message="Timed out"):
 	raise TimeoutError(message)
 
 
-def window_with_widget(wid):
-	EventLoop.ensure_window()
-	win = EventLoop.window
-	win.add_widget(wid)
-	return win
-
-
 class MockTouch(MotionEvent):
 	def depack(self, args):
 		self.is_touch = True
@@ -104,6 +97,7 @@ class MockEngine(Signal):
 	eternal = ListenableDict()
 	universal = ListenableDict()
 	character = ListenableDict()
+	string = ListenableDict()
 	time = MockTime()
 	closed = False
 
@@ -142,11 +136,5 @@ class ELiDEAppTest(GraphicUnitTest):
 		self.app.build_config(self.app.config)
 
 	def tearDown(self, fake=False):
-		EventLoop.idle()  # let any triggered events fire
 		super().tearDown(fake=fake)
-		try:
-			self.app.stop()
-		except RedundantProcessError:
-			pass
-		shutil.rmtree(self.prefix)
 		sys.argv = self.old_argv

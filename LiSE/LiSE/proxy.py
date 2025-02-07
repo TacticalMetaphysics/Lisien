@@ -48,7 +48,7 @@ import msgpack
 from .allegedb import OutOfTimelineError, Key
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
-from .character import Facade
+from .facade import CharacterFacade
 from .util import (
 	getatt,
 	AbstractEngine,
@@ -92,6 +92,14 @@ class CachingProxy(MutableMapping, Signal):
 		if k not in self:
 			raise KeyError("No such key: {}".format(k))
 		return self._cache_get_munge(k, self._cache[k])
+
+	def setdefault(self, k, default=None):
+		if k not in self:
+			if default is None:
+				raise KeyError("No such key", k)
+			self[k] = default
+			return default
+		return self[k]
 
 	def __setitem__(self, k, v):
 		if self.engine._worker:
@@ -1610,9 +1618,9 @@ class CharacterProxy(AbstractCharacter):
 		return NodeMapProxy(self.engine, self.name)
 
 	def __init__(self, engine_proxy, charname, *, init_rulebooks=False):
-		assert (
-			not init_rulebooks
-		), "Can't initialize rulebooks in CharacterProxy"
+		assert not init_rulebooks, (
+			"Can't initialize rulebooks in CharacterProxy"
+		)
 		self.db = engine_proxy
 		self.name = charname
 		self.graph = CharStatProxy(self.engine, self.name)
@@ -1994,7 +2002,7 @@ class CharacterProxy(AbstractCharacter):
 		)
 
 	def facade(self):
-		return Facade(self)
+		return CharacterFacade(self)
 
 	def grid_2d_8graph(self, m, n):
 		self.engine.handle(
@@ -2500,6 +2508,7 @@ class EngineProxy(AbstractEngine):
 	place_cls = PlaceProxy
 	portal_cls = PortalProxy
 	time = TimeDescriptor()
+	is_proxy = True
 
 	@property
 	def main_branch(self) -> str:
@@ -2642,6 +2651,46 @@ class EngineProxy(AbstractEngine):
 				):
 					del stats[key]
 			chars[graph].stat._apply_delta(stats)
+		nodes_to_delete = {
+			(char, node)
+			for char in things.keys() | places.keys()
+			for node in things.get(char, {}).keys()
+			| places.get(char, {}).keys()
+		}
+		for char, nodes in result["nodes"].items():
+			for node, ex in nodes.items():
+				if ex:
+					if not (
+						(char in things and node in things[char])
+						or (char in places and node in places[char])
+					):
+						places[char][node] = PlaceProxy(chars[char], node)
+						chars[char].place.send(
+							chars[char], key=node, value=places[char][node]
+						)
+					nodes_to_delete.discard((char, node))
+				else:
+					if char in things and node in things[char]:
+						del things[char][node]
+						chars[char].thing.send(
+							chars[char], key=node, value=None
+						)
+						chars[char].node.send(
+							chars[char], key=node, value=None
+						)
+					if char in places and node in places[char]:
+						del places[char][node]
+						chars[char].place.send(
+							chars[char], key=node, value=None
+						)
+						chars[char].node.send(
+							chars[char], key=node, value=None
+						)
+		for char, node in nodes_to_delete:
+			if node in things[char]:
+				del things[char][node]
+			else:
+				del places[char][node]
 		for char, nodestats in result["node_val"].items():
 			for node, stats in nodestats.items():
 				if "location" in stats:
@@ -2673,34 +2722,12 @@ class EngineProxy(AbstractEngine):
 					if key in that and stats[key] == that[key]:
 						del stats[key]
 				that._apply_delta(stats)
-		for char, nodes in result["nodes"].items():
-			for node, ex in nodes.items():
-				if ex:
-					if not (
-						(char in things and node in things[char])
-						or (char in places and node in places[char])
-					):
-						places[char][node] = PlaceProxy(chars[char], node)
-						chars[char].place.send(
-							chars[char], key=node, value=places[char][node]
-						)
-				else:
-					if char in things and node in things[char]:
-						del things[char][node]
-						chars[char].thing.send(
-							chars[char], key=node, value=None
-						)
-						chars[char].node.send(
-							chars[char], key=node, value=None
-						)
-					if char in places and node in places[char]:
-						del places[char][node]
-						chars[char].place.send(
-							chars[char], key=node, value=None
-						)
-						chars[char].node.send(
-							chars[char], key=node, value=None
-						)
+		edges_to_delete = {
+			(char, orig, dest)
+			for char in portals.successors
+			for orig in portals.successors[char]
+			for dest in portals.successors[char][orig]
+		}
 		for char, origs in result["edges"].items():
 			for orig, dests in origs.items():
 				for dest, exists in dests.items():
@@ -2709,7 +2736,9 @@ class EngineProxy(AbstractEngine):
 						and orig in portals.successors[char]
 						and dest in portals.successors[char][orig]
 					):
-						if not exists:
+						if exists:
+							edges_to_delete.discard((char, orig, dest))
+						else:
 							del portals.successors[char][orig][dest]
 							del portals.predecessors[char][dest][orig]
 							chars[char].adj.send(
@@ -2719,7 +2748,9 @@ class EngineProxy(AbstractEngine):
 								chars[char], orig=orig, dest=dest, value=None
 							)
 						continue
-					if not exists:
+					if exists:
+						edges_to_delete.discard((char, orig, dest))
+					else:
 						continue
 					that = PortalProxy(chars[char], orig, dest)
 					portals.store(char, orig, dest, that)
@@ -2729,6 +2760,8 @@ class EngineProxy(AbstractEngine):
 					chars[char].pred.send(
 						chars[char], orig=orig, dest=dest, value=that
 					)
+		for char, orig, dest in edges_to_delete:
+			portals.delete(char, orig, dest)
 		for char, origs in result["edge_val"].items():
 			for orig, dests in origs.items():
 				for dest, stats in dests.items():
@@ -2801,7 +2834,7 @@ class EngineProxy(AbstractEngine):
 			self.trigger = FuncStoreProxy(self, "trigger")
 			self.function = FuncStoreProxy(self, "function")
 			self._worker = False
-			self.rando = RandoProxy(self)
+			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
@@ -3576,7 +3609,6 @@ class EngineProcessManager(object):
 		"""Close the engine in the subprocess, then join the subprocess"""
 		self.engine_proxy.close()
 		self._p.join()
-		del self.engine_proxy
 
 	def __enter__(self):
 		return self.start()

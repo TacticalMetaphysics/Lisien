@@ -14,8 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Common utility functions and data structures."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Set
+from concurrent.futures import Future
 from enum import Enum
 from operator import (
 	ge,
@@ -34,18 +37,43 @@ from operator import (
 )
 from functools import partial, wraps, cached_property
 from contextlib import contextmanager
+from random import Random
 from textwrap import dedent
 from time import monotonic
 from types import MethodType, FunctionType
-from typing import Mapping, Sequence, Iterable, Union, Callable, Dict, Hashable
+from typing import (
+	Any,
+	Mapping,
+	Iterable,
+	Union,
+	Callable,
+	Dict,
+	Hashable,
+	Tuple,
+	FrozenSet,
+)
 
 import msgpack
 import networkx as nx
 import numpy as np
-from networkx.exception import NetworkXException
 from tblib import Traceback
+from blinker import Signal
 
 from . import exc, allegedb
+from .exc import TravelException
+from .allegedb.graph import Node, Edge, DiGraph
+
+Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
+
+
+class SignalDict(Signal, dict):
+	def __setitem__(self, __key, __value):
+		super().__setitem__(__key, __value)
+		self.send(self, key=__key, value=__value)
+
+	def __delitem__(self, __key):
+		super().__delitem__(__key)
+		self.send(self, key=__key, value=None)
 
 
 class BadTimeException(Exception):
@@ -343,14 +371,10 @@ def fake_submit(func, *args, **kwargs):
 
 	"""
 
-	class FakeFuture:
+	class FakeFuture(Future):
 		def __init__(self, func, *args, **kwargs):
-			self._func = func
-			self._args = args
-			self._kwargs = kwargs
-
-		def result(self):
-			return self._func(*self._args, **self._kwargs)
+			super().__init__()
+			self.set_result(func(*args, **kwargs))
 
 	return FakeFuture(func, *args, **kwargs)
 
@@ -371,6 +395,8 @@ class AbstractEngine(ABC):
 	place_cls: type
 	portal_cls: type
 	char_cls: type
+	character: Mapping[Any, "char_cls"]
+	_rando: Random
 
 	@cached_property
 	def pack(self):
@@ -403,27 +429,6 @@ class AbstractEngine(ABC):
 			nx.MultiDiGraph: lambda graf: msgpack.ExtType(
 				MsgpackExtensionType.graph.value,
 				packer(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
-			),
-			self.char_cls: lambda char: msgpack.ExtType(
-				MsgpackExtensionType.character.value, packer(char.name)
-			),
-			self.place_cls: lambda place: msgpack.ExtType(
-				MsgpackExtensionType.place.value,
-				packer([place.character.name, place.name]),
-			),
-			self.thing_cls: lambda thing: msgpack.ExtType(
-				MsgpackExtensionType.thing.value,
-				packer([thing.character.name, thing.name]),
-			),
-			self.portal_cls: lambda port: msgpack.ExtType(
-				MsgpackExtensionType.portal.value,
-				packer(
-					[
-						port.character.name,
-						port.origin.name,
-						port.destination.name,
-					]
-				),
 			),
 			tuple: lambda tup: msgpack.ExtType(
 				MsgpackExtensionType.tuple.value, packer(list(tup))
@@ -465,6 +470,32 @@ class AbstractEngine(ABC):
 				typ = type(obj)
 			if typ in handlers:
 				return handlers[typ](obj)
+			elif isinstance(obj, DiGraph):
+				return msgpack.ExtType(
+					MsgpackExtensionType.character.value, packer(obj.name)
+				)
+			elif isinstance(obj, Node):
+				if hasattr(obj, "location"):
+					return msgpack.ExtType(
+						MsgpackExtensionType.thing.value,
+						packer([obj.character.name, obj.name]),
+					)
+				else:
+					return msgpack.ExtType(
+						MsgpackExtensionType.place.value,
+						packer([obj.character.name, obj.name]),
+					)
+			elif isinstance(obj, Edge):
+				return msgpack.ExtType(
+					MsgpackExtensionType.portal.value,
+					packer(
+						[
+							obj.character.name,
+							obj.origin.name,
+							obj.destination.name,
+						]
+					),
+				)
 			elif isinstance(obj, Mapping):
 				return dict(obj)
 			elif isinstance(obj, list):
@@ -547,7 +578,7 @@ class AbstractEngine(ABC):
 			"CacheError": exc.CacheError,
 			"TravelException": exc.TravelException,
 			"OutOfTimelineError": allegedb.OutOfTimelineError,
-			"HistoricKeyError": allegedb.HistoricKeyError,
+			"HistoricKeyError": HistoricKeyError,
 			"NotInKeyframeError": allegedb.cache.NotInKeyframeError,
 			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
 		}
@@ -948,6 +979,10 @@ class AbstractCharacter(Mapping):
 	unit = SpecialMappingDescriptor("UnitGraphMapping")
 	stat = getatt("graph")
 
+	def units(self):
+		for units in self.unit.values():
+			yield from units.values()
+
 	def historical(self, stat):
 		from .query import StatusAlias
 
@@ -1058,6 +1093,9 @@ class AbstractCharacter(Mapping):
 	cull_edges = cull_portals
 
 
+DiGraph.register(AbstractCharacter)
+
+
 def normalize_layout(l):
 	"""Make sure all the spots in a layout are where you can click.
 
@@ -1087,3 +1125,171 @@ def normalize_layout(l):
 		yco = 0.98 / (maxy - miny)
 		ynorm = np.multiply(np.subtract(ys, [miny] * len(ys)), yco)
 	return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))
+
+
+class AbstractThing(ABC):
+	@property
+	def location(self) -> "allegedb.Node":
+		"""The ``Thing`` or ``Place`` I'm in."""
+		locn = self["location"]
+		if locn is None:
+			raise AttributeError("Not really a Thing")
+		return self.engine._get_node(self.character, locn)
+
+	@location.setter
+	def location(self, v: Union["allegedb.Node", Key]):
+		if hasattr(v, "name"):
+			v = v.name
+		self["location"] = v
+
+	def go_to_place(
+		self, place: Union["allegedb.Node", Key], weight: Key = None
+	) -> int:
+		"""Assuming I'm in a node that has a :class:`Portal` direct
+		to the given node, schedule myself to travel to the
+		given :class:`Place`, taking an amount of time indicated by
+		the ``weight`` stat on the :class:`Portal`, if given; else 1
+		turn.
+
+		Return the number of turns the travel will take.
+
+		"""
+		if hasattr(place, "name"):
+			placen = place.name
+		else:
+			placen = place
+		curloc = self["location"]
+		orm = self.character.engine
+		turns = (
+			1
+			if weight is None
+			else self.engine._portal_objs[
+				(self.character.name, curloc, place)
+			].get(weight, 1)
+		)
+		with self.engine.plan():
+			orm.turn += turns
+			self["location"] = placen
+		return turns
+
+	def follow_path(
+		self, path: list, weight: Key = None, check: bool = True
+	) -> int:
+		"""Go to several nodes in succession, deciding how long to
+		spend in each by consulting the ``weight`` stat of the
+		:class:`Portal` connecting the one node to the next,
+		default 1 turn.
+
+		Return the total number of turns the travel will take. Raise
+		:class:`TravelException` if I can't follow the whole path,
+		either because some of its nodes don't exist, or because I'm
+		scheduled to be somewhere else. Set ``check=False`` if
+		you're really sure the path is correct, and this function
+		will be faster.
+
+		"""
+		if len(path) < 2:
+			raise ValueError("Paths need at least 2 nodes")
+		eng = self.character.engine
+		if check:
+			prevplace = path.pop(0)
+			if prevplace != self["location"]:
+				raise ValueError("Path does not start at my present location")
+			subpath = [prevplace]
+			for place in path:
+				if (
+					prevplace not in self.character.portal
+					or place not in self.character.portal[prevplace]
+				):
+					raise TravelException(
+						"Couldn't follow portal from {} to {}".format(
+							prevplace, place
+						),
+						path=subpath,
+						traveller=self,
+					)
+				subpath.append(place)
+				prevplace = place
+		else:
+			subpath = path.copy()
+		turns_total = 0
+		prevsubplace = subpath.pop(0)
+		turn_incs = []
+		branch, turn, tick = eng._btt()
+		for subplace in subpath:
+			if weight is not None:
+				turn_incs.append(
+					self.engine._edge_val_cache.retrieve(
+						self.character.name,
+						prevsubplace,
+						subplace,
+						0,
+						branch,
+						turn,
+						tick,
+					)
+				)
+			else:
+				turn_incs.append(1)
+			turns_total += turn_incs[-1]
+			turn += turn_incs[-1]
+			tick = eng._turn_end_plan.get(turn, 0)
+			_, start_turn, start_tick, end_turn, end_tick = eng._branches[
+				branch
+			]
+			if (
+				(start_turn < turn < end_turn)
+				or (
+					start_turn == end_turn == turn
+					and start_tick <= tick < end_tick
+				)
+				or (start_turn == turn and start_tick <= tick)
+				or (end_turn == turn and tick < end_tick)
+			):
+				eng.load_at(branch, turn, tick)
+		with eng.plan():
+			for subplace, turn_inc in zip(subpath, turn_incs):
+				eng.turn += turn_inc
+				self["location"] = subplace
+		return turns_total
+
+	def travel_to(
+		self,
+		dest: Union["allegedb.Node", Key],
+		weight: Key = None,
+		graph: nx.DiGraph = None,
+	) -> int:
+		"""Find the shortest path to the given node from where I am
+		now, and follow it.
+
+		If supplied, the ``weight`` stat of each :class:`Portal` along
+		the path will be used in pathfinding, and for deciding how
+		long to stay in each Place along the way.
+
+		The ``graph`` argument may be any NetworkX-style graph. It
+		will be used for pathfinding if supplied, otherwise I'll use
+		my :class:`Character`. In either case, however, I will attempt
+		to actually follow the path using my :class:`Character`, which
+		might not be possible if the supplied ``graph`` and my
+		:class:`Character` are too different. If it's not possible,
+		I'll raise a :class:`TravelException`, whose ``subpath``
+		attribute holds the part of the path that I *can* follow. To
+		make me follow it, pass it to my ``follow_path`` method.
+
+		Return value is the number of turns the travel will take.
+
+		"""
+		destn = dest.name if hasattr(dest, "name") else dest
+		if destn == self.location.name:
+			raise ValueError("I'm already at {}".format(destn))
+		graph = self.character if graph is None else graph
+		path = nx.shortest_path(graph, self["location"], destn, weight)
+		return self.follow_path(path, weight)
+
+
+class HistoricKeyError(KeyError):
+	"""Distinguishes deleted keys from those that were never set"""
+
+	def __init__(self, *args, deleted=False):
+		super().__init__(*args)
+		self.deleted = deleted

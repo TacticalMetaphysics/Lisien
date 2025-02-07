@@ -4,12 +4,12 @@ from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
 
 from LiSE import Engine
-from LiSE.character import Facade
+from LiSE.facade import CharacterFacade
 from ELiDE.app import ELiDEApp
 from ELiDE.graph.board import GraphBoard, GraphBoardView
 from ELiDE.pawnspot import TextureStackPlane
 from ELiDE.graph.arrow import ArrowPlane
-from .util import idle_until, window_with_widget, ELiDEAppTest
+from .util import idle_until, ELiDEAppTest
 from ..dummy import Dummy
 
 
@@ -23,12 +23,11 @@ def pos_near(x0, y0, x1, y1):
 
 
 class GraphBoardTest(GraphicUnitTest):
-	@staticmethod
-	def test_layout_grid():
+	def test_layout_grid(self):
 		spots_wide = 3
 		spots_tall = 3
 		graph = nx.grid_2d_graph(spots_wide, spots_tall)
-		char = Facade(graph)
+		char = CharacterFacade(graph)
 		app = ELiDEApp()
 		spotlayout = TextureStackPlane()
 		arrowlayout = ArrowPlane()
@@ -51,7 +50,7 @@ class GraphBoardTest(GraphicUnitTest):
 		board.add_widget(arrowlayout)
 		board.update()
 		boardview = GraphBoardView(board=board)
-		win = window_with_widget(boardview)
+		self.Window.add_widget(boardview)
 
 		@idle_until(timeout=1000, message="Never finished placing spots")
 		def all_spots_placed():
@@ -74,16 +73,15 @@ class GraphBoardTest(GraphicUnitTest):
 			if y < spots_tall - 1:
 				assert spot.y < board.spot[x, y + 1].y
 
-	@staticmethod
-	def test_select_arrow():
-		char = Facade()
+	def test_select_arrow(self):
+		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
 		char.add_place(1, _x=0.2, _y=0.1)
 		char.add_portal(0, 1)
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
-		win = window_with_widget(boardview)
+		self.Window.add_widget(boardview)
 		idle_until(
 			lambda: board.arrow_plane, 100, "GraphBoard never got arrow_plane"
 		)
@@ -113,14 +111,13 @@ class GraphBoardTest(GraphicUnitTest):
 			"Arrow not selected",
 		)
 
-	@staticmethod
-	def test_select_spot():
-		char = Facade()
+	def test_select_spot(self):
+		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
-		win = window_with_widget(boardview)
+		self.Window.add_widget(boardview)
 		idle_until(lambda: 0 in board.spot)
 		x, y = board.spot[0].center
 		motion = UnitTestTouch(x, y)
@@ -128,15 +125,14 @@ class GraphBoardTest(GraphicUnitTest):
 		motion.touch_up()
 		assert app.selection == board.spot[0]
 
-	@staticmethod
-	def test_select_pawn():
-		char = Facade()
+	def test_select_pawn(self):
+		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
 		char.add_thing("that", location=0)
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
-		win = window_with_widget(boardview)
+		self.Window.add_widget(boardview)
 		idle_until(lambda: 0 in board.spot and "that" in board.pawn, 100)
 		motion = UnitTestTouch(*board.pawn["that"].center)
 		motion.touch_down()
@@ -144,14 +140,14 @@ class GraphBoardTest(GraphicUnitTest):
 		assert app.selection == board.pawn["that"]
 
 	def test_pawn_drag(self):
-		char = Facade()
+		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
 		char.add_place(1, _x=0.2, _y=0.1)
 		char.add_thing("that", location=0)
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
-		win = window_with_widget(boardview)
+		self.Window.add_widget(boardview)
 		idle_until(
 			lambda: 0 in board.spot
 			and 1 in board.spot
@@ -175,12 +171,11 @@ class GraphBoardTest(GraphicUnitTest):
 		idle_until(lambda: that.pos != one.center, 100)
 		idle_until(lambda: that.proxy["location"] == 1, 100)
 
-	@staticmethod
-	def test_spot_and_pawn_from_dummy():
-		char = Facade()
+	def test_spot_and_pawn_from_dummy(self):
+		char = CharacterFacade()
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
-		board.connect_proxy_objects()
+		board._connect_proxy_objects()
 		view = GraphBoardView(board=board)
 		idle_until(
 			lambda: view.plane is not None, 100, "Never made BoardScatterPlane"
@@ -188,7 +183,7 @@ class GraphBoardTest(GraphicUnitTest):
 		idle_until(
 			lambda: board.stack_plane is not None, 100, "Never made StackPlane"
 		)
-		win = window_with_widget(view)
+		self.Window.add_widget(view)
 		dummy = Dummy(
 			name="hello",
 			paths=["atlas://rltiles/base/unseen"],
@@ -238,14 +233,13 @@ class GraphBoardTest(GraphicUnitTest):
 			"Dummy 2 didn't get to dummy 1",
 		)
 
-	@staticmethod
-	def test_pawn_add_new_place():
-		char = Facade()
+	def test_pawn_add_new_place(self):
+		char = CharacterFacade()
 		app = ELiDEApp()
 		board = GraphBoard(app=app, character=char)
-		board.connect_proxy_objects()
+		board._connect_proxy_objects()
 		boardview = GraphBoardView(board=board)
-		win = window_with_widget(boardview)
+		self.Window.add_widget(boardview)
 		idle_until(lambda: board.stack_plane)
 		char.add_place(1, _x=0.2, _y=0.2)
 		board.add_spot(1)
@@ -268,7 +262,7 @@ class SwitchGraphTest(ELiDEAppTest):
 			eng.add_character("physical", nx.grid_2d_graph(10, 1))
 			eng.add_character("tall", nx.grid_2d_graph(1, 10))
 		app = self.app
-		window_with_widget(app.build())
+		self.Window.add_widget(app.build())
 		idle_until(
 			lambda: hasattr(app, "mainscreen")
 			and app.mainscreen.mainview

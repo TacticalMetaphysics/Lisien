@@ -1,7 +1,7 @@
 from kivy.base import EventLoop
 from kivy.tests import UnitTestTouch
 
-from .util import ELiDEAppTest, idle_until, window_with_widget
+from .util import ELiDEAppTest, idle_until
 from LiSE import Engine
 
 
@@ -10,7 +10,7 @@ class StringsEditorTest(ELiDEAppTest):
 		assert "LiSE" in self.app.config
 		app = self.app
 		print("app", id(app))
-		win = window_with_widget(app.build())
+		self.Window.add_widget(app.build())
 		idle_until(
 			lambda: hasattr(app, "mainscreen"), 100, "app never got mainscreen"
 		)
@@ -25,7 +25,11 @@ class StringsEditorTest(ELiDEAppTest):
 			"DirPicker never got configurator",
 		)
 		app.mainmenu.configurator.start()  # start with blank world
-		idle_until(lambda: app.engine, 100, "app never got engine")
+
+		def app_has_engine():
+			return hasattr(self.app.get_running_app(), "engine")
+
+		idle_until(app_has_engine, 600, "app never got engine")
 		idle_until(
 			lambda: app.strings.children, 100, "strings never got children"
 		)

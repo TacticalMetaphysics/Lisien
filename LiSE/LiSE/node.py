@@ -20,18 +20,25 @@ have a lot in common.
 """
 
 from __future__ import annotations
+
 from collections.abc import Mapping, ValuesView, Set
 from typing import Optional, Union, Iterator, List
 
-import networkx as nx
 from networkx import shortest_path, shortest_path_length
 
-from .allegedb import graph, Key, HistoricKeyError
+from .allegedb import graph
 
-from .util import getatt, AbstractCharacter
+from .util import (
+	getatt,
+	AbstractCharacter,
+	AbstractThing,
+	Key,
+	HistoricKeyError,
+)
+from .facade import FacadePlace, FacadeThing
 from .query import StatusAlias
 from . import rule
-from .exc import AmbiguousUserError, TravelException
+from .exc import AmbiguousUserError
 
 
 class UserMapping(Mapping):
@@ -474,7 +481,10 @@ class Node(graph.Node, rule.RuleFollower):
 		return k in self._extra_keys or super().__contains__(k)
 
 	def __setitem__(self, k, v):
-		super().__setitem__(k, v)
+		if k == "rulebook":
+			self._set_rulebook_name(v)
+		else:
+			super().__setitem__(k, v)
 
 	def __delitem__(self, k):
 		super().__delitem__(k)
@@ -637,6 +647,9 @@ class Place(Node):
 		except:
 			return True
 
+	def facade(self):
+		return FacadePlace(self.character.facade(), self)
+
 	def delete(self) -> None:
 		"""Remove myself from the world model immediately."""
 		super().delete()
@@ -649,7 +662,7 @@ def roerror(*args):
 	raise RuntimeError("Read-only")
 
 
-class Thing(Node):
+class Thing(Node, AbstractThing):
 	"""The sort of item that has a particular location at any given time.
 
 	Things are always in Places or other Things, and may additionally be
@@ -741,6 +754,9 @@ class Thing(Node):
 			self.engine, self.character.name, self.name
 		)
 
+	def facade(self):
+		return FacadeThing(self.character.facade(), self)
+
 	def delete(self) -> None:
 		super().delete()
 		self._set_loc(None)
@@ -753,174 +769,3 @@ class Thing(Node):
 		for k in list(self.keys()):
 			if k not in self._extra_keys:
 				del self[k]
-
-	@property
-	def location(self) -> Node:
-		"""The ``Thing`` or ``Place`` I'm in."""
-		locn = self["location"]
-		if locn is None:
-			raise AttributeError("Not really a Thing")
-		return self.engine._get_node(self.character, locn)
-
-	@location.setter
-	def location(self, v: Union[Node, Key]):
-		if hasattr(v, "name"):
-			v = v.name
-		self["location"] = v
-
-	def go_to_place(self, place: Union[Node, Key], weight: Key = None) -> int:
-		"""Assuming I'm in a node that has a :class:`Portal` direct
-		to the given node, schedule myself to travel to the
-		given :class:`Place`, taking an amount of time indicated by
-		the ``weight`` stat on the :class:`Portal`, if given; else 1
-		turn.
-
-		Return the number of turns the travel will take.
-
-		"""
-		if hasattr(place, "name"):
-			placen = place.name
-		else:
-			placen = place
-		curloc = self["location"]
-		orm = self.character.engine
-		turns = (
-			1
-			if weight is None
-			else self.engine._portal_objs[
-				(self.character.name, curloc, place)
-			].get(weight, 1)
-		)
-		with self.engine.plan():
-			orm.turn += turns
-			self["location"] = placen
-		return turns
-
-	def follow_path(
-		self, path: list, weight: Key = None, check: bool = True
-	) -> int:
-		"""Go to several nodes in succession, deciding how long to
-		spend in each by consulting the ``weight`` stat of the
-		:class:`Portal` connecting the one node to the next,
-		default 1 turn.
-
-		Return the total number of turns the travel will take. Raise
-		:class:`TravelException` if I can't follow the whole path,
-		either because some of its nodes don't exist, or because I'm
-		scheduled to be somewhere else. Set ``check=False`` if
-		you're really sure the path is correct, and this function
-		will be faster.
-
-		"""
-		if len(path) < 2:
-			raise ValueError("Paths need at least 2 nodes")
-		eng = self.character.engine
-		with eng.world_lock:
-			if check:
-				prevplace = path.pop(0)
-				if prevplace != self["location"]:
-					raise ValueError(
-						"Path does not start at my present location"
-					)
-				subpath = [prevplace]
-				for place in path:
-					if (
-						prevplace not in self.character.portal
-						or place not in self.character.portal[prevplace]
-					):
-						raise TravelException(
-							"Couldn't follow portal from {} to {}".format(
-								prevplace, place
-							),
-							path=subpath,
-							traveller=self,
-						)
-					subpath.append(place)
-					prevplace = place
-			else:
-				subpath = path.copy()
-			turns_total = 0
-			prevsubplace = subpath.pop(0)
-			turn_incs = []
-			myname = self.name
-			charn = self.character.name
-			branch, turn, tick = eng._btt()
-			for subplace in subpath:
-				if weight is not None:
-					turn_incs.append(
-						self.engine._edge_val_cache.retrieve(
-							charn,
-							prevsubplace,
-							subplace,
-							0,
-							branch,
-							turn,
-							tick,
-						)
-					)
-				else:
-					turn_incs.append(1)
-				turns_total += turn_incs[-1]
-				turn += turn_incs[-1]
-				tick = eng._turn_end_plan.get(turn, 0)
-				if check:
-					eng._nodes_cache.retrieve(
-						charn, subplace, branch, turn, tick
-					)
-				_, start_turn, start_tick, end_turn, end_tick = eng._branches[
-					branch
-				]
-				if (
-					(start_turn < turn < end_turn)
-					or (
-						start_turn == end_turn == turn
-						and start_tick <= tick < end_tick
-					)
-					or (start_turn == turn and start_tick <= tick)
-					or (end_turn == turn and tick < end_tick)
-				):
-					eng._load_at(branch, turn, tick)
-			with eng.plan():
-				for subplace, turn_inc in zip(subpath, turn_incs):
-					eng.turn += turn_inc
-					branch, turn, tick = eng._nbtt()
-					eng._things_cache.store(
-						charn, myname, branch, turn, tick, subplace
-					)
-					eng.query.set_thing_loc(
-						charn, myname, branch, turn, tick, subplace
-					)
-			return turns_total
-
-	def travel_to(
-		self,
-		dest: Union[Node, Key],
-		weight: Key = None,
-		graph: nx.DiGraph = None,
-	) -> int:
-		"""Find the shortest path to the given node from where I am
-		now, and follow it.
-
-		If supplied, the ``weight`` stat of each :class:`Portal` along
-		the path will be used in pathfinding, and for deciding how
-		long to stay in each Place along the way.
-
-		The ``graph`` argument may be any NetworkX-style graph. It
-		will be used for pathfinding if supplied, otherwise I'll use
-		my :class:`Character`. In either case, however, I will attempt
-		to actually follow the path using my :class:`Character`, which
-		might not be possible if the supplied ``graph`` and my
-		:class:`Character` are too different. If it's not possible,
-		I'll raise a :class:`TravelException`, whose ``subpath``
-		attribute holds the part of the path that I *can* follow. To
-		make me follow it, pass it to my ``follow_path`` method.
-
-		Return value is the number of turns the travel will take.
-
-		"""
-		destn = dest.name if hasattr(dest, "name") else dest
-		if destn == self.location.name:
-			raise ValueError("I'm already at {}".format(destn))
-		graph = self.character if graph is None else graph
-		path = nx.shortest_path(graph, self["location"], destn, weight)
-		return self.follow_path(path, weight)
