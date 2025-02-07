@@ -16,7 +16,6 @@ elide.ini
 *.prof
 *.so
 *.csv
-elide/elide
 lisien/allegedb
 *.pyc
 *~
