@@ -144,9 +144,11 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 				del v["location"]
 				for k, vv in v.items():
 					set_in_mapping(char.place[node], k, vv)
+					set_in_mapping(end_places[node], k, vv)
 			else:
 				for k, vv in v.items():
 					set_in_mapping(char.thing[node], k, vv)
+					set_in_mapping(end_things[node], k, vv)
 		elif "location" in v:
 			end_things[node] = v
 			me = char.new_thing(node, v.pop("location"))
