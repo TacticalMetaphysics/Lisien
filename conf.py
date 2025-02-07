@@ -14,22 +14,26 @@
 #
 import os
 import sys
+import tomllib
 
-sys.path.insert(0, os.path.abspath("./ELiDE"))
-sys.path.insert(0, os.path.abspath("./LiSE"))
+sys.path.insert(0, os.path.abspath("elide"))
+sys.path.insert(0, os.path.abspath("lisien"))
 sys.path.insert(0, os.path.abspath("./allegedb"))
 os.environ["KIVY_DOC"] = "1"
 
 # -- Project information -----------------------------------------------------
 
-project = "LiSE"
+project = "Lisien"
 copyright = "Zachary Spector"
 author = "Zachary Spector"
 
-# The short X.Y version
-version = "0.14"
+with open("lisien/pyproject.toml", "rb") as inf:
+	project_config = tomllib.load(inf)["project"]
 # The full version, including alpha/beta/rc tags
-release = "0.14.0a"
+release = project_config["version"]
+versions = release.split(".")
+# The short X.Y version
+version = ".".join((versions[0], versions[1]))
 
 # -- General configuration ---------------------------------------------------
 
@@ -71,7 +75,7 @@ language = "en"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "docs", "ELiDE_icon"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "docs", "elide_icon"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
@@ -132,8 +136,8 @@ latex_elements = {
 latex_documents = [
 	(
 		master_doc,
-		"LiSE.tex",
-		"LiSE Documentation",
+		"lisien.tex",
+		"lisien Documentation",
 		"Zachary Spector",
 		"manual",
 	),
@@ -143,7 +147,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "lise", "LiSE Documentation", [author], 1)]
+man_pages = [(master_doc, "lise", "lisien Documentation", [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -153,10 +157,10 @@ man_pages = [(master_doc, "lise", "LiSE Documentation", [author], 1)]
 texinfo_documents = [
 	(
 		master_doc,
-		"LiSE",
-		"LiSE Documentation",
+		"lisien",
+		"lisien Documentation",
 		author,
-		"LiSE",
+		"lisien",
 		"One line description of project.",
 		"Miscellaneous",
 	),

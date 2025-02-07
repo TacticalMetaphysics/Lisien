@@ -1,6 +1,6 @@
-LiSE is a tool for developing life simulation games.
+Lisien is a tool for developing life simulation games.
 
-[Download on Itch](https://clayote.itch.io/LiSE)
+[Download on Itch](https://clayote.itch.io/Lisien)
 
 [Discuss on Gamemaking Tools Forum](https://www.gamemaking.tools/forum/categories/lise)
 
@@ -20,7 +20,7 @@ appeal is in the parts that are not directly under player control.
 The game world feels like it continues to exist when you're not playing
 it, because so much of it seems to operate independently of you.
 
-Existing games that LiSE seeks to imitate include:
+Existing games that Lisien seeks to imitate include:
 
 * The Sims
 * SimLife (1992)
@@ -35,19 +35,19 @@ Existing games that LiSE seeks to imitate include:
 * [Galimulator](https://snoddasmannen.itch.io/galimulator)
 * [Vilmonic](https://bludgeonsoft.itch.io/)
 
-# Why should I use LiSE for this purpose?
+# Why should I use Lisien for this purpose?
 
-LiSE assumes
+Lisien assumes
 that there are certain problems any designer of life simulators will
 have, and provides powerful tools specialized to those
 problems. Though you will still need to write some Python code for
 your game, it should only be the code that describes how your game's
 world works. If you don't want to worry about the data structure that
-represents the world, LiSE gives you one that will work. And if you
+represents the world, Lisien gives you one that will work. And if you
 don't want to write a user interface, you can play the game in the
 IDE.
 
-The LiSE data model has been designed from the ground up to support
+The Lisien data model has been designed from the ground up to support
 debugging of complex simulations. It remembers everything that ever
 happened in the simulation, so that when something strange happens
 in a playtester's game, and they send you their save file, you can
@@ -65,7 +65,7 @@ tester knew to look for it.
 * *Rules engine* for game logic. Rules are written in plain
   Python. They are composable, and can be disabled or reassigned to
   different entities mid-game.
-* Can be run as a *web server*, so that you can control LiSE and query
+* Can be run as a *web server*, so that you can control Lisien and query
   its world state from any other game engine you please.
 
 ## IDE
@@ -81,36 +81,36 @@ tester knew to look for it.
 
 # Setup
 
-LiSE is available [on PyPI](https://pypi.org/project/LiSE/), so
-`pip install LiSE ELiDE` will work, but won't always have the latest experimental
+Lisien is available [on PyPI](https://pypi.org/project/Lisien/), so
+`pip install Lisien Elide` will work, but won't always have the latest experimental
 code. If you want that, then in a command line, with [Python](https://python.org)
 (preferably [version 3.12](https://www.python.org/downloads/release/python-3127/)) already installed, run:
 
 ```
-python -m pip install --user --upgrade https://codeberg.org/clayote/LiSE/archive/main.zip
+python -m pip install --user --upgrade https://codeberg.org/clayote/Lisien/archive/main.zip
 ```
 
-Run it again whenever you want the latest LiSE code.
+Run it again whenever you want the latest Lisien code.
 
 # Getting started
 
-You could now start the graphical frontend with ``python -m ELiDE``,
+You could now start the graphical frontend with ``python -m Elide``,
 but this might not be very useful, as you don't have any world state
 to edit yet. You could laboriously assemble a gameworld by hand, but
 instead let's generate one, Parable of the Polygons by Nicky Case.
 
 Make a new Python script, let's say 'polygons.py', and write the
 following in it (or use the [example
-version](https://codeberg.org/clayote/LiSE/src/branch/main/LiSE/LiSE/examples/polygons.py)):
+version](https://codeberg.org/clayote/Lisien/src/branch/main/Lisien/Lisien/examples/polygons.py)):
 
 ```python
-from LiSE import Engine
+from lisien import Engine
 import networkx as nx
 
 with Engine(clear=True) as eng:
-	phys = eng.new_character('physical', nx.grid_2d_graph(20, 20))
-	tri = eng.new_character('triangle')
-	sq = eng.new_character('square')
+  phys = eng.new_character('physical', nx.grid_2d_graph(20, 20))
+  tri = eng.new_character('triangle')
+  sq = eng.new_character('square')
 ```
 
 This starts a new game with its world state stored in the file
@@ -206,7 +206,7 @@ The core of this ruleset is the ``cmp_neighbor_shapes`` function,
 which is a plain Python function that I've chosen to store in the
 engine because that makes it easier for the rules to get at.
 Functions decorated with ``@engine.function`` become accessible as
-attributes of ``engine.function``.  Every LiSE entity has an attribute
+attributes of ``engine.function``.  Every Lisien entity has an attribute
 ``engine`` that you can use to get at that function store and lots of
 other utilities.
 
@@ -240,27 +240,27 @@ neighbors of those neighbors as well, and so on. You never really *need* this,
 but it makes this simulation go fast.
 
 Run ``python3 polygons.py`` to generate the simulation. To view it,
-run ``python3 -m ELiDE`` in the same directory.  Just click the big
+run ``python3 -m Elide`` in the same directory.  Just click the big
 &gt; button and watch it for a little while. There's a control panel
 on the bottom of the screen that lets you go back in time, if you
 wish, and you can use that to browse different runs of the simulation
 with different starting conditions, or even stats and rules
 arbitrarily changing in the middle of a run.
 
-If you'd prefer to run the simulation without ELiDE, though, you can add this to your script:
+If you'd prefer to run the simulation without Elide, though, you can add this to your script:
 ```python
 	for i in range(10):
 		eng.next_turn()
 ```
 
 Every change to the world will be saved in the database so that you
-can browse it in ELiDE at your leisure.  If you want to travel through
+can browse it in Elide at your leisure.  If you want to travel through
 time programmatically, set the properties ``eng.branch`` (to a
 string), ``eng.turn``, and ``eng.tick`` (to integers).
 
-To prevent locking when running `next_turn()`, you might want to run LiSE in a subprocess. This is done by
-instantiating `LiSE.proxy.EngineProcessManager()`,
-getting a proxy to the engine from its `start()` method, and treating that proxy much as you would an actual LiSE
+To prevent locking when running `next_turn()`, you might want to run Lisien in a subprocess. This is done by
+instantiating `Lisien.proxy.EngineProcessManager()`,
+getting a proxy to the engine from its `start()` method, and treating that proxy much as you would an actual Lisien
 engine, except that you can call `next_turn()` in a thread and then do something else in parallel. Call
 `EngineProcessManager.shutdown()` when it's time to quit the game.
 
@@ -349,36 +349,36 @@ entities:
 
 # Making a game
 
-ELiDE is meant to support repurposing its widgets to build a rudimentary graphical
+Elide is meant to support repurposing its widgets to build a rudimentary graphical
 interface for a game. For an example of what that might look like, see
-[the Awareness sim](https://codeberg.org/clayote/LiSE/src/branch/main/ELiDE/ELiDE/examples/awareness.py).
+[the Awareness sim](https://codeberg.org/clayote/Lisien/src/branch/main/Elide/Elide/examples/awareness.py).
 You may prefer to work with some other Python-based game engine, such as
-[Pyglet](http://pyglet.org/) or [Ursina](https://www.ursinaengine.org/), in which case you don't really need ELiDE--
-though you may find it useful to open ELiDE in your game folder when you're
+[Pyglet](http://pyglet.org/) or [Ursina](https://www.ursinaengine.org/), in which case you don't really need Elide--
+though you may find it useful to open Elide in your game folder when you're
 trying to track down a bug.
 
 
 # License Information
 
-ELiDE uses third-party graphics sets:
+Elide uses third-party graphics sets:
 
 * The [RLTiles](http://rltiles.sourceforge.net/), available under
   [CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in
   the public domain where it exists.
-* The ELiDE icon is by Robin Hill, used with permission.
+* The Elide icon is by Robin Hill, used with permission.
 * Everything else is by [Kenney](https://kenney.nl), available under
   [CC0](http://creativecommons.org/publicdomain/zero/1.0/).
 
-The allegedb, LiSE, and ELiDE source files are licensed under the
+The allegedb, Lisien, and Elide source files are licensed under the
 terms of the GNU Affero Public License version 3 (and no later).
 If you make a game with it, you have to release any modifications you
-make to ELiDE, allegedb, or LiSE itself under the AGPL, but 
+make to Elide, allegedb, or Lisien itself under the AGPL, but 
 this doesn't apply to your game code.
 
 Game code is that which is loaded into the engine at
 launch time, either from a file named ``game_start.py`` in the game prefix,
 or from modules specified by the following parameters
-to the LiSE engine:
+to the Lisien engine:
 * ``trigger``
 * ``prereq``
 * ``action``
@@ -386,13 +386,13 @@ to the LiSE engine:
 * ``method``
 
 Or stored in files by those names (plus extensions) inside the game's prefix. 
-Game code must not alter the function of LiSE itself (no "hot patching"). If 
-it does, then it is part of LiSE.
+Game code must not alter the function of Lisien itself (no "hot patching"). If 
+it does, then it is part of Lisien.
 
-If you write another application (not using any allegedb, LiSE, or
-ELiDE code) that accesses a LiSE server via HTTP(S), it is separate
-from LiSE and not subject to its license. If you run LiSE in a
-Python interpreter embedded into your application, the LiSE
-license only covers LiSE itself, and not any code run outside
+If you write another application (not using any allegedb, Lisien, or
+Elide code) that accesses a Lisien server via HTTP(S), it is separate
+from Lisien and not subject to its license. If you run Lisien in a
+Python interpreter embedded into your application, the Lisien
+license only covers Lisien itself, and not any code run outside
 of that Python interpreter. You must still release any modifications
-you make to LiSE, but the embedding application remains your own.
+you make to Lisien, but the embedding application remains your own.
