@@ -11,7 +11,7 @@ ls ~/lise_windows
 rm -rf .tox
 python -m tox
 rm -rf .tox
-python -m sphinx . docs/
+PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
 rm -rf lisien/build lisien/dist
 python -m build lisien/
 rm -rf elide/build elide/dist
