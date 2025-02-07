@@ -650,6 +650,8 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 				proc.join()
 				proc.close()
+				pipein.close()
+				pipeout.close()
 
 	def _detect_kf_interval_override(self):
 		if getattr(self, "_no_kc", False):
