@@ -15,7 +15,7 @@ extraneous detail, you lose a huge part of what makes it
 lifelike. This causes trouble for developers when even *they* don't
 understand why sims hate each other
 
-To address all those problems, LiSE provides a state container.
+To address all those problems, Lisien provides a state container.
 Everything that ever happens in a game gets recorded, so that you can
 pick through the whole history and find out exactly when the butterfly
 flapped its wings to cause the cyclone. All of that history gets saved
@@ -28,7 +28,7 @@ Too many rules
 --------------
 
 Fans of life sims tend to appreciate complexity. Developers are best
-served by reducing complexity as much as possible. So LiSE makes it
+served by reducing complexity as much as possible. So Lisien makes it
 easy to compartmentalize complexity and choose what of it you want to
 deal with and when.
 
@@ -42,12 +42,12 @@ whether their Actions should happen.
 Concepts
 --------
 
-LiSE is a tool for constructing turn-based simulations following rules
+Lisien is a tool for constructing turn-based simulations following rules
 in a directed graph-based world model. It has special affordances for
 the kinds of things you might need to simulate in the life simulation
 genre.
 
-Rules are things the game should do in certain conditions. In LiSE,
+Rules are things the game should do in certain conditions. In Lisien,
 the "things to do" are called Actions, and are functions that can run
 arbitrary Python code. The conditions are divided into Triggers and
 Prereqs, of which only Triggers are truly necessary: they are also
@@ -62,7 +62,7 @@ not vice-versa, so you can have nodes A and B where A is connected to
 B, but B is not connected to A. But you can have edges going in both
 directions between A and B. They're usually drawn as arrows.
 
-In LiSE, edges are called Portals, and nodes may be Places or
+In Lisien, edges are called Portals, and nodes may be Places or
 Things. You can use these to represent whatever you want, but they
 have special properties to make it easier to model physical space: in
 particular, each Thing is located in exactly one node at a time
@@ -70,20 +70,20 @@ particular, each Thing is located in exactly one node at a time
 leading out from there. Regardless, you can keep any data you like in
 a Thing, Place, or Portal by treating it like a dictionary.
 
-LiSE's directed graphs are called Characters. Every time something
-about a Character changes, LiSE remembers when it happened -- that is,
+Lisien's directed graphs are called Characters. Every time something
+about a Character changes, Lisien remembers when it happened -- that is,
 which turn of the simulation. This allows the developer to look up the
 state of the world at some point in the past. This time travel is
 nearly real-time in most cases, to make it convenient to flip
 back and forth between a correct world state and an incorrect one
 and use your intuition to spot exactly what went wrong.
 
-See :doc:`LiSE/design` for details.
+See :doc:`lisien/design` for details.
 
 Usage
 -----
-The only LiSE class that you should ever instantiate yourself is
-:class:`LiSE.engine.Engine`. All simulation objects should be
+The only Lisien class that you should ever instantiate yourself is
+:class:`Lisien.engine.Engine`. All simulation objects should be
 created and accessed through it. By default, it keeps the simulation
 code and world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager
@@ -153,7 +153,7 @@ If you like, you can also add prerequisites. These are like triggers,
 but use the ``prereq`` decorator, and should return ``True`` *unless*
 the action should *not* happen; if a single prerequisite returns
 ``False``, the action is cancelled. Prereqs may involve random elements.
-Use the ``engine`` property of any LiSE entity to get the engine,
+Use the ``engine`` property of any Lisien entity to get the engine,
 then use methods such as ``percent_chance`` and ``dice_check``.
 
 Time Control
@@ -192,9 +192,9 @@ could call ``engine.delete_plan(engine.character['alice'].stat['wake_plan'])``.
 Input Prompts
 +++++++++++++
 
-LiSE itself doesn't know what a player is or how to accept input from them,
+Lisien itself doesn't know what a player is or how to accept input from them,
 but does use some conventions for communicating with a user interface
-such as ELiDE.
+such as Elide.
 
 To ask the player to make a decision, first define a method for them to
 call, then return a menu description like this one.::

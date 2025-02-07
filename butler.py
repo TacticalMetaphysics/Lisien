@@ -2,26 +2,26 @@ import sys
 import os
 import tomllib
 
-with open("LiSE/pyproject.toml", "rb") as inf:
+with open("lisien/pyproject.toml", "rb") as inf:
 	cfg = tomllib.load(inf)
 
 version = cfg["project"]["version"]
 
-for wheel in os.listdir("LiSE/dist"):
-	if wheel.endswith(".whl"):
+for lisien_wheel in os.listdir("lisien/dist"):
+	if lisien_wheel.endswith(".whl"):
 		break
 else:
-	sys.exit("Couldn't find the LiSE wheel")
+	sys.exit("Couldn't find the lisien wheel")
+for elide_wheel in os.listdir("elide/dist"):
+	if elide_wheel.endswith(".whl"):
+		break
+else:
+	sys.exit("Couldn't find the elide wheel")
 os.system(
-	f"butler push LiSE/dist/{wheel} clayote/lise:lise-whl --userversion {version}"
+	f"butler push lisien/dist/{lisien_wheel} clayote/lisien:lisien-whl --userversion {version}"
 )
-for wheel in os.listdir("ELiDE/dist"):
-	if wheel.endswith(".whl"):
-		break
-else:
-	sys.exit("Couldn't find the ELiDE wheel")
 os.system(
-	f"butler push ELiDE/dist/{wheel} clayote/lise:elide-whl --userversion {version}"
+	f"butler push elide/dist/{elide_wheel} clayote/lisien:elide-whl --userversion {version}"
 )
 os.system(
 	f"butler push ~/lise_windows clayote/lise:windows --userversion {version}"
