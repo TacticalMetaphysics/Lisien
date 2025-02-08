@@ -127,6 +127,8 @@ RULES: bytes = msgpack.packb("rules")
 TRIGGERS: bytes = msgpack.packb("triggers")
 PREREQS: bytes = msgpack.packb("prereqs")
 ACTIONS: bytes = msgpack.packb("actions")
+NEIGHBORHOOD: bytes = msgpack.packb("neighborhood")
+BIG: bytes = msgpack.packb("big")
 LOCATION: bytes = msgpack.packb("location")
 BRANCH: bytes = msgpack.packb("branch")
 
@@ -895,6 +897,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._actions_cache.load(rule_actions)
 		if rule_neighborhoods := loaded.pop("rule_neighborhoods"):
 			self._neighborhoods_cache.load(rule_neighborhoods)
+		if rule_big := loaded.pop("rule_big"):
+			self._rule_bigness_cache.load(rule_big)
 		for graph, rowdict in loaded.items():
 			if rowdict.get("things"):
 				self._things_cache.load(rowdict["things"])
@@ -950,7 +954,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._actions_cache.load(rule_actions)
 		if rule_neighborhoods := loaded.pop("rule_neighborhoods", None):
 			self._neighborhoods_cache.load(rule_neighborhoods)
+		if rule_big := loaded.pop("rule_big", None):
+			self._rule_bigness_cache.load(rule_big)
 		for loaded_graph, data in loaded.items():
+			assert isinstance(data, dict)
 			if data.get("things"):
 				self._things_cache.load(data["things"])
 			if data.get("character_rulebook"):
@@ -1038,6 +1045,9 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._actions_cache = InitializedEntitylessCache(self, "actions_cache")
 		self._neighborhoods_cache = InitializedEntitylessCache(
 			self, "neighborhoods_cache"
+		)
+		self._rule_bigness_cache = InitializedEntitylessCache(
+			self, "rule_bigness_cache"
 		)
 		self._node_rules_handled_cache = NodeRulesHandledCache(self)
 		self._portal_rules_handled_cache = PortalRulesHandledCache(self)
@@ -1140,6 +1150,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._characters_portals_rulebooks_cache,
 			self._nodes_rulebooks_cache,
 			self._portals_rulebooks_cache,
+			self._neighborhoods_cache,
+			self._rule_bigness_cache,
 		):
 			cache.copy_keyframe(branch_from, branch_to, turn, tick)
 
@@ -1186,6 +1198,12 @@ class Engine(AbstractEngine, gORM, Executor):
 					branch_to, turn, tick
 				),
 				"actions": self._actions_cache.get_keyframe(
+					branch_to, turn, tick
+				),
+				"neighborhood": self._neighborhoods_cache.get_keyframe(
+					branch_to, turn, tick
+				),
+				"big": self._rule_bigness_cache.get_keyframe(
 					branch_to, turn, tick
 				),
 			},
@@ -1313,6 +1331,10 @@ class Engine(AbstractEngine, gORM, Executor):
 		kf["triggers"] = self._triggers_cache.get_keyframe(branch, turn, tick)
 		kf["prereqs"] = self._prereqs_cache.get_keyframe(branch, turn, tick)
 		kf["actions"] = self._actions_cache.get_keyframe(branch, turn, tick)
+		kf["neighborhood"] = self._neighborhoods_cache.get_keyframe(
+			branch, turn, tick
+		)
+		kf["big"] = self._rule_bigness_cache.get_keyframe(branch, turn, tick)
 		kf["rulebook"] = self._rulebooks_cache.get_keyframe(branch, turn, tick)
 		return kf
 
@@ -1330,6 +1352,10 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._triggers_cache.set_keyframe(branch, turn, tick, rule["triggers"])
 		self._prereqs_cache.set_keyframe(branch, turn, tick, rule["prereqs"])
 		self._actions_cache.set_keyframe(branch, turn, tick, rule["actions"])
+		self._neighborhoods_cache.set_keyframe(
+			branch, turn, tick, rule.get("neighborhood", {})
+		)
+		self._rule_bigness_cache.set_keyframe(branch, turn, tick, rule["big"])
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rulebook)
 
 		ret = super()._get_keyframe(
@@ -1589,46 +1615,26 @@ class Engine(AbstractEngine, gORM, Executor):
 		# Comparing object IDs is guaranteed never to give a false equality,
 		# because of the way keyframes are constructed.
 		# It may give a false inequality.
-		for k in kf_from["universal"].keys() | kf_to["universal"].keys():
-			keys.append(("universal", k))
-			va = kf_from["universal"].get(k)
-			vb = kf_to["universal"].get(k)
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
-			a = kf_from["triggers"].get(rule, ())
-			b = kf_to["triggers"].get(rule, ())
-			keys.append(("triggers", rule))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
-			a = kf_from["prereqs"].get(rule, ())
-			b = kf_to["prereqs"].get(rule, ())
-			keys.append(("prereqs", rule))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
-			a = kf_from["actions"].get(rule, ())
-			b = kf_to["actions"].get(rule, ())
-			keys.append(("actions", rule))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
-		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
-			a = kf_from["rulebook"].get(rulebook, ())
-			b = kf_to["rulebook"].get(rulebook, ())
-			keys.append(("rulebook", rulebook))
-			ids_from.append(id(a))
-			ids_to.append(id(b))
-			values_from.append(a)
-			values_to.append(b)
+		non_graph_kf_keys = [
+			"universal",
+			"triggers",
+			"prereqs",
+			"actions",
+			"neighborhood",
+			"big",
+			"rulebook",
+		]
+		for kfkey in non_graph_kf_keys:
+			for k in (
+				kf_from.get(kfkey, {}).keys() | kf_to.get(kfkey, {}).keys()
+			):
+				keys.append((kfkey, k))
+				va = kf_from[kfkey].get(k)
+				vb = kf_to[kfkey].get(k)
+				ids_from.append(id(va))
+				ids_to.append(id(vb))
+				values_from.append(va)
+				values_to.append(vb)
 		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
 			a = kf_from["graph_val"].get(graph, {})
 			b = kf_to["graph_val"].get(graph, {})
@@ -1688,38 +1694,6 @@ class Engine(AbstractEngine, gORM, Executor):
 					ids_to.append(id(vb))
 					values_from.append(va)
 					values_to.append(vb)
-		for rulebook in kf_from["rulebook"].keys() | kf_to["rulebook"].keys():
-			va = kf_from["rulebook"].get(rulebook, ())
-			vb = kf_to["rulebook"].get(rulebook, ())
-			keys.append(("rulebook", rulebook))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["triggers"].keys() | kf_to["triggers"].keys():
-			va = kf_from["triggers"].get(rule, ())
-			vb = kf_to["triggers"].get(rule, ())
-			keys.append(("triggers", rule))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["prereqs"].keys() | kf_to["prereqs"].keys():
-			va = kf_from["prereqs"].get(rule, ())
-			vb = kf_to["prereqs"].get(rule, ())
-			keys.append(("prereqs", rule))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
-		for rule in kf_from["actions"].keys() | kf_to["actions"].keys():
-			va = kf_from["actions"].get(rule, ())
-			vb = kf_to["actions"].get(rule, ())
-			keys.append(("actions", rule))
-			ids_from.append(id(va))
-			ids_to.append(id(vb))
-			values_from.append(va)
-			values_to.append(vb)
 
 		def pack_one(k, va, vb, deleted_nodes, deleted_edges):
 			if va == vb:
@@ -1737,6 +1711,12 @@ class Engine(AbstractEngine, gORM, Executor):
 			elif k[0] == "actions":
 				rule = pack(k[1])
 				delta[RULES][rule][ACTIONS] = v
+			elif k[0] == "neighborhood":
+				rule = pack(k[1])
+				delta[RULES][rule][NEIGHBORHOOD] = v
+			elif k[0] == "big":
+				rule = pack(k[1])
+				delta[RULES][rule][BIG] = v
 			elif k[0] == "rulebook":
 				rulebook = pack(k[1])
 				delta[RULEBOOK][rulebook] = v
@@ -1910,6 +1890,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		trigbranches = getattr(self._triggers_cache, attribute)
 		preqbranches = getattr(self._prereqs_cache, attribute)
 		actbranches = getattr(self._actions_cache, attribute)
+		nbrbranches = getattr(self._neighborhoods_cache, attribute)
+		bigbranches = getattr(self._rule_bigness_cache, attribute)
 		charrbbranches = getattr(self._characters_rulebooks_cache, attribute)
 		avrbbranches = getattr(self._units_rulebooks_cache, attribute)
 		charthrbbranches = getattr(
@@ -1981,6 +1963,12 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		if branch in actbranches:
 			updater(partial(updru, "actions"), actbranches[branch])
+
+		if branch in nbrbranches:
+			updater(partial(updru, "neighborhood"), nbrbranches[branch])
+
+		if branch in bigbranches:
+			updater(partial(updru, "big"), bigbranches[branch])
 
 		def updcrb(key, _, character, rulebook):
 			if character in delta and delta[character] is None:
@@ -2098,6 +2086,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		triggers_settings = getattr(self._triggers_cache, attribute)
 		prereqs_settings = getattr(self._prereqs_cache, attribute)
 		actions_settings = getattr(self._actions_cache, attribute)
+		neighborhood_settings = getattr(self._neighborhoods_cache, attribute)
+		big_settings = getattr(self._rule_bigness_cache, attribute)
 		character_rulebooks_settings = getattr(
 			self._characters_rulebooks_cache, attribute
 		)
@@ -2178,6 +2168,17 @@ class Engine(AbstractEngine, gORM, Executor):
 				tick_from:tick_to
 			]:
 				rdif.setdefault(rule, {})["actions"] = funs
+		if (
+			branch in neighborhood_settings
+			and turn in neighborhood_settings[branch]
+		):
+			for _, rule, neighborhood in neighborhood_settings[branch][turn][
+				tick_from:tick_to
+			]:
+				rdif.setdefault(rule, {})["neighborhood"] = neighborhood
+		if branch in big_settings and turn in big_settings[branch]:
+			for _, rule, big in big_settings[branch][turn][tick_from:tick_to]:
+				rdif.setdefault(rule, {})["big"] = big
 
 		if (
 			branch in character_rulebooks_settings
@@ -2388,10 +2389,16 @@ class Engine(AbstractEngine, gORM, Executor):
 		trigs = self._triggers_cache.get_keyframe(b, r, t, copy=True)
 		preqs = self._prereqs_cache.get_keyframe(b, r, t, copy=True)
 		acts = self._actions_cache.get_keyframe(b, r, t, copy=True)
+		nbrs = self._neighborhoods_cache.get_keyframe(b, r, t, copy=True)
+		bigs = self._rule_bigness_cache.get_keyframe(b, r, t, copy=True)
 		for rule, funcs in delta.pop("rules", {}).items():
 			trigs[rule] = funcs.get("triggers", trigs.get(rule, ()))
 			preqs[rule] = funcs.get("prereqs", preqs.get(rule, ()))
 			acts[rule] = funcs.get("actions", acts.get(rule, ()))
+			if "neighborhood" in funcs:
+				nbrs[rule] = funcs["neighborhood"]
+			if "big" in funcs:
+				bigs[rule] = funcs["big"]
 		charrbs = self._characters_rulebooks_cache.get_keyframe(*then)
 		unitrbs = self._units_rulebooks_cache.get_keyframe(*then)
 		thingrbs = self._characters_things_rulebooks_cache.get_keyframe(*then)
@@ -2522,11 +2529,19 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
+		self._neighborhoods_cache.set_keyframe(branch, turn, tick, nbrs)
+		self._rule_bigness_cache.set_keyframe(branch, turn, tick, bigs)
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
 		self.query.keyframe_extension_insert(
 			*now,
 			univ,
-			{"triggers": trigs, "prereqs": preqs, "actions": acts},
+			{
+				"triggers": trigs,
+				"prereqs": preqs,
+				"actions": acts,
+				"neighborhood": nbrs,
+				"big": bigs,
+			},
 			rbs,
 		)
 		super()._snap_keyframe_from_delta(then, now, delta)
@@ -2957,7 +2972,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			return True
 
 		def do_actions(rule, handled_fun, entity):
-			entity = entity.facade()
+			if rule.big:
+				entity = entity.facade()
 			actres = []
 			for action in rule.actions:
 				res = action(entity)
@@ -2965,8 +2981,9 @@ class Engine(AbstractEngine, gORM, Executor):
 					actres.append(res)
 				if not entity:
 					break
-			with self.batch():
-				entity.engine.apply()
+			if rule.big:
+				with self.batch():
+					entity.engine.apply()
 			handled_fun(self.tick)
 			return actres
 
@@ -3625,6 +3642,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		trigs = {}
 		preqs = {}
 		acts = {}
+		nbrs = {}
+		bigs = {}
 		for rule in rulenames:
 			try:
 				trigs[rule] = self._triggers_cache.retrieve(
@@ -3644,9 +3663,23 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 			except KeyError:
 				acts[rule] = tuple()
+			try:
+				nbrs[rule] = self._neighborhoods_cache.retrieve(
+					rule, branch, turn, tick
+				)
+			except KeyError:
+				nbrs[rule] = None
+			try:
+				bigs[rule] = self._rule_bigness_cache.retrieve(
+					rule, branch, turn, tick
+				)
+			except KeyError:
+				bigs[rule] = False
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
+		self._neighborhoods_cache.set_keyframe(branch, turn, tick, nbrs)
+		self._rule_bigness_cache.set_keyframe(branch, turn, tick, bigs)
 		thing_graphs = all_graphs.copy()
 		for charname in all_graphs:
 			thing_graphs.discard(charname)
@@ -3704,7 +3737,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			turn,
 			tick,
 			universal,
-			{"triggers": trigs, "prereqs": preqs, "actions": acts},
+			{
+				"triggers": trigs,
+				"prereqs": preqs,
+				"actions": acts,
+				"neighborhood": nbrs,
+				"big": bigs,
+			},
 			rbs,
 		)
 		super()._snap_keyframe_de_novo(branch, turn, tick)

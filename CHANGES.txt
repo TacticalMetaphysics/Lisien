@@ -1,11 +1,11 @@
-== 0.18.0 | 2025-02-07 ==
+== 0.18.0 | 2025-02-08 ==
 * Changed name of "LiSE" to "Lisien"
 * Changed name of "ELiDE" to "Elide"
 (letters cased like normal English if that's what you're writing,
 "elide" and "lise" in Python)
-* Rules' actions now operate on Facade objects, which batch the changes to the
-world until the rule is done running. This improves performance for large actions,
-and seems to have acceptably small impact for others.
+* Rules may now be designated "big," which will enable an optimization to
+  only write the changes they make to the world after they're all computed.
+* Neighborhoods get keyframed properly, now, the same as other rule attributes.
 * Added Kenney graphics, and changed the default background to Kenney's parchment
 * Fixed rules displaying out of order in the stepper
 * Fixed dragged objects dropping when they shouldn't

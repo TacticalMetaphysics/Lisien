@@ -23302,9 +23302,25 @@ KEYFRAME0 = {
 		"shrubsprint": ("uncovered", "breakcover"),
 		"wander": ("standing_still",),
 	},
+	"big": {
+		"fight": False,
+		"go2kobold": False,
+		"kill_kobold": False,
+		"shrubsprint": False,
+		"wander": False,
+	},
+	"neighborhood": {},
 }
 
 KEYFRAME1 = {
+	"big": {
+		"fight": False,
+		"go2kobold": False,
+		"kill_kobold": False,
+		"shrubsprint": False,
+		"wander": False,
+	},
+	"neighborhood": {},
 	"actions": {
 		"fight": ("fight",),
 		"go2kobold": ("go2kobold",),
