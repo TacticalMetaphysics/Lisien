@@ -1095,6 +1095,7 @@ class ConnectionHolder(query.ConnectionHolder):
 			"rule_prereqs",
 			"rule_actions",
 			"rule_neighborhood",
+			"rule_big",
 			"turns_completed",
 			"keyframe_extensions",
 		):
@@ -1199,6 +1200,7 @@ class QueryEngine(query.QueryEngine):
 		"rule_prereqs",
 		"rule_actions",
 		"rule_neighborhoods",
+		"rule_big",
 	]
 
 	def load_windows(self, windows: list) -> dict:
@@ -1588,13 +1590,50 @@ class QueryEngine(query.QueryEngine):
 			turn_to,
 			tick_to,
 		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_big",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, branch, turn, tick, big in got:
+				if "rule_big" in ret:
+					ret["rule_big"].append((rule, branch, turn, tick, big))
+				else:
+					ret["rule_big"] = [(rule, branch, turn, tick, big)]
+		assert got == (
+			"end",
+			"rule_big",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 
 	def keyframe_extension_insert(
-		self, branch, turn, tick, universal, rules, rulebooks
+		self,
+		branch,
+		turn,
+		tick,
+		universal,
+		rules,
+		rulebooks,
 	):
 		pack = self.pack
 		self._new_keyframe_extensions.append(
-			(branch, turn, tick, pack(universal), pack(rules), pack(rulebooks))
+			(
+				branch,
+				turn,
+				tick,
+				pack(universal),
+				pack(rules),
+				pack(rulebooks),
+			)
 		)
 
 	def _increc(self):
@@ -1704,9 +1743,16 @@ class QueryEngine(query.QueryEngine):
 
 	def keyframe_extensions_dump(self):
 		unpack = self.unpack
-		for branch, turn, tick, universal, rule, rulebook in self.call_one(
-			"keyframe_extensions_dump"
-		):
+		for (
+			branch,
+			turn,
+			tick,
+			universal,
+			rule,
+			rulebook,
+			neighborhood,
+			big,
+		) in self.call_one("keyframe_extensions_dump"):
 			yield (
 				branch,
 				turn,
@@ -1714,6 +1760,8 @@ class QueryEngine(query.QueryEngine):
 				unpack(universal),
 				unpack(rule),
 				unpack(rulebook),
+				unpack(neighborhood),
+				unpack(big),
 			)
 
 	def get_keyframe_extensions(self, branch: str, turn: int, tick: int):
@@ -1729,7 +1777,11 @@ class QueryEngine(query.QueryEngine):
 			)
 		except StopIteration:
 			raise KeyError("No keyframe", branch, turn, tick)
-		return unpack(universal), unpack(rule), unpack(rulebook)
+		return (
+			unpack(universal),
+			unpack(rule),
+			unpack(rulebook),
+		)
 
 	def universals_dump(self):
 		unpack = self.unpack
@@ -2279,6 +2331,12 @@ class QueryEngine(query.QueryEngine):
 	set_rule_actions = partialmethod(_set_rule_something, "actions")
 	set_rule_neighborhood = partialmethod(_set_rule_something, "neighborhood")
 
+	def set_rule_big(
+		self, rule: str, branch: str, turn: int, tick: int, big: bool
+	):
+		self.call_one("rule_big_insert", rule, branch, turn, tick, big)
+		self._increc()
+
 	def set_rule(
 		self,
 		rule,
@@ -2289,6 +2347,7 @@ class QueryEngine(query.QueryEngine):
 		prereqs=None,
 		actions=None,
 		neighborhood=None,
+		big=False,
 	):
 		try:
 			self.call_one("rules_insert", rule)
@@ -2299,6 +2358,7 @@ class QueryEngine(query.QueryEngine):
 		self.set_rule_prereqs(rule, branch, turn, tick, prereqs or [])
 		self.set_rule_actions(rule, branch, turn, tick, actions or [])
 		self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
+		self.set_rule_big(rule, branch, turn, tick, big)
 
 	def set_rulebook(self, name, branch, turn, tick, rules=None, prio=0.0):
 		name, rules = map(self.pack, (name, rules or []))

@@ -292,6 +292,21 @@ class Rule:
 		self.engine._neighborhoods_cache.store(self.name, *btt, neighbors)
 		self.engine.query.set_rule_neighborhood(self.name, *btt, neighbors)
 
+	@property
+	def big(self):
+		try:
+			return self.engine._rule_bigness_cache.retrieve(
+				self.name, *self.engine._btt()
+			)
+		except KeyError:
+			return False
+
+	@big.setter
+	def big(self, big: bool):
+		btt = self.engine._nbtt()
+		self.engine._rule_bigness_cache.store(self.name, *btt, big)
+		self.engine.query.set_rule_big(self.name, *btt, big)
+
 	def __init__(
 		self,
 		engine,
@@ -300,6 +315,7 @@ class Rule:
 		prereqs=None,
 		actions=None,
 		neighborhood=None,
+		big=False,
 		create=True,
 	):
 		"""Store the engine and my name, make myself a record in the database
@@ -335,6 +351,7 @@ class Rule:
 				prereqs,
 				actions,
 				neighborhood,
+				big,
 			)
 			self.engine._triggers_cache.store(
 				name, branch, turn, tick, triggers
@@ -343,6 +360,9 @@ class Rule:
 			self.engine._actions_cache.store(name, branch, turn, tick, actions)
 			self.engine._neighborhoods_cache.store(
 				name, branch, turn, tick, neighborhood
+			)
+			self.engine._rule_bigness_cache.store(
+				name, branch, turn, tick, big
 			)
 			# Don't *make* a keyframe -- but if there happens to already *be*
 			# a keyframe at this very moment, add the new rule to it
@@ -390,9 +410,38 @@ class Rule:
 							branch, turn, tick
 						)
 					}
+				try:
+					nbrkf = self.engine._neighborhoods_cache.get_keyframe(
+						branch, turn, tick
+					)
+				except KeyError:
+					nbrkf = {
+						aname: self.engine._neighborhoods_cache.retrieve(
+							aname, branch, turn, tick
+						)
+						for aname in self.engine._neighborhoods_cache.iter_keys(
+							branch, turn, tick
+						)
+					}
+				try:
+					bigkf = self.engine._rule_bigness_cache.get_keyframe(
+						branch, turn, tick
+					)
+
+				except KeyError:
+					bigkf = {
+						aname: self.engine._rule_bigness_cache.retrieve(
+							aname, branch, turn, tick
+						)
+						for aname in self.engine._rule_bigness_cache.iter_keys(
+							branch, turn, tick
+						)
+					}
 				trigkf[name] = triggers
 				preqkf[name] = prereqs
 				actkf[name] = actions
+				nbrkf[name] = neighborhood
+				bigkf[name] = big
 				self.engine._triggers_cache.set_keyframe(
 					branch, turn, tick, trigkf
 				)
@@ -401,6 +450,12 @@ class Rule:
 				)
 				self.engine._actions_cache.set_keyframe(
 					branch, turn, tick, actkf
+				)
+				self.engine._neighborhoods_cache.set_keyframe(
+					branch, turn, tick, nbrkf
+				)
+				self.engine._rule_bigness_cache.set_keyframe(
+					branch, turn, tick, bigkf
 				)
 
 	def __eq__(self, other):
@@ -603,6 +658,16 @@ class RuleMapping(MutableMapping, Signal):
 	rules. The name of a rule may be used in place of the actual rule,
 	so long as the rule already exists.
 
+	:param name: If you want the rule's name to be different from the name
+		of its first action, supply the name here.
+	:param neighborhood: Optional integer; if supplied, the rule will only
+		be run when something's changed within this many nodes.
+		``neighborhood=0`` means this only runs when something's changed
+		*here*, or a place containing this entity.
+	:param big: Set to ``True`` if the rule will make many changes to the world,
+		so that Lisien can optimize for a big batch of changes.
+	:param always: If set to ``True``, the rule will run every turn.
+
 	"""
 
 	def __init__(self, engine, rulebook):
@@ -659,6 +724,7 @@ class RuleMapping(MutableMapping, Signal):
 		name: Optional[str] = None,
 		*,
 		neighborhood: Optional[int] = -1,
+		big: bool = False,
 		always: bool = False,
 	):
 		def wrap(name, v, **kwargs):
@@ -671,9 +737,11 @@ class RuleMapping(MutableMapping, Signal):
 				r.always()
 			if "neighborhood" in kwargs:
 				r.neighborhood = kwargs["neighborhood"]
+			if "big" in kwargs:
+				r.big = kwargs["big"]
 			return r
 
-		kwargs = {}
+		kwargs = {"big": big}
 		if always:
 			kwargs["always"] = True
 		if neighborhood != -1:

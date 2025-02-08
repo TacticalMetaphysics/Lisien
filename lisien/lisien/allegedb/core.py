@@ -510,7 +510,8 @@ class ORM:
 
 		"""
 		if self._no_kc:
-			raise ValueError("Already in a batch")
+			yield
+			return
 		self._no_kc = True
 		gc_was_active = gc.isenabled()
 		if gc_was_active:
