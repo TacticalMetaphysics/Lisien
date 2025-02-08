@@ -879,6 +879,26 @@ class ORM:
 
 		return delta
 
+	class TurnEndPlanDict(dict):
+		"""Tick on which a (branch, turn) ends, including plans"""
+
+		def __init__(self, engine):
+			super().__init__()
+			self.engine = engine
+
+		def __getitem__(self, item):
+			if item not in self:
+				ret = self[item] = self.engine._turn_end.setdefault(item, 0)
+				return ret
+			return super().__getitem__(item)
+
+		def __setitem__(self, key, value):
+			if key in self.engine._turn_end:
+				assert value >= self.engine._turn_end[key]
+			else:
+				self.engine._turn_end[key] = value
+			super().__setitem__(key, value)
+
 	def _init_caches(self):
 		from collections import defaultdict
 		from .cache import EntitylessCache, Cache, NodesCache, EdgesCache
@@ -906,10 +926,9 @@ class ORM:
 		"""Parents of a branch at any remove"""
 		self._turn_end: Dict[Tuple[str, int], int] = defaultdict(lambda: 0)
 		"""Tick on which a (branch, turn) ends, not including any plans"""
-		self._turn_end_plan: Dict[Tuple[str, int], int] = defaultdict(
-			lambda: 0
+		self._turn_end_plan: Dict[Tuple[str, int], int] = self.TurnEndPlanDict(
+			self
 		)
-		"Tick on which a (branch, turn) ends, including plans"
 		self._branch_end: Dict[str, int] = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
 		self._graph_objs = {}
