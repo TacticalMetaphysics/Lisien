@@ -406,7 +406,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		keyframe_interval: Optional[int] = 1000,
 		commit_interval: int = None,
 		random_seed: int = None,
-		logfun: FunctionType = None,
+		logfun: callable = None,
 		clear: bool = False,
 		keep_rules_journal: bool = True,
 		keyframe_on_close: bool = True,
