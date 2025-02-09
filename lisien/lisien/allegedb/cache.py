@@ -190,6 +190,27 @@ class StructuredDefaultDict(dict):
 			raise TypeError("Can't set layer {}".format(self.layer))
 
 
+class TurnEndPlanDict(dict):
+	"""Tick on which a (branch, turn) ends, including plans"""
+
+	def __init__(self, engine):
+		super().__init__()
+		self.engine = engine
+
+	def __getitem__(self, item):
+		if item not in self:
+			ret = self[item] = self.engine._turn_end.setdefault(item, 0)
+			return ret
+		return super().__getitem__(item)
+
+	def __setitem__(self, key, value):
+		if key in self.engine._turn_end:
+			assert value >= self.engine._turn_end[key]
+		else:
+			self.engine._turn_end[key] = value
+		super().__setitem__(key, value)
+
+
 class KeyframeError(KeyError):
 	pass
 
