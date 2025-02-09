@@ -607,50 +607,25 @@ class AbstractEngine(ABC):
 
 		def unpack_char(ext):
 			charn = unpacker(ext)
-			if charn in charmap:
-				return charmap[charn]
-			else:
-				return char_cls(self, charn, init_rulebooks=False)
+			return char_cls(self, charn, init_rulebooks=False)
 
 		def unpack_place(ext):
 			charn, placen = unpacker(ext)
-			if charn in charmap:
-				char = charmap[charn]
-			else:
-				return place_cls(
-					char_cls(self, charn, init_rulebooks=False), placen
-				)
-			placemap = char.place
-			if placen in placemap:
-				return placemap[placen]
-			else:
-				return place_cls(char, placen)
+			return place_cls(
+				char_cls(self, charn, init_rulebooks=False), placen
+			)
 
 		def unpack_thing(ext):
 			charn, thingn = unpacker(ext)
-			if charn in charmap:
-				char = charmap[charn]
-			else:
-				return thing_cls(
-					char_cls(self, charn, init_rulebooks=False), thingn
-				)
-			thingmap = char.thing
-			if thingn in thingmap:
-				return thingmap[thingn]
-			else:
-				return thing_cls(char, thingn)
+			return thing_cls(
+				char_cls(self, charn, init_rulebooks=False), thingn
+			)
 
 		def unpack_portal(ext):
 			charn, orign, destn = unpacker(ext)
-			if charn in charmap:
-				char = charmap[charn]
-			else:
-				char = char_cls(self, charn, init_rulebooks=False)
-			portmap = char.portal
-			if orign in portmap and destn in portmap[orign]:
-				return char.portal[orign][destn]
-			else:
-				return portal_cls(char, orign, destn)
+			return portal_cls(
+				char_cls(self, charn, init_rulebooks=False), orign, destn
+			)
 
 		handlers = {
 			MsgpackExtensionType.graph.value: unpack_graph,
