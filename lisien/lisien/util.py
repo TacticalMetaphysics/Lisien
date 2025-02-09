@@ -617,7 +617,9 @@ class AbstractEngine(ABC):
 			if charn in charmap:
 				char = charmap[charn]
 			else:
-				return place_cls(char_cls(self, charn), placen)
+				return place_cls(
+					char_cls(self, charn, init_rulebooks=False), placen
+				)
 			placemap = char.place
 			if placen in placemap:
 				return placemap[placen]
@@ -629,7 +631,9 @@ class AbstractEngine(ABC):
 			if charn in charmap:
 				char = charmap[charn]
 			else:
-				return thing_cls(char_cls(self, charn), thingn)
+				return thing_cls(
+					char_cls(self, charn, init_rulebooks=False), thingn
+				)
 			thingmap = char.thing
 			if thingn in thingmap:
 				return thingmap[thingn]
@@ -641,7 +645,7 @@ class AbstractEngine(ABC):
 			if charn in charmap:
 				char = charmap[charn]
 			else:
-				char = char_cls(self, charn)
+				char = char_cls(self, charn, init_rulebooks=False)
 			portmap = char.portal
 			if orign in portmap and destn in portmap[orign]:
 				return char.portal[orign][destn]
