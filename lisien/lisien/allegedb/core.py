@@ -33,7 +33,7 @@ from typing import (
 from blinker import Signal
 import networkx as nx
 
-from .cache import KeyframeError, PickyDefaultDict
+from .cache import KeyframeError, PickyDefaultDict, TurnEndPlanDict
 from .window import update_window, update_backward_window, WindowDict
 from .graph import DiGraph, Node, Edge, GraphsMapping
 from .query import (
@@ -879,26 +879,6 @@ class ORM:
 
 		return delta
 
-	class TurnEndPlanDict(dict):
-		"""Tick on which a (branch, turn) ends, including plans"""
-
-		def __init__(self, engine):
-			super().__init__()
-			self.engine = engine
-
-		def __getitem__(self, item):
-			if item not in self:
-				ret = self[item] = self.engine._turn_end.setdefault(item, 0)
-				return ret
-			return super().__getitem__(item)
-
-		def __setitem__(self, key, value):
-			if key in self.engine._turn_end:
-				assert value >= self.engine._turn_end[key]
-			else:
-				self.engine._turn_end[key] = value
-			super().__setitem__(key, value)
-
 	def _init_caches(self):
 		from collections import defaultdict
 		from .cache import EntitylessCache, Cache, NodesCache, EdgesCache
@@ -926,9 +906,7 @@ class ORM:
 		"""Parents of a branch at any remove"""
 		self._turn_end: Dict[Tuple[str, int], int] = defaultdict(lambda: 0)
 		"""Tick on which a (branch, turn) ends, not including any plans"""
-		self._turn_end_plan: Dict[Tuple[str, int], int] = self.TurnEndPlanDict(
-			self
-		)
+		self._turn_end_plan: Dict[Tuple[str, int], int] = TurnEndPlanDict(self)
 		self._branch_end: Dict[str, int] = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
 		self._graph_objs = {}
