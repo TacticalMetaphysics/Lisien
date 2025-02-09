@@ -688,6 +688,8 @@
 				<span class="p">)</span>
 				<span class="n">proc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
 				<span class="n">proc</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+				<span class="n">pipein</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+				<span class="n">pipeout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="nf">_detect_kf_interval_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_no_kc&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
