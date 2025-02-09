@@ -190,25 +190,41 @@ class StructuredDefaultDict(dict):
 			raise TypeError("Can't set layer {}".format(self.layer))
 
 
-class TurnEndPlanDict(dict):
-	"""Tick on which a (branch, turn) ends, including plans"""
+class TurnEndDict(dict):
+	"""Tick on which a (branch, turn) ends, not including any plans"""
 
-	def __init__(self, engine):
-		super().__init__()
-		self.engine = engine
+	other_d: "TurnEndDict"
 
 	def __getitem__(self, item):
 		if item not in self:
-			ret = self[item] = self.engine._turn_end.setdefault(item, 0)
-			return ret
+			if item not in self.other_d:
+				dict.__setitem__(self.other_d, item, 0)
+				super().__setitem__(item, 0)
+				return 0
+			else:
+				ret = dict.__getitem__(self.other_d, item)
+				super().__setitem__(item, ret)
+				return ret
 		return super().__getitem__(item)
 
 	def __setitem__(self, key, value):
-		if key in self.engine._turn_end:
-			assert value >= self.engine._turn_end[key]
+		dict.__setitem__(self, key, value)
+		if (
+			not dict.__contains__(self.other_d, key)
+			or dict.__getitem__(self.other_d, key) < value
+		):
+			dict.__setitem__(self.other_d, key, value)
+
+
+class TurnEndPlanDict(TurnEndDict):
+	"""Tick on which a (branch, turn) ends, including plans"""
+
+	def __setitem__(self, key, value):
+		if dict.__contains__(self.other_d, key):
+			assert value >= dict.__getitem__(self.other_d, key)
 		else:
-			self.engine._turn_end[key] = value
-		super().__setitem__(key, value)
+			dict.__setitem__(self.other_d, key, value)
+		dict.__setitem__(self, key, value)
 
 
 class KeyframeError(KeyError):

@@ -15,6 +15,7 @@ from lisien.allegedb.cache import (
 	Cache,
 	TotalKeyError,
 	NotInKeyframeError,
+	TurnEndDict,
 	TurnEndPlanDict,
 )
 from lisien.allegedb.graph import Node, Edge
@@ -1153,8 +1154,12 @@ class EngineFacade(AbstractEngine):
 			self._rando.setstate(real._rando.getstate())
 			self.branch, self.turn, self.tick = real._btt()
 			self._branches = real._branches.copy()
-			self._turn_end_plan = TurnEndPlanDict(self)
+			self._turn_end = TurnEndDict()
+			self._turn_end_plan = TurnEndPlanDict()
+			self._turn_end.other_d = self._turn_end_plan
+			self._turn_end_plan.other_d = self._turn_end
 			if not hasattr(real, "is_proxy"):
+				self._turn_end.update(real._turn_end)
 				self._turn_end_plan.update(real._turn_end_plan)
 				self._nodes_cache = self.FacadeCache(
 					real._nodes_cache, "nodes_cache"
