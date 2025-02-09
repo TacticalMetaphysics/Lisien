@@ -33,7 +33,12 @@ from typing import (
 from blinker import Signal
 import networkx as nx
 
-from .cache import KeyframeError, PickyDefaultDict, TurnEndPlanDict
+from .cache import (
+	KeyframeError,
+	PickyDefaultDict,
+	TurnEndDict,
+	TurnEndPlanDict,
+)
 from .window import update_window, update_backward_window, WindowDict
 from .graph import DiGraph, Node, Edge, GraphsMapping
 from .query import (
@@ -904,9 +909,10 @@ class ORM:
 		"""Parent, start time, and end time of each branch. Includes plans."""
 		self._branch_parents: Dict[str, Set[str]] = defaultdict(set)
 		"""Parents of a branch at any remove"""
-		self._turn_end: Dict[Tuple[str, int], int] = defaultdict(lambda: 0)
-		"""Tick on which a (branch, turn) ends, not including any plans"""
-		self._turn_end_plan: Dict[Tuple[str, int], int] = TurnEndPlanDict(self)
+		self._turn_end: Dict[Tuple[str, int], int] = TurnEndDict()
+		self._turn_end_plan: Dict[Tuple[str, int], int] = TurnEndPlanDict()
+		self._turn_end_plan.other_d = self._turn_end
+		self._turn_end.other_d = self._turn_end_plan
 		self._branch_end: Dict[str, int] = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
 		self._graph_objs = {}
@@ -2624,7 +2630,7 @@ class ORM:
 		turn_end = self._turn_end
 		set_turn = self.query.set_turn
 		for (branch, turn), plan_end_tick in self._turn_end_plan.items():
-			set_turn(branch, turn, turn_end[branch], plan_end_tick)
+			set_turn(branch, turn, turn_end[branch, turn], plan_end_tick)
 		if self._plans_uncommitted:
 			self.query.plans_insert_many(self._plans_uncommitted)
 		if self._plan_ticks_uncommitted:
