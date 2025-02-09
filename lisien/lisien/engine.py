@@ -830,10 +830,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			try:
 				kf = rbcache.get_keyframe(*now)
 			except KeyframeError:
-				kf = {
-					ch: rbcache.retrieve(ch, *now)
-					for ch in self._graph_cache.iter_entities(*now)
-				}
+				kf = {}
+				for ch in self._graph_cache.iter_entities(*now):
+					# may yield this very character
+					try:
+						kf[ch] = rbcache.retrieve(ch, *now)
+					except KeyError:
+						kf[ch] = (rbname, ch)
 			kf[name] = (rbname, name)
 			rbcache.set_keyframe(*now, kf)
 		self.snap_keyframe(silent=True, update_worker_processes=False)

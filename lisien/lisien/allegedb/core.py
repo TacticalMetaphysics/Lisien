@@ -17,6 +17,7 @@
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
+from itertools import pairwise, chain
 from threading import RLock
 from typing import (
 	Callable,
@@ -2802,6 +2803,115 @@ class ORM:
 		self.query.graphs_insert(name, branch, turn, tick, "Deleted")
 		self._graph_cache.store(name, branch, turn, tick, None)
 		self._graph_cache.keycache.clear()
+
+	def _kf_loaded(self, branch: str, turn: int, tick: int = None) -> bool:
+		"""Is this keyframe currently loaded into the program?"""
+		if tick is None:
+			if branch not in self._keyframes_dict:
+				return False
+			if turn not in self._keyframes_dict[branch]:
+				return False
+			return any(
+				(branch, turn, t) in self._keyframes_loaded
+				for t in self._keyframes_dict[branch][turn]
+			)
+		return (branch, turn, tick) in self._keyframes_loaded
+
+	def _iter_keyframes(
+		self,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		loaded=False,
+		with_fork_points=False,
+		stoptime: Tuple[str, int, int] = None,
+	):
+		"""Iterate back over (branch, turn, tick) at which there is a keyframe
+
+		Follows the timestream, like :method:`_iter_parent_btt`, but yields more times.
+		We may have any number of keyframes in the same branch, and will yield
+		them all.
+
+		With ``loaded=True``, only yield keyframes that are in memory now.
+
+		Use ``with_fork_points=True`` to also include all the times that the
+		timeline branched.
+
+		``stoptime`` is as in :method:`_iter_parent_btt`.
+
+		"""
+		kfd = self._keyframes_dict
+		kfs = self._keyframes_times
+		kfl = self._keyframes_loaded
+		it = pairwise(
+			self._iter_parent_btt(branch, turn, tick, stoptime=stoptime)
+		)
+		try:
+			a, b = next(it)
+		except StopIteration:
+			if loaded:
+				if (branch, turn, tick) in kfl:
+					yield branch, turn, tick
+			else:
+				yield branch, turn, tick
+			return
+		for (b0, r0, t0), (b1, r1, t1) in chain([(a, b)], it):
+			# we're going up the timestream, meaning that b1, r1, t1
+			# is *before* b0, r0, t0
+			if loaded:
+				if (b0, r0, t0) in kfl:
+					yield b0, r0, t0
+			elif (b0, r0, t0) in kfs:
+				yield b0, r0, t0
+			if b0 not in kfd:
+				continue
+			assert b0 in self._branches
+			kfdb = kfd[b0]
+			if r0 in kfdb:
+				tcks = sorted(kfdb[r0])
+				while tcks[-1] > t0:
+					tcks.pop()
+				if loaded:
+					for tck in reversed(tcks):
+						if tck < t0:
+							break
+						if (b0, r0, tck) in kfl:
+							yield b0, r0, tck
+				else:
+					for tck in reversed(tcks):
+						if tck < t0:
+							break
+						yield b0, r0, tck
+			for r_between in range(r0 - 1, r1, -1):  # too much iteration?
+				if r_between in kfdb:
+					tcks = sorted(kfdb[r_between], reverse=True)
+					if loaded:
+						for tck in tcks:
+							if (b0, r_between, tck) in kfl:
+								yield b0, r_between, tck
+					else:
+						for tck in tcks:
+							yield b0, r_between, tck
+			if r1 in kfdb:
+				tcks = sorted(kfdb[r1], reverse=True)
+				while tcks[-1] > t1:
+					tcks.pop()
+				if not tcks:
+					if with_fork_points:
+						yield b1, r1, t1
+					continue
+				if loaded:
+					for tck in tcks:
+						if (b1, r1, tck) in kfl:
+							yield b1, r1, tck
+				else:
+					for tck in tcks:
+						yield b1, r1, tck
+				if with_fork_points and tcks[-1] == t1:
+					continue
+			if with_fork_points:
+				yield b1, r1, t1
 
 	def _iter_parent_btt(
 		self,
