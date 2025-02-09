@@ -327,6 +327,21 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">)</span>
 
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">big</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
+			<span class="p">)</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="k">return</span> <span class="kc">False</span>
+
+	<span class="nd">@big</span><span class="o">.</span><span class="n">setter</span>
+	<span class="k">def</span> <span class="nf">big</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">big</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+		<span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">big</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_big</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">big</span><span class="p">)</span>
+
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">engine</span><span class="p">,</span>
@@ -335,6 +350,7 @@
 		<span class="n">prereqs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 		<span class="n">actions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 		<span class="n">neighborhood</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+		<span class="n">big</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 		<span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 	<span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Store the engine and my name, make myself a record in the database</span>
@@ -370,6 +386,7 @@
 				<span class="n">prereqs</span><span class="p">,</span>
 				<span class="n">actions</span><span class="p">,</span>
 				<span class="n">neighborhood</span><span class="p">,</span>
+				<span class="n">big</span><span class="p">,</span>
 			<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
 				<span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">triggers</span>
@@ -378,6 +395,9 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">actions</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
 				<span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">neighborhood</span>
+			<span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
+				<span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">big</span>
 			<span class="p">)</span>
 			<span class="c1"># Don&#39;t *make* a keyframe -- but if there happens to already *be*</span>
 			<span class="c1"># a keyframe at this very moment, add the new rule to it</span>
@@ -425,9 +445,38 @@
 							<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 						<span class="p">)</span>
 					<span class="p">}</span>
+				<span class="k">try</span><span class="p">:</span>
+					<span class="n">nbrkf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+						<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+					<span class="p">)</span>
+				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+					<span class="n">nbrkf</span> <span class="o">=</span> <span class="p">{</span>
+						<span class="n">aname</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+							<span class="n">aname</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+						<span class="p">)</span>
+						<span class="k">for</span> <span class="n">aname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span>
+							<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+						<span class="p">)</span>
+					<span class="p">}</span>
+				<span class="k">try</span><span class="p">:</span>
+					<span class="n">bigkf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+						<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+					<span class="p">)</span>
+
+				<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+					<span class="n">bigkf</span> <span class="o">=</span> <span class="p">{</span>
+						<span class="n">aname</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+							<span class="n">aname</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+						<span class="p">)</span>
+						<span class="k">for</span> <span class="n">aname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">iter_keys</span><span class="p">(</span>
+							<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+						<span class="p">)</span>
+					<span class="p">}</span>
 				<span class="n">trigkf</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">triggers</span>
 				<span class="n">preqkf</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">prereqs</span>
 				<span class="n">actkf</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">actions</span>
+				<span class="n">nbrkf</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">neighborhood</span>
+				<span class="n">bigkf</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">big</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_triggers_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
 					<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">trigkf</span>
 				<span class="p">)</span>
@@ -436,6 +485,12 @@
 				<span class="p">)</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_actions_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
 					<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">actkf</span>
+				<span class="p">)</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
+					<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">nbrkf</span>
+				<span class="p">)</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">set_keyframe</span><span class="p">(</span>
+					<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">bigkf</span>
 				<span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
@@ -654,6 +709,16 @@
 <span class="sd">	rules. The name of a rule may be used in place of the actual rule,</span>
 <span class="sd">	so long as the rule already exists.</span>
 
+<span class="sd">	:param name: If you want the rule&#39;s name to be different from the name</span>
+<span class="sd">		of its first action, supply the name here.</span>
+<span class="sd">	:param neighborhood: Optional integer; if supplied, the rule will only</span>
+<span class="sd">		be run when something&#39;s changed within this many nodes.</span>
+<span class="sd">		``neighborhood=0`` means this only runs when something&#39;s changed</span>
+<span class="sd">		*here*, or a place containing this entity.</span>
+<span class="sd">	:param big: Set to ``True`` if the rule will make many changes to the world,</span>
+<span class="sd">		so that Lisien can optimize for a big batch of changes.</span>
+<span class="sd">	:param always: If set to ``True``, the rule will run every turn.</span>
+
 <span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">):</span>
@@ -710,6 +775,7 @@
 		<span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 		<span class="o">*</span><span class="p">,</span>
 		<span class="n">neighborhood</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+		<span class="n">big</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 		<span class="n">always</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 	<span class="p">):</span>
 		<span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -722,9 +788,11 @@
 				<span class="n">r</span><span class="o">.</span><span class="n">always</span><span class="p">()</span>
 			<span class="k">if</span> <span class="s2">&quot;neighborhood&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
 				<span class="n">r</span><span class="o">.</span><span class="n">neighborhood</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;neighborhood&quot;</span><span class="p">]</span>
+			<span class="k">if</span> <span class="s2">&quot;big&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+				<span class="n">r</span><span class="o">.</span><span class="n">big</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;big&quot;</span><span class="p">]</span>
 			<span class="k">return</span> <span class="n">r</span>
 
-		<span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;big&quot;</span><span class="p">:</span> <span class="n">big</span><span class="p">}</span>
 		<span class="k">if</span> <span class="n">always</span><span class="p">:</span>
 			<span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;always&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 		<span class="k">if</span> <span class="n">neighborhood</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
