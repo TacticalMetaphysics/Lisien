@@ -1375,9 +1375,15 @@ class Cache:
 		else:
 			kfd = self.db._keyframes_dict
 			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
-				if b in kfd and b in keyframes:
+				if b in kfd:
+					if b not in keyframes:
+						return NotInKeyframeError("No value", entikey, b, r, t)
 					kfb = kfd[b]
-					if r in kfb and r in keyframes[b]:
+					if r in kfb:
+						if r not in keyframes[b]:
+							return NotInKeyframeError(
+								"No value", entikey, b, r, t
+							)
 						if search:
 							kfbr = kfb.search(r)
 						else:
@@ -1389,7 +1395,7 @@ class Cache:
 						if not tcks:
 							continue
 						toptck = max(tcks)
-						if not keyframes[b][r].rev_gettable(toptck):
+						if toptck not in keyframes[b][r]:
 							if kfb.rev_gettable(r - 1):
 								kf = keyframes[b][r - 1].final()
 								if key in kf:
@@ -1401,7 +1407,9 @@ class Cache:
 									return NotInKeyframeError(
 										"No value", entikey, b, r, t
 									)
-							continue
+							return NotInKeyframeError(
+								"No value", entikey, b, r, t
+							)
 						kf = keyframes[b][r][toptck]
 						if key in kf:
 							ret = kf[key]
