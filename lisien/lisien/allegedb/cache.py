@@ -1260,6 +1260,10 @@ class Cache:
 			)
 			try:
 				zero, one = next(it)
+				if zero == (branch, turn, tick):
+					it = chain([(zero, one)], it)
+				else:
+					it = chain([((branch, turn, tick), zero), (zero, one)], it)
 			except StopIteration:
 				# There is at most one keyframe in all time.
 				# If branches has anything later than that, before the present,
@@ -1299,7 +1303,7 @@ class Cache:
 					return TotalKeyError(
 						"No keyframe loaded", entikey, b, r, t
 					)
-			for (b0, r0, t0), (b1, r1, t1) in chain([(zero, one)], it):
+			for (b0, r0, t0), (b1, r1, t1) in it:
 				if self.db._kf_loaded(b0, r0, t0) and (
 					b0 in keyframes
 					and r0 in keyframes[b0]
