@@ -370,6 +370,18 @@ class QueryEngine(object):
 		nodes, edges, graph_val = stuff[0]
 		return unpack(nodes), unpack(edges), unpack(graph_val)
 
+	def get_all_keyframe_graphs(self, branch, turn, tick):
+		unpack = self.unpack
+		for graph, nodes, edges, graph_val in self.call_one(
+			"all_graphs_in_keyframe", branch, turn, tick
+		):
+			yield (
+				unpack(graph),
+				unpack(nodes),
+				unpack(edges),
+				unpack(graph_val),
+			)
+
 	def graph_type(self, graph):
 		"""What type of graph is this?"""
 		graph = self.pack(graph)
@@ -841,10 +853,17 @@ class QueryEngine(object):
 				ret[graph]["nodes"].append(
 					(graph, node, branch, turn, tick, ex or None)
 				)
-		assert (
-			got
-			== ("end", "nodes", branch, turn_from, tick_from, turn_to, tick_to)
-		), f"{got} != {('end', 'nodes', branch, turn_from, tick_from, turn_to, tick_to)}"
+		assert got == (
+			"end",
+			"nodes",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), (
+			f"{got} != {('end', 'nodes', branch, turn_from, tick_from, turn_to, tick_to)}"
+		)
 		assert self._outq.get() == (
 			"begin",
 			"edges",
