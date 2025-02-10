@@ -3784,12 +3784,15 @@ class Engine(AbstractEngine, gORM, Executor):
 			except KeyError:
 				kf = {graph: graph_val.pop(rb_kf_type, (rb_kf_type, graph))}
 				for char in self._graph_cache.iter_keys(branch, turn, tick):
-					try:
+					# seems like Python gets upset when it has to catch too many
+					# nested KeyError?
+					rb = rb_kf_cache._base_retrieve((char, branch, turn, tick))
+					if isinstance(rb, KeyError):
+						kf[char] = (rb_kf_type, char)
+					else:
 						kf[char] = rb_kf_cache.retrieve(
 							char, branch, turn, tick
 						)
-					except KeyError:
-						kf[char] = (rb_kf_type, char)
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
 		self._nodes_rulebooks_cache.set_keyframe(
 			(graph,),
