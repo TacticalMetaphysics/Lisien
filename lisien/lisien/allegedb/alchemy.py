@@ -439,6 +439,20 @@ def queries_for_table_dict(table):
 			table["keyframes_graphs"].c.turn,
 			table["keyframes_graphs"].c.tick,
 		),
+		"all_graphs_in_keyframe": select(
+			table["keyframes_graphs"].c.graph,
+			table["keyframes_graphs"].c.nodes,
+			table["keyframes_graphs"].c.edges,
+			table["keyframes_graphs"].c.graph_val,
+		)
+		.where(
+			and_(
+				table["keyframes_graphs"].c.branch == bindparam("branch"),
+				table["keyframes_graphs"].c.turn == bindparam("turn"),
+				table["keyframes_graphs"].c.tick == bindparam("tick"),
+			)
+		)
+		.order_by(table["keyframes_graphs"].c.graph),
 		"get_keyframe_graph": select(
 			table["keyframes_graphs"].c.nodes,
 			table["keyframes_graphs"].c.edges,

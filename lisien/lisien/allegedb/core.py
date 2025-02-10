@@ -948,14 +948,23 @@ class ORM:
 		with (
 			self.batch()
 		):  # so that iter_keys doesn't try fetching the kf we're about to make
-			graphs = frozenset(self._graph_cache.iter_keys(branch, turn, tick))
-			for graph in sort_set(graphs):
+			keyframe_graphs = list(
+				self.query.get_all_keyframe_graphs(branch, turn, tick)
+			)
+			self._graph_cache.set_keyframe(
+				branch,
+				turn,
+				tick,
+				{graph: "DiGraph" for (graph, _, _, _) in keyframe_graphs},
+			)
+			for (
+				graph,
+				nodes,
+				edges,
+				graph_val,
+			) in keyframe_graphs:
 				self._snap_keyframe_de_novo_graph(
-					graph,
-					branch,
-					turn,
-					tick,
-					*self.query.get_keyframe_graph(graph, branch, turn, tick),
+					graph, branch, turn, tick, nodes, edges, graph_val
 				)
 		self._updload(branch, turn, tick)
 		if branch in self._keyframes_dict:
