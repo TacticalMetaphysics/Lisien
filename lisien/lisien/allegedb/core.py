@@ -2805,7 +2805,12 @@ class ORM:
 		self._graph_cache.keycache.clear()
 
 	def _kf_loaded(self, branch: str, turn: int, tick: int = None) -> bool:
-		"""Is this keyframe currently loaded into the program?"""
+		"""Is this keyframe currently loaded into the program?
+
+		Absent a specific ``tick``, return whether there is at least one keyframe
+		on the given turn.
+
+		"""
 		if tick is None:
 			if branch not in self._keyframes_dict:
 				return False
