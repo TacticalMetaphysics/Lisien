@@ -958,6 +958,14 @@ class ORM:
 					*self.query.get_keyframe_graph(graph, branch, turn, tick),
 				)
 		self._updload(branch, turn, tick)
+		if branch in self._keyframes_dict:
+			if turn in self._keyframes_dict[branch]:
+				self._keyframes_dict[branch][turn].add(tick)
+			else:
+				self._keyframes_dict[branch][turn] = {tick}
+		else:
+			self._keyframes_dict[branch] = {turn: {tick}}
+		self._keyframes_times.add((branch, turn, tick))
 		self._keyframes_loaded.add((branch, turn, tick))
 		if not silent:
 			return self._get_kf(branch, turn, tick, copy=copy)
@@ -2879,7 +2887,7 @@ class ORM:
 					tcks.pop()
 				if loaded:
 					for tck in reversed(tcks):
-						if tck < t0:
+						if r0 == r1 and tck <= t1:
 							break
 						if (b0, r0, tck) in kfl:
 							yield b0, r0, tck
