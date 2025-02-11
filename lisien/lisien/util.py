@@ -617,9 +617,8 @@ class AbstractEngine(ABC):
 
 		def unpack_thing(ext):
 			charn, thingn = unpacker(ext)
-			return thing_cls(
-				char_cls(self, charn, init_rulebooks=False), thingn
-			)
+			# Breaks if the thing hasn't been instantiated yet, not great
+			return self.character[charn].thing[thingn]
 
 		def unpack_portal(ext):
 			charn, orign, destn = unpacker(ext)
