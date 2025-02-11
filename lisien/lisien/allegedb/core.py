@@ -2877,6 +2877,10 @@ class ORM:
 			] == (0, 0)
 			a = (branch, turn, tick)
 			b = (branch, 0, 0)
+			if a == b:
+				if (loaded and a in kfl) or (not loaded and a in kfs):
+					yield a
+				return
 		for (b0, r0, t0), (b1, r1, t1) in chain([(a, b)], it):
 			# we're going up the timestream, meaning that b1, r1, t1
 			# is *before* b0, r0, t0
