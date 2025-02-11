@@ -1277,7 +1277,7 @@ class Cache:
 							branchentk[b].rev_before(r, search=search)
 							is not None
 						):
-							return hint(branchentk[b][r].end)
+							return hint(branchentk[b][r].final())
 				try:
 					b, r, t = next(
 						self.db._iter_keyframes(
