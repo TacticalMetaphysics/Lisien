@@ -964,7 +964,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 		def __contains__(self, k):
 			retrieve, charn, btt = self._contains_stuff
-			got = retrieve(charn, *btt())
+			got = retrieve(charn, k, *btt())
 			return got is not None and not isinstance(got, Exception)
 
 		def __len__(self):
