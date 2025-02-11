@@ -2901,7 +2901,11 @@ class ORM:
 					for tck in reversed(tcks):
 						if r0 == r1 and tck <= t1:
 							break
-						if (b0, r0, tck) in kfl:
+						if (b0, r0, tck) != (b0, r0, t0) and (
+							b0,
+							r0,
+							tck,
+						) in kfl:
 							yield b0, r0, tck
 				else:
 					for tck in reversed(tcks):
