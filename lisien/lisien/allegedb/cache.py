@@ -1386,49 +1386,41 @@ class Cache:
 									)
 						# No keyframe this turn, so use the value from branches
 						return hint(get(branchentk[b0][r0], t0))
-					elif (
-						r0 != r1
-						and branchentk[b0].rev_gettable(r0 - 1, search=search)
-						and (
-							(
-								branchentk[b0].rev_before(
-									r0 - 1, search=search
-								)
-								== r1
-								and get(branchentk[b0], r0 - 1).end > t1
-							)
-							or branchentk[b0].rev_before(r0 - 1, search=search)
-							> r1
+				elif b0 in branchentk and (
+					r0 != r1
+					and branchentk[b0].rev_gettable(r0)
+					and (
+						(
+							branchentk[b0].rev_before(r0, search=search) == r1
+							and get(branchentk[b0], r0).end > t1
 						)
+						or branchentk[b0].rev_before(r0, search=search) > r1
+					)
+				):
+					# branches does not have a value *this* turn,
+					# but has one for a prior turn, and it's still between
+					# the two keyframes.
+					return hint(branchentk[b0][r0 - 1].final())
+				elif self.db._kf_loaded(b1, r1, t1):
+					# branches has no value between these two keyframes,
+					# but we have the keyframe further back.
+					# Which doesn't mean any of its data is stored in
+					# this cache, though.
+					if (
+						b1 not in keyframes
+						or r1 not in keyframes[b1]
+						or t1 not in keyframes[b1][r1]
 					):
-						# branches does not have a value *this* turn,
-						# but has one for a prior turn, and it's still between
-						# the two keyframes.
-						return hint(branchentk[b0][r0 - 1].final())
-					elif self.db._kf_loaded(b1, r1, t1):
-						# branches has no value between these two keyframes,
-						# but we have the keyframe further back.
-						# Which doesn't mean any of its data is stored in
-						# this cache, though.
-						if (
-							b1 not in keyframes
-							or r1 not in keyframes[b1]
-							or t1 not in keyframes[b1][r1]
-						):
-							return hint(
-								NotInKeyframeError(
-									"No value", entikey, b1, r1, t1
-								)
-							)
-						brtk = keyframes[b1][r1][t1]
-						if key in brtk:
-							return hint(brtk[key])
-						else:
-							return hint(
-								NotInKeyframeError(
-									"No value", entikey, b1, r1, t1
-								)
-							)
+						return hint(
+							NotInKeyframeError("No value", entikey, b1, r1, t1)
+						)
+					brtk = keyframes[b1][r1][t1]
+					if key in brtk:
+						return hint(brtk[key])
+					else:
+						return hint(
+							NotInKeyframeError("No value", entikey, b1, r1, t1)
+						)
 		elif keyframes:
 			# We have no chronological data, just keyframes.
 			# That makes things easy.
