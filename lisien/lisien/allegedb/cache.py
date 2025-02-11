@@ -1265,10 +1265,10 @@ class Cache:
 				else:
 					it = chain([((branch, turn, tick), zero), (zero, one)], it)
 			except StopIteration:
-				# There is at most one keyframe in all time.
+				# There is at most one keyframe in the past.
 				# If branches has anything later than that, before the present,
 				# use branches. Otherwise, defer to the keyframe.
-				for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
+				def get_chron(b, r, t):
 					if b in branchentk:
 						if r in branchentk[b]:
 							if branchentk[b][r].rev_gettable(t):
@@ -1278,14 +1278,42 @@ class Cache:
 							is not None
 						):
 							return hint(branchentk[b][r].final())
+					return KeyError("Not in chron data", b, r, t)
+
+				kfit = self.db._iter_keyframes(branch, turn, tick, loaded=True)
 				try:
-					b, r, t = next(
-						self.db._iter_keyframes(
-							branch, turn, tick, loaded=True
-						)
-					)
+					stoptime = next(kfit)
+					for b, r, t in self.db._iter_parent_btt(
+						branch, turn, tick, stoptime=stoptime
+					):
+						ret = get_chron(b, r, t)
+						if isinstance(ret, KeyError):
+							continue
+						return ret
+					b, r, t = stoptime
+					if (
+						b in keyframes
+						and r in keyframes[b]
+						and t in keyframes[b][r]
+					):
+						kf = keyframes[b][r][t]
+						if key in kf:
+							return hint(kf[key])
+						else:
+							return hint(
+								NotInKeyframeError(
+									"No value", entikey, b, r, t
+								)
+							)
 				except StopIteration:
-					# There are no keyframes at all.
+					# There are no keyframes in the past at all.
+					for b, r, t in self.db._iter_parent_btt(
+						branch, turn, tick
+					):
+						ret = get_chron(b, r, t)
+						if isinstance(ret, KeyError):
+							continue
+						return ret
 					return TotalKeyError(
 						"No keyframe loaded", entikey, branch, turn, tick
 					)
