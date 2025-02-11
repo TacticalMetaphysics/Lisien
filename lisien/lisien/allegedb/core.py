@@ -2891,7 +2891,7 @@ class ORM:
 			kfdb = kfd[b0]
 			if r0 in kfdb:
 				tcks = sorted(kfdb[r0])
-				while tcks[-1] > t0:
+				while tcks and tcks[-1] > t0:
 					tcks.pop()
 				if loaded:
 					for tck in reversed(tcks):
