@@ -2872,12 +2872,11 @@ class ORM:
 		try:
 			a, b = next(it)
 		except StopIteration:
-			if loaded:
-				if (branch, turn, tick) in kfl:
-					yield branch, turn, tick
-			else:
-				yield branch, turn, tick
-			return
+			assert branch in self._branches and self._branches[branch][
+				1:3
+			] == (0, 0)
+			a = (branch, turn, tick)
+			b = (branch, 0, 0)
 		for (b0, r0, t0), (b1, r1, t1) in chain([(a, b)], it):
 			# we're going up the timestream, meaning that b1, r1, t1
 			# is *before* b0, r0, t0
