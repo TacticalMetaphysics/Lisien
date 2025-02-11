@@ -3471,7 +3471,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			return next(self._rules_iter)
 		except InnerStopIteration:
 			self._rules_iter = self._follow_rules()
-			return StopIteration()
+			raise StopIteration()
 		except StopIteration:
 			self._rules_iter = self._follow_rules()
 			return final_rule
