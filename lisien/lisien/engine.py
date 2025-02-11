@@ -1887,7 +1887,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			)
 			attribute = "presettings"
 		univbranches = getattr(self._universal_cache, attribute)
-		avbranches = getattr(self._unitness_cache, attribute)
+		unitbranches = getattr(self._unitness_cache, attribute)
 		thbranches = getattr(self._things_cache, attribute)
 		rbbranches = getattr(self._rulebooks_cache, attribute)
 		trigbranches = getattr(self._triggers_cache, attribute)
@@ -1915,19 +1915,24 @@ class Engine(AbstractEngine, gORM, Executor):
 		if branch in univbranches:
 			updater(upduniv, univbranches[branch])
 
-		def updav(char, graph, *args):
-			try:
-				(node, av) = args[0]
-			except (IndexError, TypeError, ValueError):
+		def updunit(char, graph, units_d):
+			if not isinstance(units_d, dict):
+				node, av = units_d
+				delta.setdefault(char, {}).setdefault("units", {}).setdefault(
+					graph, {}
+				)[node] = bool(av)
 				return
-			if char in delta and delta[char] is None:
-				return
-			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
-				graph, {}
-			)[node] = bool(av)
+			if char not in delta:
+				delta[char] = {"units": {graph: units_d.copy()}}
+			elif "units" not in delta[char]:
+				delta[char]["units"] = {graph: units_d.copy()}
+			elif graph not in delta[char]["units"]:
+				delta[char]["units"][graph] = units_d.copy()
+			else:
+				delta[char]["units"][graph].update(units_d)
 
-		if branch in avbranches:
-			updater(updav, avbranches[branch])
+		if branch in unitbranches:
+			updater(updunit, unitbranches[branch])
 
 		def updthing(char, thing, loc):
 			if char in delta and (
