@@ -929,7 +929,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self._iter_stuff = (get_char_graphs, charn, btt)
 			self._len_stuff = (avcache.count_entities_or_keys, charn, btt)
 			self._contains_stuff = (
-				avcache.user_cache.contains_key,
+				avcache.contains_key,
 				charn,
 				btt,
 			)
