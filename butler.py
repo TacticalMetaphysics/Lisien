@@ -24,5 +24,5 @@ os.system(
 	f"butler push elide/dist/{elide_wheel} clayote/lisien:elide-whl --userversion {version}"
 )
 os.system(
-	f"butler push ~/lise_windows clayote/lise:windows --userversion {version}"
+	f"butler push ~/lisien_windows clayote/lisien:windows --userversion {version}"
 )
