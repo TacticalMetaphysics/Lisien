@@ -14,7 +14,7 @@ authors = [
 description = "Life Simulator Engine"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
 	"Programming Language :: Python :: 3",
 	"License :: OSI Approved :: GNU Affero General Public License v3",

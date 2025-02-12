@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data."""
 
+from itertools import pairwise, chain
 from typing import Tuple, Hashable, Optional
 
 from .window import (
@@ -188,6 +189,43 @@ class StructuredDefaultDict(dict):
 					super().__setitem__(k, v)
 					return
 			raise TypeError("Can't set layer {}".format(self.layer))
+
+
+class TurnEndDict(dict):
+	"""Tick on which a (branch, turn) ends, not including any plans"""
+
+	other_d: "TurnEndDict"
+
+	def __getitem__(self, item):
+		if item not in self:
+			if item not in self.other_d:
+				dict.__setitem__(self.other_d, item, 0)
+				super().__setitem__(item, 0)
+				return 0
+			else:
+				ret = dict.__getitem__(self.other_d, item)
+				super().__setitem__(item, ret)
+				return ret
+		return super().__getitem__(item)
+
+	def __setitem__(self, key, value):
+		dict.__setitem__(self, key, value)
+		if (
+			not dict.__contains__(self.other_d, key)
+			or dict.__getitem__(self.other_d, key) < value
+		):
+			dict.__setitem__(self.other_d, key, value)
+
+
+class TurnEndPlanDict(TurnEndDict):
+	"""Tick on which a (branch, turn) ends, including plans"""
+
+	def __setitem__(self, key, value):
+		if dict.__contains__(self.other_d, key):
+			assert value >= dict.__getitem__(self.other_d, key)
+		else:
+			dict.__setitem__(self.other_d, key, value)
+		dict.__setitem__(self, key, value)
 
 
 class KeyframeError(KeyError):
@@ -1176,6 +1214,12 @@ class Cache:
 		May *return* an exception, rather than raising it. This is to enable
 		use outside try-blocks, which have some performance overhead.
 
+		Memoized by default. Use ``store_hint=False`` to avoid making a memo,
+		``retrieve_hint=False`` to avoid using one already made.
+
+		With ``search=True``, use binary search. This isn't the default,
+		because most retrievals are close to each other.
+
 		"""
 		shallowest = self.shallowest
 		if retrieve_hint and args in shallowest:
@@ -1189,202 +1233,211 @@ class Cache:
 		keyframes = self.keyframe.get(entity, {})
 		branches = self.branches
 		entikey = entity + (key,)
+
+		def get(d: WindowDict, k: int):
+			if search:
+				return d.search(k)
+			else:
+				return d[k]
+
+		def hint(v):
+			if store_hint:
+				shallowest[args] = v
+			return v
+
 		if entikey in branches:
 			branchentk = branches[entikey]
-			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
-				brancs = branchentk.get(b)
-				if brancs is not None and brancs.rev_gettable(r):
-					if r in brancs and brancs[r].rev_gettable(t):
-						# if there's a keyframe *later* than in brancs,
-						# but *earlier* than (b, r, t), use the
-						# keyframe instead
-						if b in keyframes and r in keyframes[b]:
-							if search:
-								kfbr = keyframes[b].search(r)
-							else:
-								kfbr = keyframes[b][r]
-							if search:
-								brancs.search(r)
-							if kfbr.rev_before(
-								t, search=search
-							) is not None and (
-								brancs[r].rev_before(t, search=search)
-								< kfbr.rev_before(t, search=search)
-								< t
-							):
-								kf = kfbr[t]
-								if key in kf:
-									ret = kf[key]
-									if store_hint:
-										shallowest[args] = ret
-									return ret
-								else:
-									return NotInKeyframeError(
-										"No value", entikey, b, r, t
-									)
-						if search:
-							ret = brancs.search(r).search(t)
-						else:
-							ret = brancs[r][t]
-						if store_hint:
-							shallowest[args] = ret
+			# We have data for this entity and key,
+			# but a keyframe might have more recent data.
+			# Iterate over the keyframes in reverse chronological order
+			# and return either the first value in a keyframe for this
+			# entity and key, or the first value in our own
+			# store, whichever took effect later.
+			it = pairwise(
+				self.db._iter_keyframes(
+					branch, turn, tick, loaded=True, with_fork_points=True
+				)
+			)
+			try:
+				zero, one = next(it)
+				if zero == (branch, turn, tick):
+					it = chain([(zero, one)], it)
+				else:
+					it = chain([((branch, turn, tick), zero), (zero, one)], it)
+			except StopIteration:
+				# There is at most one keyframe in the past.
+				# If branches has anything later than that, before the present,
+				# use branches. Otherwise, defer to the keyframe.
+				def get_chron(b, r, t):
+					if b in branchentk:
+						if r in branchentk[b]:
+							if branchentk[b][r].rev_gettable(t):
+								return hint(branchentk[b][r][t])
+						elif (
+							branchentk[b].rev_before(r, search=search)
+							is not None
+						):
+							return hint(branchentk[b][r].final())
+					return KeyError("Not in chron data", b, r, t)
+
+				kfit = self.db._iter_keyframes(branch, turn, tick, loaded=True)
+				try:
+					stoptime = next(kfit)
+					for b, r, t in self.db._iter_parent_btt(
+						branch, turn, tick, stoptime=stoptime
+					):
+						ret = get_chron(b, r, t)
+						if isinstance(ret, KeyError):
+							continue
 						return ret
-					elif brancs.rev_gettable(r - 1):
-						if b in keyframes and keyframes[b].rev_gettable(r - 1):
-							kfb = keyframes[b]
-							if kfb.rev_before(
-								r - 1, search=search
-							) is not None and (
-								brancs.rev_before(r - 1, search=search)
-								< kfb.rev_before(r - 1, search=search)
-							):
-								kfbr = kfb[r - 1]
-								kf = kfbr.final()
-								if key in kf:
-									ret = kf[key]
-									if store_hint:
-										shallowest[args] = ret
-									return ret
-								else:
-									return NotInKeyframeError(
-										"No value", entikey, b, r, t
-									)
-							elif brancs.rev_before(
-								r - 1, search=search
-							) == kfb.rev_before(r - 1, search=search):
-								if search:
-									kfbr = kfb.search(r - 1)
-									trns = brancs.search(r - 1)
-								else:
-									kfbr = kfb[r - 1]
-									trns = brancs[r - 1]
-								if trns.end < kfbr.end:
-									kf = kfbr.final()
-									if key in kf:
-										ret = kf[key]
-										if store_hint:
-											shallowest[args] = ret
-										return ret
-									else:
-										return NotInKeyframeError(
-											"No value", entikey, b, r, t
-										)
-						if search:
-							ret = brancs.search(r - 1).final()
-						else:
-							ret = brancs[r - 1].final()
-						if store_hint:
-							shallowest[args] = ret
-						return ret
-					elif (
+					b, r, t = stoptime
+					if (
 						b in keyframes
 						and r in keyframes[b]
-						and (
-							(search and keyframes[b].search(r).rev_gettable(t))
-							or (not search and keyframes[b][r].rev_gettable(t))
-						)
+						and t in keyframes[b][r]
 					):
-						brtk = keyframes[b][r][t]
-						if key in brtk:
-							ret = brtk[key]
-							if store_hint:
-								shallowest[args] = ret
-							return ret
+						kf = keyframes[b][r][t]
+						if key in kf:
+							return hint(kf[key])
 						else:
-							return NotInKeyframeError(
-								"No value", entikey, b, r, t
-							)
-					elif b in keyframes and keyframes[b].rev_gettable(r - 1):
-						if search:
-							finl = keyframes[b].search(r - 1)
-						else:
-							finl = keyframes[b][r - 1].final()
-						if key in finl:
-							ret = finl[key]
-							if store_hint:
-								shallowest[args] = ret
-							return ret
-						else:
-							return NotInKeyframeError(
-								"No value", entikey, b, r, t
-							)
-				elif b in keyframes:
-					kfb = keyframes[b]
-					if r in kfb:
-						kfbr = kfb[r]
-						if kfbr.rev_gettable(t):
-							kf = kfbr[t]
-							if key in kf:
-								ret = kf[key]
-								if store_hint:
-									shallowest[args] = ret
-								return ret
-							else:
-								return NotInKeyframeError(
+							return hint(
+								NotInKeyframeError(
 									"No value", entikey, b, r, t
 								)
-					if kfb.rev_gettable(r - 1):
-						kfbr = kfb[r]
-						kf = kfbr.final()
-						if key in kf:
-							ret = kf[key]
-							if store_hint:
-								shallowest[args] = ret
-							return ret
-						else:
-							return NotInKeyframeError(
-								"No value", entikey, b, r, t
 							)
-		else:
-			kfd = self.db._keyframes_dict
-			for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
-				if b in kfd:
-					if b not in keyframes:
-						return NotInKeyframeError("No value", entikey, b, r, t)
-					kfb = kfd[b]
-					if r in kfb:
-						if not keyframes[b].rev_gettable(r):
-							return NotInKeyframeError(
-								"No value", entikey, b, r, t
-							)
-						if search:
-							kfbr = kfb.search(r)
-						else:
-							kfbr = kfb[r]
-						tcks = set()
-						for tck in kfbr:
-							if tck <= t:
-								tcks.add(tck)
-						if not tcks:
+				except StopIteration:
+					# There are no keyframes in the past at all.
+					for b, r, t in self.db._iter_parent_btt(
+						branch, turn, tick
+					):
+						ret = get_chron(b, r, t)
+						if isinstance(ret, KeyError):
 							continue
-						toptck = max(tcks)
-						if not keyframes[b][r].rev_gettable(toptck):
-							return NotInKeyframeError(
-								"No value", entikey, b, r, t
-							)
-						kf = keyframes[b][r][toptck]
-						if key in kf:
-							ret = kf[key]
-							if store_hint:
-								shallowest[args] = ret
-							return ret
-						else:
-							return NotInKeyframeError(
-								"No value", entikey, b, r, t
-							)
-					if kfb.rev_gettable(r - 1):
-						kfbr = keyframes[b][r]
-						kf = kfbr.final()
-						if key in kf:
-							ret = kf[key]
-							if store_hint:
-								shallowest[args] = ret
-							return ret
-						else:
-							return NotInKeyframeError(
-								"No value", entikey, b, r, t
-							)
-		return TotalKeyError("No value, ever", entikey)
+						return ret
+					return TotalKeyError(
+						"No keyframe loaded", entikey, branch, turn, tick
+					)
+				if (
+					b in keyframes
+					and r in keyframes[b]
+					and t in keyframes[b][r]
+				):
+					kf = keyframes[b][r][t]
+					if key in kf:
+						return hint(kf[key])
+					else:
+						return NotInKeyframeError("No value", entikey, b, r, t)
+				else:
+					return TotalKeyError(
+						"No keyframe loaded", entikey, b, r, t
+					)
+			for (b0, r0, t0), (b1, r1, t1) in it:
+				if self.db._kf_loaded(b0, r0, t0) and (
+					b0 in keyframes
+					and r0 in keyframes[b0]
+					and t0 in keyframes[b0][r0]
+				):
+					# There's a keyframe at this exact moment. Use it.
+					kf = keyframes[b0][r0][t0]
+					if key in kf:
+						return hint(kf[key])
+					else:
+						return hint(
+							NotInKeyframeError("No value", entikey, b0, r0, t0)
+						)
+				if b0 in branchentk and r0 in branchentk[b0]:
+					# No keyframe *right* now; we might have one earlier this turn
+					# ... but let's check branches first
+					if t0 in branchentk[b0][r0]:
+						# Yeah, branches has a value at this very moment!
+						return hint(branchentk[b0][r0][t0])
+					elif (
+						branches_tick := branchentk[b0][r0].rev_before(
+							t0, search=search
+						)
+					) is not None:
+						# branches has a value this turn.
+						# Is there a loaded keyframe this turn, as well?
+						if b0 == b1 and r0 == r1:
+							# There is; is it more recent than branches' value?
+							if t1 > branches_tick:
+								# It is, so use the keyframe.
+								# If that keyframe includes a value stored here,
+								# return it; otherwise return an error
+								if (
+									b1 in keyframes
+									and r1 in keyframes[b1]
+									and t1 in keyframes[b1][r1]
+								):
+									kf = keyframes[b1][r1][t1]
+									if key in kf:
+										return hint(kf[key])
+									else:
+										return hint(
+											NotInKeyframeError(
+												"No value", entikey, b1, r1, t1
+											)
+										)
+								else:
+									return hint(
+										NotInKeyframeError(
+											"No value", entikey, b1, r1, t1
+										)
+									)
+						# No keyframe this turn, so use the value from branches
+						return hint(get(branchentk[b0][r0], t0))
+				elif b0 in branchentk and (
+					r0 != r1
+					and branchentk[b0].rev_gettable(r0)
+					and (
+						(
+							branchentk[b0].rev_before(r0, search=search) == r1
+							and get(branchentk[b0], r0).end > t1
+						)
+						or branchentk[b0].rev_before(r0, search=search) > r1
+					)
+				):
+					# branches does not have a value *this* turn,
+					# but has one for a prior turn, and it's still between
+					# the two keyframes.
+					return hint(branchentk[b0][r0 - 1].final())
+				elif self.db._kf_loaded(b1, r1, t1):
+					# branches has no value between these two keyframes,
+					# but we have the keyframe further back.
+					# Which doesn't mean any of its data is stored in
+					# this cache, though.
+					if (
+						b1 not in keyframes
+						or r1 not in keyframes[b1]
+						or t1 not in keyframes[b1][r1]
+					):
+						return hint(
+							NotInKeyframeError("No value", entikey, b1, r1, t1)
+						)
+					brtk = keyframes[b1][r1][t1]
+					if key in brtk:
+						return hint(brtk[key])
+					else:
+						return hint(
+							NotInKeyframeError("No value", entikey, b1, r1, t1)
+						)
+		elif keyframes:
+			# We have no chronological data, just keyframes.
+			# That makes things easy.
+			for b0, r0, t0 in self.db._iter_keyframes(
+				branch, turn, tick, loaded=True
+			):
+				if (
+					b0 not in keyframes
+					or r0 not in keyframes[b0]
+					or t0 not in keyframes[b0][r0]
+					or key not in keyframes[b0][r0][t0]
+				):
+					return hint(
+						NotInKeyframeError("No value", entikey, b0, r0, t0)
+					)
+				return hint(keyframes[b0][r0][t0][key])
+		return hint(TotalKeyError("No value, ever", entikey))
 
 	def retrieve(self, *args, search=False):
 		"""Get a value previously .store(...)'d.

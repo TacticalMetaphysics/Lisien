@@ -4,7 +4,6 @@ import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from copy import deepcopy
 from operator import attrgetter
 from threading import RLock
 from typing import Type, MutableMapping, Mapping, MutableSequence, Any
@@ -12,8 +11,14 @@ from typing import Type, MutableMapping, Mapping, MutableSequence, Any
 import networkx as nx
 from blinker import Signal
 
-from lisien.allegedb.cache import Cache, TotalKeyError, NotInKeyframeError
-from lisien.allegedb.graph import DiGraph, Node, Edge
+from lisien.allegedb.cache import (
+	Cache,
+	TotalKeyError,
+	NotInKeyframeError,
+	TurnEndDict,
+	TurnEndPlanDict,
+)
+from lisien.allegedb.graph import Node, Edge
 from lisien.allegedb.wrap import MutableMappingUnwrapper
 from lisien.cache import UnitnessCache
 from lisien.util import (
@@ -1148,11 +1153,14 @@ class EngineFacade(AbstractEngine):
 		if real is not None:
 			self._rando.setstate(real._rando.getstate())
 			self.branch, self.turn, self.tick = real._btt()
-			self._branches = deepcopy(real._branches)
-			if hasattr(real, "is_proxy"):
-				self._turn_end_plan = {}
-			else:
-				self._turn_end_plan = deepcopy(real._turn_end_plan)
+			self._branches = real._branches.copy()
+			self._turn_end = TurnEndDict()
+			self._turn_end_plan = TurnEndPlanDict()
+			self._turn_end.other_d = self._turn_end_plan
+			self._turn_end_plan.other_d = self._turn_end
+			if not hasattr(real, "is_proxy"):
+				self._turn_end.update(real._turn_end)
+				self._turn_end_plan.update(real._turn_end_plan)
 				self._nodes_cache = self.FacadeCache(
 					real._nodes_cache, "nodes_cache"
 				)

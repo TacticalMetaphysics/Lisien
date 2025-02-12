@@ -168,6 +168,19 @@ def tables_for_meta(meta):
 		sqlite_with_rowid=False,
 	)
 
+	# Table indicating which rules make big changes to the world.
+	Table(
+		"rule_big",
+		meta,
+		Column("rule", TEXT, primary_key=True),
+		Column("branch", TEXT, primary_key=True, default="trunk"),
+		Column("turn", INT, primary_key=True, default=0),
+		Column("tick", INT, primary_key=True, default=0),
+		Column("big", BOOLEAN, default=False),
+		ForeignKeyConstraint(("rule",), ["rules.rule"]),
+		sqlite_with_rowid=False,
+	)
+
 	# The top level of the lisien world model, the character. Includes
 	# rulebooks for the character itself, its units, and all the things,
 	# places, and portals it contains--though those may have their own
@@ -609,6 +622,16 @@ def queries(table):
 	r["load_rule_neighborhoods_tick_to_tick"] = hoodsel.where(
 		generic_tick_to_tick_clause(hood)
 	)
+	big = table["rule_big"]
+	bigsel = select(
+		big.c.rule, big.c.branch, big.c.turn, big.c.tick, big.c.big
+	)
+	r["load_rule_big_tick_to_end"] = bigsel.where(
+		generic_tick_to_end_clause(big)
+	)
+	r["load_rule_big_tick_to_tick"] = bigsel.where(
+		generic_tick_to_tick_clause(big)
+	)
 	trigsel = select(
 		trig.c.rule, trig.c.branch, trig.c.turn, trig.c.tick, trig.c.triggers
 	)
@@ -638,7 +661,9 @@ def queries(table):
 	)
 	kfx = table["keyframe_extensions"]
 	r["get_keyframe_extensions"] = select(
-		kfx.c.universal, kfx.c.rule, kfx.c.rulebook
+		kfx.c.universal,
+		kfx.c.rule,
+		kfx.c.rulebook,
 	).where(
 		and_(
 			kfx.c.branch == bindparam("branch"),
