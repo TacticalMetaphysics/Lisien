@@ -2431,9 +2431,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			if "units" in delt and delt["units"]:
 				for graf, units in delt["units"].items():
 					if graf in charunit:
-						charunit[graf].update(units)
+						for unit, ex in units.items():
+							if ex:
+								charunit[graf][unit] = True
 					else:
-						charunit[graf] = units
+						charunit[graf] = {
+							unit: True for (unit, ex) in units.items() if ex
+						}
 			self._unitness_cache.set_keyframe((graph,), *now, charunit)
 			self._unitness_cache.get_keyframe((graph,), *now)
 			if "character_rulebook" in delt:
