@@ -929,7 +929,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			self._iter_stuff = (get_char_graphs, charn, btt)
 			self._len_stuff = (avcache.count_entities_or_keys, charn, btt)
 			self._contains_stuff = (
-				avcache.user_cache.contains_key,
+				avcache.contains_key,
 				charn,
 				btt,
 			)
@@ -964,7 +964,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 		def __contains__(self, k):
 			retrieve, charn, btt = self._contains_stuff
-			got = retrieve(charn, *btt())
+			got = retrieve(charn, k, *btt())
 			return got is not None and not isinstance(got, Exception)
 
 		def __len__(self):

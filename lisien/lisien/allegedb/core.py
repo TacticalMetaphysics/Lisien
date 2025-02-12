@@ -17,6 +17,7 @@
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
 import gc
+from itertools import pairwise, chain
 from threading import RLock
 from typing import (
 	Callable,
@@ -33,7 +34,12 @@ from typing import (
 from blinker import Signal
 import networkx as nx
 
-from .cache import KeyframeError, PickyDefaultDict
+from .cache import (
+	KeyframeError,
+	PickyDefaultDict,
+	TurnEndDict,
+	TurnEndPlanDict,
+)
 from .window import update_window, update_backward_window, WindowDict
 from .graph import DiGraph, Node, Edge, GraphsMapping
 from .query import (
@@ -510,7 +516,8 @@ class ORM:
 
 		"""
 		if self._no_kc:
-			raise ValueError("Already in a batch")
+			yield
+			return
 		self._no_kc = True
 		gc_was_active = gc.isenabled()
 		if gc_was_active:
@@ -903,12 +910,10 @@ class ORM:
 		"""Parent, start time, and end time of each branch. Includes plans."""
 		self._branch_parents: Dict[str, Set[str]] = defaultdict(set)
 		"""Parents of a branch at any remove"""
-		self._turn_end: Dict[Tuple[str, int], int] = defaultdict(lambda: 0)
-		"""Tick on which a (branch, turn) ends, not including any plans"""
-		self._turn_end_plan: Dict[Tuple[str, int], int] = defaultdict(
-			lambda: 0
-		)
-		"Tick on which a (branch, turn) ends, including plans"
+		self._turn_end: Dict[Tuple[str, int], int] = TurnEndDict()
+		self._turn_end_plan: Dict[Tuple[str, int], int] = TurnEndPlanDict()
+		self._turn_end_plan.other_d = self._turn_end
+		self._turn_end.other_d = self._turn_end_plan
 		self._branch_end: Dict[str, int] = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
 		self._graph_objs = {}
@@ -943,16 +948,33 @@ class ORM:
 		with (
 			self.batch()
 		):  # so that iter_keys doesn't try fetching the kf we're about to make
-			graphs = frozenset(self._graph_cache.iter_keys(branch, turn, tick))
-			for graph in sort_set(graphs):
+			keyframe_graphs = list(
+				self.query.get_all_keyframe_graphs(branch, turn, tick)
+			)
+			self._graph_cache.set_keyframe(
+				branch,
+				turn,
+				tick,
+				{graph: "DiGraph" for (graph, _, _, _) in keyframe_graphs},
+			)
+			for (
+				graph,
+				nodes,
+				edges,
+				graph_val,
+			) in keyframe_graphs:
 				self._snap_keyframe_de_novo_graph(
-					graph,
-					branch,
-					turn,
-					tick,
-					*self.query.get_keyframe_graph(graph, branch, turn, tick),
+					graph, branch, turn, tick, nodes, edges, graph_val
 				)
 		self._updload(branch, turn, tick)
+		if branch in self._keyframes_dict:
+			if turn in self._keyframes_dict[branch]:
+				self._keyframes_dict[branch][turn].add(tick)
+			else:
+				self._keyframes_dict[branch][turn] = {tick}
+		else:
+			self._keyframes_dict[branch] = {turn: {tick}}
+		self._keyframes_times.add((branch, turn, tick))
 		self._keyframes_loaded.add((branch, turn, tick))
 		if not silent:
 			return self._get_kf(branch, turn, tick, copy=copy)
@@ -2626,7 +2648,7 @@ class ORM:
 		turn_end = self._turn_end
 		set_turn = self.query.set_turn
 		for (branch, turn), plan_end_tick in self._turn_end_plan.items():
-			set_turn(branch, turn, turn_end[branch], plan_end_tick)
+			set_turn(branch, turn, turn_end[branch, turn], plan_end_tick)
 		if self._plans_uncommitted:
 			self.query.plans_insert_many(self._plans_uncommitted)
 		if self._plan_ticks_uncommitted:
@@ -2798,6 +2820,127 @@ class ORM:
 		self.query.graphs_insert(name, branch, turn, tick, "Deleted")
 		self._graph_cache.store(name, branch, turn, tick, None)
 		self._graph_cache.keycache.clear()
+
+	def _kf_loaded(self, branch: str, turn: int, tick: int = None) -> bool:
+		"""Is this keyframe currently loaded into the program?
+
+		Absent a specific ``tick``, return whether there is at least one keyframe
+		on the given turn.
+
+		"""
+		if tick is None:
+			if branch not in self._keyframes_dict:
+				return False
+			if turn not in self._keyframes_dict[branch]:
+				return False
+			return any(
+				(branch, turn, t) in self._keyframes_loaded
+				for t in self._keyframes_dict[branch][turn]
+			)
+		return (branch, turn, tick) in self._keyframes_loaded
+
+	def _iter_keyframes(
+		self,
+		branch: str,
+		turn: int,
+		tick: int,
+		*,
+		loaded=False,
+		with_fork_points=False,
+		stoptime: Tuple[str, int, int] = None,
+	):
+		"""Iterate back over (branch, turn, tick) at which there is a keyframe
+
+		Follows the timestream, like :method:`_iter_parent_btt`, but yields more times.
+		We may have any number of keyframes in the same branch, and will yield
+		them all.
+
+		With ``loaded=True``, only yield keyframes that are in memory now.
+
+		Use ``with_fork_points=True`` to also include all the times that the
+		timeline branched.
+
+		``stoptime`` is as in :method:`_iter_parent_btt`.
+
+		"""
+		kfd = self._keyframes_dict
+		kfs = self._keyframes_times
+		kfl = self._keyframes_loaded
+		it = pairwise(
+			self._iter_parent_btt(branch, turn, tick, stoptime=stoptime)
+		)
+		try:
+			a, b = next(it)
+		except StopIteration:
+			assert branch in self._branches and self._branches[branch][
+				1:3
+			] == (0, 0)
+			a = (branch, turn, tick)
+			b = (branch, 0, 0)
+			if a == b:
+				if (loaded and a in kfl) or (not loaded and a in kfs):
+					yield a
+				return
+		for (b0, r0, t0), (b1, r1, t1) in chain([(a, b)], it):
+			# we're going up the timestream, meaning that b1, r1, t1
+			# is *before* b0, r0, t0
+			if loaded:
+				if (b0, r0, t0) in kfl:
+					yield b0, r0, t0
+			elif (b0, r0, t0) in kfs:
+				yield b0, r0, t0
+			if b0 not in kfd:
+				continue
+			assert b0 in self._branches
+			kfdb = kfd[b0]
+			if r0 in kfdb:
+				tcks = sorted(kfdb[r0])
+				while tcks and tcks[-1] > t0:
+					tcks.pop()
+				if loaded:
+					for tck in reversed(tcks):
+						if r0 == r1 and tck <= t1:
+							break
+						if (b0, r0, tck) != (b0, r0, t0) and (
+							b0,
+							r0,
+							tck,
+						) in kfl:
+							yield b0, r0, tck
+				else:
+					for tck in reversed(tcks):
+						if tck < t0:
+							break
+						yield b0, r0, tck
+			for r_between in range(r0 - 1, r1, -1):  # too much iteration?
+				if r_between in kfdb:
+					tcks = sorted(kfdb[r_between], reverse=True)
+					if loaded:
+						for tck in tcks:
+							if (b0, r_between, tck) in kfl:
+								yield b0, r_between, tck
+					else:
+						for tck in tcks:
+							yield b0, r_between, tck
+			if r1 in kfdb:
+				tcks = sorted(kfdb[r1], reverse=True)
+				while tcks[-1] > t1:
+					tcks.pop()
+				if not tcks:
+					if with_fork_points:
+						yield b1, r1, t1
+					continue
+				if loaded:
+					for tck in tcks:
+						if (b1, r1, tck) in kfl:
+							yield b1, r1, tck
+				else:
+					for tck in tcks:
+						yield b1, r1, tck
+				if with_fork_points and tcks[-1] == t1:
+					continue
+			if with_fork_points:
+				yield b1, r1, t1
 
 	def _iter_parent_btt(
 		self,
