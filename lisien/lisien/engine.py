@@ -1916,7 +1916,17 @@ class Engine(AbstractEngine, gORM, Executor):
 			updater(upduniv, univbranches[branch])
 
 		def updunit(char, graph, units_d):
-			if not isinstance(units_d, dict):
+			if units_d is None:
+				if char not in delta:
+					delta[char] = {"units": {graph: None}}
+				elif delta[char] is None:
+					return
+				elif "units" not in delta[char]:
+					delta[char]["units"] = {graph: None}
+				else:
+					delta[char]["units"][graph] = None
+				return
+			elif isinstance(units_d, tuple):
 				node, av = units_d
 				delta.setdefault(char, {}).setdefault("units", {}).setdefault(
 					graph, {}
