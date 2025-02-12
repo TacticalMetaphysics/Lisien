@@ -1,4 +1,4 @@
-== 0.18.0 | 2025-02-08 ==
+== 0.18.0 | 2025-02-13 ==
 * Changed name of "LiSE" to "Lisien"
 * Changed name of "ELiDE" to "Elide"
 (letters cased like normal English if that's what you're writing,
@@ -10,6 +10,7 @@
 * Fixed rules displaying out of order in the stepper
 * Fixed dragged objects dropping when they shouldn't
 * Improved locking for caches, fixing some intermittent data loss
+* Dropped support for Python 3.8 and 3.9
 
 == 0.17.2 | 2024-11-30 ==
 * Fix rule poller. It only worked for some rulebook types before.
