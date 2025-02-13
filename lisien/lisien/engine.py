@@ -2462,6 +2462,8 @@ class Engine(AbstractEngine, gORM, Executor):
 						for unit, ex in units.items():
 							if ex:
 								charunit[graf][unit] = True
+							elif unit in charunit[graf]:
+								del charunit[graf][unit]
 					else:
 						charunit[graf] = {
 							unit: True for (unit, ex) in units.items() if ex
