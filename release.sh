@@ -6,9 +6,13 @@ python3.12 eqversion.py
 python -m build --version
 python -m twine --version
 python -m sphinx --version
+python -m isort --version
+ruff --version
 pyclean --version
 wine --version
 ls ~/lisien_windows
+python -m isort .
+ruff format .
 rm -rf .tox
 python -m tox
 rm -rf .tox
