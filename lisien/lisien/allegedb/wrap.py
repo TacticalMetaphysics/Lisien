@@ -19,19 +19,19 @@ of themselves to allegedb every time they are changed.
 
 """
 
-from functools import partial
-from itertools import zip_longest
 from abc import ABC, abstractmethod
 from collections.abc import (
-	MutableSet,
+	Container,
+	Iterable,
+	Mapping,
 	MutableMapping,
 	MutableSequence,
-	Mapping,
+	MutableSet,
 	Sequence,
-	Iterable,
 	Sized,
-	Container,
 )
+from functools import partial
+from itertools import zip_longest
 from typing import Callable
 
 

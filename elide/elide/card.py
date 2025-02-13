@@ -19,14 +19,13 @@ of other cards.
 """
 
 import pygments
-from pygments.formatters.bbcode import BBCodeFormatter
-from pygments.lexers import PythonLexer
-
 from kivy.clock import Clock
+from kivy.graphics import InstructionGroup
 from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
 	BooleanProperty,
+	BoundedNumericProperty,
 	DictProperty,
 	ListProperty,
 	NumericProperty,
@@ -34,16 +33,16 @@ from kivy.properties import (
 	OptionProperty,
 	ReferenceListProperty,
 	StringProperty,
-	BoundedNumericProperty,
 )
-from kivy.utils import get_hex_from_color
-from kivy.graphics import InstructionGroup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.image import Image
 from kivy.uix.layout import Layout
 from kivy.uix.stencilview import StencilView
-from kivy.uix.image import Image
 from kivy.uix.widget import Widget
+from kivy.utils import get_hex_from_color
+from pygments.formatters.bbcode import BBCodeFormatter
+from pygments.lexers import PythonLexer
 
 from .util import load_string_once
 

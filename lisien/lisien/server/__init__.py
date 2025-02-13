@@ -12,10 +12,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import cherrypy
-import threading
 import logging
+import threading
 from queue import Queue
+
+import cherrypy
+
 from ..handle import EngineHandle
 
 

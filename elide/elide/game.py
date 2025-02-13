@@ -17,23 +17,23 @@ from functools import partial
 from threading import Thread
 
 from kivy.app import App
-from kivy.logger import Logger
 from kivy.clock import Clock, triggered
+from kivy.factory import Factory
+from kivy.logger import Logger
 from kivy.properties import (
 	BooleanProperty,
-	ObjectProperty,
-	NumericProperty,
-	StringProperty,
 	DictProperty,
+	NumericProperty,
+	ObjectProperty,
+	StringProperty,
 )
-
-from kivy.factory import Factory
-from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
+from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 import lisien.proxy
+
+from .dialog import DialogLayout
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
-from .dialog import DialogLayout
 
 Factory.register("GraphBoard", GraphBoard)
 Factory.register("GridBoard", GridBoard)

@@ -15,12 +15,13 @@
 """allegedb's special implementations of the NetworkX graph objects"""
 
 from abc import ABC
+from collections import defaultdict
+from collections.abc import MutableMapping
 from itertools import chain
 
 import networkx
 from networkx.exception import NetworkXError
-from collections import defaultdict
-from collections.abc import MutableMapping
+
 from .wrap import MutableMappingUnwrapper
 
 
@@ -91,6 +92,7 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 
 		def wrapval(v):
 			from functools import partial
+
 			from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 			if isinstance(v, list):

@@ -21,6 +21,7 @@ as you ran this script from.
 """
 
 import networkx as nx
+
 from lisien import Engine
 
 

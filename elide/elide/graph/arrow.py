@@ -21,18 +21,17 @@ screen they are at the moment.
 """
 
 from collections import defaultdict
-
-from math import cos, sin, atan, pi
+from math import atan, cos, pi, sin
 from operator import itemgetter
-from typing import Optional, Tuple, Iterator
+from typing import Iterator, Optional, Tuple
 
 import numpy as np
-from kivy.uix.widget import Widget
-from kivy.core.text import Label
-from kivy.graphics.fbo import Fbo
-from kivy.graphics import Translate, Rectangle, Quad, Color, InstructionGroup
-from kivy.properties import NumericProperty, ListProperty, ObjectProperty
 from kivy.clock import Clock, mainthread
+from kivy.core.text import Label
+from kivy.graphics import Color, InstructionGroup, Quad, Rectangle, Translate
+from kivy.graphics.fbo import Fbo
+from kivy.properties import ListProperty, NumericProperty, ObjectProperty
+from kivy.uix.widget import Widget
 
 try:
 	from kivy.garden.collider import Collide2DPoly

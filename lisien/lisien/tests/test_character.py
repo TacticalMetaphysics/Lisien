@@ -12,9 +12,11 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from shutil import rmtree
 import tempfile
+from shutil import rmtree
+
 import pytest
+
 import lisien.allegedb.tests.test_all
 from lisien.engine import Engine
 

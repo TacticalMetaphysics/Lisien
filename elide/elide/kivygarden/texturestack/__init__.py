@@ -11,13 +11,13 @@ of such compositions.
 
 """
 
-from kivy.uix.widget import Widget
+from kivy.clock import Clock
 from kivy.core.image import Image
 from kivy.graphics import (
-	Rectangle,
 	InstructionGroup,
-	PushMatrix,
 	PopMatrix,
+	PushMatrix,
+	Rectangle,
 	Translate,
 )
 from kivy.graphics.fbo import Fbo
@@ -27,8 +27,8 @@ from kivy.properties import (
 	ListProperty,
 	ObjectProperty,
 )
-from kivy.clock import Clock
 from kivy.resources import resource_find
+from kivy.uix.widget import Widget
 
 
 class TextureStack(Widget):

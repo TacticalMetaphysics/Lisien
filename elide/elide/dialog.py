@@ -17,22 +17,22 @@
 from functools import partial
 
 from kivy.app import App
+from kivy.clock import Clock, mainthread
+from kivy.core.text import DEFAULT_FONT
+from kivy.logger import Logger
 from kivy.properties import (
 	DictProperty,
 	ListProperty,
+	NumericProperty,
 	ObjectProperty,
 	StringProperty,
-	NumericProperty,
 	VariableListProperty,
 )
-from kivy.core.text import DEFAULT_FONT
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.clock import Clock, mainthread
-from kivy.logger import Logger
+from kivy.uix.widget import Widget
 
 from .util import load_string_once
 

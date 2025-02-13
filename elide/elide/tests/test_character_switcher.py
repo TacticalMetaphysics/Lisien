@@ -2,7 +2,8 @@ from kivy.tests.common import UnitTestTouch
 
 from lisien import Engine
 from lisien.examples import polygons
-from .util import idle_until, ELiDEAppTest
+
+from .util import ELiDEAppTest, idle_until
 
 
 class CharacterSwitcherTest(ELiDEAppTest):

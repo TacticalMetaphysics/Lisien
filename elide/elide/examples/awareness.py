@@ -1,6 +1,6 @@
-from tempfile import mkdtemp
-from multiprocessing import freeze_support
 from inspect import getsource
+from multiprocessing import freeze_support
+from tempfile import mkdtemp
 
 from kivy import Logger
 from kivy.clock import Clock
@@ -19,6 +19,7 @@ def remove_prefix(s: str, prefix: str):
 
 def game_start(engine) -> None:
 	from random import randint, shuffle
+
 	import networkx as nx
 
 	engine.eternal["nonusage-limit"] = 100

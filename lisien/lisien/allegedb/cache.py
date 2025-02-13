@@ -14,19 +14,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data."""
 
-from itertools import pairwise, chain
-from typing import Tuple, Hashable, Optional
-
-from .window import (
-	WindowDict,
-	FuturistWindowDict,
-	TurnDict,
-	SettingsTurnDict,
-	EntikeySettingsTurnDict,
-)
-from ..util import HistoricKeyError
 from collections import OrderedDict, defaultdict, deque
+from itertools import chain, pairwise
 from threading import RLock
+from typing import Hashable, Optional, Tuple
+
+from ..util import HistoricKeyError
+from .window import (
+	EntikeySettingsTurnDict,
+	FuturistWindowDict,
+	SettingsTurnDict,
+	TurnDict,
+	WindowDict,
+)
 
 
 class NotInKeyframeError(KeyError):

@@ -78,19 +78,19 @@ the function's name.
 
 """
 
-from collections.abc import MutableMapping, MutableSequence, Hashable
 from abc import ABC, abstractmethod
-from functools import partial, cached_property
-from inspect import getsource
 from ast import parse
+from collections.abc import Hashable, MutableMapping, MutableSequence
+from functools import cached_property, partial
+from inspect import getsource
 from typing import Callable, Optional
 
 from astunparse import unparse
 from blinker import Signal
 
-from .util import dedent_source, AbstractEngine
-from .xcollections import FunctionStore
 from .cache import Cache
+from .util import AbstractEngine, dedent_source
+from .xcollections import FunctionStore
 
 
 def roundtrip_dedent(source):

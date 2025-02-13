@@ -115,6 +115,7 @@ def install(eng):
 
 if __name__ == "__main__":
 	import sys
+
 	from lisien import Engine
 
 	with Engine(sys.argv[-1], clear=True) as eng, eng.batch():

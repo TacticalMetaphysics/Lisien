@@ -36,32 +36,32 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from itertools import chain
 from types import MethodType
-from blinker import Signal
 
 import networkx as nx
+from blinker import Signal
+
 from .allegedb.cache import FuturistWindowDict, PickyDefaultDict
 from .allegedb.graph import (
 	DiGraph,
-	GraphNodeMapping,
-	DiGraphSuccessorsMapping,
 	DiGraphPredecessorsMapping,
+	DiGraphSuccessorsMapping,
+	GraphNodeMapping,
 )
 from .allegedb.wrap import MutableMappingUnwrapper
+from .exc import WorldIntegrityError
 from .facade import CharacterFacade
-
-from .rule import RuleMapping
-from .rule import RuleFollower as BaseRuleFollower
 from .node import Node, Place, Thing
 from .portal import Portal
+from .query import StatusAlias
+from .rule import RuleFollower as BaseRuleFollower
+from .rule import RuleMapping
 from .util import (
+	AbstractCharacter,
+	AbstractEngine,
 	getatt,
 	singleton_get,
 	timer,
-	AbstractEngine,
-	AbstractCharacter,
 )
-from .exc import WorldIntegrityError
-from .query import StatusAlias
 
 
 def grid_2d_8graph(m, n):

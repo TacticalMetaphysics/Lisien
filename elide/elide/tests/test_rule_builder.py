@@ -1,13 +1,13 @@
+from abc import abstractmethod
 from functools import partial
 
 from kivy.tests.common import UnitTestTouch
 
-from abc import abstractmethod
 from lisien import Engine
-from lisien.examples import kobold
-from lisien.examples import polygons
-from .util import idle_until, ELiDEAppTest
+from lisien.examples import kobold, polygons
+
 from ..card import Card, Foundation
+from .util import ELiDEAppTest, idle_until
 
 
 def builder_foundation(builder):

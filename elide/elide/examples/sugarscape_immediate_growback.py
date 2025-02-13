@@ -1,12 +1,11 @@
-from tempfile import mkdtemp
-from multiprocessing import freeze_support
 from inspect import getsource
+from multiprocessing import freeze_support
+from tempfile import mkdtemp
 
+import networkx as nx
 from kivy.clock import Clock
 from kivy.lang.builder import Builder
 from kivy.properties import BooleanProperty, NumericProperty
-
-import networkx as nx
 from networkx import grid_2d_graph
 
 from elide.game import GameApp, GameScreen, GridBoard

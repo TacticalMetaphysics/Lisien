@@ -16,20 +16,20 @@ from functools import partial
 from json import dumps
 
 from sqlalchemy import (
-	Table,
-	Column,
-	CheckConstraint,
-	ForeignKeyConstraint,
-	INT,
-	TEXT,
 	BLOB,
 	BOOLEAN,
-	MetaData,
+	INT,
+	TEXT,
+	CheckConstraint,
+	Column,
 	ForeignKey,
-	select,
+	ForeignKeyConstraint,
+	MetaData,
+	Table,
 	func,
+	select,
 )
-from sqlalchemy.sql import bindparam, and_, or_
+from sqlalchemy.sql import and_, bindparam, or_
 
 BaseColumn = Column
 Column = partial(BaseColumn, nullable=False)
@@ -579,7 +579,7 @@ def queries_for_table_dict(table):
 
 
 def gather_sql(meta):
-	from sqlalchemy.sql.ddl import CreateTable, CreateIndex
+	from sqlalchemy.sql.ddl import CreateIndex, CreateTable
 
 	r = {}
 	table = tables_for_meta(meta)

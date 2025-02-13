@@ -1,4 +1,5 @@
 import random
+
 import networkx as nx
 
 from lisien import Engine

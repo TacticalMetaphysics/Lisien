@@ -14,9 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Object to configure, start, and stop elide."""
 
-import sys
-import os
 import json
+import os
+import sys
 from functools import partial
 from threading import Thread
 
@@ -25,39 +25,38 @@ from lisien.allegedb import OutOfTimelineError
 if "KIVY_NO_ARGS" not in os.environ:
 	os.environ["KIVY_NO_ARGS"] = "1"
 
-from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock, triggered
-from kivy.resources import resource_add_path
-
-from kivy.uix.screenmanager import ScreenManager, NoTransition
-
+from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
 	BooleanProperty,
-	ObjectProperty,
 	NumericProperty,
+	ObjectProperty,
 	StringProperty,
 )
+from kivy.resources import resource_add_path
+from kivy.uix.screenmanager import NoTransition, ScreenManager
+
+import elide
+import elide.charsview
+import elide.dialog
+import elide.rulesview
+import elide.screen
+import elide.spritebuilder
+import elide.statcfg
+import elide.stores
+import elide.timestream
 import lisien
+from elide.graph.arrow import GraphArrow
+from elide.graph.board import GraphBoard
+from elide.grid.board import GridBoard
 from lisien.proxy import (
-	EngineProcessManager,
 	CharStatProxy,
+	EngineProcessManager,
 	PlaceProxy,
 	ThingProxy,
 )
-import elide
-import elide.dialog
-import elide.screen
-import elide.stores
-import elide.statcfg
-import elide.spritebuilder
-import elide.rulesview
-import elide.charsview
-import elide.timestream
-from elide.graph.board import GraphBoard
-from elide.graph.arrow import GraphArrow
-from elide.grid.board import GridBoard
 
 resource_add_path(elide.__path__[0] + "/assets")
 resource_add_path(elide.__path__[0] + "/assets/rltiles")

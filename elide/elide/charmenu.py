@@ -13,16 +13,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.clock import Clock, triggered
-from kivy.uix.boxlayout import BoxLayout
-
 from kivy.properties import (
 	BooleanProperty,
 	ObjectProperty,
 	ReferenceListProperty,
 )
+from kivy.uix.boxlayout import BoxLayout
+
+from lisien.proxy import CharStatProxy
+
 from .graph.arrow import GraphArrowWidget
 from .util import dummynum, load_string_once
-from lisien.proxy import CharStatProxy
 
 
 def trigger(func):

@@ -25,44 +25,44 @@ call its ``start`` method with the same arguments you'd give a real
 
 """
 
+import logging
 import os
 import sys
-import logging
+import zlib
 from abc import abstractmethod
-from random import Random
 from collections.abc import Mapping, MutableMapping, MutableSequence
-from functools import partial, cached_property
-from threading import Thread, Lock
-from multiprocessing import Process, Pipe, Queue, ProcessError
 from concurrent.futures import ThreadPoolExecutor
+from functools import cached_property, partial
+from multiprocessing import Pipe, Process, ProcessError, Queue
 from queue import Empty
+from random import Random
+from threading import Lock, Thread
 from time import monotonic
 from types import MethodType
-from typing import Hashable, Tuple, Optional, Iterator, List, Union
+from typing import Hashable, Iterator, List, Optional, Tuple, Union
 
+import msgpack
 import networkx as nx
 from blinker import Signal
-import zlib
-import msgpack
 
-from .allegedb import OutOfTimelineError, Key
+from .allegedb import Key, OutOfTimelineError
 from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
+from .exc import WorkerProcessReadOnlyError
 from .facade import CharacterFacade
+from .node import NodeContent, Place, Thing, UserMapping
+from .portal import Portal
 from .util import (
-	getatt,
+	AbstractCharacter,
 	AbstractEngine,
 	MsgpackExtensionType,
-	AbstractCharacter,
+	getatt,
 )
 from .xcollections import (
 	AbstractLanguageDescriptor,
 	FunctionStore,
 	StringStore,
 )
-from .node import NodeContent, UserMapping, Place, Thing
-from .portal import Portal
-from .exc import WorkerProcessReadOnlyError
 
 
 class CachingProxy(MutableMapping, Signal):

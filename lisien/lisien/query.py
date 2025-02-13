@@ -38,21 +38,22 @@ Other comparison operators like ``>`` and ``<`` work as well.
 import operator
 from collections import defaultdict
 from collections.abc import Sequence, Set
-from itertools import chain
-from operator import gt, lt, eq, ne, le, ge
 from functools import partialmethod
+from itertools import chain
+from operator import eq, ge, gt, le, lt, ne
 from time import monotonic
-from typing import Any, List, Callable, Tuple
+from typing import Any, Callable, List, Tuple
 
-from sqlalchemy import select, and_, Table
-from sqlalchemy.sql.functions import func
 import msgpack
+from sqlalchemy import Table, and_, select
+from sqlalchemy.sql.functions import func
 
-from .alchemy import meta, gather_sql
-from .allegedb import query, Key
+import lisien
+
+from .alchemy import gather_sql, meta
+from .allegedb import Key, query
 from .exc import OperationalError
 from .util import EntityStatAccessor
-import lisien
 
 IntegrityError = query.IntegrityError
 
@@ -413,8 +414,7 @@ def _make_side_sel(
 	entity, stat, branches: List[str], pack: callable, mid_turn: bool
 ):
 	from .character import AbstractCharacter
-	from .node import Place
-	from .node import Thing
+	from .node import Place, Thing
 	from .portal import Portal
 
 	if isinstance(entity, AbstractCharacter):

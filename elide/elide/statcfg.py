@@ -17,13 +17,13 @@ from kivy.clock import Clock
 from kivy.properties import (
 	DictProperty,
 	NumericProperty,
-	StringProperty,
 	ObjectProperty,
+	StringProperty,
 )
-from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
+from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .statlist import BaseStatListView

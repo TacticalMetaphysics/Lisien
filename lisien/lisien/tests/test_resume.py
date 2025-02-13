@@ -1,6 +1,7 @@
 import pytest
-from lisien.examples.polygons import install
+
 from lisien import Engine
+from lisien.examples.polygons import install
 
 
 # TODO: use a test sim that does everything in every cache

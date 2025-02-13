@@ -29,23 +29,23 @@ from functools import partial
 from json import dumps
 
 from sqlalchemy import (
-	Table,
-	Column,
-	ForeignKeyConstraint,
-	select,
-	bindparam,
-	func,
-	and_,
-	or_,
-	INT,
-	TEXT,
+	BLOB,
 	BOOLEAN,
 	FLOAT,
-	BLOB,
+	INT,
+	TEXT,
+	Column,
 	ForeignKey,
+	ForeignKeyConstraint,
+	MetaData,
+	Table,
+	and_,
+	bindparam,
+	func,
+	or_,
+	select,
 )
-from sqlalchemy import MetaData
-from sqlalchemy.sql.ddl import CreateTable, CreateIndex
+from sqlalchemy.sql.ddl import CreateIndex, CreateTable
 
 from .allegedb import alchemy
 
@@ -702,7 +702,7 @@ def queries(table):
 
 
 def gather_sql(meta):
-	from sqlalchemy.sql.ddl import CreateTable, CreateIndex
+	from sqlalchemy.sql.ddl import CreateIndex, CreateTable
 
 	r = {}
 	table = tables_for_meta(meta)

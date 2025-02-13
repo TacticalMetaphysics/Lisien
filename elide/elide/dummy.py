@@ -12,17 +12,16 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from kivy.logger import Logger
 from kivy.properties import (
 	NumericProperty,
 	ObjectProperty,
 	ReferenceListProperty,
 	StringProperty,
 )
-from kivy.logger import Logger
-
-from .kivygarden.texturestack import ImageStack
 
 from . import menu  # for kv
+from .kivygarden.texturestack import ImageStack
 from .util import load_string_once
 
 

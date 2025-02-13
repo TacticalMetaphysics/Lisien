@@ -4,21 +4,22 @@ from itertools import chain
 from time import monotonic
 
 from kivy.clock import Clock
+from kivy.lang.builder import Builder
 from kivy.logger import Logger
 from kivy.properties import (
+	BooleanProperty,
 	ListProperty,
 	NumericProperty,
 	ObjectProperty,
 	ReferenceListProperty,
-	BooleanProperty,
 )
 from kivy.uix.widget import Widget
-from kivy.lang.builder import Builder
 from kivy.vector import Vector
 
-from ..boardview import BoardView
 from elide.boardscatter import BoardScatterPlane
-from ..pawnspot import TextureStackPlane, Stack
+
+from ..boardview import BoardView
+from ..pawnspot import Stack, TextureStackPlane
 
 
 class GridPawn(Stack):

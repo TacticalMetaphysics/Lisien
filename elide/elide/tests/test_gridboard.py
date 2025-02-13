@@ -1,16 +1,12 @@
+import networkx as nx
 from kivy.base import EventLoop
 from kivy.tests.common import GraphicUnitTest
-import networkx as nx
 
+from elide.grid.board import GridBoard, GridBoardView
 from lisien import Engine
 from lisien.facade import CharacterFacade
-from elide.grid.board import GridBoard, GridBoardView
-from .util import (
-	all_spots_placed,
-	all_pawns_placed,
-	idle_until,
-	ELiDEAppTest,
-)
+
+from .util import ELiDEAppTest, all_pawns_placed, all_spots_placed, idle_until
 
 
 class GridBoardTest(GraphicUnitTest):

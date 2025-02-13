@@ -22,21 +22,22 @@ for changes using the ``connect(..)`` method.
 
 """
 
-from io import StringIO
+import importlib.util
+import json
+import os
+import sys
+from ast import Expr, Module, parse
 from collections.abc import MutableMapping
 from copy import deepcopy
-from types import MethodType
 from inspect import getsource
-from ast import parse, Expr, Module
-import json
-import importlib.util
-import sys, os
+from io import StringIO
+from types import MethodType
 
-from blinker import Signal
 from astunparse import Unparser
+from blinker import Signal
 
-from .util import dedent_source, getatt
 from .allegedb.graph import GraphsMapping
+from .util import dedent_source, getatt
 
 
 class TabUnparser(Unparser):

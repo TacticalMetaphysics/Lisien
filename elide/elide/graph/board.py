@@ -17,38 +17,39 @@
 from functools import partial
 from time import monotonic
 
-from kivy.properties import (
-	BooleanProperty,
-	ReferenceListProperty,
-	DictProperty,
-	ObjectProperty,
-	NumericProperty,
-	ListProperty,
-	StringProperty,
-)
+from kivy.clock import Clock, mainthread, triggered
 from kivy.lang import Builder
 from kivy.logger import Logger
-from kivy.clock import Clock, mainthread, triggered
+from kivy.properties import (
+	BooleanProperty,
+	DictProperty,
+	ListProperty,
+	NumericProperty,
+	ObjectProperty,
+	ReferenceListProperty,
+	StringProperty,
+)
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
 from kivy.vector import Vector
 
-from elide.pawnspot import TextureStackPlane, Stack
+from elide.pawnspot import Stack, TextureStackPlane
 from lisien.util import normalize_layout
-from .spot import GraphSpot
+
+from ..boardscatter import BoardScatterPlane
+from ..boardview import BoardView
+from ..dummy import Dummy
 from .arrow import (
+	DEFAULT_ARROW_LABEL_KWARGS,
+	ArrowPlane,
 	GraphArrow,
 	GraphArrowWidget,
-	ArrowPlane,
 	get_points_multi,
-	DEFAULT_ARROW_LABEL_KWARGS,
 )
 from .pawn import Pawn
-from ..dummy import Dummy
-from ..boardview import BoardView
-from ..boardscatter import BoardScatterPlane
+from .spot import GraphSpot
 
 
 def trigger(func):

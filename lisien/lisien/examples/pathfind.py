@@ -18,8 +18,9 @@ def install(eng, seed=None):
 
 	@eng.function
 	def find_path_somewhere(node):
-		from networkx.algorithms import astar_path
 		from math import sqrt
+
+		from networkx.algorithms import astar_path
 
 		x, y = node.location.name
 		destx = 100 - int(x)
@@ -46,6 +47,7 @@ def install(eng, seed=None):
 	@phys.rule
 	def go_places(char):
 		from time import monotonic
+
 		from networkx.exception import NetworkXNoPath
 
 		def log_as_completed(fut):
@@ -87,6 +89,7 @@ def install(eng, seed=None):
 
 if __name__ == "__main__":
 	from tempfile import mkdtemp
+
 	from lisien import Engine
 
 	td = mkdtemp()

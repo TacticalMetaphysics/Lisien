@@ -1,16 +1,16 @@
-import sys
-from tempfile import mkdtemp
 import shutil
+import sys
 from functools import partial
+from tempfile import mkdtemp
 
 from blinker import Signal
-from kivy.input.motionevent import MotionEvent
 from kivy.base import EventLoop
-from kivy.tests.common import GraphicUnitTest
 from kivy.config import ConfigParser
+from kivy.input.motionevent import MotionEvent
+from kivy.tests.common import GraphicUnitTest
 
-from lisien.proxy import RedundantProcessError
 from elide.app import ELiDEApp
+from lisien.proxy import RedundantProcessError
 
 
 def all_spots_placed(board, char=None):

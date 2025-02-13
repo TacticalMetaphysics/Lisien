@@ -1,7 +1,9 @@
-import pytest
 import os
-from lisien.allegedb import ORM
+
 import networkx as nx
+import pytest
+
+from lisien.allegedb import ORM
 
 testgraphs = [nx.chvatal_graph()]
 # have to name it after creation because it clears the create_using

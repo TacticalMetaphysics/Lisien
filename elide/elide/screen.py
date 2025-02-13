@@ -19,22 +19,14 @@ grid, the time control panel, and the menu.
 
 """
 
-from functools import partial
 from ast import literal_eval
+from functools import partial
 from threading import Thread
 
 from kivy.app import App
-from kivy.clock import mainthread, triggered
+from kivy.clock import Clock, mainthread, triggered
 from kivy.factory import Factory
 from kivy.lang import Builder
-from kivy.uix.slider import Slider
-from kivy.uix.togglebutton import ToggleButton
-from kivy.uix.button import Button
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.screenmanager import Screen
-from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.properties import (
 	BooleanProperty,
@@ -46,11 +38,19 @@ from kivy.properties import (
 	ReferenceListProperty,
 	StringProperty,
 )
-from .stepper import RuleStepper
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.screenmanager import Screen
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.slider import Slider
+from kivy.uix.togglebutton import ToggleButton
+
+from .calendar import Agenda
 from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
-from .calendar import Agenda
+from .stepper import RuleStepper
 from .util import dummynum, load_string_once
 
 

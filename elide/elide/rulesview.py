@@ -16,22 +16,22 @@ from collections import OrderedDict
 from inspect import signature
 
 from kivy.app import App
-from kivy.logger import Logger
 from kivy.clock import Clock, triggered
+from kivy.logger import Logger
 from kivy.properties import ObjectProperty, StringProperty
-from kivy.uix.button import Button
-from kivy.uix.modalview import ModalView
-from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.togglebutton import ToggleButton
-from kivy.uix.recycleview import RecycleView
-from kivy.uix.recycleview.views import RecycleDataViewBehavior
+from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
-from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
+from kivy.uix.modalview import ModalView
+from kivy.uix.recycleview import RecycleView
+from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.screenmanager import Screen
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.widget import Widget
 
-from .card import Card, DeckBuilderView, DeckBuilderScrollBar
+from .card import Card, DeckBuilderScrollBar, DeckBuilderView
 from .stores import FuncEditor
 from .util import load_string_once
 
