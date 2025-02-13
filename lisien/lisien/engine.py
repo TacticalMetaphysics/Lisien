@@ -1218,32 +1218,50 @@ class Engine(AbstractEngine, gORM, Executor):
 	) -> dict:
 		kf = super()._get_kf(branch, turn, tick, copy=copy)
 		for graph, vals in kf["graph_val"].items():
-			vals["units"] = self._unitness_cache.get_keyframe(
-				(graph,), branch, turn, tick
-			)
-			vals["character_rulebook"] = (
-				self._characters_rulebooks_cache.retrieve(
+			try:
+				vals["units"] = self._unitness_cache.get_keyframe(
+					(graph,), branch, turn, tick
+				)
+			except KeyError:
+				pass
+			try:
+				vals["character_rulebook"] = (
+					self._characters_rulebooks_cache.retrieve(
+						graph, branch, turn, tick
+					)
+				)
+			except KeyError:
+				pass
+			try:
+				vals["unit_rulebook"] = self._units_rulebooks_cache.retrieve(
 					graph, branch, turn, tick
 				)
-			)
-			vals["unit_rulebook"] = self._units_rulebooks_cache.retrieve(
-				graph, branch, turn, tick
-			)
-			vals["character_thing_rulebook"] = (
-				self._characters_things_rulebooks_cache.retrieve(
-					graph, branch, turn, tick
+			except KeyError:
+				pass
+			try:
+				vals["character_thing_rulebook"] = (
+					self._characters_things_rulebooks_cache.retrieve(
+						graph, branch, turn, tick
+					)
 				)
-			)
-			vals["character_place_rulebook"] = (
-				self._characters_places_rulebooks_cache.retrieve(
-					graph, branch, turn, tick
+			except KeyError:
+				pass
+			try:
+				vals["character_place_rulebook"] = (
+					self._characters_places_rulebooks_cache.retrieve(
+						graph, branch, turn, tick
+					)
 				)
-			)
-			vals["character_portal_rulebook"] = (
-				self._characters_portals_rulebooks_cache.retrieve(
-					graph, branch, turn, tick
+			except KeyError:
+				pass
+			try:
+				vals["character_portal_rulebook"] = (
+					self._characters_portals_rulebooks_cache.retrieve(
+						graph, branch, turn, tick
+					)
 				)
-			)
+			except KeyError:
+				pass
 			try:
 				node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
 					(graph,), branch, turn, tick
