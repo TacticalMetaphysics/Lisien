@@ -7,7 +7,7 @@ include-package-data=true
 
 [project]
 name = "ELiDE"
-version = "0.18.0"
+version = "0.18.1"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -22,7 +22,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"lisien==0.18.0",
+	"lisien==0.18.1",
 	"kivy>=2.0.0,<3",
 	"kivy_garden.collider",
 	"kivy-deps.glew ; sys_platform == 'win32'",
