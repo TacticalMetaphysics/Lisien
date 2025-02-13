@@ -534,7 +534,8 @@ class ELiDEApp(App):
 		self.funcs.save()
 		if hasattr(self, "procman"):
 			self.procman.shutdown()
-		del self.engine
+		if hasattr(self, "engine"):
+			del self.engine
 		if hasattr(self, "starting_dir"):
 			os.chdir(self.starting_dir)
 
