@@ -82,7 +82,7 @@ tester knew to look for it.
 # Setup
 
 Lisien is available [on PyPI](https://pypi.org/project/Lisien/), so
-`pip install Lisien Elide` will work, but won't always have the latest experimental
+`pip install lisien llide` will work, but won't always have the latest experimental
 code. If you want that, then in a command line, with [Python](https://python.org)
 (preferably [version 3.12](https://www.python.org/downloads/release/python-3129/)) already installed, run:
 
