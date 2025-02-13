@@ -94,7 +94,7 @@ Run it again whenever you want the latest Lisien code.
 
 # Getting started
 
-You could now start the graphical frontend with ``python -m Elide``,
+You could now start the graphical frontend with ``python -m elide``,
 but this might not be very useful, as you don't have any world state
 to edit yet. You could laboriously assemble a gameworld by hand, but
 instead let's generate one, Parable of the Polygons by Nicky Case.
