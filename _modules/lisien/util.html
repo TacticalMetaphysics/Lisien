@@ -650,9 +650,8 @@
 
 		<span class="k">def</span> <span class="nf">unpack_thing</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
 			<span class="n">charn</span><span class="p">,</span> <span class="n">thingn</span> <span class="o">=</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
-			<span class="k">return</span> <span class="n">thing_cls</span><span class="p">(</span>
-				<span class="n">char_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">init_rulebooks</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">thingn</span>
-			<span class="p">)</span>
+			<span class="c1"># Breaks if the thing hasn&#39;t been instantiated yet, not great</span>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">thingn</span><span class="p">]</span>
 
 		<span class="k">def</span> <span class="nf">unpack_portal</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
 			<span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span> <span class="o">=</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>

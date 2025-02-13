@@ -967,7 +967,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">_iter_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">get_char_graphs</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_len_stuff</span> <span class="o">=</span> <span class="p">(</span><span class="n">avcache</span><span class="o">.</span><span class="n">count_entities_or_keys</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">btt</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_contains_stuff</span> <span class="o">=</span> <span class="p">(</span>
-				<span class="n">avcache</span><span class="o">.</span><span class="n">user_cache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">,</span>
+				<span class="n">avcache</span><span class="o">.</span><span class="n">contains_key</span><span class="p">,</span>
 				<span class="n">charn</span><span class="p">,</span>
 				<span class="n">btt</span><span class="p">,</span>
 			<span class="p">)</span>
@@ -1002,7 +1002,7 @@
 
 		<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 			<span class="n">retrieve</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contains_stuff</span>
-			<span class="n">got</span> <span class="o">=</span> <span class="n">retrieve</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
+			<span class="n">got</span> <span class="o">=</span> <span class="n">retrieve</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">())</span>
 			<span class="k">return</span> <span class="n">got</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">got</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">)</span>
 
 		<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
