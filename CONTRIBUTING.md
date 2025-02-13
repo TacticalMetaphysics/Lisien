@@ -13,4 +13,8 @@ In the likely case that something about the engine doesn't behave how you expect
 against the Lisien repository. Please link me to your source code or at least paste a runnable snippet in the ticket if at
 all possible.
 
+Lisien does not follow the formatting conventions of Python's standard `black`
+autoformatter, due to ideological differences. Instead, use `ruff` with the included
+`ruff.toml`.
+
 If you need more help, send email to public@zacharyspector.com
