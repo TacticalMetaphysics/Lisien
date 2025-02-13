@@ -13,11 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.clock import mainthread
+from kivy.graphics import Color, Line
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
-from kivy.graphics import Color, Line
 
 from .util import load_string_once
 

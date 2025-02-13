@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from unittest.mock import patch, call
+from unittest.mock import call, patch
 
 import networkx as nx
 import pytest

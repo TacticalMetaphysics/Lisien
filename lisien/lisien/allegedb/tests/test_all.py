@@ -2,6 +2,7 @@
 # Copyright (c) Zachary Spector. public@zacharyspector.com
 import unittest
 from copy import deepcopy
+
 from .. import ORM
 
 testkvs = [

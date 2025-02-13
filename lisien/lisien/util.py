@@ -19,49 +19,49 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Set
 from concurrent.futures import Future
+from contextlib import contextmanager
 from enum import Enum
+from functools import cached_property, partial, wraps
 from operator import (
+	add,
+	attrgetter,
+	eq,
+	floordiv,
 	ge,
 	gt,
 	le,
 	lt,
-	eq,
-	attrgetter,
-	add,
-	sub,
+	mod,
 	mul,
 	pow,
+	sub,
 	truediv,
-	floordiv,
-	mod,
 )
-from functools import partial, wraps, cached_property
-from contextlib import contextmanager
 from random import Random
 from textwrap import dedent
 from time import monotonic
-from types import MethodType, FunctionType
+from types import FunctionType, MethodType
 from typing import (
 	Any,
-	Mapping,
-	Iterable,
-	Union,
 	Callable,
 	Dict,
-	Hashable,
-	Tuple,
 	FrozenSet,
+	Hashable,
+	Iterable,
+	Mapping,
+	Tuple,
+	Union,
 )
 
 import msgpack
 import networkx as nx
 import numpy as np
-from tblib import Traceback
 from blinker import Signal
+from tblib import Traceback
 
-from . import exc, allegedb
+from . import allegedb, exc
+from .allegedb.graph import DiGraph, Edge, Node
 from .exc import TravelException
-from .allegedb.graph import Node, Edge, DiGraph
 
 Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
 
@@ -706,7 +706,7 @@ class AbstractEngine(ABC):
 		You may use a string like '<' or '>='.
 
 		"""
-		from operator import gt, lt, ge, le, eq, ne
+		from operator import eq, ge, gt, le, lt, ne
 
 		comps: Dict[str, Callable] = {
 			">": gt,

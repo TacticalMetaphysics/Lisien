@@ -18,22 +18,22 @@ doesn't pollute the other files so much.
 
 """
 
-from collections import defaultdict
-from threading import Thread, Lock
-from time import monotonic
-from typing import List, Tuple, Any, Iterator, Hashable
-from queue import Queue, Empty
 import os
+from collections import defaultdict
 from collections.abc import MutableMapping
+from queue import Empty, Queue
+from threading import Lock, Thread
+from time import monotonic
+from typing import Any, Hashable, Iterator, List, Tuple
 
-from sqlalchemy.sql import Select
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
 from sqlalchemy.pool import NullPool
+from sqlalchemy.sql import Select
 
 from . import wrap
-from .wrap import DictWrapper, SetWrapper, ListWrapper
+from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 wrappath = os.path.dirname(wrap.__file__)
 

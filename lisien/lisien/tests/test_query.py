@@ -13,10 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
-from functools import reduce
 from collections import defaultdict
-from ..query import windows_intersection
+from functools import reduce
+
 import pytest
+
+from ..query import windows_intersection
 
 pytestmark = [pytest.mark.slow, pytest.mark.big]
 

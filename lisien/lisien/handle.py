@@ -17,37 +17,28 @@ ordinary method calls.
 
 """
 
-from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
-from re import match
 from importlib import import_module
-from typing import (
-	Dict,
-	Tuple,
-	Callable,
-	Union,
-	Any,
-	List,
-	Iterable,
-	Optional,
-)
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
+from re import match
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import msgpack
 import networkx as nx
 
-from .allegedb import OutOfTimelineError, Key
+from .allegedb import Key, OutOfTimelineError
 from .engine import (
-	Engine,
-	NONE,
-	NODES,
+	EDGE_VAL,
 	EDGES,
-	UNITS,
+	ETERNAL,
+	NODE_VAL,
+	NODES,
+	NONE,
 	RULEBOOK,
 	RULEBOOKS,
-	NODE_VAL,
-	EDGE_VAL,
-	ETERNAL,
-	UNIVERSAL,
 	RULES,
+	UNITS,
+	UNIVERSAL,
+	Engine,
 )
 from .node import Node
 from .portal import Portal

@@ -16,13 +16,9 @@ from functools import partial
 
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.uix.screenmanager import Screen
+from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.recycleview import RecycleView
-from kivy.properties import (
-	ListProperty,
-	ObjectProperty,
-	StringProperty,
-)
+from kivy.uix.screenmanager import Screen
 
 from .util import SelectableRecycleBoxLayout, load_string_once
 

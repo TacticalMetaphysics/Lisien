@@ -24,19 +24,13 @@ and edit its value in a text box.
 
 import re
 import string
-from functools import partial
 from ast import parse
-from textwrap import indent, dedent
+from functools import partial
+from textwrap import dedent, indent
 
 from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.logger import Logger
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.recycleview import RecycleView
-from kivy.uix.screenmanager import Screen
-from kivy.uix.textinput import TextInput
-from kivy.uix.recycleview.views import RecycleDataViewBehavior
-from kivy.uix.togglebutton import ToggleButton
 from kivy.properties import (
 	AliasProperty,
 	BooleanProperty,
@@ -45,6 +39,12 @@ from kivy.properties import (
 	ObjectProperty,
 	StringProperty,
 )
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.recycleview import RecycleView
+from kivy.uix.recycleview.views import RecycleDataViewBehavior
+from kivy.uix.screenmanager import Screen
+from kivy.uix.textinput import TextInput
+from kivy.uix.togglebutton import ToggleButton
 
 from .util import load_string_once
 

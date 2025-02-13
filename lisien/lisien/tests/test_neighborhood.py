@@ -1,7 +1,6 @@
 from itertools import product
 
 import networkx as nx
-
 import pytest
 
 from lisien.character import grid_2d_8graph

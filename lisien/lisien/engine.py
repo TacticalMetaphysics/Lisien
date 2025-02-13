@@ -20,80 +20,82 @@ flow of time.
 
 from __future__ import annotations
 
+import os
 import shutil
 import sys
-import os
+import zlib
+from abc import ABC, abstractmethod
+from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from functools import partial
-from multiprocessing import Process, Pipe, Queue
-from operator import itemgetter
-from collections import defaultdict
 from itertools import chain
-from queue import SimpleQueue, Empty
-from threading import Thread, Lock
-from time import sleep
-from types import FunctionType, ModuleType, MethodType
-from typing import Dict, Union, Tuple, Any, Set, List, Type, Optional
+from multiprocessing import Pipe, Process, Queue
+from operator import itemgetter
 from os import PathLike
-from abc import ABC, abstractmethod
+from queue import Empty, SimpleQueue
 from random import Random
-import zlib
+from threading import Lock, Thread
+from time import sleep
+from types import FunctionType, MethodType, ModuleType
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
 import msgpack
-import numpy as np
 import networkx as nx
+import numpy as np
+from blinker import Signal
 from networkx import (
-	Graph,
 	DiGraph,
-	spring_layout,
+	Graph,
+	NetworkXError,
 	from_dict_of_dicts,
 	from_dict_of_lists,
-	NetworkXError,
+	spring_layout,
 )
-from blinker import Signal
 
-from .allegedb import ORM as gORM, KeyframeTuple, Key
+from . import exc
+from .allegedb import ORM as gORM
 from .allegedb import (
-	StatDict,
-	NodeValDict,
-	EdgeValDict,
 	DeltaDict,
-	world_locked,
+	EdgeValDict,
+	Key,
+	KeyframeTuple,
+	NodeValDict,
 	OutOfTimelineError,
+	StatDict,
+	world_locked,
 )
 from .allegedb.cache import (
 	KeyframeError,
 	PickyDefaultDict,
 	StructuredDefaultDict,
 )
-from .allegedb.window import update_window, update_backward_window
-from .cache import PortalsRulebooksCache, CharactersRulebooksCache
-from .util import sort_set, AbstractEngine, final_rule, normalize_layout
-from .xcollections import (
-	StringStore,
-	FunctionStore,
-	MethodStore,
-	UniversalMapping,
-)
-from .query import (
-	Query,
-	_make_side_sel,
-	StatusAlias,
-	ComparisonQuery,
-	CompoundQuery,
-	QueryResultMidTurn,
-	QueryResult,
-	QueryResultEndTurn,
-	CombinedQueryResult,
-)
-from .proxy import worker_subprocess
+from .allegedb.window import update_backward_window, update_window
+from .cache import CharactersRulebooksCache, PortalsRulebooksCache
 from .character import Character
 from .facade import CharacterFacade
 from .node import Place, Thing
 from .portal import Portal
-from .query import QueryEngine
-from . import exc
+from .proxy import worker_subprocess
+from .query import (
+	CombinedQueryResult,
+	ComparisonQuery,
+	CompoundQuery,
+	Query,
+	QueryEngine,
+	QueryResult,
+	QueryResultEndTurn,
+	QueryResultMidTurn,
+	StatusAlias,
+	_make_side_sel,
+)
+from .util import AbstractEngine, final_rule, normalize_layout, sort_set
+from .xcollections import (
+	FunctionStore,
+	MethodStore,
+	StringStore,
+	UniversalMapping,
+)
 
 SlightlyPackedDeltaType = Dict[
 	bytes,
@@ -990,26 +992,23 @@ class Engine(AbstractEngine, gORM, Executor):
 		)
 
 	def _init_caches(self) -> None:
-		from .xcollections import (
-			FunctionStore,
-			CharacterMapping,
-		)
+		from .allegedb.cache import EntitylessCache
 		from .cache import (
-			NodeContentsCache,
-			InitializedCache,
-			InitializedEntitylessCache,
-			UnitnessCache,
-			UnitRulesHandledCache,
-			CharacterThingRulesHandledCache,
 			CharacterPlaceRulesHandledCache,
 			CharacterPortalRulesHandledCache,
+			CharacterRulesHandledCache,
+			CharacterThingRulesHandledCache,
+			InitializedCache,
+			InitializedEntitylessCache,
+			NodeContentsCache,
 			NodeRulesHandledCache,
 			PortalRulesHandledCache,
-			CharacterRulesHandledCache,
 			ThingsCache,
+			UnitnessCache,
+			UnitRulesHandledCache,
 		)
-		from .allegedb.cache import EntitylessCache
 		from .rule import AllRuleBooks, AllRules
+		from .xcollections import CharacterMapping, FunctionStore
 
 		super()._init_caches()
 		self._neighbors_cache = {}

@@ -18,11 +18,9 @@ user. Autoupdates when there's a change for any reason.
 """
 
 from functools import partial
-from kivy.properties import (
-	DictProperty,
-	ObjectProperty,
-)
+
 from kivy.clock import Clock
+from kivy.properties import DictProperty, ObjectProperty
 from kivy.uix.recycleview import RecycleView
 
 default_cfg = {

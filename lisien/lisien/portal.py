@@ -15,17 +15,17 @@
 """Directed edges, as used by lisien."""
 
 from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Union, List, Tuple, Any
+from typing import Any, List, Tuple, Union
 
-from .allegedb.graph import Edge
 from .allegedb import Key
-
-from .util import getatt, AbstractCharacter, HistoricKeyError
+from .allegedb.graph import Edge
 from .facade import FacadePortal
 from .query import StatusAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
+from .util import AbstractCharacter, HistoricKeyError, getatt
 
 
 class RuleMapping(BaseRuleMapping):

@@ -14,8 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.properties import NumericProperty, OptionProperty
 from kivy.uix.boxlayout import BoxLayout
-from lisien.character import grid_2d_8graph
 from networkx import grid_2d_graph
+
+from lisien.character import grid_2d_8graph
 
 from .util import load_string_once
 

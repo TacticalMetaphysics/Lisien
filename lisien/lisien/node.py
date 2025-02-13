@@ -21,24 +21,23 @@ have a lot in common.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, ValuesView, Set
-from typing import Optional, Union, Iterator, List
+from collections.abc import Mapping, Set, ValuesView
+from typing import Iterator, List, Optional, Union
 
 from networkx import shortest_path, shortest_path_length
 
+from . import rule
 from .allegedb import graph
-
-from .util import (
-	getatt,
-	AbstractCharacter,
-	AbstractThing,
-	Key,
-	HistoricKeyError,
-)
+from .exc import AmbiguousUserError
 from .facade import FacadePlace, FacadeThing
 from .query import StatusAlias
-from . import rule
-from .exc import AmbiguousUserError
+from .util import (
+	AbstractCharacter,
+	AbstractThing,
+	HistoricKeyError,
+	Key,
+	getatt,
+)
 
 
 class UserMapping(Mapping):

@@ -12,21 +12,20 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from collections import OrderedDict
 from functools import partial
 from operator import itemgetter
 from typing import Tuple
 
-from .util import Key
 from .allegedb.cache import (
 	Cache,
-	StructuredDefaultDict,
-	WindowDict,
 	EntitylessCache,
 	KeyframeError,
+	StructuredDefaultDict,
+	WindowDict,
 )
 from .allegedb.window import SettingsTurnDict
-from .util import sort_set
-from collections import OrderedDict
+from .util import Key, sort_set
 
 
 class InitializedCache(Cache):

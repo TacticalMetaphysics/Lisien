@@ -20,23 +20,23 @@ from operator import itemgetter
 from time import monotonic
 
 import numpy as np
+from kivy.clock import Clock, mainthread, triggered
 from kivy.core.image import Image
-from kivy.graphics.fbo import Fbo
-from kivy.properties import ObjectProperty, BooleanProperty, ListProperty
 from kivy.graphics import (
+	Color,
 	InstructionGroup,
-	Translate,
+	Line,
 	PopMatrix,
 	PushMatrix,
-	Color,
-	Line,
 	Rectangle,
+	Translate,
 )
+from kivy.graphics.fbo import Fbo
+from kivy.logger import Logger
+from kivy.properties import BooleanProperty, ListProperty, ObjectProperty
 from kivy.resources import resource_find
 from kivy.uix.layout import Layout
-from kivy.clock import Clock, mainthread, triggered
 from kivy.uix.widget import Widget
-from kivy.logger import Logger
 
 from elide.imagestackproxy import ImageStackProxy
 

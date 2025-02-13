@@ -5,20 +5,16 @@ from kivy.base import EventLoop
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.screenmanager import ScreenManager
 
-from lisien import Engine
-from lisien.facade import CharacterFacade
+from elide.graph.board import GraphBoard
+from elide.grid.board import GridBoard
 from elide.menu import DirPicker
 from elide.screen import MainScreen
 from elide.spritebuilder import PawnConfigScreen, SpotConfigScreen
 from elide.statcfg import StatScreen
-from elide.graph.board import GraphBoard
-from elide.grid.board import GridBoard
-from .util import (
-	ELiDEAppTest,
-	ListenableDict,
-	MockEngine,
-	idle_until,
-)
+from lisien import Engine
+from lisien.facade import CharacterFacade
+
+from .util import ELiDEAppTest, ListenableDict, MockEngine, idle_until
 
 
 class MockStore:

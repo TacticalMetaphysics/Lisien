@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import networkx as nx
 import pytest
+
 from lisien.exc import AmbiguousUserError
 
 

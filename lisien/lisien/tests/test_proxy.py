@@ -12,20 +12,20 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from unittest.mock import patch, MagicMock
-
-import networkx as nx
-
-from lisien.engine import Engine
-from lisien.proxy import EngineProcessManager
-from lisien.handle import EngineHandle
-import lisien.allegedb.tests.test_all
-from lisien.tests import data
-import pytest
-import lisien.examples.kobold as kobold
 import shutil
 import tempfile
+from unittest.mock import MagicMock, patch
+
 import msgpack
+import networkx as nx
+import pytest
+
+import lisien.allegedb.tests.test_all
+import lisien.examples.kobold as kobold
+from lisien.engine import Engine
+from lisien.handle import EngineHandle
+from lisien.proxy import EngineProcessManager
+from lisien.tests import data
 
 
 class ProxyTest(lisien.allegedb.tests.test_all.AllegedTest):

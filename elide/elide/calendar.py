@@ -13,29 +13,30 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
+
+from kivy.clock import Clock, triggered
 from kivy.properties import (
-	DictProperty,
-	ObjectProperty,
-	OptionProperty,
-	ListProperty,
 	BooleanProperty,
 	BoundedNumericProperty,
+	DictProperty,
+	ListProperty,
 	NumericProperty,
+	ObjectProperty,
+	OptionProperty,
 	StringProperty,
 )
-from kivy.uix.widget import Widget
 from kivy.uix.button import Button
-from kivy.uix.togglebutton import ToggleButton
-from kivy.uix.label import Label
-from kivy.uix.slider import Slider
-from kivy.uix.textinput import TextInput
-from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
+from kivy.uix.modalview import ModalView
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.recycleview import RecycleView
-from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
-from kivy.clock import Clock, triggered
+from kivy.uix.recycleview.views import RecycleDataViewBehavior
+from kivy.uix.slider import Slider
+from kivy.uix.textinput import TextInput
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.widget import Widget
 
 from elide.util import load_string_once
 

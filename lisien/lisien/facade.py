@@ -6,27 +6,27 @@ from collections import defaultdict
 from contextlib import contextmanager
 from operator import attrgetter
 from threading import RLock
-from typing import Type, MutableMapping, Mapping, MutableSequence, Any
+from typing import Any, Mapping, MutableMapping, MutableSequence, Type
 
 import networkx as nx
 from blinker import Signal
 
 from lisien.allegedb.cache import (
 	Cache,
-	TotalKeyError,
 	NotInKeyframeError,
+	TotalKeyError,
 	TurnEndDict,
 	TurnEndPlanDict,
 )
-from lisien.allegedb.graph import Node, Edge
+from lisien.allegedb.graph import Edge, Node
 from lisien.allegedb.wrap import MutableMappingUnwrapper
 from lisien.cache import UnitnessCache
 from lisien.util import (
 	AbstractCharacter,
-	getatt,
 	AbstractEngine,
 	AbstractThing,
 	SignalDict,
+	getatt,
 )
 from lisien.xcollections import CompositeDict
 

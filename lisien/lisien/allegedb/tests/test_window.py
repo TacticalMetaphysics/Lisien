@@ -1,8 +1,10 @@
-from ..window import WindowDict
-from .. import ORM
-from ...util import HistoricKeyError
 from itertools import cycle
+
 import pytest
+
+from ...util import HistoricKeyError
+from .. import ORM
+from ..window import WindowDict
 
 testvs = ["a", 99, ["spam", "eggs", "ham"], {"foo": "bar", 0: 1, "💧": "🔑"}]
 testdata = []

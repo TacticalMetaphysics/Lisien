@@ -1,8 +1,9 @@
 from kivy.base import EventLoop
 from kivy.tests import UnitTestTouch
 
-from .util import ELiDEAppTest, idle_until
 from lisien import Engine
+
+from .util import ELiDEAppTest, idle_until
 
 
 class StringsEditorTest(ELiDEAppTest):

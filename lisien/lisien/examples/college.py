@@ -225,6 +225,7 @@ def install(eng):
 
 if __name__ == "__main__":
 	import sys
+
 	from lisien.engine import Engine
 
 	with Engine(sys.argv[-1]) as eng:

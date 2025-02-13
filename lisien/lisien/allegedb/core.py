@@ -14,39 +14,36 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM"""
 
+import gc
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
-import gc
-from itertools import pairwise, chain
+from itertools import chain, pairwise
 from threading import RLock
 from typing import (
+	Any,
 	Callable,
 	Dict,
-	Any,
-	Union,
-	Tuple,
-	Optional,
-	List,
 	Iterator,
+	List,
+	Optional,
 	Set,
+	Tuple,
+	Union,
 )
 
-from blinker import Signal
 import networkx as nx
+from blinker import Signal
 
+from ..util import HistoricKeyError, Key, sort_set
 from .cache import (
 	KeyframeError,
 	PickyDefaultDict,
 	TurnEndDict,
 	TurnEndPlanDict,
 )
-from .window import update_window, update_backward_window, WindowDict
-from .graph import DiGraph, Node, Edge, GraphsMapping
-from .query import (
-	QueryEngine,
-	TimeError,
-)
-from ..util import sort_set, Key, HistoricKeyError
+from .graph import DiGraph, Edge, GraphsMapping, Node
+from .query import QueryEngine, TimeError
+from .window import WindowDict, update_backward_window, update_window
 
 """Type hint for things lisien can use as keys
 
@@ -887,7 +884,8 @@ class ORM:
 
 	def _init_caches(self):
 		from collections import defaultdict
-		from .cache import EntitylessCache, Cache, NodesCache, EdgesCache
+
+		from .cache import Cache, EdgesCache, EntitylessCache, NodesCache
 
 		node_cls = self.node_cls
 		edge_cls = self.edge_cls

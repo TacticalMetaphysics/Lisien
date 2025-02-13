@@ -21,30 +21,30 @@ of the same key and neighboring ones repeatedly and in sequence.
 
 """
 
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import (
+	ItemsView,
+	KeysView,
 	Mapping,
 	MutableMapping,
-	KeysView,
-	ItemsView,
 	ValuesView,
 )
+from enum import Enum
 from itertools import chain
-from operator import itemgetter, lt, le
+from operator import itemgetter, le, lt
 from threading import RLock
 from typing import (
-	Union,
+	Any,
 	Callable,
 	Dict,
-	List,
-	Tuple,
-	Any,
 	Iterable,
-	Set,
+	List,
 	Optional,
+	Set,
+	Tuple,
+	Union,
 )
-from enum import Enum
 
 from lisien.util import HistoricKeyError
 

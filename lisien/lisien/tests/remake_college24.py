@@ -1,6 +1,6 @@
 import os
-import tempfile
 import shutil
+import tempfile
 
 from lisien.engine import Engine
 from lisien.examples.college import install

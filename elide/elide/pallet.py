@@ -18,23 +18,23 @@ one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a
 from the :class:`Pallet`, and the :class:`Pallet` updates its
 ``selection`` list to show what the user selected."""
 
+from kivy.atlas import Atlas
 from kivy.clock import Clock, mainthread, triggered
+from kivy.graphics import Rectangle
+from kivy.logger import Logger
 from kivy.properties import (
 	DictProperty,
+	ListProperty,
 	NumericProperty,
 	ObjectProperty,
 	OptionProperty,
-	ListProperty,
 	ReferenceListProperty,
 	StringProperty,
 )
 from kivy.resources import resource_find
-from kivy.atlas import Atlas
-from kivy.logger import Logger
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.stacklayout import StackLayout
-from kivy.graphics import Rectangle
+from kivy.uix.togglebutton import ToggleButton
 
 from .util import load_string_once
 

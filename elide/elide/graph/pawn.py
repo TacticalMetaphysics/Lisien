@@ -15,6 +15,7 @@
 """Widget representing things that move about from place to place."""
 
 from elide.pawnspot import GraphPawnSpot
+
 from ..pawn import PawnBehavior
 
 

@@ -1,7 +1,9 @@
 import os
-import lisien
 from tempfile import NamedTemporaryFile
+
 import pytest
+
+import lisien
 from lisien.allegedb import query
 
 query.QueryEngine.path = os.path.dirname(lisien.__file__)

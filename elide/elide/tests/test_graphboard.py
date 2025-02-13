@@ -1,16 +1,17 @@
 from math import sqrt
 
-from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 import networkx as nx
+from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 
-from lisien import Engine
-from lisien.facade import CharacterFacade
 from elide.app import ELiDEApp
+from elide.graph.arrow import ArrowPlane
 from elide.graph.board import GraphBoard, GraphBoardView
 from elide.pawnspot import TextureStackPlane
-from elide.graph.arrow import ArrowPlane
-from .util import idle_until, ELiDEAppTest
+from lisien import Engine
+from lisien.facade import CharacterFacade
+
 from ..dummy import Dummy
+from .util import ELiDEAppTest, idle_until
 
 
 class FakeEngineProxy:

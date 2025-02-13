@@ -15,8 +15,9 @@
 """Exception classes for use in lisien."""
 
 try:
-	from sqlalchemy.exc import OperationalError as alchemyOpError
 	from sqlite3 import OperationalError as liteOpError
+
+	from sqlalchemy.exc import OperationalError as alchemyOpError
 
 	OperationalError = (alchemyOpError, liteOpError)
 except ImportError:

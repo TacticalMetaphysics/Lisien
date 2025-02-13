@@ -28,8 +28,10 @@ methods.
 
 """
 
-import cherrypy
 from argparse import ArgumentParser
+
+import cherrypy
+
 from . import LiSEHandleWebService
 
 parser = ArgumentParser()

@@ -2,15 +2,15 @@ import networkx as nx
 import pytest
 
 from lisien import Engine
-from lisien.handle import EngineHandle
 from lisien.examples import (
 	college,
 	kobold,
+	pathfind,
 	polygons,
 	sickle,
 	wolfsheep,
-	pathfind,
 )
+from lisien.handle import EngineHandle
 
 pytestmark = [pytest.mark.big]
 
