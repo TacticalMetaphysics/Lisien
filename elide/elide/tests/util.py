@@ -138,4 +138,5 @@ class ELiDEAppTest(GraphicUnitTest):
 	def tearDown(self, fake=False):
 		EventLoop.idle()
 		super().tearDown(fake=fake)
+		self.app.stop()
 		sys.argv = self.old_argv
