@@ -21,7 +21,7 @@ def test_character_existence_delta(serial_engine, slow):
 	assert 3 in delta0
 	assert 2 not in delta0
 	delta1 = eng.get_delta(
-		("trunk", 1), ("branch", 1) if slow else ("trunk", eng.turn)
+		("trunk", 1), ("branch", 1) if slow == 2 else ("trunk", eng.turn)
 	)
 	assert 2 in delta1
 	assert delta1[2] is None
