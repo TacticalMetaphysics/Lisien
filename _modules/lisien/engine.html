@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>lisien.engine &#8212; Lisien 0.18.0 documentation</title>
+    <title>lisien.engine &#8212; Lisien 0.18.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../../_static/documentation_options.js?v=1e56ff10"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -1256,32 +1256,50 @@
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 		<span class="n">kf</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_kf</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span>
 		<span class="k">for</span> <span class="n">graph</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">kf</span><span class="p">[</span><span class="s2">&quot;graph_val&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-			<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
-				<span class="p">(</span><span class="n">graph</span><span class="p">,),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
-			<span class="p">)</span>
-			<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;character_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
+					<span class="p">(</span><span class="n">graph</span><span class="p">,),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+				<span class="p">)</span>
+			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+				<span class="k">pass</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;character_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+						<span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+					<span class="p">)</span>
+				<span class="p">)</span>
+			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+				<span class="k">pass</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;unit_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
 					<span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 				<span class="p">)</span>
-			<span class="p">)</span>
-			<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;unit_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-				<span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
-			<span class="p">)</span>
-			<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;character_thing_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-					<span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+				<span class="k">pass</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;character_thing_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_characters_things_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+						<span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+					<span class="p">)</span>
 				<span class="p">)</span>
-			<span class="p">)</span>
-			<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;character_place_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-					<span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+				<span class="k">pass</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;character_place_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+						<span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+					<span class="p">)</span>
 				<span class="p">)</span>
-			<span class="p">)</span>
-			<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;character_portal_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_characters_portals_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
-					<span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+				<span class="k">pass</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">vals</span><span class="p">[</span><span class="s2">&quot;character_portal_rulebook&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_characters_portals_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+						<span class="n">graph</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
+					<span class="p">)</span>
 				<span class="p">)</span>
-			<span class="p">)</span>
+			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+				<span class="k">pass</span>
 			<span class="k">try</span><span class="p">:</span>
 				<span class="n">node_rb_kf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes_rulebooks_cache</span><span class="o">.</span><span class="n">get_keyframe</span><span class="p">(</span>
 					<span class="p">(</span><span class="n">graph</span><span class="p">,),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
@@ -2491,6 +2509,8 @@
 						<span class="k">for</span> <span class="n">unit</span><span class="p">,</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">units</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 							<span class="k">if</span> <span class="n">ex</span><span class="p">:</span>
 								<span class="n">charunit</span><span class="p">[</span><span class="n">graf</span><span class="p">][</span><span class="n">unit</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+							<span class="k">elif</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">charunit</span><span class="p">[</span><span class="n">graf</span><span class="p">]:</span>
+								<span class="k">del</span> <span class="n">charunit</span><span class="p">[</span><span class="n">graf</span><span class="p">][</span><span class="n">unit</span><span class="p">]</span>
 					<span class="k">else</span><span class="p">:</span>
 						<span class="n">charunit</span><span class="p">[</span><span class="n">graf</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
 							<span class="n">unit</span><span class="p">:</span> <span class="kc">True</span> <span class="k">for</span> <span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span> <span class="ow">in</span> <span class="n">units</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">ex</span>
