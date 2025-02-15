@@ -16,17 +16,18 @@ def test_character_existence_delta(serial_engine, codepath):
 		eng.branch = "branch"
 	elif codepath == "branch-delta":
 		eng.next_turn()
-		eng.next_turn()
 	else:
 		assert codepath == "turn-delta"
-		eng.next_turn()
 	del eng.character[2]
 	eng.add_character(4)
 	delta0 = eng.get_delta(("trunk", 0), ("trunk", 1))
 	assert 3 in delta0
-	assert 2 not in delta0
+	if codepath == "turn-delta":
+		assert delta0[2] is None
+	else:
+		assert 2 not in delta0
 	delta1 = eng.get_delta(
-		("trunk", 1),
+		("trunk", 1, 0),
 		("branch", 1) if codepath == "slow-delta" else ("trunk", eng.turn),
 	)
 	assert 2 in delta1
