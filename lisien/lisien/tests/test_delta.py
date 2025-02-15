@@ -1,19 +1,24 @@
 import pytest
 
 
-@pytest.mark.parametrize("slow", [0, 1, 2])
-def test_character_existence_delta(serial_engine, slow):
+@pytest.fixture(params=["turn-delta", "branch-delta", "slow-delta"])
+def codepath(request):
+	return request.param
+
+
+def test_character_existence_delta(serial_engine, codepath):
 	eng = serial_engine
 	eng.add_character(1)
 	eng.add_character(2)
 	eng.next_turn()
 	eng.add_character(3)
-	if slow == 2:
+	if codepath == "slow-delta":
 		eng.branch = "branch"
-	elif slow == 1:
+	elif codepath == "branch-delta":
 		eng.next_turn()
 		eng.next_turn()
 	else:
+		assert codepath == "turn-delta"
 		eng.next_turn()
 	del eng.character[2]
 	eng.add_character(4)
@@ -21,37 +26,38 @@ def test_character_existence_delta(serial_engine, slow):
 	assert 3 in delta0
 	assert 2 not in delta0
 	delta1 = eng.get_delta(
-		("trunk", 1), ("branch", 1) if slow == 2 else ("trunk", eng.turn)
+		("trunk", 1),
+		("branch", 1) if codepath == "slow-delta" else ("trunk", eng.turn),
 	)
 	assert 2 in delta1
 	assert delta1[2] is None
 
 
-def test_unit_delta():
+def test_unit_delta(serial_engine, codepath):
 	pass
 
 
-def test_character_stat_delta():
+def test_character_stat_delta(serial_engine, codepath):
 	pass
 
 
-def test_node_existence_delta():
+def test_node_existence_delta(serial_engine, codepath):
 	pass
 
 
-def test_node_stat_delta():
+def test_node_stat_delta(serial_engine, codepath):
 	pass
 
 
-def test_portal_existence_delta():
+def test_portal_existence_delta(serial_engine, codepath):
 	pass
 
 
-def test_thing_location_delta():
+def test_thing_location_delta(serial_engine, codepath):
 	pass
 
 
-def test_character_rulebook_delta():
+def test_character_rulebook_delta(serial_engine, codepath):
 	pass
 
 
