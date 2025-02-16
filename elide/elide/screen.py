@@ -376,21 +376,13 @@ class MainScreen(Screen):
 			if dummy is None or hasattr(dummy, "_numbered"):
 				continue
 			if dummy == self.dummything:
-				self.app.pawncfg.bind(imgpaths=self._propagate_thing_paths)
+				self.app.pawncfg.bind(imgpaths=dummy.setter("paths"))
 			if dummy == self.dummyplace:
-				self.app.spotcfg.bind(imgpaths=self._propagate_place_paths)
+				self.app.spotcfg.bind(imgpaths=dummy.setter("paths"))
 			dummy.num = dummynum(self.app.character, dummy.prefix) + 1
 			Logger.debug("MainScreen: dummy #{}".format(dummy.num))
 			dummy.bind(prefix=partial(renum_dummy, dummy))
 			dummy._numbered = True
-
-	def _propagate_thing_paths(self, *_):
-		# horrible hack
-		self.dummything.paths = self.app.pawncfg.imgpaths
-
-	def _propagate_place_paths(self, *_):
-		# horrible hack
-		self.dummyplace.paths = self.app.spotcfg.imgpaths
 
 	def update_from_time_travel(
 		self, command, branch, turn, tick, result, **kwargs
