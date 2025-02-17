@@ -1534,14 +1534,13 @@ class ParquetDBHolder:
 		)
 
 	def get_global(self, key: bytes) -> bytes:
-		try:
-			return (
-				self._get_db("global")
-				.read(filters=[pc.field("key") == key])["value"][0]
-				.as_py()
-			)
-		except IndexError as ex:
-			raise KeyError(f"No such global: {key}") from ex
+		ret = self._get_db("global").read(
+			filters=[pc.field("key") == key],
+			columns=["value"],
+		)
+		if ret:
+			return ret[0][0]
+		return NONE
 
 	def set_global(self, key: bytes, value: bytes):
 		try:
@@ -1549,8 +1548,10 @@ class ParquetDBHolder:
 			return self._get_db("global").update(
 				{"id": id_, "key": key, "value": value}
 			)
-		except KeyError:
-			return self._get_db("global").create({"key": key, "value": value})
+		except (KeyError, IndexError):
+			return self._get_db("global").create(
+				[{"key": key, "value": value}], schema=self.schema["global"]
+			)
 
 	def global_keys(self):
 		return [
@@ -3044,7 +3045,10 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			)
 
 	def global_get(self, key: Key) -> Any:
-		return self.unpack(self.call("get_global", self.pack(key)))
+		try:
+			return self.unpack(self.call("get_global", self.pack(key)))
+		except KeyError:
+			return None
 
 	def global_set(self, key, value):
 		pack = self.pack
