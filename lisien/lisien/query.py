@@ -2894,6 +2894,34 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 	):
 		pass
 
+	@abstractmethod
+	def _load_windows_into(
+		self, ret: dict, windows: list[tuple[str, int, int, int, int]]
+	):
+		pass
+
+	def load_windows(self, windows: list) -> dict:
+		def empty_char():
+			return {
+				"nodes": [],
+				"edges": [],
+				"graph_val": [],
+				"node_val": [],
+				"edge_val": [],
+				"things": [],
+				"character_rulebook": [],
+				"unit_rulebook": [],
+				"character_thing_rulebook": [],
+				"character_place_rulebook": [],
+				"character_portal_rulebook": [],
+				"node_rulebook": [],
+				"portal_rulebook": [],
+			}
+
+		ret = defaultdict(empty_char)
+		self._load_windows_into(ret, windows)
+		return ret
+
 
 class ParquetGlobalMapping(MutableMapping):
 	def __init__(self, query_engine: "ParquetQueryEngine"):
@@ -5008,28 +5036,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		"rule_neighborhoods",
 		"rule_big",
 	]
-
-	def load_windows(self, windows: list) -> dict:
-		def empty_char():
-			return {
-				"nodes": [],
-				"edges": [],
-				"graph_val": [],
-				"node_val": [],
-				"edge_val": [],
-				"things": [],
-				"character_rulebook": [],
-				"unit_rulebook": [],
-				"character_thing_rulebook": [],
-				"character_place_rulebook": [],
-				"character_portal_rulebook": [],
-				"node_rulebook": [],
-				"portal_rulebook": [],
-			}
-
-		ret = defaultdict(empty_char)
-		self._load_windows_into(ret, windows)
-		return ret
 
 	def _get_one_window(
 		self, ret, branch, turn_from, tick_from, turn_to, tick_to
