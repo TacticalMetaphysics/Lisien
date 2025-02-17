@@ -2387,7 +2387,7 @@ class ParquetDBHolder:
 				outq.put(res)
 
 
-class AbstractLiSEQueryEngine(AbstractQueryEngine):
+class AbstractLisienQueryEngine(AbstractQueryEngine):
 	def comparison(
 		self,
 		entity0: Key,
@@ -2871,7 +2871,7 @@ class ParquetGlobalMapping(MutableMapping):
 		self._qe.global_del(key)
 
 
-class ParquetQueryEngine(AbstractLiSEQueryEngine):
+class ParquetQueryEngine(AbstractLisienQueryEngine):
 	holder_cls = ParquetDBHolder
 
 	def __init__(self, path, _, pack=None, unpack=None):
@@ -4839,7 +4839,7 @@ class ConnectionHolder(query.ConnectionHolder):
 			)
 
 
-class QueryEngine(query.QueryEngine, AbstractLiSEQueryEngine):
+class QueryEngine(query.QueryEngine, AbstractLisienQueryEngine):
 	exist_edge_t = 0
 	path = lisien.__path__[0]
 	IntegrityError = IntegrityError
