@@ -720,7 +720,9 @@ class QueryEngine(AbstractQueryEngine):
 		):
 			yield unpack(graph), branch, turn, tick
 
-	def get_keyframe_graph(self, graph: Key, branch: str, turn: int, tick: int):
+	def get_keyframe_graph(
+		self, graph: Key, branch: str, turn: int, tick: int
+	):
 		unpack = self.unpack
 		stuff = self.call_one(
 			"get_keyframe_graph", self.pack(graph), branch, turn, tick
