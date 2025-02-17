@@ -19,7 +19,16 @@ doesn't pollute the other files so much.
 """
 
 from abc import abstractmethod
-from typing import Tuple, Any, Iterator, Hashable, List, Union, FrozenSet
+from typing import (
+	Tuple,
+	Any,
+	Iterator,
+	Hashable,
+	List,
+	Union,
+	FrozenSet,
+	Optional,
+)
 import os
 from collections import defaultdict
 from collections.abc import MutableMapping
@@ -296,7 +305,7 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def keyframes_list(self) -> Iterator[Tuple[Key, str, int, int]]:
+	def keyframes_graphs_list(self) -> Iterator[Tuple[Key, str, int, int]]:
 		pass
 
 	@abstractmethod
@@ -424,7 +433,14 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def graphs_types(self) -> Iterator[Tuple[Key, str]]:
+	def graphs_types(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: Optional[int] = None,
+		tick_to: Optional[int] = None,
+	) -> Iterator[Tuple[Key, str, int, int, str]]:
 		pass
 
 	@abstractmethod
