@@ -36,6 +36,7 @@ Other comparison operators like ``>`` and ``<`` work as well.
 """
 
 import operator
+import os
 from collections import defaultdict
 from collections.abc import Sequence, Set
 from abc import abstractmethod
@@ -1390,7 +1391,7 @@ class ParquetDBHolder:
 		initial = self.initial
 		for table, schema in self.schema.items():
 			schema = self._schema[table] = pa.schema(schema)
-			db = ParquetDB(table, self._path)
+			db = self._get_db(table)
 			if db.dataset_exists():
 				continue
 			if table in initial:
@@ -1399,17 +1400,20 @@ class ParquetDBHolder:
 					schema=schema,
 				)
 
+	def _get_db(self, table):
+		return ParquetDB(os.path.join(self._path, table))
+
 	def insert(self, table: str, data: list) -> None:
-		ParquetDB(table, self._path).create(data, schema=self._schema[table])
+		self._get_db(table).create(data, schema=self._schema[table])
 
 	def truncate_all(self):
 		for table in self.schema:
-			db = ParquetDB(table, self._path)
+			db = self._get_db(table)
 			if db.dataset_exists():
 				db.drop_dataset()
 
 	def del_units_after(self, many):
-		db = ParquetDB("units", self._path)
+		db = self._get_db("units")
 		ids = []
 		for character, graph, node, branch, turn, tick in many:
 			for d in db.read(
@@ -1431,7 +1435,7 @@ class ParquetDBHolder:
 			db.delete(ids)
 
 	def del_things_after(self, many):
-		db = ParquetDB("things", self._path)
+		db = self._get_db("things")
 		ids = []
 		for character, thing, branch, turn, tick in many:
 			for d in db.read(
@@ -1452,29 +1456,25 @@ class ParquetDBHolder:
 			db.delete(ids)
 
 	def dump(self, table: str) -> list:
-		return ParquetDB(table, self._path).read().to_pylist()
+		return self._get_db(table).read().to_pylist()
 
 	def rowcount(self, table: str) -> int:
-		return ParquetDB(table, self._path).read().rowcount
+		return self._get_db(table).read().rowcount
 
 	def rulebooks(self):
 		return set(
-			ParquetDB("rulebooks", self._path).read(columns=["rulebook"])[
-				"rulebook"
-			]
+			self._get_db("rulebooks").read(columns=["rulebook"])["rulebook"]
 		)
 
 	def graphs(self):
 		return set(
 			name.as_py()
-			for name in ParquetDB("graphs", self._path).read(
-				columns=["graph"]
-			)["graph"]
+			for name in self._get_db("graphs").read(columns=["graph"])["graph"]
 		)
 
 	def list_keyframes(self) -> list:
 		return (
-			ParquetDB("keyframes", self._path)
+			self._get_db("keyframes")
 			.read(
 				columns=["graph", "branch", "turn", "tick"],
 			)
@@ -1484,7 +1484,7 @@ class ParquetDBHolder:
 	def get_keyframe(
 		self, graph: bytes, branch: str, turn: int, tick: int
 	) -> Optional[Tuple[bytes, bytes, bytes]]:
-		rec = ParquetDB("keyframes", self._path).read(
+		rec = self._get_db("keyframes").read(
 			filters=[
 				pc.field("graph") == pc.scalar(graph),
 				pc.field("branch") == pc.scalar(branch),
@@ -1526,7 +1526,7 @@ class ParquetDBHolder:
 
 	def graph_exists(self, graph: bytes) -> bool:
 		return bool(
-			ParquetDB("graphs", self._path)
+			self._get_db("graphs")
 			.read(
 				filters=[pc.field("graph") == pc.scalar(graph)], columns=["id"]
 			)
@@ -1536,7 +1536,7 @@ class ParquetDBHolder:
 	def get_global(self, key: bytes) -> bytes:
 		try:
 			return (
-				ParquetDB("global", self._path)
+				self._get_db("global")
 				.read(filters=[pc.field("key") == key])["value"][0]
 				.as_py()
 			)
@@ -1546,18 +1546,16 @@ class ParquetDBHolder:
 	def set_global(self, key: bytes, value: bytes):
 		try:
 			id_ = self.field_get_id("global", "key", key)
-			return ParquetDB("global", self._path).update(
+			return self._get_db("global").update(
 				{"id": id_, "key": key, "value": value}
 			)
 		except KeyError:
-			return ParquetDB("global", self._path).create(
-				{"key": key, "value": value}
-			)
+			return self._get_db("global").create({"key": key, "value": value})
 
 	def global_keys(self):
 		return [
 			d["key"]
-			for d in ParquetDB("global", self._path)
+			for d in self._get_db("global")
 			.read("global", columns=["key"])
 			.to_pylist()
 		]
@@ -1568,7 +1566,7 @@ class ParquetDBHolder:
 	def filter_get_id(self, table, filters):
 		try:
 			return (
-				ParquetDB(table, self._path)
+				self._get_db(table)
 				.read(filters=filters, columns=["id"])["id"][0]
 				.as_py()
 			)
@@ -1587,7 +1585,7 @@ class ParquetDBHolder:
 		id_ = self.field_get_id("branches", "branch", branch)
 		if id_ is None:
 			raise KeyError(f"No branch: {branch}")
-		return ParquetDB("branch", self._path).update(
+		return self._get_db("branch").update(
 			{
 				"id": id_,
 				"parent": parent,
@@ -1626,7 +1624,7 @@ class ParquetDBHolder:
 
 	def have_branch(self, branch: str) -> bool:
 		return bool(
-			ParquetDB("branches", self._path)
+			self._get_db("branches")
 			.read("branches", filters=[pc.field("branch") == branch])
 			.rowcount
 		)
@@ -1638,7 +1636,7 @@ class ParquetDBHolder:
 			"turns", [pc.field("branch") == branch, pc.field("turn") == turn]
 		)
 		if id_ is None:
-			return ParquetDB("turns", self._path).create(
+			return self._get_db("turns").create(
 				{
 					"branch": branch,
 					"turn": turn,
@@ -1646,7 +1644,7 @@ class ParquetDBHolder:
 					"plan_end_tick": plan_end_tick,
 				},
 			)
-		return ParquetDB("turns", self._path).update(
+		return self._get_db("turns").update(
 			{
 				"id": id_,
 				"branch": branch,
@@ -1662,7 +1660,7 @@ class ParquetDBHolder:
 		try:
 			self.update_turn(branch, turn, end_tick, plan_end_tick)
 		except (ArrowInvalid, IndexError):
-			ParquetDB("turns", self._path).create(
+			self._get_db("turns").create(
 				{
 					"branch": branch,
 					"turn": turn,
@@ -1672,7 +1670,7 @@ class ParquetDBHolder:
 			)
 
 	def set_turn_completed(self, branch: str, turn: int) -> None:
-		db = ParquetDB("turns_completed", self._path)
+		db = self._get_db("turns_completed")
 		try:
 			id_ = db.read(
 				filters=[
@@ -1697,7 +1695,7 @@ class ParquetDBHolder:
 		self, character: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, int, int, bytes]]:
 		for d in (
-			ParquetDB("things", self._path)
+			self._get_db("things")
 			.read(
 				filters=[
 					pc.field("character") == character,
@@ -1737,7 +1735,7 @@ class ParquetDBHolder:
 		turn_to: int,
 		tick_to: int,
 	):
-		db = ParquetDB("things", self._path)
+		db = self._get_db("things")
 		if turn_from == turn_to:
 			for d in db.read(
 				filters=[
@@ -1780,7 +1778,7 @@ class ParquetDBHolder:
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, int, int, bytes]]:
 		for d in (
-			ParquetDB("graph_val", self._path)
+			self._get_db("graph_val")
 			.read(
 				"graph_val",
 				filters=[
@@ -1821,7 +1819,7 @@ class ParquetDBHolder:
 		turn_to: int,
 		tick_to: int,
 	) -> Iterator[Tuple[bytes, int, int, bytes]]:
-		db = ParquetDB("graph_val", self._path)
+		db = self._get_db("graph_val")
 		if turn_from == tick_from:
 			for d in db.read(
 				filters=[
@@ -1862,7 +1860,7 @@ class ParquetDBHolder:
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, int, int, bool]]:
 		for d in (
-			ParquetDB("nodes", self._path)
+			self._get_db("nodes")
 			.read(
 				"nodes",
 				filters=[
@@ -1913,7 +1911,7 @@ class ParquetDBHolder:
 		turn_to: int,
 		tick_to: int,
 	) -> Iterator[Tuple[bytes, int, int, bool]]:
-		db = ParquetDB("nodes", self._path)
+		db = self._get_db("nodes")
 		if turn_from == turn_to:
 			for d in db.read(
 				filters=[
@@ -1976,7 +1974,7 @@ class ParquetDBHolder:
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
 		for d in (
-			ParquetDB("node_val", self._path)
+			self._get_db("node_val")
 			.read(
 				filters=[
 					pc.field("graph") == graph,
@@ -2021,7 +2019,7 @@ class ParquetDBHolder:
 		turn_to: int,
 		tick_to: int,
 	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
-		db = ParquetDB("node_val", self._path)
+		db = self._get_db("node_val")
 		if turn_from == turn_to:
 			for d in db.read(
 				filters=[
@@ -2086,7 +2084,7 @@ class ParquetDBHolder:
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, bytes, int, int, int, bool]]:
 		for d in (
-			ParquetDB("edges", self._path)
+			self._get_db("edges")
 			.read(
 				"edges",
 				filters=[
@@ -2141,7 +2139,7 @@ class ParquetDBHolder:
 		turn_to: int,
 		tick_to: int,
 	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
-		db = ParquetDB("edges", self._path)
+		db = self._get_db("edges")
 		if turn_from == turn_to:
 			for d in db.read(
 				filters=[
@@ -2212,7 +2210,7 @@ class ParquetDBHolder:
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, bytes, int, int, int, bytes]]:
 		for d in (
-			ParquetDB("edge_val", self._path)
+			self._get_db("edge_val")
 			.read(
 				filters=[
 					pc.field("graph") == graph,
@@ -2268,7 +2266,7 @@ class ParquetDBHolder:
 		turn_to: int,
 		tick_to: int,
 	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
-		db = ParquetDB("edge_val", self._path)
+		db = self._get_db("edge_val")
 		if turn_from == turn_to:
 			for d in db.read(
 				filters=[
@@ -2341,7 +2339,7 @@ class ParquetDBHolder:
 		)
 		if id_ is None:
 			raise KeyError("No value at this time")
-		ParquetDB(table, self._path).delete([id_])
+		self._get_db(table).delete([id_])
 
 	def nodes_del_time(self, branch: str, turn: int, tick: int):
 		self._del_time("nodes", branch, turn, tick)
