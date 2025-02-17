@@ -1472,6 +1472,51 @@ class ParquetDBHolder:
 			for name in self._get_db("graphs").read(columns=["graph"])["graph"]
 		)
 
+	def list_graphs_to_end(self, branch: str, turn: int, tick: int):
+		data = (
+			self._get_db("graphs").read(
+				filters=[
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn,
+				],
+			)
+		).to_pylist()
+		return [
+			d
+			for d in data
+			if d["turn"] > turn or (d["turn"] == turn and d["tick"] >= tick)
+		]
+
+	def list_graphs_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	):
+		data = (
+			self._get_db("graphs").read(
+				filters=[
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+					pc.field("turn") <= turn_to,
+				]
+			)
+		).to_pylist()
+		return [
+			d
+			for d in data
+			if (
+				d["turn"] > turn_from
+				or (d["turn"] == turn_from and d["tick"] >= tick_from)
+			)
+			and (
+				d["turn"] < turn_to
+				or (d["turn"] == turn_to and d["tick"] <= tick_to)
+			)
+		]
+
 	def list_keyframes(self) -> list:
 		return (
 			self._get_db("keyframes")
@@ -3015,10 +3060,45 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				unpack(graph_val),
 			)
 
-	def keyframes_list(self) -> Iterator:  # change name pls
+	def keyframes_graphs(self) -> Iterator:
 		unpack = self.unpack
 		for d in self.call("list_keyframes"):
 			yield unpack(d["graph"]), d["branch"], d["turn"], d["tick"]
+
+	def graphs_types(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int = None,
+		tick_to: int = None,
+	):
+		unpack = self.unpack
+		if turn_to is None:
+			if tick_to is not None:
+				raise TypeError("Need both or neither of turn_to, tick_to")
+			data = self.call(
+				"list_graphs_to_end", branch, turn_from, tick_from
+			)
+		else:
+			if tick_to is None:
+				raise TypeError("Need both or neither of turn_to, tick_to")
+			data = self.call(
+				"list_graphs_to_tick",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		for d in data:
+			yield (
+				unpack(d["graph"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				d["type"],
+			)
 
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int
