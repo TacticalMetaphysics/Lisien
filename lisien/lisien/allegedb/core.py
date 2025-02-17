@@ -36,7 +36,7 @@ from blinker import Signal
 from ..util import HistoricKeyError, Key, sort_set
 from .cache import (
 	KeyframeError,
-HistoricKeyError,
+	HistoricKeyError,
 	PickyDefaultDict,
 	TurnEndDict,
 	TurnEndPlanDict,
@@ -1571,7 +1571,7 @@ class ORM:
 								if not ekg[orig]:
 									del ekg[orig]
 							if orig in evkg and dest in evkg[orig]:
-									del evkg[orig][dest]
+								del evkg[orig][dest]
 								if not evkg[orig]:
 									del evkg[orig]
 						elif exists:
