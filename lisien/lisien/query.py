@@ -59,20 +59,20 @@ import msgpack
 import lisien
 
 from .alchemy import meta, gather_sql
-from .allegedb import (
-	query,
+from .allegedb.query import (
+	ConnectionHolder,
+	QueryEngine,
 	Key,
 	EdgeValRowType,
 	EdgeRowType,
 	NodeValRowType,
 	NodeRowType,
 	GraphValRowType,
+	IntegrityError,
 )
 from .allegedb.query import AbstractQueryEngine
 from .exc import OperationalError
 from .util import EntityStatAccessor
-
-IntegrityError = query.IntegrityError
 
 
 NONE = msgpack.packb(None)
@@ -4784,7 +4784,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self.call("initdb")
 
 
-class ConnectionHolder(query.ConnectionHolder):
+class ConnectionHolder(ConnectionHolder):
 	def gather(self, meta):
 		return gather_sql(meta)
 
@@ -4839,7 +4839,7 @@ class ConnectionHolder(query.ConnectionHolder):
 			)
 
 
-class QueryEngine(query.QueryEngine, AbstractLisienQueryEngine):
+class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 	exist_edge_t = 0
 	path = lisien.__path__[0]
 	IntegrityError = IntegrityError
@@ -5551,7 +5551,7 @@ class QueryEngine(query.QueryEngine, AbstractLisienQueryEngine):
 	def rule_neighborhood_dump(self):
 		return self._rule_dump("neighborhood")
 
-	characters = characters_dump = query.QueryEngine.graphs_dump
+	characters = characters_dump = QueryEngine.graphs_dump
 
 	def node_rulebook_dump(self):
 		unpack = self.unpack
