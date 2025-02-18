@@ -2344,11 +2344,11 @@ class ParquetDBHolder(ConnectionHolder):
 			else:
 				yield d["node"], d["key"], d["turn"], d["tick"], d["value"]
 
-	def load_node_val_tick_to_tick(self, *args):
-		if len(args) == 6:
-			return self._load_node_val_tick_to_tick_graph(*args)
+	def load_node_val_tick_to_tick(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 6:
+			return self._load_node_val_tick_to_tick_graph(*args, **kwargs)
 		else:
-			return self._load_node_val_tick_to_tick_all(*args)
+			return self._load_node_val_tick_to_tick_all(*args, **kwargs)
 
 	def _load_node_val_tick_to_tick_all(
 		self,
