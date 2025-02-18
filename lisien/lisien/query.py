@@ -6168,9 +6168,9 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self._char_thing_rules_handled.append(
 			(
 				pack(character),
+				pack(thing),
 				pack(rulebook),
 				rule,
-				pack(thing),
 				branch,
 				turn,
 				tick,
