@@ -989,7 +989,6 @@ class ORM:
 				turn,
 				tick,
 				(typ if typ != "Deleted" else None),
-				loading=True,
 			)
 			if typ not in {"DiGraph", "Deleted"}:
 				raise NotImplementedError("Only DiGraph for now")
