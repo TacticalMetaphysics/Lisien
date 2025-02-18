@@ -1840,7 +1840,7 @@ class ParquetDBHolder(ConnectionHolder):
 		return [
 			(d["key"], d["turn"], d["tick"], d["value"])
 			for d in self._iter_part_tick_to_tick(
-				"global", branch, turn_from, tick_from, turn_to, tick_to
+				"universals", branch, turn_from, tick_from, turn_to, tick_to
 			)
 		]
 
