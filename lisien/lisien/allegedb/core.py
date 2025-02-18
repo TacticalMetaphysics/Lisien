@@ -1063,6 +1063,8 @@ class ORM:
 			main_branch = self.query.globl["main_branch"] = "trunk"
 		else:
 			main_branch = self.query.globl["main_branch"]
+		assert main_branch is not None
+		assert main_branch == self.query.globl["main_branch"]
 		self._obranch = self.query.get_branch()
 		self._oturn = self.query.get_turn()
 		self._otick = self.query.get_tick()
@@ -1116,11 +1118,11 @@ class ORM:
 			Callable[[Key, Key, Key, int, str, int, int, bool], None],
 			Callable[[Key, Key, Key, int, str, int, int, Any], None],
 		] = (self._nbtt, self.query.exist_edge, self._edges_cache.store)
-		self._load_graphs()
-		assert hasattr(self, "graph")
 		self._loaded: Dict[
 			str, Tuple[int, int, int, int]
 		] = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
+		self._load_graphs()
+		assert hasattr(self, "graph")
 		self._load_plans()
 		self._load_at(*self._btt())
 
