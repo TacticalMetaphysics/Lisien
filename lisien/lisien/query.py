@@ -2379,7 +2379,6 @@ class ParquetDBHolder(ConnectionHolder):
 				d["graph"],
 				d["node"],
 				d["key"],
-				d["branch"],
 				d["turn"],
 				d["tick"],
 				d["value"],
