@@ -6844,7 +6844,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self.call("truncate_all")
 
 	def close(self):
-		self.call("close")
+		self._inq.put("close")
 
 	def commit(self):
 		self.flush()
