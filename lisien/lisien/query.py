@@ -1836,10 +1836,12 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: int,
 		tick_to: int,
 	) -> List[Tuple[bytes, int, int, bytes]]:
-		for d in self._iter_part_tick_to_tick(
-			"global", turn_from, tick_from, turn_to, tick_to
-		):
-			yield d["key"], d["turn"], d["tick"], d["value"]
+		return [
+			(d["key"], d["turn"], d["tick"], d["value"])
+			for d in self._iter_part_tick_to_tick(
+				"global", branch, turn_from, tick_from, turn_to, tick_to
+			)
+		]
 
 	def load_things_tick_to_end(self, *args, **kwargs):
 		if len(args) + len(kwargs) == 4:
