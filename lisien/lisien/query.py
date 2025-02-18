@@ -38,7 +38,6 @@ Other comparison operators like ``>`` and ``<`` work as well.
 import operator
 import os
 from collections import defaultdict
-from collections.abc import Sequence, Set
 from abc import abstractmethod
 from collections.abc import MutableMapping, Sequence, Set
 from operator import gt, lt, eq, ne, le, ge
@@ -62,6 +61,7 @@ import lisien
 from .alchemy import meta, gather_sql
 from .allegedb.query import (
 	ConnectionHolder,
+	GlobalKeyValueStore,
 	QueryEngine,
 	Key,
 	EdgeValRowType,
@@ -1078,7 +1078,7 @@ def slow_iter_btts_eval_cmp(qry, oper, start_branch=None, engine=None):
 					yield branch, turn, tick
 
 
-class ParquetDBHolder:
+class ParquetDBHolder(ConnectionHolder):
 	schema = {
 		"branches": [
 			("branch", pa.string()),
@@ -1103,6 +1103,11 @@ class ParquetDBHolder:
 			("type", pa.string()),
 		],
 		"keyframes": [
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+		],
+		"keyframes_graphs": [
 			("graph", pa.binary()),
 			("branch", pa.string()),
 			("turn", pa.uint64()),
@@ -1110,6 +1115,14 @@ class ParquetDBHolder:
 			("nodes", pa.large_binary()),
 			("edges", pa.large_binary()),
 			("graph_val", pa.large_binary()),
+		],
+		"keyframe_extensions": [
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("universal", pa.large_binary()),
+			("rule", pa.large_binary()),
+			("rulebook", pa.large_binary()),
 		],
 		"graph_val": [
 			("graph", pa.binary()),
@@ -1197,6 +1210,13 @@ class ParquetDBHolder:
 			("turn", pa.uint64()),
 			("tick", pa.uint64()),
 			("neighborhood", pa.binary()),
+		],
+		"rule_big": [
+			("rule", pa.string()),
+			("branch", pa.string()),
+			("turn", pa.uint64()),
+			("tick", pa.uint64()),
+			("big", pa.bool_()),
 		],
 		"rule_prereqs": [
 			("rule", pa.string()),
@@ -1399,6 +1419,14 @@ class ParquetDBHolder:
 					initial[table],
 					schema=schema,
 				)
+		schemaver_b = b"\xb4_lise_schema_version"
+		ver = self.get_global(schemaver_b)
+		if ver == b"\xc0":
+			self.set_global(schemaver_b, b"\x00")
+		elif ver != b"\x00":
+			return ValueError(
+				f"Unsupported database schema version: {ver}", ver
+			)
 
 	def _get_db(self, table):
 		return ParquetDB(os.path.join(self._path, table))
@@ -1529,7 +1557,7 @@ class ParquetDBHolder:
 	def get_keyframe(
 		self, graph: bytes, branch: str, turn: int, tick: int
 	) -> Optional[Tuple[bytes, bytes, bytes]]:
-		rec = self._get_db("keyframes").read(
+		rec = self._get_db("keyframes_graphs").read(
 			filters=[
 				pc.field("graph") == pc.scalar(graph),
 				pc.field("branch") == pc.scalar(branch),
@@ -1581,22 +1609,28 @@ class ParquetDBHolder:
 	def get_global(self, key: bytes) -> bytes:
 		ret = self._get_db("global").read(
 			filters=[pc.field("key") == key],
-			columns=["value"],
 		)
 		if ret:
-			return ret[0][0]
+			return ret["value"][0].as_py()
 		return NONE
 
+	def _get_schema(self, table):
+		if table in self._schema:
+			return self._schema[table]
+		spec = [("id", pa.int64())] + self.schema[table]
+		ret = self._schema[table] = pa.schema(spec)
+		return ret
+
 	def set_global(self, key: bytes, value: bytes):
-		try:
-			id_ = self.field_get_id("global", "key", key)
-			return self._get_db("global").update(
-				{"id": id_, "key": key, "value": value}
+		id_ = self.field_get_id("global", "key", key)
+		schema = self._get_schema("global")
+		db = self._get_db("global")
+		if id_ is None:
+			return db.create(
+				[{"key": key, "value": value}],
+				schema=schema,
 			)
-		except (KeyError, IndexError):
-			return self._get_db("global").create(
-				[{"key": key, "value": value}], schema=self.schema["global"]
-			)
+		return db.update([{"id": id_, "value": value}], schema=schema)
 
 	def global_keys(self):
 		return [
@@ -1610,14 +1644,9 @@ class ParquetDBHolder:
 		return self.filter_get_id(table, filters=[pc.field(keyfield) == value])
 
 	def filter_get_id(self, table, filters):
-		try:
-			return (
-				self._get_db(table)
-				.read(filters=filters, columns=["id"])["id"][0]
-				.as_py()
-			)
-		except KeyError:
-			return None
+		ret = self._get_db(table).read(filters=filters, columns=["id"])
+		if ret:
+			return ret["id"][0]
 
 	def update_branch(
 		self,
@@ -1683,21 +1712,23 @@ class ParquetDBHolder:
 		)
 		if id_ is None:
 			return self._get_db("turns").create(
-				{
-					"branch": branch,
-					"turn": turn,
-					"end_tick": end_tick,
-					"plan_end_tick": plan_end_tick,
-				},
+				[
+					{
+						"branch": branch,
+						"turn": turn,
+						"end_tick": end_tick,
+						"plan_end_tick": plan_end_tick,
+					}
+				],
 			)
 		return self._get_db("turns").update(
-			{
-				"id": id_,
-				"branch": branch,
-				"turn": turn,
-				"end_tick": end_tick,
-				"plan_end_tick": plan_end_tick,
-			},
+			[
+				{
+					"id": id_.as_py(),
+					"end_tick": end_tick,
+					"plan_end_tick": plan_end_tick,
+				}
+			]
 		)
 
 	def set_turn(
@@ -1728,16 +1759,125 @@ class ParquetDBHolder:
 		except IndexError:
 			db.create({"branch": branch, "turn": turn})
 
-	def load_things_tick_to_end(
+	def load_universals_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_universals_tick_to_end(branch, turn_from, tick_from)
+		)
+
+	def _iter_part_tick_to_end(
+		self, table: str, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[dict]:
+		db = self._get_db(table)
+		for d in db.read(
+			filters=[
+				pc.field("branch") == branch,
+				pc.field("turn") >= turn_from,
+			]
+		).to_pylist():
+			if d["turn"] == turn_from:
+				if d["tick"] >= tick_from:
+					yield d
+			else:
+				yield d
+
+	def _iter_universals_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_end(
+			"universals", branch, turn_from, tick_from
+		):
+			yield d["key"], d["turn"], d["tick"], d["value"]
+
+	def _iter_part_tick_to_tick(
+		self,
+		table: str,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[dict]:
+		db = self._get_db(table)
+		if turn_from == turn_to:
+			return iter(
+				db.read(
+					filters=[
+						pc.field("branch") == branch,
+						pc.field("turn") == turn_from,
+						pc.field("tick") >= tick_from,
+						pc.field("tick") <= tick_from,
+					]
+				).to_pylist()
+			)
+		else:
+			for d in db.read(
+				filters=[
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+					pc.field("turn") <= turn_to,
+				]
+			).to_pylist():
+				if d["turn"] == turn_from:
+					if d["tick"] >= tick_from:
+						yield d
+				elif d["turn"] == turn_to:
+					if d["tick"] <= tick_to:
+						yield d
+				else:
+					yield d
+
+	def load_universals_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			"global", turn_from, tick_from, turn_to, tick_to
+		):
+			yield d["key"], d["turn"], d["tick"], d["value"]
+
+	def load_things_tick_to_end(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 4:
+			return self._load_things_tick_to_end_character(*args, **kwargs)
+		else:
+			return self._load_things_tick_to_end_all(*args, **kwargs)
+
+	def _load_things_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_things_tick_to_end_all(branch, turn_from, tick_from)
+		)
+
+	def _iter_things_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_end(
+			"things", branch, turn_from, tick_from
+		):
+			yield (
+				d["character"],
+				d["thing"],
+				d["turn"],
+				d["tick"],
+				d["location"],
+			)
+
+	def _load_things_tick_to_end_character(
 		self, character: bytes, branch: str, turn_from: int, tick_from: int
 	) -> List[Tuple[bytes, int, int, bytes]]:
 		return list(
-			self._iter_things_tick_to_end(
+			self._iter_things_tick_to_end_character(
 				character, branch, turn_from, tick_from
 			)
 		)
 
-	def _iter_things_tick_to_end(
+	def _iter_things_tick_to_end_character(
 		self, character: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, int, int, bytes]]:
 		for d in (
@@ -1757,7 +1897,46 @@ class ParquetDBHolder:
 			else:
 				yield d["thing"], d["turn"], d["tick"], d["location"]
 
-	def load_things_tick_to_tick(
+	def load_things_tick_to_tick(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 6:
+			return self._load_things_tick_to_tick_character(*args, **kwargs)
+		else:
+			return self._load_things_tick_to_tick_all(*args, **kwargs)
+
+	def _load_things_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_things_tick_to_tick_all(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_things_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			"things", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield (
+				d["graph"],
+				d["thing"],
+				d["turn"],
+				d["tick"],
+				d["location"],
+			)
+
+	def _load_things_tick_to_tick_character(
 		self,
 		character: bytes,
 		branch: str,
@@ -1767,12 +1946,12 @@ class ParquetDBHolder:
 		tick_to: int,
 	) -> List[Tuple[bytes, int, int, bytes]]:
 		return list(
-			self._iter_things_tick_to_tick(
+			self._iter_things_tick_to_tick_character(
 				character, branch, turn_from, tick_from, turn_to, tick_to
 			)
 		)
 
-	def _iter_things_tick_to_tick(
+	def _iter_things_tick_to_tick_character(
 		self,
 		character: bytes,
 		branch: str,
@@ -1811,22 +1990,48 @@ class ParquetDBHolder:
 				else:
 					yield d["thing"], d["turn"], d["tick"], d["location"]
 
-	def load_graph_val_tick_to_end(
+	def load_graph_val_tick_to_end(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 4:
+			return self._load_graph_val_tick_to_end_graph(*args, **kwargs)
+		else:
+			return self._load_graph_val_tick_to_end_all(*args, **kwargs)
+
+	def _load_graph_val_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_graph_val_tick_to_end_all(branch, turn_from, tick_from)
+		)
+
+	def _iter_graph_val_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_end(
+			"graph_val", branch, turn_from, tick_from
+		):
+			yield (
+				d["graph"],
+				d["key"],
+				d["turn"],
+				d["tick"],
+				d["value"],
+			)
+
+	def _load_graph_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> List[Tuple[bytes, int, int, bytes]]:
 		return list(
-			self._iter_graph_val_tick_to_end(
+			self._iter_graph_val_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
 			)
 		)
 
-	def _iter_graph_val_tick_to_end(
+	def _iter_graph_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, int, int, bytes]]:
 		for d in (
 			self._get_db("graph_val")
 			.read(
-				"graph_val",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
@@ -1841,7 +2046,40 @@ class ParquetDBHolder:
 			else:
 				yield d["key"], d["turn"], d["tick"], d["value"]
 
-	def load_graph_val_tick_to_tick(
+	def load_graph_val_tick_to_tick(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 6:
+			return self._load_graph_val_tick_to_tick_graph(*args, **kwargs)
+		else:
+			return self._load_graph_val_tick_to_tick_all(*args, **kwargs)
+
+	def _load_graph_val_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_graph_val_tick_to_tick_all(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_graph_val_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			"graph_val", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield d["graph"], d["key"], d["turn"], d["tick"], d["value"]
+
+	def _load_graph_val_tick_to_tick_graph(
 		self,
 		graph: bytes,
 		branch: str,
@@ -1865,50 +2103,39 @@ class ParquetDBHolder:
 		turn_to: int,
 		tick_to: int,
 	) -> Iterator[Tuple[bytes, int, int, bytes]]:
-		db = self._get_db("graph_val")
-		if turn_from == tick_from:
-			for d in db.read(
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") == turn_from,
-					pc.field("tick") >= tick_from,
-					pc.field("tick") <= tick_to,
-				],
-			).to_pylist():
-				yield d["key"], d["turn"], d["tick"], d["value"]
-		else:
-			for d in db.read(
-				filters=[
-					pc.field("graph") == graph,
-					pc.field("branch") == branch,
-					pc.field("turn") >= turn_from,
-					pc.field("turn") <= turn_to,
-				],
-			).to_pylist():
-				if d["turn"] == turn_from:
-					if d["tick"] >= tick_from:
-						yield d["key"], d["turn"], d["tick"], d["value"]
-				elif d["turn"] == turn_to:
-					if d["tick"] <= tick_from:
-						yield d["key"], d["turn"], d["tick"], d["value"]
-				else:
-					yield d["key"], d["turn"], d["tick"], d["value"]
+		for d in self._iter_part_tick_to_tick(
+			"graph_val", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield d["key"], d["turn"], d["tick"], d["value"]
 
-	def load_nodes_tick_to_end(
+	def _load_nodes_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, int, int, bool]]:
+	):
 		return list(
-			self._iter_nodes_tick_to_end(graph, branch, turn_from, tick_from)
+			self._iter_nodes_tick_to_end_graph(
+				graph, branch, turn_from, tick_from
+			)
 		)
 
-	def _iter_nodes_tick_to_end(
+	def _load_nodes_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	):
+		return list(
+			self._iter_nodes_tick_to_end_all(branch, turn_from, tick_from)
+		)
+
+	def load_nodes_tick_to_end(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 4:
+			return self._load_nodes_tick_to_end_graph(*args, **kwargs)
+		else:
+			return self._load_nodes_tick_to_end_all(*args, **kwargs)
+
+	def _iter_nodes_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, int, int, bool]]:
 		for d in (
 			self._get_db("nodes")
 			.read(
-				"nodes",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
@@ -1933,7 +2160,41 @@ class ParquetDBHolder:
 					d["extant"],
 				)
 
-	def load_nodes_tick_to_tick(
+	def _iter_nodes_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, int, int, bool]]:
+		for d in self._iter_part_tick_to_end(
+			"nodes", branch, turn_from, tick_from
+		):
+			yield (
+				d["graph"],
+				d["node"],
+				d["turn"],
+				d["tick"],
+				d["extant"],
+			)
+
+	def load_nodes_tick_to_tick(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 6:
+			return self.load_nodes_tick_to_tick_graph(*args, **kwargs)
+		else:
+			return self.load_nodes_tick_to_tick_all(*args, **kwargs)
+
+	def load_nodes_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, bytes, int, int, bool]]:
+		return list(
+			self._iter_nodes_tick_to_tick_all(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def load_nodes_tick_to_tick_graph(
 		self,
 		graph: bytes,
 		branch: str,
@@ -1943,12 +2204,25 @@ class ParquetDBHolder:
 		tick_to: int,
 	) -> List[Tuple[bytes, int, int, bool]]:
 		return list(
-			self._iter_nodes_tick_to_tick(
+			self._iter_nodes_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
 			)
 		)
 
-	def _iter_nodes_tick_to_tick(
+	def _iter_nodes_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	):
+		for d in self._iter_part_tick_to_tick(
+			"nodes", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield d["graph"], d["node"], d["turn"], d["tick"], d["extant"]
+
+	def _iter_nodes_tick_to_tick_graph(
 		self,
 		graph: bytes,
 		branch: str,
@@ -2007,16 +2281,44 @@ class ParquetDBHolder:
 						d["extant"],
 					)
 
-	def load_node_val_tick_to_end(
+	def load_node_val_tick_to_end(self, *args, **kwargs):
+		if len(args) == 4 or len(kwargs) == 4:
+			return self._load_node_val_tick_to_end_graph(*args, **kwargs)
+		else:
+			return self._load_node_val_tick_to_end_all(*args, **kwargs)
+
+	def _load_node_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
 		return list(
-			self._iter_node_val_tick_to_end(
+			self._iter_node_val_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
 			)
 		)
 
-	def _iter_node_val_tick_to_end(
+	def _load_node_val_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_node_val_tick_to_end_all(branch, turn_from, tick_from)
+		)
+
+	def _iter_node_val_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_end(
+			"node_val", branch, turn_from, tick_from
+		):
+			yield (
+				d["graph"],
+				d["node"],
+				d["key"],
+				d["turn"],
+				d["tick"],
+				d["value"],
+			)
+
+	def _iter_node_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
 		for d in (
@@ -2025,7 +2327,7 @@ class ParquetDBHolder:
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
-					pc.field("turn_from") >= turn_from,
+					pc.field("turn") >= turn_from,
 				],
 			)
 			.to_pylist()
@@ -2037,11 +2339,53 @@ class ParquetDBHolder:
 						d["key"],
 						d["turn"],
 						d["tick"],
+						d["value"],
 					)
 			else:
-				yield d["node"], d["key"], d["turn"], d["tick"]
+				yield d["node"], d["key"], d["turn"], d["tick"], d["value"]
 
-	def load_node_val_tick_to_tick(
+	def load_node_val_tick_to_tick(self, *args):
+		if len(args) == 6:
+			return self._load_node_val_tick_to_tick_graph(*args)
+		else:
+			return self._load_node_val_tick_to_tick_all(*args)
+
+	def _load_node_val_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_node_val_tick_to_tick_all(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_node_val_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			"node_val", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield (
+				d["graph"],
+				d["node"],
+				d["key"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				d["value"],
+			)
+
+	def _load_node_val_tick_to_tick_graph(
 		self,
 		graph: bytes,
 		branch: str,
@@ -2051,12 +2395,12 @@ class ParquetDBHolder:
 		tick_to: int,
 	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
 		return list(
-			self._iter_node_val_tick_to_tick(
+			self._iter_node_val_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
 			)
 		)
 
-	def _iter_node_val_tick_to_tick(
+	def _iter_node_val_tick_to_tick_graph(
 		self,
 		graph: bytes,
 		branch: str,
@@ -2119,24 +2463,54 @@ class ParquetDBHolder:
 						d["value"],
 					)
 
-	def load_edges_tick_to_end(
+	def load_edges_tick_to_end(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 4:
+			return self._load_edges_tick_to_end_graph(*args, **kwargs)
+		else:
+			return self._load_edges_tick_to_end_all(*args, **kwargs)
+
+	def _load_edges_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, bytes, bytes, int, int, int, bool]]:
+		return list(
+			self._iter_edges_tick_to_end_all(branch, turn_from, tick_from)
+		)
+
+	def _iter_edges_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, int, bool]]:
+		for d in self._iter_part_tick_to_end(
+			"edges", branch, turn_from, tick_from
+		):
+			yield (
+				d["graph"],
+				d["orig"],
+				d["dest"],
+				d["idx"],
+				d["turn"],
+				d["tick"],
+				d["extant"],
+			)
+
+	def _load_edges_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> List[Tuple[bytes, bytes, int, int, int, bool]]:
 		return list(
-			self._iter_edges_tick_to_end(graph, branch, turn_from, tick_from)
+			self._iter_edges_tick_to_end_graph(
+				graph, branch, turn_from, tick_from
+			)
 		)
 
-	def _iter_edges_tick_to_end(
+	def _iter_edges_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, bytes, int, int, int, bool]]:
 		for d in (
 			self._get_db("edges")
 			.read(
-				"edges",
 				filters=[
 					pc.field("graph") == graph,
 					pc.field("branch") == branch,
-					pc.field("turn_from") >= turn_from,
+					pc.field("turn") >= turn_from,
 				],
 			)
 			.to_pylist()
@@ -2161,7 +2535,48 @@ class ParquetDBHolder:
 					d["extant"],
 				)
 
-	def load_edges_tick_to_tick(
+	def load_edges_tick_to_tick(self, *args):
+		if len(args) == 6:
+			return self._load_edges_tick_to_tick_graph(*args)
+		else:
+			return self._load_edges_tick_to_tick_all(*args)
+
+	def _load_edges_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
+		return list(
+			self._iter_edges_tick_to_tick_all(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_edges_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			"edges", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield (
+				d["graph"],
+				d["orig"],
+				d["dest"],
+				d["idx"],
+				d["turn"],
+				d["tick"],
+				d["extant"],
+			)
+
+	def _load_edges_tick_to_tick_graph(
 		self,
 		graph: bytes,
 		branch: str,
@@ -2171,12 +2586,12 @@ class ParquetDBHolder:
 		tick_to: int,
 	) -> List[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
 		return list(
-			self._iter_edges_tick_to_tick(
+			self._iter_edges_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
 			)
 		)
 
-	def _iter_edges_tick_to_tick(
+	def _iter_edges_tick_to_tick_graph(
 		self,
 		graph: bytes,
 		branch: str,
@@ -2243,16 +2658,46 @@ class ParquetDBHolder:
 						d["extant"],
 					)
 
-	def load_edge_val_tick_to_end(
+	def load_edge_val_tick_to_end(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 6:
+			return self._load_edge_val_tick_to_end_graph(*args, **kwargs)
+		else:
+			return self._load_edge_val_tick_to_end_all(*args, **kwargs)
+
+	def _load_edge_val_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
+		return list(
+			self._iter_edge_val_tick_to_end_all(branch, turn_from, tick_from)
+		)
+
+	def _iter_edge_val_tick_to_end_all(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
+		for d in self._iter_part_tick_to_end(
+			"edge_val", branch, turn_from, tick_from
+		):
+			yield (
+				d["graph"],
+				d["orig"],
+				d["dest"],
+				d["idx"],
+				d["key"],
+				d["turn"],
+				d["tick"],
+				d["value"],
+			)
+
+	def _load_edge_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> List[Tuple[bytes, bytes, int, int, int, bytes]]:
 		return list(
-			self._iter_edge_val_tick_to_end(
+			self._iter_edge_val_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
 			)
 		)
 
-	def _iter_edge_val_tick_to_end(
+	def _iter_edge_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[Tuple[bytes, bytes, int, int, int, bytes]]:
 		for d in (
@@ -2288,7 +2733,49 @@ class ParquetDBHolder:
 					d["value"],
 				)
 
-	def load_edge_val_tick_to_tick(
+	def load_edge_val_tick_to_tick(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 6:
+			return self._load_edge_val_tick_to_tick_graph(*args, **kwargs)
+		else:
+			return self._load_edge_val_tick_to_tick_all(*args, **kwargs)
+
+	def _load_edge_val_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
+		return list(
+			self._iter_edge_val_tick_to_tick_all(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_edge_val_tick_to_tick_all(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			"edge_val", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield (
+				d["graph"],
+				d["orig"],
+				d["dest"],
+				d["idx"],
+				d["key"],
+				d["turn"],
+				d["tick"],
+				d["value"],
+			)
+
+	def _load_edge_val_tick_to_tick_graph(
 		self,
 		graph: bytes,
 		branch: str,
@@ -2298,12 +2785,12 @@ class ParquetDBHolder:
 		tick_to: int,
 	) -> List[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
 		return list(
-			self._iter_edge_val_tick_to_tick(
+			self._iter_edge_val_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
 			)
 		)
 
-	def _iter_edge_val_tick_to_tick(
+	def _iter_edge_val_tick_to_tick_graph(
 		self,
 		graph: bytes,
 		branch: str,
@@ -2374,6 +2861,270 @@ class ParquetDBHolder:
 						d["value"],
 					)
 
+	def load_character_rulebook_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_end_part(
+				"character", branch, turn_from, tick_from
+			)
+		)
+
+	def _iter_character_rulebook_tick_to_end_part(
+		self, part: str, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_end(
+			f"{part}_rulebook", branch, turn_from, tick_from
+		):
+			yield d["character"], d["turn"], d["tick"], d["rulebook"]
+
+	def load_character_rulebook_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_tick_part(
+				"character", branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_character_rulebook_tick_to_tick_part(
+		self,
+		part: str,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			f"{part}_rulebook", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield d["character"], d["turn"], d["tick"], d["rulebook"]
+
+	def load_unit_rulebook_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_end_part(
+				"unit", branch, turn_from, tick_from
+			)
+		)
+
+	def load_unit_rulebook_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_tick_part(
+				"unit", branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def load_character_thing_rulebook_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_end_part(
+				"character_thing", branch, turn_from, tick_from
+			)
+		)
+
+	def load_character_thing_rulebook_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_tick_part(
+				"character_thing",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		)
+
+	def load_character_place_rulebook_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_end_part(
+				"character_place", branch, turn_from, tick_from
+			)
+		)
+
+	def load_character_place_rulebook_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_tick_part(
+				"character_place",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		)
+
+	def load_character_portal_rulebook_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_end_part(
+				"character_portal", branch, turn_from, tick_from
+			)
+		)
+
+	def load_character_portal_rulebook_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, int, int, bytes]]:
+		return list(
+			self._iter_character_rulebook_tick_to_tick_part(
+				"character_portal",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		)
+
+	def load_node_rulebook_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_node_rulebook_tick_to_end(branch, turn_from, tick_from)
+		)
+
+	def _iter_node_rulebook_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_end(
+			"node_rulebook", branch, turn_from, tick_from
+		):
+			yield (
+				d["character"],
+				d["node"],
+				d["turn"],
+				d["tick"],
+				d["rulebook"],
+			)
+
+	def load_node_rulebook_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_node_rulebook_tick_to_tick(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_node_rulebook_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			"node_rulebook", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield (
+				d["character"],
+				d["node"],
+				d["turn"],
+				d["tick"],
+				d["rulebook"],
+			)
+
+	def load_portal_rulebook_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> List[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_portal_rulebook_tick_to_end(
+				branch, turn_from, tick_from
+			)
+		)
+
+	def _iter_portal_rulebook_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_end(
+			"portal_rulebook", branch, turn_from, tick_from
+		):
+			yield (
+				d["character"],
+				d["origin"],
+				d["destination"],
+				d["turn"],
+				d["tick"],
+				d["rulebook"],
+			)
+
+	def load_portal_rulebook_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> List[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+		return list(
+			self._iter_portal_rulebook_tick_to_tick(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_portal_rulebook_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			"portal_rulebook", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield (
+				d["character"],
+				d["origin"],
+				d["destination"],
+				d["turn"],
+				d["tick"],
+				d["rulebook"],
+			)
+
 	def _del_time(self, table: str, branch: str, turn: int, tick: int):
 		id_ = self.filter_get_id(
 			table,
@@ -2384,7 +3135,7 @@ class ParquetDBHolder:
 			],
 		)
 		if id_ is None:
-			raise KeyError("No value at this time")
+			return
 		self._get_db(table).delete([id_])
 
 	def nodes_del_time(self, branch: str, turn: int, tick: int):
@@ -2402,9 +3153,603 @@ class ParquetDBHolder:
 	def edge_val_del_time(self, branch: str, turn: int, tick: int):
 		self._del_time("edge_val", branch, turn, tick)
 
-	@staticmethod
-	def echo(it):
-		return it
+	def load_rulebooks_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[bytes, int, int, bytes, float]]:
+		return list(
+			self._iter_rulebooks_tick_to_end(branch, turn_from, tick_from)
+		)
+
+	def _iter_rulebooks_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[tuple[bytes, int, int, bytes, float]]:
+		for d in self._iter_part_tick_to_end(
+			"rulebooks", branch, turn_from, tick_from
+		):
+			yield (
+				d["rulebook"],
+				d["turn"],
+				d["tick"],
+				d["rules"],
+				d["priority"],
+			)
+
+	def load_rulebooks_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[bytes, int, int, bytes, float]]:
+		return list(
+			self._iter_rulebooks_tick_to_tick(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_rulebooks_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[tuple[bytes, int, int, bytes, float]]:
+		for d in self._iter_part_tick_to_tick(
+			"rulebooks", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield (
+				d["rulebook"],
+				d["turn"],
+				d["tick"],
+				d["rules"],
+				d["priority"],
+			)
+
+	def _load_rule_part_tick_to_end(
+		self, part, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[str, int, int, bytes]]:
+		return list(
+			self._iter_rule_part_tick_to_end(
+				part, branch, turn_from, tick_from
+			)
+		)
+
+	def _iter_rule_part_tick_to_end(
+		self, part, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[tuple[str, int, int, bytes]]:
+		for d in self._iter_part_tick_to_end(
+			f"rule_{part}", branch, turn_from, tick_from
+		):
+			yield d["rule"], d["turn"], d["tick"], d[part]
+
+	def _load_rule_part_tick_to_tick(
+		self,
+		part,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[str, int, int, bytes]]:
+		return list(
+			self._iter_rule_part_tick_to_tick(
+				part, branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_rule_part_tick_to_tick(
+		self,
+		part,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[tuple[str, int, int, bytes]]:
+		for d in self._iter_part_tick_to_tick(
+			f"rule_{part}", branch, turn_from, tick_from, turn_to, tick_to
+		):
+			yield d["rule"], d["turn"], d["tick"], d[part]
+
+	def load_rule_triggers_tick_to_end(
+		self, branch, turn_from, tick_from
+	) -> Iterator[tuple[str, int, int, bytes]]:
+		return self._load_rule_part_tick_to_end(
+			"triggers", branch, turn_from, tick_from
+		)
+
+	def load_rule_triggers_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[str, int, int, bytes]]:
+		return self._load_rule_part_tick_to_tick(
+			"triggers", branch, turn_from, tick_from, turn_to, tick_to
+		)
+
+	def load_rule_prereqs_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[str, int, int, bytes]]:
+		return self._load_rule_part_tick_to_end(
+			"prereqs", branch, turn_from, tick_from
+		)
+
+	def load_rule_prereqs_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[str, int, int, bytes]]:
+		return self._load_rule_part_tick_to_tick(
+			"prereqs", branch, turn_from, tick_from, turn_to, tick_to
+		)
+
+	def load_rule_actions_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[str, int, int, bytes]]:
+		return self._load_rule_part_tick_to_end(
+			"actions", branch, turn_from, tick_from
+		)
+
+	def load_rule_actions_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[str, int, int, bytes]]:
+		return self._load_rule_part_tick_to_tick(
+			"actions", branch, turn_from, tick_from, turn_to, tick_to
+		)
+
+	def load_rule_neighborhoods_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[str, int, int, bytes]]:
+		return self._load_rule_part_tick_to_end(
+			"neighborhood", branch, turn_from, tick_from
+		)
+
+	def load_rule_neighborhoods_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[str, int, int, bytes]]:
+		return self._load_rule_part_tick_to_tick(
+			"neighborhood", branch, turn_from, tick_from, turn_to, tick_to
+		)
+
+	def load_rule_big_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[str, int, int, bool]]:
+		return self._load_rule_part_tick_to_end(
+			"big", branch, turn_from, tick_from
+		)
+
+	def load_rule_big_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[str, int, int, bool]]:
+		return self._load_rule_part_tick_to_tick(
+			"big", branch, turn_from, tick_from, turn_to, tick_to
+		)
+
+	def load_character_rules_handled_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[bytes, bytes, str, int, int]]:
+		return list(
+			self._iter_character_rules_handled_tick_to_end(
+				branch, turn_from, tick_from
+			)
+		)
+
+	def _iter_character_rules_handled_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> Iterator[tuple[bytes, bytes, str, int, int]]:
+		for d in self._iter_part_tick_to_end(
+			"character_rules_handled", branch, turn_from, tick_from
+		):
+			yield (
+				d["character"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+
+	def load_character_rules_handled_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[bytes, bytes, str, int, int]]:
+		return list(
+			self._iter_character_rules_handled_tick_to_tick(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
+		)
+
+	def _iter_character_rules_handled_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> Iterator[tuple[bytes, bytes, str, int, int]]:
+		for d in self._iter_part_tick_to_tick(
+			"character_rules_handled",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			yield (
+				d["character"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+
+	def load_unit_rules_handled_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[bytes, bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["graph"],
+				d["unit"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_end(
+				"unit_rules_handled", branch, turn_from, tick_from
+			)
+		]
+
+	def load_unit_rules_handled_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[bytes, bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["graph"],
+				d["unit"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_tick(
+				"unit_rules_handled",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		]
+
+	def load_character_thing_rules_handled_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["thing"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_end(
+				"character_thing_rules_handled", branch, turn_from, tick_from
+			)
+		]
+
+	def load_character_thing_rules_handled_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["thing"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_tick(
+				"character_thing_rules_handled",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		]
+
+	def load_character_place_rules_handled_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["place"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_end(
+				"character_place_rules_handled", branch, turn_from, tick_from
+			)
+		]
+
+	def load_character_place_rules_handled_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["place"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_tick(
+				"character_place_rules_handled",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		]
+
+	def load_character_portal_rules_handled_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[bytes, bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["orig"],
+				d["dest"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_end(
+				"character_portal_rules_handled", branch, turn_from, tick_from
+			)
+		]
+
+	def load_character_portal_rules_handled_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[bytes, bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["orig"],
+				d["dest"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_tick(
+				"character_portal_rules_handled",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		]
+
+	def load_node_rules_handled_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["node"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_end(
+				"node_rules_handled", branch, turn_from, tick_from
+			)
+		]
+
+	def load_node_rules_handled_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["node"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_tick(
+				"node_rules_handled",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		]
+
+	def load_portal_rules_handled_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[bytes, bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["orig"],
+				d["dest"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_end(
+				"portal_rules_handled", branch, turn_from, tick_from
+			)
+		]
+
+	def load_portal_rules_handled_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[bytes, bytes, bytes, bytes, str, int, int]]:
+		return [
+			(
+				d["character"],
+				d["orig"],
+				d["dest"],
+				d["rulebook"],
+				d["rule"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in self._iter_part_tick_to_tick(
+				"portal_rules_handled",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+		]
+
+	def load_units_tick_to_end(
+		self, branch: str, turn_from: int, tick_from: int
+	) -> list[tuple[bytes, bytes, bytes, int, int, bool]]:
+		return [
+			(
+				d["character_graph"],
+				d["unit_graph"],
+				d["unit_node"],
+				d["turn"],
+				d["tick"],
+				d["is_unit"],
+			)
+			for d in self._iter_part_tick_to_end(
+				"units", branch, turn_from, tick_from
+			)
+		]
+
+	def load_units_tick_to_tick(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+	) -> list[tuple[bytes, bytes, bytes, int, int, bool]]:
+		return [
+			(
+				d["character_graph"],
+				d["unit_graph"],
+				d["unit_node"],
+				d["turn"],
+				d["tick"],
+				d["is_unit"],
+			)
+			for d in self._iter_part_tick_to_tick(
+				"units", branch, turn_from, tick_from, turn_to, tick_to
+			)
+		]
+
+	def get_keyframe_extensions(
+		self, branch: str, turn: int, tick: int
+	) -> tuple[bytes, bytes, bytes] | None:
+		db = self._get_db("keyframe_extensions")
+		data = db.read(
+			filters=[
+				pc.field("branch") == branch,
+				pc.field("turn") == turn,
+				pc.field("tick") == tick,
+			]
+		)
+		if not data:
+			return None
+		return (
+			data["universal"][0].as_py(),
+			data["rule"][0].as_py(),
+			data["rulebook"][0].as_py(),
+		)
+
+	def all_keyframe_graphs(self, branch: str, turn: int, tick: int):
+		db = self._get_db("keyframes_graphs")
+		data = db.read(
+			filters=[
+				pc.field("branch") == branch,
+				pc.field("turn") == turn,
+				pc.field("tick") == tick,
+			]
+		)
+		return [
+			(d["graph"], d["nodes"], d["edges"], d["graph_val"])
+			for d in data.to_pylist()
+		]
 
 	def run(self):
 		inq = self._inq
@@ -2422,11 +3767,32 @@ class ParquetDBHolder:
 			if inst[0] == "silent":
 				silent = True
 				inst = inst[1:]
-			try:
-				res = getattr(self, inst[0])(*inst[1], **inst[2])
-			except Exception as ex:
-				assert not silent, f"Got exception while silenced: {ex}"
-				res = ex
+			if inst[0] == "echo":
+				outq.put(inst[1])
+				continue
+			elif inst[0] == "one":
+				inst = inst[1:]
+				try:
+					res = getattr(self, inst[0])(*inst[1], **inst[2])
+				except Exception as ex:
+					assert not silent, f"Got exception while silenced: {ex}"
+					res = ex
+			elif inst[0] == "many":
+				for args, kwargs in inst[2]:
+					try:
+						res = getattr(self, inst[0])(*args, **kwargs)
+					except Exception as ex:
+						assert not silent, (
+							f"Got exception while silenced: {ex}"
+						)
+						res = ex
+						break
+			else:
+				try:
+					res = getattr(self, inst[0])(*inst[1], **inst[2])
+				except Exception as ex:
+					assert not silent, f"Got exception while silenced: {ex}"
+					res = ex
 			if not silent:
 				outq.put(res)
 
@@ -2465,6 +3831,419 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			and self._records % self.keyframe_interval == 0
 		):
 			self.snap_keyframe()
+
+	_infixes2load = [
+		"nodes",
+		"edges",
+		"graph_val",
+		"node_val",
+		"edge_val",
+		"things",
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+		"node_rulebook",
+		"portal_rulebook",
+		"universals",
+		"rulebooks",
+		"rule_triggers",
+		"rule_prereqs",
+		"rule_actions",
+		"rule_neighborhoods",
+		"rule_big",
+	]
+
+	def _get_one_window(
+		self, ret, branch, turn_from, tick_from, turn_to, tick_to
+	):
+		super()._get_one_window(
+			ret, branch, turn_from, tick_from, turn_to, tick_to
+		)
+		unpack = self.unpack
+		assert self._outq.get() == (
+			"begin",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, node, turn, tick, loc in got:
+				(graph, node, loc) = map(unpack, (graph, node, loc))
+				ret[graph]["things"].append(
+					(graph, node, branch, turn, tick, loc)
+				)
+		assert got == (
+			"end",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["character_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["unit_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"character_thing_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["character_thing_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"character_thing_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"character_place_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["character_place_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"character_place_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"character_portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, turn, tick, rb in got:
+				(graph, rb) = map(unpack, (graph, rb))
+				ret[graph]["character_portal_rulebook"].append(
+					(graph, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"character_portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, node, turn, tick, rb in got:
+				(graph, node, rb) = map(unpack, (graph, node, rb))
+				ret[graph]["node_rulebook"].append(
+					(graph, node, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for graph, orig, dest, turn, tick, rb in got:
+				(graph, orig, dest, rb) = map(unpack, (graph, orig, dest, rb))
+				ret[graph]["portal_rulebook"].append(
+					(graph, orig, dest, branch, turn, tick, rb)
+				)
+		assert got == (
+			"end",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for key, turn, tick, val in got:
+				(key, val) = map(unpack, (key, val))
+				if "universals" in ret:
+					ret["universals"].append((key, branch, turn, tick, val))
+				else:
+					ret["universals"] = [(key, branch, turn, tick, val)]
+		assert got == (
+			"end",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rulebook, turn, tick, rules, priority in got:
+				(rulebook, rules) = map(unpack, (rulebook, rules))
+				if "rulebooks" in ret:
+					ret["rulebooks"].append(
+						(rulebook, branch, turn, tick, (rules, priority))
+					)
+				else:
+					ret["rulebooks"] = [
+						(rulebook, branch, turn, tick, (rules, priority))
+					]
+		assert got == (
+			"end",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, turn, tick, triggers in got:
+				triggers = unpack(triggers)
+				if "rule_triggers" in ret:
+					ret["rule_triggers"].append(
+						(rule, branch, turn, tick, triggers)
+					)
+				else:
+					ret["rule_triggers"] = [
+						(rule, branch, turn, tick, triggers)
+					]
+		assert got == (
+			"end",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, turn, tick, prereqs in got:
+				prereqs = unpack(prereqs)
+				if "rule_prereqs" in ret:
+					ret["rule_prereqs"].append(
+						(rule, branch, turn, tick, prereqs)
+					)
+				else:
+					ret["rule_prereqs"] = [(rule, branch, turn, tick, prereqs)]
+		assert got == (
+			"end",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, turn, tick, actions in got:
+				actions = unpack(actions)
+				if "rule_actions" in ret:
+					ret["rule_actions"].append(
+						(rule, branch, turn, tick, actions)
+					)
+				else:
+					ret["rule_actions"] = [(rule, branch, turn, tick, actions)]
+		assert got == (
+			"end",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, turn, tick, neighborhoods in got:
+				neighborhoods = unpack(neighborhoods)
+				if "rule_neighborhoods" in ret:
+					ret["rule_neighborhoods"].append(
+						(rule, branch, turn, tick, neighborhoods)
+					)
+				else:
+					ret["rule_neighborhoods"] = [
+						(rule, branch, turn, tick, neighborhoods)
+					]
+		assert got == (
+			"end",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
+		assert self._outq.get() == (
+			"begin",
+			"rule_big",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
+		while isinstance(got := self._outq.get(), list):
+			for rule, turn, tick, big in got:
+				if "rule_big" in ret:
+					ret["rule_big"].append((rule, branch, turn, tick, big))
+				else:
+					ret["rule_big"] = [(rule, branch, turn, tick, big)]
+		assert got == (
+			"end",
+			"rule_big",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		), got
 
 	@abstractmethod
 	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
@@ -2551,12 +4330,6 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 		pass
 
 	@abstractmethod
-	def character_rules_changed_dump(
-		self,
-	) -> Iterator[Tuple[Key, Key, str, str, int, int, int, int]]:
-		pass
-
-	@abstractmethod
 	def unit_rules_handled_dump(
 		self,
 	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
@@ -2622,18 +4395,6 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 
 	@abstractmethod
 	def universal_del(self, key: Key, branch: str, turn: int, tick: int):
-		pass
-
-	@abstractmethod
-	def comparison(
-		self,
-		entity0: Key,
-		stat0: Key,
-		entity1: Key,
-		stat1: Key = None,
-		oper: str = "eq",
-		windows: list = None,
-	):
 		pass
 
 	@abstractmethod
@@ -2894,12 +4655,6 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 	):
 		pass
 
-	@abstractmethod
-	def _load_windows_into(
-		self, ret: dict, windows: list[tuple[str, int, int, int, int]]
-	):
-		pass
-
 	def load_windows(self, windows: list) -> dict:
 		def empty_char():
 			return {
@@ -2923,26 +4678,6 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 		return ret
 
 
-class ParquetGlobalMapping(MutableMapping):
-	def __init__(self, query_engine: "ParquetQueryEngine"):
-		self._qe = query_engine
-
-	def __iter__(self):
-		return self._qe.global_keys()
-
-	def __len__(self):
-		return self._qe.count_all_table("global")
-
-	def __getitem__(self, item):
-		return self._qe.global_get(item)
-
-	def __setitem__(self, key, value):
-		self._qe.global_set(key, value)
-
-	def __delitem__(self, key):
-		self._qe.global_del(key)
-
-
 class ParquetQueryEngine(AbstractLisienQueryEngine):
 	holder_cls = ParquetDBHolder
 
@@ -2962,6 +4697,9 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self._portal_rules_handled = []
 		self._unitness = []
 		self._location = []
+		self._new_keyframes = []
+		self._new_keyframe_extensions = []
+		self._new_keyframe_times = set()
 
 		if pack is None:
 
@@ -2990,13 +4728,9 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self._node_rules_handled = []
 		self._portal_rules_handled = []
 		self._btts = set()
-		self.globl = ParquetGlobalMapping(self)
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
-
-	def echo(self, something: Any) -> Any:
-		self._inq.put(("echo", something))
-		return self._outq.get()
+		self.globl = GlobalKeyValueStore(self)
 
 	def call(self, method, *args, **kwargs):
 		with self._holder.lock:
@@ -3046,47 +4780,18 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			pack(rb),
 		)
 
-	def keyframes_insert_many(self, many):
-		pack = self.pack
-		return self.call(
-			"insert",
-			"keyframes",
-			[
-				{
-					"graph": pack(graph),
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"nodes": pack(nodes),
-					"edges": pack(edges),
-					"graph_val": pack(graph_val),
-				}
-				for (
-					graph,
-					branch,
-					turn,
-					tick,
-					nodes,
-					edges,
-					graph_val,
-				) in many
-			],
-		)
-
 	def keyframes_dump(self):
+		for d in self.call("dump", "keyframes"):
+			yield d["branch"], d["turn"], d["tick"]
+
+	def get_keyframe_extensions(
+		self, branch: str, turn: int, tick: int
+	) -> tuple[dict, dict, dict]:
 		unpack = self.unpack
-		for graph, branch, turn, tick, nodes, edges, graph_val in self.call(
-			"dump", "keyframes"
-		):
-			yield (
-				unpack(graph),
-				branch,
-				turn,
-				tick,
-				unpack(nodes),
-				unpack(edges),
-				unpack(graph_val),
-			)
+		univ, rule, rulebook = self.call(
+			"get_keyframe_extensions", branch, turn, tick
+		)
+		return unpack(univ), unpack(rule), unpack(rulebook)
 
 	def keyframes_graphs(self) -> Iterator:
 		unpack = self.unpack
@@ -3171,13 +4876,27 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			yield unpack(d["key"]), unpack(d["value"])
 
 	def get_branch(self):
-		return self.unpack(self.call("get_global", b"\xa6branch"))
+		v = self.unpack(self.call("get_global", b"\xa6branch"))
+		if v is None:
+			mainbranch = self.unpack(
+				self.call("get_global", b"\xabmain_branch")
+			)
+			if mainbranch is None:
+				return "trunk"
+			return mainbranch
+		return v
 
 	def get_turn(self):
-		return self.unpack(self.call("get_global", b"\xa4turn"))
+		v = self.unpack(self.call("get_global", b"\xa4turn"))
+		if v is None:
+			return 0
+		return v
 
 	def get_tick(self):
-		return self.unpack(self.call("get_global", b"\xa4tick"))
+		v = self.unpack(self.call("get_global", b"\xa4tick"))
+		if v is None:
+			return 0
+		return v
 
 	def new_branch(self, branch, parent, parent_turn, parent_tick):
 		return self.call(
@@ -3501,53 +5220,232 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 					)
 				)
 				self._location = []
-			for attr, cmd in [
-				("_char_rules_handled", "character_rules_handled"),
-				("_unit_rules_handled", "unit_rules_handled"),
-				(
-					"_char_thing_rules_handled",
-					"character_thing_rules_handled",
-				),
-				(
-					"_char_place_rules_handled",
-					"character_place_rules_handled",
-				),
-				(
-					"_char_portal_rules_handled",
-					"character_portal_rules_handled",
-				),
-				("_node_rules_handled", "_node_rules_handled"),
-				("_portal_rules_handled", "portal_rules_handled"),
-			]:
-				if getattr(self, attr):
-					put(
+			if self._char_rules_handled:
+				put(
+					(
+						"silent",
+						"insert",
 						(
-							"silent",
-							"insert",
-							(
-								cmd,
-								[
-									dict(
-										character=character,
-										rulebook=rulebook,
-										branch=branch,
-										turn=turn,
-										tick=tick,
-									)
-									for (
-										character,
-										rulebook,
-										branch,
-										turn,
-										tick,
-									) in getattr(self, attr)
-								],
-							),
-							{},
-						)
+							"character_rules_handled",
+							[
+								dict(
+									character=character,
+									rulebook=rulebook,
+									rule=rule,
+									branch=branch,
+									turn=turn,
+									tick=tick,
+								)
+								for (
+									character,
+									rulebook,
+									rule,
+									branch,
+									turn,
+									tick,
+								) in self._char_rules_handled
+							],
+						),
+						{},
 					)
-				setattr(self, attr, [])
-		assert self.call("echo", "flushed") == "flushed"
+				)
+				self._char_rules_handled = []
+		if self._unit_rules_handled:
+			put(
+				(
+					"silent",
+					"insert",
+					(
+						"unit_rules_handled",
+						[
+							dict(
+								character=character,
+								graph=graph,
+								unit=unit,
+								rulebook=rulebook,
+								rule=rule,
+								branch=branch,
+								turn=turn,
+								tick=tick,
+							)
+							for (
+								character,
+								graph,
+								unit,
+								rulebook,
+								rule,
+								branch,
+								turn,
+								tick,
+							) in self._unit_rules_handled
+						],
+					),
+					{},
+				)
+			)
+			self._unit_rules_handled = []
+		if self._char_thing_rules_handled:
+			put(
+				(
+					"silent",
+					"insert",
+					(
+						"character_thing_rules_handled",
+						[
+							dict(
+								character=character,
+								thing=thing,
+								rulebook=rulebook,
+								rule=rule,
+								branch=branch,
+								turn=turn,
+								tick=tick,
+							)
+							for (
+								character,
+								thing,
+								rulebook,
+								rule,
+								branch,
+								turn,
+								tick,
+							) in self._char_thing_rules_handled
+						],
+					),
+					{},
+				)
+			)
+			self._char_thing_rules_handled = []
+		if self._char_place_rules_handled:
+			put(
+				(
+					"silent",
+					"insert",
+					(
+						"character_place_rules_handled",
+						[
+							dict(
+								character=character,
+								place=place,
+								rulebook=rulebook,
+								rule=rule,
+								branch=branch,
+								turn=turn,
+								tick=tick,
+							)
+							for (
+								character,
+								place,
+								rulebook,
+								rule,
+								branch,
+								turn,
+								tick,
+							) in self._char_place_rules_handled
+						],
+					),
+					{},
+				)
+			)
+			self._char_place_rules_handled = []
+		if self._char_portal_rules_handled:
+			put(
+				(
+					"silent",
+					"insert",
+					(
+						"character_portal_rules_handled",
+						[
+							dict(
+								character=character,
+								orig=orig,
+								dest=dest,
+								rulebook=rulebook,
+								rule=rule,
+								branch=branch,
+								turn=turn,
+								tick=tick,
+							)
+							for (
+								character,
+								orig,
+								dest,
+								rulebook,
+								rule,
+								branch,
+								turn,
+								tick,
+							) in self._char_portal_rules_handled
+						],
+					),
+					{},
+				)
+			)
+			self._char_portal_rules_handled = []
+		if self._node_rules_handled:
+			put(
+				(
+					"silent",
+					"insert",
+					(
+						"node_rules_handled",
+						[
+							dict(
+								character=character,
+								node=node,
+								rulebook=rulebook,
+								rule=rule,
+								branch=branch,
+								turn=turn,
+								tick=tick,
+							)
+							for (
+								character,
+								node,
+								rulebook,
+								rule,
+								branch,
+								turn,
+								tick,
+							) in self._node_rules_handled
+						],
+					),
+				)
+			)
+			self._node_rules_handled = []
+		if self._portal_rules_handled:
+			put(
+				(
+					"silent",
+					"insert",
+					(
+						"portal_rules_handled",
+						[
+							dict(
+								character=character,
+								orig=orig,
+								dest=dest,
+								rulebook=rulebook,
+								rule=rule,
+								branch=branch,
+								turn=turn,
+								tick=tick,
+							)
+							for (
+								character,
+								orig,
+								dest,
+								rulebook,
+								rule,
+								branch,
+								turn,
+								tick,
+							) in self._portal_rules_handled
+						],
+					),
+				)
+			)
+			self._portal_rules_handled = []
 		override = self.kf_interval_override()
 		if override is False or (
 			self.keyframe_interval is not None
@@ -3558,6 +5456,88 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			self._records = (self._records + records) % self.keyframe_interval
 		else:
 			self._records += records
+		if self._new_keyframe_times:
+			put(
+				(
+					"silent",
+					"insert",
+					(
+						"keyframes",
+						[
+							{"branch": branch, "turn": turn, "tick": tick}
+							for (
+								branch,
+								turn,
+								tick,
+							) in self._new_keyframe_times
+						],
+					),
+					{},
+				)
+			)
+			self._new_keyframe_times = set()
+		if self._new_keyframes:
+			put(
+				(
+					"silent",
+					"insert",
+					(
+						"keyframes_graphs",
+						[
+							dict(
+								graph=pack(graph),
+								branch=branch,
+								turn=turn,
+								tick=tick,
+								nodes=pack(nodes),
+								edges=pack(edges),
+								graph_val=pack(graph_val),
+							)
+							for (
+								graph,
+								branch,
+								turn,
+								tick,
+								nodes,
+								edges,
+								graph_val,
+							) in self._new_keyframes
+						],
+					),
+					{},
+				)
+			)
+			self._new_keyframes = []
+		if self._new_keyframe_extensions:
+			put(
+				(
+					"silent",
+					"insert",
+					(
+						"keyframe_extensions",
+						[
+							dict(
+								branch=branch,
+								turn=turn,
+								tick=tick,
+								universal=pack(universal),
+								rule=pack(rule),
+								rulebook=pack(rulebook),
+							)
+							for (
+								branch,
+								turn,
+								tick,
+								universal,
+								rule,
+								rulebook,
+							) in self._new_keyframe_extensions
+						],
+					),
+					{},
+				)
+			)
+		assert self.echo("flushed") == "flushed"
 
 	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
 		unpack = self.unpack
@@ -3960,6 +5940,21 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			},
 		)
 
+	def set_rule_big(
+		self, rule: str, branch: str, turn: int, tick: int, big: bool
+	):
+		self.call(
+			"insert1",
+			"rule_big",
+			{
+				"rule": rule,
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+				"big": big,
+			},
+		)
+
 	def set_rule(
 		self,
 		rule: str,
@@ -3970,12 +5965,14 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		prereqs: List[str],
 		actions: List[str],
 		neighborhood: int,
+		big: bool,
 	):
 		with self._holder.lock:
 			self.set_rule_triggers(rule, branch, turn, tick, triggers)
 			self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
 			self.set_rule_actions(rule, branch, turn, tick, actions)
 			self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
+			self.set_rule_big(rule, branch, turn, tick, big)
 
 	def set_rulebook(
 		self,
@@ -4880,6 +6877,52 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		for d in self.call("dump", "plan_ticks"):
 			yield d["plan_id"], d["turn"], d["tick"]
 
+	def keyframe_graph_insert(
+		self,
+		graph: Key,
+		branch: str,
+		turn: str,
+		tick: str,
+		nodes: list,
+		edges: list,
+		graph_val: list,
+	):
+		self._new_keyframes.append(
+			(graph, branch, turn, tick, nodes, edges, graph_val)
+		)
+		self._new_keyframe_times.add((branch, turn, tick))
+
+	def keyframe_insert(self, branch: str, turn: int, tick: int) -> None:
+		self._new_keyframe_times.add((branch, turn, tick))
+
+	def keyframe_extension_insert(
+		self,
+		branch: str,
+		turn: int,
+		tick: int,
+		universal: dict,
+		rule: dict,
+		rulebook: dict,
+	) -> None:
+		self._new_keyframe_extensions.append(
+			(branch, turn, tick, universal, rule, rulebook)
+		)
+		self._new_keyframe_times.add((branch, turn, tick))
+
+	def get_all_keyframe_graphs(
+		self, branch: str, turn: int, tick: int
+	) -> Iterator[tuple[Key, dict, dict, dict]]:
+		unpack = self.unpack
+		for graph, nodes, edges, graph_val in self.call(
+			"all_keyframe_graphs", branch, turn, tick
+		):
+			yield (
+				unpack(graph),
+				unpack(nodes),
+				unpack(edges),
+				unpack(graph_val),
+			)
+
 	def truncate_all(self):
 		self.call("truncate_all")
 
@@ -5014,419 +7057,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		self._unitness = []
 		self._location = []
 
-	_infixes2load = [
-		"nodes",
-		"edges",
-		"graph_val",
-		"node_val",
-		"edge_val",
-		"things",
-		"character_rulebook",
-		"unit_rulebook",
-		"character_thing_rulebook",
-		"character_place_rulebook",
-		"character_portal_rulebook",
-		"node_rulebook",
-		"portal_rulebook",
-		"universals",
-		"rulebooks",
-		"rule_triggers",
-		"rule_prereqs",
-		"rule_actions",
-		"rule_neighborhoods",
-		"rule_big",
-	]
-
-	def _get_one_window(
-		self, ret, branch, turn_from, tick_from, turn_to, tick_to
-	):
-		super()._get_one_window(
-			ret, branch, turn_from, tick_from, turn_to, tick_to
-		)
-		unpack = self.unpack
-		assert self._outq.get() == (
-			"begin",
-			"things",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for graph, node, turn, tick, loc in got:
-				(graph, node, loc) = map(unpack, (graph, node, loc))
-				ret[graph]["things"].append(
-					(graph, node, branch, turn, tick, loc)
-				)
-		assert got == (
-			"end",
-			"things",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"character_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				ret[graph]["character_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-		assert got == (
-			"end",
-			"character_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"unit_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				ret[graph]["unit_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-		assert got == (
-			"end",
-			"unit_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"character_thing_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				ret[graph]["character_thing_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-		assert got == (
-			"end",
-			"character_thing_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"character_place_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				ret[graph]["character_place_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-		assert got == (
-			"end",
-			"character_place_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"character_portal_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				ret[graph]["character_portal_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-		assert got == (
-			"end",
-			"character_portal_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"node_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for graph, node, turn, tick, rb in got:
-				(graph, node, rb) = map(unpack, (graph, node, rb))
-				ret[graph]["node_rulebook"].append(
-					(graph, node, branch, turn, tick, rb)
-				)
-		assert got == (
-			"end",
-			"node_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"portal_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for graph, orig, dest, turn, tick, rb in got:
-				(graph, orig, dest, rb) = map(unpack, (graph, orig, dest, rb))
-				ret[graph]["portal_rulebook"].append(
-					(graph, orig, dest, branch, turn, tick, rb)
-				)
-		assert got == (
-			"end",
-			"portal_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"universals",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for key, branch, turn, tick, val in got:
-				(key, val) = map(unpack, (key, val))
-				if "universals" in ret:
-					ret["universals"].append((key, branch, turn, tick, val))
-				else:
-					ret["universals"] = [(key, branch, turn, tick, val)]
-		assert got == (
-			"end",
-			"universals",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"rulebooks",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for rulebook, branch, turn, tick, rules, priority in got:
-				(rulebook, rules) = map(unpack, (rulebook, rules))
-				if "rulebooks" in ret:
-					ret["rulebooks"].append(
-						(rulebook, branch, turn, tick, (rules, priority))
-					)
-				else:
-					ret["rulebooks"] = [
-						(rulebook, branch, turn, tick, (rules, priority))
-					]
-		assert got == (
-			"end",
-			"rulebooks",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"rule_triggers",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for rule, branch, turn, tick, triggers in got:
-				triggers = unpack(triggers)
-				if "rule_triggers" in ret:
-					ret["rule_triggers"].append(
-						(rule, branch, turn, tick, triggers)
-					)
-				else:
-					ret["rule_triggers"] = [
-						(rule, branch, turn, tick, triggers)
-					]
-		assert got == (
-			"end",
-			"rule_triggers",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"rule_prereqs",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for rule, branch, turn, tick, prereqs in got:
-				prereqs = unpack(prereqs)
-				if "rule_prereqs" in ret:
-					ret["rule_prereqs"].append(
-						(rule, branch, turn, tick, prereqs)
-					)
-				else:
-					ret["rule_prereqs"] = [(rule, branch, turn, tick, prereqs)]
-		assert got == (
-			"end",
-			"rule_prereqs",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"rule_actions",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for rule, branch, turn, tick, actions in got:
-				actions = unpack(actions)
-				if "rule_actions" in ret:
-					ret["rule_actions"].append(
-						(rule, branch, turn, tick, actions)
-					)
-				else:
-					ret["rule_actions"] = [(rule, branch, turn, tick, actions)]
-		assert got == (
-			"end",
-			"rule_actions",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"rule_neighborhoods",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for rule, branch, turn, tick, neighborhoods in got:
-				neighborhoods = unpack(neighborhoods)
-				if "rule_neighborhoods" in ret:
-					ret["rule_neighborhoods"].append(
-						(rule, branch, turn, tick, neighborhoods)
-					)
-				else:
-					ret["rule_neighborhoods"] = [
-						(rule, branch, turn, tick, neighborhoods)
-					]
-		assert got == (
-			"end",
-			"rule_neighborhoods",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		), got
-		assert self._outq.get() == (
-			"begin",
-			"rule_big",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-		while isinstance(got := self._outq.get(), list):
-			for rule, branch, turn, tick, big in got:
-				if "rule_big" in ret:
-					ret["rule_big"].append((rule, branch, turn, tick, big))
-				else:
-					ret["rule_big"] = [(rule, branch, turn, tick, big)]
-		assert got == (
-			"end",
-			"rule_big",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		)
-
 	def keyframe_extension_insert(
 		self,
 		branch,
@@ -5447,6 +7077,7 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 				pack(rulebooks),
 			)
 		)
+		self._new_keyframe_times.add((branch, turn, tick))
 
 	def graph_val_set(self, graph, key, branch, turn, tick, value):
 		super().graph_val_set(graph, key, branch, turn, tick, value)
@@ -5535,8 +7166,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 				"_char_portal_rules_handled",
 				"character_portal_rules_handled_insert",
 			),
-			("_node_rules_handled", "_node_rules_handled_insert"),
-			("_portal_rules_handled", "portal_rules_handled_insert"),
 		]:
 			if getattr(self, attr):
 				put(
@@ -5565,6 +7194,67 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 					)
 				)
 			setattr(self, attr, [])
+		if self._node_rules_handled:
+			put(
+				(
+					"silent",
+					"many",
+					"node_rules_handled_insert",
+					[
+						dict(
+							character=character,
+							node=node,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							node,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._node_rules_handled
+					],
+				)
+			)
+			self._node_rules_handled = []
+		if self._portal_rules_handled:
+			put(
+				(
+					"silent",
+					"many",
+					"portal_rules_handled_insert",
+					[
+						dict(
+							character=character,
+							orig=orig,
+							dest=dest,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							orig,
+							dest,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._portal_rules_handled
+					],
+				)
+			)
+			self._portal_rules_handled = []
+		assert self.echo("flushed") == "flushed"
 
 	def keyframe_extensions_dump(self):
 		unpack = self.unpack
