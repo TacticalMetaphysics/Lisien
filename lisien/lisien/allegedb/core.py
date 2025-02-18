@@ -677,6 +677,8 @@ class ORM:
 
 		from functools import partial
 
+		pass
+
 		if turn_from == turn_to:
 			return self._get_turn_delta(branch, turn_from, tick_from, tick_to)
 		delta = {}
@@ -982,7 +984,12 @@ class ORM:
 		self.graph = GraphsMapping(self)
 		for graph, branch, turn, tick, typ in self.query.graphs_dump():
 			self._graph_cache.store(
-				graph, branch, turn, tick, (typ if typ != "Deleted" else None)
+				graph,
+				branch,
+				turn,
+				tick,
+				(typ if typ != "Deleted" else None),
+				loading=True,
 			)
 			if typ not in {"DiGraph", "Deleted"}:
 				raise NotImplementedError("Only DiGraph for now")

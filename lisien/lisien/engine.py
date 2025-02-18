@@ -1122,7 +1122,6 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 				tick,
 				(typ if typ != "Deleted" else None),
-				loading=True,
 			)
 			self._graph_objs[charn] = self.char_cls(
 				self, charn, init_rulebooks=False

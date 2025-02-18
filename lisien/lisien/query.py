@@ -4994,8 +4994,8 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 							"nodes",
 							[
 								{
-									"graph": pack(graph),
-									"node": pack(node),
+									"graph": graph,
+									"node": node,
 									"branch": branch,
 									"turn": turn,
 									"tick": tick,
