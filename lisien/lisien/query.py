@@ -4961,504 +4961,418 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def flush(self):
 		with self._holder.lock:
-			put = self._inq.put
 			pack = self.pack
 			records = 0
 			if self._graphvals2set:
 				records += len(self._graphvals2set)
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"graph_val",
-							[
-								{
-									"graph": pack(graph),
-									"key": pack(key),
-									"branch": branch,
-									"turn": turn,
-									"tick": tick,
-									"value": pack(value),
-								}
-								for (
-									graph,
-									key,
-									branch,
-									turn,
-									tick,
-									value,
-								) in self._graphvals2set
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"graph_val",
+					[
+						{
+							"graph": pack(graph),
+							"key": pack(key),
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"value": pack(value),
+						}
+						for (
+							graph,
+							key,
+							branch,
+							turn,
+							tick,
+							value,
+						) in self._graphvals2set
+					],
 				)
 				self._graphvals2set = []
 			if self._nodes2set:
 				records += len(self._nodes2set)
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"nodes",
-							[
-								{
-									"graph": graph,
-									"node": node,
-									"branch": branch,
-									"turn": turn,
-									"tick": tick,
-									"extant": bool(extant),
-								}
-								for (
-									graph,
-									node,
-									branch,
-									turn,
-									tick,
-									extant,
-								) in self._nodes2set
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"nodes",
+					[
+						{
+							"graph": graph,
+							"node": node,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"extant": bool(extant),
+						}
+						for (
+							graph,
+							node,
+							branch,
+							turn,
+							tick,
+							extant,
+						) in self._nodes2set
+					],
 				)
 				self._nodes2set = []
 			if self._nodevals2set:
 				records += len(self._nodevals2set)
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"node_val",
-							[
-								{
-									"graph": pack(graph),
-									"node": pack(node),
-									"key": pack(key),
-									"branch": branch,
-									"turn": turn,
-									"tick": tick,
-									"value": pack(value),
-								}
-								for (
-									graph,
-									node,
-									key,
-									branch,
-									turn,
-									tick,
-									value,
-								) in self._nodevals2set
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"node_val",
+					[
+						{
+							"graph": pack(graph),
+							"node": pack(node),
+							"key": pack(key),
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"value": pack(value),
+						}
+						for (
+							graph,
+							node,
+							key,
+							branch,
+							turn,
+							tick,
+							value,
+						) in self._nodevals2set
+					],
 				)
+
 				self._nodevals2set = []
 			if self._edges2set:
 				records += len(self._edges2set)
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"edges",
-							[
-								{
-									"graph": pack(graph),
-									"orig": pack(orig),
-									"dest": pack(dest),
-									"idx": 0,
-									"branch": branch,
-									"turn": turn,
-									"tick": tick,
-									"extant": bool(extant),
-								}
-								for (
-									graph,
-									orig,
-									dest,
-									branch,
-									turn,
-									tick,
-									extant,
-								) in self._edges2set
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"edges",
+					[
+						{
+							"graph": pack(graph),
+							"orig": pack(orig),
+							"dest": pack(dest),
+							"idx": 0,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"extant": bool(extant),
+						}
+						for (
+							graph,
+							orig,
+							dest,
+							branch,
+							turn,
+							tick,
+							extant,
+						) in self._edges2set
+					],
 				)
 				self._edges2set = []
 			if self._edgevals2set:
 				records += len(self._edgevals2set)
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"edge_val",
-							[
-								{
-									"graph": pack(graph),
-									"orig": pack(orig),
-									"dest": pack(dest),
-									"idx": 0,
-									"key": pack(key),
-									"branch": branch,
-									"turn": turn,
-									"tick": tick,
-									"value": pack(value),
-								}
-								for (
-									graph,
-									orig,
-									dest,
-									key,
-									branch,
-									turn,
-									tick,
-									value,
-								) in self._edgevals2set
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"edge_val",
+					[
+						{
+							"graph": pack(graph),
+							"orig": pack(orig),
+							"dest": pack(dest),
+							"idx": 0,
+							"key": pack(key),
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"value": pack(value),
+						}
+						for (
+							graph,
+							orig,
+							dest,
+							key,
+							branch,
+							turn,
+							tick,
+							value,
+						) in self._edgevals2set
+					],
 				)
 				self._edgevals2set = []
 			if self._unitness:
 				records += len(self._unitness)
-				put(
-					(
-						"silent",
-						"del_units_after",
-						(
-							[
-								(character, graph, node, branch, turn, tick)
-								for (
-									character,
-									graph,
-									node,
-									branch,
-									turn,
-									tick,
-									_,
-								) in self._unitness
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"del_units_after",
+					[
+						(character, graph, node, branch, turn, tick)
+						for (
+							character,
+							graph,
+							node,
+							branch,
+							turn,
+							tick,
+							_,
+						) in self._unitness
+					],
 				)
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"units",
-							[
-								{
-									"character_graph": character,
-									"unit_graph": graph,
-									"node": node,
-									"branch": branch,
-									"turn": turn,
-									"tick": tick,
-									"is_unit": isunit,
-								}
-								for (
-									character,
-									graph,
-									node,
-									branch,
-									turn,
-									tick,
-									isunit,
-								) in self._unitness
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"units",
+					[
+						{
+							"character_graph": character,
+							"unit_graph": graph,
+							"node": node,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"is_unit": isunit,
+						}
+						for (
+							character,
+							graph,
+							node,
+							branch,
+							turn,
+							tick,
+							isunit,
+						) in self._unitness
+					],
 				)
 				self._unitness = []
 			if self._location:
 				records += len(self._location)
-				put(
-					(
-						"silent",
-						"del_things_after",
-						(
-							[
-								(character, thing, branch, turn, tick)
-								for (
-									character,
-									thing,
-									branch,
-									turn,
-									tick,
-									_,
-								) in self._location
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"del_things_after",
+					[
+						(character, thing, branch, turn, tick)
+						for (
+							character,
+							thing,
+							branch,
+							turn,
+							tick,
+							_,
+						) in self._location
+					],
 				)
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"things",
-							[
-								{
-									"character": character,
-									"thing": thing,
-									"branch": branch,
-									"turn": turn,
-									"tick": tick,
-									"location": loc,
-								}
-								for (
-									character,
-									thing,
-									branch,
-									turn,
-									tick,
-									loc,
-								) in self._location
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"things",
+					[
+						{
+							"character": character,
+							"thing": thing,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"location": loc,
+						}
+						for (
+							character,
+							thing,
+							branch,
+							turn,
+							tick,
+							loc,
+						) in self._location
+					],
 				)
+
 				self._location = []
 			if self._char_rules_handled:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"character_rules_handled",
-							[
-								dict(
-									character=character,
-									rulebook=rulebook,
-									rule=rule,
-									branch=branch,
-									turn=turn,
-									tick=tick,
-								)
-								for (
-									character,
-									rulebook,
-									rule,
-									branch,
-									turn,
-									tick,
-								) in self._char_rules_handled
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"character_rules_handled",
+					[
+						dict(
+							character=character,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._char_rules_handled
+					],
 				)
+
 				self._char_rules_handled = []
 			if self._unit_rules_handled:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"unit_rules_handled",
-							[
-								dict(
-									character=character,
-									graph=graph,
-									unit=unit,
-									rulebook=rulebook,
-									rule=rule,
-									branch=branch,
-									turn=turn,
-									tick=tick,
-								)
-								for (
-									character,
-									graph,
-									unit,
-									rulebook,
-									rule,
-									branch,
-									turn,
-									tick,
-								) in self._unit_rules_handled
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"unit_rules_handled",
+					[
+						dict(
+							character=character,
+							graph=graph,
+							unit=unit,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							graph,
+							unit,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._unit_rules_handled
+					],
 				)
+
 				self._unit_rules_handled = []
 			if self._char_thing_rules_handled:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"character_thing_rules_handled",
-							[
-								dict(
-									character=character,
-									thing=thing,
-									rulebook=rulebook,
-									rule=rule,
-									branch=branch,
-									turn=turn,
-									tick=tick,
-								)
-								for (
-									character,
-									thing,
-									rulebook,
-									rule,
-									branch,
-									turn,
-									tick,
-								) in self._char_thing_rules_handled
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"character_thing_rules_handled",
+					[
+						dict(
+							character=character,
+							thing=thing,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							thing,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._char_thing_rules_handled
+					],
 				)
+
 				self._char_thing_rules_handled = []
 			if self._char_place_rules_handled:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"character_place_rules_handled",
-							[
-								dict(
-									character=character,
-									place=place,
-									rulebook=rulebook,
-									rule=rule,
-									branch=branch,
-									turn=turn,
-									tick=tick,
-								)
-								for (
-									character,
-									place,
-									rulebook,
-									rule,
-									branch,
-									turn,
-									tick,
-								) in self._char_place_rules_handled
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"character_place_rules_handled",
+					[
+						dict(
+							character=character,
+							place=place,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							place,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._char_place_rules_handled
+					],
 				)
+
 				self._char_place_rules_handled = []
 			if self._char_portal_rules_handled:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"character_portal_rules_handled",
-							[
-								dict(
-									character=character,
-									orig=orig,
-									dest=dest,
-									rulebook=rulebook,
-									rule=rule,
-									branch=branch,
-									turn=turn,
-									tick=tick,
-								)
-								for (
-									character,
-									orig,
-									dest,
-									rulebook,
-									rule,
-									branch,
-									turn,
-									tick,
-								) in self._char_portal_rules_handled
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"character_portal_rules_handled",
+					[
+						dict(
+							character=character,
+							orig=orig,
+							dest=dest,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							orig,
+							dest,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._char_portal_rules_handled
+					],
 				)
+
 				self._char_portal_rules_handled = []
 			if self._node_rules_handled:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"node_rules_handled",
-							[
-								dict(
-									character=character,
-									node=node,
-									rulebook=rulebook,
-									rule=rule,
-									branch=branch,
-									turn=turn,
-									tick=tick,
-								)
-								for (
-									character,
-									node,
-									rulebook,
-									rule,
-									branch,
-									turn,
-									tick,
-								) in self._node_rules_handled
-							],
-						),
-					)
+				self.call_silent(
+					"insert",
+					"node_rules_handled",
+					[
+						dict(
+							character=character,
+							node=node,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							node,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._node_rules_handled
+					],
 				)
+
 				self._node_rules_handled = []
 			if self._portal_rules_handled:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"portal_rules_handled",
-							[
-								dict(
-									character=character,
-									orig=orig,
-									dest=dest,
-									rulebook=rulebook,
-									rule=rule,
-									branch=branch,
-									turn=turn,
-									tick=tick,
-								)
-								for (
-									character,
-									orig,
-									dest,
-									rulebook,
-									rule,
-									branch,
-									turn,
-									tick,
-								) in self._portal_rules_handled
-							],
-						),
-					)
+				self.call_silent(
+					"insert",
+					"portal_rules_handled",
+					[
+						dict(
+							character=character,
+							orig=orig,
+							dest=dest,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							orig,
+							dest,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._portal_rules_handled
+					],
 				)
+
 				self._portal_rules_handled = []
 			override = self.kf_interval_override()
 			if override is False or (
@@ -5473,86 +5387,70 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			else:
 				self._records += records
 			if self._new_keyframe_times:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"keyframes",
-							[
-								{"branch": branch, "turn": turn, "tick": tick}
-								for (
-									branch,
-									turn,
-									tick,
-								) in self._new_keyframe_times
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"keyframes",
+					[
+						{"branch": branch, "turn": turn, "tick": tick}
+						for (
+							branch,
+							turn,
+							tick,
+						) in self._new_keyframe_times
+					],
 				)
 				self._new_keyframe_times = set()
 			if self._new_keyframes:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"keyframes_graphs",
-							[
-								dict(
-									graph=pack(graph),
-									branch=branch,
-									turn=turn,
-									tick=tick,
-									nodes=pack(nodes),
-									edges=pack(edges),
-									graph_val=pack(graph_val),
-								)
-								for (
-									graph,
-									branch,
-									turn,
-									tick,
-									nodes,
-									edges,
-									graph_val,
-								) in self._new_keyframes
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"keyframes_graphs",
+					[
+						dict(
+							graph=pack(graph),
+							branch=branch,
+							turn=turn,
+							tick=tick,
+							nodes=pack(nodes),
+							edges=pack(edges),
+							graph_val=pack(graph_val),
+						)
+						for (
+							graph,
+							branch,
+							turn,
+							tick,
+							nodes,
+							edges,
+							graph_val,
+						) in self._new_keyframes
+					],
 				)
+
 				self._new_keyframes = []
 			if self._new_keyframe_extensions:
-				put(
-					(
-						"silent",
-						"insert",
-						(
-							"keyframe_extensions",
-							[
-								dict(
-									branch=branch,
-									turn=turn,
-									tick=tick,
-									universal=pack(universal),
-									rule=pack(rule),
-									rulebook=pack(rulebook),
-								)
-								for (
-									branch,
-									turn,
-									tick,
-									universal,
-									rule,
-									rulebook,
-								) in self._new_keyframe_extensions
-							],
-						),
-						{},
-					)
+				self.call_silent(
+					"insert",
+					"keyframe_extensions",
+					[
+						dict(
+							branch=branch,
+							turn=turn,
+							tick=tick,
+							universal=pack(universal),
+							rule=pack(rule),
+							rulebook=pack(rulebook),
+						)
+						for (
+							branch,
+							turn,
+							tick,
+							universal,
+							rule,
+							rulebook,
+						) in self._new_keyframe_extensions
+					],
 				)
+
 		assert self.echo("flushed") == "flushed"
 
 	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
