@@ -1392,6 +1392,8 @@ class ParquetDBHolder(ConnectionHolder):
 			}
 		],
 	}
+	_inq: Queue
+	_outq: Queue
 
 	def __init__(self, path, inq, outq):
 		self._inq = inq
@@ -1406,6 +1408,7 @@ class ParquetDBHolder(ConnectionHolder):
 		pass
 
 	def close(self):
+		self._outq.join()
 		self.existence_lock.release()
 
 	def initdb(self):
@@ -3767,7 +3770,7 @@ class ParquetDBHolder(ConnectionHolder):
 		while True:
 			inst = inq.get()
 			if inst == "shutdown":
-				self.existence_lock.release()
+				self.close()
 				return
 			if inst == "commit":
 				continue
