@@ -2282,7 +2282,7 @@ class ParquetDBHolder(ConnectionHolder):
 					)
 
 	def load_node_val_tick_to_end(self, *args, **kwargs):
-		if len(args) == 4 or len(kwargs) == 4:
+		if len(args) + len(kwargs) == 4:
 			return self._load_node_val_tick_to_end_graph(*args, **kwargs)
 		else:
 			return self._load_node_val_tick_to_end_all(*args, **kwargs)
