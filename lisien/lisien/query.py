@@ -6134,10 +6134,10 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self._unit_rules_handled.append(
 			(
 				pack(character),
-				pack(rulebook),
-				rule,
 				pack(graph),
 				pack(unit),
+				pack(rulebook),
+				rule,
 				branch,
 				turn,
 				tick,
