@@ -2535,11 +2535,11 @@ class ParquetDBHolder(ConnectionHolder):
 					d["extant"],
 				)
 
-	def load_edges_tick_to_tick(self, *args):
-		if len(args) == 6:
-			return self._load_edges_tick_to_tick_graph(*args)
+	def load_edges_tick_to_tick(self, *args, **kwargs):
+		if len(args) + len(kwargs) == 6:
+			return self._load_edges_tick_to_tick_graph(*args, **kwargs)
 		else:
-			return self._load_edges_tick_to_tick_all(*args)
+			return self._load_edges_tick_to_tick_all(*args, **kwargs)
 
 	def _load_edges_tick_to_tick_all(
 		self,
