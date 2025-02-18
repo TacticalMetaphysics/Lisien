@@ -5146,27 +5146,30 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 					(
 						"silent",
 						"insert",
-						"units",
-						[
-							{
-								"character_graph": character,
-								"unit_graph": graph,
-								"node": node,
-								"branch": branch,
-								"turn": turn,
-								"tick": tick,
-								"is_unit": isunit,
-							}
-							for (
-								character,
-								graph,
-								node,
-								branch,
-								turn,
-								tick,
-								isunit,
-							) in self._unitness
-						],
+						(
+							"units",
+							[
+								{
+									"character_graph": character,
+									"unit_graph": graph,
+									"node": node,
+									"branch": branch,
+									"turn": turn,
+									"tick": tick,
+									"is_unit": isunit,
+								}
+								for (
+									character,
+									graph,
+									node,
+									branch,
+									turn,
+									tick,
+									isunit,
+								) in self._unitness
+							],
+						),
+						{},
 					)
 				)
 				self._unitness = []
@@ -6293,7 +6296,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				branch,
 				turn,
 				tick,
-				pack(is_unit),
+				is_unit,
 			)
 		)
 
