@@ -583,10 +583,10 @@ def queries(table):
 
 	univ = table["universals"]
 	r["load_universals_tick_to_end"] = select(
-		univ.c.key, univ.c.branch, univ.c.turn, univ.c.tick, univ.c.value
+		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
 	).where(generic_tick_to_end_clause(univ))
 	r["load_universals_tick_to_tick"] = select(
-		univ.c.key, univ.c.branch, univ.c.turn, univ.c.tick, univ.c.value
+		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
 	).where(generic_tick_to_tick_clause(univ))
 
 	rbs = table["rulebooks"]
