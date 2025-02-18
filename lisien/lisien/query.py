@@ -4711,6 +4711,9 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self._portal_rules_handled = []
 		self._unitness = []
 		self._location = []
+		self._universals2set = []
+		self._noderb2set = []
+		self._portrb2set = []
 		self._new_keyframes = []
 		self._new_keyframe_extensions = []
 		self._new_keyframe_times = set()
@@ -4966,6 +4969,81 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		with self._holder.lock:
 			pack = self.pack
 			records = 0
+			if self._universals2set:
+				records += len(self._universals2set)
+				self.call_silent(
+					"insert",
+					"universals",
+					[
+						dict(
+							key=pack(key),
+							branch=branch,
+							turn=turn,
+							tick=tick,
+							value=pack(value),
+						)
+						for (
+							key,
+							branch,
+							turn,
+							tick,
+							value,
+						) in self._universals2set
+					],
+				)
+				self._universals2set = []
+			if self._noderb2set:
+				records += len(self._noderb2set)
+				self.call_silent(
+					"insert",
+					"node_rulebook",
+					[
+						dict(
+							character=pack(character),
+							node=pack(node),
+							branch=branch,
+							turn=turn,
+							tick=tick,
+							rulebook=pack(rulebook),
+						)
+						for (
+							character,
+							node,
+							branch,
+							turn,
+							tick,
+							rulebook,
+						) in self._noderb2set
+					],
+				)
+				self._noderb2set = []
+			if self._portrb2set:
+				records += len(self._portrb2set)
+				self.call_silent(
+					"insert",
+					"portal_rulebook",
+					[
+						dict(
+							character=pack(character),
+							orig=pack(orig),
+							dest=pack(dest),
+							branch=branch,
+							turn=turn,
+							tick=tick,
+							rulebook=pack(rulebook),
+						)
+						for (
+							character,
+							orig,
+							dest,
+							branch,
+							turn,
+							tick,
+							rulebook,
+						) in self._portrb2set
+					],
+				)
+				self._portrb2set = []
 			if self._graphvals2set:
 				records += len(self._graphvals2set)
 				self.call_silent(
@@ -5773,21 +5851,10 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	def universal_set(
 		self, key: Key, branch: str, turn: int, tick: int, val: Any
 	):
-		pack = self.pack
-		self.call(
-			"insert1",
-			"universals",
-			{
-				"key": pack(key),
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"value": pack(val),
-			},
-		)
+		self._universals2set.append((key, branch, turn, tick, val))
 
 	def universal_del(self, key: Key, branch: str, turn: int, tick: int):
-		self.universal_set(key, branch, turn, tick, b"\xc0")
+		self.universal_set(key, branch, turn, tick, None)
 
 	def count_all_table(self, tbl: str) -> int:
 		return self.call("rowcount", tbl)
@@ -5977,18 +6044,8 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		tick: int,
 		rulebook: Key,
 	):
-		pack = self.pack
-		self.call(
-			"insert1",
-			"node_rulebook",
-			{
-				"character": pack(character),
-				"node": pack(node),
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"rulebook": pack(rulebook),
-			},
+		self._noderb2set.append(
+			(character, node, branch, turn, tick, rulebook)
 		)
 
 	def set_portal_rulebook(
@@ -6001,19 +6058,8 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		tick: int,
 		rulebook: Key,
 	):
-		pack = self.pack
-		self.call(
-			"insert1",
-			"portal_rulebook",
-			{
-				"character": pack(character),
-				"orig": pack(orig),
-				"dest": pack(dest),
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"rulebook": pack(rulebook),
-			},
+		self._portrb2set.append(
+			(character, orig, dest, branch, turn, tick, rulebook)
 		)
 
 	def handled_character_rule(
