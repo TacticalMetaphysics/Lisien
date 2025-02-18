@@ -37,6 +37,7 @@ Other comparison operators like ``>`` and ``<`` work as well.
 
 import operator
 import os
+import sys
 from collections import defaultdict
 from abc import abstractmethod
 from collections.abc import MutableMapping, Sequence, Set
@@ -3753,6 +3754,14 @@ class ParquetDBHolder(ConnectionHolder):
 		]
 
 	def run(self):
+		def loud_exit(inst, ex):
+			sys.exit(
+				f"While calling {inst[0]}"
+				f"({', '.join(map(repr, inst[1]))}{', ' if inst[2] else ''}"
+				f"{', '.join('='.join(pair) for pair in inst[2].items())})"
+				f"silenced, ParquetDBHolder got the exception: {ex}"
+			)
+
 		inq = self._inq
 		outq = self._outq
 		while True:
@@ -3776,23 +3785,24 @@ class ParquetDBHolder(ConnectionHolder):
 				try:
 					res = getattr(self, inst[0])(*inst[1], **inst[2])
 				except Exception as ex:
-					assert not silent, f"Got exception while silenced: {ex}"
+					if silent:
+						loud_exit(inst, ex)
 					res = ex
 			elif inst[0] == "many":
 				for args, kwargs in inst[2]:
 					try:
 						res = getattr(self, inst[0])(*args, **kwargs)
 					except Exception as ex:
-						assert not silent, (
-							f"Got exception while silenced: {ex}"
-						)
+						if silent:
+							loud_exit(inst, ex)
 						res = ex
 						break
 			else:
 				try:
 					res = getattr(self, inst[0])(*inst[1], **inst[2])
 				except Exception as ex:
-					assert not silent, f"Got exception while silenced: {ex}"
+					if silent:
+						loud_exit(inst, ex)
 					res = ex
 			if not silent:
 				outq.put(res)
