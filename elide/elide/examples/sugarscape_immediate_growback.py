@@ -12,8 +12,9 @@ from elide.game import GameApp, GameScreen, GridBoard
 
 
 def make_grid() -> nx.Graph:
+    pass
 
 
 
 def game_start(engine: "lisien.Engine") -> None:
-
+    pass
