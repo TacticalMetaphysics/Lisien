@@ -2150,6 +2150,7 @@ class ORM:
 			return
 		caches = self._caches
 		kf_to_keep = set()
+		times_unloaded = set()
 		for past_branch, (
 			early_turn,
 			early_tick,
@@ -2170,7 +2171,9 @@ class ORM:
 					for turn, ticks in self._keyframes_dict[
 						past_branch
 					].items():
-						if early_turn == turn:
+						if turn < early_turn or late_turn < turn:
+							continue
+						elif early_turn == turn:
 							for tick in ticks:
 								if early_tick <= tick:
 									kf_to_keep.add((past_branch, turn, tick))
@@ -2182,25 +2185,40 @@ class ORM:
 							kf_to_keep.update(
 								(past_branch, turn, tick) for tick in ticks
 							)
+			kf_to_keep &= self._keyframes_loaded
 			for cache in caches:
 				cache.truncate(past_branch, early_turn, early_tick, "backward")
 				cache.truncate(past_branch, late_turn, late_tick, "forward")
 				for graph, branches in cache.keyframe.items():
 					turns = branches[past_branch]
-					turns.truncate(late_turn, "forward")
-					try:
+					turns_truncated = turns.truncate(late_turn, "forward")
+					if late_turn in turns:
 						late = turns[late_turn]
-					except HistoricKeyError:
-						pass
-					else:
-						late.truncate(late_tick, "forward")
-					turns.truncate(early_turn, "backward")
-					try:
+						times_unloaded.update(
+							(past_branch, late_turn, t)
+							for t in late.truncate(late_tick, "forward")
+						)
+					turns_truncated.update(
+						turns.truncate(early_turn, "backward")
+					)
+					times_unloaded.update(
+						(past_branch, turn_deleted, tick_deleted)
+						for turn_deleted in self._keyframes_dict[
+							past_branch
+						].keys()
+						& turns_truncated
+						for tick_deleted in self._keyframes_dict[past_branch][
+							turn_deleted
+						]
+					)
+					if early_turn in turns:
 						early = turns[early_turn]
-					except HistoricKeyError:
-						pass
-					else:
-						early.truncate(early_tick, "backward")
+						times_unloaded.update(
+							(past_branch, early_turn, t)
+							for t in early.truncate(early_tick, "backward")
+						)
+					unloaded_wrongly = times_unloaded & kf_to_keep
+					assert not unloaded_wrongly, unloaded_wrongly
 		self._keyframes_loaded = kf_to_keep
 		loaded.update(to_keep)
 		for branch in set(loaded).difference(to_keep):
