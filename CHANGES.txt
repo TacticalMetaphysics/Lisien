@@ -1,3 +1,6 @@
+== 0.18.1 | 2025-02-20 ==
+* A crash fix relating to the unloading code, which was too eager
+
 == 0.18.1 | 2025-02-14 ==
 * Crash fixes
 

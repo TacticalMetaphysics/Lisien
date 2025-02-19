@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 import tomllib
 
 with open("lisien/pyproject.toml", "rb") as inf:
