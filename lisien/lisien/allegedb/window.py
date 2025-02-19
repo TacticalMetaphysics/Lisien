@@ -650,32 +650,42 @@ class WindowDict(MutableMapping):
 
 	def truncate(
 		self, rev: int, direction: Direction = "forward", search=False
-	) -> None:
+	) -> set[int]:
 		"""Delete everything after the given revision, exclusive.
 
 		With direction='backward', delete everything before the revision,
 		exclusive, instead.
 
+		Return a set of keys deleted.
+
 		"""
+		deleted = set()
 		with self._lock:
 			if search:
 				self.search(rev)
 			else:
 				self._seek(rev)
 			if direction == "forward":
-				self._keys.difference_update(map(get0, self._future))
+				to_delete = set(map(get0, self._future))
+				deleted.update(to_delete)
+				self._keys.difference_update(to_delete)
 				self._future = []
 			elif direction == "backward":
 				if not self._past:
-					return
+					return deleted
 				if self._past[-1][0] == rev:
-					self._keys.difference_update(map(get0, self._past[:-1]))
+					to_delete = set(map(get0, self._past[:-1]))
+					deleted.update(to_delete)
+					self._keys.difference_update(to_delete)
 					self._past = [self._past[-1]]
 				else:
-					self._keys.difference_update(map(get0, self._past))
+					to_delete = set(map(get0, self._past))
+					deleted.update(to_delete)
+					self._keys.difference_update(to_delete)
 					self._past = []
 			else:
 				raise ValueError("Need direction 'forward' or 'backward'")
+		return deleted
 
 	def keys(self) -> WindowDictKeysView:
 		return WindowDictKeysView(self)
