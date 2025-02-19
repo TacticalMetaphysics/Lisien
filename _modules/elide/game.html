@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.game &#8212; Lisien 0.18.0 documentation</title>
+    <title>elide.game &#8212; Lisien 0.18.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../../_static/documentation_options.js?v=29ae757a"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -50,23 +50,23 @@
 <span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
 
 <span class="kn">from</span> <span class="nn">kivy.app</span> <span class="kn">import</span> <span class="n">App</span>
-<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">triggered</span>
+<span class="kn">from</span> <span class="nn">kivy.factory</span> <span class="kn">import</span> <span class="n">Factory</span>
+<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
 <span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
 	<span class="n">BooleanProperty</span><span class="p">,</span>
-	<span class="n">ObjectProperty</span><span class="p">,</span>
-	<span class="n">NumericProperty</span><span class="p">,</span>
-	<span class="n">StringProperty</span><span class="p">,</span>
 	<span class="n">DictProperty</span><span class="p">,</span>
+	<span class="n">NumericProperty</span><span class="p">,</span>
+	<span class="n">ObjectProperty</span><span class="p">,</span>
+	<span class="n">StringProperty</span><span class="p">,</span>
 <span class="p">)</span>
-
-<span class="kn">from</span> <span class="nn">kivy.factory</span> <span class="kn">import</span> <span class="n">Factory</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="kn">import</span> <span class="n">ScreenManager</span><span class="p">,</span> <span class="n">Screen</span><span class="p">,</span> <span class="n">NoTransition</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="kn">import</span> <span class="n">NoTransition</span><span class="p">,</span> <span class="n">Screen</span><span class="p">,</span> <span class="n">ScreenManager</span>
 
 <span class="kn">import</span> <span class="nn">lisien.proxy</span>
+
+<span class="kn">from</span> <span class="nn">.dialog</span> <span class="kn">import</span> <span class="n">DialogLayout</span>
 <span class="kn">from</span> <span class="nn">.graph.board</span> <span class="kn">import</span> <span class="n">GraphBoard</span><span class="p">,</span> <span class="n">GraphBoardView</span>
 <span class="kn">from</span> <span class="nn">.grid.board</span> <span class="kn">import</span> <span class="n">GridBoard</span><span class="p">,</span> <span class="n">GridBoardView</span>
-<span class="kn">from</span> <span class="nn">.dialog</span> <span class="kn">import</span> <span class="n">DialogLayout</span>
 
 <span class="n">Factory</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;GraphBoard&quot;</span><span class="p">,</span> <span class="n">GraphBoard</span><span class="p">)</span>
 <span class="n">Factory</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;GridBoard&quot;</span><span class="p">,</span> <span class="n">GridBoard</span><span class="p">)</span>

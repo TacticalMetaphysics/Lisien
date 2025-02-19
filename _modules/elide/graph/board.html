@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.graph.board &#8212; Lisien 0.18.0 documentation</title>
+    <title>elide.graph.board &#8212; Lisien 0.18.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../../../_static/documentation_options.js?v=29ae757a"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
@@ -50,38 +50,39 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">monotonic</span>
 
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
-	<span class="n">BooleanProperty</span><span class="p">,</span>
-	<span class="n">ReferenceListProperty</span><span class="p">,</span>
-	<span class="n">DictProperty</span><span class="p">,</span>
-	<span class="n">ObjectProperty</span><span class="p">,</span>
-	<span class="n">NumericProperty</span><span class="p">,</span>
-	<span class="n">ListProperty</span><span class="p">,</span>
-	<span class="n">StringProperty</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">mainthread</span><span class="p">,</span> <span class="n">triggered</span>
 <span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
 <span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
-<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">mainthread</span><span class="p">,</span> <span class="n">triggered</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">BooleanProperty</span><span class="p">,</span>
+	<span class="n">DictProperty</span><span class="p">,</span>
+	<span class="n">ListProperty</span><span class="p">,</span>
+	<span class="n">NumericProperty</span><span class="p">,</span>
+	<span class="n">ObjectProperty</span><span class="p">,</span>
+	<span class="n">ReferenceListProperty</span><span class="p">,</span>
+	<span class="n">StringProperty</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="kn">import</span> <span class="n">FloatLayout</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.image</span> <span class="kn">import</span> <span class="n">Image</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.relativelayout</span> <span class="kn">import</span> <span class="n">RelativeLayout</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="kn">import</span> <span class="n">FloatLayout</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="kn">import</span> <span class="n">Widget</span>
 <span class="kn">from</span> <span class="nn">kivy.vector</span> <span class="kn">import</span> <span class="n">Vector</span>
 
-<span class="kn">from</span> <span class="nn">elide.pawnspot</span> <span class="kn">import</span> <span class="n">TextureStackPlane</span><span class="p">,</span> <span class="n">Stack</span>
+<span class="kn">from</span> <span class="nn">elide.pawnspot</span> <span class="kn">import</span> <span class="n">Stack</span><span class="p">,</span> <span class="n">TextureStackPlane</span>
 <span class="kn">from</span> <span class="nn">lisien.util</span> <span class="kn">import</span> <span class="n">normalize_layout</span>
-<span class="kn">from</span> <span class="nn">.spot</span> <span class="kn">import</span> <span class="n">GraphSpot</span>
+
+<span class="kn">from</span> <span class="nn">..boardscatter</span> <span class="kn">import</span> <span class="n">BoardScatterPlane</span>
+<span class="kn">from</span> <span class="nn">..boardview</span> <span class="kn">import</span> <span class="n">BoardView</span>
+<span class="kn">from</span> <span class="nn">..dummy</span> <span class="kn">import</span> <span class="n">Dummy</span>
 <span class="kn">from</span> <span class="nn">.arrow</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">DEFAULT_ARROW_LABEL_KWARGS</span><span class="p">,</span>
+	<span class="n">ArrowPlane</span><span class="p">,</span>
 	<span class="n">GraphArrow</span><span class="p">,</span>
 	<span class="n">GraphArrowWidget</span><span class="p">,</span>
-	<span class="n">ArrowPlane</span><span class="p">,</span>
 	<span class="n">get_points_multi</span><span class="p">,</span>
-	<span class="n">DEFAULT_ARROW_LABEL_KWARGS</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.pawn</span> <span class="kn">import</span> <span class="n">Pawn</span>
-<span class="kn">from</span> <span class="nn">..dummy</span> <span class="kn">import</span> <span class="n">Dummy</span>
-<span class="kn">from</span> <span class="nn">..boardview</span> <span class="kn">import</span> <span class="n">BoardView</span>
-<span class="kn">from</span> <span class="nn">..boardscatter</span> <span class="kn">import</span> <span class="n">BoardScatterPlane</span>
+<span class="kn">from</span> <span class="nn">.spot</span> <span class="kn">import</span> <span class="n">GraphSpot</span>
 
 
 <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
