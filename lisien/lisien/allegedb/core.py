@@ -595,7 +595,7 @@ class ORM:
 			"""Change a delta to say that a graph was deleted or not"""
 			if val in (None, "Deleted"):
 				delta[graph] = None
-			elif graph in delta and delta[graph] is None:
+			elif graph not in delta or delta[graph] is None:
 				delta[graph] = {}
 
 		def setgraphval(
