@@ -3089,8 +3089,8 @@ class ParquetDBHolder(ConnectionHolder):
 		):
 			yield (
 				d["character"],
-				d["origin"],
-				d["destination"],
+				d["orig"],
+				d["dest"],
 				d["turn"],
 				d["tick"],
 				d["rulebook"],
