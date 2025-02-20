@@ -5,7 +5,7 @@
 * Crash fixes
 
 == 0.18.0 | 2025-02-13 ==
-* Changed name of "LiSE" to "Lisien"
+* Changed name of "LiSE" to "Lisien" -- thanks to https://webb.page for the name
 * Changed name of "ELiDE" to "Elide"
 (letters cased like normal English if that's what you're writing,
 "elide" and "lise" in Python)
