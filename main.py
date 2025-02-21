@@ -1,6 +1,6 @@
-from multiprocessing import freeze_support
-import sys
 import os
+import sys
+from multiprocessing import freeze_support
 
 wd = os.getcwd()
 sys.path.extend([wd + "/lisien", wd + "/elide"])

@@ -81,6 +81,7 @@ from .query import (
 	CombinedQueryResult,
 	ComparisonQuery,
 	CompoundQuery,
+	ParquetQueryEngine,
 	Query,
 	QueryEngine,
 	QueryResult,
@@ -88,7 +89,6 @@ from .query import (
 	QueryResultMidTurn,
 	StatusAlias,
 	_make_side_sel,
-	ParquetQueryEngine,
 )
 from .util import AbstractEngine, final_rule, normalize_layout, sort_set
 from .xcollections import (
