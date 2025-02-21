@@ -2045,7 +2045,10 @@ class ORM:
 	def _load_at(self, branch: str, turn: int, tick: int) -> None:
 		if self._time_is_loaded(branch, turn, tick):
 			return
+		gc.disable()
 		self._load(*self._read_at(branch, turn, tick))
+		gc.enable()
+		gc.collect()
 
 	def _load(
 		self,
