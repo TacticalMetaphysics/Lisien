@@ -35,6 +35,7 @@ Other comparison operators like ``>`` and ``<`` work as well.
 
 """
 
+import gc
 import operator
 import os
 import sys
@@ -5074,6 +5075,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			self._new_keyframe_extensions()
 
 		assert self.echo("flushed") == "flushed"
+		gc.collect()
 
 	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
 		unpack = self.unpack
