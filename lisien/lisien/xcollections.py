@@ -247,7 +247,10 @@ class FunctionStore(Signal):
 		self._ast = parse(self._module.__loader__.get_data(self._filename))
 		self._ast_idx = {}
 		for i, node in enumerate(self._ast.body):
-			self._ast_idx[node.name] = i
+			if hasattr(node, "name"):
+				self._ast_idx[node.name] = i
+			elif hasattr(node, "__name__"):
+				self._ast_idx[node.__name__] = i
 		self.send(self, attr=None, val=None)
 
 	def iterplain(self):
