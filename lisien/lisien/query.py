@@ -42,11 +42,13 @@ from collections import defaultdict
 from abc import abstractmethod
 from collections.abc import MutableMapping, Sequence, Set
 from operator import gt, lt, eq, ne, le, ge
-from functools import partialmethod
-from itertools import chain
+from functools import partialmethod, partial, cached_property
+import inspect
+from itertools import chain, starmap
 from time import monotonic
 from queue import Queue
 from threading import Thread, Lock, RLock
+from types import MethodType
 from typing import Any, List, Callable, Tuple, Iterator, Optional
 
 import pyarrow as pa
@@ -4692,6 +4694,55 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 		return ret
 
 
+class Batch(list):
+	# Set ``silent = False`` if it hangs when called.
+	# Better for performance if ``silent = True``.
+
+	silent = True
+
+	def __init__(
+		self,
+		qe: "AbstractLisienQueryEngine",
+		table: str,
+		serialize_record: callable,
+	):
+		super().__init__()
+		self._qe = qe
+		self._table = table
+		self._serialize_record = serialize_record
+		self._argspec = inspect.getfullargspec(serialize_record)
+
+	def __call__(self):
+		if not self:
+			return 0
+		if self.silent:
+			meth = self._qe.call
+		else:
+			meth = self._qe.call_silent
+		meth(
+			"insert",
+			self._table,
+			[
+				dict(zip(self._argspec[0][1:], rec))
+				for rec in starmap(self._serialize_record, self)
+			],
+		)
+		n = len(self)
+		self.clear()
+		return n
+
+
+def batch(table: str, serialize_record: callable = None):
+	if serialize_record is None:
+		return partial(batch, table)
+
+	@cached_property
+	def the_batch(self):
+		return Batch(self, table, MethodType(serialize_record, self))
+
+	return the_batch
+
+
 class ParquetQueryEngine(AbstractLisienQueryEngine):
 	holder_cls = ParquetDBHolder
 
@@ -4702,20 +4753,6 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self._records = 0
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
-		self._char_rules_handled = []
-		self._unit_rules_handled = []
-		self._char_thing_rules_handled = []
-		self._char_place_rules_handled = []
-		self._char_portal_rules_handled = []
-		self._node_rules_handled = []
-		self._portal_rules_handled = []
-		self._unitness = []
-		self._location = []
-		self._universals2set = []
-		self._noderb2set = []
-		self._portrb2set = []
-		self._new_keyframes = []
-		self._new_keyframe_extensions = []
 		self._new_keyframe_times = set()
 
 		if pack is None:
@@ -4732,18 +4769,6 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self.pack = pack
 		self.unpack = unpack
 		self._branches = {}
-		self._nodevals2set = []
-		self._edgevals2set = []
-		self._graphvals2set = []
-		self._nodes2set = []
-		self._edges2set = []
-		self._char_rules_handled = []
-		self._unit_rules_handled = []
-		self._char_thing_rules_handled = []
-		self._char_place_rules_handled = []
-		self._char_portal_rules_handled = []
-		self._node_rules_handled = []
-		self._portal_rules_handled = []
 		self._btts = set()
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
@@ -4967,221 +4992,19 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def flush(self):
 		with self._holder.lock:
-			pack = self.pack
-			records = 0
-			if self._universals2set:
-				records += len(self._universals2set)
-				self.call_silent(
-					"insert",
-					"universals",
-					[
-						dict(
-							key=pack(key),
-							branch=branch,
-							turn=turn,
-							tick=tick,
-							value=pack(value),
-						)
-						for (
-							key,
-							branch,
-							turn,
-							tick,
-							value,
-						) in self._universals2set
-					],
+			records = sum(
+				(
+					self._universals2set(),
+					self._noderb2set(),
+					self._portrb2set(),
+					self._graphvals2set(),
+					self._nodes2set(),
+					self._nodevals2set(),
+					self._edges2set(),
+					self._edgevals2set(),
 				)
-				self._universals2set = []
-			if self._noderb2set:
-				records += len(self._noderb2set)
-				self.call_silent(
-					"insert",
-					"node_rulebook",
-					[
-						dict(
-							character=pack(character),
-							node=pack(node),
-							branch=branch,
-							turn=turn,
-							tick=tick,
-							rulebook=pack(rulebook),
-						)
-						for (
-							character,
-							node,
-							branch,
-							turn,
-							tick,
-							rulebook,
-						) in self._noderb2set
-					],
-				)
-				self._noderb2set = []
-			if self._portrb2set:
-				records += len(self._portrb2set)
-				self.call_silent(
-					"insert",
-					"portal_rulebook",
-					[
-						dict(
-							character=pack(character),
-							orig=pack(orig),
-							dest=pack(dest),
-							branch=branch,
-							turn=turn,
-							tick=tick,
-							rulebook=pack(rulebook),
-						)
-						for (
-							character,
-							orig,
-							dest,
-							branch,
-							turn,
-							tick,
-							rulebook,
-						) in self._portrb2set
-					],
-				)
-				self._portrb2set = []
-			if self._graphvals2set:
-				records += len(self._graphvals2set)
-				self.call_silent(
-					"insert",
-					"graph_val",
-					[
-						{
-							"graph": pack(graph),
-							"key": pack(key),
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"value": pack(value),
-						}
-						for (
-							graph,
-							key,
-							branch,
-							turn,
-							tick,
-							value,
-						) in self._graphvals2set
-					],
-				)
-				self._graphvals2set = []
-			if self._nodes2set:
-				records += len(self._nodes2set)
-				self.call_silent(
-					"insert",
-					"nodes",
-					[
-						{
-							"graph": graph,
-							"node": node,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"extant": bool(extant),
-						}
-						for (
-							graph,
-							node,
-							branch,
-							turn,
-							tick,
-							extant,
-						) in self._nodes2set
-					],
-				)
-				self._nodes2set = []
-			if self._nodevals2set:
-				records += len(self._nodevals2set)
-				self.call_silent(
-					"insert",
-					"node_val",
-					[
-						{
-							"graph": pack(graph),
-							"node": pack(node),
-							"key": pack(key),
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"value": pack(value),
-						}
-						for (
-							graph,
-							node,
-							key,
-							branch,
-							turn,
-							tick,
-							value,
-						) in self._nodevals2set
-					],
-				)
-
-				self._nodevals2set = []
-			if self._edges2set:
-				records += len(self._edges2set)
-				self.call_silent(
-					"insert",
-					"edges",
-					[
-						{
-							"graph": pack(graph),
-							"orig": pack(orig),
-							"dest": pack(dest),
-							"idx": 0,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"extant": bool(extant),
-						}
-						for (
-							graph,
-							orig,
-							dest,
-							branch,
-							turn,
-							tick,
-							extant,
-						) in self._edges2set
-					],
-				)
-				self._edges2set = []
-			if self._edgevals2set:
-				records += len(self._edgevals2set)
-				self.call_silent(
-					"insert",
-					"edge_val",
-					[
-						{
-							"graph": pack(graph),
-							"orig": pack(orig),
-							"dest": pack(dest),
-							"idx": 0,
-							"key": pack(key),
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"value": pack(value),
-						}
-						for (
-							graph,
-							orig,
-							dest,
-							key,
-							branch,
-							turn,
-							tick,
-							value,
-						) in self._edgevals2set
-					],
-				)
-				self._edgevals2set = []
+			)
 			if self._unitness:
-				records += len(self._unitness)
 				self.call_silent(
 					"del_units_after",
 					[
@@ -5197,33 +5020,8 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 						) in self._unitness
 					],
 				)
-				self.call_silent(
-					"insert",
-					"units",
-					[
-						{
-							"character_graph": character,
-							"unit_graph": graph,
-							"node": node,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"is_unit": isunit,
-						}
-						for (
-							character,
-							graph,
-							node,
-							branch,
-							turn,
-							tick,
-							isunit,
-						) in self._unitness
-					],
-				)
-				self._unitness = []
+				records += self._unitness()
 			if self._location:
-				records += len(self._location)
 				self.call_silent(
 					"del_things_after",
 					[
@@ -5238,223 +5036,14 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 						) in self._location
 					],
 				)
-				self.call_silent(
-					"insert",
-					"things",
-					[
-						{
-							"character": character,
-							"thing": thing,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"location": loc,
-						}
-						for (
-							character,
-							thing,
-							branch,
-							turn,
-							tick,
-							loc,
-						) in self._location
-					],
-				)
-
-				self._location = []
-			if self._char_rules_handled:
-				self.call_silent(
-					"insert",
-					"character_rules_handled",
-					[
-						dict(
-							character=character,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._char_rules_handled
-					],
-				)
-
-				self._char_rules_handled = []
-			if self._unit_rules_handled:
-				self.call_silent(
-					"insert",
-					"unit_rules_handled",
-					[
-						dict(
-							character=character,
-							graph=graph,
-							unit=unit,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							graph,
-							unit,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._unit_rules_handled
-					],
-				)
-
-				self._unit_rules_handled = []
-			if self._char_thing_rules_handled:
-				self.call_silent(
-					"insert",
-					"character_thing_rules_handled",
-					[
-						dict(
-							character=character,
-							thing=thing,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							thing,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._char_thing_rules_handled
-					],
-				)
-
-				self._char_thing_rules_handled = []
-			if self._char_place_rules_handled:
-				self.call_silent(
-					"insert",
-					"character_place_rules_handled",
-					[
-						dict(
-							character=character,
-							place=place,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							place,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._char_place_rules_handled
-					],
-				)
-
-				self._char_place_rules_handled = []
-			if self._char_portal_rules_handled:
-				self.call_silent(
-					"insert",
-					"character_portal_rules_handled",
-					[
-						dict(
-							character=character,
-							orig=orig,
-							dest=dest,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							orig,
-							dest,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._char_portal_rules_handled
-					],
-				)
-
-				self._char_portal_rules_handled = []
-			if self._node_rules_handled:
-				self.call_silent(
-					"insert",
-					"node_rules_handled",
-					[
-						dict(
-							character=character,
-							node=node,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							node,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._node_rules_handled
-					],
-				)
-
-				self._node_rules_handled = []
-			if self._portal_rules_handled:
-				self.call_silent(
-					"insert",
-					"portal_rules_handled",
-					[
-						dict(
-							character=character,
-							orig=orig,
-							dest=dest,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							orig,
-							dest,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._portal_rules_handled
-					],
-				)
-
-				self._portal_rules_handled = []
+				records += self._location()
+			self._char_rules_handled()
+			self._unit_rules_handled()
+			self._char_thing_rules_handled()
+			self._char_place_rules_handled()
+			self._char_portal_rules_handled()
+			self._node_rules_handled()
+			self._portal_rules_handled()
 			override = self.kf_interval_override()
 			if override is False or (
 				self.keyframe_interval is not None
@@ -5481,56 +5070,8 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 					],
 				)
 				self._new_keyframe_times = set()
-			if self._new_keyframes:
-				self.call_silent(
-					"insert",
-					"keyframes_graphs",
-					[
-						dict(
-							graph=pack(graph),
-							branch=branch,
-							turn=turn,
-							tick=tick,
-							nodes=pack(nodes),
-							edges=pack(edges),
-							graph_val=pack(graph_val),
-						)
-						for (
-							graph,
-							branch,
-							turn,
-							tick,
-							nodes,
-							edges,
-							graph_val,
-						) in self._new_keyframes
-					],
-				)
-
-				self._new_keyframes = []
-			if self._new_keyframe_extensions:
-				self.call_silent(
-					"insert",
-					"keyframe_extensions",
-					[
-						dict(
-							branch=branch,
-							turn=turn,
-							tick=tick,
-							universal=pack(universal),
-							rule=pack(rule),
-							rulebook=pack(rulebook),
-						)
-						for (
-							branch,
-							turn,
-							tick,
-							universal,
-							rule,
-							rulebook,
-						) in self._new_keyframe_extensions
-					],
-				)
+			self._new_keyframes()
+			self._new_keyframe_extensions()
 
 		assert self.echo("flushed") == "flushed"
 
@@ -5848,6 +5389,13 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				d["is_unit"],
 			)
 
+	@batch("universals")
+	def _universals2set(
+		self, key: Key, branch: str, turn: int, tick: int, val: Any
+	):
+		pack = self.pack
+		return pack(key), branch, turn, tick, pack(val)
+
 	def universal_set(
 		self, key: Key, branch: str, turn: int, tick: int, val: Any
 	):
@@ -6035,6 +5583,19 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	def rulebooks(self) -> Iterator[Key]:
 		return map(self.pack, self.call("rulebooks"))
 
+	@batch("node_rulebook")
+	def _noderb2set(
+		self,
+		character: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rulebook: Key,
+	):
+		pack = self.pack
+		return pack(character), pack(node), branch, turn, tick, pack(rulebook)
+
 	def set_node_rulebook(
 		self,
 		character: Key,
@@ -6046,6 +5607,28 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	):
 		self._noderb2set.append(
 			(character, node, branch, turn, tick, rulebook)
+		)
+
+	@batch("portal_rulebook")
+	def _portrb2set(
+		self,
+		character: Key,
+		orig: Key,
+		dest: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		rulebook: Key,
+	):
+		pack = self.pack
+		return (
+			pack(character),
+			pack(orig),
+			pack(dest),
+			branch,
+			turn,
+			tick,
+			pack(rulebook),
 		)
 
 	def set_portal_rulebook(
@@ -6062,7 +5645,8 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			(character, orig, dest, branch, turn, tick, rulebook)
 		)
 
-	def handled_character_rule(
+	@batch("character_rules_handled")
+	def _char_rules_handled(
 		self,
 		character: Key,
 		rulebook: Key,
@@ -6072,8 +5656,43 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		tick: int,
 	):
 		pack = self.pack
+		return pack(character), pack(rulebook), rule, branch, turn, tick
+
+	def handled_character_rule(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
 		self._char_rules_handled.append(
-			(pack(character), pack(rulebook), rule, branch, turn, tick)
+			(character, rulebook, rule, branch, turn, tick)
+		)
+
+	@batch("unit_rules_handled")
+	def _unit_rules_handled(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		graph: Key,
+		unit: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pack = self.pack
+		return (
+			pack(character),
+			pack(graph),
+			pack(unit),
+			pack(rulebook),
+			rule,
+			branch,
+			turn,
+			tick,
 		)
 
 	def handled_unit_rule(
@@ -6087,18 +5706,39 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		turn: int,
 		tick: int,
 	):
-		pack = self.pack
 		self._unit_rules_handled.append(
 			(
-				pack(character),
-				pack(graph),
-				pack(unit),
-				pack(rulebook),
+				character,
+				graph,
+				unit,
+				rulebook,
 				rule,
 				branch,
 				turn,
 				tick,
 			)
+		)
+
+	@batch("character_thing_rules_handled")
+	def _char_thing_rules_handled(
+		self,
+		character: Key,
+		thing: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pack = self.pack
+		return (
+			pack(character),
+			pack(thing),
+			pack(rulebook),
+			rule,
+			branch,
+			turn,
+			tick,
 		)
 
 	def handled_character_thing_rule(
@@ -6111,17 +5751,38 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		turn: int,
 		tick: int,
 	):
-		pack = self.pack
 		self._char_thing_rules_handled.append(
 			(
-				pack(character),
-				pack(thing),
-				pack(rulebook),
+				character,
+				thing,
+				rulebook,
 				rule,
 				branch,
 				turn,
 				tick,
 			)
+		)
+
+	@batch("character_place_rules_handled")
+	def _char_place_rules_handled(
+		self,
+		character: Key,
+		place: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pack = self.pack
+		return (
+			pack(character),
+			pack(place),
+			pack(rulebook),
+			rule,
+			branch,
+			turn,
+			tick,
 		)
 
 	def handled_character_place_rule(
@@ -6134,17 +5795,40 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		turn: int,
 		tick: int,
 	):
-		pack = self.pack
 		self._char_place_rules_handled.append(
 			(
-				pack(character),
-				pack(place),
-				pack(rulebook),
+				character,
+				place,
+				rulebook,
 				rule,
 				branch,
 				turn,
 				tick,
 			)
+		)
+
+	@batch("character_portal_rules_handled")
+	def _char_portal_rules_handled(
+		self,
+		character: Key,
+		rulebook: Key,
+		rule: str,
+		orig: Key,
+		dest: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pack = self.pack
+		return (
+			pack(character),
+			pack(orig),
+			pack(dest),
+			pack(rulebook),
+			rule,
+			branch,
+			turn,
+			tick,
 		)
 
 	def handled_character_portal_rule(
@@ -6158,18 +5842,30 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		turn: int,
 		tick: int,
 	):
-		pack = self.pack
 		self._char_portal_rules_handled.append(
-			(
-				pack(character),
-				pack(orig),
-				pack(dest),
-				pack(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
-			)
+			(character, orig, dest, rulebook, rule, branch, turn, tick)
+		)
+
+	@batch("node_rules_handled")
+	def _node_rules_handled(
+		self,
+		character: Key,
+		node: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pack = self.pack
+		return (
+			pack(character),
+			pack(node),
+			pack(rulebook),
+			rule,
+			branch,
+			turn,
+			tick,
 		)
 
 	def handled_node_rule(
@@ -6182,17 +5878,32 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		turn: int,
 		tick: int,
 	):
-		pack = self.pack
 		self._node_rules_handled.append(
-			(
-				pack(character),
-				pack(node),
-				pack(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
-			)
+			(character, node, rulebook, rule, branch, turn, tick)
+		)
+
+	@batch("portal_rules_handled")
+	def _portal_rules_handled(
+		self,
+		character: Key,
+		orig: Key,
+		dest: Key,
+		rulebook: Key,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+	):
+		pack = self.pack
+		return (
+			pack(character),
+			pack(orig),
+			pack(dest),
+			pack(rulebook),
+			rule,
+			branch,
+			turn,
+			tick,
 		)
 
 	def handled_portal_rule(
@@ -6206,19 +5917,22 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		turn: int,
 		tick: int,
 	):
-		pack = self.pack
 		self._portal_rules_handled.append(
-			(
-				pack(character),
-				pack(orig),
-				pack(dest),
-				pack(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
-			)
+			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
+
+	@batch("things")
+	def _location(
+		self,
+		character: Key,
+		thing: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		loc: Key,
+	):
+		pack = self.pack
+		return (pack(character), pack(thing), branch, turn, tick, pack(loc))
 
 	def set_thing_loc(
 		self,
@@ -6229,9 +5943,28 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		tick: int,
 		loc: Key,
 	):
+		self._location.append((character, thing, branch, turn, tick, loc))
+
+	@batch("units")
+	def _unitness(
+		self,
+		character: Key,
+		graph: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		is_unit: bool,
+	):
 		pack = self.pack
-		self._location.append(
-			(pack(character), pack(thing), branch, turn, tick, pack(loc))
+		return (
+			pack(character),
+			pack(graph),
+			pack(node),
+			branch,
+			turn,
+			tick,
+			is_unit,
 		)
 
 	def unit_set(
@@ -6244,17 +5977,8 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		tick: int,
 		is_unit: bool,
 	):
-		pack = self.pack
 		self._unitness.append(
-			(
-				pack(character),
-				pack(graph),
-				pack(node),
-				branch,
-				turn,
-				tick,
-				is_unit,
-			)
+			(character, graph, node, branch, turn, tick, is_unit)
 		)
 
 	def rulebook_set(
@@ -6287,13 +6011,13 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	):
 		self.call("insert1", "turns_completed", dict(branch=branch, turn=turn))
 		if discard_rules:
-			self._char_rules_handled = []
-			self._unit_rules_handled = []
-			self._char_thing_rules_handled = []
-			self._char_place_rules_handled = []
-			self._char_portal_rules_handled = []
-			self._node_rules_handled = []
-			self._portal_rules_handled = []
+			self._char_rules_handled.clear()
+			self._unit_rules_handled.clear()
+			self._char_thing_rules_handled.clear()
+			self._char_place_rules_handled.clear()
+			self._char_portal_rules_handled.clear()
+			self._node_rules_handled.clear()
+			self._portal_rules_handled.clear()
 
 	def new_turn(
 		self, branch: str, turn: int, end_tick: int = 0, plan_end_tick: int = 0
@@ -6329,28 +6053,6 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				unpack(d["value"]),
 			)
 
-	def _flush_graph_val(self):
-		if not self._graphvals2set:
-			return
-		todo = self._graphvals2set
-		self._graphvals2set = []
-		pack = self.pack
-		self.call(
-			"insert",
-			"graph_val",
-			[
-				{
-					"graph": pack(graph),
-					"key": pack(key),
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"value": pack(value),
-				}
-				for (graph, key, branch, turn, tick, value) in todo
-			],
-		)
-
 	def load_graph_val(
 		self,
 		graph: Key,
@@ -6362,7 +6064,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	):
 		if (turn_to is None) ^ (tick_to is None):
 			raise ValueError("I need both or neither of turn_to and tick_to")
-		self._flush_graph_val()
+		self._graphvals2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
@@ -6386,6 +6088,13 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		for key, turn, tick, value in it:
 			yield graph, unpack(key), branch, turn, tick, unpack(value)
 
+	@batch("graph_val")
+	def _graphvals2set(
+		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
+	):
+		pack = self.pack
+		return pack(graph), pack(key), branch, turn, tick, pack(val)
+
 	def graph_val_set(
 		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
 	):
@@ -6407,7 +6116,8 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	characters = characters_dump = graphs_dump
 
-	def exist_node(
+	@batch("nodes")
+	def _nodes2set(
 		self,
 		graph: Key,
 		node: Key,
@@ -6417,9 +6127,18 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		extant: bool,
 	):
 		pack = self.pack
-		self._nodes2set.append(
-			(pack(graph), pack(node), branch, turn, tick, extant)
-		)
+		return pack(graph), pack(node), branch, turn, tick, extant
+
+	def exist_node(
+		self,
+		graph: Key,
+		node: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		extant: bool,
+	):
+		self._nodes2set.append((graph, node, branch, turn, tick, extant))
 
 	def nodes_del_time(self, branch: str, turn: int, tick: int):
 		self.call("nodes_del_time", branch, turn, tick)
@@ -6436,28 +6155,6 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				d["extant"],
 			)
 
-	def _flush_nodes(self):
-		if not self._nodes2set:
-			return
-		pack = self.pack
-		nodes2set = self._nodes2set
-		self._nodes2set = []
-		self.call(
-			"insert",
-			"nodes",
-			[
-				{
-					"graph": pack(graph),
-					"node": pack(node),
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"extant": bool(extant),
-				}
-				for (graph, node, branch, turn, tick, extant) in nodes2set
-			],
-		)
-
 	def load_nodes(
 		self,
 		graph: str,
@@ -6469,7 +6166,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	):
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._flush_nodes()
+		self._nodes2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
@@ -6506,37 +6203,6 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				unpack(d["value"]),
 			)
 
-	def _flush_node_val(self):
-		if not self._nodevals2set:
-			return
-		nodevals2set = self._nodevals2set
-		self._nodevals2set = []
-		pack = self.pack
-		self.call(
-			"insert",
-			"node_val",
-			[
-				{
-					"graph": pack(graph),
-					"node": pack(node),
-					"key": pack(key),
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"value": pack(value),
-				}
-				for (
-					graph,
-					node,
-					key,
-					branch,
-					turn,
-					tick,
-					value,
-				) in nodevals2set
-			],
-		)
-
 	def load_node_val(
 		self,
 		graph: Key,
@@ -6548,7 +6214,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	) -> Iterator[NodeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._flush_node_val()
+		self._nodevals2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
@@ -6579,6 +6245,28 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				tick,
 				unpack(value),
 			)
+
+	@batch("node_val")
+	def _nodevals2set(
+		self,
+		graph: Key,
+		node: Key,
+		key: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		value: Any,
+	):
+		pack = self.pack
+		return (
+			pack(graph),
+			pack(node),
+			pack(key),
+			branch,
+			turn,
+			tick,
+			pack(value),
+		)
 
 	def node_val_set(
 		self,
@@ -6611,30 +6299,6 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				d["extant"],
 			)
 
-	def _flush_edges(self):
-		if not self._edges2set:
-			return
-		todo = self._edges2set
-		self._edges2set = []
-		pack = self.pack
-		self.call(
-			"insert",
-			"edges",
-			[
-				{
-					"graph": pack(graph),
-					"orig": pack(orig),
-					"dest": pack(dest),
-					"idx": 0,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"extant": bool(extant),
-				}
-				for (graph, orig, dest, branch, turn, tick, extant) in todo
-			],
-		)
-
 	def load_edges(
 		self,
 		graph: Key,
@@ -6646,7 +6310,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	) -> Iterator[EdgeRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise ValueError("I need both or neither of turn_to and tick_to")
-		self._flush_edges()
+		self._edges2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
@@ -6679,6 +6343,30 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				extant,
 			)
 
+	@batch("edges")
+	def _edges2set(
+		self,
+		graph: Key,
+		orig: Key,
+		dest: Key,
+		idx: int,
+		branch: str,
+		turn: int,
+		tick: int,
+		extant: bool,
+	):
+		pack = self.pack
+		return (
+			pack(graph),
+			pack(orig),
+			pack(dest),
+			idx,
+			branch,
+			turn,
+			tick,
+			bool(extant),
+		)
+
 	def exist_edge(
 		self,
 		graph: Key,
@@ -6690,7 +6378,9 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		tick: int,
 		extant: bool,
 	):
-		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
+		self._edges2set.append(
+			(graph, orig, dest, idx, branch, turn, tick, extant)
+		)
 
 	def edges_del_time(self, branch: str, turn: int, tick: int):
 		self.call("edges_del_time", branch, turn, tick)
@@ -6709,31 +6399,6 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				unpack(d["value"]),
 			)
 
-	def _flush_edge_val(self):
-		if not self._edgevals2set:
-			return
-		todo = self._edgevals2set
-		self._edgevals2set = []
-		pack = self.pack
-		self.call(
-			"insert",
-			"edge_val",
-			[
-				{
-					"graph": pack(graph),
-					"orig": pack(orig),
-					"dest": pack(dest),
-					"idx": 0,
-					"key": pack(key),
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"value": pack(value),
-				}
-				for (graph, orig, dest, key, branch, turn, tick, value) in todo
-			],
-		)
-
 	def load_edge_val(
 		self,
 		graph: Key,
@@ -6745,7 +6410,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	) -> Iterator[EdgeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._flush_edge_val()
+		self._edgevals2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
@@ -6768,7 +6433,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			)
 		for orig, dest, idx, key, turn, tick, value in it:
 			yield (
-				graph,
+				unpack(graph),
 				unpack(orig),
 				unpack(dest),
 				idx,
@@ -6778,6 +6443,32 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				tick,
 				unpack(value),
 			)
+
+	@batch("edge_val")
+	def _edgevals2set(
+		self,
+		graph: Key,
+		orig: Key,
+		dest: Key,
+		idx: int,
+		key: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		value: Any,
+	):
+		pack = self.pack
+		return (
+			pack(graph),
+			pack(orig),
+			pack(dest),
+			idx,
+			pack(key),
+			branch,
+			turn,
+			tick,
+			pack(value),
+		)
 
 	def edge_val_set(
 		self,
@@ -6792,7 +6483,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		value: Any,
 	):
 		self._edgevals2set.append(
-			(graph, orig, dest, key, branch, turn, tick, value)
+			(graph, orig, dest, idx, key, branch, turn, tick, value)
 		)
 
 	def edge_val_del_time(self, branch: str, turn: int, tick: int):
@@ -6840,15 +6531,37 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		for d in self.call("dump", "plan_ticks"):
 			yield d["plan_id"], d["turn"], d["tick"]
 
+	@batch("keyframes_graphs")
+	def _new_keyframes(
+		self,
+		graph: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		nodes: dict,
+		edges: dict,
+		graph_val: dict,
+	):
+		pack = self.pack
+		return (
+			pack(graph),
+			branch,
+			turn,
+			tick,
+			pack(nodes),
+			pack(edges),
+			pack(graph_val),
+		)
+
 	def keyframe_graph_insert(
 		self,
 		graph: Key,
 		branch: str,
-		turn: str,
-		tick: str,
-		nodes: list,
-		edges: list,
-		graph_val: list,
+		turn: int,
+		tick: int,
+		nodes: dict,
+		edges: dict,
+		graph_val: dict,
 	):
 		self._new_keyframes.append(
 			(graph, branch, turn, tick, nodes, edges, graph_val)
@@ -6857,6 +6570,19 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def keyframe_insert(self, branch: str, turn: int, tick: int) -> None:
 		self._new_keyframe_times.add((branch, turn, tick))
+
+	@batch("keyframe_extensions")
+	def _new_keyframe_extensions(
+		self,
+		branch: str,
+		turn: int,
+		tick: int,
+		universal: dict,
+		rule: dict,
+		rulebook: dict,
+	):
+		pack = self.pack
+		return branch, turn, tick, pack(universal), pack(rule), pack(rulebook)
 
 	def keyframe_extension_insert(
 		self,
