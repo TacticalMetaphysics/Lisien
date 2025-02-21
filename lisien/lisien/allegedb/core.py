@@ -2225,6 +2225,7 @@ class ORM:
 			for cache in caches:
 				cache.remove_branch(branch)
 			del loaded[branch]
+		gc.collect()
 
 	def _time_is_loaded(
 		self, branch: str, turn: int = None, tick: int = None
