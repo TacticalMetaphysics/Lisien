@@ -36,49 +36,48 @@ Other comparison operators like ``>`` and ``<`` work as well.
 """
 
 import gc
+import inspect
 import operator
 import os
 import sys
-from collections import defaultdict
 from abc import abstractmethod
+from collections import defaultdict
 from collections.abc import MutableMapping, Sequence, Set
-from operator import gt, lt, eq, ne, le, ge
-from functools import partialmethod, partial, cached_property
-import inspect
+from functools import cached_property, partial, partialmethod
 from itertools import chain, starmap
-from time import monotonic
+from operator import eq, ge, gt, le, lt, ne
 from queue import Queue
-from threading import Thread, Lock, RLock
+from threading import Lock, RLock, Thread
+from time import monotonic
 from types import MethodType
-from typing import Any, List, Callable, Tuple, Iterator, Optional
+from typing import Any, Callable, Iterator, List, Optional, Tuple
 
+import msgpack
 import pyarrow as pa
-from pyarrow.lib import ArrowInvalid
 import pyarrow.compute as pc
 from parquetdb import ParquetDB
-from sqlalchemy import select, and_, Table
+from pyarrow.lib import ArrowInvalid
+from sqlalchemy import Table, and_, select
 from sqlalchemy.sql.functions import func
-import msgpack
 
 import lisien
 
-from .alchemy import meta, gather_sql
+from .alchemy import gather_sql, meta
 from .allegedb.query import (
+	AbstractQueryEngine,
 	ConnectionHolder,
-	GlobalKeyValueStore,
-	QueryEngine,
-	Key,
-	EdgeValRowType,
 	EdgeRowType,
-	NodeValRowType,
-	NodeRowType,
+	EdgeValRowType,
+	GlobalKeyValueStore,
 	GraphValRowType,
 	IntegrityError,
+	Key,
+	NodeRowType,
+	NodeValRowType,
+	QueryEngine,
 )
-from .allegedb.query import AbstractQueryEngine
 from .exc import OperationalError
 from .util import EntityStatAccessor
-
 
 NONE = msgpack.packb(None)
 

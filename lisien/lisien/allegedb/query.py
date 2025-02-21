@@ -18,25 +18,25 @@ doesn't pollute the other files so much.
 
 """
 
-from abc import abstractmethod
-from typing import (
-	Tuple,
-	Any,
-	Iterator,
-	Hashable,
-	List,
-	Union,
-	FrozenSet,
-	Optional,
-)
 import os
+from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import MutableMapping
 from queue import Queue
 from threading import Lock, Thread
 from time import monotonic
+from typing import (
+	Any,
+	FrozenSet,
+	Hashable,
+	Iterator,
+	List,
+	Optional,
+	Tuple,
+	Union,
+)
 
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
 from sqlalchemy.pool import NullPool

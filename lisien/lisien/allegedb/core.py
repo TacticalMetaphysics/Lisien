@@ -17,7 +17,7 @@
 import gc
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
-from itertools import pairwise, chain
+from itertools import chain, pairwise
 from threading import RLock
 from typing import (
 	Any,
@@ -36,14 +36,14 @@ from blinker import Signal
 
 from ..util import Key
 from .cache import (
-	KeyframeError,
 	HistoricKeyError,
+	KeyframeError,
 	PickyDefaultDict,
 	TurnEndDict,
 	TurnEndPlanDict,
 )
 from .graph import DiGraph, Edge, GraphsMapping, Node
-from .query import QueryEngine, TimeError, Key
+from .query import Key, QueryEngine, TimeError
 from .window import WindowDict, update_backward_window, update_window
 
 """Type hint for things lisien can use as keys
