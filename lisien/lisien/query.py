@@ -1490,7 +1490,11 @@ class ParquetDBHolder(ConnectionHolder):
 			db.delete(ids)
 
 	def dump(self, table: str) -> list:
-		return self._get_db(table).read().to_pylist()
+		return [
+			d
+			for d in self._get_db(table).read().to_pylist()
+			if d.keys() - {"id"}
+		]
 
 	def rowcount(self, table: str) -> int:
 		return self._get_db(table).read().rowcount
