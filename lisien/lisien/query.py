@@ -5501,6 +5501,10 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		big: bool,
 	):
 		with self._holder.lock:
+			try:
+				self.call("insert1", "rules", {"rule": rule})
+			except IndexError:
+				pass
 			self.set_rule_triggers(rule, branch, turn, tick, triggers)
 			self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
 			self.set_rule_actions(rule, branch, turn, tick, actions)
