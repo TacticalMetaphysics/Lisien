@@ -1106,7 +1106,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._triggers_cache,
 			self._prereqs_cache,
 			self._actions_cache,
-			# rules handled caches not here because they don't really unload
+			self._character_rules_handled_cache,
+			self._unit_rules_handled_cache,
+			self._character_thing_rules_handled_cache,
+			self._character_place_rules_handled_cache,
+			self._character_portal_rules_handled_cache,
+			self._node_rules_handled_cache,
+			self._portal_rules_handled_cache,
 			self._unitness_cache,
 		]
 

@@ -15,8 +15,10 @@
 from collections import OrderedDict
 from functools import partial
 from operator import itemgetter
+from threading import RLock
 from typing import Tuple
 
+from .allegedb import PickyDefaultDict
 from .allegedb.cache import (
 	Cache,
 	EntitylessCache,
@@ -236,10 +238,11 @@ class UnitnessCache(Cache):
 
 class RulesHandledCache:
 	def __init__(self, engine, name: str):
+		self.lock = RLock()
 		self.engine = engine
 		self.name = name
 		self.handled = {}
-		self.handled_deep = StructuredDefaultDict(1, type=WindowDict)
+		self.handled_deep = PickyDefaultDict(SettingsTurnDict)
 
 	def get_rulebook(self, *args):
 		raise NotImplementedError
@@ -257,6 +260,40 @@ class RulesHandledCache:
 			self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
 		else:
 			self.handled_deep[branch][turn] = {tick: (entity, rulebook, rule)}
+
+	def truncate(self, branch: str, turn: int, tick: int, direction="forward"):
+		if direction not in {"forward", "backward"}:
+			raise ValueError("Illegal direction")
+		if branch not in self.handled_deep:
+			return
+
+		with self.lock:
+			turn_d = self.handled_deep[branch]
+			if turn in turn_d:
+				for t, (entity, rulebook, rule) in (
+					turn_d[turn].future(tick)
+					if direction == "forward"
+					else turn_d[turn].past(tick)
+				).items():
+					if (entity, rulebook, branch, turn) in self.handled:
+						tick_set = self.handled[entity, rulebook, branch, turn]
+						tick_set.discard(t)
+						if not tick_set:
+							del self.handled[entity, rulebook, branch, turn]
+				turn_d[turn].truncate(turn, direction)
+			to_del = (
+				turn_d.future(turn)
+				if direction == "forward"
+				else turn_d.past(turn)
+			)
+			for r in to_del.keys():
+				for t, (entity, rulebook, rule) in turn_d[r].items():
+					if (entity, rulebook, branch, r) in self.handled:
+						tick_set = self.handled[entity, rulebook, branch, r]
+						tick_set.discard(t)
+						if not tick_set:
+							del self.handled[entity, rulebook, branch, r]
+			turn_d.truncate(turn, direction)
 
 	def retrieve(self, *args):
 		return self.handled[args]
