@@ -2192,6 +2192,8 @@ class ORM:
 			for cache in caches:
 				cache.truncate(past_branch, early_turn, early_tick, "backward")
 				cache.truncate(past_branch, late_turn, late_tick, "forward")
+				if not hasattr(cache, "keyframe"):
+					continue
 				for graph, branches in cache.keyframe.items():
 					turns = branches[past_branch]
 					turns_truncated = turns.truncate(late_turn, "forward")
