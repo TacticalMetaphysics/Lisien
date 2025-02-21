@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from collections import OrderedDict
-from functools import partial
 from operator import itemgetter
 from threading import RLock
 from typing import Tuple
@@ -24,7 +23,6 @@ from .allegedb.cache import (
 	EntitylessCache,
 	KeyframeError,
 	StructuredDefaultDict,
-	WindowDict,
 )
 from .allegedb.window import SettingsTurnDict
 from .util import Key, sort_set
