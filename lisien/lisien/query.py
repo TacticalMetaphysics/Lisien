@@ -1937,7 +1937,7 @@ class ParquetDBHolder(ConnectionHolder):
 			"things", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield (
-				d["graph"],
+				d["character"],
 				d["thing"],
 				d["turn"],
 				d["tick"],
