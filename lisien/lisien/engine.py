@@ -350,9 +350,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		Default ``True``. You normally want this, but it could cause problems
 		if you're not using the rules engine.
 	:param threaded_triggers: Whether to evaluate trigger functions in threads.
-		This has performance benefits if you are using a free-threaded build of
-		Python (without a GIL). Defaults to ``True`` when there are workers
-		(see below), ``False`` otherwise.
+		Defaults to ``True`` when there are workers (see below), ``False``
+		otherwise.
 	:param workers: How many subprocesses to use as workers for
 		parallel processing. When ``None`` (the default), use as many
 		subprocesses as we have CPU cores. When ``0``, parallel processing
