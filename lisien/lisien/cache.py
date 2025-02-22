@@ -271,6 +271,14 @@ class RulesHandledCache:
 			unhandl[turn].remove(rule)
 		except ValueError:
 			pass
+		if not unhandl[turn]:
+			del unhandl[turn]
+		if not unhandl[entity][rulebook][branch]:
+			del unhandl[entity][rulebook][branch]
+		if not unhandl[entity][rulebook]:
+			del unhandl[entity][rulebook]
+		if not unhandl[entity]:
+			del unhandl[entity]
 
 	def truncate(self, branch: str, turn: int, tick: int, direction="forward"):
 		if direction not in {"forward", "backward"}:
