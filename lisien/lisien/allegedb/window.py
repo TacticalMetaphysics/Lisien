@@ -21,6 +21,8 @@ of the same key and neighboring ones repeatedly and in sequence.
 
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import (
@@ -45,8 +47,6 @@ from typing import (
 	Tuple,
 	Union,
 )
-
-from lisien.util import HistoricKeyError
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -943,3 +943,11 @@ class SettingsTurnDict(WindowDict):
 
 class EntikeySettingsTurnDict(SettingsTurnDict):
 	cls = EntikeyWindowDict
+
+
+class HistoricKeyError(KeyError):
+	"""Distinguishes deleted keys from those that were never set"""
+
+	def __init__(self, *args, deleted=False):
+		super().__init__(*args)
+		self.deleted = deleted
