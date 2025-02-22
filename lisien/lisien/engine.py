@@ -2950,15 +2950,266 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._worker_inputs[i].send_bytes(self._get_worker_kf_payload())
 		self._worker_updated_btts[i] = self._btt()
 
+	def _changed(self, charn, entity: tuple) -> bool:
+		if len(entity) == 1:
+			vbranches = self._node_val_cache.settings
+			entikey = (charn, entity[0])
+		elif len(entity) != 2:
+			raise TypeError("Unknown entity type")
+		else:
+			vbranches = self._edge_val_cache.settings
+			entikey = (
+				charn,
+				*entity,
+				0,
+			)
+		branch, turn, _ = self._btt()
+		turn -= 1
+		if turn <= self._branches[branch][1]:
+			branch = self._branches[branch][0]
+			assert branch is not None
+		if branch not in vbranches:
+			return False
+		vbranchesb = vbranches[branch]
+		if turn not in vbranchesb:
+			return False
+		return entikey in vbranchesb[turn].entikeys
+
+	def _check_triggers(
+		self, todo, prio, rulebook, rule, handled_fun, entity, neighbors=None
+	):
+		changed = self._changed
+		charn = entity.character.name
+		if neighbors is not None and not (
+			any(changed(charn, neighbor) for neighbor in neighbors)
+		):
+			return False
+		for trigger in rule.triggers:
+			if hasattr(self, "_worker_processes"):
+				res = self._call_any_subproxy(
+					"_eval_trigger", trigger.__name__, entity
+				)
+			else:
+				res = trigger(entity)
+			if res:
+				todo[prio, rulebook].append((rule, handled_fun, entity))
+				return True
+		else:
+			handled_fun(self.tick)
+			return False
+
+	def _check_prereqs(self, rule, handled_fun, entity):
+		if not entity:
+			return False
+		for prereq in rule.prereqs:
+			res = prereq(entity)
+			if not res:
+				handled_fun(self.tick)
+				return False
+		return True
+
+	def _do_actions(self, rule, handled_fun, entity):
+		if rule.big:
+			entity = entity.facade()
+		actres = []
+		for action in rule.actions:
+			res = action(entity)
+			if res:
+				actres.append(res)
+			if not entity:
+				break
+		if rule.big:
+			with self.batch():
+				entity.engine.apply()
+		handled_fun(self.tick)
+		return actres
+
+	def _get_place_neighbors(self, charn: Key, name: Key) -> Set[Key]:
+		seen: Set[Key] = set()
+		for succ in self._edges_cache.iter_successors(
+			charn, name, *self._btt()
+		):
+			seen.add(succ)
+		for pred in self._edges_cache.iter_predecessors(
+			charn, name, *self._btt()
+		):
+			seen.add(pred)
+		return seen
+
+	def _get_place_contents(self, charn: Key, name: Key) -> Set[Key]:
+		try:
+			return self._node_contents_cache.retrieve(
+				charn, name, *self._btt()
+			)
+		except KeyError:
+			return set()
+
+	def _get_place_portals(
+		self, charn: Key, name: Key
+	) -> Set[Tuple[Key, Key]]:
+		seen: Set[Tuple[Key, Key]] = set()
+		seen.update(
+			(name, dest)
+			for dest in self._edges_cache.iter_successors(
+				charn, name, *self._btt()
+			)
+		)
+		seen.update(
+			(orig, name)
+			for orig in self._edges_cache.iter_predecessors(
+				charn, name, *self._btt()
+			)
+		)
+		return seen
+
+	def _get_thing_location_tup(
+		self, charn: Key, name: Key
+	) -> Union[(), Tuple[Key, Key]]:
+		try:
+			return (self._things_cache.retrieve(charn, name, *self._btt()),)
+		except KeyError:
+			return ()
+
+	def _get_neighbors(
+		self,
+		entity: Union[place_cls, thing_cls, portal_cls],
+		neighborhood: Optional[int],
+	) -> Optional[List[Union[Tuple[Key], Tuple[Key, Key]]]]:
+		"""Get a list of neighbors within the neighborhood
+
+		Neighbors are given by a tuple containing only their name,
+		if they are Places or Things, or their origin's and destination's
+		names, if they are Portals.
+
+		"""
+		charn = entity.character.name
+		btt = self._btt()
+
+		if neighborhood is None:
+			return None
+		if hasattr(entity, "name"):
+			cache_key = (charn, entity.name, *btt)
+		else:
+			cache_key = (
+				charn,
+				entity.origin.name,
+				entity.destination.name,
+				*btt,
+			)
+		if cache_key in self._neighbors_cache:
+			return self._neighbors_cache[cache_key]
+		if hasattr(entity, "name"):
+			neighbors = [(entity.name,)]
+			while hasattr(entity, "location"):
+				entity = entity.location
+				neighbors.append((entity.name,))
+		else:
+			neighbors = [(entity.origin.name, entity.destination.name)]
+		seen = set(neighbors)
+		i = 0
+		for _ in range(neighborhood):
+			j = len(neighbors)
+			for neighbor in neighbors[i:]:
+				if len(neighbor) == 2:
+					orign, destn = neighbor
+					for placen in (orign, destn):
+						for neighbor_place in chain(
+							self._get_place_neighbors(charn, placen),
+							self._get_place_contents(charn, placen),
+							self._get_thing_location_tup(charn, placen),
+						):
+							if neighbor_place not in seen:
+								neighbors.append((neighbor_place,))
+								seen.add(neighbor_place)
+							for neighbor_thing in self._get_place_contents(
+								charn, neighbor_place
+							):
+								if neighbor_thing not in seen:
+									neighbors.append((neighbor_thing,))
+									seen.add(neighbor_thing)
+						for neighbor_portal in self._get_place_portals(
+							charn, placen
+						):
+							if neighbor_portal not in seen:
+								neighbors.append(neighbor_portal)
+								seen.add(neighbor_portal)
+				else:
+					(neighbor,) = neighbor
+					for neighbor_place in chain(
+						self._get_place_neighbors(charn, neighbor),
+						self._get_place_contents(charn, neighbor),
+						self._get_thing_location_tup(charn, neighbor),
+					):
+						if neighbor_place not in seen:
+							neighbors.append((neighbor_place,))
+							seen.add(neighbor_place)
+						for neighbor_thing in self._get_place_contents(
+							charn, neighbor_place
+						):
+							if neighbor_thing not in seen:
+								neighbors.append((neighbor_thing,))
+								seen.add(neighbor_thing)
+					for neighbor_portal in self._get_place_portals(
+						charn, neighbor
+					):
+						if neighbor_portal not in seen:
+							neighbors.append(neighbor_portal)
+							seen.add(neighbor_portal)
+			i = j
+		self._neighbors_cache[cache_key] = neighbors
+		return neighbors
+
+	def _get_effective_neighbors(self, entity, neighborhood):
+		"""Get neighbors unless that's a different set of entities since last turn
+
+		In which case return None
+
+		"""
+		if neighborhood is None:
+			return None
+
+		branch_now, turn_now, tick_now = self._btt()
+		if turn_now <= 1:
+			# everything's "created" at the start of the game,
+			# and therefore, there's been a "change" to the neighborhood
+			return None
+		with self.world_lock:
+			self._load_at(branch_now, turn_now - 1, 0)
+			self._oturn -= 1
+			self._otick = 0
+			last_turn_neighbors = self._get_neighbors(entity, neighborhood)
+			self._set_btt(branch_now, turn_now, tick_now)
+			this_turn_neighbors = self._get_neighbors(entity, neighborhood)
+		if set(last_turn_neighbors) != set(this_turn_neighbors):
+			return None
+		return this_turn_neighbors
+
+	def _get_node_mini(self, graphn: Key, noden: Key):
+		node_objs = self._node_objs
+		key = (graphn, noden)
+		if key not in node_objs:
+			node_objs[key] = self._make_node(self.character[graphn], noden)
+		return node_objs[key]
+
+	def _get_thing(self, graphn: Key, thingn: Key):
+		node_objs = self._node_objs
+		key = (graphn, thingn)
+		if key not in node_objs:
+			node_objs[key] = self.thing_cls(self.character[graphn], thingn)
+		return node_objs[key]
+
+	def _get_place(self, graphn: Key, placen: Key):
+		node_objs = self._node_objs
+		key = (graphn, placen)
+		if key not in node_objs:
+			node_objs[key] = self.place_cls(self.character[graphn], placen)
+		return node_objs[key]
+
 	def _follow_rules(self):
 		# TODO: roll back changes done by rules that raise an exception
 		# TODO: if there's a paradox while following some rule,
 		#  start a new branch, copying handled rules
 		from collections import defaultdict
-
-		thing_cls = self.thing_cls
-		place_cls = self.place_cls
-		portal_cls = self.portal_cls
 
 		branch, turn, tick = self._btt()
 		charmap = self.character
@@ -2970,82 +3221,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			submit = fake_submit
 		todo = defaultdict(list)
 
-		def changed(entity: tuple) -> bool:
-			if len(entity) == 1:
-				vbranches = self._node_val_cache.settings
-				entikey = (charn, entity[0])
-			elif len(entity) != 2:
-				raise TypeError("Unknown entity type")
-			else:
-				vbranches = self._edge_val_cache.settings
-				entikey = (
-					charn,
-					*entity,
-					0,
-				)
-			branch, turn, _ = self._btt()
-			turn -= 1
-			if turn <= self._branches[branch][1]:
-				branch = self._branches[branch][0]
-				assert branch is not None
-			if branch not in vbranches:
-				return False
-			vbranchesb = vbranches[branch]
-			if turn not in vbranchesb:
-				return False
-			return entikey in vbranchesb[turn].entikeys
-
 		if hasattr(self, "_worker_processes") and self.turn > 0:
 			self._update_all_worker_process_states()
 			# Now we can evaluate trigger functions in the worker processes,
 			# in parallel.
-
-		def check_triggers(
-			prio, rulebook, rule, handled_fun, entity, neighbors=None
-		):
-			if neighbors is not None and not (
-				any(changed(neighbor) for neighbor in neighbors)
-			):
-				return False
-			for trigger in rule.triggers:
-				if hasattr(self, "_worker_processes"):
-					res = self._call_any_subproxy(
-						"_eval_trigger", trigger.__name__, entity
-					)
-				else:
-					res = trigger(entity)
-				if res:
-					todo[prio, rulebook].append((rule, handled_fun, entity))
-					return True
-			else:
-				handled_fun(self.tick)
-				return False
-
-		def check_prereqs(rule, handled_fun, entity):
-			if not entity:
-				return False
-			for prereq in rule.prereqs:
-				res = prereq(entity)
-				if not res:
-					handled_fun(self.tick)
-					return False
-			return True
-
-		def do_actions(rule, handled_fun, entity):
-			if rule.big:
-				entity = entity.facade()
-			actres = []
-			for action in rule.actions:
-				res = action(entity)
-				if res:
-					actres.append(res)
-				if not entity:
-					break
-			if rule.big:
-				with self.batch():
-					entity.engine.apply()
-			handled_fun(self.tick)
-			return actres
 
 		truthfun = self.trigger.truth
 
@@ -3075,183 +3254,22 @@ class Engine(AbstractEngine, gORM, Executor):
 				continue
 			trig_futs.append(
 				submit(
-					check_triggers, prio, rulebook, rule, handled, entity, None
+					self._check_triggers,
+					todo,
+					prio,
+					rulebook,
+					rule,
+					handled,
+					entity,
+					None,
 				)
 			)
 
 		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
-		make_node = self._make_node
-		node_objs = self._node_objs
-
-		def get_neighbors(
-			entity: Union[place_cls, thing_cls, portal_cls],
-			neighborhood: Optional[int],
-		) -> Optional[List[Union[Tuple[Key], Tuple[Key, Key]]]]:
-			"""Get a list of neighbors within the neighborhood
-
-			Neighbors are given by a tuple containing only their name,
-			if they are Places or Things, or their origin's and destination's
-			names, if they are Portals.
-
-			"""
-			charn = entity.character.name
-			btt = self._btt()
-
-			def get_place_neighbors(name: Key) -> Set[Key]:
-				seen: Set[Key] = set()
-				for succ in self._edges_cache.iter_successors(
-					charn, name, *btt
-				):
-					seen.add(succ)
-				for pred in self._edges_cache.iter_predecessors(
-					charn, name, *btt
-				):
-					seen.add(pred)
-				return seen
-
-			def get_place_contents(name: Key) -> Set[Key]:
-				try:
-					return self._node_contents_cache.retrieve(
-						charn, name, *btt
-					)
-				except KeyError:
-					return set()
-
-			def get_place_portals(name: Key) -> Set[Tuple[Key, Key]]:
-				seen: Set[Tuple[Key, Key]] = set()
-				seen.update(
-					(name, dest)
-					for dest in self._edges_cache.iter_successors(
-						charn, name, *btt
-					)
-				)
-				seen.update(
-					(orig, name)
-					for orig in self._edges_cache.iter_predecessors(
-						charn, name, *btt
-					)
-				)
-				return seen
-
-			def get_thing_location_tup(name: Key) -> Union[(), Tuple[Key]]:
-				try:
-					return (self._things_cache.retrieve(charn, name, *btt),)
-				except KeyError:
-					return ()
-
-			if neighborhood is None:
-				return None
-			if hasattr(entity, "name"):
-				cache_key = (charn, entity.name, *btt)
-			else:
-				cache_key = (
-					charn,
-					entity.origin.name,
-					entity.destination.name,
-					*btt,
-				)
-			if cache_key in self._neighbors_cache:
-				return self._neighbors_cache[cache_key]
-			if hasattr(entity, "name"):
-				neighbors = [(entity.name,)]
-				while hasattr(entity, "location"):
-					entity = entity.location
-					neighbors.append((entity.name,))
-			else:
-				neighbors = [(entity.origin.name, entity.destination.name)]
-			seen = set(neighbors)
-			i = 0
-			for _ in range(neighborhood):
-				j = len(neighbors)
-				for neighbor in neighbors[i:]:
-					if len(neighbor) == 2:
-						orign, destn = neighbor
-						for placen in (orign, destn):
-							for neighbor_place in chain(
-								get_place_neighbors(placen),
-								get_place_contents(placen),
-								get_thing_location_tup(placen),
-							):
-								if neighbor_place not in seen:
-									neighbors.append((neighbor_place,))
-									seen.add(neighbor_place)
-								for neighbor_thing in get_place_contents(
-									neighbor_place
-								):
-									if neighbor_thing not in seen:
-										neighbors.append((neighbor_thing,))
-										seen.add(neighbor_thing)
-							for neighbor_portal in get_place_portals(placen):
-								if neighbor_portal not in seen:
-									neighbors.append(neighbor_portal)
-									seen.add(neighbor_portal)
-					else:
-						(neighbor,) = neighbor
-						for neighbor_place in chain(
-							get_place_neighbors(neighbor),
-							get_place_contents(neighbor),
-							get_thing_location_tup(neighbor),
-						):
-							if neighbor_place not in seen:
-								neighbors.append((neighbor_place,))
-								seen.add(neighbor_place)
-							for neighbor_thing in get_place_contents(
-								neighbor_place
-							):
-								if neighbor_thing not in seen:
-									neighbors.append((neighbor_thing,))
-									seen.add(neighbor_thing)
-						for neighbor_portal in get_place_portals(neighbor):
-							if neighbor_portal not in seen:
-								neighbors.append(neighbor_portal)
-								seen.add(neighbor_portal)
-				i = j
-			self._neighbors_cache[cache_key] = neighbors
-			return neighbors
-
-		def get_effective_neighbors(entity, neighborhood):
-			"""Get neighbors unless that's a different set of entities since last turn
-
-			In which case return None
-
-			"""
-			if neighborhood is None:
-				return None
-
-			branch_now, turn_now, tick_now = self._btt()
-			if turn_now <= 1:
-				# everything's "created" at the start of the game,
-				# and therefore, there's been a "change" to the neighborhood
-				return None
-			with self.world_lock:
-				self._load_at(branch_now, turn_now - 1, 0)
-				self._oturn -= 1
-				self._otick = 0
-				last_turn_neighbors = get_neighbors(entity, neighborhood)
-				self._set_btt(branch_now, turn_now, tick_now)
-				this_turn_neighbors = get_neighbors(entity, neighborhood)
-			if set(last_turn_neighbors) != set(this_turn_neighbors):
-				return None
-			return this_turn_neighbors
-
-		def get_node(graphn, noden):
-			key = (graphn, noden)
-			if key not in node_objs:
-				node_objs[key] = make_node(charmap[graphn], noden)
-			return node_objs[key]
-
-		def get_thing(graphn, thingn):
-			key = (graphn, thingn)
-			if key not in node_objs:
-				node_objs[key] = thing_cls(charmap[graphn], thingn)
-			return node_objs[key]
-
-		def get_place(graphn, placen):
-			key = (graphn, placen)
-			if key not in node_objs:
-				node_objs[key] = place_cls(charmap[graphn], placen)
-			return node_objs[key]
+		get_node = self._get_node_mini
+		get_thing = self._get_thing
+		get_place = self._get_place
 
 		for (
 			prio,
@@ -3284,13 +3302,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				continue
 			trig_futs.append(
 				submit(
-					check_triggers,
+					self._check_triggers,
+					todo,
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		is_thing = self._is_thing
@@ -3322,13 +3341,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				continue
 			trig_futs.append(
 				submit(
-					check_triggers,
+					self._check_triggers,
+					todo,
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_char_place = self._handled_char_place
@@ -3359,13 +3379,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				continue
 			trig_futs.append(
 				submit(
-					check_triggers,
+					self._check_triggers,
+					todo,
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		edge_exists = self._edge_exists
@@ -3400,13 +3421,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				continue
 			trig_futs.append(
 				submit(
-					check_triggers,
+					self._check_triggers,
+					todo,
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_node = self._handled_node
@@ -3431,13 +3453,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				continue
 			trig_futs.append(
 				submit(
-					check_triggers,
+					self._check_triggers,
+					todo,
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_portal = self._handled_portal
@@ -3470,13 +3493,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				continue
 			trig_futs.append(
 				submit(
-					check_triggers,
+					self._check_triggers,
+					todo,
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		while trig_futs:
@@ -3493,6 +3517,8 @@ class Engine(AbstractEngine, gORM, Executor):
 					f"[{entity.origin.name}][{entity.destination.name}]"
 				)
 
+		check_prereqs = self._check_prereqs
+		do_actions = self._do_actions
 		for prio_rulebook in sort_set(todo.keys()):
 			for rule, handled, entity in todo[prio_rulebook]:
 				if not entity:
