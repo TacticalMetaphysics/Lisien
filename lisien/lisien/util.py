@@ -1244,7 +1244,8 @@ class AbstractThing(ABC):
 
 		If supplied, the ``weight`` stat of each :class:`Portal` along
 		the path will be used in pathfinding, and for deciding how
-		long to stay in each Place along the way.
+		long to stay in each Place along the way. Otherwise, I will stay
+		in each :class:`Place` for 1 turn.
 
 		The ``graph`` argument may be any NetworkX-style graph. It
 		will be used for pathfinding if supplied, otherwise I'll use
