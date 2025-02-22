@@ -26,7 +26,7 @@ from .allegedb.cache import (
 	KeyframeError,
 	StructuredDefaultDict,
 )
-from .allegedb.window import SettingsTurnDict, Direction
+from .allegedb.window import SettingsTurnDict, Direction, WindowDict
 from .util import Key, sort_set
 
 
@@ -244,7 +244,6 @@ class RulesHandledCache:
 		self.name = name
 		self.handled = {}
 		self.handled_deep = PickyDefaultDict(SettingsTurnDict)
-		self.unhandled = {}
 
 	def get_rulebook(self, *args):
 		raise NotImplementedError
@@ -262,25 +261,6 @@ class RulesHandledCache:
 			self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
 		else:
 			self.handled_deep[branch][turn] = {tick: (entity, rulebook, rule)}
-		unhandl = (
-			self.unhandled.setdefault(entity, {})
-			.setdefault(rulebook, {})
-			.setdefault(branch, {})
-		)
-		if turn not in unhandl:
-			unhandl[turn] = list(self.iter_unhandled_rules(branch, turn, tick))
-		try:
-			unhandl[turn].remove(rule)
-		except ValueError:
-			pass
-		if not unhandl[turn]:
-			del unhandl[turn]
-		if not self.unhandled[entity][rulebook][branch]:
-			del self.unhandled[entity][rulebook][branch]
-		if not self.unhandled[entity][rulebook]:
-			del self.unhandled[entity][rulebook]
-		if not self.unhandled[entity]:
-			del self.unhandled[entity]
 
 	def total_size(self, handlers=(), verbose=False):
 		"""Returns the approximate memory footprint an object and all of its contents.
@@ -298,7 +278,7 @@ class RulesHandledCache:
 		all_handlers = {
 			tuple: iter,
 			list: iter,
-			RulesHandledCache: lambda d: [d.handled, d.unhandled],
+			RulesHandledCache: lambda d: [d.handled, d.handled_deep],
 			dict: lambda d: chain.from_iterable(d.items()),
 			set: iter,
 			frozenset: iter,
