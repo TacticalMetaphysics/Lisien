@@ -31,6 +31,21 @@ from .window import (
 )
 
 
+class SizedDict(OrderedDict):
+	"""A dictionary that discards old entries when it gets too big."""
+
+	def __init__(self, max_entries=1000):
+		self._n = max_entries
+		self._lock = RLock()
+		super().__init__()
+
+	def __setitem__(self, key, value):
+		with self._lock:
+			while len(self) > self._n:
+				self.popitem(last=False)
+			super().__setitem__(key, value)
+
+
 class NotInKeyframeError(KeyError):
 	pass
 
@@ -43,19 +58,6 @@ def _default_args_munger(self, k):
 def _default_kwargs_munger(self, k):
 	"""By default, `PickyDefaultDict`'s ``type`` takes no keyword arguments."""
 	return {}
-
-
-class SizedDict(OrderedDict):
-	"""A dictionary that discards old entries when it gets too big."""
-
-	def __init__(self, max_entries=1000):
-		self._n = max_entries
-		super().__init__()
-
-	def __setitem__(self, key, value):
-		while len(self) > self._n:
-			self.popitem(last=False)
-		super().__setitem__(key, value)
 
 
 class PickyDefaultDict(dict):
