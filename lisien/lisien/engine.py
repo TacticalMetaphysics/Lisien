@@ -95,7 +95,6 @@ from .util import (
 	final_rule,
 	normalize_layout,
 	sort_set,
-	fake_submit,
 )
 from .xcollections import (
 	FunctionStore,
@@ -570,7 +569,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			self.function.connect(self._reimport_worker_functions)
 			self.method.connect(self._reimport_worker_methods)
 			self._worker_updated_btts = [self._btt()] * workers
-		self._rules_iter = self._follow_rules()
 
 	def _call_in_subprocess(
 		self, uid, method, func_name, future: Future, *args, **kwargs
@@ -3197,30 +3195,24 @@ class Engine(AbstractEngine, gORM, Executor):
 			node_objs[key] = self.place_cls(self.character[graphn], placen)
 		return node_objs[key]
 
-	def _follow_rules(self):
-		# TODO: roll back changes done by rules that raise an exception
-		# TODO: if there's a paradox while following some rule,
-		#  start a new branch, copying handled rules
-		from collections import defaultdict
+	@staticmethod
+	def _call_it(it, *args, **kwargs):
+		return it(*args, **kwargs)
 
+	def _eval_triggers(self):
+		truthfun = self.trigger.truth
 		branch, turn, tick = self._btt()
 		charmap = self.character
 		rulemap = self.rule
+		todo = defaultdict(list)
+		trig_futs = []
+
 		pool = getattr(self, "_trigger_pool", None)
 		if pool:
 			submit = pool.submit
 		else:
-			submit = fake_submit
-		todo = defaultdict(list)
+			submit = self._call_it
 
-		if hasattr(self, "_worker_processes") and self.turn > 0:
-			self._update_all_worker_process_states()
-			# Now we can evaluate trigger functions in the worker processes,
-			# in parallel.
-
-		truthfun = self.trigger.truth
-
-		trig_futs = []
 		for (
 			prio,
 			charactername,
@@ -3495,8 +3487,16 @@ class Engine(AbstractEngine, gORM, Executor):
 					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
-		while trig_futs:
-			trig_futs.pop().result()
+
+		if pool:
+			futwait(trig_futs)
+
+		return todo
+
+	def _follow_rules(self, todo):
+		# TODO: roll back changes done by rules that raise an exception
+		# TODO: if there's a paradox while following some rule,
+		#  start a new branch, copying handled rules
 
 		def fmtent(entity):
 			if isinstance(entity, self.char_cls):
@@ -3539,13 +3539,16 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		"""
 		assert self.turn > self._turns_completed[self.branch]
+		if not hasattr(self, "_rules_iter"):
+			todo = self._eval_triggers()
+			self._rules_iter = self._follow_rules(todo)
 		try:
 			return next(self._rules_iter)
 		except InnerStopIteration:
-			self._rules_iter = self._follow_rules()
+			del self._rules_iter
 			raise StopIteration()
 		except StopIteration:
-			self._rules_iter = self._follow_rules()
+			del self._rules_iter
 			return final_rule
 
 	# except Exception as ex:
