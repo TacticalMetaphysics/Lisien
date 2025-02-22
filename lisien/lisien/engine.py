@@ -38,7 +38,7 @@ from random import Random
 from threading import Lock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union, Iterator
 
 import msgpack
 import networkx as nx
@@ -3045,23 +3045,14 @@ class Engine(AbstractEngine, gORM, Executor):
 		except KeyError:
 			return set()
 
-	def _get_place_portals(
+	def _iter_place_portals(
 		self, charn: Key, name: Key
-	) -> Set[Tuple[Key, Key]]:
-		seen: Set[Tuple[Key, Key]] = set()
-		seen.update(
-			(name, dest)
-			for dest in self._edges_cache.iter_successors(
-				charn, name, *self._btt()
-			)
-		)
-		seen.update(
-			(orig, name)
-			for orig in self._edges_cache.iter_predecessors(
-				charn, name, *self._btt()
-			)
-		)
-		return seen
+	) -> Iterator[Tuple[Key, Key]]:
+		now = self._btt()
+		for dest in self._edges_cache.iter_successors(charn, name, *now):
+			yield (name, dest)
+		for orig in self._edges_cache.iter_predecessors(charn, name, *now):
+			yield (orig, name)
 
 	def _get_thing_location_tup(
 		self, charn: Key, name: Key
@@ -3128,7 +3119,7 @@ class Engine(AbstractEngine, gORM, Executor):
 								if neighbor_thing not in seen:
 									neighbors.append((neighbor_thing,))
 									seen.add(neighbor_thing)
-						for neighbor_portal in self._get_place_portals(
+						for neighbor_portal in self._iter_place_portals(
 							charn, placen
 						):
 							if neighbor_portal not in seen:
@@ -3150,7 +3141,7 @@ class Engine(AbstractEngine, gORM, Executor):
 							if neighbor_thing not in seen:
 								neighbors.append((neighbor_thing,))
 								seen.add(neighbor_thing)
-					for neighbor_portal in self._get_place_portals(
+					for neighbor_portal in self._iter_place_portals(
 						charn, neighbor
 					):
 						if neighbor_portal not in seen:
