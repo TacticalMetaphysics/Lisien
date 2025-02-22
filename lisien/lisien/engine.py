@@ -3493,44 +3493,47 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		return todo
 
+	def _fmtent(self, entity):
+		if isinstance(entity, self.char_cls):
+			return entity.name
+		elif hasattr(entity, "name"):
+			return f"{entity.character.name}.node[{entity.name}]"
+		else:
+			return (
+				f"{entity.character.name}.portal"
+				f"[{entity.origin.name}][{entity.destination.name}]"
+			)
+
+	def _follow_one_rule(self, rule, handled, entity):
+		check_prereqs = self._check_prereqs
+		do_actions = self._do_actions
+
+		if not entity:
+			return
+		self.debug(
+			f"checking prereqs for rule {rule.name} on entity {self._fmtent(entity)}"
+		)
+		if check_prereqs(rule, handled, entity):
+			self.debug(
+				f"prereqs for rule {rule.name} on entity "
+				f"{self._fmtent(entity)} satisfied, will run actions"
+			)
+			try:
+				yield do_actions(rule, handled, entity)
+				self.debug(
+					f"actions for rule {rule.name} on entity "
+					f"{self._fmtent(entity)} have run without incident"
+				)
+			except StopIteration:
+				raise InnerStopIteration
+
 	def _follow_rules(self, todo):
 		# TODO: roll back changes done by rules that raise an exception
 		# TODO: if there's a paradox while following some rule,
 		#  start a new branch, copying handled rules
-
-		def fmtent(entity):
-			if isinstance(entity, self.char_cls):
-				return entity.name
-			elif hasattr(entity, "name"):
-				return f"{entity.character.name}.node[{entity.name}]"
-			else:
-				return (
-					f"{entity.character.name}.portal"
-					f"[{entity.origin.name}][{entity.destination.name}]"
-				)
-
-		check_prereqs = self._check_prereqs
-		do_actions = self._do_actions
 		for prio_rulebook in sort_set(todo.keys()):
 			for rule, handled, entity in todo[prio_rulebook]:
-				if not entity:
-					continue
-				self.debug(
-					f"checking prereqs for rule {rule.name} on entity {fmtent(entity)}"
-				)
-				if check_prereqs(rule, handled, entity):
-					self.debug(
-						f"prereqs for rule {rule.name} on entity "
-						f"{fmtent(entity)} satisfied, will run actions"
-					)
-					try:
-						yield do_actions(rule, handled, entity)
-						self.debug(
-							f"actions for rule {rule.name} on entity "
-							f"{fmtent(entity)} have run without incident"
-						)
-					except StopIteration:
-						raise InnerStopIteration
+				yield self._follow_one_rule(rule, handled, entity)
 
 	def _advance(self) -> Any:
 		"""Follow the next rule if available.
