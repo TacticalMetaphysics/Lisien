@@ -14,18 +14,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data."""
 
+from __future__ import annotations
+
 from collections import OrderedDict, defaultdict, deque
 from itertools import chain, pairwise
 from threading import RLock
 from typing import Hashable, Optional, Tuple
 
-from ..util import HistoricKeyError
 from .window import (
 	EntikeySettingsTurnDict,
 	FuturistWindowDict,
 	SettingsTurnDict,
 	TurnDict,
 	WindowDict,
+	HistoricKeyError,
 )
 
 
@@ -41,6 +43,19 @@ def _default_args_munger(self, k):
 def _default_kwargs_munger(self, k):
 	"""By default, `PickyDefaultDict`'s ``type`` takes no keyword arguments."""
 	return {}
+
+
+class SizedDict(OrderedDict):
+	"""A dictionary that discards old entries when it gets too big."""
+
+	def __init__(self, max_entries=1000):
+		self._n = max_entries
+		super().__init__()
+
+	def __setitem__(self, key, value):
+		while len(self) > self._n:
+			self.popitem(last=False)
+		super().__setitem__(key, value)
 
 
 class PickyDefaultDict(dict):

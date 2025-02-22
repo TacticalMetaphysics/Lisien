@@ -25,7 +25,8 @@ from .facade import FacadePortal
 from .query import StatusAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .util import AbstractCharacter, HistoricKeyError, getatt
+from .util import AbstractCharacter, getatt
+from .allegedb.window import HistoricKeyError
 
 
 class RuleMapping(BaseRuleMapping):
