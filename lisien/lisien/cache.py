@@ -22,9 +22,8 @@ from .allegedb.cache import (
 	EntitylessCache,
 	KeyframeError,
 	StructuredDefaultDict,
-	WindowDict,
 )
-from .allegedb.window import SettingsTurnDict
+from .allegedb.window import SettingsTurnDict, Direction, WindowDict
 from .util import Key, sort_set
 
 
@@ -241,7 +240,6 @@ class RulesHandledCache:
 		self.name = name
 		self.handled = {}
 		self.handled_deep = StructuredDefaultDict(1, type=WindowDict)
-		self.unhandled = {}
 
 	def get_rulebook(self, *args):
 		raise NotImplementedError
@@ -255,18 +253,10 @@ class RulesHandledCache:
 		self.handled.setdefault(entity + (rulebook, branch, turn), set()).add(
 			rule
 		)
-		self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
-		unhandl = (
-			self.unhandled.setdefault(entity, {})
-			.setdefault(rulebook, {})
-			.setdefault(branch, {})
-		)
-		if turn not in unhandl:
-			unhandl[turn] = list(self.iter_unhandled_rules(branch, turn, tick))
-		try:
-			unhandl[turn].remove(rule)
-		except ValueError:
-			pass
+		if turn in self.handled_deep[branch]:
+			self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
+		else:
+			self.handled_deep[branch][turn] = {tick: (entity, rulebook, rule)}
 
 	def retrieve(self, *args):
 		return self.handled[args]
