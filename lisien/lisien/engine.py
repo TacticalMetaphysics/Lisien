@@ -90,7 +90,13 @@ from .query import (
 	StatusAlias,
 	_make_side_sel,
 )
-from .util import AbstractEngine, final_rule, normalize_layout, sort_set
+from .util import (
+	AbstractEngine,
+	final_rule,
+	normalize_layout,
+	sort_set,
+	fake_submit,
+)
 from .xcollections import (
 	FunctionStore,
 	MethodStore,
@@ -2961,7 +2967,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		if pool:
 			submit = pool.submit
 		else:
-			submit = partial
+			submit = fake_submit
 		todo = defaultdict(list)
 
 		def changed(entity: tuple) -> bool:
@@ -3473,11 +3479,8 @@ class Engine(AbstractEngine, gORM, Executor):
 					get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
-		if pool:
-			futwait(trig_futs)
-		else:
-			for part in trig_futs:
-				part()
+		while trig_futs:
+			trig_futs.pop().result()
 
 		def fmtent(entity):
 			if isinstance(entity, self.char_cls):
