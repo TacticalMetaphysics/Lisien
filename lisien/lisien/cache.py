@@ -261,6 +261,14 @@ class RulesHandledCache:
 		else:
 			self.handled_deep[branch][turn] = {tick: (entity, rulebook, rule)}
 
+	def remove_branch(self, branch: str):
+		if branch in self.handled_deep:
+			for turn, ticks in self.handled_deep[branch].items():
+				for tick, (entity, rulebook, rule) in ticks.items():
+					if (entity, rulebook, branch, turn) in self.handled:
+						del self.handled[entity, rulebook, branch, turn]
+			del self.handled_deep[branch]
+
 	def truncate(self, branch: str, turn: int, tick: int, direction="forward"):
 		if direction not in {"forward", "backward"}:
 			raise ValueError("Illegal direction")
