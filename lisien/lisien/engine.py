@@ -214,6 +214,7 @@ class NextTurn(Signal):
 				0,
 			)
 			engine.turn += 1
+
 		results = []
 		with engine.advancing():
 			for res in iter(engine._advance, final_rule):
