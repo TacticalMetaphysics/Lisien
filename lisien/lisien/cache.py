@@ -767,10 +767,8 @@ class ThingsCache(Cache):
 
 
 class NodeContentsCache(Cache):
-	name = "node_contents_cache"
-
 	def __init__(self, db, kfkvs=None):
-		super().__init__(db, kfkvs)
+		super().__init__(db, "node_contents_cache", kfkvs)
 		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
 
 	def store(
