@@ -36,15 +36,20 @@ from blinker import Signal
 
 from ..util import Key
 from .cache import (
-	HistoricKeyError,
 	KeyframeError,
 	PickyDefaultDict,
 	TurnEndDict,
 	TurnEndPlanDict,
+	SizedDict,
 )
 from .graph import DiGraph, Edge, GraphsMapping, Node
 from .query import Key, QueryEngine, TimeError
-from .window import WindowDict, update_backward_window, update_window
+from .window import (
+	WindowDict,
+	HistoricKeyError,
+	update_backward_window,
+	update_window,
+)
 
 """Type hint for things lisien can use as keys
 
@@ -893,11 +898,11 @@ class ORM:
 		node_cls = self.node_cls
 		edge_cls = self.edge_cls
 		self._where_cached = defaultdict(list)
-		self._node_objs = node_objs = {}
+		self._node_objs = node_objs = SizedDict()
 		self._get_node_stuff: Tuple[
 			dict, Callable[[Key, Key], bool], Callable[[Key, Key], node_cls]
 		] = (node_objs, self._node_exists, self._make_node)
-		self._edge_objs = edge_objs = {}
+		self._edge_objs = edge_objs = SizedDict()
 		self._get_edge_stuff: Tuple[
 			dict,
 			Callable[[Key, Key, Key, int], bool],

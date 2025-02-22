@@ -34,10 +34,10 @@ from .query import StatusAlias
 from .util import (
 	AbstractCharacter,
 	AbstractThing,
-	HistoricKeyError,
 	Key,
 	getatt,
 )
+from .allegedb.window import HistoricKeyError
 
 
 class UserMapping(Mapping):

@@ -60,6 +60,8 @@ from blinker import Signal
 from tblib import Traceback
 
 from . import allegedb, exc
+from .allegedb.cache import SizedDict
+from .allegedb.window import HistoricKeyError
 from .allegedb.graph import DiGraph, Edge, Node
 from .exc import TravelException
 
@@ -340,7 +342,7 @@ def _sort_set_key(v):
 	return 0, repr(v)
 
 
-_sort_set_memo = {}
+_sort_set_memo = SizedDict()
 
 
 def sort_set(s):
@@ -1263,11 +1265,3 @@ class AbstractThing(ABC):
 		graph = self.character if graph is None else graph
 		path = nx.shortest_path(graph, self["location"], destn, weight)
 		return self.follow_path(path, weight)
-
-
-class HistoricKeyError(KeyError):
-	"""Distinguishes deleted keys from those that were never set"""
-
-	def __init__(self, *args, deleted=False):
-		super().__init__(*args)
-		self.deleted = deleted
