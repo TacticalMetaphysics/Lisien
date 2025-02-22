@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from collections import OrderedDict
 from operator import itemgetter
+from sys import getsizeof, stderr
 from threading import RLock
 from typing import Tuple
 
