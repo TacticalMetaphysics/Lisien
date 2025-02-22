@@ -24,7 +24,7 @@ from .allegedb.cache import (
 	KeyframeError,
 	StructuredDefaultDict,
 )
-from .allegedb.window import SettingsTurnDict
+from .allegedb.window import SettingsTurnDict, Direction
 from .util import Key, sort_set
 
 
