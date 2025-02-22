@@ -992,7 +992,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		)
 
 	def _init_caches(self) -> None:
-		from .allegedb.cache import EntitylessCache
+		from .allegedb.cache import EntitylessCache, SizedDict
 		from .cache import (
 			CharacterPlaceRulesHandledCache,
 			CharacterPortalRulesHandledCache,
@@ -1011,7 +1011,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		from .xcollections import CharacterMapping, FunctionStore
 
 		super()._init_caches()
-		self._neighbors_cache = {}
+		self._neighbors_cache = SizedDict()
 		self._things_cache = ThingsCache(self)
 		self._node_contents_cache = NodeContentsCache(self)
 		self.character = self.graph = CharacterMapping(self)
