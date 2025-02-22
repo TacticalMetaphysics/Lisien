@@ -273,16 +273,22 @@ class RulesHandledCache:
 			pass
 		if not unhandl[turn]:
 			del unhandl[turn]
-		if not unhandl[entity][rulebook][branch]:
-			del unhandl[entity][rulebook][branch]
-		if not unhandl[entity][rulebook]:
-			del unhandl[entity][rulebook]
-		if not unhandl[entity]:
-			del unhandl[entity]
+		if not self.unhandled[entity][rulebook][branch]:
+			del self.unhandled[entity][rulebook][branch]
+		if not self.unhandled[entity][rulebook]:
+			del self.unhandled[entity][rulebook]
+		if not self.unhandled[entity]:
+			del self.unhandled[entity]
 
-	def truncate(self, branch: str, turn: int, tick: int, direction="forward"):
-		if direction not in {"forward", "backward"}:
-			raise ValueError("Illegal direction")
+	def truncate(
+		self,
+		branch: str,
+		turn: int,
+		tick: int,
+		direction: Direction = Direction.FORWARD,
+	):
+		if isinstance(direction, str):
+			direction = Direction(direction)
 		if branch not in self.handled_deep:
 			return
 
