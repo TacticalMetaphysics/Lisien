@@ -5218,7 +5218,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			yield (
 				unpack(d["character"]),
 				unpack(d["rulebook"]),
-				unpack(d["rule"]),
+				d["rule"],
 				d["branch"],
 				d["turn"],
 				d["tick"],
