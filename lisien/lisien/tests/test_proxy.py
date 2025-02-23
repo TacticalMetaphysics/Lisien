@@ -228,14 +228,17 @@ def test_thing_place_iter(tmp_path):
 
 @pytest.fixture
 def mocked_keyframe(tmp_path):
-	with patch("lisien.Engine.snap_keyframe"), Engine(
-		tmp_path,
-		random_seed=69105,
-		enforce_end_of_time=False,
-		keyframe_on_close=False,
-		threaded_triggers=False,
-		workers=0,
-	) as eng:
+	with (
+		patch("lisien.Engine.snap_keyframe"),
+		Engine(
+			tmp_path,
+			random_seed=69105,
+			enforce_end_of_time=False,
+			keyframe_on_close=False,
+			threaded_triggers=False,
+			workers=0,
+		) as eng,
+	):
 		eng.snap_keyframe.side_effect = [data.KF_FROM, data.KF_TO]
 		eng._set_btt(*data.BTT_FROM)
 		yield eng

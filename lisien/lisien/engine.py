@@ -1494,8 +1494,8 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def get_delta(
 		self,
-		time_from: Tuple[str, int, int],
-		time_to: Tuple[str, int, int],
+		time_from: Union[Tuple[str, int, int], Tuple[str, int]],
+		time_to: Union[Tuple[str, int, int], Tuple[str, int]],
 		slow=False,
 	) -> DeltaDict:
 		"""Get a dictionary describing changes to the world.
@@ -1537,6 +1537,10 @@ class Engine(AbstractEngine, gORM, Executor):
 			linear time would require *more* comparisons than comparing keyframes.
 
 		"""
+		if len(time_from) < 3 or time_from[2] is None:
+			time_from = (*time_from[:2], self._turn_end_plan[time_from[:2]])
+		if len(time_to) < 3 or time_to[2] is None:
+			time_to = (*time_to[:2], self._turn_end_plan[time_to[:2]])
 		if time_from == time_to:
 			return {}
 		if time_from[0] == time_to[0]:
@@ -3658,6 +3662,11 @@ class Engine(AbstractEngine, gORM, Executor):
 					for dest, v in dests.items():
 						data.add_edge(orig, dest, **v)
 			data.graph.update(kwargs)
+		# When initializing the world state, we don't have to worry about deltas;
+		# it's OK to make multiple characters at ('trunk', 0, 0).
+		# At any time past the start, we have to advance the tick.
+		if self.branch != self.main_branch or self.turn != 0 or self.tick != 0:
+			self._nbtt()
 		self._init_graph(name, "DiGraph", data)
 		if self._btt() not in self._keyframes_times:
 			self.snap_keyframe(silent=True)
