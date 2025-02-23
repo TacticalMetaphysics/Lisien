@@ -24,10 +24,10 @@ from typing import Hashable, Optional, Tuple
 from .window import (
 	EntikeySettingsTurnDict,
 	FuturistWindowDict,
+	HistoricKeyError,
 	SettingsTurnDict,
 	TurnDict,
 	WindowDict,
-	HistoricKeyError,
 )
 
 

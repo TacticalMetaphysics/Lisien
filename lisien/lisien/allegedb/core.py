@@ -34,29 +34,22 @@ from typing import (
 import networkx as nx
 from blinker import Signal
 
-from ..util import HistoricKeyError, Key, sort_set
+from ..util import Key
 from .cache import (
 	KeyframeError,
 	PickyDefaultDict,
+	SizedDict,
 	TurnEndDict,
 	TurnEndPlanDict,
-	SizedDict,
 )
 from .graph import DiGraph, Edge, GraphsMapping, Node
 from .query import QueryEngine, TimeError
 from .window import (
-	WindowDict,
 	HistoricKeyError,
+	WindowDict,
 	update_backward_window,
 	update_window,
 )
-
-"""Type hint for things lisien can use as keys
-
-They have to be serializable using lisien's particular msgpack schema,
-as well as hashable.
-
-"""
 
 Graph = DiGraph  # until I implement other graph types...
 

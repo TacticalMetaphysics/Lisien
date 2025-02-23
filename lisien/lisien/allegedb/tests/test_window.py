@@ -3,7 +3,7 @@ from itertools import cycle
 import pytest
 
 from .. import ORM
-from ..window import WindowDict, HistoricKeyError
+from ..window import HistoricKeyError, WindowDict
 
 testvs = ["a", 99, ["spam", "eggs", "ham"], {"foo": "bar", 0: 1, "💧": "🔑"}]
 testdata = []

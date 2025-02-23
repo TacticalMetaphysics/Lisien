@@ -7,7 +7,7 @@ include-package-data=false
 
 [project]
 name = "lisien"
-version = "0.18.2"
+version = "0.18.3"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
