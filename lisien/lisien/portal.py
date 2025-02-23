@@ -21,12 +21,12 @@ from typing import Any, List, Tuple, Union
 
 from .allegedb import Key
 from .allegedb.graph import Edge
+from .allegedb.window import HistoricKeyError
 from .facade import FacadePortal
 from .query import StatusAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
 from .util import AbstractCharacter, getatt
-from .allegedb.window import HistoricKeyError
 
 
 class RuleMapping(BaseRuleMapping):

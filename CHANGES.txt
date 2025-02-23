@@ -1,4 +1,7 @@
-== 0.18.1 | 2025-02-20 ==
+== 0.18.3 | 2025-02-23 ==
+* Fix major memory leaks
+
+== 0.18.2 | 2025-02-20 ==
 * A crash fix relating to the unloading code, which was too eager
 
 == 0.18.1 | 2025-02-14 ==
@@ -8,7 +11,7 @@
 * Changed name of "LiSE" to "Lisien" -- thanks to https://webb.page for the name
 * Changed name of "ELiDE" to "Elide"
 (letters cased like normal English if that's what you're writing,
-"elide" and "lise" in Python)
+"elide" and "lisien" in Python)
 * Rules may now be designated "big," which will enable an optimization to
   only write the changes they make to the world after they're all computed.
 * Neighborhoods get keyframed properly, now, the same as other rule attributes.

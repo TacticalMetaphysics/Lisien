@@ -61,11 +61,17 @@ from tblib import Traceback
 
 from . import allegedb, exc
 from .allegedb.cache import SizedDict
-from .allegedb.window import HistoricKeyError
 from .allegedb.graph import DiGraph, Edge, Node
+from .allegedb.window import HistoricKeyError
 from .exc import TravelException
 
 Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
+"""Type hint for things lisien can use as keys
+
+They have to be serializable using lisien's particular msgpack schema,
+as well as hashable.
+
+"""
 
 
 class SignalDict(Signal, dict):
