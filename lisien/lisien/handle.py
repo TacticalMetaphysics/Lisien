@@ -501,8 +501,9 @@ class EngineHandle:
 
 		"""
 		node = self._real.character[char].node
-		with self._real.batch(), timer(
-			"EngineHandle.update_nodes", self.debug
+		with (
+			self._real.batch(),
+			timer("EngineHandle.update_nodes", self.debug),
 		):
 			for n, npatch in patch.items():
 				if npatch is None:
