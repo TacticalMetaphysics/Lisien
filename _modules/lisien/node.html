@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>lisien.node &#8212; Lisien 0.18.2 documentation</title>
+    <title>lisien.node &#8212; Lisien 0.18.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=29ae757a"></script>
+    <script src="../../_static/documentation_options.js?v=8dd6f163"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -61,16 +61,11 @@
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">rule</span>
 <span class="kn">from</span> <span class="nn">.allegedb</span> <span class="kn">import</span> <span class="n">graph</span>
+<span class="kn">from</span> <span class="nn">.allegedb.window</span> <span class="kn">import</span> <span class="n">HistoricKeyError</span>
 <span class="kn">from</span> <span class="nn">.exc</span> <span class="kn">import</span> <span class="n">AmbiguousUserError</span>
 <span class="kn">from</span> <span class="nn">.facade</span> <span class="kn">import</span> <span class="n">FacadePlace</span><span class="p">,</span> <span class="n">FacadeThing</span>
 <span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="n">StatusAlias</span>
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="p">(</span>
-	<span class="n">AbstractCharacter</span><span class="p">,</span>
-	<span class="n">AbstractThing</span><span class="p">,</span>
-	<span class="n">HistoricKeyError</span><span class="p">,</span>
-	<span class="n">Key</span><span class="p">,</span>
-	<span class="n">getatt</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">AbstractCharacter</span><span class="p">,</span> <span class="n">AbstractThing</span><span class="p">,</span> <span class="n">Key</span><span class="p">,</span> <span class="n">getatt</span>
 
 
 <span class="k">class</span> <span class="nc">UserMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
