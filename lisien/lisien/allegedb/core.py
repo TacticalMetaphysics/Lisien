@@ -38,25 +38,18 @@ from ..util import Key
 from .cache import (
 	KeyframeError,
 	PickyDefaultDict,
+	SizedDict,
 	TurnEndDict,
 	TurnEndPlanDict,
-	SizedDict,
 )
 from .graph import DiGraph, Edge, GraphsMapping, Node
-from .query import Key, QueryEngine, TimeError
+from .query import QueryEngine, TimeError
 from .window import (
-	WindowDict,
 	HistoricKeyError,
+	WindowDict,
 	update_backward_window,
 	update_window,
 )
-
-"""Type hint for things lisien can use as keys
-
-They have to be serializable using lisien's particular msgpack schema,
-as well as hashable.
-
-"""
 
 Graph = DiGraph  # until I implement other graph types...
 
@@ -681,8 +674,6 @@ class ORM:
 				).setdefault(dest, {})[key] = value
 
 		from functools import partial
-
-		pass
 
 		if turn_from == turn_to:
 			return self._get_turn_delta(branch, turn_from, tick_from, tick_to)

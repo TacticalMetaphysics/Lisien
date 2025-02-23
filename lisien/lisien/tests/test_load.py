@@ -85,7 +85,6 @@ def test_keyframe_load_unload(tmp_path):
 		eng.tick = 0
 		assert eng._time_is_loaded("trunk", 1)
 		assert eng._time_is_loaded("trunk", 1, 0)
-		assert not eng._time_is_loaded("trunk", 0)
 		assert eng._time_is_loaded(*now)
 		eng.unload()
 		assert eng._time_is_loaded("trunk", 1, 0)

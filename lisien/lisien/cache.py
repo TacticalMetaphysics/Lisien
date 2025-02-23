@@ -26,7 +26,7 @@ from .allegedb.cache import (
 	KeyframeError,
 	StructuredDefaultDict,
 )
-from .allegedb.window import SettingsTurnDict, Direction, WindowDict
+from .allegedb.window import Direction, SettingsTurnDict, WindowDict
 from .util import Key, sort_set
 
 
@@ -257,6 +257,52 @@ class RulesHandledCache:
 		self.handled.setdefault(entity + (rulebook, branch, turn), set()).add(
 			rule
 		)
+		if turn in self.handled_deep[branch]:
+			self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
+		else:
+			self.handled_deep[branch][turn] = {tick: (entity, rulebook, rule)}
+
+	def remove_branch(self, branch: str):
+		if branch in self.handled_deep:
+			for turn, ticks in self.handled_deep[branch].items():
+				for tick, (entity, rulebook, rule) in ticks.items():
+					if (entity, rulebook, branch, turn) in self.handled:
+						del self.handled[entity, rulebook, branch, turn]
+			del self.handled_deep[branch]
+
+	def truncate(self, branch: str, turn: int, tick: int, direction="forward"):
+		if direction not in {"forward", "backward"}:
+			raise ValueError("Illegal direction")
+		if branch not in self.handled_deep:
+			return
+
+		with self.lock:
+			turn_d = self.handled_deep[branch]
+			if turn in turn_d:
+				for t, (entity, rulebook, rule) in (
+					turn_d[turn].future(tick)
+					if direction == "forward"
+					else turn_d[turn].past(tick)
+				).items():
+					if (entity, rulebook, branch, turn) in self.handled:
+						tick_set = self.handled[entity, rulebook, branch, turn]
+						tick_set.discard(t)
+						if not tick_set:
+							del self.handled[entity, rulebook, branch, turn]
+				turn_d[turn].truncate(turn, direction)
+			to_del = (
+				turn_d.future(turn)
+				if direction == "forward"
+				else turn_d.past(turn)
+			)
+			for r in to_del.keys():
+				for t, (entity, rulebook, rule) in turn_d[r].items():
+					if (entity, rulebook, branch, r) in self.handled:
+						tick_set = self.handled[entity, rulebook, branch, r]
+						tick_set.discard(t)
+						if not tick_set:
+							del self.handled[entity, rulebook, branch, r]
+			turn_d.truncate(turn, direction)
 		if turn in self.handled_deep[branch]:
 			self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
 		else:
