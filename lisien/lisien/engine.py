@@ -3532,13 +3532,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				f"{self._fmtent(entity)} satisfied, will run actions"
 			)
 			try:
-				yield do_actions(rule, handled, entity)
+				ret = do_actions(rule, handled, entity)
 				self.debug(
 					f"actions for rule {rule.name} on entity "
 					f"{self._fmtent(entity)} have run without incident"
 				)
-			except StopIteration:
-				raise InnerStopIteration
+				return ret
+			except StopIteration as ex:
+				raise InnerStopIteration from ex
 
 	def _follow_rules(self, todo):
 		# TODO: roll back changes done by rules that raise an exception
