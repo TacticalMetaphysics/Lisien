@@ -3522,6 +3522,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		do_actions = self._do_actions
 
 		if not entity:
+			self.debug(f"not checking prereqs for rule {rule.name} "
+					   f"on nonexistent entity {self._fmtent(entity)}")
 			return
 		self.debug(
 			f"checking prereqs for rule {rule.name} on entity {self._fmtent(entity)}"
