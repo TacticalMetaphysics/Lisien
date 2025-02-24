@@ -215,9 +215,17 @@ class NextTurn(Signal):
 			engine.turn += 1
 
 		results = []
+		if hasattr(engine, "_rules_iter"):
+			it = engine._rules_iter
+		else:
+			todo = engine._eval_triggers()
+			it = engine._rules_iter = engine._follow_rules(todo)
 		with engine.advancing():
-			for res in iter(engine._advance, final_rule):
-				if res:
+			for res in it:
+				if isinstance(res, InnerStopIteration):
+					del engine._rules_iter
+					raise StopIteration from res
+				elif res:
 					if isinstance(res, tuple) and res[0] == "stop":
 						engine.universal["last_result"] = res
 						engine.universal["last_result_idx"] = 0
@@ -232,6 +240,7 @@ class NextTurn(Signal):
 						)
 					else:
 						results.extend(res)
+		del engine._rules_iter
 		engine._turns_completed[start_branch] = engine.turn
 		engine.query.complete_turn(
 			start_branch,
@@ -3538,29 +3547,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		for prio_rulebook in sort_set(todo.keys()):
 			for rule, handled, entity in todo[prio_rulebook]:
 				yield self._follow_one_rule(rule, handled, entity)
-
-	def _advance(self) -> Any:
-		"""Follow the next rule if available.
-
-		If we've run out of rules, reset the rules iterator.
-
-		"""
-		assert self.turn > self._turns_completed[self.branch]
-		if not hasattr(self, "_rules_iter"):
-			todo = self._eval_triggers()
-			self._rules_iter = self._follow_rules(todo)
-		try:
-			return next(self._rules_iter)
-		except InnerStopIteration:
-			del self._rules_iter
-			raise StopIteration()
-		except StopIteration:
-			del self._rules_iter
-			return final_rule
-
-	# except Exception as ex:
-	# self._rules_iter = self._follow_rules()
-	# return ex
 
 	def new_character(
 		self,
