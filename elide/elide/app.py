@@ -214,10 +214,9 @@ class ELiDEApp(App):
 		config.setdefaults(
 			"lisien",
 			{
-				"world": "sqlite:///world.db",
 				"language": "eng",
-				"logfile": "",
-				"loglevel": "info",
+				"logfile": "lisien.log",
+				"loglevel": "debug",
 			},
 		)
 		config.setdefaults(
@@ -256,11 +255,6 @@ class ELiDEApp(App):
 	def build(self):
 		self.icon = "icon_24px.png"
 		config = self.config
-		Logger.debug(
-			"ELiDEApp: starting with world {}, path {}".format(
-				config["lisien"]["world"], lisien.__path__[-1]
-			)
-		)
 
 		if config["elide"]["debugger"] == "yes":
 			import pdb
@@ -299,9 +293,11 @@ class ELiDEApp(App):
 		enkw = {
 			"logger": Logger,
 			"threaded_triggers": False,
-			"workers": 0,
 			"do_game_start": getattr(self, "do_game_start", False),
 		}
+		workers = config["lisien"].get("workers", '')
+		if workers:
+			enkw["workers"] = workers
 		if config["lisien"].get("logfile"):
 			enkw["logfile"] = config["lisien"]["logfile"]
 		if config["lisien"].get("loglevel"):
