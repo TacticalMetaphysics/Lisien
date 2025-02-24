@@ -102,9 +102,6 @@ class FinalRule:
 		return 6448962173793096248
 
 
-final_rule = FinalRule()
-
-
 class MsgpackExtensionType(Enum):
 	"""Type codes for packing special lisien types into msgpack"""
 
