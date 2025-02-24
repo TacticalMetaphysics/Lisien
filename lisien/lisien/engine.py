@@ -92,7 +92,6 @@ from .query import (
 )
 from .util import (
 	AbstractEngine,
-	final_rule,
 	normalize_layout,
 	sort_set,
 )
