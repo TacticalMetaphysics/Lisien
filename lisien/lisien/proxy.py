@@ -270,13 +270,13 @@ class RuleMapProxyDescriptor(RuleFollowerProxyDescriptor):
 	def __get__(self, instance, owner):
 		if instance is None:
 			return self
-		try:
-			proxy = instance._get_rulemap_proxy()
-		except KeyError:
+		if hasattr(instance, "_rule_map_proxy"):
+			return instance._rule_map_proxy
+		else:
 			proxy = RuleMapProxy(
 				instance.engine, instance._get_default_rulebook_name()
 			)
-			instance._set_rulemap_proxy(proxy)
+			instance._rule_map_proxy = proxy
 		return proxy
 
 
