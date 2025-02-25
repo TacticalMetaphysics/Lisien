@@ -247,8 +247,6 @@ class RuleFuncListDescriptor:
 		flist = getattr(obj, self.flid)
 		namey_value = tuple(flist._nominate(v) for v in value)
 		flist._set(namey_value)
-		branch, turn, tick = obj.engine._nbtt()
-		flist._cache.store(obj.name, branch, turn, tick, namey_value)
 		flist.send(flist)
 
 	def __delete__(self, obj):
