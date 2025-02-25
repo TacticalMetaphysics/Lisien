@@ -1554,6 +1554,14 @@ class UnitMapProxy(Mapping, RuleFollowerProxy):
 			branching=True,
 		)
 
+	@property
+	def only(self):
+		if len(self) == 0:
+			raise AttributeError("No units")
+		elif len(self) > 1:
+			raise AttributeError("Units in more than one graph")
+		return next(iter(self.values()))
+
 	def __init__(self, character):
 		self.character = character
 
@@ -1583,19 +1591,6 @@ class UnitMapProxy(Mapping, RuleFollowerProxy):
 		return self.GraphUnitsProxy(
 			self.character, self.character.engine.character[k]
 		)
-
-	def __getattr__(self, attr):
-		vals = self.values()
-		if not vals:
-			raise AttributeError(
-				"No attribute {}, and no graph to delegate to".format(attr)
-			)
-		elif len(vals) > 1:
-			raise AttributeError(
-				"No attribute {}, and more than one graph".format(attr)
-			)
-		else:
-			return getattr(next(iter(vals)), attr)
 
 	class GraphUnitsProxy(Mapping, RuleFollowerProxy):
 		def __init__(self, character, graph):
