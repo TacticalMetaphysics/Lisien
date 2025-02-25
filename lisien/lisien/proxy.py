@@ -2549,6 +2549,9 @@ class EngineProxy(AbstractEngine):
 		self.prereq._cache = prereqs
 		self.action._cache = actions
 		self._replace_state_with_kf(start_kf)
+		self._branch = branch
+		self._turn = turn
+		self._tick = tick
 		self._initialized = True
 
 	def switch_main_branch(self, branch: str) -> None:
