@@ -126,9 +126,12 @@ class MockEngine(Signal):
 
 
 class ELiDEAppTest(GraphicUnitTest):
+	def __init__(self, methodName):
+		super().__init__(methodName)
+		self.prefix = mkdtemp()
+
 	def setUp(self):
 		super(ELiDEAppTest, self).setUp()
-		self.prefix = mkdtemp()
 		self.old_argv = sys.argv.copy()
 		sys.argv = ["python", "-m", "elide", self.prefix]
 		self.app = ELiDEApp()
@@ -140,3 +143,4 @@ class ELiDEAppTest(GraphicUnitTest):
 		super().tearDown(fake=fake)
 		self.app.stop()
 		sys.argv = self.old_argv
+		shutil.rmtree(self.prefix)
