@@ -213,9 +213,10 @@ class NextTurn(Signal):
 			)
 			engine.turn += 1
 		now = engine._btt()
-		for i, last_updated in enumerate(engine._worker_updated_btts):
-			if last_updated != now:
-				engine._update_worker_process_state(i)
+		if hasattr(engine, "_worker_updated_btts"):
+			for i, last_updated in enumerate(engine._worker_updated_btts):
+				if last_updated != now:
+					engine._update_worker_process_state(i)
 		results = []
 		if hasattr(engine, "_rules_iter"):
 			it = engine._rules_iter
