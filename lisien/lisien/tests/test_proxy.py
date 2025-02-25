@@ -14,16 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import shutil
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import msgpack
 import networkx as nx
 import pytest
 
 import lisien.allegedb.tests.test_all
 import lisien.examples.kobold as kobold
 from lisien.engine import Engine
-from lisien.handle import EngineHandle
 from lisien.proxy import EngineProcessManager
 from lisien.tests import data
 
