@@ -29,7 +29,7 @@ import logging
 import os
 import sys
 import zlib
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
@@ -170,7 +170,117 @@ class CachingEntityProxy(CachingProxy):
 		)
 
 
-class RulebookProxyDescriptor(object):
+class RuleMapProxy(MutableMapping, Signal):
+	@property
+	def _cache(self):
+		return self.engine._rulebooks_cache.setdefault(self.name, ([], 0.0))[0]
+
+	@property
+	def priority(self):
+		return self.engine._rulebooks_cache.setdefault(self.name, ([], 0.0))[1]
+
+	def __init__(self, engine, rulebook_name):
+		super().__init__()
+		self.engine = engine
+		self.name = rulebook_name
+		self._proxy_cache = engine._rule_obj_cache
+
+	def __iter__(self):
+		return iter(self._cache)
+
+	def __len__(self):
+		return len(self._cache)
+
+	def __getitem__(self, key):
+		if key in self._cache:
+			if key not in self._proxy_cache:
+				self._proxy_cache[key] = RuleProxy(self.engine, key)
+			return self._proxy_cache[key]
+		raise KeyError("Rule not assigned to rulebook", key, self.name)
+
+	def __setitem__(self, k, v):
+		if self.engine._worker:
+			raise WorkerProcessReadOnlyError(
+				"Tried to change the world state in a worker process"
+			)
+		if isinstance(v, RuleProxy):
+			v = v._name
+		else:
+			RuleProxy(self.engine, k).actions = v
+			v = k
+		if k in self._cache:
+			return
+		i = len(self._cache)
+		self._cache.append(k)
+		self.engine.handle(
+			command="set_rulebook_rule",
+			rulebook=self.name,
+			i=i,
+			rule=v,
+			branching=True,
+		)
+		self.send(self, key=k, val=v)
+
+	def __delitem__(self, key):
+		if self.engine._worker:
+			raise WorkerProcessReadOnlyError(
+				"Tried to change the world state in a worker process"
+			)
+		i = self._cache.index(key)
+		if i is None:
+			raise KeyError("Rule not set in rulebook", key, self.name)
+		del self._cache[i]
+		self.engine.handle(
+			command="del_rulebook_rule",
+			rulebook=self.name,
+			i=i,
+			branching=True,
+		)
+		self.send(self, key=key, val=None)
+
+
+class RuleFollowerProxyDescriptor:
+	def __set__(self, inst, val):
+		if inst.engine._worker:
+			raise WorkerProcessReadOnlyError(
+				"Tried to change the world state in a worker process"
+			)
+		if isinstance(val, RuleBookProxy):
+			rb = val
+			val = val.name
+		elif isinstance(val, RuleMapProxy):
+			if val.name in inst.engine._rulebooks_cache:
+				rb = inst.engine._rulebooks_cache[val.name]
+				val = val.name
+			else:
+				rb = inst.engine._rulebooks_cache[val.name] = RuleBookProxy(
+					inst.engine, val.name
+				)
+				val = val.name
+		elif val in inst.engine._rulebooks_cache:
+			rb = inst.engine._rulebooks_cache[val]
+		else:
+			rb = RuleBookProxy(inst.engine, val)
+		inst._set_rulebook(val)
+		inst._set_rulebook_proxy(rb)
+		inst.send(inst, rulebook=rb)
+
+
+class RuleMapProxyDescriptor(RuleFollowerProxyDescriptor):
+	def __get__(self, instance, owner):
+		if instance is None:
+			return self
+		try:
+			proxy = instance._get_rulemap_proxy()
+		except KeyError:
+			proxy = RuleMapProxy(
+				instance.engine, instance._get_default_rulebook_name()
+			)
+			instance._set_rulemap_proxy(proxy)
+		return proxy
+
+
+class RulebookProxyDescriptor(RuleFollowerProxyDescriptor):
 	"""Descriptor that makes the corresponding RuleBookProxy if needed"""
 
 	def __get__(self, inst, cls):
@@ -184,24 +294,6 @@ class RulebookProxyDescriptor(object):
 			)
 			inst._set_rulebook_proxy(proxy)
 		return proxy
-
-	def __set__(self, inst, val):
-		if inst.engine._worker:
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if hasattr(val, "name"):
-			if not isinstance(val, RuleBookProxy):
-				raise TypeError
-			rb = val
-			val = val.name
-		elif val in inst.engine._rulebooks_cache:
-			rb = inst.engine._rulebooks_cache[val]
-		else:
-			rb = RuleBookProxy(inst.engine, val)
-		inst._set_rulebook(val)
-		inst._set_rulebook_proxy(rb)
-		inst.send(inst, rulebook=rb)
 
 
 class ProxyUserMapping(UserMapping):
@@ -245,9 +337,28 @@ class ProxyNeighborMapping(Mapping):
 		raise KeyError("Not a neighbor")
 
 
-class NodeProxy(CachingEntityProxy):
+class RuleFollowerProxy(ABC):
+	rule = RuleMapProxyDescriptor()
 	rulebook = RulebookProxyDescriptor()
 
+	@abstractmethod
+	def _get_default_rulebook_name(self) -> tuple:
+		pass
+
+	@abstractmethod
+	def _get_rulebook_proxy(self) -> "RuleBookProxy":
+		pass
+
+	@abstractmethod
+	def _set_rulebook_proxy(self, rb: "RuleBookProxy") -> None:
+		pass
+
+	@abstractmethod
+	def _set_rulebook(self, rb) -> None:
+		pass
+
+
+class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	@property
 	def user(self):
 		return ProxyUserMapping(self)
@@ -589,9 +700,7 @@ class ThingProxy(NodeProxy):
 Thing.register(ThingProxy)
 
 
-class PortalProxy(CachingEntityProxy):
-	rulebook = RulebookProxyDescriptor()
-
+class PortalProxy(CachingEntityProxy, RuleFollowerProxy):
 	def _apply_delta(self, delta):
 		for k, v in delta.items():
 			if k == "rulebook":
@@ -735,9 +844,7 @@ class PortalProxy(CachingEntityProxy):
 Portal.register(PortalProxy)
 
 
-class NodeMapProxy(MutableMapping, Signal):
-	rulebook = RulebookProxyDescriptor()
-
+class NodeMapProxy(MutableMapping, Signal, RuleFollowerProxy):
 	def _get_default_rulebook_name(self):
 		return self._charname, "character_node"
 
@@ -822,9 +929,7 @@ class NodeMapProxy(MutableMapping, Signal):
 					nodeproxycache[k] = v
 
 
-class ThingMapProxy(CachingProxy):
-	rulebook = RulebookProxyDescriptor()
-
+class ThingMapProxy(CachingProxy, RuleFollowerProxy):
 	def _get_default_rulebook_name(self):
 		return self.name, "character_thing"
 
@@ -900,9 +1005,7 @@ class ThingMapProxy(CachingProxy):
 		self.character.node.patch(d)
 
 
-class PlaceMapProxy(CachingProxy):
-	rulebook = RulebookProxyDescriptor()
-
+class PlaceMapProxy(CachingProxy, RuleFollowerProxy):
 	def _get_default_rulebook_name(self):
 		return self.name, "character_place"
 
@@ -1029,9 +1132,7 @@ class SuccessorsProxy(CachingProxy):
 		self.engine.del_portal(self._charname, self._orig, dest)
 
 
-class CharSuccessorsMappingProxy(CachingProxy):
-	rulebook = RulebookProxyDescriptor()
-
+class CharSuccessorsMappingProxy(CachingProxy, RuleFollowerProxy):
 	def _get_default_rulebook_anme(self):
 		return self.name, "character_portal"
 
@@ -1429,8 +1530,7 @@ class RuleBookProxy(MutableSequence, Signal):
 			self.send(self, i=j, val=self[j])
 
 
-class UnitMapProxy(Mapping):
-	rulebook = RulebookProxyDescriptor()
+class UnitMapProxy(Mapping, RuleFollowerProxy):
 	engine = getatt("character.engine")
 
 	def _get_default_rulebook_name(self):
@@ -1497,7 +1597,7 @@ class UnitMapProxy(Mapping):
 		else:
 			return getattr(next(iter(vals)), attr)
 
-	class GraphUnitsProxy(Mapping):
+	class GraphUnitsProxy(Mapping, RuleFollowerProxy):
 		def __init__(self, character, graph):
 			self.character = character
 			self.graph = graph
@@ -1536,8 +1636,7 @@ class UnitMapProxy(Mapping):
 			return next(iter(self.values()))
 
 
-class CharacterProxy(AbstractCharacter):
-	rulebook = RulebookProxyDescriptor()
+class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 	adj_cls = CharSuccessorsMappingProxy
 	pred_cls = CharPredecessorsMappingProxy
 
