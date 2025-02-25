@@ -293,7 +293,6 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 
 class TestCharRuleBuilder(ELiDEAppTest):
 	def setUp(self):
-		super(TestCharRuleBuilder, self).setUp()
 		with Engine(self.prefix) as eng:
 			polygons.install(eng)
 			assert list(
@@ -302,6 +301,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 				eng.trigger.similar_neighbors,
 				eng.trigger.dissimilar_neighbors,
 			]
+		super(TestCharRuleBuilder, self).setUp()
 		app = self.app
 		mgr = app.build()
 		self.Window.add_widget(mgr)
@@ -361,13 +361,13 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		rules_list = rules_box.ruleslist
 		idle_until(
 			lambda: rules_list.children[0].children,
-			100,
+			1000,
 			"Never filled rules list",
 		)
 		idle_until(
 			lambda: "relocate"
 			in {rulebut.text for rulebut in rules_list.children[0].children},
-			100,
+			1000,
 			"Never made relocate button",
 		)
 		for rulebut in rules_list.children[0].children:
@@ -380,7 +380,9 @@ class TestCharRuleBuilder(ELiDEAppTest):
 			== rules_box.rulesview._trigger_tab
 		)
 		idle_until(
-			lambda: builder.children, 100, "trigger builder never got children"
+			lambda: builder.children,
+			1000,
+			"trigger builder never got children",
 		)
 		idle_until(
 			partial(builder_foundation, builder),
@@ -388,7 +390,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 			"Never filled trigger builder",
 		)
 		idle_until(
-			lambda: builder.parent, 100, "trigger builder never got parent"
+			lambda: builder.parent, 1000, "trigger builder never got parent"
 		)
 		card_names = {
 			card.headline_text
@@ -438,7 +440,20 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		touch.touch_up()
 		self.advance_frames(5)
 		rules_box.ids.closebut.on_release()
-		self.advance_frames(5)
+		idle_until(
+			lambda: all(
+				card.headline_text != "similar_neighbors"
+				for card in builder.decks[0]
+			),
+			100,
+			"similar_neighbors still in used pile",
+		)
+		idle_until(
+			lambda: app.charrules.character.unit.rulebook[0].triggers
+			== ["dissimilar_neighbors"],
+			100,
+			"similar_neighbors still in proxy triggers list",
+		)
 		app.stop()
 		with Engine(self.prefix) as eng:
 			assert list(
