@@ -1133,7 +1133,7 @@ class SuccessorsProxy(CachingProxy):
 
 
 class CharSuccessorsMappingProxy(CachingProxy, RuleFollowerProxy):
-	def _get_default_rulebook_anme(self):
+	def _get_default_rulebook_name(self):
 		return self.name, "character_portal"
 
 	def _get_rulebook_proxy(self):
