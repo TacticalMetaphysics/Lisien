@@ -272,6 +272,11 @@ class RuleMapProxyDescriptor(RuleFollowerProxyDescriptor):
 			return self
 		if hasattr(instance, "_rule_map_proxy"):
 			return instance._rule_map_proxy
+		elif instance._get_rulebook_name() in instance.engine._rulebooks_cache:
+			proxy = RuleMapProxy(
+				instance.engine, instance._get_rulebook_name()
+			)
+			instance._rule_map_proxy = proxy
 		else:
 			proxy = RuleMapProxy(
 				instance.engine, instance._get_default_rulebook_name()
@@ -344,6 +349,9 @@ class RuleFollowerProxy(ABC):
 	@abstractmethod
 	def _get_default_rulebook_name(self) -> tuple:
 		pass
+
+	def _get_rulebook_name(self) -> Key:
+		return self._get_rulebook_proxy().name
 
 	@abstractmethod
 	def _get_rulebook_proxy(self) -> "RuleBookProxy":
@@ -737,14 +745,6 @@ class PortalProxy(CachingEntityProxy, RuleFollowerProxy):
 			orig=self._origin,
 			dest=self._destination,
 			rulebook=rb,
-		)
-
-	def _get_rulebook_name(self):
-		return self.engine.handle(
-			command="get_portal_rulebook",
-			char=self._charname,
-			orig=self._origin,
-			dest=self._destination,
 		)
 
 	@property
