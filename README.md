@@ -240,7 +240,7 @@ neighbors of those neighbors as well, and so on. You never really *need* this,
 but it makes this simulation go fast.
 
 Run ``python3 polygons.py`` to generate the simulation. To view it,
-run ``python3 -m Elide`` in the same directory.  Just click the big
+run ``python3 -m elide`` in the same directory.  Just click the big
 &gt; button and watch it for a little while. There's a control panel
 on the bottom of the screen that lets you go back in time, if you
 wish, and you can use that to browse different runs of the simulation
