@@ -1380,7 +1380,82 @@ class CharStatProxy(CachingEntityProxy):
 				self.send(self, key=k, value=v)
 
 
+class FuncListProxy(MutableSequence, Signal):
+	def __init__(self, rule_proxy: "RuleProxy", key: str):
+		super().__init__()
+		self.rule = rule_proxy
+		self._key = key
+
+	def __iter__(self):
+		return iter(self.rule._cache.get(self._key, ()))
+
+	def __len__(self):
+		return len(self.rule._cache.get(self._key, ()))
+
+	def __getitem__(self, item):
+		if self._key not in self.rule._cache:
+			raise IndexError(item)
+		return self.rule._cache[self._key][item]
+
+	def _handle_send(self):
+		self.rule.engine.handle(
+			f"set_rule_{self._key}",
+			**{
+				"rule": self.rule.name,
+				"branching": True,
+				self._key: list(
+					map(self.rule._nominate, self.rule._cache[self._key])
+				),
+			},
+		)
+
+	def __setitem__(self, key, value):
+		if isinstance(value, str):
+			value = getattr(getattr(self.rule.engine, self._key), value)
+		self.rule._cache[self._key] = value
+		self._handle_send()
+
+	def __delitem__(self, key):
+		if self._key not in self.rule._cache:
+			raise IndexError(key)
+		del self.rule._cache[self._key][key]
+		self._handle_send()
+
+	def insert(self, index, value):
+		if isinstance(value, str):
+			value = getattr(getattr(self.rule.engine, self._key), value)
+		self.rule._cache.insert(index, value)
+		self._handle_send()
+
+
+class FuncListProxyDescriptor:
+	def __init__(self, key):
+		self._key = key
+
+	def __get__(self, instance, owner):
+		attname = f"_{self._key}_proxy"
+		if not hasattr(instance, attname):
+			setattr(instance, attname, FuncListProxy(instance, self._key))
+		return getattr(instance, attname)
+
+	def __set__(self, instance, value):
+		to_set = []
+		for v in value:
+			if isinstance(v, FuncProxy):
+				to_set.append(v)
+			elif not isinstance(v, str):
+				raise TypeError(f"Need FuncListProxy or str, got {type(v)}")
+			else:
+				to_set.append(FuncListProxy(instance, v))
+		instance._cache[self._key] = to_set
+		self.__get__(instance, None)._handle_send()
+
+
 class RuleProxy(Signal):
+	triggers = FuncListProxyDescriptor("triggers")
+	prereqs = FuncListProxyDescriptor("prereqs")
+	actions = FuncListProxyDescriptor("actions")
+
 	@staticmethod
 	def _nominate(v):
 		ret = []
@@ -1395,51 +1470,6 @@ class RuleProxy(Signal):
 	@property
 	def _cache(self):
 		return self.engine._rules_cache.setdefault(self.name, {})
-
-	@property
-	def triggers(self):
-		return self._cache.setdefault("triggers", [])
-
-	@triggers.setter
-	def triggers(self, v):
-		self._cache["triggers"] = v
-		self.engine.handle(
-			"set_rule_triggers",
-			rule=self.name,
-			triggers=self._nominate(v),
-			branching=True,
-		)
-		self.send(self, triggers=v)
-
-	@property
-	def prereqs(self):
-		return self._cache.setdefault("prereqs", [])
-
-	@prereqs.setter
-	def prereqs(self, v):
-		self._cache["prereqs"] = v
-		self.engine.handle(
-			"set_rule_prereqs",
-			rule=self.name,
-			prereqs=self._nominate(v),
-			branching=True,
-		)
-		self.send(self, prereqs=v)
-
-	@property
-	def actions(self):
-		return self._cache.setdefault("actions", [])
-
-	@actions.setter
-	def actions(self, v):
-		self._cache["actions"] = v
-		self.engine.handle(
-			"set_rule_actions",
-			rule=self.name,
-			actions=self._nominate(v),
-			branching=True,
-		)
-		self.send(self, actions=v)
 
 	def __init__(self, engine, rulename):
 		super().__init__()
@@ -2677,31 +2707,34 @@ class EngineProxy(AbstractEngine):
 		self._universal_cache = result["universal"]
 		rc = self._rules_cache = {}
 		for rule, triggers in result["triggers"].items():
+			triglist = [getattr(self.trigger, func) for func in triggers]
 			if rule in rc:
-				rc[rule]["triggers"] = list(triggers)
+				rc[rule]["triggers"] = triglist
 			else:
 				rc[rule] = {
-					"triggers": list(triggers),
+					"triggers": triglist,
 					"prereqs": [],
 					"actions": [],
 				}
 		for rule, prereqs in result["prereqs"].items():
+			preqlist = [getattr(self.prereq, func) for func in prereqs]
 			if rule in rc:
-				rc[rule]["prereqs"] = list(prereqs)
+				rc[rule]["prereqs"] = preqlist
 			else:
 				rc[rule] = {
 					"triggers": [],
-					"prereqs": list(prereqs),
+					"prereqs": preqlist,
 					"actions": [],
 				}
 		for rule, actions in result["actions"].items():
+			actlist = [getattr(self.action, func) for func in actions]
 			if rule in rc:
-				rc[rule]["actions"] = list(actions)
+				rc[rule]["actions"] = actlist
 			else:
 				rc[rule] = {
 					"triggers": [],
 					"prereqs": [],
-					"actions": list(actions),
+					"actions": actlist,
 				}
 		self._char_cache = chars = {
 			graph: CharacterProxy(self, graph)
