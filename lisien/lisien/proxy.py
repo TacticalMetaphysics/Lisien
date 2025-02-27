@@ -2736,6 +2736,7 @@ class EngineProxy(AbstractEngine):
 					"prereqs": [],
 					"actions": actlist,
 				}
+		self._rulebooks_cache = result["rulebook"]
 		self._char_cache = chars = {
 			graph: CharacterProxy(self, graph)
 			if (graph not in self._char_cache)
@@ -2900,7 +2901,6 @@ class EngineProxy(AbstractEngine):
 						if stat in portal and stats[stat] == portal[stat]:
 							del stats[stat]
 					portal._apply_delta(stats)
-		self._rulebooks_cache = result["rulebook"]
 
 	def _pull_kf_now(self, *args, **kwargs):
 		self._replace_state_with_kf(self.handle("snap_keyframe"))
