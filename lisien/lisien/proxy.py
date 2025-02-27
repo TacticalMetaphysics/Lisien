@@ -1444,7 +1444,7 @@ class FuncListProxyDescriptor:
 			elif not isinstance(v, str):
 				raise TypeError(f"Need FuncListProxy or str, got {type(v)}")
 			else:
-				to_set.append(FuncListProxy(instance, v))
+				to_set.append(FuncProxy(instance, v))
 		instance._cache[self._key] = to_set
 		self.__get__(instance, None)._handle_send()
 
