@@ -1403,9 +1403,7 @@ class FuncListProxy(MutableSequence, Signal):
 			**{
 				"rule": self.rule.name,
 				"branching": True,
-				self._key: list(
-					map(self.rule._nominate, self.rule._cache[self._key])
-				),
+				self._key: self.rule._nominate(self.rule._cache[self._key]),
 			},
 		)
 
