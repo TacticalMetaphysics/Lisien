@@ -2446,14 +2446,17 @@ class FuncStoreProxy(Signal):
 		super().__init__()
 		self.engine = engine_proxy
 		self._store = store
+		self._proxy_cache = {}
 
 	def load(self):
 		self._cache = self.engine.handle("source_copy", store=self._store)
-		self._cache["truth"] = "def truth(*args):\n\treturn True"
 
 	def __getattr__(self, k):
 		if k in super().__getattribute__("_cache"):
-			return FuncProxy(self, k)
+			proxcache = super().__getattribute__("_proxy_cache")
+			if k not in proxcache:
+				proxcache[k] = FuncProxy(self, k)
+			return proxcache[k]
 		else:
 			raise AttributeError(k)
 
@@ -2462,6 +2465,7 @@ class FuncStoreProxy(Signal):
 			"engine",
 			"_store",
 			"_cache",
+			"_proxy_cache",
 			"receivers",
 			"_by_sender",
 			"_by_receiver",
