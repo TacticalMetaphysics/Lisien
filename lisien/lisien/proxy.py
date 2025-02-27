@@ -2417,24 +2417,24 @@ class AllRulesProxy(Mapping):
 
 
 class FuncProxy(object):
-	__slots__ = "store", "func"
+	__slots__ = "store", "name"
 
 	def __init__(self, store, func):
 		self.store = store
-		self.func = func
+		self.name = func
 
 	def __call__(self, *args, cb=None, **kwargs):
 		return self.store.engine.handle(
 			"call_stored_function",
 			store=self.store._store,
-			func=self.func,
+			func=self.name,
 			args=args[1:] if self.store._store == "method" else args,
 			kwargs=kwargs,
 			cb=partial(self.store.engine._upd_and_cb, cb=cb),
 		)[0]
 
 	def __str__(self):
-		return self.store._cache[self.func]
+		return self.store._cache[self.name]
 
 
 class FuncStoreProxy(Signal):
