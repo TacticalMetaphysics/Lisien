@@ -1566,7 +1566,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def get_keyframe(
 		self, graph: bytes, branch: str, turn: int, tick: int
-	) -> Optional[tuple[bytes, bytes, bytes]]:
+	) -> tuple[bytes, bytes, bytes] | None:
 		rec = self._get_db("keyframes_graphs").read(
 			filters=[
 				pc.field("graph") == pc.scalar(graph),
@@ -3838,7 +3838,7 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 
 	_records: int
 	kf_interval_override: callable
-	keyframe_interval: Optional[int]
+	keyframe_interval: int | None
 	snap_keyframe: callable
 
 	def _increc(self):
@@ -4881,7 +4881,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int
-	) -> Optional[tuple[dict, dict, dict]]:
+	) -> tuple[dict, dict, dict] | None:
 		unpack = self.unpack
 		stuff = self.call("get_keyframe", self.pack(graph), branch, turn, tick)
 		if not stuff:
@@ -5463,7 +5463,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		branch: str,
 		turn: int,
 		tick: int,
-		neighborhood: Optional[int],
+		neighborhood: int | None,
 	):
 		self.call(
 			"insert1",
