@@ -469,7 +469,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 		return self.character.new_thing(name, self.name, **kwargs)
 
 	def shortest_path(
-		self, dest: Key | "NodeProxy", weight: Key = None
+		self, dest: Key | type["NodeProxy"], weight: Key = None
 	) -> list[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
@@ -3240,7 +3240,7 @@ class EngineProxy(AbstractEngine):
 	def branch_end(self, branch: str) -> tuple[int, int]:
 		return self._branches[branch][2]
 
-	def branch_parent(self, branch: str) -> Optional[str]:
+	def branch_parent(self, branch: str) -> str | None:
 		return self._branches[branch][0]
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):

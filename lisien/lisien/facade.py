@@ -228,7 +228,7 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 class FacadeRulebook(MutableSequence, ABC):
 	name: Any
 	_fake: list
-	engine: EngineFacade
+	engine: "EngineFacade"
 
 	def __iter__(self):
 		return iter(self._fake)

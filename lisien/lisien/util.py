@@ -67,10 +67,10 @@ from .exc import TravelException
 
 
 class KeyClass:
-	def __new__(cls, that):
+	def __new__(cls, that: allegedb.Key) -> allegedb.Key:
 		return that
 
-	def __instancecheck__(cls, instance):
+	def __instancecheck__(cls, instance: allegedb.Key) -> bool:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
