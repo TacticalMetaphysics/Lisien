@@ -125,7 +125,7 @@ class PickyDefaultDict(dict):
 
 	def __setitem__(self, k, v):
 		with self._lock:
-			if type(v) is not self.type:
+			if not isinstance(v, self.type):
 				v = self._create(v)
 			super(PickyDefaultDict, self).__setitem__(k, v)
 

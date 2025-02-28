@@ -74,6 +74,17 @@ as well as hashable.
 """
 
 
+class KeyClass:
+	def __new__(cls, that):
+		return that
+
+	def __instancecheck__(cls, instance):
+		return isinstance(instance, (str, int, float)) or (
+			(isinstance(instance, tuple) or isinstance(instance, frozenset))
+			and all(isinstance(elem, cls) for elem in instance)
+		)
+
+
 class SignalDict(Signal, dict):
 	def __setitem__(self, __key, __value):
 		super().__setitem__(__key, __value)
