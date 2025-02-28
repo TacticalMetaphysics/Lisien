@@ -38,7 +38,7 @@ from random import Random
 from threading import Lock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union, Iterator
+from typing import Any, Type, Iterator
 
 import msgpack
 import networkx as nx
@@ -102,16 +102,14 @@ from .xcollections import (
 	UniversalMapping,
 )
 
-SlightlyPackedDeltaType = Dict[
+SlightlyPackedDeltaType = dict[
 	bytes,
-	Dict[
+	dict[
 		bytes,
-		Union[
+		bytes
+		| dict[
 			bytes,
-			Dict[
-				bytes,
-				Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]],
-			],
+			bytes | dict[bytes, bytes | dict[bytes, bytes]],
 		],
 	],
 ]
@@ -169,7 +167,7 @@ class NextTurn(Signal):
 		super().__init__()
 		self.engine = engine
 
-	def __call__(self) -> Tuple[List, DeltaDict]:
+	def __call__(self) -> tuple[list, DeltaDict]:
 		engine = self.engine
 		for store in engine.stores:
 			if getattr(store, "_need_save", None):
@@ -407,20 +405,20 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def __init__(
 		self,
-		prefix: Union[PathLike, str] = ".",
+		prefix: PathLike | str = ".",
 		*,
-		string: Union[StringStore, dict] = None,
-		trigger: Union[FunctionStore, ModuleType] = None,
-		prereq: Union[FunctionStore, ModuleType] = None,
-		action: Union[FunctionStore, ModuleType] = None,
-		function: Union[FunctionStore, ModuleType] = None,
-		method: Union[MethodStore, ModuleType] = None,
+		string: StringStore | dict = None,
+		trigger: FunctionStore | ModuleType = None,
+		prereq: FunctionStore | ModuleType = None,
+		action: FunctionStore | ModuleType = None,
+		function: FunctionStore | ModuleType = None,
+		method: FunctionStore | ModuleType = None,
 		main_branch: str = None,
 		connect_string: str = None,
 		connect_args: dict = None,
 		schema_cls: Type[AbstractSchema] = NullSchema,
 		flush_interval: int = None,
-		keyframe_interval: Optional[int] = 1000,
+		keyframe_interval: int | None = 1000,
 		commit_interval: int = None,
 		random_seed: int = None,
 		logfun: callable = None,
@@ -601,14 +599,14 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def snap_keyframe(
 		self, silent=False, update_worker_processes=True
-	) -> Optional[dict]:
+	) -> dict | None:
 		ret = super().snap_keyframe(silent)
 		if hasattr(self, "_worker_processes") and update_worker_processes:
 			self._update_all_worker_process_states(clobber=True)
 		return ret
 
 	def submit(
-		self, fn: Union[FunctionType, MethodType], /, *args, **kwargs
+		self, fn: FunctionType | MethodType, /, *args, **kwargs
 	) -> Future:
 		if not hasattr(self, "_worker_processes"):
 			raise RuntimeError("lisien was launched with no worker processes")
@@ -776,10 +774,8 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _init_graph(
 		self,
 		name: Key,
-		type_s="DiGraph",
-		data: Union[
-			CharacterFacade, Graph, nx.Graph, dict, KeyframeTuple
-		] = None,
+		type_s: str = "DiGraph",
+		data: CharacterFacade | Graph | nx.Graph | dict | KeyframeTuple = None,
 	) -> None:
 		if hasattr(data, "stat"):
 			if not hasattr(data, "thing"):
@@ -948,8 +944,8 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _load(
 		self,
-		latest_past_keyframe: Optional[Tuple[str, int, int]],
-		earliest_future_keyframe: Optional[Tuple[str, int, int]],
+		latest_past_keyframe: tuple[str, int, int] | None,
+		earliest_future_keyframe: tuple[str, int, int] | None,
 		graphs_rows: list,
 		loaded: dict,
 	) -> None:
@@ -1144,9 +1140,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				self, charn, init_rulebooks=False
 			)
 
-	def _make_node(
-		self, graph: Character, node: Key
-	) -> Union[thing_cls, place_cls]:
+	def _make_node(self, graph: Character, node: Key) -> thing_cls | place_cls:
 		if self._is_thing(graph.name, node):
 			return self.thing_cls(graph, node)
 		else:
@@ -1501,9 +1495,9 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def get_delta(
 		self,
-		time_from: Union[Tuple[str, int, int], Tuple[str, int]],
-		time_to: Union[Tuple[str, int, int], Tuple[str, int]],
-		slow=False,
+		time_from: tuple[str, int, int] | tuple[str, int],
+		time_to: tuple[str, int, int] | tuple[str, int],
+		slow: bool = False,
 	) -> DeltaDict:
 		"""Get a dictionary describing changes to the world.
 

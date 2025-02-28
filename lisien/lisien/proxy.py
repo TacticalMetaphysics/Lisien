@@ -39,7 +39,7 @@ from random import Random
 from threading import Lock, Thread
 from time import monotonic
 from types import MethodType
-from typing import Hashable, Iterator, List, Optional, Tuple, Union
+from typing import Hashable, Iterator
 
 import msgpack
 import networkx as nx
@@ -469,8 +469,8 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 		return self.character.new_thing(name, self.name, **kwargs)
 
 	def shortest_path(
-		self, dest: Union[Key, "NodeProxy"], weight: Key = None
-	) -> List[Key]:
+		self, dest: Key | "NodeProxy", weight: Key = None
+	) -> list[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
 		Raise ``ValueError`` if ``dest`` is not a node in my character
@@ -3044,7 +3044,7 @@ class EngineProxy(AbstractEngine):
 	def critical(self, msg):
 		self.logger.critical(msg)
 
-	def handle(self, cmd=None, *, cb: Optional[callable] = None, **kwargs):
+	def handle(self, cmd=None, *, cb: callable = None, **kwargs):
 		"""Send a command to the lisien core.
 
 		The only positional argument should be the name of a
@@ -3234,10 +3234,10 @@ class EngineProxy(AbstractEngine):
 	def branches(self) -> set:
 		return self._branches
 
-	def branch_start(self, branch: str) -> Tuple[int, int]:
+	def branch_start(self, branch: str) -> tuple[int, int]:
 		return self._branches[branch][1]
 
-	def branch_end(self, branch: str) -> Tuple[int, int]:
+	def branch_end(self, branch: str) -> tuple[int, int]:
 		return self._branches[branch][2]
 
 	def branch_parent(self, branch: str) -> Optional[str]:

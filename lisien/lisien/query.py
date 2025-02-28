@@ -50,7 +50,7 @@ from queue import Queue
 from threading import Lock, RLock, Thread
 from time import monotonic
 from types import MethodType
-from typing import Any, Callable, Iterator, List, Optional, Tuple
+from typing import Any, Callable, Iterator
 
 import msgpack
 import pyarrow as pa
@@ -82,7 +82,7 @@ from .util import EntityStatAccessor
 NONE = msgpack.packb(None)
 
 
-def windows_union(windows: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+def windows_union(windows: list[tuple[int, int]]) -> list[tuple[int, int]]:
 	"""Given a list of (beginning, ending), return a minimal version that
 	contains the same ranges.
 
@@ -187,8 +187,8 @@ def intersect2(left, right):
 
 
 def windows_intersection(
-	windows: List[Tuple[int, int]],
-) -> List[Tuple[int, int]]:
+	windows: list[tuple[int, int]],
+) -> list[tuple[int, int]]:
 	"""Given a list of (beginning, ending), describe where they overlap.
 
 	Only ever returns one item, but puts it in a list anyway, to be like
@@ -226,7 +226,7 @@ def _the_select(tab: Table, val_col="value"):
 
 
 def _make_graph_val_select(
-	graph: bytes, stat: bytes, branches: List[str], mid_turn: bool
+	graph: bytes, stat: bytes, branches: list[str], mid_turn: bool
 ):
 	tab: Table = meta.tables["graph_val"]
 	if mid_turn:
@@ -270,7 +270,7 @@ def _make_graph_val_select(
 
 
 def _make_node_val_select(
-	graph: bytes, node: bytes, stat: bytes, branches: List[str], mid_turn: bool
+	graph: bytes, node: bytes, stat: bytes, branches: list[str], mid_turn: bool
 ):
 	tab: Table = meta.tables["node_val"]
 	if mid_turn:
@@ -318,7 +318,7 @@ def _make_node_val_select(
 
 
 def _make_location_select(
-	graph: bytes, thing: bytes, branches: List[str], mid_turn: bool
+	graph: bytes, thing: bytes, branches: list[str], mid_turn: bool
 ):
 	tab: Table = meta.tables["things"]
 	if mid_turn:
@@ -367,7 +367,7 @@ def _make_edge_val_select(
 	dest: bytes,
 	idx: int,
 	stat: bytes,
-	branches: List[str],
+	branches: list[str],
 	mid_turn: bool,
 ):
 	tab: Table = meta.tables["edge_val"]
@@ -432,7 +432,7 @@ def _make_edge_val_select(
 
 
 def _make_side_sel(
-	entity, stat, branches: List[str], pack: callable, mid_turn: bool
+	entity, stat, branches: list[str], pack: callable, mid_turn: bool
 ):
 	from .character import AbstractCharacter
 	from .node import Place, Thing
@@ -1566,7 +1566,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def get_keyframe(
 		self, graph: bytes, branch: str, turn: int, tick: int
-	) -> Optional[Tuple[bytes, bytes, bytes]]:
+	) -> Optional[tuple[bytes, bytes, bytes]]:
 		rec = self._get_db("keyframes_graphs").read(
 			filters=[
 				pc.field("graph") == pc.scalar(graph),
@@ -1771,7 +1771,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def load_universals_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_universals_tick_to_end(branch, turn_from, tick_from)
 		)
@@ -1794,7 +1794,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_universals_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_end(
 			"universals", branch, turn_from, tick_from
 		):
@@ -1845,7 +1845,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return [
 			(d["key"], d["turn"], d["tick"], d["value"])
 			for d in self._iter_part_tick_to_tick(
@@ -1861,14 +1861,14 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_things_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_things_tick_to_end_all(branch, turn_from, tick_from)
 		)
 
 	def _iter_things_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_end(
 			"things", branch, turn_from, tick_from
 		):
@@ -1882,7 +1882,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_things_tick_to_end_character(
 		self, character: bytes, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_things_tick_to_end_character(
 				character, branch, turn_from, tick_from
@@ -1891,7 +1891,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_things_tick_to_end_character(
 		self, character: bytes, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, int, int, bytes]]:
 		for d in (
 			self._get_db("things")
 			.read(
@@ -1922,7 +1922,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_things_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
@@ -1936,7 +1936,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			"things", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -1956,7 +1956,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_things_tick_to_tick_character(
 				character, branch, turn_from, tick_from, turn_to, tick_to
@@ -2010,14 +2010,14 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_graph_val_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_graph_val_tick_to_end_all(branch, turn_from, tick_from)
 		)
 
 	def _iter_graph_val_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_end(
 			"graph_val", branch, turn_from, tick_from
 		):
@@ -2031,7 +2031,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_graph_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_graph_val_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
@@ -2040,7 +2040,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_graph_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, int, int, bytes]]:
 		for d in (
 			self._get_db("graph_val")
 			.read(
@@ -2071,7 +2071,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_graph_val_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
@@ -2085,7 +2085,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			"graph_val", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -2099,7 +2099,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_graph_val_tick_to_tick(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
@@ -2114,7 +2114,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			"graph_val", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -2144,7 +2144,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_nodes_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, int, int, bool]]:
+	) -> Iterator[tuple[bytes, int, int, bool]]:
 		for d in (
 			self._get_db("nodes")
 			.read(
@@ -2174,7 +2174,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_nodes_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, int, int, bool]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, bool]]:
 		for d in self._iter_part_tick_to_end(
 			"nodes", branch, turn_from, tick_from
 		):
@@ -2199,7 +2199,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, int, int, bool]]:
+	) -> list[tuple[bytes, bytes, int, int, bool]]:
 		return list(
 			self._iter_nodes_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
@@ -2214,7 +2214,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, int, int, bool]]:
+	) -> list[tuple[bytes, int, int, bool]]:
 		return list(
 			self._iter_nodes_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
@@ -2242,7 +2242,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, int, int, bool]]:
+	) -> Iterator[tuple[bytes, int, int, bool]]:
 		db = self._get_db("nodes")
 		if turn_from == turn_to:
 			for d in db.read(
@@ -2301,7 +2301,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_node_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_node_val_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
@@ -2310,14 +2310,14 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_node_val_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_node_val_tick_to_end_all(branch, turn_from, tick_from)
 		)
 
 	def _iter_node_val_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_end(
 			"node_val", branch, turn_from, tick_from
 		):
@@ -2332,7 +2332,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_node_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
 		for d in (
 			self._get_db("node_val")
 			.read(
@@ -2369,7 +2369,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_node_val_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
@@ -2383,7 +2383,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			"node_val", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -2404,7 +2404,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_node_val_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
@@ -2419,7 +2419,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
 		db = self._get_db("node_val")
 		if turn_from == turn_to:
 			for d in db.read(
@@ -2482,14 +2482,14 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_edges_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, bytes, int, int, int, bool]]:
+	) -> list[tuple[bytes, bytes, bytes, int, int, int, bool]]:
 		return list(
 			self._iter_edges_tick_to_end_all(branch, turn_from, tick_from)
 		)
 
 	def _iter_edges_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, int, bool]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, int, int, int, bool]]:
 		for d in self._iter_part_tick_to_end(
 			"edges", branch, turn_from, tick_from
 		):
@@ -2505,7 +2505,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_edges_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, int, int, int, bool]]:
+	) -> list[tuple[bytes, bytes, int, int, int, bool]]:
 		return list(
 			self._iter_edges_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
@@ -2514,7 +2514,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_edges_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, int, int, int, bool]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, int, bool]]:
 		for d in (
 			self._get_db("edges")
 			.read(
@@ -2559,7 +2559,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
 		return list(
 			self._iter_edges_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
@@ -2573,7 +2573,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			"edges", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -2595,7 +2595,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, bytes, int, int, int, bytes]]:
 		return list(
 			self._iter_edges_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
@@ -2610,7 +2610,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, int, int, int, bytes]]:
 		db = self._get_db("edges")
 		if turn_from == turn_to:
 			for d in db.read(
@@ -2677,14 +2677,14 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_edge_val_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, bytes, int, int, int, bytes]]:
 		return list(
 			self._iter_edge_val_tick_to_end_all(branch, turn_from, tick_from)
 		)
 
 	def _iter_edge_val_tick_to_end_all(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, int, int, int, bytes]]:
 		for d in self._iter_part_tick_to_end(
 			"edge_val", branch, turn_from, tick_from
 		):
@@ -2701,7 +2701,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_edge_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, int, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, int, int, int, bytes]]:
 		return list(
 			self._iter_edge_val_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
@@ -2710,7 +2710,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_edge_val_tick_to_end_graph(
 		self, graph: bytes, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, int, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, int, bytes]]:
 		for d in (
 			self._get_db("edge_val")
 			.read(
@@ -2757,7 +2757,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
 		return list(
 			self._iter_edge_val_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
@@ -2771,7 +2771,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, bytes, int, int, int, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			"edge_val", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -2794,7 +2794,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, bytes, int, int, int, bytes]]:
 		return list(
 			self._iter_edge_val_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
@@ -2809,7 +2809,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, int, int, int, bytes]]:
 		db = self._get_db("edge_val")
 		if turn_from == turn_to:
 			for d in db.read(
@@ -2874,7 +2874,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def load_character_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_end_part(
 				"character", branch, turn_from, tick_from
@@ -2883,7 +2883,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_character_rulebook_tick_to_end_part(
 		self, part: str, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_end(
 			f"{part}_rulebook", branch, turn_from, tick_from
 		):
@@ -2896,7 +2896,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"character", branch, turn_from, tick_from, turn_to, tick_to
@@ -2911,7 +2911,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			f"{part}_rulebook", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -2919,7 +2919,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def load_unit_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_end_part(
 				"unit", branch, turn_from, tick_from
@@ -2933,7 +2933,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"unit", branch, turn_from, tick_from, turn_to, tick_to
@@ -2942,7 +2942,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def load_character_thing_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_end_part(
 				"character_thing", branch, turn_from, tick_from
@@ -2956,7 +2956,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"character_thing",
@@ -2970,7 +2970,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def load_character_place_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_end_part(
 				"character_place", branch, turn_from, tick_from
@@ -2984,7 +2984,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"character_place",
@@ -2998,7 +2998,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def load_character_portal_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_end_part(
 				"character_portal", branch, turn_from, tick_from
@@ -3012,7 +3012,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, int, int, bytes]]:
 		return list(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"character_portal",
@@ -3026,14 +3026,14 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def load_node_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_node_rulebook_tick_to_end(branch, turn_from, tick_from)
 		)
 
 	def _iter_node_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_end(
 			"node_rulebook", branch, turn_from, tick_from
 		):
@@ -3052,7 +3052,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_node_rulebook_tick_to_tick(
 				branch, turn_from, tick_from, turn_to, tick_to
@@ -3066,7 +3066,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			"node_rulebook", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -3080,7 +3080,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def load_portal_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> List[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_portal_rulebook_tick_to_end(
 				branch, turn_from, tick_from
@@ -3089,7 +3089,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _iter_portal_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
-	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_end(
 			"portal_rulebook", branch, turn_from, tick_from
 		):
@@ -3109,7 +3109,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> List[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+	) -> list[tuple[bytes, bytes, bytes, int, int, bytes]]:
 		return list(
 			self._iter_portal_rulebook_tick_to_tick(
 				branch, turn_from, tick_from, turn_to, tick_to
@@ -3123,7 +3123,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> Iterator[Tuple[bytes, bytes, bytes, int, int, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, int, int, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			"portal_rulebook", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -4266,13 +4266,13 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 		), got
 
 	@abstractmethod
-	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
+	def universals_dump(self) -> Iterator[tuple[Key, str, int, int, Any]]:
 		pass
 
 	@abstractmethod
 	def rulebooks_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Tuple[List[Key], float]]]:
+	) -> Iterator[tuple[Key, str, int, int, tuple[list[Key], float]]]:
 		pass
 
 	@abstractmethod
@@ -4282,111 +4282,111 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 	@abstractmethod
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
 		pass
 
 	@abstractmethod
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
 		pass
 
 	@abstractmethod
 	def rule_actions_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
 		pass
 
 	@abstractmethod
 	def rule_neighborhood_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, int]]:
+	) -> Iterator[tuple[Key, str, int, int, int]]:
 		pass
 
 	@abstractmethod
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
 		pass
 
 	@abstractmethod
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, Key, Key, str, int, int, Key]]:
 		pass
 
 	@abstractmethod
 	def character_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, str, int, int, Key]]:
 		pass
 
 	@abstractmethod
-	def unit_rulebook_dump(self) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	def unit_rulebook_dump(self) -> Iterator[tuple[Key, str, int, int, Key]]:
 		pass
 
 	@abstractmethod
 	def character_thing_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, str, int, int, Key]]:
 		pass
 
 	@abstractmethod
 	def character_place_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, str, int, int, Key]]:
 		pass
 
 	@abstractmethod
 	def character_portal_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, str, int, int, Key]]:
 		pass
 
 	@abstractmethod
 	def character_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, str, str, int, int]]:
 		pass
 
 	@abstractmethod
 	def unit_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
 		pass
 
 	@abstractmethod
 	def character_thing_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
 		pass
 
 	@abstractmethod
 	def character_place_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
 		pass
 
 	@abstractmethod
 	def character_portal_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
 		pass
 
 	@abstractmethod
 	def node_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
 		pass
 
 	@abstractmethod
 	def portal_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
 		pass
 
 	@abstractmethod
-	def things_dump(self) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+	def things_dump(self) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
 		pass
 
 	@abstractmethod
@@ -4398,13 +4398,13 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 		tick_from: int,
 		turn_to: int = None,
 		tick_to: int = None,
-	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
 		pass
 
 	@abstractmethod
 	def units_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, int, int, bool]]:
+	) -> Iterator[tuple[Key, Key, Key, str, int, int, bool]]:
 		pass
 
 	@abstractmethod
@@ -4423,19 +4423,19 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 
 	@abstractmethod
 	def set_rule_triggers(
-		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
 	):
 		pass
 
 	@abstractmethod
 	def set_rule_prereqs(
-		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
 	):
 		pass
 
 	@abstractmethod
 	def set_rule_actions(
-		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
 	):
 		pass
 
@@ -4452,9 +4452,9 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 		branch: str,
 		turn: int,
 		tick: int,
-		triggers: List[str],
-		prereqs: List[str],
-		actions: List[str],
+		triggers: list[str],
+		prereqs: list[str],
+		actions: list[str],
 		neighborhood: int,
 	):
 		pass
@@ -4466,7 +4466,7 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 		branch: str,
 		turn: int,
 		tick: int,
-		rules: List[str] = None,
+		rules: list[str] = None,
 		prio: float = 0.0,
 	):
 		pass
@@ -4655,12 +4655,12 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 		branch: str,
 		turn: int,
 		tick: int,
-		rules: List[str],
+		rules: list[str],
 	):
 		pass
 
 	@abstractmethod
-	def turns_completed_dump(self) -> Iterator[Tuple[str, int]]:
+	def turns_completed_dump(self) -> Iterator[tuple[str, int]]:
 		pass
 
 	@abstractmethod
@@ -4881,7 +4881,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int
-	) -> Optional[Tuple[dict, dict, dict]]:
+	) -> Optional[tuple[dict, dict, dict]]:
 		unpack = self.unpack
 		stuff = self.call("get_keyframe", self.pack(graph), branch, turn, tick)
 		if not stuff:
@@ -4892,7 +4892,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	def have_branch(self, branch: str) -> bool:
 		return self.call("have_branch", branch)
 
-	def all_branches(self) -> Iterator[Tuple[str, str, int, int, int, int]]:
+	def all_branches(self) -> Iterator[tuple[str, str, int, int, int, int]]:
 		for d in self.call("dump", "branches"):
 			yield (
 				d["branch"],
@@ -5080,7 +5080,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		assert self.echo("flushed") == "flushed"
 		gc.collect()
 
-	def universals_dump(self) -> Iterator[Tuple[Key, str, int, int, Any]]:
+	def universals_dump(self) -> Iterator[tuple[Key, str, int, int, Any]]:
 		unpack = self.unpack
 		for d in self.call("dump", "universals"):
 			yield (
@@ -5093,7 +5093,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def rulebooks_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Tuple[List[Key], float]]]:
+	) -> Iterator[tuple[Key, str, int, int, tuple[list[Key], float]]]:
 		unpack = self.unpack
 		for d in self.call("dump", "rulebooks"):
 			yield (
@@ -5122,22 +5122,22 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
 		return self._rule_dump("triggers")
 
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
 		return self._rule_dump("prereqs")
 
 	def rule_actions_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, List[Key]]]:
+	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
 		return self._rule_dump("actions")
 
 	def rule_neighborhood_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, int]]:
+	) -> Iterator[tuple[Key, str, int, int, int]]:
 		for d in self.call("dump", "rule_neighborhood"):
 			yield (
 				d["rule"],
@@ -5149,7 +5149,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
 		unpack = self.unpack
 		for d in self.call("dump", "node_rulebook"):
 			yield (
@@ -5163,7 +5163,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, Key, Key, str, int, int, Key]]:
 		unpack = self.unpack
 		for d in self.call("dump", "portal_rulebook"):
 			yield (
@@ -5189,30 +5189,30 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def character_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, str, int, int, Key]]:
 		return self._character_rulebook_dump("character")
 
-	def unit_rulebook_dump(self) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	def unit_rulebook_dump(self) -> Iterator[tuple[Key, str, int, int, Key]]:
 		return self._character_rulebook_dump("unit")
 
 	def character_thing_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, str, int, int, Key]]:
 		return self._character_rulebook_dump("character_thing")
 
 	def character_place_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, str, int, int, Key]]:
 		return self._character_rulebook_dump("character_place")
 
 	def character_portal_rulebook_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, str, int, int, Key]]:
 		return self._character_rulebook_dump("character_portal")
 
 	def character_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, str, str, int, int]]:
 		unpack = self.unpack
 		for d in self.call("dump", "character_rules_handled"):
 			yield (
@@ -5226,7 +5226,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def unit_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
 		unpack = self.unpack
 		for d in self.call("dump", "unit_rules_handled"):
 			yield (
@@ -5242,7 +5242,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def character_thing_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
 		unpack = self.unpack
 		for d in self.call("dump", "character_thing_rules_handled"):
 			yield (
@@ -5257,7 +5257,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def character_place_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
 		unpack = self.unpack
 		for d in self.call("dump", "character_place_rules_handled"):
 			yield (
@@ -5272,7 +5272,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def character_portal_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
 		unpack = self.unpack
 		for d in self.call("dump", "character_portal_rules_handled"):
 			yield (
@@ -5288,7 +5288,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def node_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
 		unpack = self.unpack
 		for d in self.call("dump", "node_rules_handled"):
 			yield (
@@ -5303,7 +5303,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def portal_rules_handled_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
 		unpack = self.unpack
 		for d in self.call("dump", "portal_rules_handled"):
 			yield (
@@ -5317,7 +5317,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				d["tick"],
 			)
 
-	def things_dump(self) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+	def things_dump(self) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
 		unpack = self.unpack
 		for d in self.call("dump", "things"):
 			yield (
@@ -5337,7 +5337,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		tick_from: int,
 		turn_to: int = None,
 		tick_to: int = None,
-	) -> Iterator[Tuple[Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
@@ -5381,7 +5381,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def units_dump(
 		self,
-	) -> Iterator[Tuple[Key, Key, Key, str, int, int, bool]]:
+	) -> Iterator[tuple[Key, Key, Key, str, int, int, bool]]:
 		unpack = self.unpack
 		for d in self.call("dump", "units"):
 			yield (
@@ -5413,7 +5413,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		return self.call("rowcount", tbl)
 
 	def set_rule_triggers(
-		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
 	):
 		self.call(
 			"insert1",
@@ -5428,7 +5428,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		)
 
 	def set_rule_prereqs(
-		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
 	):
 		self.call(
 			"insert1",
@@ -5443,7 +5443,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		)
 
 	def set_rule_actions(
-		self, rule: str, branch: str, turn: int, tick: int, flist: List[str]
+		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
 	):
 		self.call(
 			"insert1",
@@ -5498,9 +5498,9 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		branch: str,
 		turn: int,
 		tick: int,
-		triggers: List[str],
-		prereqs: List[str],
-		actions: List[str],
+		triggers: list[str],
+		prereqs: list[str],
+		actions: list[str],
 		neighborhood: int,
 		big: bool,
 	):
@@ -5521,7 +5521,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		branch: str,
 		turn: int,
 		tick: int,
-		rules: List[str] = None,
+		rules: list[str] = None,
 		prio: float = 0.0,
 	):
 		pack = self.pack
@@ -5996,7 +5996,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		branch: str,
 		turn: int,
 		tick: int,
-		rules: List[str],
+		rules: list[str],
 	):
 		pack = self.pack
 		self.call(
@@ -6011,7 +6011,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			),
 		)
 
-	def turns_completed_dump(self) -> Iterator[Tuple[str, int]]:
+	def turns_completed_dump(self) -> Iterator[tuple[str, int]]:
 		for d in self.call("dump", "turns_completed"):
 			yield d["branch"], d["turn"]
 
@@ -6112,7 +6112,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 	def graph_val_del_time(self, branch: str, turn: int, tick: int):
 		self.call("graph_val_del_time", branch, turn, tick)
 
-	def graphs_dump(self) -> Iterator[Tuple[Key, str, int, int, str]]:
+	def graphs_dump(self) -> Iterator[tuple[Key, str, int, int, str]]:
 		unpack = self.unpack
 		for d in self.call("dump", "graphs"):
 			yield (
@@ -6509,7 +6509,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			dict(plan_id=plan_id, branch=branch, turn=turn, tick=tick),
 		)
 
-	def plans_insert_many(self, many: List[Tuple[int, str, int, int]]):
+	def plans_insert_many(self, many: list[tuple[int, str, int, int]]):
 		self.call(
 			"insert",
 			"plans",
@@ -6526,7 +6526,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			dict(plan_id=plan_id, turn=turn, tick=tick),
 		)
 
-	def plan_ticks_insert_many(self, many: List[Tuple[int, int, int]]):
+	def plan_ticks_insert_many(self, many: list[tuple[int, int, int]]):
 		self.call(
 			"insert",
 			"plan_ticks",

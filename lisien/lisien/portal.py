@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, List, Tuple, Union
+from typing import Any
 
 from .allegedb import Key
 from .allegedb.graph import Edge
@@ -183,9 +183,7 @@ class Portal(Edge, RuleFollower):
 		"""
 		return StatusAlias(entity=self, stat=stat)
 
-	def update(
-		self, e: Union[Mapping, List[Tuple[Any, Any]]] = None, **f
-	) -> None:
+	def update(self, e: Mapping | list[tuple[Any, Any]] = None, **f) -> None:
 		"""Works like regular update, but less
 
 		Only actually updates when the new value and the old value differ.
