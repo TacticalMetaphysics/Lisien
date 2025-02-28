@@ -27,13 +27,8 @@ from threading import Lock, Thread
 from time import monotonic
 from typing import (
 	Any,
-	FrozenSet,
 	Hashable,
 	Iterator,
-	List,
-	Optional,
-	Tuple,
-	Union,
 )
 
 from sqlalchemy import MetaData, create_engine
@@ -47,18 +42,19 @@ from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 wrappath = os.path.dirname(wrap.__file__)
 
-Key = Union[str, int, float, Tuple["Key"], FrozenSet["Key"]]
-"""Type hint for things LiSE can use as keys
 
-They have to be serializable using LiSE's particular msgpack schema,
+Key = str | int | float | tuple["Key", ...] | frozenset["Key"]
+"""Type hint for things lisien can use as keys
+
+They have to be serializable using lisien's particular msgpack schema,
 as well as hashable.
 
 """
-NodeRowType = Tuple[Hashable, Hashable, str, int, int, bool]
-EdgeRowType = Tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
-GraphValRowType = Tuple[Hashable, Hashable, str, int, int, Any]
-NodeValRowType = Tuple[Hashable, Hashable, Hashable, str, int, int, Any]
-EdgeValRowType = Tuple[Hashable, Hashable, Hashable, int, str, int, int, Any]
+NodeRowType = tuple[Hashable, Hashable, str, int, int, bool]
+EdgeRowType = tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
+GraphValRowType = tuple[Hashable, Hashable, str, int, int, Any]
+NodeValRowType = tuple[Hashable, Hashable, Hashable, str, int, int, Any]
+EdgeValRowType = tuple[Hashable, Hashable, Hashable, int, str, int, int, Any]
 
 
 class TimeError(ValueError):
@@ -304,17 +300,17 @@ class AbstractQueryEngine:
 	@abstractmethod
 	def keyframes_dump(
 		self,
-	) -> Iterator[Tuple[Key, str, int, int, list, list]]:
+	) -> Iterator[tuple[Key, str, int, int, list, list]]:
 		pass
 
 	@abstractmethod
-	def keyframes_graphs(self) -> Iterator[Tuple[Key, str, int, int]]:
+	def keyframes_graphs(self) -> Iterator[tuple[Key, str, int, int]]:
 		pass
 
 	@abstractmethod
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int
-	) -> Tuple[list, list, list]:
+	) -> tuple[list, list, list]:
 		pass
 
 	@abstractmethod
@@ -330,7 +326,7 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def global_items(self) -> Iterator[Tuple[Key, Any]]:
+	def global_items(self) -> Iterator[tuple[Key, Any]]:
 		pass
 
 	@abstractmethod
@@ -441,13 +437,13 @@ class AbstractQueryEngine:
 		branch: str,
 		turn_from: int,
 		tick_from: int,
-		turn_to: Optional[int] = None,
-		tick_to: Optional[int] = None,
-	) -> Iterator[Tuple[Key, str, int, int, str]]:
+		turn_to: int = None,
+		tick_to: int = None,
+	) -> Iterator[tuple[Key, str, int, int, str]]:
 		pass
 
 	@abstractmethod
-	def graphs_dump(self) -> Iterator[Tuple[Key, str, int, int, str]]:
+	def graphs_dump(self) -> Iterator[tuple[Key, str, int, int, str]]:
 		pass
 
 	@abstractmethod
@@ -593,7 +589,7 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def plans_insert_many(self, many: List[Tuple[int, str, int, int]]):
+	def plans_insert_many(self, many: list[tuple[int, str, int, int]]):
 		pass
 
 	@abstractmethod
@@ -601,7 +597,7 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def plan_ticks_insert_many(self, many: List[Tuple[int, int, int]]):
+	def plan_ticks_insert_many(self, many: list[tuple[int, int, int]]):
 		pass
 
 	@abstractmethod
@@ -1370,7 +1366,7 @@ class QueryEngine(AbstractQueryEngine):
 
 	def load_nodes(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	) -> List[NodeRowType]:
+	) -> list[NodeRowType]:
 		return list(
 			self.iter_nodes(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
@@ -1554,7 +1550,7 @@ class QueryEngine(AbstractQueryEngine):
 
 	def load_edges(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	) -> List[EdgeRowType]:
+	) -> list[EdgeRowType]:
 		return list(
 			self.iter_edges(
 				graph, branch, turn_from, tick_from, turn_to, tick_to

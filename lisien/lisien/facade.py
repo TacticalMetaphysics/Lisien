@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict

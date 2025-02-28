@@ -82,7 +82,6 @@ from abc import ABC, abstractmethod
 from ast import parse
 from collections.abc import Hashable, MutableMapping, MutableSequence
 from functools import cached_property, partial
-from inspect import getsource
 from typing import Callable, Optional
 
 from astunparse import unparse

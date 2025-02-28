@@ -14,18 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data."""
 
-from __future__ import annotations
-
 from collections import OrderedDict, defaultdict, deque
 from itertools import chain, pairwise
 from sys import getsizeof, stderr
 from threading import RLock
-from typing import Hashable, Optional, Tuple
+from typing import Hashable
 
 from .window import (
 	EntikeySettingsTurnDict,
 	FuturistWindowDict,
-	HistoricKeyError,
 	SettingsTurnDict,
 	TurnDict,
 	WindowDict,
@@ -360,7 +357,7 @@ class Cache:
 			self.presettings,
 			self.keycache,
 		)
-		self._store_journal_stuff: Tuple[
+		self._store_journal_stuff: tuple[
 			PickyDefaultDict, PickyDefaultDict, callable
 		] = (self.settings, self.presettings, self._base_retrieve)
 
@@ -752,7 +749,7 @@ class Cache:
 		turn: int,
 		tick: int,
 		*,
-		stoptime: Tuple[str, int, int] = None,
+		stoptime: tuple[str, int, int] = None,
 		cache: dict = None,
 	):
 		"""Return a pair of sets describing changes to the entity's keys
@@ -1653,7 +1650,7 @@ class NodesCache(Cache):
 		branch: str
 		turn: int
 		tick: int
-		ex: Optional[bool]
+		ex: bool | None
 		graph, node, branch, turn, tick, ex = args
 		if not ex:
 			ex = None
@@ -1715,7 +1712,7 @@ class EdgesCache(Cache):
 		self.predecessors = StructuredDefaultDict(3, TurnDict)
 		self._origcache_lru = OrderedDict()
 		self._destcache_lru = OrderedDict()
-		self._get_destcache_stuff: Tuple[
+		self._get_destcache_stuff: tuple[
 			PickyDefaultDict,
 			OrderedDict,
 			callable,
@@ -1728,7 +1725,7 @@ class EdgesCache(Cache):
 			self.successors,
 			self._adds_dels_successors,
 		)
-		self._get_origcache_stuff: Tuple[
+		self._get_origcache_stuff: tuple[
 			PickyDefaultDict,
 			OrderedDict,
 			callable,
@@ -1835,7 +1832,7 @@ class EdgesCache(Cache):
 		turn: int,
 		tick: int,
 		*,
-		stoptime: Tuple[str, int, int] = None,
+		stoptime: tuple[str, int, int] = None,
 		cache: dict = None,
 	):
 		graph, orig = parentity
@@ -1885,7 +1882,7 @@ class EdgesCache(Cache):
 		turn: int,
 		tick: int,
 		*,
-		stoptime: Tuple[str, int, int] = None,
+		stoptime: tuple[str, int, int] = None,
 		cache: dict = None,
 	):
 		graph, dest = parentity

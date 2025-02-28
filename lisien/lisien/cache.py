@@ -17,17 +17,16 @@ from itertools import chain
 from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
-from typing import Tuple
 
-from .allegedb import PickyDefaultDict
+from .allegedb import PickyDefaultDict, Key
 from .allegedb.cache import (
 	Cache,
 	EntitylessCache,
 	KeyframeError,
 	StructuredDefaultDict,
 )
-from .allegedb.window import Direction, SettingsTurnDict, WindowDict
-from .util import Key, sort_set
+from .allegedb.window import Direction, SettingsTurnDict
+from .util import sort_set
 
 
 class InitializedCache(Cache):
@@ -90,7 +89,7 @@ class PortalsRulebooksCache(InitializedCache):
 
 	def set_keyframe(
 		self,
-		graph_ent: Tuple[Key],
+		graph_ent: tuple[Key],
 		branch: str,
 		turn: int,
 		tick: int,
