@@ -335,7 +335,6 @@ def test_change_triggers(polys):
 		eng.trigger.dissimilar_neighbors,
 	]
 	relocate.triggers = ["dissimilar_neighbors"]
-	eng.close()
 	procman.shutdown()
 	with Engine(polys, workers=0) as eng:
 		assert list(
