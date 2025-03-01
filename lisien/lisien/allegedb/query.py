@@ -36,14 +36,16 @@ from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import Select
 
-from . import wrap, TimeError, Key
+from .exc import TimeError
 from .typing import (
+	Key,
 	NodeRowType,
 	EdgeRowType,
 	GraphValRowType,
 	NodeValRowType,
 	EdgeValRowType,
 )
+from . import wrap
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 wrappath = os.path.dirname(wrap.__file__)
