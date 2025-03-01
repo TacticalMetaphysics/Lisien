@@ -63,6 +63,7 @@ from sqlalchemy.sql.functions import func
 import lisien
 
 from .alchemy import gather_sql, meta
+from .allegedb import garbage
 from .allegedb.query import (
 	AbstractQueryEngine,
 	ConnectionHolder,
@@ -4994,6 +4995,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		for d in self.call("dump", "turns"):
 			yield d["branch"], d["turn"], d["end_tick"], d["plan_end_tick"]
 
+	@garbage
 	def flush(self):
 		with self._holder.lock:
 			records = sum(
@@ -5078,7 +5080,6 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			self._new_keyframe_extensions()
 
 		assert self.echo("flushed") == "flushed"
-		gc.collect()
 
 	def universals_dump(self) -> Iterator[tuple[Key, str, int, int, Any]]:
 		unpack = self.unpack
