@@ -3777,7 +3777,7 @@ class ParquetDBHolder(ConnectionHolder):
 		outq = self._outq
 		while True:
 			inst = inq.get()
-			if inst == "shutdown":
+			if inst == "close":
 				self.close()
 				return
 			if inst == "commit":
@@ -3884,7 +3884,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			ret, branch, turn_from, tick_from, turn_to, tick_to
 		)
 		unpack = self.unpack
-		assert self._outq.get() == (
+		outq = self._outq
+		assert outq.get() == (
 			"begin",
 			"things",
 			branch,
@@ -3893,12 +3894,14 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, node, turn, tick, loc in got:
 				(graph, node, loc) = map(unpack, (graph, node, loc))
 				ret[graph]["things"].append(
 					(graph, node, branch, turn, tick, loc)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"things",
@@ -3908,7 +3911,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"character_rulebook",
 			branch,
@@ -3917,12 +3921,14 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["character_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"character_rulebook",
@@ -3932,7 +3938,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"unit_rulebook",
 			branch,
@@ -3941,12 +3948,14 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["unit_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"unit_rulebook",
@@ -3956,7 +3965,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"character_thing_rulebook",
 			branch,
@@ -3965,12 +3975,14 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["character_thing_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"character_thing_rulebook",
@@ -3980,7 +3992,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"character_place_rulebook",
 			branch,
@@ -3989,12 +4002,14 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["character_place_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"character_place_rulebook",
@@ -4004,7 +4019,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"character_portal_rulebook",
 			branch,
@@ -4013,12 +4029,14 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
 				ret[graph]["character_portal_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"character_portal_rulebook",
@@ -4028,7 +4046,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"node_rulebook",
 			branch,
@@ -4037,12 +4056,14 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, node, turn, tick, rb in got:
 				(graph, node, rb) = map(unpack, (graph, node, rb))
 				ret[graph]["node_rulebook"].append(
 					(graph, node, branch, turn, tick, rb)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"node_rulebook",
@@ -4052,7 +4073,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"portal_rulebook",
 			branch,
@@ -4061,12 +4083,14 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, orig, dest, turn, tick, rb in got:
 				(graph, orig, dest, rb) = map(unpack, (graph, orig, dest, rb))
 				ret[graph]["portal_rulebook"].append(
 					(graph, orig, dest, branch, turn, tick, rb)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"portal_rulebook",
@@ -4076,7 +4100,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"universals",
 			branch,
@@ -4085,13 +4110,15 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for key, turn, tick, val in got:
 				(key, val) = map(unpack, (key, val))
 				if "universals" in ret:
 					ret["universals"].append((key, branch, turn, tick, val))
 				else:
 					ret["universals"] = [(key, branch, turn, tick, val)]
+			outq.task_done()
 		assert got == (
 			"end",
 			"universals",
@@ -4101,7 +4128,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"rulebooks",
 			branch,
@@ -4110,7 +4138,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for rulebook, turn, tick, rules, priority in got:
 				(rulebook, rules) = map(unpack, (rulebook, rules))
 				if "rulebooks" in ret:
@@ -4121,6 +4150,7 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 					ret["rulebooks"] = [
 						(rulebook, branch, turn, tick, (rules, priority))
 					]
+			outq.task_done()
 		assert got == (
 			"end",
 			"rulebooks",
@@ -4130,7 +4160,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"rule_triggers",
 			branch,
@@ -4139,7 +4170,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, triggers in got:
 				triggers = unpack(triggers)
 				if "rule_triggers" in ret:
@@ -4150,6 +4182,7 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 					ret["rule_triggers"] = [
 						(rule, branch, turn, tick, triggers)
 					]
+			outq.task_done()
 		assert got == (
 			"end",
 			"rule_triggers",
@@ -4159,7 +4192,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"rule_prereqs",
 			branch,
@@ -4168,7 +4202,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, prereqs in got:
 				prereqs = unpack(prereqs)
 				if "rule_prereqs" in ret:
@@ -4177,6 +4212,7 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 					)
 				else:
 					ret["rule_prereqs"] = [(rule, branch, turn, tick, prereqs)]
+			outq.task_done()
 		assert got == (
 			"end",
 			"rule_prereqs",
@@ -4186,7 +4222,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"rule_actions",
 			branch,
@@ -4195,7 +4232,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, actions in got:
 				actions = unpack(actions)
 				if "rule_actions" in ret:
@@ -4204,6 +4242,7 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 					)
 				else:
 					ret["rule_actions"] = [(rule, branch, turn, tick, actions)]
+			outq.task_done()
 		assert got == (
 			"end",
 			"rule_actions",
@@ -4213,7 +4252,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"rule_neighborhoods",
 			branch,
@@ -4222,7 +4262,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, neighborhoods in got:
 				neighborhoods = unpack(neighborhoods)
 				if "rule_neighborhoods" in ret:
@@ -4233,6 +4274,7 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 					ret["rule_neighborhoods"] = [
 						(rule, branch, turn, tick, neighborhoods)
 					]
+			outq.task_done()
 		assert got == (
 			"end",
 			"rule_neighborhoods",
@@ -4242,7 +4284,8 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"rule_big",
 			branch,
@@ -4251,12 +4294,14 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, big in got:
 				if "rule_big" in ret:
 					ret["rule_big"].append((rule, branch, turn, tick, big))
 				else:
 					ret["rule_big"] = [(rule, branch, turn, tick, big)]
+			outq.task_done()
 		assert got == (
 			"end",
 			"rule_big",
@@ -4266,6 +4311,7 @@ class AbstractLisienQueryEngine(AbstractQueryEngine):
 			turn_to,
 			tick_to,
 		), got
+		outq.task_done()
 
 	@abstractmethod
 	def universals_dump(self) -> Iterator[tuple[Key, str, int, int, Any]]:
@@ -4785,7 +4831,9 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			self._inq.put((method, args, kwargs))
 			ret = self._outq.get()
 			if isinstance(ret, Exception):
+				self._outq.task_done()
 				raise ret
+			self._outq.task_done()
 			return ret
 
 	def call_silent(self, method, *args, **kwargs):
@@ -6628,6 +6676,9 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 
 	def close(self):
 		self._inq.put("close")
+		self._holder.existence_lock.acquire()
+		self._holder.existence_lock.release()
+		self._t.join()
 
 	def commit(self):
 		self.flush()
