@@ -97,7 +97,6 @@ from .util import (
 )
 from .xcollections import (
 	FunctionStore,
-	MethodStore,
 	StringStore,
 	UniversalMapping,
 )
@@ -147,7 +146,7 @@ class DummyEntity(dict):
 
 	__slots__ = ["engine"]
 
-	def __init__(self, engine: "AbstractEngine"):
+	def __init__(self, engine: AbstractEngine):
 		super().__init__()
 		self.engine = engine
 
@@ -1619,7 +1618,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		return delt
 
 	def _get_slow_delta(
-		self, btt_from: Tuple[str, int, int], btt_to: Tuple[str, int, int]
+		self, btt_from: tuple[str, int, int], btt_to: tuple[str, int, int]
 	) -> SlightlyPackedDeltaType:
 		def newgraph():
 			return {
@@ -1638,7 +1637,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				),
 			}
 
-		delta: Dict[bytes, Any] = {
+		delta: dict[bytes, Any] = {
 			UNIVERSAL: PickyDefaultDict(bytes),
 			RULES: StructuredDefaultDict(1, bytes),
 			RULEBOOK: PickyDefaultDict(bytes),
@@ -2427,8 +2426,8 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _snap_keyframe_from_delta(
 		self,
-		then: Tuple[str, int, int],
-		now: Tuple[str, int, int],
+		then: tuple[str, int, int],
+		now: tuple[str, int, int],
 		delta: DeltaDict,
 	) -> None:
 		if then == now:
@@ -3028,8 +3027,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		handled_fun(self.tick)
 		return actres
 
-	def _get_place_neighbors(self, charn: Key, name: Key) -> Set[Key]:
-		seen: Set[Key] = set()
+	def _get_place_neighbors(self, charn: Key, name: Key) -> set[Key]:
+		seen: set[Key] = set()
 		for succ in self._edges_cache.iter_successors(
 			charn, name, *self._btt()
 		):
@@ -3040,7 +3039,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			seen.add(pred)
 		return seen
 
-	def _get_place_contents(self, charn: Key, name: Key) -> Set[Key]:
+	def _get_place_contents(self, charn: Key, name: Key) -> set[Key]:
 		try:
 			return self._node_contents_cache.retrieve(
 				charn, name, *self._btt()
@@ -3050,7 +3049,7 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _iter_place_portals(
 		self, charn: Key, name: Key
-	) -> Iterator[Tuple[Key, Key]]:
+	) -> Iterator[tuple[Key, Key]]:
 		now = self._btt()
 		for dest in self._edges_cache.iter_successors(charn, name, *now):
 			yield (name, dest)
@@ -3059,7 +3058,7 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _get_thing_location_tup(
 		self, charn: Key, name: Key
-	) -> Union[(), Tuple[Key, Key]]:
+	) -> tuple[Key, Key] | ():
 		try:
 			return (self._things_cache.retrieve(charn, name, *self._btt()),)
 		except KeyError:
@@ -3067,9 +3066,9 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _get_neighbors(
 		self,
-		entity: Union[place_cls, thing_cls, portal_cls],
-		neighborhood: Optional[int],
-	) -> Optional[List[Union[Tuple[Key], Tuple[Key, Key]]]]:
+		entity: place_cls | thing_cls | portal_cls,
+		neighborhood: int | None,
+	) -> list[tuple[Key] | tuple[Key, Key]] | None:
 		"""Get a list of neighbors within the neighborhood
 
 		Neighbors are given by a tuple containing only their name,
@@ -3567,7 +3566,7 @@ class Engine(AbstractEngine, gORM, Executor):
 	def add_character(
 		self,
 		name: Key,
-		data: Union[Graph, DiGraph] = None,
+		data: Graph | DiGraph = None,
 		layout: bool = False,
 		node: dict = None,
 		edge: dict = None,
@@ -3919,9 +3918,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			and tick in self._things_cache.keyframe[graph,][branch][turn]
 		)
 
-	def turns_when(
-		self, qry: Query, mid_turn=False
-	) -> Union[QueryResult, set]:
+	def turns_when(self, qry: Query, mid_turn=False) -> QueryResult | set:
 		"""Return the turns when the query held true
 
 		Only the state of the world at the end of the turn is considered.
@@ -4028,14 +4025,14 @@ class Engine(AbstractEngine, gORM, Executor):
 			else:
 				return set()
 
-	def _node_contents(self, character: Key, node: Key) -> Set:
+	def _node_contents(self, character: Key, node: Key) -> set:
 		return self._node_contents_cache.retrieve(
 			character, node, *self._btt()
 		)
 
 	def apply_choices(
-		self, choices: List[dict], dry_run=False, perfectionist=False
-	) -> Tuple[List[Tuple[Any, Any]], List[Tuple[Any, Any]]]:
+		self, choices: list[dict], dry_run=False, perfectionist=False
+	) -> tuple[list[tuple[Any, Any]], list[tuple[Any, Any]]]:
 		"""Validate changes a player wants to make, and apply if acceptable.
 
 		Argument ``choices`` is a list of dictionaries, of which each must
