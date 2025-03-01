@@ -1629,8 +1629,7 @@ class ParquetDBHolder(ConnectionHolder):
 	def _get_schema(self, table):
 		if table in self._schema:
 			return self._schema[table]
-		spec = [("id", pa.int64())] + self.schema[table]
-		ret = self._schema[table] = pa.schema(spec)
+		ret = self._schema[table] = pa.schema(self.schema[table])
 		return ret
 
 	def set_global(self, key: bytes, value: bytes):
