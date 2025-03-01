@@ -1418,7 +1418,7 @@ class ParquetDBHolder(ConnectionHolder):
 	def initdb(self):
 		initial = self.initial
 		for table, schema in self.schema.items():
-			schema = self._schema[table] = pa.schema(schema)
+			schema = self._get_schema(table)
 			db = self._get_db(table)
 			if db.dataset_exists():
 				continue
@@ -1641,7 +1641,7 @@ class ParquetDBHolder(ConnectionHolder):
 				[{"key": key, "value": value}],
 				schema=schema,
 			)
-		return db.update([{"id": id_, "value": value}], schema=schema)
+		return db.update([{"id": id_.as_py(), "value": value}])
 
 	def global_keys(self):
 		return [
