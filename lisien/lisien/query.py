@@ -1641,7 +1641,7 @@ class ParquetDBHolder(ConnectionHolder):
 				[{"key": key, "value": value}],
 				schema=schema,
 			)
-		return db.update([{"id": id_.as_py(), "value": value}])
+		return db.update([{"id": id_, "value": value}])
 
 	def global_keys(self):
 		return [
@@ -1657,7 +1657,7 @@ class ParquetDBHolder(ConnectionHolder):
 	def filter_get_id(self, table, filters):
 		ret = self._get_db(table).read(filters=filters, columns=["id"])
 		if ret:
-			return ret["id"][0]
+			return ret["id"][0].as_py()
 
 	def update_branch(
 		self,
