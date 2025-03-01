@@ -117,7 +117,7 @@ class ELiDEApp(App):
 	)
 
 	def _pull_time(self, *_):
-		if not self.engine:
+		if not hasattr(self, "engine"):
 			Clock.schedule_once(self._pull_time, 0)
 			return
 		branch, turn, tick = self.engine._btt()
