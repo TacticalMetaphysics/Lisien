@@ -20,7 +20,7 @@ import sys
 from functools import partial
 from threading import Thread
 
-from lisien.allegedb import OutOfTimelineError
+from lisien.allegedb.exc import OutOfTimelineError
 
 if "KIVY_NO_ARGS" not in os.environ:
 	os.environ["KIVY_NO_ARGS"] = "1"
@@ -295,7 +295,7 @@ class ELiDEApp(App):
 			"threaded_triggers": False,
 			"do_game_start": getattr(self, "do_game_start", False),
 		}
-		workers = config["lisien"].get("workers", '')
+		workers = config["lisien"].get("workers", "")
 		if workers:
 			enkw["workers"] = workers
 		if config["lisien"].get("logfile"):
