@@ -126,9 +126,9 @@ class MockEngine(Signal):
 
 
 class ELiDEAppTest(GraphicUnitTest):
-	def __init__(self, methodName):
-		super().__init__(methodName)
-		self.prefix = mkdtemp()
+	@classmethod
+	def setUpClass(cls):
+		cls.prefix = mkdtemp()
 
 	def setUp(self):
 		super(ELiDEAppTest, self).setUp()
@@ -143,4 +143,7 @@ class ELiDEAppTest(GraphicUnitTest):
 		super().tearDown(fake=fake)
 		self.app.stop()
 		sys.argv = self.old_argv
-		shutil.rmtree(self.prefix)
+
+	@classmethod
+	def tearDownClass(cls):
+		shutil.rmtree(cls.prefix)
