@@ -1735,7 +1735,7 @@ class ParquetDBHolder(ConnectionHolder):
 		return self._get_db("turns").update(
 			[
 				{
-					"id": id_.as_py(),
+					"id": id_,
 					"end_tick": end_tick,
 					"plan_end_tick": plan_end_tick,
 				}
