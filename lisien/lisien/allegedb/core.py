@@ -14,9 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM"""
 
-import gc
 from contextlib import ContextDecorator, contextmanager
 from functools import wraps
+import gc
 from itertools import chain, pairwise
 from threading import RLock
 from typing import Any, Iterator, Callable
@@ -64,6 +64,52 @@ NodesDict = dict[Key, bool]
 GraphNodesDict = dict[Key, NodesDict]
 EdgesDict = dict[Key, dict[Key, bool]]
 GraphEdgesDict = dict[Key, EdgesDict]
+
+
+def garbage(arg: callable = None, collect=True):
+	"""Disable the garbage collector, then re-enable it when done.
+
+	May be used as a context manager or a decorator.
+
+	:param collect: Whether to immediately run a collection after re-enabling
+		the garbage collector. Default ``True``.
+
+	"""
+
+	@contextmanager
+	def garbage_ctx(collect=True):
+		"""Context manager to disable the garbage collector
+
+		:param collect: Whether to immediately collect garbage upon context exit
+
+		"""
+		gc_was_active = gc.isenabled()
+		if gc_was_active:
+			gc.disable()
+		yield
+		if gc_was_active:
+			gc.enable()
+		if collect:
+			gc.collect()
+
+	def garbage_dec(fn: callable, collect=True) -> callable:
+		"""Decorator to disable the garbage collector for a function
+
+		:param collect: Whether to immediately collect garbage when the function returns
+
+		"""
+
+		@wraps(fn)
+		def garbage(*args, **kwargs):
+			with garbage_ctx(collect=collect):
+				return fn(*args, **kwargs)
+
+		return garbage
+
+	if arg is None:
+		return garbage_ctx(collect=collect)
+	else:
+		return garbage_dec(arg, collect=collect)
 
 
 def world_locked(fn: callable) -> callable:
@@ -503,13 +549,8 @@ class ORM:
 			yield
 			return
 		self._no_kc = True
-		gc_was_active = gc.isenabled()
-		if gc_was_active:
-			gc.disable()
-		yield
-		if gc_was_active:
-			gc.enable()
-			gc.collect()
+		with garbage():
+			yield
 		self._no_kc = False
 
 	def _arrange_caches_at_time(
@@ -2025,10 +2066,8 @@ class ORM:
 	def _load_at(self, branch: str, turn: int, tick: int) -> None:
 		if self._time_is_loaded(branch, turn, tick):
 			return
-		gc.disable()
-		self._load(*self._read_at(branch, turn, tick))
-		gc.enable()
-		gc.collect()
+		with garbage():
+			self._load(*self._read_at(branch, turn, tick))
 
 	def _load(
 		self,
@@ -2210,7 +2249,6 @@ class ORM:
 			for cache in caches:
 				cache.remove_branch(branch)
 			del loaded[branch]
-		gc.collect()
 
 	def _time_is_loaded(
 		self, branch: str, turn: int = None, tick: int = None
