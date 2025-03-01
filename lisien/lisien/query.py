@@ -5079,7 +5079,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 			self._new_keyframes()
 			self._new_keyframe_extensions()
 
-		assert self.echo("flushed") == "flushed"
+			assert self.echo("flushed") == "flushed"
 
 	def universals_dump(self) -> Iterator[tuple[Key, str, int, int, Any]]:
 		unpack = self.unpack
