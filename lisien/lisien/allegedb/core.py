@@ -15,6 +15,7 @@
 """The main interface to the allegedb ORM"""
 
 from contextlib import ContextDecorator, contextmanager
+from functools import partial
 from itertools import chain, pairwise
 from threading import RLock
 from typing import Any, Iterator, Callable
@@ -599,8 +600,6 @@ class ORM:
 				graphstat.setdefault("edge_val", {}).setdefault(
 					orig, {}
 				).setdefault(dest, {})[key] = value
-
-		from functools import partial
 
 		if turn_from == turn_to:
 			return self._get_turn_delta(branch, turn_from, tick_from, tick_to)
