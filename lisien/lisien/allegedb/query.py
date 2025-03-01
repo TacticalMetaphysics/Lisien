@@ -262,7 +262,9 @@ class AbstractQueryEngine:
 
 	def echo(self, string: str) -> str:
 		self._inq.put(("echo", string))
-		return self._outq.get()
+		ret = self._outq.get()
+		self._outq.task_done()
+		return ret
 
 	@abstractmethod
 	def new_graph(
@@ -618,7 +620,8 @@ class AbstractQueryEngine:
 		self, ret, branch, turn_from, tick_from, turn_to, tick_to
 	):
 		unpack = self.unpack
-		assert (got := self._outq.get()) == (
+		outq = self._outq
+		assert (got := outq.get()) == (
 			"begin",
 			"nodes",
 			branch,
@@ -627,12 +630,14 @@ class AbstractQueryEngine:
 			turn_to,
 			tick_to,
 		), got
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, node, turn, tick, ex in got:
 				(graph, node) = map(unpack, (graph, node))
 				ret[graph]["nodes"].append(
 					(graph, node, branch, turn, tick, ex or None)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"nodes",
@@ -644,7 +649,8 @@ class AbstractQueryEngine:
 		), (
 			f"{got} != {('end', 'nodes', branch, turn_from, tick_from, turn_to, tick_to)}"
 		)
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"edges",
 			branch,
@@ -653,7 +659,8 @@ class AbstractQueryEngine:
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, orig, dest, idx, turn, tick, ex in got:
 				(graph, orig, dest) = map(unpack, (graph, orig, dest))
 				ret[graph]["edges"].append(
@@ -668,6 +675,7 @@ class AbstractQueryEngine:
 						ex or None,
 					)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"edges",
@@ -677,7 +685,8 @@ class AbstractQueryEngine:
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"graph_val",
 			branch,
@@ -686,12 +695,14 @@ class AbstractQueryEngine:
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, key, turn, tick, val in got:
 				(graph, key, val) = map(unpack, (graph, key, val))
 				ret[graph]["graph_val"].append(
 					(graph, key, branch, turn, tick, val)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"graph_val",
@@ -701,7 +712,8 @@ class AbstractQueryEngine:
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"node_val",
 			branch,
@@ -710,12 +722,14 @@ class AbstractQueryEngine:
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, node, key, turn, tick, val in got:
 				(graph, node, key, val) = map(unpack, (graph, node, key, val))
 				ret[graph]["node_val"].append(
 					(graph, node, key, branch, turn, tick, val)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"node_val",
@@ -725,7 +739,8 @@ class AbstractQueryEngine:
 			turn_to,
 			tick_to,
 		), got
-		assert self._outq.get() == (
+		outq.task_done()
+		assert outq.get() == (
 			"begin",
 			"edge_val",
 			branch,
@@ -734,7 +749,8 @@ class AbstractQueryEngine:
 			turn_to,
 			tick_to,
 		)
-		while isinstance(got := self._outq.get(), list):
+		outq.task_done()
+		while isinstance(got := outq.get(), list):
 			for graph, orig, dest, idx, key, turn, tick, val in got:
 				(graph, orig, dest, key, val) = map(
 					unpack, (graph, orig, dest, key, val)
@@ -752,6 +768,7 @@ class AbstractQueryEngine:
 						val,
 					)
 				)
+			outq.task_done()
 		assert got == (
 			"end",
 			"edge_val",
@@ -761,6 +778,7 @@ class AbstractQueryEngine:
 			turn_to,
 			tick_to,
 		), got
+		outq.task_done()
 
 	_infixes2load = [
 		"nodes",
