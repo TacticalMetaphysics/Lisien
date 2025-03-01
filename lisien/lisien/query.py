@@ -1766,7 +1766,7 @@ class ParquetDBHolder(ConnectionHolder):
 					pc.field("turn") == turn,
 				],
 			)["id"][0]
-			db.update({"id": id_, "branch": branch, "turn": turn})
+			db.update({"id": id_.as_py(), "branch": branch, "turn": turn})
 		except IndexError:
 			db.create({"branch": branch, "turn": turn})
 
@@ -3148,7 +3148,7 @@ class ParquetDBHolder(ConnectionHolder):
 		)
 		if id_ is None:
 			return
-		self._get_db(table).delete([id_])
+		self._get_db(table).delete([id_.as_py()])
 
 	def nodes_del_time(self, branch: str, turn: int, tick: int):
 		self._del_time("nodes", branch, turn, tick)
