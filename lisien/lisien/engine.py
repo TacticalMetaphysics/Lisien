@@ -54,16 +54,16 @@ from networkx import (
 )
 
 from . import exc
-from .allegedb import ORM as gORM
 from .allegedb import (
-	DeltaDict,
-	EdgeValDict,
-	Key,
-	KeyframeTuple,
-	NodeValDict,
-	OutOfTimelineError,
-	StatDict,
+	ORM as gORM,
 	world_locked,
+	Key,
+	StatDict,
+	NodeValDict,
+	EdgeValDict,
+	DeltaDict,
+	KeyframeTuple,
+	OutOfTimelineError,
 )
 from .allegedb.cache import (
 	KeyframeError,

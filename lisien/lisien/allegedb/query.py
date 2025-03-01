@@ -27,7 +27,6 @@ from threading import Lock, Thread
 from time import monotonic
 from typing import (
 	Any,
-	Hashable,
 	Iterator,
 )
 
@@ -37,28 +36,17 @@ from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import Select
 
-from . import wrap
+from . import wrap, TimeError, Key
+from .typing import (
+	NodeRowType,
+	EdgeRowType,
+	GraphValRowType,
+	NodeValRowType,
+	EdgeValRowType,
+)
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 wrappath = os.path.dirname(wrap.__file__)
-
-
-Key = str | int | float | tuple["Key", ...] | frozenset["Key"]
-"""Type hint for things lisien can use as keys
-
-They have to be serializable using lisien's particular msgpack schema,
-as well as hashable.
-
-"""
-NodeRowType = tuple[Hashable, Hashable, str, int, int, bool]
-EdgeRowType = tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
-GraphValRowType = tuple[Hashable, Hashable, str, int, int, Any]
-NodeValRowType = tuple[Hashable, Hashable, Hashable, str, int, int, Any]
-EdgeValRowType = tuple[Hashable, Hashable, Hashable, int, str, int, int, Any]
-
-
-class TimeError(ValueError):
-	"""Exception class for problems with the time model"""
 
 
 class GlobalKeyValueStore(MutableMapping):

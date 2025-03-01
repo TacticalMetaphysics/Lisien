@@ -55,19 +55,23 @@ import numpy as np
 from blinker import Signal
 from tblib import Traceback
 
+import lisien.allegedb.exc
+import lisien.allegedb.typing
 from . import allegedb, exc
 from .allegedb.cache import SizedDict
 from .allegedb.graph import DiGraph, Edge, Node
-from .allegedb.query import Key
+from .allegedb import Key
 from .allegedb.window import HistoricKeyError
 from .exc import TravelException
 
 
 class KeyClass:
-	def __new__(cls, that: allegedb.Key) -> allegedb.Key:
+	def __new__(
+		cls, that: lisien.allegedb.typing.Key
+	) -> lisien.allegedb.typing.Key:
 		return that
 
-	def __instancecheck__(cls, instance: allegedb.Key) -> bool:
+	def __instancecheck__(cls, instance: lisien.allegedb.typing.Key) -> bool:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
@@ -582,7 +586,7 @@ class AbstractEngine(ABC):
 			"WorldIntegrityError": exc.WorldIntegrityError,
 			"CacheError": exc.CacheError,
 			"TravelException": exc.TravelException,
-			"OutOfTimelineError": allegedb.OutOfTimelineError,
+			"OutOfTimelineError": lisien.allegedb.exc.OutOfTimelineError,
 			"HistoricKeyError": HistoricKeyError,
 			"NotInKeyframeError": allegedb.cache.NotInKeyframeError,
 			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,

@@ -18,7 +18,8 @@ from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
 
-from .allegedb import PickyDefaultDict, Key
+from .allegedb import PickyDefaultDict
+from .allegedb.typing import Key
 from .allegedb.cache import (
 	Cache,
 	EntitylessCache,
