@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Set
+from collections.abc import Set, Mapping
 from concurrent.futures import Future
 from contextlib import contextmanager
 from enum import Enum
@@ -44,12 +44,8 @@ from types import FunctionType, MethodType
 from typing import (
 	Any,
 	Callable,
-	Dict,
-	FrozenSet,
 	Hashable,
 	Iterable,
-	Mapping,
-	Tuple,
 	Union,
 )
 
@@ -62,6 +58,7 @@ from tblib import Traceback
 from . import allegedb, exc
 from .allegedb.cache import SizedDict
 from .allegedb.graph import DiGraph, Edge, Node
+from .allegedb.query import Key
 from .allegedb.window import HistoricKeyError
 from .exc import TravelException
 
@@ -640,7 +637,6 @@ class AbstractEngine(ABC):
 			MsgpackExtensionType.place.value: unpack_place,
 			MsgpackExtensionType.thing.value: unpack_thing,
 			MsgpackExtensionType.portal.value: unpack_portal,
-			MsgpackExtensionType.final_rule.value: lambda obj: final_rule,
 			MsgpackExtensionType.tuple.value: lambda ext: tuple(unpacker(ext)),
 			MsgpackExtensionType.frozenset.value: lambda ext: frozenset(
 				unpacker(ext)
@@ -706,7 +702,7 @@ class AbstractEngine(ABC):
 		n: int,
 		d: int,
 		target: int,
-		comparator: Union[str, Callable] = "<=",
+		comparator: str | Callable = "<=",
 	) -> bool:
 		"""Roll ``n`` dice with ``d`` sides, sum them, and compare
 
@@ -716,7 +712,7 @@ class AbstractEngine(ABC):
 		"""
 		from operator import eq, ge, gt, le, lt, ne
 
-		comps: Dict[str, Callable] = {
+		comps: dict[str, Callable] = {
 			">": gt,
 			"<": lt,
 			">=": ge,
