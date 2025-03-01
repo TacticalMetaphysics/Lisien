@@ -475,8 +475,6 @@ class Engine(AbstractEngine, gORM, Executor):
 				if clear and os.path.exists(fn):
 					os.remove(fn)
 		self.schema = schema_cls(self)
-		if connect_string:
-			connect_string = connect_string.split("sqlite:///")[-1]
 		super().__init__(
 			connect_string or os.path.join(prefix, "world.db"),
 			clear=clear,
