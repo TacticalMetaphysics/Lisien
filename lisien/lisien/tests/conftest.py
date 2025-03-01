@@ -74,7 +74,7 @@ def engy(tmp_path, request):
 		kwargs["threaded_triggers"] = False
 		kwargs["workers"] = 0
 	if database == "sqlite":
-		kwargs["connect_string"] = f"sqlite://{tmp_path}/world.sqlite3"
+		kwargs["connect_string"] = f"sqlite:///{tmp_path}/world.sqlite3"
 	with Engine(tmp_path, **kwargs) as eng:
 		yield eng
 
