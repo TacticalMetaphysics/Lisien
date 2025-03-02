@@ -1054,7 +1054,11 @@ class QueryEngine(AbstractQueryEngine):
 		try:
 			return self.call_one("global_insert", key, value)
 		except IntegrityError:
-			return self.call_one("global_update", value, key)
+			try:
+				return self.call_one("global_update", value, key)
+			except IntegrityError:
+				self.commit()
+				return self.call_one("global_update", value, key)
 
 	def global_del(self, key):
 		"""Delete the global record for the key."""
@@ -1103,9 +1107,25 @@ class QueryEngine(AbstractQueryEngine):
 				end_tick,
 			)
 		except IntegrityError:
-			self.update_branch(
-				branch, parent, parent_turn, parent_tick, end_turn, end_tick
-			)
+			try:
+				self.update_branch(
+					branch,
+					parent,
+					parent_turn,
+					parent_tick,
+					end_turn,
+					end_tick,
+				)
+			except IntegrityError:
+				self.commit()
+				self.update_branch(
+					branch,
+					parent,
+					parent_turn,
+					parent_tick,
+					end_turn,
+					end_tick,
+				)
 
 	def new_turn(self, branch, turn, end_tick=0, plan_end_tick=0):
 		return self.call_one(
@@ -1131,7 +1151,11 @@ class QueryEngine(AbstractQueryEngine):
 		try:
 			return self.call_one("turns_completed_insert", branch, turn)
 		except IntegrityError:
-			return self.call_one("turns_completed_update", turn, branch)
+			try:
+				return self.call_one("turns_completed_update", turn, branch)
+			except IntegrityError:
+				self.commit()
+				return self.call_one("turns_completed_update", turn, branch)
 
 	def turns_dump(self):
 		return self.call_one("turns_dump")

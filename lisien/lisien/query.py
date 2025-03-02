@@ -7841,9 +7841,15 @@ class SQLAlchemyQueryEngine(QueryEngine, AbstractLisienQueryEngine):
 			)
 			self._increc()
 		except IntegrityError:
-			self.call_one(
-				"rulebooks_update", rules, rulebook, branch, turn, tick
-			)
+			try:
+				self.call_one(
+					"rulebooks_update", rules, rulebook, branch, turn, tick
+				)
+			except IntegrityError:
+				self.commit()
+				self.call_one(
+					"rulebooks_update", rules, rulebook, branch, turn, tick
+				)
 
 	def turns_completed_dump(self):
 		return self.call_one("turns_completed_dump")
@@ -7852,7 +7858,11 @@ class SQLAlchemyQueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		try:
 			self.call_one("turns_completed_insert", branch, turn)
 		except IntegrityError:
-			self.call_one("turns_completed_update", turn, branch)
+			try:
+				self.call_one("turns_completed_update", turn, branch)
+			except IntegrityError:
+				self.commit()
+				self.call_one("turns_completed_update", turn, branch)
 		self._increc()
 		if discard_rules:
 			self._char_rules_handled = []
