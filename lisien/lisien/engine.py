@@ -680,26 +680,17 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _reimport_trigger_functions(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		payload = zlib.compress(self.pack((-1, "_reimport_triggers", (), {})))
-		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
-			with lock:
-				pipe.send_bytes(payload)
+		self._call_every_subproxy("_reimport_triggers")
 
 	def _reimport_worker_functions(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		payload = zlib.compress(self.pack((-1, "_reimport_functions", (), {})))
-		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
-			with lock:
-				pipe.send_bytes(payload)
+		self._call_every_subproxy("_reimport_functions")
 
 	def _reimport_worker_methods(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		payload = zlib.compress(self.pack((-1, "_reimport_methods", (), {})))
-		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
-			with lock:
-				pipe.send_bytes(payload)
+		self._call_every_subproxy("_reimport_methods")
 
 	def _get_worker_kf_payload(self, uid: int = -1) -> bytes:
 		# I'm not using the uid at the moment, because this doesn't return anything
