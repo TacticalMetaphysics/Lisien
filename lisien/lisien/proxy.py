@@ -2646,10 +2646,15 @@ class EngineProxy(AbstractEngine):
 		self._initialized = False
 		self._eternal_cache = eternal
 		self.function._cache = functions
+		self.function.reimport()
 		self.method._cache = methods
+		self.method.reimport()
 		self.trigger._cache = triggers
+		self.trigger.reimport()
 		self.prereq._cache = prereqs
+		self.prereq.reimport()
 		self.action._cache = actions
+		self.action.reimport()
 		self._replace_state_with_kf(start_kf)
 		self._branch = branch
 		self._turn = turn
