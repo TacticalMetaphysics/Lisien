@@ -498,6 +498,118 @@ class ORM:
 								(graph, node, dest, stat, branch, turn, tick)
 							)
 
+	def _set_graph_in_delta(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+		delta: DeltaDict,
+		_: None,
+		graph: Key,
+		val: Any,
+	) -> None:
+		"""Change a delta to say that a graph was deleted or not"""
+		if val in (None, "Deleted"):
+			delta[graph] = None
+		elif graph not in delta or delta[graph] is None:
+			# If the graph was *created* within our window,
+			# include its whole initial keyframe
+			delta[graph] = {}
+			kf_time = None
+			the_kf = None
+			graph_kf = self._graph_cache.keyframe[None,]
+			if branch in graph_kf:
+				kfb = graph_kf[branch]
+				if turn_from == turn_to:
+					# past view is reverse chronological
+					for t in kfb[turn_from].past(tick_to):
+						if tick_from <= t:
+							break
+						elif t < tick_from:
+							return
+					else:
+						return
+					kf_time = branch, turn_from, t
+					the_kf = graph_kf[branch][turn_from][t]
+				elif (
+					turn_from in kfb
+					and kfb[turn_from].end > tick_from
+					and graph
+					in (
+						the_kf := graph_kf[branch][turn_from][
+							kfb[turn_from].end
+						]
+					)
+				):
+					kf_time = branch, turn_from, kfb[turn_from].end
+					the_kf = graph_kf[branch][turn_from][kf_time[2]]
+				elif kfb.rev_after(turn_from) <= (
+					r := kfb.rev_before(turn_to)
+				):
+					if r == turn_to:
+						if (
+							kfb[r].end < tick_to
+							and graph in graph_kf[branch][r][kfb[r].end]
+						):
+							kf_time = branch, r, kfb[r].end
+							the_kf = graph_kf[branch][r][kf_time[2]]
+					else:
+						the_kf = graph_kf[branch][r][kfb[r].end]
+						if graph in the_kf:
+							kf_time = branch, r, kfb[r].end
+			if kf_time is not None:
+				assert isinstance(the_kf, dict)
+				# Well, we have *a keyframe* attesting the graph's existence,
+				# but we don't know it was *created* at that time.
+				# Check the presettings; if there was no type set for the
+				# graph before this keyframe, then it's the keyframe
+				# in which the graph was created.
+				# (An absence of presettings data indicates that the graph
+				# existed prior to the current branch.)
+				preset = self._graph_cache.presettings
+				b, r, t = kf_time
+				assert b == branch
+				if (
+					b not in preset
+					or r not in preset[b]
+					or t not in preset[b][r]
+					or preset[b][r][t][2] is not None
+				):
+					return
+				# Any particular cache may lack data for this keyframe.
+				try:
+					delta[graph] = self._graph_val_cache.get_keyframe(
+						(graph,), *kf_time
+					)
+				except KeyframeError:
+					pass
+				try:
+					delta[graph]["nodes"] = self._nodes_cache.get_keyframe(
+						(graph,), *kf_time
+					)
+				except KeyframeError:
+					pass
+				try:
+					delta[graph]["node_val"] = (
+						self._node_val_cache.get_keyframe((graph,), *kf_time)
+					)
+				except KeyframeError:
+					pass
+				try:
+					delta[graph]["edges"] = self._edges_cache.get_keyframe(
+						(graph,), *kf_time
+					)
+				except KeyframeError:
+					pass
+				try:
+					delta[graph]["edge_val"] = (
+						self._edge_val_cache.get_keyframe((graph,), *kf_time)
+					)
+				except KeyframeError:
+					pass
+
 	def _get_branch_delta(
 		self,
 		branch: str,
@@ -517,100 +629,14 @@ class ORM:
 
 		"""
 
-		def setgraph(delta: DeltaDict, _: None, graph: Key, val: Any) -> None:
-			"""Change a delta to say that a graph was deleted or not"""
-			if val in (None, "Deleted"):
-				delta[graph] = None
-			elif graph not in delta or delta[graph] is None:
-				# If the graph was *created* within our window,
-				# include its whole initial keyframe
-				delta[graph] = {}
-				kf_time = None
-				the_kf = None
-				graph_kf = self._graph_cache.keyframe[None,]
-				if branch in graph_kf:
-					kfb = graph_kf[branch]
-					assert turn_from != turn_to
-					if (
-						turn_from in kfb
-						and kfb[turn_from].end > tick_from
-						and graph
-						in (
-							the_kf := graph_kf[branch][turn_from][
-								kfb[turn_from].end
-							]
-						)
-					):
-						kf_time = branch, turn_from, kfb[turn_from].end
-						the_kf = graph_kf[branch][turn_from][kf_time[2]]
-					elif kfb.rev_after(turn_from) <= (
-						r := kfb.rev_before(turn_to)
-					):
-						if r == turn_to:
-							if (
-								kfb[r].end < tick_to
-								and graph in graph_kf[branch][r][kfb[r].end]
-							):
-								kf_time = branch, r, kfb[r].end
-								the_kf = graph_kf[branch][r][kf_time[2]]
-						else:
-							the_kf = graph_kf[branch][r][kfb[r].end]
-							if graph in the_kf:
-								kf_time = branch, r, kfb[r].end
-				if kf_time is not None:
-					assert isinstance(the_kf, dict)
-					# Well, we have *a keyframe* attesting the graph's existence,
-					# but we don't know it was *created* at that time.
-					# Check the presettings; if there was no type set for the
-					# graph before this keyframe, then it's the keyframe
-					# in which the graph was created.
-					# (An absence of presettings data indicates that the graph
-					# existed prior to the current branch.)
-					preset = self._graph_cache.presettings
-					b, r, t = kf_time
-					assert b == branch
-					if (
-						b not in preset
-						or r not in preset[b]
-						or t not in preset[b][r]
-						or preset[b][r][t][2] is not None
-					):
-						return
-					# Any particular cache may lack data for this keyframe.
-					try:
-						delta[graph] = self._graph_val_cache.get_keyframe(
-							(graph,), *kf_time
-						)
-					except KeyframeError:
-						pass
-					try:
-						delta[graph]["nodes"] = self._nodes_cache.get_keyframe(
-							(graph,), *kf_time
-						)
-					except KeyframeError:
-						pass
-					try:
-						delta[graph]["node_val"] = (
-							self._node_val_cache.get_keyframe(
-								(graph,), *kf_time
-							)
-						)
-					except KeyframeError:
-						pass
-					try:
-						delta[graph]["edges"] = self._edges_cache.get_keyframe(
-							(graph,), *kf_time
-						)
-					except KeyframeError:
-						pass
-					try:
-						delta[graph]["edge_val"] = (
-							self._edge_val_cache.get_keyframe(
-								(graph,), *kf_time
-							)
-						)
-					except KeyframeError:
-						pass
+		setgraph = partial(
+			self._set_graph_in_delta,
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 
 		def setgraphval(
 			delta: DeltaDict, graph: Key, key: Key, val: Any
@@ -793,10 +819,17 @@ class ORM:
 			for _, graph, typ in gbranches[branch][turn][tick_from:tick_to]:
 				# typ may be None if the graph was never deleted, but we're
 				# traveling back to before it was created
-				if typ in ("Deleted", None):
-					delta[graph] = None
-				else:
-					delta[graph] = {}
+				self._set_graph_in_delta(
+					branch,
+					turn,
+					tick_from,
+					turn,
+					tick_to,
+					delta,
+					None,
+					graph,
+					typ,
+				)
 
 		if branch in gvbranches and turn in gvbranches[branch]:
 			for graph, key, value in gvbranches[branch][turn][
