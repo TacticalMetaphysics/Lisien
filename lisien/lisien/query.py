@@ -4928,16 +4928,6 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 				d["type"],
 			)
 
-	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int
-	) -> tuple[dict, dict, dict] | None:
-		unpack = self.unpack
-		stuff = self.call("get_keyframe", self.pack(graph), branch, turn, tick)
-		if not stuff:
-			return
-		nodes, edges, val = stuff
-		return unpack(nodes), unpack(edges), unpack(val)
-
 	def have_branch(self, branch: str) -> bool:
 		return self.call("have_branch", branch)
 
