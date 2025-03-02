@@ -28,7 +28,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
-from functools import partial
+from contextlib import contextmanager
+from functools import partial, wraps
 from itertools import chain
 from multiprocessing import Pipe, Process, Queue
 from operator import itemgetter
@@ -2851,9 +2852,25 @@ class Engine(AbstractEngine, gORM, Executor):
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
 
-	def _update_all_worker_process_states(self, clobber=False):
+	@contextmanager
+	def _all_worker_locks_ctx(self):
 		for lock in self._worker_locks:
 			lock.acquire()
+		yield
+		for lock in self._worker_locks:
+			lock.release()
+
+	@staticmethod
+	def _all_worker_locks(fn):
+		@wraps(fn)
+		def call_with_all_worker_locks(self, *args, **kwargs):
+			with self._all_worker_locks_ctx():
+				return fn(self, *args, **kwargs)
+
+		return call_with_all_worker_locks
+
+	@_all_worker_locks
+	def _update_all_worker_process_states(self, clobber=False):
 		kf_payload = None
 		deltas = {}
 		for i in range(len(self._worker_processes)):
@@ -2904,8 +2921,6 @@ class Engine(AbstractEngine, gORM, Executor):
 					kf_payload = self._get_worker_kf_payload(-1)
 				self._worker_inputs[i].send_bytes(kf_payload)
 			self._worker_updated_btts[i] = self._btt()
-		for lock in self._worker_locks:
-			lock.release()
 
 	def _update_worker_process_state(self, i):
 		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
@@ -2937,10 +2952,11 @@ class Engine(AbstractEngine, gORM, Executor):
 					)
 				)
 			)
-			self._worker_inputs[i].send_bytes(argbytes)
 		else:
-			self._worker_inputs[i].send_bytes(self._get_worker_kf_payload())
-		self._worker_updated_btts[i] = self._btt()
+			argbytes = self._get_worker_kf_payload()
+		with self._worker_locks[i]:
+			self._worker_inputs[i].send_bytes(argbytes)
+			self._worker_updated_btts[i] = self._btt()
 
 	def _changed(self, charn, entity: tuple) -> bool:
 		if len(entity) == 1:
