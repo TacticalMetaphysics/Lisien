@@ -139,16 +139,9 @@ class ConnectionHolder:
 		if isinstance(dbstring, Engine):
 			self.engine = dbstring
 		else:
-			try:
-				self.engine = create_engine(
-					dbstring, connect_args=connect_args, poolclass=NullPool
-				)
-			except ArgumentError:
-				self.engine = create_engine(
-					"sqlite:///" + dbstring,
-					connect_args=connect_args,
-					poolclass=NullPool,
-				)
+			self.engine = create_engine(
+				dbstring, connect_args=connect_args, poolclass=NullPool
+			)
 		self.meta = MetaData()
 		self.sql = gather_sql(self.meta)
 		self.connection = self.engine.connect()
