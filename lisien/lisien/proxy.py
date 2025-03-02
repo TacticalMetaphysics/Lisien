@@ -3280,7 +3280,8 @@ class EngineProxy(AbstractEngine):
 			self.trigger,
 			self.action,
 		):
-			store.reimport()
+			if hasattr(store, "reimport"):
+				store.reimport()
 
 	def _upd(self, *args, **kwargs):
 		self._upd_caches(*args, **kwargs)
