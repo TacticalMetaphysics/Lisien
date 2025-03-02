@@ -273,23 +273,6 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def keyframes_insert(
-		self,
-		graph: Key,
-		branch: str,
-		turn: str,
-		tick: str,
-		nodes: list,
-		edges: list,
-		graph_val: list,
-	):
-		pass
-
-	@abstractmethod
-	def keyframes_insert_many(self, many: list):
-		pass
-
-	@abstractmethod
 	def keyframes_dump(
 		self,
 	) -> Iterator[tuple[Key, str, int, int, list, list]]:
@@ -297,12 +280,6 @@ class AbstractQueryEngine:
 
 	@abstractmethod
 	def keyframes_graphs(self) -> Iterator[tuple[Key, str, int, int]]:
-		pass
-
-	@abstractmethod
-	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int
-	) -> tuple[list, list, list]:
 		pass
 
 	@abstractmethod
