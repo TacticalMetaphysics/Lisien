@@ -85,7 +85,7 @@ def sqleng(tmp_path):
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
-		connect_string="sqlite:///world.sqlite3",
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
 		yield eng
 
