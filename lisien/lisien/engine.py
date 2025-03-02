@@ -83,7 +83,7 @@ from .query import (
 	CompoundQuery,
 	ParquetQueryEngine,
 	Query,
-	QueryEngine,
+	SQLAlchemyQueryEngine,
 	QueryResult,
 	QueryResultEndTurn,
 	QueryResultMidTurn,
@@ -381,7 +381,7 @@ class Engine(AbstractEngine, gORM, Executor):
 	thing_cls = Thing
 	place_cls = node_cls = Place
 	portal_cls = edge_cls = Portal
-	query_engine_cls = QueryEngine
+	query_engine_cls = SQLAlchemyQueryEngine
 	illegal_graph_names = {
 		"global",
 		"eternal",

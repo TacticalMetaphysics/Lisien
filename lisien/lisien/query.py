@@ -6742,7 +6742,7 @@ class ConnectionHolder(ConnectionHolder):
 			)
 
 
-class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
+class SQLAlchemyQueryEngine(QueryEngine, AbstractLisienQueryEngine):
 	exist_edge_t = 0
 	path = lisien.__path__[0]
 	IntegrityError = IntegrityError
@@ -7669,7 +7669,7 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		super().exist_edge(
 			character, orig, dest, idx, branch, turn, tick, extant
 		)
-		QueryEngine.exist_edge_t += monotonic() - start
+		SQLAlchemyQueryEngine.exist_edge_t += monotonic() - start
 		self._increc()
 
 	def set_node_rulebook(self, character, node, branch, turn, tick, rulebook):
