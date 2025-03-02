@@ -6903,7 +6903,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 			self._location = []
 		for attr, cmd in [
 			("_char_rules_handled", "character_rules_handled_insert"),
-			("_unit_rules_handled", "unit_rules_handled_insert"),
 			(
 				"_char_thing_rules_handled",
 				"character_thing_rules_handled_insert",
@@ -6944,6 +6943,37 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 					)
 				)
 			setattr(self, attr, [])
+		if self._unit_rules_handled:
+			put(
+				(
+					"silent",
+					"many",
+					"unit_rules_handled_insert",
+					[
+						dict(
+							character=character,
+							graph=graph,
+							node=node,
+							rulebook=rulebook,
+							rule=rule,
+							branch=branch,
+							turn=turn,
+							tick=tick,
+						)
+						for (
+							character,
+							graph,
+							node,
+							rulebook,
+							rule,
+							branch,
+							turn,
+							tick,
+						) in self._unit_rules_handled
+					],
+				),
+			)
+			self._unit_rules_handled = []
 		if self._node_rules_handled:
 			put(
 				(
