@@ -76,6 +76,18 @@ def idle_until(condition=None, timeout=100, message="Timed out"):
 	raise TimeoutError(message)
 
 
+def repr_call_sig(func: callable, *args, **kwargs):
+	return (
+		f"{func.__name__}({', '.join(args)}"
+		f"{', ' if kwargs else ''}"
+		f"{', '.join('='.join(item) for item in kwargs.items())})"
+	)
+
+
+def print_call_sig(func: callable, *args, file=sys.stdout, end="\n", **kwargs):
+	print(repr_call_sig(func, *args, **kwargs), file=file, end=end)
+
+
 class MockTouch(MotionEvent):
 	def depack(self, args):
 		self.is_touch = True
