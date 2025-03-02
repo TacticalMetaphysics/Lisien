@@ -242,9 +242,9 @@ def test_facade_creation(
 
 # TODO parametrize bunch of characters
 @pytest.fixture(scope="function", params=CHAR_DATA)
-def character_updates(request, engy):
+def character_updates(request, sqleng):
 	name, data, stat, nodestat, statup, nodeup, edgeup = request.param
-	char = engy.new_character(name, data, **stat)
+	char = sqleng.new_character(name, data, **stat)
 	update_char(char, nodes=nodestat)
 	yield char, statup, nodeup, edgeup
 
@@ -276,34 +276,34 @@ def test_facade(character_updates):
 	assert start_edge == end_edge
 
 
-def test_set_rulebook(engy):
-	engy.universal["list"] = []
-	ch = engy.new_character("physical")
+def test_set_rulebook(sqleng):
+	sqleng.universal["list"] = []
+	ch = sqleng.new_character("physical")
 
 	@ch.rule(always=True)
 	def rule0(cha):
 		cha.engine.universal["list"].append(0)
 
-	@engy.rule(always=True)
+	@sqleng.rule(always=True)
 	def rule1(who):
 		who.engine.universal["list"].append(1)
 
-	engy.rulebook["rb1"] = [rule1]
-	engy.next_turn()
-	assert engy.universal["list"] == [0]
+	sqleng.rulebook["rb1"] = [rule1]
+	sqleng.next_turn()
+	assert sqleng.universal["list"] == [0]
 	default_rulebook_name = ch.rulebook.name
 	ch.rulebook = "rb1"
-	engy.next_turn()
-	assert engy.universal["list"] == [0, 1]
-	ch.rulebook = engy.rulebook[default_rulebook_name]
-	engy.next_turn()
-	assert engy.universal["list"] == [0, 1, 0]
+	sqleng.next_turn()
+	assert sqleng.universal["list"] == [0, 1]
+	ch.rulebook = sqleng.rulebook[default_rulebook_name]
+	sqleng.next_turn()
+	assert sqleng.universal["list"] == [0, 1, 0]
 
 
-def test_iter_portals(engy):
+def test_iter_portals(sqleng):
 	from lisien.character import grid_2d_8graph
 
-	ch = engy.new_character("physical", grid_2d_8graph(4, 4))
+	ch = sqleng.new_character("physical", grid_2d_8graph(4, 4))
 	portal_abs = {
 		(portal.origin.name, portal.destination.name)
 		for portal in ch.portals()

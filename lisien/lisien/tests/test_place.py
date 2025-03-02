@@ -19,8 +19,8 @@ from lisien.exc import AmbiguousUserError
 
 
 @pytest.fixture(scope="function")
-def someplace(engy):
-	yield engy.new_character("physical").new_place("someplace")
+def someplace(sqleng):
+	yield sqleng.new_character("physical").new_place("someplace")
 
 
 def test_contents(someplace):
@@ -83,19 +83,19 @@ def test_rulebook(someplace):
 	assert someplace.rulebook.name == "imadeitup"
 
 
-def test_deletion_after_keyframe(engy):
-	phys = engy.new_character("physical", data=nx.grid_2d_graph(8, 8))
+def test_deletion_after_keyframe(sqleng):
+	phys = sqleng.new_character("physical", data=nx.grid_2d_graph(8, 8))
 	del phys.place[5, 5]
 	assert (5, 5) not in phys.place
 	assert (5, 5) not in list(phys.place)
-	while engy.turn < 20:
-		engy.next_turn()
+	while sqleng.turn < 20:
+		sqleng.next_turn()
 	assert (5, 5) not in phys.place
 	assert (5, 5) not in list(phys.place)
 
 
-def test_clear(engy):
-	phys = engy.new_character("physical")
+def test_clear(sqleng):
+	phys = sqleng.new_character("physical")
 	place = phys.new_place("here")
 	place["a"] = 1
 	place["b"] = 2

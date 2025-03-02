@@ -97,61 +97,61 @@ def something_dot_rule_test(something, engy):
 	return somerule
 
 
-def test_engine_dot_rule(engy):
+def test_engine_dot_rule(sqleng):
 	"""Test that the global rule mapping can be used to make and change rules"""
-	something_dot_rule_test(engy, engy)
+	something_dot_rule_test(sqleng, sqleng)
 
 
-def test_character_dot_rule(engy):
+def test_character_dot_rule(sqleng):
 	"""Test that you can make and change rules on characters"""
-	character = engy.new_character("physical")
-	rule = something_dot_rule_test(character, engy)
+	character = sqleng.new_character("physical")
+	rule = something_dot_rule_test(character, sqleng)
 	assert character.rulebook[0] == rule
 
 
-def test_character_dot_thing_dot_rule(engy):
+def test_character_dot_thing_dot_rule(sqleng):
 	"""Test that you can make and change rules on the thing mapping of a character"""
-	character = engy.new_character("physical")
-	rule = something_dot_rule_test(character.thing, engy)
+	character = sqleng.new_character("physical")
+	rule = something_dot_rule_test(character.thing, sqleng)
 	assert character.thing.rulebook[0] == rule
 
 
-def test_character_dot_place_dot_rule(engy):
+def test_character_dot_place_dot_rule(sqleng):
 	"""Test that you can make and change rules on the place mapping of a character"""
-	character = engy.new_character("physical")
-	rule = something_dot_rule_test(character.place, engy)
+	character = sqleng.new_character("physical")
+	rule = something_dot_rule_test(character.place, sqleng)
 	assert character.place.rulebook[0] == rule
 
 
-def test_character_dot_portal_dot_rule(engy):
+def test_character_dot_portal_dot_rule(sqleng):
 	"""Test that you can make and change rules on the portal mapping of a character"""
-	character = engy.new_character("physical")
-	rule = something_dot_rule_test(character.portal, engy)
+	character = sqleng.new_character("physical")
+	rule = something_dot_rule_test(character.portal, sqleng)
 	assert character.portal.rulebook[0] == rule
 
 
-def test_node_dot_rule(engy):
+def test_node_dot_rule(sqleng):
 	"""Test that you can make and change rules on a node"""
-	here = engy.new_character("physical").new_place(1)
-	rule = something_dot_rule_test(here, engy)
+	here = sqleng.new_character("physical").new_place(1)
+	rule = something_dot_rule_test(here, sqleng)
 	assert here.rulebook[0] == rule
 
 
-def test_portal_dot_rule(engy):
+def test_portal_dot_rule(sqleng):
 	"""Test that you can make and change rules on a portal"""
-	character = engy.new_character("physical")
+	character = sqleng.new_character("physical")
 	character.new_place(0)
 	character.new_place(1)
 	port = character.new_portal(0, 1)
-	rule = something_dot_rule_test(port, engy)
+	rule = something_dot_rule_test(port, sqleng)
 	assert port.rulebook[0] == rule
 
 
-def test_rule_priority(engy):
+def test_rule_priority(sqleng):
 	"""Test that rules run in the order given in their priorities"""
-	firstchar = engy.new_character("first")
-	secondchar = engy.new_character("second")
-	engy.universal["list"] = []
+	firstchar = sqleng.new_character("first")
+	secondchar = sqleng.new_character("second")
+	sqleng.universal["list"] = []
 
 	@firstchar.rule(always=True)
 	def first(ch):
@@ -164,12 +164,12 @@ def test_rule_priority(engy):
 	firstchar.rule.priority = 1
 	secondchar.rule.priority = 2
 
-	engy.next_turn()
+	sqleng.next_turn()
 
-	assert engy.universal["list"] == ["first", "second"]
+	assert sqleng.universal["list"] == ["first", "second"]
 
 	firstchar.rule.priority = 3
 
-	engy.next_turn()
+	sqleng.next_turn()
 
-	assert engy.universal["list"] == ["first", "second", "second", "first"]
+	assert sqleng.universal["list"] == ["first", "second", "second", "first"]

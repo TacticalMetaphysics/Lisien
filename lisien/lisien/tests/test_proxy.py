@@ -114,8 +114,8 @@ def test_serialize_deleted(college24_premade):
 	assert eng.unpack(eng.pack(d0r0s0.stat["roommate"])) == roommate
 
 
-def test_manip_deleted(engy):
-	eng = engy
+def test_manip_deleted(sqleng):
+	eng = sqleng
 	phys = eng.new_character("physical")
 	phys.stat["aoeu"] = True
 	phys.add_node(0)
