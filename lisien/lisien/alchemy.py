@@ -623,9 +623,7 @@ def queries(table):
 		generic_tick_to_tick_clause(hood)
 	)
 	big = table["rule_big"]
-	bigsel = select(
-		big.c.rule, big.c.branch, big.c.turn, big.c.tick, big.c.big
-	)
+	bigsel = select(big.c.rule, big.c.turn, big.c.tick, big.c.big)
 	r["load_rule_big_tick_to_end"] = bigsel.where(
 		generic_tick_to_end_clause(big)
 	)
