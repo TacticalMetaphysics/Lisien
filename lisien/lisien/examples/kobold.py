@@ -105,7 +105,7 @@ def inittest(
 		thing.engine.info("kobold uncovered")
 		return True
 
-	@shrubsprint.trigger
+	@shrubsprint.prereq
 	def breakcover(thing):
 		if thing.engine.random() < thing["sprint_chance"]:
 			thing.engine.info("kobold breaking cover")
