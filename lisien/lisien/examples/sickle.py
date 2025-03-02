@@ -137,7 +137,7 @@ def install(
 	def sickle2(critter):
 		return critter["sickle_a"] and critter["sickle_b"]
 
-	@dieoff.trigger
+	@dieoff.prereq
 	def malaria(critter):
 		return critter.engine.random() < critter.user.only.stat[
 			"malaria_chance"
