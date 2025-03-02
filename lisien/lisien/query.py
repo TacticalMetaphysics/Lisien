@@ -6846,8 +6846,21 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		self._increc()
 
 	def _flush(self):
+		def munge(fields, rec):
+			return dict(zip(fields, rec))
+
+		def munger(*fields):
+			return partial(munge, fields)
+
+		def munged(fields, it):
+			return list(map(munger(*fields), it))
+
 		super()._flush()
 		put = self._inq.put
+
+		def put_munged(stmt, fields, it):
+			put(("silent", "many", stmt, munged(fields, it)))
+
 		if self._new_keyframe_extensions:
 			put(
 				(
@@ -6901,137 +6914,113 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 			)
 			put(("silent", "many", "things_insert", self._location))
 			self._location = []
-		for attr, cmd in [
-			("_char_rules_handled", "character_rules_handled_insert"),
-			(
-				"_char_thing_rules_handled",
-				"character_thing_rules_handled_insert",
-			),
-			(
-				"_char_place_rules_handled",
-				"character_place_rules_handled_insert",
-			),
-			(
-				"_char_portal_rules_handled",
-				"character_portal_rules_handled_insert",
-			),
-		]:
-			if getattr(self, attr):
-				put(
-					(
-						"silent",
-						"many",
-						cmd,
-						[
-							dict(
-								character=character,
-								rulebook=rulebook,
-								rule=rule,
-								branch=branch,
-								turn=turn,
-								tick=tick,
-							)
-							for (
-								character,
-								rulebook,
-								rule,
-								branch,
-								turn,
-								tick,
-							) in getattr(self, attr)
-						],
-					)
-				)
-			setattr(self, attr, [])
-		if self._unit_rules_handled:
-			put(
+		if self._char_rules_handled:
+			put_munged(
+				"character_rules_handled_insert",
 				(
-					"silent",
-					"many",
-					"unit_rules_handled_insert",
-					[
-						dict(
-							character=character,
-							graph=graph,
-							node=node,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							graph,
-							node,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._unit_rules_handled
-					],
+					"character",
+					"rulebook",
+					"rule",
+					"branch",
+					"turn",
+					"tick",
 				),
+				self._char_rules_handled,
+			)
+			self._char_rules_handled = []
+		if self._char_thing_rules_handled:
+			put_munged(
+				"character_thing_rules_handled_insert",
+				(
+					"character",
+					"thing",
+					"rulebook",
+					"rule",
+					"branch",
+					"turn",
+					"tick",
+				),
+				self._char_thing_rules_handled,
+			)
+			self._char_thing_rules_handled = []
+
+		if self._char_place_rules_handled:
+			put_munged(
+				"character_place_rules_handled_insert",
+				(
+					"character",
+					"place",
+					"rulebook",
+					"rule",
+					"branch",
+					"turn",
+					"tick",
+				),
+				self._char_place_rules_handled,
+			)
+			self._char_place_rules_handled = []
+
+		if self._char_portal_rules_handled:
+			put_munged(
+				"character_portal_rules_handled_insert",
+				(
+					"character",
+					"orig",
+					"dest",
+					"rulebook",
+					"rule",
+					"branch",
+					"turn",
+					"tick",
+				),
+				self._char_portal_rules_handled,
+			)
+			self._char_portal_rules_handled = []
+		if self._unit_rules_handled:
+			put_munged(
+				"unit_rules_handled_insert",
+				(
+					"character",
+					"graph",
+					"node",
+					"rulebook",
+					"rule",
+					"branch",
+					"turn",
+					"tick",
+				),
+				self._unit_rules_handled,
 			)
 			self._unit_rules_handled = []
 		if self._node_rules_handled:
-			put(
+			put_munged(
+				"node_rules_handled_insert",
 				(
-					"silent",
-					"many",
-					"node_rules_handled_insert",
-					[
-						dict(
-							character=character,
-							node=node,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							node,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._node_rules_handled
-					],
-				)
+					"character",
+					"node",
+					"rulebook",
+					"rule",
+					"branch",
+					"turn",
+					"tick",
+				),
+				self._node_rules_handled,
 			)
 			self._node_rules_handled = []
 		if self._portal_rules_handled:
-			put(
+			put_munged(
+				"portal_rules_handled_insert",
 				(
-					"silent",
-					"many",
-					"portal_rules_handled_insert",
-					[
-						dict(
-							character=character,
-							orig=orig,
-							dest=dest,
-							rulebook=rulebook,
-							rule=rule,
-							branch=branch,
-							turn=turn,
-							tick=tick,
-						)
-						for (
-							character,
-							orig,
-							dest,
-							rulebook,
-							rule,
-							branch,
-							turn,
-							tick,
-						) in self._portal_rules_handled
-					],
-				)
+					"character",
+					"orig",
+					"dest",
+					"rulebook",
+					"rule",
+					"branch",
+					"turn",
+					"tick",
+				),
+				self._portal_rules_handled,
 			)
 			self._portal_rules_handled = []
 		assert self.echo("flushed") == "flushed"
