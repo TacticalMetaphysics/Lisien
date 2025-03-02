@@ -118,7 +118,7 @@ def install(
 		)
 		return "mated"
 
-	@mate.prereq
+	@mate.trigger
 	def once_per_turn(critter):
 		return critter["last_mate_turn"] < critter.engine.turn
 
@@ -129,7 +129,7 @@ def install(
 				return True
 		return False
 
-	@mate.trigger
+	@mate.prereq
 	def in_the_mood(critter):
 		return critter.engine.random() < critter.user.only.stat["mate_chance"]
 
