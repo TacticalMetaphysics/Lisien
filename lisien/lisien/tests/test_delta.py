@@ -84,3 +84,8 @@ def test_node_rulebook_delta():
 
 def test_portal_rulebook_delta():
 	pass
+
+
+def test_character_created_delta():
+	"""Test whether a delta includes the initial keyframe for characters created"""
+	pass
