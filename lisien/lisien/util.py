@@ -1277,9 +1277,9 @@ class AbstractThing(ABC):
 
 def repr_call_sig(func: callable, *args, **kwargs):
 	return (
-		f"{func.__name__}({', '.join(args)}"
+		f"{func.__name__}({', '.join(map(repr, args))}"
 		f"{', ' if kwargs else ''}"
-		f"{', '.join('='.join(item) for item in kwargs.items())})"
+		f"{', '.join('='.join(map(repr, item)) for item in kwargs.items())})"
 	)
 
 
