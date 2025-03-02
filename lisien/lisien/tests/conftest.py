@@ -80,6 +80,17 @@ def engy(tmp_path, request):
 
 
 @pytest.fixture(scope="function")
+def sqleng(tmp_path):
+	with Engine(
+		tmp_path,
+		random_seed=69105,
+		enforce_end_of_time=False,
+		connect_string="sqlite:///world.sqlite3",
+	) as eng:
+		yield eng
+
+
+@pytest.fixture(scope="function")
 def serial_engine(tmp_path):
 	with Engine(
 		tmp_path,

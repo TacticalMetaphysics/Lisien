@@ -18,8 +18,8 @@ from lisien.allegedb import OutOfTimelineError
 
 
 @pytest.fixture(scope="function")
-def chara(engy):
-	yield engy.new_character("chara")
+def chara(sqleng):
+	yield sqleng.new_character("chara")
 
 
 def test_many_things_in_place(chara):

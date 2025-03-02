@@ -20,120 +20,120 @@ it was followed got recorded correctly.
 """
 
 
-def test_character_dot_rule(engy):
+def test_character_dot_rule(sqleng):
 	"""Test that a rule on a character is polled correctly"""
-	char = engy.new_character("who")
+	char = sqleng.new_character("who")
 
 	@char.rule(always=True)
 	def yes(char):
 		char.stat["run"] = True
 
-	engy.next_turn()
-	btt = engy._btt()
+	sqleng.next_turn()
+	btt = sqleng._btt()
 	assert char.stat["run"]
-	engy.time = "trunk", 0
-	engy.tick = 0
+	sqleng.time = "trunk", 0
+	sqleng.tick = 0
 	assert "run" not in char.stat
-	engy.next_turn()
-	assert btt == engy._btt()
+	sqleng.next_turn()
+	assert btt == sqleng._btt()
 	assert char.stat["run"]
 
 
-def test_unit_dot_rule(engy):
+def test_unit_dot_rule(sqleng):
 	"""Test that a rule applied to a character's avatars is polled correctly"""
-	char = engy.new_character("char")
-	graph = engy.new_character("graph")
+	char = sqleng.new_character("char")
+	graph = sqleng.new_character("graph")
 	av = graph.new_place("av")
 	char.add_unit(av)
-	starttick = engy.tick
+	starttick = sqleng.tick
 
 	@char.unit.rule(always=True)
 	def yes(av):
 		av["run"] = True
 
-	engy.next_turn()
-	btt = engy._btt()
+	sqleng.next_turn()
+	btt = sqleng._btt()
 	assert av["run"]
-	engy.time = "trunk", 0
-	engy.tick = starttick
+	sqleng.time = "trunk", 0
+	sqleng.tick = starttick
 	assert "run" not in av
-	engy.next_turn()
-	assert btt == engy._btt()
+	sqleng.next_turn()
+	assert btt == sqleng._btt()
 	assert av["run"]
 
 
-def test_thing_dot_rule(engy):
+def test_thing_dot_rule(sqleng):
 	"""Test that a rule applied to a thing mapping is polled correctly"""
-	char = engy.new_character("char")
+	char = sqleng.new_character("char")
 	place = char.new_place("place")
 	thing = place.new_thing("thing")
-	starttick = engy.tick
+	starttick = sqleng.tick
 
 	@char.thing.rule(always=True)
 	def yes(thing):
 		thing["run"] = True
 
-	engy.next_turn()
-	btt = engy._btt()
+	sqleng.next_turn()
+	btt = sqleng._btt()
 	assert thing["run"]
-	engy.time = "trunk", 0
-	engy.tick = starttick
+	sqleng.time = "trunk", 0
+	sqleng.tick = starttick
 	assert "run" not in thing
-	engy.next_turn()
-	assert btt == engy._btt()
+	sqleng.next_turn()
+	assert btt == sqleng._btt()
 	assert thing["run"]
 
 
-def test_place_dot_rule(engy):
+def test_place_dot_rule(sqleng):
 	"""Test that a rule applied to a place mapping is polled correctly"""
-	char = engy.new_character("char")
+	char = sqleng.new_character("char")
 	place = char.new_place("place")
-	starttick = engy.tick
+	starttick = sqleng.tick
 
 	@char.place.rule(always=True)
 	def yes(plac):
 		plac["run"] = True
 
-	engy.next_turn()
-	btt = engy._btt()
+	sqleng.next_turn()
+	btt = sqleng._btt()
 	assert place["run"]
-	engy.time = "trunk", 0
-	engy.tick = starttick
+	sqleng.time = "trunk", 0
+	sqleng.tick = starttick
 	assert "run" not in place
-	engy.next_turn()
-	assert btt == engy._btt()
+	sqleng.next_turn()
+	assert btt == sqleng._btt()
 	assert place["run"]
 
 
-def test_portal_dot_rule(engy):
+def test_portal_dot_rule(sqleng):
 	"""Test that a rule applied to a portal mapping is polled correctly"""
-	char = engy.new_character("char")
+	char = sqleng.new_character("char")
 	orig = char.new_place("orig")
 	dest = char.new_place("dest")
 	port = orig.new_portal(dest)
-	starttick = engy.tick
+	starttick = sqleng.tick
 
 	@char.portal.rule(always=True)
 	def yes(portl):
 		portl["run"] = True
 
-	engy.next_turn()
-	btt = engy._btt()
+	sqleng.next_turn()
+	btt = sqleng._btt()
 	assert port["run"]
-	engy.time = "trunk", 0
-	engy.tick = starttick
+	sqleng.time = "trunk", 0
+	sqleng.tick = starttick
 	assert "run" not in port
-	engy.next_turn()
-	assert btt == engy._btt()
+	sqleng.next_turn()
+	assert btt == sqleng._btt()
 	assert port["run"]
 
 
-def test_node_rule(engy):
+def test_node_rule(sqleng):
 	"""Test that a rule applied to one node is polled correctly"""
-	char = engy.new_character("char")
+	char = sqleng.new_character("char")
 	place = char.new_place("place")
 	thing = place.new_thing("thing")
-	starttick = engy.tick
+	starttick = sqleng.tick
 
 	@place.rule(always=True)
 	def yes(plac):
@@ -143,49 +143,49 @@ def test_node_rule(engy):
 	def definitely(thig):
 		thig["run"] = True
 
-	engy.next_turn()
-	btt = engy._btt()
+	sqleng.next_turn()
+	btt = sqleng._btt()
 	assert place["run"]
 	assert thing["run"]
-	engy.time = "trunk", 0
-	engy.tick = starttick
+	sqleng.time = "trunk", 0
+	sqleng.tick = starttick
 	assert "run" not in place
 	assert "run" not in thing
-	engy.next_turn()
-	assert btt == engy._btt()
+	sqleng.next_turn()
+	assert btt == sqleng._btt()
 	assert place["run"]
 	assert thing["run"]
 
 
-def test_portal_rule(engy):
+def test_portal_rule(sqleng):
 	"""Test that a rule applied to one portal is polled correctly"""
-	char = engy.new_character("char")
+	char = sqleng.new_character("char")
 	orig = char.new_place("orig")
 	dest = char.new_place("dest")
 	port = orig.new_portal(dest)
-	starttick = engy.tick
+	starttick = sqleng.tick
 
 	@port.rule(always=True)
 	def yes(portl):
 		portl["run"] = True
 
-	engy.next_turn()
-	btt = engy._btt()
+	sqleng.next_turn()
+	btt = sqleng._btt()
 	assert port["run"]
-	engy.time = "trunk", 0
-	engy.tick = starttick
+	sqleng.time = "trunk", 0
+	sqleng.tick = starttick
 	assert "run" not in port
-	engy.next_turn()
-	assert btt == engy._btt()
+	sqleng.next_turn()
+	assert btt == sqleng._btt()
 	assert port["run"]
 
 
-def test_post_time_travel_increment(engy):
+def test_post_time_travel_increment(sqleng):
 	"""Test that, when the rules are run after time travel resulting in
 	a tick greater than zero, we advance to the next turn before running rules
 
 	"""
-	char = engy.new_character("char")
+	char = sqleng.new_character("char")
 	char.stat["something"] = 0
 	place = char.new_place("there")
 	place["otherthing"] = 0
@@ -198,15 +198,15 @@ def test_post_time_travel_increment(engy):
 	def decr(plac):
 		plac["otherthing"] -= 1
 
-	engy.next_turn()
-	engy.next_turn()
-	assert engy.tick == 2
-	engy.branch = "branch1"
-	assert engy.tick == 2
-	engy.next_turn()
-	assert engy.tick == 2
-	engy.turn = 2
-	engy.branch = "trunk"
-	assert engy.tick == 2
-	engy.next_turn()
-	assert engy.tick == 2
+	sqleng.next_turn()
+	sqleng.next_turn()
+	assert sqleng.tick == 2
+	sqleng.branch = "branch1"
+	assert sqleng.tick == 2
+	sqleng.next_turn()
+	assert sqleng.tick == 2
+	sqleng.turn = 2
+	sqleng.branch = "trunk"
+	assert sqleng.tick == 2
+	sqleng.next_turn()
+	assert sqleng.tick == 2

@@ -16,22 +16,22 @@ pytestmark = [pytest.mark.big]
 
 
 @pytest.mark.skip("I'll optimize later")
-def test_college(engy):
-	college.install(engy)
+def test_college(sqleng):
+	college.install(sqleng)
 	for i in range(10):
-		engy.next_turn()
+		sqleng.next_turn()
 
 
-def test_kobold(engy):
-	kobold.inittest(engy, shrubberies=20, kobold_sprint_chance=0.9)
+def test_kobold(sqleng):
+	kobold.inittest(sqleng, shrubberies=20, kobold_sprint_chance=0.9)
 	for i in range(10):
-		engy.next_turn()
+		sqleng.next_turn()
 
 
-def test_polygons(engy):
-	polygons.install(engy)
+def test_polygons(sqleng):
+	polygons.install(sqleng)
 	for i in range(10):
-		engy.next_turn()
+		sqleng.next_turn()
 
 
 def test_char_stat_startup(tmp_path):
@@ -56,10 +56,10 @@ def test_char_stat_startup(tmp_path):
 		assert "max_sameness" in eng.character["triangle"].stat
 
 
-def test_sickle(engy):
-	sickle.install(engy)
+def test_sickle(sqleng):
+	sickle.install(sqleng)
 	for i in range(100):
-		engy.next_turn()
+		sqleng.next_turn()
 
 
 def test_wolfsheep(tmp_path):

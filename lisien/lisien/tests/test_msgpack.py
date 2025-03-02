@@ -2,30 +2,30 @@ from lisien import Engine
 from lisien.proxy import EngineProcessManager
 
 
-def test_serialize_character(engy):
-	char = engy.new_character("physical")
-	assert engy.unpack(engy.pack(char)) == char
+def test_serialize_character(sqleng):
+	char = sqleng.new_character("physical")
+	assert sqleng.unpack(sqleng.pack(char)) == char
 
 
-def test_serialize_thing(engy):
-	char = engy.new_character("physical")
+def test_serialize_thing(sqleng):
+	char = sqleng.new_character("physical")
 	place = char.new_place("here")
 	thing = place.new_thing("that")
-	assert engy.unpack(engy.pack(thing)) == thing
+	assert sqleng.unpack(sqleng.pack(thing)) == thing
 
 
-def test_serialize_place(engy):
-	char = engy.new_character("physical")
+def test_serialize_place(sqleng):
+	char = sqleng.new_character("physical")
 	place = char.new_place("here")
-	assert engy.unpack(engy.pack(place)) == place
+	assert sqleng.unpack(sqleng.pack(place)) == place
 
 
-def test_serialize_portal(engy):
-	char = engy.new_character("physical")
+def test_serialize_portal(sqleng):
+	char = sqleng.new_character("physical")
 	a = char.new_place("a")
 	b = char.new_place("b")
 	port = a.new_portal(b)
-	assert engy.unpack(engy.pack(port)) == port
+	assert sqleng.unpack(sqleng.pack(port)) == port
 
 
 def test_serialize_function(tmp_path):
