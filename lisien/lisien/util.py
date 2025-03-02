@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import Set, Mapping
 from concurrent.futures import Future
@@ -1272,3 +1273,15 @@ class AbstractThing(ABC):
 		graph = self.character if graph is None else graph
 		path = nx.shortest_path(graph, self["location"], destn, weight)
 		return self.follow_path(path, weight)
+
+
+def repr_call_sig(func: callable, *args, **kwargs):
+	return (
+		f"{func.__name__}({', '.join(args)}"
+		f"{', ' if kwargs else ''}"
+		f"{', '.join('='.join(item) for item in kwargs.items())})"
+	)
+
+
+def print_call_sig(func: callable, *args, file=sys.stdout, end="\n", **kwargs):
+	print(repr_call_sig(func, *args, **kwargs), file=file, end=end)

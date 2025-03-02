@@ -10,7 +10,6 @@ from kivy.input.motionevent import MotionEvent
 from kivy.tests.common import GraphicUnitTest
 
 from elide.app import ELiDEApp
-from lisien.proxy import RedundantProcessError
 
 
 def all_spots_placed(board, char=None):
@@ -74,18 +73,6 @@ def idle_until(condition=None, timeout=100, message="Timed out"):
 			return
 		EventLoop.idle()
 	raise TimeoutError(message)
-
-
-def repr_call_sig(func: callable, *args, **kwargs):
-	return (
-		f"{func.__name__}({', '.join(args)}"
-		f"{', ' if kwargs else ''}"
-		f"{', '.join('='.join(item) for item in kwargs.items())})"
-	)
-
-
-def print_call_sig(func: callable, *args, file=sys.stdout, end="\n", **kwargs):
-	print(repr_call_sig(func, *args, **kwargs), file=file, end=end)
 
 
 class MockTouch(MotionEvent):
