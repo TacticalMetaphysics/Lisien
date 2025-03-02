@@ -1275,9 +1275,11 @@ class AbstractThing(ABC):
 		return self.follow_path(path, weight)
 
 
-def repr_call_sig(func: callable, *args, **kwargs):
+def repr_call_sig(func: callable | str, *args, **kwargs):
+	if not isinstance(func, str):
+		func = func.__name__
 	return (
-		f"{func.__name__}({', '.join(map(repr, args))}"
+		f"{func}({', '.join(map(repr, args))}"
 		f"{', ' if kwargs else ''}"
 		f"{', '.join('='.join(map(repr, item)) for item in kwargs.items())})"
 	)
