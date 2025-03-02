@@ -3272,8 +3272,19 @@ class EngineProxy(AbstractEngine):
 			perfectionist=perfectionist,
 		)
 
+	def _reimport_all(self):
+		for store in (
+			self.function,
+			self.method,
+			self.prereq,
+			self.trigger,
+			self.action,
+		):
+			store.reimport()
+
 	def _upd(self, *args, **kwargs):
 		self._upd_caches(*args, **kwargs)
+		self._reimport_all()
 		self._set_time(*args, no_del=True, **kwargs)
 
 	def _upd_and_cb(self, cb, *args, **kwargs):
