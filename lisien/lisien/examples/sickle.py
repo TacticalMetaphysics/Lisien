@@ -143,7 +143,7 @@ def install(
 			"malaria_chance"
 		] and not (critter["sickle_a"] or critter["sickle_b"])
 
-	# it would make more sense to keep using species.avatar.rule, this
+	# it would make more sense to keep using species.unit.rule, this
 	# is just a test
 	@phys.thing.rule
 	def wander(critter):
