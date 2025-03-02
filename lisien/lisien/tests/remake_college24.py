@@ -12,7 +12,11 @@ if os.path.exists(outpath):
 	os.remove(outpath)
 with tempfile.TemporaryDirectory() as directory:
 	with Engine(
-		directory, workers=0, keep_rules_journal=False, commit_interval=1
+		directory,
+		workers=0,
+		keep_rules_journal=False,
+		commit_interval=1,
+		connect_string=f"sqlite:///{directory}/world.sqlite3",
 	) as eng:
 		install(eng)
 		for i in range(24):
