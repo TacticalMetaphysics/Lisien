@@ -7723,7 +7723,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		self._char_rules_handled.append(
 			(character, rulebook, rule, branch, turn, tick)
 		)
-		self._increc()
 
 	def _flush_char_rules_handled(self):
 		if not self._char_rules_handled:
@@ -7742,7 +7741,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		self._unit_rules_handled.append(
 			(character, graph, unit, rulebook, rule, branch, turn, tick)
 		)
-		self._increc()
 
 	def _flush_unit_rules_handled(self):
 		if not self._unit_rules_handled:
@@ -7759,7 +7757,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		self._char_thing_rules_handled.append(
 			(character, thing, rulebook, rule, branch, turn, tick)
 		)
-		self._increc()
 
 	def _flush_char_thing_rules_handled(self):
 		if not self._char_thing_rules_handled:
@@ -7779,7 +7776,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		self._char_place_rules_handled.append(
 			(character, place, rulebook, rule, branch, turn, tick)
 		)
-		self._increc()
 
 	def _flush_char_place_rules_handled(self):
 		if not self._char_place_rules_handled:
@@ -7799,7 +7795,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		self._char_portal_rules_handled.append(
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
-		self._increc()
 
 	def _flush_char_portal_rules_handled(self):
 		if not self._char_portal_rules_handled:
@@ -7819,7 +7814,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		self._node_rules_handled.append(
 			(character, node, rulebook, rule, branch, turn, tick)
 		)
-		self._increc()
 
 	def _flush_node_rules_handled(self):
 		if not self._node_rules_handled:
@@ -7836,7 +7830,6 @@ class QueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		self._portal_rules_handled.append(
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
-		self._increc()
 
 	def _flush_portal_rules_handled(self):
 		if not self._portal_rules_handled:
