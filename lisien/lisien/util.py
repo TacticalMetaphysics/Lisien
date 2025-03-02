@@ -1285,5 +1285,7 @@ def repr_call_sig(func: callable | str, *args, **kwargs):
 	)
 
 
-def print_call_sig(func: callable, *args, file=sys.stdout, end="\n", **kwargs):
+def print_call_sig(
+	func: callable | str, *args, file=sys.stdout, end="\n", **kwargs
+):
 	print(repr_call_sig(func, *args, **kwargs), file=file, end=end)
