@@ -545,8 +545,11 @@ class ORM:
 				):
 					kf_time = branch, turn_from, kfb[turn_from].end
 					the_kf = graph_kf[branch][turn_from][kf_time[2]]
-				elif kfb.rev_after(turn_from) <= (
-					r := kfb.rev_before(turn_to)
+				elif (
+					kfb.rev_after(turn_from) is not None
+					and kfb.rev_before(turn_to) is not None
+					and kfb.rev_after(turn_from)
+					<= (r := kfb.rev_before(turn_to))
 				):
 					if r == turn_to:
 						if (
