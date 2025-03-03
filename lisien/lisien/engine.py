@@ -583,7 +583,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			self.pack((uid, method, (func_name, *args), kwargs))
 		)
 		with self._worker_locks[i]:
-			self._update_worker_process_state(i)
+			self._update_worker_process_state(i, lock=False)
 			self._worker_inputs[i].send_bytes(argbytes)
 			output = self._worker_outputs[i].recv_bytes()
 		got_uid, result = self.unpack(zlib.decompress(output))
@@ -2922,7 +2922,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				self._worker_inputs[i].send_bytes(kf_payload)
 			self._worker_updated_btts[i] = self._btt()
 
-	def _update_worker_process_state(self, i):
+	def _update_worker_process_state(self, i, lock=True):
 		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
 		old_eternal = self._worker_last_eternal
 		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
@@ -2954,7 +2954,11 @@ class Engine(AbstractEngine, gORM, Executor):
 			)
 		else:
 			argbytes = self._get_worker_kf_payload()
-		with self._worker_locks[i]:
+		if lock:
+			with self._worker_locks[i]:
+				self._worker_inputs[i].send_bytes(argbytes)
+				self._worker_updated_btts[i] = self._btt()
+		else:
 			self._worker_inputs[i].send_bytes(argbytes)
 			self._worker_updated_btts[i] = self._btt()
 
