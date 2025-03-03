@@ -95,6 +95,7 @@ from .util import (
 	AbstractEngine,
 	normalize_layout,
 	sort_set,
+	fake_submit,
 )
 from .xcollections import (
 	FunctionStore,
@@ -576,14 +577,22 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._worker_updated_btts = [self._btt()] * workers
 
 	def _call_in_subprocess(
-		self, uid, method, func_name, future: Future, *args, **kwargs
+		self,
+		uid,
+		method,
+		func_name,
+		future: Future,
+		*args,
+		update=True,
+		**kwargs,
 	):
 		i = uid % len(self._worker_inputs)
 		argbytes = zlib.compress(
 			self.pack((uid, method, (func_name, *args), kwargs))
 		)
 		with self._worker_locks[i]:
-			self._update_worker_process_state(i, lock=False)
+			if update:
+				self._update_worker_process_state(i, lock=False)
 			self._worker_inputs[i].send_bytes(argbytes)
 			output = self._worker_outputs[i].recv_bytes()
 		got_uid, result = self.unpack(zlib.decompress(output))
@@ -620,17 +629,20 @@ class Engine(AbstractEngine, gORM, Executor):
 				"Use the engine's attribute `function` to store it."
 			)
 		uid = self._top_uid
-		ret = Future()
-		ret.uid = uid
-		ret._t = Thread(
-			target=self._call_in_subprocess,
-			args=(uid, method, fn.__name__, ret, *args),
-			kwargs=kwargs,
-		)
-		self._top_uid += 1
-		self._uid_to_fut[uid] = ret
-		self._futs_to_start.put(ret)
-		return ret
+		if self._worker_processes:
+			ret = Future()
+			ret.uid = uid
+			ret._t = Thread(
+				target=self._call_in_subprocess,
+				args=(uid, method, fn.__name__, ret, *args),
+				kwargs=kwargs,
+			)
+			self._top_uid += 1
+			self._uid_to_fut[uid] = ret
+			self._futs_to_start.put(ret)
+			return ret
+		else:
+			return fake_submit(fn, *args, **kwargs)
 
 	def _manage_futs(self):
 		while True:
@@ -2977,26 +2989,25 @@ class Engine(AbstractEngine, gORM, Executor):
 			return False
 		return entikey in vbranchesb[turn].entikeys
 
-	def _check_triggers(
-		self, todo, prio, rulebook, rule, handled_fun, entity, neighbors=None
+	def _iter_submit_triggers(
+		self, prio, rulebook, rule, handled_fun, entity, neighbors=None
 	):
 		changed = self._changed
 		charn = entity.character.name
 		if neighbors is not None and not (
 			any(changed(charn, neighbor) for neighbor in neighbors)
 		):
-			return False
+			return
 		for trigger in rule.triggers:
-			if hasattr(self, "_worker_processes"):
-				res = self.submit(trigger, entity)
-			else:
-				res = trigger(entity)
-			if res:
-				todo[prio, rulebook].append((rule, handled_fun, entity))
-				return True
+			fut = self.submit(trigger, entity)
+			fut.rule = rule
+			fut.prio = prio
+			fut.entity = entity
+			fut.rulebook = rulebook
+			fut.handled = handled_fun
+			yield fut
 		else:
 			handled_fun(self.tick)
-			return False
 
 	def _check_prereqs(self, rule, handled_fun, entity):
 		if not entity:
@@ -3196,10 +3207,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			node_objs[key] = self.place_cls(self.character[graphn], placen)
 		return node_objs[key]
 
-	@staticmethod
-	def _call_it(it, *args, **kwargs):
-		return it(*args, **kwargs)
-
 	def _eval_triggers(self):
 		truthfun = self.trigger.truth
 		branch, turn, tick = self._btt()
@@ -3207,12 +3214,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		rulemap = self.rule
 		todo = defaultdict(list)
 		trig_futs = []
-
-		pool = getattr(self, "_trigger_pool", None)
-		if pool:
-			submit = pool.submit
-		else:
-			submit = self._call_it
 
 		for (
 			prio,
@@ -3237,10 +3238,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
-			trig_futs.append(
-				submit(
-					self._check_triggers,
-					todo,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
@@ -3285,10 +3284,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
-			trig_futs.append(
-				submit(
-					self._check_triggers,
-					todo,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
@@ -3324,10 +3321,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
-			trig_futs.append(
-				submit(
-					self._check_triggers,
-					todo,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
@@ -3362,10 +3357,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
-			trig_futs.append(
-				submit(
-					self._check_triggers,
-					todo,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
@@ -3404,10 +3397,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
-			trig_futs.append(
-				submit(
-					self._check_triggers,
-					todo,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
@@ -3436,10 +3427,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
-			trig_futs.append(
-				submit(
-					self._check_triggers,
-					todo,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
@@ -3476,10 +3465,8 @@ class Engine(AbstractEngine, gORM, Executor):
 			if truthfun in self.rulebook[rulebook]:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
-			trig_futs.append(
-				submit(
-					self._check_triggers,
-					todo,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
@@ -3489,8 +3476,15 @@ class Engine(AbstractEngine, gORM, Executor):
 				)
 			)
 
-		if pool:
-			futwait(trig_futs)
+		for fut in trig_futs:
+			if fut.result():
+				todo[fut.prio, fut.rulebook].append(
+					(
+						fut.rule,
+						fut.handled,
+						fut.entity,
+					)
+				)
 
 		return todo
 
