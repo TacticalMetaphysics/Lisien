@@ -7,6 +7,7 @@ from blinker import Signal
 from kivy.base import EventLoop
 from kivy.config import ConfigParser
 from kivy.input.motionevent import MotionEvent
+from kivy.logger import Logger, file_log_handler
 from kivy.tests.common import GraphicUnitTest
 
 from elide.app import ELiDEApp
@@ -125,9 +126,15 @@ class MockEngine(Signal):
 
 
 class ELiDEAppTest(GraphicUnitTest):
-	@classmethod
-	def setUpClass(cls):
-		cls.prefix = mkdtemp()
+	def __init__(self, methodName="runTest"):
+		super().__init__(methodName)
+		self.prefix = mkdtemp()
+		self.addCleanup(self.cleanup)
+
+	def cleanup(self):
+		if file_log_handler.log_dir == self.prefix:
+			Logger.removeHandler(file_log_handler)
+		shutil.rmtree(self.prefix)
 
 	def setUp(self):
 		super(ELiDEAppTest, self).setUp()
@@ -142,7 +149,3 @@ class ELiDEAppTest(GraphicUnitTest):
 		super().tearDown(fake=fake)
 		self.app.stop()
 		sys.argv = self.old_argv
-
-	@classmethod
-	def tearDownClass(cls):
-		shutil.rmtree(cls.prefix)
