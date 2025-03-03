@@ -7,7 +7,7 @@ from blinker import Signal
 from kivy.base import EventLoop
 from kivy.config import ConfigParser
 from kivy.input.motionevent import MotionEvent
-from kivy.logger import Logger, file_log_handler
+from kivy.logger import Logger
 from kivy.tests.common import GraphicUnitTest
 
 from elide.app import ELiDEApp
@@ -132,8 +132,13 @@ class ELiDEAppTest(GraphicUnitTest):
 		self.addCleanup(self.cleanup)
 
 	def cleanup(self):
-		if file_log_handler.log_dir == self.prefix:
-			Logger.removeHandler(file_log_handler)
+		dead_log_handlers = [
+			handler
+			for handler in Logger.handlers
+			if getattr(handler, "log_dir", None) == self.prefix
+		]
+		for handler in dead_log_handlers:
+			Logger.removeHandler(handler)
 		shutil.rmtree(self.prefix)
 
 	def setUp(self):
