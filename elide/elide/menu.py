@@ -135,8 +135,6 @@ class DirPicker(Screen):
 	@triggered()
 	def open(self, path, *_):
 		app = App.get_running_app()
-		app.starting_dir = os.path.abspath(".")
-		os.chdir(path)
 		if "world" not in os.listdir(path):
 			# TODO show a configurator, accept cancellation, extract init params
 			if not hasattr(self, "config_popover"):
@@ -150,7 +148,7 @@ class DirPicker(Screen):
 				self.config_popover.add_widget(self.configurator)
 			self.config_popover.open()
 			return
-		app.start_subprocess()
+		app.start_subprocess(path)
 		app.init_board()
 		self.toggle()
 

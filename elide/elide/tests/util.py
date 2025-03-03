@@ -1,5 +1,3 @@
-import logging
-import os
 import shutil
 import sys
 from functools import partial
@@ -9,16 +7,9 @@ from blinker import Signal
 from kivy.base import EventLoop
 from kivy.config import ConfigParser
 from kivy.input.motionevent import MotionEvent
-from kivy import logger
 from kivy.tests.common import GraphicUnitTest
 
 from elide.app import ELiDEApp
-
-
-logger.file_log_handler = logging.FileHandler(
-	os.path.join(os.curdir, "elide-tests.log")
-)
-logger.Logger.addHandler(logger.file_log_handler)
 
 
 def all_spots_placed(board, char=None):

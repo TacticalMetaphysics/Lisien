@@ -47,7 +47,7 @@ import elide.spritebuilder
 import elide.statcfg
 import elide.stores
 import elide.timestream
-import lisien
+
 from elide.graph.arrow import GraphArrow
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
@@ -281,7 +281,7 @@ class ELiDEApp(App):
 		self.branch, self.turn, self.tick = branch, turn, tick
 		self.mainscreen.ids.turnscroll.value = turn
 
-	def start_subprocess(self, *_):
+	def start_subprocess(self, path=None, *_):
 		"""Start the lisien core and get a proxy to it
 
 		Must be called before ``init_board``
@@ -302,8 +302,14 @@ class ELiDEApp(App):
 			enkw["logfile"] = config["lisien"]["logfile"]
 		if config["lisien"].get("loglevel"):
 			enkw["loglevel"] = config["lisien"]["loglevel"]
+		if path is not None and os.path.isdir(path):
+			startdir = path
+		elif os.path.isdir(sys.argv[-1]):
+			startdir = sys.argv[-1]
+		else:
+			startdir = None
 		self.procman = EngineProcessManager()
-		self.engine = engine = self.procman.start(**enkw)
+		self.engine = engine = self.procman.start(startdir, **enkw)
 		self.pull_time()
 
 		self.engine.time.connect(self._pull_time_from_signal, weak=False)
@@ -531,8 +537,6 @@ class ELiDEApp(App):
 			self.procman.shutdown()
 		if hasattr(self, "engine"):
 			del self.engine
-		if hasattr(self, "starting_dir"):
-			os.chdir(self.starting_dir)
 
 	def delete_selection(self):
 		"""Delete both the selected widget and whatever it represents."""
