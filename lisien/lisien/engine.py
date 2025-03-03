@@ -612,10 +612,12 @@ class Engine(AbstractEngine, gORM, Executor):
 			method = "_call_function"
 		elif fn.__module__ == "method":
 			method = "_call_method"
+		elif fn.__module__ == "trigger":
+			method = "_eval_trigger"
 		else:
 			raise ValueError(
 				"Function is not stored in this lisien engine. "
-				"Use the engine's attributes `function` and `method` to store it."
+				"Use the engine's attribute `function` to store it."
 			)
 		uid = self._top_uid
 		ret = Future()
@@ -681,17 +683,17 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _reimport_trigger_functions(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		self._call_every_subproxy("_reimport_triggers")
+		self._call_every_subprocess("_reimport_triggers")
 
 	def _reimport_worker_functions(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		self._call_every_subproxy("_reimport_functions")
+		self._call_every_subprocess("_reimport_functions")
 
 	def _reimport_worker_methods(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		self._call_every_subproxy("_reimport_methods")
+		self._call_every_subprocess("_reimport_methods")
 
 	def _get_worker_kf_payload(self, uid: int = -1) -> bytes:
 		# I'm not using the uid at the moment, because this doesn't return anything
@@ -718,24 +720,12 @@ class Engine(AbstractEngine, gORM, Executor):
 			)
 		)
 
-	def _call_a_subproxy(self, uid, method: str, *args, **kwargs):
-		argbytes = zlib.compress(self.pack((uid, method, args, kwargs)))
-		i = uid % len(self._worker_inputs)
-		with self._worker_locks[i]:
-			self._worker_inputs[i].send_bytes(argbytes)
-			output = self._worker_outputs[i].recv_bytes()
-		got_uid, ret = self.unpack(zlib.decompress(output))
-		assert got_uid == uid
-		if isinstance(ret, Exception):
-			raise ret
-		return ret
-
-	def _call_any_subproxy(self, method: str, *args, **kwargs):
+	def _call_any_subprocess(self, method: str, *args, **kwargs):
 		uid = self._top_uid
 		self._top_uid += 1
-		return self._call_a_subproxy(uid, method, *args, **kwargs)
+		return self._call_in_subprocess(uid, method, *args, **kwargs)
 
-	def _call_every_subproxy(self, method: str, *args, **kwargs):
+	def _call_every_subprocess(self, method: str, *args, **kwargs):
 		ret = []
 		for lock in self._worker_locks:
 			lock.acquire()
@@ -844,7 +834,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.snap_keyframe(silent=True, update_worker_processes=False)
 		super()._init_graph(name, type_s, data)
 		if hasattr(self, "_worker_processes"):
-			self._call_every_subproxy("_add_character", name, data)
+			self._call_every_subprocess("_add_character", name, data)
 
 	def _load_plans(self) -> None:
 		from .rule import Rule
@@ -2998,9 +2988,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			return False
 		for trigger in rule.triggers:
 			if hasattr(self, "_worker_processes"):
-				res = self._call_any_subproxy(
-					"_eval_trigger", trigger.__name__, entity
-				)
+				res = self.submit(trigger, entity)
 			else:
 				res = trigger(entity)
 			if res:
@@ -3669,7 +3657,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			del graph.thing[thing]
 		super().del_graph(name)
 		if hasattr(self, "_worker_processes"):
-			self._call_every_subproxy("_del_character", name)
+			self._call_every_subprocess("_del_character", name)
 
 	del_character = del_graph
 
