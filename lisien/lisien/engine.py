@@ -174,7 +174,11 @@ class NextTurn(Signal):
 			if getattr(store, "_need_save", None):
 				store.save()
 			elif hasattr(store, "reimport"):
-				store.reimport()
+				try:
+					store.reimport()
+				except FileNotFoundError:
+					# Maybe the game uses no prereqs or something.
+					pass
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
 		if start_turn < latest_turn:
