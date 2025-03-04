@@ -735,10 +735,26 @@ class Engine(AbstractEngine, gORM, Executor):
 		self._top_uid += 1
 		return self._call_in_subprocess(uid, method, *args, **kwargs)
 
-	def _call_every_subprocess(self, method: str, *args, **kwargs):
-		ret = []
+	@contextmanager
+	def _all_worker_locks_ctx(self):
 		for lock in self._worker_locks:
 			lock.acquire()
+		yield
+		for lock in self._worker_locks:
+			lock.release()
+
+	@staticmethod
+	def _all_worker_locks(fn):
+		@wraps(fn)
+		def call_with_all_worker_locks(self, *args, **kwargs):
+			with self._all_worker_locks_ctx():
+				return fn(self, *args, **kwargs)
+
+		return call_with_all_worker_locks
+
+	@_all_worker_locks
+	def _call_every_subprocess(self, method: str, *args, **kwargs):
+		ret = []
 		uids = []
 		for _ in range(len(self._worker_processes)):
 			uids.append(self._top_uid)
@@ -756,8 +772,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			if isinstance(retval, Exception):
 				raise retval
 			ret.append(retval)
-		for lock in self._worker_locks:
-			lock.release()
 		return ret
 
 	def _init_graph(
@@ -844,6 +858,11 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.snap_keyframe(silent=True, update_worker_processes=False)
 		super()._init_graph(name, type_s, data)
 		if hasattr(self, "_worker_processes"):
+			from .util import print_call_sig
+
+			print_call_sig(
+				self._call_every_subprocess, "_add_character", name, data
+			)
 			self._call_every_subprocess("_add_character", name, data)
 
 	def _load_plans(self) -> None:
@@ -2851,23 +2870,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.query.handled_portal_rule(
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
-
-	@contextmanager
-	def _all_worker_locks_ctx(self):
-		for lock in self._worker_locks:
-			lock.acquire()
-		yield
-		for lock in self._worker_locks:
-			lock.release()
-
-	@staticmethod
-	def _all_worker_locks(fn):
-		@wraps(fn)
-		def call_with_all_worker_locks(self, *args, **kwargs):
-			with self._all_worker_locks_ctx():
-				return fn(self, *args, **kwargs)
-
-		return call_with_all_worker_locks
 
 	@_all_worker_locks
 	def _update_all_worker_process_states(self, clobber=False):
