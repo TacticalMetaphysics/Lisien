@@ -79,12 +79,14 @@ def engy(tmp_path, request):
 		yield eng
 
 
-@pytest.fixture(scope="function")
-def sqleng(tmp_path):
+@pytest.fixture(scope="function", params=["serial", "parallel"])
+def sqleng(tmp_path, request):
+	execution = request.param
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
+		workers=0 if execution == "serial" else 2,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
 		yield eng
