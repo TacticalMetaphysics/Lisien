@@ -615,8 +615,6 @@ class Engine(AbstractEngine, gORM, Executor):
 	def submit(
 		self, fn: FunctionType | MethodType, /, *args, **kwargs
 	) -> Future:
-		if not hasattr(self, "_worker_processes"):
-			raise RuntimeError("lisien was launched with no worker processes")
 		if fn.__module__ == "function":
 			method = "_call_function"
 		elif fn.__module__ == "method":
@@ -631,18 +629,18 @@ class Engine(AbstractEngine, gORM, Executor):
 		uid = self._top_uid
 		if self._worker_processes:
 			ret = Future()
-			ret.uid = uid
 			ret._t = Thread(
 				target=self._call_in_subprocess,
 				args=(uid, method, fn.__name__, ret, *args),
 				kwargs=kwargs,
 			)
-			self._top_uid += 1
-			self._uid_to_fut[uid] = ret
 			self._futs_to_start.put(ret)
-			return ret
 		else:
-			return fake_submit(fn, *args, **kwargs)
+			ret = fake_submit(fn, *args, **kwargs)
+		ret.uid = uid
+		self._top_uid += 1
+		self._uid_to_fut[uid] = ret
+		return ret
 
 	def _manage_futs(self):
 		while True:
