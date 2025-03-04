@@ -173,6 +173,8 @@ class NextTurn(Signal):
 		for store in engine.stores:
 			if getattr(store, "_need_save", None):
 				store.save()
+			elif hasattr(store, "reimport"):
+				store.reimport()
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
 		if start_turn < latest_turn:
@@ -858,11 +860,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.snap_keyframe(silent=True, update_worker_processes=False)
 		super()._init_graph(name, type_s, data)
 		if hasattr(self, "_worker_processes"):
-			from .util import print_call_sig
-
-			print_call_sig(
-				self._call_every_subprocess, "_add_character", name, data
-			)
 			self._call_every_subprocess("_add_character", name, data)
 
 	def _load_plans(self) -> None:
