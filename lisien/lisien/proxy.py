@@ -1588,7 +1588,7 @@ class UnitMapProxy(Mapping, RuleFollowerProxy):
 			self.character, self.character.engine.character[k]
 		)
 
-	class GraphUnitsProxy(Mapping, RuleFollowerProxy):
+	class GraphUnitsProxy(Mapping):
 		def __init__(self, character, graph):
 			self.character = character
 			self.graph = graph
