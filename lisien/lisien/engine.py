@@ -3233,7 +3233,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = charmap[charactername]
-			if truthfun in self.rulebook[rulebook]:
+			if truthfun in self.rule[rulename].triggers:
 				todo[prio, rulebook].append((rule, handled, entity))
 				continue
 			trig_futs.extend(
