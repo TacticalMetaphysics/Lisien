@@ -197,8 +197,6 @@ class FunctionStore(Signal):
 		if not callable(v):
 			super().__setattr__(k, v)
 			return
-		if self._module is not None:
-			setattr(self._module, k, v)
 		source = getsource(v)
 		outdented = dedent_source(source)
 		expr = Expr(parse(outdented))

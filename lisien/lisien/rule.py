@@ -115,7 +115,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 	def _nominate(self, v):
 		if callable(v):
 			self._funcstore(v)
-			v = v.__name__
+			return v.__name__
 		if not hasattr(self._funcstore, v):
 			raise KeyError(
 				"No {typ} function named {n}".format(
