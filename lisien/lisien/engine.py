@@ -2872,7 +2872,7 @@ class Engine(AbstractEngine, gORM, Executor):
 	@_all_worker_locks
 	def _update_all_worker_process_states(self, clobber=False):
 		for store in self.stores:
-			store.save()
+			store.save(reimport=False)
 		kf_payload = None
 		deltas = {}
 		for i in range(len(self._worker_processes)):
