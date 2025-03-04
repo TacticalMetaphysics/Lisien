@@ -82,6 +82,8 @@ def engy(tmp_path, request):
 @pytest.fixture(scope="function", params=["serial", "parallel"])
 def sqleng(tmp_path, request):
 	execution = request.param
+	if request.config.getoption("serial") and execution == "parallel":
+		raise pytest.skip("Skipping parallel execution.")
 	with Engine(
 		tmp_path,
 		random_seed=69105,
