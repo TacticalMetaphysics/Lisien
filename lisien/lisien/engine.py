@@ -520,6 +520,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			threaded_triggers = workers is not None and workers != 0
 		if threaded_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
+		self._top_uid = 0
 		if workers is None:
 			workers = os.cpu_count() or 0
 		if workers > 0:
@@ -541,7 +542,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._worker_locks = wlk = []
 			self._worker_log_queues = wl = []
 			self._worker_log_threads = wlt = []
-			self._top_uid = 0
 			for i in range(workers):
 				inpipe_there, inpipe_here = Pipe(duplex=False)
 				outpipe_here, outpipe_there = Pipe(duplex=False)
@@ -627,19 +627,19 @@ class Engine(AbstractEngine, gORM, Executor):
 				"Use the engine's attribute `function` to store it."
 			)
 		uid = self._top_uid
-		if self._worker_processes:
+		if hasattr(self, "_worker_processes"):
 			ret = Future()
 			ret._t = Thread(
 				target=self._call_in_subprocess,
 				args=(uid, method, fn.__name__, ret, *args),
 				kwargs=kwargs,
 			)
+			self._uid_to_fut[uid] = ret
 			self._futs_to_start.put(ret)
 		else:
 			ret = fake_submit(fn, *args, **kwargs)
 		ret.uid = uid
 		self._top_uid += 1
-		self._uid_to_fut[uid] = ret
 		return ret
 
 	def _manage_futs(self):
