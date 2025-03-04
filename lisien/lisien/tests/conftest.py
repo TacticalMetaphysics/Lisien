@@ -106,15 +106,18 @@ def serial_engine(tmp_path):
 		yield eng
 
 
-@pytest.fixture(scope="module")
-def college24_premade():
-	with TemporaryDirectory() as tmp_path:
-		shutil.unpack_archive(
-			os.path.join(
-				os.path.abspath(os.path.dirname(__file__)),
-				"college24_premade.tar.xz",
-			),
-			tmp_path,
-		)
-		with Engine(tmp_path, workers=0) as eng:
-			yield eng
+@pytest.fixture(scope="function")
+def college24_premade(tmp_path):
+	shutil.unpack_archive(
+		os.path.join(
+			os.path.abspath(os.path.dirname(__file__)),
+			"college24_premade.tar.xz",
+		),
+		tmp_path,
+	)
+	with Engine(
+		tmp_path,
+		workers=0,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+	) as eng:
+		yield eng
