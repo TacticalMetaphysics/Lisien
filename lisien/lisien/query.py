@@ -1427,7 +1427,7 @@ class ParquetDBHolder(ConnectionHolder):
 					initial[table],
 					schema=schema,
 				)
-		schemaver_b = b"\xb4_lise_schema_version"
+		schemaver_b = b"\xb4_lisien_schema_version"
 		ver = self.get_global(schemaver_b)
 		if ver == b"\xc0":
 			self.set_global(schemaver_b, b"\x00")
@@ -6722,7 +6722,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				pass
 			except Exception as ex:
 				return ex
-		schemaver_b = b"\xb4_lise_schema_version"
+		schemaver_b = b"\xb4_lisien_schema_version"
 		ver = self.call_one("global_get", schemaver_b).fetchone()
 		if ver is None:
 			self.call_one("global_insert", schemaver_b, b"\x00")
@@ -6763,17 +6763,19 @@ class SQLAlchemyQueryEngine(QueryEngine, AbstractLisienQueryEngine):
 		"character_thing_rulebook",
 		"character_place_rulebook",
 		"character_portal_rulebook",
-		"node_rules_handled",
-		"portal_rules_handled",
-		"things",
-		"node_rulebook",
-		"portal_rulebook",
-		"units",
-		"character_rules_handled",
-		"unit_rules_handled",
 		"character_thing_rules_handled",
 		"character_place_rules_handled",
 		"character_portal_rules_handled",
+		"node_rulebook",
+		"portal_rulebook",
+		"rule_neighborhood",
+		"rule_big",
+		"node_rules_handled",
+		"portal_rules_handled",
+		"things",
+		"units",
+		"character_rules_handled",
+		"unit_rules_handled",
 		"turns_completed",
 	)
 	kf_interval_override: callable
