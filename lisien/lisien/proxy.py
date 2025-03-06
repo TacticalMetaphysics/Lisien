@@ -2773,27 +2773,12 @@ class EngineProxy(AbstractEngine):
 						or (char in places and node in places[char])
 					):
 						places[char][node] = PlaceProxy(chars[char], node)
-						chars[char].place.send(
-							chars[char], key=node, value=places[char][node]
-						)
 					nodes_to_delete.discard((char, node))
 				else:
 					if char in things and node in things[char]:
 						del things[char][node]
-						chars[char].thing.send(
-							chars[char], key=node, value=None
-						)
-						chars[char].node.send(
-							chars[char], key=node, value=None
-						)
 					if char in places and node in places[char]:
 						del places[char][node]
-						chars[char].place.send(
-							chars[char], key=node, value=None
-						)
-						chars[char].node.send(
-							chars[char], key=node, value=None
-						)
 		for char, node in nodes_to_delete:
 			if node in things[char]:
 				del things[char][node]
@@ -2835,12 +2820,6 @@ class EngineProxy(AbstractEngine):
 						else:
 							del portals.successors[char][orig][dest]
 							del portals.predecessors[char][dest][orig]
-							chars[char].adj.send(
-								chars[char], orig=orig, dest=dest, value=None
-							)
-							chars[char].pred.send(
-								chars[char], orig=orig, dest=dest, value=None
-							)
 						continue
 					if exists:
 						edges_to_delete.discard((char, orig, dest))
@@ -2848,12 +2827,6 @@ class EngineProxy(AbstractEngine):
 						continue
 					that = PortalProxy(chars[char], orig, dest)
 					portals.store(char, orig, dest, that)
-					chars[char].adj.send(
-						chars[char], orig=orig, dest=dest, value=that
-					)
-					chars[char].pred.send(
-						chars[char], orig=orig, dest=dest, value=that
-					)
 		for char, orig, dest in edges_to_delete:
 			portals.delete(char, orig, dest)
 		for char, origs in result["edge_val"].items():
