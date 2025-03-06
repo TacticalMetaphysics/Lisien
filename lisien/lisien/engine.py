@@ -2880,16 +2880,16 @@ class Engine(AbstractEngine, gORM, Executor):
 		deltas = {}
 		for i in range(len(self._worker_processes)):
 			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
-			old_eternal = self._worker_last_eternal
-			new_eternal = self._worker_last_eternal = dict(
-				self.eternal.items()
-			)
-			eternal_delta = {
-				k: new_eternal.get(k)
-				for k in old_eternal.keys() | new_eternal.keys()
-				if old_eternal.get(k) != new_eternal.get(k)
-			}
 			if not clobber and branch_from == self.branch:
+				old_eternal = self._worker_last_eternal
+				new_eternal = self._worker_last_eternal = dict(
+					self.eternal.items()
+				)
+				eternal_delta = {
+					k: new_eternal.get(k)
+					for k in old_eternal.keys() | new_eternal.keys()
+					if old_eternal.get(k) != new_eternal.get(k)
+				}
 				if (branch_from, turn_from, tick_from) in deltas:
 					delt = deltas[branch_from, turn_from, tick_from]
 				else:
