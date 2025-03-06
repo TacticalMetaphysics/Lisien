@@ -2814,14 +2814,6 @@ class EngineProxy(AbstractEngine):
 						)
 					else:
 						that = things[char][node]
-						that._location = stats.pop("location")
-						that.send(that, key="location", value=that._location)
-						chars[char].thing.send(
-							that, key="location", value=that._location
-						)
-						chars[char].node.send(
-							that, key="location", value=that._location
-						)
 					if char in places and node in places[char]:
 						del places[char][node]
 				else:
