@@ -6677,7 +6677,7 @@ class ParquetQueryEngine(AbstractLisienQueryEngine):
 		self.call("initdb")
 
 
-class ConnectionHolder(ConnectionHolder):
+class SQLAlchemyConnectionHolder(ConnectionHolder):
 	def gather(self, meta):
 		return gather_sql(meta)
 
@@ -6737,7 +6737,7 @@ class SQLAlchemyQueryEngine(QueryEngine, AbstractLisienQueryEngine):
 	path = lisien.__path__[0]
 	IntegrityError = IntegrityError
 	OperationalError = OperationalError
-	holder_cls = ConnectionHolder
+	holder_cls = SQLAlchemyConnectionHolder
 	tables = (
 		"global",
 		"branches",
