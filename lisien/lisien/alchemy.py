@@ -611,7 +611,6 @@ def queries(table):
 	act = table["rule_actions"]
 	hoodsel = select(
 		hood.c.rule,
-		hood.c.branch,
 		hood.c.turn,
 		hood.c.tick,
 		hood.c.neighborhood,
