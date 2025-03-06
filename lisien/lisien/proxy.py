@@ -2758,13 +2758,7 @@ class EngineProxy(AbstractEngine):
 				self._character_units_cache[graph] = stats.pop("units")
 			else:
 				self._character_units_cache[graph] = {}
-			for key in list(stats):
-				if (
-					key in chars[graph].stat
-					and stats[key] == chars[graph].stat[key]
-				):
-					del stats[key]
-			chars[graph].stat._apply_delta(stats)
+			self._char_stat_cache[graph] = stats
 		nodes_to_delete = {
 			(char, node)
 			for char in things.keys() | places.keys()
@@ -2809,25 +2803,19 @@ class EngineProxy(AbstractEngine):
 			for node, stats in nodestats.items():
 				if "location" in stats:
 					if char not in things or node not in things[char]:
-						that = things[char][node] = ThingProxy(
+						things[char][node] = ThingProxy(
 							chars[char], node, stats.pop("location")
 						)
 					else:
-						that = things[char][node]
+						things[char][node]._location = stats.pop("location")
 					if char in places and node in places[char]:
 						del places[char][node]
 				else:
 					if char not in places or node not in places[char]:
-						that = PlaceProxy(chars[char], node)
-						places[char][node] = that
-					else:
-						that = places[char][node]
+						places[char][node] = PlaceProxy(chars[char], node)
 					if char in things and node in things[char]:
 						del things[char][node]
-				for key in list(stats):
-					if key in that and stats[key] == that[key]:
-						del stats[key]
-				that._apply_delta(stats)
+				self._node_stat_cache[char][node] = stats
 		edges_to_delete = {
 			(char, orig, dest)
 			for char in portals.successors
@@ -2871,11 +2859,7 @@ class EngineProxy(AbstractEngine):
 		for char, origs in result["edge_val"].items():
 			for orig, dests in origs.items():
 				for dest, stats in dests.items():
-					portal = portals.successors[char][orig][dest]
-					for stat in list(stats):
-						if stat in portal and stats[stat] == portal[stat]:
-							del stats[stat]
-					portal._apply_delta(stats)
+					self._portal_stat_cache[char][orig][dest] = stats
 
 	def _pull_kf_now(self, *args, **kwargs):
 		self._replace_state_with_kf(self.handle("snap_keyframe"))
