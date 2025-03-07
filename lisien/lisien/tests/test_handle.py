@@ -21,7 +21,9 @@ def test_language(handle_initialized):
 
 def test_eternal(handle_initialized):
 	unpack = handle_initialized.unpack
-	assert unpack(handle_initialized.get_eternal("_lise_schema_version")) == 0
+	assert (
+		unpack(handle_initialized.get_eternal("_lisien_schema_version")) == 0
+	)
 	assert unpack(handle_initialized.get_eternal("main_branch")) == "trunk"
 	assert unpack(handle_initialized.get_eternal("language")) == "eng"
 	handle_initialized.set_eternal("haha", "lol")
