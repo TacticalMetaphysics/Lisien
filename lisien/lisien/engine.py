@@ -2872,6 +2872,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
 
+	@world_locked
 	@_all_worker_locks
 	def _update_all_worker_process_states(self, clobber=False):
 		for store in self.stores:
@@ -2929,6 +2930,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				self._worker_inputs[i].send_bytes(kf_payload)
 			self._worker_updated_btts[i] = self._btt()
 
+	@world_locked
 	def _update_worker_process_state(self, i, lock=True):
 		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
 		if (branch_from, turn_from, tick_from) == self._btt():
