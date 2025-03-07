@@ -1753,7 +1753,7 @@ class ORM:
 		branch, turn, tick = self._btt()
 		if (branch, turn, tick) in self._keyframes_times:
 			if silent:
-				return
+				return None
 			return self._get_keyframe(branch, turn, tick)
 		kfd = self._keyframes_dict
 		the_kf: tuple[str, int, int] = None
@@ -1775,7 +1775,7 @@ class ORM:
 			if parent is None:
 				self._snap_keyframe_de_novo(branch, turn, tick)
 				if silent:
-					return
+					return None
 				else:
 					return self._get_kf(branch, turn, tick)
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
@@ -1789,8 +1789,9 @@ class ORM:
 			)
 			if the_kf[0] != branch:
 				self._copy_kf(the_kf[0], branch, turn, tick)
-		if not silent:
-			return self._get_kf(branch, turn, tick)
+		if silent:
+			return None
+		return self._get_kf(branch, turn, tick)
 
 	def _build_loading_windows(
 		self,
