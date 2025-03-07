@@ -3335,7 +3335,7 @@ class EngineProxy(AbstractEngine):
 			command="add_character",
 			char=char,
 			data=data,
-			attr=attr,
+			**attr,
 			branching=True,
 		)
 
