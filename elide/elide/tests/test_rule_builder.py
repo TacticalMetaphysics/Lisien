@@ -139,19 +139,19 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			"Never filled trigger builder",
 		)
 
-		breakcover = None
+		uncovered = None
 
-		def have_breakcover():
-			nonlocal breakcover
+		def have_uncovered():
+			nonlocal uncovered
 			for card in builder.children:
 				if not isinstance(card, Card):
 					continue
-				if card.headline_text == "breakcover":
-					breakcover = card
+				if card.headline_text == "uncovered":
+					uncovered = card
 					return True
 			return False
 
-		idle_until(have_breakcover, 100, "Never got breakcover card")
+		idle_until(have_uncovered, 100, "Never got 'uncovered' card")
 
 		right_foundation = None
 
@@ -160,21 +160,21 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			for foundation in builder.children:
 				if not isinstance(foundation, Foundation):
 					continue
-				if foundation.x > breakcover.right:
+				if foundation.x > uncovered.right:
 					right_foundation = foundation
 					return True
 			return False
 
 		idle_until(have_right_foundation, 100, "Never built right foundation")
 
-		assert breakcover is not None
+		assert uncovered is not None
 		assert right_foundation is not None
 
-		def breakcover_is_flush_with_right_foundation():
+		def uncovered_is_flush_with_right_foundation():
 			for card in builder.children:
 				if not isinstance(card, Card):
 					continue
-				if card.headline_text == "breakcover":
+				if card.headline_text == "uncovered":
 					breakcover = card
 					right_foundation = None
 					for foundation in builder.children:
@@ -189,7 +189,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 					return breakcover.x == right_foundation.x
 			return False
 
-		card = breakcover
+		card = uncovered
 		foundation = right_foundation
 		mov = UnitTestTouch(*card.center)
 		mov.touch_down()
@@ -208,11 +208,13 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			"didn't replace foundations",
 		)
 		idle_until(
-			breakcover_is_flush_with_right_foundation, 100, "card didn't move"
+			uncovered_is_flush_with_right_foundation, 100, "card didn't move"
 		)
 		idle_until(
-			lambda: "breakcover"
-			not in self.app.engine.rule["shrubsprint"].triggers,
+			lambda: not any(
+				func.name == "breakcover"
+				for func in self.app.engine.rule["shrubsprint"].triggers
+			),
 			100,
 			"breakcover never removed from rulebook",
 		)
