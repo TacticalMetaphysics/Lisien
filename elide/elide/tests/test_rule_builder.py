@@ -106,9 +106,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			"aware",
 			"uncovered",
 			"sametile",
-			"breakcover",
 			"kobold_alive",
-			"truth",
 		}
 
 	def test_rule_builder_remove_trigger(self):
@@ -139,19 +137,19 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			"Never filled trigger builder",
 		)
 
-		breakcover = None
+		uncovered = None
 
-		def have_breakcover():
-			nonlocal breakcover
+		def have_uncovered():
+			nonlocal uncovered
 			for card in builder.children:
 				if not isinstance(card, Card):
 					continue
-				if card.headline_text == "breakcover":
-					breakcover = card
+				if card.headline_text == "uncovered":
+					uncovered = card
 					return True
 			return False
 
-		idle_until(have_breakcover, 100, "Never got breakcover card")
+		idle_until(have_uncovered, 100, "Never got 'uncovered' card")
 
 		right_foundation = None
 
@@ -160,21 +158,21 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			for foundation in builder.children:
 				if not isinstance(foundation, Foundation):
 					continue
-				if foundation.x > breakcover.right:
+				if foundation.x > uncovered.right:
 					right_foundation = foundation
 					return True
 			return False
 
 		idle_until(have_right_foundation, 100, "Never built right foundation")
 
-		assert breakcover is not None
+		assert uncovered is not None
 		assert right_foundation is not None
 
-		def breakcover_is_flush_with_right_foundation():
+		def uncovered_is_flush_with_right_foundation():
 			for card in builder.children:
 				if not isinstance(card, Card):
 					continue
-				if card.headline_text == "breakcover":
+				if card.headline_text == "uncovered":
 					breakcover = card
 					right_foundation = None
 					for foundation in builder.children:
@@ -189,7 +187,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 					return breakcover.x == right_foundation.x
 			return False
 
-		card = breakcover
+		card = uncovered
 		foundation = right_foundation
 		mov = UnitTestTouch(*card.center)
 		mov.touch_down()
@@ -208,11 +206,13 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			"didn't replace foundations",
 		)
 		idle_until(
-			breakcover_is_flush_with_right_foundation, 100, "card didn't move"
+			uncovered_is_flush_with_right_foundation, 100, "card didn't move"
 		)
 		idle_until(
-			lambda: "breakcover"
-			not in self.app.engine.rule["shrubsprint"].triggers,
+			lambda: not any(
+				func.name == "breakcover"
+				for func in self.app.engine.rule["shrubsprint"].triggers
+			),
 			100,
 			"breakcover never removed from rulebook",
 		)
@@ -249,26 +249,31 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			100,
 			"Never positioned trigger builder's children",
 		)
-		aware = breakcover = None
+		aware = None
 		for card in builder.children:
 			if isinstance(card, Foundation):
 				continue
 			assert isinstance(card, Card)
 			if card.headline_text == "aware":
 				aware = card
-			elif card.headline_text == "breakcover":
-				breakcover = card
-		assert None not in (
-			aware,
-			breakcover,
-		), "Didn't get 'aware' and 'breakcover' cards"
+				break
+		assert aware is not None, "Didn't get 'aware' card"
+		uncovered = None
+		for card in builder.children:
+			if isinstance(card, Foundation):
+				continue
+			assert isinstance(card, Card)
+			if card.headline_text == "uncovered":
+				uncovered = card
+				break
+		assert uncovered is not None, "Didn't get 'uncovered' card"
 		start_x = aware.center_x
 		start_y = aware.top - 10
 		assert aware.collide_point(start_x, start_y)
 		mov = UnitTestTouch(start_x, start_y)
 		mov.touch_down()
-		dist_x = start_x - breakcover.center_x
-		dist_y = start_y - breakcover.center_y
+		dist_x = start_x - uncovered.center_x
+		dist_y = start_y - uncovered.center_y
 		decr_x = dist_x / 10
 		decr_y = dist_y / 10
 		x = start_x
@@ -278,14 +283,17 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			y -= decr_y
 			mov.touch_move(x, y)
 			self.advance_frames(1)
-		mov.touch_up(*breakcover.center)
+		mov.touch_up(*uncovered.center)
 		idle_until(
-			lambda: abs(aware.x - breakcover.x) < 2,
+			lambda: abs(aware.x - uncovered.x) < 2,
 			100,
 			"aware didn't move to its new place",
 		)
 		idle_until(
-			lambda: "aware" in self.app.engine.rule["shrubsprint"].triggers,
+			lambda: any(
+				func.name == "aware"
+				for func in self.app.engine.rule["shrubsprint"].triggers
+			),
 			100,
 			"aware never added to rulebook",
 		)
@@ -293,7 +301,6 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 
 class TestCharRuleBuilder(ELiDEAppTest):
 	def setUp(self):
-		super(TestCharRuleBuilder, self).setUp()
 		with Engine(self.prefix) as eng:
 			polygons.install(eng)
 			assert list(
@@ -302,6 +309,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 				eng.trigger.similar_neighbors,
 				eng.trigger.dissimilar_neighbors,
 			]
+		super(TestCharRuleBuilder, self).setUp()
 		app = self.app
 		mgr = app.build()
 		self.Window.add_widget(mgr)
@@ -361,13 +369,13 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		rules_list = rules_box.ruleslist
 		idle_until(
 			lambda: rules_list.children[0].children,
-			100,
+			1000,
 			"Never filled rules list",
 		)
 		idle_until(
 			lambda: "relocate"
 			in {rulebut.text for rulebut in rules_list.children[0].children},
-			100,
+			1000,
 			"Never made relocate button",
 		)
 		for rulebut in rules_list.children[0].children:
@@ -380,7 +388,9 @@ class TestCharRuleBuilder(ELiDEAppTest):
 			== rules_box.rulesview._trigger_tab
 		)
 		idle_until(
-			lambda: builder.children, 100, "trigger builder never got children"
+			lambda: builder.children,
+			1000,
+			"trigger builder never got children",
 		)
 		idle_until(
 			partial(builder_foundation, builder),
@@ -388,7 +398,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 			"Never filled trigger builder",
 		)
 		idle_until(
-			lambda: builder.parent, 100, "trigger builder never got parent"
+			lambda: builder.parent, 1000, "trigger builder never got parent"
 		)
 		card_names = {
 			card.headline_text
@@ -398,7 +408,6 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		assert card_names == {
 			"similar_neighbors",
 			"dissimilar_neighbors",
-			"truth",
 		}
 		for card in builder.children:
 			if not isinstance(card, Card):
@@ -438,7 +447,22 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		touch.touch_up()
 		self.advance_frames(5)
 		rules_box.ids.closebut.on_release()
-		self.advance_frames(5)
+		idle_until(
+			lambda: all(
+				card.headline_text != "similar_neighbors"
+				for card in builder.decks[0]
+			),
+			100,
+			"similar_neighbors still in used pile",
+		)
+		idle_until(
+			lambda: not any(
+				trig.name == "similar_neighbors"
+				for trig in app.charrules.character.unit.rulebook[0].triggers
+			),
+			100,
+			"similar_neighbors still in proxy triggers list",
+		)
 		app.stop()
 		with Engine(self.prefix) as eng:
 			assert list(

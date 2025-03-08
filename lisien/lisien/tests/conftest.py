@@ -15,6 +15,7 @@
 import os
 import shutil
 from tempfile import TemporaryDirectory
+from itertools import product
 
 import pytest
 
@@ -58,20 +59,37 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(
-	scope="function", params=["parallel-execution", "serial-execution"]
+	scope="function",
+	params=list(product(["parallel", "serial"], ["sqlite", "parquetdb"])),
 )
 def engy(tmp_path, request):
-	if (
-		request.config.getoption("serial")
-		and request.param == "parallel-execution"
-	):
+	execution, database = request.param
+	if request.config.getoption("serial") and execution == "parallel":
+		raise pytest.skip("Skipping parallel execution.")
+	kwargs = {"random_seed": 69105, "enforce_end_of_time": False}
+	if execution == "parallel":
+		kwargs["threaded_triggers"] = True
+		kwargs["workers"] = 2
+	else:
+		kwargs["threaded_triggers"] = False
+		kwargs["workers"] = 0
+	if database == "sqlite":
+		kwargs["connect_string"] = f"sqlite:///{tmp_path}/world.sqlite3"
+	with Engine(tmp_path, **kwargs) as eng:
+		yield eng
+
+
+@pytest.fixture(scope="function", params=["serial", "parallel"])
+def sqleng(tmp_path, request):
+	execution = request.param
+	if request.config.getoption("serial") and execution == "parallel":
 		raise pytest.skip("Skipping parallel execution.")
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
-		threaded_triggers=request.param == "parallel-execution",
-		workers=2 if request.param == "parallel-execution" else 0,
+		workers=0 if execution == "serial" else 2,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
 		yield eng
 
@@ -88,15 +106,18 @@ def serial_engine(tmp_path):
 		yield eng
 
 
-@pytest.fixture(scope="module")
-def college24_premade():
-	with TemporaryDirectory() as tmp_path:
-		shutil.unpack_archive(
-			os.path.join(
-				os.path.abspath(os.path.dirname(__file__)),
-				"college24_premade.tar.xz",
-			),
-			tmp_path,
-		)
-		with Engine(tmp_path, workers=0) as eng:
-			yield eng
+@pytest.fixture(scope="function")
+def college24_premade(tmp_path):
+	shutil.unpack_archive(
+		os.path.join(
+			os.path.abspath(os.path.dirname(__file__)),
+			"college24_premade.tar.xz",
+		),
+		tmp_path,
+	)
+	with Engine(
+		tmp_path,
+		workers=0,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+	) as eng:
+		yield eng

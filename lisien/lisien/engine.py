@@ -28,7 +28,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
-from functools import partial
+from contextlib import contextmanager
+from functools import partial, wraps
 from itertools import chain
 from multiprocessing import Pipe, Process, Queue
 from operator import itemgetter
@@ -38,7 +39,7 @@ from random import Random
 from threading import Lock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Type, Iterator
 
 import msgpack
 import networkx as nx
@@ -54,16 +55,16 @@ from networkx import (
 )
 
 from . import exc
-from .allegedb import ORM as gORM
 from .allegedb import (
-	DeltaDict,
-	EdgeValDict,
-	Key,
-	KeyframeTuple,
-	NodeValDict,
-	OutOfTimelineError,
-	StatDict,
+	ORM as gORM,
 	world_locked,
+	Key,
+	StatDict,
+	NodeValDict,
+	EdgeValDict,
+	DeltaDict,
+	KeyframeTuple,
+	OutOfTimelineError,
 )
 from .allegedb.cache import (
 	KeyframeError,
@@ -81,32 +82,35 @@ from .query import (
 	CombinedQueryResult,
 	ComparisonQuery,
 	CompoundQuery,
+	ParquetQueryEngine,
 	Query,
-	QueryEngine,
+	SQLAlchemyQueryEngine,
 	QueryResult,
 	QueryResultEndTurn,
 	QueryResultMidTurn,
 	StatusAlias,
 	_make_side_sel,
 )
-from .util import AbstractEngine, final_rule, normalize_layout, sort_set
+from .util import (
+	AbstractEngine,
+	normalize_layout,
+	sort_set,
+	fake_submit,
+)
 from .xcollections import (
 	FunctionStore,
-	MethodStore,
 	StringStore,
 	UniversalMapping,
 )
 
-SlightlyPackedDeltaType = Dict[
+SlightlyPackedDeltaType = dict[
 	bytes,
-	Dict[
+	dict[
 		bytes,
-		Union[
+		bytes
+		| dict[
 			bytes,
-			Dict[
-				bytes,
-				Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]],
-			],
+			bytes | dict[bytes, bytes | dict[bytes, bytes]],
 		],
 	],
 ]
@@ -144,7 +148,7 @@ class DummyEntity(dict):
 
 	__slots__ = ["engine"]
 
-	def __init__(self, engine: "AbstractEngine"):
+	def __init__(self, engine: AbstractEngine):
 		super().__init__()
 		self.engine = engine
 
@@ -164,11 +168,17 @@ class NextTurn(Signal):
 		super().__init__()
 		self.engine = engine
 
-	def __call__(self) -> Tuple[List, DeltaDict]:
+	def __call__(self) -> tuple[list, DeltaDict]:
 		engine = self.engine
 		for store in engine.stores:
 			if getattr(store, "_need_save", None):
 				store.save()
+			elif hasattr(store, "reimport"):
+				try:
+					store.reimport()
+				except FileNotFoundError:
+					# Maybe the game uses no prereqs or something.
+					pass
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
 		if start_turn < latest_turn:
@@ -207,10 +217,20 @@ class NextTurn(Signal):
 				0,
 			)
 			engine.turn += 1
+		if hasattr(engine, "_worker_updated_btts"):
+			engine._update_all_worker_process_states()
 		results = []
+		if hasattr(engine, "_rules_iter"):
+			it = engine._rules_iter
+		else:
+			todo = engine._eval_triggers()
+			it = engine._rules_iter = engine._follow_rules(todo)
 		with engine.advancing():
-			for res in iter(engine._advance, final_rule):
-				if res:
+			for res in it:
+				if isinstance(res, InnerStopIteration):
+					del engine._rules_iter
+					raise StopIteration from res
+				elif res:
 					if isinstance(res, tuple) and res[0] == "stop":
 						engine.universal["last_result"] = res
 						engine.universal["last_result_idx"] = 0
@@ -225,6 +245,7 @@ class NextTurn(Signal):
 						)
 					else:
 						results.extend(res)
+		del engine._rules_iter
 		engine._turns_completed[start_branch] = engine.turn
 		engine.query.complete_turn(
 			start_branch,
@@ -349,9 +370,8 @@ class Engine(AbstractEngine, gORM, Executor):
 		Default ``True``. You normally want this, but it could cause problems
 		if you're not using the rules engine.
 	:param threaded_triggers: Whether to evaluate trigger functions in threads.
-		This has performance benefits if you are using a free-threaded build of
-		Python (without a GIL). Defaults to ``True`` when there are workers
-		(see below), ``False`` otherwise.
+		Defaults to ``True`` when there are workers (see below), ``False``
+		otherwise.
 	:param workers: How many subprocesses to use as workers for
 		parallel processing. When ``None`` (the default), use as many
 		subprocesses as we have CPU cores. When ``0``, parallel processing
@@ -369,7 +389,7 @@ class Engine(AbstractEngine, gORM, Executor):
 	thing_cls = Thing
 	place_cls = node_cls = Place
 	portal_cls = edge_cls = Portal
-	query_engine_cls = QueryEngine
+	query_engine_cls = SQLAlchemyQueryEngine
 	illegal_graph_names = {
 		"global",
 		"eternal",
@@ -392,20 +412,20 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def __init__(
 		self,
-		prefix: Union[PathLike, str] = ".",
+		prefix: PathLike | str = ".",
 		*,
-		string: Union[StringStore, dict] = None,
-		trigger: Union[FunctionStore, ModuleType] = None,
-		prereq: Union[FunctionStore, ModuleType] = None,
-		action: Union[FunctionStore, ModuleType] = None,
-		function: Union[FunctionStore, ModuleType] = None,
-		method: Union[MethodStore, ModuleType] = None,
+		string: StringStore | dict = None,
+		trigger: FunctionStore | ModuleType = None,
+		prereq: FunctionStore | ModuleType = None,
+		action: FunctionStore | ModuleType = None,
+		function: FunctionStore | ModuleType = None,
+		method: FunctionStore | ModuleType = None,
 		main_branch: str = None,
 		connect_string: str = None,
 		connect_args: dict = None,
 		schema_cls: Type[AbstractSchema] = NullSchema,
 		flush_interval: int = None,
-		keyframe_interval: Optional[int] = 1000,
+		keyframe_interval: int | None = 1000,
 		commit_interval: int = None,
 		random_seed: int = None,
 		logfun: callable = None,
@@ -429,6 +449,9 @@ class Engine(AbstractEngine, gORM, Executor):
 
 		self.log = logfun
 		self._prefix = prefix
+		if connect_string is None:
+			self.query_engine_cls = ParquetQueryEngine
+			connect_string = os.path.join(os.path.abspath(prefix), "world")
 		if connect_args is None:
 			connect_args = {}
 		if not os.path.exists(prefix):
@@ -460,8 +483,6 @@ class Engine(AbstractEngine, gORM, Executor):
 				if clear and os.path.exists(fn):
 					os.remove(fn)
 		self.schema = schema_cls(self)
-		if connect_string:
-			connect_string = connect_string.split("sqlite:///")[-1]
 		super().__init__(
 			connect_string or os.path.join(prefix, "world.db"),
 			clear=clear,
@@ -505,6 +526,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			threaded_triggers = workers is not None and workers != 0
 		if threaded_triggers:
 			self._trigger_pool = ThreadPoolExecutor()
+		self._top_uid = 0
 		if workers is None:
 			workers = os.cpu_count() or 0
 		if workers > 0:
@@ -526,7 +548,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._worker_locks = wlk = []
 			self._worker_log_queues = wl = []
 			self._worker_log_threads = wlt = []
-			self._top_uid = 0
 			for i in range(workers):
 				inpipe_there, inpipe_here = Pipe(duplex=False)
 				outpipe_here, outpipe_there = Pipe(duplex=False)
@@ -560,17 +581,24 @@ class Engine(AbstractEngine, gORM, Executor):
 			self.function.connect(self._reimport_worker_functions)
 			self.method.connect(self._reimport_worker_methods)
 			self._worker_updated_btts = [self._btt()] * workers
-		self._rules_iter = self._follow_rules()
 
 	def _call_in_subprocess(
-		self, uid, method, func_name, future: Future, *args, **kwargs
+		self,
+		uid,
+		method,
+		func_name,
+		future: Future,
+		*args,
+		update=True,
+		**kwargs,
 	):
 		i = uid % len(self._worker_inputs)
 		argbytes = zlib.compress(
 			self.pack((uid, method, (func_name, *args), kwargs))
 		)
 		with self._worker_locks[i]:
-			self._update_worker_process_state(i)
+			if update:
+				self._update_worker_process_state(i, lock=False)
 			self._worker_inputs[i].send_bytes(argbytes)
 			output = self._worker_outputs[i].recv_bytes()
 		got_uid, result = self.unpack(zlib.decompress(output))
@@ -584,37 +612,40 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def snap_keyframe(
 		self, silent=False, update_worker_processes=True
-	) -> Optional[dict]:
+	) -> dict | None:
 		ret = super().snap_keyframe(silent)
 		if hasattr(self, "_worker_processes") and update_worker_processes:
 			self._update_all_worker_process_states(clobber=True)
 		return ret
 
 	def submit(
-		self, fn: Union[FunctionType, MethodType], /, *args, **kwargs
+		self, fn: FunctionType | MethodType, /, *args, **kwargs
 	) -> Future:
-		if not hasattr(self, "_worker_processes"):
-			raise RuntimeError("lisien was launched with no worker processes")
 		if fn.__module__ == "function":
 			method = "_call_function"
 		elif fn.__module__ == "method":
 			method = "_call_method"
+		elif fn.__module__ == "trigger":
+			method = "_eval_trigger"
 		else:
 			raise ValueError(
 				"Function is not stored in this lisien engine. "
-				"Use the engine's attributes `function` and `method` to store it."
+				"Use the engine's attribute `function` to store it."
 			)
 		uid = self._top_uid
-		ret = Future()
+		if hasattr(self, "_worker_processes"):
+			ret = Future()
+			ret._t = Thread(
+				target=self._call_in_subprocess,
+				args=(uid, method, fn.__name__, ret, *args),
+				kwargs=kwargs,
+			)
+			self._uid_to_fut[uid] = ret
+			self._futs_to_start.put(ret)
+		else:
+			ret = fake_submit(fn, *args, **kwargs)
 		ret.uid = uid
-		ret._t = Thread(
-			target=self._call_in_subprocess,
-			args=(uid, method, fn.__name__, ret, *args),
-			kwargs=kwargs,
-		)
 		self._top_uid += 1
-		self._uid_to_fut[uid] = ret
-		self._futs_to_start.put(ret)
 		return ret
 
 	def _manage_futs(self):
@@ -668,26 +699,17 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _reimport_trigger_functions(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		payload = zlib.compress(self.pack((-1, "_reimport_triggers", (), {})))
-		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
-			with lock:
-				pipe.send_bytes(payload)
+		self._call_every_subprocess("_reimport_triggers")
 
 	def _reimport_worker_functions(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		payload = zlib.compress(self.pack((-1, "_reimport_functions", (), {})))
-		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
-			with lock:
-				pipe.send_bytes(payload)
+		self._call_every_subprocess("_reimport_functions")
 
 	def _reimport_worker_methods(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		payload = zlib.compress(self.pack((-1, "_reimport_methods", (), {})))
-		for lock, pipe in zip(self._worker_locks, self._worker_inputs):
-			with lock:
-				pipe.send_bytes(payload)
+		self._call_every_subprocess("_reimport_methods")
 
 	def _get_worker_kf_payload(self, uid: int = -1) -> bytes:
 		# I'm not using the uid at the moment, because this doesn't return anything
@@ -698,9 +720,7 @@ class Engine(AbstractEngine, gORM, Executor):
 					"_upd_from_game_start",
 					(
 						None,
-						None,
-						None,
-						None,
+						*self._btt(),
 						(
 							self.snap_keyframe(update_worker_processes=False),
 							dict(self.eternal.items()),
@@ -716,27 +736,31 @@ class Engine(AbstractEngine, gORM, Executor):
 			)
 		)
 
-	def _call_a_subproxy(self, uid, method: str, *args, **kwargs):
-		argbytes = zlib.compress(self.pack((uid, method, args, kwargs)))
-		i = uid % len(self._worker_inputs)
-		with self._worker_locks[i]:
-			self._worker_inputs[i].send_bytes(argbytes)
-			output = self._worker_outputs[i].recv_bytes()
-		got_uid, ret = self.unpack(zlib.decompress(output))
-		assert got_uid == uid
-		if isinstance(ret, Exception):
-			raise ret
-		return ret
-
-	def _call_any_subproxy(self, method: str, *args, **kwargs):
+	def _call_any_subprocess(self, method: str, *args, **kwargs):
 		uid = self._top_uid
 		self._top_uid += 1
-		return self._call_a_subproxy(uid, method, *args, **kwargs)
+		return self._call_in_subprocess(uid, method, *args, **kwargs)
 
-	def _call_every_subproxy(self, method: str, *args, **kwargs):
-		ret = []
+	@contextmanager
+	def _all_worker_locks_ctx(self):
 		for lock in self._worker_locks:
 			lock.acquire()
+		yield
+		for lock in self._worker_locks:
+			lock.release()
+
+	@staticmethod
+	def _all_worker_locks(fn):
+		@wraps(fn)
+		def call_with_all_worker_locks(self, *args, **kwargs):
+			with self._all_worker_locks_ctx():
+				return fn(self, *args, **kwargs)
+
+		return call_with_all_worker_locks
+
+	@_all_worker_locks
+	def _call_every_subprocess(self, method: str, *args, **kwargs):
+		ret = []
 		uids = []
 		for _ in range(len(self._worker_processes)):
 			uids.append(self._top_uid)
@@ -754,17 +778,13 @@ class Engine(AbstractEngine, gORM, Executor):
 			if isinstance(retval, Exception):
 				raise retval
 			ret.append(retval)
-		for lock in self._worker_locks:
-			lock.release()
 		return ret
 
 	def _init_graph(
 		self,
 		name: Key,
-		type_s="DiGraph",
-		data: Union[
-			CharacterFacade, Graph, nx.Graph, dict, KeyframeTuple
-		] = None,
+		type_s: str = "DiGraph",
+		data: CharacterFacade | Graph | nx.Graph | dict | KeyframeTuple = None,
 	) -> None:
 		if hasattr(data, "stat"):
 			if not hasattr(data, "thing"):
@@ -844,7 +864,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		self.snap_keyframe(silent=True, update_worker_processes=False)
 		super()._init_graph(name, type_s, data)
 		if hasattr(self, "_worker_processes"):
-			self._call_every_subproxy("_add_character", name, data)
+			self._call_every_subprocess("_add_character", name, data)
 
 	def _load_plans(self) -> None:
 		from .rule import Rule
@@ -933,8 +953,8 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _load(
 		self,
-		latest_past_keyframe: Optional[Tuple[str, int, int]],
-		earliest_future_keyframe: Optional[Tuple[str, int, int]],
+		latest_past_keyframe: tuple[str, int, int] | None,
+		earliest_future_keyframe: tuple[str, int, int] | None,
 		graphs_rows: list,
 		loaded: dict,
 	) -> None:
@@ -1119,15 +1139,17 @@ class Engine(AbstractEngine, gORM, Executor):
 	def _load_graphs(self) -> None:
 		for charn, branch, turn, tick, typ in self.query.characters():
 			self._graph_cache.store(
-				charn, branch, turn, tick, (typ if typ != "Deleted" else None)
+				charn,
+				branch,
+				turn,
+				tick,
+				(typ if typ != "Deleted" else None),
 			)
 			self._graph_objs[charn] = self.char_cls(
 				self, charn, init_rulebooks=False
 			)
 
-	def _make_node(
-		self, graph: Character, node: Key
-	) -> Union[thing_cls, place_cls]:
+	def _make_node(self, graph: Character, node: Key) -> thing_cls | place_cls:
 		if self._is_thing(graph.name, node):
 			return self.thing_cls(graph, node)
 		else:
@@ -1482,9 +1504,9 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def get_delta(
 		self,
-		time_from: Union[Tuple[str, int, int], Tuple[str, int]],
-		time_to: Union[Tuple[str, int, int], Tuple[str, int]],
-		slow=False,
+		time_from: tuple[str, int, int] | tuple[str, int],
+		time_to: tuple[str, int, int] | tuple[str, int],
+		slow: bool = False,
 	) -> DeltaDict:
 		"""Get a dictionary describing changes to the world.
 
@@ -1606,7 +1628,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		return delt
 
 	def _get_slow_delta(
-		self, btt_from: Tuple[str, int, int], btt_to: Tuple[str, int, int]
+		self, btt_from: tuple[str, int, int], btt_to: tuple[str, int, int]
 	) -> SlightlyPackedDeltaType:
 		def newgraph():
 			return {
@@ -1625,7 +1647,7 @@ class Engine(AbstractEngine, gORM, Executor):
 				),
 			}
 
-		delta: Dict[bytes, Any] = {
+		delta: dict[bytes, Any] = {
 			UNIVERSAL: PickyDefaultDict(bytes),
 			RULES: StructuredDefaultDict(1, bytes),
 			RULEBOOK: PickyDefaultDict(bytes),
@@ -2414,8 +2436,8 @@ class Engine(AbstractEngine, gORM, Executor):
 
 	def _snap_keyframe_from_delta(
 		self,
-		then: Tuple[str, int, int],
-		now: Tuple[str, int, int],
+		then: tuple[str, int, int],
+		now: tuple[str, int, int],
 		delta: DeltaDict,
 	) -> None:
 		if then == now:
@@ -2850,23 +2872,27 @@ class Engine(AbstractEngine, gORM, Executor):
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
 
+	@world_locked
+	@_all_worker_locks
 	def _update_all_worker_process_states(self, clobber=False):
-		for lock in self._worker_locks:
-			lock.acquire()
+		for store in self.stores:
+			store.save(reimport=False)
 		kf_payload = None
 		deltas = {}
 		for i in range(len(self._worker_processes)):
 			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
-			old_eternal = self._worker_last_eternal
-			new_eternal = self._worker_last_eternal = dict(
-				self.eternal.items()
-			)
-			eternal_delta = {
-				k: new_eternal.get(k)
-				for k in old_eternal.keys() | new_eternal.keys()
-				if old_eternal.get(k) != new_eternal.get(k)
-			}
+			if (branch_from, turn_from, tick_from) == self._btt():
+				continue
 			if not clobber and branch_from == self.branch:
+				old_eternal = self._worker_last_eternal
+				new_eternal = self._worker_last_eternal = dict(
+					self.eternal.items()
+				)
+				eternal_delta = {
+					k: new_eternal.get(k)
+					for k in old_eternal.keys() | new_eternal.keys()
+					if old_eternal.get(k) != new_eternal.get(k)
+				}
 				if (branch_from, turn_from, tick_from) in deltas:
 					delt = deltas[branch_from, turn_from, tick_from]
 				else:
@@ -2903,11 +2929,12 @@ class Engine(AbstractEngine, gORM, Executor):
 					kf_payload = self._get_worker_kf_payload(-1)
 				self._worker_inputs[i].send_bytes(kf_payload)
 			self._worker_updated_btts[i] = self._btt()
-		for lock in self._worker_locks:
-			lock.release()
 
-	def _update_worker_process_state(self, i):
+	@world_locked
+	def _update_worker_process_state(self, i, lock=True):
 		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+		if (branch_from, turn_from, tick_from) == self._btt():
+			return
 		old_eternal = self._worker_last_eternal
 		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
 		eternal_delta = {
@@ -2936,111 +2963,275 @@ class Engine(AbstractEngine, gORM, Executor):
 					)
 				)
 			)
-			self._worker_inputs[i].send_bytes(argbytes)
 		else:
-			self._worker_inputs[i].send_bytes(self._get_worker_kf_payload())
-		self._worker_updated_btts[i] = self._btt()
+			argbytes = self._get_worker_kf_payload()
+		if lock:
+			with self._worker_locks[i]:
+				self._worker_inputs[i].send_bytes(argbytes)
+				self._worker_updated_btts[i] = self._btt()
+		else:
+			self._worker_inputs[i].send_bytes(argbytes)
+			self._worker_updated_btts[i] = self._btt()
 
-	def _follow_rules(self):
-		# TODO: roll back changes done by rules that raise an exception
-		# TODO: if there's a paradox while following some rule,
-		#  start a new branch, copying handled rules
-		from collections import defaultdict
+	def _changed(self, charn, entity: tuple) -> bool:
+		if len(entity) == 1:
+			vbranches = self._node_val_cache.settings
+			entikey = (charn, entity[0])
+		elif len(entity) != 2:
+			raise TypeError("Unknown entity type")
+		else:
+			vbranches = self._edge_val_cache.settings
+			entikey = (
+				charn,
+				*entity,
+				0,
+			)
+		branch, turn, _ = self._btt()
+		turn -= 1
+		if turn <= self._branches[branch][1]:
+			branch = self._branches[branch][0]
+			assert branch is not None
+		if branch not in vbranches:
+			return False
+		vbranchesb = vbranches[branch]
+		if turn not in vbranchesb:
+			return False
+		return entikey in vbranchesb[turn].entikeys
 
-		thing_cls = self.thing_cls
-		place_cls = self.place_cls
-		portal_cls = self.portal_cls
+	def _iter_submit_triggers(
+		self, prio, rulebook, rule, handled_fun, entity, neighbors=None
+	):
+		changed = self._changed
+		charn = entity.character.name
+		if neighbors is not None and not (
+			any(changed(charn, neighbor) for neighbor in neighbors)
+		):
+			return
+		if self.trigger.truth in rule.triggers:
+			fut = fake_submit(self.trigger.truth)
+			fut.rule = rule
+			fut.prio = prio
+			fut.entity = entity
+			fut.rulebook = rulebook
+			fut.handled = handled_fun
+			yield fut
+			return
+		for trigger in rule.triggers:
+			fut = self.submit(trigger, entity)
+			fut.rule = rule
+			fut.prio = prio
+			fut.entity = entity
+			fut.rulebook = rulebook
+			fut.handled = handled_fun
+			yield fut
+		else:
+			handled_fun(self.tick)
 
+	def _check_prereqs(self, rule, handled_fun, entity):
+		if not entity:
+			return False
+		for prereq in rule.prereqs:
+			res = prereq(entity)
+			if not res:
+				handled_fun(self.tick)
+				return False
+		return True
+
+	def _do_actions(self, rule, handled_fun, entity):
+		if rule.big:
+			entity = entity.facade()
+		actres = []
+		for action in rule.actions:
+			res = action(entity)
+			if res:
+				actres.append(res)
+			if not entity:
+				break
+		if rule.big:
+			with self.batch():
+				entity.engine.apply()
+		handled_fun(self.tick)
+		return actres
+
+	def _get_place_neighbors(self, charn: Key, name: Key) -> set[Key]:
+		seen: set[Key] = set()
+		for succ in self._edges_cache.iter_successors(
+			charn, name, *self._btt()
+		):
+			seen.add(succ)
+		for pred in self._edges_cache.iter_predecessors(
+			charn, name, *self._btt()
+		):
+			seen.add(pred)
+		return seen
+
+	def _get_place_contents(self, charn: Key, name: Key) -> set[Key]:
+		try:
+			return self._node_contents_cache.retrieve(
+				charn, name, *self._btt()
+			)
+		except KeyError:
+			return set()
+
+	def _iter_place_portals(
+		self, charn: Key, name: Key
+	) -> Iterator[tuple[Key, Key]]:
+		now = self._btt()
+		for dest in self._edges_cache.iter_successors(charn, name, *now):
+			yield (name, dest)
+		for orig in self._edges_cache.iter_predecessors(charn, name, *now):
+			yield (orig, name)
+
+	def _get_thing_location_tup(
+		self, charn: Key, name: Key
+	) -> tuple[Key, Key] | ():
+		try:
+			return (self._things_cache.retrieve(charn, name, *self._btt()),)
+		except KeyError:
+			return ()
+
+	def _get_neighbors(
+		self,
+		entity: place_cls | thing_cls | portal_cls,
+		neighborhood: int | None,
+	) -> list[tuple[Key] | tuple[Key, Key]] | None:
+		"""Get a list of neighbors within the neighborhood
+
+		Neighbors are given by a tuple containing only their name,
+		if they are Places or Things, or their origin's and destination's
+		names, if they are Portals.
+
+		"""
+		charn = entity.character.name
+		btt = self._btt()
+
+		if neighborhood is None:
+			return None
+		if hasattr(entity, "name"):
+			cache_key = (charn, entity.name, *btt)
+		else:
+			cache_key = (
+				charn,
+				entity.origin.name,
+				entity.destination.name,
+				*btt,
+			)
+		if cache_key in self._neighbors_cache:
+			return self._neighbors_cache[cache_key]
+		if hasattr(entity, "name"):
+			neighbors = [(entity.name,)]
+			while hasattr(entity, "location"):
+				entity = entity.location
+				neighbors.append((entity.name,))
+		else:
+			neighbors = [(entity.origin.name, entity.destination.name)]
+		seen = set(neighbors)
+		i = 0
+		for _ in range(neighborhood):
+			j = len(neighbors)
+			for neighbor in neighbors[i:]:
+				if len(neighbor) == 2:
+					orign, destn = neighbor
+					for placen in (orign, destn):
+						for neighbor_place in chain(
+							self._get_place_neighbors(charn, placen),
+							self._get_place_contents(charn, placen),
+							self._get_thing_location_tup(charn, placen),
+						):
+							if neighbor_place not in seen:
+								neighbors.append((neighbor_place,))
+								seen.add(neighbor_place)
+							for neighbor_thing in self._get_place_contents(
+								charn, neighbor_place
+							):
+								if neighbor_thing not in seen:
+									neighbors.append((neighbor_thing,))
+									seen.add(neighbor_thing)
+						for neighbor_portal in self._iter_place_portals(
+							charn, placen
+						):
+							if neighbor_portal not in seen:
+								neighbors.append(neighbor_portal)
+								seen.add(neighbor_portal)
+				else:
+					(neighbor,) = neighbor
+					for neighbor_place in chain(
+						self._get_place_neighbors(charn, neighbor),
+						self._get_place_contents(charn, neighbor),
+						self._get_thing_location_tup(charn, neighbor),
+					):
+						if neighbor_place not in seen:
+							neighbors.append((neighbor_place,))
+							seen.add(neighbor_place)
+						for neighbor_thing in self._get_place_contents(
+							charn, neighbor_place
+						):
+							if neighbor_thing not in seen:
+								neighbors.append((neighbor_thing,))
+								seen.add(neighbor_thing)
+					for neighbor_portal in self._iter_place_portals(
+						charn, neighbor
+					):
+						if neighbor_portal not in seen:
+							neighbors.append(neighbor_portal)
+							seen.add(neighbor_portal)
+			i = j
+		self._neighbors_cache[cache_key] = neighbors
+		return neighbors
+
+	def _get_effective_neighbors(self, entity, neighborhood):
+		"""Get neighbors unless that's a different set of entities since last turn
+
+		In which case return None
+
+		"""
+		if neighborhood is None:
+			return None
+
+		branch_now, turn_now, tick_now = self._btt()
+		if turn_now <= 1:
+			# everything's "created" at the start of the game,
+			# and therefore, there's been a "change" to the neighborhood
+			return None
+		with self.world_lock:
+			self._load_at(branch_now, turn_now - 1, 0)
+			self._oturn -= 1
+			self._otick = 0
+			last_turn_neighbors = self._get_neighbors(entity, neighborhood)
+			self._set_btt(branch_now, turn_now, tick_now)
+			this_turn_neighbors = self._get_neighbors(entity, neighborhood)
+		if set(last_turn_neighbors) != set(this_turn_neighbors):
+			return None
+		return this_turn_neighbors
+
+	def _get_node_mini(self, graphn: Key, noden: Key):
+		node_objs = self._node_objs
+		key = (graphn, noden)
+		if key not in node_objs:
+			node_objs[key] = self._make_node(self.character[graphn], noden)
+		return node_objs[key]
+
+	def _get_thing(self, graphn: Key, thingn: Key):
+		node_objs = self._node_objs
+		key = (graphn, thingn)
+		if key not in node_objs:
+			node_objs[key] = self.thing_cls(self.character[graphn], thingn)
+		return node_objs[key]
+
+	def _get_place(self, graphn: Key, placen: Key):
+		node_objs = self._node_objs
+		key = (graphn, placen)
+		if key not in node_objs:
+			node_objs[key] = self.place_cls(self.character[graphn], placen)
+		return node_objs[key]
+
+	def _eval_triggers(self):
 		branch, turn, tick = self._btt()
 		charmap = self.character
 		rulemap = self.rule
-		pool = getattr(self, "_trigger_pool", None)
-		if pool:
-			submit = pool.submit
-		else:
-			submit = partial
 		todo = defaultdict(list)
-
-		def changed(entity: tuple) -> bool:
-			if len(entity) == 1:
-				vbranches = self._node_val_cache.settings
-				entikey = (charn, entity[0])
-			elif len(entity) != 2:
-				raise TypeError("Unknown entity type")
-			else:
-				vbranches = self._edge_val_cache.settings
-				entikey = (
-					charn,
-					*entity,
-					0,
-				)
-			branch, turn, _ = self._btt()
-			turn -= 1
-			if turn <= self._branches[branch][1]:
-				branch = self._branches[branch][0]
-				assert branch is not None
-			if branch not in vbranches:
-				return False
-			vbranchesb = vbranches[branch]
-			if turn not in vbranchesb:
-				return False
-			return entikey in vbranchesb[turn].entikeys
-
-		if hasattr(self, "_worker_processes") and self.turn > 0:
-			self._update_all_worker_process_states()
-			# Now we can evaluate trigger functions in the worker processes,
-			# in parallel.
-
-		def check_triggers(
-			prio, rulebook, rule, handled_fun, entity, neighbors=None
-		):
-			if neighbors is not None and not (
-				any(changed(neighbor) for neighbor in neighbors)
-			):
-				return False
-			for trigger in rule.triggers:
-				if hasattr(self, "_worker_processes"):
-					res = self._call_any_subproxy(
-						"_eval_trigger", trigger.__name__, entity
-					)
-				else:
-					res = trigger(entity)
-				if res:
-					todo[prio, rulebook].append((rule, handled_fun, entity))
-					return True
-			else:
-				handled_fun(self.tick)
-				return False
-
-		def check_prereqs(rule, handled_fun, entity):
-			if not entity:
-				return False
-			for prereq in rule.prereqs:
-				res = prereq(entity)
-				if not res:
-					handled_fun(self.tick)
-					return False
-			return True
-
-		def do_actions(rule, handled_fun, entity):
-			if rule.big:
-				entity = entity.facade()
-			actres = []
-			for action in rule.actions:
-				res = action(entity)
-				if res:
-					actres.append(res)
-				if not entity:
-					break
-			if rule.big:
-				with self.batch():
-					entity.engine.apply()
-			handled_fun(self.tick)
-			return actres
-
-		truthfun = self.trigger.truth
-
 		trig_futs = []
+
 		for (
 			prio,
 			charactername,
@@ -3061,188 +3252,22 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = charmap[charactername]
-			if truthfun in self.rulebook[rulebook]:
-				todo[prio, rulebook].append((rule, handled, entity))
-				continue
-			trig_futs.append(
-				submit(
-					check_triggers, prio, rulebook, rule, handled, entity, None
+			trig_futs.extend(
+				self._iter_submit_triggers(
+					prio,
+					rulebook,
+					rule,
+					handled,
+					entity,
+					None,
 				)
 			)
 
 		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
-		make_node = self._make_node
-		node_objs = self._node_objs
-
-		def get_neighbors(
-			entity: Union[place_cls, thing_cls, portal_cls],
-			neighborhood: Optional[int],
-		) -> Optional[List[Union[Tuple[Key], Tuple[Key, Key]]]]:
-			"""Get a list of neighbors within the neighborhood
-
-			Neighbors are given by a tuple containing only their name,
-			if they are Places or Things, or their origin's and destination's
-			names, if they are Portals.
-
-			"""
-			charn = entity.character.name
-			btt = self._btt()
-
-			def get_place_neighbors(name: Key) -> Set[Key]:
-				seen: Set[Key] = set()
-				for succ in self._edges_cache.iter_successors(
-					charn, name, *btt
-				):
-					seen.add(succ)
-				for pred in self._edges_cache.iter_predecessors(
-					charn, name, *btt
-				):
-					seen.add(pred)
-				return seen
-
-			def get_place_contents(name: Key) -> Set[Key]:
-				try:
-					return self._node_contents_cache.retrieve(
-						charn, name, *btt
-					)
-				except KeyError:
-					return set()
-
-			def get_place_portals(name: Key) -> Set[Tuple[Key, Key]]:
-				seen: Set[Tuple[Key, Key]] = set()
-				seen.update(
-					(name, dest)
-					for dest in self._edges_cache.iter_successors(
-						charn, name, *btt
-					)
-				)
-				seen.update(
-					(orig, name)
-					for orig in self._edges_cache.iter_predecessors(
-						charn, name, *btt
-					)
-				)
-				return seen
-
-			def get_thing_location_tup(name: Key) -> Union[(), Tuple[Key]]:
-				try:
-					return (self._things_cache.retrieve(charn, name, *btt),)
-				except KeyError:
-					return ()
-
-			if neighborhood is None:
-				return None
-			if hasattr(entity, "name"):
-				cache_key = (charn, entity.name, *btt)
-			else:
-				cache_key = (
-					charn,
-					entity.origin.name,
-					entity.destination.name,
-					*btt,
-				)
-			if cache_key in self._neighbors_cache:
-				return self._neighbors_cache[cache_key]
-			if hasattr(entity, "name"):
-				neighbors = [(entity.name,)]
-				while hasattr(entity, "location"):
-					entity = entity.location
-					neighbors.append((entity.name,))
-			else:
-				neighbors = [(entity.origin.name, entity.destination.name)]
-			seen = set(neighbors)
-			i = 0
-			for _ in range(neighborhood):
-				j = len(neighbors)
-				for neighbor in neighbors[i:]:
-					if len(neighbor) == 2:
-						orign, destn = neighbor
-						for placen in (orign, destn):
-							for neighbor_place in chain(
-								get_place_neighbors(placen),
-								get_place_contents(placen),
-								get_thing_location_tup(placen),
-							):
-								if neighbor_place not in seen:
-									neighbors.append((neighbor_place,))
-									seen.add(neighbor_place)
-								for neighbor_thing in get_place_contents(
-									neighbor_place
-								):
-									if neighbor_thing not in seen:
-										neighbors.append((neighbor_thing,))
-										seen.add(neighbor_thing)
-							for neighbor_portal in get_place_portals(placen):
-								if neighbor_portal not in seen:
-									neighbors.append(neighbor_portal)
-									seen.add(neighbor_portal)
-					else:
-						(neighbor,) = neighbor
-						for neighbor_place in chain(
-							get_place_neighbors(neighbor),
-							get_place_contents(neighbor),
-							get_thing_location_tup(neighbor),
-						):
-							if neighbor_place not in seen:
-								neighbors.append((neighbor_place,))
-								seen.add(neighbor_place)
-							for neighbor_thing in get_place_contents(
-								neighbor_place
-							):
-								if neighbor_thing not in seen:
-									neighbors.append((neighbor_thing,))
-									seen.add(neighbor_thing)
-						for neighbor_portal in get_place_portals(neighbor):
-							if neighbor_portal not in seen:
-								neighbors.append(neighbor_portal)
-								seen.add(neighbor_portal)
-				i = j
-			self._neighbors_cache[cache_key] = neighbors
-			return neighbors
-
-		def get_effective_neighbors(entity, neighborhood):
-			"""Get neighbors unless that's a different set of entities since last turn
-
-			In which case return None
-
-			"""
-			if neighborhood is None:
-				return None
-
-			branch_now, turn_now, tick_now = self._btt()
-			if turn_now <= 1:
-				# everything's "created" at the start of the game,
-				# and therefore, there's been a "change" to the neighborhood
-				return None
-			with self.world_lock:
-				self._load_at(branch_now, turn_now - 1, 0)
-				self._oturn -= 1
-				self._otick = 0
-				last_turn_neighbors = get_neighbors(entity, neighborhood)
-				self._set_btt(branch_now, turn_now, tick_now)
-				this_turn_neighbors = get_neighbors(entity, neighborhood)
-			if set(last_turn_neighbors) != set(this_turn_neighbors):
-				return None
-			return this_turn_neighbors
-
-		def get_node(graphn, noden):
-			key = (graphn, noden)
-			if key not in node_objs:
-				node_objs[key] = make_node(charmap[graphn], noden)
-			return node_objs[key]
-
-		def get_thing(graphn, thingn):
-			key = (graphn, thingn)
-			if key not in node_objs:
-				node_objs[key] = thing_cls(charmap[graphn], thingn)
-			return node_objs[key]
-
-		def get_place(graphn, placen):
-			key = (graphn, placen)
-			if key not in node_objs:
-				node_objs[key] = place_cls(charmap[graphn], placen)
-			return node_objs[key]
+		get_node = self._get_node_mini
+		get_thing = self._get_thing
+		get_place = self._get_place
 
 		for (
 			prio,
@@ -3270,18 +3295,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_node(graphn, avn)
-			if truthfun in self.rulebook[rulebook]:
-				todo[prio, rulebook].append((rule, handled, entity))
-				continue
-			trig_futs.append(
-				submit(
-					check_triggers,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		is_thing = self._is_thing
@@ -3308,18 +3329,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_thing(charn, thingn)
-			if truthfun in self.rulebook[rulebook]:
-				todo[prio, rulebook].append((rule, handled, entity))
-				continue
-			trig_futs.append(
-				submit(
-					check_triggers,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_char_place = self._handled_char_place
@@ -3345,18 +3362,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_place(charn, placen)
-			if truthfun in self.rulebook[rulebook]:
-				todo[prio, rulebook].append((rule, handled, entity))
-				continue
-			trig_futs.append(
-				submit(
-					check_triggers,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		edge_exists = self._edge_exists
@@ -3386,18 +3399,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
-			if truthfun in self.rulebook[rulebook]:
-				todo[prio, rulebook].append((rule, handled, entity))
-				continue
-			trig_futs.append(
-				submit(
-					check_triggers,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_node = self._handled_node
@@ -3417,18 +3426,14 @@ class Engine(AbstractEngine, gORM, Executor):
 				handled_node, charn, noden, rulebook, rulen, branch, turn
 			)
 			entity = get_node(charn, noden)
-			if truthfun in self.rulebook[rulebook]:
-				todo[prio, rulebook].append((rule, handled, entity))
-				continue
-			trig_futs.append(
-				submit(
-					check_triggers,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
 		handled_portal = self._handled_portal
@@ -3456,77 +3461,75 @@ class Engine(AbstractEngine, gORM, Executor):
 				turn,
 			)
 			entity = get_edge(charn, orign, destn)
-			if truthfun in self.rulebook[rulebook]:
-				todo[prio, rulebook].append((rule, handled, entity))
-				continue
-			trig_futs.append(
-				submit(
-					check_triggers,
+			trig_futs.extend(
+				self._iter_submit_triggers(
 					prio,
 					rulebook,
 					rule,
 					handled,
 					entity,
-					get_effective_neighbors(entity, rule.neighborhood),
+					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
 			)
-		if pool:
-			futwait(trig_futs)
-		else:
-			for part in trig_futs:
-				part()
 
-		def fmtent(entity):
-			if isinstance(entity, self.char_cls):
-				return entity.name
-			elif hasattr(entity, "name"):
-				return f"{entity.character.name}.node[{entity.name}]"
-			else:
-				return (
-					f"{entity.character.name}.portal"
-					f"[{entity.origin.name}][{entity.destination.name}]"
+		for fut in trig_futs:
+			if fut.result():
+				todo[fut.prio, fut.rulebook].append(
+					(
+						fut.rule,
+						fut.handled,
+						fut.entity,
+					)
 				)
 
+		return todo
+
+	def _fmtent(self, entity):
+		if isinstance(entity, self.char_cls):
+			return entity.name
+		elif hasattr(entity, "name"):
+			return f"{entity.character.name}.node[{entity.name}]"
+		else:
+			return (
+				f"{entity.character.name}.portal"
+				f"[{entity.origin.name}][{entity.destination.name}]"
+			)
+
+	def _follow_one_rule(self, rule, handled, entity):
+		check_prereqs = self._check_prereqs
+		do_actions = self._do_actions
+
+		if not entity:
+			self.debug(
+				f"not checking prereqs for rule {rule.name} "
+				f"on nonexistent entity {self._fmtent(entity)}"
+			)
+			return
+		self.debug(
+			f"checking prereqs for rule {rule.name} on entity {self._fmtent(entity)}"
+		)
+		if check_prereqs(rule, handled, entity):
+			self.debug(
+				f"prereqs for rule {rule.name} on entity "
+				f"{self._fmtent(entity)} satisfied, will run actions"
+			)
+			try:
+				ret = do_actions(rule, handled, entity)
+				self.debug(
+					f"actions for rule {rule.name} on entity "
+					f"{self._fmtent(entity)} have run without incident"
+				)
+				return ret
+			except StopIteration as ex:
+				raise InnerStopIteration from ex
+
+	def _follow_rules(self, todo):
+		# TODO: roll back changes done by rules that raise an exception
+		# TODO: if there's a paradox while following some rule,
+		#  start a new branch, copying handled rules
 		for prio_rulebook in sort_set(todo.keys()):
 			for rule, handled, entity in todo[prio_rulebook]:
-				if not entity:
-					continue
-				self.debug(
-					f"checking prereqs for rule {rule.name} on entity {fmtent(entity)}"
-				)
-				if check_prereqs(rule, handled, entity):
-					self.debug(
-						f"prereqs for rule {rule.name} on entity "
-						f"{fmtent(entity)} satisfied, will run actions"
-					)
-					try:
-						yield do_actions(rule, handled, entity)
-						self.debug(
-							f"actions for rule {rule.name} on entity "
-							f"{fmtent(entity)} have run without incident"
-						)
-					except StopIteration:
-						raise InnerStopIteration
-
-	def _advance(self) -> Any:
-		"""Follow the next rule if available.
-
-		If we've run out of rules, reset the rules iterator.
-
-		"""
-		assert self.turn > self._turns_completed[self.branch]
-		try:
-			return next(self._rules_iter)
-		except InnerStopIteration:
-			self._rules_iter = self._follow_rules()
-			raise StopIteration()
-		except StopIteration:
-			self._rules_iter = self._follow_rules()
-			return final_rule
-
-	# except Exception as ex:
-	# self._rules_iter = self._follow_rules()
-	# return ex
+				yield self._follow_one_rule(rule, handled, entity)
 
 	def new_character(
 		self,
@@ -3550,7 +3553,7 @@ class Engine(AbstractEngine, gORM, Executor):
 	def add_character(
 		self,
 		name: Key,
-		data: Union[Graph, DiGraph] = None,
+		data: Graph | DiGraph = None,
 		layout: bool = False,
 		node: dict = None,
 		edge: dict = None,
@@ -3644,7 +3647,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			del graph.thing[thing]
 		super().del_graph(name)
 		if hasattr(self, "_worker_processes"):
-			self._call_every_subproxy("_del_character", name)
+			self._call_every_subprocess("_del_character", name)
 
 	del_character = del_graph
 
@@ -3833,19 +3836,9 @@ class Engine(AbstractEngine, gORM, Executor):
 		]:
 			try:
 				kf = rb_kf_cache.get_keyframe(branch, turn, tick)
-				kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
 			except KeyError:
-				kf = {graph: graph_val.pop(rb_kf_type, (rb_kf_type, graph))}
-				for char in self._graph_cache.iter_keys(branch, turn, tick):
-					# seems like Python gets upset when it has to catch too many
-					# nested KeyError?
-					rb = rb_kf_cache._base_retrieve((char, branch, turn, tick))
-					if isinstance(rb, KeyError):
-						kf[char] = (rb_kf_type, char)
-					else:
-						kf[char] = rb_kf_cache.retrieve(
-							char, branch, turn, tick
-						)
+				kf = {}
+			kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
 		self._nodes_rulebooks_cache.set_keyframe(
 			(graph,),
@@ -3902,9 +3895,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			and tick in self._things_cache.keyframe[graph,][branch][turn]
 		)
 
-	def turns_when(
-		self, qry: Query, mid_turn=False
-	) -> Union[QueryResult, set]:
+	def turns_when(self, qry: Query, mid_turn=False) -> QueryResult | set:
 		"""Return the turns when the query held true
 
 		Only the state of the world at the end of the turn is considered.
@@ -4011,14 +4002,14 @@ class Engine(AbstractEngine, gORM, Executor):
 			else:
 				return set()
 
-	def _node_contents(self, character: Key, node: Key) -> Set:
+	def _node_contents(self, character: Key, node: Key) -> set:
 		return self._node_contents_cache.retrieve(
 			character, node, *self._btt()
 		)
 
 	def apply_choices(
-		self, choices: List[dict], dry_run=False, perfectionist=False
-	) -> Tuple[List[Tuple[Any, Any]], List[Tuple[Any, Any]]]:
+		self, choices: list[dict], dry_run=False, perfectionist=False
+	) -> tuple[list[tuple[Any, Any]], list[tuple[Any, Any]]]:
 		"""Validate changes a player wants to make, and apply if acceptable.
 
 		Argument ``choices`` is a list of dictionaries, of which each must

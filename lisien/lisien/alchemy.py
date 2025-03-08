@@ -583,10 +583,10 @@ def queries(table):
 
 	univ = table["universals"]
 	r["load_universals_tick_to_end"] = select(
-		univ.c.key, univ.c.branch, univ.c.turn, univ.c.tick, univ.c.value
+		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
 	).where(generic_tick_to_end_clause(univ))
 	r["load_universals_tick_to_tick"] = select(
-		univ.c.key, univ.c.branch, univ.c.turn, univ.c.tick, univ.c.value
+		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
 	).where(generic_tick_to_tick_clause(univ))
 
 	rbs = table["rulebooks"]
@@ -611,7 +611,6 @@ def queries(table):
 	act = table["rule_actions"]
 	hoodsel = select(
 		hood.c.rule,
-		hood.c.branch,
 		hood.c.turn,
 		hood.c.tick,
 		hood.c.neighborhood,
@@ -623,9 +622,7 @@ def queries(table):
 		generic_tick_to_tick_clause(hood)
 	)
 	big = table["rule_big"]
-	bigsel = select(
-		big.c.rule, big.c.branch, big.c.turn, big.c.tick, big.c.big
-	)
+	bigsel = select(big.c.rule, big.c.turn, big.c.tick, big.c.big)
 	r["load_rule_big_tick_to_end"] = bigsel.where(
 		generic_tick_to_end_clause(big)
 	)

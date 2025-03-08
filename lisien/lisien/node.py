@@ -19,20 +19,22 @@ have a lot in common.
 
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Set, ValuesView
 from typing import Iterator, List, Optional, Union
 
 from networkx import shortest_path, shortest_path_length
 
 from . import rule
-from .allegedb import graph
-from .allegedb.window import HistoricKeyError
+from .allegedb import graph, Key
 from .exc import AmbiguousUserError
 from .facade import FacadePlace, FacadeThing
 from .query import StatusAlias
-from .util import AbstractCharacter, AbstractThing, Key, getatt
+from .util import (
+	AbstractCharacter,
+	AbstractThing,
+	getatt,
+)
+from .allegedb.window import HistoricKeyError
 
 
 class UserMapping(Mapping):
@@ -76,7 +78,7 @@ class UserMapping(Mapping):
 					continue
 
 	@property
-	def only(self) -> Node:
+	def only(self) -> "Node":
 		"""If there's only one unit, return it.
 
 		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
@@ -123,7 +125,7 @@ class UserMapping(Mapping):
 class NodeContentValues(ValuesView):
 	_mapping: "NodeContent"
 
-	def __iter__(self) -> Iterator[Thing]:
+	def __iter__(self) -> Iterator["Thing"]:
 		node = self._mapping.node
 		nodem = node.character.node
 		try:
@@ -148,7 +150,7 @@ class NodeContent(Mapping):
 	def __init__(self, node) -> None:
 		self.node = node
 
-	def __iter__(self) -> Iterator:
+	def __iter__(self) -> Iterator[Key]:
 		try:
 			it = self.node.engine._node_contents_cache.retrieve(
 				self.node.character.name,
@@ -177,7 +179,7 @@ class NodeContent(Mapping):
 		except KeyError:
 			return False
 
-	def __getitem__(self, item) -> Thing:
+	def __getitem__(self, item) -> "Thing":
 		if item not in self:
 			raise KeyError
 		return self.node.character.thing[item]
@@ -242,7 +244,7 @@ class Origs(Mapping):
 		self._pn = (character.portal, name)
 		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
 
-	def __iter__(self) -> Iterator[Node]:
+	def __iter__(self) -> Iterator["Node"]:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.iter_predecessors(charname, name, *btt())
 
@@ -254,7 +256,7 @@ class Origs(Mapping):
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.count_predecessors(charname, name, *btt())
 
-	def __getitem__(self, item) -> Node:
+	def __getitem__(self, item) -> "Node":
 		if item not in self:
 			raise KeyError
 		portal, name = self._pn
@@ -314,14 +316,14 @@ class NeighborValues(ValuesView):
 class NeighborMapping(Mapping):
 	__slots__ = ("_nn", "_ecnb")
 
-	def __init__(self, node: Node) -> None:
+	def __init__(self, node: "Node") -> None:
 		name = node.name
 		character = node.character
 		engine = node.engine
 		self._nn = (character.node, name)
 		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
 
-	def __iter__(self) -> Iterator[Node]:
+	def __iter__(self) -> Iterator["Node"]:
 		edges_cache, charname, name, btt = self._ecnb
 		seen = set()
 		for succ in edges_cache.iter_successors(charname, name, *btt()):
@@ -342,7 +344,7 @@ class NeighborMapping(Mapping):
 	def __len__(self) -> int:
 		return len(set(iter(self)))
 
-	def __getitem__(self, item) -> Node:
+	def __getitem__(self, item) -> "Node":
 		node, name = self._nn
 		if item not in self:
 			raise KeyError(f"{item} is not a neighbor of {name}")

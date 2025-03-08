@@ -14,27 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """The main interface to the allegedb ORM"""
 
-import gc
 from contextlib import ContextDecorator, contextmanager
-from functools import wraps
+from functools import partial
 from itertools import chain, pairwise
 from threading import RLock
-from typing import (
-	Any,
-	Callable,
-	Dict,
-	Iterator,
-	List,
-	Optional,
-	Set,
-	Tuple,
-	Union,
-)
+from typing import Any, Iterator, Callable
 
 import networkx as nx
 from blinker import Signal
 
-from ..util import Key
 from .cache import (
 	KeyframeError,
 	PickyDefaultDict,
@@ -42,8 +30,25 @@ from .cache import (
 	TurnEndDict,
 	TurnEndPlanDict,
 )
+from .exc import GraphNameError, TimeError, OutOfTimelineError
 from .graph import DiGraph, Edge, GraphsMapping, Node
-from .query import QueryEngine, TimeError
+from .query import QueryEngine
+from .typing import (
+	Key,
+	StatDict,
+	GraphValDict,
+	NodeValDict,
+	GraphNodeValDict,
+	EdgeValDict,
+	GraphEdgeValDict,
+	DeltaDict,
+	KeyframeTuple,
+	NodesDict,
+	GraphNodesDict,
+	EdgesDict,
+	GraphEdgesDict,
+)
+from .util import garbage, world_locked
 from .window import (
 	HistoricKeyError,
 	WindowDict,
@@ -52,78 +57,6 @@ from .window import (
 )
 
 Graph = DiGraph  # until I implement other graph types...
-
-StatDict = Dict[Key, Any]
-GraphValDict = Dict[Key, StatDict]
-NodeValDict = Dict[Key, StatDict]
-GraphNodeValDict = Dict[Key, NodeValDict]
-EdgeValDict = Dict[Key, Dict[Key, StatDict]]
-GraphEdgeValDict = Dict[Key, EdgeValDict]
-DeltaDict = Dict[
-	Key,
-	Union[GraphValDict, GraphNodeValDict, GraphEdgeValDict, StatDict, None],
-]
-KeyframeTuple = Tuple[
-	Key,
-	str,
-	int,
-	int,
-	GraphNodeValDict,
-	GraphEdgeValDict,
-	GraphValDict,
-]
-NodesDict = Dict[Key, bool]
-GraphNodesDict = Dict[Key, NodesDict]
-EdgesDict = Dict[Key, Dict[Key, bool]]
-GraphEdgesDict = Dict[Key, EdgesDict]
-
-
-def world_locked(fn: Callable) -> Callable:
-	"""Decorator for functions that alter the world state
-
-	They will hold a reentrant lock, preventing more than one function
-	from mutating the world at a time.
-
-	"""
-
-	@wraps(fn)
-	def lockedy(*args, **kwargs):
-		with args[0].world_lock:
-			return fn(*args, **kwargs)
-
-	return lockedy
-
-
-class GraphNameError(KeyError):
-	"""For errors involving graphs' names"""
-
-
-class OutOfTimelineError(ValueError):
-	"""You tried to access a point in time that didn't happen"""
-
-	@property
-	def branch_from(self):
-		return self.args[1]
-
-	@property
-	def turn_from(self):
-		return self.args[2]
-
-	@property
-	def tick_from(self):
-		return self.args[3]
-
-	@property
-	def branch_to(self):
-		return self.args[4]
-
-	@property
-	def turn_to(self):
-		return self.args[5]
-
-	@property
-	def tick_to(self):
-		return self.args[6]
 
 
 class PlanningContext(ContextDecorator):
@@ -206,14 +139,14 @@ class TimeSignal(Signal):
 	def __len__(self):
 		return 2
 
-	def __getitem__(self, i: Union[str, int]) -> Union[str, int]:
+	def __getitem__(self, i: str | int) -> str | int:
 		if i in ("branch", 0):
 			return self.branch
 		if i in ("turn", 1):
 			return self.turn
 		raise IndexError(i)
 
-	def __setitem__(self, i: Union[str, int], v: Union[str, int]) -> None:
+	def __setitem__(self, i: str | int, v: str | int) -> None:
 		if i in ("branch", 0):
 			self.engine.branch = v
 		elif i in ("turn", 1):
@@ -253,7 +186,7 @@ class TimeSignalDescriptor:
 			inst._time_signal = TimeSignal(inst)
 		return inst._time_signal
 
-	def __set__(self, inst: "ORM", val: Tuple[str, int]):
+	def __set__(self, inst: "ORM", val: tuple[str, int]):
 		if not hasattr(inst, "_time_signal"):
 			inst._time_signal = TimeSignal(inst)
 		sig = inst._time_signal
@@ -440,7 +373,7 @@ class ORM:
 	def _make_node(self, graph: Key, node: Key):
 		return self.node_cls(graph, node)
 
-	def _get_node(self, graph: Union[Key, Graph], node: Key):
+	def _get_node(self, graph: Key | Graph, node: Key):
 		node_objs, node_exists, make_node = self._get_node_stuff
 		if type(graph) is str:
 			graphn = graph
@@ -515,13 +448,8 @@ class ORM:
 			yield
 			return
 		self._no_kc = True
-		gc_was_active = gc.isenabled()
-		if gc_was_active:
-			gc.disable()
-		yield
-		if gc_was_active:
-			gc.enable()
-			gc.collect()
+		with garbage():
+			yield
 		self._no_kc = False
 
 	def _arrange_caches_at_time(
@@ -570,6 +498,121 @@ class ORM:
 								(graph, node, dest, stat, branch, turn, tick)
 							)
 
+	def _set_graph_in_delta(
+		self,
+		branch: str,
+		turn_from: int,
+		tick_from: int,
+		turn_to: int,
+		tick_to: int,
+		delta: DeltaDict,
+		_: None,
+		graph: Key,
+		val: Any,
+	) -> None:
+		"""Change a delta to say that a graph was deleted or not"""
+		if val in (None, "Deleted"):
+			delta[graph] = None
+		elif graph not in delta or delta[graph] is None:
+			# If the graph was *created* within our window,
+			# include its whole initial keyframe
+			delta[graph] = {}
+			kf_time = None
+			the_kf = None
+			graph_kf = self._graph_cache.keyframe[None,]
+			if branch in graph_kf:
+				kfb = graph_kf[branch]
+				if turn_from == turn_to:
+					# past view is reverse chronological
+					for t in kfb[turn_from].past(tick_to):
+						if tick_from <= t:
+							break
+						elif t < tick_from:
+							return
+					else:
+						return
+					kf_time = branch, turn_from, t
+					the_kf = graph_kf[branch][turn_from][t]
+				elif (
+					turn_from in kfb
+					and kfb[turn_from].end > tick_from
+					and graph
+					in (
+						the_kf := graph_kf[branch][turn_from][
+							kfb[turn_from].end
+						]
+					)
+				):
+					kf_time = branch, turn_from, kfb[turn_from].end
+					the_kf = graph_kf[branch][turn_from][kf_time[2]]
+				elif (
+					kfb.rev_after(turn_from) is not None
+					and kfb.rev_before(turn_to) is not None
+					and kfb.rev_after(turn_from)
+					<= (r := kfb.rev_before(turn_to))
+				):
+					if r == turn_to:
+						if (
+							kfb[r].end < tick_to
+							and graph in graph_kf[branch][r][kfb[r].end]
+						):
+							kf_time = branch, r, kfb[r].end
+							the_kf = graph_kf[branch][r][kf_time[2]]
+					else:
+						the_kf = graph_kf[branch][r][kfb[r].end]
+						if graph in the_kf:
+							kf_time = branch, r, kfb[r].end
+			if kf_time is not None:
+				assert isinstance(the_kf, dict)
+				# Well, we have *a keyframe* attesting the graph's existence,
+				# but we don't know it was *created* at that time.
+				# Check the presettings; if there was no type set for the
+				# graph before this keyframe, then it's the keyframe
+				# in which the graph was created.
+				# (An absence of presettings data indicates that the graph
+				# existed prior to the current branch.)
+				preset = self._graph_cache.presettings
+				b, r, t = kf_time
+				assert b == branch
+				if (
+					b not in preset
+					or r not in preset[b]
+					or t not in preset[b][r]
+					or preset[b][r][t][2] is not None
+				):
+					return
+				# Any particular cache may lack data for this keyframe.
+				try:
+					delta[graph] = self._graph_val_cache.get_keyframe(
+						(graph,), *kf_time
+					)
+				except KeyframeError:
+					pass
+				try:
+					delta[graph]["nodes"] = self._nodes_cache.get_keyframe(
+						(graph,), *kf_time
+					)
+				except KeyframeError:
+					pass
+				try:
+					delta[graph]["node_val"] = (
+						self._node_val_cache.get_keyframe((graph,), *kf_time)
+					)
+				except KeyframeError:
+					pass
+				try:
+					delta[graph]["edges"] = self._edges_cache.get_keyframe(
+						(graph,), *kf_time
+					)
+				except KeyframeError:
+					pass
+				try:
+					delta[graph]["edge_val"] = (
+						self._edge_val_cache.get_keyframe((graph,), *kf_time)
+					)
+				except KeyframeError:
+					pass
+
 	def _get_branch_delta(
 		self,
 		branch: str,
@@ -589,12 +632,14 @@ class ORM:
 
 		"""
 
-		def setgraph(delta: DeltaDict, _: None, graph: Key, val: Any) -> None:
-			"""Change a delta to say that a graph was deleted or not"""
-			if val in (None, "Deleted"):
-				delta[graph] = None
-			elif graph in delta and delta[graph] is None:
-				delta[graph] = {}
+		setgraph = partial(
+			self._set_graph_in_delta,
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 
 		def setgraphval(
 			delta: DeltaDict, graph: Key, key: Key, val: Any
@@ -604,7 +649,7 @@ class ORM:
 				graphstat[key] = val
 
 		def setnode(
-			delta: DeltaDict, graph: Key, node: Key, exists: Optional[bool]
+			delta: DeltaDict, graph: Key, node: Key, exists: bool | None
 		) -> None:
 			"""Change a delta to say that a node was created or deleted"""
 			if (graphstat := delta.setdefault(graph, {})) is not None:
@@ -628,12 +673,12 @@ class ORM:
 
 		def setedge(
 			delta: DeltaDict,
-			is_multigraph: Callable,
+			is_multigraph: callable,
 			graph: Key,
 			orig: Key,
 			dest: Key,
 			idx: int,
-			exists: Optional[bool],
+			exists: bool | None,
 		) -> None:
 			"""Change a delta to say that an edge was created or deleted"""
 			if (graphstat := delta.setdefault(graph, {})) is not None:
@@ -650,7 +695,7 @@ class ORM:
 
 		def setedgeval(
 			delta: DeltaDict,
-			is_multigraph: Callable,
+			is_multigraph: callable,
 			graph: Key,
 			orig: Key,
 			dest: Key,
@@ -672,8 +717,6 @@ class ORM:
 				graphstat.setdefault("edge_val", {}).setdefault(
 					orig, {}
 				).setdefault(dest, {})[key] = value
-
-		from functools import partial
 
 		if turn_from == turn_to:
 			return self._get_turn_delta(branch, turn_from, tick_from, tick_to)
@@ -779,10 +822,17 @@ class ORM:
 			for _, graph, typ in gbranches[branch][turn][tick_from:tick_to]:
 				# typ may be None if the graph was never deleted, but we're
 				# traveling back to before it was created
-				if typ in ("Deleted", None):
-					delta[graph] = None
-				else:
-					delta[graph] = {}
+				self._set_graph_in_delta(
+					branch,
+					turn,
+					tick_from,
+					turn,
+					tick_to,
+					delta,
+					None,
+					graph,
+					typ,
+				)
 
 		if branch in gvbranches and turn in gvbranches[branch]:
 			for graph, key, value in gvbranches[branch][turn][
@@ -890,38 +940,36 @@ class ORM:
 		edge_cls = self.edge_cls
 		self._where_cached = defaultdict(list)
 		self._node_objs = node_objs = SizedDict()
-		self._get_node_stuff: Tuple[
+		self._get_node_stuff: tuple[
 			dict, Callable[[Key, Key], bool], Callable[[Key, Key], node_cls]
 		] = (node_objs, self._node_exists, self._make_node)
 		self._edge_objs = edge_objs = SizedDict()
-		self._get_edge_stuff: Tuple[
+		self._get_edge_stuff: tuple[
 			dict,
 			Callable[[Key, Key, Key, int], bool],
 			Callable[[Key, Key, Key, int], edge_cls],
 		] = (edge_objs, self._edge_exists, self._make_edge)
-		self._childbranch: Dict[str, Set[str]] = defaultdict(set)
+		self._childbranch: dict[str, set[str]] = defaultdict(set)
 		"""Immediate children of a branch"""
-		self._branches: Dict[
-			str, Tuple[Optional[str], int, int, int, int]
-		] = {}
+		self._branches: dict[str, tuple[str | None, int, int, int, int]] = {}
 		"""Parent, start time, and end time of each branch. Includes plans."""
-		self._branch_parents: Dict[str, Set[str]] = defaultdict(set)
+		self._branch_parents: dict[str, set[str]] = defaultdict(set)
 		"""Parents of a branch at any remove"""
-		self._turn_end: Dict[Tuple[str, int], int] = TurnEndDict()
-		self._turn_end_plan: Dict[Tuple[str, int], int] = TurnEndPlanDict()
+		self._turn_end: dict[tuple[str, int], int] = TurnEndDict()
+		self._turn_end_plan: dict[tuple[str, int], int] = TurnEndPlanDict()
 		self._turn_end_plan.other_d = self._turn_end
 		self._turn_end.other_d = self._turn_end_plan
-		self._branch_end: Dict[str, int] = defaultdict(lambda: 0)
+		self._branch_end: dict[str, int] = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
 		self._graph_objs = {}
-		self._plans: Dict[int, Tuple[str, int, int]] = {}
-		self._branches_plans: Dict[str, Set[int]] = defaultdict(set)
-		self._plan_ticks: Dict[int, Dict[int, List[int]]] = defaultdict(
+		self._plans: dict[int, tuple[str, int, int]] = {}
+		self._branches_plans: dict[str, set[int]] = defaultdict(set)
+		self._plan_ticks: dict[int, dict[int, list[int]]] = defaultdict(
 			lambda: defaultdict(list)
 		)
-		self._time_plan: Dict[int, Tuple[str, int, int]] = {}
-		self._plans_uncommitted: List[Tuple[int, str, int, int]] = []
-		self._plan_ticks_uncommitted: List[Tuple[int, int, int]] = []
+		self._time_plan: dict[int, tuple[str, int, int]] = {}
+		self._plans_uncommitted: list[tuple[int, str, int, int]] = []
+		self._plan_ticks_uncommitted: list[tuple[int, int, int]] = []
 		self._graph_cache = EntitylessCache(self, name="graph_cache")
 		self._graph_val_cache = Cache(self, name="graph_val_cache")
 		self._nodes_cache = NodesCache(self)
@@ -980,7 +1028,11 @@ class ORM:
 		self.graph = GraphsMapping(self)
 		for graph, branch, turn, tick, typ in self.query.graphs_dump():
 			self._graph_cache.store(
-				graph, branch, turn, tick, (typ if typ != "Deleted" else None)
+				graph,
+				branch,
+				turn,
+				tick,
+				(typ if typ != "Deleted" else None),
 			)
 			if typ not in {"DiGraph", "Deleted"}:
 				raise NotImplementedError("Only DiGraph for now")
@@ -1061,6 +1113,8 @@ class ORM:
 			main_branch = self.query.globl["main_branch"] = "trunk"
 		else:
 			main_branch = self.query.globl["main_branch"]
+		assert main_branch is not None
+		assert main_branch == self.query.globl["main_branch"]
 		self._obranch = self.query.get_branch()
 		self._oturn = self.query.get_turn()
 		self._otick = self.query.get_tick()
@@ -1096,43 +1150,41 @@ class ORM:
 			self._time_plan,
 			self._branches,
 		)
-		self._node_exists_stuff: Tuple[
-			Callable[[Tuple[Key, Key, str, int, int]], Any],
-			Callable[[], Tuple[str, int, int]],
+		self._node_exists_stuff: tuple[
+			Callable[[tuple[Key, Key, str, int, int]], Any],
+			Callable[[], tuple[str, int, int]],
 		] = (self._nodes_cache._base_retrieve, self._btt)
-		self._exist_node_stuff: Tuple[
-			Callable[[], Tuple[str, int, int]],
+		self._exist_node_stuff: tuple[
+			Callable[[], tuple[str, int, int]],
 			Callable[[Key, Key, str, int, int, bool], None],
 			Callable[[Key, Key, str, int, int, Any], None],
 		] = (self._nbtt, self.query.exist_node, self._nodes_cache.store)
-		self._edge_exists_stuff: Tuple[
-			Callable[[Tuple[Key, Key, Key, int, str, int, int]], bool],
-			Callable[[], Tuple[str, int, int]],
+		self._edge_exists_stuff: tuple[
+			Callable[[tuple[Key, Key, Key, int, str, int, int]], bool],
+			Callable[[], tuple[str, int, int]],
 		] = (self._edges_cache._base_retrieve, self._btt)
-		self._exist_edge_stuff: Tuple[
-			Callable[[], Tuple[str, int, int]],
+		self._exist_edge_stuff: tuple[
+			Callable[[], tuple[str, int, int]],
 			Callable[[Key, Key, Key, int, str, int, int, bool], None],
 			Callable[[Key, Key, Key, int, str, int, int, Any], None],
 		] = (self._nbtt, self.query.exist_edge, self._edges_cache.store)
+		self._loaded: dict[
+			str, tuple[int, int, int, int]
+		] = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
 		self._load_graphs()
 		assert hasattr(self, "graph")
-		self._loaded: Dict[
-			str, Tuple[int, int, int, int]
-		] = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
 		self._load_plans()
 		self._load_at(*self._btt())
 
 	def _get_kf(
 		self, branch: str, turn: int, tick: int, copy=True
-	) -> Dict[
+	) -> dict[
 		Key,
-		Union[
-			GraphNodesDict,
-			GraphNodeValDict,
-			GraphEdgesDict,
-			GraphEdgeValDict,
-			GraphValDict,
-		],
+		GraphNodesDict
+		| GraphNodeValDict
+		| GraphEdgesDict
+		| GraphEdgeValDict
+		| GraphValDict,
 	]:
 		"""Get a keyframe that's already in memory"""
 		assert (branch, turn, tick) in self._keyframes_loaded
@@ -1465,8 +1517,8 @@ class ORM:
 
 	def _snap_keyframe_from_delta(
 		self,
-		then: Tuple[str, int, int],
-		now: Tuple[str, int, int],
+		then: tuple[str, int, int],
+		now: tuple[str, int, int],
 		delta: DeltaDict,
 	) -> None:
 		# may mutate delta
@@ -1557,8 +1609,12 @@ class ORM:
 							else:
 								if dest in ekg[orig]:
 									del ekg[orig][dest]
-								if orig in evkg and dest in evkg[orig]:
-									del evkg[orig][dest]
+								if not ekg[orig]:
+									del ekg[orig]
+							if orig in evkg and dest in evkg[orig]:
+								del evkg[orig][dest]
+								if not evkg[orig]:
+									del evkg[orig]
 						elif exists:
 							ekg[orig] = {dest: exists}
 			if graph in edges_keyframe:
@@ -1680,7 +1736,7 @@ class ORM:
 		return time_from[0], branched_turn_from, branched_tick_from
 
 	@world_locked
-	def snap_keyframe(self, silent=False) -> Optional[dict]:
+	def snap_keyframe(self, silent=False) -> dict | None:
 		"""Make a copy of the complete state of the world.
 
 		You need to do this occasionally in order to keep time travel
@@ -1697,10 +1753,10 @@ class ORM:
 		branch, turn, tick = self._btt()
 		if (branch, turn, tick) in self._keyframes_times:
 			if silent:
-				return
+				return None
 			return self._get_keyframe(branch, turn, tick)
 		kfd = self._keyframes_dict
-		the_kf: Optional[Tuple[str, int, int]] = None
+		the_kf: tuple[str, int, int] = None
 		if branch in kfd:
 			# I could probably avoid sorting these by using windowdicts
 			for trn in sorted(kfd[branch].keys(), reverse=True):
@@ -1719,7 +1775,7 @@ class ORM:
 			if parent is None:
 				self._snap_keyframe_de_novo(branch, turn, tick)
 				if silent:
-					return
+					return None
 				else:
 					return self._get_kf(branch, turn, tick)
 			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
@@ -1733,8 +1789,9 @@ class ORM:
 			)
 			if the_kf[0] != branch:
 				self._copy_kf(the_kf[0], branch, turn, tick)
-		if not silent:
-			return self._get_kf(branch, turn, tick)
+		if silent:
+			return None
+		return self._get_kf(branch, turn, tick)
 
 	def _build_loading_windows(
 		self,
@@ -1742,9 +1799,9 @@ class ORM:
 		turn_from: int,
 		tick_from: int,
 		branch_to: str,
-		turn_to: Optional[int],
-		tick_to: Optional[int],
-	) -> List[Tuple[str, int, int, int, int]]:
+		turn_to: int | None,
+		tick_to: int | None,
+	) -> list[tuple[str, int, int, int, int]]:
 		"""Return windows of time I've got to load
 
 		In order to have a complete timeline between these points.
@@ -1800,7 +1857,7 @@ class ORM:
 
 	def _build_keyframe_window(
 		self, branch: str, turn: int, tick: int, loading=False
-	) -> Tuple[Optional[Tuple[str, int, int]], Optional[Tuple[str, int, int]]]:
+	) -> tuple[tuple[str, int, int] | None, tuple[str, int, int] | None]:
 		"""Return a pair of keyframes that contain the given moment
 
 		They give the smallest contiguous span of time I can reasonably load.
@@ -1809,8 +1866,8 @@ class ORM:
 		branch_now = branch
 		turn_now = turn
 		tick_now = tick
-		latest_past_keyframe: Optional[Tuple[str, int, int]] = None
-		earliest_future_keyframe: Optional[Tuple[str, int, int]] = None
+		latest_past_keyframe: tuple[str, int, int] = None
+		earliest_future_keyframe: tuple[str, int, int] = None
 		branch_parents = self._branch_parents
 		cache = self._keyframes_times if loading else self._keyframes_loaded
 		for branch, turn, tick in cache:
@@ -1951,14 +2008,14 @@ class ORM:
 	@world_locked
 	def _read_at(
 		self, branch: str, turn: int, tick: int
-	) -> Tuple[
-		Optional[Tuple[str, int, int]],
-		Optional[Tuple[str, int, int]],
+	) -> tuple[
+		tuple[str, int, int] | None,
+		tuple[str, int, int] | None,
 		list,
 		dict,
 	]:
-		latest_past_keyframe: Optional[Tuple[str, int, int]]
-		earliest_future_keyframe: Optional[Tuple[str, int, int]]
+		latest_past_keyframe: tuple[str, int, int] | None
+		earliest_future_keyframe: tuple[str, int, int] | None
 		branch_now, turn_now, tick_now = branch, turn, tick
 		(latest_past_keyframe, earliest_future_keyframe) = (
 			self._build_keyframe_window(
@@ -2031,12 +2088,13 @@ class ORM:
 	def _load_at(self, branch: str, turn: int, tick: int) -> None:
 		if self._time_is_loaded(branch, turn, tick):
 			return
-		self._load(*self._read_at(branch, turn, tick))
+		with garbage():
+			self._load(*self._read_at(branch, turn, tick))
 
 	def _load(
 		self,
-		latest_past_keyframe: Optional[Tuple[str, int, int]],
-		earliest_future_keyframe: Optional[Tuple[str, int, int]],
+		latest_past_keyframe: tuple[str, int, int] | None,
+		earliest_future_keyframe: tuple[str, int, int] | None,
 		graphs_rows: list,
 		loaded: dict,
 	):
@@ -2265,13 +2323,13 @@ class ORM:
 	def branches(self) -> set:
 		return set(self._branches)
 
-	def branch_parent(self, branch: str) -> Optional[str]:
+	def branch_parent(self, branch: str) -> str | None:
 		return self._branches[branch][0]
 
-	def branch_start(self, branch: str) -> Tuple[int, int]:
+	def branch_start(self, branch: str) -> tuple[int, int]:
 		return self._branches[branch][1:3]
 
-	def branch_end(self, branch: str) -> Tuple[int, int]:
+	def branch_end(self, branch: str) -> tuple[int, int]:
 		return self._branches[branch][3:5]
 
 	def turn_end(self, branch: str = None, turn: int = None) -> int:
@@ -2563,7 +2621,7 @@ class ORM:
 	def tick(self, v):
 		self._set_tick(v)
 
-	def _btt(self) -> Tuple[str, int, int]:
+	def _btt(self) -> tuple[str, int, int]:
 		"""Return the branch, turn, and tick."""
 		return self._obranch, self._oturn, self._otick
 
@@ -2571,7 +2629,7 @@ class ORM:
 		(self._obranch, self._oturn, self._otick) = (branch, turn, tick)
 
 	@world_locked
-	def _nbtt(self) -> Tuple[str, int, int]:
+	def _nbtt(self) -> tuple[str, int, int]:
 		"""Increment the tick and return branch, turn, tick
 
 		Unless we're viewing the past, in which case raise HistoryError.
@@ -2736,7 +2794,7 @@ class ORM:
 		self,
 		name: Key,
 		type_s="DiGraph",
-		data: Union[Graph, nx.Graph, dict, KeyframeTuple] = None,
+		data: Graph | nx.Graph | dict | KeyframeTuple = None,
 	) -> None:
 		if name in self.illegal_graph_names:
 			raise GraphNameError("Illegal name")
@@ -2864,7 +2922,7 @@ class ORM:
 		*,
 		loaded=False,
 		with_fork_points=False,
-		stoptime: Tuple[str, int, int] = None,
+		stoptime: tuple[str, int, int] = None,
 	):
 		"""Iterate back over (branch, turn, tick) at which there is a keyframe
 
@@ -2965,8 +3023,8 @@ class ORM:
 		turn: int = None,
 		tick: int = None,
 		*,
-		stoptime: Tuple[str, int, int] = None,
-	) -> Iterator[Tuple[str, int, int]]:
+		stoptime: tuple[str, int, int] = None,
+	) -> Iterator[tuple[str, int, int]]:
 		"""Private use. Iterate over (branch, turn, tick), where the branch is
 		a descendant of the previous (starting with whatever branch is
 		presently active and ending at the main branch), and the turn is the

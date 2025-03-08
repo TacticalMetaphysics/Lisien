@@ -21,8 +21,6 @@ of the same key and neighboring ones repeatedly and in sequence.
 
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import (
@@ -36,17 +34,7 @@ from enum import Enum
 from itertools import chain
 from operator import itemgetter, le, lt
 from threading import RLock
-from typing import (
-	Any,
-	Callable,
-	Dict,
-	Iterable,
-	List,
-	Optional,
-	Set,
-	Tuple,
-	Union,
-)
+from typing import Any, Iterable, Union
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -62,8 +50,8 @@ def update_window(
 	tick_from: int,
 	turn_to: int,
 	tick_to: int,
-	updfun: Callable,
-	branchd: Dict[int, List[tuple]],
+	updfun: callable,
+	branchd: dict[int, list[tuple]],
 ):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from in branchd:
@@ -85,8 +73,8 @@ def update_backward_window(
 	tick_from: int,
 	turn_to: int,
 	tick_to: int,
-	updfun: Callable,
-	branchd: Dict[int, List[tuple]],
+	updfun: callable,
+	branchd: dict[int, list[tuple]],
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from in branchd:
@@ -125,7 +113,7 @@ class WindowDictItemsView(ABC, ItemsView):
 
 	_mapping: "WindowDict"
 
-	def __contains__(self, item: Tuple[int, Any]):
+	def __contains__(self, item: tuple[int, Any]):
 		with self._mapping._lock:
 			return item in self._mapping._past or item in self._mapping._future
 
@@ -167,7 +155,7 @@ class WindowDictPastFutureItemsView(ABC, ItemsView):
 		with self._mapping.lock:
 			yield from reversed(self._mapping.stack)
 
-	def __contains__(self, item: Tuple[int, Any]):
+	def __contains__(self, item: tuple[int, Any]):
 		with self._mapping.lock:
 			if self._out_of_range(item, self._mapping.stack):
 				return False
@@ -180,7 +168,7 @@ class WindowDictPastFutureItemsView(ABC, ItemsView):
 
 class WindowDictPastItemsView(WindowDictPastFutureItemsView):
 	@staticmethod
-	def _out_of_range(item: Tuple[int, Any], stack: List[Tuple[int, Any]]):
+	def _out_of_range(item: tuple[int, Any], stack: list[tuple[int, Any]]):
 		return item[0] < stack[0][0] or item[0] > stack[-1][0]
 
 
@@ -188,7 +176,7 @@ class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
 	"""View on a WindowDict's future items relative to last lookup"""
 
 	@staticmethod
-	def _out_of_range(item: Tuple[int, Any], stack: List[Tuple[int, Any]]):
+	def _out_of_range(item: tuple[int, Any], stack: list[tuple[int, Any]]):
 		return item[0] < stack[-1][0] or item[0] > stack[0][0]
 
 
@@ -231,9 +219,9 @@ class WindowDictPastFutureView(ABC, Mapping):
 	"""Abstract class for historical views on WindowDict"""
 
 	__slots__ = ("stack", "lock")
-	stack: List[Tuple[int, Any]]
+	stack: list[tuple[int, Any]]
 
-	def __init__(self, stack: List[Tuple[int, Any]], lock: RLock) -> None:
+	def __init__(self, stack: list[tuple[int, Any]], lock: RLock) -> None:
 		self.stack = stack
 		self.lock = lock
 
@@ -475,13 +463,13 @@ class WindowDict(MutableMapping):
 
 	__slots__ = ("_future", "_past", "_keys", "_last", "_lock")
 
-	_past: List[Tuple[int, Any]]
-	_future: List[Tuple[int, Any]]
-	_keys: Set[int]
-	_last: Optional[int]
+	_past: list[tuple[int, Any]]
+	_future: list[tuple[int, Any]]
+	_keys: set[int]
+	_last: int | None
 
 	@property
-	def beginning(self) -> Optional[int]:
+	def beginning(self) -> int | None:
 		with self._lock:
 			if not self._past:
 				if not self._future:
@@ -490,7 +478,7 @@ class WindowDict(MutableMapping):
 			return self._past[0][0]
 
 	@property
-	def end(self) -> Optional[int]:
+	def end(self) -> int | None:
 		with self._lock:
 			if not self._future:
 				if not self._past:
@@ -532,7 +520,7 @@ class WindowDict(MutableMapping):
 
 		"""
 
-		def recurse(revs: List[Tuple[int, Any]]) -> Any:
+		def recurse(revs: list[tuple[int, Any]]) -> Any:
 			if len(revs) < 1:
 				raise HistoricKeyError(
 					"No data ever for revision", rev, deleted=False
@@ -649,7 +637,7 @@ class WindowDict(MutableMapping):
 			raise KeyError("No data")
 
 	def truncate(
-		self, rev: int, direction: Direction = "forward", search=False
+		self, rev: int, direction: Direction = Direction.FORWARD, search=False
 	) -> set[int]:
 		"""Delete everything after the given revision, exclusive.
 
@@ -659,18 +647,20 @@ class WindowDict(MutableMapping):
 		Return a set of keys deleted.
 
 		"""
+		if not isinstance(direction, Direction):
+			direction = Direction(direction)
 		deleted = set()
 		with self._lock:
 			if search:
 				self.search(rev)
 			else:
 				self._seek(rev)
-			if direction == "forward":
+			if direction == Direction.FORWARD:
 				to_delete = set(map(get0, self._future))
 				deleted.update(to_delete)
 				self._keys.difference_update(to_delete)
 				self._future = []
-			elif direction == "backward":
+			elif direction == Direction.BACKWARD:
 				if not self._past:
 					return deleted
 				if self._past[-1][0] == rev:
@@ -709,7 +699,7 @@ class WindowDict(MutableMapping):
 			return empty
 
 	def __init__(
-		self, data: Union[List[Tuple[int, Any]], Dict[int, Any]] = None
+		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
 	) -> None:
 		self._lock = RLock()
 		with self._lock:
@@ -824,8 +814,8 @@ class FuturistWindowDict(WindowDict):
 		"_future",
 		"_past",
 	)
-	_future: List[Tuple[int, Any]]
-	_past: List[Tuple[int, Any]]
+	_future: list[tuple[int, Any]]
+	_past: list[tuple[int, Any]]
 
 	def __setitem__(self, rev: int, v: Any) -> None:
 		if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):
@@ -854,8 +844,8 @@ class FuturistWindowDict(WindowDict):
 
 class TurnDict(FuturistWindowDict):
 	__slots__ = ("_future", "_past")
-	_future: List[Tuple[int, Any]]
-	_past: List[Tuple[int, Any]]
+	_future: list[tuple[int, Any]]
+	_past: list[tuple[int, Any]]
 	cls = FuturistWindowDict
 
 	def __setitem__(self, turn: int, value: Any) -> None:
@@ -868,7 +858,7 @@ class EntikeyWindowDict(WindowDict):
 	__slots__ = ("_past", "_future", "entikeys")
 
 	def __init__(
-		self, data: Union[List[Tuple[int, Any]], Dict[int, Any]] = None
+		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
 	) -> None:
 		if data:
 			if hasattr(data, "values") and callable(data.values):
@@ -902,8 +892,8 @@ class SettingsTurnDict(WindowDict):
 	"""
 
 	__slots__ = ("_future", "_past")
-	_future: List[Tuple[int, Any]]
-	_past: List[Tuple[int, Any]]
+	_future: list[tuple[int, Any]]
+	_past: list[tuple[int, Any]]
 	cls = WindowDict
 
 	def __setitem__(self, turn: int, value: Any) -> None:

@@ -16,8 +16,9 @@
 
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
-from collections.abc import Set
+from collections.abc import Set, Mapping
 from concurrent.futures import Future
 from contextlib import contextmanager
 from enum import Enum
@@ -44,12 +45,8 @@ from types import FunctionType, MethodType
 from typing import (
 	Any,
 	Callable,
-	Dict,
-	FrozenSet,
 	Hashable,
 	Iterable,
-	Mapping,
-	Tuple,
 	Union,
 )
 
@@ -59,19 +56,27 @@ import numpy as np
 from blinker import Signal
 from tblib import Traceback
 
+import lisien.allegedb.exc
+import lisien.allegedb.typing
 from . import allegedb, exc
 from .allegedb.cache import SizedDict
 from .allegedb.graph import DiGraph, Edge, Node
+from .allegedb import Key
 from .allegedb.window import HistoricKeyError
 from .exc import TravelException
 
-Key = Union[str, int, float, Tuple["Key", ...], FrozenSet["Key"]]
-"""Type hint for things lisien can use as keys
 
-They have to be serializable using lisien's particular msgpack schema,
-as well as hashable.
+class KeyClass:
+	def __new__(
+		cls, that: lisien.allegedb.typing.Key
+	) -> lisien.allegedb.typing.Key:
+		return that
 
-"""
+	def __instancecheck__(cls, instance: lisien.allegedb.typing.Key) -> bool:
+		return isinstance(instance, (str, int, float)) or (
+			(isinstance(instance, tuple) or isinstance(instance, frozenset))
+			and all(isinstance(elem, cls) for elem in instance)
+		)
 
 
 class SignalDict(Signal, dict):
@@ -100,9 +105,6 @@ class FinalRule:
 	def __hash__(self):
 		# completely random integer
 		return 6448962173793096248
-
-
-final_rule = FinalRule()
 
 
 class MsgpackExtensionType(Enum):
@@ -585,7 +587,7 @@ class AbstractEngine(ABC):
 			"WorldIntegrityError": exc.WorldIntegrityError,
 			"CacheError": exc.CacheError,
 			"TravelException": exc.TravelException,
-			"OutOfTimelineError": allegedb.OutOfTimelineError,
+			"OutOfTimelineError": lisien.allegedb.exc.OutOfTimelineError,
 			"HistoricKeyError": HistoricKeyError,
 			"NotInKeyframeError": allegedb.cache.NotInKeyframeError,
 			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
@@ -640,7 +642,6 @@ class AbstractEngine(ABC):
 			MsgpackExtensionType.place.value: unpack_place,
 			MsgpackExtensionType.thing.value: unpack_thing,
 			MsgpackExtensionType.portal.value: unpack_portal,
-			MsgpackExtensionType.final_rule.value: lambda obj: final_rule,
 			MsgpackExtensionType.tuple.value: lambda ext: tuple(unpacker(ext)),
 			MsgpackExtensionType.frozenset.value: lambda ext: frozenset(
 				unpacker(ext)
@@ -706,7 +707,7 @@ class AbstractEngine(ABC):
 		n: int,
 		d: int,
 		target: int,
-		comparator: Union[str, Callable] = "<=",
+		comparator: str | Callable = "<=",
 	) -> bool:
 		"""Roll ``n`` dice with ``d`` sides, sum them, and compare
 
@@ -716,7 +717,7 @@ class AbstractEngine(ABC):
 		"""
 		from operator import eq, ge, gt, le, lt, ne
 
-		comps: Dict[str, Callable] = {
+		comps: dict[str, Callable] = {
 			">": gt,
 			"<": lt,
 			">=": ge,
@@ -1250,7 +1251,8 @@ class AbstractThing(ABC):
 
 		If supplied, the ``weight`` stat of each :class:`Portal` along
 		the path will be used in pathfinding, and for deciding how
-		long to stay in each Place along the way.
+		long to stay in each Place along the way. Otherwise, I will stay
+		in each :class:`Place` for 1 turn.
 
 		The ``graph`` argument may be any NetworkX-style graph. It
 		will be used for pathfinding if supplied, otherwise I'll use
@@ -1267,7 +1269,23 @@ class AbstractThing(ABC):
 		"""
 		destn = dest.name if hasattr(dest, "name") else dest
 		if destn == self.location.name:
-			raise ValueError("I'm already at {}".format(destn))
+			raise ValueError("I'm already there", self.name, destn)
 		graph = self.character if graph is None else graph
 		path = nx.shortest_path(graph, self["location"], destn, weight)
 		return self.follow_path(path, weight)
+
+
+def repr_call_sig(func: callable | str, *args, **kwargs):
+	if not isinstance(func, str):
+		func = func.__name__
+	return (
+		f"{func}({', '.join(map(repr, args))}"
+		f"{', ' if kwargs else ''}"
+		f"{', '.join('='.join(map(repr, item)) for item in kwargs.items())})"
+	)
+
+
+def print_call_sig(
+	func: callable | str, *args, file=sys.stdout, end="\n", **kwargs
+):
+	print(repr_call_sig(func, *args, **kwargs), file=file, end=end)

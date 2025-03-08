@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -230,7 +228,7 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 class FacadeRulebook(MutableSequence, ABC):
 	name: Any
 	_fake: list
-	engine: EngineFacade
+	engine: "EngineFacade"
 
 	def __iter__(self):
 		return iter(self._fake)

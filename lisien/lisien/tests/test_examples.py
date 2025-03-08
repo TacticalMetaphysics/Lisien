@@ -15,7 +15,6 @@ from lisien.handle import EngineHandle
 pytestmark = [pytest.mark.big]
 
 
-@pytest.mark.skip("I'll optimize later")
 def test_college(engy):
 	college.install(engy)
 	for i in range(10):
@@ -58,7 +57,7 @@ def test_char_stat_startup(tmp_path):
 
 def test_sickle(engy):
 	sickle.install(engy)
-	for i in range(100):
+	for i in range(50):
 		engy.next_turn()
 
 

@@ -185,10 +185,10 @@ class FunctionStore(Signal):
 	def __getattr__(self, k):
 		if k in self._locl:
 			return self._locl[k]
-		elif self._module:
-			return getattr(self._module, k)
 		elif self._need_save:
 			self.save()
+			return getattr(self._module, k)
+		elif self._module:
 			return getattr(self._module, k)
 		else:
 			raise AttributeError("No attribute " + repr(k))
@@ -197,8 +197,6 @@ class FunctionStore(Signal):
 		if not callable(v):
 			super().__setattr__(k, v)
 			return
-		if self._module is not None:
-			setattr(self._module, k, v)
 		source = getsource(v)
 		outdented = dedent_source(source)
 		expr = Expr(parse(outdented))
@@ -247,7 +245,10 @@ class FunctionStore(Signal):
 		self._ast = parse(self._module.__loader__.get_data(self._filename))
 		self._ast_idx = {}
 		for i, node in enumerate(self._ast.body):
-			self._ast_idx[node.name] = i
+			if hasattr(node, "name"):
+				self._ast_idx[node.name] = i
+			elif hasattr(node, "__name__"):
+				self._ast_idx[node.__name__] = i
 		self.send(self, attr=None, val=None)
 
 	def iterplain(self):

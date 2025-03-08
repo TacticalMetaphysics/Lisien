@@ -118,7 +118,7 @@ def install(
 		)
 		return "mated"
 
-	@mate.prereq
+	@mate.trigger
 	def once_per_turn(critter):
 		return critter["last_mate_turn"] < critter.engine.turn
 
@@ -129,7 +129,7 @@ def install(
 				return True
 		return False
 
-	@mate.trigger
+	@mate.prereq
 	def in_the_mood(critter):
 		return critter.engine.random() < critter.user.only.stat["mate_chance"]
 
@@ -137,13 +137,13 @@ def install(
 	def sickle2(critter):
 		return critter["sickle_a"] and critter["sickle_b"]
 
-	@dieoff.trigger
+	@dieoff.prereq
 	def malaria(critter):
 		return critter.engine.random() < critter.user.only.stat[
 			"malaria_chance"
 		] and not (critter["sickle_a"] or critter["sickle_b"])
 
-	# it would make more sense to keep using species.avatar.rule, this
+	# it would make more sense to keep using species.unit.rule, this
 	# is just a test
 	@phys.thing.rule
 	def wander(critter):

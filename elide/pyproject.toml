@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 include-package-data=true
 
 [project]
-name = "ELiDE"
+name = "elide"
 version = "0.18.3"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
@@ -14,7 +14,7 @@ authors = [
 description = "Extensible Life Simulator Engine Development Environment"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10,<3.14"
 classifiers = [
 	"Programming Language :: Python :: 3",
 	"License :: OSI Approved :: GNU Affero General Public License v3",
@@ -24,7 +24,8 @@ classifiers = [
 dependencies = [
 	"lisien==0.18.3",
 	"kivy>=2.0.0,<3",
-	"kivy_garden.collider",
+	"kivy_garden.collider;python_version<'3.13'",
+	"kivy_garden.collider @ https://github.com/kivy-garden/collider/archive/804cf930ea7d4c21b1c201e82faef3b1518f3bb8.zip#sha1=a17b3bed6f245769296067213e1a88747f33fab1 ;python_version>='3.13'",
 	"kivy-deps.glew ; sys_platform == 'win32'",
 	"kivy-deps.sdl2 ; sys_platform == 'win32'",
 	"pygments>=2.7.4"

@@ -82,7 +82,6 @@ from abc import ABC, abstractmethod
 from ast import parse
 from collections.abc import Hashable, MutableMapping, MutableSequence
 from functools import cached_property, partial
-from inspect import getsource
 from typing import Callable, Optional
 
 from astunparse import unparse
@@ -116,7 +115,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 	def _nominate(self, v):
 		if callable(v):
 			self._funcstore(v)
-			v = v.__name__
+			return v.__name__
 		if not hasattr(self._funcstore, v):
 			raise KeyError(
 				"No {typ} function named {n}".format(
@@ -247,8 +246,6 @@ class RuleFuncListDescriptor:
 		flist = getattr(obj, self.flid)
 		namey_value = tuple(flist._nominate(v) for v in value)
 		flist._set(namey_value)
-		branch, turn, tick = obj.engine._nbtt()
-		flist._cache.store(obj.name, branch, turn, tick, namey_value)
 		flist.send(flist)
 
 	def __delete__(self, obj):

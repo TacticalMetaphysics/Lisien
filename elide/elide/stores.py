@@ -133,17 +133,15 @@ class StoreList(RecycleView):
 			"index": i,
 		}
 
-	def _iter_keys(self):
-		yield "+"
-		yield from sorted(self.store._cache.keys())
-
 	def redata(self, *_, **kwargs):
 		"""Update my ``data`` to match what's in my ``store``"""
 		select_name = kwargs.get("select_name")
 		if not self.store:
 			Clock.schedule_once(self.redata)
 			return
-		self.data = list(map(self.munge, enumerate(self._iter_keys())))
+		self.data = list(
+			map(self.munge, enumerate(sorted(self.store._cache.keys())))
+		)
 		if select_name:
 			self._trigger_select_name(select_name)
 
@@ -533,13 +531,12 @@ class FuncEditor(Editor):
 	"""Instance of ``StoreList`` that shows all the functions you can edit"""
 	codeinput = ObjectProperty()
 	params = ListProperty(["obj"])
+	name = StringProperty()
 	_text = StringProperty()
 	_do_parse = True
 
 	def _get_source(self):
-		code = self.get_default_text(
-			self.name_wid.text or self.name_wid.hint_text
-		)
+		code = self.get_default_text(self.name)
 		if self._text:
 			code += indent(self._text, " " * 4)
 		else:
@@ -717,6 +714,7 @@ load_string_once("""
 			write_tab: False
 			_trigger_save: root._trigger_save
 			on_text: root.validate_name_input(self.text)
+			hint_text: root.name
 		Py3CodeInput:
 			id: params
 			text: '({}):'.format(', '.join(root.params))
@@ -767,6 +765,7 @@ load_string_once("""
 				store: root.store
 		FuncEditor:
 			id: funcs_ed
+			name: root.selection_name
 			store: root.store
 			storelist: funcs_list
 			disable_text_input: root.disable_text_input
