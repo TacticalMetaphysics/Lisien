@@ -134,7 +134,6 @@ class StoreList(RecycleView):
 		}
 
 	def _iter_keys(self):
-		yield "+"
 		yield from sorted(self.store._cache.keys())
 
 	def redata(self, *_, **kwargs):
