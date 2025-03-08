@@ -2994,6 +2994,13 @@ class EngineProxy(AbstractEngine):
 		meth = super().__getattribute__("method").__getattr__(item)
 		return MethodType(meth, self)
 
+	def _reimport_code(self):
+		self.function.reimport()
+		self.method.reimport()
+		self.trigger.reimport()
+		self.prereq.reimport()
+		self.action.reimport()
+
 	def _reimport_triggers(self):
 		self.trigger.reimport()
 

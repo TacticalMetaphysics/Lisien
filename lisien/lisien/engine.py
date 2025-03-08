@@ -179,6 +179,7 @@ class NextTurn(Signal):
 				except FileNotFoundError:
 					# Maybe the game uses no prereqs or something.
 					pass
+		engine._call_every_subprocess("_reimport_code")
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._turns_completed[start_branch]
 		if start_turn < latest_turn:
