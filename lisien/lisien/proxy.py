@@ -2896,10 +2896,12 @@ class EngineProxy(AbstractEngine):
 		handle_in,
 		logger,
 		install_modules=(),
-		submit_func=None,
-		threads=None,
-		prefix=None,
+		submit_func: callable = None,
+		threads: int = None,
+		prefix: str = None,
+		i: int = None,
 	):
+		self.i = i
 		self.closed = False
 		if submit_func:
 			self._submit = submit_func
@@ -3575,8 +3577,10 @@ class WorkerLogger:
 		self._logq.put((50, msg))
 
 
-def worker_subprocess(prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue):
-	eng = EngineProxy(None, None, WorkerLogger(logq), prefix=prefix)
+def worker_subprocess(
+	i: int, prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue
+):
+	eng = EngineProxy(None, None, WorkerLogger(logq), prefix=prefix, i=i)
 	pack = eng.pack
 	unpack = eng.unpack
 	compress = zlib.compress
