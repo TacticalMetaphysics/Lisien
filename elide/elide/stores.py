@@ -133,16 +133,15 @@ class StoreList(RecycleView):
 			"index": i,
 		}
 
-	def _iter_keys(self):
-		yield from sorted(self.store._cache.keys())
-
 	def redata(self, *_, **kwargs):
 		"""Update my ``data`` to match what's in my ``store``"""
 		select_name = kwargs.get("select_name")
 		if not self.store:
 			Clock.schedule_once(self.redata)
 			return
-		self.data = list(map(self.munge, enumerate(self._iter_keys())))
+		self.data = list(
+			map(self.munge, enumerate(sorted(self.store._cache.keys())))
+		)
 		if select_name:
 			self._trigger_select_name(select_name)
 
