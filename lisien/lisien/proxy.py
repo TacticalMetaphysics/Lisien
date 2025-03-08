@@ -37,7 +37,7 @@ from multiprocessing import Pipe, Process, ProcessError, Queue
 from queue import Empty
 from random import Random
 from threading import Lock, Thread
-from time import monotonic
+from time import monotonic, sleep
 from types import MethodType
 from typing import Hashable, Iterator
 
@@ -2660,6 +2660,24 @@ class EngineProxy(AbstractEngine):
 		self.prereq.reimport()
 		self.action._cache = actions
 		self.action.reimport()
+		for func, mod in [
+			(functions, self.function),
+			(methods, self.method),
+			(triggers, self.trigger),
+			(prereqs, self.prereq),
+			(actions, self.action),
+		]:
+			unimported = set(func).difference(dir(mod._module))
+			while unimported:
+				self.warning(
+					f"some functions not imported from {mod._filename}: {unimported}. Trying again in 0.01s"
+				)
+				sleep(0.01)
+				mod.reimport()
+				unimported = set(func).difference(dir(mod))
+			self.debug(
+				f"imported functions from {mod._filename}: {dir(mod._module)}"
+			)
 		self._replace_state_with_kf(start_kf)
 		self._branch = branch
 		self._turn = turn
@@ -2695,15 +2713,22 @@ class EngineProxy(AbstractEngine):
 		self._universal_cache = result["universal"]
 		rc = self._rules_cache = {}
 		for rule, triggers in result["triggers"].items():
+			triglist = []
 			if isinstance(self.trigger, FuncStoreProxy):
 				for func in triggers:
 					if not hasattr(self.trigger, func):
 						self.trigger._proxy_cache[func] = FuncProxy(
 							self.trigger, func
 						)
+					triglist.append(getattr(self.trigger, func))
 			else:
-				self.trigger.reimport()
-			triglist = [getattr(self.trigger, func) for func in triggers]
+				for func in triggers:
+					while not hasattr(self.trigger, func):
+						self.warning(
+							f"didn't find {func} in trigger file {self.trigger._filename}, reimporting"
+						)
+						self.trigger.reimport()
+					triglist.append(getattr(self.trigger, func))
 			if rule in rc:
 				rc[rule]["triggers"] = triglist
 			else:
@@ -2713,15 +2738,22 @@ class EngineProxy(AbstractEngine):
 					"actions": [],
 				}
 		for rule, prereqs in result["prereqs"].items():
+			preqlist = []
 			if isinstance(self.prereq, FuncStoreProxy):
 				for func in prereqs:
 					if not hasattr(self.prereq, func):
 						self.prereq._proxy_cache[func] = FuncProxy(
 							self.prereq, func
 						)
+					preqlist.append(getattr(self.prereq, func))
 			else:
-				self.prereq.reimport()
-			preqlist = [getattr(self.prereq, func) for func in prereqs]
+				for func in prereqs:
+					while not hasattr(self.prereq, func):
+						self.warning(
+							f"didn't find {func} in prereq file {self.trigger._filename}, reimporting"
+						)
+						self.prereq.reimport()
+					preqlist.append(getattr(self.prereq, func))
 			if rule in rc:
 				rc[rule]["prereqs"] = preqlist
 			else:
@@ -2731,15 +2763,22 @@ class EngineProxy(AbstractEngine):
 					"actions": [],
 				}
 		for rule, actions in result["actions"].items():
+			actlist = []
 			if isinstance(self.action, FuncStoreProxy):
 				for func in actions:
 					if not hasattr(self.action, func):
 						self.action._proxy_cache[func] = FuncProxy(
 							self.action, func
 						)
+					actlist.append(getattr(self.action, func))
 			else:
-				self.action.reimport()
-			actlist = [getattr(self.action, func) for func in actions]
+				for func in actions:
+					while not hasattr(self.action, func):
+						self.warning(
+							f"didn't find {func} in action file {self.action._filename}, reimporting"
+						)
+						self.prereq.reimport()
+					actlist.append(getattr(self.action, func))
 			if rule in rc:
 				rc[rule]["actions"] = actlist
 			else:
@@ -3581,6 +3620,8 @@ class WorkerLogger:
 def worker_subprocess(
 	i: int, prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue
 ):
+	from .util import repr_call_sig
+
 	logger = WorkerLogger(logq, i)
 	eng = EngineProxy(None, None, logger, prefix=prefix, i=i)
 	pack = eng.pack
@@ -3599,6 +3640,7 @@ def worker_subprocess(
 			out_pipe.close()
 			return 0
 		(uid, method, args, kwargs) = unpack(decompress(inst))
+		logger.debug(repr_call_sig(method, *args, **kwargs))
 		try:
 			ret = getattr(eng, method)(*args, **kwargs)
 		except Exception as ex:
@@ -3618,7 +3660,7 @@ class RedundantProcessError(ProcessError):
 
 
 class EngineProcessManager:
-	loglevel = logging.INFO
+	loglevel = logging.DEBUG
 
 	def __init__(self, *args, **kwargs):
 		self._args = args
