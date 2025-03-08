@@ -166,8 +166,12 @@ class RulesView(Widget):
 			self._tabs.add_widget(getattr(self, "_{}_tab".format(functyp)))
 			builder = DeckBuilderView(**deck_builder_kwargs)
 			setattr(self, "_{}_builder".format(functyp), builder)
-			builder.bind(
-				decks=getattr(self, "_trigger_push_{}s".format(functyp))
+			setattr(
+				self,
+				f"_trigger_push_{functyp}s_uid",
+				builder.fbind(
+					"decks", getattr(self, f"_trigger_push_{functyp}s")
+				),
 			)
 			scroll_left = DeckBuilderScrollBar(
 				size_hint_x=0.01,
@@ -322,22 +326,40 @@ class RulesView(Widget):
 
 	def pull_triggers(self, *args):
 		"""Refresh the cards in the trigger builder"""
+		self._trigger_builder.unbind_uid(
+			"decks", self._trigger_push_triggers_uid
+		)
 		self._trigger_builder.decks = self._pull_functions("trigger")
+		self._trigger_push_triggers_uid = self._trigger_builder.fbind(
+			"decks", self._trigger_push_triggers
+		)
 
 	_trigger_pull_triggers = trigger(pull_triggers)
 
 	def pull_prereqs(self, *args):
 		"""Refresh the cards in the prereq builder"""
+		self._prereq_builder.unbind_uid(
+			"decks", self._trigger_push_prereqs_uid
+		)
 		self._prereq_builder.decks = self._pull_functions(
 			"prereq", truth=False
+		)
+		self._trigger_push_prereqs_uid = self._prereq_builder.fbind(
+			"decks", self._trigger_push_prereqs
 		)
 
 	_trigger_pull_prereqs = trigger(pull_prereqs)
 
 	def pull_actions(self, *args):
 		"""Refresh the cards in the action builder"""
+		self._action_builder.unbind_uid(
+			"decks", self._trigger_push_actions_uid
+		)
 		self._action_builder.decks = self._pull_functions(
 			"action", truth=False
+		)
+		self._trigger_push_actions_uid = self._action_builder.fbind(
+			"decks", self._trigger_push_actions
 		)
 
 	_trigger_pull_actions = trigger(pull_actions)
@@ -419,7 +441,7 @@ class RulesView(Widget):
 			)
 			return
 		funcs = [
-			card.ud["funcname"]
+			getattr(getattr(self.engine, what), card.ud["funcname"])
 			for card in getattr(self, "_{}_builder".format(what)).decks[0]
 		]
 		funlist = getattr(self.rule, what + "s")
