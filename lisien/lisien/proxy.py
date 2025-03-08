@@ -2701,6 +2701,8 @@ class EngineProxy(AbstractEngine):
 						self.trigger._proxy_cache[func] = FuncProxy(
 							self.trigger, func
 						)
+			else:
+				self.trigger.reimport()
 			triglist = [getattr(self.trigger, func) for func in triggers]
 			if rule in rc:
 				rc[rule]["triggers"] = triglist
@@ -2717,6 +2719,8 @@ class EngineProxy(AbstractEngine):
 						self.prereq._proxy_cache[func] = FuncProxy(
 							self.prereq, func
 						)
+			else:
+				self.prereq.reimport()
 			preqlist = [getattr(self.prereq, func) for func in prereqs]
 			if rule in rc:
 				rc[rule]["prereqs"] = preqlist
@@ -2733,6 +2737,8 @@ class EngineProxy(AbstractEngine):
 						self.action._proxy_cache[func] = FuncProxy(
 							self.action, func
 						)
+			else:
+				self.action.reimport()
 			actlist = [getattr(self.action, func) for func in actions]
 			if rule in rc:
 				rc[rule]["actions"] = actlist
