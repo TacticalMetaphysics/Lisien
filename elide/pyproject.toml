@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 include-package-data=true
 
 [project]
-name = "ELiDE"
+name = "elide"
 version = "0.18.3"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
