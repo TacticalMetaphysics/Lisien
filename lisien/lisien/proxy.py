@@ -3459,10 +3459,21 @@ class EngineProxy(AbstractEngine):
 			and node not in self._things_cache[char]
 		):
 			raise KeyError("No such node")
+		successors = list(self._character_portals_cache.successors[char][node])
+		predecessors = list(
+			self._character_portals_cache.predecessors[char][node]
+		)
+		cont = list(self._node_contents(char, node))
 		if node in self._things_cache[char]:
 			del self._things_cache[char][node]
+		for contained in cont:
+			del self._things_cache[char][contained]
 		if node in self._character_places_cache[char]:  # just to be safe
 			del self._character_places_cache[char][node]
+		for succ in successors:
+			self._character_portals_cache.delete(char, node, succ)
+		for pred in predecessors:
+			self._character_portals_cache.delete(char, pred, node)
 		self.handle(command="del_node", char=char, node=node, branching=True)
 
 	def del_portal(self, char, orig, dest):
