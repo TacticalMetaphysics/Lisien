@@ -32,7 +32,7 @@ def test_eternal(handle_initialized):
 	with pytest.raises(KeyError):
 		handle_initialized.get_eternal("branch")
 	assert handle_initialized.eternal_copy() == {
-		b"\xb4_lisien_schema_version": b"\x00",
+		b"\xb6_lisien_schema_version": b"\x00",
 		b"\xabmain_branch": b"\xa5trunk",
 		b"\xa4turn": b"\x00",
 		b"\xa4tick": b"\x00",
