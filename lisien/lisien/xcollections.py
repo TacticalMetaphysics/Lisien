@@ -185,10 +185,10 @@ class FunctionStore(Signal):
 	def __getattr__(self, k):
 		if k in self._locl:
 			return self._locl[k]
-		elif self._module:
-			return getattr(self._module, k)
 		elif self._need_save:
 			self.save()
+			return getattr(self._module, k)
+		elif self._module:
 			return getattr(self._module, k)
 		else:
 			raise AttributeError("No attribute " + repr(k))
