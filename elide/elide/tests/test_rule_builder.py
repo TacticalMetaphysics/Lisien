@@ -249,26 +249,31 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			100,
 			"Never positioned trigger builder's children",
 		)
-		aware = breakcover = None
+		aware = None
 		for card in builder.children:
 			if isinstance(card, Foundation):
 				continue
 			assert isinstance(card, Card)
 			if card.headline_text == "aware":
 				aware = card
-			elif card.headline_text == "breakcover":
-				breakcover = card
-		assert None not in (
-			aware,
-			breakcover,
-		), "Didn't get 'aware' and 'breakcover' cards"
+				break
+		assert aware is not None, "Didn't get 'aware' card"
+		uncovered = None
+		for card in builder.children:
+			if isinstance(card, Foundation):
+				continue
+			assert isinstance(card, Card)
+			if card.headline_text == "uncovered":
+				uncovered = card
+				break
+		assert uncovered is not None, "Didn't get 'uncovered' card"
 		start_x = aware.center_x
 		start_y = aware.top - 10
 		assert aware.collide_point(start_x, start_y)
 		mov = UnitTestTouch(start_x, start_y)
 		mov.touch_down()
-		dist_x = start_x - breakcover.center_x
-		dist_y = start_y - breakcover.center_y
+		dist_x = start_x - uncovered.center_x
+		dist_y = start_y - uncovered.center_y
 		decr_x = dist_x / 10
 		decr_y = dist_y / 10
 		x = start_x
@@ -278,9 +283,9 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			y -= decr_y
 			mov.touch_move(x, y)
 			self.advance_frames(1)
-		mov.touch_up(*breakcover.center)
+		mov.touch_up(*uncovered.center)
 		idle_until(
-			lambda: abs(aware.x - breakcover.x) < 2,
+			lambda: abs(aware.x - uncovered.x) < 2,
 			100,
 			"aware didn't move to its new place",
 		)
