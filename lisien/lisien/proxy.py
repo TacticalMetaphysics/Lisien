@@ -3548,39 +3548,41 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 
 
 class WorkerLogger:
-	def __init__(self, logq):
+	def __init__(self, logq, i):
 		self._logq = logq
+		self._i = i
 
 	def debug(self, msg):
 		if not self._logq:
 			print(msg)
-		self._logq.put((10, msg))
+		self._logq.put((10, f"worker {self._i}: {msg}"))
 
 	def info(self, msg):
 		if not self._logq:
 			print(msg)
-		self._logq.put((20, msg))
+		self._logq.put((20, f"worker {self._i}: {msg}"))
 
 	def warning(self, msg):
 		if not self._logq:
 			print(msg)
-		self._logq.put((30, msg))
+		self._logq.put((30, f"worker {self._i}: {msg}"))
 
 	def error(self, msg):
 		if not self._logq:
 			print(msg)
-		self._logq.put((40, msg))
+		self._logq.put((40, f"worker {self._i}: {msg}"))
 
 	def critical(self, msg):
 		if not self._logq:
 			print(msg)
-		self._logq.put((50, msg))
+		self._logq.put((50, f"worker {self._i}: {msg}"))
 
 
 def worker_subprocess(
 	i: int, prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue
 ):
-	eng = EngineProxy(None, None, WorkerLogger(logq), prefix=prefix, i=i)
+	logger = WorkerLogger(logq, i)
+	eng = EngineProxy(None, None, logger, prefix=prefix, i=i)
 	pack = eng.pack
 	unpack = eng.unpack
 	compress = zlib.compress
