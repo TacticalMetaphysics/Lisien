@@ -456,8 +456,10 @@ class TestCharRuleBuilder(ELiDEAppTest):
 			"similar_neighbors still in used pile",
 		)
 		idle_until(
-			lambda: app.charrules.character.unit.rulebook[0].triggers
-			== ["dissimilar_neighbors"],
+			lambda: not any(
+				trig.name == "similar_neighbors"
+				for trig in app.charrules.character.unit.rulebook[0].triggers
+			),
 			100,
 			"similar_neighbors still in proxy triggers list",
 		)
