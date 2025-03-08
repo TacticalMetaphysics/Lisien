@@ -290,7 +290,10 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			"aware didn't move to its new place",
 		)
 		idle_until(
-			lambda: "aware" in self.app.engine.rule["shrubsprint"].triggers,
+			lambda: any(
+				func.name == "aware"
+				for func in self.app.engine.rule["shrubsprint"].triggers
+			),
 			100,
 			"aware never added to rulebook",
 		)
