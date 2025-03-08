@@ -29,7 +29,7 @@ import logging
 import os
 import sys
 import zlib
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
@@ -55,9 +55,9 @@ from .portal import Portal
 from .util import (
 	AbstractCharacter,
 	AbstractEngine,
+	KeyClass,
 	MsgpackExtensionType,
 	getatt,
-	KeyClass,
 )
 from .xcollections import (
 	AbstractLanguageDescriptor,
@@ -2695,6 +2695,12 @@ class EngineProxy(AbstractEngine):
 		self._universal_cache = result["universal"]
 		rc = self._rules_cache = {}
 		for rule, triggers in result["triggers"].items():
+			if isinstance(self.trigger, FuncStoreProxy):
+				for func in triggers:
+					if not hasattr(self.trigger, func):
+						self.trigger._proxy_cache[func] = FuncProxy(
+							self.trigger, func
+						)
 			triglist = [getattr(self.trigger, func) for func in triggers]
 			if rule in rc:
 				rc[rule]["triggers"] = triglist
@@ -2705,6 +2711,12 @@ class EngineProxy(AbstractEngine):
 					"actions": [],
 				}
 		for rule, prereqs in result["prereqs"].items():
+			if isinstance(self.prereq, FuncStoreProxy):
+				for func in prereqs:
+					if not hasattr(self.prereq, func):
+						self.prereq._proxy_cache[func] = FuncProxy(
+							self.prereq, func
+						)
 			preqlist = [getattr(self.prereq, func) for func in prereqs]
 			if rule in rc:
 				rc[rule]["prereqs"] = preqlist
@@ -2715,6 +2727,12 @@ class EngineProxy(AbstractEngine):
 					"actions": [],
 				}
 		for rule, actions in result["actions"].items():
+			if isinstance(self.action, FuncStoreProxy):
+				for func in actions:
+					if not hasattr(self.action, func):
+						self.action._proxy_cache[func] = FuncProxy(
+							self.action, func
+						)
 			actlist = [getattr(self.action, func) for func in actions]
 			if rule in rc:
 				rc[rule]["actions"] = actlist
