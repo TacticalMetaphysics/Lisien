@@ -187,7 +187,9 @@ def inittest(
 
 	@dwarf.rule
 	def wander(thing):
-		dests = sorted(list(thing.character.place.keys()))
+		from lisien.util import sort_set
+
+		dests = sort_set(list(thing.character.place.keys()))
 		dests.remove(thing["location"])
 		thing.travel_to(thing.engine.choice(dests))
 
