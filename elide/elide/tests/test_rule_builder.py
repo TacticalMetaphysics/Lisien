@@ -106,9 +106,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			"aware",
 			"uncovered",
 			"sametile",
-			"breakcover",
 			"kobold_alive",
-			"truth",
 		}
 
 	def test_rule_builder_remove_trigger(self):
