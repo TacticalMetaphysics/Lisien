@@ -1376,7 +1376,7 @@ class ParquetDBHolder(ConnectionHolder):
 	initial = {
 		"global": [
 			{
-				"key": b"\xb4_lise_schema_version",
+				"key": b"\xb6_lisien_schema_version",
 				"value": b"\x00",
 			},
 			{"key": b"\xabmain_branch", "value": b"\xa5trunk"},
@@ -1427,7 +1427,7 @@ class ParquetDBHolder(ConnectionHolder):
 					initial[table],
 					schema=schema,
 				)
-		schemaver_b = b"\xb4_lisien_schema_version"
+		schemaver_b = b"\xb6_lisien_schema_version"
 		ver = self.get_global(schemaver_b)
 		if ver == b"\xc0":
 			self.set_global(schemaver_b, b"\x00")
@@ -6722,7 +6722,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				pass
 			except Exception as ex:
 				return ex
-		schemaver_b = b"\xb4_lisien_schema_version"
+		schemaver_b = b"\xb6_lisien_schema_version"
 		ver = self.call_one("global_get", schemaver_b).fetchone()
 		if ver is None:
 			self.call_one("global_insert", schemaver_b, b"\x00")
