@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from collections import OrderedDict
 from inspect import signature
+from operator import attrgetter
 
 from kivy.app import App
 from kivy.clock import Clock, triggered
@@ -266,7 +267,9 @@ class RulesView(Widget):
 		"""
 		if not self.rule:
 			return [], []
-		rulefuncnames = getattr(self.rule, what + "s")
+		rulefuncnames = list(
+			map(attrgetter("name"), getattr(self.rule, what + "s"))
+		)
 		unused = [
 			Card(
 				ud={"type": what, "funcname": name, "signature": sig},
