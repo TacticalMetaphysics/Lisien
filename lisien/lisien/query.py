@@ -3244,7 +3244,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: int,
 		turn_to: int,
 		tick_to: int,
-	) -> list[tuple[str, int, int, bytes]]:
+	) -> list[tuple[str, int, int, bytes | bool]]:
 		return list(
 			self._iter_rule_part_tick_to_tick(
 				part, branch, turn_from, tick_from, turn_to, tick_to
