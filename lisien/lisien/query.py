@@ -3267,7 +3267,7 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def load_rule_triggers_tick_to_end(
 		self, branch, turn_from, tick_from
-	) -> Iterator[tuple[str, int, int, bytes]]:
+	) -> list[tuple[str, int, int, bytes]]:
 		return self._load_rule_part_tick_to_end(
 			"triggers", branch, turn_from, tick_from
 		)
