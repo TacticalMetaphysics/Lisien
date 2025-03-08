@@ -10,5 +10,5 @@ twine
 pytest
 tox
 kivy
-kivy.garden.collider
+kivy_garden.collider @ git+https://github.com/kivy-garden/collider.git@804cf93
 pygments

@@ -47,9 +47,6 @@ class StringsEditorTest(ELiDEAppTest):
 		)
 		strings_ed = edbox.ids.strings_ed
 		app.strings.toggle()
-		idle_until(
-			lambda: strings_list.data, 100, "strings_list never got data"
-		)
 		self.advance_frames(10)
 		touchy = UnitTestTouch(*strings_ed.ids.stringname.center)
 		touchy.touch_down()

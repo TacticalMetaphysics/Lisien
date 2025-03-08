@@ -14,16 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import shutil
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import msgpack
 import networkx as nx
 import pytest
 
 import lisien.allegedb.tests.test_all
 import lisien.examples.kobold as kobold
+import lisien.examples.polygons as polygons
 from lisien.engine import Engine
-from lisien.handle import EngineHandle
 from lisien.proxy import EngineProcessManager
 from lisien.tests import data
 
@@ -115,8 +114,8 @@ def test_serialize_deleted(college24_premade):
 	assert eng.unpack(eng.pack(d0r0s0.stat["roommate"])) == roommate
 
 
-def test_manip_deleted(engy):
-	eng = engy
+def test_manip_deleted(sqleng):
+	eng = sqleng
 	phys = eng.new_character("physical")
 	phys.stat["aoeu"] = True
 	phys.add_node(0)
@@ -318,3 +317,26 @@ def test_apply_delta(tmp_path, slow):
 		assert "omg" not in phys.portal[0][1]
 	finally:
 		mang.shutdown()
+
+
+@pytest.fixture
+def polys(tmp_path):
+	with Engine(tmp_path, workers=0, random_seed=69105) as eng:
+		polygons.install(eng)
+	return tmp_path
+
+
+def test_change_triggers(polys):
+	procman = EngineProcessManager()
+	eng = procman.start(polys)
+	relocate = eng.character["triangle"].unit.rule["relocate"]
+	assert list(relocate.triggers) == [
+		eng.trigger.similar_neighbors,
+		eng.trigger.dissimilar_neighbors,
+	]
+	relocate.triggers = ["dissimilar_neighbors"]
+	procman.shutdown()
+	with Engine(polys, workers=0) as eng:
+		assert list(
+			eng.character["triangle"].unit.rule["relocate"].triggers
+		) == [eng.trigger.dissimilar_neighbors]

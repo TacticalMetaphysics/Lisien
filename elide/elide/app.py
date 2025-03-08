@@ -20,7 +20,7 @@ import sys
 from functools import partial
 from threading import Thread
 
-from lisien.allegedb import OutOfTimelineError
+from lisien.allegedb.exc import OutOfTimelineError
 
 if "KIVY_NO_ARGS" not in os.environ:
 	os.environ["KIVY_NO_ARGS"] = "1"
@@ -47,7 +47,7 @@ import elide.spritebuilder
 import elide.statcfg
 import elide.stores
 import elide.timestream
-import lisien
+
 from elide.graph.arrow import GraphArrow
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
@@ -117,7 +117,7 @@ class ELiDEApp(App):
 	)
 
 	def _pull_time(self, *_):
-		if not self.engine:
+		if not hasattr(self, "engine"):
 			Clock.schedule_once(self._pull_time, 0)
 			return
 		branch, turn, tick = self.engine._btt()
@@ -214,10 +214,9 @@ class ELiDEApp(App):
 		config.setdefaults(
 			"lisien",
 			{
-				"world": "sqlite:///world.db",
 				"language": "eng",
-				"logfile": "",
-				"loglevel": "info",
+				"logfile": "lisien.log",
+				"loglevel": "debug",
 			},
 		)
 		config.setdefaults(
@@ -256,11 +255,6 @@ class ELiDEApp(App):
 	def build(self):
 		self.icon = "icon_24px.png"
 		config = self.config
-		Logger.debug(
-			"ELiDEApp: starting with world {}, path {}".format(
-				config["lisien"]["world"], lisien.__path__[-1]
-			)
-		)
 
 		if config["elide"]["debugger"] == "yes":
 			import pdb
@@ -287,7 +281,7 @@ class ELiDEApp(App):
 		self.branch, self.turn, self.tick = branch, turn, tick
 		self.mainscreen.ids.turnscroll.value = turn
 
-	def start_subprocess(self, *_):
+	def start_subprocess(self, path=None, *_):
 		"""Start the lisien core and get a proxy to it
 
 		Must be called before ``init_board``
@@ -299,15 +293,23 @@ class ELiDEApp(App):
 		enkw = {
 			"logger": Logger,
 			"threaded_triggers": False,
-			"workers": 0,
 			"do_game_start": getattr(self, "do_game_start", False),
 		}
+		workers = config["lisien"].get("workers", "")
+		if workers:
+			enkw["workers"] = workers
 		if config["lisien"].get("logfile"):
 			enkw["logfile"] = config["lisien"]["logfile"]
 		if config["lisien"].get("loglevel"):
 			enkw["loglevel"] = config["lisien"]["loglevel"]
+		if path is not None and os.path.isdir(path):
+			startdir = path
+		elif os.path.isdir(sys.argv[-1]):
+			startdir = sys.argv[-1]
+		else:
+			startdir = None
 		self.procman = EngineProcessManager()
-		self.engine = engine = self.procman.start(**enkw)
+		self.engine = engine = self.procman.start(startdir, **enkw)
 		self.pull_time()
 
 		self.engine.time.connect(self._pull_time_from_signal, weak=False)
@@ -535,8 +537,6 @@ class ELiDEApp(App):
 			self.procman.shutdown()
 		if hasattr(self, "engine"):
 			del self.engine
-		if hasattr(self, "starting_dir"):
-			os.chdir(self.starting_dir)
 
 	def delete_selection(self):
 		"""Delete both the selected widget and whatever it represents."""

@@ -21,7 +21,9 @@ def test_language(handle_initialized):
 
 def test_eternal(handle_initialized):
 	unpack = handle_initialized.unpack
-	assert unpack(handle_initialized.get_eternal("_lise_schema_version")) == 0
+	assert (
+		unpack(handle_initialized.get_eternal("_lisien_schema_version")) == 0
+	)
 	assert unpack(handle_initialized.get_eternal("main_branch")) == "trunk"
 	assert unpack(handle_initialized.get_eternal("language")) == "eng"
 	handle_initialized.set_eternal("haha", "lol")
@@ -30,7 +32,7 @@ def test_eternal(handle_initialized):
 	with pytest.raises(KeyError):
 		handle_initialized.get_eternal("branch")
 	assert handle_initialized.eternal_copy() == {
-		b"\xb4_lise_schema_version": b"\x00",
+		b"\xb6_lisien_schema_version": b"\x00",
 		b"\xabmain_branch": b"\xa5trunk",
 		b"\xa4turn": b"\x00",
 		b"\xa4tick": b"\x00",

@@ -10,7 +10,6 @@ from kivy.input.motionevent import MotionEvent
 from kivy.tests.common import GraphicUnitTest
 
 from elide.app import ELiDEApp
-from lisien.proxy import RedundantProcessError
 
 
 def all_spots_placed(board, char=None):
@@ -126,9 +125,16 @@ class MockEngine(Signal):
 
 
 class ELiDEAppTest(GraphicUnitTest):
+	def __init__(self, methodName="runTest"):
+		super().__init__(methodName)
+		self.prefix = mkdtemp()
+		self.addCleanup(self.cleanup)
+
+	def cleanup(self):
+		shutil.rmtree(self.prefix)
+
 	def setUp(self):
 		super(ELiDEAppTest, self).setUp()
-		self.prefix = mkdtemp()
 		self.old_argv = sys.argv.copy()
 		sys.argv = ["python", "-m", "elide", self.prefix]
 		self.app = ELiDEApp()

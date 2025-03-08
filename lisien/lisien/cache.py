@@ -13,20 +13,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from collections import OrderedDict
-from functools import partial
+from itertools import chain
 from operator import itemgetter
+from sys import getsizeof, stderr
 from threading import RLock
-from typing import Tuple
 
 from .allegedb import PickyDefaultDict
+from .allegedb.typing import Key
 from .allegedb.cache import (
 	Cache,
 	EntitylessCache,
 	KeyframeError,
 	StructuredDefaultDict,
 )
-from .allegedb.window import Direction, SettingsTurnDict, WindowDict
-from .util import Key, sort_set
+from .allegedb.window import Direction, SettingsTurnDict
+from .util import sort_set
 
 
 class InitializedCache(Cache):
@@ -89,7 +90,7 @@ class PortalsRulebooksCache(InitializedCache):
 
 	def set_keyframe(
 		self,
-		graph_ent: Tuple[Key],
+		graph_ent: tuple[Key],
 		branch: str,
 		turn: int,
 		tick: int,
@@ -272,6 +273,100 @@ class RulesHandledCache:
 	def truncate(self, branch: str, turn: int, tick: int, direction="forward"):
 		if direction not in {"forward", "backward"}:
 			raise ValueError("Illegal direction")
+		if branch not in self.handled_deep:
+			return
+
+		with self.lock:
+			turn_d = self.handled_deep[branch]
+			if turn in turn_d:
+				for t, (entity, rulebook, rule) in (
+					turn_d[turn].future(tick)
+					if direction == "forward"
+					else turn_d[turn].past(tick)
+				).items():
+					if (entity, rulebook, branch, turn) in self.handled:
+						tick_set = self.handled[entity, rulebook, branch, turn]
+						tick_set.discard(t)
+						if not tick_set:
+							del self.handled[entity, rulebook, branch, turn]
+				turn_d[turn].truncate(turn, direction)
+			to_del = (
+				turn_d.future(turn)
+				if direction == "forward"
+				else turn_d.past(turn)
+			)
+			for r in to_del.keys():
+				for t, (entity, rulebook, rule) in turn_d[r].items():
+					if (entity, rulebook, branch, r) in self.handled:
+						tick_set = self.handled[entity, rulebook, branch, r]
+						tick_set.discard(t)
+						if not tick_set:
+							del self.handled[entity, rulebook, branch, r]
+			turn_d.truncate(turn, direction)
+		if turn in self.handled_deep[branch]:
+			self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
+		else:
+			self.handled_deep[branch][turn] = {tick: (entity, rulebook, rule)}
+
+	def total_size(self, handlers=(), verbose=False):
+		"""Returns the approximate memory footprint an object and all of its contents.
+
+		Automatically finds the contents of the following builtin containers and
+		their subclasses:  tuple, list, deque, dict, set and frozenset.
+		To search other containers, add handlers to iterate over their contents:
+
+		    handlers = {SomeContainerClass: iter,
+		                OtherContainerClass: OtherContainerClass.get_elements}
+
+		From https://code.activestate.com/recipes/577504-compute-memory-footprint-of-an-object-and-its-cont/download/1/
+
+		"""
+		all_handlers = {
+			tuple: iter,
+			list: iter,
+			RulesHandledCache: lambda d: [d.handled, d.handled_deep],
+			dict: lambda d: chain.from_iterable(d.items()),
+			set: iter,
+			frozenset: iter,
+			Cache: lambda o: [
+				o.branches,
+				o.settings,
+				o.presettings,
+				o.keycache,
+			],
+		}
+		all_handlers.update(handlers)
+		seen = set()  # track which object id's have already been seen
+		default_size = getsizeof(
+			0
+		)  # estimate sizeof object without __sizeof__
+
+		def sizeof(o):
+			if id(o) in seen:  # do not double count the same object
+				return 0
+			seen.add(id(o))
+			s = getsizeof(o, default_size)
+
+			if verbose:
+				print(s, type(o), repr(o), file=stderr)
+
+			for typ, handler in all_handlers.items():
+				if isinstance(o, typ):
+					s += sum(map(sizeof, handler(o)))
+					break
+			return s
+
+		return sizeof(self)
+
+	def truncate(
+		self,
+		branch: str,
+		turn: int,
+		tick: int,
+		direction: Direction = Direction.FORWARD,
+	):
+		if isinstance(direction, str):
+			direction = Direction(direction)
 		if branch not in self.handled_deep:
 			return
 
@@ -700,10 +795,8 @@ class ThingsCache(Cache):
 
 
 class NodeContentsCache(Cache):
-	name = "node_contents_cache"
-
 	def __init__(self, db, kfkvs=None):
-		super().__init__(db, kfkvs)
+		super().__init__(db, "node_contents_cache", kfkvs)
 		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
 
 	def store(

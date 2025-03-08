@@ -14,21 +14,35 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data."""
 
-from __future__ import annotations
-
 from collections import OrderedDict, defaultdict, deque
 from itertools import chain, pairwise
+from sys import getsizeof, stderr
 from threading import RLock
-from typing import Hashable, Optional, Tuple
+from typing import Hashable
 
 from .window import (
 	EntikeySettingsTurnDict,
 	FuturistWindowDict,
-	HistoricKeyError,
 	SettingsTurnDict,
 	TurnDict,
 	WindowDict,
+	HistoricKeyError,
 )
+
+
+class SizedDict(OrderedDict):
+	"""A dictionary that discards old entries when it gets too big."""
+
+	def __init__(self, max_entries=1000):
+		self._n = max_entries
+		self._lock = RLock()
+		super().__init__()
+
+	def __setitem__(self, key, value):
+		with self._lock:
+			while len(self) > self._n:
+				self.popitem(last=False)
+			super().__setitem__(key, value)
 
 
 class NotInKeyframeError(KeyError):
@@ -108,7 +122,7 @@ class PickyDefaultDict(dict):
 
 	def __setitem__(self, k, v):
 		with self._lock:
-			if type(v) is not self.type:
+			if not isinstance(v, self.type):
 				v = self._create(v)
 			super(PickyDefaultDict, self).__setitem__(k, v)
 
@@ -343,9 +357,60 @@ class Cache:
 			self.presettings,
 			self.keycache,
 		)
-		self._store_journal_stuff: Tuple[
+		self._store_journal_stuff: tuple[
 			PickyDefaultDict, PickyDefaultDict, callable
 		] = (self.settings, self.presettings, self._base_retrieve)
+
+	def total_size(self, handlers=(), verbose=False):
+		"""Returns the approximate memory footprint an object and all of its contents.
+
+		Automatically finds the contents of the following builtin containers and
+		their subclasses:  tuple, list, deque, dict, set and frozenset.
+		To search other containers, add handlers to iterate over their contents:
+
+		    handlers = {SomeContainerClass: iter,
+		                OtherContainerClass: OtherContainerClass.get_elements}
+
+		From https://code.activestate.com/recipes/577504-compute-memory-footprint-of-an-object-and-its-cont/download/1/
+
+		"""
+		all_handlers = {
+			tuple: iter,
+			list: iter,
+			deque: iter,
+			WindowDict: lambda d: [d._past, d._future, d._keys],
+			dict: lambda d: chain.from_iterable(d.items()),
+			set: iter,
+			frozenset: iter,
+			Cache: lambda o: [
+				o.branches,
+				o.settings,
+				o.presettings,
+				o.keycache,
+			],
+		}
+		all_handlers.update(handlers)
+		seen = set()  # track which object id's have already been seen
+		default_size = getsizeof(
+			0
+		)  # estimate sizeof object without __sizeof__
+
+		def sizeof(o):
+			if id(o) in seen:  # do not double count the same object
+				return 0
+			seen.add(id(o))
+			s = getsizeof(o, default_size)
+
+			if verbose:
+				print(s, type(o), repr(o), file=stderr)
+
+			for typ, handler in all_handlers.items():
+				if isinstance(o, typ):
+					s += sum(map(sizeof, handler(o)))
+					break
+			return s
+
+		return sizeof(self)
 
 	def _get_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int
@@ -428,6 +493,14 @@ class Cache:
 		each branch is chronological of itself.
 
 		"""
+
+		def sort_key(v):
+			if isinstance(v, tuple):
+				return (2,) + tuple(map(repr, v))
+			if isinstance(v, str):
+				return 1, v
+			return 0, repr(v)
+
 		branches = defaultdict(list)
 		for row in data:
 			branches[row[-4]].append(row)
@@ -440,7 +513,7 @@ class Cache:
 		store = self.store
 		while branch2do:
 			branch = branch2do.popleft()
-			for row in branches[branch]:
+			for row in sorted(branches[branch], key=sort_key):
 				store(*row, planning=False, loading=True)
 			if branch in childbranch:
 				branch2do.extend(childbranch[branch])
@@ -676,7 +749,7 @@ class Cache:
 		turn: int,
 		tick: int,
 		*,
-		stoptime: Tuple[str, int, int] = None,
+		stoptime: tuple[str, int, int] = None,
 		cache: dict = None,
 	):
 		"""Return a pair of sets describing changes to the entity's keys
@@ -1577,7 +1650,7 @@ class NodesCache(Cache):
 		branch: str
 		turn: int
 		tick: int
-		ex: Optional[bool]
+		ex: bool | None
 		graph, node, branch, turn, tick, ex = args
 		if not ex:
 			ex = None
@@ -1639,7 +1712,7 @@ class EdgesCache(Cache):
 		self.predecessors = StructuredDefaultDict(3, TurnDict)
 		self._origcache_lru = OrderedDict()
 		self._destcache_lru = OrderedDict()
-		self._get_destcache_stuff: Tuple[
+		self._get_destcache_stuff: tuple[
 			PickyDefaultDict,
 			OrderedDict,
 			callable,
@@ -1652,7 +1725,7 @@ class EdgesCache(Cache):
 			self.successors,
 			self._adds_dels_successors,
 		)
-		self._get_origcache_stuff: Tuple[
+		self._get_origcache_stuff: tuple[
 			PickyDefaultDict,
 			OrderedDict,
 			callable,
@@ -1670,6 +1743,18 @@ class EdgesCache(Cache):
 			self.predecessors,
 			self.successors,
 		)
+
+	def total_size(self, handlers=(), verbose=False):
+		all_handlers = {
+			EdgesCache: lambda e: [
+				e.predecessors,
+				e.successors,
+				e.destcache,
+				e.origcache,
+			]
+		}
+		all_handlers.update(handlers)
+		return super().total_size(all_handlers, verbose)
 
 	def get_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
@@ -1747,7 +1832,7 @@ class EdgesCache(Cache):
 		turn: int,
 		tick: int,
 		*,
-		stoptime: Tuple[str, int, int] = None,
+		stoptime: tuple[str, int, int] = None,
 		cache: dict = None,
 	):
 		graph, orig = parentity
@@ -1797,7 +1882,7 @@ class EdgesCache(Cache):
 		turn: int,
 		tick: int,
 		*,
-		stoptime: Tuple[str, int, int] = None,
+		stoptime: tuple[str, int, int] = None,
 		cache: dict = None,
 	):
 		graph, dest = parentity

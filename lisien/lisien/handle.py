@@ -20,7 +20,7 @@ ordinary method calls.
 from importlib import import_module
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from re import match
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterable
 
 import msgpack
 import networkx as nx
@@ -44,26 +44,20 @@ from .node import Node
 from .portal import Portal
 from .util import AbstractCharacter, BadTimeException, timer
 
-SlightlyPackedDeltaType = Dict[
+SlightlyPackedDeltaType = dict[
 	bytes,
-	Dict[
+	dict[
 		bytes,
-		Union[
-			bytes,
-			Dict[
-				bytes,
-				Union[bytes, Dict[bytes, Union[bytes, Dict[bytes, bytes]]]],
-			],
-		],
+		bytes | dict[bytes, bytes | dict[bytes, bytes | dict[bytes, bytes]]],
 	],
 ]
-FormerAndCurrentType = Tuple[Dict[bytes, bytes], Dict[bytes, bytes]]
+FormerAndCurrentType = tuple[dict[bytes, bytes], dict[bytes, bytes]]
 
 
 EMPTY_MAPPING = msgpack.packb({})
 
 
-def concat_d(r: Dict[bytes, bytes]) -> bytes:
+def concat_d(r: dict[bytes, bytes]) -> bytes:
 	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
 	resp = msgpack.Packer().pack_map_header(len(r))
 	for k, v in r.items():
@@ -116,7 +110,7 @@ class EngineHandle:
 		if do_game_start:
 			self.do_game_start()
 
-	def log(self, level: Union[str, int], message: str) -> None:
+	def log(self, level: str | int, message: str) -> None:
 		if isinstance(level, str):
 			level = {
 				"debug": 10,
@@ -152,7 +146,7 @@ class EngineHandle:
 	def snap_keyframe(self, silent=False):
 		return self._real.snap_keyframe(silent=silent)
 
-	def _pack_delta(self, delta) -> Tuple[SlightlyPackedDeltaType, bytes]:
+	def _pack_delta(self, delta) -> tuple[SlightlyPackedDeltaType, bytes]:
 		pack = self.pack
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
@@ -278,7 +272,7 @@ class EngineHandle:
 		return concat_d(mostly_packed_delta)
 
 	@prepacked
-	def next_turn(self) -> Tuple[bytes, bytes]:
+	def next_turn(self) -> tuple[bytes, bytes]:
 		"""Simulate a turn. Return whatever result, as well as a delta"""
 		pack = self.pack
 		self.debug(
@@ -290,8 +284,8 @@ class EngineHandle:
 
 	def _get_slow_delta(
 		self,
-		btt_from: Tuple[str, int, int] = None,
-		btt_to: Tuple[str, int, int] = None,
+		btt_from: tuple[str, int, int] = None,
+		btt_to: tuple[str, int, int] = None,
 	) -> SlightlyPackedDeltaType:
 		return self._real._get_slow_delta(btt_from, btt_to)
 
@@ -301,7 +295,7 @@ class EngineHandle:
 		branch,
 		turn,
 		tick=None,
-	) -> Tuple[bytes, bytes]:
+	) -> tuple[bytes, bytes]:
 		"""Go to a different `(branch, turn, tick)` and return a delta
 
 		For compatibility with `next_turn` this actually returns a tuple,
@@ -413,7 +407,7 @@ class EngineHandle:
 	def add_character(
 		self,
 		char: Key,
-		data: Union[nx.Graph, nx.DiGraph] = None,
+		data: nx.Graph | nx.DiGraph = None,
 		node: dict = None,
 		edge: dict = None,
 		**attr,
@@ -486,8 +480,8 @@ class EngineHandle:
 		del self._real.character[char].node[node][k]
 
 	def _get_btt(
-		self, btt: Tuple[str, int, int] = None
-	) -> Tuple[str, int, int]:
+		self, btt: tuple[str, int, int] = None
+	) -> tuple[str, int, int]:
 		if btt is None:
 			return self._real._btt()
 		return btt
@@ -495,7 +489,7 @@ class EngineHandle:
 	def node_exists(self, char: Key, node: Key) -> bool:
 		return self._real._node_exists(char, node)
 
-	def update_nodes(self, char: Key, patch: Dict):
+	def update_nodes(self, char: Key, patch: dict):
 		"""Change the stats of nodes in a character according to a
 		dictionary.
 
@@ -522,11 +516,11 @@ class EngineHandle:
 	) -> None:
 		self._real.character[char].pred[node] = preds
 
-	def set_thing(self, char: Key, thing: Key, statdict: Dict) -> None:
+	def set_thing(self, char: Key, thing: Key, statdict: dict) -> None:
 		self._real.character[char].thing[thing] = statdict
 
 	def add_thing(
-		self, char: Key, thing: Key, loc: Key, statdict: Dict
+		self, char: Key, thing: Key, loc: Key, statdict: dict
 	) -> None:
 		self._real.character[char].add_thing(thing, loc, **statdict)
 
@@ -534,7 +528,7 @@ class EngineHandle:
 		self._real.character[char].thing[thing]["location"] = loc
 
 	def thing_follow_path(
-		self, char: Key, thing: Key, path: List[Key], weight: Key
+		self, char: Key, thing: Key, path: list[Key], weight: Key
 	) -> int:
 		return (
 			self._real.character[char].thing[thing].follow_path(path, weight)
@@ -565,7 +559,7 @@ class EngineHandle:
 			.travel_to(dest, weight, graph)
 		)
 
-	def set_place(self, char: Key, place: Key, statdict: Dict) -> None:
+	def set_place(self, char: Key, place: Key, statdict: dict) -> None:
 		self._real.character[char].place[place] = statdict
 
 	def add_places_from(self, char: Key, seq: Iterable) -> None:
@@ -576,7 +570,7 @@ class EngineHandle:
 		char: Key,
 		orig: Key,
 		dest: Key,
-		statdict: Dict,
+		statdict: dict,
 		symmetrical: bool = False,
 	) -> None:
 		self._real.character[char].add_portal(orig, dest, **statdict)
@@ -622,13 +616,13 @@ class EngineHandle:
 	def del_rulebook_rule(self, rulebook: Key, i: int) -> None:
 		del self._real.rulebook[rulebook][i]
 
-	def set_rule_triggers(self, rule: str, triggers: List[str]) -> None:
+	def set_rule_triggers(self, rule: str, triggers: list[str]) -> None:
 		self._real.rule[rule].triggers = triggers
 
-	def set_rule_prereqs(self, rule: str, prereqs: List[str]) -> None:
+	def set_rule_prereqs(self, rule: str, prereqs: list[str]) -> None:
 		self._real.rule[rule].prereqs = prereqs
 
-	def set_rule_actions(self, rule: str, actions: List[str]) -> None:
+	def set_rule_actions(self, rule: str, actions: list[str]) -> None:
 		self._real.rule[rule].actions = actions
 
 	def set_character_rulebook(self, char: Key, rulebook: Key) -> None:
@@ -658,7 +652,7 @@ class EngineHandle:
 		self._real.character[char].portal[orig][dest].rulebook = rulebook
 
 	@prepacked
-	def source_copy(self, store: str) -> Dict[bytes, bytes]:
+	def source_copy(self, store: str) -> dict[bytes, bytes]:
 		return dict(
 			map(self.pack_pair, getattr(self._real, store).iterplain())
 		)
@@ -673,7 +667,7 @@ class EngineHandle:
 		delattr(getattr(self._real, store), k)
 
 	def call_stored_function(
-		self, store: str, func: str, args: Tuple, kwargs: Dict
+		self, store: str, func: str, args: tuple, kwargs: dict
 	) -> Any:
 		branch, turn, tick = self._real._btt()
 		if store == "method":
@@ -705,27 +699,27 @@ class EngineHandle:
 	def is_ancestor_of(self, parent: str, child: str) -> bool:
 		return self._real.is_ancestor_of(parent, child)
 
-	def branch_start(self, branch: str) -> Tuple[int, int]:
+	def branch_start(self, branch: str) -> tuple[int, int]:
 		return self._real.branch_start(branch)
 
-	def branch_end(self, branch: str) -> Tuple[int, int]:
+	def branch_end(self, branch: str) -> tuple[int, int]:
 		return self._real.branch_end(branch)
 
-	def branch_parent(self, branch: str) -> Optional[str]:
+	def branch_parent(self, branch: str) -> str | None:
 		return self._real.branch_parent(branch)
 
 	def apply_choices(
-		self, choices: List[dict], dry_run=False, perfectionist=False
-	) -> Tuple[List[Tuple[Any, Any]], List[Tuple[Any, Any]]]:
+		self, choices: list[dict], dry_run=False, perfectionist=False
+	) -> tuple[list[tuple[Any, Any]], list[tuple[Any, Any]]]:
 		return self._real.apply_choices(choices, dry_run, perfectionist)
 
 	@staticmethod
 	def get_schedule(
-		entity: Union[AbstractCharacter, Node, Portal],
+		entity: AbstractCharacter | Node | Portal,
 		stats: Iterable[Key],
 		beginning: int,
 		end: int,
-	) -> Dict[Key, List]:
+	) -> dict[Key, list]:
 		ret = {}
 		for stat in stats:
 			ret[stat] = list(
@@ -735,7 +729,7 @@ class EngineHandle:
 
 	def rules_handled_turn(
 		self, branch: str = None, turn: str = None
-	) -> Dict[str, List[str]]:
+	) -> dict[str, list[str]]:
 		if branch is None:
 			branch = self._real.branch
 		if turn is None:
@@ -762,7 +756,7 @@ class EngineHandle:
 			],
 		}
 
-	def branches(self) -> Dict[str, Tuple[str, int, int, int, int]]:
+	def branches(self) -> dict[str, tuple[str, int, int, int, int]]:
 		return self._real._branches
 
 	def main_branch(self) -> str:

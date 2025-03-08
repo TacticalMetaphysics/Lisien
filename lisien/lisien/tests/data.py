@@ -23285,7 +23285,7 @@ KEYFRAME0 = {
 		"fight": ("kobold_alive", "aware"),
 		"go2kobold": ("kobold_alive", "kobold_not_here"),
 		"kill_kobold": ("unmerciful",),
-		"shrubsprint": ("not_traveling",),
+		"shrubsprint": ("breakcover", "not_traveling"),
 		"wander": (),
 	},
 	"rulebook": {
@@ -23299,7 +23299,7 @@ KEYFRAME0 = {
 		"fight": ("sametile",),
 		"go2kobold": ("aware",),
 		"kill_kobold": ("kobold_alive",),
-		"shrubsprint": ("uncovered", "breakcover"),
+		"shrubsprint": ("uncovered",),
 		"wander": ("standing_still",),
 	},
 	"big": {
@@ -24424,7 +24424,10 @@ KEYFRAME1 = {
 		"fight": ("kobold_alive", "aware"),
 		"go2kobold": ("kobold_alive", "kobold_not_here"),
 		"kill_kobold": ("unmerciful",),
-		"shrubsprint": ("not_traveling",),
+		"shrubsprint": (
+			"breakcover",
+			"not_traveling",
+		),
 		"wander": (),
 	},
 	"rulebook": {
@@ -24438,7 +24441,7 @@ KEYFRAME1 = {
 		"fight": ("sametile",),
 		"go2kobold": ("aware",),
 		"kill_kobold": ("kobold_alive",),
-		"shrubsprint": ("uncovered", "breakcover"),
+		"shrubsprint": ("uncovered",),
 		"wander": ("standing_still",),
 	},
 }
