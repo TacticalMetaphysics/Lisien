@@ -3617,7 +3617,9 @@ class RedundantProcessError(ProcessError):
 	"""Asked to start a process that has already started"""
 
 
-class EngineProcessManager(object):
+class EngineProcessManager:
+	loglevel = logging.INFO
+
 	def __init__(self, *args, **kwargs):
 		self._args = args
 		self._kwargs = kwargs
@@ -3637,7 +3639,7 @@ class EngineProcessManager(object):
 			"error": logging.ERROR,
 			"critical": logging.CRITICAL,
 		}
-		loglevel = logging.INFO
+		loglevel = self.loglevel
 		if "loglevel" in kwargs:
 			if kwargs["loglevel"] in logl:
 				loglevel = logl[kwargs["loglevel"]]
