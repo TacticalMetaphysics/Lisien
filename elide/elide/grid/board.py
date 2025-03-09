@@ -150,7 +150,7 @@ class GridBoard(Widget):
 			return
 		Logger.debug("GridBoard: on_parent start")
 		start_ts = monotonic()
-		if not hasattr(self, "_pawn_plane"):
+		if not hasattr(self, "pawn_plane"):
 			self.pawn_plane = TextureStackPlane(pos=self.pos, size=self.size)
 			self.spot_plane = TextureStackPlane(pos=self.pos, size=self.size)
 			self.bind(
