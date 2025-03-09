@@ -3774,7 +3774,7 @@ class EngineProcessManager:
 			except OSError:
 				pass
 			del kwargs["logfile"]
-		replay_file = kwargs.pop("replay_file") or None
+		replay_file = kwargs.pop("replay_file", "") or None
 		install_modules = (
 			kwargs.pop("install_modules")
 			if "install_modules" in kwargs
