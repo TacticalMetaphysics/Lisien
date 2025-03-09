@@ -18,7 +18,7 @@ from contextlib import ContextDecorator, contextmanager
 from functools import partial
 from itertools import chain, pairwise
 from threading import RLock
-from typing import Any, Iterator, Callable
+from typing import Any, Callable, Iterator
 
 import networkx as nx
 from blinker import Signal
@@ -30,23 +30,23 @@ from .cache import (
 	TurnEndDict,
 	TurnEndPlanDict,
 )
-from .exc import GraphNameError, TimeError, OutOfTimelineError
+from .exc import GraphNameError, OutOfTimelineError, TimeError
 from .graph import DiGraph, Edge, GraphsMapping, Node
 from .query import QueryEngine
 from .typing import (
-	Key,
-	StatDict,
-	GraphValDict,
-	NodeValDict,
-	GraphNodeValDict,
-	EdgeValDict,
-	GraphEdgeValDict,
 	DeltaDict,
+	EdgesDict,
+	EdgeValDict,
+	GraphEdgesDict,
+	GraphEdgeValDict,
+	GraphNodesDict,
+	GraphNodeValDict,
+	GraphValDict,
+	Key,
 	KeyframeTuple,
 	NodesDict,
-	GraphNodesDict,
-	EdgesDict,
-	GraphEdgesDict,
+	NodeValDict,
+	StatDict,
 )
 from .util import garbage, world_locked
 from .window import (

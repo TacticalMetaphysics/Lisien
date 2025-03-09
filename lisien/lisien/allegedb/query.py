@@ -25,10 +25,7 @@ from collections.abc import MutableMapping
 from queue import Queue
 from threading import Lock, Thread
 from time import monotonic
-from typing import (
-	Any,
-	Iterator,
-)
+from typing import Any, Iterator
 
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.engine.base import Engine
@@ -36,16 +33,16 @@ from sqlalchemy.exc import ArgumentError, IntegrityError, OperationalError
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import Select
 
+from . import wrap
 from .exc import TimeError
 from .typing import (
+	EdgeRowType,
+	EdgeValRowType,
+	GraphValRowType,
 	Key,
 	NodeRowType,
-	EdgeRowType,
-	GraphValRowType,
 	NodeValRowType,
-	EdgeValRowType,
 )
-from . import wrap
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 wrappath = os.path.dirname(wrap.__file__)

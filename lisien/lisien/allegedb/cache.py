@@ -23,10 +23,10 @@ from typing import Hashable
 from .window import (
 	EntikeySettingsTurnDict,
 	FuturistWindowDict,
+	HistoricKeyError,
 	SettingsTurnDict,
 	TurnDict,
 	WindowDict,
-	HistoricKeyError,
 )
 
 

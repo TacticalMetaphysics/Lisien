@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import sys
 from abc import ABC, abstractmethod
-from collections.abc import Set, Mapping
+from collections.abc import Mapping, Set
 from concurrent.futures import Future
 from contextlib import contextmanager
 from enum import Enum
@@ -42,13 +42,7 @@ from random import Random
 from textwrap import dedent
 from time import monotonic
 from types import FunctionType, MethodType
-from typing import (
-	Any,
-	Callable,
-	Hashable,
-	Iterable,
-	Union,
-)
+from typing import Any, Callable, Hashable, Iterable, Union
 
 import msgpack
 import networkx as nx
@@ -58,10 +52,11 @@ from tblib import Traceback
 
 import lisien.allegedb.exc
 import lisien.allegedb.typing
+
 from . import allegedb, exc
+from .allegedb import Key
 from .allegedb.cache import SizedDict
 from .allegedb.graph import DiGraph, Edge, Node
-from .allegedb import Key
 from .allegedb.window import HistoricKeyError
 from .exc import TravelException
 

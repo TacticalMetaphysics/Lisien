@@ -25,16 +25,12 @@ from typing import Iterator, List, Optional, Union
 from networkx import shortest_path, shortest_path_length
 
 from . import rule
-from .allegedb import graph, Key
+from .allegedb import Key, graph
+from .allegedb.window import HistoricKeyError
 from .exc import AmbiguousUserError
 from .facade import FacadePlace, FacadeThing
 from .query import StatusAlias
-from .util import (
-	AbstractCharacter,
-	AbstractThing,
-	getatt,
-)
-from .allegedb.window import HistoricKeyError
+from .util import AbstractCharacter, AbstractThing, getatt
 
 
 class UserMapping(Mapping):

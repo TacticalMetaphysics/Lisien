@@ -47,7 +47,6 @@ import elide.spritebuilder
 import elide.statcfg
 import elide.stores
 import elide.timestream
-
 from elide.graph.arrow import GraphArrow
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard

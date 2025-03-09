@@ -63,7 +63,7 @@ from sqlalchemy.sql.functions import func
 import lisien
 
 from .alchemy import gather_sql, meta
-from .allegedb import garbage, Key
+from .allegedb import Key, garbage
 from .allegedb.query import (
 	AbstractQueryEngine,
 	ConnectionHolder,
@@ -72,11 +72,11 @@ from .allegedb.query import (
 	QueryEngine,
 )
 from .allegedb.typing import (
-	NodeRowType,
 	EdgeRowType,
-	GraphValRowType,
-	NodeValRowType,
 	EdgeValRowType,
+	GraphValRowType,
+	NodeRowType,
+	NodeValRowType,
 )
 from .exc import OperationalError
 from .util import EntityStatAccessor
