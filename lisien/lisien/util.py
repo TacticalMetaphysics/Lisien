@@ -1271,7 +1271,7 @@ class AbstractThing(ABC):
 
 
 def repr_call_sig(func: callable | str, *args, **kwargs):
-	if not isinstance(func, str):
+	if not isinstance(func, (str, bytes)):
 		func = func.__name__
 	return (
 		f"{func}({', '.join(map(repr, args))}"

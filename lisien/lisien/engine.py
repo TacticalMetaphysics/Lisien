@@ -578,16 +578,15 @@ class Engine(AbstractEngine, gORM, Executor):
 		self,
 		uid,
 		method,
-		func_name,
 		future: Future,
 		*args,
 		update=True,
 		**kwargs,
 	):
+		from pickle import dumps
+
 		i = uid % len(self._worker_inputs)
-		argbytes = zlib.compress(
-			self.pack((uid, method, (func_name, *args), kwargs))
-		)
+		argbytes = zlib.compress(self.pack((uid, dumps(method), args, kwargs)))
 		with self._worker_locks[i]:
 			if update:
 				self._update_worker_process_state(i, lock=False)
@@ -629,7 +628,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			ret = Future()
 			ret._t = Thread(
 				target=self._call_in_subprocess,
-				args=(uid, method, fn.__name__, ret, *args),
+				args=(uid, fn, ret, *args),
 				kwargs=kwargs,
 			)
 			self._uid_to_fut[uid] = ret
@@ -728,7 +727,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			)
 		)
 
-	def _call_any_subprocess(self, method: str, *args, **kwargs):
+	def _call_any_subprocess(self, method: str | callable, *args, **kwargs):
 		uid = self._top_uid
 		self._top_uid += 1
 		return self._call_in_subprocess(uid, method, *args, **kwargs)
