@@ -1567,20 +1567,6 @@ class ORM:
 			nvkg: NodeValDict = node_val_keyframe.setdefault(graph, {})
 			ekg: EdgesDict = edges_keyframe.setdefault(graph, {})
 			evkg: EdgeValDict = edge_val_keyframe.setdefault(graph, {})
-			if deltg is not None and "nodes" in deltg:
-				dn = deltg.pop("nodes")
-				for node, exists in dn.items():
-					if node in nkg:
-						if not exists:
-							del nkg[node]
-							if node in nvkg:
-								del nvkg[node]
-					elif exists:
-						nkg[node] = True
-			self._nodes_cache.set_keyframe((graph,), *now, nkg)
-			for node, ex in nkg.items():
-				if ex and node not in nvkg:
-					nvkg[node] = {}
 			if deltg is not None and "node_val" in deltg:
 				dnv = deltg.pop("node_val")
 				for node, value in dnv.items():
@@ -1596,6 +1582,20 @@ class ORM:
 								nvgn[k] = v
 					else:
 						nvkg[node] = value
+			if deltg is not None and "nodes" in deltg:
+				dn = deltg.pop("nodes")
+				for node, exists in dn.items():
+					if node in nkg:
+						if exists:
+							if node not in node_val_keyframe:
+								node_val_keyframe[node] = {}
+						else:
+							del nkg[node]
+							if node in nvkg:
+								del nvkg[node]
+					elif exists:
+						nkg[node] = True
+			self._nodes_cache.set_keyframe((graph,), *now, nkg)
 			for node, val in keyframe["node_val"][graph].items():
 				val: StatDict
 				self._node_val_cache.set_keyframe((graph, node), *now, val)
