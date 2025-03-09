@@ -6,15 +6,16 @@ python3.12 eqversion.py
 python -m build --version
 python -m twine --version
 python -m sphinx --version
-python -m isort --version
+isort --version
+tox --version
 ruff --version
 pyclean --version
 wine --version
 ls ~/lisien_windows
-python -m isort .
+isort .
 ruff format .
 rm -rf .tox
-python -m tox
+tox
 rm -rf .tox
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
 rm -rf lisien/build lisien/dist
