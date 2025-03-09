@@ -189,7 +189,7 @@ def inittest(
 	def wander(thing):
 		from lisien.util import sort_set
 
-		dests = sort_set(list(thing.character.place.keys()))
+		dests = sort_set(thing.character.place.keys())
 		dests.remove(thing["location"])
 		thing.travel_to(thing.engine.choice(dests))
 
