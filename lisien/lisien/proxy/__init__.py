@@ -2681,14 +2681,10 @@ class EngineProxy(AbstractEngine):
 			(actions, self.action),
 		]:
 			unimported = set(func).difference(dir(mod._module))
-			while unimported:
+			if unimported:
 				self.warning(
 					f"some functions not imported from {mod._filename}: {unimported}."
-					f" Trying again in 0.01s"
 				)
-				sleep(0.01)
-				mod.reimport()
-				unimported = set(func).difference(dir(mod))
 			self.debug(
 				f"imported functions from {mod._filename}: {dir(mod._module)}"
 			)
@@ -3691,6 +3687,7 @@ class WorkerLogger:
 def worker_subprocess(
 	i: int, prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue
 ):
+	from pickle import loads
 	from ..util import repr_call_sig
 
 	logger = WorkerLogger(logq, i)
@@ -3712,8 +3709,12 @@ def worker_subprocess(
 			return 0
 		(uid, method, args, kwargs) = unpack(decompress(inst))
 		logger.debug(repr_call_sig(method, *args, **kwargs))
+		if isinstance(method, str):
+			method = getattr(eng, method)
+		elif isinstance(method, bytes):
+			method = loads(method)
 		try:
-			ret = getattr(eng, method)(*args, **kwargs)
+			ret = method(*args, **kwargs)
 		except Exception as ex:
 			ret = ex
 			if uid < 0:
