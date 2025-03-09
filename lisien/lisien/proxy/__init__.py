@@ -25,6 +25,7 @@ call its ``start`` method with the same arguments you'd give a real
 
 """
 
+import importlib
 import io
 import logging
 import os
@@ -2682,7 +2683,8 @@ class EngineProxy(AbstractEngine):
 			unimported = set(func).difference(dir(mod._module))
 			while unimported:
 				self.warning(
-					f"some functions not imported from {mod._filename}: {unimported}. Trying again in 0.01s"
+					f"some functions not imported from {mod._filename}: {unimported}."
+					f" Trying again in 0.01s"
 				)
 				importlib.invalidate_caches()
 				sleep(0.01)
