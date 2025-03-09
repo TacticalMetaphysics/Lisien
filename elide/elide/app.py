@@ -216,6 +216,7 @@ class ELiDEApp(App):
 				"language": "eng",
 				"logfile": "lisien.log",
 				"loglevel": "debug",
+				"replayfile": "",
 			},
 		)
 		config.setdefaults(
@@ -301,6 +302,9 @@ class ELiDEApp(App):
 			enkw["logfile"] = config["lisien"]["logfile"]
 		if config["lisien"].get("loglevel"):
 			enkw["loglevel"] = config["lisien"]["loglevel"]
+		if config["lisien"].get("replayfile"):
+			self._replayfile = open(config["lisien"].get("replayfile"), "at")
+			enkw["replay_file"] = self._replayfile
 		if path is not None and os.path.isdir(path):
 			startdir = path
 		elif os.path.isdir(sys.argv[-1]):
@@ -536,6 +540,8 @@ class ELiDEApp(App):
 			self.procman.shutdown()
 		if hasattr(self, "engine"):
 			del self.engine
+		if hasattr(self, "_replayfile"):
+			self._replayfile.close()
 
 	def delete_selection(self):
 		"""Delete both the selected widget and whatever it represents."""

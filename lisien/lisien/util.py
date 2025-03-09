@@ -1275,8 +1275,8 @@ def repr_call_sig(func: callable | str, *args, **kwargs):
 		func = func.__name__
 	return (
 		f"{func}({', '.join(map(repr, args))}"
-		f"{', ' if kwargs else ''}"
-		f"{', '.join('='.join(map(repr, item)) for item in kwargs.items())})"
+		f"{', ' if args and kwargs else ''}"
+		f"{', '.join(f'{arg}={repr(item)}' for (arg, item) in kwargs.items())})"
 	)
 
 
