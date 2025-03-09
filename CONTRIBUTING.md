@@ -14,7 +14,7 @@ against the Lisien repository. Please link me to your source code or at least pa
 all possible.
 
 Lisien does not follow the formatting conventions of Python's standard `black`
-autoformatter, due to ideological differences. Instead, use `ruff` with the included
+autoformatter, due to ideological differences. Instead, use [ruff](https://github.com/astral-sh/ruff) with the included
 `ruff.toml`.
 
 If you need more help, send email to public@zacharyspector.com
