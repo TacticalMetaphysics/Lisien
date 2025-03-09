@@ -25,8 +25,8 @@ from typing import Any, Callable, Iterable
 import msgpack
 import networkx as nx
 
-from .allegedb import Key, OutOfTimelineError
-from .engine import (
+from ..allegedb import Key, OutOfTimelineError
+from ..engine import (
 	EDGE_VAL,
 	EDGES,
 	ETERNAL,
@@ -40,9 +40,9 @@ from .engine import (
 	UNIVERSAL,
 	Engine,
 )
-from .node import Node
-from .portal import Portal
-from .util import AbstractCharacter, BadTimeException, timer
+from ..node import Node
+from ..portal import Portal
+from ..util import AbstractCharacter, BadTimeException, timer
 
 SlightlyPackedDeltaType = dict[
 	bytes,

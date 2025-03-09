@@ -25,11 +25,13 @@ call its ``start`` method with the same arguments you'd give a real
 
 """
 
+import io
 import logging
 import os
 import sys
 import zlib
 from abc import ABC, abstractmethod
+import ast
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
@@ -41,25 +43,32 @@ from time import monotonic, sleep
 from types import MethodType
 from typing import Hashable, Iterator
 
+import astunparse
 import msgpack
 import networkx as nx
 from blinker import Signal
 
-from .allegedb import Key, OutOfTimelineError
-from .allegedb.cache import PickyDefaultDict, StructuredDefaultDict
-from .allegedb.wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
-from .exc import WorkerProcessReadOnlyError
-from .facade import CharacterFacade
-from .node import NodeContent, Place, Thing, UserMapping
-from .portal import Portal
-from .util import (
+from ..allegedb import Key, OutOfTimelineError
+from ..allegedb.cache import PickyDefaultDict, StructuredDefaultDict
+from ..allegedb.wrap import (
+	DictWrapper,
+	ListWrapper,
+	SetWrapper,
+	UnwrappingDict,
+)
+from ..exc import WorkerProcessReadOnlyError
+from ..facade import CharacterFacade
+from ..node import NodeContent, Place, Thing, UserMapping
+from ..portal import Portal
+from ..util import (
 	AbstractCharacter,
 	AbstractEngine,
 	KeyClass,
 	MsgpackExtensionType,
 	getatt,
+	repr_call_sig,
 )
-from .xcollections import (
+from ..xcollections import (
 	AbstractLanguageDescriptor,
 	FunctionStore,
 	StringStore,
@@ -1716,6 +1725,9 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		self.name = charname
 		self.graph = CharStatProxy(self.engine, self.name)
 
+	def __repr__(self):
+		return f"{self.db}.character[{self.name}]"
+
 	def __bool__(self):
 		return True
 
@@ -2939,7 +2951,24 @@ class EngineProxy(AbstractEngine):
 		threads: int = None,
 		prefix: str = None,
 		i: int = None,
+		replay_file: str | os.PathLike | io.TextIOBase = None,
 	):
+		replay_txt = None
+		if replay_file is not None:
+			if not isinstance(replay_file, io.TextIOBase):
+				if os.path.exists(replay_file):
+					with open(replay_file, "rt") as rf:
+						replay_txt = rf.read().replace(
+							"<lisien.proxy.EngineProxy>", "eng"
+						)
+				else:
+					replay_file = open(replay_file, "wt")
+			elif "w" in replay_file.mode or "a" in replay_file.mode:
+				self._replay_file = replay_file
+			elif "r" in replay_file.mode:
+				replay_txt = replay_file.read().replace(
+					"<lisien.proxy.EngineProxy>", "eng"
+				)
 		self.i = i
 		self.closed = False
 		if submit_func:
@@ -3030,6 +3059,38 @@ class EngineProxy(AbstractEngine):
 			self._initialized = True
 			for module in install_modules:
 				self.handle("install_module", module=module)
+			if replay_txt is not None:
+				replay = ast.parse(replay_txt)
+				for expr in replay.body:
+					if isinstance(expr.value, ast.Call):
+						method = expr.value.func.id
+						args = []
+						kwargs = {}
+						for arg in expr.value.args:
+							if isinstance(arg.value, ast.Subscript):
+								whatmap = arg.value.value.attr
+								key = arg.value.slice.value
+								args.append(getattr(self, whatmap)[key])
+							elif hasattr(arg.value, "value"):
+								args.append(arg.value.value)
+							else:
+								args.append(astunparse.unparse(arg.value))
+						for kw in expr.value.keywords:
+							if isinstance(kw.value, ast.Subscript):
+								whatmap = kw.value.value.attr
+								key = kw.value.slice.value
+								kwargs[kw.arg] = getattr(self, whatmap)[key]
+							else:
+								if hasattr(kw.value, "value"):
+									kwargs[kw.arg] = kw.value.value
+								else:
+									kwargs[kw.arg] = astunparse.unparse(
+										kw.value
+									)
+						self.handle(method, *args, **kwargs)
+
+	def __repr__(self):
+		return "<lisien.proxy.EngineProxy>"
 
 	def __getattr__(self, item):
 		meth = super().__getattribute__("method").__getattr__(item)
@@ -3121,7 +3182,8 @@ class EngineProxy(AbstractEngine):
 		else:
 			raise TypeError("No command")
 		assert not kwargs.get("silent")
-		self.debug(f"EngineProxy: sending {cmd}")
+		if hasattr(self, "_replay_file"):
+			self._replay_file.write(repr_call_sig(cmd, **kwargs) + "\n")
 		start_ts = monotonic()
 		with self._round_trip_lock:
 			self.send_bytes(self.pack(kwargs))
@@ -3627,7 +3689,7 @@ class WorkerLogger:
 def worker_subprocess(
 	i: int, prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue
 ):
-	from .util import repr_call_sig
+	from ..util import repr_call_sig
 
 	logger = WorkerLogger(logq, i)
 	eng = EngineProxy(None, None, logger, prefix=prefix, i=i)
@@ -3712,6 +3774,7 @@ class EngineProcessManager:
 			except OSError:
 				pass
 			del kwargs["logfile"]
+		replay_file = kwargs.pop("replay_file") or None
 		install_modules = (
 			kwargs.pop("install_modules")
 			if "install_modules" in kwargs
@@ -3745,6 +3808,7 @@ class EngineProcessManager:
 			handle_in_pipe_recv,
 			self.logger,
 			install_modules,
+			replay_file=replay_file,
 		)
 		return self.engine_proxy
 
