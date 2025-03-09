@@ -2733,11 +2733,10 @@ class EngineProxy(AbstractEngine):
 					triglist.append(getattr(self.trigger, func))
 			else:
 				for func in triggers:
-					while not hasattr(self.trigger, func):
+					if not hasattr(self.trigger, func):
 						self.warning(
-							f"didn't find {func} in trigger file {self.trigger._filename}, reimporting"
+							f"didn't find {func} in trigger file {self.trigger._filename}"
 						)
-						self.trigger.reimport()
 					triglist.append(getattr(self.trigger, func))
 			if rule in rc:
 				rc[rule]["triggers"] = triglist
@@ -2758,11 +2757,10 @@ class EngineProxy(AbstractEngine):
 					preqlist.append(getattr(self.prereq, func))
 			else:
 				for func in prereqs:
-					while not hasattr(self.prereq, func):
+					if not hasattr(self.prereq, func):
 						self.warning(
-							f"didn't find {func} in prereq file {self.trigger._filename}, reimporting"
+							f"didn't find {func} in prereq file {self.trigger._filename}"
 						)
-						self.prereq.reimport()
 					preqlist.append(getattr(self.prereq, func))
 			if rule in rc:
 				rc[rule]["prereqs"] = preqlist
@@ -2783,11 +2781,10 @@ class EngineProxy(AbstractEngine):
 					actlist.append(getattr(self.action, func))
 			else:
 				for func in actions:
-					while not hasattr(self.action, func):
+					if not hasattr(self.action, func):
 						self.warning(
-							f"didn't find {func} in action file {self.action._filename}, reimporting"
+							f"didn't find {func} in action file {self.action._filename}"
 						)
-						self.prereq.reimport()
 					actlist.append(getattr(self.action, func))
 			if rule in rc:
 				rc[rule]["actions"] = actlist
