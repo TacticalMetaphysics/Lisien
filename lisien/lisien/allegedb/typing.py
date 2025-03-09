@@ -1,4 +1,4 @@
-from typing import Hashable, Any
+from typing import Any, Hashable
 
 Key = str | int | float | tuple["Key", ...] | frozenset["Key"]
 """Type hint for things lisien can use as keys

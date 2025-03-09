@@ -14,8 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import shutil
-from tempfile import TemporaryDirectory
 from itertools import product
+from tempfile import TemporaryDirectory
 
 import pytest
 

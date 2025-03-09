@@ -39,7 +39,7 @@ from random import Random
 from threading import Lock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Type, Iterator
+from typing import Any, Iterator, Type
 
 import msgpack
 import networkx as nx
@@ -55,16 +55,16 @@ from networkx import (
 )
 
 from . import exc
+from .allegedb import ORM as gORM
 from .allegedb import (
-	ORM as gORM,
-	world_locked,
-	Key,
-	StatDict,
-	NodeValDict,
-	EdgeValDict,
 	DeltaDict,
+	EdgeValDict,
+	Key,
 	KeyframeTuple,
+	NodeValDict,
 	OutOfTimelineError,
+	StatDict,
+	world_locked,
 )
 from .allegedb.cache import (
 	KeyframeError,
@@ -84,24 +84,15 @@ from .query import (
 	CompoundQuery,
 	ParquetQueryEngine,
 	Query,
-	SQLAlchemyQueryEngine,
 	QueryResult,
 	QueryResultEndTurn,
 	QueryResultMidTurn,
+	SQLAlchemyQueryEngine,
 	StatusAlias,
 	_make_side_sel,
 )
-from .util import (
-	AbstractEngine,
-	normalize_layout,
-	sort_set,
-	fake_submit,
-)
-from .xcollections import (
-	FunctionStore,
-	StringStore,
-	UniversalMapping,
-)
+from .util import AbstractEngine, fake_submit, normalize_layout, sort_set
+from .xcollections import FunctionStore, StringStore, UniversalMapping
 
 SlightlyPackedDeltaType = dict[
 	bytes,
