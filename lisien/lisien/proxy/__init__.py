@@ -2684,6 +2684,7 @@ class EngineProxy(AbstractEngine):
 				self.warning(
 					f"some functions not imported from {mod._filename}: {unimported}. Trying again in 0.01s"
 				)
+				importlib.invalidate_caches()
 				sleep(0.01)
 				mod.reimport()
 				unimported = set(func).difference(dir(mod))
