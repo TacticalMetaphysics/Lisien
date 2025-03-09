@@ -3528,10 +3528,6 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 				logq.close()
 			return 0
 		instruction = engine_handle.unpack(decompress(inst))
-		if isinstance(instruction, dict) and "__use_msgspec__" in instruction:
-			import msgspec.msgpack
-
-			instruction = msgspec.msgpack.decode(instruction["__real__"])
 		silent = instruction.pop("silent", False)
 		cmd = instruction.pop("command")
 
