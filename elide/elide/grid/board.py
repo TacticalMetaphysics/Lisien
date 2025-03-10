@@ -19,7 +19,7 @@ from kivy.vector import Vector
 from elide.boardscatter import BoardScatterPlane
 
 from ..boardview import BoardView
-from ..pawnspot import Stack, TextureStackPlane
+from ..kivygarden.texturestack import TextureStackPlane, Stack
 
 
 class GridPawn(Stack):
@@ -203,6 +203,11 @@ class GridBoard(Widget):
 		self.spot_plane.unbind_uid("data", self.spot_plane._redraw_bind_uid)
 		self.spot_plane.data = spot_data
 		self.spot_plane.redraw()
+		import time
+
+		self.spot_plane._fbo.texture.save(
+			f"spot_plane_{time.time()}_{len(spot_data)}.png"
+		)
 		self.spot_plane._redraw_bind_uid = self.spot_plane.fbind(
 			"data", self.spot_plane._trigger_redraw
 		)

@@ -35,7 +35,7 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
 from kivy.vector import Vector
 
-from elide.pawnspot import Stack, TextureStackPlane
+from ..kivygarden.texturestack import TextureStackPlane, Stack
 from lisien.util import normalize_layout
 
 from ..boardscatter import BoardScatterPlane
