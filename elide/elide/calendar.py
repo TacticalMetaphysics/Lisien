@@ -467,7 +467,6 @@ load_string_once("""
 		cols: 1
 		orientation: 'lr-tb'
 		default_size_hint: 1, None
-		size_hint: None, None
 		default_size: dp(84), dp(36)
 		size: self.minimum_size
 <CalendarLabel>:
