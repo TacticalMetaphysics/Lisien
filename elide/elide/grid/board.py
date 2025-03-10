@@ -175,10 +175,14 @@ class GridBoard(Widget):
 		)
 		if not spot_data:
 			if hasattr(self.spot_plane, "_redraw_bind_uid"):
-				self.spot_plane.unbind_uid(self.spot_plane._redraw_bind_uid)
+				self.spot_plane.unbind_uid(
+					"data", self.spot_plane._redraw_bind_uid
+				)
 				del self.spot_plane._redraw_bind_uid
 			if hasattr(self.pawn_plane, "_redraw_bind_uid"):
-				self.pawn_plane.unbind_uid(self.pawn_plane._redraw_bind_uid)
+				self.pawn_plane.unbind_uid(
+					"data", self.pawn_plane._redraw_bind_uid
+				)
 				del self.pawn_plane._redraw_bind_uid
 			self.spot_plane.data = self.pawn_plane.data = []
 			self.spot_plane.redraw()
