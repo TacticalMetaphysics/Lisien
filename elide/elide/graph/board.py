@@ -1159,4 +1159,6 @@ Builder.load_string("""
 		reciprocal_portal: root.reciprocal_portal
 		scale_min: root.scale_min
 		scale_max: root.scale_max
+		pos: root.pos
+		size: root.size
 """)
