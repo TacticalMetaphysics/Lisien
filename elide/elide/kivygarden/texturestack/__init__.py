@@ -704,17 +704,23 @@ class TextureStackPlane(Widget):
 
 
 class Stack:
-	__slots__ = ["board", "proxy", "__self__"]
+	__slots__ = ["board", "_name", "proxy", "__self__"]
 
 	default_image_paths = ["atlas://rltiles/floor.atlas/floor-normal"]
 
 	def __init__(self, **kwargs):
 		self.board = kwargs["board"]
-		self.proxy = kwargs["proxy"]
+		if "proxy" in kwargs:
+			self.proxy = kwargs["proxy"]
+			self._name = kwargs["proxy"]["name"]
+		elif "name" in kwargs:
+			self._name = kwargs["name"]
+		else:
+			raise TypeError("Stacks need names")
 
 	@property
 	def paths(self):
-		name = self.proxy["name"]
+		name = self.name
 		plane = self._stack_plane
 		datum = plane.data[plane._stack_index[name]]
 		return datum["textures"]
@@ -722,7 +728,7 @@ class Stack:
 	@paths.setter
 	@mainthread
 	def paths(self, v):
-		name = self.proxy["name"]
+		name = self.name
 		plane = self._stack_plane
 		datum = plane.data[plane._stack_index[name]]
 		plane.unbind_uid("data", plane._redraw_bind_uid)
@@ -753,13 +759,13 @@ class Stack:
 
 	@property
 	def selected(self):
-		return self._stack_plane.selected == self.proxy["name"]
+		return self._stack_plane.selected == self.name
 
 	@selected.setter
 	@mainthread
 	def selected(self, v: bool):
 		stack_plane: TextureStackPlane = self._stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		Logger.debug(f"Stack: {name} selected")
 		insts = stack_plane._instructions[name]
 		fbo = stack_plane._fbo
@@ -802,7 +808,7 @@ class Stack:
 				insts["color1"] = Color(rgba=[1.0, 1.0, 1.0, 1.0])
 				grp.add(insts["color1"])
 		else:
-			if stack_plane.selected == self.proxy["name"]:
+			if stack_plane.selected == self.name:
 				stack_plane.selected = None
 			if "color0" in insts:
 				insts["color0"].rgba = [0.0, 0.0, 0.0, 0.0]
@@ -811,7 +817,7 @@ class Stack:
 	@property
 	def pos(self):
 		stack_plane = self._stack_plane
-		idx = stack_plane._stack_index[self.proxy["name"]]
+		idx = stack_plane._stack_index[self.name]
 		return float(stack_plane._left_xs[idx]), float(
 			stack_plane._bot_ys[idx]
 		)
@@ -822,7 +828,7 @@ class Stack:
 		x, y = xy
 		stack_plane = self._stack_plane
 		stack_plane.unbind_uid("data", stack_plane._redraw_bind_uid)
-		name = self.proxy["name"]
+		name = self.name
 		insts = stack_plane._instructions[name]
 		idx = stack_plane._stack_index[name]
 		left = stack_plane._left_xs[idx]
@@ -858,7 +864,7 @@ class Stack:
 	@property
 	def x(self):
 		stack_plane = self._stack_plane
-		idx = stack_plane._stack_index[self.proxy["name"]]
+		idx = stack_plane._stack_index[self.name]
 		return float(stack_plane._left_xs[idx])
 
 	@x.setter
@@ -868,7 +874,7 @@ class Stack:
 	@property
 	def y(self):
 		stack_plane = self._stack_plane
-		idx = stack_plane._stack_index[self.proxy["name"]]
+		idx = stack_plane._stack_index[self.name]
 		return float(stack_plane._bot_ys[idx])
 
 	@y.setter
@@ -878,7 +884,7 @@ class Stack:
 	@property
 	def size(self):
 		stack_plane = self._stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		left = stack_plane._left_xs[idx]
 		bot = stack_plane._bot_ys[idx]
@@ -891,7 +897,7 @@ class Stack:
 		w, h = wh
 		stack_plane = self._stack_plane
 		stack_plane.unbind_uid("data", stack_plane._redraw_bind_uid)
-		name = self.proxy["name"]
+		name = self.name
 		insts = stack_plane._instructions[name]
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
@@ -910,7 +916,7 @@ class Stack:
 	@property
 	def width(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		left = stack_plane._left_xs[idx]
 		right = stack_plane._right_xs[idx]
@@ -923,7 +929,7 @@ class Stack:
 	@property
 	def height(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		top = stack_plane._top_ys[idx]
 		bot = stack_plane._bot_ys[idx]
@@ -936,7 +942,7 @@ class Stack:
 	@property
 	def center(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		y = stack_plane._bot_ys[idx]
@@ -949,7 +955,7 @@ class Stack:
 	@center.setter
 	def center(self, c):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		y = stack_plane._bot_ys[idx]
@@ -962,7 +968,7 @@ class Stack:
 	@property
 	def center_x(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		r = stack_plane._right_xs[idx]
@@ -972,7 +978,7 @@ class Stack:
 	@center_x.setter
 	def center_x(self, cx):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		r = stack_plane._right_xs[idx]
@@ -982,7 +988,7 @@ class Stack:
 	@property
 	def center_y(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		y = stack_plane._bot_ys[idx]
 		t = stack_plane._top_ys[idx]
@@ -992,7 +998,7 @@ class Stack:
 	@center_y.setter
 	def center_y(self, cy):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		y = stack_plane._bot_ys[idx]
 		t = stack_plane._top_ys[idx]
@@ -1002,7 +1008,7 @@ class Stack:
 	@property
 	def top(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		if name not in stack_plane._stack_index:
 			return 100
 		idx = stack_plane._stack_index[name]
@@ -1011,7 +1017,7 @@ class Stack:
 	@top.setter
 	def top(self, t):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		y = stack_plane._bot_ys[idx]
 		stack_plane._top_ys[idx] = t
@@ -1022,7 +1028,7 @@ class Stack:
 	@property
 	def right(self):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		if name not in stack_plane._stack_index:
 			return 100
 		idx = stack_plane._stack_index[name]
@@ -1031,7 +1037,7 @@ class Stack:
 	@right.setter
 	def right(self, r):
 		stack_plane = self.board.stack_plane
-		name = self.proxy["name"]
+		name = self.name
 		idx = stack_plane._stack_index[name]
 		x = stack_plane._left_xs[idx]
 		stack_plane._right_xs[idx] = r
@@ -1041,7 +1047,7 @@ class Stack:
 
 	@property
 	def name(self):
-		return self.proxy["name"]
+		return self._name
 
 	def collide_point(self, x, y):
 		pos = self.pos

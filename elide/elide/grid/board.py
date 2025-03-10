@@ -203,11 +203,6 @@ class GridBoard(Widget):
 		self.spot_plane.unbind_uid("data", self.spot_plane._redraw_bind_uid)
 		self.spot_plane.data = spot_data
 		self.spot_plane.redraw()
-		import time
-
-		self.spot_plane._fbo.texture.save(
-			f"spot_plane_{time.time()}_{len(spot_data)}.png"
-		)
 		self.spot_plane._redraw_bind_uid = self.spot_plane.fbind(
 			"data", self.spot_plane._trigger_redraw
 		)
