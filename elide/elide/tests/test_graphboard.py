@@ -6,7 +6,7 @@ from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 from elide.app import ELiDEApp
 from elide.graph.arrow import ArrowPlane
 from elide.graph.board import GraphBoard, GraphBoardView
-from elide.pawnspot import TextureStackPlane
+from ..kivygarden.texturestack import TextureStackPlane
 from lisien import Engine
 from lisien.facade import CharacterFacade
 
