@@ -670,6 +670,10 @@ class TextureStackPlane(Widget):
 		self._fbo.bind()
 		self._fbo.clear_buffer()
 		self._fbo.release()
+		self._fbo.size = (
+			int(np.max(self._right_xs)),
+			int(np.max(self._top_ys)),
+		)
 		fbo = self._fbo
 		for insts in todo:
 			group = insts["group"]
@@ -686,7 +690,7 @@ class TextureStackPlane(Widget):
 			fbo.remove(insts["group"])
 		self._rectangle.texture = fbo.texture
 		self._translate.x, self._translate.y = self.pos
-		self._rectangle.size = self._fbo.size = self.size
+		self._rectangle.size = self._fbo.size
 		Logger.debug(
 			f"TextureStackPlane: redrawn in "
 			f"{monotonic() - start_ts:,.2f} seconds"
