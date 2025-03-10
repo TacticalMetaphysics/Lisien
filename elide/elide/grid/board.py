@@ -382,6 +382,8 @@ kv = """
 		board: root.board
 		scale_min: root.scale_min
 		scale_max: root.scale_max
+		pos: root.pos
+		size: root.size
 """
 kv_loaded = False
 if not kv_loaded:
