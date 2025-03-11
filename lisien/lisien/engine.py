@@ -172,7 +172,7 @@ class NextTurn(Signal):
 					pass
 		engine._call_every_subprocess("_reimport_code")
 		start_branch, start_turn, start_tick = engine._btt()
-		latest_turn = engine._turns_completed[start_branch]
+		latest_turn = engine._get_last_completed_turn(start_branch)
 		if start_turn < latest_turn:
 			engine.turn += 1
 			self.send(
@@ -238,11 +238,9 @@ class NextTurn(Signal):
 					else:
 						results.extend(res)
 		del engine._rules_iter
-		engine._turns_completed[start_branch] = engine.turn
-		engine.query.complete_turn(
+		engine._complete_turn(
 			start_branch,
 			engine.turn,
-			discard_rules=not engine.keep_rules_journal,
 		)
 		if (
 			engine.flush_interval is not None
@@ -883,7 +881,7 @@ class Engine(AbstractEngine, gORM, Executor):
 		store_porh = self._portal_rules_handled_cache.store
 		for row in q.portal_rules_handled_dump():
 			store_porh(*row, loading=True)
-		self._turns_completed.update(q.turns_completed_dump())
+		self._turns_completed_d.update(q.turns_completed_dump())
 		self._rules_cache = {
 			name: Rule(self, name, create=False) for name in q.rules_dump()
 		}
@@ -1086,9 +1084,7 @@ class Engine(AbstractEngine, gORM, Executor):
 			)
 		)
 		self._unitness_cache = UnitnessCache(self)
-		self._turns_completed = defaultdict(lambda: max((0, self.turn - 1)))
-		self._turns_completed_previous = self._turns_completed.copy()
-		"""The last turn when the rules engine ran in each branch"""
+		self._turns_completed_d = defaultdict(lambda: max((0, self.turn - 1)))
 		self.universal = UniversalMapping(self)
 		if hasattr(self, "_action_file"):
 			self.action = FunctionStore(self._action_file)
@@ -1126,6 +1122,16 @@ class Engine(AbstractEngine, gORM, Executor):
 			self._portal_rules_handled_cache,
 			self._unitness_cache,
 		]
+
+	@world_locked
+	def _complete_turn(self, branch: str, turn: int) -> None:
+		self._turns_completed_d[branch] = turn
+		self.query.complete_turn(
+			branch, turn, discard_rules=not self.keep_rules_journal
+		)
+
+	def _get_last_completed_turn(self, branch: str) -> int:
+		return self._turns_completed_d[branch]
 
 	def _load_graphs(self) -> None:
 		for charn, branch, turn, tick, typ in self.query.characters():
@@ -2360,20 +2366,6 @@ class Engine(AbstractEngine, gORM, Executor):
 		"""Log a message at level 'critical'"""
 		self.log("critical", msg)
 
-	def flush(self):
-		__doc__ = gORM.flush.__doc__
-		super().flush()
-		turns_completed_previous = self._turns_completed_previous
-		turns_completed = self._turns_completed
-		set_turn_completed = self.query.set_turn_completed
-		for branch, turn_late in turns_completed.items():
-			turn_early = turns_completed_previous.get(branch)
-			if turn_late != turn_early:
-				if turn_early is not None and turn_late <= turn_early:
-					raise RuntimeError("Incoherent turns_completed cache")
-				set_turn_completed(branch, turn_late)
-		self._turns_completed_previous = turns_completed.copy()
-
 	def close(self) -> None:
 		"""Commit changes and close the database
 
@@ -2623,8 +2615,6 @@ class Engine(AbstractEngine, gORM, Executor):
 			raise TypeError("Branch names must be strings")
 		oldrando = self.universal.get("rando_state")
 		super()._set_branch(v)
-		if v not in self._turns_completed:
-			self._turns_completed[v] = self.turn
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
