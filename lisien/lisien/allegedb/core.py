@@ -967,7 +967,7 @@ class ORM:
 		self._plan_ticks: dict[int, dict[int, list[int]]] = defaultdict(
 			lambda: defaultdict(list)
 		)
-		self._time_plan: dict[int, tuple[str, int, int]] = {}
+		self._time_plan: dict[tuple[str, int, int], int] = {}
 		self._plans_uncommitted: list[tuple[int, str, int, int]] = []
 		self._plan_ticks_uncommitted: list[tuple[int, int, int]] = []
 		self._graph_cache = EntitylessCache(self, name="graph_cache")
