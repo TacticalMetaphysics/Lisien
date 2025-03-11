@@ -10,7 +10,7 @@ from lisien.examples import (
 	sickle,
 	wolfsheep,
 )
-from lisien.handle import EngineHandle
+from lisien.proxy.handle import EngineHandle
 
 pytestmark = [pytest.mark.big]
 
