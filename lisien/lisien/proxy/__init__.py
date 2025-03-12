@@ -49,7 +49,7 @@ import msgpack
 import networkx as nx
 from blinker import Signal
 
-from ..allegedb.wrap import (
+from ..wrap import (
 	DictWrapper,
 	ListWrapper,
 	SetWrapper,

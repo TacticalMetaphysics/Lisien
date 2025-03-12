@@ -19,13 +19,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .allegedb import Key
-from .allegedb.graph import Edge
-from .allegedb.window import HistoricKeyError
+from .typing import Key
+from .graph import Edge
+from .exc import HistoricKeyError
 from .facade import FacadePortal
 from .query import StatusAlias
-from .rule import RuleFollower
-from .rule import RuleMapping as BaseRuleMapping
+from .rule import RuleFollower, RuleMapping as BaseRuleMapping
 from .util import AbstractCharacter, getatt
 
 
