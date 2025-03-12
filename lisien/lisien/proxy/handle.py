@@ -25,7 +25,7 @@ from typing import Any, Callable, Iterable
 import msgpack
 import networkx as nx
 
-from ..allegedb import Key, OutOfTimelineError
+from ..typing import Key
 from ..engine import (
 	EDGE_VAL,
 	EDGES,
@@ -40,6 +40,7 @@ from ..engine import (
 	UNIVERSAL,
 	Engine,
 )
+from ..exc import OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
 from ..util import AbstractCharacter, BadTimeException, timer
