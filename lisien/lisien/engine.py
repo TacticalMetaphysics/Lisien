@@ -3019,14 +3019,16 @@ class Engine(AbstractEngine, Executor):
 				branch_from, turn, tick
 			)
 		except KeyframeError:
-			graph_keyframe = {
-				graph: self._graph_cache.retrieve(
-					graph, branch_from, turn, tick
-				)
-				for graph in self._graph_cache.iter_entities(
-					branch_from, turn, tick
-				)
-			}
+			graph_keyframe = {}
+			for graph in self._graph_cache.iter_entities(
+				branch_from, turn, tick
+			):
+				try:
+					graph_keyframe[graph] = self._graph_cache.retrieve(
+						graph, branch_from, turn, tick
+					)
+				except KeyError:
+					pass
 		self._graph_cache.set_keyframe(
 			branch_to,
 			turn,
@@ -3544,7 +3546,28 @@ class Engine(AbstractEngine, Executor):
 			self._branches_d[time_from[0]]
 		)
 		if parent is None:
-			self._snap_keyframe_de_novo(*time_from)
+			if time_from not in self._keyframes_times:
+				if (
+					time_from[0],
+					branched_turn_from,
+					branched_tick_from,
+				) in self._keyframes_times:
+					self._get_keyframe(
+						time_from[0], branched_turn_from, branched_tick_from
+					)
+					self._snap_keyframe_from_delta(
+						(time_from[0], branched_turn_from, branched_tick_from),
+						(time_from[0], turn_to, tick_to),
+						self._get_branch_delta(
+							time_from[0],
+							branched_turn_from,
+							branched_tick_from,
+							turn_to,
+							tick_to,
+						),
+					)
+				else:
+					self._snap_keyframe_de_novo(*time_from)
 			return time_from
 		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
@@ -6179,7 +6202,11 @@ class Engine(AbstractEngine, Executor):
 	) -> None:
 		universal = dict(self.universal.items())
 		self._universal_cache.set_keyframe(branch, turn, tick, universal)
-		all_graphs = set(self._graph_cache.iter_keys(branch, turn, tick))
+		all_graphs = {
+			graph: self._graph_cache.retrieve(graph, branch, turn, tick)
+			for graph in self._graph_cache.iter_keys(branch, turn, tick)
+		}
+		self._graph_cache.set_keyframe(branch, turn, tick, all_graphs)
 		for char in all_graphs:
 			char_kf = {}
 			for graph in self._unitness_cache.iter_keys(
@@ -6249,9 +6276,7 @@ class Engine(AbstractEngine, Executor):
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)
 		self._neighborhoods_cache.set_keyframe(branch, turn, tick, nbrs)
 		self._rule_bigness_cache.set_keyframe(branch, turn, tick, bigs)
-		thing_graphs = all_graphs.copy()
 		for charname in all_graphs:
-			thing_graphs.discard(charname)
 			locs = {}
 			conts_mut = {}
 			for thingname in self._things_cache.iter_keys(
@@ -6284,11 +6309,6 @@ class Engine(AbstractEngine, Executor):
 			self._unitness_cache.set_keyframe(
 				(charname,), branch, turn, tick, units
 			)
-		for graph in thing_graphs:
-			self._things_cache.set_keyframe((graph,), branch, turn, tick, {})
-			self._node_contents_cache.set_keyframe(
-				(graph,), branch, turn, tick, {}
-			)
 		for rbcache in (
 			self._characters_rulebooks_cache,
 			self._units_rulebooks_cache,
@@ -6317,19 +6337,48 @@ class Engine(AbstractEngine, Executor):
 		)
 		kfl = self._keyframes_list
 		kfd = self._keyframes_dict
-		kfs = self._keyframes_times
-		kfsl = self._keyframes_loaded
+		self._keyframes_times.add((branch, turn, tick))
+		self._keyframes_loaded.add((branch, turn, tick))
 		inskf = self.query.keyframe_graph_insert
-		was = self._btt()
-		self._set_btt(branch, turn, tick)
 		self.query.keyframe_insert(branch, turn, tick)
-		for graphn in self._graph_cache.iter_keys(branch, turn, tick):
+		nrbcache = self._nodes_rulebooks_cache
+		porbcache = self._portals_rulebooks_cache
+		for graphn in all_graphs:
 			graph = self.graph[graphn]
 			nodes = graph._nodes_state()
 			edges = graph._edges_state()
 			val = graph._val_state()
-			self._snap_keyframe_de_novo_graph(
-				graphn, branch, turn, tick, nodes, edges, val
+			nrbkf = {
+				node: nrbcache.retrieve(graphn, node, branch, turn, tick)
+				for node in nodes
+			}
+			for node, rb in nrbkf.items():
+				nodes[node]["rulebook"] = rb
+			nrbcache.set_keyframe(
+				(graphn,),
+				branch,
+				turn,
+				tick,
+				nrbkf,
+			)
+			porbkf = {
+				orig: {
+					dest: porbcache.retrieve(
+						graphn, orig, dest, branch, turn, tick
+					)
+					for dest in edges[orig]
+				}
+				for orig in edges
+			}
+			for orig, dests in porbkf.items():
+				for dest, rb in dests.items():
+					edges[orig][dest]["rulebook"] = rb
+			porbcache.set_keyframe(
+				(graphn,),
+				branch,
+				turn,
+				tick,
+				porbkf,
 			)
 			inskf(graphn, branch, turn, tick, nodes, edges, val)
 			kfl.append((graphn, branch, turn, tick))
@@ -6345,9 +6394,6 @@ class Engine(AbstractEngine, Executor):
 			}
 		else:
 			kfd[branch][turn].add(tick)
-		kfs.add((branch, turn, tick))
-		kfsl.add((branch, turn, tick))
-		self._set_btt(*was)
 
 	def _snap_keyframe_de_novo_graph(
 		self,
