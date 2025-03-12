@@ -386,6 +386,7 @@ class NextTurn(Signal):
 					pass
 		if hasattr(engine, "_worker_processes"):
 			engine._call_every_subprocess("_reimport_code")
+			engine._update_all_worker_process_states()
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._get_last_completed_turn(start_branch)
 		if latest_turn is None or start_turn < latest_turn:
@@ -413,8 +414,6 @@ class NextTurn(Signal):
 			# loop of the rules engine
 			engine._extend_branch(start_branch, start_turn + 1, 0)
 			engine.turn += 1
-		if hasattr(engine, "_worker_updated_btts"):
-			engine._update_all_worker_process_states()
 		results = []
 		if hasattr(engine, "_rules_iter"):
 			it = engine._rules_iter
