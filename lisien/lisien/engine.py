@@ -6526,11 +6526,6 @@ class Engine(AbstractEngine, Executor):
 		if unload:
 			self.unload()
 
-	def close(self) -> None:
-		"""Write changes to database and close the connection"""
-		self.commit()
-		self.query.close()
-
 	def turns_when(self, qry: Query, mid_turn=False) -> QueryResult | set:
 		"""Return the turns when the query held true
 
