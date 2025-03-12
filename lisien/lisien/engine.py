@@ -847,7 +847,7 @@ class Engine(AbstractEngine, Executor):
 		return self.is_ancestor_of(parent, self.branch_parent(child))
 
 	def __getattr__(self, item):
-		meth = super().__getattribute__("method").__getattr__(item)
+		meth = getattr(super().__getattribute__("method"), item)
 		return MethodType(meth, self)
 
 	def __hasattr__(self, item):
