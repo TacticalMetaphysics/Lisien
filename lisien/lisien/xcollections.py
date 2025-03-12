@@ -36,7 +36,7 @@ from types import MethodType
 from astunparse import Unparser
 from blinker import Signal
 
-from .allegedb.graph import GraphsMapping
+from .graph import GraphsMapping
 from .util import dedent_source, getatt
 
 
