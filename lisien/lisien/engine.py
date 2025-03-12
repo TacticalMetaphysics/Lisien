@@ -72,7 +72,6 @@ from .cache import (
 	PickyDefaultDict,
 	PortalRulesHandledCache,
 	PortalsRulebooksCache,
-	SizedDict,
 	StructuredDefaultDict,
 	ThingsCache,
 	TurnEndDict,
@@ -128,6 +127,7 @@ from .util import (
 	normalize_layout,
 	sort_set,
 	world_locked,
+	SizedDict,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (

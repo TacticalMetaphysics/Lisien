@@ -63,19 +63,6 @@ def _default_kwargs_munger(self, k):
 	return {}
 
 
-class SizedDict(OrderedDict):
-	"""A dictionary that discards old entries when it gets too big."""
-
-	def __init__(self, max_entries=1000):
-		self._n = max_entries
-		super().__init__()
-
-	def __setitem__(self, key, value):
-		while len(self) > self._n:
-			self.popitem(last=False)
-		super().__setitem__(key, value)
-
-
 class PickyDefaultDict(dict):
 	"""A ``defaultdict`` alternative that requires values of a specific type.
 
