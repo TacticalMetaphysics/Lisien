@@ -457,11 +457,6 @@ class Node(graph.Node, rule.RuleFollower):
 		"""A set-like object containing ``Thing`` objects that are here"""
 		return self.content.values()
 
-	def __iter__(self):
-		yield from super().__iter__()
-		yield from self._extra_keys
-		return
-
 	def clear(self) -> None:
 		"""Delete all my keys"""
 		for key in super().__iter__():
