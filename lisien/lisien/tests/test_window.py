@@ -1,9 +1,11 @@
 from itertools import cycle
+from types import SimpleNamespace
 
 import pytest
 
-from .. import ORM
-from ..window import HistoricKeyError, WindowDict
+from ..engine import Engine
+from ..window import WindowDict
+from ..exc import HistoricKeyError
 
 testvs = ["a", 99, ["spam", "eggs", "ham"], {"foo": "bar", 0: 1, "💧": "🔑"}]
 testdata = []
@@ -168,7 +170,14 @@ def test_set():
 	assert 4 in wd
 	assert wd[4] == {"spam": "eggs"}
 	assert 5 not in wd
-	with ORM("sqlite:///:memory:") as orm:
+	with Engine(
+		"sqlite:///:memory:",
+		function=SimpleNamespace(),
+		method=SimpleNamespace(),
+		trigger=SimpleNamespace(),
+		prereq=SimpleNamespace(),
+		action=SimpleNamespace(),
+	) as orm:
 		g = orm.new_digraph("g")
 		g.node[5] = {"ham": {"spam": "beans"}}
 		wd[5] = g.node[5]["ham"]
