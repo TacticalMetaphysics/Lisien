@@ -8303,7 +8303,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			"edges_insert", map(self._pack_edge2set, self._edges2set)
 		)
 		self._edges2set = []
-		QueryEngine.flush_edges_t += monotonic() - start
 
 	def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
 		"""Declare whether or not this edge exists."""
