@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import sys
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from collections.abc import Mapping, Set
 from concurrent.futures import Future
 from contextlib import contextmanager
@@ -51,7 +52,6 @@ from blinker import Signal
 from tblib import Traceback
 
 from . import exc
-from .cache import SizedDict
 from .graph import DiGraph, Edge, Node
 from .typing import Key
 
@@ -336,6 +336,19 @@ def _sort_set_key(v):
 	if isinstance(v, str):
 		return 1, v
 	return 0, repr(v)
+
+
+class SizedDict(OrderedDict):
+	"""A dictionary that discards old entries when it gets too big."""
+
+	def __init__(self, max_entries=1000):
+		self._n = max_entries
+		super().__init__()
+
+	def __setitem__(self, key, value):
+		while len(self) > self._n:
+			self.popitem(last=False)
+		super().__setitem__(key, value)
 
 
 _sort_set_memo = SizedDict()
