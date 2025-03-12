@@ -6021,7 +6021,7 @@ class Engine(AbstractEngine, Executor):
 		self.add_character(name, data, layout, node=node, edge=edge, **kwargs)
 		return self.character[name]
 
-	new_graph = new_character
+	new_graph = new_digraph = new_character
 
 	def add_character(
 		self,
@@ -6456,25 +6456,6 @@ class Engine(AbstractEngine, Executor):
 			and turn in self._things_cache.keyframe[graph,][branch]
 			and tick in self._things_cache.keyframe[graph,][branch][turn]
 		)
-
-	def new_digraph(self, name: Key, data: dict = None, **attr) -> DiGraph:
-		"""Return a new instance of type DiGraph, initialized with the given
-		data if provided.
-
-		:arg name: a name for the graph
-		:arg data: dictionary or NetworkX graph object providing initial state
-
-		"""
-		if data and isinstance(data, nx.Graph):
-			if not data.is_directed():
-				data = nx.to_directed(data)
-			self._init_graph(
-				name, "DiGraph", [data._node, data._succ, data.graph]
-			)
-		else:
-			self._init_graph(name, "DiGraph", data)
-		ret = self._graph_objs[name] = DiGraph(self, name)
-		return ret
 
 	def flush(self) -> None:
 		"""Write pending changes to disk.
