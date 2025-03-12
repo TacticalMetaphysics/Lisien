@@ -416,7 +416,7 @@ class Node(graph.Node, rule.RuleFollower):
 
 	def __init__(self, character, name):
 		super().__init__(character, name)
-		self.db = character.engine
+		self.db = getattr(character, "engine", character.db)
 
 	@property
 	def neighbor(self) -> NeighborMapping:
