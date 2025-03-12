@@ -3516,7 +3516,6 @@ class Engine(AbstractEngine, Executor):
 				)
 				kfl.append((graph, *when))
 		self._graph_cache.set_keyframe(*now, graphs_keyframe)
-		self._extend_branch(*now)
 
 	def _recurse_delta_keyframes(self, time_from):
 		"""Make keyframes until we have one in the current branch"""
