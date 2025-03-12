@@ -4307,11 +4307,17 @@ class Engine(AbstractEngine, Executor):
 		_, turn, tick, _, _ = self._branches_d[branch]
 		return turn, tick
 
+	def branch_start_turn(self, branch: str | None = None) -> int:
+		return self.branch_start(branch)[0]
+
 	def branch_end(self, branch: str | None = None) -> tuple[int, int]:
 		if branch is None:
 			branch = self.branch
 		_, _, _, turn, tick = self._branches_d[branch]
 		return turn, tick
+
+	def branch_end_turn(self, branch: str | None = None) -> int:
+		return self.branch_end(branch)[0]
 
 	def turn_end(self, branch: str = None, turn: int = None) -> int:
 		branch = branch or self._obranch
