@@ -2623,6 +2623,10 @@ class Engine(AbstractEngine, Executor):
 				tcks = sorted(kfdb[r0])
 				while tcks and tcks[-1] > t0:
 					tcks.pop()
+				if not tcks:
+					if with_fork_points:
+						yield b0, r0, t0
+					continue
 				if loaded:
 					for tck in reversed(tcks):
 						if r0 == r1 and tck <= t1:
@@ -2648,25 +2652,26 @@ class Engine(AbstractEngine, Executor):
 					else:
 						for tck in tcks:
 							yield b0, r_between, tck
-			if r1 in kfdb:
-				tcks = sorted(kfdb[r1], reverse=True)
-				while tcks[-1] > t1:
-					tcks.pop()
-				if not tcks:
-					if with_fork_points:
-						yield b1, r1, t1
-					continue
-				if loaded:
-					for tck in tcks:
-						if (b1, r1, tck) in kfl:
-							yield b1, r1, tck
-				else:
-					for tck in tcks:
+		if b1 in kfd:
+			kfdb = kfd[b1]
+			tcks = sorted(kfdb[r1], reverse=True)
+			while tcks[-1] > t1:
+				tcks.pop()
+			if not tcks:
+				if with_fork_points:
+					yield b1, r1, t1
+				return
+			if loaded:
+				for tck in tcks:
+					if (b1, r1, tck) in kfl:
 						yield b1, r1, tck
-				if with_fork_points and tcks[-1] == t1:
-					continue
-			if with_fork_points:
-				yield b1, r1, t1
+			else:
+				for tck in tcks:
+					yield b1, r1, tck
+			if with_fork_points and tcks[-1] == t1:
+				return
+		if with_fork_points:
+			yield b1, r1, t1
 
 	def _load_graphs(self):
 		self.graph = GraphsMapping(self)
