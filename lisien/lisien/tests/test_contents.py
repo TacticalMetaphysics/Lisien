@@ -14,8 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import pytest
 
-from lisien.allegedb import OutOfTimelineError
-
 
 @pytest.fixture(scope="function")
 def chara(sqleng):
