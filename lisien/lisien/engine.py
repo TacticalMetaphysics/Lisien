@@ -4302,13 +4302,13 @@ class Engine(AbstractEngine, Executor):
 			branch = self.branch
 		return self._branches_d[branch][0]
 
-	def branch_start(self, branch: str | None) -> tuple[int, int]:
+	def branch_start(self, branch: str | None = None) -> tuple[int, int]:
 		if branch is None:
 			branch = self.branch
 		_, turn, tick, _, _ = self._branches_d[branch]
 		return turn, tick
 
-	def branch_end(self, branch: str | None) -> tuple[int, int]:
+	def branch_end(self, branch: str | None = None) -> tuple[int, int]:
 		if branch is None:
 			branch = self.branch
 		_, _, _, turn, tick = self._branches_d[branch]
