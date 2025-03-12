@@ -683,10 +683,10 @@ class Engine(AbstractEngine, Executor):
 		if v < 0:
 			raise ValueError("Turns can't be negative")
 		turn_end, tick_end = self.branch_end()
-		if not self._planning and v > turn_end + 1:
+		if self._enforce_end_of_time and not self._planning and v > turn_end:
 			raise OutOfTimelineError(
 				f"The turn {v} is after the end of the branch {self.branch}. "
-				f"Go to turn {turn_end + 1} and simulate with `next_turn`.",
+				f"Go to turn {turn_end} and simulate with `next_turn`.",
 				self.branch,
 				self.turn,
 				self.tick,
@@ -697,17 +697,6 @@ class Engine(AbstractEngine, Executor):
 		# enforce the arrow of time, if it's in effect
 		if self._forward and v < self._oturn:
 			raise ValueError("Can't time travel backward in a forward context")
-		if self._enforce_end_of_time and v > turn_end and not self._planning:
-			raise OutOfTimelineError(
-				f"The turn number {v} occurs after the end "
-				f"of the branch {self.branch}",
-				self.branch,
-				self.turn,
-				self.tick,
-				self.branch,
-				v,
-				self.tick,
-			)
 		oldrando = self.universal.get("rando_state")
 		branch = self.branch
 		tick = self._turn_end_plan[branch, v]
