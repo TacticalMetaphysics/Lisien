@@ -72,7 +72,7 @@ class AbstractGraphTest:
 			else:
 				self.assertIn(0, g.adj[1])
 				self.assertIn(0, list(g.adj[1]))
-			self.engine.turn = 1
+			self.engine.next_turn()
 			self.assertIn(0, g)
 			self.assertIn(1, g)
 			self.engine.branch = graphmaker.__name__ + "_no_edge"
@@ -115,7 +115,7 @@ class AbstractGraphTest:
 			self.assertTrue(self.engine._node_exists(graphmaker.__name__, 0))
 			self.assertIn(3, g.node)
 			self.assertIn(2, list(g.adj[0]))
-			self.engine.turn = 2
+			self.engine.next_turn()
 			self.assertIn(2, g)
 			self.assertIn(2, list(g.node.keys()))
 			self.assertIn(2, g.adj[0])
@@ -171,11 +171,12 @@ class AbstractGraphTest:
 class AbstractBranchLineageTest(AbstractGraphTest):
 	# TODO: an analogue of this test for when you're looking up keyframes
 	#       in parent branches
-	def runTest(self):
+	def test_graph_objects_create_delete(self):
 		"""Create some branches of history and check that allegedb remembers where
 		each came from and what happened in each.
 
 		"""
+		super().test_graph_objects_create_delete()
 		for graphmaker in self.graphmakers:
 			gmn = graphmaker.__name__
 			self.assertTrue(self.engine.is_ancestor_of("trunk", gmn))

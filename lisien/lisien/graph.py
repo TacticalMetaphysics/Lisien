@@ -55,7 +55,7 @@ class AllegedMapping(MutableMappingUnwrapper, ABC):
 
 class AbstractEntityMapping(AllegedMapping, ABC):
 	__slots__ = ()
-	db: "ORM"
+	db: "lisien.engine.Engine"
 
 	def _get_cache(self, key, branch, turn, tick):
 		raise NotImplementedError

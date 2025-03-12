@@ -17,10 +17,9 @@
 import json
 import os
 import sys
-from functools import partial
 from threading import Thread
 
-from lisien.allegedb.exc import OutOfTimelineError
+from lisien.exc import OutOfTimelineError
 
 if "KIVY_NO_ARGS" not in os.environ:
 	os.environ["KIVY_NO_ARGS"] = "1"

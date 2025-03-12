@@ -50,24 +50,17 @@ import numpy as np
 from blinker import Signal
 from tblib import Traceback
 
-import lisien.allegedb.exc
-import lisien.allegedb.typing
-
-from . import allegedb, exc
-from .allegedb import Key
-from .allegedb.cache import SizedDict
-from .allegedb.graph import DiGraph, Edge, Node
-from .allegedb.window import HistoricKeyError
-from .exc import TravelException
+from . import exc
+from .cache import SizedDict
+from .graph import DiGraph, Edge, Node
+from .typing import Key
 
 
 class KeyClass:
-	def __new__(
-		cls, that: lisien.allegedb.typing.Key
-	) -> lisien.allegedb.typing.Key:
+	def __new__(cls, that: Key) -> Key:
 		return that
 
-	def __instancecheck__(cls, instance: lisien.allegedb.typing.Key) -> bool:
+	def __instancecheck__(cls, instance: Key) -> bool:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
@@ -583,9 +576,9 @@ class AbstractEngine(ABC):
 			"WorldIntegrityError": exc.WorldIntegrityError,
 			"CacheError": exc.CacheError,
 			"TravelException": exc.TravelException,
-			"OutOfTimelineError": lisien.allegedb.exc.OutOfTimelineError,
-			"HistoricKeyError": HistoricKeyError,
-			"NotInKeyframeError": allegedb.cache.NotInKeyframeError,
+			"OutOfTimelineError": exc.OutOfTimelineError,
+			"HistoricKeyError": exc.HistoricKeyError,
+			"NotInKeyframeError": exc.NotInKeyframeError,
 			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
 		}
 
@@ -1111,8 +1104,11 @@ def normalize_layout(l):
 
 
 class AbstractThing(ABC):
+	character: AbstractCharacter
+	engine: AbstractEngine
+
 	@property
-	def location(self) -> "allegedb.Node":
+	def location(self) -> "lisien.node.Node":
 		"""The ``Thing`` or ``Place`` I'm in."""
 		locn = self["location"]
 		if locn is None:
@@ -1120,13 +1116,13 @@ class AbstractThing(ABC):
 		return self.engine._get_node(self.character, locn)
 
 	@location.setter
-	def location(self, v: Union["allegedb.Node", Key]):
+	def location(self, v: Union["lisien.node.Node", Key]):
 		if hasattr(v, "name"):
 			v = v.name
 		self["location"] = v
 
 	def go_to_place(
-		self, place: Union["allegedb.Node", Key], weight: Key = None
+		self, place: Union["lisien.node.Node", Key], weight: Key = None
 	) -> int:
 		"""Assuming I'm in a node that has a :class:`Portal` direct
 		to the given node, schedule myself to travel to the
@@ -1184,7 +1180,7 @@ class AbstractThing(ABC):
 					prevplace not in self.character.portal
 					or place not in self.character.portal[prevplace]
 				):
-					raise TravelException(
+					raise exc.TravelException(
 						"Couldn't follow portal from {} to {}".format(
 							prevplace, place
 						),
@@ -1217,9 +1213,8 @@ class AbstractThing(ABC):
 			turns_total += turn_incs[-1]
 			turn += turn_incs[-1]
 			tick = eng._turn_end_plan.get(turn, 0)
-			_, start_turn, start_tick, end_turn, end_tick = eng._branches[
-				branch
-			]
+			start_turn, start_tick = eng.branch_start(branch)
+			end_turn, end_tick = eng.branch_end(branch)
 			if (
 				(start_turn < turn < end_turn)
 				or (
@@ -1285,3 +1280,67 @@ def print_call_sig(
 	func: callable | str, *args, file=sys.stdout, end="\n", **kwargs
 ):
 	print(repr_call_sig(func, *args, **kwargs), file=file, end=end)
+
+
+@contextmanager
+def _garbage_ctx(collect=True):
+	"""Context manager to disable the garbage collector
+
+	:param collect: Whether to immediately collect garbage upon context exit
+
+	"""
+	gc_was_active = gc.isenabled()
+	if gc_was_active:
+		gc.disable()
+	yield
+	if gc_was_active:
+		gc.enable()
+	if collect:
+		gc.collect()
+
+
+def _garbage_dec(fn: callable, collect=True) -> callable:
+	"""Decorator to disable the garbage collector for a function
+
+	:param collect: Whether to immediately collect garbage when the function returns
+
+	"""
+
+	@wraps(fn)
+	def garbage(*args, **kwargs):
+		with _garbage_ctx(collect=collect):
+			return fn(*args, **kwargs)
+
+	return garbage
+
+
+def garbage(arg: callable = None, collect=True):
+	"""Disable the garbage collector, then re-enable it when done.
+
+	May be used as a context manager or a decorator.
+
+	:param collect: Whether to immediately run a collection after re-enabling
+		the garbage collector. Default ``True``.
+
+	"""
+
+	if arg is None:
+		return _garbage_ctx(collect=collect)
+	else:
+		return _garbage_dec(arg, collect=collect)
+
+
+def world_locked(fn: callable) -> callable:
+	"""Decorator for functions that alter the world state
+
+	They will hold a reentrant lock, preventing more than one function
+	from mutating the world at a time.
+
+	"""
+
+	@wraps(fn)
+	def lockedy(*args, **kwargs):
+		with args[0].world_lock:
+			return fn(*args, **kwargs)
+
+	return lockedy

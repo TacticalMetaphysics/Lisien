@@ -19,7 +19,7 @@ from kivy.vector import Vector
 from elide.boardscatter import BoardScatterPlane
 
 from ..boardview import BoardView
-from ..kivygarden.texturestack import TextureStackPlane, Stack
+from ..kivygarden.texturestack import Stack, TextureStackPlane
 
 
 class GridPawn(Stack):

@@ -40,16 +40,15 @@ from types import MethodType
 import networkx as nx
 from blinker import Signal
 
-from .allegedb.cache import FuturistWindowDict, PickyDefaultDict
-from .allegedb.graph import (
+from .cache import FuturistWindowDict, PickyDefaultDict
+from .exc import WorldIntegrityError
+from .facade import CharacterFacade
+from .graph import (
 	DiGraph,
 	DiGraphPredecessorsMapping,
 	DiGraphSuccessorsMapping,
 	GraphNodeMapping,
 )
-from .allegedb.wrap import MutableMappingUnwrapper
-from .exc import WorldIntegrityError
-from .facade import CharacterFacade
 from .node import Node, Place, Thing
 from .portal import Portal
 from .query import StatusAlias
@@ -62,6 +61,7 @@ from .util import (
 	singleton_get,
 	timer,
 )
+from .wrap import MutableMappingUnwrapper
 
 
 def grid_2d_8graph(m, n):
@@ -654,19 +654,6 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 									v,
 								)
 								tick += 1
-			parent, start_turn, start_tick, end_turn, _ = (
-				self.engine._branches[branch]
-			)
-			self.engine._branches[branch] = (
-				parent,
-				start_turn,
-				start_tick,
-				end_turn,
-				tick,
-			)
-			self.engine._turn_end_plan[branch, turn] = tick
-			if not self.engine._planning:
-				self.engine._turn_end[branch, turn] = tick
 			self.engine.tick = tick
 
 		class Successors(DiGraphSuccessorsMapping.Successors):
@@ -838,26 +825,7 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 									loading=True,
 								)
 								tick += 1
-					parent, start_turn, start_tick, end_turn, _ = (
-						self.db._branches[branch]
-					)
-					self.db._branches[branch] = (
-						parent,
-						start_turn,
-						start_tick,
-						end_turn,
-						tick,
-					)
-					self.db._turn_end_plan[branch, turn] = tick
-					if not planning:
-						self.db._turn_end[branch, turn] = tick
-					turn_from, tick_from, turn_to, _ = self.db._loaded[branch]
-					self.db._loaded[branch] = (
-						turn_from,
-						tick_from,
-						turn_to,
-						tick,
-					)
+					self.db._extend_branch(branch, turn, tick)
 					self.db._otick = tick
 
 	adj_cls = PortalSuccessorsMapping

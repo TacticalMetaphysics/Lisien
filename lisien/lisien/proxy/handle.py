@@ -302,25 +302,21 @@ class EngineHandle:
 		the 0th item of which is `None`.
 
 		"""
-		if branch in self._real._branches:
-			parent, turn_from, tick_from, turn_to, tick_to = (
-				self._real._branches[branch]
-			)
-			if tick is None:
-				if turn < turn_from or (
-					self._real._enforce_end_of_time and turn > turn_to
+		if branch in self._real.branches():
+			if self._real._enforce_end_of_time:
+				turn_end, tick_end = self._real.branch_end(branch)
+				if (tick is None and turn > turn_end) or (
+					(turn, tick) > (turn_end, tick_end)
 				):
 					raise OutOfTimelineError(
-						"Out of bounds", *self._real._btt(), branch, turn, tick
+						"Not traveling past the end of the branch",
+						branch,
+						turn,
+						tick,
+						turn_end,
+						tick_end,
 					)
-			else:
-				if (turn, tick) < (turn_from, tick_from) or (
-					self._real._enforce_end_of_time
-					and (turn, tick) > (turn_to, tick_to)
-				):
-					raise OutOfTimelineError(
-						"Out of bounds", *self._real._btt(), branch, turn, tick
-					)
+			self._real._load_at(branch, turn, tick)
 		branch_from, turn_from, tick_from = self._real._btt()
 		if tick is None:
 			if (
@@ -392,13 +388,13 @@ class EngineHandle:
 			stem = branch
 			n = 1
 			branch = stem + str(n)
-		if branch in self._real._branches:
+		if branch in self._real.branches():
 			if m:
 				n = int(n)
 			else:
 				stem = branch[:-1]
 				n = 1
-			while stem + str(n) in self._real._branches:
+			while stem + str(n) in self._real.branches():
 				n += 1
 			branch = stem + str(n)
 		self._real.branch = branch
@@ -757,7 +753,7 @@ class EngineHandle:
 		}
 
 	def branches(self) -> dict[str, tuple[str, int, int, int, int]]:
-		return self._real._branches
+		return self._real._branches_d
 
 	def main_branch(self) -> str:
 		return self._real.main_branch

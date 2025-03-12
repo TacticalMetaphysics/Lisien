@@ -14,14 +14,41 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Exception classes for use in lisien."""
 
-try:
-	from sqlite3 import OperationalError as liteOpError
 
-	from sqlalchemy.exc import OperationalError as alchemyOpError
+class GraphNameError(KeyError):
+	"""For errors involving graphs' names"""
 
-	OperationalError = (alchemyOpError, liteOpError)
-except ImportError:
-	from sqlite3 import OperationalError
+
+class TimeError(ValueError):
+	"""Exception class for problems with the time model"""
+
+
+class OutOfTimelineError(ValueError):
+	"""You tried to access a point in time that didn't happen"""
+
+	@property
+	def branch_from(self):
+		return self.args[1]
+
+	@property
+	def turn_from(self):
+		return self.args[2]
+
+	@property
+	def tick_from(self):
+		return self.args[3]
+
+	@property
+	def branch_to(self):
+		return self.args[4]
+
+	@property
+	def turn_to(self):
+		return self.args[5]
+
+	@property
+	def tick_to(self):
+		return self.args[6]
 
 
 class NonUniqueError(RuntimeError):
@@ -137,3 +164,11 @@ class WorkerProcessError(RuntimeError):
 
 class WorkerProcessReadOnlyError(WorkerProcessError):
 	"""You tried to change the state of the world in a worker process"""
+
+
+class HistoricKeyError(KeyError):
+	"""Distinguishes deleted keys from those that were never set"""
+
+	def __init__(self, *args, deleted=False):
+		super().__init__(*args)
+		self.deleted = deleted
