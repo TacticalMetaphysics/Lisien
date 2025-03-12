@@ -388,7 +388,7 @@ class NextTurn(Signal):
 			engine._call_every_subprocess("_reimport_code")
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._get_last_completed_turn(start_branch)
-		if start_turn < latest_turn:
+		if latest_turn is None or start_turn < latest_turn:
 			engine.turn += 1
 			self.send(
 				engine,
@@ -2009,7 +2009,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		)
 		self._unitness_cache = UnitnessCache(self)
-		self._turns_completed_d = defaultdict(lambda: max((0, self.turn - 1)))
+		self._turns_completed_d = {}
 		self.universal = UniversalMapping(self)
 		if hasattr(self, "_action_file"):
 			self.action = FunctionStore(self._action_file)
@@ -4627,6 +4627,8 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	def _get_last_completed_turn(self, branch: str) -> int:
+		if branch not in self._turns_completed_d:
+			return None
 		return self._turns_completed_d[branch]
 
 	def _load_graphs(self) -> None:
