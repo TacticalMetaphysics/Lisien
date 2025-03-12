@@ -35,6 +35,8 @@ Other comparison operators like ``>`` and ``<`` work as well.
 
 """
 
+from __future__ import annotations
+
 import inspect
 import operator
 import os
