@@ -777,7 +777,7 @@ class Engine(AbstractEngine, Executor):
 		tick += 1
 		if branch_turn in turn_end_plan and tick <= turn_end_plan[branch_turn]:
 			tick = turn_end_plan[branch_turn] + 1
-		if turn_end[branch_turn] > tick:
+		if branch_turn in turn_end and turn_end[branch_turn] > tick:
 			raise HistoricKeyError(
 				"You're not at the end of turn {}. "
 				"Go to tick {} to change things".format(
@@ -813,7 +813,7 @@ class Engine(AbstractEngine, Executor):
 					turn,
 					tick,
 				)
-			elif turn == end_turn:
+			elif turn == end_turn and (branch, turn) in turn_end_plan:
 				# Accept any plans made for this turn
 				tick = turn_end_plan[branch, turn] + 1
 			if tick > turn_end[branch_turn]:
@@ -978,21 +978,33 @@ class Engine(AbstractEngine, Executor):
 		self._planning = True
 		for plan_id in self._branches_plans[branch_from]:
 			_, start_turn, start_tick = plans[plan_id]
-			if start_turn > turn_from or (
-				start_turn == turn_from and start_tick > tick_from
-			):
+			if (
+				branch_from,
+				start_turn,
+			) not in turn_end_plan or start_tick > turn_end_plan[
+				branch_from, start_turn
+			]:
+				turn_end_plan[branch_from, start_turn] = start_tick
+			if (start_turn, start_tick) > (turn_from, tick_from):
 				continue
 			incremented = False
 			for turn, ticks in list(plan_ticks[plan_id].items()):
 				if turn < turn_from:
 					continue
 				for tick in ticks:
-					if turn == turn_from and tick < tick_from:
+					if (turn, tick) < (turn_from, tick_from):
 						continue
 					if not incremented:
 						self._last_plan += 1
 						incremented = True
 						plans[self._last_plan] = branch, turn, tick
+					if (
+						branch,
+						turn,
+					) not in turn_end_plan or tick > turn_end_plan[
+						branch, turn
+					]:
+						turn_end_plan[branch, turn] = tick
 					plan_ticks[self._last_plan][turn].append(tick)
 					plan_ticks_uncommitted.append(
 						(self._last_plan, turn, tick)
@@ -1006,7 +1018,6 @@ class Engine(AbstractEngine, Executor):
 							cache.setdb(*args)
 						cache.store(*args, planning=True)
 						time_plan[branch, turn, tick] = self._last_plan
-						turn_end_plan[branch, turn] = tick
 		self._planning = was_planning
 
 	@world_locked
