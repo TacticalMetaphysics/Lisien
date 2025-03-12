@@ -24,6 +24,7 @@ from concurrent.futures import Future
 from contextlib import contextmanager
 from enum import Enum
 from functools import cached_property, partial, wraps
+import gc
 from operator import (
 	add,
 	attrgetter,
