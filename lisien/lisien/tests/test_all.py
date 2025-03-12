@@ -2,8 +2,9 @@
 # Copyright (c) Zachary Spector. public@zacharyspector.com
 import unittest
 from copy import deepcopy
+from types import SimpleNamespace
 
-from .. import ORM
+from lisien.engine import Engine
 
 testkvs = [
 	0,
@@ -31,7 +32,16 @@ testdata.append(("lol", deepcopy(testdata)))
 
 class AllegedTest(unittest.TestCase):
 	def setUp(self):
-		self.engine = ORM("sqlite:///:memory:")
+		self.engine = Engine(
+			connect_string="sqlite:///:memory:",
+			string={},
+			function=SimpleNamespace(),
+			method=SimpleNamespace(),
+			trigger=SimpleNamespace(),
+			prereq=SimpleNamespace(),
+			action=SimpleNamespace(),
+			workers=0,
+		)
 		self.graphmakers = (self.engine.new_digraph,)
 
 
@@ -195,8 +205,9 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 			self.assertFalse(
 				self.engine.is_ancestor_of(gmn + "_triangle", gmn + "_no_edge")
 			)
-			g = self.engine.graph[gmn]
+			self.engine.turn = self.engine.branch_start(gmn)[0]
 			self.engine.branch = gmn
+			g = self.engine.graph[gmn]
 			self.assertIn(0, g.node)
 			self.assertIn(1, g.node)
 			self.assertIn(0, g.edge)
@@ -207,8 +218,9 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 				self.engine.branch = gmn + "_no_edge"
 
 			self.assertRaises(ValueError, badjump)
-			self.engine.turn = 2
+			self.engine.turn = self.engine.branch_start_turn(gmn + "_no_edge")
 			self.engine.branch = gmn + "_no_edge"
+			self.engine.next_turn()
 			self.assertIn(0, g)
 			self.assertIn(0, list(g.node.keys()))
 			self.assertNotIn(1, g.edge[0])
@@ -304,7 +316,7 @@ class DictStorageTest(AllegedTest):
 					"clothes": {"hats", "shirts", "pants"},
 					"dicts": {"foo": {"bar": "bas"}, "qux": {"quux": "quuux"}},
 				}
-			self.engine.turn = i + 1
+			self.engine.next_turn()
 			for entity in g.graph, n, e:
 				self.assertEqual(entity[0]["spam"], "eggs")
 				entity[0]["spam"] = "ham"
@@ -370,7 +382,7 @@ class ListStorageTest(AllegedTest):
 					["qux", "quux", "quuux"],
 					{"hats", "shirts", "pants"},
 				]
-			self.engine.turn = i + 1
+			self.engine.next_turn()
 			for entity in g.graph, n, e:
 				self.assertEqual(entity[0][0], "spam")
 				entity[0][0] = "eggplant"
@@ -418,7 +430,7 @@ class SetStorageTest(AllegedTest):
 			e = g.edge[0][1]
 			for entity in g.graph, n, e:
 				entity[0] = set(range(10))
-			self.engine.turn = i + 1
+			self.engine.next_turn()
 			for entity in g.graph, n, e:
 				self.assertEqual(entity[0], set(range(10)))
 				for j in range(0, 12, 2):

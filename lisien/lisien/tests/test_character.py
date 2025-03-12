@@ -17,11 +17,11 @@ from shutil import rmtree
 
 import pytest
 
-import lisien.allegedb.tests.test_all
+import lisien.tests.test_all
 from lisien.engine import Engine
 
 
-class CharacterTest(lisien.allegedb.tests.test_all.AllegedTest):
+class CharacterTest(lisien.tests.test_all.AllegedTest):
 	def setUp(self):
 		self.tempdir = tempfile.mkdtemp()
 		self.engine = Engine(
@@ -35,25 +35,25 @@ class CharacterTest(lisien.allegedb.tests.test_all.AllegedTest):
 
 
 class CharacterBranchLineageTest(
-	CharacterTest, lisien.allegedb.tests.test_all.AbstractBranchLineageTest
+	CharacterTest, lisien.tests.test_all.AbstractBranchLineageTest
 ):
 	pass
 
 
 class CharacterDictStorageTest(
-	CharacterTest, lisien.allegedb.tests.test_all.DictStorageTest
+	CharacterTest, lisien.tests.test_all.DictStorageTest
 ):
 	pass
 
 
 class CharacterListStorageTest(
-	CharacterTest, lisien.allegedb.tests.test_all.ListStorageTest
+	CharacterTest, lisien.tests.test_all.ListStorageTest
 ):
 	pass
 
 
 class CharacterSetStorageTest(
-	CharacterTest, lisien.allegedb.tests.test_all.SetStorageTest
+	CharacterTest, lisien.tests.test_all.SetStorageTest
 ):
 	pass
 

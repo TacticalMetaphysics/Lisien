@@ -19,7 +19,7 @@ from unittest.mock import patch
 import networkx as nx
 import pytest
 
-import lisien.allegedb.tests.test_all
+import lisien.tests.test_all
 import lisien.examples.kobold as kobold
 import lisien.examples.polygons as polygons
 from lisien.engine import Engine
@@ -27,7 +27,7 @@ from lisien.proxy import EngineProcessManager
 from lisien.tests import data
 
 
-class ProxyTest(lisien.allegedb.tests.test_all.AllegedTest):
+class ProxyTest(lisien.tests.test_all.AllegedTest):
 	def setUp(self):
 		self.manager = EngineProcessManager()
 		self.tmp_path = tempfile.mkdtemp()
@@ -46,25 +46,19 @@ class ProxyTest(lisien.allegedb.tests.test_all.AllegedTest):
 		shutil.rmtree(self.tmp_path)
 
 
-class ProxyGraphTest(
-	lisien.allegedb.tests.test_all.AbstractGraphTest, ProxyTest
-):
+class ProxyGraphTest(lisien.tests.test_all.AbstractGraphTest, ProxyTest):
 	pass
 
 
-class DictStorageTest(
-	ProxyTest, lisien.allegedb.tests.test_all.DictStorageTest
-):
+class DictStorageTest(ProxyTest, lisien.tests.test_all.DictStorageTest):
 	pass
 
 
-class ListStorageTest(
-	ProxyTest, lisien.allegedb.tests.test_all.ListStorageTest
-):
+class ListStorageTest(ProxyTest, lisien.tests.test_all.ListStorageTest):
 	pass
 
 
-class SetStorageTest(ProxyTest, lisien.allegedb.tests.test_all.SetStorageTest):
+class SetStorageTest(ProxyTest, lisien.tests.test_all.SetStorageTest):
 	pass
 
 
