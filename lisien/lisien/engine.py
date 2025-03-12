@@ -2439,7 +2439,7 @@ class Engine(AbstractEngine, Executor):
 			self._keyframes_dict[branch] = {turn: {tick}}
 		self._keyframes_times.add((branch, turn, tick))
 		self._keyframes_loaded.add((branch, turn, tick))
-
+		ret = self._get_kf(branch, turn, tick, copy=copy)
 		charrbkf = {}
 		unitrbkf = {}
 		charthingrbkf = {}
@@ -2507,7 +2507,7 @@ class Engine(AbstractEngine, Executor):
 		)
 		if silent:
 			return  # not that it helps performance any, in this case
-		return self._get_kf(branch, turn, tick, copy=copy)
+		return ret
 
 	def _iter_parent_btt(
 		self,
