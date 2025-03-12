@@ -8610,7 +8610,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			def munged(fields, it):
 				return list(map(munger(*fields), it))
 
-			super()._flush()
 			put = self._inq.put
 
 			def put_munged(stmt, fields, it):
