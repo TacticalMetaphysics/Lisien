@@ -643,7 +643,6 @@ class Engine(AbstractEngine, Executor):
 		if branch_is_new:
 			self._copy_plans(curbranch, curturn, curtick)
 			self.snap_keyframe(silent=True)
-			loaded[v] = (curturn, tick, curturn, tick)
 			return
 		elif v not in loaded:
 			self._load_at(v, curturn, tick)
