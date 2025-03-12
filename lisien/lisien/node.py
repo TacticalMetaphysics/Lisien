@@ -705,6 +705,10 @@ class Thing(Node, AbstractThing):
 
 	_setitem_dispatch = {"name": roerror, "location": _set_loc}
 
+	def __iter__(self):
+		yield "location"
+		yield from super().__iter__()
+
 	def __getitem__(self, key: Key):
 		"""Return one of my stats stored in the database, or special cases:
 
