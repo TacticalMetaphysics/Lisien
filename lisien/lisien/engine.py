@@ -2273,7 +2273,8 @@ class Engine(AbstractEngine, Executor):
 					self.log(*q.get())
 
 			for store in self.stores:
-				store.save(reimport=False)
+				if hasattr(store, "save"):
+					store.save(reimport=False)
 
 			branches_payload = zlib.compress(self.pack(self._branches_d))
 			self._worker_last_eternal = dict(self.eternal.items())
