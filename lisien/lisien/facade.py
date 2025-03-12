@@ -1151,7 +1151,7 @@ class EngineFacade(AbstractEngine):
 		if real is not None:
 			self._rando.setstate(real._rando.getstate())
 			self.branch, self.turn, self.tick = real._btt()
-			self._branches = real._branches.copy()
+			self._branches_d = real._branches_d.copy()
 			self._turn_end = TurnEndDict()
 			self._turn_end_plan = TurnEndPlanDict()
 			self._turn_end.other_d = self._turn_end_plan
