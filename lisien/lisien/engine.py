@@ -2552,10 +2552,6 @@ class Engine(AbstractEngine, Executor):
 						return
 				yield branch, trn, tck
 		else:
-			branch = self.branch_parent(branch)
-			if branch is None:
-				yield "trunk", 0, 0
-				return
 			while branch in branches:
 				trn, tck = self.branch_start(branch)
 				branch = self.branch_parent(branch)
