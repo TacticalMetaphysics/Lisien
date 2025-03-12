@@ -389,7 +389,13 @@ class NextTurn(Signal):
 			engine._update_all_worker_process_states()
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._get_last_completed_turn(start_branch)
-		if latest_turn is None or start_turn < latest_turn:
+		if latest_turn is None or start_turn == latest_turn:
+			# Pre-emptively nudge the loadedness and branch tracking,
+			# so that lisien does not try to load an empty turn before every
+			# loop of the rules engine
+			engine._extend_branch(start_branch, start_turn + 1, 0)
+			engine.turn += 1
+		elif start_turn < latest_turn:
 			engine.turn += 1
 			self.send(
 				engine,
