@@ -744,7 +744,7 @@ class Engine(AbstractEngine, Executor):
 		self.load_at(self.branch, self.turn, v)
 		self._otick = v
 		newrando = self.universal.get("rando_state")
-		if v > oldtick and newrando and newrando != oldrando:
+		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
 
 	def _btt(self) -> tuple[str, int, int]:
