@@ -172,3 +172,7 @@ class HistoricKeyError(KeyError):
 	def __init__(self, *args, deleted=False):
 		super().__init__(*args)
 		self.deleted = deleted
+
+
+class NotInKeyframeError(KeyError):
+	pass

@@ -11,12 +11,12 @@ from blinker import Signal
 
 from .cache import (
 	Cache,
-	NotInKeyframeError,
 	TotalKeyError,
 	TurnEndDict,
 	TurnEndPlanDict,
 	UnitnessCache,
 )
+from .exc import NotInKeyframeError
 from .graph import Edge, Node
 from .util import (
 	AbstractCharacter,
