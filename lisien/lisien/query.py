@@ -4311,20 +4311,6 @@ class AbstractQueryEngine:
 				)
 			)
 
-	def load_windows(self, windows: list) -> dict:
-		def empty_graph():
-			return {
-				"nodes": [],
-				"edges": [],
-				"graph_val": [],
-				"node_val": [],
-				"edge_val": [],
-			}
-
-		ret = defaultdict(empty_graph)
-		self._load_windows_into(ret, windows)
-		return ret
-
 	def _load_windows_into(
 		self, ret: dict, windows: list[tuple[str, int, int, int, int]]
 	) -> None:
