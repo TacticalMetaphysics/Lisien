@@ -3148,7 +3148,6 @@ class Engine(AbstractEngine, Executor):
 				kdb[turn] = {tick}
 		else:
 			self._keyframes_dict[branch_to] = {turn: {tick}}
-		self._extend_branch(branch_to, turn, tick)
 		self.query.keyframe_extension_insert(
 			branch_to,
 			turn,
