@@ -341,7 +341,7 @@ class TimeSignalDescriptor:
 				(branch_now, turn_now), tick_then
 			)
 			e._extend_branch(branch_now, turn_now, tick_now)
-			e._load_at(branch_now, turn_now, tick_now)
+			e.load_at(branch_now, turn_now, tick_now)
 		else:
 			tick_now = tick_then
 			e._start_branch(branch_then, branch_now, turn_now, tick_now)
