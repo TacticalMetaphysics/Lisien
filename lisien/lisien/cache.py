@@ -1349,7 +1349,7 @@ class Cache:
 						ret = get_chron(b, r, t)
 						if isinstance(ret, KeyError):
 							continue
-						return ret
+						return hint(ret)
 					b, r, t = stoptime
 					if (
 						b in keyframes
@@ -1373,7 +1373,7 @@ class Cache:
 						ret = get_chron(b, r, t)
 						if isinstance(ret, KeyError):
 							continue
-						return ret
+						return hint(ret)
 					return TotalKeyError(
 						"No keyframe loaded", entikey, branch, turn, tick
 					)
