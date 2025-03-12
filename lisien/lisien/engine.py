@@ -4299,6 +4299,8 @@ class Engine(AbstractEngine, Executor):
 	def branch_parent(self, branch: str | None) -> str | None:
 		if branch is None:
 			branch = self.branch
+		if branch not in self._branches_d:
+			return None
 		return self._branches_d[branch][0]
 
 	def branch_start(self, branch: str | None = None) -> tuple[int, int]:
