@@ -645,7 +645,7 @@ class Engine(AbstractEngine, Executor):
 			self.snap_keyframe(silent=True)
 			return
 		elif v not in loaded:
-			self._load_at(v, curturn, tick)
+			self.load_at(v, curturn, tick)
 			return
 		(start_turn, start_tick, end_turn, end_tick) = loaded[v]
 		if (
@@ -654,7 +654,7 @@ class Engine(AbstractEngine, Executor):
 			curturn < start_turn
 			or (curturn == start_turn and tick < start_tick)
 		):
-			self._load_at(v, curturn, tick)
+			self.load_at(v, curturn, tick)
 		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
 	@property
@@ -741,7 +741,7 @@ class Engine(AbstractEngine, Executor):
 				v,
 			)
 		oldrando = self.universal.get("rando_state")
-		self._load_at(self.branch, self.turn, v)
+		self.load_at(self.branch, self.turn, v)
 		self._otick = v
 		newrando = self.universal.get("rando_state")
 		if v > oldtick and newrando and newrando != oldrando:
@@ -5675,7 +5675,7 @@ class Engine(AbstractEngine, Executor):
 			# and therefore, there's been a "change" to the neighborhood
 			return None
 		with self.world_lock:
-			self._load_at(branch_now, turn_now - 1, 0)
+			self.load_at(branch_now, turn_now - 1, 0)
 			self._oturn -= 1
 			self._otick = 0
 			last_turn_neighbors = self._get_neighbors(entity, neighborhood)
