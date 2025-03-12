@@ -38,7 +38,7 @@ from queue import Empty, SimpleQueue
 from random import Random
 from threading import Lock, RLock, Thread
 from time import sleep
-from types import FunctionType, MethodType, ModuleType
+from types import FunctionType, MethodType, ModuleType, SimpleNamespace
 from typing import Any, Callable, Iterator, KeysView, Type
 
 import msgpack
@@ -2069,11 +2069,11 @@ class Engine(AbstractEngine, Executor):
 		prefix: PathLike | str = ".",
 		*,
 		string: StringStore | dict = None,
-		trigger: FunctionStore | ModuleType = None,
-		prereq: FunctionStore | ModuleType = None,
-		action: FunctionStore | ModuleType = None,
-		function: FunctionStore | ModuleType = None,
-		method: FunctionStore | ModuleType = None,
+		trigger: FunctionStore | ModuleType | SimpleNamespace = None,
+		prereq: FunctionStore | ModuleType | SimpleNamespace = None,
+		action: FunctionStore | ModuleType | SimpleNamespace = None,
+		function: FunctionStore | ModuleType | SimpleNamespace = None,
+		method: FunctionStore | ModuleType | SimpleNamespace = None,
 		main_branch: str = None,
 		connect_string: str = None,
 		connect_args: dict = None,
