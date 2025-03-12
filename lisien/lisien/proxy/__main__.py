@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 from . import EngineProcessManager
 
 if __name__ == "__main__":

@@ -35,12 +35,12 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
 from kivy.vector import Vector
 
-from ..kivygarden.texturestack import TextureStackPlane, Stack
 from lisien.util import normalize_layout
 
 from ..boardscatter import BoardScatterPlane
 from ..boardview import BoardView
 from ..dummy import Dummy
+from ..kivygarden.texturestack import Stack, TextureStackPlane
 from .arrow import (
 	DEFAULT_ARROW_LABEL_KWARGS,
 	ArrowPlane,

@@ -25,6 +25,7 @@ call its ``start`` method with the same arguments you'd give a real
 
 """
 
+import ast
 import importlib
 import io
 import logging
@@ -32,7 +33,6 @@ import os
 import sys
 import zlib
 from abc import ABC, abstractmethod
-import ast
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
@@ -49,18 +49,18 @@ import msgpack
 import networkx as nx
 from blinker import Signal
 
-from ..allegedb import Key, OutOfTimelineError
-from ..allegedb.cache import PickyDefaultDict, StructuredDefaultDict
 from ..allegedb.wrap import (
 	DictWrapper,
 	ListWrapper,
 	SetWrapper,
 	UnwrappingDict,
 )
-from ..exc import WorkerProcessReadOnlyError
+from ..cache import PickyDefaultDict, StructuredDefaultDict
+from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..facade import CharacterFacade
 from ..node import NodeContent, Place, Thing, UserMapping
 from ..portal import Portal
+from ..typing import Key
 from ..util import (
 	AbstractCharacter,
 	AbstractEngine,
@@ -3685,6 +3685,7 @@ def worker_subprocess(
 	i: int, prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue
 ):
 	from pickle import loads
+
 	from ..util import repr_call_sig
 
 	logger = WorkerLogger(logq, i)

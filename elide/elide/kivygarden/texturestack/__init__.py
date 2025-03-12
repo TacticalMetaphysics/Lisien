@@ -16,18 +16,17 @@ from time import monotonic
 
 import numpy as np
 from kivy import Logger
-
 from kivy.clock import Clock, mainthread
 from kivy.core.image import Image
 from kivy.graphics import (
+	Color,
+	Fbo,
 	InstructionGroup,
+	Line,
 	PopMatrix,
 	PushMatrix,
 	Rectangle,
 	Translate,
-	Fbo,
-	Color,
-	Line,
 )
 from kivy.graphics.fbo import Fbo
 from kivy.properties import (

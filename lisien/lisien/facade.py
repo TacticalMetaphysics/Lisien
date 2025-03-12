@@ -9,24 +9,24 @@ from typing import Any, Mapping, MutableMapping, MutableSequence, Type
 import networkx as nx
 from blinker import Signal
 
-from lisien.allegedb.cache import (
+from .cache import (
 	Cache,
 	NotInKeyframeError,
 	TotalKeyError,
 	TurnEndDict,
 	TurnEndPlanDict,
+	UnitnessCache,
 )
-from lisien.allegedb.graph import Edge, Node
-from lisien.allegedb.wrap import MutableMappingUnwrapper
-from lisien.cache import UnitnessCache
-from lisien.util import (
+from .graph import Edge, Node
+from .util import (
 	AbstractCharacter,
 	AbstractEngine,
 	AbstractThing,
 	SignalDict,
 	getatt,
 )
-from lisien.xcollections import CompositeDict
+from .wrap import MutableMappingUnwrapper
+from .xcollections import CompositeDict
 
 
 class FacadeEntity(MutableMapping, Signal, ABC):

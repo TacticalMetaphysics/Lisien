@@ -4,9 +4,9 @@ from tempfile import NamedTemporaryFile
 import pytest
 
 import lisien
-from lisien.allegedb import query
+from lisien import query
 
-query.QueryEngine.path = os.path.dirname(lisien.__file__)
+query.SQLAlchemyQueryEngine.path = os.path.dirname(lisien.__file__)
 
 
 @pytest.fixture(scope="function")

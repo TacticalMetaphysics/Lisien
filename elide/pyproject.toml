@@ -7,7 +7,7 @@ include-package-data=true
 
 [project]
 name = "elide"
-version = "0.18.3"
+version = "0.19.0"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -22,7 +22,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"lisien==0.18.3",
+	"lisien==0.19.0",
 	"kivy>=2.0.0,<3",
 	"kivy_garden.collider;python_version<'3.13'",
 	"kivy_garden.collider @ https://github.com/kivy-garden/collider/archive/804cf930ea7d4c21b1c201e82faef3b1518f3bb8.zip#sha1=a17b3bed6f245769296067213e1a88747f33fab1 ;python_version>='3.13'",

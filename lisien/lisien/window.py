@@ -36,6 +36,8 @@ from operator import itemgetter, le, lt
 from threading import RLock
 from typing import Any, Iterable, Union
 
+from lisien.exc import HistoricKeyError
+
 get0 = itemgetter(0)
 get1 = itemgetter(1)
 
@@ -931,11 +933,3 @@ class SettingsTurnDict(WindowDict):
 
 class EntikeySettingsTurnDict(SettingsTurnDict):
 	cls = EntikeyWindowDict
-
-
-class HistoricKeyError(KeyError):
-	"""Distinguishes deleted keys from those that were never set"""
-
-	def __init__(self, *args, deleted=False):
-		super().__init__(*args)
-		self.deleted = deleted
