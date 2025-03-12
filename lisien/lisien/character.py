@@ -726,7 +726,10 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				planning = engine._planning
 				forward = engine._forward
 				branch, turn, start_tick = engine._btt()
-				if start_tick < engine._turn_end_plan[branch, turn]:
+				if (
+					(branch, turn) in engine._turn_end_plan
+					and start_tick < engine._turn_end_plan[branch, turn]
+				):
 					raise RuntimeError(
 						"Tried to update successors in the past"
 					)
