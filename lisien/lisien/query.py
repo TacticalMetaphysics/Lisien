@@ -7641,7 +7641,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		return self._outq.get()
 
 	def call_one(self, string, *args, **kwargs):
-		__doc__ = ConnectionHolder.call_one.__doc__
 		with self._holder.lock:
 			self._inq.put(("one", string, args, kwargs))
 			ret = self._outq.get()
@@ -7650,7 +7649,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		return ret
 
 	def call_many(self, string, args):
-		__doc__ = ConnectionHolder.call_many.__doc__
 		with self._holder.lock:
 			self._inq.put(("many", string, args))
 			ret = self._outq.get()
