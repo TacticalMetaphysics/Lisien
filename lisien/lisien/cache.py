@@ -21,7 +21,7 @@ from sys import getsizeof, stderr
 from threading import RLock
 from typing import Hashable
 
-from .exc import HistoricKeyError
+from .exc import HistoricKeyError, NotInKeyframeError
 from .typing import Key
 from .util import sort_set
 from .window import (
@@ -47,10 +47,6 @@ class SizedDict(OrderedDict):
 			while len(self) > self._n:
 				self.popitem(last=False)
 			super().__setitem__(key, value)
-
-
-class NotInKeyframeError(KeyError):
-	pass
 
 
 def _default_args_munger(self, k):
