@@ -414,12 +414,6 @@ class NextTurn(Signal):
 			raise exc.RulesEngineError(
 				"Can't run the rules engine on any turn but the latest"
 			)
-		if start_turn == latest_turn:
-			# Pre-emptively nudge the loadedness and branch tracking,
-			# so that lisien does not try to load an empty turn before every
-			# loop of the rules engine
-			engine._extend_branch(start_branch, start_turn + 1, 0)
-			engine.turn += 1
 		results = []
 		if hasattr(engine, "_rules_iter"):
 			it = engine._rules_iter
@@ -641,8 +635,10 @@ class Engine(AbstractEngine, Executor):
 			# assumes the present turn in the parent branch has
 			# been finalized.
 			self._start_branch(curbranch, v, self.turn, self.tick)
+			tick = self.tick
+		else:
+			self._otick = tick = self._turn_end_plan[v, curturn]
 		self._obranch = v
-		self._otick = tick = self._turn_end_plan[v, curturn]
 		loaded = self._loaded
 		if branch_is_new:
 			self._copy_plans(curbranch, curturn, curtick)
