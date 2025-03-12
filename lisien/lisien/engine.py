@@ -709,9 +709,8 @@ class Engine(AbstractEngine, Executor):
 			)
 		oldrando = self.universal.get("rando_state")
 		branch = self.branch
-		loaded = self._loaded
 		tick = self._turn_end_plan[branch, v]
-		self._load_at(branch, v, tick)
+		self.load_at(branch, v, tick)
 		self._otick = tick
 		self._oturn = v
 		newrando = self.universal.get("rando_state")
