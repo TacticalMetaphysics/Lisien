@@ -64,6 +64,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.sql.functions import func
 
 from .alchemy import gather_sql, meta
+from .cache import KeyframeError
 from .exc import TimeError
 from .typing import (
 	EdgeRowType,
@@ -8858,8 +8859,8 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 					)
 				)
 			)
-		except StopIteration:
-			raise KeyError("No keyframe", branch, turn, tick)
+		except StopIteration as ex:
+			raise KeyframeError("No keyframe", branch, turn, tick) from ex
 		return (
 			unpack(universal),
 			unpack(rule),
