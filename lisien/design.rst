@@ -98,7 +98,18 @@ value at that time, in that branch. If the branch has no parent -- that
 is, if it's a "trunk" branch -- the value was never set, and a
 ``KeyError`` should be raised.
 
-This is implemented in :keyword:`lisien.cache.Cache._base_retrieve`.
+Keycaches
+=========
+
+Users may want to iterate over all entities in a graph. If we had to go
+through the above process for every entity that had *ever* existed, to
+check if it still does, this would be uselessly slow. So, every time an
+entity is created or deleted in Lisien, it's added to, or removed from,
+a set corresponding to the relevant entity collection.
+
+In fact, since these sets are versioned the same way as facts in
+general, they're actually instances of ``frozenset``. However, unlike
+the other versioned caches, keycaches are not persisted to disk.
 
 *******
  Plans
