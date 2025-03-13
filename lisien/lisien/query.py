@@ -3218,7 +3218,7 @@ class ParquetDBHolder(ConnectionHolder):
 		)
 		if id_ is None:
 			return
-		self._get_db(table).delete([id_.as_py()])
+		self._get_db(table).delete([id_])
 
 	def nodes_del_time(self, branch: str, turn: int, tick: int):
 		self._del_time("nodes", branch, turn, tick)
