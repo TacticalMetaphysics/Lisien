@@ -1,3 +1,8 @@
+from types import SimpleNamespace
+
+from lisien import Engine
+
+
 def test_single_plan(engy):
 	assert engy.turn == 0
 	g = engy.new_digraph("graph")
@@ -32,6 +37,7 @@ def test_single_plan(engy):
 	assert engy.turn == 4
 	assert g.node[2].keys() == {"funny", "clever", "successful"}
 	engy.turn = 2
+	engy.branch = "d"
 	assert g.node[2].keys() == {"clever"}
 	g.node[2]["funny"] = False
 	assert g.node[2].keys() == {"funny", "clever"}
@@ -54,67 +60,74 @@ def test_single_plan(engy):
 	assert 2 in g.node
 
 
-def test_multi_plan(orm):
-	g1 = orm.new_digraph(1)
-	g2 = orm.new_digraph(2)
-	with orm.plan():
+def test_multi_plan(engy):
+	g1 = engy.new_digraph(1)
+	g2 = engy.new_digraph(2)
+	with engy.plan():
 		g1.add_node(1)
 		g1.add_node(2)
-		orm.turn = 1
+		engy.turn = 1
 		g1.add_edge(1, 2)
-	orm.turn = 0
-	with orm.plan():
+	engy.turn = 0
+	with engy.plan():
 		g2.add_node(1)
 		g2.add_node(2)
-		orm.turn = 1
+		engy.turn = 1
 		g2.add_edge(1, 2)
-	orm.turn = 0
+	engy.turn = 0
 	# contradict the plan
-	orm.tick = orm.turn_end_plan()
+	engy.tick = engy.turn_end_plan()
 	del g1.node[2]
 	assert 1 in g2.node
 	assert 2 in g2.node
-	orm.turn = 1
+	engy.turn = 1
 	assert 2 not in g1.node
 	assert 2 not in g1.edge[1]
 	assert 2 in g2.edge[1]
 
 
-def test_plan_vs_plan(orm):
-	g1 = orm.new_digraph(1)
-	with orm.plan():
+def test_plan_vs_plan(engy):
+	g1 = engy.new_digraph(1)
+	with engy.plan():
 		g1.add_node(1)
 		g1.add_node(2)
-		orm.turn = 1
+		engy.turn = 1
 		g1.add_edge(1, 2)
 		g1.add_node(3)
 		g1.add_edge(3, 1)
-	orm.turn = 0
-	with orm.plan():
+	engy.turn = 0
+	with engy.plan():
 		g1.add_node(0)  # not a contradiction, just two plans
 		g1.add_edge(0, 1)
-	orm.turn = 1
+	engy.turn = 1
 	assert 0 in g1.node
 	assert 1 in g1.node
 	assert 2 in g1.node
 	assert 3 in g1.node
 	assert 1 in g1.edge[0]
 	assert 2 in g1.edge[1]
-	orm.turn = 0
-	with orm.plan():
+	engy.turn = 0
+	with engy.plan():
 		del g1.node[2]
-	orm.tick = orm.turn_end_plan()
+	engy.tick = engy.turn_end_plan()
 	assert 2 not in g1.node
-	orm.turn = 2
+	engy.turn = 2
 	assert 3 not in g1.node
 	assert 3 not in g1.adj
 	assert 0 in g1.node
 	assert 1 in g1.adj[0]
 
 
-def test_save_load_plan(tmpdbfile):
-	tmpdbstring = "sqlite:///" + tmpdbfile
-	with allegedb.ORM(tmpdbstring) as orm:
+def test_save_load_plan(tmp_path):
+	with Engine(
+		tmp_path,
+		workers=0,
+		function=SimpleNamespace(),
+		method=SimpleNamespace(),
+		trigger=SimpleNamespace(),
+		prereq=SimpleNamespace(),
+		action=SimpleNamespace(),
+	) as orm:
 		g1 = orm.new_digraph(1)
 		g2 = orm.new_digraph(2)
 		with orm.plan():
@@ -131,7 +144,15 @@ def test_save_load_plan(tmpdbfile):
 			g2.add_edge(1, 2)
 			tick3 = orm.tick
 		orm.turn = 0
-	with allegedb.ORM(tmpdbstring) as orm:
+	with Engine(
+		tmp_path,
+		workers=0,
+		function=SimpleNamespace(),
+		method=SimpleNamespace(),
+		trigger=SimpleNamespace(),
+		prereq=SimpleNamespace(),
+		action=SimpleNamespace(),
+	) as orm:
 		g1 = orm.graph[1]
 		g2 = orm.graph[2]
 		assert 2 in g1.node
@@ -144,7 +165,15 @@ def test_save_load_plan(tmpdbfile):
 		assert 2 not in g1.node
 		assert 2 not in g1.edge[1]
 		assert 2 in g2.edge[1]
-	with allegedb.ORM(tmpdbstring) as orm:
+	with Engine(
+		tmp_path,
+		workers=0,
+		function=SimpleNamespace(),
+		method=SimpleNamespace(),
+		trigger=SimpleNamespace(),
+		prereq=SimpleNamespace(),
+		action=SimpleNamespace(),
+	) as orm:
 		g1 = orm.graph[1]
 		g2 = orm.graph[2]
 		assert 1 in g2.node
