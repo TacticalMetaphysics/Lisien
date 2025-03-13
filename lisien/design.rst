@@ -127,10 +127,11 @@ though. Currently, the only type of paradox it can detect is if
 something's planned to follow a path, but isn't in the right place for
 the next step.
 
-Otherwise, the only difference between planned changes and "real" ones
-is that planned changes happen outside of the "real" window of time,
-which will only grow as a result of calling ``Engine.next_turn()``, thus
-running the rules engine.
+New branches of time cannot be created while planning. Otherwise, the
+only difference between planned changes and "real" ones is that planned
+changes happen outside of the "real" window of time, which will only
+grow as a result of calling ``Engine.next_turn()``, thus running the
+rules engine.
 
 **************
  Rules engine
