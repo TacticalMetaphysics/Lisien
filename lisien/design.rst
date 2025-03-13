@@ -188,6 +188,8 @@ changes will be applied to the world model only after all of the actions
 have run. Doing them all at once lets Lisien use a batch processing mode
 that's faster for big batches. ``big`` is a fact about the world, and
 your rule code may change it, though if the rule in question is
-currently running, it won't apply until the next turn.
+currently running, it won't apply until the next turn. If you want that
+optimization on rare occasion, you can access it within rule code using
+the ``with engine.batch():`` context manager.
 
 .. _lisien may have such a feature some day: <https://codeberg.org/clayote/Lisien/issues/28>
