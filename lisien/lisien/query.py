@@ -64,8 +64,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.sql.functions import func
 
 from .alchemy import gather_sql, meta
-from .cache import KeyframeError
-from .exc import TimeError
+from .exc import TimeError, KeyframeError
 from .typing import (
 	EdgeRowType,
 	EdgeValRowType,

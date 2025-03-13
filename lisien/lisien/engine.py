@@ -65,7 +65,6 @@ from .cache import (
 	EntitylessCache,
 	InitializedCache,
 	InitializedEntitylessCache,
-	KeyframeError,
 	NodeContentsCache,
 	NodeRulesHandledCache,
 	NodesCache,
@@ -84,7 +83,7 @@ from .exc import (
 	GraphNameError,
 	HistoricKeyError,
 	OutOfTimelineError,
-	TimeError,
+	TimeError, KeyframeError,
 )
 from .facade import CharacterFacade
 from .graph import DiGraph, GraphsMapping

@@ -21,7 +21,12 @@ from sys import getsizeof, stderr
 from threading import RLock
 from typing import Hashable
 
-from .exc import HistoricKeyError, NotInKeyframeError
+from .exc import (
+	HistoricKeyError,
+	NotInKeyframeError,
+	KeyframeError,
+	TotalKeyError,
+)
 from .typing import Key
 from .util import sort_set
 from .window import (
@@ -242,18 +247,6 @@ class TurnEndPlanDict(TurnEndDict):
 		else:
 			dict.__setitem__(self.other_d, key, value)
 		dict.__setitem__(self, key, value)
-
-
-class KeyframeError(KeyError):
-	pass
-
-
-class TotalKeyError(KeyError):
-	"""Error class for when a key is totally absent from a cache
-
-	And was not, for instance, set at one point, then deleted later.
-
-	"""
 
 
 class Cache:
