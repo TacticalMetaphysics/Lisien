@@ -231,7 +231,9 @@ Fast
 
 The fast delta is a collection of facts that were set between two times.
 To make it convenient to iterate over *all* facts, they are copied into
-one big global ``TurnDict`` when they are set or loaded.
+one big global ``TurnDict`` when they are set or loaded. Then, to make
+the delta, we take a slice of that global ``TurnDict`` and compile the
+facts in it into a dictionary.
 
 Despite the name, the fast delta is only faster than the slow one when
 the number of facts it needs to use is relatively small. Lisien will
