@@ -3526,8 +3526,9 @@ class Engine(AbstractEngine, Executor):
 				kfl.append((graph, *when))
 		self._graph_cache.set_keyframe(*now, graphs_keyframe)
 
-	def _recurse_delta_keyframes(self, time_from):
+	def _recurse_delta_keyframes(self, branch, turn, tick):
 		"""Make keyframes until we have one in the current branch"""
+		time_from = branch, turn, tick
 		kfd = self._keyframes_dict
 		if time_from[0] in kfd:
 			# could probably avoid these sorts by restructuring kfd
@@ -3546,7 +3547,7 @@ class Engine(AbstractEngine, Executor):
 			return time_from
 		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
-				(parent, branched_turn_from, branched_tick_from)
+				parent, branched_turn_from, branched_tick_from
 			)
 			if (
 				parent,
@@ -4120,7 +4121,7 @@ class Engine(AbstractEngine, Executor):
 					return None
 				else:
 					return self._get_kf(branch, turn, tick)
-			the_kf = self._recurse_delta_keyframes((branch, turn, tick))
+			the_kf = self._recurse_delta_keyframes(branch, turn, tick)
 		if the_kf not in self._keyframes_loaded:
 			self._get_keyframe(*the_kf, silent=True)
 		if the_kf != (branch, turn, tick):
