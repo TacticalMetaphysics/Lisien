@@ -117,6 +117,29 @@ other nodes. Whenever a thing's location changes, it is removed from the
 contents keycache of its former location, and added to that of its new
 one.
 
+***********************
+ Loading and Unloading
+***********************
+
+For convenience, Lisien breaks the timestream into blocks between two
+keyframes; the exception being when the last fact in a branch of time
+occurs after a keyframe, in which case the block includes the final
+keyframe and everything after that.
+
+Upon startup, Lisien looks for the "current time," which is a triple of
+a branch name, a turn number, and a tick number, identifying a point
+within a turn. If present, it's stored in the ``engine.eternal`` keys
+``"branch"``, ``"turn"``, and ``"tick"``, defaulting to the main branch
+(``"trunk"``, unless the user has changed it), ``0``, and ``0``
+respectively. To decide what to load, it looks for the closest keyframe
+at or before the current time, then the keyframe after that, if present.
+It loads the earlier keyframe and all facts up to the later keyframe,
+but does not load that later keyframe.
+
+Whenever Lisien commits its facts to disk, it unloads everything it
+*can* unload, which does not include the block of time containing the
+current time.
+
 *******
  Plans
 *******
