@@ -176,3 +176,15 @@ class HistoricKeyError(KeyError):
 
 class NotInKeyframeError(KeyError):
 	pass
+
+
+class KeyframeError(KeyError):
+	pass
+
+
+class TotalKeyError(KeyError):
+	"""Error class for when a key is totally absent from a cache
+
+	And was not, for instance, set at one point, then deleted later.
+
+	"""
