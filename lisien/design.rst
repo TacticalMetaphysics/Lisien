@@ -111,6 +111,12 @@ In fact, since these sets are versioned the same way as facts in
 general, they're actually instances of ``frozenset``. However, unlike
 the other versioned caches, keycaches are not persisted to disk.
 
+A special keycache is the contents cache, for the case where one node is
+inside another. Nodes may be turned into "things" that are located in
+other nodes. Whenever a thing's location changes, it is removed from the
+contents keycache of its former location, and added to that of its new
+one.
+
 *******
  Plans
 *******
