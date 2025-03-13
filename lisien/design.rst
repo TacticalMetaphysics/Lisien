@@ -146,13 +146,14 @@ specified as collections of Python functions.
 
 Every rule needs at least one action function, which is what the rule
 does, and at least one trigger function, a Boolean function that returns
-``True`` when the rule should run. You can add as many of either as you
-like, and the actions will all be run when *any* of the triggers return
-``True``. For finer control over the conditions the rule runs in, you
-may also add any number of prereq functions, which must *all* return
-``True``, or the rule will not run. All of these types of functions will
-be called with only one argument: the Lisien entity that the rule is
-applied to.
+``True`` when the rule should run. It may be the truth function,
+provided standard in ``engine.trigger.truth``, in which case the rule
+runs every turn. You can add as many of either as you like, and the
+actions will all be run when *any* of the triggers return ``True``. For
+finer control over the conditions the rule runs in, you may also add any
+number of prereq functions, which must *all* return ``True``, or the
+rule will not run. All of these types of functions will be called with
+only one argument: the Lisien entity that the rule is applied to.
 
 By default, trigger functions will be evaluated in parallel. Lisien has
 a process pool, in which worker processes keep copies of the current
