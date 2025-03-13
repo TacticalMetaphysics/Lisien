@@ -192,4 +192,38 @@ currently running, it won't apply until the next turn. If you want that
 optimization on rare occasion, you can access it within rule code using
 the ``with engine.batch():`` context manager.
 
+********
+ Deltas
+********
+
+Lisien has two delta algorithms for computing differences between world
+states. The "slow" delta assumes no knowledge of how the states relate
+to each other, and is therefore used when traveling from one branch of
+time to another. The "fast" delta assumes that one state turned into the
+other, and uses the facts Lisien stores about how that happened. Despite
+the name, the fast delta is only faster than the slow one when the
+number of facts it needs to use is relatively small. Lisien will switch
+to the slow delta if the number of facts it would need for the fast one
+is larger than the gap between keyframes.
+
+Slow
+====
+
+The slow delta operates on two key-value mappings representing two world
+states. First, Python's basic set-difference operations are employed to
+get the keys that were added or deleted. Then, the shared keys are put
+into a list, and their values, kept in order, are put into numpy arrays.
+Actually, the values' memory addresses are put into arrays--serializing
+the values is too slow. So, once we've compared the numpy arrays in
+parallel to find the addresses that differ, we do a normal, serial
+inequality check on the values of differing address before putting them
+in the delta.
+
+Fast
+====
+
+The fast delta is a collection of facts that were set between two times.
+To make it convenient to iterate over *all* facts, they are copied into
+one big global ``TurnDict`` when they are set or loaded.
+
 .. _lisien may have such a feature some day: <https://codeberg.org/clayote/Lisien/issues/28>
