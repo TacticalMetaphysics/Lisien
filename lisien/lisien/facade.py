@@ -1169,7 +1169,7 @@ class EngineFacade(AbstractEngine):
 					real._unitness_cache
 				)
 		else:
-			self._branches = {}
+			self._branches_d = {}
 			self._turn_end_plan = {}
 
 	def _btt(self):
