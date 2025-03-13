@@ -211,11 +211,7 @@ Lisien has two delta algorithms for computing differences between world
 states. The "slow" delta assumes no knowledge of how the states relate
 to each other, and is therefore used when traveling from one branch of
 time to another. The "fast" delta assumes that one state turned into the
-other, and uses the facts Lisien stores about how that happened. Despite
-the name, the fast delta is only faster than the slow one when the
-number of facts it needs to use is relatively small. Lisien will switch
-to the slow delta if the number of facts it would need for the fast one
-is larger than the gap between keyframes.
+other, and uses the facts Lisien stores about how that happened.
 
 Slow
 ====
@@ -236,5 +232,10 @@ Fast
 The fast delta is a collection of facts that were set between two times.
 To make it convenient to iterate over *all* facts, they are copied into
 one big global ``TurnDict`` when they are set or loaded.
+
+Despite the name, the fast delta is only faster than the slow one when
+the number of facts it needs to use is relatively small. Lisien will
+switch to the slow delta if the number of facts it would need for the
+fast one is larger than the gap between keyframes.
 
 .. _lisien may have such a feature some day: <https://codeberg.org/clayote/Lisien/issues/28>
