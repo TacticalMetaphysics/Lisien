@@ -66,6 +66,11 @@ the stacks in a state where the most recent value is on top of the one
 holding past values. Every combination of a branch and a variable has
 its own ``TurnDict``.
 
+To support use in games, Lisien needs a convenient interface for
+expressing things moving around. The user needs to be able to tell an
+entity to find a path to another place, and *follow* it, and Lisien
+needs to take care of that.
+
 So, the algorithm for finding the present effective value of some
 variable is as follows:
 
@@ -96,9 +101,36 @@ is, if it's a "trunk" branch -- the value was never set, and a
 This is implemented in
 :keyword:`lisien.allegedb.cache.Cache._base_retrieve`.
 
-********
- Deltas
-********
+*******
+ Plans
+*******
+
+Keeping the whole history of the game means Lisien is *almost* an
+append-only data store, but there is an exception: plans for future
+changes. For example, in a game like The Sims, when a Sim gets hungry,
+they need to go to the kitchen to prepare a meal. The path to the
+kitchen differs depending on where the Sim is, and what the player has
+done to their house lately, but even if the player has disabled free
+will, the command "go to the kitchen" is still just one order. The user
+should not need to specify the next step the Sim takes every tick of the
+clock.
+
+For this purpose, Lisien keeps track of what spans of time have "really
+happened," but allows the user to manipulate the world state however
+they like after that span--provided they do so within a ``with
+engine.plan():`` block, and thereby accept that things might not go
+according to the plan. Changes within the block get assigned an ID so
+that the user can cancel that whole plan, if they like, and Lisien will
+cancel remaining changes automatically if it detects that they can no
+longer happen. Lisien's understanding of causality is quite limited,
+though. Currently, the only type of paradox it can detect is if
+something's planned to follow a path, but isn't in the right place for
+the next step.
+
+Otherwise, the only difference between planned changes and "real" ones
+is that planned changes happen outside of the "real" window of time,
+which will only grow as a result of calling ``Engine.next_turn()``, thus
+running the rules engine.
 
 **************
  Rules engine
