@@ -83,7 +83,8 @@ from .exc import (
 	GraphNameError,
 	HistoricKeyError,
 	OutOfTimelineError,
-	TimeError, KeyframeError,
+	TimeError,
+	KeyframeError,
 )
 from .facade import CharacterFacade
 from .graph import DiGraph, GraphsMapping
@@ -846,8 +847,14 @@ class Engine(AbstractEngine, Executor):
 		return self.is_ancestor_of(parent, self.branch_parent(child))
 
 	def __getattr__(self, item):
-		meth = getattr(super().__getattribute__("method"), item)
-		return MethodType(meth, self)
+		try:
+			return MethodType(
+				getattr(super().__getattribute__("method"), item), self
+			)
+		except AttributeError:
+			raise AttributeError(
+				"lisien.Engine has no attribute " + repr(item)
+			)
 
 	def __hasattr__(self, item):
 		return hasattr(super().__getattribute__("method"), item)
