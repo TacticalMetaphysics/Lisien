@@ -99,7 +99,7 @@ is, if it's a "trunk" branch -- the value was never set, and a
 ``KeyError`` should be raised.
 
 This is implemented in
-:keyword:`lisien.allegedb.cache.Cache._base_retrieve`.
+:keyword:`lisien.cache.Cache._base_retrieve`.
 
 *******
  Plans
