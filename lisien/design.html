@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Design &#8212; Lisien 0.18.3 documentation</title>
+    <title>Design &#8212; Lisien 0.19.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
-    <script src="../_static/documentation_options.js?v=8dd6f163"></script>
+    <script src="../_static/documentation_options.js?v=cbfb3150"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -35,68 +35,239 @@
             
   <section id="design">
 <span id="id1"></span><h1>Design<a class="headerlink" href="#design" title="Link to this heading">¶</a></h1>
-<p>This document explains what Lisien does under the hood, and how it is structured to accomplish this.
-It may be useful if you wish to modify Lisien, and are having difficulty understanding why huge parts of its
+<p>This document explains what Lisien does under the hood, and how it is
+structured to accomplish this. It may be useful if you wish to modify
+Lisien, and are having difficulty understanding why huge parts of its
 codebase exist.</p>
 <section id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">¶</a></h2>
-<p>Lisien needs a standard data structure for every game world and every game rule. As this is impossible to do for <em>all</em>
-cases, it assumes that game worlds are directed graphs, and game rules are made from snippets of Python code that
-operate on those graphs.</p>
-<p>The world model needs to be streamed in and out of memory as the user travels through time. Each change to the
-model needs to be indexed monotonically–only one change can happen at a time, and they all occur in order (within
-their branch). This is so that it’s easy to identify what to load and unload, as well as to associate changes with
-the rule that caused them, for the benefit of debugging tools like ELiDE’s rule stepper.</p>
-<p>To support use from other processes, potentially in other engines or on other computers, Lisien needs to report
-changes to its world as a result of time travel. This includes the most mundane form of time travel, of playing
-the game at normal speed.</p>
+<p>Lisien needs a standard data structure for every game world and every
+game rule. As this is impossible to do for <em>all</em> cases, it assumes that
+game worlds are directed graphs, and game rules are made from snippets
+of Python code that operate on those graphs.</p>
+<p>The world model needs to be streamed in and out of memory as the user
+travels through time. Each change to the model needs to be indexed
+monotonically–only one change can happen at a time, and they all occur
+in order (within their branch). This is so that it’s easy to identify
+what to load and unload, as well as to associate changes with the rule
+that caused them, for the benefit of debugging tools like ELiDE’s rule
+stepper.</p>
+<p>To support use from other processes, potentially in other engines or on
+other computers, Lisien needs to report changes to its world as a result
+of time travel. This includes the most mundane form of time travel, of
+playing the game at normal speed.</p>
 </section>
 <section id="caching-world-state">
 <h2>Caching world state<a class="headerlink" href="#caching-world-state" title="Link to this heading">¶</a></h2>
 <p>Lisien games start with keyframes and proceed with facts.</p>
-<p>A keyframe is, conceptually, not much different from a traditional save file; it
-describes the complete state of the game world at a given time. Only the very first
-keyframe in a given playthrough is truly necessary. The remainder exist only to make time
-travel performant; they are completely redundant, and can be deleted if they become
-inconvenient.</p>
-<p>Every time something happens in the simulation, it creates a fact at a given time. These are the
-ground truth of what happened during this playthrough. Any keyframe, apart from the first,
-can only reflect facts.</p>
-<p>Time in Lisien is a tree, or several of them–there can be multiple “trunk” branches in the same database.
-The game is simulated in a series of turns, each of which contains new facts in a series of ticks.
-Facts do get stored in a big list, mostly to make it convenient to construct deltas
-describing the difference between two moments in the same branch. When looking up data for
-use in simulation code, a different data structure is used.</p>
-<p><code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.allegedb.window.TurnDict</span></code> holds a variable’s value for each turn in a pair of stacks, which in turn hold
-the basic <code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.allegedb.window.WindowDict</span></code>, a pair of stacks kept in order, used to track the values held by
-some simulated variable over time. Popping from one stack, and appending to the other, is the default way to look up
-the value at a given time; as values are stored in pairs with their tick as the initial item, little mutation is
-needed to get the stacks in a state where the most recent value is on top of the one holding past values. Every
-combination of a branch and a variable has its own <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code>.</p>
-<p>So, the algorithm for finding the present effective value of some variable is as follows:</p>
+<p>A keyframe is, conceptually, not much different from a traditional save
+file; it describes the complete state of the game world at a given time.
+Only the very first keyframe in a given playthrough is truly necessary.
+The remainder exist only to make time travel performant; they are
+completely redundant, and can be deleted if they become inconvenient.</p>
+<p>Every time something happens in the simulation, it creates a fact at a
+given time. These are the ground truth of what happened during this
+playthrough. Any keyframe, apart from the first, can only reflect facts.</p>
+<p>Time in Lisien is a tree, or several of them–there can be multiple
+“trunk” branches in the same database. The game is simulated in a series
+of turns, each of which contains new facts in a series of ticks. Facts
+do get stored in a big list, mostly to make it convenient to construct
+deltas describing the difference between two moments in the same branch.
+When looking up data for use in simulation code, a different data
+structure is used.</p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.allegedb.window.TurnDict</span></code> holds a variable’s value for
+each turn in a pair of stacks, which in turn hold the basic
+<code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.allegedb.window.WindowDict</span></code>, a pair of stacks kept in
+order, used to track the values held by some simulated variable over
+time. Popping from one stack, and appending to the other, is the default
+way to look up the value at a given time; as values are stored in pairs
+with their tick as the initial item, little mutation is needed to get
+the stacks in a state where the most recent value is on top of the one
+holding past values. Every combination of a branch and a variable has
+its own <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code>.</p>
+<p>To support use in games, Lisien needs a convenient interface for
+expressing things moving around. The user needs to be able to tell an
+entity to find a path to another place, and <em>follow</em> it, and Lisien
+needs to take care of that.</p>
+<p>So, the algorithm for finding the present effective value of some
+variable is as follows:</p>
 <ol class="arabic simple">
-<li><p>Find the relevant <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> for the desired branch and variable (generally a couple of plain dictionary lookups)</p></li>
-<li><p>Pop/append that <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> until the “past” stack’s top entry is before or equal to the desired turn,
-and the “future” stack is either empty, or has a top entry for after the desired turn. If the turn
-of the pair on top of the “past” stack is at or after the previous keyframe:</p></li>
-<li><p>Take the <code class="docutils literal notranslate"><span class="pre">WindowDict</span></code> from the top of the <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code>’s “past” stack, and pop/append the “past”
-and “future” stacks as in step 2. If the tick of the pair on top of the “past” stack is strictly
-after the previous keyframe, return the value.</p></li>
+<li><p>Find the relevant <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> for the desired branch and variable
+(generally a couple of plain dictionary lookups)</p></li>
+<li><p>Pop/append that <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> until the “past” stack’s top entry is
+before or equal to the desired turn, and the “future” stack is either
+empty, or has a top entry for after the desired turn. If the turn of
+the pair on top of the “past” stack is at or after the previous
+keyframe:</p></li>
+<li><p>Take the <code class="docutils literal notranslate"><span class="pre">WindowDict</span></code> from the top of the <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code>’s “past”
+stack, and pop/append the “past” and “future” stacks as in step 2. If
+the tick of the pair on top of the “past” stack is strictly after the
+previous keyframe, return the value.</p></li>
 </ol>
-<p>When a keyframe in this branch is more recent than the value in the <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code>,
-but not after the present time, return the value given by the keyframe instead; if absent from the
-keyframe, the value is unset, and a <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> should be raised. If neither a fact nor a keyframe
-value can be found in the current branch, look up the branch’s parent and the time at which
-the branches diverged, and try looking up the value at that time, in that branch. If the branch has
-no parent – that is, if it’s a “trunk” branch – the value was never set, and a <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> should be
-raised.</p>
-<p>This is implemented in <code class="xref std std-keyword docutils literal notranslate"><span class="pre">lisien.allegedb.cache.Cache._base_retrieve</span></code>.</p>
+<p>When a keyframe in this branch is more recent than the value in the
+<code class="docutils literal notranslate"><span class="pre">TurnDict</span></code>, but not after the present time, return the value given by
+the keyframe instead; if absent from the keyframe, the value is unset,
+and a <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> should be raised. If neither a fact nor a keyframe
+value can be found in the current branch, look up the branch’s parent
+and the time at which the branches diverged, and try looking up the
+value at that time, in that branch. If the branch has no parent – that
+is, if it’s a “trunk” branch – the value was never set, and a
+<code class="docutils literal notranslate"><span class="pre">KeyError</span></code> should be raised.</p>
+<section id="keycaches">
+<h3>Keycaches<a class="headerlink" href="#keycaches" title="Link to this heading">¶</a></h3>
+<p>Users may want to iterate over all entities in a graph. If we had to go
+through the above process for every entity that had <em>ever</em> existed, to
+check if it still does, this would be uselessly slow. So, every time an
+entity is created or deleted in Lisien, it’s added to, or removed from,
+a set corresponding to the relevant entity collection.</p>
+<p>In fact, since these sets are versioned the same way as facts in
+general, they’re actually instances of <code class="docutils literal notranslate"><span class="pre">frozenset</span></code>. However, unlike
+the other versioned caches, keycaches are not persisted to disk.</p>
+<p>A special keycache is the contents cache, for the case where one node is
+inside another. Nodes may be turned into “things” that are located in
+other nodes. Whenever a thing’s location changes, it is removed from the
+contents keycache of its former location, and added to that of its new
+one.</p>
 </section>
-<section id="deltas">
-<h2>Deltas<a class="headerlink" href="#deltas" title="Link to this heading">¶</a></h2>
+</section>
+<section id="loading-and-unloading">
+<h2>Loading and Unloading<a class="headerlink" href="#loading-and-unloading" title="Link to this heading">¶</a></h2>
+<p>For convenience, Lisien breaks the timestream into blocks between two
+keyframes; the exception being when the last fact in a branch of time
+occurs after a keyframe, in which case the block includes the final
+keyframe and everything after that.</p>
+<p>Upon startup, Lisien looks for the “current time,” which is a triple of
+a branch name, a turn number, and a tick number, identifying a point
+within a turn. If present, it’s stored in the <code class="docutils literal notranslate"><span class="pre">engine.eternal</span></code> keys
+<code class="docutils literal notranslate"><span class="pre">&quot;branch&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;turn&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;tick&quot;</span></code>, defaulting to the main branch
+(<code class="docutils literal notranslate"><span class="pre">&quot;trunk&quot;</span></code>, unless the user has changed it), <code class="docutils literal notranslate"><span class="pre">0</span></code>, and <code class="docutils literal notranslate"><span class="pre">0</span></code>
+respectively. To decide what to load, it looks for the closest keyframe
+at or before the current time, then the keyframe after that, if present.
+It loads the earlier keyframe and all facts up to the later keyframe,
+but does not load that later keyframe.</p>
+<p>Whenever Lisien commits its facts to disk, it unloads everything it
+<em>can</em> unload, which does not include the block of time containing the
+current time.</p>
+</section>
+<section id="plans">
+<h2>Plans<a class="headerlink" href="#plans" title="Link to this heading">¶</a></h2>
+<p>Keeping the whole history of the game means Lisien is <em>almost</em> an
+append-only data store, but there is an exception: plans for future
+changes. For example, in a game like The Sims, when a Sim gets hungry,
+they need to go to the kitchen to prepare a meal. The path to the
+kitchen differs depending on where the Sim is, and what the player has
+done to their house lately, but even if the player has disabled free
+will, the command “go to the kitchen” is still just one order. The user
+should not need to specify the next step the Sim takes every tick of the
+clock.</p>
+<p>For this purpose, Lisien keeps track of what spans of time have “really
+happened,” but allows the user to manipulate the world state however
+they like after that span–provided they do so within a <code class="docutils literal notranslate"><span class="pre">with</span>
+<span class="pre">engine.plan():</span></code> block, and thereby accept that things might not go
+according to the plan. Changes within the block get assigned an ID so
+that the user can cancel that whole plan, if they like, and Lisien will
+cancel remaining changes automatically if it detects that they can no
+longer happen. Lisien’s understanding of causality is quite limited,
+though. Currently, the only type of paradox it can detect is if
+something’s planned to follow a path, but isn’t in the right place for
+the next step.</p>
+<p>New branches of time cannot be created while planning. Otherwise, the
+only difference between planned changes and “real” ones is that planned
+changes happen outside of the “real” window of time, which will only
+grow as a result of calling <code class="docutils literal notranslate"><span class="pre">engine.next_turn()</span></code>, thus running the
+rules engine.</p>
 </section>
 <section id="rules-engine">
 <h2>Rules engine<a class="headerlink" href="#rules-engine" title="Link to this heading">¶</a></h2>
+<p>Rules engines run specific code in specific conditions. In an Enterprise
+Resource Planning app, a rules engine would be expected to have some
+configuration language–possibly an entire logic language–for
+specifying the rules, enabling algorithms such as Rete to efficiently
+evaluate the conditions. <a class="reference external" href="&lt;https://codeberg.org/clayote/Lisien/issues/28&gt;">Lisien may have such a feature some day</a>,
+but, for maximum flexibility and minimum barrier to entry, rules may be
+specified as collections of Python functions.</p>
+<p>Every rule needs at least one action function, which is what the rule
+does, and at least one trigger function, a Boolean function that returns
+<code class="docutils literal notranslate"><span class="pre">True</span></code> when the rule should run. It may be the truth function,
+provided standard in <code class="docutils literal notranslate"><span class="pre">engine.trigger.truth</span></code>, in which case the rule
+runs every turn. You can add as many of either as you like, and the
+actions will all be run when <em>any</em> of the triggers return <code class="docutils literal notranslate"><span class="pre">True</span></code>. For
+finer control over the conditions the rule runs in, you may also add any
+number of prereq functions, which must <em>all</em> return <code class="docutils literal notranslate"><span class="pre">True</span></code>, or the
+rule will not run. All of these types of functions will be called with
+only one argument: the Lisien entity that the rule is applied to.</p>
+<p>By default, trigger functions will be evaluated in parallel. Lisien has
+a process pool, in which worker processes keep copies of the current
+world state for trigger functions to work with. You can run arbitrary
+code in those processes, too, if you like; <code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.Engine</span></code> is an
+implementation of the standard Python
+<a class="reference external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">concurrent.futures.Executor</span></code></a>. See
+<code class="xref std std-keyword docutils literal notranslate"><span class="pre">lisien.examples.pathfind</span></code> for a demonstration of using the
+process pool to find many paths at once, then having things follow them.</p>
+<p>Prereq functions, however, are always evaluated serially in the core
+Lisien process. This enables them to change the state of the world,
+which normally isn’t recommended, but is necessary if a rule is to have
+a random chance of running; the state of the randomizer is part of the
+world, tracked like any other variable. It’s called <code class="docutils literal notranslate"><span class="pre">&quot;rando_state&quot;</span></code>,
+and you’ll find it in <code class="docutils literal notranslate"><span class="pre">engine.universal</span></code>, a dictionary-like object
+meant for game data that’s not associated with any particular game
+object. (The game’s <em>configuration</em> is not tracked that way, and is held
+in <code class="docutils literal notranslate"><span class="pre">engine.eternal</span></code> instead, which is a simple key-value store,
+persisted to the database.)</p>
+<p>If any trigger function returned <code class="docutils literal notranslate"><span class="pre">True</span></code>, and all prereq functions
+returned <code class="docutils literal notranslate"><span class="pre">True</span></code>, then the action functions will run. Ordinarily, they
+will simply run whatever code you’ve written in them, on whatever Lisien
+entity you’ve given them, but some rules are too big for normal
+execution. If you find that a specific rule is taking too long to run,
+you can speed it up by setting the rule’s <code class="docutils literal notranslate"><span class="pre">big</span></code> property to <code class="docutils literal notranslate"><span class="pre">True</span></code>.
+In that case, the rules engine will replace the Lisien entity with a
+“facade,” which presents the same interface, but records the changes
+made to it, instead of putting them straight into the world model. The
+changes will be applied to the world model only after all of the actions
+have run. Doing them all at once lets Lisien use a batch processing mode
+that’s faster for big batches. <code class="docutils literal notranslate"><span class="pre">big</span></code> is a fact about the world, and
+your rule code may change it, though if the rule in question is
+currently running, it won’t apply until the next turn. If you want that
+optimization on rare occasion, you can access it within rule code using
+the <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">engine.batch():</span></code> context manager.</p>
+</section>
+<section id="deltas">
+<h2>Deltas<a class="headerlink" href="#deltas" title="Link to this heading">¶</a></h2>
+<p>Lisien has two delta algorithms for computing differences between world
+states. The “slow” delta assumes no knowledge of how the states relate
+to each other, and is therefore used when traveling from one branch of
+time to another. The “fast” delta assumes that one state turned into the
+other, and uses the facts Lisien stores about how that happened.</p>
+<section id="slow">
+<h3>Slow<a class="headerlink" href="#slow" title="Link to this heading">¶</a></h3>
+<p>The slow delta operates on two key-value mappings representing two world
+states. First, Python’s basic set-difference operations are employed to
+get the keys that were added or deleted. Then, the shared keys are put
+into a list, and their values, kept in order, are put into numpy arrays.
+Actually, the values’ memory addresses are put into arrays–serializing
+the values is too slow. So, once we’ve compared the numpy arrays in
+parallel to find the addresses that differ, we do a normal, serial
+inequality check on the values of differing address before putting them
+in the delta.</p>
+</section>
+<section id="fast">
+<h3>Fast<a class="headerlink" href="#fast" title="Link to this heading">¶</a></h3>
+<p>The fast delta is a collection of facts that were set between two times.
+To make it convenient to iterate over <em>all</em> facts, they are copied into
+one big global <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> when they are set or loaded. Then, to make
+the delta, we take a slice of that global <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> and compile the
+facts in it into a dictionary.</p>
+<p>Despite the name, the fast delta is only faster than the slow one when
+the number of facts it needs to use is relatively small. Lisien will
+switch to the slow delta if the number of facts it would need for the
+fast one is larger than the gap between keyframes.</p>
+<p>There are currently two implementations of the fast delta, though they
+operate on the same global <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> and should, theoretically, be
+doing the same thing. The simpler one is the “turn delta” and operates
+only on a slice of facts recorded in the same turn, while the “branch
+delta” takes slices of the start and end turns, but the entirety of any
+turn in between.</p>
+</section>
 </section>
 </section>
 
@@ -131,9 +302,18 @@ raised.</p>
 <li class="toctree-l1"><a class="reference internal" href="../manual.html">Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Design</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#caching-world-state">Caching world state</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#deltas">Deltas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#caching-world-state">Caching world state</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#keycaches">Keycaches</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#loading-and-unloading">Loading and Unloading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#plans">Plans</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rules-engine">Rules engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#deltas">Deltas</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#slow">Slow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fast">Fast</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="index.html">engine</a></li>

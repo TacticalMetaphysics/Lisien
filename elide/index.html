@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Elide &#8212; Lisien 0.18.3 documentation</title>
+    <title>Elide &#8212; Lisien 0.19.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
-    <script src="../_static/documentation_options.js?v=8dd6f163"></script>
+    <script src="../_static/documentation_options.js?v=cbfb3150"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -34,38 +34,36 @@
             
   <section id="elide">
 <h1>Elide<a class="headerlink" href="#elide" title="Link to this heading">¶</a></h1>
-<p>The graphical interface, Elide, lets the developer change whatever
-they want about the world. A game made with Elide will be more
-restrictive about what the player is allowed to change, but all of the
-player’s input will be turned into changes to the world, which the
-rules may respond to however they need.</p>
-<p>Elide has three columns. On the right are a lot of buttons to access
-the parts of Elide that aren’t visible right now, plus a couple of
-icons that you can drag into the middle. In the middle, you have a
-graphical display of the Character under consideration; dragging those
-icons here will make a new Place or Thing. To connect Places with
-Portals, press the button with the arrow on it, then drag from one
-Place to another. Press the button again when you’re done. On the left
-is the stat editor: it displays data that is stored in whatever entity
-is presently selected. You can select Places, Things, and Portals by
-clicking them–and once you’ve selected them, you can drag them
-elsewhere. If no Place, Thing, or Portal is selected, then the
-Character you are viewing is selected. There’s a button in the
-top-right to view another Character.</p>
-<p>On the bottom left are some bits to let you manipulate time, mainly
-the Simulate and 1 Turn buttons. Simulate will start moving time
-forward when you press it, and stop when you press it again.  There
-are also text fields with which you can enter the time by hand.  Note
-that rules are only run when you advance time using Simulate or 1
-Turn.  The Tick field indicates how many changes have occurred in the
-current turn.</p>
+<p>The graphical interface, Elide, lets the developer change whatever they
+want about the world. A game made with Elide will be more restrictive
+about what the player is allowed to change, but all of the player’s
+input will be turned into changes to the world, which the rules may
+respond to however they need.</p>
+<p>Elide has three columns. On the right are a lot of buttons to access the
+parts of Elide that aren’t visible right now, plus a couple of icons
+that you can drag into the middle. In the middle, you have a graphical
+display of the Character under consideration; dragging those icons here
+will make a new Place or Thing. To connect Places with Portals, press
+the button with the arrow on it, then drag from one Place to another.
+Press the button again when you’re done. On the left is the stat editor:
+it displays data that is stored in whatever entity is presently
+selected. You can select Places, Things, and Portals by clicking
+them–and once you’ve selected them, you can drag them elsewhere. If no
+Place, Thing, or Portal is selected, then the Character you are viewing
+is selected. There’s a button in the top-right to view another
+Character.</p>
+<p>On the bottom left are some bits to let you manipulate time, mainly the
+Simulate and 1 Turn buttons. Simulate will start moving time forward
+when you press it, and stop when you press it again. There are also text
+fields with which you can enter the time by hand. Note that rules are
+only run when you advance time using Simulate or 1 Turn. The Tick field
+indicates how many changes have occurred in the current turn.</p>
 <div class="toctree-wrapper compound">
 </div>
 <section id="game">
 <h2>game<a class="headerlink" href="#game" title="Link to this heading">¶</a></h2>
 <p>Tools to make it easier to script your own game using the Elide widgets.</p>
-<p>For an example of how to build a game with these, see
-<a class="reference external" href="https://github.com/TacticalMetaphysics/LiSE/blob/main/Elide/Elide/examples/awareness.py">the Awareness sim</a>.</p>
+<p>For an example of how to build a game with these, see <a class="reference external" href="https://github.com/TacticalMetaphysics/LiSE/blob/main/Elide/Elide/examples/awareness.py">the Awareness sim</a>.</p>
 <dl class="py class" id="module-elide.game">
 <dt class="sig sig-object py" id="elide.game.GameApp">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.game.</span></span><span class="sig-name descname"><span class="pre">GameApp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/game.html#GameApp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.game.GameApp" title="Link to this definition">¶</a></dt>
@@ -1330,7 +1328,8 @@ otherwise.</p>
 </section>
 <section id="charmenu">
 <h2>charmenu<a class="headerlink" href="#charmenu" title="Link to this heading">¶</a></h2>
-<p>The menu along the right side of the screen, where you can add things to the character</p>
+<p>The menu along the right side of the screen, where you can add things to
+the character</p>
 <dl class="py class" id="module-elide.charmenu">
 <dt class="sig sig-object py" id="elide.charmenu.CharMenu">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.charmenu.</span></span><span class="sig-name descname"><span class="pre">CharMenu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/charmenu.html#CharMenu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.charmenu.CharMenu" title="Link to this definition">¶</a></dt>
@@ -1510,7 +1509,8 @@ menu will be populated with buttons that say <code class="docutils literal notra
 </section>
 <section id="menu">
 <h2>menu<a class="headerlink" href="#menu" title="Link to this heading">¶</a></h2>
-<p>The menu along the left side of the screen, containing time controls and the stat editor</p>
+<p>The menu along the left side of the screen, containing time controls and
+the stat editor</p>
 <dl class="py class" id="module-elide.menu">
 <dt class="sig sig-object py" id="elide.menu.DirPicker">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.menu.</span></span><span class="sig-name descname"><span class="pre">DirPicker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/menu.html#DirPicker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.menu.DirPicker" title="Link to this definition">¶</a></dt>
@@ -1570,15 +1570,15 @@ working.</p>
 <h2>rulesview<a class="headerlink" href="#rulesview" title="Link to this heading">¶</a></h2>
 <p>Here you can assemble rules out of prewritten functions. First pick
 which rule to edit from the menu on the left, using the box at the
-bottom to add one if needed.  Then go through the trigger, prereq, and
+bottom to add one if needed. Then go through the trigger, prereq, and
 action tabs, and drag the functions from the right pile to the left to
 include them in the rule. You may also reorder them within the left
 pile.</p>
-<p>Rules made here will apply to the entity currently selected in the
-main screen.  There is currently no graphical way to apply the same
-rulebook to many entities.  You can, however, select nothing, in which
-case you get the option to edit rulebooks that apply to the current
-character overall.</p>
+<p>Rules made here will apply to the entity currently selected in the main
+screen. There is currently no graphical way to apply the same rulebook
+to many entities. You can, however, select nothing, in which case you
+get the option to edit rulebooks that apply to the current character
+overall.</p>
 <dl class="py class" id="module-elide.rulesview">
 <dt class="sig sig-object py" id="elide.rulesview.CharacterRulesScreen">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.rulesview.</span></span><span class="sig-name descname"><span class="pre">CharacterRulesScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/rulesview.html#CharacterRulesScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.rulesview.CharacterRulesScreen" title="Link to this definition">¶</a></dt>
@@ -1708,7 +1708,8 @@ as taken by my <code class="docutils literal notranslate"><span class="pre">get_
 </section>
 <section id="spritebuilder">
 <h2>spritebuilder<a class="headerlink" href="#spritebuilder" title="Link to this heading">¶</a></h2>
-<p>A screen to put together a graphic from premade parts for a Place or Thing.</p>
+<p>A screen to put together a graphic from premade parts for a Place or
+Thing.</p>
 <dl class="py class" id="module-elide.spritebuilder">
 <dt class="sig sig-object py" id="elide.spritebuilder.PawnConfigDialog">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.spritebuilder.</span></span><span class="sig-name descname"><span class="pre">PawnConfigDialog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/spritebuilder.html#PawnConfigDialog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.spritebuilder.PawnConfigDialog" title="Link to this definition">¶</a></dt>
@@ -1874,18 +1875,20 @@ toggled, will report the fact to the <a class="reference internal" href="#elide.
 </section>
 <section id="statlist">
 <h2>statlist<a class="headerlink" href="#statlist" title="Link to this heading">¶</a></h2>
-<p>A two-column table of an entity’s stats and their values. You can use this to build a primitive interface to your
-game, or just monitor the state of the world. By default, they are all shown as Readouts, which is to say, plain text.</p>
+<p>A two-column table of an entity’s stats and their values. You can use
+this to build a primitive interface to your game, or just monitor the
+state of the world. By default, they are all shown as Readouts, which is
+to say, plain text.</p>
 <p>By default, stats’ values are displayed as read-only text, but an entity
-with a dictionary stat named <code class="docutils literal notranslate"><span class="pre">&quot;_config&quot;</span></code> may display them other ways by
-setting a key with the same name as the stat to a dictionary value,
+with a dictionary stat named <code class="docutils literal notranslate"><span class="pre">&quot;_config&quot;</span></code> may display them other ways
+by setting a key with the same name as the stat to a dictionary value,
 with its key <code class="docutils literal notranslate"><span class="pre">&quot;control&quot;</span></code> set to one of:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;readout&quot;</span></code> for the default read-only text display.</p></li>
 <li><dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">&quot;textinput&quot;</span></code> for editable text, to be parsed as a Python dictionary,</dt><dd><p>list, tuple, or string. If the content cannot be parsed, it will be
-treated as a string. Surround the content with quotation marks if you
-want to be sure it is a string.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">&quot;textinput&quot;</span></code> for editable text, to be parsed as a Python dictionary,</dt><dd><p>list, tuple, or string. If the content cannot be parsed, it will
+be treated as a string. Surround the content with quotation marks
+if you want to be sure it is a string.</p>
 </dd>
 </dl>
 </li>
@@ -2360,10 +2363,10 @@ editor.</p>
 </section>
 <section id="strings-editor">
 <h3>Strings Editor<a class="headerlink" href="#strings-editor" title="Link to this heading">¶</a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">lisien.Engine</span></code> objects have an attribute <code class="docutils literal notranslate"><span class="pre">string</span></code> that is accessed like a
-dictionary and used to store arbitrary strings, such as might be shown
-in a menu. You can edit those here. You can store strings for multiple
-languages, and switch between them programmatically by setting
+<p><code class="docutils literal notranslate"><span class="pre">lisien.Engine</span></code> objects have an attribute <code class="docutils literal notranslate"><span class="pre">string</span></code> that is accessed
+like a dictionary and used to store arbitrary strings, such as might be
+shown in a menu. You can edit those here. You can store strings for
+multiple languages, and switch between them programmatically by setting
 <code class="docutils literal notranslate"><span class="pre">engine.string.language</span></code>.</p>
 </section>
 </section>
@@ -2463,7 +2466,7 @@ aren’t the same.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="elide.app.ELiDEApp.start_subprocess">
-<span class="sig-name descname"><span class="pre">start_subprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/app.html#ELiDEApp.start_subprocess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.app.ELiDEApp.start_subprocess" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">start_subprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/app.html#ELiDEApp.start_subprocess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.app.ELiDEApp.start_subprocess" title="Link to this definition">¶</a></dt>
 <dd><p>Start the lisien core and get a proxy to it</p>
 <p>Must be called before <code class="docutils literal notranslate"><span class="pre">init_board</span></code></p>
 </dd></dl>
@@ -2501,7 +2504,7 @@ set the title in the class as previously stated in the documentation.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="elide.app.ELiDEApp.trigger_start_subprocess">
-<span class="sig-name descname"><span class="pre">trigger_start_subprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#elide.app.ELiDEApp.trigger_start_subprocess" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">trigger_start_subprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#elide.app.ELiDEApp.trigger_start_subprocess" title="Link to this definition">¶</a></dt>
 <dd><p>Start the lisien core and get a proxy to it</p>
 <p>Must be called before <code class="docutils literal notranslate"><span class="pre">init_board</span></code></p>
 </dd></dl>
