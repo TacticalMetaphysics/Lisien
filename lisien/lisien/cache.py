@@ -2235,8 +2235,31 @@ class PortalsRulebooksCache(InitializedCache):
 			destrbs[dest] = rb
 		except KeyError:
 			destrbs = {dest: rb}
-		super().store(char, orig, dest, branch, turn, tick, rb)
-		super().store(char, orig, branch, turn, tick, destrbs)
+		super().store(
+			char,
+			orig,
+			dest,
+			branch,
+			turn,
+			tick,
+			rb,
+			loading=loading,
+			contra=contra,
+			forward=forward,
+			planning=planning,
+		)
+		super().store(
+			char,
+			orig,
+			branch,
+			turn,
+			tick,
+			destrbs,
+			loading=loading,
+			contra=contra,
+			forward=forward,
+			planning=planning,
+		)
 
 	def set_keyframe(
 		self,
