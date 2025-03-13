@@ -2968,11 +2968,9 @@ class Engine(AbstractEngine, Executor):
 		plan_ticks = self._plan_ticks
 		time_plan = self._time_plan
 		turn_end_plan = self._turn_end_plan
-		extend_branch = self._extend_branch
 		for plan, turn, tick in q.plan_ticks_dump():
 			plan_ticks[plan][turn].append(tick)
 			branch = plans[plan][0]
-			extend_branch(branch, turn, tick)
 			turn_end_plan[branch, turn] = max(
 				(turn_end_plan[branch, turn], tick)
 			)
