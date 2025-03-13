@@ -98,8 +98,7 @@ value at that time, in that branch. If the branch has no parent -- that
 is, if it's a "trunk" branch -- the value was never set, and a
 ``KeyError`` should be raised.
 
-This is implemented in
-:keyword:`lisien.cache.Cache._base_retrieve`.
+This is implemented in :keyword:`lisien.cache.Cache._base_retrieve`.
 
 *******
  Plans
@@ -136,3 +135,58 @@ rules engine.
 **************
  Rules engine
 **************
+
+Rules engines run specific code in specific conditions. In an Enterprise
+Resource Planning app, a rules engine would be expected to have some
+configuration language--possibly an entire logic language--for
+specifying the rules, enabling algorithms such as Rete to efficiently
+evaluate the conditions. `Lisien may have such a feature some day`_,
+but, for maximum flexibility and minimum barrier to entry, rules may be
+specified as collections of Python functions.
+
+Every rule needs at least one action function, which is what the rule
+does, and at least one trigger function, a Boolean function that returns
+``True`` when the rule should run. You can add as many of either as you
+like, and the actions will all be run when *any* of the triggers return
+``True``. For finer control over the conditions the rule runs in, you
+may also add any number of prereq functions, which must *all* return
+``True``, or the rule will not run. All of these types of functions will
+be called with only one argument: the Lisien entity that the rule is
+applied to.
+
+By default, trigger functions will be evaluated in parallel. Lisien has
+a process pool, in which worker processes keep copies of the current
+world state for trigger functions to work with. You can run arbitrary
+code in those processes, too, if you like; :class:`lisien.Engine` is an
+implementation of the standard Python
+:class:`concurrent.futures.Executor`. See
+:keyword:`lisien.examples.pathfind` for a demonstration of using the
+process pool to find many paths at once, then having things follow them.
+
+Prereq functions, however, are always evaluated serially in the core
+Lisien process. This enables them to change the state of the world,
+which normally isn't recommended, but is necessary if a rule is to have
+a random chance of running; the state of the randomizer is part of the
+world, tracked like any other variable. It's called ``"rando_state"``,
+and you'll find it in ``engine.universal``, a dictionary-like object
+meant for game data that's not associated with any particular game
+object. (The game's *configuration* is not tracked that way, and is held
+in ``engine.eternal`` instead, which is a simple key-value store,
+persisted to the database.)
+
+If any trigger function returned ``True``, and all prereq functions
+returned ``True``, then the action functions will run. Ordinarily, they
+will simply run whatever code you've written in them, on whatever Lisien
+entity you've given them, but some rules are too big for normal
+execution. If you find that a specific rule is taking too long to run,
+you can speed it up by setting the rule's ``big`` property to ``True``.
+In that case, the rules engine will replace the Lisien entity with a
+"facade," which presents the same interface, but records the changes
+made to it, instead of putting them straight into the world model. The
+changes will be applied to the world model only after all of the actions
+have run. Doing them all at once lets Lisien use a batch processing mode
+that's faster for big batches. ``big`` is a fact about the world, and
+your rule code may change it, though if the rule in question is
+currently running, it won't apply until the next turn.
+
+.. _lisien may have such a feature some day: <https://codeberg.org/clayote/Lisien/issues/28>
