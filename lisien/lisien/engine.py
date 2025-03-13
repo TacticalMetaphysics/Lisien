@@ -3542,28 +3542,7 @@ class Engine(AbstractEngine, Executor):
 			self._branches_d[time_from[0]]
 		)
 		if parent is None:
-			if time_from not in self._keyframes_times:
-				if (
-					time_from[0],
-					branched_turn_from,
-					branched_tick_from,
-				) in self._keyframes_times:
-					self._get_keyframe(
-						time_from[0], branched_turn_from, branched_tick_from
-					)
-					self._snap_keyframe_from_delta(
-						(time_from[0], branched_turn_from, branched_tick_from),
-						(time_from[0], turn_to, tick_to),
-						self._get_branch_delta(
-							time_from[0],
-							branched_turn_from,
-							branched_tick_from,
-							turn_to,
-							tick_to,
-						),
-					)
-				else:
-					self._snap_keyframe_de_novo(*time_from)
+			self._snap_keyframe_de_novo(*time_from)
 			return time_from
 		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
