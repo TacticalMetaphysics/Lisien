@@ -3413,7 +3413,9 @@ class EngineProxy(AbstractEngine):
 			cb=partial(self._upd_and_cb, cb),
 		)
 
-	def _add_character(self, char, data=None, **attr):
+	def _add_character(
+		self, char, data: tuple | dict | nx.Graph = None, **attr
+	):
 		if char in self._char_cache:
 			raise KeyError("Character already exists")
 		if data is None:
@@ -3428,7 +3430,15 @@ class EngineProxy(AbstractEngine):
 				},
 				"edge": data._adj,
 			}
-		else:
+		elif isinstance(data, tuple):
+			nodes, edges, graph_val = data
+			data = graph_val.copy()
+			data["place"] = {
+				k: v for k, v in nodes.items() if "location" not in v
+			}
+			data["thing"] = {k: v for k, v in nodes.items() if "location" in v}
+			data["edge"] = edges
+		elif not isinstance(data, dict):
 			raise TypeError(
 				f"Can't make a character out of {type(data)}", data
 			)
