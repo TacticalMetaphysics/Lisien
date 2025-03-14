@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 
-from typing import Any, Self
+from typing import Any
 
 
 class Key(Hashable):
@@ -13,10 +13,10 @@ class Key(Hashable):
 
 	"""
 
-	def __new__(cls, that: Self) -> Self:
+	def __new__(cls, that):
 		return that
 
-	def __instancecheck__(cls, instance: Self) -> bool:
+	def __instancecheck__(cls, instance) -> bool:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
