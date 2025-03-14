@@ -2250,7 +2250,8 @@ class Engine(AbstractEngine, Executor):
 		self._load_graphs()
 		assert hasattr(self, "graph")
 		self._load_plans()
-		self.load_at(*self._btt())
+		with garbage():
+			self._load(*self._read_at(*self._btt()))
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
 		self._rulebooks_cache.setdb = self.query.rulebook_set
