@@ -2179,6 +2179,9 @@ class Engine(AbstractEngine, Executor):
 		self._nodes_cache.deldb = self.query.nodes_del_time
 		self._graph_val_cache.setdb = self.query.graph_val_set
 		self._graph_val_cache.deldb = self.query.graph_val_del_time
+		self._things_cache.setdb = self.query.set_thing_loc
+		self._universal_cache.setdb = self.query.universal_set
+		self._rulebooks_cache.setdb = self.query.rulebook_set
 		self._keyframes_list = []
 		self._keyframes_dict = PickyDefaultDict(WindowDict)
 		self._keyframes_times = set()
@@ -2254,9 +2257,6 @@ class Engine(AbstractEngine, Executor):
 		self._load_plans()
 		with garbage():
 			self._load(*self._read_at(*self._btt()))
-		self._things_cache.setdb = self.query.set_thing_loc
-		self._universal_cache.setdb = self.query.universal_set
-		self._rulebooks_cache.setdb = self.query.rulebook_set
 		if hasattr(self, "_string_prefix"):
 			self.string = StringStore(
 				self.query,
