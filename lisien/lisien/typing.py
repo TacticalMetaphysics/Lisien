@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 
-from typing import Any, runtime_checkable, Protocol, Self
+from typing import Any, Self
 
 
-@runtime_checkable
-class Key(Protocol):
+class Key(Hashable):
 	"""Type hint for things lisien can use as keys
 
 	They have to be serializable using lisien's particular msgpack schema,
