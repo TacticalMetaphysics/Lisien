@@ -29,7 +29,7 @@ from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
-from functools import partial, wraps
+from functools import partial, wraps, cached_property
 from itertools import chain, pairwise
 from multiprocessing import Pipe, Process, Queue
 from operator import itemgetter
@@ -2073,6 +2073,11 @@ class Engine(AbstractEngine, Executor):
 			self._edge_val_cache,
 		]
 
+	@cached_property
+	def world_lock(self):
+		return RLock()
+
+	@world_locked
 	def __init__(
 		self,
 		prefix: PathLike | str = ".",
@@ -2099,7 +2104,6 @@ class Engine(AbstractEngine, Executor):
 		threaded_triggers: bool = None,
 		workers: int = None,
 	):
-		self.world_lock = RLock()
 		connect_args = connect_args or {}
 		self._planning = False
 		self._forward = False
