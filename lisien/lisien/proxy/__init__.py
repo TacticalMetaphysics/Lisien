@@ -3418,8 +3418,7 @@ class EngineProxy(AbstractEngine):
 			raise KeyError("Character already exists")
 		if data is None:
 			data = {}
-		if not isinstance(data, dict):
-			# it's a networkx graph
+		if isinstance(data, nx.Graph):
 			data = {
 				"place": {
 					k: v for k, v in data._node.items() if "location" not in v
@@ -3429,6 +3428,10 @@ class EngineProxy(AbstractEngine):
 				},
 				"edge": data._adj,
 			}
+		else:
+			raise TypeError(
+				f"Can't make a character out of {type(data)}", data
+			)
 		self._char_cache[char] = character = CharacterProxy(self, char)
 		self._char_stat_cache[char] = attr
 		placedata = data.get("place", data.get("node", {}))
