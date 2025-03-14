@@ -699,7 +699,10 @@ class Engine(AbstractEngine, Executor):
 			raise ValueError("Can't time travel backward in a forward context")
 		oldrando = self.universal.get("rando_state")
 		branch = self.branch
-		tick = self._turn_end_plan[branch, v]
+		if self._planning:
+			tick = self._turn_end_plan[branch, v]
+		else:
+			tick = self._turn_end[branch, v]
 		self.load_at(branch, v, tick)
 		self._otick = tick
 		self._oturn = v
