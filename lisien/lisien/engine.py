@@ -5157,7 +5157,11 @@ class Engine(AbstractEngine, Executor):
 			self._keyframe_on_close
 			and self._btt() not in self._keyframes_times
 		):
+			tick_was = self.tick
+			if self.tick > self.turn_end():
+				self.tick = self.turn_end()
 			self.snap_keyframe(silent=True, update_worker_processes=False)
+			self.tick = tick_was
 		for store in self.stores:
 			if hasattr(store, "save"):
 				store.save(reimport=False)
