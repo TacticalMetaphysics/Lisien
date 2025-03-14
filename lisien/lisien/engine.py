@@ -2160,8 +2160,6 @@ class Engine(AbstractEngine, Executor):
 					os.remove(fn)
 		self.schema = schema_cls(self)
 		self._init_caches()
-		if hasattr(self, "_post_init_cache_hook"):
-			self._post_init_cache_hook()
 		if not hasattr(self, "query"):
 			self.query = self.query_engine_cls(
 				connect_string,
