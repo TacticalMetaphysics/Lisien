@@ -44,7 +44,13 @@ from random import Random
 from textwrap import dedent
 from time import monotonic
 from types import FunctionType, MethodType
-from typing import Any, Callable, Hashable, Iterable, Union
+from typing import (
+	Any,
+	Callable,
+	Hashable,
+	Iterable,
+	Union,
+)
 
 import msgpack
 import networkx as nx
@@ -54,18 +60,6 @@ from tblib import Traceback
 
 from . import exc
 from .graph import DiGraph, Edge, Node
-from .typing import Key
-
-
-class KeyClass:
-	def __new__(cls, that: Key) -> Key:
-		return that
-
-	def __instancecheck__(cls, instance: Key) -> bool:
-		return isinstance(instance, (str, int, float)) or (
-			(isinstance(instance, tuple) or isinstance(instance, frozenset))
-			and all(isinstance(elem, cls) for elem in instance)
-		)
 
 
 class SignalDict(Signal, dict):

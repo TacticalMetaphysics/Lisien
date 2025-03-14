@@ -1,14 +1,29 @@
+from __future__ import annotations
+
 from collections.abc import Hashable
 
-from typing import Any
+from typing import Any, runtime_checkable, Protocol, Self
 
-Key = str | int | float | tuple["Key", ...] | frozenset["Key"]
-"""Type hint for things lisien can use as keys
 
-They have to be serializable using lisien's particular msgpack schema,
-as well as hashable.
+@runtime_checkable
+class Key(Protocol):
+	"""Type hint for things lisien can use as keys
 
-"""
+	They have to be serializable using lisien's particular msgpack schema,
+	as well as hashable.
+
+	"""
+
+	def __new__(cls, that: Self) -> Self:
+		return that
+
+	def __instancecheck__(cls, instance: Self) -> bool:
+		return isinstance(instance, (str, int, float)) or (
+			(isinstance(instance, tuple) or isinstance(instance, frozenset))
+			and all(isinstance(elem, cls) for elem in instance)
+		)
+
+
 NodeRowType = tuple[Hashable, Hashable, str, int, int, bool]
 EdgeRowType = tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
 GraphValRowType = tuple[Hashable, Hashable, str, int, int, Any]
