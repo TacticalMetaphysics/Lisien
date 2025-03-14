@@ -4086,6 +4086,8 @@ class Engine(AbstractEngine, Executor):
 			if silent:
 				return None
 			return self._get_keyframe(branch, turn, tick)
+		if not (self.branch_start() <= (turn, tick) <= self.branch_end()):
+			raise OutOfTimelineError("Don't snap keyframes in plans")
 		kfd = self._keyframes_dict
 		the_kf: tuple[str, int, int] = None
 		if branch in kfd:
