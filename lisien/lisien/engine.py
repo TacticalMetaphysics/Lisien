@@ -2675,22 +2675,6 @@ class Engine(AbstractEngine, Executor):
 		if with_fork_points:
 			yield b1, r1, t1
 
-	def _load_graphs(self):
-		self.graph = GraphsMapping(self)
-		for graph, branch, turn, tick, typ in self.query.graphs_dump():
-			self._graph_cache.store(
-				graph,
-				branch,
-				turn,
-				tick,
-				(typ if typ != "Deleted" else None),
-			)
-			if typ not in {"DiGraph", "Deleted"}:
-				raise NotImplementedError("Only DiGraph for now")
-			# still create object for deleted graphs, in case you time travel
-			# to when they existed
-			self._graph_objs[graph] = DiGraph(self, graph)
-
 	def _has_graph(self, graph, branch=None, turn=None, tick=None):
 		if branch is None:
 			branch = self.branch
