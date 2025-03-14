@@ -2210,6 +2210,9 @@ class Engine(AbstractEngine, Executor):
 			)
 			self._upd_branch_parentage(parent, branch)
 		for branch, turn, end_tick, plan_end_tick in self.query.turns_dump():
+			self._turn_end[branch, turn] = max(
+				self._turn_end[branch, turn], end_tick
+			)
 			self._turn_end_plan[branch, turn] = max(
 				(self._turn_end_plan[branch, turn], plan_end_tick)
 			)
