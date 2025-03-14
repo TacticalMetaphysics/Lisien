@@ -155,15 +155,24 @@ def test_save_load_plan(tmp_path):
 	) as orm:
 		g1 = orm.graph[1]
 		g2 = orm.graph[2]
+		assert 2 not in g1.node  # because we're before the plan
+		# but if we go to after the plan...
+		orm.tick = orm.turn_end_plan()
+		assert 1 in g1.node
 		assert 2 in g1.node
 		# contradict the plan
-		orm.turn = 0
 		del g1.node[2]
 		assert 1 in g2.node
 		assert 2 in g2.node
-		orm.turn = 1
+		orm.next_turn()
+		assert orm.turn == 1
 		assert 2 not in g1.node
 		assert 2 not in g1.edge[1]
+		# but, since the stuff that happened in g2 was in a different plan,
+		# it still happens
+		orm.next_turn()
+		assert 1 in g2.node
+		assert 2 in g2.node
 		assert 2 in g2.edge[1]
 	with Engine(
 		tmp_path,
@@ -181,12 +190,6 @@ def test_save_load_plan(tmp_path):
 		orm.turn = 1
 		assert 2 not in g1.node
 		assert 2 not in g1.edge[1]
-		assert 2 in g2.edge[1]
-		orm.tick = tick3
-		assert 2 in g2.edge[1]
-		orm.turn = 0
-		while 2 in g2.node:
-			orm.tick -= 1
-		g2.add_node(2)  # contradict plan
-		orm.turn = 0  # end of turn
 		assert 2 not in g2.edge[1]
+		orm.turn = 2
+		assert 2 in g2.edge[1]
