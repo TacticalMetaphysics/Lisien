@@ -1741,15 +1741,17 @@ class ParquetDBHolder(ConnectionHolder):
 		id_ = self.field_get_id("branches", "branch", branch)
 		if id_ is None:
 			raise KeyError(f"No branch: {branch}")
-		return self._get_db("branch").update(
-			{
-				"id": id_,
-				"parent": parent,
-				"parent_turn": parent_turn,
-				"parent_tick": parent_tick,
-				"end_turn": end_turn,
-				"end_tick": end_tick,
-			},
+		self._get_db("branches").update(
+			[
+				{
+					"id": id_,
+					"parent": parent,
+					"parent_turn": parent_turn,
+					"parent_tick": parent_tick,
+					"end_turn": end_turn,
+					"end_tick": end_tick,
+				}
+			],
 		)
 
 	def set_branch(
