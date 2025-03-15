@@ -285,13 +285,11 @@ class Node(AbstractEntityMapping):
 
 	def __repr__(self):
 		return "{}(graph={}, node={})".format(
-			self.__class__.__name__, self.graph, self.node
+			self.__class__.__name__, repr(self.graph), repr(self.node)
 		)
 
 	def __str__(self):
-		return "{}(graph={}, node={}, data={})".format(
-			self.__class__.__name__, self.graph, self.node, repr(dict(self))
-		)
+		return f"Node of class {self.__class__.__name__} with stats {dict(self)}"
 
 	def __iter__(self):
 		iter_entity_keys, graphn, node, btt = self._iter_stuff
