@@ -403,20 +403,6 @@ class FacadeNode(FacadeEntity, Node):
 			return self.name
 		return super().__getitem__(item)
 
-	def __eq__(self, other):
-		if not callable(getattr(other, "keys")):
-			return False
-		if not hasattr(other, "name"):
-			return False
-		if self.name != other.name:
-			return False
-		if set(self.keys()) != set(other.keys()):
-			return False
-		for key in self:
-			if self[key] != other[key]:
-				return False
-		return True
-
 	@property
 	def content(self):
 		return self.FacadeNodeContent(self)
