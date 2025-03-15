@@ -87,6 +87,7 @@ def test_multi_plan(engy):
 	assert 1 in g2.node
 	assert 2 in g2.node
 	engy.turn = 1
+	engy.tick = engy.turn_end_plan()
 	assert 2 not in g1.node
 	assert 2 not in g1.edge[1]
 	assert 2 in g2.edge[1]
