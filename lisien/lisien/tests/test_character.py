@@ -157,7 +157,6 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 			for k, vv in v.items():
 				set_in_mapping(me, k, vv)
 		else:
-			v["name"] = node
 			end_places[node] = v
 			me = char.new_node(node)
 			for k, vv in v.items():
