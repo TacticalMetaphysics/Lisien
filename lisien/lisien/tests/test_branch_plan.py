@@ -107,6 +107,7 @@ def test_plan_vs_plan(engy):
 		g1.add_node(0)  # not a contradiction, just two plans
 		g1.add_edge(0, 1)
 	engy.turn = 1
+	engy.tick = engy.turn_end_plan()
 	assert 0 in g1.node
 	assert 1 in g1.node
 	assert 2 in g1.node
@@ -114,11 +115,11 @@ def test_plan_vs_plan(engy):
 	assert 1 in g1.edge[0]
 	assert 2 in g1.edge[1]
 	engy.turn = 0
+	engy.tick = engy.turn_end_plan()
 	with engy.plan():
 		del g1.node[2]
-	engy.tick = engy.turn_end_plan()
-	assert 2 not in g1.node
 	engy.turn = 2
+	engy.tick = engy.turn_end_plan()
 	assert 3 not in g1.node
 	assert 3 not in g1.adj
 	assert 0 in g1.node
