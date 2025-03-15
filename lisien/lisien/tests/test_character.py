@@ -222,13 +222,15 @@ def test_char_creation(
 		assert char.stat == stat
 
 
-@pytest.mark.parametrize(
-	["name", "data", "stat", "nodestat", "statup", "nodeup", "edgeup"],
-	CHAR_DATA,
-)
+@pytest.fixture(params=CHAR_DATA)
+def char_data(request):
+	return request.param
+
+
 def test_facade_creation(
-	tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup
+	tmpdir, char_data
 ):
+	name, data, stat, nodestat, statup, nodeup, edgeup = char_data
 	with Engine(tmpdir) as eng:
 		char = eng.new_character(name, data, **stat)
 		fac = char.facade()
