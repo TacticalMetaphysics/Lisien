@@ -362,7 +362,6 @@ class Node(graph.Node, rule.RuleFollower):
 
 	__slots__ = ("_real_rule_mapping",)
 	character = getatt("graph")
-	name = getatt("node")
 	no_unwrap = True
 	_extra_keys = {
 		"name",

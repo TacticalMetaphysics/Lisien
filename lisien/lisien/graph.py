@@ -249,7 +249,7 @@ class Node(AbstractEntityMapping):
 
 	__slots__ = (
 		"graph",
-		"node",
+		"name",
 		"db",
 		"__weakref__",
 		"_iter_stuff",
@@ -267,7 +267,7 @@ class Node(AbstractEntityMapping):
 		"""Store name and graph"""
 		super().__init__()
 		self.graph = graph
-		self.node = node
+		self.name = node
 		self.db = db = graph.db
 		node_val_cache = db._node_val_cache
 		graphn = graph.name
@@ -284,12 +284,12 @@ class Node(AbstractEntityMapping):
 		self._set_cache_stuff = (db._node_val_cache.store, graphn, node)
 
 	def __repr__(self):
-		return "{}(graph={}, node={})".format(
-			self.__class__.__name__, repr(self.graph), repr(self.node)
+		return "{}(graph={}, name={})".format(
+			self.__class__.__name__, repr(self.graph), repr(self.name)
 		)
 
 	def __str__(self):
-		return f"Node of class {self.__class__.__name__} with stats {dict(self)}"
+		return f"Node of class {self.__class__.__name__} named {self.name}with stats {dict(self)}"
 
 	def __iter__(self):
 		iter_entity_keys, graphn, node, btt = self._iter_stuff
@@ -316,9 +316,22 @@ class Node(AbstractEntityMapping):
 		store(graphn, node, key, branch, turn, tick, value)
 
 	def __eq__(self, other):
-		if not isinstance(other, type(self)):
+		if not hasattr(other, "keys") or not callable(other.keys):
 			return False
-		return dict(self) == dict(other)
+		if not hasattr(other, "name"):
+			return False
+		if self.name != other.name:
+			return False
+		if not hasattr(other, "graph"):
+			return False
+		if self.graph.name != other.graph.name:
+			return False
+		if self.keys() != other.keys():
+			return False
+		for key in self:
+			if self[key] != other[key]:
+				return False
+		return True
 
 
 class Edge(AbstractEntityMapping):
