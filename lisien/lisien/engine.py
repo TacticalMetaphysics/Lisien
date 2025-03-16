@@ -3211,9 +3211,9 @@ class Engine(AbstractEngine, Executor):
 		nbrs = self._neighborhoods_cache.get_keyframe(b, r, t, copy=True)
 		bigs = self._rule_bigness_cache.get_keyframe(b, r, t, copy=True)
 		for rule, funcs in delta.pop("rules", {}).items():
-			trigs[rule] = funcs.get("triggers", trigs.get(rule, ()))
-			preqs[rule] = funcs.get("prereqs", preqs.get(rule, ()))
-			acts[rule] = funcs.get("actions", acts.get(rule, ()))
+			trigs[rule] = funcs.get("triggers", trigs.get(rule, []))
+			preqs[rule] = funcs.get("prereqs", preqs.get(rule, []))
+			acts[rule] = funcs.get("actions", acts.get(rule, []))
 			if "neighborhood" in funcs:
 				nbrs[rule] = funcs["neighborhood"]
 			if "big" in funcs:
