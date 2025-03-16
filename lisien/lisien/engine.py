@@ -3555,6 +3555,15 @@ class Engine(AbstractEngine, Executor):
 			self._branches_d[time_from[0]]
 		)
 		if parent is None:
+			if (branch, branched_turn_from, branched_tick_from) in self._keyframes_times:
+				self._get_keyframe(branch, branched_turn_from, branched_tick_from, silent=True)
+				return branch, branched_turn_from, branched_tick_from
+			elif branch in self._keyframes_dict:
+				for r in sorted(self._keyframes_dict[branch], reverse=True):
+					if r <= turn:
+						t = max(self._keyframes_dict[branch][r])
+						self._get_keyframe(branch, r, t, silent=True)
+						return branch, r, t
 			self._snap_keyframe_de_novo(*time_from)
 			return time_from
 		else:
