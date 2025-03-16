@@ -2415,13 +2415,13 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick
 		)
 		self._universal_cache.set_keyframe(branch, turn, tick, univ)
-		self._triggers_cache.set_keyframe(branch, turn, tick, rule["triggers"])
-		self._prereqs_cache.set_keyframe(branch, turn, tick, rule["prereqs"])
-		self._actions_cache.set_keyframe(branch, turn, tick, rule["actions"])
+		self._triggers_cache.set_keyframe(branch, turn, tick, rule.get("triggers", {}))
+		self._prereqs_cache.set_keyframe(branch, turn, tick, rule.get("prereqs", {}))
+		self._actions_cache.set_keyframe(branch, turn, tick, rule.get("actions", {}))
 		self._neighborhoods_cache.set_keyframe(
 			branch, turn, tick, rule.get("neighborhood", {})
 		)
-		self._rule_bigness_cache.set_keyframe(branch, turn, tick, rule["big"])
+		self._rule_bigness_cache.set_keyframe(branch, turn, tick, rule.get("big", {}))
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rulebook)
 		with (
 			self.batch()
