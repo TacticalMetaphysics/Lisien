@@ -77,7 +77,7 @@ from .util import EntityStatAccessor, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 NONE = msgpack.packb(None)
-
+EMPTY = msgpack.packb({})
 
 class GlobalKeyValueStore(MutableMapping):
 	"""A dict-like object that keeps its contents in a table.
@@ -3814,7 +3814,7 @@ class ParquetDBHolder(ConnectionHolder):
 			]
 		)
 		if not data:
-			return None
+			return EMPTY, EMPTY, EMPTY
 		return (
 			data["universal"][0].as_py(),
 			data["rule"][0].as_py(),
