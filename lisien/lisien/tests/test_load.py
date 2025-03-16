@@ -228,7 +228,7 @@ def test_keyframe_unload(tmp_path):
 		orm.branch = "u"
 		del g.node[1, 2]
 		orm.unload()
-	with Engine(tmp_path) as orm:
+	with Engine(tmp_path, workers=0) as orm:
 		assert orm.branch == "u"
 		assert (
 			("g", (1, 1), (1, 2)) not in orm._edges_cache.keyframe
