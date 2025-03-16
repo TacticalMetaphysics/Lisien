@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Hashable
-
 from typing import Any
 
 Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
-NodeRowType = tuple[Hashable, Hashable, str, int, int, bool]
-EdgeRowType = tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
-GraphValRowType = tuple[Hashable, Hashable, str, int, int, Any]
-NodeValRowType = tuple[Hashable, Hashable, Hashable, str, int, int, Any]
-EdgeValRowType = tuple[Hashable, Hashable, Hashable, int, str, int, int, Any]
+NodeRowType = tuple[Key, Key, str, int, int, bool]
+EdgeRowType = tuple[Key, Key, Key, int, str, int, int, bool]
+GraphValRowType = tuple[Key, Key, str, int, int, Any]
+NodeValRowType = tuple[Key, Key, Key, str, int, int, Any]
+EdgeValRowType = tuple[Key, Key, Key, int, str, int, int, Any]
 StatDict = dict[Key, Any]
 GraphValDict = dict[Key, StatDict]
 NodeValDict = dict[Key, StatDict]
