@@ -64,6 +64,7 @@ from ..typing import Key
 from ..util import (
 	AbstractCharacter,
 	AbstractEngine,
+	KeyClass,
 	MsgpackExtensionType,
 	getatt,
 	repr_call_sig,
@@ -3007,7 +3008,7 @@ class EngineProxy(AbstractEngine):
 		self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
 		self._character_rulebooks_cache = StructuredDefaultDict(
 			1,
-			Key,
+			KeyClass,
 			kwargs_munger=lambda inst, k: {
 				"engine": self,
 				"bookname": (inst.key, k),
@@ -3015,7 +3016,7 @@ class EngineProxy(AbstractEngine):
 		)
 		self._char_node_rulebooks_cache = StructuredDefaultDict(
 			1,
-			Key,
+			KeyClass,
 			kwargs_munger=lambda inst, k: {
 				"engine": self,
 				"bookname": (inst.key, k),
@@ -3023,7 +3024,7 @@ class EngineProxy(AbstractEngine):
 		)
 		self._char_port_rulebooks_cache = StructuredDefaultDict(
 			2,
-			Key,
+			KeyClass,
 			kwargs_munger=lambda inst, k: {
 				"engine": self,
 				"bookname": (inst.parent.key, inst.key, k),
