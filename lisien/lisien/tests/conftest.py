@@ -15,19 +15,16 @@
 import os
 import shutil
 from itertools import product
-from tempfile import TemporaryDirectory
-
 import pytest
 
 from lisien import Engine
+from lisien.proxy.handle import EngineHandle
 
 from ..examples import kobold
 
 
 @pytest.fixture(scope="function")
 def handle(tmp_path):
-	from lisien.handle import EngineHandle
-
 	hand = EngineHandle(
 		tmp_path,
 		connect_string="sqlite:///:memory:",
