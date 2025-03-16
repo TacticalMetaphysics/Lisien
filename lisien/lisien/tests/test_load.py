@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from functools import partial
 from unittest.mock import call, patch
 
 import networkx as nx
@@ -19,6 +20,7 @@ import pytest
 
 from lisien.engine import Engine
 from lisien.examples.kobold import inittest
+from lisien.tests.util import make_test_engine
 
 
 testgraphs = [nx.chvatal_graph()]
@@ -162,9 +164,10 @@ def test_keyframe_load(db):
 				)
 
 
-def test_keyframe_unload(tmp_path):
+def test_keyframe_unload(tmp_path, execution, database):
 	# TODO: test edge cases involving tick-precise unloads
-	with Engine(tmp_path, workers=0) as orm:
+	eng = partial(make_test_engine, tmp_path, execution, database)
+	with eng() as orm:
 		g = orm.new_digraph("g", nx.grid_2d_graph(3, 3))
 		orm.next_turn()
 		assert orm.turn == 1
@@ -204,7 +207,7 @@ def test_keyframe_unload(tmp_path):
 		assert 2 in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
 		assert 0 not in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
 		endtick = orm.tick
-	with Engine(tmp_path, workers=0) as orm:
+	with eng() as orm:
 		assert not orm._time_is_loaded("trunk", 1)
 		assert orm._time_is_loaded("trunk", 2, endtick)
 		assert ("g", (0, 0), (0, 1)) in orm._edges_cache.keyframe
@@ -228,7 +231,7 @@ def test_keyframe_unload(tmp_path):
 		orm.branch = "u"
 		del g.node[1, 2]
 		orm.unload()
-	with Engine(tmp_path, workers=0) as orm:
+	with eng() as orm:
 		assert orm.branch == "u"
 		assert (
 			("g", (1, 1), (1, 2)) not in orm._edges_cache.keyframe
