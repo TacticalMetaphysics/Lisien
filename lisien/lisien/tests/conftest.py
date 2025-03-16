@@ -14,13 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import shutil
-from itertools import product
 import pytest
 
 from lisien import Engine
 from lisien.proxy.handle import EngineHandle
 
 from ..examples import kobold
+from .util import make_test_engine_kwargs
 
 
 @pytest.fixture(scope="function")
@@ -71,16 +71,7 @@ def database(request):
 	scope="function",
 )
 def engy(tmp_path, execution, database):
-	kwargs = {"random_seed": 69105, "enforce_end_of_time": False}
-	if execution == "parallel":
-		kwargs["threaded_triggers"] = True
-		kwargs["workers"] = 2
-	else:
-		kwargs["threaded_triggers"] = False
-		kwargs["workers"] = 0
-	if database == "sqlite":
-		kwargs["connect_string"] = f"sqlite:///{tmp_path}/world.sqlite3"
-	with Engine(tmp_path, **kwargs) as eng:
+	with Engine(tmp_path, **make_test_engine_kwargs(tmp_path, execution, database)) as eng:
 		yield eng
 
 
