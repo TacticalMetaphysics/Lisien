@@ -71,7 +71,7 @@ def database(request):
 	scope="function",
 )
 def engy(tmp_path, execution, database):
-	with Engine(tmp_path, **make_test_engine_kwargs(tmp_path, execution, database)) as eng:
+	with Engine(**make_test_engine_kwargs(tmp_path, execution, database)) as eng:
 		yield eng
 
 
