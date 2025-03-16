@@ -2364,6 +2364,8 @@ class Engine(AbstractEngine, Executor):
 				tick,
 			)
 		self._branches_d[branch] = (parent, turn, tick, turn, tick)
+		self._branch_end[branch] = turn
+		self._turn_end[branch, turn] = self._turn_end_plan[branch, turn] = tick
 		self._upd_branch_parentage(parent, branch)
 		self.query.new_branch(branch, parent, turn, tick)
 
