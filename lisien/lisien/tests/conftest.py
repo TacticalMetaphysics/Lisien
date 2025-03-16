@@ -55,14 +55,22 @@ def pytest_addoption(parser):
 	parser.addoption("--serial", action="store_true", default=False)
 
 
+@pytest.fixture(params=["parallel", "serial"])
+def execution(request):
+	if request.config.getoption("serial") and request.param == "parallel":
+		raise pytest.skip("Skipping parallel execution.")
+	return request.param
+
+
+@pytest.fixture(params=["sqlite", "parquetdb"])
+def database(request):
+	return request.param
+
+
 @pytest.fixture(
 	scope="function",
-	params=list(product(["parallel", "serial"], ["sqlite", "parquetdb"])),
 )
-def engy(tmp_path, request):
-	execution, database = request.param
-	if request.config.getoption("serial") and execution == "parallel":
-		raise pytest.skip("Skipping parallel execution.")
+def engy(tmp_path, execution, database):
 	kwargs = {"random_seed": 69105, "enforce_end_of_time": False}
 	if execution == "parallel":
 		kwargs["threaded_triggers"] = True
