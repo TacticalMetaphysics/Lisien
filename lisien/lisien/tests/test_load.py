@@ -31,8 +31,8 @@ testgraphs.append(path_graph_9)
 
 
 @pytest.fixture
-def db(tmp_path):
-	with Engine(tmp_path, workers=0) as orm:
+def db(tmp_path, execution, database):
+	with make_test_engine(tmp_path, execution, database) as orm:
 		for graph in testgraphs:
 			orm.new_digraph(graph.name, graph)
 			if not graph.is_directed():
