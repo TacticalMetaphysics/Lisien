@@ -5500,7 +5500,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		branch, turn, _ = self._btt()
 		turn -= 1
-		if turn <= self.branch_start[0]:
+		if turn <= self.branch_start()[0]:
 			assert self.branch_parent(branch) is not None
 		if branch not in vbranches:
 			return False
