@@ -3232,13 +3232,22 @@ class Engine(AbstractEngine, Executor):
 			delt = delta.get(graph, {})
 			if delt is None:
 				continue
-			noderbs = self._nodes_rulebooks_cache.get_keyframe((graph,), *then)
-			portrbs = self._portals_rulebooks_cache.get_keyframe(
-				(graph,), *then
-			)
-			charunit = self._unitness_cache.get_keyframe(
-				(graph,), b, r, t, copy=True
-			)
+			try:
+				noderbs = self._nodes_rulebooks_cache.get_keyframe((graph,), *then)
+			except KeyframeError:
+				noderbs = {}
+			try:
+				portrbs = self._portals_rulebooks_cache.get_keyframe(
+					(graph,), *then
+				)
+			except KeyframeError:
+				portrbs = {}
+			try:
+				charunit = self._unitness_cache.get_keyframe(
+					(graph,), b, r, t, copy=True
+				)
+			except KeyframeError:
+				charunit = {}
 			if "units" in delt and delt["units"]:
 				for graf, units in delt["units"].items():
 					if graf in charunit:
@@ -3252,7 +3261,6 @@ class Engine(AbstractEngine, Executor):
 							unit: True for (unit, ex) in units.items() if ex
 						}
 			self._unitness_cache.set_keyframe((graph,), *now, charunit)
-			self._unitness_cache.get_keyframe((graph,), *now)
 			if "character_rulebook" in delt:
 				charrbs[graph] = delt["character_rulebook"]
 			if "unit_rulebook" in delt:
@@ -3263,13 +3271,18 @@ class Engine(AbstractEngine, Executor):
 				placerbs[graph] = delt["character_place_rulebook"]
 			if "character_portal_rulebook" in delt:
 				charportrbs[graph] = delt["character_portal_rulebook"]
-			locs = self._things_cache.get_keyframe(
-				(graph,), b, r, t, copy=True
-			)
-			conts_kf = self._node_contents_cache.get_keyframe(
-				(graph,), b, r, t, copy=True
-			)
-			conts = {key: set(value) for (key, value) in conts_kf.items()}
+			try:
+				locs = self._things_cache.get_keyframe(
+					(graph,), b, r, t, copy=True
+				)
+			except KeyframeError:
+				locs = {}
+			try:
+				conts = {key: set(value) for (key, value) in self._node_contents_cache.get_keyframe(
+					(graph,), b, r, t, copy=True
+				).items()}
+			except KeyframeError:
+				conts = {}
 			if "node_val" in delt:
 				node_kf = self._nodes_cache.get_keyframe((graph,), b, r, t)
 				for node in node_kf.keys() | delt.get("node_val", {}).keys():
