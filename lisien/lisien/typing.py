@@ -2,27 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 
-from typing import Any, TypeGuard
+from typing import Any
 
-
-class Key(Hashable):
-	"""Type hint for things lisien can use as keys
-
-	They have to be serializable using lisien's particular msgpack schema,
-	as well as hashable.
-
-	"""
-
-	def __new__(cls, that):
-		return that
-
-	def __instancecheck__(cls, instance) -> TypeGuard[Key]:
-		return isinstance(instance, (str, int, float)) or (
-			(isinstance(instance, tuple) or isinstance(instance, frozenset))
-			and all(isinstance(elem, cls) for elem in instance)
-		)
-
-
+Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 NodeRowType = tuple[Hashable, Hashable, str, int, int, bool]
 EdgeRowType = tuple[Hashable, Hashable, Hashable, int, str, int, int, bool]
 GraphValRowType = tuple[Hashable, Hashable, str, int, int, Any]
