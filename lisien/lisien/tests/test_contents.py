@@ -51,6 +51,7 @@ def test_contents_over_time(chara):
 	correct_contents.remove(8)
 	assert set(place.content.keys()) == correct_contents
 	chara.engine.turn = 5
+	chara.engine.branch = 'bb'
 	del chara.thing[5]
 	assert set(place.content.keys()) == {1, 2, 3, 4}
 
