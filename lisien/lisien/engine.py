@@ -6756,11 +6756,3 @@ class Engine(AbstractEngine, Executor):
 		game_start = importlib.util.module_from_spec(spec)
 		loader.exec_module(game_start)
 		game_start.game_start(self)
-
-	def __enter__(self):
-		"""Enable the use of the ``with`` keyword"""
-		return self
-
-	def __exit__(self, *args):
-		"""Alias for ``close``"""
-		self.close()
