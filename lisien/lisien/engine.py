@@ -645,17 +645,7 @@ class Engine(AbstractEngine, Executor):
 			self._copy_plans(parent, self.turn, tick)
 			self.snap_keyframe(silent=True)
 			return
-		elif v not in loaded:
-			self.load_at(v, curturn, tick)
-			return
-		(start_turn, start_tick, end_turn, end_tick) = loaded[v]
-		if (
-			curturn > end_turn or (curturn == end_turn and tick > end_tick)
-		) or (
-			curturn < start_turn
-			or (curturn == start_turn and tick < start_tick)
-		):
-			self.load_at(v, curturn, tick)
+		self.load_at(v, curturn, tick)
 		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
 
 	@property
