@@ -304,6 +304,8 @@ class EngineHandle:
 
 		"""
 		if branch in self._real.branches():
+			if tick is None:
+				tick = self._real.turn_end(branch, turn)
 			if self._real._enforce_end_of_time:
 				turn_end, tick_end = self._real._branch_end(branch)
 				if (tick is None and turn > turn_end) or (
