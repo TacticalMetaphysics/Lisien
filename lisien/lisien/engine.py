@@ -3663,6 +3663,9 @@ class Engine(AbstractEngine, Executor):
 		update=True,
 		**kwargs,
 	):
+		# I really wanted to avoid using pickle at all, but the worker processes
+		# occasionally failed to import the functions they needed when I tried
+		# packing and unpacking them myself.
 		from pickle import dumps
 
 		i = uid % len(self._worker_inputs)
