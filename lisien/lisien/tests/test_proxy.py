@@ -50,15 +50,7 @@ class ProxyGraphTest(lisien.tests.test_all.AbstractGraphTest, ProxyTest):
 	pass
 
 
-class DictStorageTest(ProxyTest, lisien.tests.test_all.DictStorageTest):
-	pass
-
-
-class ListStorageTest(ProxyTest, lisien.tests.test_all.ListStorageTest):
-	pass
-
-
-class SetStorageTest(ProxyTest, lisien.tests.test_all.SetStorageTest):
+class ProxyStorageTest(ProxyTest, lisien.tests.test_all.StorageTest):
 	pass
 
 

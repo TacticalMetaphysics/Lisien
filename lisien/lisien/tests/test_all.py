@@ -267,7 +267,7 @@ class BranchLineageTest(AbstractBranchLineageTest, AllegedTest):
 
 
 class StorageTest(AllegedTest):
-	def runTest(self):
+	def test_store_value(self):
 		"""Test that all the graph types can store and retrieve key-value pairs
 		for the graph as a whole, for nodes, and for edges.
 
@@ -297,11 +297,7 @@ class StorageTest(AllegedTest):
 				self.assertNotIn(k, e)
 			self.engine.del_graph("testgraph")
 
-
-class DictStorageTest(AllegedTest):
-	"""Make sure the dict wrapper works"""
-
-	def runTest(self):
+	def test_store_dict(self):
 		for i, graphmaker in enumerate(self.graphmakers):
 			self.engine.turn = i
 			g = graphmaker("testgraph")
@@ -363,11 +359,7 @@ class DictStorageTest(AllegedTest):
 					{"foo": {"bar": "bas"}, "qux": {"quux": "quuux"}},
 				)
 
-
-class ListStorageTest(AllegedTest):
-	"""Make sure the list wrapper works"""
-
-	def runTest(self):
+	def test_store_list(self):
 		for i, graphmaker in enumerate(self.graphmakers):
 			self.engine.turn = i
 			g = graphmaker("testgraph")
@@ -417,11 +409,7 @@ class ListStorageTest(AllegedTest):
 				self.assertEqual(entity[0][3], ["qux", "quux", "quuux"])
 				self.assertEqual(entity[0][4], {"hats", "shirts", "pants"})
 
-
-class SetStorageTest(AllegedTest):
-	"""Make sure the set wrapper works"""
-
-	def runTest(self):
+	def test_store_set(self):
 		for i, graphmaker in enumerate(self.graphmakers):
 			self.engine.turn = i
 			g = graphmaker("testgraph")
