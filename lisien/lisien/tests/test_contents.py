@@ -78,6 +78,7 @@ def test_contents_in_plan(chara):
 	assert set(place.content) == {1, 2, 3, 4, 5}
 	engine.next_turn()
 	engine.next_turn()
+	engine.tick = engine.turn_end_plan()
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7}
 	# this does not contradict the plan
 	place.new_thing(15)
@@ -85,6 +86,7 @@ def test_contents_in_plan(chara):
 	engine.next_turn()
 	engine.next_turn()
 	assert engine.turn == 4
+	engine.tick = engine.turn_end_plan()
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 15}
 	# this neither
 	there = chara.new_place("there")
@@ -92,11 +94,14 @@ def test_contents_in_plan(chara):
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 15}
 	engine.next_turn()
 	assert engine.turn == 5
+	engine.tick = engine.turn_end_plan()
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
+	engine.tick = engine.turn_end()
 	engine.branch = "hello"
 	for _ in range(5):
 		engine.next_turn()
 	assert engine.turn == 10
+	engine.tick = engine.turn_end_plan()
 	assert set(place.content) == correct_contents.union({15}).difference({9})
 	# but this does
 	engine.turn = 5
