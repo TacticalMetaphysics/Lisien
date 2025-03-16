@@ -1120,7 +1120,6 @@ def queries(table):
 	rbs = table["rulebooks"]
 	rbsel = select(
 		rbs.c.rulebook,
-		rbs.c.branch,
 		rbs.c.turn,
 		rbs.c.tick,
 		rbs.c.rules,
