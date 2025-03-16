@@ -6112,7 +6112,7 @@ class Engine(AbstractEngine, Executor):
 				nodes[k]["_y"] = y
 		if kwargs:
 			if not data:
-				data = DiGraph()
+				data = nx.DiGraph()
 			if not isinstance(data, Graph):
 				try:
 					data = from_dict_of_lists(data)
