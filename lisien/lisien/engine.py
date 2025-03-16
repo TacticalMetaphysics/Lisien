@@ -638,10 +638,11 @@ class Engine(AbstractEngine, Executor):
 			tick = self.tick
 		else:
 			self._otick = tick = self._turn_end_plan[v, curturn]
+		parent = self._obranch
 		self._obranch = v
 		loaded = self._loaded
 		if branch_is_new:
-			self._copy_plans(curbranch, curturn, curtick)
+			self._copy_plans(parent, self.turn, tick)
 			self.snap_keyframe(silent=True)
 			return
 		elif v not in loaded:
@@ -2366,6 +2367,7 @@ class Engine(AbstractEngine, Executor):
 		self._branches_d[branch] = (parent, turn, tick, turn, tick)
 		self._branch_end[branch] = turn
 		self._turn_end[branch, turn] = self._turn_end_plan[branch, turn] = tick
+		self._loaded[branch] = (turn, tick, turn, tick)
 		self._upd_branch_parentage(parent, branch)
 		self.query.new_branch(branch, parent, turn, tick)
 
