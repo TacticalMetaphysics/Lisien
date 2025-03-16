@@ -4,11 +4,8 @@ from lisien import Engine
 
 
 def make_test_engine_kwargs(path, execution, database, funcstores=True, random_seed=69105, enforce_end_of_time=False):
-	kwargs = {'random_seed': random_seed, 'enforce_end_of_time': enforce_end_of_time}
-	if database == "parquetdb":
-		kwargs['prefix'] = path
-	else:
-		assert database == "sqlite"
+	kwargs = {'random_seed': random_seed, 'enforce_end_of_time': enforce_end_of_time, 'prefix': path}
+	if database == "sqlite":
 		kwargs['connect_string'] = f"sqlite:///{path}/world.sqlite3"
 	if not funcstores:
 		for funcstore in ('function', 'method', 'trigger', 'prereq', 'action'):
