@@ -317,7 +317,7 @@ class EngineHandle:
 						turn_end,
 						tick_end,
 					)
-			self._real._load_at(branch, turn, tick)
+			self._real.load_at(branch, turn, tick)
 		branch_from, turn_from, tick_from = self._real._btt()
 		if tick is None:
 			if (
