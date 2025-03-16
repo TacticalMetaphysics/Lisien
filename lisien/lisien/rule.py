@@ -146,27 +146,27 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 		v = self._nominate(v)
 		l = list(self._get())
 		l[i] = v
-		self._set(tuple(l))
+		self._set(list(l))
 		self.send(self)
 
 	def __delitem__(self, i):
 		l = list(self._get())
 		del l[i]
-		self._set(tuple(l))
+		self._set(list(l))
 		self.send(self)
 
 	def insert(self, i, v):
 		l = list(self._get())
 		l.insert(i, self._nominate(v))
-		self._set(tuple(l))
+		self._set(list(l))
 		self.send(self)
 
 	def append(self, v):
 		try:
 			old = self._get()
 		except KeyError:
-			old = tuple()
-		self._set(old + (self._nominate(v),))
+			old = []
+		self._set(old + [self._nominate(v)])
 		self.send(self)
 
 	def index(self, x, start=0, end=None):
@@ -244,7 +244,7 @@ class RuleFuncListDescriptor:
 		if not hasattr(obj, self.flid):
 			setattr(obj, self.flid, self.cls(obj))
 		flist = getattr(obj, self.flid)
-		namey_value = tuple(flist._nominate(v) for v in value)
+		namey_value = [flist._nominate(v) for v in value]
 		flist._set(namey_value)
 		flist.send(flist)
 
@@ -336,9 +336,9 @@ class Rule:
 				)
 			):
 				(branch, turn, tick) = self.engine._nbtt()
-			triggers = tuple(self._fun_names_iter("trigger", triggers or []))
-			prereqs = tuple(self._fun_names_iter("prereq", prereqs or []))
-			actions = tuple(self._fun_names_iter("action", actions or []))
+			triggers = list(self._fun_names_iter("trigger", triggers or []))
+			prereqs = list(self._fun_names_iter("prereq", prereqs or []))
+			actions = list(self._fun_names_iter("action", actions or []))
 			self.engine.query.set_rule(
 				name,
 				branch,
