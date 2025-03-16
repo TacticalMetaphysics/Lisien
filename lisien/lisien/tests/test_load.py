@@ -203,9 +203,10 @@ def test_keyframe_unload(tmp_path):
 		assert "trunk" in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]
 		assert 2 in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
 		assert 0 not in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
+		endtick = orm.tick
 	with Engine(tmp_path, workers=0) as orm:
 		assert not orm._time_is_loaded("trunk", 1)
-		assert orm._time_is_loaded("trunk", 2, 3)
+		assert orm._time_is_loaded("trunk", 2, endtick)
 		assert ("g", (0, 0), (0, 1)) in orm._edges_cache.keyframe
 		assert 2 in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
 		assert 0 not in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
