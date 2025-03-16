@@ -615,7 +615,7 @@ class Engine(AbstractEngine, Executor):
 		# make sure I'll end up within the revision range of the
 		# destination branch
 		if v != self.main_branch and v in self.branches():
-			parturn = self.branch_start(v)[0]
+			parturn = self._branch_start(v)[0]
 			if curturn < parturn:
 				raise OutOfTimelineError(
 					"Tried to jump to branch {br} at turn {tr}, "
@@ -673,7 +673,7 @@ class Engine(AbstractEngine, Executor):
 			raise TypeError("Turns must be integers")
 		if v < 0:
 			raise ValueError("Turns can't be negative")
-		turn_end, tick_end = self.branch_end()
+		turn_end, tick_end = self._branch_end()
 		if self._enforce_end_of_time and not self._planning and v > turn_end:
 			raise OutOfTimelineError(
 				f"The turn {v} is after the end of the branch {self.branch}. "
@@ -797,7 +797,7 @@ class Engine(AbstractEngine, Executor):
 			plan_ticks_uncommitted.append((last_plan, turn, tick))
 			time_plan[branch, turn, tick] = last_plan
 		else:
-			end_turn, _ = self.branch_end(branch)
+			end_turn, _ = self._branch_end(branch)
 			if turn < end_turn:
 				raise OutOfTimelineError(
 					"You're in the past. Go to turn {} to change things"
@@ -1938,7 +1938,7 @@ class Engine(AbstractEngine, Executor):
 		self._turn_end_plan: dict[tuple[str, int], int] = TurnEndPlanDict()
 		self._turn_end_plan.other_d = self._turn_end
 		self._turn_end.other_d = self._turn_end_plan
-		self._branch_end: dict[str, int] = defaultdict(lambda: 0)
+		self._branch_end_d: dict[str, int] = defaultdict(lambda: 0)
 		"""Turn on which a branch ends, not including plans"""
 		self._graph_objs = {}
 		self._plans: dict[int, tuple[str, int, int]] = {}
@@ -2355,7 +2355,7 @@ class Engine(AbstractEngine, Executor):
 				tick,
 			)
 		self._branches_d[branch] = (parent, turn, tick, turn, tick)
-		self._branch_end[branch] = turn
+		self._branch_end_d[branch] = turn
 		self._turn_end[branch, turn] = self._turn_end_plan[branch, turn] = tick
 		self._loaded[branch] = (turn, tick, turn, tick)
 		self._upd_branch_parentage(parent, branch)
@@ -2548,7 +2548,7 @@ class Engine(AbstractEngine, Executor):
 			stopbranch, stopturn, stoptick = stoptime
 			stopping = stopbranch == branch
 			while branch in branches and not stopping:
-				trn, tck = self.branch_start(branch)
+				trn, tck = self._branch_start(branch)
 				branch = self.branch_parent(branch)
 				if branch is None:
 					return
@@ -2562,7 +2562,7 @@ class Engine(AbstractEngine, Executor):
 				yield branch, trn, tck
 		else:
 			while branch in branches:
-				trn, tck = self.branch_start(branch)
+				trn, tck = self._branch_start(branch)
 				branch = self.branch_parent(branch)
 				if branch is None:
 					yield "trunk", 0, 0
@@ -2602,7 +2602,7 @@ class Engine(AbstractEngine, Executor):
 		try:
 			a, b = next(it)
 		except StopIteration:
-			assert branch in self.branches() and self.branch_start(branch) == (
+			assert branch in self.branches() and self._branch_start(branch) == (
 				0,
 				0,
 			)
@@ -3705,7 +3705,7 @@ class Engine(AbstractEngine, Executor):
 		windows = []
 		if turn_to is None:
 			branch1 = self.branch_parent(branch_to)
-			turn1, tick1 = self.branch_start(branch_to)
+			turn1, tick1 = self._branch_start(branch_to)
 			windows.append(
 				(
 					branch_to,
@@ -4111,7 +4111,7 @@ class Engine(AbstractEngine, Executor):
 			if silent:
 				return None
 			return self._get_keyframe(branch, turn, tick)
-		if not (self.branch_start() <= (turn, tick) <= self.branch_end()):
+		if not (self._branch_start() <= (turn, tick) <= self._branch_end()):
 			raise OutOfTimelineError("Don't snap keyframes in plans")
 		kfd = self._keyframes_dict
 		the_kf: tuple[str, int, int] = None
@@ -4327,23 +4327,29 @@ class Engine(AbstractEngine, Executor):
 			return None
 		return self._branches_d[branch][0]
 
-	def branch_start(self, branch: str | None = None) -> tuple[int, int]:
+	def _branch_start(self, branch: str | None = None) -> tuple[int, int]:
 		if branch is None:
 			branch = self.branch
 		_, turn, tick, _, _ = self._branches_d[branch]
 		return turn, tick
 
 	def branch_start_turn(self, branch: str | None = None) -> int:
-		return self.branch_start(branch)[0]
+		return self._branch_start(branch)[0]
+	
+	def branch_start_tick(self, branch: str | None = None) -> int:
+		return self._branch_start(branch)[1]
 
-	def branch_end(self, branch: str | None = None) -> tuple[int, int]:
+	def _branch_end(self, branch: str | None = None) -> tuple[int, int]:
 		if branch is None:
 			branch = self.branch
 		_, _, _, turn, tick = self._branches_d[branch]
 		return turn, tick
 
 	def branch_end_turn(self, branch: str | None = None) -> int:
-		return self.branch_end(branch)[0]
+		return self._branch_end(branch)[0]
+
+	def branch_end_tick(self, branch: str | None = None) -> int:
+		return self._branch_end(branch)[1]
 
 	def turn_end(self, branch: str = None, turn: int = None) -> int:
 		branch = branch or self._obranch
@@ -5170,8 +5176,8 @@ class Engine(AbstractEngine, Executor):
 		if hasattr(self, "_closed"):
 			raise RuntimeError("Already closed")
 		time_was = (self.turn, self.tick)
-		if time_was > self.branch_end():
-			(self.turn, self.tick) = self.branch_end()
+		if time_was > self._branch_end():
+			(self.turn, self.tick) = self._branch_end()
 		if (
 			self._keyframe_on_close
 			and self._btt() not in self._keyframes_times
@@ -5500,7 +5506,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		branch, turn, _ = self._btt()
 		turn -= 1
-		if turn <= self.branch_start()[0]:
+		if turn <= self._branch_start()[0]:
 			assert self.branch_parent(branch) is not None
 		if branch not in vbranches:
 			return False
@@ -6581,7 +6587,7 @@ class Engine(AbstractEngine, Executor):
 
 		"""
 		unpack = self.unpack
-		end = self.branch_end()[0] + 1
+		end = self._branch_end()[0] + 1
 
 		def unpack_data_mid(data):
 			return [

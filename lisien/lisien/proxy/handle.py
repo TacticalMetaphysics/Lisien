@@ -305,7 +305,7 @@ class EngineHandle:
 		"""
 		if branch in self._real.branches():
 			if self._real._enforce_end_of_time:
-				turn_end, tick_end = self._real.branch_end(branch)
+				turn_end, tick_end = self._real._branch_end(branch)
 				if (tick is None and turn > turn_end) or (
 					(turn, tick) > (turn_end, tick_end)
 				):
@@ -697,10 +697,10 @@ class EngineHandle:
 		return self._real.is_ancestor_of(parent, child)
 
 	def branch_start(self, branch: str) -> tuple[int, int]:
-		return self._real.branch_start(branch)
+		return self._real._branch_start(branch)
 
 	def branch_end(self, branch: str) -> tuple[int, int]:
-		return self._real.branch_end(branch)
+		return self._real._branch_end(branch)
 
 	def branch_parent(self, branch: str) -> str | None:
 		return self._real.branch_parent(branch)

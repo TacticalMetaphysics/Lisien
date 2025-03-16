@@ -207,7 +207,7 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 			self.assertFalse(
 				self.engine.is_ancestor_of(gmn + "_triangle", gmn + "_no_edge")
 			)
-			self.engine.turn = self.engine.branch_start(gmn)[0]
+			self.engine.turn = self.engine._branch_start(gmn)[0]
 			self.engine.branch = gmn
 			g = self.engine.graph[gmn]
 			self.assertIn(0, g.node)
