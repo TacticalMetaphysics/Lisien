@@ -1239,8 +1239,8 @@ class AbstractThing(ABC):
 			turns_total += turn_incs[-1]
 			turn += turn_incs[-1]
 			tick = eng._turn_end_plan.get(turn, 0)
-			start_turn, start_tick = eng.branch_start(branch)
-			end_turn, end_tick = eng.branch_end(branch)
+			start_turn, start_tick = eng._branch_start(branch)
+			end_turn, end_tick = eng._branch_end(branch)
 			if (
 				(start_turn < turn < end_turn)
 				or (
