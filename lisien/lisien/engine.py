@@ -1938,8 +1938,6 @@ class Engine(AbstractEngine, Executor):
 		self._turn_end_plan: dict[tuple[str, int], int] = TurnEndPlanDict()
 		self._turn_end_plan.other_d = self._turn_end
 		self._turn_end.other_d = self._turn_end_plan
-		self._branch_end_d: dict[str, int] = defaultdict(lambda: 0)
-		"""Turn on which a branch ends, not including plans"""
 		self._graph_objs = {}
 		self._plans: dict[int, tuple[str, int, int]] = {}
 		self._branches_plans: dict[str, set[int]] = defaultdict(set)
@@ -2355,7 +2353,6 @@ class Engine(AbstractEngine, Executor):
 				tick,
 			)
 		self._branches_d[branch] = (parent, turn, tick, turn, tick)
-		self._branch_end_d[branch] = turn
 		self._turn_end[branch, turn] = self._turn_end_plan[branch, turn] = tick
 		self._loaded[branch] = (turn, tick, turn, tick)
 		self._upd_branch_parentage(parent, branch)
