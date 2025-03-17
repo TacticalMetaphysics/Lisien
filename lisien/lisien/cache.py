@@ -2982,6 +2982,9 @@ class NodeContentsCache(Cache):
 			turn, tick, contents
 		)
 
+		if planning is None:
+			planning = True
+
 		return super().store(
 			character,
 			place,
