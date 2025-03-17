@@ -1713,6 +1713,9 @@ class ParquetDBHolder(ConnectionHolder):
 			)
 		return db.update([{"id": id_, "value": value}])
 
+	def del_global(self, key: bytes):
+		self._get_db("global").delete(filters=[pc.field("key") == key])
+
 	def global_keys(self):
 		return [
 			d["key"]
