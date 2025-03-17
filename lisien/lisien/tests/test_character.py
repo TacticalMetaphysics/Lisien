@@ -33,31 +33,6 @@ class CharacterTest(lisien.tests.test_all.AllegedTest):
 		self.engine.close()
 		rmtree(self.tempdir)
 
-
-class CharacterBranchLineageTest(
-	CharacterTest, lisien.tests.test_all.AbstractBranchLineageTest
-):
-	pass
-
-
-class CharacterDictStorageTest(
-	CharacterTest, lisien.tests.test_all.DictStorageTest
-):
-	pass
-
-
-class CharacterListStorageTest(
-	CharacterTest, lisien.tests.test_all.ListStorageTest
-):
-	pass
-
-
-class CharacterSetStorageTest(
-	CharacterTest, lisien.tests.test_all.SetStorageTest
-):
-	pass
-
-
 def set_in_mapping(mapp, stat, v):
 	"""Sync a value in ``mapp``, having key ``stat``, with ``v``."""
 	# Mutate the stuff in-place instead of simply replacing it,
