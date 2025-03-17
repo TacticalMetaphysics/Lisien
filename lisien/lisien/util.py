@@ -384,7 +384,7 @@ def sort_set(s):
 	s = frozenset(s)
 	if s not in _sort_set_memo:
 		_sort_set_memo[s] = sorted(s, key=_sort_set_key)
-	return _sort_set_memo[s]
+	return _sort_set_memo[s].copy()
 
 
 def fake_submit(func, *args, **kwargs):
