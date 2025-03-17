@@ -6,6 +6,7 @@ import pytest
 from ..engine import Engine
 from ..window import WindowDict
 from ..exc import HistoricKeyError
+from .util import make_test_engine
 
 testvs = ["a", 99, ["spam", "eggs", "ham"], {"foo": "bar", 0: 1, "💧": "🔑"}]
 testdata = []
@@ -143,7 +144,7 @@ def test_del(windd):
 		windd[1]
 
 
-def test_set():
+def test_set(tmp_path):
 	wd = WindowDict()
 	assert 0 not in wd
 	wd[0] = "foo"
@@ -170,14 +171,7 @@ def test_set():
 	assert 4 in wd
 	assert wd[4] == {"spam": "eggs"}
 	assert 5 not in wd
-	with Engine(
-		"sqlite:///:memory:",
-		function=SimpleNamespace(),
-		method=SimpleNamespace(),
-		trigger=SimpleNamespace(),
-		prereq=SimpleNamespace(),
-		action=SimpleNamespace(),
-	) as orm:
+	with make_test_engine(tmp_path, "serial", "sqlite") as orm:
 		g = orm.new_digraph("g")
 		g.node[5] = {"ham": {"spam": "beans"}}
 		wd[5] = g.node[5]["ham"]
