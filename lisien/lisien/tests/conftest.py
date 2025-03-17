@@ -54,7 +54,13 @@ def handle_initialized(request, tmp_path, database):
 		else None,
 	) as eng:
 		request.param(eng)
-	return EngineHandle(tmp_path, workers=0)
+	return EngineHandle(
+		tmp_path,
+		workers=0,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
+		if database == "sqlite"
+		else None,
+	)
 
 
 def pytest_addoption(parser):
