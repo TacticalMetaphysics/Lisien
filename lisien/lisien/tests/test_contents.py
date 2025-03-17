@@ -51,7 +51,7 @@ def test_contents_over_time(chara):
 	correct_contents.remove(8)
 	assert set(place.content.keys()) == correct_contents
 	chara.engine.turn = 5
-	chara.engine.branch = 'bb'
+	chara.engine.branch = "bb"
 	del chara.thing[5]
 	assert set(place.content.keys()) == {1, 2, 3, 4}
 
@@ -84,6 +84,8 @@ def test_contents_in_plan(chara):
 	place.new_thing(15)
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 15}
 	engine.next_turn()
+	engine.tick = engine.turn_end_plan()
+	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 15}
 	engine.next_turn()
 	assert engine.turn == 4
 	engine.tick = engine.turn_end_plan()
