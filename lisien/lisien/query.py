@@ -8563,6 +8563,16 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				)
 			)
 			self._new_keyframe_times = set()
+		if self._new_keyframe_extensions:
+			put(
+				(
+					"silent",
+					"many",
+					"keyframe_extensions_insert",
+					self._new_keyframe_extensions,
+				)
+			)
+			self._new_keyframe_extensions = []
 		if self._new_keyframes:
 			put(
 				(
@@ -8607,16 +8617,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			def put_munged(stmt, fields, it):
 				put(("silent", "many", stmt, munged(fields, it)))
 
-			if self._new_keyframe_extensions:
-				put(
-					(
-						"silent",
-						"many",
-						"keyframe_extensions_insert",
-						self._new_keyframe_extensions,
-					)
-				)
-				self._new_keyframe_extensions = []
 			if self._unitness:
 				put(
 					(
