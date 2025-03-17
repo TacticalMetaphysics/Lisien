@@ -4234,7 +4234,9 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	@world_locked
-	def load_at(self, branch: str, turn: int, tick: int) -> None:
+	def load_at(self, branch: str, turn: int, tick: int | None = None) -> None:
+		if tick is None:
+			tick = self._turn_end[branch, turn]
 		if self._time_is_loaded(branch, turn, tick):
 			return
 		with garbage():
