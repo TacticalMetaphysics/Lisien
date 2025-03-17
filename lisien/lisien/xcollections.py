@@ -54,26 +54,19 @@ def unparse(tree):
 
 class AbstractLanguageDescriptor(Signal):
 	def __get__(self, instance, owner=None):
-		if not hasattr(self, "lang"):
-			self.lang = self._get_language(instance)
-		return self.lang
+		return self._get_language(instance)
 
 	def __set__(self, inst, val):
 		self._set_language(inst, val)
-		self.lang = val
 		self.send(inst, language=val)
-
-	def __str__(self):
-		return self.lang
 
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
 	def _get_language(self, inst):
-		return inst._language
+		return inst.query.globl["language"]
 
 	def _set_language(self, inst, val):
 		inst._load_language(val)
-		inst.query.global_set("language", val)
 
 
 class StringStore(MutableMapping, Signal):
@@ -87,7 +80,6 @@ class StringStore(MutableMapping, Signal):
 		super().__init__()
 		self.query = query
 		self._prefix = prefix
-		self._language = lang
 		self._load_language(lang)
 
 	def _load_language(self, lang):
@@ -101,7 +93,8 @@ class StringStore(MutableMapping, Signal):
 				self._cache = json.load(inf)
 		except FileNotFoundError:
 			self._cache = {}
-		self._language = lang
+		if self.query.globl["language"] != lang:
+			self.query.globl["language"] = lang
 
 	def __iter__(self):
 		return iter(self._cache)
@@ -127,7 +120,7 @@ class StringStore(MutableMapping, Signal):
 
 	def lang_items(self, lang=None):
 		"""Yield pairs of (id, string) for the given language."""
-		if lang is not None and self._language != lang:
+		if lang is not None and self.query.globl["language"] != lang:
 			self._load_language(lang)
 		yield from self._cache.items()
 
@@ -135,7 +128,8 @@ class StringStore(MutableMapping, Signal):
 		if not os.path.exists(self._prefix):
 			os.mkdir(self._prefix)
 		with open(
-			os.path.join(self._prefix, self._language + ".json"), "w"
+			os.path.join(self._prefix, self.query.globl["language"] + ".json"),
+			"w",
 		) as outf:
 			json.dump(self._cache, outf, indent=4, sort_keys=True)
 
