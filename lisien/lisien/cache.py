@@ -904,7 +904,7 @@ class Cache:
 							time_plan[branch, contra_turn, contra_tick]
 						)
 			branches[branch] = turns
-			if not loading:
+			if not loading and not planning:
 				db_extend_branch(branch, turn, tick)
 			self_store_journal(*args)
 			self.shallowest[parent + (entity, key, branch, turn, tick)] = value
