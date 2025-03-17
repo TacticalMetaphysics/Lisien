@@ -79,6 +79,7 @@ from .wrap import DictWrapper, ListWrapper, SetWrapper
 NONE = msgpack.packb(None)
 EMPTY = msgpack.packb({})
 
+
 class GlobalKeyValueStore(MutableMapping):
 	"""A dict-like object that keeps its contents in a table.
 
