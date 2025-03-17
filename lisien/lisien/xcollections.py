@@ -52,27 +52,15 @@ def unparse(tree):
 	return v.getvalue()
 
 
-class Language(str):
-	sigs = {}
-
-	def __new__(cls, sig, v):
-		me = str.__new__(cls, v)
-		cls.sigs[me] = sig
-		return me
-
-	def connect(self, *args, **kwargs):
-		self.sigs[self].connect(*args, **kwargs)
-
-
 class AbstractLanguageDescriptor(Signal):
 	def __get__(self, instance, owner=None):
 		if not hasattr(self, "lang"):
-			self.lang = Language(self, self._get_language(instance))
+			self.lang = self._get_language(instance)
 		return self.lang
 
 	def __set__(self, inst, val):
 		self._set_language(inst, val)
-		self.lang = Language(self, val)
+		self.lang = val
 		self.send(inst, language=val)
 
 	def __str__(self):
