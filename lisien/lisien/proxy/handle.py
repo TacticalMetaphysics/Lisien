@@ -307,7 +307,7 @@ class EngineHandle:
 			if self._real._enforce_end_of_time:
 				turn_end, tick_end = self._real._branch_end(branch)
 				if (tick is None and turn > turn_end) or (
-					(turn, tick) > (turn_end, tick_end)
+					tick is not None and (turn, tick) > (turn_end, tick_end)
 				):
 					raise OutOfTimelineError(
 						"Not traveling past the end of the branch",
