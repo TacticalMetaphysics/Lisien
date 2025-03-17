@@ -26,6 +26,7 @@ import importlib.util
 import json
 import os
 import sys
+from abc import ABC, abstractmethod
 from ast import Expr, Module, parse
 from collections.abc import MutableMapping
 from copy import deepcopy
@@ -52,7 +53,15 @@ def unparse(tree):
 	return v.getvalue()
 
 
-class AbstractLanguageDescriptor(Signal):
+class AbstractLanguageDescriptor(Signal, ABC):
+	@abstractmethod
+	def _get_language(self, inst):
+		pass
+
+	@abstractmethod
+	def _set_language(self, inst, val):
+		pass
+
 	def __get__(self, instance, owner=None):
 		return self._get_language(instance)
 
