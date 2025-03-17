@@ -805,6 +805,7 @@ class Cache:
 		forward: bool = None,
 		loading=False,
 		contra: bool = None,
+		truncate: bool = False,
 	):
 		"""Put a value in various dictionaries for later .retrieve(...).
 
@@ -824,6 +825,9 @@ class Cache:
 
 		``loading=True`` prevents me from updating the ORM's records
 		of the ends of branches and turns.
+
+		``truncate=True`` throws away stored data after the turn and tick
+		provided. Be careful!
 
 		"""
 		(
@@ -910,6 +914,9 @@ class Cache:
 			self.shallowest[parent + (entity, key, branch, turn, tick)] = value
 			if turn in turns:
 				the_turn = turns[turn]
+				if truncate:
+					turns.truncate(turn)
+					the_turn.truncate(tick)
 				the_turn[tick] = value
 			else:
 				new = FuturistWindowDict()
@@ -2973,17 +2980,15 @@ class NodeContentsCache(Cache):
 		turn: int,
 		tick: int,
 		contents: frozenset,
-		planning: bool = None,
+		planning: bool = True,
 		forward: bool = None,
 		loading=False,
-		contra: bool = None,
+		contra: bool = False,
+		truncate: bool = True,
 	):
 		self.loc_settings[character, place][branch].store_at(
 			turn, tick, contents
 		)
-
-		if planning is None:
-			planning = True
 
 		return super().store(
 			character,
@@ -2996,6 +3001,7 @@ class NodeContentsCache(Cache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
+			truncate=truncate,
 		)
 
 	def _iter_future_contradictions(
