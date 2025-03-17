@@ -44,8 +44,15 @@ def handle(tmp_path):
 		# sickle.install
 	],
 )
-def handle_initialized(request, tmp_path):
-	with Engine(tmp_path, workers=0, random_seed=69105) as eng:
+def handle_initialized(request, tmp_path, database):
+	with Engine(
+		tmp_path,
+		workers=0,
+		random_seed=69105,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
+		if database == "sqlite"
+		else None,
+	) as eng:
 		request.param(eng)
 	return EngineHandle(tmp_path, workers=0)
 
@@ -70,7 +77,9 @@ def database(request):
 	scope="function",
 )
 def engy(tmp_path, execution, database):
-	with Engine(**make_test_engine_kwargs(tmp_path, execution, database)) as eng:
+	with Engine(
+		**make_test_engine_kwargs(tmp_path, execution, database)
+	) as eng:
 		yield eng
 
 
