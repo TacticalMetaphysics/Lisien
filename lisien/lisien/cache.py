@@ -493,7 +493,10 @@ class Cache:
 		while branch2do:
 			branch = branch2do.popleft()
 			for row in sorted(branches[branch], key=sort_key):
-				store(*row, planning=False, loading=True)
+				try:
+					store(*row, planning=False, loading=True)
+				except HistoricKeyError:
+					continue
 			if branch in childbranch:
 				branch2do.extend(childbranch[branch])
 
@@ -907,7 +910,6 @@ class Cache:
 			self.shallowest[parent + (entity, key, branch, turn, tick)] = value
 			if turn in turns:
 				the_turn = turns[turn]
-				the_turn.truncate(tick)
 				the_turn[tick] = value
 			else:
 				new = FuturistWindowDict()
