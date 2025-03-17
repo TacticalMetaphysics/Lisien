@@ -27,7 +27,6 @@ from .util import make_test_engine_kwargs
 def handle(tmp_path):
 	hand = EngineHandle(
 		tmp_path,
-		connect_string="sqlite:///:memory:",
 		random_seed=69105,
 		workers=0,
 	)
@@ -45,10 +44,10 @@ def handle(tmp_path):
 		# sickle.install
 	],
 )
-def handle_initialized(request, handle):
-	with handle._real.advancing():
-		request.param(handle._real)
-	yield handle
+def handle_initialized(request, tmp_path):
+	with Engine(tmp_path, workers=0, random_seed=69105) as eng:
+		request.param(eng)
+	return EngineHandle(tmp_path, workers=0)
 
 
 def pytest_addoption(parser):
