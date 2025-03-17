@@ -5608,16 +5608,16 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def global_get(self, key: Key) -> Any:
 		try:
-			return self.unpack(self.call("get_global", self.pack(key)))
+			return self.unpack(self.call("global_get", self.pack(key)))
 		except KeyError:
 			return None
 
 	def global_set(self, key, value):
 		pack = self.pack
-		return self.call("set_global", pack(key), pack(value))
+		return self.call("global_set", pack(key), pack(value))
 
 	def global_del(self, key):
-		return self.call("del_global", self.pack(key))
+		return self.call("global_del", self.pack(key))
 
 	def global_items(self):
 		unpack = self.unpack
