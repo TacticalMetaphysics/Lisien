@@ -224,6 +224,9 @@ def mocked_keyframe(tmp_path):
 			workers=0,
 		) as eng,
 	):
+		for _ in range(8):
+			eng.next_turn()
+		eng._start_branch('trunk', *data.BTT_FROM)
 		eng.snap_keyframe.side_effect = [data.KF_FROM, data.KF_TO]
 		eng._set_btt(*data.BTT_FROM)
 		yield eng
