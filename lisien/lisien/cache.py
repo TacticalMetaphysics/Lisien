@@ -2866,7 +2866,7 @@ class ThingsCache(Cache):
 			node_contents_cache = self.db._node_contents_cache
 			this = frozenset((thing,))
 			# Cache the contents of nodes
-			todo = {}
+			todo = defaultdict(list)
 			if oldloc is not None:
 				try:
 					oldconts_orig = node_contents_cache.retrieve(
@@ -2874,7 +2874,9 @@ class ThingsCache(Cache):
 					)
 				except KeyError:
 					oldconts_orig = frozenset()
-				todo[oldloc, turn, tick] = oldconts_orig.difference(this)
+				todo[turn, tick].append(
+					(oldloc, oldconts_orig.difference(this))
+				)
 				# update any future contents caches pertaining to the old location
 				if (character, oldloc) in node_contents_cache.loc_settings:
 					locset = node_contents_cache.loc_settings[
@@ -2882,29 +2884,35 @@ class ThingsCache(Cache):
 					][branch]
 					if turn in locset:
 						for future_tick in locset[turn].future(tick):
-							todo[oldloc, turn, future_tick] = (
-								node_contents_cache.retrieve(
-									character,
+							todo[turn, future_tick].append(
+								(
 									oldloc,
-									branch,
-									turn,
-									future_tick,
-									search=True,
-								).difference(this)
+									node_contents_cache.retrieve(
+										character,
+										oldloc,
+										branch,
+										turn,
+										future_tick,
+										search=True,
+									).difference(this),
+								)
 							)
 					for future_turn, future_ticks in locset.future(
 						turn
 					).items():
 						for future_tick in future_ticks:
-							todo[oldloc, future_turn, future_tick] = (
-								node_contents_cache.retrieve(
-									character,
+							todo[future_turn, future_tick].append(
+								(
 									oldloc,
-									branch,
-									future_turn,
-									future_tick,
-									search=True,
-								).difference(this)
+									node_contents_cache.retrieve(
+										character,
+										oldloc,
+										branch,
+										future_turn,
+										future_tick,
+										search=True,
+									).difference(this),
+								)
 							)
 			if location is not None:
 				try:
@@ -2913,7 +2921,7 @@ class ThingsCache(Cache):
 					)
 				except KeyError:
 					oldconts_dest = frozenset()
-				todo[location, turn, tick] = oldconts_dest.union(this)
+				todo[turn, tick].append((location, oldconts_dest.union(this)))
 				# and the new location
 				if (character, location) in node_contents_cache.loc_settings:
 					locset = node_contents_cache.loc_settings[
@@ -2921,34 +2929,41 @@ class ThingsCache(Cache):
 					][branch]
 					if turn in locset:
 						for future_tick in locset[turn].future(tick):
-							todo[location, turn, future_tick] = (
-								node_contents_cache.retrieve(
-									character,
+							todo[turn, future_tick].append(
+								(
 									location,
-									branch,
-									turn,
-									future_tick,
-									search=True,
-								).union(this)
+									node_contents_cache.retrieve(
+										character,
+										location,
+										branch,
+										turn,
+										future_tick,
+										search=True,
+									).union(this),
+								)
 							)
 					for future_turn, future_ticks in locset.future(
 						turn
 					).items():
 						for future_tick in future_ticks:
-							todo[location, future_turn, future_tick] = (
-								node_contents_cache.retrieve(
-									character,
+							todo[future_turn, future_tick].append(
+								(
 									location,
-									branch,
-									future_turn,
-									future_tick,
-									search=True,
-								).union(this)
+									node_contents_cache.retrieve(
+										character,
+										location,
+										branch,
+										future_turn,
+										future_tick,
+										search=True,
+									).union(this),
+								)
 							)
-		for loc, trn, tck in sorted(todo.keys()):
-			node_contents_cache.store(
-				character, loc, branch, trn, tck, todo[loc, trn, tck]
-			)
+		for trn, tck in sorted(todo.keys()):
+			for loc, conts in todo[trn, tck]:
+				node_contents_cache.store(
+					character, loc, branch, trn, tck, conts
+				)
 
 	def turn_before(self, character, thing, branch, turn):
 		with self._lock:
