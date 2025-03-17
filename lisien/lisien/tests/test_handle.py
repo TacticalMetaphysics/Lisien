@@ -84,10 +84,10 @@ def test_universal(handle_empty):
 	assert univ["spam"] == "tasty"
 
 
-def test_character(handle_empty):
-	origtime = handle_empty.get_btt()
-	handle_empty.next_turn()
-	handle_empty.add_character(
+def test_character(handle_initialized):
+	origtime = handle_initialized.get_btt()
+	handle_initialized.next_turn()
+	handle_initialized.add_character(
 		"hello",
 		node={
 			"hi": {"yes": "very yes"},
@@ -99,43 +99,43 @@ def test_character(handle_empty):
 		edge={"hi": {"hello": {"good": "morning"}}},
 		stat="also",
 	)
-	assert handle_empty.node_exists("hello", "hi")
-	handle_empty.set_character_stat("hello", "stoat", "bitter")
-	handle_empty.del_character_stat("hello", "stat")
-	handle_empty.set_node_stat("hello", "hi", "no", "very no")
-	handle_empty.del_node_stat("hello", "hi", "yes")
-	handle_empty.del_character("physical")
-	handle_empty.del_node("hello", "salutations")
-	handle_empty.update_nodes(
+	assert handle_initialized.node_exists("hello", "hi")
+	handle_initialized.set_character_stat("hello", "stoat", "bitter")
+	handle_initialized.del_character_stat("hello", "stat")
+	handle_initialized.set_node_stat("hello", "hi", "no", "very no")
+	handle_initialized.del_node_stat("hello", "hi", "yes")
+	handle_initialized.del_character("physical")
+	handle_initialized.del_node("hello", "salutations")
+	handle_initialized.update_nodes(
 		"hello",
 		{"hi": {"tainted": True}, "bye": {"toodles": False}, "morning": None},
 	)
-	handle_empty.set_thing(
+	handle_initialized.set_thing(
 		"hello", "evening", {"location": "bye", "moon": 1.0}
 	)
-	handle_empty.add_thing(
+	handle_initialized.add_thing(
 		"hello", "moon", "evening", {"phase": "waxing gibbous"}
 	)
-	handle_empty.character_set_node_predecessors(
+	handle_initialized.character_set_node_predecessors(
 		"hello", "bye", {"hi": {"is-an-edge": True}}
 	)
-	handle_empty.add_thing("hello", "neal", "hi", {})
-	handle_empty.add_character("astronauts", {}, {})
-	handle_empty.add_unit("astronauts", "hello", "neal")
-	handle_empty.set_character_rulebook("astronauts", "nasa")
-	handle_empty.set_thing_location("hello", "neal", "moon")
-	handle_empty.set_place("hello", "earth", {})
-	handle_empty.add_portal("hello", "moon", "earth", {})
-	assert handle_empty.thing_travel_to("hello", "neal", "earth") == 1
-	kf0 = handle_empty.snap_keyframe()
+	handle_initialized.add_thing("hello", "neal", "hi", {})
+	handle_initialized.add_character("astronauts", {}, {})
+	handle_initialized.add_unit("astronauts", "hello", "neal")
+	handle_initialized.set_character_rulebook("astronauts", "nasa")
+	handle_initialized.set_thing_location("hello", "neal", "moon")
+	handle_initialized.set_place("hello", "earth", {})
+	handle_initialized.add_portal("hello", "moon", "earth", {})
+	assert handle_initialized.thing_travel_to("hello", "neal", "earth") == 1
+	kf0 = handle_initialized.snap_keyframe()
 	del kf0["universal"]
 	assert kf0 == data.KEYFRAME0
-	desttime = handle_empty.get_btt()
-	handle_empty.time_travel(*origtime)
-	kf1 = handle_empty.snap_keyframe()
+	desttime = handle_initialized.get_btt()
+	handle_initialized.time_travel(*origtime)
+	kf1 = handle_initialized.snap_keyframe()
 	del kf1["universal"]
 	assert kf1 == data.KEYFRAME1
-	handle_empty.time_travel(*desttime)
-	kf2 = handle_empty.snap_keyframe()
+	handle_initialized.time_travel(*desttime)
+	kf2 = handle_initialized.snap_keyframe()
 	del kf2["universal"]
 	assert kf2 == kf0

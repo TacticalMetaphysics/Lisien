@@ -24128,7 +24128,7 @@ KEYFRAME1 = {
 					(7, 4),
 					(5, 0),
 					(6, 5),
-					(8, 7),
+					(9, 9),
 					(8, 5),
 					(2, 3),
 					(5, 7),
@@ -24198,7 +24198,7 @@ KEYFRAME1 = {
 				"_group": "shrub",
 				"_image_paths": ["atlas://rltiles/dc-mon.atlas/fungus"],
 				"cover": 1,
-				"location": (8, 7),
+				"location": (9, 9),
 				"rulebook": ("physical", "shrub6"),
 			},
 			"shrub7": {
