@@ -33,6 +33,7 @@ class CharacterTest(lisien.tests.test_all.AllegedTest):
 		self.engine.close()
 		rmtree(self.tempdir)
 
+
 def set_in_mapping(mapp, stat, v):
 	"""Sync a value in ``mapp``, having key ``stat``, with ``v``."""
 	# Mutate the stuff in-place instead of simply replacing it,
@@ -183,17 +184,16 @@ CHAR_DATA = [
 	CHAR_DATA,
 )
 def test_char_creation(
-	tmpdir, name, data, stat, nodestat, statup, nodeup, edgeup
+	engy, name, data, stat, nodestat, statup, nodeup, edgeup
 ):
-	with Engine(tmpdir) as eng:
-		char = eng.new_character(name, data, **stat)
-		assert set(char.node) == set(data)
-		es = set()
-		for k, v in data.items():
-			for vv in v:
-				es.add((k, vv))
-		assert set(char.edges) == es
-		assert char.stat == stat
+	char = engy.new_character(name, data, **stat)
+	assert set(char.node) == set(data)
+	es = set()
+	for k, v in data.items():
+		for vv in v:
+			es.add((k, vv))
+	assert set(char.edges) == es
+	assert char.stat == stat
 
 
 @pytest.fixture(params=CHAR_DATA)
@@ -201,9 +201,7 @@ def char_data(request):
 	return request.param
 
 
-def test_facade_creation(
-	tmpdir, char_data
-):
+def test_facade_creation(tmpdir, char_data):
 	name, data, stat, nodestat, statup, nodeup, edgeup = char_data
 	with Engine(tmpdir) as eng:
 		char = eng.new_character(name, data, **stat)
