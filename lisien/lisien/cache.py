@@ -1246,7 +1246,7 @@ class Cache:
 		parent = args[:-6]
 		settings_turns = settings[branch]
 		presettings_turns = presettings[branch]
-		prev = base_retrieve(args[:-1])
+		prev = base_retrieve(args[:-1], store_hint=False)
 		if isinstance(prev, KeyError):
 			prev = None
 		if turn in settings_turns:
