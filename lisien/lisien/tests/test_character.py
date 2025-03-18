@@ -201,9 +201,9 @@ def char_data(request):
 	return request.param
 
 
-def test_facade_creation(tmpdir, char_data):
+def test_facade_creation(tmp_path, char_data):
 	name, data, stat, nodestat, statup, nodeup, edgeup = char_data
-	with Engine(tmpdir) as eng:
+	with Engine(tmp_path, workers=0) as eng:
 		char = eng.new_character(name, data, **stat)
 		fac = char.facade()
 		assert dict(fac.node) == dict(char.node)
