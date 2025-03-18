@@ -574,19 +574,19 @@ class TurnScroll(Slider):
 			Clock.schedule_once(self._collect_engine, 0)
 			return
 		engine = app.engine
-		self.min = engine.initial_turn
-		self.max = engine.final_turn
+		self.min = engine.branch_start_turn()
+		self.max = engine.branch_end_turn()
 		self.value = engine.turn
 		engine.time.connect(self._receive_time)
 
 	def _receive_time(self, engine, branch, turn, tick):
 		self.value = turn
 		try:
-			self.min = engine.initial_turn
+			self.min = engine.branch_start_turn()
 		except KeyError:
 			self.min = turn
 		try:
-			self.max = engine.final_turn
+			self.max = engine.branch_end_turn()
 		except KeyError:
 			self.max = turn
 
