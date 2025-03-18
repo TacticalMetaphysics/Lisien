@@ -715,7 +715,7 @@ class AbstractEngine(ABC):
 		return turn, tick
 
 	def branch_start_turn(self, branch: str | None = None) -> int:
-		return self._branch_start()[0]
+		return self._branch_start(branch)[0]
 
 	def branch_start_tick(self, branch: str | None = None) -> int:
 		return self._branch_start(branch)[1]
