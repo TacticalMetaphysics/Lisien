@@ -72,7 +72,7 @@ class AbstractLanguageDescriptor(Signal, ABC):
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
 	def _get_language(self, inst):
-		return inst.query.globl["language"]
+		return inst.engine.eternal["language"]
 
 	def _set_language(self, inst, val):
 		inst._load_language(val)
@@ -81,13 +81,13 @@ class LanguageDescriptor(AbstractLanguageDescriptor):
 class StringStore(MutableMapping, Signal):
 	language = LanguageDescriptor()
 
-	def __init__(self, query, prefix, lang="eng"):
+	def __init__(self, engine, prefix, lang="eng"):
 		"""Store the engine, the name of the database table to use, and the
 		language code.
 
 		"""
 		super().__init__()
-		self.query = query
+		self.engine = engine
 		self._prefix = prefix
 		self._load_language(lang)
 
@@ -102,8 +102,8 @@ class StringStore(MutableMapping, Signal):
 				self._cache = json.load(inf)
 		except FileNotFoundError:
 			self._cache = {}
-		if self.query.globl["language"] != lang:
-			self.query.globl["language"] = lang
+		if self.engine.eternal["language"] != lang:
+			self.engine.eternal["language"] = lang
 
 	def __iter__(self):
 		return iter(self._cache)
@@ -129,7 +129,7 @@ class StringStore(MutableMapping, Signal):
 
 	def lang_items(self, lang=None):
 		"""Yield pairs of (id, string) for the given language."""
-		if lang is not None and self.query.globl["language"] != lang:
+		if lang is not None and self.engine.eternal["language"] != lang:
 			self._load_language(lang)
 		yield from self._cache.items()
 
@@ -137,7 +137,9 @@ class StringStore(MutableMapping, Signal):
 		if not os.path.exists(self._prefix):
 			os.mkdir(self._prefix)
 		with open(
-			os.path.join(self._prefix, self.query.globl["language"] + ".json"),
+			os.path.join(
+				self._prefix, self.engine.eternal["language"] + ".json"
+			),
 			"w",
 		) as outf:
 			json.dump(self._cache, outf, indent=4, sort_keys=True)
