@@ -309,14 +309,29 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				th = cache[(self.name, thing)] = Thing(self.character, thing)
 			return th
 
-		def __setitem__(self, thing, val):
+		def __setitem__(self, thing, val: Mapping):
 			if not isinstance(val, Mapping):
 				raise TypeError("Things are made from Mappings")
 			if "location" not in val:
 				raise ValueError("Thing needs location")
-			self.engine._exist_node(self.character.name, thing)
-			self.engine._set_thing_loc(
-				self.character.name, thing, val["location"]
+			val = dict(val)
+			branch, turn, tick = self.engine._nbtt()
+			self.engine._nodes_cache.store(
+				self.character.name, thing, branch, turn, tick, True
+			)
+			self.engine._things_cache.store(
+				self.character.name, thing, branch, turn, tick, val["location"]
+			)
+			self.engine.query.exist_node(
+				self.character.name, thing, branch, turn, tick, True
+			)
+			self.engine.query.set_thing_loc(
+				self.character.name,
+				thing,
+				branch,
+				turn,
+				tick,
+				val.pop("location"),
 			)
 			th = self._make_thing(thing, val)
 			th.clear()
