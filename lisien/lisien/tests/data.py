@@ -23192,14 +23192,14 @@ KEYFRAME0 = {
 	},
 	"edge_val": {
 		"hello": {
-			"bye": {"hi": {}},
+			"bye": {"hi": {"rulebook": ("hello", "bye", "hi")}},
 			"hi": {
 				"hello": {
 					"good": "morning",
 					"rulebook": ("hello", "hi", "hello"),
 				}
 			},
-			"moon": {"earth": {}},
+			"moon": {"earth": {"rulebook": ("hello", "moon", "earth")}},
 		}
 	},
 	"edges": {
@@ -23263,9 +23263,7 @@ KEYFRAME0 = {
 				"phase": "waxing gibbous",
 				"rulebook": ("hello", "moon"),
 			},
-			"morning": {"rulebook": ("hello", "morning")},
 			"neal": {"location": "moon", "rulebook": ("hello", "neal")},
-			"salutations": {"rulebook": ("hello", "salutations")},
 		},
 	},
 	"nodes": {
