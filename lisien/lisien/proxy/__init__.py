@@ -3339,18 +3339,6 @@ class EngineProxy(AbstractEngine):
 			self._branches_d[branch] = parent, turn_from, tick_from, turn, tick
 		self.time.send(self, branch=branch, turn=turn, tick=tick)
 
-	def branches(self) -> set:
-		return self._branches_d
-
-	def branch_start(self, branch: str) -> tuple[int, int]:
-		return self._branches_d[branch][1]
-
-	def branch_end(self, branch: str) -> tuple[int, int]:
-		return self._branches_d[branch][2]
-
-	def branch_parent(self, branch: str) -> str | None:
-		return self._branches_d[branch][0]
-
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
 		if self._worker:
 			raise WorkerProcessReadOnlyError(

@@ -4313,40 +4313,6 @@ class Engine(AbstractEngine, Executor):
 		self._node_val_cache.load(nodevalrows)
 		self._edge_val_cache.load(edgevalrows)
 
-	def branches(self) -> KeysView:
-		return self._branches_d.keys()
-
-	def branch_parent(self, branch: str | None) -> str | None:
-		if branch is None:
-			branch = self.branch
-		if branch not in self._branches_d:
-			return None
-		return self._branches_d[branch][0]
-
-	def _branch_start(self, branch: str | None = None) -> tuple[int, int]:
-		if branch is None:
-			branch = self.branch
-		_, turn, tick, _, _ = self._branches_d[branch]
-		return turn, tick
-
-	def branch_start_turn(self, branch: str | None = None) -> int:
-		return self._branch_start(branch)[0]
-
-	def branch_start_tick(self, branch: str | None = None) -> int:
-		return self._branch_start(branch)[1]
-
-	def _branch_end(self, branch: str | None = None) -> tuple[int, int]:
-		if branch is None:
-			branch = self.branch
-		_, _, _, turn, tick = self._branches_d[branch]
-		return turn, tick
-
-	def branch_end_turn(self, branch: str | None = None) -> int:
-		return self._branch_end(branch)[0]
-
-	def branch_end_tick(self, branch: str | None = None) -> int:
-		return self._branch_end(branch)[1]
-
 	def turn_end(self, branch: str = None, turn: int = None) -> int:
 		branch = branch or self._obranch
 		turn = turn or self._oturn

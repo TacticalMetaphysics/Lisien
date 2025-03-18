@@ -51,6 +51,7 @@ from typing import (
 	Iterable,
 	TypeGuard,
 	Union,
+	KeysView,
 )
 
 import msgpack
@@ -80,6 +81,7 @@ class KeyClass(Hashable):
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
 		)
+
 
 class SignalDict(Signal, dict):
 	def __setitem__(self, __key, __value):
@@ -422,6 +424,7 @@ class AbstractEngine(ABC):
 	char_cls: type
 	character: Mapping[Any, "char_cls"]
 	_rando: Random
+	_branches_d: dict[str, tuple[int, int, nit, int]]
 
 	@cached_property
 	def pack(self):
@@ -688,6 +691,40 @@ class AbstractEngine(ABC):
 			return the_unpacker.unpack()
 
 		return unpacker
+
+	def branches(self) -> KeysView:
+		return self._branches_d.keys()
+
+	def branch_parent(self, branch: str | None) -> str | None:
+		if branch is None:
+			branch = self.branch
+		if branch not in self._branches_d:
+			return None
+		return self._branches_d[branch][0]
+
+	def _branch_start(self, branch: str | None = None) -> tuple[int, int]:
+		if branch is None:
+			branch = self.branch
+		_, turn, tick, _, _ = self._branches_d[branch]
+		return turn, tick
+
+	def _branch_end(self, branch: str | None = None) -> tuple[int, int]:
+		if branch is None:
+			branch = self.branch
+		_, _, _, turn, tick = self._branches_d[branch]
+		return turn, tick
+
+	def branch_start_turn(self, branch: str | None = None) -> int:
+		return self._branch_start()[0]
+
+	def branch_start_tick(self, branch: str | None = None) -> int:
+		return self._branch_start(branch)[1]
+
+	def branch_end_turn(self, branch: str | None = None) -> int:
+		return self._branch_end()[0]
+
+	def branch_end_tick(self, branch: str | None = None) -> int:
+		return self._branch_end()[1]
 
 	def coin_flip(self) -> bool:
 		"""Return True or False with equal probability."""
