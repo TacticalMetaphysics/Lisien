@@ -2292,7 +2292,6 @@ class Engine(AbstractEngine, Executor):
 				if hasattr(store, "save"):
 					store.save(reimport=False)
 
-			branches_payload = zlib.compress(self.pack(self._branches_d))
 			self._worker_last_eternal = dict(self.eternal.items())
 			initial_payload = self._get_worker_kf_payload(-1)
 
@@ -2314,6 +2313,7 @@ class Engine(AbstractEngine, Executor):
 					args=(
 						i,
 						prefix,
+						self._branches_d,
 						dict(self.eternal),
 						inpipe_there,
 						outpipe_there,
@@ -2329,7 +2329,6 @@ class Engine(AbstractEngine, Executor):
 				logthread.start()
 				proc.start()
 				with wlk[-1]:
-					inpipe_here.send_bytes(branches_payload)
 					inpipe_here.send_bytes(initial_payload)
 			self._how_many_futs_running = 0
 			self._fut_manager_thread = Thread(

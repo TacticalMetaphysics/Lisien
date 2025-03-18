@@ -2948,10 +2948,14 @@ class EngineProxy(AbstractEngine):
 		i: int = None,
 		replay_file: str | os.PathLike | io.TextIOBase = None,
 		eternal: dict = None,
+		branches: dict = None,
 	):
 		if eternal is None:
 			eternal = {"language": "eng"}
+		if branches is None:
+			branches = {"trunk": (None, 0, 0, 0, 0)}
 		self._eternal_cache = eternal
+		self._branches_d = branches
 		replay_txt = None
 		if replay_file is not None:
 			if not isinstance(replay_file, io.TextIOBase):
@@ -3045,7 +3049,7 @@ class EngineProxy(AbstractEngine):
 			received = self.unpack(self.recv_bytes())
 			self._branch, self._turn, self._tick = received[-1]
 			self.send_bytes(self.pack({"command": "branches"}))
-			self._branches = self.unpack(self.recv_bytes())[-1]
+			self._branches_d = self.unpack(self.recv_bytes())[-1]
 			self.method.load()
 			self.action.load()
 			self.prereq.load()
@@ -3328,24 +3332,24 @@ class EngineProxy(AbstractEngine):
 		self._branch = branch
 		self._turn = turn
 		self._tick = tick
-		parent, turn_from, tick_from, turn_to, tick_to = self._branches.get(
+		parent, turn_from, tick_from, turn_to, tick_to = self._branches_d.get(
 			branch, (None, turn, tick, turn, tick)
 		)
-		if branch not in self._branches or (turn, tick) > (turn_to, tick_to):
-			self._branches[branch] = parent, turn_from, tick_from, turn, tick
+		if branch not in self._branches_d or (turn, tick) > (turn_to, tick_to):
+			self._branches_d[branch] = parent, turn_from, tick_from, turn, tick
 		self.time.send(self, branch=branch, turn=turn, tick=tick)
 
 	def branches(self) -> set:
-		return self._branches
+		return self._branches_d
 
 	def branch_start(self, branch: str) -> tuple[int, int]:
-		return self._branches[branch][1]
+		return self._branches_d[branch][1]
 
 	def branch_end(self, branch: str) -> tuple[int, int]:
-		return self._branches[branch][2]
+		return self._branches_d[branch][2]
 
 	def branch_parent(self, branch: str) -> str | None:
-		return self._branches[branch][0]
+		return self._branches_d[branch][0]
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
 		if self._worker:
@@ -3701,6 +3705,7 @@ class WorkerLogger:
 def worker_subprocess(
 	i: int,
 	prefix: str,
+	branches: dict,
 	eternal: dict,
 	in_pipe: Pipe,
 	out_pipe: Pipe,
@@ -3711,12 +3716,19 @@ def worker_subprocess(
 	from ..util import repr_call_sig
 
 	logger = WorkerLogger(logq, i)
-	eng = EngineProxy(None, None, logger, prefix=prefix, i=i, eternal=eternal)
+	eng = EngineProxy(
+		None,
+		None,
+		logger,
+		prefix=prefix,
+		i=i,
+		eternal=eternal,
+		branches=branches,
+	)
 	pack = eng.pack
 	unpack = eng.unpack
 	compress = zlib.compress
 	decompress = zlib.decompress
-	eng._branches = eng.unpack(zlib.decompress(in_pipe.recv_bytes()))
 	eng._initialized = False
 	while True:
 		inst = in_pipe.recv_bytes()
