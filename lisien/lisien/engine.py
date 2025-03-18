@@ -2311,7 +2311,14 @@ class Engine(AbstractEngine, Executor):
 				)
 				proc = Process(
 					target=worker_subprocess,
-					args=(i, prefix, inpipe_there, outpipe_there, logq),
+					args=(
+						i,
+						prefix,
+						dict(self.eternal),
+						inpipe_there,
+						outpipe_there,
+						logq,
+					),
 				)
 				wi.append(inpipe_here)
 				wo.append(outpipe_here)

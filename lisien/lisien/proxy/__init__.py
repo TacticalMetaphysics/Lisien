@@ -2947,7 +2947,11 @@ class EngineProxy(AbstractEngine):
 		prefix: str = None,
 		i: int = None,
 		replay_file: str | os.PathLike | io.TextIOBase = None,
+		eternal: dict = None,
 	):
+		if eternal is None:
+			eternal = {"language": "eng"}
+		self._eternal_cache = eternal
 		replay_txt = None
 		if replay_file is not None:
 			if not isinstance(replay_file, io.TextIOBase):
@@ -3695,14 +3699,19 @@ class WorkerLogger:
 
 
 def worker_subprocess(
-	i: int, prefix: str, in_pipe: Pipe, out_pipe: Pipe, logq: Queue
+	i: int,
+	prefix: str,
+	eternal: dict,
+	in_pipe: Pipe,
+	out_pipe: Pipe,
+	logq: Queue,
 ):
 	from pickle import loads
 
 	from ..util import repr_call_sig
 
 	logger = WorkerLogger(logq, i)
-	eng = EngineProxy(None, None, logger, prefix=prefix, i=i)
+	eng = EngineProxy(None, None, logger, prefix=prefix, i=i, eternal=eternal)
 	pack = eng.pack
 	unpack = eng.unpack
 	compress = zlib.compress
