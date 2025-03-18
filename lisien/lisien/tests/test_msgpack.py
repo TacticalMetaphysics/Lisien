@@ -37,7 +37,7 @@ def test_serialize_function(tmp_path):
 		def foo(bar: str, bas: str) -> str:
 			return bar + bas + " is correct"
 
-	procm = EngineProcessManager()
+	procm = EngineProcessManager(workers=1)
 	engprox = procm.start(tmp_path)
 	funcprox = engprox.function.foo
 	assert funcprox("foo", "bar") == "foobar is correct"

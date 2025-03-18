@@ -2248,7 +2248,7 @@ class Engine(AbstractEngine, Executor):
 			self._load(*self._read_at(*self._btt()))
 		if hasattr(self, "_string_prefix"):
 			self.string = StringStore(
-				self.query,
+				self,
 				self._string_prefix,
 				self.eternal.setdefault("language", "eng"),
 			)
@@ -2406,13 +2406,21 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick
 		)
 		self._universal_cache.set_keyframe(branch, turn, tick, univ)
-		self._triggers_cache.set_keyframe(branch, turn, tick, rule.get("triggers", {}))
-		self._prereqs_cache.set_keyframe(branch, turn, tick, rule.get("prereqs", {}))
-		self._actions_cache.set_keyframe(branch, turn, tick, rule.get("actions", {}))
+		self._triggers_cache.set_keyframe(
+			branch, turn, tick, rule.get("triggers", {})
+		)
+		self._prereqs_cache.set_keyframe(
+			branch, turn, tick, rule.get("prereqs", {})
+		)
+		self._actions_cache.set_keyframe(
+			branch, turn, tick, rule.get("actions", {})
+		)
 		self._neighborhoods_cache.set_keyframe(
 			branch, turn, tick, rule.get("neighborhood", {})
 		)
-		self._rule_bigness_cache.set_keyframe(branch, turn, tick, rule.get("big", {}))
+		self._rule_bigness_cache.set_keyframe(
+			branch, turn, tick, rule.get("big", {})
+		)
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rulebook)
 		with (
 			self.batch()
@@ -2599,7 +2607,9 @@ class Engine(AbstractEngine, Executor):
 		try:
 			a, b = next(it)
 		except StopIteration:
-			assert branch in self.branches() and self._branch_start(branch) == (
+			assert branch in self.branches() and self._branch_start(
+				branch
+			) == (
 				0,
 				0,
 			)
@@ -3224,7 +3234,9 @@ class Engine(AbstractEngine, Executor):
 			if delt is None:
 				continue
 			try:
-				noderbs = self._nodes_rulebooks_cache.get_keyframe((graph,), *then)
+				noderbs = self._nodes_rulebooks_cache.get_keyframe(
+					(graph,), *then
+				)
 			except KeyframeError:
 				noderbs = {}
 			try:
@@ -3269,9 +3281,12 @@ class Engine(AbstractEngine, Executor):
 			except KeyframeError:
 				locs = {}
 			try:
-				conts = {key: set(value) for (key, value) in self._node_contents_cache.get_keyframe(
-					(graph,), b, r, t, copy=True
-				).items()}
+				conts = {
+					key: set(value)
+					for (key, value) in self._node_contents_cache.get_keyframe(
+						(graph,), b, r, t, copy=True
+					).items()
+				}
 			except KeyframeError:
 				conts = {}
 			if "node_val" in delt:
@@ -3544,8 +3559,14 @@ class Engine(AbstractEngine, Executor):
 			self._branches_d[time_from[0]]
 		)
 		if parent is None:
-			if (branch, branched_turn_from, branched_tick_from) in self._keyframes_times:
-				self._get_keyframe(branch, branched_turn_from, branched_tick_from, silent=True)
+			if (
+				branch,
+				branched_turn_from,
+				branched_tick_from,
+			) in self._keyframes_times:
+				self._get_keyframe(
+					branch, branched_turn_from, branched_tick_from, silent=True
+				)
 				return branch, branched_turn_from, branched_tick_from
 			elif branch in self._keyframes_dict:
 				for r in sorted(self._keyframes_dict[branch], reverse=True):
@@ -4337,7 +4358,7 @@ class Engine(AbstractEngine, Executor):
 
 	def branch_start_turn(self, branch: str | None = None) -> int:
 		return self._branch_start(branch)[0]
-	
+
 	def branch_start_tick(self, branch: str | None = None) -> int:
 		return self._branch_start(branch)[1]
 
