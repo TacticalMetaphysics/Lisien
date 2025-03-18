@@ -424,7 +424,7 @@ class AbstractEngine(ABC):
 	char_cls: type
 	character: Mapping[Any, "char_cls"]
 	_rando: Random
-	_branches_d: dict[str, tuple[int, int, nit, int]]
+	_branches_d: dict[str, tuple[int, int, int, int]]
 
 	@cached_property
 	def pack(self):
