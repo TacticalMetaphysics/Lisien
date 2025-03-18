@@ -1336,6 +1336,11 @@ class Cache:
 						if r in branchentk[b]:
 							if branchentk[b][r].rev_gettable(t):
 								return hint(branchentk[b][r][t])
+							elif (
+								branchentk[b].rev_before(r - 1, search=search)
+								is not None
+							):
+								return hint(branchentk[b][r - 1].final())
 						elif (
 							branchentk[b].rev_before(r, search=search)
 							is not None
