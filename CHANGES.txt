@@ -4,6 +4,7 @@ Core:
   efficient. Use the `connect_string` parameter if you want a SQL database, which
   is still required for historical queries (for now).
 * Filled in some missing parts of the proxy API.
+* Fixed inconsistent handling of planned changes.
 * Fixed some intermittent interprocess sync issues.
 * Fixed Thing objects sometimes hanging around after deletion, depending on
   when you closed the engine.
