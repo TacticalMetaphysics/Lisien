@@ -558,6 +558,10 @@ class TextureStackPlane(Widget):
 		if not hasattr(self, "_rectangle"):
 			self._trigger_redraw()
 			return
+		if not self.data:
+			if hasattr(self, "_fbo"):
+				self._fbo.clear()
+			return
 		Logger.debug(
 			f"TextureStackPlane: redrawing, with {self.selected} selected"
 		)
