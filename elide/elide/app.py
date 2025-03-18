@@ -315,7 +315,6 @@ class ELiDEApp(App):
 		self.pull_time()
 
 		self.engine.time.connect(self._pull_time_from_signal, weak=False)
-		self.engine.string.language.connect(self._pull_lang, weak=False)
 		self.engine.character.connect(self._pull_chars, weak=False)
 
 		self.strings.store = self.engine.string
