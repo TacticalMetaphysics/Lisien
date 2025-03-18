@@ -883,7 +883,7 @@ class Cache:
 					branches = self_branches[entikey]
 					self_keys[entity,][key] = branches
 					turns = branches[branch]
-			if planning:
+			if planning and not isinstance(self, NodeContentsCache):
 				if turn in turns and tick < turns[turn].end:
 					raise HistoricKeyError(
 						"Already have some ticks after {} in turn {} of branch {}".format(
