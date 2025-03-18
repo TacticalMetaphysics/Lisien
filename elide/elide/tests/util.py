@@ -112,6 +112,12 @@ class MockEngine(Signal):
 		self.send(self, key=key, value=value)
 		super().__setattr__(key, value)
 
+	def branch_start_turn(self, branch: str | None = None) -> int:
+		return self.initial_turn
+
+	def branch_end_turn(self, branch=None):
+		return self.final_turn
+
 	def next_turn(self, *args, **kwargs):
 		self.turn += 1
 		self.final_turn = self.turn
