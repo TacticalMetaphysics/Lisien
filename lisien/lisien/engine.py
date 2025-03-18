@@ -395,8 +395,10 @@ class NextTurn(Signal):
 			# loop of the rules engine
 			engine._extend_branch(start_branch, start_turn + 1, 0)
 			engine.turn += 1
+			engine.tick = engine.turn_end_plan()
 		elif start_turn < latest_turn:
 			engine.turn += 1
+			engine.tick = engine.turn_end_plan()
 			self.send(
 				engine,
 				branch=engine.branch,
