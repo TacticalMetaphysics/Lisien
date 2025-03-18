@@ -1281,6 +1281,7 @@ class AbstractThing(ABC):
 		with eng.plan():
 			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
+				eng.tick = eng.turn_end()
 				self["location"] = subplace
 		return turns_total
 
