@@ -2841,68 +2841,35 @@ class Engine(AbstractEngine, Executor):
 				)
 			except KeyError:
 				pass
-			try:
-				node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
-					(graph,), branch, turn, tick
-				)
-			except KeyframeError:
-				node_rb_kf = {
-					node: (graph, node) for node in kf["nodes"][graph]
-				}
-			for node, rb in node_rb_kf.items():
-				if graph in kf["node_val"]:
-					if node in kf["node_val"][graph]:
-						kf["node_val"][graph][node]["rulebook"] = rb
-					else:
-						kf["node_val"][graph][node] = {"rulebook": rb}
-				else:
-					kf["node_val"] = {graph: {node: {"rulebook": rb}}}
-			try:
-				port_rb_kf = self._portals_rulebooks_cache.get_keyframe(
-					(graph,), branch, turn, tick
-				)
-			except KeyframeError:
-				port_rb_kf = {}
-				for orig, dests in kf["edges"][graph].items():
-					destrbs = port_rb_kf[orig] = {}
-					for dest, ex in dests.items():
-						if ex:
-							destrbs[dest] = (graph, orig, dest)
-			for orig, dests in port_rb_kf.items():
-				for dest, rb in dests.items():
-					if graph in kf["edge_val"]:
-						if orig in kf["edge_val"][graph]:
-							if dest in kf["edge_val"][graph][orig]:
-								assert (
-									graph in kf["edges"]
-									and orig in kf["edges"][graph]
-									and dest in kf["edges"][graph][orig]
-								)
-								kf["edge_val"][graph][orig][dest][
-									"rulebook"
-								] = rb
-							elif (
-								graph in kf["edges"]
-								and orig in kf["edges"][graph]
-								and dest in kf["edges"][graph][orig]
-							):
-								kf["edge_val"][graph][orig][dest] = {
-									"rulebook": rb
-								}
-						elif (
-							graph in kf["edges"] and orig in kf["edges"][graph]
-						):
-							kf["edge_val"][graph][orig] = {
-								dest: {"rulebook": rb}
-							}
-					elif (
-						graph in kf["edges"]
-						and orig in kf["edges"][graph]
-						and dest in kf["edges"][graph][orig]
-					):
-						kf["edge_val"][graph] = {
-							orig: {dest: {"rulebook": rb}}
-						}
+			if graph in kf["nodes"] and kf["nodes"][graph]:
+				try:
+					node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
+						(graph,), branch, turn, tick
+					)
+				except KeyframeError:
+					node_rb_kf = {}
+				for node in kf["nodes"][graph]:
+					kf.setdefault("node_val", {}).setdefault(
+						graph, {}
+					).setdefault(node, {})["rulebook"] = node_rb_kf.get(
+						node, (graph, node)
+					)
+			if graph in kf["edges"] and kf["edges"][graph]:
+				try:
+					port_rb_kf = self._portals_rulebooks_cache.get_keyframe(
+						(graph,), branch, turn, tick
+					)
+				except KeyframeError:
+					port_rb_kf = {}
+				for orig in kf["edges"][graph]:
+					for dest in kf["edges"][graph][orig]:
+						kf.setdefault("edge_val", {}).setdefault(
+							graph, {}
+						).setdefault(orig, {}).setdefault(dest, {})[
+							"rulebook"
+						] = port_rb_kf.get(orig, {}).get(
+							dest, (graph, orig, dest)
+						)
 			try:
 				locs_kf = self._things_cache.get_keyframe(
 					(graph,), branch, turn, tick
