@@ -3492,9 +3492,6 @@ class Engine(AbstractEngine, Executor):
 							evkgo[dest].update(val)
 						else:
 							evkgo[dest] = val
-						self._edge_val_cache.set_keyframe(
-							(graph, orig, dest, 0), *now, val
-						)
 			else:
 				for edg in self._edge_val_cache.keyframe:
 					try:
@@ -3505,6 +3502,12 @@ class Engine(AbstractEngine, Executor):
 						)
 					except KeyframeError:
 						pass
+			if graph in edge_val_keyframe:
+				for orig, dests in edge_val_keyframe[graph].items():
+					for dest, val in dests.items():
+						self._edge_val_cache.set_keyframe(
+							(graph, orig, dest, 0), *now, val
+						)
 			if deltg:
 				if graph in graph_val_keyframe:
 					if (
