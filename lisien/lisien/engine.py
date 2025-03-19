@@ -3480,26 +3480,20 @@ class Engine(AbstractEngine, Executor):
 							(graph, orig, dest), *now, {0: ex}
 						)
 			if deltg is not None and "edge_val" in deltg:
-				dgev = deltg.pop("edge_val")
-				if graph in edge_val_keyframe:
-					for orig, dests in dgev.items():
-						if orig in evkg:
-							evkgo = evkg[orig]
-							for dest, vals in dests.items():
-								if dest in evkgo:
-									evkgo[dest].update(vals)
-								val: StatDict = vals.copy()
-								if "rulebook" in val:
-									del val["rulebook"]
-								else:
-									val[
-										"rulebook"
-									] = (graph, orig, dest)
-								self._edge_val_cache.set_keyframe(
-									(graph, orig, dest, 0), *now, val
-								)
-				else:
-					edge_val_keyframe[graph] = dgev
+				dgev = deltg["edge_val"]
+				for orig, dests in dgev.items():
+					evkgo = evkg.setdefault(orig, {})
+					for dest, vals in dests.items():
+						val: StatDict = vals.copy()
+						if "rulebook" in val:
+							del val["rulebook"]
+						if dest in evkgo:
+							evkgo[dest].update(val)
+						else:
+							evkgo[dest] = val
+						self._edge_val_cache.set_keyframe(
+							(graph, orig, dest, 0), *now, val
+						)
 			else:
 				for edg in self._edge_val_cache.keyframe:
 					try:
