@@ -4359,8 +4359,9 @@ class AbstractQueryEngine:
 		self._records += 1
 		override = self.kf_interval_override()
 		if override is True:
+			self._kf_interval_overridden = True
 			return
-		if override is False or (
+		if override is False or getattr(self, "_kf_interval_overridden", False) or (
 			self.keyframe_interval is not None
 			and self._records % self.keyframe_interval == 0
 		):
