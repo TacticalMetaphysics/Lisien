@@ -3500,6 +3500,12 @@ class Engine(AbstractEngine, Executor):
 								)
 				else:
 					edge_val_keyframe[graph] = dgev
+			else:
+				for edg in self._edge_val_cache.keyframe:
+					try:
+						self._edge_val_cache.set_keyframe(edg, *now, self._edge_val_cache.get_keyframe(edg, *then))
+					except KeyframeError:
+						pass
 			if deltg:
 				if graph in graph_val_keyframe:
 					if (
