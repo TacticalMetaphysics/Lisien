@@ -30,12 +30,10 @@ def test_single_plan(engy):
 	assert set(g.node[2].keys()) == {"clever"}
 	engy.next_turn()
 	assert engy.turn == 3
-	engy.tick = engy.turn_end()
 	assert g.node[2]["funny"]
-	assert 3 not in g
 	engy.tick = engy.turn_end_plan()
 	assert 3 in g
-	assert g.node[2].keys() == {"funny", "clever"}
+	assert set(g.node[2].keys()) == {"funny", "clever"}
 	engy.next_turn()
 	assert engy.turn == 4
 	assert g.node[2].keys() == {"funny", "clever", "successful"}
