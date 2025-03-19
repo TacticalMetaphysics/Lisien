@@ -23194,6 +23194,10 @@ KEYFRAME0 = {
 		"hello": {
 			"bye": {"hi": {"rulebook": ("hello", "bye", "hi")}},
 			"hi": {
+				"bye": {
+					"is-an-edge": True,
+					"rulebook": ("hello", "hi", "bye")
+				},
 				"hello": {
 					"good": "morning",
 					"rulebook": ("hello", "hi", "hello"),
