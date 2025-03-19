@@ -3503,7 +3503,11 @@ class Engine(AbstractEngine, Executor):
 			else:
 				for edg in self._edge_val_cache.keyframe:
 					try:
-						self._edge_val_cache.set_keyframe(edg, *now, self._edge_val_cache.get_keyframe(edg, *then))
+						self._edge_val_cache.set_keyframe(
+							edg,
+							*now,
+							self._edge_val_cache.get_keyframe(edg, *then),
+						)
 					except KeyframeError:
 						pass
 			if deltg:
@@ -4416,6 +4420,9 @@ class Engine(AbstractEngine, Executor):
 				pipeout.close()
 
 	def _detect_kf_interval_override(self):
+		if self._planning:
+			self._kf_overridden = True
+			return True
 		if getattr(self, "_no_kc", False):
 			self._kf_overridden = True
 			return True
