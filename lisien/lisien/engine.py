@@ -3181,19 +3181,20 @@ class Engine(AbstractEngine, Executor):
 		branch, turn, tick = now
 		univ = self._universal_cache.get_keyframe(b, r, t, copy=True)
 		rbs = self._rulebooks_cache.get_keyframe(b, r, t, copy=True)
-		for k, v in delta.pop("universal", {}).items():
+		for k, v in delta.get("universal", {}).items():
 			if v is None:
 				if k in univ:
 					del univ[k]
 			else:
 				univ[k] = v
-		rbs.update(delta.pop("rulebooks", {}))
+		if "rulebooks" in delta:
+			rbs.update(delta["rulebooks"])
 		trigs = self._triggers_cache.get_keyframe(b, r, t, copy=True)
 		preqs = self._prereqs_cache.get_keyframe(b, r, t, copy=True)
 		acts = self._actions_cache.get_keyframe(b, r, t, copy=True)
 		nbrs = self._neighborhoods_cache.get_keyframe(b, r, t, copy=True)
 		bigs = self._rule_bigness_cache.get_keyframe(b, r, t, copy=True)
-		for rule, funcs in delta.pop("rules", {}).items():
+		for rule, funcs in delta.get("rules", {}).items():
 			trigs[rule] = funcs.get("triggers", trigs.get(rule, []))
 			preqs[rule] = funcs.get("prereqs", preqs.get(rule, []))
 			acts[rule] = funcs.get("actions", acts.get(rule, []))
@@ -3277,7 +3278,7 @@ class Engine(AbstractEngine, Executor):
 					if node in delt["node_val"]:
 						delt_val = delt["node_val"][node]
 						if "rulebook" in delt_val:
-							noderbs[node] = delt_val.pop("rulebook")
+							noderbs[node] = delt_val["rulebook"]
 						if "location" in delt_val:
 							if node in locs:
 								oldloc = locs[node]
@@ -3311,7 +3312,7 @@ class Engine(AbstractEngine, Executor):
 						dests = port_kf[orig]
 						for dest, val in dests.items():
 							if "rulebook" in val:
-								rulebook = val.pop("rulebook")
+								rulebook = val["rulebook"]
 								if rulebook is None:
 									continue
 								elif orig in portrbs:
@@ -3320,7 +3321,7 @@ class Engine(AbstractEngine, Executor):
 									portrbs[orig] = {dest: rulebook}
 					else:
 						portrbs[orig] = {
-							dest: kvs.pop("rulebook")
+							dest: kvs["rulebook"]
 							for dest, kvs in delt["edge_val"][orig].items()
 							if (
 								port_in_kf(orig, dest)
@@ -3415,7 +3416,7 @@ class Engine(AbstractEngine, Executor):
 			ekg: EdgesDict = edges_keyframe.setdefault(graph, {})
 			evkg: EdgeValDict = edge_val_keyframe.setdefault(graph, {})
 			if deltg is not None and "node_val" in deltg:
-				dnv = deltg.pop("node_val")
+				dnv = deltg["node_val"]
 				for node, value in dnv.items():
 					node: Key
 					value: StatDict
@@ -3430,7 +3431,7 @@ class Engine(AbstractEngine, Executor):
 					else:
 						nvkg[node] = value
 			if deltg is not None and "nodes" in deltg:
-				dn = deltg.pop("nodes")
+				dn = deltg["nodes"]
 				for node, exists in dn.items():
 					if node in nkg:
 						if exists:
@@ -3452,7 +3453,7 @@ class Engine(AbstractEngine, Executor):
 						node_val_keyframe[graph][node]["rulebook"] = (graph, node)
 					self._node_val_cache.set_keyframe((graph, node), *now, val)
 			if deltg is not None and "edges" in deltg:
-				dge = deltg.pop("edges")
+				dge = deltg["edges"]
 				for orig, dests in dge.items():
 					for dest, exists in dests.items():
 						if orig in ekg:
@@ -3511,7 +3512,7 @@ class Engine(AbstractEngine, Executor):
 						and "units" in deltg
 					):
 						units_kf = graph_val_keyframe[graph]["units"]
-						units_update = deltg.pop("units")
+						units_update = deltg.get("units", None)
 						if not units_update:
 							continue
 						for newgraf in units_update.keys() - units_kf.keys():
