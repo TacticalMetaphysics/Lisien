@@ -3320,7 +3320,7 @@ class Engine(AbstractEngine, Executor):
 									portrbs[orig] = {dest: rulebook}
 					else:
 						portrbs[orig] = {
-							dest: kvs["rulebook"]
+							dest: kvs.pop("rulebook")
 							for dest, kvs in delt["edge_val"][orig].items()
 							if (
 								port_in_kf(orig, dest)
