@@ -3432,7 +3432,7 @@ class Engine(AbstractEngine, Executor):
 					if node in nkg:
 						if exists:
 							if node not in node_val_keyframe:
-								node_val_keyframe[node] = {}
+								node_val_keyframe[node] = {"rulebook": (graph, node)}
 						else:
 							del nkg[node]
 							if node in nvkg:
@@ -3440,9 +3440,14 @@ class Engine(AbstractEngine, Executor):
 					elif exists:
 						nkg[node] = True
 			self._nodes_cache.set_keyframe((graph,), *now, nkg)
-			for node, val in keyframe["node_val"][graph].items():
-				val: StatDict
-				self._node_val_cache.set_keyframe((graph, node), *now, val)
+			if graph in nodes_keyframe:
+				for node in nodes_keyframe[graph]:
+					val: StatDict = node_val_keyframe[graph][node].copy()
+					if "rulebook" in val:
+						del val["rulebook"]
+					else:
+						node_val_keyframe[graph][node]["rulebook"] = (graph, node)
+					self._node_val_cache.set_keyframe((graph, node), *now, val)
 			if deltg is not None and "edges" in deltg:
 				dge = deltg.pop("edges")
 				for orig, dests in dge.items():
@@ -3471,8 +3476,17 @@ class Engine(AbstractEngine, Executor):
 						self._edges_cache.set_keyframe(
 							(graph, orig, dest), *now, {0: ex}
 						)
-						if ex and dest not in edge_val_keyframe[graph][orig]:
-							edge_val_keyframe[graph][orig][dest] = {}
+						if ex:
+							if dest not in edge_val_keyframe[graph][orig]:
+								edge_val_keyframe[graph][orig][dest] = {"rulebook": (graph, orig, dest)}
+							val: StatDict = edge_val_keyframe[graph][orig][dest].copy()
+							if "rulebook" in val:
+								del val["rulebook"]
+							else:
+								edge_val_keyframe[graph][orig][dest]["rulebook"] = (graph, orig, dest)
+							self._edge_val_cache.set_keyframe(
+								(graph, orig, dest, 0), *now, val
+							)
 			if deltg is not None and "edge_val" in deltg:
 				dgev = deltg.pop("edge_val")
 				if graph in edge_val_keyframe:
