@@ -188,13 +188,14 @@ def test_save_load_plan(tmp_path):
 		prereq=SimpleNamespace(),
 		action=SimpleNamespace(),
 	) as orm:
+		orm.turn = 0
 		g1 = orm.graph[1]
 		g2 = orm.graph[2]
 		assert 1 in g2.node
 		assert 2 in g2.node
-		orm.turn = 1
-		assert 2 not in g1.node
 		assert 2 not in g1.edge[1]
 		assert 2 not in g2.edge[1]
+		orm.turn = 1
+		assert 2 not in g1.node
 		orm.turn = 2
 		assert 2 in g2.edge[1]
