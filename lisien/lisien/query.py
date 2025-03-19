@@ -4357,7 +4357,7 @@ class AbstractQueryEngine:
 
 	def _increc(self):
 		self._records += 1
-		override = self.kf_interval_override()
+		override: bool | None = self.kf_interval_override()
 		if override is True:
 			self._kf_interval_overridden = True
 			return
