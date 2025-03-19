@@ -3056,13 +3056,16 @@ class Engine(AbstractEngine, Executor):
 							copy=False,
 						),
 					)
-					evkf = self._edge_val_cache.get_keyframe(
-						(graph, node, dest, 0),
-						branch_from,
-						turn,
-						tick,
-						copy=False,
-					)
+					try:
+						evkf = self._edge_val_cache.get_keyframe(
+							(graph, node, dest, 0),
+							branch_from,
+							turn,
+							tick,
+							copy=False,
+						)
+					except KeyframeError:
+						evkf = {}
 					self._edge_val_cache.set_keyframe(
 						(graph, node, dest, 0), branch_to, turn, tick, evkf
 					)
