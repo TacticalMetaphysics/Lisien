@@ -4361,9 +4361,8 @@ class AbstractQueryEngine:
 		if override is True:
 			self._kf_interval_overridden = True
 			return
-		if (
-			override is False
-			or override is None
+		if override is False or (
+			override is None
 			and (
 				getattr(self, "_kf_interval_overridden", False)
 				or (
