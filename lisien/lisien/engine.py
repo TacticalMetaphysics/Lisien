@@ -443,6 +443,8 @@ class NextTurn(Signal):
 					else:
 						results.extend(res)
 		del engine._rules_iter
+		# accept any new plans
+		engine.tick = engine.turn_end_plan()
 		engine._complete_turn(
 			start_branch,
 			engine.turn,
