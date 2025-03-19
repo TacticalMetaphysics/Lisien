@@ -3167,6 +3167,20 @@ class Engine(AbstractEngine, Executor):
 			self._rulebooks_cache.get_keyframe(branch_to, turn, tick),
 		)
 
+	@staticmethod
+	def _apply_unit_delta(keyframe: dict, delta: dict) -> None:
+		for graf, units in delta["units"].items():
+			if graf in keyframe:
+				for unit, ex in units.items():
+					if ex:
+						keyframe[graf][unit] = True
+					elif unit in keyframe[graf]:
+						del keyframe[graf][unit]
+			else:
+				keyframe[graf] = {
+					unit: True for (unit, ex) in units.items() if ex
+				}
+
 	def _snap_keyframe_from_delta(
 		self,
 		then: tuple[str, int, int],
@@ -3235,17 +3249,7 @@ class Engine(AbstractEngine, Executor):
 			except KeyframeError:
 				charunit = {}
 			if "units" in delt and delt["units"]:
-				for graf, units in delt["units"].items():
-					if graf in charunit:
-						for unit, ex in units.items():
-							if ex:
-								charunit[graf][unit] = True
-							elif unit in charunit[graf]:
-								del charunit[graf][unit]
-					else:
-						charunit[graf] = {
-							unit: True for (unit, ex) in units.items() if ex
-						}
+				self._apply_unit_delta(charunit, delt["units"])
 			self._unitness_cache.set_keyframe((graph,), *now, charunit)
 			if "character_rulebook" in delt:
 				charrbs[graph] = delt["character_rulebook"]
