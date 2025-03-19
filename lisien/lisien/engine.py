@@ -3463,10 +3463,10 @@ class Engine(AbstractEngine, Executor):
 									del ekg[orig][dest]
 								if not ekg[orig]:
 									del ekg[orig]
-							if orig in evkg and dest in evkg[orig]:
-								del evkg[orig][dest]
-								if not evkg[orig]:
-									del evkg[orig]
+								if orig in evkg and dest in evkg[orig]:
+									del evkg[orig][dest]
+									if not evkg[orig]:
+										del evkg[orig]
 						elif exists:
 							ekg[orig] = {dest: exists}
 			if graph in edges_keyframe:
