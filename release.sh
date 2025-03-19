@@ -14,8 +14,8 @@ wine --version
 ls ~/lisien_windows
 isort .
 ruff format .
-tox -c lisien/tox.ini
-tox -c elide/tox.ini
+tox -pauto -c lisien/tox.ini
+tox -pauto -c elide/tox.ini
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
 rm -rf lisien/build lisien/dist
 python -m build lisien/
