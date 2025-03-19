@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import pytest
 
 from ..engine import Engine
-from ..window import WindowDict
 from ..exc import HistoricKeyError
+from ..window import WindowDict
 from .util import make_test_engine
 
 testvs = ["a", 99, ["spam", "eggs", "ham"], {"foo": "bar", 0: 1, "💧": "🔑"}]

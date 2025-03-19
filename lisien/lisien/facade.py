@@ -9,12 +9,7 @@ from typing import Any, Mapping, MutableMapping, MutableSequence, Type
 import networkx as nx
 from blinker import Signal
 
-from .cache import (
-	Cache,
-	TurnEndDict,
-	TurnEndPlanDict,
-	UnitnessCache,
-)
+from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
 from .exc import NotInKeyframeError, TotalKeyError
 from .graph import Edge, Node
 from .util import (

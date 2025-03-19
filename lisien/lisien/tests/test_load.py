@@ -22,7 +22,6 @@ from lisien.engine import Engine
 from lisien.examples.kobold import inittest
 from lisien.tests.util import make_test_engine
 
-
 testgraphs = [nx.chvatal_graph()]
 # have to name it after creation because it clears the create_using
 path_graph_9 = nx.path_graph(9)

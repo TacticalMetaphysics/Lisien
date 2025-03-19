@@ -29,7 +29,7 @@ from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
-from functools import partial, wraps, cached_property
+from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
 from multiprocessing import Pipe, Process, Queue
 from operator import itemgetter
@@ -82,9 +82,9 @@ from .character import Character
 from .exc import (
 	GraphNameError,
 	HistoricKeyError,
+	KeyframeError,
 	OutOfTimelineError,
 	TimeError,
-	KeyframeError,
 )
 from .facade import CharacterFacade
 from .graph import DiGraph, GraphsMapping
@@ -122,12 +122,12 @@ from .typing import (
 )
 from .util import (
 	AbstractEngine,
+	SizedDict,
 	fake_submit,
 	garbage,
 	normalize_layout,
 	sort_set,
 	world_locked,
-	SizedDict,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
@@ -3436,7 +3436,9 @@ class Engine(AbstractEngine, Executor):
 					if node in nkg:
 						if exists:
 							if node not in node_val_keyframe:
-								node_val_keyframe[node] = {"rulebook": (graph, node)}
+								node_val_keyframe[node] = {
+									"rulebook": (graph, node)
+								}
 						else:
 							del nkg[node]
 							if node in nvkg:
@@ -3450,7 +3452,10 @@ class Engine(AbstractEngine, Executor):
 					if "rulebook" in val:
 						del val["rulebook"]
 					else:
-						node_val_keyframe[graph][node]["rulebook"] = (graph, node)
+						node_val_keyframe[graph][node]["rulebook"] = (
+							graph,
+							node,
+						)
 					self._node_val_cache.set_keyframe((graph, node), *now, val)
 			if deltg is not None and "edges" in deltg:
 				dge = deltg["edges"]

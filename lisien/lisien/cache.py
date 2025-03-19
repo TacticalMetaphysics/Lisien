@@ -23,8 +23,8 @@ from typing import Hashable
 
 from .exc import (
 	HistoricKeyError,
-	NotInKeyframeError,
 	KeyframeError,
+	NotInKeyframeError,
 	TotalKeyError,
 )
 from .typing import Key
