@@ -19,12 +19,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .typing import Key
-from .graph import Edge
 from .exc import HistoricKeyError
 from .facade import FacadePortal
+from .graph import Edge
 from .query import StatusAlias
-from .rule import RuleFollower, RuleMapping as BaseRuleMapping
+from .rule import RuleFollower
+from .rule import RuleMapping as BaseRuleMapping
+from .typing import Key
 from .util import AbstractCharacter, getatt
 
 

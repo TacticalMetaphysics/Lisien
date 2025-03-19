@@ -1,9 +1,10 @@
-import pytest
 from types import SimpleNamespace
 
-from lisien.tests import data
+import pytest
+
 from lisien import Engine
 from lisien.proxy.handle import EngineHandle
+from lisien.tests import data
 
 
 @pytest.fixture

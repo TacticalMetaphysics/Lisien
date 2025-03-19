@@ -24,11 +24,11 @@ from typing import Iterator, List, Optional, Union
 
 from networkx import shortest_path, shortest_path_length
 
-from . import rule, graph
-from .typing import Key
+from . import graph, rule
 from .exc import AmbiguousUserError, HistoricKeyError
 from .facade import FacadePlace, FacadeThing
 from .query import StatusAlias
+from .typing import Key
 from .util import AbstractCharacter, AbstractThing, getatt
 
 

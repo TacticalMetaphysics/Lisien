@@ -49,12 +49,6 @@ import msgpack
 import networkx as nx
 from blinker import Signal
 
-from ..wrap import (
-	DictWrapper,
-	ListWrapper,
-	SetWrapper,
-	UnwrappingDict,
-)
 from ..cache import PickyDefaultDict, StructuredDefaultDict
 from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..facade import CharacterFacade
@@ -69,6 +63,7 @@ from ..util import (
 	getatt,
 	repr_call_sig,
 )
+from ..wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from ..xcollections import (
 	AbstractLanguageDescriptor,
 	FunctionStore,

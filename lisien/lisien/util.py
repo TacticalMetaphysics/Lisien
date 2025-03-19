@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import gc
 import sys
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -24,7 +25,6 @@ from concurrent.futures import Future
 from contextlib import contextmanager
 from enum import Enum
 from functools import cached_property, partial, wraps
-import gc
 from operator import (
 	add,
 	attrgetter,
@@ -49,9 +49,9 @@ from typing import (
 	Callable,
 	Hashable,
 	Iterable,
+	KeysView,
 	TypeGuard,
 	Union,
-	KeysView,
 )
 
 import msgpack

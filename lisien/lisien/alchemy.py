@@ -1156,27 +1156,21 @@ def queries(table):
 	r["load_rule_big_tick_to_tick"] = bigsel.where(
 		generic_tick_to_tick_clause(big)
 	)
-	trigsel = select(
-		trig.c.rule,  trig.c.turn, trig.c.tick, trig.c.triggers
-	)
+	trigsel = select(trig.c.rule, trig.c.turn, trig.c.tick, trig.c.triggers)
 	r["load_rule_triggers_tick_to_end"] = trigsel.where(
 		generic_tick_to_end_clause(trig)
 	)
 	r["load_rule_triggers_tick_to_tick"] = trigsel.where(
 		generic_tick_to_tick_clause(trig)
 	)
-	preqsel = select(
-		preq.c.rule,  preq.c.turn, preq.c.tick, preq.c.prereqs
-	)
+	preqsel = select(preq.c.rule, preq.c.turn, preq.c.tick, preq.c.prereqs)
 	r["load_rule_prereqs_tick_to_end"] = preqsel.where(
 		generic_tick_to_end_clause(preq)
 	)
 	r["load_rule_prereqs_tick_to_tick"] = preqsel.where(
 		generic_tick_to_tick_clause(preq)
 	)
-	actsel = select(
-		act.c.rule, act.c.turn, act.c.tick, act.c.actions
-	)
+	actsel = select(act.c.rule, act.c.turn, act.c.tick, act.c.actions)
 	r["load_rule_actions_tick_to_end"] = actsel.where(
 		generic_tick_to_end_clause(act)
 	)

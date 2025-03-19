@@ -19,9 +19,9 @@ from unittest.mock import patch
 import networkx as nx
 import pytest
 
-import lisien.tests.test_all
 import lisien.examples.kobold as kobold
 import lisien.examples.polygons as polygons
+import lisien.tests.test_all
 from lisien.engine import Engine
 from lisien.proxy import EngineProcessManager
 from lisien.tests import data
@@ -226,7 +226,7 @@ def mocked_keyframe(tmp_path):
 	):
 		for _ in range(8):
 			eng.next_turn()
-		eng._start_branch('trunk', *data.BTT_FROM)
+		eng._start_branch("trunk", *data.BTT_FROM)
 		eng.snap_keyframe.side_effect = [data.KF_FROM, data.KF_TO]
 		eng._set_btt(*data.BTT_FROM)
 		yield eng
