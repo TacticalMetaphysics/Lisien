@@ -3476,17 +3476,6 @@ class Engine(AbstractEngine, Executor):
 						self._edges_cache.set_keyframe(
 							(graph, orig, dest), *now, {0: ex}
 						)
-						if ex:
-							if dest not in edge_val_keyframe[graph][orig]:
-								edge_val_keyframe[graph][orig][dest] = {"rulebook": (graph, orig, dest)}
-							val: StatDict = edge_val_keyframe[graph][orig][dest].copy()
-							if "rulebook" in val:
-								del val["rulebook"]
-							else:
-								edge_val_keyframe[graph][orig][dest]["rulebook"] = (graph, orig, dest)
-							self._edge_val_cache.set_keyframe(
-								(graph, orig, dest, 0), *now, val
-							)
 			if deltg is not None and "edge_val" in deltg:
 				dgev = deltg.pop("edge_val")
 				if graph in edge_val_keyframe:
@@ -3496,14 +3485,18 @@ class Engine(AbstractEngine, Executor):
 							for dest, vals in dests.items():
 								if dest in evkgo:
 									evkgo[dest].update(vals)
+								val: StatDict = vals.copy()
+								if "rulebook" in val:
+									del val["rulebook"]
+								else:
+									val[
+										"rulebook"
+									] = (graph, orig, dest)
+								self._edge_val_cache.set_keyframe(
+									(graph, orig, dest, 0), *now, val
+								)
 				else:
 					edge_val_keyframe[graph] = dgev
-			if graph in edge_val_keyframe:
-				for orig, dests in edge_val_keyframe[graph].items():
-					for dest, val in dests.items():
-						self._edge_val_cache.set_keyframe(
-							(graph, orig, dest, 0), *now, val
-						)
 			if deltg:
 				if graph in graph_val_keyframe:
 					if (
