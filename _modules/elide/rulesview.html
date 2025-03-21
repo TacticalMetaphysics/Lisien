@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.rulesview &#8212; Lisien 0.18.2 documentation</title>
+    <title>elide.rulesview &#8212; Lisien 0.19.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=29ae757a"></script>
+    <script src="../../_static/documentation_options.js?v=cbfb3150"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -47,6 +47,7 @@
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
 
 <span class="kn">from</span> <span class="nn">kivy.app</span> <span class="kn">import</span> <span class="n">App</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">triggered</span>
@@ -220,8 +221,12 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">_tabs</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_</span><span class="si">{}</span><span class="s2">_tab&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">functyp</span><span class="p">)))</span>
 			<span class="n">builder</span> <span class="o">=</span> <span class="n">DeckBuilderView</span><span class="p">(</span><span class="o">**</span><span class="n">deck_builder_kwargs</span><span class="p">)</span>
 			<span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_</span><span class="si">{}</span><span class="s2">_builder&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">functyp</span><span class="p">),</span> <span class="n">builder</span><span class="p">)</span>
-			<span class="n">builder</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-				<span class="n">decks</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_trigger_push_</span><span class="si">{}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">functyp</span><span class="p">))</span>
+			<span class="nb">setattr</span><span class="p">(</span>
+				<span class="bp">self</span><span class="p">,</span>
+				<span class="sa">f</span><span class="s2">&quot;_trigger_push_</span><span class="si">{</span><span class="n">functyp</span><span class="si">}</span><span class="s2">s_uid&quot;</span><span class="p">,</span>
+				<span class="n">builder</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+					<span class="s2">&quot;decks&quot;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;_trigger_push_</span><span class="si">{</span><span class="n">functyp</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+				<span class="p">),</span>
 			<span class="p">)</span>
 			<span class="n">scroll_left</span> <span class="o">=</span> <span class="n">DeckBuilderScrollBar</span><span class="p">(</span>
 				<span class="n">size_hint_x</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
@@ -324,7 +329,9 @@
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">:</span>
 			<span class="k">return</span> <span class="p">[],</span> <span class="p">[]</span>
-		<span class="n">rulefuncnames</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">,</span> <span class="n">what</span> <span class="o">+</span> <span class="s2">&quot;s&quot;</span><span class="p">)</span>
+		<span class="n">rulefuncnames</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+			<span class="nb">map</span><span class="p">(</span><span class="n">attrgetter</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">,</span> <span class="n">what</span> <span class="o">+</span> <span class="s2">&quot;s&quot;</span><span class="p">))</span>
+		<span class="p">)</span>
 		<span class="n">unused</span> <span class="o">=</span> <span class="p">[</span>
 			<span class="n">Card</span><span class="p">(</span>
 				<span class="n">ud</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">what</span><span class="p">,</span> <span class="s2">&quot;funcname&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;signature&quot;</span><span class="p">:</span> <span class="n">sig</span><span class="p">},</span>
@@ -383,7 +390,13 @@
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.pull_triggers">[docs]</a>
 	<span class="k">def</span> <span class="nf">pull_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Refresh the cards in the trigger builder&quot;&quot;&quot;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span><span class="s2">&quot;trigger&quot;</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_builder</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
+			<span class="s2">&quot;decks&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_triggers_uid</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span><span class="s2">&quot;trigger&quot;</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_triggers_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_builder</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+			<span class="s2">&quot;decks&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_triggers</span>
+		<span class="p">)</span></div>
 
 
 	<span class="n">_trigger_pull_triggers</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">pull_triggers</span><span class="p">)</span>
@@ -392,8 +405,14 @@
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.pull_prereqs">[docs]</a>
 	<span class="k">def</span> <span class="nf">pull_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Refresh the cards in the prereq builder&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_prereq_builder</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
+			<span class="s2">&quot;decks&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_prereqs_uid</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_prereq_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span>
 			<span class="s2">&quot;prereq&quot;</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="kc">False</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_prereqs_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prereq_builder</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+			<span class="s2">&quot;decks&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_prereqs</span>
 		<span class="p">)</span></div>
 
 
@@ -403,8 +422,14 @@
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.pull_actions">[docs]</a>
 	<span class="k">def</span> <span class="nf">pull_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Refresh the cards in the action builder&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_action_builder</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
+			<span class="s2">&quot;decks&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_actions_uid</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_action_builder</span><span class="o">.</span><span class="n">decks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_functions</span><span class="p">(</span>
 			<span class="s2">&quot;action&quot;</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="kc">False</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_actions_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_action_builder</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+			<span class="s2">&quot;decks&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_push_actions</span>
 		<span class="p">)</span></div>
 
 
@@ -490,7 +515,7 @@
 			<span class="p">)</span>
 			<span class="k">return</span>
 		<span class="n">funcs</span> <span class="o">=</span> <span class="p">[</span>
-			<span class="n">card</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s2">&quot;funcname&quot;</span><span class="p">]</span>
+			<span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">what</span><span class="p">),</span> <span class="n">card</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s2">&quot;funcname&quot;</span><span class="p">])</span>
 			<span class="k">for</span> <span class="n">card</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_</span><span class="si">{}</span><span class="s2">_builder&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">what</span><span class="p">))</span><span class="o">.</span><span class="n">decks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 		<span class="p">]</span>
 		<span class="n">funlist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">,</span> <span class="n">what</span> <span class="o">+</span> <span class="s2">&quot;s&quot;</span><span class="p">)</span>
