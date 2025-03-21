@@ -884,9 +884,9 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 				if key not in portal_objs:
 					portal_objs[key] = Portal(graph, orig, dest)
 				p = portal_objs[key]
+				p.engine._exist_edge(graph_name, orig, dest)
 				p.clear()
 				p.update(value)
-				p.engine._exist_edge(graph_name, dest, orig)
 
 	pred_cls = PortalPredecessorsMapping
 

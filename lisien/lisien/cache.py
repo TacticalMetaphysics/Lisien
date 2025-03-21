@@ -410,7 +410,7 @@ class Cache:
 
 	def get_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
-	):
+	) -> dict:
 		ret = self._get_keyframe(graph_ent, branch, turn, tick)
 		if copy:
 			ret = ret.copy()
@@ -418,7 +418,7 @@ class Cache:
 
 	def _set_keyframe(
 		self, graph_ent: tuple, branch: str, turn: int, tick: int, keyframe
-	):
+	) -> None:
 		if not isinstance(graph_ent, tuple):
 			raise TypeError(
 				"Keyframes can only be set to tuples identifying graph entities"
@@ -1585,6 +1585,18 @@ class Cache:
 	)
 
 
+class GraphValCache(Cache):
+	def get_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+	) -> dict:
+		return super().get_keyframe((graph,), branch, turn, tick, copy)
+
+	def set_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+	) -> None:
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+
+
 class NodesCache(Cache):
 	"""A cache for remembering whether nodes exist at a given time."""
 
@@ -1655,6 +1667,35 @@ class NodesCache(Cache):
 			branch, turn, tick, entity, key
 		)
 
+	def get_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+	):
+		return super().get_keyframe((graph,), branch, turn, tick, copy)
+
+	def set_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+	) -> None:
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+
+
+class NodeValCache(Cache):
+	def get_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+	):
+		return super().get_keyframe((graph,), branch, turn, tick)
+
+	def set_keyframe(
+		self,
+		graph: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		keyframe: dict,
+	):
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		for node, vals in keyframe.items():
+			super().set_keyframe((graph, node), branch, turn, tick, vals)
+
 
 class EdgesCache(Cache):
 	"""A cache for remembering whether edges exist at a given time."""
@@ -1675,16 +1716,9 @@ class EdgesCache(Cache):
 		return self.parents
 
 	def __init__(self, db):
-		def gettest(k):
-			assert len(k) == 3, "Bad key: " + repr(k)
-
-		def settest(k, v):
-			assert len(k) == 3, "Bad key: {}, to be set to {}".format(k, v)
-
 		Cache.__init__(
 			self,
 			db,
-			kfkvs={"gettest": gettest, "settest": settest},
 			name="edges_cache",
 		)
 		self.destcache = PickyDefaultDict(SettingsTurnDict)
@@ -1737,17 +1771,19 @@ class EdgesCache(Cache):
 		return super().total_size(all_handlers, verbose)
 
 	def get_keyframe(
-		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
-	):
-		if len(graph_ent) == 3:
-			return super().get_keyframe(graph_ent, branch, turn, tick, copy)
-		ret = {}
-		for graph, orig, dest in self.keyframe:
-			if (graph, orig) == graph_ent:
-				ret[dest] = super().get_keyframe(
-					(graph, orig, dest), branch, turn, tick, copy
+		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+	) -> dict:
+		return super().get_keyframe((graph,), branch, turn, tick, copy)
+
+	def set_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+	) -> None:
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		for orig, dests in keyframe.items():
+			for dest, ex in dests.items():
+				super().set_keyframe(
+					(graph, orig, dest), branch, turn, tick, {0: ex}
 				)
-		return ret
 
 	def _update_keycache(self, *args, forward: bool):
 		super()._update_keycache(*args, forward=forward)
@@ -1830,9 +1866,7 @@ class EdgesCache(Cache):
 					deleted.add(dest)
 		kf = self.keyframe
 		itparbtt = self.db._iter_parent_btt
-		its = list(kf.items())
-		for ks, v in its:
-			assert len(ks) == 3, "Bad key in keyframe: " + repr(ks)
+		its = [(ks, v) for (ks, v) in kf.items() if len(ks) == 3]
 		for (grap, org, dest), kfg in its:  # too much iteration!
 			if (grap, org) != (graph, orig):
 				continue
@@ -1851,8 +1885,6 @@ class EdgesCache(Cache):
 				if kfgb.rev_gettable(trn):
 					if kfgb[trn].final()[0] and dest not in deleted:
 						added.add(dest)
-		for ks in kf.keys():
-			assert len(ks) == 3, "BBadd key in keyframe: " + repr(ks)
 		return added, deleted
 
 	def _adds_dels_predecessors(
@@ -1881,7 +1913,10 @@ class EdgesCache(Cache):
 		else:
 			kf = self.keyframe
 			itparbtt = self.db._iter_parent_btt
-			for (grap, orig, dst), kfg in kf.items():  # too much iteration!
+			for k, kfg in kf.items():  # too much iteration!
+				if len(k) != 3:
+					continue
+				(grap, orig, dst) = k
 				if (grap, dst) != (graph, dest):
 					continue
 				for branc, trn, tck in itparbtt(
@@ -2143,6 +2178,23 @@ class EdgesCache(Cache):
 	# graph, dest, orig, branch, turn, tick)
 
 
+class EdgeValCache(Cache):
+	def get_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+	):
+		return super().get_keyframe((graph,), branch, turn, tick, copy)
+
+	def set_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+	):
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		for orig, dests in keyframe.items():
+			for dest, val in dests.items():
+				super().set_keyframe(
+					(graph, orig, dest, 0), branch, turn, tick, val
+				)
+
+
 class EntitylessCache(Cache):
 	__slots__ = ()
 
@@ -2221,6 +2273,23 @@ class InitializedCache(Cache):
 			settings_turns[turn] = {tick: parent + (entity, key, value)}
 
 
+class NodesRulebooksCache(InitializedCache):
+	def get_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+	) -> dict:
+		return super().get_keyframe((graph,), branch, turn, tick, copy)
+
+	def set_keyframe(
+		self,
+		graph: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		keyframe: dict,
+	) -> None:
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+
+
 class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 	__slots__ = ()
 
@@ -2252,6 +2321,20 @@ class PortalsRulebooksCache(InitializedCache):
 		super().store(
 			char,
 			orig,
+			branch,
+			turn,
+			tick,
+			destrbs,
+			loading=loading,
+			contra=contra,
+			forward=forward,
+			planning=planning,
+		)
+		# The former will be overwritten in the journal (but not elsewhere)
+		# by the latter:
+		super().store(
+			char,
+			orig,
 			dest,
 			branch,
 			turn,
@@ -2262,40 +2345,42 @@ class PortalsRulebooksCache(InitializedCache):
 			forward=forward,
 			planning=planning,
 		)
-		super().store(
-			char,
-			orig,
-			branch,
-			turn,
-			tick,
-			destrbs,
-			loading=loading,
-			contra=contra,
-			forward=forward,
-			planning=planning,
-		)
+
+	def get_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+	) -> dict:
+		return super().get_keyframe((graph,), branch, turn, tick, copy)
+
+	def get_orig_keyframe(
+		self,
+		graph: Key,
+		orig: Key,
+		branch: str,
+		turn: int,
+		tick: int,
+		copy=True,
+	):
+		return super().get_keyframe((graph, orig), branch, turn, tick, copy)
 
 	def set_keyframe(
 		self,
-		graph_ent: tuple[Key],
+		graph: Key,
 		branch: str,
 		turn: int,
 		tick: int,
 		keyframe,
 	):
-		super().set_keyframe(graph_ent, branch, turn, tick, keyframe)
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
 			for dest, rulebook in dests.items():
 				try:
-					subkf = self.get_keyframe(
-						(*graph_ent, orig), branch, turn, tick, copy=True
+					subkf = super().get_keyframe(
+						(graph, orig), branch, turn, tick, copy=True
 					)
 					subkf[dest] = rulebook
 				except KeyError:
 					subkf = {dest: rulebook}
-				super().set_keyframe(
-					(*graph_ent, orig), branch, turn, tick, subkf
-				)
+				super().set_keyframe((graph, orig), branch, turn, tick, subkf)
 
 
 class UnitnessCache(Cache):
@@ -2373,34 +2458,38 @@ class UnitnessCache(Cache):
 
 	def set_keyframe(
 		self,
-		characters: Key,
+		character: Key,
 		branch: str,
 		turn: int,
 		tick: int,
 		keyframe,
 	):
-		super().set_keyframe(characters, branch, turn, tick, keyframe)
+		super().set_keyframe((character,), branch, turn, tick, keyframe)
 		for graph, subkf in keyframe.items():
-			super().set_keyframe(
-				(*characters, graph), branch, turn, tick, subkf
-			)
+			super().set_keyframe((character, graph), branch, turn, tick, subkf)
 			if isinstance(subkf, dict):
-				if isinstance(characters, tuple) and len(characters) == 1:
-					characters = characters[0]
 				for unit, is_unit in subkf.items():
 					try:
 						kf = self.user_cache.get_keyframe(
 							(graph, unit), branch, turn, tick
 						)
-						kf[characters] = is_unit
+						kf[character] = is_unit
 					except KeyframeError:
 						self.user_cache.set_keyframe(
 							(graph, unit),
 							branch,
 							turn,
 							tick,
-							{characters: is_unit},
+							{character: is_unit},
 						)
+
+	def get_keyframe(
+		self, characters, branch: str, turn: int, tick: int, copy=True
+	) -> dict:
+		if isinstance(characters, tuple) and len(characters) > 1:
+			return super().get_keyframe(characters, branch, turn, tick, copy)
+		# only one character
+		return super().get_keyframe((characters,), branch, turn, tick, copy)
 
 	def get_char_graph_units(self, char, graph, branch, turn, tick):
 		return set(self.iter_entities(char, graph, branch, turn, tick))
@@ -2986,6 +3075,16 @@ class ThingsCache(Cache):
 				pass
 			return self.keys[(character,)][thing][branch].rev_after(turn)
 
+	def get_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+	):
+		return super().get_keyframe((graph,), branch, turn, tick, copy)
+
+	def set_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+	) -> None:
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+
 
 class NodeContentsCache(Cache):
 	def __init__(self, db, kfkvs=None):
@@ -3108,3 +3207,13 @@ class NodeContentsCache(Cache):
 					if not kc:
 						del self.keycache[entity, brnch]
 			self.shallowest = OrderedDict()
+
+	def get_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+	) -> dict:
+		return super().get_keyframe((graph,), branch, turn, tick, copy)
+
+	def set_keyframe(
+		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+	) -> None:
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
