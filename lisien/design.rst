@@ -13,22 +13,19 @@ codebase exist.
  Requirements
 **************
 
-Lisien needs a standard data structure for every game world and every
-game rule. As this is impossible to do for *all* cases, it assumes that
-game worlds are directed graphs, and game rules are made from snippets
-of Python code that operate on those graphs.
+Lisien assumes that game worlds are directed graphs, and game rules are
+collected snippets of Python code that operate on those graphs.
 
 The world model needs to be streamed in and out of memory as the user
 travels through time. Each change to the model needs to be indexed
 monotonically--only one change can happen at a time, and they all occur
-in order (within their branch). This is so that it's easy to identify
-what to load and unload, as well as to associate changes with the rule
-that caused them, for the benefit of debugging tools like ELiDE's rule
-stepper.
+in order (within their branch). This is so it's easy to identify what to
+load and unload, as well as associate changes with the rule that caused
+them, for the benefit of debugging tools like Elide's rule stepper.
 
-To support use from other processes, potentially in other engines or on
-other computers, Lisien needs to report changes to its world as a result
-of time travel. This includes the most mundane form of time travel, of
+To support use from other processes--potentially in other engines, or on
+other computers--Lisien needs to report changes to its world as a result
+of time travel. This includes the most mundane form of time travel:
 playing the game at normal speed.
 
 *********************
@@ -40,8 +37,8 @@ Lisien games start with keyframes and proceed with facts.
 A keyframe is, conceptually, not much different from a traditional save
 file; it describes the complete state of the game world at a given time.
 Only the very first keyframe in a given playthrough is truly necessary.
-The remainder exist only to make time travel performant; they are
-completely redundant, and can be deleted if they become inconvenient.
+The remainder exist only to make time travel performant. It is safe to
+delete them if they become inconvenient.
 
 Every time something happens in the simulation, it creates a fact at a
 given time. These are the ground truth of what happened during this
@@ -50,26 +47,19 @@ playthrough. Any keyframe, apart from the first, can only reflect facts.
 Time in Lisien is a tree, or several of them--there can be multiple
 "trunk" branches in the same database. The game is simulated in a series
 of turns, each of which contains new facts in a series of ticks. Facts
-do get stored in a big list, mostly to make it convenient to construct
-deltas describing the difference between two moments in the same branch.
-When looking up data for use in simulation code, a different data
-structure is used.
+also get stored in a big global list, mostly to make it convenient to
+construct deltas describing the difference between two moments in the
+same branch. When looking up data for use in simulation code, a
+different data structure is used.
 
 :class:`lisien.allegedb.window.TurnDict` holds a variable's value for
 each turn in a pair of stacks, which in turn hold the basic
 :class:`lisien.allegedb.window.WindowDict`, a pair of stacks kept in
-order, used to track the values held by some simulated variable over
-time. Popping from one stack, and appending to the other, is the default
-way to look up the value at a given time; as values are stored in pairs
-with their tick as the initial item, little mutation is needed to get
-the stacks in a state where the most recent value is on top of the one
-holding past values. Every combination of a branch and a variable has
-its own ``TurnDict``.
-
-To support use in games, Lisien needs a convenient interface for
-expressing things moving around. The user needs to be able to tell an
-entity to find a path to another place, and *follow* it, and Lisien
-needs to take care of that.
+order, tracking changes in a variable each tick. Popping from one stack
+and appending to the other is the default way to look up the value at a
+given time. As values are stored in pairs, with their tick as the
+initial item, little mutation is needed to get the stacks in a state
+where the most recent value is on top of the one holding past values.
 
 So, the algorithm for finding the present effective value of some
 variable is as follows:
@@ -86,17 +76,15 @@ variable is as follows:
 #. Take the ``WindowDict`` from the top of the ``TurnDict``'s "past"
    stack, and pop/append the "past" and "future" stacks as in step 2. If
    the tick of the pair on top of the "past" stack is strictly after the
-   previous keyframe, return the value.
+   previous keyframe, return that value. Otherwise, return the value
+   from the keyframe, raising ``KeyError`` if there is none.
 
-When a keyframe in this branch is more recent than the value in the
-``TurnDict``, but not after the present time, return the value given by
-the keyframe instead; if absent from the keyframe, the value is unset,
-and a ``KeyError`` should be raised. If neither a fact nor a keyframe
-value can be found in the current branch, look up the branch's parent
-and the time at which the branches diverged, and try looking up the
-value at that time, in that branch. If the branch has no parent -- that
-is, if it's a "trunk" branch -- the value was never set, and a
-``KeyError`` should be raised.
+#. If neither a fact nor a keyframe value can be found in the current
+branch, look up the branch's parent and the time at which the branches
+diverged, and try looking up the value at that time, in that branch.
+
+#. If the branch has no parent -- that is, if it's a "main" branch --
+the value was never set, and a ``KeyError`` should be raised.
 
 Keycaches
 =========
@@ -105,11 +93,8 @@ Users may want to iterate over all entities in a graph. If we had to go
 through the above process for every entity that had *ever* existed, to
 check if it still does, this would be uselessly slow. So, every time an
 entity is created or deleted in Lisien, it's added to, or removed from,
-a set corresponding to the relevant entity collection.
-
-In fact, since these sets are versioned the same way as facts in
-general, they're actually instances of ``frozenset``. However, unlike
-the other versioned caches, keycaches are not persisted to disk.
+a set corresponding to the relevant entity collection. These sets are
+versioned like any other game variable, but not persisted to disk.
 
 A special keycache is the contents cache, for the case where one node is
 inside another. Nodes may be turned into "things" that are located in
@@ -124,17 +109,17 @@ one.
 For convenience, Lisien breaks the timestream into blocks between two
 keyframes; the exception being when the last fact in a branch of time
 occurs after a keyframe, in which case the block includes the final
-keyframe and everything after that.
+keyframe and everything after it.
 
 Upon startup, Lisien looks for the "current time," which is a triple of
 a branch name, a turn number, and a tick number, identifying a point
 within a turn. If present, it's stored in the ``engine.eternal`` keys
 ``"branch"``, ``"turn"``, and ``"tick"``, defaulting to the main branch
-(``"trunk"``, unless the user has changed it), ``0``, and ``0``
-respectively. To decide what to load, it looks for the closest keyframe
-at or before the current time, then the keyframe after that, if present.
-It loads the earlier keyframe and all facts up to the later keyframe,
-but does not load that later keyframe.
+(``"trunk"``, unless the user has switched to a different main branch),
+``0``, and ``0`` respectively. To decide what to load, Lisien looks for
+the closest keyframe at or before the current time, and the keyframe
+after that, if any. Lisien then loads the earlier keyframe and all facts
+up to the later keyframe--or the end of time, if it must.
 
 Whenever Lisien commits its facts to disk, it unloads everything it
 *can* unload, which does not include the block of time containing the
@@ -219,18 +204,20 @@ If any trigger function returned ``True``, and all prereq functions
 returned ``True``, then the action functions will run. Ordinarily, they
 will simply run whatever code you've written in them, on whatever Lisien
 entity you've given them, but some rules are too big for normal
-execution. If you find that a specific rule is taking too long to run,
+execution. If you find that a certain rule is taking too long to run,
 you can speed it up by setting the rule's ``big`` property to ``True``.
 In that case, the rules engine will replace the Lisien entity with a
 "facade," which presents the same interface, but records the changes
 made to it, instead of putting them straight into the world model. The
 changes will be applied to the world model only after all of the actions
 have run. Doing them all at once lets Lisien use a batch processing mode
-that's faster for big batches. ``big`` is a fact about the world, and
-your rule code may change it, though if the rule in question is
-currently running, it won't apply until the next turn. If you want that
-optimization on rare occasion, you can access it within rule code using
-the ``with engine.batch():`` context manager.
+that's faster for big batches.
+
+``big`` is a fact about the world, and your rule code may change it,
+though if the rule in question is currently running, it won't apply
+until the next turn. If you want that optimization on rare occasion, you
+can access it within rule code using the ``with engine.batch():``
+context manager.
 
 ********
  Deltas
