@@ -95,12 +95,13 @@ stack, and pop/append the “past” and “future” stacks as in step 2. If
 the tick of the pair on top of the “past” stack is strictly after the
 previous keyframe, return that value. Otherwise, return the value
 from the keyframe, raising <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> if there is none.</p></li>
-</ol>
-<p>#. If neither a fact nor a keyframe value can be found in the current
+<li><p>If neither a fact nor a keyframe value can be found in the current
 branch, look up the branch’s parent and the time at which the branches
-diverged, and try looking up the value at that time, in that branch.</p>
-<p>#. If the branch has no parent – that is, if it’s a “main” branch –
-the value was never set, and a <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> should be raised.</p>
+diverged, and try looking up the value at that time, in that branch. Recurse
+as long as the branch has a parent and we haven’t found a value yet.</p></li>
+<li><p>If the branch has no parent – that is, if it’s a “main” branch –
+the value was never set, and a <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> should be raised.</p></li>
+</ol>
 <section id="keycaches">
 <h3>Keycaches<a class="headerlink" href="#keycaches" title="Link to this heading">¶</a></h3>
 <p>Users may want to iterate over all entities in a graph. If we had to go
