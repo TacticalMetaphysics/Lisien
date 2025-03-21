@@ -23191,27 +23191,27 @@ KEYFRAME0 = {
 		"wander": ["wander"],
 	},
 	"edge_val": {
+		"astronauts": {},
 		"hello": {
-			"bye": {"hi": {"rulebook": ("hello", "bye", "hi")}},
 			"hi": {
 				"bye": {
 					"is-an-edge": True,
-					"rulebook": ("hello", "hi", "bye")
+					"rulebook": ("hello", "hi", "bye"),
 				},
 				"hello": {
 					"good": "morning",
 					"rulebook": ("hello", "hi", "hello"),
-				}
+				},
 			},
 			"moon": {"earth": {"rulebook": ("hello", "moon", "earth")}},
-		}
+		},
 	},
 	"edges": {
+		"astronauts": {},
 		"hello": {
-			"bye": {"hi": True},
-			"hi": {"hello": True},
+			"hi": {"bye": True, "hello": True},
 			"moon": {"earth": True},
-		}
+		},
 	},
 	"graph_val": {
 		"astronauts": {
@@ -23239,7 +23239,6 @@ KEYFRAME0 = {
 			),
 			"character_rulebook": ("character_rulebook", "hello"),
 			"character_thing_rulebook": ("character_thing_rulebook", "hello"),
-			"stat": None,
 			"stoat": "bitter",
 			"unit_rulebook": ("unit_rulebook", "hello"),
 			"units": {},

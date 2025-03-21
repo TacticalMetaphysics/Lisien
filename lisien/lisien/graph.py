@@ -128,7 +128,7 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 		"""Set key=value at the present branch and revision"""
 		if value is None:
 			raise ValueError(
-				"allegedb uses None to indicate that a key's been deleted"
+				"Lisien uses None to indicate that a key's been deleted"
 			)
 		branch, turn, tick = self.db._nbtt()
 		try:
