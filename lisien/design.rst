@@ -81,7 +81,8 @@ variable is as follows:
 
 #. If neither a fact nor a keyframe value can be found in the current
    branch, look up the branch's parent and the time at which the branches
-   diverged, and try looking up the value at that time, in that branch.
+   diverged, and try looking up the value at that time, in that branch. Recurse
+   as long as the branch has a parent and we haven't found a value yet.
 
 #. If the branch has no parent -- that is, if it's a "main" branch --
    the value was never set, and a ``KeyError`` should be raised.
