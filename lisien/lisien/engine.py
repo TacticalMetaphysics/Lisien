@@ -3076,12 +3076,12 @@ class Engine(AbstractEngine, Executor):
 				character, branch_to, turn, tick, units_kf
 			)
 			self._nodes_rulebooks_cache.set_keyframe(
-				(character,),
+				character,
 				branch_to,
 				turn,
 				tick,
 				self._nodes_rulebooks_cache.get_keyframe(
-					(character,), branch_from, turn, tick
+					character, branch_from, turn, tick
 				),
 			)
 			self._portals_rulebooks_cache.set_keyframe(
