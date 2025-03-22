@@ -4672,16 +4672,28 @@ class Engine(AbstractEngine, Executor):
 				name, branch, turn, tick, nodes, edges, val
 			)
 		elif isinstance(data, nx.Graph):
+			nodes = {k: deepcopy(v) for (k, v) in data.nodes.items()}
+			edges = {}
+			for orig in data.adj:
+				succs = edges[orig] = {}
+				for dest, stats in data.adj[orig].items():
+					succs[dest] = deepcopy(stats)
 			self._snap_keyframe_de_novo_graph(
-				name, branch, turn, tick, data._node, data._adj, data.graph
+				name,
+				branch,
+				turn,
+				tick,
+				nodes,
+				edges,
+				data.graph,
 			)
 			self.query.keyframe_graph_insert(
 				name,
 				branch,
 				turn,
 				tick,
-				data._node,
-				data._adj,
+				nodes,
+				edges,
 				data.graph,
 			)
 		elif isinstance(data, dict):
@@ -4689,16 +4701,22 @@ class Engine(AbstractEngine, Executor):
 				data = nx.from_dict_of_dicts(data)
 			except AttributeError:
 				data = nx.from_dict_of_lists(data)
+			nodes = {k: deepcopy(v) for (k, v) in data.nodes.items()}
+			edges = {}
+			for orig in data.adj:
+				succs = edges[orig] = {}
+				for dest, stats in data.adj[orig].items():
+					succs[dest] = deepcopy(stats)
 			self._snap_keyframe_de_novo_graph(
-				name, branch, turn, tick, data._node, data._adj, data.graph
+				name, branch, turn, tick, nodes, edges, data.graph
 			)
 			self.query.keyframe_graph_insert(
 				name,
 				branch,
 				turn,
 				tick,
-				data._node,
-				data._adj,
+				nodes,
+				edges,
 				data.graph,
 			)
 		else:
