@@ -3093,7 +3093,6 @@ class Engine(AbstractEngine, Executor):
 					character, branch_from, turn, tick
 				),
 			)
-		self._keyframes_list.append((branch_to, turn, tick))
 		self._keyframes_times.add((branch_to, turn, tick))
 		self._keyframes_loaded.add((branch_to, turn, tick))
 		if branch_to in self._keyframes_dict:
@@ -4708,7 +4707,7 @@ class Engine(AbstractEngine, Executor):
 				for dest, stats in data.adj[orig].items():
 					succs[dest] = deepcopy(stats)
 			self._snap_keyframe_de_novo_graph(
-				name, branch, turn, tick, nodes, edges, data.graph
+				name, branch, turn, tick, nodes, edges, {}
 			)
 			self.query.keyframe_graph_insert(
 				name,
@@ -4717,7 +4716,7 @@ class Engine(AbstractEngine, Executor):
 				tick,
 				nodes,
 				edges,
-				data.graph,
+				{},
 			)
 		else:
 			if len(data) != 3 or not all(isinstance(d, dict) for d in data):
