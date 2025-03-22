@@ -2816,15 +2816,24 @@ class Engine(AbstractEngine, Executor):
 					)
 				except KeyframeError:
 					port_rb_kf = {}
+				if graph not in kf["edge_val"]:
+					kf["edge_val"][graph] = {}
+				kf_graph_edge_val = kf["edge_val"][graph]
 				for orig in kf["edges"][graph]:
+					if orig not in kf_graph_edge_val:
+						kf_graph_edge_val[orig] = {}
+					kf_graph_orig_edge_val = kf_graph_edge_val[orig]
+					if orig not in port_rb_kf:
+						port_rb_kf[orig] = {}
+					port_rb_kf_dests = port_rb_kf[orig]
 					for dest in kf["edges"][graph][orig]:
-						kf.setdefault("edge_val", {}).setdefault(
-							graph, {}
-						).setdefault(orig, {}).setdefault(dest, {})[
-							"rulebook"
-						] = port_rb_kf.get(orig, {}).get(
+						if dest not in kf_graph_orig_edge_val:
+							kf_graph_orig_edge_val[dest] = {}
+						kf_graph_dest_edge_val = kf_graph_orig_edge_val[dest]
+						rulebook = port_rb_kf_dests.get(
 							dest, (graph, orig, dest)
 						)
+						kf_graph_dest_edge_val["rulebook"] = rulebook
 			try:
 				locs_kf = self._things_cache.get_keyframe(
 					graph, branch, turn, tick
