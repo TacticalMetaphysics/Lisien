@@ -15,6 +15,7 @@
 """Classes for in-memory storage and retrieval of historical graph data."""
 
 from collections import OrderedDict, defaultdict, deque
+from copy import deepcopy
 from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
@@ -413,7 +414,7 @@ class Cache:
 	) -> dict:
 		ret = self._get_keyframe(graph_ent, branch, turn, tick)
 		if copy:
-			ret = ret.copy()
+			ret = deepcopy(ret)
 		return ret
 
 	def _set_keyframe(
