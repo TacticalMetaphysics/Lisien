@@ -91,7 +91,7 @@ def update_backward_window(
 			updfun(*future_state)
 
 
-class WindowDictKeysView(ABC, KeysView):
+class WindowDictKeysView(KeysView):
 	"""Look through all the keys a WindowDict contains."""
 
 	_mapping: "WindowDict"
@@ -113,7 +113,7 @@ class WindowDictKeysView(ABC, KeysView):
 		return f"<WindowDictKeysView containing {list(self)}>"
 
 
-class WindowDictItemsView(ABC, ItemsView):
+class WindowDictItemsView(ItemsView):
 	"""Look through everything a WindowDict contains."""
 
 	_mapping: "WindowDict"
@@ -132,7 +132,7 @@ class WindowDictItemsView(ABC, ItemsView):
 				yield from future
 
 
-class WindowDictPastFutureKeysView(ABC, KeysView):
+class WindowDictPastFutureKeysView(KeysView):
 	"""View on a WindowDict's keys relative to last lookup"""
 
 	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
@@ -148,7 +148,7 @@ class WindowDictPastFutureKeysView(ABC, KeysView):
 			)
 
 
-class WindowDictPastFutureItemsView(ABC, ItemsView):
+class WindowDictPastFutureItemsView(ItemsView):
 	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
 
 	@staticmethod
@@ -185,7 +185,7 @@ class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
 		return item[0] < stack[-1][0] or item[0] > stack[0][0]
 
 
-class WindowDictPastFutureValuesView(ABC, ValuesView):
+class WindowDictPastFutureValuesView(ValuesView):
 	"""Abstract class for views on the past or future values of a WindowDict"""
 
 	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
@@ -199,7 +199,7 @@ class WindowDictPastFutureValuesView(ABC, ValuesView):
 			return item in map(get1, self._mapping.stack)
 
 
-class WindowDictValuesView(ABC, ValuesView):
+class WindowDictValuesView(ValuesView):
 	"""Look through all the values that a WindowDict contains."""
 
 	_mapping: "WindowDict"
