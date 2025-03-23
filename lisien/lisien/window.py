@@ -109,6 +109,9 @@ class WindowDictKeysView(ABC, KeysView):
 			if future:
 				yield from map(get0, reversed(future))
 
+	def __repr__(self):
+		return f"<WindowDictKeysView containing {list(self)}>"
+
 
 class WindowDictItemsView(ABC, ItemsView):
 	"""Look through everything a WindowDict contains."""
