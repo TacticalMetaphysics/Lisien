@@ -1682,7 +1682,7 @@ class NodeValCache(Cache):
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int, copy=True
 	):
-		return super().get_keyframe((graph,), branch, turn, tick)
+		return super().get_keyframe((graph,), branch, turn, tick, copy=copy)
 
 	def set_keyframe(
 		self,
