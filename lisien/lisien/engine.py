@@ -1186,7 +1186,7 @@ class Engine(AbstractEngine, Executor):
 				# Any particular cache may lack data for this keyframe.
 				try:
 					delta[graph] = self._graph_val_cache.get_keyframe(
-						(graph,), *kf_time
+						graph, *kf_time
 					)
 				except KeyframeError:
 					pass
@@ -1198,7 +1198,7 @@ class Engine(AbstractEngine, Executor):
 					pass
 				try:
 					delta[graph]["node_val"] = (
-						self._node_val_cache.get_keyframe((graph,), *kf_time)
+						self._node_val_cache.get_keyframe(graph, *kf_time)
 					)
 				except KeyframeError:
 					pass
@@ -1210,7 +1210,7 @@ class Engine(AbstractEngine, Executor):
 					pass
 				try:
 					delta[graph]["edge_val"] = (
-						self._edge_val_cache.get_keyframe((graph,), *kf_time)
+						self._edge_val_cache.get_keyframe(graph, *kf_time)
 					)
 				except KeyframeError:
 					pass
