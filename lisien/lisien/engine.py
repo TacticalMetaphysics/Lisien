@@ -3531,9 +3531,9 @@ class Engine(AbstractEngine, Executor):
 			if deltg is None:
 				del graphs_keyframe[graph]
 				continue
-			combined_node_val_keyframe = node_val_keyframe.get(
-				graph, {}
-			).copy()
+			combined_node_val_keyframe = deepcopy(
+				node_val_keyframe.get(graph, {})
+			)
 			for node, loc in things_keyframe.get(graph, {}).items():
 				if node in combined_node_val_keyframe:
 					combined_node_val_keyframe[node]["location"] = loc
@@ -3568,9 +3568,9 @@ class Engine(AbstractEngine, Executor):
 						combined_edge_val_keyframe.setdefault(
 							orig, {}
 						).setdefault(dest, {})
-			combined_graph_val_keyframe = graph_val_keyframe.get(
-				graph, {}
-			).copy()
+			combined_graph_val_keyframe = deepcopy(
+				graph_val_keyframe.get(graph, {})
+			)
 			combined_graph_val_keyframe["character_rulebook"] = (
 				characters_rulebooks_keyframe[graph]
 			)
