@@ -204,7 +204,7 @@ with no change tracking, persisted to the database.)
 If any trigger function returned ``True``, and all prereq functions
 returned ``True``, then the action functions will run. Ordinarily, they
 will simply run whatever code you've written in them, on whatever Lisien
-entity you've given them, but some rules are too big for normal
+entity you've assigned them to, but some rules are too big for normal
 execution. If you find that a certain rule is taking too long to run,
 you can speed it up by setting the rule's ``big`` property to ``True``.
 In that case, the rules engine will replace the Lisien entity with a
