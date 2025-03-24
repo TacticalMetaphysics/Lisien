@@ -145,7 +145,7 @@ happened," but allows the user to manipulate the world state however
 they like after that span--provided they do so within a ``with
 engine.plan():`` block, and thereby accept that things might not go
 according to the plan. Changes within the block get assigned an ID so
-that the user can cancel that whole plan, if they like, and Lisien will
+that the user can cancel it if they like, and Lisien will
 cancel remaining changes automatically if it detects that they can no
 longer happen. Lisien's understanding of causality is quite limited,
 though. Currently, the only type of paradox it can detect is if
