@@ -52,9 +52,9 @@ construct deltas describing the difference between two moments in the
 same branch. When looking up data for use in simulation code, a
 different data structure is used.
 
-:class:`lisien.allegedb.window.TurnDict` holds a variable's value for
+:class:`lisien.window.TurnDict` holds a variable's value for
 each turn in a pair of stacks, which in turn hold the basic
-:class:`lisien.allegedb.window.WindowDict`, a pair of stacks kept in
+:class:`lisien.window.WindowDict`, a pair of stacks kept in
 order, tracking changes in a variable each tick. Popping from one stack
 and appending to the other is the default way to look up the value at a
 given time. As values are stored in pairs, with their tick as the
