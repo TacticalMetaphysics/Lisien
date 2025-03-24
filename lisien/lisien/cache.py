@@ -656,10 +656,25 @@ class Cache:
 					kf = self._get_keyframe(parentity, branch, turn, tick)
 					ret = frozenset(kf.keys())
 				except KeyframeError:
-					adds, _ = get_adds_dels(
-						parentity, branch, turn, tick, stoptime=stoptime
-					)
-					ret = frozenset(adds)
+					if tick == 0:
+						stoptime, _ = self.db._build_keyframe_window(
+							branch,
+							turn - 1,
+							self.db.turn_end_plan(branch, turn - 1),
+						)
+					else:
+						stoptime, _ = self.db._build_keyframe_window(
+							branch, turn, tick - 1
+						)
+					if stoptime is None:
+						adds, _ = get_adds_dels(parentity, branch, turn, tick)
+						ret = frozenset(adds)
+					else:
+						kf = self._get_keyframe(parentity, *stoptime)
+						adds, dels = get_adds_dels(
+							parentity, branch, turn, tick, stoptime=stoptime
+						)
+						ret = frozenset((kf.keys() | adds) - dels)
 			else:
 				adds, _ = get_adds_dels(
 					parentity, branch, turn, tick, stoptime=stoptime
