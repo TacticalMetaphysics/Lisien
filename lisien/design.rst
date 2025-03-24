@@ -199,7 +199,7 @@ and you'll find it in ``engine.universal``, a dictionary-like object
 meant for game data that's not associated with any particular game
 object. (The game's *configuration* is not tracked that way, and is held
 in ``engine.eternal`` instead, which is a simple key-value store,
-persisted to the database.)
+with no change tracking, persisted to the database.)
 
 If any trigger function returned ``True``, and all prereq functions
 returned ``True``, then the action functions will run. Ordinarily, they
