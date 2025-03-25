@@ -82,10 +82,10 @@ class AbstractGraphTest:
 		self.engine.next_turn()
 		self.assertIn(0, g)
 		self.assertIn(1, g)
-		self.engine.branch = graphmaker.__name__ + "_no_edge"
+		self.engine.branch = "physical_no_edge"
 		self.assertIn(3, g.node)
 		self.assertIn(0, g)
-		self.assertTrue(self.engine._node_exists(graphmaker.__name__, 0))
+		self.assertTrue(self.engine._node_exists('physical', 0))
 		self.assertIn(1, g)
 		self.assertIn(1, g.adj[0])
 		self.assertIn(1, list(g.adj[0]))
@@ -102,7 +102,7 @@ class AbstractGraphTest:
 		self.assertNotIn(1, list(g.adj))
 		self.assertNotIn(1, g.adj[0])
 		self.assertNotIn(1, list(g.adj[0]))
-		self.engine.branch = graphmaker.__name__ + "_triangle"
+		self.engine.branch = "physical_triangle"
 		self.assertIn(3, g.node)
 		self.assertIn(2, g)
 		g.add_edge(0, 1)
@@ -118,8 +118,8 @@ class AbstractGraphTest:
 		g.add_edge(0, 2)
 		self.assertIn(2, g.adj[0])
 		self.assertIn(2, list(g.adj[0]))
-		self.engine.branch = graphmaker.__name__ + "_square"
-		self.assertTrue(self.engine._node_exists(graphmaker.__name__, 0))
+		self.engine.branch = "physical_square"
+		self.assertTrue(self.engine._node_exists('physical', 0))
 		self.assertIn(3, g.node)
 		self.assertIn(2, list(g.adj[0]))
 		self.assertIn(2, g.adj[0])
@@ -129,12 +129,12 @@ class AbstractGraphTest:
 		self.assertIn(2, list(g.adj[0]))
 		self.assertIn(2, g.adj[0])
 		self.assertIn(2, list(g.adj[0]))
-		self.assertTrue(self.engine._node_exists(graphmaker.__name__, 0))
+		self.assertTrue(self.engine._node_exists('physical', 0))
 		g.remove_edge(2, 0)
 		self.assertNotIn(0, g.adj[2])
 		self.assertNotIn(0, list(g.adj[2]))
 		self.assertIn(0, g.node)
-		self.assertTrue(self.engine._node_exists(graphmaker.__name__, 0))
+		self.assertTrue(self.engine._node_exists('physical', 0))
 		self.assertNotIn(3, g.adj)
 		g.add_edge(3, 0)
 		self.assertIn(3, g.adj)
@@ -142,14 +142,14 @@ class AbstractGraphTest:
 		self.assertIn(0, g.adj[3])
 		self.assertIn(0, list(g.adj[3]))
 		self.assertIn(0, g.node)
-		self.assertTrue(self.engine._node_exists(graphmaker.__name__, 0))
+		self.assertTrue(self.engine._node_exists('physical', 0))
 		if g.is_directed():
 			self.assertIn(2, g.pred[3])
 			self.assertIn(3, g.pred[0])
-		self.engine.branch = graphmaker.__name__ + "_de_edge"
+		self.engine.branch = "physical_de_edge"
 		self.assertIn(3, g.node)
 		self.assertIn(0, g.node)
-		self.assertTrue(self.engine._node_exists(graphmaker.__name__, 0))
+		self.assertTrue(self.engine._node_exists('physical', 0))
 		g.remove_node(3)
 		self.assertNotIn(3, g.node)
 		self.assertNotIn(3, g.adj)
@@ -157,14 +157,14 @@ class AbstractGraphTest:
 		if g.is_directed():
 			self.assertNotIn(3, g.pred)
 			self.assertNotIn(3, g.pred[0])
-		self.engine.branch = graphmaker.__name__ + "_square"
+		self.engine.branch = "physical_square"
 		self.assertEqual(self.engine.turn, 2)
 		self.assertNotIn(0, g.adj[2])
 		self.assertNotIn(0, list(g.adj[2]))
 		self.assertIn(0, g.adj[3])
 		self.assertIn(0, list(g.adj[3]))
 		self.assertIn(3, g.node)
-		self.engine.branch = graphmaker.__name__ + "_nothing"
+		self.engine.branch = "physical_nothing"
 		self.assertNotIn(0, g.adj[2])
 		self.assertNotIn(0, list(g.adj[2]))
 		self.assertIn(0, g.adj[3])
