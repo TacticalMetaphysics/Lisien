@@ -1796,6 +1796,7 @@ class EdgesCache(Cache):
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
+			super().set_keyframe((graph, orig), branch, turn, tick, dests)
 			for dest, ex in dests.items():
 				super().set_keyframe(
 					(graph, orig, dest), branch, turn, tick, {0: ex}
