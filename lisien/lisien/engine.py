@@ -2935,16 +2935,18 @@ class Engine(AbstractEngine, Executor):
 		while (parent := self.branch_parent(parent)) is not None:
 			self._branch_parents[child].add(parent)
 
-	def _copy_kf(self, branch_from, branch_to, turn, tick):
+	def _alias_kf(self, branch_from, branch_to, turn, tick):
 		"""Copy a keyframe from one branch to another
 
 		This aliases the data, rather than really copying. Keyframes don't
 		change, so it should be fine.
 
+		This does *not* save a new keyframe to disk.
+
 		"""
 		try:
 			graph_keyframe = self._graph_cache.get_keyframe(
-				branch_from, turn, tick
+				branch_from, turn, tick, copy=False
 			)
 		except KeyframeError:
 			graph_keyframe = {}
@@ -2963,80 +2965,40 @@ class Engine(AbstractEngine, Executor):
 			tick,
 			graph_keyframe,
 		)
-		for graph in self._graph_cache.iter_keys(branch_to, turn, tick):
+		for graph in graph_keyframe:
 			try:
 				graph_vals = self._graph_val_cache.get_keyframe(
-					(graph,), branch_from, turn, tick, copy=False
+					graph, branch_from, turn, tick, copy=False
 				)
 			except KeyframeError:
 				graph_vals = {}
 			self._graph_val_cache.set_keyframe(
-				(graph,), branch_to, turn, tick, graph_vals
+				graph, branch_to, turn, tick, graph_vals
 			)
 			try:
 				nodes = self._nodes_cache.get_keyframe(
-					(graph,), branch_from, turn, tick, copy=False
+					graph, branch_from, turn, tick, copy=False
 				)
 			except KeyframeError:
 				nodes = {}
 			self._nodes_cache.set_keyframe(
-				(graph,), branch_to, turn, tick, nodes
+				graph, branch_to, turn, tick, nodes
 			)
-			node_vals = {}
-			edge_vals = {}
-			for node in nodes:
-				try:
-					node_val = self._node_val_cache.get_keyframe(
-						(graph, node), branch_from, turn, tick, copy=False
-					)
-				except KeyframeError:
-					node_val = {node: {} for node in nodes}
-				self._node_val_cache.set_keyframe(
-					(graph, node), branch_to, turn, tick, node_val
-				)
-				node_vals[node] = node_val
-				for dest in self._edges_cache.iter_successors(
-					graph, node, branch_from, turn, tick
-				):
-					self._edges_cache.set_keyframe(
-						(graph, node, dest),
-						branch_to,
-						turn,
-						tick,
-						self._edges_cache.get_keyframe(
-							(graph, node, dest),
-							branch_from,
-							turn,
-							tick,
-							copy=False,
-						),
-					)
-					try:
-						evkf = self._edge_val_cache.get_keyframe(
-							(graph, node, dest, 0),
-							branch_from,
-							turn,
-							tick,
-							copy=False,
-						)
-					except KeyframeError:
-						evkf = {}
-					self._edge_val_cache.set_keyframe(
-						(graph, node, dest, 0), branch_to, turn, tick, evkf
-					)
-					if node in edge_vals:
-						edge_vals[node][dest] = evkf
-					else:
-						edge_vals[node] = {dest: evkf}
-			self.query.keyframe_graph_insert(
-				graph,
-				branch_to,
-				turn,
-				tick,
-				node_vals,
-				edge_vals,
-				graph_vals,
-			)
+			try:
+				node_val = self._node_val_cache.get_keyframe(graph, branch_from, turn, tick, copy=False)
+			except KeyframeError:
+				node_val = {}
+			self._node_val_cache.set_keyframe(graph, branch_to, turn, tick, node_val)
+			try:
+				edges = self._edges_cache.get_keyframe(graph, branch_from, turn, tick, copy=False)
+			except KeyframeError:
+				edges = {}
+			self._edges_cache.set_keyframe(graph, branch_to, turn, tick, edges)
+			try:
+				edge_val = self._edge_val_cache.get_keyframe(graph, branch_from, turn, tick, copy=False)
+			except KeyframeError:
+				edge_val = {}
+			self._edge_val_cache.set_keyframe(graph, branch_to, turn, tick, edge_val)
 		for cache in (
 			self._universal_cache,
 			self._triggers_cache,
@@ -3052,7 +3014,7 @@ class Engine(AbstractEngine, Executor):
 			self._neighborhoods_cache,
 			self._rule_bigness_cache,
 		):
-			cache.copy_keyframe(branch_from, branch_to, turn, tick)
+			cache.alias_keyframe(branch_from, branch_to, turn, tick)
 
 		for character in self._graph_cache.iter_entities(
 			branch_from, turn, tick
@@ -3661,7 +3623,7 @@ class Engine(AbstractEngine, Executor):
 					branched_turn_from,
 					branched_tick_from,
 				) in self._keyframes_times
-				self._copy_kf(
+				self._alias_kf(
 					parent,
 					time_from[0],
 					branched_turn_from,
@@ -4221,7 +4183,7 @@ class Engine(AbstractEngine, Executor):
 				self._get_branch_delta(*the_kf, turn, tick),
 			)
 			if the_kf[0] != branch:
-				self._copy_kf(the_kf[0], branch, turn, tick)
+				self._alias_kf(the_kf[0], branch, turn, tick)
 		if silent:
 			return None
 		ret = self._get_kf(branch, turn, tick)

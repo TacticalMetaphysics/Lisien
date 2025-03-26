@@ -20,7 +20,7 @@ from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
-from typing import Hashable
+from typing import Hashable, Iterator
 
 from .exc import (
 	HistoricKeyError,
@@ -456,14 +456,12 @@ class Cache:
 	):
 		self._set_keyframe(graph_ent, branch, turn, tick, keyframe)
 
-	def copy_keyframe(self, branch_from, branch_to, turn, tick):
+	def alias_keyframe(self, branch_from, branch_to, turn, tick):
 		for graph_ent in self.keyframe:
 			try:
 				kf = self._get_keyframe(graph_ent, branch_from, turn, tick)
 			except KeyframeError:
 				continue
-			if isinstance(kf, dict):
-				kf = kf.copy()
 			self._set_keyframe(graph_ent, branch_to, turn, tick, kf)
 
 	def load(self, data):
@@ -1543,7 +1541,7 @@ class Cache:
 			raise ret
 		return ret
 
-	def iter_entities_or_keys(self, *args, forward: bool = None):
+	def iter_entities_or_keys(self, *args, forward: bool = None) -> Iterator:
 		"""Iterate over the keys an entity has, if you specify an entity.
 
 		Otherwise iterate over the entities themselves, or at any rate the
@@ -1558,11 +1556,15 @@ class Cache:
 		tick: int
 		branch, turn, tick = args[-3:]
 		if self.db._no_kc:
-			yield from self._get_adds_dels(entity, branch, turn, tick)[0]
-			return
-		yield from self._get_keycache(
-			entity, branch, turn, tick, forward=forward
-		)
+			kc = self._get_adds_dels(entity, branch, turn, tick)[0]
+		else:
+			try:
+				kc = self._get_keycache(
+					entity, branch, turn, tick, forward=forward
+				)
+			except KeyframeError:
+				return iter(())
+		return iter(kc)
 
 	iter_entities = iter_keys = iter_entity_keys = iter_entities_or_keys
 
