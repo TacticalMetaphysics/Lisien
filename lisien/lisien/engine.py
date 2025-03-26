@@ -843,7 +843,12 @@ class Engine(AbstractEngine, Executor):
 		At any remove.
 
 		"""
-		if parent == self.main_branch:
+		branches = self.branches()
+		if parent not in branches:
+			raise ValueError("Not a branch", parent)
+		if child not in branches:
+			raise ValueError("Not a branch", child)
+		if parent is None or parent == child or parent == self.main_branch:
 			return True
 		if child == self.main_branch:
 			return False
