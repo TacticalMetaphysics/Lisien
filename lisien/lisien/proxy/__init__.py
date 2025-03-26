@@ -2618,6 +2618,24 @@ class NextTurnProxy(Signal):
 		return self.engine.handle("next_turn", cb=partial(self.engine._upd_and_cb, partial(self.send, self)))
 
 
+class TimeTravelProxy(Signal):
+	"""Move to a different point in the timestream
+
+		Needs ``branch`` and ``turn`` arguments. The ``tick`` is
+		optional; if unspecified, you'll travel to the last tick
+		in the turn.
+	"""
+	def __init__(self, engine):
+		super().__init__()
+		self.engine = engine
+
+	def __call__(self, branch: str, turn: int, tick: int) -> DeltaDict:
+		return self.engine.handle("time_travel", branch=branch,
+								  turn=turn,
+								  tick=tick,
+								  cb=partial(self.engine._upd_and_cb, partial(self.send, self)))
+
+
 class EngineProxy(AbstractEngine):
 	"""An engine-like object for controlling a lisien process
 
@@ -2996,6 +3014,7 @@ class EngineProxy(AbstractEngine):
 		self.rule = AllRulesProxy(self)
 		if prefix is None:
 			self.next_turn = NextTurnProxy(self)
+			self.time_travel = TimeTravelProxy(self)
 			self.method = FuncStoreProxy(self, "method")
 			self.action = FuncStoreProxy(self, "action")
 			self.prereq = FuncStoreProxy(self, "prereq")
@@ -3007,7 +3026,10 @@ class EngineProxy(AbstractEngine):
 		else:
 			def next_turn():
 				raise WorkerProcessReadOnlyError("Can't advance time in a worker process")
+			def time_travel(branch: str, turn: int, tick: int = None):
+				raise WorkerProcessReadOnlyError("Can't time travel in a worker process")
 			self.next_turn = next_turn
+			self.time_travel = time_travel
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
 			self.action = FunctionStore(os.path.join(prefix, "action.py"))
 			self.prereq = FunctionStore(os.path.join(prefix, "prereq.py"))
@@ -3378,34 +3400,6 @@ class EngineProxy(AbstractEngine):
 		self._upd(*args, **kwargs)
 		if cb:
 			cb(*args, **kwargs)
-
-	def time_travel(self, branch: str, turn: int, tick: int = None, cb: callable = None):
-		"""Move to a different point in the timestream
-
-		Needs ``branch`` and ``turn`` arguments. The ``tick`` is
-		optional; if unspecified, you'll travel to the last tick
-		in the turn.
-
-		May take a callback function ``cb``, which will receive a
-		dictionary describing changes to the characters in ``chars``.
-		``chars`` defaults to 'all', indicating that every character
-		should be included, but may be a list of character names
-		to include.
-
-		"""
-		if self._worker:
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if cb is not None and not callable(cb):
-			raise TypeError("Uncallable callback")
-		return self.handle(
-			"time_travel",
-			branch=branch,
-			turn=turn,
-			tick=tick,
-			cb=partial(self._upd_and_cb, cb),
-		)
 
 	def _add_character(
 		self, char, data: tuple | dict | nx.Graph  = None, **attr
