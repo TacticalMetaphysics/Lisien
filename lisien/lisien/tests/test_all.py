@@ -186,77 +186,75 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 
 		"""
 		super().test_graph_objects_create_delete()
-		for graphmaker in self.graphmakers:
-			gmn = graphmaker.__name__
-			self.assertTrue(self.engine.is_ancestor_of("trunk", gmn))
-			self.assertTrue(self.engine.is_ancestor_of(gmn, gmn + "_no_edge"))
-			self.assertTrue(self.engine.is_ancestor_of(gmn, gmn + "_triangle"))
-			self.assertTrue(self.engine.is_ancestor_of(gmn, gmn + "_nothing"))
-			self.assertTrue(
-				self.engine.is_ancestor_of(gmn + "_no_edge", gmn + "_triangle")
-			)
-			self.assertTrue(
-				self.engine.is_ancestor_of(gmn + "_square", gmn + "_nothing")
-			)
-			self.assertFalse(
-				self.engine.is_ancestor_of(gmn + "_nothing", "trunk")
-			)
-			self.assertFalse(
-				self.engine.is_ancestor_of(gmn + "_triangle", gmn + "_no_edge")
-			)
-			self.engine.turn = self.engine._branch_start(gmn)[0]
-			self.engine.branch = gmn
-			g = self.engine.graph[gmn]
-			self.assertIn(0, g.node)
-			self.assertIn(1, g.node)
-			self.assertIn(0, g.edge)
-			self.assertIn(1, g.edge[0])
-			self.engine.turn = 0
+		gmn = 'physical'
+		self.assertTrue(self.engine.is_ancestor_of("trunk", gmn + "_no_edge"))
+		self.assertTrue(self.engine.is_ancestor_of("trunk", gmn + "_triangle"))
+		self.assertTrue(self.engine.is_ancestor_of("trunk", gmn + "_nothing"))
+		self.assertTrue(
+			self.engine.is_ancestor_of(gmn + "_no_edge", gmn + "_triangle")
+		)
+		self.assertTrue(
+			self.engine.is_ancestor_of(gmn + "_square", gmn + "_nothing")
+		)
+		self.assertFalse(
+			self.engine.is_ancestor_of(gmn + "_nothing", "trunk")
+		)
+		self.assertFalse(
+			self.engine.is_ancestor_of(gmn + "_triangle", gmn + "_no_edge")
+		)
+		self.engine.turn = self.engine._branch_start("trunk")[0]
+		self.engine.branch = "trunk"
+		g = self.engine.graph[gmn]
+		self.assertIn(0, g.node)
+		self.assertIn(1, g.node)
+		self.assertIn(0, g.edge)
+		self.assertIn(1, g.edge[0])
+		self.engine.turn = 0
 
-			def badjump():
-				self.engine.branch = gmn + "_no_edge"
-
-			self.assertRaises(ValueError, badjump)
-			self.engine.turn = self.engine.branch_start_turn(gmn + "_no_edge")
+		def badjump():
 			self.engine.branch = gmn + "_no_edge"
-			self.engine.next_turn()
-			self.assertIn(0, g)
-			self.assertIn(0, list(g.node.keys()))
-			self.assertNotIn(1, g.edge[0])
-			if g.is_multigraph():
-				self.assertRaises(KeyError, lambda: g.edge[0][1][0])
-			else:
-				self.assertRaises(KeyError, lambda: g.edge[0][1])
-			self.engine.branch = gmn + "_triangle"
-			self.assertIn(2, g.node)
-			for orig in (0, 1, 2):
-				for dest in (0, 1, 2):
-					if orig == dest:
-						continue
-					self.assertIn(orig, g.edge)
-					self.assertIn(dest, g.edge[orig])
-			self.engine.branch = gmn + "_square"
-			self.assertNotIn(0, g.edge[2])
-			if g.is_multigraph():
-				self.assertRaises(KeyError, lambda: g.edge[2][0][0])
-			else:
-				self.assertRaises(KeyError, lambda: g.edge[2][0])
-			self.engine.turn = 2
-			self.assertIn(3, g.node)
-			self.assertIn(1, g.edge[0])
-			self.assertIn(2, g.edge[1])
-			self.assertIn(3, g.edge[2])
-			self.assertIn(0, g.edge[3])
-			self.engine.branch = gmn + "_nothing"
-			for node in (0, 1, 2):
-				self.assertNotIn(node, g.node)
-				self.assertNotIn(node, g.edge)
-			self.engine.branch = gmn
-			self.engine.turn = 0
-			self.assertIn(0, g.node)
-			self.assertIn(1, g.node)
-			self.assertIn(0, g.edge)
-			self.assertIn(1, g.edge[0])
+
+		self.assertRaises(ValueError, badjump)
+		self.engine.turn = self.engine.branch_start_turn(gmn + "_no_edge")
+		self.engine.branch = gmn + "_no_edge"
+		self.engine.next_turn()
+		self.assertIn(0, g)
+		self.assertIn(0, list(g.node.keys()))
+		self.assertNotIn(1, g.edge[0])
+		if g.is_multigraph():
+			self.assertRaises(KeyError, lambda: g.edge[0][1][0])
+		else:
+			self.assertRaises(KeyError, lambda: g.edge[0][1])
+		self.engine.branch = gmn + "_triangle"
+		self.assertIn(2, g.node)
+		for orig in (0, 1, 2):
+			for dest in (0, 1, 2):
+				if orig == dest:
+					continue
+				self.assertIn(orig, g.edge)
+				self.assertIn(dest, g.edge[orig])
+		self.engine.branch = gmn + "_square"
+		self.assertNotIn(0, g.edge[2])
+		if g.is_multigraph():
+			self.assertRaises(KeyError, lambda: g.edge[2][0][0])
+		else:
+			self.assertRaises(KeyError, lambda: g.edge[2][0])
+		self.engine.turn = 2
+		self.assertIn(3, g.node)
+		self.assertIn(1, g.edge[0])
+		self.assertIn(2, g.edge[1])
+		self.assertIn(3, g.edge[2])
+		self.assertIn(0, g.edge[3])
+		self.engine.branch = gmn + "_nothing"
+		for node in (0, 1, 2):
+			self.assertNotIn(node, g.node)
+			self.assertNotIn(node, g.edge)
+		self.engine.branch = "trunk"
+		self.engine.turn = 0
+		self.assertIn(0, g.node)
+		self.assertIn(1, g.node)
+		self.assertIn(0, g.edge)
+		self.assertIn(1, g.edge[0])
 
 
 class BranchLineageTest(AbstractBranchLineageTest, AllegedTest):
