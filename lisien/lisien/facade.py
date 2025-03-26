@@ -1150,6 +1150,48 @@ class EngineFacade(AbstractEngine):
 	def _btt(self):
 		return self.branch, self.turn, self.tick
 
+	def _set_btt(self, branch: str, turn: int, tick: int) -> None:
+		(self.branch, self.turn, self.tick) = (branch, turn, tick)
+
+	def _extend_branch(self, branch: str, turn: int, tick: int) -> None:
+		if branch in self._branches_d:
+			parent, turn_from, tick_from, turn_to, tick_to = self._branches_d[
+				branch
+			]
+			if (turn, tick) > (turn_to, tick_to):
+				self._branches_d[branch] = (
+					parent,
+					turn_from,
+					tick_from,
+					turn,
+					tick,
+				)
+		else:
+			self._branches_d[branch] = None, turn, tick, turn, tick
+
+	def _start_branch(
+		self, parent: str, branch: str, turn: int, tick: int
+	) -> None:
+		self._branches_d[branch] = (parent, turn, tick, turn, tick)
+		self._extend_branch(branch, turn, tick)
+
+	def load_at(self, branch: str, turn: int, tick: int) -> None:
+		pass
+
+	def turn_end(self, branch: str = None, turn: int = None) -> int:
+		if branch is None:
+			branch = self.branch
+		if turn is None:
+			turn = self.turn
+		return self._turn_end[branch, turn]
+
+	def turn_end_plan(self, branch: str = None, turn: int = None) -> int:
+		if branch is None:
+			branch = self.branch
+		if turn is None:
+			turn = self.turn
+		return self._turn_end_plan[branch, turn]
+
 	def _nbtt(self):
 		self.tick += 1
 		return self._btt()

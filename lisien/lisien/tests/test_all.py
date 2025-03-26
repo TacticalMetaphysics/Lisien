@@ -46,10 +46,10 @@ class AllegedTest(unittest.TestCase):
 
 class AbstractGraphTest:
 	def test_graph_objects_create_delete(self):
-		g = self.engine.new_graph('physical')
-		self.assertFalse(self.engine._node_exists('physical', 0))
+		g = self.engine.new_graph("physical")
+		self.assertFalse(self.engine._node_exists("physical", 0))
 		g.add_node(0)
-		self.assertTrue(self.engine._node_exists('physical', 0))
+		self.assertTrue(self.engine._node_exists("physical", 0))
 		self.assertIn(0, g)
 		g.add_node(1)
 		self.assertIn(1, g)
@@ -85,7 +85,7 @@ class AbstractGraphTest:
 		self.engine.branch = "physical_no_edge"
 		self.assertIn(3, g.node)
 		self.assertIn(0, g)
-		self.assertTrue(self.engine._node_exists('physical', 0))
+		self.assertTrue(self.engine._node_exists("physical", 0))
 		self.assertIn(1, g)
 		self.assertIn(1, g.adj[0])
 		self.assertIn(1, list(g.adj[0]))
@@ -119,7 +119,7 @@ class AbstractGraphTest:
 		self.assertIn(2, g.adj[0])
 		self.assertIn(2, list(g.adj[0]))
 		self.engine.branch = "physical_square"
-		self.assertTrue(self.engine._node_exists('physical', 0))
+		self.assertTrue(self.engine._node_exists("physical", 0))
 		self.assertIn(3, g.node)
 		self.assertIn(2, list(g.adj[0]))
 		self.assertIn(2, g.adj[0])
@@ -129,12 +129,12 @@ class AbstractGraphTest:
 		self.assertIn(2, list(g.adj[0]))
 		self.assertIn(2, g.adj[0])
 		self.assertIn(2, list(g.adj[0]))
-		self.assertTrue(self.engine._node_exists('physical', 0))
+		self.assertTrue(self.engine._node_exists("physical", 0))
 		g.remove_edge(2, 0)
 		self.assertNotIn(0, g.adj[2])
 		self.assertNotIn(0, list(g.adj[2]))
 		self.assertIn(0, g.node)
-		self.assertTrue(self.engine._node_exists('physical', 0))
+		self.assertTrue(self.engine._node_exists("physical", 0))
 		self.assertNotIn(3, g.adj)
 		g.add_edge(3, 0)
 		self.assertIn(3, g.adj)
@@ -142,14 +142,14 @@ class AbstractGraphTest:
 		self.assertIn(0, g.adj[3])
 		self.assertIn(0, list(g.adj[3]))
 		self.assertIn(0, g.node)
-		self.assertTrue(self.engine._node_exists('physical', 0))
+		self.assertTrue(self.engine._node_exists("physical", 0))
 		if g.is_directed():
 			self.assertIn(2, g.pred[3])
 			self.assertIn(3, g.pred[0])
 		self.engine.branch = "physical_de_edge"
 		self.assertIn(3, g.node)
 		self.assertIn(0, g.node)
-		self.assertTrue(self.engine._node_exists('physical', 0))
+		self.assertTrue(self.engine._node_exists("physical", 0))
 		g.remove_node(3)
 		self.assertNotIn(3, g.node)
 		self.assertNotIn(3, g.adj)
@@ -174,7 +174,6 @@ class AbstractGraphTest:
 		for n in (0, 1, 2, 3):
 			self.assertNotIn(n, g.node)
 			self.assertNotIn(n, g.adj)
-		self.engine.time = "trunk", 0
 
 
 class AbstractBranchLineageTest(AbstractGraphTest):
@@ -186,7 +185,7 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 
 		"""
 		super().test_graph_objects_create_delete()
-		gmn = 'physical'
+		gmn = "physical"
 		self.assertTrue(self.engine.is_ancestor_of("trunk", gmn + "_no_edge"))
 		self.assertTrue(self.engine.is_ancestor_of("trunk", gmn + "_triangle"))
 		self.assertTrue(self.engine.is_ancestor_of("trunk", gmn + "_nothing"))
@@ -196,9 +195,7 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 		self.assertTrue(
 			self.engine.is_ancestor_of(gmn + "_square", gmn + "_nothing")
 		)
-		self.assertFalse(
-			self.engine.is_ancestor_of(gmn + "_nothing", "trunk")
-		)
+		self.assertFalse(self.engine.is_ancestor_of(gmn + "_nothing", "trunk"))
 		self.assertFalse(
 			self.engine.is_ancestor_of(gmn + "_triangle", gmn + "_no_edge")
 		)
