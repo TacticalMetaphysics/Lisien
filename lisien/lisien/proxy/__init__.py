@@ -474,7 +474,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 		return self.character.new_thing(name, self.name, **kwargs)
 
 	def shortest_path(
-		self, dest: Key | type["NodeProxy"], weight: Key = None
+		self, dest: Key | "NodeProxy", weight: Key = None
 	) -> list[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
