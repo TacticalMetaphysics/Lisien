@@ -65,18 +65,21 @@ def handle_initialized(request, tmp_path, database):
 
 
 def pytest_addoption(parser):
-	parser.addoption("--serial", action="store_true", default=False)
+	parser.addoption("--no-parallel", action="store_true", default=False)
+	parser.addoption("--no-sqlite", action="store_true", default=False)
 
 
 @pytest.fixture(params=["parallel", "serial"])
 def execution(request):
-	if request.config.getoption("serial") and request.param == "parallel":
+	if request.config.getoption("no_parallel") and request.param == "parallel":
 		raise pytest.skip("Skipping parallel execution.")
 	return request.param
 
 
 @pytest.fixture(params=["sqlite", "parquetdb"])
 def database(request):
+	if request.config.getoption("no_sqlite") and request.param == "sqlite":
+		raise pytest.skip("Skipping SQLite.")
 	return request.param
 
 
@@ -93,7 +96,7 @@ def engy(tmp_path, execution, database):
 @pytest.fixture(scope="function", params=["serial", "parallel"])
 def sqleng(tmp_path, request):
 	execution = request.param
-	if request.config.getoption("serial") and execution == "parallel":
+	if request.config.getoption("no_parallel") and execution == "parallel":
 		raise pytest.skip("Skipping parallel execution.")
 	with Engine(
 		tmp_path,
