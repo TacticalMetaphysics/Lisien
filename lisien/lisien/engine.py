@@ -26,7 +26,6 @@ import sys
 import zlib
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Sequence
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
@@ -57,7 +56,6 @@ from networkx import (
 
 from . import exc
 from .cache import (
-	Cache,
 	CharacterPlaceRulesHandledCache,
 	CharacterPortalRulesHandledCache,
 	CharacterRulesHandledCache,
@@ -67,7 +65,6 @@ from .cache import (
 	EdgeValCache,
 	EntitylessCache,
 	GraphValCache,
-	InitializedCache,
 	InitializedEntitylessCache,
 	NodeContentsCache,
 	NodesRulebooksCache,
@@ -90,10 +87,9 @@ from .exc import (
 	HistoricKeyError,
 	KeyframeError,
 	OutOfTimelineError,
-	TimeError,
 )
 from .facade import CharacterFacade
-from .graph import DiGraph, GraphsMapping
+from .graph import DiGraph
 from .node import Place, Thing
 from .portal import Portal
 from .proxy import worker_subprocess
@@ -113,7 +109,6 @@ from .query import (
 from .rule import AllRuleBooks, AllRules, Rule
 from .typing import (
 	DeltaDict,
-	EdgesDict,
 	EdgeValDict,
 	GraphEdgesDict,
 	GraphEdgeValDict,
@@ -122,7 +117,6 @@ from .typing import (
 	GraphValDict,
 	Key,
 	KeyframeTuple,
-	NodesDict,
 	NodeValDict,
 	StatDict,
 )
@@ -134,6 +128,7 @@ from .util import (
 	normalize_layout,
 	sort_set,
 	world_locked,
+	TimeSignalDescriptor,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
@@ -250,121 +245,6 @@ class PlanningContext(ContextDecorator):
 			self.orm._set_btt(*self.reset)
 		if self.forward:
 			self.orm._forward = True
-
-
-class TimeSignal(Signal, Sequence):
-	"""Acts like a tuple of ``(branch, turn)`` for the most part.
-
-	This is a ``Signal``. To set a function to be called whenever the
-	branch or turn changes, pass it to my ``connect`` method.
-
-	"""
-
-	def __init__(self, engine: "Engine"):
-		super().__init__()
-		self.engine = engine
-
-	def __iter__(self):
-		yield self.engine.branch
-		yield self.engine.turn
-
-	def __len__(self):
-		return 2
-
-	def __getitem__(self, i: str | int) -> str | int:
-		if i in ("branch", 0):
-			return self.engine.branch
-		if i in ("turn", 1):
-			return self.engine.turn
-		if isinstance(i, int):
-			raise IndexError(i)
-		else:
-			raise KeyError(i)
-
-	def __setitem__(self, i: str | int, v: str | int) -> None:
-		if i in ("branch", 0):
-			self.engine.branch = v
-		elif i in ("turn", 1):
-			self.engine.turn = v
-		else:
-			exctyp = KeyError if isinstance(i, str) else IndexError
-			raise exctyp(
-				"Can only set branch or turn. Set `Engine.tick` directly if you really want that."
-			)
-		self.send(self, key=i, value=v)
-
-	def __str__(self):
-		return str(tuple(self))
-
-	def __eq__(self, other):
-		return tuple(self) == other
-
-	def __ne__(self, other):
-		return tuple(self) != other
-
-	def __gt__(self, other):
-		return tuple(self) > other
-
-	def __ge__(self, other):
-		return tuple(self) >= other
-
-	def __lt__(self, other):
-		return tuple(self) < other
-
-	def __le__(self, other):
-		return tuple(self) <= other
-
-
-class TimeSignalDescriptor:
-	__doc__ = TimeSignal.__doc__
-
-	def __get__(self, inst, cls):
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal(inst)
-		return inst._time_signal
-
-	def __set__(self, inst: "Engine", val: tuple[str, int]):
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal(inst)
-		sig = inst._time_signal
-		branch_then, turn_then, tick_then = inst._btt()
-		branch_now, turn_now = val
-		if (branch_then, turn_then) == (branch_now, turn_now):
-			return
-		e = inst
-		# enforce the arrow of time, if it's in effect
-		if e._forward and not e._planning:
-			if branch_now != branch_then:
-				raise TimeError("Can't change branches in a forward context")
-			if turn_now < turn_then:
-				raise TimeError(
-					"Can't time travel backward in a forward context"
-				)
-			if turn_now > turn_then + 1:
-				raise TimeError("Can't skip turns in a forward context")
-		# make sure I'll end up within the revision range of the
-		# destination branch
-
-		if branch_now in e.branches():
-			tick_now = e._turn_end_plan.setdefault(
-				(branch_now, turn_now), tick_then
-			)
-			e._extend_branch(branch_now, turn_now, tick_now)
-			e.load_at(branch_now, turn_now, tick_now)
-		else:
-			tick_now = tick_then
-			e._start_branch(branch_then, branch_now, turn_now, tick_now)
-		e._obranch, e._oturn = val
-		e._otick = tick_now
-		sig.send(
-			e,
-			branch_then=branch_then,
-			turn_then=turn_then,
-			tick_then=tick_then,
-			branch_now=branch_now,
-			turn_now=turn_now,
-			tick_now=tick_now,
-		)
 
 
 class NextTurn(Signal):

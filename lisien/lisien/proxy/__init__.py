@@ -59,6 +59,7 @@ from ..util import (
 	AbstractEngine,
 	KeyClass,
 	MsgpackExtensionType,
+	TimeSignalDescriptor,
 	getatt,
 	repr_call_sig,
 )
@@ -2554,25 +2555,9 @@ class TimeSignal(Signal):
 				"Tried to change the world state in a worker process"
 			)
 		if i in ("branch", 0):
-			self.engine.time_travel(v, self.engine.tick)
+			self.engine._set_btt(v, self.engine.tick)
 		if i in ("tick", 1):
-			self.engine.time_travel(self.engine.branch, v)
-
-
-class TimeDescriptor(object):
-	times = {}
-
-	def __get__(self, inst, cls):
-		if id(inst) not in self.times:
-			self.times[id(inst)] = TimeSignal(inst)
-		return self.times[id(inst)]
-
-	def __set__(self, inst, val):
-		if inst._worker:
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		inst.time_travel(*val)
+			self.engine._set_btt(self.engine.branch, v)
 
 
 class RandoProxy(Random):
@@ -2621,28 +2606,6 @@ class NextTurnProxy(Signal):
 		)
 
 
-class TimeTravelProxy(Signal):
-	"""Move to a different point in the timestream
-
-	Needs ``branch`` and ``turn`` arguments. The ``tick`` is
-	optional; if unspecified, you'll travel to the last tick
-	in the turn.
-	"""
-
-	def __init__(self, engine):
-		super().__init__()
-		self.engine = engine
-
-	def __call__(self, branch: str, turn: int, tick: int) -> DeltaDict:
-		return self.engine.handle(
-			"time_travel",
-			branch=branch,
-			turn=turn,
-			tick=tick,
-			cb=partial(self.engine._upd_and_cb, partial(self.send, self)),
-		)
-
-
 class EngineProxy(AbstractEngine):
 	"""An engine-like object for controlling a lisien process
 
@@ -2655,8 +2618,49 @@ class EngineProxy(AbstractEngine):
 	thing_cls = ThingProxy
 	place_cls = PlaceProxy
 	portal_cls = PortalProxy
-	time = TimeDescriptor()
+	time = TimeSignalDescriptor()
 	is_proxy = True
+
+	def _set_btt(self, branch: str, turn: int, tick: int):
+		old_branch, old_turn = self.time
+		if (old_branch, old_turn) != (branch, turn):
+			callback = partial(
+				self.time.send, self, old_branch, old_turn, branch, turn
+			)
+		else:
+
+			def callback(*args): ...
+
+		return self.handle(
+			"time_travel",
+			branch=branch,
+			turn=turn,
+			tick=tick,
+			cb=partial(self._upd_and_cb, callback),
+		)
+
+	def _start_branch(
+		self, parent: str, branch: str, turn: int, tick: int
+	) -> None:
+		self.handle(
+			"start_branch", parent=parent, branch=branch, turn=turn, tick=tick
+		)
+
+	def _extend_branch(self, branch: str, turn: int, tick: int) -> None:
+		self.handle("extend_branch", branch=branch, turn=turn, tick=tick)
+
+	def load_at(self, branch: str, turn: int, tick: int) -> None:
+		self.handle("load_at", branch=branch, turn=turn, tick=tick)
+
+	def turn_end(self, branch: str = None, turn: int = None) -> int:
+		if self._worker:
+			raise NotImplementedError("Need to cache turn ends in workers")
+		return self.handle("turn_end", branch=branch, turn=turn)
+
+	def turn_end_plan(self, branch: str = None, turn: int = None) -> int:
+		if self._worker:
+			raise NotImplementedError("Need to cache plans in workers")
+		return self.handle("turn_end_plan", branch=branch, turn=turn)
 
 	@property
 	def main_branch(self) -> str:
@@ -2946,7 +2950,7 @@ class EngineProxy(AbstractEngine):
 
 	@branch.setter
 	def branch(self, v):
-		self.time_travel(v, self.turn)
+		self._set_btt(v, self.turn, self.tick)
 
 	@property
 	def turn(self):
@@ -2954,7 +2958,7 @@ class EngineProxy(AbstractEngine):
 
 	@turn.setter
 	def turn(self, v):
-		self.time_travel(self.branch, v)
+		self._set_btt(self.branch, v, self.tick)
 
 	@property
 	def tick(self):
@@ -2962,7 +2966,10 @@ class EngineProxy(AbstractEngine):
 
 	@tick.setter
 	def tick(self, v: int):
-		self.time_travel(self.branch, self.turn, v)
+		self._set_btt(self.branch, self.turn, v)
+
+	def _btt(self):
+		return self._branch, self._turn, self._tick
 
 	def __init__(
 		self,
@@ -3021,7 +3028,6 @@ class EngineProxy(AbstractEngine):
 		self.rule = AllRulesProxy(self)
 		if prefix is None:
 			self.next_turn = NextTurnProxy(self)
-			self.time_travel = TimeTravelProxy(self)
 			self.method = FuncStoreProxy(self, "method")
 			self.action = FuncStoreProxy(self, "action")
 			self.prereq = FuncStoreProxy(self, "prereq")
@@ -3037,13 +3043,7 @@ class EngineProxy(AbstractEngine):
 					"Can't advance time in a worker process"
 				)
 
-			def time_travel(branch: str, turn: int, tick: int = None):
-				raise WorkerProcessReadOnlyError(
-					"Can't time travel in a worker process"
-				)
-
 			self.next_turn = next_turn
-			self.time_travel = time_travel
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
 			self.action = FunctionStore(os.path.join(prefix, "action.py"))
 			self.prereq = FunctionStore(os.path.join(prefix, "prereq.py"))

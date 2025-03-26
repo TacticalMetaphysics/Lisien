@@ -290,6 +290,21 @@ class EngineHandle:
 	) -> SlightlyPackedDeltaType:
 		return self._real._get_slow_delta(btt_from, btt_to)
 
+	def start_branch(self, parent: str, branch: str, turn: int, tick: int):
+		self._real._start_branch(parent, branch, turn, tick)
+
+	def extend_branch(self, branch: str, turn: int, tick: int):
+		self._real._extend_branch(branch, turn, tick)
+
+	def load_at(self, branch: str, turn: int, tick: int):
+		self._real.load_at(branch, turn, tick)
+
+	def turn_end(self, branch: str = None, turn: int = None) -> int:
+		return self._real.turn_end(branch, turn)
+
+	def turn_end_plan(self, branch: str = None, turn: int = None) -> int:
+		return self._real.turn_end_plan(branch, turn)
+
 	@prepacked
 	def time_travel(
 		self,
