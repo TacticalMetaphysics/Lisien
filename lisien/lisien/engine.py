@@ -29,7 +29,6 @@ from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
-from copy import deepcopy
 from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
 from multiprocessing import Pipe, Process, Queue
@@ -3402,9 +3401,10 @@ class Engine(AbstractEngine, Executor):
 			if deltg is None:
 				del graphs_keyframe[graph]
 				continue
-			combined_node_val_keyframe = deepcopy(
-				node_val_keyframe.get(graph, {})
-			)
+			combined_node_val_keyframe = {
+				node: val.copy()
+				for (node, val) in node_val_keyframe.get(graph, {}).items()
+			}
 			for node, loc in things_keyframe.get(graph, {}).items():
 				if node in combined_node_val_keyframe:
 					combined_node_val_keyframe[node]["location"] = loc
@@ -3420,9 +3420,10 @@ class Engine(AbstractEngine, Executor):
 					combined_node_val_keyframe[node] = {
 						"rulebook": (graph, node)
 					}
-			combined_edge_val_keyframe = deepcopy(
-				edge_val_keyframe.get(graph, {})
-			)
+			combined_edge_val_keyframe = {
+				orig: {dest: val.copy() for (dest, val) in dests.items()}
+				for (orig, dests) in edge_val_keyframe.get(graph, {}).items()
+			}
 			for orig, dests in portals_rulebooks_keyframe.get(
 				graph, {}
 			).items():
@@ -3439,9 +3440,9 @@ class Engine(AbstractEngine, Executor):
 						combined_edge_val_keyframe.setdefault(
 							orig, {}
 						).setdefault(dest, {})
-			combined_graph_val_keyframe = deepcopy(
-				graph_val_keyframe.get(graph, {})
-			)
+			combined_graph_val_keyframe = graph_val_keyframe.get(
+				graph, {}
+			).copy()
 			combined_graph_val_keyframe["character_rulebook"] = (
 				characters_rulebooks_keyframe[graph]
 			)
@@ -4542,12 +4543,12 @@ class Engine(AbstractEngine, Executor):
 				name, branch, turn, tick, nodes, edges, val
 			)
 		elif isinstance(data, nx.Graph):
-			nodes = {k: deepcopy(v) for (k, v) in data.nodes.items()}
+			nodes = {k: v.copy() for (k, v) in data.nodes.items()}
 			edges = {}
 			for orig in data.adj:
 				succs = edges[orig] = {}
 				for dest, stats in data.adj[orig].items():
-					succs[dest] = deepcopy(stats)
+					succs[dest] = stats.copy()
 			self._snap_keyframe_de_novo_graph(
 				name,
 				branch,
@@ -4571,12 +4572,12 @@ class Engine(AbstractEngine, Executor):
 				data = nx.from_dict_of_dicts(data)
 			except AttributeError:
 				data = nx.from_dict_of_lists(data)
-			nodes = {k: deepcopy(v) for (k, v) in data.nodes.items()}
+			nodes = {k: v.copy() for (k, v) in data.nodes.items()}
 			edges = {}
 			for orig in data.adj:
 				succs = edges[orig] = {}
 				for dest, stats in data.adj[orig].items():
-					succs[dest] = deepcopy(stats)
+					succs[dest] = stats.copy()
 			self._snap_keyframe_de_novo_graph(
 				name, branch, turn, tick, nodes, edges, {}
 			)
