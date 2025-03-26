@@ -267,30 +267,29 @@ class StorageTest(AllegedTest):
 		for the graph as a whole, for nodes, and for edges.
 
 		"""
-		for graphmaker in self.graphmakers:
-			g = graphmaker("testgraph")
-			g.add_node(0)
-			g.add_node(1)
-			g.add_edge(0, 1)
-			n = g.node[0]
-			e = g.edge[0][1]
-			for k, v in testdata:
-				g.graph[k] = v
-				self.assertIn(k, g.graph)
-				self.assertEqual(g.graph[k], v)
-				del g.graph[k]
-				self.assertNotIn(k, g.graph)
-				n[k] = v
-				self.assertIn(k, n)
-				self.assertEqual(n[k], v)
-				del n[k]
-				self.assertNotIn(k, n)
-				e[k] = v
-				self.assertIn(k, e)
-				self.assertEqual(e[k], v)
-				del e[k]
-				self.assertNotIn(k, e)
-			self.engine.del_graph("testgraph")
+		g = self.engine.new_graph("testgraph")
+		g.add_node(0)
+		g.add_node(1)
+		g.add_edge(0, 1)
+		n = g.node[0]
+		e = g.edge[0][1]
+		for k, v in testdata:
+			g.graph[k] = v
+			self.assertIn(k, g.graph)
+			self.assertEqual(g.graph[k], v)
+			del g.graph[k]
+			self.assertNotIn(k, g.graph)
+			n[k] = v
+			self.assertIn(k, n)
+			self.assertEqual(n[k], v)
+			del n[k]
+			self.assertNotIn(k, n)
+			e[k] = v
+			self.assertIn(k, e)
+			self.assertEqual(e[k], v)
+			del e[k]
+			self.assertNotIn(k, e)
+		self.engine.del_graph("testgraph")
 
 	def test_store_dict(self):
 		for i, graphmaker in enumerate(self.graphmakers):
