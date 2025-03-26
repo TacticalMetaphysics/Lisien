@@ -89,7 +89,7 @@ See :doc:`lisien/design` for details.
 *******
 
 The only Lisien class that you should ever instantiate yourself is
-:class:`Lisien.engine.Engine`. All simulation objects should be created
+:class:`lisien.Engine`. All simulation objects should be created
 and accessed through it. By default, it keeps the simulation code and
 world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager (``with
