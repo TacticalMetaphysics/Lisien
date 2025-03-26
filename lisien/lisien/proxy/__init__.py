@@ -3425,12 +3425,15 @@ class EngineProxy(AbstractEngine):
 		if isinstance(data, nx.Graph):
 			data = {
 				"place": {
-					k: v for k, v in data._node.items() if "location" not in v
+					k: v for k, v in data.nodes.items() if "location" not in v
 				},
 				"thing": {
-					k: v for k, v in data._node.items() if "location" in v
+					k: v for k, v in data.nodes.items() if "location" in v
 				},
-				"edge": data._adj,
+				"edge": {
+					orig: {dest: edges for (dest, edges) in dests.items()}
+					for (orig, dests) in data.edges.items()
+				},
 			}
 		elif isinstance(data, tuple):
 			nodes, edges, graph_val = data
