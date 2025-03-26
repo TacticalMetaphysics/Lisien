@@ -243,12 +243,12 @@ proxy to the engine:
     manager.shutdown()
 
 
-You can pass :class:`Engine` arguments to the manager's initializer or the `start` method, as you please.
+You can pass :class:`Engine` arguments to the manager's initializer or the ``start`` method, as you please.
 
 The proxy objects are mostly the same as what they represent, with affordances for when you
 have to do some work in the user interface while waiting for the core to finish something. Generally, you
-can pass a callback function to the relevant object's `connect` method, and Lisien will call the callback
-at the relevant time. Here's how you'd run some code whenever `next_turn` finishes running the rules engine:
+can pass a callback function to the relevant object's ``connect`` method, and Lisien will call the callback
+at the relevant time. Here's how you'd run some code whenever ``next_turn`` finishes running the rules engine:
 
 .. code::
 
