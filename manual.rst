@@ -218,3 +218,59 @@ call, then return a menu description like this one.:
 
 Only methods defined with the ``@engine.method`` function store may be
 used in a menu.
+
+*********
+ Proxies
+*********
+
+Lisien may be run in a separate process from Elide, or any other frontend you may write for it.
+To ease the process of writing such frontends in Python, Lisien provides proxy objects that reflect and control
+their corresponding objects in the Lisien core.
+
+Use :class:`lisien.proxy.EngineProcessManager` to start Lisien in a subprocess and get a
+proxy to the engine:
+
+.. code::
+
+    from lisien.proxy import EngineProcessManager
+
+
+    manager = EngineProcessManager('gamedir/')
+    engine_proxy = manager.start(workers=4)
+
+    # do stuff here
+
+    manager.shutdown()
+
+
+You can pass :class:`Engine` arguments to the manager's initializer or the `start` method, as you please.
+
+The proxy objects are mostly the same as what they represent, with affordances for when you
+have to do some work in the user interface while waiting for the core to finish something. Generally, you
+can pass a callback function to the relevant object's `connect` method, and Lisien will call the callback
+at the relevant time. Here's how you'd run some code whenever `next_turn` finishes running the rules engine:
+
+.. code::
+    from threading import Thread
+
+    from lisien.proxy import EngineProcessManager
+
+    from my_excellent_game import display_menu, apply_delta
+
+    manager = EngineProcessManager()
+    engine_proxy = manager.start()
+
+
+    def update_from_next_turn(engine, menu_info, delta):
+        display_menu(*menu_info)
+        apply_delta(delta)
+
+    engine_proxy.next_turn.connect(update_from_next_turn)
+
+    subthread = Thread(target=engine_proxy.next_turn)
+    subthread.start()
+
+    # do some UI work here
+
+    subthread.join()
+    manager.shutdown()
