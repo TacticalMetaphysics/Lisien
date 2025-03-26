@@ -426,7 +426,7 @@ class AbstractEngine(ABC):
 	char_cls: type
 	character: Mapping[Any, "char_cls"]
 	_rando: Random
-	_branches_d: dict[str, tuple[int, int, int, int]]
+	_branches_d: dict[str | None, tuple[str, int, int, int, int]]
 
 	@cached_property
 	def pack(self):
@@ -1423,7 +1423,7 @@ def world_locked(fn: callable) -> callable:
 
 
 class TimeSignal(Signal, Sequence):
-	"""Acts like a tuple of ``(branch, turn)`` for the most part.
+	"""Acts like a tuple of ``(branch, turn, tick)`` for the most part.
 
 	This is a ``Signal``. To set a function to be called whenever the
 	branch or turn changes, pass it to my ``connect`` method.
@@ -1437,9 +1437,10 @@ class TimeSignal(Signal, Sequence):
 	def __iter__(self):
 		yield self.engine.branch
 		yield self.engine.turn
+		yield self.engine.tick
 
 	def __len__(self):
-		return 2
+		return 3
 
 	def __getitem__(self, i: str | int) -> str | int:
 		if i in ("branch", 0):
@@ -1492,7 +1493,7 @@ class TimeSignalDescriptor:
 			inst._time_signal = TimeSignal(inst)
 		return inst._time_signal
 
-	def __set__(self, inst: "AbstractEngine", val: tuple[str, int]):
+	def __set__(self, inst: "AbstractEngine", val: tuple[str, int, int]):
 		if getattr(inst, "_worker", False):
 			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
@@ -1501,8 +1502,12 @@ class TimeSignalDescriptor:
 			inst._time_signal = TimeSignal(inst)
 		sig = inst._time_signal
 		branch_then, turn_then, tick_then = inst._btt()
-		branch_now, turn_now = val
-		if (branch_then, turn_then) == (branch_now, turn_now):
+		branch_now, turn_now, tick_now = val
+		if (branch_then, turn_then, tick_then) == (
+			branch_now,
+			turn_now,
+			tick_now,
+		):
 			return
 		e = inst
 		# enforce the arrow of time, if it's in effect
@@ -1524,13 +1529,11 @@ class TimeSignalDescriptor:
 		# destination branch
 
 		if branch_now in e.branches():
-			tick_now = e.turn_end_plan(branch_now, turn_now) or tick_then
 			e._extend_branch(branch_now, turn_now, tick_now)
 			e.load_at(branch_now, turn_now, tick_now)
 		else:
-			tick_now = tick_then
 			e._start_branch(branch_then, branch_now, turn_now, tick_now)
-		e._set_btt(*val, tick_now)
+		e._set_btt(branch_now, turn_now, tick_now)
 		sig.send(
 			e,
 			branch_then=branch_then,

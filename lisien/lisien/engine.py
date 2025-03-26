@@ -532,6 +532,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			self._otick = tick = self._turn_end_plan[v, curturn]
 		parent = self._obranch
+		then = self._btt()
 		self._obranch = v
 		loaded = self._loaded
 		if branch_is_new:
@@ -539,7 +540,7 @@ class Engine(AbstractEngine, Executor):
 			self.snap_keyframe(silent=True)
 			return
 		self.load_at(v, curturn, tick)
-		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
+		self.time.send(self.time, then=then, now=self._btt())
 
 	@property
 	def main_branch(self):
@@ -553,7 +554,9 @@ class Engine(AbstractEngine, Executor):
 			and self.branch_parent(branch) is not None
 		):
 			raise ValueError("Not a main branch")
+		then = self._btt()
 		self.query.globl["main_branch"] = self.branch = branch
+		self.time.send(self, then=then, now=self._btt())
 
 	@property
 	def turn(self) -> int:
@@ -588,12 +591,13 @@ class Engine(AbstractEngine, Executor):
 		else:
 			tick = self._turn_end[branch, v]
 		self.load_at(branch, v, tick)
+		then = self._btt()
 		self._otick = tick
 		self._oturn = v
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
-		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
+		self.time.send(self, then=then, now=self._btt())
 
 	@property
 	def tick(self):
@@ -631,10 +635,16 @@ class Engine(AbstractEngine, Executor):
 		self.load_at(self.branch, self.turn, v)
 		if not self._planning:
 			self._extend_branch(self.branch, self.turn, v)
+		old_tick = self._otick
 		self._otick = v
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
+		self.time.send(
+			self,
+			then=(self.branch, self.turn, old_tick),
+			now=(self.branch, self.turn, v),
+		)
 
 	def _btt(self) -> tuple[str, int, int]:
 		"""Return the branch, turn, and tick."""
@@ -718,7 +728,9 @@ class Engine(AbstractEngine, Executor):
 		else:
 			loaded[branch] = (turn, tick, turn, tick)
 		self._extend_branch(branch, turn, tick)
+		then = self._btt()
 		self._otick = tick
+		self.time.send(self, then=then, now=self._btt())
 		return branch, turn, tick
 
 	def is_ancestor_of(self, parent: str, child: str) -> bool:

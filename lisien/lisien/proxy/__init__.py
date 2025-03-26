@@ -25,6 +25,9 @@ call its ``start`` method with the same arguments you'd give a real
 
 """
 
+from __future__ import annotations
+
+
 import ast
 import io
 import logging
@@ -474,7 +477,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 		return self.character.new_thing(name, self.name, **kwargs)
 
 	def shortest_path(
-		self, dest: Key | "NodeProxy", weight: Key = None
+		self, dest: Key | NodeProxy, weight: Key = None
 	) -> list[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
@@ -2531,35 +2534,6 @@ class PortalObjCache:
 			del self.predecessors[char]
 
 
-class TimeSignal(Signal):
-	def __init__(self, engine: "EngineProxy"):
-		super().__init__()
-		self.engine = engine
-
-	def __iter__(self):
-		yield self.engine.branch
-		yield self.engine.tick
-
-	def __len__(self):
-		return 2
-
-	def __getitem__(self, i):
-		if i in ("branch", 0):
-			return self.engine.branch
-		if i in ("tick", 1):
-			return self.engine.tick
-
-	def __setitem__(self, i, v):
-		if self.engine._worker:
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if i in ("branch", 0):
-			self.engine._set_btt(v, self.engine.tick)
-		if i in ("tick", 1):
-			self.engine._set_btt(self.engine.branch, v)
-
-
 class RandoProxy(Random):
 	"""Proxy to a randomizer"""
 
@@ -2621,22 +2595,13 @@ class EngineProxy(AbstractEngine):
 	time = TimeSignalDescriptor()
 	is_proxy = True
 
-	def _set_btt(self, branch: str, turn: int, tick: int):
-		old_branch, old_turn = self.time
-		if (old_branch, old_turn) != (branch, turn):
-			callback = partial(
-				self.time.send, self, old_branch, old_turn, branch, turn
-			)
-		else:
-
-			def callback(*args): ...
-
+	def _set_btt(self, branch: str, turn: int, tick: int, cb=None):
 		return self.handle(
 			"time_travel",
 			branch=branch,
 			turn=turn,
 			tick=tick,
-			cb=partial(self._upd_and_cb, callback),
+			cb=partial(self._upd_and_cb, cb=cb),
 		)
 
 	def _start_branch(
@@ -2738,7 +2703,7 @@ class EngineProxy(AbstractEngine):
 		):
 			raise ValueError("Go to the start of time first")
 		kf = self.handle(
-			"switch_main_branch", branch=branch, cb=self._set_time
+			"switch_main_branch", branch=branch, cb=self._upd_time
 		)
 		assert self.branch == branch
 		self._replace_state_with_kf(kf)
@@ -3368,19 +3333,26 @@ class EngineProxy(AbstractEngine):
 		for char in to_delete & self._char_cache.keys():
 			del self._char_cache[char]
 
-	def _btt(self):
-		return self._branch, self._turn, self._tick
-
-	def _set_time(self, command, branch, turn, tick, result, **kwargs):
+	def _upd_time(self, command, branch, turn, tick, result, **kwargs):
+		then = self._btt()
 		self._branch = branch
 		self._turn = turn
 		self._tick = tick
-		parent, turn_from, tick_from, turn_to, tick_to = self._branches_d.get(
-			branch, (None, turn, tick, turn, tick)
-		)
-		if branch not in self._branches_d or (turn, tick) > (turn_to, tick_to):
-			self._branches_d[branch] = parent, turn_from, tick_from, turn, tick
-		self.time.send(self, branch=branch, turn=turn, tick=tick)
+		if branch not in self._branches_d:
+			self._branches_d[branch] = (None, turn, tick, turn, tick)
+		else:
+			parent, turn_from, tick_from, turn_to, tick_to = self._branches_d[
+				branch
+			]
+			if (turn, tick) > (turn_to, tick_to):
+				self._branches_d[branch] = (
+					parent,
+					turn_from,
+					tick_from,
+					turn,
+					tick,
+				)
+		self.time.send(self, then=then, now=(branch, turn, tick))
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
 		if self._worker:
@@ -3408,7 +3380,7 @@ class EngineProxy(AbstractEngine):
 	def _upd(self, *args, **kwargs):
 		self._upd_caches(*args, **kwargs)
 		self._reimport_all()
-		self._set_time(*args, no_del=True, **kwargs)
+		self._upd_time(*args, no_del=True, **kwargs)
 
 	def _upd_and_cb(self, cb, *args, **kwargs):
 		self._upd(*args, **kwargs)
