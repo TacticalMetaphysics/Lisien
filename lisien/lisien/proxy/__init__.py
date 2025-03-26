@@ -2615,25 +2615,32 @@ class NextTurnProxy(Signal):
 		self.engine = engine
 
 	def __call__(self) -> tuple[list, DeltaDict]:
-		return self.engine.handle("next_turn", cb=partial(self.engine._upd_and_cb, partial(self.send, self)))
+		return self.engine.handle(
+			"next_turn",
+			cb=partial(self.engine._upd_and_cb, partial(self.send, self)),
+		)
 
 
 class TimeTravelProxy(Signal):
 	"""Move to a different point in the timestream
 
-		Needs ``branch`` and ``turn`` arguments. The ``tick`` is
-		optional; if unspecified, you'll travel to the last tick
-		in the turn.
+	Needs ``branch`` and ``turn`` arguments. The ``tick`` is
+	optional; if unspecified, you'll travel to the last tick
+	in the turn.
 	"""
+
 	def __init__(self, engine):
 		super().__init__()
 		self.engine = engine
 
 	def __call__(self, branch: str, turn: int, tick: int) -> DeltaDict:
-		return self.engine.handle("time_travel", branch=branch,
-								  turn=turn,
-								  tick=tick,
-								  cb=partial(self.engine._upd_and_cb, partial(self.send, self)))
+		return self.engine.handle(
+			"time_travel",
+			branch=branch,
+			turn=turn,
+			tick=tick,
+			cb=partial(self.engine._upd_and_cb, partial(self.send, self)),
+		)
 
 
 class EngineProxy(AbstractEngine):
@@ -3024,10 +3031,17 @@ class EngineProxy(AbstractEngine):
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
+
 			def next_turn():
-				raise WorkerProcessReadOnlyError("Can't advance time in a worker process")
+				raise WorkerProcessReadOnlyError(
+					"Can't advance time in a worker process"
+				)
+
 			def time_travel(branch: str, turn: int, tick: int = None):
-				raise WorkerProcessReadOnlyError("Can't time travel in a worker process")
+				raise WorkerProcessReadOnlyError(
+					"Can't time travel in a worker process"
+				)
+
 			self.next_turn = next_turn
 			self.time_travel = time_travel
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
@@ -3402,7 +3416,7 @@ class EngineProxy(AbstractEngine):
 			cb(*args, **kwargs)
 
 	def _add_character(
-		self, char, data: tuple | dict | nx.Graph  = None, **attr
+		self, char, data: tuple | dict | nx.Graph = None, **attr
 	):
 		if char in self._char_cache:
 			raise KeyError("Character already exists")
