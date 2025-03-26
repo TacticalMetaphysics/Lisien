@@ -251,6 +251,7 @@ can pass a callback function to the relevant object's `connect` method, and Lisi
 at the relevant time. Here's how you'd run some code whenever `next_turn` finishes running the rules engine:
 
 .. code::
+
     from threading import Thread
 
     from lisien.proxy import EngineProcessManager
