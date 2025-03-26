@@ -3368,7 +3368,7 @@ class EngineProxy(AbstractEngine):
 			cb(*args, **kwargs)
 
 	# TODO: make this into a Signal, like it is in the lisien core
-	def next_turn(self, cb=None):
+	def next_turn(self, cb: callable = None):
 		if self._worker:
 			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
@@ -3377,7 +3377,7 @@ class EngineProxy(AbstractEngine):
 			raise TypeError("Uncallable callback")
 		return self.handle("next_turn", cb=partial(self._upd_and_cb, cb))
 
-	def time_travel(self, branch, turn, tick=None, cb=None):
+	def time_travel(self, branch: str, turn: int, tick: int = None, cb: callable = None):
 		"""Move to a different point in the timestream
 
 		Needs ``branch`` and ``turn`` arguments. The ``tick`` is
@@ -3406,7 +3406,7 @@ class EngineProxy(AbstractEngine):
 		)
 
 	def _add_character(
-		self, char, data: tuple | dict | nx.Graph = None, **attr
+		self, char, data: tuple | dict | nx.Graph  = None, **attr
 	):
 		if char in self._char_cache:
 			raise KeyError("Character already exists")
