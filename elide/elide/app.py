@@ -127,7 +127,7 @@ class ELiDEApp(App):
 
 	def _really_time_travel(self, branch, turn, tick):
 		try:
-			self.engine.time_travel(
+			self.engine._set_btt(
 				branch, turn, tick, cb=self._update_from_time_travel
 			)
 		except OutOfTimelineError as ex:
@@ -156,7 +156,7 @@ class ELiDEApp(App):
 
 	def _really_time_travel_to_tick(self, tick):
 		try:
-			self.engine.time_travel(
+			self.engine._set_btt(
 				self.branch, self.turn, tick, cb=self._update_from_time_travel
 			)
 		except OutOfTimelineError as ex:
