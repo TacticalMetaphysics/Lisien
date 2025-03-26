@@ -132,11 +132,11 @@ def test_character(handle_initialized):
 	del kf0["universal"]
 	assert kf0 == data.KEYFRAME0
 	desttime = handle_initialized.get_btt()
-	handle_initialized._set_btt(*origtime)
+	handle_initialized.time_travel(*origtime)
 	kf1 = handle_initialized.snap_keyframe()
 	del kf1["universal"]
 	assert kf1 == data.KEYFRAME1
-	handle_initialized._set_btt(*desttime)
+	handle_initialized.time_travel(*desttime)
 	kf2 = handle_initialized.snap_keyframe()
 	del kf2["universal"]
 	assert kf2 == kf0
