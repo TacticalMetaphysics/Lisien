@@ -667,11 +667,26 @@ class Cache:
 						adds, _ = get_adds_dels(parentity, branch, turn, tick)
 						ret = frozenset(adds)
 					else:
-						kf = self._get_keyframe(parentity, *stoptime)
-						adds, dels = get_adds_dels(
-							parentity, branch, turn, tick, stoptime=stoptime
-						)
-						ret = frozenset((kf.keys() | adds) - dels)
+						try:
+							kf = self._get_keyframe(parentity, *stoptime)
+							adds, dels = get_adds_dels(
+								parentity,
+								branch,
+								turn,
+								tick,
+								stoptime=stoptime,
+							)
+							ret = frozenset((kf.keys() | adds) - dels)
+						except KeyframeError:
+							# entity absent from keyframe, means it was created after that
+							adds, _ = get_adds_dels(
+								parentity,
+								branch,
+								turn,
+								tick,
+								stoptime=stoptime,
+							)
+							ret = frozenset(adds)
 			else:
 				adds, _ = get_adds_dels(
 					parentity, branch, turn, tick, stoptime=stoptime
