@@ -353,8 +353,7 @@ class EngineHandle:
 				tick_from,
 			):
 				return NONE, EMPTY_MAPPING
-			self._real.time = (branch, turn)
-			self._real.tick = tick
+			self._real.time = (branch, turn, tick)
 		if turn_from != turn and (
 			branch_from != branch
 			or None in (turn_from, turn)
