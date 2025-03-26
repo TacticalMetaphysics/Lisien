@@ -14,13 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import shutil
+from functools import partial
 
 import pytest
 
 from lisien import Engine
 from lisien.proxy.handle import EngineHandle
 
-from ..examples import kobold
+from ..examples import kobold, college, sickle
 from .util import make_test_engine_kwargs
 
 
@@ -37,15 +38,18 @@ def handle(tmp_path):
 
 @pytest.fixture(
 	scope="function",
-	params=[
-		lambda eng: kobold.inittest(
-			eng, shrubberies=20, kobold_sprint_chance=0.9
-		),
-		# college.install,
-		# sickle.install
-	],
+	params=["kobold", "college", "sickle"],
 )
 def handle_initialized(request, tmp_path, database):
+	if request.param == "kobold":
+		install = partial(
+			kobold.inittest, shrubberies=20, kobold_sprint_chance=0.9
+		)
+	elif request.param == "college":
+		install = college.install
+	else:
+		assert request.param == "sickle"
+		install = sickle.install
 	with Engine(
 		tmp_path,
 		workers=0,
@@ -54,7 +58,7 @@ def handle_initialized(request, tmp_path, database):
 		if database == "sqlite"
 		else None,
 	) as eng:
-		request.param(eng)
+		install(eng)
 	return EngineHandle(
 		tmp_path,
 		workers=0,
