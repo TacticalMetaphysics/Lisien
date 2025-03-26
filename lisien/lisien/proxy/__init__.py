@@ -26,7 +26,6 @@ call its ``start`` method with the same arguments you'd give a real
 """
 
 import ast
-import importlib
 import io
 import logging
 import os
@@ -54,7 +53,7 @@ from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..facade import CharacterFacade
 from ..node import NodeContent, Place, Thing, UserMapping
 from ..portal import Portal
-from ..typing import Key
+from ..typing import Key, DeltaDict
 from ..util import (
 	AbstractCharacter,
 	AbstractEngine,
@@ -2610,6 +2609,15 @@ class RandoProxy(Random):
 		return self._handle(cmd="call_randomizer", method="random")
 
 
+class NextTurnProxy(Signal):
+	def __init__(self, engine: "EngineProxy"):
+		super().__init__()
+		self.engine = engine
+
+	def __call__(self) -> tuple[list, DeltaDict]:
+		return self.engine.handle("next_turn", cb=partial(self.engine._upd_and_cb, partial(self.send, self)))
+
+
 class EngineProxy(AbstractEngine):
 	"""An engine-like object for controlling a lisien process
 
@@ -2987,6 +2995,7 @@ class EngineProxy(AbstractEngine):
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
 		if prefix is None:
+			self.next_turn = NextTurnProxy(self)
 			self.method = FuncStoreProxy(self, "method")
 			self.action = FuncStoreProxy(self, "action")
 			self.prereq = FuncStoreProxy(self, "prereq")
@@ -2996,6 +3005,9 @@ class EngineProxy(AbstractEngine):
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
+			def next_turn():
+				raise WorkerProcessReadOnlyError("Can't advance time in a worker process")
+			self.next_turn = next_turn
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
 			self.action = FunctionStore(os.path.join(prefix, "action.py"))
 			self.prereq = FunctionStore(os.path.join(prefix, "prereq.py"))
@@ -3366,16 +3378,6 @@ class EngineProxy(AbstractEngine):
 		self._upd(*args, **kwargs)
 		if cb:
 			cb(*args, **kwargs)
-
-	# TODO: make this into a Signal, like it is in the lisien core
-	def next_turn(self, cb: callable = None):
-		if self._worker:
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if cb and not callable(cb):
-			raise TypeError("Uncallable callback")
-		return self.handle("next_turn", cb=partial(self._upd_and_cb, cb))
 
 	def time_travel(self, branch: str, turn: int, tick: int = None, cb: callable = None):
 		"""Move to a different point in the timestream
