@@ -26,6 +26,7 @@ import sys
 import zlib
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Sequence
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
@@ -251,7 +252,7 @@ class PlanningContext(ContextDecorator):
 			self.orm._forward = True
 
 
-class TimeSignal(Signal):
+class TimeSignal(Signal, Sequence):
 	"""Acts like a tuple of ``(branch, turn)`` for the most part.
 
 	This is a ``Signal``. To set a function to be called whenever the
@@ -262,22 +263,23 @@ class TimeSignal(Signal):
 	def __init__(self, engine: "Engine"):
 		super().__init__()
 		self.engine = engine
-		self.branch = self.engine.branch
-		self.turn = self.engine.turn
 
 	def __iter__(self):
-		yield self.branch
-		yield self.turn
+		yield self.engine.branch
+		yield self.engine.turn
 
 	def __len__(self):
 		return 2
 
 	def __getitem__(self, i: str | int) -> str | int:
 		if i in ("branch", 0):
-			return self.branch
+			return self.engine.branch
 		if i in ("turn", 1):
-			return self.turn
-		raise IndexError(i)
+			return self.engine.turn
+		if isinstance(i, int):
+			raise IndexError(i)
+		else:
+			raise KeyError(i)
 
 	def __setitem__(self, i: str | int, v: str | int) -> None:
 		if i in ("branch", 0):
@@ -285,9 +287,11 @@ class TimeSignal(Signal):
 		elif i in ("turn", 1):
 			self.engine.turn = v
 		else:
-			raise KeyError(
+			exctyp = KeyError if isinstance(i, str) else IndexError
+			raise exctyp(
 				"Can only set branch or turn. Set `Engine.tick` directly if you really want that."
 			)
+		self.send(self, key=i, value=v)
 
 	def __str__(self):
 		return str(tuple(self))
@@ -2986,24 +2990,32 @@ class Engine(AbstractEngine, Executor):
 				)
 			except KeyframeError:
 				nodes = {}
-			self._nodes_cache.set_keyframe(
-				graph, branch_to, turn, tick, nodes
-			)
+			self._nodes_cache.set_keyframe(graph, branch_to, turn, tick, nodes)
 			try:
-				node_val = self._node_val_cache.get_keyframe(graph, branch_from, turn, tick, copy=False)
+				node_val = self._node_val_cache.get_keyframe(
+					graph, branch_from, turn, tick, copy=False
+				)
 			except KeyframeError:
 				node_val = {}
-			self._node_val_cache.set_keyframe(graph, branch_to, turn, tick, node_val)
+			self._node_val_cache.set_keyframe(
+				graph, branch_to, turn, tick, node_val
+			)
 			try:
-				edges = self._edges_cache.get_keyframe(graph, branch_from, turn, tick, copy=False)
+				edges = self._edges_cache.get_keyframe(
+					graph, branch_from, turn, tick, copy=False
+				)
 			except KeyframeError:
 				edges = {}
 			self._edges_cache.set_keyframe(graph, branch_to, turn, tick, edges)
 			try:
-				edge_val = self._edge_val_cache.get_keyframe(graph, branch_from, turn, tick, copy=False)
+				edge_val = self._edge_val_cache.get_keyframe(
+					graph, branch_from, turn, tick, copy=False
+				)
 			except KeyframeError:
 				edge_val = {}
-			self._edge_val_cache.set_keyframe(graph, branch_to, turn, tick, edge_val)
+			self._edge_val_cache.set_keyframe(
+				graph, branch_to, turn, tick, edge_val
+			)
 		for cache in (
 			self._universal_cache,
 			self._triggers_cache,
