@@ -764,10 +764,13 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 		for orig in self.db._edges_cache.iter_predecessors(
 			self.graph.name, dest, *self.db._btt()
 		):
-			if self.db._edges_cache.retrieve(
-				self.graph.name, orig, dest, *self.db._btt()
-			):
-				return True
+			try:
+				if self.db._edges_cache.retrieve(
+					self.graph.name, orig, dest, *self.db._btt()
+				):
+					return True
+			except KeyError:
+				continue
 		return False
 
 	def __getitem__(self, dest):
