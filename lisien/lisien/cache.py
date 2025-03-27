@@ -3146,7 +3146,7 @@ class NodeContentsCache(Cache):
 		planning: bool = True,
 		forward: bool = None,
 		loading=False,
-		contra: bool = False,
+		contra: bool = None,
 		truncate: bool = True,
 	):
 		self.loc_settings[character, place][branch].store_at(
