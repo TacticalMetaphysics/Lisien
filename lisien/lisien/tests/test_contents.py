@@ -103,11 +103,10 @@ def test_contents_in_plan(chara):
 	for _ in range(5):
 		engine.next_turn()
 	assert engine.turn == 10
-	engine.tick = engine.turn_end_plan()
-	assert set(place.content) == correct_contents.union({15}).difference({9})
-	# but this does
+	assert set(place.content) == correct_contents | {15}
 	engine.turn = 5
 	engine.branch = "trunk"
+	# but this does contradict the plan, so thing 9 never gets added
 	place.new_thing(11)
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 15}
 	for _ in range(5):
