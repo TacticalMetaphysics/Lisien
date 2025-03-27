@@ -761,7 +761,14 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 	__slots__ = ("graph",)
 
 	def __contains__(self, dest):
-		return dest in self.graph.node
+		for orig in self.db._edges_cache.iter_predecessors(
+			self.graph.name, dest, *self.db._btt()
+		):
+			if self.db._edges_cache.retrieve(
+				self.graph.name, orig, dest, *self.db._btt()
+			):
+				return True
+		return False
 
 	def __getitem__(self, dest):
 		"""Return a Predecessors instance for edges ending at the given
