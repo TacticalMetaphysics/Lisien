@@ -462,7 +462,7 @@ class Engine(AbstractEngine, Executor):
 		subprocesses as we have CPU cores. When ``0``, parallel processing
 		is not necessarily disabled; threads may still be used, which
 		may or may not run in parallel, depending on your Python interpreter.
-		However, note that ``workerss=0`` implies that trigger
+		However, note that ``workers=0`` implies that trigger
 		functions operate on bare lisien objects, and can therefore have
 		side effects. If you don't want this, instead use
 		``workers=1``, which *does* disable parallelism in the case
