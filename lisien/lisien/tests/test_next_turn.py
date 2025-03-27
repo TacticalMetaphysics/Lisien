@@ -54,8 +54,7 @@ def test_unit_dot_rule(sqleng):
 	sqleng.next_turn()
 	btt = sqleng._btt()
 	assert av["run"]
-	sqleng.time = "trunk", 0
-	sqleng.tick = starttick
+	sqleng.time = "trunk", 0, starttick
 	assert "run" not in av
 	sqleng.next_turn()
 	assert btt == sqleng._btt()
@@ -76,8 +75,7 @@ def test_thing_dot_rule(sqleng):
 	sqleng.next_turn()
 	btt = sqleng._btt()
 	assert thing["run"]
-	sqleng.time = "trunk", 0
-	sqleng.tick = starttick
+	sqleng.time = "trunk", 0, starttick
 	assert "run" not in thing
 	sqleng.next_turn()
 	assert btt == sqleng._btt()
@@ -97,8 +95,7 @@ def test_place_dot_rule(sqleng):
 	sqleng.next_turn()
 	btt = sqleng._btt()
 	assert place["run"]
-	sqleng.time = "trunk", 0
-	sqleng.tick = starttick
+	sqleng.time = "trunk", 0, starttick
 	assert "run" not in place
 	sqleng.next_turn()
 	assert btt == sqleng._btt()
@@ -120,8 +117,7 @@ def test_portal_dot_rule(sqleng):
 	sqleng.next_turn()
 	btt = sqleng._btt()
 	assert port["run"]
-	sqleng.time = "trunk", 0
-	sqleng.tick = starttick
+	sqleng.time = "trunk", 0, starttick
 	assert "run" not in port
 	sqleng.next_turn()
 	assert btt == sqleng._btt()
@@ -147,8 +143,7 @@ def test_node_rule(sqleng):
 	btt = sqleng._btt()
 	assert place["run"]
 	assert thing["run"]
-	sqleng.time = "trunk", 0
-	sqleng.tick = starttick
+	sqleng.time = "trunk", 0, starttick
 	assert "run" not in place
 	assert "run" not in thing
 	sqleng.next_turn()
@@ -172,8 +167,7 @@ def test_portal_rule(sqleng):
 	sqleng.next_turn()
 	btt = sqleng._btt()
 	assert port["run"]
-	sqleng.time = "trunk", 0
-	sqleng.tick = starttick
+	sqleng.time = "trunk", 0, starttick
 	assert "run" not in port
 	sqleng.next_turn()
 	assert btt == sqleng._btt()

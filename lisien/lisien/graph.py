@@ -22,6 +22,7 @@ from itertools import chain
 import networkx
 from networkx.exception import NetworkXError
 
+from .exc import KeyframeError
 from .wrap import MutableMappingUnwrapper
 
 
@@ -719,12 +720,15 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 		return n
 
 	def __contains__(self, key):
-		return (
-			self.db._edges_cache.count_successors(
-				self.graph.name, key, *self.db._btt()
+		try:
+			return (
+				self.db._edges_cache.count_successors(
+					self.graph.name, key, *self.db._btt()
+				)
+				> 0
 			)
-			> 0
-		)
+		except KeyError:
+			return False
 
 	def __repr__(self):
 		cls = self.__class__
@@ -757,7 +761,14 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 	__slots__ = ("graph",)
 
 	def __contains__(self, dest):
-		return dest in self.graph.node
+		for orig in self.db._edges_cache.iter_predecessors(
+			self.graph.name, dest, *self.db._btt()
+		):
+			if self.db._edges_cache.retrieve(
+				self.graph.name, orig, dest, *self.db._btt()
+			):
+				return True
+		return False
 
 	def __getitem__(self, dest):
 		"""Return a Predecessors instance for edges ending at the given

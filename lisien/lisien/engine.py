@@ -29,7 +29,6 @@ from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
-from copy import deepcopy
 from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
 from multiprocessing import Pipe, Process, Queue
@@ -56,7 +55,6 @@ from networkx import (
 
 from . import exc
 from .cache import (
-	Cache,
 	CharacterPlaceRulesHandledCache,
 	CharacterPortalRulesHandledCache,
 	CharacterRulesHandledCache,
@@ -66,7 +64,6 @@ from .cache import (
 	EdgeValCache,
 	EntitylessCache,
 	GraphValCache,
-	InitializedCache,
 	InitializedEntitylessCache,
 	NodeContentsCache,
 	NodesRulebooksCache,
@@ -89,10 +86,9 @@ from .exc import (
 	HistoricKeyError,
 	KeyframeError,
 	OutOfTimelineError,
-	TimeError,
 )
 from .facade import CharacterFacade
-from .graph import DiGraph, GraphsMapping
+from .graph import DiGraph
 from .node import Place, Thing
 from .portal import Portal
 from .proxy import worker_subprocess
@@ -112,7 +108,6 @@ from .query import (
 from .rule import AllRuleBooks, AllRules, Rule
 from .typing import (
 	DeltaDict,
-	EdgesDict,
 	EdgeValDict,
 	GraphEdgesDict,
 	GraphEdgeValDict,
@@ -121,7 +116,6 @@ from .typing import (
 	GraphValDict,
 	Key,
 	KeyframeTuple,
-	NodesDict,
 	NodeValDict,
 	StatDict,
 )
@@ -133,6 +127,7 @@ from .util import (
 	normalize_layout,
 	sort_set,
 	world_locked,
+	TimeSignalDescriptor,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
@@ -249,118 +244,6 @@ class PlanningContext(ContextDecorator):
 			self.orm._set_btt(*self.reset)
 		if self.forward:
 			self.orm._forward = True
-
-
-class TimeSignal(Signal):
-	"""Acts like a tuple of ``(branch, turn)`` for the most part.
-
-	This is a ``Signal``. To set a function to be called whenever the
-	branch or turn changes, pass it to my ``connect`` method.
-
-	"""
-
-	def __init__(self, engine: "Engine"):
-		super().__init__()
-		self.engine = engine
-		self.branch = self.engine.branch
-		self.turn = self.engine.turn
-
-	def __iter__(self):
-		yield self.branch
-		yield self.turn
-
-	def __len__(self):
-		return 2
-
-	def __getitem__(self, i: str | int) -> str | int:
-		if i in ("branch", 0):
-			return self.branch
-		if i in ("turn", 1):
-			return self.turn
-		raise IndexError(i)
-
-	def __setitem__(self, i: str | int, v: str | int) -> None:
-		if i in ("branch", 0):
-			self.engine.branch = v
-		elif i in ("turn", 1):
-			self.engine.turn = v
-		else:
-			raise KeyError(
-				"Can only set branch or turn. Set `Engine.tick` directly if you really want that."
-			)
-
-	def __str__(self):
-		return str(tuple(self))
-
-	def __eq__(self, other):
-		return tuple(self) == other
-
-	def __ne__(self, other):
-		return tuple(self) != other
-
-	def __gt__(self, other):
-		return tuple(self) > other
-
-	def __ge__(self, other):
-		return tuple(self) >= other
-
-	def __lt__(self, other):
-		return tuple(self) < other
-
-	def __le__(self, other):
-		return tuple(self) <= other
-
-
-class TimeSignalDescriptor:
-	__doc__ = TimeSignal.__doc__
-
-	def __get__(self, inst, cls):
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal(inst)
-		return inst._time_signal
-
-	def __set__(self, inst: "Engine", val: tuple[str, int]):
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal(inst)
-		sig = inst._time_signal
-		branch_then, turn_then, tick_then = inst._btt()
-		branch_now, turn_now = val
-		if (branch_then, turn_then) == (branch_now, turn_now):
-			return
-		e = inst
-		# enforce the arrow of time, if it's in effect
-		if e._forward and not e._planning:
-			if branch_now != branch_then:
-				raise TimeError("Can't change branches in a forward context")
-			if turn_now < turn_then:
-				raise TimeError(
-					"Can't time travel backward in a forward context"
-				)
-			if turn_now > turn_then + 1:
-				raise TimeError("Can't skip turns in a forward context")
-		# make sure I'll end up within the revision range of the
-		# destination branch
-
-		if branch_now in e.branches():
-			tick_now = e._turn_end_plan.setdefault(
-				(branch_now, turn_now), tick_then
-			)
-			e._extend_branch(branch_now, turn_now, tick_now)
-			e.load_at(branch_now, turn_now, tick_now)
-		else:
-			tick_now = tick_then
-			e._start_branch(branch_then, branch_now, turn_now, tick_now)
-		e._obranch, e._oturn = val
-		e._otick = tick_now
-		sig.send(
-			e,
-			branch_then=branch_then,
-			turn_then=turn_then,
-			tick_then=tick_then,
-			branch_now=branch_now,
-			turn_now=turn_now,
-			tick_now=tick_now,
-		)
 
 
 class NextTurn(Signal):
@@ -648,6 +531,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			self._otick = tick = self._turn_end_plan[v, curturn]
 		parent = self._obranch
+		then = self._btt()
 		self._obranch = v
 		loaded = self._loaded
 		if branch_is_new:
@@ -655,7 +539,7 @@ class Engine(AbstractEngine, Executor):
 			self.snap_keyframe(silent=True)
 			return
 		self.load_at(v, curturn, tick)
-		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
+		self.time.send(self.time, then=then, now=self._btt())
 
 	@property
 	def main_branch(self):
@@ -669,7 +553,9 @@ class Engine(AbstractEngine, Executor):
 			and self.branch_parent(branch) is not None
 		):
 			raise ValueError("Not a main branch")
+		then = self._btt()
 		self.query.globl["main_branch"] = self.branch = branch
+		self.time.send(self, then=then, now=self._btt())
 
 	@property
 	def turn(self) -> int:
@@ -704,12 +590,13 @@ class Engine(AbstractEngine, Executor):
 		else:
 			tick = self._turn_end[branch, v]
 		self.load_at(branch, v, tick)
+		then = self._btt()
 		self._otick = tick
 		self._oturn = v
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
-		self.time.send(self.time, branch=self._obranch, turn=self._oturn)
+		self.time.send(self, then=then, now=self._btt())
 
 	@property
 	def tick(self):
@@ -747,10 +634,16 @@ class Engine(AbstractEngine, Executor):
 		self.load_at(self.branch, self.turn, v)
 		if not self._planning:
 			self._extend_branch(self.branch, self.turn, v)
+		old_tick = self._otick
 		self._otick = v
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
+		self.time.send(
+			self,
+			then=(self.branch, self.turn, old_tick),
+			now=(self.branch, self.turn, v),
+		)
 
 	def _btt(self) -> tuple[str, int, int]:
 		"""Return the branch, turn, and tick."""
@@ -834,7 +727,9 @@ class Engine(AbstractEngine, Executor):
 		else:
 			loaded[branch] = (turn, tick, turn, tick)
 		self._extend_branch(branch, turn, tick)
+		then = self._btt()
 		self._otick = tick
+		self.time.send(self, then=then, now=self._btt())
 		return branch, turn, tick
 
 	def is_ancestor_of(self, parent: str, child: str) -> bool:
@@ -843,7 +738,12 @@ class Engine(AbstractEngine, Executor):
 		At any remove.
 
 		"""
-		if parent == self.main_branch:
+		branches = self.branches()
+		if parent not in branches:
+			raise ValueError("Not a branch", parent)
+		if child not in branches:
+			raise ValueError("Not a branch", child)
+		if parent is None or parent == child or parent == self.main_branch:
 			return True
 		if child == self.main_branch:
 			return False
@@ -2935,16 +2835,18 @@ class Engine(AbstractEngine, Executor):
 		while (parent := self.branch_parent(parent)) is not None:
 			self._branch_parents[child].add(parent)
 
-	def _copy_kf(self, branch_from, branch_to, turn, tick):
+	def _alias_kf(self, branch_from, branch_to, turn, tick):
 		"""Copy a keyframe from one branch to another
 
 		This aliases the data, rather than really copying. Keyframes don't
 		change, so it should be fine.
 
+		This does *not* save a new keyframe to disk.
+
 		"""
 		try:
 			graph_keyframe = self._graph_cache.get_keyframe(
-				branch_from, turn, tick
+				branch_from, turn, tick, copy=False
 			)
 		except KeyframeError:
 			graph_keyframe = {}
@@ -2963,79 +2865,47 @@ class Engine(AbstractEngine, Executor):
 			tick,
 			graph_keyframe,
 		)
-		for graph in self._graph_cache.iter_keys(branch_to, turn, tick):
+		for graph in graph_keyframe:
 			try:
 				graph_vals = self._graph_val_cache.get_keyframe(
-					(graph,), branch_from, turn, tick, copy=False
+					graph, branch_from, turn, tick, copy=False
 				)
 			except KeyframeError:
 				graph_vals = {}
 			self._graph_val_cache.set_keyframe(
-				(graph,), branch_to, turn, tick, graph_vals
+				graph, branch_to, turn, tick, graph_vals
 			)
 			try:
 				nodes = self._nodes_cache.get_keyframe(
-					(graph,), branch_from, turn, tick, copy=False
+					graph, branch_from, turn, tick, copy=False
 				)
 			except KeyframeError:
 				nodes = {}
-			self._nodes_cache.set_keyframe(
-				(graph,), branch_to, turn, tick, nodes
-			)
-			node_vals = {}
-			edge_vals = {}
-			for node in nodes:
-				try:
-					node_val = self._node_val_cache.get_keyframe(
-						(graph, node), branch_from, turn, tick, copy=False
-					)
-				except KeyframeError:
-					node_val = {node: {} for node in nodes}
-				self._node_val_cache.set_keyframe(
-					(graph, node), branch_to, turn, tick, node_val
+			self._nodes_cache.set_keyframe(graph, branch_to, turn, tick, nodes)
+			try:
+				node_val = self._node_val_cache.get_keyframe(
+					graph, branch_from, turn, tick, copy=False
 				)
-				node_vals[node] = node_val
-				for dest in self._edges_cache.iter_successors(
-					graph, node, branch_from, turn, tick
-				):
-					self._edges_cache.set_keyframe(
-						(graph, node, dest),
-						branch_to,
-						turn,
-						tick,
-						self._edges_cache.get_keyframe(
-							(graph, node, dest),
-							branch_from,
-							turn,
-							tick,
-							copy=False,
-						),
-					)
-					try:
-						evkf = self._edge_val_cache.get_keyframe(
-							(graph, node, dest, 0),
-							branch_from,
-							turn,
-							tick,
-							copy=False,
-						)
-					except KeyframeError:
-						evkf = {}
-					self._edge_val_cache.set_keyframe(
-						(graph, node, dest, 0), branch_to, turn, tick, evkf
-					)
-					if node in edge_vals:
-						edge_vals[node][dest] = evkf
-					else:
-						edge_vals[node] = {dest: evkf}
-			self.query.keyframe_graph_insert(
-				graph,
-				branch_to,
-				turn,
-				tick,
-				node_vals,
-				edge_vals,
-				graph_vals,
+			except KeyframeError:
+				node_val = {}
+			self._node_val_cache.set_keyframe(
+				graph, branch_to, turn, tick, node_val
+			)
+			try:
+				edges = self._edges_cache.get_keyframe(
+					graph, branch_from, turn, tick, copy=False
+				)
+			except KeyframeError:
+				edges = {}
+			self._edges_cache.set_keyframe(graph, branch_to, turn, tick, edges)
+			try:
+				edge_val = self._edge_val_cache.get_keyframe(
+					graph, branch_from, turn, tick, copy=False
+				)
+			except KeyframeError:
+				edge_val = {}
+			self._edge_val_cache.set_keyframe(
+				graph, branch_to, turn, tick, edge_val
 			)
 		for cache in (
 			self._universal_cache,
@@ -3052,7 +2922,7 @@ class Engine(AbstractEngine, Executor):
 			self._neighborhoods_cache,
 			self._rule_bigness_cache,
 		):
-			cache.copy_keyframe(branch_from, branch_to, turn, tick)
+			cache.alias_keyframe(branch_from, branch_to, turn, tick)
 
 		for character in self._graph_cache.iter_entities(
 			branch_from, turn, tick
@@ -3261,7 +3131,7 @@ class Engine(AbstractEngine, Executor):
 						orig,
 						dest,
 					)
-				else:
+				elif orig in edges_keyframe and dest in edges_keyframe[orig]:
 					del edges_keyframe[orig][dest]
 					if orig in edge_val_keyframe:
 						if dest in edge_val_keyframe[orig]:
@@ -3531,9 +3401,10 @@ class Engine(AbstractEngine, Executor):
 			if deltg is None:
 				del graphs_keyframe[graph]
 				continue
-			combined_node_val_keyframe = deepcopy(
-				node_val_keyframe.get(graph, {})
-			)
+			combined_node_val_keyframe = {
+				node: val.copy()
+				for (node, val) in node_val_keyframe.get(graph, {}).items()
+			}
 			for node, loc in things_keyframe.get(graph, {}).items():
 				if node in combined_node_val_keyframe:
 					combined_node_val_keyframe[node]["location"] = loc
@@ -3549,9 +3420,10 @@ class Engine(AbstractEngine, Executor):
 					combined_node_val_keyframe[node] = {
 						"rulebook": (graph, node)
 					}
-			combined_edge_val_keyframe = deepcopy(
-				edge_val_keyframe.get(graph, {})
-			)
+			combined_edge_val_keyframe = {
+				orig: {dest: val.copy() for (dest, val) in dests.items()}
+				for (orig, dests) in edge_val_keyframe.get(graph, {}).items()
+			}
 			for orig, dests in portals_rulebooks_keyframe.get(
 				graph, {}
 			).items():
@@ -3568,9 +3440,9 @@ class Engine(AbstractEngine, Executor):
 						combined_edge_val_keyframe.setdefault(
 							orig, {}
 						).setdefault(dest, {})
-			combined_graph_val_keyframe = deepcopy(
-				graph_val_keyframe.get(graph, {})
-			)
+			combined_graph_val_keyframe = graph_val_keyframe.get(
+				graph, {}
+			).copy()
 			combined_graph_val_keyframe["character_rulebook"] = (
 				characters_rulebooks_keyframe[graph]
 			)
@@ -3661,7 +3533,7 @@ class Engine(AbstractEngine, Executor):
 					branched_turn_from,
 					branched_tick_from,
 				) in self._keyframes_times
-				self._copy_kf(
+				self._alias_kf(
 					parent,
 					time_from[0],
 					branched_turn_from,
@@ -4221,7 +4093,7 @@ class Engine(AbstractEngine, Executor):
 				self._get_branch_delta(*the_kf, turn, tick),
 			)
 			if the_kf[0] != branch:
-				self._copy_kf(the_kf[0], branch, turn, tick)
+				self._alias_kf(the_kf[0], branch, turn, tick)
 		if silent:
 			return None
 		ret = self._get_kf(branch, turn, tick)
@@ -4671,12 +4543,12 @@ class Engine(AbstractEngine, Executor):
 				name, branch, turn, tick, nodes, edges, val
 			)
 		elif isinstance(data, nx.Graph):
-			nodes = {k: deepcopy(v) for (k, v) in data.nodes.items()}
+			nodes = {k: v.copy() for (k, v) in data.nodes.items()}
 			edges = {}
 			for orig in data.adj:
 				succs = edges[orig] = {}
 				for dest, stats in data.adj[orig].items():
-					succs[dest] = deepcopy(stats)
+					succs[dest] = stats.copy()
 			self._snap_keyframe_de_novo_graph(
 				name,
 				branch,
@@ -4700,12 +4572,12 @@ class Engine(AbstractEngine, Executor):
 				data = nx.from_dict_of_dicts(data)
 			except AttributeError:
 				data = nx.from_dict_of_lists(data)
-			nodes = {k: deepcopy(v) for (k, v) in data.nodes.items()}
+			nodes = {k: v.copy() for (k, v) in data.nodes.items()}
 			edges = {}
 			for orig in data.adj:
 				succs = edges[orig] = {}
 				for dest, stats in data.adj[orig].items():
-					succs[dest] = deepcopy(stats)
+					succs[dest] = stats.copy()
 			self._snap_keyframe_de_novo_graph(
 				name, branch, turn, tick, nodes, edges, {}
 			)
