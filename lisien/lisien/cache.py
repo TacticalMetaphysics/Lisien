@@ -15,12 +15,11 @@
 """Classes for in-memory storage and retrieval of historical graph data."""
 
 from collections import OrderedDict, defaultdict, deque
-from copy import deepcopy
 from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
-from typing import Hashable
+from typing import Hashable, Iterator
 
 from .exc import (
 	HistoricKeyError,
@@ -414,7 +413,7 @@ class Cache:
 	) -> dict:
 		ret = self._get_keyframe(graph_ent, branch, turn, tick)
 		if copy:
-			ret = deepcopy(ret)
+			ret = ret.copy()
 		return ret
 
 	def _set_keyframe(
@@ -456,14 +455,12 @@ class Cache:
 	):
 		self._set_keyframe(graph_ent, branch, turn, tick, keyframe)
 
-	def copy_keyframe(self, branch_from, branch_to, turn, tick):
+	def alias_keyframe(self, branch_from, branch_to, turn, tick):
 		for graph_ent in self.keyframe:
 			try:
 				kf = self._get_keyframe(graph_ent, branch_from, turn, tick)
 			except KeyframeError:
 				continue
-			if isinstance(kf, dict):
-				kf = kf.copy()
 			self._set_keyframe(graph_ent, branch_to, turn, tick, kf)
 
 	def load(self, data):
@@ -670,11 +667,26 @@ class Cache:
 						adds, _ = get_adds_dels(parentity, branch, turn, tick)
 						ret = frozenset(adds)
 					else:
-						kf = self._get_keyframe(parentity, *stoptime)
-						adds, dels = get_adds_dels(
-							parentity, branch, turn, tick, stoptime=stoptime
-						)
-						ret = frozenset((kf.keys() | adds) - dels)
+						try:
+							kf = self._get_keyframe(parentity, *stoptime)
+							adds, dels = get_adds_dels(
+								parentity,
+								branch,
+								turn,
+								tick,
+								stoptime=stoptime,
+							)
+							ret = frozenset((kf.keys() | adds) - dels)
+						except KeyframeError:
+							# entity absent from keyframe, means it was created after that
+							adds, _ = get_adds_dels(
+								parentity,
+								branch,
+								turn,
+								tick,
+								stoptime=stoptime,
+							)
+							ret = frozenset(adds)
 			else:
 				adds, _ = get_adds_dels(
 					parentity, branch, turn, tick, stoptime=stoptime
@@ -1543,7 +1555,7 @@ class Cache:
 			raise ret
 		return ret
 
-	def iter_entities_or_keys(self, *args, forward: bool = None):
+	def iter_entities_or_keys(self, *args, forward: bool = None) -> Iterator:
 		"""Iterate over the keys an entity has, if you specify an entity.
 
 		Otherwise iterate over the entities themselves, or at any rate the
@@ -1558,11 +1570,15 @@ class Cache:
 		tick: int
 		branch, turn, tick = args[-3:]
 		if self.db._no_kc:
-			yield from self._get_adds_dels(entity, branch, turn, tick)[0]
-			return
-		yield from self._get_keycache(
-			entity, branch, turn, tick, forward=forward
-		)
+			kc = self._get_adds_dels(entity, branch, turn, tick)[0]
+		else:
+			try:
+				kc = self._get_keycache(
+					entity, branch, turn, tick, forward=forward
+				)
+			except KeyframeError:
+				return iter(())
+		return iter(kc)
 
 	iter_entities = iter_keys = iter_entity_keys = iter_entities_or_keys
 
@@ -1698,7 +1714,11 @@ class NodeValCache(Cache):
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int, copy=True
 	):
-		return super().get_keyframe((graph,), branch, turn, tick, copy=copy)
+		ret = super().get_keyframe((graph,), branch, turn, tick, copy=copy)
+		if copy:
+			for k, v in ret.items():
+				ret[k] = v.copy()
+		return ret
 
 	def set_keyframe(
 		self,
@@ -1796,6 +1816,7 @@ class EdgesCache(Cache):
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
+			super().set_keyframe((graph, orig), branch, turn, tick, dests)
 			for dest, ex in dests.items():
 				super().set_keyframe(
 					(graph, orig, dest), branch, turn, tick, {0: ex}
@@ -2198,7 +2219,14 @@ class EdgeValCache(Cache):
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int, copy=True
 	):
-		return super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
+		if copy:
+			for orig, dests in ret.items():
+				redests = {}
+				for dest, val in dests.items():
+					redests[dest] = val.copy()
+				ret[orig] = redests
+		return ret
 
 	def set_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
@@ -3118,7 +3146,7 @@ class NodeContentsCache(Cache):
 		planning: bool = True,
 		forward: bool = None,
 		loading=False,
-		contra: bool = False,
+		contra: bool = None,
 		truncate: bool = True,
 	):
 		self.loc_settings[character, place][branch].store_at(

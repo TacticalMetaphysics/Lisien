@@ -25,8 +25,10 @@ call its ``start`` method with the same arguments you'd give a real
 
 """
 
+from __future__ import annotations
+
+
 import ast
-import importlib
 import io
 import logging
 import os
@@ -40,7 +42,7 @@ from multiprocessing import Pipe, Process, ProcessError, Queue
 from queue import Empty
 from random import Random
 from threading import Lock, Thread
-from time import monotonic, sleep
+from time import monotonic
 from types import MethodType
 from typing import Hashable, Iterator
 
@@ -54,12 +56,13 @@ from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..facade import CharacterFacade
 from ..node import NodeContent, Place, Thing, UserMapping
 from ..portal import Portal
-from ..typing import Key
+from ..typing import Key, DeltaDict
 from ..util import (
 	AbstractCharacter,
 	AbstractEngine,
 	KeyClass,
 	MsgpackExtensionType,
+	TimeSignalDescriptor,
 	getatt,
 	repr_call_sig,
 )
@@ -474,7 +477,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 		return self.character.new_thing(name, self.name, **kwargs)
 
 	def shortest_path(
-		self, dest: Key | type["NodeProxy"], weight: Key = None
+		self, dest: Key | NodeProxy, weight: Key = None
 	) -> list[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
@@ -2531,51 +2534,6 @@ class PortalObjCache:
 			del self.predecessors[char]
 
 
-class TimeSignal(Signal):
-	def __init__(self, engine: "EngineProxy"):
-		super().__init__()
-		self.engine = engine
-
-	def __iter__(self):
-		yield self.engine.branch
-		yield self.engine.tick
-
-	def __len__(self):
-		return 2
-
-	def __getitem__(self, i):
-		if i in ("branch", 0):
-			return self.engine.branch
-		if i in ("tick", 1):
-			return self.engine.tick
-
-	def __setitem__(self, i, v):
-		if self.engine._worker:
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if i in ("branch", 0):
-			self.engine.time_travel(v, self.engine.tick)
-		if i in ("tick", 1):
-			self.engine.time_travel(self.engine.branch, v)
-
-
-class TimeDescriptor(object):
-	times = {}
-
-	def __get__(self, inst, cls):
-		if id(inst) not in self.times:
-			self.times[id(inst)] = TimeSignal(inst)
-		return self.times[id(inst)]
-
-	def __set__(self, inst, val):
-		if inst._worker:
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		inst.time_travel(*val)
-
-
 class RandoProxy(Random):
 	"""Proxy to a randomizer"""
 
@@ -2610,6 +2568,18 @@ class RandoProxy(Random):
 		return self._handle(cmd="call_randomizer", method="random")
 
 
+class NextTurnProxy(Signal):
+	def __init__(self, engine: "EngineProxy"):
+		super().__init__()
+		self.engine = engine
+
+	def __call__(self) -> tuple[list, DeltaDict]:
+		return self.engine.handle(
+			"next_turn",
+			cb=partial(self.engine._upd_and_cb, partial(self.send, self)),
+		)
+
+
 class EngineProxy(AbstractEngine):
 	"""An engine-like object for controlling a lisien process
 
@@ -2622,8 +2592,40 @@ class EngineProxy(AbstractEngine):
 	thing_cls = ThingProxy
 	place_cls = PlaceProxy
 	portal_cls = PortalProxy
-	time = TimeDescriptor()
+	time = TimeSignalDescriptor()
 	is_proxy = True
+
+	def _set_btt(self, branch: str, turn: int, tick: int, cb=None):
+		return self.handle(
+			"time_travel",
+			branch=branch,
+			turn=turn,
+			tick=tick,
+			cb=partial(self._upd_and_cb, cb=cb),
+		)
+
+	def _start_branch(
+		self, parent: str, branch: str, turn: int, tick: int
+	) -> None:
+		self.handle(
+			"start_branch", parent=parent, branch=branch, turn=turn, tick=tick
+		)
+
+	def _extend_branch(self, branch: str, turn: int, tick: int) -> None:
+		self.handle("extend_branch", branch=branch, turn=turn, tick=tick)
+
+	def load_at(self, branch: str, turn: int, tick: int) -> None:
+		self.handle("load_at", branch=branch, turn=turn, tick=tick)
+
+	def turn_end(self, branch: str = None, turn: int = None) -> int:
+		if self._worker:
+			raise NotImplementedError("Need to cache turn ends in workers")
+		return self.handle("turn_end", branch=branch, turn=turn)
+
+	def turn_end_plan(self, branch: str = None, turn: int = None) -> int:
+		if self._worker:
+			raise NotImplementedError("Need to cache plans in workers")
+		return self.handle("turn_end_plan", branch=branch, turn=turn)
 
 	@property
 	def main_branch(self) -> str:
@@ -2701,7 +2703,7 @@ class EngineProxy(AbstractEngine):
 		):
 			raise ValueError("Go to the start of time first")
 		kf = self.handle(
-			"switch_main_branch", branch=branch, cb=self._set_time
+			"switch_main_branch", branch=branch, cb=self._upd_time
 		)
 		assert self.branch == branch
 		self._replace_state_with_kf(kf)
@@ -2913,7 +2915,7 @@ class EngineProxy(AbstractEngine):
 
 	@branch.setter
 	def branch(self, v):
-		self.time_travel(v, self.turn)
+		self._set_btt(v, self.turn, self.tick)
 
 	@property
 	def turn(self):
@@ -2921,7 +2923,7 @@ class EngineProxy(AbstractEngine):
 
 	@turn.setter
 	def turn(self, v):
-		self.time_travel(self.branch, v)
+		self._set_btt(self.branch, v, self.tick)
 
 	@property
 	def tick(self):
@@ -2929,7 +2931,10 @@ class EngineProxy(AbstractEngine):
 
 	@tick.setter
 	def tick(self, v: int):
-		self.time_travel(self.branch, self.turn, v)
+		self._set_btt(self.branch, self.turn, v)
+
+	def _btt(self):
+		return self._branch, self._turn, self._tick
 
 	def __init__(
 		self,
@@ -2987,6 +2992,7 @@ class EngineProxy(AbstractEngine):
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
 		if prefix is None:
+			self.next_turn = NextTurnProxy(self)
 			self.method = FuncStoreProxy(self, "method")
 			self.action = FuncStoreProxy(self, "action")
 			self.prereq = FuncStoreProxy(self, "prereq")
@@ -2996,6 +3002,13 @@ class EngineProxy(AbstractEngine):
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
+
+			def next_turn():
+				raise WorkerProcessReadOnlyError(
+					"Can't advance time in a worker process"
+				)
+
+			self.next_turn = next_turn
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
 			self.action = FunctionStore(os.path.join(prefix, "action.py"))
 			self.prereq = FunctionStore(os.path.join(prefix, "prereq.py"))
@@ -3320,19 +3333,26 @@ class EngineProxy(AbstractEngine):
 		for char in to_delete & self._char_cache.keys():
 			del self._char_cache[char]
 
-	def _btt(self):
-		return self._branch, self._turn, self._tick
-
-	def _set_time(self, command, branch, turn, tick, result, **kwargs):
+	def _upd_time(self, command, branch, turn, tick, result, **kwargs):
+		then = self._btt()
 		self._branch = branch
 		self._turn = turn
 		self._tick = tick
-		parent, turn_from, tick_from, turn_to, tick_to = self._branches_d.get(
-			branch, (None, turn, tick, turn, tick)
-		)
-		if branch not in self._branches_d or (turn, tick) > (turn_to, tick_to):
-			self._branches_d[branch] = parent, turn_from, tick_from, turn, tick
-		self.time.send(self, branch=branch, turn=turn, tick=tick)
+		if branch not in self._branches_d:
+			self._branches_d[branch] = (None, turn, tick, turn, tick)
+		else:
+			parent, turn_from, tick_from, turn_to, tick_to = self._branches_d[
+				branch
+			]
+			if (turn, tick) > (turn_to, tick_to):
+				self._branches_d[branch] = (
+					parent,
+					turn_from,
+					tick_from,
+					turn,
+					tick,
+				)
+		self.time.send(self, then=then, now=(branch, turn, tick))
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
 		if self._worker:
@@ -3360,50 +3380,12 @@ class EngineProxy(AbstractEngine):
 	def _upd(self, *args, **kwargs):
 		self._upd_caches(*args, **kwargs)
 		self._reimport_all()
-		self._set_time(*args, no_del=True, **kwargs)
+		self._upd_time(*args, no_del=True, **kwargs)
 
 	def _upd_and_cb(self, cb, *args, **kwargs):
 		self._upd(*args, **kwargs)
 		if cb:
 			cb(*args, **kwargs)
-
-	# TODO: make this into a Signal, like it is in the lisien core
-	def next_turn(self, cb=None):
-		if self._worker:
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if cb and not callable(cb):
-			raise TypeError("Uncallable callback")
-		return self.handle("next_turn", cb=partial(self._upd_and_cb, cb))
-
-	def time_travel(self, branch, turn, tick=None, cb=None):
-		"""Move to a different point in the timestream
-
-		Needs ``branch`` and ``turn`` arguments. The ``tick`` is
-		optional; if unspecified, you'll travel to the last tick
-		in the turn.
-
-		May take a callback function ``cb``, which will receive a
-		dictionary describing changes to the characters in ``chars``.
-		``chars`` defaults to 'all', indicating that every character
-		should be included, but may be a list of character names
-		to include.
-
-		"""
-		if self._worker:
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if cb is not None and not callable(cb):
-			raise TypeError("Uncallable callback")
-		return self.handle(
-			"time_travel",
-			branch=branch,
-			turn=turn,
-			tick=tick,
-			cb=partial(self._upd_and_cb, cb),
-		)
 
 	def _add_character(
 		self, char, data: tuple | dict | nx.Graph = None, **attr
@@ -3415,12 +3397,15 @@ class EngineProxy(AbstractEngine):
 		if isinstance(data, nx.Graph):
 			data = {
 				"place": {
-					k: v for k, v in data._node.items() if "location" not in v
+					k: v for k, v in data.nodes.items() if "location" not in v
 				},
 				"thing": {
-					k: v for k, v in data._node.items() if "location" in v
+					k: v for k, v in data.nodes.items() if "location" in v
 				},
-				"edge": data._adj,
+				"edge": {
+					orig: {dest: edges for (dest, edges) in dests.items()}
+					for (orig, dests) in data.edges.items()
+				},
 			}
 		elif isinstance(data, tuple):
 			nodes, edges, graph_val = data

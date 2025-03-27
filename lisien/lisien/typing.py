@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Hashable
+from typing import Any
 
-Key: Hashable = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
+Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 NodeRowType = tuple[Key, Key, str, int, int, bool]
 EdgeRowType = tuple[Key, Key, Key, int, str, int, int, bool]
 GraphValRowType = tuple[Key, Key, str, int, int, Any]

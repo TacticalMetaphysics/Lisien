@@ -52,6 +52,7 @@ from typing import (
 	KeysView,
 	TypeGuard,
 	Union,
+	Sequence,
 )
 
 import msgpack
@@ -61,6 +62,7 @@ from blinker import Signal
 from tblib import Traceback
 
 from . import exc
+from .exc import TimeError, WorkerProcessReadOnlyError
 from .graph import DiGraph, Edge, Node
 from .typing import Key
 
@@ -424,7 +426,7 @@ class AbstractEngine(ABC):
 	char_cls: type
 	character: Mapping[Any, "char_cls"]
 	_rando: Random
-	_branches_d: dict[str, tuple[int, int, int, int]]
+	_branches_d: dict[str | None, tuple[str, int, int, int, int]]
 
 	@cached_property
 	def pack(self):
@@ -714,6 +716,20 @@ class AbstractEngine(ABC):
 		_, _, _, turn, tick = self._branches_d[branch]
 		return turn, tick
 
+	@abstractmethod
+	def _start_branch(
+		self, parent: str, branch: str, turn: int, tick: int
+	) -> None: ...
+
+	@abstractmethod
+	def _set_btt(self, branch: str, turn: int, tick: int) -> None: ...
+
+	@abstractmethod
+	def _extend_branch(self, branch: str, turn: int, tick: int) -> None: ...
+
+	@abstractmethod
+	def load_at(self, branch: str, turn: int, tick: int) -> None: ...
+
 	def branch_start_turn(self, branch: str | None = None) -> int:
 		return self._branch_start(branch)[0]
 
@@ -721,10 +737,16 @@ class AbstractEngine(ABC):
 		return self._branch_start(branch)[1]
 
 	def branch_end_turn(self, branch: str | None = None) -> int:
-		return self._branch_end()[0]
+		return self._branch_end(branch)[0]
 
 	def branch_end_tick(self, branch: str | None = None) -> int:
-		return self._branch_end()[1]
+		return self._branch_end(branch)[1]
+
+	@abstractmethod
+	def turn_end(self, branch: str = None, turn: int = None) -> int: ...
+
+	@abstractmethod
+	def turn_end_plan(self, branch: str = None, turn: int = None) -> int: ...
 
 	def coin_flip(self) -> bool:
 		"""Return True or False with equal probability."""
@@ -1398,3 +1420,126 @@ def world_locked(fn: callable) -> callable:
 			return fn(*args, **kwargs)
 
 	return lockedy
+
+
+class TimeSignal(Signal, Sequence):
+	"""Acts like a tuple of ``(branch, turn, tick)`` for the most part.
+
+	This is a ``Signal``. To set a function to be called whenever the
+	branch or turn changes, pass it to my ``connect`` method.
+
+	"""
+
+	def __init__(self, engine: "AbstractEngine"):
+		super().__init__()
+		self.engine = engine
+
+	def __iter__(self):
+		yield self.engine.branch
+		yield self.engine.turn
+		yield self.engine.tick
+
+	def __len__(self):
+		return 3
+
+	def __getitem__(self, i: str | int) -> str | int:
+		if i in ("branch", 0):
+			return self.engine.branch
+		if i in ("turn", 1):
+			return self.engine.turn
+		if isinstance(i, int):
+			raise IndexError(i)
+		else:
+			raise KeyError(i)
+
+	def __setitem__(self, i: str | int, v: str | int) -> None:
+		if i in ("branch", 0):
+			self.engine.branch = v
+		elif i in ("turn", 1):
+			self.engine.turn = v
+		else:
+			exctyp = KeyError if isinstance(i, str) else IndexError
+			raise exctyp(
+				"Can only set branch or turn. Set `Engine.tick` directly if you really want that."
+			)
+
+	def __str__(self):
+		return str(tuple(self))
+
+	def __eq__(self, other):
+		return tuple(self) == other
+
+	def __ne__(self, other):
+		return tuple(self) != other
+
+	def __gt__(self, other):
+		return tuple(self) > other
+
+	def __ge__(self, other):
+		return tuple(self) >= other
+
+	def __lt__(self, other):
+		return tuple(self) < other
+
+	def __le__(self, other):
+		return tuple(self) <= other
+
+
+class TimeSignalDescriptor:
+	__doc__ = TimeSignal.__doc__
+
+	def __get__(self, inst, cls):
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal(inst)
+		return inst._time_signal
+
+	def __set__(self, inst: "AbstractEngine", val: tuple[str, int, int]):
+		if getattr(inst, "_worker", False):
+			raise WorkerProcessReadOnlyError(
+				"Tried to change the world state in a worker process"
+			)
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal(inst)
+		sig = inst._time_signal
+		branch_then, turn_then, tick_then = inst._btt()
+		branch_now, turn_now, tick_now = val
+		if (branch_then, turn_then, tick_then) == (
+			branch_now,
+			turn_now,
+			tick_now,
+		):
+			return
+		e = inst
+		# enforce the arrow of time, if it's in effect
+		if (
+			hasattr(e, "_forward")
+			and e._forward
+			and hasattr(e, "_planning")
+			and not e._planning
+		):
+			if branch_now != branch_then:
+				raise TimeError("Can't change branches in a forward context")
+			if turn_now < turn_then:
+				raise TimeError(
+					"Can't time travel backward in a forward context"
+				)
+			if turn_now > turn_then + 1:
+				raise TimeError("Can't skip turns in a forward context")
+		# make sure I'll end up within the revision range of the
+		# destination branch
+
+		if branch_now in e.branches():
+			e._extend_branch(branch_now, turn_now, tick_now)
+			e.load_at(branch_now, turn_now, tick_now)
+		else:
+			e._start_branch(branch_then, branch_now, turn_now, tick_now)
+		e._set_btt(branch_now, turn_now, tick_now)
+		sig.send(
+			e,
+			branch_then=branch_then,
+			turn_then=turn_then,
+			tick_then=tick_then,
+			branch_now=branch_now,
+			turn_now=turn_now,
+			tick_now=tick_now,
+		)
