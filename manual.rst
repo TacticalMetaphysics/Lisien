@@ -71,8 +71,7 @@ between A and B. They're usually drawn as arrows.
 In Lisien, edges are called Portals, and nodes may be Places or Things.
 You can use these to represent whatever you want, but they have special
 properties to make it easier to model physical space: in particular,
-each Thing is located in exactly one node at a time (usually a Place),
-and may be travelling through one of the Portals leading out from there.
+each Thing is located in exactly one node at a time (usually a Place).
 Regardless, you can keep any data you like in a Thing, Place, or Portal
 by treating it like a dictionary.
 
