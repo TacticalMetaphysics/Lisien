@@ -766,7 +766,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 		):
 			try:
 				if self.db._edges_cache.retrieve(
-					self.graph.name, orig, dest, *self.db._btt()
+					self.graph.name, orig, dest, 0, *self.db._btt()
 				):
 					return True
 			except KeyError:
