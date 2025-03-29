@@ -2976,30 +2976,6 @@ class Engine(AbstractEngine, Executor):
 				kdb[turn] = {tick}
 		else:
 			self._keyframes_dict[branch_to] = {turn: {tick}}
-		self.query.keyframe_extension_insert(
-			branch_to,
-			turn,
-			tick,
-			self._universal_cache.get_keyframe(branch_to, turn, tick),
-			{
-				"triggers": self._triggers_cache.get_keyframe(
-					branch_to, turn, tick
-				),
-				"prereqs": self._prereqs_cache.get_keyframe(
-					branch_to, turn, tick
-				),
-				"actions": self._actions_cache.get_keyframe(
-					branch_to, turn, tick
-				),
-				"neighborhood": self._neighborhoods_cache.get_keyframe(
-					branch_to, turn, tick
-				),
-				"big": self._rule_bigness_cache.get_keyframe(
-					branch_to, turn, tick
-				),
-			},
-			self._rulebooks_cache.get_keyframe(branch_to, turn, tick),
-		)
 
 	@staticmethod
 	def _apply_unit_delta(keyframe: dict, delta: dict) -> None:
