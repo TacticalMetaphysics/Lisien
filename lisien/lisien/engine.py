@@ -4252,16 +4252,10 @@ class Engine(AbstractEngine, Executor):
 	def submit(
 		self, fn: FunctionType | MethodType, /, *args, **kwargs
 	) -> Future:
-		if fn.__module__ == "function":
-			method = "_call_function"
-		elif fn.__module__ == "method":
-			method = "_call_method"
-		elif fn.__module__ == "trigger":
-			method = "_eval_trigger"
-		else:
+		if fn.__module__ not in {"function", "method", "trigger"}:
 			raise ValueError(
 				"Function is not stored in this lisien engine. "
-				"Use the engine's attribute `function` to store it."
+				"Use, eg., the engine's attribute `function` to store it."
 			)
 		uid = self._top_uid
 		if hasattr(self, "_worker_processes"):
