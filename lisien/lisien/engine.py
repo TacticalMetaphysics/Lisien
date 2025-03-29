@@ -424,9 +424,9 @@ class Engine(AbstractEngine, Executor):
 		playthrough.
 	:param connect_string: a rfc1738 URI for a database to connect to. Leave
 		``None`` to use the ParquetDB database in the ``prefix``.
-	:param connect_args: dictionary of keyword arguments for the
+	:param connect_args: Dictionary of keyword arguments for the
 		database connection
-	:param schema: a Schema class that determines which changes to allow to
+	:param schema: A Schema class that determines which changes to allow to
 		the world; used when a player should not be able to change just
 		anything. Defaults to :class:`NullSchema`, which allows all changes.
 	:param flush_interval: lisien will put pending changes into the database
@@ -435,13 +435,13 @@ class Engine(AbstractEngine, Executor):
 	:param keyframe_interval: How many records to let through before automatically
 		snapping a keyframe, default ``1000``. If ``None``, you'll need
 		to call ``snap_keyframe`` yourself.
-	:param commit_interval: lisien will commit changes to disk every
+	:param commit_interval: Lisien will commit changes to disk every
 		``commit_interval`` turns. If ``None`` (the default), only commit
 		on close or manual call to ``commit``.
-	:param random_seed: a number to initialize the randomizer.
-	:param logfun: an optional function taking arguments
+	:param random_seed: A number to initialize the randomizer.
+	:param logfun: An optional function taking arguments
 		``level, message``, which should log `message` somehow.
-	:param clear: whether to delete *any and all* existing data
+	:param clear: Whether to delete *any and all* existing data
 		and code in ``prefix`` and the database. Use with caution!
 	:param keep_rules_journal: Boolean; if ``True`` (the default), keep
 		information on the behavior of the rules engine in the database.
