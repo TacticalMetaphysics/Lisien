@@ -3449,7 +3449,6 @@ class Engine(AbstractEngine, Executor):
 
 	def _recurse_delta_keyframes(self, branch, turn, tick):
 		"""Make keyframes until we have one in the current branch"""
-		print(f"_recurse_delta_keyframes({branch},{turn},{tick})")
 		time_from = branch, turn, tick
 		kfd = self._keyframes_dict
 		if time_from[0] in kfd:
