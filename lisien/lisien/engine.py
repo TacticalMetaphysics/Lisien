@@ -4176,7 +4176,7 @@ class Engine(AbstractEngine, Executor):
 
 		"""
 		if latest_past_keyframe:
-			self._get_keyframe(*latest_past_keyframe)
+			self._get_keyframe(*latest_past_keyframe, silent=True)
 
 		if universals := loaded.pop("universals", None):
 			self._universal_cache.load(universals)
