@@ -31,8 +31,7 @@ def test_character_dot_rule(sqleng):
 	sqleng.next_turn()
 	btt = sqleng._btt()
 	assert char.stat["run"]
-	sqleng.time = "trunk", 0
-	sqleng.tick = 0
+	sqleng.time = "trunk", 0, 0
 	assert "run" not in char.stat
 	sqleng.next_turn()
 	assert btt == sqleng._btt()
