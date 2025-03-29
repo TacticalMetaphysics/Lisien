@@ -991,14 +991,6 @@ class AbstractCharacter(Mapping):
 			self.remove_thing(thing)
 
 	@abstractmethod
-	def remove_node(self, node):
-		pass
-
-	def remove_nodes_from(self, seq):
-		for node in seq:
-			self.remove_node(node)
-
-	@abstractmethod
 	def add_unit(self, a, b=None):
 		pass
 
