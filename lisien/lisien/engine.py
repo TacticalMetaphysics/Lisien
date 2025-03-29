@@ -502,7 +502,6 @@ class Engine(AbstractEngine, Executor):
 			raise ValueError("Don't change branches while planning")
 		curbranch, curturn, curtick = self._btt()
 		if curbranch == v:
-			self._otick = self._turn_end_plan[curbranch, curturn]
 			return
 		# make sure I'll end up within the revision range of the
 		# destination branch
@@ -568,6 +567,8 @@ class Engine(AbstractEngine, Executor):
 			raise TypeError("Turns must be integers")
 		if v < 0:
 			raise ValueError("Turns can't be negative")
+		if v == self.turn:
+			return
 		turn_end, tick_end = self._branch_end()
 		if self._enforce_end_of_time and not self._planning and v > turn_end:
 			raise OutOfTimelineError(
@@ -618,6 +619,8 @@ class Engine(AbstractEngine, Executor):
 		# enforce the arrow of time, if it's in effect
 		if self._forward and v < self._otick:
 			raise ValueError("Can't time travel backward in a forward context")
+		if v == self.tick:
+			return
 		tick_end = self._turn_end_plan[self.branch, self.turn]
 		if v > tick_end + 1:
 			raise OutOfTimelineError(
