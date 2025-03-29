@@ -535,7 +535,8 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 			if node_exists(charn, orig):
 				if orig not in cache:
 					cache[orig] = self.Successors(self, orig)
-				return cache[orig]
+				if cache[orig]:
+					return cache[orig]
 			raise KeyError("No such node")
 
 		def __delitem__(self, orig):
