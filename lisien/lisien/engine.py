@@ -3388,7 +3388,7 @@ class Engine(AbstractEngine, Executor):
 			for node, rb in nodes_rulebooks_keyframe.get(graph, {}).items():
 				if node in combined_node_val_keyframe:
 					combined_node_val_keyframe[node]["rulebook"] = rb
-				else:
+				elif node in nodes_keyframe[graph]:
 					combined_node_val_keyframe[node] = {"rulebook": rb}
 			for node, ex in nodes_keyframe.get(graph, {}).items():
 				if ex and node not in combined_node_val_keyframe:
@@ -3403,6 +3403,11 @@ class Engine(AbstractEngine, Executor):
 				graph, {}
 			).items():
 				for dest, rb in dests.items():
+					if (
+						orig not in edges_keyframe[graph]
+						or dest not in edges_keyframe[graph][orig]
+					):
+						continue
 					combined_edge_val_keyframe.setdefault(orig, {}).setdefault(
 						dest, {}
 					)["rulebook"] = rb
