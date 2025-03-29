@@ -3803,8 +3803,8 @@ class EngineProcessManager:
 			name="lisien Life Simulator Engine (core)",
 			target=engine_subprocess,
 			args=(
-				args or self._args,
-				kwargs or self._kwargs,
+				self._args or args,
+				self._kwargs | kwargs,
 				handle_out_pipe_recv,
 				handle_in_pipe_send,
 				self.logq,
