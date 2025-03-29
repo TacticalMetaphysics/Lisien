@@ -3087,7 +3087,8 @@ class Engine(AbstractEngine, Executor):
 				kv = node_val_keyframe[node]
 				for key, value in upd.items():
 					if value is None:
-						del kv[key]
+						if key in kv:
+							del kv[key]
 					else:
 						kv[key] = value
 
