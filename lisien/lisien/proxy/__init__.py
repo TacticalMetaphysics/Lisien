@@ -2525,13 +2525,17 @@ class PortalObjCache:
 			succ_us = succ[char]
 			if u in succ_us and v in succ_us[u]:
 				del succ_us[u][v]
+			if not succ_us[u]:
+				del succ_us[u]
 			if not succ_us:
 				del succ[char]
 		pred = self.predecessors
 		if char in pred:
 			pred_vs = pred[char]
-			if v in pred_vs:
+			if v in pred_vs and u in pred_vs[v]:
 				del pred_vs[v][u]
+			if not pred_vs[v]:
+				del pred_vs[v]
 			if not pred_vs:
 				del pred[char]
 
