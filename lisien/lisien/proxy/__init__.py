@@ -1953,20 +1953,40 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 			del thingcache[node]
 		self.node.send(it, key=None, value=False)
 		portscache = self.engine._character_portals_cache
-		if node in portscache.successors[name]:
-			to_del = {
+		to_del = set()
+		if (
+			name in portscache.successors
+			and node in portscache.successors[name]
+		):
+			to_del.update(
 				(node, dest) for dest in portscache.successors[name][node]
-			}
-		if node in portscache.predecessors[name]:
+			)
+		if (
+			name in portscache.predecessors
+			and node in portscache.predecessors[name]
+		):
 			to_del.update(
 				(orig, node) for orig in portscache.predecessors[name][node]
 			)
 		for u, v in to_del:
 			portscache.delete(name, u, v)
-		if node in portscache.successors[name]:
+		if (
+			name in portscache.successors
+			and node in portscache.successors[name]
+		):
 			del portscache.successors[name][node]
-		if node in portscache.predecessors[name]:
+		if name in portscache.successors and not portscache.successors[name]:
+			del portscache.successors[name]
+		if (
+			name in portscache.predecessors
+			and node in portscache.predecessors[name]
+		):
 			del portscache.predecessors[name][node]
+		if (
+			name in portscache.predecessors
+			and not portscache.predecessors[name]
+		):
+			del portscache.predecessors[name]
 
 	def remove_place(self, place):
 		if self.engine._worker:
