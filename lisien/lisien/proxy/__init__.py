@@ -3732,6 +3732,16 @@ class RedundantProcessError(ProcessError):
 
 
 class EngineProcessManager:
+	"""Container for a Lisien proxy and a logger for it
+
+	Make sure the :class:`EngineProcessManager` instance lasts as long as the
+	:class:`lisien.proxy.EngineProxy` returned from its :method:`start`
+	method. Call the :method:`EngineProcessManager.shutdown` method
+	when you're done with the :class:`lisien.proxy.EngineProxy`. That way,
+	we can join the thread that listens to the subprocess's logs.
+
+	"""
+
 	loglevel = logging.DEBUG
 
 	def __init__(self, *args, **kwargs):
