@@ -1249,11 +1249,22 @@ class PredecessorsProxy(MutableMapping):
 
 
 class CharPredecessorsMappingProxy(MutableMapping, Signal):
+	@property
+	def _other_cache(self):
+		return self.engine._character_portals_cache.successors.setdefault(
+			self.name, {}
+		)
+
+	@property
+	def _cache(self):
+		return self.engine._character_portals_cache.predecessors.setdefault(
+			self.name, {}
+		)
+
 	def __init__(self, engine_proxy, charname):
 		super().__init__()
 		self.engine = engine_proxy
 		self.name = charname
-		self._cache = {}
 
 	def __contains__(self, k):
 		return (
@@ -1299,6 +1310,8 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 			)
 		for v in list(self[k]):
 			self.engine.del_portal(self.name, v, k)
+			if v in self._other_cache:
+				del self._other_cache[v]
 		if k in self._cache:
 			del self._cache[k]
 
@@ -1950,10 +1963,14 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 			del thingcache[node]
 		self.node.send(it, key=None, value=False)
 		portscache = self.engine._character_portals_cache
-		to_del = {(node, dest) for dest in portscache.successors[name][node]}
-		to_del.update(
-			(orig, node) for orig in portscache.predecessors[name][node]
-		)
+		if node in portscache.successors[name]:
+			to_del = {
+				(node, dest) for dest in portscache.successors[name][node]
+			}
+		if node in portscache.predecessors[name]:
+			to_del.update(
+				(orig, node) for orig in portscache.predecessors[name][node]
+			)
 		for u, v in to_del:
 			portscache.delete(name, u, v)
 		if node in portscache.successors[name]:
@@ -2516,7 +2533,7 @@ class PortalObjCache:
 		succ = self.successors
 		if char in succ:
 			succ_us = succ[char]
-			if u in succ_us:
+			if u in succ_us and v in succ_us[u]:
 				del succ_us[u][v]
 			if not succ_us:
 				del succ[char]
