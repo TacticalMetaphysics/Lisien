@@ -454,15 +454,10 @@ class Engine(AbstractEngine, Executor):
 		time travelling to a point after the time that's been simulated.
 		Default ``True``. You normally want this, but it could cause problems
 		if you're not using the rules engine.
-	:param threaded_triggers: Whether to evaluate trigger functions in threads.
-		Defaults to ``True`` when there are workers (see below), ``False``
-		otherwise.
 	:param workers: How many subprocesses to use as workers for
 		parallel processing. When ``None`` (the default), use as many
 		subprocesses as we have CPU cores. When ``0``, parallel processing
-		is not necessarily disabled; threads may still be used, which
-		may or may not run in parallel, depending on your Python interpreter.
-		However, note that ``workers=0`` implies that trigger
+		is disabled. Note that ``workers=0`` implies that trigger
 		functions operate on bare lisien objects, and can therefore have
 		side effects. If you don't want this, instead use
 		``workers=1``, which *does* disable parallelism in the case
@@ -2163,13 +2158,11 @@ class Engine(AbstractEngine, Executor):
 				self.universal["rando_state"] = rando_state
 		if not self._keyframes_times:
 			self._snap_keyframe_de_novo(*self._btt())
-		if threaded_triggers is None:
-			threaded_triggers = workers is not None and workers != 0
-		if threaded_triggers:
-			self._trigger_pool = ThreadPoolExecutor()
-		self._top_uid = 0
 		if workers is None:
 			workers = os.cpu_count() or 0
+		if workers != 0:
+			self._trigger_pool = ThreadPoolExecutor()
+		self._top_uid = 0
 		if workers > 0:
 
 			def sync_log_forever(q):
