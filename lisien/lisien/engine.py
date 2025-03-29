@@ -428,7 +428,7 @@ class Engine(AbstractEngine, Executor):
 		database connection
 	:param schema: a Schema class that determines which changes to allow to
 		the world; used when a player should not be able to change just
-		anything. Defaults to :class:`NullSchema`.
+		anything. Defaults to :class:`NullSchema`, which allows all changes.
 	:param flush_interval: lisien will put pending changes into the database
 		transaction every ``flush_interval`` turns. If ``None``, only flush
 		on commit. Default ``None``.
