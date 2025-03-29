@@ -392,7 +392,7 @@ class NullSchema(AbstractSchema):
 
 
 class Engine(AbstractEngine, Executor):
-	"""lisien, the Life Simulator Engine.
+	"""Lisien, the Life Simulator Engine.
 
 	:param prefix: directory containing the simulation and its code;
 		defaults to the working directory.
