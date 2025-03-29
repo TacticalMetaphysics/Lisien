@@ -2931,13 +2931,13 @@ class Engine(AbstractEngine, Executor):
 			branch_from, turn, tick
 		):
 			loc_kf = self._things_cache.get_keyframe(
-				character, branch_from, turn, tick, copy=True
+				character, branch_from, turn, tick, copy=False
 			)
 			conts_kf = self._node_contents_cache.get_keyframe(
-				character, branch_from, turn, tick, copy=True
+				character, branch_from, turn, tick, copy=False
 			)
 			units_kf = self._unitness_cache.get_keyframe(
-				character, branch_from, turn, tick, copy=True
+				character, branch_from, turn, tick, copy=False
 			)
 			self._things_cache.set_keyframe(
 				character, branch_to, turn, tick, loc_kf
@@ -2954,7 +2954,7 @@ class Engine(AbstractEngine, Executor):
 				turn,
 				tick,
 				self._nodes_rulebooks_cache.get_keyframe(
-					character, branch_from, turn, tick
+					character, branch_from, turn, tick, copy=False
 				),
 			)
 			self._portals_rulebooks_cache.set_keyframe(
@@ -2963,7 +2963,7 @@ class Engine(AbstractEngine, Executor):
 				turn,
 				tick,
 				self._portals_rulebooks_cache.get_keyframe(
-					character, branch_from, turn, tick
+					character, branch_from, turn, tick, copy=False
 				),
 			)
 		self._keyframes_times.add((branch_to, turn, tick))
