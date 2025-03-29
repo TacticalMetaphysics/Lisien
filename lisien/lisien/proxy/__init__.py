@@ -1250,12 +1250,6 @@ class PredecessorsProxy(MutableMapping):
 
 class CharPredecessorsMappingProxy(MutableMapping, Signal):
 	@property
-	def _other_cache(self):
-		return self.engine._character_portals_cache.successors.setdefault(
-			self.name, {}
-		)
-
-	@property
 	def _cache(self):
 		return self.engine._character_portals_cache.predecessors.setdefault(
 			self.name, {}
@@ -1310,10 +1304,6 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 			)
 		for v in list(self[k]):
 			self.engine.del_portal(self.name, v, k)
-			if v in self._other_cache:
-				del self._other_cache[v]
-		if k in self._cache:
-			del self._cache[k]
 
 
 class CharStatProxy(CachingEntityProxy):
