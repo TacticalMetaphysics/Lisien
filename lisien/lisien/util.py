@@ -936,6 +936,15 @@ class AbstractCharacter(Mapping):
 			return self.thing[name]
 		raise KeyError("Already have a thing named {}".format(name))
 
+	def remove_node(self, node):
+		if node in self.node:
+			self.node[node].delete()
+
+	def remove_nodes_from(self, nodes):
+		for node in nodes:
+			if node in self.node:
+				self.node[node].delete()
+
 	@abstractmethod
 	def add_portal(self, orig, dest, **kwargs):
 		pass
