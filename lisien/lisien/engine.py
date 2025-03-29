@@ -3106,6 +3106,8 @@ class Engine(AbstractEngine, Executor):
 					)
 				elif orig in edges_keyframe and dest in edges_keyframe[orig]:
 					del edges_keyframe[orig][dest]
+					if not edges_keyframe[orig]:
+						del edges_keyframe[orig]
 					if orig in edge_val_keyframe:
 						if dest in edge_val_keyframe[orig]:
 							del edge_val_keyframe[orig][dest]
