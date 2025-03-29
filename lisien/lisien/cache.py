@@ -305,7 +305,7 @@ class Cache:
 			self.parents,
 			self.branches,
 			self.keys,
-			db.delete_plan,
+			getattr(self, "delete_plan", db.delete_plan),
 			db._time_plan,
 			self._iter_future_contradictions,
 			db._extend_branch,
@@ -3134,6 +3134,28 @@ class NodeContentsCache(Cache):
 	def __init__(self, db, kfkvs=None):
 		super().__init__(db, "node_contents_cache", kfkvs)
 		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
+
+	def delete_plan(self, plan: int) -> None:
+		branch, turn, tick = self.db._btt()
+		plan_ticks = self.db._plan_ticks[plan]
+		with self.db.world_lock:
+			for trn, tcks in plan_ticks.items():
+				if trn == turn:
+					for tck in tcks:
+						if (
+							tck >= tick
+							and self in self.db._where_cached[branch, trn, tck]
+						):
+							self.remove(branch, trn, tck)
+							self.db._where_cached[branch, trn, tck].remove(
+								self
+							)
+				elif trn > turn:
+					for tck in tcks:
+						if self not in self.db._where_cached[branch, trn, tck]:
+							continue
+						self.remove(branch, trn, tck)
+						self.db._where_cached[branch, trn, tck].remove(self)
 
 	def store(
 		self,
