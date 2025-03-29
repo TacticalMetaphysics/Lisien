@@ -4060,13 +4060,13 @@ class Engine(AbstractEngine, Executor):
 		if the_kf not in self._keyframes_loaded:
 			self._get_keyframe(*the_kf, silent=True)
 		if the_kf != (branch, turn, tick):
+			if the_kf[0] != branch:
+				self._alias_kf(the_kf[0], branch, turn, tick)
 			self._snap_keyframe_from_delta(
 				the_kf,
 				(branch, turn, tick),
 				self._get_branch_delta(*the_kf, turn, tick),
 			)
-			if the_kf[0] != branch:
-				self._alias_kf(the_kf[0], branch, turn, tick)
 		if silent:
 			return None
 		ret = self._get_kf(branch, turn, tick)
