@@ -423,7 +423,7 @@ class Engine(AbstractEngine, Executor):
 		this if your game generates new initial conditions for each
 		playthrough.
 	:param connect_string: a rfc1738 URI for a database to connect to. Leave
-		``None`` to use the SQLite database in the ``prefix``.
+		``None`` to use the ParquetDB database in the ``prefix``.
 	:param connect_args: dictionary of keyword arguments for the
 		database connection
 	:param schema: a Schema class that determines which changes to allow to
