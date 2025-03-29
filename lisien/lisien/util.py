@@ -849,7 +849,7 @@ class SpecialMappingDescriptor:
 		it.update(value)
 
 
-class AbstractCharacter(Mapping):
+class AbstractCharacter(DiGraph):
 	"""The Character API, with all requisite mappings and graph generators.
 
 	Mappings resemble those of a NetworkX digraph:
