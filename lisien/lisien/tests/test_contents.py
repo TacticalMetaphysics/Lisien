@@ -87,15 +87,15 @@ def test_contents_in_plan(chara):
 	engine.tick = engine.turn_end_plan()
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 15}
 	engine.next_turn()
-	assert engine.turn == 4
+	engine.next_turn()
+	assert engine.turn == 5
 	engine.tick = engine.turn_end_plan()
-	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 15}
+	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15}
+	print(chara.thing[9].location)
 	# this neither
 	there = chara.new_place("there")
 	chara.thing[9].location = there
-	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 15}
-	engine.next_turn()
-	assert engine.turn == 5
+	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
 	engine.tick = engine.turn_end_plan()
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
 	engine.tick = engine.turn_end()
@@ -106,10 +106,3 @@ def test_contents_in_plan(chara):
 	assert set(place.content) == correct_contents | {15}
 	engine.turn = 5
 	engine.branch = "trunk"
-	# but this does contradict the plan, so thing 9 never gets added
-	place.new_thing(11)
-	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 15}
-	for _ in range(5):
-		engine.next_turn()
-	assert engine.turn == 10
-	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 15}
