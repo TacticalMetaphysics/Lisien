@@ -219,7 +219,8 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 		self.engine.next_turn()
 		self.assertIn(0, g)
 		self.assertIn(0, list(g.node.keys()))
-		self.assertNotIn(1, g.edge[0])
+		with pytest.raises(KeyError):
+			list(g.edge[0])
 		if g.is_multigraph():
 			self.assertRaises(KeyError, lambda: g.edge[0][1][0])
 		else:

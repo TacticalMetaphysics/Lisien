@@ -164,7 +164,7 @@ class RuleFollower(BaseRuleFollower):
 		)
 
 
-class Character(DiGraph, AbstractCharacter, RuleFollower):
+class Character(AbstractCharacter, RuleFollower):
 	"""A digraph that follows game rules and has a containment hierarchy
 
 	Nodes in a Character are subcategorized into Things and
@@ -1093,11 +1093,11 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 
 	def add_place(self, node_for_adding, **attr):
 		"""Add a new Place"""
-		self.add_node(node_for_adding, **attr)
+		self.place[node_for_adding] = attr
 
 	def add_places_from(self, seq, **attrs):
-		"""Take a series of place names and add the lot."""
-		super().add_nodes_from(seq, **attrs)
+		for place in seq:
+			self.add_place(place, **attrs)
 
 	def remove_place(self, place):
 		"""Remove an existing Place"""
@@ -1173,9 +1173,16 @@ class Character(DiGraph, AbstractCharacter, RuleFollower):
 		"""
 		if isinstance(origin, Node):
 			origin = origin.name
+		if origin not in self.place:
+			self.add_place(origin)
 		if isinstance(destination, Node):
 			destination = destination.name
-		super().add_edge(origin, destination, **kwargs)
+		if destination not in self.place:
+			self.add_place(destination)
+		if origin in self.portal:
+			self.portal[origin][destination] = kwargs
+		else:
+			self.portal[origin] = {destination: kwargs}
 
 	def new_portal(self, origin, destination, **kwargs):
 		"""Create a portal and return it"""
