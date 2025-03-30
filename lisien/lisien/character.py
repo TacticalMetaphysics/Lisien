@@ -1066,7 +1066,7 @@ class Character(AbstractCharacter, RuleFollower):
 		"""
 		if isinstance(origin, Node):
 			origin = origin.name
-		if origin not in self.place:
+		if origin not in self.place and origin not in self.thing:
 			self.add_place(origin)
 		if isinstance(destination, Node):
 			destination = destination.name
