@@ -695,7 +695,7 @@ class Engine(AbstractEngine, Executor):
 					self.turn,
 					tick,
 				)
-			plan_ticks[last_plan][turn].append(tick)
+			plan_ticks[last_plan][turn].add(tick)
 			plan_ticks_uncommitted.append((last_plan, turn, tick))
 			time_plan[branch, turn, tick] = last_plan
 		else:
@@ -914,7 +914,7 @@ class Engine(AbstractEngine, Executor):
 						branch, turn
 					]:
 						turn_end_plan[branch, turn] = tick
-					plan_ticks[self._last_plan][turn].append(tick)
+					plan_ticks[self._last_plan][turn].add(tick)
 					plan_ticks_uncommitted.append(
 						(self._last_plan, turn, tick)
 					)
@@ -1825,8 +1825,8 @@ class Engine(AbstractEngine, Executor):
 		self._graph_objs = {}
 		self._plans: dict[int, tuple[str, int, int]] = {}
 		self._branches_plans: dict[str, set[int]] = defaultdict(set)
-		self._plan_ticks: dict[int, dict[int, list[int]]] = defaultdict(
-			lambda: defaultdict(list)
+		self._plan_ticks: dict[int, dict[int, set[int]]] = defaultdict(
+			lambda: defaultdict(set)
 		)
 		self._time_plan: dict[tuple[str, int, int], int] = {}
 		self._plans_uncommitted: list[tuple[int, str, int, int]] = []
