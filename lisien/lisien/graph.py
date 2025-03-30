@@ -967,18 +967,6 @@ class DiGraph(networkx.DiGraph, ABC):
 			if k != "name"
 		}
 
-	def __new__(cls, db, name, data=None, **attr):
-		if name in db._graph_objs:
-			ret = db._graph_objs[name]
-			if not isinstance(ret, cls):
-				raise EntityCollisionError(
-					"Already have a graph named {}, but it's of class {}".format(
-						name, type(ret)
-					)
-				)
-			return ret
-		return super(DiGraph, cls).__new__(cls)
-
 	def __init__(self, db, name):  # user shouldn't instantiate directly
 		self._name = name
 		self.db = db
