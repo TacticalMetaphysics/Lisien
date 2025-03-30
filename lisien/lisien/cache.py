@@ -307,6 +307,7 @@ class Cache:
 			self.keys,
 			getattr(self, "delete_plan", db.delete_plan),
 			db._time_plan,
+			db._plan_ticks,
 			self._iter_future_contradictions,
 			db._extend_branch,
 			self._store_journal,
@@ -865,6 +866,7 @@ class Cache:
 			self_keys,
 			delete_plan,
 			time_plan,
+			plan_ticks,
 			self_iter_future_contradictions,
 			db_extend_branch,
 			self_store_journal,
@@ -911,13 +913,19 @@ class Cache:
 					branches = self_branches[entikey]
 					self_keys[entity,][key] = branches
 					turns = branches[branch]
-			if planning and not isinstance(self, NodeContentsCache):
-				if turn in turns and tick < turns[turn].end:
+			if planning:
+				if (
+					not isinstance(self, NodeContentsCache)
+					and turn in turns
+					and tick < turns[turn].end
+				):
 					raise HistoricKeyError(
 						"Already have some ticks after {} in turn {} of branch {}".format(
 							tick, turn, branch
 						)
 					)
+				plan = time_plan[branch, turn, tick] = db._last_plan
+				plan_ticks[plan][turn].add(tick)
 			if contra:
 				contras = list(
 					self_iter_future_contradictions(
