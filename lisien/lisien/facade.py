@@ -706,8 +706,11 @@ class CharacterFacade(AbstractCharacter):
 		self.db = EngineFacade(engine or getattr(character, "db", None))
 		self._stat_map = self.StatMapping(self)
 		self._rb_patch = {}
-		if character:
+		if hasattr(character, "name"):
 			self.db.character._patch[character.name] = self
+			self._name = character.name
+		else:
+			self._name = character
 
 	@property
 	def graph(self):
