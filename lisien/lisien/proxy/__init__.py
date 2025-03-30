@@ -1311,9 +1311,9 @@ class CharStatProxy(CachingEntityProxy):
 	def _cache(self):
 		return self.engine._char_stat_cache[self.name]
 
-	def __init__(self, engine_proxy, character):
-		self.engine = engine_proxy
-		self.name = character
+	def __init__(self, character):
+		self.engine = character.engine
+		self.name = character.name
 		super().__init__()
 
 	def __eq__(self, other):
@@ -1646,6 +1646,7 @@ class UnitMapProxy(Mapping, RuleFollowerProxy):
 class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 	adj_cls = CharSuccessorsMappingProxy
 	pred_cls = CharPredecessorsMappingProxy
+	graph_map_cls = CharStatProxy
 
 	def copy_from(self, g):
 		if self.engine._worker:
@@ -1725,7 +1726,6 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		)
 		self.db = engine_proxy
 		self._name = charname
-		self.graph = CharStatProxy(self.engine, self.name)
 
 	def __repr__(self):
 		return f"{self.db}.character[{self.name}]"
