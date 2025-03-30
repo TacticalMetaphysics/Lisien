@@ -732,122 +732,13 @@ class Character(AbstractCharacter, RuleFollower):
 					raise KeyError("No portal to {}".format(dest))
 				self[dest].delete()
 
-			def update(self, other, **kwargs):
-				charn = self.graph.name
-				orig = self.orig
-				engine = self.engine
-				store_edge = engine._edges_cache.store
-				exist_edge = engine.query.exist_edge
-				store_edge_val = engine._edge_val_cache.store
-				set_edge_val = engine.query.edge_val_set
-				iter_edge_keys = engine._edge_val_cache.iter_entity_keys
-				planning = engine._planning
-				forward = engine._forward
-				branch, turn, start_tick = engine._btt()
-				if (
-					(branch, turn) in engine._turn_end_plan
-					and start_tick < engine._turn_end_plan[branch, turn]
-				):
-					raise RuntimeError(
-						"Tried to update successors in the past"
-					)
-				tick = start_tick + 1
-				with self.db.world_lock:
-					for dest, val in chain(other.items(), kwargs.items()):
-						if val is None:
-							for k in iter_edge_keys(
-								charn, orig, dest, 0, branch, turn, start_tick
-							):
-								store_edge_val(
-									charn,
-									orig,
-									dest,
-									0,
-									k,
-									branch,
-									turn,
-									tick,
-									None,
-									planning=planning,
-									forward=forward,
-									loading=True,
-								)
-								set_edge_val(
-									charn,
-									orig,
-									dest,
-									0,
-									k,
-									branch,
-									turn,
-									tick,
-									None,
-								)
-								tick += 1
-							store_edge(
-								charn,
-								orig,
-								dest,
-								0,
-								branch,
-								turn,
-								tick,
-								None,
-								planning=planning,
-								forward=forward,
-								loading=True,
-							)
-							exist_edge(
-								charn, orig, dest, 0, branch, turn, tick, None
-							)
-							tick += 1
-						else:
-							store_edge(
-								charn,
-								orig,
-								dest,
-								0,
-								branch,
-								turn,
-								tick,
-								True,
-								planning=planning,
-								forward=forward,
-								loading=True,
-							)
-							exist_edge(
-								charn, orig, dest, 0, branch, turn, tick, True
-							)
-							tick += 1
-							for key, value in val.items():
-								store_edge_val(
-									charn,
-									orig,
-									dest,
-									0,
-									key,
-									branch,
-									turn,
-									tick,
-									value,
-								)
-								set_edge_val(
-									charn,
-									orig,
-									dest,
-									0,
-									key,
-									branch,
-									turn,
-									tick,
-									value,
-									planning=planning,
-									forward=forward,
-									loading=True,
-								)
-								tick += 1
-					self.db._extend_branch(branch, turn, tick)
-					self.db._otick = tick
+			def update(self, other=None, **kwargs):
+				if other is None:
+					it = kwargs.items()
+				else:
+					it = chain(other.items(), kwargs.items())
+				for dest, vs in it:
+					self.graph.add_edge(self.orig, dest, **vs)
 
 	adj_cls = PortalSuccessorsMapping
 
@@ -1181,10 +1072,21 @@ class Character(AbstractCharacter, RuleFollower):
 			destination = destination.name
 		if destination not in self.place:
 			self.add_place(destination)
-		if origin in self.portal:
-			self.portal[origin][destination] = kwargs
-		else:
-			self.portal[origin] = {destination: kwargs}
+		branch, turn, tick = self.engine._nbtt()
+		self.engine._edges_cache.store(
+			self.name, origin, destination, 0, branch, turn, tick, True
+		)
+		self.engine.query.exist_edge(
+			self.name, origin, destination, 0, branch, turn, tick, True
+		)
+		for k, v in kwargs.items():
+			branch, turn, tick = self.engine._nbtt()
+			self.engine._edge_val_cache.store(
+				self.name, origin, destination, 0, k, branch, turn, tick, v
+			)
+			self.engine.query.edge_val_set(
+				self.name, origin, destination, 0, k, branch, turn, tick, v
+			)
 
 	def new_portal(self, origin, destination, **kwargs):
 		"""Create a portal and return it"""
