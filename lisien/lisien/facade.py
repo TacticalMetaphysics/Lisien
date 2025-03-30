@@ -589,7 +589,7 @@ class FacadePortalPredecessors(FacadeEntityMapping):
 			return {}
 
 
-class CharacterFacade(AbstractCharacter, nx.DiGraph):
+class CharacterFacade(AbstractCharacter):
 	def __getstate__(self):
 		ports = {}
 		for o in self.portal:
