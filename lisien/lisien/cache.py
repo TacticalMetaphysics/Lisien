@@ -689,10 +689,17 @@ class Cache:
 							)
 							ret = frozenset(adds)
 			else:
-				adds, _ = get_adds_dels(
-					parentity, branch, turn, tick, stoptime=stoptime
-				)
-				ret = frozenset(adds)
+				try:
+					kf = self._get_keyframe(parentity, *stoptime)
+					adds, dels = get_adds_dels(
+						parentity, branch, turn, tick, stoptime=stoptime
+					)
+					ret = frozenset((kf.keys() | adds) - dels)
+				except KeyframeError:
+					adds, _ = get_adds_dels(
+						parentity, branch, turn, tick, stoptime=stoptime
+					)
+					ret = frozenset(adds)
 			if keycache2:
 				if keycache3:
 					keycache3[tick] = ret
