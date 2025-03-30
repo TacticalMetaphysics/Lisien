@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from lisien import Engine
 
 
@@ -86,7 +88,8 @@ def test_multi_plan(engy):
 	engy.turn = 1
 	engy.tick = engy.turn_end_plan()
 	assert 2 not in g1.node
-	assert 2 not in g1.edge[1]
+	with pytest.raises(KeyError):
+		list(g1.edge[1])
 	assert 2 in g2.edge[1]
 
 
