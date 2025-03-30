@@ -1724,7 +1724,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 			"Can't initialize rulebooks in CharacterProxy"
 		)
 		self.db = engine_proxy
-		self.name = charname
+		self._name = charname
 		self.graph = CharStatProxy(self.engine, self.name)
 
 	def __repr__(self):
