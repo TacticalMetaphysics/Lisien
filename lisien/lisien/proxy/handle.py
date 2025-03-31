@@ -338,14 +338,14 @@ class EngineHandle:
 			if (
 				branch,
 				turn,
-				self._real._turn_end_plan.get((branch, turn)),
+				self._real.turn_end(branch, turn),
 			) == (
 				branch_from,
 				turn_from,
 				tick_from,
 			):
 				return NONE, EMPTY_MAPPING
-			self._real.time = (branch, turn)
+			self._real.time = (branch, turn, self._real.turn_end(branch, turn))
 		else:
 			if (branch, turn, tick) == (
 				branch_from,
