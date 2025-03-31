@@ -69,22 +69,25 @@ def test_fast_delta(handle_initialized):
 		hand._get_slow_delta(btt_from=(branch, turn, tick), btt_to=btt)
 	)
 	fastd = hand.unpack(diff)
-	del slowd["universal"]["rando_state"]
-	del fastd["universal"]["rando_state"]
+	if "universal" in slowd:
+		del slowd["universal"]["rando_state"]
+		del fastd["universal"]["rando_state"]
 	assert fastd == slowd, "Fast delta differs from slow delta"
 	ret, diff2 = hand.time_travel("trunk", 0, tick)
 	btt2 = hand._real._btt()
 	slowd2 = unpack_delta(hand._get_slow_delta(btt_from=btt, btt_to=btt2))
 	fastd2 = hand.unpack(diff2)
-	del slowd2["universal"]["rando_state"]
-	del fastd2["universal"]["rando_state"]
+	if "universal" in slowd:
+		del slowd2["universal"]["rando_state"]
+		del fastd2["universal"]["rando_state"]
 	assert fastd2 == slowd2, "Fast delta differs from slow delta"
 	ret, diff3 = hand.time_travel("trunk", 1)
 	btt3 = hand._real._btt()
 	slowd3 = unpack_delta(hand._get_slow_delta(btt_from=btt2, btt_to=btt3))
 	fastd3 = hand.unpack(diff3)
-	del slowd3["universal"]["rando_state"]
-	del fastd3["universal"]["rando_state"]
+	if "universal" in slowd:
+		del slowd3["universal"]["rando_state"]
+		del fastd3["universal"]["rando_state"]
 	assert fastd3 == slowd3, "Fast delta differs from slow delta"
 
 
