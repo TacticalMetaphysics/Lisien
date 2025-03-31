@@ -2626,7 +2626,7 @@ class EngineProxy(AbstractEngine):
 	time = TimeSignalDescriptor()
 	is_proxy = True
 
-	def _set_btt(self, branch: str, turn: int, tick: int, cb=None):
+	def _set_btt(self, branch: str, turn: int, tick: int = None, cb=None):
 		return self.handle(
 			"time_travel",
 			branch=branch,
@@ -2954,7 +2954,7 @@ class EngineProxy(AbstractEngine):
 
 	@turn.setter
 	def turn(self, v):
-		self._set_btt(self.branch, v, self.tick)
+		self._set_btt(self.branch, v)
 
 	@property
 	def tick(self):
