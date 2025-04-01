@@ -4466,10 +4466,10 @@ class Engine(AbstractEngine, Executor):
 			else:
 				conts[loc] = {thing}
 		self._node_contents_cache.set_keyframe(
-			(name,), *now, {k: frozenset(v) for (k, v) in conts.items()}
+			name, *now, {k: frozenset(v) for (k, v) in conts.items()}
 		)
-		self._things_cache.set_keyframe((name,), *now, things)
-		self._unitness_cache.set_keyframe((name,), *now, units)
+		self._things_cache.set_keyframe(name, *now, things)
+		self._unitness_cache.set_keyframe(name, *now, units)
 		for rbcache, rbname in [
 			(self._characters_rulebooks_cache, "character_rulebook"),
 			(self._units_rulebooks_cache, "unit_rulebook"),
