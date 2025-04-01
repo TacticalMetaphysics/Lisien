@@ -1077,40 +1077,10 @@ class Engine(AbstractEngine, Executor):
 					b not in preset
 					or r not in preset[b]
 					or t not in preset[b][r]
-					or preset[b][r][t][2] is not None
+					or preset[b][r][t][2] is None
 				):
 					return
-				# Any particular cache may lack data for this keyframe.
-				try:
-					delta[graph] = self._graph_val_cache.get_keyframe(
-						graph, *kf_time
-					)
-				except KeyframeError:
-					pass
-				try:
-					delta[graph]["nodes"] = self._nodes_cache.get_keyframe(
-						(graph,), *kf_time
-					)
-				except KeyframeError:
-					pass
-				try:
-					delta[graph]["node_val"] = (
-						self._node_val_cache.get_keyframe(graph, *kf_time)
-					)
-				except KeyframeError:
-					pass
-				try:
-					delta[graph]["edges"] = self._edges_cache.get_keyframe(
-						(graph,), *kf_time
-					)
-				except KeyframeError:
-					pass
-				try:
-					delta[graph]["edge_val"] = (
-						self._edge_val_cache.get_keyframe(graph, *kf_time)
-					)
-				except KeyframeError:
-					pass
+				delta[graph] = {}
 
 	def _get_branch_delta(
 		self,
@@ -1618,7 +1588,7 @@ class Engine(AbstractEngine, Executor):
 					delta.setdefault(graph, {}).setdefault(
 						"edges", {}
 					).setdefault(orig, {})[dest] = bool(exists)
-
+		pass
 		if branch in evbranches and turn in evbranches[branch]:
 			for graph, orig, dest, idx, key, value in evbranches[branch][turn][
 				tick_from:tick_to
