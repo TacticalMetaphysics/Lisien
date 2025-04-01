@@ -2698,15 +2698,20 @@ class EngineProxy(AbstractEngine):
 		self._initialized = False
 		self._eternal_cache = eternal
 		self.function._cache = functions
-		self.function.reimport()
+		if hasattr(self.function, "reimport"):
+			self.function.reimport()
 		self.method._cache = methods
-		self.method.reimport()
+		if hasattr(self.method, "reimport"):
+			self.method.reimport()
 		self.trigger._cache = triggers
-		self.trigger.reimport()
+		if hasattr(self.trigger, "reimport"):
+			self.trigger.reimport()
 		self.prereq._cache = prereqs
-		self.prereq.reimport()
+		if hasattr(self.prereq, "reimport"):
+			self.prereq.reimport()
 		self.action._cache = actions
-		self.action.reimport()
+		if hasattr(self.action, "reimport"):
+			self.action.reimport()
 		for func, mod in [
 			(functions, self.function),
 			(methods, self.method),
@@ -2714,6 +2719,8 @@ class EngineProxy(AbstractEngine):
 			(prereqs, self.prereq),
 			(actions, self.action),
 		]:
+			if not hasattr(mod, "_module"):
+				continue  # We're working with FuncStoreProxy, don't worry
 			unimported = set(func).difference(dir(mod._module))
 			if unimported:
 				self.warning(
