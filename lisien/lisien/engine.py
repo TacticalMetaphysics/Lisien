@@ -6323,7 +6323,11 @@ class Engine(AbstractEngine, Executor):
 			branch,
 			turn,
 			tick,
-			{orig: {dest: True for dest in edges[orig]} for orig in edges},
+			{
+				orig: {dest: True for dest in edges[orig]}
+				for orig in edges
+				if edges[orig]
+			},
 		)
 		self._edge_val_cache.set_keyframe(graph, branch, turn, tick, edges)
 		self._graph_val_cache.set_keyframe(
