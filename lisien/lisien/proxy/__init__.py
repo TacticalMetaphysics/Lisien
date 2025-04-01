@@ -3219,6 +3219,7 @@ class EngineProxy(AbstractEngine):
 		``handle``.`.
 
 		"""
+		then = self._btt()
 		if self._worker:
 			return
 		if self.closed:
@@ -3242,11 +3243,11 @@ class EngineProxy(AbstractEngine):
 				(command, branch, turn, tick), monotonic() - start_ts
 			)
 		)
-		if (branch, turn, tick) != self._btt():
+		if (branch, turn, tick) != then:
 			self._branch = branch
 			self._turn = turn
 			self._tick = tick
-			self.time.send(self, branch=branch, turn=turn, tick=tick)
+			self.time.send(self, then=then, now=(branch, turn, tick))
 		if isinstance(r, Exception):
 			raise r
 		if cmd != command:

@@ -579,7 +579,8 @@ class TurnScroll(Slider):
 		self.value = engine.turn
 		engine.time.connect(self._receive_time)
 
-	def _receive_time(self, engine, branch, turn, tick):
+	def _receive_time(self, engine, then, now):
+		(_, turn, _) = now
 		self.value = turn
 		try:
 			self.min = engine.branch_start_turn()

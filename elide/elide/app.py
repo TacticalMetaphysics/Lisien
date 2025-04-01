@@ -276,9 +276,9 @@ class ELiDEApp(App):
 	def _pull_chars(self, *_, **__):
 		self.chars.names = list(self.engine.character)
 
-	def _pull_time_from_signal(self, *_, branch, turn, tick):
-		self.branch, self.turn, self.tick = branch, turn, tick
-		self.mainscreen.ids.turnscroll.value = turn
+	def _pull_time_from_signal(self, *_, then, now):
+		self.branch, self.turn, self.tick = now
+		self.mainscreen.ids.turnscroll.value = self.turn
 
 	def start_subprocess(self, path=None, *_):
 		"""Start the lisien core and get a proxy to it
