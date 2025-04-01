@@ -2946,7 +2946,7 @@ class EngineProxy(AbstractEngine):
 
 	@branch.setter
 	def branch(self, v):
-		self._set_btt(v, self.turn, self.tick)
+		self._set_btt(v, self.turn)
 
 	@property
 	def turn(self):
