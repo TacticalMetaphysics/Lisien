@@ -4528,6 +4528,7 @@ class Engine(AbstractEngine, Executor):
 
 	@world_locked
 	def _complete_turn(self, branch: str, turn: int) -> None:
+		self._extend_branch(branch, turn, self.turn_end_plan(branch, turn))
 		self._turns_completed_d[branch] = turn
 		self.query.complete_turn(
 			branch, turn, discard_rules=not self.keep_rules_journal
