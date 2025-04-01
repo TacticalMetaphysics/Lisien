@@ -523,7 +523,7 @@ class Engine(AbstractEngine, Executor):
 			self._start_branch(curbranch, v, self.turn, self.tick)
 			tick = self.tick
 		else:
-			self._otick = tick = self._turn_end_plan[v, curturn]
+			self._otick = tick = self.turn_end(curbranch, self.turn)
 		parent = self._obranch
 		then = self._btt()
 		self._obranch = v
@@ -2611,7 +2611,11 @@ class Engine(AbstractEngine, Executor):
 		}
 		for graph in self._graph_cache.iter_keys(branch, turn, tick):
 			try:
-				self._graph_cache.retrieve(graph, branch, turn, tick)
+				if (
+					self._graph_cache.retrieve(graph, branch, turn, tick)
+					== "Deleted"
+				):
+					continue
 			except KeyError:
 				continue
 			graph_val[graph] = {}
@@ -6030,7 +6034,7 @@ class Engine(AbstractEngine, Executor):
 				del graph.adj[orig][dest]
 		for node in list(graph.node):
 			del graph.node[node]
-		for stat in set(graph.graph) - {"name"}:
+		for stat in set(graph.graph) - {"name", "units"}:
 			del graph.graph[stat]
 		branch, turn, tick = self._nbtt()
 		self.query.graphs_insert(name, branch, turn, tick, "Deleted")
