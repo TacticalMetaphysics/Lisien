@@ -3238,9 +3238,7 @@ class Engine(AbstractEngine, Executor):
 				portrbs = portals_rulebooks_keyframe[graph] = {}
 			try:
 				charunit = units_keyframe[graph] = (
-					self._unitness_cache.get_keyframe(
-						(graph,), *then, copy=True
-					)
+					self._unitness_cache.get_keyframe(graph, *then, copy=True)
 				)
 			except KeyframeError:
 				charunit = units_keyframe[graph] = {}
