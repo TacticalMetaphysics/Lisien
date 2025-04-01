@@ -298,7 +298,8 @@ def test_apply_delta(tmp_path, slow):
 		else:
 			prox.turn = 1
 		assert 3 not in phys.place
-		assert 0 not in phys.portal[1]
+		with pytest.raises(KeyError):
+			list(phys.portal[1])
 		assert 2 in phys.portal[0]
 		assert phys.portal[0][2]["hi"] == "bye"
 		assert phys.place[1]["wtf"] == "bbq"
