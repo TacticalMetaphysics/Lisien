@@ -516,6 +516,7 @@ class Engine(AbstractEngine, Executor):
 					self.turn,
 					self.tick,
 				)
+		then = self._btt()
 		branch_is_new = v not in self.branches()
 		if branch_is_new:
 			# assumes the present turn in the parent branch has
@@ -525,7 +526,6 @@ class Engine(AbstractEngine, Executor):
 		else:
 			self._otick = tick = self.turn_end(curbranch, self.turn)
 		parent = self._obranch
-		then = self._btt()
 		self._obranch = v
 		if branch_is_new:
 			self._copy_plans(parent, self.turn, tick)
