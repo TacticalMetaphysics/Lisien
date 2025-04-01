@@ -6387,7 +6387,7 @@ class Engine(AbstractEngine, Executor):
 				self._keyframes_dict[branch] = {turn: {tick}}
 		if "units" in graph_val:
 			self._unitness_cache.set_keyframe(
-				(graph,), branch, turn, tick, graph_val["units"]
+				graph, branch, turn, tick, graph_val["units"]
 			)
 		else:
 			self._unitness_cache.set_keyframe(graph, branch, turn, tick, {})
