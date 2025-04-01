@@ -524,7 +524,7 @@ class Engine(AbstractEngine, Executor):
 			self._start_branch(curbranch, v, self.turn, self.tick)
 			tick = self.tick
 		else:
-			self._otick = tick = self.turn_end(curbranch, self.turn)
+			self._otick = tick = self.turn_end(v, self.turn)
 		parent = self._obranch
 		self._obranch = v
 		if branch_is_new:
