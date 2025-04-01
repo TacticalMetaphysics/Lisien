@@ -29,8 +29,7 @@ class ScreenTest(ELiDEAppTest):
 		app.spotcfg = SpotConfigScreen()
 		app.pawncfg = PawnConfigScreen()
 		app.statcfg = StatScreen()
-		char = CharacterFacade()
-		char.name = "physical"
+		char = CharacterFacade("physical")
 		app.character = char
 		app.engine = MockEngine()
 		app.strings = MockStore()
@@ -72,8 +71,7 @@ class ScreenTest(ELiDEAppTest):
 		app.mainmenu = DirPicker()
 		app.strings = MockStore()
 		app.funcs = MockStore()
-		char = CharacterFacade()
-		char.name = "foo"
+		char = CharacterFacade("foo")
 		app.character = char
 		app.engine = MockEngine()
 		app.manager = ScreenManager()
