@@ -4423,53 +4423,7 @@ class Engine(AbstractEngine, Executor):
 	) -> None:
 		if name in self.illegal_graph_names:
 			raise GraphNameError("Illegal name")
-		if hasattr(data, "stat"):
-			if not hasattr(data, "thing"):
-				raise TypeError(
-					"Need a graph like object or a keyframe tuple", type(data)
-				)
-			things = {
-				thing: thing["location"] for thing in data.thing.values()
-			}
-			units = data.stat.get("units", {})
-		elif hasattr(data, "graph"):
-			things = {
-				key: val["location"]
-				for (key, val) in data.nodes.items()
-				if "location" in val
-			}
-			units = data.graph.get("units", {})
-		elif isinstance(data, tuple):
-			things = {
-				name: thing["location"]
-				for name, thing in data[-3].items()
-				if "location" in thing
-			}
-			units = data[-1].get("units", {})
-		elif data is None:
-			things = {}
-			units = {}
-		elif not isinstance(data, dict):
-			raise TypeError("Need a graph like object or a keyframe tuple")
-		else:
-			things = {
-				thing: thing["location"]
-				for thing in data.get("node_val", {}).values()
-				if "location" in thing
-			}
-			units = data.get("units", {})
 		now = self._btt()
-		conts = {}
-		for thing, loc in things.items():
-			if loc in conts:
-				conts[loc].add(thing)
-			else:
-				conts[loc] = {thing}
-		self._node_contents_cache.set_keyframe(
-			name, *now, {k: frozenset(v) for (k, v) in conts.items()}
-		)
-		self._things_cache.set_keyframe(name, *now, things)
-		self._unitness_cache.set_keyframe(name, *now, units)
 		for rbcache, rbname in [
 			(self._characters_rulebooks_cache, "character_rulebook"),
 			(self._units_rulebooks_cache, "unit_rulebook"),
