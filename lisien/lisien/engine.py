@@ -527,7 +527,6 @@ class Engine(AbstractEngine, Executor):
 		parent = self._obranch
 		then = self._btt()
 		self._obranch = v
-		loaded = self._loaded
 		if branch_is_new:
 			self._copy_plans(parent, self.turn, tick)
 			self.snap_keyframe(silent=True)
