@@ -4534,7 +4534,7 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, discard_rules=not self.keep_rules_journal
 		)
 
-	def _get_last_completed_turn(self, branch: str) -> int:
+	def _get_last_completed_turn(self, branch: str) -> int | None:
 		if branch not in self._turns_completed_d:
 			return None
 		return self._turns_completed_d[branch]
