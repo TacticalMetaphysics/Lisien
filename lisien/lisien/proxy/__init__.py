@@ -2604,11 +2604,17 @@ class NextTurnProxy(Signal):
 		super().__init__()
 		self.engine = engine
 
-	def __call__(self) -> tuple[list, DeltaDict]:
+	def __call__(self, cb: callable = None) -> tuple[list, DeltaDict]:
 		return self.engine.handle(
 			"next_turn",
-			cb=partial(self.engine._upd_and_cb, partial(self.send, self)),
+			cb=partial(
+				self.engine._upd_and_cb, partial(self._send_and_cb, cb)
+			),
 		)
+
+	def _send_and_cb(self, cb: callable = None, *args, **kwargs):
+		self.send(self)
+		cb(*args, **kwargs)
 
 
 class EngineProxy(AbstractEngine):
