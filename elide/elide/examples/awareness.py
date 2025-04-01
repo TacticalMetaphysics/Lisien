@@ -8,6 +8,7 @@ from kivy.lang.builder import Builder
 from kivy.properties import BooleanProperty, NumericProperty
 
 from elide.game import GameApp, GameScreen, GridBoard
+from lisien.exc import OutOfTimelineError
 
 
 def remove_prefix(s: str, prefix: str):
@@ -281,7 +282,10 @@ class AwarenessApp(GameApp):
 	def on_turn(self, *args):
 		turn = int(self.turn)
 		if turn != self.engine.turn:
-			self.engine.turn = turn
+			try:
+				self.engine.turn = turn
+			except OutOfTimelineError:
+				Logger.warning("Can't go back to turn", turn)
 
 	def on_start(self):
 		if not hasattr(self, "_initialized"):
