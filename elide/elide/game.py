@@ -235,8 +235,8 @@ class GameApp(App):
 			cb=partial(self.wait_command, start_func, turns, end_func),
 		)
 
-	def _pull_time(self, *_, branch, turn, tick):
-		self.branch, self.turn, self.tick = branch, turn, tick
+	def _pull_time(self, *_, then, now):
+		self.branch, self.turn, self.tick = now
 
 	def build(self):
 		self.procman = lisien.proxy.EngineProcessManager()
