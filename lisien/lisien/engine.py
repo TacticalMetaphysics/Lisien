@@ -4519,7 +4519,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		else:
 			if len(data) != 3 or not all(isinstance(d, dict) for d in data):
-				raise ValueError("Invalid graph data")
+				raise TypeError("Invalid graph data")
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
 			self.query.keyframe_graph_insert(name, branch, turn, tick, *data)
 		if hasattr(self, "_worker_processes"):
