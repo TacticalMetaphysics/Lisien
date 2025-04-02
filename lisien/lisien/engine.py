@@ -5895,8 +5895,6 @@ class Engine(AbstractEngine, Executor):
 		self.add_character(name, data, layout, node=node, edge=edge, **kwargs)
 		return self.character[name]
 
-	new_graph = new_digraph = new_character
-
 	def add_character(
 		self,
 		name: Key,
