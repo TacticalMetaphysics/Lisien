@@ -94,7 +94,7 @@ def test_multi_plan(engy):
 
 
 def test_plan_vs_plan(engy):
-	g1 = engy.new_digraph(1)
+	g1 = engy.new_character(1)
 	with engy.plan():
 		g1.add_node(1)
 		g1.add_node(2)
