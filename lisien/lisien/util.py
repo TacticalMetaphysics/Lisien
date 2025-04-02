@@ -748,6 +748,29 @@ class AbstractEngine(ABC):
 	@abstractmethod
 	def turn_end_plan(self, branch: str = None, turn: int = None) -> int: ...
 
+	@abstractmethod
+	def add_character(
+		self,
+		name: Key,
+		data: nx.Graph | DiGraph = None,
+		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
+		**kwargs,
+	): ...
+
+	def new_character(
+		self,
+		name: Key,
+		data: nx.Graph | DiGraph = None,
+		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
+		**kwargs,
+	):
+		self.add_character(name, data)
+		return self.character[name]
+
 	def coin_flip(self) -> bool:
 		"""Return True or False with equal probability."""
 		return self.choice((True, False))
