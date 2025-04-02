@@ -99,6 +99,26 @@ def database(request):
 	scope="function",
 )
 def engy(tmp_path, execution, database):
+	if execution == "worker":
+		logq = SimpleQueue()
+		logger = WorkerLogger(logq, 0)
+		eng = EngineProxy(
+			None,
+			None,
+			logger,
+			prefix=tmp_path,
+			i=0,
+			eternal={"language": "eng"},
+			branches={},
+		)
+		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
+			"trunk",
+			0,
+			0,
+			True,
+		)
+		eng._mutable_worker = True
+		return eng
 	with Engine(
 		**make_test_engine_kwargs(tmp_path, execution, database)
 	) as eng:
