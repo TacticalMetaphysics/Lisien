@@ -95,33 +95,34 @@ def test_multi_plan(serial_engine):
 	assert 2 in g2.edge[1]
 
 
-def test_plan_vs_plan(engy):
-	g1 = engy.new_character(1)
-	with engy.plan():
+def test_plan_vs_plan(serial_engine):
+	eng = serial_engine
+	g1 = eng.new_character(1)
+	with eng.plan():
 		g1.add_node(1)
 		g1.add_node(2)
-		engy.turn = 1
+		eng.turn = 1
 		g1.add_edge(1, 2)
 		g1.add_node(3)
 		g1.add_edge(3, 1)
-	engy.turn = 0
-	with engy.plan():
+	eng.turn = 0
+	with eng.plan():
 		g1.add_node(0)  # not a contradiction, just two plans
 		g1.add_edge(0, 1)
-	engy.turn = 1
-	engy.tick = engy.turn_end_plan()
+	eng.turn = 1
+	eng.tick = eng.turn_end_plan()
 	assert 0 in g1.node
 	assert 1 in g1.node
 	assert 2 in g1.node
 	assert 3 in g1.node
 	assert 1 in g1.edge[0]
 	assert 2 in g1.edge[1]
-	engy.turn = 0
-	engy.tick = engy.turn_end_plan()
-	with engy.plan():
+	eng.turn = 0
+	eng.tick = eng.turn_end_plan()
+	with eng.plan():
 		del g1.node[2]
-	engy.turn = 2
-	engy.tick = engy.turn_end_plan()
+	eng.turn = 2
+	eng.tick = eng.turn_end_plan()
 	assert 3 not in g1.node
 	assert 3 not in g1.adj
 	assert 0 in g1.node
