@@ -3521,7 +3521,13 @@ class EngineProxy(AbstractEngine):
 			cb(*args, **kwargs)
 
 	def _add_character(
-		self, char, data: tuple | dict | nx.Graph = None, **attr
+		self,
+		char,
+		data: tuple | dict | nx.Graph = None,
+		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
+		**attr,
 	):
 		if char in self._char_cache:
 			raise KeyError("Character already exists")
@@ -3554,7 +3560,14 @@ class EngineProxy(AbstractEngine):
 			)
 		self._char_cache[char] = character = CharacterProxy(self, char)
 		self._char_stat_cache[char] = attr
-		placedata = data.get("place", data.get("node", {}))
+		placedata = {}
+		thingdata = {}
+		if node:
+			for n, v in node.items():
+				if "location" in v:
+					thingdata[n] = v
+				else:
+					placedata[n] = v
 		for place, stats in placedata.items():
 			if (
 				char not in self._character_places_cache
@@ -3564,7 +3577,6 @@ class EngineProxy(AbstractEngine):
 					character, place
 				)
 			self._node_stat_cache[char][place] = stats
-		thingdata = data.get("thing", {})
 		for thing, stats in thingdata.items():
 			if "location" not in stats:
 				raise ValueError("Things must always have locations")
@@ -3577,7 +3589,7 @@ class EngineProxy(AbstractEngine):
 					character, thing, loc
 				)
 			self._node_stat_cache[char][thing] = stats
-		portdata = data.get("edge", data.get("portal", data.get("adj", {})))
+		portdata = edge or {}
 		for orig, dests in portdata.items():
 			for dest, stats in dests.items():
 				self._character_portals_cache.store(
@@ -3602,7 +3614,15 @@ class EngineProxy(AbstractEngine):
 			)
 		self._add_character(char, data, **attr)
 
-	def new_character(self, char, **attr):
+	def new_character(
+		self,
+		char,
+		data=None,
+		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
+		**attr,
+	):
 		self.add_character(char, **attr)
 		return self._char_cache[char]
 
