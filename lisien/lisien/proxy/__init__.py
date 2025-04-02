@@ -3548,12 +3548,13 @@ class EngineProxy(AbstractEngine):
 				data = nx.from_dict_of_lists(data)
 			except nx.NetworkXException:
 				data = nx.from_dict_of_dicts(data)
-		if not isinstance(data, nx.Graph):
-			raise TypeError("Need dict or graph", type(data))
-		if data.is_multigraph():
-			raise TypeError("No multigraphs")
-		if not data.is_directed():
-			data = data.to_directed()
+		if data is not None:
+			if not isinstance(data, nx.Graph):
+				raise TypeError("Need dict or graph", type(data))
+			elif data.is_multigraph():
+				raise TypeError("No multigraphs")
+			if not data.is_directed():
+				data = data.to_directed()
 		self._char_cache[char] = character = CharacterProxy(self, char)
 		self._char_stat_cache[char] = attr
 		placedata = {}
