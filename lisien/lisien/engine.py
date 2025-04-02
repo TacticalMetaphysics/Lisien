@@ -4428,8 +4428,6 @@ class Engine(AbstractEngine, Executor):
 		self._graph_cache.store(name, branch, turn, tick, type_s)
 		self.query.new_graph(name, branch, turn, tick, type_s)
 		self._extend_branch(branch, turn, tick)
-		if data is None:
-			data = ({}, {}, {})
 		if isinstance(data, DiGraph):
 			nodes = data._nodes_state()
 			edges = data._edges_state()
@@ -4488,7 +4486,7 @@ class Engine(AbstractEngine, Executor):
 				edges,
 				{},
 			)
-		else:
+		elif data is not None:
 			if len(data) != 3 or not all(isinstance(d, dict) for d in data):
 				raise TypeError("Invalid graph data")
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
