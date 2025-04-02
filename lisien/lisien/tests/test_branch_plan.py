@@ -7,7 +7,7 @@ from lisien import Engine
 
 def test_single_plan(engy):
 	assert engy.turn == 0
-	g = engy.new_digraph("graph")
+	g = engy.new_character("graph")
 	g.add_node(0)
 	engy.next_turn()
 	assert engy.turn == 1
@@ -66,8 +66,8 @@ def test_single_plan(engy):
 
 
 def test_multi_plan(engy):
-	g1 = engy.new_digraph(1)
-	g2 = engy.new_digraph(2)
+	g1 = engy.new_character(1)
+	g2 = engy.new_character(2)
 	with engy.plan():
 		g1.add_node(1)
 		g1.add_node(2)
@@ -136,8 +136,8 @@ def test_save_load_plan(tmp_path):
 		prereq=SimpleNamespace(),
 		action=SimpleNamespace(),
 	) as orm:
-		g1 = orm.new_digraph(1)
-		g2 = orm.new_digraph(2)
+		g1 = orm.new_character(1)
+		g2 = orm.new_character(2)
 		with orm.plan():
 			g1.add_node(1)
 			g1.add_node(2)

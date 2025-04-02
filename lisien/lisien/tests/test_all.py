@@ -43,7 +43,7 @@ class AllegedTest(unittest.TestCase):
 			action=SimpleNamespace(),
 			workers=0,
 		)
-		self.graphmakers = (self.engine.new_digraph,)
+		self.graphmakers = (self.engine.new_character,)
 
 
 class AbstractGraphTest:
