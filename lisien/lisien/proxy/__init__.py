@@ -1353,11 +1353,14 @@ class CharStatProxy(CachingEntityProxy):
 		super().__init__()
 
 	def __eq__(self, other):
-		return (
-			isinstance(other, CharStatProxy)
-			and self.engine is other.engine
-			and self.name == other.name
-		)
+		if not hasattr(other, "keys") or not callable(other.keys):
+			return False
+		if self.keys() != other.keys():
+			return False
+		for k, v in self.items():
+			if v != other[k]:
+				return False
+		return True
 
 	def _set_rulebook_name(self, k):
 		raise NotImplementedError(
