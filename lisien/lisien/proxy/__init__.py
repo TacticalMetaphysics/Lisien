@@ -3129,7 +3129,7 @@ class EngineProxy(AbstractEngine):
 		self.universal = GlobalVarProxy(self)
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
-		if prefix is None:
+		if prefix is None or not getattr(self, "_mutable_worker", False):
 			self.next_turn = NextTurnProxy(self)
 			self.method = FuncStoreProxy(self, "method")
 			self.action = FuncStoreProxy(self, "action")
@@ -3321,7 +3321,7 @@ class EngineProxy(AbstractEngine):
 
 		"""
 		then = self._btt()
-		if self._worker:
+		if self._worker or getattr(self, "_mutable_worker", False):
 			return
 		if self.closed:
 			raise RedundantProcessError(f"Already closed: {id(self)}")
