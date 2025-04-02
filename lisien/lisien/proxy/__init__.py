@@ -3614,12 +3614,20 @@ class EngineProxy(AbstractEngine):
 			branching=True,
 		)
 
-	def add_character(self, char, data=None, **attr):
+	def add_character(
+		self,
+		char,
+		data=None,
+		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
+		**attr,
+	):
 		if self._worker and not getattr(self, "_mutable_worker", False):
 			raise WorkerProcessReadOnlyError(
 				"Tried to change world state in a worker process"
 			)
-		self._add_character(char, data, **attr)
+		self._add_character(char, data, layout, node, edge, **attr)
 
 	def new_character(
 		self,
@@ -3630,7 +3638,7 @@ class EngineProxy(AbstractEngine):
 		edge: dict = None,
 		**attr,
 	):
-		self.add_character(char, **attr)
+		self.add_character(char, data, layout, node, edge, **attr)
 		return self._char_cache[char]
 
 	def _del_character(self, char):
