@@ -84,3 +84,10 @@ def test_travel(sqleng):
 	sqleng.next_turn()
 	assert thing1.location == phys.place[6, 7]
 	assert thing2.location == phys.place[1, 7]
+
+
+def test_neighbors_no_successors(sqleng):
+	phys = sqleng.new_character("physical")
+	here = phys.new_place("here")
+	phys.new_place("there")
+	assert list(here.neighbors()) == []

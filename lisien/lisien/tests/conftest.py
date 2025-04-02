@@ -15,6 +15,7 @@
 import os
 import shutil
 from functools import partial
+from queue import SimpleQueue
 
 import pytest
 
@@ -23,6 +24,7 @@ from lisien.proxy.handle import EngineHandle
 
 from ..examples import kobold, college, sickle
 from .util import make_test_engine_kwargs
+from ..proxy import EngineProxy, WorkerLogger
 
 
 @pytest.fixture(scope="function")
@@ -73,7 +75,7 @@ def pytest_addoption(parser):
 	parser.addoption("--no-sqlite", action="store_true", default=False)
 
 
-@pytest.fixture(params=["parallel", "serial"])
+@pytest.fixture(params=["worker", "parallel", "serial"])
 def execution(request):
 	if request.config.getoption("no_parallel") and request.param == "parallel":
 		raise pytest.skip("Skipping parallel execution.")
@@ -97,11 +99,30 @@ def engy(tmp_path, execution, database):
 		yield eng
 
 
-@pytest.fixture(scope="function", params=["serial", "parallel"])
-def sqleng(tmp_path, request):
-	execution = request.param
+@pytest.fixture
+def sqleng(tmp_path, request, execution):
 	if request.config.getoption("no_parallel") and execution == "parallel":
 		raise pytest.skip("Skipping parallel execution.")
+	if execution == "worker":
+		logq = SimpleQueue()
+		logger = WorkerLogger(logq, 0)
+		eng = EngineProxy(
+			None,
+			None,
+			logger,
+			prefix=tmp_path,
+			i=0,
+			eternal={"language": "eng"},
+			branches={},
+		)
+		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
+			"trunk",
+			0,
+			0,
+			True,
+		)
+		eng._mutable_worker = True
+		return eng
 	with Engine(
 		tmp_path,
 		random_seed=69105,
@@ -109,7 +130,7 @@ def sqleng(tmp_path, request):
 		workers=0 if execution == "serial" else 2,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
-		yield eng
+		return eng
 
 
 @pytest.fixture(scope="function")
