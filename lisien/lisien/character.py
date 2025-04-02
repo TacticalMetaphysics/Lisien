@@ -907,6 +907,7 @@ class Character(AbstractCharacter, RuleFollower):
 				btt = engine._btt
 				self._iter_stuff = iter_stuff = (
 					avcache.get_char_graph_units,
+					avcache.contains_key,
 					name,
 					graphn,
 					btt,
@@ -927,8 +928,12 @@ class Character(AbstractCharacter, RuleFollower):
 
 			def __iter__(self):
 				"""Iterate over names of unit nodes"""
-				get_char_graph_avs, name, graphn, btt = self._iter_stuff
-				return iter(get_char_graph_avs(name, graphn, *btt()))
+				get_char_graph_avs, validate, name, graphn, btt = (
+					self._iter_stuff
+				)
+				for unit in get_char_graph_avs(name, graphn, *btt()):
+					if validate(name, graphn, unit, *btt()):
+						yield unit
 
 			def __contains__(self, av):
 				base_retrieve, name, graphn, btt = self._contains_stuff
@@ -949,6 +954,7 @@ class Character(AbstractCharacter, RuleFollower):
 			def __getitem__(self, av):
 				(
 					get_char_graph_avs,
+					unitness_cache_has,
 					name,
 					graphn,
 					btt,
@@ -956,7 +962,7 @@ class Character(AbstractCharacter, RuleFollower):
 					graphn,
 					charmap,
 				) = self._getitem_stuff
-				if av in get_char_graph_avs(name, graphn, *btt()):
+				if unitness_cache_has(name, graphn, av, *btt()):
 					return get_node(charmap[graphn], av)
 				raise KeyError("No unit: {}".format(av))
 
