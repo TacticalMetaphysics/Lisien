@@ -130,12 +130,12 @@ def test_character(handle_initialized):
 	assert handle_initialized.thing_travel_to("hello", "neal", "earth") == 1
 	kf0 = handle_initialized.snap_keyframe()
 	del kf0["universal"]
-	assert kf0 == data.KEYFRAME0
+	assert kf0 == handle_initialized.keyframe[0]
 	desttime = handle_initialized.get_btt()
 	handle_initialized.time_travel(*origtime)
 	kf1 = handle_initialized.snap_keyframe()
 	del kf1["universal"]
-	assert kf1 == data.KEYFRAME1
+	assert kf1 == handle_initialized.keyframe[1]
 	handle_initialized.time_travel(*desttime)
 	kf2 = handle_initialized.snap_keyframe()
 	del kf2["universal"]

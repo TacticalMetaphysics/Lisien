@@ -24,6 +24,7 @@ from lisien.proxy.handle import EngineHandle
 
 from ..examples import kobold, college, sickle
 from .util import make_test_engine_kwargs
+from . import data
 from ..proxy import EngineProxy, WorkerLogger
 
 
@@ -47,11 +48,14 @@ def handle_initialized(request, tmp_path, database):
 		install = partial(
 			kobold.inittest, shrubberies=20, kobold_sprint_chance=0.9
 		)
+		keyframe = {0: data.KOBOLD_KEYFRAME_0, 1: data.KOBOLD_KEYFRAME_1}
 	elif request.param == "college":
 		install = college.install
+		keyframe = {0: data.COLLEGE_KEYFRAME_0, 1: data.COLLEGE_KEYFRAME_1}
 	else:
 		assert request.param == "sickle"
 		install = sickle.install
+		keyframe = {0: data.SICKLE_KEYFRAME_0, 1: data.SICKLE_KEYFRAME_1}
 	with Engine(
 		tmp_path,
 		workers=0,
@@ -61,13 +65,15 @@ def handle_initialized(request, tmp_path, database):
 		else None,
 	) as eng:
 		install(eng)
-	return EngineHandle(
+	ret = EngineHandle(
 		tmp_path,
 		workers=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
 		else None,
 	)
+	ret.keyframe = keyframe
+	return ret
 
 
 def pytest_addoption(parser):
