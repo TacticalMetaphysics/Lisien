@@ -5,88 +5,90 @@ import pytest
 from lisien import Engine
 
 
-def test_single_plan(engy):
-	assert engy.turn == 0
-	g = engy.new_character("graph")
+def test_single_plan(serial_engine):
+	eng = serial_engine
+	assert eng.turn == 0
+	g = eng.new_character("graph")
 	g.add_node(0)
-	engy.next_turn()
-	assert engy.turn == 1
+	eng.next_turn()
+	assert eng.turn == 1
 	g.add_node(1)
-	with engy.plan():
-		engy.turn = 2
+	with eng.plan():
+		eng.turn = 2
 		g.add_node(2)
 		g.node[2]["clever"] = False
-		engy.turn = 3
+		eng.turn = 3
 		g.node[2]["funny"] = True
 		g.add_node(3)
-		engy.turn = 4
+		eng.turn = 4
 		g.node[2]["successful"] = True
-	engy.turn = 1
+	eng.turn = 1
 	assert 2 not in g.node
-	engy.branch = "b"
+	eng.branch = "b"
 	assert 2 not in g.node
 	assert 1 in g
-	engy.next_turn()
-	assert engy.turn == 2
+	eng.next_turn()
+	assert eng.turn == 2
 	assert 2 in g.node
 	assert set(g.node[2].keys()) == {"clever"}
-	engy.next_turn()
-	assert engy.turn == 3
+	eng.next_turn()
+	assert eng.turn == 3
 	assert g.node[2]["funny"]
-	engy.tick = engy.turn_end_plan()
+	eng.tick = eng.turn_end_plan()
 	assert 3 in g
 	assert set(g.node[2].keys()) == {"funny", "clever"}
-	engy.next_turn()
-	assert engy.turn == 4
+	eng.next_turn()
+	assert eng.turn == 4
 	assert g.node[2].keys() == {"funny", "clever", "successful"}
-	engy.turn = 2
-	engy.tick = engy.turn_end_plan()
-	engy.branch = "d"
+	eng.turn = 2
+	eng.tick = eng.turn_end_plan()
+	eng.branch = "d"
 	assert g.node[2].keys() == {"clever"}
 	g.node[2]["funny"] = False
 	assert g.node[2].keys() == {"funny", "clever"}
-	engy.turn = 3
+	eng.turn = 3
 	assert not g.node[2]["funny"]
 	assert 3 not in g.node
-	engy.turn = 4
+	eng.turn = 4
 	assert g.node[2].keys() == {"funny", "clever"}
-	engy.turn = 1
-	engy.branch = "trunk"
-	engy.turn = 0
+	eng.turn = 1
+	eng.branch = "trunk"
+	eng.turn = 0
 	assert 1 not in g.node
-	engy.branch = "c"
-	engy.turn = 2
+	eng.branch = "c"
+	eng.turn = 2
 	assert 1 not in g.node
 	assert 2 not in g.node
-	engy.turn = 0
-	engy.branch = "trunk"
-	engy.turn = 2
-	engy.tick = engy.turn_end_plan()
+	eng.turn = 0
+	eng.branch = "trunk"
+	eng.turn = 2
+	eng.tick = eng.turn_end_plan()
 	assert 2 in g.node
 
 
-def test_multi_plan(engy):
-	g1 = engy.new_character(1)
-	g2 = engy.new_character(2)
-	with engy.plan():
+def test_multi_plan(serial_engine):
+	eng = serial_engine
+	g1 = eng.new_character(1)
+	g2 = eng.new_character(2)
+	with eng.plan():
 		g1.add_node(1)
 		g1.add_node(2)
-		engy.turn = 1
+		eng.turn = 1
 		g1.add_edge(1, 2)
-	engy.turn = 0
-	with engy.plan():
+	eng.turn = 0
+	with eng.plan():
 		g2.add_node(1)
 		g2.add_node(2)
-		engy.turn = 1
+		eng.turn = 1
 		g2.add_edge(1, 2)
-	engy.turn = 0
+	eng.turn = 0
 	# contradict the plan
-	engy.tick = engy.turn_end_plan()
+	eng.tick = eng.turn_end_plan()
 	del g1.node[2]
 	assert 1 in g2.node
 	assert 2 in g2.node
-	engy.turn = 1
-	engy.tick = engy.turn_end_plan()
+	eng.turn = 1
+	eng.tick = eng.turn_end_plan()
 	assert 2 not in g1.node
 	with pytest.raises(KeyError):
 		list(g1.edge[1])
