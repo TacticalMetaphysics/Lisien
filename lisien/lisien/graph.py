@@ -1165,14 +1165,7 @@ class GraphsMapping(MutableMapping):
 		return self.orm._graph_objs[item]
 
 	def __setitem__(self, key, value):
-		if isinstance(value, networkx.MultiDiGraph):
-			self.orm.new_multidigraph(key, data=value)
-		elif isinstance(value, networkx.DiGraph):
-			self.orm.new_digraph(key, data=value)
-		elif isinstance(value, networkx.MultiGraph):
-			self.orm.new_multigraph(key, data=value)
-		else:
-			self.orm.new_graph(key, data=value)
+		self.orm.new_character(key, data=value)
 
 	def __delitem__(self, key):
 		if key not in self:

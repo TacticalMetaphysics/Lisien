@@ -33,7 +33,7 @@ testgraphs.append(path_graph_9)
 def db(tmp_path, execution, database):
 	with make_test_engine(tmp_path, execution, database) as orm:
 		for graph in testgraphs:
-			orm.new_digraph(graph.name, graph)
+			orm.new_character(graph.name, graph)
 			if not graph.is_directed():
 				graph = nx.to_directed(graph)
 			assert set(graph.nodes.keys()) == set(
@@ -167,7 +167,7 @@ def test_keyframe_unload(tmp_path, execution, database):
 	# TODO: test edge cases involving tick-precise unloads
 	eng = partial(make_test_engine, tmp_path, execution, database)
 	with eng() as orm:
-		g = orm.new_digraph("g", nx.grid_2d_graph(3, 3))
+		g = orm.new_character("g", nx.grid_2d_graph(3, 3))
 		orm.next_turn()
 		assert orm.turn == 1
 		assert (
