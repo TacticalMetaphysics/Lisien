@@ -1362,6 +1362,9 @@ class CharStatProxy(CachingEntityProxy):
 				return False
 		return True
 
+	def unwrap(self):
+		return dict(self)
+
 	def _set_rulebook_name(self, k):
 		raise NotImplementedError(
 			"Set rulebooks on the Character proxy, not this"
