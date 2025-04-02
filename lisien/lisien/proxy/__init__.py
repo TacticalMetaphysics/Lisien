@@ -3076,7 +3076,7 @@ class EngineProxy(AbstractEngine):
 		install_modules=(),
 		submit_func: callable = None,
 		threads: int = None,
-		prefix: str = None,
+		prefix: os.PathLike = None,
 		i: int = None,
 		replay_file: str | os.PathLike | io.TextIOBase = None,
 		eternal: dict = None,
