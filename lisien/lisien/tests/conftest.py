@@ -118,7 +118,8 @@ def engy(tmp_path, execution, database):
 			True,
 		)
 		eng._mutable_worker = True
-		return eng
+		yield eng
+		return
 	with Engine(
 		**make_test_engine_kwargs(tmp_path, execution, database)
 	) as eng:
