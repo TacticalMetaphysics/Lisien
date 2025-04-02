@@ -32,6 +32,7 @@ import ast
 import io
 import logging
 import os
+import random
 import sys
 import zlib
 from abc import ABC, abstractmethod
@@ -3089,13 +3090,17 @@ class EngineProxy(AbstractEngine):
 		i: int = None,
 		replay_file: str | os.PathLike | io.TextIOBase = None,
 		eternal: dict = None,
+		universal: dict = None,
 		branches: dict = None,
 	):
 		if eternal is None:
 			eternal = {"language": "eng"}
+		if universal is None:
+			universal = {"rando_state": random.getstate()}
 		if branches is None:
 			branches = {"trunk": (None, 0, 0, 0, 0)}
 		self._eternal_cache = eternal
+		self._universal_cache = universal
 		self._branches_d = branches
 		replay_txt = None
 		if replay_file is not None:
