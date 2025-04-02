@@ -3626,8 +3626,6 @@ class EngineProxy(AbstractEngine):
 		self.add_character(char, **attr)
 		return self._char_cache[char]
 
-	new_graph = new_character
-
 	def _del_character(self, char):
 		if char not in self._char_cache:
 			raise KeyError("No such character")

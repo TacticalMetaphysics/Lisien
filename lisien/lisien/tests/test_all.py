@@ -48,7 +48,7 @@ class AllegedTest(unittest.TestCase):
 
 class AbstractGraphTest:
 	def test_graph_objects_create_delete(self):
-		g = self.engine.new_graph("physical")
+		g = self.engine.new_character("physical")
 		self.assertFalse(self.engine._node_exists("physical", 0))
 		g.add_node(0)
 		self.assertTrue(self.engine._node_exists("physical", 0))
@@ -267,7 +267,7 @@ class StorageTest(AllegedTest):
 		for the graph as a whole, for nodes, and for edges.
 
 		"""
-		g = self.engine.new_graph("testgraph")
+		g = self.engine.new_character("testgraph")
 		g.add_node(0)
 		g.add_node(1)
 		g.add_edge(0, 1)
