@@ -186,13 +186,13 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		return n
 
 	def __getitem__(self, k):
-		if k not in self:
-			raise KeyError
+		if k not in self and not self.engine._mockup:
+			raise KeyError(k)
 		if k not in self._patch:
-			self._patch[k] = self._make(k, self._get_inner_map()[k])
+			self._patch[k] = self._make(k, self._get_inner_map().get(k, None))
 		ret = self._patch[k]
 		if ret is None:
-			raise KeyError
+			raise KeyError(k)
 		if type(ret) is not self.facadecls:
 			ret = self._patch[k] = self._make(k, ret)
 		return ret
@@ -760,11 +760,17 @@ class CharacterFacade(AbstractCharacter):
 
 			def __getitem__(self, item):
 				if item not in self:
-					raise KeyError(
-						"Not a unit of this character in this graph",
-						item,
-						self.character.name,
-						self.graph_name,
+					if not self.character.engine._mockup:
+						raise KeyError(
+							"Not a unit of this character in this graph",
+							item,
+							self.character.name,
+							self.graph_name,
+						)
+					self.character.add_unit(
+						self.character.engine.character[self.graph_name].node[
+							item
+						]
 					)
 				return self.character.engine.character[self.graph_name].node[
 					item
@@ -797,7 +803,7 @@ class CharacterFacade(AbstractCharacter):
 				return False
 
 		def __getitem__(self, item):
-			if item not in self:
+			if item not in self and not self.character.engine._mockup:
 				raise KeyError(
 					"Character has no units in graph",
 					self.character.name,
@@ -1043,8 +1049,10 @@ class EngineFacade(AbstractEngine):
 					fac = CharacterFacade(
 						realeng.character[key], engine=realeng
 					)
+				elif self.engine._mockup:
+					fac = CharacterFacade(key, engine=self.engine)
 				else:
-					fac = CharacterFacade(key)
+					raise KeyError("No character", key)
 				self._patch[key] = fac
 			return self._patch[key]
 
@@ -1103,8 +1111,9 @@ class EngineFacade(AbstractEngine):
 			)
 			self._real = cache
 
-	def __init__(self, real: AbstractEngine | None):
+	def __init__(self, real: AbstractEngine | None, mock=False):
 		assert not isinstance(real, EngineFacade)
+		self._mockup = mock
 		if real is not None:
 			for alias in (
 				"submit",
