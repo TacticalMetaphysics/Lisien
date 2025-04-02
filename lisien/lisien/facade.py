@@ -189,7 +189,12 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		if k not in self and not self.engine._mockup:
 			raise KeyError(k)
 		if k not in self._patch:
-			self._patch[k] = self._make(k, self._get_inner_map().get(k, None))
+			inner = self._get_inner_map()
+			if k in inner:
+				v = inner[k]
+			else:
+				v = {}
+			self._patch[k] = self._make(k, v)
 		ret = self._patch[k]
 		if ret is None:
 			raise KeyError(k)
