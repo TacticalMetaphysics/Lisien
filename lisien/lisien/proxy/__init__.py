@@ -3530,7 +3530,7 @@ class EngineProxy(AbstractEngine):
 	def _add_character(
 		self,
 		char,
-		data: tuple | dict | nx.Graph = None,
+		data: dict | nx.Graph = None,
 		layout: bool = False,
 		node: dict = None,
 		edge: dict = None,
@@ -3538,37 +3538,27 @@ class EngineProxy(AbstractEngine):
 	):
 		if char in self._char_cache:
 			raise KeyError("Character already exists")
-		if data is None:
-			data = {}
-		if isinstance(data, nx.Graph):
-			data = {
-				"place": {
-					k: v for k, v in data.nodes.items() if "location" not in v
-				},
-				"thing": {
-					k: v for k, v in data.nodes.items() if "location" in v
-				},
-				"edge": {
-					orig: {dest: edges for (dest, edges) in dests.items()}
-					for (orig, dests) in data.edges.items()
-				},
-			}
-		elif isinstance(data, tuple):
-			nodes, edges, graph_val = data
-			data = graph_val.copy()
-			data["place"] = {
-				k: v for k, v in nodes.items() if "location" not in v
-			}
-			data["thing"] = {k: v for k, v in nodes.items() if "location" in v}
-			data["edge"] = edges
-		elif not isinstance(data, dict):
-			raise TypeError(
-				f"Can't make a character out of {type(data)}", data
-			)
+		if isinstance(data, dict):
+			try:
+				data = nx.from_dict_of_lists(data)
+			except nx.NetworkXException:
+				data = nx.from_dict_of_dicts(data)
+		if not isinstance(data, nx.Graph):
+			raise TypeError("Need dict or graph", type(data))
+		if data.is_multigraph():
+			raise TypeError("No multigraphs")
+		if not data.is_directed():
+			data = data.to_directed()
 		self._char_cache[char] = character = CharacterProxy(self, char)
 		self._char_stat_cache[char] = attr
 		placedata = {}
 		thingdata = {}
+		if data:
+			for k, v in data.nodes.items():
+				if "location" in v:
+					thingdata[k] = v
+				else:
+					placedata[k] = v
 		if node:
 			for n, v in node.items():
 				if "location" in v:
@@ -3597,6 +3587,16 @@ class EngineProxy(AbstractEngine):
 				)
 			self._node_stat_cache[char][thing] = stats
 		portdata = edge or {}
+		if data:
+			for orig, dest in data.edges:
+				if orig in portdata:
+					portdata[orig][dest] = {}
+				else:
+					portdata[orig] = {dest: {}}
+			portdata |= {
+				orig: {dest: edges for (dest, edges) in dests.items()}
+				for (orig, dests) in data.edges.items()
+			}
 		for orig, dests in portdata.items():
 			for dest, stats in dests.items():
 				self._character_portals_cache.store(
