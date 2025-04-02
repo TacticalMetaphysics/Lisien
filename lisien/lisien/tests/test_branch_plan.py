@@ -129,7 +129,11 @@ def test_plan_vs_plan(serial_engine):
 	assert 1 in g1.adj[0]
 
 
-def test_save_load_plan(tmp_path):
+def test_save_load_plan(tmp_path, database):
+	if database == "sqlite":
+		connect_str = f"sqlite:///{tmp_path}/world.sqlite3"
+	else:
+		connect_str = None
 	with Engine(
 		tmp_path,
 		workers=0,
@@ -138,6 +142,7 @@ def test_save_load_plan(tmp_path):
 		trigger=SimpleNamespace(),
 		prereq=SimpleNamespace(),
 		action=SimpleNamespace(),
+		connect_string=connect_str,
 	) as orm:
 		g1 = orm.new_character(1)
 		g2 = orm.new_character(2)
@@ -163,6 +168,7 @@ def test_save_load_plan(tmp_path):
 		trigger=SimpleNamespace(),
 		prereq=SimpleNamespace(),
 		action=SimpleNamespace(),
+		connect_string=connect_str,
 	) as orm:
 		g1 = orm.graph[1]
 		g2 = orm.graph[2]
