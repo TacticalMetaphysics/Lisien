@@ -3255,7 +3255,7 @@ class Engine(AbstractEngine, Executor):
 			)
 			self._apply_graph_val_delta(
 				graph,
-				graph_val_keyframe[graph],
+				graph_val_keyframe.setdefault(graph, {}),
 				characters_rulebooks_keyframe,
 				units_rulebooks_keyframe,
 				characters_things_rulebooks_keyframe,
