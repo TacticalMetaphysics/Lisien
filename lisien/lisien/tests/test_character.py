@@ -75,15 +75,15 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 			else:
 				d[k] = v
 
-	end_stats = char.stat.unwrap()
+	end_stats = dict(char.stat)
 	for stat, v in stat:
 		set_in_mapping(char.stat, stat, v)
 		if v is None and stat in end_stats:
 			del end_stats[stat]
 		else:
 			end_stats[stat] = v
-	end_places = char.place.unwrap()
-	end_things = char.thing.unwrap()
+	end_places = dict(char.place)
+	end_things = dict(char.thing)
 	for node, v in nodes:
 		if v is None:
 			del char.node[node]
@@ -137,7 +137,7 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 			me = char.new_node(node)
 			for k, vv in v.items():
 				set_in_mapping(me, k, vv)
-	end_edges = char.portal.unwrap()
+	end_edges = dict(char.portal)
 	for o, d, v in portals:
 		if v is None:
 			del char.edge[o][d]
@@ -226,9 +226,9 @@ def character_updates(request, sqleng):
 def test_facade(character_updates):
 	"""Make sure you can alter a facade independent of the character it's from"""
 	character, statup, nodeup, edgeup = character_updates
-	start_stat = character.stat.unwrap()
-	start_place = character.place.unwrap()
-	start_thing = character.thing.unwrap()
+	start_stat = dict(character.stat)
+	start_place = dict(character.place)
+	start_thing = dict(character.thing)
 	start_edge = {}
 	for o in character.edge:
 		for d in character.edge[o]:
@@ -240,9 +240,9 @@ def test_facade(character_updates):
 	assert facade.thing == updated["thing"]
 	assert facade.portal == updated["portal"]
 	# changes to a facade should not impact the underlying character
-	assert start_stat == character.stat.unwrap()
-	assert start_place == character.place.unwrap()
-	assert start_thing == character.thing.unwrap()
+	assert start_stat == dict(character.stat)
+	assert start_place == dict(character.place)
+	assert start_thing == dict(character.thing)
 	end_edge = {}
 	for o in character.edge:
 		for d in character.edge[o]:
