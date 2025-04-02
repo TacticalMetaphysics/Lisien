@@ -11,7 +11,8 @@ from blinker import Signal
 
 from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
 from .exc import NotInKeyframeError, TotalKeyError
-from .graph import Edge, Node
+from .graph import Edge, Node, DiGraph
+from .typing import Key
 from .util import (
 	AbstractCharacter,
 	AbstractEngine,
@@ -703,7 +704,10 @@ class CharacterFacade(AbstractCharacter):
 
 	def __init__(self, character=None, engine=None):
 		self.character = character
-		self.db = EngineFacade(engine or getattr(character, "db", None))
+		if isinstance(engine, EngineFacade):
+			self.db = engine
+		else:
+			self.db = EngineFacade(engine or getattr(character, "db", None))
 		self._stat_map = self.StatMapping(self)
 		self._rb_patch = {}
 		if hasattr(character, "name"):
@@ -1032,12 +1036,16 @@ class EngineFacade(AbstractEngine):
 
 		def __getitem__(self, key, /):
 			realeng = self.engine._real
-			if key not in realeng.character:
+			if realeng and key not in realeng.character:
 				raise KeyError("No character", key)
 			if key not in self._patch:
-				self._patch[key] = CharacterFacade(
-					realeng.character[key], engine=realeng
-				)
+				if realeng:
+					fac = CharacterFacade(
+						realeng.character[key], engine=realeng
+					)
+				else:
+					fac = CharacterFacade(key)
+				self._patch[key] = fac
 			return self._patch[key]
 
 		def __len__(self):
@@ -1095,7 +1103,7 @@ class EngineFacade(AbstractEngine):
 			)
 			self._real = cache
 
-	def __init__(self, real: AbstractEngine):
+	def __init__(self, real: AbstractEngine | None):
 		assert not isinstance(real, EngineFacade)
 		if real is not None:
 			for alias in (
@@ -1218,6 +1226,23 @@ class EngineFacade(AbstractEngine):
 			self._curplan = self._real._last_plan + 1
 		yield self._curplan
 		self._planning = False
+
+	def add_character(
+		self,
+		name: Key,
+		data: nx.Graph | DiGraph = None,
+		layout: bool = False,
+		node: dict = None,
+		edge: dict = None,
+		**kwargs,
+	):
+		self.character._patch[name] = char = CharacterFacade(name, self)
+		if data:
+			char.become(data)
+		if node:
+			char.node.update(node)
+		if edge:
+			char.adj.update(edge)
 
 	def apply(self):
 		realeng = self._real
