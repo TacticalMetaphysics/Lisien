@@ -1358,6 +1358,8 @@ class CharStatProxy(CachingEntityProxy):
 		if self.keys() != other.keys():
 			return False
 		for k, v in self.items():
+			if hasattr(v, "unwrap"):
+				v = v.unwrap()
 			if v != other[k]:
 				return False
 		return True
