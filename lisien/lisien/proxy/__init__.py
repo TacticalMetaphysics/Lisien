@@ -2708,7 +2708,8 @@ class NextTurnProxy(Signal):
 
 	def _send_and_cb(self, cb: callable = None, *args, **kwargs):
 		self.send(self)
-		cb(*args, **kwargs)
+		if cb is not None:
+			cb(*args, **kwargs)
 
 
 class EngineProxy(AbstractEngine):
