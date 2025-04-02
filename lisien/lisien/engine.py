@@ -4423,9 +4423,9 @@ class Engine(AbstractEngine, Executor):
 						kf[ch] = (rbname, ch)
 			kf[name] = (rbname, name)
 			rbcache.set_keyframe(*now, kf)
-		self.snap_keyframe(silent=True, update_worker_processes=False)
 		branch, turn, tick = self._btt()
 		self._graph_cache.store(name, branch, turn, tick, type_s)
+		self.snap_keyframe(silent=True, update_worker_processes=False)
 		self.query.new_graph(name, branch, turn, tick, type_s)
 		self._extend_branch(branch, turn, tick)
 		if isinstance(data, DiGraph):
