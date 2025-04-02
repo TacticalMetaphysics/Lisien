@@ -3132,7 +3132,7 @@ class EngineProxy(AbstractEngine):
 		self.universal = GlobalVarProxy(self)
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
-		if prefix is None or not getattr(self, "_mutable_worker", False):
+		if prefix is None:
 			self.next_turn = NextTurnProxy(self)
 			self.method = FuncStoreProxy(self, "method")
 			self.action = FuncStoreProxy(self, "action")
@@ -3143,13 +3143,16 @@ class EngineProxy(AbstractEngine):
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
+			if getattr(self, "_mutable_worker", False):
 
-			def next_turn():
-				raise WorkerProcessReadOnlyError(
-					"Can't advance time in a worker process"
-				)
+				def next_turn():
+					raise WorkerProcessReadOnlyError(
+						"Can't advance time in a worker process"
+					)
 
-			self.next_turn = next_turn
+				self.next_turn = next_turn
+			else:
+				self.next_turn = lambda: None
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
 			self.action = FunctionStore(os.path.join(prefix, "action.py"))
 			self.prereq = FunctionStore(os.path.join(prefix, "prereq.py"))
