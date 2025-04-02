@@ -81,7 +81,7 @@ def pytest_addoption(parser):
 	parser.addoption("--no-sqlite", action="store_true", default=False)
 
 
-@pytest.fixture(params=["worker", "parallel", "serial"])
+@pytest.fixture(params=["proxy", "parallel", "serial"])
 def execution(request):
 	if request.config.getoption("no_parallel") and request.param == "parallel":
 		raise pytest.skip("Skipping parallel execution.")
@@ -99,7 +99,7 @@ def database(request):
 	scope="function",
 )
 def engy(tmp_path, execution, database):
-	if execution == "worker":
+	if execution == "proxy":
 		logq = SimpleQueue()
 		logger = WorkerLogger(logq, 0)
 		eng = EngineProxy(
@@ -130,7 +130,7 @@ def engy(tmp_path, execution, database):
 def sqleng(tmp_path, request, execution):
 	if request.config.getoption("no_parallel") and execution == "parallel":
 		raise pytest.skip("Skipping parallel execution.")
-	if execution == "worker":
+	if execution == "proxy":
 		logq = SimpleQueue()
 		logger = WorkerLogger(logq, 0)
 		eng = EngineProxy(
