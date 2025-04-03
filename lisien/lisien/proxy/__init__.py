@@ -1900,7 +1900,12 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		self.node.send(thing, key=None, value=True)
 
 	def _worker_check(self):
-		self._worker_check()
+		if self.engine._worker and not getattr(
+			self.engine, "_mutable_worker", False
+		):
+			raise WorkerProcessReadOnlyError(
+				"Tried to change world state in a worker process"
+			)
 
 	def add_things_from(self, seq, **attrs):
 		self._worker_check()
