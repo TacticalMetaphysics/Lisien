@@ -1210,7 +1210,7 @@ class PredecessorsProxy(MutableMapping):
 			self._charname,
 			self.name,
 			k,
-			PortalProxy(self.engine, self._charname, k, self.name),
+			PortalProxy(self.engine.character[self._charname], k, self.name),
 		)
 		self.engine.handle(
 			command="set_place",
