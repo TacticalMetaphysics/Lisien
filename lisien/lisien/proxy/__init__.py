@@ -56,7 +56,7 @@ from blinker import Signal
 from ..cache import PickyDefaultDict, StructuredDefaultDict
 from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..facade import CharacterFacade
-from ..node import NodeContent, Place, Thing, UserMapping
+from ..node import Place, Thing, UserMapping
 from ..portal import Portal
 from ..typing import Key, DeltaDict
 from ..util import (
@@ -372,6 +372,41 @@ class RuleFollowerProxy(ABC):
 		pass
 
 
+class NodeContentProxy(Mapping):
+	def __init__(self, node: "NodeProxy"):
+		self.node = node
+
+	def __getitem__(self, key, /):
+		if key not in self.node.character.thing:
+			raise KeyError("No such thing", key, self.node.character.name)
+		thing = self.node.character.thing[key]
+		if thing.location != self.node:
+			raise KeyError(
+				"Not located here",
+				key,
+				self.node.character.name,
+				self.node.name,
+			)
+		return thing
+
+	def __len__(self):
+		n = 0
+		for _ in self:
+			n += 1
+		return n
+
+	def __iter__(self):
+		return self.node.engine._node_contents(
+			self.node.character.name, self.node.name
+		)
+
+	def __contains__(self, item):
+		return (
+			item in self.node.character.thing
+			and self.node.character.thing[item].location == self.node
+		)
+
+
 class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	@property
 	def user(self):
@@ -463,7 +498,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 
 	@property
 	def content(self):
-		return NodeContent(self)
+		return NodeContentProxy(self)
 
 	def contents(self):
 		return self.content.values()
