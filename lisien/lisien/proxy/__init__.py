@@ -2114,9 +2114,8 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 			)
 
 	def portals(self):
-		yield from self.engine.handle(
-			command="character_portals", char=self.name
-		)
+		for ds in self.portal.values():
+			yield from ds.values()
 
 	def add_unit(self, graph, node=None):
 		self._worker_check()
