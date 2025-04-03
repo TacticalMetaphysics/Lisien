@@ -3192,7 +3192,7 @@ class EngineProxy(AbstractEngine):
 							"<lisien.proxy.EngineProxy>", "eng"
 						)
 				else:
-					replay_file = open(replay_file, "wt")
+					self._replay_file = open(replay_file, "wt")
 			elif "w" in replay_file.mode or "a" in replay_file.mode:
 				self._replay_file = replay_file
 			elif "r" in replay_file.mode:
