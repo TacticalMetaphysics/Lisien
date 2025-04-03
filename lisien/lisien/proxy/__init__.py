@@ -83,6 +83,9 @@ class CachingProxy(MutableMapping, Signal):
 	rulebook: "RuleBookProxy"
 	engine: "EngineProxy"
 
+	def _worker_check(self):
+		self.engine._worker_check()
+
 	def __init__(self):
 		super().__init__()
 		self.exists = True
@@ -180,6 +183,9 @@ class RuleMapProxy(MutableMapping, Signal):
 	def priority(self):
 		return self.engine._rulebooks_cache.setdefault(self.name, ([], 0.0))[1]
 
+	def _worker_check(self):
+		self.engine._worker_check()
+
 	def __init__(self, engine, rulebook_name):
 		super().__init__()
 		self.engine = engine
@@ -252,12 +258,7 @@ class RuleMapProxy(MutableMapping, Signal):
 
 class RuleFollowerProxyDescriptor:
 	def __set__(self, inst, val):
-		if inst.engine._worker and not getattr(
-			inst.engine, "_mutable_worker", False
-		):
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
+		inst.engine._worker_check()
 		if isinstance(val, RuleBookProxy):
 			rb = val
 			val = val.name
@@ -351,6 +352,9 @@ class RuleFollowerProxy(ABC):
 	@abstractmethod
 	def _get_rulebook_name(self) -> Key:
 		pass
+
+	def _worker_check(self):
+		self.engine._worker_check()
 
 	def _get_rulebook_proxy(self) -> "RuleBookProxy":
 		try:
@@ -1172,6 +1176,9 @@ class PredecessorsProxy(MutableMapping):
 	def character(self):
 		return self.engine.character[self._charname]
 
+	def _worker_check(self):
+		self.engine._worker_check()
+
 	def __init__(self, engine_proxy, charname, destname):
 		self.engine = engine_proxy
 		self._charname = charname
@@ -1233,6 +1240,9 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 		return self.engine._character_portals_cache.predecessors.setdefault(
 			self.name, {}
 		)
+
+	def _worker_check(self):
+		self.engine._worker_check()
 
 	def __init__(self, engine_proxy, charname):
 		super().__init__()
@@ -1485,6 +1495,9 @@ class RuleBookProxy(MutableSequence, Signal):
 	@property
 	def priority(self):
 		return self.engine._rulebooks_cache.setdefault(self.name, ([], 0.0))[1]
+
+	def _worker_check(self):
+		self.engine._worker_check()
 
 	def __init__(self, engine, bookname):
 		super().__init__()
@@ -1904,12 +1917,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		self.node.send(thing, key=None, value=True)
 
 	def _worker_check(self):
-		if self.engine._worker and not getattr(
-			self.engine, "_mutable_worker", False
-		):
-			raise WorkerProcessReadOnlyError(
-				"Tried to change world state in a worker process"
-			)
+		self.engine._worker_check()
 
 	def add_things_from(self, seq, **attrs):
 		self._worker_check()
@@ -2173,6 +2181,9 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 
 
 class CharacterMapProxy(MutableMapping, Signal):
+	def _worker_check(self):
+		self.engine._worker_check()
+
 	def __init__(self, engine_proxy):
 		super().__init__()
 		self.engine = engine_proxy
@@ -2283,6 +2294,9 @@ class EternalVarProxy(MutableMapping):
 	def _cache(self):
 		return self.engine._eternal_cache
 
+	def _worker_check(self):
+		self.engine._worker_check()
+
 	def __init__(self, engine_proxy):
 		self.engine = engine_proxy
 
@@ -2320,6 +2334,9 @@ class GlobalVarProxy(MutableMapping, Signal):
 	@property
 	def _cache(self):
 		return self.engine._universal_cache
+
+	def _worker_check(self):
+		self.engine._worker_check()
 
 	def __init__(self, engine_proxy):
 		super().__init__()
@@ -2386,6 +2403,9 @@ class AllRulesProxy(MutableMapping):
 	@property
 	def _cache(self):
 		return self.engine._rules_cache
+
+	def _worker_check(self):
+		self.engine._worker_check()
 
 	def __init__(self, engine_proxy):
 		self.engine = engine_proxy
@@ -2456,6 +2476,9 @@ class FuncProxy(object):
 
 class FuncStoreProxy(Signal):
 	_cache: dict
+
+	def _worker_check(self):
+		self.engine._worker_check()
 
 	def __init__(self, engine_proxy, store):
 		super().__init__()
@@ -2630,6 +2653,12 @@ class EngineProxy(AbstractEngine):
 	portal_cls = PortalProxy
 	time = TimeSignalDescriptor()
 	is_proxy = True
+
+	def _worker_check(self):
+		if not self._worker and not getattr(self, "_mutable_worker", False):
+			raise WorkerProcessReadOnlyError(
+				"Tried to change the world state in a worker process"
+			)
 
 	def _set_btt(self, branch: str, turn: int, tick: int = None, cb=None):
 		return self.handle(
