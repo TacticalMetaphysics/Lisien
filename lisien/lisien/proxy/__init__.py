@@ -3182,6 +3182,7 @@ class EngineProxy(AbstractEngine):
 		self._rules_cache = {}
 		self._rulebooks_cache = {}
 		self._branches_d = branches
+		self._planning = False
 		replay_txt = None
 		if replay_file is not None:
 			if not isinstance(replay_file, io.TextIOBase):
