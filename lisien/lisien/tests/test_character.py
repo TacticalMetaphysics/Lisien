@@ -232,7 +232,9 @@ def test_facade(character_updates):
 	start_edge = {}
 	for o in character.edge:
 		for d in character.edge[o]:
-			start_edge.setdefault(o, {})[d] = character.edge[o][d].unwrap()
+			start_edge.setdefault(o, {})[d] = dict(
+				character.edge[o][d].items()
+			)
 	facade = character.facade()
 	updated = update_char(facade, stat=statup, nodes=nodeup, portals=edgeup)
 	assert facade.stat == updated["stat"]
