@@ -1885,6 +1885,9 @@ class Engine(AbstractEngine, Executor):
 			self.method = FunctionStore(self._method_file)
 		self.rule = AllRules(self)
 		self.rulebook = AllRuleBooks(self)
+		self._keyframes_dict = PickyDefaultDict(WindowDict)
+		self._keyframes_times = set()
+		self._keyframes_loaded = set()
 		self._caches = [
 			self._things_cache,
 			self._node_contents_cache,
@@ -2024,9 +2027,6 @@ class Engine(AbstractEngine, Executor):
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
 		self._rulebooks_cache.setdb = self.query.rulebook_set
-		self._keyframes_dict = PickyDefaultDict(WindowDict)
-		self._keyframes_times = set()
-		self._keyframes_loaded = set()
 		self.query.initdb()
 		self._load_keyframe_times()
 		if main_branch is not None:
