@@ -943,7 +943,7 @@ class ThingMapProxy(CachingProxy, RuleFollowerProxy):
 
 	def _cache_set_munge(self, k, v):
 		return ThingProxy(
-			self,
+			self.character,
 			*self.engine.handle(
 				"get_thing_special_stats", char=self.name, thing=k
 			),
