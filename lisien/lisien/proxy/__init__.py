@@ -1013,7 +1013,7 @@ class PlaceMapProxy(CachingProxy, RuleFollowerProxy):
 		return self is other
 
 	def _cache_set_munge(self, k, v):
-		return PlaceProxy(self, k)
+		return PlaceProxy(self.character, k)
 
 	def _set_item(self, k, v):
 		self.engine.handle(
