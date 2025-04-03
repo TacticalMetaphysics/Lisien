@@ -54,9 +54,13 @@ import networkx as nx
 from blinker import Signal
 
 from ..cache import PickyDefaultDict, StructuredDefaultDict
-from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
+from ..exc import (
+	OutOfTimelineError,
+	WorkerProcessReadOnlyError,
+	AmbiguousUserError,
+)
 from ..facade import CharacterFacade
-from ..node import Place, Thing, UserMapping
+from ..node import Place, Thing
 from ..portal import Portal
 from ..typing import Key, DeltaDict
 from ..util import (
@@ -301,8 +305,40 @@ class RulebookProxyDescriptor(RuleFollowerProxyDescriptor):
 		return inst._get_rulebook_proxy()
 
 
-class ProxyUserMapping(UserMapping):
+class ProxyUserMapping(Mapping):
 	"""A mapping to the ``CharacterProxy``s that have this node as a unit"""
+
+	def __init__(self, node):
+		self.node = node
+
+	def __iter__(self):
+		try:
+			return iter(self._user_names())
+		except KeyError:
+			return iter(())
+
+	def __len__(self):
+		try:
+			return len(self._user_names())
+		except KeyError:
+			return 0
+
+	def __contains__(self, item):
+		try:
+			return item in self._user_names()
+		except KeyError:
+			return False
+
+	def __getitem__(self, item):
+		if item not in self:
+			raise KeyError("Not a user of this node", item, self.node.name)
+		return self.node.engine.character[item]
+
+	@property
+	def only(self):
+		if len(self) == 1:
+			return next(iter(self.values()))
+		raise AmbiguousUserError("No users, or more than one")
 
 	def _user_names(self):
 		return self.node.engine._unit_characters_cache[self.node._charname][
