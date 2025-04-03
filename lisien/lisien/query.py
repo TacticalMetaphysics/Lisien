@@ -7357,7 +7357,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 	def __init__(
 		self, dbstring, connect_args, inq, outq, fn, tables, gather=None
 	):
-		self.lock = Lock()
+		self.lock = RLock()
 		self.existence_lock = Lock()
 		self.existence_lock.acquire()
 		self._dbstring = dbstring
