@@ -504,6 +504,13 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	def new_thing(self, name, **kwargs):
 		return self.character.new_thing(name, self.name, **kwargs)
 
+	def add_portal(self, dest, **kwargs):
+		self.character.add_portal(self.name, dest, **kwargs)
+
+	def new_portal(self, dest, **kwargs):
+		self.add_portal(dest, **kwargs)
+		return self.character.portal[self.name][dest]
+
 	def shortest_path(
 		self, dest: Key | NodeProxy, weight: Key = None
 	) -> list[Key]:
