@@ -2518,6 +2518,19 @@ class Engine(AbstractEngine, Executor):
 					else:
 						for tck in tcks:
 							yield b0, r_between, tck
+			if r1 in kfdb:
+				tcks = sorted(kfdb[r1], reverse=True)
+				if loaded:
+					for tck in tcks:
+						if tck <= t1:
+							break
+						if (b0, r1, tck) in kfl:
+							yield b0, r1, tck
+				else:
+					for tck in tcks:
+						if tck <= t1:
+							break
+						yield b0, r1, tck
 		if b1 in kfd:
 			kfdb = kfd[b1]
 			tcks = sorted(kfdb[r1], reverse=True)
