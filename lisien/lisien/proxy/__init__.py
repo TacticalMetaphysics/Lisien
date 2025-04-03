@@ -2029,6 +2029,14 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		self.thing.send(thing, key=None, value=True)
 		self.node.send(thing, key=None, value=True)
 
+	def _worker_check(self):
+		if self.engine._worker and not getattr(
+			self.engine, "_mutable_worker", False
+		):
+			raise WorkerProcessReadOnlyError(
+				"Tried to change the world state in a worker process"
+			)
+
 	def add_things_from(self, seq, **attrs):
 		if self.engine._worker and not getattr(
 			self.engine, "_mutable_worker", False
@@ -2046,6 +2054,31 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 			self.thing._cache[name] = thing = ThingProxy(self, name, location)
 			self.thing.send(thing, key=None, value=True)
 			self.node.send(thing, key=None, value=True)
+
+	def place2thing(self, place: Key, location: Key) -> None:
+		self._worker_check()
+		self.engine.handle(
+			command="place2thing",
+			place=place,
+			location=location,
+			branching=True,
+		)
+		if place in self.place._cache:
+			del self.place._cache[place]
+		self.place.send(place, key=None, value=False)
+		if place not in self.thing._cache:
+			self.thing._cache[place] = ThingProxy(self, place, location)
+		self.thing.send(place, key=None, value=True)
+
+	def thing2place(self, thing: Key) -> None:
+		self._worker_check()
+		self.engine.handle(command="thing2place", thing=thing, branching=True)
+		if thing in self.thing._cache:
+			del self.thing._cache[thing]
+		self.thing.send(thing, key=None, value=False)
+		if thing not in self.place._cache:
+			self.place._cache[thing] = PlaceProxy(self, thing)
+		self.place.send(thing, key=None, value=True)
 
 	def remove_node(self, node):
 		if self.engine._worker and not getattr(
