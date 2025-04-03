@@ -275,7 +275,7 @@ class RuleFollowerProxyDescriptor:
 					inst.engine, val.name
 				)
 				val = val.name
-		inst._set_rulebook(val)
+		inst._set_rulebook_name(val)
 		inst.send(inst, rulebook=val)
 
 
