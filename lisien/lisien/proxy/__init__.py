@@ -324,11 +324,9 @@ class ProxyUserMapping(UserMapping):
 	"""A mapping to the ``CharacterProxy``s that have this node as a unit"""
 
 	def _user_names(self):
-		for user, avatars in self.node.engine._unit_characters_cache[
-			self.node._charname
-		].items():
-			if self.node.name in avatars:
-				yield user
+		return self.node.engine._unit_characters_cache[self.node._charname][
+			self.node.name
+		]
 
 
 class ProxyNeighborMapping(Mapping):
@@ -2245,6 +2243,12 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		if node is None:
 			node = graph.name
 			graph = graph.character.name
+		self.engine._character_units_cache[self.name].setdefault(
+			graph, set()
+		).add(node)
+		self.engine._unit_characters_cache[graph].setdefault(node, set()).add(
+			self.name
+		)
 		self.engine.handle(
 			command="add_unit",
 			char=self.name,
