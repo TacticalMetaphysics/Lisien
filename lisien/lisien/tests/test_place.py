@@ -95,8 +95,8 @@ def test_deletion_after_keyframe(proxyless_engine):
 	assert (5, 5) not in list(phys.place)
 
 
-def test_clear(sqleng):
-	phys = sqleng.new_character("physical")
+def test_clear(engy):
+	phys = engy.new_character("physical")
 	place = phys.new_place("here")
 	place["a"] = 1
 	place["b"] = 2
