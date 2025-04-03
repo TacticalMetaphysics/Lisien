@@ -3237,6 +3237,7 @@ class EngineProxy(AbstractEngine):
 
 				self.next_turn = next_turn
 			else:
+				self._rando = Random()
 				self.next_turn = lambda: None
 			self.method = FunctionStore(os.path.join(prefix, "method.py"))
 			self.action = FunctionStore(os.path.join(prefix, "action.py"))
