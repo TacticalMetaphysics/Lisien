@@ -407,6 +407,23 @@ class NodeContentProxy(Mapping):
 		)
 
 
+class NodePortalProxy(Mapping):
+	def __init__(self, node):
+		self.node = node
+
+	def __getitem__(self, key, /):
+		return self.node.character.portal[self.node.name][key]
+
+	def __len__(self):
+		try:
+			return len(self.node.character.portal[self.node.name])
+		except KeyError:
+			return 0
+
+	def __iter__(self):
+		return iter(self.node.character.portal[self.node.name])
+
+
 class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	@property
 	def user(self):
@@ -502,6 +519,13 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 
 	def contents(self):
 		return self.content.values()
+
+	@property
+	def portal(self):
+		return NodePortalProxy(self)
+
+	def portals(self):
+		return self.portal.values()
 
 	@property
 	def neighbor(self):
