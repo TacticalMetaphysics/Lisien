@@ -112,7 +112,9 @@ class CachingProxy(MutableMapping, Signal):
 		return self[k]
 
 	def __setitem__(self, k, v):
-		if self.engine._worker and not getattr(self, "_mutable_worker", False):
+		if self.engine._worker and not getattr(
+			self.engine, "_mutable_worker", False
+		):
 			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
