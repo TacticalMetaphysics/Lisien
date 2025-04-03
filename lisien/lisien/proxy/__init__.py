@@ -1333,21 +1333,31 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 		self.name = charname
 
 	def __contains__(self, k):
+		if self.name not in self.engine._character_portals_cache.predecessors:
+			return False
 		return (
 			k in self.engine._character_portals_cache.predecessors[self.name]
 		)
 
 	def __iter__(self):
-		return iter(
-			self.engine._character_portals_cache.predecessors[self.name]
-		)
+		try:
+			return iter(
+				self.engine._character_portals_cache.predecessors[self.name]
+			)
+		except KeyError:
+			return iter(())
 
 	def __len__(self):
-		return len(
-			self.engine._character_portals_cache.predecessors[self.name]
-		)
+		try:
+			return len(
+				self.engine._character_portals_cache.predecessors[self.name]
+			)
+		except KeyError:
+			return 0
 
 	def __getitem__(self, k):
+		if k not in self:
+			raise KeyError("No predecessors to this portal", k, self.name)
 		if k not in self._cache:
 			self._cache[k] = PredecessorsProxy(self.engine, self.name, k)
 		return self._cache[k]
