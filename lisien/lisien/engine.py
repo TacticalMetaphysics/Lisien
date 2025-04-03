@@ -2098,6 +2098,11 @@ class Engine(AbstractEngine, Executor):
 		assert hasattr(self, "graph")
 		self._load_plans()
 		self._load_rules_handled()
+		self._turns_completed_d.update(self.query.turns_completed_dump())
+		self._rules_cache = {
+			name: Rule(self, name, create=False)
+			for name in self.query.rules_dump()
+		}
 		with garbage():
 			self._load(*self._read_at(*self._btt()))
 		if hasattr(self, "_string_prefix"):
@@ -2814,10 +2819,6 @@ class Engine(AbstractEngine, Executor):
 		store_porh = self._portal_rules_handled_cache.store
 		for row in q.portal_rules_handled_dump():
 			store_porh(*row, loading=True)
-		self._turns_completed_d.update(q.turns_completed_dump())
-		self._rules_cache = {
-			name: Rule(self, name, create=False) for name in q.rules_dump()
-		}
 
 	def _upd_branch_parentage(self, parent: str, child: str) -> None:
 		self._childbranch[parent].add(child)
