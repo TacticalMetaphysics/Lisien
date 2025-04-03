@@ -424,6 +424,23 @@ class NodePortalProxy(Mapping):
 		return iter(self.node.character.portal[self.node.name])
 
 
+class NodePreportalProxy(Mapping):
+	def __init__(self, node):
+		self.node = node
+
+	def __getitem__(self, key, /):
+		return self.node.character.preportal[self.node.name][key]
+
+	def __len__(self):
+		try:
+			return len(self.node.character.preportal[self.node.name])
+		except KeyError:
+			return 0
+
+	def __iter__(self):
+		return iter(self.node.character.preportal[self.node.name])
+
+
 class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	@property
 	def user(self):
@@ -526,6 +543,13 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 
 	def portals(self):
 		return self.portal.values()
+
+	@property
+	def preportal(self):
+		return NodePreportalProxy(self)
+
+	def preportals(self):
+		return self.preportal.values()
 
 	@property
 	def neighbor(self):
