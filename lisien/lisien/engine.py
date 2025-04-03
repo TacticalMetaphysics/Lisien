@@ -2097,6 +2097,7 @@ class Engine(AbstractEngine, Executor):
 		self._load_graphs()
 		assert hasattr(self, "graph")
 		self._load_plans()
+		self._load_rules_handled()
 		with garbage():
 			self._load(*self._read_at(*self._btt()))
 		if hasattr(self, "_string_prefix"):
@@ -2789,6 +2790,9 @@ class Engine(AbstractEngine, Executor):
 				(turn_end_plan[branch, turn], tick)
 			)
 			time_plan[branch, turn, tick] = plan
+
+	def _load_rules_handled(self):
+		q = self.query
 		store_crh = self._character_rules_handled_cache.store
 		for row in q.character_rules_handled_dump():
 			store_crh(*row, loading=True)
