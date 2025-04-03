@@ -39,6 +39,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
+from inspect import getsource
 from multiprocessing import Pipe, Process, ProcessError, Queue
 from queue import Empty
 from random import Random
@@ -201,6 +202,22 @@ class RuleMapProxy(MutableMapping, Signal):
 	def __len__(self):
 		return len(self._cache)
 
+	def __call__(
+		self, action: str | callable = None, always=False
+	) -> callable | RuleProxy:
+		if action is None:
+			return partial(self, always=always)
+		if callable(action):
+			self.engine.handle(
+				"store_source", v=getsource(action), name=action.__name__
+			)
+			action = action.__name__
+		action = FuncProxy(self.engine.action, action)
+		self[action] = [action]
+		if always:
+			self[action].triggers.append(self.engine.trigger.truth)
+		return self[action]
+
 	def __getitem__(self, key):
 		if key in self._cache:
 			if key not in self._proxy_cache:
@@ -283,16 +300,14 @@ class RuleMapProxyDescriptor(RuleFollowerProxyDescriptor):
 			return self
 		if hasattr(instance, "_rule_map_proxy"):
 			return instance._rule_map_proxy
-		elif instance._get_rulebook_name() in instance.engine._rulebooks_cache:
-			proxy = RuleMapProxy(
-				instance.engine, instance._get_rulebook_name()
-			)
-			instance._rule_map_proxy = proxy
 		else:
-			proxy = RuleMapProxy(
-				instance.engine, instance._get_default_rulebook_name()
+			try:
+				name = instance._get_rulebook_name()
+			except KeyError:
+				name = instance._get_default_rulebook_name()
+			proxy = instance._rule_map_proxy = RuleMapProxy(
+				instance.engine, name
 			)
-			instance._rule_map_proxy = proxy
 		return proxy
 
 
@@ -1435,9 +1450,15 @@ class FuncListProxy(MutableSequence, Signal):
 			},
 		)
 
+	def _get_store(self):
+		return getattr(self.rule.engine, self._key[:-1])
+
 	def __setitem__(self, key, value):
 		if isinstance(value, str):
-			value = getattr(getattr(self.rule.engine, self._key), value)
+			value = getattr(self._get_store(), value)
+		else:
+			setattr(self._get_store(), key, value)
+			value = getattr(self._get_store(), key)
 		self.rule._cache[self._key] = value
 		self._handle_send()
 
@@ -1449,8 +1470,11 @@ class FuncListProxy(MutableSequence, Signal):
 
 	def insert(self, index, value):
 		if isinstance(value, str):
-			value = getattr(getattr(self.rule.engine, self._key), value)
-		self.rule._cache.insert(index, value)
+			value = getattr(self._get_store(), value)
+		else:
+			setattr(self._get_store(), value.__name__, value)
+			value = getattr(self._get_store(), value.__name__)
+		self.rule._cache.setdefault(self._key, []).insert(index, value)
 		self._handle_send()
 
 
@@ -1493,14 +1517,37 @@ class RuleProxy(Signal):
 		for whatever in v:
 			if hasattr(whatever, "name"):
 				ret.append(whatever.name)
+			elif hasattr(whatever, "__name__"):
+				ret.append(whatever.__name__)
 			else:
-				assert isinstance(whatever, str)
+				assert isinstance(whatever, str), whatever
 				ret.append(whatever)
 		return ret
 
 	@property
 	def _cache(self):
 		return self.engine._rules_cache.setdefault(self.name, {})
+
+	def trigger(self, trigger: callable | FuncProxy) -> FuncProxy:
+		self.triggers.append(trigger)
+		if isinstance(trigger, FuncProxy):
+			return trigger
+		else:
+			return getattr(self.engine.trigger, trigger.__name__)
+
+	def prereq(self, prereq: callable | FuncProxy) -> FuncProxy:
+		self.prereqs.append(prereq)
+		if isinstance(prereq, FuncProxy):
+			return prereq
+		else:
+			return getattr(self.engine.prereq, prereq.__name__)
+
+	def action(self, action: callable | FuncProxy) -> FuncProxy:
+		self.actions.append(action)
+		if isinstance(action, FuncProxy):
+			return action
+		else:
+			return getattr(self.engine.action, action.__name__)
 
 	def __init__(self, engine, rulename):
 		super().__init__()
@@ -2496,7 +2543,7 @@ class AllRuleBooksProxy(Mapping):
 		return self._cache[k]
 
 
-class AllRulesProxy(Mapping):
+class AllRulesProxy(MutableMapping):
 	@property
 	def _cache(self):
 		return self.engine._rules_cache
@@ -2520,6 +2567,24 @@ class AllRulesProxy(Mapping):
 		if k not in self._proxy_cache:
 			self._proxy_cache[k] = RuleProxy(self.engine, k)
 		return self._proxy_cache[k]
+
+	def __setitem__(self, key, value):
+		if isinstance(value, RuleProxy):
+			self._proxy_cache[key] = value
+		elif callable(value) or hasattr(self.engine.action, value):
+			proxy = self._proxy_cache[key] = RuleProxy(self.engine, key)
+			proxy.action(value)
+		else:
+			raise TypeError("Need RuleProxy or an action", type(value))
+
+	def __delitem__(self, key):
+		self.engine.handle("del_rule", rule=key)
+		if key in self._proxy_cache:
+			del self._proxy_cache[key]
+
+	def __call__(self, action):
+		self[getattr(action, "__name__", action)] = action
+		return self[getattr(action, "__name__", action)]
 
 	def new_empty(self, k):
 		if self.engine._worker and not getattr(
