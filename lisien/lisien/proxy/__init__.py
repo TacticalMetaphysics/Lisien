@@ -1081,7 +1081,9 @@ class SuccessorsProxy(CachingProxy):
 			assert v._origin == self._orig
 			assert v._destination == k
 			return v
-		return PortalProxy(self, self._orig, k)
+		return PortalProxy(
+			self.engine.character[self._charname], self._orig, k
+		)
 
 	def _set_item(self, dest, value):
 		self.engine.handle(
