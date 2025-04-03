@@ -19,8 +19,8 @@ from lisien.exc import AmbiguousUserError
 
 
 @pytest.fixture(scope="function")
-def someplace(sqleng):
-	yield sqleng.new_character("physical").new_place("someplace")
+def someplace(engy):
+	yield engy.new_character("physical").new_place("someplace")
 
 
 def test_contents(someplace):
