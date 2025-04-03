@@ -730,6 +730,10 @@ class CharacterFacade(AbstractCharacter):
 		self._stat_map.clear()
 		self._stat_map.update(v)
 
+	def portals(self):
+		for ds in self.portal.values():
+			yield from ds.values()
+
 	class UnitGraphMapping(Mapping):
 		class UnitMapping(Mapping):
 			def __init__(self, character, graph_name):
