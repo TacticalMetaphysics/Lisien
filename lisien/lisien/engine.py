@@ -2028,6 +2028,7 @@ class Engine(AbstractEngine, Executor):
 		self._keyframes_times = set()
 		self._keyframes_loaded = set()
 		self.query.initdb()
+		self._load_keyframe_times()
 		if main_branch is not None:
 			self.query.globl["main_branch"] = main_branch
 		elif "main_branch" not in self.query.globl:
@@ -2751,7 +2752,7 @@ class Engine(AbstractEngine, Executor):
 		kf["rulebook"] = self._rulebooks_cache.get_keyframe(branch, turn, tick)
 		return kf
 
-	def _load_plans(self) -> None:
+	def _load_keyframe_times(self):
 		keyframes_dict = self._keyframes_dict
 		keyframes_times = self._keyframes_times
 		q = self.query
@@ -2765,6 +2766,9 @@ class Engine(AbstractEngine, Executor):
 				else:
 					keyframes_dict_branch[turn].add(tick)
 			keyframes_times.add((branch, turn, tick))
+
+	def _load_plans(self) -> None:
+		q = self.query
 
 		last_plan = -1
 		plans = self._plans
