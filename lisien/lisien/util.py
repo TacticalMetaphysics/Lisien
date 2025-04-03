@@ -960,6 +960,12 @@ class AbstractCharacter(DiGraph):
 			return self.thing[name]
 		raise KeyError("Already have a thing named {}".format(name))
 
+	@abstractmethod
+	def place2thing(self, place: Key, location: Key) -> None: ...
+
+	@abstractmethod
+	def thing2place(self, thing: Key) -> None: ...
+
 	def remove_node(self, node):
 		if node in self.node:
 			self.node[node].delete()
