@@ -200,6 +200,7 @@ def test_save_load_plan(tmp_path, database):
 		trigger=SimpleNamespace(),
 		prereq=SimpleNamespace(),
 		action=SimpleNamespace(),
+		connect_string=connect_str,
 	) as orm:
 		orm.turn = 0
 		g1 = orm.graph[1]
