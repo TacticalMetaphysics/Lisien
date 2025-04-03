@@ -149,15 +149,16 @@ def sqleng(tmp_path, request, execution):
 			True,
 		)
 		eng._mutable_worker = True
-		return eng
-	with Engine(
-		tmp_path,
-		random_seed=69105,
-		enforce_end_of_time=False,
-		workers=0 if execution == "serial" else 2,
-		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
-	) as eng:
-		return eng
+		yield eng
+	else:
+		with Engine(
+			tmp_path,
+			random_seed=69105,
+			enforce_end_of_time=False,
+			workers=0 if execution == "serial" else 2,
+			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+		) as eng:
+			yield eng
 
 
 @pytest.fixture(scope="function")
