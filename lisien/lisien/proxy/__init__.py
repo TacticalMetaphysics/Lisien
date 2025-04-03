@@ -957,7 +957,9 @@ class ThingMapProxy(CachingProxy, RuleFollowerProxy):
 			statdict=v,
 			branching=True,
 		)
-		self._cache[k] = ThingProxy(self.engine, self.name, v.pop("location"))
+		self._cache[k] = ThingProxy(
+			self.character, self.name, v.pop("location")
+		)
 		self.engine._node_stat_cache[self.name][k] = v
 
 	def _del_item(self, k):
