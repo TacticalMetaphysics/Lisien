@@ -1919,8 +1919,9 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		self._worker_check()
 		self.engine.handle(
 			command="place2thing",
+			char=self.name,
 			place=place,
-			location=location,
+			loc=location,
 			branching=True,
 		)
 		if place in self.place._cache:
@@ -1932,7 +1933,12 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 
 	def thing2place(self, thing: Key) -> None:
 		self._worker_check()
-		self.engine.handle(command="thing2place", thing=thing, branching=True)
+		self.engine.handle(
+			command="thing2place",
+			char=self.name,
+			thing=thing,
+			branching=True,
+		)
 		if thing in self.thing._cache:
 			del self.thing._cache[thing]
 		self.thing.send(thing, key=None, value=False)

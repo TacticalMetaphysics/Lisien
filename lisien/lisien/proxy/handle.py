@@ -535,6 +535,12 @@ class EngineHandle:
 	) -> None:
 		self._real.character[char].add_thing(thing, loc, **statdict)
 
+	def place2thing(self, char: Key, place: Key, loc: Key):
+		self._real.character[char].place2thing(place, loc)
+
+	def thing2place(self, char: Key, thing: Key):
+		self._real.character[char].thing2place(thing)
+
 	def set_thing_location(self, char: Key, thing: Key, loc: Key) -> None:
 		self._real.character[char].thing[thing]["location"] = loc
 
