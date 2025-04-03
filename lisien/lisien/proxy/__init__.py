@@ -3103,6 +3103,8 @@ class EngineProxy(AbstractEngine):
 			branches = {"trunk": (None, 0, 0, 0, 0)}
 		self._eternal_cache = eternal
 		self._universal_cache = universal
+		self._rules_cache = {}
+		self._rulebooks_cache = {}
 		self._branches_d = branches
 		replay_txt = None
 		if replay_file is not None:
