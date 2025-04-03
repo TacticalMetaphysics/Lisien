@@ -126,6 +126,22 @@ def engy(tmp_path, execution, database):
 		yield eng
 
 
+@pytest.fixture(params=["serial", "parallel"])
+def proxyless_engine(tmp_path, request, database):
+	if request.config.getoption("no_parallel") and request.param == "parallel":
+		raise pytest.skip("Skipping parallel execution.")
+	with Engine(
+		tmp_path,
+		random_seed=69105,
+		enforce_end_of_time=False,
+		workers=0 if request.param == "serial" else 2,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
+		if database == "sqlite"
+		else None,
+	) as eng:
+		yield eng
+
+
 @pytest.fixture
 def sqleng(tmp_path, request, execution):
 	if request.config.getoption("no_parallel") and execution == "parallel":
