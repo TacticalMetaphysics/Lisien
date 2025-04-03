@@ -627,6 +627,9 @@ class EngineHandle:
 	def del_rulebook_rule(self, rulebook: Key, i: int) -> None:
 		del self._real.rulebook[rulebook][i]
 
+	def del_rule(self, rule: Key) -> None:
+		del self._real.rule[rule]
+
 	def set_rule_triggers(self, rule: str, triggers: list[str]) -> None:
 		self._real.rule[rule].triggers = triggers
 
