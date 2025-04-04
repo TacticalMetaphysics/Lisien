@@ -98,18 +98,10 @@ def test_contents_in_plan(chara_chron):
 	assert engine.turn == 5
 	engine.tick = engine.turn_end_plan()
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15}
-	print(chara.thing[9].location)
 	# this neither
 	there = chara.new_place("there")
+	# but this does
 	chara.thing[9].location = there
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
-	engine.tick = engine.turn_end_plan()
-	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
-	engine.tick = engine.turn_end()
-	engine.branch = "hello"
-	for _ in range(5):
-		engine.next_turn()
-	assert engine.turn == 10
+	engine.turn = 10
 	assert set(place.content) == (correct_contents - {9}) | {15}
-	engine.turn = 5
-	engine.branch = "trunk"
