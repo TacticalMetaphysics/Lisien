@@ -611,6 +611,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 		self.character.add_portal(self.name, dest, **kwargs)
 
 	def new_portal(self, dest, **kwargs):
+		dest = getattr(dest, "name", dest)
 		self.add_portal(dest, **kwargs)
 		return self.character.portal[self.name][dest]
 
