@@ -19,6 +19,8 @@ have a lot in common.
 
 """
 
+from __future__ import annotations
+
 from collections.abc import Mapping, Set, ValuesView
 from typing import Iterator, List, Optional, Union
 
@@ -566,6 +568,12 @@ class Node(graph.Node, rule.RuleFollower):
 		)
 		self.character.node.send(self.character.node, key=self.name, val=None)
 
+	def add_portal(self, other: Key | Node, **stats) -> None:
+		"""Connect a portal from here to another node"""
+		self.character.add_portal(
+			self.name, getattr(other, "name", other), **stats
+		)
+
 	def new_portal(
 		self, other: Union[Key, "Node"], **stats
 	) -> "lisien.portal.Portal":
@@ -573,6 +581,10 @@ class Node(graph.Node, rule.RuleFollower):
 		return self.character.new_portal(
 			self.name, getattr(other, "name", other), **stats
 		)
+
+	def add_thing(self, name: Key, **stats) -> None:
+		"""Make a new Thing here"""
+		self.character.add_thing(self.name, name, **stats)
 
 	def new_thing(self, name: Key, **stats) -> "Thing":
 		"""Create a new thing, located here, and return it."""
