@@ -2834,7 +2834,7 @@ class EngineProxy(AbstractEngine):
 	is_proxy = True
 
 	def _worker_check(self):
-		if not self._worker and not getattr(self, "_mutable_worker", False):
+		if self._worker and not getattr(self, "_mutable_worker", False):
 			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
 			)
