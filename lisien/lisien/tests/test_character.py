@@ -138,10 +138,10 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 			for k, vv in v.items():
 				set_in_mapping(me, k, vv)
 	end_edges = {}
-	for port in char.portals():
-		if port.origin.name not in end_edges:
-			end_edges[port.origin.name] = {}
-		end_edges[port.origin.name][port.destination.name] = dict(port.items())
+	for orig, dests in char.portal.items():
+		end_edges[orig] = here = {}
+		for dest, port in dests.items():
+			here[dest] = dict(port)
 	for o, d, v in portals:
 		if v is None:
 			del char.edge[o][d]
