@@ -2569,7 +2569,9 @@ class AllRulesProxy(MutableMapping):
 		if key in self._proxy_cache:
 			del self._proxy_cache[key]
 
-	def __call__(self, action, always=False):
+	def __call__(self, action=None, always=False):
+		if action is None:
+			return partial(self, always=always)
 		name = getattr(action, "__name__", action)
 		self[name] = action
 		ret = self[name]
