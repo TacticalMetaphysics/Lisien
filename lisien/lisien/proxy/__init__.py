@@ -2174,6 +2174,8 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 	def add_portal(self, origin, destination, **kwargs):
 		self._worker_check()
 		symmetrical = kwargs.pop("symmetrical", False)
+		origin = getattr(origin, "name", origin)
+		destination = getattr(destination, "name", destination)
 		self.engine.handle(
 			command="add_portal",
 			char=self.name,
