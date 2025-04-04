@@ -256,28 +256,29 @@ def test_facade(character_updates):
 	assert start_edge == end_edge
 
 
-def test_set_rulebook(sqleng):
-	sqleng.universal["list"] = []
-	ch = sqleng.new_character("physical")
+def test_set_rulebook(proxyless_engine):
+	eng = proxyless_engine
+	eng.universal["list"] = []
+	ch = eng.new_character("physical")
 
 	@ch.rule(always=True)
 	def rule0(cha):
 		cha.engine.universal["list"].append(0)
 
-	@sqleng.rule(always=True)
+	@eng.rule(always=True)
 	def rule1(who):
 		who.engine.universal["list"].append(1)
 
-	sqleng.rulebook["rb1"] = [rule1]
-	sqleng.next_turn()
-	assert sqleng.universal["list"] == [0]
+	eng.rulebook["rb1"] = [rule1]
+	eng.next_turn()
+	assert eng.universal["list"] == [0]
 	default_rulebook_name = ch.rulebook.name
 	ch.rulebook = "rb1"
-	sqleng.next_turn()
-	assert sqleng.universal["list"] == [0, 1]
-	ch.rulebook = sqleng.rulebook[default_rulebook_name]
-	sqleng.next_turn()
-	assert sqleng.universal["list"] == [0, 1, 0]
+	eng.next_turn()
+	assert eng.universal["list"] == [0, 1]
+	ch.rulebook = eng.rulebook[default_rulebook_name]
+	eng.next_turn()
+	assert eng.universal["list"] == [0, 1, 0]
 
 
 def test_iter_portals(sqleng):
