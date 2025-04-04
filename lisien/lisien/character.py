@@ -44,7 +44,6 @@ from .cache import FuturistWindowDict, PickyDefaultDict
 from .exc import WorldIntegrityError
 from .facade import CharacterFacade
 from .graph import (
-	DiGraph,
 	DiGraphPredecessorsMapping,
 	DiGraphSuccessorsMapping,
 	GraphNodeMapping,
