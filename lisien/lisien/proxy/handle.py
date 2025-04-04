@@ -653,6 +653,14 @@ class EngineHandle:
 	def set_rule_actions(self, rule: str, actions: list[str]) -> None:
 		self._real.rule[rule].actions = actions
 
+	def set_rule_neighborhood(
+		self, rule: str, neighborhood: int | None
+	) -> None:
+		self._real.rule[rule].neighborhood = neighborhood
+
+	def get_rule_neighborhood(self, rule: str) -> int | None:
+		return self._real.rule[rule].neighborhood
+
 	def set_character_rulebook(self, char: Key, rulebook: Key) -> None:
 		self._real.character[char].rulebook = rulebook
 
