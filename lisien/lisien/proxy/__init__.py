@@ -2503,7 +2503,7 @@ class GlobalVarProxy(MutableMapping, Signal):
 				self.send(self, key=k, value=v)
 
 
-class AllRuleBooksProxy(Mapping):
+class AllRuleBooksProxy(MutableMapping):
 	@property
 	def _cache(self):
 		return self.engine._rulebooks_cache
@@ -2524,7 +2524,25 @@ class AllRuleBooksProxy(Mapping):
 		if k not in self:
 			self.engine.handle("new_empty_rulebook", rulebook=k)
 			self._cache[k] = []
-		return self._cache[k]
+		return RuleBookProxy(self.engine, k)
+
+	def __setitem__(self, key, value):
+		rules = []
+		for rule in value:
+			if isinstance(rule, str):
+				rules.append(rule)
+			elif hasattr(rule, "name"):
+				rules.append(rule.name)
+			elif hasattr(rule, "__name__"):
+				rules.append(rule.__name__)
+			else:
+				raise TypeError("Not a rule", rule)
+		self.engine.handle("set_rulebook_rules", rulebook=key, rules=rules)
+		self._cache[key] = [RuleProxy(self.engine, rule) for rule in rules]
+
+	def __delitem__(self, key):
+		del self._cache[key]
+		self.engine.handle("del_rulebook", rulebook=key)
 
 
 class AllRulesProxy(MutableMapping):
