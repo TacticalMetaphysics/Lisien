@@ -90,8 +90,7 @@ def test_multi_plan(serial_engine):
 	eng.turn = 1
 	eng.tick = eng.turn_end_plan()
 	assert 2 not in g1.node
-	with pytest.raises(KeyError):
-		list(g1.edge[1])
+	assert 2 not in g1.edge[1]
 	assert 2 in g2.edge[1]
 
 
