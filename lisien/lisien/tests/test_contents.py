@@ -16,12 +16,17 @@ import pytest
 
 
 @pytest.fixture(scope="function")
-def chara(sqleng):
-	yield sqleng.new_character("chara")
+def char(engy):
+	yield engy.new_character("chara")
 
 
-def test_many_things_in_place(chara):
-	place = chara.new_place(0)
+@pytest.fixture
+def chara_chron(proxyless_engine):
+	yield proxyless_engine.new_character("chara")
+
+
+def test_many_things_in_place(char):
+	place = char.new_place(0)
 	things = [place.new_thing(i) for i in range(1, 10)]
 	for thing in things:
 		assert thing in place.contents()
@@ -32,7 +37,8 @@ def test_many_things_in_place(chara):
 	assert things == contents
 
 
-def test_contents_over_time(chara):
+def test_contents_over_time(chara_chron):
+	chara = chara_chron
 	place = chara.new_place(0)
 	correct_contents = set()
 	for i in range(10):
@@ -56,7 +62,8 @@ def test_contents_over_time(chara):
 	assert set(place.content.keys()) == {1, 2, 3, 4}
 
 
-def test_contents_in_plan(chara):
+def test_contents_in_plan(chara_chron):
+	chara = chara_chron
 	place = chara.new_place(0)
 	correct_contents = {1, 2, 3, 4, 5}
 	for th in correct_contents:
