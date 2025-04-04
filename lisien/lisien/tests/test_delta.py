@@ -27,7 +27,7 @@ def test_character_existence_delta(serial_engine, codepath):
 	else:
 		assert 2 not in delta0
 	delta1 = eng.get_delta(
-		("trunk", 1, 0),
+		("trunk", 1, 1),
 		("branch", 1) if codepath == "slow-delta" else ("trunk", eng.turn),
 	)
 	assert 2 in delta1
