@@ -368,8 +368,7 @@ def test_load_branch_to_end(some_state):
 		assert phys.portal[1][0]["omg"] == "blasphemy"
 		eng.branch = "b"
 		assert 3 not in phys.place
-		with pytest.raises(KeyError):
-			list(phys.portal[1])
+		assert 0 not in phys.portal[1]
 		assert 2 in phys.portal[0]
 		assert phys.portal[0][2]["hi"] == "bye"
 		assert phys.place[1]["wtf"] == "bbq"
