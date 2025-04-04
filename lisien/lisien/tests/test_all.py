@@ -101,9 +101,8 @@ class AbstractGraphTest:
 		self.assertIn(1, g)
 		self.assertNotIn(1, g.adj)
 		self.assertNotIn(1, list(g.adj))
-		self.assertNotIn(0, g.adj)
-		with pytest.raises(KeyError):
-			list(g.adj[0])
+		self.assertIn(0, g.adj)
+		self.assertNotIn(1, g.adj[0])
 		self.engine.branch = "physical_triangle"
 		self.assertIn(3, g.node)
 		self.assertIn(2, g)
