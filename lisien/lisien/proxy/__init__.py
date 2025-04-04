@@ -203,10 +203,14 @@ class RuleMapProxy(MutableMapping, Signal):
 		return len(self._cache)
 
 	def __call__(
-		self, action: str | callable = None, always=False
+		self,
+		action: str | callable = None,
+		always=False,
+		neighborhood: int = None,
 	) -> callable | RuleProxy:
 		if action is None:
 			return partial(self, always=always)
+		self._worker_check()
 		if callable(action):
 			self.engine.handle(
 				"store_source", v=getsource(action), name=action.__name__
@@ -214,11 +218,14 @@ class RuleMapProxy(MutableMapping, Signal):
 			action = action.__name__
 		action = FuncProxy(self.engine.action, action)
 		self[action] = [action]
+		ret = self[action]
+		if neighborhood is not None:
+			ret.neighborhood = neighborhood
 		if always:
-			self[action].triggers.append(self.engine.trigger.truth)
-		return self[action]
+			ret.triggers.append(self.engine.trigger.truth)
+		return ret
 
-	def __getitem__(self, key):
+	def __getitem__(self, key) -> RuleProxy:
 		if key in self._cache:
 			if key not in self._proxy_cache:
 				self._proxy_cache[key] = RuleProxy(self.engine, key)
@@ -1586,6 +1593,23 @@ class RuleProxy(Signal):
 	def _cache(self):
 		return self.engine._rules_cache.setdefault(self.name, {})
 
+	@property
+	def neighborhood(self):
+		if self.name not in self.engine._neighborhood_cache:
+			return self.engine._neighborhood_cache.setdefault(
+				self.name,
+				self.engine.handle("get_rule_neighborhood", rule=self.name),
+			)
+		return self.engine._neighborhood_cache[self.name]
+
+	@neighborhood.setter
+	def neighborhood(self, v: int | None):
+		self.engine._worker_check()
+		self.engine.handle(
+			"set_rule_neighborhood", rule=self.name, neighborhood=v
+		)
+		self.engine._neighborhood_cache[self.name] = v
+
 	def trigger(self, trigger: callable | FuncProxy) -> FuncProxy:
 		self.triggers.append(trigger)
 		if isinstance(trigger, FuncProxy):
@@ -1607,7 +1631,7 @@ class RuleProxy(Signal):
 		else:
 			return getattr(self.engine.action, action.__name__)
 
-	def __init__(self, engine, rulename):
+	def __init__(self, engine: EngineProxy, rulename: str):
 		super().__init__()
 		self.engine = engine
 		self.name = self._name = rulename
@@ -3186,6 +3210,7 @@ class EngineProxy(AbstractEngine):
 		self._eternal_cache = eternal
 		self._universal_cache = universal
 		self._rules_cache = {}
+		self._neighborhood_cache = {}
 		self._rulebooks_cache = {}
 		self._branches_d = branches
 		self._planning = False
