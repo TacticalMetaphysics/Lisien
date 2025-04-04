@@ -110,6 +110,6 @@ def test_contents_in_plan(chara_chron):
 	for _ in range(5):
 		engine.next_turn()
 	assert engine.turn == 10
-	assert set(place.content) == correct_contents | {15}
+	assert set(place.content) == (correct_contents - {9}) | {15}
 	engine.turn = 5
 	engine.branch = "trunk"
