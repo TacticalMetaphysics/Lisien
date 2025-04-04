@@ -624,6 +624,9 @@ class EngineHandle:
 		self._real.rulebook.__getitem__(rulebook)
 		return []
 
+	def set_rulebook_rules(self, rulebook: Key, rules: list[str]) -> None:
+		self._real.rulebook[rulebook] = [rules]
+
 	def set_rulebook_rule(self, rulebook: Key, i: int, rule: str) -> None:
 		self._real.rulebook[rulebook][i] = rule
 
@@ -632,6 +635,9 @@ class EngineHandle:
 
 	def del_rulebook_rule(self, rulebook: Key, i: int) -> None:
 		del self._real.rulebook[rulebook][i]
+
+	def del_rulebook(self, rulebook: Key) -> None:
+		del self._real.rulebook[rulebook]
 
 	def del_rule(self, rule: Key) -> None:
 		del self._real.rule[rule]
