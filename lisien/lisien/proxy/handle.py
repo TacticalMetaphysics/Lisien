@@ -202,6 +202,8 @@ class EngineHandle:
 				slightgraphd = chard[UNITS] = {}
 				packunitd = {}
 				for graph, unitss in chardelta.pop("units").items():
+					if unitss is None:
+						continue
 					pgraph = pack(graph)
 					slightunitd = slightgraphd[pgraph] = dict(
 						map(self.pack_pair, unitss.items())
