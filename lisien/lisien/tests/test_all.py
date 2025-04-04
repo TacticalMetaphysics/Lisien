@@ -76,7 +76,8 @@ class AbstractGraphTest:
 			self.assertNotIn(4, g.adj[2])
 			self.assertNotIn(4, list(g.adj[2]))
 			self.assertIn(4, g.node)
-			self.assertNotIn(1, g.adj)
+			self.assertNotIn(0, g.adj[1])
+			self.assertNotIn(0, list(g.adj[1]))
 		else:
 			self.assertIn(0, g.adj[1])
 			self.assertIn(0, list(g.adj[1]))
@@ -91,16 +92,16 @@ class AbstractGraphTest:
 		self.assertIn(1, g.adj[0])
 		self.assertIn(1, list(g.adj[0]))
 		if hasattr(g, "pred_cls"):
-			self.assertNotIn(1, g.adj)
-			self.assertNotIn(1, list(g.adj))
+			self.assertNotIn(0, g.adj[1])
+			self.assertNotIn(0, list(g.adj[1]))
 		else:
 			self.assertIn(0, g.adj[1])
 			self.assertIn(0, list(g.adj[1]))
 		g.remove_edge(0, 1)
 		self.assertIn(0, g)
 		self.assertIn(1, g)
-		self.assertNotIn(1, g.adj)
-		self.assertNotIn(1, list(g.adj))
+		self.assertNotIn(1, g.adj[0])
+		self.assertNotIn(1, list(g.adj[0]))
 		self.assertIn(0, g.adj)
 		self.assertNotIn(1, g.adj[0])
 		self.engine.branch = "physical_triangle"
@@ -136,9 +137,9 @@ class AbstractGraphTest:
 		self.assertNotIn(0, list(g.adj[2]))
 		self.assertIn(0, g.node)
 		self.assertTrue(self.engine._node_exists("physical", 0))
-		self.assertNotIn(3, g.adj)
+		self.assertNotIn(0, g.adj[3])
 		g.add_edge(3, 0)
-		self.assertIn(3, g.adj)
+		self.assertIn(0, g.adj[3])
 		self.assertEqual(self.engine.turn, 2)
 		self.assertIn(0, g.adj[3])
 		self.assertIn(0, list(g.adj[3]))
@@ -218,8 +219,8 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 		self.engine.next_turn()
 		self.assertIn(0, g)
 		self.assertIn(0, list(g.node.keys()))
-		with pytest.raises(KeyError):
-			list(g.edge[0])
+		self.assertNotIn(1, g.edge[0])
+		self.assertNotIn(0, g.edge[1])
 		if g.is_multigraph():
 			self.assertRaises(KeyError, lambda: g.edge[0][1][0])
 		else:
