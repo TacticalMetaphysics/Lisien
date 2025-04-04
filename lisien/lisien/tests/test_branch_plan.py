@@ -183,8 +183,7 @@ def test_save_load_plan(tmp_path, database):
 		orm.next_turn()
 		assert orm.turn == 1
 		assert 2 not in g1.node
-		with pytest.raises(KeyError):
-			list(g1.edge[1])
+		assert 2 not in g1.edge[1]
 		# but, since the stuff that happened in g2 was in a different plan,
 		# it still happens
 		orm.next_turn()
@@ -206,10 +205,8 @@ def test_save_load_plan(tmp_path, database):
 		g2 = orm.graph[2]
 		assert 1 in g2.node
 		assert 2 in g2.node
-		with pytest.raises(KeyError):
-			list(g1.edge[1])
-		with pytest.raises(KeyError):
-			list(g2.edge[1])
+		assert 2 not in g1.edge[1]
+		assert 2 not in g2.edge[1]
 		orm.turn = 1
 		assert 2 not in g1.node
 		orm.turn = 2
