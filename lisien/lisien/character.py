@@ -534,10 +534,7 @@ class Character(AbstractCharacter, RuleFollower):
 			if node_exists(charn, orig):
 				if orig not in cache:
 					cache[orig] = self.Successors(self, orig)
-				if cache[orig]:
-					return cache[orig]
-				else:
-					raise KeyError("No successors", orig)
+				return cache[orig]
 			raise KeyError("No such node")
 
 		def __delitem__(self, orig):
