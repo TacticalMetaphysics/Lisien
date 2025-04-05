@@ -1272,8 +1272,8 @@ class CharSuccessorsMappingProxy(CachingProxy, RuleFollowerProxy):
 		return {vk: PortalProxy(self, vk, vv) for (vk, vv) in v.items()}
 
 	def __getitem__(self, k):
-		if k not in self:
-			raise KeyError("No successors to this node", self.name, k)
+		if k not in self.character.node:
+			raise KeyError("No such node in this character", self.name, k)
 		return SuccessorsProxy(self.engine, self.name, k)
 
 	def _apply_delta(self, delta):
@@ -1377,11 +1377,7 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 		self.name = charname
 
 	def __contains__(self, k):
-		if self.name not in self.engine._character_portals_cache.predecessors:
-			return False
-		return (
-			k in self.engine._character_portals_cache.predecessors[self.name]
-		)
+		return k in self.engine.character[self.name].node
 
 	def __iter__(self):
 		try:
@@ -1401,7 +1397,7 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 
 	def __getitem__(self, k):
 		if k not in self:
-			raise KeyError("No predecessors to this portal", k, self.name)
+			raise KeyError("No such node in this character", self.name, k)
 		if k not in self._cache:
 			self._cache[k] = PredecessorsProxy(self.engine, self.name, k)
 		return self._cache[k]
