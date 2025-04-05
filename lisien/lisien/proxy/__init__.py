@@ -1184,14 +1184,7 @@ class SuccessorsProxy(CachingProxy):
 	@property
 	def _cache(self):
 		succ = self.engine._character_portals_cache.successors
-		if self._charname not in succ:
-			raise KeyError("No portals in this character")
-		succc = succ[self._charname]
-		if self._orig not in succc:
-			raise KeyError(
-				"No successors to this portal", self._charname, self._orig
-			)
-		return succc[self._orig]
+		return succ.setdefault(self._charname, {}).setdefault(self._orig, {})
 
 	def _set_rulebook_name(self, k):
 		raise NotImplementedError(
@@ -1385,6 +1378,7 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 		super().__init__()
 		self.engine = engine_proxy
 		self.name = charname
+		self._obj_cache = {}
 
 	def __contains__(self, k):
 		return k in self.engine.character[self.name].node
@@ -1408,9 +1402,9 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 	def __getitem__(self, k):
 		if k not in self:
 			raise KeyError("No such node in this character", self.name, k)
-		if k not in self._cache:
-			self._cache[k] = PredecessorsProxy(self.engine, self.name, k)
-		return self._cache[k]
+		if k not in self._obj_cache:
+			self._obj_cache[k] = PredecessorsProxy(self.engine, self.name, k)
+		return self._obj_cache[k]
 
 	def __setitem__(self, k, v):
 		self._worker_check()
@@ -2722,28 +2716,12 @@ class ChangeSignatureError(TypeError):
 
 class PortalObjCache:
 	def __init__(self):
-		self.successors = {}
-		self.predecessors = {}
+		self.successors = StructuredDefaultDict(2, PortalProxy)
+		self.predecessors = StructuredDefaultDict(2, PortalProxy)
 
 	def store(self, char: Key, u: Key, v: Key, obj: PortalProxy) -> None:
-		succ = self.successors
-		if char in succ:
-			char_us = succ[char]
-			if u in char_us:
-				char_us[u][v] = obj
-			else:
-				char_us[u] = {v: obj}
-		else:
-			succ[char] = {u: {v: obj}}
-		pred = self.predecessors
-		if char in pred:
-			char_vs = pred[char]
-			if v in char_vs:
-				char_vs[v][u] = obj
-			else:
-				char_vs[v] = {u: obj}
-		else:
-			pred[char] = {v: {u: obj}}
+		self.successors[char][u][v] = obj
+		self.predecessors[char][v][u] = obj
 
 	def delete(self, char: Key, u: Key, v: Key) -> None:
 		succ = self.successors
