@@ -72,7 +72,7 @@ class AbstractGraphTest:
 			self.assertIn(4, g.adj[2])
 			self.assertIn(4, list(g.adj[2]))
 			del g.pred[4]
-			self.assertNotIn(4, g.pred)
+			self.assertEqual(len(g.pred[4]), 0)
 			self.assertNotIn(4, g.adj[2])
 			self.assertNotIn(4, list(g.adj[2]))
 			self.assertIn(4, g.node)
