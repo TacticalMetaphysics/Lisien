@@ -770,8 +770,8 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 		node
 
 		"""
-		if dest not in self:
-			raise KeyError("No edges available")
+		if dest not in self.graph.node:
+			raise KeyError("No such node", dest)
 		if dest not in self._cache:
 			self._cache[dest] = self.Predecessors(self, dest)
 		return self._cache[dest]
