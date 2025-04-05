@@ -1824,7 +1824,11 @@ class EdgesCache(Cache):
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int, copy=True
 	) -> dict:
-		return super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
+		if copy:
+			for orig, dests in list(ret.items()):
+				ret[orig] = dests.copy()
+		return ret
 
 	def set_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
@@ -2236,7 +2240,7 @@ class EdgeValCache(Cache):
 	):
 		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
 		if copy:
-			for orig, dests in ret.items():
+			for orig, dests in list(ret.items()):
 				redests = {}
 				for dest, val in dests.items():
 					redests[dest] = val.copy()
