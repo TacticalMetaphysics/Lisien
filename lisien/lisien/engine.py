@@ -3021,7 +3021,8 @@ class Engine(AbstractEngine, Executor):
 		)
 		for k, v in graph_val_delta.items():
 			if v is None:
-				del graph_val_keyframe[k]
+				if k in graph_val_keyframe:
+					del graph_val_keyframe[k]
 			else:
 				graph_val_keyframe[k] = v
 
