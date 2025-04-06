@@ -1896,7 +1896,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		self._name = charname
 
 	def __repr__(self):
-		return f"{self.db}.character[{self.name}]"
+		return f"{self.db}.character[{repr(self.name)}]"
 
 	def __bool__(self):
 		return self._name in self.db.character
