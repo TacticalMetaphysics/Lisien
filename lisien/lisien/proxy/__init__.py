@@ -3799,12 +3799,24 @@ class EngineProxy(AbstractEngine):
 			del predecessors[char][node]
 			if not predecessors[char]:
 				del predecessors[char]
+		nv = self._node_stat_cache
+		if char in nv and node in nv[char]:
+			del nv[char][node]
+			if not nv[char]:
+				del nv[char]
 		self.handle(command="del_node", char=char, node=node, branching=True)
 
 	def del_portal(self, char, orig, dest):
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		self._character_portals_cache.delete(char, orig, dest)
+		ev = self._portal_stat_cache
+		if char in ev and orig in ev[char] and dest in ev[char][orig]:
+			del ev[char][orig][dest]
+			if not ev[char][orig]:
+				del ev[char][orig]
+			if not ev[char]:
+				del ev[char]
 		self.handle(
 			command="del_portal",
 			char=char,
