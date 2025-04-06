@@ -3150,7 +3150,9 @@ class EngineProxy(AbstractEngine):
 
 	@branch.setter
 	def branch(self, v):
-		self._set_btt(v, self.turn)
+		if v not in self._branches_d:
+			self._start_branch(self.branch, v, self.turn, self.tick)
+		self._set_btt(v, self.turn, self.tick)
 
 	@property
 	def turn(self):
