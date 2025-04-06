@@ -533,11 +533,6 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 		self._cache.update(stats)
 		super().__init__()
 
-	def __iter__(self):
-		yield from super().__iter__()
-		yield "character"
-		yield "name"
-
 	def __eq__(self, other):
 		return (
 			isinstance(other, NodeProxy)
