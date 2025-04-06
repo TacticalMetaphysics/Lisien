@@ -3782,18 +3782,6 @@ class EngineProxy(AbstractEngine):
 			and node not in self._things_cache[char]
 		):
 			raise KeyError("No such node")
-		try:
-			successors = list(
-				self._character_portals_cache.successors[char][node]
-			)
-		except KeyError:
-			successors = []
-		try:
-			predecessors = list(
-				self._character_portals_cache.predecessors[char][node]
-			)
-		except KeyError:
-			predecessors = []
 		cont = list(self._node_contents(char, node))
 		if node in self._things_cache[char]:
 			del self._things_cache[char][node]
