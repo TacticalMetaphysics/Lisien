@@ -1899,7 +1899,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		return f"{self.db}.character[{self.name}]"
 
 	def __bool__(self):
-		return True
+		return self._name in self.db.character
 
 	def __eq__(self, other):
 		if hasattr(other, "engine"):
