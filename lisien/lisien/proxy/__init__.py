@@ -2366,8 +2366,30 @@ class CharacterMapProxy(MutableMapping, Signal):
 	def __delitem__(self, k):
 		self._worker_check()
 		self.engine.handle(command="del_character", char=k, branching=True)
-		if k in self.engine._char_cache:
-			del self.engine._char_cache[k]
+		for graph, characters in self.engine._unit_characters_cache.items():
+			if k in characters:
+				del characters[k]
+		successors = self.engine._character_portals_cache.successors
+		predecessors = self.engine._character_portals_cache.predecessors
+		if k in successors:
+			del successors[k]
+		if k in predecessors:
+			del predecessors[k]
+		for cache_name in (
+			"_char_cache",
+			"_node_stat_cache",
+			"_portal_stat_cache",
+			"_char_stat_cache",
+			"_things_cache",
+			"_character_places_cache",
+			"_character_rulebooks_cache",
+			"_char_node_rulebooks_cache",
+			"_char_port_rulebooks_cache",
+			"_character_units_cache",
+		):
+			cache = getattr(self.engine, cache_name)
+			if k in cache:
+				del cache[k]
 		self.send(self, key=k, val=None)
 
 
