@@ -130,7 +130,8 @@ class CachingProxy(MutableMapping, Signal):
 		if k not in self:
 			raise KeyError("No such key: {}".format(k))
 		self._del_item(k)
-		del self._cache[k]
+		if k in self._cache:
+			del self._cache[k]
 		self.send(self, key=k, value=None)
 
 	@abstractmethod
