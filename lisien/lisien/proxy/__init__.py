@@ -3370,7 +3370,12 @@ class EngineProxy(AbstractEngine):
 		return "<lisien.proxy.EngineProxy>"
 
 	def __getattr__(self, item):
-		meth = super().__getattribute__("method").__getattr__(item)
+		try:
+			meth = super().__getattribute__("method").__getattr__(item)
+		except AttributeError:
+			raise AttributeError(
+				"lisien.proxy.EngineProxy has no attribute " + repr(item)
+			)
 		return MethodType(meth, self)
 
 	def _reimport_code(self):
