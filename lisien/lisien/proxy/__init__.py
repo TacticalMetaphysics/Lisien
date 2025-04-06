@@ -1107,7 +1107,6 @@ class ThingMapProxy(CachingProxy, RuleFollowerProxy):
 		self.engine.handle(
 			command="del_node", char=self.name, node=k, branching=True
 		)
-		del self._cache[k]
 		del self.engine._node_stat_cache[self.name][k]
 
 	def patch(self, d: dict):
