@@ -3801,10 +3801,16 @@ class EngineProxy(AbstractEngine):
 			del self._things_cache[char][contained]
 		if node in self._character_places_cache[char]:  # just to be safe
 			del self._character_places_cache[char][node]
-		for succ in successors:
-			self._character_portals_cache.delete(char, node, succ)
-		for pred in predecessors:
-			self._character_portals_cache.delete(char, pred, node)
+		successors = self._character_portals_cache.successors
+		predecessors = self._character_portals_cache.predecessors
+		if char in successors and node in successors[char]:
+			del successors[char][node]
+			if not successors[char]:
+				del successors[char]
+		if char in predecessors and node in predecessors[char]:
+			del predecessors[char][node]
+			if not predecessors[char]:
+				del predecessors[char]
 		self.handle(command="del_node", char=char, node=node, branching=True)
 
 	def del_portal(self, char, orig, dest):
