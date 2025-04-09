@@ -2983,10 +2983,6 @@ class EngineProxy(AbstractEngine):
 			else:
 				for func in triggers:
 					if not hasattr(self.trigger, func):
-						self.warning(
-							f"didn't find {func} in trigger file {self.trigger._filename}; "
-							"assuming it's there anyway..."
-						)
 						if isinstance(self.trigger, FuncStoreProxy):
 							setattr(
 								self.trigger,
@@ -2995,7 +2991,12 @@ class EngineProxy(AbstractEngine):
 							)
 						else:
 							self.trigger.reimport()
-					triglist.append(getattr(self.trigger, func))
+					if hasattr(self.trigger, func):
+						triglist.append(getattr(self.trigger, func))
+					else:
+						self.warning(
+							f"didn't find {func} in trigger file {self.trigger._filename}"
+						)
 			if rule in rc:
 				rc[rule]["triggers"] = triglist
 			else:
@@ -3016,10 +3017,18 @@ class EngineProxy(AbstractEngine):
 			else:
 				for func in prereqs:
 					if not hasattr(self.prereq, func):
+						if isinstance(self.prereq, FuncStoreProxy):
+							setattr(
+								self.prereq, func, FuncProxy(self.prereq, func)
+							)
+						else:
+							self.prereq.reimport()
+					if hasattr(self.prereq, func):
+						preqlist.append(getattr(self.prereq, func))
+					else:
 						self.warning(
-							f"didn't find {func} in prereq file {self.trigger._filename}"
+							f"didn't find {func} in prereq file {self.prereq._filename}"
 						)
-					preqlist.append(getattr(self.prereq, func))
 			if rule in rc:
 				rc[rule]["prereqs"] = preqlist
 			else:
@@ -3040,10 +3049,13 @@ class EngineProxy(AbstractEngine):
 			else:
 				for func in actions:
 					if not hasattr(self.action, func):
+						self.action.reimport()
+					if hasattr(self.action, func):
+						actlist.append(getattr(self.action, func))
+					else:
 						self.warning(
 							f"didn't find {func} in action file {self.action._filename}"
 						)
-					actlist.append(getattr(self.action, func))
 			if rule in rc:
 				rc[rule]["actions"] = actlist
 			else:
@@ -3379,12 +3391,18 @@ class EngineProxy(AbstractEngine):
 		return "<lisien.proxy.EngineProxy>"
 
 	def __getattr__(self, item):
+		method = super().__getattribute__("method")
 		try:
-			meth = super().__getattribute__("method").__getattr__(item)
+			meth = method.__getattr__(item)
 		except AttributeError:
-			raise AttributeError(
-				"lisien.proxy.EngineProxy does not have the attribute", item
-			)
+			method.reimport()
+			try:
+				meth = method.__getattr__(item)
+			except AttributeError:
+				raise AttributeError(
+					"lisien.proxy.EngineProxy does not have the attribute",
+					item,
+				)
 		return MethodType(meth, self)
 
 	def _reimport_code(self):
