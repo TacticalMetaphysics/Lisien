@@ -4048,7 +4048,6 @@ def worker_subprocess(
 			out_pipe.close()
 			return 0
 		(uid, method, args, kwargs) = unpack(decompress(inst))
-		logger.debug(repr_call_sig(method, *args, **kwargs))
 		if isinstance(method, str):
 			method = getattr(eng, method)
 		elif isinstance(method, bytes):
