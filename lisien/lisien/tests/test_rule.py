@@ -99,61 +99,61 @@ def something_dot_rule_test(something, engy):
 	return somerule
 
 
-def test_engine_dot_rule(sqleng):
+def test_engine_dot_rule(proxyless_engine):
 	"""Test that the global rule mapping can be used to make and change rules"""
-	something_dot_rule_test(sqleng, sqleng)
+	something_dot_rule_test(proxyless_engine, proxyless_engine)
 
 
-def test_character_dot_rule(sqleng):
+def test_character_dot_rule(proxyless_engine):
 	"""Test that you can make and change rules on characters"""
-	character = sqleng.new_character("physical")
-	rule = something_dot_rule_test(character, sqleng)
+	character = proxyless_engine.new_character("physical")
+	rule = something_dot_rule_test(character, proxyless_engine)
 	assert character.rulebook[0] == rule
 
 
-def test_character_dot_thing_dot_rule(sqleng):
+def test_character_dot_thing_dot_rule(proxyless_engine):
 	"""Test that you can make and change rules on the thing mapping of a character"""
-	character = sqleng.new_character("physical")
-	rule = something_dot_rule_test(character.thing, sqleng)
+	character = proxyless_engine.new_character("physical")
+	rule = something_dot_rule_test(character.thing, proxyless_engine)
 	assert character.thing.rulebook[0] == rule
 
 
-def test_character_dot_place_dot_rule(sqleng):
+def test_character_dot_place_dot_rule(proxyless_engine):
 	"""Test that you can make and change rules on the place mapping of a character"""
-	character = sqleng.new_character("physical")
-	rule = something_dot_rule_test(character.place, sqleng)
+	character = proxyless_engine.new_character("physical")
+	rule = something_dot_rule_test(character.place, proxyless_engine)
 	assert character.place.rulebook[0] == rule
 
 
-def test_character_dot_portal_dot_rule(sqleng):
+def test_character_dot_portal_dot_rule(proxyless_engine):
 	"""Test that you can make and change rules on the portal mapping of a character"""
-	character = sqleng.new_character("physical")
-	rule = something_dot_rule_test(character.portal, sqleng)
+	character = proxyless_engine.new_character("physical")
+	rule = something_dot_rule_test(character.portal, proxyless_engine)
 	assert character.portal.rulebook[0] == rule
 
 
-def test_node_dot_rule(sqleng):
+def test_node_dot_rule(proxyless_engine):
 	"""Test that you can make and change rules on a node"""
-	here = sqleng.new_character("physical").new_place(1)
-	rule = something_dot_rule_test(here, sqleng)
+	here = proxyless_engine.new_character("physical").new_place(1)
+	rule = something_dot_rule_test(here, proxyless_engine)
 	assert here.rulebook[0] == rule
 
 
-def test_portal_dot_rule(sqleng):
+def test_portal_dot_rule(proxyless_engine):
 	"""Test that you can make and change rules on a portal"""
-	character = sqleng.new_character("physical")
+	character = proxyless_engine.new_character("physical")
 	character.new_place(0)
 	character.new_place(1)
 	port = character.new_portal(0, 1)
-	rule = something_dot_rule_test(port, sqleng)
+	rule = something_dot_rule_test(port, proxyless_engine)
 	assert port.rulebook[0] == rule
 
 
-def test_rule_priority(sqleng):
+def test_rule_priority(proxyless_engine):
 	"""Test that rules run in the order given in their priorities"""
-	firstchar = sqleng.new_character("first")
-	secondchar = sqleng.new_character("second")
-	sqleng.universal["list"] = []
+	firstchar = proxyless_engine.new_character("first")
+	secondchar = proxyless_engine.new_character("second")
+	proxyless_engine.universal["list"] = []
 
 	@firstchar.rule(always=True)
 	def first(ch):
@@ -166,12 +166,17 @@ def test_rule_priority(sqleng):
 	firstchar.rule.priority = 1
 	secondchar.rule.priority = 2
 
-	sqleng.next_turn()
+	proxyless_engine.next_turn()
 
-	assert sqleng.universal["list"] == ["first", "second"]
+	assert proxyless_engine.universal["list"] == ["first", "second"]
 
 	firstchar.rule.priority = 3
 
-	sqleng.next_turn()
+	proxyless_engine.next_turn()
 
-	assert sqleng.universal["list"] == ["first", "second", "second", "first"]
+	assert proxyless_engine.universal["list"] == [
+		"first",
+		"second",
+		"second",
+		"first",
+	]

@@ -1,6 +1,6 @@
-def test_character_rule_poll(sqleng):
-	phys = sqleng.new_character("physical")
-	notphys = sqleng.new_character("ethereal")
+def test_character_rule_poll(proxyless_engine):
+	phys = proxyless_engine.new_character("physical")
+	notphys = proxyless_engine.new_character("ethereal")
 
 	@phys.rule(always=True)
 	def hello(char):
@@ -10,15 +10,15 @@ def test_character_rule_poll(sqleng):
 	def goodbye(char):
 		char.stat["run"] = True
 
-	sqleng.next_turn()
+	proxyless_engine.next_turn()
 
 	assert "run" in phys.stat
 	assert "run" not in notphys.stat
 
 
-def test_unit_rule_poll(sqleng):
-	phys = sqleng.new_character("physical")
-	notphys = sqleng.new_character("ethereal")
+def test_unit_rule_poll(proxyless_engine):
+	phys = proxyless_engine.new_character("physical")
+	notphys = proxyless_engine.new_character("ethereal")
 
 	unit = phys.new_place("unit")
 	notunit1 = notphys.new_place("notunit")
@@ -33,16 +33,16 @@ def test_unit_rule_poll(sqleng):
 	def rule2(unit):
 		unit["run"] = True
 
-	sqleng.next_turn()
+	proxyless_engine.next_turn()
 
 	assert unit["run"]
 	assert "run" not in notunit1
 	assert "run" not in notunit2
 
 
-def test_character_thing_rule_poll(sqleng):
-	phys = sqleng.new_character("physical")
-	notphys = sqleng.new_character("ethereal")
+def test_character_thing_rule_poll(proxyless_engine):
+	phys = proxyless_engine.new_character("physical")
+	notphys = proxyless_engine.new_character("ethereal")
 
 	there = phys.new_place("there")
 	this = there.new_thing("this")
@@ -59,7 +59,7 @@ def test_character_thing_rule_poll(sqleng):
 	def rule2(thing):
 		thing["notrun"] = False
 
-	sqleng.next_turn()
+	proxyless_engine.next_turn()
 
 	assert this["run"]
 	assert that["run"]
@@ -69,9 +69,9 @@ def test_character_thing_rule_poll(sqleng):
 	assert "run" not in yonder
 
 
-def test_character_place_rule_poll(sqleng):
-	phys = sqleng.new_character("physical")
-	notphys = sqleng.new_character("ethereal")
+def test_character_place_rule_poll(proxyless_engine):
+	phys = proxyless_engine.new_character("physical")
+	notphys = proxyless_engine.new_character("ethereal")
 
 	here = phys.new_place("here")
 	there = phys.new_place("there")
@@ -86,7 +86,7 @@ def test_character_place_rule_poll(sqleng):
 	def rule2(place):
 		place["notrun"] = False
 
-	sqleng.next_turn()
+	proxyless_engine.next_turn()
 
 	assert here["run"]
 	assert there["run"]
@@ -95,9 +95,9 @@ def test_character_place_rule_poll(sqleng):
 	assert "notrun" not in there
 
 
-def test_character_portal_rule_poll(sqleng):
-	phys = sqleng.new_character("physical")
-	nonphys = sqleng.new_character("ethereal")
+def test_character_portal_rule_poll(proxyless_engine):
+	phys = proxyless_engine.new_character("physical")
+	nonphys = proxyless_engine.new_character("ethereal")
 
 	place0 = phys.new_place(0)
 	place1 = phys.new_place(1)
@@ -117,7 +117,7 @@ def test_character_portal_rule_poll(sqleng):
 	def rule1(portal):
 		portal["notrun"] = False
 
-	sqleng.next_turn()
+	proxyless_engine.next_turn()
 
 	assert portl0["run"]
 	assert portl1["run"]
