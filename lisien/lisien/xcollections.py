@@ -184,7 +184,7 @@ class FunctionStore(Signal):
 		elif self._module:
 			return getattr(self._module, k)
 		else:
-			raise AttributeError("No attribute " + repr(k))
+			raise AttributeError("No attribute ", k)
 
 	def __setattr__(self, k, v):
 		if not callable(v):
