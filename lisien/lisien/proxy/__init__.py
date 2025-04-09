@@ -2990,8 +2990,17 @@ class EngineProxy(AbstractEngine):
 				for func in triggers:
 					if not hasattr(self.trigger, func):
 						self.warning(
-							f"didn't find {func} in trigger file {self.trigger._filename}"
+							f"didn't find {func} in trigger file {self.trigger._filename}; "
+							"assuming it's there anyway..."
 						)
+						if isinstance(self.trigger, FuncStoreProxy):
+							setattr(
+								self.trigger,
+								func,
+								FuncProxy(self.trigger, func),
+							)
+						else:
+							self.trigger.reimport()
 					triglist.append(getattr(self.trigger, func))
 			if rule in rc:
 				rc[rule]["triggers"] = triglist
