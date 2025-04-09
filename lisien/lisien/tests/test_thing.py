@@ -17,9 +17,9 @@ import pytest
 
 
 @pytest.fixture(scope="function")
-def something(sqleng):
+def something(proxyless_engine):
 	yield (
-		sqleng.new_character("physical")
+		proxyless_engine.new_character("physical")
 		.new_place("somewhere")
 		.new_thing("something")
 	)
