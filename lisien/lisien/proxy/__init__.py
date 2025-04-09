@@ -2419,6 +2419,9 @@ class StringStoreProxy(Signal):
 		super().__init__()
 		self.engine = engine_proxy
 
+	def _worker_check(self):
+		self.engine._worker_check()
+
 	def load(self):
 		self._cache = self.engine.handle("strings_copy")
 
