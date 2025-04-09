@@ -2890,10 +2890,7 @@ class EngineProxy(AbstractEngine):
 		return self.handle("snap_keyframe")
 
 	def game_init(self) -> None:
-		if self._worker and not getattr(self, "_mutable_worker", False):
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
+		self._worker_check()
 		self.handle("game_init", cb=self._upd_from_game_start)
 
 	def _node_exists(self, char, node) -> bool:
@@ -2950,10 +2947,7 @@ class EngineProxy(AbstractEngine):
 		self._initialized = True
 
 	def switch_main_branch(self, branch: str) -> None:
-		if self._worker and not getattr(self, "_mutable_worker", False):
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
+		self._worker_check()
 		if (
 			self.branch != self.main_branch
 			or self.turn != 0
