@@ -6012,6 +6012,8 @@ class Engine(AbstractEngine, Executor):
 		self._init_graph(name, "DiGraph", data)
 		if self._btt() not in self._keyframes_times:
 			self.snap_keyframe(silent=True)
+		if hasattr(self, "_worker_processes"):
+			self._update_all_worker_process_states(clobber=True)
 		self._graph_objs[name] = self.char_cls(self, name)
 
 	@world_locked
