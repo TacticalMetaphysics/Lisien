@@ -1710,7 +1710,7 @@ class RuleBookProxy(MutableSequence, Signal):
 			self.send(self, i=j, val=self[j])
 
 
-class UnitMapProxy(Mapping, RuleFollowerProxy):
+class UnitMapProxy(Mapping, RuleFollowerProxy, Signal):
 	engine = getatt("character.engine")
 
 	def _get_default_rulebook_name(self):
@@ -1741,6 +1741,7 @@ class UnitMapProxy(Mapping, RuleFollowerProxy):
 		return next(iter(self.values()))
 
 	def __init__(self, character):
+		super().__init__()
 		self.character = character
 
 	def __iter__(self):
