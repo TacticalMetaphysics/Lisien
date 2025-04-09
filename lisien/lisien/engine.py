@@ -754,9 +754,7 @@ class Engine(AbstractEngine, Executor):
 				getattr(super().__getattribute__("method"), item), self
 			)
 		except AttributeError:
-			raise AttributeError(
-				"lisien.Engine has no attribute " + repr(item)
-			)
+			raise AttributeError("No such attribute", item)
 
 	def __hasattr__(self, item):
 		return hasattr(super().__getattribute__("method"), item)
