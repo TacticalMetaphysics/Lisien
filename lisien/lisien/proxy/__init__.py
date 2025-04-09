@@ -2631,14 +2631,16 @@ class AllRulesProxy(MutableMapping):
 		if key in self._proxy_cache:
 			del self._proxy_cache[key]
 
-	def __call__(self, action=None, always=False):
+	def __call__(self, action=None, always=False, neighborhood=None):
 		if action is None:
-			return partial(self, always=always)
+			return partial(self, always=always, neighborhood=neighborhood)
 		name = getattr(action, "__name__", action)
 		self[name] = action
 		ret = self[name]
 		if always:
 			ret.triggers.append(self.engine.trigger.truth)
+		if neighborhood is not None:
+			ret.neighborhood = neighborhood
 		return ret
 
 	def new_empty(self, k):
