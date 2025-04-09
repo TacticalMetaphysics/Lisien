@@ -3383,7 +3383,7 @@ class EngineProxy(AbstractEngine):
 			meth = super().__getattribute__("method").__getattr__(item)
 		except AttributeError:
 			raise AttributeError(
-				"lisien.proxy.EngineProxy has no attribute " + repr(item)
+				"lisien.proxy.EngineProxy does not have the attribute", item
 			)
 		return MethodType(meth, self)
 
