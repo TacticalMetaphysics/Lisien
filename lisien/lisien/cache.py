@@ -3086,34 +3086,42 @@ class ThingsCache(Cache):
 					][branch]
 					if turn in locset:
 						for future_tick in locset[turn].future(tick):
+							try:
+								conts = node_contents_cache.retrieve(
+									character,
+									location,
+									branch,
+									turn,
+									future_tick,
+									search=True,
+								)
+							except KeyError:
+								conts = frozenset()
 							todo[turn, future_tick].append(
 								(
 									location,
-									node_contents_cache.retrieve(
-										character,
-										location,
-										branch,
-										turn,
-										future_tick,
-										search=True,
-									).union(this),
+									conts.union(this),
 								)
 							)
 					for future_turn, future_ticks in locset.future(
 						turn
 					).items():
 						for future_tick in future_ticks:
+							try:
+								conts = node_contents_cache.retrieve(
+									character,
+									location,
+									branch,
+									future_turn,
+									future_tick,
+									search=True,
+								)
+							except KeyError:
+								conts = frozenset()
 							todo[future_turn, future_tick].append(
 								(
 									location,
-									node_contents_cache.retrieve(
-										character,
-										location,
-										branch,
-										future_turn,
-										future_tick,
-										search=True,
-									).union(this),
+									conts.union(this),
 								)
 							)
 		for trn, tck in sorted(todo.keys()):
