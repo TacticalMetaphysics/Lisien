@@ -3581,13 +3581,8 @@ class Engine(AbstractEngine, Executor):
 		update=True,
 		**kwargs,
 	):
-		# I really wanted to avoid using pickle at all, but the worker processes
-		# occasionally failed to import the functions they needed when I tried
-		# packing and unpacking them myself.
-		from pickle import dumps
-
 		i = uid % len(self._worker_inputs)
-		argbytes = zlib.compress(self.pack((uid, dumps(method), args, kwargs)))
+		argbytes = zlib.compress(self.pack((uid, method, args, kwargs)))
 		with self._worker_locks[i]:
 			if update:
 				self._update_worker_process_state(i, lock=False)
