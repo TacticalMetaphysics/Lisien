@@ -2412,7 +2412,11 @@ class PortalsRulebooksCache(InitializedCache):
 	def get_keyframe(
 		self, graph: Key, branch: str, turn: int, tick: int, copy=True
 	) -> dict:
-		return super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
+		if copy:
+			for orig, dests in list(ret.items()):
+				ret[orig] = dests.copy()
+		return ret
 
 	def get_orig_keyframe(
 		self,
