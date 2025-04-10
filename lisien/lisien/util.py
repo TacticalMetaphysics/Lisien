@@ -128,6 +128,9 @@ class MsgpackExtensionType(Enum):
 	final_rule = 0x7B
 	function = 0x7A
 	method = 0x79
+	trigger = 0x78
+	prereq = 0x77
+	action = 0x76
 
 
 class get_rando:
