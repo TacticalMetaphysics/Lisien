@@ -553,6 +553,9 @@ class AbstractEngine(ABC):
 		portal_cls = self.portal_cls
 		function = self.function
 		method = self.method
+		trigger = self.trigger
+		prereq = self.prereq
+		action = self.action
 		excs = {
 			# builtin exceptions
 			"AssertionError": AssertionError,
@@ -676,6 +679,15 @@ class AbstractEngine(ABC):
 			),
 			MsgpackExtensionType.method.value: lambda ext: getattr(
 				method, unpacker(ext)
+			),
+			MsgpackExtensionType.trigger.value: lambda ext: getattr(
+				trigger, unpacker(ext)
+			),
+			MsgpackExtensionType.prereq.value: lambda ext: getattr(
+				prereq, unpacker(ext)
+			),
+			MsgpackExtensionType.action.value: lambda ext: getattr(
+				action, unpacker(ext)
 			),
 			MsgpackExtensionType.exception.value: unpack_exception,
 		}
