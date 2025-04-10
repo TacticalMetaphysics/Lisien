@@ -3014,6 +3014,34 @@ class ThingsCache(Cache):
 		Cache.__init__(self, db, name="things_cache")
 		self._make_node = db.thing_cls
 
+	def _slow_iter_contents(self, character, place, branch, turn, tick):
+		for thing in self.iter_keys(character, branch, turn, tick):
+			try:
+				loc = self.retrieve(character, thing, branch, turn, tick)
+			except KeyError:
+				continue
+			if loc == place:
+				yield thing
+
+	def _retrieve_or_generate_contents(
+		self, character, location, branch, turn, tick
+	):
+		try:
+			return self.db._node_contents_cache.retrieve(
+				character,
+				location,
+				branch,
+				turn,
+				tick,
+				search=True,
+			)
+		except KeyError:
+			return frozenset(
+				self._slow_iter_contents(
+					character, location, branch, turn, tick
+				)
+			)
+
 	def store(self, *args, planning=None, loading=False, contra=None):
 		character, thing, branch, turn, tick, location = args
 		with self._lock:
@@ -3048,13 +3076,12 @@ class ThingsCache(Cache):
 							todo[turn, future_tick].append(
 								(
 									oldloc,
-									node_contents_cache.retrieve(
+									self._retrieve_or_generate_contents(
 										character,
 										oldloc,
 										branch,
 										turn,
 										future_tick,
-										search=True,
 									).difference(this),
 								)
 							)
@@ -3065,24 +3092,24 @@ class ThingsCache(Cache):
 							todo[future_turn, future_tick].append(
 								(
 									oldloc,
-									node_contents_cache.retrieve(
+									self._retrieve_or_generate_contents(
 										character,
 										oldloc,
 										branch,
 										future_turn,
 										future_tick,
-										search=True,
 									).difference(this),
 								)
 							)
 			if location is not None:
-				try:
-					oldconts_dest = node_contents_cache.retrieve(
-						character, location, branch, turn, tick
+				todo[turn, tick].append(
+					(
+						location,
+						self._retrieve_or_generate_contents(
+							character, location, branch, turn, tick
+						).union(this),
 					)
-				except KeyError:
-					oldconts_dest = frozenset()
-				todo[turn, tick].append((location, oldconts_dest.union(this)))
+				)
 				# and the new location
 				if (character, location) in node_contents_cache.loc_settings:
 					locset = node_contents_cache.loc_settings[
@@ -3090,42 +3117,32 @@ class ThingsCache(Cache):
 					][branch]
 					if turn in locset:
 						for future_tick in locset[turn].future(tick):
-							try:
-								conts = node_contents_cache.retrieve(
-									character,
-									location,
-									branch,
-									turn,
-									future_tick,
-									search=True,
-								)
-							except KeyError:
-								conts = frozenset()
 							todo[turn, future_tick].append(
 								(
 									location,
-									conts.union(this),
+									self._retrieve_or_generate_contents(
+										character,
+										location,
+										branch,
+										turn,
+										future_tick,
+									).union(this),
 								)
 							)
 					for future_turn, future_ticks in locset.future(
 						turn
 					).items():
 						for future_tick in future_ticks:
-							try:
-								conts = node_contents_cache.retrieve(
-									character,
-									location,
-									branch,
-									future_turn,
-									future_tick,
-									search=True,
-								)
-							except KeyError:
-								conts = frozenset()
 							todo[future_turn, future_tick].append(
 								(
 									location,
-									conts.union(this),
+									self._retrieve_or_generate_contents(
+										character,
+										location,
+										branch,
+										future_turn,
+										future_tick,
+									).union(this),
 								)
 							)
 		for trn, tck in sorted(todo.keys()):
