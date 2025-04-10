@@ -4053,8 +4053,6 @@ def worker_subprocess(
 		(uid, method, args, kwargs) = unpack(decompress(inst))
 		if isinstance(method, str):
 			method = getattr(eng, method)
-		elif isinstance(method, bytes):
-			method = loads(method)
 		try:
 			ret = method(*args, **kwargs)
 		except Exception as ex:
