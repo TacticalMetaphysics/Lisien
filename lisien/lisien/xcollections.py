@@ -360,9 +360,9 @@ class CharacterMapping(GraphsMapping, Signal):
 			)
 		ret = cache[name]
 		if not isinstance(ret, Character):
-			raise TypeError("""Tried to get a graph that isn't a Character.
-				This should never happen. It probably indicates
-				a bug in allegedb.""")
+			raise TypeError(
+				"You put something weird in the Character cache", type(ret)
+			)
 		return ret
 
 	def __setitem__(self, name, value):
