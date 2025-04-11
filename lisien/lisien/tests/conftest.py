@@ -73,7 +73,8 @@ def handle_initialized(request, tmp_path, database):
 		else None,
 	)
 	ret.keyframe = keyframe
-	return ret
+	yield ret
+	ret.close()
 
 
 def pytest_addoption(parser):
