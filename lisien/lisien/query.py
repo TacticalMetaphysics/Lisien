@@ -5813,29 +5813,25 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				)
 				self._new_keyframe_times = set()
 			if self._new_keyframes:
-				self._inq.put(
-					(
-						"silent",
-						"one",
-						"keyframes_graphs_delete",
-						[
-							{
-								"graph": graph,
-								"branch": branch,
-								"turn": turn,
-								"tick": tick,
-							}
-							for (
-								graph,
-								branch,
-								turn,
-								tick,
-								_,
-								_,
-								_,
-							) in self._new_keyframes
-						],
-					)
+				self.call_silent(
+					"keyframes_graphs_delete",
+					[
+						{
+							"graph": graph,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+						}
+						for (
+							graph,
+							branch,
+							turn,
+							tick,
+							_,
+							_,
+							_,
+						) in self._new_keyframes
+					],
 				)
 			self._new_keyframes()
 			self._new_keyframe_extensions()
