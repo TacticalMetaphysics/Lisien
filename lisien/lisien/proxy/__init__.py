@@ -3885,12 +3885,9 @@ class EngineProxy(AbstractEngine):
 		self._commit_lock.release()
 
 	def close(self):
-		self._commit_lock.acquire()
-		self._commit_lock.release()
-		self.handle("close")
-		with self._handle_out_lock:
-			self._handle_out.send_bytes(b"shutdown")
-		self.closed = True
+		with self._commit_lock:
+			self.handle("close")
+			self.closed = True
 
 	def _node_contents(self, character, node):
 		# very slow. do better
