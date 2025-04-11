@@ -5789,6 +5789,31 @@ class ParquetQueryEngine(AbstractQueryEngine):
 					],
 				)
 				self._new_keyframe_times = set()
+			if self._new_keyframes:
+				self._inq.put(
+					(
+						"silent",
+						"one",
+						"keyframes_graphs_delete",
+						[
+							{
+								"graph": graph,
+								"branch": branch,
+								"turn": turn,
+								"tick": tick,
+							}
+							for (
+								graph,
+								branch,
+								turn,
+								tick,
+								_,
+								_,
+								_,
+							) in self._new_keyframes
+						],
+					)
+				)
 			self._new_keyframes()
 			self._new_keyframe_extensions()
 
@@ -8582,6 +8607,18 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 			self._new_keyframe_extensions = []
 		if self._new_keyframes:
+			# use only the most recent version of any given keyframe
+			kfs = {}
+			for (
+				graph,
+				branch,
+				turn,
+				tick,
+				nodes,
+				edges,
+				graph_val,
+			) in self._new_keyframes:
+				kfs[graph, branch, turn, tick] = (nodes, edges, graph_val)
 			put(
 				(
 					"silent",
@@ -8589,15 +8626,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 					"delete_keyframe_graph",
 					[
 						(pack(graph), branch, turn, tick)
-						for (
-							graph,
-							branch,
-							turn,
-							tick,
-							nodes,
-							edges,
-							graph_val,
-						) in self._new_keyframes
+						for (graph, branch, turn, tick) in kfs
 					],
 				)
 			)
@@ -8616,15 +8645,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 							pack(edges),
 							pack(graph_val),
 						)
-						for (
-							graph,
-							branch,
-							turn,
-							tick,
+						for (graph, branch, turn, tick), (
 							nodes,
 							edges,
 							graph_val,
-						) in self._new_keyframes
+						) in kfs.items()
 					],
 				)
 			)
