@@ -3859,12 +3859,15 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def run(self):
 		def loud_exit(inst, ex):
-			msg = (
-				f"While calling {inst[0]}"
-				f"({', '.join(map(repr, inst[1]))}{', ' if inst[2] else ''}"
-				f"{', '.join('='.join(pair) for pair in inst[2].items())})"
-				f"silenced, ParquetDBHolder got the exception: {ex}"
-			)
+			try:
+				msg = (
+					f"While calling {inst[0]}"
+					f"({', '.join(map(repr, inst[1]))}{', ' if inst[2] else ''}"
+					f"{', '.join('='.join(pair) for pair in inst[2].items())})"
+					f"silenced, ParquetDBHolder got the exception: {ex}"
+				)
+			except:
+				msg = f"called {inst}; got exception {ex}"
 			print(msg)
 			sys.exit(msg)
 
