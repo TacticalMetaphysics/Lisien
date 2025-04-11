@@ -19,6 +19,7 @@ import pytest
 
 import lisien.tests.test_all
 from lisien.engine import Engine
+from lisien.tests.data import CHARACTER_UPDATES
 
 
 class CharacterTest(lisien.tests.test_all.AllegedTest):
@@ -160,32 +161,9 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 	}
 
 
-CHAR_DATA = [
-	("empty", {}, {}, [], [], [], []),
-	(
-		"small",
-		{0: [1], 1: [0], "kobold": []},
-		{
-			"spam": "eggs",
-			"ham": {"baked beans": "delicious"},
-			"qux": ["quux", "quuux"],
-			"clothes": {"hats", "shirts", "pants"},
-		},
-		[
-			("kobold", {"location": 0, "evil": True}),
-			(0, {"evil": False}),
-			(1, {"evil": False}),
-		],
-		[("spam", None), ("qux", ["quux"]), ("clothes", "no")],
-		[(2, {"evil": False}), ("kobold", {"evil": False})],
-		[(0, 1, None), (0, 2, {"hi": "hello"})],
-	),
-]
-
-
 @pytest.mark.parametrize(
 	["name", "data", "stat", "nodestat", "statup", "nodeup", "edgeup"],
-	CHAR_DATA,
+	CHARACTER_UPDATES,
 )
 def test_char_creation(
 	engy, name, data, stat, nodestat, statup, nodeup, edgeup
@@ -200,7 +178,7 @@ def test_char_creation(
 	assert char.stat == stat
 
 
-@pytest.fixture(params=CHAR_DATA)
+@pytest.fixture(params=CHARACTER_UPDATES)
 def char_data(request):
 	return request.param
 
@@ -219,7 +197,7 @@ def test_facade_creation(tmp_path, char_data):
 
 
 # TODO parametrize bunch of characters
-@pytest.fixture(scope="function", params=CHAR_DATA)
+@pytest.fixture(scope="function", params=CHARACTER_UPDATES)
 def character_updates(request, sqleng):
 	name, data, stat, nodestat, statup, nodeup, edgeup = request.param
 	char = sqleng.new_character(name, data, **stat)
