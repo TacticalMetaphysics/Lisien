@@ -7464,8 +7464,9 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 							rez = list(res.fetchall())
 							self.outq.put(rez or None)
 				except Exception as ex:
-					if not silent:
-						self.outq.put(ex)
+					if silent:
+						sys.exit("got exception while silenced: " + repr(ex))
+					self.outq.put(ex)
 
 	def initdb(self):
 		"""Set up the database schema, both for allegedb and the special
