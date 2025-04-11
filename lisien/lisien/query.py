@@ -3859,12 +3859,14 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def run(self):
 		def loud_exit(inst, ex):
-			sys.exit(
+			msg = (
 				f"While calling {inst[0]}"
 				f"({', '.join(map(repr, inst[1]))}{', ' if inst[2] else ''}"
 				f"{', '.join('='.join(pair) for pair in inst[2].items())})"
 				f"silenced, ParquetDBHolder got the exception: {ex}"
 			)
+			print(msg)
+			sys.exit(msg)
 
 		inq = self._inq
 		outq = self._outq
@@ -7508,7 +7510,9 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 							self.outq.put(rez or None)
 				except Exception as ex:
 					if silent:
-						sys.exit("got exception while silenced: " + repr(ex))
+						msg = "got exception while silenced: " + repr(ex)
+						print(msg)
+						sys.exit(msg)
 					self.outq.put(ex)
 
 	def initdb(self):
