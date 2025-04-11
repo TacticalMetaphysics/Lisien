@@ -14,6 +14,28 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from lisien.facade import EngineFacade
 
+CHARACTER_UPDATES = [
+	("empty", {}, {}, [], [], [], []),
+	(
+		"small",
+		{0: [1], 1: [0], "kobold": []},
+		{
+			"spam": "eggs",
+			"ham": {"baked beans": "delicious"},
+			"qux": ["quux", "quuux"],
+			"clothes": {"hats", "shirts", "pants"},
+		},
+		[
+			("kobold", {"location": 0, "evil": True}),
+			(0, {"evil": False}),
+			(1, {"evil": False}),
+		],
+		[("spam", None), ("qux", ["quux"]), ("clothes", "no")],
+		[(2, {"evil": False}), ("kobold", {"evil": False})],
+		[(0, 1, None), (0, 2, {"hi": "hello"})],
+	),
+]
+
 PHYSICAL_INITIAL_COPY = {
 	"node_val": {
 		"common0": {"rulebook": ("physical", "common0")},
