@@ -5813,6 +5813,17 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				)
 				self._new_keyframe_times = set()
 			if self._new_keyframes:
+				kfs = {}
+				for (
+					graph,
+					branch,
+					turn,
+					tick,
+					nodes,
+					edges,
+					graph_val,
+				) in self._new_keyframes:
+					kfs[graph, branch, turn, tick] = (nodes, edges, graph_val)
 				self.call_silent(
 					"keyframes_graphs_delete",
 					[
@@ -5822,18 +5833,29 @@ class ParquetQueryEngine(AbstractQueryEngine):
 							"turn": turn,
 							"tick": tick,
 						}
-						for (
-							graph,
-							branch,
-							turn,
-							tick,
-							_,
-							_,
-							_,
-						) in self._new_keyframes
+						for (graph, branch, turn, tick) in kfs
 					],
 				)
-			self._new_keyframes()
+				self.call_silent(
+					"insert",
+					"keyframes_graphs",
+					[
+						{
+							"graph": graph,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"nodes": nodes,
+							"edges": edges,
+							"graph_val": graph_val,
+						}
+						for (graph, branch, turn, tick), (
+							nodes,
+							edges,
+							graph_val,
+						) in kfs.items()
+					],
+				)
 			self._new_keyframe_extensions()
 
 			assert self.echo("flushed") == "flushed"
