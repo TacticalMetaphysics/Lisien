@@ -1513,6 +1513,24 @@ class ParquetDBHolder(ConnectionHolder):
 	def insert(self, table: str, data: list) -> None:
 		self._get_db(table).create(data, schema=self._schema[table])
 
+	def keyframes_graphs_delete(self, data: list[dict]):
+		db = self._get_db("keyframes")
+		todel = []
+		for d in data:
+			found: pa.Table = db.read(
+				columns=["id"],
+				filters=[
+					pc.field("graph") == d["graph"],
+					pc.field("branch") == d["branch"],
+					pc.field("turn") == d["turn"],
+					pc.field("tick") == d["tick"],
+				],
+			)
+			if found.num_rows > 0:
+				todel.extend(id_.as_py() for id_ in found["id"])
+		if todel:
+			db.delete(todel)
+
 	def truncate_all(self):
 		for table in self.schema:
 			db = self._get_db(table)
