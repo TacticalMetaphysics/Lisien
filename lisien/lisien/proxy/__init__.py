@@ -3757,10 +3757,6 @@ class EngineProxy(AbstractEngine):
 					portdata[orig][dest] = {}
 				else:
 					portdata[orig] = {dest: {}}
-			portdata |= {
-				orig: {dest: edges for (dest, edges) in dests.items()}
-				for (orig, dests) in data.edges.items()
-			}
 		for orig, dests in portdata.items():
 			for dest, stats in dests.items():
 				self._character_portals_cache.store(
