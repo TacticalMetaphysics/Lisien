@@ -5473,12 +5473,18 @@ class Batch(list):
 			self._table,
 			[
 				dict(zip(self._argspec[0][1:], rec))
-				for rec in starmap(self._serialize_record, self)
+				for rec in starmap(self._serialize_record, super().__iter__())
 			],
 		)
 		n = len(self)
 		self.clear()
 		return n
+
+	def __iter__(self):
+		return starmap(self._serialize_record, super().__iter__())
+
+	def __getitem__(self, item):
+		return self._serialize_record(*super().__getitem__(item))
 
 
 def batch(table: str, serialize_record: callable = None):
