@@ -8586,6 +8586,25 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				(
 					"silent",
 					"many",
+					"delete_keyframe_graph",
+					[
+						(pack(graph), branch, turn, tick)
+						for (
+							graph,
+							branch,
+							turn,
+							tick,
+							nodes,
+							edges,
+							graph_val,
+						) in self._new_keyframes
+					],
+				)
+			)
+			put(
+				(
+					"silent",
+					"many",
 					"keyframes_graphs_insert",
 					[
 						(

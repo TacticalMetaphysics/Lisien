@@ -830,6 +830,16 @@ def queries(table):
 				table["keyframes_graphs"].c.tick == bindparam("tick"),
 			)
 		),
+		"delete_keyframe_graph": table["keyframes_graphs"]
+		.delete()
+		.where(
+			and_(
+				table["keyframes_graphs"].c.graph == bindparam("graph"),
+				table["keyframes_graphs"].c.branch == bindparam("branch"),
+				table["keyframes_graphs"].c.turn == bindparam("turn"),
+				table["keyframes_graphs"].c.tick == bindparam("tick"),
+			)
+		),
 		"load_nodes_tick_to_end": select(
 			table["nodes"].c.graph,
 			table["nodes"].c.node,
