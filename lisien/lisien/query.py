@@ -7519,8 +7519,10 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 							o = list(res)
 							self.outq.put(o)
 				except Exception as ex:
-					if not silent:
-						self.outq.put(ex)
+					if silent:
+						print(f"while silenced: {ex}")
+						sys.exit(repr(ex))
+					self.outq.put(ex)
 			elif inst[0] != "many":
 				raise ValueError(f"Invalid instruction: {inst[0]}")
 			else:
