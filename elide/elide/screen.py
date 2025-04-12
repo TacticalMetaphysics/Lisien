@@ -722,7 +722,7 @@ load_string_once("""
 		pos_hint: {'bot': 0}
 		size_hint: (1, 0.1)
 		disabled: app.edit_locked
-	StencilView:
+	Widget:
 		id: mainview
 		x: statpanel.right
 		y: turnscroll.top
