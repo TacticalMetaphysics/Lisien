@@ -1327,12 +1327,8 @@ class PredecessorsProxy(MutableMapping):
 		)
 
 	def __contains__(self, k):
-		return (
-			k
-			in self.engine._character_portals_cache.predecessors[
-				self._charname
-			][self.name]
-		)
+		preds = self.engine._character_portals_cache.predecessors
+		return self._charname in preds and self.name in preds[self._charname]
 
 	def __getitem__(self, k):
 		return self.engine._character_portals_cache.predecessors[
