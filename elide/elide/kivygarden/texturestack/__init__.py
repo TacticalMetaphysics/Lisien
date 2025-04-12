@@ -366,7 +366,8 @@ class TextureStackPlane(Widget):
 		self._instructions = {}
 		self._stack_index = {}
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
-		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
+		self._redraw_bind_data_uid = self.fbind("data", self._trigger_redraw)
+		self._redraw_bind_size_uid = self.fbind("size", self._trigger_redraw)
 
 	def on_parent(self, *_):
 		if not self.canvas:
@@ -442,9 +443,9 @@ class TextureStackPlane(Widget):
 		self._right_xs = np.array(right_xs)
 		self._stack_index[name] = len(self._keys)
 		self._keys.append(name)
-		self.unbind_uid("data", self._redraw_bind_uid)
+		self.unbind_uid("data", self._redraw_bind_data_uid)
 		self.data.append(datum)
-		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
+		self._redraw_bind_data_uid = self.fbind("data", self._trigger_redraw)
 		self._add_datum_upd_fbo(**datum)
 
 	@mainthread
@@ -486,9 +487,9 @@ class TextureStackPlane(Widget):
 		self._bot_ys = delarr(self._bot_ys, idx)
 		self._top_ys = delarr(self._top_ys, idx)
 		self._right_xs = delarr(self._right_xs, idx)
-		self.unbind_uid("data", self._redraw_bind_uid)
+		self.unbind_uid("data", self._redraw_bind_data_uid)
 		del self.data[idx]
-		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
+		self._redraw_bind_data_uid = self.fbind("data", self._trigger_redraw)
 		self._remove_upd_fbo(name)
 
 	def redraw(self, *_):
@@ -673,10 +674,7 @@ class TextureStackPlane(Widget):
 		self._fbo.bind()
 		self._fbo.clear_buffer()
 		self._fbo.release()
-		self._fbo.size = (
-			int(np.max(self._right_xs)),
-			int(np.max(self._top_ys)),
-		)
+		self._fbo.size = self.size
 		fbo = self._fbo
 		for insts in todo:
 			group = insts["group"]
@@ -738,7 +736,7 @@ class Stack:
 		name = self.name
 		plane = self._stack_plane
 		datum = plane.data[plane._stack_index[name]]
-		plane.unbind_uid("data", plane._redraw_bind_uid)
+		plane.unbind_uid("data", plane._redraw_bind_data_uid)
 		datum["textures"] = v
 		insts = plane._instructions[name]
 		rects = insts["rectangles"]
@@ -762,7 +760,9 @@ class Stack:
 			rect = Rectangle(texture=tex, pos=self.pos, size=(wide, tall))
 			rects.append(rect)
 			group.add(rect)
-		plane._redraw_bind_uid = plane.fbind("data", plane._trigger_redraw)
+		plane._redraw_bind_data_uid = plane.fbind(
+			"data", plane._trigger_redraw
+		)
 
 	@property
 	def selected(self):
@@ -834,7 +834,7 @@ class Stack:
 	def pos(self, xy):
 		x, y = xy
 		stack_plane = self._stack_plane
-		stack_plane.unbind_uid("data", stack_plane._redraw_bind_uid)
+		stack_plane.unbind_uid("data", stack_plane._redraw_bind_data_uid)
 		name = self.name
 		insts = stack_plane._instructions[name]
 		idx = stack_plane._stack_index[name]
@@ -859,7 +859,7 @@ class Stack:
 		if "line" in insts:
 			insts["line"].points = [x, y, r, y, r, t, x, t, x, y]
 		stack_plane.data[idx]["pos"] = xy
-		stack_plane._redraw_bind_uid = stack_plane.fbind(
+		stack_plane._redraw_bind_data_uid = stack_plane.fbind(
 			"data", stack_plane._trigger_redraw
 		)
 		stack_plane._fbo.release()
@@ -903,7 +903,7 @@ class Stack:
 	def size(self, wh):
 		w, h = wh
 		stack_plane = self._stack_plane
-		stack_plane.unbind_uid("data", stack_plane._redraw_bind_uid)
+		stack_plane.unbind_uid("data", stack_plane._redraw_bind_data_uid)
 		name = self.name
 		insts = stack_plane._instructions[name]
 		idx = stack_plane._stack_index[name]
@@ -916,7 +916,7 @@ class Stack:
 		if "line" in insts:
 			insts["line"].points = [x, y, r, y, r, t, x, t, x, y]
 		stack_plane.data[idx]["size"] = wh
-		stack_plane._redraw_bind_uid = stack_plane.fbind(
+		stack_plane._redraw_bind_data_uid = stack_plane.fbind(
 			"data", stack_plane._trigger_redraw
 		)
 
