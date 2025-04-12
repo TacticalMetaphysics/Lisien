@@ -141,7 +141,8 @@ class CalendarTextInput(CalendarWidget, TextInput):
 			v = literal_eval(self.text)
 		except (TypeError, ValueError, SyntaxError):
 			v = self.text
-		self.val = self.hint_text = v
+		self.val = v
+		self.hint_text = repr(v)
 		self.text = ""
 
 
