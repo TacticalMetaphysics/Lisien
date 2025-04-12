@@ -25,6 +25,7 @@ Core:
 Elide frontend:
 * Fixed stats running off the left of the window.
 * Fixed the grid view not being visible.
+* Fixed configuration of the stat widgets.
 
 == 0.18.3 | 2025-02-23 ==
 * Fix major memory leaks
