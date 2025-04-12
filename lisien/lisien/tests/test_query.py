@@ -18,6 +18,7 @@ from functools import reduce
 
 import pytest
 
+from .. import Engine
 from ..query import windows_intersection
 
 pytestmark = [pytest.mark.slow, pytest.mark.big]
@@ -172,158 +173,172 @@ def test_windows_intersection():
 	assert windows_intersection([(1, 2), (0, 1)]) == [(1, 1)]
 
 
-def test_graph_val_select_eq(sqleng):
-	assert sqleng.turn == 0
-	me = sqleng.new_character("me")
+@pytest.fixture
+def qryeng(request, tmp_path, execution):
+	if request.config.getoption("no_parallel") and execution == "parallel":
+		raise pytest.skip("Skipping parallel execution.")
+	with Engine(
+		tmp_path,
+		random_seed=69105,
+		enforce_end_of_time=False,
+		workers=0 if execution == "serial" else 2,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+	) as eng:
+		yield eng
+
+
+def test_graph_val_select_eq(qryeng):
+	assert qryeng.turn == 0
+	me = qryeng.new_character("me")
 	me.stat["foo"] = "bar"
 	me.stat["qux"] = "bas"
-	sqleng.next_turn()
-	assert sqleng.turn == 1
+	qryeng.next_turn()
+	assert qryeng.turn == 1
 	me.stat["foo"] = ""
 	me.stat["foo"] = "bas"
 	me.stat["qux"] = "bar"
-	sqleng.next_turn()
-	assert sqleng.turn == 2
+	qryeng.next_turn()
+	assert qryeng.turn == 2
 	me.stat["qux"] = "bas"
-	sqleng.next_turn()
-	assert sqleng.turn == 3
+	qryeng.next_turn()
+	assert qryeng.turn == 3
 	me.stat["qux"] = "bar"
-	sqleng.next_turn()
-	assert sqleng.turn == 4
-	sqleng.branch = "leaf"
-	assert sqleng.turn == 4
-	sqleng.next_turn()
-	assert sqleng.turn == 5
+	qryeng.next_turn()
+	assert qryeng.turn == 4
+	qryeng.branch = "leaf"
+	assert qryeng.turn == 4
+	qryeng.next_turn()
+	assert qryeng.turn == 5
 	me.stat["foo"] = "bar"
-	sqleng.next_turn()
-	assert sqleng.turn == 6
+	qryeng.next_turn()
+	assert qryeng.turn == 6
 	me.stat["foo"] = "bas"
 	me.stat["qux"] = "bas"
-	sqleng.next_turn()
-	assert sqleng.turn == 7
+	qryeng.next_turn()
+	assert qryeng.turn == 7
 	foo_alias = me.historical("foo")
 	qux_alias = me.historical("qux")
 	qry = foo_alias == qux_alias
-	turn_end_result = sqleng.turns_when(qry)
+	turn_end_result = qryeng.turns_when(qry)
 	assert 5 in turn_end_result
 	assert 3 not in turn_end_result
 	assert turn_end_result == set(turn_end_result) == {2, 5, 6, 7}
-	assert sqleng.turns_when(qry)[-1] == 7
-	assert sqleng.turns_when(qry)[0] == 2
-	mid_turn_result = sqleng.turns_when(qry, mid_turn=True)
+	assert qryeng.turns_when(qry)[-1] == 7
+	assert qryeng.turns_when(qry)[0] == 2
+	mid_turn_result = qryeng.turns_when(qry, mid_turn=True)
 	assert 3 in mid_turn_result
 	assert 4 not in mid_turn_result
 	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
 	assert (
-		list(sqleng.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
+		list(qryeng.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
 	)
 	assert (
-		list(reversed(sqleng.turns_when(qry)))
+		list(reversed(qryeng.turns_when(qry)))
 		== list(reversed(turn_end_result))
 		== [7, 6, 5, 2]
 	)
-	assert sqleng.turns_when(qry, mid_turn=True)[-1] == 7
-	assert sqleng.turns_when(qry, mid_turn=True)[0] == 1
+	assert qryeng.turns_when(qry, mid_turn=True)[-1] == 7
+	assert qryeng.turns_when(qry, mid_turn=True)[0] == 1
 
 
-def test_graph_nodeval_select_eq(sqleng):
-	assert sqleng.turn == 0
-	me = sqleng.new_character("me")
+def test_graph_nodeval_select_eq(qryeng):
+	assert qryeng.turn == 0
+	me = qryeng.new_character("me")
 	me.stat["foo"] = "bar"
 	qux = me.new_place("qux")
 	qux["quux"] = "bas"
-	sqleng.next_turn()
-	assert sqleng.turn == 1
+	qryeng.next_turn()
+	assert qryeng.turn == 1
 	me.stat["foo"] = ""
 	me.stat["foo"] = "bas"
 	qux["quux"] = "bar"
-	sqleng.next_turn()
-	assert sqleng.turn == 2
+	qryeng.next_turn()
+	assert qryeng.turn == 2
 	qux["quux"] = "bas"
-	sqleng.next_turn()
-	assert sqleng.turn == 3
+	qryeng.next_turn()
+	assert qryeng.turn == 3
 	qux["quux"] = "bar"
-	sqleng.next_turn()
-	assert sqleng.turn == 4
-	sqleng.branch = "leaf"
-	assert sqleng.turn == 4
-	sqleng.next_turn()
-	assert sqleng.turn == 5
+	qryeng.next_turn()
+	assert qryeng.turn == 4
+	qryeng.branch = "leaf"
+	assert qryeng.turn == 4
+	qryeng.next_turn()
+	assert qryeng.turn == 5
 	me.stat["foo"] = "bar"
-	sqleng.next_turn()
-	assert sqleng.turn == 6
+	qryeng.next_turn()
+	assert qryeng.turn == 6
 	me.stat["foo"] = "bas"
 	qux["quux"] = "bas"
-	sqleng.next_turn()
-	assert sqleng.turn == 7
+	qryeng.next_turn()
+	assert qryeng.turn == 7
 	foo_alias = me.historical("foo")
 	qux_alias = qux.historical("quux")
 	qry = foo_alias == qux_alias
-	turn_end_result = sqleng.turns_when(qry)
+	turn_end_result = qryeng.turns_when(qry)
 	assert 5 in turn_end_result
 	assert 3 not in turn_end_result
 	assert turn_end_result == set(turn_end_result) == {2, 5, 6, 7}
-	assert sqleng.turns_when(qry)[-1] == 7
-	assert sqleng.turns_when(qry)[0] == 2
-	mid_turn_result = sqleng.turns_when(qry, mid_turn=True)
+	assert qryeng.turns_when(qry)[-1] == 7
+	assert qryeng.turns_when(qry)[0] == 2
+	mid_turn_result = qryeng.turns_when(qry, mid_turn=True)
 	assert 3 in mid_turn_result
 	assert 4 not in mid_turn_result
 	assert mid_turn_result == set(mid_turn_result) == {1, 2, 3, 5, 6, 7}
 	assert (
-		list(sqleng.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
+		list(qryeng.turns_when(qry)) == list(turn_end_result) == [2, 5, 6, 7]
 	)
 	assert (
-		list(reversed(sqleng.turns_when(qry)))
+		list(reversed(qryeng.turns_when(qry)))
 		== list(reversed(turn_end_result))
 		== [7, 6, 5, 2]
 	)
-	assert sqleng.turns_when(qry, mid_turn=True)[-1] == 7
-	assert sqleng.turns_when(qry, mid_turn=True)[0] == 1
+	assert qryeng.turns_when(qry, mid_turn=True)[-1] == 7
+	assert qryeng.turns_when(qry, mid_turn=True)[0] == 1
 
 
-def test_location_qry(sqleng):
-	phys = sqleng.new_character("physical")
+def test_location_qry(qryeng):
+	phys = qryeng.new_character("physical")
 	place1 = phys.new_place(1)
 	place2 = phys.new_place(2)
 	place3 = phys.new_place(3)
 	thing1 = place3.new_thing("t1")
 	thing2 = place1.new_thing("t2")
-	sqleng.next_turn()
+	qryeng.next_turn()
 	thing1.location = place2
 	thing2.location = place2
 	thing2.location = place1
-	sqleng.next_turn()
+	qryeng.next_turn()
 	thing2.location = place2
 	qry = thing1.historical("location") == thing2.historical("location")
-	res0 = sqleng.turns_when(qry)
+	res0 = qryeng.turns_when(qry)
 	assert 2 in res0
 	assert 1 not in res0
 	assert list(res0) == [2]
-	res1 = sqleng.turns_when(qry, mid_turn=True)
+	res1 = qryeng.turns_when(qry, mid_turn=True)
 	assert 0 not in res1
 	assert 1 in res1
 	assert 2 in res1
 	assert list(res1) == [1, 2]
 
 
-def test_place_val_qry(sqleng):
-	phys = sqleng.new_character("physical")
+def test_place_val_qry(qryeng):
+	phys = qryeng.new_character("physical")
 	place1 = phys.new_place(1)
 	place2 = phys.new_place(2)
-	assert sqleng.turn == 0
+	assert qryeng.turn == 0
 	place1["flavor"] = "delicious"
 	place2["flavor"] = "disgusting"
-	sqleng.next_turn()
-	assert sqleng.turn == 1
+	qryeng.next_turn()
+	assert qryeng.turn == 1
 	place2["flavor"] = "delicious"
-	sqleng.next_turn()
-	assert sqleng.turn == 2
+	qryeng.next_turn()
+	assert qryeng.turn == 2
 	place1["flavor"] = "disgusting"
-	sqleng.next_turn()
-	assert sqleng.turn == 3
+	qryeng.next_turn()
+	assert qryeng.turn == 3
 	place2["flavor"] = "disgusting"
 	qry = place1.historical("flavor") == place2.historical("flavor")
-	res = sqleng.turns_when(qry)
+	res = qryeng.turns_when(qry)
 	assert 1 in res
 	assert 3 in res
 	assert 0 not in res
@@ -333,20 +348,20 @@ def test_place_val_qry(sqleng):
 
 @pytest.mark.skip("I'll optimize later")
 @pytest.mark.slow
-def test_stress_graph_val_select_eq(sqleng):
+def test_stress_graph_val_select_eq(qryeng):
 	import random
 	from time import monotonic
 
-	me = sqleng.new_character("me")
+	me = qryeng.new_character("me")
 	me.stat["qux"] = random.choice(["foo", "bar", "bas"])
 	me.stat["quux"] = random.choice(["foo", "bar", "bas"])
 	for i in range(10000):
-		sqleng.next_turn()
+		qryeng.next_turn()
 		me.stat["qux"] = random.choice(["foo", "bar", "bas"])
 		me.stat["quux"] = random.choice(["foo", "bar", "bas"])
 	qry = me.historical("qux") == me.historical("quux")
 	start_ts = monotonic()
-	res = sqleng.turns_when(qry)
+	res = qryeng.turns_when(qry)
 	assert monotonic() - start_ts < 1
 	start_ts = monotonic()
 	rez = list(res)
@@ -354,54 +369,54 @@ def test_stress_graph_val_select_eq(sqleng):
 	assert monotonic() - start_ts < 1
 
 
-def test_graph_val_select_lt_gt(sqleng):
-	me = sqleng.new_character("me")
+def test_graph_val_select_lt_gt(qryeng):
+	me = qryeng.new_character("me")
 	me.stat["foo"] = 10
 	me.stat["bar"] = 1
-	sqleng.next_turn()
+	qryeng.next_turn()
 	me.stat["foo"] = 2
 	me.stat["bar"] = 8
-	sqleng.next_turn()
+	qryeng.next_turn()
 	me.stat["foo"] = 3
-	sqleng.next_turn()
+	qryeng.next_turn()
 	me.stat["foo"] = 9
-	sqleng.next_turn()
-	sqleng.branch = "leaf"
+	qryeng.next_turn()
+	qryeng.branch = "leaf"
 	me.stat["bar"] = 5
-	sqleng.next_turn()
+	qryeng.next_turn()
 	me.stat["bar"] = 2
-	sqleng.next_turn()
+	qryeng.next_turn()
 	me.stat["bar"] = 10
-	sqleng.next_turn()
+	qryeng.next_turn()
 	me.stat["bar"] = 1
-	sqleng.next_turn()
+	qryeng.next_turn()
 	me.stat["bar"] = 10
 	foo_hist = me.historical("foo")
 	bar_hist = me.historical("bar")
-	res = sqleng.turns_when(foo_hist < bar_hist)
+	res = qryeng.turns_when(foo_hist < bar_hist)
 	assert set(res) == {1, 2, 6, 8}
-	assert str([1, 2, 6, 8]) in str(sqleng.turns_when(foo_hist < bar_hist))
-	res = sqleng.turns_when(foo_hist > bar_hist)
+	assert str([1, 2, 6, 8]) in str(qryeng.turns_when(foo_hist < bar_hist))
+	res = qryeng.turns_when(foo_hist > bar_hist)
 	assert set(res) == {0, 3, 4, 5, 7}
 
 
 @pytest.mark.skip("I'll optimize later")
 @pytest.mark.slow
-def test_stress_graph_val_select_lt(sqleng):
+def test_stress_graph_val_select_lt(qryeng):
 	import random
 	from time import monotonic
 
-	me = sqleng.new_character("me")
+	me = qryeng.new_character("me")
 	me.stat["foo"] = random.randrange(0, 10)
 	me.stat["bar"] = random.randrange(0, 10)
 	for i in range(10000):
-		sqleng.next_turn()
+		qryeng.next_turn()
 		me.stat["foo"] = random.randrange(0, 10)
 		me.stat["bar"] = random.randrange(0, 10)
 	qry = me.historical("foo") < me.historical("bar")
-	sqleng.commit()
+	qryeng.commit()
 	start_ts = monotonic()
-	res = sqleng.turns_when(qry)
+	res = qryeng.turns_when(qry)
 	assert monotonic() - start_ts < 1
 	start_ts = monotonic()
 	rez = list(res)
@@ -409,56 +424,56 @@ def test_stress_graph_val_select_lt(sqleng):
 	assert monotonic() - start_ts < 1
 
 
-def test_graph_val_compound(sqleng):
-	you = sqleng.new_character("you")
-	assert sqleng.turn == 0
-	me = sqleng.new_character("me")
+def test_graph_val_compound(qryeng):
+	you = qryeng.new_character("you")
+	assert qryeng.turn == 0
+	me = qryeng.new_character("me")
 	me.stat["foo"] = "bar"
 	me.stat["qux"] = "bas"
 	you.stat["foo"] = 10
 	you.stat["bar"] = 1
-	sqleng.next_turn()
-	assert sqleng.turn == 1
+	qryeng.next_turn()
+	assert qryeng.turn == 1
 	me.stat["foo"] = ""
 	me.stat["foo"] = "bas"
 	me.stat["qux"] = "bar"
 	you.stat["foo"] = 2
 	you.stat["bar"] = 8
-	sqleng.next_turn()
-	assert sqleng.turn == 2
+	qryeng.next_turn()
+	assert qryeng.turn == 2
 	me.stat["qux"] = "bas"
 	you.stat["foo"] = 3
-	sqleng.next_turn()
-	assert sqleng.turn == 3
+	qryeng.next_turn()
+	assert qryeng.turn == 3
 	me.stat["qux"] = "bar"
 	you.stat["foo"] = 9
-	sqleng.next_turn()
-	assert sqleng.turn == 4
-	sqleng.branch = "leaf"
-	assert sqleng.turn == 4
+	qryeng.next_turn()
+	assert qryeng.turn == 4
+	qryeng.branch = "leaf"
+	assert qryeng.turn == 4
 	you.stat["bar"] = 5
-	sqleng.next_turn()
-	assert sqleng.turn == 5
+	qryeng.next_turn()
+	assert qryeng.turn == 5
 	me.stat["foo"] = "bar"
 	you.stat["bar"] = 2
-	sqleng.next_turn()
-	assert sqleng.turn == 6
+	qryeng.next_turn()
+	assert qryeng.turn == 6
 	me.stat["foo"] = "bas"
 	me.stat["qux"] = "bas"
 	you.stat["bar"] = 10
-	sqleng.next_turn()
+	qryeng.next_turn()
 	you.stat["bar"] = 1
-	assert sqleng.turn == 7
-	sqleng.next_turn()
-	assert sqleng.turn == 8
+	assert qryeng.turn == 7
+	qryeng.next_turn()
+	assert qryeng.turn == 8
 	you.stat["bar"] = 10
 	eq_qry = me.historical("foo") == me.historical("qux")
 	correct_eq = {2, 5, 6, 7, 8}
-	assert set(sqleng.turns_when(eq_qry)) == correct_eq
+	assert set(qryeng.turns_when(eq_qry)) == correct_eq
 	lt_qry = you.historical("foo") < you.historical("bar")
 	correct_lt = {1, 2, 6, 8}
-	assert set(sqleng.turns_when(lt_qry)) == correct_lt
-	assert sqleng.turns_when(lt_qry & eq_qry) == correct_eq & correct_lt
-	assert sqleng.turns_when(lt_qry | eq_qry) == correct_eq | correct_lt
-	assert sqleng.turns_when(lt_qry - eq_qry) == correct_lt - correct_eq
-	assert sqleng.turns_when(eq_qry - lt_qry) == correct_eq - correct_lt
+	assert set(qryeng.turns_when(lt_qry)) == correct_lt
+	assert qryeng.turns_when(lt_qry & eq_qry) == correct_eq & correct_lt
+	assert qryeng.turns_when(lt_qry | eq_qry) == correct_eq | correct_lt
+	assert qryeng.turns_when(lt_qry - eq_qry) == correct_lt - correct_eq
+	assert qryeng.turns_when(eq_qry - lt_qry) == correct_eq - correct_lt
