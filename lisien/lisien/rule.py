@@ -140,6 +140,11 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 		for funcname in self._get():
 			yield getattr(self._funcstore, funcname)
 
+	def __contains__(self, item):
+		if hasattr(item, "__name__"):
+			item = item.__name__
+		return item in self._get()
+
 	def __len__(self):
 		return len(self._get())
 
