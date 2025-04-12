@@ -631,7 +631,7 @@ class ArrowPlane(Widget):
 	fg_color_selected = ListProperty([1.0, 1.0, 1.0, 1.0])
 
 	def __init__(self, **kwargs):
-		self._labels = defaultdict(dict)
+		self._labels = defaultdict(lambda: defaultdict(lambda: None))
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
 		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
 		self.bind(arrowhead_size=self._trigger_redraw)
@@ -795,7 +795,7 @@ class ArrowPlane(Widget):
 		grp.add(instructions["shaft_fg"])
 		grp.add(instructions["left_head_fg"])
 		grp.add(instructions["right_head_fg"])
-		grp.add(instructions["label"])
+		# grp.add(instructions["label"])
 		self._labels[orig_spot.name][dest_spot.name] = instructions["label"]
 		self._fbo.add(grp)
 		ox, oy, dx, dy = shaft_points
