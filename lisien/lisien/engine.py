@@ -3046,11 +3046,15 @@ class Engine(AbstractEngine, Executor):
 					del nodes_keyframe[node]
 				if node in node_val_keyframe:
 					del node_val_keyframe[node]
+				if node in thing_location_keyframe:
+					del thing_location_keyframe[node]
+				if node in place_contents_keyframe:
+					del place_contents_keyframe[node]
 		for node, upd in node_val_delta.items():
 			if node in nodes_delta and not nodes_delta[node]:
 				continue
 			upd = upd.copy()
-			if "location" in upd:
+			if "location" in upd and upd["location"] is not None:
 				loc = upd.pop("location")
 				thing_location_keyframe[node] = loc
 				if loc in place_contents_keyframe:
@@ -3373,6 +3377,8 @@ class Engine(AbstractEngine, Executor):
 				for (node, val) in node_val_keyframe.get(graph, {}).items()
 			}
 			for node, loc in things_keyframe.get(graph, {}).items():
+				if loc is None:
+					continue
 				if node in combined_node_val_keyframe:
 					combined_node_val_keyframe[node]["location"] = loc
 				else:
