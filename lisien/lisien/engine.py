@@ -5392,8 +5392,6 @@ class Engine(AbstractEngine, Executor):
 			fut.rulebook = rulebook
 			fut.handled = handled_fun
 			yield fut
-		else:
-			handled_fun(self.tick)
 
 	def _check_prereqs(self, rule, handled_fun, entity):
 		if not entity:
@@ -5849,6 +5847,8 @@ class Engine(AbstractEngine, Executor):
 						fut.entity,
 					)
 				)
+			else:
+				fut.handled(self.tick)
 
 		return todo
 
