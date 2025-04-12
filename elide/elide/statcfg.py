@@ -160,7 +160,7 @@ class ConfigListItemCustomizer(BoxLayout):
 			):
 				Clock.schedule_once(self.on_control, 0)
 				return
-			wid = ConfigListItemToggleButton(
+			wid = self._toggle = ConfigListItemToggleButton(
 				true_text=self.config["true_text"],
 				false_text=self.config["false_text"],
 			)
@@ -169,10 +169,22 @@ class ConfigListItemCustomizer(BoxLayout):
 			if "min" not in self.config or "max" not in self.config:
 				Clock.schedule_once(self.on_control, 0)
 				return
-			wid = ConfigListItemSlider(
+			wid = self._slider = ConfigListItemSlider(
 				min=self.config["min"], max=self.config["max"]
 			)
 			self.add_widget(wid)
+
+	def on_config(self, *_):
+		if hasattr(self, "_toggle"):
+			if "true_text" in self.config:
+				self._toggle.true_text = self.config["true_text"]
+			if "false_text" in self.config:
+				self._toggle.false_text = self.config["false_text"]
+		if hasattr(self, "_slider"):
+			if "min" in self.config:
+				self._slider.min = self.config["min"]
+			if "max" in self.config:
+				self._slider.max = self.config["max"]
 
 
 class ConfigListItem(BoxLayout):
