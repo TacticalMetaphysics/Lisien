@@ -737,11 +737,11 @@ class GraphBoard(RelativeLayout):
 			)
 		if spots_posd:
 			self.stack_plane.unbind_uid(
-				"data", self.stack_plane._redraw_bind_uid
+				"data", self.stack_plane._redraw_bind_data_uid
 			)
 			self.stack_plane.data.extend(spots_posd)
 			self.stack_plane.redraw()
-			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
+			self.stack_plane._redraw_bind_data_uid = self.stack_plane.fbind(
 				"data", self.stack_plane._trigger_redraw
 			)
 
@@ -859,10 +859,12 @@ class GraphBoard(RelativeLayout):
 			pawns_added.append(pwn)
 		if nodes_patch:
 			self.character.node.patch(nodes_patch)
-		self.stack_plane.unbind_uid("data", self.stack_plane._redraw_bind_uid)
+		self.stack_plane.unbind_uid(
+			"data", self.stack_plane._redraw_bind_data_uid
+		)
 		self.stack_plane.data.extend(pawns_added)
 		self.stack_plane.redraw()
-		self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
+		self.stack_plane._redraw_bind_data_uid = self.stack_plane.fbind(
 			"data", self.stack_plane._trigger_redraw
 		)
 
@@ -1006,11 +1008,11 @@ class GraphBoard(RelativeLayout):
 			newspots.append(spot[name])
 		if newspots:
 			self.stack_plane.unbind_uid(
-				"data", self.stack_plane._redraw_bind_uid
+				"data", self.stack_plane._redraw_bind_data_uid
 			)
 			self.stack_plane.data.extend(newspots)
 			self.stack_plane.redraw()
-			self.stack_plane._redraw_bind_uid = self.stack_plane.fbind(
+			self.stack_plane._redraw_bind_data_uid = self.stack_plane.fbind(
 				"data", self.stack_plane._trigger_redraw
 			)
 		self.spots_unposd = []
@@ -1161,4 +1163,5 @@ Builder.load_string("""
 		scale_max: root.scale_max
 		pos: root.pos
 		size: root.size
+		size_hint: None, None
 """)

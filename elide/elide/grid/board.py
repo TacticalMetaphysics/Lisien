@@ -176,21 +176,21 @@ class GridBoard(Widget):
 		if not spot_data:
 			if hasattr(self.spot_plane, "_redraw_bind_uid"):
 				self.spot_plane.unbind_uid(
-					"data", self.spot_plane._redraw_bind_uid
+					"data", self.spot_plane._redraw_bind_data_uid
 				)
-				del self.spot_plane._redraw_bind_uid
+				del self.spot_plane._redraw_bind_data_uid
 			if hasattr(self.pawn_plane, "_redraw_bind_uid"):
 				self.pawn_plane.unbind_uid(
-					"data", self.pawn_plane._redraw_bind_uid
+					"data", self.pawn_plane._redraw_bind_data_uid
 				)
-				del self.pawn_plane._redraw_bind_uid
+				del self.pawn_plane._redraw_bind_data_uid
 			self.spot_plane.data = self.pawn_plane.data = []
 			self.spot_plane.redraw()
 			self.pawn_plane.redraw()
-			self.spot_plane._redraw_bind_uid = self.spot_plane.fbind(
+			self.spot_plane._redraw_bind_data_uid = self.spot_plane.fbind(
 				"data", self.spot_plane._trigger_redraw
 			)
-			self.pawn_plane._redraw_bind_uid = self.pawn_plane.fbind(
+			self.pawn_plane._redraw_bind_data_uid = self.pawn_plane.fbind(
 				"data", self.pawn_plane._trigger_redraw
 			)
 			self.character.thing.connect(self.update_from_thing)
@@ -200,10 +200,12 @@ class GridBoard(Widget):
 			self.spot[spt["name"]] = self.spot_cls(
 				board=self, proxy=spt["proxy"]
 			)
-		self.spot_plane.unbind_uid("data", self.spot_plane._redraw_bind_uid)
+		self.spot_plane.unbind_uid(
+			"data", self.spot_plane._redraw_bind_data_uid
+		)
 		self.spot_plane.data = spot_data
 		self.spot_plane.redraw()
-		self.spot_plane._redraw_bind_uid = self.spot_plane.fbind(
+		self.spot_plane._redraw_bind_data_uid = self.spot_plane.fbind(
 			"data", self.spot_plane._trigger_redraw
 		)
 		wide = max(datum["x"] for datum in spot_data) + self.tile_width
