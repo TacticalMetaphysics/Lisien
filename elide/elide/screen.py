@@ -601,7 +601,7 @@ class TurnScroll(Slider):
 		if touch.grab_current == self:
 			app = App.get_running_app()
 			app.engine.time.disconnect(self._receive_time)
-			app.set_turn(int(self.value))
+			app.time_travel(app.branch, int(self.value))
 			app.engine.time.connect(self._receive_time)
 
 
