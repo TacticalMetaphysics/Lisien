@@ -347,6 +347,10 @@ class GraphArrow:
 		self.board.app.selection = self
 		self.repoint(b)
 
+	@property
+	def character(self):
+		return self.board.character
+
 	def __init__(self, *, board, origin, destination):
 		self.board = board
 		self.origin = origin

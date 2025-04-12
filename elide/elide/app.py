@@ -550,7 +550,7 @@ class ELiDEApp(App):
 			self.mainscreen.boardview.board.rm_arrow(
 				selection.origin.name, selection.destination.name
 			)
-			self.engine.portal[selection.origin.name][
+			selection.character.portal[selection.origin.name][
 				selection.destination.name
 			].delete()
 		elif isinstance(selection.proxy, PlaceProxy):
