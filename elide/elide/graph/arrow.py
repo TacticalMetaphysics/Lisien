@@ -30,7 +30,7 @@ from kivy.clock import Clock, mainthread
 from kivy.core.text import Label
 from kivy.graphics import Color, InstructionGroup, Quad, Rectangle, Translate
 from kivy.graphics.fbo import Fbo
-from kivy.properties import ListProperty, NumericProperty, ObjectProperty
+from kivy.properties import ListProperty, NumericProperty
 from kivy.uix.widget import Widget
 
 try:
