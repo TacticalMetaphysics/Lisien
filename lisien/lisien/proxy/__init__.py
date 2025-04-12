@@ -71,7 +71,6 @@ from ..util import (
 	TimeSignalDescriptor,
 	getatt,
 	repr_call_sig,
-	print_call_sig,
 )
 from ..wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from ..xcollections import (
