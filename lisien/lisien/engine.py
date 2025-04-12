@@ -3074,7 +3074,7 @@ class Engine(AbstractEngine, Executor):
 				assert node in node_rulebook_keyframe, (
 					f"No rulebook for {node}"
 				)
-			if upd:
+			if upd and node in node_val_keyframe:
 				kv = node_val_keyframe[node]
 				for key, value in upd.items():
 					if value is None:
