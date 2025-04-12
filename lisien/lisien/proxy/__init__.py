@@ -2742,12 +2742,26 @@ class ChangeSignatureError(TypeError):
 
 class PortalObjCache:
 	def __init__(self):
-		self.successors = StructuredDefaultDict(2, PortalProxy)
-		self.predecessors = StructuredDefaultDict(2, PortalProxy)
+		self.successors = {}
+		self.predecessors = {}
 
 	def store(self, char: Key, u: Key, v: Key, obj: PortalProxy) -> None:
-		self.successors[char][u][v] = obj
-		self.predecessors[char][v][u] = obj
+		succ = self.successors
+		if char in succ:
+			if u in succ[char]:
+				succ[char][u][v] = obj
+			else:
+				succ[char][u] = {v: obj}
+		else:
+			succ[char] = {u: {v: obj}}
+		pred = self.predecessors
+		if char in pred:
+			if v in pred[char]:
+				pred[char][v][u] = obj
+			else:
+				pred[char][v] = {u: obj}
+		else:
+			pred[char] = {v: {u: obj}}
 
 	def delete(self, char: Key, u: Key, v: Key) -> None:
 		succ = self.successors
