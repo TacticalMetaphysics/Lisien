@@ -136,10 +136,11 @@ class ConfigListItemSlider(BoxLayout):
 			self.ids.minimum.text = ""
 
 	def set_max(self, *_):
-		maxx = float(self.ids.minimum.text)
+		maxx = float(self.ids.maximum.text)
 		try:
 			self.parent.set_config(self.parent.key, "max", maxx)
 			self.max = maxx
+			self.ids.maximum.hint_text = str(maxx)
 		except ValueError:
 			self.ids.maximum.text = ""
 
@@ -263,12 +264,14 @@ load_string_once("""
 	TextInput:
 		id: minimum
 		hint_text: str(root.min)
+		multiline: False
 		on_text_validate: root.set_min()
 	Label:
 		text: 'Maximum:'
 	TextInput:
 		id: maximum
 		hint_text: str(root.max)
+		multiline: False
 		on_text_validate: root.set_max()
 <ConfigListItem>:
 	height: 30
