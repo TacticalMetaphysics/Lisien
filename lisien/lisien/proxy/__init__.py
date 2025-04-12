@@ -1270,6 +1270,9 @@ class CharSuccessorsMappingProxy(CachingProxy, RuleFollowerProxy):
 	def _cache_set_munge(self, k, v):
 		return {vk: PortalProxy(self, vk, vv) for (vk, vv) in v.items()}
 
+	def __contains__(self, k):
+		return k in self.character.node
+
 	def __getitem__(self, k):
 		if k not in self.character.node:
 			raise KeyError("No such node in this character", self.name, k)
