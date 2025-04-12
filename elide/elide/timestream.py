@@ -151,7 +151,7 @@ class ThornyRectangle(Button):
 	@triggered(timeout=0.1)
 	def _push_time(self, *_):
 		app = App.get_running_app()
-		app._set_btt(self.branch, self.turn)
+		app.branch, app.turn = self.branch, self.turn
 
 
 class Cross(Widget):
