@@ -1,4 +1,4 @@
-== 0.19.0 | 2025-04-03 ==
+== 0.19.0 | 2025-04-12 ==
 Core:
 * Switched the default storage backend to ParquetDB, which is far more space-efficient.
   Use the `connect_string` parameter if you want a SQL database, which
@@ -13,6 +13,7 @@ Core:
 * Fixed inconsistent handling of planned changes.
 * Fixed some intermittent interprocess sync issues that could result in crashes
   or freezes.
+* Database integrity issues, too.
 * Fixed Thing objects sometimes hanging around after deletion, depending on
   when you closed the engine.
 * The old allegedb submodule no longer exists. Its functionality is now part of
