@@ -138,21 +138,19 @@ class TimePanel(BoxLayout):
 	def set_branch(self, *_):
 		branch = self.ids.branchfield.text
 		self.ids.branchfield.text = ""
-		self.screen.app._set_btt(branch, self.screen.app.turn)
+		self.screen.app.branch = branch
 		self.screen.charmenu.switch_to_menu()
 
 	def set_turn(self, *_):
 		turn = int(self.ids.turnfield.text)
 		self.ids.turnfield.text = ""
-		self.screen.app._set_btt(self.screen.app.branch, turn)
+		self.screen.app.set_turn(turn)
 		self.screen.charmenu.switch_to_menu()
 
 	def set_tick(self, *_):
 		tick = int(self.ids.tickfield.text)
 		self.ids.tickfield.text = ""
-		self.screen.app._set_btt(
-			self.screen.app.branch, self.screen.app.turn, tick
-		)
+		self.screen.app.set_tick(tick)
 		self.screen.charmenu.switch_to_menu()
 
 	@mainthread
@@ -603,7 +601,7 @@ class TurnScroll(Slider):
 		if touch.grab_current == self:
 			app = App.get_running_app()
 			app.engine.time.disconnect(self._receive_time)
-			app._set_btt(app.engine.branch, int(self.value))
+			app.set_turn(int(self.value))
 			app.engine.time.connect(self._receive_time)
 
 
