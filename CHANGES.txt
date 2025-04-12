@@ -5,6 +5,10 @@ Core:
   is still required for historical queries (for now).
 * The engine's `time` property now includes the tick, as well as the branch and
   turn.
+* Added the ability to record "replays" of Elide sessions. You won't really be able
+  to play them back, exactly, but if you set a replayfile in elide.ini's [lisien]
+  section, then send the file to me, I'll be able to reproduce whatever bug you
+  ran into.
 * When using the proxy interface, you can register functions to be called
   whenever the time changes, as `engine_proxy.time.connect(function)`; or
   whenever the rules engine has simulated a turn, as
