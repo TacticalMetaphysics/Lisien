@@ -71315,7 +71315,15 @@ SICKLE_KEYFRAME_0 = {
 			"mate_chance": 0.05,
 			"n_creatures": 5,
 			"unit_rulebook": ("unit_rulebook", "species"),
-			"units": {},
+			"units": {
+				"physical": {
+					"critter0": True,
+					"critter1": True,
+					"critter2": True,
+					"critter3": True,
+					"critter4": True,
+				}
+			},
 		},
 	},
 	"neighborhood": {},
@@ -71416,7 +71424,15 @@ SICKLE_KEYFRAME_1 = {
 			"mate_chance": 0.05,
 			"n_creatures": 5,
 			"unit_rulebook": ("unit_rulebook", "species"),
-			"units": {},
+			"units": {
+				"physical": {
+					"critter0": True,
+					"critter1": True,
+					"critter2": True,
+					"critter3": True,
+					"critter4": True,
+				}
+			},
 		},
 	},
 	"neighborhood": {},
