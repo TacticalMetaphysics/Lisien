@@ -24,7 +24,7 @@ python -m build elide/
 python -m twine check lisien/dist/* elide/dist/*
 python -m twine upload lisien/dist/* elide/dist/*
 python -m twine upload --repository codeberg lisien/dist/* elide/dist/*
-wine ~/lisien_windows/python/python.exe -m pip install --upgrade lisien elide
+wine ~/lisien_windows/python/python.exe -m pip install --upgrade lisien/ elide/
 pyclean ~/lisien_windows
 unix2dos -n CHANGES.txt ~/lisien_windows/CHANGES.txt
 cp -rf docs ~/lisien_windows/
