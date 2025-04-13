@@ -1312,11 +1312,13 @@ class PredecessorsProxy(MutableMapping):
 		self.name = destname
 
 	def __iter__(self):
-		return iter(
-			self.engine._character_portals_cache.predecessors[self._charname][
-				self.name
-			]
-		)
+		preds = self.engine._character_portals_cache.predecessors
+		if (
+			self._charname not in preds
+			or self.name not in preds[self._charname]
+		):
+			return iter(())
+		return iter(preds[self._charname][self.name])
 
 	def __len__(self):
 		preds = self.engine._character_portals_cache.predecessors
