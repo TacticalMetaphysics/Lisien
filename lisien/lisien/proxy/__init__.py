@@ -27,7 +27,6 @@ call its ``start`` method with the same arguments you'd give a real
 
 from __future__ import annotations
 
-
 import ast
 import io
 import logging
@@ -55,14 +54,14 @@ from blinker import Signal
 
 from ..cache import PickyDefaultDict, StructuredDefaultDict
 from ..exc import (
+	AmbiguousUserError,
 	OutOfTimelineError,
 	WorkerProcessReadOnlyError,
-	AmbiguousUserError,
 )
 from ..facade import CharacterFacade
 from ..node import Place, Thing
 from ..portal import Portal
-from ..typing import Key, DeltaDict
+from ..typing import DeltaDict, Key
 from ..util import (
 	AbstractCharacter,
 	AbstractEngine,
@@ -1320,11 +1319,13 @@ class PredecessorsProxy(MutableMapping):
 		)
 
 	def __len__(self):
-		return len(
-			self.engine._character_portals_cache.predecessors[self._charname][
-				self.name
-			]
-		)
+		preds = self.engine._character_portals_cache.predecessors
+		if (
+			self._charname not in preds
+			or self.name not in preds[self._charname]
+		):
+			return 0
+		return len(preds[self._charname][self.name])
 
 	def __contains__(self, k):
 		preds = self.engine._character_portals_cache.predecessors
