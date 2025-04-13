@@ -22,10 +22,10 @@ import pytest
 from lisien import Engine
 from lisien.proxy.handle import EngineHandle
 
-from ..examples import kobold, college, sickle
-from .util import make_test_engine_kwargs
-from . import data
+from ..examples import college, kobold, sickle
 from ..proxy import EngineProxy, WorkerLogger
+from . import data
+from .util import make_test_engine_kwargs
 
 
 @pytest.fixture(scope="function")
