@@ -5,7 +5,8 @@ Core:
   is still required for historical queries (for now).
 * The engine's `time` property now includes the tick, as well as the branch and
   turn.
-* Added the ability to record "replays" of Elide sessions. You won't really be able
+* Added the ability to record "replays" of Elide sessions. They run the same
+  commands on the Lisien core that Elide would. You won't really be able
   to play them back, exactly, but if you set a replayfile in elide.ini's [lisien]
   section, then send the file to me, I'll be able to reproduce whatever bug you
   ran into.
