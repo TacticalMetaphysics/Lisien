@@ -66,9 +66,9 @@ from .cache import (
 	GraphValCache,
 	InitializedEntitylessCache,
 	NodeContentsCache,
-	NodesRulebooksCache,
 	NodeRulesHandledCache,
 	NodesCache,
+	NodesRulebooksCache,
 	NodeValCache,
 	PickyDefaultDict,
 	PortalRulesHandledCache,
@@ -122,12 +122,12 @@ from .typing import (
 from .util import (
 	AbstractEngine,
 	SizedDict,
+	TimeSignalDescriptor,
 	fake_submit,
 	garbage,
 	normalize_layout,
 	sort_set,
 	world_locked,
-	TimeSignalDescriptor,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (

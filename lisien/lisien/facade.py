@@ -11,7 +11,7 @@ from blinker import Signal
 
 from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
 from .exc import NotInKeyframeError, TotalKeyError
-from .graph import Edge, Node, DiGraph
+from .graph import DiGraph, Edge, Node
 from .typing import Key
 from .util import (
 	AbstractCharacter,

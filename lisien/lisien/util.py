@@ -50,9 +50,9 @@ from typing import (
 	Hashable,
 	Iterable,
 	KeysView,
+	Sequence,
 	TypeGuard,
 	Union,
-	Sequence,
 )
 
 import msgpack
