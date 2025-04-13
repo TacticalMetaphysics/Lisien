@@ -183,10 +183,11 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">minimum</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="nf">set_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
-		<span class="n">maxx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">minimum</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+		<span class="n">maxx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">,</span> <span class="n">maxx</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">maxx</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">maxx</span><span class="p">)</span>
 		<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span></div>
 
@@ -209,7 +210,7 @@
 			<span class="p">):</span>
 				<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_control</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 				<span class="k">return</span>
-			<span class="n">wid</span> <span class="o">=</span> <span class="n">ConfigListItemToggleButton</span><span class="p">(</span>
+			<span class="n">wid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_toggle</span> <span class="o">=</span> <span class="n">ConfigListItemToggleButton</span><span class="p">(</span>
 				<span class="n">true_text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;true_text&quot;</span><span class="p">],</span>
 				<span class="n">false_text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;false_text&quot;</span><span class="p">],</span>
 			<span class="p">)</span>
@@ -218,10 +219,22 @@
 			<span class="k">if</span> <span class="s2">&quot;min&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="ow">or</span> <span class="s2">&quot;max&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
 				<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_control</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 				<span class="k">return</span>
-			<span class="n">wid</span> <span class="o">=</span> <span class="n">ConfigListItemSlider</span><span class="p">(</span>
+			<span class="n">wid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slider</span> <span class="o">=</span> <span class="n">ConfigListItemSlider</span><span class="p">(</span>
 				<span class="nb">min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">],</span> <span class="nb">max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;max&quot;</span><span class="p">]</span>
 			<span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span>
+
+	<span class="k">def</span> <span class="nf">on_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_toggle&quot;</span><span class="p">):</span>
+			<span class="k">if</span> <span class="s2">&quot;true_text&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_toggle</span><span class="o">.</span><span class="n">true_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;true_text&quot;</span><span class="p">]</span>
+			<span class="k">if</span> <span class="s2">&quot;false_text&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_toggle</span><span class="o">.</span><span class="n">false_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;false_text&quot;</span><span class="p">]</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_slider&quot;</span><span class="p">):</span>
+			<span class="k">if</span> <span class="s2">&quot;min&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_slider</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">]</span>
+			<span class="k">if</span> <span class="s2">&quot;max&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_slider</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;max&quot;</span><span class="p">]</span></div>
 
 
 
@@ -329,12 +342,14 @@
 <span class="s2">	TextInput:</span>
 <span class="s2">		id: minimum</span>
 <span class="s2">		hint_text: str(root.min)</span>
+<span class="s2">		multiline: False</span>
 <span class="s2">		on_text_validate: root.set_min()</span>
 <span class="s2">	Label:</span>
 <span class="s2">		text: &#39;Maximum:&#39;</span>
 <span class="s2">	TextInput:</span>
 <span class="s2">		id: maximum</span>
 <span class="s2">		hint_text: str(root.max)</span>
+<span class="s2">		multiline: False</span>
 <span class="s2">		on_text_validate: root.set_max()</span>
 <span class="s2">&lt;ConfigListItem&gt;:</span>
 <span class="s2">	height: 30</span>

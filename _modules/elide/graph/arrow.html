@@ -63,7 +63,7 @@
 <span class="kn">from</span> <span class="nn">kivy.core.text</span> <span class="kn">import</span> <span class="n">Label</span>
 <span class="kn">from</span> <span class="nn">kivy.graphics</span> <span class="kn">import</span> <span class="n">Color</span><span class="p">,</span> <span class="n">InstructionGroup</span><span class="p">,</span> <span class="n">Quad</span><span class="p">,</span> <span class="n">Rectangle</span><span class="p">,</span> <span class="n">Translate</span>
 <span class="kn">from</span> <span class="nn">kivy.graphics.fbo</span> <span class="kn">import</span> <span class="n">Fbo</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="n">ListProperty</span><span class="p">,</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span>
+<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="n">ListProperty</span><span class="p">,</span> <span class="n">NumericProperty</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="kn">import</span> <span class="n">Widget</span>
 
 <span class="k">try</span><span class="p">:</span>
@@ -386,6 +386,10 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="bp">self</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">repoint</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
 
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">character</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">character</span>
+
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">board</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">board</span> <span class="o">=</span> <span class="n">board</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">origin</span>
@@ -675,7 +679,7 @@
 	<span class="n">fg_color_selected</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">create_trigger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">redraw</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_redraw_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">arrowhead_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trigger_redraw</span><span class="p">)</span>
@@ -839,7 +843,7 @@
 		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;shaft_fg&quot;</span><span class="p">])</span>
 		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;left_head_fg&quot;</span><span class="p">])</span>
 		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;right_head_fg&quot;</span><span class="p">])</span>
-		<span class="n">grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">])</span>
+		<span class="c1"># grp.add(instructions[&quot;label&quot;])</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">[</span><span class="n">orig_spot</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="n">dest_spot</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_fbo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span>
 		<span class="n">ox</span><span class="p">,</span> <span class="n">oy</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">shaft_points</span>

@@ -52,6 +52,8 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">ValuesView</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
@@ -622,6 +624,12 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
 
 
+	<span class="k">def</span> <span class="nf">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Key</span> <span class="o">|</span> <span class="n">Node</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Connect a portal from here to another node&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span> <span class="o">**</span><span class="n">stats</span>
+		<span class="p">)</span>
+
 <div class="viewcode-block" id="Node.new_portal">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.node.Node.new_portal">[docs]</a>
 	<span class="k">def</span> <span class="nf">new_portal</span><span class="p">(</span>
@@ -632,6 +640,10 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span> <span class="o">**</span><span class="n">stats</span>
 		<span class="p">)</span></div>
 
+
+	<span class="k">def</span> <span class="nf">add_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a new Thing here&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">add_thing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Node.new_thing">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.node.Node.new_thing">[docs]</a>

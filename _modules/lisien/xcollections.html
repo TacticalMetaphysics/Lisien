@@ -222,7 +222,7 @@
 		<span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="p">:</span>
 			<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No attribute &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+			<span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No attribute &quot;</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
@@ -399,9 +399,9 @@
 			<span class="p">)</span>
 		<span class="n">ret</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">Character</span><span class="p">):</span>
-			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;Tried to get a graph that isn&#39;t a Character.</span>
-<span class="s2">				This should never happen. It probably indicates</span>
-<span class="s2">				a bug in allegedb.&quot;&quot;&quot;</span><span class="p">)</span>
+			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+				<span class="s2">&quot;You put something weird in the Character cache&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+			<span class="p">)</span>
 		<span class="k">return</span> <span class="n">ret</span>
 
 	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>

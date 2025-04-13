@@ -811,11 +811,11 @@
 			<span class="p">)</span>
 		<span class="k">if</span> <span class="n">spots_posd</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
-				<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_uid</span>
+				<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_data_uid</span>
 			<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">spots_posd</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_data_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
 				<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_trigger_redraw</span>
 			<span class="p">)</span>
 
@@ -933,10 +933,12 @@
 			<span class="n">pawns_added</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pwn</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">nodes_patch</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">nodes_patch</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_uid</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
+			<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_data_uid</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pawns_added</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_data_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
 			<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_trigger_redraw</span>
 		<span class="p">)</span>
 
@@ -1083,11 +1085,11 @@
 			<span class="n">newspots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spot</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
 		<span class="k">if</span> <span class="n">newspots</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span>
-				<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_uid</span>
+				<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_data_uid</span>
 			<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">newspots</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_redraw_bind_data_uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
 				<span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_plane</span><span class="o">.</span><span class="n">_trigger_redraw</span>
 			<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">spots_unposd</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1263,6 +1265,7 @@
 <span class="s2">		scale_max: root.scale_max</span>
 <span class="s2">		pos: root.pos</span>
 <span class="s2">		size: root.size</span>
+<span class="s2">		size_hint: None, None</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 

@@ -5,8 +5,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>lisien.util &#8212; Lisien 0.19.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
     <script src="../../_static/documentation_options.js?v=cbfb3150"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
@@ -47,18 +47,18 @@
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="sd">&quot;&quot;&quot;Common utility functions and data structures.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Set</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Future</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span><span class="p">,</span> <span class="n">partial</span><span class="p">,</span> <span class="n">wraps</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Set</span>
+<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">Future</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">cached_property</span><span class="p">,</span> <span class="n">partial</span><span class="p">,</span> <span class="n">wraps</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="p">(</span>
 	<span class="n">add</span><span class="p">,</span>
 	<span class="n">attrgetter</span><span class="p">,</span>
 	<span class="n">eq</span><span class="p">,</span>
@@ -73,34 +73,34 @@
 	<span class="n">sub</span><span class="p">,</span>
 	<span class="n">truediv</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">random</span><span class="w"> </span><span class="kn">import</span> <span class="n">Random</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">textwrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">dedent</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">monotonic</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">FunctionType</span><span class="p">,</span> <span class="n">MethodType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">Random</span>
+<span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">dedent</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">monotonic</span>
+<span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">FunctionType</span><span class="p">,</span> <span class="n">MethodType</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
 	<span class="n">Any</span><span class="p">,</span>
 	<span class="n">Callable</span><span class="p">,</span>
 	<span class="n">Hashable</span><span class="p">,</span>
 	<span class="n">Iterable</span><span class="p">,</span>
 	<span class="n">KeysView</span><span class="p">,</span>
+	<span class="n">Sequence</span><span class="p">,</span>
 	<span class="n">TypeGuard</span><span class="p">,</span>
 	<span class="n">Union</span><span class="p">,</span>
-	<span class="n">Sequence</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">msgpack</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">blinker</span><span class="w"> </span><span class="kn">import</span> <span class="n">Signal</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tblib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Traceback</span>
+<span class="kn">import</span> <span class="nn">msgpack</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">blinker</span> <span class="kn">import</span> <span class="n">Signal</span>
+<span class="kn">from</span> <span class="nn">tblib</span> <span class="kn">import</span> <span class="n">Traceback</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">exc</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.exc</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeError</span><span class="p">,</span> <span class="n">WorkerProcessReadOnlyError</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiGraph</span><span class="p">,</span> <span class="n">Edge</span><span class="p">,</span> <span class="n">Node</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Key</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">exc</span>
+<span class="kn">from</span> <span class="nn">.exc</span> <span class="kn">import</span> <span class="n">TimeError</span><span class="p">,</span> <span class="n">WorkerProcessReadOnlyError</span>
+<span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">DiGraph</span><span class="p">,</span> <span class="n">Edge</span><span class="p">,</span> <span class="n">Node</span>
+<span class="kn">from</span> <span class="nn">.typing</span> <span class="kn">import</span> <span class="n">Key</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">KeyClass</span><span class="p">(</span><span class="n">Hashable</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">KeyClass</span><span class="p">(</span><span class="n">Hashable</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Fake class for things lisien can use as keys</span>
 
 <span class="sd">	They have to be serializable using lisien&#39;s particular msgpack schema,</span>
@@ -108,27 +108,27 @@
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">that</span><span class="p">:</span> <span class="n">Key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Key</span><span class="p">:</span>
+	<span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">that</span><span class="p">:</span> <span class="n">Key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Key</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">that</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__instancecheck__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">instance</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TypeGuard</span><span class="p">[</span><span class="n">Key</span><span class="p">]:</span>
+	<span class="k">def</span> <span class="fm">__instancecheck__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">instance</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TypeGuard</span><span class="p">[</span><span class="n">Key</span><span class="p">]:</span>
 		<span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
 			<span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">))</span>
 			<span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">instance</span><span class="p">)</span>
 		<span class="p">)</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">SignalDict</span><span class="p">(</span><span class="n">Signal</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-	<span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">__key</span><span class="p">,</span> <span class="n">__value</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">SignalDict</span><span class="p">(</span><span class="n">Signal</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">__key</span><span class="p">,</span> <span class="n">__value</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">__key</span><span class="p">,</span> <span class="n">__value</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">__key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">__value</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">__key</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">__key</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="n">__key</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">__key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">BadTimeException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">BadTimeException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;You tried to do something that would make sense at a different game-time</span>
 
 <span class="sd">	But doesn&#39;t make sense now</span>
@@ -136,17 +136,17 @@
 <span class="sd">	&quot;&quot;&quot;</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">FinalRule</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">FinalRule</span><span class="p">:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A singleton sentinel for the rule iterator&quot;&quot;&quot;</span>
 
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[]</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="c1"># completely random integer</span>
 		<span class="k">return</span> <span class="mi">6448962173793096248</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">MsgpackExtensionType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">MsgpackExtensionType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Type codes for packing special lisien types into msgpack&quot;&quot;&quot;</span>
 
 	<span class="nb">tuple</span> <span class="o">=</span> <span class="mh">0x00</span>
@@ -161,9 +161,12 @@
 	<span class="n">final_rule</span> <span class="o">=</span> <span class="mh">0x7B</span>
 	<span class="n">function</span> <span class="o">=</span> <span class="mh">0x7A</span>
 	<span class="n">method</span> <span class="o">=</span> <span class="mh">0x79</span>
+	<span class="n">trigger</span> <span class="o">=</span> <span class="mh">0x78</span>
+	<span class="n">prereq</span> <span class="o">=</span> <span class="mh">0x77</span>
+	<span class="n">action</span> <span class="o">=</span> <span class="mh">0x76</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">get_rando</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">get_rando</span><span class="p">:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Attribute getter for randomization functions</span>
 
 <span class="sd">	Aliases functions of a randomizer, wrapped so that they won&#39;t run in</span>
@@ -174,16 +177,16 @@
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_getter&quot;</span><span class="p">,</span> <span class="s2">&quot;_wrapfun&quot;</span><span class="p">,</span> <span class="s2">&quot;_instance&quot;</span><span class="p">)</span>
 	<span class="n">_getter</span><span class="p">:</span> <span class="n">Callable</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="o">*</span><span class="n">attrs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="o">*</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_getter</span> <span class="o">=</span> <span class="n">attrgetter</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="o">*</span><span class="n">attrs</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+	<span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_wrapfun&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instance</span> <span class="ow">is</span> <span class="n">instance</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrapfun</span>
 		<span class="n">retfun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getter</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
 
 		<span class="nd">@wraps</span><span class="p">(</span><span class="n">retfun</span><span class="p">)</span>
-		<span class="k">def</span><span class="w"> </span><span class="nf">remembering_rando_state</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">remembering_rando_state</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 			<span class="k">if</span> <span class="n">instance</span><span class="o">.</span><span class="n">_planning</span><span class="p">:</span>
 				<span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">PlanError</span><span class="p">(</span><span class="s2">&quot;Don&#39;t use randomization in a plan&quot;</span><span class="p">)</span>
 			<span class="n">ret</span> <span class="o">=</span> <span class="n">retfun</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -196,7 +199,7 @@
 
 
 <span class="nd">@contextmanager</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">timer</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">logfun</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">timer</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">logfun</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 	<span class="k">if</span> <span class="n">logfun</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">logfun</span> <span class="o">=</span> <span class="nb">print</span>
 	<span class="n">start</span> <span class="o">=</span> <span class="n">monotonic</span><span class="p">()</span>
@@ -204,12 +207,12 @@
 	<span class="n">logfun</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:,.3f}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span> <span class="n">msg</span><span class="p">))</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">getatt</span><span class="p">(</span><span class="n">attribute_name</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">getatt</span><span class="p">(</span><span class="n">attribute_name</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;An easy way to make an alias&quot;&quot;&quot;</span>
 	<span class="k">return</span> <span class="nb">property</span><span class="p">(</span><span class="n">attrgetter</span><span class="p">(</span><span class="n">attribute_name</span><span class="p">))</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">singleton_get</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">singleton_get</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Take an iterable and return its only item if possible, else None.&quot;&quot;&quot;</span>
 	<span class="n">it</span> <span class="o">=</span> <span class="kc">None</span>
 	<span class="k">for</span> <span class="n">that</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
@@ -219,7 +222,7 @@
 	<span class="k">return</span> <span class="n">it</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">EntityStatAccessor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">EntityStatAccessor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span>
 		<span class="s2">&quot;engine&quot;</span><span class="p">,</span>
 		<span class="s2">&quot;entity&quot;</span><span class="p">,</span>
@@ -231,7 +234,7 @@
 		<span class="s2">&quot;mungers&quot;</span><span class="p">,</span>
 	<span class="p">]</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">entity</span><span class="p">,</span>
 		<span class="n">stat</span><span class="p">,</span>
@@ -259,7 +262,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">mungers</span> <span class="o">=</span> <span class="n">mungers</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">turn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tick</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">turn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tick</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">:</span>
 			<span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">]</span>
 		<span class="k">else</span><span class="p">:</span>
@@ -279,13 +282,13 @@
 			<span class="n">res</span> <span class="o">=</span> <span class="n">munger</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">res</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="p">()</span> <span class="o">!=</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">())</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="s2">&quot;EntityStatAccessor(</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">]</span><span class="si">{}</span><span class="s2">), </span><span class="si">{}</span><span class="s2"> mungers&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span>
@@ -297,22 +300,22 @@
 			<span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mungers</span><span class="p">),</span>
 		<span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="p">()</span> <span class="o">==</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">munge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">munger</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">munge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">munger</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">EntityStatAccessor</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span>
@@ -324,31 +327,31 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">mungers</span> <span class="o">+</span> <span class="p">[</span><span class="n">munger</span><span class="p">],</span>
 		<span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">add</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">mul</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__rpow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">modulo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__rpow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">modulo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="nb">pow</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">modulo</span><span class="o">=</span><span class="n">modulo</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">__rdiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">__rdiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">truediv</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__rfloordiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__rfloordiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">floordiv</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__rmod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__rmod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">munge</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">iter_history</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beginning</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">iter_history</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beginning</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over all the values this stat has had in the given window, inclusive.&quot;&quot;&quot;</span>
 		<span class="c1"># It might be useful to do this in a way that doesn&#39;t change the</span>
 		<span class="c1"># engine&#39;s time, perhaps for thread safety</span>
@@ -371,7 +374,7 @@
 		<span class="n">engine</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">oldtick</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">dedent_source</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">dedent_source</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
 	<span class="n">nlidx</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 	<span class="k">if</span> <span class="n">nlidx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid source&quot;</span><span class="p">)</span>
@@ -381,7 +384,7 @@
 	<span class="k">return</span> <span class="n">dedent</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_sort_set_key</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_sort_set_key</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
 	<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
 		<span class="k">return</span> <span class="p">(</span><span class="mi">2</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
 	<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -389,14 +392,14 @@
 	<span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">SizedDict</span><span class="p">(</span><span class="n">OrderedDict</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">SizedDict</span><span class="p">(</span><span class="n">OrderedDict</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A dictionary that discards old entries when it gets too big.&quot;&quot;&quot;</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_entries</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_entries</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">=</span> <span class="n">max_entries</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
 		<span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">popitem</span><span class="p">(</span><span class="n">last</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
@@ -405,7 +408,7 @@
 <span class="n">_sort_set_memo</span> <span class="o">=</span> <span class="n">SizedDict</span><span class="p">()</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">sort_set</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">sort_set</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Return a sorted list of the contents of a set</span>
 
 <span class="sd">	This is intended to be used to iterate over world state.</span>
@@ -424,7 +427,7 @@
 	<span class="k">return</span> <span class="n">_sort_set_memo</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">fake_submit</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">fake_submit</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A replacement for `concurrent.futures.Executor.submit` that works in serial</span>
 
 <span class="sd">	This is for testing. Use, eg.,</span>
@@ -433,15 +436,15 @@
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="k">class</span><span class="w"> </span><span class="nc">FakeFuture</span><span class="p">(</span><span class="n">Future</span><span class="p">):</span>
-		<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">class</span> <span class="nc">FakeFuture</span><span class="p">(</span><span class="n">Future</span><span class="p">):</span>
+		<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 			<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">set_result</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
 
 	<span class="k">return</span> <span class="n">FakeFuture</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">AbstractEngine</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">AbstractEngine</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Parent class to the real Engine as well as EngineProxy.</span>
 
 <span class="sd">	Implements serialization and the __getattr__ for stored methods.</span>
@@ -458,13 +461,14 @@
 	<span class="n">portal_cls</span><span class="p">:</span> <span class="nb">type</span>
 	<span class="n">char_cls</span><span class="p">:</span> <span class="nb">type</span>
 	<span class="n">character</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="s2">&quot;char_cls&quot;</span><span class="p">]</span>
+	<span class="n">universal</span><span class="p">:</span> <span class="n">Mapping</span>
 	<span class="n">_rando</span><span class="p">:</span> <span class="n">Random</span>
-	<span class="n">_branches_d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span>
+	<span class="n">_branches_d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">pack</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">pack</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="kn">from</span><span class="w"> </span><span class="nn">lise_ormsgpack</span><span class="w"> </span><span class="kn">import</span> <span class="n">packb</span>
+			<span class="kn">from</span> <span class="nn">lise_ormsgpack</span> <span class="kn">import</span> <span class="n">packb</span>
 
 			<span class="k">return</span> <span class="n">packb</span>
 		<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
@@ -526,7 +530,7 @@
 			<span class="p">),</span>
 		<span class="p">}</span>
 
-		<span class="k">def</span><span class="w"> </span><span class="nf">pack_handler</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">pack_handler</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
 			<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">):</span>
 				<span class="n">typ</span> <span class="o">=</span> <span class="ne">Exception</span>
 			<span class="k">else</span><span class="p">:</span>
@@ -574,7 +578,7 @@
 		<span class="k">return</span> <span class="n">packer</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">unpack</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">unpack</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">charmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span>
 		<span class="n">char_cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_cls</span>
 		<span class="n">place_cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">place_cls</span>
@@ -582,6 +586,9 @@
 		<span class="n">portal_cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal_cls</span>
 		<span class="n">function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">function</span>
 		<span class="n">method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span>
+		<span class="n">trigger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trigger</span>
+		<span class="n">prereq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prereq</span>
+		<span class="n">action</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span>
 		<span class="n">excs</span> <span class="o">=</span> <span class="p">{</span>
 			<span class="c1"># builtin exceptions</span>
 			<span class="s2">&quot;AssertionError&quot;</span><span class="p">:</span> <span class="ne">AssertionError</span><span class="p">,</span>
@@ -646,7 +653,7 @@
 			<span class="s2">&quot;WorkerProcessReadOnlyError&quot;</span><span class="p">:</span> <span class="n">exc</span><span class="o">.</span><span class="n">WorkerProcessReadOnlyError</span><span class="p">,</span>
 		<span class="p">}</span>
 
-		<span class="k">def</span><span class="w"> </span><span class="nf">unpack_graph</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">unpack_graph</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
 			<span class="bp">cls</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">adj</span><span class="p">,</span> <span class="n">graph</span> <span class="o">=</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
 			<span class="n">blank</span> <span class="o">=</span> <span class="p">{</span>
 				<span class="s2">&quot;Graph&quot;</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">,</span>
@@ -659,7 +666,7 @@
 			<span class="n">blank</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span>
 			<span class="k">return</span> <span class="n">blank</span>
 
-		<span class="k">def</span><span class="w"> </span><span class="nf">unpack_exception</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">unpack_exception</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
 			<span class="n">data</span> <span class="o">=</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
 			<span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">excs</span><span class="p">:</span>
 				<span class="k">return</span> <span class="ne">Exception</span><span class="p">(</span><span class="o">*</span><span class="n">data</span><span class="p">)</span>
@@ -668,22 +675,22 @@
 				<span class="n">ret</span><span class="o">.</span><span class="n">__traceback__</span> <span class="o">=</span> <span class="n">Traceback</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">to_traceback</span><span class="p">()</span>
 			<span class="k">return</span> <span class="n">ret</span>
 
-		<span class="k">def</span><span class="w"> </span><span class="nf">unpack_char</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">unpack_char</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
 			<span class="n">charn</span> <span class="o">=</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
 			<span class="k">return</span> <span class="n">char_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">init_rulebooks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-		<span class="k">def</span><span class="w"> </span><span class="nf">unpack_place</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">unpack_place</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
 			<span class="n">charn</span><span class="p">,</span> <span class="n">placen</span> <span class="o">=</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
 			<span class="k">return</span> <span class="n">place_cls</span><span class="p">(</span>
 				<span class="n">char_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">init_rulebooks</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">placen</span>
 			<span class="p">)</span>
 
-		<span class="k">def</span><span class="w"> </span><span class="nf">unpack_thing</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">unpack_thing</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
 			<span class="n">charn</span><span class="p">,</span> <span class="n">thingn</span> <span class="o">=</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
 			<span class="c1"># Breaks if the thing hasn&#39;t been instantiated yet, not great</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">charn</span><span class="p">]</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">thingn</span><span class="p">]</span>
 
-		<span class="k">def</span><span class="w"> </span><span class="nf">unpack_portal</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">unpack_portal</span><span class="p">(</span><span class="n">ext</span><span class="p">):</span>
 			<span class="n">charn</span><span class="p">,</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span> <span class="o">=</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
 			<span class="k">return</span> <span class="n">portal_cls</span><span class="p">(</span>
 				<span class="n">char_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charn</span><span class="p">,</span> <span class="n">init_rulebooks</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">orign</span><span class="p">,</span> <span class="n">destn</span>
@@ -706,15 +713,24 @@
 			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">method</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span>
 				<span class="n">method</span><span class="p">,</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
 			<span class="p">),</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span>
+				<span class="n">trigger</span><span class="p">,</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
+			<span class="p">),</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">prereq</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span>
+				<span class="n">prereq</span><span class="p">,</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
+			<span class="p">),</span>
+			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">action</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">ext</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span>
+				<span class="n">action</span><span class="p">,</span> <span class="n">unpacker</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
+			<span class="p">),</span>
 			<span class="n">MsgpackExtensionType</span><span class="o">.</span><span class="n">exception</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">unpack_exception</span><span class="p">,</span>
 		<span class="p">}</span>
 
-		<span class="k">def</span><span class="w"> </span><span class="nf">unpack_handler</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">unpack_handler</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
 			<span class="k">if</span> <span class="n">code</span> <span class="ow">in</span> <span class="n">handlers</span><span class="p">:</span>
 				<span class="k">return</span> <span class="n">handlers</span><span class="p">[</span><span class="n">code</span><span class="p">](</span><span class="n">data</span><span class="p">)</span>
 			<span class="k">return</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 
-		<span class="k">def</span><span class="w"> </span><span class="nf">unpacker</span><span class="p">(</span><span class="n">b</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">unpacker</span><span class="p">(</span><span class="n">b</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">):</span>
 			<span class="n">the_unpacker</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">Unpacker</span><span class="p">(</span>
 				<span class="n">ext_hook</span><span class="o">=</span><span class="n">unpack_handler</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">strict_map_key</span><span class="o">=</span><span class="kc">False</span>
 			<span class="p">)</span>
@@ -727,69 +743,92 @@
 
 		<span class="k">return</span> <span class="n">unpacker</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">branches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeysView</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">branches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeysView</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branches_d</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">branch_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">branch_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">branch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">branch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">branch</span>
 		<span class="k">if</span> <span class="n">branch</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branches_d</span><span class="p">:</span>
 			<span class="k">return</span> <span class="kc">None</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branches_d</span><span class="p">[</span><span class="n">branch</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">_branch_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+	<span class="k">def</span> <span class="nf">_branch_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 		<span class="k">if</span> <span class="n">branch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">branch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">branch</span>
 		<span class="n">_</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branches_d</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
 		<span class="k">return</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">_branch_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+	<span class="k">def</span> <span class="nf">_branch_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 		<span class="k">if</span> <span class="n">branch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">branch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">branch</span>
 		<span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branches_d</span><span class="p">[</span><span class="n">branch</span><span class="p">]</span>
 		<span class="k">return</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">_start_branch</span><span class="p">(</span>
+	<span class="k">def</span> <span class="nf">_start_branch</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">_set_btt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+	<span class="k">def</span> <span class="nf">_set_btt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">_extend_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+	<span class="k">def</span> <span class="nf">_extend_branch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">load_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+	<span class="k">def</span> <span class="nf">load_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">branch_start_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">branch_start_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branch_start</span><span class="p">(</span><span class="n">branch</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">branch_start_tick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">branch_start_tick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branch_start</span><span class="p">(</span><span class="n">branch</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">branch_end_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">branch_end_turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branch_end</span><span class="p">(</span><span class="n">branch</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">branch_end_tick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">branch_end_tick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branch_end</span><span class="p">(</span><span class="n">branch</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">turn_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+	<span class="k">def</span> <span class="nf">turn_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">turn_end_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+	<span class="k">def</span> <span class="nf">turn_end_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">coin_flip</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span> <span class="nf">add_character</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">name</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span>
+		<span class="n">data</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span> <span class="o">|</span> <span class="n">DiGraph</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">layout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+		<span class="n">node</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">edge</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+	<span class="p">):</span> <span class="o">...</span>
+
+	<span class="k">def</span> <span class="nf">new_character</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">name</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span>
+		<span class="n">data</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span> <span class="o">|</span> <span class="n">DiGraph</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">layout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+		<span class="n">node</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">edge</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+	<span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">add_character</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+	<span class="k">def</span> <span class="nf">coin_flip</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return True or False with equal probability.&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">choice</span><span class="p">((</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">die_roll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">die_roll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Roll a die with ``d`` faces. Return the result.&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">dice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+	<span class="k">def</span> <span class="nf">dice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Roll ``n`` dice with ``d`` faces, and yield the results.</span>
 
 <span class="sd">		This is an iterator. You&#39;ll get the result of each die in</span>
@@ -799,7 +838,7 @@
 		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
 			<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">die_roll</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">dice_check</span><span class="p">(</span>
+	<span class="k">def</span> <span class="nf">dice_check</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 		<span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -812,7 +851,7 @@
 <span class="sd">		You may use a string like &#39;&lt;&#39; or &#39;&gt;=&#39;.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">eq</span><span class="p">,</span> <span class="n">ge</span><span class="p">,</span> <span class="n">gt</span><span class="p">,</span> <span class="n">le</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">ne</span>
+		<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">eq</span><span class="p">,</span> <span class="n">ge</span><span class="p">,</span> <span class="n">gt</span><span class="p">,</span> <span class="n">le</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">ne</span>
 
 		<span class="n">comps</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
 			<span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="n">gt</span><span class="p">,</span>
@@ -827,7 +866,7 @@
 			<span class="n">comparator</span> <span class="o">=</span> <span class="n">comps</span><span class="p">[</span><span class="n">comparator</span><span class="p">]</span>
 		<span class="k">return</span> <span class="n">comparator</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dice</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="p">)),</span> <span class="n">target</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">percent_chance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pct</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">percent_chance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pct</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return True or False with a given percentile probability</span>
 
 <span class="sd">		Values not between 0 and 100 are treated as though they</span>
@@ -860,19 +899,19 @@
 	<span class="n">weibullvariate</span> <span class="o">=</span> <span class="n">get_rando</span><span class="p">(</span><span class="s2">&quot;_rando.weibullvariate&quot;</span><span class="p">)</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">SpecialMappingDescriptor</span><span class="p">:</span>
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapclsname</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">SpecialMappingDescriptor</span><span class="p">:</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapclsname</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">mapps</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">mapclsname</span> <span class="o">=</span> <span class="n">mapclsname</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
 		<span class="n">attname</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapclsname</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attname</span><span class="p">):</span>
 			<span class="n">mappcls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapclsname</span><span class="p">)</span>
 			<span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attname</span><span class="p">,</span> <span class="n">mappcls</span><span class="p">(</span><span class="n">instance</span><span class="p">))</span>
 		<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attname</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
 		<span class="n">attname</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapclsname</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attname</span><span class="p">):</span>
 			<span class="n">mappcls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapclsname</span><span class="p">)</span>
@@ -882,7 +921,7 @@
 		<span class="n">it</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">AbstractCharacter</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">AbstractCharacter</span><span class="p">(</span><span class="n">DiGraph</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;The Character API, with all requisite mappings and graph generators.</span>
 
 <span class="sd">	Mappings resemble those of a NetworkX digraph:</span>
@@ -901,28 +940,28 @@
 	<span class="n">db</span><span class="p">:</span> <span class="n">AbstractEngine</span>
 
 	<span class="nd">@staticmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">is_directed</span><span class="p">():</span>
+	<span class="k">def</span> <span class="nf">is_directed</span><span class="p">():</span>
 		<span class="k">return</span> <span class="kc">True</span>
 
 	<span class="nd">@staticmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">is_multigraph</span><span class="p">():</span>
+	<span class="k">def</span> <span class="nf">is_multigraph</span><span class="p">():</span>
 		<span class="k">return</span> <span class="kc">False</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_place</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_places_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_places_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_nodes_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_nodes_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_places_from</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">new_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">new_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Add a Place and return it.</span>
 
 <span class="sd">		If there&#39;s already a Place by that name, put a number on the end.</span>
@@ -939,18 +978,18 @@
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 		<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have a node named </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">new_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">new_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_place</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="k">pass</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_things_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_things_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">new_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">new_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Add a Thing and return it.</span>
 
 <span class="sd">		If there&#39;s already a Thing by that name, put a number on the end.</span>
@@ -970,85 +1009,92 @@
 		<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have a thing named </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">place2thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="n">Key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span> <span class="nf">thing2place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">:</span> <span class="n">Key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+
+	<span class="k">def</span> <span class="nf">remove_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+	<span class="k">def</span> <span class="nf">remove_nodes_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">):</span>
+		<span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">[</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span> <span class="nf">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">new_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_portals_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_portals_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_edges_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_edges_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_portals_from</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">remove_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_portals_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">remove_portals_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
 		<span class="k">for</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_edges_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">remove_edges_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">remove_portals_from</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">remove_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_places_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">remove_places_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
 		<span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">remove_place</span><span class="p">(</span><span class="n">place</span><span class="p">)</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">remove_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_things_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">remove_things_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
 		<span class="k">for</span> <span class="n">thing</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">remove_thing</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
-		<span class="k">pass</span>
-
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_nodes_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
-		<span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-
-	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">add_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">add_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="k">pass</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">remove_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">remove_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AbstractCharacter</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">character</span>
 		<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
 			<span class="k">return</span> <span class="kc">False</span>  <span class="c1"># we can&#39;t &quot;really exist&quot; when we&#39;ve no engine</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adj</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
 	<span class="n">thing</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s2">&quot;ThingMapping&quot;</span><span class="p">)</span>
@@ -1063,16 +1109,16 @@
 	<span class="n">unit</span> <span class="o">=</span> <span class="n">SpecialMappingDescriptor</span><span class="p">(</span><span class="s2">&quot;UnitGraphMapping&quot;</span><span class="p">)</span>
 	<span class="n">stat</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s2">&quot;graph&quot;</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">for</span> <span class="n">units</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
 			<span class="k">yield from</span> <span class="n">units</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
-		<span class="kn">from</span><span class="w"> </span><span class="nn">.query</span><span class="w"> </span><span class="kn">import</span> <span class="n">StatusAlias</span>
+	<span class="k">def</span> <span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
+		<span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="n">StatusAlias</span>
 
 		<span class="k">return</span> <span class="n">StatusAlias</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">do</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">do</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Apply the function to myself, and return myself.</span>
 
 <span class="sd">		Look up the function in the method store if needed. Pass it any</span>
@@ -1086,7 +1132,7 @@
 		<span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">copy_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">copy_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Copy all nodes and edges from the given graph into this.</span>
 
 <span class="sd">		Return myself.</span>
@@ -1115,7 +1161,7 @@
 				<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">renamed</span><span class="p">[</span><span class="n">u</span><span class="p">],</span> <span class="n">renamed</span><span class="p">[</span><span class="n">v</span><span class="p">],</span> <span class="n">symmetrical</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">d</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">become</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">become</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Erase all my nodes and edges. Replace them with a copy of the graph</span>
 <span class="sd">		provided.</span>
 
@@ -1127,12 +1173,12 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">adj</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">adj</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">_lookup_comparator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comparator</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_lookup_comparator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comparator</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">comparator</span><span class="p">):</span>
 			<span class="k">return</span> <span class="n">comparator</span>
 		<span class="n">ops</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ge&quot;</span><span class="p">:</span> <span class="n">ge</span><span class="p">,</span> <span class="s2">&quot;gt&quot;</span><span class="p">:</span> <span class="n">gt</span><span class="p">,</span> <span class="s2">&quot;le&quot;</span><span class="p">:</span> <span class="n">le</span><span class="p">,</span> <span class="s2">&quot;lt&quot;</span><span class="p">:</span> <span class="n">lt</span><span class="p">,</span> <span class="s2">&quot;eq&quot;</span><span class="p">:</span> <span class="n">eq</span><span class="p">}</span>
@@ -1140,7 +1186,7 @@
 			<span class="k">return</span> <span class="n">ops</span><span class="p">[</span><span class="n">comparator</span><span class="p">]</span>
 		<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="n">comparator</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">cull_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">comparator</span><span class="o">=</span><span class="n">ge</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">cull_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">comparator</span><span class="o">=</span><span class="n">ge</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Delete nodes whose stat &gt;= ``threshold`` (default 0.5).</span>
 
 <span class="sd">		Optional argument ``comparator`` will replace &gt;= as the test</span>
@@ -1156,7 +1202,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">remove_nodes_from</span><span class="p">(</span><span class="n">dead</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">cull_portals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">comparator</span><span class="o">=</span><span class="n">ge</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">cull_portals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">comparator</span><span class="o">=</span><span class="n">ge</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Delete portals whose stat &gt;= ``threshold`` (default 0.5).</span>
 
 <span class="sd">		Optional argument ``comparator`` will replace &gt;= as the test</span>
@@ -1180,7 +1226,7 @@
 <span class="n">DiGraph</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">AbstractCharacter</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">normalize_layout</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">normalize_layout</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Make sure all the spots in a layout are where you can click.</span>
 
 <span class="sd">	Returns a copy of the layout with all spot coordinates are</span>
@@ -1211,12 +1257,12 @@
 	<span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ks</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">xnorm</span><span class="p">),</span> <span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">ynorm</span><span class="p">))))</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">AbstractThing</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">AbstractThing</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 	<span class="n">character</span><span class="p">:</span> <span class="n">AbstractCharacter</span>
 	<span class="n">engine</span><span class="p">:</span> <span class="n">AbstractEngine</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;lisien.node.Node&quot;</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;lisien.node.Node&quot;</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;The ``Thing`` or ``Place`` I&#39;m in.&quot;&quot;&quot;</span>
 		<span class="n">locn</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span>
 		<span class="k">if</span> <span class="n">locn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1224,12 +1270,12 @@
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">locn</span><span class="p">)</span>
 
 	<span class="nd">@location</span><span class="o">.</span><span class="n">setter</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;lisien.node.Node&quot;</span><span class="p">,</span> <span class="n">Key</span><span class="p">]):</span>
+	<span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;lisien.node.Node&quot;</span><span class="p">,</span> <span class="n">Key</span><span class="p">]):</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">):</span>
 			<span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span>
 		<span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">go_to_place</span><span class="p">(</span>
+	<span class="k">def</span> <span class="nf">go_to_place</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;lisien.node.Node&quot;</span><span class="p">,</span> <span class="n">Key</span><span class="p">],</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Assuming I&#39;m in a node that has a :class:`Portal` direct</span>
@@ -1259,7 +1305,7 @@
 			<span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">placen</span>
 		<span class="k">return</span> <span class="n">turns</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">follow_path</span><span class="p">(</span>
+	<span class="k">def</span> <span class="nf">follow_path</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Go to several nodes in succession, deciding how long to</span>
@@ -1340,7 +1386,7 @@
 				<span class="bp">self</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subplace</span>
 		<span class="k">return</span> <span class="n">turns_total</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">travel_to</span><span class="p">(</span>
+	<span class="k">def</span> <span class="nf">travel_to</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">dest</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;allegedb.Node&quot;</span><span class="p">,</span> <span class="n">Key</span><span class="p">],</span>
 		<span class="n">weight</span><span class="p">:</span> <span class="n">Key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1375,7 +1421,7 @@
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">follow_path</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">repr_call_sig</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">repr_call_sig</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 	<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
 		<span class="n">func</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span>
 	<span class="k">return</span> <span class="p">(</span>
@@ -1385,14 +1431,14 @@
 	<span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">print_call_sig</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">print_call_sig</span><span class="p">(</span>
 	<span class="n">func</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
 <span class="p">):</span>
 	<span class="nb">print</span><span class="p">(</span><span class="n">repr_call_sig</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">)</span>
 
 
 <span class="nd">@contextmanager</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_garbage_ctx</span><span class="p">(</span><span class="n">collect</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_garbage_ctx</span><span class="p">(</span><span class="n">collect</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Context manager to disable the garbage collector</span>
 
 <span class="sd">	:param collect: Whether to immediately collect garbage upon context exit</span>
@@ -1408,7 +1454,7 @@
 		<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_garbage_dec</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">callable</span><span class="p">,</span> <span class="n">collect</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">_garbage_dec</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">callable</span><span class="p">,</span> <span class="n">collect</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Decorator to disable the garbage collector for a function</span>
 
 <span class="sd">	:param collect: Whether to immediately collect garbage when the function returns</span>
@@ -1416,14 +1462,14 @@
 <span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="nd">@wraps</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">garbage</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">garbage</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="k">with</span> <span class="n">_garbage_ctx</span><span class="p">(</span><span class="n">collect</span><span class="o">=</span><span class="n">collect</span><span class="p">):</span>
 			<span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 	<span class="k">return</span> <span class="n">garbage</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">garbage</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">collect</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">garbage</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">collect</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Disable the garbage collector, then re-enable it when done.</span>
 
 <span class="sd">	May be used as a context manager or a decorator.</span>
@@ -1439,7 +1485,7 @@
 		<span class="k">return</span> <span class="n">_garbage_dec</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">collect</span><span class="o">=</span><span class="n">collect</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">world_locked</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">world_locked</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Decorator for functions that alter the world state</span>
 
 <span class="sd">	They will hold a reentrant lock, preventing more than one function</span>
@@ -1448,33 +1494,34 @@
 <span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="nd">@wraps</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">lockedy</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">lockedy</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="k">with</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">world_lock</span><span class="p">:</span>
 			<span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 	<span class="k">return</span> <span class="n">lockedy</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">TimeSignal</span><span class="p">(</span><span class="n">Signal</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;Acts like a tuple of ``(branch, turn)`` for the most part.</span>
+<span class="k">class</span> <span class="nc">TimeSignal</span><span class="p">(</span><span class="n">Signal</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Acts like a tuple of ``(branch, turn, tick)`` for the most part.</span>
 
 <span class="sd">	This is a ``Signal``. To set a function to be called whenever the</span>
 <span class="sd">	branch or turn changes, pass it to my ``connect`` method.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;AbstractEngine&quot;</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;AbstractEngine&quot;</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">branch</span>
 		<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span>
+		<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">tick</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="mi">2</span>
+	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="mi">3</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">:</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;branch&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">branch</span>
 		<span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;turn&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
@@ -1484,7 +1531,7 @@
 		<span class="k">else</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;branch&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">branch</span> <span class="o">=</span> <span class="n">v</span>
 		<span class="k">elif</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;turn&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
@@ -1495,37 +1542,37 @@
 				<span class="s2">&quot;Can only set branch or turn. Set `Engine.tick` directly if you really want that.&quot;</span>
 			<span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">!=</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">other</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">other</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">TimeSignalDescriptor</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">TimeSignalDescriptor</span><span class="p">:</span>
 	<span class="vm">__doc__</span> <span class="o">=</span> <span class="n">TimeSignal</span><span class="o">.</span><span class="vm">__doc__</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="s2">&quot;_time_signal&quot;</span><span class="p">):</span>
 			<span class="n">inst</span><span class="o">.</span><span class="n">_time_signal</span> <span class="o">=</span> <span class="n">TimeSignal</span><span class="p">(</span><span class="n">inst</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">inst</span><span class="o">.</span><span class="n">_time_signal</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">:</span> <span class="s2">&quot;AbstractEngine&quot;</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]):</span>
+	<span class="k">def</span> <span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">:</span> <span class="s2">&quot;AbstractEngine&quot;</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]):</span>
 		<span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="s2">&quot;_worker&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="n">WorkerProcessReadOnlyError</span><span class="p">(</span>
 				<span class="s2">&quot;Tried to change the world state in a worker process&quot;</span>
@@ -1534,8 +1581,12 @@
 			<span class="n">inst</span><span class="o">.</span><span class="n">_time_signal</span> <span class="o">=</span> <span class="n">TimeSignal</span><span class="p">(</span><span class="n">inst</span><span class="p">)</span>
 		<span class="n">sig</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">_time_signal</span>
 		<span class="n">branch_then</span><span class="p">,</span> <span class="n">turn_then</span><span class="p">,</span> <span class="n">tick_then</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
-		<span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span> <span class="o">=</span> <span class="n">val</span>
-		<span class="k">if</span> <span class="p">(</span><span class="n">branch_then</span><span class="p">,</span> <span class="n">turn_then</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span><span class="p">):</span>
+		<span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span><span class="p">,</span> <span class="n">tick_now</span> <span class="o">=</span> <span class="n">val</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">branch_then</span><span class="p">,</span> <span class="n">turn_then</span><span class="p">,</span> <span class="n">tick_then</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span>
+			<span class="n">branch_now</span><span class="p">,</span>
+			<span class="n">turn_now</span><span class="p">,</span>
+			<span class="n">tick_now</span><span class="p">,</span>
+		<span class="p">):</span>
 			<span class="k">return</span>
 		<span class="n">e</span> <span class="o">=</span> <span class="n">inst</span>
 		<span class="c1"># enforce the arrow of time, if it&#39;s in effect</span>
@@ -1557,13 +1608,11 @@
 		<span class="c1"># destination branch</span>
 
 		<span class="k">if</span> <span class="n">branch_now</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">branches</span><span class="p">():</span>
-			<span class="n">tick_now</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">turn_end_plan</span><span class="p">(</span><span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span><span class="p">)</span> <span class="ow">or</span> <span class="n">tick_then</span>
 			<span class="n">e</span><span class="o">.</span><span class="n">_extend_branch</span><span class="p">(</span><span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span><span class="p">,</span> <span class="n">tick_now</span><span class="p">)</span>
 			<span class="n">e</span><span class="o">.</span><span class="n">load_at</span><span class="p">(</span><span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span><span class="p">,</span> <span class="n">tick_now</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="n">tick_now</span> <span class="o">=</span> <span class="n">tick_then</span>
 			<span class="n">e</span><span class="o">.</span><span class="n">_start_branch</span><span class="p">(</span><span class="n">branch_then</span><span class="p">,</span> <span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span><span class="p">,</span> <span class="n">tick_now</span><span class="p">)</span>
-		<span class="n">e</span><span class="o">.</span><span class="n">_set_btt</span><span class="p">(</span><span class="o">*</span><span class="n">val</span><span class="p">,</span> <span class="n">tick_now</span><span class="p">)</span>
+		<span class="n">e</span><span class="o">.</span><span class="n">_set_btt</span><span class="p">(</span><span class="n">branch_now</span><span class="p">,</span> <span class="n">turn_now</span><span class="p">,</span> <span class="n">tick_now</span><span class="p">)</span>
 		<span class="n">sig</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
 			<span class="n">e</span><span class="p">,</span>
 			<span class="n">branch_then</span><span class="o">=</span><span class="n">branch_then</span><span class="p">,</span>
@@ -1639,7 +1688,7 @@
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>
