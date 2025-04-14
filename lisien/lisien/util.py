@@ -546,10 +546,8 @@ class AbstractEngine(ABC):
 
 	@cached_property
 	def unpack(self):
-		charmap = self.character
 		char_cls = self.char_cls
 		place_cls = self.place_cls
-		thing_cls = self.thing_cls
 		portal_cls = self.portal_cls
 		function = self.function
 		method = self.method
