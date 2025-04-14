@@ -2261,13 +2261,21 @@ class Engine(AbstractEngine, Executor):
 				self._turn_end[branch, turn] = tick
 
 	def _get_keyframe(
-		self, branch: str, turn: int, tick: int, copy=True, silent=False
+		self,
+		branch: str,
+		turn: int,
+		tick: int,
+		copy=True,
+		rulebooks=True,
+		silent=False,
 	):
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
 			if silent:
 				return
-			return self._get_kf(branch, turn, tick, copy=copy)
+			return self._get_kf(
+				branch, turn, tick, copy=copy, rulebooks=rulebooks
+			)
 		univ, rule, rulebook = self.query.get_keyframe_extensions(
 			branch, turn, tick
 		)
@@ -2578,7 +2586,7 @@ class Engine(AbstractEngine, Executor):
 			return False
 
 	def _get_kf(
-		self, branch: str, turn: int, tick: int, copy=True
+		self, branch: str, turn: int, tick: int, copy=True, rulebooks=True
 	) -> dict[
 		Key,
 		GraphNodesDict
@@ -2643,89 +2651,96 @@ class Engine(AbstractEngine, Executor):
 			except KeyframeError:
 				pass
 
-		for graph, vals in kf["graph_val"].items():
-			try:
-				vals["units"] = self._unitness_cache.get_keyframe(
-					graph, branch, turn, tick
-				)
-			except KeyError:
-				pass
-			try:
-				vals["character_rulebook"] = (
-					self._characters_rulebooks_cache.retrieve(
-						graph, branch, turn, tick
-					)
-				)
-			except KeyError:
-				pass
-			try:
-				vals["unit_rulebook"] = self._units_rulebooks_cache.retrieve(
-					graph, branch, turn, tick
-				)
-			except KeyError:
-				pass
-			try:
-				vals["character_thing_rulebook"] = (
-					self._characters_things_rulebooks_cache.retrieve(
-						graph, branch, turn, tick
-					)
-				)
-			except KeyError:
-				pass
-			try:
-				vals["character_place_rulebook"] = (
-					self._characters_places_rulebooks_cache.retrieve(
-						graph, branch, turn, tick
-					)
-				)
-			except KeyError:
-				pass
-			try:
-				vals["character_portal_rulebook"] = (
-					self._characters_portals_rulebooks_cache.retrieve(
-						graph, branch, turn, tick
-					)
-				)
-			except KeyError:
-				pass
-			if graph in kf["nodes"] and kf["nodes"][graph]:
+		if rulebooks:
+			for graph, vals in kf["graph_val"].items():
 				try:
-					node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
+					vals["units"] = self._unitness_cache.get_keyframe(
 						graph, branch, turn, tick
 					)
-				except KeyframeError:
-					node_rb_kf = {}
-				for node in kf["nodes"][graph]:
-					kf.setdefault("node_val", {}).setdefault(
-						graph, {}
-					).setdefault(node, {})["rulebook"] = node_rb_kf.get(
-						node, (graph, node)
-					)
-			if graph in kf["edges"] and kf["edges"][graph]:
+				except KeyError:
+					pass
 				try:
-					port_rb_kf = self._portals_rulebooks_cache.get_keyframe(
-						graph, branch, turn, tick
-					)
-				except KeyframeError:
-					port_rb_kf = {}
-				if graph not in kf["edge_val"]:
-					kf["edge_val"][graph] = {}
-				kf_graph_edge_val = kf["edge_val"][graph]
-				for orig in kf["edges"][graph]:
-					if orig not in kf_graph_edge_val:
-						kf_graph_edge_val[orig] = {}
-					kf_graph_orig_edge_val = kf_graph_edge_val[orig]
-					if orig not in port_rb_kf:
-						port_rb_kf[orig] = {}
-					port_rb_kf_dests = port_rb_kf[orig]
-					for dest in kf["edges"][graph][orig]:
-						if dest not in kf_graph_orig_edge_val:
-							kf_graph_orig_edge_val[dest] = {}
-						kf_graph_dest_edge_val = kf_graph_orig_edge_val[dest]
-						rulebook = port_rb_kf_dests.get(
-							dest, (graph, orig, dest)
+					vals["character_rulebook"] = (
+						self._characters_rulebooks_cache.retrieve(
+							graph, branch, turn, tick
 						)
-						kf_graph_dest_edge_val["rulebook"] = rulebook
+					)
+				except KeyError:
+					pass
+				try:
+					vals["unit_rulebook"] = (
+						self._units_rulebooks_cache.retrieve(
+							graph, branch, turn, tick
+						)
+					)
+				except KeyError:
+					pass
+				try:
+					vals["character_thing_rulebook"] = (
+						self._characters_things_rulebooks_cache.retrieve(
+							graph, branch, turn, tick
+						)
+					)
+				except KeyError:
+					pass
+				try:
+					vals["character_place_rulebook"] = (
+						self._characters_places_rulebooks_cache.retrieve(
+							graph, branch, turn, tick
+						)
+					)
+				except KeyError:
+					pass
+				try:
+					vals["character_portal_rulebook"] = (
+						self._characters_portals_rulebooks_cache.retrieve(
+							graph, branch, turn, tick
+						)
+					)
+				except KeyError:
+					pass
+				if graph in kf["nodes"] and kf["nodes"][graph]:
+					try:
+						node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
+							graph, branch, turn, tick
+						)
+					except KeyframeError:
+						node_rb_kf = {}
+					for node in kf["nodes"][graph]:
+						kf.setdefault("node_val", {}).setdefault(
+							graph, {}
+						).setdefault(node, {})["rulebook"] = node_rb_kf.get(
+							node, (graph, node)
+						)
+				if graph in kf["edges"] and kf["edges"][graph]:
+					try:
+						port_rb_kf = (
+							self._portals_rulebooks_cache.get_keyframe(
+								graph, branch, turn, tick
+							)
+						)
+					except KeyframeError:
+						port_rb_kf = {}
+					if graph not in kf["edge_val"]:
+						kf["edge_val"][graph] = {}
+					kf_graph_edge_val = kf["edge_val"][graph]
+					for orig in kf["edges"][graph]:
+						if orig not in kf_graph_edge_val:
+							kf_graph_edge_val[orig] = {}
+						kf_graph_orig_edge_val = kf_graph_edge_val[orig]
+						if orig not in port_rb_kf:
+							port_rb_kf[orig] = {}
+						port_rb_kf_dests = port_rb_kf[orig]
+						for dest in kf["edges"][graph][orig]:
+							if dest not in kf_graph_orig_edge_val:
+								kf_graph_orig_edge_val[dest] = {}
+							kf_graph_dest_edge_val = kf_graph_orig_edge_val[
+								dest
+							]
+							rulebook = port_rb_kf_dests.get(
+								dest, (graph, orig, dest)
+							)
+							kf_graph_dest_edge_val["rulebook"] = rulebook
 			try:
 				locs_kf = self._things_cache.get_keyframe(
 					graph, branch, turn, tick
@@ -3166,7 +3181,7 @@ class Engine(AbstractEngine, Executor):
 		assert then[0] == now[0]
 		if then == now:
 			return
-		keyframe = self._get_keyframe(*then)
+		keyframe = self._get_keyframe(*then, rulebooks=False)
 		graph_val_keyframe: dict[Key, GraphValDict] = keyframe["graph_val"]
 		nodes_keyframe: dict[Key, GraphNodesDict] = keyframe["nodes"]
 		node_val_keyframe: dict[Key, GraphNodeValDict] = keyframe["node_val"]
