@@ -2,6 +2,8 @@ import random
 
 import networkx as nx
 
+import lisien.db
+
 
 def install(eng, seed=None):
 	if seed is not None:
@@ -66,7 +68,7 @@ def install(eng, seed=None):
 			fut.thing = thing
 			fut.add_done_callback(log_as_completed)
 			futs.append(fut)
-		with char.engine.batch():
+		with lisien.db.batch():
 			for fut in futs:
 				try:
 					result = fut.result()
