@@ -1943,7 +1943,6 @@ class Engine(AbstractEngine, Executor):
 		keep_rules_journal: bool = True,
 		keyframe_on_close: bool = True,
 		enforce_end_of_time: bool = True,
-		threaded_triggers: bool = None,
 		workers: int = None,
 	):
 		connect_args = connect_args or {}
