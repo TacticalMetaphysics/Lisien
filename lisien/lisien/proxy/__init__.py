@@ -1915,6 +1915,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 
 	def _apply_delta(self, delta):
 		delta = delta.copy()
+		deleted_nodes = set()
 		for node, ex in delta.pop("nodes", {}).items():
 			if ex:
 				if node not in self.node:
@@ -1929,6 +1930,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 						self.place.send(prox, key=None, value=True)
 					self.node.send(prox, key=None, value=True)
 			elif node in self.node:
+				deleted_nodes.add(node)
 				prox = self.node[node]
 				if node in self.place._cache:
 					del self.place._cache[node]
@@ -1943,6 +1945,8 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 						)
 					)
 				self.node.send(prox, key=None, value=False)
+			else:
+				deleted_nodes.add(node)
 		for orig, dests in delta.pop("edges", {}).items():
 			for dest, ex in dests.items():
 				if ex:
@@ -1968,7 +1972,9 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		engine = self.engine
 		node_stat_cache = engine._node_stat_cache
 		for node, nodedelta in delta.pop("node_val", {}).items():
-			if node not in nodemap or node not in node_stat_cache[name]:
+			if node in deleted_nodes:
+				continue
+			elif node not in node_stat_cache[name]:
 				rulebook = nodedelta.pop("rulebook", None)
 				node_stat_cache[name][node] = nodedelta
 				if rulebook:
