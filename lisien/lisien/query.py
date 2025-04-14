@@ -4355,24 +4355,6 @@ class AbstractQueryEngine:
 				self._get_one_window(ret, *window)
 			assert self._outq.empty()
 
-	def comparison(
-		self,
-		entity0: Key,
-		stat0: Key,
-		entity1: Key,
-		stat1: Key = None,
-		oper: str = "eq",
-		windows: list = None,
-	):
-		if windows is None:
-			windows = []
-		stat1 = stat1 or stat0
-		return comparisons[oper](
-			leftside=entity0.status(stat0),
-			rightside=entity1.status(stat1),
-			windows=windows,
-		)
-
 	_records: int
 	kf_interval_override: callable
 	keyframe_interval: int | None
