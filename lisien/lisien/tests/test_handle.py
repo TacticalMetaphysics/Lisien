@@ -1,34 +1,21 @@
-from types import SimpleNamespace
-
 import pytest
 
 from lisien import Engine
 from lisien.proxy.handle import EngineHandle
-from lisien.tests import data
 
 
 @pytest.fixture
 def handle_empty(tmp_path, database):
 	Engine(
-		tmp_path,
+		tmp_path if database == "parquetdb" else None,
 		workers=0,
-		function=SimpleNamespace(),
-		method=SimpleNamespace(),
-		trigger=SimpleNamespace(),
-		prereq=SimpleNamespace(),
-		action=SimpleNamespace(),
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
 		else None,
 	).close()
 	handle = EngineHandle(
-		tmp_path,
+		tmp_path if database == "parquetdb" else None,
 		workers=0,
-		function=SimpleNamespace(),
-		method=SimpleNamespace(),
-		trigger=SimpleNamespace(),
-		prereq=SimpleNamespace(),
-		action=SimpleNamespace(),
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
 		else None,

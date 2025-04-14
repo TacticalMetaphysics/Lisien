@@ -36,7 +36,6 @@ class ProxyTest(lisien.tests.test_all.AllegedTest):
 			connect_string="sqlite:///:memory:",
 			enforce_end_of_time=False,
 			workers=0,
-			threaded_triggers=False,
 		)
 		self.graphmakers = (self.engine.new_character,)
 		self.addCleanup(self._do_cleanup)
@@ -223,7 +222,6 @@ def mocked_keyframe(tmp_path):
 			random_seed=69105,
 			enforce_end_of_time=False,
 			keyframe_on_close=False,
-			threaded_triggers=False,
 			workers=0,
 		) as eng,
 	):

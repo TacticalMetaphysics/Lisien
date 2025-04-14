@@ -38,7 +38,7 @@ from queue import Empty, SimpleQueue
 from random import Random
 from threading import Lock, RLock, Thread
 from time import sleep
-from types import FunctionType, MethodType, ModuleType, SimpleNamespace
+from types import FunctionType, MethodType, ModuleType
 from typing import Any, Callable, Iterator, Type
 
 import msgpack
@@ -103,7 +103,7 @@ from .query import (
 	StatusAlias,
 	_make_side_sel,
 )
-from .db import ParquetQueryEngine, SQLAlchemyQueryEngine
+from .db import ParquetQueryEngine, SQLAlchemyQueryEngine, NullQueryEngine
 from .rule import AllRuleBooks, AllRules, Rule
 from .typing import (
 	DeltaDict,
@@ -468,7 +468,6 @@ class Engine(AbstractEngine, Executor):
 	thing_cls = Thing
 	place_cls = node_cls = Place
 	portal_cls = edge_cls = Portal
-	query_engine_cls = SQLAlchemyQueryEngine
 	illegal_graph_names = {
 		"global",
 		"eternal",
@@ -1870,16 +1869,6 @@ class Engine(AbstractEngine, Executor):
 		self._unitness_cache = UnitnessCache(self)
 		self._turns_completed_d = {}
 		self.universal = UniversalMapping(self)
-		if hasattr(self, "_action_file"):
-			self.action = FunctionStore(self._action_file)
-		if hasattr(self, "_prereq_file"):
-			self.prereq = FunctionStore(self._prereq_file)
-		if hasattr(self, "_trigger_file"):
-			self.trigger = FunctionStore(self._trigger_file)
-		if hasattr(self, "_function_file"):
-			self.function = FunctionStore(self._function_file)
-		if hasattr(self, "_method_file"):
-			self.method = FunctionStore(self._method_file)
 		self.rule = AllRules(self)
 		self.rulebook = AllRuleBooks(self)
 		self._keyframes_dict = PickyDefaultDict(WindowDict)
@@ -1922,14 +1911,14 @@ class Engine(AbstractEngine, Executor):
 	@world_locked
 	def __init__(
 		self,
-		prefix: PathLike | str = ".",
+		prefix: PathLike | str | None = ".",
 		*,
 		string: StringStore | dict = None,
-		trigger: FunctionStore | ModuleType | SimpleNamespace = None,
-		prereq: FunctionStore | ModuleType | SimpleNamespace = None,
-		action: FunctionStore | ModuleType | SimpleNamespace = None,
-		function: FunctionStore | ModuleType | SimpleNamespace = None,
-		method: FunctionStore | ModuleType | SimpleNamespace = None,
+		trigger: FunctionStore | ModuleType = None,
+		prereq: FunctionStore | ModuleType = None,
+		action: FunctionStore | ModuleType = None,
+		function: FunctionStore | ModuleType = None,
+		method: FunctionStore | ModuleType = None,
 		main_branch: str = None,
 		connect_string: str = None,
 		connect_args: dict = None,
@@ -1945,6 +1934,15 @@ class Engine(AbstractEngine, Executor):
 		enforce_end_of_time: bool = True,
 		workers: int = None,
 	):
+		if prefix is None:
+			if workers not in (None, 0):
+				raise ValueError(
+					"Can't use worker processes without a prefix "
+					"in which to keep the code they'll run"
+				)
+			workers = 0
+		else:
+			workers = workers or os.cpu_count() or 0
 		connect_args = connect_args or {}
 		self._planning = False
 		self._forward = False
@@ -1966,25 +1964,9 @@ class Engine(AbstractEngine, Executor):
 
 		self.log = logfun
 		self._prefix = prefix
-		if connect_string is None:
-			self.query_engine_cls = ParquetQueryEngine
-			connect_string = os.path.join(os.path.abspath(prefix), "world")
-		if connect_args is None:
-			connect_args = {}
-		if not os.path.exists(prefix):
-			os.mkdir(prefix)
-		if not os.path.isdir(prefix):
-			raise FileExistsError("Need a directory")
 		self.keep_rules_journal = keep_rules_journal
 		self._keyframe_on_close = keyframe_on_close
-		if string:
-			self.string = string
-		else:
-			self._string_prefix = os.path.join(prefix, "strings")
-			if clear and os.path.isdir(self._string_prefix):
-				shutil.rmtree(self._string_prefix)
-			if not os.path.exists(self._string_prefix):
-				os.mkdir(self._string_prefix)
+		self.schema = schema_cls(self)
 		for module, name in (
 			(function, "function"),
 			(method, "method"),
@@ -1992,24 +1974,54 @@ class Engine(AbstractEngine, Executor):
 			(prereq, "prereq"),
 			(action, "action"),
 		):
-			if module:
+			if isinstance(module, ModuleType):
 				setattr(self, name, module)
+			elif prefix is None:
+				setattr(self, name, FunctionStore(None, module=name))
 			else:
 				fn = os.path.join(prefix, f"{name}.py")
-				setattr(self, f"_{name}_file", fn)
+				setattr(self, name, FunctionStore(fn, module=name))
 				if clear and os.path.exists(fn):
 					os.remove(fn)
-		self.schema = schema_cls(self)
-		self._init_caches()
-		if not hasattr(self, "query"):
-			self.query = self.query_engine_cls(
-				connect_string,
-				connect_args,
-				getattr(self, "pack", None),
-				getattr(self, "unpack", None),
+		if prefix is None:
+			if connect_string is None:
+				self.query = NullQueryEngine()
+			else:
+				self.query = SQLAlchemyQueryEngine(
+					connect_string, connect_args, self.pack, self.unpack
+				)
+		else:
+			if not os.path.exists(prefix):
+				os.mkdir(prefix)
+			if not os.path.isdir(prefix):
+				raise FileExistsError("Need a directory")
+			self.query = ParquetQueryEngine(
+				os.path.join(prefix, "world"),
+				self.pack,
+				self.unpack,
 			)
-		if clear:
-			self.query.truncate_all()
+			if clear:
+				self.query.truncate_all()
+		if string:
+			self.string = string
+		elif prefix is None:
+			self.string = StringStore(
+				self.eternal,
+				None,
+				self.eternal.setdefault("language", "eng"),
+			)
+		else:
+			string_prefix = os.path.join(prefix, "strings")
+			if clear and os.path.isdir(string_prefix):
+				shutil.rmtree(string_prefix)
+			if not os.path.exists(string_prefix):
+				os.mkdir(string_prefix)
+			self.string = StringStore(
+				self.eternal,
+				string_prefix,
+				self.eternal.setdefault("language", "eng"),
+			)
+		self._init_caches()
 		self._edge_val_cache.setdb = self.query.edge_val_set
 		self._edge_val_cache.deldb = self.query.edge_val_del_time
 		self._node_val_cache.setdb = self.query.node_val_set
@@ -2023,7 +2035,6 @@ class Engine(AbstractEngine, Executor):
 		self._things_cache.setdb = self.query.set_thing_loc
 		self._universal_cache.setdb = self.query.universal_set
 		self._rulebooks_cache.setdb = self.query.rulebook_set
-		self.query.initdb()
 		self._load_keyframe_times()
 		if main_branch is not None:
 			self.query.globl["main_branch"] = main_branch
@@ -2101,12 +2112,6 @@ class Engine(AbstractEngine, Executor):
 		}
 		with garbage():
 			self._load(*self._read_at(*self._btt()))
-		if hasattr(self, "_string_prefix"):
-			self.string = StringStore(
-				self,
-				self._string_prefix,
-				self.eternal.setdefault("language", "eng"),
-			)
 		self.next_turn = NextTurn(self)
 		self.commit_interval = commit_interval
 		self.query.keyframe_interval = keyframe_interval
@@ -2130,10 +2135,6 @@ class Engine(AbstractEngine, Executor):
 				self.universal["rando_state"] = rando_state
 		if not self._keyframes_times:
 			self._snap_keyframe_de_novo(*self._btt())
-		if workers is None:
-			workers = os.cpu_count() or 0
-		if workers != 0:
-			self._trigger_pool = ThreadPoolExecutor()
 		self._top_uid = 0
 		if workers > 0:
 
@@ -2145,6 +2146,7 @@ class Engine(AbstractEngine, Executor):
 				if hasattr(store, "save"):
 					store.save(reimport=False)
 
+			self._trigger_pool = ThreadPoolExecutor()
 			self._worker_last_eternal = dict(self.eternal.items())
 			initial_payload = self._get_worker_kf_payload(-1)
 
@@ -2171,6 +2173,11 @@ class Engine(AbstractEngine, Executor):
 						inpipe_there,
 						outpipe_there,
 						logq,
+						self.function._locl,
+						self.method._locl,
+						self.trigger._locl,
+						self.prereq._locl,
+						self.action._locl,
 					),
 				)
 				wi.append(inpipe_here)
@@ -4250,7 +4257,13 @@ class Engine(AbstractEngine, Executor):
 	def submit(
 		self, fn: FunctionType | MethodType, /, *args, **kwargs
 	) -> Future:
-		if fn.__module__ not in {"function", "method", "trigger"}:
+		if fn.__module__ not in {
+			"function",
+			"method",
+			"trigger",
+			"prereq",
+			"action",
+		}:
 			raise ValueError(
 				"Function is not stored in this lisien engine. "
 				"Use, eg., the engine's attribute `function` to store it."
@@ -4447,7 +4460,7 @@ class Engine(AbstractEngine, Executor):
 		branch, turn, tick = self._btt()
 		self._graph_cache.store(name, branch, turn, tick, type_s)
 		self.snap_keyframe(silent=True, update_worker_processes=False)
-		self.query.new_graph(name, branch, turn, tick, type_s)
+		self.query.graphs_insert(name, branch, turn, tick, type_s)
 		self._extend_branch(branch, turn, tick)
 		if isinstance(data, DiGraph):
 			nodes = data._nodes_state()
@@ -5042,7 +5055,7 @@ class Engine(AbstractEngine, Executor):
 		for store in self.stores:
 			if hasattr(store, "save"):
 				store.save(reimport=False)
-			if not hasattr(store, "_filename"):
+			if not hasattr(store, "_filename") or store._filename is None:
 				continue
 			path, filename = os.path.split(store._filename)
 			modname = filename[:-3]

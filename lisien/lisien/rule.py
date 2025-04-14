@@ -118,9 +118,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 			return v.__name__
 		if not hasattr(self._funcstore, v):
 			raise KeyError(
-				"No {typ} function named {n}".format(
-					typ=self._funcstore._filename.rstrip(".py"), n=v
-				)
+				"No function by that name in this store", v, self._funcstore
 			)
 		return v
 

@@ -1,9 +1,7 @@
 from itertools import cycle
-from types import SimpleNamespace
 
 import pytest
 
-from ..engine import Engine
 from ..exc import HistoricKeyError
 from ..window import WindowDict
 from .util import make_test_engine

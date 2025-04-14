@@ -21,6 +21,7 @@ import pytest
 
 from lisien import Engine
 from lisien.proxy.handle import EngineHandle
+from lisien.xcollections import FunctionStore, StringStore
 
 from ..examples import college, kobold, sickle
 from ..proxy import EngineProxy, WorkerLogger
@@ -56,6 +57,13 @@ def handle_initialized(request, tmp_path, database):
 		assert request.param == "sickle"
 		install = sickle.install
 		keyframe = {0: data.SICKLE_KEYFRAME_0, 1: data.SICKLE_KEYFRAME_1}
+	if database == "null":
+		ret = EngineHandle(None, workers=0, random_seed=69105)
+		install(ret._real)
+		ret.keyframe = keyframe
+		yield ret
+		ret.close()
+		return
 	with Engine(
 		tmp_path,
 		workers=0,
@@ -80,19 +88,37 @@ def handle_initialized(request, tmp_path, database):
 def pytest_addoption(parser):
 	parser.addoption("--no-parallel", action="store_true", default=False)
 	parser.addoption("--no-sqlite", action="store_true", default=False)
+	parser.addoption("--no-parquetdb", action="store_true", default=False)
 
 
-@pytest.fixture(params=["proxy", "parallel", "serial"])
+@pytest.fixture(params=["proxy", "serial", "parallel"])
 def execution(request):
 	if request.config.getoption("no_parallel") and request.param == "parallel":
 		raise pytest.skip("Skipping parallel execution.")
 	return request.param
 
 
-@pytest.fixture(params=["sqlite", "parquetdb"])
+@pytest.fixture(params=["null", "parquetdb", "sqlite"])
 def database(request):
 	if request.config.getoption("no_sqlite") and request.param == "sqlite":
 		raise pytest.skip("Skipping SQLite.")
+	if (
+		request.config.getoption("no_parquetdb")
+		and request.param == "parquetdb"
+	):
+		raise pytest.skip("Skipping ParquetDB.")
+	return request.param
+
+
+@pytest.fixture(params=["parquetdb", "sqlite"])
+def non_null_database(request):
+	if request.config.getoption("no_sqlite") and request.param == "sqlite":
+		raise pytest.skip("Skipping SQLite.")
+	if (
+		request.config.getoption("no_parquetdb")
+		and request.param == "parquetdb"
+	):
+		raise pytest.skip("Skipping ParquetDB.")
 	return request.param
 
 
@@ -107,10 +133,15 @@ def engy(tmp_path, execution, database):
 			None,
 			None,
 			logger,
-			prefix=tmp_path,
-			i=0,
+			prefix=None,
+			worker_index=0,
 			eternal={"language": "eng"},
 			branches={},
+			function={},
+			method={},
+			trigger={},
+			prereq={},
+			action={},
 		)
 		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
 			"trunk",
@@ -155,7 +186,7 @@ def sqleng(tmp_path, request, execution):
 			None,
 			logger,
 			prefix=tmp_path,
-			i=0,
+			worker_index=0,
 			eternal={"language": "eng"},
 			branches={},
 		)
@@ -181,14 +212,11 @@ def sqleng(tmp_path, request, execution):
 @pytest.fixture(scope="function")
 def serial_engine(tmp_path, database):
 	with Engine(
-		tmp_path,
+		tmp_path if database == "parquetdb" else None,
 		random_seed=69105,
 		enforce_end_of_time=False,
-		threaded_triggers=False,
 		workers=0,
-		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
-		if database == "sqlite"
-		else None,
+		connect_string=f"sqlite:///:memory:" if database == "sqlite" else None,
 	) as eng:
 		yield eng
 
