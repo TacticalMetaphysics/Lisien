@@ -72,7 +72,7 @@ class AbstractLanguageDescriptor(Signal, ABC):
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
 	def _get_language(self, inst):
-		return inst.engine.eternal["language"]
+		return inst.eternal["language"]
 
 	def _set_language(self, inst, val):
 		inst._load_language(val)
@@ -81,17 +81,32 @@ class LanguageDescriptor(AbstractLanguageDescriptor):
 class StringStore(MutableMapping, Signal):
 	language = LanguageDescriptor()
 
-	def __init__(self, engine, prefix, lang="eng"):
+	def __init__(
+		self, eternal: MutableMapping, prefix: str | None, lang="eng"
+	):
 		"""Store the engine, the name of the database table to use, and the
 		language code.
 
 		"""
 		super().__init__()
-		self.engine = engine
+		self.eternal = eternal
+		self._cache = {}
 		self._prefix = prefix
 		self._load_language(lang)
 
 	def _load_language(self, lang):
+		if self.eternal["language"] == lang:
+			return
+		if self._prefix is None:
+			if hasattr(self, "_languages"):
+				self._languages[self.eternal["language"]] = self._cache
+				self._cache = self._languages.setdefault(lang, {})
+			else:
+				self._languages = {self.eternal["language"]: self._cache}
+				self._cache = {}
+				self._languages[lang] = self._cache
+			self.eternal["language"] = lang
+			return
 		if hasattr(self, "_cache"):
 			with open(
 				os.path.join(self._prefix, self.language + ".json"), "w"
@@ -102,8 +117,7 @@ class StringStore(MutableMapping, Signal):
 				self._cache = json.load(inf)
 		except FileNotFoundError:
 			self._cache = {}
-		if self.engine.eternal["language"] != lang:
-			self.engine.eternal["language"] = lang
+		self.eternal["language"] = lang
 
 	def __iter__(self):
 		return iter(self._cache)
@@ -129,17 +143,17 @@ class StringStore(MutableMapping, Signal):
 
 	def lang_items(self, lang=None):
 		"""Yield pairs of (id, string) for the given language."""
-		if lang is not None and self.engine.eternal["language"] != lang:
+		if lang is not None and self.eternal["language"] != lang:
 			self._load_language(lang)
 		yield from self._cache.items()
 
 	def save(self, reimport=False):
+		if self._prefix is None:
+			return
 		if not os.path.exists(self._prefix):
 			os.mkdir(self._prefix)
 		with open(
-			os.path.join(
-				self._prefix, self.engine.eternal["language"] + ".json"
-			),
+			os.path.join(self._prefix, self.eternal["language"] + ".json"),
 			"w",
 		) as outf:
 			json.dump(self._cache, outf, indent=4, sort_keys=True)
@@ -159,21 +173,40 @@ class FunctionStore(Signal):
 
 	"""
 
-	def __init__(self, filename):
-		if not filename.endswith(".py"):
-			raise ValueError(
-				"FunctionStore can only work with pure Python source code"
-			)
+	def __init__(
+		self, filename: str | None, initial: dict = None, module: str = None
+	):
+		if initial is None:
+			initial = {}
 		super().__init__()
-		self._filename = os.path.abspath(os.path.realpath(filename))
-		try:
-			self.reimport()
-		except (FileNotFoundError, ModuleNotFoundError) as ex:
-			self._module = None
+		if filename is None:
+			self._filename = None
+			self._module = module
 			self._ast = Module(body=[])
 			self._ast_idx = {}
-		self._need_save = False
-		self._locl = {}
+			self._need_save = False
+			self._locl = initial
+		else:
+			if not filename.endswith(".py"):
+				raise ValueError(
+					"FunctionStore can only work with pure Python source code"
+				)
+			self._filename = os.path.abspath(os.path.realpath(filename))
+			try:
+				self.reimport()
+			except (FileNotFoundError, ModuleNotFoundError):
+				self._module = module
+				self._ast = Module(body=[])
+				self._ast_idx = {}
+				self.save()
+			self._need_save = False
+			self._locl = {}
+			for k, v in initial.items():
+				self[k] = v
+
+	def __dir__(self):
+		yield from self._locl
+		yield from super().__dir__()
 
 	def __getattr__(self, k):
 		if k in self._locl:
@@ -199,7 +232,11 @@ class FunctionStore(Signal):
 		else:
 			self._ast_idx[k] = len(self._ast.body)
 			self._ast.body.append(expr)
-		self._need_save = True
+		if self._filename is not None:
+			self._need_save = True
+		if isinstance(self._module, str):
+			v.__module__ = self._module
+		self._locl[k] = v
 		self.send(self, attr=k, val=v)
 
 	def __call__(self, v):
@@ -213,10 +250,13 @@ class FunctionStore(Signal):
 		for name in list(self._ast_idx):
 			if name > k:
 				self._ast_idx[name] -= 1
-		self._need_save = True
+		if self._filename is not None:
+			self._need_save = True
 		self.send(self, attr=k, val=None)
 
 	def save(self, reimport=True):
+		if self._filename is None:
+			return
 		with open(self._filename, "w", encoding="utf-8") as outf:
 			outf.write("# encoding: utf-8")
 			Unparser(self._ast, outf)
@@ -225,6 +265,8 @@ class FunctionStore(Signal):
 			self.reimport()
 
 	def reimport(self):
+		if self._filename is None:
+			return
 		importlib.invalidate_caches()
 		path, filename = os.path.split(self._filename)
 		modname = filename[:-3]
@@ -277,15 +319,6 @@ class FunctionStore(Signal):
 	@staticmethod
 	def truth(*args):
 		return True
-
-
-class MethodStore(FunctionStore):
-	def __init__(self, engine):
-		self.engine = engine
-		super().__init__("method.py")
-
-	def __getattr__(self, item):
-		return MethodType(super().__getattr__(item), self.engine)
 
 
 class UniversalMapping(MutableMapping, Signal):

@@ -34,14 +34,7 @@ testdata.append(("lol", deepcopy(testdata)))
 class AllegedTest(unittest.TestCase):
 	def setUp(self):
 		self.engine = Engine(
-			connect_string="sqlite:///:memory:",
-			string={},
-			function=SimpleNamespace(),
-			method=SimpleNamespace(),
-			trigger=SimpleNamespace(),
-			prereq=SimpleNamespace(),
-			action=SimpleNamespace(),
-			workers=0,
+			None,
 		)
 		self.graphmakers = (self.engine.new_character,)
 

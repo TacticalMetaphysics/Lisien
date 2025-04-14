@@ -1,8 +1,5 @@
-from types import SimpleNamespace
-
-import pytest
-
 from lisien import Engine
+from lisien.xcollections import FunctionStore, StringStore
 
 
 def test_single_plan(serial_engine):
@@ -128,19 +125,22 @@ def test_plan_vs_plan(serial_engine):
 	assert 1 in g1.adj[0]
 
 
-def test_save_load_plan(tmp_path, database):
-	if database == "sqlite":
-		connect_str = f"sqlite:///{tmp_path}/world.sqlite3"
+def test_save_load_plan(tmp_path, non_null_database):
+	if non_null_database == "sqlite":
+		connect_str = f"sqlite:///{tmp_path}/world.db"
+		path = None
 	else:
 		connect_str = None
+		path = tmp_path
 	with Engine(
-		tmp_path,
+		path,
+		function=FunctionStore(None),
+		method=FunctionStore(None),
+		trigger=FunctionStore(None),
+		prereq=FunctionStore(None),
+		action=FunctionStore(None),
+		string=StringStore({"language": "eng"}, None),
 		workers=0,
-		function=SimpleNamespace(),
-		method=SimpleNamespace(),
-		trigger=SimpleNamespace(),
-		prereq=SimpleNamespace(),
-		action=SimpleNamespace(),
 		connect_string=connect_str,
 	) as orm:
 		g1 = orm.new_character(1)
@@ -160,13 +160,14 @@ def test_save_load_plan(tmp_path, database):
 			tick3 = orm.tick
 		orm.turn = 0
 	with Engine(
-		tmp_path,
+		path,
 		workers=0,
-		function=SimpleNamespace(),
-		method=SimpleNamespace(),
-		trigger=SimpleNamespace(),
-		prereq=SimpleNamespace(),
-		action=SimpleNamespace(),
+		function=FunctionStore(None),
+		method=FunctionStore(None),
+		trigger=FunctionStore(None),
+		prereq=FunctionStore(None),
+		action=FunctionStore(None),
+		string=StringStore({"language": "eng"}, None),
 		connect_string=connect_str,
 	) as orm:
 		g1 = orm.graph[1]
@@ -191,13 +192,14 @@ def test_save_load_plan(tmp_path, database):
 		assert 2 in g2.node
 		assert 2 in g2.edge[1]
 	with Engine(
-		tmp_path,
+		path,
 		workers=0,
-		function=SimpleNamespace(),
-		method=SimpleNamespace(),
-		trigger=SimpleNamespace(),
-		prereq=SimpleNamespace(),
-		action=SimpleNamespace(),
+		function=FunctionStore(None),
+		method=FunctionStore(None),
+		trigger=FunctionStore(None),
+		prereq=FunctionStore(None),
+		action=FunctionStore(None),
+		string=StringStore({"language": "eng"}, None),
 		connect_string=connect_str,
 	) as orm:
 		orm.turn = 0

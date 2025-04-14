@@ -3245,12 +3245,17 @@ class EngineProxy(AbstractEngine):
 		install_modules=(),
 		submit_func: callable = None,
 		threads: int = None,
-		prefix: os.PathLike = None,
-		i: int = None,
+		prefix: str | os.PathLike = None,
+		worker_index: int = None,
 		replay_file: str | os.PathLike | io.TextIOBase = None,
 		eternal: dict = None,
 		universal: dict = None,
 		branches: dict = None,
+		function: dict = None,
+		method: dict = None,
+		trigger: dict = None,
+		prereq: dict = None,
+		action: dict = None,
 	):
 		if eternal is None:
 			eternal = {"language": "eng"}
@@ -3281,7 +3286,7 @@ class EngineProxy(AbstractEngine):
 				replay_txt = replay_file.read().replace(
 					"<lisien.proxy.EngineProxy>", "eng"
 				)
-		self.i = i
+		self.i = worker_index
 		self.closed = False
 		if submit_func:
 			self._submit = submit_func
@@ -3300,7 +3305,7 @@ class EngineProxy(AbstractEngine):
 		self.universal = GlobalVarProxy(self)
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
-		if prefix is None:
+		if worker_index is None:
 			self.next_turn = NextTurnProxy(self)
 			self.method = FuncStoreProxy(self, "method")
 			self.action = FuncStoreProxy(self, "action")
@@ -3322,12 +3327,27 @@ class EngineProxy(AbstractEngine):
 			else:
 				self._rando = Random()
 				self.next_turn = lambda: None
-			self.method = FunctionStore(os.path.join(prefix, "method.py"))
-			self.action = FunctionStore(os.path.join(prefix, "action.py"))
-			self.prereq = FunctionStore(os.path.join(prefix, "prereq.py"))
-			self.trigger = FunctionStore(os.path.join(prefix, "trigger.py"))
-			self.function = FunctionStore(os.path.join(prefix, "function.py"))
-			self.string = StringStore(self, prefix)
+			self.method = FunctionStore(
+				os.path.join(prefix, "method.py") if prefix else None,
+				initial=method,
+			)
+			self.action = FunctionStore(
+				os.path.join(prefix, "action.py") if prefix else None,
+				initial=action,
+			)
+			self.prereq = FunctionStore(
+				os.path.join(prefix, "prereq.py") if prefix else None,
+				initial=prereq,
+			)
+			self.trigger = FunctionStore(
+				os.path.join(prefix, "trigger.py") if prefix else None,
+				initial=trigger,
+			)
+			self.function = FunctionStore(
+				os.path.join(prefix, "function.py") if prefix else None,
+				initial=function,
+			)
+			self.string = StringStore(self.eternal, prefix)
 			self._worker = True
 
 		self._node_stat_cache = StructuredDefaultDict(1, UnwrappingDict)
@@ -3365,7 +3385,7 @@ class EngineProxy(AbstractEngine):
 		self._rule_obj_cache = {}
 		self._rulebook_obj_cache = {}
 		self._char_cache = {}
-		if prefix is None:
+		if worker_index is None:
 			self.send_bytes(self.pack({"command": "get_btt"}))
 			received = self.unpack(self.recv_bytes())
 			self._branch, self._turn, self._tick = received[-1]
@@ -4043,20 +4063,26 @@ def worker_subprocess(
 	in_pipe: Pipe,
 	out_pipe: Pipe,
 	logq: Queue,
+	function: dict,
+	method: dict,
+	trigger: dict,
+	prereq: dict,
+	action: dict,
 ):
-	from pickle import loads
-
-	from ..util import repr_call_sig
-
 	logger = WorkerLogger(logq, i)
 	eng = EngineProxy(
 		None,
 		None,
 		logger,
 		prefix=prefix,
-		i=i,
+		worker_index=i,
 		eternal=eternal,
 		branches=branches,
+		function=function,
+		method=method,
+		trigger=trigger,
+		prereq=prereq,
+		action=action,
 	)
 	pack = eng.pack
 	unpack = eng.unpack
