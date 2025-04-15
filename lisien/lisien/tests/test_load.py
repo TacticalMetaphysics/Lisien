@@ -290,10 +290,18 @@ def test_multi_keyframe(tmp_path):
 	eng.close()
 
 
-def test_keyframe_load_unload(tmp_path):
-	"""Make sure all of the caches can load and unload before and after kfs"""
+def test_keyframe_load_unload(tmp_path, non_null_database):
+	"""All caches can load and unload before and after kfs"""
+	if non_null_database == "sqlite":
+		connect_str = f"sqlite:///{tmp_path}/world.sqlite3"
+	else:
+		connect_str = None
 	with Engine(
-		tmp_path, enforce_end_of_time=False, keyframe_on_close=False, workers=0
+		tmp_path,
+		enforce_end_of_time=False,
+		keyframe_on_close=False,
+		workers=0,
+		connect_string=connect_str,
 	) as eng:
 		eng.snap_keyframe()
 		eng.turn = 1
@@ -303,7 +311,11 @@ def test_keyframe_load_unload(tmp_path):
 		eng.universal["hi"] = "hello"
 		now = eng._btt()
 	with Engine(
-		tmp_path, enforce_end_of_time=False, keyframe_on_close=False, workers=0
+		tmp_path,
+		enforce_end_of_time=False,
+		keyframe_on_close=False,
+		workers=0,
+		connect_string=connect_str,
 	) as eng:
 		assert eng._time_is_loaded(*now)
 		assert not eng._time_is_loaded("trunk", 0)
