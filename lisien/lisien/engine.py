@@ -2741,6 +2741,7 @@ class Engine(AbstractEngine, Executor):
 								dest, (graph, orig, dest)
 							)
 							kf_graph_dest_edge_val["rulebook"] = rulebook
+		for graph in kf["graph_val"]:
 			try:
 				locs_kf = self._things_cache.get_keyframe(
 					graph, branch, turn, tick
