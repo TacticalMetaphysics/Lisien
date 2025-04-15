@@ -3531,7 +3531,7 @@ class Engine(AbstractEngine, Executor):
 					parent,
 					branched_turn_from,
 					branched_tick_from,
-				) in self._keyframes_times
+				) in self._keyframes_loaded
 				self._alias_kf(
 					parent,
 					time_from[0],
