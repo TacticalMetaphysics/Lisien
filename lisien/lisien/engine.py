@@ -3520,6 +3520,9 @@ class Engine(AbstractEngine, Executor):
 				branched_turn_from,
 				branched_tick_from,
 			) not in self._keyframes_times:
+				self._get_keyframe(
+					parent, branched_turn_from, branched_tick_from, silent=True
+				)
 				assert (
 					parent,
 					branched_turn_from,
