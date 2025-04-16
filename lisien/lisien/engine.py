@@ -1967,6 +1967,7 @@ class Engine(AbstractEngine, Executor):
 		self.log = logfun
 		self._prefix = prefix
 		if connect_string is None:
+			assert prefix is not None, "Prefix required for now"
 			self.query_engine_cls = ParquetQueryEngine
 			connect_string = os.path.join(os.path.abspath(prefix), "world")
 		if connect_args is None:
