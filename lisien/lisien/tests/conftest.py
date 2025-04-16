@@ -184,7 +184,6 @@ def serial_engine(tmp_path, database):
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
-		threaded_triggers=False,
 		workers=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
