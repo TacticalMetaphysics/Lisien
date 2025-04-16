@@ -2746,9 +2746,17 @@ class Engine(AbstractEngine, Executor):
 						graph, thing, branch, turn, tick
 					)
 			if "node_val" not in kf:
-				kf["node_val"] = {graph: locs_kf}
+				kf["node_val"] = {
+					graph: {
+						thing: {"location": loc}
+						for (thing, loc) in locs_kf.items()
+					}
+				}
 			elif graph not in kf["node_val"]:
-				kf["node_val"][graph] = locs_kf
+				kf["node_val"][graph] = {
+					thing: {"location": loc}
+					for (thing, loc) in locs_kf.items()
+				}
 			else:
 				for thing, loc in locs_kf.items():
 					if thing in kf["node_val"][graph]:
