@@ -62,9 +62,7 @@ def test_sickle(engy):
 
 
 def test_wolfsheep(tmp_path):
-	with Engine(
-		tmp_path, random_seed=69105, workers=0, threaded_triggers=False
-	) as engy:
+	with Engine(tmp_path, random_seed=69105, workers=0) as engy:
 		wolfsheep.install(engy, seed=69105)
 		for i in range(10):
 			engy.next_turn()
@@ -81,9 +79,7 @@ def test_wolfsheep(tmp_path):
 		initial_bare_places = list(
 			engy.character["physical"].stat["bare_places"]
 		)
-	hand = EngineHandle(
-		tmp_path, random_seed=69105, workers=0, threaded_triggers=False
-	)
+	hand = EngineHandle(tmp_path, random_seed=69105, workers=0)
 	hand.next_turn()
 	assert [
 		unit.location.name for unit in hand._real.character["sheep"].units()
