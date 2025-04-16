@@ -2353,7 +2353,9 @@ class Engine(AbstractEngine, Executor):
 			if graph in ret["node_val"]:
 				locs = {}
 				conts = {}
+				noderbkf = {}
 				for node, val in ret["node_val"][graph].items():
+					noderbkf[node] = val.get("rulebook", (graph, node))
 					if "location" not in val:
 						continue
 					locs[node] = location = val["location"]
@@ -2371,9 +2373,32 @@ class Engine(AbstractEngine, Executor):
 					tick,
 					{k: frozenset(v) for (k, v) in conts.items()},
 				)
+				self._nodes_rulebooks_cache.set_keyframe(
+					graph, branch, turn, tick, noderbkf
+				)
 			else:
 				self._things_cache.set_keyframe(graph, branch, turn, tick, {})
 				self._node_contents_cache.set_keyframe(
+					graph, branch, turn, tick, {}
+				)
+				self._nodes_rulebooks_cache.set_keyframe(
+					graph, branch, turn, tick, {}
+				)
+			if graph in ret["edge_val"]:
+				edgerbkf = {}
+				for orig, dests in ret["edge_val"][graph].items():
+					if not dests:
+						continue
+					origrbkf = edgerbkf[orig] = {}
+					for dest, val in dests.items():
+						origrbkf[dest] = val.get(
+							"rulebook", (graph, orig, dest)
+						)
+				self._portals_rulebooks_cache.set_keyframe(
+					graph, branch, turn, tick, edgerbkf
+				)
+			else:
+				self._portals_rulebooks_cache.set_keyframe(
 					graph, branch, turn, tick, {}
 				)
 		self._characters_rulebooks_cache.set_keyframe(
