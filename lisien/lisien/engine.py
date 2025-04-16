@@ -2355,21 +2355,19 @@ class Engine(AbstractEngine, Executor):
 					else:
 						conts[location] = {node}
 				self._things_cache.set_keyframe(
-					(graph,), branch, turn, tick, locs
+					graph, branch, turn, tick, locs
 				)
 				self._node_contents_cache.set_keyframe(
-					(graph,),
+					graph,
 					branch,
 					turn,
 					tick,
 					{k: frozenset(v) for (k, v) in conts.items()},
 				)
 			else:
-				self._things_cache.set_keyframe(
-					(graph,), branch, turn, tick, {}
-				)
+				self._things_cache.set_keyframe(graph, branch, turn, tick, {})
 				self._node_contents_cache.set_keyframe(
-					(graph,), branch, turn, tick, {}
+					graph, branch, turn, tick, {}
 				)
 		self._characters_rulebooks_cache.set_keyframe(
 			branch, turn, tick, charrbkf
