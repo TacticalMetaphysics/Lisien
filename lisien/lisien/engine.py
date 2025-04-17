@@ -2322,92 +2322,6 @@ class Engine(AbstractEngine, Executor):
 		self._keyframes_times.add((branch, turn, tick))
 		self._keyframes_loaded.add((branch, turn, tick))
 		ret = self._get_kf(branch, turn, tick, copy=copy)
-		charrbkf = {}
-		unitrbkf = {}
-		charthingrbkf = {}
-		charplacerbkf = {}
-		charportrbkf = {}
-		for graph, graphval in ret["graph_val"].items():
-			charrbkf[graph] = graphval.get(
-				"character_rulebook", ("character", graph)
-			)
-			unitrbkf[graph] = graphval.get("unit_rulebook", ("unit", graph))
-			charthingrbkf[graph] = graphval.get(
-				"character_thing_rulebook", ("character_thing", graph)
-			)
-			charplacerbkf[graph] = graphval.get(
-				"character_place_rulebook", ("character_place", graph)
-			)
-			charportrbkf[graph] = graphval.get(
-				"character_portal_rulebook", ("character_portal", graph)
-			)
-			self._unitness_cache.set_keyframe(
-				graph, branch, turn, tick, graphval.get("units", {})
-			)
-			if graph in ret["node_val"]:
-				locs = {}
-				conts = {}
-				noderbkf = {}
-				for node, val in ret["node_val"][graph].items():
-					noderbkf[node] = val.get("rulebook", (graph, node))
-					if "location" not in val:
-						continue
-					locs[node] = location = val["location"]
-					if location in conts:
-						conts[location].add(node)
-					else:
-						conts[location] = {node}
-				self._things_cache.set_keyframe(
-					graph, branch, turn, tick, locs
-				)
-				self._node_contents_cache.set_keyframe(
-					graph,
-					branch,
-					turn,
-					tick,
-					{k: frozenset(v) for (k, v) in conts.items()},
-				)
-				self._nodes_rulebooks_cache.set_keyframe(
-					graph, branch, turn, tick, noderbkf
-				)
-			else:
-				self._things_cache.set_keyframe(graph, branch, turn, tick, {})
-				self._node_contents_cache.set_keyframe(
-					graph, branch, turn, tick, {}
-				)
-				self._nodes_rulebooks_cache.set_keyframe(
-					graph, branch, turn, tick, {}
-				)
-			if graph in ret["edge_val"]:
-				edgerbkf = {}
-				for orig, dests in ret["edge_val"][graph].items():
-					if not dests:
-						continue
-					origrbkf = edgerbkf[orig] = {}
-					for dest, val in dests.items():
-						origrbkf[dest] = val.get(
-							"rulebook", (graph, orig, dest)
-						)
-				self._portals_rulebooks_cache.set_keyframe(
-					graph, branch, turn, tick, edgerbkf
-				)
-			else:
-				self._portals_rulebooks_cache.set_keyframe(
-					graph, branch, turn, tick, {}
-				)
-		self._characters_rulebooks_cache.set_keyframe(
-			branch, turn, tick, charrbkf
-		)
-		self._units_rulebooks_cache.set_keyframe(branch, turn, tick, unitrbkf)
-		self._characters_things_rulebooks_cache.set_keyframe(
-			branch, turn, tick, charthingrbkf
-		)
-		self._characters_places_rulebooks_cache.set_keyframe(
-			branch, turn, tick, charplacerbkf
-		)
-		self._characters_portals_rulebooks_cache.set_keyframe(
-			branch, turn, tick, charportrbkf
-		)
 		if silent:
 			return  # not that it helps performance any, in this case
 		return ret
@@ -6331,15 +6245,36 @@ class Engine(AbstractEngine, Executor):
 				kf = {}
 			kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
+		self._unitness_cache.set_keyframe(
+			graph, branch, turn, tick, graph_val.pop("units", {})
+		)
+		node_rb_kf = {}
+		locs_kf = {}
+		conts_kf = {}
+		for node, val in nodes.items():
+			node_rb_kf[node] = val.pop("rulebook", (graph, node))
+			if "location" not in val:
+				continue
+			locs_kf[node] = location = val.pop("location")
+			if location in conts_kf:
+				conts_kf[location].add(node)
+			else:
+				conts_kf[location] = {node}
 		self._nodes_rulebooks_cache.set_keyframe(
+			graph, branch, turn, tick, node_rb_kf
+		)
+		self._things_cache.set_keyframe(graph, branch, turn, tick, locs_kf)
+		self._node_contents_cache.set_keyframe(
 			graph,
 			branch,
 			turn,
 			tick,
-			{n: nvs.pop("rulebook", (graph, n)) for (n, nvs) in nodes.items()},
+			{n: frozenset(conts) for (n, conts) in conts_kf.items()},
 		)
 		port_rb_kf = {}
 		for orig, dests in edges.items():
+			if not dests:
+				continue
 			port_rb_kf[orig] = rbs = {}
 			for dest, port in dests.items():
 				rbs[dest] = port.pop("rulebook", (graph, orig, dest))
@@ -6392,32 +6327,6 @@ class Engine(AbstractEngine, Executor):
 					turns[turn] = {tick}
 			else:
 				self._keyframes_dict[branch] = {turn: {tick}}
-		if "units" in graph_val:
-			self._unitness_cache.set_keyframe(
-				graph, branch, turn, tick, graph_val["units"]
-			)
-		else:
-			self._unitness_cache.set_keyframe(graph, branch, turn, tick, {})
-		newkf = {}
-		contkf = {}
-		for name, node in nodes.items():
-			if not isinstance(node, dict):
-				raise TypeError("nodes in keyframes must be dictionaries")
-			if "location" not in node:
-				continue
-			locn = node["location"]
-			newkf[name] = locn
-			if locn in contkf:
-				contkf[locn].add(name)
-			else:
-				contkf[locn] = {
-					name,
-				}
-		contkf = {k: frozenset(v) for (k, v) in contkf.items()}
-		self._node_contents_cache.set_keyframe(
-			graph, branch, turn, tick, contkf
-		)
-		self._things_cache.set_keyframe(graph, branch, turn, tick, newkf)
 		assert (
 			(graph,) in self._things_cache.keyframe
 			and branch in self._things_cache.keyframe[graph,]
