@@ -15,6 +15,8 @@
 """Classes for in-memory storage and retrieval of historical graph data."""
 
 from collections import OrderedDict, defaultdict, deque
+from dataclasses import dataclass
+from functools import cached_property
 from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
@@ -212,10 +214,15 @@ class StructuredDefaultDict(dict):
 			raise TypeError("Can't set layer {}".format(self.layer))
 
 
+@dataclass
 class TurnEndDict(dict):
 	"""Tick on which a (branch, turn) ends, not including any plans"""
 
-	other_d: "TurnEndDict"
+	engine: "lisien.Engine"
+
+	@cached_property
+	def other_d(self) -> dict[tuple[Branch, Turn], Tick]:
+		return self.engine._turn_end_plan
 
 	def __getitem__(self, item: tuple[Branch, Turn]) -> Tick:
 		if item not in self:
@@ -238,8 +245,15 @@ class TurnEndDict(dict):
 			dict.__setitem__(self.other_d, key, value)
 
 
+@dataclass
 class TurnEndPlanDict(TurnEndDict):
 	"""Tick on which a (branch, turn) ends, including plans"""
+
+	engine: "lisien.Engine"
+
+	@cached_property
+	def other_d(self) -> dict[tuple[Branch, Turn], Tick]:
+		return self.engine._turn_end
 
 	def __setitem__(self, key: tuple[Branch, Turn], value: Tick):
 		if dict.__contains__(self.other_d, key):
@@ -1649,9 +1663,6 @@ class NodesCache(Cache):
 
 	__slots__ = ()
 
-	def __init__(self, db, kfkvs=None):
-		super().__init__(db, "nodes_cache", kfkvs)
-
 	def store(
 		self,
 		graph: Hashable,
@@ -1766,12 +1777,8 @@ class EdgesCache(Cache):
 	def successors(self):
 		return self.parents
 
-	def __init__(self, db):
-		Cache.__init__(
-			self,
-			db,
-			name="edges_cache",
-		)
+	def __init__(self, db, name, kfkvs=None):
+		super().__init__(db, name, kfkvs)
 		self.destcache = PickyDefaultDict(SettingsTurnDict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
 		self.predecessors = StructuredDefaultDict(3, TurnDict)
@@ -2453,8 +2460,8 @@ class PortalsRulebooksCache(InitializedCache):
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
-	def __init__(self, db):
-		super().__init__(db, "unitness_cache")
+	def __init__(self, db, name, kfkvs=None):
+		super().__init__(db, name, kfkvs)
 		self.user_cache = Cache(db, "user_cache")
 
 	def store(
@@ -2916,9 +2923,6 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
 
 class NodeRulesHandledCache(RulesHandledCache):
-	def __init__(self, engine):
-		super().__init__(engine, "node_rules_handled_cache")
-
 	def get_rulebook(self, character, node, branch, turn, tick):
 		try:
 			return self.engine._nodes_rulebooks_cache.retrieve(
@@ -2951,9 +2955,6 @@ class NodeRulesHandledCache(RulesHandledCache):
 
 
 class PortalRulesHandledCache(RulesHandledCache):
-	def __init__(self, engine):
-		super().__init__(engine, "portal_rules_handled_cache")
-
 	def get_rulebook(self, character, orig, dest, branch, turn, tick):
 		try:
 			return self.engine._portals_rulebooks_cache.retrieve(
@@ -3010,8 +3011,8 @@ class PortalRulesHandledCache(RulesHandledCache):
 
 
 class ThingsCache(Cache):
-	def __init__(self, db):
-		Cache.__init__(self, db, name="things_cache")
+	def __init__(self, db, name, kfkvs=None):
+		super().__init__(db, name, kfkvs)
 		self._make_node = db.thing_cls
 
 	def _slow_iter_contents(self, character, place, branch, turn, tick):
@@ -3179,8 +3180,8 @@ class ThingsCache(Cache):
 
 
 class NodeContentsCache(Cache):
-	def __init__(self, db, kfkvs=None):
-		super().__init__(db, "node_contents_cache", kfkvs)
+	def __init__(self, db, name, kfkvs=None):
+		super().__init__(db, name, kfkvs)
 		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
 
 	def delete_plan(self, plan: int) -> None:
