@@ -27,7 +27,7 @@ from .exc import (
 	NotInKeyframeError,
 	TotalKeyError,
 )
-from .typing import Key
+from .typing import Key, Branch, Turn, Tick
 from .util import sort_set
 from .window import (
 	Direction,
@@ -217,7 +217,7 @@ class TurnEndDict(dict):
 
 	other_d: "TurnEndDict"
 
-	def __getitem__(self, item):
+	def __getitem__(self, item: tuple[Branch, Turn]) -> Tick:
 		if item not in self:
 			if item not in self.other_d:
 				dict.__setitem__(self.other_d, item, 0)
@@ -229,7 +229,7 @@ class TurnEndDict(dict):
 				return ret
 		return super().__getitem__(item)
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: tuple[Branch, Turn], value: Tick):
 		dict.__setitem__(self, key, value)
 		if (
 			not dict.__contains__(self.other_d, key)
@@ -241,7 +241,7 @@ class TurnEndDict(dict):
 class TurnEndPlanDict(TurnEndDict):
 	"""Tick on which a (branch, turn) ends, including plans"""
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: tuple[Branch, Turn], value: Tick):
 		if dict.__contains__(self.other_d, key):
 			assert value >= dict.__getitem__(self.other_d, key)
 		else:
