@@ -15,14 +15,17 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NewType
 
+Branch = NewType("Branch", str)
+Turn = NewType("Turn", int)
+Tick = NewType("Tick", int)
 Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
-NodeRowType = tuple[Key, Key, str, int, int, bool]
-EdgeRowType = tuple[Key, Key, Key, int, str, int, int, bool]
-GraphValRowType = tuple[Key, Key, str, int, int, Any]
-NodeValRowType = tuple[Key, Key, Key, str, int, int, Any]
-EdgeValRowType = tuple[Key, Key, Key, int, str, int, int, Any]
+NodeRowType = tuple[Key, Key, Branch, Turn, Tick, bool]
+EdgeRowType = tuple[Key, Key, Key, int, Branch, Turn, Tick, bool]
+GraphValRowType = tuple[Key, Key, Branch, Turn, Tick, Any]
+NodeValRowType = tuple[Key, Key, Key, Branch, Turn, Tick, Any]
+EdgeValRowType = tuple[Key, Key, Key, int, Branch, Turn, Tick, Any]
 StatDict = dict[Key, Any]
 GraphValDict = dict[Key, StatDict]
 NodeValDict = dict[Key, StatDict]
@@ -34,9 +37,9 @@ DeltaDict = dict[
 ]
 KeyframeTuple = tuple[
 	Key,
-	str,
-	int,
-	int,
+	Branch,
+	Turn,
+	Tick,
 	GraphNodeValDict,
 	GraphEdgeValDict,
 	GraphValDict,
