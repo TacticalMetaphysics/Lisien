@@ -117,6 +117,11 @@ from .typing import (
 	KeyframeTuple,
 	NodeValDict,
 	StatDict,
+	Branch,
+	Turn,
+	Tick,
+	Time,
+	Plan,
 )
 from .util import (
 	AbstractEngine,
@@ -127,6 +132,7 @@ from .util import (
 	normalize_layout,
 	sort_set,
 	world_locked,
+	AbstractCharacter,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
@@ -639,6 +645,369 @@ class Engine(AbstractEngine, Executor):
 			then=(self.branch, self.turn, old_tick),
 			now=(self.branch, self.turn, v),
 		)
+
+	@cached_property
+	def _where_cached(self) -> dict[Time, list]:
+		return defaultdict(list)
+
+	@cached_property
+	def _node_objs(self) -> SizedDict:
+		return SizedDict()
+
+	@cached_property
+	def _edge_objs(self) -> SizedDict:
+		return SizedDict()
+
+	@cached_property
+	def _nbtt_stuff(self):
+		return (
+			self._btt,
+			self._turn_end_plan,
+			self._turn_end,
+			self._plan_ticks,
+			self._plan_ticks_uncommitted,
+			self._time_plan,
+		)
+
+	@cached_property
+	def _node_exists_stuff(
+		self,
+	) -> tuple[
+		Callable[[tuple[Key, Key, Branch, Turn, Tick]], Any],
+		Callable[[], Time],
+	]:
+		return (self._nodes_cache._base_retrieve, self._btt)
+
+	@cached_property
+	def _exist_node_stuff(
+		self,
+	) -> tuple[
+		Callable[[], Time],
+		Callable[[Key, Key, Branch, Turn, Tick, bool], None],
+		Callable[[Key, Key, Branch, Turn, Tick, Any], None],
+	]:
+		return (self._nbtt, self.query.exist_node, self._nodes_cache.store)
+
+	@cached_property
+	def _edge_exists_stuff(
+		self,
+	) -> tuple[
+		Callable[[tuple[Key, Key, Key, int, str, int, int]], bool],
+		Callable[[], tuple[str, int, int]],
+	]:
+		return (self._edges_cache._base_retrieve, self._btt)
+
+	@cached_property
+	def _exist_edge_stuff(
+		self,
+	) -> tuple[
+		Callable[[], Time],
+		Callable[[Key, Key, Key, int, Branch, Turn, Tick, bool], None],
+		Callable[[Key, Key, Key, int, Branch, Turn, Tick, Any], None],
+	]:
+		return (self._nbtt, self.query.exist_edge, self._edges_cache.store)
+
+	@cached_property
+	def _loaded(self) -> dict[Branch, tuple[Turn, Tick, Turn, Tick]]:
+		"""Slices of time that are currently in memory
+
+		{branch: (turn_from, tick_from, turn_to, tick_to)}
+
+		"""
+		return {}
+
+	@cached_property
+	def _get_node_stuff(
+		self,
+	) -> tuple[
+		dict, Callable[[Key, Key], bool], Callable[[Key, Key], node_cls]
+	]:
+		return (self._node_objs, self._node_exists, self._make_node)
+
+	@cached_property
+	def _get_edge_stuff(
+		self,
+	) -> tuple[
+		dict,
+		Callable[[Key, Key, Key, int], bool],
+		Callable[[Key, Key, Key, int], edge_cls],
+	]:
+		return (self._edge_objs, self._edge_exists, self._make_edge)
+
+	@cached_property
+	def _childbranch(self) -> dict[str, set[str]]:
+		"""Immediate children of a branch"""
+		return defaultdict(set)
+
+	@cached_property
+	def _branches_d(
+		self,
+	) -> dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]]:
+		"""Parent, start time, and end time of each branch. Includes plans."""
+		return {}
+
+	@cached_property
+	def _branch_parents(self) -> dict[Branch, set[Branch]]:
+		"""Parents of a branch at any remove"""
+		return defaultdict(set)
+
+	@cached_property
+	def _turn_end(self) -> dict[tuple[Branch, Turn], Tick]:
+		return TurnEndDict(self)
+
+	@cached_property
+	def _turn_end_plan(self) -> dict[tuple[Branch, Turn], Tick]:
+		return TurnEndPlanDict(self)
+
+	@cached_property
+	def _graph_objs(self) -> dict[Key, AbstractCharacter]:
+		return {}
+
+	@cached_property
+	def _plans(self) -> dict[Plan, Time]:
+		return {}
+
+	@cached_property
+	def _branches_plans(self) -> dict[Branch, set[Plan]]:
+		return defaultdict(set)
+
+	@cached_property
+	def _plan_ticks(self) -> dict[Plan, dict[Turn, set[Tick]]]:
+		return defaultdict(lambda: defaultdict(set))
+
+	@cached_property
+	def _time_plan(self) -> dict[Time, Plan]:
+		return {}
+
+	@cached_property
+	def _graph_cache(self) -> EntitylessCache:
+		return EntitylessCache(self, name="graph cache")
+
+	@cached_property
+	def _graph_val_cache(self) -> GraphValCache:
+		ret = GraphValCache(self, name="graph val cache")
+		ret.setdb = self.query.graph_val_set
+		ret.deldb = self.query.graph_val_del_time
+		return ret
+
+	@cached_property
+	def _nodes_cache(self) -> NodesCache:
+		ret = NodesCache(self, name="nodes cache")
+		ret.setdb = self.query.exist_node
+		ret.deldb = self.query.nodes_del_time
+		return ret
+
+	@cached_property
+	def _edges_cache(self) -> EdgesCache:
+		ret = EdgesCache(self, name="edges cache")
+		ret.setdb = self.query.exist_edge
+		ret.deldb = self.query.edges_del_time
+
+	@cached_property
+	def _node_val_cache(self) -> NodeValCache:
+		ret = NodeValCache(self, name="node val cache")
+		ret.setdb = self.query.node_val_set
+		ret.deldb = self.query.node_val_del_time
+		return ret
+
+	@cached_property
+	def _edge_val_cache(self) -> EdgeValCache:
+		ret = EdgeValCache(self, name="edge val cache")
+		ret.setdb = self.query.edge_val_set
+		ret.deldb = self.query.edge_val_del_time
+		return ret
+
+	@cached_property
+	def _things_cache(self) -> ThingsCache:
+		ret = ThingsCache(self, name="things cache")
+		ret.setdb = self.query.set_thing_loc
+		return ret
+
+	@cached_property
+	def _node_contents_cache(self) -> NodeContentsCache:
+		return NodeContentsCache(self, name="node contents cache")
+
+	@cached_property
+	def _neighbors_cache(self) -> SizedDict:
+		return SizedDict()
+
+	@cached_property
+	def _universal_cache(self) -> EntitylessCache:
+		ret = EntitylessCache(self, name="universal cache")
+		ret.setdb = self.query.universal_set
+		return ret
+
+	@cached_property
+	def _rulebooks_cache(self) -> InitializedEntitylessCache:
+		ret = InitializedEntitylessCache(self, name="rulebooks cache")
+		ret.setdb = self.query.rulebook_set
+		return ret
+
+	@cached_property
+	def _characters_rulebooks_cache(self) -> CharactersRulebooksCache:
+		return CharactersRulebooksCache(
+			self, name="characters rulebooks cache"
+		)
+
+	@cached_property
+	def _units_rulebooks_cache(self) -> CharactersRulebooksCache:
+		return CharactersRulebooksCache(self, name="units rulebooks cache")
+
+	@cached_property
+	def _characters_things_rulebooks_cache(self) -> CharactersRulebooksCache:
+		return CharactersRulebooksCache(
+			self, name="characters things rulebooks cache"
+		)
+
+	@cached_property
+	def _characters_places_rulebooks_cache(self) -> CharactersRulebooksCache:
+		return CharactersRulebooksCache(
+			self, name="characters places rulebooks cache"
+		)
+
+	@cached_property
+	def _characters_portals_rulebooks_cache(self) -> CharactersRulebooksCache:
+		return CharactersRulebooksCache(
+			self, name="characters portals rulebooks cache"
+		)
+
+	@cached_property
+	def _nodes_rulebooks_cache(self) -> NodesRulebooksCache:
+		return NodesRulebooksCache(self, name="nodes rulebooks cache")
+
+	@cached_property
+	def _portals_rulebooks_cache(self) -> PortalsRulebooksCache:
+		return PortalsRulebooksCache(self, name="portals rulebooks_ ache")
+
+	@cached_property
+	def _triggers_cache(self) -> InitializedEntitylessCache:
+		return InitializedEntitylessCache(self, name="triggers cache")
+
+	@cached_property
+	def _prereqs_cache(self) -> InitializedEntitylessCache:
+		return InitializedEntitylessCache(self, name="prereqs cache")
+
+	@cached_property
+	def _actions_cache(self) -> InitializedEntitylessCache:
+		return InitializedEntitylessCache(self, name="actions cache")
+
+	@cached_property
+	def _neighborhoods_cache(self) -> InitializedEntitylessCache:
+		return InitializedEntitylessCache(self, name="neighborhoods cache")
+
+	@cached_property
+	def _rule_bigness_cache(self) -> InitializedEntitylessCache:
+		return InitializedEntitylessCache(self, name="rule bigness cache")
+
+	@cached_property
+	def _node_rules_handled_cache(self) -> NodeRulesHandledCache:
+		return NodeRulesHandledCache(self, name="node rules handled cache")
+
+	@cached_property
+	def _portal_rules_handled_cache(self) -> PortalRulesHandledCache:
+		return PortalRulesHandledCache(self, name="portal rules handled cache")
+
+	@cached_property
+	def _character_rules_handled_cache(self) -> CharacterRulesHandledCache:
+		return CharacterRulesHandledCache(
+			self, name="character rules handled cache"
+		)
+
+	@cached_property
+	def _unit_rules_handled_cache(self) -> UnitRulesHandledCache:
+		return UnitRulesHandledCache(self, name="unit rules handled cache")
+
+	@cached_property
+	def _character_thing_rules_handled_cache(
+		self,
+	) -> CharacterThingRulesHandledCache:
+		return CharacterThingRulesHandledCache(
+			self, name="character thing rules handled cache"
+		)
+
+	@cached_property
+	def _character_place_rules_handled_cache(
+		self,
+	) -> CharacterPlaceRulesHandledCache:
+		return CharacterPlaceRulesHandledCache(
+			self, name="character place rules handled cache"
+		)
+
+	@cached_property
+	def _character_portal_rules_handled_cache(
+		self,
+	) -> CharacterPortalRulesHandledCache:
+		return CharacterPortalRulesHandledCache(
+			self, name="character portal rules handled cache"
+		)
+
+	@cached_property
+	def _unitness_cache(self) -> UnitnessCache:
+		return UnitnessCache(self, name="unitness cache")
+
+	@cached_property
+	def _turns_completed_d(self) -> dict[Branch, Turn]:
+		return {}
+
+	@cached_property
+	def universal(self) -> UniversalMapping:
+		return UniversalMapping(self)
+
+	@cached_property
+	def rule(self) -> AllRules:
+		return AllRules(self)
+
+	@cached_property
+	def rulebook(self) -> AllRuleBooks:
+		return AllRuleBooks(self)
+
+	@cached_property
+	def _keyframes_dict(self) -> dict[Branch, dict[Turn, set[Tick]]]:
+		return PickyDefaultDict(WindowDict)
+
+	@cached_property
+	def _keyframes_times(self) -> set[Time]:
+		return set()
+
+	@cached_property
+	def _keyframes_loaded(self) -> set[Time]:
+		return set()
+
+	@cached_property
+	def _caches(self) -> list:
+		return [
+			self._things_cache,
+			self._node_contents_cache,
+			self._universal_cache,
+			self._rulebooks_cache,
+			self._characters_rulebooks_cache,
+			self._units_rulebooks_cache,
+			self._characters_things_rulebooks_cache,
+			self._characters_places_rulebooks_cache,
+			self._characters_portals_rulebooks_cache,
+			self._nodes_rulebooks_cache,
+			self._portals_rulebooks_cache,
+			self._triggers_cache,
+			self._prereqs_cache,
+			self._actions_cache,
+			self._character_rules_handled_cache,
+			self._unit_rules_handled_cache,
+			self._character_thing_rules_handled_cache,
+			self._character_place_rules_handled_cache,
+			self._character_portal_rules_handled_cache,
+			self._node_rules_handled_cache,
+			self._portal_rules_handled_cache,
+			self._unitness_cache,
+			self._graph_val_cache,
+			self._nodes_cache,
+			self._edges_cache,
+			self._node_val_cache,
+			self._edge_val_cache,
+		]
+
+	@cached_property
+	def character(self) -> CharacterMapping:
+		return CharacterMapping(self)
 
 	def _btt(self) -> tuple[str, int, int]:
 		"""Return the branch, turn, and tick."""
@@ -1763,147 +2132,6 @@ class Engine(AbstractEngine, Executor):
 				).setdefault(dest, {})["rulebook"] = rulebook
 		return delta
 
-	def _init_caches(self):
-		node_cls = self.node_cls
-		edge_cls = self.edge_cls
-		self._where_cached = defaultdict(list)
-		self._node_objs = node_objs = SizedDict()
-		self._get_node_stuff: tuple[
-			dict, Callable[[Key, Key], bool], Callable[[Key, Key], node_cls]
-		] = (node_objs, self._node_exists, self._make_node)
-		self._edge_objs = edge_objs = SizedDict()
-		self._get_edge_stuff: tuple[
-			dict,
-			Callable[[Key, Key, Key, int], bool],
-			Callable[[Key, Key, Key, int], edge_cls],
-		] = (edge_objs, self._edge_exists, self._make_edge)
-		self._childbranch: dict[str, set[str]] = defaultdict(set)
-		"""Immediate children of a branch"""
-		self._branches_d: dict[str, tuple[str | None, int, int, int, int]] = {}
-		"""Parent, start time, and end time of each branch. Includes plans."""
-		self._branch_parents: dict[str, set[str]] = defaultdict(set)
-		"""Parents of a branch at any remove"""
-		self._turn_end: dict[tuple[str, int], int] = TurnEndDict()
-		self._turn_end_plan: dict[tuple[str, int], int] = TurnEndPlanDict()
-		self._turn_end_plan.other_d = self._turn_end
-		self._turn_end.other_d = self._turn_end_plan
-		self._graph_objs = {}
-		self._plans: dict[int, tuple[str, int, int]] = {}
-		self._branches_plans: dict[str, set[int]] = defaultdict(set)
-		self._plan_ticks: dict[int, dict[int, set[int]]] = defaultdict(
-			lambda: defaultdict(set)
-		)
-		self._time_plan: dict[tuple[str, int, int], int] = {}
-		self._plans_uncommitted: list[tuple[int, str, int, int]] = []
-		self._plan_ticks_uncommitted: list[tuple[int, int, int]] = []
-		self._graph_cache = EntitylessCache(self, name="graph_cache")
-		self._graph_val_cache = GraphValCache(self, name="graph_val_cache")
-		self._nodes_cache = NodesCache(self)
-		self._edges_cache = EdgesCache(self)
-		self._node_val_cache = NodeValCache(self, name="node_val_cache")
-		self._edge_val_cache = EdgeValCache(self, name="edge_val_cache")
-
-		self._neighbors_cache = SizedDict()
-		self._things_cache = ThingsCache(self)
-		self._node_contents_cache = NodeContentsCache(self)
-		self.character = self.graph = CharacterMapping(self)
-		self._universal_cache = EntitylessCache(self, "universal_cache")
-		self._rulebooks_cache = InitializedEntitylessCache(
-			self, "rulebooks_cache"
-		)
-		self._characters_rulebooks_cache = CharactersRulebooksCache(
-			self, "characters_rulebooks_cache"
-		)
-		self._units_rulebooks_cache = CharactersRulebooksCache(
-			self, "units_rulebooks_cache"
-		)
-		self._characters_things_rulebooks_cache = CharactersRulebooksCache(
-			self, "characters_things_rulebooks_cache"
-		)
-		self._characters_places_rulebooks_cache = CharactersRulebooksCache(
-			self, "characters_places_rulebooks_cache"
-		)
-		self._characters_portals_rulebooks_cache = CharactersRulebooksCache(
-			self, "characters_portals_rulebooks_cache"
-		)
-		self._nodes_rulebooks_cache = NodesRulebooksCache(
-			self, "nodes_rulebooks_cache"
-		)
-		self._portals_rulebooks_cache = PortalsRulebooksCache(
-			self, "portals_rulebooks_cache"
-		)
-		self._triggers_cache = InitializedEntitylessCache(
-			self, "triggers_cache"
-		)
-		self._prereqs_cache = InitializedEntitylessCache(self, "prereqs_cache")
-		self._actions_cache = InitializedEntitylessCache(self, "actions_cache")
-		self._neighborhoods_cache = InitializedEntitylessCache(
-			self, "neighborhoods_cache"
-		)
-		self._rule_bigness_cache = InitializedEntitylessCache(
-			self, "rule_bigness_cache"
-		)
-		self._node_rules_handled_cache = NodeRulesHandledCache(self)
-		self._portal_rules_handled_cache = PortalRulesHandledCache(self)
-		self._character_rules_handled_cache = CharacterRulesHandledCache(
-			self, "character_rules_handled_cache"
-		)
-		self._unit_rules_handled_cache = UnitRulesHandledCache(
-			self, "unit_rules_handled_cache"
-		)
-		self._character_thing_rules_handled_cache = (
-			CharacterThingRulesHandledCache(
-				self, "character_thing_rules_handled_cache"
-			)
-		)
-		self._character_place_rules_handled_cache = (
-			CharacterPlaceRulesHandledCache(
-				self, "character_place_rules_handled_cache"
-			)
-		)
-		self._character_portal_rules_handled_cache = (
-			CharacterPortalRulesHandledCache(
-				self, "character_portal_rules_handled_cache"
-			)
-		)
-		self._unitness_cache = UnitnessCache(self)
-		self._turns_completed_d = {}
-		self.universal = UniversalMapping(self)
-		self.rule = AllRules(self)
-		self.rulebook = AllRuleBooks(self)
-		self._keyframes_dict = PickyDefaultDict(WindowDict)
-		self._keyframes_times = set()
-		self._keyframes_loaded = set()
-		self._caches = [
-			self._things_cache,
-			self._node_contents_cache,
-			self._universal_cache,
-			self._rulebooks_cache,
-			self._characters_rulebooks_cache,
-			self._units_rulebooks_cache,
-			self._characters_things_rulebooks_cache,
-			self._characters_places_rulebooks_cache,
-			self._characters_portals_rulebooks_cache,
-			self._nodes_rulebooks_cache,
-			self._portals_rulebooks_cache,
-			self._triggers_cache,
-			self._prereqs_cache,
-			self._actions_cache,
-			self._character_rules_handled_cache,
-			self._unit_rules_handled_cache,
-			self._character_thing_rules_handled_cache,
-			self._character_place_rules_handled_cache,
-			self._character_portal_rules_handled_cache,
-			self._node_rules_handled_cache,
-			self._portal_rules_handled_cache,
-			self._unitness_cache,
-			self._graph_val_cache,
-			self._nodes_cache,
-			self._edges_cache,
-			self._node_val_cache,
-			self._edge_val_cache,
-		]
-
 	@cached_property
 	def world_lock(self):
 		return RLock()
@@ -1919,7 +2147,7 @@ class Engine(AbstractEngine, Executor):
 		action: FunctionStore | ModuleType = None,
 		function: FunctionStore | ModuleType = None,
 		method: FunctionStore | ModuleType = None,
-		main_branch: str = None,
+		main_branch: Branch = None,
 		connect_string: str = None,
 		connect_args: dict = None,
 		schema_cls: Type[AbstractSchema] = NullSchema,
@@ -2021,20 +2249,7 @@ class Engine(AbstractEngine, Executor):
 				string_prefix,
 				self.eternal.setdefault("language", "eng"),
 			)
-		self._init_caches()
-		self._edge_val_cache.setdb = self.query.edge_val_set
-		self._edge_val_cache.deldb = self.query.edge_val_del_time
-		self._node_val_cache.setdb = self.query.node_val_set
-		self._node_val_cache.deldb = self.query.node_val_del_time
-		self._edges_cache.setdb = self.query.exist_edge
-		self._edges_cache.deldb = self.query.edges_del_time
-		self._nodes_cache.setdb = self.query.exist_node
-		self._nodes_cache.deldb = self.query.nodes_del_time
-		self._graph_val_cache.setdb = self.query.graph_val_set
-		self._graph_val_cache.deldb = self.query.graph_val_del_time
-		self._things_cache.setdb = self.query.set_thing_loc
-		self._universal_cache.setdb = self.query.universal_set
-		self._rulebooks_cache.setdb = self.query.rulebook_set
+		self._plans_uncommitted: list[tuple[Plan, Branch, Turn, Tick]] = []
 		self._load_keyframe_times()
 		if main_branch is not None:
 			self.query.globl["main_branch"] = main_branch
@@ -2072,35 +2287,6 @@ class Engine(AbstractEngine, Executor):
 			)
 		if main_branch not in self._branches_d:
 			self._branches_d[main_branch] = None, 0, 0, 0, 0
-		self._nbtt_stuff = (
-			self._btt,
-			self._turn_end_plan,
-			self._turn_end,
-			self._plan_ticks,
-			self._plan_ticks_uncommitted,
-			self._time_plan,
-		)
-		self._node_exists_stuff: tuple[
-			Callable[[tuple[Key, Key, str, int, int]], Any],
-			Callable[[], tuple[str, int, int]],
-		] = (self._nodes_cache._base_retrieve, self._btt)
-		self._exist_node_stuff: tuple[
-			Callable[[], tuple[str, int, int]],
-			Callable[[Key, Key, str, int, int, bool], None],
-			Callable[[Key, Key, str, int, int, Any], None],
-		] = (self._nbtt, self.query.exist_node, self._nodes_cache.store)
-		self._edge_exists_stuff: tuple[
-			Callable[[tuple[Key, Key, Key, int, str, int, int]], bool],
-			Callable[[], tuple[str, int, int]],
-		] = (self._edges_cache._base_retrieve, self._btt)
-		self._exist_edge_stuff: tuple[
-			Callable[[], tuple[str, int, int]],
-			Callable[[Key, Key, Key, int, str, int, int, bool], None],
-			Callable[[Key, Key, Key, int, str, int, int, Any], None],
-		] = (self._nbtt, self.query.exist_edge, self._edges_cache.store)
-		self._loaded: dict[
-			str, tuple[int, int, int, int]
-		] = {}  # branch: (turn_from, tick_from, turn_to, tick_to)
 		self._load_graphs()
 		assert hasattr(self, "graph")
 		self._load_plans()
@@ -4593,7 +4779,7 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, discard_rules=not self.keep_rules_journal
 		)
 
-	def _get_last_completed_turn(self, branch: str) -> int | None:
+	def _get_last_completed_turn(self, branch: Branch) -> Turn | None:
 		if branch not in self._turns_completed_d:
 			return None
 		return self._turns_completed_d[branch]

@@ -20,6 +20,8 @@ from typing import Any, NewType
 Branch = NewType("Branch", str)
 Turn = NewType("Turn", int)
 Tick = NewType("Tick", int)
+Time = tuple[Branch, Turn, Tick]
+Plan = NewType("Plan", int)
 Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 NodeRowType = tuple[Key, Key, Branch, Turn, Tick, bool]
 EdgeRowType = tuple[Key, Key, Key, int, Branch, Turn, Tick, bool]
