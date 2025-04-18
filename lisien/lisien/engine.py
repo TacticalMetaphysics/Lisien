@@ -340,7 +340,7 @@ class NextTurn(Signal):
 			engine.flush_interval is not None
 			and engine.turn % engine.flush_interval == 0
 		):
-			engine.query.flush()
+			engine.flush()
 		if (
 			engine.commit_interval is not None
 			and engine.turn % engine.commit_interval == 0
