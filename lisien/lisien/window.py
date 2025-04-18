@@ -36,7 +36,8 @@ from operator import itemgetter, le, lt
 from threading import RLock
 from typing import Any, Iterable, Union
 
-from lisien.exc import HistoricKeyError
+from .exc import HistoricKeyError
+from .typing import Branch, Turn, Tick
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -48,12 +49,12 @@ class Direction(Enum):
 
 
 def update_window(
-	turn_from: int,
-	tick_from: int,
-	turn_to: int,
-	tick_to: int,
+	turn_from: Turn,
+	tick_from: Tick,
+	turn_to: Turn,
+	tick_to: Tick,
 	updfun: callable,
-	branchd: dict[int, list[tuple]],
+	branchd: dict[Turn, list[tuple]],
 ):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from in branchd:
@@ -71,12 +72,12 @@ def update_window(
 
 
 def update_backward_window(
-	turn_from: int,
-	tick_from: int,
-	turn_to: int,
-	tick_to: int,
+	turn_from: Turn,
+	tick_from: Tick,
+	turn_to: Turn,
+	tick_to: Tick,
 	updfun: callable,
-	branchd: dict[int, list[tuple]],
+	branchd: dict[Turn, list[tuple]],
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from in branchd:
@@ -849,11 +850,11 @@ class FuturistWindowDict(WindowDict):
 
 class TurnDict(FuturistWindowDict):
 	__slots__ = ("_future", "_past")
-	_future: list[tuple[int, Any]]
-	_past: list[tuple[int, Any]]
+	_future: list[tuple[Turn, Any]]
+	_past: list[tuple[Turn, Any]]
 	cls = FuturistWindowDict
 
-	def __setitem__(self, turn: int, value: Any) -> None:
+	def __setitem__(self, turn: Turn, value: Any) -> None:
 		if type(value) is not FuturistWindowDict:
 			value = FuturistWindowDict(value)
 		FuturistWindowDict.__setitem__(self, turn, value)
@@ -897,16 +898,16 @@ class SettingsTurnDict(WindowDict):
 	"""
 
 	__slots__ = ("_future", "_past")
-	_future: list[tuple[int, Any]]
-	_past: list[tuple[int, Any]]
+	_future: list[tuple[Turn, Any]]
+	_past: list[tuple[Turn, Any]]
 	cls = WindowDict
 
-	def __setitem__(self, turn: int, value: Any) -> None:
+	def __setitem__(self, turn: Turn, value: WindowDict) -> None:
 		if not isinstance(value, self.cls):
 			value = self.cls(value)
 		WindowDict.__setitem__(self, turn, value)
 
-	def retrieve(self, turn: int, tick: int) -> Any:
+	def retrieve(self, turn: Turn, tick: Tick) -> Any:
 		"""Retrieve the value that was in effect at this turn and tick
 
 		Whether or not it was *set* at this turn and tick
@@ -918,7 +919,7 @@ class SettingsTurnDict(WindowDict):
 			return self[turn - 1].final()
 		raise KeyError(f"Can't retrieve turn {turn}, tick {tick}")
 
-	def retrieve_exact(self, turn: int, tick: int) -> Any:
+	def retrieve_exact(self, turn: Turn, tick: Tick) -> Any:
 		"""Retrieve the value only if it was set at this exact turn and tick"""
 		if turn not in self:
 			raise KeyError(f"No data in turn {turn}")
@@ -926,7 +927,7 @@ class SettingsTurnDict(WindowDict):
 			raise KeyError(f"No data for tick {tick} in turn {turn}")
 		return self[turn][tick]
 
-	def store_at(self, turn: int, tick: int, value: Any) -> None:
+	def store_at(self, turn: Turn, tick: Tick, value: Any) -> None:
 		"""Set a value at a time, creating the turn if needed"""
 		if turn in self:
 			self[turn][tick] = value
