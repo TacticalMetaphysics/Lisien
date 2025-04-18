@@ -2948,35 +2948,17 @@ class Engine(AbstractEngine, Executor):
 		character_portal_rulebook_keyframe: dict,
 		graph_val_delta: dict,
 	):
-		character_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"character_rulebook",
-			graph_val_keyframe.pop(
-				"character_rulebook", ("character_rulebook", graph)
-			),
-		)
-		unit_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"unit_rulebook",
-			graph_val_keyframe.pop("unit_rulebook", ("unit_rulebook", graph)),
-		)
-		character_thing_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"character_thing_rulebook",
-			graph_val_keyframe.pop(
-				"character_thing_rulebook", ("character_thing_rulebook", graph)
-			),
-		)
-		character_place_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"character_place_rulebook",
-			graph_val_keyframe.pop(
-				"character_place_rulebook", ("character_place_rulebook", graph)
-			),
-		)
-		character_portal_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"character_portal_rulebook",
-			graph_val_keyframe.pop(
-				"character_portal_rulebook",
-				("character_portal_rulebook", graph),
-			),
-		)
+		for key, kf in [
+			("character_rulebook", character_rulebook_keyframe),
+			("unit_rulebook", unit_rulebook_keyframe),
+			("character_thing_rulebook", character_thing_rulebook_keyframe),
+			("character_place_rulebook", character_place_rulebook_keyframe),
+			("character_portal_rulebook", character_portal_rulebook_keyframe),
+		]:
+			if key in graph_val_delta:
+				kf[graph] = graph_val_delta.pop(key)
+			elif graph not in kf:
+				kf[graph] = (key, graph)
 		for k, v in graph_val_delta.items():
 			if v is None:
 				if k in graph_val_keyframe:
