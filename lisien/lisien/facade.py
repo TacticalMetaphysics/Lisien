@@ -19,6 +19,7 @@ from .util import (
 	AbstractThing,
 	SignalDict,
 	getatt,
+	timer,
 )
 from .wrap import MutableMappingUnwrapper
 from .xcollections import CompositeDict
@@ -992,6 +993,8 @@ class CharacterFacade(AbstractCharacter):
 			else:
 				v.apply()
 		self.place._patch = {}
+		# Dictionary size changes during iteration below, suggesting that `_patch`
+		# isn't instance specific like it should be
 		for orig, dests in self.portal._patch.items():
 			for dest, v in dests.items():
 				if v is None:
@@ -1269,7 +1272,13 @@ class EngineFacade(AbstractEngine):
 			return
 		# Do I actually need these sorts? Insertion order's preserved...
 		for plan_num in sorted(self._planned):
-			with realeng.plan():  # resets time at end of block
+			with (
+				realeng.plan(),
+				timer(
+					f"facade committed plan {plan_num} to core",
+					logfun=self.log,
+				),
+			):
 				for turn in sorted(self._planned[plan_num]):
 					realeng.turn = turn
 					for tup in self._planned[plan_num][turn]:
