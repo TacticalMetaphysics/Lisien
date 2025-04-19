@@ -2167,15 +2167,7 @@ class Engine(AbstractEngine, Executor):
 		enforce_end_of_time: bool = True,
 		workers: int = None,
 	):
-		if prefix is None:
-			if workers not in (None, 0):
-				raise ValueError(
-					"Can't use worker processes without a prefix "
-					"in which to keep the code they'll run"
-				)
-			workers = 0
-		else:
-			workers = workers or os.cpu_count() or 0
+		workers = workers or os.cpu_count() or 0
 		connect_args = connect_args or {}
 		self._planning = False
 		self._forward = False
