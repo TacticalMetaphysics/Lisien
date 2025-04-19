@@ -2197,7 +2197,7 @@ class Engine(AbstractEngine, Executor):
 		self._init_string(prefix)
 		self._top_uid = 0
 		if workers > 0:
-			self._start_workers(workers)
+			self._start_workers(prefix, workers)
 
 	def _init_log(self, logfun: callable | None):
 		if logfun is None:
@@ -2361,7 +2361,7 @@ class Engine(AbstractEngine, Executor):
 				self.eternal.setdefault("language", "eng"),
 			)
 
-	def _start_workers(self, workers: int):
+	def _start_workers(self, prefix: str | os.PathLike | None, workers: int):
 		def sync_log_forever(q):
 			while True:
 				self.log(*q.get())
