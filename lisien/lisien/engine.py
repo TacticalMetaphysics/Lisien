@@ -2168,7 +2168,6 @@ class Engine(AbstractEngine, Executor):
 		workers: int = None,
 	):
 		workers = workers or os.cpu_count() or 0
-		connect_args = connect_args or {}
 		self._planning = False
 		self._forward = False
 		self._no_kc = False
@@ -2210,25 +2209,29 @@ class Engine(AbstractEngine, Executor):
 				setattr(self, name, FunctionStore(fn, module=name))
 				if clear and os.path.exists(fn):
 					os.remove(fn)
-		if prefix is None:
-			if connect_string is None:
-				self.query = NullQueryEngine()
-			else:
-				self.query = SQLAlchemyQueryEngine(
-					connect_string, connect_args, self.pack, self.unpack
-				)
+		self._init_load(
+			prefix,
+			connect_string,
+			connect_args,
+			keyframe_interval,
+			main_branch,
+			clear,
+		)
+		self._rando = Random()
+		if "rando_state" in self.universal:
+			self._rando.setstate(self.universal["rando_state"])
 		else:
-			if not os.path.exists(prefix):
-				os.mkdir(prefix)
-			if not os.path.isdir(prefix):
-				raise FileExistsError("Need a directory")
-			self.query = ParquetQueryEngine(
-				os.path.join(prefix, "world"),
-				self.pack,
-				self.unpack,
-			)
-			if clear:
-				self.query.truncate_all()
+			self._rando.seed(random_seed)
+			rando_state = self._rando.getstate()
+			if self._oturn == self._otick == 0:
+				self._universal_cache.store(
+					"rando_state", self.branch, 0, 0, rando_state, loading=True
+				)
+				self.query.universal_set(
+					"rando_state", self.branch, 0, 0, rando_state
+				)
+			else:
+				self.universal["rando_state"] = rando_state
 		if string:
 			self.string = string
 		elif prefix is None:
@@ -2248,12 +2251,40 @@ class Engine(AbstractEngine, Executor):
 				string_prefix,
 				self.eternal.setdefault("language", "eng"),
 			)
-		self._init_load(main_branch)
 		self._top_uid = 0
 		if workers > 0:
 			self._start_workers(workers)
 
-	def _init_load(self, main_branch: Branch):
+	def _init_load(
+		self,
+		prefix: str | os.PathLike | None,
+		connect_string: str | None,
+		connect_args: dict | None,
+		keyframe_interval: int | None,
+		main_branch: Branch,
+		clear: bool,
+	):
+		if prefix is None:
+			if connect_string is None:
+				self.query = NullQueryEngine()
+			else:
+				self.query = SQLAlchemyQueryEngine(
+					connect_string, connect_args or {}, self.pack, self.unpack
+				)
+		else:
+			if not os.path.exists(prefix):
+				os.mkdir(prefix)
+			if not os.path.isdir(prefix):
+				raise FileExistsError("Need a directory")
+			self.query = ParquetQueryEngine(
+				os.path.join(prefix, "world"),
+				self.pack,
+				self.unpack,
+			)
+			if clear:
+				self.query.truncate_all()
+
+		self.query.keyframe_interval = keyframe_interval
 		self._plans_uncommitted: list[tuple[Plan, Branch, Turn, Tick]] = []
 		self._load_keyframe_times()
 		if main_branch is not None:
@@ -2303,24 +2334,8 @@ class Engine(AbstractEngine, Executor):
 		}
 		with garbage():
 			self._load(*self._read_at(*self._btt()))
-		self.query.keyframe_interval = keyframe_interval
 		self.query.snap_keyframe = self.snap_keyframe
 		self.query.kf_interval_override = self._detect_kf_interval_override
-		self._rando = Random()
-		if "rando_state" in self.universal:
-			self._rando.setstate(self.universal["rando_state"])
-		else:
-			self._rando.seed(random_seed)
-			rando_state = self._rando.getstate()
-			if self._oturn == self._otick == 0:
-				self._universal_cache.store(
-					"rando_state", self.branch, 0, 0, rando_state, loading=True
-				)
-				self.query.universal_set(
-					"rando_state", self.branch, 0, 0, rando_state
-				)
-			else:
-				self.universal["rando_state"] = rando_state
 		if not self._keyframes_times:
 			self._snap_keyframe_de_novo(*self._btt())
 
