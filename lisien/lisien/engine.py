@@ -2193,6 +2193,32 @@ class Engine(AbstractEngine, Executor):
 					getattr(logger, level)(msg)
 
 		self.log = logfun
+		self._init_func_stores(
+			prefix, function, method, trigger, prereq, action
+		)
+		self._init_load(
+			prefix,
+			connect_string,
+			connect_args,
+			keyframe_interval,
+			main_branch,
+			clear,
+		)
+		self._init_random(random_seed)
+		self._init_string(prefix)
+		self._top_uid = 0
+		if workers > 0:
+			self._start_workers(workers)
+
+	def _init_func_stores(
+		self,
+		prefix: str | os.PathLike | None,
+		function,
+		method,
+		trigger,
+		prereq,
+		action,
+	):
 		for module, name in (
 			(function, "function"),
 			(method, "method"),
@@ -2209,19 +2235,6 @@ class Engine(AbstractEngine, Executor):
 				setattr(self, name, FunctionStore(fn, module=name))
 				if clear and os.path.exists(fn):
 					os.remove(fn)
-		self._init_load(
-			prefix,
-			connect_string,
-			connect_args,
-			keyframe_interval,
-			main_branch,
-			clear,
-		)
-		self._init_random(random_seed)
-		self._init_string(prefix)
-		self._top_uid = 0
-		if workers > 0:
-			self._start_workers(workers)
 
 	def _init_load(
 		self,
