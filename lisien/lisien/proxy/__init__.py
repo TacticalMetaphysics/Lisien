@@ -3015,7 +3015,7 @@ class EngineProxy(AbstractEngine):
 								func,
 								FuncProxy(self.trigger, func),
 							)
-						else:
+						elif hasattr(self.trigger, "reimport"):
 							self.trigger.reimport()
 					if hasattr(self.trigger, func):
 						triglist.append(getattr(self.trigger, func))
@@ -3047,7 +3047,7 @@ class EngineProxy(AbstractEngine):
 							setattr(
 								self.prereq, func, FuncProxy(self.prereq, func)
 							)
-						else:
+						elif hasattr(self.prereq, "reimport"):
 							self.prereq.reimport()
 					if hasattr(self.prereq, func):
 						preqlist.append(getattr(self.prereq, func))
@@ -3074,7 +3074,9 @@ class EngineProxy(AbstractEngine):
 					actlist.append(getattr(self.action, func))
 			else:
 				for func in actions:
-					if not hasattr(self.action, func):
+					if not hasattr(self.action, func) and hasattr(
+						self.action, "reimport"
+					):
 						self.action.reimport()
 					if hasattr(self.action, func):
 						actlist.append(getattr(self.action, func))
@@ -3441,6 +3443,8 @@ class EngineProxy(AbstractEngine):
 		try:
 			meth = method.__getattr__(item)
 		except AttributeError:
+			if not hasattr(method, "reimport"):
+				raise
 			try:
 				method.reimport()
 			except FileNotFoundError:
@@ -3454,15 +3458,9 @@ class EngineProxy(AbstractEngine):
 				)
 		return MethodType(meth, self)
 
-	def _reimport_code(self):
-		self.function.reimport()
-		self.method.reimport()
-		self.trigger.reimport()
-		self.prereq.reimport()
-		self.action.reimport()
-
 	def _reimport_triggers(self):
-		self.trigger.reimport()
+		if hasattr(self.trigger, "reimport"):
+			self.trigger.reimport()
 
 	def _eval_trigger(self, name, entity):
 		return getattr(self.trigger, name)(entity)
@@ -3471,13 +3469,15 @@ class EngineProxy(AbstractEngine):
 		return getattr(self.function, name)(*args, **kwargs)
 
 	def _reimport_functions(self):
-		self.function.reimport()
+		if hasattr(self.function, "reimport"):
+			self.function.reimport()
 
 	def _call_method(self, name: str, *args, **kwargs):
 		return MethodType(getattr(self.method, name), self)(*args, **kwargs)
 
 	def _reimport_methods(self):
-		self.method.reimport()
+		if hasattr(self.method, "reimport"):
+			self.method.reimport()
 
 	def send_bytes(self, obj, blocking=True, timeout=1):
 		compressed = zlib.compress(obj)
