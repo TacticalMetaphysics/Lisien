@@ -2177,6 +2177,12 @@ class Engine(AbstractEngine, Executor):
 		self._forward = False
 		self._no_kc = False
 		self._enforce_end_of_time = enforce_end_of_time
+		self._keyframe_on_close = keyframe_on_close
+		self._prefix = prefix
+		self.keep_rules_journal = keep_rules_journal
+		self.flush_interval = flush_interval
+		self.commit_interval = commit_interval
+		self.schema = schema_cls(self)
 		# in case this is the first startup
 		self._obranch = main_branch or "trunk"
 		self._otick = self._oturn = 0
@@ -2192,10 +2198,6 @@ class Engine(AbstractEngine, Executor):
 					getattr(logger, level)(msg)
 
 		self.log = logfun
-		self._prefix = prefix
-		self.keep_rules_journal = keep_rules_journal
-		self._keyframe_on_close = keyframe_on_close
-		self.schema = schema_cls(self)
 		for module, name in (
 			(function, "function"),
 			(method, "method"),
@@ -2300,11 +2302,9 @@ class Engine(AbstractEngine, Executor):
 		with garbage():
 			self._load(*self._read_at(*self._btt()))
 		self.next_turn = NextTurn(self)
-		self.commit_interval = commit_interval
 		self.query.keyframe_interval = keyframe_interval
 		self.query.snap_keyframe = self.snap_keyframe
 		self.query.kf_interval_override = self._detect_kf_interval_override
-		self.flush_interval = flush_interval
 		self._rando = Random()
 		if "rando_state" in self.universal:
 			self._rando.setstate(self.universal["rando_state"])
