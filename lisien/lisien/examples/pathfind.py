@@ -46,7 +46,7 @@ def install(eng, seed=None):
 		)
 		return ret
 
-	@phys.rule
+	@phys.rule(big=True)
 	def go_places(char):
 		from time import monotonic
 
@@ -68,21 +68,18 @@ def install(eng, seed=None):
 			fut.thing = thing
 			fut.add_done_callback(log_as_completed)
 			futs.append(fut)
-		with lisien.db.batch():
-			for fut in futs:
-				try:
-					result = fut.result()
-					thing = fut.thing
-					start = monotonic()
-					thing.follow_path(result, check=False)
-					char.engine.debug(
-						f"followed path for thing {thing.name} in {monotonic() - start:.2} seconds"
-					)
-				except NetworkXNoPath:
-					char.engine.debug(
-						f"got no path for thing {fut.thing.name}"
-					)
-					continue
+		for fut in futs:
+			try:
+				result = fut.result()
+				thing = fut.thing
+				start = monotonic()
+				thing.follow_path(result, check=False)
+				char.engine.debug(
+					f"followed path for thing {thing.name} in {monotonic() - start:.2} seconds"
+				)
+			except NetworkXNoPath:
+				char.engine.debug(f"got no path for thing {fut.thing.name}")
+				continue
 
 	@go_places.trigger
 	def turn_one_only(char):
