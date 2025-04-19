@@ -2327,93 +2327,95 @@ class Engine(AbstractEngine, Executor):
 			self._snap_keyframe_de_novo(*self._btt())
 		self._top_uid = 0
 		if workers > 0:
+			self._start_workers(workers)
 
-			def sync_log_forever(q):
-				while True:
-					self.log(*q.get())
+	def _start_workers(self, workers: int):
+		def sync_log_forever(q):
+			while True:
+				self.log(*q.get())
 
-			for store in self.stores:
-				if hasattr(store, "save"):
-					store.save(reimport=False)
+		for store in self.stores:
+			if hasattr(store, "save"):
+				store.save(reimport=False)
 
-			self._trigger_pool = ThreadPoolExecutor()
-			self._worker_last_eternal = dict(self.eternal.items())
-			initial_payload = self._get_worker_kf_payload(-1)
+		self._trigger_pool = ThreadPoolExecutor()
+		self._worker_last_eternal = dict(self.eternal.items())
+		initial_payload = self._get_worker_kf_payload(-1)
 
-			self._worker_processes = wp = []
-			self._worker_inputs = wi = []
-			self._worker_outputs = wo = []
-			self._worker_locks = wlk = []
-			self._worker_log_queues = wl = []
-			self._worker_log_threads = wlt = []
-			for i in range(workers):
-				inpipe_there, inpipe_here = Pipe(duplex=False)
-				outpipe_here, outpipe_there = Pipe(duplex=False)
-				logq = Queue()
-				logthread = Thread(
-					target=sync_log_forever, args=(logq,), daemon=True
-				)
-				worker_args = [
-					i,
-					prefix,
-					self._branches_d,
-					dict(self.eternal),
-					inpipe_there,
-					outpipe_there,
-					logq,
-				]
-				for store in (
-					self.function,
-					self.method,
-					self.trigger,
-					self.prereq,
-					self.action,
-				):
-					if hasattr(store, "_locl"):
-						worker_args.append(store._locl)
-					elif hasattr(store, "__dict__"):
-						worker_args.append(
-							{
-								k: v
-								for (k, v) in store.__dict__.items()
-								if callable(v)
-							}
-						)
-					else:
-						funcs = {}
-						for name in dir(store):
-							value = getattr(store, name)
-							if callable(value):
-								funcs[name] = value
-						worker_args.append(funcs)
-				proc = Process(
-					target=worker_subprocess,
-					args=worker_args,
-				)
-				wi.append(inpipe_here)
-				wo.append(outpipe_here)
-				wl.append(logq)
-				wlk.append(Lock())
-				wlt.append(logthread)
-				wp.append(proc)
-				logthread.start()
-				proc.start()
-				with wlk[-1]:
-					inpipe_here.send_bytes(initial_payload)
-			self._how_many_futs_running = 0
-			self._fut_manager_thread = Thread(
-				target=self._manage_futs, daemon=True
+		self._worker_processes = wp = []
+		self._worker_inputs = wi = []
+		self._worker_outputs = wo = []
+		self._worker_locks = wlk = []
+		self._worker_log_queues = wl = []
+		self._worker_log_threads = wlt = []
+		for i in range(workers):
+			inpipe_there, inpipe_here = Pipe(duplex=False)
+			outpipe_here, outpipe_there = Pipe(duplex=False)
+			logq = Queue()
+			logthread = Thread(
+				target=sync_log_forever, args=(logq,), daemon=True
 			)
-			self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
-			self._uid_to_fut: dict[int, Future] = {}
-			self._fut_manager_thread.start()
-			if hasattr(self.trigger, "connect"):
-				self.trigger.connect(self._reimport_trigger_functions)
-			if hasattr(self.function, "connect"):
-				self.function.connect(self._reimport_worker_functions)
-			if hasattr(self.method, "connect"):
-				self.method.connect(self._reimport_worker_methods)
-			self._worker_updated_btts = [self._btt()] * workers
+			worker_args = [
+				i,
+				prefix,
+				self._branches_d,
+				dict(self.eternal),
+				inpipe_there,
+				outpipe_there,
+				logq,
+			]
+			for store in (
+				self.function,
+				self.method,
+				self.trigger,
+				self.prereq,
+				self.action,
+			):
+				if hasattr(store, "_locl"):
+					worker_args.append(store._locl)
+				elif hasattr(store, "__dict__"):
+					worker_args.append(
+						{
+							k: v
+							for (k, v) in store.__dict__.items()
+							if callable(v)
+						}
+					)
+				else:
+					funcs = {}
+					for name in dir(store):
+						value = getattr(store, name)
+						if callable(value):
+							funcs[name] = value
+					worker_args.append(funcs)
+			proc = Process(
+				target=worker_subprocess,
+				args=worker_args,
+			)
+			wi.append(inpipe_here)
+			wo.append(outpipe_here)
+			wl.append(logq)
+			wlk.append(Lock())
+			wlt.append(logthread)
+			wp.append(proc)
+			logthread.start()
+			proc.start()
+			with wlk[-1]:
+				inpipe_here.send_bytes(initial_payload)
+		self._how_many_futs_running = 0
+		self._fut_manager_thread = Thread(
+			target=self._manage_futs, daemon=True
+		)
+		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
+		self._uid_to_fut: dict[int, Future] = {}
+		self._fut_manager_thread.start()
+		if hasattr(self.trigger, "connect"):
+			self.trigger.connect(self._reimport_trigger_functions)
+		if hasattr(self.function, "connect"):
+			self.function.connect(self._reimport_worker_functions)
+		if hasattr(self.method, "connect"):
+			self.method.connect(self._reimport_worker_methods)
+		self._worker_updated_btts = [self._btt()] * workers
 
 	def _start_branch(
 		self, parent: str, branch: str, turn: int, tick: int
