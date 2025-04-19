@@ -2350,22 +2350,42 @@ class Engine(AbstractEngine, Executor):
 				logthread = Thread(
 					target=sync_log_forever, args=(logq,), daemon=True
 				)
+				worker_args = [
+					i,
+					prefix,
+					self._branches_d,
+					dict(self.eternal),
+					inpipe_there,
+					outpipe_there,
+					logq,
+				]
+				for store in (
+					self.function,
+					self.method,
+					self.trigger,
+					self.prereq,
+					self.action,
+				):
+					if hasattr(store, "_locl"):
+						worker_args.append(store._locl)
+					elif hasattr(store, "__dict__"):
+						worker_args.append(
+							{
+								k: v
+								for (k, v) in store.__dict__.items()
+								if callable(v)
+							}
+						)
+					else:
+						funcs = {}
+						for name in dir(store):
+							value = getattr(store, name)
+							if callable(value):
+								funcs[name] = value
+						worker_args.append(funcs)
 				proc = Process(
 					target=worker_subprocess,
-					args=(
-						i,
-						prefix,
-						self._branches_d,
-						dict(self.eternal),
-						inpipe_there,
-						outpipe_there,
-						logq,
-						self.function._locl,
-						self.method._locl,
-						self.trigger._locl,
-						self.prereq._locl,
-						self.action._locl,
-					),
+					args=worker_args,
 				)
 				wi.append(inpipe_here)
 				wo.append(outpipe_here)
@@ -2384,9 +2404,12 @@ class Engine(AbstractEngine, Executor):
 			self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
 			self._uid_to_fut: dict[int, Future] = {}
 			self._fut_manager_thread.start()
-			self.trigger.connect(self._reimport_trigger_functions)
-			self.function.connect(self._reimport_worker_functions)
-			self.method.connect(self._reimport_worker_methods)
+			if hasattr(self.trigger, "connect"):
+				self.trigger.connect(self._reimport_trigger_functions)
+			if hasattr(self.function, "connect"):
+				self.function.connect(self._reimport_worker_functions)
+			if hasattr(self.method, "connect"):
+				self.method.connect(self._reimport_worker_methods)
 			self._worker_updated_btts = [self._btt()] * workers
 
 	def _start_branch(
