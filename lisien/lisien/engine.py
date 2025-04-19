@@ -2217,21 +2217,7 @@ class Engine(AbstractEngine, Executor):
 			main_branch,
 			clear,
 		)
-		self._rando = Random()
-		if "rando_state" in self.universal:
-			self._rando.setstate(self.universal["rando_state"])
-		else:
-			self._rando.seed(random_seed)
-			rando_state = self._rando.getstate()
-			if self._oturn == self._otick == 0:
-				self._universal_cache.store(
-					"rando_state", self.branch, 0, 0, rando_state, loading=True
-				)
-				self.query.universal_set(
-					"rando_state", self.branch, 0, 0, rando_state
-				)
-			else:
-				self.universal["rando_state"] = rando_state
+		self._init_random(random_seed)
 		if string:
 			self.string = string
 		elif prefix is None:
@@ -2338,6 +2324,23 @@ class Engine(AbstractEngine, Executor):
 		self.query.kf_interval_override = self._detect_kf_interval_override
 		if not self._keyframes_times:
 			self._snap_keyframe_de_novo(*self._btt())
+
+	def _init_random(self, random_seed: int | None):
+		self._rando = Random()
+		if "rando_state" in self.universal:
+			self._rando.setstate(self.universal["rando_state"])
+		else:
+			self._rando.seed(random_seed)
+			rando_state = self._rando.getstate()
+			if self._oturn == self._otick == 0:
+				self._universal_cache.store(
+					"rando_state", self.branch, 0, 0, rando_state, loading=True
+				)
+				self.query.universal_set(
+					"rando_state", self.branch, 0, 0, rando_state
+				)
+			else:
+				self.universal["rando_state"] = rando_state
 
 	def _start_workers(self, workers: int):
 		def sync_log_forever(q):
