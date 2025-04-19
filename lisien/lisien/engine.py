@@ -39,7 +39,7 @@ from random import Random
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Callable, Iterator, Type
+from typing import Any, Callable, Iterator, Type, Optional
 
 import msgpack
 import networkx as nx
@@ -2199,7 +2199,7 @@ class Engine(AbstractEngine, Executor):
 		if workers > 0:
 			self._start_workers(prefix, workers)
 
-	def _init_log(self, logfun: callable | None):
+	def _init_log(self, logfun: Optional[callable]):
 		if logfun is None:
 			from logging import getLogger
 
