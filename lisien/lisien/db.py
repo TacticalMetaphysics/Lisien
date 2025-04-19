@@ -5667,10 +5667,17 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		branch: str,
 		turn: int,
 		tick: int,
-		loc: Key,
+		location: Key,
 	):
 		pack = self.pack
-		return (pack(character), pack(thing), branch, turn, tick, pack(loc))
+		return (
+			pack(character),
+			pack(thing),
+			branch,
+			turn,
+			tick,
+			pack(location),
+		)
 
 	def set_thing_loc(
 		self,
