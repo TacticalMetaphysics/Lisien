@@ -4178,7 +4178,8 @@ class Engine(AbstractEngine, Executor):
 						)
 					unloaded_wrongly = times_unloaded & kf_to_keep
 					assert not unloaded_wrongly, unloaded_wrongly
-		self._keyframes_loaded = kf_to_keep
+		self._keyframes_loaded.clear()
+		self._keyframes_loaded.update(kf_to_keep)
 		loaded.update(to_keep)
 		for branch in set(loaded).difference(to_keep):
 			for cache in caches:
