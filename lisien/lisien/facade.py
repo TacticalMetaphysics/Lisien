@@ -1237,6 +1237,7 @@ class EngineFacade(AbstractEngine):
 		if getattr(self, "_planning", False):
 			raise RuntimeError("Already planning")
 		self._planning = True
+		start_time = self._btt()
 		if hasattr(self, "_curplan"):
 			self._curplan += 1
 		else:
@@ -1244,6 +1245,7 @@ class EngineFacade(AbstractEngine):
 			self._curplan = self._real._last_plan + 1
 		yield self._curplan
 		self._planning = False
+		self._set_btt(*start_time)
 
 	def add_character(
 		self,

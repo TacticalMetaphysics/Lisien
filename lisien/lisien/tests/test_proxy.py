@@ -291,6 +291,7 @@ def test_apply_delta(tmp_path, slow):
 		phys = prox.character["physical"]
 		assert 3 in phys.place
 		assert phys.portal[1][0]["omg"] == "blasphemy"
+		assert "it" in phys.thing
 		if slow:
 			prox.branch = "b"
 		else:
