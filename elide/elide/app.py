@@ -291,7 +291,6 @@ class ELiDEApp(App):
 		config = self.config
 		enkw = {
 			"logger": Logger,
-			"threaded_triggers": False,
 			"do_game_start": getattr(self, "do_game_start", False),
 		}
 		workers = config["lisien"].get("workers", "")
