@@ -2183,7 +2183,7 @@ class Engine(AbstractEngine, Executor):
 		self._otick = self._oturn = 0
 		self._init_log(logfun)
 		self._init_func_stores(
-			prefix, function, method, trigger, prereq, action
+			prefix, function, method, trigger, prereq, action, clear
 		)
 		self._init_load(
 			prefix,
@@ -2221,6 +2221,7 @@ class Engine(AbstractEngine, Executor):
 		trigger,
 		prereq,
 		action,
+		clear: bool,
 	):
 		for module, name in (
 			(function, "function"),
