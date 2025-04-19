@@ -39,7 +39,7 @@ from random import Random
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Callable, Iterator, Type, Optional
+from typing import Any, Callable, Iterator, Type, Optional, Iterable
 
 import msgpack
 import networkx as nx
@@ -5022,7 +5022,7 @@ class Engine(AbstractEngine, Executor):
 		return delt
 
 	def _get_slow_delta(
-		self, btt_from: tuple[str, int, int], btt_to: tuple[str, int, int]
+		self, btt_from: Time, btt_to: Time
 	) -> SlightlyPackedDeltaType:
 		def newgraph():
 			return {
@@ -5376,9 +5376,9 @@ class Engine(AbstractEngine, Executor):
 		charn: Key,
 		rulebook: Key,
 		rulen: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	) -> None:
 		try:
 			self._character_rules_handled_cache.store(
@@ -5403,9 +5403,9 @@ class Engine(AbstractEngine, Executor):
 		avatar: Key,
 		rulebook: Key,
 		rule: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	) -> None:
 		try:
 			self._unit_rules_handled_cache.store(
@@ -5429,9 +5429,9 @@ class Engine(AbstractEngine, Executor):
 		thing: Key,
 		rulebook: Key,
 		rule: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	) -> None:
 		try:
 			self._character_thing_rules_handled_cache.store(
@@ -5455,9 +5455,9 @@ class Engine(AbstractEngine, Executor):
 		place: Key,
 		rulebook: Key,
 		rule: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	) -> None:
 		try:
 			self._character_place_rules_handled_cache.store(
@@ -5482,9 +5482,9 @@ class Engine(AbstractEngine, Executor):
 		dest: Key,
 		rulebook: Key,
 		rule: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	) -> None:
 		try:
 			self._character_portal_rules_handled_cache.store(
@@ -5508,9 +5508,9 @@ class Engine(AbstractEngine, Executor):
 		node: Key,
 		rulebook: Key,
 		rule: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	) -> None:
 		try:
 			self._node_rules_handled_cache.store(
@@ -5535,9 +5535,9 @@ class Engine(AbstractEngine, Executor):
 		dest: Key,
 		rulebook: Key,
 		rule: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	) -> None:
 		try:
 			self._portal_rules_handled_cache.store(
@@ -5682,7 +5682,13 @@ class Engine(AbstractEngine, Executor):
 		return entikey in vbranchesb[turn].entikeys
 
 	def _iter_submit_triggers(
-		self, prio, rulebook, rule, handled_fun, entity, neighbors=None
+		self,
+		prio: float,
+		rulebook: Key,
+		rule: Rule,
+		handled_fun: callable,
+		entity,
+		neighbors: Iterable = None,
 	):
 		changed = self._changed
 		charn = entity.character.name
@@ -5718,7 +5724,7 @@ class Engine(AbstractEngine, Executor):
 				return False
 		return True
 
-	def _do_actions(self, rule, handled_fun, entity):
+	def _do_actions(self, rule: Rule, handled_fun: callable, entity):
 		if rule.big:
 			entity = entity.facade()
 		actres = []
@@ -6365,7 +6371,7 @@ class Engine(AbstractEngine, Executor):
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 
 	def _snap_keyframe_de_novo(
-		self, branch: str, turn: int, tick: int
+		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		universal = dict(self.universal.items())
 		self._universal_cache.set_keyframe(branch, turn, tick, universal)
@@ -6561,9 +6567,9 @@ class Engine(AbstractEngine, Executor):
 	def _snap_keyframe_de_novo_graph(
 		self,
 		graph: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		nodes: NodeValDict,
 		edges: EdgeValDict,
 		graph_val: StatDict,
