@@ -6246,7 +6246,7 @@ class Engine(AbstractEngine, Executor):
 			node_rb_kf[node] = val.pop("rulebook", (graph, node))
 			if "location" not in val:
 				continue
-			locs_kf[node] = location = val.pop("location")
+			locs_kf[node] = location = val["location"]
 			if location in conts_kf:
 				conts_kf[location].add(node)
 			else:
