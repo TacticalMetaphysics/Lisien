@@ -4454,7 +4454,9 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	@world_locked
-	def load_at(self, branch: Branch, turn: Turn, tick: Tick | None = None) -> None:
+	def load_at(
+		self, branch: Branch, turn: Turn, tick: Tick | None = None
+	) -> None:
 		if tick is None:
 			tick = self._turn_end[branch, turn]
 		if self._time_is_loaded(branch, turn, tick):
@@ -4906,7 +4908,7 @@ class Engine(AbstractEngine, Executor):
 		dictionaries of the character's stats' new values, with ``None``
 		for deleted keys. Characters' dictionaries have special keys
 		'nodes' and 'edges' which contain booleans indicating whether
-		the node or edge exists at the moment, and 'node_val' and
+		the node or edge has been created (True) or deleted (False), and 'node_val' and
 		'edge_val' for the stats of those entities. For edges (also
 		called portals) these dictionaries are two layers deep, keyed
 		first by the origin, then by the destination.
