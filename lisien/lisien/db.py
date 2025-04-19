@@ -3,34 +3,33 @@ from __future__ import annotations
 import inspect
 import os
 import sys
-
 from abc import abstractmethod
 from collections import defaultdict
-from functools import partial, cached_property, partialmethod
+from functools import cached_property, partial, partialmethod
 from itertools import starmap
 from queue import Queue
-from threading import RLock, Lock, Thread
+from threading import Lock, RLock, Thread
 from time import monotonic
 from types import MethodType
-
-from typing import MutableMapping, Iterator, Any
+from typing import Any, Iterator, MutableMapping
 
 import msgpack
 import pyarrow as pa
 from parquetdb import ParquetDB
-from pyarrow import compute as pc, ArrowInvalid
-from sqlalchemy import create_engine, NullPool, MetaData, Select
-from sqlalchemy.exc import OperationalError, IntegrityError
+from pyarrow import ArrowInvalid
+from pyarrow import compute as pc
+from sqlalchemy import MetaData, NullPool, Select, create_engine
+from sqlalchemy.exc import IntegrityError, OperationalError
 
 from lisien.alchemy import gather_sql
-from lisien.exc import TimeError, KeyframeError
+from lisien.exc import KeyframeError, TimeError
 from lisien.typing import (
-	Key,
-	GraphValRowType,
-	NodeRowType,
-	NodeValRowType,
 	EdgeRowType,
 	EdgeValRowType,
+	GraphValRowType,
+	Key,
+	NodeRowType,
+	NodeValRowType,
 )
 from lisien.util import garbage
 from lisien.wrap import DictWrapper, ListWrapper, SetWrapper
@@ -4409,9 +4408,9 @@ class Batch(list):
 		if not self:
 			return 0
 		if self.silent:
-			meth = self._qe.call
-		else:
 			meth = self._qe.call_silent
+		else:
+			meth = self._qe.call
 		meth(
 			"insert",
 			self._table,
