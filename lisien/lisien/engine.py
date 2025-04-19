@@ -81,6 +81,7 @@ from .cache import (
 	UnitRulesHandledCache,
 )
 from .character import Character
+from .db import ParquetQueryEngine, SQLAlchemyQueryEngine
 from .exc import (
 	GraphNameError,
 	HistoricKeyError,
@@ -346,7 +347,7 @@ class NextTurn(Signal):
 			engine.flush_interval is not None
 			and engine.turn % engine.flush_interval == 0
 		):
-			engine.query.flush()
+			engine.flush()
 		if (
 			engine.commit_interval is not None
 			and engine.turn % engine.commit_interval == 0
@@ -2503,6 +2504,15 @@ class Engine(AbstractEngine, Executor):
 				self._snap_keyframe_de_novo_graph(
 					graph, branch, turn, tick, nodes, edges, graph_val
 				)
+		if not keyframe_graphs:
+			for cache in (
+				self._characters_rulebooks_cache,
+				self._units_rulebooks_cache,
+				self._characters_things_rulebooks_cache,
+				self._characters_places_rulebooks_cache,
+				self._characters_portals_rulebooks_cache,
+			):
+				cache.set_keyframe(branch, turn, tick, {})
 		self._updload(branch, turn, tick)
 		if branch in self._keyframes_dict:
 			if turn in self._keyframes_dict[branch]:
@@ -3226,35 +3236,17 @@ class Engine(AbstractEngine, Executor):
 		character_portal_rulebook_keyframe: dict,
 		graph_val_delta: dict,
 	):
-		character_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"character_rulebook",
-			graph_val_keyframe.pop(
-				"character_rulebook", ("character_rulebook", graph)
-			),
-		)
-		unit_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"unit_rulebook",
-			graph_val_keyframe.pop("unit_rulebook", ("unit_rulebook", graph)),
-		)
-		character_thing_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"character_thing_rulebook",
-			graph_val_keyframe.pop(
-				"character_thing_rulebook", ("character_thing_rulebook", graph)
-			),
-		)
-		character_place_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"character_place_rulebook",
-			graph_val_keyframe.pop(
-				"character_place_rulebook", ("character_place_rulebook", graph)
-			),
-		)
-		character_portal_rulebook_keyframe[graph] = graph_val_delta.pop(
-			"character_portal_rulebook",
-			graph_val_keyframe.pop(
-				"character_portal_rulebook",
-				("character_portal_rulebook", graph),
-			),
-		)
+		for key, kf in [
+			("character_rulebook", character_rulebook_keyframe),
+			("unit_rulebook", unit_rulebook_keyframe),
+			("character_thing_rulebook", character_thing_rulebook_keyframe),
+			("character_place_rulebook", character_place_rulebook_keyframe),
+			("character_portal_rulebook", character_portal_rulebook_keyframe),
+		]:
+			if key in graph_val_delta:
+				kf[graph] = graph_val_delta.pop(key)
+			elif graph not in kf:
+				kf[graph] = (key, graph)
 		for k, v in graph_val_delta.items():
 			if v is None:
 				if k in graph_val_keyframe:
@@ -6529,15 +6521,36 @@ class Engine(AbstractEngine, Executor):
 				kf = {}
 			kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
+		self._unitness_cache.set_keyframe(
+			graph, branch, turn, tick, graph_val.pop("units", {})
+		)
+		node_rb_kf = {}
+		locs_kf = {}
+		conts_kf = {}
+		for node, val in nodes.items():
+			node_rb_kf[node] = val.pop("rulebook", (graph, node))
+			if "location" not in val:
+				continue
+			locs_kf[node] = location = val["location"]
+			if location in conts_kf:
+				conts_kf[location].add(node)
+			else:
+				conts_kf[location] = {node}
 		self._nodes_rulebooks_cache.set_keyframe(
+			graph, branch, turn, tick, node_rb_kf
+		)
+		self._things_cache.set_keyframe(graph, branch, turn, tick, locs_kf)
+		self._node_contents_cache.set_keyframe(
 			graph,
 			branch,
 			turn,
 			tick,
-			{n: nvs.pop("rulebook", (graph, n)) for (n, nvs) in nodes.items()},
+			{n: frozenset(conts) for (n, conts) in conts_kf.items()},
 		)
 		port_rb_kf = {}
 		for orig, dests in edges.items():
+			if not dests:
+				continue
 			port_rb_kf[orig] = rbs = {}
 			for dest, port in dests.items():
 				rbs[dest] = port.pop("rulebook", (graph, orig, dest))
@@ -6590,32 +6603,6 @@ class Engine(AbstractEngine, Executor):
 					turns[turn] = {tick}
 			else:
 				self._keyframes_dict[branch] = {turn: {tick}}
-		if "units" in graph_val:
-			self._unitness_cache.set_keyframe(
-				graph, branch, turn, tick, graph_val["units"]
-			)
-		else:
-			self._unitness_cache.set_keyframe(graph, branch, turn, tick, {})
-		newkf = {}
-		contkf = {}
-		for name, node in nodes.items():
-			if not isinstance(node, dict):
-				raise TypeError("nodes in keyframes must be dictionaries")
-			if "location" not in node:
-				continue
-			locn = node["location"]
-			newkf[name] = locn
-			if locn in contkf:
-				contkf[locn].add(name)
-			else:
-				contkf[locn] = {
-					name,
-				}
-		contkf = {k: frozenset(v) for (k, v) in contkf.items()}
-		self._node_contents_cache.set_keyframe(
-			graph, branch, turn, tick, contkf
-		)
-		self._things_cache.set_keyframe(graph, branch, turn, tick, newkf)
 		assert (
 			(graph,) in self._things_cache.keyframe
 			and branch in self._things_cache.keyframe[graph,]

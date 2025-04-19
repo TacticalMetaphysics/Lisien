@@ -16,7 +16,7 @@ import os
 
 from kivy.app import App
 from kivy.clock import Clock, triggered
-from kivy.properties import ObjectProperty, OptionProperty
+from kivy.properties import ObjectProperty, OptionProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
@@ -84,6 +84,7 @@ class WorldStartConfigurator(BoxLayout):
 	toggle = ObjectProperty()
 	init_board = ObjectProperty()
 	generator_dropdown = ObjectProperty()
+	path = StringProperty(".")
 
 	def on_generator_dropdown(self, *_):
 		def select_txt(btn):
@@ -123,7 +124,7 @@ class WorldStartConfigurator(BoxLayout):
 				return
 		elif not hasattr(self, "_starting"):
 			self._starting = True
-			starter()
+			starter(self.path)
 			init_board()
 			self.toggle()
 			self.dismiss()
@@ -144,6 +145,7 @@ class DirPicker(Screen):
 					dismiss=self.config_popover.dismiss,
 					toggle=self.toggle,
 					generator_dropdown=DropDown(),
+					path=path,
 				)
 				self.config_popover.add_widget(self.configurator)
 			self.config_popover.open()

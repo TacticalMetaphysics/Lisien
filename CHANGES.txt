@@ -1,3 +1,13 @@
+== 0.19.1 | 2025-04-19 ==
+* Fixed big rules not resetting the time at the end of a plan block
+* Fixed character rulebooks becoming unset after some time travel operations
+* Fixed picking a starting directory in Elide
+* Removed `threaded_triggers` option; triggers are now serial when there are
+  no workers, parallel if there are workers to go parallel with. I plan to
+  make a kind of worker "process" that's really a thread.
+* Fixed loading node and portal rulebooks from keyframes
+* Fixed loading things' locations from keyframes
+
 == 0.19.0 | 2025-04-13 ==
 Core:
 * Switched the default storage backend to ParquetDB, which is far more space-efficient.
