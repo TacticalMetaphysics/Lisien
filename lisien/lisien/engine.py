@@ -81,6 +81,7 @@ from .cache import (
 	UnitRulesHandledCache,
 )
 from .character import Character
+from .db import ParquetQueryEngine, SQLAlchemyQueryEngine
 from .exc import (
 	GraphNameError,
 	HistoricKeyError,
@@ -103,7 +104,6 @@ from .query import (
 	StatusAlias,
 	_make_side_sel,
 )
-from .db import ParquetQueryEngine, SQLAlchemyQueryEngine
 from .rule import AllRuleBooks, AllRules, Rule
 from .typing import (
 	DeltaDict,
