@@ -64,7 +64,7 @@ from tblib import Traceback
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
 from .graph import DiGraph, Edge, Node
-from .typing import Key
+from .typing import Key, Branch, Turn, Tick
 
 
 class KeyClass(Hashable):
@@ -706,20 +706,20 @@ class AbstractEngine(ABC):
 	def branches(self) -> KeysView:
 		return self._branches_d.keys()
 
-	def branch_parent(self, branch: str | None) -> str | None:
+	def branch_parent(self, branch: Branch | None) -> Branch | None:
 		if branch is None:
 			branch = self.branch
 		if branch not in self._branches_d:
 			return None
 		return self._branches_d[branch][0]
 
-	def _branch_start(self, branch: str | None = None) -> tuple[int, int]:
+	def _branch_start(self, branch: Branch | None = None) -> tuple[Turn, Tick]:
 		if branch is None:
 			branch = self.branch
 		_, turn, tick, _, _ = self._branches_d[branch]
 		return turn, tick
 
-	def _branch_end(self, branch: str | None = None) -> tuple[int, int]:
+	def _branch_end(self, branch: Branch | None = None) -> tuple[Turn, Tick]:
 		if branch is None:
 			branch = self.branch
 		_, _, _, turn, tick = self._branches_d[branch]
@@ -727,35 +727,39 @@ class AbstractEngine(ABC):
 
 	@abstractmethod
 	def _start_branch(
-		self, parent: str, branch: str, turn: int, tick: int
+		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick
 	) -> None: ...
 
 	@abstractmethod
-	def _set_btt(self, branch: str, turn: int, tick: int) -> None: ...
+	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick) -> None: ...
 
 	@abstractmethod
-	def _extend_branch(self, branch: str, turn: int, tick: int) -> None: ...
+	def _extend_branch(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None: ...
 
 	@abstractmethod
-	def load_at(self, branch: str, turn: int, tick: int) -> None: ...
+	def load_at(self, branch: Branch, turn: Turn, tick: Tick) -> None: ...
 
-	def branch_start_turn(self, branch: str | None = None) -> int:
+	def branch_start_turn(self, branch: Branch | None = None) -> Turn:
 		return self._branch_start(branch)[0]
 
-	def branch_start_tick(self, branch: str | None = None) -> int:
+	def branch_start_tick(self, branch: Branch | None = None) -> Tick:
 		return self._branch_start(branch)[1]
 
-	def branch_end_turn(self, branch: str | None = None) -> int:
+	def branch_end_turn(self, branch: Branch | None = None) -> Turn:
 		return self._branch_end(branch)[0]
 
-	def branch_end_tick(self, branch: str | None = None) -> int:
+	def branch_end_tick(self, branch: Branch | None = None) -> Tick:
 		return self._branch_end(branch)[1]
 
 	@abstractmethod
-	def turn_end(self, branch: str = None, turn: int = None) -> int: ...
+	def turn_end(self, branch: Branch = None, turn: Turn = None) -> Tick: ...
 
 	@abstractmethod
-	def turn_end_plan(self, branch: str = None, turn: int = None) -> int: ...
+	def turn_end_plan(
+		self, branch: Branch = None, turn: Turn = None
+	) -> Tick: ...
 
 	@abstractmethod
 	def add_character(
@@ -784,11 +788,11 @@ class AbstractEngine(ABC):
 		"""Return True or False with equal probability."""
 		return self.choice((True, False))
 
-	def die_roll(self, d) -> int:
+	def die_roll(self, d: int) -> int:
 		"""Roll a die with ``d`` faces. Return the result."""
 		return self.randint(1, d)
 
-	def dice(self, n, d) -> Iterable[int]:
+	def dice(self, n: int, d: int) -> Iterable[int]:
 		"""Roll ``n`` dice with ``d`` faces, and yield the results.
 
 		This is an iterator. You'll get the result of each die in
@@ -908,20 +912,20 @@ class AbstractCharacter(DiGraph):
 		return False
 
 	@abstractmethod
-	def add_place(self, name, **kwargs):
+	def add_place(self, name: Key, **kwargs):
 		pass
 
-	def add_node(self, name, **kwargs):
+	def add_node(self, name: Key, **kwargs):
 		self.add_place(name, **kwargs)
 
 	@abstractmethod
-	def add_places_from(self, seq, **attrs):
+	def add_places_from(self, seq: Iterable, **attrs):
 		pass
 
-	def add_nodes_from(self, seq, **attrs):
+	def add_nodes_from(self, seq: Iterable, **attrs):
 		self.add_places_from(seq, **attrs)
 
-	def new_place(self, name, **kwargs):
+	def new_place(self, name: Key, **kwargs):
 		"""Add a Place and return it.
 
 		If there's already a Place by that name, put a number on the end.
@@ -938,18 +942,18 @@ class AbstractCharacter(DiGraph):
 			return self.place[name]
 		raise KeyError("Already have a node named {}".format(name))
 
-	def new_node(self, name, **kwargs):
+	def new_node(self, name: Key, **kwargs):
 		return self.new_place(name, **kwargs)
 
 	@abstractmethod
-	def add_thing(self, name, location, **kwargs):
+	def add_thing(self, name: Key, location: Key, **kwargs):
 		pass
 
 	@abstractmethod
-	def add_things_from(self, seq, **attrs):
+	def add_things_from(self, seq: Iterable, **attrs):
 		pass
 
-	def new_thing(self, name, location, **kwargs):
+	def new_thing(self, name: Key, location: Key, **kwargs):
 		"""Add a Thing and return it.
 
 		If there's already a Thing by that name, put a number on the end.
@@ -978,53 +982,53 @@ class AbstractCharacter(DiGraph):
 		if node in self.node:
 			self.node[node].delete()
 
-	def remove_nodes_from(self, nodes):
+	def remove_nodes_from(self, nodes: Iterable[Key]):
 		for node in nodes:
 			if node in self.node:
 				self.node[node].delete()
 
 	@abstractmethod
-	def add_portal(self, orig, dest, **kwargs):
+	def add_portal(self, orig: Key, dest: Key, **kwargs):
 		pass
 
-	def add_edge(self, orig, dest, **kwargs):
+	def add_edge(self, orig: Key, dest: Key, **kwargs):
 		self.add_portal(orig, dest, **kwargs)
 
-	def new_portal(self, orig, dest, **kwargs):
+	def new_portal(self, orig: Key, dest: Key, **kwargs):
 		self.add_portal(orig, dest, **kwargs)
 		return self.portal[orig][dest]
 
 	@abstractmethod
-	def add_portals_from(self, seq, **attrs):
+	def add_portals_from(self, seq: Iterable, **attrs):
 		pass
 
-	def add_edges_from(self, seq, **attrs):
+	def add_edges_from(self, seq: Iterable, **attrs):
 		self.add_portals_from(seq, **attrs)
 
 	@abstractmethod
-	def remove_portal(self, origin, destination):
+	def remove_portal(self, origin: Key, destination: Key):
 		pass
 
-	def remove_portals_from(self, seq):
+	def remove_portals_from(self, seq: Iterable[tuple[Key, Key]]):
 		for orig, dest in seq:
 			del self.portal[orig][dest]
 
-	def remove_edges_from(self, seq):
+	def remove_edges_from(self, seq: Iterable[tuple[Key, Key]]):
 		self.remove_portals_from(seq)
 
 	@abstractmethod
-	def remove_place(self, place):
+	def remove_place(self, place: Key):
 		pass
 
-	def remove_places_from(self, seq):
+	def remove_places_from(self, seq: Key):
 		for place in seq:
 			self.remove_place(place)
 
 	@abstractmethod
-	def remove_thing(self, thing):
+	def remove_thing(self, thing: Key):
 		pass
 
-	def remove_things_from(self, seq):
+	def remove_things_from(self, seq: Iterable[Key]):
 		for thing in seq:
 			self.remove_thing(thing)
 
@@ -1051,10 +1055,10 @@ class AbstractCharacter(DiGraph):
 		except AttributeError:
 			return False  # we can't "really exist" when we've no engine
 
-	def __contains__(self, k):
+	def __contains__(self, k: Key):
 		return k in self.node
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: Key):
 		return self.adj[k]
 
 	thing = SpecialMappingDescriptor("ThingMapping")
@@ -1146,7 +1150,12 @@ class AbstractCharacter(DiGraph):
 			return ops[comparator]
 		return getattr(self.engine.function, comparator)
 
-	def cull_nodes(self, stat, threshold=0.5, comparator=ge):
+	def cull_nodes(
+		self,
+		stat: Key,
+		threshold: float = 0.5,
+		comparator: callable | str = ge,
+	):
 		"""Delete nodes whose stat >= ``threshold`` (default 0.5).
 
 		Optional argument ``comparator`` will replace >= as the test
@@ -1162,7 +1171,12 @@ class AbstractCharacter(DiGraph):
 		self.remove_nodes_from(dead)
 		return self
 
-	def cull_portals(self, stat, threshold=0.5, comparator=ge):
+	def cull_portals(
+		self,
+		stat: Key,
+		threshold: float = 0.5,
+		comparator: callable | str = ge,
+	):
 		"""Delete portals whose stat >= ``threshold`` (default 0.5).
 
 		Optional argument ``comparator`` will replace >= as the test
