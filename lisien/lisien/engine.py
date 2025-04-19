@@ -2194,7 +2194,7 @@ class Engine(AbstractEngine, Executor):
 			clear,
 		)
 		self._init_random(random_seed)
-		self._init_string(prefix)
+		self._init_string(prefix, string, clear)
 		self._top_uid = 0
 		if workers > 0:
 			self._start_workers(prefix, workers)
@@ -2341,7 +2341,12 @@ class Engine(AbstractEngine, Executor):
 			else:
 				self.universal["rando_state"] = rando_state
 
-	def _init_string(self, prefix: str | os.PathLike | None):
+	def _init_string(
+		self,
+		prefix: str | os.PathLike | None,
+		string: StringStore | None,
+		clear: bool,
+	):
 		if string:
 			self.string = string
 		elif prefix is None:
