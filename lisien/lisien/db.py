@@ -5320,7 +5320,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def have_branch(self, branch: str) -> bool:
 		return self.call("have_branch", branch)
 
-	def all_branches(self) -> Iterator[tuple[str, str, int, int, int, int]]:
+	def all_branches(
+		self,
+	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
 		for d in self.call("dump", "branches"):
 			yield (
 				d["branch"],

@@ -2256,6 +2256,12 @@ class Engine(AbstractEngine, Executor):
 				string_prefix,
 				self.eternal.setdefault("language", "eng"),
 			)
+		self._init_load(main_branch)
+		self._top_uid = 0
+		if workers > 0:
+			self._start_workers(workers)
+
+	def _init_load(self, main_branch: Branch):
 		self._plans_uncommitted: list[tuple[Plan, Branch, Turn, Tick]] = []
 		self._load_keyframe_times()
 		if main_branch is not None:
@@ -2325,9 +2331,6 @@ class Engine(AbstractEngine, Executor):
 				self.universal["rando_state"] = rando_state
 		if not self._keyframes_times:
 			self._snap_keyframe_de_novo(*self._btt())
-		self._top_uid = 0
-		if workers > 0:
-			self._start_workers(workers)
 
 	def _start_workers(self, workers: int):
 		def sync_log_forever(q):
