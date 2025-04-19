@@ -2311,6 +2311,15 @@ class Engine(AbstractEngine, Executor):
 				self._snap_keyframe_de_novo_graph(
 					graph, branch, turn, tick, nodes, edges, graph_val
 				)
+		if not keyframe_graphs:
+			for cache in (
+				self._characters_rulebooks_cache,
+				self._units_rulebooks_cache,
+				self._characters_things_rulebooks_cache,
+				self._characters_places_rulebooks_cache,
+				self._characters_portals_rulebooks_cache,
+			):
+				cache.set_keyframe(branch, turn, tick, {})
 		self._updload(branch, turn, tick)
 		if branch in self._keyframes_dict:
 			if turn in self._keyframes_dict[branch]:
