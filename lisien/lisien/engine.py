@@ -2218,25 +2218,7 @@ class Engine(AbstractEngine, Executor):
 			clear,
 		)
 		self._init_random(random_seed)
-		if string:
-			self.string = string
-		elif prefix is None:
-			self.string = StringStore(
-				self.eternal,
-				None,
-				self.eternal.setdefault("language", "eng"),
-			)
-		else:
-			string_prefix = os.path.join(prefix, "strings")
-			if clear and os.path.isdir(string_prefix):
-				shutil.rmtree(string_prefix)
-			if not os.path.exists(string_prefix):
-				os.mkdir(string_prefix)
-			self.string = StringStore(
-				self.eternal,
-				string_prefix,
-				self.eternal.setdefault("language", "eng"),
-			)
+		self._init_string(prefix)
 		self._top_uid = 0
 		if workers > 0:
 			self._start_workers(workers)
@@ -2341,6 +2323,27 @@ class Engine(AbstractEngine, Executor):
 				)
 			else:
 				self.universal["rando_state"] = rando_state
+
+	def _init_string(self, prefix: str | os.PathLike | None):
+		if string:
+			self.string = string
+		elif prefix is None:
+			self.string = StringStore(
+				self.eternal,
+				None,
+				self.eternal.setdefault("language", "eng"),
+			)
+		else:
+			string_prefix = os.path.join(prefix, "strings")
+			if clear and os.path.isdir(string_prefix):
+				shutil.rmtree(string_prefix)
+			if not os.path.exists(string_prefix):
+				os.mkdir(string_prefix)
+			self.string = StringStore(
+				self.eternal,
+				string_prefix,
+				self.eternal.setdefault("language", "eng"),
+			)
 
 	def _start_workers(self, workers: int):
 		def sync_log_forever(q):
