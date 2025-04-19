@@ -2181,18 +2181,7 @@ class Engine(AbstractEngine, Executor):
 		# in case this is the first startup
 		self._obranch = main_branch or "trunk"
 		self._otick = self._oturn = 0
-		if logfun is None:
-			from logging import getLogger
-
-			logger = getLogger("lisien")
-
-			def logfun(level, msg):
-				if isinstance(level, int):
-					logger.log(level, msg)
-				else:
-					getattr(logger, level)(msg)
-
-		self.log = logfun
+		self._init_log(logfun)
 		self._init_func_stores(
 			prefix, function, method, trigger, prereq, action
 		)
@@ -2209,6 +2198,20 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid = 0
 		if workers > 0:
 			self._start_workers(workers)
+
+	def _init_log(self, logfun: callable | None):
+		if logfun is None:
+			from logging import getLogger
+
+			logger = getLogger("lisien")
+
+			def logfun(level, msg):
+				if isinstance(level, int):
+					logger.log(level, msg)
+				else:
+					getattr(logger, level)(msg)
+
+		self.log = logfun
 
 	def _init_func_stores(
 		self,
