@@ -1010,15 +1010,15 @@ class Engine(AbstractEngine, Executor):
 	def character(self) -> CharacterMapping:
 		return CharacterMapping(self)
 
-	def _btt(self) -> tuple[str, int, int]:
+	def _btt(self) -> Time:
 		"""Return the branch, turn, and tick."""
 		return self._obranch, self._oturn, self._otick
 
-	def _set_btt(self, branch: str, turn: int, tick: int):
+	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick):
 		(self._obranch, self._oturn, self._otick) = (branch, turn, tick)
 
 	@world_locked
-	def _nbtt(self) -> tuple[str, int, int]:
+	def _nbtt(self) -> Time:
 		"""Increment the tick and return branch, turn, tick
 
 		Unless we're viewing the past, in which case raise HistoryError.
@@ -1097,7 +1097,7 @@ class Engine(AbstractEngine, Executor):
 		self.time.send(self, then=then, now=self._btt())
 		return branch, turn, tick
 
-	def is_ancestor_of(self, parent: str, child: str) -> bool:
+	def is_ancestor_of(self, parent: Branch, child: Branch) -> bool:
 		"""Return whether ``child`` is a branch descended from ``parent``
 
 		At any remove.
@@ -1167,9 +1167,9 @@ class Engine(AbstractEngine, Executor):
 	def _kfhash(
 		self,
 		graphn: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		nodes: NodeValDict,
 		edges: EdgeValDict,
 		vals: StatDict,
@@ -1238,7 +1238,7 @@ class Engine(AbstractEngine, Executor):
 
 	@world_locked
 	def _copy_plans(
-		self, branch_from: str, turn_from: int, tick_from: int
+		self, branch_from: Branch, turn_from: Turn, tick_from: Tick
 	) -> None:
 		"""Copy all plans active at the given time to the current branch"""
 		plan_ticks = self._plan_ticks
@@ -1295,7 +1295,7 @@ class Engine(AbstractEngine, Executor):
 		self._planning = was_planning
 
 	@world_locked
-	def delete_plan(self, plan: int) -> None:
+	def delete_plan(self, plan: Plan) -> None:
 		"""Delete the portion of a plan that has yet to occur.
 
 		:arg plan: integer ID of a plan, as given by
@@ -1365,11 +1365,11 @@ class Engine(AbstractEngine, Executor):
 
 	def _set_graph_in_delta(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int,
-		tick_to: int,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
 		delta: DeltaDict,
 		_: None,
 		graph: Key,
@@ -1450,11 +1450,11 @@ class Engine(AbstractEngine, Executor):
 
 	def _get_branch_delta(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int,
-		tick_to: int,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
 	) -> DeltaDict:
 		"""Get a dictionary describing changes to all graphs.
 
@@ -1786,10 +1786,10 @@ class Engine(AbstractEngine, Executor):
 
 	def _get_turn_delta(
 		self,
-		branch: str = None,
-		turn: int = None,
-		tick_from=0,
-		tick_to: int = None,
+		branch: Branch = None,
+		turn: Turn = None,
+		tick_from: Tick = 0,
+		tick_to: Tick = None,
 	) -> DeltaDict:
 		"""Get a dictionary describing changes made on a given turn.
 
@@ -2216,11 +2216,11 @@ class Engine(AbstractEngine, Executor):
 	def _init_func_stores(
 		self,
 		prefix: str | os.PathLike | None,
-		function,
-		method,
-		trigger,
-		prereq,
-		action,
+		function: ModuleType | FunctionStore,
+		method: ModuleType | FunctionStore,
+		trigger: ModuleType | FunctionStore,
+		prereq: ModuleType | FunctionStore,
+		action: ModuleType | FunctionStore,
 		clear: bool,
 	):
 		for module, name in (
@@ -4187,7 +4187,7 @@ class Engine(AbstractEngine, Executor):
 			del loaded[branch]
 
 	def _time_is_loaded(
-		self, branch: str, turn: int = None, tick: int = None
+		self, branch: Branch, turn: Turn = None, tick: Tick = None
 	) -> bool:
 		loaded = self._loaded
 		if branch not in loaded:
@@ -4208,8 +4208,8 @@ class Engine(AbstractEngine, Executor):
 			)
 
 	def _build_keyframe_window(
-		self, branch: str, turn: int, tick: int, loading=False
-	) -> tuple[tuple[str, int, int] | None, tuple[str, int, int] | None]:
+		self, branch: Branch, turn: Turn, tick: Tick, loading=False
+	) -> tuple[Time | None, Time | None]:
 		"""Return a pair of keyframes that contain the given moment
 
 		They give the smallest contiguous span of time I can reasonably load.
@@ -4218,8 +4218,8 @@ class Engine(AbstractEngine, Executor):
 		branch_now = branch
 		turn_now = turn
 		tick_now = tick
-		latest_past_keyframe: tuple[str, int, int] = None
-		earliest_future_keyframe: tuple[str, int, int] = None
+		latest_past_keyframe: Optional[Time] = None
+		earliest_future_keyframe: Optional[Time] = None
 		branch_parents = self._branch_parents
 		cache = self._keyframes_times if loading else self._keyframes_loaded
 		for branch, turn, tick in cache:
@@ -4376,15 +4376,15 @@ class Engine(AbstractEngine, Executor):
 
 	@world_locked
 	def _read_at(
-		self, branch: str, turn: int, tick: int
+		self, branch: Branch, turn: Branch, tick: Branch
 	) -> tuple[
-		tuple[str, int, int] | None,
-		tuple[str, int, int] | None,
+		Time | None,
+		Time | None,
 		list,
 		dict,
 	]:
-		latest_past_keyframe: tuple[str, int, int] | None
-		earliest_future_keyframe: tuple[str, int, int] | None
+		latest_past_keyframe: Time | None
+		earliest_future_keyframe: Time | None
 		branch_now, turn_now, tick_now = branch, turn, tick
 		(latest_past_keyframe, earliest_future_keyframe) = (
 			self._build_keyframe_window(
@@ -4454,7 +4454,7 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	@world_locked
-	def load_at(self, branch: str, turn: int, tick: int | None = None) -> None:
+	def load_at(self, branch: Branch, turn: Turn, tick: Tick | None = None) -> None:
 		if tick is None:
 			tick = self._turn_end[branch, turn]
 		if self._time_is_loaded(branch, turn, tick):
@@ -4464,7 +4464,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _load(
 		self,
-		latest_past_keyframe: tuple[str, int, int] | None,
+		latest_past_keyframe: Time | None,
 		earliest_future_keyframe: tuple[str, int, int] | None,
 		graphs_rows: list,
 		loaded: dict,
@@ -4539,12 +4539,12 @@ class Engine(AbstractEngine, Executor):
 		self._node_val_cache.load(nodevalrows)
 		self._edge_val_cache.load(edgevalrows)
 
-	def turn_end(self, branch: str = None, turn: int = None) -> int:
+	def turn_end(self, branch: Branch = None, turn: Turn = None) -> int:
 		branch = branch or self._obranch
 		turn = turn or self._oturn
 		return self._turn_end[branch, turn]
 
-	def turn_end_plan(self, branch: str = None, turn: int = None):
+	def turn_end_plan(self, branch: Branch = None, turn: Turn = None):
 		branch = branch or self._obranch
 		turn = turn or self._oturn
 		return self._turn_end_plan[branch, turn]
@@ -4896,8 +4896,8 @@ class Engine(AbstractEngine, Executor):
 
 	def get_delta(
 		self,
-		time_from: tuple[str, int, int] | tuple[str, int],
-		time_to: tuple[str, int, int] | tuple[str, int],
+		time_from: Time | tuple[Branch, Turn],
+		time_to: Time | tuple[Branch, Turn],
 		slow: bool = False,
 	) -> DeltaDict:
 		"""Get a dictionary describing changes to the world.
