@@ -2134,6 +2134,10 @@ class Engine(AbstractEngine, Executor):
 		return delta
 
 	@cached_property
+	def next_turn(self) -> NextTurn:
+		return NextTurn(self)
+
+	@cached_property
 	def world_lock(self):
 		return RLock()
 
@@ -2301,7 +2305,6 @@ class Engine(AbstractEngine, Executor):
 		}
 		with garbage():
 			self._load(*self._read_at(*self._btt()))
-		self.next_turn = NextTurn(self)
 		self.query.keyframe_interval = keyframe_interval
 		self.query.snap_keyframe = self.snap_keyframe
 		self.query.kf_interval_override = self._detect_kf_interval_override
