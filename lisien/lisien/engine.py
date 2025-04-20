@@ -2318,7 +2318,6 @@ class Engine(AbstractEngine, Executor):
 		if main_branch not in self._branches_d:
 			self._branches_d[main_branch] = None, 0, 0, 0, 0
 		self._load_graphs()
-		assert hasattr(self, "graph")
 		self._load_plans()
 		self._load_rules_handled()
 		self._turns_completed_d.update(self.query.turns_completed_dump())
