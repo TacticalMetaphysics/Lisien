@@ -241,7 +241,7 @@ class PlanningContext(ContextDecorator):
 		if orm._forward:
 			orm._forward = False
 		orm._plans[myid] = branch, turn, tick
-		orm._plans_uncommitted.append((myid, branch, turn, tick))
+		orm.query.plans_insert(myid, branch, turn, tick)
 		orm._branches_plans[branch].add(myid)
 		return myid
 
@@ -668,7 +668,6 @@ class Engine(AbstractEngine, Executor):
 			self._turn_end_plan,
 			self._turn_end,
 			self._plan_ticks,
-			self._plan_ticks_uncommitted,
 			self._time_plan,
 		)
 
@@ -1042,7 +1041,6 @@ class Engine(AbstractEngine, Executor):
 			turn_end_plan,
 			turn_end,
 			plan_ticks,
-			plan_ticks_uncommitted,
 			time_plan,
 		) = self._nbtt_stuff
 		branch, turn, tick = btt()
@@ -1073,7 +1071,7 @@ class Engine(AbstractEngine, Executor):
 					tick,
 				)
 			plan_ticks[last_plan][turn].add(tick)
-			plan_ticks_uncommitted.append((last_plan, turn, tick))
+			self.query.plan_ticks_insert(last_plan, turn, tick)
 			time_plan[branch, turn, tick] = last_plan
 		else:
 			end_turn, _ = self._branch_end(branch)
@@ -1252,7 +1250,6 @@ class Engine(AbstractEngine, Executor):
 	) -> None:
 		"""Copy all plans active at the given time to the current branch"""
 		plan_ticks = self._plan_ticks
-		plan_ticks_uncommitted = self._plan_ticks_uncommitted
 		time_plan = self._time_plan
 		plans = self._plans
 		branch = self.branch
@@ -1290,9 +1287,7 @@ class Engine(AbstractEngine, Executor):
 					]:
 						turn_end_plan[branch, turn] = tick
 					plan_ticks[self._last_plan][turn].add(tick)
-					plan_ticks_uncommitted.append(
-						(self._last_plan, turn, tick)
-					)
+					self.query.plan_ticks_insert(self._last_plan, turn, tick)
 					for cache in where_cached[branch_from, turn, tick]:
 						data = cache.settings[branch_from][turn][tick]
 						value = data[-1]
@@ -2280,7 +2275,6 @@ class Engine(AbstractEngine, Executor):
 				self.query.truncate_all()
 
 		self.query.keyframe_interval = keyframe_interval
-		self._plans_uncommitted: list[tuple[Plan, Branch, Turn, Tick]] = []
 		self._load_keyframe_times()
 		if main_branch is not None:
 			self.query.globl["main_branch"] = main_branch
@@ -6711,10 +6705,6 @@ class Engine(AbstractEngine, Executor):
 		set_turn = self.query.set_turn
 		for (branch, turn), plan_end_tick in self._turn_end_plan.items():
 			set_turn(branch, turn, turn_end[branch, turn], plan_end_tick)
-		if self._plans_uncommitted:
-			self.query.plans_insert_many(self._plans_uncommitted)
-		if self._plan_ticks_uncommitted:
-			self.query.plan_ticks_insert_many(self._plan_ticks_uncommitted)
 		set_branch = self.query.set_branch
 		for branch, (
 			parent,
@@ -6727,8 +6717,6 @@ class Engine(AbstractEngine, Executor):
 				branch, parent, turn_start, tick_start, turn_end, tick_end
 			)
 		self.query.flush()
-		self._plans_uncommitted = []
-		self._plan_ticks_uncommitted = []
 
 	@world_locked
 	def commit(self, unload=True) -> None:
