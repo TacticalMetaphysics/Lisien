@@ -1156,10 +1156,8 @@ class EngineFacade(AbstractEngine):
 			self._rando.setstate(real.universal["rando_state"])
 			self.branch, self.turn, self.tick = real._btt()
 			self._branches_d = real._branches_d.copy()
-			self._turn_end = TurnEndDict()
-			self._turn_end_plan = TurnEndPlanDict()
-			self._turn_end.other_d = self._turn_end_plan
-			self._turn_end_plan.other_d = self._turn_end
+			self._turn_end = TurnEndDict(self)
+			self._turn_end_plan = TurnEndPlanDict(self)
 			if not hasattr(real, "is_proxy"):
 				self._turn_end.update(real._turn_end)
 				self._turn_end_plan.update(real._turn_end_plan)
