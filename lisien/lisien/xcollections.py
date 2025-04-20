@@ -223,7 +223,17 @@ class FunctionStore(Signal):
 		if not callable(v):
 			super().__setattr__(k, v)
 			return
-		source = getsource(v)
+		self._set_source(k, getsource(v), func=v)
+
+	def _set_source(self, k: str, source: str, func: callable = None):
+		if func is None:
+			holder = {}
+			exec(source, holder)
+			if k not in holder:
+				raise NameError(
+					"Function in source has a different name", k, source
+				)
+			func = holder[k]
 		outdented = dedent_source(source)
 		expr = Expr(parse(outdented))
 		expr.value.body[0].name = k
@@ -235,9 +245,9 @@ class FunctionStore(Signal):
 		if self._filename is not None:
 			self._need_save = True
 		if isinstance(self._module, str):
-			v.__module__ = self._module
-		self._locl[k] = v
-		self.send(self, attr=k, val=v)
+			func.__module__ = self._module
+		self._locl[k] = func
+		self.send(self, attr=k, val=func)
 
 	def __call__(self, v):
 		setattr(self, v.__name__, v)
