@@ -4489,7 +4489,7 @@ class NullQueryEngine(AbstractQueryEngine):
 		return self.globl[key]
 
 	def global_items(self) -> Iterator[tuple[Key, Any]]:
-		return iter(self.globl)
+		return iter(self.globl.items())
 
 	def get_branch(self) -> str:
 		return self.globl["branch"]
