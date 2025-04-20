@@ -4097,20 +4097,21 @@ def worker_subprocess(
 			out_pipe.send_bytes(b"done")
 			out_pipe.close()
 			return 0
-		(uid, method, args, kwargs) = unpack(decompress(inst))
+		uid = int.from_bytes(inst[:8], "little")
+		(method, args, kwargs) = unpack(decompress(inst[8:]))
 		if isinstance(method, str):
 			method = getattr(eng, method)
 		try:
 			ret = method(*args, **kwargs)
 		except Exception as ex:
 			ret = ex
-			if uid < 0:
+			if uid == sys.maxsize:
 				import traceback
 
 				traceback.print_exc(file=sys.stderr)
 				raise
-		if uid >= 0:
-			out_pipe.send_bytes(compress(pack((uid, ret))))
+		if uid != sys.maxsize:
+			out_pipe.send_bytes(inst[:8] + compress(pack(ret)))
 		eng._initialized = True
 
 
