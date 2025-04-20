@@ -11,7 +11,7 @@ from queue import Queue
 from threading import Lock, RLock, Thread
 from time import monotonic
 from types import MethodType
-from typing import Any, Iterator, MutableMapping
+from typing import Any, Iterator, MutableMapping, Optional
 
 import msgpack
 import pyarrow as pa
@@ -21,18 +21,40 @@ from pyarrow import compute as pc
 from sqlalchemy import MetaData, NullPool, Select, create_engine
 from sqlalchemy.exc import IntegrityError, OperationalError
 
-from lisien.alchemy import gather_sql
-from lisien.exc import KeyframeError, TimeError
-from lisien.typing import (
+from .alchemy import gather_sql
+from .exc import KeyframeError, TimeError
+from .typing import (
+	Branch,
+	CharName,
 	EdgeRowType,
 	EdgeValRowType,
 	GraphValRowType,
 	Key,
+	NodeName,
 	NodeRowType,
 	NodeValRowType,
+	Plan,
+	RulebookName,
+	RulebookPriority,
+	RuleName,
+	RuleNeighborhood,
+	RuleBig,
+	UniversalKeyframe,
+	RuleKeyframe,
+	RulebookKeyframe,
+	NodeKeyframe,
+	EdgeKeyframe,
+	GraphValKeyframe,
+	TriggerFuncName,
+	PrereqFuncName,
+	ActionFuncName,
+	Turn,
+	Tick,
+	Time,
+	TimeWindow,
 )
-from lisien.util import garbage
-from lisien.wrap import DictWrapper, ListWrapper, SetWrapper
+from .util import garbage
+from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 NONE = msgpack.packb(None)
 EMPTY = msgpack.packb({})
@@ -45,7 +67,7 @@ class GlobalKeyValueStore(MutableMapping):
 
 	"""
 
-	def __init__(self, qe):
+	def __init__(self, qe: AbstractQueryEngine):
 		self.qe = qe
 		self._cache = dict(qe.global_items())
 
@@ -55,7 +77,7 @@ class GlobalKeyValueStore(MutableMapping):
 	def __len__(self):
 		return len(self._cache)
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: Key) -> Any:
 		ret = self._cache[k]
 		if isinstance(ret, dict):
 			return DictWrapper(
@@ -80,13 +102,13 @@ class GlobalKeyValueStore(MutableMapping):
 			)
 		return ret
 
-	def __setitem__(self, k, v):
+	def __setitem__(self, k: Key, v: Any):
 		if hasattr(v, "unwrap"):
 			v = v.unwrap()
 		self.qe.global_set(k, v)
 		self._cache[k] = v
 
-	def __delitem__(self, k):
+	def __delitem__(self, k: Key):
 		del self._cache[k]
 		self.qe.global_del(k)
 
@@ -431,7 +453,7 @@ class ParquetDBHolder(ConnectionHolder):
 	_inq: Queue
 	_outq: Queue
 
-	def __init__(self, path, inq, outq):
+	def __init__(self, path: str | os.PathLike, inq: Queue, outq: Queue):
 		self._inq = inq
 		self._outq = outq
 		self._schema = {}
@@ -468,7 +490,7 @@ class ParquetDBHolder(ConnectionHolder):
 				f"Unsupported database schema version: {ver}", ver
 			)
 
-	def _get_db(self, table):
+	def _get_db(self, table: str):
 		return ParquetDB(os.path.join(self._path, table))
 
 	def insert(self, table: str, data: list) -> None:
@@ -562,7 +584,7 @@ class ParquetDBHolder(ConnectionHolder):
 			for name in self._get_db("graphs").read(columns=["graph"])["graph"]
 		)
 
-	def list_graphs_to_end(self, branch: str, turn: int, tick: int):
+	def list_graphs_to_end(self, branch: Branch, turn: Turn, tick: Tick):
 		data = (
 			self._get_db("graphs").read(
 				filters=[
@@ -579,11 +601,11 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def list_graphs_to_tick(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int,
-		tick_to: int,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
 	):
 		data = (
 			self._get_db("graphs").read(
@@ -617,7 +639,7 @@ class ParquetDBHolder(ConnectionHolder):
 		)
 
 	def get_keyframe(
-		self, graph: bytes, branch: str, turn: int, tick: int
+		self, graph: bytes, branch: Branch, turn: Turn, tick: Tick
 	) -> tuple[bytes, bytes, bytes] | None:
 		rec = self._get_db("keyframes_graphs").read(
 			filters=[
@@ -647,7 +669,15 @@ class ParquetDBHolder(ConnectionHolder):
 		except Exception as ex:
 			return ex
 
-	def set_rulebook_on_character(self, rbtyp, char, branch, turn, tick, rb):
+	def set_rulebook_on_character(
+		self,
+		rbtyp: str,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
+	):
 		self.insert1(
 			f"{rbtyp}_rulebook",
 			{
@@ -811,19 +841,6 @@ class ParquetDBHolder(ConnectionHolder):
 					"plan_end_tick": plan_end_tick,
 				}
 			)
-
-	def set_turn_completed(self, branch: str, turn: int) -> None:
-		db = self._get_db("turns_completed")
-		try:
-			id_ = db.read(
-				filters=[
-					pc.field("branch") == branch,
-					pc.field("turn") == turn,
-				],
-			)["id"][0]
-			db.update({"id": id_.as_py(), "branch": branch, "turn": turn})
-		except IndexError:
-			db.create({"branch": branch, "turn": turn})
 
 	def load_universals_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
@@ -2893,56 +2910,66 @@ class AbstractQueryEngine:
 		return ret
 
 	@abstractmethod
-	def keyframes_dump(
-		self,
-	) -> Iterator[tuple[Key, str, int, int, list, list]]:
+	def get_keyframe_extensions(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
 		pass
 
 	@abstractmethod
-	def keyframes_graphs(self) -> Iterator[tuple[Key, str, int, int]]:
+	def new_graph(
+		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
+	) -> None:
+		pass
+
+	@abstractmethod
+	def keyframes_graphs(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick]]:
 		pass
 
 	@abstractmethod
 	def keyframe_extension_insert(
 		self,
-		branch: str,
-		turn: int,
-		tick: int,
-		universal: dict,
-		rule: dict,
-		rulebook: dict,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		universal: UniversalKeyframe,
+		rule: RuleKeyframe,
+		rulebook: RulebookKeyframe,
 	) -> None:
 		pass
 
 	@abstractmethod
 	def keyframe_graph_insert(
 		self,
-		graph: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		nodes: dict,
-		edges: dict,
-		graph_val: dict,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		nodes: NodeKeyframe,
+		edges: EdgeKeyframe,
+		graph_val: GraphValKeyframe,
 	) -> None:
 		pass
 
 	@abstractmethod
-	def keyframe_insert(self, branch: str, turn: int, tick: int) -> None:
+	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		pass
 
 	@abstractmethod
 	def graphs_insert(
-		self, graph: Key, branch: str, turn: int, tick: int, typ: str
+		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
 	) -> None:
 		pass
 
 	@abstractmethod
-	def have_branch(self, branch: str) -> bool:
+	def have_branch(self, branch: Branch) -> bool:
 		pass
 
 	@abstractmethod
-	def all_branches(self) -> Iterator[str]:
+	def all_branches(
+		self,
+	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
 		pass
 
 	@abstractmethod
@@ -2954,15 +2981,15 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def get_branch(self) -> str:
+	def get_branch(self) -> Branch:
 		pass
 
 	@abstractmethod
-	def get_turn(self) -> int:
+	def get_turn(self) -> Turn:
 		pass
 
 	@abstractmethod
-	def get_tick(self) -> int:
+	def get_tick(self) -> Tick:
 		pass
 
 	@abstractmethod
@@ -2975,58 +3002,62 @@ class AbstractQueryEngine:
 
 	@abstractmethod
 	def new_branch(
-		self, branch: str, parent: str, parent_turn: int, parent_tick: int
+		self,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def update_branch(
 		self,
-		branch: str,
-		parent: str,
-		parent_turn: int,
-		parent_tick: int,
-		end_turn: int,
-		end_tick: int,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
+		end_turn: Turn,
+		end_tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def set_branch(
 		self,
-		branch: str,
-		parent: str,
-		parent_turn: int,
-		parent_tick: int,
-		end_turn: int,
-		end_tick: int,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
+		end_turn: Turn,
+		end_tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def new_turn(
-		self, branch: str, turn: int, end_tick: int = 0, plan_end_tick: int = 0
+		self,
+		branch: Branch,
+		turn: Turn,
+		end_tick: Tick = 0,
+		plan_end_tick: Tick = 0,
 	):
 		pass
 
 	@abstractmethod
 	def update_turn(
-		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
+		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	):
 		pass
 
 	@abstractmethod
 	def set_turn(
-		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
+		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	):
 		pass
 
 	@abstractmethod
-	def set_turn_completed(self, branch: str, turn: int):
-		pass
-
-	@abstractmethod
-	def turns_dump(self):
+	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
 		pass
 
 	@abstractmethod
@@ -3036,54 +3067,60 @@ class AbstractQueryEngine:
 	@abstractmethod
 	def load_graph_val(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	):
 		pass
 
 	@abstractmethod
 	def graph_val_set(
-		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
+		self,
+		graph: CharName,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		val: Any,
 	):
 		pass
 
 	@abstractmethod
-	def graph_val_del_time(self, branch: str, turn: int, tick: int):
+	def graph_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	@abstractmethod
 	def graphs_types(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	) -> Iterator[tuple[Key, str, int, int, str]]:
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		pass
 
 	@abstractmethod
-	def characters(self) -> Iterator[tuple[Key, str, int, int, str]]:
+	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		pass
 
 	@abstractmethod
 	def exist_node(
 		self,
-		graph: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		extant: bool,
 	):
 		pass
 
 	@abstractmethod
-	def nodes_del_time(self, branch: str, turn: int, tick: int):
+	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	@abstractmethod
@@ -3093,12 +3130,12 @@ class AbstractQueryEngine:
 	@abstractmethod
 	def load_nodes(
 		self,
-		graph: str,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	):
 		pass
 
@@ -3109,30 +3146,30 @@ class AbstractQueryEngine:
 	@abstractmethod
 	def load_node_val(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[NodeValRowType]:
 		pass
 
 	@abstractmethod
 	def node_val_set(
 		self,
-		graph: Key,
-		node: Key,
+		graph: CharName,
+		node: NodeName,
 		key: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value: Any,
 	):
 		pass
 
 	@abstractmethod
-	def node_val_del_time(self, branch: str, turn: int, tick: int):
+	def node_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	@abstractmethod
@@ -3142,31 +3179,31 @@ class AbstractQueryEngine:
 	@abstractmethod
 	def load_edges(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[EdgeRowType]:
 		pass
 
 	@abstractmethod
 	def exist_edge(
 		self,
-		graph: Key,
-		orig: Key,
-		dest: Key,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		idx: int,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		extant: bool,
 	):
 		pass
 
 	@abstractmethod
-	def edges_del_time(self, branch: str, turn: int, tick: int):
+	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	@abstractmethod
@@ -3176,56 +3213,58 @@ class AbstractQueryEngine:
 	@abstractmethod
 	def load_edge_val(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[EdgeValRowType]:
 		pass
 
 	@abstractmethod
 	def edge_val_set(
 		self,
-		graph: Key,
-		orig: Key,
-		dest: Key,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		idx: int,
 		key: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value: Any,
 	):
 		pass
 
 	@abstractmethod
-	def edge_val_del_time(self, branch: str, turn: int, tick: int):
+	def edge_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	@abstractmethod
-	def plans_dump(self) -> Iterator:
+	def plans_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		pass
 
 	@abstractmethod
-	def plans_insert(self, plan_id: int, branch: str, turn: int, tick: int):
+	def plans_insert(
+		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
+	):
 		pass
 
 	@abstractmethod
-	def plans_insert_many(self, many: list[tuple[int, str, int, int]]):
+	def plans_insert_many(self, many: list[tuple[Plan, Branch, Turn, Tick]]):
 		pass
 
 	@abstractmethod
-	def plan_ticks_insert(self, plan_id: int, turn: int, tick: int):
+	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
 		pass
 
 	@abstractmethod
-	def plan_ticks_insert_many(self, many: list[tuple[int, int, int]]):
+	def plan_ticks_insert_many(self, many: list[tuple[Plan, Turn, Tick]]):
 		pass
 
 	@abstractmethod
-	def plan_ticks_dump(self) -> Iterator:
+	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Turn, Tick]]:
 		pass
 
 	@abstractmethod
@@ -3256,7 +3295,9 @@ class AbstractQueryEngine:
 		"edge_val",
 	]
 
-	def _put_window_tick_to_end(self, branch, turn_from, tick_from):
+	def _put_window_tick_to_end(
+		self, branch: Branch, turn_from: Turn, tick_from: Tick
+	):
 		putkwargs = {
 			"branch": branch,
 			"turn_from": turn_from,
@@ -3288,7 +3329,12 @@ class AbstractQueryEngine:
 			)
 
 	def _put_window_tick_to_tick(
-		self, branch, turn_from, tick_from, turn_to, tick_to
+		self,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
 	):
 		putkwargs = {
 			"branch": branch,
@@ -3330,9 +3376,7 @@ class AbstractQueryEngine:
 				)
 			)
 
-	def _load_windows_into(
-		self, ret: dict, windows: list[tuple[str, int, int, int, int]]
-	) -> None:
+	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
 		with self._holder.lock:
 			for branch, turn_from, tick_from, turn_to, tick_to in windows:
 				if turn_to is None:
@@ -3392,7 +3436,13 @@ class AbstractQueryEngine:
 	]
 
 	def _get_one_window(
-		self, ret, branch, turn_from, tick_from, turn_to, tick_to
+		self,
+		ret,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
 	):
 		unpack = self.unpack
 		outq = self._outq
@@ -3983,155 +4033,200 @@ class AbstractQueryEngine:
 		outq.task_done()
 
 	@abstractmethod
-	def universals_dump(self) -> Iterator[tuple[Key, str, int, int, Any]]:
+	def get_all_keyframe_graphs(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> Iterator[
+		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
+	]:
+		pass
+
+	@abstractmethod
+	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
 		pass
 
 	@abstractmethod
 	def rulebooks_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, tuple[list[Key], float]]]:
+	) -> Iterator[
+		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
+	]:
 		pass
 
 	@abstractmethod
-	def rules_dump(self) -> Iterator[str]:
+	def rules_dump(self) -> Iterator[RuleName]:
 		pass
 
 	@abstractmethod
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]]:
 		pass
 
 	@abstractmethod
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]]:
 		pass
 
 	@abstractmethod
 	def rule_actions_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]]:
 		pass
 
 	@abstractmethod
 	def rule_neighborhood_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, int]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
 		pass
 
 	@abstractmethod
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
 		pass
 
 	@abstractmethod
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, int, int, Key]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
+	]:
 		pass
 
 	@abstractmethod
 	def character_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		pass
 
 	@abstractmethod
-	def unit_rulebook_dump(self) -> Iterator[tuple[Key, str, int, int, Key]]:
+	def unit_rulebook_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		pass
 
 	@abstractmethod
 	def character_thing_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		pass
 
 	@abstractmethod
 	def character_place_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		pass
 
 	@abstractmethod
 	def character_portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		pass
 
 	@abstractmethod
 	def character_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
 		pass
 
 	@abstractmethod
 	def unit_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[
+			CharName,
+			CharName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
 		pass
 
 	@abstractmethod
 	def character_thing_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
 		pass
 
 	@abstractmethod
 	def character_place_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
 		pass
 
 	@abstractmethod
 	def character_portal_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[
+			CharName,
+			NodeName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
 		pass
 
 	@abstractmethod
 	def node_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
 		pass
 
 	@abstractmethod
 	def portal_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[
+			CharName,
+			NodeName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
 		pass
 
 	@abstractmethod
-	def things_dump(self) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
-		pass
-
-	@abstractmethod
-	def load_things(
+	def things_dump(
 		self,
-		character: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
 		pass
 
 	@abstractmethod
 	def units_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, int, int, bool]]:
+	) -> Iterator[
+		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
+	]:
 		pass
 
 	@abstractmethod
 	def universal_set(
-		self, key: Key, branch: str, turn: int, tick: int, val: Any
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Any
 	):
 		pass
 
 	@abstractmethod
-	def universal_del(self, key: Key, branch: str, turn: int, tick: int):
+	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	@abstractmethod
@@ -4140,266 +4235,322 @@ class AbstractQueryEngine:
 
 	@abstractmethod
 	def set_rule_triggers(
-		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		flist: list[TriggerFuncName],
 	):
 		pass
 
 	@abstractmethod
 	def set_rule_prereqs(
-		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		flist: list[PrereqFuncName],
 	):
 		pass
 
 	@abstractmethod
 	def set_rule_actions(
-		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		flist: list[ActionFuncName],
 	):
 		pass
 
 	@abstractmethod
 	def set_rule_neighborhood(
-		self, rule: str, branch: str, turn: int, tick: int, neighborhood: int
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		neighborhood: RuleNeighborhood,
 	):
 		pass
 
 	@abstractmethod
 	def set_rule_big(
-		self, rule: str, branch: str, turn: int, tick: int, big: bool
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		big: RuleBig,
 	) -> None:
 		pass
 
 	@abstractmethod
 	def set_rule(
 		self,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
-		triggers: list[str],
-		prereqs: list[str],
-		actions: list[str],
-		neighborhood: int,
-		big: bool,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: list[TriggerFuncName],
+		prereqs: list[PrereqFuncName],
+		actions: list[ActionFuncName],
+		neighborhood: RuleNeighborhood,
+		big: RuleBig,
 	):
 		pass
 
 	@abstractmethod
 	def set_rulebook(
 		self,
-		name: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rules: list[str] = None,
-		prio: float = 0.0,
+		name: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rules: Optional[list[RuleName]] = None,
+		prio: RulebookPriority = 0.0,
 	):
 		pass
 
 	@abstractmethod
 	def set_character_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
 	@abstractmethod
 	def set_unit_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
 	@abstractmethod
 	def set_character_thing_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
 	@abstractmethod
 	def set_character_place_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
 	@abstractmethod
 	def set_character_portal_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
 	@abstractmethod
-	def rulebooks(self) -> Iterator[Key]:
+	def rulebooks(self) -> Iterator[RulebookName]:
 		pass
 
 	@abstractmethod
 	def set_node_rulebook(
 		self,
-		character: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rulebook: Key,
+		character: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
 	):
 		pass
 
 	@abstractmethod
 	def set_portal_rulebook(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rulebook: Key,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
 	):
 		pass
 
 	@abstractmethod
 	def handled_character_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def handled_unit_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		graph: Key,
-		unit: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		graph: CharName,
+		unit: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def handled_character_thing_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		thing: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def handled_character_place_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		place: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		place: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def handled_character_portal_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		orig: Key,
-		dest: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def handled_node_rule(
 		self,
-		character: Key,
-		node: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		node: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def handled_portal_rule(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	@abstractmethod
 	def set_thing_loc(
 		self,
-		character: Key,
-		thing: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		loc: Key,
+		character: CharName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		loc: NodeName,
 	):
 		pass
 
 	@abstractmethod
 	def unit_set(
 		self,
-		character: Key,
-		graph: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		isav: bool,
+		character: CharName,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		is_unit: bool,
 	):
 		pass
 
 	@abstractmethod
 	def rulebook_set(
 		self,
-		rulebook: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rules: list[str],
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rules: list[RuleName],
 	):
 		pass
 
 	@abstractmethod
-	def turns_completed_dump(self) -> Iterator[tuple[str, int]]:
+	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		pass
 
 	@abstractmethod
 	def complete_turn(
-		self, branch: str, turn: int, discard_rules: bool = False
+		self, branch: Branch, turn: Turn, discard_rules: bool = False
 	):
 		pass
 
 	@abstractmethod
 	def set_rulebook_on_character(
-		self, rbtyp: str, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		rbtyp: str,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
-	def load_windows(self, windows: list) -> dict:
+	def load_windows(self, windows: list[TimeWindow]) -> dict:
 		def empty_char():
 			return {
 				"nodes": [],
@@ -4432,7 +4583,7 @@ class NullQueryEngine(AbstractQueryEngine):
 	"""
 
 	@cached_property
-	def globl(self) -> dict[Key, Any]:
+	def globl(self) -> dict:
 		return {
 			"branch": "trunk",
 			"turn": 0,
@@ -4442,23 +4593,20 @@ class NullQueryEngine(AbstractQueryEngine):
 		}
 
 	def graphs_insert(
-		self, graph: Key, branch: str, turn: int, tick: int, typ: str
+		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
 	) -> None:
 		pass
 
-	def keyframes_dump(
+	def keyframes_graphs(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list, list]]:
-		return iter(())
-
-	def keyframes_graphs(self) -> Iterator[tuple[Key, str, int, int]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick]]:
 		return iter(())
 
 	def keyframe_extension_insert(
 		self,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		universal: dict,
 		rule: dict,
 		rulebook: dict,
@@ -4467,23 +4615,25 @@ class NullQueryEngine(AbstractQueryEngine):
 
 	def keyframe_graph_insert(
 		self,
-		graph: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		nodes: dict,
 		edges: dict,
 		graph_val: dict,
 	) -> None:
 		pass
 
-	def keyframe_insert(self, branch: str, turn: int, tick: int) -> None:
+	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		pass
 
-	def have_branch(self, branch: str) -> bool:
+	def have_branch(self, branch: Branch) -> bool:
 		pass
 
-	def all_branches(self) -> Iterator[str]:
+	def all_branches(
+		self,
+	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
 		return iter(())
 
 	def global_get(self, key: Key) -> Any:
@@ -4492,13 +4642,13 @@ class NullQueryEngine(AbstractQueryEngine):
 	def global_items(self) -> Iterator[tuple[Key, Any]]:
 		return iter(self.globl.items())
 
-	def get_branch(self) -> str:
+	def get_branch(self) -> Branch:
 		return self.globl["branch"]
 
-	def get_turn(self) -> int:
+	def get_turn(self) -> Turn:
 		return self.globl["turn"]
 
-	def get_tick(self) -> int:
+	def get_tick(self) -> Tick:
 		return self.globl["tick"]
 
 	def global_set(self, key: Key, value: Any):
@@ -4508,48 +4658,53 @@ class NullQueryEngine(AbstractQueryEngine):
 		del self.globl[key]
 
 	def new_branch(
-		self, branch: str, parent: str, parent_turn: int, parent_tick: int
+		self,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
 	):
 		pass
 
 	def update_branch(
 		self,
-		branch: str,
-		parent: str,
-		parent_turn: int,
-		parent_tick: int,
-		end_turn: int,
-		end_tick: int,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
+		end_turn: Turn,
+		end_tick: Tick,
 	):
 		pass
 
 	def set_branch(
 		self,
-		branch: str,
-		parent: str,
-		parent_turn: int,
-		parent_tick: int,
-		end_turn: int,
-		end_tick: int,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
+		end_turn: Turn,
+		end_tick: Tick,
 	):
 		pass
 
 	def new_turn(
-		self, branch: str, turn: int, end_tick: int = 0, plan_end_tick: int = 0
+		self,
+		branch: Branch,
+		turn: Turn,
+		end_tick: Tick = 0,
+		plan_end_tick: Tick = 0,
 	):
 		pass
 
 	def update_turn(
-		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
+		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	):
 		pass
 
 	def set_turn(
-		self, branch: str, turn: int, end_tick: int, plan_end_tick: int
+		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	):
-		pass
-
-	def set_turn_completed(self, branch: str, turn: int):
 		pass
 
 	def turns_dump(self):
@@ -4560,48 +4715,54 @@ class NullQueryEngine(AbstractQueryEngine):
 
 	def load_graph_val(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	):
 		pass
 
 	def graph_val_set(
-		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
+		self,
+		graph: CharName,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		val: Any,
 	):
 		pass
 
-	def graph_val_del_time(self, branch: str, turn: int, tick: int):
+	def graph_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	def graphs_types(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[tuple[Key, str, int, int, str]]:
 		return iter(())
 
-	def characters(self) -> Iterator[tuple[Key, str, int, int, str]]:
+	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		return iter(())
 
 	def exist_node(
 		self,
-		graph: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		extant: bool,
 	):
 		pass
 
-	def nodes_del_time(self, branch: str, turn: int, tick: int):
+	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
@@ -4609,12 +4770,12 @@ class NullQueryEngine(AbstractQueryEngine):
 
 	def load_nodes(
 		self,
-		graph: str,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: NodeName,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn = None,
+		tick_to: Tick = None,
 	):
 		pass
 
@@ -4623,28 +4784,28 @@ class NullQueryEngine(AbstractQueryEngine):
 
 	def load_node_val(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[NodeValRowType]:
 		return iter(())
 
 	def node_val_set(
 		self,
-		graph: Key,
-		node: Key,
+		graph: CharName,
+		node: NodeName,
 		key: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value: Any,
 	):
 		pass
 
-	def node_val_del_time(self, branch: str, turn: int, tick: int):
+	def node_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
@@ -4653,28 +4814,28 @@ class NullQueryEngine(AbstractQueryEngine):
 	def load_edges(
 		self,
 		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[EdgeRowType]:
 		return iter(())
 
 	def exist_edge(
 		self,
-		graph: Key,
-		orig: Key,
-		dest: Key,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		idx: int,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		extant: bool,
 	):
 		pass
 
-	def edges_del_time(self, branch: str, turn: int, tick: int):
+	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
@@ -4682,45 +4843,47 @@ class NullQueryEngine(AbstractQueryEngine):
 
 	def load_edge_val(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[EdgeValRowType]:
 		return iter(())
 
 	def edge_val_set(
 		self,
-		graph: Key,
-		orig: Key,
-		dest: Key,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		idx: int,
 		key: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value: Any,
 	):
 		pass
 
-	def edge_val_del_time(self, branch: str, turn: int, tick: int):
+	def edge_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	def plans_dump(self) -> Iterator:
-		return iter(())
-
-	def plans_insert(self, plan_id: int, branch: str, turn: int, tick: int):
 		pass
 
-	def plans_insert_many(self, many: list[tuple[int, str, int, int]]):
+	def plans_insert(
+		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
+	):
 		pass
 
-	def plan_ticks_insert(self, plan_id: int, turn: int, tick: int):
+	def plans_insert_many(self, many: list[tuple[Plan, Branch, Turn, Tick]]):
 		pass
 
-	def plan_ticks_insert_many(self, many: list[tuple[int, int, int]]):
+	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
+		pass
+
+	def plan_ticks_insert_many(self, many: list[Time]):
 		pass
 
 	def plan_ticks_dump(self) -> Iterator:
@@ -4741,12 +4904,14 @@ class NullQueryEngine(AbstractQueryEngine):
 	def truncate_all(self):
 		pass
 
-	def universals_dump(self) -> Iterator[tuple[Key, str, int, int, Any]]:
+	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
 		return iter(())
 
 	def rulebooks_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, tuple[list[Key], float]]]:
+	) -> Iterator[
+		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
+	]:
 		return iter(())
 
 	def rules_dump(self) -> Iterator[str]:
@@ -4754,194 +4919,280 @@ class NullQueryEngine(AbstractQueryEngine):
 
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]]:
 		return iter(())
 
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]]:
 		return iter(())
 
 	def rule_actions_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]]:
 		return iter(())
 
 	def rule_neighborhood_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, int]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
 		return iter(())
 
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
 		return iter(())
 
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, int, int, Key]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
+	]:
 		return iter(())
 
 	def character_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return iter(())
 
-	def unit_rulebook_dump(self) -> Iterator[tuple[Key, str, int, int, Key]]:
+	def unit_rulebook_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return iter(())
 
 	def character_thing_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return iter(())
 
 	def character_place_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return iter(())
 
 	def character_portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return iter(())
 
 	def character_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
 		return iter(())
 
 	def unit_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[
+			CharName,
+			CharName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
 		return iter(())
 
 	def character_thing_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
 		return iter(())
 
 	def character_place_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
 		return iter(())
 
 	def character_portal_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[
+			CharName,
+			NodeName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
 		return iter(())
 
 	def node_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
 		return iter(())
 
 	def portal_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[
+			CharName,
+			NodeName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
 		return iter(())
 
-	def things_dump(self) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
-		return iter(())
-
-	def load_things(
+	def things_dump(
 		self,
-		character: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
 		return iter(())
 
 	def units_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, int, int, bool]]:
+	) -> Iterator[
+		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
+	]:
 		return iter(())
 
 	def universal_set(
-		self, key: Key, branch: str, turn: int, tick: int, val: Any
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Any
 	):
 		pass
 
-	def universal_del(self, key: Key, branch: str, turn: int, tick: int):
+	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	def count_all_table(self, tbl: str) -> int:
 		pass
 
 	def set_rule_triggers(
-		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		flist: list[TriggerFuncName],
 	):
 		pass
 
 	def set_rule_prereqs(
-		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		flist: list[PrereqFuncName],
 	):
 		pass
 
 	def set_rule_actions(
-		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		flist: list[ActionFuncName],
 	):
 		pass
 
 	def set_rule_neighborhood(
-		self, rule: str, branch: str, turn: int, tick: int, neighborhood: int
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		neighborhood: RuleNeighborhood,
 	):
 		pass
 
 	def set_rule_big(
-		self, rule: str, branch: str, turn: int, tick: int, big: bool
-	):
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		big: RuleBig,
+	) -> None:
 		pass
 
 	def set_rule(
 		self,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
-		triggers: list[str],
-		prereqs: list[str],
-		actions: list[str],
-		neighborhood: int,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: list[TriggerFuncName],
+		prereqs: list[PrereqFuncName],
+		actions: list[ActionFuncName],
+		neighborhood: RuleNeighborhood,
 		big: bool,
 	):
 		pass
 
 	def set_rulebook(
 		self,
-		name: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rules: list[str] = None,
-		prio: float = 0.0,
+		name: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rules: Optional[list[RuleName]] = None,
+		prio: RulePriority = 0.0,
 	):
 		pass
 
 	def set_character_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
 	def set_unit_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
 	def set_character_thing_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
 	def set_character_place_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
 	def set_character_portal_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
@@ -4950,181 +5201,198 @@ class NullQueryEngine(AbstractQueryEngine):
 
 	def set_node_rulebook(
 		self,
-		character: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rulebook: Key,
+		character: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
 	):
 		pass
 
 	def set_portal_rulebook(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rulebook: Key,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
 	):
 		pass
 
 	def handled_character_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	def handled_unit_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		graph: Key,
-		unit: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		graph: CharName,
+		unit: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	def handled_character_thing_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		thing: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	def handled_character_place_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		place: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		place: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	def handled_character_portal_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		orig: Key,
-		dest: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	def handled_node_rule(
 		self,
-		character: Key,
-		node: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		node: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	def handled_portal_rule(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pass
 
 	def set_thing_loc(
 		self,
-		character: Key,
-		thing: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		loc: Key,
+		character: CharName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		loc: NodeName,
 	):
 		pass
 
 	def unit_set(
 		self,
-		character: Key,
-		graph: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		isav: bool,
+		character: CharName,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		is_unit: bool,
 	):
 		pass
 
 	def rulebook_set(
 		self,
-		rulebook: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rules: list[str],
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rules: list[RuleName],
 	):
 		pass
 
-	def turns_completed_dump(self) -> Iterator[tuple[str, int]]:
+	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		return iter(())
 
 	def complete_turn(
-		self, branch: str, turn: int, discard_rules: bool = False
+		self, branch: Branch, turn: Turn, discard_rules: bool = False
 	):
 		pass
 
 	def set_rulebook_on_character(
-		self, rbtyp: str, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		rbtyp: str,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pass
 
-	def _put_window_tick_to_end(self, branch, turn_from, tick_from):
+	def _put_window_tick_to_end(
+		self, branch: Branch, turn_from: Turn, tick_from: Tick
+	):
 		pass
 
 	def _put_window_tick_to_tick(
-		self, branch, turn_from, tick_from, turn_to, tick_to
+		self,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
 	):
 		pass
 
-	def _load_windows_into(
-		self, ret: dict, windows: list[tuple[str, int, int, int, int]]
-	) -> None:
+	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
 		pass
 
 	def _increc(self):
 		pass
 
 	def _get_one_window(
-		self, ret, branch, turn_from, tick_from, turn_to, tick_to
+		self,
+		ret,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
 	):
 		pass
 
-	def load_windows(self, windows: list) -> dict:
+	def load_windows(self, windows: list[TimeWindow]) -> dict:
 		return {}
 
 
@@ -5234,7 +5502,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			yield unpack(key)
 
 	def new_graph(
-		self, graph: Key, branch: str, turn: int, tick: int, typ: str
+		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
 	) -> None:
 		graph = self.pack(graph)
 		self.call(
@@ -5252,7 +5520,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	new_character = graphs_insert = new_graph
 
 	def set_rulebook_on_character(
-		self, rbtyp: str, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		rbtyp: str,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pack = self.pack
 		self.call(
@@ -5265,32 +5539,28 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			pack(rb),
 		)
 
-	def keyframes_dump(self):
-		for d in self.call("dump", "keyframes"):
-			yield d["branch"], d["turn"], d["tick"]
-
 	def get_keyframe_extensions(
-		self, branch: str, turn: int, tick: int
-	) -> tuple[dict, dict, dict]:
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
 		unpack = self.unpack
 		univ, rule, rulebook = self.call(
 			"get_keyframe_extensions", branch, turn, tick
 		)
 		return unpack(univ), unpack(rule), unpack(rulebook)
 
-	def keyframes_graphs(self) -> Iterator:
+	def keyframes_graphs(self) -> Iterator[tuple[Graph, Branch, Turn, Tick]]:
 		unpack = self.unpack
 		for d in self.call("list_keyframes"):
 			yield unpack(d["graph"]), d["branch"], d["turn"], d["tick"]
 
 	def graphs_types(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	):
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		unpack = self.unpack
 		if turn_to is None:
 			if tick_to is not None:
@@ -5318,7 +5588,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["type"],
 			)
 
-	def have_branch(self, branch: str) -> bool:
+	def have_branch(self, branch: Branch) -> bool:
 		return self.call("have_branch", branch)
 
 	def all_branches(
@@ -5340,42 +5610,48 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		except KeyError:
 			return None
 
-	def global_set(self, key, value):
+	def global_set(self, key: Key, value: Any) -> None:
 		pack = self.pack
 		return self.call("set_global", pack(key), pack(value))
 
-	def global_del(self, key):
+	def global_del(self, key: Key) -> None:
 		return self.call("del_global", self.pack(key))
 
-	def global_items(self):
+	def global_items(self) -> Iterator[tuple[Key, Any]]:
 		unpack = self.unpack
 		for d in self.call("dump", "global"):
 			yield unpack(d["key"]), unpack(d["value"])
 
-	def get_branch(self):
+	def get_branch(self) -> Branch:
 		v = self.unpack(self.call("get_global", b"\xa6branch"))
 		if v is None:
-			mainbranch = self.unpack(
-				self.call("get_global", b"\xabmain_branch")
+			mainbranch = Branch(
+				self.unpack(self.call("get_global", b"\xabmain_branch"))
 			)
 			if mainbranch is None:
-				return "trunk"
+				return Branch("trunk")
 			return mainbranch
 		return v
 
-	def get_turn(self):
+	def get_turn(self) -> Turn:
 		v = self.unpack(self.call("get_global", b"\xa4turn"))
 		if v is None:
-			return 0
+			return Turn(0)
 		return v
 
-	def get_tick(self):
+	def get_tick(self) -> Tick:
 		v = self.unpack(self.call("get_global", b"\xa4tick"))
 		if v is None:
-			return 0
+			return Tick(0)
 		return v
 
-	def new_branch(self, branch, parent, parent_turn, parent_tick):
+	def new_branch(
+		self,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
+	):
 		return self.call(
 			"insert1",
 			"branches",
@@ -5390,7 +5666,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	def update_branch(
-		self, branch, parent, parent_turn, parent_tick, end_turn, end_tick
+		self,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
+		end_turn: Turn,
+		end_tick: Tick,
 	):
 		return self.call(
 			"update_branch",
@@ -5403,7 +5685,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	def set_branch(
-		self, branch, parent, parent_turn, parent_tick, end_turn, end_tick
+		self,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
+		end_turn: Turn,
+		end_tick: Tick,
 	):
 		return self.call(
 			"set_branch",
@@ -5415,13 +5703,17 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			end_tick,
 		)
 
-	def update_turn(self, branch, turn, end_tick, plan_end_tick):
+	def update_turn(
+		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
+	):
 		return self.call("update_turn", branch, turn, end_tick, plan_end_tick)
 
-	def set_turn(self, branch, turn, end_tick, plan_end_tick):
+	def set_turn(
+		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
+	):
 		return self.call("set_turn", branch, turn, end_tick, plan_end_tick)
 
-	def turns_dump(self):
+	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
 		for d in self.call("dump", "turns"):
 			yield d["branch"], d["turn"], d["end_tick"], d["plan_end_tick"]
 
@@ -5554,7 +5846,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 			assert self.echo("flushed") == "flushed"
 
-	def universals_dump(self) -> Iterator[tuple[Key, str, int, int, Any]]:
+	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
 		unpack = self.unpack
 		for d in self.call("dump", "universals"):
 			yield (
@@ -5567,7 +5859,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def rulebooks_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, tuple[list[Key], float]]]:
+	) -> Iterator[
+		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
+	]:
 		unpack = self.unpack
 		for d in self.call("dump", "rulebooks"):
 			yield (
@@ -5575,11 +5869,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["branch"],
 				d["turn"],
 				d["tick"],
-				unpack(d["rules"]),
-				d["priority"],
+				(unpack(d["rules"]), d["priority"]),
 			)
 
-	def rules_dump(self) -> Iterator[str]:
+	def rules_dump(self) -> Iterator[RuleName]:
 		for d in self.call("dump", "rules"):
 			yield d["rule"]
 
@@ -5596,22 +5889,22 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]]:
 		return self._rule_dump("triggers")
 
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]]:
 		return self._rule_dump("prereqs")
 
 	def rule_actions_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, list[Key]]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]]:
 		return self._rule_dump("actions")
 
 	def rule_neighborhood_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, int]]:
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
 		for d in self.call("dump", "rule_neighborhood"):
 			yield (
 				d["rule"],
@@ -5623,7 +5916,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
 		unpack = self.unpack
 		for d in self.call("dump", "node_rulebook"):
 			yield (
@@ -5637,7 +5930,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, int, int, Key]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
+	]:
 		unpack = self.unpack
 		for d in self.call("dump", "portal_rulebook"):
 			yield (
@@ -5663,30 +5958,32 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def character_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return self._character_rulebook_dump("character")
 
-	def unit_rulebook_dump(self) -> Iterator[tuple[Key, str, int, int, Key]]:
+	def unit_rulebook_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return self._character_rulebook_dump("unit")
 
 	def character_thing_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return self._character_rulebook_dump("character_thing")
 
 	def character_place_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return self._character_rulebook_dump("character_place")
 
 	def character_portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Key, str, int, int, Key]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		return self._character_rulebook_dump("character_portal")
 
 	def character_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, str, str, int, int]]:
+	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
 		unpack = self.unpack
 		for d in self.call("dump", "character_rules_handled"):
 			yield (
@@ -5700,7 +5997,18 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def unit_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[
+			CharName,
+			CharName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
 		unpack = self.unpack
 		for d in self.call("dump", "unit_rules_handled"):
 			yield (
@@ -5716,7 +6024,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def character_thing_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
 		unpack = self.unpack
 		for d in self.call("dump", "character_thing_rules_handled"):
 			yield (
@@ -5731,7 +6041,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def character_place_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
 		unpack = self.unpack
 		for d in self.call("dump", "character_place_rules_handled"):
 			yield (
@@ -5746,7 +6058,18 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def character_portal_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[
+			CharName,
+			NodeName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
 		unpack = self.unpack
 		for d in self.call("dump", "character_portal_rules_handled"):
 			yield (
@@ -5762,7 +6085,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def node_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
 		unpack = self.unpack
 		for d in self.call("dump", "node_rules_handled"):
 			yield (
@@ -5777,7 +6102,18 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def portal_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, Key, str, str, int, int]]:
+	) -> Iterator[
+		tuple[
+			CharName,
+			NodeName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
 		unpack = self.unpack
 		for d in self.call("dump", "portal_rules_handled"):
 			yield (
@@ -5791,7 +6127,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["tick"],
 			)
 
-	def things_dump(self) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
+	def things_dump(
+		self,
+	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
 		unpack = self.unpack
 		for d in self.call("dump", "things"):
 			yield (
@@ -5803,59 +6141,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(d["location"]),
 			)
 
-	def load_things(
-		self,
-		character: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
-	) -> Iterator[tuple[Key, Key, str, int, int, Key]]:
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			if tick_to is not None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for thing, turn, tick, location in self.call(
-				"load_things_tick_to_end",
-				pack(character),
-				branch,
-				turn_from,
-				tick_from,
-			):
-				yield (
-					character,
-					unpack(thing),
-					branch,
-					turn,
-					tick,
-					unpack(location),
-				)
-		else:
-			if tick_to is None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for thing, turn, tick, location in self.call(
-				"load_things_tick_to_tick",
-				pack(character),
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			):
-				yield (
-					character,
-					unpack(thing),
-					branch,
-					turn,
-					tick,
-					unpack(location),
-				)
-
 	def units_dump(
 		self,
-	) -> Iterator[tuple[Key, Key, Key, str, int, int, bool]]:
+	) -> Iterator[
+		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
+	]:
 		unpack = self.unpack
 		for d in self.call("dump", "units"):
 			yield (
@@ -5876,18 +6166,23 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		return pack(key), branch, turn, tick, pack(val)
 
 	def universal_set(
-		self, key: Key, branch: str, turn: int, tick: int, val: Any
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Any
 	):
 		self._universals2set.append((key, branch, turn, tick, val))
 
-	def universal_del(self, key: Key, branch: str, turn: int, tick: int):
+	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		self.universal_set(key, branch, turn, tick, None)
 
 	def count_all_table(self, tbl: str) -> int:
 		return self.call("rowcount", tbl)
 
 	def set_rule_triggers(
-		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		flist: list[TriggerFuncName],
 	):
 		self.call(
 			"insert1",
@@ -5902,7 +6197,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	def set_rule_prereqs(
-		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		flist: list[PrereqFuncName],
 	):
 		self.call(
 			"insert1",
@@ -5917,7 +6217,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	def set_rule_actions(
-		self, rule: str, branch: str, turn: int, tick: int, flist: list[str]
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		flist: list[ActionFuncName],
 	):
 		self.call(
 			"insert1",
@@ -5933,11 +6238,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def set_rule_neighborhood(
 		self,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
-		neighborhood: int | None,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		neighborhood: RuleNeighborhood,
 	):
 		self.call(
 			"insert1",
@@ -5952,8 +6257,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	def set_rule_big(
-		self, rule: str, branch: str, turn: int, tick: int, big: bool
-	):
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		big: RuleBig,
+	) -> None:
 		self.call(
 			"insert1",
 			"rule_big",
@@ -5968,15 +6278,15 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def set_rule(
 		self,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
-		triggers: list[str],
-		prereqs: list[str],
-		actions: list[str],
-		neighborhood: int,
-		big: bool,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: list[TriggerFuncName],
+		prereqs: list[PrereqFuncName],
+		actions: list[ActionFuncName],
+		neighborhood: RuleNeighborhood,
+		big: RuleBig,
 	):
 		with self._holder.lock:
 			try:
@@ -5991,12 +6301,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def set_rulebook(
 		self,
-		name: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rules: list[str] = None,
-		prio: float = 0.0,
+		name: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rules: Optional[list[RuleName]] = None,
+		prio: RulebookPriority = 0.0,
 	):
 		pack = self.pack
 		self.call(
@@ -6013,7 +6323,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	def _set_character_something_rulebook(
-		self, tab: str, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		tab: str,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		pack = self.pack
 		self.call(
@@ -6029,64 +6345,89 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	def set_character_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		self._set_character_something_rulebook(
 			"character_rulebook", char, branch, turn, tick, rb
 		)
 
 	def set_unit_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		self._set_character_something_rulebook(
 			"unit_rulebook", char, branch, turn, tick, rb
 		)
 
 	def set_character_thing_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		self._set_character_something_rulebook(
 			"character_thing_rulebook", char, branch, turn, tick, rb
 		)
 
 	def set_character_place_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		self._set_character_something_rulebook(
 			"character_place_rulebook", char, branch, turn, tick, rb
 		)
 
 	def set_character_portal_rulebook(
-		self, char: Key, branch: str, turn: int, tick: int, rb: Key
+		self,
+		char: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
 	):
 		self._set_character_something_rulebook(
 			"character_portal_rulebook", char, branch, turn, tick, rb
 		)
 
-	def rulebooks(self) -> Iterator[Key]:
+	def rulebooks(self) -> Iterator[RulebookName]:
 		return map(self.pack, self.call("rulebooks"))
 
 	@batch("node_rulebook")
 	def _noderb2set(
 		self,
-		character: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rulebook: Key,
+		character: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
 	):
 		pack = self.pack
 		return pack(character), pack(node), branch, turn, tick, pack(rulebook)
 
 	def set_node_rulebook(
 		self,
-		character: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rulebook: Key,
+		character: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
 	):
 		self._noderb2set.append(
 			(character, node, branch, turn, tick, rulebook)
@@ -6095,13 +6436,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("portal_rulebook")
 	def _portrb2set(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rulebook: Key,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
 	):
 		pack = self.pack
 		return (
@@ -6116,13 +6457,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def set_portal_rulebook(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rulebook: Key,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
 	):
 		self._portrb2set.append(
 			(character, orig, dest, branch, turn, tick, rulebook)
@@ -6131,24 +6472,24 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("character_rules_handled")
 	def _char_rules_handled(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pack = self.pack
 		return pack(character), pack(rulebook), rule, branch, turn, tick
 
 	def handled_character_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		self._char_rules_handled.append(
 			(character, rulebook, rule, branch, turn, tick)
@@ -6157,14 +6498,14 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("unit_rules_handled")
 	def _unit_rules_handled(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		graph: Key,
-		unit: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		graph: CharName,
+		unit: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pack = self.pack
 		return (
@@ -6180,14 +6521,14 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def handled_unit_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		graph: Key,
-		unit: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		graph: CharName,
+		unit: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		self._unit_rules_handled.append(
 			(
@@ -6205,13 +6546,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("character_thing_rules_handled")
 	def _char_thing_rules_handled(
 		self,
-		character: Key,
-		thing: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		thing: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pack = self.pack
 		return (
@@ -6226,13 +6567,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def handled_character_thing_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		thing: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		self._char_thing_rules_handled.append(
 			(
@@ -6249,13 +6590,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("character_place_rules_handled")
 	def _char_place_rules_handled(
 		self,
-		character: Key,
-		place: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		place: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pack = self.pack
 		return (
@@ -6270,13 +6611,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def handled_character_place_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		place: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		place: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		self._char_place_rules_handled.append(
 			(
@@ -6293,14 +6634,14 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("character_portal_rules_handled")
 	def _char_portal_rules_handled(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		orig: Key,
-		dest: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pack = self.pack
 		return (
@@ -6316,14 +6657,14 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def handled_character_portal_rule(
 		self,
-		character: Key,
-		rulebook: Key,
-		rule: str,
-		orig: Key,
-		dest: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		self._char_portal_rules_handled.append(
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
@@ -6332,13 +6673,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("node_rules_handled")
 	def _node_rules_handled(
 		self,
-		character: Key,
-		node: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		node: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pack = self.pack
 		return (
@@ -6353,13 +6694,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def handled_node_rule(
 		self,
-		character: Key,
-		node: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		node: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		self._node_rules_handled.append(
 			(character, node, rulebook, rule, branch, turn, tick)
@@ -6368,14 +6709,14 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("portal_rules_handled")
 	def _portal_rules_handled(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		pack = self.pack
 		return (
@@ -6391,14 +6732,14 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def handled_portal_rule(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		rulebook: Key,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		self._portal_rules_handled.append(
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
@@ -6407,12 +6748,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("things")
 	def _location(
 		self,
-		character: Key,
-		thing: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		location: Key,
+		character: CharName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		location: NodeName,
 	):
 		pack = self.pack
 		return (
@@ -6426,24 +6767,24 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def set_thing_loc(
 		self,
-		character: Key,
-		thing: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		loc: Key,
+		character: CharName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		loc: NodeName,
 	):
 		self._location.append((character, thing, branch, turn, tick, loc))
 
 	@batch("units")
 	def _unitness(
 		self,
-		character: Key,
-		graph: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		is_unit: bool,
 	):
 		pack = self.pack
@@ -6459,12 +6800,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def unit_set(
 		self,
-		character: Key,
-		graph: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		character: CharName,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		is_unit: bool,
 	):
 		self._unitness.append(
@@ -6473,11 +6814,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def rulebook_set(
 		self,
-		rulebook: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		rules: list[str],
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rules: list[RuleName],
 	):
 		pack = self.pack
 		self.call(
@@ -6492,12 +6833,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			),
 		)
 
-	def turns_completed_dump(self) -> Iterator[tuple[str, int]]:
+	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		for d in self.call("dump", "turns_completed"):
 			yield d["branch"], d["turn"]
 
 	def complete_turn(
-		self, branch: str, turn: int, discard_rules: bool = False
+		self, branch: Branch, turn: Turn, discard_rules: bool = False
 	):
 		self.call("insert1", "turns_completed", dict(branch=branch, turn=turn))
 		if discard_rules:
@@ -6510,7 +6851,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			self._portal_rules_handled.clear()
 
 	def new_turn(
-		self, branch: str, turn: int, end_tick: int = 0, plan_end_tick: int = 0
+		self,
+		branch: Branch,
+		turn: Turn,
+		end_tick: Tick = 0,
+		plan_end_tick: Tick = 0,
 	):
 		self.call(
 			"insert1",
@@ -6522,14 +6867,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				plan_end_tick=plan_end_tick,
 			),
 		)
-
-	def set_turn_completed(self, branch: str, turn: int):
-		try:
-			self.call(
-				"insert1", "turns_completed", dict(branch=branch, turn=turn)
-			)
-		except ArrowInvalid:
-			pass
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		unpack = self.unpack
@@ -6545,12 +6882,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def load_graph_val(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	):
 		if (turn_to is None) ^ (tick_to is None):
 			raise ValueError("I need both or neither of turn_to and tick_to")
@@ -6580,20 +6917,32 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	@batch("graph_val")
 	def _graphvals2set(
-		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
+		self,
+		graph: CharName,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		val: Any,
 	):
 		pack = self.pack
 		return pack(graph), pack(key), branch, turn, tick, pack(val)
 
 	def graph_val_set(
-		self, graph: Key, key: Key, branch: str, turn: int, tick: int, val: Any
+		self,
+		graph: CharName,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		val: Any,
 	):
 		self._graphvals2set.append((graph, key, branch, turn, tick, val))
 
-	def graph_val_del_time(self, branch: str, turn: int, tick: int):
+	def graph_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self.call("graph_val_del_time", branch, turn, tick)
 
-	def characters(self) -> Iterator[tuple[Key, str, int, int, str]]:
+	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		unpack = self.unpack
 		for d in self.call("dump", "graphs"):
 			yield (
@@ -6607,11 +6956,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("nodes")
 	def _nodes2set(
 		self,
-		graph: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		extant: bool,
 	):
 		pack = self.pack
@@ -6619,16 +6968,16 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def exist_node(
 		self,
-		graph: Key,
-		node: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		extant: bool,
 	):
 		self._nodes2set.append((graph, node, branch, turn, tick, extant))
 
-	def nodes_del_time(self, branch: str, turn: int, tick: int):
+	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self.call("nodes_del_time", branch, turn, tick)
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
@@ -6645,12 +6994,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def load_nodes(
 		self,
-		graph: str,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	):
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError("I need both or neither of turn_to and tick_to")
@@ -6693,12 +7042,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def load_node_val(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[NodeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError("I need both or neither of turn_to and tick_to")
@@ -6737,12 +7086,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("node_val")
 	def _nodevals2set(
 		self,
-		graph: Key,
-		node: Key,
+		graph: CharName,
+		node: NodeName,
 		key: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value: Any,
 	):
 		pack = self.pack
@@ -6758,12 +7107,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def node_val_set(
 		self,
-		graph: Key,
-		node: Key,
+		graph: CharName,
+		node: NodeName,
 		key: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value: Any,
 	):
 		self._nodevals2set.append(
@@ -6771,7 +7120,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 		self._increc()
 
-	def node_val_del_time(self, branch: str, turn: int, tick: int):
+	def node_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self.call("node_val_del_time", branch, turn, tick)
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
@@ -6790,12 +7139,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def load_edges(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[EdgeRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise ValueError("I need both or neither of turn_to and tick_to")
@@ -6835,13 +7184,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("edges")
 	def _edges2set(
 		self,
-		graph: Key,
-		orig: Key,
-		dest: Key,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		idx: int,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Branch,
+		tick: Branch,
 		extant: bool,
 	):
 		pack = self.pack
@@ -6858,20 +7207,20 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def exist_edge(
 		self,
-		graph: Key,
-		orig: Key,
-		dest: Key,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		idx: int,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		extant: bool,
 	):
 		self._edges2set.append(
 			(graph, orig, dest, idx, branch, turn, tick, extant)
 		)
 
-	def edges_del_time(self, branch: str, turn: int, tick: int):
+	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self.call("edges_del_time", branch, turn, tick)
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
@@ -6890,12 +7239,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def load_edge_val(
 		self,
-		graph: Key,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		graph: CharName,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
 	) -> Iterator[EdgeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError("I need both or neither of turn_to and tick_to")
@@ -6922,7 +7271,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 		for orig, dest, idx, key, turn, tick, value in it:
 			yield (
-				unpack(graph),
+				graph,
 				unpack(orig),
 				unpack(dest),
 				idx,
@@ -6936,14 +7285,14 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@batch("edge_val")
 	def _edgevals2set(
 		self,
-		graph: Key,
-		orig: Key,
-		dest: Key,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		idx: int,
 		key: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value: Any,
 	):
 		pack = self.pack
@@ -6961,35 +7310,37 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def edge_val_set(
 		self,
-		graph: Key,
-		orig: Key,
-		dest: Key,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		idx: int,
 		key: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value: Any,
 	):
 		self._edgevals2set.append(
 			(graph, orig, dest, idx, key, branch, turn, tick, value)
 		)
 
-	def edge_val_del_time(self, branch: str, turn: int, tick: int):
+	def edge_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self.call("edge_val_del_time", branch, turn, tick)
 
-	def plans_dump(self) -> Iterator:
+	def plans_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		for d in self.call("dump", "plans"):
 			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
 
-	def plans_insert(self, plan_id: int, branch: str, turn: int, tick: int):
+	def plans_insert(
+		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
+	):
 		self.call(
 			"insert1",
 			"plans",
 			dict(plan_id=plan_id, branch=branch, turn=turn, tick=tick),
 		)
 
-	def plans_insert_many(self, many: list[tuple[int, str, int, int]]):
+	def plans_insert_many(self, many: list[tuple[Plan, Branch, Turn, Tick]]):
 		self.call(
 			"insert",
 			"plans",
@@ -6999,14 +7350,14 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			],
 		)
 
-	def plan_ticks_insert(self, plan_id: int, turn: int, tick: int):
+	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
 		self.call(
 			"insert1",
 			"plan_ticks",
 			dict(plan_id=plan_id, turn=turn, tick=tick),
 		)
 
-	def plan_ticks_insert_many(self, many: list[tuple[int, int, int]]):
+	def plan_ticks_insert_many(self, many: list[tuple[Plan, Turn, Tick]]):
 		self.call(
 			"insert",
 			"plan_ticks",
@@ -7016,20 +7367,20 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			],
 		)
 
-	def plan_ticks_dump(self) -> Iterator:
+	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Turn, Tick]]:
 		for d in self.call("dump", "plan_ticks"):
 			yield d["plan_id"], d["turn"], d["tick"]
 
 	@batch("keyframes_graphs")
 	def _new_keyframes(
 		self,
-		graph: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		nodes: dict,
-		edges: dict,
-		graph_val: dict,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		nodes: NodeKeyframe,
+		edges: EdgeKeyframe,
+		graph_val: GraphValKeyframe,
 	):
 		pack = self.pack
 		return (
@@ -7044,43 +7395,43 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def keyframe_graph_insert(
 		self,
-		graph: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		nodes: dict,
-		edges: dict,
-		graph_val: dict,
-	):
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		nodes: NodeKeyframe,
+		edges: EdgeKeyframe,
+		graph_val: GraphValKeyframe,
+	) -> None:
 		self._new_keyframes.append(
 			(graph, branch, turn, tick, nodes, edges, graph_val)
 		)
 		self._new_keyframe_times.add((branch, turn, tick))
 
-	def keyframe_insert(self, branch: str, turn: int, tick: int) -> None:
+	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self._new_keyframe_times.add((branch, turn, tick))
 
 	@batch("keyframe_extensions")
 	def _new_keyframe_extensions(
 		self,
-		branch: str,
-		turn: int,
-		tick: int,
-		universal: dict,
-		rule: dict,
-		rulebook: dict,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		universal: UniversalKeyframe,
+		rule: RuleKeyframe,
+		rulebook: RulebookKeyframe,
 	):
 		pack = self.pack
 		return branch, turn, tick, pack(universal), pack(rule), pack(rulebook)
 
 	def keyframe_extension_insert(
 		self,
-		branch: str,
-		turn: int,
-		tick: int,
-		universal: dict,
-		rule: dict,
-		rulebook: dict,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		universal: UniversalKeyframe,
+		rule: RuleKeyframe,
+		rulebook: RulebookKeyframe,
 	) -> None:
 		self._new_keyframe_extensions.append(
 			(branch, turn, tick, universal, rule, rulebook)
@@ -7088,8 +7439,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._new_keyframe_times.add((branch, turn, tick))
 
 	def get_all_keyframe_graphs(
-		self, branch: str, turn: int, tick: int
-	) -> Iterator[tuple[Key, dict, dict, dict]]:
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> Iterator[
+		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
+	]:
 		unpack = self.unpack
 		for graph, nodes, edges, graph_val in self.call(
 			"all_keyframe_graphs", branch, turn, tick
@@ -7360,7 +7713,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 		if pack is None:
 
-			def pack(s: str) -> bytes:
+			def pack(s: Any) -> bytes:
 				return repr(s).encode()
 
 		if unpack is None:
@@ -7425,45 +7778,45 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			self._inq.put(stmt)
 			return self._outq.get()
 
-	def new_graph(self, graph, branch, turn, tick, typ):
+	def new_graph(
+		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
+	) -> None:
 		"""Declare a new graph by this name of this type."""
 		graph = self.pack(graph)
 		return self.call_one("graphs_insert", graph, branch, turn, tick, typ)
 
 	def keyframe_graph_insert(
-		self, graph, branch, turn, tick, nodes, edges, graph_val
-	):
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		nodes: NodeKeyframe,
+		edges: EdgeKeyframe,
+		graph_val: GraphValKeyframe,
+	) -> None:
 		self._new_keyframes.append(
 			(graph, branch, turn, tick, nodes, edges, graph_val)
 		)
 		self._new_keyframe_times.add((branch, turn, tick))
 
-	def keyframe_insert(self, branch: str, turn: int, tick: int):
+	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self._new_keyframe_times.add((branch, turn, tick))
 
-	def keyframes_dump(self):
-		yield from self.call_one("keyframes_dump")
-
-	def keyframes_graphs(self):
+	def keyframes_graphs(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick]]:
 		unpack = self.unpack
 		for graph, branch, turn, tick in self.call_one(
 			"keyframes_graphs_list"
 		):
 			yield unpack(graph), branch, turn, tick
 
-	def get_keyframe_graph(
-		self, graph: Key, branch: str, turn: int, tick: int
-	):
-		unpack = self.unpack
-		stuff = self.call_one(
-			"get_keyframe_graph", self.pack(graph), branch, turn, tick
-		)
-		if not stuff:
-			raise KeyError(f"No keyframe for {graph} at {branch, turn, tick}")
-		nodes, edges, graph_val = stuff[0]
-		return unpack(nodes), unpack(edges), unpack(graph_val)
-
-	def get_all_keyframe_graphs(self, branch, turn, tick):
+	def get_all_keyframe_graphs(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> Iterator[
+		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
+	]:
 		unpack = self.unpack
 		for graph, nodes, edges, graph_val in self.call_one(
 			"all_graphs_in_keyframe", branch, turn, tick
@@ -7475,23 +7828,20 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(graph_val),
 			)
 
-	def graph_type(self, graph):
-		"""What type of graph is this?"""
-		graph = self.pack(graph)
-		return self.call_one("graph_type", graph)[0][0]
-
 	def have_branch(self, branch):
 		"""Return whether the branch thus named exists in the database."""
 		return bool(self.call_one("ctbranch", branch)[0][0])
 
-	def all_branches(self):
+	def all_branches(
+		self,
+	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
 		"""Return all the branch data in tuples of (branch, parent,
-		parent_turn).
+		start_turn, start_tick, end_turn, end_tick).
 
 		"""
 		return self.call_one("branches_dump")
 
-	def global_get(self, key):
+	def global_get(self, key: Key) -> Any:
 		"""Return the value for the given key in the ``globals`` table."""
 		key = self.pack(key)
 		r = self.call_one("global_get", key)[0]
@@ -7499,32 +7849,32 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			raise KeyError("Not set")
 		return self.unpack(r[0])
 
-	def global_items(self):
+	def global_items(self) -> Iterator[tuple[Key, Any]]:
 		"""Iterate over (key, value) pairs in the ``globals`` table."""
 		unpack = self.unpack
 		dumped = self.call_one("global_dump")
 		for k, v in dumped:
 			yield (unpack(k), unpack(v))
 
-	def get_branch(self):
+	def get_branch(self) -> Branch:
 		v = self.call_one("global_get", self.pack("branch"))[0]
 		if v is None:
 			return self.globl["main_branch"]
 		return self.unpack(v[0])
 
-	def get_turn(self):
+	def get_turn(self) -> Turn:
 		v = self.call_one("global_get", self.pack("turn"))[0]
 		if v is None:
 			return 0
 		return self.unpack(v[0])
 
-	def get_tick(self):
+	def get_tick(self) -> Tick:
 		v = self.call_one("global_get", self.pack("tick"))[0]
 		if v is None:
 			return 0
 		return self.unpack(v[0])
 
-	def global_set(self, key, value):
+	def global_set(self, key: Key, value: Any) -> None:
 		"""Set ``key`` to ``value`` globally (not at any particular branch or
 		revision)
 
@@ -7539,12 +7889,18 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				self.commit()
 				return self.call_one("global_update", value, key)
 
-	def global_del(self, key):
+	def global_del(self, key: Key) -> None:
 		"""Delete the global record for the key."""
 		key = self.pack(key)
 		return self.call_one("global_del", key)
 
-	def new_branch(self, branch, parent, parent_turn, parent_tick):
+	def new_branch(
+		self,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
+	):
 		"""Declare that the ``branch`` is descended from ``parent`` at
 		``parent_turn``, ``parent_tick``
 
@@ -7560,7 +7916,13 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 
 	def update_branch(
-		self, branch, parent, parent_turn, parent_tick, end_turn, end_tick
+		self,
+		branch: Branch,
+		parent: Branch,
+		parent_turn: Turn,
+		parent_tick: Tick,
+		end_turn: Turn,
+		end_tick: Tick,
 	):
 		return self.call_one(
 			"update_branches",
@@ -7625,16 +7987,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			return self.call_one(
 				"update_turns", end_tick, plan_end_tick, branch, turn
 			)
-
-	def set_turn_completed(self, branch, turn):
-		try:
-			return self.call_one("turns_completed_insert", branch, turn)
-		except IntegrityError:
-			try:
-				return self.call_one("turns_completed_update", turn, branch)
-			except IntegrityError:
-				self.commit()
-				return self.call_one("turns_completed_update", turn, branch)
 
 	def turns_dump(self):
 		return self.call_one("turns_dump")
@@ -7722,11 +8074,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def graphs_types(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int = None,
-		tick_to: int = None,
+		branch,
+		turn_from,
+		tick_from,
+		turn_to=None,
+		tick_to=None,
 	):
 		unpack = self.unpack
 		if turn_to is None:
@@ -7817,7 +8169,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				bool(extant),
 			)
 
-	def iter_nodes(
+	def _iter_nodes(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> Iterator[NodeRowType]:
 		if (turn_to is None) ^ (tick_to is None):
@@ -7853,7 +8205,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> list[NodeRowType]:
 		return list(
-			self.iter_nodes(
+			self._iter_nodes(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
 			)
 		)
@@ -7875,7 +8227,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(value),
 			)
 
-	def iter_node_val(
+	def _iter_node_val(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> Iterator[NodeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
@@ -7919,7 +8271,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	):
 		return list(
-			self.iter_node_val(
+			self._iter_node_val(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
 			)
 		)
@@ -8107,7 +8459,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(value),
 			)
 
-	def iter_edge_val(
+	def _iter_edge_val(
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	) -> Iterator[EdgeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
@@ -8153,7 +8505,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
 	):
 		return list(
-			self.iter_edge_val(
+			self._iter_edge_val(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
 			)
 		)
@@ -8580,29 +8932,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 		self._new_keyframe_times.add((branch, turn, tick))
 
-	def keyframe_extensions_dump(self):
-		unpack = self.unpack
-		for (
-			branch,
-			turn,
-			tick,
-			universal,
-			rule,
-			rulebook,
-			neighborhood,
-			big,
-		) in self.call_one("keyframe_extensions_dump"):
-			yield (
-				branch,
-				turn,
-				tick,
-				unpack(universal),
-				unpack(rule),
-				unpack(rulebook),
-				unpack(neighborhood),
-				unpack(big),
-			)
-
 	def get_keyframe_extensions(self, branch: str, turn: int, tick: int):
 		self.flush()
 		unpack = self.unpack
@@ -8810,31 +9139,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				tick,
 			)
 
-	def character_thing_rules_changes_dump(self):
-		jl = self.unpack
-		for (
-			character,
-			thing,
-			rulebook,
-			rule,
-			branch,
-			turn,
-			tick,
-			handled_branch,
-			handled_turn,
-		) in self.call_one("character_thing_rules_changes_dump"):
-			yield (
-				jl(character),
-				jl(thing),
-				jl(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
-				handled_branch,
-				handled_turn,
-			)
-
 	def character_place_rules_handled_dump(self):
 		unpack = self.unpack
 		for (
@@ -8854,31 +9158,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				branch,
 				turn,
 				tick,
-			)
-
-	def character_place_rules_changes_dump(self):
-		jl = self.unpack
-		for (
-			character,
-			rulebook,
-			rule,
-			place,
-			branch,
-			turn,
-			tick,
-			handled_branch,
-			handled_turn,
-		) in self.call_one("character_place_rules_changes_dump"):
-			yield (
-				jl(character),
-				jl(rulebook),
-				rule,
-				jl(place),
-				branch,
-				turn,
-				tick,
-				handled_branch,
-				handled_turn,
 			)
 
 	def character_portal_rules_handled_dump(self):
@@ -8904,33 +9183,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				tick,
 			)
 
-	def character_portal_rules_changes_dump(self):
-		jl = self.unpack
-		for (
-			character,
-			rulebook,
-			rule,
-			orig,
-			dest,
-			branch,
-			turn,
-			tick,
-			handled_branch,
-			handled_turn,
-		) in self.call_one("character_portal_rules_changes_dump"):
-			yield (
-				jl(character),
-				jl(rulebook),
-				rule,
-				jl(orig),
-				jl(dest),
-				branch,
-				turn,
-				tick,
-				handled_branch,
-				handled_turn,
-			)
-
 	def node_rules_handled_dump(self):
 		for (
 			character,
@@ -8949,31 +9201,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				branch,
 				turn,
 				tick,
-			)
-
-	def node_rules_changes_dump(self):
-		jl = self.unpack
-		for (
-			character,
-			node,
-			rulebook,
-			rule,
-			branch,
-			turn,
-			tick,
-			handled_branch,
-			handled_turn,
-		) in self.call_one("node_rules_changes_dump"):
-			yield (
-				jl(character),
-				jl(node),
-				jl(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
-				handled_branch,
-				handled_turn,
 			)
 
 	def portal_rules_handled_dump(self):
@@ -8999,40 +9226,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				tick,
 			)
 
-	def portal_rules_changes_dump(self):
-		jl = self.unpack
-		for (
-			character,
-			orig,
-			dest,
-			rulebook,
-			rule,
-			branch,
-			turn,
-			tick,
-			handled_branch,
-			handled_turn,
-		) in self.call_one("portal_rules_changes_dump"):
-			yield (
-				jl(character),
-				jl(orig),
-				jl(dest),
-				jl(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
-				handled_branch,
-				handled_turn,
-			)
-
-	def senses_dump(self):
-		unpack = self.unpack
-		for character, sense, branch, turn, tick, function in self.call_one(
-			"senses_dump"
-		):
-			yield unpack(character), sense, branch, turn, tick, function
-
 	def things_dump(self):
 		unpack = self.unpack
 		for character, thing, branch, turn, tick, location in self.call_one(
@@ -9047,57 +9240,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(location),
 			)
 
-	def load_things(
+	def units_dump(
 		self,
-		character,
-		branch,
-		turn_from,
-		tick_from,
-		turn_to=None,
-		tick_to=None,
-	):
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			if tick_to is not None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for thing, turn, tick, location in self.call_one(
-				"load_things_tick_to_end",
-				pack(character),
-				branch,
-				turn_from,
-				tick_from,
-			):
-				yield (
-					character,
-					unpack(thing),
-					branch,
-					turn,
-					tick,
-					unpack(location),
-				)
-		else:
-			if tick_to is None:
-				raise ValueError("Need both or neither of turn_to, tick_to")
-			for thing, turn, tick, location in self.call_one(
-				"load_things_tick_to_tick",
-				pack(character),
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			):
-				yield (
-					character,
-					unpack(thing),
-					branch,
-					turn,
-					tick,
-					unpack(location),
-				)
-
-	def units_dump(self):
+	) -> Iterator[
+		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
+	]:
 		unpack = self.unpack
 		for (
 			character_graph,
@@ -9118,12 +9265,14 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				is_av,
 			)
 
-	def universal_set(self, key, branch, turn, tick, val):
+	def universal_set(
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Any
+	):
 		key, val = map(self.pack, (key, val))
 		self.call_one("universals_insert", key, branch, turn, tick, val)
 		self._increc()
 
-	def universal_del(self, key, branch, turn, tick):
+	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		key = self.pack(key)
 		self.call_one("universals_insert", key, branch, turn, tick, NONE)
 		self._increc()
@@ -9148,8 +9297,13 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	set_rule_neighborhood = partialmethod(_set_rule_something, "neighborhood")
 
 	def set_rule_big(
-		self, rule: str, branch: str, turn: int, tick: int, big: bool
-	):
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		big: RuleBig,
+	) -> None:
 		self.call_one("rule_big_insert", rule, branch, turn, tick, big)
 		self._increc()
 

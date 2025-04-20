@@ -81,7 +81,6 @@ from .cache import (
 	UnitRulesHandledCache,
 )
 from .character import Character
-from .db import ParquetQueryEngine, SQLAlchemyQueryEngine
 from .exc import (
 	GraphNameError,
 	HistoricKeyError,
@@ -123,6 +122,8 @@ from .typing import (
 	Tick,
 	Time,
 	Plan,
+	CharName,
+	NodeName,
 )
 from .util import (
 	AbstractEngine,
@@ -475,6 +476,7 @@ class Engine(AbstractEngine, Executor):
 	thing_cls = Thing
 	place_cls = node_cls = Place
 	portal_cls = edge_cls = Portal
+	entity_cls = char_cls | thing_cls | place_cls | portal_cls
 	illegal_graph_names = {
 		"global",
 		"eternal",
@@ -674,7 +676,7 @@ class Engine(AbstractEngine, Executor):
 	def _node_exists_stuff(
 		self,
 	) -> tuple[
-		Callable[[tuple[Key, Key, Branch, Turn, Tick]], Any],
+		Callable[[tuple[CharName, NodeName, Branch, Turn, Tick]], Any],
 		Callable[[], Time],
 	]:
 		return (self._nodes_cache._base_retrieve, self._btt)
@@ -684,8 +686,8 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		Callable[[], Time],
-		Callable[[Key, Key, Branch, Turn, Tick, bool], None],
-		Callable[[Key, Key, Branch, Turn, Tick, Any], None],
+		Callable[[CharName, NodeName, Branch, Turn, Tick, bool], None],
+		Callable[[CharName, NodeName, Branch, Turn, Tick, Any], None],
 	]:
 		return (self._nbtt, self.query.exist_node, self._nodes_cache.store)
 
@@ -693,8 +695,11 @@ class Engine(AbstractEngine, Executor):
 	def _edge_exists_stuff(
 		self,
 	) -> tuple[
-		Callable[[tuple[Key, Key, Key, int, str, int, int]], bool],
-		Callable[[], tuple[str, int, int]],
+		Callable[
+			[tuple[CharName, NodeName, NodeName, int, Branch, Turn, Tick]],
+			bool,
+		],
+		Callable[[], Time],
 	]:
 		return (self._edges_cache._base_retrieve, self._btt)
 
@@ -703,8 +708,12 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		Callable[[], Time],
-		Callable[[Key, Key, Key, int, Branch, Turn, Tick, bool], None],
-		Callable[[Key, Key, Key, int, Branch, Turn, Tick, Any], None],
+		Callable[
+			[CharName, NodeName, NodeName, int, Branch, Turn, Tick, bool], None
+		],
+		Callable[
+			[CharName, NodeName, NodeName, int, Branch, Turn, Tick, Any], None
+		],
 	]:
 		return (self._nbtt, self.query.exist_edge, self._edges_cache.store)
 
@@ -5714,7 +5723,7 @@ class Engine(AbstractEngine, Executor):
 			fut.handled = handled_fun
 			yield fut
 
-	def _check_prereqs(self, rule, handled_fun, entity):
+	def _check_prereqs(self, rule: Rule, handled_fun: callable, entity):
 		if not entity:
 			return False
 		for prereq in rule.prereqs:
@@ -5866,7 +5875,11 @@ class Engine(AbstractEngine, Executor):
 		self._neighbors_cache[cache_key] = neighbors
 		return neighbors
 
-	def _get_effective_neighbors(self, entity, neighborhood):
+	def _get_effective_neighbors(
+		self,
+		entity: place_cls | thing_cls | portal_cls,
+		neighborhood: Optional[int],
+	):
 		"""Get neighbors unless that's a different set of entities since last turn
 
 		In which case return None
