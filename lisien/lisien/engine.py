@@ -2336,9 +2336,20 @@ class Engine(AbstractEngine, Executor):
 			self._rando.seed(random_seed)
 			rando_state = self._rando.getstate()
 			if self._oturn == self._otick == 0:
-				self._universal_cache.store(
-					"rando_state", self.branch, 0, 0, rando_state, loading=True
-				)
+				now = self._btt()
+				if now in self._keyframes_times:
+					assert now in self._keyframes_loaded
+					kf = self._universal_cache.get_keyframe(*now, copy=False)
+					kf["rando_state"] = rando_state
+				else:
+					self._universal_cache.store(
+						"rando_state",
+						self.branch,
+						0,
+						0,
+						rando_state,
+						loading=True,
+					)
 				self.query.universal_set(
 					"rando_state", self.branch, 0, 0, rando_state
 				)
