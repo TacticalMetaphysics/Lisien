@@ -280,7 +280,7 @@ class NextTurn(Signal):
 					# Maybe the game uses no prereqs or something.
 					pass
 		if hasattr(engine, "_worker_processes"):
-			engine._call_every_subprocess("_reimport_code")
+			engine._call_every_subprocess("_reimport_all")
 			engine._update_all_worker_process_states()
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._get_last_completed_turn(start_branch)
