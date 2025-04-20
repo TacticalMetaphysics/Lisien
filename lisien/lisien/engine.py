@@ -812,6 +812,7 @@ class Engine(AbstractEngine, Executor):
 		ret = EdgesCache(self, name="edges cache")
 		ret.setdb = self.query.exist_edge
 		ret.deldb = self.query.edges_del_time
+		return ret
 
 	@cached_property
 	def _node_val_cache(self) -> NodeValCache:
