@@ -4046,6 +4046,10 @@ class Engine(AbstractEngine, Executor):
 	@world_locked
 	def unload(self) -> None:
 		"""Remove everything from memory that can be removed."""
+		# If we're not connected to some database, we can't unload anything
+		# without losing data
+		if isinstance(self.query, NullQueryEngine):
+			return
 		# find the slices of time that need to stay loaded
 		branch, turn, tick = self._btt()
 		iter_parent_btt = self._iter_parent_btt
