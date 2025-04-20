@@ -1114,7 +1114,7 @@ class EngineFacade(AbstractEngine):
 	class FacadeUnitnessCache(FacadeCache, UnitnessCache):
 		def __init__(self, cache):
 			self._created = cache.db._btt()
-			UnitnessCache.__init__(self, cache.db)
+			UnitnessCache.__init__(self, cache.db, "unitness_cache")
 			self.user_cache = EngineFacade.FacadeCache(
 				cache.user_cache, "user_cache"
 			)
