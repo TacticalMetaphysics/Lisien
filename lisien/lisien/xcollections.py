@@ -407,7 +407,7 @@ class CharacterMapping(GraphsMapping, Signal):
 		self.send(self, key=name, val=self.engine._graph_objs[name])
 
 	def __delitem__(self, name):
-		self.engine.del_graph(name)
+		self.engine.del_character(name)
 		self.send(self, key=name, val=None)
 
 
