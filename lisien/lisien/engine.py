@@ -34,6 +34,7 @@ from itertools import chain, pairwise
 from multiprocessing import Pipe, Process, Queue
 from operator import itemgetter
 from os import PathLike
+import pickle
 from queue import Empty, SimpleQueue
 from random import Random
 from threading import Lock, RLock, Thread
@@ -4637,23 +4638,49 @@ class Engine(AbstractEngine, Executor):
 			self._kf_overridden = False
 			return False
 
+	def _reimport_some_functions(self, some):
+		if getattr(self, "_prefix", None) is not None:
+			self._call_every_subprocess(f"_reimport_{some}")
+		else:
+			callables = {}
+			for att in dir(getattr(self, some)):
+				v = getattr(getattr(self.some), att)
+				if callable(v):
+					callables[att] = v
+			self._call_every_subprocess(
+				f"_replace_{some}_pkl", pickle.dumps(callables)
+			)
+
 	def _reimport_trigger_functions(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		self._call_every_subprocess("_reimport_triggers")
+		self._reimport_some_functions("triggers")
 
 	def _reimport_worker_functions(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		self._call_every_subprocess("_reimport_functions")
+		self._reimport_some_functions("functions")
 
 	def _reimport_worker_methods(self, *args, attr, **kwargs):
 		if attr is not None:
 			return
-		self._call_every_subprocess("_reimport_methods")
+		self._reimport_some_functions("methods")
 
 	def _get_worker_kf_payload(self, uid: int = sys.maxsize) -> bytes:
 		# I'm not using the uid at the moment, because this doesn't return anything
+		plainstored = {}
+		pklstored = {}
+		for name, store in [
+			("function", self.function),
+			("method", self.method),
+			("trigger", self.trigger),
+			("prereq", self.prereq),
+			("action", self.action),
+		]:
+			if hasattr(store, "iterplain") and callable(store.iterplain):
+				plainstored[name] = dict(store.iterplain())
+			else:
+				pklstored[name] = pickle.dumps(store)
 		return uid.to_bytes(8, "little") + zlib.compress(
 			self.pack(
 				(
@@ -4664,11 +4691,8 @@ class Engine(AbstractEngine, Executor):
 						(
 							self.snap_keyframe(update_worker_processes=False),
 							dict(self.eternal.items()),
-							dict(self.function.iterplain()),
-							dict(self.method.iterplain()),
-							dict(self.trigger.iterplain()),
-							dict(self.prereq.iterplain()),
-							dict(self.action.iterplain()),
+							plainstored,
+							pklstored,
 						),
 					),
 					{},
@@ -5594,10 +5618,27 @@ class Engine(AbstractEngine, Executor):
 					)
 				if eternal_delta:
 					delt["eternal"] = eternal_delta
-				argbytes = zlib.compress(
+				kwargs = {}
+				if self._prefix is None:
+					kwargs["_replace_funcs_plain"] = plain = {}
+					kwargs["_replace_funcs_pkl"] = pkl = {}
+					for name, store in [
+						("function", self.function),
+						("method", self.method),
+						("trigger", self.trigger),
+						("prereq", self.prereq),
+						("action", self.action),
+					]:
+						if hasattr(store, "iterplain") and callable(
+							store.iterplain
+						):
+							plain[name] = dict(store.iterplain())
+							continue
+						else:
+							pkl[name] = pickle.dumps(store)
+				argbytes = sys.maxsize.to_bytes(8, "little") + zlib.compress(
 					self.pack(
 						(
-							-1,
 							"_upd",
 							(
 								None,
@@ -5606,7 +5647,7 @@ class Engine(AbstractEngine, Executor):
 								self.tick,
 								(None, delt),
 							),
-							{},
+							kwargs,
 						)
 					)
 				)
@@ -6332,7 +6373,7 @@ class Engine(AbstractEngine, Executor):
 			self._nbtt()
 		self._init_graph(name, "DiGraph", data)
 		if self._btt() not in self._keyframes_times:
-			self.snap_keyframe(silent=True)
+			self.snap_keyframe(silent=True, update_worker_processes=False)
 		if hasattr(self, "_worker_processes"):
 			self._update_all_worker_process_states(clobber=True)
 		self._graph_objs[name] = self.char_cls(self, name)

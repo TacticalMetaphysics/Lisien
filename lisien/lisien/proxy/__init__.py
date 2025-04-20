@@ -31,6 +31,7 @@ import ast
 import io
 import logging
 import os
+import pickle
 import random
 import sys
 import zlib
@@ -45,7 +46,7 @@ from random import Random
 from threading import Lock, Thread
 from time import monotonic
 from types import MethodType
-from typing import Hashable, Iterator
+from typing import Hashable, Iterator, Optional
 
 import astunparse
 import msgpack
@@ -2922,49 +2923,22 @@ class EngineProxy(AbstractEngine):
 		return self.handle("node_exists", char=char, node=node)
 
 	def _upd_from_game_start(self, command, branch, turn, tick, result):
-		(
-			start_kf,
-			eternal,
-			functions,
-			methods,
-			triggers,
-			prereqs,
-			actions,
-		) = result
+		(start_kf, eternal, plainstored, pklstored) = result
 		self._initialized = False
 		self._eternal_cache = eternal
-		self.function._cache = functions
-		if hasattr(self.function, "reimport"):
-			self.function.reimport()
-		self.method._cache = methods
-		if hasattr(self.method, "reimport"):
-			self.method.reimport()
-		self.trigger._cache = triggers
-		if hasattr(self.trigger, "reimport"):
-			self.trigger.reimport()
-		self.prereq._cache = prereqs
-		if hasattr(self.prereq, "reimport"):
-			self.prereq.reimport()
-		self.action._cache = actions
-		if hasattr(self.action, "reimport"):
-			self.action.reimport()
-		for func, mod in [
-			(functions, self.function),
-			(methods, self.method),
-			(triggers, self.trigger),
-			(prereqs, self.prereq),
-			(actions, self.action),
+		for name, store in [
+			("function", self.function),
+			("method", self.method),
+			("trigger", self.trigger),
+			("prereq", self.prereq),
+			("action", self.action),
 		]:
-			if not hasattr(mod, "_module"):
-				continue  # We're working with FuncStoreProxy, don't worry
-			unimported = set(func).difference(dir(mod._module))
-			if unimported:
-				self.warning(
-					f"some functions not imported from {mod._filename}: {unimported}."
-				)
-			self.debug(
-				f"imported functions from {mod._filename}: {dir(mod._module)}"
-			)
+			if name in plainstored:
+				store._cache = plainstored[name]
+			elif name in pklstored:
+				setattr(self, name, pickle.loads(pklstored[name]))
+			elif hasattr(store, "reimport") and callable(store.reimport):
+				store.reimport()
 		self._replace_state_with_kf(start_kf)
 		self._branch = branch
 		self._turn = turn
@@ -3461,6 +3435,10 @@ class EngineProxy(AbstractEngine):
 		if hasattr(self.trigger, "reimport"):
 			self.trigger.reimport()
 
+	def _replace_triggers_pkl(self, replacement: bytes):
+		assert self._worker, "Loaded replacement triggers outside a worker"
+		self.trigger._locl = pickle.loads(replacement)
+
 	def _eval_trigger(self, name, entity):
 		return getattr(self.trigger, name)(entity)
 
@@ -3471,12 +3449,20 @@ class EngineProxy(AbstractEngine):
 		if hasattr(self.function, "reimport"):
 			self.function.reimport()
 
+	def _replace_functions_pkl(self, replacement: bytes):
+		assert self._worker, "Loaded replacement functions outside a worker"
+		self.function._locl = pickle.loads(replacement)
+
 	def _call_method(self, name: str, *args, **kwargs):
 		return MethodType(getattr(self.method, name), self)(*args, **kwargs)
 
 	def _reimport_methods(self):
 		if hasattr(self.method, "reimport"):
 			self.method.reimport()
+
+	def _replace_methods_pkl(self, replacement: bytes):
+		assert self._worker, "Loaded replacement methods outside a worker"
+		self.method._locl = pickle.loads(replacement)
 
 	def send_bytes(self, obj, blocking=True, timeout=1):
 		compressed = zlib.compress(obj)
@@ -3724,9 +3710,61 @@ class EngineProxy(AbstractEngine):
 			if hasattr(store, "reimport"):
 				store.reimport()
 
+	def _replace_funcs_pkl(
+		self,
+		*,
+		function: Optional[bytes] = None,
+		method: Optional[bytes] = None,
+		trigger: Optional[bytes] = None,
+		prereq: Optional[bytes] = None,
+		action: Optional[bytes] = None,
+	) -> None:
+		assert self._worker, "Replaced code outside of a worker"
+		if function:
+			self.function._cache = pickle.loads(function)
+		if method:
+			self.method._cache = pickle.loads(method)
+		if trigger:
+			self.trigger._cache = pickle.loads(trigger)
+		if prereq:
+			self.prereq._cache = pickle.loads(prereq)
+		if action:
+			self.action._cache = pickle.loads(action)
+
+	def _replace_funcs_plain(
+		self,
+		*,
+		function: Optional[dict[str, str]] = None,
+		method: Optional[dict[str, str]] = None,
+		trigger: Optional[dict[str, str]] = None,
+		prereq: Optional[dict[str, str]] = None,
+		action: Optional[dict[str, str]] = None,
+	):
+		assert self._worker, "Replaced code outside of a worker"
+		for name, store, upd in [
+			("function", self.function, function),
+			("method", self.method, method),
+			("trigger", self.trigger, trigger),
+			("prereq", self.prereq, prereq),
+			("action", self.action, action),
+		]:
+			if upd is None:
+				continue
+			for funcname, source in upd.items():
+				store._set_source(funcname, source)
+
 	def _upd(self, *args, **kwargs):
+		to_replace_pkl = kwargs.pop("_replace_funcs_pkl", {})
+		to_replace_plain = kwargs.pop("_replace_funcs_plain", {})
+		if to_replace_pkl or to_replace_plain:
+			assert self._worker, "Replaced code outside of a worker"
+			if to_replace_pkl:
+				self._replace_funcs_pkl(**to_replace_pkl)
+			if to_replace_plain:
+				self._replace_funcs_plain(**to_replace_plain)
+		else:
+			self._reimport_all()
 		self._upd_caches(*args, **kwargs)
-		self._reimport_all()
 		self._upd_time(*args, no_del=True, **kwargs)
 
 	def _upd_and_cb(self, cb, *args, **kwargs):
