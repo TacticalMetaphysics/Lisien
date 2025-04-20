@@ -2934,7 +2934,11 @@ class EngineProxy(AbstractEngine):
 			("action", self.action),
 		]:
 			if name in plainstored:
-				store._cache = plainstored[name]
+				if isinstance(store, FuncStoreProxy):
+					store._cache = plainstored[name]
+				elif isinstance(store, FunctionStore):
+					for fname, source in plainstored[name].items():
+						store._set_source(fname, source)
 			elif name in pklstored:
 				setattr(self, name, pickle.loads(pklstored[name]))
 			elif hasattr(store, "reimport") and callable(store.reimport):
