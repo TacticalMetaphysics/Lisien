@@ -4144,11 +4144,12 @@ def worker_subprocess(
 		except Exception as ex:
 			ret = ex
 			if uid == sys.maxsize:
-				logq.put((50, repr(ex)))
+				msg = repr(ex)
+				logq.put((50, msg))
 				import traceback
 
 				traceback.print_exc(file=sys.stderr)
-				raise
+				sys.exit(msg)
 		if uid != sys.maxsize:
 			out_pipe.send_bytes(inst[:8] + compress(pack(ret)))
 		eng._initialized = True
