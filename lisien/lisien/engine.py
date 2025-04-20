@@ -2381,7 +2381,7 @@ class Engine(AbstractEngine, Executor):
 
 		self._trigger_pool = ThreadPoolExecutor()
 		self._worker_last_eternal = dict(self.eternal.items())
-		initial_payload = self._get_worker_kf_payload(-1)
+		initial_payload = self._get_worker_kf_payload()
 
 		self._worker_processes = wp = []
 		self._worker_inputs = wi = []
@@ -3891,13 +3891,15 @@ class Engine(AbstractEngine, Executor):
 		**kwargs,
 	):
 		i = uid % len(self._worker_inputs)
-		argbytes = zlib.compress(self.pack((uid, method, args, kwargs)))
+		uidbytes = uid.to_bytes(8, "little")
+		argbytes = zlib.compress(self.pack((method, args, kwargs)))
 		with self._worker_locks[i]:
 			if update:
 				self._update_worker_process_state(i, lock=False)
-			self._worker_inputs[i].send_bytes(argbytes)
+			self._worker_inputs[i].send_bytes(uidbytes + argbytes)
 			output = self._worker_outputs[i].recv_bytes()
-		got_uid, result = self.unpack(zlib.decompress(output))
+		got_uid = int.from_bytes(output[:8], "little")
+		result = self.unpack(zlib.decompress(output[8:]))
 		assert got_uid == uid
 		self._how_many_futs_running -= 1
 		del self._uid_to_fut[uid]
@@ -4650,12 +4652,11 @@ class Engine(AbstractEngine, Executor):
 			return
 		self._call_every_subprocess("_reimport_methods")
 
-	def _get_worker_kf_payload(self, uid: int = -1) -> bytes:
+	def _get_worker_kf_payload(self, uid: int = sys.maxsize) -> bytes:
 		# I'm not using the uid at the moment, because this doesn't return anything
-		return zlib.compress(
+		return uid.to_bytes(8, "little") + zlib.compress(
 			self.pack(
 				(
-					uid,
 					"_upd_from_game_start",
 					(
 						None,
@@ -4703,17 +4704,17 @@ class Engine(AbstractEngine, Executor):
 		uids = []
 		for _ in range(len(self._worker_processes)):
 			uids.append(self._top_uid)
-			argbytes = zlib.compress(
-				self.pack((self._top_uid, method, args, kwargs))
-			)
+			uidbytes = self._top_uid.to_bytes(8, "little")
+			argbytes = zlib.compress(self.pack((method, args, kwargs)))
 			i = self._top_uid % len(self._worker_processes)
 			self._top_uid += 1
-			self._worker_inputs[i].send_bytes(argbytes)
+			self._worker_inputs[i].send_bytes(uidbytes + argbytes)
 		for uid in uids:
 			i = uid % len(self._worker_processes)
 			outbytes = self._worker_outputs[i].recv_bytes()
-			got_uid, retval = self.unpack(zlib.decompress(outbytes))
+			got_uid = int.from_bytes(outbytes[:8], "little")
 			assert got_uid == uid
+			retval = self.unpack(zlib.decompress(outbytes[8:]))
 			if isinstance(retval, Exception):
 				raise retval
 			ret.append(retval)
@@ -5612,7 +5613,7 @@ class Engine(AbstractEngine, Executor):
 				self._worker_inputs[i].send_bytes(argbytes)
 			else:
 				if kf_payload is None:
-					kf_payload = self._get_worker_kf_payload(-1)
+					kf_payload = self._get_worker_kf_payload()
 				self._worker_inputs[i].send_bytes(kf_payload)
 			self._worker_updated_btts[i] = self._btt()
 
@@ -5633,10 +5634,9 @@ class Engine(AbstractEngine, Executor):
 				branch_from, turn_from, tick_from, self.turn, self.tick
 			)
 			delt["eternal"] = eternal_delta
-			argbytes = zlib.compress(
+			argbytes = sys.maxsize.to_bytes(8, "little") + zlib.compress(
 				self.pack(
 					(
-						-1,
 						"_upd",
 						(
 							None,

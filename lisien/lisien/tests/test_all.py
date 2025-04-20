@@ -196,7 +196,7 @@ class AbstractBranchLineageTest(AbstractGraphTest):
 		)
 		self.engine.turn = self.engine._branch_start("trunk")[0]
 		self.engine.branch = "trunk"
-		g = self.engine.graph[gmn]
+		g = self.engine.character[gmn]
 		self.assertIn(0, g.node)
 		self.assertIn(1, g.node)
 		self.assertIn(0, g.edge)
@@ -282,7 +282,7 @@ class StorageTest(AllegedTest):
 			self.assertEqual(e[k], v)
 			del e[k]
 			self.assertNotIn(k, e)
-		self.engine.del_graph("testgraph")
+		self.engine.del_character("testgraph")
 
 	def test_store_dict(self):
 		for i, graphmaker in enumerate(self.graphmakers):
