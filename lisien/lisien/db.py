@@ -4894,7 +4894,7 @@ class NullQueryEngine(AbstractQueryEngine):
 		pass
 
 	def plans_dump(self) -> Iterator:
-		pass
+		return iter(())
 
 	def plans_insert(
 		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
