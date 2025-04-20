@@ -67,24 +67,6 @@ from .graph import DiGraph, Edge, Node
 from .typing import Key, Branch, Turn, Tick
 
 
-class KeyClass(Hashable):
-	"""Fake class for things lisien can use as keys
-
-	They have to be serializable using lisien's particular msgpack schema,
-	as well as hashable.
-
-	"""
-
-	def __new__(cls, that: Key) -> Key:
-		return that
-
-	def __instancecheck__(cls, instance) -> TypeGuard[Key]:
-		return isinstance(instance, (str, int, float)) or (
-			(isinstance(instance, tuple) or isinstance(instance, frozenset))
-			and all(isinstance(elem, cls) for elem in instance)
-		)
-
-
 class SignalDict(Signal, dict):
 	def __setitem__(self, __key, __value):
 		super().__setitem__(__key, __value)
