@@ -2916,6 +2916,10 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
+	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+		pass
+
+	@abstractmethod
 	def new_graph(
 		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
 	) -> None:
@@ -4592,6 +4596,26 @@ class NullQueryEngine(AbstractQueryEngine):
 			"_lisien_schema_version": 0,
 		}
 
+	def get_keyframe_extensions(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
+		return {}, {}, {}
+
+	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+		return iter(())
+
+	def new_graph(
+		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
+	) -> None:
+		pass
+
+	def get_all_keyframe_graphs(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> Iterator[
+		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
+	]:
+		return iter(())
+
 	def graphs_insert(
 		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
 	) -> None:
@@ -5500,6 +5524,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		unpack = self.unpack
 		for key in self.call("global_keys"):
 			yield unpack(key)
+
+	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+		for d in self.call("dump", "keyframes"):
+			yield d["branch"], d["turn"], d["tick"]
 
 	def new_graph(
 		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
@@ -7777,6 +7805,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		with self._holder.lock:
 			self._inq.put(stmt)
 			return self._outq.get()
+
+	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+		return self.call_one("keyframes_dump")
 
 	def new_graph(
 		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
