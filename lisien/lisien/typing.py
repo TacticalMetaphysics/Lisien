@@ -19,7 +19,7 @@ from typing import Any, Hashable, NewType, TypeGuard
 _Key = str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
 
 
-class Key(Hashable[_Key]):
+class Key(Hashable):
 	"""Fake class for things lisien can use as keys
 
 	They have to be serializable using lisien's particular msgpack schema,

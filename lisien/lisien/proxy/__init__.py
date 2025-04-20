@@ -65,7 +65,6 @@ from ..typing import DeltaDict, Key
 from ..util import (
 	AbstractCharacter,
 	AbstractEngine,
-	KeyClass,
 	MsgpackExtensionType,
 	TimeSignalDescriptor,
 	getatt,
@@ -3359,7 +3358,7 @@ class EngineProxy(AbstractEngine):
 		self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
 		self._character_rulebooks_cache = StructuredDefaultDict(
 			1,
-			KeyClass,
+			Key,
 			kwargs_munger=lambda inst, k: {
 				"engine": self,
 				"bookname": (inst.key, k),
@@ -3367,7 +3366,7 @@ class EngineProxy(AbstractEngine):
 		)
 		self._char_node_rulebooks_cache = StructuredDefaultDict(
 			1,
-			KeyClass,
+			Key,
 			kwargs_munger=lambda inst, k: {
 				"engine": self,
 				"bookname": (inst.key, k),
@@ -3375,7 +3374,7 @@ class EngineProxy(AbstractEngine):
 		)
 		self._char_port_rulebooks_cache = StructuredDefaultDict(
 			2,
-			KeyClass,
+			Key,
 			kwargs_munger=lambda inst, k: {
 				"engine": self,
 				"bookname": (inst.parent.key, inst.key, k),
