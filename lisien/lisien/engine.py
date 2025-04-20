@@ -6338,14 +6338,14 @@ class Engine(AbstractEngine, Executor):
 		self._graph_objs[name] = self.char_cls(self, name)
 
 	@world_locked
-	def del_graph(self, name: Key) -> None:
+	def del_character(self, name: Key) -> None:
 		"""Mark a graph as deleted
 
 		:arg name: name of an existing graph
 
 		"""
 		# make sure the graph exists before deleting
-		graph = self.graph[name]
+		graph = self.character[name]
 		for thing in list(graph.thing):
 			del graph.thing[thing]
 		for orig in list(graph.adj):
@@ -6361,8 +6361,6 @@ class Engine(AbstractEngine, Executor):
 		self._graph_cache.keycache.clear()
 		if hasattr(self, "_worker_processes"):
 			self._call_every_subprocess("_del_character", name)
-
-	del_character = del_graph
 
 	def _is_thing(self, character: Key, node: Key) -> bool:
 		return self._things_cache.contains_entity(
