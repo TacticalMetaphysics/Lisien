@@ -37,10 +37,10 @@ def db(tmp_path, execution, database):
 			if not graph.is_directed():
 				graph = nx.to_directed(graph)
 			assert set(graph.nodes.keys()) == set(
-				orm.graph[graph.name].nodes.keys()
+				orm.character[graph.name].nodes.keys()
 			), "{}'s nodes changed during instantiation".format(graph.name)
 			assert set(graph.edges) == set(
-				orm.graph[graph.name].edges.keys()
+				orm.character[graph.name].edges.keys()
 			), "{}'s edges changed during instantiation".format(graph.name)
 		yield orm
 
@@ -49,7 +49,7 @@ def test_basic_load(db):
 	for graph in testgraphs:
 		if not graph.is_directed():
 			graph = nx.to_directed(graph)
-		alleged = db.graph[graph.name]
+		alleged = db.character[graph.name]
 		assert set(graph.nodes.keys()) == set(alleged.nodes.keys()), (
 			"{}'s nodes are not the same after load".format(graph.name)
 		)
@@ -212,7 +212,7 @@ def test_keyframe_unload(tmp_path, execution, database):
 		assert ("g", (0, 0), (0, 1)) in orm._edges_cache.keyframe
 		assert 2 in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
 		assert 0 not in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
-		g = orm.graph["g"]
+		g = orm.character["g"]
 		if "trunk" in orm._nodes_cache.keyframe["g",]:
 			assert 0 not in orm._nodes_cache.keyframe["g",]["trunk"]
 		if (
@@ -236,7 +236,7 @@ def test_keyframe_unload(tmp_path, execution, database):
 			("g", (1, 1), (1, 2)) not in orm._edges_cache.keyframe
 			or "trunk" not in orm._edges_cache.keyframe["g", (1, 1), (1, 2)]
 		)
-		g = orm.graph["g"]
+		g = orm.character["g"]
 		assert (1, 2) not in g.nodes
 		orm.branch = "trunk"
 		assert (1, 2) in g.nodes
