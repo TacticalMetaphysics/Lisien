@@ -4431,8 +4431,9 @@ class NullQueryEngine(AbstractQueryEngine):
 
 	"""
 
-	def __init__(self):
-		self.globl = {
+	@cached_property
+	def globl(self) -> dict[Key, Any]:
+		return {
 			"branch": "trunk",
 			"turn": 0,
 			"tick": 0,
