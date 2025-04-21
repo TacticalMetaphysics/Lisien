@@ -3285,16 +3285,17 @@ class EngineProxy(AbstractEngine):
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
 		if worker_index is None:
+			self._worker = False
 			self.next_turn = NextTurnProxy(self)
 			self.method = FuncStoreProxy(self, "method")
 			self.action = FuncStoreProxy(self, "action")
 			self.prereq = FuncStoreProxy(self, "prereq")
 			self.trigger = FuncStoreProxy(self, "trigger")
 			self.function = FuncStoreProxy(self, "function")
-			self._worker = False
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
+			self._worker = True
 			if getattr(self, "_mutable_worker", False):
 
 				def next_turn():
@@ -3327,7 +3328,6 @@ class EngineProxy(AbstractEngine):
 				initial=function,
 			)
 			self.string = StringStore(self.eternal, prefix)
-			self._worker = True
 
 		self._node_stat_cache = StructuredDefaultDict(1, UnwrappingDict)
 		self._portal_stat_cache = StructuredDefaultDict(2, UnwrappingDict)
