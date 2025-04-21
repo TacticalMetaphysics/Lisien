@@ -175,8 +175,6 @@ def test_windows_intersection():
 
 @pytest.fixture
 def qryeng(request, tmp_path, execution):
-	if request.config.getoption("no_parallel") and execution == "parallel":
-		raise pytest.skip("Skipping parallel execution.")
 	with Engine(
 		tmp_path,
 		random_seed=69105,
