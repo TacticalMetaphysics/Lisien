@@ -11,7 +11,7 @@ def make_test_engine_kwargs(
 	kwargs = {
 		"random_seed": random_seed,
 		"enforce_end_of_time": enforce_end_of_time,
-		"prefix": path,
+		"prefix": None if database == "null" else path,
 	}
 	if database == "sqlite":
 		kwargs["connect_string"] = f"sqlite:///{path}/world.sqlite3"
