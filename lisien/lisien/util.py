@@ -51,7 +51,6 @@ from typing import (
 	Iterable,
 	KeysView,
 	Sequence,
-	TypeGuard,
 	Union,
 	Type,
 	MutableMapping,
