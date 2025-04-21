@@ -37,6 +37,14 @@ class Key(Hashable):
 		)
 
 
+Key.register(str)
+Key.register(int)
+Key.register(float)
+Key.register(None)
+Key.register(tuple[_Key, ...])
+Key.register(frozenset[_Key])
+
+
 Branch = NewType("Branch", str)
 Turn = NewType("Turn", int)
 Tick = NewType("Tick", int)
