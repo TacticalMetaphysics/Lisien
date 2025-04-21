@@ -85,40 +85,35 @@ def handle_initialized(request, tmp_path, database):
 	ret.close()
 
 
-def pytest_addoption(parser):
-	parser.addoption("--no-parallel", action="store_true", default=False)
-	parser.addoption("--no-sqlite", action="store_true", default=False)
-	parser.addoption("--no-parquetdb", action="store_true", default=False)
-
-
-@pytest.fixture(params=["proxy", "serial", "parallel"])
+@pytest.fixture(
+	params=[
+		"proxy",
+		"serial",
+		pytest.param("parallel", marks=pytest.mark.parallel),
+	]
+)
 def execution(request):
-	if request.config.getoption("no_parallel") and request.param == "parallel":
-		raise pytest.skip("Skipping parallel execution.")
 	return request.param
 
 
-@pytest.fixture(params=["null", "parquetdb", "sqlite"])
+@pytest.fixture(
+	params=[
+		"null",
+		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
+		pytest.param("sqlite", marks=pytest.mark.sqlite),
+	]
+)
 def database(request):
-	if request.config.getoption("no_sqlite") and request.param == "sqlite":
-		raise pytest.skip("Skipping SQLite.")
-	if (
-		request.config.getoption("no_parquetdb")
-		and request.param == "parquetdb"
-	):
-		raise pytest.skip("Skipping ParquetDB.")
 	return request.param
 
 
-@pytest.fixture(params=["parquetdb", "sqlite"])
+@pytest.fixture(
+	params=[
+		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
+		pytest.param("sqlite", marks=pytest.mark.sqlite),
+	]
+)
 def non_null_database(request):
-	if request.config.getoption("no_sqlite") and request.param == "sqlite":
-		raise pytest.skip("Skipping SQLite.")
-	if (
-		request.config.getoption("no_parquetdb")
-		and request.param == "parquetdb"
-	):
-		raise pytest.skip("Skipping ParquetDB.")
 	return request.param
 
 
@@ -158,10 +153,10 @@ def engy(tmp_path, execution, database):
 		yield eng
 
 
-@pytest.fixture(params=["serial", "parallel"])
+@pytest.fixture(
+	params=["serial", pytest.param("parallel", marks=pytest.mark.parallel)]
+)
 def proxyless_engine(tmp_path, request, database):
-	if request.config.getoption("no_parallel") and request.param == "parallel":
-		raise pytest.skip("Skipping parallel execution.")
 	with Engine(
 		tmp_path,
 		random_seed=69105,
@@ -176,8 +171,6 @@ def proxyless_engine(tmp_path, request, database):
 
 @pytest.fixture
 def sqleng(tmp_path, request, execution):
-	if request.config.getoption("no_parallel") and execution == "parallel":
-		raise pytest.skip("Skipping parallel execution.")
 	if execution == "proxy":
 		logq = SimpleQueue()
 		logger = WorkerLogger(logq, 0)
@@ -221,10 +214,9 @@ def serial_engine(tmp_path, database):
 		yield eng
 
 
+@pytest.mark.sqlite
 @pytest.fixture(scope="function")
 def college24_premade(tmp_path, request):
-	if request.config.getoption("no_sqlite"):
-		raise pytest.skip("Skipping SQLite.")
 	shutil.unpack_archive(
 		os.path.join(
 			os.path.abspath(os.path.dirname(__file__)),
