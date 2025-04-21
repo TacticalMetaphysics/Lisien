@@ -139,7 +139,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 		trigger=FunctionStore(None),
 		prereq=FunctionStore(None),
 		action=FunctionStore(None),
-		string=StringStore({"language": "eng"}, None),
+		string={},
 		workers=0,
 		connect_string=connect_str,
 	) as orm:

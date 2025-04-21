@@ -2358,16 +2358,20 @@ class Engine(AbstractEngine, Executor):
 	def _init_string(
 		self,
 		prefix: str | os.PathLike | None,
-		string: StringStore | None,
+		string: StringStore | dict | None,
 		clear: bool,
 	):
 		if string:
 			self.string = string
 		elif prefix is None:
 			self.string = StringStore(
-				self.eternal,
+				self,
 				None,
 				self.eternal.setdefault("language", "eng"),
+			)
+		elif isinstance(string, dict):
+			self.string = StringStore(
+				string, None, self.eternal.setdefault("language", "eng")
 			)
 		else:
 			string_prefix = os.path.join(prefix, "strings")
@@ -2376,7 +2380,7 @@ class Engine(AbstractEngine, Executor):
 			if not os.path.exists(string_prefix):
 				os.mkdir(string_prefix)
 			self.string = StringStore(
-				self.eternal,
+				self,
 				string_prefix,
 				self.eternal.setdefault("language", "eng"),
 			)
