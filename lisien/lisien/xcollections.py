@@ -104,7 +104,7 @@ class StringStore(MutableMapping, Signal):
 				self._languages[lang] = self._cache
 			self.eternal["language"] = lang
 			return
-		if hasattr(self, "_cache"):
+		if self._cache:
 			with open(
 				os.path.join(self._prefix, self.language + ".json"), "w"
 			) as outf:
