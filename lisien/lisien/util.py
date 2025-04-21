@@ -410,7 +410,7 @@ class AbstractEngine(ABC):
 	place_cls: type
 	portal_cls: type
 	char_cls: type
-	character: Mapping[Any, Type[char_cls]]
+	character: Mapping[Key, Type[char_cls]]
 	eternal: Mapping
 	universal: Mapping
 	_rando: Random
