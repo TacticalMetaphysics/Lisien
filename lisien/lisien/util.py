@@ -53,6 +53,7 @@ from typing import (
 	Sequence,
 	TypeGuard,
 	Union,
+	Type,
 )
 
 import msgpack
@@ -409,7 +410,7 @@ class AbstractEngine(ABC):
 	place_cls: type
 	portal_cls: type
 	char_cls: type
-	character: Mapping[Any, "char_cls"]
+	character: Mapping[Any, Type[char_cls]]
 	eternal: Mapping
 	universal: Mapping
 	_rando: Random
