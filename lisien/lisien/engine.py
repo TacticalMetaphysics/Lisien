@@ -1086,10 +1086,11 @@ class Engine(AbstractEngine, Executor):
 		loaded = self._loaded
 		if branch in loaded:
 			(early_turn, early_tick, late_turn, late_tick) = loaded[branch]
-			if turn > late_turn:
-				(late_turn, late_tick) = (turn, tick)
-			elif turn == late_turn and tick > late_tick:
-				late_tick = tick
+			if late_turn is not None:
+				if turn > late_turn:
+					(late_turn, late_tick) = (turn, tick)
+				elif turn == late_turn and tick > late_tick:
+					late_tick = tick
 			loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
 		else:
 			loaded[branch] = (turn, tick, turn, tick)
@@ -2486,7 +2487,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		self._branches_d[branch] = (parent, turn, tick, turn, tick)
 		self._turn_end[branch, turn] = self._turn_end_plan[branch, turn] = tick
-		self._loaded[branch] = (turn, tick, turn, tick)
+		self._loaded[branch] = (turn, tick, None, None)
 		self._upd_branch_parentage(parent, branch)
 		self.query.new_branch(branch, parent, turn, tick)
 
@@ -2506,12 +2507,7 @@ class Engine(AbstractEngine, Executor):
 				self._turn_end_plan[branch, turn] = tick
 		else:
 			self._turn_end_plan[branch, turn] = tick
-		if branch in self._loaded:
-			lfr, lft, ltr, ltt = self._loaded[branch]
-			if (turn, tick) > (ltr, ltt):
-				self._loaded[branch] = lfr, lft, turn, tick
-		else:
-			self._loaded[branch] = turn, tick, turn, tick
+		self._updload(branch, turn, tick)
 		if not self._planning:
 			self._branches_d[branch] = (
 				parent,
@@ -3963,16 +3959,65 @@ class Engine(AbstractEngine, Executor):
 			raise HistoricKeyError("Couldn't build sensible loading windows")
 		return windows
 
+	def _keyframe_after(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> Optional[Time]:
+		if branch not in self._keyframes_dict:
+			return None
+		kfdb = self._keyframes_dict[branch]
+		if turn in kfdb:
+			kfdbr = kfdb[turn]
+			if tick in kfdbr:
+				return branch, turn, tick
+			tick_iter = iter(kfdbr)
+			restick = next(tick_iter)
+			while restick < tick:
+				try:
+					restick = next(tick_iter)
+				except StopIteration:
+					return None
+			assert restick != tick, (
+				"The tick both is and is not in the keyframe dict?"
+			)
+			for t in tick_iter:
+				if t < restick:
+					restick = t
+			return branch, turn, restick
+		turn_iter = iter(kfdb)
+		resturn = next(turn_iter)
+		while resturn < turn:
+			try:
+				resturn = next(turn_iter)
+			except StopIteration:
+				return None
+		assert resturn != turn, (
+			"The turn both is and is not in the keyframe dict?"
+		)
+		for r in turn_iter:
+			if r < resturn:
+				resturn = r
+		return branch, resturn, min(kfdb[r])
+
 	def _updload(self, branch, turn, tick):
 		loaded = self._loaded
 		if branch not in loaded:
-			loaded[branch] = (turn, tick, turn, tick)
+			latekf = self._keyframe_after(branch, turn, tick)
+			if latekf is None or latekf == (branch, turn, tick):
+				loaded[branch] = (turn, tick, None, None)
+			else:
+				_, r, t = latekf
+				loaded[branch] = (turn, tick, r, t)
 			return
 		(early_turn, early_tick, late_turn, late_tick) = loaded[branch]
-		if turn < early_turn or (turn == early_turn and tick < early_tick):
-			(early_turn, early_tick) = (turn, tick)
-		if turn > late_turn or (turn == late_turn and tick > late_tick):
-			(late_turn, late_tick) = (turn, tick)
+		if None in (late_turn, late_tick):
+			assert late_turn is late_tick is None
+			if (turn, tick) < (early_turn, early_tick):
+				(early_turn, early_tick) = (turn, tick)
+		else:
+			if (turn, tick) < (early_turn, early_tick):
+				(early_turn, early_tick) = (turn, tick)
+			if (late_turn, late_tick) < (turn, tick):
+				(late_turn, late_tick) = (turn, tick)
 		loaded[branch] = (early_turn, early_tick, late_turn, late_tick)
 
 	@world_locked
@@ -4075,6 +4120,9 @@ class Engine(AbstractEngine, Executor):
 			if past_branch not in loaded:
 				continue  # nothing happened in this branch i guess
 			early_turn, early_tick, late_turn, late_tick = loaded[past_branch]
+			if None in (late_turn, late_tick):
+				assert late_turn is late_tick is None
+				late_turn, late_tick = self._branch_end(past_branch)
 			if past_branch in kfd:
 				for kfturn, kfticks in kfd[past_branch].items():
 					# this can't possibly perform very well.
@@ -4217,9 +4265,14 @@ class Engine(AbstractEngine, Executor):
 			return True
 		if tick is None:
 			(past_turn, _, future_turn, _) = loaded[branch]
+			if future_turn is None:
+				return past_turn <= turn
 			return past_turn <= turn <= future_turn
 		else:
 			early_turn, early_tick, late_turn, late_tick = loaded[branch]
+			if late_turn is None:
+				assert late_tick is None
+				return (early_turn, early_tick) <= (turn, tick)
 			return (
 				(early_turn, early_tick)
 				<= (turn, tick)
@@ -4323,6 +4376,7 @@ class Engine(AbstractEngine, Executor):
 			earliest_future_keyframe = (branch, *self._loaded[branch][:2])
 		if (
 			latest_past_keyframe
+			and None not in self._loaded[branch][2:]
 			and self._loaded[branch][2:] < latest_past_keyframe[1:]
 		):
 			latest_past_keyframe = (branch, *self._loaded[branch][2:])
@@ -4559,6 +4613,13 @@ class Engine(AbstractEngine, Executor):
 		self._graph_val_cache.load(graphvalrows)
 		self._node_val_cache.load(nodevalrows)
 		self._edge_val_cache.load(edgevalrows)
+		if earliest_future_keyframe is not None:
+			branch, late_turn, late_tick = earliest_future_keyframe
+			if branch not in self._loaded:
+				self.warning("Loaded nothing")
+				return
+			early_turn, early_tick, _, _ = self._loaded[branch]
+			self._loaded[branch] = early_turn, early_tick, late_turn, late_tick
 
 	def turn_end(self, branch: Branch = None, turn: Turn = None) -> int:
 		branch = branch or self._obranch
