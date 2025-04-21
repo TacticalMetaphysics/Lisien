@@ -4690,7 +4690,7 @@ class Engine(AbstractEngine, Executor):
 				self._worker_processes,
 			)
 		):
-			with lock:  # deadlock here.
+			with lock:
 				pipein.send_bytes(b"shutdown")
 				recvd = pipeout.recv_bytes()
 				assert recvd == b"done", (
