@@ -40,5 +40,8 @@ dependencies = [
 [tool.pytest.ini_options]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-	"big: marks tests as too big to diagnose specific bugs with"
+	"big: marks tests as too big to diagnose specific bugs with",
+	"sqlite: marks tests that exercise the SQLite database backend",
+	"parquetdb: marks tests that exercise the ParquetDB database backend",
+	"parallel: marks tests that use the process pool"
 ]
