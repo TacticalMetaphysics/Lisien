@@ -54,6 +54,7 @@ from typing import (
 	TypeGuard,
 	Union,
 	Type,
+	MutableMapping,
 )
 
 import msgpack
@@ -411,8 +412,8 @@ class AbstractEngine(ABC):
 	portal_cls: type
 	char_cls: type
 	character: Mapping[Key, Type[char_cls]]
-	eternal: Mapping
-	universal: Mapping
+	eternal: MutableMapping[Key, Any]
+	universal: MutableMapping[Key, Any]
 	_rando: Random
 	_branches_d: dict[Branch | None, tuple[Branch, Turn, Tick, Turn, Tick]]
 
