@@ -414,7 +414,7 @@ class AbstractEngine(ABC):
 	eternal: Mapping
 	universal: Mapping
 	_rando: Random
-	_branches_d: dict[str | None, tuple[str, int, int, int, int]]
+	_branches_d: dict[Branch | None, tuple[Branch, Turn, Tick, Turn, Tick]]
 
 	@cached_property
 	def pack(self):
