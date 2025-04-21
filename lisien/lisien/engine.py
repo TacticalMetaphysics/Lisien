@@ -1205,7 +1205,7 @@ class Engine(AbstractEngine, Executor):
 		node_objs, node_exists, make_node = self._get_node_stuff
 		if type(graph) is str:
 			graphn = graph
-			graph = self.graph[graphn]
+			graph = self.character[graphn]
 		else:
 			graphn = graph.name
 		key = (graphn, node)
@@ -1225,7 +1225,7 @@ class Engine(AbstractEngine, Executor):
 		edge_objs, edge_exists, make_edge = self._get_edge_stuff
 		if type(graph) is str:
 			graphn = graph
-			graph = self.graph[graphn]
+			graph = self.character[graphn]
 		else:
 			graphn = graph.name
 		key = (graphn, orig, dest, idx)
