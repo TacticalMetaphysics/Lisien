@@ -15,9 +15,9 @@
 
 
 def elide():
-	from elide.app import ELiDEApp
+	from elide.app import ElideApp
 
-	app = ELiDEApp()
+	app = ElideApp()
 	app.run()
 
 

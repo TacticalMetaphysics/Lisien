@@ -9,7 +9,7 @@ from kivy.config import ConfigParser
 from kivy.input.motionevent import MotionEvent
 from kivy.tests.common import GraphicUnitTest
 
-from elide.app import ELiDEApp
+from elide.app import ElideApp
 
 
 def all_spots_placed(board, char=None):
@@ -143,7 +143,7 @@ class ELiDEAppTest(GraphicUnitTest):
 		super(ELiDEAppTest, self).setUp()
 		self.old_argv = sys.argv.copy()
 		sys.argv = ["python", "-m", "elide", self.prefix]
-		self.app = ELiDEApp()
+		self.app = ElideApp()
 		self.app.config = ConfigParser(None)
 		self.app.build_config(self.app.config)
 

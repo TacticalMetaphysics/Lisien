@@ -65,7 +65,7 @@ def trigger(func):
 	return triggered()(func)
 
 
-class ELiDEApp(App):
+class ElideApp(App):
 	"""Extensible lisien Development Environment."""
 
 	title = "elide"
