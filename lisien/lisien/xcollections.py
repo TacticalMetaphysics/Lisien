@@ -37,7 +37,7 @@ from astunparse import Unparser
 from blinker import Signal
 
 from .graph import GraphsMapping
-from .util import dedent_source, getatt
+from .util import AbstractEngine, dedent_source, getatt
 
 
 class TabUnparser(Unparser):
@@ -71,7 +71,7 @@ class AbstractLanguageDescriptor(Signal, ABC):
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
 	def _get_language(self, inst):
-		return inst.eternal["language"]
+		return inst.engine.eternal["language"]
 
 	def _set_language(self, inst, val):
 		inst._load_language(val)
@@ -81,28 +81,45 @@ class StringStore(MutableMapping, Signal):
 	language = LanguageDescriptor()
 
 	def __init__(
-		self, eternal: MutableMapping, prefix: str | None, lang="eng"
+		self,
+		engine_or_string_dict: AbstractEngine | dict,
+		prefix: str | None,
+		lang="eng",
 	):
-		"""Store the engine, the name of the database table to use, and the
-		language code.
-
-		"""
 		super().__init__()
-		self.eternal = eternal
-		self._cache = {}
-		self._prefix = prefix
-		self._load_language(lang)
+		if isinstance(engine_or_string_dict, dict):
+			self._prefix = None
+			if lang in engine_or_string_dict and isinstance(
+				engine_or_string_dict[lang], dict
+			):
+				self._languages = engine_or_string_dict
+				self._cache = engine_or_string_dict[lang]
+			else:
+				self._cache = engine_or_string_dict
+				self._languages = {lang: engine_or_string_dict}
+		else:
+			self.engine = engine_or_string_dict
+			self._cache = {}
+			self._prefix = prefix
+			self._load_language(lang)
 
 	def _load_language(self, lang):
 		if self._prefix is None:
 			if hasattr(self, "_languages"):
-				self._languages[self.eternal["language"]] = self._cache
+				self._languages[self.engine.eternal["language"]] = self._cache
 				self._cache = self._languages.setdefault(lang, {})
 			else:
-				self._languages = {self.eternal["language"]: self._cache}
+				self._languages = {
+					self.engine.eternal["language"]: self._cache
+				}
 				self._cache = {}
 				self._languages[lang] = self._cache
-			self.eternal["language"] = lang
+			if (
+				hasattr(self, "engine")
+				and not getattr(self.engine, "_worker", False)
+				and self.engine.eternal["language"] != lang
+			):
+				self.engine.eternal["language"] = lang
 			return
 		try:
 			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
@@ -116,12 +133,17 @@ class StringStore(MutableMapping, Signal):
 				) as outf:
 					json.dump(self._cache, outf)
 			if hasattr(self, "languages"):
-				self._languages[self.eternal["language"]] = self._cache
+				self._languages[self.engine.eternal["language"]] = self._cache
 			else:
-				self._languages = {self.eternal["language"]: self._cache}
+				self._languages = {
+					self.engine.eternal["language"]: self._cache
+				}
 		self._cache = new or {}
-		if lang != self.eternal["language"]:
-			self.eternal["language"] = lang
+		if (
+			not getattr(self.engine, "_worker", False)
+			and lang != self.engine.eternal["language"]
+		):
+			self.engine.eternal["language"] = lang
 
 	def __iter__(self):
 		return iter(self._cache)
@@ -147,7 +169,7 @@ class StringStore(MutableMapping, Signal):
 
 	def lang_items(self, lang=None):
 		"""Yield pairs of (id, string) for the given language."""
-		if lang is not None and self.eternal["language"] != lang:
+		if lang is not None and self.engine.eternal["language"] != lang:
 			self._load_language(lang)
 		yield from self._cache.items()
 
@@ -157,7 +179,9 @@ class StringStore(MutableMapping, Signal):
 		if not os.path.exists(self._prefix):
 			os.mkdir(self._prefix)
 		with open(
-			os.path.join(self._prefix, self.eternal["language"] + ".json"),
+			os.path.join(
+				self._prefix, self.engine.eternal["language"] + ".json"
+			),
 			"w",
 		) as outf:
 			json.dump(self._cache, outf, indent=4, sort_keys=True)

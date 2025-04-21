@@ -3327,7 +3327,7 @@ class EngineProxy(AbstractEngine):
 				os.path.join(prefix, "function.py") if prefix else None,
 				initial=function,
 			)
-			self.string = StringStore(self.eternal, prefix)
+			self.string = StringStore(self, prefix)
 
 		self._node_stat_cache = StructuredDefaultDict(1, UnwrappingDict)
 		self._portal_stat_cache = StructuredDefaultDict(2, UnwrappingDict)
