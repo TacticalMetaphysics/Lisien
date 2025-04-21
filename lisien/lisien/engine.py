@@ -2268,11 +2268,16 @@ class Engine(AbstractEngine, Executor):
 				os.mkdir(prefix)
 			if not os.path.isdir(prefix):
 				raise FileExistsError("Need a directory")
-			self.query = ParquetQueryEngine(
-				os.path.join(prefix, "world"),
-				self.pack,
-				self.unpack,
-			)
+			if connect_string is None:
+				self.query = ParquetQueryEngine(
+					os.path.join(prefix, "world"),
+					self.pack,
+					self.unpack,
+				)
+			else:
+				self.query = SQLAlchemyQueryEngine(
+					connect_string, connect_args or {}, self.pack, self.unpack
+				)
 			if clear:
 				self.query.truncate_all()
 
