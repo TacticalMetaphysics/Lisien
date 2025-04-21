@@ -410,6 +410,7 @@ class AbstractEngine(ABC):
 	portal_cls: type
 	char_cls: type
 	character: Mapping[Any, "char_cls"]
+	eternal: Mapping
 	universal: Mapping
 	_rando: Random
 	_branches_d: dict[str | None, tuple[str, int, int, int, int]]
