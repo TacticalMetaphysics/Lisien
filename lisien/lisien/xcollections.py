@@ -114,7 +114,8 @@ class StringStore(MutableMapping, Signal):
 				self._cache = json.load(inf)
 		except FileNotFoundError:
 			self._cache = {}
-		self.eternal["language"] = lang
+		if lang != self.eternal["language"]:
+			self.eternal["language"] = lang
 
 	def __iter__(self):
 		return iter(self._cache)
