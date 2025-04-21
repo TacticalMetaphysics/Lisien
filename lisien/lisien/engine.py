@@ -2341,15 +2341,14 @@ class Engine(AbstractEngine, Executor):
 					assert now in self._keyframes_loaded
 					kf = self._universal_cache.get_keyframe(*now, copy=False)
 					kf["rando_state"] = rando_state
-				else:
-					self._universal_cache.store(
-						"rando_state",
-						self.branch,
-						0,
-						0,
-						rando_state,
-						loading=True,
-					)
+				self._universal_cache.store(
+					"rando_state",
+					self.branch,
+					0,
+					0,
+					rando_state,
+					loading=True,
+				)
 				self.query.universal_set(
 					"rando_state", self.branch, 0, 0, rando_state
 				)
