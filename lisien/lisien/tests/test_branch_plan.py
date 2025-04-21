@@ -170,8 +170,8 @@ def test_save_load_plan(tmp_path, non_null_database):
 		string=StringStore({"language": "eng"}, None),
 		connect_string=connect_str,
 	) as orm:
-		g1 = orm.graph[1]
-		g2 = orm.graph[2]
+		g1 = orm.character[1]
+		g2 = orm.character[2]
 		assert 2 not in g1.node  # because we're before the plan
 		# but if we go to after the plan...
 		orm.tick = orm.turn_end_plan()
@@ -203,8 +203,8 @@ def test_save_load_plan(tmp_path, non_null_database):
 		connect_string=connect_str,
 	) as orm:
 		orm.turn = 0
-		g1 = orm.graph[1]
-		g2 = orm.graph[2]
+		g1 = orm.character[1]
+		g2 = orm.character[2]
 		assert 1 in g2.node
 		assert 2 in g2.node
 		assert 2 not in g1.edge[1]
