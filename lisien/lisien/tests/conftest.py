@@ -222,7 +222,9 @@ def serial_engine(tmp_path, database):
 
 
 @pytest.fixture(scope="function")
-def college24_premade(tmp_path):
+def college24_premade(tmp_path, request):
+	if request.config.getoption("no_sqlite"):
+		raise pytest.skip("Skipping SQLite.")
 	shutil.unpack_archive(
 		os.path.join(
 			os.path.abspath(os.path.dirname(__file__)),
