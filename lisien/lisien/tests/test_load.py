@@ -163,9 +163,9 @@ def test_keyframe_load(db):
 				)
 
 
-def test_keyframe_unload(tmp_path, execution, database):
+def test_keyframe_unload(tmp_path, execution, non_null_database):
 	# TODO: test edge cases involving tick-precise unloads
-	eng = partial(make_test_engine, tmp_path, execution, database)
+	eng = partial(make_test_engine, tmp_path, execution, non_null_database)
 	with eng() as orm:
 		g = orm.new_character("g", nx.grid_2d_graph(3, 3))
 		orm.next_turn()
