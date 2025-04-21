@@ -274,14 +274,7 @@ class NextTurn(Signal):
 		for store in engine.stores:
 			if getattr(store, "_need_save", None):
 				store.save()
-			elif hasattr(store, "reimport"):
-				try:
-					store.reimport()
-				except FileNotFoundError:
-					# Maybe the game uses no prereqs or something.
-					pass
 		if hasattr(engine, "_worker_processes"):
-			engine._call_every_subprocess("_reimport_all")
 			engine._update_all_worker_process_states()
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._get_last_completed_turn(start_branch)
