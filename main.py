@@ -13,8 +13,8 @@ def get_application_config(*args):
 if __name__ == "__main__":
 	freeze_support()
 
-	from elide.app import ELiDEApp
+	from elide.app import ElideApp
 
-	app = ELiDEApp()
+	app = ElideApp()
 	app.get_application_config = get_application_config
 	app.run()

@@ -3,7 +3,7 @@ from math import sqrt
 import networkx as nx
 from kivy.tests.common import GraphicUnitTest, UnitTestTouch
 
-from elide.app import ELiDEApp
+from elide.app import ElideApp
 from elide.graph.arrow import ArrowPlane
 from elide.graph.board import GraphBoard, GraphBoardView
 from lisien import Engine
@@ -29,7 +29,7 @@ class GraphBoardTest(GraphicUnitTest):
 		spots_tall = 3
 		graph = nx.grid_2d_graph(spots_wide, spots_tall)
 		char = CharacterFacade(graph)
-		app = ELiDEApp()
+		app = ElideApp()
 		spotlayout = TextureStackPlane()
 		arrowlayout = ArrowPlane()
 		board = GraphBoard(
@@ -79,7 +79,7 @@ class GraphBoardTest(GraphicUnitTest):
 		char.add_place(0, _x=0.1, _y=0.1)
 		char.add_place(1, _x=0.2, _y=0.1)
 		char.add_portal(0, 1)
-		app = ELiDEApp()
+		app = ElideApp()
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		self.Window.add_widget(boardview)
@@ -115,7 +115,7 @@ class GraphBoardTest(GraphicUnitTest):
 	def test_select_spot(self):
 		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
-		app = ELiDEApp()
+		app = ElideApp()
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		self.Window.add_widget(boardview)
@@ -130,7 +130,7 @@ class GraphBoardTest(GraphicUnitTest):
 		char = CharacterFacade()
 		char.add_place(0, _x=0.1, _y=0.1)
 		char.add_thing("that", location=0)
-		app = ELiDEApp()
+		app = ElideApp()
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		self.Window.add_widget(boardview)
@@ -145,7 +145,7 @@ class GraphBoardTest(GraphicUnitTest):
 		char.add_place(0, _x=0.1, _y=0.1)
 		char.add_place(1, _x=0.2, _y=0.1)
 		char.add_thing("that", location=0)
-		app = ELiDEApp()
+		app = ElideApp()
 		board = GraphBoard(app=app, character=char)
 		boardview = GraphBoardView(board=board)
 		self.Window.add_widget(boardview)
@@ -174,7 +174,7 @@ class GraphBoardTest(GraphicUnitTest):
 
 	def test_spot_and_pawn_from_dummy(self):
 		char = CharacterFacade()
-		app = ELiDEApp()
+		app = ElideApp()
 		board = GraphBoard(app=app, character=char)
 		board._connect_proxy_objects()
 		view = GraphBoardView(board=board)
@@ -236,7 +236,7 @@ class GraphBoardTest(GraphicUnitTest):
 
 	def test_pawn_add_new_place(self):
 		char = CharacterFacade()
-		app = ELiDEApp()
+		app = ElideApp()
 		board = GraphBoard(app=app, character=char)
 		board._connect_proxy_objects()
 		boardview = GraphBoardView(board=board)
