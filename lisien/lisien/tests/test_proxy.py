@@ -24,6 +24,7 @@ import lisien.examples.polygons as polygons
 import lisien.tests.test_all
 from lisien.engine import Engine
 from lisien.proxy import EngineProcessManager
+from lisien.proxy.handle import EngineHandle
 from lisien.tests import data
 
 
@@ -331,3 +332,13 @@ def test_change_triggers(polys):
 		assert list(
 			eng.character["triangle"].unit.rule["relocate"].triggers
 		) == [eng.trigger.dissimilar_neighbors]
+
+
+def test_change_string(tmp_path):
+	handle = EngineHandle(tmp_path, workers=0)
+	handle.set_language("eng")
+	handle.set_string("a string", "its value")
+	assert handle.get_string_lang_items("eng") == [("a string", "its value")]
+	handle.close()
+	with Engine(tmp_path, workers=0) as eng:
+		assert eng.string["a string"] == "its value"
