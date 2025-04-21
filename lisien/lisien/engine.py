@@ -2173,7 +2173,8 @@ class Engine(AbstractEngine, Executor):
 		enforce_end_of_time: bool = True,
 		workers: int = None,
 	):
-		workers = workers or os.cpu_count() or 0
+		if workers is None:
+			workers = os.cpu_count()
 		self._planning = False
 		self._forward = False
 		self._no_kc = False
