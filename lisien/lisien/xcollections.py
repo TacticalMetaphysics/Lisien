@@ -94,8 +94,6 @@ class StringStore(MutableMapping, Signal):
 		self._load_language(lang)
 
 	def _load_language(self, lang):
-		if self.eternal["language"] == lang:
-			return
 		if self._prefix is None:
 			if hasattr(self, "_languages"):
 				self._languages[self.eternal["language"]] = self._cache
