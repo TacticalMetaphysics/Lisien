@@ -32,7 +32,6 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from inspect import getsource
 from io import StringIO
-from types import MethodType
 
 from astunparse import Unparser
 from blinker import Signal
@@ -250,6 +249,10 @@ class FunctionStore(Signal):
 		self.send(self, attr=k, val=func)
 
 	def __call__(self, v):
+		if isinstance(self._module, str):
+			v.__module__ = self._module
+		elif hasattr(self._module, "__name__"):
+			v.__module__ = self._module.__name__
 		setattr(self, v.__name__, v)
 		return v
 
