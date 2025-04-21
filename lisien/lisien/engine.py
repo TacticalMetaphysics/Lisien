@@ -4320,12 +4320,12 @@ class Engine(AbstractEngine, Executor):
 			earliest_future_keyframe
 			and earliest_future_keyframe[1:] < self._loaded[branch][:2]
 		):
-			earliest_future_keyframe = (branch, *self._loaded[branch][2:])
+			earliest_future_keyframe = (branch, *self._loaded[branch][:2])
 		if (
 			latest_past_keyframe
 			and self._loaded[branch][2:] < latest_past_keyframe[1:]
 		):
-			latest_past_keyframe = (branch, *self._loaded[branch][:2])
+			latest_past_keyframe = (branch, *self._loaded[branch][2:])
 		return latest_past_keyframe, earliest_future_keyframe
 
 	@world_locked
