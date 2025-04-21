@@ -104,16 +104,22 @@ class StringStore(MutableMapping, Signal):
 				self._languages[lang] = self._cache
 			self.eternal["language"] = lang
 			return
-		if self._cache:
-			with open(
-				os.path.join(self._prefix, self.language + ".json"), "w"
-			) as outf:
-				json.dump(self._cache, outf)
 		try:
 			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
-				self._cache = json.load(inf)
+				new = json.load(inf)
 		except FileNotFoundError:
-			self._cache = {}
+			new = None
+		if self._cache:
+			if new is None:
+				with open(
+					os.path.join(self._prefix, self.language + ".json"), "w"
+				) as outf:
+					json.dump(self._cache, outf)
+			if hasattr(self, "languages"):
+				self._languages[self.eternal["language"]] = self._cache
+			else:
+				self._languages = {self.eternal["language"]: self._cache}
+		self._cache = new or {}
 		if lang != self.eternal["language"]:
 			self.eternal["language"] = lang
 
