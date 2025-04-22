@@ -30,6 +30,7 @@ from abc import ABC, abstractmethod
 from ast import Expr, Module, parse
 from collections.abc import MutableMapping
 from copy import deepcopy
+from dataclasses import dataclass
 from inspect import getsource
 from io import StringIO
 
@@ -71,10 +72,33 @@ class AbstractLanguageDescriptor(Signal, ABC):
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
 	def _get_language(self, inst):
-		return inst.engine.eternal["language"]
+		return inst._current_language
 
-	def _set_language(self, inst, val):
-		inst._load_language(val)
+	def _set_language(self, inst, lang):
+		if lang != inst._current_language:
+			inst._switch_language(lang)
+			if (
+				not getattr(inst.engine, "_worker", False)
+				and inst.engine.eternal["language"] != lang
+			):
+				inst.engine.eternal["language"] = lang
+			inst._current_language = lang
+
+
+class TamperEvidentDict(dict):
+	tampered: bool
+
+	def __init__(self, data=()):
+		self.tampered = False
+		super().__init__(data)
+
+	def __setitem__(self, key, value):
+		self.tampered = True
+		super().__setitem__(key, value)
+
+	def __delitem__(self, key):
+		self.tampered = True
+		super().__delitem__(key)
 
 
 class StringStore(MutableMapping, Signal):
@@ -93,70 +117,52 @@ class StringStore(MutableMapping, Signal):
 				engine_or_string_dict[lang], dict
 			):
 				self._languages = engine_or_string_dict
-				self._cache = engine_or_string_dict[lang]
 			else:
-				self._cache = engine_or_string_dict
 				self._languages = {lang: engine_or_string_dict}
 		else:
 			self.engine = engine_or_string_dict
-			self._cache = {}
+			self._languages = {lang: TamperEvidentDict()}
 			self._prefix = prefix
-			self._load_language(lang)
+			self._current_language = lang
+			self._switch_language(lang)
 
-	def _load_language(self, lang):
+	def _switch_language(self, lang):
+		"""Write the current language to disk, and load the new one if available"""
 		if self._prefix is None:
-			if hasattr(self, "_languages"):
-				self._languages[self.engine.eternal["language"]] = self._cache
-				self._cache = self._languages.setdefault(lang, {})
-			else:
-				self._languages = {
-					self.engine.eternal["language"]: self._cache
-				}
-				self._cache = {}
-				self._languages[lang] = self._cache
-			if (
-				hasattr(self, "engine")
-				and not getattr(self.engine, "_worker", False)
-				and self.engine.eternal["language"] != lang
-			):
-				self.engine.eternal["language"] = lang
+			if lang not in self._languages:
+				self._languages[lang] = {}
 			return
 		try:
 			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
-				new = json.load(inf)
+				self._languages[lang] = TamperEvidentDict(json.load(inf))
 		except FileNotFoundError:
-			new = None
-		if self._cache:
-			if new is None:
-				with open(
-					os.path.join(self._prefix, self.language + ".json"), "w"
-				) as outf:
-					json.dump(self._cache, outf)
-			if hasattr(self, "languages"):
-				self._languages[self.engine.eternal["language"]] = self._cache
-			else:
-				self._languages = {
-					self.engine.eternal["language"]: self._cache
-				}
-		self._cache = new or {}
-		if (
-			not getattr(self.engine, "_worker", False)
-			and lang != self.engine.eternal["language"]
-		):
-			self.engine.eternal["language"] = lang
+			self._languages[lang] = TamperEvidentDict()
+		assert self._current_language in self._languages
+		if getattr(self._languages[self._current_language], "tampered", False):
+			with open(
+				os.path.join(self._prefix, self._current_language + ".json"),
+				"w",
+			) as outf:
+				json.dump(
+					self._languages[self._current_language],
+					outf,
+					indent=4,
+					sort_keys=True,
+				)
+			self._languages[self._current_language].tampered = False
 
 	def __iter__(self):
-		return iter(self._cache)
+		return iter(self._languages[self._current_language])
 
 	def __len__(self):
-		return len(self._cache)
+		return len(self._languages[self._current_language])
 
 	def __getitem__(self, k):
-		return self._cache[k]
+		return self._languages[self._current_language][k]
 
 	def __setitem__(self, k, v):
 		"""Set the value of a string for the current language."""
-		self._cache[k] = v
+		self._languages[self._current_language][k] = v
 		self.send(self, key=k, val=v)
 
 	def __delitem__(self, k):
@@ -164,27 +170,47 @@ class StringStore(MutableMapping, Signal):
 		cache.
 
 		"""
-		del self._cache[k]
+		del self._languages[self._current_language][k]
 		self.send(self, key=k, val=None)
 
 	def lang_items(self, lang=None):
 		"""Yield pairs of (id, string) for the given language."""
-		if lang is not None and self.engine.eternal["language"] != lang:
-			self._load_language(lang)
-		yield from self._cache.items()
+		if (
+			self._prefix is not None
+			and lang is not None
+			and self._current_language != lang
+		):
+			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
+				self._languages[lang] = TamperEvidentDict(json.load(inf))
+		yield from self._languages[lang or self._current_language].items()
 
 	def save(self, reimport=False):
 		if self._prefix is None:
 			return
 		if not os.path.exists(self._prefix):
 			os.mkdir(self._prefix)
-		with open(
-			os.path.join(
-				self._prefix, self.engine.eternal["language"] + ".json"
-			),
-			"w",
-		) as outf:
-			json.dump(self._cache, outf, indent=4, sort_keys=True)
+		for lang, d in self._languages.items():
+			if not d.tampered:
+				continue
+			with open(
+				os.path.join(self._prefix, lang + ".json"),
+				"w",
+			) as outf:
+				json.dump(
+					self._languages[lang],
+					outf,
+					indent=4,
+					sort_keys=True,
+				)
+			d.tampered = False
+		if reimport:
+			with open(
+				os.path.join(self._prefix, self._current_language + ".json"),
+				"r",
+			) as inf:
+				self._languages[self._current_language] = TamperEvidentDict(
+					json.load(inf)
+				)
 
 
 class FunctionStore(Signal):
