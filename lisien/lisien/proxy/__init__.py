@@ -4141,7 +4141,6 @@ def worker_subprocess(
 			return 0
 		uid = int.from_bytes(inst[:8], "little")
 		(method, args, kwargs) = unpack(decompress(inst[8:]))
-		logq.put(f"{uid}. {method}")
 		if isinstance(method, str):
 			method = getattr(eng, method)
 		try:
