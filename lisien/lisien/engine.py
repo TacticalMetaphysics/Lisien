@@ -4617,13 +4617,6 @@ class Engine(AbstractEngine, Executor):
 		self._graph_val_cache.load(graphvalrows)
 		self._node_val_cache.load(nodevalrows)
 		self._edge_val_cache.load(edgevalrows)
-		if earliest_future_keyframe is not None:
-			branch, late_turn, late_tick = earliest_future_keyframe
-			if branch not in self._loaded:
-				self.warning("Loaded nothing")
-				return
-			early_turn, early_tick, _, _ = self._loaded[branch]
-			self._loaded[branch] = early_turn, early_tick, late_turn, late_tick
 
 	def turn_end(self, branch: Branch = None, turn: Turn = None) -> int:
 		branch = branch or self._obranch
