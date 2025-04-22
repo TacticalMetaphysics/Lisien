@@ -16,21 +16,26 @@
 from typing import Any, Hashable, NewType, TypeGuard
 
 
-_Key = str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
+Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 
 
+# noinspection PyRedeclaration
 class Key(Hashable):
 	"""Fake class for things lisien can use as keys
 
 	They have to be serializable using lisien's particular msgpack schema,
 	as well as hashable.
 
+	Yes, this overwrites the type hint above it in the source code. This lets
+	us use Key as both a type hint and a regular class, for ``isinstance(...)``
+	and so on.
+
 	"""
 
-	def __new__(cls, that: _Key) -> _Key:
+	def __new__(cls, that: Key) -> Key:
 		return that
 
-	def __instancecheck__(cls, instance) -> TypeGuard[_Key]:
+	def __instancecheck__(cls, instance) -> TypeGuard[Key]:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
