@@ -711,7 +711,9 @@ class Engine(AbstractEngine, Executor):
 		return (self._nbtt, self.query.exist_edge, self._edges_cache.store)
 
 	@cached_property
-	def _loaded(self) -> dict[Branch, tuple[Turn, Tick, Turn, Tick]]:
+	def _loaded(
+		self,
+	) -> dict[Branch, tuple[Turn, Tick, Optional[Turn], Optional[Tick]]]:
 		"""Slices of time that are currently in memory
 
 		{branch: (turn_from, tick_from, turn_to, tick_to)}
