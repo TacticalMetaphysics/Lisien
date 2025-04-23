@@ -113,6 +113,7 @@ class StringStore(MutableMapping, Signal):
 		super().__init__()
 		if isinstance(engine_or_string_dict, dict):
 			self._prefix = None
+			self._current_language = lang
 			if lang in engine_or_string_dict and isinstance(
 				engine_or_string_dict[lang], dict
 			):
