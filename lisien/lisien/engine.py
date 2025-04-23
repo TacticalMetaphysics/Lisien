@@ -396,7 +396,9 @@ class Engine(AbstractEngine, Executor):
 	"""Lisien, the Life Simulator Engine.
 
 	:param prefix: directory containing the simulation and its code;
-		defaults to the working directory.
+		defaults to the working directory. If ``None``, Lisien won't save
+		any rules code to disk, and won't save world data unless you supply
+		:param connect_string:.
 	:param string: module storing strings to be used in the game; if absent,
 		we'll use a :class:`lisien.xcollections.StringStore` to keep them in a
 		JSON file in the ``prefix``.
