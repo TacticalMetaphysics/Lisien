@@ -243,8 +243,9 @@ def test_get_slow_delta_overload(mocked_keyframe, run):
 	assert slowd == data.SLOW_DELTA
 
 
-@pytest.mark.parametrize("slow", [True, False])
-def test_apply_delta(tmp_path, slow):
+@pytest.mark.parametrize("algorithm", ["slow", "fast"])
+def test_apply_delta(tmp_path, algorithm):
+	slow = algorithm == "slow"
 	with Engine(tmp_path, workers=0) as eng:
 		initial_state = nx.DiGraph(
 			{
