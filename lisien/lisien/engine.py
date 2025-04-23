@@ -4690,10 +4690,8 @@ class Engine(AbstractEngine, Executor):
 			with lock:
 				pipein.send_bytes(b"shutdown")
 				recvd = pipeout.recv_bytes()
-				assert recvd == b"done", (
-					f"expected 'done', got {self.unpack(zlib.decompress(recvd))}"
-				)
-				proc.join()
+				assert recvd == b"done"
+				proc.join(timeout=5)
 				proc.close()
 				pipein.close()
 				pipeout.close()
