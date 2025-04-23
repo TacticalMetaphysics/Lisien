@@ -3970,37 +3970,14 @@ class Engine(AbstractEngine, Executor):
 			return None
 		kfdb = self._keyframes_dict[branch]
 		if turn in kfdb:
-			kfdbr = kfdb[turn]
-			if tick in kfdbr:
-				return branch, turn, tick
-			tick_iter = iter(kfdbr)
-			restick = next(tick_iter)
-			while restick < tick:
-				try:
-					restick = next(tick_iter)
-				except StopIteration:
-					return None
-			assert restick != tick, (
-				"The tick both is and is not in the keyframe dict?"
-			)
-			for t in tick_iter:
-				if t < restick:
-					restick = t
-			return branch, turn, restick
-		turn_iter = iter(kfdb)
-		resturn = next(turn_iter)
-		while resturn < turn:
-			try:
-				resturn = next(turn_iter)
-			except StopIteration:
-				return None
-		assert resturn != turn, (
-			"The turn both is and is not in the keyframe dict?"
-		)
-		for r in turn_iter:
-			if r < resturn:
-				resturn = r
-		return branch, resturn, min(kfdb[r])
+			ticks: set[Tick] = set(filter(partial(lt, tick), kfdb[turn]))
+			if ticks:
+				return branch, turn, min(ticks)
+		turns: set[Turn] = set(filter(partial(lt, turn), kfdb.keys()))
+		if turns:
+			r = min(turns)
+			return branch, r, min(kfdb[r])
+		return None
 
 	def _updload(self, branch, turn, tick):
 		loaded = self._loaded
