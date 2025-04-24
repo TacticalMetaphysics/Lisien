@@ -21,7 +21,6 @@ import pytest
 
 from lisien import Engine
 from lisien.proxy.handle import EngineHandle
-from lisien.xcollections import FunctionStore, StringStore
 
 from ..examples import college, kobold, sickle
 from ..proxy import EngineProxy, WorkerLogger
