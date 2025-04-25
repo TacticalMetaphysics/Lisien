@@ -21,6 +21,7 @@ flow of time.
 from __future__ import annotations
 
 import os
+import pickle
 import shutil
 import sys
 import zlib
@@ -32,15 +33,14 @@ from contextlib import ContextDecorator, contextmanager
 from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
 from multiprocessing import Pipe, Process, Queue
-from operator import itemgetter
+from operator import itemgetter, lt
 from os import PathLike
-import pickle
 from queue import Empty, SimpleQueue
 from random import Random
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Callable, Iterator, Type, Optional, Iterable
+from typing import Any, Callable, Iterable, Iterator, Optional, Type
 
 import msgpack
 import networkx as nx
@@ -82,6 +82,7 @@ from .cache import (
 	UnitRulesHandledCache,
 )
 from .character import Character
+from .db import NullQueryEngine, ParquetQueryEngine, SQLAlchemyQueryEngine
 from .exc import (
 	GraphNameError,
 	HistoricKeyError,
@@ -104,9 +105,10 @@ from .query import (
 	StatusAlias,
 	_make_side_sel,
 )
-from .db import ParquetQueryEngine, SQLAlchemyQueryEngine, NullQueryEngine
 from .rule import AllRuleBooks, AllRules, Rule
 from .typing import (
+	Branch,
+	CharName,
 	DeltaDict,
 	EdgeValDict,
 	GraphEdgesDict,
@@ -116,17 +118,16 @@ from .typing import (
 	GraphValDict,
 	Key,
 	KeyframeTuple,
+	NodeName,
 	NodeValDict,
+	Plan,
 	StatDict,
-	Branch,
-	Turn,
 	Tick,
 	Time,
-	Plan,
-	CharName,
-	NodeName,
+	Turn,
 )
 from .util import (
+	AbstractCharacter,
 	AbstractEngine,
 	SizedDict,
 	TimeSignalDescriptor,
@@ -135,7 +136,6 @@ from .util import (
 	normalize_layout,
 	sort_set,
 	world_locked,
-	AbstractCharacter,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
@@ -3835,7 +3835,7 @@ class Engine(AbstractEngine, Executor):
 				)
 		return time_from[0], branched_turn_from, branched_tick_from
 
-	def _node_exists(self, character: Key, node: Key) -> bool:
+	def _node_exists(self, character: CharName, node: NodeName) -> bool:
 		retrieve, btt = self._node_exists_stuff
 		args = (character, node) + btt()
 		retrieved = retrieve(args)
