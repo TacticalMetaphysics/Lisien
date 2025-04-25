@@ -37,7 +37,7 @@ from threading import RLock
 from typing import Any, Iterable, Union
 
 from .exc import HistoricKeyError
-from .typing import Branch, Turn, Tick
+from .typing import Branch, Tick, Turn
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)

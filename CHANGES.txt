@@ -1,3 +1,13 @@
+== 0.19.2  | 2025-04-26 ==
+* Added the option to run Lisien without connecting to any database. This is
+  mainly useful for testing. Instantiate the engine like `Engine(None)` to use.
+* Rewrote the string store, `Engine.string`, to save any changes you make while
+  the engine is running, like it was supposed to be doing. Use it like a
+  dictionary with both the keys and the values being strings, and set its
+  `language` property to change to another language. These strings don't react
+  to time travel at all; it's just a convenient interface to some JSON files.
+* More refactoring.
+
 == 0.19.1 | 2025-04-19 ==
 * Fixed big rules not resetting the time at the end of a plan block
 * Fixed character rulebooks becoming unset after some time travel operations
