@@ -50,10 +50,10 @@ from typing import (
 	Hashable,
 	Iterable,
 	KeysView,
-	Sequence,
-	Union,
-	Type,
 	MutableMapping,
+	Sequence,
+	Type,
+	Union,
 )
 
 import msgpack
@@ -65,7 +65,7 @@ from tblib import Traceback
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
 from .graph import DiGraph, Edge, Node
-from .typing import Key, Branch, Turn, Tick
+from .typing import Branch, Key, Tick, Turn
 
 
 class SignalDict(Signal, dict):
