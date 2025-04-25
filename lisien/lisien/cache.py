@@ -29,7 +29,7 @@ from .exc import (
 	NotInKeyframeError,
 	TotalKeyError,
 )
-from .typing import Key, Branch, Turn, Tick
+from .typing import Branch, Key, Tick, Turn
 from .util import sort_set
 from .window import (
 	Direction,

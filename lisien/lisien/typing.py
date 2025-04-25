@@ -15,7 +15,6 @@
 
 from typing import Any, Hashable, NewType, TypeGuard
 
-
 Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 
 
