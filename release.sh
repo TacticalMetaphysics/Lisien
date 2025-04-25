@@ -14,12 +14,16 @@ wine --version
 ls ~/lisien_windows
 isort .
 ruff format .
+rm -rf lisien/build lisien/dist lisien/strings
+rm -rf elide/build elide/dist elide/strings
 tox -pauto -c lisien/tox.ini
+rm -rf lisien/build lisien/dist lisien/strings
+rm -rf elide/build elide/dist elide/strings
 tox -pauto -c elide/tox.ini
+rm -rf lisien/build lisien/dist lisien/strings
+rm -rf elide/build elide/dist elide/strings
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
-rm -rf lisien/build lisien/dist
 python -m build lisien/
-rm -rf elide/build elide/dist
 python -m build elide/
 python -m twine check lisien/dist/* elide/dist/*
 python -m twine upload lisien/dist/* elide/dist/*
