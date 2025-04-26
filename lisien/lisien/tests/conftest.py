@@ -213,9 +213,10 @@ def serial_engine(tmp_path, database):
 		yield eng
 
 
-@pytest.mark.sqlite
-@pytest.fixture(scope="function")
-def college24_premade(tmp_path, request):
+@pytest.fixture(
+	scope="function", params=[pytest.param("sqlite", marks=pytest.mark.sqlite)]
+)
+def college24_premade(tmp_path, request, _):
 	shutil.unpack_archive(
 		os.path.join(
 			os.path.abspath(os.path.dirname(__file__)),
