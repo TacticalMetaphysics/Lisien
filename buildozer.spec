@@ -37,7 +37,7 @@ version = 0.20.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,lisien,elide
+requirements = python3,kivy,lisien,elide,msgpack,numpy,pyarrow,sqlite3
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
