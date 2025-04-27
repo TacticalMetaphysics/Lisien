@@ -487,8 +487,8 @@ class Engine(AbstractEngine, Executor):
 		return self.query.globl
 
 	@property
-	def branch(self) -> str:
-		return self._obranch
+	def branch(self) -> Branch:
+		return Branch(self._obranch)
 
 	@branch.setter
 	@world_locked
@@ -502,6 +502,7 @@ class Engine(AbstractEngine, Executor):
 			return
 		# make sure I'll end up within the revision range of the
 		# destination branch
+		v = Branch(v)
 		if v != self.main_branch and v in self.branches():
 			parturn = self._branch_start(v)[0]
 			if curturn < parturn:
@@ -543,6 +544,7 @@ class Engine(AbstractEngine, Executor):
 	def switch_main_branch(self, branch: str) -> None:
 		if self.branch != self.main_branch or self.turn != 0 or self.tick != 0:
 			raise ValueError("Go to the start of time first")
+		branch = Branch(branch)
 		if (
 			branch in self.branches()
 			and self.branch_parent(branch) is not None
@@ -553,8 +555,8 @@ class Engine(AbstractEngine, Executor):
 		self.time.send(self, then=then, now=self._btt())
 
 	@property
-	def turn(self) -> int:
-		return self._oturn
+	def turn(self) -> Turn:
+		return Turn(self._oturn)
 
 	@turn.setter
 	@world_locked
@@ -580,6 +582,7 @@ class Engine(AbstractEngine, Executor):
 		# enforce the arrow of time, if it's in effect
 		if self._forward and v < self._oturn:
 			raise ValueError("Can't time travel backward in a forward context")
+		v = Turn(v)
 		oldrando = self.universal.get("rando_state")
 		branch = self.branch
 		if self._planning:
@@ -596,14 +599,14 @@ class Engine(AbstractEngine, Executor):
 		self.time.send(self, then=then, now=self._btt())
 
 	@property
-	def tick(self):
+	def tick(self) -> Tick:
 		"""A counter of how many changes have occurred this turn.
 
 		Can be set manually, but is more often set to the last tick in a turn
 		as a side effect of setting ``turn``.
 
 		"""
-		return self._otick
+		return Tick(self._otick)
 
 	@tick.setter
 	@world_locked
@@ -630,6 +633,7 @@ class Engine(AbstractEngine, Executor):
 				v,
 			)
 		oldrando = self.universal.get("rando_state")
+		v = Tick(v)
 		self.load_at(self.branch, self.turn, v)
 		if not self._planning:
 			self._extend_branch(self.branch, self.turn, v)
@@ -1018,7 +1022,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _btt(self) -> Time:
 		"""Return the branch, turn, and tick."""
-		return self._obranch, self._oturn, self._otick
+		return Branch(self._obranch), Turn(self._oturn), Tick(self._otick)
 
 	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick):
 		(self._obranch, self._oturn, self._otick) = (branch, turn, tick)
