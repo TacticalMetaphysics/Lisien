@@ -4172,13 +4172,13 @@ class Connection:
 		return self._inq.get_nowait()
 
 	def recv_bytes_into(self, buf: bytearray, offset=0):
-		got = self._inq.get_nowait()
+		got = self._inq.get()
 		if not isinstance(got, bytes):
 			raise TypeError("Not bytes")
 		buf.insert(offset, got)
 
 	def recv_bytes(self, maxlength=None):
-		got = self._inq.get_nowait()
+		got = self._inq.get()
 		if not isinstance(got, bytes):
 			raise TypeError("Not bytes")
 		if maxlength is not None and len(got) > maxlength:
