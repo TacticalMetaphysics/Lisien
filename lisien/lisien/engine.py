@@ -32,7 +32,6 @@ from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
-from multiprocessing import Pipe, Process, Queue
 from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
@@ -2390,6 +2389,8 @@ class Engine(AbstractEngine, Executor):
 			)
 
 	def _start_workers(self, prefix: str | os.PathLike | None, workers: int):
+		from multiprocessing import Pipe, Process, Queue
+
 		def sync_log_forever(q):
 			while True:
 				self.log(*q.get())
