@@ -40,7 +40,6 @@ from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
 from inspect import getsource
-from multiprocessing.queues import SimpleQueue
 from queue import Queue, Empty
 from random import Random
 from threading import Lock, Thread
