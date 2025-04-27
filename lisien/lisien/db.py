@@ -30,7 +30,7 @@ from typing import Any, Iterator, MutableMapping, Optional
 
 import msgpack
 
-from sqlalchemy import MetaData, Select, create_engine
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from .alchemy import gather_sql
@@ -7648,10 +7648,6 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				continue
 			if inst == "initdb":
 				self.outq.put(self.initdb())
-				continue
-			if isinstance(inst, Select):
-				res = self.connection.execute(inst).fetchall()
-				self.outq.put(res)
 				continue
 			silent = False
 			if inst[0] == "silent":
