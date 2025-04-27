@@ -306,6 +306,8 @@ class ElideApp(App):
 			enkw["replay_file"] = self._replayfile
 		if s := config["lisien"].get("connect_string"):
 			enkw["connect_string"] = s
+		if workers := config["lisien"].get("workers"):
+			enkw["workers"] = int(workers)
 		if path is not None and os.path.isdir(path):
 			startdir = path
 		elif os.path.isdir(sys.argv[-1]):
