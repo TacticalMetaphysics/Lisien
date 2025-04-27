@@ -36,7 +36,10 @@ from kivy.uix.widget import Widget
 try:
 	from kivy.garden.collider import Collide2DPoly
 except (KeyError, ImportError):
-	from kivy_garden.collider import Collide2DPoly
+	try:
+		from kivy_garden.collider import Collide2DPoly
+	except ImportError:
+		from ..collide import Collide2DPoly
 
 fortyfive = pi / 4
 cos45 = cos(fortyfive)
