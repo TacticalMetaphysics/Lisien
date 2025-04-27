@@ -62,7 +62,6 @@ def tables_for_meta(meta):
 		meta,
 		Column("key", BLOB, primary_key=True),
 		Column("value", BLOB, nullable=True),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"branches",
@@ -79,7 +78,6 @@ def tables_for_meta(meta):
 		Column("end_turn", INT, default=0),
 		Column("end_tick", INT, default=0),
 		CheckConstraint("branch<>parent"),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"turns",
@@ -88,7 +86,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True),
 		Column("end_tick", INT),
 		Column("plan_end_tick", INT),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"graphs",
@@ -102,7 +99,6 @@ def tables_for_meta(meta):
 			"type IN "
 			"('Graph', 'DiGraph', 'MultiGraph', 'MultiDiGraph', 'Deleted')"
 		),
-		sqlite_with_rowid=False,
 	)
 	kfs = Table(
 		"keyframes",
@@ -135,7 +131,6 @@ def tables_for_meta(meta):
 		ForeignKeyConstraint(
 			["branch", "turn", "tick"], [kfs.c.branch, kfs.c.turn, kfs.c.tick]
 		),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"graph_val",
@@ -152,7 +147,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"nodes",
@@ -169,7 +163,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("extant", BOOLEAN),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"node_val",
@@ -187,7 +180,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"edges",
@@ -206,7 +198,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("extant", BOOLEAN),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"edge_val",
@@ -226,7 +217,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
-		sqlite_with_rowid=False,
 	)
 	Table(
 		"plans",
@@ -248,7 +238,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
 		ForeignKeyConstraint(("plan_id",), ("plans.id",)),
-		sqlite_with_rowid=False,
 	)
 
 	# Table for global variables that are not sensitive to sim-time.
@@ -260,7 +249,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("value", BLOB),
-		sqlite_with_rowid=False,
 	)
 	kfs = meta.tables["keyframes"]
 
@@ -287,7 +275,6 @@ def tables_for_meta(meta):
 		"rules",
 		meta,
 		Column("rule", TEXT, primary_key=True),
-		sqlite_with_rowid=False,
 	)
 
 	# Table grouping rules into lists called rulebooks.
@@ -300,7 +287,6 @@ def tables_for_meta(meta):
 		Column("tick", INT, primary_key=True, default=0),
 		Column("rules", BLOB, default=b"\x90"),  # empty array
 		Column("priority", FLOAT, default=0.0),
-		sqlite_with_rowid=False,
 	)
 
 	# Table for rules' triggers, those functions that return True only
@@ -314,7 +300,6 @@ def tables_for_meta(meta):
 		Column("tick", INT, primary_key=True, default=0),
 		Column("triggers", BLOB, default=b"\x90"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
-		sqlite_with_rowid=False,
 	)
 
 	# Table for rules' neighborhoods, which govern when triggers should be
@@ -328,7 +313,6 @@ def tables_for_meta(meta):
 		Column("tick", INT, primary_key=True, default=0),
 		Column("neighborhood", BLOB, default=b"\xc0"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
-		sqlite_with_rowid=False,
 	)
 
 	# Table for rules' prereqs, functions with veto power over a rule
@@ -342,7 +326,6 @@ def tables_for_meta(meta):
 		Column("tick", INT, primary_key=True, default=0),
 		Column("prereqs", BLOB, default=b"\x90"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
-		sqlite_with_rowid=False,
 	)
 
 	# Table for rules' actions, the functions that do what the rule
@@ -356,7 +339,6 @@ def tables_for_meta(meta):
 		Column("tick", INT, primary_key=True, default=0),
 		Column("actions", BLOB, default=b"\x90"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
-		sqlite_with_rowid=False,
 	)
 
 	# Table indicating which rules make big changes to the world.
@@ -369,7 +351,6 @@ def tables_for_meta(meta):
 		Column("tick", INT, primary_key=True, default=0),
 		Column("big", BOOLEAN, default=False),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
-		sqlite_with_rowid=False,
 	)
 
 	# The top level of the lisien world model, the character. Includes
@@ -392,7 +373,6 @@ def tables_for_meta(meta):
 			Column("turn", INT, primary_key=True, default=0),
 			Column("tick", INT, primary_key=True, default=0),
 			Column("rulebook", BLOB),
-			sqlite_with_rowid=False,
 		)
 
 	# Rules handled within the rulebook associated with one node in
@@ -407,7 +387,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT),
-		sqlite_with_rowid=False,
 	)
 
 	# Rules handled within the rulebook associated with one portal in
@@ -423,7 +402,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT),
-		sqlite_with_rowid=False,
 	)
 
 	# Table for Things, being those nodes in a Character graph that have
@@ -441,7 +419,6 @@ def tables_for_meta(meta):
 		Column("tick", INT, primary_key=True, default=0),
 		# when location is null, this node is not a thing, but a place
 		Column("location", BLOB),
-		sqlite_with_rowid=False,
 	)
 
 	# The rulebook followed by a given node.
@@ -454,7 +431,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("rulebook", BLOB),
-		sqlite_with_rowid=False,
 	)
 
 	# The rulebook followed by a given Portal.
@@ -473,7 +449,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("rulebook", BLOB),
-		sqlite_with_rowid=False,
 	)
 
 	# The units representing one Character in another.
@@ -497,7 +472,6 @@ def tables_for_meta(meta):
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
 		Column("is_unit", BOOLEAN),
-		sqlite_with_rowid=False,
 	)
 
 	crh = Table(
@@ -509,7 +483,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		sqlite_with_rowid=True,
 	)
 
 	arh = Table(
@@ -523,7 +496,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		sqlite_with_rowid=True,
 	)
 
 	ctrh = Table(
@@ -536,7 +508,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		sqlite_with_rowid=True,
 	)
 
 	cprh = Table(
@@ -549,7 +520,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		sqlite_with_rowid=True,
 	)
 
 	cporh = Table(
@@ -563,7 +533,6 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
-		sqlite_with_rowid=True,
 	)
 
 	Table(
@@ -571,7 +540,6 @@ def tables_for_meta(meta):
 		meta,
 		Column("branch", TEXT, primary_key=True),
 		Column("turn", INT),
-		sqlite_with_rowid=False,
 	)
 
 	return meta.tables
