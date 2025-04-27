@@ -7605,16 +7605,16 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		return self.call_one("create_{}".format(tbl))
 
 	def call_one(self, k, *largs, **kwargs):
-		statement = self.sql[k]
+		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		if hasattr(statement, "positiontup"):
 			kwargs.update(dict(zip(statement.positiontup, largs)))
 			return self.connection.execute(statement, kwargs)
 		elif largs:
 			raise TypeError("{} is a DDL query, I think".format(k))
-		return self.connection.execute(statement, kwargs)
+		return self.connection.execute(self.sql[k], kwargs)
 
 	def call_many(self, k, largs):
-		statement = self.sql[k]
+		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		return self.connection.execute(
 			statement,
 			[dict(zip(statement.positiontup, larg)) for larg in largs],
