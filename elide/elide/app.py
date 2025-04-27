@@ -216,6 +216,7 @@ class ElideApp(App):
 				"logfile": "lisien.log",
 				"loglevel": "debug",
 				"replayfile": "",
+				"connect_str": "",
 			},
 		)
 		config.setdefaults(
@@ -303,6 +304,8 @@ class ElideApp(App):
 		if config["lisien"].get("replayfile"):
 			self._replayfile = open(config["lisien"].get("replayfile"), "at")
 			enkw["replay_file"] = self._replayfile
+		if s := config["lisien"].get("connect_string"):
+			enkw["connect_string"] = s
 		if path is not None and os.path.isdir(path):
 			startdir = path
 		elif os.path.isdir(sys.argv[-1]):
