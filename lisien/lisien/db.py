@@ -5181,7 +5181,7 @@ class NullQueryEngine(AbstractQueryEngine):
 		turn: Turn,
 		tick: Tick,
 		rules: Optional[list[RuleName]] = None,
-		prio: RulePriority = 0.0,
+		prio: RulebookPriority = 0.0,
 	):
 		pass
 
