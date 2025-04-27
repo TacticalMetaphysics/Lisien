@@ -314,7 +314,12 @@ class ElideApp(App):
 			startdir = sys.argv[-1]
 		else:
 			startdir = None
-		self.procman = EngineProcessManager()
+		try:
+			import multiprocessing
+
+			self.procman = EngineProcessManager()
+		except ImportError:
+			self.procman = EngineProcessManager(use_threads=True)
 		self.engine = engine = self.procman.start(startdir, **enkw)
 		self.pull_time()
 
