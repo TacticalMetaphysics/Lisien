@@ -319,7 +319,7 @@ class ElideApp(App):
 
 			self.procman = EngineProcessManager()
 		except ImportError:
-			self.procman = EngineProcessManager(use_threads=True)
+			self.procman = EngineProcessManager(use_thread=True)
 		self.engine = engine = self.procman.start(startdir, **enkw)
 		self.pull_time()
 
