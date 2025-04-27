@@ -44,7 +44,7 @@ from .typing import (
 	EdgeValRowType,
 	GraphValKeyframe,
 	GraphValRowType,
-	KeyHint as Key,
+	Key,
 	NodeKeyframe,
 	NodeName,
 	NodeRowType,
