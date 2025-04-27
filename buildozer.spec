@@ -37,11 +37,13 @@ version = 0.20.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,sqlite3,astunparse,blinker,msgpack,networkx,sqlalchemy,numpy,tblib,parquetdb,kivy_garden.collider,pygments
+requirements = python3,kivy,lisien,elide
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
 # requirements.source.kivy = ../../kivy
+requirements.source.lisien = ./lisien
+requirements.source.elide = ./elide
 
 # (str) Presplash of the application
 #presplash.filename = %(source.dir)s/data/presplash.png
