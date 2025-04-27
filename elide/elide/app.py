@@ -81,6 +81,7 @@ class ElideApp(App):
 	edit_locked = BooleanProperty(False)
 	simulate_button_down = BooleanProperty(False)
 	path = StringProperty()
+	use_thread = BooleanProperty(False)
 
 	def on_selection(self, *_):
 		Logger.debug("App: {} selected".format(self.selection))
@@ -315,12 +316,7 @@ class ElideApp(App):
 			startdir = sys.argv[-1]
 		else:
 			startdir = None
-		try:
-			import multiprocessing
-
-			self.procman = EngineProcessManager()
-		except ImportError:
-			self.procman = EngineProcessManager(use_thread=True)
+		self.procman = EngineProcessManager(use_thread=self.use_thread)
 		self.engine = engine = self.procman.start(startdir, **enkw)
 		self.pull_time()
 
