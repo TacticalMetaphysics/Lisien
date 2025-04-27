@@ -40,8 +40,8 @@ from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
 from inspect import getsource
-from multiprocessing import Pipe, Process, ProcessError, Queue
-from queue import Empty
+from multiprocessing.queues import SimpleQueue
+from queue import Queue, Empty
 from random import Random
 from threading import Lock, Thread
 from time import monotonic
@@ -4159,8 +4159,64 @@ def worker_subprocess(
 		eng._initialized = True
 
 
-class RedundantProcessError(ProcessError):
-	"""Asked to start a process that has already started"""
+class Connection:
+	"""A replacement for the ends of a pipe that doesn't really go between processes"""
+
+	def __init__(self, inq: Queue, outq: Queue):
+		self._inq = inq
+		self._outq = outq
+
+	def poll(self, timeout=0.0):
+		return self._inq.get(timeout=timeout)
+
+	def recv(self):
+		return self._inq.get_nowait()
+
+	def recv_bytes_into(self, buf: bytearray, offset=0):
+		got = self._inq.get_nowait()
+		if not isinstance(got, bytes):
+			raise TypeError("Not bytes")
+		buf.insert(offset, got)
+
+	def recv_bytes(self, maxlength=None):
+		got = self._inq.get_nowait()
+		if not isinstance(got, bytes):
+			raise TypeError("Not bytes")
+		if maxlength is not None and len(got) > maxlength:
+			raise ValueError("Too big")
+		return got
+
+	def send(self, obj):
+		self._outq.put(obj)
+
+	def send_bytes(self, buf, offset=0, size=None):
+		if size is None:
+			size = len(buf) - offset
+		self._outq.put(buf[offset:size])
+
+	def close(self):
+		pass
+
+	def fileno(self):
+		return -1
+
+	@property
+	def writable(self):
+		return True
+
+	@property
+	def readable(self):
+		return True
+
+	@property
+	def closed(self):
+		return False
+
+
+def fake_pipe():
+	inq = Queue()
+	outq = Queue()
+	return Connection(inq, outq), Connection(outq, inq)
 
 
 class EngineProcessManager:
@@ -4172,20 +4228,33 @@ class EngineProcessManager:
 	when you're done with the :class:`lisien.proxy.EngineProxy`. That way,
 	we can join the thread that listens to the subprocess's logs.
 
+	:param use_thread: Actually use a thread, not a process.
+
 	"""
 
 	loglevel = logging.DEBUG
 
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args, use_thread=False, **kwargs):
+		self.use_thread = use_thread
 		self._args = args
 		self._kwargs = kwargs
 
-	def start(self, *args, worker=False, **kwargs):
+	def start(self, *args, use_thread=False, **kwargs):
 		"""Start lisien in a subprocess, and return a proxy to it"""
 		if hasattr(self, "engine_proxy"):
-			raise RedundantProcessError("Already started")
-		(handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
-		(handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
+			raise RuntimeError("Already started")
+		if self.use_thread or use_thread:
+			from queue import Queue
+
+			handle_out_pipe_recv, self._handle_out_pipe_send = fake_pipe()
+			handle_in_pipe_recv, handle_in_pipe_send = fake_pipe()
+		else:
+			from multiprocessing import Pipe, Queue
+
+			(handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(
+				duplex=False
+			)
+			(handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
 		self.logq = Queue()
 		handlers = []
 		logl = {
@@ -4231,18 +4300,24 @@ class EngineProcessManager:
 		for handler in handlers:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
-		self._p = Process(
-			name="lisien Life Simulator Engine (core)",
-			target=engine_subprocess,
-			args=(
-				self._args or args,
-				self._kwargs | kwargs,
-				handle_out_pipe_recv,
-				handle_in_pipe_send,
-				self.logq,
-				loglevel,
-			),
+		args = (
+			self._args or args,
+			self._kwargs | kwargs,
+			handle_out_pipe_recv,
+			handle_in_pipe_send,
+			self.logq,
+			loglevel,
 		)
+		if self.use_thread:
+			self._p = Thread(target=engine_subprocess, args=args)
+		else:
+			from multiprocessing import Process
+
+			self._p = Process(
+				name="Lisien Life Simulator Engine (core)",
+				target=engine_subprocess,
+				args=args,
+			)
 		self._p.start()
 		self._logthread = Thread(
 			target=self.sync_log_forever, name="log", daemon=True
