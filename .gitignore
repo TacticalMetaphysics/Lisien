@@ -12,7 +12,7 @@ wheelhouse/
 .ropeproject
 *.e4p
 .cache
-elide.ini
+buildozer/elide.ini
 *.prof
 *.so
 *.csv
