@@ -30,7 +30,7 @@ from typing import Any, Iterator, MutableMapping, Optional
 
 import msgpack
 
-from sqlalchemy import MetaData, NullPool, Select, create_engine
+from sqlalchemy import MetaData, Select, create_engine
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from .alchemy import gather_sql
@@ -7630,9 +7630,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			gather_sql = self.gather
 		else:
 			from .alchemy import gather_sql
-		self.engine = create_engine(
-			dbstring, connect_args=connect_args, poolclass=NullPool
-		)
+		self.engine = create_engine(dbstring, connect_args=connect_args)
 		self.meta = MetaData()
 		self.sql = gather_sql(self.meta)
 		self.connection = self.engine.connect()
