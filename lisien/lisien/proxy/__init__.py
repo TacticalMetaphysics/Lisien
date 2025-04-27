@@ -4169,7 +4169,7 @@ class Connection:
 		return self._inq.get(timeout=timeout)
 
 	def recv(self):
-		return self._inq.get_nowait()
+		return self._inq.get()
 
 	def recv_bytes_into(self, buf: bytearray, offset=0):
 		got = self._inq.get()
