@@ -5591,7 +5591,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 		return unpack(univ), unpack(rule), unpack(rulebook)
 
-	def keyframes_graphs(self) -> Iterator[tuple[Graph, Branch, Turn, Tick]]:
+	def keyframes_graphs(self) -> Iterator[tuple[GraphName, Branch, Turn, Tick]]:
 		unpack = self.unpack
 		for d in self.call("list_keyframes"):
 			yield unpack(d["graph"]), d["branch"], d["turn"], d["tick"]
