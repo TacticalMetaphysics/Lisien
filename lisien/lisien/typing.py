@@ -15,7 +15,7 @@
 
 from typing import Any, Hashable, NewType, TypeGuard
 
-Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
+_Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 
 
 # noinspection PyRedeclaration
@@ -31,10 +31,10 @@ class Key(Hashable):
 
 	"""
 
-	def __new__(cls, that: Key) -> Key:
+	def __new__(cls, that: _Key) -> _Key:
 		return that
 
-	def __instancecheck__(cls, instance) -> TypeGuard[Key]:
+	def __instancecheck__(cls, instance) -> TypeGuard[_Key]:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
@@ -45,6 +45,8 @@ Key.register(str)
 Key.register(int)
 Key.register(float)
 Key.register(type(None))
+
+KeyHint = Key | _Key
 
 
 Branch = NewType("Branch", str)
