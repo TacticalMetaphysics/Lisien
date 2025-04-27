@@ -351,7 +351,7 @@ entities:
 
 Elide is meant to support repurposing its widgets to build a rudimentary graphical
 interface for a game. For an example of what that might look like, see
-[the Awareness sim](https://codeberg.org/clayote/Lisien/src/branch/main/Elide/Elide/examples/awareness.py).
+[the Awareness sim](https://codeberg.org/clayote/Lisien/src/branch/main/elide/elide/examples/awareness.py).
 You may prefer to work with some other Python-based game engine, such as
 [Pyglet](http://pyglet.org/) or [Ursina](https://www.ursinaengine.org/), in which case you don't really need Elide--
 though you may find it useful to open Elide in your game folder when you're
