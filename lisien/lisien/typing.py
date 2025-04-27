@@ -46,7 +46,9 @@ Key.register(int)
 Key.register(float)
 Key.register(type(None))
 
-KeyHint = Key | _Key
+KeyHint = Key | str | int | float | None
+KeyHint |= tuple[KeyHint, ...]
+KeyHint |= frozenset[Key]
 
 
 Branch = NewType("Branch", str)
