@@ -11,7 +11,8 @@
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.f
+from __future__ import annotations
 
 from typing import Any, Hashable, NewType, TypeGuard
 
@@ -30,7 +31,7 @@ class Key(Hashable):
 	def __new__(cls, that: _Key) -> _Key:
 		return that
 
-	def __instancecheck__(cls, instance) -> TypeGuard[_Key]:
+	def __instancecheck__(cls, instance) -> TypeGuard[Key]:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
@@ -41,10 +42,6 @@ Key.register(str)
 Key.register(int)
 Key.register(float)
 Key.register(type(None))
-
-KeyHint = Key | str | int | float | None
-KeyHint |= tuple[KeyHint, ...]
-KeyHint |= frozenset[Key]
 
 
 Branch = NewType("Branch", str)
