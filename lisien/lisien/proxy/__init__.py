@@ -3529,7 +3529,7 @@ class EngineProxy(AbstractEngine):
 		if self._worker or getattr(self, "_mutable_worker", False):
 			return
 		if self.closed:
-			raise RedundantProcessError(f"Already closed: {id(self)}")
+			raise RuntimeError(f"Already closed: {id(self)}")
 		if "command" in kwargs:
 			cmd = kwargs["command"]
 		elif cmd:
