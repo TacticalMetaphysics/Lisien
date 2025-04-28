@@ -308,8 +308,8 @@ class ElideApp(App):
 		if config["lisien"].get("replayfile"):
 			self._replayfile = open(config["lisien"].get("replayfile"), "at")
 			enkw["replay_file"] = self._replayfile
-		if not self.connect_string and (
-			s := config["lisien"].get("connect_string")
+		if s := (
+			config["lisien"].get("connect_string") or self.connect_string
 		):
 			enkw["connect_string"] = s
 		if workers := config["lisien"].get("workers"):
