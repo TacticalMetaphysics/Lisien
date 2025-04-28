@@ -4766,6 +4766,7 @@ class Engine(AbstractEngine, Executor):
 		if hasattr(self, "_osc_serv_thread"):
 			for client in self._osc_clients:
 				client.send_message("/shutdown")
+				client.close()
 			self._osc_server.shutdown()
 			self._osc_serv_thread.join()
 
