@@ -4141,7 +4141,7 @@ def worker_subprocess(
 		inst = in_pipe.recv_bytes()
 		if inst == b"shutdown":
 			in_pipe.close()
-			if logq:
+			if logq and hasattr(logq, "close"):
 				logq.close()
 			out_pipe.send_bytes(b"done")
 			out_pipe.close()
