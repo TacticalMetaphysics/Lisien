@@ -37,7 +37,7 @@ version = 0.20.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,astunparse,blinker,sqlalchemy,tblib,pygments,libbz2,liblzma
+requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,astunparse,blinker,sqlalchemy,tblib,pygments,libbz2,liblzma,python-osc
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -56,7 +56,7 @@ icon.filename = %(source.dir)s/elide_icon/Android/icon_512px.png
 orientation = landscape
 
 # (list) List of service to declare
-#services = NAME:ENTRYPOINT_TO_PY,NAME2:ENTRYPOINT2_TO_PY
+services = worker:worker.py
 
 #
 # OSX Specific

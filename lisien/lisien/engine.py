@@ -464,6 +464,9 @@ class Engine(AbstractEngine, Executor):
 		side effects. If you don't want this, instead use
 		``workers=1``, which *does* disable parallelism in the case
 		of trigger functions.
+	:param base_port: On platforms that do not let us spawn processes,
+		we instead start worker services. They will listen for our commands
+		at ports starting from ``base_port``. 323130 by default.
 
 	"""
 
@@ -2173,6 +2176,7 @@ class Engine(AbstractEngine, Executor):
 		keyframe_on_close: bool = True,
 		enforce_end_of_time: bool = True,
 		workers: int = None,
+		base_port: int = 323130,
 	):
 		if workers is None:
 			workers = os.cpu_count()
@@ -2205,7 +2209,12 @@ class Engine(AbstractEngine, Executor):
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
 		if workers > 0:
-			self._start_workers(prefix, workers)
+			try:
+				self._start_worker_processes(prefix, workers)
+			except ImportError:
+				self._start_worker_services(
+					prefix, workers, base_port, "org.tacmeta.elide.worker"
+				)
 
 	def _init_log(self, logfun: Optional[callable]):
 		if logfun is None:
@@ -2392,7 +2401,9 @@ class Engine(AbstractEngine, Executor):
 				self.eternal.setdefault("language", "eng"),
 			)
 
-	def _start_workers(self, prefix: str | os.PathLike | None, workers: int):
+	def _start_worker_processes(
+		self, prefix: str | os.PathLike | None, workers: int
+	):
 		from multiprocessing import Pipe, Process, Queue
 
 		def sync_log_forever(q):
@@ -2467,20 +2478,79 @@ class Engine(AbstractEngine, Executor):
 			proc.start()
 			with wlk[-1]:
 				inpipe_here.send_bytes(initial_payload)
-		self._how_many_futs_running = 0
-		self._fut_manager_thread = Thread(
-			target=self._manage_futs, daemon=True
-		)
-		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
-		self._uid_to_fut: dict[int, Future] = {}
-		self._fut_manager_thread.start()
 		if hasattr(self.trigger, "connect"):
 			self.trigger.connect(self._reimport_trigger_functions)
 		if hasattr(self.function, "connect"):
 			self.function.connect(self._reimport_worker_functions)
 		if hasattr(self.method, "connect"):
 			self.method.connect(self._reimport_worker_methods)
+		self._setup_fut_manager(workers)
+
+	def _setup_fut_manager(self, workers):
 		self._worker_updated_btts = [self._btt()] * workers
+		self._uid_to_fut: dict[int, Future] = {}
+		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
+		self._how_many_futs_running = 0
+		self._fut_manager_thread = Thread(
+			target=self._manage_futs, daemon=True
+		)
+		self._fut_manager_thread.start()
+
+	def _start_worker_services(
+		self,
+		prefix: str | os.PathLike,
+		workers: int,
+		base_port: int,
+		service_class_name: str,
+	):
+		import base64
+		from jnius import autoclass
+		from pythonosc import osc_tcp_server
+		from pythonosc import tcp_client
+		from pythonosc.dispatcher import Dispatcher
+
+		my_port = base_port + workers + 1
+
+		service = autoclass(service_class_name)
+		mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
+
+		dispatcher = Dispatcher()
+		dispatcher.map("worker-reply", self._handle_worker_reply)
+		serv = self._osc_server = osc_tcp_server.ThreadingOSCTCPServer(
+			("127.0.0.1", my_port), dispatcher
+		)
+		self._osc_clients: list[tcp_client.SimpleTCPClient] = []
+		for i in range(workers):
+			self._osc_clients.append(
+				tcp_client.SimpleTCPClient("127.0.0.1", base_port + i)
+			)
+			argument = base64.urlsafe_b64encode(
+				zlib.compress(
+					self.pack(
+						[
+							i,
+							base_port + i,
+							my_port,
+							prefix,
+							self._branches_d,
+							dict(self.eternal.items()),
+						]
+					)
+				)
+			)
+			service.start(mActivity, argument)
+		self._setup_fut_manager(workers)
+		self._osc_serv_thread = Thread(target=serv.serve_forever)
+		self._osc_serv_thread.start()
+
+	def _handle_worker_reply(self, data: bytes):
+		uid = int.from_bytes(data[:8], "little")
+		ret = self.unpack(zlib.decompress(data[8:]))
+		fut = self._uid_to_fut[uid]
+		if isinstance(ret, Exception):
+			fut.set_exception(ret)
+		else:
+			fut.set_result(ret)
 
 	def _start_branch(
 		self, parent: str, branch: str, turn: int, tick: int
@@ -4638,6 +4708,15 @@ class Engine(AbstractEngine, Executor):
 			)
 			self._uid_to_fut[uid] = ret
 			self._futs_to_start.put(ret)
+		elif hasattr(self, "_osc_clients"):
+			ret = Future()
+			ret._t = Thread(
+				target=self._call_in_service,
+				args=(uid, fn, ret, *args),
+				kwargs=kwargs,
+			)
+			self._uid_to_fut[uid] = ret
+			self._futs_to_start.put(ret)
 		else:
 			ret = fake_submit(fn, *args, **kwargs)
 		ret.uid = uid
@@ -4657,7 +4736,9 @@ class Engine(AbstractEngine, Executor):
 			sleep(0.001)
 
 	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
-		if not hasattr(self, "_worker_processes"):
+		if not hasattr(self, "_worker_processes") and not hasattr(
+			self, "_osc_serv_thread"
+		):
 			return
 		if cancel_futures:
 			for fut in self._uid_to_fut.values():
@@ -4665,22 +4746,28 @@ class Engine(AbstractEngine, Executor):
 		if wait:
 			futwait(self._uid_to_fut.values())
 		self._uid_to_fut = {}
-		for i, (lock, pipein, pipeout, proc) in enumerate(
-			zip(
-				self._worker_locks,
-				self._worker_inputs,
-				self._worker_outputs,
-				self._worker_processes,
-			)
-		):
-			with lock:
-				pipein.send_bytes(b"shutdown")
-				recvd = pipeout.recv_bytes()
-				assert recvd == b"done"
-				proc.join(timeout=5)
-				proc.close()
-				pipein.close()
-				pipeout.close()
+		if hasattr(self, "_worker_processes"):
+			for i, (lock, pipein, pipeout, proc) in enumerate(
+				zip(
+					self._worker_locks,
+					self._worker_inputs,
+					self._worker_outputs,
+					self._worker_processes,
+				)
+			):
+				with lock:
+					pipein.send_bytes(b"shutdown")
+					recvd = pipeout.recv_bytes()
+					assert recvd == b"done"
+					proc.join(timeout=5)
+					proc.close()
+					pipein.close()
+					pipeout.close()
+		if hasattr(self, "_osc_serv_thread"):
+			for client in self._osc_clients:
+				client.send_message("/shutdown")
+			self._osc_server.shutdown()
+			self._osc_serv_thread.join()
 
 	def _detect_kf_interval_override(self):
 		if self._planning:
