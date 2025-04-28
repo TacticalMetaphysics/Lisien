@@ -534,6 +534,7 @@ class ElideApp(App):
 			self.engine.commit()
 		self.strings.save()
 		self.funcs.save()
+		return True
 
 	def on_stop(self, *largs):
 		"""Sync the database, wrap up the game, and halt."""
