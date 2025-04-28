@@ -2607,12 +2607,12 @@ class Engine(AbstractEngine, Executor):
 
 	def _get_keyframe(
 		self,
-		branch: str,
-		turn: int,
-		tick: int,
-		copy=True,
-		rulebooks=True,
-		silent=False,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
+		rulebooks: bool = True,
+		silent: bool = False,
 	):
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
