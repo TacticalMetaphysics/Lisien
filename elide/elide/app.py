@@ -82,6 +82,7 @@ class ElideApp(App):
 	simulate_button_down = BooleanProperty(False)
 	path = StringProperty()
 	use_thread = BooleanProperty(False)
+	connect_string = StringProperty()
 
 	def on_selection(self, *_):
 		Logger.debug("App: {} selected".format(self.selection))
@@ -295,6 +296,7 @@ class ElideApp(App):
 		enkw = {
 			"logger": Logger,
 			"do_game_start": getattr(self, "do_game_start", False),
+			"connect_string": self.connect_string or None,
 		}
 		workers = config["lisien"].get("workers", "")
 		if workers:
@@ -306,7 +308,9 @@ class ElideApp(App):
 		if config["lisien"].get("replayfile"):
 			self._replayfile = open(config["lisien"].get("replayfile"), "at")
 			enkw["replay_file"] = self._replayfile
-		if s := config["lisien"].get("connect_string"):
+		if not self.connect_string and (
+			s := config["lisien"].get("connect_string")
+		):
 			enkw["connect_string"] = s
 		if workers := config["lisien"].get("workers"):
 			enkw["workers"] = int(workers)
@@ -316,7 +320,9 @@ class ElideApp(App):
 			startdir = sys.argv[-1]
 		else:
 			startdir = None
-		self.procman = EngineProcessManager(use_thread=self.use_thread)
+		self.procman = EngineProcessManager(
+			use_thread=self.use_thread,
+		)
 		self.engine = engine = self.procman.start(startdir, **enkw)
 		self.pull_time()
 
