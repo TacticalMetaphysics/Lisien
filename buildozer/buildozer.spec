@@ -7,7 +7,7 @@ title = Elide
 package.name = Elide
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.tacmeta.elide
+package.domain = org.tacmeta
 
 # (str) Source code where the main.py live
 source.dir = .
