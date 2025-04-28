@@ -3364,11 +3364,11 @@ class EngineProxy(AbstractEngine):
 		self._rulebook_obj_cache = {}
 		self._char_cache = {}
 		if worker_index is None:
-			self.send_bytes(self.pack({"command": "get_btt"}))
-			received = self.unpack(self.recv_bytes())
+			self.send({"command": "get_btt"})
+			received = self.recv()
 			self._branch, self._turn, self._tick = received[-1]
-			self.send_bytes(self.pack({"command": "branches"}))
-			self._branches_d = self.unpack(self.recv_bytes())[-1]
+			self.send({"command": "branches"})
+			self._branches_d = self.recv()[-1]
 			self.method.load()
 			self.action.load()
 			self.prereq.load()
@@ -3467,6 +3467,11 @@ class EngineProxy(AbstractEngine):
 		assert self._worker, "Loaded replacement methods outside a worker"
 		self.method._locl = pickle.loads(replacement)
 
+	def send(
+		self, obj, blocking: bool = True, timeout: int | float = 1
+	) -> None:
+		self.send_bytes(self.pack(obj), blocking=blocking, timeout=timeout)
+
 	def send_bytes(self, obj, blocking=True, timeout=1):
 		compressed = zlib.compress(obj)
 		self._handle_out_lock.acquire(blocking, timeout)
@@ -3478,6 +3483,9 @@ class EngineProxy(AbstractEngine):
 		data = self._handle_in.recv_bytes()
 		self._handle_in_lock.release()
 		return zlib.decompress(data)
+
+	def recv(self, blocking: bool = True, timeout: int | float = 1):
+		return self.unpack(self.recv_bytes(blocking=blocking, timeout=timeout))
 
 	def debug(self, msg):
 		self.logger.debug(msg)
