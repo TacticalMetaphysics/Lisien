@@ -7884,12 +7884,15 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def echo(self, string):
 		self._inq.put(("echo", string))
-		return self._outq.get()
+		ret = self._outq.get()
+		self._outq.task_done()
+		return ret
 
 	def call_one(self, string, *args, **kwargs):
 		with self.mutex():
 			self._inq.put(("one", string, args, kwargs))
 			ret = self._outq.get()
+			self._outq.task_done()
 		if isinstance(ret, Exception):
 			raise ret
 		return ret
@@ -7898,6 +7901,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		with self.mutex():
 			self._inq.put(("many", string, args))
 			ret = self._outq.get()
+			self._outq.task_done()
 		if isinstance(ret, Exception):
 			raise ret
 		return ret
