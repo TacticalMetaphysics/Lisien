@@ -7665,7 +7665,6 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				inst = inst[1:]
 				silent = True
 			if inst[0] == "echo":
-				print(inst[1])
 				self.outq.put(inst[1])
 				continue
 			elif inst[0] == "one":
@@ -7675,8 +7674,6 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 						if hasattr(res, "returns_rows"):
 							if res.returns_rows:
 								o = list(res)
-								if inst[1] == "get_keyframe_extensions":
-									print(f"keyframe extensions {o}")
 								self.outq.put(o)
 							else:
 								self.outq.put(None)
@@ -9060,7 +9057,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		exts = self.call_one("get_keyframe_extensions", branch, turn, tick)
 		if not exts:
 			raise KeyframeError("No keyframe", branch, turn, tick)
-		print(f"keyframe extensions on the other side {exts}")
 		assert len(exts) == 1, f"Incoherent keyframe {branch, turn, tick}"
 		universal, rule, rulebook = exts[0]
 		return (
