@@ -31,7 +31,7 @@ from typing import Any, Iterator, MutableMapping, Optional
 
 import msgpack
 
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import MetaData, create_engine, Select
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from .alchemy import gather_sql
