@@ -136,7 +136,7 @@ class DirPicker(Screen):
 	@triggered()
 	def open(self, path, *_):
 		app = App.get_running_app()
-		if "world" not in os.listdir(path):
+		if "world" not in os.listdir(path) and not app.connect_string:
 			# TODO show a configurator, accept cancellation, extract init params
 			if not hasattr(self, "config_popover"):
 				self.config_popover = ModalView()
