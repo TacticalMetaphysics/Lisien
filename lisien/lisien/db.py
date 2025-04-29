@@ -7667,6 +7667,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			if inst[0] == "echo":
 				print(inst[1])
 				self.outq.put(inst[1])
+				continue
 			elif inst[0] == "one":
 				try:
 					res = self.call_one(inst[1], *inst[2], **inst[3])
