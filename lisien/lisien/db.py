@@ -3466,11 +3466,11 @@ class AbstractQueryEngine:
 	def mutex(self):
 		with self._holder.lock:
 			for i in range(1000):
-				if (self._inq.empty() and self._outq.empty()):
+				if self._inq.empty() and self._outq.empty():
 					break
 				if i % 100 == 0:
 					print("waiting for QueryEngine")
-				sleep(.01)
+				sleep(0.01)
 			else:
 				print("Queues are backed up.", file=sys.stderr)
 				if not self._inq.empty():
@@ -3482,6 +3482,7 @@ class AbstractQueryEngine:
 					while not self._outq.empty():
 						print(self._outq.get(), file=sys.stderr)
 				import traceback
+
 				traceback.print_stack(file=sys.stderr)
 				sys.exit(1)
 			yield
