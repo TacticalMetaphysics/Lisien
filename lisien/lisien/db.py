@@ -23,7 +23,7 @@ from collections import defaultdict
 from functools import cached_property, partial, partialmethod
 from itertools import starmap
 from queue import Queue
-from threading import Lock, RLock, Thread
+from threading import Lock, Thread
 from time import monotonic
 from types import MethodType
 from typing import Any, Iterator, MutableMapping, Optional
@@ -127,7 +127,7 @@ class GlobalKeyValueStore(MutableMapping):
 
 class ConnectionHolder:
 	strings: dict
-	lock: RLock
+	lock: Lock
 	existence_lock: Lock
 	_inq: Queue
 	_outq: Queue
@@ -475,7 +475,7 @@ class ParquetDBHolder(ConnectionHolder):
 		self._outq = outq
 		self._schema = {}
 		self._path = path
-		self.lock = RLock()
+		self.lock = Lock()
 		self.existence_lock = Lock()
 		self.existence_lock.acquire()
 
@@ -7585,7 +7585,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 	def __init__(
 		self, dbstring, connect_args, inq, outq, fn, tables, gather=None
 	):
-		self.lock = RLock()
+		self.lock = Lock()
 		self.existence_lock = Lock()
 		self.existence_lock.acquire()
 		self._dbstring = dbstring
