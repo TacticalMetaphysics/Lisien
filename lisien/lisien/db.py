@@ -20,11 +20,12 @@ import os
 import sys
 from abc import abstractmethod
 from collections import defaultdict
+from contextlib import contextmanager
 from functools import cached_property, partial, partialmethod
 from itertools import starmap
 from queue import Queue
 from threading import Lock, Thread
-from time import monotonic
+from time import monotonic, sleep
 from types import MethodType
 from typing import Any, Iterator, MutableMapping, Optional
 
@@ -3460,8 +3461,16 @@ class AbstractQueryEngine:
 				)
 			)
 
-	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
+	@contextmanager
+	def mutex(self):
 		with self._holder.lock:
+			while not (self._inq.empty() and self._outq.empty()):
+				print("waiting for QueryEngine")
+				sleep(.01)
+			yield
+
+	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
+		with self.mutex():
 			for branch, turn_from, tick_from, turn_to, tick_to in windows:
 				if turn_to is None:
 					self._put_window_tick_to_end(branch, turn_from, tick_from)
@@ -4651,9 +4660,11 @@ class AbstractQueryEngine:
 				"node_rulebook": [],
 				"portal_rulebook": [],
 			}
+		print(f"load_windows({windows})")
 
 		ret = defaultdict(empty_char)
 		self._load_windows_into(ret, windows)
+		print(f"loaded windows {windows}")
 		return ret
 
 
@@ -5588,7 +5599,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.globl = GlobalKeyValueStore(self)
 
 	def call(self, method, *args, **kwargs):
-		with self._holder.lock:
+		with self.mutex():
 			self._inq.put((method, args, kwargs))
 			ret = self._outq.get()
 			if isinstance(ret, Exception):
@@ -5829,7 +5840,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	@garbage
 	def flush(self):
-		with self._holder.lock:
+		with self.mutex():
 			records = sum(
 				(
 					self._universals2set(),
@@ -6398,7 +6409,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		neighborhood: RuleNeighborhood,
 		big: RuleBig,
 	):
-		with self._holder.lock:
+		with self.mutex():
 			try:
 				self.call("insert1", "rules", {"rule": rule})
 			except IndexError:
@@ -7654,6 +7665,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				inst = inst[1:]
 				silent = True
 			if inst[0] == "echo":
+				print(inst[1])
 				self.outq.put(inst[1])
 			elif inst[0] == "one":
 				try:
@@ -7662,6 +7674,8 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 						if hasattr(res, "returns_rows"):
 							if res.returns_rows:
 								o = list(res)
+								if inst[1] == "get_keyframe_extensions":
+									print(f"keyframe extensions {o}")
 								self.outq.put(o)
 							else:
 								self.outq.put(None)
@@ -7859,7 +7873,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		return self._outq.get()
 
 	def call_one(self, string, *args, **kwargs):
-		with self._holder.lock:
+		with self.mutex():
 			self._inq.put(("one", string, args, kwargs))
 			ret = self._outq.get()
 		if isinstance(ret, Exception):
@@ -7867,7 +7881,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		return ret
 
 	def call_many(self, string, args):
-		with self._holder.lock:
+		with self.mutex():
 			self._inq.put(("many", string, args))
 			ret = self._outq.get()
 		if isinstance(ret, Exception):
@@ -9045,6 +9059,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		exts = self.call_one("get_keyframe_extensions", branch, turn, tick)
 		if not exts:
 			raise KeyframeError("No keyframe", branch, turn, tick)
+		print(f"keyframe extensions on the other side {exts}")
 		assert len(exts) == 1, f"Incoherent keyframe {branch, turn, tick}"
 		universal, rule, rulebook = exts[0]
 		return (
