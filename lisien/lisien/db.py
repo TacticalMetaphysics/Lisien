@@ -7892,7 +7892,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		if not isinstance(stmt, Select):
 			raise TypeError("Only select statements should be executed")
 		self.flush()
-		with self._holder.lock:
+		with self.mutex():
 			self._inq.put(stmt)
 			return self._outq.get()
 
@@ -8691,7 +8691,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def flush(self):
 		"""Put all pending changes into the SQL transaction."""
-		with self._holder.lock:
+		with self.mutex():
 			self._inq.put(("echo", "ready"))
 			readied = self._outq.get()
 			assert readied == "ready", readied
@@ -9007,7 +9007,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._t.join()
 
 	def initdb(self):
-		with self._holder.lock:
+		with self.mutex():
 			self._inq.put("initdb")
 			ret = self._outq.get()
 			if isinstance(ret, Exception):
