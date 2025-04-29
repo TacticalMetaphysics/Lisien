@@ -2985,10 +2985,11 @@ class AbstractQueryEngine:
 	_holder: holder_cls
 
 	def echo(self, string: str) -> str:
-		self._inq.put(("echo", string))
-		ret = self._outq.get()
-		self._outq.task_done()
-		return ret
+		with self.mutex():
+			self._inq.put(("echo", string))
+			ret = self._outq.get()
+			self._outq.task_done()
+			return ret
 
 	@abstractmethod
 	def get_keyframe_extensions(
