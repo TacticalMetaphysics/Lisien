@@ -9042,16 +9042,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def get_keyframe_extensions(self, branch: str, turn: int, tick: int):
 		self.flush()
 		unpack = self.unpack
-		try:
-			universal, rule, rulebook = next(
-				iter(
-					self.call_one(
-						"get_keyframe_extensions", branch, turn, tick
-					)
-				)
-			)
-		except StopIteration as ex:
-			raise KeyframeError("No keyframe", branch, turn, tick) from ex
+		exts = self.call_one("get_keyframe_extensions", branch, turn, tick)
+		if not exts:
+			raise KeyframeError("No keyframe", branch, turn, tick)
+		assert len(exts) == 1, f"Incoherent keyframe {branch, turn, tick}"
+		universal, rule, rulebook = exts[0]
 		return (
 			unpack(universal),
 			unpack(rule),
