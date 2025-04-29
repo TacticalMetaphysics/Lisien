@@ -9,7 +9,18 @@ def get_application_config(*args):
 
 if __name__ == "__main__":
 	from elide.app import ElideApp
+	from lisien import Engine
+	from lisien.examples.wolfsheep import install
 
-	app = ElideApp(path=wd, use_thread=True)
+	connect_string = f"sqlite:///{wd}/world.sqlite3"
+
+	print("connecting to " + connect_string)
+
+	with Engine(
+		wd, workers=0, random_seed=69105, connect_string=connect_string
+	) as eng:
+		install(eng)
+
+	app = ElideApp(path=wd, use_thread=True, connect_string=connect_string)
 	app.get_application_config = get_application_config
 	app.run()
