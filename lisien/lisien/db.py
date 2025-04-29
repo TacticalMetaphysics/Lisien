@@ -4676,11 +4676,9 @@ class AbstractQueryEngine:
 				"node_rulebook": [],
 				"portal_rulebook": [],
 			}
-		print(f"load_windows({windows})")
 
 		ret = defaultdict(empty_char)
 		self._load_windows_into(ret, windows)
-		print(f"loaded windows {windows}")
 		return ret
 
 
