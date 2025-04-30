@@ -4240,9 +4240,18 @@ class EngineProcessManager:
 	"""
 
 	loglevel = logging.DEBUG
+	_handle_out_pipe: Connection
+	"The handle puts output here"
 
-	def __init__(self, *args, use_thread=False, **kwargs):
+	def __init__(
+		self,
+		*args,
+		use_thread: bool = False,
+		service_class_name: str = "org.tacmeta.elide.core",
+		**kwargs,
+	):
 		self.use_thread = use_thread
+		self.service_class_name = service_class_name
 		self._args = args
 		self._kwargs = kwargs
 
@@ -4253,15 +4262,23 @@ class EngineProcessManager:
 		if self.use_thread or use_thread:
 			from queue import Queue
 
-			handle_out_pipe_recv, self._handle_out_pipe_send = fake_pipe()
-			handle_in_pipe_recv, handle_in_pipe_send = fake_pipe()
+			handle_in_pipe, self._handle_out_pipe = fake_pipe()
+			output_queue = self._handle_out_pipe._inq
+			input_queue = handle_in_pipe._inq
 		else:
-			from multiprocessing import Pipe, Queue
+			try:
+				from multiprocessing import Pipe, Queue
 
-			(handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(
-				duplex=False
-			)
-			(handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
+				(handle_in_pipe, self._handle_out_pipe) = Pipe()
+				output_queue = input_queue = None
+			except ImportError:
+				from queue import Queue
+
+				output_queue = Queue()
+				input_queue = Queue()
+				self._handle_out_pipe = Connection(input_queue, output_queue)
+				handle_in_pipe = Connection(output_queue, input_queue)
+
 		self.logq = Queue()
 		handlers = []
 		logl = {
@@ -4307,37 +4324,89 @@ class EngineProcessManager:
 		for handler in handlers:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
-		args = (
-			self._args or args,
-			self._kwargs | kwargs,
-			handle_out_pipe_recv,
-			handle_in_pipe_send,
-			self.logq,
-			loglevel,
-		)
 		if self.use_thread:
-			self._p = Thread(target=engine_subprocess, args=args)
-		else:
+			self._p = Thread(
+				target=engine_subprocess,
+				args=(
+					args or self._args,
+					self._kwargs | kwargs,
+					handle_in_pipe,
+					self._handle_out_pipe,
+					self.logq,
+					loglevel,
+				),
+			)
+		elif handle_in_pipe is not None:
 			from multiprocessing import Process
 
 			self._p = Process(
 				name="Lisien Life Simulator Engine (core)",
 				target=engine_subprocess,
-				args=args,
+				args=(
+					args or self._args,
+					self._kwargs | kwargs,
+					handle_in_pipe,
+					self._handle_out_pipe,
+					self.logq,
+					loglevel,
+				),
 			)
-		self._p.start()
+			self._p.start()
+		elif output_queue and input_queue:
+			import base64
+
+			from jnius import autoclass
+			from pythonosc.osc_tcp_server import ThreadingOSCTCPServer
+			from pythonosc.tcp_client import SimpleTCPClient
+			from pythonosc.dispatcher import Dispatcher
+
+			port = kwargs.get("base_port", 323130)
+			service = autoclass("org.tacmeta.elide.core")
+			mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
+			disp = Dispatcher()
+			self._server = ThreadingOSCTCPServer(("127.0.0.1", port), disp)
+			disp.map("/core-reply", output_queue.put)
+			disp.map("/log", self.logq.put)
+			self._client = SimpleTCPClient("127.0.0.1", port + 1)
+			self._input_sender_thread = Thread(
+				target=self._send_input_forever,
+				args=[handle_in_pipe],
+				daemon=True,
+			)
+			self._input_sender_thread.start()
+			argument = base64.urlsafe_b64encode(
+				zlib.compress(
+					msgpack.packb(
+						[
+							port + 1,
+							port,
+							args or self._args,
+							kwargs | self._kwargs,
+						]
+					)
+				)
+			)
+			service.start(mActivity, argument)
+		else:
+			raise RuntimeError("Couldn't start process or service")
+
 		self._logthread = Thread(
 			target=self.sync_log_forever, name="log", daemon=True
 		)
 		self._logthread.start()
 		self.engine_proxy = EngineProxy(
-			self._handle_out_pipe_send,
-			handle_in_pipe_recv,
+			self._handle_out_pipe,
+			handle_in_pipe,
 			self.logger,
 			install_modules,
 			replay_file=replay_file,
 		)
 		return self.engine_proxy
+
+	def _send_input_forever(self, handle_in_pipe: Connection):
+		while True:
+			msg = handle_in_pipe.recv_bytes()
+			self._client.send_message("/", msg)
 
 	def sync_log(self, limit=None, block=True):
 		"""Get log messages from the subprocess, and log them in this one"""
@@ -4366,7 +4435,12 @@ class EngineProcessManager:
 	def shutdown(self):
 		"""Close the engine in the subprocess, then join the subprocess"""
 		self.engine_proxy.close()
-		self._p.join()
+		if hasattr(self, "_p"):
+			self._p.join()
+		if hasattr(self, "_client"):
+			self._client.send_message("/shutdown", "")
+		if hasattr(self, "_server"):
+			self._server.shutdown()
 
 	def __enter__(self):
 		return self.start()
