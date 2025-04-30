@@ -5987,7 +5987,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				)
 			self._new_keyframe_extensions()
 
-			assert self.echo("flushed") == "flushed"
+			self._inq.put(("echo", "flushed"))
+			assert self._outq.get() == "flushed"
 
 	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
 		unpack = self.unpack
