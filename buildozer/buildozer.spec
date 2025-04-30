@@ -13,7 +13,7 @@ package.domain = org.tacmeta
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,ini
+source.include_exts = py,png,jpg,kv,atlas,ini,sqlite3
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png
