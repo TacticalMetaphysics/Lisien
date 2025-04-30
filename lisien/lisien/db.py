@@ -3555,6 +3555,9 @@ class AbstractQueryEngine:
 		turn_to: Turn,
 		tick_to: Tick,
 	):
+		print(
+			f"_get_one_window({branch}, {turn_from}, {tick_from}, {turn_to}, {tick_to})"
+		)
 		unpack = self.unpack
 		outq = self._outq
 		assert (got := outq.get()) == (
@@ -4679,8 +4682,11 @@ class AbstractQueryEngine:
 				"portal_rulebook": [],
 			}
 
+		print(f"load_windows({windows})")
+
 		ret = defaultdict(empty_char)
 		self._load_windows_into(ret, windows)
+		print(f"finished loading windows {windows}")
 		return ret
 
 
@@ -7680,6 +7686,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			if inst[0] == "silent":
 				inst = inst[1:]
 				silent = True
+			print(inst[:2])
 			if inst[0] == "echo":
 				self.outq.put(inst[1])
 				continue
@@ -7697,6 +7704,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 							o = list(res)
 							self.outq.put(o)
 				except Exception as ex:
+					print(ex)
 					if silent:
 						print(f"while silenced: {ex}")
 						sys.exit(repr(ex))

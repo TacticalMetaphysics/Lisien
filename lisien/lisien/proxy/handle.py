@@ -93,6 +93,10 @@ class EngineHandle:
 		and controls what messages will be logged.
 
 		"""
+		assert not hasattr(EngineHandle, "_instantiated"), (
+			"Only instantiate one EngineHandle per process"
+		)
+		EngineHandle._instantiated = True
 		kwargs.setdefault("logfun", self.log)
 		do_game_start = kwargs.pop("do_game_start", False)
 		self._logq = logq
