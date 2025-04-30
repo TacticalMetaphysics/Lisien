@@ -157,7 +157,7 @@ def engy(tmp_path, execution, database):
 )
 def proxyless_engine(tmp_path, request, database):
 	with Engine(
-		tmp_path,
+		tmp_path if database != "null" else None,
 		random_seed=69105,
 		enforce_end_of_time=False,
 		workers=0 if request.param == "serial" else 2,
