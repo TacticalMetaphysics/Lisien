@@ -2266,9 +2266,6 @@ class Engine(AbstractEngine, Executor):
 		main_branch: Branch,
 		clear: bool,
 	):
-		print(
-			f"_init_load({prefix}, {connect_string}, {connect_args}, {keyframe_interval}, {main_branch}, {clear})"
-		)
 		if prefix is None:
 			if connect_string is None:
 				self.query = NullQueryEngine()
@@ -2333,18 +2330,13 @@ class Engine(AbstractEngine, Executor):
 		if main_branch not in self._branches_d:
 			self._branches_d[main_branch] = None, 0, 0, 0, 0
 		self._load_graphs()
-		print("loaded graphs")
 		self._load_plans()
-		print("loaded plans")
 		self._load_rules_handled()
-		print("loaded rules handled")
 		self._turns_completed_d.update(self.query.turns_completed_dump())
-		pritn("loaded turns completed")
 		self._rules_cache = {
 			name: Rule(self, name, create=False)
 			for name in self.query.rules_dump()
 		}
-		print("loaded rules")
 		with garbage():
 			self._load(*self._read_at(*self._btt()))
 		self.query.snap_keyframe = self.snap_keyframe
@@ -4524,7 +4516,6 @@ class Engine(AbstractEngine, Executor):
 		list,
 		dict,
 	]:
-		print(f"_read_at({branch},{turn},{tick})")
 		latest_past_keyframe: Time | None
 		earliest_future_keyframe: Time | None
 		branch_now, turn_now, tick_now = branch, turn, tick
