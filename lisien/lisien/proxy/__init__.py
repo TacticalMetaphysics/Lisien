@@ -4271,15 +4271,16 @@ class EngineProcessManager:
 
 				(handle_in_pipe, self._handle_out_pipe) = Pipe()
 				output_queue = input_queue = None
+				self.logq = Queue()
 			except ImportError:
 				from queue import Queue
 
 				output_queue = Queue()
 				input_queue = Queue()
+				self.logq = Queue()
 				self._handle_out_pipe = Connection(input_queue, output_queue)
 				handle_in_pipe = Connection(output_queue, input_queue)
 
-		self.logq = Queue()
 		handlers = []
 		logl = {
 			"debug": logging.DEBUG,
