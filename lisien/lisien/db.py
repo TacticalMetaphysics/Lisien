@@ -6434,15 +6434,89 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		big: RuleBig,
 	):
 		with self.mutex():
-			try:
-				self.call("insert1", "rules", {"rule": rule})
-			except IndexError:
-				pass
-			self.set_rule_triggers(rule, branch, turn, tick, triggers)
-			self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
-			self.set_rule_actions(rule, branch, turn, tick, actions)
-			self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
-			self.set_rule_big(rule, branch, turn, tick, big)
+			self._inq.put(("silent", "insert1", ["rules"], {"rule": "rule"}))
+			self._inq.put(
+				(
+					"silent",
+					"insert1",
+					[
+						"rule_triggers",
+						{
+							"rule": rule,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"triggers": self.pack(triggers),
+						},
+					],
+				)
+			)
+			self._inq.put(
+				(
+					"silent",
+					"insert1",
+					[
+						"rule_prereqs",
+						{
+							"rule": rule,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"prereqs": self.pack(prereqs),
+						},
+					],
+				)
+			)
+			self._inq.put(
+				(
+					"silent",
+					"insert1",
+					[
+						"rule_actions",
+						{
+							"rule": rule,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"actions": self.pack(actions),
+						},
+					],
+				)
+			)
+			self._inq.put(
+				(
+					"silent",
+					"insert1",
+					[
+						"rule_neighborhood",
+						{
+							"rule": rule,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"neighborhood": neighborhood,
+						},
+					],
+				)
+			)
+			self._inq.put(
+				(
+					"silent",
+					"insert1",
+					[
+						"rule_big",
+						{
+							"rule": rule,
+							"branch": branch,
+							"turn": turn,
+							"tick": tick,
+							"big": big,
+						},
+					],
+				)
+			)
+			self._inq.put(("echo", "rule set"))
+			assert self._outq.get() == "rule set"
 
 	def set_rulebook(
 		self,
