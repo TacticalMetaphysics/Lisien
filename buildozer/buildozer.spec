@@ -329,10 +329,10 @@ android.no-byte-compile-python = True
 #p4a.commit = HEAD
 
 # (str) python-for-android git clone directory (if empty, it will be automatically cloned from github)
-p4a.source_dir = /home/sanotehu/src/python-for-android
+# p4a.source_dir = /home/sanotehu/src/python-for-android
 
 # (str) The directory in which python-for-android should look for your own build recipes (if any)
-#p4a.local_recipes =
+p4a.local_recipes = /home/sanotehu/src/lisien/buildozer/recipes
 
 # (str) Filename to the hook for p4a
 #p4a.hook =
