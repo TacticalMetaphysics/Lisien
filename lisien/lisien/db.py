@@ -484,7 +484,8 @@ class ParquetDBHolder(ConnectionHolder):
 		pass
 
 	def close(self):
-		self._outq.join()
+		if not self._outq.empty():
+			self._outq.join()
 		self.existence_lock.release()
 
 	def initdb(self):
