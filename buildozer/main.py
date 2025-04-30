@@ -14,6 +14,6 @@ if __name__ == "__main__":
 
 	print("connecting to " + connect_string)
 
-	app = ElideApp(path=wd, use_thread=True, connect_string=connect_string)
+	app = ElideApp(path=wd, use_thread=False, connect_string=connect_string)
 	app.get_application_config = get_application_config
 	app.run()

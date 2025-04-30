@@ -2509,7 +2509,8 @@ class Engine(AbstractEngine, Executor):
 		from pythonosc import tcp_client
 		from pythonosc.dispatcher import Dispatcher
 
-		my_port = base_port + workers + 1
+		# base_port itself serves Elide, the frontend
+		my_port = base_port + 1
 
 		service = autoclass(service_class_name)
 		mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
@@ -2522,7 +2523,7 @@ class Engine(AbstractEngine, Executor):
 		self._osc_clients: list[tcp_client.SimpleTCPClient] = []
 		for i in range(workers):
 			self._osc_clients.append(
-				tcp_client.SimpleTCPClient("127.0.0.1", base_port + i)
+				tcp_client.SimpleTCPClient("127.0.0.1", my_port + 1 + i)
 			)
 			argument = base64.urlsafe_b64encode(
 				zlib.compress(
