@@ -2967,8 +2967,10 @@ class ParquetDBHolder(ConnectionHolder):
 						res = ex
 						break
 			else:
+				args = inst[1] if len(inst) > 1 else ()
+				kwargs = inst[2] if len(inst) > 2 else {}
 				try:
-					res = getattr(self, inst[0])(*inst[1], **inst[2])
+					res = getattr(self, inst[0])(*args, **kwargs)
 				except Exception as ex:
 					if silent:
 						loud_exit(inst, ex)
@@ -6434,7 +6436,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		big: RuleBig,
 	):
 		with self.mutex():
-			self._inq.put(("silent", "insert1", ["rules"], {"rule": "rule"}))
+			self._inq.put(("silent", "insert1", ["rules", {"rule": rule}]))
 			self._inq.put(
 				(
 					"silent",
