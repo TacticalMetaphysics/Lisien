@@ -37,11 +37,13 @@ version = 0.20.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,astunparse,blinker,sqlalchemy,tblib,pygments,libbz2,liblzma,python-osc
+requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,astunparse,blinker,sqlalchemy,tblib,pygments,libbz2,liblzma,python-osc,lisien,elide
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
 # requirements.source.kivy = ../../kivy
+requirements.source.lisien = ./lisien
+requirements.source.elide = ./elide
 
 # (str) Presplash of the application
 #presplash.filename = %(source.dir)s/data/presplash.png
@@ -56,7 +58,7 @@ icon.filename = %(source.dir)s/elide_icon/Android/icon_512px.png
 orientation = landscape
 
 # (list) List of service to declare
-services = worker:worker.py
+services = worker:worker.py,core:core.py
 
 #
 # OSX Specific
@@ -76,7 +78,7 @@ osx.kivy_version = 2.3.1
 #
 
 # (bool) Indicate if the application should be fullscreen or not
-fullscreen = 0
+fullscreen = 1
 
 # (string) Presplash background color (for android toolchain)
 # Supported formats are: #RRGGBB #AARRGGBB or one of the following names:
@@ -323,7 +325,7 @@ android.no-byte-compile-python = True
 #p4a.fork = kivy
 
 # (str) python-for-android branch to use, defaults to master
-#p4a.branch = master
+p4a.branch = develop
 
 # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
 #p4a.commit = HEAD
@@ -332,7 +334,7 @@ android.no-byte-compile-python = True
 # p4a.source_dir = /home/sanotehu/src/python-for-android
 
 # (str) The directory in which python-for-android should look for your own build recipes (if any)
-p4a.local_recipes = /home/sanotehu/src/lisien/buildozer/recipes
+p4a.local_recipes = ./recipes
 
 # (str) Filename to the hook for p4a
 #p4a.hook =
