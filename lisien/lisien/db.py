@@ -2949,34 +2949,43 @@ class ParquetDBHolder(ConnectionHolder):
 			if inst[0] == "echo":
 				outq.put(inst[1])
 				continue
-			elif inst[0] == "one":
+			if inst[0] == "one":
 				inst = inst[1:]
-				try:
-					res = getattr(self, inst[0])(*inst[1], **inst[2])
-				except Exception as ex:
-					if silent:
-						loud_exit(inst, ex)
-					res = ex
-			elif inst[0] == "many":
-				for args, kwargs in inst[2]:
-					try:
-						res = getattr(self, inst[0])(*args, **kwargs)
-					except Exception as ex:
-						if silent:
-							loud_exit(inst, ex)
-						res = ex
-						break
-			else:
+				cmd = inst[0]
 				args = inst[1] if len(inst) > 1 else ()
 				kwargs = inst[2] if len(inst) > 2 else {}
 				try:
-					res = getattr(self, inst[0])(*args, **kwargs)
+					res = getattr(self, cmd)(*args, **kwargs)
+					if not silent:
+						outq.put(res)
 				except Exception as ex:
 					if silent:
 						loud_exit(inst, ex)
-					res = ex
-			if not silent:
-				outq.put(res)
+					outq.put(ex)
+			elif inst[0] == "many":
+				cmd = inst[1]
+				for args, kwargs in inst[2]:
+					try:
+						res = getattr(self, cmd)(*args, **kwargs)
+						if not silent:
+							outq.put(res)
+					except Exception as ex:
+						if silent:
+							loud_exit(inst, ex)
+						outq.put(ex)
+						break
+			else:
+				cmd = inst[0]
+				args = inst[1] if len(inst) > 1 else ()
+				kwargs = inst[2] if len(inst) > 2 else {}
+				try:
+					res = getattr(self, cmd)(*args, **kwargs)
+					if not silent:
+						outq.put(res)
+				except Exception as ex:
+					if silent:
+						loud_exit(inst, ex)
+					outq.put(ex)
 
 
 class AbstractQueryEngine:
