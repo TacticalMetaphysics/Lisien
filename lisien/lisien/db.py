@@ -909,7 +909,8 @@ class ParquetDBHolder(ConnectionHolder):
 			filters=[
 				pc.field("branch") == branch,
 				pc.field("turn") >= turn_from,
-			]
+			],
+			columns=["id"] + list(self.schema[table]),
 		).to_pylist():
 			if d["turn"] == turn_from:
 				if d["tick"] >= tick_from:
