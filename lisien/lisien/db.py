@@ -5876,6 +5876,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 					self._nodevals2set(),
 					self._edges2set(),
 					self._edgevals2set(),
+					self._planticks2set(),
 				)
 			)
 			if self._unitness:
@@ -6304,6 +6305,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["tick"],
 				d["is_unit"],
 			)
+
+	@batch("plan_ticks")
+	def _planticks2set(self, plan_id: int, turn: int, tick: int):
+		return plan_id, turn, tick
 
 	@batch("universals")
 	def _universals2set(
@@ -7572,11 +7577,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
-		self.call(
-			"insert1",
-			"plan_ticks",
-			dict(plan_id=plan_id, turn=turn, tick=tick),
-		)
+		self._planticks2set.append((plan_id, turn, tick))
 
 	def plan_ticks_insert_many(self, many: list[tuple[Plan, Turn, Tick]]):
 		self.call(
