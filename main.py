@@ -1,9 +1,15 @@
 import os
 import sys
-from multiprocessing import freeze_support
+
+try:
+	from multiprocessing import freeze_support
+except ImportError:
+
+	def freeze_support(): ...
+
 
 wd = os.getcwd()
-sys.path.extend([wd + "/lisien", wd + "/elide"])
+sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
 
 
 def get_application_config(*args):
