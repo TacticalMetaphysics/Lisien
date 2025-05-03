@@ -949,7 +949,8 @@ class ParquetDBHolder(ConnectionHolder):
 						pc.field("turn") == turn_from,
 						pc.field("tick") >= tick_from,
 						pc.field("tick") <= tick_from,
-					]
+					],
+					columns=["id"] + list(self.schema[table]),
 				).to_pylist()
 			)
 		else:
