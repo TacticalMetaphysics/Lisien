@@ -2928,7 +2928,7 @@ class ParquetDBHolder(ConnectionHolder):
 				)
 			except:
 				msg = f"called {inst}; got exception {ex}"
-			print(msg)
+			print(msg, file=sys.stderr)
 			sys.exit(msg)
 
 		inq = self._inq
