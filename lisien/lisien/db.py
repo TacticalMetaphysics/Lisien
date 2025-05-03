@@ -923,7 +923,10 @@ class ParquetDBHolder(ConnectionHolder):
 		for d in self._iter_part_tick_to_end(
 			"universals", branch, turn_from, tick_from
 		):
-			yield d["key"], d["turn"], d["tick"], d["value"]
+			try:
+				yield d["key"], d["turn"], d["tick"], d["value"]
+			except KeyError:
+				continue
 
 	def _iter_part_tick_to_tick(
 		self,
