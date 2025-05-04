@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,ini,sqlite3
 #source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien,elide,elide.egg-info
+source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
@@ -37,7 +37,7 @@ version = 0.20.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,astunparse,blinker,sqlalchemy,tblib,pygments,libbz2,liblzma,python-osc
+requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,astunparse,blinker,sqlalchemy,tblib,pygments,libbz2,liblzma,python-osc,lisien,elide
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
