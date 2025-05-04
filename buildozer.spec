@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,ini,sqlite3
 #source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien/tests,elide/tests,elide.egg-info
+source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien,elide,elide.egg-info
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
@@ -37,7 +37,7 @@ version = 0.20.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,astunparse,blinker,sqlalchemy,tblib,pygments,libbz2,liblzma,python-osc,lisien,elide
+requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,astunparse,blinker,sqlalchemy,tblib,pygments,libbz2,liblzma,python-osc
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -190,7 +190,7 @@ android.private_storage = True
 # Either form may be used, and assets need not be in 'source.include_exts'.
 # 1) android.add_assets = source_asset_relative_path
 # 2) android.add_assets = source_asset_path:destination_asset_relative_path
-android.add_assets = elide/assets
+android.add_assets = elide/elide/assets:elide/assets
 
 # (list) Put these files or directories in the apk res directory.
 # The option may be used in three ways, the value may contain one or zero ':'
