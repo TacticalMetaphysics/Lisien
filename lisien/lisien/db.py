@@ -2964,24 +2964,25 @@ class ParquetDBHolder(ConnectionHolder):
 				kwargs = inst[2] if len(inst) > 2 else {}
 				try:
 					res = getattr(self, cmd)(*args, **kwargs)
-					if not silent:
-						outq.put(res)
 				except Exception as ex:
 					if silent:
 						loud_exit(inst, ex)
-					outq.put(ex)
+					res = ex
+				if not silent:
+					outq.put(res)
 				inq.task_done()
 			elif inst[0] == "many":
 				cmd = inst[1]
 				for args, kwargs in inst[2]:
 					try:
 						res = getattr(self, cmd)(*args, **kwargs)
-						if not silent:
-							outq.put(res)
 					except Exception as ex:
 						if silent:
 							loud_exit(inst, ex)
-						outq.put(ex)
+						res = ex
+					if not silent:
+						outq.put(res)
+					if isinstance(res, Exception):
 						break
 				inq.task_done()
 			else:
@@ -2990,12 +2991,12 @@ class ParquetDBHolder(ConnectionHolder):
 				kwargs = inst[2] if len(inst) > 2 else {}
 				try:
 					res = getattr(self, cmd)(*args, **kwargs)
-					if not silent:
-						outq.put(res)
 				except Exception as ex:
 					if silent:
 						loud_exit(inst, ex)
-					outq.put(ex)
+					res = ex
+				if not silent:
+					outq.put(res)
 				inq.task_done()
 
 
@@ -7801,18 +7802,17 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 						if hasattr(res, "returns_rows"):
 							if res.returns_rows:
 								o = list(res)
-								self.outq.put(o)
 							else:
-								self.outq.put(None)
+								o = None
 						else:
 							o = list(res)
-							self.outq.put(o)
 				except Exception as ex:
 					print(ex)
 					if silent:
 						print(f"while silenced: {ex}")
 						sys.exit(repr(ex))
-					self.outq.put(ex)
+					o = ex
+				self.outq.put(o)
 				self.inq.task_done()
 			elif inst[0] != "many":
 				raise ValueError(f"Invalid instruction: {inst[0]}")
@@ -7822,18 +7822,19 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 					if not silent:
 						if hasattr(res, "returns_rows"):
 							if res.returns_rows:
-								self.outq.put(list(res))
+								o = list(res)
 							else:
-								self.outq.put(None)
+								o =None
 						else:
 							rez = list(res.fetchall())
-							self.outq.put(rez or None)
+							o = rez or None
 				except Exception as ex:
 					if silent:
 						msg = "got exception while silenced: " + repr(ex)
 						print(msg)
 						sys.exit(msg)
-					self.outq.put(ex)
+					o = ex
+				self.outq.put(o)
 				self.inq.task_done()
 
 	def initdb(self):
