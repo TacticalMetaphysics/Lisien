@@ -2942,8 +2942,10 @@ class ParquetDBHolder(ConnectionHolder):
 			inst = inq.get()
 			if inst == "close":
 				self.close()
+				inq.task_done()
 				return
 			if inst == "commit":
+				inq.task_done()
 				continue
 			if not isinstance(inst, (str, tuple)):
 				raise TypeError("Can't use SQLAlchemy with ParquetDB")
@@ -2953,6 +2955,7 @@ class ParquetDBHolder(ConnectionHolder):
 				inst = inst[1:]
 			if inst[0] == "echo":
 				outq.put(inst[1])
+				inq.task_done()
 				continue
 			if inst[0] == "one":
 				inst = inst[1:]
@@ -2967,6 +2970,7 @@ class ParquetDBHolder(ConnectionHolder):
 					if silent:
 						loud_exit(inst, ex)
 					outq.put(ex)
+				inq.task_done()
 			elif inst[0] == "many":
 				cmd = inst[1]
 				for args, kwargs in inst[2]:
@@ -2979,6 +2983,7 @@ class ParquetDBHolder(ConnectionHolder):
 							loud_exit(inst, ex)
 						outq.put(ex)
 						break
+				inq.task_done()
 			else:
 				cmd = inst[0]
 				args = inst[1] if len(inst) > 1 else ()
@@ -2991,6 +2996,7 @@ class ParquetDBHolder(ConnectionHolder):
 					if silent:
 						loud_exit(inst, ex)
 					outq.put(ex)
+				inq.task_done()
 
 
 class AbstractQueryEngine:
@@ -3513,6 +3519,7 @@ class AbstractQueryEngine:
 					self._put_window_tick_to_tick(
 						branch, turn_from, tick_from, turn_to, tick_to
 					)
+			self._inq.join()
 			for window in windows:
 				self._get_one_window(ret, *window)
 			assert self._outq.empty()
@@ -7768,12 +7775,15 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				self.connection.close()
 				self.engine.dispose()
 				self.existence_lock.release()
+				self.inq.task_done()
 				return
 			if inst == "commit":
 				self.commit()
+				self.inq.task_done()
 				continue
 			if inst == "initdb":
 				self.outq.put(self.initdb())
+				self.inq.task_done()
 				continue
 			silent = False
 			if inst[0] == "silent":
@@ -7782,6 +7792,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			print(inst[:2])
 			if inst[0] == "echo":
 				self.outq.put(inst[1])
+				self.inq.task_done()
 				continue
 			elif inst[0] == "one":
 				try:
@@ -7802,6 +7813,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 						print(f"while silenced: {ex}")
 						sys.exit(repr(ex))
 					self.outq.put(ex)
+				self.inq.task_done()
 			elif inst[0] != "many":
 				raise ValueError(f"Invalid instruction: {inst[0]}")
 			else:
@@ -7822,6 +7834,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 						print(msg)
 						sys.exit(msg)
 					self.outq.put(ex)
+				self.inq.task_done()
 
 	def initdb(self):
 		"""Set up the database schema, both for allegedb and the special
