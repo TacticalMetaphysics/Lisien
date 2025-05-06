@@ -21,6 +21,6 @@ if __name__ == "__main__":
 
 	from elide.app import ElideApp
 
-	app = ElideApp()
+	app = ElideApp(prefix=wd, connect_string=f"sqlite:///{wd}/world.sqlite3")
 	app.get_application_config = get_application_config
 	app.run()
