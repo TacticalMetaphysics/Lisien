@@ -80,7 +80,7 @@ class ElideApp(App):
 	statcfg = ObjectProperty()
 	edit_locked = BooleanProperty(False)
 	simulate_button_down = BooleanProperty(False)
-	path = StringProperty()
+	prefix = StringProperty()
 	use_thread = BooleanProperty(False)
 	connect_string = StringProperty()
 
@@ -450,8 +450,8 @@ class ElideApp(App):
 			and os.path.isdir(sys.argv[-1])
 		):
 			self.mainmenu.open(os.path.abspath(sys.argv[-1]))
-		elif self.path:
-			self.mainmenu.open(os.path.abspath(self.path))
+		elif self.prefix:
+			self.mainmenu.open(os.path.abspath(self.prefix))
 
 	def update_calendar(self, calendar, past_turns=1, future_turns=5):
 		"""Fill in a calendar widget with actual simulation data"""
