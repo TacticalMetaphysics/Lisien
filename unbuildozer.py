@@ -1,3 +1,11 @@
+"""Utility to remove Lisien and Elide from Buildozer's workspace
+
+You can use this instead of ``buildozer android clean``, as long as only
+Lisien and Elide code has changed since the last time you ran
+``buildozer android debug``.
+
+"""
+
 import os
 import shutil
 
