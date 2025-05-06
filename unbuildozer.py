@@ -23,14 +23,12 @@ Lisien and Elide code has changed since the last time you ran
 import os
 import shutil
 
-shutil.rmtree(
-	".buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/Elide",
-	ignore_errors=True,
-)
 shutil.rmtree(".buildozer/android/app/elide", ignore_errors=True)
 pardirs = []
 prefix = ".buildozer/android/platform/"
 for plat in os.listdir(prefix):
+	if "dists" in os.listdir(os.path.join(prefix, plat)):
+		shutil.rmtree(os.path.join(prefix, plat, "dists"))
 	if "build" not in os.listdir(os.path.join(prefix, plat)):
 		continue
 	for build_dir in os.listdir(os.path.join(prefix, plat, "build")):
