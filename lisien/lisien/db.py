@@ -4710,9 +4710,9 @@ class AbstractQueryEngine:
 class NullQueryEngine(AbstractQueryEngine):
 	"""Query engine that does nothing, connects to no database
 
-	For tests, mainly. If you want to run Lisien in-memory, the
-	SQLAlchemyQueryEngine is more appropriate, with
-	connect_str='sqlite:///:memory:`
+	For tests, mainly. If you want to run Lisien in-memory,
+	:class:`SQLAlchemyQueryEngine` is more appropriate, with
+	``connect_str='sqlite:///:memory:'``
 
 	"""
 
