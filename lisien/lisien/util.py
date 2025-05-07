@@ -68,6 +68,31 @@ from .graph import DiGraph, Edge, Node
 from .typing import Branch, Key, Tick, Turn
 
 
+TRUE: bytes = msgpack.packb(True)
+FALSE: bytes = msgpack.packb(False)
+NONE: bytes = msgpack.packb(None)
+NAME: bytes = msgpack.packb("name")
+NODES: bytes = msgpack.packb("nodes")
+EDGES: bytes = msgpack.packb("edges")
+UNITS: bytes = msgpack.packb("units")
+RULEBOOK: bytes = msgpack.packb("rulebook")
+RULEBOOKS: bytes = msgpack.packb("rulebooks")
+NODE_VAL: bytes = msgpack.packb("node_val")
+EDGE_VAL: bytes = msgpack.packb("edge_val")
+ETERNAL: bytes = msgpack.packb("eternal")
+UNIVERSAL: bytes = msgpack.packb("universal")
+STRINGS: bytes = msgpack.packb("strings")
+RULES: bytes = msgpack.packb("rules")
+TRIGGERS: bytes = msgpack.packb("triggers")
+PREREQS: bytes = msgpack.packb("prereqs")
+ACTIONS: bytes = msgpack.packb("actions")
+NEIGHBORHOOD: bytes = msgpack.packb("neighborhood")
+BIG: bytes = msgpack.packb("big")
+LOCATION: bytes = msgpack.packb("location")
+BRANCH: bytes = msgpack.packb("branch")
+EMPTY_MAPPING: bytes = msgpack.packb({})
+
+
 class SignalDict(Signal, dict):
 	def __setitem__(self, __key, __value):
 		super().__setitem__(__key, __value)

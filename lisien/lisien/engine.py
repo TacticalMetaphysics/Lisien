@@ -135,6 +135,28 @@ from .util import (
 	normalize_layout,
 	sort_set,
 	world_locked,
+	TRUE,
+	FALSE,
+	NONE,
+	NAME,
+	NODES,
+	EDGES,
+	UNITS,
+	RULEBOOK,
+	RULEBOOKS,
+	NODE_VAL,
+	EDGE_VAL,
+	ETERNAL,
+	UNIVERSAL,
+	STRINGS,
+	RULES,
+	TRIGGERS,
+	PREREQS,
+	ACTIONS,
+	NEIGHBORHOOD,
+	BIG,
+	LOCATION,
+	BRANCH,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
@@ -155,29 +177,6 @@ SlightlyPackedDeltaType = dict[
 		],
 	],
 ]
-
-TRUE: bytes = msgpack.packb(True)
-FALSE: bytes = msgpack.packb(False)
-NONE: bytes = msgpack.packb(None)
-NAME: bytes = msgpack.packb("name")
-NODES: bytes = msgpack.packb("nodes")
-EDGES: bytes = msgpack.packb("edges")
-UNITS: bytes = msgpack.packb("units")
-RULEBOOK: bytes = msgpack.packb("rulebook")
-RULEBOOKS: bytes = msgpack.packb("rulebooks")
-NODE_VAL: bytes = msgpack.packb("node_val")
-EDGE_VAL: bytes = msgpack.packb("edge_val")
-ETERNAL: bytes = msgpack.packb("eternal")
-UNIVERSAL: bytes = msgpack.packb("universal")
-STRINGS: bytes = msgpack.packb("strings")
-RULES: bytes = msgpack.packb("rules")
-TRIGGERS: bytes = msgpack.packb("triggers")
-PREREQS: bytes = msgpack.packb("prereqs")
-ACTIONS: bytes = msgpack.packb("actions")
-NEIGHBORHOOD: bytes = msgpack.packb("neighborhood")
-BIG: bytes = msgpack.packb("big")
-LOCATION: bytes = msgpack.packb("location")
-BRANCH: bytes = msgpack.packb("branch")
 
 
 class InnerStopIteration(StopIteration):
@@ -466,7 +465,7 @@ class Engine(AbstractEngine, Executor):
 		of trigger functions.
 	:param base_port: On platforms that do not let us spawn processes,
 		we instead start worker services. They will listen for our commands
-		at ports starting from ``base_port``. 323130 by default.
+		at ports starting from ``base_port``. 32310 by default.
 
 	"""
 
@@ -2176,7 +2175,7 @@ class Engine(AbstractEngine, Executor):
 		keyframe_on_close: bool = True,
 		enforce_end_of_time: bool = True,
 		workers: int = None,
-		base_port: int = 323130,
+		base_port: int = 32310,
 	):
 		if workers is None:
 			workers = os.cpu_count()
@@ -2213,7 +2212,10 @@ class Engine(AbstractEngine, Executor):
 				self._start_worker_processes(prefix, workers)
 			except ImportError:
 				self._start_worker_services(
-					prefix, workers, base_port, "org.tacmeta.elide.worker"
+					prefix,
+					workers,
+					base_port,
+					"org.tacmeta.elide.ServiceWorker",
 				)
 
 	def _init_log(self, logfun: Optional[callable]):
@@ -2504,10 +2506,14 @@ class Engine(AbstractEngine, Executor):
 		service_class_name: str,
 	):
 		import base64
+
+		from android.permissions import request_permissions, Permission
 		from jnius import autoclass
-		from pythonosc import osc_tcp_server
-		from pythonosc import tcp_client
+		from pythonosc import osc_server
+		from pythonosc import udp_client
 		from pythonosc.dispatcher import Dispatcher
+
+		request_permissions([Permission.INTERNET])
 
 		# base_port itself serves Elide, the frontend
 		my_port = base_port + 1
@@ -2517,13 +2523,13 @@ class Engine(AbstractEngine, Executor):
 
 		dispatcher = Dispatcher()
 		dispatcher.map("worker-reply", self._handle_worker_reply)
-		serv = self._osc_server = osc_tcp_server.ThreadingOSCTCPServer(
+		serv = self._osc_server = osc_udp_server.ThreadingOSCUDPServer(
 			("127.0.0.1", my_port), dispatcher
 		)
-		self._osc_clients: list[tcp_client.SimpleTCPClient] = []
+		self._osc_clients: list[udp_client.SimpleUDPClient] = []
 		for i in range(workers):
 			self._osc_clients.append(
-				tcp_client.SimpleTCPClient("127.0.0.1", my_port + 1 + i)
+				udp_client.SimpleTCPClient("127.0.0.1", my_port + 1 + i)
 			)
 			argument = base64.urlsafe_b64encode(
 				zlib.compress(
@@ -2538,7 +2544,7 @@ class Engine(AbstractEngine, Executor):
 						]
 					)
 				)
-			)
+			).decode()
 			service.start(mActivity, argument)
 		self._setup_fut_manager(workers)
 		self._osc_serv_thread = Thread(target=serv.serve_forever)
