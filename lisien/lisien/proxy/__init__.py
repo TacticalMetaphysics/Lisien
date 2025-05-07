@@ -3285,6 +3285,7 @@ class EngineProxy(AbstractEngine):
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
 		if worker_index is None:
+			self.logger.debug("Starting engine proxy to the core")
 			self._worker = False
 			self.next_turn = NextTurnProxy(self)
 			self.method = FuncStoreProxy(self, "method")
@@ -3367,9 +3368,11 @@ class EngineProxy(AbstractEngine):
 		if worker_index is None:
 			self.send({"command": "get_btt"})
 			received = self.recv()
+			self.debug(f"Got time: {received}")
 			self._branch, self._turn, self._tick = received[-1]
 			self.send({"command": "branches"})
 			self._branches_d = self.recv()[-1]
+			self.debug(f"Got {len(self._branches_d)} branches")
 			self.method.load()
 			self.action.load()
 			self.prereq.load()
@@ -3377,11 +3380,13 @@ class EngineProxy(AbstractEngine):
 			self.function.load()
 			self.string.load()
 			self._eternal_cache = self.handle("eternal_copy")
+			self.debug(f"Got {len(self._eternal_cache)} eternal vars")
 			self._initialized = False
 			self._pull_kf_now()
 			self._initialized = True
 			for module in install_modules:
 				self.handle("install_module", module=module)
+				self.debug(f"Installed module: {module}")
 			if replay_txt is not None:
 				replay = ast.parse(replay_txt)
 				for expr in replay.body:

@@ -15,10 +15,10 @@
 
 import base64
 from functools import partial
-from logging import getLogger, DEBUG
 import os
 import zlib
 
+from kivy.logger import Logger
 import msgpack
 from pythonosc import osc_server
 from pythonosc import udp_client
@@ -28,8 +28,7 @@ from lisien.proxy import _engine_subroutine_step
 from lisien.proxy.handle import EngineHandle
 
 
-logger = getLogger(__name__)
-logger.setLevel(DEBUG)
+Logger.debug("core: imported libs")
 
 
 def dispatch_command(
@@ -42,6 +41,11 @@ def dispatch_command(
 
 	def send_output_bytes(resp: bytes):
 		client.send_message("/core-reply", zlib.compress(resp))
+
+	Logger.debug(
+		"core: about to dispatch "
+		f"{instruction.get('command', 'nothing??')} to the Lisien core"
+	)
 
 	_engine_subroutine_step(hand, instruction, send_output, send_output_bytes)
 
@@ -68,7 +72,7 @@ def core_service(my_port: int, replies_port: int, args: list, kwargs: dict):
 
 
 if __name__ == "__main__":
-	logger.info("core.py __main__ executing")
+	Logger.debug("core.py __main__ executing")
 	assert "PYTHON_SERVICE_ARGUMENT" in os.environ
 	assert isinstance(os.environ["PYTHON_SERVICE_ARGUMENT"], str)
 
