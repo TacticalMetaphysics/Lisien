@@ -58,7 +58,7 @@ icon.filename = %(source.dir)s/elide_icon/Android/icon_512px.png
 orientation = landscape
 
 # (list) List of service to declare
-services = worker:worker.py,core:core.py
+services = worker:_python_bundle/site-packages/lisien/services/worker.py,core:_python_bundle/site-packages/lisien/services/core.py
 
 #
 # OSX Specific
@@ -99,7 +99,7 @@ fullscreen = 1
 
 # (list) Permissions
 # (See https://python-for-android.readthedocs.io/en/latest/buildoptions/#build-options-1 for all the supported syntaxes and properties)
-android.permissions = (name=android.permission.WRITE_EXTERNAL_STORAGE;maxSdkVersion=18)
+android.permissions = (name=android.permission.WRITE_EXTERNAL_STORAGE;maxSdkVersion=18),(name=android.permission.INTERNET;maxSdkVersion=34)
 
 # (list) features (adds uses-feature -tags to manifest)
 #android.features = android.hardware.usb.host
@@ -159,7 +159,7 @@ android.private_storage = True
 
 # (str) Full name including package path of the Java class that implements Python Service
 # use that parameter to set custom Java class which extends PythonService
-#android.service_class_name = org.kivy.android.PythonService
+android.service_class_name = org.kivy.android.PythonService
 
 # (str) Android app theme, default is ok for Kivy-based app
 # android.apptheme = "@android:style/Theme.NoTitleBar"
@@ -350,7 +350,7 @@ p4a.local_recipes = ./recipes
 # Setting this to false will pass --ignore-setup-py, true will pass --use-setup-py
 # NOTE: this is general setuptools integration, having pyproject.toml is enough, no need to generate
 # setup.py if you're using Poetry, but you need to add "toml" to source.include_exts.
-#p4a.setup_py = false
+# p4a.setup_py = false
 
 # (str) extra command line arguments to pass when invoking pythonforandroid.toolchain
 #p4a.extra_args =

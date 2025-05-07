@@ -22,15 +22,15 @@ import traceback
 import zlib
 
 import msgpack
-from pythonosc import osc_tcp_server
-from pythonosc import tcp_client
+from pythonosc import osc_server
+from pythonosc import udp_client
 from pythonosc.dispatcher import Dispatcher
 
 from lisien.proxy import EngineProxy
 
 
 def dispatch_command(
-	eng: EngineProxy, client: tcp_client.SimpleTCPClient, inst: bytes
+	eng: EngineProxy, client: udp_client.SimpleUDPClient, inst: bytes
 ):
 	uid = int.from_bytes(inst[:8], "little")
 	method, args, kwargs = eng.unpack(zlib.decompress(inst[8:]))
@@ -58,6 +58,9 @@ def worker_service(
 	branches: dict,
 	eternal: dict,
 ):
+	from android.permissions import request_permissions, Permission
+
+	request_permissions([Permission.INTERNET])
 	logger = getLogger(f"lisien_worker_{my_port}")
 	logger.info(
 		"Started Lisien worker service in prefix %s on port %d, "
@@ -76,10 +79,10 @@ def worker_service(
 		eternal=eternal,
 		branches=branches,
 	)
-	client = tcp_client.SimpleTCPClient("127.0.0.1", replies_port)
+	client = udp_client.SimpleUDPClient("127.0.0.1", replies_port)
 	dispatcher = Dispatcher()
 	dispatcher.map("/", partial(dispatch_command, eng, client))
-	serv = osc_tcp_server.BlockingOSCTCPServer(
+	serv = osc_server.BlockingOSCUDPServer(
 		(
 			"127.0.0.1",
 			my_port,

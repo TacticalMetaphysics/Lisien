@@ -25,9 +25,12 @@ from typing import Any, Callable, Iterable
 import msgpack
 import networkx as nx
 
-from ..engine import (
+from ..util import (
+	AbstractCharacter,
+	BadTimeException,
 	EDGE_VAL,
 	EDGES,
+	EMPTY_MAPPING,
 	ETERNAL,
 	NODE_VAL,
 	NODES,
@@ -37,13 +40,12 @@ from ..engine import (
 	RULES,
 	UNITS,
 	UNIVERSAL,
-	Engine,
+	timer,
 )
 from ..exc import OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
 from ..typing import Key
-from ..util import AbstractCharacter, BadTimeException, timer
 
 SlightlyPackedDeltaType = dict[
 	bytes,
@@ -53,9 +55,6 @@ SlightlyPackedDeltaType = dict[
 	],
 ]
 FormerAndCurrentType = tuple[dict[bytes, bytes], dict[bytes, bytes]]
-
-
-EMPTY_MAPPING = msgpack.packb({})
 
 
 def concat_d(r: dict[bytes, bytes]) -> bytes:
@@ -96,6 +95,8 @@ class EngineHandle:
 		assert not hasattr(EngineHandle, "_instantiated"), (
 			"Only instantiate one EngineHandle per process"
 		)
+		from ..engine import Engine
+
 		EngineHandle._instantiated = True
 		kwargs.setdefault("logfun", self.log)
 		do_game_start = kwargs.pop("do_game_start", False)

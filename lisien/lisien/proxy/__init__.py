@@ -52,6 +52,7 @@ import msgpack
 import networkx as nx
 from blinker import Signal
 
+from .handle import EngineHandle
 from ..cache import PickyDefaultDict, StructuredDefaultDict
 from ..exc import (
 	AmbiguousUserError,
@@ -3470,22 +3471,34 @@ class EngineProxy(AbstractEngine):
 	def send(
 		self, obj, blocking: bool = True, timeout: int | float = 1
 	) -> None:
-		self.send_bytes(self.pack(obj), blocking=blocking, timeout=timeout)
+		if hasattr(self._handle_out, "send_bytes"):
+			self.send_bytes(self.pack(obj), blocking=blocking, timeout=timeout)
+		else:
+			self._handle_out.put(obj, timeout=timeout)
 
 	def send_bytes(self, obj, blocking=True, timeout=1):
+		if not hasattr(self._handle_out, "send_bytes"):
+			raise TypeError("Tried to send bytes not between processes")
 		compressed = zlib.compress(obj)
 		self._handle_out_lock.acquire(blocking, timeout)
 		self._handle_out.send_bytes(compressed)
 		self._handle_out_lock.release()
 
 	def recv_bytes(self, blocking=True, timeout=1):
+		if not hasattr(self._handle_in, "recv_bytes"):
+			raise TypeError("Tried to receive bytes not from another process")
 		self._handle_in_lock.acquire(blocking, timeout)
 		data = self._handle_in.recv_bytes()
 		self._handle_in_lock.release()
 		return zlib.decompress(data)
 
 	def recv(self, blocking: bool = True, timeout: int | float = 1):
-		return self.unpack(self.recv_bytes(blocking=blocking, timeout=timeout))
+		if hasattr(self._handle_in, "recv_bytes"):
+			return self.unpack(
+				self.recv_bytes(blocking=blocking, timeout=timeout)
+			)
+		else:
+			return self._handle_in.get()
 
 	def debug(self, msg):
 		self.logger.debug(msg)
@@ -3989,14 +4002,75 @@ class EngineProxy(AbstractEngine):
 				yield thing.name
 
 
+def _finish_packing(pack, cmd, branch, turn, tick, mostly_bytes):
+	r = mostly_bytes
+	resp = msgpack.Packer().pack_array_header(5)
+	resp += pack(cmd) + pack(branch) + pack(turn) + pack(tick)
+	if isinstance(r, dict):
+		resp += msgpack.Packer().pack_map_header(len(r))
+		for k, v in r.items():
+			resp += k + v
+	elif isinstance(r, tuple):
+		pacr = msgpack.Packer()
+		pacr.pack_ext_type(
+			MsgpackExtensionType.tuple.value,
+			msgpack.Packer().pack_array_header(len(r)) + b"".join(r),
+		)
+		resp += pacr.bytes()
+	elif isinstance(r, list):
+		resp += msgpack.Packer().pack_array_header(len(r)) + b"".join(r)
+	else:
+		resp += r
+	return resp
+
+
+def _engine_subroutine_step(
+	handle: EngineHandle, instruction: dict, send_output, send_output_bytes
+):
+	silent = instruction.pop("silent", False)
+	cmd = instruction.pop("command")
+	branching = instruction.pop("branching")
+	r = None
+	try:
+		if branching:
+			try:
+				r = getattr(handle, cmd)(**instruction)
+			except OutOfTimelineError:
+				handle.increment_branch()
+				r = getattr(handle, cmd)(**instruction)
+		else:
+			r = getattr(handle, cmd)(**instruction)
+	except AssertionError:
+		raise
+	except Exception as ex:
+		send_output(ex)
+		return
+	if silent:
+		return
+	if hasattr(getattr(handle, cmd), "prepacked"):
+		send_output_bytes(
+			_finish_packing(handle.pack, cmd, *handle._real.time, r)
+		)
+	else:
+		send_output(r)
+	if hasattr(handle, "_after_ret"):
+		handle._after_ret()
+		del handle._after_ret
+
+
 def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 	"""Loop to handle one command at a time and pipe results back"""
-	from .handle import EngineHandle
-
 	engine_handle = EngineHandle(*args, logq=logq, loglevel=loglevel, **kwargs)
-	compress = zlib.compress
-	decompress = zlib.decompress
-	pack = engine_handle.pack
+
+	def send_output(r):
+		output_pipe.send_bytes(zlib.compress(engine_handle.pack(r)))
+
+	def send_output_bytes(cmd, branch, turn, tick, r):
+		output_pipe.send_bytes(
+			zlib.compress(
+				_finish_packing(engine_handle.pack, cmd, branch, turn, tick, r)
+			)
+		)
 
 	while True:
 		inst = input_pipe.recv_bytes()
@@ -4006,70 +4080,31 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 			if logq:
 				logq.close()
 			return 0
-		instruction = engine_handle.unpack(decompress(inst))
-		silent = instruction.pop("silent", False)
-		cmd = instruction.pop("command")
-
-		branching = instruction.pop("branching", False)
-		try:
-			if branching:
-				try:
-					r = getattr(engine_handle, cmd)(**instruction)
-				except OutOfTimelineError:
-					engine_handle.increment_branch()
-					r = getattr(engine_handle, cmd)(**instruction)
-			else:
-				r = getattr(engine_handle, cmd)(**instruction)
-		except AssertionError:
-			raise
-		except Exception as e:
-			output_pipe.send_bytes(
-				compress(
-					engine_handle.pack(
-						(
-							cmd,
-							engine_handle._real.branch,
-							engine_handle._real.turn,
-							engine_handle._real.tick,
-							e,
-						)
-					)
-				)
-			)
-			continue
-		if silent:
-			continue
-		resp = msgpack.Packer().pack_array_header(5)
-		resp += (
-			pack(cmd)
-			+ pack(engine_handle._real.branch)
-			+ pack(engine_handle._real.turn)
-			+ pack(engine_handle._real.tick)
+		instruction = engine_handle.unpack(zlib.decompress(inst))
+		_engine_subroutine_step(
+			engine_handle, instruction, send_output, send_output_bytes
 		)
-		if hasattr(getattr(engine_handle, cmd), "prepacked"):
-			if isinstance(r, dict):
-				resp += msgpack.Packer().pack_map_header(len(r))
-				for k, v in r.items():
-					resp += k + v
-			elif isinstance(r, tuple):
-				pacr = msgpack.Packer()
-				pacr.pack_ext_type(
-					MsgpackExtensionType.tuple.value,
-					msgpack.Packer().pack_array_header(len(r)) + b"".join(r),
-				)
-				resp += pacr.bytes()
-			elif isinstance(r, list):
-				resp += msgpack.Packer().pack_array_header(len(r)) + b"".join(
-					r
-				)
-			else:
-				resp += r
-		else:
-			resp += pack(r)
-		output_pipe.send_bytes(compress(resp))
-		if hasattr(engine_handle, "_after_ret"):
-			engine_handle._after_ret()
-			del engine_handle._after_ret
+
+
+def engine_subthread(args, kwargs, input_queue, output_queue, logfun):
+	engine_handle = EngineHandle(*args, logfun=logfun, **kwargs)
+
+	send_output = output_queue.put
+
+	def send_output_bytes(cmd, branch, turn, tick, r):
+		output_queue.put(
+			engine_handle.unpack(
+				_finish_packing(engine_handle.pack, cmd, branch, turn, tick, r)
+			)
+		)
+
+	while True:
+		instruction = input_queue.get()
+		if instruction == "shutdown" or instruction == b"shutdown":
+			return
+		_engine_subroutine_step(
+			engine_handle, instruction, send_output, send_output_bytes
+		)
 
 
 class WorkerLogger:
@@ -4166,66 +4201,6 @@ def worker_subprocess(
 		eng._initialized = True
 
 
-class Connection:
-	"""A replacement for the ends of a pipe that doesn't really go between processes"""
-
-	def __init__(self, inq: Queue, outq: Queue):
-		self._inq = inq
-		self._outq = outq
-
-	def poll(self, timeout=0.0):
-		return self._inq.get(timeout=timeout)
-
-	def recv(self):
-		return self._inq.get()
-
-	def recv_bytes_into(self, buf: bytearray, offset=0):
-		got = self._inq.get()
-		if not isinstance(got, bytes):
-			raise TypeError("Not bytes")
-		buf.insert(offset, got)
-
-	def recv_bytes(self, maxlength=None):
-		got = self._inq.get()
-		if not isinstance(got, bytes):
-			raise TypeError("Not bytes")
-		if maxlength is not None and len(got) > maxlength:
-			raise ValueError("Too big")
-		return got
-
-	def send(self, obj):
-		self._outq.put(obj)
-
-	def send_bytes(self, buf, offset=0, size=None):
-		if size is None:
-			size = len(buf) - offset
-		self._outq.put(buf[offset:size])
-
-	def close(self):
-		pass
-
-	def fileno(self):
-		return -1
-
-	@property
-	def writable(self):
-		return True
-
-	@property
-	def readable(self):
-		return True
-
-	@property
-	def closed(self):
-		return False
-
-
-def fake_pipe():
-	inq = Queue()
-	outq = Queue()
-	return Connection(inq, outq), Connection(outq, inq)
-
-
 class EngineProcessManager:
 	"""Container for a Lisien proxy and a logger for it
 
@@ -4240,7 +4215,6 @@ class EngineProcessManager:
 	"""
 
 	loglevel = logging.DEBUG
-	_handle_out_pipe: Connection
 	"The handle puts output here"
 
 	def __init__(
@@ -4260,24 +4234,22 @@ class EngineProcessManager:
 		if hasattr(self, "engine_proxy"):
 			raise RuntimeError("Already started")
 		if self.use_thread or use_thread:
-			from queue import Queue
+			from queue import SimpleQueue
 
-			handle_in_pipe, self._handle_out_pipe = fake_pipe()
-			output_queue = self._handle_out_pipe._inq
-			input_queue = handle_in_pipe._inq
+			output_queue = SimpleQueue()
+			input_queue = SimpleQueue()
+			self.logq = SimpleQueue()
 		else:
 			try:
 				import android
-				from queue import Queue
+				from queue import SimpleQueue
 
-				output_queue = Queue()
-				input_queue = Queue()
-				self.logq = Queue()
-				self._handle_out_pipe = Connection(input_queue, output_queue)
-				handle_in_pipe = Connection(output_queue, input_queue)
+				output_queue = SimpleQueue()
+				input_queue = SimpleQueue()
 			except ImportError:
 				from multiprocessing import Pipe, Queue
-				(handle_in_pipe, self._handle_out_pipe) = Pipe()
+
+				(self._handle_in_pipe, self._handle_out_pipe) = Pipe()
 				output_queue = input_queue = None
 				self.logq = Queue()
 
@@ -4327,17 +4299,18 @@ class EngineProcessManager:
 			self.logger.addHandler(handler)
 		if self.use_thread:
 			self._p = Thread(
-				target=engine_subprocess,
+				target=engine_subthread,
 				args=(
 					args or self._args,
 					self._kwargs | kwargs,
-					handle_in_pipe,
-					self._handle_out_pipe,
-					self.logq,
-					loglevel,
+					input_queue,
+					output_queue,
+					self.logger.log,
 				),
 			)
-		elif handle_in_pipe is not None:
+		elif hasattr(self, "_handle_in_pipe") and hasattr(
+			self, "_handle_out_pipe"
+		):
 			from multiprocessing import Process
 
 			self._p = Process(
@@ -4346,32 +4319,36 @@ class EngineProcessManager:
 				args=(
 					args or self._args,
 					self._kwargs | kwargs,
-					handle_in_pipe,
+					self._handle_in_pipe,
 					self._handle_out_pipe,
 					self.logq,
 					loglevel,
 				),
 			)
 			self._p.start()
+			self._logthread = Thread(
+				target=self.sync_log_forever, name="log", daemon=True
+			)
+			self._logthread.start()
 		elif output_queue and input_queue:
 			import base64
 
 			from jnius import autoclass
-			from pythonosc.osc_tcp_server import ThreadingOSCTCPServer
-			from pythonosc.tcp_client import SimpleTCPClient
+			from pythonosc.osc_server import ThreadingOSCUDPServer
+			from pythonosc.udp_client import SimpleUDPClient
 			from pythonosc.dispatcher import Dispatcher
 
-			port = kwargs.get("base_port", 323130)
-			service = autoclass("org.tacmeta.elide.core")
+			port = kwargs.get("base_port", 32310)
+			service = autoclass("org.tacmeta.elide.ServiceCore")
 			mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
 			disp = Dispatcher()
-			self._server = ThreadingOSCTCPServer(("127.0.0.1", port), disp)
+			self._server = ThreadingOSCUDPServer(("127.0.0.1", port), disp)
 			disp.map("/core-reply", output_queue.put)
-			disp.map("/log", self.logq.put)
-			self._client = SimpleTCPClient("127.0.0.1", port + 1)
+			disp.map("/log", self.logger.log)
+			self._client = SimpleUDPClient("127.0.0.1", port + 1)
 			self._input_sender_thread = Thread(
 				target=self._send_input_forever,
-				args=[handle_in_pipe],
+				args=[input_queue],
 				daemon=True,
 			)
 			self._input_sender_thread.start()
@@ -4386,27 +4363,31 @@ class EngineProcessManager:
 						]
 					)
 				)
-			)
-			service.start(mActivity, argument)
+			).decode()
+			self.logger.debug("starting core")
+			try:
+				service.start(mActivity, argument)
+			except Exception as ex:
+				self.logger.critical(repr(ex))
+				sys.exit(repr(ex))
+			self.logger.debug("started core")
 		else:
 			raise RuntimeError("Couldn't start process or service")
 
-		self._logthread = Thread(
-			target=self.sync_log_forever, name="log", daemon=True
-		)
-		self._logthread.start()
 		self.engine_proxy = EngineProxy(
-			self._handle_out_pipe,
-			handle_in_pipe,
+			output_queue,
+			input_queue,
 			self.logger,
 			install_modules,
 			replay_file=replay_file,
 		)
 		return self.engine_proxy
 
-	def _send_input_forever(self, handle_in_pipe: Connection):
+	def _send_input_forever(self, input_queue):
 		while True:
-			msg = handle_in_pipe.recv_bytes()
+			msg = input_queue.get()
+			if not isinstance(msg, bytes):
+				msg = zlib.compress(self.engine_proxy.pack(msg))
 			self._client.send_message("/", msg)
 
 	def sync_log(self, limit=None, block=True):
