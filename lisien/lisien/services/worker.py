@@ -15,12 +15,12 @@
 
 import base64
 from functools import partial
-from logging import getLogger
 import os
 import sys
 import traceback
 import zlib
 
+from kivy.logger import Logger
 import msgpack
 from pythonosc import osc_server
 from pythonosc import udp_client
@@ -29,11 +29,15 @@ from pythonosc.dispatcher import Dispatcher
 from lisien.proxy import EngineProxy
 
 
+Logger.debug("worker: imported libs")
+
+
 def dispatch_command(
-	eng: EngineProxy, client: udp_client.SimpleUDPClient, inst: bytes
+	i, eng: EngineProxy, client: udp_client.SimpleUDPClient, inst: bytes
 ):
 	uid = int.from_bytes(inst[:8], "little")
 	method, args, kwargs = eng.unpack(zlib.decompress(inst[8:]))
+	Logger.debug(f"about to dispatch {method} call id {uid} to worker {i}")
 	if isinstance(method, str):
 		method = getattr(eng, method)
 	try:
@@ -48,6 +52,9 @@ def dispatch_command(
 	eng._initialized = True
 	payload = inst[:8] + zlib.compress(eng.pack(ret))
 	client.send_message("/worker-reply", payload)
+	Logger.debug(
+		f"sent a reply to call {uid} of method {method}; {len(payload)} bytes"
+	)
 
 
 def worker_service(
@@ -61,8 +68,7 @@ def worker_service(
 	from android.permissions import request_permissions, Permission
 
 	request_permissions([Permission.INTERNET])
-	logger = getLogger(f"lisien_worker_{my_port}")
-	logger.info(
+	Logger.debug(
 		"Started Lisien worker service in prefix %s on port %d, "
 		"sending replies to port %d",
 		prefix,
@@ -81,7 +87,7 @@ def worker_service(
 	)
 	client = udp_client.SimpleUDPClient("127.0.0.1", replies_port)
 	dispatcher = Dispatcher()
-	dispatcher.map("/", partial(dispatch_command, eng, client))
+	dispatcher.map("/", partial(dispatch_command, i, eng, client))
 	serv = osc_server.BlockingOSCUDPServer(
 		(
 			"127.0.0.1",
