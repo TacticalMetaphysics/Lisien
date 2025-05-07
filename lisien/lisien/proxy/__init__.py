@@ -4267,12 +4267,7 @@ class EngineProcessManager:
 			input_queue = handle_in_pipe._inq
 		else:
 			try:
-				from multiprocessing import Pipe, Queue
-
-				(handle_in_pipe, self._handle_out_pipe) = Pipe()
-				output_queue = input_queue = None
-				self.logq = Queue()
-			except ImportError:
+				import android
 				from queue import Queue
 
 				output_queue = Queue()
@@ -4280,6 +4275,11 @@ class EngineProcessManager:
 				self.logq = Queue()
 				self._handle_out_pipe = Connection(input_queue, output_queue)
 				handle_in_pipe = Connection(output_queue, input_queue)
+			except ImportError:
+				from multiprocessing import Pipe, Queue
+				(handle_in_pipe, self._handle_out_pipe) = Pipe()
+				output_queue = input_queue = None
+				self.logq = Queue()
 
 		handlers = []
 		logl = {
