@@ -2523,13 +2523,13 @@ class Engine(AbstractEngine, Executor):
 
 		dispatcher = Dispatcher()
 		dispatcher.map("worker-reply", self._handle_worker_reply)
-		serv = self._osc_server = osc_udp_server.ThreadingOSCUDPServer(
+		serv = self._osc_server = osc_server.ThreadingOSCUDPServer(
 			("127.0.0.1", my_port), dispatcher
 		)
 		self._osc_clients: list[udp_client.SimpleUDPClient] = []
 		for i in range(workers):
 			self._osc_clients.append(
-				udp_client.SimpleTCPClient("127.0.0.1", my_port + 1 + i)
+				udp_client.SimpleUDPClient("127.0.0.1", my_port + 1 + i)
 			)
 			argument = base64.urlsafe_b64encode(
 				zlib.compress(
