@@ -3489,26 +3489,6 @@ class AbstractQueryEngine:
 	@contextmanager
 	def mutex(self):
 		with self._holder.lock:
-			for i in range(1000):
-				if self._inq.empty() and self._outq.empty():
-					break
-				if i % 100 == 0:
-					print("waiting for QueryEngine")
-				sleep(0.01)
-			else:
-				print("Queues are backed up.", file=sys.stderr)
-				if not self._inq.empty():
-					print("Input:", file=sys.stderr)
-					while not self._inq.empty():
-						print(self._inq.get(), file=sys.stderr)
-				if not self._outq.empty():
-					print("Output:", file=sys.stderr)
-					while not self._outq.empty():
-						print(self._outq.get(), file=sys.stderr)
-				import traceback
-
-				traceback.print_stack(file=sys.stderr)
-				sys.exit(1)
 			yield
 
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
