@@ -2209,6 +2209,8 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid = 0
 		if workers > 0:
 			try:
+				import android
+
 				self._start_worker_services(
 					prefix,
 					workers,
@@ -2507,13 +2509,10 @@ class Engine(AbstractEngine, Executor):
 	):
 		import base64
 
-		from android.permissions import request_permissions, Permission
 		from jnius import autoclass
 		from pythonosc import osc_server
 		from pythonosc import udp_client
 		from pythonosc.dispatcher import Dispatcher
-
-		request_permissions([Permission.INTERNET])
 
 		# base_port itself serves Elide, the frontend
 		my_port = base_port + 1
