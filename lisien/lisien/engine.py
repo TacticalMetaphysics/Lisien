@@ -134,6 +134,7 @@ from .util import (
 	normalize_layout,
 	sort_set,
 	world_locked,
+	DEFAULT_BASE_PORT,
 	TRUE,
 	FALSE,
 	NONE,
@@ -464,9 +465,9 @@ class Engine(AbstractEngine, Executor):
 		of trigger functions.
 	:param base_port: On platforms that do not let us spawn processes,
 		we instead start worker services. They will listen for our commands
-		at ports starting from ``base_port``. 32310 by default.
+		at ports starting from ``base_port``. {base_port} by default.
 
-	"""
+	""".format(base_port=DEFAULT_BASE_PORT)
 
 	char_cls = Character
 	thing_cls = Thing
@@ -2174,7 +2175,7 @@ class Engine(AbstractEngine, Executor):
 		keyframe_on_close: bool = True,
 		enforce_end_of_time: bool = True,
 		workers: int = None,
-		base_port: int = 32310,
+		base_port: int = DEFAULT_BASE_PORT,
 	):
 		if workers is None:
 			workers = os.cpu_count()
