@@ -7997,12 +7997,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._t.start()
 		self.initdb()
 
-	def echo(self, string):
-		self._inq.put(("echo", string))
-		ret = self._outq.get()
-		self._outq.task_done()
-		return ret
-
 	def call_one(self, string, *args, **kwargs):
 		with self.mutex():
 			self._inq.put(("one", string, args, kwargs))
