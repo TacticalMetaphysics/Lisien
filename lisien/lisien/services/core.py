@@ -51,9 +51,6 @@ def dispatch_command(
 
 
 def core_service(my_port: int, replies_port: int, args: list, kwargs: dict):
-	from android.permissions import request_permissions, Permission
-
-	request_permissions([Permission.INTERNET])
 	client = udp_client.SimpleUDPClient("127.0.0.1", replies_port)
 	hand = EngineHandle(
 		*args,

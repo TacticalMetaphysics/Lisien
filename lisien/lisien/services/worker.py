@@ -65,9 +65,6 @@ def worker_service(
 	branches: dict,
 	eternal: dict,
 ):
-	from android.permissions import request_permissions, Permission
-
-	request_permissions([Permission.INTERNET])
 	Logger.debug(
 		"Started Lisien worker service in prefix %s on port %d, "
 		"sending replies to port %d",
