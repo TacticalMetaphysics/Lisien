@@ -67,6 +67,7 @@ from .exc import TimeError, WorkerProcessReadOnlyError
 from .graph import DiGraph, Edge, Node
 from .typing import Branch, Key, Tick, Turn
 
+DEFAULT_BASE_PORT = 57870  # picked at random between [32768, 65535]
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
