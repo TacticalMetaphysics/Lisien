@@ -4357,6 +4357,111 @@ class EngineProcessManager:
 				daemon=True,
 			)
 			self._input_sender_thread.start()
+
+			branches_d = {"trunk": (None, 0, 0, 0, 0)}
+			eternal_d = {
+				"branch": "trunk",
+				"turn": 0,
+				"tick": 0,
+				"_lisien_schema_version": 0,
+			}
+
+			if "connect_string" in kwargs:
+				from sqlalchemy import create_engine, select, NullPool
+				from sqlalchemy.exc import OperationalError
+				from ..alchemy import meta
+
+				eng = create_engine(
+					kwargs["connect_string"],
+					poolclass=NullPool,
+					**kwargs.get("connect_args", {}),
+				)
+				conn = eng.connect()
+				branches_t = meta.tables["branches"]
+				branches_sel = select(
+					branches_t.c.branch,
+					branches_t.c.parent,
+					branches_t.c.parent_turn,
+					branches_t.c.parent_tick,
+					branches_t.c.end_turn,
+					branches_t.c.end_tick,
+				)
+				try:
+					for (
+						branch,
+						parent,
+						parent_turn,
+						parent_tick,
+						end_turn,
+						end_tick,
+					) in conn.execute(branches_sel):
+						branches_d[branch] = (
+							parent,
+							parent_turn,
+							parent_tick,
+							end_turn,
+							end_tick,
+						)
+				except OperationalError:
+					pass
+				global_t = meta.tables["global"]
+				eternal_sel = select(global_t.c.key, global_t.c.value)
+				try:
+					for key, value in conn.execute(eternal_sel):
+						eternal_d[key] = value
+				except OperationalError:
+					pass
+			else:
+				from parquetdb import ParquetDB
+
+				for d in (
+					ParquetDB("branches")
+					.read(
+						columns=[
+							"parent",
+							"parent_turn",
+							"parent_tick",
+							"end_turn",
+							"end_tick",
+						]
+					)
+					.to_pylist()
+				):
+					branches_d[d["branch"]] = (
+						d["parent"],
+						d["parent_turn"],
+						d["parent_tick"],
+						d["end_turn"],
+						d["end_tick"],
+					)
+				for d in (
+					ParquetDB("global")
+					.read(columns=["key", "value"])
+					.to_pylist()
+				):
+					eternal_d[d["key"]] = d["value"]
+
+			if "workers" in kwargs:
+				workers = kwargs["workers"]
+			else:
+				workers = os.cpu_count()
+			worker_service = autoclass("org.tacmeta.elide.ServiceWorker")
+			for i in range(workers):
+				argument = base64.urlsafe_b64encode(
+					zlib.compress(
+						msgpack.packb(
+							[
+								i,
+								port + 2 + i,
+								port + 1,
+								args[0],
+								branches_d,
+								eternal_d,
+							]
+						)
+					)
+				).decode()
+				worker_service.start(mActivity, argument)
 			argument = base64.urlsafe_b64encode(
 				zlib.compress(
 					msgpack.packb(
