@@ -7824,7 +7824,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 							if res.returns_rows:
 								o = list(res)
 							else:
-								o =None
+								o = None
 						else:
 							rez = list(res.fetchall())
 							o = rez or None
