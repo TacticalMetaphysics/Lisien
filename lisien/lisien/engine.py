@@ -2207,11 +2207,12 @@ class Engine(AbstractEngine, Executor):
 		self._init_random(random_seed)
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
+		self._workers = workers
 		if workers > 0:
 			try:
 				import android
 
-				self._start_worker_services(
+				self._connect_worker_services(
 					prefix,
 					workers,
 					base_port,
@@ -2500,7 +2501,7 @@ class Engine(AbstractEngine, Executor):
 		)
 		self._fut_manager_thread.start()
 
-	def _start_worker_services(
+	def _connect_worker_services(
 		self,
 		prefix: str | os.PathLike,
 		workers: int,
@@ -2517,9 +2518,6 @@ class Engine(AbstractEngine, Executor):
 		# base_port itself serves Elide, the frontend
 		my_port = base_port + 1
 
-		service = autoclass(service_class_name)
-		mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
-
 		dispatcher = Dispatcher()
 		dispatcher.map("worker-reply", self._handle_worker_reply)
 		serv = self._osc_server = osc_server.ThreadingOSCUDPServer(
@@ -2530,21 +2528,6 @@ class Engine(AbstractEngine, Executor):
 			self._osc_clients.append(
 				udp_client.SimpleUDPClient("127.0.0.1", my_port + 1 + i)
 			)
-			argument = base64.urlsafe_b64encode(
-				zlib.compress(
-					self.pack(
-						[
-							i,
-							base_port + i,
-							my_port,
-							prefix,
-							self._branches_d,
-							dict(self.eternal.items()),
-						]
-					)
-				)
-			).decode()
-			service.start(mActivity, argument)
 		self._setup_fut_manager(workers)
 		self._osc_serv_thread = Thread(target=serv.serve_forever)
 		self._osc_serv_thread.start()
@@ -4731,7 +4714,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _manage_futs(self):
 		while True:
-			while self._how_many_futs_running < len(self._worker_processes):
+			while self._how_many_futs_running < self._workers:
 				try:
 					fut = self._futs_to_start.get()
 				except Empty:
