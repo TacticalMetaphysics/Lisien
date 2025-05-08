@@ -28,6 +28,7 @@ from lisien.proxy import _engine_subroutine_step
 from lisien.proxy.handle import EngineHandle
 
 
+Logger.setLevel(0)
 Logger.debug("core: imported libs")
 
 

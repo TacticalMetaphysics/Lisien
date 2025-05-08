@@ -29,6 +29,7 @@ from pythonosc.dispatcher import Dispatcher
 from lisien.proxy import EngineProxy
 
 
+Logger.setLevel(0)
 Logger.debug("worker: imported libs")
 
 
