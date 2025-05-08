@@ -76,7 +76,7 @@ def worker_service(
 	eng = EngineProxy(
 		None,
 		None,
-		logger,
+		Logger,
 		prefix=prefix,
 		worker_index=i,
 		eternal=eternal,
