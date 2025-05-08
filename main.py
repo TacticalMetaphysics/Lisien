@@ -22,7 +22,12 @@ except ImportError:
 	def freeze_support(): ...
 
 
-wd = os.getcwd()
+try:
+	from android.storage import app_storage_path
+
+	wd = app_storage_path()
+except ImportError:
+	wd = os.getcwd()
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
 
 
