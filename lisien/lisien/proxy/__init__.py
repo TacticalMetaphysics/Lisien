@@ -4220,7 +4220,6 @@ class EngineProcessManager:
 	"""
 
 	loglevel = logging.DEBUG
-	"The handle puts output here"
 
 	def __init__(
 		self,
