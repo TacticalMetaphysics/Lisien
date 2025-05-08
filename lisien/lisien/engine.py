@@ -41,7 +41,6 @@ from time import sleep
 from types import FunctionType, MethodType, ModuleType
 from typing import Any, Callable, Iterable, Iterator, Optional, Type
 
-import msgpack
 import networkx as nx
 import numpy as np
 from blinker import Signal
