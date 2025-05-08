@@ -2209,14 +2209,14 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid = 0
 		if workers > 0:
 			try:
-				self._start_worker_processes(prefix, workers)
-			except ImportError:
 				self._start_worker_services(
 					prefix,
 					workers,
 					base_port,
 					"org.tacmeta.elide.ServiceWorker",
 				)
+			except ImportError:
+				self._start_worker_processes(prefix, workers)
 
 	def _init_log(self, logfun: Optional[callable]):
 		if logfun is None:
