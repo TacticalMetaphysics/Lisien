@@ -3295,7 +3295,7 @@ class EngineProxy(AbstractEngine):
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
-			self.logger.debug("EngineProxy: starting worker %d", worker_index)
+			self.debug("EngineProxy: starting worker %d" % worker_index)
 			self._worker = True
 			self._worker_idx = worker_index
 			if getattr(self, "_mutable_worker", False):
