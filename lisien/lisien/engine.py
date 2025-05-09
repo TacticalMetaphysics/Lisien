@@ -35,7 +35,7 @@ from itertools import chain, pairwise
 from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
-from random import Random
+from random import Random, randint
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
@@ -134,7 +134,6 @@ from .util import (
 	normalize_layout,
 	sort_set,
 	world_locked,
-	DEFAULT_BASE_PORT,
 	TRUE,
 	FALSE,
 	NONE,
@@ -463,11 +462,12 @@ class Engine(AbstractEngine, Executor):
 		side effects. If you don't want this, instead use
 		``workers=1``, which *does* disable parallelism in the case
 		of trigger functions.
-	:param base_port: On platforms that do not let us spawn processes,
-		we instead start worker services. They will listen for our commands
-		at ports starting from ``base_port``. {base_port} by default.
 
-	""".format(base_port=DEFAULT_BASE_PORT)
+		This option can also be a list of integers, in which case, the engine
+		will connect to those ports on the same host it's running on. This
+		form will only work on Android.
+	:param port: UDP port to serve the engine on. Only supported on Android.
+	"""
 
 	char_cls = Character
 	thing_cls = Thing
@@ -2174,8 +2174,8 @@ class Engine(AbstractEngine, Executor):
 		keep_rules_journal: bool = True,
 		keyframe_on_close: bool = True,
 		enforce_end_of_time: bool = True,
-		workers: int = None,
-		base_port: int = DEFAULT_BASE_PORT,
+		workers: Optional[int | list[int]] = None,
+		port: Optional[int] = None,
 	):
 		if workers is None:
 			workers = os.cpu_count()
@@ -2207,19 +2207,8 @@ class Engine(AbstractEngine, Executor):
 		self._init_random(random_seed)
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
-		self._workers = workers
-		if workers > 0:
-			try:
-				import android
-
-				self._connect_worker_services(
-					prefix,
-					workers,
-					base_port,
-					"org.tacmeta.elide.ServiceWorker",
-				)
-			except ImportError:
-				self._start_worker_processes(prefix, workers)
+		if workers != 0 and port is None:
+			self._start_worker_processes(prefix, workers)
 
 	def _init_log(self, logfun: Optional[callable]):
 		if logfun is None:
@@ -2491,7 +2480,8 @@ class Engine(AbstractEngine, Executor):
 			self.method.connect(self._reimport_worker_methods)
 		self._setup_fut_manager(workers)
 
-	def _setup_fut_manager(self, workers):
+	def _setup_fut_manager(self, workers: int):
+		self._workers = workers
 		self._worker_updated_btts = [self._btt()] * workers
 		self._uid_to_fut: dict[int, Future] = {}
 		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
@@ -2501,36 +2491,35 @@ class Engine(AbstractEngine, Executor):
 		)
 		self._fut_manager_thread.start()
 
-	def _connect_worker_services(
-		self,
-		prefix: str | os.PathLike,
-		workers: int,
-		base_port: int,
-		service_class_name: str,
-	):
-		import base64
-
-		from jnius import autoclass
+	def _connect_worker_services(self, route: str, arg: bytes):
 		from pythonosc import osc_server
 		from pythonosc import udp_client
 		from pythonosc.dispatcher import Dispatcher
 
-		# base_port itself serves Elide, the frontend
-		my_port = base_port + 1
-
+		ports = self.unpack(arg)
 		dispatcher = Dispatcher()
 		dispatcher.map("worker-reply", self._handle_worker_reply)
-		serv = self._osc_server = osc_server.ThreadingOSCUDPServer(
-			("127.0.0.1", my_port), dispatcher
-		)
+		start_port = randint(32768, 65535)
+		for my_port in range(start_port, start_port + 100):
+			try:
+				serv = self._osc_server = osc_server.ThreadingOSCUDPServer(
+					("127.0.0.1", my_port), dispatcher
+				)
+				break
+			except OSError:
+				continue
+		else:
+			sys.exit("couldn't find a port to serve the Lisien core on")
 		self._osc_clients: list[udp_client.SimpleUDPClient] = []
-		for i in range(workers):
+		for port in ports:
 			self._osc_clients.append(
-				udp_client.SimpleUDPClient("127.0.0.1", my_port + 1 + i)
+				udp_client.SimpleUDPClient("127.0.0.1", port)
 			)
-		self._setup_fut_manager(workers)
+		self._setup_fut_manager(len(ports))
 		self._osc_serv_thread = Thread(target=serv.serve_forever)
 		self._osc_serv_thread.start()
+		self.debug(f"core: started serving to workers on port {my_port}")
+		return my_port
 
 	def _handle_worker_reply(self, data: bytes):
 		uid = int.from_bytes(data[:8], "little")

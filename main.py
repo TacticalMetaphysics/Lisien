@@ -41,7 +41,7 @@ if __name__ == "__main__":
 	from kivy.logger import Logger
 	from elide.app import ElideApp
 
-	Logger.setLevel(0)
+	Logger.setLevel(10)
 
 	app = ElideApp(prefix=wd, connect_string=f"sqlite:///{wd}/world.sqlite3")
 	app.get_application_config = get_application_config

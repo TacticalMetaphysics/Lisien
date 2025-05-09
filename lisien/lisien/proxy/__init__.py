@@ -40,10 +40,10 @@ from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
 from inspect import getsource
-from queue import Queue, Empty
+from queue import SimpleQueue, Queue, Empty
 from random import Random
 from threading import Lock, Thread
-from time import monotonic
+from time import monotonic, sleep
 from types import MethodType
 from typing import Hashable, Iterator, Optional
 
@@ -3249,12 +3249,11 @@ class EngineProxy(AbstractEngine):
 		self._rulebooks_cache = {}
 		self._branches_d = branches
 		self._planning = False
-		replay_txt = None
 		if replay_file is not None:
 			if not isinstance(replay_file, io.TextIOBase):
 				if os.path.exists(replay_file):
 					with open(replay_file, "rt") as rf:
-						replay_txt = rf.read().replace(
+						self._replay_txt = rf.read().replace(
 							"<lisien.proxy.EngineProxy>", "eng"
 						)
 				else:
@@ -3262,7 +3261,7 @@ class EngineProxy(AbstractEngine):
 			elif "w" in replay_file.mode or "a" in replay_file.mode:
 				self._replay_file = replay_file
 			elif "r" in replay_file.mode:
-				replay_txt = replay_file.read().replace(
+				self._replay_txt = replay_file.read().replace(
 					"<lisien.proxy.EngineProxy>", "eng"
 				)
 		self.i = worker_index
@@ -3285,7 +3284,7 @@ class EngineProxy(AbstractEngine):
 		self.rulebook = AllRuleBooksProxy(self)
 		self.rule = AllRulesProxy(self)
 		if worker_index is None:
-			self.logger.debug("Starting engine proxy to the core")
+			self.logger.debug("EngineProxy: starting proxy to core")
 			self._worker = False
 			self.next_turn = NextTurnProxy(self)
 			self.method = FuncStoreProxy(self, "method")
@@ -3296,7 +3295,9 @@ class EngineProxy(AbstractEngine):
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
+			self.logger.debug("EngineProxy: starting worker %d", worker_index)
 			self._worker = True
+			self._worker_idx = worker_index
 			if getattr(self, "_mutable_worker", False):
 
 				def next_turn():
@@ -3365,57 +3366,60 @@ class EngineProxy(AbstractEngine):
 		self._rule_obj_cache = {}
 		self._rulebook_obj_cache = {}
 		self._char_cache = {}
-		if worker_index is None:
-			self.send({"command": "get_btt"})
-			received = self.recv()
-			self.debug(f"Got time: {received}")
-			self._branch, self._turn, self._tick = received[-1]
-			self.send({"command": "branches"})
-			self._branches_d = self.recv()[-1]
-			self.debug(f"Got {len(self._branches_d)} branches")
-			self.method.load()
-			self.action.load()
-			self.prereq.load()
-			self.trigger.load()
-			self.function.load()
-			self.string.load()
-			self._eternal_cache = self.handle("eternal_copy")
-			self.debug(f"Got {len(self._eternal_cache)} eternal vars")
-			self._initialized = False
-			self._pull_kf_now()
-			self._initialized = True
-			for module in install_modules:
-				self.handle("install_module", module=module)
-				self.debug(f"Installed module: {module}")
-			if replay_txt is not None:
-				replay = ast.parse(replay_txt)
-				for expr in replay.body:
-					if isinstance(expr.value, ast.Call):
-						method = expr.value.func.id
-						args = []
-						kwargs = {}
-						for arg in expr.value.args:
-							if isinstance(arg.value, ast.Subscript):
-								whatmap = arg.value.value.attr
-								key = arg.value.slice.value
-								args.append(getattr(self, whatmap)[key])
-							elif hasattr(arg.value, "value"):
-								args.append(arg.value.value)
+		self._install_modules = install_modules
+		self.debug("EngineProxy: finished core __init__")
+
+	def _init_pull_from_core(self):
+		self.debug("EngineProxy: Getting time...")
+		self.send({"command": "get_btt"})
+		received = self.recv()
+		self.debug(f"EngineProxy: Got time: {received}")
+		self._branch, self._turn, self._tick = received[-1]
+		self.debug("EngineProxy: Getting branches...")
+		self.send({"command": "branches"})
+		self._branches_d = self.recv()[-1]
+		self.debug(f"Got {len(self._branches_d)} branches")
+		self.method.load()
+		self.action.load()
+		self.prereq.load()
+		self.trigger.load()
+		self.function.load()
+		self.string.load()
+		self._eternal_cache = self.handle("eternal_copy")
+		self.debug(f"Got {len(self._eternal_cache)} eternal vars")
+		self._initialized = False
+		self._pull_kf_now()
+		self._initialized = True
+		for module in self._install_modules:
+			self.handle("install_module", module=module)
+			self.debug(f"Installed module: {module}")
+		if hasattr(self, "_replay_txt"):
+			replay = ast.parse(self._replay_txt)
+			for expr in replay.body:
+				if isinstance(expr.value, ast.Call):
+					method = expr.value.func.id
+					args = []
+					kwargs = {}
+					for arg in expr.value.args:
+						if isinstance(arg.value, ast.Subscript):
+							whatmap = arg.value.value.attr
+							key = arg.value.slice.value
+							args.append(getattr(self, whatmap)[key])
+						elif hasattr(arg.value, "value"):
+							args.append(arg.value.value)
+						else:
+							args.append(astunparse.unparse(arg.value))
+					for kw in expr.value.keywords:
+						if isinstance(kw.value, ast.Subscript):
+							whatmap = kw.value.value.attr
+							key = kw.value.slice.value
+							kwargs[kw.arg] = getattr(self, whatmap)[key]
+						else:
+							if hasattr(kw.value, "value"):
+								kwargs[kw.arg] = kw.value.value
 							else:
-								args.append(astunparse.unparse(arg.value))
-						for kw in expr.value.keywords:
-							if isinstance(kw.value, ast.Subscript):
-								whatmap = kw.value.value.attr
-								key = kw.value.slice.value
-								kwargs[kw.arg] = getattr(self, whatmap)[key]
-							else:
-								if hasattr(kw.value, "value"):
-									kwargs[kw.arg] = kw.value.value
-								else:
-									kwargs[kw.arg] = astunparse.unparse(
-										kw.value
-									)
-						self.handle(method, *args, **kwargs)
+								kwargs[kw.arg] = astunparse.unparse(kw.value)
+					self.handle(method, *args, **kwargs)
 
 	def __repr__(self):
 		return "<lisien.proxy.EngineProxy>"
@@ -3474,11 +3478,12 @@ class EngineProxy(AbstractEngine):
 		self.method._locl = pickle.loads(replacement)
 
 	def send(
-		self, obj, blocking: bool = True, timeout: int | float = 1
+		self, obj, blocking: bool = True, timeout: Optional[int | float] = None
 	) -> None:
 		if hasattr(self._handle_out, "send_bytes"):
 			self.send_bytes(self.pack(obj), blocking=blocking, timeout=timeout)
 		else:
+			self.debug(f"EngineProxy: putting {obj} into _handle_out")
 			self._handle_out.put(obj, timeout=timeout)
 
 	def send_bytes(self, obj, blocking=True, timeout=1):
@@ -3559,9 +3564,8 @@ class EngineProxy(AbstractEngine):
 			self._replay_file.write(repr_call_sig(cmd, **kwargs) + "\n")
 		start_ts = monotonic()
 		with self._round_trip_lock:
-			self.send_bytes(self.pack(kwargs))
-			received = self.recv_bytes()
-		command, branch, turn, tick, r = self.unpack(received)
+			self.send(kwargs)
+			command, branch, turn, tick, r = self.recv()
 		self.debug(
 			"EngineProxy: received {} in {:,.2f} seconds".format(
 				(command, branch, turn, tick), monotonic() - start_ts
@@ -4034,7 +4038,7 @@ def _engine_subroutine_step(
 ):
 	silent = instruction.pop("silent", False)
 	cmd = instruction.pop("command")
-	branching = instruction.pop("branching")
+	branching = instruction.pop("branching", False)
 	r = None
 	try:
 		if branching:
@@ -4057,7 +4061,7 @@ def _engine_subroutine_step(
 			_finish_packing(handle.pack, cmd, *handle._real.time, r)
 		)
 	else:
-		send_output(r)
+		send_output((cmd, *handle._real.time, r))
 	if hasattr(handle, "_after_ret"):
 		handle._after_ret()
 		del handle._after_ret
@@ -4233,29 +4237,20 @@ class EngineProcessManager:
 		self._args = args
 		self._kwargs = kwargs
 
-	def start(self, *args, use_thread=False, **kwargs):
+	def start(self, *args, **kwargs):
 		"""Start lisien in a subprocess, and return a proxy to it"""
 		if hasattr(self, "engine_proxy"):
 			raise RuntimeError("Already started")
-		if self.use_thread or use_thread:
-			from queue import SimpleQueue
+		try:
+			import android
 
-			output_queue = SimpleQueue()
-			input_queue = SimpleQueue()
-			self.logq = SimpleQueue()
-		else:
-			try:
-				import android
-				from queue import SimpleQueue
+			android = True
+		except ImportError:
+			from multiprocessing import Pipe, Queue
 
-				output_queue = SimpleQueue()
-				input_queue = SimpleQueue()
-			except ImportError:
-				from multiprocessing import Pipe, Queue
-
-				(self._handle_in_pipe, self._handle_out_pipe) = Pipe()
-				output_queue = input_queue = None
-				self.logq = Queue()
+			android = False
+			(self._handle_in_pipe, self._handle_out_pipe) = Pipe()
+			self.logq = Queue()
 
 		handlers = []
 		logl = {
@@ -4301,18 +4296,7 @@ class EngineProcessManager:
 		for handler in handlers:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
-		if self.use_thread:
-			self._p = Thread(
-				target=engine_subthread,
-				args=(
-					args or self._args,
-					self._kwargs | kwargs,
-					input_queue,
-					output_queue,
-					self.logger.log,
-				),
-			)
-		elif hasattr(self, "_handle_in_pipe") and hasattr(
+		if hasattr(self, "_handle_in_pipe") and hasattr(
 			self, "_handle_out_pipe"
 		):
 			from multiprocessing import Process
@@ -4334,28 +4318,61 @@ class EngineProcessManager:
 				target=self.sync_log_forever, name="log", daemon=True
 			)
 			self._logthread.start()
-		elif output_queue and input_queue:
+			self.engine_proxy = EngineProxy(
+				self._handle_out_pipe,
+				self._handle_in_pipe,
+				self.logger,
+				install_modules,
+			)
+		elif android:
 			import base64
 
 			from jnius import autoclass
+			from pythonosc.osc_message_builder import OscMessageBuilder
 			from pythonosc.osc_server import ThreadingOSCUDPServer
 			from pythonosc.udp_client import SimpleUDPClient
 			from pythonosc.dispatcher import Dispatcher
 
-			port = kwargs.get("base_port", 32310)
-			service = autoclass("org.tacmeta.elide.ServiceCore")
-			mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
+			if "workers" in kwargs:
+				workers = kwargs["workers"]
+			else:
+				workers = os.cpu_count()
+			# Android makes us hardcode some number of service workers, to be
+			# used or not. Currently, I've got eight in my buildozer.spec
+			workers = min((workers, 8))
+			self._output_queue = output_queue = SimpleQueue()
+			self._input_queue = input_queue = SimpleQueue()
+			worker_port_queue = SimpleQueue()
 			disp = Dispatcher()
-			self._server = ThreadingOSCUDPServer(("127.0.0.1", port), disp)
-			disp.map("/core-reply", output_queue.put)
-			disp.map("/log", self.logger.log)
-			self._client = SimpleUDPClient("127.0.0.1", port + 1)
-			self._input_sender_thread = Thread(
-				target=self._send_input_forever,
-				args=[input_queue],
-				daemon=True,
+			disp.map("/core-reply", self._receive_core_reply)
+			disp.map(
+				"/worker-report-port",
+				lambda _, port: worker_port_queue.put(port),
 			)
-			self._input_sender_thread.start()
+			disp.map(
+				"/log", lambda _, packed: self.log(*msgpack.unpackb(packed))
+			)
+			procman_port_start = random.randint(32768, 65535)
+			for procman_port in range(
+				procman_port_start, procman_port_start + 100
+			):
+				try:
+					self._server = ThreadingOSCUDPServer(
+						("127.0.0.1", procman_port), disp
+					)
+					self._server_thread = Thread(
+						target=self._server.serve_forever
+					)
+					self._server_thread.start()
+					self.logger.debug(
+						"EngineProcessManager: started server at port %d",
+						procman_port,
+					)
+					break
+				except OSError:
+					pass
+			else:
+				sys.exit("couldn't get port for process manager")
 
 			branches_d = {"trunk": (None, 0, 0, 0, 0)}
 			eternal_d = {
@@ -4439,20 +4456,47 @@ class EngineProcessManager:
 					.to_pylist()
 				):
 					eternal_d[d["key"]] = d["value"]
-
-			if "workers" in kwargs:
-				workers = kwargs["workers"]
-			else:
-				workers = os.cpu_count()
-			worker_service = autoclass("org.tacmeta.elide.ServiceWorker")
+			self.engine_proxy = EngineProxy(
+				input_queue,
+				output_queue,
+				self.logger,
+				install_modules,
+				replay_file=replay_file,
+				branches=branches_d,
+				eternal=eternal_d,
+			)
+			self.logger.debug("EngineProcessManager: made engine proxy")
+			mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
+			core_service = autoclass("org.tacmeta.elide.ServiceCore")
+			argument = base64.urlsafe_b64encode(
+				zlib.compress(
+					msgpack.packb(
+						[
+							procman_port,
+							args or self._args,
+							kwargs | self._kwargs | {"workers": workers},
+						]
+					)
+				)
+			).decode()
+			try:
+				core_service.start(mActivity, argument)
+			except Exception as ex:
+				self.logger.critical(repr(ex))
+				sys.exit(repr(ex))
+			self.logger.debug("EngineProcessManager: started core")
+			core_port = output_queue.get()
+			self.logger.debug(
+				"EngineProcessManager: core is at port %d", core_port
+			)
 			for i in range(workers):
 				argument = base64.urlsafe_b64encode(
 					zlib.compress(
 						msgpack.packb(
 							[
 								i,
-								port + 2 + i,
-								port + 1,
+								procman_port,
+								core_port,
 								args[0],
 								branches_d,
 								eternal_d,
@@ -4460,60 +4504,81 @@ class EngineProcessManager:
 						)
 					)
 				).decode()
-				worker_service.start(mActivity, argument)
-			argument = base64.urlsafe_b64encode(
-				zlib.compress(
-					msgpack.packb(
-						[
-							port + 1,
-							port,
-							args or self._args,
-							kwargs | self._kwargs,
-						]
-					)
+				autoclass(f"org.tacmeta.elide.ServiceWorker{i}").start(
+					mActivity, argument
 				)
-			).decode()
-			self.logger.debug("starting core")
-			try:
-				service.start(mActivity, argument)
-			except Exception as ex:
-				self.logger.critical(repr(ex))
-				sys.exit(repr(ex))
-			self.logger.debug("started core")
+				self.logger.debug("EngineProcessManager: started worker %d", i)
+			worker_ports = []
+			for i in range(workers):
+				port = worker_port_queue.get()
+				self.logger.debug(
+					"EngineProcessManager: worker %d says it's on port %d",
+					i,
+					port,
+				)
+				worker_ports.append(port)
+			self._client = SimpleUDPClient("127.0.0.1", core_port)
+			self.logger.debug(
+				"EngineProcessManager: started client to port %d", core_port
+			)
+			workers_payload = OscMessageBuilder("/connect-workers")
+			workers_payload.add_arg(
+				msgpack.packb(worker_ports), OscMessageBuilder.ARG_TYPE_BLOB
+			)
+			self._client.send(workers_payload.build())
+			self.logger.debug(
+				"EngineProcessManager: sent ports to core/connect-workers"
+			)
+			self._input_sender_thread = Thread(
+				target=self._send_input_forever,
+				args=[input_queue],
+				daemon=True,
+			)
+			self._input_sender_thread.start()
 		else:
 			raise RuntimeError("Couldn't start process or service")
 
-		self.engine_proxy = EngineProxy(
-			output_queue,
-			input_queue,
-			self.logger,
-			install_modules,
-			replay_file=replay_file,
-		)
+		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
 	def _send_input_forever(self, input_queue):
+		assert hasattr(self, "engine_proxy"), (
+			"EngineProcessManager tried to send input with no EngineProxy"
+		)
 		while True:
 			msg = input_queue.get()
-			if not isinstance(msg, bytes):
-				msg = zlib.compress(self.engine_proxy.pack(msg))
+			self.logger.debug(
+				f"EngineProcessManager: about to send {msg} to core"
+			)
+			msg = zlib.compress(self.engine_proxy.pack(msg))
 			self._client.send_message("/", msg)
+			self.logger.debug(f"EngineProcessManager: sent {len(msg)} bytes")
+
+	def _receive_core_reply(self, addr, reply):
+		self.logger.debug(
+			f"EngineProcessManager: received reply from core at {addr}"
+		)
+		self._output_queue.put(
+			self.engine_proxy.unpack(zlib.decompress(reply))
+		)
+
+	def log(self, level: str | int, msg: str):
+		if isinstance(level, str):
+			level = {
+				"debug": 10,
+				"info": 20,
+				"warning": 30,
+				"error": 40,
+				"critical": 50,
+			}[level.lower()]
+		self.logger.log(level, msg)
 
 	def sync_log(self, limit=None, block=True):
 		"""Get log messages from the subprocess, and log them in this one"""
 		n = 0
 		while limit is None or n < limit:
 			try:
-				(level, message) = self.logq.get(block=block)
-				if isinstance(level, int):
-					level = {
-						10: "debug",
-						20: "info",
-						30: "warning",
-						40: "error",
-						50: "critical",
-					}[level]
-				getattr(self.logger, level)(message)
+				self.log(*self.logq.get(block=block))
 				n += 1
 			except Empty:
 				return

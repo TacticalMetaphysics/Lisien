@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import base64
+import random
+import sys
 from functools import partial
 import os
 import zlib
@@ -23,6 +25,8 @@ import msgpack
 from pythonosc import osc_server
 from pythonosc import udp_client
 from pythonosc.dispatcher import Dispatcher
+from pythonosc.osc_message import OscMessage
+from pythonosc.osc_message_builder import OscMessageBuilder
 
 from lisien.proxy import _engine_subroutine_step
 from lisien.proxy.handle import EngineHandle
@@ -32,16 +36,25 @@ Logger.setLevel(0)
 Logger.debug("core: imported libs")
 
 
+def pack4send(hand: EngineHandle, addr: str, o) -> OscMessage:
+	builder = OscMessageBuilder(addr)
+	builder.add_arg(zlib.compress(hand.pack(o)), builder.ARG_TYPE_BLOB)
+	return builder.build()
+
+
 def dispatch_command(
-	hand: EngineHandle, client: udp_client.SimpleUDPClient, inst: bytes
+	hand: EngineHandle, client: udp_client.SimpleUDPClient, _, inst: bytes
 ):
+	Logger.debug(f"core: in dispatch_command, got {len(inst)} bytes")
 	instruction = hand.unpack(zlib.decompress(inst))
 
 	def send_output(r):
-		client.send_message("/core-reply", zlib.compress(hand.pack(r)))
+		client.send(pack4send(hand, "/core-reply", r))
 
 	def send_output_bytes(resp: bytes):
-		client.send_message("/core-reply", zlib.compress(resp))
+		builder = OscMessageBuilder("/core-reply")
+		builder.add_arg(zlib.compress(resp), builder.ARG_TYPE_BLOB)
+		client.send(builder.build())
 
 	Logger.debug(
 		"core: about to dispatch "
@@ -51,21 +64,44 @@ def dispatch_command(
 	_engine_subroutine_step(hand, instruction, send_output, send_output_bytes)
 
 
-def core_service(my_port: int, replies_port: int, args: list, kwargs: dict):
+def core_service(replies_port: int, args: list, kwargs: dict):
+	dispatcher = Dispatcher()
+	for _ in range(128):
+		my_port = random.randint(32768, 65535)
+		try:
+			serv = osc_server.BlockingOSCUDPServer(
+				("127.0.0.1", my_port),
+				dispatcher,
+			)
+			break
+		except OSError:
+			pass
+	else:
+		sys.exit("couldn't get core port")
 	client = udp_client.SimpleUDPClient("127.0.0.1", replies_port)
+	Logger.debug(
+		"core: got port %d, sending it to 127.0.0.1/core-reply:%d",
+		my_port,
+		replies_port,
+	)
 	hand = EngineHandle(
 		*args,
-		logfun=lambda lvl, msg: client.send_message("/log", [lvl, msg]),
+		logfun=lambda lvl, msg: client.send(
+			pack4send(hand, "/log", (lvl, msg))
+		),
+		port=my_port,
 		**kwargs,
 	)
+	client.send(pack4send(hand, "/core-reply", my_port))
 
-	dispatcher = Dispatcher()
 	dispatcher.map("/", partial(dispatch_command, hand, client))
-	serv = osc_server.BlockingOSCUDPServer(
-		("127.0.0.1", my_port),
-		dispatcher,
-	)
 	dispatcher.map("/shutdown", lambda _: serv.shutdown())
+	dispatcher.map("/connect-workers", hand._real._connect_worker_services)
+	Logger.info(
+		"core: about to start server at port %d, sending replies to port %d",
+		my_port,
+		replies_port,
+	)
 	serv.serve_forever()
 
 

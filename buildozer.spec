@@ -58,7 +58,15 @@ icon.filename = %(source.dir)s/elide_icon/Android/icon_512px.png
 orientation = landscape
 
 # (list) List of service to declare
-services = worker:_python_bundle/site-packages/lisien/services/worker.py,core:_python_bundle/site-packages/lisien/services/core.py
+services = worker0:_python_bundle/site-packages/lisien/services/worker.py,
+    worker1:_python_bundle/site-packages/lisien/services/worker.py,
+    worker2:_python_bundle/site-packages/lisien/services/worker.py,
+    worker3:_python_bundle/site-packages/lisien/services/worker.py,
+    worker4:_python_bundle/site-packages/lisien/services/worker.py,
+    worker5:_python_bundle/site-packages/lisien/services/worker.py,
+    worker6:_python_bundle/site-packages/lisien/services/worker.py,
+    worker7:_python_bundle/site-packages/lisien/services/worker.py,
+	core:_python_bundle/site-packages/lisien/services/core.py
 
 #
 # OSX Specific
