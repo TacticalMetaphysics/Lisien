@@ -23,9 +23,11 @@ except ImportError:
 
 
 try:
-	from android.storage import app_storage_path
+	from android.storage import app_storage_path, primary_external_storage_path
 
-	wd = app_storage_path()
+	wd = os.path.join(primary_external_storage_path(), "elide")
+	if not os.path.exists(wd):
+		os.makedirs(wd)
 except ImportError:
 	wd = os.getcwd()
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
@@ -43,6 +45,9 @@ if __name__ == "__main__":
 
 	Logger.setLevel(10)
 
-	app = ElideApp(prefix=wd, connect_string=f"sqlite:///{wd}/world.sqlite3")
+	app = ElideApp(
+		prefix=wd,
+		connect_string=f"sqlite:///{wd}/world.sqlite3",
+	)
 	app.get_application_config = get_application_config
 	app.run()
