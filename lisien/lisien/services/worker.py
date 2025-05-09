@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import base64
+import random
 from functools import partial
 import os
 import sys
@@ -25,6 +26,7 @@ import msgpack
 from pythonosc import osc_server
 from pythonosc import udp_client
 from pythonosc.dispatcher import Dispatcher
+from pythonosc.osc_message_builder import OscMessageBuilder
 
 from lisien.proxy import EngineProxy
 
@@ -52,7 +54,9 @@ def dispatch_command(
 			sys.exit(msg)
 	eng._initialized = True
 	payload = inst[:8] + zlib.compress(eng.pack(ret))
-	client.send_message("/worker-reply", payload)
+	builder = OscMessageBuilder("/worker-reply")
+	builder.add_arg(payload, builder.ARG_TYPE_BLOB)
+	client.send(builder.build())
 	Logger.debug(
 		f"sent a reply to call {uid} of method {method}; {len(payload)} bytes"
 	)
@@ -60,20 +64,12 @@ def dispatch_command(
 
 def worker_service(
 	i: int,
-	my_port: int,
+	manager_port: int,
 	replies_port: int,
 	prefix: str,
 	branches: dict,
 	eternal: dict,
 ):
-	Logger.debug(
-		"Started Lisien worker service in prefix %s on port %d, "
-		"sending replies to port %d",
-		prefix,
-		my_port,
-		replies_port,
-	)
-
 	eng = EngineProxy(
 		None,
 		None,
@@ -86,24 +82,43 @@ def worker_service(
 	client = udp_client.SimpleUDPClient("127.0.0.1", replies_port)
 	dispatcher = Dispatcher()
 	dispatcher.map("/", partial(dispatch_command, i, eng, client))
-	serv = osc_server.BlockingOSCUDPServer(
-		(
-			"127.0.0.1",
-			my_port,
-		),
-		dispatcher,
+	for _ in range(128):
+		my_port = random.randint(32768, 65535)
+		try:
+			serv = osc_server.BlockingOSCUDPServer(
+				(
+					"127.0.0.1",
+					my_port,
+				),
+				dispatcher,
+			)
+			break
+		except OSError:
+			continue
+	else:
+		sys.exit("Couldn't get port for worker %d" % i)
+	udp_client.SimpleUDPClient("127.0.0.1", manager_port).send_message(
+		"/worker-report-port", my_port
 	)
 	dispatcher.map("/shutdown", lambda _: serv.shutdown())
+	Logger.debug(
+		"Started Lisien worker service in prefix %s on port %d. "
+		"Sending replies to port %d, and my own port to port %d",
+		prefix,
+		my_port,
+		replies_port,
+		manager_port,
+	)
 	serv.serve_forever()
 
 
 if __name__ == "__main__":
 	assert "PYTHON_SERVICE_ARGUMENT" in os.environ
 	assert isinstance(os.environ["PYTHON_SERVICE_ARGUMENT"], str)
-	worker_service(
-		*msgpack.unpackb(
-			zlib.decompress(
-				base64.urlsafe_b64decode(os.environ["PYTHON_SERVICE_ARGUMENT"])
-			)
+	args = msgpack.unpackb(
+		zlib.decompress(
+			base64.urlsafe_b64decode(os.environ["PYTHON_SERVICE_ARGUMENT"])
 		)
 	)
+	print(f"Starting Lisien worker {args[0]}...", file=sys.stderr)
+	worker_service(*args)
