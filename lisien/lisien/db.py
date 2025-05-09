@@ -9099,7 +9099,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 					)
 				)
 				self._portal_rules_handled = []
-			assert self.echo("flushed") == "flushed"
 
 	def commit(self):
 		"""Commit the transaction"""
