@@ -7792,7 +7792,8 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 						print(f"while silenced: {ex}")
 						sys.exit(repr(ex))
 					o = ex
-				self.outq.put(o)
+				if not silent:
+					self.outq.put(o)
 				self.inq.task_done()
 			elif inst[0] != "many":
 				raise ValueError(f"Invalid instruction: {inst[0]}")
@@ -7814,7 +7815,8 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 						print(msg)
 						sys.exit(msg)
 					o = ex
-				self.outq.put(o)
+				if not silent:
+					self.outq.put(o)
 				self.inq.task_done()
 
 	def initdb(self):
