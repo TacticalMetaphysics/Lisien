@@ -4338,8 +4338,8 @@ class EngineProcessManager:
 			else:
 				workers = os.cpu_count()
 			# Android makes us hardcode some number of service workers, to be
-			# used or not. Currently, I've got eight in my buildozer.spec
-			workers = min((workers, 8))
+			# used or not. I've defined 64 of them in buildozer.spec.
+			workers = min((workers, 64))
 			self._output_queue = output_queue = SimpleQueue()
 			self._input_queue = input_queue = SimpleQueue()
 			worker_port_queue = SimpleQueue()
