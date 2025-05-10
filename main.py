@@ -26,8 +26,6 @@ try:
 	from android.storage import app_storage_path, primary_external_storage_path
 
 	wd = os.path.join(primary_external_storage_path(), "elide")
-	if not os.path.exists(wd):
-		os.makedirs(wd)
 except ImportError:
 	wd = os.getcwd()
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
