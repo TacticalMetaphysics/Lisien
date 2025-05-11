@@ -25,7 +25,7 @@ except ImportError:
 try:
 	from android.storage import app_storage_path
 
-	wd = os.path.join(app_storage_path(), "elide")
+	wd = app_storage_path()
 except ImportError:
 	wd = os.getcwd()
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
