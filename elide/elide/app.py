@@ -534,12 +534,39 @@ class ElideApp(App):
 			selection=self.setter("selection")
 		)
 
+	def _copy_log_files(self):
+		try:
+			from android import autoclass
+			from androidstorage4kivy import SharedStorage
+
+			if not hasattr(self, "_ss"):
+				self._ss = SharedStorage()
+			if not hasattr(self, "_env"):
+				self._env = autoclass("android.os.Environment")
+			logdir = os.path.join(self.prefix, ".kivy/logs")
+			if os.path.exists(logdir):
+				for logfile in os.listdir(logdir):
+					if self._ss.copy_to_shared(
+						os.path.join(logdir, logfile),
+						collection=self._env.DIRECTORY_DOCUMENTS,
+					):
+						Logger.info(f"Copied {logfile} to {logdir}")
+					else:
+						Logger.warning(f"Failed to copy {logfile} to {logdir}")
+		except ImportError:
+			pass
+
+	@triggered()
+	def copy_log_files(self):
+		self._copy_log_files()
+
 	def on_pause(self):
 		"""Sync the database with the current state of the game."""
 		if hasattr(self, "engine"):
 			self.engine.commit()
 		self.strings.save()
 		self.funcs.save()
+		self._copy_log_files()
 		return True
 
 	def on_stop(self, *largs):
@@ -555,6 +582,8 @@ class ElideApp(App):
 			del self.engine
 		if hasattr(self, "_replayfile"):
 			self._replayfile.close()
+		self._copy_log_files()
+		return True
 
 	def delete_selection(self):
 		"""Delete both the selected widget and whatever it represents."""
