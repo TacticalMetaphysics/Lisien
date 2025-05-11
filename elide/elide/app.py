@@ -83,6 +83,7 @@ class ElideApp(App):
 	prefix = StringProperty()
 	use_thread = BooleanProperty(False)
 	connect_string = StringProperty()
+	workers = NumericProperty(None, allownone=True)
 
 	def on_selection(self, *_):
 		Logger.debug("App: {} selected".format(self.selection))
@@ -312,7 +313,9 @@ class ElideApp(App):
 			config["lisien"].get("connect_string") or self.connect_string
 		):
 			enkw["connect_string"] = s
-		if workers := config["lisien"].get("workers"):
+		if self.workers is not None:
+			enkw["workers"] = int(self.workers)
+		elif workers := config["lisien"].get("workers"):
 			enkw["workers"] = int(workers)
 		if path is not None and os.path.isdir(path):
 			startdir = path
