@@ -313,4 +313,7 @@ load_string_once("""
 			text: 'One-way' if root.reciprocal_portal else 'Two-way'
 			disabled: app.edit_locked
 			on_release: root.toggle_reciprocal()
+	Button:
+		text: 'Export logs'
+		on_release: app.copy_log_files()
 """)
