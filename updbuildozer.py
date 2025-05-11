@@ -12,23 +12,30 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Utility to remove Lisien and Elide from Buildozer's workspace
-
-You can use this instead of ``buildozer android clean``, as long as only
-Lisien and Elide code has changed since the last time you ran
-``buildozer android debug``.
-
-"""
+"""Update the lisien and elide packages in .buildozer in-place"""
 
 import os
 import shutil
 
-shutil.rmtree(".buildozer/android/app/elide", ignore_errors=True)
 pardirs = []
 prefix = ".buildozer/android/platform/"
 for plat in os.listdir(prefix):
 	if "dists" in os.listdir(os.path.join(prefix, plat)):
-		shutil.rmtree(os.path.join(prefix, plat, "dists"))
+		for dist_dir in os.listdir(
+			os.path.join(prefix, plat, "dists", "Elide")
+		):
+			if dist_dir.startswith("_python_bundle"):
+				pardirs.append(
+					os.path.join(
+						prefix,
+						plat,
+						"dists",
+						"Elide",
+						dist_dir,
+						"_python_bundle",
+						"site-packages",
+					)
+				)
 	if "build" not in os.listdir(os.path.join(prefix, plat)):
 		continue
 	for build_dir in os.listdir(os.path.join(prefix, plat, "build")):
@@ -39,17 +46,19 @@ for plat in os.listdir(prefix):
 		elif build_dir == "python-installs":
 			pre = os.path.join(prefix, plat, "build", build_dir, "Elide")
 			if os.path.exists(pre) and os.path.isdir(pre):
-				pardirs.extend(os.path.join(pre, arch) for arch in os.listdir(pre))
+				pardirs.extend(
+					os.path.join(pre, arch) for arch in os.listdir(pre)
+				)
 print("looking for built packages in", pardirs)
 for pardir in pardirs:
 	for package in os.listdir(pardir):
-		if package.lower().startswith("lisien") or package.lower().startswith("elide"):
+		if package.lower() == "lisien":
 			abspath = os.path.join(pardir, package)
-			if (
-				not os.path.exists(abspath)
-				or not os.path.isdir(abspath)
-				or os.path.islink(abspath)
-			):
-				continue
-			print("removing", abspath)
+			print("replacing", abspath, "with current lisien")
 			shutil.rmtree(abspath)
+			shutil.copytree("lisien/lisien", abspath)
+		elif package.lower == "elide":
+			abspath = os.path.join(pardir, package)
+			print("replacing", abspath, "with current elide")
+			shutil.rmtree(abspath)
+			shutil.copytree("elide/elide", abspath)
