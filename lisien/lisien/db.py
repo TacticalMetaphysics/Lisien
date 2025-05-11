@@ -18,6 +18,7 @@ from __future__ import annotations
 import inspect
 import os
 import sys
+import traceback
 from abc import abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
@@ -132,6 +133,17 @@ class ConnectionHolder:
 	existence_lock: Lock
 	_inq: Queue
 	_outq: Queue
+
+	@cached_property
+	def logger(self):
+		try:
+			from kivy.logger import Logger
+
+			return Logger
+		except ImportError:
+			from logging import getLogger
+
+			return getLogger(self.__class__.__name__)
 
 	@abstractmethod
 	def run(self):
@@ -3008,6 +3020,17 @@ class AbstractQueryEngine:
 	_outq: Queue
 	_holder: holder_cls
 
+	@cached_property
+	def logger(self):
+		try:
+			from kivy.logger import Logger
+
+			return Logger
+		except ImportError:
+			from logging import getLogger
+
+			return getLogger(self.__class__.__name__)
+
 	def echo(self, string: str) -> str:
 		with self.mutex():
 			self._inq.put(("echo", string))
@@ -3489,7 +3512,9 @@ class AbstractQueryEngine:
 	@contextmanager
 	def mutex(self):
 		with self._holder.lock:
+			assert self._outq.qsize() == 0
 			yield
+			assert self._outq.qsize() == 0
 
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
 		with self.mutex():
@@ -3503,7 +3528,9 @@ class AbstractQueryEngine:
 			self._inq.join()
 			for window in windows:
 				self._get_one_window(ret, *window)
-			assert self._outq.empty()
+			self.logger.debug(f"got {len(windows)} windows, will join outq")
+			self._outq.join()
+			self.logger.debug("outq joined")
 
 	_records: int
 	kf_interval_override: callable
@@ -7722,6 +7749,8 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		if hasattr(statement, "positiontup"):
 			kwargs.update(dict(zip(statement.positiontup, largs)))
+			repositioned = [kwargs[param] for param in statement.positiontup]
+			self.logger.debug(f"{statement}  |  {repositioned}")
 			return self.connection.execute(statement, kwargs)
 		elif largs:
 			raise TypeError("{} is a DDL query, I think".format(k))
@@ -7744,11 +7773,13 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			gather_sql = self.gather
 		else:
 			from .alchemy import gather_sql
+		self.logger.debug("about to connect " + dbstring)
 		self.engine = create_engine(dbstring, connect_args=connect_args)
 		self.meta = MetaData()
 		self.sql = gather_sql(self.meta)
 		self.connection = self.engine.connect()
 		self.transaction = self.connection.begin()
+		self.logger.debug("transaction started")
 		while True:
 			inst = self.inq.get()
 			if inst == "shutdown":
@@ -7770,7 +7801,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			if inst[0] == "silent":
 				inst = inst[1:]
 				silent = True
-			print(inst[:2])
+			self.logger.debug(inst[:2])
 			if inst[0] == "echo":
 				self.outq.put(inst[1])
 				self.inq.task_done()
@@ -9116,19 +9147,23 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def initdb(self):
 		with self.mutex():
+			self.globl = GlobalKeyValueStore(self)
 			self._inq.put("initdb")
 			ret = self._outq.get()
 			if isinstance(ret, Exception):
 				raise ret
-		self.globl = GlobalKeyValueStore(self)
-		if "main_branch" not in self.globl:
-			self.globl["main_branch"] = "trunk"
-		if "branch" not in self.globl:
-			self.globl["branch"] = self.globl["main_branch"]
-		if "turn" not in self.globl:
-			self.globl["turn"] = 0
-		if "tick" not in self.globl:
-			self.globl["tick"] = 0
+			if "main_branch" not in self.globl:
+				self.call_one("global_insert", "main_branch", "trunk")
+				self.globl._cache["main_branch"] = "trunk"
+			if "branch" not in self.globl:
+				self.call_one("global_insert", "branch", "trunk")
+				self.globl._cache["branch"] = "trunk"
+			if "turn" not in self.globl:
+				self.call_one("global_insert", "turn", 0)
+				self.globl._cache["turn"] = 0
+			if "tick" not in self.globl:
+				self.call_one("global_insert", "tick", 0)
+				self.globl._cache["tick"] = 0
 
 	def truncate_all(self):
 		"""Delete all data from every table"""
@@ -9169,6 +9204,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			raise KeyframeError("No keyframe", branch, turn, tick)
 		assert len(exts) == 1, f"Incoherent keyframe {branch, turn, tick}"
 		universal, rule, rulebook = exts[0]
+		print(f"universal={universal}", file=sys.stderr)
+		print(f"rule={rule}", file=sys.stderr)
+		print(f"rulebook={rulebook}", file=sys.stderr)
 		return (
 			unpack(universal),
 			unpack(rule),
