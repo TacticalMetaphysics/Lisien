@@ -3426,6 +3426,21 @@ class AbstractQueryEngine:
 		"graph_val",
 		"node_val",
 		"edge_val",
+		"things",
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+		"node_rulebook",
+		"portal_rulebook",
+		"universals",
+		"rulebooks",
+		"rule_triggers",
+		"rule_prereqs",
+		"rule_actions",
+		"rule_neighborhoods",
+		"rule_big",
 	]
 
 	def _put_window_tick_to_end(
@@ -3554,29 +3569,6 @@ class AbstractQueryEngine:
 			)
 		):
 			self.snap_keyframe()
-
-	_infixes2load = [
-		"nodes",
-		"edges",
-		"graph_val",
-		"node_val",
-		"edge_val",
-		"things",
-		"character_rulebook",
-		"unit_rulebook",
-		"character_thing_rulebook",
-		"character_place_rulebook",
-		"character_portal_rulebook",
-		"node_rulebook",
-		"portal_rulebook",
-		"universals",
-		"rulebooks",
-		"rule_triggers",
-		"rule_prereqs",
-		"rule_actions",
-		"rule_neighborhoods",
-		"rule_big",
-	]
 
 	def _get_one_window(
 		self,
