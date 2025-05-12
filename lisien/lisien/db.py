@@ -9138,8 +9138,8 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._t.join()
 
 	def initdb(self):
+		self.globl = GlobalKeyValueStore(self)
 		with self.mutex():
-			self.globl = GlobalKeyValueStore(self)
 			self._inq.put("initdb")
 			ret = self._outq.get()
 			if isinstance(ret, Exception):
