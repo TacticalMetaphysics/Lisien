@@ -1,9 +1,0 @@
---- sqlalchemy-2.0.40/setup.py
-+++ sqlalchemy-2.0.40/setup.py
-@@ -78,4 +78,4 @@
-     ext_modules = []
-     cmdclass = {}
- 
--setup(cmdclass=cmdclass, ext_modules=ext_modules)
-+setup(cmdclass=cmdclass, ext_modules=ext_modules, zip_safe=False)
-
