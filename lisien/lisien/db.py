@@ -9142,6 +9142,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		with self.mutex():
 			self._inq.put("initdb")
 			ret = self._outq.get()
+			self._outq.task_done()
 			if isinstance(ret, Exception):
 				raise ret
 			if "main_branch" not in self.globl:
