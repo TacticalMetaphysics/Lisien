@@ -3961,7 +3961,7 @@ class AbstractQueryEngine:
 			outq.task_done()
 		insist(
 			got
-			!= (
+			== (
 				"end",
 				"character_place_rulebook",
 				branch,
@@ -3976,7 +3976,7 @@ class AbstractQueryEngine:
 		outq.task_done()
 		insist(
 			(got := outq.get())
-			!= (
+			== (
 				"begin",
 				"character_portal_rulebook",
 				branch,
