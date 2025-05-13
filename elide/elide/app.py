@@ -538,26 +538,29 @@ class ElideApp(App):
 		)
 
 	def _copy_log_files(self):
-		try:
-			from android import autoclass
-			from androidstorage4kivy import SharedStorage
+		from android import autoclass
+		from androidstorage4kivy import SharedStorage
 
-			if not hasattr(self, "_ss"):
-				self._ss = SharedStorage()
-			if not hasattr(self, "_env"):
-				self._env = autoclass("android.os.Environment")
-			logdir = os.path.join(self.prefix, ".kivy/logs")
-			if os.path.exists(logdir):
-				for logfile in os.listdir(logdir):
-					if self._ss.copy_to_shared(
-						os.path.join(logdir, logfile),
-						collection=self._env.DIRECTORY_DOCUMENTS,
-					):
-						Logger.info(f"Copied {logfile} to {logdir}")
-					else:
-						Logger.warning(f"Failed to copy {logfile} to {logdir}")
-		except ImportError:
-			pass
+		if not hasattr(self, "_ss"):
+			self._ss = SharedStorage()
+		if not hasattr(self, "_env"):
+			self._env = autoclass("android.os.Environment")
+		logdir = os.path.join(self.prefix, "app/.kivy/logs")
+		if os.path.exists(logdir):
+			for logfile in os.listdir(logdir):
+				if self._ss.copy_to_shared(
+					os.path.join(logdir, logfile),
+					collection=self._env.DIRECTORY_DOCUMENTS,
+				):
+					Logger.info(
+						f"Copied {logfile} to {self._env.DIRECTORY_DOCUMENTS}"
+					)
+				else:
+					Logger.warning(
+						f"Failed to copy {logfile} to {self._env.DIRECTORY_DOCUMENTS}"
+					)
+		else:
+			Logger.warning("No log directory at " + logdir)
 
 	@triggered()
 	def copy_log_files(self):
