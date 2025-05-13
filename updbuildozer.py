@@ -57,7 +57,7 @@ for pardir in pardirs:
 			print("replacing", abspath, "with current lisien")
 			shutil.rmtree(abspath)
 			shutil.copytree("lisien/lisien", abspath)
-		elif package.lower == "elide":
+		elif package.lower() == "elide":
 			abspath = os.path.join(pardir, package)
 			print("replacing", abspath, "with current elide")
 			shutil.rmtree(abspath)
