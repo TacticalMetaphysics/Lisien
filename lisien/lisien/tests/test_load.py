@@ -335,8 +335,15 @@ def test_keyframe_load_unload(tmp_path, non_null_database):
 
 
 @pytest.fixture
-def some_state(tmp_path):
-	with Engine(tmp_path, workers=0, random_seed=0) as eng:
+def some_state(tmp_path, non_null_database):
+	with Engine(
+		tmp_path,
+		workers=0,
+		random_seed=0,
+		connect_string=f"sqlite3:///{tmp_path}/world.sqlite3"
+		if non_null_database == "sqlite"
+		else None,
+	) as eng:
 		initial_state = nx.DiGraph(
 			{
 				0: {1: {"omg": "lol"}},
@@ -372,8 +379,15 @@ def some_state(tmp_path):
 	return tmp_path
 
 
-def test_load_branch_to_end(some_state):
-	with Engine(some_state, workers=0, random_seed=0) as eng:
+def test_load_branch_to_end(some_state, non_null_database):
+	with Engine(
+		some_state,
+		workers=0,
+		random_seed=0,
+		connect_string=f"sqlite:///{some_state}/world.sqlite3"
+		if non_null_database == "sqlite"
+		else None,
+	) as eng:
 		assert eng.turn == 0
 		phys = eng.character["physical"]
 		assert 3 in phys.place
