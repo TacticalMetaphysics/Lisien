@@ -3478,7 +3478,7 @@ class EngineProxy(AbstractEngine):
 		self.method._locl = pickle.loads(replacement)
 
 	def send(
-		self, obj, blocking: bool = True, timeout: Optional[int | float] = None
+		self, obj, blocking: bool = True, timeout: int | float = 1
 	) -> None:
 		if hasattr(self._handle_out, "send_bytes"):
 			self.send_bytes(self.pack(obj), blocking=blocking, timeout=timeout)
