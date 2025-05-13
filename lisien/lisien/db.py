@@ -9138,25 +9138,25 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._t.join()
 
 	def initdb(self):
-		self.globl = GlobalKeyValueStore(self)
 		with self.mutex():
 			self._inq.put("initdb")
 			ret = self._outq.get()
 			self._outq.task_done()
 			if isinstance(ret, Exception):
 				raise ret
-			if "main_branch" not in self.globl:
-				self.call_one("global_insert", "main_branch", "trunk")
-				self.globl._cache["main_branch"] = "trunk"
-			if "branch" not in self.globl:
-				self.call_one("global_insert", "branch", "trunk")
-				self.globl._cache["branch"] = "trunk"
-			if "turn" not in self.globl:
-				self.call_one("global_insert", "turn", 0)
-				self.globl._cache["turn"] = 0
-			if "tick" not in self.globl:
-				self.call_one("global_insert", "tick", 0)
-				self.globl._cache["tick"] = 0
+		self.globl = GlobalKeyValueStore(self)
+		if "main_branch" not in self.globl:
+			self.global_set("main_branch", "trunk")
+			self.globl._cache["main_branch"] = "trunk"
+		if "branch" not in self.globl:
+			self.global_set("branch", "trunk")
+			self.globl._cache["branch"] = "trunk"
+		if "turn" not in self.globl:
+			self.global_set("turn", 0)
+			self.globl._cache["turn"] = 0
+		if "tick" not in self.globl:
+			self.global_set("tick", 0)
+			self.globl._cache["tick"] = 0
 
 	def truncate_all(self):
 		"""Delete all data from every table"""
