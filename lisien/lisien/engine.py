@@ -5461,23 +5461,23 @@ class Engine(AbstractEngine, Executor):
 
 	def debug(self, msg: str) -> None:
 		"""Log a message at level 'debug'"""
-		self.log("debug", msg)
+		self.logger.debug(msg)
 
 	def info(self, msg: str) -> None:
 		"""Log a message at level 'info'"""
-		self.log("info", msg)
+		self.logger.info(msg)
 
 	def warning(self, msg: str) -> None:
 		"""Log a message at level 'warning'"""
-		self.log("warning", msg)
+		self.logger.warning(msg)
 
 	def error(self, msg: str) -> None:
 		"""Log a message at level 'error'"""
-		self.log("error", msg)
+		self.logger.error(msg)
 
 	def critical(self, msg: str) -> None:
 		"""Log a message at level 'critical'"""
-		self.log("critical", msg)
+		self.logger.critical(msg)
 
 	def close(self) -> None:
 		"""Commit changes and close the database
