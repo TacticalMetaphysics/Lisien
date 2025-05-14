@@ -40,6 +40,7 @@ from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
 from inspect import getsource
+from multiprocessing.connection import Connection
 from queue import SimpleQueue, Queue, Empty
 from random import Random
 from threading import Lock, Thread
@@ -3218,8 +3219,8 @@ class EngineProxy(AbstractEngine):
 
 	def __init__(
 		self,
-		handle_out,
-		handle_in,
+		pipe_in: Connection | Queue,
+		pipe_out: Connection | Queue,
 		logger: logging.Logger,
 		install_modules=(),
 		submit_func: callable = None,
@@ -3271,10 +3272,10 @@ class EngineProxy(AbstractEngine):
 		else:
 			self._threadpool = ThreadPoolExecutor(threads)
 			self._submit = self._threadpool.submit
-		self._handle_out = handle_out
-		self._handle_out_lock = Lock()
-		self._handle_in = handle_in
-		self._handle_in_lock = Lock()
+		self._pipe_out = pipe_out
+		self._pipe_out_lock = Lock()
+		self._pipe_in = pipe_in
+		self._pipe_in_lock = Lock()
 		self._round_trip_lock = Lock()
 		self._commit_lock = Lock()
 		self.logger = logger
@@ -3384,7 +3385,6 @@ class EngineProxy(AbstractEngine):
 		self.prereq.load()
 		self.trigger.load()
 		self.function.load()
-		self.string.load()
 		self._eternal_cache = self.handle("eternal_copy")
 		self.debug(f"Got {len(self._eternal_cache)} eternal vars")
 		self._initialized = False
@@ -3480,35 +3480,35 @@ class EngineProxy(AbstractEngine):
 	def send(
 		self, obj, blocking: bool = True, timeout: int | float = 1
 	) -> None:
-		if hasattr(self._handle_in, "send_bytes"):
+		if hasattr(self._pipe_in, "send_bytes"):
 			self.send_bytes(self.pack(obj), blocking=blocking, timeout=timeout)
 		else:
 			self.debug(f"EngineProxy: putting {obj} into _handle_in")
-			self._handle_in.put(obj, timeout=timeout)
+			self._pipe_in.put(obj, timeout=timeout)
 
 	def send_bytes(self, obj, blocking=True, timeout=1):
-		if not hasattr(self._handle_out, "send_bytes"):
+		if not isinstance(self._pipe_out, Connection):
 			raise TypeError("Tried to send bytes not between processes")
 		compressed = zlib.compress(obj)
-		self._handle_in_lock.acquire(blocking, timeout)
-		self._handle_in.send_bytes(compressed)
-		self._handle_in_lock.release()
+		self._pipe_out_lock.acquire(blocking, timeout)
+		self._pipe_out.send_bytes(compressed)
+		self._pipe_out_lock.release()
 
 	def recv_bytes(self, blocking=True, timeout=1):
-		if not hasattr(self._handle_out, "recv_bytes"):
+		if not isinstance(self._pipe_in, Connection):
 			raise TypeError("Tried to receive bytes not from another process")
-		self._handle_out_lock.acquire(blocking, timeout)
-		data = self._handle_out.recv_bytes()
-		self._handle_out_lock.release()
+		self._pipe_in_lock.acquire(blocking, timeout)
+		data = self._pipe_in.recv_bytes()
+		self._pipe_in_lock.release()
 		return zlib.decompress(data)
 
 	def recv(self, blocking: bool = True, timeout: int | float = 1):
-		if hasattr(self._handle_out, "recv_bytes"):
+		if hasattr(self._pipe_out, "recv_bytes"):
 			return self.unpack(
 				self.recv_bytes(blocking=blocking, timeout=timeout)
 			)
 		else:
-			return self._handle_out.get()
+			return self._pipe_out.get()
 
 	def debug(self, msg):
 		self.logger.debug(msg)
@@ -3565,7 +3565,8 @@ class EngineProxy(AbstractEngine):
 		start_ts = monotonic()
 		with self._round_trip_lock:
 			self.send(kwargs)
-			command, branch, turn, tick, r = self.recv()
+			received = self.recv()
+			command, branch, turn, tick, r = received
 		self.debug(
 			"EngineProxy: received {} in {:,.2f} seconds".format(
 				(command, branch, turn, tick), monotonic() - start_ts
@@ -3997,11 +3998,11 @@ class EngineProxy(AbstractEngine):
 		self._commit_lock.release()
 
 	def close(self):
+		if getattr(self, "closed", False):
+			return
 		self._commit_lock.acquire()
 		self._commit_lock.release()
 		self.handle("close")
-		with self._handle_out_lock:
-			self._handle_out.send_bytes(b"shutdown")
 		self.closed = True
 
 	def _node_contents(self, character, node):
@@ -4057,11 +4058,9 @@ def _engine_subroutine_step(
 	if silent:
 		return
 	if hasattr(getattr(handle, cmd), "prepacked"):
-		send_output_bytes(
-			_finish_packing(handle.pack, cmd, *handle._real.time, r)
-		)
+		send_output_bytes(cmd, r)
 	else:
-		send_output((cmd, *handle._real.time, r))
+		send_output(cmd, r)
 	if hasattr(handle, "_after_ret"):
 		handle._after_ret()
 		del handle._after_ret
@@ -4071,13 +4070,19 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 	"""Loop to handle one command at a time and pipe results back"""
 	engine_handle = EngineHandle(*args, logq=logq, loglevel=loglevel, **kwargs)
 
-	def send_output(r):
-		output_pipe.send_bytes(zlib.compress(engine_handle.pack(r)))
-
-	def send_output_bytes(cmd, branch, turn, tick, r):
+	def send_output(cmd, r):
 		output_pipe.send_bytes(
 			zlib.compress(
-				_finish_packing(engine_handle.pack, cmd, branch, turn, tick, r)
+				engine_handle.pack((cmd, *engine_handle._real.time, r))
+			)
+		)
+
+	def send_output_bytes(cmd, r):
+		output_pipe.send_bytes(
+			zlib.compress(
+				_finish_packing(
+					engine_handle.pack, cmd, *engine_handle._real.time, r
+				)
 			)
 		)
 
@@ -4098,12 +4103,15 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 def engine_subthread(args, kwargs, input_queue, output_queue):
 	engine_handle = EngineHandle(*args, **kwargs)
 
-	send_output = output_queue.put
+	def send_output(cmd, r):
+		output_queue.put(cmd, *engine_handle._real.time, r)
 
-	def send_output_bytes(cmd, branch, turn, tick, r):
+	def send_output_bytes(cmd, r):
 		output_queue.put(
 			engine_handle.unpack(
-				_finish_packing(engine_handle.pack, cmd, branch, turn, tick, r)
+				_finish_packing(
+					engine_handle.pack, cmd, *engine_handle._real.time, r
+				)
 			)
 		)
 
@@ -4231,7 +4239,8 @@ class EngineProcessManager:
 			from multiprocessing import Pipe, Queue
 
 			android = False
-			(self._handle_in_pipe, self._handle_out_pipe) = Pipe()
+			(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(duplex=False)
+			(self._proxy_in_pipe, self._handle_out_pipe) = Pipe(duplex=False)
 			self.logq = Queue()
 
 		handlers = []
@@ -4301,8 +4310,8 @@ class EngineProcessManager:
 			)
 			self._logthread.start()
 			self.engine_proxy = EngineProxy(
-				self._handle_out_pipe,
-				self._handle_in_pipe,
+				self._proxy_in_pipe,
+				self._proxy_out_pipe,
 				self.logger,
 				install_modules,
 			)
@@ -4573,6 +4582,7 @@ class EngineProcessManager:
 	def shutdown(self):
 		"""Close the engine in the subprocess, then join the subprocess"""
 		self.engine_proxy.close()
+		self.engine_proxy.send_bytes(b"shutdown")
 		if hasattr(self, "_p"):
 			self._p.join()
 		if hasattr(self, "_client"):
