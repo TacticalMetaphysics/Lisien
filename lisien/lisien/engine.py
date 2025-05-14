@@ -5521,8 +5521,9 @@ class Engine(AbstractEngine, Executor):
 		return self
 
 	def __exit__(self, *args):
-		"""Close on exit."""
+		"""Close and shutdown on exit."""
 		self.close()
+		self.shutdown()
 
 	def _handled_char(
 		self,
