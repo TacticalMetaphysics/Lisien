@@ -170,12 +170,10 @@ def proxyless_engine(tmp_path, request, database):
 @pytest.fixture
 def sqleng(tmp_path, request, execution):
 	if execution == "proxy":
-		logq = SimpleQueue()
-		logger = WorkerLogger(logq, 0)
 		eng = EngineProxy(
 			None,
 			None,
-			logger,
+			getLogger("sqleng"),
 			prefix=tmp_path,
 			worker_index=0,
 			eternal={"language": "eng"},
