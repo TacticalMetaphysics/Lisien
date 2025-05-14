@@ -32,7 +32,13 @@ from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
-from logging import getLogger, Formatter, LogRecord, Handler, DEBUG
+from logging import (
+	getLogger,
+	Formatter,
+	LogRecord,
+	StreamHandler,
+	DEBUG,
+)
 from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
@@ -2201,7 +2207,7 @@ class Engine(AbstractEngine, Executor):
 		self._obranch = main_branch or "trunk"
 		self._otick = self._oturn = 0
 		self.logger = getLogger("lisien")
-		worker_handler = Handler(DEBUG)
+		worker_handler = StreamHandler(DEBUG)
 		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
 		worker_handler.setFormatter(WorkerFormatter())
 		self.logger.addHandler(worker_handler)
