@@ -3480,35 +3480,35 @@ class EngineProxy(AbstractEngine):
 	def send(
 		self, obj, blocking: bool = True, timeout: int | float = 1
 	) -> None:
-		if hasattr(self._handle_out, "send_bytes"):
+		if hasattr(self._handle_in, "send_bytes"):
 			self.send_bytes(self.pack(obj), blocking=blocking, timeout=timeout)
 		else:
-			self.debug(f"EngineProxy: putting {obj} into _handle_out")
-			self._handle_out.put(obj, timeout=timeout)
+			self.debug(f"EngineProxy: putting {obj} into _handle_in")
+			self._handle_in.put(obj, timeout=timeout)
 
 	def send_bytes(self, obj, blocking=True, timeout=1):
 		if not hasattr(self._handle_out, "send_bytes"):
 			raise TypeError("Tried to send bytes not between processes")
 		compressed = zlib.compress(obj)
-		self._handle_out_lock.acquire(blocking, timeout)
-		self._handle_out.send_bytes(compressed)
-		self._handle_out_lock.release()
+		self._handle_in_lock.acquire(blocking, timeout)
+		self._handle_in.send_bytes(compressed)
+		self._handle_in_lock.release()
 
 	def recv_bytes(self, blocking=True, timeout=1):
-		if not hasattr(self._handle_in, "recv_bytes"):
+		if not hasattr(self._handle_out, "recv_bytes"):
 			raise TypeError("Tried to receive bytes not from another process")
-		self._handle_in_lock.acquire(blocking, timeout)
-		data = self._handle_in.recv_bytes()
-		self._handle_in_lock.release()
+		self._handle_out_lock.acquire(blocking, timeout)
+		data = self._handle_out.recv_bytes()
+		self._handle_out_lock.release()
 		return zlib.decompress(data)
 
 	def recv(self, blocking: bool = True, timeout: int | float = 1):
-		if hasattr(self._handle_in, "recv_bytes"):
+		if hasattr(self._handle_out, "recv_bytes"):
 			return self.unpack(
 				self.recv_bytes(blocking=blocking, timeout=timeout)
 			)
 		else:
-			return self._handle_in.get()
+			return self._handle_out.get()
 
 	def debug(self, msg):
 		self.logger.debug(msg)
