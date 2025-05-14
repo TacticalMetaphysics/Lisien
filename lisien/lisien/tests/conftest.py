@@ -167,7 +167,7 @@ def proxyless_engine(tmp_path, request, database):
 		yield eng
 
 
-@pytest.fixture(params=pytest.param("sqlite", marks=[pytest.mark.sqlite]))
+@pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
 def sqleng(tmp_path, request, execution):
 	if execution == "proxy":
 		eng = EngineProxy(
