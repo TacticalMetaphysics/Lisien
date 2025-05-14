@@ -4150,7 +4150,7 @@ def worker_subprocess(
 	action: dict,
 ):
 	logger = logging.getLogger(f"lisien worker {i}")
-	handler = WorkerLogHandler(logq, logging.DEBUG)
+	handler = WorkerLogHandler(logq, logging.DEBUG, i)
 	logger.addHandler(handler)
 	eng = EngineProxy(
 		None,
