@@ -4734,16 +4734,13 @@ class Engine(AbstractEngine, Executor):
 			):
 				with lock:
 					pipein.send_bytes(b"shutdown")
-					recvd = pipeout.recv_bytes()
-					assert recvd == b"done"
 					proc.join(timeout=5)
 					proc.close()
 					pipein.close()
 					pipeout.close()
 		if hasattr(self, "_osc_serv_thread"):
 			for client in self._osc_clients:
-				client.send_message("/shutdown")
-				client.close()
+				client.send_message("/shutdown", [])
 			self._osc_server.shutdown()
 			self._osc_serv_thread.join()
 
@@ -5508,7 +5505,6 @@ class Engine(AbstractEngine, Executor):
 				del sys.modules[modname]
 		self.commit()
 		self.query.close()
-		self.shutdown()
 		self._closed = True
 
 	def __enter__(self):
