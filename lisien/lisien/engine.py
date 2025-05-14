@@ -4738,11 +4738,13 @@ class Engine(AbstractEngine, Executor):
 					proc.close()
 					pipein.close()
 					pipeout.close()
+			del self._worker_processes
 		if hasattr(self, "_osc_serv_thread"):
 			for client in self._osc_clients:
 				client.send_message("/shutdown", [])
 			self._osc_server.shutdown()
 			self._osc_serv_thread.join()
+			del self._osc_serv_thread
 
 	def _detect_kf_interval_override(self):
 		if self._planning:
