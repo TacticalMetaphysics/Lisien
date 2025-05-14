@@ -32,6 +32,7 @@ from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
+from logging import getLogger, Formatter, LogRecord, Handler, DEBUG
 from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
@@ -389,6 +390,16 @@ class NullSchema(AbstractSchema):
 		return True
 
 
+class WorkerFormatter(Formatter):
+	def formatMessage(self, record: LogRecord) -> str:
+		if not hasattr(record, "worker_idx"):
+			raise RuntimeError(
+				"WorkerFormatter received a LogRecord from a non-worker",
+				record,
+			)
+		return f"worker {record.worker_idx}: {super().formatMessage(record)}"
+
+
 class Engine(AbstractEngine, Executor):
 	"""Lisien, the Life Simulator Engine.
 
@@ -439,8 +450,6 @@ class Engine(AbstractEngine, Executor):
 		``commit_interval`` turns. If ``None`` (the default), only commit
 		on close or manual call to ``commit``.
 	:param random_seed: A number to initialize the randomizer.
-	:param logfun: An optional function taking arguments
-		``level, message``, which should log `message` somehow.
 	:param clear: Whether to delete *any and all* existing data
 		and code in ``prefix`` and the database. Use with caution!
 	:param keep_rules_journal: Boolean; if ``True`` (the default), keep
@@ -2169,7 +2178,6 @@ class Engine(AbstractEngine, Executor):
 		keyframe_interval: int | None = 1000,
 		commit_interval: int = None,
 		random_seed: int = None,
-		logfun: callable = None,
 		clear: bool = False,
 		keep_rules_journal: bool = True,
 		keyframe_on_close: bool = True,
@@ -2192,7 +2200,11 @@ class Engine(AbstractEngine, Executor):
 		# in case this is the first startup
 		self._obranch = main_branch or "trunk"
 		self._otick = self._oturn = 0
-		self._init_log(logfun)
+		self.logger = getLogger("lisien")
+		worker_handler = Handler(DEBUG)
+		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
+		worker_handler.setFormatter(WorkerFormatter())
+		self.logger.addHandler(worker_handler)
 		self._init_func_stores(
 			prefix, function, method, trigger, prereq, action, clear
 		)
@@ -2209,20 +2221,6 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid = 0
 		if workers != 0 and port is None:
 			self._start_worker_processes(prefix, workers)
-
-	def _init_log(self, logfun: Optional[callable]):
-		if logfun is None:
-			from logging import getLogger
-
-			logger = getLogger("lisien")
-
-			def logfun(level, msg):
-				if isinstance(level, int):
-					logger.log(level, msg)
-				else:
-					getattr(logger, level)(msg)
-
-		self.log = logfun
 
 	def _init_func_stores(
 		self,
@@ -2402,7 +2400,8 @@ class Engine(AbstractEngine, Executor):
 
 		def sync_log_forever(q):
 			while True:
-				self.log(*q.get())
+				record: LogRecord = q.get()
+				self.logger.handle(record)
 
 		for store in self.stores:
 			if hasattr(store, "save"):

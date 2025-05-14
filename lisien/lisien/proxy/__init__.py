@@ -3220,7 +3220,7 @@ class EngineProxy(AbstractEngine):
 		self,
 		handle_out,
 		handle_in,
-		logger,
+		logger: logging.Logger,
 		install_modules=(),
 		submit_func: callable = None,
 		threads: int = None,
@@ -4095,8 +4095,8 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 		)
 
 
-def engine_subthread(args, kwargs, input_queue, output_queue, logfun):
-	engine_handle = EngineHandle(*args, logfun=logfun, **kwargs)
+def engine_subthread(args, kwargs, input_queue, output_queue):
+	engine_handle = EngineHandle(*args, **kwargs)
 
 	send_output = output_queue.put
 
@@ -4116,35 +4116,15 @@ def engine_subthread(args, kwargs, input_queue, output_queue, logfun):
 		)
 
 
-class WorkerLogger:
-	def __init__(self, logq, i):
+class WorkerLogHandler(logging.Handler):
+	def __init__(self, logq, level, i):
+		super().__init__(level)
 		self._logq = logq
 		self._i = i
 
-	def debug(self, msg):
-		if not self._logq:
-			print(msg)
-		self._logq.put((10, f"worker {self._i}: {msg}"))
-
-	def info(self, msg):
-		if not self._logq:
-			print(msg)
-		self._logq.put((20, f"worker {self._i}: {msg}"))
-
-	def warning(self, msg):
-		if not self._logq:
-			print(msg)
-		self._logq.put((30, f"worker {self._i}: {msg}"))
-
-	def error(self, msg):
-		if not self._logq:
-			print(msg)
-		self._logq.put((40, f"worker {self._i}: {msg}"))
-
-	def critical(self, msg):
-		if not self._logq:
-			print(msg)
-		self._logq.put((50, f"worker {self._i}: {msg}"))
+	def emit(self, record):
+		record.worker_idx = self._i
+		self._logq.put(record)
 
 
 def worker_subprocess(
@@ -4161,7 +4141,9 @@ def worker_subprocess(
 	prereq: dict,
 	action: dict,
 ):
-	logger = WorkerLogger(logq, i)
+	logger = logging.getLogger(f"lisien worker {i}")
+	handler = WorkerLogHandler(logq, logging.DEBUG)
+	logger.addHandler(handler)
 	eng = EngineProxy(
 		None,
 		None,

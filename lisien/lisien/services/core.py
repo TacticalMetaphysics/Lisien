@@ -86,9 +86,6 @@ def core_service(replies_port: int, args: list, kwargs: dict):
 	)
 	hand = EngineHandle(
 		*args,
-		logfun=lambda lvl, msg: client.send(
-			pack4send(hand, "/log", (lvl, msg))
-		),
 		port=my_port,
 		**kwargs,
 	)

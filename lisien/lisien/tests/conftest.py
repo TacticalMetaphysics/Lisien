@@ -15,6 +15,7 @@
 import os
 import shutil
 from functools import partial
+from logging import getLogger
 from queue import SimpleQueue
 
 import pytest
@@ -23,7 +24,7 @@ from lisien import Engine
 from lisien.proxy.handle import EngineHandle
 
 from ..examples import college, kobold, sickle
-from ..proxy import EngineProxy, WorkerLogger
+from ..proxy import EngineProxy
 from . import data
 from .util import make_test_engine_kwargs
 
@@ -121,12 +122,10 @@ def non_null_database(request):
 )
 def engy(tmp_path, execution, database):
 	if execution == "proxy":
-		logq = SimpleQueue()
-		logger = WorkerLogger(logq, 0)
 		eng = EngineProxy(
 			None,
 			None,
-			logger,
+			getLogger("lisien proxy"),
 			prefix=None,
 			worker_index=0,
 			eternal={"language": "eng"},
