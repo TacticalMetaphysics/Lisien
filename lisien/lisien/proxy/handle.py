@@ -94,7 +94,6 @@ class EngineHandle:
 		"""
 		from ..engine import Engine
 
-		kwargs.setdefault("logfun", self.log)
 		do_game_start = kwargs.pop("do_game_start", False)
 		self._logq = logq
 		self._loglevel = loglevel
