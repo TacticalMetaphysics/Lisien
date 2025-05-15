@@ -1582,6 +1582,7 @@ class Engine(AbstractEngine, Executor):
 		for arg in (turn_from, tick_from, turn_to, tick_to):
 			if not isinstance(arg, int):
 				raise TypeError("turn and tick must be int")
+		self.load_between(branch, turn_from, tick_from, turn_to, tick_to)
 		if turn_from == turn_to:
 			if tick_from == tick_to:
 				return {}
@@ -1845,6 +1846,7 @@ class Engine(AbstractEngine, Executor):
 		branch = branch or self.branch
 		turn = turn or self.turn
 		tick_to = tick_to or self.tick
+		self.load_between(branch, turn, tick_from, turn, tick_to)
 		delta = {}
 		if tick_from < tick_to:
 			attribute = "settings"
@@ -4073,6 +4075,10 @@ class Engine(AbstractEngine, Executor):
 		turn_to: int,
 		tick_to: int,
 	):
+		if self._time_is_loaded_between(
+			branch, turn_from, tick_from, turn_to, tick_to
+		):
+			return
 		self._get_keyframe(branch, turn_from, tick_from, silent=True)
 		noderows = []
 		nodevalrows = []
@@ -4322,6 +4328,27 @@ class Engine(AbstractEngine, Executor):
 				<= (turn, tick)
 				<= (late_turn, late_tick)
 			)
+
+	def _time_is_loaded_between(
+		self,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
+	) -> bool:
+		"""Return whether we have all time in this window in memory"""
+		loaded = self._loaded
+		if branch not in loaded:
+			return False
+		early_turn, early_tick, late_turn, late_tick = loaded[branch]
+		if (turn_from, tick_from) < (early_turn, early_tick):
+			return False
+		if None in (late_turn, late_tick):
+			return True
+		elif (late_turn, late_tick) < (turn_to, tick_to):
+			return False
+		return True
 
 	def _build_keyframe_window(
 		self, branch: Branch, turn: Turn, tick: Tick, loading=False
