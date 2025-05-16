@@ -157,6 +157,7 @@ class DirPicker(Screen):
 				self.config_popover.add_widget(self.configurator)
 			self.config_popover.open()
 			return
+		app.prefix = path
 		app.start_subprocess(path)
 		app.init_board()
 		self.toggle()
