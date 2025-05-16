@@ -135,13 +135,6 @@ class DirPicker(Screen):
 
 	@triggered()
 	def open(self, path, *_):
-		try:
-			from android.permissions import request_permissions, Permission
-
-			request_permissions([Permission.WRITE_EXTERNAL_STORAGE])
-		except ImportError:
-			pass
-
 		app = App.get_running_app()
 		if "world" not in os.listdir(path) and not app.connect_string:
 			# TODO show a configurator, accept cancellation, extract init params
