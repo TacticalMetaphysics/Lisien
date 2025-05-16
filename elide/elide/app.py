@@ -538,8 +538,11 @@ class ElideApp(App):
 		)
 
 	def _copy_log_files(self):
-		from android import autoclass
-		from androidstorage4kivy import SharedStorage
+		try:
+			from android import autoclass
+			from androidstorage4kivy import SharedStorage
+		except ModuleNotFoundError:
+			return
 
 		if not hasattr(self, "_ss"):
 			self._ss = SharedStorage()
