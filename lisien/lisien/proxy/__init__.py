@@ -2429,6 +2429,7 @@ class StringStoreProxy(Signal):
 	_cache: dict
 
 	def __init__(self, engine_proxy):
+		self._cache = {}
 		super().__init__()
 		self.engine = engine_proxy
 
@@ -2438,11 +2439,16 @@ class StringStoreProxy(Signal):
 	def load(self):
 		self._cache = self.engine.handle("strings_copy")
 
+	def __hasattr__(self, attr):
+		return super().__hasattr__(attr) or attr in super().__getattribute__(
+			self, "_cache"
+		)
+
 	def __getattr__(self, k):
-		try:
-			return self._cache[k]
-		except KeyError:
-			raise AttributeError
+		cache = super().__getattribute__("_cache")
+		if k in cache:
+			return cache[k]
+		raise AttributeError(k)
 
 	def __setattr__(self, k, v):
 		if k in (
