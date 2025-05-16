@@ -12,6 +12,11 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import json
+import os
+import sys
+
+from kivy.core.image import Image
 from kivy.clock import Clock, triggered
 from kivy.logger import Logger
 from kivy.properties import (
@@ -20,8 +25,12 @@ from kivy.properties import (
 	ObjectProperty,
 	StringProperty,
 )
+from kivy.resources import resource_find
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.label import Label
+from kivy.uix.modalview import ModalView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 
@@ -161,6 +170,8 @@ class SpriteDialog(BoxLayout):
 	toggle = ObjectProperty()
 	prefix = StringProperty()
 	imgpaths = ListProperty()
+	custom_imgs_header = StringProperty()
+	custom_imgs_dir = StringProperty()
 	default_imgpaths = ListProperty()
 	data = ListProperty()
 	pallet_box_height = NumericProperty()
@@ -169,6 +180,85 @@ class SpriteDialog(BoxLayout):
 		self.prefix = self.ids.selector.prefix
 		self.imgpaths = self.ids.selector.imgpaths
 		self.toggle()
+
+	@trigger
+	def _choose_graphic_to_import(self, *_):
+		try:
+			from android import primary_external_storage_path
+
+			path = primary_external_storage_path()
+			self._android = True
+		except ImportError:
+			path = os.getcwd()
+			self._android = False
+		if hasattr(self, "_graphic_modal"):
+			self._file_chooser.path = path
+		else:
+			self._graphic_modal = ModalView()
+			graphic_modal_layout = BoxLayout(orientation="vertical")
+			graphic_modal_layout.add_widget(
+				Label(text="Pick an image to import", size_hint_y=None)
+			)
+			self._file_chooser = FileChooserIconView(path=path)
+			graphic_modal_layout.add_widget(self._file_chooser)
+			cancel = Button(
+				text="Cancel", on_release=self._graphic_modal.dismiss
+			)
+			ok = Button(text="Import", on_release=self._import_graphic)
+			buttons_layout = BoxLayout(
+				orientation="horizontal", size_hint_y=0.1
+			)
+			buttons_layout.add_widget(cancel)
+			buttons_layout.add_widget(ok)
+			graphic_modal_layout.add_widget(buttons_layout)
+			self._graphic_modal.add_widget(graphic_modal_layout)
+		self._graphic_modal.open()
+
+	@trigger
+	def _import_graphic(self, *_):
+		if not self._file_chooser.selection:
+			# should display an error message briefly
+			return
+		file_path = os.path.join(
+			self._file_chooser.path, self._file_chooser.selection[0]
+		)
+		if self._android:
+			if not hasattr(self, "_storage"):
+				from androidstorage4kivy import SharedStorage
+
+				self._storage = SharedStorage()
+			to_import: str = self._storage.copy_from_shared(file_path)
+		else:
+			to_import: str = os.path.abspath(file_path)
+		# We'll need to load the image before we put it in an atlas.
+		# Mainly to get its size, but maybe convert from JPG or BMP or w/e.
+		# Kivy seems happiest to work with PNG files.
+		# Best to do it first, so that if it fails,
+		# no files or dirs are made.
+		img = Image.load(to_import)
+		if not os.path.exists(self.custom_imgs_dir):
+			os.makedirs(self.custom_imgs_dir)
+		atlas_fn = os.path.join(self.custom_imgs_dir, "custom.atlas")
+		if os.path.exists(atlas_fn):
+			with open(atlas_fn, "rt") as inf:
+				atlas = json.load(inf)
+		else:
+			atlas = {}
+		dest_fn = os.path.join(
+			self.custom_imgs_dir, f"custom-{len(atlas)}.png"
+		)
+		img.save(dest_fn)
+		atlas[dest_fn] = {
+			os.path.basename(to_import): [0, 0, img.width, img.height]
+		}
+		with open(atlas_fn, "wt") as outf:
+			json.dump(atlas, outf)
+		if not resource_find(atlas_fn):
+			raise FileNotFoundError(
+				"The created atlas was not where we saved it", atlas_fn
+			)
+		self.data = [[self.custom_imgs_header, atlas_fn]] + self.data
+		self._graphic_modal.dismiss()
 
 
 class PawnConfigDialog(SpriteDialog):
@@ -182,12 +272,14 @@ class SpotConfigDialog(SpriteDialog):
 class PawnConfigScreen(Screen):
 	toggle = ObjectProperty()
 	data = ListProperty()
+	custom_imgs_header = "Custom pawns"
 	imgpaths = ListProperty()
 
 
 class SpotConfigScreen(Screen):
 	toggle = ObjectProperty()
 	data = ListProperty()
+	custom_imgs_header = "Custom spots"
 	imgpaths = ListProperty()
 
 
@@ -220,6 +312,9 @@ load_string_once("""
 				Color:
 					rgba: 1, 1, 1, 1
 		Button:
+			text: 'Import'
+			on_release: root._choose_graphic_to_import()
+		Button:
 			text: 'OK'
 			on_release: root.pressed()
 <PawnConfigScreen>:
@@ -229,6 +324,8 @@ load_string_once("""
 		id: dialog
 		toggle: root.toggle
 		default_imgpaths: ['atlas://rltiles/base/unseen']
+		custom_imgs_header: root.custom_imgs_header
+		custom_imgs_dir: app.prefix + '/custom_pawn_imgs'
 		data: root.data
 <SpotConfigScreen>:
 	name: 'spotcfg'
@@ -237,5 +334,7 @@ load_string_once("""
 		id: dialog
 		toggle: root.toggle
 		default_imgpaths: ['atlas://rltiles/floor/floor-stone']
+		custom_imgs_header: root.custom_imgs_header
+		custom_imgs_dir: app.prefix + '/custom_spot_imgs'
 		data: root.data
 """)

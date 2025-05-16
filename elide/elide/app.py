@@ -34,7 +34,7 @@ from kivy.properties import (
 	ObjectProperty,
 	StringProperty,
 )
-from kivy.resources import resource_add_path
+from kivy.resources import resource_add_path, resource_find
 from kivy.uix.screenmanager import NoTransition, ScreenManager
 
 import elide
@@ -378,15 +378,27 @@ class ElideApp(App):
 		config = self.config
 
 		self.mainmenu = elide.menu.DirPicker(toggle=toggler("mainmenu"))
+		pawndata = json.loads(config["elide"]["thing_graphics"])
+		custom_pawns = resource_find("custom_pawn_imgs/custom.atlas")
+		if custom_pawns:
+			pawndata = [
+				["Custom pawns", "custom_pawn_imgs/custom.atlas"]
+			] + pawndata
 
 		self.pawncfg = elide.spritebuilder.PawnConfigScreen(
 			toggle=toggler("pawncfg"),
-			data=json.loads(config["elide"]["thing_graphics"]),
+			data=pawndata,
 		)
 
+		spotdata = json.loads(config["elide"]["place_graphics"])
+		custom_spots = resource_find("custom_spot_imgs/custom.atlas")
+		if custom_spots:
+			spotdata = [
+				["Custom spots", "custom_spot_imgs/custom.atlas"]
+			] + spotdata
 		self.spotcfg = elide.spritebuilder.SpotConfigScreen(
 			toggle=toggler("spotcfg"),
-			data=json.loads(config["elide"]["place_graphics"]),
+			data=spotdata,
 		)
 
 		self.statcfg = elide.statcfg.StatScreen(toggle=toggler("statcfg"))
