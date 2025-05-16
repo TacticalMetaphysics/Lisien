@@ -224,8 +224,10 @@ class SpriteDialog(BoxLayout):
 		)
 		if self._android:
 			if not hasattr(self, "_storage"):
+				from android import request_permissions, Permission
 				from androidstorage4kivy import SharedStorage
 
+				request_permissions([Permission.READ_MEDIA_IMAGES])
 				self._storage = SharedStorage()
 			to_import: str = self._storage.copy_from_shared(file_path)
 		else:
