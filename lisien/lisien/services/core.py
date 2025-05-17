@@ -28,7 +28,7 @@ from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_message import OscMessage
 from pythonosc.osc_message_builder import OscMessageBuilder
 
-from lisien.proxy import _engine_subroutine_step
+from lisien.proxy import _engine_subroutine_step, _finish_packing
 from lisien.proxy.handle import EngineHandle
 
 
@@ -48,13 +48,18 @@ def dispatch_command(
 	Logger.debug(f"core: in dispatch_command, got {len(inst)} bytes")
 	instruction = hand.unpack(zlib.decompress(inst))
 
-	def send_output(r):
-		client.send(pack4send(hand, "/core-reply", r))
-
-	def send_output_bytes(resp: bytes):
+	def send_output_bytes(cmd, resp: bytes):
 		builder = OscMessageBuilder("/core-reply")
-		builder.add_arg(zlib.compress(resp), builder.ARG_TYPE_BLOB)
+		builder.add_arg(
+			zlib.compress(
+				_finish_packing(hand.pack, cmd, *hand._real._btt(), resp)
+			),
+			builder.ARG_TYPE_BLOB,
+		)
 		client.send(builder.build())
+
+	def send_output(cmd, resp):
+		send_output_bytes(cmd, hand.pack(resp))
 
 	Logger.debug(
 		"core: about to dispatch "
@@ -69,7 +74,7 @@ def core_service(replies_port: int, args: list, kwargs: dict):
 	for _ in range(128):
 		my_port = random.randint(32768, 65535)
 		try:
-			serv = osc_server.BlockingOSCUDPServer(
+			serv = osc_server.ThreadingOSCUDPServer(
 				("127.0.0.1", my_port),
 				dispatcher,
 			)
