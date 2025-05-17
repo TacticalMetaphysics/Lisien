@@ -184,7 +184,7 @@ class SpriteDialog(BoxLayout):
 	@trigger
 	def _choose_graphic_to_import(self, *_):
 		try:
-			from android import primary_external_storage_path
+			from android.storage import primary_external_storage_path
 
 			path = primary_external_storage_path()
 			self._android = True
@@ -224,7 +224,7 @@ class SpriteDialog(BoxLayout):
 		)
 		if self._android:
 			if not hasattr(self, "_storage"):
-				from android import request_permissions, Permission
+				from android.permissions import request_permissions, Permission
 				from androidstorage4kivy import SharedStorage
 
 				request_permissions([Permission.READ_MEDIA_IMAGES])

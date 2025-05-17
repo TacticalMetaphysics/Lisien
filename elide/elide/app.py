@@ -551,7 +551,8 @@ class ElideApp(App):
 
 	def _copy_log_files(self):
 		try:
-			from android import autoclass, request_permissions, Permission
+			from android import autoclass
+			from android.permissions import request_permissions, Permission
 			from androidstorage4kivy import SharedStorage
 		except ModuleNotFoundError:
 			return
