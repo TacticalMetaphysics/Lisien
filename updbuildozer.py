@@ -21,9 +21,10 @@ pardirs = []
 prefix = ".buildozer/android/platform/"
 for plat in os.listdir(prefix):
 	if "dists" in os.listdir(os.path.join(prefix, plat)):
-		for dist_dir in os.listdir(
-			os.path.join(prefix, plat, "dists", "Elide")
-		):
+		elide_dist_dir = os.path.join(prefix, plat, "dists", "Elide")
+		if not os.path.isdir(elide_dist_dir):
+			continue
+		for dist_dir in os.listdir(elide_dist_dir):
 			if dist_dir.startswith("_python_bundle"):
 				pardirs.append(
 					os.path.join(
