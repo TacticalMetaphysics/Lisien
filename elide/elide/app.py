@@ -341,7 +341,8 @@ class ElideApp(App):
 			startdir = sys.argv[-1]
 		else:
 			startdir = None
-		os.makedirs(path, exist_ok=True)
+		if path:
+			os.makedirs(path, exist_ok=True)
 		Logger.debug(f"About to start EngineProcessManager with kwargs={enkw}")
 		self.procman = EngineProcessManager(
 			use_thread=self.use_thread,
