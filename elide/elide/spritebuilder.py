@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import json
 import os
+import shutil
 import sys
 
 from kivy.core.image import Image
@@ -33,6 +34,7 @@ from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
+from sqlalchemy import and_, bindparam, column
 
 from .kivygarden.texturestack import ImageStack
 from .pallet import Pallet, PalletBox
@@ -214,6 +216,88 @@ class SpriteDialog(BoxLayout):
 			self._graphic_modal.add_widget(graphic_modal_layout)
 		self._graphic_modal.open()
 
+	def _copy_from_shared(self, src: str):
+		from android import mActivity, autoclass, cast
+		from android.storage import (
+			app_storage_path,
+			primary_external_storage_path,
+		)
+
+		dst = os.path.join(app_storage_path(), os.path.basename(src))
+		MediaStoreMediaColumns = autoclass(
+			"android.provider.MediaStore$MediaColumns"
+		)
+		mtm = autoclass("android.webkit.MimeTypeMap").getSingleton()
+		mime_type = mtm.getMimeTypeFromExtension(src[src.rindex(".") + 1 :])
+		if not mime_type.lower().startswith("image"):
+			raise ValueError("Not an image")
+		root_uri = autoclass(
+			"android.provider.MediaStore$Files"
+		).getContentUri("external")
+		context = mActivity.getApplicationContext()
+		select_stmt = and_(
+			column(MediaStoreMediaColumns.DISPLAY_NAME) == bindparam("a"),
+			column(MediaStoreMediaColumns.RELATIVE_PATH) == bindparam("b"),
+		)
+		select_stmt.stringify_dialect = "sqlite"
+		select_s = str(select_stmt)
+		Logger.debug(
+			f"SpriteDialog: looking for URI using the query: {select_s}"
+		)
+		args = [
+			os.path.basename(src),
+			os.path.dirname(src)
+			.replace(primary_external_storage_path(), "")
+			.strip("/")
+			+ "/",
+		]
+		Logger.debug(f"SpriteDialog: with the aruments: {args}")
+		cursor = context.getContentResolver().query(
+			root_uri,
+			None,
+			select_s,
+			args,
+			None,
+		)
+		if not cursor:
+			raise FileNotFoundError(src)
+		while cursor.moveToNext():
+			idx = cursor.getColumnIndex(MediaStoreMediaColumns.DISPLAY_NAME)
+			file_name = cursor.getString(idx)
+			Logger.debug(f"SpriteDialog: file #{idx}. {file_name}")
+			if file_name == os.path.basename(src):
+				id_ = cursor.getLong(
+					cursor.getColumnIndex(MediaStoreMediaColumns._ID)
+				)
+				uri = autoclass("android.content.ContentUris").withAppendedId(
+					root_uri, id_
+				)
+				break
+		else:
+			cursor.close()
+			raise FileNotFoundError(src)
+		if uri.getScheme().lower() == "file":
+			shutil.copyfile(src, dst)
+			return dst
+		context = mActivity.getApplicationContext()
+		cursor = context.getContentResolver().query(
+			uri, None, None, None, None
+		)
+		if not cursor:
+			raise FileNotFoundError(src)
+		if os.path.exists(dst):
+			os.remove(dst)
+		FileOutputStream = autoclass("java.io.FileOutputStream")
+		FileUtils = autoclass("android.os.FileUtils")
+		resolver = context.getContentResolver()
+		reader = resolver.openInputStream(uri)
+		writer = FileOutputStream(dst)
+		FileUtils.copy(reader, writer)
+		reader.close()
+		writer.close()
+		cursor.close()
+		return dst
+
 	@trigger
 	def _import_graphic(self, *_):
 		if not self._file_chooser.selection:
@@ -225,11 +309,9 @@ class SpriteDialog(BoxLayout):
 		if self._android:
 			if not hasattr(self, "_storage"):
 				from android.permissions import request_permissions, Permission
-				from androidstorage4kivy import SharedStorage
 
 				request_permissions([Permission.READ_MEDIA_IMAGES])
-				self._storage = SharedStorage()
-			to_import: str = self._storage.copy_from_shared(file_path)
+			to_import: str = self._copy_from_shared(file_path)
 		else:
 			to_import: str = os.path.abspath(file_path)
 		# We'll need to load the image before we put it in an atlas.
