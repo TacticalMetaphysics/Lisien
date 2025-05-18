@@ -704,7 +704,7 @@ load_string_once("""
 			screen: root.screen
 			disabled: root.disable_one_turn or app.edit_locked
 <MainScreen>:
-	name: 'main'
+	name: 'mainscreen'
 	dummyplace: charmenu.dummyplace
 	dummything: charmenu.dummything
 	mainview: mainview

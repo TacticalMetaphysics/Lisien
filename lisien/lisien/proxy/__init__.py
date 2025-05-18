@@ -4595,6 +4595,7 @@ class EngineProcessManager:
 			self._client.send_message("/shutdown", "")
 		if hasattr(self, "_server"):
 			self._server.shutdown()
+		del self.engine_proxy
 
 	def __enter__(self):
 		return self.start()

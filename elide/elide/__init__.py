@@ -20,6 +20,7 @@ resource_add_path(__path__[0] + "/assets")
 
 __all__ = [
 	"graph",
+	"grid",
 	"app",
 	"card",
 	"dialog",
