@@ -12,12 +12,18 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import os
+import sys
+
+from elide.app import ElideApp
 
 
 def elide():
-	from elide.app import ElideApp
-
-	app = ElideApp()
+	kwargs = {}
+	if os.path.isdir(sys.argv[-1]):
+		kwargs["prefix"] = sys.argv[-1]
+		kwargs["immediate_start"] = True
+	app = ElideApp(**kwargs)
 	app.run()
 
 

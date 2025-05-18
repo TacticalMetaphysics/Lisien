@@ -233,10 +233,23 @@ class MainScreen(Screen):
 
 	def on_mainview(self, *_):
 		if (
-			None in (self.statpanel, self.charmenu, self.app)
+			None in (self.statpanel, self.charmenu)
 			or None in (self.app.character_name, self.charmenu.portaladdbut)
 			or self.app.character_name not in self.graphboards
 		):
+			if self.statpanel is None:
+				Logger.warning("MainScreen: no statpanel")
+			if self.charmenu is None:
+				Logger.warning("MainScreen: no charmenu")
+			elif self.charmenu.portaladdbut is None:
+				Logger.warning("MainScreen: CharMenu has no portal button")
+			if self.app.character_name is None:
+				Logger.warning("MainScreen: no character chosen")
+			elif self.app.character_name not in self.graphboards:
+				Logger.warning(
+					"MainScreen: no graphboard to represent "
+					+ repr(self.app.character_name)
+				)
 			Clock.schedule_once(self.on_mainview, 0)
 			return
 		self.boardview = GraphBoardView(

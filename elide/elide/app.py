@@ -94,6 +94,7 @@ class ElideApp(App):
 	use_thread = BooleanProperty(False)
 	connect_string = StringProperty()
 	workers = NumericProperty(None, allownone=True)
+	immediate_start = BooleanProperty(False)
 
 	def on_selection(self, *_):
 		Logger.debug("App: {} selected".format(self.selection))
@@ -284,8 +285,12 @@ class ElideApp(App):
 
 		self.mainmenu = elide.menu.MainMenuScreen(toggle=self._toggler("main"))
 		self.manager.add_widget(self.mainmenu)
-		Clock.schedule_once(self._add_screens, 0)
-		Clock.schedule_once(self.mainmenu._trigger_layout, 0.01)
+		if self.immediate_start:
+			self._add_screens()
+			self.manager.current = "mainscreen"
+			Clock.schedule_once(self.start_game, 0)
+		else:
+			Clock.schedule_once(self._add_screens, 0)
 		return self.manager
 
 	def _pull_lang(self, *_, **kwargs):
@@ -482,7 +487,7 @@ class ElideApp(App):
 		):
 			self.manager.add_widget(wid)
 
-	def start_game(self, cb=None):
+	def start_game(self, *_, cb=None):
 		os.makedirs(self.prefix, exist_ok=True)
 		engine = self.start_subprocess(self.prefix)
 		self.init_board()
