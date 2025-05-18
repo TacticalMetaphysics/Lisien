@@ -328,10 +328,9 @@ class SpriteDialog(BoxLayout):
 				atlas = json.load(inf)
 		else:
 			atlas = {}
-		dest_fn = os.path.join(
-			self.custom_imgs_dir, f"custom-{len(atlas)}.png"
-		)
-		img.save(dest_fn)
+		dest_fn = f"custom-{len(atlas)}.png"
+		dest_path = os.path.join(self.custom_imgs_dir, dest_fn)
+		img.save(dest_path)
 		atlas[dest_fn] = {
 			os.path.basename(to_import): [0, 0, img.width, img.height]
 		}
