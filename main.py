@@ -25,9 +25,12 @@ except ImportError:
 try:
 	from android.storage import app_storage_path
 
-	wd = app_storage_path()
+	wd = os.path.join(app_storage_path(), "lisien_workspace")
+	connect_string = "sqlite:///{prefix}/world.db"
+	logs_dir = os.path.join(app_storage_path(), "files", "app", "kivy", "logs")
 except ImportError:
-	wd = os.getcwd()
+	wd = os.path.join(os.getcwd(), "lisien_workspace")
+	logs_dir = connect_string = None
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
 
 
@@ -45,7 +48,8 @@ if __name__ == "__main__":
 
 	app = ElideApp(
 		prefix=wd,
-		connect_string=f"sqlite:///{wd}/world.sqlite3",
+		connect_string=connect_string,
+		logs_dir=logs_dir,
 	)
 	app.get_application_config = get_application_config
 	app.run()

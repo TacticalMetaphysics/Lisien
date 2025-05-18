@@ -314,6 +314,6 @@ load_string_once("""
 			disabled: app.edit_locked
 			on_release: root.toggle_reciprocal()
 	Button:
-		text: 'Export logs'
-		on_release: app.copy_log_files()
+		text: 'Quit'
+		on_release: app.close_game()
 """)

@@ -16,16 +16,23 @@
 
 import json
 import os
+import shutil
 import sys
+import zipfile
 from threading import Thread
 
+from kivy.uix.dropdown import DropDown
+from kivy.uix.modalview import ModalView
+
+from elide.gen import GridGeneratorDialog
+from elide.menu import WorldStartConfigurator
 from lisien.exc import OutOfTimelineError
 
 if "KIVY_NO_ARGS" not in os.environ:
 	os.environ["KIVY_NO_ARGS"] = "1"
 
 from kivy.app import App
-from kivy.clock import Clock, triggered
+from kivy.clock import Clock, triggered, mainthread
 from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
@@ -81,6 +88,9 @@ class ElideApp(App):
 	edit_locked = BooleanProperty(False)
 	simulate_button_down = BooleanProperty(False)
 	prefix = StringProperty()
+	games_dir = StringProperty("games")
+	logs_dir = StringProperty()
+	game_name = StringProperty("game0")
 	use_thread = BooleanProperty(False)
 	connect_string = StringProperty()
 	workers = NumericProperty(None, allownone=True)
@@ -272,7 +282,10 @@ class ElideApp(App):
 
 			inspector.create_inspector(Window, self.manager)
 
-		self._add_screens()
+		self.mainmenu = elide.menu.MainMenuScreen(toggle=self._toggler("main"))
+		self.manager.add_widget(self.mainmenu)
+		Clock.schedule_once(self._add_screens, 0)
+		Clock.schedule_once(self.mainmenu._trigger_layout, 0.01)
 		return self.manager
 
 	def _pull_lang(self, *_, **kwargs):
@@ -291,14 +304,23 @@ class ElideApp(App):
 		Must be called before ``init_board``
 
 		"""
-		if hasattr(self, "_started"):
+		if hasattr(self, "procman") and hasattr(self.procman, "engine_proxy"):
 			raise ChildProcessError("Subprocess already running")
+		path = path or self.prefix
 		config = self.config
 		enkw = {
 			"logger": Logger,
 			"do_game_start": getattr(self, "do_game_start", False),
-			"connect_string": self.connect_string or None,
 		}
+		if s := (
+			config["lisien"].get("connect_string") or self.connect_string
+		):
+			s = str(s)
+			if "{prefix}" in s:
+				enkw["connect_string"] = s.format(prefix=path)
+			else:
+				Logger.warning("{prefix} not found in " + s)
+				enkw["connect_string"] = s
 		workers = config["lisien"].get("workers", "")
 		if workers:
 			enkw["workers"] = workers
@@ -309,10 +331,6 @@ class ElideApp(App):
 		if config["lisien"].get("replayfile"):
 			self._replayfile = open(config["lisien"].get("replayfile"), "at")
 			enkw["replay_file"] = self._replayfile
-		if s := (
-			config["lisien"].get("connect_string") or self.connect_string
-		):
-			enkw["connect_string"] = s
 		if self.workers is not None:
 			enkw["workers"] = int(self.workers)
 		elif workers := config["lisien"].get("workers"):
@@ -323,17 +341,21 @@ class ElideApp(App):
 			startdir = sys.argv[-1]
 		else:
 			startdir = None
+		os.makedirs(path, exist_ok=True)
+		Logger.debug(f"About to start EngineProcessManager with kwargs={enkw}")
 		self.procman = EngineProcessManager(
 			use_thread=self.use_thread,
 		)
 		self.engine = engine = self.procman.start(startdir, **enkw)
+		Logger.debug("Got EngineProxy")
 		self.pull_time()
+		Logger.debug("Pulled time")
 
 		self.engine.time.connect(self._pull_time_from_signal, weak=False)
 		self.engine.character.connect(self._pull_chars, weak=False)
 
 		self.strings.store = self.engine.string
-		self._started = True
+		Logger.debug("EngineProxy is ready")
 		return engine
 
 	trigger_start_subprocess = trigger(start_subprocess)
@@ -365,19 +387,19 @@ class ElideApp(App):
 		self.select_character(self.engine.eternal["boardchar"])
 		self.selected_proxy = self._get_selected_proxy()
 
+	def _toggler(self, screenname):
+		def tog(*_):
+			if self.manager.current == screenname:
+				self.manager.current = "main"
+			else:
+				self.manager.current = screenname
+
+		return tog
+
 	def _add_screens(self, *_):
-		def toggler(screenname):
-			def tog(*_):
-				if self.manager.current == screenname:
-					self.manager.current = "main"
-				else:
-					self.manager.current = screenname
-
-			return tog
-
+		toggler = self._toggler
 		config = self.config
 
-		self.mainmenu = elide.menu.DirPicker(toggle=toggler("mainmenu"))
 		pawndata = json.loads(config["elide"]["thing_graphics"])
 		custom_pawns = resource_find("custom_pawn_imgs/custom.atlas")
 		if custom_pawns:
@@ -446,7 +468,6 @@ class ElideApp(App):
 			character=self.refresh_selected_proxy,
 		)
 		for wid in (
-			self.mainmenu,
 			self.mainscreen,
 			self.pawncfg,
 			self.spotcfg,
@@ -459,14 +480,43 @@ class ElideApp(App):
 			self.timestream,
 		):
 			self.manager.add_widget(wid)
-		if (
-			(os.environ["KIVY_NO_ARGS"] or sys.argv[-2] == "-")
-			and os.path.exists(sys.argv[-1])
-			and os.path.isdir(sys.argv[-1])
-		):
-			self.mainmenu.open(os.path.abspath(sys.argv[-1]))
-		elif self.prefix:
-			self.mainmenu.open(os.path.abspath(self.prefix))
+
+	def start_game(self, cb=None):
+		os.makedirs(self.prefix, exist_ok=True)
+		engine = self.start_subprocess(self.prefix)
+		self.init_board()
+		self.manager.current = "mainscreen"
+		if cb:
+			cb()
+		return engine
+
+	@mainthread
+	def close_game(self, cb=None, *_):
+		self.mainmenu.invalidate_popovers()
+		self.manager.current = "main"
+		if hasattr(self, "procman"):
+			self.procman.shutdown()
+		if self.logs_dir and os.path.isdir(self.logs_dir):
+			shutil.copytree(
+				self.logs_dir,
+				os.path.join(self.prefix, "logs"),
+				dirs_exist_ok=True,
+			)
+		archived = shutil.make_archive(self.game_name, "zip", self.prefix)
+		archived_base = os.path.basename(archived)
+		if os.path.exists(os.path.join(self.games_dir, archived_base)):
+			os.remove(os.path.join(self.games_dir, archived_base))
+		os.rename(archived, os.path.join(self.games_dir, archived_base))
+		for filename in os.listdir(self.prefix):
+			if filename in {".", ".."}:
+				continue
+			filepath = os.path.join(self.prefix, filename)
+			if os.path.isfile(filepath):
+				os.remove(filepath)
+			else:
+				shutil.rmtree(filepath)
+		if cb:
+			cb()
 
 	def update_calendar(self, calendar, past_turns=1, future_turns=5):
 		"""Fill in a calendar widget with actual simulation data"""

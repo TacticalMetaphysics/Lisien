@@ -12,15 +12,21 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import shutil
+from functools import partial
 import os
+import zipfile
 
+from kivy import Logger
 from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.properties import ObjectProperty, OptionProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
+from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
+from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
@@ -78,15 +84,15 @@ class GeneratorButton(Button):
 class WorldStartConfigurator(BoxLayout):
 	"""Give options for how to initialize the world state"""
 
-	grid_config = ObjectProperty()
-	generator_type = OptionProperty(None, options=["grid"], allownone=True)
+	generator_type = OptionProperty("none", options=["none", "grid"])
 	dismiss = ObjectProperty()
-	toggle = ObjectProperty()
 	init_board = ObjectProperty()
-	generator_dropdown = ObjectProperty()
-	path = StringProperty(".")
 
-	def on_generator_dropdown(self, *_):
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self.grid_config = GridGeneratorDialog()
+		self.generator_dropdown = DropDown()
+
 		def select_txt(btn):
 			self.generator_dropdown.select(btn.text)
 
@@ -98,9 +104,9 @@ class WorldStartConfigurator(BoxLayout):
 
 	def select_generator_type(self, instance, value):
 		self.ids.drop.text = value
-		if value == "None":
+		if value == "none":
 			self.ids.controls.clear_widgets()
-			self.generator_type = None
+			self.generator_type = "none"
 		elif value == "Grid":
 			self.ids.controls.clear_widgets()
 			self.ids.controls.add_widget(self.grid_config)
@@ -108,58 +114,217 @@ class WorldStartConfigurator(BoxLayout):
 			self.grid_config.pos = self.ids.controls.pos
 			self.generator_type = "grid"
 
-	def start(self, *_):
+
+class GamePickerModal(ModalView):
+	headline = StringProperty()
+
+
+class GameExporterModal(GamePickerModal):
+	@triggered()
+	def pick(self, game, *_):
+		try:
+			from android import autoclass, mActivity
+			from android.permissions import request_permissions, Permission
+		except ModuleNotFoundError:
+			app = App.get_running_app()
+			shutil.copytree(
+				str(os.path.join(app.games_dir, game + ".zip")),
+				os.path.join(os.getcwd(), game + ".zip"),
+			)
+			return
 		app = App.get_running_app()
-		starter = app.start_subprocess
-		init_board = app.init_board
-		if self.generator_type == "grid":
-			if self.grid_config.validate():
-				engine = starter()
-				self.grid_config.generate(engine)
-				init_board()
-				self.toggle()
-				self.dismiss()
+		request_permissions([Permission.WRITE_EXTERNAL_STORAGE])
+		root_uri = str(
+			autoclass("android.provider.MediaStore$Files")
+			.getContentUri("external")
+			.toString()
+		)
+		context = mActivity.getApplicationContext()
+		resolver = context.getContentResolver()
+		writer = resolver.openOutputStream(
+			os.path.join(root_uri, game + ".zip")
+		)
+		reader = autoclass("java.io.FileInputStream")(
+			str(os.path.join(app.games_dir, game + ".zip"))
+		)
+		autoclass("android.os.FileUtils").copy(reader, writer)
+		writer.flush()
+		writer.close()
+		reader.close()
+
+
+class GameLoaderModal(GamePickerModal):
+	@triggered()
+	def pick(self, game, *_):
+		app = App.get_running_app()
+		if os.path.isfile(app.games_dir):
+			raise RuntimeError(
+				"You put a file where I want to keep the games directory",
+				app.games_dir,
+			)
+		if not os.path.exists(app.games_dir):
+			os.makedirs(app.games_dir)
+		if game + ".zip" in os.listdir(app.games_dir):
+			game_file_path = str(os.path.join(app.games_dir, game + ".zip"))
+			if not zipfile.is_zipfile(game_file_path):
+				raise RuntimeError("Game format invalid", game_file_path)
+		else:
+			raise RuntimeError("Invalid game name", game)
+		self.clear_widgets()
+		self.add_widget(Label(text="Please wait...", font_size=80))
+		Clock.schedule_once(
+			partial(self._decompress_and_start, game_file_path, game), 0
+		)
+
+	def _decompress_and_start(self, game_file_path, game, *_):
+		app = App.get_running_app()
+		with zipfile.ZipFile(
+			game_file_path, "r", compression=zipfile.ZIP_DEFLATED
+		) as zipf:
+			# should validate that it has what we expect...
+			zipf.extractall(app.prefix)
+		if any(d not in {".", ".."} for d in os.listdir(app.prefix)):
+			app.close_game()
+		app.game_name = game
+		app.start_game(partial(self.dismiss, force=True))
+
+
+class GameList(RecycleView):
+	picker = ObjectProperty()
+	path = StringProperty()
+
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self._trigger_regen = Clock.create_trigger(self.regen)
+		self.bind(picker=self._trigger_regen, path=self._trigger_regen)
+
+	def regen(self, *_):
+		if not os.path.isdir(self.path):
+			return
+		if not self.picker:
+			Logger.debug("GameList: awaiting picker")
+			Clock.schedule_once(self.on_path, 0)
+			return
+		self.data = [
+			{
+				"text": game.removesuffix(".zip"),
+				"on_release": partial(
+					self.picker.pick, game.removesuffix(".zip")
+				),
+			}
+			for game in filter(
+				lambda game: not game.startswith("."), os.listdir(self.path)
+			)
+		]
+
+
+class NewGameModal(ModalView):
+	@triggered()
+	def validate_and_start(self, *_):
+		game_name = self.ids.game_name.text
+		self.ids.game_name.text = ""
+		if not game_name:
+			self.ids.game_name.hint_text = "Must be nonempty"
+			return
+		app = App.get_running_app()
+		if os.path.isdir(app.games_dir):
+			games = [
+				fn.removesuffix(".zip") for fn in os.listdir(app.games_dir)
+			]
+		else:
+			os.makedirs(app.games_dir)
+			games = []
+		if game_name in games:
+			self.ids.game_name.hint_text = "Name already taken"
+			return
+		game_path = os.path.join(app.games_dir, game_name + ".zip")
+		can_start = False
+		try:
+			zipfile.ZipFile(game_path, "w").close()
+			can_start = True
+		except Exception as ex:
+			self.ids.game_name.hint_text = repr(ex)
+		finally:
+			if os.path.isfile(game_path):
+				os.remove(game_path)
+		if can_start and (
+			self.ids.worldstart.generator_type is None
+			or self.ids.worldstart.grid_config.validate()
+		):
+			self.clear_widgets()
+			self.add_widget(Label(text="Please wait...", font_size=80))
+			self.canvas.ask_update()
+			if os.path.exists(app.prefix) and any(
+				not fn.startswith(".") for fn in os.listdir(app.prefix)
+			):
+				Clock.schedule_once(
+					partial(
+						app.close_game,
+						partial(self._really_start, game_name),
+					),
+					0,
+				)
 			else:
-				# TODO show error
-				return
-		elif not hasattr(self, "_starting"):
-			self._starting = True
-			starter(self.path)
-			init_board()
-			self.toggle()
-			self.dismiss()
+				Clock.schedule_once(partial(self._really_start, game_name), 0)
+
+	def _really_start(self, game_name, *_):
+		app = App.get_running_app()
+		app.game_name = game_name
+		worldstart = self.ids.worldstart
+		if worldstart.generator_type == "grid":
+			engine = app.start_subprocess()
+			worldstart.grid_config.generate(engine)
+			app.init_board()
+			app.manager.current = "mainscreen"
+		else:
+			app.start_game()
+		self.dismiss()
 
 
-class DirPicker(Screen):
+def trigger(func: callable) -> callable:
+	return triggered()(func)
+
+
+class MainMenuScreen(Screen):
 	toggle = ObjectProperty()
 
-	@triggered()
-	def open(self, path, *_):
-		app = App.get_running_app()
-		if "world" not in os.listdir(path) and not app.connect_string:
-			# TODO show a configurator, accept cancellation, extract init params
-			if not hasattr(self, "config_popover"):
-				self.config_popover = ModalView()
-				self.configurator = WorldStartConfigurator(
-					grid_config=GridGeneratorDialog(),
-					dismiss=self.config_popover.dismiss,
-					toggle=self.toggle,
-					generator_dropdown=DropDown(),
-					path=path,
-				)
-				self.config_popover.add_widget(self.configurator)
-			self.config_popover.open()
-			return
-		app.prefix = path
-		app.start_subprocess(path)
-		app.init_board()
-		self.toggle()
+	@trigger
+	def new_game(self, *_):
+		if not hasattr(self, "_popover_new_game"):
+			self._popover_new_game = NewGameModal()
+		self._popover_new_game.open()
+
+	@trigger
+	def load_game(self, *_):
+		if not hasattr(self, "_popover_load_game"):
+			self._popover_load_game = GameLoaderModal(
+				headline="Pick game to load"
+			)
+		self._popover_load_game.open()
+
+	@trigger
+	def export_game(self, *_):
+		if not hasattr(self, "_popover_export_game"):
+			self._popover_export_game = GameExporterModal(
+				headline="Pick game to export"
+			)
+		self._popover_export_game.open()
+
+	@trigger
+	def invalidate_popovers(self, *_):
+		if hasattr(self, "_popover_new_game"):
+			del self._popover_new_game
+		if hasattr(self, "_popover_load_game"):
+			del self._popover_load_game
+		if hasattr(self, "_popover_export_game"):
+			del self._popover_export_game
 
 
 load_string_once("""
 #: import os os
 <GeneratorButton>:
 	size_hint_y: None
+	font_size: 50
 	height: self.texture_size[1] + 10
 <WorldStartConfigurator>:
 	orientation: 'vertical'
@@ -173,35 +338,82 @@ load_string_once("""
 		on_release: root.generator_dropdown.open(drop)
 	Widget:
 		id: controls
-		size_hint_y: None
-		height: 200
-	BoxLayout:
-		orientation: 'horizontal'
-		Button:
-			text: 'OK'
-			on_release:
-				root.start()
-		Button:
-			text: 'Cancel'
-			on_release:
-				controls.clear_widgets()
-				controls.size_hint_y = 0
-				root._trigger_layout()
-				root.dismiss()
-<DirPicker>:
-	name: 'mainmenu'
-	start: app.start_subprocess
-	init_board: app.init_board
+<NewGameModal>:
+	size_hint_x: 0.6
 	BoxLayout:
 		orientation: 'vertical'
 		Label:
-			text: 'Pick a directory to create or load a simulation in'
+			text: 'Generate an initial map?'
+			font_size: 50
 			size_hint_y: None
-		FileChooserListView:
-			id: filechooser
-			path: os.getcwd()
-		Button:
-			text: 'Work here'
+		WorldStartConfigurator:
+			id: worldstart
+			dismiss: root.dismiss
+		Label:
+			text: 'Please name your game'
+			font_size: 50
+			size_hint_y: None
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint_y: 0.2
+			TextInput:
+				id: game_name
+				multiline: False
+				size_hint_x: 0.8
+			Button:
+				text: 'Start'
+				on_release: root.validate_and_start()
+		
+<MainMenuScreen>:
+	name: 'main'
+	BoxLayout:
+		orientation: 'horizontal'
+		Widget:
+			size_hint_x: 0.2
+		BoxLayout:
+			orientation: 'vertical'
+			Label:
+				text: 'Elide'
+				font_size: 80
+				size_hint_y: None
+				height: self.texture_size[1]
+			Button:
+				text: 'New game'
+				font_size: 50
+				on_release: root.new_game()
+			Button:
+				text: 'Load game'
+				font_size: 50
+				on_release: root.load_game()
+			Button:
+				text: 'Export game'
+				font_size: 50
+				on_release: root.export_game()
+		Widget:
+			size_hint_x: 0.2
+<GameList>:
+	viewclass: 'Button'
+	RecycleBoxLayout:
+		default_size: None, dp(56)
+        default_size_hint: 1, None
+        height: self.minimum_height
+        size_hint_y: None
+        orientation: 'vertical'
+<GamePickerModal>:
+	size_hint_x: 0.6
+	BoxLayout:
+		orientation: 'vertical'
+		Label:
+			text: root.headline
 			size_hint_y: 0.1
-			on_release: root.open(filechooser.path)
+			font_size: self.height
+		GameList:
+			path: app.games_dir
+			picker: root
+			size_hint_y: 0.8
+		Button:
+			text: 'Cancel'
+			on_release: root.dismiss()
+			size_hint_y: 0.1
+			font_size: self.height
 """)
