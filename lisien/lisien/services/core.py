@@ -97,7 +97,7 @@ def core_service(replies_port: int, args: list, kwargs: dict):
 	client.send(pack4send(hand, "/core-reply", my_port))
 
 	dispatcher.map("/", partial(dispatch_command, hand, client))
-	dispatcher.map("/shutdown", lambda _: serv.shutdown())
+	dispatcher.map("/shutdown", lambda _, __: serv.shutdown())
 	dispatcher.map("/connect-workers", hand._real._connect_worker_services)
 	Logger.info(
 		"core: about to start server at port %d, sending replies to port %d",
