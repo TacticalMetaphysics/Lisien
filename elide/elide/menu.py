@@ -186,7 +186,7 @@ class GameLoaderModal(GamePickerModal):
 		if any(d not in {".", ".."} for d in os.listdir(app.prefix)):
 			app.close_game()
 		app.game_name = game
-		app.start_game(partial(self.dismiss, force=True))
+		app.start_game(cb=partial(self.dismiss, force=True))
 
 
 class GameList(RecycleView):
