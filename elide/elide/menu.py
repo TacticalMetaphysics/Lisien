@@ -255,17 +255,10 @@ class NewGameModal(ModalView):
 			self.add_widget(Label(text="Please wait...", font_size=80))
 			self.canvas.ask_update()
 			if os.path.exists(app.prefix) and any(
-				not fn.startswith(".") for fn in os.listdir(app.prefix)
+				fn not in {".", ".."} for fn in os.listdir(app.prefix)
 			):
-				Clock.schedule_once(
-					partial(
-						app.close_game,
-						partial(self._really_start, game_name),
-					),
-					0,
-				)
-			else:
-				Clock.schedule_once(partial(self._really_start, game_name), 0)
+				app.close_game()
+			app._really_start(game_name)
 
 	def _really_start(self, game_name, *_):
 		app = App.get_running_app()
