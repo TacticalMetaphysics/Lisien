@@ -496,8 +496,7 @@ class ElideApp(App):
 			cb()
 		return engine
 
-	@mainthread
-	def close_game(self, cb=None, *_):
+	def close_game(self, *_, cb=None):
 		self.mainmenu.invalidate_popovers()
 		self.manager.current = "main"
 		if hasattr(self, "procman"):
