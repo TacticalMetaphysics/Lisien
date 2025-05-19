@@ -2402,15 +2402,22 @@ class Engine(AbstractEngine, Executor):
 				self.eternal.setdefault("language", "eng"),
 			)
 
+	def _sync_log_forever(self, q: SimpleQueue[LogRecord]) -> None:
+		while True:
+			recs: list[LogRecord] = []
+			while True:
+				try:
+					recs.append(q.get())
+				except Empty:
+					break
+			for rec in recs:
+				self.logger.handle(rec)
+			sleep(0.5)
+
 	def _start_worker_processes(
 		self, prefix: str | os.PathLike | None, workers: int
 	):
-		from multiprocessing import Pipe, Process, Queue
-
-		def sync_log_forever(q):
-			while True:
-				record: LogRecord = q.get()
-				self.logger.handle(record)
+		from multiprocessing import Pipe, Process, SimpleQueue
 
 		for store in self.stores:
 			if hasattr(store, "save"):
@@ -2429,9 +2436,9 @@ class Engine(AbstractEngine, Executor):
 		for i in range(workers):
 			inpipe_there, inpipe_here = Pipe(duplex=False)
 			outpipe_here, outpipe_there = Pipe(duplex=False)
-			logq = Queue()
+			logq = SimpleQueue()
 			logthread = Thread(
-				target=sync_log_forever, args=(logq,), daemon=True
+				target=self._sync_log_forever, args=(logq,), daemon=True
 			)
 			worker_args = [
 				i,
