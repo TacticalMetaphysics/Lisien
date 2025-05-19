@@ -4789,14 +4789,9 @@ class Engine(AbstractEngine, Executor):
 
 	def _detect_kf_interval_override(self):
 		if self._planning:
-			self._kf_overridden = True
 			return True
 		if getattr(self, "_no_kc", False):
-			self._kf_overridden = True
 			return True
-		if getattr(self, "_kf_overridden", False):
-			self._kf_overridden = False
-			return False
 
 	def _reimport_some_functions(self, some):
 		if getattr(self, "_prefix", None) is not None:
