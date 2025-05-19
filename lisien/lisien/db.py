@@ -3568,6 +3568,7 @@ class AbstractQueryEngine:
 			)
 		):
 			self.snap_keyframe()
+			self._kf_interval_overridden = False
 
 	def _get_one_window(
 		self,
