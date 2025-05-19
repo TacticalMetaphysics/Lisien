@@ -6542,10 +6542,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def _unit_rules_handled(
 		self,
 		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
 		graph: CharName,
 		unit: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
