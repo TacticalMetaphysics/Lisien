@@ -5542,6 +5542,7 @@ class Engine(AbstractEngine, Executor):
 			if modname in sys.modules:
 				del sys.modules[modname]
 		self.commit()
+		self.shutdown()
 		self.query.close()
 		self._closed = True
 
