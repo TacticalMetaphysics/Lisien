@@ -3430,6 +3430,7 @@ class AbstractQueryEngine:
 			)
 		):
 			self.snap_keyframe()
+			self._kf_interval_overridden = False
 
 	_infixes2load = [
 		"nodes",
