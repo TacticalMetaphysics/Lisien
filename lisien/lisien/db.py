@@ -3552,20 +3552,21 @@ class AbstractQueryEngine:
 	snap_keyframe: callable
 
 	def _increc(self):
+		"""Snap a keyframe, if the keyframe interval has passed.
+
+		But the engine can override this behavior when it'd be impractical,
+		such as during a rule's execution. This defers the keyframe snap
+		until next we get a falsy result from the override function.
+
+		"""
 		self._records += 1
 		override: bool | None = self.kf_interval_override()
-		if override is True:
+		if override:
 			self._kf_interval_overridden = True
 			return
-		if override is False or (
-			override is None
-			and (
-				getattr(self, "_kf_interval_overridden", False)
-				or (
-					self.keyframe_interval is not None
-					and self._records % self.keyframe_interval == 0
-				)
-			)
+		elif getattr(self, "_kf_interval_overridden", False) or (
+			self.keyframe_interval is not None
+			and self._records % self.keyframe_interval == 0
 		):
 			self.snap_keyframe()
 			self._kf_interval_overridden = False
