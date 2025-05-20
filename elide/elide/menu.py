@@ -258,7 +258,7 @@ class NewGameModal(ModalView):
 				fn not in {".", ".."} for fn in os.listdir(app.prefix)
 			):
 				app.close_game()
-			app._really_start(game_name)
+			self._really_start(game_name)
 
 	def _really_start(self, game_name, *_):
 		app = App.get_running_app()
