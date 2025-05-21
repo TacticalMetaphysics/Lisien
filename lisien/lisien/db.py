@@ -3030,6 +3030,24 @@ class AbstractQueryEngine:
 
 			return getLogger(self.__class__.__name__)
 
+	def log(self, level, msg, *args):
+		self.logger.log(level, msg, *args)
+
+	def debug(self, msg, *args):
+		self.logger.debug(msg, *args)
+
+	def info(self, msg, *args):
+		self.logger.info(msg, *args)
+
+	def warning(self, msg, *args):
+		self.logger.warning(msg, *args)
+
+	def error(self, msg, *args):
+		self.logger.error(msg, *args)
+
+	def critical(self, msg, *args):
+		self.logger.critical(msg, *args)
+
 	def echo(self, string: str) -> str:
 		with self.mutex():
 			self._inq.put(("echo", string))
@@ -3580,7 +3598,7 @@ class AbstractQueryEngine:
 		turn_to: Turn,
 		tick_to: Tick,
 	):
-		print(
+		self.debug(
 			f"_get_one_window({branch}, {turn_from}, {tick_from}, {turn_to}, {tick_to})"
 		)
 		unpack = self.unpack
@@ -4905,11 +4923,11 @@ class AbstractQueryEngine:
 				"portal_rulebook": [],
 			}
 
-		print(f"load_windows({windows})")
+		self.debug(f"load_windows({windows})")
 
 		ret = defaultdict(empty_char)
 		self._load_windows_into(ret, windows)
-		print(f"finished loading windows {windows}")
+		self.debug(f"finished loading windows {windows}")
 		return ret
 
 
@@ -5814,7 +5832,7 @@ def batch(table: str, serialize_record: callable = None):
 class ParquetQueryEngine(AbstractQueryEngine):
 	holder_cls = ParquetDBHolder
 
-	def __init__(self, path, pack=None, unpack=None):
+	def __init__(self, path, pack=None, unpack=None, logger=None):
 		self._inq = Queue()
 		self._outq = Queue()
 		self._holder = self.holder_cls(path, self._inq, self._outq)
