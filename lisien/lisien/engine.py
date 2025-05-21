@@ -4040,56 +4040,49 @@ class Engine(AbstractEngine, Executor):
 			[(branch, turn_from, tick_from, turn_to, tick_to)]
 		)
 		for graph, loaded in loaded_graphs.items():
-			noderows.extend(loaded["nodes"])
-			edgerows.extend(loaded["edges"])
-			nodevalrows.extend(loaded["node_val"])
-			edgevalrows.extend(loaded["edge_val"])
-			graphvalrows.extend(loaded["graph_val"])
-			loaded_graphs[graph] = loaded
+			match graph:
+				case "universals":
+					self._universal_cache.load(loaded)
+				case "rulebooks":
+					self._rulebooks_cache.load(loaded)
+				case "rule_triggers":
+					self._triggers_cache.load(loaded)
+				case "rule_prereqs":
+					self._prereqs_cache.load(loaded)
+				case "rule_actions":
+					self._actions_cache.load(loaded)
+				case "rule_neighborhoods":
+					self._neighborhoods_cache.load(loaded)
+				case "rule_big":
+					self._rule_bigness_cache.load(loaded)
+				case _:
+					noderows.extend(loaded["nodes"])
+					edgerows.extend(loaded["edges"])
+					nodevalrows.extend(loaded["node_val"])
+					edgevalrows.extend(loaded["edge_val"])
+					graphvalrows.extend(loaded["graph_val"])
+					if things := loaded.get("things"):
+						self._things_cache.load(things)
+					if crb := loaded.get("character_rulebook"):
+						self._characters_rulebooks_cache.load(crb)
+					if urb := loaded.get("unit_rulebook"):
+						self._units_rulebooks_cache.load(urb)
+					if cthrb := loaded.get("character_thing_rulebook"):
+						self._characters_things_rulebooks_cache.load(cthrb)
+					if cprb := loaded.get("character_place_rulebook"):
+						self._characters_places_rulebooks_cache.load(cprb)
+					if cporb := loaded.get("character_portal_rulebook"):
+						self._characters_portals_rulebooks_cache.load(cporb)
+					if nrb := loaded.get("node_rulebook"):
+						self._nodes_rulebooks_cache.load(nrb)
+					if porb := loaded.get("portal_rulebook"):
+						self._portals_rulebooks_cache.load(porb)
+					loaded_graphs[graph] = loaded
 		self._nodes_cache.load(noderows)
 		self._node_val_cache.load(nodevalrows)
 		self._edges_cache.load(edgerows)
 		self._edge_val_cache.load(edgevalrows)
 		self._graph_val_cache.load(graphvalrows)
-		if universals := loaded.pop("universals"):
-			self._universal_cache.load(universals)
-		if rulebooks := loaded.pop("rulebooks"):
-			self._rulebooks_cache.load(rulebooks)
-		if rule_triggers := loaded.pop("rule_triggers"):
-			self._triggers_cache.load(rule_triggers)
-		if rule_prereqs := loaded.pop("rule_prereqs"):
-			self._prereqs_cache.load(rule_prereqs)
-		if rule_actions := loaded.pop("rule_actions"):
-			self._actions_cache.load(rule_actions)
-		if rule_neighborhoods := loaded.pop("rule_neighborhoods"):
-			self._neighborhoods_cache.load(rule_neighborhoods)
-		if rule_big := loaded.pop("rule_big"):
-			self._rule_bigness_cache.load(rule_big)
-		for graph, rowdict in loaded.items():
-			if rowdict.get("things"):
-				self._things_cache.load(rowdict["things"])
-			if rowdict.get("character_rulebook"):
-				self._characters_rulebooks_cache.load(
-					rowdict["character_rulebook"]
-				)
-			if rowdict.get("unit_rulebook"):
-				self._units_rulebooks_cache.load(rowdict["unit_rulebook"])
-			if rowdict.get("character_thing_rulebook"):
-				self._characters_things_rulebooks_cache.load(
-					rowdict["character_thing_rulebook"]
-				)
-			if rowdict.get("character_place_rulebook"):
-				self._characters_places_rulebooks_cache.load(
-					rowdict["character_place_rulebook"]
-				)
-			if rowdict.get("character_portal_rulebook"):
-				self._characters_portals_rulebooks_cache.load(
-					rowdict["character_portal_rulebook"]
-				)
-			if rowdict.get("node_rulebook"):
-				self._nodes_rulebooks_cache.load(rowdict["node_rulebook"])
-			if rowdict.get("portal_rulebook"):
-				self._portals_rulebooks_cache.load(rowdict["portal_rulebook"])
 		return loaded_graphs
 
 	@world_locked
