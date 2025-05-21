@@ -23,6 +23,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 from functools import cached_property, partial, partialmethod
 from itertools import starmap
+from operator import itemgetter
 from queue import Queue
 from threading import Lock, Thread
 from time import monotonic, sleep
@@ -910,6 +911,9 @@ class ParquetDBHolder(ConnectionHolder):
 			self._iter_universals_tick_to_end(branch, turn_from, tick_from)
 		)
 
+	def _table_columns(self, table: str) -> list[str]:
+		return ["id"] + list(map(itemgetter(0), self.schema[table]))
+
 	def _iter_part_tick_to_end(
 		self, table: str, branch: str, turn_from: int, tick_from: int
 	) -> Iterator[dict]:
@@ -921,7 +925,7 @@ class ParquetDBHolder(ConnectionHolder):
 				pc.field("branch") == branch,
 				pc.field("turn") >= turn_from,
 			],
-			columns=["id"] + list(self.schema[table]),
+			columns=self._table_columns(table),
 		).to_pylist():
 			if d["turn"] == turn_from:
 				if d["tick"] >= tick_from:
@@ -961,7 +965,7 @@ class ParquetDBHolder(ConnectionHolder):
 						pc.field("tick") >= tick_from,
 						pc.field("tick") <= tick_from,
 					],
-					columns=["id"] + list(self.schema[table]),
+					columns=self._table_columns(table),
 				).to_pylist()
 			)
 		else:
@@ -970,7 +974,8 @@ class ParquetDBHolder(ConnectionHolder):
 					pc.field("branch") == branch,
 					pc.field("turn") >= turn_from,
 					pc.field("turn") <= turn_to,
-				]
+				],
+				columns=self._table_columns(table),
 			).to_pylist():
 				if d["turn"] == turn_from:
 					if d["tick"] >= tick_from:
