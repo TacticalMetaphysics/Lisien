@@ -1113,11 +1113,6 @@ class EngineFacade(AbstractEngine):
 		def apply(self):
 			for pat in self._patch.values():
 				pat.apply()
-			rando_state = self.engine._rando.getstate()
-			realeng = self.engine._real
-			if rando_state != realeng._rando.getstate():
-				realeng._rando.setstate(rando_state)
-				realeng.universal["rando_state"] = rando_state
 			self._patch = {}
 
 	class FacadeCache(Cache):
