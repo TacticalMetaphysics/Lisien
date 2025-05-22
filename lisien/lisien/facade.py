@@ -1317,7 +1317,7 @@ class EngineFacade(AbstractEngine):
 							elif k == "location":
 								realchar.add_thing(node, v)
 							else:
-								realchar.add_place(node, k=v)
+								realchar.add_place(node, **{k: v})
 						elif len(tup) == 5:
 							char, orig, dest, k, v = tup
 							realchar = realeng.character[char]
