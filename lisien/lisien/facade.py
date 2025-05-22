@@ -544,6 +544,8 @@ class FacadePortal(FacadeEntity, Edge):
 		if k in ("origin", "destination"):
 			raise TypeError("Portals have fixed origin and destination")
 		super().__setitem__(k, v)
+		self.character.portal._tampered = True
+		self.character.portal[self.orig]._tampered = True
 
 	@property
 	def origin(self):
@@ -563,6 +565,8 @@ class FacadePortal(FacadeEntity, Edge):
 
 	def delete(self):
 		del self.character.portal[self.orig][self.dest]
+		self.character.portal._tampered = True
+		self.character.portal[self.orig]._tampered = True
 
 
 class FacadePortalSuccessors(FacadeEntityMapping):
@@ -697,9 +701,13 @@ class CharacterFacade(AbstractCharacter):
 
 	def add_portal(self, orig, dest, **kwargs):
 		self.portal[orig][dest] = kwargs
+		self.portal[orig]._tampered = True
+		self.portal._tampered = True
 
 	def remove_portal(self, origin, destination):
 		del self.portal[origin][destination]
+		self.portal._tampered = True
+		self.portal[origin]._tampered = True
 
 	def add_edge(self, orig, dest, **kwargs):
 		"""Wrapper for add_portal"""
@@ -1006,14 +1014,19 @@ class CharacterFacade(AbstractCharacter):
 			else:
 				v.apply()
 		self.place._patch = {}
-		for orig, dests in self.portal._patch.items():
-			for dest, v in dests.items():
-				if v is None:
-					del realport[orig][dest]
-				elif orig not in realport or dest not in realport[orig]:
-					realchar.add_portal(orig, dest, **v)
-				else:
-					v.apply()
+		if getattr(self.portal, "_tampered", False):
+			for orig, dests in self.portal._patch.items():
+				if not getattr(dests, "_tampered", False):
+					continue
+				for dest, v in dests.items():
+					if v is None:
+						del realport[orig][dest]
+					elif orig not in realport or dest not in realport[orig]:
+						realchar.add_portal(orig, dest, **v)
+					else:
+						v.apply()
+				del dests._tampered
+			del self.portal._tampered
 		self.portal._patch = {}
 
 
