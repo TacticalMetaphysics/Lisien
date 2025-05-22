@@ -33,6 +33,7 @@ from .util import (
 	AbstractThing,
 	SignalDict,
 	getatt,
+	timer,
 )
 from .wrap import MutableMappingUnwrapper
 from .xcollections import CompositeDict
@@ -1296,7 +1297,13 @@ class EngineFacade(AbstractEngine):
 			return
 		# Do I actually need these sorts? Insertion order's preserved...
 		for plan_num in sorted(self._planned):
-			with realeng.plan():  # resets time at end of block
+			with (
+				timer(
+					f"seconds to apply plan {plan_num}",
+					logfun=self._real.debug,
+				),
+				realeng.plan(),
+			):  # resets time at end of block
 				for turn in sorted(self._planned[plan_num]):
 					# Not setting `realeng.turn` the normal way, because that
 					# would save the state of the randomizer, which is not
