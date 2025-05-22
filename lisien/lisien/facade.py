@@ -1325,6 +1325,16 @@ class EngineFacade(AbstractEngine):
 							if node in realchar.node:
 								if k is None:
 									realchar.remove_node(node)
+								elif k == "location":
+									# assume the location really exists, since
+									# it did while planning
+									now = realeng._nbtt()
+									realeng._things_cache.store(
+										char, node, *now, v
+									)
+									realeng.query.set_thing_loc(
+										char, node, *now, v
+									)
 								else:
 									realchar.node[node][k] = v
 							elif k == "location":
