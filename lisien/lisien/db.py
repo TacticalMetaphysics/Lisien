@@ -48,7 +48,9 @@ from .typing import (
 	EdgeValRowType,
 	GraphValKeyframe,
 	GraphValRowType,
-	KeyHint as Key,
+)
+from .typing import KeyHint as Key
+from .typing import (
 	NodeKeyframe,
 	NodeName,
 	NodeRowType,
@@ -3286,10 +3288,6 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def plan_ticks_insert_many(self, many: list[tuple[Plan, Turn, Tick]]):
-		pass
-
-	@abstractmethod
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Turn, Tick]]:
 		pass
 
@@ -4930,9 +4928,6 @@ class NullQueryEngine(AbstractQueryEngine):
 	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
 		pass
 
-	def plan_ticks_insert_many(self, many: list[Time]):
-		pass
-
 	def plan_ticks_dump(self) -> Iterator:
 		return iter(())
 
@@ -5781,6 +5776,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 					self._nodevals2set(),
 					self._edges2set(),
 					self._edgevals2set(),
+					self._plan_ticks(),
 				)
 			)
 			if self._unitness:
@@ -7401,22 +7397,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			],
 		)
 
-	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
-		self.call(
-			"insert1",
-			"plan_ticks",
-			dict(plan_id=plan_id, turn=turn, tick=tick),
-		)
+	@batch("plan_ticks")
+	def _plan_ticks(self, plan_id: int, turn: int, tick: int):
+		return (plan_id, turn, tick)
 
-	def plan_ticks_insert_many(self, many: list[tuple[Plan, Turn, Tick]]):
-		self.call(
-			"insert",
-			"plan_ticks",
-			[
-				dict(zip(("plan_id", "turn", "tick"), plan_tick))
-				for plan_tick in many
-			],
-		)
+	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
+		self._plan_ticks.append((plan_id, turn, tick))
 
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Turn, Tick]]:
 		for d in self.call("dump", "plan_ticks"):
@@ -8615,9 +8601,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def plan_ticks_insert(self, plan_id, turn, tick):
 		return self.call_one("plan_ticks_insert", plan_id, turn, tick)
-
-	def plan_ticks_insert_many(self, many):
-		return self.call_many("plan_ticks_insert", many)
 
 	def plan_ticks_dump(self):
 		return self.call_one("plan_ticks_dump")
