@@ -1298,7 +1298,10 @@ class EngineFacade(AbstractEngine):
 		for plan_num in sorted(self._planned):
 			with realeng.plan():  # resets time at end of block
 				for turn in sorted(self._planned[plan_num]):
-					realeng.turn = turn
+					# Not setting `realeng.turn` the normal way, because that
+					# would save the state of the randomizer, which is not
+					# relevant here
+					realeng._oturn = turn
 					for tup in self._planned[plan_num][turn]:
 						if len(tup) == 3:
 							char, k, v = tup
