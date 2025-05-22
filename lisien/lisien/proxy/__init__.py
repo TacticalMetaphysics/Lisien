@@ -3998,7 +3998,7 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
 			output_pipe.close()
 			if logq:
 				logq.close()
-			return 0
+			sys.exit(0)
 		instruction = engine_handle.unpack(decompress(inst))
 		silent = instruction.pop("silent", False)
 		cmd = instruction.pop("command")
@@ -4138,7 +4138,7 @@ def worker_subprocess(
 				logq.close()
 			out_pipe.send_bytes(b"done")
 			out_pipe.close()
-			return 0
+			sys.exit(0)
 		uid = int.from_bytes(inst[:8], "little")
 		(method, args, kwargs) = unpack(decompress(inst[8:]))
 		if isinstance(method, str):
