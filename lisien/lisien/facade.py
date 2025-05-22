@@ -1330,4 +1330,4 @@ class EngineFacade(AbstractEngine):
 								else:
 									realchar.portal[orig][dest][k] = v
 							else:
-								realchar.add_portal(orig, dest, k=v)
+								realchar.add_portal(orig, dest, **{k: v})
