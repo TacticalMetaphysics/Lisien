@@ -4695,7 +4695,8 @@ class Engine(AbstractEngine, Executor):
 			with lock:
 				pipein.send_bytes(b"shutdown")
 				recvd = pipeout.recv_bytes()
-				assert recvd == b"done"
+				if recvd != b"done":
+					raise RuntimeError("Worker process wasn't done", i)
 				proc.join(timeout=5)
 				proc.close()
 				pipein.close()
