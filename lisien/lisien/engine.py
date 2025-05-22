@@ -4698,6 +4698,12 @@ class Engine(AbstractEngine, Executor):
 				if recvd != b"done":
 					raise RuntimeError("Worker process wasn't done", i)
 				proc.join(timeout=5)
+				if proc.exitcode is None:
+					raise RuntimeError("Worker process didn't exit", i)
+				if proc.exitcode != 0:
+					raise RuntimeError(
+						"Worker process didn't exit normally", i, proc.exitcode
+					)
 				proc.close()
 				pipein.close()
 				pipeout.close()
