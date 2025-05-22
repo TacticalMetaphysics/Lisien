@@ -1042,20 +1042,23 @@ class EngineFacade(AbstractEngine):
 			assert not isinstance(engine, EngineFacade)
 			self.engine = engine
 			self._patch = {}
+			self._deleted = set()
+
+		def _effective_keys(self):
+			return (
+				self.engine.universal.keys() | self._patch.keys()
+			) - self._deleted
 
 		def __iter__(self):
-			already = set()
-			for k in self.engine.universal:
-				already.add(k)
-				if k not in self._patch or self._patch[k] is not None:
-					yield k
-			yield from self._patch.keys() - already
+			yield from self._effective_keys()
 
 		def __len__(self):
-			return len(self._patch.keys() | self.engine.universal.keys())
+			return len(self._effective_keys())
 
 		def __contains__(self, item):
-			return item in self._patch or item in self.engine.universal
+			return item not in self._deleted and (
+				item in self._patch or item in self.engine.universal
+			)
 
 		def __getitem__(self, item):
 			if item in self._patch:
@@ -1070,11 +1073,14 @@ class EngineFacade(AbstractEngine):
 
 		def __setitem__(self, key, value):
 			self._patch[key] = value
+			if value is not None:
+				self._deleted.discard(key)
 
 		def __delitem__(self, key):
 			if key not in self.engine.universal:
 				raise KeyError("No key to delete", key)
 			self._patch[key] = None
+			self._deleted.add(key)
 
 	class FacadeCharacterMapping(Mapping):
 		def __init__(self, engine: "EngineFacade"):
