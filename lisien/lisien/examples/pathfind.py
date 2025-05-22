@@ -61,6 +61,7 @@ def install(eng, seed=None):
 				char.engine.debug(f"No path for {fut.thing.name}")
 
 		futs = []
+		start_all = monotonic()
 		for thing in char.thing.values():
 			fut = char.engine.submit(
 				char.engine.function.find_path_somewhere, thing
@@ -80,6 +81,7 @@ def install(eng, seed=None):
 			except NetworkXNoPath:
 				char.engine.debug(f"got no path for thing {fut.thing.name}")
 				continue
+		char.engine.debug(f"followed all paths in {monotonic() - start_all:.2} seconds")
 
 	@go_places.trigger
 	def turn_one_only(char):
