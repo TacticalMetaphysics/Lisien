@@ -1044,7 +1044,12 @@ class EngineFacade(AbstractEngine):
 			self._patch = {}
 
 		def __iter__(self):
-			return iter(self._patch.keys() | self.engine.universal.keys())
+			already = set()
+			for k in self.engine.universal:
+				already.add(k)
+				if k not in self._patch or self._patch[k] is not None:
+					yield k
+			yield from self._patch.keys() - already
 
 		def __len__(self):
 			return len(self._patch.keys() | self.engine.universal.keys())
