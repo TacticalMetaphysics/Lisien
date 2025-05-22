@@ -4697,6 +4697,8 @@ class Engine(AbstractEngine, Executor):
 				recvd = pipeout.recv_bytes()
 				if recvd != b"done":
 					raise RuntimeError("Worker process wasn't done", i)
+				pipein.close()
+				pipeout.close()
 				proc.join(timeout=5)
 				if proc.exitcode is None:
 					raise RuntimeError("Worker process didn't exit", i)
