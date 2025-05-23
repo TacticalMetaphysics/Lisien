@@ -3553,6 +3553,11 @@ class AbstractQueryEngine:
 
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
 		with self.mutex():
+			if self._outq.unfinished_tasks:
+				raise RuntimeError(
+					f"{self._outq.unfinished_tasks} tasks unfinished "
+					"at start of _load_windows_into"
+				)
 			for branch, turn_from, tick_from, turn_to, tick_to in windows:
 				if turn_to is None:
 					self._put_window_tick_to_end(branch, turn_from, tick_from)
@@ -3563,9 +3568,11 @@ class AbstractQueryEngine:
 			self._inq.join()
 			for window in windows:
 				self._get_one_window(ret, *window)
-			self.logger.debug(f"got {len(windows)} windows, will join outq")
-			self._outq.join()
-			self.logger.debug("outq joined")
+			if self._outq.unfinished_tasks:
+				raise RuntimeError(
+					f"{self._outq.unfinished_tasks} tasks unfinished at end of "
+					"_load_windows_into"
+				)
 
 	_records: int
 	kf_interval_override: callable
@@ -8238,9 +8245,19 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def call_one(self, string, *args, **kwargs):
 		with self.mutex():
+			insist(
+				self._outq.unfinished_tasks == 0,
+				f"{self._outq.unfinished_tasks} unfinished tasks in output queue "
+				"before call_one",
+			)
 			self._inq.put(("one", string, args, kwargs))
 			ret = self._outq.get()
 			self._outq.task_done()
+			insist(
+				self._outq.unfinished_tasks == 0,
+				f"{self._outq.unfinished_tasks} unfinished tasks in output "
+				"queue after call_one",
+			)
 		if isinstance(ret, Exception):
 			raise ret
 		return ret
