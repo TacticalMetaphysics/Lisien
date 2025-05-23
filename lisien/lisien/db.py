@@ -3554,11 +3554,6 @@ class AbstractQueryEngine:
 
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
 		with self.mutex():
-			if self._outq.unfinished_tasks:
-				raise RuntimeError(
-					f"{self._outq.unfinished_tasks} tasks unfinished "
-					"at start of _load_windows_into"
-				)
 			for branch, turn_from, tick_from, turn_to, tick_to in windows:
 				if turn_to is None:
 					self._put_window_tick_to_end(branch, turn_from, tick_from)
@@ -3569,11 +3564,6 @@ class AbstractQueryEngine:
 			self._inq.join()
 			for window in windows:
 				self._get_one_window(ret, *window)
-			if self._outq.unfinished_tasks:
-				raise RuntimeError(
-					f"{self._outq.unfinished_tasks} tasks unfinished at end of "
-					"_load_windows_into"
-				)
 
 	_records: int
 	kf_interval_override: callable
