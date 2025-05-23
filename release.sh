@@ -12,6 +12,7 @@ ruff --version
 pyclean --version
 wine --version
 ls ~/lisien_windows
+ulimit -n 69105
 isort .
 ruff format .
 rm -rf lisien/build lisien/dist lisien/strings
