@@ -3547,6 +3547,7 @@ class AbstractQueryEngine:
 	@contextmanager
 	def mutex(self):
 		with self._holder.lock:
+			insist(self._inq.qsize() == 0, "Unhandled items in input queue")
 			insist(self._outq.qsize() == 0, "Unhandled items in output queue")
 			yield
 			insist(self._outq.qsize() == 0, "Unhandled items in output queue")
@@ -9074,10 +9075,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		with self.mutex():
 			self._inq.put(("echo", "ready"))
 			readied = self._outq.get()
+			self._outq.task_done()
 			insist(readied == "ready", "Not ready to flush", readied)
 			self._flush()
 			self._inq.put(("echo", "flushed"))
 			flushed = self._outq.get()
+			self._outq.task_done()
 			insist(flushed == "flushed", "Failed flush", flushed)
 
 	def _flush(self):
@@ -9376,6 +9379,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def commit(self):
 		"""Commit the transaction"""
 		self._inq.put("commit")
+		self._inq.join()
 		insist(
 			(got := self.echo("committed")) == "committed",
 			"Failed commit",
