@@ -81,7 +81,9 @@ def install(eng, seed=None):
 			except NetworkXNoPath:
 				char.engine.debug(f"got no path for thing {fut.thing.name}")
 				continue
-		char.engine.debug(f"followed all paths in {monotonic() - start_all:.2} seconds")
+		char.engine.debug(
+			f"followed all paths in {monotonic() - start_all:.2} seconds"
+		)
 
 	@go_places.trigger
 	def turn_one_only(char):
