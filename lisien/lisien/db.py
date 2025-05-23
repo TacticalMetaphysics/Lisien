@@ -9449,9 +9449,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			raise KeyframeError("No keyframe", branch, turn, tick)
 		assert len(exts) == 1, f"Incoherent keyframe {branch, turn, tick}"
 		universal, rule, rulebook = exts[0]
-		print(f"universal={universal}", file=sys.stderr)
-		print(f"rule={rule}", file=sys.stderr)
-		print(f"rulebook={rulebook}", file=sys.stderr)
 		return (
 			unpack(universal),
 			unpack(rule),
