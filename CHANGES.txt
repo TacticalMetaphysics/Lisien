@@ -1,3 +1,12 @@
+== 0.19.3 | 2025-05-23 ==
+* Fix keyframes sometimes getting made every tick, if the automatic keyframe
+  creation was overridden
+* Require ParquetDB version 1.0.1, fix some freezes that could occur when
+  loading empty ParquetDB tables and a data integrity issue with the rules-
+  handledness tracking
+* Performance improvements when using plans with ParquetDB
+* Fixed worker processes sometimes staying open when there's nothing left to do
+
 == 0.19.2  | 2025-04-26 ==
 * Added the option to run Lisien without connecting to any database. This is
   mainly useful for testing. Instantiate the engine like `Engine(None)` to use.

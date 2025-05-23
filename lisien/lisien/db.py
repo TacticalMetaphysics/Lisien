@@ -46,7 +46,9 @@ from .typing import (
 	EdgeValRowType,
 	GraphValKeyframe,
 	GraphValRowType,
-	Key,
+)
+from .typing import KeyHint as Key
+from .typing import (
 	NodeKeyframe,
 	NodeName,
 	NodeRowType,
@@ -3415,10 +3417,6 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def plan_ticks_insert_many(self, many: list[tuple[Plan, Turn, Tick]]):
-		pass
-
-	@abstractmethod
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Turn, Tick]]:
 		pass
 
@@ -3593,6 +3591,29 @@ class AbstractQueryEngine:
 		):
 			self.snap_keyframe()
 			self._kf_interval_overridden = False
+
+	_infixes2load = [
+		"nodes",
+		"edges",
+		"graph_val",
+		"node_val",
+		"edge_val",
+		"things",
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+		"node_rulebook",
+		"portal_rulebook",
+		"universals",
+		"rulebooks",
+		"rule_triggers",
+		"rule_prereqs",
+		"rule_actions",
+		"rule_neighborhoods",
+		"rule_big",
+	]
 
 	def _get_one_window(
 		self,
@@ -5264,9 +5285,6 @@ class NullQueryEngine(AbstractQueryEngine):
 		pass
 
 	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
-		pass
-
-	def plan_ticks_insert_many(self, many: list[Time]):
 		pass
 
 	def plan_ticks_dump(self) -> Iterator:
@@ -7826,16 +7844,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
 		self._planticks2set.append((plan_id, turn, tick))
 
-	def plan_ticks_insert_many(self, many: list[tuple[Plan, Turn, Tick]]):
-		self.call(
-			"insert",
-			"plan_ticks",
-			[
-				dict(zip(("plan_id", "turn", "tick"), plan_tick))
-				for plan_tick in many
-			],
-		)
-
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Turn, Tick]]:
 		for d in self.call("dump", "plan_ticks"):
 			yield d["plan_id"], d["turn"], d["tick"]
@@ -9040,9 +9048,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def plan_ticks_insert(self, plan_id, turn, tick):
 		return self.call_one("plan_ticks_insert", plan_id, turn, tick)
-
-	def plan_ticks_insert_many(self, many):
-		return self.call_many("plan_ticks_insert", many)
 
 	def plan_ticks_dump(self):
 		return self.call_one("plan_ticks_dump")

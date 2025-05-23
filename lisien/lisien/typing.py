@@ -31,7 +31,7 @@ class Key(Hashable):
 	def __new__(cls, that: _Key) -> _Key:
 		return that
 
-	def __instancecheck__(cls, instance) -> TypeGuard[Key]:
+	def __instancecheck__(cls, instance) -> TypeGuard[_Key]:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
@@ -42,6 +42,10 @@ Key.register(str)
 Key.register(int)
 Key.register(float)
 Key.register(type(None))
+
+KeyHint = Key | str | int | float | None
+KeyHint |= tuple[KeyHint, ...]
+KeyHint |= frozenset[Key]
 
 
 Branch = NewType("Branch", str)

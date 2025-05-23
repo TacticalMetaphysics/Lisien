@@ -4185,7 +4185,7 @@ def worker_subprocess(
 				logq.close()
 			out_pipe.send_bytes(b"done")
 			out_pipe.close()
-			return 0
+			sys.exit(0)
 		uid = int.from_bytes(inst[:8], "little")
 		(method, args, kwargs) = unpack(decompress(inst[8:]))
 		if isinstance(method, str):
