@@ -33,6 +33,7 @@ from .util import (
 	AbstractThing,
 	SignalDict,
 	getatt,
+	timer,
 )
 from .wrap import MutableMappingUnwrapper
 from .xcollections import CompositeDict
@@ -544,6 +545,8 @@ class FacadePortal(FacadeEntity, Edge):
 		if k in ("origin", "destination"):
 			raise TypeError("Portals have fixed origin and destination")
 		super().__setitem__(k, v)
+		self.character.portal._tampered = True
+		self.character.portal[self.orig]._tampered = True
 
 	@property
 	def origin(self):
@@ -563,6 +566,8 @@ class FacadePortal(FacadeEntity, Edge):
 
 	def delete(self):
 		del self.character.portal[self.orig][self.dest]
+		self.character.portal._tampered = True
+		self.character.portal[self.orig]._tampered = True
 
 
 class FacadePortalSuccessors(FacadeEntityMapping):
@@ -697,9 +702,13 @@ class CharacterFacade(AbstractCharacter):
 
 	def add_portal(self, orig, dest, **kwargs):
 		self.portal[orig][dest] = kwargs
+		self.portal[orig]._tampered = True
+		self.portal._tampered = True
 
 	def remove_portal(self, origin, destination):
 		del self.portal[origin][destination]
+		self.portal._tampered = True
+		self.portal[origin]._tampered = True
 
 	def add_edge(self, orig, dest, **kwargs):
 		"""Wrapper for add_portal"""
@@ -1006,14 +1015,19 @@ class CharacterFacade(AbstractCharacter):
 			else:
 				v.apply()
 		self.place._patch = {}
-		for orig, dests in self.portal._patch.items():
-			for dest, v in dests.items():
-				if v is None:
-					del realport[orig][dest]
-				elif orig not in realport or dest not in realport[orig]:
-					realchar.add_portal(orig, dest, **v)
-				else:
-					v.apply()
+		if getattr(self.portal, "_tampered", False):
+			for orig, dests in self.portal._patch.items():
+				if not getattr(dests, "_tampered", False):
+					continue
+				for dest, v in dests.items():
+					if v is None:
+						del realport[orig][dest]
+					elif orig not in realport or dest not in realport[orig]:
+						realchar.add_portal(orig, dest, **v)
+					else:
+						v.apply()
+				del dests._tampered
+			del self.portal._tampered
 		self.portal._patch = {}
 
 
@@ -1028,15 +1042,23 @@ class EngineFacade(AbstractEngine):
 			assert not isinstance(engine, EngineFacade)
 			self.engine = engine
 			self._patch = {}
+			self._deleted = set()
+
+		def _effective_keys(self):
+			return (
+				self.engine.universal.keys() | self._patch.keys()
+			) - self._deleted
 
 		def __iter__(self):
-			return iter(self._patch.keys() | self.engine.universal.keys())
+			yield from self._effective_keys()
 
 		def __len__(self):
-			return len(self._patch.keys() | self.engine.universal.keys())
+			return len(self._effective_keys())
 
 		def __contains__(self, item):
-			return item in self._patch or item in self.engine.universal
+			return item not in self._deleted and (
+				item in self._patch or item in self.engine.universal
+			)
 
 		def __getitem__(self, item):
 			if item in self._patch:
@@ -1051,11 +1073,14 @@ class EngineFacade(AbstractEngine):
 
 		def __setitem__(self, key, value):
 			self._patch[key] = value
+			if value is not None:
+				self._deleted.discard(key)
 
 		def __delitem__(self, key):
 			if key not in self.engine.universal:
 				raise KeyError("No key to delete", key)
 			self._patch[key] = None
+			self._deleted.add(key)
 
 	class FacadeCharacterMapping(Mapping):
 		def __init__(self, engine: "EngineFacade"):
@@ -1088,11 +1113,6 @@ class EngineFacade(AbstractEngine):
 		def apply(self):
 			for pat in self._patch.values():
 				pat.apply()
-			rando_state = self.engine._rando.getstate()
-			realeng = self.engine._real
-			if rando_state != realeng._rando.getstate():
-				realeng._rando.setstate(rando_state)
-				realeng.universal["rando_state"] = rando_state
 			self._patch = {}
 
 	class FacadeCache(Cache):
@@ -1283,9 +1303,18 @@ class EngineFacade(AbstractEngine):
 			return
 		# Do I actually need these sorts? Insertion order's preserved...
 		for plan_num in sorted(self._planned):
-			with realeng.plan():  # resets time at end of block
+			with (
+				timer(
+					f"seconds to apply plan {plan_num}",
+					logfun=self._real.debug,
+				),
+				realeng.plan(),
+			):  # resets time at end of block
 				for turn in sorted(self._planned[plan_num]):
-					realeng.turn = turn
+					# Not setting `realeng.turn` the normal way, because that
+					# would save the state of the randomizer, which is not
+					# relevant here
+					realeng._oturn = turn
 					for tup in self._planned[plan_num][turn]:
 						if len(tup) == 3:
 							char, k, v = tup
@@ -1296,12 +1325,22 @@ class EngineFacade(AbstractEngine):
 							if node in realchar.node:
 								if k is None:
 									realchar.remove_node(node)
+								elif k == "location":
+									# assume the location really exists, since
+									# it did while planning
+									now = realeng._nbtt()
+									realeng._things_cache.store(
+										char, node, *now, v
+									)
+									realeng.query.set_thing_loc(
+										char, node, *now, v
+									)
 								else:
 									realchar.node[node][k] = v
 							elif k == "location":
 								realchar.add_thing(node, v)
 							else:
-								realchar.add_place(node, k=v)
+								realchar.add_place(node, **{k: v})
 						elif len(tup) == 5:
 							char, orig, dest, k, v = tup
 							realchar = realeng.character[char]
@@ -1314,4 +1353,4 @@ class EngineFacade(AbstractEngine):
 								else:
 									realchar.portal[orig][dest][k] = v
 							else:
-								realchar.add_portal(orig, dest, k=v)
+								realchar.add_portal(orig, dest, **{k: v})

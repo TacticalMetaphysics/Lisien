@@ -8,7 +8,7 @@ packages = ["lisien", "lisien.proxy", "lisien.server", "lisien.services"]
 
 [project]
 name = "lisien"
-version = "0.19.2"
+version = "0.19.3"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -31,7 +31,7 @@ dependencies = [
 	"sqlalchemy>=1.4,<3",
 	"numpy>=1.19.5,<3",
 	"tblib>=1.7.0,<4",
-	"parquetdb==0.25.1",
+	"parquetdb==1.0.1",
 ]
 
 [project.urls]
