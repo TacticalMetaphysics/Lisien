@@ -43,7 +43,7 @@ from operator import (
 from random import Random
 from textwrap import dedent
 from time import monotonic
-from types import FunctionType, MethodType
+from types import FunctionType, MethodType, TracebackType
 from typing import (
 	Any,
 	Callable,
@@ -1461,9 +1461,23 @@ def insist(condition: bool, message: str, obj=None):
 
 	"""
 	if not condition:
-		if isinstance(obj, Exception):
-			raise obj
-		raise RuntimeError(message, obj)
+		if obj is None:
+			exc = RuntimeError(message)
+		elif isinstance(obj, Exception):
+			exc = obj
+		else:
+			exc = RuntimeError(message, obj)
+		try:
+			raise exc
+		except type(exc) as exception:
+			back_frame = sys.exc_info()[2].tb_frame.f_back
+			tb = TracebackType(
+				tb_next=None,
+				tb_frame=back_frame,
+				tb_lasti=back_frame.f_lasti,
+				tb_lineno=back_frame.f_lineno,
+			)
+			raise exception.with_traceback(tb)
 
 
 def world_locked(fn: callable) -> callable:
