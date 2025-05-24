@@ -340,7 +340,7 @@ def some_state(tmp_path, non_null_database):
 		tmp_path,
 		workers=0,
 		random_seed=0,
-		connect_string=f"sqlite3:///{tmp_path}/world.sqlite3"
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if non_null_database == "sqlite"
 		else None,
 	) as eng:
