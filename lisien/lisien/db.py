@@ -8050,6 +8050,26 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				if not silent:
 					self.outq.put(o)
 				self.inq.task_done()
+			elif inst[0] == "select":
+				try:
+					res = self.connection.execute(inst[1], inst[2])
+					if not silent:
+						if hasattr(res, "returns_rows"):
+							if res.returns_rows:
+								o = list(res)
+							else:
+								o = None
+						else:
+							o = list(res)
+				except Exception as ex:
+					print(ex)
+					if silent:
+						print(f"while silenced: {ex}")
+						sys.exit(repr(ex))
+					o = ex
+				if not silent:
+					self.outq.put(o)
+				self.inq.task_done()
 			elif inst[0] != "many":
 				raise ValueError(f"Invalid instruction: {inst[0]}")
 			else:
@@ -8262,13 +8282,15 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			raise ret
 		return ret
 
-	def execute(self, stmt):
+	def execute(self, stmt, *args):
 		if not isinstance(stmt, Select):
 			raise TypeError("Only select statements should be executed")
 		self.flush()
 		with self.mutex():
-			self._inq.put(stmt)
-			return self._outq.get()
+			self._inq.put(("select", stmt, args))
+			ret = self._outq.get()
+			self._outq.task_done()
+			return ret
 
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
 		return self.call_one("keyframes_dump")
