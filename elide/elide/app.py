@@ -545,6 +545,7 @@ class ElideApp(App):
 		os.rename(archived, os.path.join(self.games_dir, archived_base))
 		shutil.rmtree(game_wd)
 		self._remove_screens()
+		self._copy_log_files()
 		if cb:
 			cb()
 
