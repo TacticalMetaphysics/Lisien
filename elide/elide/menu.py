@@ -262,15 +262,17 @@ class NewGameModal(ModalView):
 
 	def _really_start(self, game_name, *_):
 		app = App.get_running_app()
-		app.game_name = game_name
 		worldstart = self.ids.worldstart
 		if worldstart.generator_type == "grid":
-			engine = app.start_subprocess()
-			worldstart.grid_config.generate(engine)
-			app.init_board()
-			app.manager.current = "mainscreen"
+			app.start_game(
+				name=game_name,
+				cb=lambda: worldstart.grid_config.generate(app.engine),
+			)
 		else:
-			app.start_game()
+			app.start_game(
+				name=game_name, cb=lambda: app.engine.add_character("physical")
+			)
+		app.select_character(app.engine.character["physical"])
 		self.dismiss()
 
 
