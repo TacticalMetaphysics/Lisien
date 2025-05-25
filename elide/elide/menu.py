@@ -248,7 +248,7 @@ class NewGameModal(ModalView):
 			if os.path.isfile(game_path):
 				os.remove(game_path)
 		if can_start and (
-			self.ids.worldstart.generator_type == "None"
+			self.ids.worldstart.generator_type.lower() == "none"
 			or self.ids.worldstart.grid_config.validate()
 		):
 			self.clear_widgets()
