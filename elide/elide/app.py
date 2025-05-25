@@ -61,6 +61,7 @@ from lisien.proxy import (
 	EngineProcessManager,
 	PlaceProxy,
 	ThingProxy,
+	CharacterProxy,
 )
 
 resource_add_path(elide.__path__[0] + "/assets")
@@ -211,14 +212,20 @@ class ElideApp(App):
 		"""Set the turn to the given value, cast to an integer"""
 		self.turn = int(t)
 
-	def select_character(self, char):
+	def select_character(self, char: CharacterProxy):
 		"""Change my ``character`` to the selected character object if they
 		aren't the same.
 
 		"""
 		if char == self.character:
 			return
+		if char.name not in self.mainscreen.graphboards:
+			self.mainscreen.graphboards[char.name] = GraphBoard(character=char)
+		if char.name not in self.mainscreen.gridboards:
+			self.mainscreen.gridboards[char.name] = GridBoard(character=char)
 		self.character = char
+		self.selected_proxy = self._get_selected_proxy()
+		self.engine.eternal["boardchar"] = char.name
 
 	def build_config(self, config):
 		"""Set config defaults"""
@@ -311,7 +318,6 @@ class ElideApp(App):
 		"""
 		if hasattr(self, "procman") and hasattr(self.procman, "engine_proxy"):
 			raise ChildProcessError("Subprocess already running")
-		path = path or self.prefix
 		config = self.config
 		enkw = {
 			"logger": Logger,
@@ -340,19 +346,13 @@ class ElideApp(App):
 			enkw["workers"] = int(self.workers)
 		elif workers := config["lisien"].get("workers"):
 			enkw["workers"] = int(workers)
-		if path is not None and os.path.isdir(path):
-			startdir = path
-		elif os.path.isdir(sys.argv[-1]):
-			startdir = sys.argv[-1]
-		else:
-			startdir = None
 		if path:
 			os.makedirs(path, exist_ok=True)
 		Logger.debug(f"About to start EngineProcessManager with kwargs={enkw}")
 		self.procman = EngineProcessManager(
 			use_thread=self.use_thread,
 		)
-		self.engine = engine = self.procman.start(startdir, **enkw)
+		self.engine = engine = self.procman.start(path, **enkw)
 		Logger.debug("Got EngineProxy")
 		self.pull_time()
 		Logger.debug("Pulled time")
@@ -372,15 +372,6 @@ class ElideApp(App):
 		Must be called after start_subprocess
 
 		"""
-		if "boardchar" not in self.engine.eternal:
-			if "physical" in self.engine.character:
-				self.engine.eternal["boardchar"] = self.engine.character[
-					"physical"
-				]
-			else:
-				chara = self.engine.eternal["boardchar"] = (
-					self.engine.new_character("physical")
-				)
 		self.chars.names = list(self.engine.character)
 		self.mainscreen.graphboards = {
 			name: GraphBoard(character=char)
@@ -390,8 +381,8 @@ class ElideApp(App):
 			name: GridBoard(character=char)
 			for name, char in self.engine.character.items()
 		}
-		self.select_character(self.engine.eternal["boardchar"])
-		self.selected_proxy = self._get_selected_proxy()
+		if "boardchar" in self.engine.eternal:
+			self.select_character(self.engine.eternal["boardchar"])
 
 	def _toggler(self, screenname):
 		def tog(*_):
@@ -487,9 +478,14 @@ class ElideApp(App):
 		):
 			self.manager.add_widget(wid)
 
-	def start_game(self, *_, cb=None):
-		os.makedirs(self.prefix, exist_ok=True)
-		engine = self.start_subprocess(self.prefix)
+	def start_game(self, *_, name=None, cb=None):
+		game_name = name or self.game_name
+		if self.game_name != game_name:
+			self.game_name = game_name
+		gamedir = os.path.join(self.prefix, game_name)
+		os.makedirs(gamedir, exist_ok=True)
+		engine = self.start_subprocess(gamedir)
+		self.mainscreen.populate()
 		self.init_board()
 		self.manager.current = "mainscreen"
 		if cb:

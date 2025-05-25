@@ -231,7 +231,7 @@ class MainScreen(Screen):
 		self.boardview.board = self.graphboards[self.app.character_name]
 		self.gridview.board = self.gridboards[self.app.character_name]
 
-	def on_mainview(self, *_):
+	def populate(self, *_):
 		if (
 			None in (self.statpanel, self.charmenu)
 			or None in (self.app.character_name, self.charmenu.portaladdbut)
@@ -250,7 +250,7 @@ class MainScreen(Screen):
 					"MainScreen: no graphboard to represent "
 					+ repr(self.app.character_name)
 				)
-			Clock.schedule_once(self.on_mainview, 0)
+			Clock.schedule_once(self.populate, 0)
 			return
 		self.boardview = GraphBoardView(
 			scale_min=0.2,
