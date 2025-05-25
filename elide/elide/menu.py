@@ -178,15 +178,16 @@ class GameLoaderModal(GamePickerModal):
 
 	def _decompress_and_start(self, game_file_path, game, *_):
 		app = App.get_running_app()
+		game_dir = str(os.path.join(app.prefix, game))
+		if os.path.exists(game_dir):
+			# Likely left over from a failed run of Elide
+			shutil.rmtree(game_dir)
 		with zipfile.ZipFile(
 			game_file_path, "r", compression=zipfile.ZIP_DEFLATED
 		) as zipf:
 			# should validate that it has what we expect...
-			zipf.extractall(app.prefix)
-		if any(d not in {".", ".."} for d in os.listdir(app.prefix)):
-			app.close_game()
-		app.game_name = game
-		app.start_game(cb=partial(self.dismiss, force=True))
+			zipf.extractall(game_dir)
+		app.start_game(name=game, cb=partial(self.dismiss, force=True))
 
 
 class GameList(RecycleView):

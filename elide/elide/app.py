@@ -296,8 +296,6 @@ class ElideApp(App):
 			self._add_screens()
 			self.manager.current = "mainscreen"
 			Clock.schedule_once(self.start_game, 0)
-		else:
-			Clock.schedule_once(self._add_screens, 0)
 		return self.manager
 
 	def _pull_lang(self, *_, **kwargs):
@@ -480,12 +478,42 @@ class ElideApp(App):
 		):
 			self.manager.add_widget(wid)
 
+	def _remove_screens(self):
+		for widname in (
+			"mainscreen",
+			"pawncfg",
+			"spotcfg",
+			"statcfg",
+			"rules",
+			"charrules",
+			"chars",
+			"strings",
+			"funcs",
+			"timestream",
+		):
+			wid = getattr(self, widname)
+			self.manager.remove_widget(wid)
+
 	def start_game(self, *_, name=None, cb=None):
+		if hasattr(self, "engine"):
+			Logger.error("Already started the game")
+			raise RuntimeError("Already started the game")
 		game_name = name or self.game_name
 		if self.game_name != game_name:
 			self.game_name = game_name
 		gamedir = os.path.join(self.prefix, game_name)
-		engine = self.start_subprocess(gamedir)
+		self._add_screens()
+		engine = self.engine = self.start_subprocess(gamedir)
+		if "boardchar" in engine.eternal:
+			self.select_character(
+				engine.character[engine.eternal["boardchar"]]
+			)
+		elif "physical" in engine.character:
+			self.select_character(engine.character["physical"])
+		elif engine.character:
+			self.select_character(next(iter(engine.character.values())))
+		else:
+			Logger.warning("No characters yet")
 		self.mainscreen.populate()
 		self.init_board()
 		self.manager.current = "mainscreen"
@@ -498,25 +526,25 @@ class ElideApp(App):
 		self.manager.current = "main"
 		if hasattr(self, "procman"):
 			self.procman.shutdown()
+		if hasattr(self, "engine"):
+			del self.engine
+		else:
+			return  # already closed
+
 		if self.logs_dir and os.path.isdir(self.logs_dir):
 			shutil.copytree(
 				self.logs_dir,
 				os.path.join(self.prefix, "logs"),
 				dirs_exist_ok=True,
 			)
-		archived = shutil.make_archive(self.game_name, "zip", self.prefix)
+		game_wd = os.path.join(self.prefix, self.game_name)
+		archived = shutil.make_archive(self.game_name, "zip", str(game_wd))
 		archived_base = os.path.basename(archived)
 		if os.path.exists(os.path.join(self.games_dir, archived_base)):
 			os.remove(os.path.join(self.games_dir, archived_base))
 		os.rename(archived, os.path.join(self.games_dir, archived_base))
-		for filename in os.listdir(self.prefix):
-			if filename in {".", ".."}:
-				continue
-			filepath = os.path.join(self.prefix, filename)
-			if os.path.isfile(filepath):
-				os.remove(filepath)
-			else:
-				shutil.rmtree(filepath)
+		shutil.rmtree(game_wd)
+		self._remove_screens()
 		if cb:
 			cb()
 
@@ -648,15 +676,7 @@ class ElideApp(App):
 		if hasattr(self, "stopped"):
 			return
 		self.stopped = True
-		self.strings.save()
-		self.funcs.save()
-		if hasattr(self, "procman"):
-			self.procman.shutdown()
-		if hasattr(self, "engine"):
-			del self.engine
-		if hasattr(self, "_replayfile"):
-			self._replayfile.close()
-		self._copy_log_files()
+		self.close_game()
 		return True
 
 	def delete_selection(self):
