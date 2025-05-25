@@ -4059,7 +4059,7 @@ def _engine_subroutine_step(
 	except AssertionError:
 		raise
 	except Exception as ex:
-		send_output(ex)
+		send_output(cmd, ex)
 		return
 	if silent:
 		return
