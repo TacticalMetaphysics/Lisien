@@ -483,7 +483,6 @@ class ElideApp(App):
 		if self.game_name != game_name:
 			self.game_name = game_name
 		gamedir = os.path.join(self.prefix, game_name)
-		os.makedirs(gamedir, exist_ok=True)
 		engine = self.start_subprocess(gamedir)
 		self.mainscreen.populate()
 		self.init_board()

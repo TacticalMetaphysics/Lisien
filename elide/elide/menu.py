@@ -237,16 +237,18 @@ class NewGameModal(ModalView):
 		if game_name in games:
 			self.ids.game_name.hint_text = "Name already taken"
 			return
-		game_path = os.path.join(app.games_dir, game_name + ".zip")
+		game_archive_path = os.path.join(app.games_dir, game_name + ".zip")
+		game_dir_path = os.path.join(app.prefix, game_name)
 		can_start = False
 		try:
-			zipfile.ZipFile(game_path, "w").close()
+			zipfile.ZipFile(game_archive_path, "w").close()
+			os.makedirs(game_dir_path)
 			can_start = True
 		except Exception as ex:
 			self.ids.game_name.hint_text = repr(ex)
 		finally:
-			if os.path.isfile(game_path):
-				os.remove(game_path)
+			if os.path.isfile(game_archive_path):
+				os.remove(game_archive_path)
 		if can_start and (
 			self.ids.worldstart.generator_type.lower() == "none"
 			or self.ids.worldstart.grid_config.validate()
