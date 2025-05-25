@@ -4587,15 +4587,16 @@ class EngineProcessManager:
 
 	def shutdown(self):
 		"""Close the engine in the subprocess, then join the subprocess"""
-		self.engine_proxy.close()
-		if hasattr(self, "_p"):
-			self.engine_proxy._pipe_out.send_bytes(b"shutdown")
-			self._p.join(timeout=1)
+		if hasattr(self, "engine_proxy"):
+			self.engine_proxy.close()
+			if hasattr(self, "_p"):
+				self.engine_proxy._pipe_out.send_bytes(b"shutdown")
+				self._p.join(timeout=1)
+			del self.engine_proxy
 		if hasattr(self, "_client"):
 			self._client.send_message("/shutdown", "")
 		if hasattr(self, "_server"):
 			self._server.shutdown()
-		del self.engine_proxy
 
 	def __enter__(self):
 		return self.start()
