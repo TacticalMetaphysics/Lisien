@@ -382,7 +382,9 @@ class ElideApp(App):
 			for name, char in self.engine.character.items()
 		}
 		if "boardchar" in self.engine.eternal:
-			self.select_character(self.engine.eternal["boardchar"])
+			self.select_character(
+				self.engine.character[self.engine.eternal["boardchar"]]
+			)
 
 	def _toggler(self, screenname):
 		def tog(*_):
