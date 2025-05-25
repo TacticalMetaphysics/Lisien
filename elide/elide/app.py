@@ -387,7 +387,7 @@ class ElideApp(App):
 	def _toggler(self, screenname):
 		def tog(*_):
 			if self.manager.current == screenname:
-				self.manager.current = "main"
+				self.manager.current = "mainscreen"
 			else:
 				self.manager.current = screenname
 
