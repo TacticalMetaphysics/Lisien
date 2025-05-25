@@ -140,6 +140,7 @@ from .util import (
 	garbage,
 	normalize_layout,
 	sort_set,
+	timer,
 	world_locked,
 	TRUE,
 	FALSE,
@@ -315,7 +316,10 @@ class NextTurn(Signal):
 		else:
 			todo = engine._eval_triggers()
 			it = engine._rules_iter = engine._follow_rules(todo)
-		with engine.advancing():
+		with (
+			timer("seconds to run the rules engine", engine.debug),
+			engine.advancing(),
+		):
 			for res in it:
 				if isinstance(res, InnerStopIteration):
 					del engine._rules_iter
