@@ -546,7 +546,8 @@ class CharacterRulesScreen(Screen):
 		}[rb]
 
 	def finalize(self, *args):
-		assert not hasattr(self, "_finalized")
+		if hasattr(self, "_finalized"):
+			return
 		if not (self.toggle and self.character):
 			Clock.schedule_once(self.finalize, 0)
 			return

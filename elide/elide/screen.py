@@ -193,7 +193,6 @@ class MainScreen(Screen):
 
 	"""
 
-	manager = ObjectProperty()
 	graphboards = DictProperty()
 	gridboards = DictProperty()
 	boardview = ObjectProperty()
@@ -232,6 +231,8 @@ class MainScreen(Screen):
 		self.gridview.board = self.gridboards[self.app.character_name]
 
 	def populate(self, *_):
+		if hasattr(self, "_populated"):
+			return
 		if (
 			None in (self.statpanel, self.charmenu)
 			or None in (self.app.character_name, self.charmenu.portaladdbut)
@@ -286,6 +287,7 @@ class MainScreen(Screen):
 		)
 		self.calendar_view.add_widget(self.calendar)
 		self.mainview.add_widget(self.boardview)
+		self._populated = True
 
 	def on_statpanel(self, *_):
 		if not self.app:
@@ -310,9 +312,14 @@ class MainScreen(Screen):
 		)
 
 	def pull_visibility(self, *_):
+		if not self.manager:
+			self.visible = False
+			return
 		self.visible = self.manager.current == "main"
 
 	def on_manager(self, *_):
+		if not self.manager:
+			return
 		self.pull_visibility()
 		self.manager.bind(current=self.pull_visibility)
 
