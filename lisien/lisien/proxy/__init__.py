@@ -3225,8 +3225,8 @@ class EngineProxy(AbstractEngine):
 
 	def __init__(
 		self,
-		pipe_in: Connection | Queue,
-		pipe_out: Connection | Queue,
+		pipe_in: Connection | Queue | SimpleQueue,
+		pipe_out: Connection | Queue | SimpleQueue,
 		logger: logging.Logger,
 		install_modules=(),
 		submit_func: callable = None,
