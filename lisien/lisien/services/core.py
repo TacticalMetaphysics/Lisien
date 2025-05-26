@@ -104,6 +104,7 @@ def core_service(replies_port: int, args: list, kwargs: dict):
 		replies_port,
 	)
 	serv.serve_forever()
+	Logger.info("core: Lisien core service has ended")
 
 
 if __name__ == "__main__":
