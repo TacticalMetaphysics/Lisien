@@ -68,6 +68,8 @@ def worker_service(
 	prefix: str,
 	branches: dict,
 	eternal: dict,
+	lowest_port: int,
+	highest_port: int,
 ):
 	eng = EngineProxy(
 		None,
@@ -82,7 +84,7 @@ def worker_service(
 	dispatcher = Dispatcher()
 	dispatcher.map("/", partial(dispatch_command, i, eng, client))
 	for _ in range(128):
-		my_port = random.randint(1024, 65535)
+		my_port = random.randint(lowest_port, highest_port)
 		try:
 			serv = osc_server.BlockingOSCUDPServer(
 				(
@@ -115,7 +117,10 @@ def worker_service(
 
 
 if __name__ == "__main__":
+	Logger.debug("worker.__main__")
+	with open("/proc/sys/net/ipv4/ip_local_port_range", "rt") as inf:
+		low, high = map(int, inf.read().strip().split("\t"))
 	servarg = os.environb[b"PYTHON_SERVICE_ARGUMENT"]
 	args = msgpack.unpackb(zlib.decompress(servarg))
 	Logger.info(f"Starting Lisien worker {args[0]}...")
-	worker_service(*args)
+	worker_service(*args, low, high)
