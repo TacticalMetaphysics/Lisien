@@ -71,7 +71,7 @@ def dispatch_command(
 def core_service(replies_port: int, args: list, kwargs: dict):
 	dispatcher = Dispatcher()
 	for _ in range(128):
-		my_port = random.randint(32768, 65535)
+		my_port = random.randint(1024, 65535)
 		try:
 			serv = osc_server.ThreadingOSCUDPServer(
 				("127.0.0.1", my_port),

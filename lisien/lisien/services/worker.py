@@ -82,7 +82,7 @@ def worker_service(
 	dispatcher = Dispatcher()
 	dispatcher.map("/", partial(dispatch_command, i, eng, client))
 	for _ in range(128):
-		my_port = random.randint(32768, 65535)
+		my_port = random.randint(1024, 65535)
 		try:
 			serv = osc_server.BlockingOSCUDPServer(
 				(
