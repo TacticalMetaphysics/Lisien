@@ -68,10 +68,16 @@ def dispatch_command(
 	_engine_subroutine_step(hand, instruction, send_output, send_output_bytes)
 
 
-def core_service(replies_port: int, args: list, kwargs: dict):
+def core_service(
+	replies_port: int,
+	args: list,
+	kwargs: dict,
+	lowest_port: int,
+	highest_port: int,
+):
 	dispatcher = Dispatcher()
 	for _ in range(128):
-		my_port = random.randint(1024, 65535)
+		my_port = random.randint(lowest_port, highest_port)
 		try:
 			serv = osc_server.BlockingOSCUDPServer(
 				("127.0.0.1", my_port),
@@ -109,6 +115,8 @@ def core_service(replies_port: int, args: list, kwargs: dict):
 
 if __name__ == "__main__":
 	Logger.debug("core.py __main__ executing")
+	with open("/proc/sys/net/ipv4/ip_local_port_range", "rt") as inf:
+		low, high = map(int, inf.read().strip().split("\t"))
 	servarg = os.environb[b"PYTHON_SERVICE_ARGUMENT"]
 	Logger.info("Starting Lisien core service...")
-	core_service(*msgpack.unpackb(zlib.decompress(servarg)))
+	core_service(*msgpack.unpackb(zlib.decompress(servarg)), low, high)
