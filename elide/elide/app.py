@@ -93,7 +93,7 @@ class ElideApp(App):
 	logs_dir = StringProperty()
 	game_name = StringProperty("game0")
 	use_thread = BooleanProperty(False)
-	connect_string = StringProperty()
+	connect_string = StringProperty(None, allownone=True)
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
 
