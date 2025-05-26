@@ -101,14 +101,17 @@ def worker_service(
 	)
 	dispatcher.map("/shutdown", lambda _: serv.shutdown())
 	Logger.debug(
-		"Started Lisien worker service in prefix %s on port %d. "
+		"worker %d: Started Lisien worker service %d in prefix %s on port %d. "
 		"Sending replies to port %d, and my own port to port %d",
+		i,
+		i,
 		prefix,
 		my_port,
 		replies_port,
 		manager_port,
 	)
 	serv.serve_forever()
+	Logger.info("worker %d : Worker service %d has ended", i, i)
 
 
 if __name__ == "__main__":
