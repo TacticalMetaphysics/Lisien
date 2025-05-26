@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import base64
 import random
 from functools import partial
 import os
@@ -120,7 +121,13 @@ if __name__ == "__main__":
 	Logger.debug("worker.__main__")
 	with open("/proc/sys/net/ipv4/ip_local_port_range", "rt") as inf:
 		low, high = map(int, inf.read().strip().split("\t"))
-	servarg = os.environb[b"PYTHON_SERVICE_ARGUMENT"]
-	args = msgpack.unpackb(zlib.decompress(servarg))
 	Logger.info(f"Starting Lisien worker {args[0]}...")
-	worker_service(*args, low, high)
+	assert "PYTHON_SERVICE_ARGUMENT" in os.environ
+	assert isinstance(os.environ["PYTHON_SERVICE_ARGUMENT"], str)
+	args = msgpack.unpackb(
+		zlib.decompress(
+			base64.urlsafe_b64decode(os.environ["PYTHON_SERVICE_ARGUMENT"])
+		)
+	)
+	print(f"Starting Lisien worker {args[0]}...", file=sys.stderr)
+	worker_service(*args)

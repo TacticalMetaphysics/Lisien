@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import base64
 import random
 import sys
 from functools import partial
@@ -117,6 +118,11 @@ if __name__ == "__main__":
 	Logger.debug("core.py __main__ executing")
 	with open("/proc/sys/net/ipv4/ip_local_port_range", "rt") as inf:
 		low, high = map(int, inf.read().strip().split("\t"))
-	servarg = os.environb[b"PYTHON_SERVICE_ARGUMENT"]
 	Logger.info("Starting Lisien core service...")
-	core_service(*msgpack.unpackb(zlib.decompress(servarg)), low, high)
+	core_service(
+		*msgpack.unpackb(
+			zlib.decompress(
+				base64.urlsafe_b64decode(os.environ["PYTHON_SERVICE_ARGUMENT"])
+			)
+		)
+	)

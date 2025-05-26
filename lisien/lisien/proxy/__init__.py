@@ -4322,6 +4322,8 @@ class EngineProcessManager:
 				install_modules,
 			)
 		elif android:
+			import base64
+
 			from jnius import autoclass
 			from pythonosc.osc_message_builder import OscMessageBuilder
 			from pythonosc.osc_server import ThreadingOSCUDPServer
@@ -4463,15 +4465,17 @@ class EngineProcessManager:
 			self.logger.debug("EngineProcessManager: made engine proxy")
 			mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
 			core_service = autoclass("org.tacmeta.elide.ServiceCore")
-			argument = zlib.compress(
-				msgpack.packb(
-					[
-						procman_port,
-						args or self._args,
-						kwargs | self._kwargs | {"workers": workers},
-					]
+			argument = base64.urlsafe_b64encode(
+				zlib.compress(
+					msgpack.packb(
+						[
+							procman_port,
+							args or self._args,
+							kwargs | self._kwargs | {"workers": workers},
+						]
+					)
 				)
-			)
+			).decode()
 			try:
 				core_service.start(mActivity, argument)
 			except Exception as ex:
@@ -4483,18 +4487,20 @@ class EngineProcessManager:
 				"EngineProcessManager: core is at port %d", core_port
 			)
 			for i in range(workers):
-				argument = zlib.compress(
-					msgpack.packb(
-						[
-							i,
-							procman_port,
-							core_port,
-							args[0],
-							branches_d,
-							eternal_d,
-						]
+				argument = base64.urlsafe_b64encode(
+					zlib.compress(
+						msgpack.packb(
+							[
+								i,
+								procman_port,
+								core_port,
+								args[0],
+								branches_d,
+								eternal_d,
+							]
+						)
 					)
-				)
+				).decode()
 				autoclass(f"org.tacmeta.elide.ServiceWorker{i}").start(
 					mActivity, argument
 				)
