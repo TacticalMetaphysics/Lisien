@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import base64
 import random
 from functools import partial
 import os
@@ -113,12 +112,7 @@ def worker_service(
 
 
 if __name__ == "__main__":
-	assert "PYTHON_SERVICE_ARGUMENT" in os.environ
-	assert isinstance(os.environ["PYTHON_SERVICE_ARGUMENT"], str)
-	args = msgpack.unpackb(
-		zlib.decompress(
-			base64.urlsafe_b64decode(os.environ["PYTHON_SERVICE_ARGUMENT"])
-		)
-	)
-	print(f"Starting Lisien worker {args[0]}...", file=sys.stderr)
+	servarg = os.environb[b"PYTHON_SERVICE_ARGUMENT"]
+	args = msgpack.unpackb(zlib.decompress(servarg))
+	Logger.info(f"Starting Lisien worker {args[0]}...")
 	worker_service(*args)
