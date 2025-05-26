@@ -73,7 +73,7 @@ def core_service(replies_port: int, args: list, kwargs: dict):
 	for _ in range(128):
 		my_port = random.randint(1024, 65535)
 		try:
-			serv = osc_server.ThreadingOSCUDPServer(
+			serv = osc_server.BlockingOSCUDPServer(
 				("127.0.0.1", my_port),
 				dispatcher,
 			)
