@@ -297,8 +297,12 @@ class ElideApp(App):
 			self.manager.current = "mainscreen"
 			Clock.schedule_once(self.start_game, 0)
 		else:
-			Clock.schedule_once(self.root_window.update_viewport, 0)
+			self.update_root_viewport()
 		return self.manager
+
+	@trigger
+	def update_root_viewport(self, *_):
+		self.root_window.update_viewport()
 
 	def _pull_lang(self, *_, **kwargs):
 		self.strings.language = kwargs["language"]
