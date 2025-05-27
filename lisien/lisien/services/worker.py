@@ -18,6 +18,7 @@ import random
 from functools import partial
 import os
 import sys
+from threading import Thread, Event
 import traceback
 import zlib
 
@@ -62,7 +63,7 @@ def dispatch_command(
 	)
 
 
-def worker_service(
+def worker_server(
 	i: int,
 	lowest_port: int,
 	highest_port: int,
@@ -99,6 +100,13 @@ def worker_service(
 			continue
 	else:
 		sys.exit("Couldn't get port for worker %d" % i)
+
+	is_shutdown = Event()
+
+	def shutdown(_, __):
+		Logger.debug(f"worker {i}: shutdown called")
+		is_shutdown.set()
+
 	udp_client.SimpleUDPClient("127.0.0.1", manager_port).send_message(
 		"/worker-report-port", my_port
 	)
@@ -113,8 +121,7 @@ def worker_service(
 		replies_port,
 		manager_port,
 	)
-	serv.serve_forever()
-	Logger.info("worker %d : Worker service %d has ended", i, i)
+	return is_shutdown, serv
 
 
 if __name__ == "__main__":
@@ -126,5 +133,11 @@ if __name__ == "__main__":
 			base64.urlsafe_b64decode(os.environ["PYTHON_SERVICE_ARGUMENT"])
 		)
 	)
-	print(f"Starting Lisien worker {args[0]}...", file=sys.stderr)
-	worker_service(*args)
+	Logger.info(f"worker {args[0]}: starting...")
+	is_shutdown, serv = worker_server(*args)
+	thread = Thread(target=serv.serve_forever)
+	thread.start()
+	is_shutdown.wait()
+	serv.shutdown()
+	thread.join()
+	Logger.info(f"worker {args[0]}: exited.")
