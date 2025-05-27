@@ -370,15 +370,16 @@ class ElideApp(App):
 		Must be called after start_subprocess
 
 		"""
-		self.chars.names = list(self.engine.character)
-		self.mainscreen.graphboards = {
-			name: GraphBoard(character=char)
-			for name, char in self.engine.character.items()
-		}
-		self.mainscreen.gridboards = {
-			name: GridBoard(character=char)
-			for name, char in self.engine.character.items()
-		}
+		self.chars.names = char_names = list(self.engine.character)
+		for name in char_names:
+			if name not in self.mainscreen.graphboards:
+				self.mainscreen.graphboards[name] = GraphBoard(
+					character=self.engine.character[name]
+				)
+			if name not in self.mainscreen.gridboards:
+				self.mainscreen.gridboards[name] = GridBoard(
+					character=self.engine.character[name]
+				)
 		if "boardchar" in self.engine.eternal:
 			self.select_character(
 				self.engine.character[self.engine.eternal["boardchar"]]
