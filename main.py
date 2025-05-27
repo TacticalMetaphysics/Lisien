@@ -30,8 +30,7 @@ try:
 	logs_dir = os.path.join(app_storage_path(), "files", "app", "kivy", "logs")
 except ImportError:
 	wd = os.path.join(os.getcwd(), "lisien_workspace")
-	logs_dir = "."
-	connect_string = None
+	logs_dir = connect_string = None
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
 
 
