@@ -29,7 +29,7 @@ try:
 	connect_string = "sqlite:///{prefix}/world.db"
 	logs_dir = os.path.join(app_storage_path(), "files", "app", "kivy", "logs")
 except ImportError:
-	wd = os.path.join(os.getcwd(), "lisien_workspace")
+	wd = os.path.join(os.getcwd())
 	logs_dir = connect_string = None
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
 
