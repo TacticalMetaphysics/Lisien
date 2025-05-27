@@ -70,11 +70,11 @@ def dispatch_command(
 
 
 def core_service(
+	lowest_port: int,
+	highest_port: int,
 	replies_port: int,
 	args: list,
 	kwargs: dict,
-	lowest_port: int,
-	highest_port: int,
 ):
 	dispatcher = Dispatcher()
 	for _ in range(128):
@@ -116,8 +116,6 @@ def core_service(
 
 if __name__ == "__main__":
 	Logger.debug("core.py __main__ executing")
-	with open("/proc/sys/net/ipv4/ip_local_port_range", "rt") as inf:
-		low, high = map(int, inf.read().strip().split("\t"))
 	Logger.info("Starting Lisien core service...")
 	core_service(
 		*msgpack.unpackb(
