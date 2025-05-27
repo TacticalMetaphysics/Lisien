@@ -17,6 +17,7 @@ import base64
 import random
 import sys
 from functools import partial
+from threading import Thread, Event
 import os
 import zlib
 
@@ -69,7 +70,7 @@ def dispatch_command(
 	_engine_subroutine_step(hand, instruction, send_output, send_output_bytes)
 
 
-def core_service(
+def core_server(
 	lowest_port: int,
 	highest_port: int,
 	replies_port: int,
@@ -102,25 +103,38 @@ def core_service(
 	)
 	client.send(pack4send(hand, "/core-reply", my_port))
 
+	is_shutdown = Event()
+
+	def shutdown(_, __):
+		Logger.debug("core: shutdown called")
+		is_shutdown.set()
+
 	dispatcher.map("/", partial(dispatch_command, hand, client))
-	dispatcher.map("/shutdown", lambda _, __: serv.shutdown())
+	dispatcher.map("/shutdown", shutdown)
 	dispatcher.map("/connect-workers", hand._real._connect_worker_services)
 	Logger.info(
 		"core: about to start server at port %d, sending replies to port %d",
 		my_port,
 		replies_port,
 	)
-	serv.serve_forever()
-	Logger.info("core: Lisien core service has ended")
+	return is_shutdown, serv
 
 
 if __name__ == "__main__":
 	Logger.debug("core.py __main__ executing")
 	Logger.info("Starting Lisien core service...")
-	core_service(
+	is_shutdown, serv = core_server(
 		*msgpack.unpackb(
 			zlib.decompress(
 				base64.urlsafe_b64decode(os.environ["PYTHON_SERVICE_ARGUMENT"])
 			)
 		)
 	)
+	thread = Thread(target=serv.serve_forever)
+	thread.start()
+	is_shutdown.wait()
+	Logger.debug("core: about to call serv.shutdown")
+	serv.shutdown()
+	Logger.debug("core: serv.shutdown worked")
+	thread.join()
+	Logger.info("core: Lisien core service has ended")
