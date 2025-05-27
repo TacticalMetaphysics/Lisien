@@ -4349,10 +4349,10 @@ class EngineProcessManager:
 			disp.map(
 				"/log", lambda _, packed: self.log(*msgpack.unpackb(packed))
 			)
-			procman_port_start = random.randint(32768, 65535)
-			for procman_port in range(
-				procman_port_start, procman_port_start + 100
-			):
+			low_port = 32000
+			high_port = 60999
+			for _ in range(128):
+				procman_port = random.randint(low_port, high_port)
 				try:
 					self._server = ThreadingOSCUDPServer(
 						("127.0.0.1", procman_port), disp
@@ -4469,6 +4469,8 @@ class EngineProcessManager:
 				zlib.compress(
 					msgpack.packb(
 						[
+							low_port,
+							high_port,
 							procman_port,
 							args or self._args,
 							kwargs | self._kwargs | {"workers": workers},
@@ -4492,6 +4494,8 @@ class EngineProcessManager:
 						msgpack.packb(
 							[
 								i,
+								low_port,
+								high_port,
 								procman_port,
 								core_port,
 								args[0],

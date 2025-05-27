@@ -64,13 +64,13 @@ def dispatch_command(
 
 def worker_service(
 	i: int,
+	lowest_port: int,
+	highest_port: int,
 	manager_port: int,
 	replies_port: int,
 	prefix: str,
 	branches: dict,
 	eternal: dict,
-	lowest_port: int,
-	highest_port: int,
 ):
 	eng = EngineProxy(
 		None,
@@ -119,9 +119,6 @@ def worker_service(
 
 if __name__ == "__main__":
 	Logger.debug("worker.__main__")
-	with open("/proc/sys/net/ipv4/ip_local_port_range", "rt") as inf:
-		low, high = map(int, inf.read().strip().split("\t"))
-	Logger.info(f"Starting Lisien worker {args[0]}...")
 	assert "PYTHON_SERVICE_ARGUMENT" in os.environ
 	assert isinstance(os.environ["PYTHON_SERVICE_ARGUMENT"], str)
 	args = msgpack.unpackb(
