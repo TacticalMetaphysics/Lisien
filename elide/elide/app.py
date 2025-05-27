@@ -296,6 +296,8 @@ class ElideApp(App):
 			self._add_screens()
 			self.manager.current = "mainscreen"
 			Clock.schedule_once(self.start_game, 0)
+		else:
+			Clock.schedule_once(self.root_window.update_viewport, 0)
 		return self.manager
 
 	def _pull_lang(self, *_, **kwargs):
