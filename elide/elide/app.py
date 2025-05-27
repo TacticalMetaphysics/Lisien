@@ -90,7 +90,7 @@ class ElideApp(App):
 	simulate_button_down = BooleanProperty(False)
 	prefix = StringProperty()
 	games_dir = StringProperty("games")
-	logs_dir = StringProperty(".")
+	logs_dir = StringProperty(None, allownone=True)
 	game_name = StringProperty("game0")
 	use_thread = BooleanProperty(False)
 	connect_string = StringProperty(None, allownone=True)
