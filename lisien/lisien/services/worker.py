@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import base64
+from ast import literal_eval
 import random
 from functools import partial
 import os
@@ -23,7 +23,6 @@ import traceback
 import zlib
 
 from kivy.logger import Logger
-import msgpack
 from pythonosc import osc_server
 from pythonosc import udp_client
 from pythonosc.dispatcher import Dispatcher
@@ -128,11 +127,7 @@ if __name__ == "__main__":
 	Logger.debug("worker.__main__")
 	assert "PYTHON_SERVICE_ARGUMENT" in os.environ
 	assert isinstance(os.environ["PYTHON_SERVICE_ARGUMENT"], str)
-	args = msgpack.unpackb(
-		zlib.decompress(
-			base64.urlsafe_b64decode(os.environ["PYTHON_SERVICE_ARGUMENT"])
-		)
-	)
+	args = literal_eval(os.environ["PYTHON_SERVICE_ARGUMENT"])
 	Logger.info(f"worker {args[0]}: starting...")
 	is_shutdown, serv = worker_server(*args)
 	thread = Thread(target=serv.serve_forever)

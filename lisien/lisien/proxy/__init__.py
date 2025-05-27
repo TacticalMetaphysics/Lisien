@@ -4465,19 +4465,15 @@ class EngineProcessManager:
 			self.logger.debug("EngineProcessManager: made engine proxy")
 			mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
 			core_service = autoclass("org.tacmeta.elide.ServiceCore")
-			argument = base64.urlsafe_b64encode(
-				zlib.compress(
-					msgpack.packb(
-						[
-							low_port,
-							high_port,
-							procman_port,
-							args or self._args,
-							kwargs | self._kwargs | {"workers": workers},
-						]
-					)
-				)
-			).decode()
+			argument = repr(
+				[
+					low_port,
+					high_port,
+					procman_port,
+					args or self._args,
+					kwargs | self._kwargs | {"workers": workers},
+				]
+			)
 			try:
 				core_service.start(mActivity, argument)
 			except Exception as ex:
@@ -4489,22 +4485,18 @@ class EngineProcessManager:
 				"EngineProcessManager: core is at port %d", core_port
 			)
 			for i in range(workers):
-				argument = base64.urlsafe_b64encode(
-					zlib.compress(
-						msgpack.packb(
-							[
-								i,
-								low_port,
-								high_port,
-								procman_port,
-								core_port,
-								args[0],
-								branches_d,
-								eternal_d,
-							]
-						)
-					)
-				).decode()
+				argument = repr(
+					[
+						i,
+						low_port,
+						high_port,
+						procman_port,
+						core_port,
+						args[0],
+						branches_d,
+						eternal_d,
+					]
+				)
 				autoclass(f"org.tacmeta.elide.ServiceWorker{i}").start(
 					mActivity, argument
 				)

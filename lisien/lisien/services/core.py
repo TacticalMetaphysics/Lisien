@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import base64
+from ast import literal_eval
 import random
 import sys
 from functools import partial
@@ -22,7 +22,6 @@ import os
 import zlib
 
 from kivy.logger import Logger
-import msgpack
 from pythonosc import osc_server
 from pythonosc import udp_client
 from pythonosc.dispatcher import Dispatcher
@@ -121,15 +120,9 @@ def core_server(
 
 
 if __name__ == "__main__":
-	Logger.debug("core.py __main__ executing")
 	Logger.info("Starting Lisien core service...")
-	is_shutdown, serv = core_server(
-		*msgpack.unpackb(
-			zlib.decompress(
-				base64.urlsafe_b64decode(os.environ["PYTHON_SERVICE_ARGUMENT"])
-			)
-		)
-	)
+	args = literal_eval(os.environ["PYTHON_SERVICE_ARGUMENT"])
+	is_shutdown, serv = core_server(*args)
 	thread = Thread(target=serv.serve_forever)
 	thread.start()
 	is_shutdown.wait()
