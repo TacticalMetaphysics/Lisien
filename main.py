@@ -15,8 +15,6 @@
 import os
 import sys
 
-import trio
-
 try:
 	from multiprocessing import freeze_support
 except ImportError:
@@ -53,4 +51,4 @@ if __name__ == "__main__":
 		prefix=wd, connect_string=connect_string, logs_dir=logs_dir, workers=0
 	)
 	app.get_application_config = get_application_config
-	trio.run(app.async_run, "trio")
+	app.run()
