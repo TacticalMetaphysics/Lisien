@@ -651,6 +651,7 @@ class ElideApp(App):
 	def _copy_log_files(self):
 		try:
 			from android import autoclass
+			from android.storage import app_storage_path
 			from android.permissions import request_permissions, Permission
 			from androidstorage4kivy import SharedStorage
 		except ModuleNotFoundError:
@@ -660,7 +661,7 @@ class ElideApp(App):
 			self._ss = SharedStorage()
 		if not hasattr(self, "_env"):
 			self._env = autoclass("android.os.Environment")
-		logdir = os.path.join(self.prefix, "app/.kivy/logs")
+		logdir = os.path.join(app_storage_path(), "app/.kivy/logs")
 		if os.path.exists(logdir):
 			for logfile in os.listdir(logdir):
 				if self._ss.copy_to_shared(
