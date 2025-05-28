@@ -765,7 +765,7 @@ class EngineHandle:
 
 	def rules_handled_turn(
 		self, branch: str = None, turn: str = None
-	) -> dict[str, list[str]]:
+	) -> dict[str, dict[int, dict[int, str]]]:
 		if branch is None:
 			branch = self._real.branch
 		if turn is None:
@@ -798,13 +798,13 @@ class EngineHandle:
 			}
 		except HistoricKeyError:
 			return {
-				"character": [],
-				"unit": [],
-				"character_thing": [],
-				"character_place": [],
-				"character_portal": [],
-				"node": [],
-				"portal": [],
+				"character": {},
+				"unit": {},
+				"character_thing": {},
+				"character_place": {},
+				"character_portal": {},
+				"node": {},
+				"portal": {},
 			}
 
 	def branches(self) -> dict[str, tuple[str, int, int, int, int]]:
