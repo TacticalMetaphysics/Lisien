@@ -544,6 +544,9 @@ class ElideApp(App):
 				os.path.join(self.prefix, "logs"),
 				dirs_exist_ok=True,
 			)
+			self._copy_log_files()
+		else:
+			Logger.debug(f"ElideApp: can't copy logs dir {self.logs_dir}")
 		game_wd = os.path.join(self.prefix, self.game_name)
 		archived = shutil.make_archive(self.game_name, "zip", str(game_wd))
 		archived_base = os.path.basename(archived)
