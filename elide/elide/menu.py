@@ -134,16 +134,40 @@ class GameExporterModal(GamePickerModal):
 			return
 		app = App.get_running_app()
 		request_permissions([Permission.WRITE_EXTERNAL_STORAGE])
-		root_uri = str(
-			autoclass("android.provider.MediaStore$Files")
-			.getContentUri("external")
-			.toString()
+		collection = autoclass("android.os.Environment").DIRECTORY_DOCUMENTS
+		root_uri = autoclass(
+			"android.provider.MediaStore$Files"
+		).getContentUri("external")
+		context = mActivity.getApplicationContext()
+		appinfo = context.getApplicationInfo()
+		if appinfo.labelRes:
+			name = context.getString(appinfo.labelRes)
+		else:
+			name = appinfo.nonLocalizedLabel.toString()
+		dest_uri = (
+			root_uri.buildUpon()
+			.appendPath(collection)
+			.appendPath(name)
+			.appendPath(game + ".zip")
+			.build()
 		)
 		context = mActivity.getApplicationContext()
 		resolver = context.getContentResolver()
-		writer = resolver.openOutputStream(
-			os.path.join(root_uri, game + ".zip")
-		)
+		try:
+			writer = resolver.openOutputStream(dest_uri, "wt")
+		except:
+			cv = autoclass("android.content.ContentValues")()
+			MediaStoreMediaColumns = autoclass(
+				"android.provider.MediaStore$MediaColumns"
+			)
+			cv.put(MediaStoreMediaColumns.DISPLAY_NAME, game + ".zip")
+			cv.put(MediaStoreMediaColumns.MIME_TYPE, "application/zip")
+			cv.put(
+				MediaStoreMediaColumns.RELATIVE_PATH,
+				os.path.join(collection, name),
+			)
+			uri = resolver.insert(root_uri, cv)
+			writer = resolver.openOutputStream(uri, "wt")
 		reader = autoclass("java.io.FileInputStream")(
 			str(os.path.join(app.games_dir, game + ".zip"))
 		)
@@ -151,6 +175,7 @@ class GameExporterModal(GamePickerModal):
 		writer.flush()
 		writer.close()
 		reader.close()
+		self.dismiss()
 
 
 class GameLoaderModal(GamePickerModal):
