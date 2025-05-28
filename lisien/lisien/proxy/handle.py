@@ -42,7 +42,7 @@ from ..util import (
 	UNIVERSAL,
 	timer,
 )
-from ..exc import OutOfTimelineError
+from ..exc import HistoricKeyError, OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
 from ..typing import Key
@@ -772,25 +772,40 @@ class EngineHandle:
 			turn = self._real.turn
 		eng = self._real
 		# assume the caches are all sync'd
-		return {
-			"character": eng._character_rules_handled_cache.handled_deep[
-				branch
-			][turn],
-			"unit": eng._unit_rules_handled_cache.handled_deep[branch][turn],
-			"character_thing": eng._character_thing_rules_handled_cache.handled_deep[
-				branch
-			][turn],
-			"character_place": eng._character_place_rules_handled_cache.handled_deep[
-				branch
-			][turn],
-			"character_portal": eng._character_portal_rules_handled_cache.handled_deep[
-				branch
-			][turn],
-			"node": eng._node_rules_handled_cache.handled_deep[branch][turn],
-			"portal": eng._portal_rules_handled_cache.handled_deep[branch][
-				turn
-			],
-		}
+		try:
+			return {
+				"character": eng._character_rules_handled_cache.handled_deep[
+					branch
+				][turn],
+				"unit": eng._unit_rules_handled_cache.handled_deep[branch][
+					turn
+				],
+				"character_thing": eng._character_thing_rules_handled_cache.handled_deep[
+					branch
+				][turn],
+				"character_place": eng._character_place_rules_handled_cache.handled_deep[
+					branch
+				][turn],
+				"character_portal": eng._character_portal_rules_handled_cache.handled_deep[
+					branch
+				][turn],
+				"node": eng._node_rules_handled_cache.handled_deep[branch][
+					turn
+				],
+				"portal": eng._portal_rules_handled_cache.handled_deep[branch][
+					turn
+				],
+			}
+		except HistoricKeyError:
+			return {
+				"character": [],
+				"unit": [],
+				"character_thing": [],
+				"character_place": [],
+				"character_portal": [],
+				"node": [],
+				"portal": [],
+			}
 
 	def branches(self) -> dict[str, tuple[str, int, int, int, int]]:
 		return self._real._branches_d
