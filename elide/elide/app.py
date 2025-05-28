@@ -686,8 +686,10 @@ class ElideApp(App):
 		"""Sync the database with the current state of the game."""
 		if hasattr(self, "engine"):
 			self.engine.commit()
-		self.strings.save()
-		self.funcs.save()
+		if hasattr(self, "strings"):
+			self.strings.save()
+		if hasattr(self, "funcs"):
+			self.funcs.save()
 		self._copy_log_files()
 		return True
 
