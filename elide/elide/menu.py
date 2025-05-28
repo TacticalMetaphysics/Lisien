@@ -122,59 +122,10 @@ class GamePickerModal(ModalView):
 class GameExporterModal(GamePickerModal):
 	@triggered()
 	def pick(self, game, *_):
-		try:
-			from android import autoclass, mActivity
-			from android.permissions import request_permissions, Permission
-		except ModuleNotFoundError:
-			app = App.get_running_app()
-			shutil.copy(
-				str(os.path.join(app.games_dir, game + ".zip")),
-				os.path.join(os.getcwd(), game + ".zip"),
-			)
-			return
 		app = App.get_running_app()
-		request_permissions([Permission.WRITE_EXTERNAL_STORAGE])
-		collection = autoclass("android.os.Environment").DIRECTORY_DOCUMENTS
-		root_uri = autoclass(
-			"android.provider.MediaStore$Files"
-		).getContentUri("external")
-		context = mActivity.getApplicationContext()
-		appinfo = context.getApplicationInfo()
-		if appinfo.labelRes:
-			name = context.getString(appinfo.labelRes)
-		else:
-			name = appinfo.nonLocalizedLabel.toString()
-		dest_uri = (
-			root_uri.buildUpon()
-			.appendPath(collection)
-			.appendPath(name)
-			.appendPath(game + ".zip")
-			.build()
+		app.copy_to_shared_storage(
+			os.path.join(app.games_dir, game + ".zip"), "application/zip"
 		)
-		context = mActivity.getApplicationContext()
-		resolver = context.getContentResolver()
-		try:
-			writer = resolver.openOutputStream(dest_uri, "wt")
-		except:
-			cv = autoclass("android.content.ContentValues")()
-			MediaStoreMediaColumns = autoclass(
-				"android.provider.MediaStore$MediaColumns"
-			)
-			cv.put(MediaStoreMediaColumns.DISPLAY_NAME, game + ".zip")
-			cv.put(MediaStoreMediaColumns.MIME_TYPE, "application/zip")
-			cv.put(
-				MediaStoreMediaColumns.RELATIVE_PATH,
-				os.path.join(collection, name),
-			)
-			uri = resolver.insert(root_uri, cv)
-			writer = resolver.openOutputStream(uri, "wt")
-		reader = autoclass("java.io.FileInputStream")(
-			str(os.path.join(app.games_dir, game + ".zip"))
-		)
-		autoclass("android.os.FileUtils").copy(reader, writer)
-		writer.flush()
-		writer.close()
-		reader.close()
 		self.dismiss()
 
 
