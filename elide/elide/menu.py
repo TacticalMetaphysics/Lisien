@@ -127,7 +127,7 @@ class GameExporterModal(GamePickerModal):
 			from android.permissions import request_permissions, Permission
 		except ModuleNotFoundError:
 			app = App.get_running_app()
-			shutil.copytree(
+			shutil.copy(
 				str(os.path.join(app.games_dir, game + ".zip")),
 				os.path.join(os.getcwd(), game + ".zip"),
 			)
