@@ -27,9 +27,7 @@ try:
 
 	wd = os.path.join(app_storage_path(), "lisien_workspace")
 	connect_string = "sqlite:///{prefix}/world.db"
-	logs_dir = os.path.join(
-		app_storage_path(), "files", "app", ".kivy", "logs"
-	)
+	logs_dir = os.path.join(app_storage_path(), "app", ".kivy", "logs")
 except ImportError:
 	wd = os.path.join(os.getcwd())
 	logs_dir = connect_string = None
