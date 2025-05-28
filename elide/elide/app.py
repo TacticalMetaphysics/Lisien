@@ -743,7 +743,7 @@ class ElideApp(App):
 					)
 			Logger.info(
 				f"ElideApp: copied log files from {log_dir}"
-				f" to {self.prefix} and shared storage"
+				f" to {os.path.join(self.prefix, self.game_name, 'logs')} and shared storage"
 			)
 
 	@triggered()
