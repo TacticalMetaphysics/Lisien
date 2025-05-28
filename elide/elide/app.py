@@ -33,7 +33,7 @@ if "KIVY_NO_ARGS" not in os.environ:
 
 from kivy.app import App
 from kivy.clock import Clock, triggered, mainthread
-from kivy.logger import Logger
+from kivy.logger import Logger, FileHandler
 from kivy.properties import (
 	AliasProperty,
 	BooleanProperty,
@@ -536,6 +536,7 @@ class ElideApp(App):
 		if hasattr(self, "engine"):
 			del self.engine
 		else:
+			Logger.debug("ElideApp: already closed")
 			return  # already closed
 
 		if self.logs_dir and os.path.isdir(self.logs_dir):
@@ -648,35 +649,79 @@ class ElideApp(App):
 			selection=self.setter("selection")
 		)
 
-	def _copy_log_files(self):
+	@staticmethod
+	def copy_to_shared_storage(
+		filename: str,
+		mimetype: str | None = None,
+	) -> None:
 		try:
-			from android import autoclass
-			from android.storage import app_storage_path
+			from android import autoclass, mActivity
 			from android.permissions import request_permissions, Permission
-			from androidstorage4kivy import SharedStorage
 		except ModuleNotFoundError:
+			# "shared storage" is just the working directory
+			shutil.copy(
+				filename,
+				os.path.join(os.path.curdir, os.path.basename(filename)),
+			)
 			return
+		if mimetype is None:
+			import mimetypes
+
+			mimetype = mimetypes.guess_type(filename)[0]
 		request_permissions([Permission.WRITE_EXTERNAL_STORAGE])
-		if not hasattr(self, "_ss"):
-			self._ss = SharedStorage()
-		if not hasattr(self, "_env"):
-			self._env = autoclass("android.os.Environment")
-		logdir = os.path.join(app_storage_path(), "app/.kivy/logs")
-		if os.path.exists(logdir):
-			for logfile in os.listdir(logdir):
-				if self._ss.copy_to_shared(
-					os.path.join(logdir, logfile),
-					collection=self._env.DIRECTORY_DOCUMENTS,
-				):
-					Logger.info(
-						f"Copied {logfile} to {self._env.DIRECTORY_DOCUMENTS}"
-					)
-				else:
-					Logger.warning(
-						f"Failed to copy {logfile} to {self._env.DIRECTORY_DOCUMENTS}"
-					)
+		collection = autoclass("android.os.Environment").DIRECTORY_DOCUMENTS
+		root_uri = autoclass(
+			"android.provider.MediaStore$Files"
+		).getContentUri("external")
+		context = mActivity.getApplicationContext()
+		appinfo = context.getApplicationInfo()
+		if appinfo.labelRes:
+			name = context.getString(appinfo.labelRes)
 		else:
-			Logger.warning("No log directory at " + logdir)
+			name = appinfo.nonLocalizedLabel.toString()
+		basefn = os.path.basename(filename)
+		dest_uri = (
+			root_uri.buildUpon()
+			.appendPath(collection)
+			.appendPath(name)
+			.appendPath(basefn)
+			.build()
+		)
+		resolver = context.getContentResolver()
+		try:
+			writer = resolver.openOutputStream(dest_uri, "wt")
+		except:
+			cv = autoclass("android.content.ContentValues")()
+			MediaStoreMediaColumns = autoclass(
+				"android.provider.MediaStore$MediaColumns"
+			)
+			cv.put(MediaStoreMediaColumns.DISPLAY_NAME, basefn)
+			cv.put(MediaStoreMediaColumns.MIME_TYPE, mimetype)
+			cv.put(
+				MediaStoreMediaColumns.RELATIVE_PATH,
+				os.path.join(collection, name),
+			)
+			uri = resolver.insert(root_uri, cv)
+			writer = resolver.openOutputStream(uri, "wt")
+		reader = autoclass("java.io.FileInputStream")(filename)
+		autoclass("android.os.FileUtils").copy(reader, writer)
+		writer.flush()
+		writer.close()
+		reader.close()
+
+	def _copy_log_files(self):
+		logdir_dest = os.path.join(self.prefix, "logs")
+		os.makedirs(logdir_dest, exist_ok=True)
+		for handler in Logger.handlers:
+			if isinstance(handler, FileHandler):
+				shutil.copy(handler.filename, logdir_dest)
+				self.copy_to_shared_storage(
+					handler.filename, mimetype="text/plain"
+				)
+				Logger.info(
+					f"ElideApp: copied log {handler.filename} to {self.prefix} "
+					f"and shared storage"
+				)
 
 	@triggered()
 	def copy_log_files(self):
