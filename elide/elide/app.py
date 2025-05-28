@@ -17,22 +17,15 @@
 import json
 import os
 import shutil
-import sys
-import zipfile
 from threading import Thread
 
-from kivy.uix.dropdown import DropDown
-from kivy.uix.modalview import ModalView
-
-from elide.gen import GridGeneratorDialog
-from elide.menu import WorldStartConfigurator
 from lisien.exc import OutOfTimelineError
 
 if "KIVY_NO_ARGS" not in os.environ:
 	os.environ["KIVY_NO_ARGS"] = "1"
 
 from kivy.app import App
-from kivy.clock import Clock, triggered, mainthread
+from kivy.clock import Clock, triggered
 from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
