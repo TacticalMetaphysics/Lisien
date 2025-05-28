@@ -33,7 +33,7 @@ if "KIVY_NO_ARGS" not in os.environ:
 
 from kivy.app import App
 from kivy.clock import Clock, triggered, mainthread
-from kivy.logger import Logger, FileHandler
+from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
 	BooleanProperty,
@@ -539,23 +539,7 @@ class ElideApp(App):
 			Logger.debug("ElideApp: already closed")
 			return  # already closed
 
-		if self.logs_dir and os.path.isdir(self.logs_dir):
-			to_here = str(os.path.join(self.prefix, "logs"))
-			if not os.path.exists(to_here):
-				os.makedirs(to_here)
-			for logfile in os.listdir(self.logs_dir):
-				try:
-					shutil.copy(
-						os.path.join(self.logs_dir, logfile),
-						os.path.join(to_here, logfile),
-					)
-				except Exception as ex:
-					Logger.error(
-						"ElideApp: while copying %s: %s", logfile, repr(ex)
-					)
-			self._copy_log_files()
-		else:
-			Logger.debug(f"ElideApp: can't copy logs dir {self.logs_dir}")
+		self._copy_log_files()
 		game_wd = os.path.join(self.prefix, self.game_name)
 		archived = shutil.make_archive(self.game_name, "zip", str(game_wd))
 		archived_base = os.path.basename(archived)
@@ -564,7 +548,6 @@ class ElideApp(App):
 		os.rename(archived, os.path.join(self.games_dir, archived_base))
 		shutil.rmtree(game_wd)
 		self._remove_screens()
-		self._copy_log_files()
 		if cb:
 			cb()
 
@@ -710,18 +693,58 @@ class ElideApp(App):
 		reader.close()
 
 	def _copy_log_files(self):
-		logdir_dest = os.path.join(self.prefix, "logs")
-		os.makedirs(logdir_dest, exist_ok=True)
+		try:
+			from android.storage import app_storage_path
+
+			log_dirs = {
+				os.path.join(app_storage_path(), "app", ".kivy", "logs")
+			}
+		except ModuleNotFoundError:
+			log_dirs = set()
 		for handler in Logger.handlers:
-			if isinstance(handler, FileHandler):
-				shutil.copy(handler.filename, logdir_dest)
-				self.copy_to_shared_storage(
-					handler.filename, mimetype="text/plain"
+			if hasattr(handler, "log_dir"):
+				log_dir = handler.log_dir
+			elif hasattr(handler, "filename"):
+				log_dir = os.path.dirname(handler.filename)
+			elif hasattr(handler, "baseFilename"):
+				log_dir = handler.baseFilename
+				if not os.path.isdir(log_dir):
+					log_dir = os.path.dirname(log_dir)
+			else:
+				Logger.error(
+					f"ElideApp: handler {handler} (of type {type(handler)})"
+					f"has neither log_dir nor filename nor baseFilename"
 				)
-				Logger.info(
-					f"ElideApp: copied log {handler.filename} to {self.prefix} "
-					f"and shared storage"
-				)
+				continue
+			log_dirs.add(log_dir)
+		os.makedirs(
+			os.path.join(self.prefix, self.game_name, "logs"),
+			exist_ok=True,
+		)
+		for log_dir in log_dirs:
+			for logfile in os.listdir(log_dir):
+				if logfile.endswith(".log") or (
+					logfile.startswith("kivy_") and logfile.endswith(".txt")
+				):
+					shutil.copy(
+						os.path.join(log_dir, logfile),
+						str(
+							os.path.join(
+								self.prefix,
+								self.game_name,
+								"logs",
+								logfile,
+							)
+						),
+					)
+					self.copy_to_shared_storage(
+						os.path.join(log_dir, logfile),
+						mimetype="text/plain",
+					)
+			Logger.info(
+				f"ElideApp: copied log files from {log_dir}"
+				f" to {self.prefix} and shared storage"
+			)
 
 	@triggered()
 	def copy_log_files(self):
