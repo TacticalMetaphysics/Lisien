@@ -539,11 +539,19 @@ class ElideApp(App):
 			return  # already closed
 
 		if self.logs_dir and os.path.isdir(self.logs_dir):
-			shutil.copytree(
-				self.logs_dir,
-				os.path.join(self.prefix, "logs"),
-				dirs_exist_ok=True,
-			)
+			to_here = str(os.path.join(self.prefix, "logs"))
+			if not os.path.exists(to_here):
+				os.makedirs(to_here)
+			for logfile in os.listdir(self.logs_dir):
+				try:
+					shutil.copy(
+						os.path.join(self.logs_dir, logfile),
+						os.path.join(to_here, logfile),
+					)
+				except Exception as ex:
+					Logger.error(
+						"ElideApp: while copying %s: %s", logfile, repr(ex)
+					)
 			self._copy_log_files()
 		else:
 			Logger.debug(f"ElideApp: can't copy logs dir {self.logs_dir}")
