@@ -534,7 +534,9 @@ class ElideApp(App):
 
 		self._copy_log_files()
 		game_wd = os.path.join(self.prefix, self.game_name)
-		archived = shutil.make_archive(self.game_name, "zip", str(game_wd))
+		archived = shutil.make_archive(
+			self.game_name, "zip", str(game_wd), logger=Logger
+		)
 		archived_base = os.path.basename(archived)
 		if os.path.exists(os.path.join(self.games_dir, archived_base)):
 			os.remove(os.path.join(self.games_dir, archived_base))
