@@ -300,7 +300,7 @@ class ElideApp(App):
 			self.update_root_viewport()
 		return self.manager
 
-	@trigger
+	@triggered(0.01)
 	def update_root_viewport(self, *_):
 		self.root_window.update_viewport()
 
