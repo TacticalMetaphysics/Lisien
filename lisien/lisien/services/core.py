@@ -12,7 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 from ast import literal_eval
 import random
 import sys
@@ -69,6 +68,21 @@ def dispatch_command(
 	_engine_subroutine_step(hand, instruction, send_output, send_output_bytes)
 
 
+class MultipartDispatcher:
+	def __init__(self, hand: EngineHandle, client: udp_client.SimpleUDPClient):
+		self.hand = hand
+		self.client = client
+		self.message = []
+
+	def accumulate(self, _, n: int, inst: bytes):
+		self.message.append(inst)
+		if len(self.message) == n:
+			dispatch_command(
+				self.hand, self.client, "multipart", b"".join(self.message)
+			)
+			self.message = []
+
+
 def core_server(
 	lowest_port: int,
 	highest_port: int,
@@ -106,9 +120,11 @@ def core_server(
 
 	def shutdown(_, __):
 		Logger.debug("core: shutdown called")
-		is_shutdown.set()
+
+	multipart_dispatcher = MultipartDispatcher(hand, client)
 
 	dispatcher.map("/", partial(dispatch_command, hand, client))
+	dispatcher.map("/multipart", multipart_dispatcher.accumulate)
 	dispatcher.map("/shutdown", shutdown)
 	dispatcher.map("/connect-workers", hand._real._connect_worker_services)
 	Logger.info(
