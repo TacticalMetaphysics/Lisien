@@ -59,6 +59,7 @@ def dispatch_command(
 				builder.ARG_TYPE_BLOB,
 			)
 			client.send(builder.build())
+			Logger.debug("core: replied to %s with %d bytes", cmd, len(resp))
 		except OSError:
 			assert len(resp) > 2
 			n = 2
@@ -88,7 +89,12 @@ def dispatch_command(
 						client.send(builder.build())
 					break
 				n *= 2
-		Logger.debug("core: sent %d bytes", len(resp))
+			Logger.debug(
+				"core: replied to %s with %d bytes in %d parts",
+				cmd,
+				len(resp),
+				n,
+			)
 
 	def send_output(cmd, resp):
 		send_output_bytes(cmd, hand.pack(resp))
