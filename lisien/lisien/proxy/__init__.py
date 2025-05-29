@@ -4061,6 +4061,7 @@ def _engine_subroutine_step(
 	except AssertionError:
 		raise
 	except Exception as ex:
+		handle._real.logger.error(repr(ex), exc_info=ex)
 		send_output(cmd, ex)
 		return
 	if silent:
