@@ -50,12 +50,13 @@ def dispatch_command(
 	instruction = hand.unpack(zlib.decompress(inst))
 
 	def send_output_bytes(cmd, resp: bytes):
+		resp = zlib.compress(
+			_finish_packing(hand.pack, cmd, *hand._real._btt(), resp)
+		)
 		try:
 			builder = OscMessageBuilder("/core-reply")
 			builder.add_arg(
-				zlib.compress(
-					_finish_packing(hand.pack, cmd, *hand._real._btt(), resp)
-				),
+				resp,
 				builder.ARG_TYPE_BLOB,
 			)
 			client.send(builder.build())
