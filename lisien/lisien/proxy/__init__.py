@@ -4551,15 +4551,20 @@ class EngineProcessManager:
 			"EngineProcessManager tried to send input with no EngineProxy"
 		)
 		while True:
-			msg = input_queue.get()
+			cmd = input_queue.get()
 			self.logger.debug(
-				f"EngineProcessManager: about to send {msg} to core"
+				f"EngineProcessManager: about to send {cmd} to core"
 			)
-			msg = zlib.compress(self.engine_proxy.pack(msg))
+			msg = zlib.compress(self.engine_proxy.pack(cmd))
 			try:
 				builder = OscMessageBuilder("/")
 				builder.add_arg(msg, OscMessageBuilder.ARG_TYPE_BLOB)
 				self._client.send(builder.build())
+				self.logger.debug(
+					"EngineProcessManager: sent %d bytes of %s",
+					len(msg),
+					cmd.get("command", "???"),
+				)
 			except OSError:
 				# Split the message until it's small enough
 				assert len(msg) > 0
@@ -4590,12 +4595,16 @@ class EngineProcessManager:
 							self._client.send(builder.build())
 						break
 					n *= 2
-
-			self.logger.debug(f"EngineProcessManager: sent {len(msg)} bytes")
+				self.logger.debug(
+					"EngineProcessManager: sent %d bytes of %s in %d chunks",
+					len(msg),
+					cmd.get("command", "???"),
+					n,
+				)
 
 	def _receive_core_reply(self, addr, reply):
 		self.logger.debug(
-			f"EngineProcessManager: received reply from core at {addr}"
+			f"EngineProcessManager: received {len(reply)}-byte reply from core at {addr}"
 		)
 		self._output_queue.put(
 			self.engine_proxy.unpack(zlib.decompress(reply))
