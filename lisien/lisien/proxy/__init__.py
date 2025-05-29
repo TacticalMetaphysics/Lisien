@@ -27,6 +27,8 @@ call its ``start`` method with the same arguments you'd give a real
 
 from __future__ import annotations
 
+from itertools import pairwise
+
 import ast
 import io
 import logging
@@ -4535,6 +4537,8 @@ class EngineProcessManager:
 		return self.engine_proxy
 
 	def _send_input_forever(self, input_queue):
+		from pythonosc.osc_message_builder import OscMessageBuilder
+
 		assert hasattr(self, "engine_proxy"), (
 			"EngineProcessManager tried to send input with no EngineProxy"
 		)
@@ -4544,7 +4548,31 @@ class EngineProcessManager:
 				f"EngineProcessManager: about to send {msg} to core"
 			)
 			msg = zlib.compress(self.engine_proxy.pack(msg))
-			self._client.send_message("/", msg)
+			try:
+				builder = OscMessageBuilder("/")
+				builder.add_arg(msg, OscMessageBuilder.ARG_TYPE_BLOB)
+				self._client.send(builder.build())
+			except OSError:
+				# Split the message until it's small enough
+				n = 2
+				while True:
+					sublen = len(msg) // n
+					for m, (i, j) in enumerate(
+						pairwise(range(0, len(msg), sublen))
+					):
+						try:
+							builder = OscMessageBuilder("/multipart")
+							builder.add_arg(m, OscMessageBuilder.ARG_TYPE_INT)
+							builder.add_arg(
+								msg[i:j], OscMessageBuilder.ARG_TYPE_BLOB
+							)
+							self._client.send(builder.build())
+						except OSError:
+							break
+					else:
+						break
+					n *= 2
+
 			self.logger.debug(f"EngineProcessManager: sent {len(msg)} bytes")
 
 	def _receive_core_reply(self, addr, reply):
