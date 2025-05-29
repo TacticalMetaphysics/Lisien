@@ -4290,7 +4290,7 @@ class EngineProcessManager:
 			else []
 		)
 		formatter = logging.Formatter(
-			fmt="[{levelname}] lisien.proxy({process}) t{message}", style="{"
+			fmt="[{levelname}] lisien.proxy({process}) {message}", style="{"
 		)
 		for handler in handlers:
 			handler.setFormatter(formatter)
