@@ -109,7 +109,7 @@ def worker_server(
 	udp_client.SimpleUDPClient("127.0.0.1", manager_port).send_message(
 		"/worker-report-port", my_port
 	)
-	dispatcher.map("/shutdown", lambda _: serv.shutdown())
+	dispatcher.map("/shutdown", shutdown)
 	Logger.debug(
 		"worker %d: Started Lisien worker service %d in prefix %s on port %d. "
 		"Sending replies to port %d, and my own port to port %d",
