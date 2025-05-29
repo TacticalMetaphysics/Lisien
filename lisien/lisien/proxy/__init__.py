@@ -4329,8 +4329,8 @@ class EngineProcessManager:
 
 			from jnius import autoclass
 			from pythonosc.osc_message_builder import OscMessageBuilder
-			from pythonosc.osc_server import ThreadingOSCUDPServer
-			from pythonosc.udp_client import SimpleUDPClient
+			from pythonosc.osc_tcp_server import BlockingOSCTCPServer
+			from pythonosc.tcp_client import SimpleTCPClient
 			from pythonosc.dispatcher import Dispatcher
 
 			if "workers" in kwargs:
@@ -4361,7 +4361,7 @@ class EngineProcessManager:
 			for _ in range(128):
 				procman_port = random.randint(low_port, high_port)
 				try:
-					self._server = ThreadingOSCUDPServer(
+					self._server = BlockingOSCTCPServer(
 						("127.0.0.1", procman_port), disp
 					)
 					self._server_thread = Thread(
@@ -4508,7 +4508,7 @@ class EngineProcessManager:
 					mActivity, argument
 				)
 				self.logger.debug("EngineProcessManager: started worker %d", i)
-			self._client = SimpleUDPClient("127.0.0.1", core_port)
+			self._client = SimpleTCPClient("127.0.0.1", core_port)
 			if workers:
 				worker_ports = []
 				for i in range(workers):

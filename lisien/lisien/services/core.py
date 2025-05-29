@@ -23,8 +23,8 @@ import os
 import zlib
 
 from kivy.logger import Logger
-from pythonosc import osc_server
-from pythonosc import udp_client
+from pythonosc.osc_tcp_server import BlockingOSCTCPServer
+from pythonosc.tcp_client import SimpleTCPClient
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_message import OscMessage
 from pythonosc.osc_message_builder import OscMessageBuilder
@@ -44,7 +44,7 @@ def pack4send(hand: EngineHandle, addr: str, o) -> OscMessage:
 
 
 def dispatch_command(
-	hand: EngineHandle, client: udp_client.SimpleUDPClient, _, inst: bytes
+	hand: EngineHandle, client: SimpleTCPClient, _, inst: bytes
 ):
 	Logger.debug(f"core: in dispatch_command, got {len(inst)} bytes")
 	instruction = hand.unpack(zlib.decompress(inst))
@@ -109,7 +109,7 @@ def dispatch_command(
 
 
 class MultipartDispatcher:
-	def __init__(self, hand: EngineHandle, client: udp_client.SimpleUDPClient):
+	def __init__(self, hand: EngineHandle, client: SimpleTCPClient):
 		self.hand = hand
 		self.client = client
 		self.message = []
@@ -134,7 +134,7 @@ def core_server(
 	for _ in range(128):
 		my_port = random.randint(lowest_port, highest_port)
 		try:
-			serv = osc_server.BlockingOSCUDPServer(
+			serv = BlockingOSCTCPServer(
 				("127.0.0.1", my_port),
 				dispatcher,
 			)
@@ -143,7 +143,7 @@ def core_server(
 			pass
 	else:
 		sys.exit("couldn't get core port")
-	client = udp_client.SimpleUDPClient("127.0.0.1", replies_port)
+	client = SimpleTCPClient("127.0.0.1", replies_port)
 	Logger.debug(
 		"core: got port %d, sending it to 127.0.0.1/core-reply:%d",
 		my_port,
