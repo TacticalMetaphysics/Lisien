@@ -4562,7 +4562,7 @@ class EngineProcessManager:
 				self._client.send(builder.build())
 			except OSError:
 				# Split the message until it's small enough
-				assert len(resp) > 0
+				assert len(msg) > 0
 				n = 2
 				if len(msg) % n:
 					n += 1
