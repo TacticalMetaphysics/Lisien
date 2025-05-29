@@ -2517,7 +2517,7 @@ class Engine(AbstractEngine, Executor):
 
 		ports = self.unpack(arg)
 		dispatcher = Dispatcher()
-		dispatcher.map("worker-reply", self._handle_worker_reply)
+		dispatcher.map("/worker-reply", self._handle_worker_reply)
 		start_port = randint(32768, 65535)
 		for my_port in range(start_port, start_port + 100):
 			try:
