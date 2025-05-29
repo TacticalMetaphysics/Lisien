@@ -1494,6 +1494,14 @@ class Engine(AbstractEngine, Executor):
 		or edge exists.
 
 		"""
+		self.debug(
+			"Getting delta in branch %s from %d, %d to %d, %d",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		)
 
 		setgraph = partial(
 			self._set_graph_in_delta,
@@ -1850,6 +1858,13 @@ class Engine(AbstractEngine, Executor):
 		branch = branch or self.branch
 		turn = turn or self.turn
 		tick_to = tick_to or self.tick
+		self.debug(
+			"Getting delta in branch %s, turn %d between ticks %d and %d",
+			branch,
+			turn,
+			tick_from,
+			tick_to,
+		)
 		self.load_between(branch, turn, tick_from, turn, tick_to)
 		delta = {}
 		if tick_from < tick_to:
@@ -2613,6 +2628,12 @@ class Engine(AbstractEngine, Executor):
 	):
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
+			self.debug(
+				"Keyframe already loaded, returning %s, %d, %d from memory",
+				branch,
+				turn,
+				tick,
+			)
 			if silent:
 				return
 			return self._get_kf(
@@ -3545,7 +3566,14 @@ class Engine(AbstractEngine, Executor):
 	) -> None:
 		assert then[0] == now[0]
 		if then == now:
+			self.debug("Redundant keyframe snap at %s, %d, %d", *then)
 			return
+		self.debug(
+			"Snapping keyframe from delta in branch %s between times "
+			"%d, %d and %d, %d",
+			*then,
+			*now[1:],
+		)
 		keyframe = self._get_keyframe(*then, rulebooks=False)
 		graph_val_keyframe: dict[Key, GraphValDict] = keyframe["graph_val"]
 		nodes_keyframe: dict[Key, GraphNodesDict] = keyframe["nodes"]
@@ -4475,6 +4503,7 @@ class Engine(AbstractEngine, Executor):
 
 		"""
 		branch, turn, tick = self._btt()
+		self.debug("Snapping keyframe at %s, %d, %d", branch, turn, tick)
 		if (branch, turn, tick) in self._keyframes_times:
 			if silent:
 				return None
@@ -4499,16 +4528,35 @@ class Engine(AbstractEngine, Executor):
 		if the_kf is None:
 			parent = self.branch_parent(branch)
 			if parent is None:
+				self.debug(
+					"Fresh keyframe, snapping de novo at %s, %d, %d",
+					branch,
+					turn,
+					tick,
+				)
 				self._snap_keyframe_de_novo(branch, turn, tick)
 				if silent:
 					return None
 				else:
 					return self._get_kf(branch, turn, tick)
+			self.debug(
+				"Swimming up the timestream from %s, %d, %d",
+				branch,
+				turn,
+				tick,
+			)
 			the_kf = self._recurse_delta_keyframes(branch, turn, tick)
 		if the_kf not in self._keyframes_loaded:
 			self._get_keyframe(*the_kf, silent=True)
 		if the_kf != (branch, turn, tick):
 			if the_kf[0] != branch:
+				self.debug(
+					"Aliasing keyframe from branch %s to %s, %d, %d",
+					the_kf[0],
+					branch,
+					turn,
+					tick,
+				)
 				self._alias_kf(the_kf[0], branch, turn, tick)
 			self._snap_keyframe_from_delta(
 				the_kf,
@@ -5500,25 +5548,25 @@ class Engine(AbstractEngine, Executor):
 			self.string,
 		)
 
-	def debug(self, msg: str) -> None:
+	def debug(self, msg: str, *args, **kwargs) -> None:
 		"""Log a message at level 'debug'"""
-		self.logger.debug(msg)
+		self.logger.debug(msg, *args, **kwargs)
 
-	def info(self, msg: str) -> None:
+	def info(self, msg: str, *args, **kwargs) -> None:
 		"""Log a message at level 'info'"""
-		self.logger.info(msg)
+		self.logger.info(msg, *args, **kwargs)
 
-	def warning(self, msg: str) -> None:
+	def warning(self, msg: str, *args, **kwargs) -> None:
 		"""Log a message at level 'warning'"""
-		self.logger.warning(msg)
+		self.logger.warning(msg, *args, **kwargs)
 
-	def error(self, msg: str) -> None:
+	def error(self, msg: str, *args, **kwargs) -> None:
 		"""Log a message at level 'error'"""
-		self.logger.error(msg)
+		self.logger.error(msg, *args, **kwargs)
 
-	def critical(self, msg: str) -> None:
+	def critical(self, msg: str, *args, **kwargs) -> None:
 		"""Log a message at level 'critical'"""
-		self.logger.critical(msg)
+		self.logger.critical(msg, *args, **kwargs)
 
 	def close(self) -> None:
 		"""Commit changes and close the database
