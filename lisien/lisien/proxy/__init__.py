@@ -4345,6 +4345,10 @@ class EngineProcessManager:
 			worker_port_queue = SimpleQueue()
 			disp = Dispatcher()
 			disp.map("/core-reply", self._receive_core_reply)
+			self._core_reply_parts = []
+			disp.map(
+				"/core-reply-multipart", self._receive_core_reply_multipart
+			)
 			disp.map(
 				"/worker-report-port",
 				lambda _, port: worker_port_queue.put(port),
@@ -4558,15 +4562,17 @@ class EngineProcessManager:
 				self._client.send(builder.build())
 			except OSError:
 				# Split the message until it's small enough
+				assert len(resp) > 0
 				n = 2
+				if len(msg) % n:
+					n += 1
 				while True:
-					sublen = len(msg) // n
 					for m, (i, j) in enumerate(
-						pairwise(range(0, len(msg), sublen))
+						pairwise(range(0, len(msg), len(msg) // n))
 					):
 						try:
 							builder = OscMessageBuilder("/multipart")
-							builder.add_arg(m, OscMessageBuilder.ARG_TYPE_INT)
+							builder.add_arg(n, OscMessageBuilder.ARG_TYPE_INT)
 							builder.add_arg(
 								msg[i:j], OscMessageBuilder.ARG_TYPE_BLOB
 							)
@@ -4574,6 +4580,14 @@ class EngineProcessManager:
 						except OSError:
 							break
 					else:
+						# If there are any bytes remaining, send them along
+						if m < n:
+							builder = OscMessageBuilder("/multipart")
+							builder.add_arg(n, OscMessageBuilder.ARG_TYPE_INT)
+							builder.add_arg(
+								msg[j:], OscMessageBuilder.ARG_TYPE_BLOB
+							)
+							self._client.send(builder.build())
 						break
 					n *= 2
 
@@ -4586,6 +4600,25 @@ class EngineProcessManager:
 		self._output_queue.put(
 			self.engine_proxy.unpack(zlib.decompress(reply))
 		)
+
+	def _receive_core_reply_multipart(self, addr, n, reply):
+		self._core_reply_parts.append(reply)
+		self.logger.debug(
+			"EngineProcessManager: got %dth part of %d part reply from core at %s",
+			len(self._core_reply_parts),
+			n,
+			addr,
+		)
+		if len(self._core_reply_parts) == n:
+			self.logger.debug(
+				"EngineProcessManager: received reply from core at %s", addr
+			)
+			self._output_queue.put(
+				self.engine_proxy.unpack(
+					zlib.decompress(b"".join(self._core_reply_parts))
+				)
+			)
+			self._core_reply_parts = []
 
 	def log(self, level: str | int, msg: str):
 		if isinstance(level, str):

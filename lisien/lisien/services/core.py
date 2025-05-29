@@ -12,6 +12,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from itertools import pairwise
+
 from ast import literal_eval
 import random
 import sys
@@ -48,14 +50,45 @@ def dispatch_command(
 	instruction = hand.unpack(zlib.decompress(inst))
 
 	def send_output_bytes(cmd, resp: bytes):
-		builder = OscMessageBuilder("/core-reply")
-		builder.add_arg(
-			zlib.compress(
-				_finish_packing(hand.pack, cmd, *hand._real._btt(), resp)
-			),
-			builder.ARG_TYPE_BLOB,
-		)
-		client.send(builder.build())
+		try:
+			builder = OscMessageBuilder("/core-reply")
+			builder.add_arg(
+				zlib.compress(
+					_finish_packing(hand.pack, cmd, *hand._real._btt(), resp)
+				),
+				builder.ARG_TYPE_BLOB,
+			)
+			client.send(builder.build())
+		except OSError:
+			assert len(resp) > 2
+			n = 2
+			if len(resp) % n:
+				n += 1
+			while True:
+				for m, (i, j) in enumerate(
+					pairwise(range(0, len(resp), len(resp) // n))
+				):
+					try:
+						builder = OscMessageBuilder("/core-reply-multipart")
+						builder.add_arg(n, OscMessageBuilder.ARG_TYPE_INT)
+						builder.add_arg(
+							resp[i:j], OscMessageBuilder.ARG_TYPE_BLOB
+						)
+						client.send(builder.build())
+					except OSError:
+						break
+				else:
+					# If there are any bytes left over, send them along
+					if m < n:
+						builder = OscMessageBuilder("/core-reply-multipart")
+						builder.add_arg(n, OscMessageBuilder.ARG_TYPE_INT)
+						builder.add_arg(
+							resp[j:], OscMessageBuilder.ARG_TYPE_BLOB
+						)
+						client.send(builder.build())
+					break
+				n *= 2
+		Logger.debug("core: sent %d bytes", len(resp))
 
 	def send_output(cmd, resp):
 		send_output_bytes(cmd, hand.pack(resp))
