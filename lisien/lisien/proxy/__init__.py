@@ -4503,27 +4503,30 @@ class EngineProcessManager:
 					mActivity, argument
 				)
 				self.logger.debug("EngineProcessManager: started worker %d", i)
-			worker_ports = []
-			for i in range(workers):
-				port = worker_port_queue.get()
-				self.logger.debug(
-					"EngineProcessManager: worker %d says it's on port %d",
-					i,
-					port,
-				)
-				worker_ports.append(port)
 			self._client = SimpleUDPClient("127.0.0.1", core_port)
-			self.logger.debug(
-				"EngineProcessManager: started client to port %d", core_port
-			)
-			workers_payload = OscMessageBuilder("/connect-workers")
-			workers_payload.add_arg(
-				msgpack.packb(worker_ports), OscMessageBuilder.ARG_TYPE_BLOB
-			)
-			self._client.send(workers_payload.build())
-			self.logger.debug(
-				"EngineProcessManager: sent ports to core/connect-workers"
-			)
+			if workers:
+				worker_ports = []
+				for i in range(workers):
+					port = worker_port_queue.get()
+					self.logger.debug(
+						"EngineProcessManager: worker %d says it's on port %d",
+						i,
+						port,
+					)
+					worker_ports.append(port)
+				self.logger.debug(
+					"EngineProcessManager: started client to port %d",
+					core_port,
+				)
+				workers_payload = OscMessageBuilder("/connect-workers")
+				workers_payload.add_arg(
+					msgpack.packb(worker_ports),
+					OscMessageBuilder.ARG_TYPE_BLOB,
+				)
+				self._client.send(workers_payload.build())
+				self.logger.debug(
+					"EngineProcessManager: sent ports to core/connect-workers"
+				)
 			self._input_sender_thread = Thread(
 				target=self._send_input_forever,
 				args=[input_queue],
