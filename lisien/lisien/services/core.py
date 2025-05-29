@@ -53,49 +53,13 @@ def dispatch_command(
 		resp = zlib.compress(
 			_finish_packing(hand.pack, cmd, *hand._real._btt(), resp)
 		)
-		try:
-			builder = OscMessageBuilder("/core-reply")
-			builder.add_arg(
-				resp,
-				builder.ARG_TYPE_BLOB,
-			)
-			client.send(builder.build())
-			Logger.debug("core: replied to %s with %d bytes", cmd, len(resp))
-		except OSError:
-			assert len(resp) > 2
-			n = 2
-			if len(resp) % n:
-				n += 1
-			while True:
-				for m, (i, j) in enumerate(
-					pairwise(range(0, len(resp), len(resp) // n))
-				):
-					try:
-						builder = OscMessageBuilder("/core-reply-multipart")
-						builder.add_arg(n, OscMessageBuilder.ARG_TYPE_INT)
-						builder.add_arg(
-							resp[i:j], OscMessageBuilder.ARG_TYPE_BLOB
-						)
-						client.send(builder.build())
-					except OSError:
-						break
-				else:
-					# If there are any bytes left over, send them along
-					if m < n:
-						builder = OscMessageBuilder("/core-reply-multipart")
-						builder.add_arg(n, OscMessageBuilder.ARG_TYPE_INT)
-						builder.add_arg(
-							resp[j:], OscMessageBuilder.ARG_TYPE_BLOB
-						)
-						client.send(builder.build())
-					break
-				n *= 2
-			Logger.debug(
-				"core: replied to %s with %d bytes in %d parts",
-				cmd,
-				len(resp),
-				n,
-			)
+		builder = OscMessageBuilder("/core-reply")
+		builder.add_arg(
+			resp,
+			builder.ARG_TYPE_BLOB,
+		)
+		client.send(builder.build())
+		Logger.debug("core: replied to %s with %d bytes", cmd, len(resp))
 
 	def send_output(cmd, resp):
 		send_output_bytes(cmd, hand.pack(resp))
@@ -106,21 +70,6 @@ def dispatch_command(
 	)
 
 	_engine_subroutine_step(hand, instruction, send_output, send_output_bytes)
-
-
-class MultipartDispatcher:
-	def __init__(self, hand: EngineHandle, client: SimpleTCPClient):
-		self.hand = hand
-		self.client = client
-		self.message = []
-
-	def accumulate(self, _, n: int, inst: bytes):
-		self.message.append(inst)
-		if len(self.message) == n:
-			dispatch_command(
-				self.hand, self.client, "multipart", b"".join(self.message)
-			)
-			self.message = []
 
 
 def core_server(
@@ -160,11 +109,9 @@ def core_server(
 
 	def shutdown(_, __):
 		Logger.debug("core: shutdown called")
-
-	multipart_dispatcher = MultipartDispatcher(hand, client)
+		is_shutdown.set()
 
 	dispatcher.map("/", partial(dispatch_command, hand, client))
-	dispatcher.map("/multipart", multipart_dispatcher.accumulate)
 	dispatcher.map("/shutdown", shutdown)
 	dispatcher.map("/connect-workers", hand._real._connect_worker_services)
 	Logger.info(
