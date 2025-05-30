@@ -4343,15 +4343,18 @@ class EngineProcessManager:
 			self._output_queue = output_queue = SimpleQueue()
 			self._input_queue = input_queue = SimpleQueue()
 			worker_port_queue = SimpleQueue()
+			core_port_queue = SimpleQueue()
 			disp = Dispatcher()
-			disp.map("/core-reply", self._receive_core_reply)
+			disp.map(
+				"/core-report-port", lambda _, port: core_port_queue.put(port)
+			)
 			disp.map(
 				"/worker-report-port",
 				lambda _, port: worker_port_queue.put(port),
 			)
-			disp.map(
-				"/log", lambda _, packed: self.log(*msgpack.unpackb(packed))
-			)
+			disp.map("/log", self._handle_log_record)
+			self._output_received = []
+			disp.map("/", self._receive_output)
 			low_port = 32000
 			high_port = 60999
 			for _ in range(128):
@@ -4483,29 +4486,32 @@ class EngineProcessManager:
 				self.logger.critical(repr(ex))
 				sys.exit(repr(ex))
 			self.logger.debug("EngineProcessManager: started core")
-			core_port = output_queue.get()
-			self.logger.debug(
-				"EngineProcessManager: core is at port %d", core_port
-			)
-			for i in range(workers):
-				argument = repr(
-					[
-						i,
-						low_port,
-						high_port,
-						procman_port,
-						core_port,
-						args[0],
-						branches_d,
-						eternal_d,
-					]
-				)
-				autoclass(f"org.tacmeta.elide.ServiceWorker{i}").start(
-					mActivity, argument
-				)
-				self.logger.debug("EngineProcessManager: started worker %d", i)
+			core_port = core_port_queue.get()
 			self._client = SimpleTCPClient("127.0.0.1", core_port)
+			self.logger.debug(
+				"EngineProcessManager: connected to lisien core at port %d",
+				core_port,
+			)
 			if workers:
+				for i in range(workers):
+					argument = repr(
+						[
+							i,
+							low_port,
+							high_port,
+							procman_port,
+							core_port,
+							args[0],
+							branches_d,
+							eternal_d,
+						]
+					)
+					autoclass(f"org.tacmeta.elide.ServiceWorker{i}").start(
+						mActivity, argument
+					)
+					self.logger.debug(
+						"EngineProcessManager: started worker %d", i
+					)
 				worker_ports = []
 				for i in range(workers):
 					port = worker_port_queue.get()
@@ -4515,10 +4521,6 @@ class EngineProcessManager:
 						port,
 					)
 					worker_ports.append(port)
-				self.logger.debug(
-					"EngineProcessManager: started client to port %d",
-					core_port,
-				)
 				workers_payload = OscMessageBuilder("/connect-workers")
 				workers_payload.add_arg(
 					msgpack.packb(worker_ports),
@@ -4540,31 +4542,58 @@ class EngineProcessManager:
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
+	def _handle_log_record(self, _, logrec_packed: bytes):
+		logrec = logging.LogRecord.__new__(logging.LogRecord)
+		logrec.__dict__ = self.engine_proxy.unpack(logrec_packed)
+		self.logger.handle(logrec)
+
 	def _send_input_forever(self, input_queue):
 		from pythonosc.osc_message_builder import OscMessageBuilder
 
 		assert hasattr(self, "engine_proxy"), (
 			"EngineProcessManager tried to send input with no EngineProxy"
 		)
-		cmd = input_queue.get()
-		self.logger.debug(f"EngineProcessManager: about to send {cmd} to core")
-		msg = zlib.compress(self.engine_proxy.pack(cmd))
-		builder = OscMessageBuilder("/")
-		builder.add_arg(msg, OscMessageBuilder.ARG_TYPE_BLOB)
-		self._client.send(builder.build())
-		self.logger.debug(
-			"EngineProcessManager: sent %d bytes of %s",
-			len(msg),
-			cmd.get("command", "???"),
-		)
+		while True:
+			cmd = input_queue.get()
+			msg = zlib.compress(self.engine_proxy.pack(cmd))
+			chunks = len(msg) // 1024
+			if len(msg) % 1024:
+				chunks += 1
+			self.logger.debug(
+				f"EngineProcessManager: about to send {cmd} to core in {chunks} chunks"
+			)
+			for n in range(chunks):
+				builder = OscMessageBuilder("/")
+				builder.add_arg(chunks, OscMessageBuilder.ARG_TYPE_INT)
+				if n == chunks:
+					builder.add_arg(
+						msg[n * 1024 :], OscMessageBuilder.ARG_TYPE_BLOB
+					)
+				else:
+					builder.add_arg(
+						msg[n * 1024 : (n + 1) * 1024],
+						OscMessageBuilder.ARG_TYPE_BLOB,
+					)
+				built = builder.build()
+				self._client.send(built)
+				self.logger.debug(
+					f"EngineProcessManager: sent chunk {n}, {len(built.dgram)} bytes, to {built.address}"
+				)
+			self.logger.debug(
+				"EngineProcessManager: sent %d bytes of %s",
+				len(msg),
+				cmd.get("command", "???"),
+			)
 
-	def _receive_core_reply(self, addr, reply):
-		self.logger.debug(
-			f"EngineProcessManager: received {len(reply)}-byte reply from core at {addr}"
-		)
-		self._output_queue.put(
-			self.engine_proxy.unpack(zlib.decompress(reply))
-		)
+	def _receive_output(self, _, chunks, msg):
+		self._output_received.append(msg)
+		if len(self._output_received) == chunks:
+			self._output_queue.put(
+				self.engine_proxy.unpack(
+					zlib.decompress(b"".join(self._output_received))
+				)
+			)
+			self._output_received = []
 
 	def log(self, level: str | int, msg: str):
 		if isinstance(level, str):
