@@ -38,6 +38,7 @@ from logging import (
 	LogRecord,
 	StreamHandler,
 	DEBUG,
+	Logger,
 )
 from operator import itemgetter, lt
 from os import PathLike
@@ -2209,6 +2210,7 @@ class Engine(AbstractEngine, Executor):
 		keep_rules_journal: bool = True,
 		keyframe_on_close: bool = True,
 		enforce_end_of_time: bool = True,
+		logger: Optional[Logger] = None,
 		workers: Optional[int | list[int]] = None,
 		port: Optional[int] = None,
 	):
@@ -2227,7 +2229,10 @@ class Engine(AbstractEngine, Executor):
 		# in case this is the first startup
 		self._obranch = main_branch or "trunk"
 		self._otick = self._oturn = 0
-		self.logger = getLogger("lisien")
+		if logger is None:
+			self.logger = getLogger("lisien")
+		else:
+			self.logger = logger
 		worker_handler = StreamHandler()
 		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
 		worker_handler.setLevel(DEBUG)

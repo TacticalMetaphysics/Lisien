@@ -82,21 +82,11 @@ class EngineHandle:
 
 	_after_ret: Callable
 
-	def __init__(self, *args, logq=None, loglevel=None, **kwargs):
-		"""Instantiate an engine with the given arguments
-
-		``logq`` is a :class:`Queue` into which I'll put tuples of
-		``(loglevel, message)``. ``loglevel`` is one of
-		`'debug'`, `'info'`, `'warning'`, `'error'`, or `'critical'`
-		(or the constants from the `logging` module, or an integer)
-		and controls what messages will be logged.
-
-		"""
+	def __init__(self, *args, **kwargs):
+		"""Instantiate an engine with the given arguments"""
 		from ..engine import Engine
 
 		do_game_start = kwargs.pop("do_game_start", False)
-		self._logq = logq
-		self._loglevel = loglevel
 		self._real = Engine(*args, **kwargs)
 		self.pack = pack = self._real.pack
 
@@ -120,10 +110,7 @@ class EngineHandle:
 				"error": 40,
 				"critical": 50,
 			}[level.lower()]
-		if self._logq and level >= self._loglevel:
-			self._logq.put((level, message))
-		elif not self._logq:
-			print(level, message)
+		self._real.logger.log(level, message)
 
 	def debug(self, message: str) -> None:
 		self.log(DEBUG, message)

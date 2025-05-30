@@ -12,6 +12,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import logging
+from logging import LogRecord
+
+import msgpack
+from queue import SimpleQueue
+
 from itertools import pairwise
 
 from ast import literal_eval
@@ -43,33 +49,88 @@ def pack4send(hand: EngineHandle, addr: str, o) -> OscMessage:
 	return builder.build()
 
 
-def dispatch_command(
-	hand: EngineHandle, client: SimpleTCPClient, _, inst: bytes
-):
-	Logger.debug(f"core: in dispatch_command, got {len(inst)} bytes")
-	instruction = hand.unpack(zlib.decompress(inst))
+class CommandDispatcher:
+	def __init__(self, handle: EngineHandle, client: SimpleTCPClient):
+		self._handle = handle
+		self._client = client
+		self._parts = []
 
-	def send_output_bytes(cmd, resp: bytes):
-		resp = zlib.compress(
-			_finish_packing(hand.pack, cmd, *hand._real._btt(), resp)
+	def dispatch_command(self, _, chunks: int, inst: bytes):
+		Logger.debug(
+			"core: in dispatch_command, got %d bytes of a %d part message",
+			len(inst),
+			chunks,
 		)
-		builder = OscMessageBuilder("/core-reply")
-		builder.add_arg(
-			resp,
-			builder.ARG_TYPE_BLOB,
+		self._parts.append(inst)
+		if len(self._parts) < chunks:
+			return
+
+		hand = self._handle
+		instruction = hand.unpack(zlib.decompress(b"".join(self._parts)))
+		Logger.debug(
+			f"core: in dispatch_command, collected command "
+			f"{instruction.get('command', '???')}"
 		)
-		client.send(builder.build())
-		Logger.debug("core: replied to %s with %d bytes", cmd, len(resp))
+		self._parts = []
 
-	def send_output(cmd, resp):
-		send_output_bytes(cmd, hand.pack(resp))
+		outq = SimpleQueue()
 
-	Logger.debug(
-		"core: about to dispatch "
-		f"{instruction.get('command', 'nothing??')} to the Lisien core"
-	)
+		def send_output_bytes(cmd, resp: bytes):
+			outq.put(
+				zlib.compress(
+					_finish_packing(hand.pack, cmd, *hand._real._btt(), resp)
+				)
+			)
 
-	_engine_subroutine_step(hand, instruction, send_output, send_output_bytes)
+		def send_output(cmd, resp):
+			send_output_bytes(cmd, hand.pack(resp))
+
+		Logger.debug(
+			"core: about to dispatch "
+			f"{instruction.get('command', 'nothing??')} to the Lisien core"
+		)
+
+		_engine_subroutine_step(
+			hand, instruction, send_output, send_output_bytes
+		)
+
+		res = outq.get()
+		if len(res) < 1024:
+			chunks = [res]
+		else:
+			chunks = []
+			for i, j in pairwise(range(0, len(res), 1024)):
+				chunks.append(res[i:j])
+			if j < len(res):
+				chunks.append(res[j:])
+
+		for chunk in chunks:
+			if not isinstance(chunk, bytes):
+				raise TypeError("Bad chunk", type(chunk))
+			builder = OscMessageBuilder("/")
+			builder.add_arg(len(chunks), builder.ARG_TYPE_INT)
+			builder.add_arg(chunk, builder.ARG_TYPE_BLOB)
+			self._client.send(builder.build())
+			Logger.debug(
+				"core: replied to %s with %d bytes in %d chunks",
+				instruction.get("command", "???"),
+				sum(map(len, chunks)),
+				len(chunks),
+			)
+
+
+class CoreLogHandler(logging.Handler):
+	def __init__(
+		self, pack: callable, client: SimpleTCPClient, level: int = 0
+	):
+		self._pack = pack
+		self._client = client
+		super().__init__(level)
+
+	def emit(self, record: LogRecord) -> None:
+		builder = OscMessageBuilder("/log")
+		builder.add_arg(self._pack(record.__dict__), builder.ARG_TYPE_BLOB)
+		self._client.send(builder.build())
 
 
 def core_server(
@@ -94,16 +155,25 @@ def core_server(
 		sys.exit("couldn't get core port")
 	client = SimpleTCPClient("127.0.0.1", replies_port)
 	Logger.debug(
-		"core: got port %d, sending it to 127.0.0.1/core-reply:%d",
+		"core: got port %d, sending it to 127.0.0.1/core-report-port:%d",
 		my_port,
 		replies_port,
 	)
+	client.send_message("/core-report-port", my_port)
+
+	logger = logging.getLogger("lisien")
+
+	def pack(obj):
+		return hand._real.pack(obj)
+
+	logger.addHandler(CoreLogHandler(pack, client, 0))
+
 	hand = EngineHandle(
 		*args,
 		port=my_port,
+		logger=logger,
 		**kwargs,
 	)
-	client.send(pack4send(hand, "/core-reply", my_port))
 
 	is_shutdown = Event()
 
@@ -111,7 +181,9 @@ def core_server(
 		Logger.debug("core: shutdown called")
 		is_shutdown.set()
 
-	dispatcher.map("/", partial(dispatch_command, hand, client))
+	cmddisp = CommandDispatcher(hand, client)
+
+	dispatcher.map("/", cmddisp.dispatch_command)
 	dispatcher.map("/shutdown", shutdown)
 	dispatcher.map("/connect-workers", hand._real._connect_worker_services)
 	Logger.info(
