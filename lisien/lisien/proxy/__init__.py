@@ -4530,6 +4530,7 @@ class EngineProcessManager:
 				self.logger.debug(
 					"EngineProcessManager: sent ports to core/connect-workers"
 				)
+			self._top_uid = 0
 			self._input_sender_thread = Thread(
 				target=self._send_input_forever,
 				args=[input_queue],
@@ -4564,6 +4565,7 @@ class EngineProcessManager:
 			)
 			for n in range(chunks):
 				builder = OscMessageBuilder("/")
+				builder.add_arg(self._top_uid, OscMessageBuilder.ARG_TYPE_INT)
 				builder.add_arg(chunks, OscMessageBuilder.ARG_TYPE_INT)
 				if n == chunks:
 					builder.add_arg(
@@ -4577,7 +4579,11 @@ class EngineProcessManager:
 				built = builder.build()
 				self._client.send(built)
 				self.logger.debug(
-					f"EngineProcessManager: sent chunk {n}, {len(built.dgram)} bytes, to {built.address}"
+					"EngineProcessManager: sent the %d-byte chunk %d of message %d to %s",
+					len(built.dgram),
+					n,
+					self._top_uid,
+					built.address,
 				)
 			self.logger.debug(
 				"EngineProcessManager: sent %d bytes of %s",
@@ -4585,7 +4591,20 @@ class EngineProcessManager:
 				cmd.get("command", "???"),
 			)
 
-	def _receive_output(self, _, chunks, msg):
+	def _receive_output(self, _, uid: int, chunks: int, msg: bytes) -> None:
+		if uid != self._top_uid:
+			self.logger.error(
+				"EngineProcessManager: expected uid %d, got uid %d",
+				self._top_uid,
+				uid,
+			)
+		self.logger.debug(
+			"EngineProcessManager: received %d bytes of the %dth chunk out of %d for uid %d",
+			len(msg),
+			len(self._output_received),
+			chunks,
+			uid,
+		)
 		self._output_received.append(msg)
 		if len(self._output_received) == chunks:
 			self._output_queue.put(
@@ -4593,6 +4612,7 @@ class EngineProcessManager:
 					zlib.decompress(b"".join(self._output_received))
 				)
 			)
+			self._top_uid += 1
 			self._output_received = []
 
 	def log(self, level: str | int, msg: str):

@@ -48,13 +48,20 @@ class CommandDispatcher:
 		self._handle = handle
 		self._client = client
 		self._parts = []
+		self._last_uid = 0
 
-	def dispatch_command(self, _, chunks: int, inst: bytes):
+	def dispatch_command(self, _, uid: int, chunks: int, inst: bytes):
 		Logger.debug(
-			"core: in dispatch_command, got %d bytes of a %d part message",
+			"core: in dispatch_command, got %d bytes of a %d part message with uid %d",
 			len(inst),
 			chunks,
+			uid,
 		)
+		if self._parts and uid != self._last_uid:
+			Logger.error(
+				"core: expected uid %d, got uid %d", self._last_uid, uid
+			)
+		self._last_uid = uid
 		self._parts.append(inst)
 		if len(self._parts) < chunks:
 			return
@@ -101,6 +108,7 @@ class CommandDispatcher:
 			if not isinstance(chunk, bytes):
 				raise TypeError("Bad chunk", type(chunk))
 			builder = OscMessageBuilder("/")
+			builder.add_arg(self._last_uid, builder.ARG_TYPE_INT)
 			builder.add_arg(len(chunks), builder.ARG_TYPE_INT)
 			builder.add_arg(chunk, builder.ARG_TYPE_BLOB)
 			self._client.send(builder.build())
