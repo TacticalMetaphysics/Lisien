@@ -43,12 +43,6 @@ Logger.setLevel(0)
 Logger.debug("core: imported libs")
 
 
-def pack4send(hand: EngineHandle, addr: str, o) -> OscMessage:
-	builder = OscMessageBuilder(addr)
-	builder.add_arg(zlib.compress(hand.pack(o)), builder.ARG_TYPE_BLOB)
-	return builder.build()
-
-
 class CommandDispatcher:
 	def __init__(self, handle: EngineHandle, client: SimpleTCPClient):
 		self._handle = handle
