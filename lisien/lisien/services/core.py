@@ -85,10 +85,9 @@ class CommandDispatcher:
 		def send_output(cmd, resp):
 			send_output_bytes(cmd, hand.pack(resp))
 
-		Logger.debug(
-			"core: about to dispatch "
-			f"{instruction.get('command', 'nothing??')} to the Lisien core"
-		)
+		cmd = instruction.get("command", "nothing??")
+
+		Logger.debug("core: about to dispatch %s to the Lisien core", cmd)
 
 		_engine_subroutine_step(
 			hand, instruction, send_output, send_output_bytes
@@ -113,7 +112,7 @@ class CommandDispatcher:
 			self._client.send(builder.build())
 			Logger.debug(
 				"core: replied to %s with %d bytes in %d chunks",
-				instruction.get("command", "???"),
+				cmd,
 				sum(map(len, chunks)),
 				len(chunks),
 			)
