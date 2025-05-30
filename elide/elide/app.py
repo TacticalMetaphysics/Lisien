@@ -503,6 +503,7 @@ class ElideApp(App):
 			self.game_name = game_name
 		gamedir = os.path.join(self.prefix, game_name)
 		self._add_screens()
+		self.manager.current = "mainscreen"
 		engine = self.engine = self.start_subprocess(gamedir)
 		if "boardchar" in engine.eternal:
 			self.select_character(
@@ -516,7 +517,6 @@ class ElideApp(App):
 			Logger.warning("No characters yet")
 		self.mainscreen.populate()
 		self.init_board()
-		self.manager.current = "mainscreen"
 		if cb:
 			cb()
 		return engine
