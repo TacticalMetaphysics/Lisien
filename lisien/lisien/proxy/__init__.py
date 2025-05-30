@@ -4590,6 +4590,9 @@ class EngineProcessManager:
 				len(msg),
 				cmd.get("command", "???"),
 			)
+			if cmd == "close":
+				self.logger.debug("EngineProcessManager: closing input loop")
+				return
 
 	def _receive_output(self, _, uid: int, chunks: int, msg: bytes) -> None:
 		if uid != self._top_uid:
