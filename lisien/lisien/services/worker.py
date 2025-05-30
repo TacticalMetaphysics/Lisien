@@ -35,31 +35,45 @@ Logger.setLevel(0)
 Logger.debug("worker: imported libs")
 
 
-def dispatch_command(
-	i, eng: EngineProxy, client: udp_client.SimpleUDPClient, inst: bytes
-):
-	uid = int.from_bytes(inst[:8], "little")
-	method, args, kwargs = eng.unpack(zlib.decompress(inst[8:]))
-	Logger.debug(f"about to dispatch {method} call id {uid} to worker {i}")
-	if isinstance(method, str):
-		method = getattr(eng, method)
-	try:
-		ret = method(*args, **kwargs)
-	except Exception as ex:
-		ret = ex
-		if uid == sys.maxsize:
-			msg = repr(ex)
-			eng.critical(msg)
-			traceback.print_exc(file=sys.stderr)
-			sys.exit(msg)
-	eng._initialized = True
-	payload = inst[:8] + zlib.compress(eng.pack(ret))
-	builder = OscMessageBuilder("/worker-reply")
-	builder.add_arg(payload, builder.ARG_TYPE_BLOB)
-	client.send(builder.build())
-	Logger.debug(
-		f"sent a reply to call {uid} of method {method}; {len(payload)} bytes"
-	)
+class CommandDispatcher:
+	def __init__(
+		self, i: int, engine: EngineProxy, client: udp_client.SimpleUDPClient
+	):
+		self._i = i
+		self._engine = engine
+		self._client = client
+		self._parts = []
+
+	def dispatch_command(self, n: int, inst: bytes):
+		self._parts.append(inst)
+		if len(self._parts) < n:
+			return
+		inst = b"".join(self._parts)
+		uid = int.from_bytes(inst[:8], "little")
+		eng = self._engine
+		method, args, kwargs = eng.unpack(zlib.decompress(inst[8:]))
+		Logger.debug(
+			f"about to dispatch {method} call id {uid} to worker {self._i}"
+		)
+		if isinstance(method, str):
+			method = getattr(eng, method)
+		try:
+			ret = method(*args, **kwargs)
+		except Exception as ex:
+			ret = ex
+			if uid == sys.maxsize:
+				msg = repr(ex)
+				eng.critical(msg)
+				traceback.print_exc(file=sys.stderr)
+				sys.exit(msg)
+		eng._initialized = True
+		payload = inst[:8] + zlib.compress(eng.pack(ret))
+		builder = OscMessageBuilder("/worker-reply")
+		builder.add_arg(payload, builder.ARG_TYPE_BLOB)
+		self._client.send(builder.build())
+		Logger.debug(
+			f"sent a reply to call {uid} of method {method}; {len(payload)} bytes"
+		)
 
 
 def worker_server(
@@ -83,7 +97,8 @@ def worker_server(
 	)
 	client = udp_client.SimpleUDPClient("127.0.0.1", replies_port)
 	dispatcher = Dispatcher()
-	dispatcher.map("/", partial(dispatch_command, i, eng, client))
+	cmddisp = CommandDispatcher(i, eng, client)
+	dispatcher.map("/", cmddisp.dispatch_command)
 	for _ in range(128):
 		my_port = random.randint(lowest_port, highest_port)
 		try:
