@@ -24,11 +24,13 @@ from kivy.properties import ObjectProperty, OptionProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
+from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
+from sqlalchemy import and_, column, bindparam
 
 from .gen import GridGeneratorDialog
 from .util import load_string_once
@@ -118,6 +120,19 @@ class WorldStartConfigurator(BoxLayout):
 class GamePickerModal(ModalView):
 	headline = StringProperty()
 
+	def _decompress_and_start(self, game_file_path, game, *_):
+		app = App.get_running_app()
+		game_dir = str(os.path.join(app.prefix, game))
+		if os.path.exists(game_dir):
+			# Likely left over from a failed run of Elide
+			shutil.rmtree(game_dir)
+		with zipfile.ZipFile(
+			game_file_path, "r", compression=zipfile.ZIP_DEFLATED
+		) as zipf:
+			# should validate that it has what we expect...
+			zipf.extractall(game_dir)
+		app.start_game(name=game, cb=partial(self.dismiss, force=True))
+
 
 class GameExporterModal(GamePickerModal):
 	@triggered()
@@ -127,6 +142,148 @@ class GameExporterModal(GamePickerModal):
 			os.path.join(app.games_dir, game + ".zip"), "application/zip"
 		)
 		self.dismiss()
+
+
+class GameImporterModal(GamePickerModal):
+	def _pick(self, uri):
+		from android import mActivity, autoclass, cast
+		from android.storage import primary_external_storage_path
+
+		app = App.get_running_app()
+
+		def copyfile(fn):
+			root_dir = str(
+				autoclass("android.os.Environment")
+				.getExternalStorageDirectory()
+				.getAbsolutePath()
+			)
+			if not os.path.isdir(root_dir):
+				raise NotADirectoryError(root_dir)
+			abspath = os.path.join(root_dir, fn)
+			if not os.path.isfile(abspath):
+				raise FileNotFoundError(abspath)
+			game_name = os.path.basename(abspath).removesuffix(".zip")
+			dest = os.path.join(app.prefix, game_name)
+			if os.path.exists(dest):
+				shutil.rmtree(dest)
+			shutil.unpack_archive(abspath, dest)
+			return
+
+		if uri.startswith("file://"):
+			return copyfile(uri.removeprefix("file://"))
+		MediaStoreFiles = autoclass("android.provider.MediaStore$Files")
+		MediaStoreMediaColumns = autoclass(
+			"android.provider.MediaStore$MediaColumns"
+		)
+		root_uri = MediaStoreFiles.getContentUri("external")
+		context = mActivity.getApplicationContext()
+		select_stmt = and_(
+			column(MediaStoreMediaColumns.DISPLAY_NAME) == bindparam("a"),
+			column(MediaStoreMediaColumns.RELATIVE_PATH) == bindparam("b"),
+		)
+		select_stmt.stringify_dialect = "sqlite"
+		select_s = str(select_stmt)
+		Logger.debug(
+			"GameImporterModal: looking for URI using the query: %s", select_s
+		)
+		args = [
+			os.path.basename(uri),
+			os.path.dirname(uri)
+			.replace(primary_external_storage_path(), "")
+			.strip("/")
+			+ "/",
+		]
+		Logger.debug(
+			"GameImporterModal: with the arguments: %s",
+			", ".join(map(repr, args)),
+		)
+		resolver = context.getContentResolver()
+		cursor = resolver.query(root_uri, None, select_s, args, None)
+		if not cursor:
+			raise FileNotFoundError(uri)
+		while cursor.moveToNext():
+			idx = cursor.getColumnIndex(MediaStoreMediaColumns.DISPLAY_NAME)
+			file_name = cursor.getString(idx)
+			Logger.debug("GameImporterModal: file %d. %s", idx, file_name)
+			if file_name == os.path.basename(uri):
+				id_ = cursor.getLong(
+					cursor.getColumnIndex(MediaStoreMediaColumns._ID)
+				)
+				uri = autoclass("android.content.ContentUris").withAppendedId(
+					root_uri, id_
+				)
+				break
+		else:
+			cursor.close()
+			raise FileNotFoundError(uri)
+		if uri.getScheme().lower() == "file":
+			return copyfile(str(uri.getEncodedPath()))
+		display_name = MediaStoreMediaColumns.DISPLAY_NAME
+		name_idx = cursor.getColumnIndex(display_name)
+		cursor.moveToFirst()
+		file_name = cursor.getString(name_idx)
+		if not file_name.endswith(".zip"):
+			raise zipfile.error("not a zip file", file_name)
+		os.makedirs(app.games_dir, exist_ok=True)
+		dest = os.path.join(app.games_dir, file_name)
+		if os.path.exists(dest):
+			raise FileExistsError(
+				"Already have a game named " + file_name.removesuffix(".zip")
+			)
+		try:
+			reader = resolver.openInputStream(uri)
+			writer = autoclass("java.io.FileOutputStream")(dest)
+			autoclass("android.os.FileUtils").copy(reader, writer)
+			writer.flush()
+			writer.close()
+			reader.close()
+		except Exception as ex:
+			Logger.error("GameImporterModal: %s", ex)
+			raise
+		cursor.close()
+		Clock.schedule_once(
+			partial(
+				self._decompress_and_start,
+				dest,
+				file_name.removesuffix(".zip"),
+			)
+		)
+
+	@triggered()
+	def pick(self, selection, *_):
+		if not selection:
+			return
+		if len(selection) > 1:
+			raise RuntimeError(
+				"That file picker is supposed to be single select"
+			)
+		uri = selection[0]
+		try:
+			self._pick(uri)
+		except (
+			NotADirectoryError,
+			FileNotFoundError,
+			FileExistsError,
+			zipfile.error,
+		) as err:
+			modal = ModalView()
+			error_box = BoxLayout(orientation="vertical")
+			error_box.add_widget(Label(text=repr(err), font_size=80))
+			error_box.add_widget(Button(text="OK", on_release=modal.dismiss))
+			modal.add_widget(error_box)
+			modal.open()
+
+	def on_pre_open(self, *_):
+		try:
+			from android.storage import primary_external_storage_path
+
+			path = primary_external_storage_path()
+			self._android = True
+		except ImportError:
+			path = os.getcwd()
+			self._android = False
+		self._file_chooser = FileChooserIconView(path=path)
+		self.ids.chooser_goes_here.add_widget(self._file_chooser)
 
 
 class GameLoaderModal(GamePickerModal):
@@ -151,19 +308,6 @@ class GameLoaderModal(GamePickerModal):
 		Clock.schedule_once(
 			partial(self._decompress_and_start, game_file_path, game), 0
 		)
-
-	def _decompress_and_start(self, game_file_path, game, *_):
-		app = App.get_running_app()
-		game_dir = str(os.path.join(app.prefix, game))
-		if os.path.exists(game_dir):
-			# Likely left over from a failed run of Elide
-			shutil.rmtree(game_dir)
-		with zipfile.ZipFile(
-			game_file_path, "r", compression=zipfile.ZIP_DEFLATED
-		) as zipf:
-			# should validate that it has what we expect...
-			zipf.extractall(game_dir)
-		app.start_game(name=game, cb=partial(self.dismiss, force=True))
 
 
 class GameList(RecycleView):
@@ -277,6 +421,14 @@ class MainMenuScreen(Screen):
 		self._popover_load_game.open()
 
 	@trigger
+	def import_game(self, *_):
+		if not hasattr(self, "_popover_import_game"):
+			self._popover_import_game = GameImporterModal(
+				headline="Pick zipped game to import"
+			)
+		self._popover_import_game.open()
+
+	@trigger
 	def export_game(self, *_):
 		if not hasattr(self, "_popover_export_game"):
 			self._popover_export_game = GameExporterModal(
@@ -360,6 +512,10 @@ load_string_once("""
 				font_size: 50
 				on_release: root.load_game()
 			Button:
+				text: 'Import game'
+				font_size: 50
+				on_release: root.import_game()
+			Button:
 				text: 'Export game'
 				font_size: 50
 				on_release: root.export_game()
@@ -373,7 +529,7 @@ load_string_once("""
         height: self.minimum_height
         size_hint_y: None
         orientation: 'vertical'
-<GamePickerModal>:
+<GameLoaderModal>:
 	size_hint_x: 0.6
 	BoxLayout:
 		orientation: 'vertical'
@@ -390,4 +546,23 @@ load_string_once("""
 			on_release: root.dismiss()
 			size_hint_y: 0.1
 			font_size: self.height
+<GameImporterModal>:
+	size_hint_x: 0.6
+	BoxLayout:
+		orientation: 'vertical'
+		Label:
+			text: root.headline
+			size_hint_y: 0.1
+			font_size: self.height
+		RelativeLayout:
+			id: chooser_goes_here
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint_y: 0.1
+			Button:
+				text: 'Cancel'
+				on_release: root.dismiss()
+			Button:
+				text: 'OK'
+				on_release: root.pick(root._file_chooser.selection)
 """)
