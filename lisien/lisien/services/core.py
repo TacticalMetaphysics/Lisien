@@ -118,6 +118,8 @@ class CommandDispatcher:
 				sum(map(len, chunks)),
 				len(chunks),
 			)
+		if cmd == "close":
+			self._client.close()
 
 
 class CoreLogHandler(logging.Handler):
