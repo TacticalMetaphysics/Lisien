@@ -534,6 +534,9 @@ class ElideApp(App):
 
 		self._copy_log_files()
 		game_wd = os.path.join(self.prefix, self.game_name)
+		pycache = os.path.join(self.prefix, self.game_name, "__pycache__")
+		if os.path.exists(pycache):
+			shutil.rmtree(pycache)
 		archived = shutil.make_archive(
 			self.game_name, "zip", str(game_wd), logger=Logger
 		)
