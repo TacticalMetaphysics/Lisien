@@ -40,8 +40,6 @@ from .kivygarden.texturestack import ImageStack
 from .pallet import Pallet, PalletBox
 from .util import load_string_once
 
-# TODO: let the user import their own sprite art
-
 
 def trigger(func):
 	return triggered()(func)
