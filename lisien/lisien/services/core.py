@@ -178,7 +178,7 @@ def core_server(
 
 	is_shutdown = Event()
 
-	def shutdown(_, __):
+	def shutdown(_):
 		Logger.debug("core: shutdown called")
 		is_shutdown.set()
 
