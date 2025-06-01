@@ -4075,9 +4075,9 @@ def _engine_subroutine_step(
 		del handle._after_ret
 
 
-def engine_subprocess(args, kwargs, input_pipe, output_pipe, logq, loglevel):
+def engine_subprocess(args, kwargs, input_pipe, output_pipe):
 	"""Loop to handle one command at a time and pipe results back"""
-	engine_handle = EngineHandle(*args, logq=logq, loglevel=loglevel, **kwargs)
+	engine_handle = EngineHandle(*args, **kwargs)
 
 	def send_output(cmd, r):
 		output_pipe.send_bytes(
@@ -4269,9 +4269,8 @@ class EngineProcessManager:
 			del kwargs["loglevel"]
 		if "logger" in kwargs:
 			self.logger = kwargs["logger"]
-			del kwargs["logger"]
 		else:
-			self.logger = logging.getLogger(__name__)
+			self.logger = kwargs["logger"] = logging.getLogger(__name__)
 			stdout = logging.StreamHandler(sys.stdout)
 			stdout.set_name("stdout")
 			handlers.append(stdout)
@@ -4309,15 +4308,9 @@ class EngineProcessManager:
 					self._kwargs | kwargs,
 					self._handle_in_pipe,
 					self._handle_out_pipe,
-					self.logq,
-					loglevel,
 				),
 			)
 			self._p.start()
-			self._logthread = Thread(
-				target=self.sync_log_forever, name="log", daemon=True
-			)
-			self._logthread.start()
 			self.engine_proxy = EngineProxy(
 				self._proxy_in_pipe,
 				self._proxy_out_pipe,
@@ -4638,11 +4631,6 @@ class EngineProcessManager:
 				n += 1
 			except Empty:
 				return
-
-	def sync_log_forever(self):
-		"""Continually call ``sync_log``, for use in a subthread"""
-		while True:
-			self.sync_log(1)
 
 	def shutdown(self):
 		"""Close the engine in the subprocess, then join the subprocess"""
