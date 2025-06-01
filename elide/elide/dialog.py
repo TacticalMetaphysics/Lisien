@@ -246,7 +246,7 @@ class DialogLayout(FloatLayout):
 		if isinstance(diargs, str):
 			dia.message_kwargs = {"text": diargs}
 			dia.menu_kwargs = {
-				"options": [("OK", partial(self.ok, cb2=after_ok))]
+				"options": [("OK", partial(self.ok, cb=after_ok))]
 			}
 		# List dialogs are for when you need the player to make a choice and don't care much
 		# about presentation
@@ -292,12 +292,13 @@ class DialogLayout(FloatLayout):
 		self.add_widget(dia)
 
 	def ok(self, *_, cb=None, cb2=None):
-		"""Clear dialog widgets, call ``cb``s if provided, and advance the dialog queue"""
+		"""Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue
+
+		``cb2`` will be called after advancing the dialog."""
 		self.clear_widgets()
 		if cb:
 			cb()
-		if cb2:
-			cb2()
+		self.advance_dialog(after_ok=cb2)
 
 	def _lookup_func(self, funcname):
 		from importlib import import_module
