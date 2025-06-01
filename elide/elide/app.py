@@ -329,6 +329,10 @@ class ElideApp(App):
 			else:
 				Logger.warning("{prefix} not found in " + s)
 				enkw["connect_string"] = s
+		elif os.path.isfile(os.path.join(path, "world.sqlite3")):
+			enkw["connect_string"] = "sqlite:///" + str(
+				os.path.join(path, "world.sqlite3")
+			)
 		workers = config["lisien"].get("workers", "")
 		if workers:
 			enkw["workers"] = workers
