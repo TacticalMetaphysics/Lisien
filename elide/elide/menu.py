@@ -151,13 +151,13 @@ class GameImporterModal(GamePickerModal):
 			from android import mActivity, autoclass, cast
 			from android.storage import primary_external_storage_path
 		except ImportError:
-			shutil.unpack_archive(
-				uri,
-				str(
-					os.path.join(
-						app.prefix, os.path.basename(uri).removesuffix(".zip")
-					)
-				),
+			game_name = os.path.basename(uri).removesuffix(".zip")
+			Clock.schedule_once(
+				partial(
+					self._decompress_and_start,
+					uri,
+					game_name,
+				)
 			)
 			return
 
