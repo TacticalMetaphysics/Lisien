@@ -4318,8 +4318,6 @@ class EngineProcessManager:
 				install_modules,
 			)
 		elif android:
-			import base64
-
 			from jnius import autoclass
 			from pythonosc.osc_message_builder import OscMessageBuilder
 			from pythonosc.osc_tcp_server import BlockingOSCTCPServer
