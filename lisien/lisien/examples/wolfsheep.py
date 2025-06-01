@@ -230,7 +230,11 @@ if __name__ == "__main__":
 
 	args = []
 	kwargs = {"random_seed": 0}
-	if len(sys.argv) == 3:
+	if len(sys.argv) == 4:
+		kwargs["random_seed"] = sys.argv[-1]
+		kwargs["connect_string"] = sys.argv[-2]
+		args.append(sys.argv[-3])
+	elif len(sys.argv) == 3:
 		kwargs["random_seed"] = sys.argv[-1]
 		args.append(sys.argv[-2])
 	elif len(sys.argv) == 2:
