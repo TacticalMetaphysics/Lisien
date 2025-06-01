@@ -32,6 +32,7 @@ def install(
 		"wolf",
 		child_name="pup",
 		image_paths=["atlas://rltiles/dc-mon/war_dog"],
+		n_creatures=wolves,
 		mate_chance=1.0,
 		malaria_chance=0.01,
 	)
@@ -39,6 +40,7 @@ def install(
 		"sheep",
 		child_name="lamb",
 		image_paths=["atlas://rltiles/dc-mon/sheep"],
+		n_creatures=sheep,
 		mate_chance=1.0,
 		malaria_chance=0.01,
 	)
