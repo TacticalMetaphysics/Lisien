@@ -545,6 +545,7 @@ class ElideApp(App):
 			self.game_name, "zip", str(game_wd), logger=Logger
 		)
 		archived_base = os.path.basename(archived)
+		os.makedirs(self.games_dir, exist_ok=True)
 		if os.path.exists(os.path.join(self.games_dir, archived_base)):
 			os.remove(os.path.join(self.games_dir, archived_base))
 		os.rename(archived, os.path.join(self.games_dir, archived_base))
