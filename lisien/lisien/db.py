@@ -25,6 +25,10 @@ from functools import cached_property, partial, partialmethod
 from itertools import starmap
 from operator import itemgetter
 from queue import Queue
+from sqlite3 import (
+	IntegrityError as LiteIntegrityError,
+	OperationalError as LiteOperationalError,
+)
 from threading import Lock, Thread
 from time import monotonic
 from types import MethodType
@@ -33,7 +37,10 @@ from typing import Any, Iterator, MutableMapping, Optional
 import msgpack
 
 from sqlalchemy import MetaData, create_engine, Select
-from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.exc import (
+	IntegrityError as AlchemyIntegrityError,
+	OperationalError as AlchemyOperationalError,
+)
 
 from .alchemy import gather_sql
 from .exc import KeyframeError, TimeError
@@ -70,6 +77,9 @@ from .typing import (
 )
 from .util import garbage, insist
 from .wrap import DictWrapper, ListWrapper, SetWrapper
+
+IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
+OperationalError = (LiteOperationalError, AlchemyOperationalError)
 
 NONE = msgpack.packb(None)
 EMPTY = msgpack.packb({})
