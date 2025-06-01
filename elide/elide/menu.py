@@ -146,10 +146,20 @@ class GameExporterModal(GamePickerModal):
 
 class GameImporterModal(GamePickerModal):
 	def _pick(self, uri):
-		from android import mActivity, autoclass, cast
-		from android.storage import primary_external_storage_path
-
 		app = App.get_running_app()
+		try:
+			from android import mActivity, autoclass, cast
+			from android.storage import primary_external_storage_path
+		except ImportError:
+			shutil.unpack_archive(
+				uri,
+				str(
+					os.path.join(
+						app.prefix, os.path.basename(uri).removesuffix(".zip")
+					)
+				),
+			)
+			return
 
 		def copyfile(fn):
 			root_dir = str(
