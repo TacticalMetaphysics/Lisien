@@ -458,7 +458,7 @@ class MainScreen(Screen):
 				"MainScreen: next_turn blocked, delete universal['block'] to unblock"
 			)
 			return
-		if dial.idx < len(dial.todo):
+		if dial.todo:
 			Logger.info(
 				"MainScreen: not advancing time while there's a dialog"
 			)
