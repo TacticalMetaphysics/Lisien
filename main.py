@@ -26,7 +26,7 @@ try:
 	from android.storage import app_storage_path
 
 	wd = os.path.join(app_storage_path(), "lisien_workspace")
-	connect_string = "sqlite:///{prefix}/world.db"
+	connect_string = "sqlite:///{prefix}/world.sqlite3"
 	logs_dir = os.path.join(app_storage_path(), "app", ".kivy", "logs")
 except ImportError:
 	wd = os.path.join(os.getcwd())
