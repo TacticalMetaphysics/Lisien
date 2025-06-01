@@ -126,11 +126,7 @@ class GamePickerModal(ModalView):
 		if os.path.exists(game_dir):
 			# Likely left over from a failed run of Elide
 			shutil.rmtree(game_dir)
-		with zipfile.ZipFile(
-			game_file_path, "r", compression=zipfile.ZIP_DEFLATED
-		) as zipf:
-			# should validate that it has what we expect...
-			zipf.extractall(game_dir)
+		shutil.unpack_archive(game_file_path, game_dir)
 		app.start_game(name=game, cb=partial(self.dismiss, force=True))
 
 
