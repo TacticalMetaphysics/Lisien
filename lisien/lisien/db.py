@@ -63,7 +63,6 @@ from .typing import (
 	RuleName,
 	RuleNeighborhood,
 	Tick,
-	Time,
 	TimeWindow,
 	TriggerFuncName,
 	Turn,
