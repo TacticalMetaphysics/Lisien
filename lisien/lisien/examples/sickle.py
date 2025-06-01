@@ -72,7 +72,7 @@ def install(
 
 	# putting dieoff earlier in the code than mate means that dieoff will
 	# be followed before mate is
-	@species.unit.rule
+	@species.unit.rule(always=True)
 	def dieoff(critter):
 		ret = (
 			"malaria"
@@ -133,15 +133,17 @@ def install(
 	def in_the_mood(critter):
 		return critter.engine.random() < critter.user.only.stat["mate_chance"]
 
-	@dieoff.trigger
+	@dieoff.prereq
 	def sickle2(critter):
 		return critter["sickle_a"] and critter["sickle_b"]
 
 	@dieoff.prereq
 	def malaria(critter):
-		return critter.engine.random() < critter.user.only.stat[
-			"malaria_chance"
-		] and not (critter["sickle_a"] or critter["sickle_b"])
+		return (
+			not (critter["sickle_a"] or critter["sickle_b"])
+			and critter.engine.random()
+			< critter.user.only.stat["malaria_chance"]
+		)
 
 	# it would make more sense to keep using species.unit.rule, this
 	# is just a test
