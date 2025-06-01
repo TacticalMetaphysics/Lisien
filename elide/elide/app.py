@@ -644,10 +644,13 @@ class ElideApp(App):
 			from android.permissions import request_permissions, Permission
 		except ModuleNotFoundError:
 			# "shared storage" is just the working directory
-			shutil.copy(
-				filename,
-				os.path.join(os.path.curdir, os.path.basename(filename)),
-			)
+			try:
+				shutil.copy(
+					filename,
+					os.path.join(os.path.curdir, os.path.basename(filename)),
+				)
+			except shutil.SameFileError:
+				pass
 			return
 		if mimetype is None:
 			import mimetypes
