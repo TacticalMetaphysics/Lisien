@@ -5,7 +5,15 @@ import networkx as nx
 from lisien import Engine
 
 
-def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
+def install(
+	eng: Engine,
+	map_size=(25, 25),
+	wolves=10,
+	sheep=25,
+	n_sickles_wolf=3,
+	n_sickles_sheep=5,
+	seed=None,
+):
 	if seed is not None:
 		random.seed(seed)
 	bare_places = []
@@ -20,8 +28,20 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 			bare_places.append(node_name)
 	phys = eng.new_character("physical", proto)
 	phys.stat["bare_places"] = bare_places
-	wolfs = eng.new_character("wolf")
-	sheeps = eng.new_character("sheep")
+	wolfs = eng.new_character(
+		"wolf",
+		child_name="pup",
+		image_paths=["atlas://rltiles/dc-mon/war_dog"],
+		mate_chance=1.0,
+		malaria_chance=0.01,
+	)
+	sheeps = eng.new_character(
+		"sheep",
+		child_name="lamb",
+		image_paths=["atlas://rltiles/dc-mon/sheep"],
+		mate_chance=1.0,
+		malaria_chance=0.01,
+	)
 	unoccupied = [
 		(x, y) for x in range(map_size[0]) for y in range(map_size[0])
 	]
@@ -29,17 +49,45 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 	for i in range(wolves):
 		loc = phys.place[unoccupied.pop()]
 		wolf = loc.new_thing(
-			f"wolf{i}", _image_paths=["atlas://rltiles/dc-mon/war_dog"]
+			f"wolf{i}",
+			_image_paths=["atlas://rltiles/dc-mon/war_dog"],
+			sickle_a=i < n_sickles_wolf,
+			sickle_b=False,
+			male=eng.coin_flip(),
+			last_mate_turn=-1,
 		)
 		wolfs.add_unit(wolf)
 		print("wolf", i)
 	for i in range(sheep):
 		loc = phys.place[unoccupied.pop()]
 		shep = loc.new_thing(
-			f"sheep{i}", _image_paths=["atlas://rltiles/dc-mon/sheep"]
+			f"sheep{i}",
+			_image_paths=["atlas://rltiles/dc-mon/sheep"],
+			sickle_a=i < n_sickles_sheep,
+			sickle_b=False,
+			male=eng.coin_flip(),
+			last_mate_turn=-1,
 		)
 		sheeps.add_unit(shep)
 		print("sheep", i)
+
+	@eng.rule(always=True)
+	def die_of_malaria_or_anemia(critter):
+		ret = (
+			"malaria"
+			if not (critter["sickle_a"] or critter["sickle_b"])
+			else "anemia"
+		)
+		critter.delete()
+		return ret
+
+	@die_of_malaria_or_anemia.prereq
+	def malaria(critter):
+		return (
+			not (critter["sickle_a"] or critter["sickle_b"])
+			and critter.engine.random()
+			< critter.user.only.stat["malaria_chance"]
+		)
 
 	@phys.rule(always=True)
 	def grow(chara):
@@ -61,6 +109,58 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 	def grass_here(shep):
 		return not shep.location["bare"]
 
+	sheeps.unit.rulebook.append(die_of_malaria_or_anemia)
+
+	@sheeps.unit.rule
+	def mate(critter):
+		"""If I share my location with another critter, attempt to mate"""
+		engine = critter.engine
+		species = critter.user.only
+		suitors = list(
+			oc
+			for oc in critter.location.contents()
+			if oc["male"] != critter["male"]
+		)
+		assert len(suitors) > 0
+		other_critter = critter.engine.choice(suitors)
+		sickles = [
+			critter["sickle_a"],
+			critter["sickle_b"],
+			other_critter["sickle_a"],
+			other_critter["sickle_b"],
+		]
+		engine.shuffle(sickles)
+		name = "critter" + str(species.stat["n_creatures"])
+		species.stat["n_creatures"] += 1
+		engine.character["physical"].add_thing(
+			name,
+			critter["location"],
+			sickle_a=sickles.pop(),
+			sickle_b=sickles.pop(),
+			male=engine.coin_flip(),
+			last_mate_turn=engine.turn,
+		)
+		species.add_unit("physical", name)
+		critter["last_mate_turn"] = other_critter["last_mate_turn"] = (
+			engine.turn
+		)
+		return "mated"
+
+	@mate.trigger
+	def once_per_turn(critter):
+		return critter["last_mate_turn"] < critter.engine.turn
+
+	@mate.prereq
+	def mate_present(critter):
+		for oc in critter.location.contents():
+			if oc["male"] != critter["male"]:
+				return True
+		return False
+
+	@mate.prereq
+	def in_the_mood(critter):
+		return critter.engine.random() < critter.user.only.stat["mate_chance"]
+
 	@sheeps.unit.rule(always=True)
 	def wander(shep):
 		here = shep.location
@@ -78,6 +178,9 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 				shep.location = neighbor
 				return
 		shep.location = shep.engine.choice(neighbors)
+
+	wolfs.unit.rulebook.append(die_of_malaria_or_anemia)
+	wolfs.unit.rulebook.append(mate)
 
 	@wolfs.unit.rule(always=True)
 	def pursue_sheep(wolff):
@@ -120,29 +223,6 @@ def install(eng: Engine, map_size=(25, 25), wolves=10, sheep=25, seed=None):
 		for _ in wolff.engine.character["sheep"].units():
 			return True
 		return False
-
-	@eng.action
-	def breed(shep):
-		units = list(shep.units())
-		shep.engine.shuffle(units)
-		# pick a sheep that has another sheep next to it
-		for unit in units:
-			for neighbor in unit.location.successors():
-				for here in neighbor.contents():
-					if here.user.only is shep:
-						# pick a place for the new sheep that's different
-						# from where its parents are
-						for there in neighbor.successors():
-							if not there.contents():
-								shep.add_unit(
-									there.new_thing(
-										"lamb",
-										_image_paths=[
-											"atlas://rltiles/dc-mon/sheep"
-										],
-									)
-								)
-								return
 
 
 if __name__ == "__main__":
