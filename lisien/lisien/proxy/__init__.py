@@ -4250,7 +4250,6 @@ class EngineProcessManager:
 			android = False
 			(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(duplex=False)
 			(self._proxy_in_pipe, self._handle_out_pipe) = Pipe(duplex=False)
-			self.logq = Queue()
 
 		handlers = []
 		logl = {
@@ -4619,16 +4618,6 @@ class EngineProcessManager:
 				"critical": 50,
 			}[level.lower()]
 		self.logger.log(level, msg)
-
-	def sync_log(self, limit=None, block=True):
-		"""Get log messages from the subprocess, and log them in this one"""
-		n = 0
-		while limit is None or n < limit:
-			try:
-				self.log(*self.logq.get(block=block))
-				n += 1
-			except Empty:
-				return
 
 	def shutdown(self):
 		"""Close the engine in the subprocess, then join the subprocess"""
