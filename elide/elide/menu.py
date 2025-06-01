@@ -127,7 +127,8 @@ class GamePickerModal(ModalView):
 			# Likely left over from a failed run of Elide
 			shutil.rmtree(game_dir)
 		shutil.unpack_archive(game_file_path, game_dir)
-		app.start_game(name=game, cb=partial(self.dismiss, force=True))
+		Clock.schedule_once(partial(app.start_game, name=game), 0.001)
+		self.dismiss(force=True)
 
 
 class GameExporterModal(GamePickerModal):
