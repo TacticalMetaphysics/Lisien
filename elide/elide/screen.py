@@ -462,6 +462,7 @@ class MainScreen(Screen):
 			Logger.info(
 				"MainScreen: not advancing time while there's a dialog"
 			)
+			Clock.schedule_once(partial(self.next_turn, cb), self.play_speed)
 			return
 		self.tmp_block = True
 		self._next_turn_thread = Thread(

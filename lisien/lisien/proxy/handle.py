@@ -24,6 +24,7 @@ from typing import Any, Callable, Iterable
 
 import msgpack
 import networkx as nx
+import tblib
 
 from ..util import (
 	AbstractCharacter,
@@ -76,6 +77,24 @@ class EngineHandleLogHandler(Handler):
 		self._logq = log_queue
 
 	def emit(self, record):
+		if record.exc_info:
+			if (
+				isinstance(record.exc_info, Exception)
+				and record.exc_info.__traceback__
+			):
+				record.exc_info.__traceback__ = tblib.Traceback(
+					record.exc_info.__traceback__
+				).as_dict()
+			elif (
+				isinstance(record.exc_info, tuple)
+				and len(record.exc_info) == 3
+				and record.exc_info[2]
+			):
+				record.exc_info = (
+					record.exc_info[0],
+					record.exc_info[1],
+					tblib.Traceback(record.exc_info[2]).as_dict(),
+				)
 		self._logq.put(record)
 
 

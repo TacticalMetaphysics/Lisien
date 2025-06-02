@@ -28,6 +28,7 @@ from threading import Thread, Event
 import os
 import zlib
 
+import tblib
 from kivy.logger import Logger
 from pythonosc.osc_tcp_server import BlockingOSCTCPServer
 from pythonosc.tcp_client import SimpleTCPClient
@@ -132,6 +133,24 @@ class CoreLogHandler(logging.Handler):
 
 	def emit(self, record: LogRecord) -> None:
 		builder = OscMessageBuilder("/log")
+		if record.exc_info:
+			if (
+				isinstance(record.exc_info, Exception)
+				and record.exc_info.__traceback__
+			):
+				record.exc_info.__traceback__ = tblib.Traceback(
+					record.exc_info.__traceback__
+				).as_dict()
+			elif (
+				isinstance(record.exc_info, tuple)
+				and len(record.exc_info) == 3
+				and record.exc_info[2]
+			):
+				record.exc_info = (
+					record.exc_info[0],
+					record.exc_info[1],
+					tblib.Traceback(record.exc_info[2]).as_dict(),
+				)
 		builder.add_arg(self._pack(record.__dict__), builder.ARG_TYPE_BLOB)
 		self._client.send(builder.build())
 
