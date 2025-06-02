@@ -9183,7 +9183,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 						)
 						for (
 							character,
-							nodee,
+							node,
 							branch,
 							turn,
 							tick,
