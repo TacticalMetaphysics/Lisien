@@ -215,6 +215,7 @@ class DialogLayout(FloatLayout):
 			self.engine.universal["last_result_idx"] = self.idx
 		Logger.debug(f"DialogLayout.idx = {self.idx}")
 
+	@mainthread
 	def advance_dialog(self, after_ok=None, *args):
 		"""Try to display the next dialog described in my ``todo``.
 
