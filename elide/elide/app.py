@@ -317,7 +317,6 @@ class ElideApp(App):
 			raise ChildProcessError("Subprocess already running")
 		config = self.config
 		enkw = {
-			"logger": Logger,
 			"do_game_start": getattr(self, "do_game_start", False),
 		}
 		if s := (
