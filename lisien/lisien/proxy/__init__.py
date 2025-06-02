@@ -4576,9 +4576,9 @@ class EngineProcessManager:
 		return logrec
 
 	def _handle_log_record(self, _, logrec_packed: bytes):
-		logrec = logging.LogRecord.__new__(logging.LogRecord)
-		logrec.__dict__ = self.engine_proxy.unpack(logrec_packed)
-		self.logger.handle(self._undictify_logrec_traceback(logrec))
+		self.logger.handle(
+			self._undictify_logrec_traceback(pickle.loads(logrec_packed))
+		)
 
 	def _send_input_forever(self, input_queue):
 		from pythonosc.osc_message_builder import OscMessageBuilder
