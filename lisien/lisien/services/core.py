@@ -24,6 +24,7 @@ import random
 import sys
 from threading import Thread, Event
 import os
+import pickle
 import zlib
 
 import tblib
@@ -148,7 +149,7 @@ class CoreLogHandler(logging.Handler):
 					record.exc_info[1],
 					tblib.Traceback(record.exc_info[2]).as_dict(),
 				)
-		builder.add_arg(self._pack(record.__dict__), builder.ARG_TYPE_BLOB)
+		builder.add_arg(pickle.dumps(record), builder.ARG_TYPE_BLOB)
 		self._client.send(builder.build())
 
 
