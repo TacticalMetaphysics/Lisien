@@ -4314,6 +4314,10 @@ class EngineProcessManager:
 				kwargs={"log_queue": self._logq},
 			)
 			self._p.start()
+			self._log_thread = Thread(
+				target=self._sync_log_forever, daemon=True
+			)
+			self._log_thread.start()
 			self.engine_proxy = EngineProxy(
 				self._proxy_in_pipe,
 				self._proxy_out_pipe,
@@ -4542,6 +4546,10 @@ class EngineProcessManager:
 
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
+
+	def _sync_log_forever(self):
+		while True:
+			self.logger.handle(self._logq.get())
 
 	def _handle_log_record(self, _, logrec_packed: bytes):
 		logrec = logging.LogRecord.__new__(logging.LogRecord)
