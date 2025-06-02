@@ -4321,6 +4321,8 @@ class EngineProcessManager:
 				install_modules,
 			)
 		elif android:
+			from queue import SimpleQueue
+
 			from jnius import autoclass
 			from pythonosc.osc_message_builder import OscMessageBuilder
 			from pythonosc.osc_tcp_server import BlockingOSCTCPServer
