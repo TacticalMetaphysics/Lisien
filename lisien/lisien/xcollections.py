@@ -336,7 +336,6 @@ class FunctionStore(Signal):
 	def reimport(self):
 		if self._filename is None:
 			return
-		importlib.invalidate_caches()
 		path, filename = os.path.split(self._filename)
 		modname = filename[:-3]
 		if modname in sys.modules:
