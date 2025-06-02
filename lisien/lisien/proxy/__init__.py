@@ -4330,7 +4330,7 @@ class EngineProcessManager:
 
 			from jnius import autoclass
 			from pythonosc.osc_message_builder import OscMessageBuilder
-			from pythonosc.osc_tcp_server import BlockingOSCTCPServer
+			from pythonosc.osc_tcp_server import ThreadingOSCTCPServer
 			from pythonosc.tcp_client import SimpleTCPClient
 			from pythonosc.dispatcher import Dispatcher
 
@@ -4365,7 +4365,7 @@ class EngineProcessManager:
 			for _ in range(128):
 				procman_port = random.randint(low_port, high_port)
 				try:
-					self._server = BlockingOSCTCPServer(
+					self._server = ThreadingOSCTCPServer(
 						("127.0.0.1", procman_port), disp
 					)
 					self._server_thread = Thread(
