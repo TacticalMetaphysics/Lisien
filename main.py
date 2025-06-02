@@ -50,4 +50,7 @@ if __name__ == "__main__":
 		prefix=wd, connect_string=connect_string, logs_dir=logs_dir, workers=0
 	)
 	app.get_application_config = get_application_config
-	app.run()
+	try:
+		app.run()
+	finally:
+		app._copy_log_files()
