@@ -15,7 +15,6 @@
 import logging
 from logging import LogRecord
 
-import msgpack
 from queue import SimpleQueue
 
 from itertools import pairwise
@@ -23,7 +22,6 @@ from itertools import pairwise
 from ast import literal_eval
 import random
 import sys
-from functools import partial
 from threading import Thread, Event
 import os
 import zlib
@@ -33,7 +31,6 @@ from kivy.logger import Logger
 from pythonosc.osc_tcp_server import BlockingOSCTCPServer
 from pythonosc.tcp_client import SimpleTCPClient
 from pythonosc.dispatcher import Dispatcher
-from pythonosc.osc_message import OscMessage
 from pythonosc.osc_message_builder import OscMessageBuilder
 
 from lisien.proxy import _engine_subroutine_step, _finish_packing
