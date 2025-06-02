@@ -265,6 +265,8 @@ class GameImporterModal(GamePickerModal):
 				"That file picker is supposed to be single select"
 			)
 		uri = selection[0]
+		if os.path.isdir(uri):
+			return
 		try:
 			self._pick(uri)
 		except (
