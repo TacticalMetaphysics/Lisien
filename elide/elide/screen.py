@@ -323,6 +323,13 @@ class MainScreen(Screen):
 		self.pull_visibility()
 		self.manager.bind(current=self.pull_visibility)
 
+	def on_playbut(self, *_):
+		if hasattr(self, "_play_scheduled"):
+			return
+		self._play_scheduled = Clock.schedule_interval(
+			self.play, 1.0/self.play_speed
+		)
+
 	def on_play_speed(self, *_):
 		"""Change the interval at which ``self.play`` is called to match my
 		current ``play_speed``.
@@ -427,7 +434,7 @@ class MainScreen(Screen):
 			or self.app.engine.closed
 			or self.app.engine.universal.get("block")
 			or not hasattr(self.app, "manager")
-			or self.app.manager.current != "main"
+			or self.app.manager.current != "mainscreen"
 		):
 			return
 		self.next_turn(cb=release_edit_lock)
