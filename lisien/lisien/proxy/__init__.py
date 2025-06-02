@@ -53,6 +53,7 @@ from typing import Hashable, Iterator, Optional
 import astunparse
 import msgpack
 import networkx as nx
+import tblib
 from blinker import Signal
 
 from .handle import EngineHandle
@@ -4549,12 +4550,35 @@ class EngineProcessManager:
 
 	def _sync_log_forever(self):
 		while True:
-			self.logger.handle(self._logq.get())
+			logrec = self._logq.get()
+			self.logger.handle(self._undictify_logrec_traceback(logrec))
+
+	def _undictify_logrec_traceback(
+		self, logrec: logging.LogRecord
+	) -> logging.LogRecord:
+		if logrec.exc_info:
+			if isinstance(logrec.exc_info, Exception):
+				logrec.exc_info.__traceback__ = tblib.Traceback.from_dict(
+					logrec.exc_info.__traceback__
+				).as_traceback()
+			elif (
+				isinstance(logrec.exc_info, tuple)
+				and len(logrec.exc_info) == 3
+				and logrec.exc_info[2]
+			):
+				logrec.exc_info = (
+					logrec.exc_info[0],
+					logrec.exc_info[1],
+					tblib.Traceback.from_dict(
+						logrec.exc_info[2]
+					).as_traceback(),
+				)
+		return logrec
 
 	def _handle_log_record(self, _, logrec_packed: bytes):
 		logrec = logging.LogRecord.__new__(logging.LogRecord)
 		logrec.__dict__ = self.engine_proxy.unpack(logrec_packed)
-		self.logger.handle(logrec)
+		self.logger.handle(self._undictify_logrec_traceback(logrec))
 
 	def _send_input_forever(self, input_queue):
 		from pythonosc.osc_message_builder import OscMessageBuilder
