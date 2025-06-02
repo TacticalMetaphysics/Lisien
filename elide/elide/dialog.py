@@ -289,7 +289,8 @@ class DialogLayout(FloatLayout):
 			raise TypeError(
 				"Don't know how to turn {} into a dialog".format(type(diargs))
 			)
-		self.add_widget(dia)
+		if dia.parent != self:
+			self.add_widget(dia)
 
 	def ok(self, *_, cb=None, cb2=None):
 		"""Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue
