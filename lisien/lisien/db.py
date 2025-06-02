@@ -8256,6 +8256,8 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._char_thing_rules_handled = []
 		self._char_place_rules_handled = []
 		self._char_portal_rules_handled = []
+		self._node_rulebook_to_set = []
+		self._portal_rulebook_to_set = []
 		self._node_rules_handled = []
 		self._portal_rules_handled = []
 		self._unitness = []
@@ -9164,6 +9166,62 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				)
 			)
 			self._edges2set = []
+		if self._node_rulebook_to_set:
+			put(
+				(
+					"silent",
+					"many",
+					"node_rulebook_insert",
+					[
+						(
+							pack(character),
+							pack(node),
+							branch,
+							turn,
+							tick,
+							pack(rulebook),
+						)
+						for (
+							character,
+							nodee,
+							branch,
+							turn,
+							tick,
+							rulebook,
+						) in self._node_rulebook_to_set
+					],
+				)
+			)
+			self._node_rulebook_to_set = []
+		if self._portal_rulebook_to_set:
+			put(
+				(
+					"silent",
+					"many",
+					"portal_rulebook_insert",
+					[
+						(
+							pack(character),
+							pack(orig),
+							pack(dest),
+							branch,
+							turn,
+							tick,
+							pack(rulebook),
+						)
+						for (
+							character,
+							orig,
+							dest,
+							branch,
+							turn,
+							tick,
+							rulebook,
+						) in self._portal_rulebook_to_set
+					],
+				)
+			)
+			self._portal_rulebook_to_set = []
 		if self._graphvals2set:
 			put(
 				(
@@ -9910,35 +9968,16 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			yield self.unpack(book)
 
 	def set_node_rulebook(self, character, node, branch, turn, tick, rulebook):
-		(character, node, rulebook) = map(
-			self.pack, (character, node, rulebook)
-		)
-		self.call_one(
-			"node_rulebook_insert",
-			character,
-			node,
-			branch,
-			turn,
-			tick,
-			rulebook,
+		self._node_rulebook_to_set.append(
+			(character, node, branch, turn, tick, rulebook)
 		)
 		self._increc()
 
 	def set_portal_rulebook(
 		self, character, orig, dest, branch, turn, tick, rulebook
 	):
-		(character, orig, dest, rulebook) = map(
-			self.pack, (character, orig, dest, rulebook)
-		)
-		self.call_one(
-			"portal_rulebook_insert",
-			character,
-			orig,
-			dest,
-			branch,
-			turn,
-			tick,
-			rulebook,
+		self._portal_rulebook_to_set.append(
+			(character, orig, dest, branch, turn, tick, rulebook)
 		)
 		self._increc()
 
