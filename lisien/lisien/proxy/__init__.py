@@ -4075,9 +4075,11 @@ def _engine_subroutine_step(
 		del handle._after_ret
 
 
-def engine_subprocess(args, kwargs, input_pipe, output_pipe):
+def engine_subprocess(
+	args, kwargs, input_pipe, output_pipe, *, log_queue=None
+):
 	"""Loop to handle one command at a time and pipe results back"""
-	engine_handle = EngineHandle(*args, **kwargs)
+	engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
 
 	def send_output(cmd, r):
 		output_pipe.send_bytes(
@@ -4100,8 +4102,8 @@ def engine_subprocess(args, kwargs, input_pipe, output_pipe):
 		if inst == b"shutdown":
 			input_pipe.close()
 			output_pipe.close()
-			if logq:
-				logq.close()
+			if log_queue:
+				log_queue.close()
 			return 0
 		instruction = engine_handle.unpack(zlib.decompress(inst))
 		_engine_subroutine_step(
@@ -4245,11 +4247,12 @@ class EngineProcessManager:
 
 			android = True
 		except ImportError:
-			from multiprocessing import Pipe, Queue
+			from multiprocessing import Pipe, SimpleQueue
 
 			android = False
 			(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(duplex=False)
 			(self._proxy_in_pipe, self._handle_out_pipe) = Pipe(duplex=False)
+			self._logq = SimpleQueue()
 
 		handlers = []
 		logl = {
@@ -4269,7 +4272,7 @@ class EngineProcessManager:
 		if "logger" in kwargs:
 			self.logger = kwargs["logger"]
 		else:
-			self.logger = kwargs["logger"] = logging.getLogger(__name__)
+			self.logger = logging.getLogger(__name__)
 			stdout = logging.StreamHandler(sys.stdout)
 			stdout.set_name("stdout")
 			handlers.append(stdout)
@@ -4308,6 +4311,7 @@ class EngineProcessManager:
 					self._handle_in_pipe,
 					self._handle_out_pipe,
 				),
+				kwargs={"log_queue": self._logq},
 			)
 			self._p.start()
 			self.engine_proxy = EngineProxy(

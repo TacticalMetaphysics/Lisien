@@ -18,7 +18,7 @@ ordinary method calls.
 """
 
 from importlib import import_module
-from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match
 from typing import Any, Callable, Iterable
 
@@ -70,6 +70,15 @@ def prepacked(fun: Callable) -> Callable:
 	return fun
 
 
+class EngineHandleLogHandler(Handler):
+	def __init__(self, level: int, log_queue):
+		super().__init__(level)
+		self._logq = log_queue
+
+	def emit(self, record):
+		self._logq.put(record)
+
+
 class EngineHandle:
 	"""A wrapper for a :class:`lisien.Engine` object that runs in the same
 	process, but with an API built to be used in a command-processing
@@ -82,11 +91,15 @@ class EngineHandle:
 
 	_after_ret: Callable
 
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args, log_queue=None, **kwargs):
 		"""Instantiate an engine with the given arguments"""
 		from ..engine import Engine
 
 		do_game_start = kwargs.pop("do_game_start", False)
+		if log_queue:
+			logger = kwargs["logger"] = Logger("lisien")
+			handler = EngineHandleLogHandler(0, log_queue)
+			logger.addHandler(handler)
 		self._real = Engine(*args, **kwargs)
 		self.pack = pack = self._real.pack
 
