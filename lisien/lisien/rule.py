@@ -131,10 +131,6 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 		self._setter(self.rule.name, branch, turn, tick, v)
 
 	def __iter__(self):
-		try:
-			self._funcstore.reimport()
-		except (AttributeError, FileNotFoundError):
-			pass
 		for funcname in self._get():
 			yield getattr(self._funcstore, funcname)
 
