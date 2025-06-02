@@ -4333,6 +4333,10 @@ class EngineProcessManager:
 				workers = kwargs["workers"]
 			else:
 				workers = os.cpu_count()
+			if "logger" in kwargs:
+				raise ValueError(
+					"Can't pass loggers between processes on Android"
+				)
 			# Android makes us hardcode some number of service workers, to be
 			# used or not. I've defined 64 of them in buildozer.spec.
 			workers = min((workers, 64))
