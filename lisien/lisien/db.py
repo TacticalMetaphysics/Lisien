@@ -8238,6 +8238,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self.pack = pack
 		self.unpack = unpack
 		self._branches = {}
+		self._universals2set = []
 		self._nodevals2set = []
 		self._edgevals2set = []
 		self._graphvals2set = []
@@ -9107,6 +9108,25 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def _flush(self):
 		pack = self.pack
 		put = self._inq.put
+		if self._universals2set:
+			put(
+				(
+					"silent",
+					"many",
+					"universals_insert",
+					[
+						(pack(key), branch, turn, tick, pack(value))
+						for (
+							key,
+							branch,
+							turn,
+							tick,
+							value,
+						) in self._universals2set
+					],
+				)
+			)
+			self._universals2set = []
 		if self._nodes2set:
 			put(
 				(
@@ -9797,13 +9817,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def universal_set(
 		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Any
 	):
-		key, val = map(self.pack, (key, val))
-		self.call_one("universals_insert", key, branch, turn, tick, val)
+		self._universals2set.append((key, branch, turn, tick, val))
 		self._increc()
 
 	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
-		key = self.pack(key)
-		self.call_one("universals_insert", key, branch, turn, tick, NONE)
+		self._universals2set.append(key, branch, turn, tick, None)
 		self._increc()
 
 	def count_all_table(self, tbl):
