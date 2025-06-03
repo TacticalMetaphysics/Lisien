@@ -9879,7 +9879,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._increc()
 
 	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
-		self._universals2set.append(key, branch, turn, tick, None)
+		self._universals2set.append((key, branch, turn, tick, None))
 		self._increc()
 
 	def count_all_table(self, tbl):
