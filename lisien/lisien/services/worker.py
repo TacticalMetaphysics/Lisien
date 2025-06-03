@@ -139,15 +139,25 @@ def worker_server(
 
 
 if __name__ == "__main__":
-	Logger.debug("worker.__main__")
-	assert "PYTHON_SERVICE_ARGUMENT" in os.environ
-	assert isinstance(os.environ["PYTHON_SERVICE_ARGUMENT"], str)
-	args = literal_eval(os.environ["PYTHON_SERVICE_ARGUMENT"])
-	Logger.info(f"worker {args[0]}: starting...")
-	is_shutdown, serv = worker_server(*args)
-	thread = Thread(target=serv.serve_forever)
-	thread.start()
-	is_shutdown.wait()
-	serv.shutdown()
-	thread.join()
-	Logger.info(f"worker {args[0]}: exited.")
+	try:
+		Logger.debug("worker.__main__")
+		assert "PYTHON_SERVICE_ARGUMENT" in os.environ
+		assert isinstance(os.environ["PYTHON_SERVICE_ARGUMENT"], str)
+		args = literal_eval(os.environ["PYTHON_SERVICE_ARGUMENT"])
+		Logger.info(f"worker {args[0]}: starting...")
+		is_shutdown, serv = worker_server(*args)
+		thread = Thread(target=serv.serve_forever)
+		thread.start()
+		is_shutdown.wait()
+		serv.shutdown()
+		thread.join()
+		Logger.info(f"worker {args[0]}: exited.")
+	except BaseException as ex:
+		import traceback
+		from io import StringIO
+		from kivy.logger import Logger
+
+		bogus = StringIO()
+		traceback.print_exception(ex, file=bogus)
+		for line in bogus.getvalue().split("\n"):
+			Logger.error(line)
