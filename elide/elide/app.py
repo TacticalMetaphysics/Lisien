@@ -766,6 +766,10 @@ class ElideApp(App):
 		self._copy_log_files()
 		return True
 
+	def on_resume(self):
+		self.update_root_viewport()
+		return True
+
 	def on_stop(self, *largs):
 		"""Sync the database, wrap up the game, and halt."""
 		if hasattr(self, "stopped"):
