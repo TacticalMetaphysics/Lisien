@@ -71368,7 +71368,7 @@ SICKLE_KEYFRAME_0 = {
 		"species": {},
 	},
 	"prereqs": {
-		"dieoff": ["malaria"],
+		"dieoff": ["sickle2", "malaria"],
 		"mate": ["mate_present", "in_the_mood"],
 		"wander": ["big_map"],
 	},
@@ -71377,7 +71377,7 @@ SICKLE_KEYFRAME_0 = {
 		("unit_rulebook", "species"): (["dieoff", "mate"], 0.0),
 	},
 	"triggers": {
-		"dieoff": ["sickle2"],
+		"dieoff": ["truth"],
 		"mate": ["once_per_turn"],
 		"wander": ["not_travelling"],
 	},
