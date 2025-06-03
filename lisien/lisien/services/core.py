@@ -215,14 +215,24 @@ def core_server(
 
 
 if __name__ == "__main__":
-	Logger.info("Starting Lisien core service...")
-	args = literal_eval(os.environ["PYTHON_SERVICE_ARGUMENT"])
-	is_shutdown, serv = core_server(*args)
-	thread = Thread(target=serv.serve_forever)
-	thread.start()
-	is_shutdown.wait()
-	Logger.debug("core: about to call serv.shutdown")
-	serv.shutdown()
-	Logger.debug("core: serv.shutdown worked")
-	thread.join()
-	Logger.info("core: Lisien core service has ended")
+	try:
+		Logger.info("Starting Lisien core service...")
+		args = literal_eval(os.environ["PYTHON_SERVICE_ARGUMENT"])
+		is_shutdown, serv = core_server(*args)
+		thread = Thread(target=serv.serve_forever)
+		thread.start()
+		is_shutdown.wait()
+		Logger.debug("core: about to call serv.shutdown")
+		serv.shutdown()
+		Logger.debug("core: serv.shutdown worked")
+		thread.join()
+		Logger.info("core: Lisien core service has ended")
+	except BaseException as ex:
+		import traceback
+		from io import StringIO
+		from kivy.logger import Logger
+
+		bogus = StringIO()
+		traceback.print_exception(ex, file=bogus)
+		for line in bogus.getvalue().split("\n"):
+			Logger.error(line)

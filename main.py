@@ -52,5 +52,14 @@ if __name__ == "__main__":
 	app.get_application_config = get_application_config
 	try:
 		app.run()
+	except BaseException as ex:
+		import traceback
+		from io import StringIO
+		from kivy.logger import Logger
+
+		bogus = StringIO()
+		traceback.print_exception(ex, file=bogus)
+		for line in bogus.getvalue().split("\n"):
+			Logger.error(line)
 	finally:
 		app._copy_log_files()
