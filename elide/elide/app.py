@@ -268,7 +268,6 @@ class ElideApp(App):
 				),
 			},
 		)
-		config.write()
 
 	def build(self):
 		self.icon = "icon_24px.png"
