@@ -466,9 +466,9 @@ class MainScreen(Screen):
 			)
 			return
 		if dial.todo:
-			Logger.info(
-				"MainScreen: not advancing time while there's a dialog"
-			)
+			if not dial.children:
+				Logger.info("MainScreen: DialogLayout has todo but no children, advancing.")
+				dial.advance_dialog()
 			Clock.schedule_once(partial(self.next_turn, cb), self.play_speed)
 			return
 		self.tmp_block = True
