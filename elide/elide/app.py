@@ -292,11 +292,12 @@ class ElideApp(App):
 			self.manager.current = "mainscreen"
 			Clock.schedule_once(self.start_game, 0)
 		else:
-			Clock.schedule_once(self.update_root_viewport, 2)
+			Clock.schedule_once(self.update_root_viewport, 3)
 		return self.manager
 
 	def update_root_viewport(self, *_):
 		self.root_window.update_viewport()
+		Logger.debug("ElideApp: updated root viewport")
 
 	def _pull_lang(self, *_, **kwargs):
 		self.strings.language = kwargs["language"]
@@ -766,16 +767,21 @@ class ElideApp(App):
 
 	def on_pause(self):
 		"""Sync the database with the current state of the game."""
+		Logger.debug("ElideApp: pausing")
 		if hasattr(self, "engine"):
 			self.engine.commit()
+			Logger.debug("ElideApp: committed")
 		if hasattr(self, "strings"):
 			self.strings.save()
+			Logger.debug("ElideApp: saved strings")
 		if hasattr(self, "funcs"):
 			self.funcs.save()
+			Logger.debug("ElideApp: saved funcs")
 		self._copy_log_files()
 		return True
 
 	def on_resume(self):
+		Logger.debug("ElideApp: resuming")
 		self.update_root_viewport()
 		return True
 

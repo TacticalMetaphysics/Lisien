@@ -192,6 +192,7 @@ class MainScreen(Screen):
 	own.
 
 	"""
+	name = "mainscreen"
 
 	graphboards = DictProperty()
 	gridboards = DictProperty()
@@ -511,7 +512,7 @@ class MainScreen(Screen):
 		if self.manager.current != "timestream":
 			self.manager.current = "timestream"
 		else:
-			self.manager.current = "main"
+			self.manager.current = "mainscreen"
 
 
 class CharMenuContainer(BoxLayout):
