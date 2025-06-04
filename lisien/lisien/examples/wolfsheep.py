@@ -133,7 +133,7 @@ def install(
 		]
 		engine.shuffle(sickles)
 		species.stat["n_creatures"] += 1
-		name = "critter" + str(species.stat["n_creatures"])
+		name = critter.character.name + str(species.stat["n_creatures"])
 		engine.character["physical"].add_thing(
 			name,
 			critter["location"],
