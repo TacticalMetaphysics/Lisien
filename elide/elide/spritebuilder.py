@@ -38,7 +38,7 @@ from sqlalchemy import and_, bindparam, column
 
 from .kivygarden.texturestack import ImageStack
 from .pallet import Pallet, PalletBox
-from .util import load_string_once
+from .util import store_kv
 
 
 def trigger(func):
@@ -364,7 +364,7 @@ class SpotConfigScreen(Screen):
 	imgpaths = ListProperty()
 
 
-load_string_once("""
+store_kv(__name__, """
 <SpriteDialog>:
 	orientation: 'vertical'
 	SpriteBuilder:

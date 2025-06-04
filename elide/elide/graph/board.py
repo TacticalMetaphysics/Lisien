@@ -50,6 +50,7 @@ from .arrow import (
 )
 from .pawn import Pawn
 from .spot import GraphSpot
+from ..util import store_kv
 
 
 def trigger(func):
@@ -1148,7 +1149,7 @@ class GraphBoardView(BoardView):
 		self.board = GraphBoard(character=character)
 
 
-Builder.load_string("""
+store_kv(__name__, """
 <GraphBoard>:
 	app: app
 	size_hint: None, None

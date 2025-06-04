@@ -4,7 +4,6 @@ from itertools import chain
 from time import monotonic
 
 from kivy.clock import Clock
-from kivy.lang.builder import Builder
 from kivy.logger import Logger
 from kivy.properties import (
 	BooleanProperty,
@@ -20,6 +19,7 @@ from elide.boardscatter import BoardScatterPlane
 
 from ..boardview import BoardView
 from ..kivygarden.texturestack import Stack, TextureStackPlane
+from ..util import store_kv
 
 
 class GridPawn(Stack):
@@ -373,7 +373,7 @@ class GridBoardView(BoardView):
 	pass
 
 
-kv = """
+store_kv(__name__, """
 <GridBoard>:
 	app: app
 	size_hint: None, None
@@ -386,8 +386,4 @@ kv = """
 		scale_max: root.scale_max
 		pos: root.pos
 		size: root.size
-"""
-kv_loaded = False
-if not kv_loaded:
-	Builder.load_string(kv)
-	kv_loaded = True
+""")

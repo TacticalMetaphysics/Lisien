@@ -27,7 +27,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .statlist import BaseStatListView
-from .util import load_string_once
+from .util import store_kv
 
 
 class FloatInput(TextInput):
@@ -254,7 +254,7 @@ class StatScreen(Screen):
 		self.ids.newstatval.text = ""
 
 
-load_string_once("""
+store_kv(__name__, """
 <ConfigListItemCustomization>:
 	pos_hint: {'x': 0, 'y': 0}
 <ConfigListItemToggleButton>:
