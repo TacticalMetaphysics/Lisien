@@ -464,6 +464,7 @@ class ElideApp(App):
 		load_kv("elide.charmenu")
 		load_kv("elide.statcfg")
 		load_kv("elide.stepper")
+		load_kv("elide.dialog")
 		self.mainscreen = elide.screen.MainScreen(
 			use_kv=config["elide"]["user_kv"] == "yes",
 			play_speed=int(config["elide"]["play_speed"]),
