@@ -27,8 +27,6 @@ call its ``start`` method with the same arguments you'd give a real
 
 from __future__ import annotations
 
-from itertools import pairwise
-
 import ast
 import io
 import logging
@@ -38,15 +36,15 @@ import random
 import sys
 import zlib
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, MutableMapping, MutableSequence
+from collections import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
 from inspect import getsource
 from multiprocessing.connection import Connection
-from queue import SimpleQueue, Queue, Empty
+from queue import SimpleQueue, Queue
 from random import Random
 from threading import Lock, Thread
-from time import monotonic, sleep
+from time import monotonic
 from types import MethodType
 from typing import Hashable, Iterator, Optional
 

@@ -20,7 +20,6 @@ from kivy.properties import (
 	StringProperty,
 )
 
-from . import menu  # for kv
 from .kivygarden.texturestack import ImageStack
 from .util import store_kv
 

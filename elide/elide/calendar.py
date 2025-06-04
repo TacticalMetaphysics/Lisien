@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
 
-from kivy.clock import Clock, triggered
+from kivy.clock import Clock
 from kivy.properties import (
 	BooleanProperty,
 	BoundedNumericProperty,
