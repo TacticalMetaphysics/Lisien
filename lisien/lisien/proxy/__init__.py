@@ -36,7 +36,7 @@ import random
 import sys
 import zlib
 from abc import ABC, abstractmethod
-from collections import Mapping, MutableMapping, MutableSequence
+from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
 from inspect import getsource
