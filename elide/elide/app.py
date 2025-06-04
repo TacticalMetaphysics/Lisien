@@ -38,6 +38,7 @@ from kivy.resources import resource_add_path, resource_find
 from kivy.uix.screenmanager import NoTransition, ScreenManager
 
 import elide
+import elide.menu
 import elide.charsview
 import elide.dialog
 import elide.rulesview
