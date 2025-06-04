@@ -22,7 +22,7 @@ from kivy.properties import (
 
 from . import menu  # for kv
 from .kivygarden.texturestack import ImageStack
-from .util import load_string_once
+from .util import store_kv
 
 
 class Dummy(ImageStack):
@@ -89,7 +89,7 @@ class Dummy(ImageStack):
 		return True
 
 
-load_string_once("""
+store_kv(__name__, """
 <Dummy>:
 	name: "".join((self.prefix, str(self.num)))
 	x_center_up: self.x_up + self.width / 2

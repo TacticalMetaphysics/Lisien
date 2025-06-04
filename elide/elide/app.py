@@ -49,6 +49,7 @@ import elide.timestream
 from elide.graph.arrow import GraphArrow
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
+from elide.util import load_kv
 from lisien.proxy import (
 	CharStatProxy,
 	EngineProcessManager,
@@ -213,8 +214,10 @@ class ElideApp(App):
 		if char == self.character:
 			return
 		if char.name not in self.mainscreen.graphboards:
+			load_kv("elide.graph.board")
 			self.mainscreen.graphboards[char.name] = GraphBoard(character=char)
 		if char.name not in self.mainscreen.gridboards:
+			load_kv("elide.grid.board")
 			self.mainscreen.gridboards[char.name] = GridBoard(character=char)
 		self.character = char
 		self.selected_proxy = self._get_selected_proxy()
@@ -282,7 +285,6 @@ class ElideApp(App):
 			from kivy.modules import inspector
 
 			inspector.create_inspector(Window, self.manager)
-
 		self.mainmenu = elide.menu.MainMenuScreen(toggle=self._toggler("main"))
 		self.manager.add_widget(self.mainmenu)
 		if self.immediate_start:
@@ -294,7 +296,6 @@ class ElideApp(App):
 		return self.manager
 
 	def update_root_viewport(self, *_):
-		Logger.debug("ElideApp: updating root viewport")
 		self.root_window.update_viewport()
 
 	def _pull_lang(self, *_, **kwargs):
@@ -375,10 +376,12 @@ class ElideApp(App):
 		self.chars.names = char_names = list(self.engine.character)
 		for name in char_names:
 			if name not in self.mainscreen.graphboards:
+				load_kv("elide.graph.board")
 				self.mainscreen.graphboards[name] = GraphBoard(
 					character=self.engine.character[name]
 				)
 			if name not in self.mainscreen.gridboards:
+				load_kv("elide.grid.board")
 				self.mainscreen.gridboards[name] = GridBoard(
 					character=self.engine.character[name]
 				)
@@ -407,6 +410,7 @@ class ElideApp(App):
 				["Custom pawns", "custom_pawn_imgs/custom.atlas"]
 			] + pawndata
 
+		load_kv("elide.spritebuilder")
 		self.pawncfg = elide.spritebuilder.PawnConfigScreen(
 			toggle=toggler("pawncfg"),
 			data=pawndata,
@@ -423,15 +427,16 @@ class ElideApp(App):
 			data=spotdata,
 		)
 
+		load_kv("elide.statcfg")
 		self.statcfg = elide.statcfg.StatScreen(toggle=toggler("statcfg"))
-
+		load_kv("elide.rulesview")
 		self.rules = elide.rulesview.RulesScreen(toggle=toggler("rules"))
 
 		self.charrules = elide.rulesview.CharacterRulesScreen(
 			character=self.character, toggle=toggler("charrules")
 		)
 		self.bind(character=self.charrules.setter("character"))
-
+		load_kv("elide.charsview")
 		self.chars = elide.charsview.CharactersScreen(
 			toggle=toggler("chars"), new_board=self.new_board
 		)
@@ -443,7 +448,7 @@ class ElideApp(App):
 			self.bind(character_name=self.chars.setter("character_name"))
 
 		self.chars.push_character_name = chars_push_character_name
-
+		load_kv("elide.stores")
 		self.strings = elide.stores.StringsEdScreen(toggle=toggler("strings"))
 
 		self.funcs = elide.stores.FuncsEdScreen(
@@ -451,11 +456,14 @@ class ElideApp(App):
 		)
 
 		self.bind(selected_proxy=self.statcfg.setter("proxy"))
-
+		load_kv("elide.timestream")
 		self.timestream = elide.timestream.TimestreamScreen(
 			name="timestream", toggle=toggler("timestream")
 		)
-
+		load_kv("elide.screen")
+		load_kv("elide.charmenu")
+		load_kv("elide.statcfg")
+		load_kv("elide.stepper")
 		self.mainscreen = elide.screen.MainScreen(
 			use_kv=config["elide"]["user_kv"] == "yes",
 			play_speed=int(config["elide"]["play_speed"]),

@@ -44,7 +44,7 @@ from kivy.utils import get_hex_from_color
 from pygments.formatters.bbcode import BBCodeFormatter
 from pygments.lexers import PythonLexer
 
-from .util import load_string_once
+from .util import store_kv
 
 dbg = Logger.debug
 
@@ -1065,7 +1065,7 @@ class DeckBuilderScrollBar(FloatLayout):
 		self.scrolling = False
 
 
-load_string_once("""
+store_kv(__name__, """
 <ColorTextureBox>:
 	canvas:
 		Color:

@@ -23,7 +23,7 @@ from kivy.uix.boxlayout import BoxLayout
 from lisien.proxy import CharStatProxy
 
 from .graph.arrow import GraphArrowWidget
-from .util import dummynum, load_string_once
+from .util import dummynum, store_kv
 
 
 def trigger(func):
@@ -231,7 +231,7 @@ class CharMenu(BoxLayout):
 		self.app.selection = None
 
 
-load_string_once("""
+store_kv(__name__, """
 <CharMenu>:
 	orientation: 'vertical'
 	dummyplace: dummyplace

@@ -18,7 +18,7 @@ from networkx import grid_2d_graph
 
 from lisien.character import grid_2d_8graph
 
-from .util import load_string_once
+from .util import store_kv
 
 
 class GridGeneratorDialog(BoxLayout):
@@ -45,7 +45,7 @@ class GridGeneratorDialog(BoxLayout):
 		return self.directions and int(self.xval) and int(self.yval)
 
 
-load_string_once("""
+store_kv(__name__, """
 <GridGeneratorDialog>:
 	directions: 4 if but4.state == 'down' else 8
 	orientation: 'vertical'

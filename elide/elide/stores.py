@@ -46,7 +46,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import load_string_once
+from .util import store_kv
 
 
 def trigger(func):
@@ -606,7 +606,7 @@ class FuncsEdScreen(Screen):
 		self.ids.actions.save()
 
 
-load_string_once("""
+store_kv(__name__, """
 #: import py3lexer pygments.lexers.Python3Lexer
 <StoreButton>:
 	size_hint_y: None

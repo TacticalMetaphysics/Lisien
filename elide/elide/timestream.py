@@ -30,7 +30,7 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
-from .util import load_string_once
+from .util import store_kv
 
 
 def trigger(func):
@@ -366,7 +366,7 @@ class TimestreamScreen(Screen):
 		self.timestream.disabled = False
 
 
-load_string_once(r"""
+store_kv(__name__, r"""
 <ThornyRectangle>:
 	text: f"{self.branch}\n{int(self.turn)}"
 <Timestream>:

@@ -38,7 +38,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
-from elide.util import load_string_once
+from elide.util import store_kv
 
 
 class CalendarWidget(Widget, RecycleDataViewBehavior):
@@ -450,7 +450,7 @@ class Calendar(RecycleView, CalendarBehavior):
 		self.data = data
 
 
-load_string_once("""
+store_kv(__name__, """
 <Agenda>:
 	key_viewclass: 'widget'
 	RecycleGridLayout:

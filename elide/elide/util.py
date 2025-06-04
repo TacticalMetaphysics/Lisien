@@ -13,18 +13,30 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from kivy.lang import Builder
+from kivy.logger import Logger
 from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 
 loaded_kv = set()
+KV = {}
 
 
-def load_string_once(kv: str) -> None:
-	if kv in loaded_kv:
+def store_kv(name: str, kv: str) -> None:
+	if name in KV:
+		raise KeyError("Already have that kv", name)
+	print("storing kv: " + name)
+	KV[name] = kv
+
+def load_kv(name: str) -> None:
+	if name in loaded_kv:
 		return
-	Builder.load_string(kv)
-	loaded_kv.add(kv)
+	if name not in KV:
+		Logger.error("No kv: " + name)
+		Logger.error("I've stored: " + ", ".join(KV.keys()))
+	print("loading kv: " + name)
+	Builder.load_string(KV[name])
+	loaded_kv.add(name)
 
 
 class SelectableRecycleBoxLayout(

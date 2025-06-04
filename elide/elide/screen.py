@@ -51,7 +51,7 @@ from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .stepper import RuleStepper
-from .util import dummynum, load_string_once
+from .util import dummynum, store_kv
 
 
 def trigger(func):
@@ -633,7 +633,7 @@ class TurnScroll(Slider):
 			app.engine.time.connect(self._receive_time)
 
 
-load_string_once("""
+store_kv(__name__, """
 #: import resource_find kivy.resources.resource_find
 <StatListPanel>:
 	orientation: 'vertical'

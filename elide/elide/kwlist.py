@@ -15,14 +15,14 @@
 from kivy.properties import ListProperty
 from kivy.uix.modalview import ModalView
 
-from .util import load_string_once
+from .util import store_kv
 
 
 class KeywordListModal(ModalView):
 	data = ListProperty([])
 
 
-Builder.load_string("""
+store_kv(__name__, """
 <KeywordListModal>:
 	size_hint_x: 0.6
 	BoxLayout:
