@@ -24,16 +24,14 @@ from kivy.properties import ObjectProperty, OptionProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
-from kivy.uix.filechooser import FileChooserIconView, FileSystemAbstract
+from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
-from sqlalchemy import and_, column, bindparam
 
 from .gen import GridGeneratorDialog
-from .util import store_kv
 
 
 class MenuTextInput(TextInput):

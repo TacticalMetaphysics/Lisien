@@ -18,7 +18,6 @@ from functools import partial
 from time import monotonic
 
 from kivy.clock import Clock, mainthread, triggered
-from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import (
 	BooleanProperty,
