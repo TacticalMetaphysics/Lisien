@@ -291,7 +291,10 @@ class DialogLayout(FloatLayout):
 				"Don't know how to turn {} into a dialog".format(type(diargs))
 			)
 		if dia.parent != self:
+			Logger.debug("DialogLayout: Adding the dialog to the layout")
 			self.add_widget(dia)
+		else:
+			Logger.debug("DialogLayout: Dialog is already in the layout")
 
 	def ok(self, *_, cb=None, cb2=None):
 		"""Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue
