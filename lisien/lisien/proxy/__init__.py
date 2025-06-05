@@ -4472,8 +4472,8 @@ class EngineProcessManager:
 				eternal=eternal_d,
 			)
 			self.logger.debug("EngineProcessManager: made engine proxy")
-			mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
-			core_service = autoclass("org.tacmeta.elide.ServiceCore")
+			mActivity = self._mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
+			core_service = self._core_service = autoclass("org.tacmeta.elide.ServiceCore")
 			argument = repr(
 				[
 					low_port,
@@ -4669,6 +4669,7 @@ class EngineProcessManager:
 			del self.engine_proxy
 		if hasattr(self, "_client"):
 			self._client.send_message("/shutdown", "")
+			self._core_service.stop(self._mActivity)
 		if hasattr(self, "_server"):
 			self._server.shutdown()
 

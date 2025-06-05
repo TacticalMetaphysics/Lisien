@@ -226,6 +226,7 @@ class ElideApp(App):
 
 	def build_config(self, config):
 		"""Set config defaults"""
+		Logger.debug("ElideApp: build_config")
 		for sec in "lisien", "elide":
 			config.adddefaultsection(sec)
 		config.setdefaults(
@@ -271,6 +272,7 @@ class ElideApp(App):
 		)
 
 	def build(self):
+		Logger.debug("ElideApp: build")
 		self.icon = "icon_24px.png"
 		config = self.config
 
@@ -315,6 +317,7 @@ class ElideApp(App):
 		Must be called before ``init_board``
 
 		"""
+		Logger.debug(f"ElideApp: start_subprocess(path={path!r})")
 		if hasattr(self, "procman") and hasattr(self.procman, "engine_proxy"):
 			raise ChildProcessError("Subprocess already running")
 		config = self.config
@@ -374,6 +377,7 @@ class ElideApp(App):
 		Must be called after start_subprocess
 
 		"""
+		Logger.debug("ElideApp: init_board")
 		self.chars.names = char_names = list(self.engine.character)
 		for name in char_names:
 			if name not in self.mainscreen.graphboards:
@@ -401,6 +405,7 @@ class ElideApp(App):
 		return tog
 
 	def _add_screens(self, *_):
+		Logger.debug("ElideApp: _add_screens")
 		toggler = self._toggler
 		config = self.config
 
@@ -492,6 +497,7 @@ class ElideApp(App):
 			self.manager.add_widget(wid)
 
 	def _remove_screens(self):
+		Logger.debug("ElideApp: _remove_screens")
 		for widname in (
 			"mainscreen",
 			"pawncfg",
@@ -508,6 +514,7 @@ class ElideApp(App):
 			self.manager.remove_widget(wid)
 
 	def start_game(self, *_, name=None, cb=None):
+		Logger.debug(f"ElideApp: start_game(name={name!r}, cb={cb!r})")
 		if hasattr(self, "engine"):
 			Logger.error("Already started the game")
 			raise RuntimeError("Already started the game")
@@ -535,6 +542,7 @@ class ElideApp(App):
 		return engine
 
 	def close_game(self, *_, cb=None):
+		Logger.debug(f"ElideApp: close_game(cb={cb!r})")
 		self.mainmenu.invalidate_popovers()
 		self.manager.current = "main"
 		if hasattr(self, "procman"):
@@ -565,6 +573,9 @@ class ElideApp(App):
 
 	def update_calendar(self, calendar, past_turns=1, future_turns=5):
 		"""Fill in a calendar widget with actual simulation data"""
+		Logger.debug(f"ElideApp: update_calendar({calendar!r}, "
+		             f"past_turns={past_turns!r}, "
+		             f"future_turns={future_turns!r})")
 		startturn = self.turn - past_turns
 		endturn = self.turn + future_turns
 		stats = [
@@ -601,6 +612,7 @@ class ElideApp(App):
 		self.engine.string.language = lang
 
 	def _get_selected_proxy(self):
+		Logger.debug("ElideApp: _get_selected_proxy")
 		if self.selection is None:
 			return self.character.stat
 		elif hasattr(self.selection, "proxy"):
@@ -619,6 +631,7 @@ class ElideApp(App):
 
 	def on_character_name(self, *_):
 		if not hasattr(self, "engine"):
+			Logger.debug("ElideApp: got character name before engine")
 			Clock.schedule_once(self.on_character_name, 0)
 			return
 		self.engine.eternal["boardchar"] = self.engine.character[
@@ -627,8 +640,10 @@ class ElideApp(App):
 
 	def on_character(self, *_):
 		if not hasattr(self, "mainscreen"):
+			Logger.debug("ElideApp: got character before mainscreen")
 			Clock.schedule_once(self.on_character, 0)
 			return
+		Logger.debug("ElideApp: changed character, deselecting")
 		if hasattr(self, "_oldchar"):
 			self.mainscreen.graphboards[self._oldchar.name].unbind(
 				selection=self.setter("selection")
@@ -649,6 +664,7 @@ class ElideApp(App):
 		filename: str,
 		mimetype: str | None = None,
 	) -> None:
+		Logger.debug(f"ElideApp: copy_to_shared_storage({filename!r}, {mimetype!r})")
 		try:
 			from android import autoclass, mActivity
 			from android.permissions import request_permissions, Permission
@@ -708,6 +724,7 @@ class ElideApp(App):
 		reader.close()
 
 	def _copy_log_files(self):
+		Logger.debug("ElideApp: _copy_log_files")
 		try:
 			from android.storage import app_storage_path
 
@@ -778,6 +795,7 @@ class ElideApp(App):
 			self.funcs.save()
 			Logger.debug("ElideApp: saved funcs")
 		self._copy_log_files()
+		Logger.debug("ElideApp: paused")
 		return True
 
 	def on_resume(self):
@@ -787,14 +805,17 @@ class ElideApp(App):
 
 	def on_stop(self, *largs):
 		"""Sync the database, wrap up the game, and halt."""
+		Logger.debug("ElideApp: stopping")
 		if hasattr(self, "stopped"):
 			return
 		self.stopped = True
 		self.close_game()
+		Logger.debug("ElideApp: stopped")
 		return True
 
 	def delete_selection(self):
 		"""Delete both the selected widget and whatever it represents."""
+		Logger.debug("ElideApp: delete_selection")
 		selection = self.selection
 		if selection is None:
 			return
@@ -819,13 +840,16 @@ class ElideApp(App):
 			self.mainscreen.gridboards[charn].rm_pawn(selection.name)
 			selection.proxy.delete()
 		self.selection = None
+		Logger.debug("ElideApp: selection deleted")
 
 	def new_board(self, name):
 		"""Make a graph for a character name, and switch to it."""
+		Logger.debug(f"ElideApp: new_board({name!r})")
 		char = self.engine.character[name]
 		self.mainscreen.graphboards[name] = GraphBoard(character=char)
 		self.mainscreen.gridboards[name] = GridBoard(character=char)
 		self.character = char
+		Logger.debug("ElideApp: made new board for %s", name)
 
 	def on_edit_locked(self, *_):
 		Logger.debug(
