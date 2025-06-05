@@ -232,6 +232,8 @@ class GameList(RecycleView):
 			Logger.debug("GameList: awaiting picker")
 			Clock.schedule_once(self.on_path, 0)
 			return
+		if not os.path.isdir(self.path):
+			return
 		self.data = [
 			{
 				"text": game.removesuffix(".zip"),
