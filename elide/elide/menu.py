@@ -138,6 +138,19 @@ class GameExporterModal(GamePickerModal):
 		)
 		self.dismiss()
 
+	def regen(self):
+		if not hasattr(self, "_game_list"):
+			return
+		self._game_list.regen()
+
+	def on_pre_open(self):
+		if hasattr(self, "_game_list") or "picker_goes_here" not in self.ids:
+			return
+		app = App.get_running_app()
+		self._game_list = GameList(picker=self, path=app.games_dir)
+		self._game_list.regen()
+		self.ids.picker_goes_here.add_widget(self._game_list)
+
 
 class GameImporterModal(GamePickerModal):
 	@triggered()
@@ -223,8 +236,6 @@ class GameList(RecycleView):
 		self.bind(picker=self._trigger_regen, path=self._trigger_regen)
 
 	def regen(self, *_):
-		if not os.path.isdir(self.path):
-			return
 		if not self.picker:
 			Logger.debug("GameList: awaiting picker")
 			Clock.schedule_once(self.on_path, 0)
@@ -237,9 +248,10 @@ class GameList(RecycleView):
 				),
 			}
 			for game in filter(
-				lambda game: not game.startswith("."), os.listdir(self.path)
+				lambda game: game.endswith(".zip") and not game.startswith("."), os.listdir(self.path or ".")
 			)
 		]
+		Logger.debug(f"GameList: generated {len(self.data)} entries")
 
 
 class NewGameModal(ModalView):
@@ -371,6 +383,7 @@ class MainMenuScreen(Screen):
 			self._popover_export_game = GameExporterModal(
 				headline="Pick game to export"
 			)
+		self._popover_export_game.regen()
 		self._popover_export_game.open()
 
 	@trigger

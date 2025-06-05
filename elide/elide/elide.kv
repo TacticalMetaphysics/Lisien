@@ -117,3 +117,22 @@
 			Button:
 				text: 'OK'
 				on_release: root.pick(root._file_chooser.selection)
+<GameExporterModal>:
+	size_hint_x: 0.6
+	BoxLayout:
+		orientation: 'vertical'
+		Label:
+			text: root.headline
+			size_hint_y: 0.1
+			font_size: self.height
+		RelativeLayout:
+			id: picker_goes_here
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint_y: 0.1
+			Button:
+				text: 'Cancel'
+				on_release: root.dismiss()
+			Button:
+				text: 'OK'
+				on_release: root.pick(root._game_list.selection)
