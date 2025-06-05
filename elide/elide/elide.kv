@@ -125,8 +125,11 @@
 			text: root.headline
 			size_hint_y: 0.1
 			font_size: self.height
-		RelativeLayout:
-			id: game_list_goes_here
+		GameList:
+			id: game_list
+			path: app.games_dir
+			picker: root
+			size_hint_y: 0.8
 		BoxLayout:
 			orientation: 'horizontal'
 			size_hint_y: 0.1
