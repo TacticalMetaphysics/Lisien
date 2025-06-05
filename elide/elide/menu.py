@@ -139,17 +139,9 @@ class GameExporterModal(GamePickerModal):
 		self.dismiss()
 
 	def regen(self):
-		if not hasattr(self, "_game_list"):
+		if "game_list" not in self.ids:
 			return
-		self._game_list.regen()
-
-	def on_pre_open(self):
-		if hasattr(self, "_game_list") or "game_list_goes_here" not in self.ids:
-			return
-		app = App.get_running_app()
-		self._game_list = GameList(picker=self, path=app.games_dir)
-		self._game_list.regen()
-		self.ids.game_list_goes_here.add_widget(self._game_list)
+		self.ids.game_list.regen()
 
 
 class GameImporterModal(GamePickerModal):
