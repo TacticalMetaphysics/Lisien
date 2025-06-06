@@ -539,8 +539,11 @@ class ElideApp(App):
 		self.manager.current = "mainscreen"
 		engine = self.engine = self.start_subprocess(gamedir)
 		if "boardchar" in engine.eternal:
+			boardchar = engine.eternal["boardchar"]
+			if hasattr(boardchar, "name"):
+				boardchar = boardchar.name
 			self.select_character(
-				engine.character[engine.eternal["boardchar"]]
+				engine.character[boardchar]
 			)
 		elif "physical" in engine.character:
 			self.select_character(engine.character["physical"])
