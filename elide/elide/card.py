@@ -794,7 +794,7 @@ class DeckBuilderLayout(Layout):
 
 	def do_layout(self, *args):
 		"""Layout each of my decks"""
-		if self.size == [1, 1]:
+		if self.size == [1, 1] or not self.decks:
 			return
 		for i in range(0, len(self.decks)):
 			self.layout_deck(i)
