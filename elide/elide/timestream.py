@@ -30,7 +30,7 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
-from .util import store_kv
+from .util import store_kv, logwrap
 
 
 def trigger(func):
@@ -67,12 +67,14 @@ class ThornyRectangle(Button):
 		)
 		self._trigger_redraw()
 
+	@logwrap(section="ThornyRectangle")
 	def collide_point(self, x, y):
 		return (
 			self.x + self.left_margin < x < self.right - self.right_margin
 			and self.y + self.bottom_margin < y < self.top - self.top_margin
 		)
 
+	@logwrap(section="ThornyRectangle")
 	def _redraw_line(self, enabled, name, point_lambda):
 		if enabled:
 			points = point_lambda()
@@ -120,6 +122,7 @@ class ThornyRectangle(Button):
 			self.y + self.bottom_margin,
 		]
 
+	@logwrap(section="ThornyRectangle")
 	def _redraw(self, *_):
 		self._color = Color(rgba=[1, 1, 1, 1])
 		if self._color not in self.canvas.children:
@@ -155,6 +158,7 @@ class ThornyRectangle(Button):
 
 	_trigger_redraw = trigger(_redraw)
 
+	@logwrap(section="ThornyRectangle")
 	def on_release(self):
 		if self.branch is None or self.turn is None:
 			return
@@ -185,6 +189,7 @@ class Cross(Widget):
 			pos=self._trigger_redraw,
 		)
 
+	@logwrap(section="Cross")
 	def _draw_line(self, enabled, name, get_points):
 		if enabled:
 			points = get_points()
@@ -212,6 +217,7 @@ class Cross(Widget):
 	def _get_down_points(self):
 		return [self.center_x, self.center_y, self.center_x, self.y]
 
+	@logwrap(section="Cross")
 	def _redraw(self, *_):
 		self._draw_line(self.draw_left, "_left_line", self._get_left_points)
 		self._draw_line(self.draw_right, "_right_line", self._get_right_points)
@@ -228,6 +234,7 @@ class Timestream(RecycleView):
 	)  # should be equal to the number of turns on which branches were created + 1
 
 
+@logwrap(section="elide.timestream")
 def _data_and_cols_from_branches(branches):
 	start_turn_branches = defaultdict(set)
 	end_turn_branches = defaultdict(set)
@@ -351,6 +358,7 @@ class TimestreamScreen(Screen):
 	timestream = ObjectProperty()
 	_thread: Thread
 
+	@logwrap(section="TimestreamScreen")
 	def on_pre_enter(self, *_):
 		self.timestream.disabled = True
 		self._thread = Thread(target=self._get_data)

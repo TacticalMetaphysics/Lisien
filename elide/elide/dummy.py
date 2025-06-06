@@ -12,6 +12,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from functools import partial
+
 from kivy.logger import Logger
 from kivy.properties import (
 	NumericProperty,
@@ -21,7 +23,10 @@ from kivy.properties import (
 )
 
 from .kivygarden.texturestack import ImageStack
-from .util import store_kv
+from .util import store_kv, logwrap
+
+
+wraplog_Dummy = partial(logwrap, section="Dummy")
 
 
 class Dummy(ImageStack):
@@ -49,10 +54,12 @@ class Dummy(ImageStack):
 	right_up = NumericProperty(0)
 	top_up = NumericProperty(0)
 
+	@logwrap(section="Dummy")
 	def on_paths(self, *args, **kwargs):
 		super().on_paths(*args, **kwargs)
 		Logger.debug("Dummy: {} got paths {}".format(self.name, self.paths))
 
+	@logwrap(section="Dummy")
 	def on_touch_down(self, touch):
 		"""If hit, record my starting position, that I may return to it in
 		``on_touch_up`` after creating a real :class:`graph.Spot` or
@@ -67,6 +74,7 @@ class Dummy(ImageStack):
 		self._touch = touch
 		return True
 
+	@logwrap(section="Dummy")
 	def on_touch_move(self, touch):
 		"""Follow the touch"""
 		if touch is not self._touch:
@@ -74,6 +82,7 @@ class Dummy(ImageStack):
 		self.pos = (touch.x + self.x_down, touch.y + self.y_down)
 		return True
 
+	@logwrap(section="Dummy")
 	def on_touch_up(self, touch):
 		"""Return to ``pos_start``, but first, save my current ``pos`` into
 		``pos_up``, so that the layout knows where to put the real

@@ -51,7 +51,7 @@ from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .stepper import RuleStepper
-from .util import dummynum, store_kv
+from .util import dummynum, store_kv, logwrap
 
 
 def trigger(func):
@@ -88,10 +88,12 @@ class StatListPanel(BoxLayout):
 	proxy = ObjectProperty()
 	toggle_stat_cfg = ObjectProperty()
 
+	@logwrap(section="StatListPanel")
 	def on_proxy(self, *_):
 		if hasattr(self.proxy, "name"):
 			self.selection_name = str(self.proxy.name)
 
+	@logwrap(section="StatListPanel")
 	def set_value(self, k, v):
 		if v is None:
 			del self.proxy[k]
@@ -104,6 +106,7 @@ class StatListPanel(BoxLayout):
 
 
 class SimulateButton(ToggleButton):
+	@logwrap(section="SimulateButton")
 	def on_state(self, *_):
 		app = App.get_running_app()
 		app.edit_locked = app.simulate_button_down = self.state == "down"
@@ -112,6 +115,7 @@ class SimulateButton(ToggleButton):
 class OneTurnButton(Button):
 	screen = ObjectProperty()
 
+	@logwrap(section="OneTurnButton")
 	def on_release(self):
 		App.get_running_app().edit_locked = True
 		self.screen.next_turn(cb=release_edit_lock)
@@ -135,18 +139,21 @@ class TimePanel(BoxLayout):
 	buttons_font_size = NumericProperty(18)
 	disable_one_turn = BooleanProperty()
 
+	@logwrap(section="TimePanel")
 	def set_branch(self, *_):
 		branch = self.ids.branchfield.text
 		self.ids.branchfield.text = ""
 		self.screen.app.branch = branch
 		self.screen.charmenu.switch_to_menu()
 
+	@logwrap(section="TimePanel")
 	def set_turn(self, *_):
 		turn = int(self.ids.turnfield.text)
 		self.ids.turnfield.text = ""
 		self.screen.app.set_turn(turn)
 		self.screen.charmenu.switch_to_menu()
 
+	@logwrap(section="TimePanel")
 	def set_tick(self, *_):
 		tick = int(self.ids.tickfield.text)
 		self.ids.tickfield.text = ""
@@ -154,17 +161,21 @@ class TimePanel(BoxLayout):
 		self.screen.charmenu.switch_to_menu()
 
 	@mainthread
+	@logwrap(section="TimePanel")
 	def _upd_branch_hint(self, app, *_):
 		self.ids.branchfield.hint_text = app.branch
 
 	@mainthread
+	@logwrap(section="TimePanel")
 	def _upd_turn_hint(self, app, *_):
 		self.ids.turnfield.hint_text = str(app.turn)
 
 	@mainthread
+	@logwrap(section="TimePanel")
 	def _upd_tick_hint(self, app, *_):
 		self.ids.tickfield.hint_text = str(app.tick)
 
+	@logwrap(section="TimePanel")
 	def on_screen(self, *_):
 		if not all(
 			field in self.ids
@@ -222,15 +233,18 @@ class MainScreen(Screen):
 	def app(self):
 		return App.get_running_app()
 
+	@logwrap(section="TimePanel")
 	def _update_adding_portal(self, *_):
 		self.boardview.adding_portal = (
 			self.charmenu.portaladdbut.state == "down"
 		)
 
+	@logwrap(section="TimePanel")
 	def _update_board(self, *_):
 		self.boardview.board = self.graphboards[self.app.character_name]
 		self.gridview.board = self.gridboards[self.app.character_name]
 
+	@logwrap(section="TimePanel")
 	def populate(self, *_):
 		if hasattr(self, "_populated"):
 			return
@@ -290,6 +304,7 @@ class MainScreen(Screen):
 		self.mainview.add_widget(self.boardview)
 		self._populated = True
 
+	@logwrap(section="TimePanel")
 	def on_statpanel(self, *_):
 		if not self.app:
 			Clock.schedule_once(self.on_statpanel, 0)
@@ -302,6 +317,7 @@ class MainScreen(Screen):
 		)
 
 	@trigger
+	@logwrap(section="TimePanel")
 	def _update_statlist(self, *_):
 		if not self.app or not hasattr(self.app, "engine"):
 			return
@@ -312,18 +328,21 @@ class MainScreen(Screen):
 			self.statpanel.statlist, past_turns=0, future_turns=0
 		)
 
+	@logwrap(section="TimePanel")
 	def pull_visibility(self, *_):
 		if not self.manager:
 			self.visible = False
 			return
 		self.visible = self.manager.current == "main"
 
+	@logwrap(section="TimePanel")
 	def on_manager(self, *_):
 		if not self.manager:
 			return
 		self.pull_visibility()
 		self.manager.bind(current=self.pull_visibility)
 
+	@logwrap(section="TimePanel")
 	def on_playbut(self, *_):
 		if hasattr(self, "_play_scheduled"):
 			return
@@ -331,6 +350,7 @@ class MainScreen(Screen):
 			self.play, 1.0/self.play_speed
 		)
 
+	@logwrap(section="TimePanel")
 	def on_play_speed(self, *_):
 		"""Change the interval at which ``self.play`` is called to match my
 		current ``play_speed``.
@@ -342,6 +362,7 @@ class MainScreen(Screen):
 			self.play, 1.0 / self.play_speed
 		)
 
+	@logwrap(section="TimePanel")
 	def remake_display(self, *_):
 		"""Remake any affected widgets after a change in my ``kv``."""
 		Builder.load_string(self.kv)
@@ -353,6 +374,7 @@ class MainScreen(Screen):
 
 	_trigger_remake_display = trigger(remake_display)
 
+	@logwrap(section="TimePanel")
 	def on_touch_down(self, touch):
 		if self.visible:
 			touch.grab(self)
@@ -374,6 +396,7 @@ class MainScreen(Screen):
 			return True
 		return self.mainview.dispatch("on_touch_down", touch)
 
+	@logwrap(section="TimePanel")
 	def on_touch_up(self, touch):
 		if self.timepanel.collide_point(*touch.pos):
 			return self.timepanel.dispatch("on_touch_up", touch)
@@ -385,6 +408,7 @@ class MainScreen(Screen):
 			return self.statpanel.dispatch("on_touch_up", touch)
 		return self.mainview.dispatch("on_touch_up", touch)
 
+	@logwrap(section="TimePanel")
 	def on_dummies(self, *_):
 		"""Give the dummies numbers such that, when appended to their names,
 		they give a unique name for the resulting new
@@ -410,17 +434,20 @@ class MainScreen(Screen):
 			dummy.bind(prefix=partial(renum_dummy, dummy))
 			dummy._numbered = True
 
+	@logwrap(section="TimePanel")
 	def update_from_time_travel(
 		self, command, branch, turn, tick, result, **kwargs
 	):
 		self._update_from_delta(command, branch, turn, tick, result[-1])
 
+	@logwrap(section="TimePanel")
 	def _update_from_delta(self, cmd, branch, turn, tick, delta, **kwargs):
 		self.app.branch = branch
 		self.app.turn = turn
 		self.app.tick = tick
 		self.statpanel.statlist.mirror = dict(self.app.selected_proxy)
 
+	@logwrap(section="TimePanel")
 	def play(self, *_):
 		"""If the 'play' button is pressed, advance a turn.
 
@@ -440,6 +467,7 @@ class MainScreen(Screen):
 			return
 		self.next_turn(cb=release_edit_lock)
 
+	@logwrap(section="TimePanel")
 	def _update_from_next_turn(
 		self, command, branch, turn, tick, result, cb=None
 	):
@@ -453,6 +481,7 @@ class MainScreen(Screen):
 			cb(command, branch, turn, tick, result)
 		self.tmp_block = False
 
+	@logwrap(section="TimePanel")
 	def next_turn(self, cb=None, *_):
 		"""Advance time by one turn, if it's not blocked.
 
@@ -480,11 +509,13 @@ class MainScreen(Screen):
 		self._next_turn_thread.start()
 		self.ids.charmenu.switch_to_menu()
 
+	@logwrap(section="TimePanel")
 	def switch_to_calendar(self, *_):
 		self.app.update_calendar(self.calendar)
 		self.mainview.clear_widgets()
 		self.mainview.add_widget(self.calendar_view)
 
+	@logwrap(section="TimePanel")
 	def switch_to_boardview(self, *_):
 		self.mainview.clear_widgets()
 		self.app.engine.handle(
@@ -492,6 +523,7 @@ class MainScreen(Screen):
 		)
 		self.mainview.add_widget(self.boardview)
 
+	@logwrap(section="TimePanel")
 	def toggle_gridview(self, *_):
 		if self.gridview in self.mainview.children:
 			self.mainview.clear_widgets()
@@ -500,6 +532,7 @@ class MainScreen(Screen):
 			self.mainview.clear_widgets()
 			self.mainview.add_widget(self.gridview)
 
+	@logwrap(section="TimePanel")
 	def toggle_calendar(self, *_):
 		# TODO decide how to handle switching between >2 view types
 		if self.boardview in self.mainview.children:
@@ -508,6 +541,7 @@ class MainScreen(Screen):
 			self.switch_to_boardview()
 
 	@trigger
+	@logwrap(section="TimePanel")
 	def toggle_timestream(self, *_):
 		if self.manager.current != "timestream":
 			self.manager.current = "timestream"
@@ -552,6 +586,7 @@ class CharMenuContainer(BoxLayout):
 			edit_locked=self.button.setter("disabled"),
 		)
 
+	@logwrap(section="TimePanel")
 	def on_parent(self, *_):
 		if (
 			not self.screen
@@ -565,6 +600,7 @@ class CharMenuContainer(BoxLayout):
 		self.add_widget(self.button)
 
 	@trigger
+	@logwrap(section="TimePanel")
 	def _toggle_stepper(self, *_):
 		if self.charmenu in self.children:
 			engine = self.screen.app.engine
@@ -581,6 +617,7 @@ class CharMenuContainer(BoxLayout):
 		self.add_widget(self.button)
 
 	@trigger
+	@logwrap(section="TimePanel")
 	def switch_to_menu(self, *args):
 		if self.charmenu not in self.children:
 			self.clear_widgets()
@@ -595,6 +632,7 @@ class TurnScroll(Slider):
 		super().__init__(**kwargs)
 		self._collect_engine()
 
+	@logwrap(section="TimePanel")
 	def _collect_engine(self, *args):
 		app = App.get_running_app()
 		if not hasattr(app, "engine"):
@@ -606,6 +644,7 @@ class TurnScroll(Slider):
 		self.value = engine.turn
 		engine.time.connect(self._receive_time)
 
+	@logwrap(section="TimePanel")
 	def _receive_time(self, engine, then, now):
 		(_, turn, _) = now
 		self.value = turn
@@ -618,6 +657,7 @@ class TurnScroll(Slider):
 		except KeyError:
 			self.max = turn
 
+	@logwrap(section="TimePanel")
 	def on_touch_move(self, touch):
 		if touch.grab_current == self:
 			app = App.get_running_app()
@@ -626,6 +666,7 @@ class TurnScroll(Slider):
 			)
 		return super().on_touch_move(touch)
 
+	@logwrap(section="TimePanel")
 	def on_touch_up(self, touch):
 		if touch.grab_current == self:
 			app = App.get_running_app()

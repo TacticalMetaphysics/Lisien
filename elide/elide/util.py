@@ -12,11 +12,17 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from functools import wraps, partial
+
+from kivy import Logger
+from kivy.app import App
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
+
+from lisien.util import repr_call_sig
 
 loaded_kv = set()
 KV = {}
@@ -61,3 +67,22 @@ def dummynum(character, name):
 			continue
 		num = max((nodenum, num))
 	return num
+
+
+def logwrap(func=None, *, section="ElideApp"):
+	if func is None:
+		return partial(logwrap, section=section)
+
+	@wraps(func)
+	def fn(*args, **kwargs):
+		Logger.debug(section + ": " + repr_call_sig(func, *args, **kwargs))
+		try:
+			ret = func(*args, **kwargs)
+		finally:
+			for handler in Logger.handlers:
+				# ensure any files get sync'd
+				if hasattr(handler, "fd"):
+					handler.fd.flush()
+		return ret
+
+	return fn

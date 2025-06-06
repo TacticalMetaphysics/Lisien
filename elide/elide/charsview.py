@@ -20,7 +20,7 @@ from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
-from .util import SelectableRecycleBoxLayout, store_kv
+from .util import SelectableRecycleBoxLayout, store_kv, logwrap
 
 # TODO: Visual preview
 # TODO: Background image chooser
@@ -29,6 +29,7 @@ from .util import SelectableRecycleBoxLayout, store_kv
 class CharactersRecycleBoxLayout(SelectableRecycleBoxLayout):
 	character_name = StringProperty()
 
+	@partial(logwrap, section="CharactersRecycleBoxLayout")
 	def apply_selection(self, index, view, is_selected):
 		super().apply_selection(index, view, is_selected)
 		if is_selected:
@@ -57,6 +58,7 @@ class CharactersScreen(Screen):
 	def engine(self):
 		return App.get_running_app().engine
 
+	@logwrap(section="CharactersScreen")
 	def new_character(self, name, *_):
 		self.engine.add_character(name)
 		self.ids.newname.text = ""
@@ -68,18 +70,21 @@ class CharactersScreen(Screen):
 		self.new_board(name)
 		self.push_character_name(name)
 
+	@logwrap(section="CharactersScreen")
 	def _trigger_new_character(self, name):
 		part = partial(self.new_character, name)
 		if hasattr(self, "_scheduled_new_character"):
 			Clock.unschedule(self._scheduled_new_character)
 		self._scheduled_new_character = Clock.schedule_once(part)
 
+	@logwrap(section="CharactersScreen")
 	def _munge_names(self, names):
 		for i, name in enumerate(names):
 			self.charsview.i2name[i] = name
 			self.charsview.name2i[name] = i
 			yield {"index": i, "text": name}
 
+	@logwrap(section="CharactersScreen")
 	def on_names(self, *_):
 		app = App.get_running_app()
 		if not app.character or not self.charsview:
@@ -92,6 +97,7 @@ class CharactersScreen(Screen):
 				self.charsview.children[0].select_node(i)
 				return
 
+	@logwrap(section="CharactersScreen")
 	def on_charsview(self, *_):
 		if not self.push_character_name:
 			Clock.schedule_once(self.on_charsview, 0)

@@ -17,6 +17,7 @@ can be dragged and dropped to some particular position within stacks
 of other cards.
 
 """
+from functools import partial
 
 import pygments
 from kivy.clock import Clock
@@ -44,7 +45,7 @@ from kivy.utils import get_hex_from_color
 from pygments.formatters.bbcode import BBCodeFormatter
 from pygments.lexers import PythonLexer
 
-from .util import store_kv
+from .util import store_kv, logwrap
 
 dbg = Logger.debug
 
@@ -99,7 +100,6 @@ class ColorTextureBox(Widget):
 	color = ListProperty([1, 1, 1, 1])
 	outline_color = ListProperty([0, 0, 0, 0])
 	texture = ObjectProperty(None, allownone=True)
-
 
 class Card(FloatLayout):
 	"""A trading card with text and illustration
@@ -192,6 +192,7 @@ class Card(FloatLayout):
 	editable = BooleanProperty(False)
 	edit_func = ObjectProperty()
 
+	@logwrap(section="Card")
 	def on_text(self, *_):
 		if "main_text" not in self.ids:
 			Clock.schedule_once(self.on_text, 0)
@@ -216,6 +217,7 @@ class Card(FloatLayout):
 			)
 		self.ids.main_text.text = text
 
+	@logwrap(section="Card")
 	def on_background_source(self, *args):
 		"""When I get a new ``background_source``, load it as an
 		:class:`Image` and store that in ``background_image``.
@@ -224,6 +226,7 @@ class Card(FloatLayout):
 		if self.background_source:
 			self.background_image = Image(source=self.background_source)
 
+	@logwrap(section="Card")
 	def on_background_image(self, *args):
 		"""When I get a new ``background_image``, store its texture in
 		``background_texture``.
@@ -232,6 +235,7 @@ class Card(FloatLayout):
 		if self.background_image is not None:
 			self.background_texture = self.background_image.texture
 
+	@logwrap(section="Card")
 	def on_foreground_source(self, *args):
 		"""When I get a new ``foreground_source``, load it as an
 		:class:`Image` and store that in ``foreground_image``.
@@ -240,6 +244,7 @@ class Card(FloatLayout):
 		if self.foreground_source:
 			self.foreground_image = Image(source=self.foreground_source)
 
+	@logwrap(section="Card")
 	def on_foreground_image(self, *args):
 		"""When I get a new ``foreground_image``, store its texture in my
 		``foreground_texture``.
@@ -248,6 +253,7 @@ class Card(FloatLayout):
 		if self.foreground_image is not None:
 			self.foreground_texture = self.foreground_image.texture
 
+	@logwrap(section="Card")
 	def on_art_source(self, *args):
 		"""When I get a new ``art_source``, load it as an :class:`Image` and
 		store that in ``art_image``.
@@ -256,6 +262,7 @@ class Card(FloatLayout):
 		if self.art_source:
 			self.art_image = Image(source=self.art_source)
 
+	@logwrap(section="Card")
 	def on_art_image(self, *args):
 		"""When I get a new ``art_image``, store its texture in
 		``art_texture``.
@@ -264,6 +271,7 @@ class Card(FloatLayout):
 		if self.art_image is not None:
 			self.art_texture = self.art_image.texture
 
+	@logwrap(section="Card")
 	def on_touch_down(self, touch):
 		"""If I'm the first card to collide this touch, grab it, store my
 		metadata in its userdict, and store the relative coords upon
@@ -287,6 +295,7 @@ class Card(FloatLayout):
 		self.collide_x = touch.x - self.x
 		self.collide_y = touch.y - self.y
 
+	@logwrap(section="Card")
 	def on_touch_move(self, touch):
 		"""If I'm being dragged, move so as to be always positioned the same
 		relative to the touch.
@@ -297,6 +306,7 @@ class Card(FloatLayout):
 			return
 		self.pos = (touch.x - self.collide_x, touch.y - self.collide_y)
 
+	@logwrap(section="Card")
 	def on_touch_up(self, touch):
 		"""Stop dragging if needed."""
 		if not self.dragging:
@@ -304,6 +314,7 @@ class Card(FloatLayout):
 		touch.ungrab(self)
 		self.dragging = False
 
+	@logwrap(section="Card")
 	def copy(self):
 		"""Return a new :class:`Card` just like me."""
 		d = {}
@@ -368,6 +379,7 @@ class Foundation(ColorTextureBox):
 	deck = NumericProperty(0)
 	"""Index of the deck in the parent :class:`DeckLayout`"""
 
+	@logwrap(section="Foundation")
 	def upd_pos(self, *args):
 		"""Ask the foundation where I should be, based on what deck I'm
 		for.
@@ -375,12 +387,16 @@ class Foundation(ColorTextureBox):
 		"""
 		self.pos = self.parent._get_foundation_pos(self.deck)
 
+	@logwrap(section="Foundation")
 	def upd_size(self, *args):
 		"""I'm the same size as any given card in my :class:`DeckLayout`."""
 		self.size = (
 			self.parent.card_size_hint_x * self.parent.width,
 			self.parent.card_size_hint_y * self.parent.height,
 		)
+
+
+wraplog_DeckBuilderLayout = partial(logwrap, section="DeckBuilderLayout")
 
 
 class DeckBuilderLayout(Layout):
@@ -471,6 +487,7 @@ class DeckBuilderLayout(Layout):
 			insertion_card=self._trigger_layout,
 		)
 
+	@logwrap(section="Foundation")
 	def scroll_deck_x(self, decknum, scroll_x):
 		"""Move a deck left or right."""
 		if decknum >= len(self.decks):
@@ -482,6 +499,7 @@ class DeckBuilderLayout(Layout):
 		self.deck_x_hint_offsets[decknum] += scroll_x
 		self._trigger_layout()
 
+	@logwrap(section="Foundation")
 	def scroll_deck_y(self, decknum, scroll_y):
 		"""Move a deck up or down."""
 		if decknum >= len(self.decks):
@@ -493,11 +511,13 @@ class DeckBuilderLayout(Layout):
 		self.deck_y_hint_offsets[decknum] += scroll_y
 		self._trigger_layout()
 
+	@logwrap(section="Foundation")
 	def scroll_deck(self, decknum, scroll_x, scroll_y):
 		"""Move a deck."""
 		self.scroll_deck_x(decknum, scroll_x)
 		self.scroll_deck_y(decknum, scroll_y)
 
+	@logwrap(section="Foundation")
 	def _get_foundation_pos(self, i):
 		"""Private. Get the absolute coordinates to use for a deck's
 		foundation, based on the ``starting_pos_hint``, the
@@ -512,6 +532,7 @@ class DeckBuilderLayout(Layout):
 		y = phy * self.height + self.y
 		return (x, y)
 
+	@logwrap(section="Foundation")
 	def _get_foundation(self, i):
 		"""Return a :class:`Foundation` for some deck, creating it if
 		needed.
@@ -540,6 +561,7 @@ class DeckBuilderLayout(Layout):
 			self._foundations = oldfound
 		return self._foundations[i]
 
+	@logwrap(section="Foundation")
 	def remove_widget(self, widget, *args, **kwargs):
 		if isinstance(widget, Foundation):
 			self.unbind(
@@ -553,6 +575,7 @@ class DeckBuilderLayout(Layout):
 			self.unbind(size=widget.upd_size, card_size_hint=widget.upd_size)
 		super().remove_widget(widget, *args, **kwargs)
 
+	@logwrap(section="Foundation")
 	def on_decks(self, *args):
 		"""Inform the cards of their deck and their index within the deck;
 		extend the ``_hint_offsets`` properties as needed; and trigger
@@ -592,6 +615,7 @@ class DeckBuilderLayout(Layout):
 			)
 		self._trigger_layout()
 
+	@logwrap(section="DeckBuilderLayout")
 	def point_before_card(self, card, x, y):
 		"""Return whether ``(x, y)`` is somewhere before ``card``, given how I
 		know cards to be arranged.
@@ -625,6 +649,7 @@ class DeckBuilderLayout(Layout):
 				return True
 			return ycmp()
 
+	@logwrap(section="DeckBuilderLayout")
 	def point_after_card(self, card, x, y):
 		"""Return whether ``(x, y)`` is somewhere after ``card``, given how I
 		know cards to be arranged.
@@ -658,6 +683,7 @@ class DeckBuilderLayout(Layout):
 				return True
 			return ycmp()
 
+	@logwrap(section="DeckBuilderLayout")
 	def on_touch_move(self, touch):
 		"""If a card is being dragged, move other cards out of the way to show
 		where the dragged card will go if you drop it.
@@ -728,6 +754,7 @@ class DeckBuilderLayout(Layout):
 							self.insertion_card = 0
 							return
 
+	@logwrap(section="DeckBuilderLayout")
 	def on_touch_up(self, touch):
 		"""If a card is being dragged, put it in the place it was just dropped
 		and trigger a layout.
@@ -759,11 +786,13 @@ class DeckBuilderLayout(Layout):
 			self.insertion_deck = self.insertion_card = None
 		self._trigger_layout()
 
+	@logwrap(section="DeckBuilderLayout")
 	def on_insertion_card(self, *args):
 		"""Trigger a layout"""
 		if self.insertion_card is not None:
 			self._trigger_layout()
 
+	@logwrap(section="DeckBuilderLayout")
 	def do_layout(self, *args):
 		"""Layout each of my decks"""
 		if self.size == [1, 1]:
@@ -771,6 +800,7 @@ class DeckBuilderLayout(Layout):
 		for i in range(0, len(self.decks)):
 			self.layout_deck(i)
 
+	@logwrap(section="DeckBuilderLayout")
 	def layout_deck(self, i):
 		"""Stack the cards, starting at my deck's foundation, and proceeding
 		by ``card_pos_hint``
@@ -836,12 +866,16 @@ class ScrollBarBar(ColorTextureBox):
 
 	"""
 
+	@logwrap(section="ScrollBarBar")
 	def on_touch_down(self, touch):
 		"""Tell my parent if I've been touched"""
 		if self.parent is None:
 			return
 		if self.collide_point(*touch.pos):
 			self.parent.bar_touched(self, touch)
+
+
+wraplog_DeckBuilderScrollBar = partial(logwrap, section="DeckBuilderScrollBar")
 
 
 class DeckBuilderScrollBar(FloatLayout):
@@ -889,10 +923,12 @@ class DeckBuilderScrollBar(FloatLayout):
 
 	"""
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def _get_scroll(self):
 		zero = self._scroll - self.scroll_min
 		return zero / self.scroll_hint
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def _set_scroll(self, v):
 		if v < 0:
 			v = 0
@@ -909,6 +945,7 @@ class DeckBuilderScrollBar(FloatLayout):
 
 	"""
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def _get_vbar(self):
 		if self.deckbuilder is None:
 			return (0, 1)
@@ -926,6 +963,7 @@ class DeckBuilderScrollBar(FloatLayout):
 	)
 	"""A tuple of ``(y, height)`` for my scroll bar, if it's vertical."""
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def _get_hbar(self):
 		if self.deckbuilder is None:
 			return (0, 1)
@@ -961,6 +999,7 @@ class DeckBuilderScrollBar(FloatLayout):
 			scroll_max=self._trigger_layout,
 		)
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def do_layout(self, *args):
 		"""Put the bar where it's supposed to be, and size it in proportion to
 		the size of the scrollable area.
@@ -976,6 +1015,7 @@ class DeckBuilderScrollBar(FloatLayout):
 			self.ids.bar.size_hint_y = self.vbar[1]
 			self.ids.bar.pos_hint = {"x": 0, "y": self.vbar[0]}
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def upd_scroll(self, *args):
 		"""Update my own ``scroll`` property to where my deck is actually
 		scrolled.
@@ -986,6 +1026,7 @@ class DeckBuilderScrollBar(FloatLayout):
 		)
 		self._scroll = getattr(self.deckbuilder, att)[self.deckidx]
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def on_deckbuilder(self, *args):
 		"""Bind my deckbuilder to update my ``scroll``, and my ``scroll`` to
 		update my deckbuilder.
@@ -1005,6 +1046,7 @@ class DeckBuilderScrollBar(FloatLayout):
 		self.upd_scroll()
 		self.deckbuilder._trigger_layout()
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def handle_scroll(self, *args):
 		"""When my ``scroll`` changes, tell my deckbuilder how it's scrolled
 		now.
@@ -1024,6 +1066,7 @@ class DeckBuilderScrollBar(FloatLayout):
 		setattr(self.deckbuilder, att, offs)
 		self.deckbuilder._trigger_layout()
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def bar_touched(self, bar, touch):
 		"""Start scrolling, and record where I started scrolling."""
 		self.scrolling = True
@@ -1038,6 +1081,7 @@ class DeckBuilderScrollBar(FloatLayout):
 		)
 		touch.grab(self)
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def on_touch_move(self, touch):
 		"""Move the scrollbar to the touch, and update my ``scroll``
 		accordingly.
@@ -1059,6 +1103,7 @@ class DeckBuilderScrollBar(FloatLayout):
 			self.scroll += hint_correction
 		touch.pop()
 
+	@logwrap(section="DeckBuilderScrollBar")
 	def on_touch_up(self, touch):
 		"""Stop scrolling."""
 		self.scrolling = False

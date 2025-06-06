@@ -38,7 +38,10 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
-from elide.util import store_kv
+from elide.util import store_kv, logwrap
+
+
+wraplog_CalendarWidget = partial(logwrap, section="CalendarWidget")
 
 
 class CalendarWidget(Widget, RecycleDataViewBehavior):
@@ -56,11 +59,13 @@ class CalendarWidget(Widget, RecycleDataViewBehavior):
 	val = ObjectProperty(allownone=True)
 	"""The value you want to set the key to"""
 
+	@logwrap(section="CalendarWidget")
 	def _update_disabledness(self, *_, **__):
 		if not self.parent:
 			return
 		self.disabled = self.turn < self.parent.parent.entity.engine.turn
 
+	@logwrap(section="CalendarWidget")
 	def _trigger_update_disabledness(self, *_, **__):
 		if hasattr(self, "_scheduled_update_disabledness"):
 			Clock.unschedule(self._scheduled_update_disabledness)
@@ -68,11 +73,13 @@ class CalendarWidget(Widget, RecycleDataViewBehavior):
 			self._update_disabledness
 		)
 
+	@logwrap(section="CalendarWidget")
 	def _set_value(self):
 		entity = self.parent.parent.entity
 		entity = getattr(entity, "stat", entity)
 		entity[self.key] = self.val
 
+	@logwrap(section="CalendarWidget")
 	def on_val(self, *_):
 		# do I want to do some validation at this point?
 		# Maybe I should validate on the proxy objects and catch that in Calendar,
@@ -102,6 +109,7 @@ class CalendarWidget(Widget, RecycleDataViewBehavior):
 					self._set_value()
 					eng.turn = now
 
+	@logwrap(section="CalendarWidget")
 	def on_parent(self, *_):
 		if not self.parent:
 			return
@@ -125,6 +133,7 @@ class CalendarSlider(Slider, CalendarWidget):
 		except ValueError:
 			self.value = 0.0
 
+	@partial(logwrap, section="CalendarSlider")
 	def on_value(self, *_):
 		self.val = self.value
 
@@ -134,6 +143,7 @@ class CalendarTextInput(CalendarWidget, TextInput):
 		super().__init__(**kwargs)
 		self._trigger_parse_text = Clock.create_trigger(self._parse_text)
 
+	@logwrap(section="CalendarTextInput")
 	def _parse_text(self, *_):
 		from ast import literal_eval
 
@@ -144,6 +154,9 @@ class CalendarTextInput(CalendarWidget, TextInput):
 		self.val = v
 		self.hint_text = repr(v)
 		self.text = ""
+
+
+wraplog_CalendarOptionButton = partial(logwrap, section="CalendarOptionButton")
 
 
 class CalendarOptionButton(CalendarWidget, Button):
@@ -159,6 +172,7 @@ class CalendarOptionButton(CalendarWidget, Button):
 		self.bind(options=self._update_modalview)
 		self.bind(on_release=self.modalview.open)
 
+	@logwrap(section="CalendarOptionButton")
 	def _make_modalview(self, *_):
 		if not self.modalview:
 			self.modalview = ModalView()
@@ -170,6 +184,7 @@ class CalendarOptionButton(CalendarWidget, Button):
 		container.size = container.minimum_size
 		self._update_modalview()
 
+	@logwrap(section="CalendarOptionButton")
 	def _update_modalview(self, *_):
 		if not self.modalview:
 			Clock.schedule_once(self.on_options, 0)
@@ -203,16 +218,17 @@ class CalendarOptionButton(CalendarWidget, Button):
 				)
 		container.size = container.minimum_size
 
+	@logwrap(section="CalendarOptionButton")
 	def _set_value_and_close(self, val, *_):
 		self.val = val
 		self.modalview.dismiss()
-
 
 class CalendarToggleButton(CalendarWidget, ToggleButton):
 	index = None
 	true_text = StringProperty("True")
 	false_text = StringProperty("False")
 
+	@logwrap(section="CalendarToggleButton")
 	def on_state(self, *_):
 		self.val = self.state == "down"
 		self.text = self.true_text if self.val else self.false_text
@@ -266,12 +282,14 @@ class CalendarBehavior:
 	"""
 	data: ListProperty
 
+	@logwrap(section="CalendarBehavior")
 	def on_data(self, *_):
 		idx = self.idx
 		for item in self.data:
 			if "key" in item and "turn" in item:
 				idx[(item["turn"], item["key"])] = item
 
+	@logwrap(section="CalendarBehavior")
 	def get_track(self):
 		"""Get a dictionary that can be used to submit my changes to ``lisien.Engine.apply_choices``
 
@@ -309,6 +327,7 @@ class CalendarBehavior:
 
 
 class Agenda(RecycleView, CalendarBehavior):
+	@logwrap(section="Agenda")
 	def from_schedule(self, schedule, start_turn=None, key=str):
 		# It should be convenient to style the calendar using data from the core;
 		# not sure what the API should be like
@@ -381,9 +400,12 @@ class Agenda(RecycleView, CalendarBehavior):
 		(self.cols, self.data, self.changed) = (cols, data, False)
 
 
+wraplog_Calendar = partial(logwrap, section="Calendar")
+
 class Calendar(RecycleView, CalendarBehavior):
 	multicol = BooleanProperty(False)
 
+	@logwrap(section="Calendar")
 	def from_schedule(self, schedule, start_turn=None, key=str):
 		if not schedule:
 			self.data = []

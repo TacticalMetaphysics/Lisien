@@ -12,7 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import os
 from functools import partial
 from threading import Thread
 
@@ -28,6 +27,7 @@ from kivy.properties import (
 	StringProperty,
 )
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
+from .util import logwrap
 
 import lisien.proxy
 
@@ -40,7 +40,6 @@ Factory.register("GridBoard", GridBoard)
 Factory.register("GraphBoardView", GraphBoardView)
 Factory.register("GridBoardView", GridBoardView)
 Factory.register("DialogLayout", DialogLayout)
-
 
 class GameScreen(Screen):
 	switch_screen = ObjectProperty()
@@ -56,6 +55,7 @@ class GameScreen(Screen):
 	def engine(self):
 		return App.get_running_app().engine
 
+	@wraplog_GameScreen
 	def disable_input(self, cb=None):
 		"""Set ``self.disabled`` to ``True``, then call ``cb`` if provided
 
@@ -67,6 +67,7 @@ class GameScreen(Screen):
 		if cb:
 			cb()
 
+	@wraplog_GameScreen
 	def enable_input(self, cb=None):
 		"""Call ``cb`` if provided, then set ``self.disabled`` to ``False``
 
@@ -78,6 +79,7 @@ class GameScreen(Screen):
 			cb()
 		self.disabled = False
 
+	@wraplog_GameScreen
 	def wait_travel(self, character, thing, dest, cb=None):
 		"""Schedule a thing to travel someplace, then wait for it to finish.
 
@@ -93,6 +95,7 @@ class GameScreen(Screen):
 			character, thing, dest, cb=partial(self.enable_input, cb)
 		)
 
+	@wraplog_GameScreen
 	def wait_turns(self, turns, cb=None):
 		"""Call ``self.app.engine.next_turn()`` ``n`` times, waiting ``self.app.turn_length`` in between
 
@@ -106,6 +109,7 @@ class GameScreen(Screen):
 		self.disable_input()
 		self.app.wait_turns(turns, cb=partial(self.enable_input, cb))
 
+	@wraplog_GameScreen
 	def wait_command(self, start_func, turns=1, end_func=None):
 		"""Call ``start_func``, wait ``turns``, and then call ``end_func`` if provided
 
@@ -121,6 +125,7 @@ class GameScreen(Screen):
 		start_func()
 		self.app.wait_turns(turns, cb=partial(self.enable_input, end_func))
 
+	@wraplog_GameScreen
 	def wait_travel_command(
 		self,
 		character,
@@ -154,6 +159,9 @@ class GameScreen(Screen):
 		)
 
 
+wraplog_GameApp = partial(logwrap, section="GameApp")
+
+
 class GameApp(App):
 	modules = []
 	turn_length = NumericProperty(0.5)
@@ -164,6 +172,7 @@ class GameApp(App):
 	selection = ObjectProperty(allownone=True)
 	engine_kwargs = DictProperty({})
 
+	@logwrap(section="GameApp")
 	def wait_turns(self, turns, *, cb=None):
 		"""Call ``self.engine.next_turn()`` ``turns`` times, waiting ``self.turn_length`` in between
 
@@ -188,6 +197,7 @@ class GameApp(App):
 			partial(self.wait_turns, turns, cb=cb), self.turn_length
 		)
 
+	@logwrap(section="GameApp")
 	def wait_travel(self, character, thing, dest, cb=None):
 		"""Schedule a thing to travel someplace, then wait for it to finish, and call ``cb`` if provided
 
@@ -203,6 +213,7 @@ class GameApp(App):
 			cb=cb,
 		)
 
+	@logwrap(section="GameApp")
 	def wait_command(self, start_func, turns=1, end_func=None):
 		"""Call ``start_func``, and wait to call ``end_func`` after simulating ``turns`` (default 1)
 
@@ -215,6 +226,7 @@ class GameApp(App):
 		start_func()
 		self.wait_turns(turns, cb=end_func)
 
+	@logwrap(section="GameApp")
 	def wait_travel_command(
 		self, character, thing, dest, start_func, turns=1, end_func=None
 	):
@@ -235,9 +247,11 @@ class GameApp(App):
 			cb=partial(self.wait_command, start_func, turns, end_func),
 		)
 
+	@logwrap(section="GameApp")
 	def _pull_time(self, *_, then, now):
 		self.branch, self.turn, self.tick = now
 
+	@logwrap(section="GameApp")
 	def build(self):
 		self.procman = lisien.proxy.EngineProcessManager()
 		self.engine = self.procman.start(
@@ -257,19 +271,23 @@ class GameApp(App):
 			inspector.create_inspector(Window, self.screen_manager)
 		return self.screen_manager
 
+	@logwrap(section="GameApp")
 	def on_pause(self):
 		"""Sync the database with the current state of the game."""
 		self.engine.commit()
 		self.config.write()
 
+	@logwrap(section="GameApp")
 	def on_stop(self, *_):
 		"""Sync the database, wrap up the game, and halt."""
 		self.procman.shutdown()
 		self.config.write()
 
+	@logwrap(section="GameApp")
 	def _del_next_turn_thread(self, *_, **__):
 		del self._next_turn_thread
 
+	@logwrap(section="GameApp")
 	def next_turn(self, *_):
 		"""Smoothly advance to the next turn in the simulation
 

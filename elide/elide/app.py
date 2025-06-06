@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Object to configure, start, and stop elide."""
-
 import json
 import os
 import shutil
@@ -50,7 +49,7 @@ import elide.timestream
 from elide.graph.arrow import GraphArrow
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
-from elide.util import load_kv
+from elide.util import load_kv, logwrap
 from lisien.proxy import (
 	CharStatProxy,
 	EngineProcessManager,
@@ -92,9 +91,11 @@ class ElideApp(App):
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
 
+	@logwrap
 	def on_selection(self, *_):
 		Logger.debug("App: {} selected".format(self.selection))
 
+	@logwrap
 	def on_selected_proxy(self, *_):
 		if hasattr(self.selected_proxy, "name"):
 			self.selected_proxy_name = str(self.selected_proxy.name)
@@ -112,11 +113,13 @@ class ElideApp(App):
 			str(origin.name) + "->" + str(destination.name)
 		)
 
+	@logwrap
 	def _get_character_name(self, *_):
 		if self.character is None:
 			return
 		return self.character.name
 
+	@logwrap
 	def _set_character_name(self, name):
 		if self.character.name != name:
 			self.character = self.engine.character[name]
@@ -125,6 +128,7 @@ class ElideApp(App):
 		_get_character_name, _set_character_name, bind=("character",)
 	)
 
+	@logwrap
 	def _pull_time(self, *_):
 		if not hasattr(self, "engine"):
 			Clock.schedule_once(self._pull_time, 0)
@@ -136,6 +140,7 @@ class ElideApp(App):
 
 	pull_time = trigger(_pull_time)
 
+	@logwrap
 	def _really_time_travel(self, branch, turn, tick):
 		try:
 			self.engine._set_btt(
@@ -156,6 +161,7 @@ class ElideApp(App):
 			self.edit_locked = False
 			del self._time_travel_thread
 
+	@logwrap
 	def time_travel(self, branch, turn, tick=None):
 		if hasattr(self, "_time_travel_thread"):
 			return
@@ -165,6 +171,7 @@ class ElideApp(App):
 		)
 		self._time_travel_thread.start()
 
+	@logwrap
 	def _really_time_travel_to_tick(self, tick):
 		try:
 			self.engine._set_btt(
@@ -185,12 +192,14 @@ class ElideApp(App):
 			self.edit_locked = False
 			del self._time_travel_thread
 
+	@logwrap
 	def time_travel_to_tick(self, tick):
 		self._time_travel_thread = Thread(
 			target=self._really_time_travel_to_tick, args=(tick,)
 		)
 		self._time_travel_thread.start()
 
+	@logwrap
 	def _update_from_time_travel(
 		self, command, branch, turn, tick, result, **kwargs
 	):
@@ -199,14 +208,17 @@ class ElideApp(App):
 			command, branch, turn, tick, result, **kwargs
 		)
 
+	@logwrap
 	def set_tick(self, t):
 		"""Set my tick to the given value, cast to an integer."""
 		self.tick = int(t)
 
+	@logwrap
 	def set_turn(self, t):
 		"""Set the turn to the given value, cast to an integer"""
 		self.turn = int(t)
 
+	@logwrap
 	def select_character(self, char: CharacterProxy):
 		"""Change my ``character`` to the selected character object if they
 		aren't the same.
@@ -224,6 +236,7 @@ class ElideApp(App):
 		self.selected_proxy = self._get_selected_proxy()
 		self.engine.eternal["boardchar"] = char.name
 
+	@logwrap
 	def build_config(self, config):
 		"""Set config defaults"""
 		Logger.debug("ElideApp: build_config")
@@ -686,12 +699,14 @@ class ElideApp(App):
 		Logger.debug("ElideApp: _copy_log_files")
 		try:
 			from android.storage import app_storage_path
+			from jnius import JavaException
 
 			log_dirs = {
 				os.path.join(app_storage_path(), "app", ".kivy", "logs")
 			}
 		except ModuleNotFoundError:
 			log_dirs = set()
+			JavaException = Exception
 		for handler in Logger.handlers:
 			if hasattr(handler, "log_dir"):
 				log_dir = handler.log_dir
@@ -712,6 +727,7 @@ class ElideApp(App):
 			os.path.join(self.prefix, self.game_name, "logs"),
 			exist_ok=True,
 		)
+		failed = []
 		for log_dir in log_dirs:
 			for logfile in os.listdir(log_dir):
 				if logfile.endswith(".log") or (
@@ -728,14 +744,20 @@ class ElideApp(App):
 							)
 						),
 					)
-					self.copy_to_shared_storage(
-						os.path.join(log_dir, logfile),
-						mimetype="text/plain",
-					)
-			Logger.info(
-				f"ElideApp: copied log files from {log_dir}"
-				f" to {os.path.join(self.prefix, self.game_name, 'logs')} and shared storage"
-			)
+					try:
+						self.copy_to_shared_storage(
+							os.path.join(log_dir, logfile),
+							mimetype="text/plain",
+						)
+					except JavaException:
+						failed.append(os.path.join(log_dir, logfile))
+			if failed:
+				Logger.error("Failed to copy log files: " + ", ".join(failed))
+			else:
+				Logger.info(
+					f"ElideApp: copied log files from {log_dir}"
+					f" to {os.path.join(self.prefix, self.game_name, 'logs')} and shared storage"
+				)
 
 	@triggered()
 	def copy_log_files(self):

@@ -34,7 +34,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 
-from .util import store_kv
+from .util import store_kv, logwrap
 
 
 class Box(Widget):
@@ -87,6 +87,7 @@ class DialogMenu(Box):
 		self._sv.y = self.y + self.padding[3]
 
 	@mainthread
+	@partial(logwrap, section="DialogMenu")
 	def on_options(self, *_):
 		if not hasattr(self, "_sv"):
 			self._sv = ScrollView(size=self.size, pos=self.pos)
@@ -134,6 +135,7 @@ class Dialog(BoxLayout):
 		self._propagate_msg_kwargs()
 		self._propagate_menu_kwargs()
 
+	@partial(logwrap, section="Dialog")
 	def _propagate_msg_kwargs(self, *_):
 		if "msg" not in self.ids:
 			Clock.schedule_once(self._propagate_msg_kwargs, 0)
@@ -145,6 +147,7 @@ class Dialog(BoxLayout):
 		for k, v in kw.items():
 			setattr(self.ids.msg, k, v)
 
+	@partial(logwrap, section="Dialog")
 	def _propagate_menu_kwargs(self, *_):
 		if "menu" not in self.ids:
 			Clock.schedule_once(self._propagate_menu_kwargs, 0)
@@ -187,6 +190,7 @@ class DialogLayout(FloatLayout):
 		self.dialog = Dialog()
 		self._finalize()
 
+	@logwrap(section="DialogLayout")
 	def _finalize(self, *_):
 		app = App.get_running_app()
 		if not hasattr(app, "engine"):
@@ -203,12 +207,14 @@ class DialogLayout(FloatLayout):
 		if self.todo:
 			self.advance_dialog()
 
+	@logwrap(section="DialogLayout")
 	def _pull(self, *_, key, value):
 		if key == "last_result":
 			self.todo = value if value and isinstance(value, list) else []
 		elif key == "last_result_idx":
 			self.idx = value if value and isinstance(value, int) else 0
 
+	@logwrap(section="DialogLayout")
 	def on_idx(self, *_):
 		lidx = self.engine.universal.get("last_result_idx")
 		if lidx is not None and lidx != self.idx:
@@ -216,6 +222,7 @@ class DialogLayout(FloatLayout):
 		Logger.debug(f"DialogLayout.idx = {self.idx}")
 
 	@mainthread
+	@logwrap(section="DialogLayout")
 	def advance_dialog(self, after_ok=None, *args):
 		"""Try to display the next dialog described in my ``todo``.
 
@@ -233,6 +240,7 @@ class DialogLayout(FloatLayout):
 				after_ok()
 
 	@mainthread
+	@logwrap(section="DialogLayout")
 	def _update_dialog(self, diargs, after_ok, **kwargs):
 		if diargs is None:
 			Logger.debug("DialogLayout: null dialog")
@@ -296,6 +304,7 @@ class DialogLayout(FloatLayout):
 		else:
 			Logger.debug("DialogLayout: Dialog is already in the layout")
 
+	@logwrap(section="DialogLayout")
 	def ok(self, *_, cb=None, cb2=None):
 		"""Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue
 
@@ -305,6 +314,7 @@ class DialogLayout(FloatLayout):
 			cb()
 		self.advance_dialog(after_ok=cb2)
 
+	@logwrap(section="DialogLayout")
 	def _lookup_func(self, funcname):
 		from importlib import import_module
 
@@ -312,6 +322,7 @@ class DialogLayout(FloatLayout):
 			self._usermod = import_module(self.usermod, self.userpkg)
 		return getattr(self.usermod, funcname)
 
+	@logwrap(section="DialogLayout")
 	def _munge_menu_option(self, after_ok, option):
 		if not isinstance(option, tuple):
 			raise TypeError

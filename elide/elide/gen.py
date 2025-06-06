@@ -12,13 +12,18 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from functools import partial
+
 from kivy.properties import NumericProperty, OptionProperty
 from kivy.uix.boxlayout import BoxLayout
 from networkx import grid_2d_graph
 
 from lisien.character import grid_2d_8graph
 
-from .util import store_kv
+from .util import store_kv, logwrap
+
+
+
 
 
 class GridGeneratorDialog(BoxLayout):
@@ -26,6 +31,7 @@ class GridGeneratorDialog(BoxLayout):
 	yval = NumericProperty()
 	directions = OptionProperty(None, options=[None, 4, 8])
 
+	@partial(logwrap, section="GridGeneratorDialog")
 	def generate(self, engine):
 		x = int(self.xval)
 		y = int(self.yval)
@@ -41,6 +47,7 @@ class GridGeneratorDialog(BoxLayout):
 		else:
 			return False
 
+	@logwrap(section="GridGeneratorDialog")
 	def validate(self):
 		return self.directions and int(self.xval) and int(self.yval)
 
