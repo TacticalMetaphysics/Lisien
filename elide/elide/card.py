@@ -975,7 +975,6 @@ class DeckBuilderScrollBar(FloatLayout):
 		else:
 			self.ids.bar.size_hint_y = self.vbar[1]
 			self.ids.bar.pos_hint = {"x": 0, "y": self.vbar[0]}
-		super().do_layout(*args)
 
 	def upd_scroll(self, *args):
 		"""Update my own ``scroll`` property to where my deck is actually
