@@ -792,7 +792,6 @@ class DeckBuilderLayout(Layout):
 		if self.insertion_card is not None:
 			self._trigger_layout()
 
-	@logwrap(section="DeckBuilderLayout")
 	def do_layout(self, *args):
 		"""Layout each of my decks"""
 		if self.size == [1, 1]:
@@ -1021,12 +1020,13 @@ class DeckBuilderScrollBar(FloatLayout):
 		scrolled.
 
 		"""
+		if not hasattr(self, "_scroll_bound"):
+			self._scroll_bound = self.fbind("scroll", self.upd_scroll)
 		att = "deck_{}_hint_offsets".format(
 			"x" if self.orientation == "horizontal" else "y"
 		)
 		self._scroll = getattr(self.deckbuilder, att)[self.deckidx]
 
-	@logwrap(section="DeckBuilderScrollBar")
 	def on_deckbuilder(self, *args):
 		"""Bind my deckbuilder to update my ``scroll``, and my ``scroll`` to
 		update my deckbuilder.
@@ -1039,10 +1039,11 @@ class DeckBuilderScrollBar(FloatLayout):
 		)
 		offs = getattr(self.deckbuilder, att)
 		if len(offs) <= self.deckidx:
-			Clock.schedule_once(self.on_deckbuilder, 0)
+			self.deckbuilder.bind(**{att: self.upd_scroll})
 			return
-		self.bind(scroll=self.handle_scroll)
-		self.deckbuilder.bind(**{att: self.upd_scroll})
+		Logger.debug("DeckBuilderScrollBar: on_deckbuilder")
+		if not hasattr(self, "_scroll_bound"):
+			self._scroll_bound = self.fbind("_scroll_bound", self.upd_scroll)
 		self.upd_scroll()
 		self.deckbuilder._trigger_layout()
 
