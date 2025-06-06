@@ -27,10 +27,11 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .statlist import BaseStatListView
-from .util import store_kv
+from .util import store_kv, logwrap
 
 
 class FloatInput(TextInput):
+	@logwrap(section="FloatInput")
 	def insert_text(self, s, from_undo=False):
 		return super().insert_text(
 			"".join(c for c in s if c in "0123456789."), from_undo
@@ -48,12 +49,14 @@ class ControlTypePicker(Button):
 		super().__init__(**kwargs)
 		self.build()
 
+	@logwrap(section="ControlTypePicker")
 	def set_value(self, k, v):
 		if v is None:
 			del self.app.selected_proxy[k]
 		else:
 			self.app.selected_proxy[k] = v
 
+	@logwrap(section="ControlTypePicker")
 	def build(self, *_):
 		if None in (self.key, self.set_control):
 			Clock.schedule_once(self.build, 0)
@@ -111,12 +114,14 @@ class ConfigListItemToggleButton(BoxLayout):
 	true_text = StringProperty("0")
 	false_text = StringProperty("1")
 
+	@logwrap(section="ConfigListItemToggleButton")
 	def set_true_text(self, *_):
 		self.parent.set_config(
 			self.parent.key, "true_text", self.ids.truetext.text
 		)
 		self.true_text = self.ids.truetext.text
 
+	@logwrap(section="ConfigListItemToggleButton")
 	def set_false_text(self, *_):
 		self.parent.set_config(
 			self.parent.key, "false_text", self.ids.falsetext.text
@@ -127,6 +132,7 @@ class ConfigListItemSlider(BoxLayout):
 	min = NumericProperty(0.0)
 	max = NumericProperty(1.0)
 
+	@logwrap(section="ConfigListItemSlider")
 	def set_min(self, *_):
 		minn = float(self.ids.minimum.text)
 		try:
@@ -135,6 +141,7 @@ class ConfigListItemSlider(BoxLayout):
 		except ValueError:
 			self.ids.minimum.text = ""
 
+	@logwrap(section="ConfigListItemSlider")
 	def set_max(self, *_):
 		maxx = float(self.ids.maximum.text)
 		try:
@@ -151,6 +158,7 @@ class ConfigListItemCustomizer(BoxLayout):
 	config = DictProperty()
 	set_config = ObjectProperty()
 
+	@logwrap(section="ConfigListItemCustomizer")
 	def on_control(self, *_):
 		self.clear_widgets()
 		if self.control == "togglebutton":
@@ -174,6 +182,7 @@ class ConfigListItemCustomizer(BoxLayout):
 			)
 			self.add_widget(wid)
 
+	@logwrap(section="ConfigListItemCustomizer")
 	def on_config(self, *_):
 		if hasattr(self, "_toggle"):
 			if "true_text" in self.config:
@@ -201,6 +210,7 @@ class StatListViewConfigurator(BaseStatListView):
 	_val_text_setters = DictProperty()
 	_control_wids = DictProperty()
 
+	@logwrap(section="ConfigListItemCustomizer")
 	def set_control(self, key, value):
 		config = self.proxy.get("_config", {})
 		if value == "slider":
@@ -215,6 +225,7 @@ class StatListViewConfigurator(BaseStatListView):
 				self.set_config(key, "false_text", "0")
 		self.set_config(key, "control", value)
 
+	@logwrap(section="ConfigListItemCustomizer")
 	def munge(self, k, v):
 		# makes ConfigListItem
 		ret = super().munge(k, v)
@@ -234,6 +245,7 @@ class StatScreen(Screen):
 	def engine(self):
 		return App.get_running_app().engine
 
+	@logwrap(section="ConfigListItemCustomizer")
 	def new_stat(self):
 		"""Look at the key and value that the user has entered into the stat
 		configurator, and set them on the currently selected

@@ -23,6 +23,8 @@ from kivy.clock import Clock
 from kivy.properties import DictProperty, ObjectProperty
 from kivy.uix.recycleview import RecycleView
 
+from .util import logwrap
+
 default_cfg = {
 	"control": "readout",
 	"true_text": "1",
@@ -47,10 +49,12 @@ class BaseStatListView(RecycleView):
 		self._listeners = {}
 		super().__init__(**kwargs)
 
+	@logwrap(section="BaseStatListView")
 	def on_proxy(self, *_):
 		self.proxy.connect(self._trigger_upd_data, weak=False)
 		self._trigger_upd_data()
 
+	@logwrap(section="BaseStatListView")
 	def del_key(self, k):
 		"""Delete the key and any configuration for it"""
 		if k not in self.proxy:
@@ -59,6 +63,7 @@ class BaseStatListView(RecycleView):
 		if "_config" in self.proxy and k in self.proxy["_config"]:
 			del self.proxy["_config"][k]
 
+	@logwrap(section="BaseStatListView")
 	def set_value(self, k, v):
 		"""Set a value on the proxy, parsing it to a useful datatype if possible"""
 		from ast import literal_eval
@@ -77,16 +82,19 @@ class BaseStatListView(RecycleView):
 		if (k, v) in self._scheduled_set_value:
 			del self._scheduled_set_value[k, v]
 
+	@logwrap(section="BaseStatListView")
 	def _trigger_set_value(self, k, v, *_):
 		todo = partial(self.set_value, k, v)
 		if (k, v) in self._scheduled_set_value:
 			Clock.unschedule(self._scheduled_set_value[k, v])
 		self._scheduled_set_value[k, v] = Clock.schedule_once(todo, 0)
 
+	@logwrap(section="BaseStatListView")
 	def init_config(self, key):
 		"""Set the configuration for the key to something that will always work"""
 		self.proxy["_config"].setdefault(key, default_cfg)
 
+	@logwrap(section="BaseStatListView")
 	def set_config(self, key, option, value):
 		"""Set a configuration option for a key"""
 		if "_config" not in self.proxy:
@@ -101,6 +109,7 @@ class BaseStatListView(RecycleView):
 				newopt[option] = value
 				self.proxy["_config"][key] = newopt
 
+	@logwrap(section="BaseStatListView")
 	def set_configs(self, key, d):
 		"""Set the whole configuration for a key"""
 		if "_config" in self.proxy:
@@ -108,6 +117,7 @@ class BaseStatListView(RecycleView):
 		else:
 			self.proxy["_config"] = {key: d}
 
+	@logwrap(section="BaseStatListView")
 	def iter_data(self):
 		"""Iterate over key-value pairs that are really meant to be displayed"""
 		invalid = {"character", "name", "location", "rulebooks"}
@@ -115,6 +125,7 @@ class BaseStatListView(RecycleView):
 			if not (isinstance(k, str) and k[0] == "_") and k not in invalid:
 				yield k, v
 
+	@logwrap(section="BaseStatListView")
 	def munge(self, k, v):
 		"""Turn a key and value into a dictionary describing a widget to show"""
 		if "_config" in self.proxy and k in self.proxy["_config"]:
@@ -132,16 +143,19 @@ class BaseStatListView(RecycleView):
 			"config": config,
 		}
 
+	@logwrap(section="BaseStatListView")
 	def upd_data(self, *_):
 		"""Update to match new entity data"""
 		data = [self.munge(k, v) for k, v in self.iter_data()]
 		self.data = sorted(data, key=lambda d: d["key"])
 
+	@logwrap(section="BaseStatListView")
 	def _trigger_upd_data(self, *_, **__):
 		if hasattr(self, "_scheduled_upd_data"):
 			Clock.unschedule(self._scheduled_upd_data)
 		self._scheduled_upd_data = Clock.schedule_once(self.upd_data, 0)
 
+	@logwrap(section="BaseStatListView")
 	def _reg_widget(self, w, *_):
 		if not self.proxy:
 			Clock.schedule_once(partial(self._reg_widget, w), 0)
@@ -156,6 +170,7 @@ class BaseStatListView(RecycleView):
 		self._listeners[w.key] = listen
 		self.proxy.connect(listen)
 
+	@logwrap(section="BaseStatListView")
 	def _unreg_widget(self, w):
 		if w.key in self._listeners:
 			self.proxy.disconnect(self._listeners[w.key])

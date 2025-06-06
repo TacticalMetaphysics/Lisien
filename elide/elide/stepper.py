@@ -19,12 +19,13 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
 
-from .util import store_kv
+from .util import store_kv, logwrap
 
 
 class RuleStepper(RecycleView):
 	name = StringProperty()
 
+	@logwrap(section="RuleStepper")
 	def from_rules_handled_turn(self, rules_handled_turn):
 		data = [
 			{
@@ -85,11 +86,13 @@ class RuleStepperRuleButton(Button):
 		super(RuleStepperRuleButton, self).__init__(**kwargs)
 		self.bind(pos=self.upd_line, size=self.upd_line, tick=self.upd_line)
 
+	@logwrap(section="RuleStepperRuleButton")
 	def on_release(self, *args):
 		self.set_tick(self.end_tick)
 		self.tick = self.end_tick
 
 	@mainthread
+	@logwrap(section="RuleStepperRuleButton")
 	def upd_line(self, *_):
 		if hasattr(self, "color_inst"):
 			if self.tick == self.end_tick:

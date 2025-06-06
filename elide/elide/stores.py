@@ -46,7 +46,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import store_kv
+from .util import store_kv, logwrap
 
 
 def trigger(func):
@@ -58,10 +58,12 @@ class RecycleToggleButton(ToggleButton, RecycleDataViewBehavior):
 
 	index = NumericProperty()
 
+	@logwrap(section="RecycleToggleButton")
 	def on_touch_down(self, touch):
 		if self.collide_point(*touch.pos):
 			return self.parent.select_with_touch(self.index, touch)
 
+	@logwrap(section="RecycleToggleButton")
 	def apply_selection(self, rv, index, is_selected):
 		if is_selected and index == self.index:
 			self.state = "down"
@@ -81,11 +83,13 @@ class StoreButton(RecycleToggleButton):
 	select = ObjectProperty()
 	"""Function that gets called with my ``index`` when I'm selected"""
 
+	@logwrap(section="RecycleToggleButton")
 	def on_parent(self, *_):
 		if self.name == "+":
 			self.state = "down"
 			self.select(self.index)
 
+	@logwrap(section="RecycleToggleButton")
 	def on_state(self, *_):
 		if self.state == "down":
 			self.select(self.index)
@@ -109,18 +113,22 @@ class StoreList(RecycleView):
 		self._name2i = {}
 		super().__init__(**kwargs)
 
+	@logwrap(section="RecycleToggleButton")
 	def on_store(self, *_):
 		self.store.connect(self._trigger_redata)
 		self.redata()
 
+	@logwrap(section="RecycleToggleButton")
 	def on_boxl(self, *_):
 		self.boxl.bind(selected_nodes=self._pull_selection)
 
+	@logwrap(section="RecycleToggleButton")
 	def _pull_selection(self, *_):
 		if not self.boxl.selected_nodes:
 			return
 		self.selection_name = self._i2name[self.boxl.selected_nodes[0]]
 
+	@logwrap(section="RecycleToggleButton")
 	def munge(self, datum):
 		i, name = datum
 		self._i2name[i] = name
@@ -133,6 +141,7 @@ class StoreList(RecycleView):
 			"index": i,
 		}
 
+	@logwrap(section="RecycleToggleButton")
 	def redata(self, *_, **kwargs):
 		"""Update my ``data`` to match what's in my ``store``"""
 		select_name = kwargs.get("select_name")
@@ -145,16 +154,19 @@ class StoreList(RecycleView):
 		if select_name:
 			self._trigger_select_name(select_name)
 
+	@logwrap(section="RecycleToggleButton")
 	def _trigger_redata(self, *args, **kwargs):
 		part = partial(self.redata, *args, **kwargs)
 		if hasattr(self, "_scheduled_redata"):
 			Clock.unschedule(self._scheduled_redata)
 		self._scheduled_redata = Clock.schedule_once(part, 0)
 
+	@logwrap(section="RecycleToggleButton")
 	def select_name(self, name, *_):
 		"""Select an item by its name, highlighting"""
 		self.boxl.select_node(self._name2i[name])
 
+	@logwrap(section="RecycleToggleButton")
 	def _trigger_select_name(self, name):
 		part = partial(self.select_name, name)
 		if hasattr(self, "_scheduled_select_name"):
@@ -168,6 +180,7 @@ class LanguageInput(TextInput):
 	screen = ObjectProperty()
 	"""The instance of ``StringsEdScreen`` that I'm in"""
 
+	@logwrap(section="RecycleToggleButton")
 	def on_focus(self, instance, value, *largs):
 		if not value:
 			if self.screen.language != self.text:
@@ -191,6 +204,7 @@ class StringsEdScreen(Screen):
 	edbox = ObjectProperty()
 	"""Widget containing editors for the current string and its name"""
 
+	@logwrap(section="RecycleToggleButton")
 	def on_language(self, *_):
 		if self.edbox is None:
 			Clock.schedule_once(self.on_language, 0)
@@ -199,13 +213,16 @@ class StringsEdScreen(Screen):
 		if self.store.language != self.language:
 			self.store.language = self.language
 
+	@logwrap(section="RecycleToggleButton")
 	def on_store(self, *_):
 		self.language = self.store.language
 		self.store.language.connect(self._pull_language)
 
+	@logwrap(section="RecycleToggleButton")
 	def _pull_language(self, *_, language):
 		self.language = language
 
+	@logwrap(section="RecycleToggleButton")
 	def save(self, *_):
 		if self.edbox is None:
 			Clock.schedule_once(self.save, 0)
@@ -228,6 +245,7 @@ class Editor(BoxLayout):
 	_trigger_save = ObjectProperty()
 	_trigger_delete = ObjectProperty()
 
+	@logwrap(section="RecycleToggleButton")
 	def save(self, *_):
 		"""Put text in my store, return True if it changed"""
 		if self.name_wid is None or self.store is None:
@@ -287,6 +305,7 @@ class Editor(BoxLayout):
 				do_redata = True
 		return do_redata
 
+	@logwrap(section="RecycleToggleButton")
 	def delete(self, *_):
 		"""Remove the currently selected item from my store"""
 		key = self.name_wid.text or self.name_wid.hint_text
@@ -306,16 +325,19 @@ class StringInput(Editor):
 	validate_name_input = ObjectProperty()
 	"""Boolean function for checking if a string name is acceptable"""
 
+	@logwrap(section="StringInput")
 	def on_name_wid(self, *_):
 		if not self.validate_name_input:
 			Clock.schedule_once(self.on_name_wid, 0)
 			return
 		self.name_wid.bind(text=self.validate_name_input)
 
+	@logwrap(section="StringInput")
 	def _get_name(self):
 		if self.name_wid:
 			return self.name_wid.text
 
+	@logwrap(section="StringInput")
 	def _set_name(self, v, *_):
 		if not self.name_wid:
 			Clock.schedule_once(partial(self._set_name, v), 0)
@@ -324,11 +346,13 @@ class StringInput(Editor):
 
 	name = AliasProperty(_get_name, _set_name)
 
+	@logwrap(section="StringInput")
 	def _get_source(self):
 		if "string" not in self.ids:
 			return ""
 		return self.ids.string.text
 
+	@logwrap(section="StringInput")
 	def _set_source(self, v, *args):
 		if "string" not in self.ids:
 			Clock.schedule_once(partial(self._set_source, v), 0)
@@ -361,6 +385,7 @@ class EdBox(BoxLayout):
 	"""Set to ``True`` to prevent entering text in the editor"""
 	selection_name = StringProperty()
 
+	@logwrap(section="EdBox")
 	def on_store_name(self, *_):
 		app = App.get_running_app()
 		if not hasattr(app, "engine"):
@@ -368,16 +393,19 @@ class EdBox(BoxLayout):
 			return
 		self.store = getattr(app.engine, self.store_name)
 
+	@logwrap(section="EdBox")
 	def on_storelist(self, *_):
 		self.storelist.bind(selection_name=self.setter("selection_name"))
 
 	@trigger
+	@logwrap(section="EdBox")
 	def validate_name_input(self, *_):
 		self.disable_text_input = not (
 			self.valid_name(self.editor.name_wid.hint_text)
 			or self.valid_name(self.editor.name_wid.text)
 		)
 
+	@logwrap(section="EdBox")
 	def on_selection_name(self, _, selection_name):
 		if selection_name == self.editor.name_wid.hint_text:
 			return
@@ -399,10 +427,12 @@ class EdBox(BoxLayout):
 		if hasattr(self, "_lock_save"):
 			del self._lock_save
 
+	@logwrap(section="EdBox")
 	def dismiss(self, *_):
 		self.save()
 		self.toggle()
 
+	@logwrap(section="EdBox")
 	def save(self, *_, name=None):
 		if not self.editor or not self.store:
 			return
@@ -415,11 +445,13 @@ class EdBox(BoxLayout):
 		else:
 			del self._lock_save
 
+	@logwrap(section="EdBox")
 	def _trigger_save(self, name=None):
 		part = partial(self.save, name=name)
 		Clock.unschedule(part)
 		Clock.schedule_once(part, 0)
 
+	@logwrap(section="EdBox")
 	def delete(self, *_):
 		if not self.editor:
 			return
@@ -443,6 +475,7 @@ class StringNameInput(TextInput):
 
 	_trigger_save = ObjectProperty()
 
+	@logwrap(section="StringNameInput")
 	def on_focus(self, inst, val, *largs):
 		if self.text and not val:
 			self._trigger_save(self.text)
@@ -479,6 +512,7 @@ class FunctionNameInput(TextInput):
 
 	_trigger_save = ObjectProperty()
 
+	@logwrap(section="FunctionNameInput")
 	def insert_text(self, s, from_undo=False):
 		if self.text == "":
 			if s[0] not in (string.ascii_letters + "_"):
@@ -491,11 +525,12 @@ class FunctionNameInput(TextInput):
 			)
 		)
 
+	@logwrap(section="FunctionNameInput")
 	def on_focus(self, inst, val, *_):
 		if not val:
 			self._trigger_save(self.text)
 
-
+@logwrap(section="elide.stores")
 def munge_source(v):
 	"""Take Python source code, return a pair of its parameters and the rest of it dedented"""
 	lines = v.split("\n")
@@ -543,6 +578,7 @@ class FuncEditor(Editor):
 			code += " " * 4 + "pass"
 		return code.rstrip(" \n\t")
 
+	@logwrap(section="FuncEditor")
 	def _set_source(self, v):
 		if not self.codeinput:
 			Clock.schedule_once(partial(self._set_source, v), 0)
@@ -582,6 +618,7 @@ class FuncsEdBox(EdBox):
 			not in string.digits + string.whitespace + string.punctuation
 		)
 
+	@logwrap(section="FuncsEdBox")
 	def on_data(self, *_):
 		app = App.get_running_app()
 		if app is None:
@@ -600,6 +637,7 @@ class FuncsEdScreen(Screen):
 
 	toggle = ObjectProperty()
 
+	@logwrap(section="FuncsEdScreen")
 	def save(self, *args):
 		self.ids.triggers.save()
 		self.ids.prereqs.save()

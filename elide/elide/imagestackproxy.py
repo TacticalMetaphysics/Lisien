@@ -12,10 +12,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from functools import partial
+
 from kivy.clock import Clock, triggered
 from kivy.properties import ObjectProperty
 
 from elide.kivygarden.texturestack import ImageStack
+from .util import logwrap
 
 
 def trigger(func):
@@ -26,6 +29,7 @@ class ImageStackProxy(ImageStack):
 	proxy = ObjectProperty()
 	name = ObjectProperty()
 
+	@logwrap(section="ImageStackProxy")
 	def finalize(self, initial=True):
 		if getattr(self, "_finalized", False):
 			return
@@ -53,17 +57,20 @@ class ImageStackProxy(ImageStack):
 		self._offys_binding = self.fbind("offys", self._trigger_push_offys)
 		self._finalized = True
 
+	@logwrap(section="ImageStackProxy")
 	def finalize_children(self, initial=True, *_):
 		for child in self.children:
 			if not getattr(child, "_finalized", False):
 				child.finalize(initial=initial)
 
+	@logwrap(section="ImageStackProxy")
 	def unfinalize(self):
 		self.unbind_uid("paths", self._paths_binding)
 		self.unbind_uid("offxs", self._offxs_binding)
 		self.unbind_uid("offys", self._offys_binding)
 		self._finalized = False
 
+	@logwrap(section="ImageStackProxy")
 	def pull_from_proxy(self, *_):
 		initial = not hasattr(self, "_finalized")
 		self.unfinalize()
@@ -76,6 +83,7 @@ class ImageStackProxy(ImageStack):
 				setattr(self, att, self.proxy[key])
 		self.finalize(initial)
 
+	@logwrap(section="ImageStackProxy")
 	def _trigger_pull_from_proxy(self, *args, **kwargs):
 		if hasattr(self, "_scheduled_pull_from_proxy"):
 			Clock.unschedule(self._scheduled_pull_from_proxy)
@@ -84,22 +92,27 @@ class ImageStackProxy(ImageStack):
 		)
 
 	@trigger
+	@logwrap(section="ImageStackProxy")
 	def _trigger_push_image_paths(self, *_):
 		self.proxy["_image_paths"] = list(self.paths)
 
 	@trigger
+	@logwrap(section="ImageStackProxy")
 	def _trigger_push_offxs(self, *_):
 		self.proxy["_offxs"] = list(self.offxs)
 
 	@trigger
+	@logwrap(section="ImageStackProxy")
 	def _trigger_push_offys(self, *_):
 		self.proxy["_offys"] = list(self.offys)
 
 	@trigger
+	@logwrap(section="ImageStackProxy")
 	def _trigger_push_stackhs(self, *_):
 		self.proxy["_stackhs"] = list(self.stackhs)
 
 	@trigger
+	@logwrap(section="ImageStackProxy")
 	def restack(self, *_):
 		childs = sorted(
 			list(self.children), key=lambda child: child.priority, reverse=True

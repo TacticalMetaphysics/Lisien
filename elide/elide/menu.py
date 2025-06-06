@@ -32,6 +32,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .gen import GridGeneratorDialog
+from .util import logwrap
 
 
 class MenuTextInput(TextInput):
@@ -45,6 +46,7 @@ class MenuTextInput(TextInput):
 		super().__init__(**kwargs)
 		self.bind(on_text_validate=self.on_enter)
 
+	@logwrap(section="MenuTextInput")
 	def on_enter(self, *_):
 		"""Call the setter and blank myself out so that my hint text shows
 		up. It will be the same you just entered if everything's
@@ -57,11 +59,13 @@ class MenuTextInput(TextInput):
 		self.text = ""
 		self.focus = False
 
+	@logwrap(section="MenuTextInput")
 	def on_focus(self, *args):
 		"""If I've lost focus, treat it as if the user hit Enter."""
 		if not self.focus:
 			self.on_enter(*args)
 
+	@logwrap(section="MenuTextInput")
 	def on_text_validate(self, *_):
 		"""Equivalent to hitting Enter."""
 		self.on_enter()
@@ -70,6 +74,7 @@ class MenuTextInput(TextInput):
 class MenuIntInput(MenuTextInput):
 	"""Special text input for setting the turn or tick"""
 
+	@logwrap(section="MenuIntInput")
 	def insert_text(self, s, from_undo=False):
 		"""Natural numbers only."""
 		return super().insert_text(
@@ -102,6 +107,7 @@ class WorldStartConfigurator(BoxLayout):
 			)
 		self.generator_dropdown.bind(on_select=self.select_generator_type)
 
+	@logwrap(section="WorldStartConfigurator")
 	def select_generator_type(self, instance, value):
 		self.ids.drop.text = value
 		if value == "none":
@@ -118,6 +124,7 @@ class WorldStartConfigurator(BoxLayout):
 class GamePickerModal(ModalView):
 	headline = StringProperty()
 
+	@logwrap(section="GamePickerModal")
 	def _decompress_and_start(self, game_file_path, game, *_):
 		app = App.get_running_app()
 		game_dir = str(os.path.join(app.prefix, game))
@@ -131,6 +138,7 @@ class GamePickerModal(ModalView):
 
 class GameExporterModal(GamePickerModal):
 	@triggered()
+	@logwrap(section="GameExporterModal")
 	def pick(self, game, *_):
 		app = App.get_running_app()
 		app.copy_to_shared_storage(
@@ -138,6 +146,7 @@ class GameExporterModal(GamePickerModal):
 		)
 		self.dismiss()
 
+	@logwrap(section="GameExporterModal")
 	def regen(self):
 		if "game_list" not in self.ids:
 			return
@@ -146,6 +155,7 @@ class GameExporterModal(GamePickerModal):
 
 class GameImporterModal(GamePickerModal):
 	@triggered()
+	@logwrap(section="GameImporterModal")
 	def pick(self, selection, *_):
 		if not selection:
 			return
@@ -177,6 +187,7 @@ class GameImporterModal(GamePickerModal):
 			modal.add_widget(error_box)
 			modal.open()
 
+	@logwrap(section="GameImporterModal")
 	def on_pre_open(self, *_):
 		try:
 			from android.storage import primary_external_storage_path
@@ -196,6 +207,7 @@ class GameImporterModal(GamePickerModal):
 
 class GameLoaderModal(GamePickerModal):
 	@triggered()
+	@logwrap(section="GameLoaderModal")
 	def pick(self, game, *_):
 		app = App.get_running_app()
 		if os.path.isfile(app.games_dir):
@@ -227,6 +239,7 @@ class GameList(RecycleView):
 		self._trigger_regen = Clock.create_trigger(self.regen)
 		self.bind(picker=self._trigger_regen, path=self._trigger_regen)
 
+	@logwrap(section="GameList")
 	def regen(self, *_):
 		if not self.picker:
 			Logger.debug("GameList: awaiting picker")
@@ -250,6 +263,7 @@ class GameList(RecycleView):
 
 class NewGameModal(ModalView):
 	@triggered()
+	@logwrap(section="NewGameModal")
 	def validate_and_start(self, *_):
 		game_name = self.ids.game_name.text
 		self.ids.game_name.text = ""
@@ -292,6 +306,7 @@ class NewGameModal(ModalView):
 				app.close_game()
 			self._really_start(game_name)
 
+	@logwrap(section="NewGameModal")
 	def _really_start(self, game_name, *_):
 		app = App.get_running_app()
 		worldstart = self.ids.worldstart
@@ -316,12 +331,14 @@ class MainMenuScreen(Screen):
 	toggle = ObjectProperty()
 
 	@trigger
+	@logwrap(section="MainMenuScreen")
 	def new_game(self, *_):
 		if not hasattr(self, "_popover_new_game"):
 			self._popover_new_game = NewGameModal()
 		self._popover_new_game.open()
 
 	@trigger
+	@logwrap(section="MainMenuScreen")
 	def load_game(self, *_):
 		if not hasattr(self, "_popover_load_game"):
 			self._popover_load_game = GameLoaderModal(
@@ -330,6 +347,7 @@ class MainMenuScreen(Screen):
 		self._popover_load_game.open()
 
 	@trigger
+	@logwrap(section="MainMenuScreen")
 	def import_game(self, *_):
 		try:
 			import android
@@ -353,6 +371,7 @@ class MainMenuScreen(Screen):
 			self._popover_import_game.open()
 
 	@mainthread
+	@logwrap(section="MainMenuScreen")
 	def _copy_from_shared_and_start_game(self, files):
 		game_file_path = self._ss.copy_from_shared(files[0])
 		if not game_file_path.endswith(".zip"):
@@ -372,6 +391,7 @@ class MainMenuScreen(Screen):
 		app.start_game(name=game, cb=self._please_wait.dismiss)
 
 	@trigger
+	@logwrap(section="MainMenuScreen")
 	def export_game(self, *_):
 		if not hasattr(self, "_popover_export_game"):
 			self._popover_export_game = GameExporterModal(
@@ -381,6 +401,7 @@ class MainMenuScreen(Screen):
 		self._popover_export_game.open()
 
 	@trigger
+	@logwrap(section="MainMenuScreen")
 	def invalidate_popovers(self, *_):
 		if hasattr(self, "_popover_new_game"):
 			del self._popover_new_game

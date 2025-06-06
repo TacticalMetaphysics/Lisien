@@ -15,6 +15,8 @@
 from kivy.clock import Clock, triggered
 from kivy.properties import NumericProperty, ObjectProperty
 
+from .util import logwrap
+
 
 def trigger(func):
 	return triggered()(func)
@@ -37,9 +39,11 @@ class PawnBehavior:
 		super().__init__(**kwargs)
 		self.register_event_type("on_drop")
 
+	@logwrap(section="PawnBehavior")
 	def on_proxy(self, *args):
 		self.loc_name = self.proxy["location"]
 
+	@logwrap(section="PawnBehavior")
 	def on_parent(self, *args):
 		if not self.parent:
 			Clock.schedule_once(self.on_parent, 0)
@@ -49,6 +53,7 @@ class PawnBehavior:
 		if self.proxy:
 			self._trigger_relocate()
 
+	@logwrap(section="PawnBehavior")
 	def finalize(self, initial=True):
 		if initial:
 			self.loc_name = self.proxy["location"]
@@ -58,10 +63,12 @@ class PawnBehavior:
 		)
 		super().finalize(initial)
 
+	@logwrap(section="PawnBehavior")
 	def unfinalize(self):
 		self.unbind_uid("loc_name", self._push_loc_binding)
 		super().unfinalize()
 
+	@logwrap(section="PawnBehavior")
 	def pull_from_proxy(self, *args):
 		super().pull_from_proxy(*args)
 		relocate = False
@@ -79,6 +86,7 @@ class PawnBehavior:
 		if relocate:
 			self.relocate()
 
+	@logwrap(section="PawnBehavior")
 	def relocate(self, *args):
 		if (
 			not getattr(self, "_finalized", False)
@@ -98,11 +106,13 @@ class PawnBehavior:
 
 	_trigger_relocate = trigger(relocate)
 
+	@logwrap(section="PawnBehavior")
 	def on_priority(self, *args):
 		if self.proxy["_priority"] != self.priority:
 			self.proxy["_priority"] = self.priority
 		self.parent.restack()
 
+	@logwrap(section="PawnBehavior")
 	def push_location(self, *args):
 		if self.proxy["location"] != self.loc_name:
 			self.proxy["location"] = self.loc_name
@@ -112,6 +122,7 @@ class PawnBehavior:
 	def _get_location_wid(self):
 		return self.board.spot[self.loc_name]
 
+	@logwrap(section="PawnBehavior")
 	def on_touch_up(self, touch):
 		if touch.grab_current is not self:
 			return False
@@ -126,6 +137,7 @@ class PawnBehavior:
 		touch.ungrab(self)
 		return True
 
+	@logwrap(section="PawnBehavior")
 	def on_drop(self, spot):
 		parent = self.parent
 		if spot:

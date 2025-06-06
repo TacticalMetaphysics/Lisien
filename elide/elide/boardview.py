@@ -12,8 +12,14 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from functools import partial
 from kivy.properties import NumericProperty, ObjectProperty
 from kivy.uix.stencilview import StencilView
+
+from .util import logwrap
+
+
+wraplog_boardview = partial(logwrap, section="BoardView")
 
 
 class BoardView(StencilView):
@@ -22,12 +28,15 @@ class BoardView(StencilView):
 	scale_min = NumericProperty(allownone=True)
 	scale_max = NumericProperty(allownone=True)
 
+	@wraplog_boardview
 	def spot_from_dummy(self, dummy):
 		self.plane.spot_from_dummy(dummy)
 
+	@wraplog_boardview
 	def pawn_from_dummy(self, dummy):
 		self.plane.pawn_from_dummy(dummy)
 
+	@wraplog_boardview
 	def on_touch_down(self, touch):
 		if not self.collide_point(*touch.pos):
 			return

@@ -34,7 +34,7 @@ from kivy.uix.widget import Widget
 
 from .card import Card, DeckBuilderScrollBar, DeckBuilderView
 from .stores import FuncEditor
-from .util import store_kv
+from .util import store_kv, logwrap
 
 
 def trigger(func):
@@ -52,6 +52,7 @@ class RuleButton(ToggleButton, RecycleDataViewBehavior):
 	ruleslist = ObjectProperty()
 	rule = ObjectProperty()
 
+	@logwrap(section="RuleButton")
 	def on_state(self, *args):
 		"""If I'm pressed, unpress all other buttons in the ruleslist"""
 		# This really ought to be done with the selection behavior
@@ -72,6 +73,7 @@ class RulesList(RecycleView):
 	rulebook = ObjectProperty()
 	rulesview = ObjectProperty()
 
+	@logwrap(section="RulesList")
 	def on_rulebook(self, *_):
 		"""Make sure to update when the rulebook changes"""
 		if self.rulebook is None:
@@ -79,6 +81,7 @@ class RulesList(RecycleView):
 		self.rulebook.connect(self._trigger_redata, weak=False)
 		self.redata()
 
+	@logwrap(section="RulesList")
 	def redata(self, *_):
 		"""Make my data represent what's in my rulebook right now"""
 		if self.rulesview is None:
@@ -95,6 +98,7 @@ class RulesList(RecycleView):
 		]
 		self.data = data
 
+	@logwrap(section="RulesList")
 	def _trigger_redata(self, *_, **__):
 		if hasattr(self, "_scheduled_redata"):
 			Clock.unschedule(self._scheduled_redata)
@@ -118,12 +122,14 @@ class RulesView(Widget):
 	def engine(self):
 		return App.get_running_app().engine
 
+	@logwrap(section="RulesView")
 	def on_rule(self, *args):
 		"""Make sure to update when the rule changes"""
 		if self.rule is None:
 			return
 		self.rule.connect(self._listen_to_rule)
 
+	@logwrap(section="RulesView")
 	def _listen_to_rule(self, rule, **kwargs):
 		if rule is not self.rule:
 			rule.disconnect(self._listen_to_rule)
@@ -139,6 +145,7 @@ class RulesView(Widget):
 		super().__init__(**kwargs)
 		self.finalize()
 
+	@logwrap(section="RulesView")
 	def finalize(self, *_):
 		"""Add my tabs"""
 		assert not getattr(self, "_finalized", False), "Already finalized"
@@ -212,6 +219,7 @@ class RulesView(Widget):
 			self.bind(rule=getattr(self, "_trigger_pull_{}s".format(functyp)))
 		self._finalized = True
 
+	@logwrap(section="RulesView")
 	def _edit_something(self, card: Card):
 		what_store = card.ud["type"]
 		what_function = card.headline_text
@@ -262,6 +270,7 @@ class RulesView(Widget):
 		# show the modal
 		self.rule_func_editor_modal.open()
 
+	@logwrap(section="RulesView")
 	def get_functions_cards(self, what, allfuncs):
 		"""Return a pair of lists of Card widgets for used and unused functions.
 
@@ -304,6 +313,7 @@ class RulesView(Widget):
 		]
 		return used, unused
 
+	@logwrap(section="RulesView")
 	def set_functions(self, what, allfuncs):
 		"""Set the cards in the ``what`` builder to ``allfuncs``
 
@@ -318,12 +328,14 @@ class RulesView(Widget):
 			self.get_functions_cards(what, allfuncs),
 		)
 
+	@logwrap(section="RulesView")
 	def _pull_functions(self, what, truth=True):
 		it = map(self.inspect_func, getattr(self.engine, what)._cache.items())
 		if not truth:
 			it = filter(lambda x: x[0] != "truth", it)
 		return self.get_functions_cards(what, list(it))
 
+	@logwrap(section="RulesView")
 	def pull_triggers(self, *args):
 		"""Refresh the cards in the trigger builder"""
 		self._trigger_builder.unbind_uid(
@@ -336,6 +348,7 @@ class RulesView(Widget):
 
 	_trigger_pull_triggers = trigger(pull_triggers)
 
+	@logwrap(section="RulesView")
 	def pull_prereqs(self, *args):
 		"""Refresh the cards in the prereq builder"""
 		self._prereq_builder.unbind_uid(
@@ -350,6 +363,7 @@ class RulesView(Widget):
 
 	_trigger_pull_prereqs = trigger(pull_prereqs)
 
+	@logwrap(section="RulesView")
 	def pull_actions(self, *args):
 		"""Refresh the cards in the action builder"""
 		self._action_builder.unbind_uid(
@@ -364,6 +378,7 @@ class RulesView(Widget):
 
 	_trigger_pull_actions = trigger(pull_actions)
 
+	@logwrap(section="RulesView")
 	def inspect_func(self, namesrc):
 		"""Take a function's (name, sourcecode) and return a triple of (name, sourcecode, signature)"""
 		(name, src) = namesrc
@@ -374,6 +389,7 @@ class RulesView(Widget):
 		func = lcls[name]
 		return name, src, signature(func)
 
+	@logwrap(section="RulesView")
 	def update_builders(self, *args):
 		for attrn in "_trigger_builder", "_prereq_builder", "_action_builder":
 			if not hasattr(self, attrn):
@@ -394,6 +410,7 @@ class RulesView(Widget):
 
 	_trigger_update_builders = trigger(update_builders)
 
+	@logwrap(section="RulesView")
 	def _upd_unused(self, what):
 		"""Make sure to have exactly one copy of every valid function in the
 		"unused" pile on the right.
@@ -419,21 +436,25 @@ class RulesView(Widget):
 		builder.decks[1] = unused
 		builder.bind(decks=updtrig)
 
+	@logwrap(section="RulesView")
 	def upd_unused_actions(self, *_):
 		self._upd_unused("action")
 
 	_trigger_upd_unused_actions = trigger(upd_unused_actions)
 
+	@logwrap(section="RulesView")
 	def upd_unused_triggers(self, *_):
 		self._upd_unused("trigger")
 
 	_trigger_upd_unused_triggers = trigger(upd_unused_triggers)
 
+	@logwrap(section="RulesView")
 	def upd_unused_prereqs(self, *_):
 		self._upd_unused("prereq")
 
 	_trigger_upd_unused_prereqs = trigger(upd_unused_prereqs)
 
+	@logwrap(section="RulesView")
 	def _push_funcs(self, what):
 		if not self.rule:
 			Logger.debug(
@@ -448,16 +469,19 @@ class RulesView(Widget):
 		if funlist != funcs:
 			setattr(self.rule, what + "s", funcs)
 
+	@logwrap(section="RulesView")
 	def push_actions(self, *_):
 		self._push_funcs("action")
 
 	_trigger_push_actions = trigger(push_actions)
 
+	@logwrap(section="RulesView")
 	def push_prereqs(self, *_):
 		self._push_funcs("prereq")
 
 	_trigger_push_prereqs = trigger(push_prereqs)
 
+	@logwrap(section="RulesView")
 	def push_triggers(self, att, *_):
 		self._push_funcs("trigger")
 
@@ -487,12 +511,14 @@ class RulesBox(BoxLayout):
 	def engine(self):
 		return App.get_running_app().engine
 
+	@logwrap(section="RulesBox")
 	def on_ruleslist(self, *_):
 		if not self.ruleslist.children:
 			Clock.schedule_once(self.on_ruleslist, 0)
 			return
 		self.ruleslist.children[0].bind(children=self._upd_ruleslist_selection)
 
+	@logwrap(section="RulesBox")
 	def new_rule(self, *_):
 		if self.new_rule_name in self.engine.rule:
 			# TODO: feedback to say you already have such a rule
@@ -504,6 +530,7 @@ class RulesBox(BoxLayout):
 		self.ruleslist.redata()
 		self.ids.rulename.text = ""
 
+	@logwrap(section="RulesBox")
 	def _upd_ruleslist_selection(self, *_):
 		if not hasattr(self, "_new_rule_name"):
 			return
@@ -526,6 +553,7 @@ class RulesScreen(Screen):
 	def engine(self):
 		return App.get_running_app().engine
 
+	@logwrap(section="RulesScreen")
 	def new_rule(self, *_):
 		self.children[0].new_rule()
 
@@ -536,6 +564,7 @@ class CharacterRulesScreen(Screen):
 	character = ObjectProperty()
 	toggle = ObjectProperty()
 
+	@logwrap(section="CharacterRulesScreen")
 	def _get_rulebook(self, rb):
 		return {
 			"character": self.character.rulebook,
@@ -545,6 +574,7 @@ class CharacterRulesScreen(Screen):
 			"character_portal": self.character.portal.rulebook,
 		}[rb]
 
+	@logwrap(section="CharacterRulesScreen")
 	def finalize(self, *args):
 		if hasattr(self, "_finalized"):
 			return
@@ -572,6 +602,7 @@ class CharacterRulesScreen(Screen):
 		self.add_widget(self._tabs)
 		self._finalized = True
 
+	@logwrap(section="CharacterRulesScreen")
 	def on_character(self, *_):
 		if not hasattr(self, "_finalized"):
 			self.finalize()

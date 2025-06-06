@@ -30,6 +30,7 @@ from kivy.properties import BooleanProperty, ListProperty, ObjectProperty
 from kivy.uix.layout import Layout
 
 from elide.imagestackproxy import ImageStackProxy
+from .util import logwrap
 
 
 def trigger(func):
@@ -56,6 +57,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		super().__init__(**kwargs)
 		self.bind(pos=self._position)
 
+	@logwrap(section="GraphPawnSpot")
 	def on_touch_move(self, touch):
 		"""If I'm being dragged, move to follow the touch."""
 		if touch.grab_current is not self:
@@ -63,6 +65,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		self.center = touch.pos
 		return True
 
+	@logwrap(section="GraphPawnSpot")
 	def finalize(self, initial=True):
 		"""Call this after you've created all the PawnSpot you need and are ready to add them to the board."""
 		if getattr(self, "_finalized", False):
@@ -133,12 +136,14 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		boxgrp.add(PopMatrix())
 		self._finalized = True
 
+	@logwrap(section="GraphPawnSpot")
 	def unfinalize(self):
 		self.unbind_uid("paths", self._push_image_paths_binding)
 		self.unbind_uid("offxs", self._push_offxs_binding)
 		self.unbind_uid("offys", self._push_offys_binding)
 		self._finalized = False
 
+	@logwrap(section="GraphPawnSpot")
 	def pull_from_proxy(self, *_):
 		initial = not hasattr(self, "_finalized")
 		self.unfinalize()
@@ -151,22 +156,27 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 				setattr(self, att, self.proxy[key])
 		self.finalize(initial)
 
+	@logwrap(section="GraphPawnSpot")
 	def _trigger_pull_from_proxy(self, *_, **__):
 		Clock.unschedule(self.pull_from_proxy)
 		Clock.schedule_once(self.pull_from_proxy, 0)
 
 	@trigger
+	@logwrap(section="GraphPawnSpot")
 	def _trigger_push_image_paths(self, *_):
 		self.proxy["_image_paths"] = list(self.paths)
 
 	@trigger
+	@logwrap(section="GraphPawnSpot")
 	def _trigger_push_offxs(self, *_):
 		self.proxy["_offxs"] = list(self.offxs)
 
 	@trigger
+	@logwrap(section="GraphPawnSpot")
 	def _trigger_push_offys(self, *_):
 		self.proxy["_offys"] = list(self.offys)
 
+	@logwrap(section="GraphPawnSpot")
 	def on_linecolor(self, *_):
 		"""If I don't yet have the instructions for drawing the selection box
 		in my canvas, put them there. In any case, set the
@@ -176,6 +186,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		if hasattr(self, "color"):
 			self.color.rgba = self.linecolor
 
+	@logwrap(section="GraphPawnSpot")
 	def on_board(self, *_):
 		if not (hasattr(self, "group") and hasattr(self, "boxgrp")):
 			Clock.schedule_once(self.on_board, 0)
@@ -183,6 +194,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		self.canvas.add(self.group)
 		self.canvas.add(self.boxgrp)
 
+	@logwrap(section="GraphPawnSpot")
 	def add_widget(self, wid, index=None, canvas=None):
 		if index is None:
 			for index, child in enumerate(self.children, start=1):
@@ -192,6 +204,7 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		super().add_widget(wid, index=index, canvas=canvas)
 		self._trigger_layout()
 
+	@logwrap(section="GraphPawnSpot")
 	def do_layout(self, *_):
 		# First try to lay out my children inside of me,
 		# leaving at least this much space on the sides
@@ -259,12 +272,14 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 				offx += subw
 			offx += gutter
 
+	@logwrap(section="GraphPawnSpot")
 	def _position(self, *_):
 		x, y = self.pos
 		for child in self.children:
 			offx, offy = getattr(child, "rel_pos", (0, 0))
 			child.pos = x + offx, y + offy
 
+	@logwrap(section="GraphPawnSpot")
 	def on_selected(self, *_):
 		if self.selected:
 			self.linecolor = self.selected_outline_color

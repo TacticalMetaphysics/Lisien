@@ -15,7 +15,6 @@
 import json
 import os
 import shutil
-import sys
 
 from kivy.core.image import Image
 from kivy.clock import Clock, triggered
@@ -38,7 +37,7 @@ from sqlalchemy import and_, bindparam, column
 
 from .kivygarden.texturestack import ImageStack
 from .pallet import Pallet, PalletBox
-from .util import store_kv
+from .util import store_kv, logwrap
 
 
 def trigger(func):
@@ -52,12 +51,14 @@ class SpriteSelector(BoxLayout):
 	default_imgpaths = ListProperty()
 	preview = ObjectProperty()
 
+	@logwrap(section="SpriteSelector")
 	def on_prefix(self, *_):
 		if "textbox" not in self.ids:
 			Clock.schedule_once(self.on_prefix, 0)
 			return
 		self.ids.textbox.text = self.prefix
 
+	@logwrap(section="SpriteSelector")
 	def on_imgpaths(self, *_):
 		if not self.preview:
 			Logger.debug("SpriteSelector: no preview")
@@ -73,14 +74,17 @@ class SpriteSelector(BoxLayout):
 			self.preview.add_widget(self._imgstack)
 
 	@trigger
+	@logwrap(section="SpriteSelector")
 	def _position_imgstack(self, *_):
 		self._imgstack.x = self.preview.center_x - self._imgstack.height / 2
 		self._imgstack.y = self.preview.center_y - self._imgstack.width / 2
 
+	@logwrap(section="SpriteSelector")
 	def on_pallets(self, *_):
 		for pallet in self.pallets:
 			pallet.fbind("selection", self._upd_imgpaths)
 
+	@logwrap(section="SpriteSelector")
 	def _upd_imgpaths(self, *_):
 		imgpaths = []
 		for pallet in self.pallets:
@@ -104,6 +108,7 @@ class SpriteBuilder(ScrollView):
 		super().__init__(**kwargs)
 		self.bind(data=self._trigger_update)
 
+	@logwrap(section="SpriteBuilder")
 	def update(self, *args):
 		if self.data is None:
 			return
@@ -158,6 +163,7 @@ class SpriteBuilder(ScrollView):
 
 	_trigger_update = trigger(update)
 
+	@logwrap(section="SpriteBuilder")
 	def reheight(self, *args):
 		self._palbox.height = sum(
 			wid.height for wid in self.labels + self.pallets
@@ -176,12 +182,14 @@ class SpriteDialog(BoxLayout):
 	data = ListProperty()
 	pallet_box_height = NumericProperty()
 
+	@logwrap(section="SpriteDialog")
 	def pressed(self):
 		self.prefix = self.ids.selector.prefix
 		self.imgpaths = self.ids.selector.imgpaths
 		self.toggle()
 
 	@trigger
+	@logwrap(section="SpriteDialog")
 	def _choose_graphic_to_import(self, *_):
 		try:
 			from android.storage import primary_external_storage_path
@@ -214,6 +222,7 @@ class SpriteDialog(BoxLayout):
 			self._graphic_modal.add_widget(graphic_modal_layout)
 		self._graphic_modal.open()
 
+	@logwrap(section="SpriteDialog")
 	def _copy_from_shared(self, src: str):
 		from android import mActivity, autoclass, cast
 		from android.storage import (
@@ -297,6 +306,7 @@ class SpriteDialog(BoxLayout):
 		return dst
 
 	@trigger
+	@logwrap(section="SpriteBuilder")
 	def _import_graphic(self, *_):
 		if not self._file_chooser.selection:
 			# should display an error message briefly

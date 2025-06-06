@@ -12,7 +12,14 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from kivy.logger import KivyFormatter, ConsoleHandler, Logger
 from kivy.resources import resource_add_path
+
+formatter = KivyFormatter("%(asctime)s [%(levelname)-7s] %(message)s")
+for handler in Logger.handlers:
+	if not isinstance(handler, ConsoleHandler):
+		handler.setFormatter(formatter)
+
 resource_add_path(__path__[0] + "/assets")
 
 __all__ = [

@@ -12,11 +12,19 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from functools import partial
+
 from kivy.graphics.transformation import Matrix
 from kivy.uix.scatter import ScatterPlane
 
+from .util import logwrap
+
+
+wraplog_bsp = partial(logwrap, section="BoardScatterPlane")
+
 
 class BoardScatterPlane(ScatterPlane):
+	@wraplog_bsp
 	def on_touch_down(self, touch):
 		if touch.is_mouse_scrolling:
 			scale = self.scale + (
@@ -35,12 +43,14 @@ class BoardScatterPlane(ScatterPlane):
 			return self.dispatch("on_transform_with_touch", touch)
 		return super().on_touch_down(touch)
 
+	@wraplog_bsp
 	def apply_transform(self, trans, post_multiply=False, anchor=(0, 0)):
 		super().apply_transform(
 			trans, post_multiply=post_multiply, anchor=anchor
 		)
 		self._last_transform = trans, post_multiply, anchor
 
+	@wraplog_bsp
 	def on_transform_with_touch(self, touch):
 		x, y = self.pos
 		w = self.board.width * self.scale

@@ -36,7 +36,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import store_kv
+from .util import store_kv, logwrap
 
 
 def trigger(func):
@@ -52,6 +52,7 @@ class SwatchButton(ToggleButton):
 	tex = ObjectProperty()
 	"""Texture to display here"""
 
+	@logwrap(section="SwatchButton")
 	def on_state(self, *_):
 		if self.state == "down":
 			assert self not in self.parent.selection

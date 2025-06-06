@@ -12,6 +12,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from functools import partial
+
 from kivy.clock import Clock, triggered
 from kivy.properties import (
 	BooleanProperty,
@@ -23,7 +25,7 @@ from kivy.uix.boxlayout import BoxLayout
 from lisien.proxy import CharStatProxy
 
 from .graph.arrow import GraphArrowWidget
-from .util import dummynum, store_kv
+from .util import dummynum, store_kv, logwrap
 
 
 def trigger(func):
@@ -52,6 +54,7 @@ class CharMenu(BoxLayout):
 			raise AttributeError("Can't get engine from screen")
 		return self.screen.app.engine
 
+	@logwrap(section="CharMenu")
 	def on_screen(self, *_):
 		if not (self.screen and self.screen.boardview and self.screen.app):
 			Clock.schedule_once(self.on_screen, 0)
@@ -78,6 +81,7 @@ class CharMenu(BoxLayout):
 			reciprocal_portal=self.screen.boardview.setter("reciprocal_portal")
 		)
 
+	@logwrap(section="CharMenu")
 	def spot_from_dummy(self, dummy):
 		if self.screen.boardview.parent != self.screen.mainview:
 			return
@@ -96,6 +100,7 @@ class CharMenu(BoxLayout):
 		):
 			gridboard.add_spot(name)
 
+	@logwrap(section="CharMenu")
 	def pawn_from_dummy(self, dummy):
 		name = dummy.name
 		if not self.screen.mainview.children[0].pawn_from_dummy(dummy):
@@ -110,11 +115,13 @@ class CharMenu(BoxLayout):
 		):
 			gridboard.add_pawn(name)
 
+	@logwrap(section="CharMenu")
 	def toggle_chars_screen(self, *_):
 		"""Display or hide the list you use to switch between characters."""
 		# TODO: update the list of chars
 		self.app.chars.toggle()
 
+	@logwrap(section="CharMenu")
 	def toggle_rules(self, *_):
 		"""Display or hide the view for constructing rules out of cards."""
 		if self.app.manager.current != "rules" and not isinstance(
@@ -128,13 +135,16 @@ class CharMenu(BoxLayout):
 		else:
 			self.app.rules.toggle()
 
+	@logwrap(section="CharMenu")
 	def toggle_funcs_editor(self):
 		"""Display or hide the text editing window for functions."""
 		self.app.funcs.toggle()
 
+	@logwrap(section="CharMenu")
 	def toggle_strings_editor(self):
 		self.app.strings.toggle()
 
+	@logwrap(section="CharMenu")
 	def toggle_spot_cfg(self):
 		"""Show the dialog where you select graphics and a name for a place,
 		or hide it if already showing.
@@ -159,6 +169,7 @@ class CharMenu(BoxLayout):
 			self.app.spotcfg.prefix = self.ids.dummyplace.prefix
 		self.app.spotcfg.toggle()
 
+	@logwrap(section="CharMenu")
 	def toggle_pawn_cfg(self):
 		"""Show or hide the pop-over where you can configure the dummy pawn"""
 		if self.app.manager.current == "pawncfg":
@@ -179,6 +190,7 @@ class CharMenu(BoxLayout):
 			self.app.pawncfg.prefix = self.ids.dummything.prefix
 		self.app.pawncfg.toggle()
 
+	@logwrap(section="CharMenu")
 	def toggle_reciprocal(self):
 		"""Flip my ``reciprocal_portal`` boolean, and draw (or stop drawing)
 		an extra arrow on the appropriate button to indicate the
@@ -203,6 +215,7 @@ class CharMenu(BoxLayout):
 				self.ids.portaladdbut.remove_widget(self.revarrow)
 				self.revarrow = None
 
+	@logwrap(section="CharMenu")
 	def new_character(self, but):
 		name = self.app.chars.ids.newname.text
 		try:
@@ -216,15 +229,18 @@ class CharMenu(BoxLayout):
 		)
 		Clock.schedule_once(self.toggle_chars_screen, 0.01)
 
+	@logwrap(section="CharMenu")
 	def on_dummyplace(self, *_):
 		if not self.dummyplace.paths:
 			self.dummyplace.paths = ["atlas://rltiles/floor.atlas/floor-stone"]
 
+	@logwrap(section="CharMenu")
 	def on_dummything(self, *_):
 		if not self.dummything.paths:
 			self.dummything.paths = ["atlas://rltiles/base.atlas/unseen"]
 
 	@trigger
+	@logwrap(section="CharMenu")
 	def _trigger_deselect(self, *_):
 		if hasattr(self.app.selection, "selected"):
 			self.app.selection.selected = False
