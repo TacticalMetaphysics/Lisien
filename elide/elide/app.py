@@ -659,15 +659,14 @@ class ElideApp(App):
 			selection=self.setter("selection")
 		)
 
-	@staticmethod
 	def copy_to_shared_storage(
+		self,
 		filename: str,
 		mimetype: str | None = None,
 	) -> None:
 		Logger.debug(f"ElideApp: copy_to_shared_storage({filename!r}, {mimetype!r})")
 		try:
-			from android import autoclass, mActivity
-			from android.permissions import request_permissions, Permission
+			from androidstorage4kivy import SharedStorage
 		except ModuleNotFoundError:
 			# "shared storage" is just the working directory
 			try:
@@ -678,50 +677,10 @@ class ElideApp(App):
 			except shutil.SameFileError:
 				pass
 			return
-		if mimetype is None:
-			import mimetypes
-
-			mimetype = mimetypes.guess_type(filename)[0]
-		request_permissions([Permission.WRITE_EXTERNAL_STORAGE])
-		collection = autoclass("android.os.Environment").DIRECTORY_DOCUMENTS
-		root_uri = autoclass(
-			"android.provider.MediaStore$Files"
-		).getContentUri("external")
-		context = mActivity.getApplicationContext()
-		appinfo = context.getApplicationInfo()
-		if appinfo.labelRes:
-			name = context.getString(appinfo.labelRes)
-		else:
-			name = appinfo.nonLocalizedLabel.toString()
-		basefn = os.path.basename(filename)
-		dest_uri = (
-			root_uri.buildUpon()
-			.appendPath(collection)
-			.appendPath(name)
-			.appendPath(basefn)
-			.build()
-		)
-		resolver = context.getContentResolver()
-		try:
-			writer = resolver.openOutputStream(dest_uri, "wt")
-		except:
-			cv = autoclass("android.content.ContentValues")()
-			MediaStoreMediaColumns = autoclass(
-				"android.provider.MediaStore$MediaColumns"
-			)
-			cv.put(MediaStoreMediaColumns.DISPLAY_NAME, basefn)
-			cv.put(MediaStoreMediaColumns.MIME_TYPE, mimetype)
-			cv.put(
-				MediaStoreMediaColumns.RELATIVE_PATH,
-				os.path.join(collection, name),
-			)
-			uri = resolver.insert(root_uri, cv)
-			writer = resolver.openOutputStream(uri, "wt")
-		reader = autoclass("java.io.FileInputStream")(filename)
-		autoclass("android.os.FileUtils").copy(reader, writer)
-		writer.flush()
-		writer.close()
-		reader.close()
+		if not hasattr(self, "_ss"):
+			self._ss = SharedStorage()
+		storage = self._ss
+		storage.copy_to_shared(filename)
 
 	def _copy_log_files(self):
 		Logger.debug("ElideApp: _copy_log_files")
