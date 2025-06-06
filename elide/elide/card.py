@@ -998,7 +998,6 @@ class DeckBuilderScrollBar(FloatLayout):
 			scroll_max=self._trigger_layout,
 		)
 
-	@logwrap(section="DeckBuilderScrollBar")
 	def do_layout(self, *args):
 		"""Put the bar where it's supposed to be, and size it in proportion to
 		the size of the scrollable area.
