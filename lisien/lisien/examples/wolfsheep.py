@@ -146,7 +146,6 @@ def install(
 		critter["last_mate_turn"] = other_critter["last_mate_turn"] = (
 			engine.turn
 		)
-		return "mated"
 
 	@mate.trigger
 	def once_per_turn(critter):
