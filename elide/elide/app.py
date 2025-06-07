@@ -190,7 +190,8 @@ class ElideApp(App):
 			)
 		finally:
 			self.edit_locked = False
-			del self._time_travel_thread
+			if hasattr(self, "_time_travel_thread"):
+				del self._time_travel_thread
 
 	@logwrap
 	def time_travel_to_tick(self, tick):
