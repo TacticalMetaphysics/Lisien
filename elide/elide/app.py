@@ -511,6 +511,7 @@ class ElideApp(App):
 
 	def _remove_screens(self):
 		Logger.debug("ElideApp: _remove_screens")
+		Clock.unschedule(self.mainscreen.play)
 		for widname in (
 			"mainscreen",
 			"pawncfg",
