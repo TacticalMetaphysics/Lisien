@@ -226,7 +226,8 @@ class GameLoaderModal(GamePickerModal):
 		self.clear_widgets()
 		self.add_widget(Label(text="Please wait...", font_size=80))
 		Clock.schedule_once(
-			partial(self._decompress_and_start, game_file_path, game), 0
+			partial(self._decompress_and_start, game_file_path, game),
+			0.05
 		)
 
 
@@ -304,7 +305,7 @@ class NewGameModal(ModalView):
 				fn not in {".", ".."} for fn in os.listdir(app.prefix)
 			):
 				app.close_game()
-			self._really_start(game_name)
+			Clock.schedule_once(partial(self._really_start, game_name), 0.05)
 
 	@logwrap(section="NewGameModal")
 	def _really_start(self, game_name, *_):
@@ -387,6 +388,10 @@ class MainMenuScreen(Screen):
 		if os.path.exists(game_dir):
 			# Likely left over from a failed run of Elide
 			shutil.rmtree(game_dir)
+		Clock.schedule_once(partial(self._unpack_and_open, game_file_path, game_dir, game), 0.05)
+
+	def _unpack_and_open(self, game_file_path, game_dir, game,*_):
+		app = App.get_running_app()
 		shutil.unpack_archive(game_file_path, game_dir)
 		app.start_game(name=game, cb=self._please_wait.dismiss)
 
