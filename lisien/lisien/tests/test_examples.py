@@ -74,21 +74,23 @@ def test_wolfsheep(tmp_path):
 		engy.turn = 5
 		engy.branch = "omg"
 		sheep = engy.character["sheep"]
-		sheep.rule(engy.action.breed, always=True)
 		initial_locations = [unit.location.name for unit in sheep.units()]
 		initial_bare_places = list(
 			engy.character["physical"].stat["bare_places"]
 		)
 	hand = EngineHandle(tmp_path, random_seed=69105, workers=0)
-	hand.next_turn()
-	assert [
-		unit.location.name for unit in hand._real.character["sheep"].units()
-	] != initial_locations
-	assert (
-		hand._real.character["physical"].stat["bare_places"]
-		!= initial_bare_places
-	)
-	hand.close()
+	try:
+		hand.next_turn()
+		assert [
+			unit.location.name
+			for unit in hand._real.character["sheep"].units()
+		] != initial_locations
+		assert (
+			hand._real.character["physical"].stat["bare_places"]
+			!= initial_bare_places
+		)
+	finally:
+		hand.close()
 
 
 def test_pathfind(tmp_path):
