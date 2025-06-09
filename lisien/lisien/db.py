@@ -3369,10 +3369,6 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick):
-		pass
-
-	@abstractmethod
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		pass
 
@@ -3556,8 +3552,6 @@ class AbstractQueryEngine:
 	@contextmanager
 	def mutex(self):
 		with self._holder.lock:
-			insist(self._inq.qsize() == 0, "Unhandled items in input queue")
-			insist(self._outq.qsize() == 0, "Unhandled items in output queue")
 			yield
 			insist(self._outq.qsize() == 0, "Unhandled items in output queue")
 
@@ -5804,7 +5798,7 @@ class NullQueryEngine(AbstractQueryEngine):
 		return {}
 
 
-class Batch(list):
+class ParquetBatch(list):
 	# Set ``silent = False`` if it hangs when called.
 	# Better for performance if ``silent = True``.
 
@@ -5848,13 +5842,13 @@ class Batch(list):
 		return self._serialize_record(*super().__getitem__(item))
 
 
-def batch(table: str, serialize_record: callable = None):
+def pqbatch(table: str, serialize_record: callable = None):
 	if serialize_record is None:
-		return partial(batch, table)
+		return partial(pqbatch, table)
 
 	@cached_property
 	def the_batch(self):
-		return Batch(self, table, MethodType(serialize_record, self))
+		return ParquetBatch(self, table, MethodType(serialize_record, self))
 
 	return the_batch
 
@@ -6574,11 +6568,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["is_unit"],
 			)
 
-	@batch("plan_ticks")
+	@pqbatch("plan_ticks")
 	def _planticks2set(self, plan_id: int, turn: int, tick: int):
 		return plan_id, turn, tick
 
-	@batch("universals")
+	@pqbatch("universals")
 	def _universals2set(
 		self, key: Key, branch: str, turn: int, tick: int, val: Any
 	):
@@ -6905,7 +6899,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def rulebooks(self) -> Iterator[RulebookName]:
 		return map(self.pack, self.call("rulebooks"))
 
-	@batch("node_rulebook")
+	@pqbatch("node_rulebook")
 	def _noderb2set(
 		self,
 		character: CharName,
@@ -6931,7 +6925,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			(character, node, branch, turn, tick, rulebook)
 		)
 
-	@batch("portal_rulebook")
+	@pqbatch("portal_rulebook")
 	def _portrb2set(
 		self,
 		character: CharName,
@@ -6967,7 +6961,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			(character, orig, dest, branch, turn, tick, rulebook)
 		)
 
-	@batch("character_rules_handled")
+	@pqbatch("character_rules_handled")
 	def _char_rules_handled(
 		self,
 		character: CharName,
@@ -6993,7 +6987,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			(character, rulebook, rule, branch, turn, tick)
 		)
 
-	@batch("unit_rules_handled")
+	@pqbatch("unit_rules_handled")
 	def _unit_rules_handled(
 		self,
 		character: CharName,
@@ -7041,7 +7035,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 		)
 
-	@batch("character_thing_rules_handled")
+	@pqbatch("character_thing_rules_handled")
 	def _char_thing_rules_handled(
 		self,
 		character: CharName,
@@ -7085,7 +7079,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 		)
 
-	@batch("character_place_rules_handled")
+	@pqbatch("character_place_rules_handled")
 	def _char_place_rules_handled(
 		self,
 		character: CharName,
@@ -7129,7 +7123,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 		)
 
-	@batch("character_portal_rules_handled")
+	@pqbatch("character_portal_rules_handled")
 	def _char_portal_rules_handled(
 		self,
 		character: CharName,
@@ -7168,7 +7162,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
 
-	@batch("node_rules_handled")
+	@pqbatch("node_rules_handled")
 	def _node_rules_handled(
 		self,
 		character: CharName,
@@ -7204,7 +7198,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			(character, node, rulebook, rule, branch, turn, tick)
 		)
 
-	@batch("portal_rules_handled")
+	@pqbatch("portal_rules_handled")
 	def _portal_rules_handled(
 		self,
 		character: CharName,
@@ -7243,7 +7237,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
 
-	@batch("things")
+	@pqbatch("things")
 	def _location(
 		self,
 		character: CharName,
@@ -7274,7 +7268,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	):
 		self._location.append((character, thing, branch, turn, tick, loc))
 
-	@batch("units")
+	@pqbatch("units")
 	def _unitness(
 		self,
 		character: CharName,
@@ -7413,7 +7407,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		for key, turn, tick, value in it:
 			yield graph, unpack(key), branch, turn, tick, unpack(value)
 
-	@batch("graph_val")
+	@pqbatch("graph_val")
 	def _graphvals2set(
 		self,
 		graph: CharName,
@@ -7451,7 +7445,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["type"],
 			)
 
-	@batch("nodes")
+	@pqbatch("nodes")
 	def _nodes2set(
 		self,
 		graph: CharName,
@@ -7581,7 +7575,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(value),
 			)
 
-	@batch("node_val")
+	@pqbatch("node_val")
 	def _nodevals2set(
 		self,
 		graph: CharName,
@@ -7679,7 +7673,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				extant,
 			)
 
-	@batch("edges")
+	@pqbatch("edges")
 	def _edges2set(
 		self,
 		graph: CharName,
@@ -7687,8 +7681,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		dest: NodeName,
 		idx: int,
 		branch: Branch,
-		turn: Branch,
-		tick: Branch,
+		turn: Turn,
+		tick: Tick,
 		extant: bool,
 	):
 		pack = self.pack
@@ -7780,7 +7774,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(value),
 			)
 
-	@batch("edge_val")
+	@pqbatch("edge_val")
 	def _edgevals2set(
 		self,
 		graph: CharName,
@@ -7855,7 +7849,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		for d in self.call("dump", "plan_ticks"):
 			yield d["plan_id"], d["turn"], d["tick"]
 
-	@batch("keyframes_graphs")
+	@pqbatch("keyframes_graphs")
 	def _new_keyframes(
 		self,
 		graph: CharName,
@@ -7895,7 +7889,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self._new_keyframe_times.add((branch, turn, tick))
 
-	@batch("keyframe_extensions")
+	@pqbatch("keyframe_extensions")
 	def _new_keyframe_extensions(
 		self,
 		branch: Branch,
@@ -8165,6 +8159,52 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			)
 
 
+class SQLAlchemyBatch(list):
+	silent = True
+
+	def __init__(
+		self,
+		qe: "SQLAlchemyQueryEngine",
+		table: str,
+		serialize_record: callable,
+	):
+		super().__init__()
+		self._qe = qe
+		self._table = table
+		self._serialize_record = serialize_record
+		self._argspec = inspect.getfullargspec(serialize_record)
+
+	def __call__(self):
+		if not self:
+			return 0
+		if self.silent:
+			self._qe._inq.put(
+				("silent", "many", self._table + "_insert", list(self))
+			)
+		else:
+			self._qe.call_many(self._table + "_insert", list(self))
+		n = len(self)
+		self.clear()
+		return n
+
+	def __iter__(self):
+		return starmap(self._serialize_record, super().__iter__())
+
+	def __getitem__(self, item: int):
+		return self._serialize_record(super().__getitem__(item))
+
+
+def sqlbatch(table: str, serialize_record: callable = None):
+	if serialize_record is None:
+		return partial(sqlbatch, table)
+
+	@cached_property
+	def the_batch(self):
+		return SQLAlchemyBatch(self, table, MethodType(serialize_record, self))
+
+	return the_batch
+
+
 class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	IntegrityError = IntegrityError
 	OperationalError = OperationalError
@@ -8238,33 +8278,310 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self.pack = pack
 		self.unpack = unpack
 		self._branches = {}
-		self._universals2set = []
-		self._nodevals2set = []
-		self._edgevals2set = []
-		self._graphvals2set = []
-		self._nodes2set = []
-		self._edges2set = []
 		self._new_keyframes = []
 		self._new_keyframe_times = set()
 		self._btts = set()
 		self._records = 0
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
-		self._new_keyframe_extensions = []
-		self._char_rules_handled = []
-		self._unit_rules_handled = []
-		self._char_thing_rules_handled = []
-		self._char_place_rules_handled = []
-		self._char_portal_rules_handled = []
-		self._node_rulebook_to_set = []
-		self._portal_rulebook_to_set = []
-		self._node_rules_handled = []
-		self._portal_rules_handled = []
-		self._unitness = []
-		self._location = []
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
 		self.initdb()
+
+	@sqlbatch("universals")
+	def _universals2set(
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Any
+	):
+		pack = self.pack
+		return pack(key), branch, turn, tick, pack(val)
+
+	@sqlbatch("node_rulebook")
+	def _node_rulebook_to_set(
+		self,
+		character: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+	):
+		pack = self.pack
+		return pack(character), pack(node), branch, turn, tick, pack(rulebook)
+
+	@sqlbatch("portal_rulebook")
+	def _portal_rulebook_to_set(
+		self,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+	):
+		pack = self.pack
+		return (
+			pack(character),
+			pack(orig),
+			pack(dest),
+			branch,
+			turn,
+			tick,
+			pack(rulebook),
+		)
+
+	@sqlbatch("nodes")
+	def _nodes2set(
+		self,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		extant: bool,
+	):
+		pack = self.pack
+		return pack(graph), pack(node), branch, turn, tick, extant
+
+	@sqlbatch("edges")
+	def _edges2set(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		idx: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		extant: bool,
+	):
+		pack = self.pack
+		return (
+			pack(graph),
+			pack(orig),
+			pack(dest),
+			idx,
+			branch,
+			turn,
+			tick,
+			bool(extant),
+		)
+
+	@sqlbatch("node_val")
+	def _nodevals2set(
+		self,
+		graph: CharName,
+		node: NodeName,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Any,
+	):
+		pack = self.pack
+		return (
+			pack(graph),
+			pack(node),
+			pack(key),
+			branch,
+			turn,
+			tick,
+			pack(value),
+		)
+
+	@sqlbatch("edge_val")
+	def _edgevals2set(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		idx: int,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Any,
+	):
+		pack = self.pack
+		return (
+			pack(graph),
+			pack(orig),
+			pack(dest),
+			idx,
+			pack(key),
+			branch,
+			turn,
+			tick,
+			pack(value),
+		)
+
+	@sqlbatch("graph_val")
+	def _graphvals2set(
+		self,
+		graph: CharName,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		val: Any,
+	):
+		pack = self.pack
+		return pack(graph), pack(key), branch, turn, tick, pack(val)
+
+	@sqlbatch("keyframe_extensions")
+	def _new_keyframe_extensions(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		universal: UniversalKeyframe,
+		rule: RuleKeyframe,
+		rulebook: RulebookKeyframe,
+	):
+		pack = self.pack
+		return branch, turn, tick, pack(universal), pack(rule), pack(rulebook)
+
+	@sqlbatch("character_rules_handled")
+	def _char_rules_handled(
+		self,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
+		(character, rulebook) = map(self.pack, (character, rulebook))
+		return (character, rulebook, rule, branch, turn, tick)
+
+	@sqlbatch("unit_rules_handled")
+	def _unit_rules_handled(
+		self,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		graph,
+		unit: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
+		character, graph, unit, rulebook = map(
+			self.pack, (character, graph, unit, rulebook)
+		)
+		return character, graph, unit, rulebook, rule, branch, turn, tick
+
+	@sqlbatch("character_thing_rules_handled")
+	def _char_thing_rules_handled(
+		self,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
+		character, thing, rulebook = map(
+			self.pack, (character, thing, rulebook)
+		)
+		return (character, thing, rulebook, rule, branch, turn, tick)
+
+	@sqlbatch("character_place_rules_handled")
+	def _char_place_rules_handled(
+		self,
+		character: CharName,
+		place: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
+		character, rulebook, place = map(
+			self.pack, (character, rulebook, place)
+		)
+		return (character, place, rulebook, rule, branch, turn, tick)
+
+	@sqlbatch("character_portal_rules_handled")
+	def _char_portal_rules_handled(
+		self,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
+		character, rulebook, orig, dest = map(
+			self.pack, (character, rulebook, orig, dest)
+		)
+		self._char_portal_rules_handled.append(
+			(character, orig, dest, rulebook, rule, branch, turn, tick)
+		)
+
+	@sqlbatch("node_rules_handled")
+	def _node_rules_handled(
+		self,
+		character: CharName,
+		node: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
+		(character, node, rulebook) = map(
+			self.pack, (character, node, rulebook)
+		)
+		return (character, node, rulebook, rule, branch, turn, tick)
+
+	@sqlbatch("portal_rules_handled")
+	def _portal_rules_handled(
+		self,
+		character: CharName,
+		node: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
+		(character, node, rulebook) = map(
+			self.pack, (character, node, rulebook)
+		)
+		return character, node, rulebook, rule, branch, turn, tick
+
+	@sqlbatch("units")
+	def _unitness(
+		self,
+		character: CharName,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		is_unit: bool,
+	):
+		(character, graph, node) = map(self.pack, (character, graph, node))
+		return character, graph, node, branch, turn, tick, is_unit
+
+	@sqlbatch("things")
+	def _location(
+		self,
+		character: CharName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		location: NodeName,
+	):
+		(character, thing, location) = map(
+			self.pack, (character, thing, location)
+		)
+		return character, thing, branch, turn, tick, location
 
 	def call_one(self, string, *args, **kwargs):
 		with self.mutex():
@@ -8572,22 +8889,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		"""Send all new and changed graph values to the database."""
 		if not self._graphvals2set:
 			return
-		pack = self.pack
-		self.call_many(
-			"graph_val_insert",
-			(
-				(pack(graph), pack(key), branch, turn, tick, pack(value))
-				for (
-					graph,
-					key,
-					branch,
-					turn,
-					tick,
-					value,
-				) in self._graphvals2set
-			),
-		)
-		self._graphvals2set = []
+		self._graphvals2set()
 
 	def graph_val_set(self, graph, key, branch, turn, tick, value):
 		if (branch, turn, tick) in self._btts:
@@ -8646,24 +8948,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 
 	def _flush_nodes(self):
-		if not self._nodes2set:
-			return
-		pack = self.pack
-		self.call_many(
-			"nodes_insert",
-			(
-				(pack(graph), pack(node), branch, turn, tick, bool(extant))
-				for (
-					graph,
-					node,
-					branch,
-					turn,
-					tick,
-					extant,
-				) in self._nodes2set
-			),
-		)
-		self._nodes2set = []
+		self._nodes2set()
 
 	def exist_node(self, graph, node, branch, turn, tick, extant):
 		"""Declare that the node exists or doesn't.
@@ -8808,31 +9093,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def _flush_node_val(self):
 		if not self._nodevals2set:
 			return
-		pack = self.pack
-		self.call_many(
-			"node_val_insert",
-			(
-				(
-					pack(graph),
-					pack(node),
-					pack(key),
-					branch,
-					turn,
-					tick,
-					pack(value),
-				)
-				for (
-					graph,
-					node,
-					key,
-					branch,
-					turn,
-					tick,
-					value,
-				) in self._nodevals2set
-			),
-		)
-		self._nodevals2set = []
+		self._nodevals2set()
 
 	def node_val_set(self, graph, node, key, branch, turn, tick, value):
 		"""Set a key-value pair on a node at a specific branch and revision"""
@@ -8878,7 +9139,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> Iterator[EdgeRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise ValueError("I need both or neither of turn_to and tick_to")
-		self._flush_edge_val()
+		self._edgevals2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
@@ -8938,13 +9199,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 
 	def _flush_edges(self):
-		start = monotonic()
 		if not self._edges2set:
 			return
-		self.call_many(
-			"edges_insert", map(self._pack_edge2set, self._edges2set)
-		)
-		self._edges2set = []
+		self._edges2set()
 
 	def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
 		"""Declare whether or not this edge exists."""
@@ -8963,7 +9220,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		"""Yield the entire contents of the edge_val table."""
-		self._flush_edge_val()
+		self._edgevals2set()
 		unpack = self.unpack
 		for (
 			graph,
@@ -8993,7 +9250,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> Iterator[EdgeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._flush_edge_val()
+		self._edgevals2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
@@ -9054,14 +9311,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			pack(value),
 		)
 
-	def _flush_edge_val(self):
-		if not self._edgevals2set:
-			return
-		self.call_many(
-			"edge_val_insert", map(self._pack_edgeval2set, self._edgevals2set)
-		)
-		self._edgevals2set = []
-
 	def edge_val_set(
 		self, graph, orig, dest, idx, key, branch, turn, tick, value
 	):
@@ -9075,7 +9324,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._increc()
 
 	def edge_val_del_time(self, branch, turn, tick):
-		self._flush_edge_val()
+		self._edgevals2set()
 		self.call_one("edge_val_del_time", branch, turn, tick)
 		self._btts.discard((branch, turn, tick))
 
@@ -9105,189 +9354,21 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			self._inq.put(("echo", "flushed"))
 			flushed = self._outq.get()
 			self._outq.task_done()
-			insist(flushed == "flushed", "Failed flush", flushed)
+			insist(
+				flushed == "flushed", "Failed flush: " + repr(flushed), flushed
+			)
 
 	def _flush(self):
 		pack = self.pack
 		put = self._inq.put
-		if self._universals2set:
-			put(
-				(
-					"silent",
-					"many",
-					"universals_insert",
-					[
-						(pack(key), branch, turn, tick, pack(value))
-						for (
-							key,
-							branch,
-							turn,
-							tick,
-							value,
-						) in self._universals2set
-					],
-				)
-			)
-			self._universals2set = []
-		if self._nodes2set:
-			put(
-				(
-					"silent",
-					"many",
-					"nodes_insert",
-					[
-						(
-							pack(graph),
-							pack(node),
-							branch,
-							turn,
-							tick,
-							bool(extant),
-						)
-						for (
-							graph,
-							node,
-							branch,
-							turn,
-							tick,
-							extant,
-						) in self._nodes2set
-					],
-				)
-			)
-			self._nodes2set = []
-		if self._edges2set:
-			put(
-				(
-					"silent",
-					"many",
-					"edges_insert",
-					list(map(self._pack_edge2set, self._edges2set)),
-				)
-			)
-			self._edges2set = []
-		if self._node_rulebook_to_set:
-			put(
-				(
-					"silent",
-					"many",
-					"node_rulebook_insert",
-					[
-						(
-							pack(character),
-							pack(node),
-							branch,
-							turn,
-							tick,
-							pack(rulebook),
-						)
-						for (
-							character,
-							node,
-							branch,
-							turn,
-							tick,
-							rulebook,
-						) in self._node_rulebook_to_set
-					],
-				)
-			)
-			self._node_rulebook_to_set = []
-		if self._portal_rulebook_to_set:
-			put(
-				(
-					"silent",
-					"many",
-					"portal_rulebook_insert",
-					[
-						(
-							pack(character),
-							pack(orig),
-							pack(dest),
-							branch,
-							turn,
-							tick,
-							pack(rulebook),
-						)
-						for (
-							character,
-							orig,
-							dest,
-							branch,
-							turn,
-							tick,
-							rulebook,
-						) in self._portal_rulebook_to_set
-					],
-				)
-			)
-			self._portal_rulebook_to_set = []
-		if self._graphvals2set:
-			put(
-				(
-					"silent",
-					"many",
-					"graph_val_insert",
-					[
-						(
-							pack(graph),
-							pack(key),
-							branch,
-							turn,
-							tick,
-							pack(value),
-						)
-						for (
-							graph,
-							key,
-							branch,
-							turn,
-							tick,
-							value,
-						) in self._graphvals2set
-					],
-				)
-			)
-			self._graphvals2set = []
-		if self._nodevals2set:
-			put(
-				(
-					"silent",
-					"many",
-					"node_val_insert",
-					[
-						(
-							pack(graph),
-							pack(node),
-							pack(key),
-							branch,
-							turn,
-							tick,
-							pack(value),
-						)
-						for (
-							graph,
-							node,
-							key,
-							branch,
-							turn,
-							tick,
-							value,
-						) in self._nodevals2set
-					],
-				)
-			)
-			self._nodevals2set = []
-		if self._edgevals2set:
-			put(
-				(
-					"silent",
-					"many",
-					"edge_val_insert",
-					list(map(self._pack_edgeval2set, self._edgevals2set)),
-				)
-			)
-			self._edgevals2set = []
+		self._universals2set()
+		self._nodes2set()
+		self._edges2set()
+		self._node_rulebook_to_set()
+		self._portal_rulebook_to_set()
+		self._graphvals2set()
+		self._nodevals2set()
+		self._edgevals2set()
 		if self._new_keyframe_times:
 			put(
 				(
@@ -9298,16 +9379,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				)
 			)
 			self._new_keyframe_times = set()
-		if self._new_keyframe_extensions:
-			put(
-				(
-					"silent",
-					"many",
-					"keyframe_extensions_insert",
-					self._new_keyframe_extensions,
-				)
-			)
-			self._new_keyframe_extensions = []
 		if self._new_keyframes:
 			# use only the most recent version of any given keyframe
 			kfs = {}
@@ -9356,124 +9427,58 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				)
 			)
 			self._new_keyframes = []
+		self._new_keyframe_extensions()
 
-			put = self._inq.put
+		put = self._inq.put
 
-			if self._unitness:
-				put(
-					(
-						"silent",
-						"many",
-						"del_units_after",
-						[
-							(character, graph, node, branch, turn, turn, tick)
-							for (
-								character,
-								graph,
-								node,
-								branch,
-								turn,
-								tick,
-								_,
-							) in self._unitness
-						],
-					)
+		if self._unitness:
+			put(
+				(
+					"silent",
+					"many",
+					"del_units_after",
+					[
+						(character, graph, node, branch, turn, turn, tick)
+						for (
+							character,
+							graph,
+							node,
+							branch,
+							turn,
+							tick,
+							_,
+						) in self._unitness
+					],
 				)
-				put(("silent", "many", "units_insert", self._unitness))
-				self._unitness = []
-			if self._location:
-				put(
-					(
-						"silent",
-						"many",
-						"del_things_after",
-						[
-							(character, thing, branch, turn, turn, tick)
-							for (
-								character,
-								thing,
-								branch,
-								turn,
-								tick,
-								_,
-							) in self._location
-						],
-					)
+			)
+			self._unitness()
+		if self._location:
+			put(
+				(
+					"silent",
+					"many",
+					"del_things_after",
+					[
+						(character, thing, branch, turn, turn, tick)
+						for (
+							character,
+							thing,
+							branch,
+							turn,
+							tick,
+							_,
+						) in self._location
+					],
 				)
-				put(("silent", "many", "things_insert", self._location))
-				self._location = []
-			if self._char_rules_handled:
-				put(
-					(
-						"silent",
-						"many",
-						"character_rules_handled_insert",
-						self._char_rules_handled,
-					)
-				)
-				self._char_rules_handled = []
-			if self._char_thing_rules_handled:
-				put(
-					(
-						"silent",
-						"many",
-						"character_thing_rules_handled_insert",
-						self._char_thing_rules_handled,
-					)
-				)
-				self._char_thing_rules_handled = []
-
-			if self._char_place_rules_handled:
-				put(
-					(
-						"silent",
-						"many",
-						"character_place_rules_handled_insert",
-						self._char_place_rules_handled,
-					)
-				)
-				self._char_place_rules_handled = []
-
-			if self._char_portal_rules_handled:
-				put(
-					(
-						"silent",
-						"many",
-						"character_portal_rules_handled_insert",
-						self._char_portal_rules_handled,
-					)
-				)
-				self._char_portal_rules_handled = []
-			if self._unit_rules_handled:
-				put(
-					(
-						"silent",
-						"many",
-						"unit_rules_handled_insert",
-						self._unit_rules_handled,
-					)
-				)
-				self._unit_rules_handled = []
-			if self._node_rules_handled:
-				put(
-					(
-						"silent",
-						"many",
-						"node_rules_handled_insert",
-						self._node_rules_handled,
-					)
-				)
-				self._node_rules_handled = []
-			if self._portal_rules_handled:
-				put(
-					(
-						"silent",
-						"many",
-						"portal_rules_handled_insert",
-						self._portal_rules_handled,
-					)
-				)
-				self._portal_rules_handled = []
+			)
+			self._location()
+		self._char_rules_handled()
+		self._char_thing_rules_handled()
+		self._char_place_rules_handled()
+		self._char_portal_rules_handled()
+		self._unit_rules_handled()
+		self._node_rules_handled()
+		self._portal_rules_handled()
 
 	def commit(self):
 		"""Commit the transaction"""
@@ -9537,9 +9542,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				branch,
 				turn,
 				tick,
-				pack(universal),
-				pack(rules),
-				pack(rulebooks),
+				universal,
+				rules,
+				rulebooks,
 			)
 		)
 		self._new_keyframe_times.add((branch, turn, tick))
@@ -9989,14 +9994,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			(character, rulebook, rule, branch, turn, tick)
 		)
 
-	def _flush_char_rules_handled(self):
-		if not self._char_rules_handled:
-			return
-		self.call_many(
-			"character_rules_handled_insert", self._char_rules_handled
-		)
-		self._char_rules_handled = []
-
 	def handled_unit_rule(
 		self, character, rulebook, rule, graph, unit, branch, turn, tick
 	):
@@ -10006,31 +10003,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._unit_rules_handled.append(
 			(character, graph, unit, rulebook, rule, branch, turn, tick)
 		)
-
-	def _flush_unit_rules_handled(self):
-		if not self._unit_rules_handled:
-			return
-		self.call_many("unit_rules_handled_insert", self._unit_rules_handled)
-		self._unit_rules_handled = []
-
-	def handled_character_thing_rule(
-		self, character, rulebook, rule, thing, branch, turn, tick
-	):
-		character, thing, rulebook = map(
-			self.pack, (character, thing, rulebook)
-		)
-		self._char_thing_rules_handled.append(
-			(character, thing, rulebook, rule, branch, turn, tick)
-		)
-
-	def _flush_char_thing_rules_handled(self):
-		if not self._char_thing_rules_handled:
-			return
-		self.call_many(
-			"character_thing_rules_handled_insert",
-			self._char_thing_rules_handled,
-		)
-		self._char_thing_rules_handled = []
 
 	def handled_character_place_rule(
 		self, character, rulebook, rule, place, branch, turn, tick
@@ -10042,15 +10014,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			(character, place, rulebook, rule, branch, turn, tick)
 		)
 
-	def _flush_char_place_rules_handled(self):
-		if not self._char_place_rules_handled:
-			return
-		self.call_many(
-			"character_place_rules_handled_insert",
-			self._char_place_rules_handled,
-		)
-		self._char_place_rules_handled = []
-
 	def handled_character_portal_rule(
 		self, character, rulebook, rule, orig, dest, branch, turn, tick
 	):
@@ -10061,30 +10024,19 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
 
-	def _flush_char_portal_rules_handled(self):
-		if not self._char_portal_rules_handled:
-			return
-		self.call_many(
-			"character_portal_rules_handled_insert",
-			self._char_portal_rules_handled,
-		)
-		self._char_portal_rules_handled = []
-
 	def handled_node_rule(
-		self, character, node, rulebook, rule, branch, turn, tick
+		self,
+		character: CharName,
+		node: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
-		(character, node, rulebook) = map(
-			self.pack, (character, node, rulebook)
-		)
 		self._node_rules_handled.append(
 			(character, node, rulebook, rule, branch, turn, tick)
 		)
-
-	def _flush_node_rules_handled(self):
-		if not self._node_rules_handled:
-			return
-		self.call_many("node_rules_handled_insert", self._node_rules_handled)
-		self._node_rules_handled = []
 
 	def handled_portal_rule(
 		self, character, orig, dest, rulebook, rule, branch, turn, tick
@@ -10096,14 +10048,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
 
-	def _flush_portal_rules_handled(self):
-		if not self._portal_rules_handled:
-			return
-		self.call_many(
-			"portal_rules_handled_insert", self._portal_rules_handled
-		)
-		self._portal_rules_handled = []
-
 	def set_thing_loc(self, character, thing, branch, turn, tick, loc):
 		(character, thing) = map(self.pack, (character, thing))
 		loc = self.pack(loc)
@@ -10111,7 +10055,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._increc()
 
 	def unit_set(self, character, graph, node, branch, turn, tick, is_unit):
-		(character, graph, node) = map(self.pack, (character, graph, node))
 		self._unitness.append(
 			(character, graph, node, branch, turn, tick, is_unit)
 		)
@@ -10151,10 +10094,10 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				self.call_one("turns_completed_update", turn, branch)
 		self._increc()
 		if discard_rules:
-			self._char_rules_handled = []
-			self._unit_rules_handled = []
-			self._char_thing_rules_handled = []
-			self._char_place_rules_handled = []
-			self._char_portal_rules_handled = []
-			self._node_rules_handled = []
-			self._portal_rules_handled = []
+			self._char_rules_handled.clear()
+			self._unit_rules_handled.clear()
+			self._char_thing_rules_handled.clear()
+			self._char_place_rules_handled.clear()
+			self._char_portal_rules_handled.clear()
+			self._node_rules_handled.clear()
+			self._portal_rules_handled.clear()
