@@ -2926,16 +2926,27 @@ class Engine(AbstractEngine, Executor):
 						if tck < t0:
 							break
 						yield b0, r0, tck
-			for r_between in range(r0 - 1, r1, -1):  # too much iteration?
-				if r_between in kfdb:
-					tcks = sorted(kfdb[r_between], reverse=True)
+			if r0 == r1:
+				if r0 in kfdb:
+					tcks = sorted(kfdb[r0], reverse=True)
 					if loaded:
 						for tck in tcks:
-							if (b0, r_between, tck) in kfl:
-								yield b0, r_between, tck
+							if (b0, r0, tck) in kfl:
+								yield b0, r0, tck
 					else:
 						for tck in tcks:
-							yield b0, r_between, tck
+							yield b0, r0, tck
+			else:
+				for r_between in range(r0 - 1, r1, -1):  # too much iteration?
+					if r_between in kfdb:
+						tcks = sorted(kfdb[r_between], reverse=True)
+						if loaded:
+							for tck in tcks:
+								if (b0, r_between, tck) in kfl:
+									yield b0, r_between, tck
+						else:
+							for tck in tcks:
+								yield b0, r_between, tck
 			if r1 in kfdb:
 				tcks = sorted(kfdb[r1], reverse=True)
 				if loaded:
