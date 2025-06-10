@@ -292,6 +292,35 @@ class Cache:
 		Deeper layers of this cache are keyed by branch, turn, and tick.
 
 		"""
+		self._kfkvs = kfkvs
+		self.clear()
+		self._remove_stuff = (
+			self._lock,
+			self.time_entity,
+			self.parents,
+			self.branches,
+			self.keys,
+			self.settings,
+			self.presettings,
+			self._remove_keycache,
+			self.keycache,
+		)
+		self._truncate_stuff = (
+			self._lock,
+			self.parents,
+			self.branches,
+			self.keys,
+			self.settings,
+			self.presettings,
+			self.keycache,
+		)
+		self._store_journal_stuff: tuple[
+			PickyDefaultDict, PickyDefaultDict, callable
+		] = (self.settings, self.presettings, self._base_retrieve)
+
+	def clear(self):
+		db = self.db
+		kfkvs = self._kfkvs
 		self.keycache = PickyDefaultDict(SettingsTurnDict)
 		"""Keys an entity has at a given turn and tick."""
 		self.branches = StructuredDefaultDict(1, SettingsTurnDict)
@@ -331,29 +360,6 @@ class Cache:
 			db,
 			self._update_keycache,
 		)
-		self._remove_stuff = (
-			self._lock,
-			self.time_entity,
-			self.parents,
-			self.branches,
-			self.keys,
-			self.settings,
-			self.presettings,
-			self._remove_keycache,
-			self.keycache,
-		)
-		self._truncate_stuff = (
-			self._lock,
-			self.parents,
-			self.branches,
-			self.keys,
-			self.settings,
-			self.presettings,
-			self.keycache,
-		)
-		self._store_journal_stuff: tuple[
-			PickyDefaultDict, PickyDefaultDict, callable
-		] = (self.settings, self.presettings, self._base_retrieve)
 
 	def total_size(self, handlers=(), verbose=False):
 		"""Returns the approximate memory footprint an object and all of its contents.
