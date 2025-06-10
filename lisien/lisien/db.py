@@ -9343,6 +9343,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def plan_ticks_dump(self):
 		return self.call_one("plan_ticks_dump")
 
+	@garbage
 	def flush(self):
 		"""Put all pending changes into the SQL transaction."""
 		with self.mutex():
