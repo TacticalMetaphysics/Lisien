@@ -20,6 +20,7 @@ flow of time.
 
 from __future__ import annotations
 
+import gc
 import os
 import pickle
 import shutil
@@ -5613,6 +5614,10 @@ class Engine(AbstractEngine, Executor):
 		self.commit()
 		self.shutdown()
 		self.query.close()
+		for cache in self._caches:
+			if hasattr(cache, "clear"):
+				cache.clear()
+		gc.collect()
 		self._closed = True
 
 	def __enter__(self):
