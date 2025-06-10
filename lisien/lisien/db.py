@@ -8518,9 +8518,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		character, rulebook, orig, dest = map(
 			self.pack, (character, rulebook, orig, dest)
 		)
-		self._char_portal_rules_handled.append(
-			(character, orig, dest, rulebook, rule, branch, turn, tick)
-		)
+		return character, orig, dest, rulebook, rule, branch, turn, tick
 
 	@sqlbatch("node_rules_handled")
 	def _node_rules_handled(
