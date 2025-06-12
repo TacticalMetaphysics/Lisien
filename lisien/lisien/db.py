@@ -8341,7 +8341,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		extant: bool,
 	):
 		pack = self.pack
-		return pack(graph), pack(node), branch, turn, tick, extant
+		return pack(graph), pack(node), branch, turn, tick, bool(extant)
 
 	@sqlbatch("edges")
 	def _edges2set(
