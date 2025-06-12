@@ -8540,17 +8540,18 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def _portal_rules_handled(
 		self,
 		character: CharName,
-		node: NodeName,
+		orig: NodeName,
+		dest: NodeName,
 		rulebook: RulebookName,
 		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 	):
-		(character, node, rulebook) = map(
-			self.pack, (character, node, rulebook)
+		(character, orig, dest, rulebook) = map(
+			self.pack, (character, orig, dest, rulebook)
 		)
-		return character, node, rulebook, rule, branch, turn, tick
+		return character, orig, dest, rulebook, rule, branch, turn, tick
 
 	@sqlbatch("units")
 	def _unitness(
