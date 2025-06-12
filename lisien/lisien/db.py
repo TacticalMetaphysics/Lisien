@@ -8460,7 +8460,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		character: CharName,
 		rulebook: RulebookName,
 		rule: RuleName,
-		graph,
+		graph: CharName,
 		unit: CharName,
 		branch: Branch,
 		turn: Turn,
