@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Optional
 
 from .exc import HistoricKeyError
 from .facade import FacadePortal
@@ -25,7 +25,7 @@ from .graph import Edge
 from .query import StatusAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .typing import Key
+from .typing import Key, Time
 from .util import AbstractCharacter, getatt
 
 
@@ -213,10 +213,20 @@ class Portal(Edge, RuleFollower):
 		For symmetry with :class:`Thing` and :class:`Place`.
 
 		"""
-		self.clear()
-		self.engine._exist_edge(
-			self.character.name, self.orig, self.dest, exist=None
-		)
+		self._delete()
+
+	def _delete(self, *, now: Optional[Time] = None) -> None:
+		with self.engine.world_lock:
+			if now is None:
+				now = self.engine._nbtt()
+			for k in self:
+				assert k != "orig"
+				assert k != "dest"
+				self._set_cache(k, *now, None)
+				self._set_db(k, *now, None)
+			self.engine._exist_edge(
+				self.character.name, self.orig, self.dest, exist=None, now=now
+			)
 
 	def unwrap(self) -> dict:
 		"""Return a dictionary representation of this entity"""

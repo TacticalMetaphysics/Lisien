@@ -3959,9 +3959,19 @@ class Engine(AbstractEngine, Executor):
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
-	def _exist_node(self, character: Key, node: Key, exist=True) -> None:
+	def _exist_node(
+		self,
+		character: Key,
+		node: Key,
+		exist: bool = True,
+		*,
+		now: Optional[Time] = None,
+	) -> None:
 		nbtt, exist_node, store = self._exist_node_stuff
-		branch, turn, tick = nbtt()
+		if now:
+			branch, turn, tick = now
+		else:
+			branch, turn, tick = nbtt()
 		exist_node(character, node, branch, turn, tick, exist)
 		store(character, node, branch, turn, tick, exist)
 		if exist:
@@ -3982,10 +3992,20 @@ class Engine(AbstractEngine, Executor):
 
 	@world_locked
 	def _exist_edge(
-		self, character: Key, orig: Key, dest: Key, idx=0, exist=True
+		self,
+		character: Key,
+		orig: Key,
+		dest: Key,
+		idx: int = 0,
+		exist: bool = True,
+		*,
+		now: Optional[Time] = None,
 	) -> None:
 		nbtt, exist_edge, store = self._exist_edge_stuff
-		branch, turn, tick = nbtt()
+		if now:
+			branch, turn, tick = now
+		else:
+			branch, turn, tick = nbtt()
 		exist_edge(
 			character, orig, dest, idx, branch, turn, tick, exist or False
 		)
