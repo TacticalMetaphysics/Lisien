@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """allegedb's special implementations of the NetworkX graph objects"""
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import MutableMapping
 from itertools import chain
@@ -23,6 +23,7 @@ import networkx
 from networkx.exception import NetworkXError
 
 from .exc import KeyframeError
+from .typing import Key, Branch, Turn, Tick
 from .wrap import MutableMappingUnwrapper
 
 
@@ -58,19 +59,25 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 	__slots__ = ()
 	db: "lisien.engine.Engine"
 
-	def _get_cache(self, key, branch, turn, tick):
+	@abstractmethod
+	def _get_cache(
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick
+	) -> dict:
 		raise NotImplementedError
 
 	def _get_cache_now(self, key):
 		return self._get_cache(key, *self.db._btt())
 
+	@abstractmethod
 	def _cache_contains(self, key, branch, turn, tick):
 		raise NotImplementedError
 
+	@abstractmethod
 	def _set_db(self, key, branch, turn, tick, value):
 		"""Set a value for a key in the database (not the cache)."""
 		raise NotImplementedError
 
+	@abstractmethod
 	def _set_cache(self, key, branch, turn, tick, value):
 		raise NotImplementedError
 
