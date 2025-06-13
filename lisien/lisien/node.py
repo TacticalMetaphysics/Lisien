@@ -30,7 +30,7 @@ from . import graph, rule
 from .exc import AmbiguousUserError, HistoricKeyError
 from .facade import FacadePlace, FacadeThing
 from .query import StatusAlias
-from .typing import Key
+from .typing import Key, Time
 from .util import AbstractCharacter, AbstractThing, getatt
 
 
@@ -542,31 +542,47 @@ class Node(graph.Node, rule.RuleFollower):
 		except KeyError:
 			return False
 
-	def delete(self) -> None:
-		"""Get rid of this, starting now.
+	def delete(self):
+		"""Get rid of this node
 
 		Apart from deleting the node, this also informs all its users
 		that it doesn't exist and therefore can't be their unit
 		anymore.
 
 		"""
-		self.clear()
-		for user in list(self.user.values()):
-			user.remove_unit(self.character.name, self.name)
-		for contained in list(self.contents()):
-			contained.delete()
-		if self.name in self.character.portal:
-			del self.character.portal[self.name]
-		if self.name in self.character.preportal:
-			del self.character.preportal[self.name]
-		branch, turn, tick = self.engine._nbtt()
-		self.engine._nodes_cache.store(
-			self.character.name, self.name, branch, turn, tick, False
-		)
-		self.engine.query.exist_node(
-			self.character.name, self.name, branch, turn, tick, False
-		)
-		self.character.node.send(self.character.node, key=self.name, val=None)
+		self._delete()
+
+	def _delete(self, *, now: Optional[Time] = None) -> None:
+		engine = self.engine
+		with engine.world_lock:
+			if now is None:
+				now = engine._nbtt()
+			character = self.character
+			g = character.name
+			n = self.name
+			for k in self:
+				assert k != "name"
+				if k == "location":
+					engine._things_cache.store(g, n, *now, None)
+					engine.query.set_thing_loc(g, n, *now, None)
+				else:
+					self._set_cache(k, *now, None)
+					self._set_db(k, *now, None)
+			for username in list(self.user):
+				engine._unitness_cache.store(username, g, n, *now, False)
+				engine.query.unit_set(username, g, n, *now, False)
+			for contained in list(self.contents()):
+				contained._delete(now=now)
+			if n in character.portal:
+				for port in list(character.portal[n].values()):
+					port._delete(now=now)
+			if n in character.preportal:
+				for port in list(character.preportal[n].values()):
+					port._delete(now=now)
+			engine._exist_node(g, n, False, now=now)
+			self.character.node.send(
+				self.character.node, key=self.name, val=None
+			)
 
 	def add_portal(self, other: Key | Node, **stats) -> None:
 		"""Connect a portal from here to another node"""
@@ -712,36 +728,18 @@ class Thing(Node, AbstractThing):
 	def _set_loc(self, loc: Optional[Key]):
 		self.engine._set_thing_loc(self.character.name, self.name, loc)
 
-	_getitem_dispatch = {"name": _getname, "location": _getloc}
-
-	_setitem_dispatch = {"name": roerror, "location": _set_loc}
-
-	def __iter__(self):
-		yield "location"
-		yield from super().__iter__()
-
-	def __getitem__(self, key: Key):
-		"""Return one of my stats stored in the database, or special cases:
-
-		``name``: return the name that uniquely identifies me within
-		my Character
-
-		``location``: return the name of my location
-
-		"""
-		disp = self._getitem_dispatch
-		if key in disp:
-			return disp[key](self)
-		else:
-			return super().__getitem__(key)
+	def __getitem__(self, item):
+		if item == "location":
+			return self._getloc()
+		return super().__getitem__(item)
 
 	def __setitem__(self, key, value):
 		"""Set ``key``=``value`` for the present game-time."""
-		try:
-			self._setitem_dispatch[key](self, value)
-		except HistoricKeyError as ex:
-			raise ex
-		except KeyError:
+		if key == "name":
+			raise RuntimeError("Read-only name")
+		elif key == "location":
+			self._set_loc(value)
+		else:
 			super().__setitem__(key, value)
 
 	def __delitem__(self, key):
