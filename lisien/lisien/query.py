@@ -47,7 +47,12 @@ from sqlalchemy import Table, and_, select
 from sqlalchemy.sql.functions import func
 
 from .alchemy import meta
-from .util import EntityStatAccessor
+from .util import (
+	EntityStatAccessor,
+	CharacterStatAccessor,
+	UnitsAccessor,
+	AbstractEngine,
+)
 
 
 def windows_union(windows: list[tuple[int, int]]) -> list[tuple[int, int]]:
@@ -448,7 +453,7 @@ def _make_side_sel(
 		raise TypeError(f"Unknown entity type {type(entity)}")
 
 
-def _getcol(alias: "StatusAlias"):
+def _getcol(alias: "EntityStatAlias"):
 	from .node import Thing
 
 	if isinstance(alias.entity, Thing) and alias.stat == "location":
@@ -929,6 +934,12 @@ class LeQuery(ComparisonQuery):
 	oper = le
 
 
+class ContainsQuery(ComparisonQuery):
+	@staticmethod
+	def oper(a, b):
+		return b in a
+
+
 class CompoundQuery(Query):
 	oper: Callable[[Any, Any], set] = lambda x, y: NotImplemented
 
@@ -955,7 +966,9 @@ comparisons = {
 }
 
 
-class StatusAlias(EntityStatAccessor):
+class StatAlias:
+	engine: AbstractEngine
+
 	def __eq__(self, other):
 		return EqQuery(self.engine, self, other)
 
@@ -974,11 +987,23 @@ class StatusAlias(EntityStatAccessor):
 	def __le__(self, other):
 		return LeQuery(self.engine, self, other)
 
+	def __contains__(self, item):
+		return ContainsQuery(self.engine, self, item)
+
+
+class EntityStatAlias(StatAlias, EntityStatAccessor): ...
+
+
+class CharacterStatAlias(StatAlias, CharacterStatAccessor): ...
+
+
+class UnitsAlias(StatAlias, UnitsAccessor): ...
+
 
 def _mungeside(side):
 	if isinstance(side, Query):
 		return side._iter_times
-	elif isinstance(side, StatusAlias):
+	elif isinstance(side, EntityStatAlias):
 		return EntityStatAccessor(
 			side.entity,
 			side.stat,

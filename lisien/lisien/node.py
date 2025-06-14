@@ -29,7 +29,7 @@ from networkx import shortest_path, shortest_path_length
 from . import graph, rule
 from .exc import AmbiguousUserError, HistoricKeyError
 from .facade import FacadePlace, FacadeThing
-from .query import StatusAlias
+from .query import EntityStatAlias
 from .typing import Key, Time
 from .util import AbstractCharacter, AbstractThing, getatt
 
@@ -606,7 +606,7 @@ class Node(graph.Node, rule.RuleFollower):
 		"""Create a new thing, located here, and return it."""
 		return self.character.new_thing(name, self.name, **stats)
 
-	def historical(self, stat: Key) -> StatusAlias:
+	def historical(self, stat: Key) -> EntityStatAlias:
 		"""Return a reference to the values that a stat has had in the past.
 
 		You can use the reference in comparisons to make a history
@@ -614,7 +614,7 @@ class Node(graph.Node, rule.RuleFollower):
 		``self.engine.ticks_when``.
 
 		"""
-		return StatusAlias(entity=self, stat=stat)
+		return EntityStatAlias(entity=self, stat=stat)
 
 	def __bool__(self):
 		return self.name in self.character.node

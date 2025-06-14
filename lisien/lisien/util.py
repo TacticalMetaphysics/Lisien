@@ -196,8 +196,8 @@ def singleton_get(s):
 	return it
 
 
-class EntityStatAccessor(object):
-	__slots__ = [
+class EntityAccessor(ABC):
+	__slots__ = (
 		"engine",
 		"entity",
 		"branch",
@@ -206,7 +206,7 @@ class EntityStatAccessor(object):
 		"stat",
 		"current",
 		"mungers",
-	]
+	)
 
 	def __init__(
 		self,
@@ -235,26 +235,6 @@ class EntityStatAccessor(object):
 		self.turn = turn
 		self.tick = tick
 		self.mungers = mungers
-
-	def __call__(self, branch=None, turn=None, tick=None):
-		if self.current:
-			res = self.entity[self.stat]
-		else:
-			branc, trn, tck = self.engine._btt()
-			self.engine.branch = branch or self.branch
-			self.engine.turn = turn if turn is not None else self.turn
-			if tick is not None:
-				self.engine.tick = tick
-			elif self.tick is not None:
-				self.engine.tick = self.tick
-			if hasattr(self.entity, "stat"):
-				res = self.entity.stat[self.stat]
-			else:
-				res = self.entity[self.stat]
-			self.engine._set_btt(branc, trn, tck)
-		for munger in self.mungers:
-			res = munger(res)
-		return res
 
 	def __ne__(self, other):
 		return self() != other
@@ -322,22 +302,45 @@ class EntityStatAccessor(object):
 	def __rmod__(self, other):
 		return self.munge(partial(mod, other))
 
+	def __contains__(self, item):
+		return item in self()
+
 	def __getitem__(self, k):
 		return self.munge(lambda x: x[k])
+
+	@abstractmethod
+	def _get_value_now(self): ...
+
+	def __call__(
+		self, branch: Branch = None, turn: Turn = None, tick: Tick = None
+	):
+		if self.current:
+			res = self._get_value_now()
+		else:
+			time_was = self.engine.time
+			self.engine.branch = branch or self.branch
+			self.engine.turn = turn if turn is not None else self.turn
+			if tick is not None:
+				self.engine.tick = tick
+			elif self.tick is not None:
+				self.engine.tick = self.tick
+			res = self._get_value_now()
+			self.engine.time = time_was
+		for munger in self.mungers:
+			res = munger(res)
+		return res
 
 	def iter_history(self, beginning, end):
 		"""Iterate over all the values this stat has had in the given window, inclusive."""
 		# It might be useful to do this in a way that doesn't change the
 		# engine's time, perhaps for thread safety
 		engine = self.engine
-		entity = self.entity
 		oldturn = engine.turn
 		oldtick = engine.tick
-		stat = self.stat
 		for turn in range(beginning, end + 1):
 			engine.turn = turn
 			try:
-				y = entity[stat]
+				y = self._get_value_now()
 			except KeyError:
 				yield None
 				continue
@@ -346,6 +349,30 @@ class EntityStatAccessor(object):
 			yield y
 		engine.turn = oldturn
 		engine.tick = oldtick
+
+
+class UnitsAccessor(EntityAccessor):
+	entity: AbstractCharacter
+
+	def _get_value_now(self):
+		ret = {}
+		for graph in self.entity.unit:
+			ret[graph] = []
+			for node in self.entity.unit[graph]:
+				ret[graph].append(node)
+		return ret
+
+
+class CharacterStatAccessor(EntityAccessor):
+	entity: AbstractCharacter
+
+	def _get_value_now(self):
+		return self.entity.stat[self.stat]
+
+
+class EntityStatAccessor(EntityAccessor):
+	def _get_value_now(self):
+		return self.entity[self.stat]
 
 
 def dedent_source(source):
@@ -1086,9 +1113,9 @@ class AbstractCharacter(DiGraph):
 			yield from units.values()
 
 	def historical(self, stat):
-		from .query import StatusAlias
+		from .query import EntityStatAlias
 
-		return StatusAlias(entity=self.stat, stat=stat)
+		return EntityStatAlias(entity=self.stat, stat=stat)
 
 	def do(self, func, *args, **kwargs):
 		"""Apply the function to myself, and return myself.

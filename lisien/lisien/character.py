@@ -50,7 +50,7 @@ from .graph import (
 )
 from .node import Node, Place, Thing
 from .portal import Portal
-from .query import StatusAlias
+from .query import CharacterStatAlias, UnitsAlias
 from .rule import RuleFollower as BaseRuleFollower
 from .rule import RuleMapping
 from .util import (
@@ -1198,4 +1198,6 @@ class Character(AbstractCharacter, RuleFollower):
 		to find out when the comparison held true.
 
 		"""
-		return StatusAlias(entity=self, stat=stat, engine=self.engine)
+		if stat == "units":
+			return UnitsAlias(entity=self, stat="units", engine=self.engine)
+		return CharacterStatAlias(entity=self, stat=stat, engine=self.engine)
