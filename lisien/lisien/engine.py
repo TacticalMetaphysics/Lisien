@@ -752,10 +752,13 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def _get_node_stuff(
 		self,
-	) -> tuple[
-		dict, Callable[[Key, Key], bool], Callable[[Key, Key], node_cls]
-	]:
-		return (self._node_objs, self._node_exists, self._make_node)
+	):
+		return (
+			self._node_objs,
+			self._nodes_cache._base_retrieve,
+			self._btt,
+			self._make_node,
+		)
 
 	@cached_property
 	def _get_edge_stuff(
@@ -1226,7 +1229,7 @@ class Engine(AbstractEngine, Executor):
 		return total_hash.digest()
 
 	def _get_node(self, graph: Key | Graph, node: Key):
-		node_objs, node_exists, make_node = self._get_node_stuff
+		node_objs, retrieve, btt, make_node = self._get_node_stuff
 		if type(graph) is str:
 			graphn = graph
 			graph = self.character[graphn]
@@ -1239,7 +1242,10 @@ class Engine(AbstractEngine, Executor):
 				return ret
 			else:
 				del node_objs[key]
-		if not node_exists(graphn, node):
+		ex = retrieve((graphn, node, *btt()))
+		if isinstance(ex, Exception):
+			raise ex
+		if not ex:
 			raise KeyError("No such node: {} in {}".format(node, graphn))
 		ret = make_node(graph, node)
 		node_objs[key] = ret
