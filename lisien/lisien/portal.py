@@ -22,7 +22,7 @@ from typing import Any, Optional
 from .exc import HistoricKeyError
 from .facade import FacadePortal
 from .graph import Edge
-from .query import StatusAlias
+from .query import EntityStatAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
 from .typing import Key, Time
@@ -173,7 +173,7 @@ class Portal(Edge, RuleFollower):
 		face.portal._patch = {self.orig: {self.dest: ret}}
 		return ret
 
-	def historical(self, stat: Key) -> StatusAlias:
+	def historical(self, stat: Key) -> EntityStatAlias:
 		"""Return a reference to the values that a stat has had in the past.
 
 		You can use the reference in comparisons to make a history
@@ -181,7 +181,7 @@ class Portal(Edge, RuleFollower):
 		``self.engine.ticks_when``.
 
 		"""
-		return StatusAlias(entity=self, stat=stat)
+		return EntityStatAlias(entity=self, stat=stat)
 
 	def update(self, e: Mapping | list[tuple[Any, Any]] = None, **f) -> None:
 		"""Works like regular update, but less

@@ -109,7 +109,7 @@ from .query import (
 	QueryResult,
 	QueryResultEndTurn,
 	QueryResultMidTurn,
-	StatusAlias,
+	EntityStatAlias,
 	_make_side_sel,
 )
 from .rule import AllRuleBooks, AllRules, Rule
@@ -7070,7 +7070,9 @@ class Engine(AbstractEngine, Executor):
 		branches = list({branch for branch, _, _ in self._iter_parent_btt()})
 		left = qry.leftside
 		right = qry.rightside
-		if isinstance(left, StatusAlias) and isinstance(right, StatusAlias):
+		if isinstance(left, EntityStatAlias) and isinstance(
+			right, EntityStatAlias
+		):
 			left_sel = _make_side_sel(
 				left.entity, left.stat, branches, self.pack, mid_turn
 			)
@@ -7093,7 +7095,7 @@ class Engine(AbstractEngine, Executor):
 					qry.oper,
 					end,
 				)
-		elif isinstance(left, StatusAlias):
+		elif isinstance(left, EntityStatAlias):
 			left_sel = _make_side_sel(
 				left.entity, left.stat, branches, self.pack, mid_turn
 			)
@@ -7112,7 +7114,7 @@ class Engine(AbstractEngine, Executor):
 					qry.oper,
 					end,
 				)
-		elif isinstance(right, StatusAlias):
+		elif isinstance(right, EntityStatAlias):
 			right_sel = _make_side_sel(
 				right.entity, right.stat, branches, self.pack, mid_turn
 			)
