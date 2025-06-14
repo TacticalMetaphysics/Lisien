@@ -1230,11 +1230,11 @@ class Engine(AbstractEngine, Executor):
 
 	def _get_node(self, graph: Key | Graph, node: Key):
 		node_objs, retrieve, btt, make_node = self._get_node_stuff
-		if type(graph) is str:
+		if hasattr(graph, "name"):
+			graphn = graph.name
+		else:
 			graphn = graph
 			graph = self.character[graphn]
-		else:
-			graphn = graph.name
 		key = (graphn, node)
 		if key in node_objs:
 			ret = node_objs[key]
