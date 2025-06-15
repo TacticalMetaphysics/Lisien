@@ -3301,47 +3301,21 @@ class Engine(AbstractEngine, Executor):
 			tick,
 			graph_keyframe,
 		)
-		for graph in graph_keyframe:
-			try:
-				graph_vals = self._graph_val_cache.get_keyframe(
-					graph, branch_from, turn, tick, copy=False
-				)
-			except KeyframeError:
-				graph_vals = {}
-			self._graph_val_cache.set_keyframe(
-				graph, branch_to, turn, tick, graph_vals
-			)
-			try:
-				nodes = self._nodes_cache.get_keyframe(
-					graph, branch_from, turn, tick, copy=False
-				)
-			except KeyframeError:
-				nodes = {}
-			self._nodes_cache.set_keyframe(graph, branch_to, turn, tick, nodes)
-			try:
-				node_val = self._node_val_cache.get_keyframe(
-					graph, branch_from, turn, tick, copy=False
-				)
-			except KeyframeError:
-				node_val = {}
-			self._node_val_cache.set_keyframe(
-				graph, branch_to, turn, tick, node_val
-			)
-			try:
-				edges = self._edges_cache.get_keyframe(
-					graph, branch_from, turn, tick, copy=False
-				)
-			except KeyframeError:
-				edges = {}
-			self._edges_cache.set_keyframe(graph, branch_to, turn, tick, edges)
-			try:
-				edge_val = self._edge_val_cache.get_keyframe(
-					graph, branch_from, turn, tick, copy=False
-				)
-			except KeyframeError:
-				edge_val = {}
-			self._edge_val_cache.set_keyframe(
-				graph, branch_to, turn, tick, edge_val
+		for cache in (
+			self._graph_val_cache,
+			self._nodes_cache,
+			self._node_val_cache,
+			self._edges_cache,
+			self._edge_val_cache,
+			self._things_cache,
+			self._node_contents_cache,
+		):
+			cache.alias_keyframe(
+				branch_from,
+				branch_to,
+				turn,
+				tick,
+				{graph: {} for graph in graph_keyframe},
 			)
 		for cache in (
 			self._universal_cache,
@@ -3355,50 +3329,12 @@ class Engine(AbstractEngine, Executor):
 			self._characters_things_rulebooks_cache,
 			self._characters_places_rulebooks_cache,
 			self._characters_portals_rulebooks_cache,
+			self._nodes_rulebooks_cache,
+			self._portals_rulebooks_cache,
 			self._neighborhoods_cache,
 			self._rule_bigness_cache,
 		):
 			cache.alias_keyframe(branch_from, branch_to, turn, tick)
-
-		for character in self._graph_cache.iter_entities(
-			branch_from, turn, tick
-		):
-			loc_kf = self._things_cache.get_keyframe(
-				character, branch_from, turn, tick, copy=False
-			)
-			conts_kf = self._node_contents_cache.get_keyframe(
-				character, branch_from, turn, tick, copy=False
-			)
-			units_kf = self._unitness_cache.get_keyframe(
-				character, branch_from, turn, tick, copy=False
-			)
-			self._things_cache.set_keyframe(
-				character, branch_to, turn, tick, loc_kf
-			)
-			self._node_contents_cache.set_keyframe(
-				character, branch_to, turn, tick, conts_kf
-			)
-			self._unitness_cache.set_keyframe(
-				character, branch_to, turn, tick, units_kf
-			)
-			self._nodes_rulebooks_cache.set_keyframe(
-				character,
-				branch_to,
-				turn,
-				tick,
-				self._nodes_rulebooks_cache.get_keyframe(
-					character, branch_from, turn, tick, copy=False
-				),
-			)
-			self._portals_rulebooks_cache.set_keyframe(
-				character,
-				branch_to,
-				turn,
-				tick,
-				self._portals_rulebooks_cache.get_keyframe(
-					character, branch_from, turn, tick, copy=False
-				),
-			)
 		self._keyframes_times.add((branch_to, turn, tick))
 		self._keyframes_loaded.add((branch_to, turn, tick))
 		if branch_to in self._keyframes_dict:
