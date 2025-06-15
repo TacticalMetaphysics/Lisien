@@ -742,9 +742,7 @@ class AbstractEngine(ABC):
 		return self._branches_d.keys()
 
 	def branch_parent(self, branch: Branch | None) -> Branch | None:
-		if branch is None:
-			branch = self.branch
-		if branch not in self._branches_d:
+		if branch is None or branch not in self._branches_d:
 			return None
 		return self._branches_d[branch][0]
 
