@@ -82,7 +82,9 @@ class UserMapping(Mapping):
 
 		"""
 		if len(self) != 1:
-			raise AmbiguousUserError("No users, or more than one")
+			raise AmbiguousUserError(
+				"No users, or more than one", self.node.name, dict(self)
+			)
 		return next(iter(self.values()))
 
 	def __iter__(self) -> Iterator[Key]:
@@ -94,16 +96,12 @@ class UserMapping(Mapping):
 		)
 
 	def __len__(self) -> int:
-		return self.engine._unitness_cache.user_cache.count_keys(
-			self.node.character.name, self.node.name, *self.engine._btt()
-		)
+		return len(set(self._user_names()))
 
 	def __bool__(self) -> bool:
-		return bool(
-			self.engine._unitness_cache.user_cache.count_keys(
-				self.node.character.name, self.node.name, *self.engine._btt()
-			)
-		)
+		for _ in self._user_names():
+			return True
+		return False
 
 	def __getitem__(self, k) -> AbstractCharacter:
 		ret = self.engine.character[k]
