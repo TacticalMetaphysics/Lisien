@@ -476,12 +476,15 @@ class Cache:
 	):
 		self._set_keyframe(graph_ent, branch, turn, tick, keyframe)
 
-	def alias_keyframe(self, branch_from, branch_to, turn, tick):
+	def alias_keyframe(self, branch_from, branch_to, turn, tick, default=None):
 		for graph_ent in self.keyframe:
 			try:
 				kf = self._get_keyframe(graph_ent, branch_from, turn, tick)
 			except KeyframeError:
-				continue
+				if default is not None:
+					kf = default
+				else:
+					continue
 			self._set_keyframe(graph_ent, branch_to, turn, tick, kf)
 
 	def load(self, data):
