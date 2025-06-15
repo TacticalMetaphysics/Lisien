@@ -210,6 +210,14 @@ def serial_engine(tmp_path, database):
 		yield eng
 
 
+@pytest.fixture(scope="function")
+def null_engine():
+	with Engine(
+		None, random_seed=69105, enforce_end_of_time=False, workers=0
+	) as eng:
+		yield eng
+
+
 @pytest.fixture(
 	scope="function", params=[pytest.param("sqlite", marks=pytest.mark.sqlite)]
 )
