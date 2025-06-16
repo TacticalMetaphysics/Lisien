@@ -8280,7 +8280,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._branches = {}
 		self._new_keyframes = []
 		self._new_keyframe_times = set()
-		self._btts = set()
 		self._records = 0
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
@@ -8891,16 +8890,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._graphvals2set()
 
 	def graph_val_set(self, graph, key, branch, turn, tick, value):
-		if (branch, turn, tick) in self._btts:
-			raise TimeError
-		self._btts.add((branch, turn, tick))
 		self._graphvals2set.append((graph, key, branch, turn, tick, value))
 		self._increc()
 
 	def graph_val_del_time(self, branch, turn, tick):
 		self._flush_graph_val()
 		self.call_one("graph_val_del_time", branch, turn, tick)
-		self._btts.discard((branch, turn, tick))
 
 	def graphs_types(
 		self,
@@ -8955,16 +8950,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		Inserts a new record or updates an old one, as needed.
 
 		"""
-		if (branch, turn, tick) in self._btts:
-			raise TimeError
-		self._btts.add((branch, turn, tick))
 		self._nodes2set.append((graph, node, branch, turn, tick, extant))
 		self._increc()
 
 	def nodes_del_time(self, branch, turn, tick):
 		self._flush_nodes()
 		self.call_one("nodes_del_time", branch, turn, tick)
-		self._btts.discard((branch, turn, tick))
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		"""Dump the entire contents of the nodes table."""
@@ -9096,9 +9087,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def node_val_set(self, graph, node, key, branch, turn, tick, value):
 		"""Set a key-value pair on a node at a specific branch and revision"""
-		if (branch, turn, tick) in self._btts:
-			raise TimeError
-		self._btts.add((branch, turn, tick))
 		self._nodevals2set.append(
 			(graph, node, key, branch, turn, tick, value)
 		)
@@ -9106,7 +9094,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def node_val_del_time(self, branch, turn, tick):
 		self._flush_node_val()
 		self.call_one("node_val_del_time", branch, turn, tick)
-		self._btts.discard((branch, turn, tick))
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		"""Dump the entire contents of the edges table."""
@@ -9204,9 +9191,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
 		"""Declare whether or not this edge exists."""
-		if (branch, turn, tick) in self._btts:
-			raise TimeError
-		self._btts.add((branch, turn, tick))
 		self._edges2set.append(
 			(graph, orig, dest, idx, branch, turn, tick, extant)
 		)
@@ -9215,7 +9199,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def edges_del_time(self, branch, turn, tick):
 		self._flush_edges()
 		self.call_one("edges_del_time", branch, turn, tick)
-		self._btts.discard((branch, turn, tick))
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		"""Yield the entire contents of the edge_val table."""
@@ -9314,9 +9297,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self, graph, orig, dest, idx, key, branch, turn, tick, value
 	):
 		"""Set this key of this edge to this value."""
-		if (branch, turn, tick) in self._btts:
-			raise TimeError
-		self._btts.add((branch, turn, tick))
 		self._edgevals2set.append(
 			(graph, orig, dest, idx, key, branch, turn, tick, value)
 		)
@@ -9325,7 +9305,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def edge_val_del_time(self, branch, turn, tick):
 		self._edgevals2set()
 		self.call_one("edge_val_del_time", branch, turn, tick)
-		self._btts.discard((branch, turn, tick))
 
 	def plans_dump(self):
 		return self.call_one("plans_dump")
