@@ -175,11 +175,11 @@ class HistoricKeyError(KeyError):
 
 
 class NotInKeyframeError(KeyError):
-	pass
+	"""A keyframe is present, and what you wanted wasn't in it"""
 
 
 class KeyframeError(KeyError):
-	pass
+	"""There's no keyframe at the time you wanted"""
 
 
 class TotalKeyError(KeyError):
