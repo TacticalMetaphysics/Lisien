@@ -21,7 +21,7 @@ import sys
 from abc import abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import cached_property, partial, partialmethod
+from functools import cached_property, partial, partialmethod, wraps
 from itertools import starmap
 from operator import itemgetter
 from queue import Queue
@@ -3027,6 +3027,17 @@ class ParquetDBHolder(ConnectionHolder):
 				inq.task_done()
 
 
+def mutexed(func):
+	"""Decorator for when an entire method's body holds a mutex lock"""
+
+	@wraps(func)
+	def mutexy(self, *args, **kwargs):
+		with self.mutex():
+			return func(self, *args, **kwargs)
+
+	return mutexy
+
+
 class AbstractQueryEngine:
 	pack: callable
 	unpack: callable
@@ -3555,18 +3566,18 @@ class AbstractQueryEngine:
 			yield
 			insist(self._outq.qsize() == 0, "Unhandled items in output queue")
 
+	@mutexed
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
-		with self.mutex():
-			for branch, turn_from, tick_from, turn_to, tick_to in windows:
-				if turn_to is None:
-					self._put_window_tick_to_end(branch, turn_from, tick_from)
-				else:
-					self._put_window_tick_to_tick(
-						branch, turn_from, tick_from, turn_to, tick_to
-					)
-			self._inq.join()
-			for window in windows:
-				self._get_one_window(ret, *window)
+		for branch, turn_from, tick_from, turn_to, tick_to in windows:
+			if turn_to is None:
+				self._put_window_tick_to_end(branch, turn_from, tick_from)
+			else:
+				self._put_window_tick_to_tick(
+					branch, turn_from, tick_from, turn_to, tick_to
+				)
+		self._inq.join()
+		for window in windows:
+			self._get_one_window(ret, *window)
 
 	_records: int
 	kf_interval_override: callable
@@ -5885,15 +5896,15 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.initdb()
 		self.globl = GlobalKeyValueStore(self)
 
+	@mutexed
 	def call(self, method, *args, **kwargs):
-		with self.mutex():
-			self._inq.put((method, args, kwargs))
-			ret = self._outq.get()
-			if isinstance(ret, Exception):
-				self._outq.task_done()
-				raise ret
+		self._inq.put((method, args, kwargs))
+		ret = self._outq.get()
+		if isinstance(ret, Exception):
 			self._outq.task_done()
-			return ret
+			raise ret
+		self._outq.task_done()
+		return ret
 
 	def call_silent(self, method, *args, **kwargs):
 		self._inq.put(("silent", method, args, kwargs))
@@ -6126,135 +6137,133 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			yield d["branch"], d["turn"], d["end_tick"], d["plan_end_tick"]
 
 	@garbage
+	@mutexed
 	def flush(self):
-		with self.mutex():
-			records = sum(
-				(
-					self._universals2set(),
-					self._noderb2set(),
-					self._portrb2set(),
-					self._graphvals2set(),
-					self._nodes2set(),
-					self._nodevals2set(),
-					self._edges2set(),
-					self._edgevals2set(),
-					self._planticks2set(),
-				)
+		records = sum(
+			(
+				self._universals2set(),
+				self._noderb2set(),
+				self._portrb2set(),
+				self._graphvals2set(),
+				self._nodes2set(),
+				self._nodevals2set(),
+				self._edges2set(),
+				self._edgevals2set(),
+				self._planticks2set(),
 			)
-			if self._unitness:
-				self.call_silent(
-					"del_units_after",
-					[
-						(character, graph, node, branch, turn, tick)
-						for (
-							character,
-							graph,
-							node,
-							branch,
-							turn,
-							tick,
-							_,
-						) in self._unitness
-					],
-				)
-				records += self._unitness()
-			if self._location:
-				self.call_silent(
-					"del_things_after",
-					[
-						(character, thing, branch, turn, tick)
-						for (
-							character,
-							thing,
-							branch,
-							turn,
-							tick,
-							_,
-						) in self._location
-					],
-				)
-				records += self._location()
-			self._char_rules_handled()
-			self._unit_rules_handled()
-			self._char_thing_rules_handled()
-			self._char_place_rules_handled()
-			self._char_portal_rules_handled()
-			self._node_rules_handled()
-			self._portal_rules_handled()
-			override = self.kf_interval_override()
-			if override is False or (
-				self.keyframe_interval is not None
-				and self._records + records > self.keyframe_interval
-			):
-				self.snap_keyframe()
-			if self.keyframe_interval:
-				self._records = (
-					self._records + records
-				) % self.keyframe_interval
-			else:
-				self._records += records
-			if self._new_keyframe_times:
-				self.call_silent(
-					"insert",
-					"keyframes",
-					[
-						{"branch": branch, "turn": turn, "tick": tick}
-						for (
-							branch,
-							turn,
-							tick,
-						) in self._new_keyframe_times
-					],
-				)
-				self._new_keyframe_times = set()
-			if self._new_keyframes:
-				kfs = {}
-				for (
-					graph,
-					branch,
-					turn,
-					tick,
-					nodes,
-					edges,
-					graph_val,
-				) in self._new_keyframes:
-					kfs[graph, branch, turn, tick] = (nodes, edges, graph_val)
-				self.call_silent(
-					"keyframes_graphs_delete",
-					[
-						{
-							"graph": graph,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-						}
-						for (graph, branch, turn, tick) in kfs
-					],
-				)
-				self.call_silent(
-					"insert",
-					"keyframes_graphs",
-					[
-						{
-							"graph": graph,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"nodes": nodes,
-							"edges": edges,
-							"graph_val": graph_val,
-						}
-						for (graph, branch, turn, tick), (
-							nodes,
-							edges,
-							graph_val,
-						) in kfs.items()
-					],
-				)
-			self._new_keyframe_extensions()
+		)
+		if self._unitness:
+			self.call_silent(
+				"del_units_after",
+				[
+					(character, graph, node, branch, turn, tick)
+					for (
+						character,
+						graph,
+						node,
+						branch,
+						turn,
+						tick,
+						_,
+					) in self._unitness
+				],
+			)
+			records += self._unitness()
+		if self._location:
+			self.call_silent(
+				"del_things_after",
+				[
+					(character, thing, branch, turn, tick)
+					for (
+						character,
+						thing,
+						branch,
+						turn,
+						tick,
+						_,
+					) in self._location
+				],
+			)
+			records += self._location()
+		self._char_rules_handled()
+		self._unit_rules_handled()
+		self._char_thing_rules_handled()
+		self._char_place_rules_handled()
+		self._char_portal_rules_handled()
+		self._node_rules_handled()
+		self._portal_rules_handled()
+		override = self.kf_interval_override()
+		if override is False or (
+			self.keyframe_interval is not None
+			and self._records + records > self.keyframe_interval
+		):
+			self.snap_keyframe()
+		if self.keyframe_interval:
+			self._records = (self._records + records) % self.keyframe_interval
+		else:
+			self._records += records
+		if self._new_keyframe_times:
+			self.call_silent(
+				"insert",
+				"keyframes",
+				[
+					{"branch": branch, "turn": turn, "tick": tick}
+					for (
+						branch,
+						turn,
+						tick,
+					) in self._new_keyframe_times
+				],
+			)
+			self._new_keyframe_times = set()
+		if self._new_keyframes:
+			kfs = {}
+			for (
+				graph,
+				branch,
+				turn,
+				tick,
+				nodes,
+				edges,
+				graph_val,
+			) in self._new_keyframes:
+				kfs[graph, branch, turn, tick] = (nodes, edges, graph_val)
+			self.call_silent(
+				"keyframes_graphs_delete",
+				[
+					{
+						"graph": graph,
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+					}
+					for (graph, branch, turn, tick) in kfs
+				],
+			)
+			self.call_silent(
+				"insert",
+				"keyframes_graphs",
+				[
+					{
+						"graph": graph,
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"nodes": nodes,
+						"edges": edges,
+						"graph_val": graph_val,
+					}
+					for (graph, branch, turn, tick), (
+						nodes,
+						edges,
+						graph_val,
+					) in kfs.items()
+				],
+			)
+		self._new_keyframe_extensions()
 
-			self._inq.put(("echo", "flushed"))
-			insist((got := self._outq.get()) == "flushed", "Failed flush", got)
+		self._inq.put(("echo", "flushed"))
+		insist((got := self._outq.get()) == "flushed", "Failed flush", got)
 
 	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
 		unpack = self.unpack
@@ -6690,6 +6699,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			},
 		)
 
+	@mutexed
 	def set_rule(
 		self,
 		rule: RuleName,
@@ -6702,94 +6712,93 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		neighborhood: RuleNeighborhood,
 		big: RuleBig,
 	):
-		with self.mutex():
-			self._inq.put(("silent", "insert1", ["rules", {"rule": rule}]))
-			self._inq.put(
-				(
-					"silent",
-					"insert1",
-					[
-						"rule_triggers",
-						{
-							"rule": rule,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"triggers": self.pack(triggers),
-						},
-					],
-				)
+		self._inq.put(("silent", "insert1", ["rules", {"rule": rule}]))
+		self._inq.put(
+			(
+				"silent",
+				"insert1",
+				[
+					"rule_triggers",
+					{
+						"rule": rule,
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"triggers": self.pack(triggers),
+					},
+				],
 			)
-			self._inq.put(
-				(
-					"silent",
-					"insert1",
-					[
-						"rule_prereqs",
-						{
-							"rule": rule,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"prereqs": self.pack(prereqs),
-						},
-					],
-				)
+		)
+		self._inq.put(
+			(
+				"silent",
+				"insert1",
+				[
+					"rule_prereqs",
+					{
+						"rule": rule,
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"prereqs": self.pack(prereqs),
+					},
+				],
 			)
-			self._inq.put(
-				(
-					"silent",
-					"insert1",
-					[
-						"rule_actions",
-						{
-							"rule": rule,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"actions": self.pack(actions),
-						},
-					],
-				)
+		)
+		self._inq.put(
+			(
+				"silent",
+				"insert1",
+				[
+					"rule_actions",
+					{
+						"rule": rule,
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"actions": self.pack(actions),
+					},
+				],
 			)
-			self._inq.put(
-				(
-					"silent",
-					"insert1",
-					[
-						"rule_neighborhood",
-						{
-							"rule": rule,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"neighborhood": self.pack(neighborhood),
-						},
-					],
-				)
+		)
+		self._inq.put(
+			(
+				"silent",
+				"insert1",
+				[
+					"rule_neighborhood",
+					{
+						"rule": rule,
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"neighborhood": self.pack(neighborhood),
+					},
+				],
 			)
-			self._inq.put(
-				(
-					"silent",
-					"insert1",
-					[
-						"rule_big",
-						{
-							"rule": rule,
-							"branch": branch,
-							"turn": turn,
-							"tick": tick,
-							"big": big,
-						},
-					],
-				)
+		)
+		self._inq.put(
+			(
+				"silent",
+				"insert1",
+				[
+					"rule_big",
+					{
+						"rule": rule,
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+						"big": big,
+					},
+				],
 			)
-			self._inq.put(("echo", "rule set"))
-			insist(
-				(got := self._outq.get()) == "rule set",
-				"Failed to set rule",
-				got,
-			)
+		)
+		self._inq.put(("echo", "rule set"))
+		insist(
+			(got := self._outq.get()) == "rule set",
+			"Failed to set rule",
+			got,
+		)
 
 	def set_rulebook(
 		self,
@@ -8581,21 +8590,21 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 		return character, thing, branch, turn, tick, location
 
+	@mutexed
 	def call_one(self, string, *args, **kwargs):
-		with self.mutex():
-			insist(
-				self._outq.unfinished_tasks == 0,
-				f"{self._outq.unfinished_tasks} unfinished tasks in output queue "
-				"before call_one",
-			)
-			self._inq.put(("one", string, args, kwargs))
-			ret = self._outq.get()
-			self._outq.task_done()
-			insist(
-				self._outq.unfinished_tasks == 0,
-				f"{self._outq.unfinished_tasks} unfinished tasks in output "
-				"queue after call_one",
-			)
+		insist(
+			self._outq.unfinished_tasks == 0,
+			f"{self._outq.unfinished_tasks} unfinished tasks in output queue "
+			"before call_one",
+		)
+		self._inq.put(("one", string, args, kwargs))
+		ret = self._outq.get()
+		self._outq.task_done()
+		insist(
+			self._outq.unfinished_tasks == 0,
+			f"{self._outq.unfinished_tasks} unfinished tasks in output "
+			"queue after call_one",
+		)
 		if isinstance(ret, Exception):
 			raise ret
 		return ret
@@ -9322,20 +9331,18 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		return self.call_one("plan_ticks_dump")
 
 	@garbage
+	@mutexed
 	def flush(self):
 		"""Put all pending changes into the SQL transaction."""
-		with self.mutex():
-			self._inq.put(("echo", "ready"))
-			readied = self._outq.get()
-			self._outq.task_done()
-			insist(readied == "ready", "Not ready to flush", readied)
-			self._flush()
-			self._inq.put(("echo", "flushed"))
-			flushed = self._outq.get()
-			self._outq.task_done()
-			insist(
-				flushed == "flushed", "Failed flush: " + repr(flushed), flushed
-			)
+		self._inq.put(("echo", "ready"))
+		readied = self._outq.get()
+		self._outq.task_done()
+		insist(readied == "ready", "Not ready to flush", readied)
+		self._flush()
+		self._inq.put(("echo", "flushed"))
+		flushed = self._outq.get()
+		self._outq.task_done()
+		insist(flushed == "flushed", "Failed flush: " + repr(flushed), flushed)
 
 	def _flush(self):
 		pack = self.pack
