@@ -2671,12 +2671,12 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick, rule.get("big", {})
 		)
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rulebook)
+		keyframe_graphs = list(
+			self.query.get_all_keyframe_graphs(branch, turn, tick)
+		)
 		with (
 			self.batch()
 		):  # so that iter_keys doesn't try fetching the kf we're about to make
-			keyframe_graphs = list(
-				self.query.get_all_keyframe_graphs(branch, turn, tick)
-			)
 			self._graph_cache.set_keyframe(
 				branch,
 				turn,
@@ -4097,7 +4097,10 @@ class Engine(AbstractEngine, Executor):
 			branch, turn_from, tick_from, turn_to, tick_to
 		):
 			return
-		self._get_keyframe(branch, turn_from, tick_from, silent=True)
+		try:
+			self._get_keyframe(branch, turn_from, tick_from, silent=True)
+		except KeyframeError:
+			self._recurse_delta_keyframes(branch, turn_from, tick_from)
 		noderows = []
 		nodevalrows = []
 		edgerows = []

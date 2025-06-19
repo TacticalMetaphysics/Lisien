@@ -561,6 +561,14 @@ class ParquetDBHolder(ConnectionHolder):
 		if todel:
 			db.delete(todel)
 
+	def all_keyframe_times(self):
+		return {
+			(d["branch"], d["turn"], d["tick"])
+			for d in self._get_db("keyframes")
+			.read(columns=["branch", "turn", "tick"])
+			.to_pylist()
+		}
+
 	def truncate_all(self):
 		for table in self.schema:
 			db = self._get_db(table)
@@ -5895,6 +5903,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._t.start()
 		self.initdb()
 		self.globl = GlobalKeyValueStore(self)
+		self._all_keyframe_times = self.call("all_keyframe_times")
 
 	@mutexed
 	def call(self, method, *args, **kwargs):
@@ -7894,9 +7903,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			(graph, branch, turn, tick, nodes, edges, graph_val)
 		)
 		self._new_keyframe_times.add((branch, turn, tick))
+		self._all_keyframe_times.add((branch, turn, tick))
 
 	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self._new_keyframe_times.add((branch, turn, tick))
+		self._all_keyframe_times.add((branch, turn, tick))
 
 	@pqbatch("keyframe_extensions")
 	def _new_keyframe_extensions(
@@ -7930,6 +7941,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
 	]:
+		if (branch, turn, tick) not in self._all_keyframe_times:
+			raise KeyframeError(branch, turn, tick)
 		unpack = self.unpack
 		for graph, nodes, edges, graph_val in self.call(
 			"all_keyframe_graphs", branch, turn, tick
@@ -7956,6 +7969,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def initdb(self):
 		self.call("initdb")
+		self._all_keyframe_times = self.call("all_keyframe_times")
 
 
 class SQLAlchemyConnectionHolder(ConnectionHolder):
@@ -8652,9 +8666,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			(graph, branch, turn, tick, nodes, edges, graph_val)
 		)
 		self._new_keyframe_times.add((branch, turn, tick))
-
-	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		self._new_keyframe_times.add((branch, turn, tick))
+		self._all_keyframe_times.add((branch, turn, tick))
 
 	def keyframes_graphs(
 		self,
@@ -8670,6 +8682,8 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
 	]:
+		if (branch, turn, tick) not in self._keyframes:
+			raise KeyframeError(branch, turn, tick)
 		unpack = self.unpack
 		for graph, nodes, edges, graph_val in self.call_one(
 			"all_graphs_in_keyframe", branch, turn, tick
@@ -9490,6 +9504,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			self._outq.task_done()
 			if isinstance(ret, Exception):
 				raise ret
+			self._inq.put(("one", "keyframes_dump", (), {}))
+			ret = self._outq.get()
+			self._outq.task_done()
+			if isinstance(ret, Exception):
+				raise ret
+			self._all_keyframe_times = set(ret)
 		self.globl = GlobalKeyValueStore(self)
 		if "main_branch" not in self.globl:
 			self.global_set("main_branch", "trunk")
@@ -9522,7 +9542,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		rules,
 		rulebooks,
 	):
-		pack = self.pack
 		self._new_keyframe_extensions.append(
 			(
 				branch,
@@ -9536,11 +9555,13 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._new_keyframe_times.add((branch, turn, tick))
 
 	def get_keyframe_extensions(self, branch: str, turn: int, tick: int):
+		if (branch, turn, tick) not in self._all_keyframe_times:
+			raise KeyframeError(branch, turn, tick)
 		self.flush()
 		unpack = self.unpack
 		exts = self.call_one("get_keyframe_extensions", branch, turn, tick)
 		if not exts:
-			raise KeyframeError("No keyframe", branch, turn, tick)
+			raise KeyframeError(branch, turn, tick)
 		assert len(exts) == 1, f"Incoherent keyframe {branch, turn, tick}"
 		universal, rule, rulebook = exts[0]
 		return (
