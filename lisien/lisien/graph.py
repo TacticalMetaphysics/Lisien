@@ -817,9 +817,11 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
 		def __iter__(self):
 			"""Iterate over the edges that exist at the present (branch, rev)"""
-			return self.db._edges_cache.iter_predecessors(
+			for orig in self.db._edges_cache.iter_predecessors(
 				self.graph.name, self.dest, *self.db._btt()
-			)
+			):
+				if orig in self:
+					yield orig
 
 		def __contains__(self, orig):
 			"""Is there an edge from ``orig`` at the moment?"""
@@ -829,15 +831,18 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
 		def __len__(self):
 			"""How many edges exist at this rev of this branch?"""
-			return self.db._edges_cache.count_predecessors(
-				self.graph.name, self.dest, *self.db._btt()
-			)
+			n = 0
+			for n, _ in enumerate(self, start=1):
+				pass
+			return n
 
 		def _make_edge(self, orig):
 			return Edge(self.graph, orig, self.dest)
 
 		def __getitem__(self, orig):
 			"""Get the edge from the given node to mine"""
+			if orig not in self:
+				raise KeyError(orig)
 			return self.graph.adj[orig][self.dest]
 
 		def __setitem__(self, orig, value):
