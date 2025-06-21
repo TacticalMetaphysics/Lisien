@@ -604,9 +604,11 @@ class AbstractSuccessors(GraphEdgeMapping):
 
 	def __iter__(self):
 		"""Iterate over node IDs that have an edge with my orig"""
-		return self.db._edges_cache.iter_successors(
+		for that in self.db._edges_cache.iter_successors(
 			self.graph.name, self.orig, *self.db._btt()
-		)
+		):
+			if that in self:
+				yield that
 
 	def __contains__(self, dest):
 		"""Is there an edge leading to ``dest`` at the moment?"""
@@ -617,9 +619,10 @@ class AbstractSuccessors(GraphEdgeMapping):
 
 	def __len__(self):
 		"""How many nodes touch an edge shared with my orig?"""
-		return self.db._edges_cache.count_successors(
-			self.graph.name, self.orig, *self.db._btt()
-		)
+		n = 0
+		for n, _ in enumerate(self, start=1):
+			pass
+		return n
 
 	def _make_edge(self, dest):
 		return Edge(self.graph, *self._order_nodes(dest))
