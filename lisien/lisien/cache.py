@@ -1951,7 +1951,11 @@ class EdgesCache(Cache):
 				if trn in kfgb:
 					kfgbr = kfgb[trn]
 					if kfgbr.rev_gettable(tck):
-						if kfgbr[tck][0] and dest not in deleted:
+						if (
+							0 in kfgbr[tck]
+							and kfgbr[tck][0]
+							and dest not in deleted
+						):
 							added.add(dest)
 						continue
 				if kfgb.rev_gettable(trn):
