@@ -3315,7 +3315,7 @@ class Engine(AbstractEngine, Executor):
 				branch_to,
 				turn,
 				tick,
-				{graph: {} for graph in graph_keyframe},
+				{},
 			)
 		for cache in (
 			self._universal_cache,
