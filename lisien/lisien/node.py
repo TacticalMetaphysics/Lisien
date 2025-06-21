@@ -203,11 +203,15 @@ class Dests(Mapping):
 
 	def __iter__(self) -> Iterator:
 		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.iter_successors(charname, name, *btt())
+		for succ in edges_cache.iter_successors(charname, name, *btt()):
+			if succ in self:
+				yield succ
 
 	def __len__(self) -> int:
-		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.count_successors(charname, name, *btt())
+		n = 0
+		for n, _ in enumerate(self, start=1):
+			pass
+		return n
 
 	def __contains__(self, item) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
@@ -249,7 +253,10 @@ class Origs(Mapping):
 
 	def __len__(self) -> int:
 		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.count_predecessors(charname, name, *btt())
+		n = 0
+		for n, _ in enumerate(self, start=1):
+			pass
+		return n
 
 	def __getitem__(self, item) -> "Node":
 		if item not in self:
@@ -288,17 +295,24 @@ class Portals(Set):
 	def __len__(self) -> int:
 		_, edges_cache, _, charname, name, btt_f = self._pecnb
 		btt = btt_f()
-		return edges_cache.count_predecessors(
-			charname, name, *btt
-		) + edges_cache.count_successors(charname, name, *btt)
+		stuff = set()
+		for pred in edges_cache.iter_predecessors(charname, name, *btt):
+			if edges_cache.has_predecessor(charname, name, pred, *btt):
+				stuff.add((pred, name))
+		for succ in edges_cache.iter_successors(charname, name, *btt):
+			if edges_cache.has_successor(charname, name, succ, *btt):
+				stuff.add((name, succ))
+		return len(stuff)
 
 	def __iter__(self) -> Iterator["lisien.portal.Portal"]:
 		get_edge, edges_cache, character, charname, name, btt_f = self._pecnb
 		btt = btt_f()
 		for dest in edges_cache.iter_successors(charname, name, *btt):
-			yield get_edge(character, name, dest, 0)
+			if edges_cache.has_successor(charname, name, dest, *btt):
+				yield get_edge(character, name, dest, 0)
 		for orig in edges_cache.iter_predecessors(charname, name, *btt):
-			yield get_edge(character, orig, name, 0)
+			if edges_cache.has_predecessor(charname, name, orig, *btt):
+				yield get_edge(character, orig, name, 0)
 
 
 class NeighborValues(ValuesView):

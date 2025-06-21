@@ -2107,56 +2107,6 @@ class EdgesCache(Cache):
 			graph, dest, branch, turn, tick, forward=forward
 		)
 
-	def count_successors(
-		self,
-		graph: Hashable,
-		orig: Hashable,
-		branch: str,
-		turn: int,
-		tick: int,
-		*,
-		forward: str = None,
-	):
-		"""Return the number of successors to an origin node at a given time."""
-		if self.db._no_kc:
-			return len(
-				self._adds_dels_successors((graph, orig), branch, turn, tick)[
-					0
-				]
-			)
-		if forward is None:
-			forward = self.db._forward
-		return len(
-			self._get_destcache(
-				graph, orig, branch, turn, tick, forward=forward
-			)
-		)
-
-	def count_predecessors(
-		self,
-		graph: Hashable,
-		dest: Hashable,
-		branch: str,
-		turn: int,
-		tick: int,
-		*,
-		forward: bool = None,
-	):
-		"""Return the number of predecessors from a destination node at a time."""
-		if self.db._no_kc:
-			return len(
-				self._adds_dels_predecessors(
-					(graph, dest), branch, turn, tick
-				)[0]
-			)
-		if forward is None:
-			forward = self.db._forward
-		return len(
-			self._get_origcache(
-				graph, dest, branch, turn, tick, forward=forward
-			)
-		)
-
 	def has_successor(
 		self,
 		graph: Hashable,
