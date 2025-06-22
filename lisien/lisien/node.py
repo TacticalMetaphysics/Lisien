@@ -629,7 +629,7 @@ class Node(graph.Node, rule.RuleFollower):
 		return EntityStatAlias(entity=self, stat=stat)
 
 	def __bool__(self):
-		return self.name in self.character.node
+		return self.engine._node_exists(self.character.name, self.name)
 
 
 class Place(Node):
