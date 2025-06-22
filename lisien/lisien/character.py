@@ -367,10 +367,10 @@ class Character(AbstractCharacter, RuleFollower):
 			nodes_contains = nodes_cache.contains_entity
 			things_contains = things_cache.contains_entity
 			btt = engine._btt
-			self._iter_stuff = (iter_nodes, things_contains, charn, btt)
-			self._len_stuff = (
-				nodes_cache.count_entities,
-				things_cache.count_entities,
+			self._iter_stuff = (
+				iter_nodes,
+				nodes_contains,
+				things_contains,
 				charn,
 				btt,
 			)
@@ -393,18 +393,21 @@ class Character(AbstractCharacter, RuleFollower):
 			)
 
 		def __iter__(self):
-			iter_nodes, things_contains, charn, btt = self._iter_stuff
+			iter_nodes, nodes_contains, things_contains, charn, btt = (
+				self._iter_stuff
+			)
 			branch, turn, tick = btt()
 			for node in iter_nodes(charn, branch, turn, tick):
-				if not things_contains(charn, node, branch, turn, tick):
+				if nodes_contains(
+					charn, node, branch, turn, tick
+				) and not things_contains(charn, node, branch, turn, tick):
 					yield node
 
 		def __len__(self):
-			count_nodes, count_things, charn, btt = self._len_stuff
-			branch, turn, tick = btt()
-			return count_nodes(charn, branch, turn, tick) - count_things(
-				charn, branch, turn, tick
-			)
+			n = 0
+			for n, _ in enumerate(self, start=1):
+				pass
+			return n
 
 		def __contains__(self, place):
 			nodes_contains, things_contains, charn, btt = self._contains_stuff
