@@ -566,7 +566,7 @@ class Node(graph.Node, rule.RuleFollower):
 
 	def _delete(self, *, now: Optional[Time] = None) -> None:
 		engine = self.engine
-		with engine.world_lock:
+		with engine.world_lock, engine.batch():
 			if now is None:
 				now = engine._nbtt()
 			character = self.character
