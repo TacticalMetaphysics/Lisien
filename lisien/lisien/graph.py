@@ -461,9 +461,12 @@ class GraphNodeMapping(AllegedMapping):
 
 	def __iter__(self):
 		"""Iterate over the names of the nodes"""
-		return self.db._nodes_cache.iter_entities(
-			self.graph.name, *self.db._btt()
-		)
+		now = self.db._btt()
+		gn = self.graph.name
+		nc = self.db._nodes_cache
+		for entity in nc.iter_entities(gn, *now):
+			if entity in self:
+				yield entity
 
 	def __eq__(self, other):
 		from collections.abc import Mapping
