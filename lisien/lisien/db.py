@@ -8682,7 +8682,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
 	]:
-		if (branch, turn, tick) not in self._keyframes:
+		if (branch, turn, tick) not in self._all_keyframe_times:
 			raise KeyframeError(branch, turn, tick)
 		unpack = self.unpack
 		for graph, nodes, edges, graph_val in self.call_one(
