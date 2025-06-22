@@ -216,7 +216,7 @@ class Portal(Edge, RuleFollower):
 		self._delete()
 
 	def _delete(self, *, now: Optional[Time] = None) -> None:
-		with self.engine.world_lock:
+		with self.engine.world_lock, self.engine.batch():
 			if now is None:
 				now = self.engine._nbtt()
 			for k in self:
