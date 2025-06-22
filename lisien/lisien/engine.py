@@ -6562,7 +6562,7 @@ class Engine(AbstractEngine, Executor):
 		self._graph_objs[name] = self.char_cls(self, name)
 
 	@world_locked
-	def del_character(self, name: Key) -> None:
+	def del_character(self, name: CharName) -> None:
 		"""Mark a graph as deleted
 
 		:arg name: name of an existing graph
@@ -6570,19 +6570,20 @@ class Engine(AbstractEngine, Executor):
 		"""
 		# make sure the graph exists before deleting
 		graph = self.character[name]
-		for thing in list(graph.thing):
-			del graph.thing[thing]
-		for orig in list(graph.adj):
-			for dest in list(graph.adj[orig]):
-				del graph.adj[orig][dest]
-		for node in list(graph.node):
-			del graph.node[node]
-		for stat in set(graph.graph) - {"name", "units"}:
-			del graph.graph[stat]
-		branch, turn, tick = self._nbtt()
-		self.query.graphs_insert(name, branch, turn, tick, "Deleted")
-		self._graph_cache.store(name, branch, turn, tick, None)
-		self._graph_cache.keycache.clear()
+		with self.batch():
+			now = self._nbtt()
+			for orig in list(graph.adj):
+				for dest in list(graph.adj[orig]):
+					graph.adj[orig][dest]._delete(now=now)
+			for node in list(graph.node):
+				if node in graph.node:
+					graph.node[node]._delete(now=now)
+			for stat in set(graph.graph) - {"name", "units"}:
+				self._graph_val_cache.store(name, stat, *now, None)
+				self.query.graph_val_set(name, stat, *now, None)
+			self._graph_cache.store(name, *now, None)
+			self.query.graphs_insert(name, *now, "Deleted")
+			self._graph_cache.keycache.clear()
 		if hasattr(self, "_worker_processes"):
 			self._call_every_subprocess("_del_character", name)
 
