@@ -145,6 +145,8 @@ class AbstractGraphTest:
 		self.assertIn(3, g.node)
 		self.assertIn(0, g.node)
 		self.assertTrue(self.engine._node_exists("physical", 0))
+		self.assertIn(3, g.adj)
+		self.assertIn(0, g.adj[3])
 		g.remove_node(3)
 		self.assertNotIn(3, g.node)
 		self.assertNotIn(3, g.adj)
