@@ -567,11 +567,23 @@ class Node(graph.Node, rule.RuleFollower):
 	def _delete(self, *, now: Optional[Time] = None) -> None:
 		engine = self.engine
 		with engine.world_lock, engine.batch():
-			if now is None:
-				now = engine._nbtt()
 			character = self.character
 			g = character.name
 			n = self.name
+			for contained in list(self.contents()):
+				contained._delete()
+			for username in list(self.user):
+				now = engine._nbtt()
+				engine._unitness_cache.store(username, g, n, *now, False)
+				engine.query.unit_set(username, g, n, *now, False)
+			if n in character.portal:
+				for port in list(character.portal[n].values()):
+					port._delete()
+			if n in character.preportal:
+				for port in list(character.preportal[n].values()):
+					port._delete()
+			if now is None:
+				now = engine._nbtt()
 			for k in self:
 				assert k != "name"
 				if k == "location":
@@ -580,17 +592,6 @@ class Node(graph.Node, rule.RuleFollower):
 				else:
 					self._set_cache(k, *now, None)
 					self._set_db(k, *now, None)
-			for username in list(self.user):
-				engine._unitness_cache.store(username, g, n, *now, False)
-				engine.query.unit_set(username, g, n, *now, False)
-			for contained in list(self.contents()):
-				contained._delete(now=now)
-			if n in character.portal:
-				for port in list(character.portal[n].values()):
-					port._delete(now=now)
-			if n in character.preportal:
-				for port in list(character.preportal[n].values()):
-					port._delete(now=now)
 			engine._exist_node(g, n, False, now=now)
 			self.character.node.send(
 				self.character.node, key=self.name, val=None
