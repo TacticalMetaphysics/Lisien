@@ -22,6 +22,8 @@ for changes using the ``connect(..)`` method.
 
 """
 
+from __future__ import annotations
+
 import importlib.util
 import json
 import os
@@ -30,19 +32,20 @@ from abc import ABC, abstractmethod
 from ast import Expr, Module, parse
 from collections.abc import MutableMapping
 from copy import deepcopy
-from dataclasses import dataclass
 from inspect import getsource
 from io import StringIO
 
+import networkx as nx
 from astunparse import Unparser
 from blinker import Signal
 
 from .graph import GraphsMapping
+from .typing import CharName, Key
 from .util import AbstractEngine, dedent_source, getatt
 
 
 class TabUnparser(Unparser):
-	def fill(self, text=""):
+	def fill(self, text: str = ""):
 		__doc__ = Unparser.fill.__doc__
 		self.f.write("\n" + "\t" * self._indent + text)
 
@@ -55,23 +58,23 @@ def unparse(tree):
 
 class AbstractLanguageDescriptor(Signal, ABC):
 	@abstractmethod
-	def _get_language(self, inst):
+	def _get_language(self, inst: StringStore) -> str:
 		pass
 
 	@abstractmethod
-	def _set_language(self, inst, val):
+	def _set_language(self, inst: StringStore, val: str) -> None:
 		pass
 
-	def __get__(self, instance, owner=None):
+	def __get__(self, instance: StringStore, owner=None):
 		return self._get_language(instance)
 
-	def __set__(self, inst, val):
+	def __set__(self, inst: StringStore, val: str):
 		self._set_language(inst, val)
 		self.send(inst, language=val)
 
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
-	def _get_language(self, inst):
+	def _get_language(self, inst: StringStore) -> str:
 		return inst._current_language
 
 	def _set_language(self, inst, lang):
@@ -444,7 +447,7 @@ class CharacterMapping(GraphsMapping, Signal):
 		GraphsMapping.__init__(self, orm)
 		Signal.__init__(self)
 
-	def __getitem__(self, name):
+	def __getitem__(self, name: CharName) -> Character:
 		"""Return the named character, if it's been created.
 
 		Try to use the cache if possible.
@@ -466,7 +469,7 @@ class CharacterMapping(GraphsMapping, Signal):
 			)
 		return ret
 
-	def __setitem__(self, name, value):
+	def __setitem__(self, name: CharName, value: dict | nx.Graph):
 		"""Make a new character by the given name, and initialize its data to
 		the given value.
 
@@ -474,7 +477,7 @@ class CharacterMapping(GraphsMapping, Signal):
 		self.engine._init_graph(name, "DiGraph", value)
 		self.send(self, key=name, val=self.engine._graph_objs[name])
 
-	def __delitem__(self, name):
+	def __delitem__(self, name: CharName):
 		self.engine.del_character(name)
 		self.send(self, key=name, val=None)
 

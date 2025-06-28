@@ -54,6 +54,7 @@ from typing import (
 	Sequence,
 	Type,
 	Union,
+	Optional,
 )
 
 import msgpack
@@ -65,7 +66,18 @@ from tblib import Traceback
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
 from .graph import DiGraph, Edge, Node
-from .typing import Branch, Key, Tick, Turn
+from .typing import (
+	Branch,
+	Stat,
+	CharName,
+	NodeName,
+	EternalKey,
+	UniversalKey,
+	Tick,
+	Turn,
+	CharName,
+	Time,
+)
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
@@ -110,16 +122,6 @@ class BadTimeException(Exception):
 	"""
 
 
-class FinalRule:
-	"""A singleton sentinel for the rule iterator"""
-
-	__slots__ = []
-
-	def __hash__(self):
-		# completely random integer
-		return 6448962173793096248
-
-
 class MsgpackExtensionType(Enum):
 	"""Type codes for packing special lisien types into msgpack"""
 
@@ -132,7 +134,6 @@ class MsgpackExtensionType(Enum):
 	place = 0x7E
 	thing = 0x7D
 	portal = 0x7C
-	final_rule = 0x7B
 	function = 0x7A
 	method = 0x79
 	trigger = 0x78
@@ -149,15 +150,15 @@ class get_rando:
 	"""
 
 	__slots__ = ("_getter", "_wrapfun", "_instance")
-	_getter: Callable
+	_getter: callable
 
 	def __init__(self, attr, *attrs):
 		self._getter = attrgetter(attr, *attrs)
 
-	def __get__(self, instance, owner) -> Callable:
+	def __get__(self, instance, owner) -> callable:
 		if hasattr(self, "_wrapfun") and self._instance is instance:
 			return self._wrapfun
-		retfun = self._getter(instance)
+		retfun: callable = self._getter(instance)
 
 		@wraps(retfun)
 		def remembering_rando_state(*args, **kwargs):
@@ -461,9 +462,9 @@ class AbstractEngine(ABC):
 	place_cls: type
 	portal_cls: type
 	char_cls: type
-	character: Mapping[Key, Type[char_cls]]
-	eternal: MutableMapping[Key, Any]
-	universal: MutableMapping[Key, Any]
+	character: Mapping[CharName, Type[char_cls]]
+	eternal: MutableMapping[EternalKey, Any]
+	universal: MutableMapping[UniversalKey, Any]
 	_rando: Random
 	_branches_d: dict[Branch | None, tuple[Branch, Turn, Tick, Turn, Tick]]
 
@@ -507,9 +508,6 @@ class AbstractEngine(ABC):
 			),
 			set: lambda s: msgpack.ExtType(
 				MsgpackExtensionType.set.value, packer(list(s))
-			),
-			FinalRule: lambda obj: msgpack.ExtType(
-				MsgpackExtensionType.final_rule.value, b""
 			),
 			FunctionType: lambda func: msgpack.ExtType(
 				getattr(MsgpackExtensionType, func.__module__).value,
@@ -797,8 +795,8 @@ class AbstractEngine(ABC):
 	@abstractmethod
 	def add_character(
 		self,
-		name: Key,
-		data: nx.Graph | DiGraph = None,
+		name: CharName,
+		data: Optional[nx.Graph | DiGraph] = None,
 		layout: bool = False,
 		node: dict = None,
 		edge: dict = None,
@@ -807,8 +805,8 @@ class AbstractEngine(ABC):
 
 	def new_character(
 		self,
-		name: Key,
-		data: nx.Graph | DiGraph = None,
+		name: CharName,
+		data: Optional[nx.Graph | DiGraph] = None,
 		layout: bool = False,
 		node: dict = None,
 		edge: dict = None,
@@ -840,7 +838,7 @@ class AbstractEngine(ABC):
 		n: int,
 		d: int,
 		target: int,
-		comparator: str | Callable = "<=",
+		comparator: str | callable = "<=",
 	) -> bool:
 		"""Roll ``n`` dice with ``d`` sides, sum them, and compare
 
@@ -945,10 +943,10 @@ class AbstractCharacter(DiGraph):
 		return False
 
 	@abstractmethod
-	def add_place(self, name: Key, **kwargs):
+	def add_place(self, name: NodeName, **kwargs):
 		pass
 
-	def add_node(self, name: Key, **kwargs):
+	def add_node(self, name: NodeName, **kwargs):
 		self.add_place(name, **kwargs)
 
 	@abstractmethod
@@ -958,7 +956,7 @@ class AbstractCharacter(DiGraph):
 	def add_nodes_from(self, seq: Iterable, **attrs):
 		self.add_places_from(seq, **attrs)
 
-	def new_place(self, name: Key, **kwargs):
+	def new_place(self, name: NodeName, **kwargs):
 		"""Add a Place and return it.
 
 		If there's already a Place by that name, put a number on the end.
@@ -975,18 +973,18 @@ class AbstractCharacter(DiGraph):
 			return self.place[name]
 		raise KeyError("Already have a node named {}".format(name))
 
-	def new_node(self, name: Key, **kwargs):
+	def new_node(self, name: NodeName, **kwargs):
 		return self.new_place(name, **kwargs)
 
 	@abstractmethod
-	def add_thing(self, name: Key, location: Key, **kwargs):
+	def add_thing(self, name: NodeName, location: NodeName, **kwargs):
 		pass
 
 	@abstractmethod
 	def add_things_from(self, seq: Iterable, **attrs):
 		pass
 
-	def new_thing(self, name: Key, location: Key, **kwargs):
+	def new_thing(self, name: NodeName, location: NodeName, **kwargs):
 		"""Add a Thing and return it.
 
 		If there's already a Thing by that name, put a number on the end.
@@ -1006,28 +1004,28 @@ class AbstractCharacter(DiGraph):
 		raise KeyError("Already have a thing named {}".format(name))
 
 	@abstractmethod
-	def place2thing(self, place: Key, location: Key) -> None: ...
+	def place2thing(self, place: NodeName, location: NodeName) -> None: ...
 
 	@abstractmethod
-	def thing2place(self, thing: Key) -> None: ...
+	def thing2place(self, thing: NodeName) -> None: ...
 
 	def remove_node(self, node):
 		if node in self.node:
 			self.node[node].delete()
 
-	def remove_nodes_from(self, nodes: Iterable[Key]):
+	def remove_nodes_from(self, nodes: Iterable[NodeName]):
 		for node in nodes:
 			if node in self.node:
 				self.node[node].delete()
 
 	@abstractmethod
-	def add_portal(self, orig: Key, dest: Key, **kwargs):
+	def add_portal(self, orig: NodeName, dest: NodeName, **kwargs):
 		pass
 
-	def add_edge(self, orig: Key, dest: Key, **kwargs):
+	def add_edge(self, orig: NodeName, dest: NodeName, **kwargs):
 		self.add_portal(orig, dest, **kwargs)
 
-	def new_portal(self, orig: Key, dest: Key, **kwargs):
+	def new_portal(self, orig: NodeName, dest: NodeName, **kwargs):
 		self.add_portal(orig, dest, **kwargs)
 		return self.portal[orig][dest]
 
@@ -1039,41 +1037,45 @@ class AbstractCharacter(DiGraph):
 		self.add_portals_from(seq, **attrs)
 
 	@abstractmethod
-	def remove_portal(self, origin: Key, destination: Key):
+	def remove_portal(self, origin: NodeName, destination: NodeName):
 		pass
 
-	def remove_portals_from(self, seq: Iterable[tuple[Key, Key]]):
+	def remove_portals_from(self, seq: Iterable[tuple[NodeName, NodeName]]):
 		for orig, dest in seq:
 			del self.portal[orig][dest]
 
-	def remove_edges_from(self, seq: Iterable[tuple[Key, Key]]):
+	def remove_edges_from(self, seq: Iterable[tuple[NodeName, NodeName]]):
 		self.remove_portals_from(seq)
 
 	@abstractmethod
-	def remove_place(self, place: Key):
+	def remove_place(self, place: NodeName):
 		pass
 
-	def remove_places_from(self, seq: Key):
+	def remove_places_from(self, seq: Iterable[NodeName]):
 		for place in seq:
 			self.remove_place(place)
 
 	@abstractmethod
-	def remove_thing(self, thing: Key):
+	def remove_thing(self, thing: NodeName) -> None:
 		pass
 
-	def remove_things_from(self, seq: Iterable[Key]):
+	def remove_things_from(self, seq: Iterable[NodeName]) -> None:
 		for thing in seq:
 			self.remove_thing(thing)
 
 	@abstractmethod
-	def add_unit(self, a, b=None):
+	def add_unit(
+		self, a: CharName | Node, b: Optional[NodeName] = None
+	) -> None:
 		pass
 
 	@abstractmethod
-	def remove_unit(self, a, b=None):
+	def remove_unit(
+		self, a: CharName | Node, b: Optional[NodeName] = None
+	) -> None:
 		pass
 
-	def __eq__(self, other):
+	def __eq__(self, other: AbstractCharacter):
 		return isinstance(other, AbstractCharacter) and self.name == other.name
 
 	def __iter__(self):
@@ -1088,10 +1090,10 @@ class AbstractCharacter(DiGraph):
 		except AttributeError:
 			return False  # we can't "really exist" when we've no engine
 
-	def __contains__(self, k: Key):
+	def __contains__(self, k: NodeName):
 		return k in self.node
 
-	def __getitem__(self, k: Key):
+	def __getitem__(self, k: NodeName):
 		return self.adj[k]
 
 	thing = SpecialMappingDescriptor("ThingMapping")
@@ -1110,12 +1112,12 @@ class AbstractCharacter(DiGraph):
 		for units in self.unit.values():
 			yield from units.values()
 
-	def historical(self, stat):
+	def historical(self, stat: Stat):
 		from .query import EntityStatAlias
 
 		return EntityStatAlias(entity=self.stat, stat=stat)
 
-	def do(self, func, *args, **kwargs):
+	def do(self, func: callable, *args, **kwargs) -> AbstractCharacter:
 		"""Apply the function to myself, and return myself.
 
 		Look up the function in the method store if needed. Pass it any
@@ -1129,7 +1131,7 @@ class AbstractCharacter(DiGraph):
 		func(self, *args, **kwargs)
 		return self
 
-	def copy_from(self, g):
+	def copy_from(self, g: AbstractCharacter) -> None:
 		"""Copy all nodes and edges from the given graph into this.
 
 		Return myself.
@@ -1158,7 +1160,7 @@ class AbstractCharacter(DiGraph):
 				self.add_portal(renamed[u], renamed[v], symmetrical=True, **d)
 		return self
 
-	def become(self, g):
+	def become(self, g: AbstractCharacter) -> AbstractCharacter:
 		"""Erase all my nodes and edges. Replace them with a copy of the graph
 		provided.
 
@@ -1170,12 +1172,12 @@ class AbstractCharacter(DiGraph):
 		self.adj.update(g.adj)
 		return self
 
-	def clear(self):
+	def clear(self) -> None:
 		self.node.clear()
 		self.portal.clear()
 		self.stat.clear()
 
-	def _lookup_comparator(self, comparator):
+	def _lookup_comparator(self, comparator: callable | str) -> callable:
 		if callable(comparator):
 			return comparator
 		ops = {"ge": ge, "gt": gt, "le": le, "lt": lt, "eq": eq}
@@ -1185,10 +1187,10 @@ class AbstractCharacter(DiGraph):
 
 	def cull_nodes(
 		self,
-		stat: Key,
+		stat: Stat,
 		threshold: float = 0.5,
 		comparator: callable | str = ge,
-	):
+	) -> None:
 		"""Delete nodes whose stat >= ``threshold`` (default 0.5).
 
 		Optional argument ``comparator`` will replace >= as the test
@@ -1206,7 +1208,7 @@ class AbstractCharacter(DiGraph):
 
 	def cull_portals(
 		self,
-		stat: Key,
+		stat: Stat,
 		threshold: float = 0.5,
 		comparator: callable | str = ge,
 	):
@@ -1233,7 +1235,7 @@ class AbstractCharacter(DiGraph):
 DiGraph.register(AbstractCharacter)
 
 
-def normalize_layout(l):
+def normalize_layout(l: dict) -> dict:
 	"""Make sure all the spots in a layout are where you can click.
 
 	Returns a copy of the layout with all spot coordinates are
@@ -1269,7 +1271,7 @@ class AbstractThing(ABC):
 	engine: AbstractEngine
 
 	@property
-	def location(self) -> "lisien.node.Node":
+	def location(self) -> Node:
 		"""The ``Thing`` or ``Place`` I'm in."""
 		locn = self["location"]
 		if locn is None:
@@ -1277,13 +1279,13 @@ class AbstractThing(ABC):
 		return self.engine._get_node(self.character, locn)
 
 	@location.setter
-	def location(self, v: Union["lisien.node.Node", Key]):
+	def location(self, v: Node | NodeName):
 		if hasattr(v, "name"):
 			v = v.name
 		self["location"] = v
 
 	def go_to_place(
-		self, place: Union["lisien.node.Node", Key], weight: Key = None
+		self, place: Node | NodeName, weight: Optional[Stat] = None
 	) -> int:
 		"""Assuming I'm in a node that has a :class:`Portal` direct
 		to the given node, schedule myself to travel to the
@@ -1313,7 +1315,10 @@ class AbstractThing(ABC):
 		return turns
 
 	def follow_path(
-		self, path: list, weight: Key = None, check: bool = True
+		self,
+		path: list[NodeName],
+		weight: Optional[Stat] = None,
+		check: bool = True,
 	) -> int:
 		"""Go to several nodes in succession, deciding how long to
 		spend in each by consulting the ``weight`` stat of the
@@ -1382,8 +1387,8 @@ class AbstractThing(ABC):
 
 	def travel_to(
 		self,
-		dest: Union["allegedb.Node", Key],
-		weight: Key = None,
+		dest: Node | NodeName,
+		weight: Optional[Stat] = None,
 		graph: nx.DiGraph = None,
 	) -> int:
 		"""Find the shortest path to the given node from where I am
@@ -1479,7 +1484,7 @@ def garbage(arg: callable = None, collect=True):
 		return _garbage_dec(arg, collect=collect)
 
 
-def insist(condition: bool, message: str, obj=None):
+def insist(condition: bool, message: str, obj: Optional[Exception] = None):
 	"""If the condition is false, raise ``obj`` or ``RuntimeError``
 
 	Analogous to ``assert``, but doesn't get stripped out in production.
@@ -1529,7 +1534,9 @@ class TimeSignal(Signal, Sequence):
 
 	"""
 
-	def __init__(self, engine: "AbstractEngine"):
+	engine: AbstractEngine
+
+	def __init__(self, engine: AbstractEngine):
 		super().__init__()
 		self.engine = engine
 
@@ -1592,7 +1599,7 @@ class TimeSignalDescriptor:
 			inst._time_signal = TimeSignal(inst)
 		return inst._time_signal
 
-	def __set__(self, inst: "AbstractEngine", val: tuple[str, int, int]):
+	def __set__(self, inst: AbstractEngine, val: Time):
 		if getattr(inst, "_worker", False):
 			raise WorkerProcessReadOnlyError(
 				"Tried to change the world state in a worker process"
