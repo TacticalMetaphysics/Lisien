@@ -465,6 +465,10 @@ class AbstractEngine(ABC):
 	character: Mapping[CharName, Type[char_cls]]
 	eternal: MutableMapping[EternalKey, Any]
 	universal: MutableMapping[UniversalKey, Any]
+	branch: Branch
+	turn: Turn
+	tick: Tick
+	time: Time
 	_rando: Random
 	_branches_d: dict[Branch | None, tuple[Branch, Turn, Tick, Turn, Tick]]
 
@@ -735,6 +739,11 @@ class AbstractEngine(ABC):
 			return the_unpacker.unpack()
 
 		return unpacker
+
+	@abstractmethod
+	def _get_node(
+		self, char: AbstractCharacter | CharName, node: NodeName
+	) -> Node: ...
 
 	def branches(self) -> KeysView:
 		return self._branches_d.keys()
