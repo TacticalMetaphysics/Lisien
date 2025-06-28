@@ -5361,50 +5361,43 @@ class Engine(AbstractEngine, Executor):
 			if va == vb:
 				return
 			v = pack(vb)
-			if k[0] == "universal":
-				key = pack(k[1])
-				delta[UNIVERSAL][key] = v
-			elif k[0] == "triggers":
-				rule = pack(k[1])
-				delta[RULES][rule][TRIGGERS] = v
-			elif k[0] == "prereqs":
-				rule = pack(k[1])
-				delta[RULES][rule][PREREQS] = v
-			elif k[0] == "actions":
-				rule = pack(k[1])
-				delta[RULES][rule][ACTIONS] = v
-			elif k[0] == "neighborhood":
-				rule = pack(k[1])
-				delta[RULES][rule][NEIGHBORHOOD] = v
-			elif k[0] == "big":
-				rule = pack(k[1])
-				delta[RULES][rule][BIG] = v
-			elif k[0] == "rulebook":
-				rulebook = pack(k[1])
-				delta[RULEBOOK][rulebook] = v
-			elif k[0] == "node":
-				_, graph, node, key = k
-				if graph in deleted_nodes and node in deleted_nodes[graph]:
-					return
-				graph, node, key = map(pack, (graph, node, key))
-				if graph not in delta:
-					delta[graph] = newgraph()
-				delta[graph][NODE_VAL][node][key] = v
-			elif k[0] == "edge":
-				_, graph, orig, dest, key = k
-				if (graph, orig, dest) in deleted_edges:
-					return
-				graph, orig, dest, key = map(pack, (graph, orig, dest, key))
-				if graph not in delta:
-					delta[graph] = newgraph()
-				delta[graph][EDGE_VAL][orig][dest][key] = v
-			else:
-				assert k[0] == "graph"
-				_, graph, key = k
-				graph, key = map(pack, (graph, key))
-				if graph not in delta:
-					delta[graph] = newgraph()
-				delta[graph][key] = v
+			match k:
+				case "universal", key:
+					key = pack(key)
+					delta[UNIVERSAL][key] = v
+				case "triggers", rule:
+					delta[RULES][pack(rule)][TRIGGERS] = v
+				case "prereqs", rule:
+					delta[RULES][pack(rule)][PREREQS] = v
+				case "actions", rule:
+					delta[RULES][pack(rule)][ACTIONS] = v
+				case "neighborhood", rule:
+					delta[RULES][pack(rule)][NEIGHBORHOOD] = v
+				case "big", rule:
+					delta[RULES][pack(rule)][BIG] = v
+				case "rulebook", rulebook:
+					delta[RULEBOOK][pack(rulebook)] = v
+				case "node", graph, node, key:
+					if graph in deleted_nodes and node in deleted_nodes[graph]:
+						return
+					graph, node, key = map(pack, (graph, node, key))
+					if graph not in delta:
+						delta[graph] = newgraph()
+					delta[graph][NODE_VAL][node][key] = v
+				case "edge", graph, orig, dest, key:
+					if (graph, orig, dest) in deleted_edges:
+						return
+					graph, orig, dest, key = map(
+						pack, (graph, orig, dest, key)
+					)
+					if graph not in delta:
+						delta[graph] = newgraph()
+					delta[graph][EDGE_VAL][orig][dest][key] = v
+				case "graph", graph, key:
+					graph, key = map(pack, (graph, key))
+					if graph not in delta:
+						delta[graph] = newgraph()
+					delta[graph][key] = v
 
 		def pack_node(graph, node, existence):
 			grap, node = map(pack, (graph, node))
