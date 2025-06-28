@@ -65,6 +65,7 @@ FuncName = NewType("FuncName", str)
 TriggerFuncName = NewType("TriggerFuncName", FuncName)
 PrereqFuncName = NewType("PrereqFuncName", FuncName)
 ActionFuncName = NewType("ActionFuncName", FuncName)
+RuleFuncName = TriggerFuncName | PrereqFuncName | ActionFuncName
 UniversalKeyframe = NewType("UniversalKeyframe", dict)
 RuleKeyframe = NewType("RuleKeyframe", dict)
 RulebookKeyframe = NewType("RulebookKeyframe", dict)

@@ -132,6 +132,8 @@ from .typing import (
 	Tick,
 	Time,
 	Turn,
+	RulebookName,
+	RuleName,
 )
 from .util import (
 	AbstractCharacter,
@@ -5433,7 +5435,7 @@ class Engine(AbstractEngine, Executor):
 				for orig in kf_to["edges"][graph]:
 					for dest, ex in kf_to["edges"][graph][orig].items():
 						deleted_edges.discard((graph, orig, dest))
-			values_changed = np.array(ids_from) != np.array(ids_to)
+			values_changed: np.array = np.array(ids_from) != np.array(ids_to)
 			for k, va, vb, _ in filter(
 				itemgetter(3),
 				zip(keys, values_from, values_to, values_changed),
@@ -5587,9 +5589,9 @@ class Engine(AbstractEngine, Executor):
 
 	def _handled_char(
 		self,
-		charn: Key,
-		rulebook: Key,
-		rulen: Key,
+		charn: CharName,
+		rulebook: RulebookName,
+		rulen: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -5612,11 +5614,11 @@ class Engine(AbstractEngine, Executor):
 
 	def _handled_av(
 		self,
-		character: Key,
-		graph: Key,
-		avatar: Key,
-		rulebook: Key,
-		rule: Key,
+		character: CharName,
+		graph: CharName,
+		avatar: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -5639,10 +5641,10 @@ class Engine(AbstractEngine, Executor):
 
 	def _handled_char_thing(
 		self,
-		character: Key,
-		thing: Key,
-		rulebook: Key,
-		rule: Key,
+		character: CharName,
+		thing: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -5665,10 +5667,10 @@ class Engine(AbstractEngine, Executor):
 
 	def _handled_char_place(
 		self,
-		character: Key,
-		place: Key,
-		rulebook: Key,
-		rule: Key,
+		character: CharName,
+		place: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -5691,11 +5693,11 @@ class Engine(AbstractEngine, Executor):
 
 	def _handled_char_port(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		rulebook: Key,
-		rule: Key,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -5718,10 +5720,10 @@ class Engine(AbstractEngine, Executor):
 
 	def _handled_node(
 		self,
-		character: Key,
-		node: Key,
-		rulebook: Key,
-		rule: Key,
+		character: CharName,
+		node: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -5744,11 +5746,11 @@ class Engine(AbstractEngine, Executor):
 
 	def _handled_portal(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
-		rulebook: Key,
-		rule: Key,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -5771,7 +5773,7 @@ class Engine(AbstractEngine, Executor):
 
 	@world_locked
 	@_all_worker_locks
-	def _update_all_worker_process_states(self, clobber=False):
+	def _update_all_worker_process_states(self, clobber: bool = False):
 		for store in self.stores:
 			store.save(reimport=False)
 		kf_payload = None
@@ -5886,7 +5888,7 @@ class Engine(AbstractEngine, Executor):
 			self._worker_inputs[i].send_bytes(argbytes)
 			self._worker_updated_btts[i] = self._btt()
 
-	def _changed(self, charn, entity: tuple) -> bool:
+	def _changed(self, charn: CharName, entity: tuple) -> bool:
 		if len(entity) == 1:
 			vbranches = self._node_val_cache.settings
 			entikey = (charn, entity[0])
@@ -5914,7 +5916,7 @@ class Engine(AbstractEngine, Executor):
 	def _iter_submit_triggers(
 		self,
 		prio: float,
-		rulebook: Key,
+		rulebook: RulebookName,
 		rule: Rule,
 		handled_fun: callable,
 		entity,
@@ -5970,7 +5972,9 @@ class Engine(AbstractEngine, Executor):
 		handled_fun(self.tick)
 		return actres
 
-	def _get_place_neighbors(self, charn: Key, name: Key) -> set[Key]:
+	def _get_place_neighbors(
+		self, charn: CharName, name: NodeName
+	) -> set[Key]:
 		seen: set[Key] = set()
 		for succ in self._edges_cache.iter_successors(
 			charn, name, *self._btt()
@@ -5982,7 +5986,7 @@ class Engine(AbstractEngine, Executor):
 			seen.add(pred)
 		return seen
 
-	def _get_place_contents(self, charn: Key, name: Key) -> set[Key]:
+	def _get_place_contents(self, charn: CharName, name: NodeName) -> set[Key]:
 		try:
 			return self._node_contents_cache.retrieve(
 				charn, name, *self._btt()
@@ -5991,7 +5995,7 @@ class Engine(AbstractEngine, Executor):
 			return set()
 
 	def _iter_place_portals(
-		self, charn: Key, name: Key
+		self, charn: CharName, name: NodeName
 	) -> Iterator[tuple[Key, Key]]:
 		now = self._btt()
 		for dest in self._edges_cache.iter_successors(charn, name, *now):
@@ -6000,7 +6004,7 @@ class Engine(AbstractEngine, Executor):
 			yield (orig, name)
 
 	def _get_thing_location_tup(
-		self, charn: Key, name: Key
+		self, charn: CharName, name: NodeName
 	) -> tuple[Key, Key] | ():
 		try:
 			return (self._things_cache.retrieve(charn, name, *self._btt()),)
@@ -6011,7 +6015,7 @@ class Engine(AbstractEngine, Executor):
 		self,
 		entity: place_cls | thing_cls | portal_cls,
 		neighborhood: int | None,
-	) -> list[tuple[Key] | tuple[Key, Key]] | None:
+	) -> list[tuple[NodeName] | tuple[NodeName, NodeName]] | None:
 		"""Get a list of neighbors within the neighborhood
 
 		Neighbors are given by a tuple containing only their name,
@@ -6100,7 +6104,7 @@ class Engine(AbstractEngine, Executor):
 		self,
 		entity: place_cls | thing_cls | portal_cls,
 		neighborhood: Optional[int],
-	):
+	) -> list[tuple[NodeName] | tuple[NodeName, NodeName]] | None:
 		"""Get neighbors unless that's a different set of entities since last turn
 
 		In which case return None
@@ -6115,7 +6119,7 @@ class Engine(AbstractEngine, Executor):
 			# and therefore, there's been a "change" to the neighborhood
 			return None
 		with self.world_lock:
-			self.load_at(branch_now, turn_now - 1, 0)
+			self.load_at(branch_now, Turn(turn_now - 1), 0)
 			self._oturn -= 1
 			self._otick = 0
 			last_turn_neighbors = self._get_neighbors(entity, neighborhood)
@@ -6125,21 +6129,21 @@ class Engine(AbstractEngine, Executor):
 			return None
 		return this_turn_neighbors
 
-	def _get_node_mini(self, graphn: Key, noden: Key):
+	def _get_node_mini(self, graphn: CharName, noden: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, noden)
 		if key not in node_objs:
 			node_objs[key] = self._make_node(self.character[graphn], noden)
 		return node_objs[key]
 
-	def _get_thing(self, graphn: Key, thingn: Key):
+	def _get_thing(self, graphn: CharName, thingn: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, thingn)
 		if key not in node_objs:
 			node_objs[key] = self.thing_cls(self.character[graphn], thingn)
 		return node_objs[key]
 
-	def _get_place(self, graphn: Key, placen: Key):
+	def _get_place(self, graphn: CharName, placen: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, placen)
 		if key not in node_objs:
@@ -6418,7 +6422,12 @@ class Engine(AbstractEngine, Executor):
 				f"[{entity.origin.name}][{entity.destination.name}]"
 			)
 
-	def _follow_one_rule(self, rule, handled, entity):
+	def _follow_one_rule(
+		self,
+		rule: Rule,
+		handled: callable,
+		entity: char_cls | thing_cls | place_cls | portal_cls,
+	):
 		check_prereqs = self._check_prereqs
 		do_actions = self._do_actions
 
@@ -6446,7 +6455,19 @@ class Engine(AbstractEngine, Executor):
 			except StopIteration as ex:
 				raise InnerStopIteration from ex
 
-	def _follow_rules(self, todo):
+	def _follow_rules(
+		self,
+		todo: dict[
+			float,
+			list[
+				tuple[
+					RuleName,
+					callable,
+					char_cls | place_cls | thing_cls | portal_cls,
+				]
+			],
+		],
+	):
 		# TODO: roll back changes done by rules that raise an exception
 		# TODO: if there's a paradox while following some rule,
 		#  start a new branch, copying handled rules
@@ -6457,10 +6478,10 @@ class Engine(AbstractEngine, Executor):
 	def new_character(
 		self,
 		name: Key,
-		data: Graph = None,
+		data: Optional[Graph] = None,
 		layout: bool = False,
-		node: dict = None,
-		edge: dict = None,
+		node: Optional[NodeValDict] = None,
+		edge: Optional[EdgeValDict] = None,
 		**kwargs,
 	) -> Character:
 		"""Create and return a new :class:`Character`.
@@ -6474,10 +6495,10 @@ class Engine(AbstractEngine, Executor):
 	def add_character(
 		self,
 		name: Key,
-		data: Graph | DiGraph = None,
+		data: Optional[Graph | DiGraph] = None,
 		layout: bool = False,
-		node: dict = None,
-		edge: dict = None,
+		node: Optional[NodeValDict] = None,
+		edge: Optional[EdgeValDict] = None,
 		**kwargs,
 	) -> None:
 		"""Create a new character.
@@ -6590,13 +6611,15 @@ class Engine(AbstractEngine, Executor):
 		if hasattr(self, "_worker_processes"):
 			self._call_every_subprocess("_del_character", name)
 
-	def _is_thing(self, character: Key, node: Key) -> bool:
+	def _is_thing(self, character: CharName, node: NodeName) -> bool:
 		return self._things_cache.contains_entity(
 			character, node, *self._btt()
 		)
 
 	@world_locked
-	def _set_thing_loc(self, character: Key, node: Key, loc: Key) -> None:
+	def _set_thing_loc(
+		self, character: CharName, node: NodeName, loc: NodeName
+	) -> None:
 		if loc is not None:
 			# make sure the location really exists now
 			self._nodes_cache.retrieve(character, loc, *self.time)
@@ -6800,7 +6823,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _snap_keyframe_de_novo_graph(
 		self,
-		graph: Key,
+		graph: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -6946,7 +6969,7 @@ class Engine(AbstractEngine, Executor):
 		self.query.flush()
 
 	@world_locked
-	def commit(self, unload=True) -> None:
+	def commit(self, unload: bool = True) -> None:
 		"""Write the state of all graphs and commit the transaction.
 
 		Also saves the current branch, turn, and tick.
@@ -6962,7 +6985,9 @@ class Engine(AbstractEngine, Executor):
 		if unload:
 			self.unload()
 
-	def turns_when(self, qry: Query, mid_turn=False) -> QueryResult | set:
+	def turns_when(
+		self, qry: Query, mid_turn: bool = False
+	) -> QueryResult | set:
 		"""Return the turns when the query held true
 
 		Only the state of the world at the end of the turn is considered.
@@ -7071,13 +7096,16 @@ class Engine(AbstractEngine, Executor):
 			else:
 				return set()
 
-	def _node_contents(self, character: Key, node: Key) -> set:
+	def _node_contents(self, character: CharName, node: NodeName) -> set:
 		return self._node_contents_cache.retrieve(
 			character, node, *self._btt()
 		)
 
 	def apply_choices(
-		self, choices: list[dict], dry_run=False, perfectionist=False
+		self,
+		choices: list[dict],
+		dry_run: bool = False,
+		perfectionist: bool = False,
 	) -> tuple[list[tuple[Any, Any]], list[tuple[Any, Any]]]:
 		"""Validate changes a player wants to make, and apply if acceptable.
 
@@ -7158,7 +7186,7 @@ class Engine(AbstractEngine, Executor):
 		self.turn = now
 		return acceptances, rejections
 
-	def game_start(self):
+	def game_start(self) -> None:
 		import importlib.machinery
 		import importlib.util
 
