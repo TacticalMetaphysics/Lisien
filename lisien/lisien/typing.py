@@ -48,6 +48,9 @@ KeyHint |= tuple[KeyHint, ...]
 KeyHint |= frozenset[Key]
 
 
+Stat = NewType("Stat", Key)
+EternalKey = NewType("EternalKey", Key)
+UniversalKey = NewType("UniversalKey", Key)
 Branch = NewType("Branch", str)
 Turn = NewType("Turn", int)
 Tick = NewType("Tick", int)
