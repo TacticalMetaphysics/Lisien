@@ -6592,11 +6592,12 @@ class Engine(AbstractEngine, Executor):
 			character, node, *self._btt()
 		)
 
+	@world_locked
 	def _set_thing_loc(self, character: Key, node: Key, loc: Key) -> None:
-		branch, turn, tick = self._nbtt()
-		# make sure the location really exists now
 		if loc is not None:
-			self._nodes_cache.retrieve(character, loc, branch, turn, tick)
+			# make sure the location really exists now
+			self._nodes_cache.retrieve(character, loc, *self.time)
+		branch, turn, tick = self._nbtt()
 		self._things_cache.store(character, node, branch, turn, tick, loc)
 		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
 
