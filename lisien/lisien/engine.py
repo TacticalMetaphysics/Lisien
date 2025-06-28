@@ -3396,7 +3396,7 @@ class Engine(AbstractEngine, Executor):
 		nodes_keyframe: dict,
 		node_rulebook_keyframe: dict,
 		thing_location_keyframe: dict,
-		place_contents_keyframe: dict,
+		node_contents_keyframe: dict,
 		node_val_delta: dict,
 		nodes_delta: dict,
 	) -> None:
@@ -3410,22 +3410,29 @@ class Engine(AbstractEngine, Executor):
 				if node in nodes_keyframe:
 					del nodes_keyframe[node]
 				if node in node_val_keyframe:
+					if "location" in node_val_keyframe[node]:
+						node_contents_keyframe[
+							node_val_keyframe[node]["location"]
+						].remove(node)
 					del node_val_keyframe[node]
 				if node in thing_location_keyframe:
 					del thing_location_keyframe[node]
-				if node in place_contents_keyframe:
-					del place_contents_keyframe[node]
+				if node in node_contents_keyframe:
+					del node_contents_keyframe[node]
 		for node, upd in node_val_delta.items():
 			if node in nodes_delta and not nodes_delta[node]:
 				continue
 			upd = upd.copy()
-			if "location" in upd and upd["location"] is not None:
+			if "location" in upd:
 				loc = upd.pop("location")
 				thing_location_keyframe[node] = loc
-				if loc in place_contents_keyframe:
-					place_contents_keyframe[loc].add(node)
-				else:
-					place_contents_keyframe[loc] = {node}
+				if loc in node_contents_keyframe:
+					if loc is None:
+						node_contents_keyframe[loc].remove(node)
+					else:
+						node_contents_keyframe[loc].add(node)
+				elif loc is not None:
+					node_contents_keyframe[loc] = {node}
 			if "rulebook" in upd:
 				node_rulebook_keyframe[node] = upd.pop("rulebook")
 			elif (
