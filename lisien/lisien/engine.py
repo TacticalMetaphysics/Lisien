@@ -765,8 +765,8 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		dict,
-		Callable[[Key, Key, Key, int], bool],
-		Callable[[Key, Key, Key, int], edge_cls],
+		Callable[[CharName, NodeName, NodeName, int], bool],
+		Callable[[CharName, NodeName, NodeName, int], edge_cls],
 	]:
 		return (self._edge_objs, self._edge_exists, self._make_edge)
 
@@ -3932,7 +3932,7 @@ class Engine(AbstractEngine, Executor):
 			)
 
 	def _edge_exists(
-		self, character: Key, orig: Key, dest: Key, idx=0
+		self, character: CharName, orig: NodeName, dest: NodeName, idx=0
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
 		args = (character, orig, dest, idx) + btt()
@@ -5071,7 +5071,9 @@ class Engine(AbstractEngine, Executor):
 				self, charn, init_rulebooks=False
 			)
 
-	def _make_node(self, graph: Character, node: Key) -> thing_cls | place_cls:
+	def _make_node(
+		self, graph: Character, node: NodeName
+	) -> thing_cls | place_cls:
 		if self._is_thing(graph.name, node):
 			return self.thing_cls(graph, node)
 		else:
@@ -5080,14 +5082,14 @@ class Engine(AbstractEngine, Executor):
 	def _make_edge(
 		self,
 		graph: Character,
-		orig: Key,
-		dest: Key,
+		orig: NodeName,
+		dest: NodeName,
 		idx=0,
 	) -> portal_cls:
 		return self.portal_cls(graph, orig, dest)
 
 	def _is_timespan_too_big(
-		self, branch: str, turn_from: int, turn_to: int
+		self, branch: Branch, turn_from: Turn, turn_to: Turn
 	) -> bool:
 		"""Return whether the changes between these turns are numerous enough that you might as well use the slow delta
 
@@ -5100,6 +5102,7 @@ class Engine(AbstractEngine, Executor):
 		if turn_from == turn_to:
 			return self._turn_end_plan[branch, turn_from] > kfint
 		acc = 0
+		r: Turn
 		for r in range(
 			min((turn_from, turn_to)),
 			max((turn_from, turn_to)),
