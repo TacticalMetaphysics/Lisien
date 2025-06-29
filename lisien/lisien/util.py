@@ -433,7 +433,7 @@ def sort_set(s):
 def fake_submit(func, *args, **kwargs):
 	"""A replacement for `concurrent.futures.Executor.submit` that works in serial
 
-	This is for testing. Use, eg.,
+	In testing, you may use, eg.,
 	``@patch.object(executor, 'submit', new=fake_submit)``
 	to make normally parallel operations serial.
 
