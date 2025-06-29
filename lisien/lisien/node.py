@@ -769,18 +769,21 @@ class Thing(Node, AbstractThing):
 	def facade(self):
 		return FacadeThing(self.character.facade(), self)
 
-	def delete(self) -> None:
-		super().delete()
-		# don't advance time to store my non-location
-		self.engine._things_cache.store(
-			self.character.name, self.name, *self.engine.time, None
-		)
-		self.engine.query.set_thing_loc(
-			self.character.name, self.name, *self.engine.time, None
-		)
-		self.character.thing.send(
-			self.character.thing, key=self.name, val=None
-		)
+	def _delete(self, now: Optional[Time] = None) -> None:
+		with self.engine.world_lock, self.engine.batch():
+			super()._delete(now=now)
+			if now is None:
+				now = self.engine.time
+			# don't advance time to store my non-location
+			self.engine._things_cache.store(
+				self.character.name, self.name, *now, None
+			)
+			self.engine.query.set_thing_loc(
+				self.character.name, self.name, *now, None
+			)
+			self.character.thing.send(
+				self.character.thing, key=self.name, val=None
+			)
 
 	def clear(self) -> None:
 		"""Unset everything."""
