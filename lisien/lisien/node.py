@@ -784,9 +784,3 @@ class Thing(Node, AbstractThing):
 			self.character.thing.send(
 				self.character.thing, key=self.name, val=None
 			)
-
-	def clear(self) -> None:
-		"""Unset everything."""
-		for k in list(self.keys()):
-			if k not in self._extra_keys:
-				del self[k]
