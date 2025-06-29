@@ -2526,7 +2526,10 @@ class UnitnessCache(Cache):
 		if isinstance(characters, tuple) and len(characters) > 1:
 			return super().get_keyframe(characters, branch, turn, tick, copy)
 		# only one character
-		return super().get_keyframe((characters,), branch, turn, tick, copy)
+		ret = super().get_keyframe((characters,), branch, turn, tick, copy)
+		if copy:
+			return {graph: units.copy() for (graph, units) in ret.items()}
+		return ret
 
 	def get_char_graph_units(self, char, graph, branch, turn, tick):
 		return set(self.iter_entities(char, graph, branch, turn, tick))
