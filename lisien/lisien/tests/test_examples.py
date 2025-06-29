@@ -15,17 +15,26 @@ from lisien.proxy.handle import EngineHandle
 pytestmark = [pytest.mark.big]
 
 
-def test_college(engy):
-	college.install(engy)
-	for i in range(10):
-		engy.next_turn()
+def test_college_nodb(tmp_path):
+	with Engine(None) as eng:
+		college.install(eng)
+		for i in range(10):
+			eng.next_turn()
 
 
-def test_college_premade(college24_premade):
+def test_college_premade(tmp_path, non_null_database):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
-	for i in range(10):
-		college24_premade.next_turn()
+	connect_string = None
+	if non_null_database == "sqlite":
+		connect_string = f"sqlite:///{tmp_path}/world.db"
+	with Engine(tmp_path, connect_string=connect_string) as eng:
+		college.install(eng)
+		for i in range(10):
+			eng.next_turn()
+	with Engine(tmp_path, connect_string=connect_string) as eng:
+		for i in range(10):
+			eng.next_turn()
 
 
 def test_kobold(engy):
