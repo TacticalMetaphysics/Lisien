@@ -676,13 +676,6 @@ class Place(Node):
 	def facade(self):
 		return FacadePlace(self.character.facade(), self)
 
-	def delete(self) -> None:
-		"""Remove myself from the world model immediately."""
-		super().delete()
-		self.character.place.send(
-			self.character.place, key=self.name, val=None
-		)
-
 
 def roerror(*args):
 	raise RuntimeError("Read-only")
@@ -779,7 +772,4 @@ class Thing(Node, AbstractThing):
 			)
 			self.engine.query.set_thing_loc(
 				self.character.name, self.name, *now, None
-			)
-			self.character.thing.send(
-				self.character.thing, key=self.name, val=None
 			)
