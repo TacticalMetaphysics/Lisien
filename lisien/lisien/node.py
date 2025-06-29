@@ -762,9 +762,8 @@ class Thing(Node, AbstractThing):
 		super().__delitem__(key)
 
 	def __repr__(self):
-		return "<{}.character['{}'].thing['{}']>".format(
-			self.engine, self.character.name, self.name
-		)
+		charn = self.character.name
+		return f"<{self.engine}.character[{charn}].thing[{self.name}]"
 
 	def facade(self):
 		return FacadeThing(self.character.facade(), self)
