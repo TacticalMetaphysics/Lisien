@@ -62,6 +62,7 @@ from ..exc import (
 	WorkerProcessReadOnlyError,
 )
 from ..facade import CharacterFacade
+from ..graph import Node
 from ..node import Place, Thing
 from ..portal import Portal
 from ..typing import (
@@ -2935,6 +2936,11 @@ class EngineProxy(AbstractEngine):
 	portal_cls = PortalProxy
 	time = TimeSignalDescriptor()
 	is_proxy = True
+
+	def _get_node(
+		self, char: AbstractCharacter | CharName, node: NodeName
+	) -> Node:
+		return self.character[char].node[node]
 
 	def _worker_check(self):
 		if self._worker and not getattr(self, "_mutable_worker", False):
