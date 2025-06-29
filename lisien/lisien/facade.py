@@ -26,7 +26,7 @@ from blinker import Signal
 from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
 from .exc import NotInKeyframeError, TotalKeyError
 from .graph import DiGraph, Edge, Node
-from .typing import Key
+from .typing import Key, CharName, NodeName
 from .util import (
 	AbstractCharacter,
 	AbstractEngine,
@@ -1207,6 +1207,11 @@ class EngineFacade(AbstractEngine):
 		else:
 			self._branches_d = {}
 			self._turn_end_plan = {}
+
+	def _get_node(
+		self, char: AbstractCharacter | CharName, node: NodeName
+	) -> Node:
+		return self.character[char].node[node]
 
 	def _btt(self):
 		return self.branch, self.turn, self.tick
