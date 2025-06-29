@@ -771,7 +771,13 @@ class Thing(Node, AbstractThing):
 
 	def delete(self) -> None:
 		super().delete()
-		self._set_loc(None)
+		# don't advance time to store my non-location
+		self.engine._things_cache.store(
+			self.character.name, self.name, *self.engine.time, None
+		)
+		self.engine.query.set_thing_loc(
+			self.character.name, self.name, *self.engine.time, None
+		)
 		self.character.thing.send(
 			self.character.thing, key=self.name, val=None
 		)
