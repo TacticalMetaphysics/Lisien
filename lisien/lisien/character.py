@@ -947,8 +947,19 @@ class Character(AbstractCharacter, RuleFollower):
 
 			def __len__(self):
 				"""Number of units of this character in that graph"""
-				get_char_graph_avs, name, graphn, btt = self._iter_stuff
-				return len(get_char_graph_avs(name, graphn, *btt()))
+				get_char_graph_avs, validate, name, graphn, btt = (
+					self._iter_stuff
+				)
+				n = 0
+				for n, _ in enumerate(
+					filter(
+						validate,
+						get_char_graph_avs(name, graphn, *btt()),
+					),
+					start=1,
+				):
+					pass
+				return n
 
 			def __getitem__(self, av):
 				(
