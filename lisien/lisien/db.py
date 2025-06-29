@@ -10056,8 +10056,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 
 	def set_thing_loc(self, character, thing, branch, turn, tick, loc):
-		(character, thing) = map(self.pack, (character, thing))
-		loc = self.pack(loc)
 		self._location.append((character, thing, branch, turn, tick, loc))
 		self._increc()
 
