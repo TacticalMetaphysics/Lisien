@@ -14,12 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.f
 from __future__ import annotations
 
-from typing import Any, Hashable, NewType, TypeGuard
+from typing import Any, Hashable, NewType, TypeIs
 
 _Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 
 
-# noinspection PyRedeclaration
 class Key(Hashable):
 	"""Fake class for things lisien can use as keys
 
@@ -31,7 +30,7 @@ class Key(Hashable):
 	def __new__(cls, that: _Key) -> _Key:
 		return that
 
-	def __instancecheck__(cls, instance) -> TypeGuard[_Key]:
+	def __instancecheck__(cls, instance) -> TypeIs[_Key]:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
@@ -42,10 +41,6 @@ Key.register(str)
 Key.register(int)
 Key.register(float)
 Key.register(type(None))
-
-KeyHint = Key | str | int | float | None
-KeyHint |= tuple[KeyHint, ...]
-KeyHint |= frozenset[Key]
 
 
 Stat = NewType("Stat", Key)
@@ -59,6 +54,11 @@ TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", int)
 CharName = NewType("CharName", Key)
 NodeName = NewType("NodeName", Key)
+EntityKey = (
+	tuple[CharName]
+	| tuple[CharName, NodeName]
+	| tuple[CharName, NodeName, NodeName]
+)
 RulebookName = NewType("RulebookName", Key)
 RulebookPriority = NewType("RulebookPriority", float)
 RuleName = NewType("RuleName", str)
