@@ -21,6 +21,13 @@ def test_college(engy):
 		engy.next_turn()
 
 
+def test_college_premade(college24_premade):
+	"""The college example still works when loaded from disk"""
+	# Caught a nasty loader bug once. Worth keeping.
+	for i in range(10):
+		college24_premade.next_turn()
+
+
 def test_kobold(engy):
 	kobold.inittest(engy, shrubberies=20, kobold_sprint_chance=0.9)
 	for i in range(10):
