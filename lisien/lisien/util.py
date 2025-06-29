@@ -77,6 +77,7 @@ from .typing import (
 	Turn,
 	CharName,
 	Time,
+	TimeWindow,
 )
 
 TRUE: bytes = msgpack.packb(True)
@@ -470,7 +471,7 @@ class AbstractEngine(ABC):
 	tick: Tick
 	time: Time
 	_rando: Random
-	_branches_d: dict[Branch | None, tuple[Branch, Turn, Tick, Turn, Tick]]
+	_branches_d: dict[Optional[Branch], TimeWindow]
 
 	@cached_property
 	def pack(self):

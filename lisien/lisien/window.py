@@ -902,7 +902,7 @@ class SettingsTurnDict(WindowDict):
 	_past: list[tuple[Turn, Any]]
 	cls = WindowDict
 
-	def __setitem__(self, turn: Turn, value: WindowDict) -> None:
+	def __setitem__(self, turn: Turn, value: cls | dict) -> None:
 		if not isinstance(value, self.cls):
 			value = self.cls(value)
 		WindowDict.__setitem__(self, turn, value)

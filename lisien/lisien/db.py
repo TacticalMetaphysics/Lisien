@@ -54,7 +54,6 @@ from .typing import (
 	GraphValKeyframe,
 	GraphValRowType,
 )
-from .typing import KeyHint as Key
 from .typing import (
 	NodeKeyframe,
 	NodeName,

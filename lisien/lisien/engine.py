@@ -2579,7 +2579,7 @@ class Engine(AbstractEngine, Executor):
 			fut.set_result(ret)
 
 	def _start_branch(
-		self, parent: str, branch: str, turn: int, tick: int
+		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		"""Record the point at which a new branch forks off from its parent"""
 		_, start_turn, start_tick, end_turn, end_tick = self._branches_d[
@@ -2600,7 +2600,7 @@ class Engine(AbstractEngine, Executor):
 		self._upd_branch_parentage(parent, branch)
 		self.query.new_branch(branch, parent, turn, tick)
 
-	def _extend_branch(self, branch: str, turn: int, tick: int) -> None:
+	def _extend_branch(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		"""Record a change in the span of time that a branch includes"""
 		parent, start_turn, start_tick, end_turn, end_tick = self._branches_d[
 			branch

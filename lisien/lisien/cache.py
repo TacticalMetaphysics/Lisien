@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Classes for in-memory storage and retrieval of historical graph data."""
 
+from __future__ import annotations
+
 from collections import OrderedDict, defaultdict, deque
 from dataclasses import dataclass
 from functools import cached_property
@@ -21,15 +23,29 @@ from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
-from typing import Hashable, Iterator
+from typing import Hashable, Iterator, Optional, TYPE_CHECKING
 
+from . import engine
 from .exc import (
 	HistoricKeyError,
 	KeyframeError,
 	NotInKeyframeError,
 	TotalKeyError,
 )
-from .typing import Branch, Key, Tick, Turn
+from .typing import (
+	CharName,
+	NodeName,
+	RulebookName,
+	Branch,
+	Key,
+	Tick,
+	Turn,
+	Time,
+	RuleName,
+	EntityKey,
+	RulebookPriority,
+	Plan,
+)
 from .util import sort_set
 from .window import (
 	Direction,
@@ -39,6 +55,9 @@ from .window import (
 	TurnDict,
 	WindowDict,
 )
+
+if TYPE_CHECKING:
+	from . import engine
 
 
 class SizedDict(OrderedDict):
@@ -218,7 +237,7 @@ class StructuredDefaultDict(dict):
 class TurnEndDict(dict):
 	"""Tick on which a (branch, turn) ends, not including any plans"""
 
-	engine: "lisien.Engine"
+	engine: "engine.Engine"
 
 	@cached_property
 	def other_d(self) -> dict[tuple[Branch, Turn], Tick]:
@@ -249,7 +268,7 @@ class TurnEndDict(dict):
 class TurnEndPlanDict(TurnEndDict):
 	"""Tick on which a (branch, turn) ends, including plans"""
 
-	engine: "lisien.Engine"
+	engine: "engine.Engine"
 
 	@cached_property
 	def other_d(self) -> dict[tuple[Branch, Turn], Tick]:
@@ -268,7 +287,7 @@ class Cache:
 
 	name: str
 
-	def __init__(self, db, name: str, kfkvs=None):
+	def __init__(self, db: "engine.Engine", name: str, kfkvs=None):
 		self.name = name
 		self.db = db
 		self.parents = StructuredDefaultDict(3, SettingsTurnDict)
@@ -413,7 +432,7 @@ class Cache:
 		return sizeof(self)
 
 	def _get_keyframe(
-		self, graph_ent: tuple, branch: str, turn: int, tick: int
+		self, graph_ent: tuple, branch: Branch, turn: Turn, tick: Tick
 	) -> dict:
 		if graph_ent not in self.keyframe:
 			raise KeyframeError("Unknown graph-entity", graph_ent)
@@ -430,7 +449,12 @@ class Cache:
 		return ret
 
 	def get_keyframe(
-		self, graph_ent: tuple, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph_ent: tuple,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	) -> dict:
 		ret = self._get_keyframe(graph_ent, branch, turn, tick)
 		if copy:
@@ -438,7 +462,12 @@ class Cache:
 		return ret
 
 	def _set_keyframe(
-		self, graph_ent: tuple, branch: str, turn: int, tick: int, keyframe
+		self,
+		graph_ent: tuple,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
 	) -> None:
 		if not isinstance(graph_ent, tuple):
 			raise TypeError(
@@ -469,14 +498,21 @@ class Cache:
 	def set_keyframe(
 		self,
 		graph_ent: tuple,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		keyframe: dict,
 	):
 		self._set_keyframe(graph_ent, branch, turn, tick, keyframe)
 
-	def alias_keyframe(self, branch_from, branch_to, turn, tick, default=None):
+	def alias_keyframe(
+		self,
+		branch_from: Branch,
+		branch_to: Branch,
+		turn: Turn,
+		tick: Tick,
+		default: Optional[dict] = None,
+	):
 		for graph_ent in self.keyframe:
 			try:
 				kf = self._get_keyframe(graph_ent, branch_from, turn, tick)
@@ -487,7 +523,7 @@ class Cache:
 					continue
 			self._set_keyframe(graph_ent, branch_to, turn, tick, kf)
 
-	def load(self, data):
+	def load(self, data: list[tuple]):
 		"""Add a bunch of data. Must be in chronological order.
 
 		But it doesn't need to all be from the same branch, as long as
@@ -522,7 +558,9 @@ class Cache:
 			if branch in childbranch:
 				branch2do.extend(childbranch[branch])
 
-	def _valcache_lookup(self, cache: dict, branch: str, turn: int, tick: int):
+	def _valcache_lookup(
+		self, cache: dict, branch: Branch, turn: Turn, tick: Tick
+	):
 		"""Return the value at the given time in ``cache``"""
 		for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
 			if b in cache:
@@ -546,9 +584,9 @@ class Cache:
 		keys: dict,
 		get_adds_dels: callable,
 		parentity: tuple,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
 		forward: bool,
 	):
@@ -680,12 +718,12 @@ class Cache:
 					if tick == 0:
 						stoptime, _ = self.db._build_keyframe_window(
 							branch,
-							turn - 1,
-							self.db.turn_end_plan(branch, turn - 1),
+							Turn(turn - 1),
+							self.db.turn_end_plan(branch, Turn(turn - 1)),
 						)
 					else:
 						stoptime, _ = self.db._build_keyframe_window(
-							branch, turn, tick - 1
+							branch, turn, Tick(tick - 1)
 						)
 					if stoptime is None:
 						adds, _ = get_adds_dels(parentity, branch, turn, tick)
@@ -736,10 +774,10 @@ class Cache:
 
 	def _get_keycache(
 		self,
-		parentity: tuple,
-		branch: str,
-		turn: int,
-		tick: int,
+		parentity: tuple[Key, ...],
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
 		forward: bool,
 	):
@@ -762,11 +800,11 @@ class Cache:
 
 	def _update_keycache(self, *args, forward: bool):
 		"""Add or remove a key in the set describing the keys that exist."""
-		entity: Hashable
-		key: Hashable
-		branch: str
-		turn: int
-		tick: int
+		entity: Key
+		key: Key
+		branch: Branch
+		turn: Turn
+		tick: Tick
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent = args[:-6]
 		kc = self._get_keycache(
@@ -785,13 +823,13 @@ class Cache:
 
 	def _get_adds_dels(
 		self,
-		entity: Hashable,
-		branch: str,
-		turn: int,
-		tick: int,
+		entity: tuple[Key, ...],
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
-		stoptime: tuple[str, int, int] = None,
-		cache: dict = None,
+		stoptime: Time = None,
+		cache: Optional[dict] = None,
 	):
 		"""Return a pair of sets describing changes to the entity's keys
 
@@ -862,8 +900,8 @@ class Cache:
 		*args,
 		planning: bool = None,
 		forward: bool = None,
-		loading=False,
-		contra: bool = None,
+		loading: bool = False,
+		contra: Optional[bool] = None,
 		truncate: bool = False,
 	):
 		"""Put a value in various dictionaries for later .retrieve(...).
@@ -912,15 +950,15 @@ class Cache:
 			forward = db._forward
 		if contra is None:
 			contra = not loading
-		entity: Hashable
-		key: Hashable
-		branch: str
-		turn: int
-		tick: int
+		entity: Key
+		key: Key
+		branch: Branch
+		turn: Turn
+		tick: Tick
 		entity, key, branch, turn, tick, value = args[-6:]
 		if loading:
 			self.db._updload(branch, turn, tick)
-		parent = args[:-6]
+		parent: tuple = Key(args[:-6])
 		entikey = (entity, key)
 		parentikey = parent + (entity, key)
 		contras = []
@@ -1077,7 +1115,15 @@ class Cache:
 						(*parent, entity, key, branc, turn, tick)
 					]
 
-	def _remove_btt_parentikey(self, branch, turn, tick, parent, entity, key):
+	def _remove_btt_parentikey(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		parent: Key,
+		entity: Key,
+		key: Key,
+	):
 		(
 			_,
 			time_entity,
@@ -1126,7 +1172,7 @@ class Cache:
 			if not entty:
 				del keys[keykey]
 
-	def remove(self, branch: str, turn: int, tick: int):
+	def remove(self, branch: Branch, turn: Turn, tick: Tick):
 		"""Delete all data from a specific tick"""
 		(
 			lock,
@@ -1213,7 +1259,9 @@ class Cache:
 			self.shallowest = OrderedDict()
 			remove_keycache(parent + (entity, branch), turn, tick)
 
-	def _remove_keycache(self, entity_branch: tuple, turn: int, tick: int):
+	def _remove_keycache(
+		self, entity_branch: tuple[Key, ..., Branch], turn: Turn, tick: Tick
+	):
 		"""Remove the future of a given entity from a branch in the keycache"""
 		keycache = self.keycache
 		if entity_branch in keycache:
@@ -1229,7 +1277,13 @@ class Cache:
 			if not kc:
 				del keycache[entity_branch]
 
-	def truncate(self, branch: str, turn: int, tick: int, direction="forward"):
+	def truncate(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		direction: Direction = Direction.FORWARD.value,
+	):
 		if direction not in {"forward", "backward"}:
 			raise ValueError("Illegal direction")
 		(lock, parents, branches, keys, settings, presettings, keycache) = (
@@ -1271,12 +1325,12 @@ class Cache:
 
 	@staticmethod
 	def _iter_future_contradictions(
-		entity: Hashable,
-		key: Hashable,
+		entity: Key,
+		key: Key,
 		turns: WindowDict,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value,
 	):
 		"""Iterate over contradicted ``(turn, tick)`` if applicable"""
@@ -1303,11 +1357,11 @@ class Cache:
 	def _store_journal(self, *args):
 		# overridden in lisien.cache.InitializedCache
 		(settings, presettings, base_retrieve) = self._store_journal_stuff
-		entity: Hashable
-		key: Hashable
-		branch: str
-		turn: int
-		tick: int
+		entity: Key
+		key: Key
+		branch: Branch
+		turn: Turn
+		tick: Tick
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent = args[:-6]
 		settings_turns = settings[branch]
@@ -1331,7 +1385,11 @@ class Cache:
 			settings_turns[turn] = {tick: parent + (entity, key, value)}
 
 	def _base_retrieve(
-		self, args, store_hint=True, retrieve_hint=True, search=False
+		self,
+		args,
+		store_hint: bool = True,
+		retrieve_hint: bool = True,
+		search: bool = False,
 	):
 		"""Hot code.
 
@@ -1353,11 +1411,11 @@ class Cache:
 		shallowest = self.shallowest
 		if retrieve_hint and args in shallowest:
 			return shallowest[args]
-		entity: tuple = args[:-4]
-		key: Hashable
-		branch: str
-		turn: int
-		tick: int
+		entity: tuple = Key(args[:-4])
+		key: Key
+		branch: Branch
+		turn: Turn
+		tick: Tick
 		key, branch, turn, tick = args[-4:]
 		keyframes = self.keyframe.get(entity, {})
 		branches = self.branches
@@ -1602,10 +1660,10 @@ class Cache:
 		"""
 		if forward is None:
 			forward = self.db._forward
-		entity: tuple = args[:-3]
-		branch: str
-		turn: int
-		tick: int
+		entity: tuple[Key, ...] = args[:-3]
+		branch: Branch
+		turn: Turn
+		tick: Tick
 		branch, turn, tick = args[-3:]
 		if self.db._no_kc:
 			kc = self._get_adds_dels(entity, branch, turn, tick)[0]
@@ -1628,10 +1686,10 @@ class Cache:
 		"""
 		if forward is None:
 			forward = self.db._forward
-		entity: tuple = args[:-3]
-		branch: str
-		turn: int
-		tick: int
+		entity: tuple[Key, ...] = args[:-3]
+		branch: Branch
+		turn: Turn
+		tick: Tick
 		branch, turn, tick = args[-3:]
 		if self.db._no_kc:
 			return len(self._get_adds_dels(entity, branch, turn, tick)[0])
@@ -1657,12 +1715,22 @@ class Cache:
 
 class GraphValCache(Cache):
 	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	) -> dict:
 		return super().get_keyframe((graph,), branch, turn, tick, copy)
 
 	def set_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 
@@ -1674,16 +1742,16 @@ class NodesCache(Cache):
 
 	def store(
 		self,
-		graph: Hashable,
-		node: Hashable,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		ex: bool,
 		*,
 		planning: bool = None,
 		forward: bool = None,
-		loading=False,
+		loading: bool = False,
 		contra: bool = None,
 	):
 		if not ex:
@@ -1704,12 +1772,12 @@ class NodesCache(Cache):
 		)
 
 	def _update_keycache(self, *args, forward):
-		graph: Hashable
-		node: Hashable
-		branch: str
-		turn: int
-		tick: int
-		ex: bool | None
+		graph: CharName
+		node: NodeName
+		branch: Branch
+		turn: Turn
+		tick: Tick
+		ex: Optional[bool]
 		graph, node, branch, turn, tick, ex = args
 		if not ex:
 			ex = None
@@ -1719,12 +1787,12 @@ class NodesCache(Cache):
 
 	def _iter_future_contradictions(
 		self,
-		entity: Hashable,
-		key: Hashable,
-		turns: dict,
-		branch: str,
-		turn: int,
-		tick: int,
+		entity: tuple[Key, ...],
+		key: Key,
+		turns: WindowDict,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value,
 	):
 		yield from super()._iter_future_contradictions(
@@ -1735,19 +1803,34 @@ class NodesCache(Cache):
 		)
 
 	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	):
 		return super().get_keyframe((graph,), branch, turn, tick, copy)
 
 	def set_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 
 
 class NodeValCache(Cache):
 	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy=True,
 	):
 		ret = super().get_keyframe((graph,), branch, turn, tick, copy=copy)
 		if copy:
@@ -1757,10 +1840,10 @@ class NodeValCache(Cache):
 
 	def set_keyframe(
 		self,
-		graph: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		keyframe: dict,
 	):
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
@@ -1786,7 +1869,9 @@ class EdgesCache(Cache):
 	def successors(self):
 		return self.parents
 
-	def __init__(self, db, name, kfkvs=None):
+	def __init__(
+		self, db: "engine.Engine", name: str, kfkvs: Optional[dict] = None
+	):
 		super().__init__(db, name, kfkvs)
 		self.destcache = PickyDefaultDict(SettingsTurnDict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
@@ -1825,7 +1910,9 @@ class EdgesCache(Cache):
 			self.successors,
 		)
 
-	def total_size(self, handlers=(), verbose=False):
+	def total_size(
+		self, handlers: Optional[dict] = None, verbose: bool = False
+	):
 		all_handlers = {
 			EdgesCache: lambda e: [
 				e.predecessors,
@@ -1834,11 +1921,17 @@ class EdgesCache(Cache):
 				e.origcache,
 			]
 		}
-		all_handlers.update(handlers)
+		if handlers:
+			all_handlers.update(handlers)
 		return super().total_size(all_handlers, verbose)
 
 	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	) -> dict:
 		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
 		if copy:
@@ -1847,7 +1940,12 @@ class EdgesCache(Cache):
 		return ret
 
 	def set_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
@@ -1884,11 +1982,11 @@ class EdgesCache(Cache):
 
 	def _slow_iter_node_contradicted_times(
 		self,
-		branch: str,
-		turn: int,
-		tick: int,
-		graph: Hashable,
-		node: Hashable,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		graph: CharName,
+		node: NodeName,
 	):
 		# slow and bad.
 		retrieve = self._base_retrieve
@@ -1915,19 +2013,22 @@ class EdgesCache(Cache):
 
 	def _adds_dels_successors(
 		self,
-		parentity: tuple,
-		branch: str,
-		turn: int,
-		tick: int,
+		parentity: tuple[Key, ...],
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
-		stoptime: tuple[str, int, int] = None,
-		cache: dict = None,
+		stoptime: Optional[Time] = None,
+		cache: Optional[dict] = None,
 	):
+		graph: CharName
+		orig: NodeName
 		graph, orig = parentity
 		added = set()
 		deleted = set()
 		cache = cache or self.successors
 		if (graph, orig) in cache and cache[graph, orig]:
+			dest: NodeName
 			for dest in cache[graph, orig]:
 				addidx, delidx = self._get_adds_dels(
 					(graph, orig, dest), branch, turn, tick, stoptime=stoptime
@@ -1965,10 +2066,10 @@ class EdgesCache(Cache):
 
 	def _adds_dels_predecessors(
 		self,
-		parentity: tuple,
-		branch: str,
-		turn: int,
-		tick: int,
+		parentity: tuple[Key, ...],
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
 		stoptime: tuple[str, int, int] = None,
 		cache: dict = None,
@@ -2014,11 +2115,11 @@ class EdgesCache(Cache):
 
 	def _get_destcache(
 		self,
-		graph: Hashable,
-		orig: Hashable,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		orig: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
 		forward: bool,
 	):
@@ -2043,11 +2144,11 @@ class EdgesCache(Cache):
 
 	def _get_origcache(
 		self,
-		graph: Hashable,
-		dest: Hashable,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
 		forward: bool,
 	):
@@ -2071,7 +2172,14 @@ class EdgesCache(Cache):
 		)
 
 	def iter_successors(
-		self, graph, orig, branch, turn, tick, *, forward=None
+		self,
+		graph: CharName,
+		orig: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: Optional[bool] = None,
 	):
 		"""Iterate over successors of a given origin node at a given time."""
 		if self.db._no_kc:
@@ -2087,13 +2195,13 @@ class EdgesCache(Cache):
 
 	def iter_predecessors(
 		self,
-		graph: Hashable,
-		dest: Hashable,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
-		forward: bool = None,
+		forward: Optional[bool] = None,
 	):
 		"""Iterate over predecessors to a destination node at a given time."""
 		if self.db._no_kc:
@@ -2109,14 +2217,14 @@ class EdgesCache(Cache):
 
 	def has_successor(
 		self,
-		graph: Hashable,
-		orig: Hashable,
-		dest: Hashable,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
-		forward: bool = None,
+		forward: Optional[bool] = None,
 	):
 		"""Return whether an edge connects the origin to the destination now"""
 		# Use a keycache if we have it.
@@ -2132,14 +2240,14 @@ class EdgesCache(Cache):
 
 	def has_predecessor(
 		self,
-		graph: Hashable,
-		dest: Hashable,
-		orig: Hashable,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		dest: NodeName,
+		orig: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
-		forward: bool = None,
+		forward: Optional[bool] = None,
 	):
 		"""Return whether an edge connects the destination to the origin now"""
 		got = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
@@ -2147,19 +2255,19 @@ class EdgesCache(Cache):
 
 	def store(
 		self,
-		graph,
-		orig,
-		dest,
-		idx,
-		branch,
-		turn,
-		tick,
-		ex,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		idx: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		ex: bool,
 		*,
-		planning: bool = None,
-		forward: bool = None,
-		loading=False,
-		contra: bool = None,
+		planning: Optional[bool] = None,
+		forward: Optional[bool] = None,
+		loading: bool = False,
+		contra: Optional[bool] = None,
 	):
 		if contra is None:
 			contra = not loading
@@ -2206,7 +2314,12 @@ class EdgesCache(Cache):
 
 class EdgeValCache(Cache):
 	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	):
 		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
 		if copy:
@@ -2218,7 +2331,12 @@ class EdgeValCache(Cache):
 		return ret
 
 	def set_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
 	):
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
@@ -2233,16 +2351,16 @@ class EntitylessCache(Cache):
 
 	def store(
 		self,
-		key,
-		branch,
-		turn,
-		tick,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		value,
 		*,
-		planning: bool = None,
-		forward: bool = None,
-		loading=False,
-		contra: bool = None,
+		planning: Optional[bool] = None,
+		forward: Optional[bool] = None,
+		loading: bool = False,
+		contra: Optional[bool] = None,
 	):
 		super().store(
 			None,
@@ -2257,20 +2375,33 @@ class EntitylessCache(Cache):
 			contra=contra,
 		)
 
-	def get_keyframe(self, branch, turn, tick, copy=True):
+	def get_keyframe(
+		self, branch: Branch, turn: Turn, tick: Tick, copy: bool = True
+	):
 		return super().get_keyframe((None,), branch, turn, tick, copy=copy)
 
-	def set_keyframe(self, branch, turn, tick, keyframe):
+	def set_keyframe(
+		self, branch: Branch, turn: Turn, tick: Tick, keyframe: dict
+	):
 		super().set_keyframe((None,), branch, turn, tick, keyframe)
 
-	def iter_entities_or_keys(self, branch, turn, tick, *, forward=None):
+	def iter_entities_or_keys(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: Optional[bool] = None,
+	):
 		return super().iter_entities_or_keys(
 			None, branch, turn, tick, forward=forward
 		)
 
 	iter_entities = iter_keys = iter_entities_or_keys
 
-	def contains_entity_or_key(self, ke, branch, turn, tick):
+	def contains_entity_or_key(
+		self, ke: Key, branch: Branch, turn: Turn, tick: Tick
+	):
 		return super().contains_entity_or_key(None, ke, branch, turn, tick)
 
 	contains_entity = contains_key = contains_entity_or_key
@@ -2308,16 +2439,21 @@ class InitializedCache(Cache):
 
 class NodesRulebooksCache(InitializedCache):
 	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	) -> dict:
 		return super().get_keyframe((graph,), branch, turn, tick, copy)
 
 	def set_keyframe(
 		self,
-		graph: Key,
-		branch: str,
-		turn: int,
-		tick: int,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		keyframe: dict,
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
@@ -2328,7 +2464,9 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 
 
 class CharactersRulebooksCache(InitializedEntitylessCache):
-	def set_keyframe(self, branch, turn, tick, keyframe):
+	def set_keyframe(
+		self, branch: Branch, turn: Turn, tick: Tick, keyframe: dict
+	):
 		super().set_keyframe(branch, turn, tick, keyframe)
 		for char, kf in keyframe.items():
 			super(EntitylessCache, self).set_keyframe(
@@ -2339,13 +2477,18 @@ class CharactersRulebooksCache(InitializedEntitylessCache):
 class PortalsRulebooksCache(InitializedCache):
 	def store(
 		self,
-		*args,
-		planning: bool = None,
-		forward: bool = None,
-		loading=False,
-		contra: bool = None,
+		char: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rb: RulebookName,
+		planning: Optional[bool] = None,
+		forward: Optional[bool] = None,
+		loading: bool = False,
+		contra: Optional[bool] = None,
 	):
-		char, orig, dest, branch, turn, tick, rb = args
 		try:
 			destrbs = self.retrieve(char, orig, branch, turn, tick)
 			destrbs[dest] = rb
@@ -2380,7 +2523,12 @@ class PortalsRulebooksCache(InitializedCache):
 		)
 
 	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	) -> dict:
 		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
 		if copy:
@@ -2390,22 +2538,22 @@ class PortalsRulebooksCache(InitializedCache):
 
 	def get_orig_keyframe(
 		self,
-		graph: Key,
-		orig: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		copy=True,
+		graph: CharName,
+		orig: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	):
 		return super().get_keyframe((graph, orig), branch, turn, tick, copy)
 
 	def set_keyframe(
 		self,
-		graph: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		keyframe,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
 	):
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
@@ -2423,24 +2571,26 @@ class PortalsRulebooksCache(InitializedCache):
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
-	def __init__(self, db, name, kfkvs=None):
+	def __init__(
+		self, db: "engine.Engine", name: str, kfkvs: Optional[dict] = None
+	):
 		super().__init__(db, name, kfkvs)
 		self.user_cache = Cache(db, "user_cache")
 
 	def store(
 		self,
-		character,
-		graph,
-		node,
-		branch,
-		turn,
-		tick,
-		is_unit,
+		character: CharName,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		is_unit: bool,
 		*,
-		planning: bool = None,
-		forward: bool = None,
-		loading=False,
-		contra: bool = None,
+		planning: Optional[bool] = None,
+		forward: Optional[bool] = None,
+		loading: bool = False,
+		contra: Optional[bool] = None,
 	):
 		is_unit = True if is_unit else None
 		super().store(
@@ -2495,11 +2645,11 @@ class UnitnessCache(Cache):
 
 	def set_keyframe(
 		self,
-		character: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		keyframe,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
 	):
 		super().set_keyframe((character,), branch, turn, tick, keyframe)
 		for graph, subkf in keyframe.items():
@@ -2521,8 +2671,14 @@ class UnitnessCache(Cache):
 						)
 
 	def get_keyframe(
-		self, characters, branch: str, turn: int, tick: int, copy=True
+		self,
+		characters: CharName | tuple[CharName, CharName],
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	) -> dict:
+		# This may have trouble if any characters have tuples of length 2 for names.
 		if isinstance(characters, tuple) and len(characters) > 1:
 			return super().get_keyframe(characters, branch, turn, tick, copy)
 		# only one character
@@ -2531,10 +2687,19 @@ class UnitnessCache(Cache):
 			return {graph: units.copy() for (graph, units) in ret.items()}
 		return ret
 
-	def get_char_graph_units(self, char, graph, branch, turn, tick):
+	def get_char_graph_units(
+		self,
+		char: CharName,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
 		return set(self.iter_entities(char, graph, branch, turn, tick))
 
-	def get_char_only_unit(self, char, branch, turn, tick):
+	def get_char_only_unit(
+		self, char: CharName, branch: Branch, turn: Turn, tick: Tick
+	):
 		if self.count_entities(char, branch, turn, tick) != 1:
 			raise ValueError("No unit, or more than one unit")
 		for graph in self.iter_entities(char, branch, turn, tick):
@@ -2544,33 +2709,60 @@ class UnitnessCache(Cache):
 				self.iter_entities(char, graph, branch, turn, tick)
 			)
 
-	def get_char_only_graph(self, char, branch, turn, tick):
+	def get_char_only_graph(
+		self, char: CharName, branch: Branch, turn: Turn, tick: Tick
+	):
 		if self.count_entities(char, branch, turn, tick) != 1:
 			raise ValueError("No unit, or more than one unit")
 		return next(self.iter_entities(char, branch, turn, tick))
 
-	def iter_char_graphs(self, char, branch, turn, tick):
+	def iter_char_graphs(
+		self, char: CharName, branch: Branch, turn: Turn, tick: Tick
+	):
 		return self.iter_entities(char, branch, turn, tick)
 
 
 class RulesHandledCache:
-	def __init__(self, engine, name: str):
+	def __init__(self, engine: "engine.Engine", name: str):
 		self.lock = RLock()
 		self.engine = engine
 		self.name = name
-		self.handled = {}
-		self.handled_deep = PickyDefaultDict(SettingsTurnDict)
+		self.handled: dict[
+			tuple[CharName, RulebookName, Branch, Turn]
+			| tuple[CharName, NodeName, RulebookName, Branch, Turn]
+			| tuple[CharName, NodeName, NodeName, Branch, Turn],
+			set[RuleName],
+		] = {}
+		self.handled_deep: dict[
+			Branch,
+			SettingsTurnDict[
+				Turn,
+				dict[
+					Tick,
+					tuple[
+						EntityKey,
+						RulebookName,
+						RuleName,
+					],
+				],
+			],
+		] = PickyDefaultDict(SettingsTurnDict)
 
 	def get_rulebook(self, *args):
 		raise NotImplementedError
 
-	def iter_unhandled_rules(self, branch, turn, tick):
+	def iter_unhandled_rules(self, branch: Branch, turn: Turn, tick: Tick):
 		raise NotImplementedError
 
-	def store(self, *args, loading=False):
-		entity = args[:-5]
+	def store(self, *args, loading: bool = False):
+		entity: EntityKey = args[:-5]
+		rulebook: RulebookName
+		rule: RuleName
+		branch: Branch
+		turn: Turn
+		tick: Tick
 		rulebook, rule, branch, turn, tick = args[-5:]
-		self.handled.setdefault(entity + (rulebook, branch, turn), set()).add(
+		self.handled.setdefault((*entity, rulebook, branch, turn), set()).add(
 			rule
 		)
 		if turn in self.handled_deep[branch]:
@@ -2578,7 +2770,7 @@ class RulesHandledCache:
 		else:
 			self.handled_deep[branch][turn] = {tick: (entity, rulebook, rule)}
 
-	def remove_branch(self, branch: str):
+	def remove_branch(self, branch: Branch):
 		if branch in self.handled_deep:
 			for turn, ticks in self.handled_deep[branch].items():
 				for tick, (entity, rulebook, rule) in ticks.items():
@@ -2586,45 +2778,9 @@ class RulesHandledCache:
 						del self.handled[entity, rulebook, branch, turn]
 			del self.handled_deep[branch]
 
-	def truncate(self, branch: str, turn: int, tick: int, direction="forward"):
-		if direction not in {"forward", "backward"}:
-			raise ValueError("Illegal direction")
-		if branch not in self.handled_deep:
-			return
-
-		with self.lock:
-			turn_d = self.handled_deep[branch]
-			if turn in turn_d:
-				for t, (entity, rulebook, rule) in (
-					turn_d[turn].future(tick)
-					if direction == "forward"
-					else turn_d[turn].past(tick)
-				).items():
-					if (entity, rulebook, branch, turn) in self.handled:
-						tick_set = self.handled[entity, rulebook, branch, turn]
-						tick_set.discard(t)
-						if not tick_set:
-							del self.handled[entity, rulebook, branch, turn]
-				turn_d[turn].truncate(turn, direction)
-			to_del = (
-				turn_d.future(turn)
-				if direction == "forward"
-				else turn_d.past(turn)
-			)
-			for r in to_del.keys():
-				for t, (entity, rulebook, rule) in turn_d[r].items():
-					if (entity, rulebook, branch, r) in self.handled:
-						tick_set = self.handled[entity, rulebook, branch, r]
-						tick_set.discard(t)
-						if not tick_set:
-							del self.handled[entity, rulebook, branch, r]
-			turn_d.truncate(turn, direction)
-		if turn in self.handled_deep[branch]:
-			self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
-		else:
-			self.handled_deep[branch][turn] = {tick: (entity, rulebook, rule)}
-
-	def total_size(self, handlers=(), verbose=False):
+	def total_size(
+		self, handlers: Optional[dict] = None, verbose: bool = False
+	):
 		"""Returns the approximate memory footprint an object and all of its contents.
 
 		Automatically finds the contents of the following builtin containers and
@@ -2651,7 +2807,8 @@ class RulesHandledCache:
 				o.keycache,
 			],
 		}
-		all_handlers.update(handlers)
+		if handlers:
+			all_handlers.update(handlers)
 		seen = set()  # track which object id's have already been seen
 		default_size = getsizeof(
 			0
@@ -2676,9 +2833,9 @@ class RulesHandledCache:
 
 	def truncate(
 		self,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		direction: Direction = Direction.FORWARD,
 	):
 		if isinstance(direction, str):
@@ -2712,19 +2869,27 @@ class RulesHandledCache:
 						tick_set.discard(t)
 						if not tick_set:
 							del self.handled[entity, rulebook, branch, r]
-			turn_d.truncate(turn, direction)
+			turn_d.truncate(turn, Direction(direction))
 
 	def retrieve(self, *args):
 		return self.handled[args]
 
-	def get_handled_rules(self, entity, rulebook, branch, turn):
+	def get_handled_rules(
+		self,
+		entity: EntityKey,
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+	):
 		return self.handled.setdefault(
 			entity + (rulebook, branch, turn), set()
 		)
 
 
 class CharacterRulesHandledCache(RulesHandledCache):
-	def get_rulebook(self, character, branch, turn, tick):
+	def get_rulebook(
+		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
+	):
 		try:
 			return self.engine._characters_rulebooks_cache.retrieve(
 				character, branch, turn, tick
@@ -2732,7 +2897,7 @@ class CharacterRulesHandledCache(RulesHandledCache):
 		except KeyError:
 			return ("character_rulebook", character)
 
-	def iter_unhandled_rules(self, branch, turn, tick):
+	def iter_unhandled_rules(self, branch: Branch, turn: Turn, tick: Tick):
 		for character in self.engine.character.keys():
 			rb = self.get_rulebook(character, branch, turn, tick)
 			try:
@@ -2750,7 +2915,9 @@ class CharacterRulesHandledCache(RulesHandledCache):
 
 
 class UnitRulesHandledCache(RulesHandledCache):
-	def get_rulebook(self, character, branch, turn, tick):
+	def get_rulebook(
+		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
+	):
 		try:
 			return self.engine._units_rulebooks_cache.retrieve(
 				character, branch, turn, tick
@@ -2758,7 +2925,7 @@ class UnitRulesHandledCache(RulesHandledCache):
 		except KeyError:
 			return "unit_rulebook", character
 
-	def iter_unhandled_rules(self, branch, turn, tick):
+	def iter_unhandled_rules(self, branch: Branch, turn: Turn, tick: Tick):
 		for charname in self.engine._graph_cache.iter_keys(branch, turn, tick):
 			rb = self.get_rulebook(charname, branch, turn, tick)
 			try:
@@ -2791,7 +2958,9 @@ class UnitRulesHandledCache(RulesHandledCache):
 
 
 class CharacterThingRulesHandledCache(RulesHandledCache):
-	def get_rulebook(self, character, branch, turn, tick):
+	def get_rulebook(
+		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
+	):
 		try:
 			return self.engine._characters_things_rulebooks_cache.retrieve(
 				character, branch, turn, tick
@@ -2799,7 +2968,11 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 		except KeyError:
 			return "character_thing_rulebook", character
 
-	def iter_unhandled_rules(self, branch, turn, tick):
+	def iter_unhandled_rules(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> Iterator[
+		tuple[RulebookPriority, CharName, NodeName, RulebookName, RuleName]
+	]:
 		charm = self.engine.character
 		for character in sort_set(charm.keys()):
 			rulebook = self.get_rulebook(character, branch, turn, tick)
@@ -2821,7 +2994,9 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 
 
 class CharacterPlaceRulesHandledCache(RulesHandledCache):
-	def get_rulebook(self, character, branch, turn, tick):
+	def get_rulebook(
+		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
+	):
 		try:
 			return self.engine._characters_places_rulebooks_cache.retrieve(
 				character, branch, turn, tick
@@ -2829,7 +3004,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 		except KeyError:
 			return "character_place_rulebook", character
 
-	def iter_unhandled_rules(self, branch, turn, tick):
+	def iter_unhandled_rules(self, branch: Branch, turn: Turn, tick: Tick):
 		charm = self.engine.character
 		for character in sort_set(charm.keys()):
 			rulebook = self.get_rulebook(character, branch, turn, tick)
@@ -2851,7 +3026,9 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 
 
 class CharacterPortalRulesHandledCache(RulesHandledCache):
-	def get_rulebook(self, character, branch, turn, tick):
+	def get_rulebook(
+		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
+	):
 		try:
 			return self.engine._characters_portals_rulebooks_cache.retrieve(
 				character, branch, turn, tick
@@ -2859,7 +3036,7 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 		except KeyError:
 			return "character_portal_rulebook", character
 
-	def iter_unhandled_rules(self, branch, turn, tick):
+	def iter_unhandled_rules(self, branch: Branch, turn: Turn, tick: Tick):
 		charm = self.engine.character
 		for character in sort_set(charm.keys()):
 			rulebook = self.get_rulebook(character, branch, turn, tick)
@@ -2889,7 +3066,14 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 
 
 class NodeRulesHandledCache(RulesHandledCache):
-	def get_rulebook(self, character, node, branch, turn, tick):
+	def get_rulebook(
+		self,
+		character: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
 		try:
 			return self.engine._nodes_rulebooks_cache.retrieve(
 				character, node, branch, turn, tick
@@ -2897,7 +3081,7 @@ class NodeRulesHandledCache(RulesHandledCache):
 		except KeyError:
 			return character, node
 
-	def iter_unhandled_rules(self, branch, turn, tick):
+	def iter_unhandled_rules(self, branch: Branch, turn: Turn, tick: Tick):
 		charm = self.engine.character
 		for character_name, character in sorted(
 			charm.items(), key=itemgetter(0)
@@ -2921,7 +3105,15 @@ class NodeRulesHandledCache(RulesHandledCache):
 
 
 class PortalRulesHandledCache(RulesHandledCache):
-	def get_rulebook(self, character, orig, dest, branch, turn, tick):
+	def get_rulebook(
+		self,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
 		try:
 			return self.engine._portals_rulebooks_cache.retrieve(
 				character, orig, dest, branch, turn, tick
@@ -2929,7 +3121,7 @@ class PortalRulesHandledCache(RulesHandledCache):
 		except KeyError:
 			return character, orig, dest
 
-	def iter_unhandled_rules(self, branch, turn, tick):
+	def iter_unhandled_rules(self, branch: Branch, turn: Turn, tick: Tick):
 		for character_name, character in sorted(
 			self.engine.character.items(), key=itemgetter(0)
 		):
@@ -2977,11 +3169,20 @@ class PortalRulesHandledCache(RulesHandledCache):
 
 
 class ThingsCache(Cache):
-	def __init__(self, db, name, kfkvs=None):
+	def __init__(
+		self, db: "engine.Engine", name: str, kfkvs: Optional[dict] = None
+	):
 		super().__init__(db, name, kfkvs)
 		self._make_node = db.thing_cls
 
-	def _slow_iter_contents(self, character, place, branch, turn, tick):
+	def _slow_iter_contents(
+		self,
+		character: CharName,
+		place: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
 		for thing in self.iter_keys(character, branch, turn, tick):
 			try:
 				loc = self.retrieve(character, thing, branch, turn, tick)
@@ -2991,7 +3192,12 @@ class ThingsCache(Cache):
 				yield thing
 
 	def _retrieve_or_generate_contents(
-		self, character, location, branch, turn, tick
+		self,
+		character: CharName,
+		location: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	):
 		try:
 			return self.db._node_contents_cache.retrieve(
@@ -3009,15 +3215,34 @@ class ThingsCache(Cache):
 				)
 			)
 
-	def store(self, *args, planning=None, loading=False, contra=None):
-		character, thing, branch, turn, tick, location = args
+	def store(
+		self,
+		character: CharName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		location: NodeName,
+		planning: Optional[bool] = None,
+		loading: bool = False,
+		contra: Optional[bool] = None,
+	):
 		with self._lock:
+			oldloc: NodeName
 			try:
 				oldloc = self.retrieve(character, thing, branch, turn, tick)
 			except KeyError:
 				oldloc = None
 			super().store(
-				*args, planning=planning, loading=loading, contra=contra
+				character,
+				thing,
+				branch,
+				turn,
+				tick,
+				location,
+				planning=planning,
+				loading=loading,
+				contra=contra,
 			)
 			node_contents_cache = self.db._node_contents_cache
 			this = frozenset((thing,))
@@ -3118,7 +3343,9 @@ class ThingsCache(Cache):
 					character, loc, branch, trn, tck, conts
 				)
 
-	def turn_before(self, character, thing, branch, turn):
+	def turn_before(
+		self, character: CharName, thing: NodeName, branch: Branch, turn: Turn
+	):
 		with self._lock:
 			try:
 				self.retrieve(character, thing, branch, turn, 0)
@@ -3126,7 +3353,9 @@ class ThingsCache(Cache):
 				pass
 			return self.keys[(character,)][thing][branch].rev_before(turn)
 
-	def turn_after(self, character, thing, branch, turn):
+	def turn_after(
+		self, character: CharName, thing: NodeName, branch: Branch, turn: Turn
+	):
 		with self._lock:
 			try:
 				self.retrieve(character, thing, branch, turn, 0)
@@ -3135,22 +3364,34 @@ class ThingsCache(Cache):
 			return self.keys[(character,)][thing][branch].rev_after(turn)
 
 	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	):
 		return super().get_keyframe((graph,), branch, turn, tick, copy)
 
 	def set_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 
 
 class NodeContentsCache(Cache):
-	def __init__(self, db, name, kfkvs=None):
+	def __init__(
+		self, db: "engine.Engine", name: str, kfkvs: Optional[dict] = None
+	):
 		super().__init__(db, name, kfkvs)
 		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
 
-	def delete_plan(self, plan: int) -> None:
+	def delete_plan(self, plan: Plan) -> None:
 		branch, turn, tick = self.db._btt()
 		plan_ticks = self.db._plan_ticks[plan]
 		with self.db.world_lock:
@@ -3174,16 +3415,16 @@ class NodeContentsCache(Cache):
 
 	def store(
 		self,
-		character: Key,
-		place: Key,
-		branch: str,
-		turn: int,
-		tick: int,
-		contents: frozenset,
+		character: CharName,
+		place: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		contents: frozenset[NodeName],
 		planning: bool = True,
-		forward: bool = None,
-		loading=False,
-		contra: bool = None,
+		forward: Optional[bool] = None,
+		loading: bool = False,
+		contra: Optional[bool] = None,
 		truncate: bool = True,
 	):
 		self.loc_settings[character, place][branch].store_at(
@@ -3205,13 +3446,20 @@ class NodeContentsCache(Cache):
 		)
 
 	def _iter_future_contradictions(
-		self, entity, key, turns, branch, turn, tick, value
+		self,
+		entity: EntityKey,
+		key: Key,
+		turns: WindowDict,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value,
 	):
 		return self.db._things_cache._iter_future_contradictions(
 			entity, key, turns, branch, turn, tick, value
 		)
 
-	def remove(self, branch, turn, tick):
+	def remove(self, branch: Branch, turn: Turn, tick: Tick):
 		"""Delete data on or after this tick
 
 		On the assumption that the future has been invalidated.
@@ -3290,11 +3538,21 @@ class NodeContentsCache(Cache):
 			self.shallowest = OrderedDict()
 
 	def get_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, copy=True
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
 	) -> dict:
 		return super().get_keyframe((graph,), branch, turn, tick, copy)
 
 	def set_keyframe(
-		self, graph: Key, branch: str, turn: int, tick: int, keyframe: dict
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
