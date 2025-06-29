@@ -839,7 +839,9 @@ class Character(AbstractCharacter, RuleFollower):
 		def __iter__(self):
 			"""Iterate over graphs with unit nodes in them"""
 			get_char_graphs, charn, btt = self._iter_stuff
-			return iter(get_char_graphs(charn, *btt()))
+			for graph in get_char_graphs(charn, *btt()):
+				if graph in self:
+					yield graph
 
 		def __contains__(self, k):
 			retrieve, charn, btt = self._contains_stuff
@@ -848,8 +850,10 @@ class Character(AbstractCharacter, RuleFollower):
 
 		def __len__(self):
 			"""Number of graphs in which I have a unit."""
-			count_char_graphs, charn, btt = self._len_stuff
-			return count_char_graphs(charn, *btt())
+			n = 0
+			for n, _ in enumerate(self, start=1):
+				pass
+			return n
 
 		def _get_char_av_cache(self, g):
 			if g not in self:
