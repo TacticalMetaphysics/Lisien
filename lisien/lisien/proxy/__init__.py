@@ -514,7 +514,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	name: NodeName
 
 	@property
-	def user(self) -> CharacterProxy:
+	def user(self) -> ProxyUserMapping:
 		return ProxyUserMapping(self)
 
 	@property
