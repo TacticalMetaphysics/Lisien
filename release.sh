@@ -11,18 +11,23 @@ tox --version
 ruff --version
 pyclean --version
 wine --version
+buildozer --version
 ls ~/lisien_windows
 ulimit -n 69105
-isort .
-ruff format .
+isort lisien
+isort elide
+ruff format lisien
+ruff format elide
 rm -rf lisien/build lisien/dist lisien/strings
 rm -rf elide/build elide/dist elide/strings
-tox -pauto -c lisien/tox.ini
+tox -c lisien/tox.ini
 rm -rf lisien/build lisien/dist lisien/strings
 rm -rf elide/build elide/dist elide/strings
-tox -pauto -c elide/tox.ini
+tox-c elide/tox.ini
 rm -rf lisien/build lisien/dist lisien/strings
 rm -rf elide/build elide/dist elide/strings
+rm -rf bin
+buildozer android clean debug
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
 python -m build lisien/
 python -m build elide/

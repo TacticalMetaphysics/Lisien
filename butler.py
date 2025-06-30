@@ -17,6 +17,15 @@ for elide_wheel in os.listdir("elide/dist"):
 		break
 else:
 	sys.exit("Couldn't find the elide wheel")
+for elide_apk in os.listdir("bin/"):
+	if elide_apk.startswith("Elide") and elide_apk.endswith(
+		"-arm64-v8a_armeabi-v7a-debug.apk"
+	):
+		break
+else:
+	sys.exit("Couldn't find the Elide APK")
+if not os.path.exists("~/lisien_windows"):
+	sys.exit("Couldn't find the Elide Windows distribution")
 os.system(
 	f"butler push lisien/dist/{lisien_wheel} clayote/lisien:lisien-whl --userversion {version}"
 )
@@ -25,4 +34,7 @@ os.system(
 )
 os.system(
 	f"butler push ~/lisien_windows clayote/lisien:windows --userversion {version}"
+)
+os.system(
+	f"butler push bin/{elide_apk} clayote/lisien:android --userversion {version}"
 )
