@@ -22,17 +22,26 @@ def test_college_nodb(tmp_path):
 			eng.next_turn()
 
 
-def test_college_premade(tmp_path, non_null_database):
+@pytest.mark.parametrize("executing", ["serial", "parallel"])
+def test_college_premade(tmp_path, non_null_database, executing):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
 	connect_string = None
 	if non_null_database == "sqlite":
 		connect_string = f"sqlite:///{tmp_path}/world.db"
-	with Engine(tmp_path, connect_string=connect_string) as eng:
+	with Engine(
+		tmp_path,
+		connect_string=connect_string,
+		workers=0 if executing == "serial" else 2,
+	) as eng:
 		college.install(eng)
 		for i in range(10):
 			eng.next_turn()
-	with Engine(tmp_path, connect_string=connect_string) as eng:
+	with Engine(
+		tmp_path,
+		connect_string=connect_string,
+		workers=0 if executing == "serial" else 2,
+	) as eng:
 		for i in range(10):
 			eng.next_turn()
 
