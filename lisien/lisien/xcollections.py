@@ -40,7 +40,7 @@ from astunparse import Unparser
 from blinker import Signal
 
 from .graph import GraphsMapping
-from .typing import CharName, Key
+from .typing import CharName
 from .util import AbstractEngine, dedent_source, getatt
 
 

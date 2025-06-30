@@ -22,7 +22,6 @@ from itertools import chain
 import networkx
 from networkx.exception import NetworkXError
 
-from .exc import KeyframeError
 from .typing import Key, Branch, Turn, Tick
 from .wrap import MutableMappingUnwrapper
 
