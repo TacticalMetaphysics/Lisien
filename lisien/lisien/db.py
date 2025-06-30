@@ -30,7 +30,6 @@ from sqlite3 import (
 	OperationalError as LiteOperationalError,
 )
 from threading import Lock, Thread
-from time import monotonic
 from types import MethodType
 from typing import Any, Iterator, MutableMapping, Optional
 
@@ -43,7 +42,7 @@ from sqlalchemy.exc import (
 )
 
 from .alchemy import gather_sql
-from .exc import KeyframeError, TimeError
+from .exc import KeyframeError
 from .typing import (
 	ActionFuncName,
 	Branch,

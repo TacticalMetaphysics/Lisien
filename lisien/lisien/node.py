@@ -27,7 +27,7 @@ from typing import Iterator, List, Optional, Union
 from networkx import shortest_path, shortest_path_length
 
 from . import graph, rule
-from .exc import AmbiguousUserError, HistoricKeyError
+from .exc import AmbiguousUserError
 from .facade import FacadePlace, FacadeThing
 from .query import EntityStatAlias
 from .typing import Key, Time
