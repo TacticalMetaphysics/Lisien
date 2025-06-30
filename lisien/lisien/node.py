@@ -763,9 +763,9 @@ class Thing(Node, AbstractThing):
 
 	def _delete(self, now: Optional[Time] = None) -> None:
 		with self.engine.world_lock, self.engine.batch():
-			super()._delete(now=now)
 			if now is None:
 				now = self.engine._nbtt()
+			super()._delete(now=now)
 			# don't advance time to store my non-location
 			self.engine._things_cache.store(
 				self.character.name, self.name, *now, None
