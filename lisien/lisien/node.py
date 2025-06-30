@@ -586,10 +586,7 @@ class Node(graph.Node, rule.RuleFollower):
 				now = engine._nbtt()
 			for k in self:
 				assert k != "name"
-				if k == "location":
-					engine._things_cache.store(g, n, *now, None)
-					engine.query.set_thing_loc(g, n, *now, None)
-				else:
+				if k != "location":
 					self._set_cache(k, *now, None)
 					self._set_db(k, *now, None)
 			engine._exist_node(g, n, False, now=now)
