@@ -12,11 +12,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import os
-import shutil
 from functools import partial
 from logging import getLogger
-from queue import SimpleQueue
 
 import pytest
 
@@ -222,16 +219,10 @@ def null_engine():
 	scope="function", params=[pytest.param("sqlite", marks=pytest.mark.sqlite)]
 )
 def college24_premade(tmp_path, request):
-	shutil.unpack_archive(
-		os.path.join(
-			os.path.abspath(os.path.dirname(__file__)),
-			"college24_premade.tar.xz",
-		),
-		tmp_path,
-	)
 	with Engine(
 		tmp_path,
 		workers=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
+		college.install(eng)
 		yield eng
