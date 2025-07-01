@@ -55,12 +55,12 @@ def install(eng):
 		node.travel_to(node.character.place["classroom"])
 
 	@go_to_class.trigger
-	def absent(node):
-		return node.location != node.character.place["classroom"]
-
-	@go_to_class.prereq
 	def class_in_session(node):
 		return 8 <= node.engine.character["physical"].stat["hour"] < 15
+
+	@go_to_class.prereq
+	def absent(node):
+		return node.location != node.character.place["classroom"]
 
 	@go_to_class.prereq
 	def be_timely(node):
@@ -128,15 +128,16 @@ def install(eng):
 	sloth.prereq(class_in_session)
 
 	@eng.rule
-	def learn(unit):
-		for user in unit.user.values():
+	def learn(node):
+		for user in node.user.values():
 			if "xp" in user.stat:
 				user.stat["xp"] += 1
 
 	@learn.trigger
-	def in_class(unit):
-		classroom = unit.engine.character["physical"].place["classroom"]
-		return unit.location == classroom
+	def in_class(node):
+		classroom = node.engine.character["physical"].place["classroom"]
+		student = node.character.unit["physical"].only
+		return student.location == classroom
 
 	learn.prereq(class_in_session)
 	learn.neighborhood = 0
