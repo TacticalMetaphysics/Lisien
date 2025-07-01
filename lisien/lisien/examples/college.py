@@ -136,11 +136,7 @@ def install(eng):
 	@learn.trigger
 	def in_class(unit):
 		classroom = unit.engine.character["physical"].place["classroom"]
-		if hasattr(unit, "location"):
-			assert unit == unit.character.unit["physical"].only
-			return unit.location == classroom
-		else:
-			return unit.character.unit["physical"].only.location == classroom
+		return unit.location == classroom
 
 	learn.prereq(class_in_session)
 	learn.neighborhood = 0
