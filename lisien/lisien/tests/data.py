@@ -47370,7 +47370,7 @@ COLLEGE_KEYFRAME_0 = {
 	"prereqs": {
 		"catch_up": ["in_class", "class_in_session"],
 		"drink": ["is_drunkard"],
-		"go_to_class": ["class_in_session", "be_timely"],
+		"go_to_class": ["absent", "be_timely"],
 		"learn": ["class_in_session", "pay_attention"],
 		"leave_class": [],
 		"sloth": ["class_in_session"],
@@ -47675,7 +47675,7 @@ COLLEGE_KEYFRAME_0 = {
 	"triggers": {
 		"catch_up": ["somewhat_late"],
 		"drink": ["party_time"],
-		"go_to_class": ["absent"],
+		"go_to_class": ["class_in_session"],
 		"learn": ["in_class"],
 		"leave_class": ["in_classroom_after_class"],
 		"sloth": ["out_of_class"],
@@ -47684,7 +47684,7 @@ COLLEGE_KEYFRAME_0 = {
 	},
 }
 
-COLLEGE_KEYFRAME_1 = COLLEGE_KEYFRAME_1 = {
+COLLEGE_KEYFRAME_1 = {
 	"actions": {
 		"catch_up": ["catch_up"],
 		"drink": ["drink"],
@@ -70924,7 +70924,7 @@ COLLEGE_KEYFRAME_1 = COLLEGE_KEYFRAME_1 = {
 	"prereqs": {
 		"catch_up": ["in_class", "class_in_session"],
 		"drink": ["is_drunkard"],
-		"go_to_class": ["class_in_session", "be_timely"],
+		"go_to_class": ["absent", "be_timely"],
 		"learn": ["class_in_session", "pay_attention"],
 		"leave_class": [],
 		"sloth": ["class_in_session"],
@@ -71229,7 +71229,7 @@ COLLEGE_KEYFRAME_1 = COLLEGE_KEYFRAME_1 = {
 	"triggers": {
 		"catch_up": ["somewhat_late"],
 		"drink": ["party_time"],
-		"go_to_class": ["absent"],
+		"go_to_class": ["class_in_session"],
 		"learn": ["in_class"],
 		"leave_class": ["in_classroom_after_class"],
 		"sloth": ["out_of_class"],
