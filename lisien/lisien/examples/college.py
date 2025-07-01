@@ -135,6 +135,8 @@ def install(eng):
 
 	@learn.trigger
 	def in_class(unit):
+		if not hasattr(unit, "location"):
+			return False
 		classroom = unit.engine.character["physical"].place["classroom"]
 		return unit.location == classroom
 
