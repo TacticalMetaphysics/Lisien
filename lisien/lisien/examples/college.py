@@ -213,9 +213,8 @@ def install(eng):
 				# Apply these previously written rules to each student
 				for rule in (drink, sloth):
 					student.rule(rule)
-				student.unit.rule(learn)
 				# Apply these previously written rules to each brain cell
-				for rule in (sober_up, catch_up):
+				for rule in (learn, sober_up, catch_up):
 					student.place.rule(rule)
 	eng.snap_keyframe()
 
