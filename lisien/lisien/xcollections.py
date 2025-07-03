@@ -30,10 +30,12 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from ast import Expr, Module, parse
-from collections.abc import MutableMapping
+from collections import UserDict
+from collections.abc import MutableMapping, KeysView
 from copy import deepcopy
 from inspect import getsource
 from io import StringIO
+from typing import overload, KT, VT, T
 
 import networkx as nx
 from astunparse import Unparser
@@ -102,6 +104,48 @@ class TamperEvidentDict(dict):
 	def __delitem__(self, key):
 		self.tampered = True
 		super().__delitem__(key)
+
+
+class ChangeTrackingDict(UserDict):
+	def __init__(self, data=()):
+		self.changed = {}
+		super().__init__(data)
+
+	def apply_changes(self):
+		self.data.update(self.changed)
+		self.changed.clear()
+
+	def copy(self):
+		ret = {}
+		ret.update(self.data)
+		ret.update(self.changed)
+		return ret
+
+	def __contains__(self, item):
+		return item in self.changed or item in self.data
+
+	def __iter__(self):
+		yield from self.changed
+		yield from self.data
+
+	def __len__(self):
+		return len(self.changed) + len(self.data)
+
+	def __getitem__(self, item):
+		if item in self.changed:
+			return self.changed[item]
+		return self.data[item]
+
+	def __setitem__(self, key, value):
+		self.changed[key] = value
+
+	def __delitem__(self, key):
+		if key in self.changed:
+			del self.changed[key]
+			if key in self.data:
+				del self.data[key]
+		else:
+			del self.data[key]
 
 
 class StringStore(MutableMapping, Signal):

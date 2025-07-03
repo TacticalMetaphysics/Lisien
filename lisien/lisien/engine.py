@@ -175,6 +175,7 @@ from .xcollections import (
 	CharacterMapping,
 	FunctionStore,
 	StringStore,
+	ChangeTrackingDict,
 	UniversalMapping,
 )
 
@@ -783,7 +784,7 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]]:
 		"""Parent, start time, and end time of each branch. Includes plans."""
-		return {}
+		return ChangeTrackingDict()
 
 	@cached_property
 	def _branch_parents(self) -> dict[Branch, set[Branch]]:
@@ -6954,19 +6955,23 @@ class Engine(AbstractEngine, Executor):
 		"""
 		turn_end = self._turn_end
 		set_turn = self.query.set_turn
-		for (branch, turn), plan_end_tick in self._turn_end_plan.items():
-			set_turn(branch, turn, turn_end[branch, turn], plan_end_tick)
+		if self._turn_end_plan.changed:
+			for (branch, turn), plan_end_tick in self._turn_end_plan.changed.items():
+				set_turn(branch, turn, turn_end[branch, turn], plan_end_tick)
+			self._turn_end_plan.apply_changes()
 		set_branch = self.query.set_branch
-		for branch, (
-			parent,
-			turn_start,
-			tick_start,
-			turn_end,
-			tick_end,
-		) in self._branches_d.items():
-			set_branch(
-				branch, parent, turn_start, tick_start, turn_end, tick_end
-			)
+		if self._branches_d.changed:
+			for branch, (
+				parent,
+				turn_start,
+				tick_start,
+				turn_end,
+				tick_end,
+			) in self._branches_d.changed.items():
+				set_branch(
+					branch, parent, turn_start, tick_start, turn_end, tick_end
+				)
+			self._branches_d.apply_changes()
 		self.query.flush()
 
 	@world_locked
