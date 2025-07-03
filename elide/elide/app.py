@@ -304,9 +304,7 @@ class ElideApp(App):
 		self.mainmenu = elide.menu.MainMenuScreen(toggle=self._toggler("main"))
 		self.manager.add_widget(self.mainmenu)
 		if self.immediate_start:
-			self._add_screens()
-			self.manager.current = "mainscreen"
-			Clock.schedule_once(self.start_game, 0)
+			self.start_game()
 		else:
 			Clock.schedule_once(self.update_root_viewport, 3)
 		return self.manager
