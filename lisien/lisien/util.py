@@ -1478,7 +1478,7 @@ def _garbage_dec(fn: callable, collect=True) -> callable:
 	return garbage
 
 
-def garbage(arg: callable = None, collect=True):
+def garbage(arg: callable = None, collect: bool=False):
 	"""Disable the garbage collector, then re-enable it when done.
 
 	May be used as a context manager or a decorator.
