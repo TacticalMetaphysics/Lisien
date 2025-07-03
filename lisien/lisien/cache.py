@@ -55,6 +55,7 @@ from .window import (
 	TurnDict,
 	WindowDict,
 )
+from .xcollections import ChangeTrackingDict
 
 if TYPE_CHECKING:
 	from . import engine
@@ -233,11 +234,14 @@ class StructuredDefaultDict(dict):
 			raise TypeError("Can't set layer {}".format(self.layer))
 
 
-@dataclass
-class TurnEndDict(dict):
+class TurnEndDict(ChangeTrackingDict):
 	"""Tick on which a (branch, turn) ends, not including any plans"""
 
 	engine: "engine.Engine"
+
+	def __init__(self, engine):
+		self.engine = engine
+		super().__init__()
 
 	@cached_property
 	def other_d(self) -> dict[tuple[Branch, Turn], Tick]:
@@ -246,7 +250,7 @@ class TurnEndDict(dict):
 	def __getitem__(self, item: tuple[Branch, Turn]) -> Tick:
 		if item not in self:
 			if item not in self.other_d:
-				dict.__setitem__(self.other_d, item, 0)
+				self.other_d[item] = 0
 				super().__setitem__(item, 0)
 				return 0
 			else:
@@ -256,15 +260,14 @@ class TurnEndDict(dict):
 		return super().__getitem__(item)
 
 	def __setitem__(self, key: tuple[Branch, Turn], value: Tick):
-		dict.__setitem__(self, key, value)
+		super().__setitem__(key, value)
 		if (
-			not dict.__contains__(self.other_d, key)
-			or dict.__getitem__(self.other_d, key) < value
+			key not in self.other_d
+			or self.other_d[key] < value
 		):
-			dict.__setitem__(self.other_d, key, value)
+			self.other_d[key] = value
 
 
-@dataclass
 class TurnEndPlanDict(TurnEndDict):
 	"""Tick on which a (branch, turn) ends, including plans"""
 
@@ -275,11 +278,11 @@ class TurnEndPlanDict(TurnEndDict):
 		return self.engine._turn_end
 
 	def __setitem__(self, key: tuple[Branch, Turn], value: Tick):
-		if dict.__contains__(self.other_d, key):
-			assert value >= dict.__getitem__(self.other_d, key)
+		if key in self.other_d:
+			assert value >= self.other_d[key]
 		else:
-			dict.__setitem__(self.other_d, key, value)
-		dict.__setitem__(self, key, value)
+			self.other_d[key] = value
+		super().__setitem__(key, value)
 
 
 class Cache:
