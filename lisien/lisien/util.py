@@ -1388,7 +1388,7 @@ class AbstractThing(ABC):
 				turn_incs.append(1)
 			turns_total += turn_incs[-1]
 			turn += turn_incs[-1]
-			tick = eng._turn_end_plan.get(turn, 0)
+			tick = eng._turn_end_plan.get((branch, turn), 0)
 		with eng.plan():
 			for subplace, turn_inc in zip(subpath, turn_incs):
 				eng.turn += turn_inc
