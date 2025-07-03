@@ -312,6 +312,9 @@ class ElideApp(App):
 		return self.manager
 
 	def update_root_viewport(self, *_):
+		if not self.root_window:
+			Clock.schedule_once(self.update_root_viewport, 0)
+			return
 		self.root_window.update_viewport()
 		Logger.debug("ElideApp: updated root viewport")
 
