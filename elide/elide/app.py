@@ -797,8 +797,9 @@ class ElideApp(App):
 		Logger.debug("ElideApp: stopping")
 		if hasattr(self, "stopped"):
 			return
+		if hasattr(self, "engine"):
+			self.close_game()
 		self.stopped = True
-		self.close_game()
 		Logger.debug("ElideApp: stopped")
 		return True
 
