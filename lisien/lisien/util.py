@@ -1484,7 +1484,7 @@ def garbage(arg: callable = None, collect: bool=False):
 	May be used as a context manager or a decorator.
 
 	:param collect: Whether to immediately run a collection after re-enabling
-		the garbage collector. Default ``True``.
+		the garbage collector. Default ``False``.
 
 	"""
 
