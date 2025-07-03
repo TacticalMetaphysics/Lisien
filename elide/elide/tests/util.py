@@ -143,7 +143,7 @@ class ELiDEAppTest(GraphicUnitTest):
 		super(ELiDEAppTest, self).setUp()
 		self.old_argv = sys.argv.copy()
 		sys.argv = ["python", "-m", "elide", self.prefix]
-		self.app = ElideApp()
+		self.app = ElideApp(immediate_start=True)
 		self.app.config = ConfigParser(None)
 		self.app.build_config(self.app.config)
 
