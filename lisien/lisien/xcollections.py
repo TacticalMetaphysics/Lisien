@@ -121,6 +121,10 @@ class ChangeTrackingDict(UserDict):
 		ret.update(self.changed)
 		return ret
 
+	def clear(self):
+		self.data.clear()
+		self.changed.clear()
+
 	def __contains__(self, item):
 		return item in self.changed or item in self.data
 
