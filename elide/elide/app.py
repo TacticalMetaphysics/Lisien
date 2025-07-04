@@ -92,6 +92,7 @@ class ElideApp(App):
 	connect_string = StringProperty(None, allownone=True)
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
+	character_name = ObjectProperty()
 
 	@logwrap
 	def on_selection(self, *_):
@@ -115,27 +116,9 @@ class ElideApp(App):
 			str(origin.name) + "->" + str(destination.name)
 		)
 
-	@logwrap
-	def _get_character_name(self, *_):
-		if self.character is None:
-			return
-		return self.character.name
-
-	@logwrap
-	def _set_character_name(self, name, *_):
-		if not hasattr(self, "engine"):
-			Logger.warning(
-				"ElideApp: waiting for engine to set character name %s",
-				repr(name),
-			)
-			Clock.schedule_once(partial(self._set_character_name, name), 0)
-			return
-		if not self.character or self.character.name != name:
+	def on_character_name(self, name, *_):
+		if hasattr(self, "engine") and name in self.engine.character:
 			self.character = self.engine.character[name]
-
-	character_name = AliasProperty(
-		_get_character_name, _set_character_name, bind=("character",)
-	)
 
 	@logwrap
 	def _pull_time(self, *_):
@@ -383,6 +366,11 @@ class ElideApp(App):
 		)
 		self.engine = engine = self.procman.start(path, **enkw)
 		Logger.debug("Got EngineProxy")
+		if "boardchar" in engine.eternal:
+			self.character_name = engine.eternal["boardchar"]
+		elif self.character_name is not None:
+			self.character = engine.character[self.character_name]
+		Logger.debug("Pulled character")
 		self.pull_time()
 		Logger.debug("Pulled time")
 
@@ -657,15 +645,6 @@ class ElideApp(App):
 
 	def refresh_selected_proxy(self, *_):
 		self.selected_proxy = self._get_selected_proxy()
-
-	def on_character_name(self, *_):
-		if not hasattr(self, "engine"):
-			Logger.debug("ElideApp: got character name before engine")
-			Clock.schedule_once(self.on_character_name, 0)
-			return
-		self.engine.eternal["boardchar"] = self.engine.character[
-			self.character_name
-		]
 
 	def on_character(self, *_):
 		if not hasattr(self, "mainscreen"):
