@@ -573,7 +573,8 @@ class ElideApp(App):
 		if os.path.exists(os.path.join(self.games_dir, archived_base)):
 			os.remove(os.path.join(self.games_dir, archived_base))
 		os.rename(archived, os.path.join(self.games_dir, archived_base))
-		shutil.rmtree(game_wd)
+		if not hasattr(self, "leave_game"):
+			shutil.rmtree(game_wd)
 		self._remove_screens()
 		if cb:
 			cb()
