@@ -300,15 +300,9 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 
 
 class TestCharRuleBuilder(ELiDEAppTest):
+	install = staticmethod(polygons.install)
+
 	def setUp(self):
-		with Engine(self.prefix) as eng:
-			polygons.install(eng)
-			assert list(
-				eng.character["triangle"].unit.rule["relocate"].triggers
-			) == [
-				eng.trigger.similar_neighbors,
-				eng.trigger.dissimilar_neighbors,
-			]
 		super(TestCharRuleBuilder, self).setUp()
 		app = self.app
 		mgr = app.build()
@@ -325,7 +319,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		idle_until(
 			lambda: app.character_name == "triangle",
 			100,
-			"Never changed character",
+			f"Never changed character; still on {app.character_name}",
 		)
 		app.mainscreen.charmenu.charmenu.toggle_rules()
 		idle_until(
@@ -464,7 +458,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 			"similar_neighbors still in proxy triggers list",
 		)
 		app.stop()
-		with Engine(self.prefix) as eng:
+		with Engine(self.engine_prefix) as eng:
 			assert list(
 				eng.character["triangle"].unit.rule["relocate"].triggers
 			) == [eng.trigger.dissimilar_neighbors]
