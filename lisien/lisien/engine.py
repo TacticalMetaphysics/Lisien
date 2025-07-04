@@ -2212,6 +2212,8 @@ class Engine(AbstractEngine, Executor):
 	):
 		if workers is None:
 			workers = os.cpu_count()
+		if prefix:
+			os.makedirs(prefix, exist_ok=True)
 		self._planning = False
 		self._forward = False
 		self._no_kc = False
