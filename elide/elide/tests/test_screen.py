@@ -29,19 +29,36 @@ class MockStore:
 class ScreenTest(ELiDEAppTest):
 	character_name = "foo"
 
+	@staticmethod
+	def install(eng):
+		foo = eng.new_character("foo")
+		here = foo.new_place((0, 0))
+		foo.add_place((1, 1))
+		foo.add_place(9)  # test that gridboard can handle this
+		this = here.new_thing(2)
+
+		@this.rule(always=True)
+		def go(me):
+			if me["location"] == (1, 1):
+				me["location"] = 9
+			elif me["location"] == 9:
+				me["location"] = (0, 0)
+			else:
+				me["location"] = (1, 1)
+
 	def test_advance_time(self):
 		app = self.app
 		app.mainmenu = MainMenuScreen()
 		app.spotcfg = SpotConfigScreen()
 		app.pawncfg = PawnConfigScreen()
 		app.statcfg = StatScreen()
-		char = CharacterFacade("physical")
+		char = CharacterFacade("foo")
 		app.character = char
 		app.engine = MockEngine()
 		app.strings = MockStore()
 		app.funcs = MockStore()
 		char.character = SimpleNamespace(engine=app.engine)
-		app.engine.character["physical"] = char
+		app.engine.character["foo"] = char
 		entity = ListenableDict()
 		entity.engine = app.engine
 		entity.name = "name"
@@ -51,8 +68,8 @@ class ScreenTest(ELiDEAppTest):
 		charmenu.portaladdbut = ToggleButton()
 		load_kv("elide.screen")
 		screen = MainScreen(
-			graphboards={"physical": GraphBoard(character=char)},
-			gridboards={"physical": GridBoard(character=char)},
+			graphboards={"foo": GraphBoard(character=char)},
+			gridboards={"foo": GridBoard(character=char)},
 			mainview=Widget(),
 			charmenu=charmenu,
 		)
@@ -139,31 +156,15 @@ class ScreenTest(ELiDEAppTest):
 				return all(almost(aa, bb) for (aa, bb) in zip(a, b))
 			return abs(a - b) < 1
 
-		with Engine(self.prefix) as eng:
-			phys = eng.new_character("physical")
-			here = phys.new_place((0, 0))
-			phys.add_place((1, 1))
-			phys.add_place(9)  # test that gridboard can handle this
-			this = here.new_thing(2)
-
-			@this.rule(always=True)
-			def go(me):
-				if me["location"] == (1, 1):
-					me["location"] = 9
-				elif me["location"] == 9:
-					me["location"] = (0, 0)
-				else:
-					me["location"] = (1, 1)
-
 		app = self.app
 		app.starting_dir = self.prefix
 		app.build()
 		idle_until(
 			lambda: hasattr(app, "engine"), 100, "Never got engine proxy"
 		)
-		assert app.engine.character["physical"].thing[2]["location"] == (0, 0)
-		graphboard = app.mainscreen.graphboards["physical"]
-		gridboard = app.mainscreen.gridboards["physical"]
+		assert app.engine.character["foo"].thing[2]["location"] == (0, 0)
+		graphboard = app.mainscreen.graphboards["foo"]
+		gridboard = app.mainscreen.gridboards["foo"]
 		idle_until(
 			lambda: graphboard.size != [100, 100],
 			100,
@@ -207,11 +208,11 @@ class ScreenTest(ELiDEAppTest):
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
 
-		loc = app.engine.character["physical"].thing[2]["location"]
+		loc = app.engine.character["foo"].thing[2]["location"]
 
 		def relocated_to(dest):
 			nonlocal loc
-			loc = app.engine.character["physical"].thing[2]["location"]
+			loc = app.engine.character["foo"].thing[2]["location"]
 			return loc == dest
 
 		idle_until(
@@ -239,7 +240,7 @@ class ScreenTest(ELiDEAppTest):
 		locspot9 = graphboard.spot[9]
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
-		loc = app.engine.character["physical"].thing[2]["location"]
+		loc = app.engine.character["foo"].thing[2]["location"]
 		idle_until(
 			partial(relocated_to, 9),
 			1000,
@@ -259,7 +260,7 @@ class ScreenTest(ELiDEAppTest):
 		)
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
-		loc = app.engine.character["physical"].thing[2]["location"]
+		loc = app.engine.character["foo"].thing[2]["location"]
 		idle_until(
 			partial(relocated_to, (0, 0)),
 			1000,
