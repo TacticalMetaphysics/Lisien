@@ -168,6 +168,7 @@ class ELiDEAppTest(GraphicUnitTest):
 			game_name=self.game_name,
 			character_name=self.character_name,
 		)
+		self.app.leave_game = True
 		self.app.config = ConfigParser(None)
 		self.app.build_config(self.app.config)
 
