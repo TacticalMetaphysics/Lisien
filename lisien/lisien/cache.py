@@ -261,10 +261,7 @@ class TurnEndDict(ChangeTrackingDict):
 
 	def __setitem__(self, key: tuple[Branch, Turn], value: Tick):
 		super().__setitem__(key, value)
-		if (
-			key not in self.other_d
-			or self.other_d[key] < value
-		):
+		if key not in self.other_d or self.other_d[key] < value:
 			self.other_d[key] = value
 
 
@@ -2733,7 +2730,8 @@ class RulesHandledCache:
 		self.handled: dict[
 			tuple[CharName, RulebookName, Branch, Turn]
 			| tuple[CharName, NodeName, RulebookName, Branch, Turn]
-			| tuple[CharName, NodeName, NodeName, Branch, Turn],
+			| tuple[CharName, NodeName, NodeName, RulebookName, Branch, Turn]
+			| tuple[CharName, CharName, NodeName, RulebookName, Branch, Turn],
 			set[RuleName],
 		] = {}
 		self.handled_deep: dict[
