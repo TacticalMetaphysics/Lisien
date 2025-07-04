@@ -2517,7 +2517,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _setup_fut_manager(self, workers: int):
 		self._workers = workers
-		self._worker_updated_btts = [self._btt()] * workers
+		self._worker_updated_btts: list[Time] = [self._btt()] * workers
 		self._uid_to_fut: dict[int, Future] = {}
 		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
 		self._how_many_futs_running = 0
@@ -3002,7 +3002,7 @@ class Engine(AbstractEngine, Executor):
 	) -> Keyframe:
 		"""Get a keyframe that's already in memory"""
 		assert (branch, turn, tick) in self._keyframes_loaded
-		graph_val: GraphValDict = {}
+		graph_val: GraphValKeyframe = {}
 		nodes: GraphNodesKeyframe = {}
 		node_val: GraphNodeValKeyframe = {}
 		edges: GraphEdgesKeyframe = {}
@@ -4913,7 +4913,7 @@ class Engine(AbstractEngine, Executor):
 	@world_locked
 	def _init_graph(
 		self,
-		name: Key,
+		name: CharName,
 		type_s: str = "DiGraph",
 		data: CharacterFacade | Graph | nx.Graph | dict | KeyframeTuple = None,
 	) -> None:
@@ -5027,7 +5027,7 @@ class Engine(AbstractEngine, Executor):
 			self._call_every_subprocess("_add_character", name, data)
 
 	@world_locked
-	def _complete_turn(self, branch: str, turn: int) -> None:
+	def _complete_turn(self, branch: Branch, turn: Turn) -> None:
 		self._extend_branch(branch, turn, self.turn_end_plan(branch, turn))
 		self._turns_completed_d[branch] = turn
 		self.query.complete_turn(
@@ -5530,7 +5530,7 @@ class Engine(AbstractEngine, Executor):
 		"""
 		if hasattr(self, "_closed"):
 			raise RuntimeError("Already closed")
-		time_was = (self.turn, self.tick)
+		time_was: tuple[Turn, Tick] = (self.turn, self.tick)
 		if time_was > self._branch_end():
 			(self.turn, self.tick) = self._branch_end()
 		if (
