@@ -513,7 +513,10 @@ class ElideApp(App):
 
 	def _remove_screens(self):
 		Logger.debug("ElideApp: _remove_screens")
-		Clock.unschedule(self.mainscreen.play)
+		if hasattr(self, "mainscreen"):
+			Clock.unschedule(self.mainscreen.play)
+		if not hasattr(self, "manager"):
+			return
 		for widname in (
 			"mainscreen",
 			"pawncfg",
@@ -550,7 +553,7 @@ class ElideApp(App):
 	def close_game(self, *_, cb=None):
 		Logger.debug(f"ElideApp: close_game(cb={cb!r})")
 		self.mainmenu.invalidate_popovers()
-		if "main" in self.manager.screen_names:
+		if hasattr(self, "manager") and "main" in self.manager.screen_names:
 			self.manager.current = "main"
 		if hasattr(self, "procman"):
 			self.procman.shutdown()
