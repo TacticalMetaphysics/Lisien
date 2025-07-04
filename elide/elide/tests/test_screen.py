@@ -4,17 +4,21 @@ from types import SimpleNamespace
 from kivy.base import EventLoop
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.screenmanager import ScreenManager
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.widget import Widget
 
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
 from elide.menu import MainMenuScreen
-from elide.screen import MainScreen
+from elide.screen import MainScreen, StatListPanel, CharMenuContainer
 from elide.spritebuilder import PawnConfigScreen, SpotConfigScreen
 from elide.statcfg import StatScreen
 from lisien import Engine
 from lisien.facade import CharacterFacade
 
 from .util import ELiDEAppTest, ListenableDict, MockEngine, idle_until
+from ..charmenu import CharMenu
+from ..util import load_kv
 
 
 class MockStore:
@@ -40,10 +44,19 @@ class ScreenTest(ELiDEAppTest):
 		entity.engine = app.engine
 		entity.name = "name"
 		app.selected_proxy = app.proxy = app.statcfg.proxy = entity
+		load_kv("elide.charmenu")
+		charmenu = CharMenu(size_hint_y=0.9)
+		charmenu.portaladdbut = ToggleButton()
+		load_kv("elide.screen")
 		screen = MainScreen(
 			graphboards={"physical": GraphBoard(character=char)},
 			gridboards={"physical": GridBoard(character=char)},
+			mainview=Widget(),
+			charmenu=charmenu,
 		)
+		charmenu.screen = screen
+		screen.statpanel = StatListPanel()
+		screen.populate()
 		self.Window.add_widget(screen)
 		idle_until(
 			lambda: "timepanel" in screen.ids, 100, "timepanel never got id"
