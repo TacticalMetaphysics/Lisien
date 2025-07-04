@@ -117,7 +117,11 @@ class ElideApp(App):
 		)
 
 	def on_character_name(self, name, *_):
-		if hasattr(self, "engine") and name in self.engine.character:
+		if (
+			hasattr(self, "engine")
+			and name in self.engine.character
+			and (not self.character or self.character.name != name)
+		):
 			self.character = self.engine.character[name]
 
 	@logwrap
@@ -655,6 +659,8 @@ class ElideApp(App):
 			Clock.schedule_once(self.on_character, 0)
 			return
 		Logger.debug("ElideApp: changed character, deselecting")
+		if self.character_name != self.character.name:
+			self.character_name = self.character.name
 		if hasattr(self, "_oldchar"):
 			self.mainscreen.graphboards[self._oldchar.name].unbind(
 				selection=self.setter("selection")
