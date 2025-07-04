@@ -534,23 +534,10 @@ class ElideApp(App):
 		game_name = name or self.game_name
 		if self.game_name != game_name:
 			self.game_name = game_name
-		gamedir = os.path.join(self.prefix, game_name)
+		gamedir = os.path.join(self.prefix, self.games_dir, game_name)
 		self._add_screens()
 		self.manager.current = "mainscreen"
 		engine = self.engine = self.start_subprocess(gamedir)
-		if "boardchar" in engine.eternal:
-			boardchar = engine.eternal["boardchar"]
-			if hasattr(boardchar, "name"):
-				boardchar = boardchar.name
-			self.select_character(
-				engine.character[boardchar]
-			)
-		elif "physical" in engine.character:
-			self.select_character(engine.character["physical"])
-		elif engine.character:
-			self.select_character(next(iter(engine.character.values())))
-		else:
-			Logger.warning("No characters yet")
 		self.mainscreen.populate()
 		self.init_board()
 		if cb:
@@ -590,9 +577,11 @@ class ElideApp(App):
 
 	def update_calendar(self, calendar, past_turns=1, future_turns=5):
 		"""Fill in a calendar widget with actual simulation data"""
-		Logger.debug(f"ElideApp: update_calendar({calendar!r}, "
-		             f"past_turns={past_turns!r}, "
-		             f"future_turns={future_turns!r})")
+		Logger.debug(
+			f"ElideApp: update_calendar({calendar!r}, "
+			f"past_turns={past_turns!r}, "
+			f"future_turns={future_turns!r})"
+		)
 		startturn = self.turn - past_turns
 		endturn = self.turn + future_turns
 		stats = [
@@ -672,7 +661,9 @@ class ElideApp(App):
 		filename: str,
 		mimetype: str | None = None,
 	) -> None:
-		Logger.debug(f"ElideApp: copy_to_shared_storage({filename!r}, {mimetype!r})")
+		Logger.debug(
+			f"ElideApp: copy_to_shared_storage({filename!r}, {mimetype!r})"
+		)
 		try:
 			from androidstorage4kivy import SharedStorage
 		except ModuleNotFoundError:
