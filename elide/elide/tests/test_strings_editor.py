@@ -20,12 +20,6 @@ class StringsEditorTest(ELiDEAppTest):
 			100,
 			"timestream never added to manager",
 		)
-		idle_until(
-			lambda: hasattr(app.mainmenu, "configurator"),
-			100,
-			"DirPicker never got configurator",
-		)
-		app.mainmenu.configurator.start()  # start with blank world
 
 		def app_has_engine():
 			return hasattr(self.app.get_running_app(), "engine")
@@ -69,6 +63,6 @@ class StringsEditorTest(ELiDEAppTest):
 		self.advance_frames(10)
 		edbox.dismiss()
 		app.stop()
-		with Engine(self.prefix) as eng:
+		with Engine(self.engine_prefix) as eng:
 			assert "a string" in eng.string
 			assert eng.string["a string"] == "its value"
