@@ -369,7 +369,10 @@ class ElideApp(App):
 		if "boardchar" in engine.eternal:
 			self.character_name = engine.eternal["boardchar"]
 		elif self.character_name is not None:
-			self.character = engine.character[self.character_name]
+			if self.character_name in engine.character:
+				self.character = engine.character[self.character_name]
+			else:
+				self.character = engine.new_character(self.character_name)
 		Logger.debug("Pulled character")
 		self.pull_time()
 		Logger.debug("Pulled time")
