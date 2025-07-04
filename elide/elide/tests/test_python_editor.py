@@ -65,5 +65,6 @@ class TestCreateAction(PythonEditorTest):
 		actions_box.editor.ids.funname.text = "new_func"
 		actions_box.editor.ids.code.text = 'return "Hello, world!"'
 		app.stop()
-		with Engine(self.prefix) as eng:
+		assert app.stopped
+		with Engine(self.engine_prefix) as eng:
 			assert hasattr(eng.action, "new_func")
