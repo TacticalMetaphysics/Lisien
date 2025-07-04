@@ -154,3 +154,14 @@ Keyframe = dict[
 	| dict[RuleName, bool]
 	| dict[RulebookName, RulebookKeyframe],
 ]
+SlightlyPackedDeltaType = dict[
+	bytes,
+	dict[
+		bytes,
+		bytes
+		| dict[
+			bytes,
+			bytes | dict[bytes, bytes | dict[bytes, bytes]],
+		],
+	],
+]

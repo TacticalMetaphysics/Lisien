@@ -48,7 +48,7 @@ from random import Random, randint
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Callable, Iterable, Iterator, Optional, Type, Literal
+from typing import Any, Callable, Iterable, Iterator, Optional, Type
 
 import networkx as nx
 import numpy as np
@@ -136,6 +136,7 @@ from .typing import (
 	RulebookName,
 	RuleName,
 	GraphValKeyframe,
+	SlightlyPackedDeltaType,
 )
 from .util import (
 	AbstractCharacter,
@@ -151,25 +152,20 @@ from .util import (
 	TRUE,
 	FALSE,
 	NONE,
-	NAME,
 	NODES,
 	EDGES,
-	UNITS,
 	RULEBOOK,
 	RULEBOOKS,
 	NODE_VAL,
 	EDGE_VAL,
 	ETERNAL,
 	UNIVERSAL,
-	STRINGS,
 	RULES,
 	TRIGGERS,
 	PREREQS,
 	ACTIONS,
 	NEIGHBORHOOD,
 	BIG,
-	LOCATION,
-	BRANCH,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
@@ -179,18 +175,6 @@ from .xcollections import (
 	ChangeTrackingDict,
 	UniversalMapping,
 )
-
-SlightlyPackedDeltaType = dict[
-	bytes,
-	dict[
-		bytes,
-		bytes
-		| dict[
-			bytes,
-			bytes | dict[bytes, bytes | dict[bytes, bytes]],
-		],
-	],
-]
 
 
 class InnerStopIteration(StopIteration):
