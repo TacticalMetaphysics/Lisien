@@ -27,6 +27,8 @@ class MockStore:
 
 
 class ScreenTest(ELiDEAppTest):
+	character_name = "foo"
+
 	def test_advance_time(self):
 		app = self.app
 		app.mainmenu = MainMenuScreen()
@@ -94,11 +96,19 @@ class ScreenTest(ELiDEAppTest):
 		entity.engine = app.engine
 		entity.name = "name"
 		app.selected_proxy = app.proxy = app.statcfg.proxy = entity
-		screen = MainScreen(
+		load_kv("elide.charmenu")
+		charmenu = CharMenu(size_hint_y=0.9)
+		charmenu.portaladdbut = ToggleButton()
+		load_kv("elide.screen")
+		screen = app.mainscreen = MainScreen(
 			graphboards={"foo": GraphBoard(character=char)},
 			gridboards={"foo": GridBoard(character=char)},
-			play_speed=1.0,
+			mainview=Widget(),
+			charmenu=charmenu,
 		)
+		charmenu.screen = screen
+		screen.statpanel = StatListPanel()
+		screen.populate()
 		app.manager.add_widget(screen)
 		self.Window.add_widget(app.manager)
 		idle_until(
@@ -112,6 +122,7 @@ class ScreenTest(ELiDEAppTest):
 		)
 		turnfield = timepanel.ids["turnfield"]
 		playbut = screen.playbut = timepanel.ids["playbut"]
+		idle_until(lambda: screen.boardview, 100, "screen never got boardview")
 		motion = UnitTestTouch(*playbut.center)
 		motion.touch_down()
 		motion.touch_up()
