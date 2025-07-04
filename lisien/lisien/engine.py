@@ -5694,7 +5694,7 @@ class Engine(AbstractEngine, Executor):
 			)
 			return
 		self.query.handled_character_portal_rule(
-			character, orig, dest, rulebook, rule, branch, turn, tick
+			character, rulebook, rule, orig, dest, branch, turn, tick
 		)
 
 	def _handled_node(
