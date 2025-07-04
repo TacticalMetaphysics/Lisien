@@ -955,14 +955,9 @@ class Character(AbstractCharacter, RuleFollower):
 					self._iter_stuff
 				)
 				n = 0
-				for n, _ in enumerate(
-					filter(
-						validate,
-						get_char_graph_avs(name, graphn, *btt()),
-					),
-					start=1,
-				):
-					pass
+				for that in get_char_graph_avs(name, graphn, *btt()):
+					if validate(name, graphn, that, *btt()):
+						n += 1
 				return n
 
 			def __getitem__(self, av):
