@@ -18,11 +18,13 @@ def test_build_keyframe_window(null_engine):
 		("trunk", 10, 578),
 		("trunk", 10, 3139),
 	}
-	null_engine._branches_d = {
-		"lol": ("trunk", 5, 240, 10, 3877),
-		"omg": ("lol", 5, 241, 5, 241),
-		"trunk": (None, 0, 0, 10, 3284),
-	}
+	null_engine._branches_d.update(
+		{
+			"lol": ("trunk", 5, 240, 10, 3877),
+			"omg": ("lol", 5, 241, 5, 241),
+			"trunk": (None, 0, 0, 10, 3284),
+		}
+	)
 	assert null_engine._build_keyframe_window("lol", 5, 241) == (
 		("lol", 5, 241),
 		("lol", 9, 37),
