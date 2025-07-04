@@ -56,7 +56,13 @@ class CharMenu(BoxLayout):
 
 	@logwrap(section="CharMenu")
 	def on_screen(self, *_):
-		if not (self.screen and self.screen.boardview and self.screen.app):
+		if not (
+			self.screen
+			and self.screen.boardview
+			and self.screen.app
+			and "emptyleft" in self.ids
+			and "emptyright" in self.ids
+		):
 			Clock.schedule_once(self.on_screen, 0)
 			return
 		self.forearrow = GraphArrowWidget(
