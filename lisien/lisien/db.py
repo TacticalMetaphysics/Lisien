@@ -52,6 +52,7 @@ from .typing import (
 	EdgeValRowType,
 	GraphValKeyframe,
 	GraphValRowType,
+	Key,
 )
 from .typing import (
 	NodeKeyframe,
@@ -6146,28 +6147,30 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@garbage
 	@mutexed
 	def flush(self):
-		if not any((
-			self._universals2set,
-			self._noderb2set,
-			self._portrb2set,
-			self._graphvals2set,
-			self._nodes2set,
-			self._edges2set,
-			self._edgevals2set,
-			self._planticks2set,
-			self._unitness,
-			self._location,
-			self._char_rules_handled,
-			self._unit_rules_handled,
-			self._char_thing_rules_handled,
-			self._char_place_rules_handled,
-			self._char_portal_rules_handled,
-			self._node_rules_handled,
-			self._portal_rules_handled,
-			self._new_keyframes,
-			self._new_keyframe_times,
-			self._new_keyframe_extensions,
-		)):
+		if not any(
+			(
+				self._universals2set,
+				self._noderb2set,
+				self._portrb2set,
+				self._graphvals2set,
+				self._nodes2set,
+				self._edges2set,
+				self._edgevals2set,
+				self._planticks2set,
+				self._unitness,
+				self._location,
+				self._char_rules_handled,
+				self._unit_rules_handled,
+				self._char_thing_rules_handled,
+				self._char_place_rules_handled,
+				self._char_portal_rules_handled,
+				self._node_rules_handled,
+				self._portal_rules_handled,
+				self._new_keyframes,
+				self._new_keyframe_times,
+				self._new_keyframe_extensions,
+			)
+		):
 			return
 		records = sum(
 			(
@@ -9369,28 +9372,30 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	@mutexed
 	def flush(self):
 		"""Put all pending changes into the SQL transaction."""
-		if not any((
-			self._universals2set,
-			self._nodes2set,
-			self._edges2set,
-			self._node_rulebook_to_set,
-			self._portal_rulebook_to_set,
-			self._graphvals2set,
-			self._nodevals2set,
-			self._edgevals2set,
-			self._new_keyframes,
-			self._new_keyframe_times,
-			self._new_keyframe_extensions,
-			self._unitness,
-			self._location,
-			self._char_rules_handled,
-			self._char_thing_rules_handled,
-			self._char_place_rules_handled,
-			self._char_portal_rules_handled,
-			self._unit_rules_handled,
-			self._node_rules_handled,
-			self._portal_rules_handled,
-		)):
+		if not any(
+			(
+				self._universals2set,
+				self._nodes2set,
+				self._edges2set,
+				self._node_rulebook_to_set,
+				self._portal_rulebook_to_set,
+				self._graphvals2set,
+				self._nodevals2set,
+				self._edgevals2set,
+				self._new_keyframes,
+				self._new_keyframe_times,
+				self._new_keyframe_extensions,
+				self._unitness,
+				self._location,
+				self._char_rules_handled,
+				self._char_thing_rules_handled,
+				self._char_place_rules_handled,
+				self._char_portal_rules_handled,
+				self._unit_rules_handled,
+				self._node_rules_handled,
+				self._portal_rules_handled,
+			)
+		):
 			return
 		self._inq.put(("echo", "ready"))
 		readied = self._outq.get()

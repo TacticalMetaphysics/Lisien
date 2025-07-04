@@ -48,7 +48,7 @@ from random import Random, randint
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Callable, Iterable, Iterator, Optional, Type
+from typing import Any, Callable, Iterable, Iterator, Optional, Type, Literal
 
 import networkx as nx
 import numpy as np
@@ -119,12 +119,12 @@ from .typing import (
 	CharName,
 	DeltaDict,
 	EdgeValDict,
-	GraphEdgesDict,
-	GraphEdgeValDict,
-	GraphNodesDict,
-	GraphNodeValDict,
-	GraphValDict,
+	GraphEdgesKeyframe,
+	GraphEdgeValKeyframe,
+	GraphNodesKeyframe,
+	GraphNodeValKeyframe,
 	Key,
+	Keyframe,
 	KeyframeTuple,
 	NodeName,
 	NodeValDict,
@@ -135,6 +135,7 @@ from .typing import (
 	Turn,
 	RulebookName,
 	RuleName,
+	GraphValKeyframe,
 )
 from .util import (
 	AbstractCharacter,
@@ -3008,23 +3009,21 @@ class Engine(AbstractEngine, Executor):
 			return False
 
 	def _get_kf(
-		self, branch: str, turn: int, tick: int, copy=True, rulebooks=True
-	) -> dict[
-		Key,
-		GraphNodesDict
-		| GraphNodeValDict
-		| GraphEdgesDict
-		| GraphEdgeValDict
-		| GraphValDict,
-	]:
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
+		rulebooks: bool = True,
+	) -> Keyframe:
 		"""Get a keyframe that's already in memory"""
 		assert (branch, turn, tick) in self._keyframes_loaded
 		graph_val: GraphValDict = {}
-		nodes: GraphNodesDict = {}
-		node_val: GraphNodeValDict = {}
-		edges: GraphEdgesDict = {}
-		edge_val: GraphEdgeValDict = {}
-		kf = {
+		nodes: GraphNodesKeyframe = {}
+		node_val: GraphNodeValKeyframe = {}
+		edges: GraphEdgesKeyframe = {}
+		edge_val: GraphEdgeValKeyframe = {}
+		kf: Keyframe = {
 			"graph_val": graph_val,
 			"nodes": nodes,
 			"node_val": node_val,
@@ -3074,7 +3073,7 @@ class Engine(AbstractEngine, Executor):
 				pass
 
 		if rulebooks:
-			for graph, vals in kf["graph_val"].items():
+			for graph, vals in graph_val.items():
 				try:
 					vals["units"] = self._unitness_cache.get_keyframe(
 						graph, branch, turn, tick
@@ -3121,19 +3120,17 @@ class Engine(AbstractEngine, Executor):
 					)
 				except KeyError:
 					pass
-				if graph in kf["nodes"] and kf["nodes"][graph]:
+				if graph in nodes and nodes[graph]:
 					try:
 						node_rb_kf = self._nodes_rulebooks_cache.get_keyframe(
 							graph, branch, turn, tick
 						)
 					except KeyframeError:
 						node_rb_kf = {}
-					for node in kf["nodes"][graph]:
-						kf.setdefault("node_val", {}).setdefault(
-							graph, {}
-						).setdefault(node, {})["rulebook"] = node_rb_kf.get(
-							node, (graph, node)
-						)
+					for node in nodes[graph]:
+						node_val.setdefault(graph, {}).setdefault(node, {})[
+							"rulebook"
+						] = node_rb_kf.get(node, (graph, node))
 				if graph in kf["edges"] and kf["edges"][graph]:
 					try:
 						port_rb_kf = (
@@ -3143,17 +3140,17 @@ class Engine(AbstractEngine, Executor):
 						)
 					except KeyframeError:
 						port_rb_kf = {}
-					if graph not in kf["edge_val"]:
-						kf["edge_val"][graph] = {}
-					kf_graph_edge_val = kf["edge_val"][graph]
-					for orig in kf["edges"][graph]:
+					if graph not in edge_val:
+						edge_val[graph] = {}
+					kf_graph_edge_val = edge_val[graph]
+					for orig in edges[graph]:
 						if orig not in kf_graph_edge_val:
 							kf_graph_edge_val[orig] = {}
 						kf_graph_orig_edge_val = kf_graph_edge_val[orig]
 						if orig not in port_rb_kf:
 							port_rb_kf[orig] = {}
 						port_rb_kf_dests = port_rb_kf[orig]
-						for dest in kf["edges"][graph][orig]:
+						for dest in edges[graph][orig]:
 							if dest not in kf_graph_orig_edge_val:
 								kf_graph_orig_edge_val[dest] = {}
 							kf_graph_dest_edge_val = kf_graph_orig_edge_val[
@@ -3163,7 +3160,7 @@ class Engine(AbstractEngine, Executor):
 								dest, (graph, orig, dest)
 							)
 							kf_graph_dest_edge_val["rulebook"] = rulebook
-		for graph in kf["graph_val"]:
+		for graph in graph_val:
 			try:
 				locs_kf = self._things_cache.get_keyframe(
 					graph, branch, turn, tick
@@ -3176,24 +3173,17 @@ class Engine(AbstractEngine, Executor):
 					locs_kf[thing] = self._things_cache.retrieve(
 						graph, thing, branch, turn, tick
 					)
-			if "node_val" not in kf:
-				kf["node_val"] = {
-					graph: {
-						thing: {"location": loc}
-						for (thing, loc) in locs_kf.items()
-					}
-				}
-			elif graph not in kf["node_val"]:
-				kf["node_val"][graph] = {
+			if graph not in node_val:
+				node_val[graph] = {
 					thing: {"location": loc}
 					for (thing, loc) in locs_kf.items()
 				}
 			else:
 				for thing, loc in locs_kf.items():
-					if thing in kf["node_val"][graph]:
-						kf["node_val"][graph][thing]["location"] = loc
+					if thing in node_val[graph]:
+						node_val[graph][thing]["location"] = loc
 					else:
-						kf["node_val"][graph][thing] = {"location": loc}
+						node_val[graph][thing] = {"location": loc}
 		kf["universal"] = self._universal_cache.get_keyframe(
 			branch, turn, tick
 		)
@@ -3269,13 +3259,15 @@ class Engine(AbstractEngine, Executor):
 		for row in q.portal_rules_handled_dump():
 			store_porh(*row, loading=True)
 
-	def _upd_branch_parentage(self, parent: str, child: str) -> None:
+	def _upd_branch_parentage(self, parent: Branch, child: Branch) -> None:
 		self._childbranch[parent].add(child)
 		self._branch_parents[child].add(parent)
 		while (parent := self.branch_parent(parent)) is not None:
 			self._branch_parents[child].add(parent)
 
-	def _alias_kf(self, branch_from, branch_to, turn, tick):
+	def _alias_kf(
+		self, branch_from: Branch, branch_to: Branch, turn: Turn, tick: Tick
+	):
 		"""Copy a keyframe from one branch to another
 
 		This aliases the data, rather than really copying. Keyframes don't
@@ -3366,7 +3358,7 @@ class Engine(AbstractEngine, Executor):
 
 	@staticmethod
 	def _apply_graph_val_delta(
-		graph: Key,
+		graph: CharName,
 		graph_val_keyframe: dict,
 		character_rulebook_keyframe: dict,
 		unit_rulebook_keyframe: dict,
@@ -3530,8 +3522,8 @@ class Engine(AbstractEngine, Executor):
 
 	def _snap_keyframe_from_delta(
 		self,
-		then: tuple[str, int, int],
-		now: tuple[str, int, int],
+		then: Time,
+		now: Time,
 		delta: DeltaDict,
 	) -> None:
 		assert then[0] == now[0]
@@ -3545,11 +3537,11 @@ class Engine(AbstractEngine, Executor):
 			*now[1:],
 		)
 		keyframe = self._get_keyframe(*then, rulebooks=False)
-		graph_val_keyframe: dict[Key, GraphValDict] = keyframe["graph_val"]
-		nodes_keyframe: dict[Key, GraphNodesDict] = keyframe["nodes"]
-		node_val_keyframe: dict[Key, GraphNodeValDict] = keyframe["node_val"]
-		edges_keyframe: dict[Key, GraphEdgesDict] = keyframe["edges"]
-		edge_val_keyframe: dict[Key, GraphEdgeValDict] = keyframe["edge_val"]
+		graph_val_keyframe: GraphValKeyframe = keyframe["graph_val"]
+		nodes_keyframe: GraphNodesKeyframe = keyframe["nodes"]
+		node_val_keyframe: GraphNodeValKeyframe = keyframe["node_val"]
+		edges_keyframe: GraphEdgesKeyframe = keyframe["edges"]
+		edge_val_keyframe: GraphEdgeValKeyframe = keyframe["edge_val"]
 		universal_keyframe = keyframe["universal"]
 		rulebooks_keyframe = keyframe["rulebook"]
 		triggers_keyframe = keyframe["triggers"]
@@ -3598,6 +3590,7 @@ class Engine(AbstractEngine, Executor):
 		nodes_rulebooks_keyframe = {}
 		portals_rulebooks_keyframe = {}
 		units_keyframe = {}
+		graph: CharName
 		for graph in (
 			set(self._graph_cache.iter_keys(*then)).union(delta.keys())
 			- self.illegal_graph_names
@@ -6479,7 +6472,7 @@ class Engine(AbstractEngine, Executor):
 
 	def new_character(
 		self,
-		name: Key,
+		name: Key | str | int | float | tuple[Key, ...] | frozenset[Key],
 		data: Optional[Graph] = None,
 		layout: bool = False,
 		node: Optional[NodeValDict] = None,
@@ -6492,11 +6485,11 @@ class Engine(AbstractEngine, Executor):
 
 		"""
 		self.add_character(name, data, layout, node=node, edge=edge, **kwargs)
-		return self.character[name]
+		return self.character[CharName(name)]
 
 	def add_character(
 		self,
-		name: Key,
+		name: Key | str | int | float | tuple[Key, ...] | frozenset[Key],
 		data: Optional[Graph | DiGraph] = None,
 		layout: bool = False,
 		node: Optional[NodeValDict] = None,
@@ -6956,7 +6949,10 @@ class Engine(AbstractEngine, Executor):
 		turn_end = self._turn_end
 		set_turn = self.query.set_turn
 		if self._turn_end_plan.changed:
-			for (branch, turn), plan_end_tick in self._turn_end_plan.changed.items():
+			for (
+				branch,
+				turn,
+			), plan_end_tick in self._turn_end_plan.changed.items():
 				set_turn(branch, turn, turn_end[branch, turn], plan_end_tick)
 			self._turn_end_plan.apply_changes()
 		set_branch = self.query.set_branch
@@ -7033,9 +7029,9 @@ class Engine(AbstractEngine, Executor):
 		branches = list({branch for branch, _, _ in self._iter_parent_btt()})
 		left = qry.leftside
 		right = qry.rightside
-		if isinstance(left, (EntityStatAccessor, CharacterStatAccessor)) and isinstance(
-			right, (EntityStatAccessor, CharacterStatAccessor)
-		):
+		if isinstance(
+			left, (EntityStatAccessor, CharacterStatAccessor)
+		) and isinstance(right, (EntityStatAccessor, CharacterStatAccessor)):
 			left_sel = _make_side_sel(
 				left.entity, left.stat, branches, self.pack, mid_turn
 			)
