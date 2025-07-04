@@ -523,7 +523,7 @@ class CharacterMapping(GraphsMapping, Signal):
 
 		"""
 		self.engine._init_graph(name, "DiGraph", value)
-		self.send(self, key=name, val=self.engine._graph_objs[name])
+		self.send(self, key=name, val=self.engine.character[name])
 
 	def __delitem__(self, name: CharName):
 		self.engine.del_character(name)
