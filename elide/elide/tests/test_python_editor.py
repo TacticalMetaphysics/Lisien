@@ -5,10 +5,7 @@ from .util import ELiDEAppTest, idle_until
 
 
 class PythonEditorTest(ELiDEAppTest):
-	def setUp(self):
-		with Engine(self.engine_prefix) as eng:
-			sickle.install(eng)
-		super().setUp()
+	install = staticmethod(sickle.install)
 
 	def _get_actions_box(self):
 		app = self.app
