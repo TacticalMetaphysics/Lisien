@@ -36,7 +36,7 @@ from kivy.properties import (
 	StringProperty,
 )
 from kivy.resources import resource_add_path, resource_find
-from kivy.uix.screenmanager import NoTransition, ScreenManager
+from kivy.uix.screenmanager import NoTransition, ScreenManager, Screen
 
 import elide
 import elide.menu
@@ -533,7 +533,14 @@ class ElideApp(App):
 			"funcs",
 			"timestream",
 		):
+			if not hasattr(self, widname):
+				continue
 			wid = getattr(self, widname)
+			if not isinstance(wid, Screen):
+				Logger.info(
+					f"ElideApp: not removing {widname} because it's just a mock"
+				)
+				continue
 			self.manager.remove_widget(wid)
 
 	def start_game(self, *_, name=None, cb=None):
