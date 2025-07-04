@@ -53,10 +53,13 @@ class GridBoardTest(GraphicUnitTest):
 
 
 class SwitchGridTest(ELiDEAppTest):
-	def test_character_switch_grid(self):
-		with Engine(self.prefix) as eng:
+	def setUp(self):
+		with Engine(self.engine_prefix) as eng:
 			eng.add_character("physical", nx.grid_2d_graph(10, 1))
 			eng.add_character("tall", nx.grid_2d_graph(1, 10))
+		super().setUp()
+
+	def test_character_switch_grid(self):
 		app = self.app
 		self.Window.add_widget(app.build())
 		idle_until(
