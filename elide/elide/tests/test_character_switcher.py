@@ -1,3 +1,5 @@
+import os
+
 from kivy.tests.common import UnitTestTouch
 
 from lisien import Engine
@@ -7,19 +9,18 @@ from .util import ELiDEAppTest, idle_until
 
 
 class CharacterSwitcherTest(ELiDEAppTest):
-	def setUp(self):
-		super(CharacterSwitcherTest, self).setUp()
-		with Engine(self.prefix) as eng:
-			polygons.install(eng)
+	game_name = "polygons"
+	install = staticmethod(polygons.install)
 
 	def test_character_switcher(self):
 		app = self.app
 		self.Window.add_widget(app.build())
 		idle_until(
-			lambda: app.manager.current == "main",
+			lambda: app.manager.current == "mainscreen",
 			100,
-			"Never switched to main",
+			"Never switched to mainscreen",
 		)
+		app.mainscreen.populate()
 		idle_until(
 			lambda: app.mainscreen.boardview, 100, "never got boardview"
 		)
@@ -61,9 +62,9 @@ class CharacterSwitcherTest(ELiDEAppTest):
 		)
 		app.chars.toggle()
 		idle_until(
-			lambda: app.manager.current == "main",
+			lambda: app.manager.current == "mainscreen",
 			100,
-			"Didn't switch back to main",
+			"Didn't switch back to mainscreen",
 		)
 		idle_until(
 			lambda: not app.mainscreen.boardview.board.spot,

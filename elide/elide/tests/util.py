@@ -1,3 +1,4 @@
+import os
 import shutil
 import sys
 from functools import partial
@@ -131,6 +132,10 @@ class MockEngine(Signal):
 
 
 class ELiDEAppTest(GraphicUnitTest):
+	games_dir = "games"
+	game_name = "test"
+	character_name = "physical"
+
 	def __init__(self, methodName="runTest"):
 		super().__init__(methodName)
 		self.prefix = mkdtemp()
@@ -141,9 +146,24 @@ class ELiDEAppTest(GraphicUnitTest):
 
 	def setUp(self):
 		super(ELiDEAppTest, self).setUp()
-		self.old_argv = sys.argv.copy()
-		sys.argv = ["python", "-m", "elide", self.prefix]
-		self.app = ElideApp(immediate_start=True)
+		os.makedirs(
+			os.path.join(self.prefix, self.games_dir, self.game_name),
+			exist_ok=True,
+		)
+		if hasattr(self, "install"):
+			from lisien import Engine
+
+			with Engine(
+				os.path.join(self.prefix, self.games_dir, self.game_name)
+			) as eng:
+				self.install(eng)
+		self.app = ElideApp(
+			immediate_start=True,
+			prefix=self.prefix,
+			games_dir=self.games_dir,
+			game_name=self.game_name,
+			character_name=self.character_name,
+		)
 		self.app.config = ConfigParser(None)
 		self.app.build_config(self.app.config)
 
@@ -151,4 +171,3 @@ class ELiDEAppTest(GraphicUnitTest):
 		EventLoop.idle()
 		super().tearDown(fake=fake)
 		self.app.stop()
-		sys.argv = self.old_argv
