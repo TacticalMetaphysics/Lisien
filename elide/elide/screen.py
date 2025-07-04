@@ -203,6 +203,7 @@ class MainScreen(Screen):
 	own.
 
 	"""
+
 	name = "mainscreen"
 
 	graphboards = DictProperty()
@@ -216,7 +217,7 @@ class MainScreen(Screen):
 	turnscroll = ObjectProperty()
 	kv = StringProperty()
 	use_kv = BooleanProperty()
-	play_speed = NumericProperty()
+	play_speed = NumericProperty(1)
 	playbut = ObjectProperty()
 	portaladdbut = ObjectProperty()
 	portaldirbut = ObjectProperty()
@@ -347,7 +348,7 @@ class MainScreen(Screen):
 		if hasattr(self, "_play_scheduled"):
 			return
 		self._play_scheduled = Clock.schedule_interval(
-			self.play, 1.0/self.play_speed
+			self.play, 1.0 / self.play_speed
 		)
 
 	@logwrap(section="TimePanel")
@@ -497,7 +498,9 @@ class MainScreen(Screen):
 			return
 		if dial.todo:
 			if not dial.children:
-				Logger.info("MainScreen: DialogLayout has todo but no children, advancing.")
+				Logger.info(
+					"MainScreen: DialogLayout has todo but no children, advancing."
+				)
 				dial.advance_dialog()
 			Clock.schedule_once(partial(self.next_turn, cb), self.play_speed)
 			return
@@ -675,7 +678,9 @@ class TurnScroll(Slider):
 			app.engine.time.connect(self._receive_time)
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 #: import resource_find kivy.resources.resource_find
 <StatListPanel>:
 	orientation: 'vertical'
@@ -830,4 +835,5 @@ store_kv(__name__, """
 		y: timepanel.top
 		width: charmenu.x - statpanel.right
 		height: root.height - timepanel.top
-""")
+""",
+)
