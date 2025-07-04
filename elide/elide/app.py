@@ -121,7 +121,7 @@ class ElideApp(App):
 
 	@logwrap
 	def _set_character_name(self, name):
-		if self.character.name != name:
+		if not self.character or self.character.name != name:
 			self.character = self.engine.character[name]
 
 	character_name = AliasProperty(
