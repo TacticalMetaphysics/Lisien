@@ -136,6 +136,10 @@ class ELiDEAppTest(GraphicUnitTest):
 	game_name = "test"
 	character_name = "physical"
 
+	@property
+	def engine_prefix(self):
+		return os.path.join(self.prefix, self.games_dir, self.game_name)
+
 	def __init__(self, methodName="runTest"):
 		super().__init__(methodName)
 		self.prefix = mkdtemp()
