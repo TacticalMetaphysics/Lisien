@@ -282,7 +282,11 @@ class Card(FloatLayout):
 			return
 		if "card" in touch.ud:
 			return
-		if self.editable and self.ids.editbut.collide_point(*touch.pos):
+		if (
+			self.editable
+			and "editbut" in self.ids
+			and self.ids.editbut.collide_point(*touch.pos)
+		):
 			touch.grab(self.ids.editbut)
 			self.ids.editbut.dispatch("on_touch_down", touch)
 			return
