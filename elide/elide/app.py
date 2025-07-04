@@ -640,6 +640,13 @@ class ElideApp(App):
 			Logger.debug("ElideApp: got character before mainscreen")
 			Clock.schedule_once(self.on_character, 0)
 			return
+		if (
+			self.character.name not in self.mainscreen.graphboards
+			or self.character.name not in self.mainscreen.gridboards
+		):
+			Logger.debug("ElideApp: got character before boards made")
+			Clock.schedule_once(self.on_character, 0)
+			return
 		Logger.debug("ElideApp: changed character, deselecting")
 		if hasattr(self, "_oldchar"):
 			self.mainscreen.graphboards[self._oldchar.name].unbind(
