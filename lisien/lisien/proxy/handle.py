@@ -46,7 +46,7 @@ from ..util import (
 from ..exc import HistoricKeyError, OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
-from ..typing import Key
+from ..typing import Key, CharName
 
 SlightlyPackedDeltaType = dict[
 	bytes,
@@ -498,6 +498,9 @@ class EngineHandle:
 
 	def del_character(self, char):
 		del self._real.character[char]
+
+	def set_character(self, char: CharName, data: dict) -> None:
+		self._real.character[char] = data
 
 	def set_character_stat(self, char: Key, k: Key, v) -> None:
 		self._real.character[char].stat[k] = v
