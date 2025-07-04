@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.f
 from __future__ import annotations
 
-from typing import Any, Hashable, NewType, TypeGuard
+from typing import Any, Hashable, NewType, TypeGuard, Literal
 
 _Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 
@@ -27,10 +27,10 @@ class Key(Hashable):
 
 	"""
 
-	def __new__(cls, that: _Key) -> _Key:
+	def __new__(cls, that: Key) -> Key:
 		return that
 
-	def __instancecheck__(cls, instance) -> TypeGuard[_Key]:
+	def __instancecheck__(cls, instance) -> TypeGuard[Key]:
 		return isinstance(instance, (str, int, float)) or (
 			(isinstance(instance, tuple) or isinstance(instance, frozenset))
 			and all(isinstance(elem, cls) for elem in instance)
@@ -74,7 +74,6 @@ RuleKeyframe = NewType("RuleKeyframe", dict)
 RulebookKeyframe = NewType("RulebookKeyframe", dict)
 NodeKeyframe = NewType("NodeKeyframe", dict)
 EdgeKeyframe = NewType("EdgeKeyframe", dict)
-GraphValKeyframe = NewType("GraphValKeyframe", dict)
 NodeRowType = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
 EdgeRowType = tuple[
 	CharName, NodeName, NodeName, int, Branch, Turn, Tick, bool
@@ -84,25 +83,74 @@ NodeValRowType = tuple[CharName, NodeName, Key, Branch, Turn, Tick, Any]
 EdgeValRowType = tuple[
 	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Any
 ]
-StatDict = dict[Key, Any]
-GraphValDict = dict[Key, StatDict]
-NodeValDict = dict[Key, StatDict]
-GraphNodeValDict = dict[Key, NodeValDict]
-EdgeValDict = dict[Key, dict[Key, StatDict]]
-GraphEdgeValDict = dict[Key, EdgeValDict]
+StatDict = dict[Stat | Literal["rulebook"], Any]
+CharDict = dict[
+	Stat
+	| Literal[
+		"units",
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+	],
+	Any,
+]
+GraphValKeyframe = NewType("GraphValKeyframe", dict[CharName, CharDict])
+NodeValDict = dict[NodeName, StatDict]
+GraphNodeValKeyframe = dict[CharName, NodeValDict]
+EdgeValDict = dict[NodeName, dict[NodeName, StatDict]]
+GraphEdgeValKeyframe = dict[CharName, EdgeValDict]
+NodesDict = dict[NodeName, bool]
+GraphNodesKeyframe = dict[CharName, NodesDict]
+EdgesDict = dict[NodeName, dict[NodeName, bool]]
+GraphEdgesKeyframe = dict[CharName, EdgesDict]
 DeltaDict = dict[
-	Key, GraphValDict | GraphNodeValDict | GraphEdgeValDict | StatDict | None
+	CharName,
+	dict[
+		Stat | Literal["nodes", "node_val", "edges", "edge_val", "rulebook"],
+		StatDict
+		| NodesDict
+		| NodeValDict
+		| EdgesDict
+		| EdgeValDict
+		| RulebookName,
+	]
+	| None,
 ]
 KeyframeTuple = tuple[
-	Key,
+	CharName,
 	Branch,
 	Turn,
 	Tick,
-	GraphNodeValDict,
-	GraphEdgeValDict,
-	GraphValDict,
+	GraphNodeValKeyframe,
+	GraphEdgeValKeyframe,
+	GraphValKeyframe,
 ]
-NodesDict = dict[Key, bool]
-GraphNodesDict = dict[Key, NodesDict]
-EdgesDict = dict[Key, dict[Key, bool]]
-GraphEdgesDict = dict[Key, EdgesDict]
+Keyframe = dict[
+	CharName
+	| Literal[
+		"universal",
+		"triggers",
+		"prereqs",
+		"actions",
+		"neighborhood",
+		"big",
+		"rulebook",
+	],
+	dict[
+		Literal["graph_val", "nodes", "node_val", "edges", "edge_val"],
+		GraphValKeyframe
+		| GraphNodesKeyframe
+		| GraphNodeValKeyframe
+		| GraphEdgesKeyframe
+		| GraphEdgeValKeyframe,
+	]
+	| dict[UniversalKey, Any]
+	| dict[RuleName, list[TriggerFuncName]]
+	| dict[RuleName, list[PrereqFuncName]]
+	| dict[RuleName, list[ActionFuncName]]
+	| dict[RuleName, int]
+	| dict[RuleName, bool]
+	| dict[RulebookName, RulebookKeyframe],
+]
