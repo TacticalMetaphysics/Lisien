@@ -7,7 +7,7 @@ from kivy.uix.screenmanager import ScreenManager
 
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
-from elide.menu import DirPicker
+from elide.menu import MainMenuScreen
 from elide.screen import MainScreen
 from elide.spritebuilder import PawnConfigScreen, SpotConfigScreen
 from elide.statcfg import StatScreen
@@ -25,7 +25,7 @@ class MockStore:
 class ScreenTest(ELiDEAppTest):
 	def test_advance_time(self):
 		app = self.app
-		app.mainmenu = DirPicker()
+		app.mainmenu = MainMenuScreen()
 		app.spotcfg = SpotConfigScreen()
 		app.pawncfg = PawnConfigScreen()
 		app.statcfg = StatScreen()
