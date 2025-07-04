@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Object to configure, start, and stop elide."""
+
+from functools import partial
 import json
 import os
 import shutil
@@ -120,7 +122,14 @@ class ElideApp(App):
 		return self.character.name
 
 	@logwrap
-	def _set_character_name(self, name):
+	def _set_character_name(self, name, *_):
+		if not hasattr(self, "engine"):
+			Logger.warning(
+				"ElideApp: waiting for engine to set character name %s",
+				repr(name),
+			)
+			Clock.schedule_once(partial(self._set_character_name, name), 0)
+			return
 		if not self.character or self.character.name != name:
 			self.character = self.engine.character[name]
 
