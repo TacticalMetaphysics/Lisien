@@ -235,3 +235,17 @@ def college24_premade(tmp_path, request):
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
 		yield eng
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_sessionfinish(session, exitstatus):
+	# Remove handlers from all loggers to prevent logging errors on exit
+	# From https://github.com/blacklanternsecurity/bbot/pull/1555
+	# Works around a bug in Python 3.10 I think?
+	import logging
+
+	loggers = list(logging.Logger.manager.loggerDict.values())
+	for logger in loggers:
+		handlers = getattr(logger, "handlers", [])
+		for handler in handlers:
+			logger.removeHandler(handler)
