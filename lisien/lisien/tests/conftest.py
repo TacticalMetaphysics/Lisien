@@ -237,7 +237,7 @@ def college24_premade(tmp_path, request):
 		yield eng
 
 
-@pytest.hookimpl(tryfirst=True)
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_sessionfinish(session, exitstatus):
 	# Remove handlers from all loggers to prevent logging errors on exit
 	# From https://github.com/blacklanternsecurity/bbot/pull/1555
@@ -249,3 +249,5 @@ def pytest_sessionfinish(session, exitstatus):
 		handlers = getattr(logger, "handlers", [])
 		for handler in handlers:
 			logger.removeHandler(handler)
+
+	yield
