@@ -4780,7 +4780,7 @@ class Engine(AbstractEngine, Executor):
 			):
 				with lock:
 					pipein.send_bytes(b"shutdown")
-					proc.join(timeout=5)
+					proc.join(timeout=15)
 					if proc.exitcode is None:
 						raise RuntimeError("Worker process didn't exit", i)
 					if proc.exitcode != 0:
