@@ -29,11 +29,24 @@ def test_college_premade(tmp_path, non_null_database, executing):
 	connect_string = None
 	if non_null_database == "sqlite":
 		connect_string = f"sqlite:///{tmp_path}/world.db"
+
+	def validate_final_keyframe(kf: Keyframe):
+		node_val: GraphNodeValKeyframe = kf["node_val"]
+		phys_node_val = node_val["physical"]
+		graph_val: GraphValKeyframe = kf["graph_val"]
+		assert "student_body" in graph_val
+		assert "units" in graph_val["student_body"]
+		assert "physical" in graph_val["student_body"]["units"]
+		for unit in graph_val["student_body"]["units"]["physical"]:
+			assert unit in phys_node_val
+			assert "location" in phys_node_val[unit]
+
 	with Engine(
 		tmp_path,
 		connect_string=connect_string,
 		workers=0 if executing == "serial" else 2,
 	) as eng:
+		eng._validate_final_keyframe = validate_final_keyframe
 		college.install(eng)
 		for i in range(10):
 			eng.next_turn()
