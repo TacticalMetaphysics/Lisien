@@ -373,7 +373,9 @@ class GridBoardView(BoardView):
 	pass
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <GridBoard>:
 	app: app
 	size_hint: None, None
@@ -386,4 +388,5 @@ store_kv(__name__, """
 		scale_max: root.scale_max
 		pos: root.pos
 		size: root.size
-""")
+""",
+)

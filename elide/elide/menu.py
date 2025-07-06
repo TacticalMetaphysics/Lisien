@@ -12,14 +12,14 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import shutil
-from functools import partial
 import os
+import shutil
 import zipfile
+from functools import partial
 
 from kivy import Logger
 from kivy.app import App
-from kivy.clock import Clock, triggered, mainthread
+from kivy.clock import Clock, mainthread, triggered
 from kivy.properties import ObjectProperty, OptionProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -226,8 +226,7 @@ class GameLoaderModal(GamePickerModal):
 		self.clear_widgets()
 		self.add_widget(Label(text="Please wait...", font_size=80))
 		Clock.schedule_once(
-			partial(self._decompress_and_start, game_file_path, game),
-			0.05
+			partial(self._decompress_and_start, game_file_path, game), 0.05
 		)
 
 
@@ -256,7 +255,9 @@ class GameList(RecycleView):
 				),
 			}
 			for game in filter(
-				lambda game: game.endswith(".zip") and not game.startswith("."), os.listdir(self.path or ".")
+				lambda game: game.endswith(".zip")
+				and not game.startswith("."),
+				os.listdir(self.path or "."),
 			)
 		]
 		Logger.debug(f"GameList: generated {len(self.data)} entries")
@@ -388,9 +389,12 @@ class MainMenuScreen(Screen):
 		if os.path.exists(game_dir):
 			# Likely left over from a failed run of Elide
 			shutil.rmtree(game_dir)
-		Clock.schedule_once(partial(self._unpack_and_open, game_file_path, game_dir, game), 0.05)
+		Clock.schedule_once(
+			partial(self._unpack_and_open, game_file_path, game_dir, game),
+			0.05,
+		)
 
-	def _unpack_and_open(self, game_file_path, game_dir, game,*_):
+	def _unpack_and_open(self, game_file_path, game_dir, game, *_):
 		app = App.get_running_app()
 		shutil.unpack_archive(game_file_path, game_dir)
 		app.start_game(name=game, cb=self._please_wait.dismiss)

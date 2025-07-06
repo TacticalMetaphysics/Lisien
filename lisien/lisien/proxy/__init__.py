@@ -41,12 +41,12 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
 from inspect import getsource
 from multiprocessing.connection import Connection
-from queue import SimpleQueue, Queue
+from queue import Queue, SimpleQueue
 from random import Random
 from threading import Lock, Thread
 from time import monotonic
 from types import MethodType
-from typing import Hashable, Iterator, Optional, Iterable
+from typing import Hashable, Iterable, Iterator, Optional
 
 import astunparse
 import msgpack
@@ -54,7 +54,6 @@ import networkx as nx
 import tblib
 from blinker import Signal
 
-from .handle import EngineHandle
 from ..cache import PickyDefaultDict, StructuredDefaultDict
 from ..exc import (
 	AmbiguousUserError,
@@ -66,17 +65,17 @@ from ..graph import Node
 from ..node import Place, Thing
 from ..portal import Portal
 from ..typing import (
+	Branch,
+	CharName,
 	DeltaDict,
 	Key,
-	RuleName,
-	RuleFuncName,
 	NodeName,
 	RulebookName,
-	CharName,
-	Branch,
-	Turn,
+	RuleFuncName,
+	RuleName,
 	Tick,
 	Time,
+	Turn,
 )
 from ..util import (
 	AbstractCharacter,
@@ -92,6 +91,7 @@ from ..xcollections import (
 	FunctionStore,
 	StringStore,
 )
+from .handle import EngineHandle
 
 
 class CachingProxy(MutableMapping, Signal):
@@ -4412,10 +4412,10 @@ class EngineProcessManager:
 			from queue import SimpleQueue
 
 			from jnius import autoclass
+			from pythonosc.dispatcher import Dispatcher
 			from pythonosc.osc_message_builder import OscMessageBuilder
 			from pythonosc.osc_tcp_server import ThreadingOSCTCPServer
 			from pythonosc.tcp_client import SimpleTCPClient
-			from pythonosc.dispatcher import Dispatcher
 
 			if "workers" in kwargs:
 				workers = kwargs["workers"]
@@ -4474,8 +4474,9 @@ class EngineProcessManager:
 			}
 
 			if "connect_string" in kwargs:
-				from sqlalchemy import create_engine, select, NullPool
+				from sqlalchemy import NullPool, create_engine, select
 				from sqlalchemy.exc import OperationalError
+
 				from ..alchemy import meta
 
 				eng = create_engine(

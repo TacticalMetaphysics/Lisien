@@ -60,7 +60,9 @@ def install(eng):
 
 	@go_to_class.prereq
 	def absent(node):
-		assert hasattr(node, "location"), f"Tried to get location of {node.name} in {node.character.name}"
+		assert hasattr(node, "location"), (
+			f"Tried to get location of {node.name} in {node.character.name}"
+		)
 		return node.location != node.character.place["classroom"]
 
 	@go_to_class.prereq
@@ -87,7 +89,9 @@ def install(eng):
 
 	@leave_class.trigger
 	def in_classroom_after_class(node):
-		assert hasattr(node, "location"), f"Tried to get location of {node.name} in {node.character.name}"
+		assert hasattr(node, "location"), (
+			f"Tried to get location of {node.name} in {node.character.name}"
+		)
 		phys = node.character
 		return (
 			node.location == phys.place["classroom"]
@@ -124,7 +128,9 @@ def install(eng):
 		# because it won't be around (or at least, won't work) after
 		# the engine restarts.
 		unit = character.unit["physical"].only
-		assert hasattr(unit, "location"), f"Tried to get location of {unit.name} in physical, a unit of {character.name}"
+		assert hasattr(unit, "location"), (
+			f"Tried to get location of {unit.name} in physical, a unit of {character.name}"
+		)
 		classroom = unit.character.place["classroom"]
 		return unit.location != classroom
 
@@ -140,7 +146,9 @@ def install(eng):
 	def in_class(node):
 		classroom = node.engine.character["physical"].place["classroom"]
 		student = node.character.unit["physical"].only
-		assert hasattr(student, "location"), f"Tried to get location of {student.name} in physical, a unit of {node.character.name}"
+		assert hasattr(student, "location"), (
+			f"Tried to get location of {student.name} in physical, a unit of {node.character.name}"
+		)
 		return student.location == classroom
 
 	learn.prereq(class_in_session)

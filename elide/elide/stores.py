@@ -46,7 +46,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import store_kv, logwrap
+from .util import logwrap, store_kv
 
 
 def trigger(func):
@@ -530,6 +530,7 @@ class FunctionNameInput(TextInput):
 		if not val:
 			self._trigger_save(self.text)
 
+
 @logwrap(section="elide.stores")
 def munge_source(v):
 	"""Take Python source code, return a pair of its parameters and the rest of it dedented"""
@@ -644,7 +645,9 @@ class FuncsEdScreen(Screen):
 		self.ids.actions.save()
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 #: import py3lexer pygments.lexers.Python3Lexer
 <StoreButton>:
 	size_hint_y: None
@@ -843,4 +846,5 @@ store_kv(__name__, """
 				id: actions
 				toggle: root.toggle
 				store_name: 'action'
-""")
+""",
+)

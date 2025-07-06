@@ -40,6 +40,7 @@ from ..boardscatter import BoardScatterPlane
 from ..boardview import BoardView
 from ..dummy import Dummy
 from ..kivygarden.texturestack import Stack, TextureStackPlane
+from ..util import store_kv
 from .arrow import (
 	DEFAULT_ARROW_LABEL_KWARGS,
 	ArrowPlane,
@@ -49,7 +50,6 @@ from .arrow import (
 )
 from .pawn import Pawn
 from .spot import GraphSpot
-from ..util import store_kv
 
 
 def trigger(func):
@@ -1148,7 +1148,9 @@ class GraphBoardView(BoardView):
 		self.board = GraphBoard(character=character)
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <GraphBoard>:
 	app: app
 	size_hint: None, None
@@ -1164,4 +1166,5 @@ store_kv(__name__, """
 		pos: root.pos
 		size: root.size
 		size_hint: None, None
-""")
+""",
+)

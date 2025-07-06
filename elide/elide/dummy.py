@@ -23,8 +23,7 @@ from kivy.properties import (
 )
 
 from .kivygarden.texturestack import ImageStack
-from .util import store_kv, logwrap
-
+from .util import logwrap, store_kv
 
 wraplog_Dummy = partial(logwrap, section="Dummy")
 
@@ -97,11 +96,14 @@ class Dummy(ImageStack):
 		return True
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <Dummy>:
 	name: "".join((self.prefix, str(self.num)))
 	x_center_up: self.x_up + self.width / 2
 	y_center_up: self.y_up + self.height / 2
 	right_up: self.x_up + self.width
 	top_up: self.y_up + self.height
-""")
+""",
+)

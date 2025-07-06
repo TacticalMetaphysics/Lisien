@@ -14,10 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Object to configure, start, and stop elide."""
 
-from functools import partial
 import json
 import os
 import shutil
+from functools import partial
 from threading import Thread
 
 from lisien.exc import OutOfTimelineError
@@ -36,12 +36,12 @@ from kivy.properties import (
 	StringProperty,
 )
 from kivy.resources import resource_add_path, resource_find
-from kivy.uix.screenmanager import NoTransition, ScreenManager, Screen
+from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 import elide
-import elide.menu
 import elide.charsview
 import elide.dialog
+import elide.menu
 import elide.rulesview
 import elide.screen
 import elide.spritebuilder
@@ -53,11 +53,11 @@ from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
 from elide.util import load_kv, logwrap
 from lisien.proxy import (
+	CharacterProxy,
 	CharStatProxy,
 	EngineProcessManager,
 	PlaceProxy,
 	ThingProxy,
-	CharacterProxy,
 )
 
 resource_add_path(elide.__path__[0] + "/assets")

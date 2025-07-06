@@ -25,21 +25,16 @@ from functools import cached_property, partial, partialmethod, wraps
 from itertools import starmap
 from operator import itemgetter
 from queue import Queue
-from sqlite3 import (
-	IntegrityError as LiteIntegrityError,
-	OperationalError as LiteOperationalError,
-)
+from sqlite3 import IntegrityError as LiteIntegrityError
+from sqlite3 import OperationalError as LiteOperationalError
 from threading import Lock, Thread
 from types import MethodType
 from typing import Any, Iterator, MutableMapping, Optional
 
 import msgpack
-
-from sqlalchemy import MetaData, create_engine, Select
-from sqlalchemy.exc import (
-	IntegrityError as AlchemyIntegrityError,
-	OperationalError as AlchemyOperationalError,
-)
+from sqlalchemy import MetaData, Select, create_engine
+from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
+from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
 from .alchemy import gather_sql
 from .exc import KeyframeError
@@ -53,8 +48,6 @@ from .typing import (
 	GraphValKeyframe,
 	GraphValRowType,
 	Key,
-)
-from .typing import (
 	NodeKeyframe,
 	NodeName,
 	NodeRowType,

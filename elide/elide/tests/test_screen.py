@@ -10,15 +10,15 @@ from kivy.uix.widget import Widget
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
 from elide.menu import MainMenuScreen
-from elide.screen import MainScreen, StatListPanel, CharMenuContainer
+from elide.screen import CharMenuContainer, MainScreen, StatListPanel
 from elide.spritebuilder import PawnConfigScreen, SpotConfigScreen
 from elide.statcfg import StatScreen
 from lisien import Engine
 from lisien.facade import CharacterFacade
 
-from .util import ELiDEAppTest, ListenableDict, MockEngine, idle_until
 from ..charmenu import CharMenu
 from ..util import load_kv
+from .util import ELiDEAppTest, ListenableDict, MockEngine, idle_until
 
 
 class MockStore:

@@ -34,12 +34,12 @@ from contextlib import ContextDecorator, contextmanager
 from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
 from logging import (
-	getLogger,
+	DEBUG,
 	Formatter,
+	Logger,
 	LogRecord,
 	StreamHandler,
-	DEBUG,
-	Logger,
+	getLogger,
 )
 from operator import itemgetter, lt
 from os import PathLike
@@ -102,11 +102,11 @@ from .node import Place, Thing
 from .portal import Portal
 from .proxy import worker_subprocess
 from .query import (
+	CharacterStatAccessor,
 	CombinedQueryResult,
 	ComparisonQuery,
 	CompoundQuery,
 	EntityStatAccessor,
-	CharacterStatAccessor,
 	Query,
 	QueryResult,
 	QueryResultEndTurn,
@@ -123,22 +123,39 @@ from .typing import (
 	GraphEdgeValKeyframe,
 	GraphNodesKeyframe,
 	GraphNodeValKeyframe,
+	GraphValKeyframe,
 	Key,
 	Keyframe,
 	KeyframeTuple,
 	NodeName,
 	NodeValDict,
 	Plan,
+	RulebookName,
+	RuleName,
+	SlightlyPackedDeltaType,
 	StatDict,
 	Tick,
 	Time,
 	Turn,
-	RulebookName,
-	RuleName,
-	GraphValKeyframe,
-	SlightlyPackedDeltaType,
 )
 from .util import (
+	ACTIONS,
+	BIG,
+	EDGE_VAL,
+	EDGES,
+	ETERNAL,
+	FALSE,
+	NEIGHBORHOOD,
+	NODE_VAL,
+	NODES,
+	NONE,
+	PREREQS,
+	RULEBOOK,
+	RULEBOOKS,
+	RULES,
+	TRIGGERS,
+	TRUE,
+	UNIVERSAL,
 	AbstractCharacter,
 	AbstractEngine,
 	SizedDict,
@@ -149,30 +166,13 @@ from .util import (
 	sort_set,
 	timer,
 	world_locked,
-	TRUE,
-	FALSE,
-	NONE,
-	NODES,
-	EDGES,
-	RULEBOOK,
-	RULEBOOKS,
-	NODE_VAL,
-	EDGE_VAL,
-	ETERNAL,
-	UNIVERSAL,
-	RULES,
-	TRIGGERS,
-	PREREQS,
-	ACTIONS,
-	NEIGHBORHOOD,
-	BIG,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
+	ChangeTrackingDict,
 	CharacterMapping,
 	FunctionStore,
 	StringStore,
-	ChangeTrackingDict,
 	UniversalMapping,
 )
 
@@ -2529,8 +2529,7 @@ class Engine(AbstractEngine, Executor):
 		self._fut_manager_thread.start()
 
 	def _connect_worker_services(self, route: str, arg: bytes):
-		from pythonosc import osc_server
-		from pythonosc import udp_client
+		from pythonosc import osc_server, udp_client
 		from pythonosc.dispatcher import Dispatcher
 
 		ports = self.unpack(arg)

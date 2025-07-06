@@ -13,23 +13,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ast import literal_eval
-import random
-from functools import partial
 import os
+import random
 import sys
-from threading import Thread, Event
 import traceback
 import zlib
+from ast import literal_eval
+from functools import partial
+from threading import Event, Thread
 
 from kivy.logger import Logger
-from pythonosc import osc_server
-from pythonosc import udp_client
+from pythonosc import osc_server, udp_client
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_message_builder import OscMessageBuilder
 
 from lisien.proxy import EngineProxy
-
 
 Logger.setLevel(0)
 Logger.debug("worker: imported libs")
@@ -155,6 +153,7 @@ if __name__ == "__main__":
 	except BaseException as ex:
 		import traceback
 		from io import StringIO
+
 		from kivy.logger import Logger
 
 		bogus = StringIO()

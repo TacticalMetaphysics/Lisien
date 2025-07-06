@@ -34,7 +34,7 @@ from kivy.uix.widget import Widget
 
 from .card import Card, DeckBuilderScrollBar, DeckBuilderView
 from .stores import FuncEditor
-from .util import store_kv, logwrap
+from .util import logwrap, store_kv
 
 
 def trigger(func):
@@ -623,7 +623,9 @@ class CharacterRulesScreen(Screen):
 		# 2018-08-13
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <RuleButton>:
     text: self.rule.name if self.rule else ''
 <RulesList>:
@@ -682,4 +684,5 @@ store_kv(__name__, """
         toggle: root.toggle
 <CharacterRulesScreen>:
     name: 'charrules'
-""")
+""",
+)

@@ -16,8 +16,8 @@ import json
 import os
 import shutil
 
-from kivy.core.image import Image
 from kivy.clock import Clock, triggered
+from kivy.core.image import Image
 from kivy.logger import Logger
 from kivy.properties import (
 	ListProperty,
@@ -37,7 +37,7 @@ from sqlalchemy import and_, bindparam, column
 
 from .kivygarden.texturestack import ImageStack
 from .pallet import Pallet, PalletBox
-from .util import store_kv, logwrap
+from .util import logwrap, store_kv
 
 
 def trigger(func):
@@ -224,7 +224,7 @@ class SpriteDialog(BoxLayout):
 
 	@logwrap(section="SpriteDialog")
 	def _copy_from_shared(self, src: str):
-		from android import mActivity, autoclass, cast
+		from android import autoclass, cast, mActivity
 		from android.storage import (
 			app_storage_path,
 			primary_external_storage_path,
@@ -316,7 +316,7 @@ class SpriteDialog(BoxLayout):
 		)
 		if self._android:
 			if not hasattr(self, "_storage"):
-				from android.permissions import request_permissions, Permission
+				from android.permissions import Permission, request_permissions
 
 				request_permissions([Permission.READ_MEDIA_IMAGES])
 			to_import: str = self._copy_from_shared(file_path)
@@ -374,7 +374,9 @@ class SpotConfigScreen(Screen):
 	imgpaths = ListProperty()
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <SpriteDialog>:
 	orientation: 'vertical'
 	SpriteBuilder:
@@ -428,4 +430,5 @@ store_kv(__name__, """
 		custom_imgs_header: root.custom_imgs_header
 		custom_imgs_dir: app.prefix + '/custom_spot_imgs'
 		data: root.data
-""")
+""",
+)

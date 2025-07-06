@@ -25,7 +25,7 @@ from kivy.uix.boxlayout import BoxLayout
 from lisien.proxy import CharStatProxy
 
 from .graph.arrow import GraphArrowWidget
-from .util import dummynum, store_kv, logwrap
+from .util import dummynum, logwrap, store_kv
 
 
 def trigger(func):
@@ -253,7 +253,9 @@ class CharMenu(BoxLayout):
 		self.app.selection = None
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <CharMenu>:
 	orientation: 'vertical'
 	dummyplace: dummyplace
@@ -338,4 +340,5 @@ store_kv(__name__, """
 	Button:
 		text: 'Quit'
 		on_release: app.close_game()
-""")
+""",
+)

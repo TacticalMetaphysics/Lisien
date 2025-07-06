@@ -13,11 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
+
 from kivy.properties import NumericProperty, ObjectProperty
 from kivy.uix.stencilview import StencilView
 
 from .util import logwrap
-
 
 wraplog_boardview = partial(logwrap, section="BoardView")
 

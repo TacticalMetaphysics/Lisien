@@ -38,8 +38,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
-from elide.util import store_kv, logwrap
-
+from elide.util import logwrap, store_kv
 
 wraplog_CalendarWidget = partial(logwrap, section="CalendarWidget")
 
@@ -223,6 +222,7 @@ class CalendarOptionButton(CalendarWidget, Button):
 		self.val = val
 		self.modalview.dismiss()
 
+
 class CalendarToggleButton(CalendarWidget, ToggleButton):
 	index = None
 	true_text = StringProperty("True")
@@ -402,6 +402,7 @@ class Agenda(RecycleView, CalendarBehavior):
 
 wraplog_Calendar = partial(logwrap, section="Calendar")
 
+
 class Calendar(RecycleView, CalendarBehavior):
 	multicol = BooleanProperty(False)
 
@@ -472,7 +473,9 @@ class Calendar(RecycleView, CalendarBehavior):
 		self.data = data
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <Agenda>:
 	key_viewclass: 'widget'
 	RecycleGridLayout:
@@ -506,7 +509,8 @@ store_kv(__name__, """
 <CalendarTextInput>:
 	multiline: False
 	on_text_validate: self._trigger_parse_text()
-""")
+""",
+)
 
 if __name__ == "__main__":
 	from kivy.app import App

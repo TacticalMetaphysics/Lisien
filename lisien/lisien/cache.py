@@ -23,7 +23,7 @@ from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
-from typing import Hashable, Iterator, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Hashable, Iterator, Optional
 
 from . import engine
 from .exc import (
@@ -33,18 +33,18 @@ from .exc import (
 	TotalKeyError,
 )
 from .typing import (
-	CharName,
-	NodeName,
-	RulebookName,
 	Branch,
-	Key,
-	Tick,
-	Turn,
-	Time,
-	RuleName,
+	CharName,
 	EntityKey,
-	RulebookPriority,
+	Key,
+	NodeName,
 	Plan,
+	RulebookName,
+	RulebookPriority,
+	RuleName,
+	Tick,
+	Time,
+	Turn,
 )
 from .util import sort_set
 from .window import (

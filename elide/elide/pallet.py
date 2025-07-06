@@ -36,7 +36,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import store_kv, logwrap
+from .util import logwrap, store_kv
 
 
 def trigger(func):
@@ -138,7 +138,9 @@ class Pallet(StackLayout):
 				add_widget(swatches[name])
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <SwatchButton>:
 	canvas:
 		Rectangle:
@@ -154,7 +156,8 @@ store_kv(__name__, """
 	padding_y: 100
 	size_hint: (None, None)
 	height: self.minimum_height
-""")
+""",
+)
 
 
 class PalletBox(BoxLayout):
