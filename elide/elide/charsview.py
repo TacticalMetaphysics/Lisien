@@ -20,7 +20,7 @@ from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
-from .util import SelectableRecycleBoxLayout, store_kv, logwrap
+from .util import SelectableRecycleBoxLayout, logwrap, store_kv
 
 # TODO: Visual preview
 # TODO: Background image chooser
@@ -106,7 +106,9 @@ class CharactersScreen(Screen):
 		self.bind(character_name=self.push_character_name)
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 #: import resource_find kivy.resources.resource_find
 <CharactersView>:
 	viewclass: 'RecycleToggleButton'
@@ -143,4 +145,5 @@ store_kv(__name__, """
 			text: 'Close'
 			on_release: root.toggle()
 			size_hint_y: 0.05
-""")
+""",
+)

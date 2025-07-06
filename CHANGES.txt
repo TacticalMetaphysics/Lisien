@@ -1,9 +1,10 @@
-== 0.20.0 | 2025-07-03 ==
+== 0.20.0 | 2025-07-07 ==
 * Android support. Currently, the Android version supports only SQLite, not
   ParquetDB. Parallelism is disabled for now, too, because it increases the
   startup time too much.
-* A main menu for Elide. If you don't want it, specify your game's prefix
-  on the command line, and Elide will launch straight into that game.
+* A main menu for Elide. If you don't want it, specify the path to your game
+  folder on the command line, and Elide will launch straight into that game.
+* Support Python 3.13.
 * Crash fixes
   * When resuming a game that was closed at the very beginning of a branch
   * Intermittently when deleting entities, if an automatic keyframe snap

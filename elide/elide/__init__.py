@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from kivy.logger import KivyFormatter, ConsoleHandler, Logger
+from kivy.logger import ConsoleHandler, KivyFormatter, Logger
 from kivy.resources import resource_add_path
 
 formatter = KivyFormatter("%(asctime)s [%(levelname)-7s] %(message)s")

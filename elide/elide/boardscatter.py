@@ -19,7 +19,6 @@ from kivy.uix.scatter import ScatterPlane
 
 from .util import logwrap
 
-
 wraplog_bsp = partial(logwrap, section="BoardScatterPlane")
 
 

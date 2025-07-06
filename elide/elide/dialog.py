@@ -34,7 +34,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 
-from .util import store_kv, logwrap
+from .util import logwrap, store_kv
 
 
 class Box(Widget):
@@ -346,7 +346,9 @@ class DialogLayout(FloatLayout):
 		return name, partial(self.ok, cb=func, cb2=after_ok)
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <Box>:
 	canvas.before:
 		Color:
@@ -381,4 +383,5 @@ store_kv(__name__, """
 		id: msg
 	DialogMenu:
 		id: menu
-""")
+""",
+)

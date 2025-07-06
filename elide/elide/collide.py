@@ -1,5 +1,5 @@
-from math import floor, ceil
 from array import array
+from math import ceil, floor
 
 # Copyright (c) Kivy Team and other contributors
 #

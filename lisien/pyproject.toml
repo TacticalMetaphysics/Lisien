@@ -9,14 +9,14 @@ packages = ["lisien", "lisien.proxy", "lisien.server", "lisien.services"]
 
 [project]
 name = "lisien"
-version = "0.19.3"
+version = "0.20.0.post1"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
 description = "Life Simulator Engine"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.10,<=3.13"
+requires-python = ">=3.10,<3.14"
 classifiers = [
 	"Programming Language :: Python :: 3",
 	"License :: OSI Approved :: GNU Affero General Public License v3",

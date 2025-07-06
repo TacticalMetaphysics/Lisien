@@ -31,11 +31,11 @@ import sys
 from abc import ABC, abstractmethod
 from ast import Expr, Module, parse
 from collections import UserDict
-from collections.abc import MutableMapping, KeysView
+from collections.abc import KeysView, MutableMapping
 from copy import deepcopy
 from inspect import getsource
 from io import StringIO
-from typing import overload, KT, VT, T
+from typing import KT, VT, T, overload
 
 import networkx as nx
 from astunparse import Unparser

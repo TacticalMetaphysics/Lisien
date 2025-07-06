@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.f
 from __future__ import annotations
 
-from typing import Any, Hashable, NewType, TypeGuard, Literal
+from typing import Any, Hashable, Literal, NewType, TypeGuard
 
 _Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 

@@ -30,7 +30,7 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
-from .util import store_kv, logwrap
+from .util import logwrap, store_kv
 
 
 def trigger(func):
@@ -374,7 +374,9 @@ class TimestreamScreen(Screen):
 		self.timestream.disabled = False
 
 
-store_kv(__name__, r"""
+store_kv(
+	__name__,
+	r"""
 <ThornyRectangle>:
 	text: f"{self.branch}\n{int(self.turn)}"
 <Timestream>:
@@ -401,7 +403,8 @@ store_kv(__name__, r"""
 			Button:
 				text: 'Cancel'
 				on_press: root.toggle()
-""")
+""",
+)
 
 if __name__ == "__main__":
 	from kivy.base import runTouchApp

@@ -18,6 +18,7 @@ from kivy.clock import Clock, triggered
 from kivy.properties import ObjectProperty
 
 from elide.kivygarden.texturestack import ImageStack
+
 from .util import logwrap
 
 

@@ -26,9 +26,11 @@ import msgpack
 import networkx as nx
 import tblib
 
+from ..exc import HistoricKeyError, OutOfTimelineError
+from ..node import Node
+from ..portal import Portal
+from ..typing import CharName, Key
 from ..util import (
-	AbstractCharacter,
-	BadTimeException,
 	EDGE_VAL,
 	EDGES,
 	EMPTY_MAPPING,
@@ -41,12 +43,10 @@ from ..util import (
 	RULES,
 	UNITS,
 	UNIVERSAL,
+	AbstractCharacter,
+	BadTimeException,
 	timer,
 )
-from ..exc import HistoricKeyError, OutOfTimelineError
-from ..node import Node
-from ..portal import Portal
-from ..typing import Key, CharName
 
 SlightlyPackedDeltaType = dict[
 	bytes,

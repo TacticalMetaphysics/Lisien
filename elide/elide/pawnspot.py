@@ -30,6 +30,7 @@ from kivy.properties import BooleanProperty, ListProperty, ObjectProperty
 from kivy.uix.layout import Layout
 
 from elide.imagestackproxy import ImageStackProxy
+
 from .util import logwrap
 
 

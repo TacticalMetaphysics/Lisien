@@ -17,6 +17,7 @@ can be dragged and dropped to some particular position within stacks
 of other cards.
 
 """
+
 from functools import partial
 
 import pygments
@@ -45,7 +46,7 @@ from kivy.utils import get_hex_from_color
 from pygments.formatters.bbcode import BBCodeFormatter
 from pygments.lexers import PythonLexer
 
-from .util import store_kv, logwrap
+from .util import logwrap, store_kv
 
 dbg = Logger.debug
 
@@ -100,6 +101,7 @@ class ColorTextureBox(Widget):
 	color = ListProperty([1, 1, 1, 1])
 	outline_color = ListProperty([0, 0, 0, 0])
 	texture = ObjectProperty(None, allownone=True)
+
 
 class Card(FloatLayout):
 	"""A trading card with text and illustration
@@ -1113,7 +1115,9 @@ class DeckBuilderScrollBar(FloatLayout):
 		self.scrolling = False
 
 
-store_kv(__name__, """
+store_kv(
+	__name__,
+	"""
 <ColorTextureBox>:
 	canvas:
 		Color:
@@ -1232,7 +1236,8 @@ store_kv(__name__, """
 		id: bar
 		color: root.bar_color if root.scrolling else root.bar_inactive_color
 		texture: root.bar_texture
-""")
+""",
+)
 
 if __name__ == "__main__":
 	deck0 = [

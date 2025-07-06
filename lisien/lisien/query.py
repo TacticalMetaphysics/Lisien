@@ -48,10 +48,10 @@ from sqlalchemy.sql.functions import func
 
 from .alchemy import meta
 from .util import (
-	EntityStatAccessor,
-	CharacterStatAccessor,
-	UnitsAccessor,
 	AbstractEngine,
+	CharacterStatAccessor,
+	EntityStatAccessor,
+	UnitsAccessor,
 )
 
 

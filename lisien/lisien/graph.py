@@ -22,7 +22,7 @@ from itertools import chain
 import networkx
 from networkx.exception import NetworkXError
 
-from .typing import Key, Branch, Turn, Tick
+from .typing import Branch, Key, Tick, Turn
 from .wrap import MutableMappingUnwrapper
 
 

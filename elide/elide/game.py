@@ -27,19 +27,20 @@ from kivy.properties import (
 	StringProperty,
 )
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
-from .util import logwrap
 
 import lisien.proxy
 
 from .dialog import DialogLayout
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
+from .util import logwrap
 
 Factory.register("GraphBoard", GraphBoard)
 Factory.register("GridBoard", GridBoard)
 Factory.register("GraphBoardView", GraphBoardView)
 Factory.register("GridBoardView", GridBoardView)
 Factory.register("DialogLayout", DialogLayout)
+
 
 class GameScreen(Screen):
 	switch_screen = ObjectProperty()

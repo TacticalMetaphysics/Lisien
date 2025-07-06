@@ -51,10 +51,10 @@ from typing import (
 	Iterable,
 	KeysView,
 	MutableMapping,
+	Optional,
 	Sequence,
 	Type,
 	Union,
-	Optional,
 )
 
 import msgpack
@@ -68,16 +68,15 @@ from .exc import TimeError, WorkerProcessReadOnlyError
 from .graph import DiGraph, Edge, Node
 from .typing import (
 	Branch,
-	Stat,
 	CharName,
-	NodeName,
 	EternalKey,
-	UniversalKey,
+	NodeName,
+	Stat,
 	Tick,
-	Turn,
-	CharName,
 	Time,
 	TimeWindow,
+	Turn,
+	UniversalKey,
 )
 
 TRUE: bytes = msgpack.packb(True)
@@ -1478,7 +1477,7 @@ def _garbage_dec(fn: callable, collect=True) -> callable:
 	return garbage
 
 
-def garbage(arg: callable = None, collect: bool=False):
+def garbage(arg: callable = None, collect: bool = False):
 	"""Disable the garbage collector, then re-enable it when done.
 
 	May be used as a context manager or a decorator.

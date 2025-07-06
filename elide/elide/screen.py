@@ -51,7 +51,7 @@ from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .stepper import RuleStepper
-from .util import dummynum, store_kv, logwrap
+from .util import dummynum, logwrap, store_kv
 
 
 def trigger(func):

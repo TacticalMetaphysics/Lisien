@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from functools import wraps, partial
+from functools import partial, wraps
 
 from kivy import Logger
 from kivy.app import App
@@ -33,6 +33,7 @@ def store_kv(name: str, kv: str) -> None:
 		raise KeyError("Already have that kv", name)
 	print("storing kv: " + name)
 	KV[name] = kv
+
 
 def load_kv(name: str) -> None:
 	if name in loaded_kv:
