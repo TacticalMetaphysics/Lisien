@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import networkx as nx
 import pytest
 
@@ -11,6 +13,7 @@ from lisien.examples import (
 	wolfsheep,
 )
 from lisien.proxy.handle import EngineHandle
+from lisien.typing import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
 
 pytestmark = [pytest.mark.big]
 
@@ -50,11 +53,18 @@ def test_college_premade(tmp_path, non_null_database, executing):
 		college.install(eng)
 		for i in range(10):
 			eng.next_turn()
-	with Engine(
-		tmp_path,
-		connect_string=connect_string,
-		workers=0 if executing == "serial" else 2,
-	) as eng:
+	with (
+		patch(
+			"lisien.Engine._validate_initial_keyframe_load",
+			staticmethod(validate_final_keyframe),
+			create=True,
+		),
+		Engine(
+			tmp_path,
+			connect_string=connect_string,
+			workers=0 if executing == "serial" else 2,
+		) as eng,
+	):
 		for i in range(10):
 			eng.next_turn()
 
