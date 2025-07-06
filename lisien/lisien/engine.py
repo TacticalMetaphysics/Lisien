@@ -476,7 +476,7 @@ class Engine(AbstractEngine, Executor):
 		This option can also be a list of integers, in which case, the engine
 		will connect to those ports on the same host it's running on. This
 		form will only work on Android.
-	:param port: UDP port to serve the engine on. Only supported on Android.
+	:param port: TCP port to serve the engine on. Only supported on Android.
 	"""
 
 	char_cls = Character
