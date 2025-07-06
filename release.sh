@@ -27,7 +27,7 @@ tox-c elide/tox.ini
 rm -rf lisien/build lisien/dist lisien/strings
 rm -rf elide/build elide/dist elide/strings
 rm -rf bin
-buildozer android clean debug
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android clean debug
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
 python -m build lisien/
 python -m build elide/
