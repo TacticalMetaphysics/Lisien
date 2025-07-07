@@ -213,3 +213,10 @@ SlightlyPackedDeltaType = dict[
 		],
 	],
 ]
+RulebookTypeStr = Literal[
+	"character",
+	"unit",
+	"character_thing",
+	"character_place",
+	"character_portal",
+]
