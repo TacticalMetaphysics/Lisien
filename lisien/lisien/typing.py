@@ -18,10 +18,10 @@ from typing import Literal, NewType, TypeGuard
 
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
-_Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
+Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 
 
-def is_valid_key(obj) -> TypeGuard[_Key]:
+def is_valid_key(obj) -> TypeGuard[Key]:
 	"""Is this an object that Lisien can serialize as a key?"""
 	return (
 		obj is None
@@ -33,7 +33,7 @@ def is_valid_key(obj) -> TypeGuard[_Key]:
 	)
 
 
-class Key:
+class KeyClass:
 	"""Fake class for things Lisien can use as keys
 
 	They have to be serializable using lisien's particular msgpack schema,
@@ -41,25 +41,25 @@ class Key:
 
 	"""
 
-	def __new__(cls, that: _Key) -> _Key:
+	def __new__(cls, that: Key) -> Key:
 		return that
 
-	def __instancecheck__(self, instance) -> TypeGuard[_Key]:
+	def __instancecheck__(self, instance) -> bool:
 		return is_valid_key(instance)
 
 
-_Value = (
-	_Key
-	| dict[_Key, "_Value"]
-	| tuple["_Value", ...]
-	| list["_Value"]
-	| set["_Value"]
-	| frozenset["_Value"]
+Value = (
+	Key
+	| dict[Key, "Value"]
+	| tuple["Value", ...]
+	| list["Value"]
+	| set["Value"]
+	| frozenset["Value"]
 )
-_Value |= DictWrapper[_Key, _Value] | ListWrapper[_Value] | SetWrapper[_Value]
+Value |= DictWrapper[Key, Value] | ListWrapper[Value] | SetWrapper[Value]
 
 
-def is_valid_value(obj) -> TypeGuard[_Value]:
+def is_valid_value(obj) -> TypeGuard[Value]:
 	"""Is this an object that Lisien can serialize as a value?"""
 	return (
 		is_valid_key(obj)
@@ -77,37 +77,37 @@ def is_valid_value(obj) -> TypeGuard[_Value]:
 	)
 
 
-class Value:
+class ValueClass:
 	"""Fake class for things Lisien can use as values
 
 	They have to be serializable using Lisien's msgpack schema.
 
 	"""
 
-	def __new__(cls, that: _Value) -> _Value:
+	def __new__(cls, that: Value) -> Value:
 		return that
 
-	def __instancecheck__(self, instance) -> TypeGuard[_Value]:
+	def __instancecheck__(self, instance) -> bool:
 		return is_valid_value(instance)
 
 
-Stat = NewType("Stat", Key)
-EternalKey = NewType("EternalKey", Key)
-UniversalKey = NewType("UniversalKey", Key)
+Stat = NewType("Stat", KeyClass)
+EternalKey = NewType("EternalKey", KeyClass)
+UniversalKey = NewType("UniversalKey", KeyClass)
 Branch = NewType("Branch", str)
 Turn = NewType("Turn", int)
 Tick = NewType("Tick", int)
 Time = tuple[Branch, Turn, Tick]
 TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", int)
-CharName = NewType("CharName", Key)
-NodeName = NewType("NodeName", Key)
+CharName = NewType("CharName", KeyClass)
+NodeName = NewType("NodeName", KeyClass)
 EntityKey = (
 	tuple[CharName]
 	| tuple[CharName, NodeName]
 	| tuple[CharName, NodeName, NodeName]
 )
-RulebookName = NewType("RulebookName", Key)
+RulebookName = NewType("RulebookName", KeyClass)
 RulebookPriority = NewType("RulebookPriority", float)
 RuleName = NewType("RuleName", str)
 RuleNeighborhood = NewType("RuleNeighborhood", int)
@@ -131,7 +131,7 @@ NodeValRowType = tuple[CharName, NodeName, Key, Branch, Turn, Tick, Value]
 EdgeValRowType = tuple[
 	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Value
 ]
-StatDict = dict[Stat | Literal["rulebook"], Value]
+StatDict = dict[Stat | Literal["rulebook"], ValueClass]
 CharDict = dict[
 	Stat
 	| Literal[
@@ -142,7 +142,7 @@ CharDict = dict[
 		"character_place_rulebook",
 		"character_portal_rulebook",
 	],
-	Value,
+	ValueClass,
 ]
 GraphValKeyframe = NewType("GraphValKeyframe", dict[CharName, CharDict])
 NodeValDict = dict[NodeName, StatDict]
@@ -194,7 +194,7 @@ Keyframe = dict[
 		| GraphEdgesKeyframe
 		| GraphEdgeValKeyframe,
 	]
-	| dict[UniversalKey, Value]
+	| dict[UniversalKey, ValueClass]
 	| dict[RuleName, list[TriggerFuncName]]
 	| dict[RuleName, list[PrereqFuncName]]
 	| dict[RuleName, list[ActionFuncName]]
