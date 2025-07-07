@@ -2975,6 +2975,18 @@ class ParquetDBHolder(ConnectionHolder):
 
 		inq = self._inq
 		outq = self._outq
+
+		def call_method(name, *args, silent=False, **kwargs):
+			try:
+				res = getattr(self, name)(*args, **kwargs)
+			except Exception as ex:
+				if silent:
+					loud_exit(inst, ex)
+				res = ex
+			if not silent:
+				outq.put(res)
+			inq.task_done()
+
 		while True:
 			inst = inq.get()
 			if inst == "close":
@@ -2990,51 +3002,35 @@ class ParquetDBHolder(ConnectionHolder):
 			if inst[0] == "silent":
 				silent = True
 				inst = inst[1:]
-			if inst[0] == "echo":
-				outq.put(inst[1])
-				inq.task_done()
-				continue
-			if inst[0] == "one":
-				inst = inst[1:]
-				cmd = inst[0]
-				args = inst[1] if len(inst) > 1 else ()
-				kwargs = inst[2] if len(inst) > 2 else {}
-				try:
-					res = getattr(self, cmd)(*args, **kwargs)
-				except Exception as ex:
-					if silent:
-						loud_exit(inst, ex)
-					res = ex
-				if not silent:
-					outq.put(res)
-				inq.task_done()
-			elif inst[0] == "many":
-				cmd = inst[1]
-				for args, kwargs in inst[2]:
-					try:
-						res = getattr(self, cmd)(*args, **kwargs)
-					except Exception as ex:
-						if silent:
-							loud_exit(inst, ex)
-						res = ex
-					if not silent:
-						outq.put(res)
-					if isinstance(res, Exception):
-						break
-				inq.task_done()
-			else:
-				cmd = inst[0]
-				args = inst[1] if len(inst) > 1 else ()
-				kwargs = inst[2] if len(inst) > 2 else {}
-				try:
-					res = getattr(self, cmd)(*args, **kwargs)
-				except Exception as ex:
-					if silent:
-						loud_exit(inst, ex)
-					res = ex
-				if not silent:
-					outq.put(res)
-				inq.task_done()
+			match inst:
+				case ("echo", msg):
+					outq.put(msg)
+					inq.task_done()
+				case ("one", cmd):
+					call_method(cmd, silent=silent)
+				case ("one", cmd, args):
+					call_method(cmd, *args, silent=silent)
+				case ("one", cmd, args, kwargs):
+					call_method(cmd, *args, silent=silent, **kwargs)
+				case ("many", cmd, several):
+					for args, kwargs in several:
+						try:
+							res = getattr(self, cmd)(*args, **kwargs)
+						except Exception as ex:
+							if silent:
+								loud_exit(("many", cmd, several), ex)
+							res = ex
+						if not silent:
+							outq.put(res)
+						if isinstance(res, Exception):
+							break
+					inq.task_done()
+				case (cmd, args):
+					call_method(cmd, *args, silent=silent)
+				case (cmd, args, kwargs):
+					call_method(cmd, *args, silent=silent, **kwargs)
+				case cmd:
+					call_method(cmd)
 
 
 def mutexed(func):
@@ -8079,73 +8075,71 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				inst = inst[1:]
 				silent = True
 			self.logger.debug(inst[:2])
-			if inst[0] == "echo":
-				self.outq.put(inst[1])
-				self.inq.task_done()
-				continue
-			elif inst[0] == "one":
-				try:
-					res = self.call_one(inst[1], *inst[2], **inst[3])
-					if not silent:
-						if hasattr(res, "returns_rows"):
-							if res.returns_rows:
-								o = list(res)
+			match inst:
+				case ("echo", msg):
+					self.outq.put(msg)
+					self.inq.task_done()
+				case ("select", qry, args):
+					try:
+						res = self.connection.execute(qry, args)
+						if not silent:
+							if hasattr(res, "returns_rows"):
+								if res.returns_rows:
+									o = list(res)
+								else:
+									o = None
 							else:
-								o = None
-						else:
-							o = list(res)
-				except Exception as ex:
-					print(ex)
-					if silent:
-						print(f"while silenced: {ex}")
-						sys.exit(repr(ex))
-					o = ex
-				if not silent:
-					self.outq.put(o)
-				self.inq.task_done()
-			elif inst[0] == "select":
-				try:
-					res = self.connection.execute(inst[1], inst[2])
-					if not silent:
-						if hasattr(res, "returns_rows"):
-							if res.returns_rows:
 								o = list(res)
-							else:
-								o = None
-						else:
-							o = list(res)
-				except Exception as ex:
-					print(ex)
-					if silent:
-						print(f"while silenced: {ex}")
-						sys.exit(repr(ex))
-					o = ex
-				if not silent:
-					self.outq.put(o)
-				self.inq.task_done()
-			elif inst[0] != "many":
-				raise ValueError(f"Invalid instruction: {inst[0]}")
-			else:
-				try:
-					res = self.call_many(inst[1], inst[2])
+					except Exception as ex:
+						print(ex)
+						if silent:
+							print(f"while silenced: {ex}")
+							sys.exit(repr(ex))
+						o = ex
 					if not silent:
-						if hasattr(res, "returns_rows"):
-							if res.returns_rows:
-								o = list(res)
+						self.outq.put(o)
+					self.inq.task_done()
+				case ("one", cmd, args, kwargs):
+					try:
+						res = self.call_one(cmd, *args, **kwargs)
+						if not silent:
+							if hasattr(res, "returns_rows"):
+								if res.returns_rows:
+									o = list(res)
+								else:
+									o = None
 							else:
-								o = None
-						else:
-							rez = list(res.fetchall())
-							o = rez or None
-				except Exception as ex:
-					if silent:
-						msg = "got exception while silenced: " + repr(ex)
-						print(msg)
-						sys.exit(msg)
-					o = ex
-				if not silent:
-					self.outq.put(o)
-				self.inq.task_done()
+								o = list(res)
+					except Exception as ex:
+						print(ex)
+						if silent:
+							print(f"while silenced: {ex}")
+							sys.exit(repr(ex))
+						o = ex
+					if not silent:
+						self.outq.put(o)
+					self.inq.task_done()
+				case ("many", cmd, several):
+					try:
+						res = self.call_many(cmd, several)
+						if not silent:
+							if hasattr(res, "returns_rows"):
+								if res.returns_rows:
+									o = list(res)
+								else:
+									o = None
+							else:
+								rez = list(res.fetchall())
+								o = rez or None
+					except Exception as ex:
+						if silent:
+							msg = "got exception while silenced: " + repr(ex)
+							print(msg)
+							sys.exit(msg)
+						o = ex
+					if not silent:
+						self.outq.put(o)
+					self.inq.task_done()
 
 	def initdb(self):
 		"""Set up the database schema, both for allegedb and the special
