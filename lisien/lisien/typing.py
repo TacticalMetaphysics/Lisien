@@ -14,33 +14,72 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.f
 from __future__ import annotations
 
-from typing import Any, Hashable, Literal, NewType, TypeGuard
+from typing import Literal, NewType, TypeGuard
 
 _Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 
 
-class Key(Hashable):
-	"""Fake class for things lisien can use as keys
+def is_valid_key(obj) -> TypeGuard[_Key]:
+	"""Is this an object that Lisien can serialize as a key?"""
+	return isinstance(obj, (str, int, float)) or (
+		(isinstance(obj, tuple) or isinstance(obj, frozenset))
+		and all(is_valid_key(elem) for elem in obj)
+	)
+
+
+class Key:
+	"""Fake class for things Lisien can use as keys
 
 	They have to be serializable using lisien's particular msgpack schema,
 	as well as hashable.
 
 	"""
 
-	def __new__(cls, that: Key) -> Key:
+	def __new__(cls, that: _Key) -> _Key:
 		return that
 
-	def __instancecheck__(cls, instance) -> TypeGuard[Key]:
-		return isinstance(instance, (str, int, float)) or (
-			(isinstance(instance, tuple) or isinstance(instance, frozenset))
-			and all(isinstance(elem, cls) for elem in instance)
+	def __instancecheck__(self, instance) -> TypeGuard[_Key]:
+		return is_valid_key(instance)
+
+
+_Value = (
+	_Key
+	| dict[_Key, "_Value"]
+	| tuple["_Value", ...]
+	| list["_Value"]
+	| set["_Value"]
+	| frozenset["_Value"]
+)
+
+
+def is_valid_value(obj) -> TypeGuard[_Value]:
+	"""Is this an object that Lisien can serialize as a value?"""
+	return (
+		is_valid_key(obj)
+		or (
+			isinstance(obj, dict)
+			and all(map(is_valid_key, obj.keys()))
+			and all(map(is_valid_value, obj.values()))
 		)
+		or (
+			isinstance(obj, (tuple, list, set, frozenset))
+			and all(map(is_valid_value, obj))
+		)
+	)
 
 
-Key.register(str)
-Key.register(int)
-Key.register(float)
-Key.register(type(None))
+class Value:
+	"""Fake class for things Lisien can use as values
+
+	They have to be serializable using Lisien's msgpack schema.
+
+	"""
+
+	def __new__(cls, that: _Value) -> _Value:
+		return that
+
+	def __instancecheck__(self, instance) -> TypeGuard[_Value]:
+		return is_valid_value(instance)
 
 
 Stat = NewType("Stat", Key)
@@ -78,12 +117,12 @@ NodeRowType = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
 EdgeRowType = tuple[
 	CharName, NodeName, NodeName, int, Branch, Turn, Tick, bool
 ]
-GraphValRowType = tuple[CharName, Key, Branch, Turn, Tick, Any]
-NodeValRowType = tuple[CharName, NodeName, Key, Branch, Turn, Tick, Any]
+GraphValRowType = tuple[CharName, Key, Branch, Turn, Tick, Value]
+NodeValRowType = tuple[CharName, NodeName, Key, Branch, Turn, Tick, Value]
 EdgeValRowType = tuple[
-	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Any
+	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Value
 ]
-StatDict = dict[Stat | Literal["rulebook"], Any]
+StatDict = dict[Stat | Literal["rulebook"], Value]
 CharDict = dict[
 	Stat
 	| Literal[
@@ -94,7 +133,7 @@ CharDict = dict[
 		"character_place_rulebook",
 		"character_portal_rulebook",
 	],
-	Any,
+	Value,
 ]
 GraphValKeyframe = NewType("GraphValKeyframe", dict[CharName, CharDict])
 NodeValDict = dict[NodeName, StatDict]
@@ -146,7 +185,7 @@ Keyframe = dict[
 		| GraphEdgesKeyframe
 		| GraphEdgeValKeyframe,
 	]
-	| dict[UniversalKey, Any]
+	| dict[UniversalKey, Value]
 	| dict[RuleName, list[TriggerFuncName]]
 	| dict[RuleName, list[PrereqFuncName]]
 	| dict[RuleName, list[ActionFuncName]]
