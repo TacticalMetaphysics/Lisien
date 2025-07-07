@@ -18,15 +18,28 @@ from lisien.typing import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
 pytestmark = [pytest.mark.big]
 
 
-def test_college_nodb(tmp_path):
-	with Engine(None) as eng:
+@pytest.mark.parametrize(
+	"executing",
+	[
+		"serial",
+		pytest.param("parallel", pytest.mark.parallel),
+	],
+)
+def test_college_nodb(tmp_path, executing):
+	with Engine(None, workers=0 if executing == "serial" else 2) as eng:
 		college.install(eng)
 		for i in range(10):
 			eng.next_turn()
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("executing", ["serial", "parallel"])
+@pytest.mark.parametrize(
+	"executing",
+	[
+		"serial",
+		pytest.param("parallel", pytest.mark.parallel),
+	],
+)
 def test_college_premade(tmp_path, non_null_database, executing):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
@@ -82,8 +95,11 @@ def test_polygons(engy):
 		engy.next_turn()
 
 
-def test_char_stat_startup(tmp_path):
-	with Engine(tmp_path, workers=0) as eng:
+def test_char_stat_startup(tmp_path, non_null_database):
+	connect_string = None
+	if non_null_database == "sqlite":
+		connect_string = f"sqlite:///{tmp_path}/world.sqlite3"
+	with Engine(tmp_path, workers=0, connect_string=connect_string) as eng:
 		eng.new_character("physical", nx.hexagonal_lattice_graph(20, 20))
 		tri = eng.new_character("triangle")
 		sq = eng.new_character("square")
@@ -97,7 +113,7 @@ def test_char_stat_startup(tmp_path):
 		tri.stat["max_sameness"] = 0.8
 		assert "max_sameness" in tri.stat
 
-	with Engine(tmp_path, workers=0) as eng:
+	with Engine(tmp_path, workers=0, connect_string=connect_string) as eng:
 		assert "min_sameness" in eng.character["square"].stat
 		assert "max_sameness" in eng.character["square"].stat
 		assert "min_sameness" in eng.character["triangle"].stat
@@ -110,8 +126,24 @@ def test_sickle(engy):
 		engy.next_turn()
 
 
-def test_wolfsheep(tmp_path):
-	with Engine(tmp_path, random_seed=69105, workers=0) as engy:
+@pytest.mark.parametrize(
+	"executing",
+	[
+		"serial",
+		pytest.param("parallel", pytest.mark.parallel),
+	],
+)
+def test_wolfsheep(tmp_path, non_null_database, executing):
+	connect_string = None
+	if non_null_database == "sqlite":
+		connect_string = f"sqlite:///{tmp_path}/world.sqlite3"
+	workers = 0 if executing == "serial" else 2
+	with Engine(
+		tmp_path,
+		random_seed=69105,
+		workers=workers,
+		connect_string=connect_string,
+	) as engy:
 		wolfsheep.install(engy, seed=69105)
 		for i in range(10):
 			engy.next_turn()
@@ -127,7 +159,12 @@ def test_wolfsheep(tmp_path):
 		initial_bare_places = list(
 			engy.character["physical"].stat["bare_places"]
 		)
-	hand = EngineHandle(tmp_path, random_seed=69105, workers=0)
+	hand = EngineHandle(
+		tmp_path,
+		random_seed=69105,
+		workers=workers,
+		connect_string=connect_string,
+	)
 	try:
 		hand.next_turn()
 		assert [
@@ -143,6 +180,7 @@ def test_wolfsheep(tmp_path):
 
 
 @pytest.mark.slow
+@pytest.mark.parallel
 @pytest.mark.nodb
 def test_pathfind():
 	with Engine(None, flush_interval=None, commit_interval=None) as eng:
