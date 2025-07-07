@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import Literal, NewType, TypeGuard
 
+from .wrap import DictWrapper, ListWrapper, SetWrapper
+
 _Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 
 
@@ -54,6 +56,7 @@ _Value = (
 	| set["_Value"]
 	| frozenset["_Value"]
 )
+_Value |= DictWrapper[_Key, _Value] | ListWrapper[_Value] | SetWrapper[_Value]
 
 
 def is_valid_value(obj) -> TypeGuard[_Value]:
@@ -61,12 +64,14 @@ def is_valid_value(obj) -> TypeGuard[_Value]:
 	return (
 		is_valid_key(obj)
 		or (
-			isinstance(obj, dict)
+			isinstance(obj, (dict, DictWrapper))
 			and all(map(is_valid_key, obj.keys()))
 			and all(map(is_valid_value, obj.values()))
 		)
 		or (
-			isinstance(obj, (tuple, list, set, frozenset))
+			isinstance(
+				obj, (tuple, list, set, frozenset, ListWrapper, SetWrapper)
+			)
 			and all(map(is_valid_value, obj))
 		)
 	)
