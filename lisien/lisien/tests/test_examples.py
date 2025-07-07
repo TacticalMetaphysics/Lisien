@@ -143,6 +143,7 @@ def test_wolfsheep(tmp_path):
 
 
 @pytest.mark.slow
+@pytest.mark.nodb
 def test_pathfind():
 	with Engine(None, flush_interval=None, commit_interval=None) as eng:
 		pathfind.install(eng, 69105)
