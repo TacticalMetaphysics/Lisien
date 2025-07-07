@@ -21,9 +21,13 @@ _Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
 
 def is_valid_key(obj) -> TypeGuard[_Key]:
 	"""Is this an object that Lisien can serialize as a key?"""
-	return isinstance(obj, (str, int, float)) or (
-		(isinstance(obj, tuple) or isinstance(obj, frozenset))
-		and all(is_valid_key(elem) for elem in obj)
+	return (
+		obj is None
+		or isinstance(obj, (str, int, float))
+		or (
+			(isinstance(obj, tuple) or isinstance(obj, frozenset))
+			and all(is_valid_key(elem) for elem in obj)
+		)
 	)
 
 
