@@ -27,7 +27,7 @@ def is_valid_key(obj) -> TypeGuard[Key]:
 		obj is None
 		or isinstance(obj, (str, int, float))
 		or (
-			(isinstance(obj, tuple) or isinstance(obj, frozenset))
+			isinstance(obj, (tuple, frozenset))
 			and all(is_valid_key(elem) for elem in obj)
 		)
 	)
