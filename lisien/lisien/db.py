@@ -66,6 +66,7 @@ from .typing import (
 	TriggerFuncName,
 	Turn,
 	UniversalKeyframe,
+	Value,
 )
 from .util import garbage, insist
 from .wrap import DictWrapper, ListWrapper, SetWrapper
@@ -94,7 +95,7 @@ class GlobalKeyValueStore(MutableMapping):
 	def __len__(self):
 		return len(self._cache)
 
-	def __getitem__(self, k: Key) -> Any:
+	def __getitem__(self, k: Key) -> Value:
 		ret = self._cache[k]
 		if isinstance(ret, dict):
 			return DictWrapper(
@@ -119,7 +120,7 @@ class GlobalKeyValueStore(MutableMapping):
 			)
 		return ret
 
-	def __setitem__(self, k: Key, v: Any):
+	def __setitem__(self, k: Key, v: Value):
 		if hasattr(v, "unwrap"):
 			v = v.unwrap()
 		self.qe.global_set(k, v)
