@@ -3156,11 +3156,11 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def global_get(self, key: Key) -> Any:
+	def global_get(self, key: Key) -> Value:
 		pass
 
 	@abstractmethod
-	def global_items(self) -> Iterator[tuple[Key, Any]]:
+	def global_items(self) -> Iterator[tuple[Key, Value]]:
 		pass
 
 	@abstractmethod
@@ -3176,11 +3176,11 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def global_set(self, key: Key, value: Any):
+	def global_set(self, key: Key, value: Value):
 		pass
 
 	@abstractmethod
-	def global_del(self, key: Key):
+	def global_del(self, key: Key) -> None:
 		pass
 
 	@abstractmethod
@@ -3190,7 +3190,7 @@ class AbstractQueryEngine:
 		parent: Branch,
 		parent_turn: Turn,
 		parent_tick: Tick,
-	):
+	) -> None:
 		pass
 
 	@abstractmethod
@@ -3202,7 +3202,7 @@ class AbstractQueryEngine:
 		parent_tick: Tick,
 		end_turn: Turn,
 		end_tick: Tick,
-	):
+	) -> None:
 		pass
 
 	@abstractmethod
@@ -3214,7 +3214,7 @@ class AbstractQueryEngine:
 		parent_tick: Tick,
 		end_turn: Turn,
 		end_tick: Tick,
-	):
+	) -> None:
 		pass
 
 	@abstractmethod
@@ -3224,19 +3224,19 @@ class AbstractQueryEngine:
 		turn: Turn,
 		end_tick: Tick = 0,
 		plan_end_tick: Tick = 0,
-	):
+	) -> None:
 		pass
 
 	@abstractmethod
 	def update_turn(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	):
+	) -> None:
 		pass
 
 	@abstractmethod
 	def set_turn(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	):
+	) -> None:
 		pass
 
 	@abstractmethod
@@ -3256,7 +3256,7 @@ class AbstractQueryEngine:
 		tick_from: Tick,
 		turn_to: Optional[Turn] = None,
 		tick_to: Optional[Tick] = None,
-	):
+	) -> Iterator[GraphValRowType]:
 		pass
 
 	@abstractmethod
@@ -3267,12 +3267,14 @@ class AbstractQueryEngine:
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		val: Any,
-	):
+		val: Value,
+	) -> None:
 		pass
 
 	@abstractmethod
-	def graph_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+	def graph_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
 		pass
 
 	@abstractmethod
@@ -3299,11 +3301,11 @@ class AbstractQueryEngine:
 		turn: Turn,
 		tick: Tick,
 		extant: bool,
-	):
+	) -> None:
 		pass
 
 	@abstractmethod
-	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		pass
 
 	@abstractmethod
@@ -3319,7 +3321,7 @@ class AbstractQueryEngine:
 		tick_from: Tick,
 		turn_to: Optional[Turn] = None,
 		tick_to: Optional[Tick] = None,
-	):
+	) -> Iterator[NodeRowType]:
 		pass
 
 	@abstractmethod
@@ -3347,12 +3349,14 @@ class AbstractQueryEngine:
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: Any,
+		value: Value,
 	):
 		pass
 
 	@abstractmethod
-	def node_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+	def node_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
 		pass
 
 	@abstractmethod
@@ -3382,7 +3386,7 @@ class AbstractQueryEngine:
 		turn: Turn,
 		tick: Tick,
 		extant: bool,
-	):
+	) -> None:
 		pass
 
 	@abstractmethod
@@ -3412,12 +3416,14 @@ class AbstractQueryEngine:
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: Any,
+		value: Value,
 	):
 		pass
 
 	@abstractmethod
-	def edge_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+	def edge_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
 		pass
 
 	@abstractmethod
@@ -3427,15 +3433,17 @@ class AbstractQueryEngine:
 	@abstractmethod
 	def plans_insert(
 		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
-	):
+	) -> None:
 		pass
 
 	@abstractmethod
-	def plans_insert_many(self, many: list[tuple[Plan, Branch, Turn, Tick]]):
+	def plans_insert_many(
+		self, many: list[tuple[Plan, Branch, Turn, Tick]]
+	) -> None:
 		pass
 
 	@abstractmethod
-	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
+	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick) -> None:
 		pass
 
 	@abstractmethod
@@ -3443,23 +3451,23 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def flush(self):
+	def flush(self) -> None:
 		pass
 
 	@abstractmethod
-	def commit(self):
+	def commit(self) -> None:
 		pass
 
 	@abstractmethod
-	def close(self):
+	def close(self) -> None:
 		pass
 
 	@abstractmethod
-	def initdb(self):
+	def initdb(self) -> None:
 		pass
 
 	@abstractmethod
-	def truncate_all(self):
+	def truncate_all(self) -> None:
 		pass
 
 	_infixes2load = [
@@ -9568,12 +9576,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def keyframe_extension_insert(
 		self,
-		branch,
-		turn,
-		tick,
-		universal,
-		rules,
-		rulebooks,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		universal: UniversalKeyframe,
+		rule: RuleKeyframe,
+		rulebook: RulebookKeyframe,
 	):
 		self._new_keyframe_extensions.append(
 			(
@@ -9581,13 +9589,13 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				turn,
 				tick,
 				universal,
-				rules,
-				rulebooks,
+				rule,
+				rulebook,
 			)
 		)
 		self._new_keyframe_times.add((branch, turn, tick))
 
-	def get_keyframe_extensions(self, branch: str, turn: int, tick: int):
+	def get_keyframe_extensions(self, branch: Branch, turn: Turn, tick: Tick):
 		if (branch, turn, tick) not in self._all_keyframe_times:
 			raise KeyframeError(branch, turn, tick)
 		self.flush()
