@@ -497,6 +497,10 @@ class ParquetDBHolder(ConnectionHolder):
 		self.existence_lock = Lock()
 		self.existence_lock.acquire()
 
+	@staticmethod
+	def echo(*args, **_):
+		return args
+
 	def commit(self):
 		pass
 
@@ -3005,6 +3009,9 @@ class ParquetDBHolder(ConnectionHolder):
 			match inst:
 				case ("echo", msg):
 					outq.put(msg)
+					inq.task_done()
+				case ("echo", args, _):
+					outq.put(args)
 					inq.task_done()
 				case ("one", cmd):
 					call_method(cmd, silent=silent)
@@ -8018,7 +8025,6 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		connect_args: dict,
 		inq: Queue,
 		outq: Queue,
-		fn: str,
 		tables: list[str],
 	):
 		self.lock = Lock()
@@ -8026,7 +8032,6 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		self.existence_lock.acquire()
 		self._dbstring = dbstring
 		self._connect_args = connect_args
-		self._fn = fn
 		self.inq = inq
 		self.outq = outq
 		self.tables = tables
@@ -8097,6 +8102,9 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			self.logger.debug(inst[:2])
 			match inst:
 				case ("echo", msg):
+					self.outq.put(msg)
+					self.inq.task_done()
+				case ("echo", msg, _):
 					self.outq.put(msg)
 					self.inq.task_done()
 				case ("select", qry, args):
@@ -8239,6 +8247,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		"turns",
 		"graphs",
 		"keyframes",
+		"keyframes_graphs",
 		"keyframe_extensions",
 		"graph_val",
 		"nodes",
