@@ -25,6 +25,7 @@ def test_college_nodb(tmp_path):
 			eng.next_turn()
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("executing", ["serial", "parallel"])
 def test_college_premade(tmp_path, non_null_database, executing):
 	"""The college example still works when loaded from disk"""
