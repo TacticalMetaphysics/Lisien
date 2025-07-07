@@ -97,6 +97,13 @@ def execution(request):
 
 
 @pytest.fixture(
+	params=["serial", pytest.param("parallel", marks=pytest.mark.parallel)]
+)
+def serial_or_parallel(request):
+	return request.param
+
+
+@pytest.fixture(
 	params=[
 		pytest.param("nodb", marks=pytest.mark.nodb),
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
