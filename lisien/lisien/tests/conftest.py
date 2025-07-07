@@ -42,7 +42,11 @@ def handle(tmp_path):
 
 @pytest.fixture(
 	scope="function",
-	params=["kobold", "college", "sickle"],
+	params=[
+		"kobold",
+		pytest.param("college", marks=pytest.mark.slow),
+		"sickle",
+	],
 )
 def handle_initialized(request, tmp_path, database):
 	if request.param == "kobold":
