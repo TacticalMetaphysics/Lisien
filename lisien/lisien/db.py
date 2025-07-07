@@ -8146,47 +8146,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		extensions for lisien
 
 		"""
-		for table in (
-			"branches",
-			"turns",
-			"graphs",
-			"graph_val",
-			"nodes",
-			"node_val",
-			"edges",
-			"edge_val",
-			"plans",
-			"plan_ticks",
-			"keyframes",
-			"keyframes_graphs",
-			"global",
-			"universals",
-			"rules",
-			"rulebooks",
-			"things",
-			"character_rulebook",
-			"unit_rulebook",
-			"character_thing_rulebook",
-			"character_place_rulebook",
-			"character_portal_rulebook",
-			"node_rulebook",
-			"portal_rulebook",
-			"units",
-			"character_rules_handled",
-			"unit_rules_handled",
-			"character_thing_rules_handled",
-			"character_place_rules_handled",
-			"character_portal_rules_handled",
-			"node_rules_handled",
-			"portal_rules_handled",
-			"rule_triggers",
-			"rule_prereqs",
-			"rule_actions",
-			"rule_neighborhood",
-			"rule_big",
-			"turns_completed",
-			"keyframe_extensions",
-		):
+		for table in self.tables:
 			try:
 				self.init_table(table)
 			except OperationalError:
