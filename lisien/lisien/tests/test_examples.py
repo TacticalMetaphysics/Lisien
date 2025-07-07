@@ -18,29 +18,17 @@ from lisien.typing import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
 pytestmark = [pytest.mark.big]
 
 
-@pytest.mark.parametrize(
-	"executing",
-	[
-		"serial",
-		pytest.param("parallel", pytest.mark.parallel),
-	],
-)
-def test_college_nodb(tmp_path, executing):
-	with Engine(None, workers=0 if executing == "serial" else 2) as eng:
+def test_college_nodb(tmp_path, serial_or_parallel):
+	with Engine(
+		None, workers=0 if serial_or_parallel == "serial" else 2
+	) as eng:
 		college.install(eng)
 		for i in range(10):
 			eng.next_turn()
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize(
-	"executing",
-	[
-		"serial",
-		pytest.param("parallel", pytest.mark.parallel),
-	],
-)
-def test_college_premade(tmp_path, non_null_database, executing):
+def test_college_premade(tmp_path, non_null_database, serial_or_parallel):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
 	connect_string = None
@@ -61,7 +49,7 @@ def test_college_premade(tmp_path, non_null_database, executing):
 	with Engine(
 		tmp_path,
 		connect_string=connect_string,
-		workers=0 if executing == "serial" else 2,
+		workers=0 if serial_or_parallel == "serial" else 2,
 	) as eng:
 		eng._validate_final_keyframe = validate_final_keyframe
 		college.install(eng)
@@ -76,7 +64,7 @@ def test_college_premade(tmp_path, non_null_database, executing):
 		Engine(
 			tmp_path,
 			connect_string=connect_string,
-			workers=0 if executing == "serial" else 2,
+			workers=0 if serial_or_parallel == "serial" else 2,
 		) as eng,
 	):
 		for i in range(10):
@@ -126,18 +114,11 @@ def test_sickle(engy):
 		engy.next_turn()
 
 
-@pytest.mark.parametrize(
-	"executing",
-	[
-		"serial",
-		pytest.param("parallel", pytest.mark.parallel),
-	],
-)
-def test_wolfsheep(tmp_path, non_null_database, executing):
+def test_wolfsheep(tmp_path, non_null_database, serial_or_parallel):
 	connect_string = None
 	if non_null_database == "sqlite":
 		connect_string = f"sqlite:///{tmp_path}/world.sqlite3"
-	workers = 0 if executing == "serial" else 2
+	workers = 0 if serial_or_parallel == "serial" else 2
 	with Engine(
 		tmp_path,
 		random_seed=69105,
