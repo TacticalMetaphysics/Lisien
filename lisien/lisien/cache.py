@@ -958,7 +958,7 @@ class Cache:
 		entity, key, branch, turn, tick, value = args[-6:]
 		if loading:
 			self.db._updload(branch, turn, tick)
-		parent: tuple = Key(args[:-6])
+		parent: tuple[Key, ...] = args[:-6]
 		entikey = (entity, key)
 		parentikey = parent + (entity, key)
 		contras = []
@@ -1411,7 +1411,7 @@ class Cache:
 		shallowest = self.shallowest
 		if retrieve_hint and args in shallowest:
 			return shallowest[args]
-		entity: tuple = Key(args[:-4])
+		entity: tuple[Key, ...] = args[:-4]
 		key: Key
 		branch: Branch
 		turn: Turn
