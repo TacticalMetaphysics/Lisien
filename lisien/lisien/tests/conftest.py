@@ -98,7 +98,7 @@ def execution(request):
 
 @pytest.fixture(
 	params=[
-		"null",
+		pytest.param("nodb", marks=pytest.mark.nodb),
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
 	]
