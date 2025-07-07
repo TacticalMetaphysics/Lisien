@@ -142,8 +142,9 @@ def test_wolfsheep(tmp_path):
 		hand.close()
 
 
-def test_pathfind(tmp_path):
-	with Engine(tmp_path, flush_interval=None, commit_interval=None) as eng:
+@pytest.mark.slow
+def test_pathfind():
+	with Engine(None, flush_interval=None, commit_interval=None) as eng:
 		pathfind.install(eng, 69105)
 		locs = [
 			thing.location.name
