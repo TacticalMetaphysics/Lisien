@@ -45,5 +45,6 @@ markers = [
 	"big: marks tests as too big to diagnose specific bugs with",
 	"sqlite: marks tests that exercise the SQLite database backend",
 	"parquetdb: marks tests that exercise the ParquetDB database backend",
+	"nodb: marks tests that exercise no database backend at all",
 	"parallel: marks tests that use the process pool"
 ]
