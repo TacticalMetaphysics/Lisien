@@ -17,22 +17,8 @@ from shutil import rmtree
 
 import pytest
 
-import lisien.tests.test_all
 from lisien.engine import Engine
 from lisien.tests.data import CHARACTER_UPDATES
-
-
-class CharacterTest(lisien.tests.test_all.AllegedTest):
-	def setUp(self):
-		self.tempdir = tempfile.mkdtemp()
-		self.engine = Engine(
-			self.tempdir, enforce_end_of_time=False, workers=0
-		)
-		self.graphmakers = (self.engine.new_character,)
-
-	def tearDown(self):
-		self.engine.close()
-		rmtree(self.tempdir)
 
 
 def set_in_mapping(mapp, stat, v):
