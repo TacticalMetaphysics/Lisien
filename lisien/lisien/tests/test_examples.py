@@ -19,7 +19,6 @@ pytestmark = [pytest.mark.big]
 
 
 @pytest.mark.slow
-@pytest.mark.nodb
 def test_college_nodb(serial_or_parallel):
 	with Engine(
 		None, workers=0 if serial_or_parallel == "serial" else 2
@@ -165,7 +164,6 @@ def test_wolfsheep(tmp_path, non_null_database, serial_or_parallel):
 
 @pytest.mark.slow
 @pytest.mark.parallel
-@pytest.mark.nodb
 def test_pathfind():
 	with Engine(None, flush_interval=None, commit_interval=None) as eng:
 		pathfind.install(eng, 69105)

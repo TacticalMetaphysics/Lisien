@@ -28,32 +28,6 @@ from lisien.proxy.handle import EngineHandle
 from lisien.tests import data
 
 
-class ProxyTest(lisien.tests.test_all.AllegedTest):
-	def setUp(self):
-		self.manager = EngineProcessManager()
-		self.tmp_path = tempfile.mkdtemp()
-		self.engine = self.manager.start(
-			self.tmp_path,
-			connect_string="sqlite:///:memory:",
-			enforce_end_of_time=False,
-			workers=0,
-		)
-		self.graphmakers = (self.engine.new_character,)
-		self.addCleanup(self._do_cleanup)
-
-	def _do_cleanup(self):
-		self.manager.shutdown()
-		shutil.rmtree(self.tmp_path)
-
-
-class ProxyGraphTest(lisien.tests.test_all.AbstractGraphTest, ProxyTest):
-	pass
-
-
-class ProxyStorageTest(ProxyTest, lisien.tests.test_all.StorageTest):
-	pass
-
-
 def test_fast_delta(handle_initialized):
 	hand = handle_initialized
 	unpack_delta = hand._real._unpack_slightly_packed_delta

@@ -16,7 +16,6 @@ import os
 import shutil
 from functools import partial
 from logging import getLogger
-from queue import SimpleQueue
 
 import pytest
 
@@ -24,7 +23,7 @@ from lisien import Engine
 from lisien.proxy.handle import EngineHandle
 
 from ..examples import college, kobold, sickle
-from ..proxy import EngineProxy
+from ..proxy import EngineProxy, EngineProcessManager
 from . import data
 from .util import make_test_engine_kwargs
 
@@ -109,7 +108,7 @@ def serial_or_parallel(request):
 
 @pytest.fixture(
 	params=[
-		pytest.param("nodb", marks=pytest.mark.nodb),
+		"nodb",
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
 	]
@@ -132,6 +131,7 @@ def non_null_database(request):
 	scope="function",
 )
 def engy(tmp_path, execution, database):
+	"""Engine or EngineProxy, but not connected to a subprocess"""
 	if execution == "proxy":
 		eng = EngineProxy(
 			None,
@@ -162,15 +162,34 @@ def engy(tmp_path, execution, database):
 		yield eng
 
 
-@pytest.fixture(
-	params=["serial", pytest.param("parallel", marks=pytest.mark.parallel)]
-)
-def proxyless_engine(tmp_path, request, database):
+@pytest.fixture(params=["local", "remote"])
+def local_or_remote(request):
+	return request.param
+
+
+@pytest.fixture
+def engine(tmp_path, serial_or_parallel, local_or_remote, database):
+	"""Engine or EngineProxy with a subprocess"""
+	if local_or_remote == "remote":
+		procman = EngineProcessManager()
+		with procman.start(
+			**make_test_engine_kwargs(tmp_path, serial_or_parallel, database)
+		) as proxy:
+			yield proxy
+		procman.shutdown()
+	else:
+		with Engine(
+			**make_test_engine_kwargs(tmp_path, serial_or_parallel, database)
+		) as eng:
+			yield eng
+
+
+def proxyless_engine(tmp_path, serial_or_parallel, database):
 	with Engine(
 		tmp_path if database != "null" else None,
 		random_seed=69105,
 		enforce_end_of_time=False,
-		workers=0 if request.param == "serial" else 2,
+		workers=0 if serial_or_parallel == "serial" else 2,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
 		else None,
