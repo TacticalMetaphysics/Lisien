@@ -2938,6 +2938,12 @@ class EngineProxy(AbstractEngine):
 	time = TimeSignalDescriptor()
 	is_proxy = True
 
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.close()
+
 	def _get_node(
 		self, char: AbstractCharacter | CharName, node: NodeName
 	) -> Node:
