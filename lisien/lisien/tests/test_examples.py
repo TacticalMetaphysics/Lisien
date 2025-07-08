@@ -18,6 +18,7 @@ from lisien.typing import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
 pytestmark = [pytest.mark.big]
 
 
+@pytest.mark.slow
 def test_college_nodb(tmp_path, serial_or_parallel):
 	with Engine(
 		None, workers=0 if serial_or_parallel == "serial" else 2
