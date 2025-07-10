@@ -285,7 +285,7 @@ def test_store_dict(engine):
 	engine.turn = 0
 	for entity in g.graph, n, e:
 		assert entity[0]["spam"] == "eggs"
-		assert entity[0]["ham"] == {"baked beans", "delicious"}
+		assert entity[0]["ham"] == {"baked beans": "delicious"}
 		assert entity[0]["qux"] == ["quux", "quuux"]
 		assert entity[0]["clothes"] == {"hats", "shirts", "pants"}
 		assert entity[0]["dicts"] == {
