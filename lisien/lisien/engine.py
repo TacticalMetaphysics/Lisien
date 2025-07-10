@@ -633,7 +633,7 @@ class Engine(AbstractEngine, Executor):
 			raise ValueError("Can't time travel backward in a forward context")
 		if v == self.tick:
 			return
-		if self.turn == self.branch_end():
+		if self.turn == self.branch_end_turn():
 			tick_end = self._turn_end_plan[self.branch, self.turn]
 			if v > tick_end + 1:
 				raise OutOfTimelineError(
