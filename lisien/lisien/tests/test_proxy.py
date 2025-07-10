@@ -12,8 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import shutil
-import tempfile
 from unittest.mock import patch
 
 import networkx as nx
@@ -21,7 +19,6 @@ import pytest
 
 import lisien.examples.kobold as kobold
 import lisien.examples.polygons as polygons
-import lisien.tests.test_all
 from lisien.engine import Engine
 from lisien.proxy import EngineProcessManager
 from lisien.proxy.handle import EngineHandle
@@ -102,29 +99,28 @@ def test_manip_deleted(sqleng):
 	assert 1 not in phys.adj
 
 
-class TestSwitchMainBranch(ProxyTest):
-	def test_switch_main_branch(self):
-		phys = self.engine.new_character("physical", hello="hi")
-		self.engine.next_turn()
-		phys.stat["hi"] = "hello"
-		with pytest.raises(ValueError):
-			self.engine.switch_main_branch("tronc")
-		self.engine.turn = 0
-		self.engine.tick = 0
-		self.engine.switch_main_branch("tronc")
-		assert self.engine.branch == "tronc"
-		assert phys
-		assert "hi" not in phys.stat
-		assert "hello" in phys.stat
-		self.engine.next_turn()
-		phys.stat["hi"] = "hey there"
-		self.engine.turn = 0
-		self.engine.tick = 0
-		self.engine.switch_main_branch("trunk")
-		assert phys.stat["hello"] == "hi"
-		self.engine.turn = 1
-		assert phys.stat["hello"] == "hi"
-		assert phys.stat["hi"] == "hello"
+def test_switch_main_branch(engine):
+	phys = engine.new_character("physical", hello="hi")
+	engine.next_turn()
+	phys.stat["hi"] = "hello"
+	with pytest.raises(ValueError):
+		engine.switch_main_branch("tronc")
+	engine.turn = 0
+	engine.tick = 0
+	engine.switch_main_branch("tronc")
+	assert engine.branch == "tronc"
+	assert phys
+	assert "hi" not in phys.stat
+	assert "hello" in phys.stat
+	engine.next_turn()
+	phys.stat["hi"] = "hey there"
+	engine.turn = 0
+	engine.tick = 0
+	engine.switch_main_branch("trunk")
+	assert phys.stat["hello"] == "hi"
+	engine.turn = 1
+	assert phys.stat["hello"] == "hi"
+	assert phys.stat["hi"] == "hello"
 
 
 def test_updnoderb(handle):
@@ -176,7 +172,7 @@ def test_updedgerb(handle):
 
 def test_thing_place_iter(tmp_path):
 	# set up some world state with things and places, before starting the proxy
-	with lisien.Engine(tmp_path, workers=0) as eng:
+	with Engine(tmp_path, workers=0) as eng:
 		kobold.inittest(eng)
 	manager = EngineProcessManager()
 	engine = manager.start(tmp_path, workers=0)
