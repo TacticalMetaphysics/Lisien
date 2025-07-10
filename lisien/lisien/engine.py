@@ -3478,7 +3478,8 @@ class Engine(AbstractEngine, Executor):
 					)
 					for key, value in upd.items():
 						if value is None:
-							del kv[key]
+							if key in kv:
+								del kv[key]
 						else:
 							kv[key] = value
 		for orig, dests in list(edges_keyframe.items()):
