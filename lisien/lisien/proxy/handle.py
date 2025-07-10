@@ -20,7 +20,7 @@ ordinary method calls.
 from importlib import import_module
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Optional
 
 import msgpack
 import networkx as nx
@@ -29,7 +29,7 @@ import tblib
 from ..exc import HistoricKeyError, OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
-from ..typing import CharName, Key
+from ..typing import CharName, Key, Branch
 from ..util import (
 	EDGE_VAL,
 	EDGES,
@@ -325,6 +325,29 @@ class EngineHandle:
 
 	def turn_end_plan(self, branch: str = None, turn: int = None) -> int:
 		return self._real.turn_end_plan(branch, turn)
+
+	def branch_end(self, branch: Optional[str] = None):
+		return self._real.branch_end(branch)
+
+	def branch_end_turn_and_tick(self, branch: str):
+		branch = Branch(branch)
+		turn = self._real.branch_end_turn(branch)
+		return turn, self._real.turn_end(branch, turn)
+
+	def branch_end_plan_turn_and_tick(self, branch: str):
+		branch = Branch(branch)
+		turn = self._real.branch_end_turn(branch)
+		return turn, self._real.turn_end_plan(branch, turn)
+
+	def start_plan(self):
+		self._plan_ctx = self._real.plan()
+		return self._plan_ctx.__enter__()
+
+	def end_plan(self):
+		time_was = self._real._btt()
+		self._plan_ctx.__exit__(None, None, None)
+		del self._plan_ctx
+		return None, self._real.get_delta(time_was, self._real._btt())
 
 	@prepacked
 	def time_travel(

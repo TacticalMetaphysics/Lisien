@@ -633,18 +633,19 @@ class Engine(AbstractEngine, Executor):
 			raise ValueError("Can't time travel backward in a forward context")
 		if v == self.tick:
 			return
-		tick_end = self._turn_end_plan[self.branch, self.turn]
-		if v > tick_end + 1:
-			raise OutOfTimelineError(
-				f"The tick {v} is after the end of the turn {self.turn}. "
-				f"Go to tick {tick_end + 1} and simulate with `next_turn`.",
-				self.branch,
-				self.turn,
-				self.tick,
-				self.branch,
-				self.turn,
-				v,
-			)
+		if self.turn == self.branch_end():
+			tick_end = self._turn_end_plan[self.branch, self.turn]
+			if v > tick_end + 1:
+				raise OutOfTimelineError(
+					f"The tick {v} is after the end of the turn {self.turn}. "
+					f"Go to tick {tick_end + 1} and simulate with `next_turn`.",
+					self.branch,
+					self.turn,
+					self.tick,
+					self.branch,
+					self.turn,
+					v,
+				)
 		oldrando = self.universal.get("rando_state")
 		v = Tick(v)
 		self.load_at(self.branch, self.turn, v)

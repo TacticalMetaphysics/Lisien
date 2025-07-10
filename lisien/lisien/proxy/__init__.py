@@ -38,6 +38,7 @@ import zlib
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from functools import cached_property, partial
 from inspect import getsource
 from multiprocessing.connection import Connection
@@ -3012,6 +3013,9 @@ class EngineProxy(AbstractEngine):
 	def load_at(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self.handle("load_at", branch=branch, turn=turn, tick=tick)
 
+	def branch_end(self, branch: Optional[Branch] = None):
+		return self.handle("branch_end", branch=branch)
+
 	def turn_end(
 		self, branch: Optional[Branch] = None, turn: Optional[Turn] = None
 	) -> Tick:
@@ -3331,15 +3335,20 @@ class EngineProxy(AbstractEngine):
 		return self._turn
 
 	@turn.setter
-	def turn(self, v: Turn):
+	def turn(self, v: int):
 		if not isinstance(v, int):
 			raise TypeError("Turns must be integers")
 		if v < 0:
 			raise ValueError("Turns can't be negative")
 		if v == self.turn:
 			return
+		v = Turn(v)
 		turn_end, tick_end = self._branch_end()
-		if v > turn_end:
+		if (
+			self._enforce_end_of_time
+			and not self._planning
+			and (v, self.tick) > (turn_end, tick_end)
+		):
 			raise OutOfTimelineError(
 				f"The turn {v} is after the end of the branch {self.branch}. "
 				f"Go to turn {turn_end} and simulate with `next_turn`.",
@@ -3350,33 +3359,49 @@ class EngineProxy(AbstractEngine):
 				v,
 				self.tick,
 			)
-		self._set_btt(self.branch, v)
+		branch = self.branch
+		if self._planning:
+			tick = self.turn_end_plan()
+		else:
+			tick = self.turn_end()
+		self._extend_branch(branch, v, tick)
+		self._set_btt(branch, v)
 
 	@property
 	def tick(self) -> Tick:
 		return self._tick
 
 	@tick.setter
-	def tick(self, v: Tick):
+	def tick(self, v: int):
 		if not isinstance(v, int):
 			raise TypeError("Ticks must be integers")
 		if v < 0:
 			raise ValueError("Ticks can't be negative")
 		if v == self.tick:
 			return
-		turn_end, tick_end = self._branch_end()
-		if (self.turn, v) > (turn_end, tick_end):
-			raise OutOfTimelineError(
-				f"Tick {v} of turn {self.turn} is after the end of the branch"
-				f" {self.branch}. "
-				f"Simulate with `next_turn`.",
-				self.branch,
-				self.turn,
-				self.tick,
-				self.branch,
-				v,
-				self.tick,
-			)
+		v = Tick(v)
+		if self._enforce_end_of_time:
+			if self._planning:
+				end_turn, end_tick = self.handle(
+					"branch_end_plan_turn_and_tick"
+				)
+			else:
+				end_turn, end_tick = (
+					self.branch_end_turn(),
+					self.branch_end_tick(),
+				)
+			if (self.turn, v) > (end_turn, end_tick):
+				raise OutOfTimelineError(
+					f"Tick {v} of turn {self.turn} is after the end of the branch"
+					f" {self.branch}. "
+					f"Simulate with `next_turn`.",
+					self.branch,
+					self.turn,
+					self.tick,
+					self.branch,
+					v,
+					self.tick,
+				)
 		self._set_btt(self.branch, self.turn, v)
 
 	def _btt(self) -> Time:
@@ -3401,6 +3426,7 @@ class EngineProxy(AbstractEngine):
 		trigger: dict = None,
 		prereq: dict = None,
 		action: dict = None,
+		enforce_end_of_time: bool = True,
 	):
 		if eternal is None:
 			eternal = {"language": "eng"}
@@ -3408,6 +3434,8 @@ class EngineProxy(AbstractEngine):
 			universal = {"rando_state": random.getstate()}
 		if branches is None:
 			branches = {"trunk": (None, 0, 0, 0, 0)}
+		self._planning = False
+		self._enforce_end_of_time = enforce_end_of_time
 		self._eternal_cache = eternal
 		self._universal_cache = universal
 		self._rules_cache = {}
@@ -3865,11 +3893,19 @@ class EngineProxy(AbstractEngine):
 		self._branch = branch
 		self._turn = turn
 		self._tick = tick
-		if branch not in self._branches_d:
-			self._branches_d[branch] = (None, turn, tick, turn, tick)
-		else:
-			self._extend_branch(branch, turn, tick)
+		if not self._planning:
+			if branch not in self._branches_d:
+				self._branches_d[branch] = (None, turn, tick, turn, tick)
+			else:
+				self._extend_branch(branch, turn, tick)
 		self.time.send(self, then=then, now=(branch, turn, tick))
+
+	@contextmanager
+	def plan(self):
+		self._planning = True
+		yield self.handle("start_plan")
+		self.handle("end_plan", cb=self._upd)
+		self._planning = False
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
 		if self._worker and not getattr(self, "_mutable_worker", False):
@@ -4433,6 +4469,7 @@ class EngineProcessManager:
 			if "install_modules" in kwargs
 			else []
 		)
+		enforce_end_of_time = kwargs.get("enforce_end_of_time", False)
 		formatter = logging.Formatter(
 			fmt="[{levelname}] lisien.proxy({process}) {message}", style="{"
 		)
@@ -4465,6 +4502,7 @@ class EngineProcessManager:
 				self._proxy_out_pipe,
 				self.logger,
 				install_modules,
+				enforce_end_of_time=enforce_end_of_time,
 			)
 		elif android:
 			from queue import SimpleQueue
