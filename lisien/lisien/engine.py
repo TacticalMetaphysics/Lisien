@@ -4709,8 +4709,10 @@ class Engine(AbstractEngine, Executor):
 		return self._turn_end[branch, turn]
 
 	def turn_end_plan(self, branch: Branch = None, turn: Turn = None):
-		branch = branch or self._obranch
-		turn = turn or self._oturn
+		if branch is None:
+			branch = self._obranch
+		if turn is None:
+			turn = self._oturn
 		return self._turn_end_plan[branch, turn]
 
 	def submit(
