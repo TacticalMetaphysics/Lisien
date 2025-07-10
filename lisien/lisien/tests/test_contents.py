@@ -21,8 +21,8 @@ def char(engy):
 
 
 @pytest.fixture
-def chara_chron(proxyless_engine):
-	yield proxyless_engine.new_character("chara")
+def chara_chron(engine):
+	yield engine.new_character("chara")
 
 
 def test_many_things_in_place(char):
