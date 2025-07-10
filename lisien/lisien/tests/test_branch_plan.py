@@ -48,7 +48,7 @@ def test_single_plan(serial_engine):
 	assert 3 not in g.node
 	eng.turn = 4
 	assert g.node[2].keys() == {"funny", "clever"}
-	eng.turn = 1
+	eng.turn = 2
 	eng.branch = "trunk"
 	eng.turn = 0
 	assert 1 not in g.node
