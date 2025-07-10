@@ -164,9 +164,16 @@ def test_branch_lineage(engine):
 	assert engine.is_ancestor_of("physical_square", "physical_nothing")
 	assert not engine.is_ancestor_of("physical_nothing", "trunk")
 	assert not engine.is_ancestor_of("physical_triangle", "physical_no_edge")
-	engine.turn = engine.branch_start_turn("trunk")
-	engine.branch = "trunk"
+	engine.time = (
+		"trunk",
+		engine.branch_start_turn("trunk"),
+		engine.branch_start_tick("trunk"),
+	)
 	g = engine.character["physical"]
+	assert 0 not in g.node
+	assert 1 not in g.node
+	assert 0 not in g.edge
+	engine.tick = engine.turn_end()
 	assert 0 in g.node
 	assert 1 in g.node
 	assert 0 in g.edge
