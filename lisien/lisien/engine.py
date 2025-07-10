@@ -649,8 +649,7 @@ class Engine(AbstractEngine, Executor):
 		oldrando = self.universal.get("rando_state")
 		v = Tick(v)
 		self.load_at(self.branch, self.turn, v)
-		if not self._planning:
-			self._extend_branch(self.branch, self.turn, v)
+		self._extend_branch(self.branch, self.turn, v)
 		old_tick = self._otick
 		self._otick = v
 		newrando = self.universal.get("rando_state")
