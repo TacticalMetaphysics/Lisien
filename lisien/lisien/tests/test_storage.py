@@ -295,7 +295,7 @@ def test_store_dict(engine):
 
 
 def test_store_list(engine):
-	g = engine.new_graph("testgraph")
+	g = engine.new_character("testgraph")
 	g.add_node(0)
 	g.add_node(1)
 	g.add_edge(0, 1)
@@ -331,6 +331,7 @@ def test_store_list(engine):
 		entity[0][4].remove("pants")
 		entity[0][4].add("sun")
 		assert entity[0][4] == {"hats", "shirts", "sun"}
+	engine.turn -= 1
 	for entity in g.graph, n, e:
 		assert entity[0][0] == "spam"
 		assert entity[0][1] == ("eggs", "ham")
