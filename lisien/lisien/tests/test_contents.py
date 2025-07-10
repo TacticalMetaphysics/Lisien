@@ -43,12 +43,11 @@ def test_contents_over_time(chara_chron):
 	correct_contents = set()
 	for i in range(10):
 		chara.engine.next_turn()
-		with chara.engine.advancing():
-			place.new_thing(chara.engine.turn)
-			del chara.thing[chara.engine.turn]
-			assert set(place.content.keys()) == correct_contents
-			place.new_thing(chara.engine.turn)
-			correct_contents.add(chara.engine.turn)
+		place.new_thing(chara.engine.turn)
+		del chara.thing[chara.engine.turn]
+		assert set(place.content.keys()) == correct_contents
+		place.new_thing(chara.engine.turn)
+		correct_contents.add(chara.engine.turn)
 		assert set(place.content.keys()) == correct_contents
 	del chara.thing[9]
 	correct_contents.remove(9)
