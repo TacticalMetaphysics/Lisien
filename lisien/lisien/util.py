@@ -472,6 +472,25 @@ class AbstractEngine(ABC):
 	_rando: Random
 	_branches_d: dict[Optional[Branch], TimeWindow]
 
+	def is_ancestor_of(self, parent: Branch, child: Branch) -> bool:
+		"""Return whether ``child`` is a branch descended from ``parent``
+
+		At any remove.
+
+		"""
+		branches = self.branches()
+		if parent not in branches:
+			raise ValueError("Not a branch", parent)
+		if child not in branches:
+			raise ValueError("Not a branch", child)
+		if parent is None or parent == child or parent == self.main_branch:
+			return True
+		if child == self.main_branch:
+			return False
+		if self.branch_parent(child) == parent:
+			return True
+		return self.is_ancestor_of(parent, self.branch_parent(child))
+
 	@cached_property
 	def pack(self):
 		try:

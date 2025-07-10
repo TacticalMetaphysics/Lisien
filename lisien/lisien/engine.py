@@ -602,6 +602,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			tick = self._turn_end[branch, v]
 		self.load_at(branch, v, tick)
+		self._extend_branch(branch, v, tick)
 		then = self._btt()
 		self._otick = tick
 		self._oturn = v
@@ -1121,25 +1122,6 @@ class Engine(AbstractEngine, Executor):
 		self._otick = tick
 		self.time.send(self, then=then, now=self._btt())
 		return branch, turn, tick
-
-	def is_ancestor_of(self, parent: Branch, child: Branch) -> bool:
-		"""Return whether ``child`` is a branch descended from ``parent``
-
-		At any remove.
-
-		"""
-		branches = self.branches()
-		if parent not in branches:
-			raise ValueError("Not a branch", parent)
-		if child not in branches:
-			raise ValueError("Not a branch", child)
-		if parent is None or parent == child or parent == self.main_branch:
-			return True
-		if child == self.main_branch:
-			return False
-		if self.branch_parent(child) == parent:
-			return True
-		return self.is_ancestor_of(parent, self.branch_parent(child))
 
 	def __getattr__(self, item):
 		try:

@@ -2973,12 +2973,41 @@ class EngineProxy(AbstractEngine):
 	def _start_branch(
 		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
+		_, start_turn, start_tick, end_turn, end_tick = self._branches_d[
+			parent
+		]
+		if not (
+			(start_turn, start_tick) <= (turn, tick) <= (end_turn, end_tick)
+		):
+			raise OutOfTimelineError(
+				"The parent branch does not cover that time",
+				parent,
+				turn,
+				tick,
+			)
+		self._branches_d[branch] = (parent, turn, tick, turn, tick)
 		self.handle(
 			"start_branch", parent=parent, branch=branch, turn=turn, tick=tick
 		)
 
 	def _extend_branch(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		self.handle("extend_branch", branch=branch, turn=turn, tick=tick)
+		parent, start_turn, start_tick, end_turn, end_tick = self._branches_d[
+			branch
+		]
+		if (turn, tick) < (start_turn, start_tick):
+			raise OutOfTimelineError(
+				"Can't extend branch backwards", branch, turn, tick
+			)
+		if (turn, tick) < (end_turn, end_tick):
+			return
+		if not self._planning:
+			self._branches_d[branch] = (
+				parent,
+				start_turn,
+				start_tick,
+				turn,
+				tick,
+			)
 
 	def load_at(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self.handle("load_at", branch=branch, turn=turn, tick=tick)
@@ -3303,6 +3332,24 @@ class EngineProxy(AbstractEngine):
 
 	@turn.setter
 	def turn(self, v: Turn):
+		if not isinstance(v, int):
+			raise TypeError("Turns must be integers")
+		if v < 0:
+			raise ValueError("Turns can't be negative")
+		if v == self.turn:
+			return
+		turn_end, tick_end = self._branch_end()
+		if v > turn_end:
+			raise OutOfTimelineError(
+				f"The turn {v} is after the end of the branch {self.branch}. "
+				f"Go to turn {turn_end} and simulate with `next_turn`.",
+				self.branch,
+				self.turn,
+				self.tick,
+				self.branch,
+				v,
+				self.tick,
+			)
 		self._set_btt(self.branch, v)
 
 	@property
@@ -3311,6 +3358,25 @@ class EngineProxy(AbstractEngine):
 
 	@tick.setter
 	def tick(self, v: Tick):
+		if not isinstance(v, int):
+			raise TypeError("Ticks must be integers")
+		if v < 0:
+			raise ValueError("Ticks can't be negative")
+		if v == self.tick:
+			return
+		turn_end, tick_end = self._branch_end()
+		if (self.turn, v) > (turn_end, tick_end):
+			raise OutOfTimelineError(
+				f"Tick {v} of turn {self.turn} is after the end of the branch"
+				f" {self.branch}. "
+				f"Simulate with `next_turn`.",
+				self.branch,
+				self.turn,
+				self.tick,
+				self.branch,
+				v,
+				self.tick,
+			)
 		self._set_btt(self.branch, self.turn, v)
 
 	def _btt(self) -> Time:
@@ -3672,10 +3738,7 @@ class EngineProxy(AbstractEngine):
 			)
 		)
 		if (branch, turn, tick) != then:
-			self._branch = branch
-			self._turn = turn
-			self._tick = tick
-			self.time.send(self, then=then, now=(branch, turn, tick))
+			self._upd_time(command, branch, turn, tick, r)
 		if isinstance(r, Exception):
 			raise r
 		if cmd != command:
@@ -3722,9 +3785,7 @@ class EngineProxy(AbstractEngine):
 			)
 		)
 		if (branch, turn, tick) != (self._branch, self._turn, self._tick):
-			self._branch = branch
-			self._turn = turn
-			self._tick = tick
+			self._upd_time(command, branch, turn, tick, r)
 			self.time.send(self, branch=branch, turn=turn, tick=tick)
 			if hasattr(self, "branching_cb"):
 				self.branching_cb(
@@ -3807,17 +3868,7 @@ class EngineProxy(AbstractEngine):
 		if branch not in self._branches_d:
 			self._branches_d[branch] = (None, turn, tick, turn, tick)
 		else:
-			parent, turn_from, tick_from, turn_to, tick_to = self._branches_d[
-				branch
-			]
-			if (turn, tick) > (turn_to, tick_to):
-				self._branches_d[branch] = (
-					parent,
-					turn_from,
-					tick_from,
-					turn,
-					tick,
-				)
+			self._extend_branch(branch, turn, tick)
 		self.time.send(self, then=then, now=(branch, turn, tick))
 
 	def apply_choices(self, choices, dry_run=False, perfectionist=False):
