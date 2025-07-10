@@ -7,8 +7,8 @@ from lisien.character import grid_2d_8graph
 
 
 @pytest.fixture
-def three3(proxyless_engine):
-	return proxyless_engine.new_character("3x3", grid_2d_8graph(3, 3))
+def three3(engine):
+	return engine.new_character("3x3", grid_2d_8graph(3, 3))
 
 
 def test_sim_start(three3):
