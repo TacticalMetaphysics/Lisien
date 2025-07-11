@@ -44,6 +44,7 @@ from blinker import Signal
 from .graph import GraphsMapping
 from .typing import CharName
 from .util import AbstractEngine, dedent_source, getatt
+from .wrap import wrapval
 
 if TYPE_CHECKING:
 	from .character import Character
@@ -464,6 +465,13 @@ class UniversalMapping(MutableMapping, Signal):
 
 	def __getitem__(self, k):
 		"""Get the current value of this key"""
+		return wrapval(
+			self,
+			k,
+			self._get_cache_now(k),
+		)
+
+	def _get_cache_now(self, k):
 		return self.engine._universal_cache.retrieve(k, *self.engine._btt())
 
 	def __setitem__(self, k, v):
@@ -472,6 +480,9 @@ class UniversalMapping(MutableMapping, Signal):
 		self.engine._universal_cache.store(k, branch, turn, tick, v)
 		self.engine.query.universal_set(k, branch, turn, tick, v)
 		self.send(self, key=k, val=v)
+
+	def _set_cache_now(self, k, v):
+		self.engine._universal_cache.store(k, *self.engine._btt(), v)
 
 	def __delitem__(self, k):
 		"""Unset this key for the present (branch, tick)"""

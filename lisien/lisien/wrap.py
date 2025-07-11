@@ -389,3 +389,29 @@ class UnwrappingDict(dict):
 		if isinstance(value, MutableWrapper):
 			value = value.unwrap()
 		super(UnwrappingDict, self).__setitem__(key, value)
+
+
+def wrapval(self, key, v):
+	if isinstance(v, list):
+		return ListWrapper(
+			partial(self._get_cache_now, key),
+			partial(self._set_cache_now, key),
+			self,
+			key,
+		)
+	elif isinstance(v, dict):
+		return DictWrapper(
+			partial(self._get_cache_now, key),
+			partial(self._set_cache_now, key),
+			self,
+			key,
+		)
+	elif isinstance(v, set):
+		return SetWrapper(
+			partial(self._get_cache_now, key),
+			partial(self._set_cache_now, key),
+			self,
+			key,
+		)
+	else:
+		return v
