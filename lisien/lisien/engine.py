@@ -1705,13 +1705,15 @@ class Engine(AbstractEngine, Executor):
 			updater(updthing, thbranches[branch])
 
 		def updrb(_, rulebook, rules):
-			delta.setdefault("rulebooks", {})[rulebook] = rules
+			delta.setdefault("rulebooks", {})[rulebook] = rules or []
 
 		if branch in rbbranches:
 			updater(updrb, rbbranches[branch])
 
 		def updru(key, _, rule, funs):
-			delta.setdefault("rules", {}).setdefault(rule, {})[key] = funs
+			delta.setdefault("rules", {}).setdefault(rule, {})[key] = (
+				funs or []
+			)
 
 		if branch in trigbranches:
 			updater(partial(updru, "triggers"), trigbranches[branch])
