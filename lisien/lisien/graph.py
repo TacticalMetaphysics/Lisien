@@ -23,7 +23,7 @@ import networkx
 from networkx.exception import NetworkXError
 
 from .typing import Branch, Key, Tick, Turn
-from .wrap import MutableMappingUnwrapper
+from .wrap import wrapval, MutableMappingUnwrapper
 
 
 class EntityCollisionError(ValueError):
@@ -97,36 +97,7 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 
 		"""
 
-		def wrapval(v):
-			from functools import partial
-
-			from .wrap import DictWrapper, ListWrapper, SetWrapper
-
-			if isinstance(v, list):
-				return ListWrapper(
-					partial(self._get_cache_now, key),
-					partial(self._set_cache_now, key),
-					self,
-					key,
-				)
-			elif isinstance(v, dict):
-				return DictWrapper(
-					partial(self._get_cache_now, key),
-					partial(self._set_cache_now, key),
-					self,
-					key,
-				)
-			elif isinstance(v, set):
-				return SetWrapper(
-					partial(self._get_cache_now, key),
-					partial(self._set_cache_now, key),
-					self,
-					key,
-				)
-			else:
-				return v
-
-		return wrapval(self._get_cache_now(key))
+		return wrapval(self, key, self._get_cache_now(key))
 
 	def __contains__(self, item):
 		return item == "name" or self._cache_contains(item, *self.db._btt())
