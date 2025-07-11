@@ -579,13 +579,17 @@ class RuleBook(MutableSequence, Signal):
 		if v == "truth":
 			raise ValueError("Illegal rule name")
 		branch, turn, tick = self.engine._nbtt()
+		cache, prio = self._get_cache(branch, turn, tick)
 		try:
-			cache, prio = self._get_cache(branch, turn, tick)
 			cache[i] = v
 		except IndexError:
-			if i != 0:
+			if i != len(cache):
 				raise
-			cache = [v]
+			if i == 0:
+				cache = [v]
+			else:
+				assert i == len(cache)
+				cache.append(v)
 			prio = 0.0
 			self._set_cache(branch, turn, tick, (cache, prio))
 		self.engine.query.set_rulebook(
