@@ -265,7 +265,6 @@ class RuleMapProxy(MutableMapping, Signal):
 			v = v._name
 		else:
 			if k not in self.engine._rule_obj_cache:
-				self.engine.handle("new_empty_rule", rule=k)
 				rp = self.engine._rule_obj_cache[k] = RuleProxy(self.engine, k)
 			else:
 				rp = self.engine._rule_obj_cache[k]
