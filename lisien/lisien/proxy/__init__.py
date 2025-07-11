@@ -3929,8 +3929,15 @@ class EngineProxy(AbstractEngine):
 							func_proxy = getattr(store, func)
 						else:
 							func_proxy = FuncProxy(store, func)
-							store._proxy_cache[func] = func_proxy
-							store._cache[func] = store.get_source(func)
+							if hasattr(store, "_proxy_cache"):
+								store._proxy_cache[func] = func_proxy
+							else:
+								# why can this even happen??
+								store._proxy_cache = {func: func_proxy}
+							if hasattr(store, "_cache"):
+								store._cache[func] = store.get_source(func)
+							else:
+								store._cache = {func: store.get_source(func)}
 						func_proxies.append(func_proxy)
 					rule_cached[funcl] = func_proxies
 			if rule not in self._rule_obj_cache:
