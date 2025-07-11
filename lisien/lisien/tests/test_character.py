@@ -220,8 +220,8 @@ def test_facade(character_updates):
 	assert start_edge == end_edge
 
 
-def test_set_rulebook(proxyless_engine):
-	eng = proxyless_engine
+def test_set_rulebook(engine):
+	eng = engine
 	eng.universal["list"] = []
 	ch = eng.new_character("physical")
 
