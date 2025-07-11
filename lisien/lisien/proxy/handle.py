@@ -671,6 +671,9 @@ class EngineHandle:
 		self._real.rulebook.__getitem__(rulebook)
 		return []
 
+	def set_rulebook_priority(self, rulebook: Key, priority: float) -> None:
+		self._real.rulebook[rulebook].priority = priority
+
 	def set_rulebook_rules(self, rulebook: Key, rules: list[str]) -> None:
 		self._real.rulebook[rulebook] = [rules]
 

@@ -204,6 +204,17 @@ class RuleMapProxy(MutableMapping, Signal):
 	def priority(self):
 		return self.engine._rulebooks_cache.setdefault(self.name, ([], 0.0))[1]
 
+	@priority.setter
+	def priority(self, v: float):
+		self.engine.handle(
+			"set_rulebook_priority", rulebook=self.name, priority=v
+		)
+		if self.name in self.engine._rulebooks_cache:
+			rules, _ = self.engine._rulebooks_cache[self.name]
+			self.engine._rulebooks_cache[self.name] = (rules, v)
+		else:
+			self.engine._rulebooks_cache[self.name] = ([], v)
+
 	@property
 	def engine(self):
 		return self.entity.engine
