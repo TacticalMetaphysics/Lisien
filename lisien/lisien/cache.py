@@ -2413,13 +2413,16 @@ class EntitylessCache(Cache):
 class InitializedCache(Cache):
 	__slots__ = ()
 
+	def _retrieve_for_journal(self, args):
+		return self.retrieve(*args[:-1])
+
 	def _store_journal(self, *args):
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent = args[:-6]
 		settings_turns = self.settings[branch]
 		presettings_turns = self.presettings[branch]
 		try:
-			prev = self.retrieve(*args[:-1])
+			prev = self._retrieve_for_journal(args)
 		except KeyError:
 			prev = None
 		if prev == value:
@@ -2461,6 +2464,9 @@ class NodesRulebooksCache(InitializedCache):
 
 class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 	__slots__ = ()
+
+	def _retrieve_for_journal(self, args):
+		return self.retrieve(*args[1:-1])
 
 
 class CharactersRulebooksCache(InitializedEntitylessCache):
