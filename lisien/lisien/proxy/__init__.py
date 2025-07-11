@@ -204,14 +204,18 @@ class RuleMapProxy(MutableMapping, Signal):
 	def priority(self):
 		return self.engine._rulebooks_cache.setdefault(self.name, ([], 0.0))[1]
 
+	@property
+	def engine(self):
+		return self.entity.engine
+
 	def _worker_check(self):
 		self.engine._worker_check()
 
-	def __init__(self, engine, rulebook_name):
+	def __init__(self, entity, rulebook_name):
 		super().__init__()
-		self.engine = engine
+		self.entity = entity
 		self.name = rulebook_name
-		self._proxy_cache = engine._rule_obj_cache
+		self._proxy_cache = entity.engine._rule_obj_cache
 
 	def __iter__(self):
 		return iter(self._cache)
@@ -256,6 +260,7 @@ class RuleMapProxy(MutableMapping, Signal):
 		if self.name not in self.engine._rulebooks_cache:
 			self.engine.handle("new_empty_rulebook", rulebook=self.name)
 			self.engine._rulebooks_cache[self.name] = ([], 0.0)
+			self.entity._set_rulebook_name(self.name)
 		if isinstance(v, RuleProxy):
 			v = v._name
 		else:
@@ -324,9 +329,7 @@ class RuleMapProxyDescriptor(RuleFollowerProxyDescriptor):
 				name = instance._get_rulebook_name()
 			except KeyError:
 				name = instance._get_default_rulebook_name()
-			proxy = instance._rule_map_proxy = RuleMapProxy(
-				instance.engine, name
-			)
+			proxy = instance._rule_map_proxy = RuleMapProxy(instance, name)
 		return proxy
 
 
