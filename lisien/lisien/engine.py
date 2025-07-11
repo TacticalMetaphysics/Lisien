@@ -6107,13 +6107,6 @@ class Engine(AbstractEngine, Executor):
 			return None
 		return this_turn_neighbors
 
-	def _get_node_mini(self, graphn: CharName, noden: NodeName):
-		node_objs = self._node_objs
-		key = (graphn, noden)
-		if key not in node_objs:
-			node_objs[key] = self._make_node(self.character[graphn], noden)
-		return node_objs[key]
-
 	def _get_thing(self, graphn: CharName, thingn: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, thingn)
@@ -6168,7 +6161,7 @@ class Engine(AbstractEngine, Executor):
 
 		avcache_retr = self._unitness_cache._base_retrieve
 		node_exists = self._node_exists
-		get_node = self._get_node_mini
+		get_node = self._get_node
 		get_thing = self._get_thing
 		get_place = self._get_place
 
