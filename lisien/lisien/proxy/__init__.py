@@ -3922,10 +3922,17 @@ class EngineProxy(AbstractEngine):
 			rule_cached = self._rules_cache.setdefault(rule, {})
 			for funcl in ("triggers", "prereqs", "actions"):
 				if funcl in delta:
-					rule_cached[funcl] = [
-						getattr(getattr(self, funcl[:-1]), func)
-						for func in delta[funcl]
-					]
+					func_proxies = []
+					store = getattr(self, funcl[:-1])
+					for func in delta[funcl]:
+						if hasattr(store, func):
+							func_proxy = getattr(store, func)
+						else:
+							func_proxy = FuncProxy(store, func)
+							store._proxy_cache[func] = func_proxy
+							store._cache[func] = store.get_source(func)
+						func_proxies.append(func_proxy)
+					rule_cached[funcl] = func_proxies
 			if rule not in self._rule_obj_cache:
 				self._rule_obj_cache[rule] = RuleProxy(self, rule)
 			ruleproxy = self._rule_obj_cache[rule]
