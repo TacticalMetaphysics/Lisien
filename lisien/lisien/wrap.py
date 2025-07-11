@@ -279,13 +279,12 @@ class DictWrapper(MutableMappingWrapper, dict):
 
 	"""
 
-	__slots__ = ("_getter", "_setter", "_outer", "_key")
+	__slots__ = ("_getter", "_outer", "_key")
 	_getter: Callable
 
-	def __init__(self, getter, setter, outer, key):
+	def __init__(self, getter, outer, key):
 		super().__init__()
 		self._getter = getter
-		self._setter = setter
 		self._outer = outer
 		self._key = key
 
@@ -293,7 +292,6 @@ class DictWrapper(MutableMappingWrapper, dict):
 		return dict(self._getter())
 
 	def _set(self, v):
-		self._setter(v)
 		self._outer[self._key] = v
 
 
@@ -305,13 +303,12 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
 
 	"""
 
-	__slots__ = ("_getter", "_setter", "_outer", "_key")
+	__slots__ = ("_getter", "_outer", "_key")
 
-	def __init__(self, getter, setter, outer, key):
+	def __init__(self, getter, outer, key):
 		self._outer = outer
 		self._key = key
 		self._getter = getter
-		self._setter = setter
 
 	def __eq__(self, other):
 		if self is other:
@@ -332,7 +329,6 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
 		return list(self._getter())
 
 	def _set(self, v):
-		self._setter(v)
 		self._outer[self._key] = v
 
 	def insert(self, i, v):
@@ -363,18 +359,16 @@ class SetWrapper(MutableWrapperSet, set):
 
 	"""
 
-	__slots__ = ("_getter", "_setter", "_outer", "_key")
+	__slots__ = ("_getter", "_outer", "_key")
 	_getter: Callable
 
-	def __init__(self, getter, setter, outer, key):
+	def __init__(self, getter, outer, key):
 		super().__init__()
 		self._getter = getter
-		self._setter = setter
 		self._outer = outer
 		self._key = key
 
 	def _set(self, v):
-		self._setter(v)
 		self._outer[self._key] = v
 
 
@@ -395,21 +389,18 @@ def wrapval(self, key, v):
 	if isinstance(v, list):
 		return ListWrapper(
 			partial(self._get_cache_now, key),
-			partial(self._set_cache_now, key),
 			self,
 			key,
 		)
 	elif isinstance(v, dict):
 		return DictWrapper(
 			partial(self._get_cache_now, key),
-			partial(self._set_cache_now, key),
 			self,
 			key,
 		)
 	elif isinstance(v, set):
 		return SetWrapper(
 			partial(self._get_cache_now, key),
-			partial(self._set_cache_now, key),
 			self,
 			key,
 		)

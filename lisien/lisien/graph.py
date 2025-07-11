@@ -80,10 +80,6 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 	def _set_cache(self, key, branch, turn, tick, value):
 		raise NotImplementedError
 
-	def _set_cache_now(self, key, value):
-		branch, turn, tick = self.db._nbtt()
-		self._set_cache(key, branch, turn, tick, value)
-
 	def _del_db(self, key, branch, turn, tick):
 		"""Delete a key from the database (not the cache)."""
 		self._set_db(key, branch, turn, tick, None)
