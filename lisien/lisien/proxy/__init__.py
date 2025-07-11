@@ -1561,6 +1561,14 @@ class FuncListProxy(MutableSequence, Signal):
 			raise IndexError(item)
 		return self.rule._cache[self._key][item]
 
+	def index(self, value, start=0, stop=...):
+		if not isinstance(value, FuncProxy):
+			value = getattr(self._get_store(), value)
+		kwargs = {"start": start}
+		if stop is not ...:
+			kwargs["stop"] = stop
+		return super().index(value, **kwargs)
+
 	def _handle_send(self):
 		self.rule.engine.handle(
 			f"set_rule_{self._key}",
@@ -1574,13 +1582,15 @@ class FuncListProxy(MutableSequence, Signal):
 	def _get_store(self):
 		return getattr(self.rule.engine, self._key[:-1])
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, i, value):
 		if isinstance(value, str):
 			value = getattr(self._get_store(), value)
+		if self._key in self.rule._cache:
+			self.rule._cache[self._key][i] = value
+		elif i == 0:
+			self.rule._cache[self._key] = [value]
 		else:
-			setattr(self._get_store(), key, value)
-			value = getattr(self._get_store(), key)
-		self.rule._cache[self._key] = value
+			raise IndexError(i)
 		self._handle_send()
 
 	def __delitem__(self, key):
@@ -1691,6 +1701,9 @@ class RuleProxy(Signal):
 		super().__init__()
 		self.engine = engine
 		self.name = self._name = rulename
+		if rulename not in engine._rules_cache:
+			engine.handle("new_empty_rule", rule=rulename)
+			engine._rules_cache[rulename] = {}
 
 	def __eq__(self, other):
 		return hasattr(other, "name") and self.name == other.name
@@ -2804,7 +2817,7 @@ class FuncStoreProxy(Signal):
 		self._cache[funcname] = src
 		self._proxy_cache[funcname] = FuncProxy(self, funcname)
 
-	def __setattr__(self, func_name: str, source: str):
+	def __setattr__(self, func_name: str, func: callable):
 		if func_name in (
 			"engine",
 			"_store",
@@ -2816,8 +2829,9 @@ class FuncStoreProxy(Signal):
 			"_weak_senders",
 			"is_muted",
 		):
-			super().__setattr__(func_name, source)
+			super().__setattr__(func_name, func)
 			return
+		source = getsource(func)
 		self.engine.handle(
 			command="store_source", store=self._store, v=source, name=func_name
 		)
