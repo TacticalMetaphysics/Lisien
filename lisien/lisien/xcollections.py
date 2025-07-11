@@ -31,11 +31,11 @@ import sys
 from abc import ABC, abstractmethod
 from ast import Expr, Module, parse
 from collections import UserDict
-from collections.abc import KeysView, MutableMapping
+from collections.abc import MutableMapping
 from copy import deepcopy
 from inspect import getsource
 from io import StringIO
-from typing import KT, VT, T, overload
+from typing import TYPE_CHECKING
 
 import networkx as nx
 from astunparse import Unparser
@@ -44,6 +44,9 @@ from blinker import Signal
 from .graph import GraphsMapping
 from .typing import CharName
 from .util import AbstractEngine, dedent_source, getatt
+
+if TYPE_CHECKING:
+	from .character import Character
 
 
 class TabUnparser(Unparser):
@@ -495,7 +498,7 @@ class CharacterMapping(GraphsMapping, Signal):
 		GraphsMapping.__init__(self, orm)
 		Signal.__init__(self)
 
-	def __getitem__(self, name: CharName) -> Character:
+	def __getitem__(self, name: CharName) -> "Character":
 		"""Return the named character, if it's been created.
 
 		Try to use the cache if possible.
