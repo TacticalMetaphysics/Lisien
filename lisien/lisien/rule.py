@@ -582,9 +582,9 @@ class RuleBook(MutableSequence, Signal):
 		try:
 			cache, prio = self._get_cache(branch, turn, tick)
 			cache[i] = v
-		except KeyError:
+		except IndexError:
 			if i != 0:
-				raise IndexError
+				raise
 			cache = [v]
 			prio = 0.0
 			self._set_cache(branch, turn, tick, (cache, prio))

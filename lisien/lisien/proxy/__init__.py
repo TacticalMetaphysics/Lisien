@@ -221,20 +221,20 @@ class RuleMapProxy(MutableMapping, Signal):
 
 	def __call__(
 		self,
-		action: Optional[str | callable] = None,
+		action: Optional[str | callable | FuncProxy] = None,
 		always: bool = False,
 		neighborhood: Optional[int] = None,
 	) -> callable | RuleProxy:
 		if action is None:
-			return partial(self, always=always)
+			return partial(self, always=always, neighborhood=neighborhood)
 		self._worker_check()
-		if callable(action):
-			self.engine.handle(
-				"store_source", v=getsource(action), name=action.__name__
-			)
-			action = action.__name__
-		action = FuncProxy(self.engine.action, action)
-		self[action] = [action]
+		if isinstance(action, FuncProxy):
+			self[action] = [action.__name__]
+		else:
+			if callable(action):
+				self.engine.action(action)
+				action = action.__name__
+			self[action] = [action]
 		ret = self[action]
 		if neighborhood is not None:
 			ret.neighborhood = neighborhood
@@ -253,10 +253,18 @@ class RuleMapProxy(MutableMapping, Signal):
 		self, k: RuleName, v: RuleProxy | list[FuncProxy | RuleFuncName]
 	):
 		self._worker_check()
+		if self.name not in self.engine._rulebooks_cache:
+			self.engine.handle("new_empty_rulebook", rulebook=self.name)
+			self.engine._rulebooks_cache[self.name] = ([], 0.0)
 		if isinstance(v, RuleProxy):
 			v = v._name
 		else:
-			RuleProxy(self.engine, k).actions = v
+			if k not in self.engine._rule_obj_cache:
+				self.engine.handle("new_empty_rule", rule=k)
+				rp = self.engine._rule_obj_cache[k] = RuleProxy(self.engine, k)
+			else:
+				rp = self.engine._rule_obj_cache[k]
+			rp.actions = v
 			v = k
 		if k in self._cache:
 			return
@@ -1005,7 +1013,7 @@ Portal.register(PortalProxy)
 
 class NodeMapProxy(MutableMapping, Signal, RuleFollowerProxy):
 	def _get_default_rulebook_name(self):
-		return self._charname, "character_node"
+		return "character_node_rulebook", self._charname
 
 	def _get_rulebook_name(self):
 		return self.engine._character_rulebooks_cache[self._charname]["node"]
@@ -1080,7 +1088,7 @@ class NodeMapProxy(MutableMapping, Signal, RuleFollowerProxy):
 
 class ThingMapProxy(CachingProxy, RuleFollowerProxy):
 	def _get_default_rulebook_name(self) -> RulebookName:
-		return self.name, "character_thing"
+		return "character_thing_rulebook", self.name
 
 	def _get_rulebook_name(self) -> RulebookName:
 		return self.engine._character_rulebooks_cache[self.name]["thing"]
@@ -1150,7 +1158,10 @@ class ThingMapProxy(CachingProxy, RuleFollowerProxy):
 
 class PlaceMapProxy(CachingProxy, RuleFollowerProxy):
 	def _get_default_rulebook_name(self) -> RulebookName:
-		return self.name, "character_place"
+		return (
+			"character_place_rulebook",
+			self.name,
+		)
 
 	def _get_rulebook_name(self) -> RulebookName:
 		return self.engine._character_rulebooks_cache[self.name]["place"]
@@ -1267,7 +1278,7 @@ class SuccessorsProxy(CachingProxy):
 
 class CharSuccessorsMappingProxy(CachingProxy, RuleFollowerProxy):
 	def _get_default_rulebook_name(self) -> RulebookName:
-		return self.name, "character_portal"
+		return "character_portal_rulebook", self.name
 
 	def _get_rulebook_name(self) -> RulebookName:
 		return self.engine._character_rulebooks_cache[self.name]["portal"]
@@ -1578,7 +1589,7 @@ class FuncListProxy(MutableSequence, Signal):
 	def insert(self, index, value):
 		if isinstance(value, str):
 			value = getattr(self._get_store(), value)
-		else:
+		elif not isinstance(value, FuncProxy):
 			setattr(self._get_store(), value.__name__, value)
 			value = getattr(self._get_store(), value.__name__)
 		self.rule._cache.setdefault(self._key, []).insert(index, value)
@@ -1760,7 +1771,7 @@ class UnitMapProxy(Mapping, RuleFollowerProxy, Signal):
 	engine = getatt("character.engine")
 
 	def _get_default_rulebook_name(self) -> RulebookName:
-		return self.character.name, "unit"
+		return "unit_rulebook", self.character.name
 
 	def _get_rulebook_name(self) -> RulebookName:
 		return self.engine._character_rulebooks_cache[self.character.name][
@@ -1892,7 +1903,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 					)
 
 	def _get_default_rulebook_name(self) -> RulebookName:
-		return self.name, "character"
+		return "character_rulebook", self.name
 
 	def _get_rulebook_name(self) -> RulebookName:
 		return self.engine._character_rulebooks_cache[self.name]["character"]
@@ -2781,6 +2792,15 @@ class FuncStoreProxy(Signal):
 		else:
 			raise AttributeError(k)
 
+	def __call__(self, func: callable):
+		src = getsource(func)
+		self.engine.handle(
+			"store_source", v=src, name=func.__name__, store=self._store
+		)
+		funcname = func.__name__
+		self._cache[funcname] = src
+		self._proxy_cache[funcname] = FuncProxy(self, funcname)
+
 	def __setattr__(self, func_name: str, source: str):
 		if func_name in (
 			"engine",
@@ -3577,6 +3597,7 @@ class EngineProxy(AbstractEngine):
 		self.action.load()
 		self.prereq.load()
 		self.trigger.load()
+		self.trigger._cache["truth"] = "def truth(obj):\n\treturn True"
 		self.function.load()
 		self._eternal_cache = self.handle("eternal_copy")
 		self.debug(f"Got {len(self._eternal_cache)} eternal vars")
