@@ -319,7 +319,8 @@ class RuleFollowerProxyDescriptor:
 				)
 				val = val.name
 		inst._set_rulebook_name(val)
-		inst.send(inst, rulebook=val)
+		if hasattr(inst, "send"):
+			inst.send(inst, rulebook=val)
 
 
 class RuleMapProxyDescriptor(RuleFollowerProxyDescriptor):
