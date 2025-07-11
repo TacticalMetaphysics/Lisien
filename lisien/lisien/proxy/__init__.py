@@ -3893,13 +3893,13 @@ class EngineProxy(AbstractEngine):
 		# it'll show up empty.
 		# That's ok I guess
 		for rule, delta in deltas.pop("rules", {}).items():
-			if rule in self._rules_cache:
-				self._rules_cache[rule].update(delta)
-			else:
-				delta.setdefault("triggers", [])
-				delta.setdefault("prereqs", [])
-				delta.setdefault("actions", [])
-				self._rules_cache[rule] = delta
+			rule_cached = self._rules_cache.setdefault(rule, {})
+			for funcl in ("triggers", "prereqs", "actions"):
+				if funcl in delta:
+					rule_cached[funcl] = [
+						getattr(getattr(self, funcl[:-1]), func)
+						for func in delta[funcl]
+					]
 			if rule not in self._rule_obj_cache:
 				self._rule_obj_cache[rule] = RuleProxy(self, rule)
 			ruleproxy = self._rule_obj_cache[rule]
