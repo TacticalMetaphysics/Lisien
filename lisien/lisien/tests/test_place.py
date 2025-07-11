@@ -83,14 +83,13 @@ def test_rulebook(someplace):
 	assert someplace.rulebook.name == "imadeitup"
 
 
-def test_deletion_after_keyframe(proxyless_engine):
-	eng = proxyless_engine
-	phys = eng.new_character("physical", data=nx.grid_2d_graph(8, 8))
+def test_deletion_after_keyframe(engine):
+	phys = engine.new_character("physical", data=nx.grid_2d_graph(8, 8))
 	del phys.place[5, 5]
 	assert (5, 5) not in phys.place
 	assert (5, 5) not in list(phys.place)
-	while eng.turn < 20:
-		eng.next_turn()
+	while engine.turn < 20:
+		engine.next_turn()
 	assert (5, 5) not in phys.place
 	assert (5, 5) not in list(phys.place)
 
