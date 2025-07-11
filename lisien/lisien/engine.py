@@ -2048,17 +2048,17 @@ class Engine(AbstractEngine, Executor):
 			for _, rule, funs in triggers_settings[branch][turn][
 				tick_from:tick_to
 			]:
-				rdif.setdefault(rule, {})["triggers"] = funs
+				rdif.setdefault(rule, {})["triggers"] = funs or []
 		if branch in prereqs_settings and turn in prereqs_settings[branch]:
 			for _, rule, funs in prereqs_settings[branch][turn][
 				tick_from:tick_to
 			]:
-				rdif.setdefault(rule, {})["prereqs"] = funs
+				rdif.setdefault(rule, {})["prereqs"] = funs or []
 		if branch in actions_settings and turn in actions_settings[branch]:
 			for _, rule, funs in actions_settings[branch][turn][
 				tick_from:tick_to
 			]:
-				rdif.setdefault(rule, {})["actions"] = funs
+				rdif.setdefault(rule, {})["actions"] = funs or []
 		if (
 			branch in neighborhood_settings
 			and turn in neighborhood_settings[branch]
