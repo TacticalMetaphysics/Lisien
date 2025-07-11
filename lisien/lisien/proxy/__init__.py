@@ -176,17 +176,11 @@ class CachingEntityProxy(CachingProxy):
 
 	def _cache_get_munge(self, k, v):
 		if isinstance(v, dict):
-			return DictWrapper(
-				lambda: self._cache[k], partial(self._set_item, k), self, k
-			)
+			return DictWrapper(lambda: self._cache[k], self, k)
 		elif isinstance(v, list):
-			return ListWrapper(
-				lambda: self._cache[k], partial(self._set_item, k), self, k
-			)
+			return ListWrapper(lambda: self._cache[k], self, k)
 		elif isinstance(v, set):
-			return SetWrapper(
-				lambda: self._cache[k], partial(self._set_item, k), self, k
-			)
+			return SetWrapper(lambda: self._cache[k], self, k)
 		return v
 
 	def __repr__(self):
