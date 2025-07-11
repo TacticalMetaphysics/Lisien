@@ -699,6 +699,14 @@ class PlaceProxy(NodeProxy):
 					self.character.place.send(self, key="rulebook", value=v)
 					self.character.node.send(self, key="rulebook", value=v)
 				continue
+			elif k == "location":
+				self.engine._things_cache[self.character.name][self.name] = (
+					ThingProxy(self.character, self.name, v, **self._cache)
+				)
+				del self.engine._character_places_cache[self.character.name][
+					self.name
+				]
+				continue
 			if v is None:
 				if k in self._cache:
 					del self._cache[k]
@@ -721,7 +729,7 @@ class ThingProxy(NodeProxy):
 		return self.engine.character[self._charname].node[self._location]
 
 	@location.setter
-	def location(self, v: NodeProxy | NodeName):
+	def location(self, v: NodeProxy | NodeName | None):
 		if isinstance(v, NodeProxy):
 			if v.character != self.character:
 				raise ValueError(
@@ -729,7 +737,7 @@ class ThingProxy(NodeProxy):
 					"Maybe you want a unit?"
 				)
 			locn = v.name
-		elif v in self.character.node:
+		elif v in self.character.node or v is None:
 			locn = v
 		else:
 			raise TypeError("Location must be a node or the name of one")
@@ -770,6 +778,14 @@ class ThingProxy(NodeProxy):
 					self.character.thing.send(self, key="rulebook", value=v)
 					self.character.node.send(self, key="rulebook", value=v)
 			elif v is None:
+				if k == "location":
+					del self.engine._things_cache[self.character.name][
+						self.name
+					]
+					self.engine._character_places_cache[self.character.name][
+						self.name
+					] = PlaceProxy(self.character, self.name, **self._cache)
+					continue
 				if k in self._cache:
 					del self._cache[k]
 					self.send(self, key=k, value=None)
@@ -786,7 +802,12 @@ class ThingProxy(NodeProxy):
 				self.character.thing.send(self, key=k, value=v)
 				self.character.node.send(self, key=k, value=v)
 
-	def _set_location(self, v: NodeName):
+	def _set_location(self, v: NodeName | None):
+		if v is None:
+			del self.engine._things_cache[self.character.name][self.name]
+			self.engine._character_places_cache[self.character.name][
+				self.name
+			] = PlaceProxy(self.character, self.name, **self._cache)
 		self._location = v
 		self.engine.handle(
 			command="set_thing_location",
