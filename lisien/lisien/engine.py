@@ -3067,10 +3067,12 @@ class Engine(AbstractEngine, Executor):
 				node_rulebook_keyframe[node] = node_val_keyframe[node].pop(
 					"rulebook"
 				)
-			else:
+			elif node in nodes_keyframe:
 				assert node in node_rulebook_keyframe, (
 					f"No rulebook for {node}"
 				)
+			else:
+				node_rulebook_keyframe[node] = (charname, node)
 			if upd and node in node_val_keyframe:
 				kv = node_val_keyframe[node]
 				for key, value in upd.items():
