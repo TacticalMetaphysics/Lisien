@@ -57,6 +57,12 @@ def update_window(
 	branchd: dict[Turn, list[tuple]],
 ):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
+	if turn_from == turn_to:
+		if turn_from not in branchd:
+			return
+		for past_state in branchd[turn_from][tick_from + 1 : tick_to]:
+			updfun(*past_state)
+		return
 	if turn_from in branchd:
 		# Not including the exact tick you started from,
 		# because deltas are *changes*
@@ -80,6 +86,14 @@ def update_backward_window(
 	branchd: dict[Turn, list[tuple]],
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
+	if turn_from == turn_to:
+		if turn_from not in branchd:
+			return
+		for future_state in reversed(
+			branchd[turn_from][tick_from : tick_to + 1]
+		):
+			updfun(*future_state)
+		return
 	if turn_from in branchd:
 		for future_state in reversed(branchd[turn_from][: tick_from + 1]):
 			updfun(*future_state)
