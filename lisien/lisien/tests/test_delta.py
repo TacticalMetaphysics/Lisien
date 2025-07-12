@@ -19,7 +19,14 @@ def test_character_existence_delta(serial_engine, codepath):
 	del eng.character[2]
 	eng.add_character(4)
 	delta0 = eng.get_delta(("trunk", 0, 0), tuple(eng.time))
-	assert 3 in delta0 and delta0[3] == {}
+	assert 3 in delta0 and delta0[3] == {
+		"character_place_rulebook": ("character_place_rulebook", 3),
+		"character_portal_rulebook": ("character_portal_rulebook", 3),
+		"character_rulebook": ("character_rulebook", 3),
+		"character_thing_rulebook": ("character_thing_rulebook", 3),
+		"unit_rulebook": ("unit_rulebook", 3),
+		"units": {},
+	}
 	assert 2 in delta0 and delta0[2] is None
 	delta1 = eng.get_delta(
 		("trunk", 1, 1),
