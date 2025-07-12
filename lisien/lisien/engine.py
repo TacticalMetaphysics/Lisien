@@ -1722,11 +1722,30 @@ class Engine(AbstractEngine, Executor):
 		if branch in actbranches:
 			updater(partial(updru, "actions"), actbranches[branch])
 
+		def updnbr(_, rule, neighborhood):
+			if neighborhood is not None:
+				if not isinstance(neighborhood, int):
+					raise TypeError(
+						"Neighborhood must be int or None", neighborhood
+					)
+				if neighborhood < 0:
+					raise ValueError(
+						"Neighborhood must not be negative", neighborhood
+					)
+			delta.setdefault("rules", {}).setdefault(rule, {})[
+				"neighborhood"
+			] = neighborhood
+
 		if branch in nbrbranches:
-			updater(partial(updru, "neighborhood"), nbrbranches[branch])
+			updater(updnbr, nbrbranches[branch])
+
+		def updbig(_, rule, big):
+			if not isinstance(big, bool):
+				raise TypeError("big must be boolean", big)
+			delta.setdefault("rules", {}).setdefault(rule, {})["big"] = big
 
 		if branch in bigbranches:
-			updater(partial(updru, "big"), bigbranches[branch])
+			updater(updbig, bigbranches[branch])
 
 		def updcrb(key, _, character, rulebook):
 			if character in delta and delta[character] is None:

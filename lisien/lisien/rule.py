@@ -280,11 +280,12 @@ class Rule:
 	@property
 	def neighborhood(self):
 		try:
-			return self.engine._neighborhoods_cache.retrieve(
+			ret = self.engine._neighborhoods_cache.retrieve(
 				self.name, *self.engine._btt()
 			)
 		except KeyError:
 			return None
+		return ret
 
 	@neighborhood.setter
 	def neighborhood(self, neighbors: int):
