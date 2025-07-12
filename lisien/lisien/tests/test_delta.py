@@ -18,7 +18,7 @@ def test_character_existence_delta(serial_engine, codepath):
 		eng.next_turn()
 	del eng.character[2]
 	eng.add_character(4)
-	delta0 = eng.get_delta(("trunk", 0), eng.time)
+	delta0 = eng.get_delta(("trunk", 0, 0), eng.time)
 	assert 3 in delta0 and delta0[3] == {}
 	assert 2 in delta0 and delta0[2] is None
 	delta1 = eng.get_delta(
