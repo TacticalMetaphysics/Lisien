@@ -1576,11 +1576,13 @@ class TimeSignal(Signal, Sequence):
 	def __len__(self):
 		return 3
 
-	def __getitem__(self, i: str | int) -> str | int:
+	def __getitem__(self, i: str | int) -> Branch | Turn | Tick:
 		if i in ("branch", 0):
 			return self.engine.branch
 		if i in ("turn", 1):
 			return self.engine.turn
+		if i in ("tick", 2):
+			return self.engine.tick
 		if isinstance(i, int):
 			raise IndexError(i)
 		else:
@@ -1588,9 +1590,11 @@ class TimeSignal(Signal, Sequence):
 
 	def __setitem__(self, i: str | int, v: str | int) -> None:
 		if i in ("branch", 0):
-			self.engine.branch = v
+			self.engine.branch = Branch(v)
 		elif i in ("turn", 1):
-			self.engine.turn = v
+			self.engine.turn = Turn(v)
+		elif i in ("tick", 2):
+			self.engine.tick = Tick(v)
 		else:
 			exctyp = KeyError if isinstance(i, str) else IndexError
 			raise exctyp(
