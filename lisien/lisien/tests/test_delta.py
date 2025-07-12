@@ -20,12 +20,9 @@ def test_character_existence_delta(serial_engine, codepath):
 		assert codepath == "turn-delta"
 	del eng.character[2]
 	eng.add_character(4)
-	delta0 = eng.get_delta(("trunk", 0), ("trunk", 1))
-	assert 3 in delta0
-	if codepath == "turn-delta":
-		assert delta0[2] is None
-	else:
-		assert 2 not in delta0
+	delta0 = eng.get_delta(("trunk", 0), ("trunk", 2))
+	assert 3 in delta0 and delta0[3] == {}
+	assert 2 in delta0 and delta0[2] is None
 	delta1 = eng.get_delta(
 		("trunk", 1, 1),
 		("branch", 1) if codepath == "slow-delta" else ("trunk", eng.turn),
