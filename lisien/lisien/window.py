@@ -64,8 +64,8 @@ def update_window(
 			updfun(*past_state)
 		return
 	if turn_from in branchd:
-		# Not including the exact tick you started from,
-		# because deltas are *changes*
+		# Including the exact tick you started from, even though deltas are
+		# changes. Not doing this seems to result in stuff getting left out.
 		for past_state in branchd[turn_from][tick_from:]:
 			updfun(*past_state)
 	for midturn in range(turn_from + 1, turn_to):
