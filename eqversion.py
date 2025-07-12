@@ -11,7 +11,7 @@ with open("buildozer.spec", "rt") as inf:
 		if line.startswith("version"):
 			buildozer_version = line.split("=")[-1].strip()
 
-pat = r"(.+?)(\.post[0-9]+)"
+pat = r"(\d+?\.\d+?\.\d+?)(\.post[0-9]+)?"
 
 if (
 	re.match(pat, lisien_version).group(1)
