@@ -60,13 +60,13 @@ def update_window(
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for past_state in branchd[turn_from][tick_from + 1 : tick_to]:
+		for past_state in branchd[turn_from][tick_from : tick_to + 1]:
 			updfun(*past_state)
 		return
 	if turn_from in branchd:
 		# Not including the exact tick you started from,
 		# because deltas are *changes*
-		for past_state in branchd[turn_from][tick_from + 1 :]:
+		for past_state in branchd[turn_from][tick_from:]:
 			updfun(*past_state)
 	for midturn in range(turn_from + 1, turn_to):
 		if midturn in branchd:
