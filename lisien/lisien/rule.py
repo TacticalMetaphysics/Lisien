@@ -288,6 +288,10 @@ class Rule:
 
 	@neighborhood.setter
 	def neighborhood(self, neighbors: int):
+		if not isinstance(neighbors, int):
+			raise TypeError("Not an int", neighbors)
+		if neighbors < 0:
+			raise ValueError("Can't be negative", neighbors)
 		btt = self.engine._nbtt()
 		self.engine._neighborhoods_cache.store(self.name, *btt, neighbors)
 		self.engine.query.set_rule_neighborhood(self.name, *btt, neighbors)
