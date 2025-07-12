@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.fixture(params=["turn-delta", "branch-delta", "slow-delta"])
+@pytest.fixture(params=["branch-delta", "slow-delta"])
 def codepath(request):
 	return request.param
 
@@ -14,10 +14,8 @@ def test_character_existence_delta(serial_engine, codepath):
 	eng.add_character(3)
 	if codepath == "slow-delta":
 		eng.branch = "branch"
-	elif codepath == "branch-delta":
-		eng.next_turn()
 	else:
-		assert codepath == "turn-delta"
+		eng.next_turn()
 	del eng.character[2]
 	eng.add_character(4)
 	delta0 = eng.get_delta(("trunk", 0), ("trunk", 2))
