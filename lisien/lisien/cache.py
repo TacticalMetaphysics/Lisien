@@ -1648,6 +1648,7 @@ class Cache:
 		if ret is None:
 			raise HistoricKeyError("Set, then deleted", deleted=True)
 		elif isinstance(ret, Exception):
+			ret.args = (*ret.args, args)
 			raise ret
 		return ret
 
