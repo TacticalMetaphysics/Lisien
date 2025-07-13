@@ -2614,23 +2614,6 @@ class UnitnessCache(Cache):
 			contra=contra,
 		)
 		try:
-			noded = self.retrieve(character, graph, branch, turn, tick).copy()
-			noded[node] = is_unit
-		except KeyError:
-			noded = {node: is_unit}
-		super().store(
-			character,
-			graph,
-			branch,
-			turn,
-			tick,
-			noded,
-			planning=planning,
-			forward=forward,
-			loading=loading,
-			contra=contra,
-		)
-		try:
 			users = self.user_cache.retrieve(graph, node, branch, turn, tick)
 			users[character] = frozenset(users[character] | {node})
 		except KeyError:
