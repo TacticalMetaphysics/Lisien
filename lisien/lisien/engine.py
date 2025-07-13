@@ -2987,18 +2987,45 @@ class Engine(AbstractEngine, Executor):
 			self._keyframes_dict[branch_to] = {turn: {tick}}
 
 	@staticmethod
-	def _apply_unit_delta(keyframe: dict, delta: dict) -> None:
+	def _apply_unit_delta(
+		char: CharName,
+		char_unit_kf: dict[CharName, dict[NodeName, bool]],
+		user_kf: dict[CharName, dict[NodeName, frozenset[CharName]]],
+		delta: dict[CharName, dict[NodeName, bool]],
+	) -> None:
 		for graf, units in delta.items():
-			if graf in keyframe:
+			if graf in char_unit_kf:
 				for unit, ex in units.items():
 					if ex:
-						keyframe[graf][unit] = True
-					elif unit in keyframe[graf]:
-						del keyframe[graf][unit]
+						char_unit_kf[graf][unit] = True
+						if graf in user_kf:
+							if unit in user_kf[graf]:
+								user_kf[graf][unit] |= frozenset([char])
+							else:
+								user_kf[graf][unit] = frozenset([char])
+						else:
+							user_kf[graf] = {unit: frozenset([char])}
+					else:
+						if unit in char_unit_kf[graf]:
+							del char_unit_kf[graf][unit]
+						if graf in user_kf and unit in user_kf[graf]:
+							user_kf[graf][unit] -= frozenset([char])
 			else:
-				keyframe[graf] = {
+				char_unit_kf[graf] = {
 					unit: True for (unit, ex) in units.items() if ex
 				}
+				for unit, ex in units.items():
+					if ex:
+						if graf in user_kf:
+							if unit in user_kf[graf]:
+								user_kf[graf][unit] |= frozenset([char])
+							else:
+								user_kf[graf][unit] = frozenset([char])
+						else:
+							user_kf[graf] = {unit: frozenset([char])}
+					else:
+						if graf in user_kf and unit in user_kf[graf]:
+							user_kf[graf][unit] -= frozenset([char])
 
 	@staticmethod
 	def _apply_graph_val_delta(
@@ -3031,7 +3058,7 @@ class Engine(AbstractEngine, Executor):
 
 	@staticmethod
 	def _apply_node_delta(
-		charname: Key,
+		charname: CharName,
 		node_val_keyframe: dict,
 		nodes_keyframe: dict,
 		node_rulebook_keyframe: dict,
@@ -3237,11 +3264,21 @@ class Engine(AbstractEngine, Executor):
 		nodes_rulebooks_keyframe = {}
 		portals_rulebooks_keyframe = {}
 		units_keyframe = {}
-		graph: CharName
-		for graph in (
+		users_keyframe = {}
+		graphs: set[CharName] = (
 			set(self._graph_cache.iter_keys(*then)).union(delta.keys())
 			- self.illegal_graph_names
-		):
+		)
+		for graph in graphs:
+			try:
+				users_keyframe[graph] = (
+					self._unitness_cache.user_cache.get_keyframe(
+						graph, *then, copy=True
+					)
+				)
+			except KeyframeError:
+				users_keyframe[graph] = {}
+		for graph in graphs:
 			delt = delta.get(graph, {})
 			if delt is None:
 				continue
@@ -3282,7 +3319,9 @@ class Engine(AbstractEngine, Executor):
 				node_val_keyframe[graph] = {}
 			if graph not in nodes_keyframe:
 				nodes_keyframe[graph] = {}
-			self._apply_unit_delta(charunit, delt.pop("units", {}) or {})
+			self._apply_unit_delta(
+				graph, charunit, users_keyframe, delt.pop("units", {}) or {}
+			)
 			self._apply_node_delta(
 				graph,
 				node_val_keyframe.setdefault(graph, {}),
