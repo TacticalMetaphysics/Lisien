@@ -455,8 +455,6 @@ class Character(AbstractCharacter, RuleFollower):
 	class ThingPlaceMapping(GraphNodeMapping, Signal):
 		"""GraphNodeMapping but for Place and Thing"""
 
-		_book = "character_node"
-
 		character = getatt("graph")
 		engine = getatt("db")
 		name = getatt("character.name")

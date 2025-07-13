@@ -1040,22 +1040,7 @@ class PortalProxy(CachingEntityProxy, RuleFollowerProxy):
 Portal.register(PortalProxy)
 
 
-class NodeMapProxy(MutableMapping, Signal, RuleFollowerProxy):
-	def _get_default_rulebook_name(self):
-		return "character_node_rulebook", self._charname
-
-	def _get_rulebook_name(self):
-		return self.engine._character_rulebooks_cache[self._charname]["node"]
-
-	def _set_rulebook_name(self, rb: Key):
-		self.engine.handle(
-			"set_character_node_rulebook",
-			char=self._charname,
-			rulebook=rb,
-			branching=True,
-		)
-		self.engine._character_rulebooks_cache[self._charname]["node"] = rb
-
+class NodeMapProxy(MutableMapping, Signal):
 	@property
 	def character(self):
 		return self.engine.character[self._charname]
