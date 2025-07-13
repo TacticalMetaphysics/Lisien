@@ -18,7 +18,9 @@ from typing import Literal, NewType, TypeAlias, TypeGuard
 
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
-Key = str | int | float | None | tuple["Key", ...] | frozenset["Key"]
+Key: TypeAlias = (
+	str | int | float | None | tuple["Key", ...] | frozenset["Key"]
+)
 
 
 def is_valid_key(obj) -> TypeGuard[Key]:
