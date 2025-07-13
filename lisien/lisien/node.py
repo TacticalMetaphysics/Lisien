@@ -30,7 +30,7 @@ from . import graph, rule
 from .exc import AmbiguousUserError
 from .facade import FacadePlace, FacadeThing
 from .query import EntityStatAlias
-from .typing import Key, Time
+from .typing import Key, Time, CharName
 from .util import AbstractCharacter, AbstractThing, getatt
 
 
@@ -53,26 +53,19 @@ class UserMapping(Mapping):
 
 	engine = getatt("node.engine")
 
-	def _user_names(self) -> Iterator[Key]:
+	def _user_names(self) -> frozenset[CharName]:
 		node = self.node
 		engine = self.engine
 		charn = node.character.name
 		nn = node.name
-		seen = set()
 		for b, r, t in engine._iter_parent_btt():
-			for user in engine._unitness_cache.user_cache.iter_keys(
-				charn, nn, b, r, t
-			):
-				if user in seen:
-					continue
-				seen.add(user)
-				try:
-					if engine._unitness_cache.user_cache.retrieve(
-						charn, nn, user, b, r, t
-					):
-						yield user
-				except KeyError:
-					continue
+			try:
+				return engine._unitness_cache.user_cache.retrieve(
+					charn, nn, b, r, t
+				)
+			except KeyError:
+				continue
+		return frozenset()
 
 	@property
 	def only(self) -> "Node":
