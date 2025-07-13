@@ -493,6 +493,11 @@ class Engine(AbstractEngine, Executor):
 	}
 	illegal_node_names = {"nodes", "node_val", "edges", "edge_val", "things"}
 	time = TimeSignalDescriptor()
+	trigger: FunctionStore
+	prereq: FunctionStore
+	action: FunctionStore
+	function: FunctionStore
+	method: FunctionStore
 
 	@property
 	def eternal(self):
