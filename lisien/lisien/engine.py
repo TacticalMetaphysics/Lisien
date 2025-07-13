@@ -1388,7 +1388,23 @@ class Engine(AbstractEngine, Executor):
 		elif graph not in delta or delta[graph] is None:
 			# If the graph was *created* within our window,
 			# include its whole initial keyframe
-			delta[graph] = {}
+			delta[graph] = {
+				"character_rulebook": ("character_rulebook", graph),
+				"unit_rulebook": ("unit_rulebook", graph),
+				"character_thing_rulebook": (
+					"character_thing_rulebook",
+					graph,
+				),
+				"character_place_rulebook": (
+					"character_place_rulebook",
+					graph,
+				),
+				"character_portal_rulebook": (
+					"character_portal_rulebook",
+					graph,
+				),
+				"units": {},
+			}
 			kf_time = None
 			the_kf = None
 			graph_kf = self._graph_cache.keyframe[None,]
