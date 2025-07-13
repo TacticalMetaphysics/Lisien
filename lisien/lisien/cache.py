@@ -2575,6 +2575,32 @@ class PortalsRulebooksCache(InitializedCache):
 				super().set_keyframe((graph, orig), branch, turn, tick, subkf)
 
 
+class UserCache(Cache):
+	"""A cache for remembering which characters have certain nodes as units"""
+
+	def get_keyframe(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy=True,
+	):
+		return super().get_keyframe(
+			(character,), branch, turn, tick, copy=copy
+		)
+
+	def set_keyframe(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict,
+	):
+		super().set_keyframe((character,), branch, turn, tick, keyframe)
+
+
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
@@ -2582,7 +2608,7 @@ class UnitnessCache(Cache):
 		self, db: "engine.Engine", name: str, kfkvs: Optional[dict] = None
 	):
 		super().__init__(db, name, kfkvs)
-		self.user_cache = Cache(db, "user_cache")
+		self.user_cache = UserCache(db, "user cache")
 
 	def store(
 		self,
@@ -2642,23 +2668,8 @@ class UnitnessCache(Cache):
 		keyframe: dict,
 	):
 		super().set_keyframe((character,), branch, turn, tick, keyframe)
-		for graph, subkf in keyframe.items():
-			super().set_keyframe((character, graph), branch, turn, tick, subkf)
-			if isinstance(subkf, dict):
-				for unit, is_unit in subkf.items():
-					try:
-						kf = self.user_cache.get_keyframe(
-							(graph, unit), branch, turn, tick
-						)
-						kf[character] = is_unit
-					except KeyframeError:
-						self.user_cache.set_keyframe(
-							(graph, unit),
-							branch,
-							turn,
-							tick,
-							{character: is_unit},
-						)
+		for graph, kf in keyframe.items():
+			super().set_keyframe((character, graph), branch, turn, tick, kf)
 
 	def get_keyframe(
 		self,
