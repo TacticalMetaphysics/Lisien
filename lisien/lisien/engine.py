@@ -1689,31 +1689,10 @@ class Engine(AbstractEngine, Executor):
 		if branch in univbranches:
 			updater(upduniv, univbranches[branch])
 
-		def updunit(char, graph, units_d):
-			if units_d is None:
-				if char not in delta:
-					delta[char] = {"units": {graph: None}}
-				elif delta[char] is None:
-					return
-				elif "units" not in delta[char]:
-					delta[char]["units"] = {graph: None}
-				else:
-					delta[char]["units"][graph] = None
-				return
-			elif isinstance(units_d, tuple):
-				node, av = units_d
-				delta.setdefault(char, {}).setdefault("units", {}).setdefault(
-					graph, {}
-				)[node] = bool(av)
-				return
-			if char not in delta:
-				delta[char] = {"units": {graph: units_d.copy()}}
-			elif "units" not in delta[char]:
-				delta[char]["units"] = {graph: units_d.copy()}
-			elif graph not in delta[char]["units"]:
-				delta[char]["units"][graph] = units_d.copy()
-			else:
-				delta[char]["units"][graph].update(units_d)
+		def updunit(char, graph, node, is_unit):
+			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
+				graph, {}
+			)[node] = bool(is_unit)
 
 		if branch in unitbranches:
 			updater(updunit, unitbranches[branch])
