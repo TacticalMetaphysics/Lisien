@@ -286,522 +286,6 @@ DORM_INITIAL_COPY = {
 		)
 	},
 }
-STUDENT_INITIAL_COPY = {
-	"units": {"physical": frozenset({"dorm0room0student0"})},
-	"xp": 0,
-	"lazy": True,
-	"drunkard": False,
-	"name": "dorm0room0student0",
-	"rulebooks": {
-		"place": ("dorm0room0student0", "character_place"),
-		"unit": ("dorm0room0student0", "unit"),
-		"portal": ("dorm0room0student0", "character_portal"),
-		"thing": ("dorm0room0student0", "character_thing"),
-		"character": ("dorm0room0student0", "character"),
-	},
-	"node_val": {
-		"cell26": {
-			"rulebook": ("dorm0room0student0", "cell26"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell13": {
-			"rulebook": ("dorm0room0student0", "cell13"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell86": {
-			"rulebook": ("dorm0room0student0", "cell86"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell11": {
-			"rulebook": ("dorm0room0student0", "cell11"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell24": {
-			"rulebook": ("dorm0room0student0", "cell24"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell53": {
-			"rulebook": ("dorm0room0student0", "cell53"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell60": {
-			"rulebook": ("dorm0room0student0", "cell60"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell55": {
-			"rulebook": ("dorm0room0student0", "cell55"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell51": {
-			"rulebook": ("dorm0room0student0", "cell51"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell25": {
-			"rulebook": ("dorm0room0student0", "cell25"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell98": {
-			"rulebook": ("dorm0room0student0", "cell98"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell85": {
-			"rulebook": ("dorm0room0student0", "cell85"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell81": {
-			"rulebook": ("dorm0room0student0", "cell81"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell63": {
-			"rulebook": ("dorm0room0student0", "cell63"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell47": {
-			"rulebook": ("dorm0room0student0", "cell47"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell78": {
-			"rulebook": ("dorm0room0student0", "cell78"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell0": {
-			"rulebook": ("dorm0room0student0", "cell0"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell12": {
-			"rulebook": ("dorm0room0student0", "cell12"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell35": {
-			"rulebook": ("dorm0room0student0", "cell35"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell99": {
-			"rulebook": ("dorm0room0student0", "cell99"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell16": {
-			"rulebook": ("dorm0room0student0", "cell16"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell57": {
-			"rulebook": ("dorm0room0student0", "cell57"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell92": {
-			"rulebook": ("dorm0room0student0", "cell92"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell1": {
-			"rulebook": ("dorm0room0student0", "cell1"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell62": {
-			"rulebook": ("dorm0room0student0", "cell62"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell80": {
-			"rulebook": ("dorm0room0student0", "cell80"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell44": {
-			"rulebook": ("dorm0room0student0", "cell44"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell82": {
-			"rulebook": ("dorm0room0student0", "cell82"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell37": {
-			"rulebook": ("dorm0room0student0", "cell37"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell20": {
-			"rulebook": ("dorm0room0student0", "cell20"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell87": {
-			"rulebook": ("dorm0room0student0", "cell87"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell64": {
-			"rulebook": ("dorm0room0student0", "cell64"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell3": {
-			"rulebook": ("dorm0room0student0", "cell3"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell23": {
-			"rulebook": ("dorm0room0student0", "cell23"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell28": {
-			"rulebook": ("dorm0room0student0", "cell28"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell95": {
-			"rulebook": ("dorm0room0student0", "cell95"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell59": {
-			"rulebook": ("dorm0room0student0", "cell59"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell91": {
-			"rulebook": ("dorm0room0student0", "cell91"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell34": {
-			"rulebook": ("dorm0room0student0", "cell34"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell32": {
-			"rulebook": ("dorm0room0student0", "cell32"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell31": {
-			"rulebook": ("dorm0room0student0", "cell31"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell21": {
-			"rulebook": ("dorm0room0student0", "cell21"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell4": {
-			"rulebook": ("dorm0room0student0", "cell4"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell77": {
-			"rulebook": ("dorm0room0student0", "cell77"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell27": {
-			"rulebook": ("dorm0room0student0", "cell27"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell61": {
-			"rulebook": ("dorm0room0student0", "cell61"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell70": {
-			"rulebook": ("dorm0room0student0", "cell70"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell84": {
-			"rulebook": ("dorm0room0student0", "cell84"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell36": {
-			"rulebook": ("dorm0room0student0", "cell36"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell30": {
-			"rulebook": ("dorm0room0student0", "cell30"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell88": {
-			"rulebook": ("dorm0room0student0", "cell88"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell52": {
-			"rulebook": ("dorm0room0student0", "cell52"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell58": {
-			"rulebook": ("dorm0room0student0", "cell58"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell2": {
-			"rulebook": ("dorm0room0student0", "cell2"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell75": {
-			"rulebook": ("dorm0room0student0", "cell75"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell69": {
-			"rulebook": ("dorm0room0student0", "cell69"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell74": {
-			"rulebook": ("dorm0room0student0", "cell74"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell49": {
-			"rulebook": ("dorm0room0student0", "cell49"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell90": {
-			"rulebook": ("dorm0room0student0", "cell90"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell15": {
-			"rulebook": ("dorm0room0student0", "cell15"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell65": {
-			"rulebook": ("dorm0room0student0", "cell65"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell50": {
-			"rulebook": ("dorm0room0student0", "cell50"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell22": {
-			"rulebook": ("dorm0room0student0", "cell22"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell46": {
-			"rulebook": ("dorm0room0student0", "cell46"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell93": {
-			"rulebook": ("dorm0room0student0", "cell93"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell40": {
-			"rulebook": ("dorm0room0student0", "cell40"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell66": {
-			"rulebook": ("dorm0room0student0", "cell66"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell73": {
-			"rulebook": ("dorm0room0student0", "cell73"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell8": {
-			"rulebook": ("dorm0room0student0", "cell8"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell41": {
-			"rulebook": ("dorm0room0student0", "cell41"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell17": {
-			"rulebook": ("dorm0room0student0", "cell17"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell56": {
-			"rulebook": ("dorm0room0student0", "cell56"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell48": {
-			"rulebook": ("dorm0room0student0", "cell48"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell89": {
-			"rulebook": ("dorm0room0student0", "cell89"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell5": {
-			"rulebook": ("dorm0room0student0", "cell5"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell94": {
-			"rulebook": ("dorm0room0student0", "cell94"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell19": {
-			"rulebook": ("dorm0room0student0", "cell19"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell71": {
-			"rulebook": ("dorm0room0student0", "cell71"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell67": {
-			"rulebook": ("dorm0room0student0", "cell67"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell96": {
-			"rulebook": ("dorm0room0student0", "cell96"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell18": {
-			"rulebook": ("dorm0room0student0", "cell18"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell42": {
-			"rulebook": ("dorm0room0student0", "cell42"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell38": {
-			"rulebook": ("dorm0room0student0", "cell38"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell29": {
-			"rulebook": ("dorm0room0student0", "cell29"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell54": {
-			"rulebook": ("dorm0room0student0", "cell54"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell14": {
-			"rulebook": ("dorm0room0student0", "cell14"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell9": {
-			"rulebook": ("dorm0room0student0", "cell9"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell33": {
-			"rulebook": ("dorm0room0student0", "cell33"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell68": {
-			"rulebook": ("dorm0room0student0", "cell68"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell10": {
-			"rulebook": ("dorm0room0student0", "cell10"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell7": {
-			"rulebook": ("dorm0room0student0", "cell7"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell76": {
-			"rulebook": ("dorm0room0student0", "cell76"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell45": {
-			"rulebook": ("dorm0room0student0", "cell45"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell83": {
-			"rulebook": ("dorm0room0student0", "cell83"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell43": {
-			"rulebook": ("dorm0room0student0", "cell43"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell79": {
-			"rulebook": ("dorm0room0student0", "cell79"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell97": {
-			"rulebook": ("dorm0room0student0", "cell97"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell39": {
-			"rulebook": ("dorm0room0student0", "cell39"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell6": {
-			"rulebook": ("dorm0room0student0", "cell6"),
-			"drunk": 0,
-			"slow": 0,
-		},
-		"cell72": {
-			"rulebook": ("dorm0room0student0", "cell72"),
-			"drunk": 0,
-			"slow": 0,
-		},
-	},
-}
 
 KF_FROM = {
 	"actions": {
@@ -24623,17 +24107,7 @@ COLLEGE_KEYFRAME_0 = {
 			"character_rulebook": ("character_rulebook", "dorm0"),
 			"character_thing_rulebook": ("character_thing_rulebook", "dorm0"),
 			"unit_rulebook": ("unit_rulebook", "dorm0"),
-			"units": {
-				"physical": {
-					"common0": True,
-					"dorm0room0": True,
-					"dorm0room1": True,
-					"dorm0room2": True,
-					"dorm0room3": True,
-					"dorm0room4": True,
-					"dorm0room5": True,
-				}
-			},
+			"units": {"physical": {}},
 		},
 		"dorm0room0student0": {
 			"character_place_rulebook": (
@@ -24654,7 +24128,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room0"],
 			"roommate": colleng.character["dorm0room0student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room0student0"),
-			"units": {"physical": {"dorm0room0student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room0student1": {
@@ -24676,7 +24150,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room0"],
 			"roommate": colleng.character["dorm0room0student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room0student1"),
-			"units": {"physical": {"dorm0room0student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room1student0": {
@@ -24698,7 +24172,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room1"],
 			"roommate": colleng.character["dorm0room1student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room1student0"),
-			"units": {"physical": {"dorm0room1student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room1student1": {
@@ -24720,7 +24194,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room1"],
 			"roommate": colleng.character["dorm0room1student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room1student1"),
-			"units": {"physical": {"dorm0room1student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room2student0": {
@@ -24742,7 +24216,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room2"],
 			"roommate": colleng.character["dorm0room2student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room2student0"),
-			"units": {"physical": {"dorm0room2student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room2student1": {
@@ -24764,7 +24238,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room2"],
 			"roommate": colleng.character["dorm0room2student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room2student1"),
-			"units": {"physical": {"dorm0room2student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room3student0": {
@@ -24786,7 +24260,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room3"],
 			"roommate": colleng.character["dorm0room3student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room3student0"),
-			"units": {"physical": {"dorm0room3student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room3student1": {
@@ -24808,7 +24282,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room3"],
 			"roommate": colleng.character["dorm0room3student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room3student1"),
-			"units": {"physical": {"dorm0room3student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room4student0": {
@@ -24830,7 +24304,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room4"],
 			"roommate": colleng.character["dorm0room4student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room4student0"),
-			"units": {"physical": {"dorm0room4student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room4student1": {
@@ -24852,7 +24326,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room4"],
 			"roommate": colleng.character["dorm0room4student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room4student1"),
-			"units": {"physical": {"dorm0room4student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room5student0": {
@@ -24874,7 +24348,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room5"],
 			"roommate": colleng.character["dorm0room5student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room5student0"),
-			"units": {"physical": {"dorm0room5student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room5student1": {
@@ -24896,7 +24370,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm0room5"],
 			"roommate": colleng.character["dorm0room5student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room5student1"),
-			"units": {"physical": {"dorm0room5student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1": {
@@ -24908,17 +24382,7 @@ COLLEGE_KEYFRAME_0 = {
 			"character_rulebook": ("character_rulebook", "dorm1"),
 			"character_thing_rulebook": ("character_thing_rulebook", "dorm1"),
 			"unit_rulebook": ("unit_rulebook", "dorm1"),
-			"units": {
-				"physical": {
-					"common1": True,
-					"dorm1room0": True,
-					"dorm1room1": True,
-					"dorm1room2": True,
-					"dorm1room3": True,
-					"dorm1room4": True,
-					"dorm1room5": True,
-				}
-			},
+			"units": {"physical": {}},
 		},
 		"dorm1room0student0": {
 			"character_place_rulebook": (
@@ -24939,7 +24403,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room0"],
 			"roommate": colleng.character["dorm1room0student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room0student0"),
-			"units": {"physical": {"dorm1room0student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room0student1": {
@@ -24961,7 +24425,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room0"],
 			"roommate": colleng.character["dorm1room0student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room0student1"),
-			"units": {"physical": {"dorm1room0student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room1student0": {
@@ -24983,7 +24447,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room1"],
 			"roommate": colleng.character["dorm1room1student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room1student0"),
-			"units": {"physical": {"dorm1room1student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room1student1": {
@@ -25005,7 +24469,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room1"],
 			"roommate": colleng.character["dorm1room1student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room1student1"),
-			"units": {"physical": {"dorm1room1student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room2student0": {
@@ -25027,7 +24491,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room2"],
 			"roommate": colleng.character["dorm1room2student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room2student0"),
-			"units": {"physical": {"dorm1room2student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room2student1": {
@@ -25049,7 +24513,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room2"],
 			"roommate": colleng.character["dorm1room2student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room2student1"),
-			"units": {"physical": {"dorm1room2student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room3student0": {
@@ -25071,7 +24535,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room3"],
 			"roommate": colleng.character["dorm1room3student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room3student0"),
-			"units": {"physical": {"dorm1room3student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room3student1": {
@@ -25093,7 +24557,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room3"],
 			"roommate": colleng.character["dorm1room3student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room3student1"),
-			"units": {"physical": {"dorm1room3student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room4student0": {
@@ -25115,7 +24579,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room4"],
 			"roommate": colleng.character["dorm1room4student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room4student0"),
-			"units": {"physical": {"dorm1room4student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room4student1": {
@@ -25137,7 +24601,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room4"],
 			"roommate": colleng.character["dorm1room4student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room4student1"),
-			"units": {"physical": {"dorm1room4student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room5student0": {
@@ -25159,7 +24623,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room5"],
 			"roommate": colleng.character["dorm1room5student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room5student0"),
-			"units": {"physical": {"dorm1room5student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room5student1": {
@@ -25181,7 +24645,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm1room5"],
 			"roommate": colleng.character["dorm1room5student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room5student1"),
-			"units": {"physical": {"dorm1room5student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2": {
@@ -25193,17 +24657,7 @@ COLLEGE_KEYFRAME_0 = {
 			"character_rulebook": ("character_rulebook", "dorm2"),
 			"character_thing_rulebook": ("character_thing_rulebook", "dorm2"),
 			"unit_rulebook": ("unit_rulebook", "dorm2"),
-			"units": {
-				"physical": {
-					"common2": True,
-					"dorm2room0": True,
-					"dorm2room1": True,
-					"dorm2room2": True,
-					"dorm2room3": True,
-					"dorm2room4": True,
-					"dorm2room5": True,
-				}
-			},
+			"units": {"physical": {}},
 		},
 		"dorm2room0student0": {
 			"character_place_rulebook": (
@@ -25224,7 +24678,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room0"],
 			"roommate": colleng.character["dorm2room0student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room0student0"),
-			"units": {"physical": {"dorm2room0student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room0student1": {
@@ -25246,7 +24700,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room0"],
 			"roommate": colleng.character["dorm2room0student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room0student1"),
-			"units": {"physical": {"dorm2room0student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room1student0": {
@@ -25268,7 +24722,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room1"],
 			"roommate": colleng.character["dorm2room1student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room1student0"),
-			"units": {"physical": {"dorm2room1student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room1student1": {
@@ -25290,7 +24744,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room1"],
 			"roommate": colleng.character["dorm2room1student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room1student1"),
-			"units": {"physical": {"dorm2room1student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room2student0": {
@@ -25312,7 +24766,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room2"],
 			"roommate": colleng.character["dorm2room2student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room2student0"),
-			"units": {"physical": {"dorm2room2student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room2student1": {
@@ -25334,7 +24788,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room2"],
 			"roommate": colleng.character["dorm2room2student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room2student1"),
-			"units": {"physical": {"dorm2room2student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room3student0": {
@@ -25356,7 +24810,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room3"],
 			"roommate": colleng.character["dorm2room3student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room3student0"),
-			"units": {"physical": {"dorm2room3student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room3student1": {
@@ -25378,7 +24832,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room3"],
 			"roommate": colleng.character["dorm2room3student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room3student1"),
-			"units": {"physical": {"dorm2room3student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room4student0": {
@@ -25400,7 +24854,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room4"],
 			"roommate": colleng.character["dorm2room4student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room4student0"),
-			"units": {"physical": {"dorm2room4student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room4student1": {
@@ -25422,7 +24876,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room4"],
 			"roommate": colleng.character["dorm2room4student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room4student1"),
-			"units": {"physical": {"dorm2room4student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room5student0": {
@@ -25444,7 +24898,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room5"],
 			"roommate": colleng.character["dorm2room5student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room5student0"),
-			"units": {"physical": {"dorm2room5student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room5student1": {
@@ -25466,7 +24920,7 @@ COLLEGE_KEYFRAME_0 = {
 			"room": colleng.character["physical"].place["dorm2room5"],
 			"roommate": colleng.character["dorm2room5student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room5student1"),
-			"units": {"physical": {"dorm2room5student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"hello": {
@@ -25534,46 +24988,7 @@ COLLEGE_KEYFRAME_0 = {
 				colleng.character["dorm2room5student1"],
 			],
 			"unit_rulebook": ("unit_rulebook", "student_body"),
-			"units": {
-				"physical": {
-					"dorm0room0student0": True,
-					"dorm0room0student1": True,
-					"dorm0room1student0": True,
-					"dorm0room1student1": True,
-					"dorm0room2student0": True,
-					"dorm0room2student1": True,
-					"dorm0room3student0": True,
-					"dorm0room3student1": True,
-					"dorm0room4student0": True,
-					"dorm0room4student1": True,
-					"dorm0room5student0": True,
-					"dorm0room5student1": True,
-					"dorm1room0student0": True,
-					"dorm1room0student1": True,
-					"dorm1room1student0": True,
-					"dorm1room1student1": True,
-					"dorm1room2student0": True,
-					"dorm1room2student1": True,
-					"dorm1room3student0": True,
-					"dorm1room3student1": True,
-					"dorm1room4student0": True,
-					"dorm1room4student1": True,
-					"dorm1room5student0": True,
-					"dorm1room5student1": True,
-					"dorm2room0student0": True,
-					"dorm2room0student1": True,
-					"dorm2room1student0": True,
-					"dorm2room1student1": True,
-					"dorm2room2student0": True,
-					"dorm2room2student1": True,
-					"dorm2room3student0": True,
-					"dorm2room3student1": True,
-					"dorm2room4student0": True,
-					"dorm2room4student1": True,
-					"dorm2room5student0": True,
-					"dorm2room5student1": True,
-				}
-			},
+			"units": {"physical": {}},
 		},
 	},
 	"neighborhood": {"learn": 0},
@@ -48008,7 +47423,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room0"],
 			"roommate": colleng.character["dorm0room0student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room0student0"),
-			"units": {"physical": {"dorm0room0student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room0student1": {
@@ -48030,7 +47445,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room0"],
 			"roommate": colleng.character["dorm0room0student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room0student1"),
-			"units": {"physical": {"dorm0room0student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room1student0": {
@@ -48052,7 +47467,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room1"],
 			"roommate": colleng.character["dorm0room1student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room1student0"),
-			"units": {"physical": {"dorm0room1student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room1student1": {
@@ -48074,7 +47489,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room1"],
 			"roommate": colleng.character["dorm0room1student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room1student1"),
-			"units": {"physical": {"dorm0room1student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room2student0": {
@@ -48096,7 +47511,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room2"],
 			"roommate": colleng.character["dorm0room2student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room2student0"),
-			"units": {"physical": {"dorm0room2student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room2student1": {
@@ -48118,7 +47533,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room2"],
 			"roommate": colleng.character["dorm0room2student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room2student1"),
-			"units": {"physical": {"dorm0room2student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room3student0": {
@@ -48140,7 +47555,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room3"],
 			"roommate": colleng.character["dorm0room3student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room3student0"),
-			"units": {"physical": {"dorm0room3student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room3student1": {
@@ -48162,7 +47577,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room3"],
 			"roommate": colleng.character["dorm0room3student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room3student1"),
-			"units": {"physical": {"dorm0room3student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room4student0": {
@@ -48184,7 +47599,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room4"],
 			"roommate": colleng.character["dorm0room4student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room4student0"),
-			"units": {"physical": {"dorm0room4student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room4student1": {
@@ -48206,7 +47621,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room4"],
 			"roommate": colleng.character["dorm0room4student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room4student1"),
-			"units": {"physical": {"dorm0room4student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room5student0": {
@@ -48228,7 +47643,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room5"],
 			"roommate": colleng.character["dorm0room5student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room5student0"),
-			"units": {"physical": {"dorm0room5student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm0room5student1": {
@@ -48250,7 +47665,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm0room5"],
 			"roommate": colleng.character["dorm0room5student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm0room5student1"),
-			"units": {"physical": {"dorm0room5student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1": {
@@ -48293,7 +47708,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room0"],
 			"roommate": colleng.character["dorm1room0student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room0student0"),
-			"units": {"physical": {"dorm1room0student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room0student1": {
@@ -48315,7 +47730,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room0"],
 			"roommate": colleng.character["dorm1room0student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room0student1"),
-			"units": {"physical": {"dorm1room0student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room1student0": {
@@ -48337,7 +47752,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room1"],
 			"roommate": colleng.character["dorm1room1student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room1student0"),
-			"units": {"physical": {"dorm1room1student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room1student1": {
@@ -48359,7 +47774,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room1"],
 			"roommate": colleng.character["dorm1room1student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room1student1"),
-			"units": {"physical": {"dorm1room1student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room2student0": {
@@ -48381,7 +47796,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room2"],
 			"roommate": colleng.character["dorm1room2student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room2student0"),
-			"units": {"physical": {"dorm1room2student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room2student1": {
@@ -48403,7 +47818,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room2"],
 			"roommate": colleng.character["dorm1room2student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room2student1"),
-			"units": {"physical": {"dorm1room2student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room3student0": {
@@ -48425,7 +47840,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room3"],
 			"roommate": colleng.character["dorm1room3student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room3student0"),
-			"units": {"physical": {"dorm1room3student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room3student1": {
@@ -48447,7 +47862,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room3"],
 			"roommate": colleng.character["dorm1room3student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room3student1"),
-			"units": {"physical": {"dorm1room3student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room4student0": {
@@ -48469,7 +47884,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room4"],
 			"roommate": colleng.character["dorm1room4student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room4student0"),
-			"units": {"physical": {"dorm1room4student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room4student1": {
@@ -48491,7 +47906,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room4"],
 			"roommate": colleng.character["dorm1room4student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room4student1"),
-			"units": {"physical": {"dorm1room4student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room5student0": {
@@ -48513,7 +47928,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room5"],
 			"roommate": colleng.character["dorm1room5student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room5student0"),
-			"units": {"physical": {"dorm1room5student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm1room5student1": {
@@ -48535,7 +47950,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm1room5"],
 			"roommate": colleng.character["dorm1room5student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm1room5student1"),
-			"units": {"physical": {"dorm1room5student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2": {
@@ -48578,7 +47993,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room0"],
 			"roommate": colleng.character["dorm2room0student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room0student0"),
-			"units": {"physical": {"dorm2room0student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room0student1": {
@@ -48600,7 +48015,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room0"],
 			"roommate": colleng.character["dorm2room0student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room0student1"),
-			"units": {"physical": {"dorm2room0student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room1student0": {
@@ -48622,7 +48037,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room1"],
 			"roommate": colleng.character["dorm2room1student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room1student0"),
-			"units": {"physical": {"dorm2room1student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room1student1": {
@@ -48644,7 +48059,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room1"],
 			"roommate": colleng.character["dorm2room1student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room1student1"),
-			"units": {"physical": {"dorm2room1student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room2student0": {
@@ -48666,7 +48081,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room2"],
 			"roommate": colleng.character["dorm2room2student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room2student0"),
-			"units": {"physical": {"dorm2room2student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room2student1": {
@@ -48688,7 +48103,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room2"],
 			"roommate": colleng.character["dorm2room2student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room2student1"),
-			"units": {"physical": {"dorm2room2student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room3student0": {
@@ -48710,7 +48125,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room3"],
 			"roommate": colleng.character["dorm2room3student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room3student0"),
-			"units": {"physical": {"dorm2room3student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room3student1": {
@@ -48732,7 +48147,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room3"],
 			"roommate": colleng.character["dorm2room3student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room3student1"),
-			"units": {"physical": {"dorm2room3student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room4student0": {
@@ -48754,7 +48169,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room4"],
 			"roommate": colleng.character["dorm2room4student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room4student0"),
-			"units": {"physical": {"dorm2room4student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room4student1": {
@@ -48776,7 +48191,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room4"],
 			"roommate": colleng.character["dorm2room4student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room4student1"),
-			"units": {"physical": {"dorm2room4student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room5student0": {
@@ -48798,7 +48213,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room5"],
 			"roommate": colleng.character["dorm2room5student1"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room5student0"),
-			"units": {"physical": {"dorm2room5student0": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"dorm2room5student1": {
@@ -48820,7 +48235,7 @@ COLLEGE_KEYFRAME_1 = {
 			"room": colleng.character["physical"].place["dorm2room5"],
 			"roommate": colleng.character["dorm2room5student0"],
 			"unit_rulebook": ("unit_rulebook", "dorm2room5student1"),
-			"units": {"physical": {"dorm2room5student1": True}},
+			"units": {"physical": {}},
 			"xp": 0,
 		},
 		"physical": {
