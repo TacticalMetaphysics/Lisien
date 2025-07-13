@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.f
 from __future__ import annotations
 
-from typing import Literal, NewType, TypeGuard
+from typing import Literal, NewType, TypeAlias, TypeGuard
 
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
@@ -48,7 +48,7 @@ class KeyClass:
 		return is_valid_key(instance)
 
 
-Value = (
+Value: TypeAlias = (
 	Key
 	| dict[Key, "Value"]
 	| tuple["Value", ...]
@@ -97,12 +97,13 @@ UniversalKey = NewType("UniversalKey", KeyClass)
 Branch = NewType("Branch", str)
 Turn = NewType("Turn", int)
 Tick = NewType("Tick", int)
-Time = tuple[Branch, Turn, Tick]
-TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
+Time: TypeAlias = tuple[Branch, Turn, Tick]
+LinearTime: TypeAlias = tuple[Turn, Tick]
+TimeWindow: TypeAlias = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", int)
 CharName = NewType("CharName", KeyClass)
 NodeName = NewType("NodeName", KeyClass)
-EntityKey = (
+EntityKey: TypeAlias = (
 	tuple[CharName]
 	| tuple[CharName, NodeName]
 	| tuple[CharName, NodeName, NodeName]
@@ -116,23 +117,25 @@ FuncName = NewType("FuncName", str)
 TriggerFuncName = NewType("TriggerFuncName", FuncName)
 PrereqFuncName = NewType("PrereqFuncName", FuncName)
 ActionFuncName = NewType("ActionFuncName", FuncName)
-RuleFuncName = TriggerFuncName | PrereqFuncName | ActionFuncName
+RuleFuncName: TypeAlias = TriggerFuncName | PrereqFuncName | ActionFuncName
 UniversalKeyframe = NewType("UniversalKeyframe", dict)
 RuleKeyframe = NewType("RuleKeyframe", dict)
 RulebookKeyframe = NewType("RulebookKeyframe", dict)
 NodeKeyframe = NewType("NodeKeyframe", dict)
 EdgeKeyframe = NewType("EdgeKeyframe", dict)
-NodeRowType = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
-EdgeRowType = tuple[
+NodeRowType: TypeAlias = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
+EdgeRowType: TypeAlias = tuple[
 	CharName, NodeName, NodeName, int, Branch, Turn, Tick, bool
 ]
-GraphValRowType = tuple[CharName, Key, Branch, Turn, Tick, Value]
-NodeValRowType = tuple[CharName, NodeName, Key, Branch, Turn, Tick, Value]
-EdgeValRowType = tuple[
+GraphValRowType: TypeAlias = tuple[CharName, Key, Branch, Turn, Tick, Value]
+NodeValRowType: TypeAlias = tuple[
+	CharName, NodeName, Key, Branch, Turn, Tick, Value
+]
+EdgeValRowType: TypeAlias = tuple[
 	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Value
 ]
-StatDict = dict[Stat | Literal["rulebook"], ValueClass]
-CharDict = dict[
+StatDict: TypeAlias = dict[Stat | Literal["rulebook"], ValueClass]
+CharDict: TypeAlias = dict[
 	Stat
 	| Literal[
 		"units",
@@ -144,16 +147,16 @@ CharDict = dict[
 	],
 	ValueClass,
 ]
-GraphValKeyframe = NewType("GraphValKeyframe", dict[CharName, CharDict])
-NodeValDict = dict[NodeName, StatDict]
-GraphNodeValKeyframe = dict[CharName, NodeValDict]
-EdgeValDict = dict[NodeName, dict[NodeName, StatDict]]
-GraphEdgeValKeyframe = dict[CharName, EdgeValDict]
-NodesDict = dict[NodeName, bool]
-GraphNodesKeyframe = dict[CharName, NodesDict]
-EdgesDict = dict[NodeName, dict[NodeName, bool]]
-GraphEdgesKeyframe = dict[CharName, EdgesDict]
-DeltaDict = dict[
+GraphValKeyframe: TypeAlias = dict[CharName, CharDict]
+NodeValDict: TypeAlias = dict[NodeName, StatDict]
+GraphNodeValKeyframe: TypeAlias = dict[CharName, NodeValDict]
+EdgeValDict: TypeAlias = dict[NodeName, dict[NodeName, StatDict]]
+GraphEdgeValKeyframe: TypeAlias = dict[CharName, EdgeValDict]
+NodesDict: TypeAlias = dict[NodeName, bool]
+GraphNodesKeyframe: TypeAlias = dict[CharName, NodesDict]
+EdgesDict: TypeAlias = dict[NodeName, dict[NodeName, bool]]
+GraphEdgesKeyframe: TypeAlias = dict[CharName, EdgesDict]
+DeltaDict: TypeAlias = dict[
 	CharName,
 	dict[
 		Stat | Literal["nodes", "node_val", "edges", "edge_val", "rulebook"],
@@ -166,7 +169,7 @@ DeltaDict = dict[
 	]
 	| None,
 ]
-KeyframeTuple = tuple[
+KeyframeTuple: TypeAlias = tuple[
 	CharName,
 	Branch,
 	Turn,
@@ -175,7 +178,7 @@ KeyframeTuple = tuple[
 	GraphEdgeValKeyframe,
 	GraphValKeyframe,
 ]
-Keyframe = dict[
+Keyframe: TypeAlias = dict[
 	CharName
 	| Literal[
 		"universal",
@@ -202,7 +205,7 @@ Keyframe = dict[
 	| dict[RuleName, bool]
 	| dict[RulebookName, RulebookKeyframe],
 ]
-SlightlyPackedDeltaType = dict[
+SlightlyPackedDeltaType: TypeAlias = dict[
 	bytes,
 	dict[
 		bytes,
@@ -213,7 +216,7 @@ SlightlyPackedDeltaType = dict[
 		],
 	],
 ]
-RulebookTypeStr = Literal[
+RulebookTypeStr: TypeAlias = Literal[
 	"character",
 	"unit",
 	"character_thing",
