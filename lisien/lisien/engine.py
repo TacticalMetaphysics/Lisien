@@ -4194,7 +4194,7 @@ class Engine(AbstractEngine, Executor):
 
 	@world_locked
 	def _read_at(
-		self, branch: Branch, turn: Branch, tick: Branch
+		self, branch: Branch, turn: Turn, tick: Tick
 	) -> tuple[
 		Time | None,
 		Time | None,
