@@ -61,6 +61,11 @@ from networkx import (
 	spring_layout,
 )
 
+from lisien.character import Character
+from lisien.exc import TotalKeyError, NotInKeyframeError
+from lisien.node import Thing, Place
+from lisien.util import SizedDict
+
 from . import exc
 from .cache import (
 	CharacterPlaceRulesHandledCache,
@@ -127,6 +132,7 @@ from .typing import (
 	Key,
 	Keyframe,
 	KeyframeTuple,
+	LinearTime,
 	NodeName,
 	NodeValDict,
 	Plan,
@@ -747,7 +753,12 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def _get_node_stuff(
 		self,
-	):
+	) -> tuple[
+		SizedDict,
+		Callable[[Any, bool, bool, bool], Any],
+		Callable[[], tuple[Branch, Turn, Tick]],
+		Callable[[Character], Thing | Place],
+	]:
 		return (
 			self._node_objs,
 			self._nodes_cache._base_retrieve,
@@ -756,14 +767,8 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	@cached_property
-	def _get_edge_stuff(
-		self,
-	) -> tuple[
-		dict,
-		Callable[[CharName, NodeName, NodeName, int], bool],
-		Callable[[CharName, NodeName, NodeName, int], edge_cls],
-	]:
-		return (self._edge_objs, self._edge_exists, self._make_edge)
+	def _get_edge_stuff(self):
+		return self._edge_objs, self._edge_exists, self._make_edge
 
 	@cached_property
 	def _childbranch(self) -> dict[str, set[str]]:
@@ -773,7 +778,9 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def _branches_d(
 		self,
-	) -> dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]]:
+	) -> ChangeTrackingDict[
+		Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
+	]:
 		"""Parent, start time, and end time of each branch. Includes plans."""
 		return ChangeTrackingDict()
 
@@ -783,15 +790,15 @@ class Engine(AbstractEngine, Executor):
 		return defaultdict(set)
 
 	@cached_property
-	def _turn_end(self) -> dict[tuple[Branch, Turn], Tick]:
+	def _turn_end(self) -> TurnEndDict[tuple[Branch, Turn], Tick]:
 		return TurnEndDict(self)
 
 	@cached_property
-	def _turn_end_plan(self) -> dict[tuple[Branch, Turn], Tick]:
+	def _turn_end_plan(self) -> TurnEndPlanDict[tuple[Branch, Turn], Tick]:
 		return TurnEndPlanDict(self)
 
 	@cached_property
-	def _graph_objs(self) -> dict[Key, AbstractCharacter]:
+	def _graph_objs(self) -> dict[CharName, AbstractCharacter]:
 		return {}
 
 	@cached_property
@@ -1204,7 +1211,7 @@ class Engine(AbstractEngine, Executor):
 		total_hash.update(self._graph_state_hash(nodes, edges, vals))
 		return total_hash.digest()
 
-	def _get_node(self, graph: Key | Graph, node: Key):
+	def _get_node(self, graph: CharName | Character, node: NodeName):
 		node_objs, retrieve, btt, make_node = self._get_node_stuff
 		if hasattr(graph, "name"):
 			graphn = graph.name
@@ -1227,7 +1234,13 @@ class Engine(AbstractEngine, Executor):
 		node_objs[key] = ret
 		return ret
 
-	def _get_edge(self, graph, orig, dest, idx=0):
+	def _get_edge(
+		self,
+		graph: Character | CharName,
+		orig: NodeName,
+		dest: NodeName,
+		idx: int = 0,
+	):
 		edge_objs, edge_exists, make_edge = self._get_edge_stuff
 		if type(graph) is str:
 			graphn = graph
@@ -1247,7 +1260,7 @@ class Engine(AbstractEngine, Executor):
 		edge_objs[key] = ret
 		return ret
 
-	def plan(self, reset=True) -> PlanningContext:
+	def plan(self, reset: bool = True) -> PlanningContext:
 		__doc__ = PlanningContext.__doc__
 		return PlanningContext(self, reset)
 
@@ -1595,12 +1608,14 @@ class Engine(AbstractEngine, Executor):
 			if not isinstance(arg, int):
 				raise TypeError("turn and tick must be int")
 		self.load_between(branch, turn_from, tick_from, turn_to, tick_to)
-		if (turn_from, tick_from) == (turn_to, tick_to):
+		a: LinearTime = turn_from, tick_from
+		b: LinearTime = turn_to, tick_to
+		if a == b:
 			return {}
 		delta = {}
 		graph_objs = self._graph_objs
 
-		if (turn_from, tick_from) < (turn_to, tick_to):
+		if a < b:
 			updater = partial(
 				update_window, turn_from, tick_from, turn_to, tick_to
 			)
@@ -2510,13 +2525,13 @@ class Engine(AbstractEngine, Executor):
 
 	def _iter_keyframes(
 		self,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		*,
-		loaded=False,
-		with_fork_points=False,
-		stoptime: tuple[str, int, int] = None,
+		loaded: bool = False,
+		with_fork_points: bool = False,
+		stoptime: Optional[Time] = None,
 	):
 		"""Iterate back over (branch, turn, tick) at which there is a keyframe
 
@@ -3582,7 +3597,7 @@ class Engine(AbstractEngine, Executor):
 			)
 
 	def _edge_exists(
-		self, character: CharName, orig: NodeName, dest: NodeName, idx=0
+		self, character: CharName, orig: NodeName, dest: NodeName, idx: int = 0
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
 		args = (character, orig, dest, idx) + btt()
@@ -3750,6 +3765,11 @@ class Engine(AbstractEngine, Executor):
 		turn_to: int,
 		tick_to: int,
 	):
+		branch = Branch(branch)
+		turn_from = Turn(turn_from)
+		tick_from = Tick(tick_from)
+		turn_to = Turn(turn_to)
+		tick_to = Tick(tick_to)
 		if self._time_is_loaded_between(
 			branch, turn_from, tick_from, turn_to, tick_to
 		):
