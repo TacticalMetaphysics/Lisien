@@ -23,7 +23,7 @@ rm -rf elide/build elide/dist elide/strings
 tox -c lisien/tox.ini
 rm -rf lisien/build lisien/dist lisien/strings
 rm -rf elide/build elide/dist elide/strings
-tox-c elide/tox.ini
+tox -c elide/tox.ini
 rm -rf lisien/build lisien/dist lisien/strings
 rm -rf elide/build elide/dist elide/strings
 rm -rf bin
