@@ -1,4 +1,3 @@
-from io import StringIO
 import re
 import subprocess
 import sys
@@ -23,12 +22,11 @@ if not (lisien_version == elide_version == buildozer_version):
 		f"Version numbers differ. lisien: {lisien_version}, elide: {elide_version}, buildozer: {buildozer_version}"
 	)
 
-outtext = StringIO()
-proc = subprocess.call(
-	["python", "-m", "pip", "index", "versions", "lisien"], stdout=outtext
+output = subprocess.check_output(
+	[sys.executable, "-m", "pip", "index", "versions", "lisien"], text=True
 )
 vers = ()
-for line in outtext.getvalue().split("\n"):
+for line in output.split("\n"):
 	if line.startswith("Available versions: "):
 		vers = {
 			ver.strip()
