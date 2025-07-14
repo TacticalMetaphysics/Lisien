@@ -1187,18 +1187,25 @@ def queries(table):
 	r["load_rule_actions_tick_to_tick"] = actsel.where(
 		generic_tick_to_tick_clause(act)
 	)
+	kf = table["keyframes"]
+
+	def time_clause(tab):
+		return and_(
+			tab.c.branch == bindparam("branch"),
+			tab.c.turn == bindparam("turn"),
+			tab.c.tick == bindparam("tick"),
+		)
+
+	r["delete_from_keyframes"] = kf.delete().where(time_clause(kf))
+	kfg = table["keyframes_graphs"]
+	r["delete_from_keyframes_graphs"] = kfg.delete().where(time_clause(kfg))
 	kfx = table["keyframe_extensions"]
+	r["delete_from_keyframe_extensions"] = kfx.delete().where(time_clause(kfx))
 	r["get_keyframe_extensions"] = select(
 		kfx.c.universal,
 		kfx.c.rule,
 		kfx.c.rulebook,
-	).where(
-		and_(
-			kfx.c.branch == bindparam("branch"),
-			kfx.c.turn == bindparam("turn"),
-			kfx.c.tick == bindparam("tick"),
-		)
-	)
+	).where(time_clause(kfx))
 
 	for handledtab in (
 		"character_rules_handled",
