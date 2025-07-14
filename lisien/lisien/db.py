@@ -559,6 +559,19 @@ class ParquetDBHolder(ConnectionHolder):
 		if todel:
 			db.delete(todel)
 
+	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick):
+		from pyarrow import compute as pc
+
+		filters = [
+			pc.field("branch") == branch,
+			pc.field("turn") == turn,
+			pc.field("tick") == tick,
+		]
+
+		self._get_db("keyframes").delete(filters=filters)
+		self._get_db("keyframes_graphs").delete(filters=filters)
+		self._get_db("keyframe_extensions").delete(filters=filters)
+
 	def all_keyframe_times(self):
 		return {
 			(d["branch"], d["turn"], d["tick"])
@@ -3106,6 +3119,10 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
+	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		pass
+
+	@abstractmethod
 	def new_graph(
 		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
 	) -> None:
@@ -5065,6 +5082,9 @@ class NullQueryEngine(AbstractQueryEngine):
 	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		pass
 
+	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		pass
+
 	def have_branch(self, branch: Branch) -> bool:
 		pass
 
@@ -5993,6 +6013,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		unpack = self.unpack
 		for d in self.call("list_keyframes"):
 			yield unpack(d["graph"]), d["branch"], d["turn"], d["tick"]
+
+	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		self.call("delete_keyframe", branch, turn, tick)
 
 	def graphs_types(
 		self,
@@ -8219,6 +8242,9 @@ class SQLAlchemyBatch(list):
 		self.clear()
 		return n
 
+	def copy(self) -> list:
+		return list(super().__iter__())
+
 	def __iter__(self):
 		return starmap(self._serialize_record, super().__iter__())
 
@@ -8310,8 +8336,18 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self.pack = pack
 		self.unpack = unpack
 		self._branches = {}
-		self._new_keyframes = []
-		self._new_keyframe_times = set()
+		self._new_keyframes: list[
+			tuple[
+				CharName,
+				Branch,
+				Turn,
+				Tick,
+				NodeKeyframe,
+				EdgeKeyframe,
+				GraphValKeyframe,
+			]
+		] = []
+		self._new_keyframe_times: set[Time] = set()
 		self._records = 0
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
@@ -8703,6 +8739,63 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(edges),
 				unpack(graph_val),
 			)
+
+	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		self._new_keyframes = list(
+			filter(
+				lambda _, kfbranch, kfturn, kftick, __, ___, ____: (
+					kfbranch,
+					kfturn,
+					kftick,
+				)
+				!= (branch, turn, tick),
+				self._new_keyframes,
+			)
+		)
+		self._new_keyframe_times.discard((branch, turn, tick))
+		new_keyframe_extensions = self._new_keyframe_extensions.copy()
+		self._new_keyframe_extensions.clear()
+		self._new_keyframe_extensions.extend(
+			filter(
+				lambda kfbranch, kfturn, kftick, _, __, ___: (
+					kfbranch,
+					kfturn,
+					kftick,
+				)
+				!= (branch, turn, tick),
+				new_keyframe_extensions,
+			)
+		)
+		with self._holder.lock:
+			self._inq.put(
+				(
+					"silent",
+					"one",
+					"delete_from_keyframes",
+					(branch, turn, tick),
+					{},
+				)
+			)
+			self._inq.put(
+				(
+					"silent",
+					"one",
+					"delete_from_keyframes_graphs",
+					(branch, turn, tick),
+					{},
+				)
+			)
+			self._inq.put(
+				(
+					"silent",
+					"one",
+					"delete_from_keyframe_extensions",
+					(branch, turn, tick),
+					{},
+				)
+			)
+			self._inq.put(("echo", "done deleting keyframe"))
+			insist(self._outq.get() == "done deleting keyframe")
 
 	def have_branch(self, branch):
 		"""Return whether the branch thus named exists in the database."""
