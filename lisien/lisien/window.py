@@ -31,7 +31,8 @@ from collections.abc import (
 	ValuesView,
 )
 from enum import Enum
-from operator import itemgetter
+from itertools import chain
+from operator import itemgetter, le, lt
 from threading import RLock
 from typing import Any, Iterable, Union
 
@@ -320,9 +321,7 @@ class WindowDictSlice:
 		self.slic = slic
 
 	def __reversed__(self) -> Iterable[Any]:
-		return WindowDictSlice(
-			self.dic, slice(self.slic.stop, self.slic.start, self.slic.step)
-		)
+		return iter(WindowDictReverseSlice(self.dic, self.slic))
 
 	def __iter__(self):
 		dic = self.dic
@@ -343,61 +342,121 @@ class WindowDictSlice:
 				yield from map(get1, dic._past)
 				yield from map(get1, reversed(dic._future))
 				return
-			past = dic._past
-			future = dic._future
-			seek = dic._seek
 			if slic.start is not None and slic.stop is not None:
 				if slic.stop == slic.start:
+					try:
+						yield dic[slic.stop]
+					except HistoricKeyError:
+						pass
+					return
+				past = dic._past
+				future = dic._future
+				if slic.start < slic.stop:
+					left, right = slic.start, slic.stop
+					dic._seek(right)
+					if not past:
+						return
+					if past[-1][0] == right:
+						future.append(past.pop())
+					cmp = lt
+				else:
+					left, right = slic.stop, slic.start
+					dic._seek(right)
+					cmp = le
+				if not past:
+					return
+				it = iter(past)
+				p0, p1 = next(it)
+				while cmp(p0, left):
+					try:
+						p0, p1 = next(it)
+					except StopIteration:
+						return
+				else:
+					yield p1
+				yield from map(get1, it)
+			elif slic.start is None:
+				stac = dic._past + list(reversed(dic._future))
+				while stac and stac[-1][0] >= slic.stop:
+					stac.pop()
+				yield from map(get1, stac)
+				return
+			else:  # slic.stop is None
+				if not dic._past and not dic._future:
+					return
+				chan = chain(dic._past, reversed(dic._future))
+				nxt = next(chan)
+				while nxt[0] < slic.start:
+					try:
+						nxt = next(chan)
+					except StopIteration:
+						return
+				yield get1(nxt)
+				yield from map(get1, chan)
+
+
+class WindowDictReverseSlice:
+	"""A slice of history in which the start is later than the stop"""
+
+	__slots__ = ["dict", "slice"]
+
+	def __init__(self, dict: "WindowDict", slic: slice):
+		self.dict = dict
+		self.slice = slic
+
+	def __reversed__(self):
+		return iter(WindowDictSlice(self.dict, self.slice))
+
+	def __iter__(self):
+		dic = self.dict
+		with dic._lock:
+			if not dic:
+				return
+			slic = self.slice
+			if slic.step is not None:
+				for i in range(
+					slic.start or dic.end,
+					slic.stop or dic.beginning,
+					slic.step,
+				):
+					dic._seek(i)
+					yield dic._past[-1][1]
+				return
+			if slic.start is None and slic.stop is None:
+				yield from map(get1, dic._future)
+				yield from map(get1, reversed(dic._past))
+				return
+			if slic.start is not None and slic.stop is not None:
+				if slic.start == slic.stop:
+					dic._seek(slic.stop)
+					yield dic._past[-1][1]
 					return
 				if slic.start < slic.stop:
-					seek(slic.start)
-					if past and past[-1][0] == slic.stop:
-						future.append(past.pop())
-					i = 0
-					while future:
-						t, v = future.pop()
-						past.append((t, v))
-						if t >= slic.stop:
-							return
-						if slic.step is None or i % slic.step == 0:
-							yield v
-						i += 1
+					left, right = slic.start, slic.stop
+					dic._seek(right)
+					it = reversed(dic._past)
+					next(it)
+					cmp = lt
 				else:
-					seek(slic.stop)
-					i = 0
-					while past:
-						t, v = past.pop()
-						future.append((t, v))
-						if t < slic.start:
-							return
-						if slic.step is None or i % slic.step == 0:
-							yield v
-						i += 1
+					left, right = slic.stop, slic.start
+					dic._seek(right)
+					it = reversed(dic._past)
+					cmp = le
+				for frev, fv in it:
+					if cmp(frev, left):
+						return
+					yield fv
 			elif slic.start is None:
-				seek(slic.stop)
-				if future and future[-1][0] == slic.stop:
-					past.append(future.pop())
-				if slic.step is None:
-					yield from map(get1, past)
-					return
-				for i, v in enumerate(map(get1, past)):
-					if i % slic.step == 0:
-						yield v
-			else:
-				assert slic.stop is None
-				if not dic:
-					return
-				seek(slic.start)
-				if past and past[-1][0] == slic.start:
-					yield past[-1][1]
-				if not future:
-					return
-				if slic.step is None:
-					yield from map(get1, future)
-					return
-				for i, v in enumerate(map(get1, future)):
-					if i % slic.step == 0:
-						yield v
+				stac = dic._past + list(reversed(dic._future))
+				while stac and stac[-1][0] >= slic.stop:
+					stac.pop()
+				yield from map(get1, reversed(stac))
+			else:  # slic.stop is None
+				stac = deque(dic._past)
+				stac.extend(reversed(dic._future))
+				while stac and stac[0][0] < slic.start:
+					stac.popleft()
+				yield from map(get1, reversed(stac))
 
 
 class WindowDict(MutableMapping):
@@ -692,6 +751,8 @@ class WindowDict(MutableMapping):
 
 	def __getitem__(self, rev: int) -> Any:
 		if isinstance(rev, slice):
+			if None not in (rev.start, rev.stop) and rev.start > rev.stop:
+				return WindowDictReverseSlice(self, rev)
 			return WindowDictSlice(self, rev)
 		with self._lock:
 			self._seek(rev)
