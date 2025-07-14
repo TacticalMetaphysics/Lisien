@@ -461,6 +461,10 @@ class Cache:
 			ret = ret.copy()
 		return ret
 
+	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		for entity in list(self.keyframe):
+			del self.keyframe[entity][branch][turn][tick]
+
 	def _set_keyframe(
 		self,
 		graph_ent: tuple,
