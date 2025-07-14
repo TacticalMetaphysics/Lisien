@@ -379,7 +379,7 @@ class WindowDictSlice:
 				if not dic:
 					return
 				seek(slic.start)
-				if past:
+				if past and past[-1][0] == slic.start:
 					yield past[-1][1]
 				if not future:
 					return
