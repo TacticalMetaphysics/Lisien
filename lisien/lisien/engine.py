@@ -4228,6 +4228,9 @@ class Engine(AbstractEngine, Executor):
 				(branch, turn, tick),
 				self._get_branch_delta(*the_kf, turn, tick),
 			)
+			self._keyframes_times.add((branch, turn, tick))
+			self._keyframes_loaded.add((branch, turn, tick))
+			kfd[branch][turn].add(tick)
 		if silent:
 			return None
 		ret = self._get_kf(branch, turn, tick)
