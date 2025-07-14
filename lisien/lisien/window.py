@@ -393,9 +393,9 @@ class WindowDictSlice:
 				if not future:
 					return
 				if slic.step is None:
-					yield from map(get1, future)
+					yield from map(get1, reversed(future))
 					return
-				for i, v in enumerate(map(get1, future)):
+				for i, v in enumerate(map(get1, reversed(future))):
 					if i % slic.step == 0:
 						yield v
 
