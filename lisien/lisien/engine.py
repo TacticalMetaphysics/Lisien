@@ -1328,8 +1328,9 @@ class Engine(AbstractEngine, Executor):
 
 		"""
 		branch, turn, tick = self._btt()
-		to_delete = []
+		to_delete: list[LinearTime] = []
 		plan_ticks = self._plan_ticks[plan]
+		start_turn = start_tick = float("inf")
 		for (
 			trn,
 			tcks,
@@ -1338,10 +1339,19 @@ class Engine(AbstractEngine, Executor):
 		):  # might improve performance to use a WindowDict for plan_ticks
 			if turn == trn:
 				for tck in tcks:
+					if (trn, tck) < (start_turn, start_tick):
+						(start_turn, start_tick) = (trn, tck)
 					if tck >= tick:
 						to_delete.append((trn, tck))
 			elif trn > turn:
-				to_delete.extend((trn, tck) for tck in tcks)
+				for tck in tcks:
+					if (trn, tck) < (start_turn, start_tick):
+						(start_turn, start_tick) = (trn, tck)
+					to_delete.append((trn, tck))
+			else:
+				for tck in tcks:
+					if (trn, tck) < (start_turn, start_tick):
+						(start_turn, start_tick) = (trn, tck)
 		# Delete stuff that happened at contradicted times,
 		# and then delete the times from the plan
 		where_cached = self._where_cached
@@ -1356,6 +1366,30 @@ class Engine(AbstractEngine, Executor):
 			if not plan_ticks[trn]:
 				del plan_ticks[trn]
 			del time_plan[branch, trn, tck]
+		# Delete keyframes on or after the start of the plan
+		kf2del = []
+		for r, ts in self._keyframes_dict[branch].items():
+			if r > start_turn:
+				kf2del.extend((r, t) for t in ts)
+			elif r == start_turn:
+				kf2del.extend((r, t) for t in ts if t >= start_tick)
+		for kf_turn, kf_tick in kf2del:
+			self._delete_keyframe(branch, kf_turn, kf_tick)
+
+	def _delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		if (branch, turn, tick) not in self._keyframes_times:
+			raise KeyframeError("No keyframe at that time", branch, turn, tick)
+		self.query.delete_keyframe(branch, turn, tick)
+		self._keyframes_times.remove((branch, turn, tick))
+		self._keyframes_loaded.remove((branch, turn, tick))
+		self._keyframes_dict[branch][turn].remove(tick)
+		if not self._keyframes_dict[branch][turn]:
+			del self._keyframes_dict[branch][turn]
+		if not self._keyframes_dict[branch]:
+			del self._keyframes_dict[branch]
+		for cache in self._caches:
+			cache.delete_keyframe(branch, turn, tick)
+			cache.shallowest.clear()
 
 	@contextmanager
 	def advancing(self):
