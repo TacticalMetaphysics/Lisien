@@ -330,6 +330,15 @@ class WindowDictSlice:
 			if not dic:
 				return
 			slic = self.slic
+			if slic.step is not None:
+				for i in range(
+					slic.start or dic.beginning,
+					slic.stop or dic.end + 1,
+					slic.step,
+				):
+					dic._seek(i)
+					yield dic._past[-1][1]
+				return
 			if slic.start is None and slic.stop is None:
 				yield from map(get1, dic._past)
 				yield from map(get1, reversed(dic._future))
