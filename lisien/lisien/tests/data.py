@@ -70730,15 +70730,7 @@ SICKLE_KEYFRAME_0 = {
 			"mate_chance": 0.05,
 			"n_creatures": 5,
 			"unit_rulebook": ("unit_rulebook", "species"),
-			"units": {
-				"physical": {
-					"critter0": True,
-					"critter1": True,
-					"critter2": True,
-					"critter3": True,
-					"critter4": True,
-				}
-			},
+			"units": {"physical": {}},
 		},
 	},
 	"neighborhood": {},
