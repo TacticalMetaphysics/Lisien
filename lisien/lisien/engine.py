@@ -5590,6 +5590,11 @@ class Engine(AbstractEngine, Executor):
 					kf_payload = self._get_worker_kf_payload()
 				self._worker_inputs[i].send_bytes(kf_payload)
 			self._worker_updated_btts[i] = self._btt()
+			self.debug(
+				"Updated all worker process states at "
+				+ repr(self._worker_updated)
+				+ f" ({len(deltas)} distinct deltas)"
+			)
 
 	@world_locked
 	def _update_worker_process_state(self, i, lock=True):
@@ -5632,6 +5637,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			self._worker_inputs[i].send_bytes(argbytes)
 			self._worker_updated_btts[i] = self._btt()
+		self.debug(f"Updated worker {i} at {self._worker_updated_btts[i]}")
 
 	def _changed(self, charn: CharName, entity: tuple) -> bool:
 		if len(entity) == 1:
