@@ -6598,35 +6598,36 @@ class Engine(AbstractEngine, Executor):
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
 		units_kf = graph_val.pop("units", {})
 		self._unitness_cache.set_keyframe(graph, branch, turn, tick, units_kf)
-		for char, node in units_kf.items():
+		for char, units in units_kf.items():
 			try:
 				user_kf = self._unitness_cache.user_cache.get_keyframe(
 					char, branch, turn, tick, copy=True
 				)
 			except KeyframeError:
 				user_kf = {}
-			if char in user_kf:
-				if node in user_kf[char]:
-					user_kf[char][node] |= frozenset([graph])
+			for unit in units:
+				if char in user_kf:
+					if unit in user_kf[char]:
+						user_kf[char][unit] |= frozenset([graph])
+					else:
+						user_kf[char][unit] = frozenset([graph])
 				else:
-					user_kf[char][node] = frozenset([graph])
-			else:
-				user_kf[char] = {node: frozenset([graph])}
+					user_kf[char] = {unit: frozenset([graph])}
 			self._unitness_cache.user_cache.set_keyframe(
 				char, branch, turn, tick, user_kf
 			)
 		node_rb_kf = {}
 		locs_kf = {}
 		conts_kf = {}
-		for node, val in nodes.items():
-			node_rb_kf[node] = val.pop("rulebook", (graph, node))
+		for unit, val in nodes.items():
+			node_rb_kf[unit] = val.pop("rulebook", (graph, unit))
 			if "location" not in val:
 				continue
-			locs_kf[node] = location = val["location"]
+			locs_kf[unit] = location = val["location"]
 			if location in conts_kf:
-				conts_kf[location].add(node)
+				conts_kf[location].add(unit)
 			else:
-				conts_kf[location] = {node}
+				conts_kf[location] = {unit}
 		self._nodes_rulebooks_cache.set_keyframe(
 			graph, branch, turn, tick, node_rb_kf
 		)
