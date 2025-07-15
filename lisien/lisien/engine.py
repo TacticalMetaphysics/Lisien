@@ -6611,13 +6611,10 @@ class Engine(AbstractEngine, Executor):
 			except KeyframeError:
 				user_kf = {}
 			for unit in units:
-				if char in user_kf:
-					if unit in user_kf[char]:
-						user_kf[char][unit] |= frozenset([graph])
-					else:
-						user_kf[char][unit] = frozenset([graph])
+				if unit in user_kf:
+					user_kf[unit] |= frozenset([graph])
 				else:
-					user_kf[char] = {unit: frozenset([graph])}
+					user_kf[unit] = frozenset([graph])
 			self._unitness_cache.user_cache.set_keyframe(
 				char, branch, turn, tick, user_kf
 			)
