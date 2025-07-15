@@ -1791,7 +1791,7 @@ class Engine(AbstractEngine, Executor):
 			updater(updnbr, nbrbranches[branch])
 
 		def updbig(_, rule, big):
-			if not isinstance(big, bool):
+			if big is not None and not isinstance(big, bool):
 				raise TypeError("big must be boolean", big)
 			delta.setdefault("rules", {}).setdefault(rule, {})["big"] = big
 
