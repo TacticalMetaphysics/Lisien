@@ -1723,7 +1723,10 @@ class Engine(AbstractEngine, Executor):
 		if branch in univbranches:
 			updater(upduniv, univbranches[branch])
 
-		def updunit(char, graph, node, is_unit):
+		def updunit(char, graph, node, is_unit=...):
+			if is_unit is ...:
+				# redundant storage, needed only for the rule iterator
+				return
 			if char in delta and delta[char] is None:
 				return
 			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
