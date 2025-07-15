@@ -3048,18 +3048,18 @@ class Engine(AbstractEngine, Executor):
 				char_unit_kf[graf] = {
 					unit: True for (unit, ex) in units.items() if ex
 				}
-				for unit, ex in units.items():
-					if ex:
-						if graf in user_kf:
-							if unit in user_kf[graf]:
-								user_kf[graf][unit] |= frozenset([char])
-							else:
-								user_kf[graf][unit] = frozenset([char])
+			for unit, ex in units.items():
+				if ex:
+					if graf in user_kf:
+						if unit in user_kf[graf]:
+							user_kf[graf][unit] |= frozenset([char])
 						else:
-							user_kf[graf] = {unit: frozenset([char])}
+							user_kf[graf][unit] = frozenset([char])
 					else:
-						if graf in user_kf and unit in user_kf[graf]:
-							user_kf[graf][unit] -= frozenset([char])
+						user_kf[graf] = {unit: frozenset([char])}
+				else:
+					if graf in user_kf and unit in user_kf[graf]:
+						user_kf[graf][unit] -= frozenset([char])
 
 	@staticmethod
 	def _apply_graph_val_delta(
