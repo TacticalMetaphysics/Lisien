@@ -6594,9 +6594,25 @@ class Engine(AbstractEngine, Executor):
 				kf = {}
 			kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
-		self._unitness_cache.set_keyframe(
-			graph, branch, turn, tick, graph_val.pop("units", {})
-		)
+		units_kf = graph_val.pop("units", {})
+		self._unitness_cache.set_keyframe(graph, branch, turn, tick, units_kf)
+		for char, node in units_kf.items():
+			try:
+				user_kf = self._unitness_cache.user_cache.get_keyframe(
+					char, branch, turn, tick, copy=True
+				)
+			except KeyframeError:
+				user_kf = {}
+			if char in user_kf:
+				if node in user_kf[char]:
+					user_kf[char][node] |= frozenset([graph])
+				else:
+					user_kf[char][node] = frozenset([graph])
+			else:
+				user_kf[char] = {node: frozenset([graph])}
+			self._unitness_cache.user_cache.set_keyframe(
+				char, branch, turn, tick, user_kf
+			)
 		node_rb_kf = {}
 		locs_kf = {}
 		conts_kf = {}
