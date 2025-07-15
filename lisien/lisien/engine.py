@@ -1724,6 +1724,8 @@ class Engine(AbstractEngine, Executor):
 			updater(upduniv, univbranches[branch])
 
 		def updunit(char, graph, node, is_unit):
+			if char in delta and delta[char] is None:
+				return
 			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
 				graph, {}
 			)[node] = bool(is_unit)
