@@ -69,14 +69,17 @@ class UserMapping(Mapping):
 
 	@property
 	def only(self) -> "Node":
-		"""If there's only one unit, return it.
+		"""If there's only one user, return it.
 
 		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
 
 		"""
 		if len(self) != 1:
 			raise AmbiguousUserError(
-				"No users, or more than one", self.node.name, dict(self)
+				"No users, or more than one",
+				self.node.name,
+				*self.engine._btt(),
+				dict(self),
 			)
 		return next(iter(self.values()))
 
