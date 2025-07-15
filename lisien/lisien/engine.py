@@ -5592,7 +5592,7 @@ class Engine(AbstractEngine, Executor):
 			self._worker_updated_btts[i] = self._btt()
 			self.debug(
 				"Updated all worker process states at "
-				+ repr(self._worker_updated)
+				+ repr(self._worker_updated_btts[i])
 				+ f" ({len(deltas)} distinct deltas)"
 			)
 
