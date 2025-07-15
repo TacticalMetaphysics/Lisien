@@ -2392,8 +2392,7 @@ class Engine(AbstractEngine, Executor):
 				self._keyframes_dict[branch][turn] = {tick}
 		else:
 			self._keyframes_dict[branch] = {turn: {tick}}
-		self._keyframes_times.add((branch, turn, tick))
-		self._keyframes_loaded.add((branch, turn, tick))
+		self._mark_keyframe_loaded(branch, turn, tick)
 		ret = self._get_kf(branch, turn, tick, copy=copy)
 		charrbkf = {}
 		unitrbkf = {}
@@ -3009,16 +3008,19 @@ class Engine(AbstractEngine, Executor):
 			self._rule_bigness_cache,
 		):
 			cache.alias_keyframe(branch_from, branch_to, turn, tick)
-		self._keyframes_times.add((branch_to, turn, tick))
-		self._keyframes_loaded.add((branch_to, turn, tick))
-		if branch_to in self._keyframes_dict:
-			kdb = self._keyframes_dict[branch_to]
+		self._mark_keyframe_loaded(branch_to, turn, tick)
+
+	def _mark_keyframe_loaded(self, branch, turn, tick):
+		self._keyframes_times.add((branch, turn, tick))
+		self._keyframes_loaded.add((branch, turn, tick))
+		if branch in self._keyframes_dict:
+			kdb = self._keyframes_dict[branch]
 			if turn in kdb:
 				kdb[turn].add(tick)
 			else:
 				kdb[turn] = {tick}
 		else:
-			self._keyframes_dict[branch_to] = {turn: {tick}}
+			self._keyframes_dict[branch] = {turn: {tick}}
 
 	@staticmethod
 	def _apply_unit_delta(
@@ -3577,6 +3579,7 @@ class Engine(AbstractEngine, Executor):
 						self._get_keyframe(branch, r, t, silent=True)
 						return branch, r, t
 			self._snap_keyframe_de_novo(*time_from)
+			self._mark_keyframe_loaded(*time_from)
 			return time_from
 		else:
 			(parent, turn_from, tick_from) = self._recurse_delta_keyframes(
@@ -3598,6 +3601,9 @@ class Engine(AbstractEngine, Executor):
 						branched_turn_from,
 						branched_tick_from,
 					),
+				)
+				self._mark_keyframe_loaded(
+					parent, branched_turn_from, branched_tick_from
 				)
 			if (
 				time_from[0],
@@ -4264,9 +4270,7 @@ class Engine(AbstractEngine, Executor):
 				(branch, turn, tick),
 				self._get_branch_delta(*the_kf, turn, tick),
 			)
-			self._keyframes_times.add((branch, turn, tick))
-			self._keyframes_loaded.add((branch, turn, tick))
-			kfd[branch][turn].add(tick)
+			self._mark_keyframe_loaded(branch, turn, tick)
 		if silent:
 			return None
 		ret = self._get_kf(branch, turn, tick)
