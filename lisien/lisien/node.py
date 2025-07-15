@@ -54,18 +54,12 @@ class UserMapping(Mapping):
 	engine = getatt("node.engine")
 
 	def _user_names(self) -> frozenset[CharName]:
-		node = self.node
-		engine = self.engine
-		charn = node.character.name
-		nn = node.name
-		for b, r, t in engine._iter_parent_btt():
-			try:
-				return engine._unitness_cache.user_cache.retrieve(
-					charn, nn, b, r, t
-				)
-			except KeyError:
-				continue
-		return frozenset()
+		try:
+			return self.engine._unitness_cache.user_cache.retrieve(
+				self.node.character.name, self.node.name, *self.engine._btt()
+			)
+		except KeyError:
+			return frozenset()
 
 	@property
 	def only(self) -> "Node":
