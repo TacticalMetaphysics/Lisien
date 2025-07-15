@@ -1303,7 +1303,10 @@ class AbstractThing(ABC):
 		locn = self["location"]
 		if locn is None:
 			raise AttributeError("Not really a Thing")
-		return self.engine._get_node(self.character, locn)
+		try:
+			return self.engine._get_node(self.character, locn)
+		except KeyError as ex:
+			raise AttributeError("Doesn't really exist") from ex
 
 	@location.setter
 	def location(self, v: Node | NodeName):
