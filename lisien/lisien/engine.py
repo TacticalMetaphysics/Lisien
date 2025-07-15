@@ -3408,6 +3408,8 @@ class Engine(AbstractEngine, Executor):
 			self._graph_val_cache.set_keyframe(
 				graph, *now, graph_val_keyframe[graph]
 			)
+		for char, kf in users_keyframe.items():
+			self._unitness_cache.user_cache.set_keyframe(char, *now, kf)
 		self._characters_rulebooks_cache.set_keyframe(
 			*now, characters_rulebooks_keyframe
 		)
