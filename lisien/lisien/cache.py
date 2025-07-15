@@ -2590,9 +2590,11 @@ class UserCache(Cache):
 		tick: Tick,
 		copy=True,
 	):
-		return super().get_keyframe(
-			(character,), branch, turn, tick, copy=copy
-		)
+		ret = super().get_keyframe((character,), branch, turn, tick, copy=copy)
+		if copy:
+			for char, nodes in ret.items():
+				ret[char] = nodes.copy()
+		return ret
 
 	def set_keyframe(
 		self,
