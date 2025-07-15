@@ -2997,6 +2997,7 @@ class Engine(AbstractEngine, Executor):
 			self._actions_cache,
 			self._rulebooks_cache,
 			self._unitness_cache,
+			self._unitness_cache.user_cache,
 			self._characters_rulebooks_cache,
 			self._units_rulebooks_cache,
 			self._characters_things_rulebooks_cache,
