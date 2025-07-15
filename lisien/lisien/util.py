@@ -564,17 +564,16 @@ class AbstractEngine(ABC):
 				return msgpack.ExtType(
 					MsgpackExtensionType.character.value, packer(obj.name)
 				)
+			elif isinstance(obj, AbstractThing):
+				return msgpack.ExtType(
+					MsgpackExtensionType.thing.value,
+					packer([obj.character.name, obj.name]),
+				)
 			elif isinstance(obj, Node):
-				if hasattr(obj, "location"):
-					return msgpack.ExtType(
-						MsgpackExtensionType.thing.value,
-						packer([obj.character.name, obj.name]),
-					)
-				else:
-					return msgpack.ExtType(
-						MsgpackExtensionType.place.value,
-						packer([obj.character.name, obj.name]),
-					)
+				return msgpack.ExtType(
+					MsgpackExtensionType.place.value,
+					packer([obj.character.name, obj.name]),
+				)
 			elif isinstance(obj, Edge):
 				return msgpack.ExtType(
 					MsgpackExtensionType.portal.value,
