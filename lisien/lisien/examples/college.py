@@ -127,9 +127,6 @@ def install(eng):
 		# You don't want to use the global variable for the classroom
 		# because it won't be around (or at least, won't work) after
 		# the engine restarts.
-		print(
-			f"{character} has {len(character.unit['physical'])} units in physical"
-		)
 		unit = character.unit["physical"].only
 		assert hasattr(unit, "location"), (
 			f"Tried to get location of {unit.name} in physical, a unit of {character.name}"
@@ -148,8 +145,6 @@ def install(eng):
 	@learn.trigger
 	def in_class(node):
 		classroom = node.engine.character["physical"].place["classroom"]
-		for unit in node.character.unit["physical"]:
-			print(f"{node.character.name} has a unit {unit} in physical")
 		student = node.character.unit["physical"].only
 		assert hasattr(student, "location"), (
 			f"Tried to get location of {student.name} in physical, a unit of {node.character.name}"
