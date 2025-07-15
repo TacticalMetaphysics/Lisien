@@ -257,11 +257,4 @@ the number of facts it needs to use is relatively small. Lisien will
 switch to the slow delta if the number of facts it would need for the
 fast one is larger than the gap between keyframes.
 
-There are currently two implementations of the fast delta, though they
-operate on the same global ``TurnDict`` and should, theoretically, be
-doing the same thing. The simpler one is the "turn delta" and operates
-only on a slice of facts recorded in the same turn, while the "branch
-delta" takes slices of the start and end turns, but the entirety of any
-turn in between.
-
 .. _lisien may have such a feature some day: <https://codeberg.org/clayote/Lisien/issues/28>
