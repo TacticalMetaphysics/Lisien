@@ -116,9 +116,9 @@ def test_sickle(engy):
 
 
 @pytest.mark.slow
-def test_wolfsheep(tmp_path, non_null_database, serial_or_parallel):
+def test_wolfsheep(tmp_path, database, serial_or_parallel):
 	connect_string = None
-	if non_null_database == "sqlite":
+	if database == "sqlite":
 		connect_string = f"sqlite:///{tmp_path}/world.sqlite3"
 	workers = 0 if serial_or_parallel == "serial" else 2
 	with Engine(
