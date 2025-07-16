@@ -2828,7 +2828,7 @@ class FuncStoreProxy(Signal):
 		self._cache[funcname] = src
 		self._proxy_cache[funcname] = FuncProxy(self, funcname)
 
-	def __setattr__(self, func_name: str, func: callable):
+	def __setattr__(self, func_name: str, func: callable | str):
 		if func_name in (
 			"engine",
 			"_store",
@@ -2842,7 +2842,10 @@ class FuncStoreProxy(Signal):
 		):
 			super().__setattr__(func_name, func)
 			return
-		source = getsource(func)
+		if callable(func):
+			source = getsource(func)
+		else:
+			source = func
 		self.engine.handle(
 			command="store_source", store=self._store, v=source, name=func_name
 		)
