@@ -16,7 +16,7 @@ from collections import defaultdict
 from threading import Thread
 
 from kivy.app import App
-from kivy.clock import triggered
+from kivy.clock import triggered, Clock
 from kivy.graphics import Color, Line
 from kivy.logger import Logger
 from kivy.properties import (
@@ -361,12 +361,15 @@ class TimestreamScreen(Screen):
 	@logwrap(section="TimestreamScreen")
 	def on_pre_enter(self, *_):
 		self.timestream.disabled = True
-		self._thread = Thread(target=self._get_data)
-		self._thread.start()
+		self._get_data()
 
 	def _get_data(self, *_):
+		app = App.get_running_app()
+		if not hasattr(app, "engine"):
+			Clock.schedule_once(self._get_data, 0)
+			return
+		engine = app.engine
 		Logger.debug("Timestream: getting branches")
-		engine = App.get_running_app().engine
 		data, cols = _data_and_cols_from_branches(engine.handle("branches"))
 		self.timestream.cols = cols
 		self.timestream.data = data
