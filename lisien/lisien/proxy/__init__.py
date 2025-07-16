@@ -1064,11 +1064,11 @@ class NodeMapProxy(MutableMapping, Signal):
 			return self.character.place[k]
 
 	def __setitem__(self, k: NodeName, v):
-		self._worker_check()
+		self.engine._worker_check()
 		self.character.place[k] = v
 
 	def __delitem__(self, k: NodeName):
-		self._worker_check()
+		self.engine._worker_check()
 		if k in self.character.thing:
 			del self.character.thing[k]
 		else:
