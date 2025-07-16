@@ -337,6 +337,9 @@ class NextTurn(Signal):
 					else:
 						results.extend(res)
 		del engine._rules_iter
+		if results:
+			engine.universal["last_result"] = results
+			engine.universal["last_result_idx"] = 0
 		# accept any new plans
 		engine.tick = engine.turn_end_plan()
 		engine._complete_turn(
@@ -366,9 +369,6 @@ class NextTurn(Signal):
 			tick_from=start_tick,
 			tick_to=engine.tick,
 		)
-		if results:
-			engine.universal["last_result"] = results
-			engine.universal["last_result_idx"] = 0
 		return results, delta
 
 
@@ -1725,7 +1725,8 @@ class Engine(AbstractEngine, Executor):
 
 		def updunit(char, graph, node, is_unit=...):
 			if is_unit is ...:
-				# redundant storage, needed only for the rule iterator
+				for node, is_unit in node.items():
+					updunit(char, graph, node, is_unit)
 				return
 			if char in delta and delta[char] is None:
 				return
