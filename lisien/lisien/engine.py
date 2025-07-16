@@ -1725,7 +1725,8 @@ class Engine(AbstractEngine, Executor):
 
 		def updunit(char, graph, node, is_unit=...):
 			if is_unit is ...:
-				# redundant storage, needed only for the rule iterator
+				for node, is_unit in node.items():
+					updunit(char, graph, node, is_unit)
 				return
 			if char in delta and delta[char] is None:
 				return
