@@ -41,7 +41,7 @@ import networkx as nx
 from blinker import Signal
 
 from .cache import FuturistWindowDict, PickyDefaultDict
-from .exc import WorldIntegrityError
+from .exc import WorldIntegrityError, AmbiguousUserError
 from .facade import CharacterFacade
 from .graph import (
 	DiGraphPredecessorsMapping,
@@ -925,7 +925,12 @@ class Character(AbstractCharacter, RuleFollower):
 					graphn,
 					engine.character,
 				)
-				self._only_stuff = (get_node, engine.character, graphn)
+				self._only_stuff = (
+					get_node,
+					engine.character,
+					graphn,
+					engine._btt,
+				)
 
 			def __iter__(self):
 				"""Iterate over names of unit nodes"""
@@ -976,11 +981,24 @@ class Character(AbstractCharacter, RuleFollower):
 			@property
 			def only(self):
 				"""If I have only one unit, return it; else error"""
+
+				get_node, charmap, graphn, btt = self._only_stuff
 				mykey = singleton_get(self.keys())
 				if mykey is None:
-					raise AttributeError("No unit, or more than one")
-				get_node, charmap, graphn = self._only_stuff
-				return get_node(charmap[graphn], mykey)
+					raise AttributeError(
+						"No unit, or more than one",
+						self.character.name,
+						*self.engine._btt(),
+					)
+				try:
+					return get_node(charmap[graphn], mykey)
+				except KeyError as ex:
+					raise AttributeError(
+						"The unit doesn't exist",
+						graphn,
+						mykey,
+						*self.engine._btt(),
+					) from ex
 
 			def __repr__(self):
 				return "{}.character[{}].unit".format(
