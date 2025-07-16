@@ -1725,6 +1725,8 @@ class Engine(AbstractEngine, Executor):
 
 		def updunit(char, graph, node, is_unit=...):
 			if is_unit is ...:
+				if node is None:
+					return
 				for node, is_unit in node.items():
 					updunit(char, graph, node, is_unit)
 				return
