@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data=true
-packages = ["elide", "elide.graph", "elide.grid", "elide.kivygarden.texturestack"]
+packages = ["elide", "elide.graph", "elide.grid", "elide.kivygarden.texturestack", "elide.tests"]
 
 [project]
 name = "elide"
