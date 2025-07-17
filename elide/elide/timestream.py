@@ -246,7 +246,7 @@ def _data_and_cols_from_branches(branches):
 		parent_tick,
 		end_turn,
 		end_tick,
-	) in branches.items():
+	) in filter(itemgetter(1), branches.items()):
 		start_turn_branches[parent_turn].add(branch)
 		end_turn_branches[end_turn].add(branch)
 		branch_split_turns_todo[parent].add(parent_turn)
