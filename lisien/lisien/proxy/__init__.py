@@ -701,12 +701,25 @@ class PlaceProxy(NodeProxy):
 					self.character.node.send(self, key="rulebook", value=v)
 				continue
 			elif k == "location":
-				self.engine._things_cache[self.character.name][self.name] = (
-					ThingProxy(self.character, self.name, v, **self._cache)
-				)
-				del self.engine._character_places_cache[self.character.name][
-					self.name
-				]
+				if v is None:
+					if (
+						self.character.name in self.engine._things_cache
+						and self.name
+						in self.engine._things_cache[self.character.name]
+					):
+						del self.engine._things_cache[self.character.name][
+							self.name
+						]
+					self.engine._character_places_cache[self.character.name][
+						self.name
+					] = self
+				else:
+					self.engine._things_cache[self.character.name][
+						self.name
+					] = ThingProxy(self.character, self.name, v, **self._cache)
+					del self.engine._character_places_cache[
+						self.character.name
+					][self.name]
 				continue
 			if v is None:
 				if k in self._cache:
