@@ -102,6 +102,7 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 			if isinstance(card, Card)
 		}
 		assert card_names == {
+			"truth",
 			"standing_still",
 			"aware",
 			"uncovered",
