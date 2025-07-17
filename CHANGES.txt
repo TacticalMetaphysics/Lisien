@@ -1,3 +1,12 @@
+== 0.20.1 | 2025-07-17 ==
+* Unify the fast delta code, fixing some changes getting left out of deltas
+* Fix tracking of units' users
+* Finish up the proxy interface
+* Fix setting mutable values (like list and dict) in the `universal` mapping
+* Fix tracking which rules were already handled
+* Fix intermittent crash from attempting to serialize Things whose locations 
+  aren't available
+
 == 0.20.0 | 2025-07-07 ==
 * Android support. Currently, the Android version supports only SQLite, not
   ParquetDB. Parallelism is disabled for now, too, because it increases the
