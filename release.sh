@@ -20,10 +20,10 @@ ruff format lisien
 ruff format elide
 rm -rf lisien/build lisien/dist lisien/strings
 rm -rf elide/build elide/dist elide/strings
-for env in $(tox -c lisien/tox.ini -l); do tox -c lisien/tox.ini -e $env || break; done
+for env in $(tox -c lisien/tox.ini -l); do tox -c lisien/tox.ini -e $env; done
 rm -rf lisien/build lisien/dist lisien/strings
 rm -rf elide/build elide/dist elide/strings
-for env in $(tox -c elide/tox.ini -l); do tox -c elide/tox.ini -e $env || break; done
+for env in $(tox -c elide/tox.ini -l); do tox -c elide/tox.ini -e $env; done
 rm -rf lisien/build lisien/dist lisien/strings
 rm -rf elide/build elide/dist elide/strings
 rm -rf bin
