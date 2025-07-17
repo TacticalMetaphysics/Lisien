@@ -29,7 +29,7 @@ source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien,elide
 #source.exclude_patterns = license,images/*/*.jpg
 
 # (str) Application versioning (method 1)
-version = 0.20.0
+version = 0.20.1
 
 # (str) Application versioning (method 2)
 # version.regex = __version__ = ['"](.*)['"]
