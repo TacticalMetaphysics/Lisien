@@ -403,6 +403,7 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		assert card_names == {
 			"similar_neighbors",
 			"dissimilar_neighbors",
+			"truth",
 		}
 		for card in builder.children:
 			if not isinstance(card, Card):
