@@ -125,7 +125,7 @@ class MockEngine(Signal):
 		kwargs["cb"]("next_turn", "trunk", self.turn, 0, ([], {}))
 
 	def handle(self, *args, **kwargs):
-		return {"a": "b"}
+		return {"trunk": (None, 0, 1, 2, 3)}
 
 	def commit(self):
 		pass
