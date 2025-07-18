@@ -30,7 +30,7 @@ from . import graph, rule
 from .exc import AmbiguousUserError
 from .facade import FacadePlace, FacadeThing
 from .query import EntityStatAlias
-from .typing import Key, Time, CharName
+from .typing import CharName, Key, Time
 from .util import AbstractCharacter, AbstractThing, getatt
 
 

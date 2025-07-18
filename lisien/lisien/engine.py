@@ -22,9 +22,9 @@ from __future__ import annotations
 
 import gc
 import os
-import signal
 import pickle
 import shutil
+import signal
 import sys
 import zlib
 from abc import ABC, abstractmethod
@@ -177,7 +177,6 @@ from .xcollections import (
 	StringStore,
 	UniversalMapping,
 )
-
 
 SUBPROCESS_TIMEOUT = 30
 if "LISIEN_SUBPROCESS_TIMEOUT" in os.environ:
