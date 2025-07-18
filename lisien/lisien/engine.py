@@ -62,11 +62,6 @@ from networkx import (
 	spring_layout,
 )
 
-from lisien.character import Character
-from lisien.exc import TotalKeyError, NotInKeyframeError
-from lisien.node import Thing, Place
-from lisien.util import SizedDict
-
 from . import exc
 from .cache import (
 	CharacterPlaceRulesHandledCache,
