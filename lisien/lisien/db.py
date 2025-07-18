@@ -29,7 +29,7 @@ from sqlite3 import IntegrityError as LiteIntegrityError
 from sqlite3 import OperationalError as LiteOperationalError
 from threading import Lock, Thread
 from types import MethodType
-from typing import Any, Iterator, MutableMapping, Optional, Literal
+from typing import Any, Iterator, Literal, MutableMapping, Optional
 
 import msgpack
 from sqlalchemy import MetaData, Select, create_engine

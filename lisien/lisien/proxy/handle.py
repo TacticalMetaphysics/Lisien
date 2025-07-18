@@ -29,7 +29,7 @@ import tblib
 from ..exc import HistoricKeyError, OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
-from ..typing import CharName, Key, Branch
+from ..typing import Branch, CharName, Key
 from ..util import (
 	EDGE_VAL,
 	EDGES,

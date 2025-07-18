@@ -17,7 +17,7 @@ from operator import itemgetter
 from threading import Thread
 
 from kivy.app import App
-from kivy.clock import triggered, Clock
+from kivy.clock import Clock, triggered
 from kivy.graphics import Color, Line
 from kivy.logger import Logger
 from kivy.properties import (
