@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import gc
 import os
+import signal
 import pickle
 import shutil
 import sys
@@ -181,6 +182,17 @@ from .xcollections import (
 	StringStore,
 	UniversalMapping,
 )
+
+
+SUBPROCESS_TIMEOUT = 30
+if "LISIEN_SUBPROCESS_TIMEOUT" in os.environ:
+	try:
+		SUBPROCESS_TIMEOUT = int(os.environ["LISIEN_SUBPROCESS_TIMEOUT"])
+	except ValueError:
+		SUBPROCESS_TIMEOUT = None
+KILL_SUBPROCESS = False
+if "LISIEN_KILL_SUBPROCESS" in os.environ:
+	KILL_SUBPROCESS = bool(os.environ["LISIEN_KILL_SUBPROCESS"])
 
 
 class InnerStopIteration(StopIteration):
@@ -2150,7 +2162,8 @@ class Engine(AbstractEngine, Executor):
 		self._worker_last_eternal = dict(self.eternal.items())
 		initial_payload = self._get_worker_kf_payload()
 
-		self._worker_processes = wp = []
+		self._worker_processes: list[Process] = []
+		wp = self._worker_processes
 		self._worker_inputs = wi = []
 		self._worker_outputs = wo = []
 		self._worker_locks = wlk = []
@@ -4546,10 +4559,13 @@ class Engine(AbstractEngine, Executor):
 			):
 				with lock:
 					pipein.send_bytes(b"shutdown")
-					proc.join(timeout=15)
+					proc.join(timeout=SUBPROCESS_TIMEOUT)
 					if proc.exitcode is None:
-						raise RuntimeError("Worker process didn't exit", i)
-					if proc.exitcode != 0:
+						if KILL_SUBPROCESS:
+							os.kill(proc.pid, signal.SIGKILL)
+						else:
+							raise RuntimeError("Worker process didn't exit", i)
+					if not KILL_SUBPROCESS and proc.exitcode != 0:
 						raise RuntimeError(
 							"Worker process didn't exit normally",
 							i,
