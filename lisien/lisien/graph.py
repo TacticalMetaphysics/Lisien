@@ -23,7 +23,7 @@ import networkx
 from networkx.exception import NetworkXError
 
 from .typing import Branch, Key, Tick, Turn
-from .wrap import wrapval, MutableMappingUnwrapper
+from .wrap import MutableMappingUnwrapper, wrapval
 
 
 class EntityCollisionError(ValueError):
