@@ -650,6 +650,11 @@ class EngineHandle:
 		assert orig in ch.node
 		assert dest in ch.node
 
+	def set_portal(self, char: Key, orig: Key, dest: Key, v: StatDict):
+		self._real.character[CharName(char)].portal[NodeName(orig)][
+			NodeName(dest)
+		] = v
+
 	def set_portal_stat(
 		self, char: Key, orig: Key, dest: Key, k: Key, v
 	) -> None:
