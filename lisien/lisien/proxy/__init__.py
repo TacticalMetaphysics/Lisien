@@ -1436,7 +1436,12 @@ class PredecessorsProxy(MutableMapping):
 			branching=True,
 		)
 		self.engine.handle(
-			"set_portal", (self._charname, k, self.name), branching=True
+			"set_portal",
+			char=self.charname,
+			orig=self.name,
+			dest=k,
+			value=v,
+			branching=True,
 		)
 
 	def __delitem__(self, k: NodeName):
