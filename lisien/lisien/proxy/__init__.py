@@ -1340,7 +1340,9 @@ class CharSuccessorsMappingProxy(CachingProxy, RuleFollowerProxy):
 		)
 
 	def _cache_set_munge(self, k: Key, v):
-		return {vk: PortalProxy(self, vk, vv) for (vk, vv) in v.items()}
+		return {
+			vk: PortalProxy(self.character, vk, vv) for (vk, vv) in v.items()
+		}
 
 	def __contains__(self, k: Key):
 		return k in self.character.node
