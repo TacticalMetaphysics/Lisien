@@ -332,7 +332,7 @@ class Character(AbstractCharacter, RuleFollower):
 				tick,
 				val.pop("location"),
 			)
-			th = self._make_thing(thing, val)
+			th = self._make_thing(thing)
 			th.clear()
 			th.update({k: v for (k, v) in val.items() if k != "location"})
 
