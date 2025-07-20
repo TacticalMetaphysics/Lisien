@@ -1619,7 +1619,7 @@ class Engine(AbstractEngine, Executor):
 			):
 				return
 			graphstats: CharDelta = delta[graph]
-			nodestats: NodeValDict = graphstats["node_val"]
+			nodestats: NodeValDict = graphstats.setdefault("node_val", {})
 			if node in nodestats:
 				nodestats[node][key] = value
 			else:
