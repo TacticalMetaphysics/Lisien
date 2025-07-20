@@ -2154,34 +2154,17 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 						self.engine._char_port_rulebooks_cache[name][orig][
 							dest
 						] = rulebook
-		rulebooks = delta.pop("rulebooks", None)
-		if rulebooks:
-			ruc = self.engine._character_rulebooks_cache[name]
-			if (
-				"character" in rulebooks
-				and rulebooks["character"] != self.rulebook.name
-			):
-				ruc["character"] = rulebooks["character"]
-			if (
-				"unit" in rulebooks
-				and rulebooks["unit"] != self.unit.rulebook.name
-			):
-				ruc["unit"] = rulebooks["unit"]
-			if (
-				"thing" in rulebooks
-				and rulebooks["thing"] != self.thing.rulebook.name
-			):
-				ruc["thing"] = rulebooks["thing"]
-			if (
-				"place" in rulebooks
-				and rulebooks["place"] != self.place.rulebook.name
-			):
-				ruc["place"] = rulebooks["place"]
-			if (
-				"portal" in rulebooks
-				and rulebooks["portal"] != self.portal.rulebook.name
-			):
-				ruc["portal"] = rulebooks["portal"]
+		ruc = self.engine._character_rulebooks_cache[name]
+		if "character_rulebook" in delta:
+			ruc["character"] = delta.pop("character_rulebook")
+		if "unit_rulebook" in delta and delta["unit_rulebook"] != ruc["unit"]:
+			ruc["unit"] = delta.pop("unit_rulebook")
+		if "character_thing_rulebook" in delta:
+			ruc["thing"] = delta.pop("character_thing_rulebook")
+		if "character_place_rulebook" in delta:
+			ruc["place"] = delta.pop("character_place_rulebook")
+		if "character_portal_rulebook" in delta:
+			ruc["place"] = delta.pop("character_portal_rulebook")
 		self.stat._apply_delta(delta)
 
 	def add_place(self, name: NodeName, **kwargs: StatDict) -> None:
