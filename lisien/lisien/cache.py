@@ -1891,9 +1891,12 @@ class EdgesCache(Cache):
 		return self.parents
 
 	def __init__(
-		self, db: "engine.Engine", name: str, kfkvs: Optional[dict] = None
+		self,
+		db: "engine.Engine",
+		name: str,
+		keyframe_dict: Optional[dict] = None,
 	):
-		super().__init__(db, name, kfkvs)
+		super().__init__(db, name, keyframe_dict)
 		self.destcache = PickyDefaultDict(SettingsTurnDict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
 		self.predecessors = StructuredDefaultDict(3, TurnDict)
@@ -2627,9 +2630,12 @@ class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
 	def __init__(
-		self, db: "engine.Engine", name: str, kfkvs: Optional[dict] = None
+		self,
+		db: "engine.Engine",
+		name: str,
+		keyframe_dict: Optional[dict] = None,
 	):
-		super().__init__(db, name, kfkvs)
+		super().__init__(db, name, keyframe_dict)
 		self.user_cache = UserCache(db, "user cache")
 
 	def store(
@@ -3212,9 +3218,12 @@ class PortalRulesHandledCache(RulesHandledCache):
 
 class ThingsCache(Cache):
 	def __init__(
-		self, db: "engine.Engine", name: str, kfkvs: Optional[dict] = None
+		self,
+		db: "engine.Engine",
+		name: str,
+		keyframe_dict: Optional[dict] = None,
 	):
-		super().__init__(db, name, kfkvs)
+		super().__init__(db, name, keyframe_dict)
 		self._make_node = db.thing_cls
 
 	def _slow_iter_contents(
@@ -3428,9 +3437,12 @@ class ThingsCache(Cache):
 
 class NodeContentsCache(Cache):
 	def __init__(
-		self, db: "engine.Engine", name: str, kfkvs: Optional[dict] = None
+		self,
+		db: "engine.Engine",
+		name: str,
+		keyframe_dict: Optional[dict] = None,
 	):
-		super().__init__(db, name, kfkvs)
+		super().__init__(db, name, keyframe_dict)
 		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
 
 	def delete_plan(self, plan: Plan) -> None:
@@ -3597,4 +3609,4 @@ class NodeContentsCache(Cache):
 		tick: Tick,
 		keyframe: dict,
 	) -> None:
-		super().set_keyframe((graph,), branch, turn, tick, keyfr
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
