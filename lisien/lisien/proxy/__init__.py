@@ -1611,7 +1611,11 @@ class CharStatProxy(CachingEntityProxy):
 
 
 class FuncListProxy(MutableSequence, Signal):
-	def __init__(self, rule_proxy: RuleProxy, key: str):
+	def __init__(
+		self,
+		rule_proxy: RuleProxy,
+		key: Literal["triggers", "prereqs", "actions"],
+	):
 		super().__init__()
 		self.rule = rule_proxy
 		self._key = key
@@ -1622,7 +1626,7 @@ class FuncListProxy(MutableSequence, Signal):
 	def __len__(self):
 		return len(self.rule._cache.get(self._key, ()))
 
-	def __getitem__(self, item: FuncName):
+	def __getitem__(self, item: int):
 		if self._key not in self.rule._cache:
 			raise IndexError(item)
 		return self.rule._cache[self._key][item]
@@ -1664,13 +1668,13 @@ class FuncListProxy(MutableSequence, Signal):
 			raise IndexError(i)
 		self._handle_send()
 
-	def __delitem__(self, key: FuncName):
+	def __delitem__(self, key: int):
 		if self._key not in self.rule._cache:
 			raise IndexError(key)
 		del self.rule._cache[self._key][key]
 		self._handle_send()
 
-	def insert(self, index: FuncName | int, value: FuncProxy | FuncName):
+	def insert(self, index: int, value: FuncProxy | FuncName):
 		if isinstance(value, str):
 			value = getattr(self._get_store(), value)
 		elif not isinstance(value, FuncProxy):
