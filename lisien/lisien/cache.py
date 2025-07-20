@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 from collections import OrderedDict, defaultdict, deque
-from dataclasses import dataclass
 from functools import cached_property
 from itertools import chain, pairwise
 from operator import itemgetter
