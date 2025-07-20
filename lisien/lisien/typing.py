@@ -145,7 +145,7 @@ NodeValRowType: TypeAlias = tuple[
 EdgeValRowType: TypeAlias = tuple[
 	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Value
 ]
-StatDict: TypeAlias = dict[_Key | Literal["rulebook"], Value]
+StatDict: TypeAlias = dict[Stat | Literal["rulebook"], Value]
 CharDict: TypeAlias = dict[
 	Stat
 	| Literal[
