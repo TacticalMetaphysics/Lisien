@@ -15,7 +15,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Literal, NewType, TypeAlias, TypeGuard, TypeVar, Generic
+from typing import (
+	Literal,
+	NewType,
+	TypeAlias,
+	TypeGuard,
+	TypeVar,
+	Annotated,
+	Generic,
+)
+from annotated_types import Ge
 
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
@@ -32,23 +41,14 @@ def is_valid_key(obj) -> TypeGuard[Key]:
 	)
 
 
-_Key: TypeAlias = (
-	str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
-)
+_Key = str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
 
 
-KeyType = TypeVar(
-	"KeyType",
-	bound=_Key,
-	covariant=True,
-)
-
-
-class Key(Generic[KeyType]):
-	def __new__(cls, object) -> Key[KeyType]:
-		if not isinstance(object, cls):
-			raise TypeError("Not a valid key")
-		return object
+class Key(Generic(_Key)):
+	def __new__(cls, obj: _Key) -> Key:
+		if not isinstance(obj, cls):
+			raise TypeError("Invalid key")
+		return obj
 
 	def __instancecheck__(self, instance) -> bool:
 		return is_valid_key(instance)
@@ -84,13 +84,10 @@ def is_valid_value(obj) -> TypeGuard[Value]:
 	)
 
 
-ValueType = TypeVar("ValueType", bound=_Value, covariant=True)
-
-
-class Value(Generic[ValueType]):
-	def __new__(cls, obj) -> Value[ValueType]:
+class Value(Generic(_Value)):
+	def __new__(cls, obj: _Value) -> Value:
 		if not isinstance(obj, cls):
-			raise TypeError("Not a valid value")
+			raise TypeError("Invalid value")
 		return obj
 
 	def __instancecheck__(self, instance) -> bool:
@@ -140,7 +137,7 @@ NodeValRowType: TypeAlias = tuple[
 EdgeValRowType: TypeAlias = tuple[
 	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Value
 ]
-StatDict: TypeAlias = dict[Stat | Literal["rulebook"], Value]
+StatDict: TypeAlias = dict[_Key | Literal["rulebook"], Value]
 CharDict: TypeAlias = dict[
 	Stat
 	| Literal[
