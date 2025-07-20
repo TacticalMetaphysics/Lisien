@@ -290,7 +290,7 @@ class NextTurn(Signal):
 			# Pre-emptively nudge the loadedness and branch tracking,
 			# so that lisien does not try to load an empty turn before every
 			# loop of the rules engine
-			engine._extend_branch(start_branch, start_turn + 1, 0)
+			engine._extend_branch(start_branch, Turn(start_turn + 1), Tick(0))
 			engine.turn += 1
 			engine.tick = engine.turn_end_plan()
 		elif start_turn < latest_turn:
@@ -2335,7 +2335,7 @@ class Engine(AbstractEngine, Executor):
 		copy: bool = True,
 		rulebooks: bool = True,
 		silent: bool = False,
-	):
+	) -> Keyframe:
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
 			self.debug(
