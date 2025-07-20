@@ -89,6 +89,7 @@ from blinker import Signal
 
 from .cache import Cache
 from .util import AbstractEngine, dedent_source
+from .typing import RulebookName
 from .xcollections import FunctionStore
 
 
@@ -539,7 +540,7 @@ class RuleBook(MutableSequence, Signal):
 	def _set_cache(self, branch, turn, tick, v):
 		self.engine._rulebooks_cache.store(self.name, branch, turn, tick, v)
 
-	def __init__(self, engine: "lisien.Engine", name: str):
+	def __init__(self, engine: "lisien.Engine", name: RulebookName):
 		super().__init__()
 		self.engine = engine
 		self.name = name
