@@ -313,35 +313,6 @@ class Cache:
 		Deeper layers of this cache are keyed by branch, turn, and tick.
 
 		"""
-		self._kfkvs = keyframe_dict
-		self.clear()
-		self._remove_stuff = (
-			self._lock,
-			self.time_entity,
-			self.parents,
-			self.branches,
-			self.keys,
-			self.settings,
-			self.presettings,
-			self._remove_keycache,
-			self.keycache,
-		)
-		self._truncate_stuff = (
-			self._lock,
-			self.parents,
-			self.branches,
-			self.keys,
-			self.settings,
-			self.presettings,
-			self.keycache,
-		)
-		self._store_journal_stuff: tuple[
-			PickyDefaultDict, PickyDefaultDict, callable
-		] = (self.settings, self.presettings, self._base_retrieve)
-
-	def clear(self):
-		db = self.db
-		kfkvs = self._kfkvs
 		self.keycache = PickyDefaultDict(SettingsTurnDict)
 		"""Keys an entity has at a given turn and tick."""
 		self.branches = StructuredDefaultDict(1, SettingsTurnDict)
@@ -352,7 +323,7 @@ class Cache:
 
 		"""
 		self.keyframe = StructuredDefaultDict(
-			1, SettingsTurnDict, **(kfkvs or {})
+			1, SettingsTurnDict, **(keyframe_dict or {})
 		)
 		"""Key-value dictionaries representing my state at a given time"""
 		self.shallowest = OrderedDict()
@@ -381,6 +352,41 @@ class Cache:
 			db,
 			self._update_keycache,
 		)
+		self._remove_stuff = (
+			self._lock,
+			self.time_entity,
+			self.parents,
+			self.branches,
+			self.keys,
+			self.settings,
+			self.presettings,
+			self._remove_keycache,
+			self.keycache,
+		)
+		self._truncate_stuff = (
+			self._lock,
+			self.parents,
+			self.branches,
+			self.keys,
+			self.settings,
+			self.presettings,
+			self.keycache,
+		)
+		self._store_journal_stuff: tuple[
+			PickyDefaultDict, PickyDefaultDict, callable
+		] = (self.settings, self.presettings, self._base_retrieve)
+
+	def clear(self):
+		with self._lock:
+			self.parents.clear()
+			self.keys.clear()
+			self.keycache.clear()
+			self.branches.clear()
+			self.keyframe.clear()
+			self.shallowest.clear()
+			self.settings.clear()
+			self.time_entity.clear()
+			self._kc_lru.clear()
 
 	def total_size(self, handlers=(), verbose=False):
 		"""Returns the approximate memory footprint an object and all of its contents.
