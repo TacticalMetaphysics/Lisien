@@ -287,7 +287,9 @@ class Cache:
 
 	name: str
 
-	def __init__(self, db: "engine.Engine", name: str, kfkvs=None):
+	def __init__(
+		self, db: "engine.Engine", name: str, keyframe_dict: dict | None = None
+	):
 		self.name = name
 		self.db = db
 		self.parents = StructuredDefaultDict(3, SettingsTurnDict)
@@ -311,7 +313,7 @@ class Cache:
 		Deeper layers of this cache are keyed by branch, turn, and tick.
 
 		"""
-		self._kfkvs = kfkvs
+		self._kfkvs = keyframe_dict
 		self.clear()
 		self._remove_stuff = (
 			self._lock,
