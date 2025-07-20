@@ -29,7 +29,38 @@ import tblib
 from ..exc import HistoricKeyError, OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
-from ..typing import Branch, CharName, Key
+from ..typing import (
+	Branch,
+	CharName,
+	Key,
+	StatDict,
+	NodeName,
+	Turn,
+	Tick,
+	Time,
+	LinearTime,
+	Plan,
+	DeltaDict,
+	Stat,
+	Value,
+	RulebookName,
+	RuleName,
+	FuncName,
+	TriggerFuncName,
+	PrereqFuncName,
+	ActionFuncName,
+	RuleNeighborhood,
+	RulebookPriority,
+	FuncStoreName,
+	Keyframe,
+	NodeValDict,
+	EdgesDict,
+	EdgeValDict,
+	UnitsDict,
+	NodesDict,
+	EternalKey,
+	CharDelta,
+)
 from ..util import (
 	EDGE_VAL,
 	EDGES,
@@ -163,10 +194,12 @@ class EngineHandle:
 		"""Return whether the sim-time has been prevented from advancing"""
 		return hasattr(self._real, "locktime")
 
-	def snap_keyframe(self, silent=False):
+	def snap_keyframe(self, silent: bool = False) -> Keyframe:
 		return self._real.snap_keyframe(silent=silent)
 
-	def _pack_delta(self, delta) -> tuple[SlightlyPackedDeltaType, bytes]:
+	def _pack_delta(
+		self, delta: DeltaDict
+	) -> tuple[SlightlyPackedDeltaType, bytes]:
 		pack = self.pack
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
@@ -190,22 +223,25 @@ class EngineHandle:
 			if "node_val" in chardelta:
 				slightnoded = chard[NODE_VAL] = {}
 				packnodevd = {}
-				for node, vals in chardelta.pop("node_val").items():
+				nodedelta: NodeValDict = chardelta.pop("node_val")
+				for node, vals in nodedelta.items():
 					pnode = pack(node)
 					pvals = dict(map(self.pack_pair, vals.items()))
 					slightnoded[pnode] = pvals
 					packnodevd[pnode] = concat_d(pvals)
 				packd[NODE_VAL] = concat_d(packnodevd)
 			if "edges" in chardelta:
+				edgedelta: EdgesDict = chardelta.pop("edges")
 				ed = chard[EDGES] = {
 					pack(origdest): pack(ex)
-					for origdest, ex in chardelta.pop("edges").items()
+					for origdest, ex in edgedelta.items()
 				}
 				packd[EDGES] = concat_d(ed)
 			if "edge_val" in chardelta:
 				slightorigd = chard[EDGE_VAL] = {}
 				packorigd = {}
-				for orig, dests in chardelta.pop("edge_val").items():
+				edgevaldelta: EdgeValDict = chardelta.pop("edge_val")
+				for orig, dests in edgevaldelta.items():
 					porig = pack(orig)
 					slightdestd = slightorigd[porig] = {}
 					packdestd = {}
@@ -220,7 +256,8 @@ class EngineHandle:
 			if "units" in chardelta:
 				slightgraphd = chard[UNITS] = {}
 				packunitd = {}
-				for graph, unitss in chardelta.pop("units").items():
+				unitdelta: UnitsDict = chardelta.pop("units")
+				for graph, unitss in unitdelta.items():
 					if unitss is None:
 						continue
 					pgraph = pack(graph)
@@ -306,44 +343,50 @@ class EngineHandle:
 
 	def _get_slow_delta(
 		self,
-		btt_from: tuple[str, int, int] = None,
-		btt_to: tuple[str, int, int] = None,
+		btt_from: Time | None = None,
+		btt_to: Time | None = None,
 	) -> SlightlyPackedDeltaType:
 		return self._real._get_slow_delta(btt_from, btt_to)
 
-	def start_branch(self, parent: str, branch: str, turn: int, tick: int):
+	def start_branch(
+		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick
+	):
 		self._real._start_branch(parent, branch, turn, tick)
 
-	def extend_branch(self, branch: str, turn: int, tick: int):
+	def extend_branch(self, branch: Branch, turn: Turn, tick: Tick):
 		self._real._extend_branch(branch, turn, tick)
 
-	def load_at(self, branch: str, turn: int, tick: int):
+	def load_at(self, branch: Branch, turn: Turn, tick: Tick):
 		self._real.load_at(branch, turn, tick)
 
-	def turn_end(self, branch: str = None, turn: int = None) -> int:
+	def turn_end(
+		self, branch: Branch | None = None, turn: Turn | None = None
+	) -> Tick:
 		return self._real.turn_end(branch, turn)
 
-	def turn_end_plan(self, branch: str = None, turn: int = None) -> int:
+	def turn_end_plan(
+		self, branch: Branch | None = None, turn: Turn | None = None
+	) -> Tick:
 		return self._real.turn_end_plan(branch, turn)
 
-	def branch_end(self, branch: Optional[str] = None):
+	def branch_end(self, branch: Optional[Branch] = None) -> Turn:
 		return self._real.branch_end(branch)
 
-	def branch_end_turn_and_tick(self, branch: str):
+	def branch_end_turn_and_tick(self, branch: Branch) -> LinearTime:
 		branch = Branch(branch)
 		turn = self._real.branch_end_turn(branch)
 		return turn, self._real.turn_end(branch, turn)
 
-	def branch_end_plan_turn_and_tick(self, branch: str):
+	def branch_end_plan_turn_and_tick(self, branch: Branch) -> LinearTime:
 		branch = Branch(branch)
 		turn = self._real.branch_end_turn(branch)
 		return turn, self._real.turn_end_plan(branch, turn)
 
-	def start_plan(self):
+	def start_plan(self) -> Plan:
 		self._plan_ctx = self._real.plan()
 		return self._plan_ctx.__enter__()
 
-	def end_plan(self):
+	def end_plan(self) -> tuple[None, DeltaDict]:
 		time_was = self._real._btt()
 		self._plan_ctx.__exit__(None, None, None)
 		del self._plan_ctx
@@ -352,9 +395,9 @@ class EngineHandle:
 	@prepacked
 	def time_travel(
 		self,
-		branch,
-		turn,
-		tick=None,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick | None = None,
 	) -> tuple[bytes, bytes]:
 		"""Go to a different `(branch, turn, tick)` and return a delta
 
@@ -461,10 +504,10 @@ class EngineHandle:
 
 	def add_character(
 		self,
-		char: Key,
-		data: nx.Graph | nx.DiGraph = None,
-		node: dict = None,
-		edge: dict = None,
+		char: CharName,
+		data: nx.Graph | nx.DiGraph | None = None,
+		node: NodeValDict | None = None,
+		edge: EdgeValDict | None = None,
 		**attr,
 	):
 		"""Make a new character, initialized with whatever data"""
@@ -477,77 +520,79 @@ class EngineHandle:
 	def close(self):
 		self._real.close()
 
-	def get_btt(self):
+	def get_btt(self) -> Time:
 		return self._real._btt()
 
-	def get_language(self):
+	def get_language(self) -> str:
 		return str(self._real.string.language)
 
-	def set_language(self, lang):
+	def set_language(self, lang: str) -> dict[str, str]:
 		self._real.string.language = lang
 		return self.strings_copy(lang)
 
-	def get_string_lang_items(self, lang=None):
+	def get_string_lang_items(
+		self, lang: str | None = None
+	) -> list[tuple[str, str]]:
 		return list(self._real.string.lang_items(lang))
 
-	def strings_copy(self, lang=None):
+	def strings_copy(self, lang: str | None = None) -> dict[str, str]:
 		return dict(self._real.string.lang_items(lang))
 
-	def set_string(self, k, v):
+	def set_string(self, k: str, v: str) -> None:
 		self._real.string[k] = v
 
-	def del_string(self, k):
+	def del_string(self, k: str) -> None:
 		del self._real.string[k]
 
 	@prepacked
-	def get_eternal(self, k):
+	def get_eternal(self, k: EternalKey) -> bytes:
 		return self.pack(self._real.eternal[k])
 
-	def set_eternal(self, k, v):
+	def set_eternal(self, k: EternalKey, v: Value) -> None:
 		self._real.eternal[k] = v
 
-	def del_eternal(self, k):
+	def del_eternal(self, k: EternalKey) -> None:
 		del self._real.eternal[k]
 
 	@prepacked
-	def eternal_copy(self):
+	def eternal_copy(self) -> dict[bytes, bytes]:
 		return dict(map(self.pack_pair, self._real.eternal.items()))
 
-	def set_universal(self, k, v):
+	def set_universal(self, k: EternalKey, v: Value) -> None:
 		self._real.universal[k] = v
 
-	def del_universal(self, k):
+	def del_universal(self, k: EternalKey) -> None:
 		del self._real.universal[k]
 
-	def del_character(self, char):
+	def del_character(self, char: CharName) -> None:
 		del self._real.character[char]
 
-	def set_character(self, char: CharName, data: dict) -> None:
+	def set_character(self, char: CharName, data: CharDelta) -> None:
 		self._real.character[char] = data
 
-	def set_character_stat(self, char: Key, k: Key, v) -> None:
+	def set_character_stat(self, char: CharName, k: Stat, v: Value) -> None:
 		self._real.character[char].stat[k] = v
 
-	def del_character_stat(self, char: Key, k: Key) -> None:
+	def del_character_stat(self, char: CharName, k: Stat) -> None:
 		del self._real.character[char].stat[k]
 
-	def set_node_stat(self, char: Key, node: Key, k: Key, v) -> None:
+	def set_node_stat(
+		self, char: CharName, node: NodeName, k: Stat, v: Value
+	) -> None:
 		self._real.character[char].node[node][k] = v
 
-	def del_node_stat(self, char: Key, node: Key, k: Key) -> None:
+	def del_node_stat(self, char: CharName, node: NodeName, k: Stat) -> None:
 		del self._real.character[char].node[node][k]
 
-	def _get_btt(
-		self, btt: tuple[str, int, int] = None
-	) -> tuple[str, int, int]:
+	def _get_btt(self, btt: Time | None = None) -> Time:
 		if btt is None:
 			return self._real._btt()
 		return btt
 
-	def node_exists(self, char: Key, node: Key) -> bool:
+	def node_exists(self, char: CharName, node: NodeName) -> bool:
 		return self._real._node_exists(char, node)
 
-	def update_nodes(self, char: Key, patch: dict):
+	def update_nodes(self, char: CharName, patch: NodeValDict):
 		"""Change the stats of nodes in a character according to a
 		dictionary.
 
@@ -565,48 +610,61 @@ class EngineHandle:
 				else:
 					node[n].update(npatch)
 
-	def del_node(self, char, node):
+	def del_node(self, char: CharName, node: NodeName):
 		"""Remove a node from a character."""
 		del self._real.character[char].node[node]
 
 	def character_set_node_predecessors(
-		self, char: Key, node: Key, preds: Iterable
+		self, char: CharName, node: NodeName, preds: Iterable
 	) -> None:
 		self._real.character[char].pred[node] = preds
 
-	def set_thing(self, char: Key, thing: Key, statdict: dict) -> None:
+	def set_thing(
+		self, char: CharName, thing: NodeName, statdict: dict
+	) -> None:
 		self._real.character[char].thing[thing] = statdict
 
 	def add_thing(
-		self, char: Key, thing: Key, loc: Key, statdict: dict
+		self, char: CharName, thing: NodeName, loc: NodeName, statdict: dict
 	) -> None:
 		self._real.character[char].add_thing(thing, loc, **statdict)
 
-	def place2thing(self, char: Key, place: Key, loc: Key):
+	def place2thing(self, char: CharName, place: NodeName, loc: NodeName):
 		self._real.character[char].place2thing(place, loc)
 
-	def thing2place(self, char: Key, thing: Key):
+	def thing2place(self, char: CharName, thing: NodeName):
 		self._real.character[char].thing2place(thing)
 
-	def set_thing_location(self, char: Key, thing: Key, loc: Key) -> None:
+	def set_thing_location(
+		self, char: CharName, thing: NodeName, loc: NodeName
+	) -> None:
 		self._real.character[char].thing[thing]["location"] = loc
 
 	def thing_follow_path(
-		self, char: Key, thing: Key, path: list[Key], weight: Key
+		self,
+		char: CharName,
+		thing: NodeName,
+		path: list[NodeName],
+		weight: Stat,
 	) -> int:
 		return (
 			self._real.character[char].thing[thing].follow_path(path, weight)
 		)
 
 	def thing_go_to_place(
-		self, char: Key, thing: Key, place: Key, weight: Key
+		self, char: CharName, thing: NodeName, place: NodeName, weight: Stat
 	) -> int:
 		return (
 			self._real.character[char].thing[thing].go_to_place(place, weight)
 		)
 
 	def thing_travel_to(
-		self, char: Key, thing: Key, dest: Key, weight: Key = None, graph=None
+		self,
+		char: CharName,
+		thing: NodeName,
+		dest: NodeName,
+		weight: Stat | None = None,
+		graph: nx.DiGraph | None = None,
 	) -> int:
 		"""Make something find a path to ``dest`` and follow it.
 
@@ -623,140 +681,189 @@ class EngineHandle:
 			.travel_to(dest, weight, graph)
 		)
 
-	def set_place(self, char: Key, place: Key, statdict: dict) -> None:
+	def set_place(
+		self, char: CharName, place: NodeName, statdict: StatDict
+	) -> None:
 		self._real.character[char].place[place] = statdict
 
-	def add_places_from(self, char: Key, seq: Iterable) -> None:
+	def add_places_from(self, char: CharName, seq: Iterable) -> None:
 		self._real.character[char].add_places_from(seq)
 
 	def add_portal(
 		self,
-		char: Key,
-		orig: Key,
-		dest: Key,
-		statdict: dict,
+		char: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		statdict: StatDict,
 		symmetrical: bool = False,
 	) -> None:
 		self._real.character[char].add_portal(orig, dest, **statdict)
 		if symmetrical:
 			self._real.character[char].add_portal(dest, orig, **statdict)
 
-	def add_portals_from(self, char: Key, seq: Iterable) -> None:
+	def add_portals_from(self, char: CharName, seq: Iterable) -> None:
 		self._real.character[char].add_portals_from(seq)
 
-	def del_portal(self, char: Key, orig: Key, dest: Key) -> None:
+	def del_portal(
+		self, char: CharName, orig: NodeName, dest: NodeName
+	) -> None:
 		ch = self._real.character[char]
 		ch.remove_edge(orig, dest)
 		assert orig in ch.node
 		assert dest in ch.node
 
-	def set_portal(self, char: Key, orig: Key, dest: Key, v: StatDict):
+	def set_portal(
+		self, char: CharName, orig: NodeName, dest: NodeName, v: StatDict
+	):
 		self._real.character[CharName(char)].portal[NodeName(orig)][
 			NodeName(dest)
 		] = v
 
 	def set_portal_stat(
-		self, char: Key, orig: Key, dest: Key, k: Key, v
+		self, char: CharName, orig: NodeName, dest: NodeName, k: Stat, v: Value
 	) -> None:
 		self._real.character[char].portal[orig][dest][k] = v
 
-	def del_portal_stat(self, char: Key, orig: Key, dest: Key, k: Key) -> None:
+	def del_portal_stat(
+		self, char: CharName, orig: NodeName, dest: NodeName, k: Stat
+	) -> None:
 		del self._real.character[char][orig][dest][k]
 
-	def add_unit(self, char: Key, graph: Key, node: Key) -> None:
+	def add_unit(
+		self, char: CharName, graph: CharName, node: NodeName
+	) -> None:
 		self._real.character[char].add_unit(graph, node)
 
-	def remove_unit(self, char: Key, graph: Key, node: Key) -> None:
+	def remove_unit(
+		self, char: CharName, graph: CharName, node: NodeName
+	) -> None:
 		self._real.character[char].remove_unit(graph, node)
 
-	def new_empty_rule(self, rule: str) -> None:
+	def new_empty_rule(self, rule: RuleName) -> None:
 		self._real.rule.new_empty(rule)
 
-	def new_empty_rulebook(self, rulebook: Key) -> list:
+	def new_empty_rulebook(self, rulebook: RulebookName) -> list:
 		self._real.rulebook.__getitem__(rulebook)
 		return []
 
-	def set_rulebook_priority(self, rulebook: Key, priority: float) -> None:
+	def set_rulebook_priority(
+		self, rulebook: RulebookName, priority: RulebookPriority
+	) -> None:
 		self._real.rulebook[rulebook].priority = priority
 
-	def set_rulebook_rules(self, rulebook: Key, rules: list[str]) -> None:
+	def set_rulebook_rules(
+		self, rulebook: RulebookName, rules: list[RuleName]
+	) -> None:
 		self._real.rulebook[rulebook] = rules
 
-	def set_rulebook_rule(self, rulebook: Key, i: int, rule: str) -> None:
+	def set_rulebook_rule(
+		self, rulebook: RulebookName, i: int, rule: RuleName
+	) -> None:
 		self._real.rulebook[rulebook][i] = rule
 
-	def ins_rulebook_rule(self, rulebook: Key, i: int, rule: str) -> None:
+	def ins_rulebook_rule(
+		self, rulebook: RulebookName, i: int, rule: RuleName
+	) -> None:
 		self._real.rulebook[rulebook].insert(i, rule)
 
-	def del_rulebook_rule(self, rulebook: Key, i: int) -> None:
+	def del_rulebook_rule(self, rulebook: RulebookName, i: int) -> None:
 		del self._real.rulebook[rulebook][i]
 
-	def del_rulebook(self, rulebook: Key) -> None:
+	def del_rulebook(self, rulebook: RulebookName) -> None:
 		del self._real.rulebook[rulebook]
 
-	def del_rule(self, rule: Key) -> None:
+	def del_rule(self, rule: RuleName) -> None:
 		del self._real.rule[rule]
 
-	def set_rule_triggers(self, rule: str, triggers: list[str]) -> None:
+	def set_rule_triggers(
+		self, rule: RuleName, triggers: list[TriggerFuncName]
+	) -> None:
 		self._real.rule[rule].triggers = triggers
 
-	def set_rule_prereqs(self, rule: str, prereqs: list[str]) -> None:
+	def set_rule_prereqs(
+		self, rule: RuleName, prereqs: list[PrereqFuncName]
+	) -> None:
 		self._real.rule[rule].prereqs = prereqs
 
-	def set_rule_actions(self, rule: str, actions: list[str]) -> None:
+	def set_rule_actions(
+		self, rule: RuleName, actions: list[ActionFuncName]
+	) -> None:
 		self._real.rule[rule].actions = actions
 
 	def set_rule_neighborhood(
-		self, rule: str, neighborhood: int | None
+		self, rule: RuleName, neighborhood: RuleNeighborhood
 	) -> None:
 		self._real.rule[rule].neighborhood = neighborhood
 
-	def get_rule_neighborhood(self, rule: str) -> int | None:
+	def get_rule_neighborhood(self, rule: RuleName) -> RuleNeighborhood:
 		return self._real.rule[rule].neighborhood
 
-	def set_character_rulebook(self, char: Key, rulebook: Key) -> None:
+	def set_character_rulebook(
+		self, char: CharName, rulebook: RulebookName
+	) -> None:
 		self._real.character[char].rulebook = rulebook
 
-	def set_unit_rulebook(self, char: Key, rulebook: Key) -> None:
+	def set_unit_rulebook(
+		self, char: CharName, rulebook: RulebookName
+	) -> None:
 		self._real.character[char].unit.rulebook = rulebook
 
-	def set_character_thing_rulebook(self, char: Key, rulebook: Key) -> None:
+	def set_character_thing_rulebook(
+		self, char: CharName, rulebook: RulebookName
+	) -> None:
 		self._real.character[char].thing.rulebook = rulebook
 
-	def set_character_place_rulebook(self, char: Key, rulebook: Key) -> None:
+	def set_character_place_rulebook(
+		self, char: CharName, rulebook: RulebookName
+	) -> None:
 		self._real.character[char].place.rulebook = rulebook
 
-	def set_character_node_rulebook(self, char: Key, rulebook: Key) -> None:
+	def set_character_node_rulebook(
+		self, char: CharName, rulebook: RulebookName
+	) -> None:
 		self._real.character[char].node.rulebook = rulebook
 
-	def set_character_portal_rulebook(self, char: Key, rulebook: Key) -> None:
+	def set_character_portal_rulebook(
+		self, char: CharName, rulebook: RulebookName
+	) -> None:
 		self._real.character[char].portal.rulebook = rulebook
 
-	def set_node_rulebook(self, char: Key, node: Key, rulebook: Key) -> None:
+	def set_node_rulebook(
+		self, char: CharName, node: NodeName, rulebook: RulebookName
+	) -> None:
 		self._real.character[char].node[node].rulebook = rulebook
 
 	def set_portal_rulebook(
-		self, char: Key, orig: Key, dest: Key, rulebook: Key
+		self,
+		char: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
 	) -> None:
 		self._real.character[char].portal[orig][dest].rulebook = rulebook
 
 	@prepacked
-	def source_copy(self, store: str) -> dict[bytes, bytes]:
+	def source_copy(
+		self,
+		store: FuncStoreName,
+	) -> dict[bytes, bytes]:
 		return dict(
 			map(self.pack_pair, getattr(self._real, store).iterplain())
 		)
 
-	def get_source(self, store: str, name: str) -> str:
+	def get_source(self, store: FuncStoreName, name: FuncName) -> str:
 		return getattr(self._real, store).get_source(name)
 
-	def store_source(self, store: str, v: str, name: str = None) -> None:
+	def store_source(
+		self, store: FuncStoreName, v: str, name: FuncName | None = None
+	) -> None:
 		getattr(self._real, store).store_source(v, name)
 
-	def del_source(self, store: str, k: str) -> None:
+	def del_source(self, store: FuncStoreName, k: FuncName) -> None:
 		delattr(getattr(self._real, store), k)
 
 	def call_stored_function(
-		self, store: str, func: str, args: tuple, kwargs: dict
+		self, store: FuncStoreName, func: FuncName, args: tuple, kwargs: dict
 	) -> Any:
 		branch, turn, tick = self._real._btt()
 		if store == "method":
@@ -779,26 +886,26 @@ class EngineHandle:
 		import_module(module).install(self._real)
 
 	def do_game_start(self):
-		time_from = self._real._btt()
+		branch, turn, tick = self._real._btt()
 		self._real.game_start()
 		return [], self._real._get_branch_delta(
-			*time_from, self._real.turn, self._real.tick
+			branch, turn, tick, self._real.turn, self._real.tick
 		)
 
-	def is_ancestor_of(self, parent: str, child: str) -> bool:
+	def is_ancestor_of(self, parent: Branch, child: Branch) -> bool:
 		return self._real.is_ancestor_of(parent, child)
 
-	def branch_start(self, branch: str) -> tuple[int, int]:
+	def branch_start(self, branch: Branch) -> LinearTime:
 		return self._real._branch_start(branch)
 
-	def branch_end(self, branch: str) -> tuple[int, int]:
-		return self._real._branch_end(branch)
-
-	def branch_parent(self, branch: str) -> str | None:
+	def branch_parent(self, branch: Branch) -> str | None:
 		return self._real.branch_parent(branch)
 
 	def apply_choices(
-		self, choices: list[dict], dry_run=False, perfectionist=False
+		self,
+		choices: list[dict],
+		dry_run: bool = False,
+		perfectionist: bool = False,
 	) -> tuple[list[tuple[Any, Any]], list[tuple[Any, Any]]]:
 		return self._real.apply_choices(choices, dry_run, perfectionist)
 
@@ -817,7 +924,7 @@ class EngineHandle:
 		return ret
 
 	def rules_handled_turn(
-		self, branch: str = None, turn: str = None
+		self, branch: Branch | None = None, turn: Turn | None = None
 	) -> dict[str, dict[int, dict[int, str]]]:
 		if branch is None:
 			branch = self._real.branch
@@ -860,17 +967,29 @@ class EngineHandle:
 				"portal": {},
 			}
 
-	def branches(self) -> dict[str, tuple[str, int, int, int, int]]:
-		return self._real._branches_d
+	def branches(
+		self,
+	) -> dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]]:
+		return dict(self._real._branches_d)
 
-	def main_branch(self) -> str:
+	def main_branch(self) -> Branch:
 		return self._real.main_branch
 
-	def switch_main_branch(self, branch: str) -> dict:
+	def switch_main_branch(self, branch: Branch) -> Keyframe:
 		self._real.switch_main_branch(branch)
 		return self.snap_keyframe()
 
-	def game_init(self) -> None:
+	def game_init(
+		self,
+	) -> tuple[
+		Keyframe,
+		dict[EternalKey, Value],
+		dict[FuncName, str],
+		dict[FuncName, str],
+		dict[TriggerFuncName, str],
+		dict[PrereqFuncName, str],
+		dict[ActionFuncName, str],
+	]:
 		branch, turn, tick = self._real._btt()
 		if (turn, tick) != (0, 0):
 			raise BadTimeException(

@@ -44,6 +44,7 @@ from .typing import (
 	Tick,
 	Time,
 	Turn,
+	Value,
 )
 from .util import sort_set
 from .window import (
@@ -243,7 +244,7 @@ class TurnEndDict(ChangeTrackingDict):
 		super().__init__()
 
 	@cached_property
-	def other_d(self) -> dict[tuple[Branch, Turn], Tick]:
+	def other_d(self) -> TurnEndPlanDict[tuple[Branch, Turn], Tick]:
 		return self.engine._turn_end_plan
 
 	def __getitem__(self, item: tuple[Branch, Turn]) -> Tick:
@@ -251,9 +252,9 @@ class TurnEndDict(ChangeTrackingDict):
 			if item not in self.other_d:
 				self.other_d[item] = 0
 				super().__setitem__(item, 0)
-				return 0
+				return Tick(0)
 			else:
-				ret = dict.__getitem__(self.other_d, item)
+				ret = super(TurnEndPlanDict, self.other_d).__getitem__(item)
 				super().__setitem__(item, ret)
 				return ret
 		return super().__getitem__(item)
@@ -270,7 +271,7 @@ class TurnEndPlanDict(TurnEndDict):
 	engine: "engine.Engine"
 
 	@cached_property
-	def other_d(self) -> dict[tuple[Branch, Turn], Tick]:
+	def other_d(self) -> TurnEndDict[tuple[Branch, Turn], Tick]:
 		return self.engine._turn_end
 
 	def __setitem__(self, key: tuple[Branch, Turn], value: Tick):
@@ -817,12 +818,11 @@ class Cache:
 			kc = kc.difference((key,))
 		else:
 			kc = kc.union((key,))
-		if parent + (entity, branch) not in self.keycache:
-			self.keycache[parent + (entity, branch)] = SettingsTurnDict(
-				{turn: {tick: kc}}
-			)
+		parentibranch = (*parent, entity, branch)
+		if parentibranch not in self.keycache:
+			self.keycache[parentibranch] = SettingsTurnDict({turn: {tick: kc}})
 		else:
-			self.keycache[parent + (entity, branch)][turn][tick] = kc
+			self.keycache[parentibranch][turn][tick] = kc
 
 	def _get_adds_dels(
 		self,
@@ -2701,7 +2701,7 @@ class UnitnessCache(Cache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> dict:
+	) -> Value[dict[CharName, dict[NodeName, bool]] | dict[NodeName, bool]]:
 		# This may have trouble if any characters have tuples of length 2 for names.
 		if isinstance(characters, tuple) and len(characters) > 1:
 			return super().get_keyframe(characters, branch, turn, tick, copy)

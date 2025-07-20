@@ -522,7 +522,7 @@ class Engine(AbstractEngine, Executor):
 
 	@property
 	def branch(self) -> Branch:
-		return Branch(self._obranch)
+		return self._obranch
 
 	@branch.setter
 	@world_locked
@@ -575,10 +575,9 @@ class Engine(AbstractEngine, Executor):
 	def main_branch(self):
 		return self.query.globl["main_branch"]
 
-	def switch_main_branch(self, branch: str) -> None:
+	def switch_main_branch(self, branch: Branch) -> None:
 		if self.branch != self.main_branch or self.turn != 0 or self.tick != 0:
 			raise ValueError("Go to the start of time first")
-		branch = Branch(branch)
 		if (
 			branch in self.branches()
 			and self.branch_parent(branch) is not None
@@ -2131,13 +2130,17 @@ class Engine(AbstractEngine, Executor):
 				self._universal_cache.store(
 					"rando_state",
 					self.branch,
-					0,
-					0,
+					Turn(0),
+					Tick(0),
 					rando_state,
 					loading=True,
 				)
 				self.query.universal_set(
-					"rando_state", self.branch, 0, 0, rando_state
+					"rando_state",
+					self.branch,
+					Turn(0),
+					Tick(0),
+					rando_state,
 				)
 			else:
 				self.universal["rando_state"] = rando_state
@@ -3692,8 +3695,8 @@ class Engine(AbstractEngine, Executor):
 	@world_locked
 	def _exist_node(
 		self,
-		character: Key,
-		node: Key,
+		character: CharName,
+		node: NodeName,
 		exist: bool = True,
 		*,
 		now: Optional[Time] = None,
@@ -3717,7 +3720,7 @@ class Engine(AbstractEngine, Executor):
 		self, character: CharName, orig: NodeName, dest: NodeName, idx: int = 0
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
-		args = (character, orig, dest, idx) + btt()
+		args = (character, orig, dest, idx, *btt())
 		retrieved = retrieve(args)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
@@ -3876,17 +3879,12 @@ class Engine(AbstractEngine, Executor):
 	@world_locked
 	def load_between(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int,
-		tick_to: int,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
 	):
-		branch = Branch(branch)
-		turn_from = Turn(turn_from)
-		tick_from = Tick(tick_from)
-		turn_to = Turn(turn_to)
-		tick_to = Tick(tick_to)
 		if self._time_is_loaded_between(
 			branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -4251,8 +4249,8 @@ class Engine(AbstractEngine, Executor):
 
 	@world_locked
 	def snap_keyframe(
-		self, silent=False, update_worker_processes=True
-	) -> dict | None:
+		self, silent: bool = False, update_worker_processes: bool = True
+	) -> Keyframe | None:
 		"""Make a copy of the complete state of the world.
 
 		You need to do this occasionally in order to keep time travel
@@ -4507,14 +4505,14 @@ class Engine(AbstractEngine, Executor):
 		self._node_val_cache.load(nodevalrows)
 		self._edge_val_cache.load(edgevalrows)
 
-	def turn_end(self, branch: Branch = None, turn: Turn = None) -> int:
+	def turn_end(self, branch: Branch = None, turn: Turn = None) -> Tick:
 		if branch is None:
 			branch = self._obranch
 		if turn is None:
 			turn = self._oturn
 		return self._turn_end[branch, turn]
 
-	def turn_end_plan(self, branch: Branch = None, turn: Turn = None):
+	def turn_end_plan(self, branch: Branch = None, turn: Turn = None) -> Tick:
 		if branch is None:
 			branch = self._obranch
 		if turn is None:
