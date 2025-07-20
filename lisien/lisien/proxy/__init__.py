@@ -835,7 +835,7 @@ class ThingProxy(NodeProxy):
 		if k == "location":
 			self._set_location(v)
 		elif k == "rulebook":
-			self._set_rulebook(v)
+			self._set_rulebook_name(RulebookName(Key(v)))
 		else:
 			super().__setitem__(k, v)
 		self.send(self, key=k, value=v)
