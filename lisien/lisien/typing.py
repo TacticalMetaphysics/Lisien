@@ -94,15 +94,6 @@ class Value(Generic[_ValueType]):
 		return obj
 
 
-d = {"a": {"b": "c"}, "l": ["bbq"], "s": {"omg"}}
-dw = DictWrapper(lambda: d["a"], d, "a")
-lw = ListWrapper(lambda: d["l"], d, "l")
-sw = SetWrapper(lambda: d["s"], d, "s")
-assert_type(dw, _Value)
-assert_type(lw, Value)
-assert_type(sw, Value)
-
-
 Stat = NewType("Stat", Key)
 EternalKey = NewType("EternalKey", Key)
 UniversalKey = NewType("UniversalKey", Key)
