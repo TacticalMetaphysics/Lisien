@@ -53,6 +53,9 @@ class Key(Generic[_KeyType]):
 			raise TypeError("Invalid key")
 		return obj
 
+	def __instancecheck__(self, instance) -> TypeGuard[Key]:
+		return is_valid_key(instance)
+
 
 _Value: TypeAlias = (
 	_Key
@@ -92,6 +95,9 @@ class Value(Generic[_ValueType]):
 		if not is_valid_value(obj):
 			raise TypeError("Invalid value")
 		return obj
+
+	def __instancecheck__(self, instance) -> TypeGuard[Value]:
+		return is_valid_value(instance)
 
 
 Stat = NewType("Stat", Key)
