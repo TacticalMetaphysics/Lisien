@@ -1436,7 +1436,7 @@ class PredecessorsProxy(MutableMapping):
 		)
 		self.engine.handle(
 			"set_portal",
-			char=self.charname,
+			char=self._charname,
 			orig=self.name,
 			dest=k,
 			value=v,
