@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import (
+	Annotated,
 	Literal,
 	NewType,
 	TypeAlias,
@@ -23,8 +24,6 @@ from typing import (
 	TypeVar,
 	Annotated,
 	Generic,
-	Optional,
-	assert_type,
 )
 from annotated_types import Ge
 
@@ -104,12 +103,12 @@ Stat = NewType("Stat", Key)
 EternalKey = NewType("EternalKey", Key)
 UniversalKey = NewType("UniversalKey", Key)
 Branch = NewType("Branch", str)
-Turn = NewType("Turn", int)
-Tick = NewType("Tick", int)
+Turn = NewType("Turn", Annotated[int, Ge(0)])
+Tick = NewType("Tick", Annotated[int, Ge(0)])
 Time: TypeAlias = tuple[Branch, Turn, Tick]
 LinearTime: TypeAlias = tuple[Turn, Tick]
 TimeWindow: TypeAlias = tuple[Branch, Turn, Tick, Turn, Tick]
-Plan = NewType("Plan", int)
+Plan = NewType("Plan", Annotated[int, Ge(0)])
 CharName = NewType("CharName", Key)
 NodeName = NewType("NodeName", Key)
 EntityKey: TypeAlias = (
