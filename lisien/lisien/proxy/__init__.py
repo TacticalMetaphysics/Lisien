@@ -3519,14 +3519,31 @@ class EngineProxy(AbstractEngine):
 						)
 				else:
 					self._replay_file = open(replay_file, "wt")
-			elif "w" in replay_file.mode or "a" in replay_file.mode:
-				self._replay_file = replay_file
-			elif "r" in replay_file.mode:
-				self._replay_txt = replay_file.read().replace(
-					"<lisien.proxy.EngineProxy>", "eng"
-				)
-		self.i = worker_index
-		self.closed = False
+			elif hasattr(replay_file, "mode"):
+				if "w" in replay_file.mode or "a" in replay_file.mode:
+					self._replay_file = replay_file
+				elif "r" in replay_file.mode:
+					self._replay_txt = replay_file.read().replace(
+						"<lisien.proxy.EngineProxy>", "eng"
+					)
+				else:
+					self.error(
+						"Can't open replay file, mode "
+						+ repr(replay_file.mode)
+					)
+			else:
+				txt = replay_file.read()
+				if not txt:
+					self._replay_file = replay_file
+					self.warning(
+						"Recording replay to an io object with no mode"
+					)
+				else:
+					self._replay_txt = txt.replace(
+						"<lisien.proxy.EngineProxy>", "eng"
+					)
+		self.i: int | None = worker_index
+		self.closed: bool = False
 		if submit_func:
 			self._submit = submit_func
 		else:
