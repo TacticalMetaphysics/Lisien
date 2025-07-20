@@ -44,9 +44,10 @@ KeyType = TypeVar(
 
 
 class Key(Generic[KeyType]):
-	def __new__(cls, object) -> KeyType:
+	def __new__(cls, object) -> Key[KeyType]:
 		if not isinstance(object, cls):
 			raise TypeError("Not a valid key")
+		return object
 
 	def __instancecheck__(self, instance) -> bool:
 		return is_valid_key(instance)
@@ -85,7 +86,7 @@ ValueType = TypeVar("ValueType", bound=_Value, covariant=True)
 
 
 class Value(Generic[ValueType]):
-	def __new__(cls, obj) -> ValueType:
+	def __new__(cls, obj) -> Value[ValueType]:
 		if not isinstance(obj, cls):
 			raise TypeError("Not a valid value")
 		return obj
