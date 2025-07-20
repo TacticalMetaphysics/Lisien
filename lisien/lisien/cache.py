@@ -3507,7 +3507,7 @@ class NodeContentsCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value,
+		value: Value,
 	):
 		return self.db._things_cache._iter_future_contradictions(
 			entity, key, turns, branch, turn, tick, value
