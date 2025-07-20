@@ -2693,7 +2693,9 @@ class AllRuleBooksProxy(MutableMapping):
 	def __getitem__(self, k: RulebookName):
 		if k not in self:
 			self.engine.handle("new_empty_rulebook", rulebook=k)
-			self._cache[k] = []
+			no_rules: list[RuleName] = []
+			zero_prio = RulebookPriority(0.0)
+			self._cache[k] = no_rules, zero_prio
 		return RuleBookProxy(self.engine, k)
 
 	def __setitem__(
