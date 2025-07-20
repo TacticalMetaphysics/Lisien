@@ -54,7 +54,6 @@ from typing import (
 	Optional,
 	Sequence,
 	Type,
-	Union,
 )
 
 import msgpack
@@ -77,6 +76,7 @@ from .typing import (
 	TimeWindow,
 	Turn,
 	UniversalKey,
+	Value,
 )
 
 TRUE: bytes = msgpack.packb(True)
@@ -492,7 +492,7 @@ class AbstractEngine(ABC):
 		return self.is_ancestor_of(parent, self.branch_parent(child))
 
 	@cached_property
-	def pack(self):
+	def pack(self) -> Callable[[Value], bytes]:
 		try:
 			from lise_ormsgpack import packb
 
@@ -600,7 +600,7 @@ class AbstractEngine(ABC):
 		return packer
 
 	@cached_property
-	def unpack(self):
+	def unpack(self) -> Callable[[bytes], Value]:
 		char_cls = self.char_cls
 		place_cls = self.place_cls
 		portal_cls = self.portal_cls
