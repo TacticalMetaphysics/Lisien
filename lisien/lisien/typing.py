@@ -159,21 +159,26 @@ NodesDict: TypeAlias = dict[NodeName, bool]
 GraphNodesKeyframe: TypeAlias = dict[CharName, NodesDict]
 EdgesDict: TypeAlias = dict[NodeName, dict[NodeName, bool]]
 GraphEdgesKeyframe: TypeAlias = dict[CharName, EdgesDict]
+CharDelta: TypeAlias = dict[
+	Stat
+	| Literal[
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+		"nodes",
+		"node_val",
+		"edges",
+		"edge_val",
+		"rulebook",
+		"units",
+	],
+	NodesDict | NodeValDict | EdgesDict | EdgeValDict | RulebookName | Value,
+]
 DeltaDict: TypeAlias = dict[
 	CharName,
-	dict[
-		Stat
-		| Literal[
-			"nodes", "node_val", "edges", "edge_val", "rulebook", "units"
-		],
-		StatDict
-		| NodesDict
-		| NodeValDict
-		| EdgesDict
-		| EdgeValDict
-		| RulebookName,
-	]
-	| None,
+	CharDelta | None,
 ]
 KeyframeTuple: TypeAlias = tuple[
 	CharName,
