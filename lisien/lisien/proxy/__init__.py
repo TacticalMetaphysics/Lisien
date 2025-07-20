@@ -2680,6 +2680,7 @@ class AllRuleBooksProxy(MutableMapping):
 
 	def __init__(self, engine_proxy):
 		self.engine = engine_proxy
+		self._objs: dict[RulebookName, RulebookProxy] = {}
 
 	def __iter__(self):
 		yield from self._cache
@@ -2696,7 +2697,9 @@ class AllRuleBooksProxy(MutableMapping):
 			no_rules: list[RuleName] = []
 			zero_prio = RulebookPriority(0.0)
 			self._cache[k] = no_rules, zero_prio
-		return RuleBookProxy(self.engine, k)
+		if k not in self._objs:
+			self._objs[k] = RuleBookProxy(self.engine, k)
+		return self._objs[k]
 
 	def __setitem__(
 		self,
