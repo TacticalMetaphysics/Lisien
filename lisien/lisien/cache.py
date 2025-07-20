@@ -64,7 +64,7 @@ if TYPE_CHECKING:
 class SizedDict(OrderedDict):
 	"""A dictionary that discards old entries when it gets too big."""
 
-	def __init__(self, max_entries=1000):
+	def __init__(self, max_entries: int = 1000):
 		self._n = max_entries
 		self._lock = RLock()
 		super().__init__()
@@ -170,8 +170,8 @@ class StructuredDefaultDict(dict):
 		type: type = None,
 		args_munger: callable = _default_args_munger,
 		kwargs_munger: callable = _default_kwargs_munger,
-		gettest=lambda k: None,
-		settest=lambda k, v: None,
+		gettest: callable = lambda k: None,
+		settest: callable = lambda k, v: None,
 	):
 		if layers < 1:
 			raise ValueError("Not enough layers")
@@ -440,7 +440,11 @@ class Cache:
 		return sizeof(self)
 
 	def _get_keyframe(
-		self, graph_ent: tuple, branch: Branch, turn: Turn, tick: Tick
+		self,
+		graph_ent: tuple[Key, ...],
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 	) -> dict:
 		if graph_ent not in self.keyframe:
 			raise KeyframeError("Unknown graph-entity", graph_ent)
@@ -458,7 +462,7 @@ class Cache:
 
 	def get_keyframe(
 		self,
-		graph_ent: tuple,
+		graph_ent: tuple[Key, ...],
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -475,7 +479,7 @@ class Cache:
 
 	def _set_keyframe(
 		self,
-		graph_ent: tuple,
+		graph_ent: tuple[Key, ...],
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -509,7 +513,7 @@ class Cache:
 
 	def set_keyframe(
 		self,
-		graph_ent: tuple,
+		graph_ent: tuple[Key, ...],
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -595,7 +599,7 @@ class Cache:
 		keycache: dict,
 		keys: dict,
 		get_adds_dels: callable,
-		parentity: tuple,
+		parentity: tuple[Key, ...],
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -817,8 +821,9 @@ class Cache:
 		branch: Branch
 		turn: Turn
 		tick: Tick
+		value: Value
 		entity, key, branch, turn, tick, value = args[-6:]
-		parent = args[:-6]
+		parent: tuple[Key, ...] = args[:-6]
 		kc = self._get_keycache(
 			parent + (entity,), branch, turn, tick, forward=forward
 		)
@@ -839,7 +844,7 @@ class Cache:
 		turn: Turn,
 		tick: Tick,
 		*,
-		stoptime: Time = None,
+		stoptime: Time | None = None,
 		cache: Optional[dict] = None,
 	):
 		"""Return a pair of sets describing changes to the entity's keys
@@ -909,8 +914,8 @@ class Cache:
 	def store(
 		self,
 		*args,
-		planning: bool = None,
-		forward: bool = None,
+		planning: bool | None = None,
+		forward: bool | None = None,
 		loading: bool = False,
 		contra: Optional[bool] = None,
 		truncate: bool = False,
@@ -966,6 +971,7 @@ class Cache:
 		branch: Branch
 		turn: Turn
 		tick: Tick
+		value: Value
 		entity, key, branch, turn, tick, value = args[-6:]
 		if loading:
 			self.db._updload(branch, turn, tick)
@@ -1026,7 +1032,7 @@ class Cache:
 			if not loading and not planning:
 				db_extend_branch(branch, turn, tick)
 			self_store_journal(*args)
-			self.shallowest[parent + (entity, key, branch, turn, tick)] = value
+			self.shallowest[(*parent, entity, key, branch, turn, tick)] = value
 			if turn in turns:
 				the_turn = turns[turn]
 				if truncate:
@@ -1038,11 +1044,11 @@ class Cache:
 				new[tick] = value
 				turns[turn] = new
 			self_time_entity[branch, turn, tick] = parent, entity, key
-			where_cached = db_where_cached[args[-4:-1]]
+			where_cached = db_where_cached[branch, turn, tick]
 			if self not in where_cached:
 				where_cached.append(self)
 			# if we're editing the past, have to invalidate the keycache
-			keycache_key = parent + (entity, branch)
+			keycache_key = (*parent, entity, branch)
 			if keycache_key in keycache:
 				thiskeycache = keycache[keycache_key]
 				if turn in thiskeycache:
@@ -1131,7 +1137,7 @@ class Cache:
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		parent: Key,
+		parent: tuple[Key, ...],
 		entity: Key,
 		key: Key,
 	):
@@ -1268,7 +1274,7 @@ class Cache:
 				del settings[branch]
 				del presettings[branch]
 			self.shallowest = OrderedDict()
-			remove_keycache(parent + (entity, branch), turn, tick)
+			remove_keycache((*parent, entity, branch), turn, tick)
 
 	def _remove_keycache(
 		self, entity_branch: tuple[Key, ..., Branch], turn: Turn, tick: Tick
@@ -1336,13 +1342,13 @@ class Cache:
 
 	@staticmethod
 	def _iter_future_contradictions(
-		entity: Key,
+		entity: tuple[Key, ...],
 		key: Key,
 		turns: WindowDict,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value,
+		value: Value,
 	):
 		"""Iterate over contradicted ``(turn, tick)`` if applicable"""
 		# assumes that all future entries are in the plan
@@ -1373,6 +1379,7 @@ class Cache:
 		branch: Branch
 		turn: Turn
 		tick: Tick
+		value: Value
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent = args[:-6]
 		settings_turns = settings[branch]
@@ -1642,7 +1649,7 @@ class Cache:
 				return hint(keyframes[b0][r0][t0][key])
 		return hint(TotalKeyError("No value, ever", entikey))
 
-	def retrieve(self, *args, search=False):
+	def retrieve(self, *args, search: bool = False):
 		"""Get a value previously .store(...)'d.
 
 		Needs at least five arguments. The -1th is the tick
@@ -1663,7 +1670,9 @@ class Cache:
 			raise ret
 		return ret
 
-	def iter_entities_or_keys(self, *args, forward: bool = None) -> Iterator:
+	def iter_entities_or_keys(
+		self, *args, forward: bool | None = None
+	) -> Iterator:
 		"""Iterate over the keys an entity has, if you specify an entity.
 
 		Otherwise iterate over the entities themselves, or at any rate the
@@ -1690,7 +1699,7 @@ class Cache:
 
 	iter_entities = iter_keys = iter_entity_keys = iter_entities_or_keys
 
-	def count_entities_or_keys(self, *args, forward: bool = None):
+	def count_entities_or_keys(self, *args, forward: bool | None = None):
 		"""Return the number of keys an entity has, if you specify an entity.
 
 		Otherwise return the number of entities.
@@ -1761,10 +1770,10 @@ class NodesCache(Cache):
 		tick: Tick,
 		ex: bool,
 		*,
-		planning: bool = None,
-		forward: bool = None,
+		planning: bool | None = None,
+		forward: bool | None = None,
 		loading: bool = False,
-		contra: bool = None,
+		contra: bool | None = None,
 	):
 		if not ex:
 			ex = None
@@ -1805,7 +1814,7 @@ class NodesCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value,
+		value: Value,
 	):
 		yield from super()._iter_future_contradictions(
 			entity, key, turns, branch, turn, tick, value
@@ -3588,4 +3597,4 @@ class NodeContentsCache(Cache):
 		tick: Tick,
 		keyframe: dict,
 	) -> None:
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		super().set_keyframe((graph,), branch, turn, tick, keyfr
