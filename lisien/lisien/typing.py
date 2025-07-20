@@ -14,13 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.f
 from __future__ import annotations
 
-from typing import Literal, NewType, TypeAlias, TypeGuard
+from typing import Literal, NewType, TypeAlias, TypeGuard, TypeVar, Generic
 
 from .wrap import DictWrapper, ListWrapper, SetWrapper
-
-Key: TypeAlias = (
-	str | int | float | None | tuple["Key", ...] | frozenset["Key"]
-)
 
 
 def is_valid_key(obj) -> TypeGuard[Key]:
@@ -35,30 +31,36 @@ def is_valid_key(obj) -> TypeGuard[Key]:
 	)
 
 
-class KeyClass:
-	"""Fake class for things Lisien can use as keys
+_Key: TypeAlias = (
+	str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
+)
 
-	They have to be serializable using lisien's particular msgpack schema,
-	as well as hashable.
 
-	"""
+KeyType = TypeVar(
+	"KeyType",
+	bound=_Key,
+	covariant=True,
+)
 
-	def __new__(cls, that: Key) -> Key:
-		return that
+
+class Key(Generic[KeyType]):
+	def __new__(cls, object) -> KeyType:
+		if not isinstance(object, cls):
+			raise TypeError("Not a valid key")
 
 	def __instancecheck__(self, instance) -> bool:
 		return is_valid_key(instance)
 
 
-Value: TypeAlias = (
-	Key
-	| dict[Key, "Value"]
-	| tuple["Value", ...]
-	| list["Value"]
-	| set["Value"]
-	| frozenset["Value"]
+_Value: TypeAlias = (
+	_Key
+	| dict[_Key, "_Value"]
+	| tuple["_Value", ...]
+	| list["_Value"]
+	| set["_Value"]
+	| frozenset["_Value"]
 )
-Value |= DictWrapper[Key, Value] | ListWrapper[Value] | SetWrapper[Value]
+_Value |= DictWrapper[_Key, _Value] | ListWrapper[_Value] | SetWrapper[_Value]
 
 
 def is_valid_value(obj) -> TypeGuard[Value]:
@@ -79,23 +81,22 @@ def is_valid_value(obj) -> TypeGuard[Value]:
 	)
 
 
-class ValueClass:
-	"""Fake class for things Lisien can use as values
+ValueType = TypeVar("ValueType", bound=_Value, covariant=True)
 
-	They have to be serializable using Lisien's msgpack schema.
 
-	"""
-
-	def __new__(cls, that: Value) -> Value:
-		return that
+class Value(Generic[ValueType]):
+	def __new__(cls, obj) -> ValueType:
+		if not isinstance(obj, cls):
+			raise TypeError("Not a valid value")
+		return obj
 
 	def __instancecheck__(self, instance) -> bool:
 		return is_valid_value(instance)
 
 
-Stat = NewType("Stat", KeyClass)
-EternalKey = NewType("EternalKey", KeyClass)
-UniversalKey = NewType("UniversalKey", KeyClass)
+Stat = NewType("Stat", Key)
+EternalKey = NewType("EternalKey", Key)
+UniversalKey = NewType("UniversalKey", Key)
 Branch = NewType("Branch", str)
 Turn = NewType("Turn", int)
 Tick = NewType("Tick", int)
@@ -103,14 +104,14 @@ Time: TypeAlias = tuple[Branch, Turn, Tick]
 LinearTime: TypeAlias = tuple[Turn, Tick]
 TimeWindow: TypeAlias = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", int)
-CharName = NewType("CharName", KeyClass)
-NodeName = NewType("NodeName", KeyClass)
+CharName = NewType("CharName", Key)
+NodeName = NewType("NodeName", Key)
 EntityKey: TypeAlias = (
 	tuple[CharName]
 	| tuple[CharName, NodeName]
 	| tuple[CharName, NodeName, NodeName]
 )
-RulebookName = NewType("RulebookName", KeyClass)
+RulebookName = NewType("RulebookName", Key)
 RulebookPriority = NewType("RulebookPriority", float)
 RuleName = NewType("RuleName", str)
 RuleNeighborhood = NewType("RuleNeighborhood", int)
@@ -136,7 +137,7 @@ NodeValRowType: TypeAlias = tuple[
 EdgeValRowType: TypeAlias = tuple[
 	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Value
 ]
-StatDict: TypeAlias = dict[Stat | Literal["rulebook"], ValueClass]
+StatDict: TypeAlias = dict[Stat | Literal["rulebook"], Value]
 CharDict: TypeAlias = dict[
 	Stat
 	| Literal[
@@ -147,7 +148,7 @@ CharDict: TypeAlias = dict[
 		"character_place_rulebook",
 		"character_portal_rulebook",
 	],
-	ValueClass,
+	Value,
 ]
 GraphValKeyframe: TypeAlias = dict[CharName, CharDict]
 NodeValDict: TypeAlias = dict[NodeName, StatDict]
@@ -203,7 +204,7 @@ Keyframe: TypeAlias = dict[
 	| GraphNodeValKeyframe
 	| GraphEdgesKeyframe
 	| GraphEdgeValKeyframe
-	| dict[UniversalKey, ValueClass]
+	| dict[UniversalKey, Value]
 	| dict[RuleName, list[TriggerFuncName]]
 	| dict[RuleName, list[PrereqFuncName]]
 	| dict[RuleName, list[ActionFuncName]]
