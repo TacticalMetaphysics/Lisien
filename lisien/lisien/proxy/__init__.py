@@ -3228,6 +3228,7 @@ class EngineProxy(AbstractEngine):
 			return
 		self._universal_cache = result["universal"]
 		rc = self._rules_cache = {}
+		triggers: list[TriggerFuncName]
 		for rule, triggers in result["triggers"].items():
 			triglist = []
 			if isinstance(self.trigger, FuncStoreProxy):
@@ -3262,6 +3263,7 @@ class EngineProxy(AbstractEngine):
 					"prereqs": [],
 					"actions": [],
 				}
+		prereqs: list[PrereqFuncName]
 		for rule, prereqs in result["prereqs"].items():
 			preqlist = []
 			if isinstance(self.prereq, FuncStoreProxy):
@@ -3294,6 +3296,7 @@ class EngineProxy(AbstractEngine):
 					"prereqs": preqlist,
 					"actions": [],
 				}
+		actions: list[ActionFuncName]
 		for rule, actions in result["actions"].items():
 			actlist = []
 			if isinstance(self.action, FuncStoreProxy):
