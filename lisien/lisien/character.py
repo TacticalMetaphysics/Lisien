@@ -32,10 +32,13 @@ and their node in the physical world is a unit of it.
 
 """
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from collections.abc import Mapping
 from itertools import chain
 from types import MethodType
+from typing import TYPE_CHECKING, Iterator, Iterable
 
 import networkx as nx
 from blinker import Signal
@@ -51,16 +54,30 @@ from .graph import (
 from .node import Node, Place, Thing
 from .portal import Portal
 from .query import CharacterStatAlias, UnitsAlias
-from .rule import RuleFollower as BaseRuleFollower
+from .rule import RuleFollower as BaseRuleFollower, RuleBook
 from .rule import RuleMapping
+from .typing import (
+	Key,
+	Value,
+	CharName,
+	NodeName,
+	Stat,
+	StatDict,
+	RuleName,
+	RulebookName,
+	RulebookTypeStr,
+	EdgeValDict,
+)
 from .util import (
 	AbstractCharacter,
-	AbstractEngine,
 	getatt,
 	singleton_get,
 	timer,
 )
 from .wrap import MutableMappingUnwrapper
+
+if TYPE_CHECKING:
+	from .engine import Engine
 
 
 def grid_2d_8graph(m, n):
@@ -107,7 +124,12 @@ class CharRuleMapping(RuleMapping):
 
 	"""
 
-	def __init__(self, character, rulebook, booktyp):
+	def __init__(
+		self,
+		character: Character,
+		rulebook: RuleBook,
+		booktyp: RulebookTypeStr,
+	):
 		"""Initialize as usual for the ``rulebook``, mostly.
 
 		My ``character`` property will be the one passed in, and my
@@ -122,9 +144,9 @@ class CharRuleMapping(RuleMapping):
 class RuleFollower(BaseRuleFollower):
 	"""Mixin class. Has a rulebook, which you can get a RuleMapping into."""
 
-	character: AbstractCharacter
-	engine: AbstractEngine
-	_book: str
+	character: Character
+	engine: "Engine"
+	_book: RulebookTypeStr
 
 	def _get_rule_mapping(self):
 		return CharRuleMapping(self.character, self.rulebook, self._book)
@@ -157,7 +179,7 @@ class RuleFollower(BaseRuleFollower):
 			self.character.name, branch, turn, tick, n
 		)
 
-	def __contains__(self, k):
+	def __contains__(self, k: Key) -> bool:
 		return self.engine._active_rules_cache.contains_key(
 			self._get_rulebook_name(), *self.engine._btt()
 		)
@@ -205,7 +227,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	_book = "character"
 
-	def remove_portal(self, origin, destination):
+	def remove_portal(self, origin: NodeName, destination: NodeName):
 		__doc__ = self.remove_edge.__doc__
 		super().remove_edge(origin, destination)
 
@@ -230,7 +252,9 @@ class Character(AbstractCharacter, RuleFollower):
 	def __repr__(self):
 		return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
-	def __init__(self, engine, name, *, init_rulebooks=True):
+	def __init__(
+		self, engine: "Engine", name: CharName, *, init_rulebooks: bool = True
+	):
 		super().__init__(engine, name)
 		self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
 		if not init_rulebooks:
@@ -255,8 +279,8 @@ class Character(AbstractCharacter, RuleFollower):
 
 		_book = "character_thing"
 
-		engine = getatt("character.engine")
-		name = getatt("character.name")
+		engine: "Engine" = getatt("character.engine")
+		name: CharName = getatt("character.name")
 
 		def _get_rulebook_cache(self):
 			return self.engine._characters_things_rulebooks_cache
@@ -291,12 +315,12 @@ class Character(AbstractCharacter, RuleFollower):
 				self.character.name, *self.engine._btt()
 			)
 
-		def __getitem__(self, thing):
+		def __getitem__(self, thing: NodeName):
 			if thing not in self:
 				raise KeyError("No such thing: {}".format(thing))
 			return self._make_thing(thing)
 
-		def _make_thing(self, thing, val=None):
+		def _make_thing(self, thing: NodeName, val: Thing | None = None):
 			cache = self.engine._node_objs
 			if isinstance(val, Thing):
 				th = cache[self.name, thing] = val
@@ -308,7 +332,7 @@ class Character(AbstractCharacter, RuleFollower):
 				th = cache[(self.name, thing)] = Thing(self.character, thing)
 			return th
 
-		def __setitem__(self, thing, val: Mapping):
+		def __setitem__(self, thing: NodeName, val: Mapping):
 			if not isinstance(val, Mapping):
 				raise TypeError("Things are made from Mappings")
 			if "location" not in val:
@@ -336,7 +360,7 @@ class Character(AbstractCharacter, RuleFollower):
 			th.clear()
 			th.update({k: v for (k, v) in val.items() if k != "location"})
 
-		def __delitem__(self, thing):
+		def __delitem__(self, thing: NodeName):
 			self[thing].delete()
 
 		def __repr__(self):
@@ -355,7 +379,7 @@ class Character(AbstractCharacter, RuleFollower):
 		def update(self, __m: dict, **kwargs) -> None:
 			self.character.node.update(__m, **kwargs)
 
-		def __init__(self, character):
+		def __init__(self, character: Character):
 			"""Store the character."""
 			super().__init__()
 			self.character = character
@@ -409,14 +433,14 @@ class Character(AbstractCharacter, RuleFollower):
 				pass
 			return n
 
-		def __contains__(self, place):
+		def __contains__(self, place: NodeName) -> bool:
 			nodes_contains, things_contains, charn, btt = self._contains_stuff
 			branch, turn, tick = btt()
 			return nodes_contains(
 				charn, place, branch, turn, tick
 			) and not things_contains(charn, place, branch, turn, tick)
 
-		def __getitem__(self, place):
+		def __getitem__(self, place: NodeName) -> Place:
 			(nodes_contains, things_contains, charn, btt, cache, character) = (
 				self._get_stuff
 			)
@@ -432,7 +456,7 @@ class Character(AbstractCharacter, RuleFollower):
 				return ret
 			return cache[(charn, place)]
 
-		def __setitem__(self, place, v):
+		def __setitem__(self, place: NodeName, v: Place | StatDict):
 			(node_exists, exist_node, get_node, charn, character) = (
 				self._set_stuff
 			)
@@ -444,7 +468,7 @@ class Character(AbstractCharacter, RuleFollower):
 				)
 			pl.update(v)
 
-		def __delitem__(self, place):
+		def __delitem__(self, place: NodeName):
 			self[place].delete()
 
 		def __repr__(self):
@@ -455,11 +479,11 @@ class Character(AbstractCharacter, RuleFollower):
 	class ThingPlaceMapping(GraphNodeMapping, Signal):
 		"""GraphNodeMapping but for Place and Thing"""
 
-		character = getatt("graph")
-		engine = getatt("db")
-		name = getatt("character.name")
+		character: Character = getatt("graph")
+		engine: "Engine" = getatt("db")
+		name: CharName = getatt("character.name")
 
-		def __init__(self, character):
+		def __init__(self, character: Character):
 			"""Store the character."""
 			super().__init__(character)
 			Signal.__init__(self)
@@ -480,20 +504,20 @@ class Character(AbstractCharacter, RuleFollower):
 			)
 			self._placemap = character.place
 
-		def __contains__(self, k):
+		def __contains__(self, k: NodeName):
 			node_exists, charn = self._contains_stuff
 			return node_exists(charn, k)
 
-		def __getitem__(self, k):
+		def __getitem__(self, k: NodeName) -> Thing | Place:
 			node_exists, charn, get_node, character = self._getitem_stuff
 			if not node_exists(charn, k):
 				raise KeyError("No such node: " + str(k))
 			return get_node(character, k)
 
-		def __setitem__(self, k, v):
+		def __setitem__(self, k: NodeName, v: Place | StatDict):
 			self._placemap[k] = v
 
-		def __delitem__(self, k):
+		def __delitem__(self, k: NodeName):
 			(node_exists, charn, is_thing, thingmap, placemap) = (
 				self._delitem_stuff
 			)
@@ -516,8 +540,8 @@ class Character(AbstractCharacter, RuleFollower):
 
 		_book = "character_portal"
 
-		character = getatt("graph")
-		engine = getatt("graph.engine")
+		character: Character = getatt("graph")
+		engine: "Engine" = getatt("graph.engine")
 
 		def __init__(self, graph):
 			super().__init__(graph)
@@ -530,7 +554,7 @@ class Character(AbstractCharacter, RuleFollower):
 		def _get_rulebook_cache(self):
 			return self._cporh
 
-		def __getitem__(self, orig):
+		def __getitem__(self, orig: NodeName) -> Successors:
 			node_exists, charn, cache = self._getitem_stuff
 			if node_exists(charn, orig):
 				if orig not in cache:
@@ -541,7 +565,7 @@ class Character(AbstractCharacter, RuleFollower):
 		def __delitem__(self, orig):
 			super().__delitem__(orig)
 
-		def update(self, other, **kwargs):
+		def update(self, other: EdgeValDict, **kwargs):
 			"""Recursively update the stats of all portals
 
 			Input should be a dictionary of dictionaries of dictionaries
@@ -554,6 +578,7 @@ class Character(AbstractCharacter, RuleFollower):
 			delete them.
 
 			"""
+			kwargs: EdgeValDict
 			engine = self.engine
 			planning = engine._planning
 			forward = engine._forward
@@ -674,9 +699,13 @@ class Character(AbstractCharacter, RuleFollower):
 		class Successors(DiGraphSuccessorsMapping.Successors):
 			"""Mapping for possible destinations from some node."""
 
-			engine = getatt("graph.engine")
+			engine: "Engine" = getatt("graph.engine")
 
-			def __init__(self, container, orig):
+			def __init__(
+				self,
+				container: Character.PortalSuccessorsMapping,
+				orig: NodeName,
+			):
 				super().__init__(container, orig)
 				graph = self.graph
 				engine = graph.engine
@@ -693,13 +722,15 @@ class Character(AbstractCharacter, RuleFollower):
 					engine._nbtt,
 				)
 
-			def __getitem__(self, dest):
+			def __getitem__(self, dest: NodeName) -> Portal:
 				get_edge, graph, orig = self._getitem_stuff
 				if dest in self:
 					return get_edge(graph, orig, dest, 0)
 				raise KeyError("No such portal: {}->{}".format(orig, dest))
 
-			def __setitem__(self, dest, value):
+			def __setitem__(
+				self, dest: NodeName, value: Portal | StatDict | None
+			):
 				if value is None:
 					del self[dest]
 					return
@@ -724,12 +755,15 @@ class Character(AbstractCharacter, RuleFollower):
 						charn, orig, dest, 0, k, branch, turn, tick, v
 					)
 
-			def __delitem__(self, dest):
+			def __delitem__(self, dest: NodeName):
 				if dest not in self:
 					raise KeyError("No portal to {}".format(dest))
 				self[dest].delete()
 
-			def update(self, other=None, **kwargs):
+			def update(
+				self, other: dict[NodeName, StatDict] | None = None, **kwargs
+			):
+				kwargs: dict[NodeName, StatDict]
 				if other is None:
 					it = kwargs.items()
 				else:
@@ -749,7 +783,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 		_book = "character_portal"
 
-		def __init__(self, graph):
+		def __init__(self, graph: CharName):
 			super().__init__(graph)
 			self._cporc = graph.engine._characters_portals_rulebooks_cache
 
@@ -759,7 +793,11 @@ class Character(AbstractCharacter, RuleFollower):
 		class Predecessors(DiGraphPredecessorsMapping.Predecessors):
 			"""Mapping of possible origins from some destination."""
 
-			def __init__(self, container, dest):
+			def __init__(
+				self,
+				container: Character.PortalPredecessorsMapping,
+				dest: NodeName,
+			):
 				super().__init__(container, dest)
 				graph = self.graph
 				self._setitem_stuff = (
@@ -769,7 +807,7 @@ class Character(AbstractCharacter, RuleFollower):
 					self.db._edge_objs,
 				)
 
-			def __setitem__(self, orig, value):
+			def __setitem__(self, orig: NodeName, value: StatDict):
 				graph, graph_name, dest, portal_objs = self._setitem_stuff
 				key = (graph_name, orig, dest)
 				if key not in portal_objs:
@@ -792,7 +830,7 @@ class Character(AbstractCharacter, RuleFollower):
 		def _get_rulebook_cache(self):
 			return self._avrc
 
-		def __init__(self, char):
+		def __init__(self, char: Character):
 			"""Remember my character."""
 			self.character = char
 			self._char_av_cache = {}
@@ -824,15 +862,15 @@ class Character(AbstractCharacter, RuleFollower):
 				engine.character,
 			)
 
-		def __call__(self, av):
+		def __call__(self, unit: Place | Thing):
 			"""Add the unit
 
 			It must be an instance of Place or Thing.
 
 			"""
-			if av.__class__ not in (Place, Thing):
+			if unit.__class__ not in (Place, Thing):
 				raise TypeError("Only Things and Places may be units")
-			self._add_av(av.name, av.character.name)
+			self._add_av(unit.name, unit.character.name)
 
 		def __iter__(self):
 			"""Iterate over graphs with unit nodes in them"""
@@ -841,7 +879,7 @@ class Character(AbstractCharacter, RuleFollower):
 				if graph in self:
 					yield graph
 
-		def __contains__(self, k):
+		def __contains__(self, k: NodeName):
 			retrieve, charn, btt = self._contains_stuff
 			got = retrieve(charn, k, *btt())
 			return got is not None and not isinstance(got, Exception)
@@ -853,7 +891,7 @@ class Character(AbstractCharacter, RuleFollower):
 				pass
 			return n
 
-		def _get_char_av_cache(self, g):
+		def _get_char_av_cache(self, g: CharName):
 			if g not in self:
 				raise KeyError
 			if g not in self._char_av_cache:
@@ -864,7 +902,7 @@ class Character(AbstractCharacter, RuleFollower):
 			return self._get_char_av_cache(g)
 
 		@property
-		def node(self):
+		def node(self) -> dict[NodeName, Place | Thing]:
 			"""If I have units in only one graph, return a map of them
 
 			Otherwise, raise AttributeError.
@@ -882,7 +920,7 @@ class Character(AbstractCharacter, RuleFollower):
 				)
 
 		@property
-		def only(self):
+		def only(self) -> Place | Thing:
 			"""If I have only one unit, this is it
 
 			Otherwise, raise AttributeError.
@@ -898,9 +936,11 @@ class Character(AbstractCharacter, RuleFollower):
 		class CharacterUnitMapping(Mapping):
 			"""Mapping of units of one Character in another Character."""
 
-			def __init__(self, outer, graphn):
+			def __init__(
+				self, outer: Character.UnitGraphMapping, graphn: CharName
+			):
 				"""Store this character and the name of the other one"""
-				self.character = character = outer.character
+				self.character = outer.character
 				self.engine = engine = outer.engine
 				self.name = name = outer.name
 				self.graph = graphn
@@ -941,7 +981,7 @@ class Character(AbstractCharacter, RuleFollower):
 					if validate(name, graphn, unit, *btt()):
 						yield unit
 
-			def __contains__(self, av):
+			def __contains__(self, av: NodeName):
 				base_retrieve, name, graphn, btt = self._contains_stuff
 				return (
 					base_retrieve(
@@ -963,7 +1003,7 @@ class Character(AbstractCharacter, RuleFollower):
 						n += 1
 				return n
 
-			def __getitem__(self, av):
+			def __getitem__(self, av: NodeName) -> Place | Thing:
 				(
 					get_char_graph_avs,
 					unitness_cache_has,
@@ -979,7 +1019,7 @@ class Character(AbstractCharacter, RuleFollower):
 				raise KeyError("No unit: {}".format(av))
 
 			@property
-			def only(self):
+			def only(self) -> Place | Thing:
 				"""If I have only one unit, return it; else error"""
 
 				get_node, charmap, graphn, btt = self._only_stuff
@@ -1005,7 +1045,7 @@ class Character(AbstractCharacter, RuleFollower):
 					repr(self.engine), repr(self.name)
 				)
 
-	def facade(self):
+	def facade(self) -> CharacterFacade:
 		"""Return a temporary copy of this Character
 
 		A Facade looks like its :class:`Character`, but doesn't do any of the
@@ -1015,35 +1055,38 @@ class Character(AbstractCharacter, RuleFollower):
 		"""
 		return CharacterFacade(self)
 
-	def add_place(self, node_for_adding, **attr):
+	def add_place(self, node_for_adding: NodeName, **attr):
 		"""Add a new Place"""
+		attr: StatDict
 		self.place[node_for_adding] = attr
 
-	def add_places_from(self, seq, **attrs):
+	def add_places_from(self, seq: Iterable[NodeName], **attrs):
+		attrs: StatDict
 		for place in seq:
 			self.add_place(place, **attrs)
 
-	def remove_place(self, place):
+	def remove_place(self, place: NodeName) -> None:
 		"""Remove an existing Place"""
 		if place in self.place:
 			self.remove_node(place)
 		else:
 			raise KeyError("No such place: {}".format(place))
 
-	def remove_thing(self, thing):
+	def remove_thing(self, thing: NodeName) -> None:
 		"""Remove an existing Thing"""
 		if thing in self.thing:
 			self.remove_node(thing)
 		else:
 			raise KeyError("No such thing: {}".format(thing))
 
-	def add_thing(self, name, location, **kwargs):
+	def add_thing(self, name: NodeName, location: NodeName, **kwargs):
 		"""Make a new Thing and set its location"""
+		kwargs: StatDict
 		if name in self.thing:
 			raise WorldIntegrityError(
 				"Already have a Thing named {}".format(name)
 			)
-		starter = self.node_dict_factory()
+		starter = StatDict(self.node_dict_factory())
 		starter.update(kwargs)
 		if isinstance(location, Node):
 			location = location.name
@@ -1053,15 +1096,22 @@ class Character(AbstractCharacter, RuleFollower):
 			self._succ[name] = self.adjlist_inner_dict_factory()
 			self._pred[name] = self.adjlist_inner_dict_factory()
 
-	def add_things_from(self, seq, **attrs):
+	def add_things_from(
+		self,
+		seq: Iterable[
+			tuple[NodeName, NodeName] | tuple[NodeName, NodeName, StatDict]
+		],
+		**attrs,
+	) -> None:
 		"""Make many new Things"""
+		attrs: StatDict
 		for tup in seq:
 			name = tup[0]
 			location = tup[1]
 			kwargs = tup[2] if len(tup) > 2 else attrs
 			self.add_thing(name, location, **kwargs)
 
-	def place2thing(self, name, location):
+	def place2thing(self, name: NodeName, location: NodeName) -> None:
 		"""Turn a Place into a Thing with the given location.
 
 		It will keep all its attached Portals.
@@ -1077,7 +1127,7 @@ class Character(AbstractCharacter, RuleFollower):
 				port.destination = thing
 			self.engine._node_objs[self.name, name] = thing
 
-	def thing2place(self, name):
+	def thing2place(self, name: NodeName) -> None:
 		"""Unset a Thing's location, and thus turn it into a Place."""
 		self.engine._set_thing_loc(self.name, name, None)
 		if (self.name, name) in self.engine._node_objs:
@@ -1089,12 +1139,15 @@ class Character(AbstractCharacter, RuleFollower):
 				port.destination = place
 			self.engine._node_objs[self.name, name] = place
 
-	def add_portal(self, origin, destination, **kwargs):
+	def add_portal(
+		self, origin: NodeName, destination: NodeName, **kwargs
+	) -> None:
 		"""Connect the origin to the destination with a :class:`Portal`.
 
 		Keyword arguments are attributes of the :class:`Portal`.
 
 		"""
+		kwargs: StatDict
 		if isinstance(origin, Node):
 			origin = origin.name
 		if origin not in self.place and origin not in self.thing:
@@ -1119,8 +1172,11 @@ class Character(AbstractCharacter, RuleFollower):
 				self.name, origin, destination, 0, k, branch, turn, tick, v
 			)
 
-	def new_portal(self, origin, destination, **kwargs):
+	def new_portal(
+		self, origin: NodeName, destination: NodeName, **kwargs
+	) -> Portal:
 		"""Create a portal and return it"""
+		kwargs: StatDict
 		self.add_portal(origin, destination, **kwargs)
 		return self.engine._get_edge(self, origin, destination, 0)
 
@@ -1136,7 +1192,11 @@ class Character(AbstractCharacter, RuleFollower):
 			kwarrgs = tup[2] if len(tup) > 2 else kwargs
 			self.add_portal(orig, dest, **kwarrgs)
 
-	def add_unit(self, a, b=None):
+	def add_unit(
+		self,
+		a: Place | Thing | Character | CharName,
+		b: Place | Thing | NodeName | None = None,
+	) -> None:
 		"""Start keeping track of a unit.
 
 		Units are nodes in other characters that are in some sense part of
@@ -1163,7 +1223,7 @@ class Character(AbstractCharacter, RuleFollower):
 		else:
 			if isinstance(a, Character):
 				g = a.name
-			elif not isinstance(a, str):
+			elif not isinstance(a, Key):
 				raise TypeError(
 					"when called with two arguments, "
 					"the first is a character or its name"
@@ -1172,7 +1232,7 @@ class Character(AbstractCharacter, RuleFollower):
 				g = a
 			if isinstance(b, (Place, Thing)):
 				n = b.name
-			elif not isinstance(b, str):
+			elif not isinstance(b, Key):
 				raise TypeError(
 					"when called with two arguments, "
 					"the second is a thing/place or its name"
@@ -1189,7 +1249,11 @@ class Character(AbstractCharacter, RuleFollower):
 		)
 		self.engine.query.unit_set(self.name, g, n, branch, turn, tick, True)
 
-	def remove_unit(self, a, b=None):
+	def remove_unit(
+		self,
+		a: Place | Thing | Character | CharName,
+		b: Place | Thing | NodeName | None = None,
+	):
 		"""This is no longer my unit, though it still exists"""
 		if self.engine._planning:
 			raise NotImplementedError(
@@ -1213,12 +1277,12 @@ class Character(AbstractCharacter, RuleFollower):
 		)
 		self.engine.query.unit_set(self.name, g, n, branch, turn, tick, False)
 
-	def portals(self):
+	def portals(self) -> Iterator[Portal]:
 		"""Iterate over all portals."""
 		for o in self.adj.values():
 			yield from o.values()
 
-	def historical(self, stat):
+	def historical(self, stat: Stat) -> UnitsAlias | CharacterStatAlias:
 		"""Get a historical view on the given stat
 
 		This functions like the value of the stat, but changes
