@@ -2547,11 +2547,6 @@ class StringStoreProxy(Signal):
 	def load(self) -> None:
 		self._cache = self.engine.handle("strings_copy")
 
-	def __hasattr__(self, attr):
-		return super().__hasattr__(attr) or attr in super().__getattribute__(
-			self, "_cache"
-		)
-
 	def __getattr__(self, k: str) -> str:
 		cache = super().__getattribute__("_cache")
 		if k in cache:
