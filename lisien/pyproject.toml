@@ -33,6 +33,7 @@ dependencies = [
 	"numpy>=1.19.5,<3",
 	"tblib>=1.7.0,<4",
 	"parquetdb==1.0.1",
+	"annotated-types~=0.7.0"
 ]
 
 [project.urls]
