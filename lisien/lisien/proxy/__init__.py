@@ -85,6 +85,7 @@ from ..typing import (
 	TriggerFuncName,
 	PrereqFuncName,
 	ActionFuncName,
+	FuncStoreName,
 	EternalKey,
 	UniversalKey,
 	CharDelta,
@@ -2867,11 +2868,7 @@ class FuncStoreProxy(Signal):
 	def _worker_check(self):
 		self.engine._worker_check()
 
-	def __init__(
-		self,
-		engine_proxy: EngineProxy,
-		store: Literal["trigger", "prereq", "action", "function", "method"],
-	):
+	def __init__(self, engine_proxy: EngineProxy, store: FuncStoreName):
 		super().__init__()
 		self.engine = engine_proxy
 		self._store = store
