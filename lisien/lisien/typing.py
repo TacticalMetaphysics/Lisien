@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.f
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Literal, NewType, TypeAlias, TypeGuard, TypeVar, Generic
 
 from .wrap import DictWrapper, ListWrapper, SetWrapper
@@ -77,6 +78,7 @@ def is_valid_value(obj) -> TypeGuard[Value]:
 			isinstance(
 				obj, (tuple, list, set, frozenset, ListWrapper, SetWrapper)
 			)
+			and isinstance(obj, Iterable)
 			and all(map(is_valid_value, obj))
 		)
 	)
