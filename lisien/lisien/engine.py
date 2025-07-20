@@ -410,7 +410,7 @@ class WorkerFormatter(Formatter):
 				"WorkerFormatter received a LogRecord from a non-worker",
 				record,
 			)
-		return f"worker {record.worker_idx}: {super().formatMessage(record)}"
+		return f"worker {getattr(record, 'worker_idx', '???')}: {super().formatMessage(record)}"
 
 
 class Engine(AbstractEngine, Executor):
