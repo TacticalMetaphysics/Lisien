@@ -161,7 +161,10 @@ GraphEdgesKeyframe: TypeAlias = dict[CharName, EdgesDict]
 DeltaDict: TypeAlias = dict[
 	CharName,
 	dict[
-		Stat | Literal["nodes", "node_val", "edges", "edge_val", "rulebook"],
+		Stat
+		| Literal[
+			"nodes", "node_val", "edges", "edge_val", "rulebook", "units"
+		],
 		StatDict
 		| NodesDict
 		| NodeValDict
@@ -181,8 +184,7 @@ KeyframeTuple: TypeAlias = tuple[
 	GraphValKeyframe,
 ]
 Keyframe: TypeAlias = dict[
-	CharName
-	| Literal[
+	Literal[
 		"universal",
 		"triggers",
 		"prereqs",
@@ -190,15 +192,17 @@ Keyframe: TypeAlias = dict[
 		"neighborhood",
 		"big",
 		"rulebook",
+		"nodes",
+		"edges",
+		"node_val",
+		"edge_val",
+		"graph_val",
 	],
-	dict[
-		Literal["graph_val", "nodes", "node_val", "edges", "edge_val"],
-		GraphValKeyframe
-		| GraphNodesKeyframe
-		| GraphNodeValKeyframe
-		| GraphEdgesKeyframe
-		| GraphEdgeValKeyframe,
-	]
+	GraphValKeyframe
+	| GraphNodesKeyframe
+	| GraphNodeValKeyframe
+	| GraphEdgesKeyframe
+	| GraphEdgeValKeyframe
 	| dict[UniversalKey, ValueClass]
 	| dict[RuleName, list[TriggerFuncName]]
 	| dict[RuleName, list[PrereqFuncName]]
