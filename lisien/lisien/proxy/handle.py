@@ -885,7 +885,7 @@ class EngineHandle:
 		actions = dict(self._real.action.iterplain())
 		return (
 			kf,
-			self._real.eternal,
+			self._real.eternal.copy(),
 			functions,
 			methods,
 			triggers,
