@@ -2714,7 +2714,6 @@ class AllRuleBooksProxy(MutableMapping):
 			else:
 				raise TypeError("Not a rule", rule)
 		self.engine.handle("set_rulebook_rules", rulebook=key, rules=rules)
-		self._cache[key] = [RuleProxy(self.engine, rule) for rule in rules]
 
 	def __delitem__(self, key: RulebookName):
 		del self._cache[key]
