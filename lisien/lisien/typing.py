@@ -24,6 +24,7 @@ from typing import (
 	Annotated,
 	Generic,
 	Optional,
+	assert_type,
 )
 from annotated_types import Ge
 
@@ -61,7 +62,6 @@ _Value: TypeAlias = (
 	| set["_Value"]
 	| frozenset["_Value"]
 )
-_Value |= DictWrapper[_Key, _Value] | ListWrapper[_Value] | SetWrapper[_Value]
 _ValueType = TypeVar("_ValueType", bound=_Value, covariant=True)
 
 
