@@ -61,6 +61,9 @@ _Value: TypeAlias = (
 	| list["_Value"]
 	| set["_Value"]
 	| frozenset["_Value"]
+	| DictWrapper
+	| ListWrapper
+	| SetWrapper
 )
 _ValueType = TypeVar("_ValueType", bound=_Value, covariant=True)
 
@@ -89,6 +92,15 @@ class Value(Generic[_ValueType]):
 		if not is_valid_value(obj):
 			raise TypeError("Invalid value")
 		return obj
+
+
+d = {"a": {"b": "c"}, "l": ["bbq"], "s": {"omg"}}
+dw = DictWrapper(lambda: d["a"], d, "a")
+lw = ListWrapper(lambda: d["l"], d, "l")
+sw = SetWrapper(lambda: d["s"], d, "s")
+assert_type(dw, _Value)
+assert_type(lw, Value)
+assert_type(sw, Value)
 
 
 Stat = NewType("Stat", Key)
