@@ -237,7 +237,7 @@ class RuleMapProxy(MutableMapping, Signal):
 			return partial(self, always=always, neighborhood=neighborhood)
 		self._worker_check()
 		if isinstance(action, FuncProxy):
-			self[action] = [action.__name__]
+			self[action.name] = [action.name]
 		else:
 			if callable(action):
 				self.engine.action(action)
