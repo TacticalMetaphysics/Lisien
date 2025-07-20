@@ -23,6 +23,7 @@ from typing import (
 	TypeVar,
 	Annotated,
 	Generic,
+	Optional,
 )
 from annotated_types import Ge
 
@@ -110,9 +111,12 @@ EntityKey: TypeAlias = (
 RulebookName = NewType("RulebookName", Key)
 RulebookPriority = NewType("RulebookPriority", float)
 RuleName = NewType("RuleName", str)
-RuleNeighborhood = NewType("RuleNeighborhood", int)
+RuleNeighborhood: TypeAlias = Annotated[int, Ge(0)] | None
 RuleBig = NewType("RuleBig", bool)
 FuncName = NewType("FuncName", str)
+FuncStoreName: TypeAlias = Literal[
+	"trigger", "prereq", "action", "function", "method"
+]
 TriggerFuncName = NewType("TriggerFuncName", FuncName)
 PrereqFuncName = NewType("PrereqFuncName", FuncName)
 ActionFuncName = NewType("ActionFuncName", FuncName)
@@ -155,6 +159,7 @@ NodesDict: TypeAlias = dict[NodeName, bool]
 GraphNodesKeyframe: TypeAlias = dict[CharName, NodesDict]
 EdgesDict: TypeAlias = dict[NodeName, dict[NodeName, bool]]
 GraphEdgesKeyframe: TypeAlias = dict[CharName, EdgesDict]
+UnitsDict: TypeAlias = dict[CharName, dict[NodeName, bool]]
 CharDelta: TypeAlias = dict[
 	Stat
 	| Literal[
@@ -167,10 +172,16 @@ CharDelta: TypeAlias = dict[
 		"node_val",
 		"edges",
 		"edge_val",
-		"rulebook",
+		"rulebooks",
 		"units",
 	],
-	NodesDict | NodeValDict | EdgesDict | EdgeValDict | RulebookName | Value,
+	NodesDict
+	| NodeValDict
+	| EdgesDict
+	| EdgeValDict
+	| RulebookName
+	| UnitsDict
+	| Value,
 ]
 DeltaDict: TypeAlias = dict[
 	CharName,

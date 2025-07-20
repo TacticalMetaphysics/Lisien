@@ -68,6 +68,7 @@ from .typing import (
 	Turn,
 	UniversalKeyframe,
 	Value,
+	Time,
 )
 from .util import garbage, insist
 from .wrap import DictWrapper, ListWrapper, SetWrapper
