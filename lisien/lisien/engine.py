@@ -117,6 +117,7 @@ from .query import (
 from .rule import AllRuleBooks, AllRules, Rule
 from .typing import (
 	Branch,
+	CharDelta,
 	CharName,
 	DeltaDict,
 	EdgeValDict,
@@ -130,15 +131,19 @@ from .typing import (
 	KeyframeTuple,
 	LinearTime,
 	NodeName,
+	NodesDict,
 	NodeValDict,
 	Plan,
 	RulebookName,
 	RuleName,
 	SlightlyPackedDeltaType,
 	StatDict,
+	Stat,
 	Tick,
 	Time,
 	Turn,
+	Value,
+	EdgesDict,
 )
 from .util import (
 	ACTIONS,
@@ -1443,8 +1448,8 @@ class Engine(AbstractEngine, Executor):
 		tick_to: Tick,
 		delta: DeltaDict,
 		_: None,
-		graph: Key,
-		val: Any,
+		graph: CharName,
+		val: Value,
 	) -> None:
 		"""Change a delta to say that a graph was deleted or not"""
 		if val in (None, "Deleted"):
@@ -1572,81 +1577,111 @@ class Engine(AbstractEngine, Executor):
 		)
 
 		def setgraphval(
-			delta: DeltaDict, graph: Key, key: Key, val: Any
+			delta: DeltaDict, graph: CharName, key: Stat, val: Value
 		) -> None:
 			"""Change a delta to say that a graph stat was set to a certain value"""
-			if (graphstat := delta.setdefault(graph, {})) is not None:
-				graphstat[key] = val
+			if graph not in delta:
+				delta[graph] = {}
+			if delta[graph] is not None:
+				graph_stats: CharDelta = delta[graph]
+				graph_stats[key] = val
 
 		def setnode(
-			delta: DeltaDict, graph: Key, node: Key, exists: bool | None
+			delta: DeltaDict,
+			graph: CharName,
+			node: NodeName,
+			exists: bool | None,
 		) -> None:
 			"""Change a delta to say that a node was created or deleted"""
-			if (graphstat := delta.setdefault(graph, {})) is not None:
-				graphstat.setdefault("nodes", {})[node] = bool(exists)
+			if graph not in delta:
+				delta[graph] = {}
+			if delta[graph] is None:
+				return
+			graph_nodes: NodesDict = delta[graph].setdefault("nodes", {})
+			graph_nodes[node] = bool(exists)
 
 		def setnodeval(
-			delta: DeltaDict, graph: Key, node: Key, key: Key, value: Any
+			delta: DeltaDict,
+			graph: CharName,
+			node: NodeName,
+			key: Stat,
+			value: Value,
 		) -> None:
 			"""Change a delta to say that a node stat was set to a certain value"""
-			if (graphstat := delta.setdefault(graph, {})) is not None:
-				if (
-					graph in delta
-					and "nodes" in delta[graph]
-					and node in delta[graph]["nodes"]
-					and not delta[graph]["nodes"][node]
-				):
-					return
-				graphstat.setdefault("node_val", {}).setdefault(node, {})[
-					key
-				] = value
+			if graph not in delta:
+				delta[graph] = {}
+			if delta[graph] is None:
+				return
+			if (
+				"nodes" in delta[graph]
+				and node in delta[graph]["nodes"]
+				and not delta[graph]["nodes"][node]
+			):
+				return
+			graphstats: CharDelta = delta[graph]
+			nodestats: NodeValDict = graphstats["node_val"]
+			if node in nodestats:
+				nodestats[node][key] = value
+			else:
+				nodestats[node] = {key: value}
 
 		def setedge(
 			delta: DeltaDict,
 			is_multigraph: callable,
-			graph: Key,
-			orig: Key,
-			dest: Key,
+			graph: CharName,
+			orig: NodeName,
+			dest: NodeName,
 			idx: int,
 			exists: bool | None,
 		) -> None:
 			"""Change a delta to say that an edge was created or deleted"""
-			if (graphstat := delta.setdefault(graph, {})) is not None:
-				if is_multigraph(graph):
-					raise NotImplementedError("Only digraphs for now")
-				if "edges" in graphstat:
-					es = graphstat["edges"]
-					if orig in es:
-						es[orig][dest] = exists
-					else:
-						es[orig] = {dest: exists}
+			if graph not in delta:
+				delta[graph] = {}
+			if delta[graph] is None:
+				return
+			graphstat: CharDelta = delta[graph]
+			if "edges" in graphstat:
+				es: EdgesDict = graphstat["edges"]
+				if orig in es:
+					es[orig][dest] = bool(exists)
 				else:
-					graphstat["edges"] = {orig: {dest: exists}}
+					es[orig] = {dest: bool(exists)}
+			else:
+				graphstat["edges"] = {orig: {dest: bool(exists)}}
 
 		def setedgeval(
 			delta: DeltaDict,
 			is_multigraph: callable,
-			graph: Key,
-			orig: Key,
-			dest: Key,
+			graph: CharName,
+			orig: NodeName,
+			dest: NodeName,
 			idx: int,
-			key: Key,
-			value: Any,
+			key: Stat,
+			value: Value,
 		) -> None:
-			"""Change a delta to say that an edge stat was set to a certain value"""
-			if (graphstat := delta.setdefault(graph, {})) is not None:
-				if is_multigraph(graph):
-					raise NotImplementedError("Only digraphs for now")
-				if (
-					"edges" in graphstat
-					and orig in graphstat["edges"]
-					and dest in graphstat["edges"][orig]
-					and not graphstat["edges"][orig][dest]
-				):
-					return
-				graphstat.setdefault("edge_val", {}).setdefault(
-					orig, {}
-				).setdefault(dest, {})[key] = value
+			if graph not in delta:
+				delta[graph] = {}
+			if delta[graph] is None:
+				return
+			graphstat: CharDelta = delta[graph]
+			if (
+				"edges" in graphstat
+				and orig in graphstat["edges"]
+				and dest in graphstat["edges"][orig]
+				and not graphstat["edges"][orig][dest]
+			):
+				return
+			if "edge_val" in graphstat:
+				evs: EdgeValDict = graphstat["edge_val"]
+				if orig in evs:
+					if dest in evs:
+						evs[orig][dest][key] = value
+					else:
+						evs[orig][dest] = {key: value}
+				else:
+					evs[orig] = {dest: {key: value}}
+			else:
+				graphstat["edge_val"] = {orig: {dest: {key: value}}}
 
 		if not isinstance(branch, str):
 			raise TypeError("branch must be str")
