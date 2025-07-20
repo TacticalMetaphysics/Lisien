@@ -80,6 +80,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 			k: v.unwrap() if hasattr(v, "unwrap") else v
 			for (k, v) in kwargs.items()
 		}
+		super().__init__()
 
 	def __contains__(self, item):
 		patch = self._patch
