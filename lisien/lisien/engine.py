@@ -761,9 +761,9 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		SizedDict,
-		Callable[[Any, bool, bool, bool], Any],
+		Callable[[tuple], Any],
 		Callable[[], tuple[Branch, Turn, Tick]],
-		Callable[[Character], Thing | Place],
+		Callable[[Character, NodeName], Thing | Place],
 	]:
 		return (
 			self._node_objs,
@@ -773,7 +773,13 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	@cached_property
-	def _get_edge_stuff(self):
+	def _get_edge_stuff(
+		self,
+	) -> tuple[
+		SizedDict,
+		Callable[[CharName, NodeName, NodeName, int], bool],
+		Callable[[Character, NodeName, NodeName, int], Portal],
+	]:
 		return self._edge_objs, self._edge_exists, self._make_edge
 
 	@cached_property
