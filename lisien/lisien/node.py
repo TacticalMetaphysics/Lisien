@@ -745,7 +745,9 @@ class Thing(Node, AbstractThing):
 			return self._getloc()
 		return super().__getitem__(item)
 
-	def __setitem__(self, key: Stat, value: Value):
+	def __setitem__(
+		self, key: Stat | Literal["location"], value: Value | NodeName
+	):
 		"""Set ``key``=``value`` for the present game-time."""
 		if key == "name":
 			raise RuntimeError("Read-only name")
