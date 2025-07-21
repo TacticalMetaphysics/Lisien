@@ -16,14 +16,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import (
-	Annotated,
 	Literal,
 	NewType,
 	TypeAlias,
 	TypeGuard,
-	TypeVar,
 	Annotated,
-	Generic,
 )
 from annotated_types import Ge
 
@@ -51,6 +48,11 @@ class _KeyMeta:
 
 	def __instancecheck__(self, instance) -> TypeGuard[Key]:
 		return is_valid_key(instance)
+
+	def __call__(self, obj: _Key) -> Key:
+		if is_valid_key(obj):
+			return obj
+		raise TypeError("Not a valid key", obj)
 
 
 class Key(metaclass=_KeyMeta):
@@ -98,6 +100,11 @@ class _ValueMeta:
 
 	def __instancecheck__(self, instance) -> TypeGuard[Value]:
 		return is_valid_value(instance)
+
+	def __call__(self, obj: _Value) -> Value:
+		if is_valid_value(obj):
+			return obj
+		raise TypeError("Not a valid value", obj)
 
 
 class Value(metaclass=_ValueMeta):
