@@ -2169,7 +2169,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		if "character_place_rulebook" in delta:
 			ruc["place"] = delta.pop("character_place_rulebook")
 		if "character_portal_rulebook" in delta:
-			ruc["place"] = delta.pop("character_portal_rulebook")
+			ruc["portal"] = delta.pop("character_portal_rulebook")
 		self.stat._apply_delta(delta)
 
 	def add_place(self, name: NodeName, **kwargs: StatDict) -> None:
