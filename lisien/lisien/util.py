@@ -1293,7 +1293,7 @@ def normalize_layout(l: dict) -> dict:
 	return dict(zip(ks, zip(map(float, xnorm), map(float, ynorm))))
 
 
-class AbstractThing(ABC):
+class AbstractThing(MutableMapping):
 	character: AbstractCharacter
 	engine: AbstractEngine
 
