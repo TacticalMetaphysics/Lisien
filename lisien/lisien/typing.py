@@ -22,6 +22,8 @@ from typing import (
 	TypeGuard,
 	Annotated,
 )
+
+import networkx as nx
 from annotated_types import Ge
 
 from .wrap import DictWrapper, ListWrapper, SetWrapper
@@ -90,6 +92,25 @@ def is_valid_value(obj) -> TypeGuard[Value]:
 			)
 			and isinstance(obj, Iterable)
 			and all(map(is_valid_value, obj))
+		)
+		or (
+			isinstance(obj, nx.DiGraph)
+			and all(map(is_valid_key, obj.graph.keys()))
+			and all(map(is_valid_value, obj.graph.values()))
+			and all(
+				is_valid_key(k) and is_valid_value(v)
+				for node in obj.nodes()
+				for (k, v) in node.items()
+			)
+			and all(
+				is_valid_key(orig)
+				and is_valid_key(dest)
+				and is_valid_key(k)
+				and is_valid_value(v)
+				for orig in obj.adj
+				for dest in obj.adj[orig]
+				for (k, v) in obj.adj[orig][dest].items()
+			)
 		)
 	)
 
