@@ -743,11 +743,7 @@ class AbstractEngine(ABC):
 			unpacked = unpacker(ext)
 			if not isinstance(unpacked, str):
 				raise TypeError("Tried to unpack as func", type(unpacked))
-			if not hasattr(store, unpacked):
-				raise AttributeError(
-					"Function not stored here", unpacked, store
-				)
-			return unpacked
+			return getattr(store, unpacked)
 
 		handlers = {
 			MsgpackExtensionType.graph.value: unpack_graph,
