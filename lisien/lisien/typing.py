@@ -43,17 +43,21 @@ def is_valid_key(obj) -> TypeGuard[Key]:
 
 
 _Key = str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
-_KeyType = TypeVar("_KeyType", bound=_Key, covariant=True)
 
 
-class Key(Generic[_KeyType]):
+class _KeyMeta:
+	def __new__(cls, *args, **kwargs):
+		return super().__new__(cls)
+
+	def __instancecheck__(self, instance) -> TypeGuard[Key]:
+		return is_valid_key(instance)
+
+
+class Key(metaclass=_KeyMeta):
 	def __new__(cls, obj: _Key) -> Key:
 		if not is_valid_key(obj):
 			raise TypeError("Invalid key")
 		return obj
-
-	def __instancecheck__(self, instance) -> TypeGuard[Key]:
-		return is_valid_key(instance)
 
 
 _Value: TypeAlias = (
@@ -67,7 +71,6 @@ _Value: TypeAlias = (
 	| ListWrapper
 	| SetWrapper
 )
-_ValueType = TypeVar("_ValueType", bound=_Value, covariant=True)
 
 
 def is_valid_value(obj) -> TypeGuard[Value]:
@@ -89,14 +92,19 @@ def is_valid_value(obj) -> TypeGuard[Value]:
 	)
 
 
-class Value(Generic[_ValueType]):
+class _ValueMeta:
+	def __new__(cls, *args, **kwargs):
+		return super().__new__(cls)
+
+	def __instancecheck__(self, instance) -> TypeGuard[Value]:
+		return is_valid_value(instance)
+
+
+class Value(metaclass=_ValueMeta):
 	def __new__(cls, obj: _Value) -> Value:
 		if not is_valid_value(obj):
 			raise TypeError("Invalid value")
 		return obj
-
-	def __instancecheck__(self, instance) -> TypeGuard[Value]:
-		return is_valid_value(instance)
 
 
 Stat = NewType("Stat", Key)
