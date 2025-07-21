@@ -2162,7 +2162,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		ruc = self.engine._character_rulebooks_cache[name]
 		if "character_rulebook" in delta:
 			ruc["character"] = delta.pop("character_rulebook")
-		if "unit_rulebook" in delta and delta["unit_rulebook"] != ruc["unit"]:
+		if "unit_rulebook" in delta:
 			ruc["unit"] = delta.pop("unit_rulebook")
 		if "character_thing_rulebook" in delta:
 			ruc["thing"] = delta.pop("character_thing_rulebook")
