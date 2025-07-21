@@ -563,6 +563,10 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	name: NodeName
 
 	@property
+	def graph(self) -> CharacterProxy:
+		return self.character
+
+	@property
 	def user(self) -> ProxyUserMapping:
 		return ProxyUserMapping(self)
 
@@ -997,6 +1001,10 @@ class PortalProxy(CachingEntityProxy, RuleFollowerProxy):
 
 	@property
 	def character(self) -> CharacterProxy:
+		return self.engine.character[self._charname]
+
+	@property
+	def graph(self) -> CharacterProxy:
 		return self.engine.character[self._charname]
 
 	@property
@@ -3187,11 +3195,22 @@ class EngineProxy(AbstractEngine):
 			if name in plainstored:
 				if isinstance(store, FuncStoreProxy):
 					store._cache = plainstored[name]
+					self.debug(
+						f"Replaced func store proxies for {name} in {store} in worker {self.i}"
+					)
 				elif isinstance(store, FunctionStore):
 					for fname, source in plainstored[name].items():
 						store._set_source(fname, source)
+						self.debug(
+							f"Replaced function {fname} in {store} with plain source in worker {self.i}"
+						)
+				else:
+					self.error(
+						f"Can't set {name} on {store} in worker {self.i}"
+					)
 			elif name in pklstored:
-				setattr(self, name, pickle.loads(pklstored[name]))
+				replacement = pickle.loads(pklstored[name])
+				setattr(self, name, replacement)
 			elif hasattr(store, "reimport") and callable(store.reimport):
 				store.reimport()
 		self._replace_state_with_kf(start_kf)
