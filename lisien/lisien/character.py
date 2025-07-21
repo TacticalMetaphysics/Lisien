@@ -74,7 +74,7 @@ from .util import (
 	singleton_get,
 	timer,
 )
-from .wrap import MutableMappingUnwrapper
+from .wrap import MutableMappingUnwrapper, SpecialMapping
 
 if TYPE_CHECKING:
 	from .engine import Engine
@@ -274,7 +274,9 @@ class Character(AbstractCharacter, RuleFollower):
 			)
 			cache.store(name, branch, turn, tick, rulebook_name)
 
-	class ThingMapping(MutableMappingUnwrapper, RuleFollower, Signal):
+	class ThingMapping(
+		MutableMappingUnwrapper, SpecialMapping, RuleFollower, Signal
+	):
 		""":class:`Thing` objects that are in a :class:`Character`"""
 
 		_book = "character_thing"
@@ -285,9 +287,9 @@ class Character(AbstractCharacter, RuleFollower):
 		def _get_rulebook_cache(self):
 			return self.engine._characters_things_rulebooks_cache
 
-		def __init__(self, character):
+		def __init__(self, character: Character):
 			"""Store the character and initialize cache."""
-			super().__init__()
+			super().__init__(character)
 			self.character = character
 
 		def __iter__(self):
@@ -368,7 +370,9 @@ class Character(AbstractCharacter, RuleFollower):
 				repr(self.engine), repr(self.name)
 			)
 
-	class PlaceMapping(MutableMappingUnwrapper, RuleFollower, Signal):
+	class PlaceMapping(
+		MutableMappingUnwrapper, SpecialMapping, RuleFollower, Signal
+	):
 		""":class:`Place` objects that are in a :class:`Character`"""
 
 		_book = "character_place"
@@ -381,7 +385,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 		def __init__(self, character: Character):
 			"""Store the character."""
-			super().__init__()
+			super().__init__(character)
 			self.character = character
 			self.engine = engine = character.engine
 			charn = character.name
@@ -476,7 +480,7 @@ class Character(AbstractCharacter, RuleFollower):
 				repr(self.character.engine), repr(self.character.name)
 			)
 
-	class ThingPlaceMapping(GraphNodeMapping, Signal):
+	class ThingPlaceMapping(GraphNodeMapping, SpecialMapping, Signal):
 		"""GraphNodeMapping but for Place and Thing"""
 
 		character: Character = getatt("graph")
@@ -530,7 +534,9 @@ class Character(AbstractCharacter, RuleFollower):
 
 	node_map_cls = ThingPlaceMapping
 
-	class PortalSuccessorsMapping(DiGraphSuccessorsMapping, RuleFollower):
+	class PortalSuccessorsMapping(
+		DiGraphSuccessorsMapping, SpecialMapping, RuleFollower
+	):
 		"""Mapping of nodes that have at least one outgoing edge.
 
 		Maps them to another mapping, keyed by the destination nodes,
@@ -773,7 +779,9 @@ class Character(AbstractCharacter, RuleFollower):
 
 	adj_cls = PortalSuccessorsMapping
 
-	class PortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollower):
+	class PortalPredecessorsMapping(
+		DiGraphPredecessorsMapping, SpecialMapping, RuleFollower
+	):
 		"""Mapping of nodes that have at least one incoming edge.
 
 		Maps to another mapping keyed by the origin nodes, which maps to
@@ -783,7 +791,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 		_book = "character_portal"
 
-		def __init__(self, graph: CharName):
+		def __init__(self, graph: Character):
 			super().__init__(graph)
 			self._cporc = graph.engine._characters_portals_rulebooks_cache
 
@@ -819,7 +827,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	pred_cls = PortalPredecessorsMapping
 
-	class UnitGraphMapping(Mapping, RuleFollower):
+	class UnitGraphMapping(SpecialMapping, RuleFollower):
 		"""A mapping of other characters in which one has a unit."""
 
 		_book = "unit"

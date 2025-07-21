@@ -54,7 +54,7 @@ from typing import (
 	Optional,
 	Sequence,
 	Type,
-	_T,
+	TypeVar,
 	Iterator,
 	Annotated,
 	TYPE_CHECKING,
@@ -85,6 +85,7 @@ from .typing import (
 	NodeValDict,
 	EdgeValDict,
 )
+from .wrap import SpecialMapping
 
 if TYPE_CHECKING:
 	from .xcollections import FunctionStore
@@ -195,6 +196,9 @@ def timer(msg="", logfun: callable = None):
 def getatt(attribute_name):
 	"""An easy way to make an alias"""
 	return property(attrgetter(attribute_name))
+
+
+_T = TypeVar("_T")
 
 
 def singleton_get(s: Iterable[_T]) -> _T:
@@ -621,7 +625,19 @@ class AbstractEngine(ABC):
 		return packer
 
 	@cached_property
-	def unpack(self) -> Callable[[bytes], Value]:
+	def unpack(
+		self,
+	) -> Callable[
+		[bytes],
+		Value
+		| nx.DiGraph
+		| char_cls
+		| place_cls
+		| thing_cls
+		| portal_cls
+		| Exception
+		| callable,
+	]:
 		char_cls = self.char_cls
 		place_cls = self.place_cls
 		portal_cls = self.portal_cls
@@ -704,7 +720,7 @@ class AbstractEngine(ABC):
 			return blank
 
 		def unpack_exception(ext: bytes) -> Exception:
-			data = unpacker(ext)
+			data: tuple[str, dict | None] = unpacker(ext)
 			if data[0] not in excs:
 				return Exception(*data)
 			ret = excs[data[0]](*data[2:])
@@ -781,7 +797,7 @@ class AbstractEngine(ABC):
 				return handlers[code](data)
 			return msgpack.ExtType(code, data)
 
-		def unpacker(b: bytes) -> Value | Exception:
+		def unpacker(b: bytes):
 			the_unpacker = msgpack.Unpacker(
 				ext_hook=unpack_handler, raw=False, strict_map_key=False
 			)
@@ -848,11 +864,13 @@ class AbstractEngine(ABC):
 		return self._branch_end(branch)[1]
 
 	@abstractmethod
-	def turn_end(self, branch: Branch = None, turn: Turn = None) -> Tick: ...
+	def turn_end(
+		self, branch: Branch | None = None, turn: Turn | None = None
+	) -> Tick: ...
 
 	@abstractmethod
 	def turn_end_plan(
-		self, branch: Branch = None, turn: Turn = None
+		self, branch: Branch | None = None, turn: Turn | None = None
 	) -> Tick: ...
 
 	@abstractmethod
@@ -957,28 +975,6 @@ class AbstractEngine(ABC):
 	uniform = get_rando("_rando.uniform")
 	vonmisesvariate = get_rando("_rando.vonmisesvariate")
 	weibullvariate = get_rando("_rando.weibullvariate")
-
-
-class SpecialMappingDescriptor:
-	def __init__(self, mapclsname):
-		self.mapps = {}
-		self.mapclsname = mapclsname
-
-	def __get__(self, instance, owner):
-		attname = "_" + self.mapclsname
-		if not hasattr(instance, attname):
-			mappcls = getattr(instance, self.mapclsname)
-			setattr(instance, attname, mappcls(instance))
-		return getattr(instance, attname)
-
-	def __set__(self, instance, value):
-		attname = "_" + self.mapclsname
-		if not hasattr(instance, attname):
-			mappcls = getattr(instance, self.mapclsname)
-			setattr(instance, attname, mappcls(instance))
-		it = getattr(instance, attname)
-		it.clear()
-		it.update(value)
 
 
 class AbstractCharacter(DiGraph):
@@ -1161,17 +1157,55 @@ class AbstractCharacter(DiGraph):
 	def __getitem__(self, k: NodeName):
 		return self.adj[k]
 
-	thing = SpecialMappingDescriptor("ThingMapping")
-	place = SpecialMappingDescriptor("PlaceMapping")
-	node = nodes = _node = SpecialMappingDescriptor("ThingPlaceMapping")
-	portal = adj = succ = edge = _adj = _succ = SpecialMappingDescriptor(
-		"PortalSuccessorsMapping"
-	)
-	preportal = pred = _pred = SpecialMappingDescriptor(
-		"PortalPredecessorsMapping"
-	)
-	unit = SpecialMappingDescriptor("UnitGraphMapping")
-	stat = getatt("graph")
+	ThingMapping: type[SpecialMapping]
+
+	@cached_property
+	def thing(self) -> ThingMapping:
+		return self.ThingMapping(self)
+
+	PlaceMapping: type[SpecialMapping]
+
+	@cached_property
+	def place(self) -> PlaceMapping:
+		return self.PlaceMapping(self)
+
+	ThingPlaceMapping: type[SpecialMapping]
+
+	@cached_property
+	def _node(self) -> ThingPlaceMapping:
+		return self.ThingPlaceMapping(self)
+
+	node: ThingPlaceMapping = getatt("_node")
+	nodes: ThingPlaceMapping = getatt("_node")
+
+	PortalSuccessorsMapping: type[SpecialMapping]
+
+	@cached_property
+	def _succ(self) -> PortalSuccessorsMapping:
+		return self.PortalSuccessorsMapping(self)
+
+	portal: PortalSuccessorsMapping = getatt("_succ")
+	adj: PortalSuccessorsMapping = getatt("_succ")
+	succ: PortalSuccessorsMapping = getatt("_succ")
+	edge: PortalSuccessorsMapping = getatt("_succ")
+	_adj: PortalSuccessorsMapping = getatt("_succ")
+
+	PortalPredecessorsMapping: type[SpecialMapping]
+
+	@cached_property
+	def _pred(self) -> PortalPredecessorsMapping:
+		return self.PortalPredecessorsMapping(self)
+
+	preportal: PortalPredecessorsMapping = getatt("_pred")
+	pred: PortalPredecessorsMapping = getatt("_pred")
+
+	UnitGraphMapping: type[SpecialMapping]
+
+	@cached_property
+	def unit(self) -> UnitGraphMapping:
+		return self.UnitGraphMapping(self)
+
+	stat: GraphMapping = getatt("graph")
 
 	def units(self):
 		for units in self.unit.values():
