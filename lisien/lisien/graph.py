@@ -18,12 +18,16 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import MutableMapping
 from itertools import chain
+from typing import TYPE_CHECKING
 
 import networkx
 from networkx.exception import NetworkXError
 
 from .typing import Branch, Key, Tick, Turn
-from .wrap import MutableMappingUnwrapper, wrapval
+from .wrap import wrapval, MutableMappingUnwrapper, SpecialMapping
+
+if TYPE_CHECKING:
+	from .engine import Engine
 
 
 class EntityCollisionError(ValueError):
@@ -42,7 +46,7 @@ def getatt(attribute_name):
 _alleged_receivers = defaultdict(list)
 
 
-class AllegedMapping(MutableMappingUnwrapper, ABC):
+class AllegedMapping(MutableMappingUnwrapper, SpecialMapping, ABC):
 	"""Common amenities for mappings"""
 
 	__slots__ = ()
@@ -56,7 +60,7 @@ class AllegedMapping(MutableMappingUnwrapper, ABC):
 
 class AbstractEntityMapping(AllegedMapping, ABC):
 	__slots__ = ()
-	db: "lisien.engine.Engine"
+	db: "Engine"
 
 	@abstractmethod
 	def _get_cache(
@@ -135,7 +139,7 @@ class GraphMapping(AbstractEntityMapping):
 	)
 
 	def __init__(self, graph):
-		super().__init__()
+		super().__init__(graph)
 		self.graph = graph
 		self.db = db = graph.db
 		btt = db._btt
@@ -225,7 +229,6 @@ class Node(AbstractEntityMapping):
 		"graph",
 		"name",
 		"db",
-		"__weakref__",
 		"_iter_stuff",
 		"_cache_contains_stuff",
 		"_len_stuff",
@@ -239,23 +242,36 @@ class Node(AbstractEntityMapping):
 
 	def __init__(self, graph, node):
 		"""Store name and graph"""
-		super().__init__()
+		super().__init__(graph)
 		self.graph = graph
 		self.name = node
 		self.db = db = graph.db
-		node_val_cache = db._node_val_cache
-		graphn = graph.name
-		btt = db._btt
-		self._iter_stuff = (node_val_cache.iter_entity_keys, graphn, node, btt)
-		self._cache_contains_stuff = (
-			node_val_cache.contains_key,
-			graphn,
-			node,
-		)
-		self._len_stuff = (node_val_cache.count_entity_keys, graphn, node, btt)
-		self._get_cache_stuff = (node_val_cache.retrieve, graphn, node)
-		self._set_db_stuff = (db.query.node_val_set, graphn, node)
-		self._set_cache_stuff = (db._node_val_cache.store, graphn, node)
+		try:
+			node_val_cache = db._node_val_cache
+			graphn = graph.name
+			btt = db._btt
+			self._iter_stuff = (
+				node_val_cache.iter_entity_keys,
+				graphn,
+				node,
+				btt,
+			)
+			self._cache_contains_stuff = (
+				node_val_cache.contains_key,
+				graphn,
+				node,
+			)
+			self._len_stuff = (
+				node_val_cache.count_entity_keys,
+				graphn,
+				node,
+				btt,
+			)
+			self._get_cache_stuff = (node_val_cache.retrieve, graphn, node)
+			self._set_db_stuff = (db.query.node_val_set, graphn, node)
+			self._set_cache_stuff = (db._node_val_cache.store, graphn, node)
+		except AttributeError:
+			pass
 
 	def __repr__(self):
 		return "{}(graph={}, name={})".format(
@@ -317,7 +333,6 @@ class Edge(AbstractEntityMapping):
 		"dest",
 		"idx",
 		"db",
-		"__weakref__",
 		"_iter_stuff",
 		"_cache_contains_stuff",
 		"_len_stuff",
@@ -334,7 +349,7 @@ class Edge(AbstractEntityMapping):
 		For non-multigraphs the index is always 0.
 
 		"""
-		super().__init__()
+		super().__init__(graph)
 		self.graph = graph
 		self.db = db = graph.db
 		self.orig = orig
@@ -422,7 +437,7 @@ class GraphNodeMapping(AllegedMapping):
 	"""Alias to ``self.graph.db``"""
 
 	def __init__(self, graph):
-		super().__init__()
+		super().__init__(graph)
 		self.graph = graph
 
 	def __iter__(self):
@@ -529,7 +544,7 @@ class GraphEdgeMapping(AllegedMapping):
 	"""Alias to ``self.graph.db``"""
 
 	def __init__(self, graph):
-		super().__init__()
+		super().__init__(graph)
 		self.graph = graph
 		self._cache = {}
 

@@ -41,7 +41,7 @@ from .xcollections import CompositeDict
 
 class FacadeEntity(MutableMapping, Signal, ABC):
 	exists = True
-	graph = getatt("character")
+	character = getatt("graph")
 
 	@property
 	def rulebook(self):
@@ -53,18 +53,12 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 	def rulebook(self, rbname):
 		self._patch["rulebook"] = rbname
 
-	@property
-	def engine(self):
-		return self.character.engine
-
-	db = engine
-
 	@abstractmethod
 	def _get_real(self, name):
 		raise NotImplementedError()
 
 	def __init__(self, mapping, real_or_name=None, **kwargs):
-		self.facade = self.character = getattr(mapping, "facade", mapping)
+		self.facade = self.graph = getattr(mapping, "facade", mapping)
 		self._mapping = mapping
 		is_name = not hasattr(real_or_name, "name") and not hasattr(
 			real_or_name, "orig"
@@ -80,7 +74,6 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 			k: v.unwrap() if hasattr(v, "unwrap") else v
 			for (k, v) in kwargs.items()
 		}
-		super().__init__()
 
 	def __contains__(self, item):
 		patch = self._patch
@@ -523,16 +516,33 @@ class FacadePortal(FacadeEntity, Edge):
 	"""Lightweight analogue of Portal for Facade use."""
 
 	def __init__(self, mapping, other, **kwargs):
-		super().__init__(mapping, other, **kwargs)
 		if hasattr(mapping, "orig"):
 			self.orig = mapping.orig
 			self.dest = other
 		else:
 			self.dest = mapping.dest
 			self.orig = other
+		if hasattr(mapping, "facade"):
+			facade = mapping.facade
+		else:
+			facade = mapping
 		try:
-			self._real = self.facade.character.portal[self.orig][self.dest]
+			super().__init__(
+				facade.character.node[self.orig],
+				facade.character.node[self.dest],
+				**kwargs,
+			)
+			self._real = facade.character.portal[self.orig][self.dest]
 		except (KeyError, AttributeError):
+			if self.orig in facade.node:
+				origin = facade.node[self.orig]
+			else:
+				origin = facade.new_place(self.orig)
+			if self.dest in facade.node:
+				destination = facade.node[self.dest]
+			else:
+				destination = facade.new_place(self.dest)
+			super().__init__(origin, destination, **kwargs)
 			self._real = {}
 
 	def __getitem__(self, item):

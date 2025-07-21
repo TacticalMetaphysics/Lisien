@@ -41,7 +41,7 @@ from .typing import (
 	Turn,
 )
 from .util import AbstractThing, getatt
-from ..build.lib.lisien.portal import RuleMapping
+from .rule import RuleMapping
 
 if TYPE_CHECKING:
 	from .character import Character

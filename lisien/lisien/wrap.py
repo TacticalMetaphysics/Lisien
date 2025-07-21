@@ -19,6 +19,8 @@ of themselves to allegedb every time they are changed.
 
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import (
 	Container,
@@ -32,7 +34,15 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import zip_longest
-from typing import Callable
+from typing import Callable, Mapping, TYPE_CHECKING
+
+if TYPE_CHECKING:
+	from .util import AbstractCharacter
+
+
+class SpecialMapping(Mapping, ABC):
+	@abstractmethod
+	def __init__(self, character: AbstractCharacter): ...
 
 
 class MutableWrapper(ABC):
