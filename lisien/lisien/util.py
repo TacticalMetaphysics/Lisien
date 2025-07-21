@@ -43,7 +43,7 @@ from operator import (
 from random import Random
 from textwrap import dedent
 from time import monotonic
-from types import FunctionType, MethodType, TracebackType
+from types import FunctionType, MethodType, TracebackType, ModuleType
 from typing import (
 	Any,
 	Callable,
@@ -54,17 +54,22 @@ from typing import (
 	Optional,
 	Sequence,
 	Type,
+	_T,
+	Iterator,
+	Annotated,
+	TYPE_CHECKING,
 )
 
 import msgpack
 import networkx as nx
 import numpy as np
+from annotated_types import Ge, Le
 from blinker import Signal
 from tblib import Traceback
 
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
-from .graph import DiGraph, Edge, Node
+from .graph import DiGraph, Edge, Node, GraphMapping
 from .typing import (
 	Branch,
 	CharName,
@@ -77,7 +82,12 @@ from .typing import (
 	Turn,
 	UniversalKey,
 	Value,
+	NodeValDict,
+	EdgeValDict,
 )
+
+if TYPE_CHECKING:
+	from .xcollections import FunctionStore
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
@@ -187,7 +197,7 @@ def getatt(attribute_name):
 	return property(attrgetter(attribute_name))
 
 
-def singleton_get(s):
+def singleton_get(s: Iterable[_T]) -> _T:
 	"""Take an iterable and return its only item if possible, else None."""
 	it = None
 	for that in s:
@@ -211,17 +221,17 @@ class EntityAccessor(ABC):
 
 	def __init__(
 		self,
-		entity,
-		stat,
-		engine=None,
-		branch=None,
-		turn=None,
-		tick=None,
-		current=False,
-		mungers: list = None,
+		entity: GraphMapping | Node | Edge,
+		stat: Stat,
+		engine: AbstractEngine | None = None,
+		branch: Branch | None = None,
+		turn: Turn | None = None,
+		tick: Tick | None = None,
+		current: bool = False,
+		mungers: list[Callable] | None = None,
 	):
 		if engine is None:
-			engine = entity.engine
+			engine = entity.db
 		if branch is None:
 			branch = engine.branch
 		if turn is None:
@@ -270,7 +280,7 @@ class EntityAccessor(ABC):
 	def __eq__(self, other):
 		return self() == other
 
-	def munge(self, munger):
+	def munge(self, munger: callable):
 		return EntityStatAccessor(
 			self.entity,
 			self.stat,
@@ -310,10 +320,13 @@ class EntityAccessor(ABC):
 		return self.munge(lambda x: x[k])
 
 	@abstractmethod
-	def _get_value_now(self): ...
+	def _get_value_now(self) -> Value: ...
 
 	def __call__(
-		self, branch: Branch = None, turn: Turn = None, tick: Tick = None
+		self,
+		branch: Branch | None = None,
+		turn: Turn | None = None,
+		tick: Tick | None = None,
 	):
 		if self.current:
 			res = self._get_value_now()
@@ -331,7 +344,7 @@ class EntityAccessor(ABC):
 			res = munger(res)
 		return res
 
-	def iter_history(self, beginning, end):
+	def iter_history(self, beginning: Turn, end: Turn) -> Iterator[Value]:
 		"""Iterate over all the values this stat has had in the given window, inclusive."""
 		# It might be useful to do this in a way that doesn't change the
 		# engine's time, perhaps for thread safety
@@ -355,7 +368,7 @@ class EntityAccessor(ABC):
 class UnitsAccessor(EntityAccessor):
 	entity: AbstractCharacter
 
-	def _get_value_now(self):
+	def _get_value_now(self) -> dict[CharName, list[NodeName]]:
 		ret = {}
 		for graph in self.entity.unit:
 			ret[graph] = []
@@ -367,12 +380,12 @@ class UnitsAccessor(EntityAccessor):
 class CharacterStatAccessor(EntityAccessor):
 	entity: AbstractCharacter
 
-	def _get_value_now(self):
+	def _get_value_now(self) -> Value:
 		return self.entity.stat[self.stat]
 
 
 class EntityStatAccessor(EntityAccessor):
-	def _get_value_now(self):
+	def _get_value_now(self) -> Value:
 		return self.entity[self.stat]
 
 
@@ -397,7 +410,7 @@ def _sort_set_key(v):
 class SizedDict(OrderedDict):
 	"""A dictionary that discards old entries when it gets too big."""
 
-	def __init__(self, max_entries=1000):
+	def __init__(self, max_entries: Annotated[int, Ge(0)] = 1000):
 		self._n = max_entries
 		super().__init__()
 
@@ -410,7 +423,7 @@ class SizedDict(OrderedDict):
 _sort_set_memo = SizedDict()
 
 
-def sort_set(s):
+def sort_set(s: Set[_T]) -> list[_T]:
 	"""Return a sorted list of the contents of a set
 
 	This is intended to be used to iterate over world state.
@@ -429,7 +442,15 @@ def sort_set(s):
 	return _sort_set_memo[s].copy()
 
 
-def fake_submit(func, *args, **kwargs):
+class FakeFuture(Future):
+	"""A 'Future' that calls its function immediately and sets the result"""
+
+	def __init__(self, func: callable, *args, **kwargs):
+		super().__init__()
+		self.set_result(func(*args, **kwargs))
+
+
+def fake_submit(func: callable, *args, **kwargs) -> FakeFuture:
 	"""A replacement for `concurrent.futures.Executor.submit` that works in serial
 
 	In testing, you may use, eg.,
@@ -437,12 +458,6 @@ def fake_submit(func, *args, **kwargs):
 	to make normally parallel operations serial.
 
 	"""
-
-	class FakeFuture(Future):
-		def __init__(self, func, *args, **kwargs):
-			super().__init__()
-			self.set_result(func(*args, **kwargs))
-
 	return FakeFuture(func, *args, **kwargs)
 
 
@@ -465,10 +480,16 @@ class AbstractEngine(ABC):
 	character: Mapping[CharName, Type[char_cls]]
 	eternal: MutableMapping[EternalKey, Any]
 	universal: MutableMapping[UniversalKey, Any]
+	main_branch: Branch
 	branch: Branch
 	turn: Turn
 	tick: Tick
 	time: Time
+	function: ModuleType | "FunctionStore"
+	method: ModuleType | "FunctionStore"
+	trigger: ModuleType | "FunctionStore"
+	prereq: ModuleType | "FunctionStore"
+	action: ModuleType | "FunctionStore"
 	_rando: Random
 	_branches_d: dict[Optional[Branch], TimeWindow]
 
@@ -572,16 +593,16 @@ class AbstractEngine(ABC):
 			elif isinstance(obj, Node):
 				return msgpack.ExtType(
 					MsgpackExtensionType.place.value,
-					packer([obj.character.name, obj.name]),
+					packer([obj.graph.name, obj.name]),
 				)
 			elif isinstance(obj, Edge):
 				return msgpack.ExtType(
 					MsgpackExtensionType.portal.value,
 					packer(
 						[
-							obj.character.name,
-							obj.origin.name,
-							obj.destination.name,
+							obj.graph.name,
+							obj.orig,
+							obj.dest,
 						]
 					),
 				)
@@ -604,6 +625,7 @@ class AbstractEngine(ABC):
 		char_cls = self.char_cls
 		place_cls = self.place_cls
 		portal_cls = self.portal_cls
+		thing_cls = self.thing_cls
 		excs = {
 			# builtin exceptions
 			"AssertionError": AssertionError,
@@ -668,7 +690,7 @@ class AbstractEngine(ABC):
 			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
 		}
 
-		def unpack_graph(ext):
+		def unpack_graph(ext: bytes) -> nx.Graph:
 			cls, node, adj, graph = unpacker(ext)
 			blank = {
 				"Graph": nx.Graph,
@@ -681,7 +703,7 @@ class AbstractEngine(ABC):
 			blank.graph = graph
 			return blank
 
-		def unpack_exception(ext):
+		def unpack_exception(ext: bytes) -> Exception:
 			data = unpacker(ext)
 			if data[0] not in excs:
 				return Exception(*data)
@@ -690,26 +712,42 @@ class AbstractEngine(ABC):
 				ret.__traceback__ = Traceback.from_dict(data[1]).to_traceback()
 			return ret
 
-		def unpack_char(ext):
+		def unpack_char(ext: bytes) -> char_cls:
 			charn = unpacker(ext)
 			return char_cls(self, charn, init_rulebooks=False)
 
-		def unpack_place(ext):
+		def unpack_place(ext: bytes) -> place_cls:
 			charn, placen = unpacker(ext)
 			return place_cls(
 				char_cls(self, charn, init_rulebooks=False), placen
 			)
 
-		def unpack_thing(ext):
+		def unpack_thing(ext: bytes) -> thing_cls:
 			charn, thingn = unpacker(ext)
 			# Breaks if the thing hasn't been instantiated yet, not great
 			return self.character[charn].thing[thingn]
 
-		def unpack_portal(ext):
+		def unpack_portal(ext: bytes) -> portal_cls:
 			charn, orign, destn = unpacker(ext)
 			return portal_cls(
 				char_cls(self, charn, init_rulebooks=False), orign, destn
 			)
+
+		def unpack_seq(t: type[_T], ext: bytes) -> _T:
+			unpacked = unpacker(ext)
+			if not isinstance(unpacked, list):
+				raise TypeError("Tried to unpack", type(unpacked), t)
+			return t(unpacked)
+
+		def unpack_func(store: FunctionStore, ext: bytes) -> callable:
+			unpacked = unpacker(ext)
+			if not isinstance(unpacked, str):
+				raise TypeError("Tried to unpack as func", type(unpacked))
+			if not hasattr(store, unpacked):
+				raise AttributeError(
+					"Function not stored here", unpacked, store
+				)
+			return unpacked
 
 		handlers = {
 			MsgpackExtensionType.graph.value: unpack_graph,
@@ -717,35 +755,37 @@ class AbstractEngine(ABC):
 			MsgpackExtensionType.place.value: unpack_place,
 			MsgpackExtensionType.thing.value: unpack_thing,
 			MsgpackExtensionType.portal.value: unpack_portal,
-			MsgpackExtensionType.tuple.value: lambda ext: tuple(unpacker(ext)),
-			MsgpackExtensionType.frozenset.value: lambda ext: frozenset(
-				unpacker(ext)
+			MsgpackExtensionType.tuple.value: partial(unpack_seq, tuple),
+			MsgpackExtensionType.frozenset.value: partial(
+				unpack_seq, frozenset
 			),
-			MsgpackExtensionType.set.value: lambda ext: set(unpacker(ext)),
-			MsgpackExtensionType.function.value: lambda ext: getattr(
-				self.function, unpacker(ext)
+			MsgpackExtensionType.set.value: partial(unpack_seq, set),
+			MsgpackExtensionType.function.value: partial(
+				unpack_func, self.function
 			),
-			MsgpackExtensionType.method.value: lambda ext: getattr(
-				self.method, unpacker(ext)
+			MsgpackExtensionType.method.value: partial(
+				unpack_func, self.method
 			),
-			MsgpackExtensionType.trigger.value: lambda ext: getattr(
-				self.trigger, unpacker(ext)
+			MsgpackExtensionType.trigger.value: partial(
+				unpack_func, self.trigger
 			),
-			MsgpackExtensionType.prereq.value: lambda ext: getattr(
-				self.prereq, unpacker(ext)
+			MsgpackExtensionType.prereq.value: partial(
+				unpack_func, self.prereq
 			),
-			MsgpackExtensionType.action.value: lambda ext: getattr(
-				self.action, unpacker(ext)
+			MsgpackExtensionType.action.value: partial(
+				unpack_func, self.action
 			),
 			MsgpackExtensionType.exception.value: unpack_exception,
 		}
 
-		def unpack_handler(code, data):
+		def unpack_handler(
+			code: MsgpackExtensionType, data: bytes
+		) -> Value | Exception | msgpack.ExtType:
 			if code in handlers:
 				return handlers[code](data)
 			return msgpack.ExtType(code, data)
 
-		def unpacker(b: bytes):
+		def unpacker(b: bytes) -> Value | Exception:
 			the_unpacker = msgpack.Unpacker(
 				ext_hook=unpack_handler, raw=False, strict_map_key=False
 			)
@@ -823,20 +863,20 @@ class AbstractEngine(ABC):
 	def add_character(
 		self,
 		name: CharName,
-		data: Optional[nx.Graph | DiGraph] = None,
+		data: nx.Graph | DiGraph | None = None,
 		layout: bool = False,
-		node: dict = None,
-		edge: dict = None,
+		node: NodeValDict | None = None,
+		edge: EdgeValDict | None = None,
 		**kwargs,
 	): ...
 
 	def new_character(
 		self,
 		name: CharName,
-		data: Optional[nx.Graph | DiGraph] = None,
+		data: nx.Graph | DiGraph | None = None,
 		layout: bool = False,
-		node: dict = None,
-		edge: dict = None,
+		node: NodeValDict | None = None,
+		edge: EdgeValDict | None = None,
 		**kwargs,
 	):
 		self.add_character(name, data)
@@ -846,11 +886,13 @@ class AbstractEngine(ABC):
 		"""Return True or False with equal probability."""
 		return self.choice((True, False))
 
-	def die_roll(self, d: int) -> int:
+	def die_roll(self, d: Annotated[int, Ge(1)]) -> int:
 		"""Roll a die with ``d`` faces. Return the result."""
 		return self.randint(1, d)
 
-	def dice(self, n: int, d: int) -> Iterable[int]:
+	def dice(
+		self, n: Annotated[int, Ge(1)], d: Annotated[int, Ge(1)]
+	) -> Iterable[int]:
 		"""Roll ``n`` dice with ``d`` faces, and yield the results.
 
 		This is an iterator. You'll get the result of each die in
@@ -862,10 +904,10 @@ class AbstractEngine(ABC):
 
 	def dice_check(
 		self,
-		n: int,
-		d: int,
-		target: int,
-		comparator: str | callable = "<=",
+		n: Annotated[int, Ge(1)],
+		d: Annotated[int, Ge(1)],
+		target: Annotated[int, Ge(0)],
+		comparator: str | Callable[[int, int], bool] = "<=",
 	) -> bool:
 		"""Roll ``n`` dice with ``d`` sides, sum them, and compare
 
@@ -888,7 +930,7 @@ class AbstractEngine(ABC):
 			comparator = comps[comparator]
 		return comparator(sum(self.dice(n, d)), target)
 
-	def percent_chance(self, pct: int) -> bool:
+	def percent_chance(self, pct: Annotated[int, Ge(0), Le(100)]) -> bool:
 		"""Return True or False with a given percentile probability
 
 		Values not between 0 and 100 are treated as though they
@@ -1296,6 +1338,7 @@ def normalize_layout(l: dict) -> dict:
 class AbstractThing(MutableMapping):
 	character: AbstractCharacter
 	engine: AbstractEngine
+	name: NodeName
 
 	@property
 	def location(self) -> Node:
