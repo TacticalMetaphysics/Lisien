@@ -2212,7 +2212,7 @@ class Engine(AbstractEngine, Executor):
 		for i in range(workers):
 			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
 			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
-			logq = SimpleQueue()
+			logq = ctx.SimpleQueue()
 			logthread = Thread(
 				target=self._sync_log_forever, args=(logq,), daemon=True
 			)
