@@ -3303,7 +3303,7 @@ class Engine(AbstractEngine, Executor):
 				"Tried to snap a keyframe from delta between branches"
 			)
 		if then == now:
-			self.debug("Redundant keyframe snap at %s, %d, %d", *then)
+			self.debug("Redundant keyframe snap at %s, %d, %d", *now)
 			return
 		if not self._time_is_loaded_between(*then, *now[1:]):
 			raise RuntimeError("Tried to snap a delta of time not loaded")
