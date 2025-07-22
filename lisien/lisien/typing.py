@@ -29,7 +29,10 @@ from annotated_types import Ge
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 
-def is_valid_key(obj) -> TypeGuard[Key]:
+_Key = str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
+
+
+def is_valid_key(obj: _Key) -> TypeGuard[Key]:
 	"""Is this an object that Lisien can serialize as a key?"""
 	return (
 		obj is None
@@ -39,9 +42,6 @@ def is_valid_key(obj) -> TypeGuard[Key]:
 			and all(is_valid_key(elem) for elem in obj)
 		)
 	)
-
-
-_Key = str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
 
 
 class _KeyMeta:
@@ -77,7 +77,7 @@ _Value: TypeAlias = (
 )
 
 
-def is_valid_value(obj) -> TypeGuard[Value]:
+def is_valid_value(obj: _Value) -> TypeGuard[Value]:
 	"""Is this an object that Lisien can serialize as a value?"""
 	return (
 		is_valid_key(obj)
