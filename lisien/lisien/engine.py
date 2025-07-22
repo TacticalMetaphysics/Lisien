@@ -2190,7 +2190,7 @@ class Engine(AbstractEngine, Executor):
 	def _start_worker_processes(
 		self, prefix: str | os.PathLike | None, workers: int
 	):
-		from multiprocessing import Pipe, Process, SimpleQueue
+		from multiprocessing import BaseProcess, get_context
 
 		for store in self.stores:
 			if hasattr(store, "save"):
@@ -2200,16 +2200,17 @@ class Engine(AbstractEngine, Executor):
 		self._worker_last_eternal = dict(self.eternal.items())
 		initial_payload = self._get_worker_kf_payload()
 
-		self._worker_processes: list[Process] = []
+		self._worker_processes: list[BaseProcess] = []
 		wp = self._worker_processes
+		self._mp_ctx = ctx = get_context("spawn")
 		self._worker_inputs = wi = []
 		self._worker_outputs = wo = []
 		self._worker_locks = wlk = []
 		self._worker_log_queues = wl = []
 		self._worker_log_threads = wlt = []
 		for i in range(workers):
-			inpipe_there, inpipe_here = Pipe(duplex=False)
-			outpipe_here, outpipe_there = Pipe(duplex=False)
+			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
+			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
 			logq = SimpleQueue()
 			logthread = Thread(
 				target=self._sync_log_forever, args=(logq,), daemon=True
@@ -2247,7 +2248,7 @@ class Engine(AbstractEngine, Executor):
 						if callable(value):
 							funcs[name] = value
 					worker_args.append(funcs)
-			proc = Process(
+			proc = ctx.Process(
 				target=worker_subprocess,
 				args=worker_args,
 			)
