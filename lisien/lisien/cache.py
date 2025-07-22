@@ -554,7 +554,9 @@ class Cache:
 				return 1, v
 			return 0, repr(v)
 
-		branches = defaultdict(list)
+		branches: defaultdict[Branch, list[tuple[CharName, ..., Value]]] = (
+			defaultdict(list)
+		)
 		for row in data:
 			branches[row[-4]].append(row)
 		db = self.db
