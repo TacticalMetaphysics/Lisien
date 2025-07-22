@@ -3298,7 +3298,10 @@ class Engine(AbstractEngine, Executor):
 		now: Time,
 		delta: DeltaDict,
 	) -> None:
-		assert then[0] == now[0]
+		if then[0] != now[0]:
+			raise RuntimeError(
+				"Tried to snap a keyframe from delta between branches"
+			)
 		if then == now:
 			self.debug("Redundant keyframe snap at %s, %d, %d", *then)
 			return
