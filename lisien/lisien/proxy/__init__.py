@@ -953,6 +953,14 @@ Thing.register(ThingProxy)
 
 
 class PortalProxy(CachingEntityProxy, RuleFollowerProxy):
+	@property
+	def orig(self):
+		return self._origin
+
+	@property
+	def dest(self):
+		return self._destination
+
 	def _apply_delta(self, delta):
 		for k, v in delta.items():
 			if k == "rulebook":
