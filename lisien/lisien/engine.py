@@ -2190,7 +2190,8 @@ class Engine(AbstractEngine, Executor):
 	def _start_worker_processes(
 		self, prefix: str | os.PathLike | None, workers: int
 	):
-		from multiprocessing import BaseProcess, get_context
+		from multiprocessing.process import BaseProcess
+		from multiprocessing import get_context
 
 		for store in self.stores:
 			if hasattr(store, "save"):
