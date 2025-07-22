@@ -3302,6 +3302,8 @@ class Engine(AbstractEngine, Executor):
 		if then == now:
 			self.debug("Redundant keyframe snap at %s, %d, %d", *then)
 			return
+		if not self._time_is_loaded_between(*then, *now[1:]):
+			raise RuntimeError("Tried to snap a delta of time not loaded")
 		self.debug(
 			"Snapping keyframe from delta in branch %s between times "
 			"%d, %d and %d, %d",
@@ -4313,6 +4315,7 @@ class Engine(AbstractEngine, Executor):
 		if the_kf not in self._keyframes_loaded:
 			self._get_keyframe(*the_kf, silent=True)
 		if the_kf != (branch, turn, tick):
+			self.load_between(*the_kf, turn, tick)
 			if the_kf[0] != branch:
 				self.debug(
 					"Aliasing keyframe from branch %s to %s, %d, %d",
