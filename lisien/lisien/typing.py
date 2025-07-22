@@ -99,7 +99,7 @@ def is_valid_value(obj) -> TypeGuard[Value]:
 			and all(map(is_valid_value, obj.graph.values()))
 			and all(
 				is_valid_key(k) and is_valid_value(v)
-				for node in obj.nodes()
+				for node in obj.nodes().values()
 				for (k, v) in node.items()
 			)
 			and all(
@@ -109,7 +109,7 @@ def is_valid_value(obj) -> TypeGuard[Value]:
 				and is_valid_value(v)
 				for orig in obj.adj
 				for dest in obj.adj[orig]
-				for (k, v) in obj.adj[orig][dest].items()
+				for (k, v, *_) in obj.adj[orig][dest]
 			)
 		)
 	)
