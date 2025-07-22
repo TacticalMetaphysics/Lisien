@@ -1673,7 +1673,7 @@ class Engine(AbstractEngine, Executor):
 			if "edge_val" in graphstat:
 				evs: EdgeValDict = graphstat["edge_val"]
 				if orig in evs:
-					if dest in evs:
+					if dest in evs[orig]:
 						evs[orig][dest][key] = value
 					else:
 						evs[orig][dest] = {key: value}
