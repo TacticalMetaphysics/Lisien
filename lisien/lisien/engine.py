@@ -3960,9 +3960,20 @@ class Engine(AbstractEngine, Executor):
 		self._edges_cache.load(edgerows)
 		self._edge_val_cache.load(edgevalrows)
 		self._graph_val_cache.load(graphvalrows)
-		self._extend_loaded_window(
+		if not self._time_is_loaded_between(
 			branch, turn_from, tick_from, turn_to, tick_to
-		)
+		):
+			self.warning(
+				"Didn't completely fill the time window: %s (%d,%d)→(%d,%d)",
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			)
+			self._extend_loaded_window(
+				branch, turn_from, tick_from, turn_to, tick_to
+			)
 		return loaded_graphs
 
 	def _extend_loaded_window(
