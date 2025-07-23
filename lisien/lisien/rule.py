@@ -318,7 +318,7 @@ class Rule:
 		return ret
 
 	@neighborhood.setter
-	def neighborhood(self, neighbors: int | None):
+	def neighborhood(self, neighbors: RuleNeighborhood):
 		if neighbors is not None and not isinstance(neighbors, int):
 			raise TypeError("Not an int", neighbors)
 		if neighbors < 0:
