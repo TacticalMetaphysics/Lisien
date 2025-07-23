@@ -565,7 +565,7 @@ class RuleBook(MutableSequence, Signal):
 		elif isinstance(v, str):
 			return self.engine.rule[v]
 		else:
-			return Rule(self.engine, v)
+			raise TypeError("Invalid rule name", v)
 
 	def __setitem__(self, i, v):
 		v = getattr(v, "name", v)
