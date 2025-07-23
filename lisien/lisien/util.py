@@ -84,10 +84,13 @@ from .typing import (
 	Value,
 	NodeValDict,
 	EdgeValDict,
+	RulebookName,
+	RuleName,
 )
 from .wrap import SpecialMapping
 
 if TYPE_CHECKING:
+	from .rule import RuleBook, Rule
 	from .xcollections import FunctionStore
 
 TRUE: bytes = msgpack.packb(True)
@@ -476,14 +479,15 @@ class AbstractEngine(ABC):
 
 	"""
 
-	portal_cls: type
 	thing_cls: type
 	place_cls: type
 	portal_cls: type
 	char_cls: type
 	character: Mapping[CharName, Type[char_cls]]
-	eternal: MutableMapping[EternalKey, Any]
-	universal: MutableMapping[UniversalKey, Any]
+	eternal: MutableMapping[EternalKey, Value]
+	universal: MutableMapping[UniversalKey, Value]
+	rulebook: MutableMapping[RulebookName, "RuleBook"]
+	rule: MutableMapping[RuleName, "Rule"]
 	main_branch: Branch
 	branch: Branch
 	turn: Turn
@@ -495,7 +499,9 @@ class AbstractEngine(ABC):
 	prereq: ModuleType | "FunctionStore"
 	action: ModuleType | "FunctionStore"
 	_rando: Random
-	_branches_d: dict[Optional[Branch], TimeWindow]
+	_branches_d: dict[
+		Optional[Branch], tuple[Optional[Branch], Turn, Tick, Turn, Tick]
+	]
 
 	@cached_property
 	def logger(self):
