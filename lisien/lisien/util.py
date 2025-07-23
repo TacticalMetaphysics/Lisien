@@ -497,6 +497,32 @@ class AbstractEngine(ABC):
 	_rando: Random
 	_branches_d: dict[Optional[Branch], TimeWindow]
 
+	@cached_property
+	def logger(self):
+		if hasattr(self, "_logger"):
+			return self._logger
+		from logging import getLogger
+
+		return getLogger("lisien")
+
+	def log(self, level, msg, *args, **kwargs):
+		self.logger.log(level, msg, *args, **kwargs)
+
+	def debug(self, msg, *args, **kwargs):
+		self.log(10, msg, *args, **kwargs)
+
+	def info(self, msg, *args, **kwargs):
+		self.log(20, msg, *args, **kwargs)
+
+	def warning(self, msg, *args, **kwargs):
+		self.log(30, msg, *args, **kwargs)
+
+	def error(self, msg, *args, **kwargs):
+		self.log(40, msg, *args, **kwargs)
+
+	def critical(self, msg, *args, **kwargs):
+		self.log(50, msg, *args, **kwargs)
+
 	def is_ancestor_of(self, parent: Branch, child: Branch) -> bool:
 		"""Return whether ``child`` is a branch descended from ``parent``
 
