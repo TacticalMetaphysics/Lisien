@@ -930,7 +930,7 @@ class AllRules(MutableMapping, Signal):
 		v=None,
 		name=None,
 		*,
-		neighborhood: Optional[int] = -1,
+		neighborhood: int | None = ...,
 		always=False,
 	):
 		def r(name, v, **kwargs):
@@ -949,7 +949,7 @@ class AllRules(MutableMapping, Signal):
 		kwargs = {}
 		if always:
 			kwargs["always"] = True
-		if neighborhood != -1:
+		if neighborhood is not ...:
 			kwargs["neighborhood"] = neighborhood
 		if v is None:
 			return partial(r, name, **kwargs)
