@@ -505,21 +505,6 @@ class Rule:
 		self.actions.append(fun)
 		return fun
 
-	def duplicate(self, newname):
-		"""Return a new rule that's just like this one, but under a new
-		name.
-
-		"""
-		if self.engine.rule.query.haverule(newname):
-			raise KeyError("Already have a rule called {}".format(newname))
-		return Rule(
-			self.engine,
-			newname,
-			list(self.triggers),
-			list(self.prereqs),
-			list(self.actions),
-		)
-
 	def always(self):
 		"""Arrange to be triggered every turn"""
 		self.triggers = [self.engine.trigger.truth]
