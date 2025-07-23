@@ -703,8 +703,8 @@ class RuleMapping(MutableMapping, Signal):
 			raise KeyError("Illegal rule name")
 		if isinstance(v, Hashable) and v in self.engine.rule:
 			v = self.engine.rule[v]
-		elif isinstance(v, str) and hasattr(self.engine.function, v):
-			v = getattr(self.engine.function, v)
+		elif isinstance(v, str) and hasattr(self.engine.action, v):
+			v = getattr(self.engine.action, v)
 		if not isinstance(v, Rule) and callable(v):
 			# create a new rule, named k, performing action v
 			self.engine.rule[k] = v
