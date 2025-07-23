@@ -3960,7 +3960,29 @@ class Engine(AbstractEngine, Executor):
 		self._edges_cache.load(edgerows)
 		self._edge_val_cache.load(edgevalrows)
 		self._graph_val_cache.load(graphvalrows)
+		self._extend_loaded_window(
+			branch, turn_from, tick_from, turn_to, tick_to
+		)
 		return loaded_graphs
+
+	def _extend_loaded_window(
+		self,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn | None,
+		tick_to: Tick | None,
+	):
+		loaded = self._loaded
+		if branch in loaded:
+			a, b, x, y = loaded[branch]
+			if None in (x, y) or (x, y) < (turn_to, tick_to):
+				(x, y) = (turn_to, tick_to)
+			if (turn_from, tick_from) < (a, b):
+				(a, b) = (turn_from, tick_from)
+			loaded[branch] = (a, b, x, y)
+		else:
+			loaded[branch] = turn_from, tick_from, turn_to, tick_to
 
 	@world_locked
 	def unload(self) -> None:
