@@ -464,8 +464,8 @@ class Rule:
 					branch, turn, tick, bigkf
 				)
 
-	def __eq__(self, other):
-		return hasattr(other, "name") and self.name == other.name
+	def __eq__(self, other: Rule):
+		return isinstance(other, Rule) and self.name == other.name
 
 	def _fun_names_iter(self, functyp, val):
 		"""Iterate over the names of the functions in ``val``,
