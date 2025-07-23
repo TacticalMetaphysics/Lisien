@@ -770,11 +770,9 @@ class RuleFollower(ABC):
 	__slots__ = ()
 	engine: AbstractEngine
 
-	@property
+	@cached_property
 	def _rule_mapping(self):
-		if not hasattr(self, "_real_rule_mapping"):
-			self._real_rule_mapping = self._get_rule_mapping()
-		return self._real_rule_mapping
+		return self._get_rule_mapping()
 
 	@property
 	def rule(self, v=None, name=None):
