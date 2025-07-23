@@ -262,20 +262,24 @@ class ActionList(RuleFuncList):
 class RuleFuncListDescriptor:
 	"""Descriptor that lets you get and set a whole RuleFuncList at once"""
 
-	__slots__ = ("cls", "funclist")
+	__slots__ = ("cls",)
 
 	def __init__(self, cls):
 		self.cls = cls
 
+	@property
+	def flid(self):
+		return "_funclist" + str(id(self))
+
 	def __get__(self, obj: Rule, type=None) -> RuleFuncList:
-		if not hasattr(self, "funclist"):
-			self.funclist = self.cls(obj)
-		return self.funclist
+		if not hasattr(obj, self.flid):
+			setattr(obj, self.flid, self.cls(obj))
+		return getattr(obj, self.flid)
 
 	def __set__(self, obj: Rule, value: list[RuleFunc | str | RuleFuncName]):
-		if not hasattr(self, "funclist"):
-			self.funclist = self.cls(obj)
-		flist = self.funclist
+		if not hasattr(obj, self.flid):
+			setattr(obj, self.flid, self.cls(obj))
+		flist = getattr(obj, self.flid)
 		namey_value = [flist._nominate(v) for v in value]
 		flist._set(namey_value)
 		flist.send(flist)
