@@ -21,6 +21,8 @@ from typing import (
 	TypeAlias,
 	TypeGuard,
 	Annotated,
+	Callable,
+	Any,
 )
 
 import networkx as nx
@@ -157,6 +159,7 @@ RulebookPriority = NewType("RulebookPriority", float)
 RuleName = NewType("RuleName", str)
 RuleNeighborhood: TypeAlias = Annotated[int, Ge(0)] | None
 RuleBig = NewType("RuleBig", bool)
+RuleFunc: TypeAlias = Callable[[Any], bool]
 FuncName = NewType("FuncName", str)
 FuncStoreName: TypeAlias = Literal[
 	"trigger", "prereq", "action", "function", "method"
