@@ -680,7 +680,7 @@ class RuleMapping(MutableMapping, Signal):
 		return "RuleMapping({})".format([k for k in self])
 
 	def __iter__(self):
-		return iter(self.rulebook)
+		return iter(self.rulebook._get_cache(*self.engine._btt())[0])
 
 	def __len__(self):
 		return len(self.rulebook)
