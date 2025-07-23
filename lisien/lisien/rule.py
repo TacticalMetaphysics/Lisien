@@ -137,12 +137,12 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 	def _nominate(self, v: RuleFunc | str | RuleFuncName) -> RuleFuncName:
 		if callable(v):
 			self._funcstore(v)
-			return RuleFuncName(v.__name__)
+			return v.__name__
 		if not hasattr(self._funcstore, v):
 			raise KeyError(
 				"No function by that name in this store", v, self._funcstore
 			)
-		return RuleFuncName(v)
+		return v
 
 	def _get(self) -> list[RuleFuncName]:
 		return self._cache.retrieve(self.rule.name, *self.rule.engine._btt())
@@ -354,7 +354,7 @@ class Rule:
 		| None = None,
 		actions: list[ActionFuncName | Callable[[Any], bool] | str]
 		| None = None,
-		neighborhood: RuleNeighborhood = RuleNeighborhood(None),
+		neighborhood: RuleNeighborhood = None,
 		big: RuleBig = RuleBig(False),
 		create: bool = True,
 	):
