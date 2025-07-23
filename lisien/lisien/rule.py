@@ -720,7 +720,7 @@ class RuleMapping(MutableMapping, Signal):
 		v: Optional[callable] = None,
 		name: Optional[str] = None,
 		*,
-		neighborhood: Optional[int] = -1,
+		neighborhood: Optional[int] = ...,
 		big: bool = False,
 		always: bool = False,
 	):
@@ -741,7 +741,7 @@ class RuleMapping(MutableMapping, Signal):
 		kwargs = {"big": big}
 		if always:
 			kwargs["always"] = True
-		if neighborhood != -1:
+		if neighborhood is not ...:
 			kwargs["neighborhood"] = neighborhood
 		if v is None:
 			return partial(wrap, name, **kwargs)
