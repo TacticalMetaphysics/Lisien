@@ -3306,7 +3306,9 @@ class Engine(AbstractEngine, Executor):
 			self.debug("Redundant keyframe snap at %s, %d, %d", *now)
 			return
 		if not self._time_is_loaded_between(*then, *now[1:]):
-			raise RuntimeError("Tried to snap a delta of time not loaded")
+			raise RuntimeError(
+				"Tried to snap a delta of time not loaded", *then, *now[1:]
+			)
 		self.debug(
 			"Snapping keyframe from delta in branch %s between times "
 			"%d, %d and %d, %d",
