@@ -546,7 +546,9 @@ class RuleBook(MutableSequence, Signal):
 		return getattr(v, "name", v) in self._get_cache(*self.engine._btt())[0]
 
 	def __iter__(self):
-		return iter(self._get_cache(*self.engine._btt())[0])
+		rule_name: RuleName
+		for rule_name in self._get_cache(*self.engine._btt())[0]:
+			yield self.engine.rule[rule_name]
 
 	def __len__(self):
 		try:
