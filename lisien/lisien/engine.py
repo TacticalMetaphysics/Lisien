@@ -1974,10 +1974,8 @@ class Engine(AbstractEngine, Executor):
 		# in case this is the first startup
 		self._obranch = main_branch or "trunk"
 		self._otick = self._oturn = 0
-		if logger is None:
-			self.logger = getLogger("lisien")
-		else:
-			self.logger = logger
+		if logger is not None:
+			self._logger = logger
 		worker_handler = StreamHandler()
 		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
 		worker_handler.setLevel(DEBUG)
@@ -5361,26 +5359,6 @@ class Engine(AbstractEngine, Executor):
 			self.method,
 			self.string,
 		)
-
-	def debug(self, msg: str, *args, **kwargs) -> None:
-		"""Log a message at level 'debug'"""
-		self.logger.debug(msg, *args, **kwargs)
-
-	def info(self, msg: str, *args, **kwargs) -> None:
-		"""Log a message at level 'info'"""
-		self.logger.info(msg, *args, **kwargs)
-
-	def warning(self, msg: str, *args, **kwargs) -> None:
-		"""Log a message at level 'warning'"""
-		self.logger.warning(msg, *args, **kwargs)
-
-	def error(self, msg: str, *args, **kwargs) -> None:
-		"""Log a message at level 'error'"""
-		self.logger.error(msg, *args, **kwargs)
-
-	def critical(self, msg: str, *args, **kwargs) -> None:
-		"""Log a message at level 'critical'"""
-		self.logger.critical(msg, *args, **kwargs)
 
 	def close(self) -> None:
 		"""Commit changes and close the database
