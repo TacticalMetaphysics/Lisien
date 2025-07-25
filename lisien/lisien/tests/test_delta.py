@@ -37,7 +37,30 @@ def test_character_existence_delta(serial_engine, codepath):
 
 
 def test_unit_delta(serial_engine, codepath):
-	pass
+	eng = serial_engine
+	one = eng.new_character(1)
+	six = one.new_place(6)
+	seven = six.new_thing(7)
+	one.new_place(8)
+	two = eng.new_character(2)
+	three = two.new_place(3)
+	four = three.new_thing(4)
+	two.add_place(5)
+	one.add_unit(three)
+	one.add_unit(four)
+	time_a = tuple(eng.time)
+	if codepath == "slow-delta":
+		eng.branch = "branch"
+	else:
+		eng.next_turn()
+	two.add_unit(six)
+	two.add_unit(seven)
+	one.remove_unit(three)
+	one.remove_unit(four)
+	time_b = tuple(eng.time)
+	delta0 = eng.get_delta(time_a, time_b)
+	assert delta0[1]["units"] == {2: {3: False, 4: False}}
+	assert delta0[2]["units"] == {1: {6: True, 7: True}}
 
 
 def test_character_stat_delta(serial_engine, codepath):
