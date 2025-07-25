@@ -1,26 +1,35 @@
 #!/bin/bash
 set -euxo
 dos2unix -V
-python3.12 eqversion.py
+alias python=python3.12
+python3.12 check_version.py
 python -m build --version
-python -m twine --version
+twine --version
 python -m sphinx --version
+isort --version
+tox --version
+ruff --version
 pyclean --version
 wine --version
-ls ~/lise_windows
-rm -rf .tox
-python -m tox
-rm -rf .tox
-python -m sphinx . docs/
-rm -rf LiSE/build LiSE/dist
-python -m build LiSE/
-rm -rf ELiDE/build ELiDE/dist
-python -m build ELiDE/
-python -m twine check LiSE/dist/* ELiDE/dist/*
-python -m twine upload LiSE/dist/* ELiDE/dist/*
-python -m twine upload --repository codeberg LiSE/dist/* ELiDE/dist/*
-WINEPREFIX=~/.wine32 WINEARCH=win32 wine ~/lise_windows/python/python.exe -m pip install --upgrade LiSE ELiDE
-pyclean ~/lise_windows
-unix2dos -n CHANGES.txt ~/lise_windows/CHANGES.txt
-cp -rf docs ~/lise_windows/
+buildozer --version
+ls ~/lisien_windows
+ulimit -n 69105
+isort lisien
+isort elide
+ruff format lisien
+ruff format elide
+for env in $(tox -c lisien/tox.ini -l); do tox -c lisien/tox.ini -e $env; done
+for env in $(tox -c elide/tox.ini -l); do tox -c elide/tox.ini -e $env; done
+rm -rf bin
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android debug
+PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
+python -m build lisien/
+python -m build elide/
+twine check lisien/dist/* elide/dist/*
+twine upload lisien/dist/* elide/dist/*
+twine upload --repository codeberg lisien/dist/* elide/dist/*
+wine ~/lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/
+pyclean ~/lisien_windows
+unix2dos -n CHANGES.txt ~/lisien_windows/CHANGES.txt
+cp -rf docs ~/lisien_windows/
 python3.12 butler.py

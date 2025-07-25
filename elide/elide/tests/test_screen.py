@@ -4,21 +4,21 @@ from types import SimpleNamespace
 from kivy.base import EventLoop
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.screenmanager import ScreenManager
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.widget import Widget
 
-from LiSE import Engine
-from LiSE.facade import CharacterFacade
-from ELiDE.menu import DirPicker
-from ELiDE.screen import MainScreen
-from ELiDE.spritebuilder import PawnConfigScreen, SpotConfigScreen
-from ELiDE.statcfg import StatScreen
-from ELiDE.graph.board import GraphBoard
-from ELiDE.grid.board import GridBoard
-from .util import (
-	ELiDEAppTest,
-	ListenableDict,
-	MockEngine,
-	idle_until,
-)
+from elide.graph.board import GraphBoard
+from elide.grid.board import GridBoard
+from elide.menu import MainMenuScreen
+from elide.screen import CharMenuContainer, MainScreen, StatListPanel
+from elide.spritebuilder import PawnConfigScreen, SpotConfigScreen
+from elide.statcfg import StatScreen
+from lisien import Engine
+from lisien.facade import CharacterFacade
+
+from ..charmenu import CharMenu
+from ..util import load_kv
+from .util import ELiDEAppTest, ListenableDict, MockEngine, idle_until
 
 
 class MockStore:
@@ -27,28 +27,55 @@ class MockStore:
 
 
 class ScreenTest(ELiDEAppTest):
+	character_name = "foo"
+
+	@staticmethod
+	def install(eng):
+		foo = eng.new_character("foo")
+		here = foo.new_place((0, 0))
+		foo.add_place((1, 1))
+		foo.add_place(9)  # test that gridboard can handle this
+		this = here.new_thing(2)
+
+		@this.rule(always=True)
+		def go(me):
+			if me["location"] == (1, 1):
+				me["location"] = 9
+			elif me["location"] == 9:
+				me["location"] = (0, 0)
+			else:
+				me["location"] = (1, 1)
+
 	def test_advance_time(self):
 		app = self.app
-		app.mainmenu = DirPicker()
+		app.mainmenu = MainMenuScreen()
 		app.spotcfg = SpotConfigScreen()
 		app.pawncfg = PawnConfigScreen()
 		app.statcfg = StatScreen()
-		char = CharacterFacade()
-		char.name = "physical"
+		char = CharacterFacade("foo")
 		app.character = char
 		app.engine = MockEngine()
 		app.strings = MockStore()
 		app.funcs = MockStore()
 		char.character = SimpleNamespace(engine=app.engine)
-		app.engine.character["physical"] = char
+		app.engine.character["foo"] = char
 		entity = ListenableDict()
 		entity.engine = app.engine
 		entity.name = "name"
 		app.selected_proxy = app.proxy = app.statcfg.proxy = entity
+		load_kv("elide.charmenu")
+		charmenu = CharMenu(size_hint_y=0.9)
+		charmenu.portaladdbut = ToggleButton()
+		load_kv("elide.screen")
 		screen = MainScreen(
-			graphboards={"physical": GraphBoard(character=char)},
-			gridboards={"physical": GridBoard(character=char)},
+			graphboards={"foo": GraphBoard(character=char)},
+			gridboards={"foo": GridBoard(character=char)},
+			mainview=Widget(),
+			charmenu=charmenu,
 		)
+		charmenu.screen = screen
+		screen.statpanel = StatListPanel()
+		screen.populate()
 		self.Window.add_widget(screen)
 		idle_until(
 			lambda: "timepanel" in screen.ids, 100, "timepanel never got id"
@@ -73,11 +100,10 @@ class ScreenTest(ELiDEAppTest):
 		app.spotcfg = SpotConfigScreen()
 		app.pawncfg = PawnConfigScreen()
 		app.statcfg = StatScreen()
-		app.mainmenu = DirPicker()
+		app.mainmenu = MainMenuScreen()
 		app.strings = MockStore()
 		app.funcs = MockStore()
-		char = CharacterFacade()
-		char.name = "foo"
+		char = CharacterFacade("foo")
 		app.character = char
 		app.engine = MockEngine()
 		app.manager = ScreenManager()
@@ -87,11 +113,19 @@ class ScreenTest(ELiDEAppTest):
 		entity.engine = app.engine
 		entity.name = "name"
 		app.selected_proxy = app.proxy = app.statcfg.proxy = entity
-		screen = MainScreen(
+		load_kv("elide.charmenu")
+		charmenu = CharMenu(size_hint_y=0.9)
+		charmenu.portaladdbut = ToggleButton()
+		load_kv("elide.screen")
+		screen = app.mainscreen = MainScreen(
 			graphboards={"foo": GraphBoard(character=char)},
 			gridboards={"foo": GridBoard(character=char)},
-			play_speed=1.0,
+			mainview=Widget(),
+			charmenu=charmenu,
 		)
+		charmenu.screen = screen
+		screen.statpanel = StatListPanel()
+		screen.populate()
 		app.manager.add_widget(screen)
 		self.Window.add_widget(app.manager)
 		idle_until(
@@ -105,6 +139,7 @@ class ScreenTest(ELiDEAppTest):
 		)
 		turnfield = timepanel.ids["turnfield"]
 		playbut = screen.playbut = timepanel.ids["playbut"]
+		idle_until(lambda: screen.boardview, 100, "screen never got boardview")
 		motion = UnitTestTouch(*playbut.center)
 		motion.touch_down()
 		motion.touch_up()
@@ -121,31 +156,15 @@ class ScreenTest(ELiDEAppTest):
 				return all(almost(aa, bb) for (aa, bb) in zip(a, b))
 			return abs(a - b) < 1
 
-		with Engine(self.prefix) as eng:
-			phys = eng.new_character("physical")
-			here = phys.new_place((0, 0))
-			phys.add_place((1, 1))
-			phys.add_place(9)  # test that gridboard can handle this
-			this = here.new_thing(2)
-
-			@this.rule(always=True)
-			def go(me):
-				if me["location"] == (1, 1):
-					me["location"] = 9
-				elif me["location"] == 9:
-					me["location"] = (0, 0)
-				else:
-					me["location"] = (1, 1)
-
 		app = self.app
 		app.starting_dir = self.prefix
 		app.build()
 		idle_until(
 			lambda: hasattr(app, "engine"), 100, "Never got engine proxy"
 		)
-		assert app.engine.character["physical"].thing[2]["location"] == (0, 0)
-		graphboard = app.mainscreen.graphboards["physical"]
-		gridboard = app.mainscreen.gridboards["physical"]
+		assert app.engine.character["foo"].thing[2]["location"] == (0, 0)
+		graphboard = app.mainscreen.graphboards["foo"]
+		gridboard = app.mainscreen.gridboards["foo"]
 		idle_until(
 			lambda: graphboard.size != [100, 100],
 			100,
@@ -189,16 +208,16 @@ class ScreenTest(ELiDEAppTest):
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
 
-		loc = app.engine.character["physical"].thing[2]["location"]
+		loc = app.engine.character["foo"].thing[2]["location"]
 
 		def relocated_to(dest):
 			nonlocal loc
-			loc = app.engine.character["physical"].thing[2]["location"]
+			loc = app.engine.character["foo"].thing[2]["location"]
 			return loc == dest
 
 		idle_until(
 			partial(relocated_to, (1, 1)),
-			800,
+			1000,
 			f"Thing 2 didn't go to location (1, 1); instead, it's at {loc}",
 		)
 		idle_until(
@@ -221,10 +240,10 @@ class ScreenTest(ELiDEAppTest):
 		locspot9 = graphboard.spot[9]
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
-		loc = app.engine.character["physical"].thing[2]["location"]
+		loc = app.engine.character["foo"].thing[2]["location"]
 		idle_until(
 			partial(relocated_to, 9),
-			600,
+			1000,
 			f"Thing 2 didn't relocate to 9; it's at {loc}",
 		)
 		idle_until(
@@ -241,10 +260,10 @@ class ScreenTest(ELiDEAppTest):
 		)
 		app.mainscreen.next_turn()
 		idle_until(lambda: not app.edit_locked, 100, "Never unlocked")
-		loc = app.engine.character["physical"].thing[2]["location"]
+		loc = app.engine.character["foo"].thing[2]["location"]
 		idle_until(
 			partial(relocated_to, (0, 0)),
-			800,
+			1000,
 			f"Thing 2 didn't relocate to (0, 0); it's at {loc}",
 		)
 		idle_until(

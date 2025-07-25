@@ -1,0 +1,141 @@
+
+#: import os os
+<GeneratorButton>:
+	size_hint_y: None
+	font_size: 50
+	height: self.texture_size[1] + 10
+<WorldStartConfigurator>:
+	orientation: 'vertical'
+	init_board: app.init_board
+	starter: app.start_subprocess
+	Label:
+		text: 'Generate an initial map?'
+	Button:
+		id: drop
+		text: 'None'
+		on_release: root.generator_dropdown.open(drop)
+	Widget:
+		id: controls
+<NewGameModal>:
+	size_hint_x: 0.6
+	BoxLayout:
+		orientation: 'vertical'
+		Label:
+			text: 'Generate an initial map?'
+			font_size: 50
+			size_hint_y: None
+		WorldStartConfigurator:
+			id: worldstart
+			dismiss: root.dismiss
+		Label:
+			text: 'Please name your game'
+			font_size: 50
+			size_hint_y: None
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint_y: 0.2
+			TextInput:
+				id: game_name
+				multiline: False
+				size_hint_x: 0.8
+			Button:
+				text: 'Start'
+				on_release: root.validate_and_start()
+
+<MainMenuScreen>:
+	name: 'main'
+	BoxLayout:
+		orientation: 'horizontal'
+		Widget:
+			size_hint_x: 0.2
+		BoxLayout:
+			orientation: 'vertical'
+			Label:
+				text: 'Elide'
+				font_size: 80
+				size_hint_y: None
+				height: self.texture_size[1]
+			Button:
+				text: 'New game'
+				font_size: 50
+				on_release: root.new_game()
+			Button:
+				text: 'Load game'
+				font_size: 50
+				on_release: root.load_game()
+			Button:
+				text: 'Import game'
+				font_size: 50
+				on_release: root.import_game()
+			Button:
+				text: 'Export game'
+				font_size: 50
+				on_release: root.export_game()
+		Widget:
+			size_hint_x: 0.2
+<GameList>:
+	viewclass: 'Button'
+	RecycleBoxLayout:
+		default_size: None, dp(56)
+        default_size_hint: 1, None
+        height: self.minimum_height
+        size_hint_y: None
+        orientation: 'vertical'
+<GameLoaderModal>:
+	size_hint_x: 0.6
+	BoxLayout:
+		orientation: 'vertical'
+		Label:
+			text: root.headline
+			size_hint_y: 0.1
+			font_size: self.height
+		GameList:
+			path: app.games_dir
+			picker: root
+			size_hint_y: 0.8
+		Button:
+			text: 'Cancel'
+			on_release: root.dismiss()
+			size_hint_y: 0.1
+			font_size: self.height
+<GameImporterModal>:
+	size_hint_x: 0.6
+	BoxLayout:
+		orientation: 'vertical'
+		Label:
+			text: root.headline
+			size_hint_y: 0.1
+			font_size: self.height
+		RelativeLayout:
+			id: chooser_goes_here
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint_y: 0.1
+			Button:
+				text: 'Cancel'
+				on_release: root.dismiss()
+			Button:
+				text: 'OK'
+				on_release: root.pick(root._file_chooser.selection)
+<GameExporterModal>:
+	size_hint_x: 0.6
+	BoxLayout:
+		orientation: 'vertical'
+		Label:
+			text: root.headline
+			size_hint_y: 0.1
+			font_size: self.height
+		GameList:
+			id: game_list
+			path: app.games_dir
+			picker: root
+			size_hint_y: 0.8
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint_y: 0.1
+			Button:
+				text: 'Cancel'
+				on_release: root.dismiss()
+			Button:
+				text: 'OK'
+				on_release: root.pick(root._game_list.selection)

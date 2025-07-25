@@ -1,3 +1,106 @@
+== 0.20.1 | 2025-07-17 ==
+* Unify the fast delta code, fixing some changes getting left out of deltas
+* Fix tracking of units' users
+* Finish up the proxy interface
+* Fix setting mutable values (like list and dict) in the `universal` mapping
+* Fix tracking which rules were already handled
+* Fix intermittent crash from attempting to serialize Things whose locations 
+  aren't available
+
+== 0.20.0 | 2025-07-07 ==
+* Android support. Currently, the Android version supports only SQLite, not
+  ParquetDB. Parallelism is disabled for now, too, because it increases the
+  startup time too much.
+* A main menu for Elide. If you don't want it, specify the path to your game
+  folder on the command line, and Elide will launch straight into that game.
+* Support Python 3.13.
+* Crash fixes
+  * When resuming a game that was closed at the very beginning of a branch
+  * Intermittently when deleting entities, if an automatic keyframe snap
+    happened to occur mid-deletion. Fixed by making deletion atomic.
+
+== 0.19.3 | 2025-05-23 ==
+* Fix keyframes sometimes getting made every tick, if the automatic keyframe
+  creation was overridden
+* Require ParquetDB version 1.0.1, fix some freezes that could occur when
+  loading empty ParquetDB tables and a data integrity issue with the rules-
+  handledness tracking
+* Performance improvements when using plans with ParquetDB
+* Fixed worker processes sometimes staying open when there's nothing left to do
+
+== 0.19.2  | 2025-04-26 ==
+* Added the option to run Lisien without connecting to any database. This is
+  mainly useful for testing. Instantiate the engine like `Engine(None)` to use.
+* Rewrote the string store, `Engine.string`, to save any changes you make while
+  the engine is running, like it was supposed to be doing. Use it like a
+  dictionary with both the keys and the values being strings, and set its
+  `language` property to change to another language. These strings don't react
+  to time travel at all; it's just a convenient interface to some JSON files.
+* More refactoring.
+
+== 0.19.1 | 2025-04-19 ==
+* Fixed big rules not resetting the time at the end of a plan block
+* Fixed character rulebooks becoming unset after some time travel operations
+* Fixed picking a starting directory in Elide
+* Removed `threaded_triggers` option; triggers are now serial when there are
+  no workers, parallel if there are workers to go parallel with. I plan to
+  make a kind of worker "process" that's really a thread.
+* Fixed loading node and portal rulebooks from keyframes
+* Fixed loading things' locations from keyframes
+
+== 0.19.0 | 2025-04-13 ==
+Core:
+* Switched the default storage backend to ParquetDB, which is far more space-efficient.
+  Use the `connect_string` parameter if you want a SQL database, which
+  is still required for historical queries (for now).
+* The engine's `time` property now includes the tick, as well as the branch and
+  turn.
+* Added the ability to record "replays" of Elide sessions. They run the same
+  commands on the Lisien core that Elide would. You won't really be able
+  to play them back, exactly, but if you set a replayfile in elide.ini's [lisien]
+  section, then send the file to me, I'll be able to reproduce whatever bug you
+  ran into.
+* When using the proxy interface, you can register functions to be called
+  whenever the time changes, as `engine_proxy.time.connect(function)`; or
+  whenever the rules engine has simulated a turn, as
+  `engine_proxy.next_turn.connect(function)`. Also available in the core proper.
+* Filled in some missing parts of the proxy API.
+* Fixed inconsistent handling of planned changes.
+* Fixed some intermittent interprocess sync issues that could result in crashes
+  or freezes.
+* Database integrity issues, too.
+* Fixed Thing objects sometimes hanging around after deletion, depending on
+  when you closed the engine.
+* The old allegedb submodule no longer exists. Its functionality is now part of
+  Lisien proper.
+Elide frontend:
+* Fixed stats running off the left of the window.
+* Fixed the grid view not being visible.
+* Fixed configuration of the stat widgets.
+
+== 0.18.3 | 2025-02-23 ==
+* Fix major memory leaks
+
+== 0.18.2 | 2025-02-20 ==
+* A crash fix relating to the unloading code, which was too eager
+
+== 0.18.1 | 2025-02-14 ==
+* Crash fixes
+
+== 0.18.0 | 2025-02-13 ==
+* Changed name of "LiSE" to "Lisien" -- thanks to https://webb.page for the name
+* Changed name of "ELiDE" to "Elide"
+(letters cased like normal English if that's what you're writing,
+"elide" and "lisien" in Python)
+* Rules may now be designated "big," which will enable an optimization to
+  only write the changes they make to the world after they're all computed.
+* Neighborhoods get keyframed properly, now, the same as other rule attributes.
+* Added Kenney graphics, and changed the default background to Kenney's parchment
+* Fixed rules displaying out of order in the stepper
+* Fixed dragged objects dropping when they shouldn't
+* Improved locking for caches, fixing some intermittent data loss
+* Dropped support for Python 3.8 and 3.9
+
 == 0.17.2 | 2024-11-30 ==
 * Fix rule poller. It only worked for some rulebook types before.
 * Performance improvements as a result of new caching behavior for the above.

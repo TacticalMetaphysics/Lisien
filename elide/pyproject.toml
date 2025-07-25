@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data=true
+packages = ["elide", "elide.graph", "elide.grid", "elide.kivygarden.texturestack", "elide.tests"]
+
+[project]
+name = "elide"
+version = "0.20.1"
+authors = [
+	{ name="Zachary Spector", email="public@zacharyspector.com" },
+]
+description = "Extensible Life Simulator Engine Development Environment"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10,<3.14"
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"License :: OSI Approved :: GNU Affero General Public License v3",
+	"Operating System :: OS Independent",
+	"Development Status :: 2 - Pre-Alpha"
+]
+dependencies = [
+	"lisien==0.20.1",
+	"kivy>=2.0.0,<3",
+	"kivy_garden.collider",
+	"kivy-deps.glew ; sys_platform == 'win32'",
+	"kivy-deps.sdl2 ; sys_platform == 'win32'",
+	"pygments>=2.7.4"
+]
+
+[project.urls]
+"Homepage" = "https://codeberg.org/clayote/LiSE"
+"Bug Tracker" = "https://codeberg.org/clayote/LiSE/issues"
+
+
+[project.optional-dependencies]
+server = ["Django==5.1.4", "djangorestframework==3.15.2"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+	"big: marks tests as too big to diagnose specific bugs with"
+]

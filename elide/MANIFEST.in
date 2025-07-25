@@ -1,0 +1,6 @@
+include elide/assets/*.png
+include elide/assets/*.jpg
+include elide/assets/*.ttf
+include elide/assets/*.atlas
+include elide/assets/rltiles/*
+include elide/assets/kenney1bit/*
