@@ -68,7 +68,27 @@ def test_character_stat_delta(serial_engine, codepath):
 
 
 def test_node_existence_delta(serial_engine, codepath):
-	pass
+	eng = serial_engine
+	one = eng.new_character(1)
+	two = one.new_place(2)
+	two.add_thing(3)
+	one.add_place(4)
+	one.add_thing(5, 4)
+	six = eng.new_character(6)
+	six.add_place(7)
+	six.add_thing(8, 7)
+	time_a = tuple(eng.time)
+	if codepath == "slow-delta":
+		eng.branch = "branch"
+	else:
+		eng.next_turn()
+	del one.place[2]
+	six.add_place(9)
+	six.add_thing(10, 9)
+	time_b = tuple(eng.time)
+	delta = eng.get_delta(time_a, time_b)
+	assert delta[1]["nodes"] == {3: False, 2: False}
+	assert delta[6]["nodes"] == {8: True, 9: True, 10: True}
 
 
 def test_node_stat_delta(serial_engine, codepath):
