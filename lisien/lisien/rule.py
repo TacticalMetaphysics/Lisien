@@ -533,7 +533,7 @@ class Rule:
 				yield v
 
 	def __repr__(self):
-		return "Rule({})".format(self.name)
+		return f"<Rule({repr(self.name)})>"
 
 	def trigger(
 		self, fun: RuleFunc | str | TriggerFuncName
