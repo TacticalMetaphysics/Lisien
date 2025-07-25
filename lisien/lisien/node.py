@@ -617,7 +617,7 @@ class Node(graph.Node, rule.RuleFollower):
 
 	def add_thing(self, name: NodeName, **stats) -> None:
 		"""Make a new Thing here"""
-		self.character.add_thing(self.name, name, **stats)
+		self.character.add_thing(name, self.name, **stats)
 
 	def new_thing(self, name: NodeName, **stats) -> "Thing":
 		"""Create a new thing, located here, and return it."""
