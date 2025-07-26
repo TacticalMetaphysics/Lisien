@@ -22,7 +22,6 @@ of the same key and neighboring ones repeatedly and in sequence.
 """
 
 from abc import ABC, abstractmethod
-from collections import deque
 from collections.abc import (
 	ItemsView,
 	KeysView,
@@ -33,7 +32,7 @@ from collections.abc import (
 from enum import Enum
 from functools import partial
 from itertools import chain
-from operator import itemgetter, le, lt
+from operator import itemgetter, le, lt, ge, gt
 from threading import RLock
 from typing import Any, Iterable, Union, Iterator, Callable
 
@@ -309,8 +308,6 @@ class WindowDictFutureView(WindowDictPastFutureView):
 
 
 class WindowDictSlice:
-	"""A slice of history in which the start is earlier than the stop"""
-
 	__slots__ = ["dic", "slic"]
 	dic: "WindowDict"
 	slic: slice
@@ -319,163 +316,191 @@ class WindowDictSlice:
 		self.dic = dic
 		self.slic = slic
 
-	def __reversed__(self) -> Iterable[Any]:
-		return iter(WindowDictReverseSlice(self.dic, self.slic))
-
-	def __iter__(self):
-		def step_iter(
-			it: Iterator[tuple[int, Value]], step: int
-		) -> Iterator[Value]:
-			for rev, val in it:
-				if rev % step == 0:
-					yield val
-
-		def iter_items_until(
-			it: Iterator[tuple[int, Value]], until: Callable[[int], bool]
-		) -> Iterator[tuple[int, Value]]:
-			for rev, val in it:
-				if until(rev):
-					return
-				yield rev, val
-
+	def __reversed__(self) -> Iterable:
+		step_iter = self._step_iter
+		iter_items_until = self._iter_items_until
 		dic = self.dic
 		with dic._lock:
 			if not dic:
 				return iter(())
 			slic = self.slic
 			start = slic.start
+			if start is not None and start < 0:
+				start = len(dic) - start
+				if start < 0:
+					raise IndexError("WindowDict index out of range", start)
 			stop = slic.stop
+			if stop is not None and stop < 0:
+				stop = len(dic) - stop
+				if stop < 0:
+					raise IndexError("WindowDict index out of range", stop)
 			step = slic.step
 			seek = dic._seek
 			past = dic._past
 			future = dic._future
 			if start is None and stop is None:
 				if step is None:
-					return chain(map(get1, past), map(get1, reversed(future)))
+					return chain(map(get1, future), map(get1, reversed(past)))
 				else:
-					return step_iter(chain(past, reversed(future)), step)
+					return step_iter(chain(future, reversed(past)), step)
 			if start is not None and stop is not None:
-				if start < 0:
-					start = len(dic) - start
-					if start < 0:
-						raise IndexError(
-							"WindowDict index out of range", start
-						)
-				if stop < 0:
-					stop = len(dic) - stop
-					if stop < 0:
-						raise IndexError("WindowDict index out of range", stop)
 				if stop == start:
 					seek(start)
-					if past[-1][0] == start:
+					if past and past[-1][0] == start:
 						return iter((past[-1][1],))
 					else:
 						return iter(())
 				if start < stop:
 					left, right = start, stop
-					seek(right)
-					if not past:
-						return iter(())
-					if past[-1][0] == right:
-						future.append(past.pop())
-					cmp = lt
+					cmp = ge
+				elif step is None or step > 0:
+					return iter(())
 				else:
 					left, right = stop, start
-					seek(right)
+					cmp = gt
+				seek(right)
+				if not past:
+					return iter(())
+				if past[-1][0] == right:
+					future.append(past.pop())
+				if not past:
+					return iter(())
+				if step is None or step > 0:
+					inner_inner_it = reversed(past)
+				else:
+					inner_inner_it = iter(past)
+				inner_it = iter_items_until(inner_inner_it, partial(cmp, left))
+				if step is None:
+					return map(get1, inner_it)
+				else:
+					return step_iter(inner_it, abs(step))
+			elif start is None:
+				seek(stop)
+				if not past:
+					return iter(())
+				if step is None:
+					return map(get1, reversed(past))
+				elif step < 0:
+					return step_iter(iter(past), abs(step))
+				else:
+					return step_iter(reversed(past), step)
+			else:
+				assert stop is None
+				seek(start)
+				if past and past[-1][0] == start:
+					future.append(past.pop())
+				if step is None:
+					return map(get1, future)
+				elif step < 0:
+					return step_iter(reversed(future), abs(step))
+				else:
+					return step_iter(iter(future), step)
+
+	@staticmethod
+	def _step_iter(
+		it: Iterator[tuple[int, Value]], step: int
+	) -> Iterator[Value]:
+		for rev, val in it:
+			if rev % step == 0:
+				yield val
+
+	@staticmethod
+	def _iter_items_until(
+		it: Iterator[tuple[int, Value]], until: Callable[[int], bool]
+	) -> Iterator[tuple[int, Value]]:
+		for rev, val in it:
+			if until(rev):
+				return
+			yield rev, val
+
+	def __iter__(self):
+		step_iter = self._step_iter
+		iter_items_until = self._iter_items_until
+		dic = self.dic
+		with dic._lock:
+			if not dic:
+				return iter(())
+			slic = self.slic
+			start = slic.start
+			if start is not None and start < 0:
+				start = len(dic) - start
+				if start < 0:
+					raise IndexError("WindowDict index out of range", start)
+			stop = slic.stop
+			if stop is not None and stop < 0:
+				stop = len(dic) - stop
+				if stop < 0:
+					raise IndexError("WindowDict index out of range", stop)
+			step = slic.step
+			seek = dic._seek
+			past = dic._past
+			future = dic._future
+			if not past and not future:
+				return iter(())
+			if start is None and stop is None:
+				if step is None:
+					return chain(map(get1, past), map(get1, reversed(future)))
+				elif step < 0:
+					return step_iter(chain(future, reversed(past)), abs(step))
+				else:
+					return step_iter(chain(past, reversed(future)), step)
+			if start is not None and stop is not None:
+				if stop == start:
+					seek(start)
+					if past and past[-1][0] == start:
+						return iter((past[-1][1],))
+					else:
+						return iter(())
+				if start < stop:
+					left, right = start, stop
+					cmp = lt
+				elif step is None or step > 0:
+					return iter(())
+				else:
+					left, right = stop, start
 					cmp = le
+				seek(right)
+				if not past:
+					return iter(())
+				if past[-1][0] == right:
+					future.append(past.pop())
 				if not past:
 					return iter(())
 				seek(left)
 				if past and past[-1][0] == start:
 					future.append(past.pop())
+				if step is None or step > 0:
+					inner_inner_it = reversed(future)
+				else:
+					inner_inner_it = iter(future)
 				inner_it = iter_items_until(
-					reversed(future), partial(cmp, right)
+					inner_inner_it, partial(cmp, right)
 				)
 				if step is None:
 					return map(get1, inner_it)
 				else:
-					return step_iter(inner_it, step)
+					return step_iter(inner_it, abs(step))
 			elif start is None:
 				seek(stop)
+				if not past:
+					return iter(())
 				if step is None:
 					return map(get1, past)
+				elif step < 0:
+					return step_iter(reversed(past), abs(step))
 				else:
 					return step_iter(iter(past), step)
 			else:
 				assert stop is None
-				if not past and not future:
-					return iter(())
 				seek(start)
 				if past and past[-1][0] == start:
 					future.append(past.pop())
 				if step is None:
 					return map(get1, reversed(future))
+				elif step < 0:
+					return step_iter(iter(future), abs(step))
 				else:
 					return step_iter(reversed(future), step)
-
-
-class WindowDictReverseSlice:
-	"""A slice of history in which the start is later than the stop"""
-
-	__slots__ = ["dict", "slice"]
-
-	def __init__(self, dict: "WindowDict", slic: slice):
-		self.dict = dict
-		self.slice = slic
-
-	def __reversed__(self):
-		return iter(WindowDictSlice(self.dict, self.slice))
-
-	def __iter__(self):
-		dic = self.dict
-		with dic._lock:
-			if not dic:
-				return
-			slic = self.slice
-			if slic.step is not None:
-				for i in range(
-					slic.start or dic.end,
-					slic.stop or dic.beginning,
-					slic.step,
-				):
-					dic._seek(i)
-					yield dic._past[-1][1]
-				return
-			if slic.start is None and slic.stop is None:
-				yield from map(get1, dic._future)
-				yield from map(get1, reversed(dic._past))
-				return
-			if slic.start is not None and slic.stop is not None:
-				if slic.start == slic.stop:
-					dic._seek(slic.stop)
-					yield dic._past[-1][1]
-					return
-				if slic.start < slic.stop:
-					left, right = slic.start, slic.stop
-					dic._seek(right)
-					it = reversed(dic._past)
-					next(it)
-					cmp = lt
-				else:
-					left, right = slic.stop, slic.start
-					dic._seek(right)
-					it = reversed(dic._past)
-					cmp = le
-				for frev, fv in it:
-					if cmp(frev, left):
-						return
-					yield fv
-			elif slic.start is None:
-				stac = dic._past + list(reversed(dic._future))
-				while stac and stac[-1][0] >= slic.stop:
-					stac.pop()
-				yield from map(get1, reversed(stac))
-			else:  # slic.stop is None
-				stac = deque(dic._past)
-				stac.extend(reversed(dic._future))
-				while stac and stac[0][0] < slic.start:
-					stac.popleft()
-				yield from map(get1, reversed(stac))
 
 
 class WindowDict(MutableMapping):
@@ -770,8 +795,6 @@ class WindowDict(MutableMapping):
 
 	def __getitem__(self, rev: int) -> Any:
 		if isinstance(rev, slice):
-			if None not in (rev.start, rev.stop) and rev.start > rev.stop:
-				return WindowDictReverseSlice(self, rev)
 			return WindowDictSlice(self, rev)
 		with self._lock:
 			self._seek(rev)
