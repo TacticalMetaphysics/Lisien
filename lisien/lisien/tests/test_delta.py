@@ -6,8 +6,8 @@ def codepath(request):
 	return request.param
 
 
-def test_character_existence_delta(serial_engine, codepath):
-	eng = serial_engine
+def test_character_existence_delta(null_engine, codepath):
+	eng = null_engine
 	eng.add_character(1)
 	eng.add_character(2)
 	eng.next_turn()
@@ -36,8 +36,8 @@ def test_character_existence_delta(serial_engine, codepath):
 	assert delta1[2] is None
 
 
-def test_unit_delta(serial_engine, codepath):
-	eng = serial_engine
+def test_unit_delta(null_engine, codepath):
+	eng = null_engine
 	one = eng.new_character(1)
 	six = one.new_place(6)
 	seven = six.new_thing(7)
@@ -63,12 +63,12 @@ def test_unit_delta(serial_engine, codepath):
 	assert delta0[2]["units"] == {1: {6: True, 7: True}}
 
 
-def test_character_stat_delta(serial_engine, codepath):
+def test_character_stat_delta(null_engine, codepath):
 	pass
 
 
-def test_node_existence_delta(serial_engine, codepath):
-	eng = serial_engine
+def test_node_existence_delta(null_engine, codepath):
+	eng = null_engine
 	one = eng.new_character(1)
 	two = one.new_place(2)
 	two.add_thing(3)
@@ -91,19 +91,19 @@ def test_node_existence_delta(serial_engine, codepath):
 	assert delta[6]["nodes"] == {8: True, 9: True, 10: True}
 
 
-def test_node_stat_delta(serial_engine, codepath):
+def test_node_stat_delta(null_engine, codepath):
 	pass
 
 
-def test_portal_existence_delta(serial_engine, codepath):
+def test_portal_existence_delta(null_engine, codepath):
 	pass
 
 
-def test_thing_location_delta(serial_engine, codepath):
+def test_thing_location_delta(null_engine, codepath):
 	pass
 
 
-def test_character_rulebook_delta(serial_engine, codepath):
+def test_character_rulebook_delta(null_engine, codepath):
 	pass
 
 
