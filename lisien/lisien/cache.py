@@ -982,6 +982,7 @@ class Cache:
 		parentikey = parent + (entity, key)
 		contras = []
 		with lock:
+			self_store_journal(*args)
 			if parent:
 				parentity = self_parents[parent][entity]
 				if key in parentity:
@@ -1033,7 +1034,6 @@ class Cache:
 			branches[branch] = turns
 			if not loading and not planning:
 				db_extend_branch(branch, turn, tick)
-			self_store_journal(*args)
 			self.shallowest[(*parent, entity, key, branch, turn, tick)] = value
 			if turn in turns:
 				the_turn = turns[turn]
