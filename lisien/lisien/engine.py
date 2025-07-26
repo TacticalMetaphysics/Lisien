@@ -1700,7 +1700,6 @@ class Engine(AbstractEngine, Executor):
 				update_window, turn_from, tick_from, turn_to, tick_to
 			)
 			attribute = "settings"
-			tick_to += 1
 		else:
 			updater = partial(
 				update_backward_window, turn_from, tick_from, turn_to, tick_to
