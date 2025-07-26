@@ -2671,7 +2671,7 @@ class UnitnessCache(Cache):
 		)
 		# have to store it twice like this so that entity iteration works
 		try:
-			d = self.retrieve(character, graph, branch, turn, tick)
+			d = self.retrieve(character, graph, branch, turn, tick).copy()
 		except KeyError:
 			d = {}
 		d[node] = is_unit
