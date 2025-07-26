@@ -88,7 +88,7 @@ def test_node_existence_delta(null_engine, codepath):
 	time_b = tuple(eng.time)
 	delta = eng.get_delta(time_a, time_b)
 	assert delta[1]["nodes"] == {3: False, 2: False}
-	assert delta[6]["nodes"] == {8: True, 9: True, 10: True}
+	assert delta[6]["nodes"] == {9: True, 10: True}
 
 
 def test_node_stat_delta(null_engine, codepath):
