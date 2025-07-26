@@ -61,6 +61,9 @@ def test_unit_delta(null_engine, codepath):
 	delta0 = eng.get_delta(time_a, time_b)
 	assert delta0[1]["units"] == {2: {3: False, 4: False}}
 	assert delta0[2]["units"] == {1: {6: True, 7: True}}
+	delta1 = eng.get_delta(time_b, time_a)
+	assert delta1[1]["units"] == {2: {3: True, 4: True}}
+	assert delta1[2]["units"] == {1: {6: False, 7: False}}
 
 
 def test_character_stat_delta(null_engine, codepath):
