@@ -86,9 +86,12 @@ def test_node_existence_delta(null_engine, codepath):
 	six.add_place(9)
 	six.add_thing(10, 9)
 	time_b = tuple(eng.time)
-	delta = eng.get_delta(time_a, time_b)
-	assert delta[1]["nodes"] == {3: False, 2: False}
-	assert delta[6]["nodes"] == {9: True, 10: True}
+	delta0 = eng.get_delta(time_a, time_b)
+	assert delta0[1]["nodes"] == {3: False, 2: False}
+	assert delta0[6]["nodes"] == {9: True, 10: True}
+	delta1 = eng.get_delta(time_b, time_a)
+	assert delta1[1]["nodes"] == {3: True, 2: True}
+	assert delta1[6]["nodes"] == {9: False, 10: False}
 
 
 def test_node_stat_delta(null_engine, codepath):
