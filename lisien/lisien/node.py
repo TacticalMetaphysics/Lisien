@@ -77,7 +77,7 @@ class UserMapping(Mapping):
 			return frozenset()
 
 	@property
-	def only(self) -> Node:
+	def only(self) -> Character:
 		"""If there's only one user, return it.
 
 		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
