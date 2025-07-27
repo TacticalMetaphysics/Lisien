@@ -24,6 +24,7 @@ from typing import (
 	Callable,
 	Any,
 )
+from types import GenericAlias
 
 import networkx as nx
 from annotated_types import Ge
@@ -57,6 +58,9 @@ class _KeyMeta:
 		if is_valid_key(obj):
 			return obj
 		raise TypeError("Not a valid key", obj)
+
+	def __class_getitem__(cls, item):
+		return GenericAlias(cls, item)
 
 
 class Key(metaclass=_KeyMeta):
@@ -128,6 +132,9 @@ class _ValueMeta:
 		if is_valid_value(obj):
 			return obj
 		raise TypeError("Not a valid value", obj)
+
+	def __class_getitem__(cls, item):
+		return GenericAlias(cls, item)
 
 
 class Value(metaclass=_ValueMeta):
