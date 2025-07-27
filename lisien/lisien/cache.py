@@ -2618,13 +2618,22 @@ class UserSetCache(Cache):
 	):
 		if forward is None:
 			forward = self.db.forward
-		users = frozenset([character])
-		try:
-			users |= self.retrieve(
-				graph, node, branch, turn, tick, search=not forward
-			)
-		except KeyError:
-			pass
+		if is_unit:
+			users = frozenset([character])
+			try:
+				users |= self.retrieve(
+					graph, node, branch, turn, tick, search=not forward
+				)
+			except KeyError:
+				pass
+		else:
+			try:
+				users = self.retrieve(
+					graph, node, branch, turn, tick, search=not forward
+				)
+			except KeyError:
+				users = frozenset([])
+			users -= {character}
 		super().store(
 			graph,
 			node,
