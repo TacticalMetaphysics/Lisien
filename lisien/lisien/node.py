@@ -101,7 +101,7 @@ class UserMapping(Mapping):
 		)
 
 	def __len__(self) -> int:
-		return len(set(self._user_names()))
+		return len(self._user_names())
 
 	def __bool__(self) -> bool:
 		for _ in self._user_names():
