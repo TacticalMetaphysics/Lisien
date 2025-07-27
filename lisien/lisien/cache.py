@@ -2669,24 +2669,6 @@ class UnitnessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
-		# have to store it twice like this so that entity iteration works
-		try:
-			d = self.retrieve(character, graph, branch, turn, tick).copy()
-		except KeyError:
-			d = {}
-		d[node] = is_unit
-		super().store(
-			character,
-			graph,
-			branch,
-			turn,
-			tick,
-			d,
-			planning=planning,
-			forward=forward,
-			loading=loading,
-			contra=contra,
-		)
 		users = frozenset([character])
 		try:
 			users |= self.user_cache.retrieve(graph, node, branch, turn, tick)
