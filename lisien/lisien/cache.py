@@ -2628,6 +2628,30 @@ class UserCache(Cache):
 		super().set_keyframe((character,), branch, turn, tick, keyframe)
 
 
+class UnitDictCache(Cache):
+	def store(
+		self,
+		character: CharName,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		is_unit: bool,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+	):
+		try:
+			d = self.retrieve(character, graph, branch, turn, tick).copy()
+		except KeyError:
+			d = {}
+		d[node] = bool(is_unit)
+		super().store(character, graph, branch, turn, tick, d)
+
+
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
@@ -2639,6 +2663,7 @@ class UnitnessCache(Cache):
 	):
 		super().__init__(db, name, keyframe_dict)
 		self.user_cache = UserCache(db, "user cache")
+		self.dict_cache = UnitDictCache(db, "unit dict cache")
 
 	def store(
 		self,
@@ -2657,6 +2682,19 @@ class UnitnessCache(Cache):
 	):
 		is_unit = True if is_unit else None
 		super().store(
+			character,
+			graph,
+			node,
+			branch,
+			turn,
+			tick,
+			is_unit,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
+		self.dict_cache.store(
 			character,
 			graph,
 			node,
@@ -2968,13 +3006,15 @@ class UnitRulesHandledCache(RulesHandledCache):
 				continue
 			if not rules:
 				continue
-			for graphname in self.engine._unitness_cache.iter_keys(
+			for graphname in self.engine._unitness_cache.dict_cache.iter_keys(
 				charname, branch, turn, tick
 			):
 				# Seems bad that I have to check twice like this.
 				try:
-					existences = self.engine._unitness_cache.retrieve(
-						charname, graphname, branch, turn, tick
+					existences = (
+						self.engine._unitness_cache.dict_cache.retrieve(
+							charname, graphname, branch, turn, tick
+						)
 					)
 				except KeyError:
 					continue
