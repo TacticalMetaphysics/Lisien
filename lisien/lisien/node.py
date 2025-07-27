@@ -83,14 +83,16 @@ class UserMapping(Mapping):
 		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
 
 		"""
-		if len(self) != 1:
+		user_names = self._user_names()
+		if len(user_names) != 1:
 			raise AmbiguousUserError(
 				"No users, or more than one",
 				self.node.name,
 				*self.engine._btt(),
-				dict(self),
+				user_names,
 			)
-		return next(iter(self.values()))
+		user_name = next(iter(user_names))
+		return self.engine.character[user_name]
 
 	def __iter__(self) -> Iterator[CharName]:
 		yield from self._user_names()
@@ -576,23 +578,22 @@ class Node(graph.Node, rule.RuleFollower):
 	def _delete(self, *, now: Optional[Time] = None) -> None:
 		engine = self.engine
 		with engine.world_lock, engine.batch():
+			if now is None:
+				now = engine._nbtt()
 			character = self.character
 			g = character.name
 			n = self.name
 			for contained in list(self.contents()):
 				contained._delete()
 			for username in list(self.user):
-				now = engine._nbtt()
 				engine._unitness_cache.store(username, g, n, *now, False)
 				engine.query.unit_set(username, g, n, *now, False)
 			if n in character.portal:
 				for port in list(character.portal[n].values()):
-					port._delete()
+					port._delete(now=now)
 			if n in character.preportal:
 				for port in list(character.preportal[n].values()):
-					port._delete()
-			if now is None:
-				now = engine._nbtt()
+					port._delete(now=now)
 			for k in self:
 				assert k != "name"
 				if k != "location":
