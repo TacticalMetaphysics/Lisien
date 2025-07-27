@@ -2600,8 +2600,97 @@ class PortalsRulebooksCache(InitializedCache):
 				super().set_keyframe((graph, orig), branch, turn, tick, subkf)
 
 
+class UserSetCache(Cache):
+	def store(
+		self,
+		character: CharName,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		is_unit: bool,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+	):
+		if forward is None:
+			forward = self.db.forward
+		users = frozenset([character])
+		try:
+			users |= self.retrieve(
+				graph, node, branch, turn, tick, search=not forward
+			)
+		except KeyError:
+			pass
+		super().store(
+			graph,
+			node,
+			branch,
+			turn,
+			tick,
+			users,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
+
+
 class UserCache(Cache):
 	"""A cache for remembering which characters have certain nodes as units"""
+
+	def __init__(
+		self, db: "engine.Engine", name: str, keyframe_dict: dict | None = None
+	):
+		super().__init__(db, name, keyframe_dict)
+		self.sets = UserSetCache(db, "user sets cache")
+
+	def store(
+		self,
+		character: CharName,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		is_unit: bool,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+	):
+		self.sets.store(
+			character,
+			graph,
+			node,
+			branch,
+			turn,
+			tick,
+			is_unit,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
+		# I am reversing character and graph on purpose, because that's what it
+		# means to cache users of units, not units of users
+		super().store(
+			graph,
+			character,
+			node,
+			branch,
+			turn,
+			tick,
+			is_unit,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
 
 	def get_keyframe(
 		self,
@@ -2707,16 +2796,10 @@ class UnitnessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
-		users = frozenset([character])
-		try:
-			users |= self.user_cache.retrieve(graph, node, branch, turn, tick)
-		except KeyError:
-			pass
-		self.user_cache.store(graph, node, branch, turn, tick, users)
 		self.user_cache.store(
+			character,
 			graph,
 			node,
-			character,
 			branch,
 			turn,
 			tick,
