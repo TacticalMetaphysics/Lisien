@@ -70,7 +70,7 @@ class UserMapping(Mapping):
 
 	def _user_names(self) -> frozenset[CharName]:
 		try:
-			return self.engine._unitness_cache.user_cache.retrieve(
+			return self.engine._unitness_cache.user_cache.sets.retrieve(
 				self.node.character.name, self.node.name, *self.engine._btt()
 			)
 		except KeyError:
