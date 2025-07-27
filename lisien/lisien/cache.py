@@ -2617,7 +2617,7 @@ class UserSetCache(Cache):
 		contra: bool | None = None,
 	):
 		if forward is None:
-			forward = self.db.forward
+			forward = self.db._forward
 		if is_unit:
 			users = frozenset([character])
 			try:
