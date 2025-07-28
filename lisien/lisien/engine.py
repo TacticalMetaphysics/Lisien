@@ -2775,8 +2775,10 @@ class Engine(AbstractEngine, Executor):
 			except KeyframeError:
 				graph_val[k] = {}
 			try:
-				graph_val[k]["units"] = self._unitness_cache.get_keyframe(
-					k, branch, turn, tick, copy
+				graph_val[k]["units"] = (
+					self._unitness_cache.dict_cache.get_keyframe(
+						k, branch, turn, tick, copy
+					)
 				)
 			except KeyframeError:
 				pass
