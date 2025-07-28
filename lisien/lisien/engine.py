@@ -2759,17 +2759,15 @@ class Engine(AbstractEngine, Executor):
 			"edges": edges,
 			"edge_val": edge_val,
 		}
-		for graph in self._graph_cache.iter_keys(branch, turn, tick):
+		for k in self._graph_cache.iter_keys(branch, turn, tick):
 			try:
 				if (
-					self._graph_cache.retrieve(graph, branch, turn, tick)
+					self._graph_cache.retrieve(k, branch, turn, tick)
 					== "Deleted"
 				):
 					continue
 			except KeyError:
 				continue
-			graph_val[graph] = {}
-		for k in graph_val:
 			try:
 				graph_val[k] = self._graph_val_cache.get_keyframe(
 					k, branch, turn, tick, copy
@@ -2800,6 +2798,29 @@ class Engine(AbstractEngine, Executor):
 				)
 			except KeyframeError:
 				pass
+			try:
+				locs_kf = self._things_cache.get_keyframe(
+					k, branch, turn, tick
+				)
+			except KeyframeError:
+				locs_kf = {}
+				for thing in list(
+					self._things_cache.iter_keys(k, branch, turn, tick)
+				):
+					locs_kf[thing] = self._things_cache.retrieve(
+						k, thing, branch, turn, tick
+					)
+			if k not in node_val:
+				node_val[k] = {
+					thing: {"location": loc}
+					for (thing, loc) in locs_kf.items()
+				}
+			else:
+				for thing, loc in locs_kf.items():
+					if thing in node_val[k]:
+						node_val[k][thing]["location"] = loc
+					else:
+						node_val[k][thing] = {"location": loc}
 
 		if rulebooks:
 			for graph, vals in graph_val.items():
@@ -2891,30 +2912,6 @@ class Engine(AbstractEngine, Executor):
 								dest, (graph, orig, dest)
 							)
 							kf_graph_dest_edge_val["rulebook"] = rulebook
-		for graph in graph_val:
-			try:
-				locs_kf = self._things_cache.get_keyframe(
-					graph, branch, turn, tick
-				)
-			except KeyframeError:
-				locs_kf = {}
-				for thing in list(
-					self._things_cache.iter_keys(graph, branch, turn, tick)
-				):
-					locs_kf[thing] = self._things_cache.retrieve(
-						graph, thing, branch, turn, tick
-					)
-			if graph not in node_val:
-				node_val[graph] = {
-					thing: {"location": loc}
-					for (thing, loc) in locs_kf.items()
-				}
-			else:
-				for thing, loc in locs_kf.items():
-					if thing in node_val[graph]:
-						node_val[graph][thing]["location"] = loc
-					else:
-						node_val[graph][thing] = {"location": loc}
 		kf["universal"] = self._universal_cache.get_keyframe(
 			branch, turn, tick
 		)
