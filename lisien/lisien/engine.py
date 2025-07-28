@@ -173,6 +173,7 @@ from .util import (
 	sort_set,
 	timer,
 	world_locked,
+	UNITS,
 )
 from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
@@ -5147,7 +5148,19 @@ class Engine(AbstractEngine, Executor):
 		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
 			a = kf_from["graph_val"].get(graph, {})
 			b = kf_to["graph_val"].get(graph, {})
-			for k in a.keys() | b.keys():
+			key_union = a.keys() | b.keys()
+			if "units" in key_union:
+				units_a = a.get("units", {})
+				units_b = b.get("units", {})
+				for g in units_a.keys() | units_b.keys():
+					keys.append(("units", graph, g))
+					va = frozenset(units_a.get(g, {}).keys())
+					vb = frozenset(units_b.get(g, {}).keys())
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
+			for k in (a.keys() | b.keys()) - {"units"}:
 				keys.append(("graph", graph, k))
 				va = a.get(k)
 				vb = b.get(k)
@@ -5207,30 +5220,45 @@ class Engine(AbstractEngine, Executor):
 		def pack_one(k, va, vb, deleted_nodes, deleted_edges):
 			if va == vb:
 				return
-			v = pack(vb)
 			match k:
 				case "universal", key:
 					key = pack(key)
-					delta[UNIVERSAL][key] = v
+					delta[UNIVERSAL][key] = pack(vb)
 				case "triggers", rule:
-					delta[RULES][pack(rule)][TRIGGERS] = v
+					delta[RULES][pack(rule)][TRIGGERS] = pack(vb)
 				case "prereqs", rule:
-					delta[RULES][pack(rule)][PREREQS] = v
+					delta[RULES][pack(rule)][PREREQS] = pack(vb)
 				case "actions", rule:
-					delta[RULES][pack(rule)][ACTIONS] = v
+					delta[RULES][pack(rule)][ACTIONS] = pack(vb)
 				case "neighborhood", rule:
-					delta[RULES][pack(rule)][NEIGHBORHOOD] = v
+					delta[RULES][pack(rule)][NEIGHBORHOOD] = pack(vb)
 				case "big", rule:
-					delta[RULES][pack(rule)][BIG] = v
+					delta[RULES][pack(rule)][BIG] = pack(vb)
 				case "rulebook", rulebook:
-					delta[RULEBOOK][pack(rulebook)] = v
+					delta[RULEBOOK][pack(rulebook)] = pack(vb)
+				case "units", char, graph:
+					va: frozenset[NodeName]
+					vb: frozenset[NodeName]
+					charpacked = pack(char)
+					unit_delta = {}
+					for k in vb - va:
+						unit_delta[k] = True
+					for k in va - vb:
+						unit_delta[k] = False
+					if charpacked in delta:
+						if UNITS in delta[charpacked]:
+							delta[charpacked][UNITS][graph] = unit_delta
+						else:
+							delta[charpacked][UNITS] = {graph: unit_delta}
+					else:
+						delta[charpacked] = {UNITS: {graph: unit_delta}}
 				case "node", graph, node, key:
 					if graph in deleted_nodes and node in deleted_nodes[graph]:
 						return
 					graph, node, key = map(pack, (graph, node, key))
 					if graph not in delta:
 						delta[graph] = newgraph()
-					delta[graph][NODE_VAL][node][key] = v
+					delta[graph][NODE_VAL][node][key] = pack(vb)
 				case "edge", graph, orig, dest, key:
 					if (graph, orig, dest) in deleted_edges:
 						return
@@ -5239,12 +5267,12 @@ class Engine(AbstractEngine, Executor):
 					)
 					if graph not in delta:
 						delta[graph] = newgraph()
-					delta[graph][EDGE_VAL][orig][dest][key] = v
+					delta[graph][EDGE_VAL][orig][dest][key] = pack(vb)
 				case "graph", graph, key:
 					graph, key = map(pack, (graph, key))
 					if graph not in delta:
 						delta[graph] = newgraph()
-					delta[graph][key] = v
+					delta[graph][key] = pack(vb)
 
 		def pack_node(graph, node, existence):
 			grap, node = map(pack, (graph, node))
@@ -5343,6 +5371,8 @@ class Engine(AbstractEngine, Executor):
 			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL} or mapp == NONE:
 				continue
 			todel = []
+			if UNITS in mapp:
+				mapp[UNITS] = pack(mapp[UNITS])
 			for keey, mappp in mapp.items():
 				if not mappp:
 					todel.append(keey)
