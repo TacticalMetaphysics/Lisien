@@ -2773,6 +2773,12 @@ class Engine(AbstractEngine, Executor):
 					k, branch, turn, tick, copy
 				)
 			except KeyframeError:
+				graph_val[k] = {}
+			try:
+				graph_val[k]["units"] = self._unitness_cache.get_keyframe(
+					k, branch, turn, tick, copy
+				)
+			except KeyframeError:
 				pass
 			try:
 				nodes[k] = self._nodes_cache.get_keyframe(
