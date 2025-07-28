@@ -2601,6 +2601,8 @@ class PortalsRulebooksCache(InitializedCache):
 
 
 class UserSetCache(Cache):
+	"""A cache for remembering what set of characters have certain nodes as units"""
+
 	def store(
 		self,
 		character: CharName,
@@ -2647,58 +2649,78 @@ class UserSetCache(Cache):
 			contra=contra,
 		)
 
-
-class UserCache(Cache):
-	"""A cache for remembering which characters have certain nodes as units"""
-
-	def __init__(
-		self, db: "engine.Engine", name: str, keyframe_dict: dict | None = None
-	):
-		super().__init__(db, name, keyframe_dict)
-		self.sets = UserSetCache(db, "user sets cache")
-
-	def store(
+	def retrieve(
 		self,
-		character: CharName,
 		graph: CharName,
 		node: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		is_unit: bool,
+		search: bool = False,
+	):
+		return super().retrieve(graph, node, branch, turn, tick, search=search)
+
+	def get_keyframe(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		copy: bool = True,
+	) -> dict:
+		return super().get_keyframe((graph,), branch, turn, tick, copy=copy)
+
+	def set_keyframe(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict[NodeName, frozenset[CharName]],
+	):
+		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+
+	def alias_keyframe(
+		self,
+		branch_from: Branch,
+		branch_to: Branch,
+		turn: Turn,
+		tick: Tick,
+		default: Optional[frozenset] = None,
+	):
+		super().alias_keyframe(branch_from, branch_to, turn, tick, default)
+
+
+class UnitDictCache(Cache):
+	def store(
+		self,
+		character: CharName,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		d: dict[NodeName, bool],
 		*,
 		planning: bool | None = None,
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
 	):
-		self.sets.store(
-			character,
-			graph,
-			node,
-			branch,
-			turn,
-			tick,
-			is_unit,
-			planning=planning,
-			forward=forward,
-			loading=loading,
-			contra=contra,
-		)
-		# I am reversing character and graph on purpose, because that's what it
-		# means to cache users of units, not units of users
-		super().store(
-			graph,
-			character,
-			node,
-			branch,
-			turn,
-			tick,
-			is_unit,
-			planning=planning,
-			forward=forward,
-			loading=loading,
-			contra=contra,
+		for node, is_unit in d.items():
+			d[node] = bool(is_unit)
+		super().store(character, graph, branch, turn, tick, d)
+
+	def retrieve(
+		self,
+		character: CharName,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		search: bool = False,
+	) -> dict[NodeName, bool]:
+		return super().retrieve(
+			character, graph, branch, turn, tick, search=search
 		)
 
 	def get_keyframe(
@@ -2707,12 +2729,12 @@ class UserCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		copy=True,
-	):
+		copy: bool = True,
+	) -> dict[CharName, dict[NodeName, bool]]:
 		ret = super().get_keyframe((character,), branch, turn, tick, copy=copy)
 		if copy:
-			for char, nodes in ret.items():
-				ret[char] = nodes.copy()
+			for k, v in ret.items():
+				ret[k] = v.copy()
 		return ret
 
 	def set_keyframe(
@@ -2721,33 +2743,9 @@ class UserCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[CharName, dict[NodeName, bool]],
 	):
 		super().set_keyframe((character,), branch, turn, tick, keyframe)
-
-
-class UnitDictCache(Cache):
-	def store(
-		self,
-		character: CharName,
-		graph: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		is_unit: bool,
-		*,
-		planning: bool | None = None,
-		forward: bool | None = None,
-		loading: bool = False,
-		contra: bool | None = None,
-	):
-		try:
-			d = self.retrieve(character, graph, branch, turn, tick).copy()
-		except KeyError:
-			d = {}
-		d[node] = bool(is_unit)
-		super().store(character, graph, branch, turn, tick, d)
 
 
 class UnitnessCache(Cache):
@@ -2760,7 +2758,7 @@ class UnitnessCache(Cache):
 		keyframe_dict: Optional[dict] = None,
 	):
 		super().__init__(db, name, keyframe_dict)
-		self.user_cache = UserCache(db, "user cache")
+		self.user_cache = UserSetCache(db, "user cache")
 		self.dict_cache = UnitDictCache(db, "unit dict cache")
 
 	def store(
@@ -2778,6 +2776,8 @@ class UnitnessCache(Cache):
 		loading: bool = False,
 		contra: Optional[bool] = None,
 	):
+		if forward is None:
+			forward = self.db._forward
 		is_unit = True if is_unit else None
 		super().store(
 			character,
@@ -2792,14 +2792,23 @@ class UnitnessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
+		try:
+			d = self.dict_cache.retrieve(
+				character, graph, branch, turn, tick, search=not forward
+			)
+		except KeyError:
+			d = {}
+		if is_unit:
+			d[node] = True
+		elif node in d:
+			del d[node]
 		self.dict_cache.store(
 			character,
 			graph,
-			node,
 			branch,
 			turn,
 			tick,
-			is_unit,
+			d,
 			planning=planning,
 			forward=forward,
 			loading=loading,
@@ -2825,28 +2834,24 @@ class UnitnessCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[CharName, dict[NodeName, bool]],
 	):
-		super().set_keyframe((character,), branch, turn, tick, keyframe)
+		self.dict_cache.set_keyframe(character, branch, turn, tick, keyframe)
 		for graph, kf in keyframe.items():
 			super().set_keyframe((character, graph), branch, turn, tick, kf)
 
 	def get_keyframe(
 		self,
-		characters: CharName | tuple[CharName, CharName],
+		character: CharName,
+		graph: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> Value[dict[CharName, dict[NodeName, bool]] | dict[NodeName, bool]]:
-		# This may have trouble if any characters have tuples of length 2 for names.
-		if isinstance(characters, tuple) and len(characters) > 1:
-			return super().get_keyframe(characters, branch, turn, tick, copy)
-		# only one character
-		ret = super().get_keyframe((characters,), branch, turn, tick, copy)
-		if copy:
-			return {graph: units.copy() for (graph, units) in ret.items()}
-		return ret
+	) -> dict[NodeName, bool]:
+		return super().get_keyframe(
+			(character, graph), branch, turn, tick, copy=copy
+		)
 
 	def get_char_graph_units(
 		self,
@@ -2858,12 +2863,22 @@ class UnitnessCache(Cache):
 	):
 		return set(self.iter_entities(char, graph, branch, turn, tick))
 
+	def alias_keyframe(
+		self,
+		branch_from: Branch,
+		branch_to: Branch,
+		turn: Turn,
+		tick: Tick,
+		default: Optional[dict] = None,
+	):
+		super().alias_keyframe(branch_from, branch_to, turn, tick, default)
+
 	def get_char_only_unit(
 		self, char: CharName, branch: Branch, turn: Turn, tick: Tick
 	):
-		if self.count_entities(char, branch, turn, tick) != 1:
+		if self.dict_cache.count_entities(char, branch, turn, tick) != 1:
 			raise ValueError("No unit, or more than one unit")
-		for graph in self.iter_entities(char, branch, turn, tick):
+		for graph in self.dict_cache.iter_entities(char, branch, turn, tick):
 			if self.count_entities(char, graph, branch, turn, tick) != 1:
 				raise ValueError("No unit, or more than one unit")
 			return graph, next(
@@ -2880,7 +2895,7 @@ class UnitnessCache(Cache):
 	def iter_char_graphs(
 		self, char: CharName, branch: Branch, turn: Turn, tick: Tick
 	):
-		return self.iter_entities(char, branch, turn, tick)
+		return self.dict_cache.iter_entities(char, branch, turn, tick)
 
 
 class RulesHandledCache:
