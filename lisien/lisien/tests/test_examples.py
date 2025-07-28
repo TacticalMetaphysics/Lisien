@@ -134,6 +134,7 @@ def test_wolfsheep(tmp_path, database, serial_or_parallel):
 		engy.branch = "lol"
 		engy.universal["haha"] = "lol"
 		for i in range(5):
+			print(i + 5)
 			engy.next_turn()
 		engy.turn = 5
 		engy.branch = "omg"
