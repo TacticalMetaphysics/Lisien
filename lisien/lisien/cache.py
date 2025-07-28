@@ -22,7 +22,7 @@ from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
-from typing import TYPE_CHECKING, Hashable, Iterator, Optional
+from typing import TYPE_CHECKING, Hashable, Iterator, Optional, Literal
 
 from . import engine
 from .exc import (
@@ -45,6 +45,7 @@ from .typing import (
 	Time,
 	Turn,
 	Value,
+	Stat,
 )
 from .util import sort_set
 from .window import (
@@ -1651,7 +1652,7 @@ class Cache:
 				return hint(keyframes[b0][r0][t0][key])
 		return hint(TotalKeyError("No value, ever", entikey))
 
-	def retrieve(self, *args, search: bool = False):
+	def retrieve(self, *args, search: bool = False) -> Value:
 		"""Get a value previously .store(...)'d.
 
 		Needs at least five arguments. The -1th is the tick
@@ -1744,7 +1745,7 @@ class GraphValCache(Cache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> dict:
+	) -> dict[Stat, Value]:
 		return super().get_keyframe((graph,), branch, turn, tick, copy)
 
 	def set_keyframe(
@@ -1753,7 +1754,7 @@ class GraphValCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[Stat, Value],
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 
@@ -1832,7 +1833,7 @@ class NodesCache(Cache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	):
+	) -> dict[NodeName, bool]:
 		return super().get_keyframe((graph,), branch, turn, tick, copy)
 
 	def set_keyframe(
@@ -1841,7 +1842,7 @@ class NodesCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[NodeName, bool],
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 
@@ -1854,7 +1855,7 @@ class NodeValCache(Cache):
 		turn: Turn,
 		tick: Tick,
 		copy=True,
-	):
+	) -> dict[NodeName, dict[Stat, Value]]:
 		ret = super().get_keyframe((graph,), branch, turn, tick, copy=copy)
 		if copy:
 			for k, v in ret.items():
@@ -1867,7 +1868,7 @@ class NodeValCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[NodeName, dict[Stat, Value]],
 	):
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for node, vals in keyframe.items():
@@ -1958,7 +1959,7 @@ class EdgesCache(Cache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> dict:
+	) -> dict[NodeName, dict[NodeName, bool]]:
 		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
 		if copy:
 			for orig, dests in list(ret.items()):
@@ -1971,7 +1972,7 @@ class EdgesCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[NodeName, dict[NodeName, bool]],
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
@@ -2346,7 +2347,7 @@ class EdgeValCache(Cache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	):
+	) -> dict[NodeName, dict[NodeName, dict[Stat, Value]]]:
 		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
 		if copy:
 			for orig, dests in list(ret.items()):
@@ -2362,7 +2363,7 @@ class EdgeValCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[NodeName, dict[NodeName, dict[Stat, Value]]],
 	):
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
@@ -2403,7 +2404,7 @@ class EntitylessCache(Cache):
 
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, copy: bool = True
-	):
+	) -> dict:
 		return super().get_keyframe((None,), branch, turn, tick, copy=copy)
 
 	def set_keyframe(
@@ -2474,7 +2475,7 @@ class NodesRulebooksCache(InitializedCache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> dict:
+	) -> dict[NodeName, RulebookName]:
 		return super().get_keyframe((graph,), branch, turn, tick, copy)
 
 	def set_keyframe(
@@ -2483,7 +2484,7 @@ class NodesRulebooksCache(InitializedCache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[NodeName, RulebookName],
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 
@@ -2497,7 +2498,23 @@ class InitializedEntitylessCache(EntitylessCache, InitializedCache):
 
 class CharactersRulebooksCache(InitializedEntitylessCache):
 	def set_keyframe(
-		self, branch: Branch, turn: Turn, tick: Tick, keyframe: dict
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict[
+			CharName,
+			dict[
+				Literal[
+					"character_rulebook",
+					"unit_rulebook",
+					"character_thing_rulebook",
+					"character_place_rulebook",
+					"character_portal_rulebook",
+				],
+				RulebookName,
+			],
+		],
 	):
 		super().set_keyframe(branch, turn, tick, keyframe)
 		for char, kf in keyframe.items():
@@ -2520,7 +2537,7 @@ class PortalsRulebooksCache(InitializedCache):
 		forward: Optional[bool] = None,
 		loading: bool = False,
 		contra: Optional[bool] = None,
-	):
+	) -> None:
 		try:
 			destrbs = self.retrieve(char, orig, branch, turn, tick)
 			destrbs[dest] = rb
@@ -2561,7 +2578,7 @@ class PortalsRulebooksCache(InitializedCache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> dict:
+	) -> dict[NodeName, dict[NodeName, RulebookName]]:
 		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
 		if copy:
 			for orig, dests in list(ret.items()):
@@ -2576,7 +2593,7 @@ class PortalsRulebooksCache(InitializedCache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	):
+	) -> dict[NodeName, RulebookName]:
 		return super().get_keyframe((graph, orig), branch, turn, tick, copy)
 
 	def set_keyframe(
@@ -2585,7 +2602,7 @@ class PortalsRulebooksCache(InitializedCache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[NodeName, dict[NodeName, RulebookName]],
 	):
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
@@ -2667,7 +2684,7 @@ class UserSetCache(Cache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> dict:
+	) -> dict[NodeName, frozenset[CharName]]:
 		return super().get_keyframe((graph,), branch, turn, tick, copy=copy)
 
 	def set_keyframe(
@@ -3408,7 +3425,7 @@ class ThingsCache(Cache):
 		planning: Optional[bool] = None,
 		loading: bool = False,
 		contra: Optional[bool] = None,
-	):
+	) -> None:
 		with self._lock:
 			oldloc: NodeName
 			try:
@@ -3527,7 +3544,7 @@ class ThingsCache(Cache):
 
 	def turn_before(
 		self, character: CharName, thing: NodeName, branch: Branch, turn: Turn
-	):
+	) -> Turn:
 		with self._lock:
 			try:
 				self.retrieve(character, thing, branch, turn, 0)
@@ -3537,7 +3554,7 @@ class ThingsCache(Cache):
 
 	def turn_after(
 		self, character: CharName, thing: NodeName, branch: Branch, turn: Turn
-	):
+	) -> Turn:
 		with self._lock:
 			try:
 				self.retrieve(character, thing, branch, turn, 0)
@@ -3552,7 +3569,7 @@ class ThingsCache(Cache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	):
+	) -> dict[NodeName, NodeName]:
 		return super().get_keyframe((graph,), branch, turn, tick, copy)
 
 	def set_keyframe(
@@ -3561,7 +3578,7 @@ class ThingsCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[NodeName, NodeName],
 	) -> None:
 		super().set_keyframe((graph,), branch, turn, tick, keyframe)
 
