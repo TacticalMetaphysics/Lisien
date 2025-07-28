@@ -2372,7 +2372,7 @@ class Engine(AbstractEngine, Executor):
 		copy: bool = True,
 		rulebooks: bool = True,
 		silent: bool = False,
-	) -> Keyframe:
+	) -> Keyframe | None:
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
 			self.debug(
