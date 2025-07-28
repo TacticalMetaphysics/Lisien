@@ -1472,7 +1472,6 @@ class Engine(AbstractEngine, Executor):
 					"character_portal_rulebook",
 					graph,
 				),
-				"units": {},
 			}
 			kf_time = None
 			the_kf = None

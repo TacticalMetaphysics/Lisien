@@ -25,7 +25,6 @@ def test_character_existence_delta(null_engine, codepath):
 		"character_rulebook": ("character_rulebook", 3),
 		"character_thing_rulebook": ("character_thing_rulebook", 3),
 		"unit_rulebook": ("unit_rulebook", 3),
-		"units": {},
 	}
 	assert 2 in delta0 and delta0[2] is None
 	delta1 = eng.get_delta(
