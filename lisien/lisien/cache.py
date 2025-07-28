@@ -2812,7 +2812,7 @@ class UnitnessCache(Cache):
 		try:
 			d = self.dict_cache.retrieve(
 				character, graph, branch, turn, tick, search=not forward
-			)
+			).copy()
 		except KeyError:
 			d = {}
 		if is_unit:
