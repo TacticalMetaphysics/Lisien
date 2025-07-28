@@ -3362,6 +3362,9 @@ class Engine(AbstractEngine, Executor):
 		nodes_rulebooks_keyframe = {}
 		portals_rulebooks_keyframe = {}
 		units_keyframe = {}
+		for k, vs in graph_val_keyframe.items():
+			if "units" in vs:
+				units_keyframe[k] = vs.pop("units")
 		user_set_keyframe = {}
 		graphs: set[CharName] = (
 			set(self._graph_cache.iter_keys(*then)).union(delta.keys())
