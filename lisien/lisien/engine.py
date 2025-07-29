@@ -6457,7 +6457,14 @@ class Engine(AbstractEngine, Executor):
 		graph = self.character[name]
 		with self.batch():
 			now = self._nbtt()
-			self._graph_val_cache.overwrite_journal = True
+			for cache in (
+				self._nodes_cache,
+				self._node_val_cache,
+				self._edges_cache,
+				self._edge_val_cache,
+				self._graph_val_cache,
+			):
+				cache.overwrite_journal = True
 			for orig in list(graph.adj):
 				for dest in list(graph.adj[orig]):
 					graph.adj[orig][dest]._delete(now=now)
@@ -6467,7 +6474,14 @@ class Engine(AbstractEngine, Executor):
 			for stat in set(graph.graph) - {"name", "units"}:
 				self._graph_val_cache.store(name, stat, *now, None)
 				self.query.graph_val_set(name, stat, *now, None)
-			del self._graph_val_cache.overwrite_journal
+			for cache in (
+				self._nodes_cache,
+				self._node_val_cache,
+				self._edges_cache,
+				self._edge_val_cache,
+				self._graph_val_cache,
+			):
+				del cache.overwrite_journal
 			self._graph_cache.store(name, *now, None)
 			self.query.graphs_insert(name, *now, "Deleted")
 			self._graph_cache.keycache.clear()
