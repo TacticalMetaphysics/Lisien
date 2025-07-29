@@ -994,7 +994,7 @@ class ParquetDBHolder(ConnectionHolder):
 						pc.field("branch") == branch,
 						pc.field("turn") == turn_from,
 						pc.field("tick") >= tick_from,
-						pc.field("tick") <= tick_from,
+						pc.field("tick") < tick_from,
 					],
 					columns=self._table_columns(table),
 				).to_pylist()
@@ -1012,7 +1012,7 @@ class ParquetDBHolder(ConnectionHolder):
 					if d["tick"] >= tick_from:
 						yield d
 				elif d["turn"] == turn_to:
-					if d["tick"] <= tick_to:
+					if d["tick"] < tick_to:
 						yield d
 				else:
 					yield d
