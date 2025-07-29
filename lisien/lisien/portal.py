@@ -219,6 +219,8 @@ class Portal(Edge, RuleFollower):
 		with self.engine.world_lock, self.engine.batch():
 			if now is None:
 				now = self.engine._nbtt()
+			self.engine._edges_cache.overwrite_journal = True
+			self.engine._edge_val_cache.overwrite_journal = True
 			for k in self:
 				assert k != "orig"
 				assert k != "dest"
@@ -227,6 +229,8 @@ class Portal(Edge, RuleFollower):
 			self.engine._exist_edge(
 				self.character.name, self.orig, self.dest, exist=None, now=now
 			)
+			del self.engine._edge_val_cache.overwrite_journal
+			del self.engine._edges_cache.overwrite_journal
 
 	def unwrap(self) -> dict:
 		"""Return a dictionary representation of this entity"""
