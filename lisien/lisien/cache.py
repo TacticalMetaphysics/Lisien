@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict, defaultdict, deque
+from contextlib import contextmanager
 from functools import cached_property
 from itertools import chain, pairwise
 from operator import itemgetter
@@ -567,15 +568,16 @@ class Cache:
 		branch2do = deque(["trunk"])
 
 		store = self.store
-		while branch2do:
-			branch = branch2do.popleft()
-			for row in sorted(branches[branch], key=sort_key):
-				try:
-					store(*row, planning=False, loading=True)
-				except HistoricKeyError:
-					continue
-			if branch in childbranch:
-				branch2do.extend(childbranch[branch])
+		with self.overwriting():
+			while branch2do:
+				branch = branch2do.popleft()
+				for row in sorted(branches[branch], key=sort_key):
+					try:
+						store(*row, planning=False, loading=True)
+					except HistoricKeyError:
+						continue
+				if branch in childbranch:
+					branch2do.extend(childbranch[branch])
 
 	def _valcache_lookup(
 		self, cache: dict, branch: Branch, turn: Turn, tick: Tick
@@ -1373,6 +1375,12 @@ class Cache:
 			for tick, newval in ticks.items():
 				if newval != value:
 					yield trn, tick
+
+	@contextmanager
+	def overwriting(self):
+		self.overwrite_journal = True
+		yield
+		del self.overwrite_journal
 
 	def _store_journal(self, *args):
 		# overridden in lisien.cache.InitializedCache

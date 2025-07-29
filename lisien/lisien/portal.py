@@ -216,15 +216,21 @@ class Portal(Edge, RuleFollower):
 		self._delete()
 
 	def _delete(self, *, now: Optional[Time] = None) -> None:
-		with self.engine.world_lock, self.engine.batch():
+		engine = self.engine
+		with (
+			engine.world_lock,
+			engine.batch(),
+			engine._edges_cache.overwriting(),
+			engine._edge_val_cache.overwriting(),
+		):
 			if now is None:
-				now = self.engine._nbtt()
+				now = engine._nbtt()
 			for k in self:
 				assert k != "orig"
 				assert k != "dest"
 				self._set_cache(k, *now, None)
 				self._set_db(k, *now, None)
-			self.engine._exist_edge(
+			engine._exist_edge(
 				self.character.name, self.orig, self.dest, exist=None, now=now
 			)
 
