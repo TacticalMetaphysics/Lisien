@@ -577,7 +577,13 @@ class Node(graph.Node, rule.RuleFollower):
 
 	def _delete(self, *, now: Optional[Time] = None) -> None:
 		engine = self.engine
-		with engine.world_lock, engine.batch():
+		with (
+			engine.world_lock,
+			engine.batch(),
+			engine._nodes_cache.overwriting(),
+			engine._node_val_cache.overwriting(),
+			engine._unitness_cache.overwriting(),
+		):
 			if now is None:
 				now = engine._nbtt()
 			character = self.character
@@ -773,7 +779,11 @@ class Thing(Node, AbstractThing):
 		return FacadeThing(self.character.facade(), self)
 
 	def _delete(self, now: Optional[Time] = None) -> None:
-		with self.engine.world_lock, self.engine.batch():
+		with (
+			self.engine.world_lock,
+			self.engine.batch(),
+			self.engine._things_cache.overwriting(),
+		):
 			if now is None:
 				now = self.engine._nbtt()
 			super()._delete(now=now)
