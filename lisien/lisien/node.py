@@ -596,13 +596,11 @@ class Node(graph.Node, rule.RuleFollower):
 				for port in list(character.preportal[n].values()):
 					port._delete(now=now)
 					now = engine._nbtt()
-			self.engine._node_val_cache.overwrite_journal = True
 			for k in self:
 				assert k != "name"
 				if k != "location":
 					self._set_cache(k, *now, None)
 					self._set_db(k, *now, None)
-			del self.engine._node_val_cache.overwrite_journal
 			engine._exist_node(g, n, False, now=now)
 			self.character.node.send(
 				self.character.node, key=self.name, val=None
