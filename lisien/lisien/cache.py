@@ -1378,6 +1378,9 @@ class Cache:
 
 	@contextmanager
 	def overwriting(self):
+		if hasattr(self, "overwrite_journal"):
+			yield
+			return
 		self.overwrite_journal = True
 		yield
 		del self.overwrite_journal
