@@ -3168,7 +3168,11 @@ class Engine(AbstractEngine, Executor):
 				if node in nodes_keyframe:
 					del nodes_keyframe[node]
 				if node in node_val_keyframe:
-					if "location" in node_val_keyframe[node]:
+					if (
+						"location" in node_val_keyframe[node]
+						and node_val_keyframe[node]["location"]
+						in node_contents_keyframe
+					):
 						node_contents_keyframe[
 							node_val_keyframe[node]["location"]
 						].remove(node)
