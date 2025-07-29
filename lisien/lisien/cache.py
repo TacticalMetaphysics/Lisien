@@ -2441,6 +2441,10 @@ class EntitylessCache(Cache):
 		return super().retrieve(*(None,) + args)
 
 
+class GraphCache(EntitylessCache):
+	overwrite_journal = True
+
+
 class InitializedCache(Cache):
 	__slots__ = ()
 
