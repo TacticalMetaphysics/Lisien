@@ -780,11 +780,9 @@ class Thing(Node, AbstractThing):
 				now = self.engine._nbtt()
 			super()._delete(now=now)
 			# don't advance time to store my non-location
-			self.engine._things_cache.overwrite_journal = True
 			self.engine._things_cache.store(
 				self.character.name, self.name, *now, None
 			)
-			del self.engine._things_cache.overwrite_journal
 			self.engine.query.set_thing_loc(
 				self.character.name, self.name, *now, None
 			)
