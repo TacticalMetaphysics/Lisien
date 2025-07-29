@@ -1114,7 +1114,7 @@ def queries(table):
 				tab.c.turn < bindparam("turn_to"),
 				and_(
 					tab.c.turn == bindparam("turn_to"),
-					tab.c.tick <= bindparam("tick_to"),
+					tab.c.tick < bindparam("tick_to"),
 				),
 			),
 		)
