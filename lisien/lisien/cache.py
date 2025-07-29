@@ -1396,6 +1396,10 @@ class Cache:
 			# assert turn in presettings_turns \
 			# or turn in presettings_turns.future()
 			setticks = settings_turns[turn]
+			if not hasattr(self, "overwrite_journal") and tick in setticks:
+				raise KeyError(
+					"Already have journal entry", self, branch, turn, tick
+				)
 			# assert tick not in setticks
 			presetticks = presettings_turns[turn]
 			# assert tick not in presetticks
@@ -3584,6 +3588,8 @@ class ThingsCache(Cache):
 
 
 class NodeContentsCache(Cache):
+	overwrite_journal = True
+
 	def __init__(
 		self,
 		db: "engine.Engine",
