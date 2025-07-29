@@ -40,7 +40,6 @@ from logging import (
 	Logger,
 	LogRecord,
 	StreamHandler,
-	getLogger,
 )
 from operator import itemgetter, lt
 from os import PathLike
