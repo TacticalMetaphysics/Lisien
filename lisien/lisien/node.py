@@ -591,9 +591,11 @@ class Node(graph.Node, rule.RuleFollower):
 			if n in character.portal:
 				for port in list(character.portal[n].values()):
 					port._delete(now=now)
+					now = engine._nbtt()
 			if n in character.preportal:
 				for port in list(character.preportal[n].values()):
 					port._delete(now=now)
+					now = engine._nbtt()
 			for k in self:
 				assert k != "name"
 				if k != "location":
