@@ -71,6 +71,7 @@ from .cache import (
 	EdgesCache,
 	EdgeValCache,
 	EntitylessCache,
+	GraphCache,
 	GraphValCache,
 	InitializedEntitylessCache,
 	NodeContentsCache,
@@ -834,8 +835,8 @@ class Engine(AbstractEngine, Executor):
 		return {}
 
 	@cached_property
-	def _graph_cache(self) -> EntitylessCache:
-		return EntitylessCache(self, name="graph cache")
+	def _graph_cache(self) -> GraphCache:
+		return GraphCache(self, name="graph cache")
 
 	@cached_property
 	def _graph_val_cache(self) -> GraphValCache:
