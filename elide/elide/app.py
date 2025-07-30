@@ -52,13 +52,13 @@ from kivy.properties import (
 from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
-from lisien.proxy import (
-	CharacterProxy,
+from lisien.proxy.character import (
 	CharStatProxy,
-	EngineProcessManager,
+	CharacterProxy,
 	PlaceProxy,
 	ThingProxy,
 )
+from lisien.proxy.manager import EngineProcessManager
 
 from .graph.arrow import GraphArrow
 from .graph.board import GraphBoard

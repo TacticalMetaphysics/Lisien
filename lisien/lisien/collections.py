@@ -462,6 +462,12 @@ class FunctionStore(Signal):
 	def truth(*args):
 		return True
 
+	def __getstate__(self):
+		return self._locl, self._ast, self._ast_idx
+
+	def __setstate__(self, state):
+		self._locl, self._ast, self._ast_idx = state
+
 
 class UniversalMapping(MutableMapping, Signal):
 	"""Mapping for variables that are global but which I keep history for"""

@@ -23,7 +23,8 @@ from lisien import Engine
 from lisien.proxy.handle import EngineHandle
 
 from ..examples import college, kobold, sickle
-from ..proxy import EngineProcessManager, EngineProxy
+from ..proxy.engine import EngineProxy
+from ..proxy.manager import EngineProcessManager
 from . import data
 from .util import make_test_engine_facade, make_test_engine_kwargs
 

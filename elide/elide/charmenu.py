@@ -21,7 +21,7 @@ from kivy.properties import (
 )
 from kivy.uix.boxlayout import BoxLayout
 
-from lisien.proxy import CharStatProxy
+from lisien.proxy.character import CharStatProxy
 
 from .graph.arrow import GraphArrowWidget
 from .util import devour, dummynum, logwrap

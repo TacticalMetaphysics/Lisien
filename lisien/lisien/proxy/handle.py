@@ -196,8 +196,8 @@ class EngineHandle:
 			new.do_game_start()
 		return new
 
-	def export(self, name: str | None, path: str | None):
-		return self._real.export(name, path)
+	def export(self, name: str | None, path: str | None, indent: bool):
+		return self._real.export(name, path, indent=indent)
 
 	def log(self, level: str | int, message: str) -> None:
 		if isinstance(level, str):
