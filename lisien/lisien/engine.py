@@ -3088,10 +3088,30 @@ class Engine(AbstractEngine, Executor):
 		char: CharName,
 		char_unit_kf: dict[CharName, dict[NodeName, bool]],
 		user_set_kf: dict[CharName, dict[NodeName, frozenset[CharName]]],
-		delta: dict[CharName, dict[NodeName, bool]],
+		delta: dict[CharName, DeltaDict],
 	) -> None:
 		singlechar = frozenset([char])
-		for graf, units in delta.items():
+		for graf, stuff in delta.items():
+			if stuff is None:
+				if graf in char_unit_kf:
+					del char_unit_kf[graf]
+				if char in user_set_kf:
+					singlegraf = frozenset([graf])
+					for garph in user_set_kf[char]:
+						user_set_kf[char][garph] -= singlegraf
+			elif "nodes" in stuff:
+				for node, ex in stuff["nodes"].items():
+					if ex:
+						continue
+					if graf in char_unit_kf:
+						del char_unit_kf[graf]
+					if char in user_set_kf:
+						singlegraf = frozenset([graf])
+						for graaf in user_set_kf[char]:
+							user_set_kf[char][graaf] -= singlegraf
+		if char not in delta or "units" not in delta[char]:
+			return
+		for graf, units in delta[char]["units"].items():
 			for unit, ex in units.items():
 				if ex:
 					if graf in char_unit_kf:
@@ -3430,7 +3450,7 @@ class Engine(AbstractEngine, Executor):
 				graph,
 				charunit,
 				user_set_keyframe,
-				delt.pop("units", {}) or {},
+				delta,
 			)
 			self._apply_node_delta(
 				graph,
