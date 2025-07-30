@@ -2797,6 +2797,16 @@ class UnitnessCache(Cache):
 		self.user_cache = UserSetCache(db, "user cache")
 		self.dict_cache = UnitDictCache(db, "unit dict cache")
 
+	@contextmanager
+	def overwriting(self):
+		if hasattr(self, "overwrite_journal"):
+			yield
+			return
+		self.overwrite_journal = True
+		with self.user_cache.overwriting(), self.dict_cache.overwriting():
+			yield
+		del self.overwrite_journal
+
 	def store(
 		self,
 		character: CharName,
