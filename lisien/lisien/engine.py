@@ -3459,16 +3459,16 @@ class Engine(AbstractEngine, Executor):
 				noderbs,
 				locs,
 				conts,
-				delt.pop("node_val", {}) or {},
-				delt.pop("nodes", {}) or {},
+				delt.get("node_val", {}),
+				delt.get("nodes", {}),
 			)
 			self._apply_edge_delta(
 				graph,
 				edge_val_keyframe.setdefault(graph, {}),
 				edges_keyframe.setdefault(graph, {}),
 				portrbs,
-				delt.pop("edge_val", {}) or {},
-				delt.pop("edges", {}) or {},
+				delt.get("edge_val", {}),
+				delt.get("edges", {}),
 			)
 			self._apply_graph_val_delta(
 				graph,
