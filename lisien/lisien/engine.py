@@ -6455,7 +6455,7 @@ class Engine(AbstractEngine, Executor):
 		"""
 		# make sure the graph exists before deleting
 		graph = self.character[name]
-		with self.batch():
+		with self.batch(), self._graph_val_cache.overwriting():
 			now = self._nbtt()
 			for orig in list(graph.adj):
 				for dest in list(graph.adj[orig]):
