@@ -31,7 +31,8 @@ from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_tcp_server import BlockingOSCTCPServer
 from pythonosc.tcp_client import SimpleTCPClient
 
-from lisien.proxy import _engine_subroutine_step, _finish_packing
+from lisien.proxy.engine import _finish_packing
+from lisien.proxy.process import _engine_subroutine_step
 from lisien.proxy.handle import EngineHandle
 
 Logger.setLevel(0)

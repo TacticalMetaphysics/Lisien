@@ -1,5 +1,5 @@
 from lisien import Engine
-from lisien.proxy import EngineProcessManager
+from lisien.proxy.manager import EngineProcessManager
 
 
 def test_serialize_character(sqleng):

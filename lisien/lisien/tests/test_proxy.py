@@ -20,7 +20,7 @@ import pytest
 import lisien.examples.kobold as kobold
 import lisien.examples.polygons as polygons
 from lisien.engine import Engine
-from lisien.proxy import EngineProcessManager
+from lisien.proxy.manager import EngineProcessManager
 from lisien.proxy.handle import EngineHandle
 from lisien.tests import data
 

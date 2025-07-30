@@ -4,7 +4,7 @@ import networkx as nx
 import pytest
 
 from lisien import Engine
-from lisien.proxy import EngineProcessManager
+from lisien.proxy.manager import EngineProcessManager
 
 
 @pytest.mark.parquetdb

@@ -53,12 +53,11 @@ from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
 from elide.util import load_kv, logwrap
 from lisien.proxy import (
-	CharacterProxy,
-	CharStatProxy,
-	EngineProcessManager,
 	PlaceProxy,
 	ThingProxy,
 )
+from lisien.proxy.character import CharStatProxy, CharacterProxy
+from lisien.proxy.manager import EngineProcessManager
 
 resource_add_path(elide.__path__[0] + "/assets")
 resource_add_path(elide.__path__[0] + "/assets/rltiles")

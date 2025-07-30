@@ -26,7 +26,6 @@ import pickle
 import shutil
 import signal
 import sys
-import zlib
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
@@ -51,7 +50,6 @@ from types import FunctionType, MethodType, ModuleType
 from typing import Any, Callable, Iterable, Iterator, Optional, Type
 
 import networkx as nx
-import numpy as np
 from blinker import Signal
 from networkx import (
 	Graph,
@@ -101,7 +99,7 @@ from .facade import CharacterFacade
 from .graph import DiGraph
 from .node import Place, Thing
 from .portal import Portal
-from .proxy import worker_subprocess
+from .proxy.process import worker_subprocess
 from .query import (
 	CharacterStatAccessor,
 	CombinedQueryResult,
@@ -121,6 +119,7 @@ from .typing import (
 	CharName,
 	DeltaDict,
 	EdgeValDict,
+	EternalKey,
 	GraphEdgesKeyframe,
 	GraphEdgeValKeyframe,
 	GraphNodesKeyframe,
@@ -142,6 +141,7 @@ from .typing import (
 	Tick,
 	Time,
 	Turn,
+	UniversalKey,
 	Value,
 	EdgesDict,
 )
@@ -288,7 +288,9 @@ class NextTurn(Signal):
 		for store in engine.stores:
 			if getattr(store, "_need_save", None):
 				store.save()
-		if hasattr(engine, "_worker_processes"):
+		if hasattr(engine, "_worker_processes") or hasattr(
+			engine, "_worker_interpreters"
+		):
 			engine._update_all_worker_process_states()
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._get_last_completed_turn(start_branch)
@@ -494,6 +496,9 @@ class Engine(AbstractEngine, Executor):
 		This option can also be a list of integers, in which case, the engine
 		will connect to those ports on the same host it's running on. This
 		form will only work on Android.
+	:param subinterpreters: Whether the workers should be subinterpreters,
+		rather than subprocesses. Defaults to `True`, but is only effective
+		on Python versions 3.14 and later.
 	:param port: TCP port to serve the engine on. Only supported on Android.
 	"""
 
@@ -518,7 +523,7 @@ class Engine(AbstractEngine, Executor):
 	method: FunctionStore
 
 	@property
-	def eternal(self):
+	def eternal(self) -> dict[EternalKey, Value]:
 		return self.query.globl
 
 	@property
@@ -1948,6 +1953,7 @@ class Engine(AbstractEngine, Executor):
 		enforce_end_of_time: bool = True,
 		logger: Optional[Logger] = None,
 		workers: Optional[int | list[int]] = None,
+		subinterpreters: bool = True,
 		port: Optional[int] = None,
 	):
 		if workers is None:
@@ -1989,7 +1995,10 @@ class Engine(AbstractEngine, Executor):
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
 		if workers != 0 and port is None:
-			self._start_worker_processes(prefix, workers)
+			if subinterpreters and sys.version_info[1] >= 14:
+				self._start_worker_interpreters(prefix, workers)
+			else:
+				self._start_worker_processes(prefix, workers)
 
 	def _init_func_stores(
 		self,
@@ -2178,6 +2187,114 @@ class Engine(AbstractEngine, Executor):
 				self.logger.handle(rec)
 			sleep(0.5)
 
+	def _start_worker_interpreters(
+		self, prefix: str | os.PathLike | None, workers: int
+	) -> None:
+		from concurrent.interpreters import (
+			Interpreter,
+			Queue,
+			create,
+			create_queue,
+		)
+
+		for store in self.stores:
+			if hasattr(store, "save"):
+				store.save(reimport=False)
+
+		self._worker_last_eternal = dict(self.eternal.items())
+		initial_payload = self._get_worker_kf_payload()
+		self._worker_interpreters: list[Interpreter] = []
+		wint = self._worker_interpreters
+		self._worker_inputs: list[Queue] = []
+		wi = self._worker_inputs
+		self._worker_outputs: list[Queue] = []
+		wo = self._worker_outputs
+		self._worker_threads: list[Thread] = []
+		wt = self._worker_threads
+		self._worker_locks: list[Lock] = []
+		wlk = self._worker_locks
+		self._worker_log_queues: list[Queue] = []
+		wlq = self._worker_log_queues
+		self._worker_log_threads: list[Thread] = []
+		wlt = self._worker_log_threads
+		for i in range(workers):
+			input = create_queue()
+			output = create_queue()
+			logq = create_queue()
+			logthread = Thread(
+				target=self._sync_log_forever, args=(logq,), daemon=True
+			)
+			terp = create()
+			wi.append(input)
+			wo.append(output)
+			wlq.append(logq)
+			lock = Lock()
+			wlk.append(lock)
+			wlt.append(logthread)
+			wint.append(terp)
+			wt.append(
+				terp.call_in_thread(
+					worker_subprocess,
+					*self._build_worker_args(prefix, i),
+					input,
+					output,
+					logq,
+				)
+			)
+			with lock:
+				input.put(initial_payload)
+		if hasattr(self.trigger, "connect"):
+			self.trigger.connect(self._reimport_trigger_functions)
+		if hasattr(self.function, "connect"):
+			self.function.connect(self._reimport_worker_functions)
+		if hasattr(self.method, "connect"):
+			self.method.connect(self._reimport_worker_methods)
+		self._setup_fut_manager(workers)
+
+	def _build_worker_args(
+		self, prefix: str | os.PathLike | None, i: int
+	) -> tuple[
+		int,
+		str | os.PathLike | None,
+		ChangeTrackingDict[
+			Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
+		],
+		dict[EternalKey, Value],
+		dict[str, Callable],
+		dict[str, Callable],
+		dict[str, Callable],
+		dict[str, Callable],
+		dict[str, Callable],
+	]:
+		def get_func_dict(
+			store: FunctionStore | ModuleType,
+		) -> dict[str, Callable]:
+			if hasattr(store, "_locl"):
+				return store._locl
+			elif hasattr(store, "__dict__"):
+				return {
+					k: v for (k, v) in store.__dict__.items() if callable(v)
+				}
+			else:
+				funcs = {}
+				for name in dir(store):
+					value = getattr(store, name)
+					if callable(value):
+						funcs[name] = value
+				return funcs
+
+		return (
+			i,
+			prefix,
+			self._branches_d,
+			dict(self.eternal),
+			get_func_dict(self.function),
+			get_func_dict(self.method),
+			get_func_dict(self.trigger),
+			get_func_dict(self.prereq),
+			get_func_dict(self.action),
+		)
+
 	def _start_worker_processes(
 		self, prefix: str | os.PathLike | None, workers: int
 	):
@@ -2188,7 +2305,6 @@ class Engine(AbstractEngine, Executor):
 			if hasattr(store, "save"):
 				store.save(reimport=False)
 
-		self._trigger_pool = ThreadPoolExecutor()
 		self._worker_last_eternal = dict(self.eternal.items())
 		initial_payload = self._get_worker_kf_payload()
 
@@ -2207,42 +2323,10 @@ class Engine(AbstractEngine, Executor):
 			logthread = Thread(
 				target=self._sync_log_forever, args=(logq,), daemon=True
 			)
-			worker_args = [
-				i,
-				prefix,
-				self._branches_d,
-				dict(self.eternal),
-				inpipe_there,
-				outpipe_there,
-				logq,
-			]
-			for store in (
-				self.function,
-				self.method,
-				self.trigger,
-				self.prereq,
-				self.action,
-			):
-				if hasattr(store, "_locl"):
-					worker_args.append(store._locl)
-				elif hasattr(store, "__dict__"):
-					worker_args.append(
-						{
-							k: v
-							for (k, v) in store.__dict__.items()
-							if callable(v)
-						}
-					)
-				else:
-					funcs = {}
-					for name in dir(store):
-						value = getattr(store, name)
-						if callable(value):
-							funcs[name] = value
-					worker_args.append(funcs)
 			proc = ctx.Process(
 				target=worker_subprocess,
-				args=worker_args,
+				args=self._build_worker_args(prefix, i)
+				+ (inpipe_there, outpipe_there, logq),
 			)
 			wi.append(inpipe_here)
 			wo.append(outpipe_here)
@@ -2304,7 +2388,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _handle_worker_reply(self, data: bytes):
 		uid = int.from_bytes(data[:8], "little")
-		ret = self.unpack(zlib.decompress(data[8:]))
+		ret = self.unpack(data[8:])
 		fut = self._uid_to_fut[uid]
 		if isinstance(ret, Exception):
 			fut.set_exception(ret)
@@ -3780,7 +3864,7 @@ class Engine(AbstractEngine, Executor):
 				(character, orig, dest),
 			)
 
-	def _call_in_subprocess(
+	def _call_in_worker(
 		self,
 		uid,
 		method,
@@ -3791,14 +3875,22 @@ class Engine(AbstractEngine, Executor):
 	):
 		i = uid % len(self._worker_inputs)
 		uidbytes = uid.to_bytes(8, "little")
-		argbytes = zlib.compress(self.pack((method, args, kwargs)))
+		argbytes = self.pack((method, args, kwargs))
 		with self._worker_locks[i]:
 			if update:
 				self._update_worker_process_state(i, lock=False)
-			self._worker_inputs[i].send_bytes(uidbytes + argbytes)
-			output = self._worker_outputs[i].recv_bytes()
-		got_uid = int.from_bytes(output[:8], "little")
-		result = self.unpack(zlib.decompress(output[8:]))
+			input = self._worker_inputs[i]
+			output = self._worker_outputs[i]
+			if hasattr(input, "send_bytes"):
+				input.send_bytes(uidbytes + argbytes)
+			else:
+				input.put(uidbytes + argbytes)
+			if hasattr(output, "recv_bytes"):
+				output_bytes: bytes = output.recv_bytes()
+			else:
+				output_bytes: bytes = output.get()
+		got_uid = int.from_bytes(output_bytes[:8], "little")
+		result = self.unpack(output_bytes[8:])
 		assert got_uid == uid
 		self._how_many_futs_running -= 1
 		del self._uid_to_fut[uid]
@@ -4587,10 +4679,12 @@ class Engine(AbstractEngine, Executor):
 				"Use, eg., the engine's attribute `function` to store it."
 			)
 		uid = self._top_uid
-		if hasattr(self, "_worker_processes"):
+		if hasattr(self, "_worker_processes") or hasattr(
+			self, "_worker_interpreters"
+		):
 			ret = Future()
 			ret._t = Thread(
-				target=self._call_in_subprocess,
+				target=self._call_in_worker,
 				args=(uid, fn, ret, *args),
 				kwargs=kwargs,
 			)
@@ -4624,8 +4718,10 @@ class Engine(AbstractEngine, Executor):
 			sleep(0.001)
 
 	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
-		if not hasattr(self, "_worker_processes") and not hasattr(
-			self, "_osc_serv_thread"
+		if (
+			not hasattr(self, "_worker_processes")
+			and not hasattr(self, "_worker_interpreters")
+			and not hasattr(self, "_osc_serv_thread")
 		):
 			return
 		if cancel_futures:
@@ -4661,6 +4757,20 @@ class Engine(AbstractEngine, Executor):
 					pipein.close()
 					pipeout.close()
 			del self._worker_processes
+		if hasattr(self, "_worker_interpreters"):
+			for i, (lock, inq, outq, thread, terp) in enumerate(
+				zip(
+					self._worker_locks,
+					self._worker_inputs,
+					self._worker_outputs,
+					self._worker_threads,
+					self._worker_interpreters,
+				)
+			):
+				with lock:
+					inq.put(b"shutdown")
+					thread.join()
+					terp.close()
 		if hasattr(self, "_osc_serv_thread"):
 			for client in self._osc_clients:
 				client.send_message("/shutdown", [])
@@ -4676,14 +4786,14 @@ class Engine(AbstractEngine, Executor):
 
 	def _reimport_some_functions(self, some):
 		if getattr(self, "_prefix", None) is not None:
-			self._call_every_subprocess(f"_reimport_{some}")
+			self._call_every_worker(f"_reimport_{some}")
 		else:
 			callables = {}
 			for att in dir(getattr(self, some)):
 				v = getattr(getattr(self.some), att)
 				if callable(v):
 					callables[att] = v
-			self._call_every_subprocess(
+			self._call_every_worker(
 				f"_replace_{some}_pkl", pickle.dumps(callables)
 			)
 
@@ -4717,29 +4827,27 @@ class Engine(AbstractEngine, Executor):
 				plainstored[name] = dict(store.iterplain())
 			else:
 				pklstored[name] = pickle.dumps(store)
-		return uid.to_bytes(8, "little") + zlib.compress(
-			self.pack(
+		return uid.to_bytes(8, "little") + self.pack(
+			(
+				"_upd_from_game_start",
 				(
-					"_upd_from_game_start",
+					None,
+					*self._btt(),
 					(
-						None,
-						*self._btt(),
-						(
-							self.snap_keyframe(update_worker_processes=False),
-							dict(self.eternal.items()),
-							plainstored,
-							pklstored,
-						),
+						self.snap_keyframe(update_worker_processes=False),
+						dict(self.eternal.items()),
+						plainstored,
+						pklstored,
 					),
-					{},
-				)
+				),
+				{},
 			)
 		)
 
-	def _call_any_subprocess(self, method: str | callable, *args, **kwargs):
+	def _call_any_worker(self, method: str | callable, *args, **kwargs):
 		uid = self._top_uid
 		self._top_uid += 1
-		return self._call_in_subprocess(uid, method, *args, **kwargs)
+		return self._call_in_worker(uid, method, *args, **kwargs)
 
 	@contextmanager
 	def _all_worker_locks_ctx(self):
@@ -4759,22 +4867,36 @@ class Engine(AbstractEngine, Executor):
 		return call_with_all_worker_locks
 
 	@_all_worker_locks
-	def _call_every_subprocess(self, method: str, *args, **kwargs):
+	def _call_every_worker(self, method: str, *args, **kwargs):
 		ret = []
 		uids = []
-		for _ in range(len(self._worker_processes)):
+		if hasattr(self, "_worker_processes"):
+			n = len(self._worker_processes)
+		elif hasattr(self, "_worker_interpreters"):
+			n = len(self._worker_interpreters)
+		else:
+			raise RuntimeError("No workers")
+		for _ in range(n):
 			uids.append(self._top_uid)
 			uidbytes = self._top_uid.to_bytes(8, "little")
-			argbytes = zlib.compress(self.pack((method, args, kwargs)))
-			i = self._top_uid % len(self._worker_processes)
+			argbytes = self.pack((method, args, kwargs))
+			i = self._top_uid % n
 			self._top_uid += 1
-			self._worker_inputs[i].send_bytes(uidbytes + argbytes)
+			input = self._worker_inputs[i]
+			if hasatttr(input, "send_bytes"):
+				input.send_bytes(uidbytes + argbytes)
+			else:
+				input.put(uidbytes + argbytes)
 		for uid in uids:
-			i = uid % len(self._worker_processes)
-			outbytes = self._worker_outputs[i].recv_bytes()
+			i = uid % n
+			output = self._worker_outputs[i]
+			if hasattr(output, "recv_bytes"):
+				outbytes: bytes = output.recv_bytes()
+			else:
+				outbytes: bytes = output.get()
 			got_uid = int.from_bytes(outbytes[:8], "little")
 			assert got_uid == uid
-			retval = self.unpack(zlib.decompress(outbytes[8:]))
+			retval = self.unpack(outbytes[8:])
 			if isinstance(retval, Exception):
 				raise retval
 			ret.append(retval)
@@ -4894,7 +5016,7 @@ class Engine(AbstractEngine, Executor):
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
 			self.query.keyframe_graph_insert(name, branch, turn, tick, *data)
 		if hasattr(self, "_worker_processes"):
-			self._call_every_subprocess("_add_character", name, data)
+			self._call_every_worker("_add_character", name, data)
 
 	@world_locked
 	def _complete_turn(self, branch: Branch, turn: Turn) -> None:
@@ -5091,6 +5213,8 @@ class Engine(AbstractEngine, Executor):
 	def _get_slow_delta(
 		self, btt_from: Time, btt_to: Time
 	) -> SlightlyPackedDeltaType:
+		import numpy as np
+
 		def newgraph():
 			return {
 				# null mungers mean KeyError, which is correct
@@ -5640,10 +5764,24 @@ class Engine(AbstractEngine, Executor):
 			store.save(reimport=False)
 		kf_payload = None
 		deltas = {}
-		for i in range(len(self._worker_processes)):
-			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
-			if (branch_from, turn_from, tick_from) == self._btt():
-				continue
+		if hasattr(self, "_worker_processes"):
+			n = len(self._worker_processes)
+		elif hasattr(self, "_worker_interpreters"):
+			n = len(self._worker_interpreters)
+		else:
+			raise RuntimeError("No workers")
+		for i in range(n):
+			if not clobber:
+				branch_from, turn_from, tick_from = self._worker_updated_btts[
+					i
+				]
+				if (branch_from, turn_from, tick_from) == self._btt():
+					continue
+			input = self._worker_inputs[i]
+			if hasattr(input, "send_bytes"):
+				put = input.send_bytes
+			else:
+				put = input.put
 			if not clobber and branch_from == self.branch:
 				old_eternal = self._worker_last_eternal
 				new_eternal = self._worker_last_eternal = dict(
@@ -5686,26 +5824,25 @@ class Engine(AbstractEngine, Executor):
 							continue
 						else:
 							pkl[name] = pickle.dumps(store)
-				argbytes = sys.maxsize.to_bytes(8, "little") + zlib.compress(
-					self.pack(
+				argbytes = sys.maxsize.to_bytes(8, "little") + self.pack(
+					(
+						"_upd",
 						(
-							"_upd",
-							(
-								None,
-								self.branch,
-								self.turn,
-								self.tick,
-								(None, delt),
-							),
-							kwargs,
-						)
+							None,
+							self.branch,
+							self.turn,
+							self.tick,
+							(None, delt),
+						),
+						kwargs,
 					)
 				)
-				self._worker_inputs[i].send_bytes(argbytes)
+
+				put(argbytes)
 			else:
 				if kf_payload is None:
 					kf_payload = self._get_worker_kf_payload()
-				self._worker_inputs[i].send_bytes(kf_payload)
+				put(kf_payload)
 			self._worker_updated_btts[i] = self._btt()
 			self.debug(
 				"Updated all worker process states at "
@@ -5730,29 +5867,32 @@ class Engine(AbstractEngine, Executor):
 				branch_from, turn_from, tick_from, self.turn, self.tick
 			)
 			delt["eternal"] = eternal_delta
-			argbytes = sys.maxsize.to_bytes(8, "little") + zlib.compress(
-				self.pack(
+			argbytes = sys.maxsize.to_bytes(8, "little") + self.pack(
+				(
+					"_upd",
 					(
-						"_upd",
-						(
-							None,
-							self.branch,
-							self.turn,
-							self.tick,
-							(None, delt),
-						),
-						{},
-					)
+						None,
+						self.branch,
+						self.turn,
+						self.tick,
+						(None, delt),
+					),
+					{},
 				)
 			)
 		else:
 			argbytes = self._get_worker_kf_payload()
+		input = self._worker_inputs[i]
+		if hasattr(input, "send_bytes"):
+			put = input.send_bytes
+		else:
+			put = input.put
 		if lock:
 			with self._worker_locks[i]:
-				self._worker_inputs[i].send_bytes(argbytes)
+				put(argbytes)
 				self._worker_updated_btts[i] = self._btt()
 		else:
-			self._worker_inputs[i].send_bytes(argbytes)
+			put(argbytes)
 			self._worker_updated_btts[i] = self._btt()
 		self.debug(f"Updated worker {i} at {self._worker_updated_btts[i]}")
 
@@ -6442,7 +6582,9 @@ class Engine(AbstractEngine, Executor):
 		self._init_graph(name, "DiGraph", data)
 		if self._btt() not in self._keyframes_times:
 			self.snap_keyframe(silent=True, update_worker_processes=False)
-		if hasattr(self, "_worker_processes"):
+		if hasattr(self, "_worker_processes") or hasattr(
+			self, "_worker_interpreters"
+		):
 			self._update_all_worker_process_states(clobber=True)
 		self._graph_objs[name] = self.char_cls(self, name)
 
@@ -6470,7 +6612,7 @@ class Engine(AbstractEngine, Executor):
 			self.query.graphs_insert(name, *now, "Deleted")
 			self._graph_cache.keycache.clear()
 		if hasattr(self, "_worker_processes"):
-			self._call_every_subprocess("_del_character", name)
+			self._call_every_worker("_del_character", name)
 
 	def _is_thing(self, character: CharName, node: NodeName) -> bool:
 		return self._things_cache.contains_entity(

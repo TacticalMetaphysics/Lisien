@@ -62,7 +62,6 @@ from typing import (
 
 import msgpack
 import networkx as nx
-import numpy as np
 from annotated_types import Ge, Le
 from blinker import Signal
 from tblib import Traceback
@@ -1373,6 +1372,8 @@ def normalize_layout(l: dict) -> dict:
 	normalized to within (0.0, 0.98).
 
 	"""
+	import numpy as np
+
 	xs = []
 	ys = []
 	ks = []
