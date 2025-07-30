@@ -47,10 +47,7 @@ def is_valid_key(obj: _Key) -> TypeGuard[Key]:
 	)
 
 
-class _KeyMeta:
-	def __new__(cls, *args, **kwargs):
-		return super().__new__(cls)
-
+class _KeyMeta(type):
 	def __instancecheck__(self, instance) -> TypeGuard[Key]:
 		return is_valid_key(instance)
 
@@ -121,10 +118,7 @@ def is_valid_value(obj: _Value) -> TypeGuard[Value]:
 	)
 
 
-class _ValueMeta:
-	def __new__(cls, *args, **kwargs):
-		return super().__new__(cls)
-
+class _ValueMeta(type):
 	def __instancecheck__(self, instance) -> TypeGuard[Value]:
 		return is_valid_value(instance)
 
