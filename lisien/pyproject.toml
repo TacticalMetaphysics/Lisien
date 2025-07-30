@@ -32,7 +32,7 @@ dependencies = [
 	"sqlalchemy>=1.4,<3",
 	"numpy>=1.19.5,<3",
 	"tblib>=1.7.0,<4",
-	"parquetdb==1.0.1",
+	"parquetdb>=1.0.1,<2",
 	"annotated-types~=0.7.0"
 ]
 
