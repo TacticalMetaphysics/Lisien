@@ -128,7 +128,7 @@ class StoreList(RecycleView):
 
 	@logwrap(section="RecycleToggleButton")
 	def on_boxl(self, *_):
-		if self.store is None:
+		if self.store is None or not hasattr(self.store, "_store"):
 			Clock.schedule_once(self.on_boxl, 0)
 			return
 		app = App.get_running_app()

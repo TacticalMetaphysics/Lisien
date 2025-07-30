@@ -29,6 +29,7 @@ from kivy.properties import (
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 import lisien.proxy
+import lisien.proxy.manager
 
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
@@ -257,7 +258,7 @@ class GameApp(App):
 
 	@logwrap(section="GameApp")
 	def build(self):
-		self.procman = lisien.proxy.EngineProcessManager()
+		self.procman = lisien.proxy.manager.EngineProcessManager()
 		self.engine = self.procman.start(
 			self.prefix,
 			logger=Logger,
