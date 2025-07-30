@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+import sys
+import logging
+from typing import Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+	from multiprocessing.connection import Connection
+	from queue import Queue
+
 from lisien.exc import OutOfTimelineError
 from lisien.proxy import EngineHandle
-from lisien.proxy.engine import _finish_packing
+from lisien.proxy.engine import EngineProxy, WorkerLogHandler, _finish_packing
 
 
 def worker_subprocess(
@@ -15,15 +23,10 @@ def worker_subprocess(
 	trigger: dict,
 	prereq: dict,
 	action: dict,
-	in_pipe,
-	out_pipe,
-	logq,
+	in_pipe: Union["Connection", "Queue"],
+	out_pipe: Union["Connection", "Queue"],
+	logq: "Queue",
 ):
-	import sys
-	import logging
-
-	from lisien.proxy.engine import EngineProxy, WorkerLogHandler
-
 	logger = logging.getLogger(f"lisien worker {i}")
 	handler = WorkerLogHandler(logq, logging.DEBUG, i)
 	logger.addHandler(handler)
