@@ -876,16 +876,10 @@ class WindowDict(MutableMapping):
 			return past[-1][1]
 
 	def __setitem__(self, rev: int, v: Any) -> None:
-		self.set_item(rev, v)
-
-	def set_item(self, rev: int, v: Any, search=False) -> None:
 		past = self._past
 		with self._lock:
 			if past or self._future:
-				if search:
-					self.search(rev)
-				else:
-					self._seek(rev)
+				self._seek(rev)
 				if past:
 					if past[-1][0] == rev:
 						past[-1] = (rev, v)
