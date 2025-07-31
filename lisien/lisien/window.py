@@ -55,7 +55,7 @@ def update_window(
 	tick_from: Tick,
 	turn_to: Turn,
 	tick_to: Tick,
-	updfun: callable,
+	updfun: Callable[[Turn, Tick, ...], None],
 	branchd: SettingsTurnDict,
 ):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
@@ -70,6 +70,7 @@ def update_window(
 	if turn_from in branchd:
 		for tick, state in branchd[turn_from].future(tick_from).items():
 			updfun(turn_from, tick, *state)
+	midturn: Turn
 	for midturn in range(turn_from + 1, turn_to):
 		if midturn in branchd:
 			for tick, state in branchd[midturn].items():
@@ -86,7 +87,7 @@ def update_backward_window(
 	tick_from: Tick,
 	turn_to: Turn,
 	tick_to: Tick,
-	updfun: callable,
+	updfun: Callable[[Turn, Tick, ...], None],
 	branchd: SettingsTurnDict,
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
@@ -101,6 +102,7 @@ def update_backward_window(
 	if turn_from in branchd:
 		for tick, state in branchd[turn_from].past(tick_from + 1).items():
 			updfun(turn_from, tick, *state)
+	midturn: Turn
 	for midturn in range(turn_from - 1, turn_to, -1):
 		if midturn in branchd:
 			for tick, state in reversed(branchd[midturn].items()):
