@@ -919,12 +919,13 @@ class WindowDict(MutableMapping):
 			self._keys.remove(rev)
 
 	def __repr__(self) -> str:
-		me = {}
-		if self._past:
-			me.update(self._past)
-		if self._future:
-			me.update(self._future)
-		return "{}({})".format(self.__class__.__name__, me)
+		with self._lock:
+			me = {}
+			if self._past:
+				me.update(self._past)
+			if self._future:
+				me.update(self._future)
+			return "{}({})".format(self.__class__.__name__, me)
 
 
 class FuturistWindowDict(WindowDict):
