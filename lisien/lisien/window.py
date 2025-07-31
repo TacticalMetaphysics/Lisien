@@ -439,6 +439,8 @@ class WindowDictSlice:
 			seek(stop)
 			if not past:
 				return iter(())
+			if past[-1][0] == stop:
+				future.append(past.pop())
 			if step is None:
 				return map(get1, reversed(past))
 			elif step < 0:
@@ -546,6 +548,8 @@ class WindowDictSlice:
 			seek(stop)
 			if not past:
 				return iter(())
+			if past[-1][0] == stop:
+				future.append(past.pop())
 			if step is None:
 				return map(get1, past)
 			elif step < 0:
