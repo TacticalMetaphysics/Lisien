@@ -171,10 +171,10 @@ class WindowDictItemsView(ItemsView):
 				yield from reversed(past)
 
 
-class WindowDictPastFutureKeysView(KeysView):
+class WindowDictPastKeysView(KeysView):
 	"""View on a WindowDict's keys relative to last lookup"""
 
-	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
+	_mapping: WindowDictPastView
 
 	def __iter__(self):
 		with self._mapping.lock:
@@ -185,6 +185,21 @@ class WindowDictPastFutureKeysView(KeysView):
 			yield from map(get0, self._mapping.stack)
 
 	def __contains__(self, item: int):
+		return item in self._mapping
+
+
+class WindowDictFutureKeysView(KeysView):
+	_mapping: WindowDictFutureView
+
+	def __iter__(self):
+		with self._mapping.lock:
+			yield from map(get0, self._mapping.stack)
+
+	def __reversed__(self):
+		with self._mapping.lock:
+			yield from map(get0, reversed(self._mapping.stack))
+
+	def __contains__(self, item):
 		return item in self._mapping
 
 
@@ -321,8 +336,8 @@ class WindowDictPastView(WindowDictPastFutureView):
 					return value
 			raise KeyError
 
-	def keys(self) -> WindowDictPastFutureKeysView:
-		return WindowDictPastFutureKeysView(self)
+	def keys(self) -> WindowDictPastKeysView:
+		return WindowDictPastKeysView(self)
 
 	def items(self) -> WindowDictPastItemsView:
 		return WindowDictPastItemsView(self)
@@ -355,8 +370,8 @@ class WindowDictFutureView(WindowDictPastFutureView):
 				raise KeyError("No such revision", key)
 			return _recurse(key, stack)
 
-	def keys(self) -> WindowDictPastFutureKeysView:
-		return WindowDictPastFutureKeysView(self)
+	def keys(self) -> WindowDictFutureKeysView:
+		return WindowDictFutureKeysView(self)
 
 	def items(self) -> WindowDictFutureItemsView:
 		return WindowDictFutureItemsView(self)
