@@ -724,7 +724,7 @@ class WindowDict(MutableMapping):
 			return False
 		return rev >= beg
 
-	def rev_before(self, rev: int, search=False):
+	def rev_before(self, rev: int, search=False) -> int | None:
 		"""Return the latest past rev on which the value changed.
 
 		If it changed on this exact rev, return the rev.
@@ -732,11 +732,16 @@ class WindowDict(MutableMapping):
 		"""
 		with self._lock:
 			if search:
-				self.search(rev)
+				rev, _ = _recurse(
+					rev, self._past + list(reversed(self._future))
+				)
+				return rev
 			else:
 				self._seek(rev)
-			if self._past:
-				return self._past[-1][0]
+				if self._past:
+					return self._past[-1][0]
+				else:
+					return None
 
 	def rev_after(self, rev: int, search=False):
 		"""Return the earliest future rev on which the value will change."""
