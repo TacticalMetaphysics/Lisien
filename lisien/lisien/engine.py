@@ -4908,7 +4908,9 @@ class Engine(AbstractEngine, Executor):
 	) -> None:
 		if name in self.illegal_graph_names:
 			raise GraphNameError("Illegal name")
-		now = self._btt()
+		branch, turn, tick = self._btt()
+		if (turn, tick) != (0, 0):
+			branch, turn, tick = self._nbtt()
 		for rbcache, rbname in [
 			(self._characters_rulebooks_cache, "character_rulebook"),
 			(self._units_rulebooks_cache, "unit_rulebook"),
@@ -4926,18 +4928,17 @@ class Engine(AbstractEngine, Executor):
 			),
 		]:
 			try:
-				kf = rbcache.get_keyframe(*now)
+				kf = rbcache.get_keyframe(branch, turn, tick)
 			except KeyframeError:
 				kf = {}
-				for ch in self._graph_cache.iter_entities(*now):
+				for ch in self._graph_cache.iter_entities(branch, turn, tick):
 					# may yield this very character
 					try:
-						kf[ch] = rbcache.retrieve(ch, *now)
+						kf[ch] = rbcache.retrieve(ch, branch, turn, tick)
 					except KeyError:
 						kf[ch] = (rbname, ch)
 			kf[name] = (rbname, name)
-			rbcache.set_keyframe(*now, kf)
-		branch, turn, tick = self._btt()
+			rbcache.set_keyframe(branch, turn, tick, kf)
 		self._graph_cache.store(name, branch, turn, tick, type_s)
 		self.snap_keyframe(silent=True, update_worker_processes=False)
 		self.query.graphs_insert(name, branch, turn, tick, type_s)
