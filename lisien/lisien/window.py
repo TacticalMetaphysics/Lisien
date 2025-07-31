@@ -528,7 +528,6 @@ class WindowDictSlice:
 			seek(left)
 			if past and past[-1][0] == left:
 				future.append(past.pop())
-				dic._last = left
 			if not future:
 				return iter(())
 			if step is None or step > 0:
@@ -612,12 +611,11 @@ class WindowDict(MutableMapping):
 
 	"""
 
-	__slots__ = ("_future", "_past", "_keys", "_last", "_lock")
+	__slots__ = ("_future", "_past", "_keys", "_lock")
 
 	_past: list[tuple[int, Any]]
 	_future: list[tuple[int, Any]]
 	_keys: set[int]
-	_last: int | None
 
 	@property
 	def beginning(self) -> int | None:
@@ -684,8 +682,6 @@ class WindowDict(MutableMapping):
 
 	def _seek(self, rev: int) -> None:
 		"""Arrange the caches to help look up the given revision."""
-		if rev == self._last:
-			return
 		past = self._past
 		future = self._future
 		if future:
@@ -708,7 +704,6 @@ class WindowDict(MutableMapping):
 					past_end = past[-1][0]
 				else:
 					break
-		self._last = rev
 
 	def rev_gettable(self, rev: int) -> bool:
 		beg = self.beginning
@@ -818,7 +813,6 @@ class WindowDict(MutableMapping):
 			empty._past = self._past.copy()
 			empty._future = self._future.copy()
 			empty._keys = self._keys.copy()
-			empty._last = self._last
 			return empty
 
 	def __init__(
@@ -836,7 +830,6 @@ class WindowDict(MutableMapping):
 			self._past.sort()
 			self._future = []
 			self._keys = set(map(get0, self._past))
-			self._last = None
 
 	def __iter__(self) -> Iterable[Any]:
 		if not self:
