@@ -743,15 +743,14 @@ class WindowDict(MutableMapping):
 				else:
 					return None
 
-	def rev_after(self, rev: int, search=False):
+	def rev_after(self, rev: int) -> int | None:
 		"""Return the earliest future rev on which the value will change."""
 		with self._lock:
-			if search:
-				self.search(rev)
-			else:
-				self._seek(rev)
+			self._seek(rev)
 			if self._future:
 				return self._future[-1][0]
+			else:
+				return None
 
 	def initial(self) -> Any:
 		"""Return the earliest value we have"""
