@@ -290,3 +290,10 @@ RulebookTypeStr: TypeAlias = Literal[
 	"character_place",
 	"character_portal",
 ]
+CharacterRulebookTypeStr: TypeAlias = Literal[
+	"character_rulebook",
+	"unit_rulebook",
+	"character_thing_rulebook",
+	"character_place_rulebook",
+	"character_portal_rulebook",
+]

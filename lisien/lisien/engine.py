@@ -117,6 +117,7 @@ from .query import (
 from .rule import AllRuleBooks, AllRules, Rule
 from .typing import (
 	Branch,
+	CharacterRulebookTypeStr,
 	CharDelta,
 	CharName,
 	DeltaDict,
@@ -1876,7 +1877,13 @@ class Engine(AbstractEngine, Executor):
 		if branch in actbranches:
 			updater(partial(updru, "actions"), actbranches[branch])
 
-		def updnbr(_, rule, neighborhood):
+		def updnbr(
+			__: Turn,
+			___: Tick,
+			_: None,
+			rule: RuleName,
+			neighborhood: RuleNeighborhood,
+		):
 			if neighborhood is not None:
 				if not isinstance(neighborhood, int):
 					raise TypeError(
@@ -1893,7 +1900,7 @@ class Engine(AbstractEngine, Executor):
 		if branch in nbrbranches:
 			updater(updnbr, nbrbranches[branch])
 
-		def updbig(_, rule, big):
+		def updbig(__: Turn, ___: Tick, _: None, rule: RuleName, big: RuleBig):
 			if big is not None and not isinstance(big, bool):
 				raise TypeError("big must be boolean", big)
 			delta.setdefault("rules", {}).setdefault(rule, {})["big"] = big
@@ -1901,7 +1908,14 @@ class Engine(AbstractEngine, Executor):
 		if branch in bigbranches:
 			updater(updbig, bigbranches[branch])
 
-		def updcrb(key, _, character, rulebook):
+		def updcrb(
+			key: CharacterRulebookTypeStr,
+			__: Turn,
+			___: Tick,
+			_: None,
+			character: CharName,
+			rulebook: RulebookName,
+		):
 			if character in delta and delta[character] is None:
 				return
 			delta.setdefault(character, {})[key] = rulebook
