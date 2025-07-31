@@ -849,10 +849,11 @@ class WindowDict(MutableMapping):
 	def __iter__(self) -> Iterable[Any]:
 		if not self:
 			return
-		if self._past:
-			yield from map(get0, self._past)
-		if self._future:
-			yield from map(get0, self._future)
+		with self._lock:
+			if self._past:
+				yield from map(get0, self._past)
+			if self._future:
+				yield from map(get0, self._future)
 
 	def __contains__(self, item: int) -> bool:
 		return item in self._keys
