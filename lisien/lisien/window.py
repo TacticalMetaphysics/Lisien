@@ -413,7 +413,7 @@ class WindowDictSlice:
 					return iter(())
 			if start < stop:
 				left, right = start, stop
-				cmp = ge
+				cmp = gt
 			elif step is None or step > 0:
 				return iter(())
 			else:
@@ -519,7 +519,7 @@ class WindowDictSlice:
 					return iter(())
 			if start < stop:
 				left, right = start, stop
-				cmp = lt
+				cmp = le
 			elif step is None or step > 0:
 				return iter(())
 			else:
