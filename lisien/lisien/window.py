@@ -525,16 +525,12 @@ class WindowDictSlice:
 			else:
 				left, right = stop, start
 				cmp = le
-			seek(right)
-			if not past:
-				return iter(())
-			if past[-1][0] == right:
-				future.append(past.pop())
-			if not past:
-				return iter(())
 			seek(left)
-			if past and past[-1][0] == start:
+			if past and past[-1][0] == left:
 				future.append(past.pop())
+				dic._last = left
+			if not future:
+				return iter(())
 			if step is None or step > 0:
 				inner_inner_it = reversed(future)
 			else:
