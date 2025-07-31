@@ -211,6 +211,14 @@ class WindowDictPastFutureItemsView(ItemsView):
 	def _out_of_range(item: tuple, stack: list):
 		pass
 
+	def __iter__(self):
+		with self._mapping.lock:
+			yield from reversed(self._mapping.stack)
+
+	def __reversed__(self):
+		with self._mapping.lock:
+			yield from self._mapping.stack
+
 	def __contains__(self, item: tuple[int, Any]):
 		with self._mapping.lock:
 			if self._out_of_range(item, self._mapping.stack):
@@ -220,14 +228,6 @@ class WindowDictPastFutureItemsView(ItemsView):
 
 
 class WindowDictPastItemsView(WindowDictPastFutureItemsView):
-	def __iter__(self):
-		with self._mapping.lock:
-			yield from reversed(self._mapping.stack)
-
-	def __reversed__(self):
-		with self._mapping.lock:
-			yield from self._mapping.stack
-
 	@staticmethod
 	def _out_of_range(item: tuple[int, Any], stack: list[tuple[int, Any]]):
 		return item[0] < stack[0][0] or item[0] > stack[-1][0]
@@ -235,14 +235,6 @@ class WindowDictPastItemsView(WindowDictPastFutureItemsView):
 
 class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
 	"""View on a WindowDict's future items relative to last lookup"""
-
-	def __iter__(self):
-		with self._mapping.lock:
-			yield from reversed(self._mapping.stack)
-
-	def __reversed__(self):
-		with self._mapping.lock:
-			yield from self._mapping.stack
 
 	@staticmethod
 	def _out_of_range(item: tuple[int, Any], stack: list[tuple[int, Any]]):
