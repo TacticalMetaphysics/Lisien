@@ -3212,6 +3212,8 @@ class Engine(AbstractEngine, Executor):
 				if node in thing_location_keyframe:
 					del thing_location_keyframe[node]
 				if node in node_contents_keyframe:
+					for contained in node_contents_keyframe[node]:
+						del nodes_keyframe[contained]
 					del node_contents_keyframe[node]
 		for node, upd in node_val_delta.items():
 			if node in nodes_delta and not nodes_delta[node]:
