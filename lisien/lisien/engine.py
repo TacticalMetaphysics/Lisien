@@ -146,6 +146,8 @@ from .typing import (
 	Turn,
 	Value,
 	EdgesDict,
+	UniversalKey,
+	RuleNeighborhood,
 )
 from .util import (
 	ACTIONS,
