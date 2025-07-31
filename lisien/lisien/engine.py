@@ -1454,10 +1454,10 @@ class Engine(AbstractEngine, Executor):
 		turn_to: Turn,
 		tick_to: Tick,
 		delta: DeltaDict,
+		__: Turn,
+		___: Tick,
 		_: None,
 		graph: CharName,
-		turn: Turn,
-		tick: Tick,
 		val: Value,
 	) -> None:
 		"""Change a delta to say that a graph was deleted or not"""
