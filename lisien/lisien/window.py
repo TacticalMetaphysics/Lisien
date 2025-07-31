@@ -94,13 +94,13 @@ def update_backward_window(
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for tick, state in branchd[turn_from].past(tick_to + 1).items():
+		for tick, state in branchd[turn_from].past(tick_to).items():
 			if tick < tick_to:
 				return
 			updfun(turn_from, tick, *state)
 		return
 	if turn_from in branchd:
-		for tick, state in branchd[turn_from].past(tick_from + 1).items():
+		for tick, state in branchd[turn_from].past(tick_from).items():
 			updfun(turn_from, tick, *state)
 	midturn: Turn
 	for midturn in range(turn_from - 1, turn_to, -1):
