@@ -62,13 +62,13 @@ def update_window(
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for tick, state in branchd[turn_from].future(tick_from).items():
+		for tick, state in branchd[turn_from].future(tick_from - 1).items():
 			if tick > tick_to:
 				return
 			updfun(turn_from, tick, *state)
 		return
 	if turn_from in branchd:
-		for tick, state in branchd[turn_from].future(tick_from).items():
+		for tick, state in branchd[turn_from].future(tick_from - 1).items():
 			updfun(turn_from, tick, *state)
 	for midturn in range(turn_from + 1, turn_to):
 		if midturn in branchd:
