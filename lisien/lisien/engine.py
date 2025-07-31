@@ -1585,9 +1585,9 @@ class Engine(AbstractEngine, Executor):
 		)
 
 		def setgraphval(
+			delta: DeltaDict,
 			_: Turn,
 			__: Tick,
-			delta: DeltaDict,
 			graph: CharName,
 			key: Stat,
 			val: Value,
