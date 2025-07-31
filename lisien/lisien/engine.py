@@ -48,7 +48,7 @@ from random import Random, randint
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Callable, Iterable, Iterator, Optional, Type
+from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Type
 
 import networkx as nx
 import numpy as np
@@ -136,6 +136,7 @@ from .typing import (
 	Plan,
 	RulebookName,
 	RuleName,
+	RuleFuncName,
 	SlightlyPackedDeltaType,
 	StatDict,
 	Stat,
@@ -175,7 +176,12 @@ from .util import (
 	world_locked,
 	UNITS,
 )
-from .window import WindowDict, update_backward_window, update_window
+from .window import (
+	WindowDict,
+	update_backward_window,
+	update_window,
+	SettingsTurnDict,
+)
 from .xcollections import (
 	ChangeTrackingDict,
 	CharacterMapping,
@@ -1449,6 +1455,8 @@ class Engine(AbstractEngine, Executor):
 		delta: DeltaDict,
 		_: None,
 		graph: CharName,
+		turn: Turn,
+		tick: Tick,
 		val: Value,
 	) -> None:
 		"""Change a delta to say that a graph was deleted or not"""
@@ -1576,7 +1584,12 @@ class Engine(AbstractEngine, Executor):
 		)
 
 		def setgraphval(
-			delta: DeltaDict, graph: CharName, key: Stat, val: Value
+			_: Turn,
+			__: Tick,
+			delta: DeltaDict,
+			graph: CharName,
+			key: Stat,
+			val: Value,
 		) -> None:
 			"""Change a delta to say that a graph stat was set to a certain value"""
 			if graph not in delta:
@@ -1587,6 +1600,8 @@ class Engine(AbstractEngine, Executor):
 
 		def setnode(
 			delta: DeltaDict,
+			turn: Turn,
+			tick: Tick,
 			graph: CharName,
 			node: NodeName,
 			exists: bool | None,
@@ -1598,9 +1613,20 @@ class Engine(AbstractEngine, Executor):
 				return
 			graph_nodes: NodesDict = delta[graph].setdefault("nodes", {})
 			graph_nodes[node] = bool(exists)
+			journal: SettingsTurnDict
+			journal = self._node_contents_cache.presettings[branch]
+			if turn not in journal or tick not in journal[turn]:
+				return
+			contents: frozenset[NodeName] = journal[turn][tick][-1]
+			if not contents:
+				return
+			for thing in contents:
+				graph_nodes[thing] = bool(exists)
 
 		def setnodeval(
 			delta: DeltaDict,
+			_: Turn,
+			__: Tick,
 			graph: CharName,
 			node: NodeName,
 			key: Stat,
@@ -1627,6 +1653,8 @@ class Engine(AbstractEngine, Executor):
 		def setedge(
 			delta: DeltaDict,
 			is_multigraph: callable,
+			_: Turn,
+			__: Tick,
 			graph: CharName,
 			orig: NodeName,
 			dest: NodeName,
@@ -1651,6 +1679,8 @@ class Engine(AbstractEngine, Executor):
 		def setedgeval(
 			delta: DeltaDict,
 			is_multigraph: callable,
+			turn: Turn,
+			tick: Tick,
 			graph: CharName,
 			orig: NodeName,
 			dest: NodeName,
@@ -1762,13 +1792,22 @@ class Engine(AbstractEngine, Executor):
 				evbranches[branch],
 			)
 
-		def upduniv(_, key, val):
+		def upduniv(
+			_: Turn, __: Tick, ___: None, key: UniversalKey, val: Value
+		):
 			delta.setdefault("universal", {})[key] = val
 
 		if branch in univbranches:
 			updater(upduniv, univbranches[branch])
 
-		def updunit(char, graph, node, is_unit):
+		def updunit(
+			_: Turn,
+			__: Tick,
+			char: CharName,
+			graph: CharName,
+			node: NodeName,
+			is_unit: bool,
+		):
 			if char in delta and delta[char] is None:
 				return
 			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
@@ -1778,7 +1817,13 @@ class Engine(AbstractEngine, Executor):
 		if branch in unitbranches:
 			updater(updunit, unitbranches[branch])
 
-		def updthing(char, thing, loc):
+		def updthing(
+			_: Turn,
+			__: Tick,
+			char: CharName,
+			thing: NodeName,
+			loc: NodeName,
+		):
 			if char in delta and (
 				delta[char] is None
 				or (
@@ -1798,13 +1843,26 @@ class Engine(AbstractEngine, Executor):
 		if branch in thbranches:
 			updater(updthing, thbranches[branch])
 
-		def updrb(_, rulebook, rules):
+		def updrb(
+			__: Turn,
+			___: Tick,
+			_: None,
+			rulebook: RulebookName,
+			rules: list[RuleName],
+		):
 			delta.setdefault("rulebooks", {})[rulebook] = rules or []
 
 		if branch in rbbranches:
 			updater(updrb, rbbranches[branch])
 
-		def updru(key, _, rule, funs):
+		def updru(
+			key: Literal["triggers", "prereqs", "actions"],
+			__: Turn,
+			___: Tick,
+			_: None,
+			rule: RuleName,
+			funs: list[RuleFuncName],
+		):
 			delta.setdefault("rules", {}).setdefault(rule, {})[key] = (
 				funs or []
 			)
@@ -1874,7 +1932,13 @@ class Engine(AbstractEngine, Executor):
 				charporbbranches[branch],
 			)
 
-		def updnoderb(character, node, rulebook):
+		def updnoderb(
+			_: Turn,
+			__: Tick,
+			character: CharName,
+			node: NodeName,
+			rulebook: RulebookName,
+		):
 			if (character in delta) and (
 				delta[character] is None
 				or (
@@ -1891,7 +1955,14 @@ class Engine(AbstractEngine, Executor):
 		if branch in noderbbranches:
 			updater(updnoderb, noderbbranches[branch])
 
-		def updedgerb(character, orig, dest, rulebook=None):
+		def updedgerb(
+			_: Turn,
+			__: Tick,
+			character: CharName,
+			orig: NodeName,
+			dest: NodeName,
+			rulebook: RulebookName | None = None,
+		):
 			if rulebook is None:
 				# It's one of those updates that stores all the rulebooks from
 				# some origin. Not relevant to deltas.

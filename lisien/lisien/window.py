@@ -21,6 +21,8 @@ of the same key and neighboring ones repeatedly and in sequence.
 
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import (
 	ItemsView,
@@ -54,25 +56,27 @@ def update_window(
 	turn_to: Turn,
 	tick_to: Tick,
 	updfun: callable,
-	branchd: dict[Turn, list[tuple]],
+	branchd: SettingsTurnDict,
 ):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for past_state in branchd[turn_from][tick_from + 1 : tick_to + 1]:
-			updfun(*past_state)
+		for tick, state in branchd[turn_from].future(tick_from).items():
+			if tick > tick_to:
+				return
+			updfun(turn_from, tick, *state)
 		return
 	if turn_from in branchd:
-		for past_state in branchd[turn_from][tick_from + 1 :]:
-			updfun(*past_state)
+		for tick, state in branchd[turn_from].future(tick_from).items():
+			updfun(turn_from, tick, *state)
 	for midturn in range(turn_from + 1, turn_to):
 		if midturn in branchd:
-			for past_state in branchd[midturn][:]:
-				updfun(*past_state)
+			for tick, state in branchd[midturn].items():
+				updfun(midturn, tick, *state)
 	if turn_to in branchd:
-		for past_state in branchd[turn_to][: tick_to + 1]:
-			updfun(*past_state)
+		for tick, state in reversed(branchd[turn_to].past(tick_to).items()):
+			updfun(turn_to, tick, *state)
 
 
 def update_backward_window(
@@ -81,27 +85,27 @@ def update_backward_window(
 	turn_to: Turn,
 	tick_to: Tick,
 	updfun: callable,
-	branchd: dict[Turn, list[tuple]],
+	branchd: SettingsTurnDict,
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for future_state in reversed(
-			branchd[turn_from][tick_from : tick_to + 1]
-		):
-			updfun(*future_state)
+		for tick, state in branchd[turn_from].past(tick_to + 1).items():
+			if tick < tick_to:
+				return
+			updfun(*state)
 		return
 	if turn_from in branchd:
-		for future_state in reversed(branchd[turn_from][: tick_from + 1]):
-			updfun(*future_state)
+		for tick, state in branchd[turn_from].past(tick_from + 1).items():
+			updfun(turn_from, tick, *state)
 	for midturn in range(turn_from - 1, turn_to, -1):
 		if midturn in branchd:
-			for future_state in reversed(branchd[midturn][:]):
-				updfun(*future_state)
+			for tick, state in reversed(branchd[midturn].items()):
+				updfun(midturn, tick, *state)
 	if turn_to in branchd:
-		for future_state in reversed(branchd[turn_to][tick_to + 1 :]):
-			updfun(*future_state)
+		for tick, state in branchd[turn_to].future(tick_to + 1).items():
+			updfun(turn_to, tick, *state)
 
 
 class WindowDictKeysView(KeysView):
@@ -187,10 +191,6 @@ class WindowDictPastFutureItemsView(ItemsView):
 	@abstractmethod
 	def _out_of_range(item: tuple, stack: list):
 		pass
-
-	def __iter__(self):
-		with self._mapping.lock:
-			yield from reversed(self._mapping.stack)
 
 	def __contains__(self, item: tuple[int, Any]):
 		with self._mapping.lock:
@@ -278,9 +278,9 @@ class WindowDictPastFutureView(ABC, Mapping):
 	"""Abstract class for historical views on WindowDict"""
 
 	__slots__ = ("stack", "lock")
-	stack: list[tuple[int, Any]]
+	stack: list[tuple[int, Value]]
 
-	def __init__(self, stack: list[tuple[int, Any]], lock: RLock) -> None:
+	def __init__(self, stack: list[tuple[int, Value]], lock: RLock) -> None:
 		self.stack = stack
 		self.lock = lock
 
