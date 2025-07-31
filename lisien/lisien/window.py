@@ -856,10 +856,12 @@ class WindowDict(MutableMapping):
 				yield from map(get0, self._future)
 
 	def __contains__(self, item: int) -> bool:
-		return item in self._keys
+		with self._lock:
+			return item in self._keys
 
 	def __len__(self) -> int:
-		return len(self._keys)
+		with self._lock:
+			return len(self._keys)
 
 	def __getitem__(self, rev: int) -> Any:
 		if isinstance(rev, slice):
