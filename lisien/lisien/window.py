@@ -586,7 +586,7 @@ def _recurse(rev: int, revs: list[tuple[int, Any]]) -> tuple[int, Any]:
 	elif len(revs) == 1:
 		if revs[0][0] <= rev:
 			return revs[0]
-		raise HistoricKeyError("Can't retrieve revision", rev, deleted=True)
+		raise HistoricKeyError("Can't retrieve revision", rev, deleted=False)
 	pivot = len(revs) // 2
 	before = revs[:pivot]
 	after = revs[pivot:]
