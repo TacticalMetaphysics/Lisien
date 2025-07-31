@@ -892,9 +892,6 @@ class WindowDict(MutableMapping):
 			self._keys.add(rev)
 
 	def __delitem__(self, rev: int) -> None:
-		self.del_item(rev)
-
-	def del_item(self, rev: int, search=False) -> None:
 		# Not checking for rev's presence at the beginning because
 		# to do so would likely require iterating thru history,
 		# which I have to do anyway in deleting.
@@ -914,10 +911,7 @@ class WindowDict(MutableMapping):
 		elif not self.beginning <= rev <= self.end:
 			raise HistoricKeyError("Rev outside of history: {}".format(rev))
 		with self._lock:
-			if search:
-				self.search(rev)
-			else:
-				self._seek(rev)
+			self._seek(rev)
 			past = self._past
 			if not past or past[-1][0] != rev:
 				raise HistoricKeyError("Rev not present: {}".format(rev))
