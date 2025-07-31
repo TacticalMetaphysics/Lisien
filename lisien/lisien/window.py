@@ -323,7 +323,7 @@ class WindowDictPastView(WindowDictPastFutureView):
 			stack = self.stack
 			if not stack or key < stack[0][0] or key > stack[-1][0]:
 				raise KeyError("Out of range", key)
-			return _recurse(key, stack)
+			return _recurse(key, stack)[1]
 
 	def keys(self) -> WindowDictPastKeysView:
 		return WindowDictPastKeysView(self)
@@ -357,7 +357,7 @@ class WindowDictFutureView(WindowDictPastFutureView):
 				raise KeyError("No data")
 			if key < stack[-1][0] or key > stack[0][0]:
 				raise KeyError("No such revision", key)
-			return _recurse(key, stack)
+			return _recurse(key, stack)[1]
 
 	def keys(self) -> WindowDictFutureKeysView:
 		return WindowDictFutureKeysView(self)
