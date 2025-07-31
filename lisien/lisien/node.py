@@ -586,18 +586,11 @@ class Node(graph.Node, rule.RuleFollower):
 		):
 			if now is None:
 				now = engine._nbtt()
-			branch, turn, tick = now
 			character = self.character
 			g = character.name
 			n = self.name
-			former_content = frozenset(self.content.keys())
 			for contained in list(self.contents()):
 				contained._delete(now)
-			engine._node_contents_cache.presettings[branch][turn][tick] = (
-				g,
-				n,
-				former_content,
-			)
 			for username in list(self.user):
 				engine._unitness_cache.store(username, g, n, *now, False)
 				engine.query.unit_set(username, g, n, *now, False)
