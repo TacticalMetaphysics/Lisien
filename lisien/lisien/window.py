@@ -771,7 +771,7 @@ class WindowDict(MutableMapping):
 			raise KeyError("No data")
 
 	def truncate(
-		self, rev: int, direction: Direction = Direction.FORWARD, search=False
+		self, rev: int, direction: Direction = Direction.FORWARD
 	) -> set[int]:
 		"""Delete everything after the given revision, exclusive.
 
@@ -785,10 +785,7 @@ class WindowDict(MutableMapping):
 			direction = Direction(direction)
 		deleted = set()
 		with self._lock:
-			if search:
-				self.search(rev)
-			else:
-				self._seek(rev)
+			self._seek(rev)
 			if direction == Direction.FORWARD:
 				to_delete = set(map(get0, self._future))
 				deleted.update(to_delete)
