@@ -238,11 +238,11 @@ class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
 
 	def __iter__(self):
 		with self._mapping.lock:
-			yield from self._mapping.stack
+			yield from reversed(self._mapping.stack)
 
 	def __reversed__(self):
 		with self._mapping.lock:
-			yield from reversed(self._mapping.stack)
+			yield from self._mapping.stack
 
 	@staticmethod
 	def _out_of_range(item: tuple[int, Any], stack: list[tuple[int, Any]]):
