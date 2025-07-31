@@ -352,10 +352,10 @@ class WindowDictFutureView(WindowDictPastFutureView):
 
 	def __getitem__(self, key: int):
 		with self.lock:
-			stack = self.stack
+			stack = list(reversed(self.stack))
 			if not stack:
 				raise KeyError("No data")
-			if key < stack[-1][0] or key > stack[0][0]:
+			if key < stack[0][0] or key > stack[-1][0]:
 				raise KeyError("No such revision", key)
 			return _recurse(key, stack)[1]
 
