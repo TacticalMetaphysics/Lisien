@@ -330,11 +330,8 @@ class WindowDictPastView(WindowDictPastFutureView):
 		with self.lock:
 			stack = self.stack
 			if not stack or key < stack[0][0] or key > stack[-1][0]:
-				raise KeyError
-			for rev, value in stack:
-				if rev == key:
-					return value
-			raise KeyError
+				raise KeyError("Out of range", key)
+			return _recurse(key, stack)
 
 	def keys(self) -> WindowDictPastKeysView:
 		return WindowDictPastKeysView(self)
