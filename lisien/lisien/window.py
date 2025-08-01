@@ -473,11 +473,15 @@ class WindowDictSlice:
 
 	@staticmethod
 	def _iter_items_until(
-		it: Iterator[tuple[int, Value]], until: Callable[[int], bool]
+		it: Iterator[tuple[int, Value]],
+		until: Callable[[int], bool],
+		started: Callable[[int], bool] | None = None,
 	) -> Iterator[tuple[int, Value]]:
 		for rev, val in it:
 			if until(rev):
 				return
+			if started and not started(rev):
+				continue
 			yield rev, val
 
 	def _get_iterator(self) -> Iterator[Value]:
@@ -520,21 +524,28 @@ class WindowDictSlice:
 			if start < stop:
 				left, right = start, stop
 				cmp = le
-			elif step is None or step > 0:
-				return iter(())
 			else:
 				left, right = stop, start
-				cmp = le
+				cmp = ge
 			seek(left)
 			if past and past[-1][0] == left:
 				future.append(past.pop())
 			if not future:
 				return iter(())
-			if step is None or step > 0:
+			started = None
+			if step is None:
+				if start < stop:
+					inner_inner_it = reversed(future)
+				else:
+					inner_inner_it = iter(future)
+					started = partial(ge, start)
+			elif step > 0:
 				inner_inner_it = reversed(future)
 			else:
 				inner_inner_it = iter(future)
-			inner_it = iter_items_until(inner_inner_it, partial(cmp, right))
+			inner_it = iter_items_until(
+				inner_inner_it, partial(cmp, stop), started
+			)
 			if step is None:
 				return map(get1, inner_it)
 			else:
