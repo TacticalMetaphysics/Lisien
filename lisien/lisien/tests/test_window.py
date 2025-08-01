@@ -128,6 +128,9 @@ def test_slice(windd):
 	]
 	assert list(windd[25:50:2]) == [windd[i] for i in range(25, 50, 2)]
 	assert list(windd[50:25:-2]) == [windd[i] for i in range(50, 25, -2)]
+	assert list(windd[-1:1]) == [
+		windd[i] for i in range(max(windd) - 1, 1, -1)
+	]
 
 
 def test_del(windd):

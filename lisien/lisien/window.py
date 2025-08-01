@@ -467,13 +467,13 @@ class WindowDictSlice:
 		if start is None:
 			start = 0
 		elif start < 0:
-			start = biggest - start
+			start = biggest + start
 			if start < 0:
 				raise IndexError("WindowDict index out of range", start)
 		if stop is None:
 			stop = biggest + 1
 		elif stop < 0:
-			stop = biggest - stop
+			stop = biggest + stop
 			if stop < 0:
 				raise IndexError("WindowDict index out of range", stop)
 		return start, stop
