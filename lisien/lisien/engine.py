@@ -3881,9 +3881,6 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick = now
 		else:
 			branch, turn, tick = nbtt()
-		exist_edge(
-			character, orig, dest, idx, branch, turn, tick, exist or False
-		)
 		store(character, orig, dest, idx, branch, turn, tick, exist)
 		if (character, orig, dest) in self._edge_objs:
 			del self._edge_objs[character, orig, dest]
@@ -3906,6 +3903,9 @@ class Engine(AbstractEngine, Executor):
 				tick,
 				(character, orig, dest),
 			)
+		exist_edge(
+			character, orig, dest, idx, branch, turn, tick, exist or False
+		)
 
 	def _call_in_subprocess(
 		self,
