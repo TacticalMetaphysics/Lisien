@@ -215,7 +215,7 @@ class Portal(Edge, RuleFollower):
 		"""
 		self._delete()
 
-	def _delete(self, *, now: Optional[Time] = None) -> None:
+	def _delete(self, *, now: Optional[Time] = None) -> Time:
 		engine = self.engine
 		with (
 			engine.world_lock,
@@ -233,6 +233,7 @@ class Portal(Edge, RuleFollower):
 			engine._exist_edge(
 				self.character.name, self.orig, self.dest, exist=None, now=now
 			)
+			return now
 
 	def unwrap(self) -> dict:
 		"""Return a dictionary representation of this entity"""
