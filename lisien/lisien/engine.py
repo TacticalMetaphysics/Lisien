@@ -1616,11 +1616,14 @@ class Engine(AbstractEngine, Executor):
 				return
 			graph_nodes: NodesDict = delta[graph].setdefault("nodes", {})
 			graph_nodes[node] = bool(exists)
-			journal: SettingsTurnDict
-			journal = self._node_contents_cache.presettings[branch]
-			if turn not in journal or tick not in journal[turn]:
+			try:
+				contents: frozenset[NodeName] = (
+					self._node_contents_cache.retrieve(
+						graph, node, branch, turn, tick
+					)
+				)
+			except KeyError:
 				return
-			contents: frozenset[NodeName] = journal[turn][tick][-1]
 			if not contents:
 				return
 			for thing in contents:
