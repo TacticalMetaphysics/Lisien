@@ -94,7 +94,7 @@ def update_backward_window(
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for tick, state in branchd[turn_from].past(tick_to).items():
+		for tick, state in branchd[turn_from].past(tick_from).items():
 			if tick < tick_to:
 				return
 			updfun(turn_from, tick, *state)
