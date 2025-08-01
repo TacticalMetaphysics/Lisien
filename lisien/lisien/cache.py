@@ -3678,6 +3678,19 @@ class NodeContentsCache(Cache):
 			truncate=truncate,
 		)
 
+	def retrieve(
+		self,
+		character: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		search: bool = False,
+	) -> frozenset[NodeName]:
+		return super().retrieve(
+			character, node, branch, turn, tick, search=search
+		)
+
 	def _iter_future_contradictions(
 		self,
 		entity: EntityKey,
