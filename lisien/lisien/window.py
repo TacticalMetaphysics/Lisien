@@ -318,7 +318,7 @@ class WindowDictPastView(WindowDictPastFutureView):
 		with self.lock:
 			yield from map(get0, self.stack)
 
-	def __getitem__(self, key: int) -> Any:
+	def __getitem__(self, key: int) -> Value:
 		with self.lock:
 			stack = self.stack
 			if not stack or key < stack[0][0] or key > stack[-1][0]:
@@ -378,205 +378,169 @@ class WindowDictSlice:
 		self.dic = dic
 		self.slic = slic
 
-	def _get_reversed_iterator(self) -> Iterator[Value]:
-		step_iter = self._step_iter
-		iter_items_until = self._iter_items_until
-		dic = self.dic
-		if not dic:
-			return iter(())
-		slic = self.slic
-		start = slic.start
-		if start is not None and start < 0:
-			start = len(dic) - start
-			if start < 0:
-				raise IndexError("WindowDict index out of range", start)
-		stop = slic.stop
-		if stop is not None and stop < 0:
-			stop = len(dic) - stop
-			if stop < 0:
-				raise IndexError("WindowDict index out of range", stop)
-		step = slic.step
-		seek = dic._seek
-		past = dic._past
-		future = dic._future
-		if start is None and stop is None:
-			if step is None:
-				return chain(map(get1, future), map(get1, reversed(past)))
-			else:
-				return step_iter(chain(future, reversed(past)), step)
-		if start is not None and stop is not None:
-			if stop == start:
-				seek(start)
-				if past and past[-1][0] == start:
-					return iter((past[-1][1],))
-				else:
-					return iter(())
-			if start < stop:
-				left, right = start, stop
-				cmp = gt
-			elif step is None or step > 0:
-				return iter(())
-			else:
-				left, right = stop, start
-				cmp = gt
-			seek(right)
-			if not past:
-				return iter(())
-			if past[-1][0] == right:
-				future.append(past.pop())
-			if not past:
-				return iter(())
-			if step is None or step > 0:
-				inner_inner_it = reversed(past)
-			else:
-				inner_inner_it = iter(past)
-			inner_it = iter_items_until(inner_inner_it, partial(cmp, left))
-			if step is None:
-				return map(get1, inner_it)
-			else:
-				return step_iter(inner_it, abs(step))
-		elif start is None:
-			seek(stop)
-			if not past:
-				return iter(())
-			if past[-1][0] == stop:
-				future.append(past.pop())
-			if step is None:
-				return map(get1, reversed(past))
-			elif step < 0:
-				return step_iter(iter(past), abs(step))
-			else:
-				return step_iter(reversed(past), step)
-		else:
-			assert stop is None
-			seek(start)
-			if past and past[-1][0] == start:
-				future.append(past.pop())
-			if step is None:
-				return map(get1, future)
-			elif step < 0:
-				return step_iter(reversed(future), abs(step))
-			else:
-				return step_iter(iter(future), step)
+	def __iter__(self) -> Iterator[Value]:
+		with self.dic._lock:
+			slic = self.slic
+			if slic.step:
+				return self._step_iter()
+			start, stop = self._modulo(slic.start, slic.stop)
+			if stop < start:
+				it = self._get_item_iterator_stepless_reversed(
+					stop, start, include_start=False, include_stop=True
+				)
+				return map(get1, it)
+			return map(
+				get1,
+				self._get_item_iterator_stepless(
+					*self._modulo(slic.start, slic.stop)
+				),
+			)
 
 	def __reversed__(self) -> Iterator[Value]:
 		with self.dic._lock:
-			yield from self._get_reversed_iterator()
+			slic = self.slic
+			if slic.step:
+				return self._step_iter_reversed()
+			start, stop = self._modulo(slic.start, slic.stop)
+			if stop < start:
+				items = self._get_item_iterator_stepless(
+					stop, start, include_start=False, include_stop=True
+				)
+			else:
+				items = self._get_item_iterator_stepless_reversed(start, stop)
+			return map(get1, items)
 
-	@staticmethod
-	def _step_iter(
-		it: Iterator[tuple[int, Value]], step: int
-	) -> Iterator[Value]:
-		for rev, val in it:
-			if rev % step == 0:
-				yield val
+	def _step_iter(self):
+		dic = self.dic
+		slic = self.slic
+		start, stop = self._modulo(slic.start, slic.stop)
+		for i in range(start, stop, slic.step):
+			yield dic[i]
+
+	def _step_iter_reversed(self):
+		dic = self.dic
+		slic = self.slic
+		start, stop = self._modulo(slic.start, slic.stop)
+		for i in reversed(range(start, stop, slic.step)):
+			yield dic[i]
 
 	@staticmethod
 	def _iter_items_until(
 		it: Iterator[tuple[int, Value]],
 		until: Callable[[int], bool],
-		started: Callable[[int], bool] | None = None,
+		include_last: bool = False,
 	) -> Iterator[tuple[int, Value]]:
-		for rev, val in it:
-			if until(rev):
-				return
-			if started and not started(rev):
-				continue
-			yield rev, val
+		if include_last:
+			for rev, val in it:
+				yield rev, val
+				if until(rev):
+					return
+		else:
+			for rev, val in it:
+				if until(rev):
+					return
+				yield rev, val
 
-	def _get_iterator(self) -> Iterator[Value]:
-		step_iter = self._step_iter
-		iter_items_until = self._iter_items_until
+	def _iter_past_items_until(
+		self,
+		rev: int,
+		until: Callable[[int], bool],
+		include_last: bool = False,
+	):
+		return self._iter_items_until(
+			iter(self.dic.past(rev).items()), until, include_last
+		)
+
+	def _iter_future_items_until(
+		self,
+		rev: int,
+		until: Callable[[int], bool],
+		include_last: bool = False,
+	):
+		return self._iter_items_until(
+			iter(self.dic.future(rev).items()), until, include_last
+		)
+
+	def _modulo(self, start: int | None, stop: int | None) -> tuple[int, int]:
+		dic = self.dic
+		biggest = 0
+		if dic._future:
+			biggest = dic._future[0][0]
+		elif dic._past:
+			biggest = dic._past[-1][0]
+		if start is None:
+			start = 0
+		elif start < 0:
+			start = biggest - start
+			if start < 0:
+				raise IndexError("WindowDict index out of range", start)
+		if stop is None:
+			stop = biggest + 1
+		elif stop < 0:
+			stop = biggest - stop
+			if stop < 0:
+				raise IndexError("WindowDict index out of range", stop)
+		return start, stop
+
+	def _get_item_iterator_stepless_reversed(
+		self,
+		start: int,
+		stop: int,
+		include_start: bool = True,
+		include_stop: bool = False,
+	) -> Iterator[tuple[int, Value]]:
+		if isinstance(start, int) and isinstance(stop, int) and start > stop:
+			raise ValueError("start should come before stop", start, stop)
 		dic = self.dic
 		if not dic:
 			return iter(())
-		slic = self.slic
-		start = slic.start
-		if start is not None and start < 0:
-			start = len(dic) - start
-			if start < 0:
-				raise IndexError("WindowDict index out of range", start)
-		stop = slic.stop
-		if stop is not None and stop < 0:
-			stop = len(dic) - stop
-			if stop < 0:
-				raise IndexError("WindowDict index out of range", stop)
-		step = slic.step
 		seek = dic._seek
 		past = dic._past
 		future = dic._future
 		if not past and not future:
 			return iter(())
-		if start is None and stop is None:
-			if step is None:
-				return chain(map(get1, past), map(get1, reversed(future)))
-			elif step < 0:
-				return step_iter(chain(future, reversed(past)), abs(step))
-			else:
-				return step_iter(chain(past, reversed(future)), step)
-		if start is not None and stop is not None:
-			if stop == start:
-				seek(start)
-				if past and past[-1][0] == start:
-					return iter((past[-1][1],))
-				else:
-					return iter(())
-			if start < stop:
-				left, right = start, stop
-				cmp = le
-			else:
-				left, right = stop, start
-				cmp = ge
-			seek(left)
-			if past and past[-1][0] == left:
-				future.append(past.pop())
-			if not future:
-				return iter(())
-			started = None
-			if step is None:
-				if start < stop:
-					inner_inner_it = reversed(future)
-				else:
-					inner_inner_it = iter(future)
-					started = partial(ge, start)
-			elif step > 0:
-				inner_inner_it = reversed(future)
-			else:
-				inner_inner_it = iter(future)
-			inner_it = iter_items_until(
-				inner_inner_it, partial(cmp, stop), started
-			)
-			if step is None:
-				return map(get1, inner_it)
-			else:
-				return step_iter(inner_it, abs(step))
-		elif start is None:
-			seek(stop)
-			if not past:
-				return iter(())
-			if past[-1][0] == stop:
-				future.append(past.pop())
-			if step is None:
-				return map(get1, past)
-			elif step < 0:
-				return step_iter(reversed(past), abs(step))
-			else:
-				return step_iter(iter(past), step)
-		else:
-			assert stop is None
+		if stop == start:
 			seek(start)
 			if past and past[-1][0] == start:
-				future.append(past.pop())
-			if step is None:
-				return map(get1, reversed(future))
-			elif step < 0:
-				return step_iter(iter(future), abs(step))
+				return iter((past[-1][1],))
 			else:
-				return step_iter(reversed(future), step)
+				return iter(())
+		seek(stop)
+		if not include_stop and past and past[-1][0] == stop:
+			future.append(past.pop())
+		return self._iter_items_until(
+			reversed(past), partial(ge, start), include_last=include_start
+		)
 
-	def __iter__(self) -> Iterator[Value]:
-		with self.dic._lock:
-			yield from self._get_iterator()
+	def _get_item_iterator_stepless(
+		self,
+		start: int,
+		stop: int,
+		include_start: bool = True,
+		include_stop: bool = False,
+	) -> Iterator[tuple[int, Value]]:
+		if isinstance(start, int) and isinstance(stop, int) and start > stop:
+			raise ValueError("start should come before stop", start, stop)
+		dic = self.dic
+		if not dic:
+			return iter(())
+		seek = dic._seek
+		past = dic._past
+		future = dic._future
+		if not past and not future:
+			return iter(())
+		if stop == start:
+			seek(start)
+			if past and past[-1][0] == start:
+				return iter((past[-1][1],))
+			else:
+				return iter(())
+		it = self._iter_future_items_until(
+			start, partial(le, stop), include_last=include_stop
+		)
+		if include_start and past and past[-1][0] == start:
+			return chain((past[-1],), it)
+		return it
 
 
 def _recurse(rev: int, revs: list[tuple[int, Any]]) -> tuple[int, Any]:
