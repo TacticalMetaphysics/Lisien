@@ -140,6 +140,7 @@ def test_wolfsheep(tmp_path, database, serial_or_parallel):
 		engy.branch = "omg"
 		sheep = engy.character["sheep"]
 		initial_locations = [unit.location.name for unit in sheep.units()]
+		assert initial_locations
 		initial_bare_places = list(
 			engy.character["physical"].stat["bare_places"]
 		)
