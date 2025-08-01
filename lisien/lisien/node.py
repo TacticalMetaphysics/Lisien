@@ -591,6 +591,7 @@ class Node(graph.Node, rule.RuleFollower):
 			n = self.name
 			for contained in list(self.contents()):
 				contained._delete(now)
+				now = engine._nbtt()
 			for username in list(self.user):
 				engine._unitness_cache.store(username, g, n, *now, False)
 				engine.query.unit_set(username, g, n, *now, False)
