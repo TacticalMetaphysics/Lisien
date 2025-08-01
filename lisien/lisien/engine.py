@@ -3193,8 +3193,10 @@ class Engine(AbstractEngine, Executor):
 				for node, ex in stuff["nodes"].items():
 					if ex:
 						continue
-					if graf in char_unit_kf:
-						del char_unit_kf[graf]
+					if graf in char_unit_kf and node in char_unit_kf[graf]:
+						del char_unit_kf[graf][node]
+						if not char_unit_kf[graf]:
+							del char_unit_kf[graf]
 					if char in user_set_kf:
 						singlegraf = frozenset([graf])
 						for graaf in user_set_kf[char]:
