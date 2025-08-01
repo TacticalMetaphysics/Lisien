@@ -6586,10 +6586,10 @@ class Engine(AbstractEngine, Executor):
 			now = self._nbtt()
 			for orig in list(graph.adj):
 				for dest in list(graph.adj[orig]):
-					graph.adj[orig][dest]._delete(now=now)
+					now = graph.adj[orig][dest]._delete(now=now)
 			for node in list(graph.node):
 				if node in graph.node:
-					graph.node[node]._delete(now=now)
+					now = graph.node[node]._delete(now=now)
 			for stat in set(graph.graph) - {"name", "units"}:
 				self._graph_val_cache.store(name, stat, *now, None)
 				self.query.graph_val_set(name, stat, *now, None)

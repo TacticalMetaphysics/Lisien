@@ -781,7 +781,7 @@ class Thing(Node, AbstractThing):
 	def facade(self) -> FacadeThing:
 		return FacadeThing(self.character.facade(), self)
 
-	def _delete(self, now: Optional[Time] = None) -> None:
+	def _delete(self, now: Optional[Time] = None) -> Time:
 		with (
 			self.engine.world_lock,
 			self.engine.batch(),
@@ -795,3 +795,4 @@ class Thing(Node, AbstractThing):
 			self.engine.query.set_thing_loc(
 				self.character.name, self.name, *now, None
 			)
+			return now
