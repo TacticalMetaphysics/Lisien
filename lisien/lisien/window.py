@@ -388,13 +388,9 @@ class WindowDictSlice:
 				it = self._get_item_iterator_stepless_reversed(
 					stop, start, include_start=False, include_stop=True
 				)
-				return map(get1, it)
-			return map(
-				get1,
-				self._get_item_iterator_stepless(
-					*self._modulo(slic.start, slic.stop)
-				),
-			)
+			else:
+				it = self._get_item_iterator_stepless(start, stop)
+			return map(get1, it)
 
 	def __reversed__(self) -> Iterator[Value]:
 		with self.dic._lock:
