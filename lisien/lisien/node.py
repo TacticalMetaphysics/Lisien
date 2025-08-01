@@ -575,7 +575,7 @@ class Node(graph.Node, rule.RuleFollower):
 		"""
 		self._delete()
 
-	def _delete(self, *, now: Optional[Time] = None) -> None:
+	def _delete(self, *, now: Optional[Time] = None) -> Time:
 		engine = self.engine
 		with (
 			engine.world_lock,
@@ -613,6 +613,7 @@ class Node(graph.Node, rule.RuleFollower):
 			self.character.node.send(
 				self.character.node, key=self.name, val=None
 			)
+			return now
 
 	def add_portal(self, other: NodeName | Node, **stats) -> None:
 		"""Connect a portal from here to another node"""
@@ -786,9 +787,7 @@ class Thing(Node, AbstractThing):
 			self.engine.batch(),
 			self.engine._things_cache.overwriting(),
 		):
-			if now is None:
-				now = self.engine._nbtt()
-			super()._delete(now=now)
+			now = super()._delete(now=now)
 			# don't advance time to store my non-location
 			self.engine._things_cache.store(
 				self.character.name, self.name, *now, None
