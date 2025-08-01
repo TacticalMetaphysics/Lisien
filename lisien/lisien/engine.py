@@ -3847,7 +3847,6 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick = now
 		else:
 			branch, turn, tick = nbtt()
-		exist_node(character, node, branch, turn, tick, exist)
 		store(character, node, branch, turn, tick, exist)
 		if exist:
 			self._nodes_rulebooks_cache.store(
@@ -3856,6 +3855,7 @@ class Engine(AbstractEngine, Executor):
 			self.query.set_node_rulebook(
 				character, node, branch, turn, tick, (character, node)
 			)
+		exist_node(character, node, branch, turn, tick, exist)
 
 	def _edge_exists(
 		self, character: CharName, orig: NodeName, dest: NodeName, idx: int = 0
