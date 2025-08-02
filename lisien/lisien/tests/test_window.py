@@ -44,50 +44,47 @@ def test_items(windd):
 
 
 def test_past(windd):
-	assert list(reversed(range(100))) == list(windd.past())
-	windd._seek(50)
-	assert list(reversed(range(51))) == list(windd.past())
+	assert list(reversed(range(100))) == list(windd.past(101))
+	assert list(reversed(range(51))) == list(windd.past(50))
 	unseen = testdata[51:]
 	seen = testdata[:51]
 	seen.reverse()
-	assert seen == list(windd.past().items())
+	assert seen == list(windd.past(50).items())
 	for item in seen:
-		assert item[0] in windd.past()
-		assert item[0] in windd.past().keys()
-		assert item in windd.past().items()
-		assert item[1] in windd.past().values()
-	for item in windd.past().items():
+		assert item[0] in windd.past(50)
+		assert item[0] in windd.past(50).keys()
+		assert item in windd.past(50).items()
+		assert item[1] in windd.past(50).values()
+	for item in windd.past(50).items():
 		assert item in seen
 	for item in unseen:
-		assert item[0] not in windd.past()
-		assert item[0] not in windd.past().keys()
-		assert item not in windd.past().items()
-		assert item[1] not in windd.past().values()
+		assert item[0] not in windd.past(50)
+		assert item[0] not in windd.past(50).keys()
+		assert item not in windd.past(50).items()
+		assert item[1] not in windd.past(50).values()
 
 
 def test_future(windd):
-	assert [] == list(windd.future())
-	windd._seek(-1)
-	assert list(range(100)) == list(windd.future())
+	assert [] == list(windd.future(101))
+	assert list(range(100)) == list(windd.future(-1))
 	for item in testdata:
-		assert item in windd.future().items()
-	windd._seek(50)
-	assert list(range(51, 100)) == list(windd.future())
+		assert item in windd.future(-1).items()
+	assert list(range(51, 100)) == list(windd.future(50))
 	unseen = testdata[51:]
 	seen = testdata[:51]
-	assert unseen == list(windd.future().items())
+	assert unseen == list(windd.future(50).items())
 	for item in unseen:
-		assert item[0] in windd.future()
-		assert item[0] in windd.future().keys()
-		assert item in windd.future().items()
-		assert item[1] in windd.future().values()
-	for item in windd.future().items():
+		assert item[0] in windd.future(50)
+		assert item[0] in windd.future(50).keys()
+		assert item in windd.future(50).items()
+		assert item[1] in windd.future(50).values()
+	for item in windd.future(50).items():
 		assert item in unseen
 	for item in seen:
-		assert item[0] not in windd.future()
-		assert item[0] not in windd.future().keys()
-		assert item not in windd.future().items()
-		assert item[1] not in windd.future().values()
+		assert item[0] not in windd.future(50)
+		assert item[0] not in windd.future(50).keys()
+		assert item not in windd.future(50).items()
+		assert item[1] not in windd.future(50).values()
 
 
 def test_empty():
