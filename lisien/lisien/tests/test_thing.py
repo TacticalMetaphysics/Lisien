@@ -46,7 +46,9 @@ def test_future_contents(something):
 		engine.turn = 0
 		someone = somewhere.new_thing("someone")
 		sometick = engine.tick
-	engine.turn = 0
+	assert engine.turn == 0
+	assert len(somewhere.contents()) == 1
+	assert something in somewhere.contents()
 	engine.tick = sometick
 	assert len(somewhere.contents()) == 2
 	assert something in somewhere.contents()
