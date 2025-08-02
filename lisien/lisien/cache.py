@@ -1363,13 +1363,13 @@ class Cache:
 		if not turns:
 			return
 		if turn in turns:
-			future_ticks = turns[turn].future(tick)
+			future_ticks = turns[turn].future(tick, include_same_rev=False)
 			for tck, newval in future_ticks.items():
 				if newval != value:
 					yield turn, tck
-			future_turns = turns.future(turn)
+			future_turns = turns.future(turn, include_same_rev=False)
 		elif turns.rev_gettable(turn):
-			future_turns = turns.future(turn)
+			future_turns = turns.future(turn, include_same_rev=False)
 		else:
 			future_turns = turns
 		if not future_turns:
