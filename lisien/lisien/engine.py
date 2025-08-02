@@ -1417,7 +1417,8 @@ class Engine(AbstractEngine, Executor):
 		for cache in self._caches:
 			if hasattr(cache, "delete_keyframe"):
 				cache.delete_keyframe(branch, turn, tick)
-			cache.shallowest.clear()
+			if hasattr(cache, "shallowest"):
+				cache.shallowest.clear()
 
 	@contextmanager
 	def advancing(self):
