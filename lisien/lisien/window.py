@@ -108,7 +108,9 @@ def update_backward_window(
 			for tick, state in reversed(branchd[midturn].items()):
 				updfun(midturn, tick, *state)
 	if turn_to in branchd:
-		for tick, state in branchd[turn_to].future(tick_to).items():
+		for tick, state in reversed(branchd[turn_to].items()):
+			if tick < tick_to:
+				return
 			updfun(turn_to, tick, *state)
 
 
