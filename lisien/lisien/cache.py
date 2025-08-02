@@ -1304,10 +1304,9 @@ class Cache:
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		direction: Direction = Direction.FORWARD.value,
+		direction: Direction = Direction.FORWARD,
 	):
-		if direction not in Direction:
-			raise ValueError("Illegal direction")
+		direction = Direction(direction)
 		(lock, parents, branches, keys, settings, presettings, keycache) = (
 			self._truncate_stuff
 		)
