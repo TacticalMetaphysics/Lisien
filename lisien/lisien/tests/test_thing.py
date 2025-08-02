@@ -49,6 +49,7 @@ def test_future_contents(something):
 	assert engine.turn == 0
 	assert len(somewhere.contents()) == 1
 	assert something in somewhere.contents()
+	assert someone not in somewhere.contents()
 	engine.tick = sometick
 	assert len(somewhere.contents()) == 2
 	assert something in somewhere.contents()
