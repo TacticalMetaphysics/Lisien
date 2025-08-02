@@ -63,12 +63,12 @@ from .typing import (
 	RuleName,
 	RuleNeighborhood,
 	Tick,
+	Time,
 	TimeWindow,
 	TriggerFuncName,
 	Turn,
 	UniversalKeyframe,
 	Value,
-	Time,
 )
 from .util import garbage, insist
 from .wrap import DictWrapper, ListWrapper, SetWrapper
@@ -8719,30 +8719,22 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		self._new_keyframes = list(
-			filter(
-				lambda _, kfbranch, kfturn, kftick, __, ___, ____: (
-					kfbranch,
-					kfturn,
-					kftick,
-				)
-				!= (branch, turn, tick),
-				self._new_keyframes,
-			)
-		)
+		def keyframe_filter(tup: tuple):
+			_, kfbranch, kfturn, kftick, __, ___, ____ = tup
+			return (kfbranch, kfturn, kftick) != (branch, turn, tick)
+
+		def keyframe_extension_filter(tup: tuple):
+			kfbranch, kfturn, kftick, _, __, ___ = tup
+			return (kfbranch, kfturn, kftick) != (branch, turn, tick)
+
+		new_keyframes = list(filter(keyframe_filter, self._new_keyframes))
+		self._new_keyframes.clear()
+		self._new_keyframes.extend(new_keyframes)
 		self._new_keyframe_times.discard((branch, turn, tick))
 		new_keyframe_extensions = self._new_keyframe_extensions.copy()
 		self._new_keyframe_extensions.clear()
 		self._new_keyframe_extensions.extend(
-			filter(
-				lambda kfbranch, kfturn, kftick, _, __, ___: (
-					kfbranch,
-					kfturn,
-					kftick,
-				)
-				!= (branch, turn, tick),
-				new_keyframe_extensions,
-			)
+			filter(keyframe_extension_filter, new_keyframe_extensions)
 		)
 		with self._holder.lock:
 			self._inq.put(
@@ -8777,6 +8769,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				self._outq.get() == "done deleting keyframe",
 				"Didn't delete keyframe right",
 			)
+			self._outq.task_done()
 
 	def have_branch(self, branch):
 		"""Return whether the branch thus named exists in the database."""
