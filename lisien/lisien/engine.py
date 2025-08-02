@@ -1415,7 +1415,8 @@ class Engine(AbstractEngine, Executor):
 		if not self._keyframes_dict[branch]:
 			del self._keyframes_dict[branch]
 		for cache in self._caches:
-			cache.delete_keyframe(branch, turn, tick)
+			if hasattr(cache, "delete_keyframe"):
+				cache.delete_keyframe(branch, turn, tick)
 			cache.shallowest.clear()
 
 	@contextmanager
