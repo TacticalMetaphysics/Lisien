@@ -34,7 +34,7 @@ from collections.abc import (
 from enum import Enum
 from functools import partial
 from itertools import chain
-from operator import itemgetter, le, lt, ge, gt
+from operator import ge, itemgetter, le
 from threading import RLock
 from typing import Any, Iterable, Union, Iterator, Callable
 
