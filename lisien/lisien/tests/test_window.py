@@ -90,8 +90,8 @@ def test_future(windd):
 def test_empty():
 	empty = WindowDict()
 	items = empty.items()
-	past = empty.past()
-	future = empty.future()
+	past = empty.past(0)
+	future = empty.future(0)
 	assert not items
 	assert list(items) == []
 	assert list(past) == []
