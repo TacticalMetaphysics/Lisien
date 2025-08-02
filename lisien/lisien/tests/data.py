@@ -4934,7 +4934,7 @@ KF_FROM = {
 			],
 			"wallpaper": "wallpape.jpg",
 		},
-		"sheep": {"units": {"physical": {"sheep8": False}}},
+		"sheep": {},
 		"wolf": {
 			"units": {
 				"physical": {
