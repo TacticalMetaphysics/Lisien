@@ -62,13 +62,21 @@ def update_window(
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for tick, state in branchd[turn_from].future(tick_from).items():
+		for tick, state in (
+			branchd[turn_from]
+			.future(tick_from, include_same_rev=False)
+			.items()
+		):
 			if tick > tick_to:
 				return
 			updfun(turn_from, tick, *state)
 		return
 	if turn_from in branchd:
-		for tick, state in branchd[turn_from].future(tick_from).items():
+		for tick, state in (
+			branchd[turn_from]
+			.future(tick_from, include_same_rev=False)
+			.items()
+		):
 			updfun(turn_from, tick, *state)
 	midturn: Turn
 	for midturn in range(turn_from + 1, turn_to):
@@ -94,13 +102,17 @@ def update_backward_window(
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for tick, state in branchd[turn_from].past(tick_from).items():
-			if tick < tick_to:
+		for tick, state in (
+			branchd[turn_from].past(tick_from, include_same_rev=True).items()
+		):
+			if tick <= tick_to:
 				return
 			updfun(turn_from, tick, *state)
 		return
 	if turn_from in branchd:
-		for tick, state in branchd[turn_from].past(tick_from).items():
+		for tick, state in (
+			branchd[turn_from].past(tick_from, include_same_rev=True).items()
+		):
 			updfun(turn_from, tick, *state)
 	midturn: Turn
 	for midturn in range(turn_from - 1, turn_to, -1):
@@ -108,9 +120,9 @@ def update_backward_window(
 			for tick, state in reversed(branchd[midturn].items()):
 				updfun(midturn, tick, *state)
 	if turn_to in branchd:
-		for tick, state in reversed(branchd[turn_to].items()):
-			if tick < tick_to:
-				return
+		for tick, state in reversed(
+			branchd[turn_to].future(tick_to, include_same_rev=False).items()
+		):
 			updfun(turn_to, tick, *state)
 
 
