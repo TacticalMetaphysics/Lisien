@@ -801,7 +801,7 @@ class Cache:
 		tick: Tick,
 		*,
 		forward: bool,
-	):
+	) -> frozenset[Key]:
 		"""Get a frozenset of keys that exist in the entity at the moment.
 
 		With ``forward=True``, enable an optimization that copies old key sets
@@ -819,6 +819,20 @@ class Cache:
 			forward=forward,
 		)
 
+	def _truncate_keycache(self, parent, entity, branch, turn, tick):
+		keycache = self.keycache
+		keycache_key = (*parent, entity, branch)
+		if keycache_key in keycache:
+			thiskeycache = keycache[keycache_key]
+			if turn in thiskeycache:
+				thiskeycache[turn].truncate(tick)
+				if not thiskeycache[turn]:
+					del thiskeycache[turn]
+			else:
+				thiskeycache.truncate(turn)
+			if not thiskeycache:
+				del keycache[keycache_key]
+
 	def _update_keycache(self, *args, forward: bool):
 		"""Add or remove a key in the set describing the keys that exist."""
 		entity: Key
@@ -829,6 +843,9 @@ class Cache:
 		value: Value
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent: tuple[Key, ...] = args[:-6]
+		self._truncate_keycache(parent, entity, branch, turn, tick)
+		if self.db._no_kc:
+			return
 		kc = self._get_keycache(
 			parent + (entity,), branch, turn, tick, forward=forward
 		)
@@ -1052,20 +1069,7 @@ class Cache:
 			where_cached = db_where_cached[branch, turn, tick]
 			if self not in where_cached:
 				where_cached.append(self)
-			# if we're editing the past, have to invalidate the keycache
-			keycache_key = (*parent, entity, branch)
-			if keycache_key in keycache:
-				thiskeycache = keycache[keycache_key]
-				if turn in thiskeycache:
-					thiskeycache[turn].truncate(tick)
-					if not thiskeycache[turn]:
-						del thiskeycache[turn]
-				else:
-					thiskeycache.truncate(turn)
-				if not thiskeycache:
-					del keycache[keycache_key]
-			if not db._no_kc:
-				update_keycache(*args, forward=forward)
+			update_keycache(*args, forward=forward)
 
 	def remove_character(self, character):
 		(
