@@ -2473,7 +2473,7 @@ class InitializedCache(Cache):
 			prev = None
 		if prev == value:
 			return  # not much point reporting on a non-change in a diff
-		if turn in settings_turns or turn in settings_turns.future():
+		if turn in settings_turns.future(turn, include_same_rev=True):
 			assert (
 				turn in presettings_turns or turn in presettings_turns.future()
 			)

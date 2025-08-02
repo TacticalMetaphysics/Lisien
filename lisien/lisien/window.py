@@ -304,6 +304,9 @@ class WindowDictPastFutureView(ABC, Mapping):
 				return 0
 			return len(stack)
 
+	def __copy__(self):
+		return type(self)(self.stack.copy(), RLock())
+
 
 class WindowDictPastView(WindowDictPastFutureView):
 	"""Read-only mapping of just the past of a WindowDict
@@ -608,27 +611,62 @@ class WindowDict(MutableMapping):
 				return self._past[-1][0]
 			return self._future[0][0]
 
-	def future(self, rev: int = None) -> WindowDictFutureView:
+	def future(
+		self, rev, include_same_rev: bool = True, copy: bool = False
+	) -> WindowDictFutureView:
 		"""Return a Mapping of items after the given revision.
 
-		Default revision is the last one looked up.
+		:param include_same_rev: Whether to include the specified revision in
+			the Mapping, if present in the `WindowDict`. `True` by default.
+		:param copy: Whether to make a copy of the data, so that the Mapping
+			won't mutate when you access the underlying `WindowDict`. Default
+			`False`. The Mapping has a `copy` method, too.
 
 		"""
 		if rev is not None:
 			with self._lock:
 				self._seek(rev)
-		return WindowDictFutureView(self._future, self._lock)
+				if (
+					include_same_rev
+					and self._past
+					and self._past[-1][0] == rev
+				):
+					self._future.append(self._past.pop())
+				if copy:
+					future = self._future.copy()
+					lock = self._lock
+				else:
+					future = self._future
+					lock = RLock()
+		return WindowDictFutureView(future, lock)
 
-	def past(self, rev: int = None) -> WindowDictPastView:
+	def past(
+		self, rev: int, include_same_rev: bool = True, copy: bool = False
+	) -> WindowDictPastView:
 		"""Return a Mapping of items at or before the given revision.
 
-		Default revision is the last one looked up.
+		:param include_same_rev: Whether to include the specified revision in
+			the Mapping, if present in the `WindowDict`. `True` by default.
+		:param copy: Whether to make a copy of the data, so that the Mapping
+			won't mutate when you access the underlying `WindowDict`. Default
+			`False`. The Mapping has a `copy` method, too.
 
 		"""
-		if rev is not None:
-			with self._lock:
-				self._seek(rev)
-		return WindowDictPastView(self._past, self._lock)
+		with self._lock:
+			self._seek(rev)
+			if (
+				not include_same_rev
+				and self._future
+				and self._future[-1][0] == rev
+			):
+				self._past.append(self._future.pop())
+			if copy:
+				past = self._past.copy()
+				lock = RLock()
+			else:
+				past = self._past
+				lock = self._lock
+		return WindowDictPastView(past, lock)
 
 	def search(self, rev: int) -> Any:
 		"""Alternative access for far-away revisions
