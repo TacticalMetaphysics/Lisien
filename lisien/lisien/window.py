@@ -624,12 +624,12 @@ class WindowDict(MutableMapping):
 			return self._future[0][0]
 
 	def future(
-		self, rev, include_same_rev: bool = True, copy: bool = False
+		self, rev, include_same_rev: bool = False, copy: bool = False
 	) -> WindowDictFutureView:
 		"""Return a Mapping of items after the given revision.
 
 		:param include_same_rev: Whether to include the specified revision in
-			the Mapping, if present in the `WindowDict`. `True` by default.
+			the Mapping, if present in the `WindowDict`. `False` by default.
 		:param copy: Whether to make a copy of the data, so that the Mapping
 			won't mutate when you access the underlying `WindowDict`. Default
 			`False`. The Mapping has a `copy` method, too.
