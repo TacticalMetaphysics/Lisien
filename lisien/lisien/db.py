@@ -8773,7 +8773,10 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				)
 			)
 			self._inq.put(("echo", "done deleting keyframe"))
-			insist(self._outq.get() == "done deleting keyframe")
+			insist(
+				self._outq.get() == "done deleting keyframe",
+				"Didn't delete keyframe right",
+			)
 
 	def have_branch(self, branch):
 		"""Return whether the branch thus named exists in the database."""
