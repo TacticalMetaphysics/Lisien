@@ -70,7 +70,7 @@ from .typing import (
 	UniversalKeyframe,
 	Value,
 )
-from .util import garbage, insist
+from .util import garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
@@ -3603,7 +3603,8 @@ class AbstractQueryEngine:
 	def mutex(self):
 		with self._holder.lock:
 			yield
-			insist(self._outq.qsize() == 0, "Unhandled items in output queue")
+			if self._outq.qsize() != 0:
+				raise RuntimeError("Unhandled items in output queue")
 
 	@mutexed
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
@@ -3657,20 +3658,17 @@ class AbstractQueryEngine:
 		)
 		unpack = self.unpack
 		outq = self._outq
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"nodes",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of nodes",
-			got,
-		)
+		got = outq.get()
+		if got != (
+			"begin",
+			"nodes",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of nodes", got)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, node, turn, tick, ex in got:
@@ -3679,35 +3677,31 @@ class AbstractQueryEngine:
 					(graph, node, branch, turn, tick, ex or None)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"nodes",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			f"Expected {('end', 'nodes', branch, turn_from, tick_from, turn_to, tick_to)}",
-			got,
-		)
+		if got != (
+			"end",
+			"nodes",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				f"Expected {('end', 'nodes', branch, turn_from, tick_from, turn_to, tick_to)}",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"edges",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of edges",
-			got,
-		)
+		got = outq.get()
+		if got != (
+			"begin",
+			"edges",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of edges", got)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, orig, dest, idx, turn, tick, ex in got:
@@ -3725,35 +3719,30 @@ class AbstractQueryEngine:
 					)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"edges",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of edges",
-			got,
-		)
+		if got != (
+			"end",
+			"edges",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected end of edges", got)
+
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"graph_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of graph_val",
-			got,
-		)
+		got = outq.get()
+		if got != (
+			"begin",
+			"graph_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of graph_val", got)
+
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, key, turn, tick, val in got:
@@ -3762,35 +3751,33 @@ class AbstractQueryEngine:
 					(graph, key, branch, turn, tick, val)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"graph_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of graph_val",
-			got,
-		)
+		if got != (
+			"end",
+			"graph_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of graph_val",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"node_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of node_val",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"node_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of node_val",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, node, key, turn, tick, val in got:
@@ -3799,35 +3786,33 @@ class AbstractQueryEngine:
 					(graph, node, key, branch, turn, tick, val)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"node_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of node_val",
-			got,
-		)
+		if got != (
+			"end",
+			"node_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of node_val",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"edge_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of edge_val",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"edge_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of edge_val",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, orig, dest, idx, key, turn, tick, val in got:
@@ -3848,35 +3833,33 @@ class AbstractQueryEngine:
 					)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"edge_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of edge_val",
-			got,
-		)
+		if got != (
+			"end",
+			"edge_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of edge_val",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"things",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of things",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of things",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, node, turn, tick, loc in got:
@@ -3885,35 +3868,33 @@ class AbstractQueryEngine:
 					(graph, node, branch, turn, tick, loc)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"things",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of things",
-			got,
-		)
+		if got != (
+			"end",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of things",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"character_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of character_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of character_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -3922,35 +3903,33 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"character_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of character_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of character_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"unit_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of unit_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of unit_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -3959,35 +3938,33 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"unit_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of unit_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of unit_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"character_thing_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of character_thing_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"character_thing_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of character_thing_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -3996,35 +3973,33 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"character_thing_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of character_thing_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"character_thing_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of character_thing_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"character_place_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of character_place_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"character_place_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of character_place_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -4033,35 +4008,33 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"character_place_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of character_place_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"character_place_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of character_place_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"character_portal_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of character_portal_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"character_portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of character_portal_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -4070,35 +4043,31 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"character_portal_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of character_portal_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"character_portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of character_portal_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"node_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of node_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of node_rulebook", got)
+
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, node, turn, tick, rb in got:
@@ -4107,35 +4076,31 @@ class AbstractQueryEngine:
 					(graph, node, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"node_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of node_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected end of node_rulebook", got)
+
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"portal_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of portal_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of portal_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, orig, dest, turn, tick, rb in got:
@@ -4144,35 +4109,33 @@ class AbstractQueryEngine:
 					(graph, orig, dest, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"portal_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of portal_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of portal_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"universals",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of universals",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of universals",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for key, turn, tick, val in got:
@@ -4182,35 +4145,33 @@ class AbstractQueryEngine:
 				else:
 					ret["universals"] = [(key, branch, turn, tick, val)]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"universals",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of universals",
-			got,
-		)
+		if got != (
+			"end",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of universals",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rulebooks",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rulebooks",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rulebooks",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rulebook, turn, tick, rules, priority in got:
@@ -4224,35 +4185,33 @@ class AbstractQueryEngine:
 						(rulebook, branch, turn, tick, (rules, priority))
 					]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rulebooks",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rulebooks",
-			got,
-		)
+		if got != (
+			"end",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rulebooks",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_triggers",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_triggers",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_triggers",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, triggers in got:
@@ -4266,35 +4225,33 @@ class AbstractQueryEngine:
 						(rule, branch, turn, tick, triggers)
 					]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_triggers",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_triggers",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_triggers",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_prereqs",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_prereqs",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_prereqs",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, prereqs in got:
@@ -4306,35 +4263,33 @@ class AbstractQueryEngine:
 				else:
 					ret["rule_prereqs"] = [(rule, branch, turn, tick, prereqs)]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_prereqs",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_prereqs",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_prereqs",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_actions",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_actions",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_actions",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, actions in got:
@@ -4346,35 +4301,33 @@ class AbstractQueryEngine:
 				else:
 					ret["rule_actions"] = [(rule, branch, turn, tick, actions)]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_actions",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_actions",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_actions",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_neighborhoods",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_neighborhoods",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_neighborhoods",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, neighborhoods in got:
@@ -4388,35 +4341,33 @@ class AbstractQueryEngine:
 						(rule, branch, turn, tick, neighborhoods)
 					]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_neighborhoods",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_neighborhoods",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_neighborhoods",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_big",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_big",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_big",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_big",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, big in got:
@@ -4425,20 +4376,19 @@ class AbstractQueryEngine:
 				else:
 					ret["rule_big"] = [(rule, branch, turn, tick, big)]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_big",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_big",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_big",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_big",
+				got,
+			)
 		outq.task_done()
 
 	@abstractmethod
@@ -6311,7 +6261,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._new_keyframe_extensions()
 
 		self._inq.put(("echo", "flushed"))
-		insist((got := self._outq.get()) == "flushed", "Failed flush", got)
+		if (got := self._outq.get()) != "flushed":
+			raise RuntimeError("Failed flush", got)
 
 	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
 		unpack = self.unpack
@@ -6844,11 +6795,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 		)
 		self._inq.put(("echo", "rule set"))
-		insist(
-			(got := self._outq.get()) == "rule set",
-			"Failed to set rule",
-			got,
-		)
+		if (got := self._outq.get()) != "rule set":
+			raise RuntimeError("Failed to set rule", got)
 
 	def set_rulebook(
 		self,
@@ -8629,19 +8577,19 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	@mutexed
 	def call_one(self, string, *args, **kwargs):
-		insist(
-			self._outq.unfinished_tasks == 0,
-			f"{self._outq.unfinished_tasks} unfinished tasks in output queue "
-			"before call_one",
-		)
+		if self._outq.unfinished_tasks != 0:
+			raise RuntimeError(
+				f"{self._outq.unfinished_tasks} unfinished tasks in output queue "
+				"before call_one",
+			)
 		self._inq.put(("one", string, args, kwargs))
 		ret = self._outq.get()
 		self._outq.task_done()
-		insist(
-			self._outq.unfinished_tasks == 0,
-			f"{self._outq.unfinished_tasks} unfinished tasks in output "
-			"queue after call_one",
-		)
+		if self._outq.unfinished_tasks != 0:
+			raise RuntimeError(
+				f"{self._outq.unfinished_tasks} unfinished tasks in output "
+				"queue after call_one",
+			)
 		if isinstance(ret, Exception):
 			raise ret
 		return ret
@@ -8765,10 +8713,8 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				)
 			)
 			self._inq.put(("echo", "done deleting keyframe"))
-			insist(
-				self._outq.get() == "done deleting keyframe",
-				"Didn't delete keyframe right",
-			)
+			if (got := self._outq.get()) != "done deleting keyframe":
+				raise RuntimeError("Didn't delete keyframe right", got)
 			self._outq.task_done()
 
 	def have_branch(self, branch):
@@ -9467,13 +9413,15 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			return
 		self._inq.put(("echo", "ready"))
 		readied = self._outq.get()
+		if readied != "ready":
+			raise RuntimeError("Not ready to flush", readied)
 		self._outq.task_done()
-		insist(readied == "ready", "Not ready to flush", readied)
 		self._flush()
 		self._inq.put(("echo", "flushed"))
 		flushed = self._outq.get()
+		if flushed != "flushed":
+			raise RuntimeError("Failed flush", flushed)
 		self._outq.task_done()
-		insist(flushed == "flushed", "Failed flush: " + repr(flushed), flushed)
 
 	def _flush(self):
 		pack = self.pack
@@ -9601,11 +9549,8 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		"""Commit the transaction"""
 		self._inq.put("commit")
 		self._inq.join()
-		insist(
-			(got := self.echo("committed")) == "committed",
-			"Failed commit",
-			got,
-		)
+		if (got := self.echo("committed")) != "committed":
+			raise RuntimeError("Failed commit", got)
 
 	def close(self):
 		"""Commit the transaction, then close the connection"""

@@ -1619,32 +1619,6 @@ def garbage(arg: callable = None, collect: bool = False):
 		return _garbage_dec(arg, collect=collect)
 
 
-def insist(condition: bool, message: str, obj: Optional[Exception] = None):
-	"""If the condition is false, raise ``obj`` or ``RuntimeError``
-
-	Analogous to ``assert``, but doesn't get stripped out in production.
-
-	"""
-	if not condition:
-		if obj is None:
-			exc = RuntimeError(message)
-		elif isinstance(obj, Exception):
-			exc = obj
-		else:
-			exc = RuntimeError(message, obj)
-		try:
-			raise exc
-		except type(exc) as exception:
-			back_frame = sys.exc_info()[2].tb_frame.f_back
-			tb = TracebackType(
-				tb_next=None,
-				tb_frame=back_frame,
-				tb_lasti=back_frame.f_lasti,
-				tb_lineno=back_frame.f_lineno,
-			)
-			raise exception.with_traceback(tb)
-
-
 def world_locked(fn: callable) -> callable:
 	"""Decorator for functions that alter the world state
 
