@@ -292,7 +292,7 @@ class Character(AbstractCharacter, RuleFollower):
 			cache = self.engine._things_cache
 			char = self.name
 			branch, turn, tick = self.engine._btt()
-			for key in cache.iter_keys(char, branch, turn, tick):
+			for key in cache.iter_things(char, branch, turn, tick):
 				try:
 					if (
 						cache.retrieve(char, key, branch, turn, tick)
@@ -306,7 +306,7 @@ class Character(AbstractCharacter, RuleFollower):
 			branch, turn, tick = self.engine._btt()
 			args = self.character.name, thing, branch, turn, tick
 			cache = self.engine._things_cache
-			return cache.contains_key(*args)
+			return cache.thing_exists(*args)
 
 		def __len__(self):
 			return self.engine._things_cache.count_keys(
@@ -846,7 +846,7 @@ class Character(AbstractCharacter, RuleFollower):
 			charn = char.name
 			btt = engine._btt
 			self._iter_stuff = (get_char_graphs, charn, btt)
-			self._len_stuff = (avcache.count_entities_or_keys, charn, btt)
+			self._len_stuff = (avcache.count_graphs, charn, btt)
 			self._contains_stuff = (
 				avcache.dict_cache.contains_key,
 				charn,
@@ -948,17 +948,17 @@ class Character(AbstractCharacter, RuleFollower):
 				self.engine = engine = outer.engine
 				self.name = name = outer.name
 				self.graph = graphn
-				avcache = engine._unitness_cache
+				unitcache = engine._unitness_cache
 				btt = engine._btt
 				self._iter_stuff = iter_stuff = (
-					avcache.get_char_graph_units,
-					avcache.contains_key,
+					unitcache.get_char_graph_units,
+					unitcache.contains_unit,
 					name,
 					graphn,
 					btt,
 				)
 				self._contains_stuff = (
-					avcache._base_retrieve,
+					unitcache._base_retrieve,
 					name,
 					graphn,
 					btt,

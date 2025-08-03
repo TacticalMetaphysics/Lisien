@@ -67,7 +67,9 @@ from .cache import (
 	EntitylessCache,
 	GraphCache,
 	GraphValCache,
-	InitializedEntitylessCache,
+	RulebooksCache,
+	NeighborhoodsCache,
+	BignessCache,
 	NodeContentsCache,
 	NodeRulesHandledCache,
 	NodesCache,
@@ -82,6 +84,7 @@ from .cache import (
 	TurnEndPlanDict,
 	UnitnessCache,
 	UnitRulesHandledCache,
+	FuncListCache,
 )
 from .character import Character
 from .db import NullQueryEngine, ParquetQueryEngine, SQLAlchemyQueryEngine
@@ -792,7 +795,7 @@ class Engine(AbstractEngine, Executor):
 		return self._edge_objs, self._edge_exists, self._make_edge
 
 	@cached_property
-	def _childbranch(self) -> dict[str, set[str]]:
+	def _childbranch(self) -> dict[Branch, set[Branch]]:
 		"""Immediate children of a branch"""
 		return defaultdict(set)
 
@@ -898,8 +901,8 @@ class Engine(AbstractEngine, Executor):
 		return ret
 
 	@cached_property
-	def _rulebooks_cache(self) -> InitializedEntitylessCache:
-		ret = InitializedEntitylessCache(self, name="rulebooks cache")
+	def _rulebooks_cache(self) -> RulebooksCache:
+		ret = RulebooksCache(self, name="rulebooks cache")
 		ret.setdb = self.query.rulebook_set
 		return ret
 
@@ -940,24 +943,24 @@ class Engine(AbstractEngine, Executor):
 		return PortalsRulebooksCache(self, name="portals rulebooks_ ache")
 
 	@cached_property
-	def _triggers_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="triggers cache")
+	def _triggers_cache(self) -> FuncListCache:
+		return FuncListCache(self, name="triggers cache")
 
 	@cached_property
-	def _prereqs_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="prereqs cache")
+	def _prereqs_cache(self) -> FuncListCache:
+		return FuncListCache(self, name="prereqs cache")
 
 	@cached_property
-	def _actions_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="actions cache")
+	def _actions_cache(self) -> FuncListCache:
+		return FuncListCache(self, name="actions cache")
 
 	@cached_property
-	def _neighborhoods_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="neighborhoods cache")
+	def _neighborhoods_cache(self) -> NeighborhoodsCache:
+		return NeighborhoodsCache(self, name="neighborhoods cache")
 
 	@cached_property
-	def _rule_bigness_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="rule bigness cache")
+	def _rule_bigness_cache(self) -> BignessCache:
+		return BignessCache(self, name="rule bigness cache")
 
 	@cached_property
 	def _node_rules_handled_cache(self) -> NodeRulesHandledCache:
@@ -2456,7 +2459,6 @@ class Engine(AbstractEngine, Executor):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		copy: bool = True,
 		rulebooks: bool = True,
 		silent: bool = False,
 	) -> Keyframe | None:
@@ -2470,9 +2472,7 @@ class Engine(AbstractEngine, Executor):
 			)
 			if silent:
 				return
-			return self._get_kf(
-				branch, turn, tick, copy=copy, rulebooks=rulebooks
-			)
+			return self._get_kf(branch, turn, tick, rulebooks=rulebooks)
 		univ, rule, rulebook = self.query.get_keyframe_extensions(
 			branch, turn, tick
 		)
@@ -2532,7 +2532,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			self._keyframes_dict[branch] = {turn: {tick}}
 		self._mark_keyframe_loaded(branch, turn, tick)
-		ret = self._get_kf(branch, turn, tick, copy=copy)
+		ret = self._get_kf(branch, turn, tick)
 		charrbkf = {}
 		unitrbkf = {}
 		charthingrbkf = {}
@@ -2591,6 +2591,7 @@ class Engine(AbstractEngine, Executor):
 				)
 			if graph in ret["edge_val"]:
 				edgerbkf = {}
+				dests: dict[NodeName, dict[Stat | Literal["rulebook"], Value]]
 				for orig, dests in ret["edge_val"][graph].items():
 					if not dests:
 						continue
@@ -2829,7 +2830,6 @@ class Engine(AbstractEngine, Executor):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		copy: bool = True,
 		rulebooks: bool = True,
 	) -> Keyframe:
 		"""Get a keyframe that's already in memory"""
@@ -2857,39 +2857,39 @@ class Engine(AbstractEngine, Executor):
 				continue
 			try:
 				graph_val[k] = self._graph_val_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
 				)
 			except KeyframeError:
 				graph_val[k] = {}
 			try:
 				graph_val[k]["units"] = (
 					self._unitness_cache.dict_cache.get_keyframe(
-						k, branch, turn, tick, copy
+						k, branch, turn, tick
 					)
 				)
 			except KeyframeError:
 				pass
 			try:
 				nodes[k] = self._nodes_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
 				)
 			except KeyframeError:
 				pass
 			try:
 				node_val[k] = self._node_val_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
 				)
 			except KeyframeError:
 				pass
 			try:
 				edges[k] = self._edges_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
 				)
 			except KeyframeError:
 				pass
 			try:
 				edge_val[k] = self._edge_val_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
 				)
 			except KeyframeError:
 				pass
@@ -2900,7 +2900,7 @@ class Engine(AbstractEngine, Executor):
 			except KeyframeError:
 				locs_kf = {}
 				for thing in list(
-					self._things_cache.iter_keys(k, branch, turn, tick)
+					self._things_cache.iter_entities(k, branch, turn, tick)
 				):
 					locs_kf[thing] = self._things_cache.retrieve(
 						k, thing, branch, turn, tick
@@ -6743,7 +6743,7 @@ class Engine(AbstractEngine, Executor):
 		):
 			kf = {
 				ch: rbcache.retrieve(ch, branch, turn, tick)
-				for ch in rbcache.iter_entities(branch, turn, tick)
+				for ch in all_graphs
 			}
 			rbcache.set_keyframe(branch, turn, tick, kf)
 		self.query.keyframe_extension_insert(
