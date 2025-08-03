@@ -66,7 +66,34 @@ def test_unit_delta(null_engine, codepath):
 
 
 def test_character_stat_delta(null_engine, codepath):
-	pass
+	eng = null_engine
+	one = eng.new_character(1)
+	two = eng.new_character(2)
+	one.stat[3] = 4
+	one.stat[5] = 6
+	one.stat[7] = 8
+	two.stat[11] = 12
+	time_a = tuple(eng.time)
+	if codepath == "branch-delta":
+		eng.next_turn()
+	else:
+		eng.branch = "branch"
+	del one.stat[3]
+	del one.stat[5]
+	two.stat[9] = 10
+	time_b = tuple(eng.time)
+	delta0 = eng.get_delta(time_a, time_b)
+	assert delta0[1][3] is None
+	assert delta0[1][5] is None
+	assert 7 not in delta0[1]
+	assert delta0[2][9] == 10
+	assert 11 not in delta0[2]
+	delta1 = eng.get_delta(time_b, time_a)
+	assert delta1[1][3] == 4
+	assert delta1[1][5] == 6
+	assert 7 not in delta1[1]
+	assert delta1[2][9] is None
+	assert 11 not in delta1[2]
 
 
 def test_node_existence_delta(null_engine, codepath):
