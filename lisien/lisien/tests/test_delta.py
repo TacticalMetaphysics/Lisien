@@ -124,7 +124,32 @@ def test_node_existence_delta(null_engine, codepath):
 
 
 def test_node_stat_delta(null_engine, codepath):
-	pass
+	eng = null_engine
+	ch = eng.new_character("me")
+	one = ch.new_place(1)
+	two = ch.new_place(2)
+	one[3] = 4
+	two[5] = 6
+	two[11] = 0
+	one[7] = 8
+	one[9] = 10
+	time_a = tuple(eng.time)
+	if codepath == "slow-delta":
+		eng.branch = "branch"
+	else:
+		eng.next_turn()
+	del one[7]
+	del one[9]
+	two[11] = 12
+	two[13] = 14
+	time_b = tuple(eng.time)
+	delta0 = eng.get_delta(time_a, time_b)
+	assert delta0["me"]["node_val"] == {
+		1: {7: None, 9: None},
+		2: {11: 12, 13: 14},
+	}
+	delta1 = eng.get_delta(time_b, time_a)
+	assert delta1["me"]["node_val"] == {1: {7: 8, 9: 10}, 2: {11: 0, 13: None}}
 
 
 def test_portal_existence_delta(null_engine, codepath):
