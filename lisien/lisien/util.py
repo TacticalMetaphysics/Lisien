@@ -847,6 +847,9 @@ class AbstractEngine(ABC):
 		self, char: AbstractCharacter | CharName, node: NodeName
 	) -> Node: ...
 
+	@abstractmethod
+	def _btt(self) -> tuple[Branch, Turn, Tick]: ...
+
 	def branches(self) -> KeysView:
 		return self._branches_d.keys()
 
