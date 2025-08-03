@@ -21,7 +21,7 @@ ruff format elide
 for env in $(tox -c lisien/tox.ini -l); do tox -c lisien/tox.ini -e $env; done
 for env in $(tox -c elide/tox.ini -l); do tox -c elide/tox.ini -e $env; done
 rm -rf bin
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android debug
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android clean debug
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
 python -m build lisien/
 python -m build elide/
