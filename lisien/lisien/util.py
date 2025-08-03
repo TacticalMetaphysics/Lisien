@@ -1678,9 +1678,7 @@ class TimeSignal(Signal, Sequence):
 			self.engine.tick = Tick(v)
 		else:
 			exctyp = KeyError if isinstance(i, str) else IndexError
-			raise exctyp(
-				"Can only set branch or turn. Set `Engine.tick` directly if you really want that."
-			)
+			raise exctyp(i)
 
 	def __str__(self):
 		return str(tuple(self))
