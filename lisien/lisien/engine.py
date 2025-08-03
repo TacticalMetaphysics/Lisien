@@ -112,7 +112,7 @@ from .query import (
 	_make_side_sel,
 )
 from .rule import AllRuleBooks, AllRules, Rule
-from .typing import (
+from .types import (
 	Branch,
 	CharacterRulebookTypeStr,
 	CharDelta,

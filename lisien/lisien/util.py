@@ -70,7 +70,7 @@ from tblib import Traceback
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
 from .graph import DiGraph, Edge, GraphMapping, Node
-from .typing import (
+from .types import (
 	Branch,
 	CharName,
 	EdgeValDict,

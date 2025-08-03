@@ -90,7 +90,7 @@ from astunparse import unparse
 from blinker import Signal
 
 from .cache import FuncListCache
-from .typing import (
+from .types import (
 	ActionFuncName,
 	Branch,
 	Key,

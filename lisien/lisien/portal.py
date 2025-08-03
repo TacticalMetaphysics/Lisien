@@ -25,7 +25,7 @@ from .graph import Edge
 from .query import EntityStatAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .typing import Key, Time
+from .types import Key, Time
 from .util import AbstractCharacter, getatt
 
 

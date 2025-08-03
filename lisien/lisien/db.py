@@ -38,7 +38,7 @@ from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
 from .alchemy import gather_sql
 from .exc import KeyframeError
-from .typing import (
+from .types import (
 	ActionFuncName,
 	Branch,
 	CharName,

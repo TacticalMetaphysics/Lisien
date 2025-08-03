@@ -32,7 +32,7 @@ from .exc import (
 	NotInKeyframeError,
 	TotalKeyError,
 )
-from .typing import (
+from .types import (
 	Branch,
 	CharName,
 	RuleFuncName,

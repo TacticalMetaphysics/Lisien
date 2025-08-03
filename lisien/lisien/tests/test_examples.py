@@ -13,7 +13,7 @@ from lisien.examples import (
 	wolfsheep,
 )
 from lisien.proxy.handle import EngineHandle
-from lisien.typing import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
+from lisien.types import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
 
 pytestmark = [pytest.mark.big]
 

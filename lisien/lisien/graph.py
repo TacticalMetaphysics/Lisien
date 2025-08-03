@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 import networkx
 from networkx.exception import NetworkXError
 
-from .typing import Branch, Key, Tick, Turn
+from .types import Branch, Key, Tick, Turn
 from .wrap import MutableMappingUnwrapper, SpecialMapping, wrapval
 
 if TYPE_CHECKING:
