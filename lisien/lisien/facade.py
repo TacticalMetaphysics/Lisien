@@ -361,7 +361,9 @@ class FacadeNode(FacadeEntity, Node):
 			self._entity = node
 
 		def __iter__(self):
-			if hasattr(self._entity.engine, "_node_contents_cache"):
+			if hasattr(self._entity, "engine") and hasattr(
+				self._entity.engine, "_node_contents_cache"
+			):
 				# The real contents cache is wrapped by the facade engine.
 				try:
 					return self._entity.engine._node_contents_cache.retrieve(
