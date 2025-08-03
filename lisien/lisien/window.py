@@ -624,7 +624,7 @@ class WindowDict(MutableMapping):
 			return self._future[0][0]
 
 	def future(
-		self, rev, include_same_rev: bool = False, copy: bool = False
+		self, rev: int, include_same_rev: bool = False, copy: bool = False
 	) -> WindowDictFutureView:
 		"""Return a Mapping of items after the given revision.
 
@@ -635,21 +635,18 @@ class WindowDict(MutableMapping):
 			`False`. The Mapping has a `copy` method, too.
 
 		"""
-		if rev is not None:
-			with self._lock:
-				self._seek(rev)
-				if (
-					include_same_rev
-					and self._past
-					and self._past[-1][0] == rev
-				):
-					self._future.append(self._past.pop())
-				if copy:
-					future = self._future.copy()
-					lock = self._lock
-				else:
-					future = self._future
-					lock = RLock()
+		if not isinstance(rev, int):
+			raise TypeError("rev must be int")
+		with self._lock:
+			self._seek(rev)
+			if include_same_rev and self._past and self._past[-1][0] == rev:
+				self._future.append(self._past.pop())
+			if copy:
+				future = self._future.copy()
+				lock = self._lock
+			else:
+				future = self._future
+				lock = RLock()
 		return WindowDictFutureView(future, lock)
 
 	def past(
@@ -664,6 +661,8 @@ class WindowDict(MutableMapping):
 			`False`. The Mapping has a `copy` method, too.
 
 		"""
+		if not isinstance(rev, int):
+			raise TypeError("rev must be int")
 		with self._lock:
 			self._seek(rev)
 			if (
