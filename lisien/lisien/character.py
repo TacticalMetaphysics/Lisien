@@ -38,7 +38,7 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from itertools import chain
 from types import MethodType
-from typing import TYPE_CHECKING, Iterator, Iterable
+from typing import TYPE_CHECKING, Iterable, Iterator
 
 import networkx as nx
 from blinker import Signal
@@ -54,26 +54,22 @@ from .graph import (
 from .node import Node, Place, Thing
 from .portal import Portal
 from .query import CharacterStatAlias, UnitsAlias
-from .rule import RuleFollower as BaseRuleFollower, RuleBook
+from .rule import RuleBook
+from .rule import RuleFollower as BaseRuleFollower
 from .rule import RuleMapping
 from .typing import (
-	Key,
-	Value,
 	CharName,
+	EdgeValDict,
+	Key,
 	NodeName,
-	Stat,
-	StatDict,
-	RuleName,
 	RulebookName,
 	RulebookTypeStr,
-	EdgeValDict,
+	RuleName,
+	Stat,
+	StatDict,
+	Value,
 )
-from .util import (
-	AbstractCharacter,
-	getatt,
-	singleton_get,
-	timer,
-)
+from .util import AbstractCharacter, getatt, singleton_get, timer
 from .wrap import MutableMappingUnwrapper, SpecialMapping
 
 if TYPE_CHECKING:

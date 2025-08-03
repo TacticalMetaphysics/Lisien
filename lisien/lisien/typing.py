@@ -15,22 +15,21 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from types import GenericAlias
 from typing import (
+	Annotated,
+	Any,
+	Callable,
 	Literal,
 	NewType,
 	TypeAlias,
 	TypeGuard,
-	Annotated,
-	Callable,
-	Any,
 )
-from types import GenericAlias
 
 import networkx as nx
 from annotated_types import Ge
 
 from .wrap import DictWrapper, ListWrapper, SetWrapper
-
 
 _Key = str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
 

@@ -9,7 +9,7 @@ packages = ["lisien", "lisien.examples", "lisien.proxy", "lisien.server", "lisie
 
 [project]
 name = "lisien"
-version = "0.20.1"
+version = "0.20.2"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]

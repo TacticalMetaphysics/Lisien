@@ -34,13 +34,7 @@ from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
-from logging import (
-	DEBUG,
-	Formatter,
-	Logger,
-	LogRecord,
-	StreamHandler,
-)
+from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
 from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
@@ -121,6 +115,7 @@ from .typing import (
 	CharDelta,
 	CharName,
 	DeltaDict,
+	EdgesDict,
 	EdgeValDict,
 	GraphEdgesKeyframe,
 	GraphEdgeValKeyframe,
@@ -137,18 +132,17 @@ from .typing import (
 	Plan,
 	RuleBig,
 	RulebookName,
-	RuleName,
 	RuleFuncName,
+	RuleName,
+	RuleNeighborhood,
 	SlightlyPackedDeltaType,
-	StatDict,
 	Stat,
+	StatDict,
 	Tick,
 	Time,
 	Turn,
-	Value,
-	EdgesDict,
 	UniversalKey,
-	RuleNeighborhood,
+	Value,
 )
 from .util import (
 	ACTIONS,
@@ -167,6 +161,7 @@ from .util import (
 	RULES,
 	TRIGGERS,
 	TRUE,
+	UNITS,
 	UNIVERSAL,
 	AbstractCharacter,
 	AbstractEngine,
@@ -178,13 +173,12 @@ from .util import (
 	sort_set,
 	timer,
 	world_locked,
-	UNITS,
 )
 from .window import (
+	SettingsTurnDict,
 	WindowDict,
 	update_backward_window,
 	update_window,
-	SettingsTurnDict,
 )
 from .xcollections import (
 	ChangeTrackingDict,
@@ -2274,8 +2268,8 @@ class Engine(AbstractEngine, Executor):
 	def _start_worker_processes(
 		self, prefix: str | os.PathLike | None, workers: int
 	):
-		from multiprocessing.process import BaseProcess
 		from multiprocessing import get_context
+		from multiprocessing.process import BaseProcess
 
 		for store in self.stores:
 			if hasattr(store, "save"):

@@ -84,30 +84,30 @@ from abc import ABC, abstractmethod
 from ast import parse
 from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
 from functools import cached_property, partial
-from typing import Callable, Optional, Any, TYPE_CHECKING, Literal, Iterator
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
 
 from astunparse import unparse
 from blinker import Signal
 
 from .cache import InitializedEntitylessCache
-from .util import AbstractEngine, dedent_source
 from .typing import (
-	RulebookName,
-	RuleName,
-	RuleFuncName,
+	ActionFuncName,
 	Branch,
-	Turn,
+	Key,
+	PrereqFuncName,
+	RuleBig,
+	RulebookName,
+	RulebookPriority,
+	RuleFunc,
+	RuleFuncName,
+	RuleName,
+	RuleNeighborhood,
 	Tick,
 	TriggerFuncName,
-	PrereqFuncName,
-	ActionFuncName,
-	RuleNeighborhood,
-	RuleBig,
-	RuleFunc,
-	RulebookPriority,
-	Key,
+	Turn,
 	Value,
 )
+from .util import AbstractEngine, dedent_source
 from .xcollections import FunctionStore
 
 if TYPE_CHECKING:
