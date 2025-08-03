@@ -22,7 +22,7 @@ have a lot in common.
 from __future__ import annotations
 
 from collections.abc import Mapping, Set, ValuesView
-from typing import Iterator, List, Optional, TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 
 from networkx import shortest_path, shortest_path_length
 
@@ -30,18 +30,18 @@ from . import graph, rule
 from .exc import AmbiguousUserError
 from .facade import FacadePlace, FacadeThing
 from .query import EntityStatAlias
+from .rule import RuleMapping
 from .typing import (
 	CharName,
-	NodeName,
 	Key,
-	Time,
+	NodeName,
 	RulebookName,
 	Stat,
-	Value,
+	Time,
 	Turn,
+	Value,
 )
 from .util import AbstractThing, getatt
-from .rule import RuleMapping
 
 if TYPE_CHECKING:
 	from .character import Character

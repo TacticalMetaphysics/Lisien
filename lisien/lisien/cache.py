@@ -23,7 +23,7 @@ from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
-from typing import TYPE_CHECKING, Hashable, Iterator, Optional, Literal
+from typing import TYPE_CHECKING, Hashable, Iterator, Literal, Optional
 
 from . import engine
 from .exc import (
@@ -42,11 +42,11 @@ from .typing import (
 	RulebookName,
 	RulebookPriority,
 	RuleName,
+	Stat,
 	Tick,
 	Time,
 	Turn,
 	Value,
-	Stat,
 )
 from .util import sort_set
 from .window import (

@@ -43,21 +43,21 @@ from operator import (
 from random import Random
 from textwrap import dedent
 from time import monotonic
-from types import FunctionType, MethodType, TracebackType, ModuleType
+from types import FunctionType, MethodType, ModuleType, TracebackType
 from typing import (
+	TYPE_CHECKING,
+	Annotated,
 	Any,
 	Callable,
 	Hashable,
 	Iterable,
+	Iterator,
 	KeysView,
 	MutableMapping,
 	Optional,
 	Sequence,
 	Type,
 	TypeVar,
-	Iterator,
-	Annotated,
-	TYPE_CHECKING,
 )
 
 import msgpack
@@ -69,12 +69,16 @@ from tblib import Traceback
 
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
-from .graph import DiGraph, Edge, Node, GraphMapping
+from .graph import DiGraph, Edge, GraphMapping, Node
 from .typing import (
 	Branch,
 	CharName,
+	EdgeValDict,
 	EternalKey,
 	NodeName,
+	NodeValDict,
+	RulebookName,
+	RuleName,
 	Stat,
 	Tick,
 	Time,
@@ -82,15 +86,11 @@ from .typing import (
 	Turn,
 	UniversalKey,
 	Value,
-	NodeValDict,
-	EdgeValDict,
-	RulebookName,
-	RuleName,
 )
 from .wrap import SpecialMapping
 
 if TYPE_CHECKING:
-	from .rule import RuleBook, Rule
+	from .rule import Rule, RuleBook
 	from .xcollections import FunctionStore
 
 TRUE: bytes = msgpack.packb(True)

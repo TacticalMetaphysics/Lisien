@@ -34,7 +34,7 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import zip_longest
-from typing import Callable, Mapping, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Mapping
 
 if TYPE_CHECKING:
 	from .util import AbstractCharacter

@@ -36,7 +36,7 @@ from functools import partial
 from itertools import chain
 from operator import ge, itemgetter, le
 from threading import RLock
-from typing import Any, Iterable, Union, Iterator, Callable
+from typing import Any, Callable, Iterable, Iterator, Union
 
 from .exc import HistoricKeyError
 from .typing import Tick, Turn, Value

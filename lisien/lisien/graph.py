@@ -24,7 +24,7 @@ import networkx
 from networkx.exception import NetworkXError
 
 from .typing import Branch, Key, Tick, Turn
-from .wrap import wrapval, MutableMappingUnwrapper, SpecialMapping
+from .wrap import MutableMappingUnwrapper, SpecialMapping, wrapval
 
 if TYPE_CHECKING:
 	from .engine import Engine
