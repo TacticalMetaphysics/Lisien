@@ -31,7 +31,7 @@ from .exc import AmbiguousUserError
 from .facade import FacadePlace, FacadeThing
 from .query import EntityStatAlias
 from .rule import RuleMapping
-from .typing import (
+from .types import (
 	CharName,
 	Key,
 	NodeName,

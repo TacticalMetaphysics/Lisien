@@ -57,7 +57,7 @@ from .query import CharacterStatAlias, UnitsAlias
 from .rule import RuleBook
 from .rule import RuleFollower as BaseRuleFollower
 from .rule import RuleMapping
-from .typing import (
+from .types import (
 	CharName,
 	EdgeValDict,
 	Key,

@@ -65,7 +65,7 @@ from ..facade import CharacterFacade
 from ..graph import Edge, Node
 from ..node import Place, Thing
 from ..portal import Portal
-from ..typing import (
+from ..types import (
 	ActionFuncName,
 	Branch,
 	CharDelta,

@@ -42,7 +42,7 @@ from astunparse import Unparser
 from blinker import Signal
 
 from .graph import GraphsMapping
-from .typing import CharName, Key
+from .types import CharName, Key
 from .util import AbstractEngine, dedent_source, getatt
 from .wrap import wrapval
 

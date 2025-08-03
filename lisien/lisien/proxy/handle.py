@@ -29,7 +29,7 @@ import tblib
 from ..exc import HistoricKeyError, OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
-from ..typing import (
+from ..types import (
 	ActionFuncName,
 	Branch,
 	CharDelta,
