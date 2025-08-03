@@ -979,18 +979,31 @@ class AbstractEngine(ABC):
 			comparator = comps[comparator]
 		return comparator(sum(self.dice(n, d)), target)
 
-	def percent_chance(self, pct: Annotated[int, Ge(0), Le(100)]) -> bool:
+	def chance(self, f: Annotated[float, Ge(0.0), Le(1.0)]) -> bool:
+		"""Return True or False with a given unit probability
+
+		Supply a float between 0.0 and 1.0 to express the probability--
+		or use `percent_chance`
+
+		"""
+		if f <= 0.0:
+			return False
+		if f >= 1.0:
+			return True
+		return f > self._rando.random()
+
+	def percent_chance(
+		self,
+		pct: Annotated[int, Ge(0), Le(100)]
+		| Annotated[float, Ge(0.0), Le(100.0)],
+	) -> bool:
 		"""Return True or False with a given percentile probability
 
 		Values not between 0 and 100 are treated as though they
 		were 0 or 100, whichever is nearer.
 
 		"""
-		if pct <= 0:
-			return False
-		if pct >= 100:
-			return True
-		return pct > self.randint(0, 99)
+		return self.chance(pct / 100)
 
 	betavariate = get_rando("_rando.betavariate")
 	choice = get_rando("_rando.choice")
