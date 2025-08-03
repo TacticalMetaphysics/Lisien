@@ -89,7 +89,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
 from astunparse import unparse
 from blinker import Signal
 
-from .cache import InitializedEntitylessCache
+from .cache import FuncListCache
 from .typing import (
 	ActionFuncName,
 	Branch,
@@ -124,7 +124,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 
 	__slots__ = ["rule"]
 	_funcstore: FunctionStore
-	_cache: InitializedEntitylessCache
+	_cache: FuncListCache
 	_setter: Callable[[RuleName, Branch, Turn, Tick, list[RuleFuncName]], None]
 
 	def __init__(self, rule: Rule):

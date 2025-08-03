@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections import OrderedDict, defaultdict, deque
 from contextlib import contextmanager
-from functools import cached_property
+from functools import cached_property, singledispatchmethod
 from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
@@ -35,13 +35,16 @@ from .exc import (
 from .typing import (
 	Branch,
 	CharName,
+	RuleFuncName,
 	EntityKey,
 	Key,
 	NodeName,
 	Plan,
 	RulebookName,
 	RulebookPriority,
+	RuleBig,
 	RuleName,
+	RuleNeighborhood,
 	Stat,
 	Tick,
 	Time,
@@ -288,6 +291,10 @@ class Cache:
 	"""A data store that's useful for tracking graph revisions."""
 
 	name: str
+	store: callable
+	retrieve: callable
+	get_keyframe: callable
+	set_keyframe: callable
 
 	def __init__(
 		self, db: "engine.Engine", name: str, keyframe_dict: dict | None = None
@@ -462,19 +469,6 @@ class Cache:
 		ret = r[tick]
 		return ret
 
-	def get_keyframe(
-		self,
-		graph_ent: tuple[Key, ...],
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		copy: bool = True,
-	) -> dict:
-		ret = self._get_keyframe(graph_ent, branch, turn, tick)
-		if copy:
-			ret = ret.copy()
-		return ret
-
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		for entity in list(self.keyframe):
 			del self.keyframe[entity][branch][turn][tick]
@@ -513,16 +507,6 @@ class Cache:
 			d[turn] = {tick: keyframe}
 			kfg[branch] = d
 
-	def set_keyframe(
-		self,
-		graph_ent: tuple[Key, ...],
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		keyframe: dict,
-	):
-		self._set_keyframe(graph_ent, branch, turn, tick, keyframe)
-
 	def alias_keyframe(
 		self,
 		branch_from: Branch,
@@ -556,16 +540,14 @@ class Cache:
 				return 1, v
 			return 0, repr(v)
 
-		branches: defaultdict[Branch, list[tuple[CharName, ..., Value]]] = (
-			defaultdict(list)
-		)
+		branches: defaultdict[Branch, list[tuple]] = defaultdict(list)
 		for row in data:
 			branches[row[-4]].append(row)
 		db = self.db
 		# Make keycaches and valcaches. Must be done chronologically
 		# to make forwarding work.
 		childbranch = db._childbranch
-		branch2do = deque(["trunk"])
+		branch2do = deque([Branch("trunk")])
 
 		store = self.store
 		with self.overwriting():
@@ -933,7 +915,7 @@ class Cache:
 			break
 		return added, deleted
 
-	def store(
+	def _store(
 		self,
 		*args,
 		planning: bool | None = None,
@@ -941,7 +923,7 @@ class Cache:
 		loading: bool = False,
 		contra: Optional[bool] = None,
 		truncate: bool = False,
-	):
+	) -> None:
 		"""Put a value in various dictionaries for later .retrieve(...).
 
 		Needs at least five arguments, of which the -1th is the value
@@ -1670,7 +1652,7 @@ class Cache:
 				return hint(keyframes[b0][r0][t0][key])
 		return hint(TotalKeyError("No value, ever", entikey))
 
-	def retrieve(self, *args, search: bool = False) -> Value:
+	def _retrieve(self, *args, search: bool = False) -> Value:
 		"""Get a value previously .store(...)'d.
 
 		Needs at least five arguments. The -1th is the tick
@@ -1691,12 +1673,12 @@ class Cache:
 			raise ret
 		return ret
 
-	def iter_entities_or_keys(
+	def _iter_entities_or_keys(
 		self, *args, forward: bool | None = None
 	) -> Iterator:
 		"""Iterate over the keys an entity has, if you specify an entity.
 
-		Otherwise iterate over the entities themselves, or at any rate the
+		Otherwise, iterate over the entities themselves, or at any rate the
 		tuple specifying which entity.
 
 		"""
@@ -1718,12 +1700,10 @@ class Cache:
 				return iter(())
 		return iter(kc)
 
-	iter_entities = iter_keys = iter_entity_keys = iter_entities_or_keys
-
-	def count_entities_or_keys(self, *args, forward: bool | None = None):
+	def _count_entities_or_keys(self, *args, forward: bool | None = None):
 		"""Return the number of keys an entity has, if you specify an entity.
 
-		Otherwise return the number of entities.
+		Otherwise, return the number of entities.
 
 		"""
 		if forward is None:
@@ -1739,20 +1719,14 @@ class Cache:
 			self._get_keycache(entity, branch, turn, tick, forward=forward)
 		)
 
-	count_entities = count_keys = count_entity_keys = count_entities_or_keys
-
-	def contains_entity_or_key(self, *args):
+	def _contains_entity_or_key(self, *args, search: bool = False):
 		"""Check if an entity has a key at the given time, if entity specified.
 
-		Otherwise check if the entity exists.
+		Otherwise, check if the entity exists.
 
 		"""
-		retr = self._base_retrieve(args)
+		retr = self._base_retrieve(args, search=search)
 		return retr is not None and not isinstance(retr, Exception)
-
-	contains_entity = contains_key = contains_entity_key = (
-		contains_entity_or_key
-	)
 
 
 class GraphValCache(Cache):
@@ -1764,7 +1738,10 @@ class GraphValCache(Cache):
 		tick: Tick,
 		copy: bool = True,
 	) -> dict[Stat, Value]:
-		return super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = self._get_keyframe((graph,), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
 	def set_keyframe(
 		self,
@@ -1774,7 +1751,96 @@ class GraphValCache(Cache):
 		tick: Tick,
 		keyframe: dict[Stat, Value],
 	) -> None:
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)
+
+	def store(
+		self,
+		graph: CharName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+		truncate: bool = False,
+	) -> None:
+		self._store(
+			graph,
+			key,
+			branch,
+			turn,
+			tick,
+			value,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		graph: CharName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> Value:
+		return self._retrieve(graph, key, branch, turn, tick, search=search)
+
+	def contains_key(
+		self,
+		graph: CharName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	) -> bool:
+		return self._contains_entity_or_key(graph, key, branch, turn, tick)
+
+	def count_keys(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> int:
+		return self._count_entities_or_keys(
+			graph, branch, turn, tick, forward=forward
+		)
+
+	def count_entities(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> int:
+		return self._count_entities_or_keys(
+			branch, turn, tick, forward=forward
+		)
+
+	def iter_keys(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[Stat]:
+		return self._iter_entities_or_keys(
+			graph, branch, turn, tick, forward=forward
+		)
 
 
 class NodesCache(Cache):
@@ -1800,7 +1866,7 @@ class NodesCache(Cache):
 			ex = None
 		if contra is None:
 			contra = not loading
-		return super().store(
+		self._store(
 			graph,
 			node,
 			branch,
@@ -1812,6 +1878,66 @@ class NodesCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
+
+	def retrieve(
+		self,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> bool:
+		return bool(
+			self._retrieve(graph, node, branch, turn, tick, search=search)
+		)
+
+	def iter_nodes(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[NodeName]:
+		return self._iter_entities_or_keys(
+			graph, branch, turn, tick, forward=forward
+		)
+
+	iter_entities = iter_nodes
+
+	def count_nodes(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> int:
+		return self._count_entities_or_keys(
+			graph, branch, turn, tick, forward=forward
+		)
+
+	count_entities = count_nodes
+
+	def node_exists(
+		self,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> bool:
+		return self._contains_entity_or_key(
+			graph, node, branch, turn, tick, search=search
+		)
+
+	contains_entity = node_exists
 
 	def _update_keycache(self, *args, forward):
 		graph: CharName
@@ -1850,9 +1976,13 @@ class NodesCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		*,
 		copy: bool = True,
 	) -> dict[NodeName, bool]:
-		return super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = self._get_keyframe((graph,), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
 	def set_keyframe(
 		self,
@@ -1862,7 +1992,7 @@ class NodesCache(Cache):
 		tick: Tick,
 		keyframe: dict[NodeName, bool],
 	) -> None:
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)
 
 
 class NodeValCache(Cache):
@@ -1874,8 +2004,9 @@ class NodeValCache(Cache):
 		tick: Tick,
 		copy=True,
 	) -> dict[NodeName, dict[Stat, Value]]:
-		ret = super().get_keyframe((graph,), branch, turn, tick, copy=copy)
+		ret = self._get_keyframe((graph,), branch, turn, tick)
 		if copy:
+			ret = ret.copy()
 			for k, v in ret.items():
 				ret[k] = v.copy()
 		return ret
@@ -1888,9 +2019,98 @@ class NodeValCache(Cache):
 		tick: Tick,
 		keyframe: dict[NodeName, dict[Stat, Value]],
 	):
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)
 		for node, vals in keyframe.items():
-			super().set_keyframe((graph, node), branch, turn, tick, vals)
+			self._set_keyframe((graph, node), branch, turn, tick, vals)
+
+	def store(
+		self,
+		graph: CharName,
+		node: NodeName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+		truncate: bool = False,
+	) -> None:
+		self._store(
+			graph,
+			node,
+			key,
+			branch,
+			turn,
+			tick,
+			value,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		graph: CharName,
+		node: NodeName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> Value:
+		return self._retrieve(
+			graph, node, key, branch, turn, tick, search=search
+		)
+
+	def iter_keys(
+		self,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[Stat]:
+		return self._iter_entities_or_keys(
+			graph, node, branch, turn, tick, forward=forward
+		)
+
+	def count_keys(
+		self,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> int:
+		return self._count_entities_or_keys(
+			graph, node, branch, turn, tick, forward=forward
+		)
+
+	def contains_key(
+		self,
+		graph: CharName,
+		node: NodeName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> bool:
+		return self._contains_entity_or_key(
+			graph, node, key, branch, turn, tick, search=search
+		)
 
 
 class EdgesCache(Cache):
@@ -1978,8 +2198,9 @@ class EdgesCache(Cache):
 		tick: Tick,
 		copy: bool = True,
 	) -> dict[NodeName, dict[NodeName, bool]]:
-		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = self._get_keyframe((graph,), branch, turn, tick)
 		if copy:
+			ret = ret.copy()
 			for orig, dests in list(ret.items()):
 				ret[orig] = dests.copy()
 		return ret
@@ -1992,11 +2213,11 @@ class EdgesCache(Cache):
 		tick: Tick,
 		keyframe: dict[NodeName, dict[NodeName, bool]],
 	) -> None:
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
-			super().set_keyframe((graph, orig), branch, turn, tick, dests)
+			self._set_keyframe((graph, orig), branch, turn, tick, dests)
 			for dest, ex in dests.items():
-				super().set_keyframe(
+				self._set_keyframe(
 					(graph, orig, dest), branch, turn, tick, {0: ex}
 				)
 
@@ -2321,8 +2542,7 @@ class EdgesCache(Cache):
 			ex = None
 		if planning is None:
 			planning = db._planning
-		Cache.store(
-			self,
+		self._store(
 			graph,
 			orig,
 			dest,
@@ -2343,6 +2563,23 @@ class EdgesCache(Cache):
 		except HistoricKeyError:
 			pass
 
+	def retrieve(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> bool:
+		return bool(
+			self._retrieve(
+				graph, orig, dest, branch, turn, tick, search=search
+			)
+		)
+
 	# if ex:
 	# assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
 	# assert self.has_successor(graph, orig, dest, branch, turn, tick)
@@ -2358,6 +2595,70 @@ class EdgesCache(Cache):
 
 
 class EdgeValCache(Cache):
+	def store(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+		truncate: bool = False,
+	):
+		self._store(
+			graph,
+			orig,
+			dest,
+			key,
+			branch,
+			turn,
+			tick,
+			value,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> Value:
+		return self._retrieve(
+			graph, orig, dest, key, branch, turn, tick, search=search
+		)
+
+	def iter_keys(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[Stat]:
+		return self._iter_entities_or_keys(
+			graph, orig, dest, branch, turn, tick, forward=forward
+		)
+
 	def get_keyframe(
 		self,
 		graph: CharName,
@@ -2366,13 +2667,13 @@ class EdgeValCache(Cache):
 		tick: Tick,
 		copy: bool = True,
 	) -> dict[NodeName, dict[NodeName, dict[Stat, Value]]]:
-		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = self._get_keyframe((graph,), branch, turn, tick)
 		if copy:
-			for orig, dests in list(ret.items()):
-				redests = {}
+			ret = ret.copy()
+			for orig, dests in ret.items():
+				redests = ret[orig] = {}
 				for dest, val in dests.items():
 					redests[dest] = val.copy()
-				ret[orig] = redests
 		return ret
 
 	def set_keyframe(
@@ -2383,10 +2684,10 @@ class EdgeValCache(Cache):
 		tick: Tick,
 		keyframe: dict[NodeName, dict[NodeName, dict[Stat, Value]]],
 	):
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
 			for dest, val in dests.items():
-				super().set_keyframe(
+				self._set_keyframe(
 					(graph, orig, dest, 0), branch, turn, tick, val
 				)
 
@@ -2400,14 +2701,14 @@ class EntitylessCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value,
+		value: Value,
 		*,
 		planning: Optional[bool] = None,
 		forward: Optional[bool] = None,
 		loading: bool = False,
 		contra: Optional[bool] = None,
 	):
-		super().store(
+		self._store(
 			None,
 			key,
 			branch,
@@ -2423,47 +2724,123 @@ class EntitylessCache(Cache):
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, copy: bool = True
 	) -> dict:
-		return super().get_keyframe((None,), branch, turn, tick, copy=copy)
+		ret = self._get_keyframe((Key(None),), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
 	def set_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, keyframe: dict
-	):
-		super().set_keyframe((None,), branch, turn, tick, keyframe)
+	) -> None:
+		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
-	def iter_entities_or_keys(
+	def iter_keys(
 		self,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		*,
 		forward: Optional[bool] = None,
-	):
-		return super().iter_entities_or_keys(
+	) -> Iterator[Key]:
+		return self._iter_entities_or_keys(
 			None, branch, turn, tick, forward=forward
 		)
 
-	iter_entities = iter_keys = iter_entities_or_keys
-
-	def contains_entity_or_key(
+	def contains_key(
 		self, ke: Key, branch: Branch, turn: Turn, tick: Tick
-	):
-		return super().contains_entity_or_key(None, ke, branch, turn, tick)
+	) -> bool:
+		return self._contains_entity_or_key(None, ke, branch, turn, tick)
 
-	contains_entity = contains_key = contains_entity_or_key
+	def retrieve(
+		self,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> Value:
+		return self._retrieve(None, key, branch, turn, tick, search=search)
 
-	def retrieve(self, *args):
-		return super().retrieve(*(None,) + args)
 
-
-class GraphCache(EntitylessCache):
+class GraphCache(Cache):
 	overwrite_journal = True
+
+	def store(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		type: Literal["DiGraph", None],
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+		truncate: bool = False,
+	) -> None:
+		self._store(
+			None,
+			graph,
+			branch,
+			turn,
+			tick,
+			type,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> Literal["DiGraph", None]:
+		return self._retrieve(None, graph, branch, turn, tick, search=search)
+
+	def iter_keys(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		forward: bool | None = None,
+	) -> Iterator[CharName]:
+		return self._iter_entities_or_keys(
+			None, branch, turn, tick, forward=forward
+		)
+
+	iter_entities = iter_keys
+
+	def get_keyframe(
+		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
+	):
+		ret = self._get_keyframe((Key(None),), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
+
+	def set_keyframe(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict[CharName, Literal["DiGraph", None]],
+	) -> None:
+		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
 
 class InitializedCache(Cache):
 	__slots__ = ()
 
 	def _retrieve_for_journal(self, args):
-		return self.retrieve(*args[:-1])
+		return self._retrieve(*args[:-1])
 
 	def _store_journal(self, *args):
 		entity, key, branch, turn, tick, value = args[-6:]
@@ -2489,6 +2866,274 @@ class InitializedCache(Cache):
 			settings_turns[turn] = {tick: parent + (entity, key, value)}
 
 
+class RulebooksCache(Cache):
+	def store(
+		self,
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rules_prio: tuple[list[RuleName], RulebookPriority],
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+		truncate: bool = False,
+	) -> None:
+		self._store(
+			None,
+			rulebook,
+			branch,
+			turn,
+			tick,
+			rules_prio,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> tuple[list[RuleName], RulebookPriority]:
+		rules, prio = self._retrieve(
+			None, rulebook, branch, turn, tick, search=search
+		)
+		return list(rules), prio
+
+	def get_keyframe(
+		self, branch: Branch, turn: Turn, tick: Tick, copy: bool = True
+	) -> dict[RulebookName, tuple[list[RuleName], RulebookPriority]]:
+		ret = self._get_keyframe((Key(None),), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+			for rulebook, (rules, prio) in ret.items():
+				ret[rulebook] = (list(rules), prio)
+		return ret
+
+	def set_keyframe(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict[RulebookName, tuple[list[RuleName], RulebookPriority]],
+	) -> None:
+		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
+
+	def iter_keys(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[RulebookName]:
+		return self._iter_entities_or_keys(
+			None, branch, turn, tick, forward=forward
+		)
+
+
+class FuncListCache(InitializedCache):
+	def store(
+		self,
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		funcs: list[RuleFuncName],
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+		truncate: bool = False,
+	) -> None:
+		self._store(
+			None,
+			rulebook,
+			branch,
+			turn,
+			tick,
+			funcs,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> list[RuleFuncName]:
+		return self._retrieve(
+			None, rulebook, branch, turn, tick, search=search
+		)
+
+	def contains_rulebook(
+		self,
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool | None = None,
+	) -> bool:
+		return self._contains_entity_or_key(
+			None, rulebook, branch, turn, tick, search=search
+		)
+
+	contains_key = contains_rulebook
+
+	def get_keyframe(
+		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
+	) -> dict[RulebookName, list[RuleFuncName]]:
+		ret = self._get_keyframe((Key(None),), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+			for rb, funcs in ret.items():
+				ret[rb] = funcs.copy()
+		return ret
+
+	def set_keyframe(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict[RulebookName, list[RuleFuncName]],
+	):
+		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
+
+
+class NeighborhoodsCache(InitializedCache):
+	def store(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		neighborhood: RuleNeighborhood,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+		truncate: bool = False,
+	):
+		self._store(
+			(Key(None),),
+			rule,
+			branch,
+			turn,
+			tick,
+			neighborhood,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> RuleNeighborhood:
+		return self._retrieve(None, rule, branch, turn, tick, search=search)
+
+	def get_keyframe(
+		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
+	) -> dict[RuleName, RuleNeighborhood]:
+		ret = self._get_keyframe((Key(None),), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
+
+	def set_keyframe(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict[RuleName, RuleNeighborhood],
+	) -> None:
+		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
+
+
+class BignessCache(InitializedCache):
+	def store(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		big: RuleBig,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+		truncate: bool = False,
+	) -> None:
+		self._store(
+			None,
+			rule,
+			branch,
+			turn,
+			tick,
+			big,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> RuleBig:
+		return self._retrieve(None, rule, branch, turn, tick, search=search)
+
+	def get_keyframe(
+		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
+	):
+		ret = self._get_keyframe((Key(None),), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
+
+	def set_keyframe(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict[RuleName, RuleBig],
+	) -> None:
+		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
+
+
 class NodesRulebooksCache(InitializedCache):
 	def get_keyframe(
 		self,
@@ -2496,9 +3141,13 @@ class NodesRulebooksCache(InitializedCache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		*,
 		copy: bool = True,
 	) -> dict[NodeName, RulebookName]:
-		return super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = self._get_keyframe((graph,), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
 	def set_keyframe(
 		self,
@@ -2508,41 +3157,111 @@ class NodesRulebooksCache(InitializedCache):
 		tick: Tick,
 		keyframe: dict[NodeName, RulebookName],
 	) -> None:
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)
+
+	def store(
+		self,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+		truncate: bool = False,
+	) -> None:
+		self._store(
+			graph,
+			node,
+			branch,
+			turn,
+			tick,
+			rulebook,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> RulebookName:
+		return self._retrieve(graph, node, branch, turn, tick, search=search)
 
 
-class InitializedEntitylessCache(EntitylessCache, InitializedCache):
-	__slots__ = ()
-
+class CharactersRulebooksCache(InitializedCache):
 	def _retrieve_for_journal(self, args):
 		return self.retrieve(*args[1:-1])
 
+	def get_keyframe(
+		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
+	):
+		ret = self._get_keyframe((Key(None),), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
-class CharactersRulebooksCache(InitializedEntitylessCache):
 	def set_keyframe(
 		self,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict[
-			CharName,
-			dict[
-				Literal[
-					"character_rulebook",
-					"unit_rulebook",
-					"character_thing_rulebook",
-					"character_place_rulebook",
-					"character_portal_rulebook",
-				],
-				RulebookName,
-			],
-		],
+		keyframe: dict[CharName, RulebookName],
 	):
-		super().set_keyframe(branch, turn, tick, keyframe)
-		for char, kf in keyframe.items():
-			super(EntitylessCache, self).set_keyframe(
-				(char,), branch, turn, tick, kf
-			)
+		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
+
+	def store(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool = None,
+		truncate: bool = False,
+	) -> None:
+		self._store(
+			None,
+			character,
+			branch,
+			turn,
+			tick,
+			rulebook,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+			truncate=truncate,
+		)
+
+	def retrieve(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> RulebookName:
+		return self._retrieve(
+			None, character, branch, turn, tick, search=search
+		)
 
 
 class PortalsRulebooksCache(InitializedCache):
@@ -2579,7 +3298,7 @@ class PortalsRulebooksCache(InitializedCache):
 		)
 		# The former will be overwritten in the journal (but not elsewhere)
 		# by the latter:
-		super().store(
+		self._store(
 			char,
 			orig,
 			dest,
@@ -2593,6 +3312,36 @@ class PortalsRulebooksCache(InitializedCache):
 			planning=planning,
 		)
 
+	@singledispatchmethod
+	def retrieve(
+		self,
+		# I can't use newtypes with single dispatch???
+		char: Key,
+		orig: Key,
+		dest: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> RulebookName:
+		return self._retrieve(
+			char, orig, dest, branch, turn, tick, search=search
+		)
+
+	@retrieve.register
+	def retrieve(
+		self,
+		char: Key,
+		orig: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	):
+		return self._retrieve(char, orig, branch, turn, tick, search=search)
+
 	def get_keyframe(
 		self,
 		graph: CharName,
@@ -2601,9 +3350,10 @@ class PortalsRulebooksCache(InitializedCache):
 		tick: Tick,
 		copy: bool = True,
 	) -> dict[NodeName, dict[NodeName, RulebookName]]:
-		ret = super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = self._get_keyframe((graph,), branch, turn, tick)
 		if copy:
-			for orig, dests in list(ret.items()):
+			ret = ret.copy()
+			for orig, dests in ret.items():
 				ret[orig] = dests.copy()
 		return ret
 
@@ -2616,7 +3366,23 @@ class PortalsRulebooksCache(InitializedCache):
 		tick: Tick,
 		copy: bool = True,
 	) -> dict[NodeName, RulebookName]:
-		return super().get_keyframe((graph, orig), branch, turn, tick, copy)
+		ret = self._get_keyframe((graph, orig), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
+
+	def iter_keys(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[NodeName]:
+		return self._iter_entities_or_keys(
+			graph, branch, turn, tick, forward=forward
+		)
 
 	def set_keyframe(
 		self,
@@ -2626,17 +3392,20 @@ class PortalsRulebooksCache(InitializedCache):
 		tick: Tick,
 		keyframe: dict[NodeName, dict[NodeName, RulebookName]],
 	):
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)
 		for orig, dests in keyframe.items():
 			for dest, rulebook in dests.items():
 				try:
-					subkf = super().get_keyframe(
-						(graph, orig), branch, turn, tick, copy=True
-					)
+					subkf = self._get_keyframe(
+						(graph, orig),
+						branch,
+						turn,
+						tick,
+					).copy()
 					subkf[dest] = rulebook
 				except KeyError:
 					subkf = {dest: rulebook}
-				super().set_keyframe((graph, orig), branch, turn, tick, subkf)
+				self._set_keyframe((graph, orig), branch, turn, tick, subkf)
 
 
 class UserSetCache(Cache):
@@ -2675,7 +3444,7 @@ class UserSetCache(Cache):
 			except KeyError:
 				users = frozenset([])
 			users -= {character}
-		super().store(
+		self._store(
 			graph,
 			node,
 			branch,
@@ -2697,7 +3466,7 @@ class UserSetCache(Cache):
 		tick: Tick,
 		search: bool = False,
 	):
-		return super().retrieve(graph, node, branch, turn, tick, search=search)
+		return self._retrieve(graph, node, branch, turn, tick, search=search)
 
 	def get_keyframe(
 		self,
@@ -2707,7 +3476,10 @@ class UserSetCache(Cache):
 		tick: Tick,
 		copy: bool = True,
 	) -> dict[NodeName, frozenset[CharName]]:
-		return super().get_keyframe((graph,), branch, turn, tick, copy=copy)
+		ret = self._get_keyframe((graph,), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
 	def set_keyframe(
 		self,
@@ -2717,7 +3489,7 @@ class UserSetCache(Cache):
 		tick: Tick,
 		keyframe: dict[NodeName, frozenset[CharName]],
 	):
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)
 
 	def alias_keyframe(
 		self,
@@ -2747,7 +3519,44 @@ class UnitDictCache(Cache):
 	):
 		for node, is_unit in d.items():
 			d[node] = bool(is_unit)
-		super().store(character, graph, branch, turn, tick, d)
+		self._store(
+			character,
+			graph,
+			branch,
+			turn,
+			tick,
+			d,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
+
+	def iter_entities(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[CharName]:
+		return self._iter_entities_or_keys(
+			character, branch, turn, tick, forward=forward
+		)
+
+	def count_entities(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> int:
+		return self._count_entities_or_keys(
+			character, branch, turn, tick, forward=forward
+		)
 
 	def retrieve(
 		self,
@@ -2758,9 +3567,40 @@ class UnitDictCache(Cache):
 		tick: Tick,
 		search: bool = False,
 	) -> dict[NodeName, bool]:
-		return super().retrieve(
+		return self._retrieve(
 			character, graph, branch, turn, tick, search=search
 		)
+
+	def contains_graph(
+		self,
+		character: CharName,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> bool:
+		return self._contains_entity_or_key(
+			character, graph, branch, turn, tick, search=search
+		)
+
+	contains_key = contains_graph
+
+	def iter_graphs(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[CharName]:
+		return self._iter_entities_or_keys(
+			character, branch, turn, tick, forward=forward
+		)
+
+	iter_keys = iter_graphs
 
 	def get_keyframe(
 		self,
@@ -2770,8 +3610,9 @@ class UnitDictCache(Cache):
 		tick: Tick,
 		copy: bool = True,
 	) -> dict[CharName, dict[NodeName, bool]]:
-		ret = super().get_keyframe((character,), branch, turn, tick, copy=copy)
+		ret = self._get_keyframe((character,), branch, turn, tick)
 		if copy:
+			ret = ret.copy()
 			for k, v in ret.items():
 				ret[k] = v.copy()
 		return ret
@@ -2784,7 +3625,7 @@ class UnitDictCache(Cache):
 		tick: Tick,
 		keyframe: dict[CharName, dict[NodeName, bool]],
 	):
-		super().set_keyframe((character,), branch, turn, tick, keyframe)
+		self._set_keyframe((character,), branch, turn, tick, keyframe)
 
 
 class UnitnessCache(Cache):
@@ -2828,7 +3669,7 @@ class UnitnessCache(Cache):
 		if forward is None:
 			forward = self.db._forward
 		is_unit = True if is_unit else None
-		super().store(
+		self._store(
 			character,
 			graph,
 			node,
@@ -2887,7 +3728,7 @@ class UnitnessCache(Cache):
 	):
 		self.dict_cache.set_keyframe(character, branch, turn, tick, keyframe)
 		for graph, kf in keyframe.items():
-			super().set_keyframe((character, graph), branch, turn, tick, kf)
+			self._set_keyframe((character, graph), branch, turn, tick, kf)
 
 	def get_keyframe(
 		self,
@@ -2898,8 +3739,38 @@ class UnitnessCache(Cache):
 		tick: Tick,
 		copy: bool = True,
 	) -> dict[NodeName, bool]:
-		return super().get_keyframe(
-			(character, graph), branch, turn, tick, copy=copy
+		ret = self._get_keyframe((character, graph), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
+
+	def contains_graph(
+		self,
+		char: CharName,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> bool:
+		return self._contains_entity_or_key(
+			char, graph, branch, turn, tick, search=search
+		)
+
+	def contains_unit(
+		self,
+		char: CharName,
+		graph: CharName,
+		unit: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> bool:
+		return self._contains_entity_or_key(
+			char, graph, unit, branch, turn, tick, search=search
 		)
 
 	def get_char_graph_units(
@@ -2909,18 +3780,42 @@ class UnitnessCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-	):
-		return set(self.iter_entities(char, graph, branch, turn, tick))
+		*,
+		forward: bool | None = None,
+	) -> set[NodeName]:
+		return set(
+			self._iter_entities_or_keys(
+				char, graph, branch, turn, tick, forward=forward
+			)
+		)
 
-	def alias_keyframe(
+	def count_graphs(
 		self,
-		branch_from: Branch,
-		branch_to: Branch,
+		char: CharName,
+		graph: CharName,
+		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		default: Optional[dict] = None,
-	):
-		super().alias_keyframe(branch_from, branch_to, turn, tick, default)
+		*,
+		forward: bool | None = None,
+	) -> int:
+		return self._count_entities_or_keys(
+			char, graph, branch, turn, tick, forward=forward
+		)
+
+	def iter_entities(
+		self,
+		char: CharName,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[NodeName]:
+		return self._iter_entities_or_keys(
+			char, graph, branch, turn, tick, forward=forward
+		)
 
 	def get_char_only_unit(
 		self, char: CharName, branch: Branch, turn: Turn, tick: Tick
@@ -3414,7 +4309,9 @@ class ThingsCache(Cache):
 		turn: Turn,
 		tick: Tick,
 	):
-		for thing in self.iter_keys(character, branch, turn, tick):
+		for thing in self._iter_entities_or_keys(
+			character, branch, turn, tick
+		):
 			try:
 				loc = self.retrieve(character, thing, branch, turn, tick)
 			except KeyError:
@@ -3455,16 +4352,17 @@ class ThingsCache(Cache):
 		tick: Tick,
 		location: NodeName,
 		planning: Optional[bool] = None,
+		forward: bool | None = None,
 		loading: bool = False,
 		contra: Optional[bool] = None,
 	) -> None:
 		with self._lock:
-			oldloc: NodeName
+			oldloc: NodeName | None
 			try:
 				oldloc = self.retrieve(character, thing, branch, turn, tick)
 			except KeyError:
 				oldloc = None
-			super().store(
+			self._store(
 				character,
 				thing,
 				branch,
@@ -3472,6 +4370,7 @@ class ThingsCache(Cache):
 				tick,
 				location,
 				planning=planning,
+				forward=forward,
 				loading=loading,
 				contra=contra,
 			)
@@ -3574,6 +4473,20 @@ class ThingsCache(Cache):
 					character, loc, branch, trn, tck, conts
 				)
 
+	def retrieve(
+		self,
+		character: CharName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> NodeName:
+		return self._retrieve(
+			character, thing, branch, turn, tick, search=search
+		)
+
 	def turn_before(
 		self, character: CharName, thing: NodeName, branch: Branch, turn: Turn
 	) -> Turn:
@@ -3600,9 +4513,13 @@ class ThingsCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		*,
 		copy: bool = True,
 	) -> dict[NodeName, NodeName]:
-		return super().get_keyframe((graph,), branch, turn, tick, copy)
+		ret = self._get_keyframe((graph,), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
 	def set_keyframe(
 		self,
@@ -3612,7 +4529,51 @@ class ThingsCache(Cache):
 		tick: Tick,
 		keyframe: dict[NodeName, NodeName],
 	) -> None:
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)
+
+	def thing_exists(
+		self,
+		graph: CharName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> bool:
+		return self._contains_entity_or_key(
+			graph, thing, branch, turn, tick, search=search
+		)
+
+	contains_entity = thing_exists
+
+	def count_things(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> int:
+		return self._count_entities_or_keys(
+			graph, branch, turn, tick, forward=forward
+		)
+
+	count_keys = count_things
+
+	def iter_things(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[NodeName]:
+		return self._iter_entities_or_keys(
+			graph, branch, turn, tick, forward=forward
+		)
 
 
 class NodeContentsCache(Cache):
@@ -3667,7 +4628,7 @@ class NodeContentsCache(Cache):
 			turn, tick, contents
 		)
 
-		return super().store(
+		return self._store(
 			character,
 			place,
 			branch,
@@ -3690,7 +4651,7 @@ class NodeContentsCache(Cache):
 		tick: Tick,
 		search: bool = False,
 	) -> frozenset[NodeName]:
-		return super().retrieve(
+		return self._retrieve(
 			character, node, branch, turn, tick, search=search
 		)
 
@@ -3793,8 +4754,11 @@ class NodeContentsCache(Cache):
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> dict:
-		return super().get_keyframe((graph,), branch, turn, tick, copy)
+	) -> dict[NodeName, frozenset[NodeName]]:
+		ret = self._get_keyframe((graph,), branch, turn, tick)
+		if copy:
+			ret = ret.copy()
+		return ret
 
 	def set_keyframe(
 		self,
@@ -3802,6 +4766,6 @@ class NodeContentsCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict,
+		keyframe: dict[NodeName, frozenset[NodeName]],
 	) -> None:
-		super().set_keyframe((graph,), branch, turn, tick, keyframe)
+		self._set_keyframe((graph,), branch, turn, tick, keyframe)

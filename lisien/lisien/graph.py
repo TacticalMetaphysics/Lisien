@@ -145,7 +145,7 @@ class GraphMapping(AbstractEntityMapping):
 		btt = db._btt
 		graph_val_cache = db._graph_val_cache
 		graphn = graph.name
-		self._iter_stuff = (graph_val_cache.iter_entity_keys, graphn, btt)
+		self._iter_stuff = (graph_val_cache.iter_keys, graphn, btt)
 		self._cache_contains_stuff = (graph_val_cache.contains_key, graphn)
 		self._len_stuff = (graph_val_cache.count_entities, graphn, btt)
 		self._get_stuff = (self._get_cache, btt)
@@ -246,32 +246,29 @@ class Node(AbstractEntityMapping):
 		self.graph = graph
 		self.name = node
 		self.db = db = graph.db
-		try:
-			node_val_cache = db._node_val_cache
-			graphn = graph.name
-			btt = db._btt
-			self._iter_stuff = (
-				node_val_cache.iter_entity_keys,
-				graphn,
-				node,
-				btt,
-			)
-			self._cache_contains_stuff = (
-				node_val_cache.contains_key,
-				graphn,
-				node,
-			)
-			self._len_stuff = (
-				node_val_cache.count_entity_keys,
-				graphn,
-				node,
-				btt,
-			)
-			self._get_cache_stuff = (node_val_cache.retrieve, graphn, node)
-			self._set_db_stuff = (db.query.node_val_set, graphn, node)
-			self._set_cache_stuff = (db._node_val_cache.store, graphn, node)
-		except AttributeError:
-			pass
+		node_val_cache = db._node_val_cache
+		graphn = graph.name
+		btt = db._btt
+		self._iter_stuff = (
+			node_val_cache.iter_keys,
+			graphn,
+			node,
+			btt,
+		)
+		self._cache_contains_stuff = (
+			node_val_cache.contains_key,
+			graphn,
+			node,
+		)
+		self._len_stuff = (
+			node_val_cache.count_keys,
+			graphn,
+			node,
+			btt,
+		)
+		self._get_cache_stuff = (node_val_cache.retrieve, graphn, node)
+		self._set_db_stuff = (db.query.node_val_set, graphn, node)
+		self._set_cache_stuff = (db._node_val_cache.store, graphn, node)
 
 	def __repr__(self):
 		return "{}(graph={}, name={})".format(
