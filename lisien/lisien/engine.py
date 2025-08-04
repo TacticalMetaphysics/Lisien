@@ -1463,8 +1463,8 @@ class Engine(AbstractEngine, Executor):
 		val: Value,
 	) -> None:
 		"""Change a delta to say that a graph was deleted or not"""
-		if val in (None, "Deleted"):
-			delta[graph] = None
+		if val in (..., None, "Deleted"):
+			delta[graph] = ...
 		elif graph not in delta or delta[graph] is ...:
 			# If the graph was *created* within our window,
 			# include its whole initial keyframe
@@ -1597,7 +1597,7 @@ class Engine(AbstractEngine, Executor):
 			"""Change a delta to say that a graph stat was set to a certain value"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is not None:
+			if delta[graph] is not ...:
 				graph_stats: CharDelta = delta[graph]
 				graph_stats[key] = val
 
@@ -3179,7 +3179,7 @@ class Engine(AbstractEngine, Executor):
 	) -> None:
 		singlechar = frozenset([char])
 		for graf, stuff in delta.items():
-			if stuff is None:
+			if stuff is ...:
 				if graf in char_unit_kf:
 					del char_unit_kf[graf]
 				if char in user_set_kf:
