@@ -4353,11 +4353,7 @@ class ThingsCache(Cache):
 		for thing in self._iter_entities_or_keys(
 			character, branch, turn, tick
 		):
-			try:
-				loc = self.retrieve(character, thing, branch, turn, tick)
-			except KeyError:
-				continue
-			if loc == place:
+			if self.retrieve(character, thing, branch, turn, tick) == place:
 				yield thing
 
 	def _retrieve_or_generate_contents(
