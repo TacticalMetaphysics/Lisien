@@ -1375,8 +1375,6 @@ class Cache:
 		yield
 		del self.overwrite_journal
 
-	inital_value = ...
-
 	def _store_journal(self, *args):
 		# overridden in lisien.cache.InitializedCache
 		(settings, presettings, base_retrieve) = self._store_journal_stuff
