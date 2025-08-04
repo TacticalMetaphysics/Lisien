@@ -147,7 +147,7 @@ class GraphMapping(AbstractEntityMapping):
 		graphn = graph.name
 		self._iter_stuff = (graph_val_cache.iter_keys, graphn, btt)
 		self._cache_contains_stuff = (graph_val_cache.contains_key, graphn)
-		self._len_stuff = (graph_val_cache.count_entities, graphn, btt)
+		self._len_stuff = (graph_val_cache.count_keys, graphn, btt)
 		self._get_stuff = (self._get_cache, btt)
 		graph_val_set = db.query.graph_val_set
 		self._set_db_stuff = (graph_val_set, graphn)
@@ -165,8 +165,8 @@ class GraphMapping(AbstractEntityMapping):
 		return contains_key(graphn, key, branch, turn, tick)
 
 	def __len__(self):
-		count_entities, graphn, btt = self._len_stuff
-		return 1 + count_entities(graphn, *btt())
+		count_keys, graphn, btt = self._len_stuff
+		return 1 + count_keys(graphn, *btt())
 
 	def __getitem__(self, item):
 		if item == "name":
