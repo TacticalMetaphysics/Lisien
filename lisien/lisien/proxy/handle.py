@@ -204,7 +204,7 @@ class EngineHandle:
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
 		for char, chardelta in delta.items():
-			if chardelta is None or chardelta == {"name": None}:
+			if chardelta is ...:
 				pchar = pack(char)
 				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = (
 					None
