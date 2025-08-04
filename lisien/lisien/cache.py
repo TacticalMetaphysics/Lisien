@@ -831,7 +831,7 @@ class Cache:
 		kc = self._get_keycache(
 			parent + (entity,), branch, turn, tick, forward=forward
 		)
-		if value is None:
+		if value is ...:
 			kc = kc.difference((key,))
 		else:
 			kc = kc.union((key,))
@@ -879,7 +879,7 @@ class Cache:
 				turnd = branches[branc]
 				if trn in turnd:
 					if turnd[trn].rev_gettable(tck):
-						if turnd[trn][tck] is None:
+						if turnd[trn][tck] is ...:
 							deleted.add(key)
 						else:
 							added.add(key)
@@ -889,7 +889,7 @@ class Cache:
 				if not turnd.rev_gettable(trn):
 					break
 				tickd = turnd[trn]
-				if tickd.final() is None:
+				if tickd.final() is ...:
 					deleted.add(key)
 				else:
 					added.add(key)
@@ -1666,7 +1666,7 @@ class Cache:
 
 		"""
 		ret = self._base_retrieve(args, search=search)
-		if ret is None:
+		if ret is ...:
 			raise HistoricKeyError("Set, then deleted", deleted=True)
 		elif isinstance(ret, Exception):
 			ret.args = (*ret.args, args)
@@ -1675,7 +1675,7 @@ class Cache:
 
 	def _iter_entities_or_keys(
 		self, *args, forward: bool | None = None
-	) -> Iterator:
+	) -> Iterator[Key]:
 		"""Iterate over the keys an entity has, if you specify an entity.
 
 		Otherwise, iterate over the entities themselves, or at any rate the
@@ -1697,8 +1697,13 @@ class Cache:
 					entity, branch, turn, tick, forward=forward
 				)
 			except KeyframeError:
-				return iter(())
-		return iter(kc)
+				return
+		for that in kc:
+			if not self._contains_entity_or_key(
+				*entity, that, branch, turn, tick
+			):
+				raise RuntimeError("Bad keycache")
+			yield that
 
 	def _count_entities_or_keys(self, *args, forward: bool | None = None):
 		"""Return the number of keys an entity has, if you specify an entity.
@@ -1726,7 +1731,7 @@ class Cache:
 
 		"""
 		retr = self._base_retrieve(args, search=search)
-		return retr is not None and not isinstance(retr, Exception)
+		return retr is not ... and not isinstance(retr, Exception)
 
 
 class GraphValCache(Cache):
@@ -2237,7 +2242,7 @@ class EdgesCache(Cache):
 		origs = self._get_origcache(
 			graph, dest, branch, turn, tick, forward=forward
 		)
-		if value is None:
+		if value is ...:
 			dests = dests.difference((dest,))
 			origs = origs.difference((orig,))
 		else:

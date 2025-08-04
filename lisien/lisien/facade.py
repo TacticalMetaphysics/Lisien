@@ -78,7 +78,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 	def __contains__(self, item):
 		patch = self._patch
 		if item in patch:
-			return patch[item] is not None
+			return patch[item] is not ...
 		if hasattr(self, "_real"):
 			return item in self._real
 		return False
@@ -89,7 +89,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		if hasattr(self, "_real"):
 			ks |= self._real.keys()
 		for k in ks:
-			if k not in patch or patch[k] is not None:
+			if k not in patch or patch[k] is not ...:
 				yield k
 
 	def __len__(self):
@@ -100,7 +100,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 
 	def __getitem__(self, k):
 		if k in self._patch:
-			if self._patch[k] is None:
+			if self._patch[k] is ...:
 				raise KeyError("{} has been masked.".format(k))
 			return self._patch[k]
 		if not hasattr(self, "_real"):
@@ -175,13 +175,13 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 
 	def __contains__(self, k):
 		if k in self._patch:
-			return self._patch[k] is not None
+			return self._patch[k] is not ...
 		return k in self._get_inner_map()
 
 	def __iter__(self):
 		seen = set()
 		for k in self._patch:
-			if k not in seen and self._patch[k] is not None:
+			if k not in seen and self._patch[k] is not ...:
 				yield k
 			seen.add(k)
 		for k in self._get_inner_map():
@@ -205,7 +205,7 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 				v = {}
 			self._patch[k] = self._make(k, v)
 		ret = self._patch[k]
-		if ret is None:
+		if ret is ...:
 			raise KeyError(k)
 		if type(ret) is not self.facadecls:
 			ret = self._patch[k] = self._make(k, ret)
@@ -502,7 +502,7 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 		if node not in self._patch:
 			self._patch[node] = self.cls(self.facade, node)
 		ret = self._patch[node]
-		if ret is None:
+		if ret is ...:
 			raise KeyError("masked")
 		if type(ret) is not self.cls:
 			nuret = self.cls(self.facade, node)
@@ -952,7 +952,7 @@ class CharacterFacade(AbstractCharacter):
 						yield k
 						seen.add(k)
 			for k, v in self._patch.items():
-				if k not in seen and v is not None:
+				if k not in seen and v is not ...:
 					yield k
 
 		def __len__(self):
@@ -963,7 +963,7 @@ class CharacterFacade(AbstractCharacter):
 
 		def __contains__(self, k):
 			if k in self._patch:
-				return self._patch[k] is not None
+				return self._patch[k] is not ...
 			if (
 				hasattr(self.facade.character, "graph")
 				and k in self.facade.character.graph
@@ -979,8 +979,8 @@ class CharacterFacade(AbstractCharacter):
 				if not hasattr(ret, "unwrap"):
 					return ret
 				self._patch[k] = ret.unwrap()
-			if self._patch[k] is None:
-				return KeyError
+			if self._patch[k] is ...:
+				return KeyError("masked", k)
 			return self._patch[k]
 
 		def __setitem__(self, k, v):
@@ -1003,13 +1003,13 @@ class CharacterFacade(AbstractCharacter):
 		realport = realchar.portal
 		realeng = self.engine._real
 		for k, v in self.stat._patch.items():
-			if v is None:
+			if v is ...:
 				del realstat[k]
 			else:
 				realstat[k] = v
 		self.stat._patch = {}
 		for k, v in self.thing._patch.items():
-			if v is None:
+			if v is ...:
 				del realthing[k]
 			elif k not in realthing:
 				if isinstance(v, FacadeThing):
@@ -1021,7 +1021,7 @@ class CharacterFacade(AbstractCharacter):
 				v.apply()
 		self.thing._patch = {}
 		for k, v in self.place._patch.items():
-			if v is None:
+			if v is ...:
 				del realplace[k]
 			elif k not in realplace:
 				realchar.add_place(k, **v)
@@ -1033,7 +1033,7 @@ class CharacterFacade(AbstractCharacter):
 				if not getattr(dests, "_tampered", False):
 					continue
 				for dest, v in dests.items():
-					if v is None:
+					if v is ...:
 						del realport[orig][dest]
 					elif orig not in realport or dest not in realport[orig]:
 						realchar.add_portal(orig, dest, **v)
@@ -1076,7 +1076,7 @@ class EngineFacade(AbstractEngine):
 		def __getitem__(self, item):
 			if item in self._patch:
 				ret = self._patch[item]
-				if ret is None:
+				if ret is ...:
 					raise KeyError("Universal key deleted", item)
 				return ret
 			elif item in self.engine.universal:
@@ -1086,7 +1086,7 @@ class EngineFacade(AbstractEngine):
 
 		def __setitem__(self, key, value):
 			self._patch[key] = value
-			if value is not None:
+			if value is not ...:
 				self._deleted.discard(key)
 
 		def __delitem__(self, key):
@@ -1341,7 +1341,7 @@ class EngineFacade(AbstractEngine):
 							char, node, k, v = tup
 							realchar = realeng.character[char]
 							if node in realchar.node:
-								if k is None:
+								if k is ...:
 									realchar.remove_node(node)
 								elif k == "location":
 									# assume the location really exists, since
@@ -1366,7 +1366,7 @@ class EngineFacade(AbstractEngine):
 								orig in realchar.portal
 								and dest in realchar.portal[orig]
 							):
-								if k is None:
+								if k is ...:
 									realchar.remove_portal(orig, dest)
 								else:
 									realchar.portal[orig][dest][k] = v

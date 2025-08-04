@@ -148,6 +148,7 @@ class MsgpackExtensionType(Enum):
 	place = 0x7E
 	thing = 0x7D
 	portal = 0x7C
+	ellipsis = 0x7B
 	function = 0x7A
 	method = 0x79
 	trigger = 0x78
@@ -557,6 +558,9 @@ class AbstractEngine(ABC):
 		except ImportError:
 			pass
 		handlers = {
+			Ellipsis: lambda _: msgpack.ExtType(
+				MsgpackExtensionType.ellipsis.value, b""
+			),
 			nx.Graph: lambda graf: msgpack.ExtType(
 				MsgpackExtensionType.graph.value,
 				packer(
@@ -794,6 +798,7 @@ class AbstractEngine(ABC):
 			return getattr(store, unpacked)
 
 		handlers = {
+			MsgpackExtensionType.ellipsis.value: lambda _: ...,
 			MsgpackExtensionType.graph.value: unpack_graph,
 			MsgpackExtensionType.character.value: unpack_char,
 			MsgpackExtensionType.place.value: unpack_place,

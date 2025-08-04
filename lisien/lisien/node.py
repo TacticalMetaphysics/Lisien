@@ -726,7 +726,7 @@ class Thing(Node, AbstractThing):
 		ret = self.engine._things_cache._base_retrieve(
 			(self.character.name, self.name, *self.engine._btt())
 		)
-		if ret is None or isinstance(ret, Exception):
+		if ret is ... or isinstance(ret, Exception):
 			return None
 		return ret
 

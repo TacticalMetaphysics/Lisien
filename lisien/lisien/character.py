@@ -292,15 +292,7 @@ class Character(AbstractCharacter, RuleFollower):
 			cache = self.engine._things_cache
 			char = self.name
 			branch, turn, tick = self.engine._btt()
-			for key in cache.iter_things(char, branch, turn, tick):
-				try:
-					if (
-						cache.retrieve(char, key, branch, turn, tick)
-						is not None
-					):
-						yield key
-				except KeyError:
-					continue
+			return cache.iter_things(char, branch, turn, tick)
 
 		def __contains__(self, thing):
 			branch, turn, tick = self.engine._btt()
@@ -597,7 +589,7 @@ class Character(AbstractCharacter, RuleFollower):
 			):
 				for orig, dests in chain(other.items(), kwargs.items()):
 					for dest, kvs in dests.items():
-						if kvs is None:
+						if kvs is ...:
 							for k in iter_edge_keys(
 								charn,
 								orig,
@@ -612,12 +604,11 @@ class Character(AbstractCharacter, RuleFollower):
 									charn,
 									orig,
 									dest,
-									0,
 									k,
 									branch,
 									turn,
 									tick,
-									None,
+									...,
 									planning=planning,
 									forward=forward,
 									loading=True,
@@ -631,14 +622,13 @@ class Character(AbstractCharacter, RuleFollower):
 									branch,
 									turn,
 									tick,
-									None,
+									...,
 								)
 								tick += 1
 							store_edge(
 								charn,
 								orig,
 								dest,
-								0,
 								branch,
 								turn,
 								tick,
@@ -656,7 +646,6 @@ class Character(AbstractCharacter, RuleFollower):
 								charn,
 								orig,
 								dest,
-								0,
 								branch,
 								turn,
 								tick,
@@ -674,7 +663,6 @@ class Character(AbstractCharacter, RuleFollower):
 									charn,
 									orig,
 									dest,
-									0,
 									k,
 									branch,
 									turn,
@@ -731,9 +719,9 @@ class Character(AbstractCharacter, RuleFollower):
 				raise KeyError("No such portal: {}->{}".format(orig, dest))
 
 			def __setitem__(
-				self, dest: NodeName, value: Portal | StatDict | None
+				self, dest: NodeName, value: Portal | StatDict | ...
 			):
-				if value is None:
+				if value is ...:
 					del self[dest]
 					return
 				(
@@ -766,7 +754,7 @@ class Character(AbstractCharacter, RuleFollower):
 				self, other: dict[NodeName, StatDict] | None = None, **kwargs
 			):
 				kwargs: dict[NodeName, StatDict]
-				if other is None:
+				if other is ...:
 					it = kwargs.items()
 				else:
 					it = chain(other.items(), kwargs.items())
@@ -886,7 +874,7 @@ class Character(AbstractCharacter, RuleFollower):
 		def __contains__(self, k: NodeName):
 			retrieve, charn, btt = self._contains_stuff
 			got = retrieve(charn, k, *btt())
-			return got is not None and not isinstance(got, Exception)
+			return got is not ... and not isinstance(got, Exception)
 
 		def __len__(self):
 			"""Number of graphs in which I have a unit."""
