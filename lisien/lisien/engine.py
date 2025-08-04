@@ -3827,7 +3827,7 @@ class Engine(AbstractEngine, Executor):
 		retrieve, btt = self._node_exists_stuff
 		args = (character, node) + btt()
 		retrieved = retrieve(args)
-		return retrieved is not None and not isinstance(retrieved, Exception)
+		return retrieved and not isinstance(retrieved, Exception)
 
 	@world_locked
 	def _exist_node(
