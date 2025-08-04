@@ -2661,6 +2661,37 @@ class EdgeValCache(Cache):
 			graph, orig, dest, branch, turn, tick, forward=forward
 		)
 
+	def count_keys(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> int:
+		return self._count_entities_or_keys(
+			graph, orig, dest, branch, turn, tick, forward=forward
+		)
+
+	def contains_key(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> bool:
+		return self._contains_entity_or_key(
+			graph, orig, dest, key, branch, turn, tick, search=search
+		)
+
 	def get_keyframe(
 		self,
 		graph: CharName,
