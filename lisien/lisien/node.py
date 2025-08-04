@@ -790,9 +790,9 @@ class Thing(Node, AbstractThing):
 			now = super()._delete(now=now)
 			# don't advance time to store my non-location
 			self.engine._things_cache.store(
-				self.character.name, self.name, *now, None
+				self.character.name, self.name, *now, ...
 			)
 			self.engine.query.set_thing_loc(
-				self.character.name, self.name, *now, None
+				self.character.name, self.name, *now, ...
 			)
 			return now
