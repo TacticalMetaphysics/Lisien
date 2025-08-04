@@ -127,7 +127,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 		self._patch[k] = v
 
 	def __delitem__(self, k):
-		self._patch[k] = None
+		self._patch[k] = ...
 
 	def apply(self):
 		self._real.update(self._patch)
@@ -231,7 +231,7 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 			user: CharacterFacade
 			for user in list(that.users()):
 				user.remove_unit(self.facade.name, k)
-		self._patch[k] = None
+		self._patch[k] = ...
 
 
 class FacadeRulebook(MutableSequence, ABC):
@@ -992,7 +992,7 @@ class CharacterFacade(AbstractCharacter):
 			self._patch[k] = v
 
 		def __delitem__(self, k):
-			self._patch[k] = None
+			self._patch[k] = ...
 
 	def apply(self):
 		"""Do all my changes for real in a batch"""
@@ -1092,7 +1092,7 @@ class EngineFacade(AbstractEngine):
 		def __delitem__(self, key):
 			if key not in self.engine.universal:
 				raise KeyError("No key to delete", key)
-			self._patch[key] = None
+			self._patch[key] = ...
 			self._deleted.add(key)
 
 	class FacadeCharacterMapping(Mapping):
