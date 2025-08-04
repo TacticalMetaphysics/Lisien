@@ -1026,7 +1026,7 @@ class Engine(AbstractEngine, Executor):
 		return AllRuleBooks(self)
 
 	@cached_property
-	def _keyframes_dict(self) -> dict[Branch, dict[Turn, set[Tick]]]:
+	def _keyframes_dict(self) -> dict[Branch, WindowDict[Turn, set[Tick]]]:
 		return PickyDefaultDict(WindowDict)
 
 	@cached_property
@@ -4346,63 +4346,22 @@ class Engine(AbstractEngine, Executor):
 		earliest_future_keyframe: Optional[Time] = None
 		branch_parents = self._branch_parents
 		cache = self._keyframes_times if loading else self._keyframes_loaded
-		for turn, tick in self._iter_linear_time(branch_now):
-			if turn < turn_now:
-				if latest_past_keyframe:
-					(late_branch, late_turn, late_tick) = latest_past_keyframe
-					if (
-						late_branch != branch
-						or late_turn < turn
-						or (late_turn == turn and late_tick < tick)
-					):
-						latest_past_keyframe = (branch, turn, tick)
-				else:
-					latest_past_keyframe = (branch, turn, tick)
-			elif turn > turn_now:
-				if earliest_future_keyframe:
-					(early_branch, early_turn, early_tick) = (
-						earliest_future_keyframe
-					)
-					if (
-						early_branch != branch
-						or early_turn > turn
-						or (early_turn == turn and early_tick > tick)
-					):
-						earliest_future_keyframe = (branch, turn, tick)
-				else:
+		for branch, turn, tick in self._iter_keyframes(
+			branch_now, turn_now, tick_now, loaded=not loading
+		):
+			if (turn, tick) <= (turn_now, tick_now):
+				latest_past_keyframe = branch, turn, tick
+				break
+		for turn, ticks in (
+			self._keyframes_dict[branch]
+			.future(turn, include_same_rev=True)
+			.items()
+		):
+			for tick in sorted(ticks):
+				if (turn, tick) < (turn_now, tick_now):
+					continue
+				if (branch, turn, tick) in cache:
 					earliest_future_keyframe = (branch, turn, tick)
-			elif tick < tick_now:
-				if latest_past_keyframe:
-					(late_branch, late_turn, late_tick) = latest_past_keyframe
-					if (
-						late_branch != branch
-						or late_turn < turn
-						or (late_turn == turn and late_tick < tick)
-					):
-						latest_past_keyframe = (branch, turn, tick)
-				else:
-					latest_past_keyframe = (branch, turn, tick)
-			elif tick > tick_now:
-				if earliest_future_keyframe:
-					(early_branch, early_turn, early_tick) = (
-						earliest_future_keyframe
-					)
-					if (
-						early_branch != branch
-						or early_turn > turn
-						or (early_turn == turn and early_tick > tick)
-					):
-						earliest_future_keyframe = (branch, turn, tick)
-				else:
-					earliest_future_keyframe = (branch, turn, tick)
-			else:
-				latest_past_keyframe = (branch, turn, tick)
-		if latest_past_keyframe is None:
-			for branch, turn, tick in self._iter_keyframes(
-				branch_now, turn_now, tick_now, loaded=not loading
-			):
-				if (turn, tick) <= (turn_now, tick_now):
-					latest_past_keyframe = branch, turn, tick
 					break
 		(branch, turn, tick) = (branch_now, turn_now, tick_now)
 		if not loading or branch not in self._loaded:
