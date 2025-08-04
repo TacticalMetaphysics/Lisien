@@ -158,6 +158,7 @@ from .util import (
 	NODE_VAL,
 	NODES,
 	NONE,
+	ELLIPSIS,
 	PREREQS,
 	RULEBOOK,
 	RULEBOOKS,
@@ -5176,8 +5177,8 @@ class Engine(AbstractEngine, Executor):
 			for rulebok, rules in delta.pop(RULEBOOK).items():
 				rulebook[unpack(rulebok)] = unpack(rules)
 		for char, chardeltpacked in delta.items():
-			if chardeltpacked == b"\xc0":
-				delt[unpack(char)] = None
+			if chardeltpacked == ELLIPSIS:
+				delt[unpack(char)] = ...
 				continue
 			chardelt = delt[unpack(char)] = {}
 			if NODES in chardeltpacked:
@@ -5266,8 +5267,8 @@ class Engine(AbstractEngine, Executor):
 				kf_from.get(kfkey, {}).keys() | kf_to.get(kfkey, {}).keys()
 			):
 				keys.append((kfkey, k))
-				va = kf_from[kfkey].get(k)
-				vb = kf_to[kfkey].get(k)
+				va = kf_from[kfkey].get(k, ...)
+				vb = kf_to[kfkey].get(k, ...)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
@@ -5289,8 +5290,8 @@ class Engine(AbstractEngine, Executor):
 					values_to.append(vb)
 			for k in (a.keys() | b.keys()) - {"units"}:
 				keys.append(("graph", graph, k))
-				va = a.get(k)
-				vb = b.get(k)
+				va = a.get(k, ...)
+				vb = b.get(k, ...)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
@@ -5306,8 +5307,8 @@ class Engine(AbstractEngine, Executor):
 				b = kf_to["node_val"].get(graph, {}).get(node, {})
 				for k in a.keys() | b.keys():
 					keys.append(("node", graph, node, k))
-					va = a.get(k)
-					vb = b.get(k)
+					va = a.get(k, ...)
+					vb = b.get(k, ...)
 					ids_from.append(id(va))
 					ids_to.append(id(vb))
 					values_from.append(va)
@@ -5337,8 +5338,8 @@ class Engine(AbstractEngine, Executor):
 				)
 				for k in a.keys() | b.keys():
 					keys.append(("edge", graph, orig, dest, k))
-					va = a.get(k)
-					vb = b.get(k)
+					va = a.get(k, ...)
+					vb = b.get(k, ...)
 					ids_from.append(id(va))
 					ids_to.append(id(vb))
 					values_from.append(va)
@@ -5448,7 +5449,7 @@ class Engine(AbstractEngine, Executor):
 			for graf in (
 				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
 			):
-				delta[self.pack(graf)] = NONE
+				delta[self.pack(graf)] = ELLIPSIS
 			for graph in nodes_intersection:
 				for node in (
 					kf_to["nodes"][graph].keys()
@@ -5474,7 +5475,7 @@ class Engine(AbstractEngine, Executor):
 			for deleted in (
 				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
 			):
-				delta[pack(deleted)] = NONE
+				delta[pack(deleted)] = ELLIPSIS
 			futwait(futs)
 		if not delta[UNIVERSAL]:
 			del delta[UNIVERSAL]
@@ -5495,7 +5496,10 @@ class Engine(AbstractEngine, Executor):
 		if not delta[RULES]:
 			del delta[RULES]
 		for key, mapp in delta.items():
-			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL} or mapp == NONE:
+			if (
+				key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL}
+				or mapp == ELLIPSIS
+			):
 				continue
 			todel = []
 			if UNITS in mapp:
@@ -5774,9 +5778,9 @@ class Engine(AbstractEngine, Executor):
 					self.eternal.items()
 				)
 				eternal_delta = {
-					k: new_eternal.get(k)
+					k: new_eternal.get(k, ...)
 					for k in old_eternal.keys() | new_eternal.keys()
-					if old_eternal.get(k) != new_eternal.get(k)
+					if old_eternal.get(k, ...) != new_eternal.get(k, ...)
 				}
 				if (branch_from, turn_from, tick_from) in deltas:
 					delt = deltas[branch_from, turn_from, tick_from]
@@ -5845,9 +5849,9 @@ class Engine(AbstractEngine, Executor):
 		old_eternal = self._worker_last_eternal
 		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
 		eternal_delta = {
-			k: new_eternal.get(k)
+			k: new_eternal.get(k, ...)
 			for k in old_eternal.keys() | new_eternal.keys()
-			if old_eternal.get(k) != new_eternal.get(k)
+			if old_eternal.get(k, ...) != new_eternal.get(k, ...)
 		}
 		if branch_from == self.branch:
 			delt = self._get_branch_delta(
