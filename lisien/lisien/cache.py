@@ -1953,7 +1953,7 @@ class NodesCache(Cache):
 		ex: Optional[bool]
 		graph, node, branch, turn, tick, ex = args
 		if not ex:
-			ex = None
+			ex = ...
 		super()._update_keycache(
 			graph, node, branch, turn, tick, ex, forward=forward
 		)
