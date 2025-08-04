@@ -4327,8 +4327,8 @@ class Engine(AbstractEngine, Executor):
 		return True
 
 	def _iter_linear_time(self, branch: Branch):
-		for turn in sorted(self._keyframes_dict[branch]):
-			for tick in sorted(self._keyframes_dict[branch][turn]):
+		for turn, ticks in reversed(self._keyframes_dict[branch].items()):
+			for tick in sorted(ticks, reverse=True):
 				yield turn, tick
 
 	def _build_keyframe_window(
