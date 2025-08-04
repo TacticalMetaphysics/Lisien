@@ -295,6 +295,7 @@ class Cache:
 	retrieve: callable
 	get_keyframe: callable
 	set_keyframe: callable
+	initial_value = ...
 
 	def __init__(
 		self, db: "engine.Engine", name: str, keyframe_dict: dict | None = None
@@ -1374,6 +1375,8 @@ class Cache:
 		yield
 		del self.overwrite_journal
 
+	inital_value = ...
+
 	def _store_journal(self, *args):
 		# overridden in lisien.cache.InitializedCache
 		(settings, presettings, base_retrieve) = self._store_journal_stuff
@@ -1389,7 +1392,7 @@ class Cache:
 		presettings_turns = presettings[branch]
 		prev = base_retrieve(args[:-1], store_hint=False)
 		if isinstance(prev, KeyError):
-			prev = ...
+			prev = self.initial_value
 		if turn in settings_turns:
 			# These assertions hold for most caches but not for the contents
 			# caches, and are therefore commented out.
@@ -1859,6 +1862,8 @@ class NodesCache(Cache):
 
 	__slots__ = ()
 
+	initial_value = False
+
 	def store(
 		self,
 		graph: CharName,
@@ -2137,6 +2142,8 @@ class EdgesCache(Cache):
 		"_get_origcache_stuff",
 		"_additional_store_stuff",
 	)
+
+	initial_value = False
 
 	@property
 	def successors(self):
@@ -2798,6 +2805,7 @@ class EntitylessCache(Cache):
 
 class GraphCache(Cache):
 	overwrite_journal = True
+	inital_value = None
 
 	def store(
 		self,
