@@ -4394,11 +4394,11 @@ class ThingsCache(Cache):
 		contra: Optional[bool] = None,
 	) -> None:
 		with self._lock:
-			oldloc: NodeName | None
+			oldloc: NodeName | ...
 			try:
 				oldloc = self.retrieve(character, thing, branch, turn, tick)
 			except KeyError:
-				oldloc = None
+				oldloc = ...
 			self._store(
 				character,
 				thing,
@@ -4415,7 +4415,7 @@ class ThingsCache(Cache):
 			this = frozenset((thing,))
 			# Cache the contents of nodes
 			todo = defaultdict(list)
-			if oldloc is not None:
+			if oldloc is not ...:
 				try:
 					oldconts_orig = node_contents_cache.retrieve(
 						character, oldloc, branch, turn, tick
