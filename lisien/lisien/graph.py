@@ -356,7 +356,7 @@ class Edge(AbstractEntityMapping):
 		graphn = graph.name
 		btt = db._btt
 		self._iter_stuff = (
-			edge_val_cache.iter_entity_keys,
+			edge_val_cache.iter_keys,
 			graphn,
 			orig,
 			dest,
@@ -371,7 +371,7 @@ class Edge(AbstractEntityMapping):
 			idx,
 		)
 		self._len_stuff = (
-			edge_val_cache.count_entity_keys,
+			edge_val_cache.count_keys,
 			graphn,
 			orig,
 			dest,
@@ -402,19 +402,19 @@ class Edge(AbstractEntityMapping):
 
 	def __iter__(self):
 		iter_entity_keys, graphn, orig, dest, idx, btt = self._iter_stuff
-		return iter_entity_keys(graphn, orig, dest, idx, *btt())
+		return iter_entity_keys(graphn, orig, dest, *btt())
 
 	def _cache_contains(self, key, branch, turn, tick):
 		contains_key, graphn, orig, dest, idx = self._cache_contains_stuff
-		return contains_key(graphn, orig, dest, idx, key, branch, turn, tick)
+		return contains_key(graphn, orig, dest, key, branch, turn, tick)
 
 	def __len__(self):
 		count_entity_keys, graphn, orig, dest, idx, btt = self._len_stuff
-		return count_entity_keys(graphn, orig, dest, idx, *btt())
+		return count_entity_keys(graphn, orig, dest, *btt())
 
 	def _get_cache(self, key, branch, turn, tick):
 		retrieve, graphn, orig, dest, idx = self._get_cache_stuff
-		return retrieve(graphn, orig, dest, idx, key, branch, turn, tick)
+		return retrieve(graphn, orig, dest, key, branch, turn, tick)
 
 	def _set_db(self, key, branch, turn, tick, value):
 		edge_val_set, graphn, orig, dest, idx = self._set_db_stuff
@@ -422,7 +422,7 @@ class Edge(AbstractEntityMapping):
 
 	def _set_cache(self, key, branch, turn, tick, value):
 		store, graphn, orig, dest, idx = self._set_cache_stuff
-		store(graphn, orig, dest, idx, key, branch, turn, tick, value)
+		store(graphn, orig, dest, key, branch, turn, tick, value)
 
 
 class GraphNodeMapping(AllegedMapping):
