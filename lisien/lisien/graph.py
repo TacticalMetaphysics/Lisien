@@ -86,10 +86,10 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 
 	def _del_db(self, key, branch, turn, tick):
 		"""Delete a key from the database (not the cache)."""
-		self._set_db(key, branch, turn, tick, None)
+		self._set_db(key, branch, turn, tick, ...)
 
 	def _del_cache(self, key, branch, turn, tick):
-		self._set_cache(key, branch, turn, tick, None)
+		self._set_cache(key, branch, turn, tick, ...)
 
 	def __getitem__(self, key):
 		"""If key is 'graph', return myself as a dict, else get the present
@@ -104,9 +104,9 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 
 	def __setitem__(self, key, value):
 		"""Set key=value at the present branch and revision"""
-		if value is None:
+		if value is ...:
 			raise ValueError(
-				"Lisien uses None to indicate that a key's been deleted"
+				"Lisien uses the ellipsis to indicate that a key's been deleted"
 			)
 		branch, turn, tick = self.db._nbtt()
 		try:
@@ -196,7 +196,7 @@ class GraphMapping(AbstractEntityMapping):
 
 	def _del_db(self, key, branch, turn, tick):
 		graph_val_set, graphn = self._del_db_stuff
-		graph_val_set(graphn, key, branch, turn, tick, None)
+		graph_val_set(graphn, key, branch, turn, tick, ...)
 
 	def clear(self):
 		keys = set(self.keys())
@@ -521,7 +521,7 @@ class GraphNodeMapping(AllegedMapping):
 
 	def update(self, m, /, **kwargs):
 		for node, value in chain(m.items(), kwargs.items()):
-			if value is None:
+			if value is ...:
 				del self[node]
 			elif node not in self:
 				self[node] = value

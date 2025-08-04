@@ -1465,7 +1465,7 @@ class Engine(AbstractEngine, Executor):
 		"""Change a delta to say that a graph was deleted or not"""
 		if val in (None, "Deleted"):
 			delta[graph] = None
-		elif graph not in delta or delta[graph] is None:
+		elif graph not in delta or delta[graph] is ...:
 			# If the graph was *created* within our window,
 			# include its whole initial keyframe
 			delta[graph] = {
@@ -1545,7 +1545,7 @@ class Engine(AbstractEngine, Executor):
 					b not in preset
 					or r not in preset[b]
 					or t not in preset[b][r]
-					or preset[b][r][t][2] is None
+					or preset[b][r][t][2] is ...
 				):
 					return
 				delta[graph] = {}
@@ -1612,7 +1612,7 @@ class Engine(AbstractEngine, Executor):
 			"""Change a delta to say that a node was created or deleted"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			graph_nodes: NodesDict = delta[graph].setdefault("nodes", {})
 			graph_nodes[node] = bool(exists)
@@ -1641,7 +1641,7 @@ class Engine(AbstractEngine, Executor):
 			"""Change a delta to say that a node stat was set to a certain value"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			if (
 				"nodes" in delta[graph]
@@ -1670,7 +1670,7 @@ class Engine(AbstractEngine, Executor):
 			"""Change a delta to say that an edge was created or deleted"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			graphstat: CharDelta = delta[graph]
 			if "edges" in graphstat:
@@ -1696,7 +1696,7 @@ class Engine(AbstractEngine, Executor):
 		) -> None:
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			graphstat: CharDelta = delta[graph]
 			if (
@@ -1814,7 +1814,7 @@ class Engine(AbstractEngine, Executor):
 			node: NodeName,
 			is_unit: bool,
 		):
-			if char in delta and delta[char] is None:
+			if char in delta and delta[char] is ...:
 				return
 			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
 				graph, {}
@@ -1831,7 +1831,7 @@ class Engine(AbstractEngine, Executor):
 			loc: NodeName,
 		):
 			if char in delta and (
-				delta[char] is None
+				delta[char] is ...
 				or (
 					"nodes" in delta[char]
 					and thing in delta[char]["nodes"]
@@ -1921,7 +1921,7 @@ class Engine(AbstractEngine, Executor):
 			character: CharName,
 			rulebook: RulebookName,
 		):
-			if character in delta and delta[character] is None:
+			if character in delta and delta[character] is ...:
 				return
 			delta.setdefault(character, {})[key] = rulebook
 
@@ -1959,7 +1959,7 @@ class Engine(AbstractEngine, Executor):
 			rulebook: RulebookName,
 		):
 			if (character in delta) and (
-				delta[character] is None
+				delta[character] is ...
 				or (
 					"nodes" in delta[character]
 					and node in delta[character]["nodes"]
@@ -1987,7 +1987,7 @@ class Engine(AbstractEngine, Executor):
 				# some origin. Not relevant to deltas.
 				return
 			if character in delta and (
-				delta[character] is None
+				delta[character] is ...
 				or (
 					"edges" in delta[character]
 					and orig in delta[character]["edges"]
@@ -3262,7 +3262,7 @@ class Engine(AbstractEngine, Executor):
 			"character_portal_rulebook",
 		}:
 			v = graph_val_delta[k]
-			if v is None:
+			if v is ...:
 				if k in graph_val_keyframe:
 					del graph_val_keyframe[k]
 			else:
@@ -3312,11 +3312,11 @@ class Engine(AbstractEngine, Executor):
 				loc = upd.pop("location")
 				thing_location_keyframe[node] = loc
 				if loc in node_contents_keyframe:
-					if loc is None:
+					if loc is ...:
 						node_contents_keyframe[loc].remove(node)
 					else:
 						node_contents_keyframe[loc].add(node)
-				elif loc is not None:
+				elif loc is not ...:
 					node_contents_keyframe[loc] = {node}
 			if "rulebook" in upd:
 				node_rulebook_keyframe[node] = upd.pop("rulebook")
@@ -3336,7 +3336,7 @@ class Engine(AbstractEngine, Executor):
 			if upd and node in node_val_keyframe:
 				kv = node_val_keyframe[node]
 				for key, value in upd.items():
-					if value is None:
+					if value is ...:
 						if key in kv:
 							del kv[key]
 					else:
@@ -3401,7 +3401,7 @@ class Engine(AbstractEngine, Executor):
 						dest, {}
 					)
 					for key, value in upd.items():
-						if value is None:
+						if value is ...:
 							if key in kv:
 								del kv[key]
 						else:
@@ -3464,7 +3464,7 @@ class Engine(AbstractEngine, Executor):
 			self._characters_portals_rulebooks_cache.get_keyframe(*then)
 		)
 		for k, v in delta.get("universal", {}).items():
-			if v is None:
+			if v is ...:
 				if k in universal_keyframe:
 					del universal_keyframe[k]
 			else:
@@ -3508,7 +3508,7 @@ class Engine(AbstractEngine, Executor):
 				user_set_keyframe[graph] = {}
 		for graph in graphs:
 			delt = delta.get(graph, {})
-			if delt is None:
+			if delt is ...:
 				continue
 			try:
 				noderbs = nodes_rulebooks_keyframe[graph] = (
@@ -3666,7 +3666,7 @@ class Engine(AbstractEngine, Executor):
 		graphs_keyframe = {g: "DiGraph" for g in graph_val_keyframe}
 		for graph in graphs_keyframe.keys() - self.illegal_graph_names:
 			deltg = delta.get(graph, {})
-			if deltg is None:
+			if deltg is ...:
 				del graphs_keyframe[graph]
 				continue
 			combined_node_val_keyframe = {
@@ -3674,7 +3674,7 @@ class Engine(AbstractEngine, Executor):
 				for (node, val) in node_val_keyframe.get(graph, {}).items()
 			}
 			for node, loc in things_keyframe.get(graph, {}).items():
-				if loc is None:
+				if loc is ...:
 					continue
 				if node in combined_node_val_keyframe:
 					combined_node_val_keyframe[node]["location"] = loc
@@ -3759,7 +3759,7 @@ class Engine(AbstractEngine, Executor):
 		parent, branched_turn_from, branched_tick_from, turn_to, tick_to = (
 			self._branches_d[time_from[0]]
 		)
-		if parent is None:
+		if parent is ...:
 			if (
 				branch,
 				branched_turn_from,

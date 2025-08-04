@@ -76,13 +76,15 @@ _Value: TypeAlias = (
 	| DictWrapper
 	| ListWrapper
 	| SetWrapper
+	| type(...)
 )
 
 
 def is_valid_value(obj: _Value) -> TypeGuard[Value]:
 	"""Is this an object that Lisien can serialize as a value?"""
 	return (
-		is_valid_key(obj)
+		obj is ...
+		or is_valid_key(obj)
 		or (
 			isinstance(obj, (dict, DictWrapper))
 			and all(map(is_valid_key, obj.keys()))
