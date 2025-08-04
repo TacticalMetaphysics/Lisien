@@ -26,13 +26,13 @@ def test_character_existence_delta(null_engine, codepath):
 		"character_thing_rulebook": ("character_thing_rulebook", 3),
 		"unit_rulebook": ("unit_rulebook", 3),
 	}
-	assert 2 in delta0 and delta0[2] is None
+	assert 2 in delta0 and delta0[2] is ...
 	delta1 = eng.get_delta(
 		("trunk", 1, 1),
 		("branch", 1) if codepath == "slow-delta" else ("trunk", eng.turn),
 	)
 	assert 2 in delta1
-	assert delta1[2] is None
+	assert delta1[2] is ...
 
 
 def test_unit_delta(null_engine, codepath):
