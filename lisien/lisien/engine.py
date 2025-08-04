@@ -3759,7 +3759,7 @@ class Engine(AbstractEngine, Executor):
 		parent, branched_turn_from, branched_tick_from, turn_to, tick_to = (
 			self._branches_d[time_from[0]]
 		)
-		if parent is ...:
+		if parent is None:
 			if (
 				branch,
 				branched_turn_from,
