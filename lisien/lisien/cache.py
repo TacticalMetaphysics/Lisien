@@ -3670,7 +3670,7 @@ class UnitDictCache(Cache):
 class UnitnessCache(Cache):
 	"""A cache for remembering when a node is a unit of a character."""
 
-	inital_value = False
+	initial_value = False
 
 	def __init__(
 		self,
