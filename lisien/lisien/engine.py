@@ -1691,7 +1691,6 @@ class Engine(AbstractEngine, Executor):
 			graph: CharName,
 			orig: NodeName,
 			dest: NodeName,
-			idx: int,
 			key: Stat,
 			value: Value,
 		) -> None:
@@ -6594,7 +6593,7 @@ class Engine(AbstractEngine, Executor):
 			for stat in set(graph.graph) - {"name", "units"}:
 				self._graph_val_cache.store(name, stat, *now, None)
 				self.query.graph_val_set(name, stat, *now, None)
-			self._graph_cache.store(name, *now, None)
+			self._graph_cache.store(name, *now, ...)
 			self.query.graphs_insert(name, *now, "Deleted")
 			self._graph_cache.keycache.clear()
 		if hasattr(self, "_worker_processes"):
