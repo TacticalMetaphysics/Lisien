@@ -4464,7 +4464,7 @@ class ThingsCache(Cache):
 									).difference(this),
 								)
 							)
-			if location is not None:
+			if location is not ...:
 				todo[turn, tick].append(
 					(
 						location,
