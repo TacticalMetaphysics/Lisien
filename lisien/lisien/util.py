@@ -558,7 +558,7 @@ class AbstractEngine(ABC):
 		except ImportError:
 			pass
 		handlers = {
-			Ellipsis: lambda _: msgpack.ExtType(
+			type(...): lambda _: msgpack.ExtType(
 				MsgpackExtensionType.ellipsis.value, b""
 			),
 			nx.Graph: lambda graf: msgpack.ExtType(
