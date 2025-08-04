@@ -2585,19 +2585,6 @@ class EdgesCache(Cache):
 			)
 		)
 
-	# if ex:
-	# assert self.retrieve(graph, orig, dest, idx, branch, turn, tick)
-	# assert self.has_successor(graph, orig, dest, branch, turn, tick)
-	# assert self.has_predecessor(g
-	# raph, dest, orig, branch, turn, tick)
-	# else:
-	# assert self._base_retrieve(
-	# (graph, orig, dest, idx, branch, turn, tick)) in (None, KeyError)
-	# assert not self.has_successor(
-	# graph, orig, dest, branch, turn, tick)
-	# assert not self.has_predecessor(
-	# graph, dest, orig, branch, turn, tick)
-
 
 class EdgeValCache(Cache):
 	def store(
