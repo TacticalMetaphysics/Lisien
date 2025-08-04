@@ -841,6 +841,10 @@ class Cache:
 		else:
 			self.keycache[parentibranch][turn][tick] = kc
 
+	@staticmethod
+	def _count_as_deleted(obj):
+		return obj is ...
+
 	def _get_adds_dels(
 		self,
 		entity: tuple[Key, ...],
@@ -879,7 +883,7 @@ class Cache:
 				turnd = branches[branc]
 				if trn in turnd:
 					if turnd[trn].rev_gettable(tck):
-						if turnd[trn][tck] is ...:
+						if self._count_as_deleted(turnd[trn][tck]):
 							deleted.add(key)
 						else:
 							added.add(key)
@@ -889,7 +893,7 @@ class Cache:
 				if not turnd.rev_gettable(trn):
 					break
 				tickd = turnd[trn]
-				if tickd.final() is ...:
+				if self._count_as_deleted(tickd.final()):
 					deleted.add(key)
 				else:
 					added.add(key)
@@ -1702,7 +1706,9 @@ class Cache:
 			if not self._contains_entity_or_key(
 				*entity, that, branch, turn, tick
 			):
-				raise RuntimeError("Bad keycache")
+				raise RuntimeError(
+					"Bad keycache", entity, that, branch, turn, tick
+				)
 			yield that
 
 	def _count_entities_or_keys(self, *args, forward: bool | None = None):
@@ -1879,6 +1885,10 @@ class NodesCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
+
+	@staticmethod
+	def _count_as_deleted(obj):
+		return not obj
 
 	def retrieve(
 		self,
@@ -2221,6 +2231,10 @@ class EdgesCache(Cache):
 				self._set_keyframe(
 					(graph, orig, dest), branch, turn, tick, {0: ex}
 				)
+
+	@staticmethod
+	def _count_as_deleted(obj):
+		return not obj
 
 	def _update_keycache(self, *args, forward: bool):
 		super()._update_keycache(*args, forward=forward)
