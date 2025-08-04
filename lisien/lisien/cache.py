@@ -1385,7 +1385,7 @@ class Cache:
 		presettings_turns = presettings[branch]
 		prev = base_retrieve(args[:-1], store_hint=False)
 		if isinstance(prev, KeyError):
-			prev = None
+			prev = ...
 		if turn in settings_turns:
 			# These assertions hold for most caches but not for the contents
 			# caches, and are therefore commented out.
@@ -1867,10 +1867,6 @@ class NodesCache(Cache):
 		loading: bool = False,
 		contra: bool | None = None,
 	):
-		if not ex:
-			ex = None
-		if contra is None:
-			contra = not loading
 		self._store(
 			graph,
 			node,
