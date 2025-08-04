@@ -3323,7 +3323,7 @@ class PortalsRulebooksCache(InitializedCache):
 			destrbs[dest] = rb
 		except KeyError:
 			destrbs = {dest: rb}
-		super().store(
+		self._store(
 			char,
 			orig,
 			branch,
