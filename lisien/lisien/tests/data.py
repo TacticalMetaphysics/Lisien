@@ -30,9 +30,9 @@ CHARACTER_UPDATES = [
 			(0, {"evil": False}),
 			(1, {"evil": False}),
 		],
-		[("spam", None), ("qux", ["quux"]), ("clothes", "no")],
+		[("spam", ...), ("qux", ["quux"]), ("clothes", "no")],
 		[(2, {"evil": False}), ("kobold", {"evil": False})],
-		[(0, 1, None), (0, 2, {"hi": "hello"})],
+		[(0, 1, ...), (0, 2, {"hi": "hello"})],
 	),
 ]
 
