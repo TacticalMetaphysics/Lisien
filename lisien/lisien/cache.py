@@ -2803,7 +2803,7 @@ class EntitylessCache(Cache):
 
 class GraphCache(Cache):
 	overwrite_journal = True
-	inital_value = None
+	initial_value = None
 
 	def store(
 		self,
