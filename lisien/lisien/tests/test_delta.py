@@ -83,8 +83,8 @@ def test_character_stat_delta(null_engine, codepath):
 	two.stat[9] = 10
 	time_b = tuple(eng.time)
 	delta0 = eng.get_delta(time_a, time_b)
-	assert delta0[1][3] is None
-	assert delta0[1][5] is None
+	assert delta0[1][3] is ...
+	assert delta0[1][5] is ...
 	assert 7 not in delta0[1]
 	assert delta0[2][9] == 10
 	assert 11 not in delta0[2]
@@ -92,7 +92,7 @@ def test_character_stat_delta(null_engine, codepath):
 	assert delta1[1][3] == 4
 	assert delta1[1][5] == 6
 	assert 7 not in delta1[1]
-	assert delta1[2][9] is None
+	assert delta1[2][9] is ...
 	assert 11 not in delta1[2]
 
 
@@ -145,11 +145,11 @@ def test_node_stat_delta(null_engine, codepath):
 	time_b = tuple(eng.time)
 	delta0 = eng.get_delta(time_a, time_b)
 	assert delta0["me"]["node_val"] == {
-		1: {7: None, 9: None},
+		1: {7: ..., 9: ...},
 		2: {11: 12, 13: 14},
 	}
 	delta1 = eng.get_delta(time_b, time_a)
-	assert delta1["me"]["node_val"] == {1: {7: 8, 9: 10}, 2: {11: 0, 13: None}}
+	assert delta1["me"]["node_val"] == {1: {7: 8, 9: 10}, 2: {11: 0, 13: ...}}
 
 
 def test_portal_existence_delta(null_engine, codepath):
