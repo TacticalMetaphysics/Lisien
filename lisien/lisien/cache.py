@@ -2279,22 +2279,21 @@ class EdgesCache(Cache):
 			self.successors[graph, node].items(),
 			self.predecessors[graph, node].items(),
 		):
-			for dest, idxs in items:  # dest might really be orig
-				for idx, branches in idxs.items():
-					brnch = branches[branch]
-					if turn in brnch:
-						ticks = brnch[turn]
-						for tck, present in ticks.future(tick).items():
-							if tck > tick and present is not retrieve(
-								(graph, node, dest, idx, branch, turn, tick)
-							):
-								yield turn, tck
-					for trn, ticks in brnch.future(turn).items():
-						for tck, present in ticks.items():
-							if present is not retrieve(
-								(graph, node, dest, idx, branch, turn, tick)
-							):
-								yield trn, tck
+			for dest, branches in items:  # dest might really be orig
+				brnch = branches[branch]
+				if turn in brnch:
+					ticks = brnch[turn]
+					for tck, present in ticks.future(tick).items():
+						if tck > tick and present is not retrieve(
+							(graph, node, dest, branch, turn, tick)
+						):
+							yield turn, tck
+				for trn, ticks in brnch.future(turn).items():
+					for tck, present in ticks.items():
+						if present is not retrieve(
+							(graph, node, dest, branch, turn, tick)
+						):
+							yield trn, tck
 
 	def _adds_dels_successors(
 		self,
