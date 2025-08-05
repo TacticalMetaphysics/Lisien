@@ -2308,19 +2308,14 @@ class EdgesCache(Cache):
 		graph: CharName
 		orig: NodeName
 		graph, orig = parentity
-		added = set()
-		deleted = set()
 		cache = cache or self.successors
 		if (graph, orig) in cache and cache[graph, orig]:
-			dest: NodeName
-			for dest in cache[graph, orig]:
-				addidx, delidx = self._get_adds_dels(
-					(graph, orig, dest), branch, turn, tick, stoptime=stoptime
-				)
-				if addidx and not delidx:
-					added.add(dest)
-				elif delidx and not addidx:
-					deleted.add(dest)
+			added, deleted = self._get_adds_dels(
+				(graph, orig), branch, turn, tick, stoptime=stoptime
+			)
+		else:
+			added = set()
+			deleted = set()
 		kf = self.keyframe
 		itparbtt = self.db._iter_parent_btt
 		its = [(ks, v) for (ks, v) in kf.items() if len(ks) == 3]
@@ -2336,15 +2331,11 @@ class EdgesCache(Cache):
 				if trn in kfgb:
 					kfgbr = kfgb[trn]
 					if kfgbr.rev_gettable(tck):
-						if (
-							0 in kfgbr[tck]
-							and kfgbr[tck][0]
-							and dest not in deleted
-						):
+						if kfgbr[tck] and dest not in deleted:
 							added.add(dest)
 						continue
 				if kfgb.rev_gettable(trn):
-					if kfgb[trn].final()[0] and dest not in deleted:
+					if kfgb[trn].final() and dest not in deleted:
 						added.add(dest)
 		return added, deleted
 
