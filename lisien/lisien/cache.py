@@ -3074,7 +3074,7 @@ class NeighborhoodsCache(InitializedCache):
 		truncate: bool = False,
 	):
 		self._store(
-			(Key(None),),
+			Key(None),
 			rule,
 			branch,
 			turn,
