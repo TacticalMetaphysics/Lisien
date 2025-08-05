@@ -737,7 +737,7 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		Callable[
-			[tuple[CharName, NodeName, NodeName, int, Branch, Turn, Tick]],
+			[tuple[CharName, NodeName, NodeName, Branch, Turn, Tick]],
 			bool,
 		],
 		Callable[[], Time],
@@ -750,10 +750,10 @@ class Engine(AbstractEngine, Executor):
 	) -> tuple[
 		Callable[[], Time],
 		Callable[
-			[CharName, NodeName, NodeName, int, Branch, Turn, Tick, bool], None
+			[CharName, NodeName, NodeName, Branch, Turn, Tick, bool], None
 		],
 		Callable[
-			[CharName, NodeName, NodeName, int, Branch, Turn, Tick, Any], None
+			[CharName, NodeName, NodeName, Branch, Turn, Tick, Any], None
 		],
 	]:
 		return (self._nbtt, self.query.exist_edge, self._edges_cache.store)
@@ -790,8 +790,8 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		SizedDict,
-		Callable[[CharName, NodeName, NodeName, int], bool],
-		Callable[[Character, NodeName, NodeName, int], Portal],
+		Callable[[CharName, NodeName, NodeName], bool],
+		Callable[[Character, NodeName, NodeName], Portal],
 	]:
 		return self._edge_objs, self._edge_exists, self._make_edge
 
@@ -1191,13 +1191,11 @@ class Engine(AbstractEngine, Executor):
 			nodes_hash ^= int.from_bytes(hash.digest(), "little")
 		edges_hash = 0
 		for orig, dests in edges.items():
-			for dest, idxs in dests.items():
-				for idx, val in idxs.items():
-					hash = blake2b(pack(orig))
-					hash.update(pack(dest))
-					hash.update(pack(idx))
-					hash.update(pack(val))
-					edges_hash ^= int.from_bytes(hash.digest(), "little")
+			for dest, val in dests.items():
+				hash = blake2b(pack(orig))
+				hash.update(pack(dest))
+				hash.update(pack(val))
+				edges_hash ^= int.from_bytes(hash.digest(), "little")
 		val_hash = 0
 		for key, val in vals.items():
 			hash = blake2b(pack(key))
@@ -1260,11 +1258,7 @@ class Engine(AbstractEngine, Executor):
 		return ret
 
 	def _get_edge(
-		self,
-		graph: Character | CharName,
-		orig: NodeName,
-		dest: NodeName,
-		idx: int = 0,
+		self, graph: Character | CharName, orig: NodeName, dest: NodeName
 	):
 		edge_objs, edge_exists, make_edge = self._get_edge_stuff
 		if type(graph) is str:
@@ -1272,16 +1266,14 @@ class Engine(AbstractEngine, Executor):
 			graph = self.character[graphn]
 		else:
 			graphn = graph.name
-		key = (graphn, orig, dest, idx)
+		key = (graphn, orig, dest)
 		if key in edge_objs:
 			return edge_objs[key]
-		if not edge_exists(graphn, orig, dest, idx):
+		if not edge_exists(graphn, orig, dest):
 			raise KeyError(
-				"No such edge: {}->{}[{}] in {}".format(
-					orig, dest, idx, graphn
-				)
+				"No such edge: {}->{} in {}".format(orig, dest, graphn)
 			)
-		ret = make_edge(graph, orig, dest, idx)
+		ret = make_edge(graph, orig, dest)
 		edge_objs[key] = ret
 		return ret
 
@@ -1665,7 +1657,6 @@ class Engine(AbstractEngine, Executor):
 			graph: CharName,
 			orig: NodeName,
 			dest: NodeName,
-			idx: int,
 			exists: bool | None,
 		) -> None:
 			"""Change a delta to say that an edge was created or deleted"""
@@ -3854,10 +3845,10 @@ class Engine(AbstractEngine, Executor):
 		exist_node(character, node, branch, turn, tick, exist)
 
 	def _edge_exists(
-		self, character: CharName, orig: NodeName, dest: NodeName, idx: int = 0
+		self, character: CharName, orig: NodeName, dest: NodeName
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
-		args = (character, orig, dest, idx, *btt())
+		args = (character, orig, dest, *btt())
 		retrieved = retrieve(args)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
@@ -3867,7 +3858,6 @@ class Engine(AbstractEngine, Executor):
 		character: Key,
 		orig: Key,
 		dest: Key,
-		idx: int = 0,
 		exist: bool = True,
 		*,
 		now: Optional[Time] = None,
@@ -3877,7 +3867,7 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick = now
 		else:
 			branch, turn, tick = nbtt()
-		store(character, orig, dest, idx, branch, turn, tick, exist)
+		store(character, orig, dest, branch, turn, tick, exist)
 		if (character, orig, dest) in self._edge_objs:
 			del self._edge_objs[character, orig, dest]
 		if exist:
@@ -3899,9 +3889,7 @@ class Engine(AbstractEngine, Executor):
 				tick,
 				(character, orig, dest),
 			)
-		exist_edge(
-			character, orig, dest, idx, branch, turn, tick, exist or False
-		)
+		exist_edge(character, orig, dest, branch, turn, tick, exist or False)
 
 	def _call_in_subprocess(
 		self,
@@ -5018,7 +5006,6 @@ class Engine(AbstractEngine, Executor):
 		graph: Character,
 		orig: NodeName,
 		dest: NodeName,
-		idx=0,
 	) -> portal_cls:
 		return self.portal_cls(graph, orig, dest)
 

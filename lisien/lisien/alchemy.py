@@ -195,7 +195,6 @@ def tables_for_meta(meta):
 		Column("graph", BLOB, primary_key=True),
 		Column("orig", BLOB, primary_key=True),
 		Column("dest", BLOB, primary_key=True),
-		Column("idx", INT, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -214,7 +213,6 @@ def tables_for_meta(meta):
 		Column("graph", BLOB, primary_key=True),
 		Column("orig", BLOB, primary_key=True),
 		Column("dest", BLOB, primary_key=True),
-		Column("idx", INT, primary_key=True),
 		Column("key", BLOB, primary_key=True),
 		Column(
 			"branch",
@@ -644,7 +642,6 @@ def queries(table):
 				table["edge_val"].c.graph == bindparam("graph"),
 				table["edge_val"].c.orig == bindparam("orig"),
 				table["edge_val"].c.dest == bindparam("dest"),
-				table["edge_val"].c.idx == bindparam("idx"),
 				table["edge_val"].c.key == bindparam("key"),
 				table["edge_val"].c.branch == bindparam("branch"),
 				or_(
@@ -666,7 +663,6 @@ def queries(table):
 				table["edges"].c.graph == bindparam("graph"),
 				table["edges"].c.orig == bindparam("orig"),
 				table["edges"].c.dest == bindparam("dest"),
-				table["edges"].c.idx == bindparam("idx"),
 				table["edges"].c.branch == bindparam("branch"),
 				or_(
 					table["edges"].c.turn > bindparam("turn"),
@@ -858,7 +854,6 @@ def queries(table):
 			table["edges"].c.graph,
 			table["edges"].c.orig,
 			table["edges"].c.dest,
-			table["edges"].c.idx,
 			table["edges"].c.turn,
 			table["edges"].c.tick,
 			table["edges"].c.extant,
@@ -867,7 +862,6 @@ def queries(table):
 			table["edges"].c.graph,
 			table["edges"].c.orig,
 			table["edges"].c.dest,
-			table["edges"].c.idx,
 			table["edges"].c.turn,
 			table["edges"].c.tick,
 			table["edges"].c.extant,
@@ -892,7 +886,6 @@ def queries(table):
 			table["edge_val"].c.graph,
 			table["edge_val"].c.orig,
 			table["edge_val"].c.dest,
-			table["edge_val"].c.idx,
 			table["edge_val"].c.key,
 			table["edge_val"].c.turn,
 			table["edge_val"].c.tick,
@@ -902,7 +895,6 @@ def queries(table):
 			table["edge_val"].c.graph,
 			table["edge_val"].c.orig,
 			table["edge_val"].c.dest,
-			table["edge_val"].c.idx,
 			table["edge_val"].c.key,
 			table["edge_val"].c.turn,
 			table["edge_val"].c.tick,

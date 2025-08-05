@@ -316,10 +316,10 @@ class Portals(Set):
 		btt = btt_f()
 		for dest in edges_cache.iter_successors(charname, name, *btt):
 			if edges_cache.has_successor(charname, name, dest, *btt):
-				yield get_edge(character, name, dest, 0)
+				yield get_edge(character, name, dest)
 		for orig in edges_cache.iter_predecessors(charname, name, *btt):
 			if edges_cache.has_predecessor(charname, name, orig, *btt):
-				yield get_edge(character, orig, name, 0)
+				yield get_edge(character, orig, name)
 
 
 class NeighborValues(ValuesView):
