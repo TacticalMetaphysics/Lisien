@@ -177,14 +177,14 @@ NodeKeyframe = NewType("NodeKeyframe", dict)
 EdgeKeyframe = NewType("EdgeKeyframe", dict)
 NodeRowType: TypeAlias = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
 EdgeRowType: TypeAlias = tuple[
-	CharName, NodeName, NodeName, int, Branch, Turn, Tick, bool
+	CharName, NodeName, NodeName, Branch, Turn, Tick, bool
 ]
 GraphValRowType: TypeAlias = tuple[CharName, Key, Branch, Turn, Tick, Value]
 NodeValRowType: TypeAlias = tuple[
 	CharName, NodeName, Key, Branch, Turn, Tick, Value
 ]
 EdgeValRowType: TypeAlias = tuple[
-	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Value
+	CharName, NodeName, NodeName, Key, Branch, Turn, Tick, Value
 ]
 StatDict: TypeAlias = dict[Stat | Literal["rulebook"], Value]
 CharDict: TypeAlias = dict[

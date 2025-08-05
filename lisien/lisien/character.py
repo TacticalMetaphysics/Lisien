@@ -594,7 +594,6 @@ class Character(AbstractCharacter, RuleFollower):
 								charn,
 								orig,
 								dest,
-								0,
 								branch,
 								turn,
 								start_tick,
@@ -617,7 +616,6 @@ class Character(AbstractCharacter, RuleFollower):
 									charn,
 									orig,
 									dest,
-									0,
 									k,
 									branch,
 									turn,
@@ -638,7 +636,7 @@ class Character(AbstractCharacter, RuleFollower):
 								loading=True,
 							)
 							exist_edge(
-								charn, orig, dest, 0, branch, turn, tick, False
+								charn, orig, dest, branch, turn, tick, False
 							)
 							tick += 1
 						else:
@@ -655,7 +653,7 @@ class Character(AbstractCharacter, RuleFollower):
 								loading=True,
 							)
 							exist_edge(
-								charn, orig, dest, 0, branch, turn, tick, True
+								charn, orig, dest, branch, turn, tick, True
 							)
 							tick += 1
 							for k, v in kvs.items():
@@ -676,7 +674,6 @@ class Character(AbstractCharacter, RuleFollower):
 									charn,
 									orig,
 									dest,
-									0,
 									k,
 									branch,
 									turn,
@@ -715,8 +712,8 @@ class Character(AbstractCharacter, RuleFollower):
 			def __getitem__(self, dest: NodeName) -> Portal:
 				get_edge, graph, orig = self._getitem_stuff
 				if dest in self:
-					return get_edge(graph, orig, dest, 0)
-				raise KeyError("No such portal: {}->{}".format(orig, dest))
+					return get_edge(graph, orig, dest)
+				raise KeyError("No such portal", graph, orig, dest)
 
 			def __setitem__(
 				self, dest: NodeName, value: Portal | StatDict | ...
@@ -739,10 +736,10 @@ class Character(AbstractCharacter, RuleFollower):
 				for k, v in value.items():
 					branch, turn, tick = nbtt()
 					db_edge_val_set(
-						charn, orig, dest, 0, k, branch, turn, tick, v
+						charn, orig, dest, k, branch, turn, tick, v
 					)
 					edge_val_cache_store(
-						charn, orig, dest, 0, k, branch, turn, tick, v
+						charn, orig, dest, k, branch, turn, tick, v
 					)
 
 			def __delitem__(self, dest: NodeName):
@@ -1150,18 +1147,18 @@ class Character(AbstractCharacter, RuleFollower):
 			self.add_place(destination)
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._edges_cache.store(
-			self.name, origin, destination, 0, branch, turn, tick, True
+			self.name, origin, destination, branch, turn, tick, True
 		)
 		self.engine.query.exist_edge(
-			self.name, origin, destination, 0, branch, turn, tick, True
+			self.name, origin, destination, branch, turn, tick, True
 		)
 		for k, v in kwargs.items():
 			branch, turn, tick = self.engine._nbtt()
 			self.engine._edge_val_cache.store(
-				self.name, origin, destination, 0, k, branch, turn, tick, v
+				self.name, origin, destination, k, branch, turn, tick, v
 			)
 			self.engine.query.edge_val_set(
-				self.name, origin, destination, 0, k, branch, turn, tick, v
+				self.name, origin, destination, k, branch, turn, tick, v
 			)
 
 	def new_portal(
@@ -1170,7 +1167,7 @@ class Character(AbstractCharacter, RuleFollower):
 		"""Create a portal and return it"""
 		kwargs: StatDict
 		self.add_portal(origin, destination, **kwargs)
-		return self.engine._get_edge(self, origin, destination, 0)
+		return self.engine._get_edge(self, origin, destination)
 
 	def add_portals_from(self, seq, **kwargs):
 		"""Make portals for a sequence of (origin, destination) pairs

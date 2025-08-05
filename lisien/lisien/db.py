@@ -247,7 +247,6 @@ class ParquetDBHolder(ConnectionHolder):
 				("graph", pa.binary()),
 				("orig", pa.binary()),
 				("dest", pa.binary()),
-				("idx", pa.int64()),
 				("branch", pa.string()),
 				("turn", pa.int64()),
 				("tick", pa.int64()),
@@ -257,7 +256,6 @@ class ParquetDBHolder(ConnectionHolder):
 				("graph", pa.binary()),
 				("orig", pa.binary()),
 				("dest", pa.binary()),
-				("idx", pa.int64()),
 				("key", pa.binary()),
 				("branch", pa.string()),
 				("turn", pa.int64()),
@@ -467,7 +465,7 @@ class ParquetDBHolder(ConnectionHolder):
 		"global": [
 			{
 				"key": b"\xb6_lisien_schema_version",
-				"value": b"\x00",
+				"value": b"\x01",
 			},
 			{"key": b"\xabmain_branch", "value": b"\xa5trunk"},
 			{"key": b"\xa6branch", "value": b"\xa5trunk"},
@@ -525,8 +523,8 @@ class ParquetDBHolder(ConnectionHolder):
 		schemaver_b = b"\xb6_lisien_schema_version"
 		ver = self.get_global(schemaver_b)
 		if ver == b"\xc0":
-			self.set_global(schemaver_b, b"\x00")
-		elif ver != b"\x00":
+			self.set_global(schemaver_b, b"\x01")
+		elif ver != b"\x01":
 			return ValueError(
 				f"Unsupported database schema version: {ver}", ver
 			)
@@ -1698,7 +1696,6 @@ class ParquetDBHolder(ConnectionHolder):
 				d["graph"],
 				d["orig"],
 				d["dest"],
-				d["idx"],
 				d["turn"],
 				d["tick"],
 				d["extant"],
@@ -1734,7 +1731,6 @@ class ParquetDBHolder(ConnectionHolder):
 					yield (
 						d["orig"],
 						d["dest"],
-						d["idx"],
 						d["turn"],
 						d["tick"],
 						d["extant"],
@@ -1743,7 +1739,6 @@ class ParquetDBHolder(ConnectionHolder):
 				yield (
 					d["orig"],
 					d["dest"],
-					d["idx"],
 					d["turn"],
 					d["tick"],
 					d["extant"],
@@ -1784,7 +1779,6 @@ class ParquetDBHolder(ConnectionHolder):
 				d["graph"],
 				d["orig"],
 				d["dest"],
-				d["idx"],
 				d["turn"],
 				d["tick"],
 				d["extant"],
@@ -1830,7 +1824,6 @@ class ParquetDBHolder(ConnectionHolder):
 				yield (
 					d["orig"],
 					d["dest"],
-					d["idx"],
 					d["turn"],
 					d["tick"],
 					d["extant"],
@@ -1849,7 +1842,6 @@ class ParquetDBHolder(ConnectionHolder):
 						yield (
 							d["orig"],
 							d["dest"],
-							d["idx"],
 							d["turn"],
 							d["tick"],
 							d["extant"],
@@ -1859,7 +1851,6 @@ class ParquetDBHolder(ConnectionHolder):
 						yield (
 							d["orig"],
 							d["dest"],
-							d["idx"],
 							d["turn"],
 							d["tick"],
 							d["extant"],
@@ -1868,7 +1859,6 @@ class ParquetDBHolder(ConnectionHolder):
 					yield (
 						d["orig"],
 						d["dest"],
-						d["idx"],
 						d["turn"],
 						d["tick"],
 						d["extant"],
@@ -1897,7 +1887,6 @@ class ParquetDBHolder(ConnectionHolder):
 				d["graph"],
 				d["orig"],
 				d["dest"],
-				d["idx"],
 				d["key"],
 				d["turn"],
 				d["tick"],
@@ -1934,7 +1923,6 @@ class ParquetDBHolder(ConnectionHolder):
 					yield (
 						d["orig"],
 						d["dest"],
-						d["idx"],
 						d["key"],
 						d["turn"],
 						d["tick"],
@@ -1944,7 +1932,6 @@ class ParquetDBHolder(ConnectionHolder):
 				yield (
 					d["orig"],
 					d["dest"],
-					d["idx"],
 					d["key"],
 					d["turn"],
 					d["tick"],
@@ -1986,7 +1973,6 @@ class ParquetDBHolder(ConnectionHolder):
 				d["graph"],
 				d["orig"],
 				d["dest"],
-				d["idx"],
 				d["key"],
 				d["turn"],
 				d["tick"],
@@ -2033,7 +2019,6 @@ class ParquetDBHolder(ConnectionHolder):
 				yield (
 					d["orig"],
 					d["dest"],
-					d["idx"],
 					d["key"],
 					d["turn"],
 					d["tick"],
@@ -2053,7 +2038,6 @@ class ParquetDBHolder(ConnectionHolder):
 						yield (
 							d["orig"],
 							d["dest"],
-							d["idx"],
 							d["key"],
 							d["turn"],
 							d["tick"],
@@ -2064,7 +2048,6 @@ class ParquetDBHolder(ConnectionHolder):
 						yield (
 							d["orig"],
 							d["dest"],
-							d["idx"],
 							d["key"],
 							d["turn"],
 							d["tick"],
@@ -2074,7 +2057,6 @@ class ParquetDBHolder(ConnectionHolder):
 					yield (
 						d["orig"],
 						d["dest"],
-						d["idx"],
 						d["key"],
 						d["turn"],
 						d["tick"],
@@ -3406,7 +3388,6 @@ class AbstractQueryEngine:
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -3704,14 +3685,13 @@ class AbstractQueryEngine:
 			raise RuntimeError("Expected beginning of edges", got)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
-			for graph, orig, dest, idx, turn, tick, ex in got:
+			for graph, orig, dest, turn, tick, ex in got:
 				(graph, orig, dest) = map(unpack, (graph, orig, dest))
 				ret[graph]["edges"].append(
 					(
 						graph,
 						orig,
 						dest,
-						idx,
 						branch,
 						turn,
 						tick,
@@ -3815,7 +3795,7 @@ class AbstractQueryEngine:
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
-			for graph, orig, dest, idx, key, turn, tick, val in got:
+			for graph, orig, dest, key, turn, tick, val in got:
 				(graph, orig, dest, key, val) = map(
 					unpack, (graph, orig, dest, key, val)
 				)
@@ -3824,7 +3804,6 @@ class AbstractQueryEngine:
 						graph,
 						orig,
 						dest,
-						idx,
 						key,
 						branch,
 						turn,
@@ -4951,7 +4930,7 @@ class NullQueryEngine(AbstractQueryEngine):
 			"turn": 0,
 			"tick": 0,
 			"language": "eng",
-			"_lisien_schema_version": 0,
+			"_lisien_schema_version": 1,
 		}
 
 	def get_keyframe_extensions(
@@ -5212,7 +5191,6 @@ class NullQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -7631,7 +7609,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(d["graph"]),
 				unpack(d["orig"]),
 				unpack(d["dest"]),
-				d["idx"],
 				d["branch"],
 				d["turn"],
 				d["tick"],
@@ -7688,7 +7665,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -7711,15 +7687,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		extant: bool,
 	) -> None:
-		self._edges2set.append(
-			(graph, orig, dest, idx, branch, turn, tick, extant)
-		)
+		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
 
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self.call("edges_del_time", branch, turn, tick)
@@ -7731,7 +7704,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(d["character"]),
 				unpack(d["orig"]),
 				unpack(d["dest"]),
-				d["idx"],
 				d["branch"],
 				d["turn"],
 				d["tick"],
@@ -7789,7 +7761,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -8133,8 +8104,8 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		schemaver_b = b"\xb6_lisien_schema_version"
 		ver = self.call_one("global_get", schemaver_b).fetchone()
 		if ver is None:
-			self.call_one("global_insert", schemaver_b, b"\x00")
-		elif ver[0] != b"\x00":
+			self.call_one("global_insert", schemaver_b, b"\x01")
+		elif ver[0] != b"\x01":
 			return ValueError(
 				f"Unsupported database schema version: {ver}", ver
 			)
@@ -8342,18 +8313,16 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		extant: bool,
-	) -> tuple[bytes, bytes, bytes, int, Branch, Turn, Tick, bytes]:
+	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
 		pack = self.pack
 		return (
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			branch,
 			turn,
 			tick,
@@ -8388,7 +8357,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -9250,11 +9218,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			return
 		self._edges2set()
 
-	def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
+	def exist_edge(self, graph, orig, dest, branch, turn, tick, extant):
 		"""Declare whether or not this edge exists."""
-		self._edges2set.append(
-			(graph, orig, dest, idx, branch, turn, tick, extant)
-		)
+		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
 		self._increc()
 
 	def edges_del_time(self, branch, turn, tick):

@@ -50,7 +50,6 @@ class Portal(Edge, RuleFollower):
 		"graph",
 		"orig",
 		"dest",
-		"idx",
 		"origin",
 		"destination",
 		"_rulebook",
@@ -61,7 +60,7 @@ class Portal(Edge, RuleFollower):
 	no_unwrap = True
 
 	def __init__(self, graph: AbstractCharacter, orig: Key, dest: Key):
-		super().__init__(graph, orig, dest, 0)
+		super().__init__(graph, orig, dest)
 		self.origin = graph.node[orig]
 		self.destination = graph.node[dest]
 
@@ -69,7 +68,7 @@ class Portal(Edge, RuleFollower):
 	def _cache(self):
 		return self.db._edge_val_cache[self.character.name][self.orig][
 			self.dest
-		][0]
+		]
 
 	def _rule_name_activeness(self):
 		rulebook_name = self._get_rulebook_name()

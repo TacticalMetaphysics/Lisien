@@ -2157,7 +2157,7 @@ class EdgesCache(Cache):
 		super().__init__(db, name, keyframe_dict)
 		self.destcache = PickyDefaultDict(SettingsTurnDict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
-		self.predecessors = StructuredDefaultDict(3, TurnDict)
+		self.predecessors = StructuredDefaultDict(2, TurnDict)
 		self._origcache_lru = OrderedDict()
 		self._destcache_lru = OrderedDict()
 		self._get_destcache_stuff: tuple[
@@ -2245,12 +2245,10 @@ class EdgesCache(Cache):
 	def _update_keycache(self, *args, forward: bool):
 		super()._update_keycache(*args, forward=forward)
 		dest: Hashable
-		key: Hashable
 		branch: str
 		turn: int
 		tick: int
-		dest, key, branch, turn, tick, value = args[-6:]
-		graph, orig = args[:-6]
+		graph, orig, dest, branch, turn, tick, value = args
 		# it's possible either of these might cause unnecessary iteration
 		dests = self._get_destcache(
 			graph, orig, branch, turn, tick, forward=forward
@@ -2522,8 +2520,8 @@ class EdgesCache(Cache):
 			return dest in self._get_destcache(
 				graph, orig, branch, turn, tick, forward=forward
 			)
-		got = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
-		return got is not None and not isinstance(got, Exception)
+		got = self._base_retrieve((graph, orig, dest, branch, turn, tick))
+		return got is True
 
 	def has_predecessor(
 		self,
@@ -2537,15 +2535,14 @@ class EdgesCache(Cache):
 		forward: Optional[bool] = None,
 	):
 		"""Return whether an edge connects the destination to the origin now"""
-		got = self._base_retrieve((graph, orig, dest, 0, branch, turn, tick))
-		return got is not None and not isinstance(got, Exception)
+		got = self._base_retrieve((graph, orig, dest, branch, turn, tick))
+		return got is True
 
 	def store(
 		self,
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -2567,7 +2564,6 @@ class EdgesCache(Cache):
 			graph,
 			orig,
 			dest,
-			idx,
 			branch,
 			turn,
 			tick,
@@ -2578,9 +2574,9 @@ class EdgesCache(Cache):
 			contra=contra,
 		)
 		try:
-			predecessors[graph, dest][orig][idx][branch][turn] = successors[
+			predecessors[graph, dest][orig][branch][turn] = successors[
 				graph, orig
-			][dest][idx][branch][turn]
+			][dest][branch][turn]
 		except HistoricKeyError:
 			pass
 
@@ -2727,7 +2723,7 @@ class EdgeValCache(Cache):
 		for orig, dests in keyframe.items():
 			for dest, val in dests.items():
 				self._set_keyframe(
-					(graph, orig, dest, 0), branch, turn, tick, val
+					(graph, orig, dest), branch, turn, tick, val
 				)
 
 

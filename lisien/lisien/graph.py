@@ -328,7 +328,6 @@ class Edge(AbstractEntityMapping):
 		"graph",
 		"orig",
 		"dest",
-		"idx",
 		"db",
 		"_iter_stuff",
 		"_cache_contains_stuff",
@@ -340,18 +339,12 @@ class Edge(AbstractEntityMapping):
 
 	set_db_time = set_cache_time = 0
 
-	def __init__(self, graph, orig, dest, idx=0):
-		"""Store the graph, the names of the nodes, and the index.
-
-		For non-multigraphs the index is always 0.
-
-		"""
+	def __init__(self, graph, orig, dest):
 		super().__init__(graph)
 		self.graph = graph
 		self.db = db = graph.db
 		self.orig = orig
 		self.dest = dest
-		self.idx = idx
 		edge_val_cache = db._edge_val_cache
 		graphn = graph.name
 		btt = db._btt
@@ -360,7 +353,6 @@ class Edge(AbstractEntityMapping):
 			graphn,
 			orig,
 			dest,
-			idx,
 			btt,
 		)
 		self._cache_contains_stuff = (
@@ -368,14 +360,12 @@ class Edge(AbstractEntityMapping):
 			graphn,
 			orig,
 			dest,
-			idx,
 		)
 		self._len_stuff = (
 			edge_val_cache.count_keys,
 			graphn,
 			orig,
 			dest,
-			idx,
 			btt,
 		)
 		self._get_cache_stuff = (
@@ -383,10 +373,9 @@ class Edge(AbstractEntityMapping):
 			graphn,
 			orig,
 			dest,
-			idx,
 		)
-		self._set_db_stuff = (db.query.edge_val_set, graphn, orig, dest, idx)
-		self._set_cache_stuff = (edge_val_cache.store, graphn, orig, dest, idx)
+		self._set_db_stuff = (db.query.edge_val_set, graphn, orig, dest)
+		self._set_cache_stuff = (edge_val_cache.store, graphn, orig, dest)
 
 	def __repr__(self):
 		return "<{} in graph {} from {} to {} containing {}>".format(
@@ -401,27 +390,27 @@ class Edge(AbstractEntityMapping):
 		return str(dict(self))
 
 	def __iter__(self):
-		iter_entity_keys, graphn, orig, dest, idx, btt = self._iter_stuff
+		iter_entity_keys, graphn, orig, dest, btt = self._iter_stuff
 		return iter_entity_keys(graphn, orig, dest, *btt())
 
 	def _cache_contains(self, key, branch, turn, tick):
-		contains_key, graphn, orig, dest, idx = self._cache_contains_stuff
+		contains_key, graphn, orig, dest = self._cache_contains_stuff
 		return contains_key(graphn, orig, dest, key, branch, turn, tick)
 
 	def __len__(self):
-		count_entity_keys, graphn, orig, dest, idx, btt = self._len_stuff
+		count_entity_keys, graphn, orig, dest, btt = self._len_stuff
 		return count_entity_keys(graphn, orig, dest, *btt())
 
 	def _get_cache(self, key, branch, turn, tick):
-		retrieve, graphn, orig, dest, idx = self._get_cache_stuff
+		retrieve, graphn, orig, dest = self._get_cache_stuff
 		return retrieve(graphn, orig, dest, key, branch, turn, tick)
 
 	def _set_db(self, key, branch, turn, tick, value):
-		edge_val_set, graphn, orig, dest, idx = self._set_db_stuff
-		edge_val_set(graphn, orig, dest, idx, key, branch, turn, tick, value)
+		edge_val_set, graphn, orig, dest = self._set_db_stuff
+		edge_val_set(graphn, orig, dest, key, branch, turn, tick, value)
 
 	def _set_cache(self, key, branch, turn, tick, value):
-		store, graphn, orig, dest, idx = self._set_cache_stuff
+		store, graphn, orig, dest = self._set_cache_stuff
 		store(graphn, orig, dest, key, branch, turn, tick, value)
 
 
@@ -613,7 +602,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 		if dest not in self:
 			raise KeyError("No edge {}->{}".format(self.orig, dest))
 		orig, dest = self._order_nodes(dest)
-		return self.db._get_edge(self.graph, orig, dest, 0)
+		return self.db._get_edge(self.graph, orig, dest)
 
 	def __setitem__(self, dest, value):
 		"""Set the edge between my orig and the given dest to the given
@@ -843,7 +832,6 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 					self.graph.name,
 					orig,
 					self.dest,
-					0,
 					branch,
 					turn,
 					tick,
@@ -858,31 +846,6 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 		def __delitem__(self, orig):
 			"""Unset the existence of the edge from the given node to mine"""
 			branch, turn, tick = self.db._nbtt()
-			if "Multi" in self.graph.__class__.__name__:
-				for idx in self[orig]:
-					self.db.query.exist_edge(
-						self.graph.name,
-						orig,
-						self.dest,
-						idx,
-						branch,
-						turn,
-						tick,
-						False,
-					)
-					self.db._edges_cache.store(
-						self.graph.name,
-						orig,
-						self.dest,
-						idx,
-						branch,
-						turn,
-						tick,
-						False,
-					)
-					return
-				else:
-					raise KeyError("No edges from {}".format(orig))
 			self.db.query.exist_edge(
 				self.graph.name, orig, self.dest, branch, turn, tick, False
 			)
