@@ -34,13 +34,15 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import zip_longest
-from typing import TYPE_CHECKING, Callable, Mapping
+from typing import TYPE_CHECKING, Callable
+
+from blinker import Signal
 
 if TYPE_CHECKING:
 	from .util import AbstractCharacter
 
 
-class SpecialMapping(Mapping, ABC):
+class SpecialMapping(Mapping, Signal, ABC):
 	@abstractmethod
 	def __init__(self, character: AbstractCharacter): ...
 
