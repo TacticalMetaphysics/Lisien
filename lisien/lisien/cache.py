@@ -4412,6 +4412,8 @@ class ThingsCache(Cache):
 				loading=loading,
 				contra=contra,
 			)
+			if loading:
+				return
 			node_contents_cache = self.db._node_contents_cache
 			this = frozenset((thing,))
 			# Cache the contents of nodes
