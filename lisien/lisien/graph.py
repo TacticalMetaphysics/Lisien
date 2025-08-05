@@ -632,7 +632,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 			self.graph.name, orig, dest, 0, branch, turn, tick, True
 		)
 		self.db._edges_cache.store(
-			self.graph.name, orig, dest, 0, branch, turn, tick, True
+			self.graph.name, orig, dest, branch, turn, tick, True
 		)
 		e = self[real_dest]
 		e.clear()
@@ -646,7 +646,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 			self.graph.name, orig, dest, 0, branch, turn, tick, False
 		)
 		self.db._edges_cache.store(
-			self.graph.name, orig, dest, 0, branch, turn, tick, None
+			self.graph.name, orig, dest, branch, turn, tick, None
 		)
 
 	def __repr__(self):
@@ -749,7 +749,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 		):
 			try:
 				if self.db._edges_cache.retrieve(
-					self.graph.name, orig, dest, 0, *self.db._btt()
+					self.graph.name, orig, dest, *self.db._btt()
 				):
 					return True
 			except KeyError:
@@ -852,7 +852,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 				e = self._make_edge(orig)
 			e.update(value)
 			self.db._edges_cache.store(
-				self.graph.name, orig, self.dest, 0, branch, turn, tick, True
+				self.graph.name, orig, self.dest, branch, turn, tick, True
 			)
 
 		def __delitem__(self, orig):
@@ -884,10 +884,10 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 				else:
 					raise KeyError("No edges from {}".format(orig))
 			self.db.query.exist_edge(
-				self.graph.name, orig, self.dest, 0, branch, turn, tick, False
+				self.graph.name, orig, self.dest, branch, turn, tick, False
 			)
 			self.db._edges_cache.store(
-				self.graph.name, orig, self.dest, 0, branch, turn, tick, None
+				self.graph.name, orig, self.dest, branch, turn, tick, None
 			)
 
 
