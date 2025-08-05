@@ -1056,7 +1056,8 @@ class Cache:
 			where_cached = db_where_cached[branch, turn, tick]
 			if self not in where_cached:
 				where_cached.append(self)
-			update_keycache(*args, forward=forward)
+			if not loading:
+				update_keycache(*args, forward=forward)
 
 	def remove_character(self, character):
 		(
