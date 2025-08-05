@@ -4358,7 +4358,7 @@ class Engine(AbstractEngine, Executor):
 			.items()
 		):
 			for tick in sorted(ticks):
-				if (turn, tick) < (turn_now, tick_now):
+				if (turn, tick) <= (turn_now, tick_now):
 					continue
 				if (branch, turn, tick) in cache:
 					earliest_future_keyframe = (branch, turn, tick)
