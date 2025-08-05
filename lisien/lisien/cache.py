@@ -3673,6 +3673,10 @@ class UnitnessCache(Cache):
 
 	initial_value = False
 
+	@staticmethod
+	def _count_as_deleted(obj):
+		return not obj
+
 	def __init__(
 		self,
 		db: "engine.Engine",
@@ -3710,7 +3714,6 @@ class UnitnessCache(Cache):
 	):
 		if forward is None:
 			forward = self.db._forward
-		is_unit = True if is_unit else None
 		self._store(
 			character,
 			graph,
@@ -3796,9 +3799,12 @@ class UnitnessCache(Cache):
 		*,
 		search: bool = False,
 	) -> bool:
-		return self._contains_entity_or_key(
-			char, graph, branch, turn, tick, search=search
-		)
+		try:
+			return bool(
+				self._retrieve(char, graph, branch, turn, tick, search=search)
+			)
+		except KeyError:
+			return False
 
 	def contains_unit(
 		self,
@@ -3811,9 +3817,16 @@ class UnitnessCache(Cache):
 		*,
 		search: bool = False,
 	) -> bool:
-		return self._contains_entity_or_key(
-			char, graph, unit, branch, turn, tick, search=search
-		)
+		try:
+			return bool(
+				self._retrieve(
+					char, graph, unit, branch, turn, tick, search=search
+				)
+			)
+		except KeyError:
+			return False
+
+	retrieve = contains_unit
 
 	def get_char_graph_units(
 		self,
