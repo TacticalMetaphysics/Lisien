@@ -487,9 +487,9 @@ class UniversalMapping(MutableMapping, Signal):
 	def __delitem__(self, k):
 		"""Unset this key for the present (branch, tick)"""
 		branch, turn, tick = self.engine._nbtt()
-		self.engine._universal_cache.store(k, branch, turn, tick, None)
+		self.engine._universal_cache.store(k, branch, turn, tick, ...)
 		self.engine.query.universal_del(k, branch, turn, tick)
-		self.send(self, key=k, val=None)
+		self.send(self, key=k, val=...)
 
 
 class CharacterMapping(GraphsMapping, Signal):
