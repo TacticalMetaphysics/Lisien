@@ -516,9 +516,14 @@ class Cache:
 		ret = r[tick]
 		return ret
 
-	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+	def discard_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		for entity in list(self.keyframe):
-			del self.keyframe[entity][branch][turn][tick]
+			if (
+				branch in self.keyframe[entity]
+				and turn in self.keyframe[entity][branch]
+				and tick in self.keyframe[entity][branch][turn]
+			):
+				del self.keyframe[entity][branch][turn][tick]
 
 	def _set_keyframe(
 		self,
