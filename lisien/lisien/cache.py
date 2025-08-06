@@ -2276,8 +2276,8 @@ class EdgesCache(Cache):
 		# slow and bad.
 		retrieve = self._base_retrieve
 		for items in (
-			self.successors[graph, node].items(),
-			self.predecessors[graph, node].items(),
+			self.successors[graph,][node].items(),
+			self.predecessors[graph,][node].items(),
 		):
 			for dest, branches in items:  # dest might really be orig
 				brnch = branches[branch]
