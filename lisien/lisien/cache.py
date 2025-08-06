@@ -2598,8 +2598,6 @@ class EdgesCache(Cache):
 		if contra is None:
 			contra = not loading
 		db, predecessors, successors = self._additional_store_stuff
-		if not ex:
-			ex = None
 		if planning is None:
 			planning = db._planning
 		self._store(
