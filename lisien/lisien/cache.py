@@ -2256,12 +2256,12 @@ class EdgesCache(Cache):
 		origs = self._get_origcache(
 			graph, dest, branch, turn, tick, forward=forward
 		)
-		if value is ...:
-			dests = dests.difference((dest,))
-			origs = origs.difference((orig,))
-		else:
+		if value:
 			dests = dests.union((dest,))
 			origs = origs.union((orig,))
+		else:
+			dests = dests.difference((dest,))
+			origs = origs.difference((orig,))
 		self.destcache[graph, orig, branch][turn][tick] = dests
 		self.origcache[graph, dest, branch][turn][tick] = origs
 
