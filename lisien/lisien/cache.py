@@ -2563,12 +2563,9 @@ class EdgesCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
-		try:
-			predecessors[graph, dest][orig][branch][turn] = successors[
-				graph, orig
-			][dest][branch][turn]
-		except HistoricKeyError:
-			pass
+		predecessors[graph,][orig][branch][turn] = successors[graph,][dest][
+			branch
+		][turn]
 
 	def retrieve(
 		self,
