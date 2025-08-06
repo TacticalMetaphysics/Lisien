@@ -3417,7 +3417,6 @@ class AbstractQueryEngine:
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -5220,7 +5219,6 @@ class NullQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -7647,12 +7645,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for orig, dest, idx, turn, tick, extant in it:
+		for orig, dest, turn, tick, extant in it:
 			yield (
 				graph,
 				unpack(orig),
 				unpack(dest),
-				idx,
 				branch,
 				turn,
 				tick,
@@ -7675,7 +7672,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			branch,
 			turn,
 			tick,
@@ -7742,12 +7738,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for orig, dest, idx, key, turn, tick, value in it:
+		for orig, dest, key, turn, tick, value in it:
 			yield (
 				graph,
 				unpack(orig),
 				unpack(dest),
-				idx,
 				unpack(key),
 				branch,
 				turn,
@@ -7772,7 +7767,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			pack(key),
 			branch,
 			turn,
@@ -7785,7 +7779,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -7793,7 +7786,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		value: Value,
 	) -> None:
 		self._edgevals2set.append(
-			(graph, orig, dest, idx, key, branch, turn, tick, value)
+			(graph, orig, dest, key, branch, turn, tick, value)
 		)
 
 	def edge_val_del_time(
@@ -8368,7 +8361,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			pack(key),
 			branch,
 			turn,
@@ -9132,7 +9124,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			graph,
 			orig,
 			dest,
-			idx,
 			branch,
 			turn,
 			tick,
@@ -9142,7 +9133,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(graph),
 				unpack(orig),
 				unpack(dest),
-				idx,
 				branch,
 				turn,
 				tick,
@@ -9178,12 +9168,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for orig, dest, idx, turn, tick, extant in it:
+		for orig, dest, turn, tick, extant in it:
 			yield (
 				graph,
 				unpack(orig),
 				unpack(dest),
-				idx,
 				branch,
 				turn,
 				tick,
@@ -9200,13 +9189,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 
 	def _pack_edge2set(self, tup):
-		graph, orig, dest, idx, branch, turn, tick, extant = tup
+		graph, orig, dest, branch, turn, tick, extant = tup
 		pack = self.pack
 		return (
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			branch,
 			turn,
 			tick,
@@ -9235,7 +9223,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			graph,
 			orig,
 			dest,
-			idx,
 			key,
 			branch,
 			turn,
@@ -9246,7 +9233,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(graph),
 				unpack(orig),
 				unpack(dest),
-				idx,
 				unpack(key),
 				branch,
 				turn,
@@ -9283,12 +9269,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for orig, dest, idx, key, turn, tick, value in it:
+		for orig, dest, key, turn, tick, value in it:
 			yield (
 				graph,
 				unpack(orig),
 				unpack(dest),
-				idx,
 				unpack(key),
 				branch,
 				turn,
@@ -9306,13 +9291,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 
 	def _pack_edgeval2set(self, tup):
-		graph, orig, dest, idx, key, branch, turn, tick, value = tup
+		graph, orig, dest, key, branch, turn, tick, value = tup
 		pack = self.pack
 		return (
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			pack(key),
 			branch,
 			turn,
@@ -9320,12 +9304,10 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			pack(value),
 		)
 
-	def edge_val_set(
-		self, graph, orig, dest, idx, key, branch, turn, tick, value
-	):
+	def edge_val_set(self, graph, orig, dest, key, branch, turn, tick, value):
 		"""Set this key of this edge to this value."""
 		self._edgevals2set.append(
-			(graph, orig, dest, idx, key, branch, turn, tick, value)
+			(graph, orig, dest, key, branch, turn, tick, value)
 		)
 		self._increc()
 
