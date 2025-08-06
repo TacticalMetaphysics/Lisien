@@ -1657,7 +1657,6 @@ class Engine(AbstractEngine, Executor):
 			graph: CharName,
 			orig: NodeName,
 			dest: NodeName,
-			___: int,
 			exists: bool | None,
 		) -> None:
 			"""Change a delta to say that an edge was created or deleted"""
