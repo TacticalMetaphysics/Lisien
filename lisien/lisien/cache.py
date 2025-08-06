@@ -2925,7 +2925,7 @@ class InitializedCache(Cache):
 		try:
 			prev = self._retrieve_for_journal(args)
 		except KeyError:
-			prev = None
+			prev = self.initial_value
 		if prev == value:
 			return  # not much point reporting on a non-change in a diff
 		if turn in settings_turns.future(turn, include_same_rev=True):
