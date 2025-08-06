@@ -1338,7 +1338,7 @@ class Cache:
 
 	@staticmethod
 	def _iter_future_contradictions(
-		entity: tuple[Key, ...],
+		entity: Key,
 		key: Key,
 		turns: WindowDict,
 		branch: Branch,
@@ -1355,9 +1355,9 @@ class Cache:
 			for tck, newval in future_ticks.items():
 				if newval != value:
 					yield turn, tck
-			future_turns = turns.future(turn, include_same_rev=False)
+			future_turns = turns.future(turn, include_same_rev=True)
 		elif turns.rev_gettable(turn):
-			future_turns = turns.future(turn, include_same_rev=False)
+			future_turns = turns.future(turn, include_same_rev=True)
 		else:
 			future_turns = turns
 		if not future_turns:
@@ -1970,7 +1970,7 @@ class NodesCache(Cache):
 
 	def _iter_future_contradictions(
 		self,
-		entity: tuple[Key, ...],
+		entity: Key,
 		key: Key,
 		turns: WindowDict,
 		branch: Branch,
