@@ -302,7 +302,10 @@ class Cache:
 	):
 		self.name = name
 		self.db = db
-		self.parents = StructuredDefaultDict(3, SettingsTurnDict)
+		self._keyframe_dict = keyframe_dict
+
+	@cached_property
+	def parents(self):
 		"""Entity data keyed by the entities' parents.
 
 		An entity's parent is what it's contained in. When speaking of a node,
@@ -312,7 +315,10 @@ class Cache:
 		Deeper layers of this cache are keyed by branch and revision.
 
 		"""
-		self.keys = StructuredDefaultDict(2, SettingsTurnDict)
+		return StructuredDefaultDict(3, SettingsTurnDict)
+
+	@cached_property
+	def keys(self):
 		"""Cache of entity data keyed by the entities themselves.
 
 		That means the whole tuple identifying the entity is the
@@ -322,29 +328,61 @@ class Cache:
 		Deeper layers of this cache are keyed by branch, turn, and tick.
 
 		"""
-		self.keycache = PickyDefaultDict(SettingsTurnDict)
+		return StructuredDefaultDict(2, SettingsTurnDict)
+
+	@cached_property
+	def keycache(self):
 		"""Keys an entity has at a given turn and tick."""
-		self.branches = StructuredDefaultDict(1, SettingsTurnDict)
+		return PickyDefaultDict(SettingsTurnDict)
+
+	@cached_property
+	def branches(self):
 		"""A less structured alternative to ``keys``.
 
 		For when you already know the entity and the key within it,
 		but still need to iterate through history to find the value.
 
 		"""
-		self.keyframe = StructuredDefaultDict(
-			1, SettingsTurnDict, **(keyframe_dict or {})
-		)
+		return StructuredDefaultDict(1, SettingsTurnDict)
+
+	@cached_property
+	def keyframe(self):
 		"""Key-value dictionaries representing my state at a given time"""
-		self.shallowest = OrderedDict()
+		return StructuredDefaultDict(
+			1, SettingsTurnDict, **(self._keyframe_dict or {})
+		)
+
+	@cached_property
+	def shallowest(self):
 		"""A dictionary for plain, unstructured hinting."""
-		self.settings = PickyDefaultDict(EntikeySettingsTurnDict)
+		return OrderedDict()
+
+	@cached_property
+	def settings(self):
 		"""All the ``entity[key] = value`` settings on some turn"""
-		self.presettings = PickyDefaultDict(EntikeySettingsTurnDict)
+		return PickyDefaultDict(EntikeySettingsTurnDict)
+
+	@cached_property
+	def presettings(self):
 		"""The values prior to ``entity[key] = value`` settings on some turn"""
-		self.time_entity = {}
-		self._kc_lru = OrderedDict()
-		self._lock = RLock()
-		self._store_stuff = (
+		return PickyDefaultDict(EntikeySettingsTurnDict)
+
+	@cached_property
+	def time_entity(self):
+		return {}
+
+	@cached_property
+	def _kc_lru(self):
+		return OrderedDict()
+
+	@cached_property
+	def _lock(self):
+		return RLock()
+
+	@cached_property
+	def _store_stuff(self):
+		db = self.db
+		return (
 			self._lock,
 			self.parents,
 			self.branches,
@@ -361,7 +399,10 @@ class Cache:
 			db,
 			self._update_keycache,
 		)
-		self._remove_stuff = (
+
+	@cached_property
+	def _remove_stuff(self):
+		return (
 			self._lock,
 			self.time_entity,
 			self.parents,
@@ -372,7 +413,10 @@ class Cache:
 			self._remove_keycache,
 			self.keycache,
 		)
-		self._truncate_stuff = (
+
+	@cached_property
+	def _truncate_stuff(self):
+		return (
 			self._lock,
 			self.parents,
 			self.branches,
@@ -381,9 +425,12 @@ class Cache:
 			self.presettings,
 			self.keycache,
 		)
-		self._store_journal_stuff: tuple[
-			PickyDefaultDict, PickyDefaultDict, callable
-		] = (self.settings, self.presettings, self._base_retrieve)
+
+	@cached_property
+	def _store_journal_stuff(
+		self,
+	) -> tuple[PickyDefaultDict, PickyDefaultDict, callable]:
+		return (self.settings, self.presettings, self._base_retrieve)
 
 	def clear(self):
 		with self._lock:
@@ -1255,20 +1302,26 @@ class Cache:
 						del entty[key]
 				if not entty:
 					del keys[keykey]
-			branhc = settings[branch]
-			pbranhc = presettings[branch]
-			trn = branhc[turn]
-			ptrn = pbranhc[turn]
-			if tick in trn:
-				del trn[tick]
-			if tick in ptrn:
-				del ptrn[tick]
-			if not ptrn:
-				del pbranhc[turn]
-				del branhc[turn]
-			if not pbranhc:
-				del settings[branch]
-				del presettings[branch]
+			if branch in settings:
+				branhc = settings[branch]
+				if turn in branhc:
+					trn = branhc[turn]
+					if tick in trn:
+						del trn[tick]
+					if not trn:
+						del branhc[turn]
+				if not branhc:
+					del settings[branch]
+			if branch in presettings:
+				pbranhc = presettings[branch]
+				if turn in pbranhc:
+					ptrn = pbranhc[turn]
+					if tick in ptrn:
+						del ptrn[tick]
+					if not ptrn:
+						del pbranhc[turn]
+				if not pbranhc:
+					del presettings[branch]
 			self.shallowest = OrderedDict()
 			remove_keycache((*parent, entity, branch), turn, tick)
 
