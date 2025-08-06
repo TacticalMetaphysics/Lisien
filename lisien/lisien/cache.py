@@ -2209,7 +2209,7 @@ class EdgesCache(Cache):
 		super().__init__(db, name, keyframe_dict)
 		self.destcache = PickyDefaultDict(SettingsTurnDict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
-		self.predecessors = StructuredDefaultDict(2, TurnDict)
+		self.predecessors = StructuredDefaultDict(3, TurnDict)
 		self._origcache_lru = OrderedDict()
 		self._destcache_lru = OrderedDict()
 		self._get_destcache_stuff: tuple[
