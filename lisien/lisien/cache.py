@@ -2248,7 +2248,7 @@ class EdgesCache(Cache):
 		branch: str
 		turn: int
 		tick: int
-		graph, orig, dest, _, branch, turn, tick, value = args
+		graph, orig, dest, branch, turn, tick, value = args
 		# it's possible either of these might cause unnecessary iteration
 		dests = self._get_destcache(
 			graph, orig, branch, turn, tick, forward=forward
@@ -2554,7 +2554,6 @@ class EdgesCache(Cache):
 			graph,
 			orig,
 			dest,
-			None,
 			branch,
 			turn,
 			tick,
@@ -2584,7 +2583,7 @@ class EdgesCache(Cache):
 	) -> bool:
 		return bool(
 			self._retrieve(
-				graph, orig, dest, None, branch, turn, tick, search=search
+				graph, orig, dest, branch, turn, tick, search=search
 			)
 		)
 
