@@ -306,9 +306,8 @@ class Cache:
 		"""Entity data keyed by the entities' parents.
 
 		An entity's parent is what it's contained in. When speaking of a node,
-		this is its graph. When speaking of an edge, the parent is usually the
-		graph and the origin in a pair, though for multigraphs the destination
-		might be part of the parent as well.
+		this is its graph. When speaking of an edge, the parent is a pair of
+		the graph and origin.
 
 		Deeper layers of this cache are keyed by branch and revision.
 
