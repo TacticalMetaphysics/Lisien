@@ -883,7 +883,7 @@ class Cache:
 		kc = self._get_keycache(
 			parent + (entity,), branch, turn, tick, forward=forward
 		)
-		if value is ...:
+		if self._count_as_deleted(value):
 			kc = kc.difference((key,))
 		else:
 			kc = kc.union((key,))
