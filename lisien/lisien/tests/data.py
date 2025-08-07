@@ -22760,7 +22760,16 @@ KOBOLD_KEYFRAME_0 = {
 			"units": {},
 		},
 	},
-	"neighborhood": {},
+	"neighborhood": {
+		name: None
+		for name in [
+			"fight",
+			"go2kobold",
+			"kill_kobold",
+			"wander",
+			"shrubsprint",
+		]
+	},
 	"node_val": {
 		"astronauts": {},
 		"hello": {
@@ -23936,7 +23945,16 @@ KOBOLD_KEYFRAME_1 = {
 		"go2kobold": ["go2kobold"],
 		"wander": ["wander"],
 	},
-	"neighborhood": {},
+	"neighborhood": {
+		name: None
+		for name in [
+			"fight",
+			"go2kobold",
+			"kill_kobold",
+			"wander",
+			"shrubsprint",
+		]
+	},
 	"big": {
 		"shrubsprint": False,
 		"fight": False,
@@ -24991,7 +25009,16 @@ COLLEGE_KEYFRAME_0 = {
 			"units": {},
 		},
 	},
-	"neighborhood": {"learn": 0},
+	"neighborhood": {
+		"catch_up": None,
+		"drink": None,
+		"go_to_class": None,
+		"learn": 0,
+		"leave_class": None,
+		"sloth": None,
+		"sober_up": None,
+		"time_passes": None,
+	},
 	"node_val": {
 		"astronauts": {},
 		"dorm0": {},
@@ -48351,7 +48378,16 @@ COLLEGE_KEYFRAME_1 = {
 			},
 		},
 	},
-	"neighborhood": {"learn": 0},
+	"neighborhood": {
+		"catch_up": None,
+		"drink": None,
+		"go_to_class": None,
+		"learn": 0,
+		"leave_class": None,
+		"sloth": None,
+		"sober_up": None,
+		"time_passes": None,
+	},
 	"node_val": {
 		"dorm0": {},
 		"dorm0room0student0": {
@@ -70733,7 +70769,7 @@ SICKLE_KEYFRAME_0 = {
 			"units": {},
 		},
 	},
-	"neighborhood": {},
+	"neighborhood": {"dieoff": None, "mate": None, "wander": None},
 	"node_val": {
 		"astronauts": {},
 		"hello": {
@@ -70842,7 +70878,7 @@ SICKLE_KEYFRAME_1 = {
 			},
 		},
 	},
-	"neighborhood": {},
+	"neighborhood": {"dieoff": None, "mate": None, "wander": None},
 	"node_val": {
 		"physical": {
 			(0, 0): {"rulebook": ("physical", (0, 0))},
