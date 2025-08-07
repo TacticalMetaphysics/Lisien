@@ -4048,6 +4048,10 @@ class EngineProxy(AbstractEngine):
 				if funcl in delta:
 					func_proxies = []
 					store = getattr(self, funcl[:-1])
+					if delta[funcl] is ...:
+						if funcl in rule_cached:
+							del rule_cached[funcl]
+						continue
 					for func in delta[funcl]:
 						if hasattr(store, func):
 							func_proxy = getattr(store, func)
