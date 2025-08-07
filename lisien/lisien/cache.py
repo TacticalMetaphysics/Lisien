@@ -3104,6 +3104,8 @@ class FuncListCache(InitializedCache):
 
 
 class NeighborhoodsCache(InitializedCache):
+	initial_value = None
+
 	def store(
 		self,
 		rule: RuleName,
@@ -3172,6 +3174,8 @@ class NeighborhoodsCache(InitializedCache):
 
 
 class BignessCache(InitializedCache):
+	initial_value = False
+
 	def store(
 		self,
 		rule: RuleName,
