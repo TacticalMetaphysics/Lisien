@@ -2618,9 +2618,16 @@ class EdgesCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
-		predecessors[graph,][orig][branch][turn] = successors[graph,][dest][
-			branch
-		][turn]
+		for dest, branches in successors[graph,][orig].items():
+			try:
+				pred_ticks = branches[branch][turn]
+			except KeyError:
+				continue
+			preds_branch = predecessors[graph,][dest][orig][branch]
+			if turn in preds_branch:
+				preds_branch[turn][tick] = pred_ticks[tick]
+			else:
+				preds_branch[turn] = pred_ticks
 
 	def retrieve(
 		self,
