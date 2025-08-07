@@ -1412,7 +1412,7 @@ class Cache:
 			for tck, newval in future_ticks.items():
 				if newval != value:
 					yield turn, tck
-			future_turns = turns.future(turn, include_same_rev=True)
+			future_turns = turns.future(turn, include_same_rev=False)
 		elif turns.rev_gettable(turn):
 			future_turns = turns.future(turn, include_same_rev=True)
 		else:
