@@ -3162,16 +3162,6 @@ class NeighborhoodsCache(InitializedCache):
 	) -> None:
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
-	def alias_keyframe(
-		self,
-		branch_from: Branch,
-		branch_to: Branch,
-		turn: Turn,
-		tick: Tick,
-		default: Optional[dict] = None,
-	):
-		super().alias_keyframe(branch_from, branch_to, turn, tick, default)
-
 
 class BignessCache(InitializedCache):
 	initial_value = False
