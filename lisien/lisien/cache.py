@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections import OrderedDict, defaultdict, deque
 from contextlib import contextmanager
-from functools import cached_property, singledispatchmethod
+from functools import cached_property
 from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
@@ -3314,7 +3314,7 @@ class PortalsRulebooksCache(InitializedCache):
 		contra: Optional[bool] = None,
 	) -> None:
 		try:
-			destrbs = self.retrieve(char, orig, branch, turn, tick)
+			destrbs = self.retrieve_successors(char, orig, branch, turn, tick)
 			destrbs[dest] = rb
 		except KeyError:
 			destrbs = {dest: rb}
@@ -3346,13 +3346,11 @@ class PortalsRulebooksCache(InitializedCache):
 			planning=planning,
 		)
 
-	@singledispatchmethod
 	def retrieve(
 		self,
-		# I can't use newtypes with single dispatch???
-		char: Key,
-		orig: Key,
-		dest: Key,
+		char: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -3363,11 +3361,10 @@ class PortalsRulebooksCache(InitializedCache):
 			char, orig, dest, branch, turn, tick, search=search
 		)
 
-	@retrieve.register
-	def retrieve(
+	def retrieve_successors(
 		self,
-		char: Key,
-		orig: Key,
+		char: CharName,
+		orig: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -4305,7 +4302,7 @@ class PortalRulesHandledCache(RulesHandledCache):
 				)
 			):
 				try:
-					destrbs = self.engine._portals_rulebooks_cache.retrieve(
+					destrbs = self.engine._portals_rulebooks_cache.retrieve_successors(
 						character_name, orig_name, branch, turn, tick
 					)
 				except KeyError:
