@@ -941,7 +941,7 @@ class Engine(AbstractEngine, Executor):
 
 	@cached_property
 	def _portals_rulebooks_cache(self) -> PortalsRulebooksCache:
-		return PortalsRulebooksCache(self, name="portals rulebooks_ ache")
+		return PortalsRulebooksCache(self, name="portals rulebooks cache")
 
 	@cached_property
 	def _triggers_cache(self) -> FuncListCache:
