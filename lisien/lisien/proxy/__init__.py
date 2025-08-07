@@ -818,10 +818,18 @@ class ThingProxy(NodeProxy):
 	def _apply_delta(self, delta: StatDict):
 		for k, v in delta.items():
 			if k == "rulebook":
-				if v != self.rulebook.name:
+				if v is ...:
+					cnrbc = self.engine._char_node_rulebooks_cache
+					if (
+						self._charname in cnrbc
+						and self.name in cnrbc[self._charname]
+					):
+						del cnrbc[self._charname][self.name]
+				elif v != self.rulebook.name:
 					self.engine._char_node_rulebooks_cache[self._charname][
 						self.name
 					] = v
+				if v != self.rulebook.name:
 					self.send(self, key="rulebook", value=v)
 					self.character.thing.send(self, key="rulebook", value=v)
 					self.character.node.send(self, key="rulebook", value=v)
