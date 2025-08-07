@@ -2189,12 +2189,9 @@ class EdgesCache(Cache):
 	"""A cache for remembering whether edges exist at a given time."""
 
 	__slots__ = (
-		"destcache",
 		"origcache",
 		"predecessors",
 		"_origcache_lru",
-		"_destcache_lru",
-		"_get_destcache_stuff",
 		"_get_origcache_stuff",
 		"_additional_store_stuff",
 	)
@@ -2212,24 +2209,9 @@ class EdgesCache(Cache):
 		keyframe_dict: Optional[dict] = None,
 	):
 		super().__init__(db, name, keyframe_dict)
-		self.destcache = PickyDefaultDict(SettingsTurnDict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
 		self.predecessors = StructuredDefaultDict(3, TurnDict)
 		self._origcache_lru = OrderedDict()
-		self._destcache_lru = OrderedDict()
-		self._get_destcache_stuff: tuple[
-			PickyDefaultDict,
-			OrderedDict,
-			callable,
-			StructuredDefaultDict,
-			callable,
-		] = (
-			self.destcache,
-			self._destcache_lru,
-			self._get_keycachelike,
-			self.successors,
-			self._adds_dels_successors,
-		)
 		self._get_origcache_stuff: tuple[
 			PickyDefaultDict,
 			OrderedDict,
@@ -2256,7 +2238,6 @@ class EdgesCache(Cache):
 			EdgesCache: lambda e: [
 				e.predecessors,
 				e.successors,
-				e.destcache,
 				e.origcache,
 			]
 		}
@@ -2306,20 +2287,13 @@ class EdgesCache(Cache):
 		turn: int
 		tick: int
 		graph, orig, dest, branch, turn, tick, value = args
-		# it's possible either of these might cause unnecessary iteration
-		dests = self._get_destcache(
-			graph, orig, branch, turn, tick, forward=forward
-		)
 		origs = self._get_origcache(
 			graph, dest, branch, turn, tick, forward=forward
 		)
 		if value:
-			dests = dests.union((dest,))
 			origs = origs.union((orig,))
 		else:
-			dests = dests.difference((dest,))
 			origs = origs.difference((orig,))
-		self.destcache[graph, orig, branch][turn][tick] = dests
 		self.origcache[graph, dest, branch][turn][tick] = origs
 
 	def _slow_iter_node_contradicted_times(
@@ -2535,8 +2509,8 @@ class EdgesCache(Cache):
 		# if it's no more than a turn ago.
 		keycache_key = (graph, orig, dest, branch)
 		if keycache_key in self.keycache:
-			return dest in self._get_destcache(
-				graph, orig, branch, turn, tick, forward=forward
+			return dest in self._get_keycache(
+				(graph, orig), branch, turn, tick, forward=forward
 			)
 		got = self._base_retrieve((graph, orig, dest, branch, turn, tick))
 		return got is True
