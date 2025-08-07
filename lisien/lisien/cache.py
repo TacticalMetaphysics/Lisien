@@ -2445,35 +2445,6 @@ class EdgesCache(Cache):
 							added.add(orig)
 		return added, deleted
 
-	def _get_destcache(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		*,
-		forward: bool,
-	):
-		"""Return a set of destination nodes succeeding ``orig``"""
-		(
-			destcache,
-			destcache_lru,
-			get_keycachelike,
-			successors,
-			adds_dels_sucpred,
-		) = self._get_destcache_stuff
-		return get_keycachelike(
-			destcache,
-			successors,
-			adds_dels_sucpred,
-			(graph, orig),
-			branch,
-			turn,
-			tick,
-			forward=forward,
-		)
-
 	def _get_origcache(
 		self,
 		graph: CharName,
@@ -2521,8 +2492,8 @@ class EdgesCache(Cache):
 			return
 		if forward is None:
 			forward = self.db._forward
-		yield from self._get_destcache(
-			graph, orig, branch, turn, tick, forward=forward
+		yield from self._get_keycache(
+			(graph, orig), branch, turn, tick, forward=forward
 		)
 
 	def iter_predecessors(
