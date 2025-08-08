@@ -91,6 +91,14 @@ def tables_for_meta(meta):
 		sqlite_with_rowid=False,
 	)
 	Table(
+		"bookmarks",
+		meta,
+		Column("name", TEXT, primary_key=True),
+		Column("branch", TEXT, default="trunk"),
+		Column("turn", INT),
+		Column("tick", INT),
+	)
+	Table(
 		"graphs",
 		meta,
 		Column("graph", BLOB, primary_key=True),

@@ -377,7 +377,7 @@ class RulebookProxyDescriptor(RuleFollowerProxyDescriptor):
 		return inst._get_rulebook_proxy()
 
 
-class ProxyUserMapping(Mapping):
+class ProxyLeaderMapping(Mapping):
 	"""A mapping to the ``CharacterProxy``s that have this node as a unit"""
 
 	def __init__(self, node: NodeProxy):
@@ -567,8 +567,8 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 		return self.character
 
 	@property
-	def user(self) -> ProxyUserMapping:
-		return ProxyUserMapping(self)
+	def leader(self) -> ProxyLeaderMapping:
+		return ProxyLeaderMapping(self)
 
 	@property
 	def character(self) -> CharacterProxy:
