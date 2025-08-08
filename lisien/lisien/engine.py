@@ -5611,9 +5611,9 @@ class Engine(AbstractEngine, Executor):
 	def _handled_char_thing(
 		self,
 		character: CharName,
-		thing: NodeName,
 		rulebook: RulebookName,
 		rule: RuleName,
+		thing: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -6215,9 +6215,9 @@ class Engine(AbstractEngine, Executor):
 			handled = partial(
 				handled_char_thing,
 				charn,
-				thingn,
 				rulebook,
 				rulen,
+				thingn,
 				branch,
 				turn,
 			)

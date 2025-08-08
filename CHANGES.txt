@@ -1,3 +1,17 @@
+== 0.21.0 | 2025-08-09 ==
+* Added the `bookmark` mapping/method. This is a convenient way to store points
+  in time and travel to them. You can call it with whatever name you want to
+  give your bookmark to make a new one, then call it with that name again
+  to travel back to that time. Bookmarks are not versioned. If you want
+  a point in time that changes in response to time travel, store the time in
+  the engine's `universal` mapping.
+* Added support for storing the value `None`. Values deleted from dictionaries
+  are now represented by the ellipsis object.
+* Renamed the `user` property of nodes to `leader`.
+* Removed what remained of multigraphs, which may never be supported. This
+  changed the database schema, so old playthroughs are incompatible.
+* Generally decrufted the codebase.
+
 == 0.20.2 | 2025-08-03 ==
 * Overhauled the internal `WindowDict` class and its relatives, ruling out
   a bunch of race conditions that caused intermittent crashes
