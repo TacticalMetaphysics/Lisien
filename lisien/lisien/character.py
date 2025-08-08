@@ -44,7 +44,7 @@ import networkx as nx
 from blinker import Signal
 
 from .cache import FuturistWindowDict, PickyDefaultDict
-from .exc import AmbiguousUserError, WorldIntegrityError
+from .exc import AmbiguousLeaderError, WorldIntegrityError
 from .facade import CharacterFacade
 from .graph import (
 	DiGraphPredecessorsMapping,

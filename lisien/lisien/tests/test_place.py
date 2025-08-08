@@ -15,7 +15,7 @@
 import networkx as nx
 import pytest
 
-from lisien.exc import AmbiguousUserError
+from lisien.exc import AmbiguousLeaderError
 
 
 @pytest.fixture(scope="function")
@@ -61,7 +61,7 @@ def test_portal(someplace):
 
 
 def test_user(someplace):
-	with pytest.raises(AmbiguousUserError):
+	with pytest.raises(AmbiguousLeaderError):
 		someplace.leader.only
 	someone = someplace.engine.new_character("someone")
 	someone.add_unit(someplace)
@@ -71,7 +71,7 @@ def test_user(someplace):
 	noone = someplace.engine.new_character("noone")
 	assert "noone" not in someplace.leader
 	noone.add_unit(someplace)
-	with pytest.raises(AmbiguousUserError):
+	with pytest.raises(AmbiguousLeaderError):
 		someplace.leader.only
 	assert "noone" in someplace.leader
 	assert someplace.leader["noone"] is noone

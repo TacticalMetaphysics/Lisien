@@ -57,7 +57,7 @@ from blinker import Signal
 
 from ..cache import PickyDefaultDict, StructuredDefaultDict
 from ..exc import (
-	AmbiguousUserError,
+	AmbiguousLeaderError,
 	OutOfTimelineError,
 	WorkerProcessReadOnlyError,
 )
@@ -410,7 +410,7 @@ class ProxyUserMapping(Mapping):
 	def only(self):
 		if len(self) == 1:
 			return next(iter(self.values()))
-		raise AmbiguousUserError("No users, or more than one")
+		raise AmbiguousLeaderError("No users, or more than one")
 
 	def _user_names(self):
 		return self.node.engine._unit_characters_cache[self.node._charname][

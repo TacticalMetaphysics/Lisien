@@ -728,8 +728,7 @@ class AbstractEngine(ABC):
 			"NetworkXUnfeasible": nx.exception.NetworkXUnfeasible,
 			# lisien exceptions
 			"NonUniqueError": exc.NonUniqueError,
-			"AmbiguousAvatarError": exc.AmbiguousAvatarError,
-			"AmbiguousUserError": exc.AmbiguousUserError,
+			"AmbiguousUserError": exc.AmbiguousLeaderError,
 			"RulesEngineError": exc.RulesEngineError,
 			"RuleError": exc.RuleError,
 			"RedundantRuleError": exc.RedundantRuleError,
