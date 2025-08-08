@@ -2413,11 +2413,11 @@ class EdgesCache(Cache):
 					if trn in kfgb:
 						kfgbr = kfgb[trn]
 						if kfgbr.rev_gettable(tck):
-							if kfgbr[tck][0]:
+							if kfgbr[tck]:
 								added.add(orig)
 							continue
 					if kfgb.rev_gettable(trn):
-						if kfgb[trn].final()[0]:
+						if kfgb[trn].final():
 							added.add(orig)
 		return added, deleted
 
