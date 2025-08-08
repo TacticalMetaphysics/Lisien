@@ -598,7 +598,7 @@ class RuleBook(MutableSequence, Signal):
 	@priority.setter
 	def priority(self, v: float | RulebookPriority):
 		v = RulebookPriority(float(v))
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine._nbtt()
 		cache, _ = self._get_cache(branch, turn, tick)
 		self._set_cache(branch, turn, tick, (cache, v))
 		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache, v)

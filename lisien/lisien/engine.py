@@ -158,6 +158,7 @@ from .util import (
 	NODE_VAL,
 	NODES,
 	NONE,
+	ELLIPSIS,
 	PREREQS,
 	RULEBOOK,
 	RULEBOOKS,
@@ -736,7 +737,7 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		Callable[
-			[tuple[CharName, NodeName, NodeName, int, Branch, Turn, Tick]],
+			[tuple[CharName, NodeName, NodeName, Branch, Turn, Tick]],
 			bool,
 		],
 		Callable[[], Time],
@@ -749,10 +750,10 @@ class Engine(AbstractEngine, Executor):
 	) -> tuple[
 		Callable[[], Time],
 		Callable[
-			[CharName, NodeName, NodeName, int, Branch, Turn, Tick, bool], None
+			[CharName, NodeName, NodeName, Branch, Turn, Tick, bool], None
 		],
 		Callable[
-			[CharName, NodeName, NodeName, int, Branch, Turn, Tick, Any], None
+			[CharName, NodeName, NodeName, Branch, Turn, Tick, Any], None
 		],
 	]:
 		return (self._nbtt, self.query.exist_edge, self._edges_cache.store)
@@ -789,8 +790,8 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		SizedDict,
-		Callable[[CharName, NodeName, NodeName, int], bool],
-		Callable[[Character, NodeName, NodeName, int], Portal],
+		Callable[[CharName, NodeName, NodeName], bool],
+		Callable[[Character, NodeName, NodeName], Portal],
 	]:
 		return self._edge_objs, self._edge_exists, self._make_edge
 
@@ -940,7 +941,7 @@ class Engine(AbstractEngine, Executor):
 
 	@cached_property
 	def _portals_rulebooks_cache(self) -> PortalsRulebooksCache:
-		return PortalsRulebooksCache(self, name="portals rulebooks_ ache")
+		return PortalsRulebooksCache(self, name="portals rulebooks cache")
 
 	@cached_property
 	def _triggers_cache(self) -> FuncListCache:
@@ -1025,7 +1026,7 @@ class Engine(AbstractEngine, Executor):
 		return AllRuleBooks(self)
 
 	@cached_property
-	def _keyframes_dict(self) -> dict[Branch, dict[Turn, set[Tick]]]:
+	def _keyframes_dict(self) -> dict[Branch, WindowDict[Turn, set[Tick]]]:
 		return PickyDefaultDict(WindowDict)
 
 	@cached_property
@@ -1190,13 +1191,11 @@ class Engine(AbstractEngine, Executor):
 			nodes_hash ^= int.from_bytes(hash.digest(), "little")
 		edges_hash = 0
 		for orig, dests in edges.items():
-			for dest, idxs in dests.items():
-				for idx, val in idxs.items():
-					hash = blake2b(pack(orig))
-					hash.update(pack(dest))
-					hash.update(pack(idx))
-					hash.update(pack(val))
-					edges_hash ^= int.from_bytes(hash.digest(), "little")
+			for dest, val in dests.items():
+				hash = blake2b(pack(orig))
+				hash.update(pack(dest))
+				hash.update(pack(val))
+				edges_hash ^= int.from_bytes(hash.digest(), "little")
 		val_hash = 0
 		for key, val in vals.items():
 			hash = blake2b(pack(key))
@@ -1259,11 +1258,7 @@ class Engine(AbstractEngine, Executor):
 		return ret
 
 	def _get_edge(
-		self,
-		graph: Character | CharName,
-		orig: NodeName,
-		dest: NodeName,
-		idx: int = 0,
+		self, graph: Character | CharName, orig: NodeName, dest: NodeName
 	):
 		edge_objs, edge_exists, make_edge = self._get_edge_stuff
 		if type(graph) is str:
@@ -1271,16 +1266,14 @@ class Engine(AbstractEngine, Executor):
 			graph = self.character[graphn]
 		else:
 			graphn = graph.name
-		key = (graphn, orig, dest, idx)
+		key = (graphn, orig, dest)
 		if key in edge_objs:
 			return edge_objs[key]
-		if not edge_exists(graphn, orig, dest, idx):
+		if not edge_exists(graphn, orig, dest):
 			raise KeyError(
-				"No such edge: {}->{}[{}] in {}".format(
-					orig, dest, idx, graphn
-				)
+				"No such edge: {}->{} in {}".format(orig, dest, graphn)
 			)
-		ret = make_edge(graph, orig, dest, idx)
+		ret = make_edge(graph, orig, dest)
 		edge_objs[key] = ret
 		return ret
 
@@ -1413,7 +1406,7 @@ class Engine(AbstractEngine, Executor):
 			del self._keyframes_dict[branch]
 		for cache in self._caches:
 			if hasattr(cache, "delete_keyframe"):
-				cache.delete_keyframe(branch, turn, tick)
+				cache.discard_keyframe(branch, turn, tick)
 			if hasattr(cache, "shallowest"):
 				cache.shallowest.clear()
 
@@ -1463,9 +1456,9 @@ class Engine(AbstractEngine, Executor):
 		val: Value,
 	) -> None:
 		"""Change a delta to say that a graph was deleted or not"""
-		if val in (None, "Deleted"):
-			delta[graph] = None
-		elif graph not in delta or delta[graph] is None:
+		if val in (..., None, "Deleted"):
+			delta[graph] = ...
+		elif graph not in delta or delta[graph] is ...:
 			# If the graph was *created* within our window,
 			# include its whole initial keyframe
 			delta[graph] = {
@@ -1545,7 +1538,7 @@ class Engine(AbstractEngine, Executor):
 					b not in preset
 					or r not in preset[b]
 					or t not in preset[b][r]
-					or preset[b][r][t][2] is None
+					or preset[b][r][t][2] is ...
 				):
 					return
 				delta[graph] = {}
@@ -1597,7 +1590,7 @@ class Engine(AbstractEngine, Executor):
 			"""Change a delta to say that a graph stat was set to a certain value"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is not None:
+			if delta[graph] is not ...:
 				graph_stats: CharDelta = delta[graph]
 				graph_stats[key] = val
 
@@ -1612,7 +1605,7 @@ class Engine(AbstractEngine, Executor):
 			"""Change a delta to say that a node was created or deleted"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			graph_nodes: NodesDict = delta[graph].setdefault("nodes", {})
 			graph_nodes[node] = bool(exists)
@@ -1641,7 +1634,7 @@ class Engine(AbstractEngine, Executor):
 			"""Change a delta to say that a node stat was set to a certain value"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			if (
 				"nodes" in delta[graph]
@@ -1664,13 +1657,12 @@ class Engine(AbstractEngine, Executor):
 			graph: CharName,
 			orig: NodeName,
 			dest: NodeName,
-			idx: int,
 			exists: bool | None,
 		) -> None:
 			"""Change a delta to say that an edge was created or deleted"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			graphstat: CharDelta = delta[graph]
 			if "edges" in graphstat:
@@ -1690,13 +1682,12 @@ class Engine(AbstractEngine, Executor):
 			graph: CharName,
 			orig: NodeName,
 			dest: NodeName,
-			idx: int,
 			key: Stat,
 			value: Value,
 		) -> None:
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			graphstat: CharDelta = delta[graph]
 			if (
@@ -1814,7 +1805,7 @@ class Engine(AbstractEngine, Executor):
 			node: NodeName,
 			is_unit: bool,
 		):
-			if char in delta and delta[char] is None:
+			if char in delta and delta[char] is ...:
 				return
 			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
 				graph, {}
@@ -1831,7 +1822,7 @@ class Engine(AbstractEngine, Executor):
 			loc: NodeName,
 		):
 			if char in delta and (
-				delta[char] is None
+				delta[char] is ...
 				or (
 					"nodes" in delta[char]
 					and thing in delta[char]["nodes"]
@@ -1921,7 +1912,7 @@ class Engine(AbstractEngine, Executor):
 			character: CharName,
 			rulebook: RulebookName,
 		):
-			if character in delta and delta[character] is None:
+			if character in delta and delta[character] is ...:
 				return
 			delta.setdefault(character, {})[key] = rulebook
 
@@ -1959,7 +1950,7 @@ class Engine(AbstractEngine, Executor):
 			rulebook: RulebookName,
 		):
 			if (character in delta) and (
-				delta[character] is None
+				delta[character] is ...
 				or (
 					"nodes" in delta[character]
 					and node in delta[character]["nodes"]
@@ -1987,7 +1978,7 @@ class Engine(AbstractEngine, Executor):
 				# some origin. Not relevant to deltas.
 				return
 			if character in delta and (
-				delta[character] is None
+				delta[character] is ...
 				or (
 					"edges" in delta[character]
 					and orig in delta[character]["edges"]
@@ -3179,7 +3170,7 @@ class Engine(AbstractEngine, Executor):
 	) -> None:
 		singlechar = frozenset([char])
 		for graf, stuff in delta.items():
-			if stuff is None:
+			if stuff is ...:
 				if graf in char_unit_kf:
 					del char_unit_kf[graf]
 				if char in user_set_kf:
@@ -3262,7 +3253,7 @@ class Engine(AbstractEngine, Executor):
 			"character_portal_rulebook",
 		}:
 			v = graph_val_delta[k]
-			if v is None:
+			if v is ...:
 				if k in graph_val_keyframe:
 					del graph_val_keyframe[k]
 			else:
@@ -3312,11 +3303,11 @@ class Engine(AbstractEngine, Executor):
 				loc = upd.pop("location")
 				thing_location_keyframe[node] = loc
 				if loc in node_contents_keyframe:
-					if loc is None:
+					if loc is ...:
 						node_contents_keyframe[loc].remove(node)
 					else:
 						node_contents_keyframe[loc].add(node)
-				elif loc is not None:
+				elif loc is not ...:
 					node_contents_keyframe[loc] = {node}
 			if "rulebook" in upd:
 				node_rulebook_keyframe[node] = upd.pop("rulebook")
@@ -3336,7 +3327,7 @@ class Engine(AbstractEngine, Executor):
 			if upd and node in node_val_keyframe:
 				kv = node_val_keyframe[node]
 				for key, value in upd.items():
-					if value is None:
+					if value is ...:
 						if key in kv:
 							del kv[key]
 					else:
@@ -3401,7 +3392,7 @@ class Engine(AbstractEngine, Executor):
 						dest, {}
 					)
 					for key, value in upd.items():
-						if value is None:
+						if value is ...:
 							if key in kv:
 								del kv[key]
 						else:
@@ -3464,7 +3455,7 @@ class Engine(AbstractEngine, Executor):
 			self._characters_portals_rulebooks_cache.get_keyframe(*then)
 		)
 		for k, v in delta.get("universal", {}).items():
-			if v is None:
+			if v is ...:
 				if k in universal_keyframe:
 					del universal_keyframe[k]
 			else:
@@ -3508,7 +3499,7 @@ class Engine(AbstractEngine, Executor):
 				user_set_keyframe[graph] = {}
 		for graph in graphs:
 			delt = delta.get(graph, {})
-			if delt is None:
+			if delt is ...:
 				continue
 			try:
 				noderbs = nodes_rulebooks_keyframe[graph] = (
@@ -3666,7 +3657,7 @@ class Engine(AbstractEngine, Executor):
 		graphs_keyframe = {g: "DiGraph" for g in graph_val_keyframe}
 		for graph in graphs_keyframe.keys() - self.illegal_graph_names:
 			deltg = delta.get(graph, {})
-			if deltg is None:
+			if deltg is ...:
 				del graphs_keyframe[graph]
 				continue
 			combined_node_val_keyframe = {
@@ -3674,7 +3665,7 @@ class Engine(AbstractEngine, Executor):
 				for (node, val) in node_val_keyframe.get(graph, {}).items()
 			}
 			for node, loc in things_keyframe.get(graph, {}).items():
-				if loc is None:
+				if loc is ...:
 					continue
 				if node in combined_node_val_keyframe:
 					combined_node_val_keyframe[node]["location"] = loc
@@ -3827,7 +3818,7 @@ class Engine(AbstractEngine, Executor):
 		retrieve, btt = self._node_exists_stuff
 		args = (character, node) + btt()
 		retrieved = retrieve(args)
-		return retrieved is not None and not isinstance(retrieved, Exception)
+		return retrieved and not isinstance(retrieved, Exception)
 
 	@world_locked
 	def _exist_node(
@@ -3854,10 +3845,10 @@ class Engine(AbstractEngine, Executor):
 		exist_node(character, node, branch, turn, tick, exist)
 
 	def _edge_exists(
-		self, character: CharName, orig: NodeName, dest: NodeName, idx: int = 0
+		self, character: CharName, orig: NodeName, dest: NodeName
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
-		args = (character, orig, dest, idx, *btt())
+		args = (character, orig, dest, *btt())
 		retrieved = retrieve(args)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
@@ -3867,7 +3858,6 @@ class Engine(AbstractEngine, Executor):
 		character: Key,
 		orig: Key,
 		dest: Key,
-		idx: int = 0,
 		exist: bool = True,
 		*,
 		now: Optional[Time] = None,
@@ -3877,7 +3867,7 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick = now
 		else:
 			branch, turn, tick = nbtt()
-		store(character, orig, dest, idx, branch, turn, tick, exist)
+		store(character, orig, dest, branch, turn, tick, exist)
 		if (character, orig, dest) in self._edge_objs:
 			del self._edge_objs[character, orig, dest]
 		if exist:
@@ -3899,9 +3889,7 @@ class Engine(AbstractEngine, Executor):
 				tick,
 				(character, orig, dest),
 			)
-		exist_edge(
-			character, orig, dest, idx, branch, turn, tick, exist or False
-		)
+		exist_edge(character, orig, dest, branch, turn, tick, exist or False)
 
 	def _call_in_subprocess(
 		self,
@@ -4327,8 +4315,8 @@ class Engine(AbstractEngine, Executor):
 		return True
 
 	def _iter_linear_time(self, branch: Branch):
-		for turn in sorted(self._keyframes_dict[branch]):
-			for tick in sorted(self._keyframes_dict[branch][turn]):
+		for turn, ticks in reversed(self._keyframes_dict[branch].items()):
+			for tick in sorted(ticks, reverse=True):
 				yield turn, tick
 
 	def _build_keyframe_window(
@@ -4346,64 +4334,25 @@ class Engine(AbstractEngine, Executor):
 		earliest_future_keyframe: Optional[Time] = None
 		branch_parents = self._branch_parents
 		cache = self._keyframes_times if loading else self._keyframes_loaded
-		for turn, tick in self._iter_linear_time(branch_now):
-			if turn < turn_now:
-				if latest_past_keyframe:
-					(late_branch, late_turn, late_tick) = latest_past_keyframe
-					if (
-						late_branch != branch
-						or late_turn < turn
-						or (late_turn == turn and late_tick < tick)
-					):
-						latest_past_keyframe = (branch, turn, tick)
-				else:
-					latest_past_keyframe = (branch, turn, tick)
-			elif turn > turn_now:
-				if earliest_future_keyframe:
-					(early_branch, early_turn, early_tick) = (
-						earliest_future_keyframe
-					)
-					if (
-						early_branch != branch
-						or early_turn > turn
-						or (early_turn == turn and early_tick > tick)
-					):
-						earliest_future_keyframe = (branch, turn, tick)
-				else:
-					earliest_future_keyframe = (branch, turn, tick)
-			elif tick < tick_now:
-				if latest_past_keyframe:
-					(late_branch, late_turn, late_tick) = latest_past_keyframe
-					if (
-						late_branch != branch
-						or late_turn < turn
-						or (late_turn == turn and late_tick < tick)
-					):
-						latest_past_keyframe = (branch, turn, tick)
-				else:
-					latest_past_keyframe = (branch, turn, tick)
-			elif tick > tick_now:
-				if earliest_future_keyframe:
-					(early_branch, early_turn, early_tick) = (
-						earliest_future_keyframe
-					)
-					if (
-						early_branch != branch
-						or early_turn > turn
-						or (early_turn == turn and early_tick > tick)
-					):
-						earliest_future_keyframe = (branch, turn, tick)
-				else:
-					earliest_future_keyframe = (branch, turn, tick)
-			else:
-				latest_past_keyframe = (branch, turn, tick)
-		if latest_past_keyframe is None:
-			for branch, turn, tick in self._iter_keyframes(
-				branch_now, turn_now, tick_now, loaded=not loading
-			):
+		for branch, turn, tick in self._iter_keyframes(
+			branch_now, turn_now, tick_now, loaded=not loading
+		):
+			if (turn, tick) <= (turn_now, tick_now):
+				latest_past_keyframe = branch, turn, tick
+				break
+		for turn, ticks in (
+			self._keyframes_dict[branch_now]
+			.future(turn, include_same_rev=True)
+			.items()
+		):
+			for tick in sorted(ticks):
 				if (turn, tick) <= (turn_now, tick_now):
-					latest_past_keyframe = branch, turn, tick
+					continue
+				if (branch_now, turn, tick) in cache:
+					earliest_future_keyframe = (branch_now, turn, tick)
 					break
+			if earliest_future_keyframe is not None:
+				break
 		(branch, turn, tick) = (branch_now, turn_now, tick_now)
 		if not loading or branch not in self._loaded:
 			return latest_past_keyframe, earliest_future_keyframe
@@ -5059,7 +5008,6 @@ class Engine(AbstractEngine, Executor):
 		graph: Character,
 		orig: NodeName,
 		dest: NodeName,
-		idx=0,
 	) -> portal_cls:
 		return self.portal_cls(graph, orig, dest)
 
@@ -5176,8 +5124,8 @@ class Engine(AbstractEngine, Executor):
 			for rulebok, rules in delta.pop(RULEBOOK).items():
 				rulebook[unpack(rulebok)] = unpack(rules)
 		for char, chardeltpacked in delta.items():
-			if chardeltpacked == b"\xc0":
-				delt[unpack(char)] = None
+			if chardeltpacked == ELLIPSIS:
+				delt[unpack(char)] = ...
 				continue
 			chardelt = delt[unpack(char)] = {}
 			if NODES in chardeltpacked:
@@ -5266,8 +5214,8 @@ class Engine(AbstractEngine, Executor):
 				kf_from.get(kfkey, {}).keys() | kf_to.get(kfkey, {}).keys()
 			):
 				keys.append((kfkey, k))
-				va = kf_from[kfkey].get(k)
-				vb = kf_to[kfkey].get(k)
+				va = kf_from[kfkey].get(k, ...)
+				vb = kf_to[kfkey].get(k, ...)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
@@ -5289,8 +5237,8 @@ class Engine(AbstractEngine, Executor):
 					values_to.append(vb)
 			for k in (a.keys() | b.keys()) - {"units"}:
 				keys.append(("graph", graph, k))
-				va = a.get(k)
-				vb = b.get(k)
+				va = a.get(k, ...)
+				vb = b.get(k, ...)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
@@ -5306,8 +5254,8 @@ class Engine(AbstractEngine, Executor):
 				b = kf_to["node_val"].get(graph, {}).get(node, {})
 				for k in a.keys() | b.keys():
 					keys.append(("node", graph, node, k))
-					va = a.get(k)
-					vb = b.get(k)
+					va = a.get(k, ...)
+					vb = b.get(k, ...)
 					ids_from.append(id(va))
 					ids_to.append(id(vb))
 					values_from.append(va)
@@ -5337,8 +5285,8 @@ class Engine(AbstractEngine, Executor):
 				)
 				for k in a.keys() | b.keys():
 					keys.append(("edge", graph, orig, dest, k))
-					va = a.get(k)
-					vb = b.get(k)
+					va = a.get(k, ...)
+					vb = b.get(k, ...)
 					ids_from.append(id(va))
 					ids_to.append(id(vb))
 					values_from.append(va)
@@ -5448,7 +5396,7 @@ class Engine(AbstractEngine, Executor):
 			for graf in (
 				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
 			):
-				delta[self.pack(graf)] = NONE
+				delta[self.pack(graf)] = ELLIPSIS
 			for graph in nodes_intersection:
 				for node in (
 					kf_to["nodes"][graph].keys()
@@ -5474,7 +5422,7 @@ class Engine(AbstractEngine, Executor):
 			for deleted in (
 				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
 			):
-				delta[pack(deleted)] = NONE
+				delta[pack(deleted)] = ELLIPSIS
 			futwait(futs)
 		if not delta[UNIVERSAL]:
 			del delta[UNIVERSAL]
@@ -5495,7 +5443,10 @@ class Engine(AbstractEngine, Executor):
 		if not delta[RULES]:
 			del delta[RULES]
 		for key, mapp in delta.items():
-			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL} or mapp == NONE:
+			if (
+				key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL}
+				or mapp == ELLIPSIS
+			):
 				continue
 			todel = []
 			if UNITS in mapp:
@@ -5774,9 +5725,9 @@ class Engine(AbstractEngine, Executor):
 					self.eternal.items()
 				)
 				eternal_delta = {
-					k: new_eternal.get(k)
+					k: new_eternal.get(k, ...)
 					for k in old_eternal.keys() | new_eternal.keys()
-					if old_eternal.get(k) != new_eternal.get(k)
+					if old_eternal.get(k, ...) != new_eternal.get(k, ...)
 				}
 				if (branch_from, turn_from, tick_from) in deltas:
 					delt = deltas[branch_from, turn_from, tick_from]
@@ -5845,9 +5796,9 @@ class Engine(AbstractEngine, Executor):
 		old_eternal = self._worker_last_eternal
 		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
 		eternal_delta = {
-			k: new_eternal.get(k)
+			k: new_eternal.get(k, ...)
 			for k in old_eternal.keys() | new_eternal.keys()
-			if old_eternal.get(k) != new_eternal.get(k)
+			if old_eternal.get(k, ...) != new_eternal.get(k, ...)
 		}
 		if branch_from == self.branch:
 			delt = self._get_branch_delta(
@@ -6590,7 +6541,7 @@ class Engine(AbstractEngine, Executor):
 			for stat in set(graph.graph) - {"name", "units"}:
 				self._graph_val_cache.store(name, stat, *now, None)
 				self.query.graph_val_set(name, stat, *now, None)
-			self._graph_cache.store(name, *now, None)
+			self._graph_cache.store(name, *now, ...)
 			self.query.graphs_insert(name, *now, "Deleted")
 			self._graph_cache.keycache.clear()
 		if hasattr(self, "_worker_processes"):

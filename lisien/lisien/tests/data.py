@@ -30,9 +30,9 @@ CHARACTER_UPDATES = [
 			(0, {"evil": False}),
 			(1, {"evil": False}),
 		],
-		[("spam", None), ("qux", ["quux"]), ("clothes", "no")],
+		[("spam", ...), ("qux", ["quux"]), ("clothes", "no")],
 		[(2, {"evil": False}), ("kobold", {"evil": False})],
-		[(0, 1, None), (0, 2, {"hi": "hello"})],
+		[(0, 1, ...), (0, 2, {"hi": "hello"})],
 	),
 ]
 
@@ -22698,13 +22698,7 @@ KOBOLD_KEYFRAME_0 = {
 		"shrubsprint": ["shrubsprint"],
 		"wander": ["wander"],
 	},
-	"big": {
-		"fight": False,
-		"go2kobold": False,
-		"kill_kobold": False,
-		"shrubsprint": False,
-		"wander": False,
-	},
+	"big": {},
 	"edge_val": {
 		"astronauts": {},
 		"hello": {
@@ -23937,13 +23931,7 @@ KOBOLD_KEYFRAME_1 = {
 		"wander": ["wander"],
 	},
 	"neighborhood": {},
-	"big": {
-		"shrubsprint": False,
-		"fight": False,
-		"kill_kobold": False,
-		"go2kobold": False,
-		"wander": False,
-	},
+	"big": {},
 	"rulebook": {
 		("physical", "kobold"): (["shrubsprint"], 0.0),
 		("physical", "dwarf"): (
@@ -23966,16 +23954,7 @@ COLLEGE_KEYFRAME_0 = {
 		"sober_up": ["sober_up"],
 		"time_passes": ["time_passes"],
 	},
-	"big": {
-		"catch_up": False,
-		"drink": False,
-		"go_to_class": False,
-		"learn": False,
-		"leave_class": False,
-		"sloth": False,
-		"sober_up": False,
-		"time_passes": False,
-	},
+	"big": {},
 	"edge_val": {
 		"astronauts": {},
 		"dorm0": {},
@@ -47110,16 +47089,7 @@ COLLEGE_KEYFRAME_1 = {
 		"sober_up": ["sober_up"],
 		"time_passes": ["time_passes"],
 	},
-	"big": {
-		"catch_up": False,
-		"drink": False,
-		"go_to_class": False,
-		"learn": False,
-		"leave_class": False,
-		"sloth": False,
-		"sober_up": False,
-		"time_passes": False,
-	},
+	"big": {},
 	"edge_val": {
 		"dorm0": {},
 		"dorm0room0student0": {},
@@ -70655,7 +70625,7 @@ COLLEGE_KEYFRAME_1 = {
 
 SICKLE_KEYFRAME_0 = {
 	"actions": {"dieoff": ["dieoff"], "mate": ["mate"], "wander": ["wander"]},
-	"big": {"dieoff": False, "mate": False, "wander": False},
+	"big": {},
 	"edge_val": {
 		"astronauts": {},
 		"hello": {
@@ -70792,7 +70762,7 @@ SICKLE_KEYFRAME_0 = {
 
 SICKLE_KEYFRAME_1 = {
 	"actions": {"dieoff": ["dieoff"], "mate": ["mate"], "wander": ["wander"]},
-	"big": {"dieoff": False, "mate": False, "wander": False},
+	"big": {},
 	"edge_val": {"physical": {(0, 0): {}}, "species": {}},
 	"edges": {"physical": {}, "species": {}},
 	"graph_val": {
