@@ -436,6 +436,9 @@ class Node(graph.Node, rule.RuleFollower):
 		__doc__ = LeaderMapping.__doc__
 		return LeaderMapping(self)
 
+	def leaders(self) -> ValuesView[Character]:
+		return self.leader.values()
+
 	def __init__(self, character: "Character", name: NodeName):
 		super().__init__(character, name)
 		self.db = getattr(character, "engine", character.db)
