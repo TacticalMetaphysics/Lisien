@@ -29,7 +29,7 @@ from sqlite3 import IntegrityError as LiteIntegrityError
 from sqlite3 import OperationalError as LiteOperationalError
 from threading import Lock, Thread
 from types import MethodType
-from typing import Any, Iterator, Literal, MutableMapping, Optional
+from typing import Any, Iterator, Literal, Optional
 
 from sqlalchemy import (
 	BLOB,
@@ -369,7 +369,48 @@ class ParquetDBHolder(ConnectionHolder):
 		]
 
 	def rowcount(self, table: str) -> int:
-		return self._get_db(table).read().rowcount
+		return self._get_db(table).read().num_rows
+
+	def bookmark_items(self) -> list[tuple[Key, Time]]:
+		return [
+			(d["name"], (d["branch"], d["turn"], d["tick"]))
+			for d in self.dump("bookmarks")
+		]
+
+	def set_bookmark(self, key: bytes, branch: Branch, turn: Turn, tick: Tick):
+		import pyarrow.compute as pc
+
+		db = self._get_db("bookmarks")
+		schema = self._get_schema("bookmarks")
+		try:
+			id_ = db.read(
+				filters=[pc.field("key") == pc.scalar(key)], columns=["id"]
+			)["id"][0]
+		except IndexError:
+			db.create(
+				[{"key": key, "branch": branch, "turn": turn, "tick": tick}],
+				schema=schema,
+			)
+			return
+		db.update(
+			[
+				{
+					"id": id_,
+					"key": key,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+				}
+			],
+			schema=schema,
+		)
+
+	def del_bookmark(self, key: bytes):
+		import pyarrow.compute as pc
+
+		self._get_db("bookmarks").delete(
+			filters=[pc.field("key") == pc.scalar(key)]
+		)
 
 	def rulebooks(self) -> set[RulebookName]:
 		return set(
@@ -2872,10 +2913,6 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
-	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		pass
-
-	@abstractmethod
 	def graphs_insert(
 		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
 	) -> None:
@@ -4616,6 +4653,15 @@ class AbstractQueryEngine:
 	):
 		pass
 
+	@abstractmethod
+	def bookmark_items(self) -> Iterator[tuple[Key, Time]]: ...
+
+	@abstractmethod
+	def set_bookmark(self, key: Key, time: Time) -> None: ...
+
+	@abstractmethod
+	def del_bookmark(self, key: Key) -> None: ...
+
 	def load_windows(self, windows: list[TimeWindow]) -> dict:
 		def empty_char():
 			return {
@@ -5477,6 +5523,15 @@ class NullQueryEngine(AbstractQueryEngine):
 		turn_to: Turn,
 		tick_to: Tick,
 	):
+		pass
+
+	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+		return iter(())
+
+	def set_bookmark(self, key: Key, time: Time) -> None:
+		pass
+
+	def del_bookmark(self, key: Key) -> None:
 		pass
 
 	def load_windows(self, windows: list[TimeWindow]) -> dict:
@@ -7659,6 +7714,15 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.call("initdb")
 		self._all_keyframe_times = self.call("all_keyframe_times")
 
+	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+		return iter(self.call("bookmark_items"))
+
+	def set_bookmark(self, key: Key, time: Time) -> None:
+		self.call("set_bookmark", key, *time)
+
+	def del_bookmark(self, key: Key) -> None:
+		self.call("del_bookmark", key)
+
 
 class SQLAlchemyConnectionHolder(ConnectionHolder):
 	def __init__(
@@ -8301,6 +8365,21 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			ret = self._outq.get()
 			self._outq.task_done()
 			return ret
+
+	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+		unpack = self.unpack
+		for key, branch, turn, tick in self.call_one("bookmarks_dump"):
+			yield unpack(key), (branch, turn, tick)
+
+	def set_bookmark(self, key: Key, time: Time) -> None:
+		key = self.pack(key)
+		try:
+			self.call_one("bookmarks_insert", key, *time)
+		except IntegrityError:
+			self.call_one("update_bookmark", key, *time)
+
+	def del_bookmark(self, key: Key) -> None:
+		self.call_one("delete_bookmark", self.pack(key))
 
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
 		return self.call_one("keyframes_dump")

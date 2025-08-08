@@ -28,7 +28,7 @@ import signal
 import sys
 import zlib
 from abc import ABC, abstractmethod
-from collections import defaultdict
+from collections import defaultdict, UserDict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
@@ -415,6 +415,46 @@ class WorkerFormatter(Formatter):
 		return f"worker {getattr(record, 'worker_idx', '???')}: {super().formatMessage(record)}"
 
 
+class BookmarkMapping(UserDict):
+	"""Points in time you might want to return to.
+
+	Call this with a valid key, like a string, to place a bookmark at the
+	current time, or, if there is already a bookmark by the given name,
+	then return to it.
+
+	The times stored here are triples of (branch, turn, tick). If you wish,
+	you can set the engine's `time` property to one of those triples yourself,
+	and time travel all the same.
+
+	"""
+
+	def __init__(self, eng: Engine):
+		self.eng = eng
+		super().__init__(eng.query.bookmark_items())
+
+	def __setitem__(self, key, value):
+		if not (
+			isinstance(value, tuple)
+			and len(value) == 3
+			and isinstance(value[0], str)
+			and isinstance(value[1], int)
+			and isinstance(value[2], int)
+		):
+			raise TypeError("Not a valid time", value)
+		super().__setitem__(key, value)
+		self.eng.query.set_bookmark(key, value)
+
+	def __delitem__(self, key):
+		super().__delitem__(key)
+		self.eng.query.del_bookmark(key)
+
+	def __call__(self, key: Key):
+		if key in self:
+			self.eng.time = self[key]
+		else:
+			self[key] = tuple(self.eng.time)
+
+
 class Engine(AbstractEngine, Executor):
 	"""Lisien, the Life Simulator Engine.
 
@@ -678,6 +718,10 @@ class Engine(AbstractEngine, Executor):
 			then=(self.branch, self.turn, old_tick),
 			now=(self.branch, self.turn, v),
 		)
+
+	@cached_property
+	def bookmark(self) -> BookmarkMapping:
+		return BookmarkMapping(self)
 
 	@cached_property
 	def _where_cached(self) -> dict[Time, list]:

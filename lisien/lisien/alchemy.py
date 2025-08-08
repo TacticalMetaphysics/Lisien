@@ -93,7 +93,7 @@ def tables_for_meta(meta):
 	Table(
 		"bookmarks",
 		meta,
-		Column("name", TEXT, primary_key=True),
+		Column("key", TEXT, primary_key=True),
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
@@ -1009,6 +1009,19 @@ def queries(table):
 				),
 			),
 		)
+	)
+	bookmarks = table["bookmarks"]
+	r["update_bookmark"] = (
+		bookmarks.update()
+		.where(bookmarks.c.key == bindparam("key"))
+		.values(
+			branch=bindparam("branch"),
+			turn=bindparam("turn"),
+			tick=bindparam("tick"),
+		)
+	)
+	r["delete_bookmark"] = bookmarks.delete().where(
+		bookmarks.c.key == bindparam("key")
 	)
 
 	def to_end_clause(tab: Table):
