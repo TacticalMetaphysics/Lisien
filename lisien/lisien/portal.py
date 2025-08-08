@@ -227,8 +227,8 @@ class Portal(Edge, RuleFollower):
 			for k in self:
 				assert k != "orig"
 				assert k != "dest"
-				self._set_cache(k, *now, None)
-				self._set_db(k, *now, None)
+				self._del_cache(k, *now)
+				self._del_db(k, *now)
 			engine._exist_edge(
 				self.character.name, self.orig, self.dest, exist=None, now=now
 			)

@@ -606,8 +606,8 @@ class Node(graph.Node, rule.RuleFollower):
 			for k in self:
 				assert k != "name"
 				if k != "location":
-					self._set_cache(k, *now, None)
-					self._set_db(k, *now, None)
+					self._del_cache(k, *now)
+					self._del_db(k, *now)
 			engine._nodes_cache.store(g, n, *now, False)
 			engine.query.exist_node(g, n, *now, False)
 			self.character.node.send(
