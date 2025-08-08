@@ -32,11 +32,20 @@ from types import MethodType
 from typing import Any, Iterator, Literal, MutableMapping, Optional
 
 import msgpack
-from sqlalchemy import MetaData, Select, create_engine
+from sqlalchemy import (
+	BLOB,
+	BOOLEAN,
+	FLOAT,
+	INT,
+	TEXT,
+	MetaData,
+	Select,
+	create_engine,
+)
 from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
-from .alchemy import gather_sql
+from .alchemy import meta, gather_sql
 from .exc import KeyframeError
 from .types import (
 	ActionFuncName,
@@ -173,292 +182,20 @@ class ParquetDBHolder(ConnectionHolder):
 	def schema(self):
 		import pyarrow as pa
 
+		sql2parquetdb_type = {
+			BLOB: pa.binary,
+			FLOAT: pa.float64,
+			TEXT: pa.string,
+			INT: pa.int64,
+			BOOLEAN: pa.bool_,
+		}
+
 		return {
-			"branches": [
-				("branch", pa.string()),
-				("parent", pa.string()),
-				("parent_turn", pa.int64()),
-				("parent_tick", pa.int64()),
-				("end_turn", pa.int64()),
-				("end_tick", pa.int64()),
-			],
-			"global": [("key", pa.binary()), ("value", pa.binary())],
-			"turns": [
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("end_tick", pa.int64()),
-				("plan_end_tick", pa.int64()),
-			],
-			"graphs": [
-				("graph", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("type", pa.string()),
-			],
-			"keyframes": [
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"keyframes_graphs": [
-				("graph", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("nodes", pa.large_binary()),
-				("edges", pa.large_binary()),
-				("graph_val", pa.large_binary()),
-			],
-			"keyframe_extensions": [
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("universal", pa.large_binary()),
-				("rule", pa.large_binary()),
-				("rulebook", pa.large_binary()),
-			],
-			"graph_val": [
-				("graph", pa.binary()),
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("value", pa.binary()),
-			],
-			"nodes": [
-				("graph", pa.binary()),
-				("node", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("extant", pa.bool_()),
-			],
-			"node_val": [
-				("graph", pa.binary()),
-				("node", pa.binary()),
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("value", pa.binary()),
-			],
-			"edges": [
-				("graph", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("extant", pa.bool_()),
-			],
-			"edge_val": [
-				("graph", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("value", pa.binary()),
-			],
-			"plans": [
-				("plan_id", pa.int64()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"plan_ticks": [
-				("plan_id", pa.int64()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"universals": [
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("value", pa.binary()),
-			],
-			"rules": [("rule", pa.string())],
-			"rulebooks": [
-				("rulebook", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rules", pa.binary()),
-				("priority", pa.float64()),
-			],
-			"rule_triggers": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("triggers", pa.binary()),
-			],
-			"rule_neighborhood": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("neighborhood", pa.binary()),
-			],
-			"rule_big": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("big", pa.bool_()),
-			],
-			"rule_prereqs": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("prereqs", pa.binary()),
-			],
-			"rule_actions": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("actions", pa.binary()),
-			],
-			"character_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"unit_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"character_thing_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"character_place_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"character_portal_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"character_rules_handled": [
-				("character", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"unit_rules_handled": [
-				("character", pa.binary()),
-				("graph", pa.binary()),
-				("unit", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"character_thing_rules_handled": [
-				("character", pa.binary()),
-				("thing", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"character_place_rules_handled": [
-				("character", pa.binary()),
-				("place", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"character_portal_rules_handled": [
-				("character", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"node_rules_handled": [
-				("character", pa.binary()),
-				("node", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"portal_rules_handled": [
-				("character", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"things": [
-				("character", pa.binary()),
-				("thing", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("location", pa.binary()),
-			],
-			"node_rulebook": [
-				("character", pa.binary()),
-				("node", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"portal_rulebook": [
-				("character", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"units": [
-				("character_graph", pa.binary()),
-				("unit_graph", pa.binary()),
-				("unit_node", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("is_unit", pa.bool_()),
-			],
-			"turns_completed": [("branch", pa.string()), ("turn", pa.int64())],
+			name: [
+				(column.name, sql2parquetdb_type[type(column.type)]())
+				for column in table.columns
+			]
+			for (name, table) in meta.tables.items()
 		}
 
 	initial = {
