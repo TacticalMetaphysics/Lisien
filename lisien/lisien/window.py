@@ -704,6 +704,8 @@ class WindowDict(MutableMapping):
 
 	def _seek(self, rev: int) -> None:
 		"""Arrange the caches to help look up the given revision."""
+		if not isinstance(rev, int):
+			raise TypeError("Need integer revision", rev)
 		past = self._past
 		future = self._future
 		if future:

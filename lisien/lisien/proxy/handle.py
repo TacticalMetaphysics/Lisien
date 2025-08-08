@@ -64,6 +64,7 @@ from ..types import (
 from ..util import (
 	EDGE_VAL,
 	EDGES,
+	ELLIPSIS,
 	EMPTY_MAPPING,
 	ETERNAL,
 	NODE_VAL,
@@ -204,7 +205,7 @@ class EngineHandle:
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
 		for char, chardelta in delta.items():
-			if chardelta is None or chardelta == {"name": None}:
+			if chardelta is ...:
 				pchar = pack(char)
 				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = (
 					None
@@ -463,8 +464,8 @@ class EngineHandle:
 			if RULEBOOK in slightly:
 				mostly[RULEBOOK] = concat_d(slightly.pop(RULEBOOK))
 			for char, chardeltapacked in slightly.items():
-				if chardeltapacked == b"\xc0":
-					mostly[char] = b"\xc0"
+				if chardeltapacked == ELLIPSIS:
+					mostly[char] = ELLIPSIS
 					continue
 				mostly[char] = self._concat_char_delta(chardeltapacked)
 			return NONE, concat_d(mostly)

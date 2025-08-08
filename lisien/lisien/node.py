@@ -316,10 +316,10 @@ class Portals(Set):
 		btt = btt_f()
 		for dest in edges_cache.iter_successors(charname, name, *btt):
 			if edges_cache.has_successor(charname, name, dest, *btt):
-				yield get_edge(character, name, dest, 0)
+				yield get_edge(character, name, dest)
 		for orig in edges_cache.iter_predecessors(charname, name, *btt):
 			if edges_cache.has_predecessor(charname, name, orig, *btt):
-				yield get_edge(character, orig, name, 0)
+				yield get_edge(character, orig, name)
 
 
 class NeighborValues(ValuesView):
@@ -606,8 +606,8 @@ class Node(graph.Node, rule.RuleFollower):
 			for k in self:
 				assert k != "name"
 				if k != "location":
-					self._set_cache(k, *now, None)
-					self._set_db(k, *now, None)
+					self._del_cache(k, *now)
+					self._del_db(k, *now)
 			engine._nodes_cache.store(g, n, *now, False)
 			engine.query.exist_node(g, n, *now, False)
 			self.character.node.send(
@@ -726,7 +726,7 @@ class Thing(Node, AbstractThing):
 		ret = self.engine._things_cache._base_retrieve(
 			(self.character.name, self.name, *self.engine._btt())
 		)
-		if ret is None or isinstance(ret, Exception):
+		if ret is ... or isinstance(ret, Exception):
 			return None
 		return ret
 
@@ -790,9 +790,9 @@ class Thing(Node, AbstractThing):
 			now = super()._delete(now=now)
 			# don't advance time to store my non-location
 			self.engine._things_cache.store(
-				self.character.name, self.name, *now, None
+				self.character.name, self.name, *now, ...
 			)
 			self.engine.query.set_thing_loc(
-				self.character.name, self.name, *now, None
+				self.character.name, self.name, *now, ...
 			)
 			return now

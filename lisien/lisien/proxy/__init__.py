@@ -735,7 +735,7 @@ class PlaceProxy(NodeProxy):
 					self.character.node.send(self, key="rulebook", value=v)
 				continue
 			elif k == "location":
-				if v is None:
+				if v is ...:
 					if (
 						self.character.name in self.engine._things_cache
 						and self.name
@@ -755,12 +755,12 @@ class PlaceProxy(NodeProxy):
 						self.character.name
 					][self.name]
 				continue
-			if v is None:
+			if v is ...:
 				if k in self._cache:
 					del self._cache[k]
-					self.send(self, key=k, value=None)
-					self.character.place.send(self, key=k, value=None)
-					self.character.node.send(self, key=k, value=None)
+					self.send(self, key=k, value=...)
+					self.character.place.send(self, key=k, value=...)
+					self.character.node.send(self, key=k, value=...)
 			elif k not in self._cache or self._cache[k] != v:
 				self._cache[k] = v
 				self.send(self, key=k, value=v)
@@ -818,14 +818,22 @@ class ThingProxy(NodeProxy):
 	def _apply_delta(self, delta: StatDict):
 		for k, v in delta.items():
 			if k == "rulebook":
-				if v != self.rulebook.name:
+				if v is ...:
+					cnrbc = self.engine._char_node_rulebooks_cache
+					if (
+						self._charname in cnrbc
+						and self.name in cnrbc[self._charname]
+					):
+						del cnrbc[self._charname][self.name]
+				elif v != self.rulebook.name:
 					self.engine._char_node_rulebooks_cache[self._charname][
 						self.name
 					] = v
+				if v != self.rulebook.name:
 					self.send(self, key="rulebook", value=v)
 					self.character.thing.send(self, key="rulebook", value=v)
 					self.character.node.send(self, key="rulebook", value=v)
-			elif v is None:
+			elif v is ...:
 				if k == "location":
 					del self.engine._things_cache[self.character.name][
 						self.name
@@ -836,9 +844,9 @@ class ThingProxy(NodeProxy):
 					continue
 				if k in self._cache:
 					del self._cache[k]
-					self.send(self, key=k, value=None)
-					self.character.thing.send(self, key=k, value=None)
-					self.character.node.send(self, key=k, value=None)
+					self.send(self, key=k, value=...)
+					self.character.thing.send(self, key=k, value=...)
+					self.character.node.send(self, key=k, value=...)
 			elif k == "location":
 				self._location = v
 				self.send(self, key=k, value=v)
@@ -850,8 +858,8 @@ class ThingProxy(NodeProxy):
 				self.character.thing.send(self, key=k, value=v)
 				self.character.node.send(self, key=k, value=v)
 
-	def _set_location(self, v: NodeName | None):
-		if v is None:
+	def _set_location(self, v: NodeName | ...):
+		if v is ...:
 			del self.engine._things_cache[self.character.name][self.name]
 			self.engine._character_places_cache[self.character.name][
 				self.name
@@ -969,11 +977,11 @@ class PortalProxy(CachingEntityProxy, RuleFollowerProxy):
 						self._origin
 					][self._destination] = v
 				continue
-			if v is None:
+			if v is ...:
 				if k in self._cache:
 					del self._cache[k]
-					self.send(self, key=k, value=None)
-					self.character.portal.send(self, key=k, value=None)
+					self.send(self, key=k, value=...)
+					self.character.portal.send(self, key=k, value=...)
 			elif k not in self._cache or self._cache[k] != v:
 				self._cache[k] = v
 				self.send(self, key=k, value=v)
@@ -1618,10 +1626,10 @@ class CharStatProxy(CachingEntityProxy):
 	def _apply_delta(self, delta: StatDict):
 		for k, v in delta.items():
 			assert k != "rulebook"
-			if v is None:
+			if v is ...:
 				if k in self._cache:
 					del self._cache[k]
-					self.send(self, key=k, value=None)
+					self.send(self, key=k, value=...)
 			elif k not in self._cache or self._cache[k] != v:
 				self._cache[k] = v
 				self.send(self, key=k, value=v)
@@ -2094,8 +2102,8 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		for node, ex in delta.pop("nodes", {}).items():
 			if ex:
 				if node not in self.node:
-					nodeval = delta.get("node_val", {}).get(node, None)
-					if nodeval and "location" in nodeval:
+					nodeval = delta.get("node_val", {}).get(node, ...)
+					if nodeval is not ... and "location" in nodeval:
 						self.thing._cache[node] = prox = ThingProxy(
 							self, node, NodeName(Key(nodeval["location"]))
 						)
@@ -4048,6 +4056,10 @@ class EngineProxy(AbstractEngine):
 				if funcl in delta:
 					func_proxies = []
 					store = getattr(self, funcl[:-1])
+					if delta[funcl] is ...:
+						if funcl in rule_cached:
+							del rule_cached[funcl]
+						continue
 					for func in delta[funcl]:
 						if hasattr(store, func):
 							func_proxy = getattr(store, func)
