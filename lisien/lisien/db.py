@@ -105,6 +105,8 @@ class GlobalKeyValueStore(MutableMapping):
 
 	def __getitem__(self, k: Key) -> Value:
 		ret = self._cache[k]
+		if ret is ...:
+			raise KeyError(k)
 		if isinstance(ret, dict):
 			return DictWrapper(
 				lambda: self._cache[k],
