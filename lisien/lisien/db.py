@@ -5728,7 +5728,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def get_branch(self) -> Branch:
 		v = self.unpack(self.call("get_global", b"\xa6branch"))
-		if v is None:
+		if v is ...:
 			mainbranch = Branch(
 				self.unpack(self.call("get_global", b"\xabmain_branch"))
 			)
@@ -5739,13 +5739,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def get_turn(self) -> Turn:
 		v = self.unpack(self.call("get_global", b"\xa4turn"))
-		if v is None:
+		if v is ...:
 			return Turn(0)
 		return v
 
 	def get_tick(self) -> Tick:
 		v = self.unpack(self.call("get_global", b"\xa4tick"))
-		if v is None:
+		if v is ...:
 			return Tick(0)
 		return v
 
