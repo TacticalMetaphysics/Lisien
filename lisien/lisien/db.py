@@ -31,7 +31,6 @@ from threading import Lock, Thread
 from types import MethodType
 from typing import Any, Iterator, Literal, MutableMapping, Optional
 
-import msgpack
 from sqlalchemy import (
 	BLOB,
 	BOOLEAN,
