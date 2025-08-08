@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 from networkx import shortest_path, shortest_path_length
 
 from . import graph, rule
-from .exc import AmbiguousUserError
+from .exc import AmbiguousLeaderError
 from .facade import FacadePlace, FacadeThing
 from .query import EntityStatAlias
 from .rule import RuleMapping
@@ -80,12 +80,12 @@ class LeaderMapping(Mapping):
 	def only(self) -> Character:
 		"""If there's only one leader, return it.
 
-		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
+		Otherwise, raise ``AmbiguousLeaderError``, a type of ``AttributeError``.
 
 		"""
 		user_names = self._user_names()
 		if len(user_names) != 1:
-			raise AmbiguousUserError(
+			raise AmbiguousLeaderError(
 				"No users, or more than one",
 				self.node.name,
 				*self.engine._btt(),
