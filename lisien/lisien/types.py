@@ -15,21 +15,21 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from types import GenericAlias
 from typing import (
+	Annotated,
+	Any,
+	Callable,
 	Literal,
 	NewType,
 	TypeAlias,
 	TypeGuard,
-	Annotated,
-	Callable,
-	Any,
 )
 
 import networkx as nx
 from annotated_types import Ge
 
 from .wrap import DictWrapper, ListWrapper, SetWrapper
-
 
 _Key = str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
 
@@ -46,10 +46,7 @@ def is_valid_key(obj: _Key) -> TypeGuard[Key]:
 	)
 
 
-class _KeyMeta:
-	def __new__(cls, *args, **kwargs):
-		return super().__new__(cls)
-
+class _KeyMeta(type):
 	def __instancecheck__(self, instance) -> TypeGuard[Key]:
 		return is_valid_key(instance)
 
@@ -57,6 +54,9 @@ class _KeyMeta:
 		if is_valid_key(obj):
 			return obj
 		raise TypeError("Not a valid key", obj)
+
+	def __class_getitem__(cls, item):
+		return GenericAlias(cls, item)
 
 
 class Key(metaclass=_KeyMeta):
@@ -76,13 +76,15 @@ _Value: TypeAlias = (
 	| DictWrapper
 	| ListWrapper
 	| SetWrapper
+	| type(...)
 )
 
 
 def is_valid_value(obj: _Value) -> TypeGuard[Value]:
 	"""Is this an object that Lisien can serialize as a value?"""
 	return (
-		is_valid_key(obj)
+		obj is ...
+		or is_valid_key(obj)
 		or (
 			isinstance(obj, (dict, DictWrapper))
 			and all(map(is_valid_key, obj.keys()))
@@ -117,10 +119,7 @@ def is_valid_value(obj: _Value) -> TypeGuard[Value]:
 	)
 
 
-class _ValueMeta:
-	def __new__(cls, *args, **kwargs):
-		return super().__new__(cls)
-
+class _ValueMeta(type):
 	def __instancecheck__(self, instance) -> TypeGuard[Value]:
 		return is_valid_value(instance)
 
@@ -128,6 +127,9 @@ class _ValueMeta:
 		if is_valid_value(obj):
 			return obj
 		raise TypeError("Not a valid value", obj)
+
+	def __class_getitem__(cls, item):
+		return GenericAlias(cls, item)
 
 
 class Value(metaclass=_ValueMeta):
@@ -175,14 +177,14 @@ NodeKeyframe = NewType("NodeKeyframe", dict)
 EdgeKeyframe = NewType("EdgeKeyframe", dict)
 NodeRowType: TypeAlias = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
 EdgeRowType: TypeAlias = tuple[
-	CharName, NodeName, NodeName, int, Branch, Turn, Tick, bool
+	CharName, NodeName, NodeName, Branch, Turn, Tick, bool
 ]
 GraphValRowType: TypeAlias = tuple[CharName, Key, Branch, Turn, Tick, Value]
 NodeValRowType: TypeAlias = tuple[
 	CharName, NodeName, Key, Branch, Turn, Tick, Value
 ]
 EdgeValRowType: TypeAlias = tuple[
-	CharName, NodeName, NodeName, int, Key, Branch, Turn, Tick, Value
+	CharName, NodeName, NodeName, Key, Branch, Turn, Tick, Value
 ]
 StatDict: TypeAlias = dict[Stat | Literal["rulebook"], Value]
 CharDict: TypeAlias = dict[
@@ -288,4 +290,11 @@ RulebookTypeStr: TypeAlias = Literal[
 	"character_thing",
 	"character_place",
 	"character_portal",
+]
+CharacterRulebookTypeStr: TypeAlias = Literal[
+	"character_rulebook",
+	"unit_rulebook",
+	"character_thing_rulebook",
+	"character_place_rulebook",
+	"character_portal_rulebook",
 ]

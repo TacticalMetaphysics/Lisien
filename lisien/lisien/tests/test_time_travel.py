@@ -18,6 +18,14 @@ def test_build_keyframe_window(null_engine):
 		("trunk", 10, 578),
 		("trunk", 10, 3139),
 	}
+	for b, r, t in null_engine._keyframes_loaded:
+		if b in null_engine._keyframes_dict:
+			if r in null_engine._keyframes_dict[b]:
+				null_engine._keyframes_dict[b][r].add(t)
+			else:
+				null_engine._keyframes_dict[b][r] = {t}
+		else:
+			null_engine._keyframes_dict[b] = {r: {t}}
 	null_engine._branches_d.update(
 		{
 			"lol": ("trunk", 5, 240, 10, 3877),

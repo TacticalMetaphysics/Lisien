@@ -25,7 +25,7 @@ from .graph import Edge
 from .query import EntityStatAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .typing import Key, Time
+from .types import Key, Time
 from .util import AbstractCharacter, getatt
 
 
@@ -50,7 +50,6 @@ class Portal(Edge, RuleFollower):
 		"graph",
 		"orig",
 		"dest",
-		"idx",
 		"origin",
 		"destination",
 		"_rulebook",
@@ -61,7 +60,7 @@ class Portal(Edge, RuleFollower):
 	no_unwrap = True
 
 	def __init__(self, graph: AbstractCharacter, orig: Key, dest: Key):
-		super().__init__(graph, orig, dest, 0)
+		super().__init__(graph, orig, dest)
 		self.origin = graph.node[orig]
 		self.destination = graph.node[dest]
 
@@ -69,7 +68,7 @@ class Portal(Edge, RuleFollower):
 	def _cache(self):
 		return self.db._edge_val_cache[self.character.name][self.orig][
 			self.dest
-		][0]
+		]
 
 	def _rule_name_activeness(self):
 		rulebook_name = self._get_rulebook_name()
@@ -215,18 +214,25 @@ class Portal(Edge, RuleFollower):
 		"""
 		self._delete()
 
-	def _delete(self, *, now: Optional[Time] = None) -> None:
-		with self.engine.world_lock, self.engine.batch():
+	def _delete(self, *, now: Optional[Time] = None) -> Time:
+		engine = self.engine
+		with (
+			engine.world_lock,
+			engine.batch(),
+			engine._edges_cache.overwriting(),
+			engine._edge_val_cache.overwriting(),
+		):
 			if now is None:
-				now = self.engine._nbtt()
+				now = engine._nbtt()
 			for k in self:
 				assert k != "orig"
 				assert k != "dest"
-				self._set_cache(k, *now, None)
-				self._set_db(k, *now, None)
-			self.engine._exist_edge(
+				self._del_cache(k, *now)
+				self._del_db(k, *now)
+			engine._exist_edge(
 				self.character.name, self.orig, self.dest, exist=None, now=now
 			)
+			return now
 
 	def unwrap(self) -> dict:
 		"""Return a dictionary representation of this entity"""

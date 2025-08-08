@@ -13,7 +13,7 @@ from lisien.examples import (
 	wolfsheep,
 )
 from lisien.proxy.handle import EngineHandle
-from lisien.typing import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
+from lisien.types import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
 
 pytestmark = [pytest.mark.big]
 
@@ -134,11 +134,13 @@ def test_wolfsheep(tmp_path, database, serial_or_parallel):
 		engy.branch = "lol"
 		engy.universal["haha"] = "lol"
 		for i in range(5):
+			print(i + 5)
 			engy.next_turn()
 		engy.turn = 5
 		engy.branch = "omg"
 		sheep = engy.character["sheep"]
 		initial_locations = [unit.location.name for unit in sheep.units()]
+		assert initial_locations
 		initial_bare_places = list(
 			engy.character["physical"].stat["bare_places"]
 		)

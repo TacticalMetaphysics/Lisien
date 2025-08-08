@@ -34,14 +34,7 @@ from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
-from logging import (
-	DEBUG,
-	Formatter,
-	Logger,
-	LogRecord,
-	StreamHandler,
-	getLogger,
-)
+from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
 from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
@@ -49,7 +42,7 @@ from random import Random, randint
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Callable, Iterable, Iterator, Optional, Type
+from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Type
 
 import networkx as nx
 import numpy as np
@@ -72,8 +65,11 @@ from .cache import (
 	EdgesCache,
 	EdgeValCache,
 	EntitylessCache,
+	GraphCache,
 	GraphValCache,
-	InitializedEntitylessCache,
+	RulebooksCache,
+	NeighborhoodsCache,
+	BignessCache,
 	NodeContentsCache,
 	NodeRulesHandledCache,
 	NodesCache,
@@ -88,6 +84,7 @@ from .cache import (
 	TurnEndPlanDict,
 	UnitnessCache,
 	UnitRulesHandledCache,
+	FuncListCache,
 )
 from .character import Character
 from .db import NullQueryEngine, ParquetQueryEngine, SQLAlchemyQueryEngine
@@ -115,11 +112,13 @@ from .query import (
 	_make_side_sel,
 )
 from .rule import AllRuleBooks, AllRules, Rule
-from .typing import (
+from .types import (
 	Branch,
+	CharacterRulebookTypeStr,
 	CharDelta,
 	CharName,
 	DeltaDict,
+	EdgesDict,
 	EdgeValDict,
 	GraphEdgesKeyframe,
 	GraphEdgeValKeyframe,
@@ -134,16 +133,19 @@ from .typing import (
 	NodesDict,
 	NodeValDict,
 	Plan,
+	RuleBig,
 	RulebookName,
+	RuleFuncName,
 	RuleName,
+	RuleNeighborhood,
 	SlightlyPackedDeltaType,
-	StatDict,
 	Stat,
+	StatDict,
 	Tick,
 	Time,
 	Turn,
+	UniversalKey,
 	Value,
-	EdgesDict,
 )
 from .util import (
 	ACTIONS,
@@ -156,12 +158,14 @@ from .util import (
 	NODE_VAL,
 	NODES,
 	NONE,
+	ELLIPSIS,
 	PREREQS,
 	RULEBOOK,
 	RULEBOOKS,
 	RULES,
 	TRIGGERS,
 	TRUE,
+	UNITS,
 	UNIVERSAL,
 	AbstractCharacter,
 	AbstractEngine,
@@ -174,7 +178,12 @@ from .util import (
 	timer,
 	world_locked,
 )
-from .window import WindowDict, update_backward_window, update_window
+from .window import (
+	SettingsTurnDict,
+	WindowDict,
+	update_backward_window,
+	update_window,
+)
 from .xcollections import (
 	ChangeTrackingDict,
 	CharacterMapping,
@@ -728,7 +737,7 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		Callable[
-			[tuple[CharName, NodeName, NodeName, int, Branch, Turn, Tick]],
+			[tuple[CharName, NodeName, NodeName, Branch, Turn, Tick]],
 			bool,
 		],
 		Callable[[], Time],
@@ -741,10 +750,10 @@ class Engine(AbstractEngine, Executor):
 	) -> tuple[
 		Callable[[], Time],
 		Callable[
-			[CharName, NodeName, NodeName, int, Branch, Turn, Tick, bool], None
+			[CharName, NodeName, NodeName, Branch, Turn, Tick, bool], None
 		],
 		Callable[
-			[CharName, NodeName, NodeName, int, Branch, Turn, Tick, Any], None
+			[CharName, NodeName, NodeName, Branch, Turn, Tick, Any], None
 		],
 	]:
 		return (self._nbtt, self.query.exist_edge, self._edges_cache.store)
@@ -781,13 +790,13 @@ class Engine(AbstractEngine, Executor):
 		self,
 	) -> tuple[
 		SizedDict,
-		Callable[[CharName, NodeName, NodeName, int], bool],
-		Callable[[Character, NodeName, NodeName, int], Portal],
+		Callable[[CharName, NodeName, NodeName], bool],
+		Callable[[Character, NodeName, NodeName], Portal],
 	]:
 		return self._edge_objs, self._edge_exists, self._make_edge
 
 	@cached_property
-	def _childbranch(self) -> dict[str, set[str]]:
+	def _childbranch(self) -> dict[Branch, set[Branch]]:
 		"""Immediate children of a branch"""
 		return defaultdict(set)
 
@@ -834,8 +843,8 @@ class Engine(AbstractEngine, Executor):
 		return {}
 
 	@cached_property
-	def _graph_cache(self) -> EntitylessCache:
-		return EntitylessCache(self, name="graph cache")
+	def _graph_cache(self) -> GraphCache:
+		return GraphCache(self, name="graph cache")
 
 	@cached_property
 	def _graph_val_cache(self) -> GraphValCache:
@@ -893,8 +902,8 @@ class Engine(AbstractEngine, Executor):
 		return ret
 
 	@cached_property
-	def _rulebooks_cache(self) -> InitializedEntitylessCache:
-		ret = InitializedEntitylessCache(self, name="rulebooks cache")
+	def _rulebooks_cache(self) -> RulebooksCache:
+		ret = RulebooksCache(self, name="rulebooks cache")
 		ret.setdb = self.query.rulebook_set
 		return ret
 
@@ -932,27 +941,27 @@ class Engine(AbstractEngine, Executor):
 
 	@cached_property
 	def _portals_rulebooks_cache(self) -> PortalsRulebooksCache:
-		return PortalsRulebooksCache(self, name="portals rulebooks_ ache")
+		return PortalsRulebooksCache(self, name="portals rulebooks cache")
 
 	@cached_property
-	def _triggers_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="triggers cache")
+	def _triggers_cache(self) -> FuncListCache:
+		return FuncListCache(self, name="triggers cache")
 
 	@cached_property
-	def _prereqs_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="prereqs cache")
+	def _prereqs_cache(self) -> FuncListCache:
+		return FuncListCache(self, name="prereqs cache")
 
 	@cached_property
-	def _actions_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="actions cache")
+	def _actions_cache(self) -> FuncListCache:
+		return FuncListCache(self, name="actions cache")
 
 	@cached_property
-	def _neighborhoods_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="neighborhoods cache")
+	def _neighborhoods_cache(self) -> NeighborhoodsCache:
+		return NeighborhoodsCache(self, name="neighborhoods cache")
 
 	@cached_property
-	def _rule_bigness_cache(self) -> InitializedEntitylessCache:
-		return InitializedEntitylessCache(self, name="rule bigness cache")
+	def _rule_bigness_cache(self) -> BignessCache:
+		return BignessCache(self, name="rule bigness cache")
 
 	@cached_property
 	def _node_rules_handled_cache(self) -> NodeRulesHandledCache:
@@ -1017,7 +1026,7 @@ class Engine(AbstractEngine, Executor):
 		return AllRuleBooks(self)
 
 	@cached_property
-	def _keyframes_dict(self) -> dict[Branch, dict[Turn, set[Tick]]]:
+	def _keyframes_dict(self) -> dict[Branch, WindowDict[Turn, set[Tick]]]:
 		return PickyDefaultDict(WindowDict)
 
 	@cached_property
@@ -1182,13 +1191,11 @@ class Engine(AbstractEngine, Executor):
 			nodes_hash ^= int.from_bytes(hash.digest(), "little")
 		edges_hash = 0
 		for orig, dests in edges.items():
-			for dest, idxs in dests.items():
-				for idx, val in idxs.items():
-					hash = blake2b(pack(orig))
-					hash.update(pack(dest))
-					hash.update(pack(idx))
-					hash.update(pack(val))
-					edges_hash ^= int.from_bytes(hash.digest(), "little")
+			for dest, val in dests.items():
+				hash = blake2b(pack(orig))
+				hash.update(pack(dest))
+				hash.update(pack(val))
+				edges_hash ^= int.from_bytes(hash.digest(), "little")
 		val_hash = 0
 		for key, val in vals.items():
 			hash = blake2b(pack(key))
@@ -1251,11 +1258,7 @@ class Engine(AbstractEngine, Executor):
 		return ret
 
 	def _get_edge(
-		self,
-		graph: Character | CharName,
-		orig: NodeName,
-		dest: NodeName,
-		idx: int = 0,
+		self, graph: Character | CharName, orig: NodeName, dest: NodeName
 	):
 		edge_objs, edge_exists, make_edge = self._get_edge_stuff
 		if type(graph) is str:
@@ -1263,16 +1266,14 @@ class Engine(AbstractEngine, Executor):
 			graph = self.character[graphn]
 		else:
 			graphn = graph.name
-		key = (graphn, orig, dest, idx)
+		key = (graphn, orig, dest)
 		if key in edge_objs:
 			return edge_objs[key]
-		if not edge_exists(graphn, orig, dest, idx):
+		if not edge_exists(graphn, orig, dest):
 			raise KeyError(
-				"No such edge: {}->{}[{}] in {}".format(
-					orig, dest, idx, graphn
-				)
+				"No such edge: {}->{} in {}".format(orig, dest, graphn)
 			)
-		ret = make_edge(graph, orig, dest, idx)
+		ret = make_edge(graph, orig, dest)
 		edge_objs[key] = ret
 		return ret
 
@@ -1404,8 +1405,10 @@ class Engine(AbstractEngine, Executor):
 		if not self._keyframes_dict[branch]:
 			del self._keyframes_dict[branch]
 		for cache in self._caches:
-			cache.delete_keyframe(branch, turn, tick)
-			cache.shallowest.clear()
+			if hasattr(cache, "delete_keyframe"):
+				cache.discard_keyframe(branch, turn, tick)
+			if hasattr(cache, "shallowest"):
+				cache.shallowest.clear()
 
 	@contextmanager
 	def advancing(self):
@@ -1446,14 +1449,16 @@ class Engine(AbstractEngine, Executor):
 		turn_to: Turn,
 		tick_to: Tick,
 		delta: DeltaDict,
+		__: Turn,
+		___: Tick,
 		_: None,
 		graph: CharName,
 		val: Value,
 	) -> None:
 		"""Change a delta to say that a graph was deleted or not"""
-		if val in (None, "Deleted"):
-			delta[graph] = None
-		elif graph not in delta or delta[graph] is None:
+		if val in (..., None, "Deleted"):
+			delta[graph] = ...
+		elif graph not in delta or delta[graph] is ...:
 			# If the graph was *created* within our window,
 			# include its whole initial keyframe
 			delta[graph] = {
@@ -1471,7 +1476,6 @@ class Engine(AbstractEngine, Executor):
 					"character_portal_rulebook",
 					graph,
 				),
-				"units": {},
 			}
 			kf_time = None
 			the_kf = None
@@ -1534,7 +1538,7 @@ class Engine(AbstractEngine, Executor):
 					b not in preset
 					or r not in preset[b]
 					or t not in preset[b][r]
-					or preset[b][r][t][2] is None
+					or preset[b][r][t][2] is ...
 				):
 					return
 				delta[graph] = {}
@@ -1576,17 +1580,24 @@ class Engine(AbstractEngine, Executor):
 		)
 
 		def setgraphval(
-			delta: DeltaDict, graph: CharName, key: Stat, val: Value
+			delta: DeltaDict,
+			_: Turn,
+			__: Tick,
+			graph: CharName,
+			key: Stat,
+			val: Value,
 		) -> None:
 			"""Change a delta to say that a graph stat was set to a certain value"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is not None:
+			if delta[graph] is not ...:
 				graph_stats: CharDelta = delta[graph]
 				graph_stats[key] = val
 
 		def setnode(
 			delta: DeltaDict,
+			turn: Turn,
+			tick: Tick,
 			graph: CharName,
 			node: NodeName,
 			exists: bool | None,
@@ -1594,13 +1605,27 @@ class Engine(AbstractEngine, Executor):
 			"""Change a delta to say that a node was created or deleted"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			graph_nodes: NodesDict = delta[graph].setdefault("nodes", {})
 			graph_nodes[node] = bool(exists)
+			try:
+				contents: frozenset[NodeName] = (
+					self._node_contents_cache.retrieve(
+						graph, node, branch, turn, tick
+					)
+				)
+			except KeyError:
+				return
+			if not contents:
+				return
+			for thing in contents:
+				graph_nodes[thing] = bool(exists)
 
 		def setnodeval(
 			delta: DeltaDict,
+			_: Turn,
+			__: Tick,
 			graph: CharName,
 			node: NodeName,
 			key: Stat,
@@ -1609,7 +1634,7 @@ class Engine(AbstractEngine, Executor):
 			"""Change a delta to say that a node stat was set to a certain value"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			if (
 				"nodes" in delta[graph]
@@ -1627,16 +1652,17 @@ class Engine(AbstractEngine, Executor):
 		def setedge(
 			delta: DeltaDict,
 			is_multigraph: callable,
+			_: Turn,
+			__: Tick,
 			graph: CharName,
 			orig: NodeName,
 			dest: NodeName,
-			idx: int,
 			exists: bool | None,
 		) -> None:
 			"""Change a delta to say that an edge was created or deleted"""
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			graphstat: CharDelta = delta[graph]
 			if "edges" in graphstat:
@@ -1651,16 +1677,17 @@ class Engine(AbstractEngine, Executor):
 		def setedgeval(
 			delta: DeltaDict,
 			is_multigraph: callable,
+			turn: Turn,
+			tick: Tick,
 			graph: CharName,
 			orig: NodeName,
 			dest: NodeName,
-			idx: int,
 			key: Stat,
 			value: Value,
 		) -> None:
 			if graph not in delta:
 				delta[graph] = {}
-			if delta[graph] is None:
+			if delta[graph] is ...:
 				return
 			graphstat: CharDelta = delta[graph]
 			if (
@@ -1762,20 +1789,23 @@ class Engine(AbstractEngine, Executor):
 				evbranches[branch],
 			)
 
-		def upduniv(_, key, val):
+		def upduniv(
+			_: Turn, __: Tick, ___: None, key: UniversalKey, val: Value
+		):
 			delta.setdefault("universal", {})[key] = val
 
 		if branch in univbranches:
 			updater(upduniv, univbranches[branch])
 
-		def updunit(char, graph, node, is_unit=...):
-			if is_unit is ...:
-				if node is None:
-					return
-				for node, is_unit in node.items():
-					updunit(char, graph, node, is_unit)
-				return
-			if char in delta and delta[char] is None:
+		def updunit(
+			_: Turn,
+			__: Tick,
+			char: CharName,
+			graph: CharName,
+			node: NodeName,
+			is_unit: bool,
+		):
+			if char in delta and delta[char] is ...:
 				return
 			delta.setdefault(char, {}).setdefault("units", {}).setdefault(
 				graph, {}
@@ -1784,9 +1814,15 @@ class Engine(AbstractEngine, Executor):
 		if branch in unitbranches:
 			updater(updunit, unitbranches[branch])
 
-		def updthing(char, thing, loc):
+		def updthing(
+			_: Turn,
+			__: Tick,
+			char: CharName,
+			thing: NodeName,
+			loc: NodeName,
+		):
 			if char in delta and (
-				delta[char] is None
+				delta[char] is ...
 				or (
 					"nodes" in delta[char]
 					and thing in delta[char]["nodes"]
@@ -1804,13 +1840,26 @@ class Engine(AbstractEngine, Executor):
 		if branch in thbranches:
 			updater(updthing, thbranches[branch])
 
-		def updrb(_, rulebook, rules):
+		def updrb(
+			__: Turn,
+			___: Tick,
+			_: None,
+			rulebook: RulebookName,
+			rules: list[RuleName],
+		):
 			delta.setdefault("rulebooks", {})[rulebook] = rules or []
 
 		if branch in rbbranches:
 			updater(updrb, rbbranches[branch])
 
-		def updru(key, _, rule, funs):
+		def updru(
+			key: Literal["triggers", "prereqs", "actions"],
+			__: Turn,
+			___: Tick,
+			_: None,
+			rule: RuleName,
+			funs: list[RuleFuncName],
+		):
 			delta.setdefault("rules", {}).setdefault(rule, {})[key] = (
 				funs or []
 			)
@@ -1824,7 +1873,13 @@ class Engine(AbstractEngine, Executor):
 		if branch in actbranches:
 			updater(partial(updru, "actions"), actbranches[branch])
 
-		def updnbr(_, rule, neighborhood):
+		def updnbr(
+			__: Turn,
+			___: Tick,
+			_: None,
+			rule: RuleName,
+			neighborhood: RuleNeighborhood,
+		):
 			if neighborhood is not None:
 				if not isinstance(neighborhood, int):
 					raise TypeError(
@@ -1841,7 +1896,7 @@ class Engine(AbstractEngine, Executor):
 		if branch in nbrbranches:
 			updater(updnbr, nbrbranches[branch])
 
-		def updbig(_, rule, big):
+		def updbig(__: Turn, ___: Tick, _: None, rule: RuleName, big: RuleBig):
 			if big is not None and not isinstance(big, bool):
 				raise TypeError("big must be boolean", big)
 			delta.setdefault("rules", {}).setdefault(rule, {})["big"] = big
@@ -1849,8 +1904,15 @@ class Engine(AbstractEngine, Executor):
 		if branch in bigbranches:
 			updater(updbig, bigbranches[branch])
 
-		def updcrb(key, _, character, rulebook):
-			if character in delta and delta[character] is None:
+		def updcrb(
+			key: CharacterRulebookTypeStr,
+			__: Turn,
+			___: Tick,
+			_: None,
+			character: CharName,
+			rulebook: RulebookName,
+		):
+			if character in delta and delta[character] is ...:
 				return
 			delta.setdefault(character, {})[key] = rulebook
 
@@ -1880,9 +1942,15 @@ class Engine(AbstractEngine, Executor):
 				charporbbranches[branch],
 			)
 
-		def updnoderb(character, node, rulebook):
+		def updnoderb(
+			_: Turn,
+			__: Tick,
+			character: CharName,
+			node: NodeName,
+			rulebook: RulebookName,
+		):
 			if (character in delta) and (
-				delta[character] is None
+				delta[character] is ...
 				or (
 					"nodes" in delta[character]
 					and node in delta[character]["nodes"]
@@ -1897,13 +1965,20 @@ class Engine(AbstractEngine, Executor):
 		if branch in noderbbranches:
 			updater(updnoderb, noderbbranches[branch])
 
-		def updedgerb(character, orig, dest, rulebook=None):
+		def updedgerb(
+			_: Turn,
+			__: Tick,
+			character: CharName,
+			orig: NodeName,
+			dest: NodeName,
+			rulebook: RulebookName | None = None,
+		):
 			if rulebook is None:
 				# It's one of those updates that stores all the rulebooks from
 				# some origin. Not relevant to deltas.
 				return
 			if character in delta and (
-				delta[character] is None
+				delta[character] is ...
 				or (
 					"edges" in delta[character]
 					and orig in delta[character]["edges"]
@@ -2187,8 +2262,8 @@ class Engine(AbstractEngine, Executor):
 	def _start_worker_processes(
 		self, prefix: str | os.PathLike | None, workers: int
 	):
-		from multiprocessing.process import BaseProcess
 		from multiprocessing import get_context
+		from multiprocessing.process import BaseProcess
 
 		for store in self.stores:
 			if hasattr(store, "save"):
@@ -2375,10 +2450,9 @@ class Engine(AbstractEngine, Executor):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		copy: bool = True,
 		rulebooks: bool = True,
 		silent: bool = False,
-	) -> Keyframe:
+	) -> Keyframe | None:
 		"""Load the keyframe if it's not loaded, and return it"""
 		if (branch, turn, tick) in self._keyframes_loaded:
 			self.debug(
@@ -2389,9 +2463,7 @@ class Engine(AbstractEngine, Executor):
 			)
 			if silent:
 				return
-			return self._get_kf(
-				branch, turn, tick, copy=copy, rulebooks=rulebooks
-			)
+			return self._get_kf(branch, turn, tick, rulebooks=rulebooks)
 		univ, rule, rulebook = self.query.get_keyframe_extensions(
 			branch, turn, tick
 		)
@@ -2451,7 +2523,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			self._keyframes_dict[branch] = {turn: {tick}}
 		self._mark_keyframe_loaded(branch, turn, tick)
-		ret = self._get_kf(branch, turn, tick, copy=copy)
+		ret = self._get_kf(branch, turn, tick)
 		charrbkf = {}
 		unitrbkf = {}
 		charthingrbkf = {}
@@ -2510,6 +2582,7 @@ class Engine(AbstractEngine, Executor):
 				)
 			if graph in ret["edge_val"]:
 				edgerbkf = {}
+				dests: dict[NodeName, dict[Stat | Literal["rulebook"], Value]]
 				for orig, dests in ret["edge_val"][graph].items():
 					if not dests:
 						continue
@@ -2707,7 +2780,7 @@ class Engine(AbstractEngine, Executor):
 						if tck <= t1:
 							break
 						yield b0, r1, tck
-		if b1 in kfd:
+		if b1 in kfd and r1 in kfd[b1]:
 			kfdb = kfd[b1]
 			tcks = sorted(kfdb[r1], reverse=True)
 			while tcks[-1] > t1:
@@ -2748,7 +2821,6 @@ class Engine(AbstractEngine, Executor):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		copy: bool = True,
 		rulebooks: bool = True,
 	) -> Keyframe:
 		"""Get a keyframe that's already in memory"""
@@ -2765,53 +2837,84 @@ class Engine(AbstractEngine, Executor):
 			"edges": edges,
 			"edge_val": edge_val,
 		}
-		for graph in self._graph_cache.iter_keys(branch, turn, tick):
+		for k in self._graph_cache.iter_keys(branch, turn, tick):
 			try:
 				if (
-					self._graph_cache.retrieve(graph, branch, turn, tick)
+					self._graph_cache.retrieve(k, branch, turn, tick)
 					== "Deleted"
 				):
 					continue
 			except KeyError:
 				continue
-			graph_val[graph] = {}
-		for k in graph_val:
 			try:
 				graph_val[k] = self._graph_val_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
+				)
+			except KeyframeError:
+				graph_val[k] = {}
+			try:
+				graph_val[k]["units"] = (
+					self._unitness_cache.dict_cache.get_keyframe(
+						k, branch, turn, tick
+					)
 				)
 			except KeyframeError:
 				pass
 			try:
 				nodes[k] = self._nodes_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
 				)
 			except KeyframeError:
 				pass
 			try:
 				node_val[k] = self._node_val_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
 				)
 			except KeyframeError:
 				pass
 			try:
 				edges[k] = self._edges_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
 				)
 			except KeyframeError:
 				pass
 			try:
 				edge_val[k] = self._edge_val_cache.get_keyframe(
-					k, branch, turn, tick, copy
+					k, branch, turn, tick
 				)
 			except KeyframeError:
 				pass
+			try:
+				locs_kf = self._things_cache.get_keyframe(
+					k, branch, turn, tick
+				)
+			except KeyframeError:
+				locs_kf = {}
+				for thing in list(
+					self._things_cache.iter_entities(k, branch, turn, tick)
+				):
+					locs_kf[thing] = self._things_cache.retrieve(
+						k, thing, branch, turn, tick
+					)
+			if k not in node_val:
+				node_val[k] = {
+					thing: {"location": loc}
+					for (thing, loc) in locs_kf.items()
+				}
+			else:
+				for thing, loc in locs_kf.items():
+					if thing in node_val[k]:
+						node_val[k][thing]["location"] = loc
+					else:
+						node_val[k][thing] = {"location": loc}
 
 		if rulebooks:
 			for graph, vals in graph_val.items():
 				try:
-					vals["units"] = self._unitness_cache.get_keyframe(
-						graph, branch, turn, tick
+					vals["units"] = (
+						self._unitness_cache.dict_cache.get_keyframe(
+							graph, branch, turn, tick
+						)
 					)
 				except KeyError:
 					pass
@@ -2895,30 +2998,6 @@ class Engine(AbstractEngine, Executor):
 								dest, (graph, orig, dest)
 							)
 							kf_graph_dest_edge_val["rulebook"] = rulebook
-		for graph in graph_val:
-			try:
-				locs_kf = self._things_cache.get_keyframe(
-					graph, branch, turn, tick
-				)
-			except KeyframeError:
-				locs_kf = {}
-				for thing in list(
-					self._things_cache.iter_keys(graph, branch, turn, tick)
-				):
-					locs_kf[thing] = self._things_cache.retrieve(
-						graph, thing, branch, turn, tick
-					)
-			if graph not in node_val:
-				node_val[graph] = {
-					thing: {"location": loc}
-					for (thing, loc) in locs_kf.items()
-				}
-			else:
-				for thing, loc in locs_kf.items():
-					if thing in node_val[graph]:
-						node_val[graph][thing]["location"] = loc
-					else:
-						node_val[graph][thing] = {"location": loc}
 		kf["universal"] = self._universal_cache.get_keyframe(
 			branch, turn, tick
 		)
@@ -3055,7 +3134,8 @@ class Engine(AbstractEngine, Executor):
 			self._actions_cache,
 			self._rulebooks_cache,
 			self._unitness_cache,
-			self._unitness_cache.user_cache,
+			self._unitness_cache.leader_cache,
+			self._unitness_cache.dict_cache,
 			self._characters_rulebooks_cache,
 			self._units_rulebooks_cache,
 			self._characters_things_rulebooks_cache,
@@ -3085,42 +3165,58 @@ class Engine(AbstractEngine, Executor):
 	def _apply_unit_delta(
 		char: CharName,
 		char_unit_kf: dict[CharName, dict[NodeName, bool]],
-		user_kf: dict[CharName, dict[NodeName, frozenset[CharName]]],
-		delta: dict[CharName, dict[NodeName, bool]],
+		user_set_kf: dict[CharName, dict[NodeName, frozenset[CharName]]],
+		delta: dict[CharName, DeltaDict],
 	) -> None:
-		for graf, units in delta.items():
-			if graf in char_unit_kf:
-				for unit, ex in units.items():
+		singlechar = frozenset([char])
+		for graf, stuff in delta.items():
+			if stuff is ...:
+				if graf in char_unit_kf:
+					del char_unit_kf[graf]
+				if char in user_set_kf:
+					singlegraf = frozenset([graf])
+					for garph in user_set_kf[char]:
+						user_set_kf[char][garph] -= singlegraf
+			elif "nodes" in stuff:
+				for node, ex in stuff["nodes"].items():
 					if ex:
-						char_unit_kf[graf][unit] = True
-						if graf in user_kf:
-							if unit in user_kf[graf]:
-								user_kf[graf][unit] |= frozenset([char])
-							else:
-								user_kf[graf][unit] = frozenset([char])
-						else:
-							user_kf[graf] = {unit: frozenset([char])}
-					else:
-						if unit in char_unit_kf[graf]:
-							del char_unit_kf[graf][unit]
-						if graf in user_kf and unit in user_kf[graf]:
-							user_kf[graf][unit] -= frozenset([char])
-			else:
-				char_unit_kf[graf] = {
-					unit: True for (unit, ex) in units.items() if ex
-				}
+						continue
+					if graf in char_unit_kf and node in char_unit_kf[graf]:
+						del char_unit_kf[graf][node]
+						if not char_unit_kf[graf]:
+							del char_unit_kf[graf]
+					if char in user_set_kf:
+						singlegraf = frozenset([graf])
+						for graaf in user_set_kf[char]:
+							user_set_kf[char][graaf] -= singlegraf
+		if char not in delta or "units" not in delta[char]:
+			return
+		for graf, units in delta[char]["units"].items():
 			for unit, ex in units.items():
 				if ex:
-					if graf in user_kf:
-						if unit in user_kf[graf]:
-							user_kf[graf][unit] |= frozenset([char])
-						else:
-							user_kf[graf][unit] = frozenset([char])
+					if graf in char_unit_kf:
+						char_unit_kf[graf][unit] = True
 					else:
-						user_kf[graf] = {unit: frozenset([char])}
+						char_unit_kf[graf] = {unit: True}
+					if graf in user_set_kf:
+						if unit in user_set_kf[graf]:
+							user_set_kf[graf][unit] |= singlechar
+						else:
+							user_set_kf[graf][unit] = singlechar
+					else:
+						user_set_kf[graf] = {unit: singlechar}
 				else:
-					if graf in user_kf and unit in user_kf[graf]:
-						user_kf[graf][unit] -= frozenset([char])
+					if graf in char_unit_kf and unit in char_unit_kf[graf]:
+						del char_unit_kf[graf][unit]
+						if not char_unit_kf[graf]:
+							del char_unit_kf[graf]
+					if graf in user_set_kf:
+						if unit in user_set_kf[graf]:
+							user_set_kf[graf][unit] -= singlechar
+							if not user_set_kf[graf][unit]:
+								del user_set_kf[graf][unit]
+							if not user_set_kf[graf]:
+								del user_set_kf[graf]
 
 	@staticmethod
 	def _apply_graph_val_delta(
@@ -3144,8 +3240,20 @@ class Engine(AbstractEngine, Executor):
 				kf[graph] = graph_val_delta.pop(key)
 			elif graph not in kf:
 				kf[graph] = (key, graph)
-		for k, v in graph_val_delta.items():
-			if v is None:
+		for k in graph_val_delta.keys() - {
+			"nodes",
+			"node_val",
+			"edges",
+			"edge_val",
+			"units",
+			"character_rulebook",
+			"unit_rulebook",
+			"character_thing_rulebook",
+			"character_place_rulebook",
+			"character_portal_rulebook",
+		}:
+			v = graph_val_delta[k]
+			if v is ...:
 				if k in graph_val_keyframe:
 					del graph_val_keyframe[k]
 			else:
@@ -3172,7 +3280,11 @@ class Engine(AbstractEngine, Executor):
 				if node in nodes_keyframe:
 					del nodes_keyframe[node]
 				if node in node_val_keyframe:
-					if "location" in node_val_keyframe[node]:
+					if (
+						"location" in node_val_keyframe[node]
+						and node_val_keyframe[node]["location"]
+						in node_contents_keyframe
+					):
 						node_contents_keyframe[
 							node_val_keyframe[node]["location"]
 						].remove(node)
@@ -3180,6 +3292,8 @@ class Engine(AbstractEngine, Executor):
 				if node in thing_location_keyframe:
 					del thing_location_keyframe[node]
 				if node in node_contents_keyframe:
+					for contained in node_contents_keyframe[node]:
+						del nodes_keyframe[contained]
 					del node_contents_keyframe[node]
 		for node, upd in node_val_delta.items():
 			if node in nodes_delta and not nodes_delta[node]:
@@ -3189,11 +3303,11 @@ class Engine(AbstractEngine, Executor):
 				loc = upd.pop("location")
 				thing_location_keyframe[node] = loc
 				if loc in node_contents_keyframe:
-					if loc is None:
+					if loc is ...:
 						node_contents_keyframe[loc].remove(node)
 					else:
 						node_contents_keyframe[loc].add(node)
-				elif loc is not None:
+				elif loc is not ...:
 					node_contents_keyframe[loc] = {node}
 			if "rulebook" in upd:
 				node_rulebook_keyframe[node] = upd.pop("rulebook")
@@ -3213,7 +3327,7 @@ class Engine(AbstractEngine, Executor):
 			if upd and node in node_val_keyframe:
 				kv = node_val_keyframe[node]
 				for key, value in upd.items():
-					if value is None:
+					if value is ...:
 						if key in kv:
 							del kv[key]
 					else:
@@ -3278,7 +3392,7 @@ class Engine(AbstractEngine, Executor):
 						dest, {}
 					)
 					for key, value in upd.items():
-						if value is None:
+						if value is ...:
 							if key in kv:
 								del kv[key]
 						else:
@@ -3341,7 +3455,7 @@ class Engine(AbstractEngine, Executor):
 			self._characters_portals_rulebooks_cache.get_keyframe(*then)
 		)
 		for k, v in delta.get("universal", {}).items():
-			if v is None:
+			if v is ...:
 				if k in universal_keyframe:
 					del universal_keyframe[k]
 			else:
@@ -3366,23 +3480,26 @@ class Engine(AbstractEngine, Executor):
 		nodes_rulebooks_keyframe = {}
 		portals_rulebooks_keyframe = {}
 		units_keyframe = {}
-		users_keyframe = {}
+		for k, vs in graph_val_keyframe.items():
+			if "units" in vs:
+				units_keyframe[k] = vs.pop("units")
+		user_set_keyframe = {}
 		graphs: set[CharName] = (
 			set(self._graph_cache.iter_keys(*then)).union(delta.keys())
 			- self.illegal_graph_names
 		)
 		for graph in graphs:
 			try:
-				users_keyframe[graph] = (
-					self._unitness_cache.user_cache.get_keyframe(
+				user_set_keyframe[graph] = (
+					self._unitness_cache.leader_cache.get_keyframe(
 						graph, *then, copy=True
 					)
 				)
 			except KeyframeError:
-				users_keyframe[graph] = {}
+				user_set_keyframe[graph] = {}
 		for graph in graphs:
 			delt = delta.get(graph, {})
-			if delt is None:
+			if delt is ...:
 				continue
 			try:
 				noderbs = nodes_rulebooks_keyframe[graph] = (
@@ -3398,7 +3515,9 @@ class Engine(AbstractEngine, Executor):
 				portrbs = portals_rulebooks_keyframe[graph] = {}
 			try:
 				charunit = units_keyframe[graph] = (
-					self._unitness_cache.get_keyframe(graph, *then, copy=True)
+					self._unitness_cache.dict_cache.get_keyframe(
+						graph, *then, copy=True
+					)
 				)
 			except KeyframeError:
 				charunit = units_keyframe[graph] = {}
@@ -3422,7 +3541,10 @@ class Engine(AbstractEngine, Executor):
 			if graph not in nodes_keyframe:
 				nodes_keyframe[graph] = {}
 			self._apply_unit_delta(
-				graph, charunit, users_keyframe, delt.pop("units", {}) or {}
+				graph,
+				charunit,
+				user_set_keyframe,
+				delta,
 			)
 			self._apply_node_delta(
 				graph,
@@ -3431,16 +3553,16 @@ class Engine(AbstractEngine, Executor):
 				noderbs,
 				locs,
 				conts,
-				delt.pop("node_val", {}) or {},
-				delt.pop("nodes", {}) or {},
+				delt.get("node_val", {}),
+				delt.get("nodes", {}),
 			)
 			self._apply_edge_delta(
 				graph,
 				edge_val_keyframe.setdefault(graph, {}),
 				edges_keyframe.setdefault(graph, {}),
 				portrbs,
-				delt.pop("edge_val", {}) or {},
-				delt.pop("edges", {}) or {},
+				delt.get("edge_val", {}),
+				delt.get("edges", {}),
 			)
 			self._apply_graph_val_delta(
 				graph,
@@ -3476,8 +3598,8 @@ class Engine(AbstractEngine, Executor):
 			self._graph_val_cache.set_keyframe(
 				graph, *now, graph_val_keyframe[graph]
 			)
-		for char, kf in users_keyframe.items():
-			self._unitness_cache.user_cache.set_keyframe(char, *now, kf)
+		for char, kf in user_set_keyframe.items():
+			self._unitness_cache.leader_cache.set_keyframe(char, *now, kf)
 		self._characters_rulebooks_cache.set_keyframe(
 			*now, characters_rulebooks_keyframe
 		)
@@ -3535,7 +3657,7 @@ class Engine(AbstractEngine, Executor):
 		graphs_keyframe = {g: "DiGraph" for g in graph_val_keyframe}
 		for graph in graphs_keyframe.keys() - self.illegal_graph_names:
 			deltg = delta.get(graph, {})
-			if deltg is None:
+			if deltg is ...:
 				del graphs_keyframe[graph]
 				continue
 			combined_node_val_keyframe = {
@@ -3543,7 +3665,7 @@ class Engine(AbstractEngine, Executor):
 				for (node, val) in node_val_keyframe.get(graph, {}).items()
 			}
 			for node, loc in things_keyframe.get(graph, {}).items():
-				if loc is None:
+				if loc is ...:
 					continue
 				if node in combined_node_val_keyframe:
 					combined_node_val_keyframe[node]["location"] = loc
@@ -3696,7 +3818,7 @@ class Engine(AbstractEngine, Executor):
 		retrieve, btt = self._node_exists_stuff
 		args = (character, node) + btt()
 		retrieved = retrieve(args)
-		return retrieved is not None and not isinstance(retrieved, Exception)
+		return retrieved and not isinstance(retrieved, Exception)
 
 	@world_locked
 	def _exist_node(
@@ -3712,7 +3834,6 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick = now
 		else:
 			branch, turn, tick = nbtt()
-		exist_node(character, node, branch, turn, tick, exist)
 		store(character, node, branch, turn, tick, exist)
 		if exist:
 			self._nodes_rulebooks_cache.store(
@@ -3721,12 +3842,13 @@ class Engine(AbstractEngine, Executor):
 			self.query.set_node_rulebook(
 				character, node, branch, turn, tick, (character, node)
 			)
+		exist_node(character, node, branch, turn, tick, exist)
 
 	def _edge_exists(
-		self, character: CharName, orig: NodeName, dest: NodeName, idx: int = 0
+		self, character: CharName, orig: NodeName, dest: NodeName
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
-		args = (character, orig, dest, idx, *btt())
+		args = (character, orig, dest, *btt())
 		retrieved = retrieve(args)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
@@ -3736,7 +3858,6 @@ class Engine(AbstractEngine, Executor):
 		character: Key,
 		orig: Key,
 		dest: Key,
-		idx: int = 0,
 		exist: bool = True,
 		*,
 		now: Optional[Time] = None,
@@ -3746,10 +3867,7 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick = now
 		else:
 			branch, turn, tick = nbtt()
-		exist_edge(
-			character, orig, dest, idx, branch, turn, tick, exist or False
-		)
-		store(character, orig, dest, idx, branch, turn, tick, exist)
+		store(character, orig, dest, branch, turn, tick, exist)
 		if (character, orig, dest) in self._edge_objs:
 			del self._edge_objs[character, orig, dest]
 		if exist:
@@ -3771,6 +3889,7 @@ class Engine(AbstractEngine, Executor):
 				tick,
 				(character, orig, dest),
 			)
+		exist_edge(character, orig, dest, branch, turn, tick, exist or False)
 
 	def _call_in_subprocess(
 		self,
@@ -4195,6 +4314,11 @@ class Engine(AbstractEngine, Executor):
 			return False
 		return True
 
+	def _iter_linear_time(self, branch: Branch):
+		for turn, ticks in reversed(self._keyframes_dict[branch].items()):
+			for tick in sorted(ticks, reverse=True):
+				yield turn, tick
+
 	def _build_keyframe_window(
 		self, branch: Branch, turn: Turn, tick: Tick, loading=False
 	) -> tuple[Time | None, Time | None]:
@@ -4210,66 +4334,25 @@ class Engine(AbstractEngine, Executor):
 		earliest_future_keyframe: Optional[Time] = None
 		branch_parents = self._branch_parents
 		cache = self._keyframes_times if loading else self._keyframes_loaded
-		for branch, turn, tick in cache:
-			if branch != branch_now:
-				continue
-			if turn < turn_now:
-				if latest_past_keyframe:
-					(late_branch, late_turn, late_tick) = latest_past_keyframe
-					if (
-						late_branch != branch
-						or late_turn < turn
-						or (late_turn == turn and late_tick < tick)
-					):
-						latest_past_keyframe = (branch, turn, tick)
-				else:
-					latest_past_keyframe = (branch, turn, tick)
-			elif turn > turn_now:
-				if earliest_future_keyframe:
-					(early_branch, early_turn, early_tick) = (
-						earliest_future_keyframe
-					)
-					if (
-						early_branch != branch
-						or early_turn > turn
-						or (early_turn == turn and early_tick > tick)
-					):
-						earliest_future_keyframe = (branch, turn, tick)
-				else:
-					earliest_future_keyframe = (branch, turn, tick)
-			elif tick < tick_now:
-				if latest_past_keyframe:
-					(late_branch, late_turn, late_tick) = latest_past_keyframe
-					if (
-						late_branch != branch
-						or late_turn < turn
-						or (late_turn == turn and late_tick < tick)
-					):
-						latest_past_keyframe = (branch, turn, tick)
-				else:
-					latest_past_keyframe = (branch, turn, tick)
-			elif tick > tick_now:
-				if earliest_future_keyframe:
-					(early_branch, early_turn, early_tick) = (
-						earliest_future_keyframe
-					)
-					if (
-						early_branch != branch
-						or early_turn > turn
-						or (early_turn == turn and early_tick > tick)
-					):
-						earliest_future_keyframe = (branch, turn, tick)
-				else:
-					earliest_future_keyframe = (branch, turn, tick)
-			else:
-				latest_past_keyframe = (branch, turn, tick)
-		if latest_past_keyframe is None:
-			for branch, turn, tick in self._iter_keyframes(
-				branch_now, turn_now, tick_now, loaded=not loading
-			):
+		for branch, turn, tick in self._iter_keyframes(
+			branch_now, turn_now, tick_now, loaded=not loading
+		):
+			if (turn, tick) <= (turn_now, tick_now):
+				latest_past_keyframe = branch, turn, tick
+				break
+		for turn, ticks in (
+			self._keyframes_dict[branch_now]
+			.future(turn, include_same_rev=True)
+			.items()
+		):
+			for tick in sorted(ticks):
 				if (turn, tick) <= (turn_now, tick_now):
-					latest_past_keyframe = branch, turn, tick
+					continue
+				if (branch_now, turn, tick) in cache:
+					earliest_future_keyframe = (branch_now, turn, tick)
 					break
+			if earliest_future_keyframe is not None:
+				break
 		(branch, turn, tick) = (branch_now, turn_now, tick_now)
 		if not loading or branch not in self._loaded:
 			return latest_past_keyframe, earliest_future_keyframe
@@ -4524,6 +4607,8 @@ class Engine(AbstractEngine, Executor):
 				self._nodes_rulebooks_cache.load(data["node_rulebook"])
 			if data.get("portal_rulebook"):
 				self._portals_rulebooks_cache.load(data["portal_rulebook"])
+			if data.get("units"):
+				self._unitness_cache.load(data["units"])
 
 		self._graph_cache.load(graphs_rows)
 		noderows = []
@@ -4776,7 +4861,9 @@ class Engine(AbstractEngine, Executor):
 	) -> None:
 		if name in self.illegal_graph_names:
 			raise GraphNameError("Illegal name")
-		now = self._btt()
+		branch, turn, tick = self._btt()
+		if (turn, tick) != (0, 0):
+			branch, turn, tick = self._nbtt()
 		for rbcache, rbname in [
 			(self._characters_rulebooks_cache, "character_rulebook"),
 			(self._units_rulebooks_cache, "unit_rulebook"),
@@ -4794,18 +4881,17 @@ class Engine(AbstractEngine, Executor):
 			),
 		]:
 			try:
-				kf = rbcache.get_keyframe(*now)
+				kf = rbcache.get_keyframe(branch, turn, tick)
 			except KeyframeError:
 				kf = {}
-				for ch in self._graph_cache.iter_entities(*now):
+				for ch in self._graph_cache.iter_entities(branch, turn, tick):
 					# may yield this very character
 					try:
-						kf[ch] = rbcache.retrieve(ch, *now)
+						kf[ch] = rbcache.retrieve(ch, branch, turn, tick)
 					except KeyError:
 						kf[ch] = (rbname, ch)
 			kf[name] = (rbname, name)
-			rbcache.set_keyframe(*now, kf)
-		branch, turn, tick = self._btt()
+			rbcache.set_keyframe(branch, turn, tick, kf)
 		self._graph_cache.store(name, branch, turn, tick, type_s)
 		self.snap_keyframe(silent=True, update_worker_processes=False)
 		self.query.graphs_insert(name, branch, turn, tick, type_s)
@@ -4922,7 +5008,6 @@ class Engine(AbstractEngine, Executor):
 		graph: Character,
 		orig: NodeName,
 		dest: NodeName,
-		idx=0,
 	) -> portal_cls:
 		return self.portal_cls(graph, orig, dest)
 
@@ -5039,8 +5124,8 @@ class Engine(AbstractEngine, Executor):
 			for rulebok, rules in delta.pop(RULEBOOK).items():
 				rulebook[unpack(rulebok)] = unpack(rules)
 		for char, chardeltpacked in delta.items():
-			if chardeltpacked == b"\xc0":
-				delt[unpack(char)] = None
+			if chardeltpacked == ELLIPSIS:
+				delt[unpack(char)] = ...
 				continue
 			chardelt = delt[unpack(char)] = {}
 			if NODES in chardeltpacked:
@@ -5129,8 +5214,8 @@ class Engine(AbstractEngine, Executor):
 				kf_from.get(kfkey, {}).keys() | kf_to.get(kfkey, {}).keys()
 			):
 				keys.append((kfkey, k))
-				va = kf_from[kfkey].get(k)
-				vb = kf_to[kfkey].get(k)
+				va = kf_from[kfkey].get(k, ...)
+				vb = kf_to[kfkey].get(k, ...)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
@@ -5138,10 +5223,22 @@ class Engine(AbstractEngine, Executor):
 		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
 			a = kf_from["graph_val"].get(graph, {})
 			b = kf_to["graph_val"].get(graph, {})
-			for k in a.keys() | b.keys():
+			key_union = a.keys() | b.keys()
+			if "units" in key_union:
+				units_a = a.get("units", {})
+				units_b = b.get("units", {})
+				for g in units_a.keys() | units_b.keys():
+					keys.append(("units", graph, g))
+					va = frozenset(units_a.get(g, {}).keys())
+					vb = frozenset(units_b.get(g, {}).keys())
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
+			for k in (a.keys() | b.keys()) - {"units"}:
 				keys.append(("graph", graph, k))
-				va = a.get(k)
-				vb = b.get(k)
+				va = a.get(k, ...)
+				vb = b.get(k, ...)
 				ids_from.append(id(va))
 				ids_to.append(id(vb))
 				values_from.append(va)
@@ -5157,8 +5254,8 @@ class Engine(AbstractEngine, Executor):
 				b = kf_to["node_val"].get(graph, {}).get(node, {})
 				for k in a.keys() | b.keys():
 					keys.append(("node", graph, node, k))
-					va = a.get(k)
-					vb = b.get(k)
+					va = a.get(k, ...)
+					vb = b.get(k, ...)
 					ids_from.append(id(va))
 					ids_to.append(id(vb))
 					values_from.append(va)
@@ -5188,8 +5285,8 @@ class Engine(AbstractEngine, Executor):
 				)
 				for k in a.keys() | b.keys():
 					keys.append(("edge", graph, orig, dest, k))
-					va = a.get(k)
-					vb = b.get(k)
+					va = a.get(k, ...)
+					vb = b.get(k, ...)
 					ids_from.append(id(va))
 					ids_to.append(id(vb))
 					values_from.append(va)
@@ -5198,30 +5295,45 @@ class Engine(AbstractEngine, Executor):
 		def pack_one(k, va, vb, deleted_nodes, deleted_edges):
 			if va == vb:
 				return
-			v = pack(vb)
 			match k:
 				case "universal", key:
 					key = pack(key)
-					delta[UNIVERSAL][key] = v
+					delta[UNIVERSAL][key] = pack(vb)
 				case "triggers", rule:
-					delta[RULES][pack(rule)][TRIGGERS] = v
+					delta[RULES][pack(rule)][TRIGGERS] = pack(vb)
 				case "prereqs", rule:
-					delta[RULES][pack(rule)][PREREQS] = v
+					delta[RULES][pack(rule)][PREREQS] = pack(vb)
 				case "actions", rule:
-					delta[RULES][pack(rule)][ACTIONS] = v
+					delta[RULES][pack(rule)][ACTIONS] = pack(vb)
 				case "neighborhood", rule:
-					delta[RULES][pack(rule)][NEIGHBORHOOD] = v
+					delta[RULES][pack(rule)][NEIGHBORHOOD] = pack(vb)
 				case "big", rule:
-					delta[RULES][pack(rule)][BIG] = v
+					delta[RULES][pack(rule)][BIG] = pack(vb)
 				case "rulebook", rulebook:
-					delta[RULEBOOK][pack(rulebook)] = v
+					delta[RULEBOOK][pack(rulebook)] = pack(vb)
+				case "units", char, graph:
+					va: frozenset[NodeName]
+					vb: frozenset[NodeName]
+					charpacked = pack(char)
+					unit_delta = {}
+					for k in vb - va:
+						unit_delta[k] = True
+					for k in va - vb:
+						unit_delta[k] = False
+					if charpacked in delta:
+						if UNITS in delta[charpacked]:
+							delta[charpacked][UNITS][graph] = unit_delta
+						else:
+							delta[charpacked][UNITS] = {graph: unit_delta}
+					else:
+						delta[charpacked] = {UNITS: {graph: unit_delta}}
 				case "node", graph, node, key:
 					if graph in deleted_nodes and node in deleted_nodes[graph]:
 						return
 					graph, node, key = map(pack, (graph, node, key))
 					if graph not in delta:
 						delta[graph] = newgraph()
-					delta[graph][NODE_VAL][node][key] = v
+					delta[graph][NODE_VAL][node][key] = pack(vb)
 				case "edge", graph, orig, dest, key:
 					if (graph, orig, dest) in deleted_edges:
 						return
@@ -5230,12 +5342,12 @@ class Engine(AbstractEngine, Executor):
 					)
 					if graph not in delta:
 						delta[graph] = newgraph()
-					delta[graph][EDGE_VAL][orig][dest][key] = v
+					delta[graph][EDGE_VAL][orig][dest][key] = pack(vb)
 				case "graph", graph, key:
 					graph, key = map(pack, (graph, key))
 					if graph not in delta:
 						delta[graph] = newgraph()
-					delta[graph][key] = v
+					delta[graph][key] = pack(vb)
 
 		def pack_node(graph, node, existence):
 			grap, node = map(pack, (graph, node))
@@ -5284,7 +5396,7 @@ class Engine(AbstractEngine, Executor):
 			for graf in (
 				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
 			):
-				delta[self.pack(graf)] = NONE
+				delta[self.pack(graf)] = ELLIPSIS
 			for graph in nodes_intersection:
 				for node in (
 					kf_to["nodes"][graph].keys()
@@ -5310,7 +5422,7 @@ class Engine(AbstractEngine, Executor):
 			for deleted in (
 				kf_from["graph_val"].keys() - kf_to["graph_val"].keys()
 			):
-				delta[pack(deleted)] = NONE
+				delta[pack(deleted)] = ELLIPSIS
 			futwait(futs)
 		if not delta[UNIVERSAL]:
 			del delta[UNIVERSAL]
@@ -5331,9 +5443,14 @@ class Engine(AbstractEngine, Executor):
 		if not delta[RULES]:
 			del delta[RULES]
 		for key, mapp in delta.items():
-			if key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL} or mapp == NONE:
+			if (
+				key in {RULES, RULEBOOKS, ETERNAL, UNIVERSAL}
+				or mapp == ELLIPSIS
+			):
 				continue
 			todel = []
+			if UNITS in mapp:
+				mapp[UNITS] = pack(mapp[UNITS])
 			for keey, mappp in mapp.items():
 				if not mappp:
 					todel.append(keey)
@@ -5608,9 +5725,9 @@ class Engine(AbstractEngine, Executor):
 					self.eternal.items()
 				)
 				eternal_delta = {
-					k: new_eternal.get(k)
+					k: new_eternal.get(k, ...)
 					for k in old_eternal.keys() | new_eternal.keys()
-					if old_eternal.get(k) != new_eternal.get(k)
+					if old_eternal.get(k, ...) != new_eternal.get(k, ...)
 				}
 				if (branch_from, turn_from, tick_from) in deltas:
 					delt = deltas[branch_from, turn_from, tick_from]
@@ -5679,9 +5796,9 @@ class Engine(AbstractEngine, Executor):
 		old_eternal = self._worker_last_eternal
 		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
 		eternal_delta = {
-			k: new_eternal.get(k)
+			k: new_eternal.get(k, ...)
 			for k in old_eternal.keys() | new_eternal.keys()
-			if old_eternal.get(k) != new_eternal.get(k)
+			if old_eternal.get(k, ...) != new_eternal.get(k, ...)
 		}
 		if branch_from == self.branch:
 			delt = self._get_branch_delta(
@@ -6413,18 +6530,18 @@ class Engine(AbstractEngine, Executor):
 		"""
 		# make sure the graph exists before deleting
 		graph = self.character[name]
-		with self.batch():
+		with self.batch(), self._graph_val_cache.overwriting():
 			now = self._nbtt()
 			for orig in list(graph.adj):
 				for dest in list(graph.adj[orig]):
-					graph.adj[orig][dest]._delete(now=now)
+					now = graph.adj[orig][dest]._delete(now=now)
 			for node in list(graph.node):
 				if node in graph.node:
-					graph.node[node]._delete(now=now)
+					now = graph.node[node]._delete(now=now)
 			for stat in set(graph.graph) - {"name", "units"}:
 				self._graph_val_cache.store(name, stat, *now, None)
 				self.query.graph_val_set(name, stat, *now, None)
-			self._graph_cache.store(name, *now, None)
+			self._graph_cache.store(name, *now, ...)
 			self.query.graphs_insert(name, *now, "Deleted")
 			self._graph_cache.keycache.clear()
 		if hasattr(self, "_worker_processes"):
@@ -6482,7 +6599,7 @@ class Engine(AbstractEngine, Executor):
 				char, branch, turn, tick, char_kf
 			)
 		for char, kf in user_kf.items():
-			self._unitness_cache.user_cache.set_keyframe(
+			self._unitness_cache.leader_cache.set_keyframe(
 				char, branch, turn, tick, user_kf
 			)
 		rbnames = list(self._rulebooks_cache.iter_keys(branch, turn, tick))
@@ -6577,7 +6694,7 @@ class Engine(AbstractEngine, Executor):
 		):
 			kf = {
 				ch: rbcache.retrieve(ch, branch, turn, tick)
-				for ch in rbcache.iter_entities(branch, turn, tick)
+				for ch in all_graphs
 			}
 			rbcache.set_keyframe(branch, turn, tick, kf)
 		self.query.keyframe_extension_insert(
@@ -6688,7 +6805,7 @@ class Engine(AbstractEngine, Executor):
 		self._unitness_cache.set_keyframe(graph, branch, turn, tick, units_kf)
 		for char, units in units_kf.items():
 			try:
-				user_kf = self._unitness_cache.user_cache.get_keyframe(
+				user_kf = self._unitness_cache.leader_cache.get_keyframe(
 					char, branch, turn, tick, copy=True
 				)
 			except KeyframeError:
@@ -6698,7 +6815,7 @@ class Engine(AbstractEngine, Executor):
 					user_kf[unit] |= frozenset([graph])
 				else:
 					user_kf[unit] = frozenset([graph])
-			self._unitness_cache.user_cache.set_keyframe(
+			self._unitness_cache.leader_cache.set_keyframe(
 				char, branch, turn, tick, user_kf
 			)
 		node_rb_kf = {}

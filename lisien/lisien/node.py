@@ -22,26 +22,26 @@ have a lot in common.
 from __future__ import annotations
 
 from collections.abc import Mapping, Set, ValuesView
-from typing import Iterator, List, Optional, TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 
 from networkx import shortest_path, shortest_path_length
 
 from . import graph, rule
-from .exc import AmbiguousUserError
+from .exc import AmbiguousLeaderError
 from .facade import FacadePlace, FacadeThing
 from .query import EntityStatAlias
-from .typing import (
+from .rule import RuleMapping
+from .types import (
 	CharName,
-	NodeName,
 	Key,
-	Time,
+	NodeName,
 	RulebookName,
 	Stat,
-	Value,
+	Time,
 	Turn,
+	Value,
 )
 from .util import AbstractThing, getatt
-from .rule import RuleMapping
 
 if TYPE_CHECKING:
 	from .character import Character
@@ -49,7 +49,7 @@ if TYPE_CHECKING:
 	from .portal import Portal
 
 
-class UserMapping(Mapping):
+class LeaderMapping(Mapping):
 	"""A mapping of the characters that have a particular node as a unit.
 
 	Getting characters from here isn't any better than getting them from
@@ -70,38 +70,40 @@ class UserMapping(Mapping):
 
 	def _user_names(self) -> frozenset[CharName]:
 		try:
-			return self.engine._unitness_cache.user_cache.retrieve(
+			return self.engine._unitness_cache.leader_cache.retrieve(
 				self.node.character.name, self.node.name, *self.engine._btt()
 			)
 		except KeyError:
 			return frozenset()
 
 	@property
-	def only(self) -> Node:
-		"""If there's only one user, return it.
+	def only(self) -> Character:
+		"""If there's only one leader, return it.
 
-		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
+		Otherwise, raise ``AmbiguousLeaderError``, a type of ``AttributeError``.
 
 		"""
-		if len(self) != 1:
-			raise AmbiguousUserError(
+		user_names = self._user_names()
+		if len(user_names) != 1:
+			raise AmbiguousLeaderError(
 				"No users, or more than one",
 				self.node.name,
 				*self.engine._btt(),
-				dict(self),
+				user_names,
 			)
-		return next(iter(self.values()))
+		user_name = next(iter(user_names))
+		return self.engine.character[user_name]
 
 	def __iter__(self) -> Iterator[CharName]:
 		yield from self._user_names()
 
 	def __contains__(self, item: CharName) -> bool:
-		return item in self.engine._unitness_cache.user_cache.retrieve(
+		return item in self.engine._unitness_cache.leader_cache.retrieve(
 			self.node.character.name, self.node.name, *self.engine._btt()
 		)
 
 	def __len__(self) -> int:
-		return len(set(self._user_names()))
+		return len(self._user_names())
 
 	def __bool__(self) -> bool:
 		for _ in self._user_names():
@@ -314,10 +316,10 @@ class Portals(Set):
 		btt = btt_f()
 		for dest in edges_cache.iter_successors(charname, name, *btt):
 			if edges_cache.has_successor(charname, name, dest, *btt):
-				yield get_edge(character, name, dest, 0)
+				yield get_edge(character, name, dest)
 		for orig in edges_cache.iter_predecessors(charname, name, *btt):
 			if edges_cache.has_predecessor(charname, name, orig, *btt):
-				yield get_edge(character, orig, name, 0)
+				yield get_edge(character, orig, name)
 
 
 class NeighborValues(ValuesView):
@@ -427,12 +429,12 @@ class Node(graph.Node, rule.RuleFollower):
 
 	successor = succ = adj = edge = getatt("portal")
 	predecessor = pred = getatt("preportal")
-	engine = getatt("db")
+	engine: Engine = getatt("db")
 
 	@property
-	def user(self) -> UserMapping:
-		__doc__ = UserMapping.__doc__
-		return UserMapping(self)
+	def leader(self) -> LeaderMapping:
+		__doc__ = LeaderMapping.__doc__
+		return LeaderMapping(self)
 
 	def __init__(self, character: "Character", name: NodeName):
 		super().__init__(character, name)
@@ -573,35 +575,45 @@ class Node(graph.Node, rule.RuleFollower):
 		"""
 		self._delete()
 
-	def _delete(self, *, now: Optional[Time] = None) -> None:
+	def _delete(self, *, now: Optional[Time] = None) -> Time:
 		engine = self.engine
-		with engine.world_lock, engine.batch():
+		with (
+			engine.world_lock,
+			engine.batch(),
+			engine._nodes_cache.overwriting(),
+			engine._node_val_cache.overwriting(),
+			engine._unitness_cache.overwriting(),
+		):
+			if now is None:
+				now = engine._nbtt()
 			character = self.character
 			g = character.name
 			n = self.name
 			for contained in list(self.contents()):
-				contained._delete()
-			for username in list(self.user):
+				contained._delete(now)
 				now = engine._nbtt()
-				engine._unitness_cache.store(username, g, n, *now, False)
-				engine.query.unit_set(username, g, n, *now, False)
 			if n in character.portal:
 				for port in list(character.portal[n].values()):
-					port._delete()
+					port._delete(now=now)
+					now = engine._nbtt()
 			if n in character.preportal:
 				for port in list(character.preportal[n].values()):
-					port._delete()
-			if now is None:
-				now = engine._nbtt()
+					port._delete(now=now)
+					now = engine._nbtt()
+			for username in list(self.leader):
+				engine._unitness_cache.store(username, g, n, *now, False)
+				engine.query.unit_set(username, g, n, *now, False)
 			for k in self:
 				assert k != "name"
 				if k != "location":
-					self._set_cache(k, *now, None)
-					self._set_db(k, *now, None)
-			engine._exist_node(g, n, False, now=now)
+					self._del_cache(k, *now)
+					self._del_db(k, *now)
+			engine._nodes_cache.store(g, n, *now, False)
+			engine.query.exist_node(g, n, *now, False)
 			self.character.node.send(
 				self.character.node, key=self.name, val=None
 			)
+			return now
 
 	def add_portal(self, other: NodeName | Node, **stats) -> None:
 		"""Connect a portal from here to another node"""
@@ -714,7 +726,7 @@ class Thing(Node, AbstractThing):
 		ret = self.engine._things_cache._base_retrieve(
 			(self.character.name, self.name, *self.engine._btt())
 		)
-		if ret is None or isinstance(ret, Exception):
+		if ret is ... or isinstance(ret, Exception):
 			return None
 		return ret
 
@@ -769,15 +781,18 @@ class Thing(Node, AbstractThing):
 	def facade(self) -> FacadeThing:
 		return FacadeThing(self.character.facade(), self)
 
-	def _delete(self, now: Optional[Time] = None) -> None:
-		with self.engine.world_lock, self.engine.batch():
-			if now is None:
-				now = self.engine._nbtt()
-			super()._delete(now=now)
+	def _delete(self, now: Optional[Time] = None) -> Time:
+		with (
+			self.engine.world_lock,
+			self.engine.batch(),
+			self.engine._things_cache.overwriting(),
+		):
+			now = super()._delete(now=now)
 			# don't advance time to store my non-location
 			self.engine._things_cache.store(
-				self.character.name, self.name, *now, None
+				self.character.name, self.name, *now, ...
 			)
 			self.engine.query.set_thing_loc(
-				self.character.name, self.name, *now, None
+				self.character.name, self.name, *now, ...
 			)
+			return now

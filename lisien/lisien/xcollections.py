@@ -42,7 +42,7 @@ from astunparse import Unparser
 from blinker import Signal
 
 from .graph import GraphsMapping
-from .typing import CharName
+from .types import CharName, Key
 from .util import AbstractEngine, dedent_source, getatt
 from .wrap import wrapval
 
@@ -487,9 +487,9 @@ class UniversalMapping(MutableMapping, Signal):
 	def __delitem__(self, k):
 		"""Unset this key for the present (branch, tick)"""
 		branch, turn, tick = self.engine._nbtt()
-		self.engine._universal_cache.store(k, branch, turn, tick, None)
+		self.engine._universal_cache.store(k, branch, turn, tick, ...)
 		self.engine.query.universal_del(k, branch, turn, tick)
-		self.send(self, key=k, val=None)
+		self.send(self, key=k, val=...)
 
 
 class CharacterMapping(GraphsMapping, Signal):
@@ -509,7 +509,7 @@ class CharacterMapping(GraphsMapping, Signal):
 		GraphsMapping.__init__(self, orm)
 		Signal.__init__(self)
 
-	def __getitem__(self, name: CharName) -> "Character":
+	def __getitem__(self, name: Key | CharName) -> "Character":
 		"""Return the named character, if it's been created.
 
 		Try to use the cache if possible.
@@ -517,6 +517,7 @@ class CharacterMapping(GraphsMapping, Signal):
 		"""
 		from .character import Character
 
+		name = CharName(name)
 		if name not in self:
 			raise KeyError("No such character", name)
 		cache = self.engine._graph_objs

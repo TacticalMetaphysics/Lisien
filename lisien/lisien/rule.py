@@ -84,30 +84,30 @@ from abc import ABC, abstractmethod
 from ast import parse
 from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
 from functools import cached_property, partial
-from typing import Callable, Optional, Any, TYPE_CHECKING, Literal, Iterator
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
 
 from astunparse import unparse
 from blinker import Signal
 
-from .cache import InitializedEntitylessCache
-from .util import AbstractEngine, dedent_source
-from .typing import (
-	RulebookName,
-	RuleName,
-	RuleFuncName,
+from .cache import FuncListCache
+from .types import (
+	ActionFuncName,
 	Branch,
-	Turn,
+	Key,
+	PrereqFuncName,
+	RuleBig,
+	RulebookName,
+	RulebookPriority,
+	RuleFunc,
+	RuleFuncName,
+	RuleName,
+	RuleNeighborhood,
 	Tick,
 	TriggerFuncName,
-	PrereqFuncName,
-	ActionFuncName,
-	RuleNeighborhood,
-	RuleBig,
-	RuleFunc,
-	RulebookPriority,
-	Key,
+	Turn,
 	Value,
 )
+from .util import AbstractEngine, dedent_source
 from .xcollections import FunctionStore
 
 if TYPE_CHECKING:
@@ -124,7 +124,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 
 	__slots__ = ["rule"]
 	_funcstore: FunctionStore
-	_cache: InitializedEntitylessCache
+	_cache: FuncListCache
 	_setter: Callable[[RuleName, Branch, Turn, Tick, list[RuleFuncName]], None]
 
 	def __init__(self, rule: Rule):
@@ -598,7 +598,7 @@ class RuleBook(MutableSequence, Signal):
 	@priority.setter
 	def priority(self, v: float | RulebookPriority):
 		v = RulebookPriority(float(v))
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine._nbtt()
 		cache, _ = self._get_cache(branch, turn, tick)
 		self._set_cache(branch, turn, tick, (cache, v))
 		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache, v)

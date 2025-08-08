@@ -79,88 +79,46 @@ def test_keyframe_load(db):
 			graph.name, nodes_kf["trunk"][0][0]
 		)
 		edges_kf = db._edges_cache.keyframe
-		if graph.is_multigraph():
-			for orig in graph.adj:
-				for dest in graph.adj[orig]:
-					assert (
-						graph.name,
-						orig,
-						dest,
-					) in edges_kf, "{} not in edges cache".format(
+		for orig in graph.adj:
+			for dest in graph.adj[orig]:
+				assert (
+					graph.name,
+					orig,
+					dest,
+				) in edges_kf, "{} not in edges cache".format(
+					(graph.name, orig, dest)
+				)
+				this_edge = edges_kf[graph.name, orig, dest]
+				assert "trunk" in this_edge, (
+					"trunk branch not in edges cache for {}".format(
 						(graph.name, orig, dest)
 					)
-					this_edge = edges_kf[graph.name, orig, dest]
-					assert "trunk" in this_edge, (
-						"trunk branch not in edges cache for {}".format(
-							(graph.name, orig, dest)
-						)
-					)
-					assert this_edge["trunk"].rev_gettable(0), (
-						"turn 0 not in trunk branch of edges cache for {}".format(
-							(graph.name, orig, dest)
-						)
-					)
-					assert this_edge["trunk"][0].rev_gettable(0), (
-						"tick 0 not in turn 0 of trunk branch of edges cache for {}".format(
-							(graph.name, orig, dest)
-						)
-					)
-					assert db._edges_cache.keyframe[graph.name, orig, dest][
-						"trunk"
-					][0][0] == {idx: True for idx in graph.adj[orig][dest]}, (
-						"{} not loaded".format((graph.name, orig, dest))
-					)
-		else:
-			for orig in graph.adj:
-				for dest in graph.adj[orig]:
-					assert (
-						graph.name,
-						orig,
-						dest,
-					) in edges_kf, "{} not in edges cache".format(
+				)
+				assert this_edge["trunk"].rev_gettable(0), (
+					"turn 0 not in trunk branch of edges cache for {}".format(
 						(graph.name, orig, dest)
 					)
-					this_edge = edges_kf[graph.name, orig, dest]
-					assert "trunk" in this_edge, (
-						"trunk branch not in edges cache for {}".format(
-							(graph.name, orig, dest)
-						)
-					)
-					assert this_edge["trunk"].rev_gettable(0), (
-						"turn 0 not in trunk branch of edges cache for {}".format(
-							(graph.name, orig, dest)
-						)
-					)
-					assert this_edge["trunk"][0].rev_gettable(0), (
-						"tick 0 not in turn 0 of trunk branch of edges cache for {}".format(
-							(graph.name, orig, dest)
-						)
-					)
-					assert db._edges_cache.keyframe[graph.name, orig, dest][
-						"trunk"
-					][0][0] == {0: True}, "{} not loaded".format(
+				)
+				assert this_edge["trunk"][0].rev_gettable(0), (
+					"tick 0 not in turn 0 of trunk branch of edges cache for {}".format(
 						(graph.name, orig, dest)
 					)
+				)
+				assert db._edges_cache.keyframe[graph.name, orig, dest][
+					"trunk"
+				][0][0] == {0: True}, "{} not loaded".format(
+					(graph.name, orig, dest)
+				)
 		for node, vals in graph.nodes.items():
 			assert (
 				db._node_val_cache.keyframe[graph.name, node]["trunk"][0][0]
 				== vals
 			)
 		for edge in graph.edges:
-			if graph.is_multigraph():
-				assert (
-					db._edge_val_cache.keyframe[(graph.name,) + edge]["trunk"][
-						0
-					][0]
-					== graph.edges[edge]
-				)
-			else:
-				assert (
-					db._edge_val_cache.keyframe[(graph.name,) + edge + (0,)][
-						"trunk"
-					][0][0]
-					== graph.edges[edge]
-				)
+			assert (
+				db._edge_val_cache.keyframe[(graph.name, *edge)]["trunk"][0][0]
+				== graph.edges[edge]
+			)
 
 
 def test_keyframe_unload(tmp_path, execution, non_null_database):

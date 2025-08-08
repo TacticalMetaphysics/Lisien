@@ -55,11 +55,7 @@ class NonUniqueError(RuntimeError):
 	"""You tried to look up the only one of something but there wasn't just one"""
 
 
-class AmbiguousAvatarError(NonUniqueError, KeyError):
-	"""An AvatarMapping can't decide what you want."""
-
-
-class AmbiguousUserError(NonUniqueError, AttributeError):
+class AmbiguousLeaderError(NonUniqueError, AttributeError):
 	"""A user descriptor can't decide what you want."""
 
 

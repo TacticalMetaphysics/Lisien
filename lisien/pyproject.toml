@@ -9,14 +9,14 @@ packages = ["lisien", "lisien.examples", "lisien.proxy", "lisien.server", "lisie
 
 [project]
 name = "lisien"
-version = "0.20.1"
+version = "0.20.2"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
 description = "Life Simulator Engine"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.10,<3.14"
+requires-python = "~=3.10"
 classifiers = [
 	"Programming Language :: Python :: 3",
 	"License :: OSI Approved :: GNU Affero General Public License v3",
@@ -25,14 +25,14 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"astunparse>=1.6.3,<2",
-	"blinker>=1.4,<2",
-	"msgpack>=1.0.0,<2",
-	"networkx>=2.4,<4",
-	"sqlalchemy>=1.4,<3",
-	"numpy>=1.19.5,<3",
-	"tblib>=1.7.0,<4",
-	"parquetdb==1.0.1",
+	"astunparse~=1.6.3",
+	"blinker~=1.4",
+	"msgpack~=1.0.0",
+	"networkx~=2.4",
+	"sqlalchemy~=2.0",
+	"numpy~=1.26.4",
+	"tblib~=1.7.0",
+	"parquetdb~=1.0.1",
 	"annotated-types~=0.7.0"
 ]
 

@@ -27,7 +27,7 @@ def set_in_mapping(mapp, stat, v):
 	# because this could trigger side effects
 	if stat == "name":
 		return
-	if v is None:
+	if v is ...:
 		del mapp[stat]
 		return
 	if stat not in mapp:
@@ -57,7 +57,7 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 
 	def update(d, dd):
 		for k, v in dd.items():
-			if v is None and k in d:
+			if v is ... and k in d:
 				del d[k]
 			else:
 				d[k] = v
@@ -65,14 +65,14 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 	end_stats = dict(char.stat)
 	for stat, v in stat:
 		set_in_mapping(char.stat, stat, v)
-		if v is None and stat in end_stats:
+		if v is ... and stat in end_stats:
 			del end_stats[stat]
 		else:
 			end_stats[stat] = v
 	end_places = dict(char.place)
 	end_things = dict(char.thing)
 	for node, v in nodes:
-		if v is None:
+		if v is ...:
 			del char.node[node]
 			if node in end_places:
 				del end_places[node]
@@ -130,7 +130,7 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 		for dest, port in dests.items():
 			here[dest] = dict(port)
 	for o, d, v in portals:
-		if v is None:
+		if v is ...:
 			del char.edge[o][d]
 			del end_edges[o][d]
 		else:

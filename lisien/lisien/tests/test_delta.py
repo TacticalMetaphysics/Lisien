@@ -25,15 +25,14 @@ def test_character_existence_delta(null_engine, codepath):
 		"character_rulebook": ("character_rulebook", 3),
 		"character_thing_rulebook": ("character_thing_rulebook", 3),
 		"unit_rulebook": ("unit_rulebook", 3),
-		"units": {},
 	}
-	assert 2 in delta0 and delta0[2] is None
+	assert 2 in delta0 and delta0[2] is ...
 	delta1 = eng.get_delta(
 		("trunk", 1, 1),
 		("branch", 1) if codepath == "slow-delta" else ("trunk", eng.turn),
 	)
 	assert 2 in delta1
-	assert delta1[2] is None
+	assert delta1[2] is ...
 
 
 def test_unit_delta(null_engine, codepath):
@@ -67,7 +66,34 @@ def test_unit_delta(null_engine, codepath):
 
 
 def test_character_stat_delta(null_engine, codepath):
-	pass
+	eng = null_engine
+	one = eng.new_character(1)
+	two = eng.new_character(2)
+	one.stat[3] = 4
+	one.stat[5] = 6
+	one.stat[7] = 8
+	two.stat[11] = 12
+	time_a = tuple(eng.time)
+	if codepath == "branch-delta":
+		eng.next_turn()
+	else:
+		eng.branch = "branch"
+	del one.stat[3]
+	del one.stat[5]
+	two.stat[9] = 10
+	time_b = tuple(eng.time)
+	delta0 = eng.get_delta(time_a, time_b)
+	assert delta0[1][3] is ...
+	assert delta0[1][5] is ...
+	assert 7 not in delta0[1]
+	assert delta0[2][9] == 10
+	assert 11 not in delta0[2]
+	delta1 = eng.get_delta(time_b, time_a)
+	assert delta1[1][3] == 4
+	assert delta1[1][5] == 6
+	assert 7 not in delta1[1]
+	assert delta1[2][9] is ...
+	assert 11 not in delta1[2]
 
 
 def test_node_existence_delta(null_engine, codepath):
@@ -98,7 +124,32 @@ def test_node_existence_delta(null_engine, codepath):
 
 
 def test_node_stat_delta(null_engine, codepath):
-	pass
+	eng = null_engine
+	ch = eng.new_character("me")
+	one = ch.new_place(1)
+	two = ch.new_place(2)
+	one[3] = 4
+	two[5] = 6
+	two[11] = 0
+	one[7] = 8
+	one[9] = 10
+	time_a = tuple(eng.time)
+	if codepath == "slow-delta":
+		eng.branch = "branch"
+	else:
+		eng.next_turn()
+	del one[7]
+	del one[9]
+	two[11] = 12
+	two[13] = 14
+	time_b = tuple(eng.time)
+	delta0 = eng.get_delta(time_a, time_b)
+	assert delta0["me"]["node_val"] == {
+		1: {7: ..., 9: ...},
+		2: {11: 12, 13: 14},
+	}
+	delta1 = eng.get_delta(time_b, time_a)
+	assert delta1["me"]["node_val"] == {1: {7: 8, 9: 10}, 2: {11: 0, 13: ...}}
 
 
 def test_portal_existence_delta(null_engine, codepath):

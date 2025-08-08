@@ -1,3 +1,14 @@
+== 0.20.2 | 2025-08-03 ==
+* Overhauled the internal `WindowDict` class and its relatives, ruling out
+  a bunch of race conditions that caused intermittent crashes
+* Made deltas behave more consistently, ruling out some types of data loss
+* Overhauled the tracking of units and users
+* Made entity deletion *really* atomic, this time
+* Fixed keyframe snaps sometimes happening after a change had been recorded
+  to the database, but before it had been cached, resulting in the loss of
+  a single change to the game state
+* Fixed deleting keyframes
+
 == 0.20.1 | 2025-07-17 ==
 * Unify the fast delta code, fixing some changes getting left out of deltas
 * Fix tracking of units' users

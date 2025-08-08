@@ -43,21 +43,21 @@ from operator import (
 from random import Random
 from textwrap import dedent
 from time import monotonic
-from types import FunctionType, MethodType, TracebackType, ModuleType
+from types import FunctionType, MethodType, ModuleType, TracebackType
 from typing import (
+	TYPE_CHECKING,
+	Annotated,
 	Any,
 	Callable,
 	Hashable,
 	Iterable,
+	Iterator,
 	KeysView,
 	MutableMapping,
 	Optional,
 	Sequence,
 	Type,
 	TypeVar,
-	Iterator,
-	Annotated,
-	TYPE_CHECKING,
 )
 
 import msgpack
@@ -69,12 +69,16 @@ from tblib import Traceback
 
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
-from .graph import DiGraph, Edge, Node, GraphMapping
-from .typing import (
+from .graph import DiGraph, Edge, GraphMapping, Node
+from .types import (
 	Branch,
 	CharName,
+	EdgeValDict,
 	EternalKey,
 	NodeName,
+	NodeValDict,
+	RulebookName,
+	RuleName,
 	Stat,
 	Tick,
 	Time,
@@ -82,20 +86,17 @@ from .typing import (
 	Turn,
 	UniversalKey,
 	Value,
-	NodeValDict,
-	EdgeValDict,
-	RulebookName,
-	RuleName,
 )
 from .wrap import SpecialMapping
 
 if TYPE_CHECKING:
-	from .rule import RuleBook, Rule
+	from .rule import Rule, RuleBook
 	from .xcollections import FunctionStore
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
 NONE: bytes = msgpack.packb(None)
+ELLIPSIS: bytes = b"\xc7\x00{"
 NAME: bytes = msgpack.packb("name")
 NODES: bytes = msgpack.packb("nodes")
 EDGES: bytes = msgpack.packb("edges")
@@ -148,6 +149,7 @@ class MsgpackExtensionType(Enum):
 	place = 0x7E
 	thing = 0x7D
 	portal = 0x7C
+	ellipsis = 0x7B
 	function = 0x7A
 	method = 0x79
 	trigger = 0x78
@@ -557,6 +559,9 @@ class AbstractEngine(ABC):
 		except ImportError:
 			pass
 		handlers = {
+			type(...): lambda _: msgpack.ExtType(
+				MsgpackExtensionType.ellipsis.value, b""
+			),
 			nx.Graph: lambda graf: msgpack.ExtType(
 				MsgpackExtensionType.graph.value,
 				packer(
@@ -723,8 +728,7 @@ class AbstractEngine(ABC):
 			"NetworkXUnfeasible": nx.exception.NetworkXUnfeasible,
 			# lisien exceptions
 			"NonUniqueError": exc.NonUniqueError,
-			"AmbiguousAvatarError": exc.AmbiguousAvatarError,
-			"AmbiguousUserError": exc.AmbiguousUserError,
+			"AmbiguousUserError": exc.AmbiguousLeaderError,
 			"RulesEngineError": exc.RulesEngineError,
 			"RuleError": exc.RuleError,
 			"RedundantRuleError": exc.RedundantRuleError,
@@ -794,6 +798,7 @@ class AbstractEngine(ABC):
 			return getattr(store, unpacked)
 
 		handlers = {
+			MsgpackExtensionType.ellipsis.value: lambda _: ...,
 			MsgpackExtensionType.graph.value: unpack_graph,
 			MsgpackExtensionType.character.value: unpack_char,
 			MsgpackExtensionType.place.value: unpack_place,
@@ -846,6 +851,9 @@ class AbstractEngine(ABC):
 	def _get_node(
 		self, char: AbstractCharacter | CharName, node: NodeName
 	) -> Node: ...
+
+	@abstractmethod
+	def _btt(self) -> tuple[Branch, Turn, Tick]: ...
 
 	def branches(self) -> KeysView:
 		return self._branches_d.keys()
@@ -976,18 +984,31 @@ class AbstractEngine(ABC):
 			comparator = comps[comparator]
 		return comparator(sum(self.dice(n, d)), target)
 
-	def percent_chance(self, pct: Annotated[int, Ge(0), Le(100)]) -> bool:
+	def chance(self, f: Annotated[float, Ge(0.0), Le(1.0)]) -> bool:
+		"""Return True or False with a given unit probability
+
+		Supply a float between 0.0 and 1.0 to express the probability--
+		or use `percent_chance`
+
+		"""
+		if f <= 0.0:
+			return False
+		if f >= 1.0:
+			return True
+		return f > self._rando.random()
+
+	def percent_chance(
+		self,
+		pct: Annotated[int, Ge(0), Le(100)]
+		| Annotated[float, Ge(0.0), Le(100.0)],
+	) -> bool:
 		"""Return True or False with a given percentile probability
 
 		Values not between 0 and 100 are treated as though they
 		were 0 or 100, whichever is nearer.
 
 		"""
-		if pct <= 0:
-			return False
-		if pct >= 100:
-			return True
-		return pct > self.randint(0, 99)
+		return self.chance(pct / 100)
 
 	betavariate = get_rando("_rando.betavariate")
 	choice = get_rando("_rando.choice")
@@ -1619,32 +1640,6 @@ def garbage(arg: callable = None, collect: bool = False):
 		return _garbage_dec(arg, collect=collect)
 
 
-def insist(condition: bool, message: str, obj: Optional[Exception] = None):
-	"""If the condition is false, raise ``obj`` or ``RuntimeError``
-
-	Analogous to ``assert``, but doesn't get stripped out in production.
-
-	"""
-	if not condition:
-		if obj is None:
-			exc = RuntimeError(message)
-		elif isinstance(obj, Exception):
-			exc = obj
-		else:
-			exc = RuntimeError(message, obj)
-		try:
-			raise exc
-		except type(exc) as exception:
-			back_frame = sys.exc_info()[2].tb_frame.f_back
-			tb = TracebackType(
-				tb_next=None,
-				tb_frame=back_frame,
-				tb_lasti=back_frame.f_lasti,
-				tb_lineno=back_frame.f_lineno,
-			)
-			raise exception.with_traceback(tb)
-
-
 def world_locked(fn: callable) -> callable:
 	"""Decorator for functions that alter the world state
 
@@ -1704,9 +1699,7 @@ class TimeSignal(Signal, Sequence):
 			self.engine.tick = Tick(v)
 		else:
 			exctyp = KeyError if isinstance(i, str) else IndexError
-			raise exctyp(
-				"Can only set branch or turn. Set `Engine.tick` directly if you really want that."
-			)
+			raise exctyp(i)
 
 	def __str__(self):
 		return str(tuple(self))

@@ -32,13 +32,22 @@ from types import MethodType
 from typing import Any, Iterator, Literal, MutableMapping, Optional
 
 import msgpack
-from sqlalchemy import MetaData, Select, create_engine
+from sqlalchemy import (
+	BLOB,
+	BOOLEAN,
+	FLOAT,
+	INT,
+	TEXT,
+	MetaData,
+	Select,
+	create_engine,
+)
 from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
-from .alchemy import gather_sql
+from .alchemy import meta, gather_sql
 from .exc import KeyframeError
-from .typing import (
+from .types import (
 	ActionFuncName,
 	Branch,
 	CharName,
@@ -63,21 +72,18 @@ from .typing import (
 	RuleName,
 	RuleNeighborhood,
 	Tick,
+	Time,
 	TimeWindow,
 	TriggerFuncName,
 	Turn,
 	UniversalKeyframe,
 	Value,
-	Time,
 )
-from .util import garbage, insist
+from .util import garbage, NONE, EMPTY, ELLIPSIS
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
 OperationalError = (LiteOperationalError, AlchemyOperationalError)
-
-NONE = msgpack.packb(None)
-EMPTY = msgpack.packb({})
 
 
 class GlobalKeyValueStore(MutableMapping):
@@ -173,301 +179,27 @@ class ParquetDBHolder(ConnectionHolder):
 	def schema(self):
 		import pyarrow as pa
 
+		sql2parquetdb_type = {
+			BLOB: pa.binary,
+			FLOAT: pa.float64,
+			TEXT: pa.string,
+			INT: pa.int64,
+			BOOLEAN: pa.bool_,
+		}
+
 		return {
-			"branches": [
-				("branch", pa.string()),
-				("parent", pa.string()),
-				("parent_turn", pa.int64()),
-				("parent_tick", pa.int64()),
-				("end_turn", pa.int64()),
-				("end_tick", pa.int64()),
-			],
-			"global": [("key", pa.binary()), ("value", pa.binary())],
-			"turns": [
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("end_tick", pa.int64()),
-				("plan_end_tick", pa.int64()),
-			],
-			"graphs": [
-				("graph", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("type", pa.string()),
-			],
-			"keyframes": [
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"keyframes_graphs": [
-				("graph", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("nodes", pa.large_binary()),
-				("edges", pa.large_binary()),
-				("graph_val", pa.large_binary()),
-			],
-			"keyframe_extensions": [
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("universal", pa.large_binary()),
-				("rule", pa.large_binary()),
-				("rulebook", pa.large_binary()),
-			],
-			"graph_val": [
-				("graph", pa.binary()),
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("value", pa.binary()),
-			],
-			"nodes": [
-				("graph", pa.binary()),
-				("node", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("extant", pa.bool_()),
-			],
-			"node_val": [
-				("graph", pa.binary()),
-				("node", pa.binary()),
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("value", pa.binary()),
-			],
-			"edges": [
-				("graph", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("idx", pa.int64()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("extant", pa.bool_()),
-			],
-			"edge_val": [
-				("graph", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("idx", pa.int64()),
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("value", pa.binary()),
-			],
-			"plans": [
-				("plan_id", pa.int64()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"plan_ticks": [
-				("plan_id", pa.int64()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"universals": [
-				("key", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("value", pa.binary()),
-			],
-			"rules": [("rule", pa.string())],
-			"rulebooks": [
-				("rulebook", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rules", pa.binary()),
-				("priority", pa.float64()),
-			],
-			"rule_triggers": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("triggers", pa.binary()),
-			],
-			"rule_neighborhood": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("neighborhood", pa.binary()),
-			],
-			"rule_big": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("big", pa.bool_()),
-			],
-			"rule_prereqs": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("prereqs", pa.binary()),
-			],
-			"rule_actions": [
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("actions", pa.binary()),
-			],
-			"character_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"unit_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"character_thing_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"character_place_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"character_portal_rulebook": [
-				("character", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"character_rules_handled": [
-				("character", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"unit_rules_handled": [
-				("character", pa.binary()),
-				("graph", pa.binary()),
-				("unit", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"character_thing_rules_handled": [
-				("character", pa.binary()),
-				("thing", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"character_place_rules_handled": [
-				("character", pa.binary()),
-				("place", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"character_portal_rules_handled": [
-				("character", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"node_rules_handled": [
-				("character", pa.binary()),
-				("node", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"portal_rules_handled": [
-				("character", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("rulebook", pa.binary()),
-				("rule", pa.string()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-			],
-			"things": [
-				("character", pa.binary()),
-				("thing", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("location", pa.binary()),
-			],
-			"node_rulebook": [
-				("character", pa.binary()),
-				("node", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"portal_rulebook": [
-				("character", pa.binary()),
-				("orig", pa.binary()),
-				("dest", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("rulebook", pa.binary()),
-			],
-			"units": [
-				("character_graph", pa.binary()),
-				("unit_graph", pa.binary()),
-				("unit_node", pa.binary()),
-				("branch", pa.string()),
-				("turn", pa.int64()),
-				("tick", pa.int64()),
-				("is_unit", pa.bool_()),
-			],
-			"turns_completed": [("branch", pa.string()), ("turn", pa.int64())],
+			name: [
+				(column.name, sql2parquetdb_type[type(column.type)]())
+				for column in table.columns
+			]
+			for (name, table) in meta.tables.items()
 		}
 
 	initial = {
 		"global": [
 			{
 				"key": b"\xb6_lisien_schema_version",
-				"value": b"\x00",
+				"value": b"\x01",
 			},
 			{"key": b"\xabmain_branch", "value": b"\xa5trunk"},
 			{"key": b"\xa6branch", "value": b"\xa5trunk"},
@@ -524,9 +256,9 @@ class ParquetDBHolder(ConnectionHolder):
 				)
 		schemaver_b = b"\xb6_lisien_schema_version"
 		ver = self.get_global(schemaver_b)
-		if ver == b"\xc0":
-			self.set_global(schemaver_b, b"\x00")
-		elif ver != b"\x00":
+		if ver == ELLIPSIS:
+			self.set_global(schemaver_b, b"\x01")
+		elif ver != b"\x01":
 			return ValueError(
 				f"Unsupported database schema version: {ver}", ver
 			)
@@ -785,7 +517,7 @@ class ParquetDBHolder(ConnectionHolder):
 		)
 		if ret:
 			return ret["value"][0].as_py()
-		return NONE
+		return ELLIPSIS
 
 	def _get_schema(self, table):
 		import pyarrow as pa
@@ -994,7 +726,7 @@ class ParquetDBHolder(ConnectionHolder):
 						pc.field("branch") == branch,
 						pc.field("turn") == turn_from,
 						pc.field("tick") >= tick_from,
-						pc.field("tick") <= tick_from,
+						pc.field("tick") < tick_from,
 					],
 					columns=self._table_columns(table),
 				).to_pylist()
@@ -1012,7 +744,7 @@ class ParquetDBHolder(ConnectionHolder):
 					if d["tick"] >= tick_from:
 						yield d
 				elif d["turn"] == turn_to:
-					if d["tick"] <= tick_to:
+					if d["tick"] < tick_to:
 						yield d
 				else:
 					yield d
@@ -1698,7 +1430,6 @@ class ParquetDBHolder(ConnectionHolder):
 				d["graph"],
 				d["orig"],
 				d["dest"],
-				d["idx"],
 				d["turn"],
 				d["tick"],
 				d["extant"],
@@ -1734,7 +1465,6 @@ class ParquetDBHolder(ConnectionHolder):
 					yield (
 						d["orig"],
 						d["dest"],
-						d["idx"],
 						d["turn"],
 						d["tick"],
 						d["extant"],
@@ -1743,7 +1473,6 @@ class ParquetDBHolder(ConnectionHolder):
 				yield (
 					d["orig"],
 					d["dest"],
-					d["idx"],
 					d["turn"],
 					d["tick"],
 					d["extant"],
@@ -1784,7 +1513,6 @@ class ParquetDBHolder(ConnectionHolder):
 				d["graph"],
 				d["orig"],
 				d["dest"],
-				d["idx"],
 				d["turn"],
 				d["tick"],
 				d["extant"],
@@ -1830,7 +1558,6 @@ class ParquetDBHolder(ConnectionHolder):
 				yield (
 					d["orig"],
 					d["dest"],
-					d["idx"],
 					d["turn"],
 					d["tick"],
 					d["extant"],
@@ -1849,7 +1576,6 @@ class ParquetDBHolder(ConnectionHolder):
 						yield (
 							d["orig"],
 							d["dest"],
-							d["idx"],
 							d["turn"],
 							d["tick"],
 							d["extant"],
@@ -1859,7 +1585,6 @@ class ParquetDBHolder(ConnectionHolder):
 						yield (
 							d["orig"],
 							d["dest"],
-							d["idx"],
 							d["turn"],
 							d["tick"],
 							d["extant"],
@@ -1868,7 +1593,6 @@ class ParquetDBHolder(ConnectionHolder):
 					yield (
 						d["orig"],
 						d["dest"],
-						d["idx"],
 						d["turn"],
 						d["tick"],
 						d["extant"],
@@ -1897,7 +1621,6 @@ class ParquetDBHolder(ConnectionHolder):
 				d["graph"],
 				d["orig"],
 				d["dest"],
-				d["idx"],
 				d["key"],
 				d["turn"],
 				d["tick"],
@@ -1934,7 +1657,6 @@ class ParquetDBHolder(ConnectionHolder):
 					yield (
 						d["orig"],
 						d["dest"],
-						d["idx"],
 						d["key"],
 						d["turn"],
 						d["tick"],
@@ -1944,7 +1666,6 @@ class ParquetDBHolder(ConnectionHolder):
 				yield (
 					d["orig"],
 					d["dest"],
-					d["idx"],
 					d["key"],
 					d["turn"],
 					d["tick"],
@@ -1986,7 +1707,6 @@ class ParquetDBHolder(ConnectionHolder):
 				d["graph"],
 				d["orig"],
 				d["dest"],
-				d["idx"],
 				d["key"],
 				d["turn"],
 				d["tick"],
@@ -2033,7 +1753,6 @@ class ParquetDBHolder(ConnectionHolder):
 				yield (
 					d["orig"],
 					d["dest"],
-					d["idx"],
 					d["key"],
 					d["turn"],
 					d["tick"],
@@ -2053,7 +1772,6 @@ class ParquetDBHolder(ConnectionHolder):
 						yield (
 							d["orig"],
 							d["dest"],
-							d["idx"],
 							d["key"],
 							d["turn"],
 							d["tick"],
@@ -2064,7 +1782,6 @@ class ParquetDBHolder(ConnectionHolder):
 						yield (
 							d["orig"],
 							d["dest"],
-							d["idx"],
 							d["key"],
 							d["turn"],
 							d["tick"],
@@ -2074,7 +1791,6 @@ class ParquetDBHolder(ConnectionHolder):
 					yield (
 						d["orig"],
 						d["dest"],
-						d["idx"],
 						d["key"],
 						d["turn"],
 						d["tick"],
@@ -3406,7 +3122,6 @@ class AbstractQueryEngine:
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -3436,7 +3151,6 @@ class AbstractQueryEngine:
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -3603,7 +3317,8 @@ class AbstractQueryEngine:
 	def mutex(self):
 		with self._holder.lock:
 			yield
-			insist(self._outq.qsize() == 0, "Unhandled items in output queue")
+			if self._outq.qsize() != 0:
+				raise RuntimeError("Unhandled items in output queue")
 
 	@mutexed
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
@@ -3657,20 +3372,17 @@ class AbstractQueryEngine:
 		)
 		unpack = self.unpack
 		outq = self._outq
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"nodes",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of nodes",
-			got,
-		)
+		got = outq.get()
+		if got != (
+			"begin",
+			"nodes",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of nodes", got)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, node, turn, tick, ex in got:
@@ -3679,45 +3391,40 @@ class AbstractQueryEngine:
 					(graph, node, branch, turn, tick, ex or None)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"nodes",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			f"Expected {('end', 'nodes', branch, turn_from, tick_from, turn_to, tick_to)}",
-			got,
-		)
+		if got != (
+			"end",
+			"nodes",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				f"Expected {('end', 'nodes', branch, turn_from, tick_from, turn_to, tick_to)}",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"edges",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of edges",
-			got,
-		)
+		got = outq.get()
+		if got != (
+			"begin",
+			"edges",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of edges", got)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
-			for graph, orig, dest, idx, turn, tick, ex in got:
+			for graph, orig, dest, turn, tick, ex in got:
 				(graph, orig, dest) = map(unpack, (graph, orig, dest))
 				ret[graph]["edges"].append(
 					(
 						graph,
 						orig,
 						dest,
-						idx,
 						branch,
 						turn,
 						tick,
@@ -3725,35 +3432,30 @@ class AbstractQueryEngine:
 					)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"edges",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of edges",
-			got,
-		)
+		if got != (
+			"end",
+			"edges",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected end of edges", got)
+
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"graph_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of graph_val",
-			got,
-		)
+		got = outq.get()
+		if got != (
+			"begin",
+			"graph_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of graph_val", got)
+
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, key, turn, tick, val in got:
@@ -3762,35 +3464,33 @@ class AbstractQueryEngine:
 					(graph, key, branch, turn, tick, val)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"graph_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of graph_val",
-			got,
-		)
+		if got != (
+			"end",
+			"graph_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of graph_val",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"node_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of node_val",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"node_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of node_val",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, node, key, turn, tick, val in got:
@@ -3799,38 +3499,36 @@ class AbstractQueryEngine:
 					(graph, node, key, branch, turn, tick, val)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"node_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of node_val",
-			got,
-		)
+		if got != (
+			"end",
+			"node_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of node_val",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"edge_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of edge_val",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"edge_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of edge_val",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
-			for graph, orig, dest, idx, key, turn, tick, val in got:
+			for graph, orig, dest, key, turn, tick, val in got:
 				(graph, orig, dest, key, val) = map(
 					unpack, (graph, orig, dest, key, val)
 				)
@@ -3839,7 +3537,6 @@ class AbstractQueryEngine:
 						graph,
 						orig,
 						dest,
-						idx,
 						key,
 						branch,
 						turn,
@@ -3848,35 +3545,33 @@ class AbstractQueryEngine:
 					)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"edge_val",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of edge_val",
-			got,
-		)
+		if got != (
+			"end",
+			"edge_val",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of edge_val",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"things",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of things",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of things",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, node, turn, tick, loc in got:
@@ -3885,35 +3580,33 @@ class AbstractQueryEngine:
 					(graph, node, branch, turn, tick, loc)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"things",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of things",
-			got,
-		)
+		if got != (
+			"end",
+			"things",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of things",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"character_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of character_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of character_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -3922,35 +3615,33 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"character_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of character_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"character_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of character_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"unit_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of unit_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of unit_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -3959,35 +3650,33 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"unit_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of unit_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"unit_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of unit_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"character_thing_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of character_thing_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"character_thing_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of character_thing_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -3996,35 +3685,33 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"character_thing_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of character_thing_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"character_thing_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of character_thing_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"character_place_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of character_place_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"character_place_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of character_place_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -4033,35 +3720,33 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"character_place_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of character_place_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"character_place_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of character_place_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"character_portal_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of character_portal_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"character_portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of character_portal_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, turn, tick, rb in got:
@@ -4070,35 +3755,31 @@ class AbstractQueryEngine:
 					(graph, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"character_portal_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of character_portal_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"character_portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of character_portal_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"node_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of node_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of node_rulebook", got)
+
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, node, turn, tick, rb in got:
@@ -4107,35 +3788,31 @@ class AbstractQueryEngine:
 					(graph, node, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"node_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of node_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"node_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected end of node_rulebook", got)
+
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"portal_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of portal_rulebook",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of portal_rulebook",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for graph, orig, dest, turn, tick, rb in got:
@@ -4144,35 +3821,33 @@ class AbstractQueryEngine:
 					(graph, orig, dest, branch, turn, tick, rb)
 				)
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"portal_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of portal_rulebook",
-			got,
-		)
+		if got != (
+			"end",
+			"portal_rulebook",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of portal_rulebook",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"universals",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of universals",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of universals",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for key, turn, tick, val in got:
@@ -4182,35 +3857,33 @@ class AbstractQueryEngine:
 				else:
 					ret["universals"] = [(key, branch, turn, tick, val)]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"universals",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of universals",
-			got,
-		)
+		if got != (
+			"end",
+			"universals",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of universals",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rulebooks",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rulebooks",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rulebooks",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rulebook, turn, tick, rules, priority in got:
@@ -4224,35 +3897,33 @@ class AbstractQueryEngine:
 						(rulebook, branch, turn, tick, (rules, priority))
 					]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rulebooks",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rulebooks",
-			got,
-		)
+		if got != (
+			"end",
+			"rulebooks",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rulebooks",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_triggers",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_triggers",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_triggers",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, triggers in got:
@@ -4266,35 +3937,33 @@ class AbstractQueryEngine:
 						(rule, branch, turn, tick, triggers)
 					]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_triggers",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_triggers",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_triggers",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_triggers",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_prereqs",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_prereqs",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_prereqs",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, prereqs in got:
@@ -4306,35 +3975,33 @@ class AbstractQueryEngine:
 				else:
 					ret["rule_prereqs"] = [(rule, branch, turn, tick, prereqs)]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_prereqs",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_prereqs",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_prereqs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_prereqs",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_actions",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_actions",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_actions",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, actions in got:
@@ -4346,35 +4013,33 @@ class AbstractQueryEngine:
 				else:
 					ret["rule_actions"] = [(rule, branch, turn, tick, actions)]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_actions",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_actions",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_actions",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_actions",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_neighborhoods",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_neighborhoods",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_neighborhoods",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, neighborhoods in got:
@@ -4388,35 +4053,33 @@ class AbstractQueryEngine:
 						(rule, branch, turn, tick, neighborhoods)
 					]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_neighborhoods",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_neighborhoods",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_neighborhoods",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_neighborhoods",
+				got,
+			)
 		outq.task_done()
-		insist(
-			(got := outq.get())
-			== (
-				"begin",
-				"rule_big",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected beginning of rule_big",
-			got,
-		)
+		if (got := outq.get()) != (
+			"begin",
+			"rule_big",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected beginning of rule_big",
+				got,
+			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
 			for rule, turn, tick, big in got:
@@ -4425,20 +4088,19 @@ class AbstractQueryEngine:
 				else:
 					ret["rule_big"] = [(rule, branch, turn, tick, big)]
 			outq.task_done()
-		insist(
-			got
-			== (
-				"end",
-				"rule_big",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			),
-			"Expected end of rule_big",
-			got,
-		)
+		if got != (
+			"end",
+			"rule_big",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError(
+				"Expected end of rule_big",
+				got,
+			)
 		outq.task_done()
 
 	@abstractmethod
@@ -5001,7 +4663,7 @@ class NullQueryEngine(AbstractQueryEngine):
 			"turn": 0,
 			"tick": 0,
 			"language": "eng",
-			"_lisien_schema_version": 0,
+			"_lisien_schema_version": 1,
 		}
 
 	def get_keyframe_extensions(
@@ -5262,7 +4924,6 @@ class NullQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -5292,7 +4953,6 @@ class NullQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -6050,7 +5710,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		try:
 			return self.unpack(self.call("get_global", self.pack(key)))
 		except KeyError:
-			return None
+			return ...
 
 	def global_set(self, key: Key, value: Any) -> None:
 		pack = self.pack
@@ -6311,7 +5971,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._new_keyframe_extensions()
 
 		self._inq.put(("echo", "flushed"))
-		insist((got := self._outq.get()) == "flushed", "Failed flush", got)
+		if (got := self._outq.get()) != "flushed":
+			raise RuntimeError("Failed flush", got)
 
 	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
 		unpack = self.unpack
@@ -6844,11 +6505,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 		)
 		self._inq.put(("echo", "rule set"))
-		insist(
-			(got := self._outq.get()) == "rule set",
-			"Failed to set rule",
-			got,
-		)
+		if (got := self._outq.get()) != "rule set":
+			raise RuntimeError("Failed to set rule", got)
 
 	def set_rulebook(
 		self,
@@ -7683,7 +7341,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(d["graph"]),
 				unpack(d["orig"]),
 				unpack(d["dest"]),
-				d["idx"],
 				d["branch"],
 				d["turn"],
 				d["tick"],
@@ -7722,12 +7379,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for orig, dest, idx, turn, tick, extant in it:
+		for orig, dest, turn, tick, extant in it:
 			yield (
 				graph,
 				unpack(orig),
 				unpack(dest),
-				idx,
 				branch,
 				turn,
 				tick,
@@ -7740,7 +7396,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -7751,7 +7406,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			branch,
 			turn,
 			tick,
@@ -7763,15 +7417,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		extant: bool,
 	) -> None:
-		self._edges2set.append(
-			(graph, orig, dest, idx, branch, turn, tick, extant)
-		)
+		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
 
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self.call("edges_del_time", branch, turn, tick)
@@ -7783,7 +7434,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(d["character"]),
 				unpack(d["orig"]),
 				unpack(d["dest"]),
-				d["idx"],
 				d["branch"],
 				d["turn"],
 				d["tick"],
@@ -7822,12 +7472,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for orig, dest, idx, key, turn, tick, value in it:
+		for orig, dest, key, turn, tick, value in it:
 			yield (
 				graph,
 				unpack(orig),
 				unpack(dest),
-				idx,
 				unpack(key),
 				branch,
 				turn,
@@ -7841,7 +7490,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -7853,7 +7501,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			pack(key),
 			branch,
 			turn,
@@ -7866,7 +7513,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -7874,7 +7520,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		value: Value,
 	) -> None:
 		self._edgevals2set.append(
-			(graph, orig, dest, idx, key, branch, turn, tick, value)
+			(graph, orig, dest, key, branch, turn, tick, value)
 		)
 
 	def edge_val_del_time(
@@ -8185,8 +7831,8 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		schemaver_b = b"\xb6_lisien_schema_version"
 		ver = self.call_one("global_get", schemaver_b).fetchone()
 		if ver is None:
-			self.call_one("global_insert", schemaver_b, b"\x00")
-		elif ver[0] != b"\x00":
+			self.call_one("global_insert", schemaver_b, b"\x01")
+		elif ver[0] != b"\x01":
 			return ValueError(
 				f"Unsupported database schema version: {ver}", ver
 			)
@@ -8394,18 +8040,16 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		extant: bool,
-	) -> tuple[bytes, bytes, bytes, int, Branch, Turn, Tick, bytes]:
+	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
 		pack = self.pack
 		return (
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			branch,
 			turn,
 			tick,
@@ -8440,7 +8084,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		idx: int,
 		key: Key,
 		branch: Branch,
 		turn: Turn,
@@ -8452,7 +8095,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			pack(key),
 			branch,
 			turn,
@@ -8629,19 +8271,19 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	@mutexed
 	def call_one(self, string, *args, **kwargs):
-		insist(
-			self._outq.unfinished_tasks == 0,
-			f"{self._outq.unfinished_tasks} unfinished tasks in output queue "
-			"before call_one",
-		)
+		if self._outq.unfinished_tasks != 0:
+			raise RuntimeError(
+				f"{self._outq.unfinished_tasks} unfinished tasks in output queue "
+				"before call_one",
+			)
 		self._inq.put(("one", string, args, kwargs))
 		ret = self._outq.get()
 		self._outq.task_done()
-		insist(
-			self._outq.unfinished_tasks == 0,
-			f"{self._outq.unfinished_tasks} unfinished tasks in output "
-			"queue after call_one",
-		)
+		if self._outq.unfinished_tasks != 0:
+			raise RuntimeError(
+				f"{self._outq.unfinished_tasks} unfinished tasks in output "
+				"queue after call_one",
+			)
 		if isinstance(ret, Exception):
 			raise ret
 		return ret
@@ -8719,30 +8361,22 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		self._new_keyframes = list(
-			filter(
-				lambda _, kfbranch, kfturn, kftick, __, ___, ____: (
-					kfbranch,
-					kfturn,
-					kftick,
-				)
-				!= (branch, turn, tick),
-				self._new_keyframes,
-			)
-		)
+		def keyframe_filter(tup: tuple):
+			_, kfbranch, kfturn, kftick, __, ___, ____ = tup
+			return (kfbranch, kfturn, kftick) != (branch, turn, tick)
+
+		def keyframe_extension_filter(tup: tuple):
+			kfbranch, kfturn, kftick, _, __, ___ = tup
+			return (kfbranch, kfturn, kftick) != (branch, turn, tick)
+
+		new_keyframes = list(filter(keyframe_filter, self._new_keyframes))
+		self._new_keyframes.clear()
+		self._new_keyframes.extend(new_keyframes)
 		self._new_keyframe_times.discard((branch, turn, tick))
 		new_keyframe_extensions = self._new_keyframe_extensions.copy()
 		self._new_keyframe_extensions.clear()
 		self._new_keyframe_extensions.extend(
-			filter(
-				lambda kfbranch, kfturn, kftick, _, __, ___: (
-					kfbranch,
-					kfturn,
-					kftick,
-				)
-				!= (branch, turn, tick),
-				new_keyframe_extensions,
-			)
+			filter(keyframe_extension_filter, new_keyframe_extensions)
 		)
 		with self._holder.lock:
 			self._inq.put(
@@ -8773,7 +8407,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				)
 			)
 			self._inq.put(("echo", "done deleting keyframe"))
-			insist(self._outq.get() == "done deleting keyframe")
+			if (got := self._outq.get()) != "done deleting keyframe":
+				raise RuntimeError("Didn't delete keyframe right", got)
+			self._outq.task_done()
 
 	def have_branch(self, branch):
 		"""Return whether the branch thus named exists in the database."""
@@ -9222,7 +8858,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			graph,
 			orig,
 			dest,
-			idx,
 			branch,
 			turn,
 			tick,
@@ -9232,7 +8867,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(graph),
 				unpack(orig),
 				unpack(dest),
-				idx,
 				branch,
 				turn,
 				tick,
@@ -9268,12 +8902,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for orig, dest, idx, turn, tick, extant in it:
+		for orig, dest, turn, tick, extant in it:
 			yield (
 				graph,
 				unpack(orig),
 				unpack(dest),
-				idx,
 				branch,
 				turn,
 				tick,
@@ -9290,13 +8923,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 
 	def _pack_edge2set(self, tup):
-		graph, orig, dest, idx, branch, turn, tick, extant = tup
+		graph, orig, dest, branch, turn, tick, extant = tup
 		pack = self.pack
 		return (
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			branch,
 			turn,
 			tick,
@@ -9308,11 +8940,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			return
 		self._edges2set()
 
-	def exist_edge(self, graph, orig, dest, idx, branch, turn, tick, extant):
+	def exist_edge(self, graph, orig, dest, branch, turn, tick, extant):
 		"""Declare whether or not this edge exists."""
-		self._edges2set.append(
-			(graph, orig, dest, idx, branch, turn, tick, extant)
-		)
+		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
 		self._increc()
 
 	def edges_del_time(self, branch, turn, tick):
@@ -9327,7 +8957,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			graph,
 			orig,
 			dest,
-			idx,
 			key,
 			branch,
 			turn,
@@ -9338,7 +8967,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(graph),
 				unpack(orig),
 				unpack(dest),
-				idx,
 				unpack(key),
 				branch,
 				turn,
@@ -9375,12 +9003,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for orig, dest, idx, key, turn, tick, value in it:
+		for orig, dest, key, turn, tick, value in it:
 			yield (
 				graph,
 				unpack(orig),
 				unpack(dest),
-				idx,
 				unpack(key),
 				branch,
 				turn,
@@ -9398,13 +9025,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 
 	def _pack_edgeval2set(self, tup):
-		graph, orig, dest, idx, key, branch, turn, tick, value = tup
+		graph, orig, dest, key, branch, turn, tick, value = tup
 		pack = self.pack
 		return (
 			pack(graph),
 			pack(orig),
 			pack(dest),
-			idx,
 			pack(key),
 			branch,
 			turn,
@@ -9412,12 +9038,10 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			pack(value),
 		)
 
-	def edge_val_set(
-		self, graph, orig, dest, idx, key, branch, turn, tick, value
-	):
+	def edge_val_set(self, graph, orig, dest, key, branch, turn, tick, value):
 		"""Set this key of this edge to this value."""
 		self._edgevals2set.append(
-			(graph, orig, dest, idx, key, branch, turn, tick, value)
+			(graph, orig, dest, key, branch, turn, tick, value)
 		)
 		self._increc()
 
@@ -9471,13 +9095,15 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			return
 		self._inq.put(("echo", "ready"))
 		readied = self._outq.get()
+		if readied != "ready":
+			raise RuntimeError("Not ready to flush", readied)
 		self._outq.task_done()
-		insist(readied == "ready", "Not ready to flush", readied)
 		self._flush()
 		self._inq.put(("echo", "flushed"))
 		flushed = self._outq.get()
+		if flushed != "flushed":
+			raise RuntimeError("Failed flush", flushed)
 		self._outq.task_done()
-		insist(flushed == "flushed", "Failed flush: " + repr(flushed), flushed)
 
 	def _flush(self):
 		pack = self.pack
@@ -9605,11 +9231,8 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		"""Commit the transaction"""
 		self._inq.put("commit")
 		self._inq.join()
-		insist(
-			(got := self.echo("committed")) == "committed",
-			"Failed commit",
-			got,
-		)
+		if (got := self.echo("committed")) != "committed":
+			raise RuntimeError("Failed commit", got)
 
 	def close(self):
 		"""Commit the transaction, then close the connection"""

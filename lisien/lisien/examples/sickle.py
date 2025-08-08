@@ -87,7 +87,7 @@ def install(
 	def mate(critter):
 		"""If I share my location with another critter, attempt to mate"""
 		engine = critter.engine
-		species = critter.user.only
+		species = critter.leader.only
 		suitors = list(
 			oc
 			for oc in critter.location.contents()
@@ -131,7 +131,9 @@ def install(
 
 	@mate.prereq
 	def in_the_mood(critter):
-		return critter.engine.random() < critter.user.only.stat["mate_chance"]
+		return (
+			critter.engine.random() < critter.leader.only.stat["mate_chance"]
+		)
 
 	@dieoff.prereq
 	def sickle2(critter):
@@ -142,7 +144,7 @@ def install(
 		return (
 			not (critter["sickle_a"] or critter["sickle_b"])
 			and critter.engine.random()
-			< critter.user.only.stat["malaria_chance"]
+			< critter.leader.only.stat["malaria_chance"]
 		)
 
 	# it would make more sense to keep using species.unit.rule, this

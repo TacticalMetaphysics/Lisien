@@ -21,6 +21,8 @@ of the same key and neighboring ones repeatedly and in sequence.
 
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import (
 	ItemsView,
@@ -32,12 +34,12 @@ from collections.abc import (
 from enum import Enum
 from functools import partial
 from itertools import chain
-from operator import itemgetter, le, lt, ge, gt
+from operator import ge, itemgetter, le
 from threading import RLock
-from typing import Any, Iterable, Union, Iterator, Callable
+from typing import Any, Callable, Iterable, Iterator, Union
 
 from .exc import HistoricKeyError
-from .typing import Tick, Turn, Value
+from .types import Tick, Turn, Value
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -53,26 +55,39 @@ def update_window(
 	tick_from: Tick,
 	turn_to: Turn,
 	tick_to: Tick,
-	updfun: callable,
-	branchd: dict[Turn, list[tuple]],
+	updfun: Callable[[Turn, Tick, ...], None],
+	branchd: SettingsTurnDict,
 ):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for past_state in branchd[turn_from][tick_from + 1 : tick_to + 1]:
-			updfun(*past_state)
+		for tick, state in (
+			branchd[turn_from]
+			.future(tick_from, include_same_rev=False)
+			.items()
+		):
+			if tick > tick_to:
+				return
+			updfun(turn_from, tick, *state)
 		return
 	if turn_from in branchd:
-		for past_state in branchd[turn_from][tick_from + 1 :]:
-			updfun(*past_state)
+		for tick, state in (
+			branchd[turn_from]
+			.future(tick_from, include_same_rev=False)
+			.items()
+		):
+			updfun(turn_from, tick, *state)
+	midturn: Turn
 	for midturn in range(turn_from + 1, turn_to):
 		if midturn in branchd:
-			for past_state in branchd[midturn][:]:
-				updfun(*past_state)
+			for tick, state in branchd[midturn].items():
+				updfun(midturn, tick, *state)
 	if turn_to in branchd:
-		for past_state in branchd[turn_to][: tick_to + 1]:
-			updfun(*past_state)
+		for tick, state in branchd[turn_to].items():
+			if tick > tick_to:
+				return
+			updfun(turn_to, tick, *state)
 
 
 def update_backward_window(
@@ -80,28 +95,35 @@ def update_backward_window(
 	tick_from: Tick,
 	turn_to: Turn,
 	tick_to: Tick,
-	updfun: callable,
-	branchd: dict[Turn, list[tuple]],
+	updfun: Callable[[Turn, Tick, ...], None],
+	branchd: SettingsTurnDict,
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from == turn_to:
 		if turn_from not in branchd:
 			return
-		for future_state in reversed(
-			branchd[turn_from][tick_from : tick_to + 1]
+		for tick, state in (
+			branchd[turn_from].past(tick_from, include_same_rev=True).items()
 		):
-			updfun(*future_state)
+			if tick <= tick_to:
+				return
+			updfun(turn_from, tick, *state)
 		return
 	if turn_from in branchd:
-		for future_state in reversed(branchd[turn_from][: tick_from + 1]):
-			updfun(*future_state)
+		for tick, state in (
+			branchd[turn_from].past(tick_from, include_same_rev=True).items()
+		):
+			updfun(turn_from, tick, *state)
+	midturn: Turn
 	for midturn in range(turn_from - 1, turn_to, -1):
 		if midturn in branchd:
-			for future_state in reversed(branchd[midturn][:]):
-				updfun(*future_state)
+			for tick, state in reversed(branchd[midturn].items()):
+				updfun(midturn, tick, *state)
 	if turn_to in branchd:
-		for future_state in reversed(branchd[turn_to][tick_to + 1 :]):
-			updfun(*future_state)
+		for tick, state in reversed(
+			branchd[turn_to].future(tick_to, include_same_rev=False).items()
+		):
+			updfun(turn_to, tick, *state)
 
 
 class WindowDictKeysView(KeysView):
@@ -121,6 +143,15 @@ class WindowDictKeysView(KeysView):
 				yield from map(get0, past)
 			if future:
 				yield from map(get0, reversed(future))
+
+	def __reversed__(self):
+		with self._mapping._lock:
+			past = self._mapping._past
+			future = self._mapping._future
+			if future:
+				yield from map(get0, future)
+			if past:
+				yield from map(get0, reversed(past))
 
 	def __repr__(self):
 		return f"<WindowDictKeysView containing {list(self)}>"
@@ -142,23 +173,48 @@ class WindowDictItemsView(ItemsView):
 			if past:
 				yield from past
 			if future:
+				yield from reversed(future)
+
+	def __reversed__(self):
+		with self._mapping._lock:
+			past = self._mapping._past
+			future = self._mapping._future
+			if future:
 				yield from future
+			if past:
+				yield from reversed(past)
 
 
-class WindowDictPastFutureKeysView(KeysView):
+class WindowDictPastKeysView(KeysView):
 	"""View on a WindowDict's keys relative to last lookup"""
 
-	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
+	_mapping: WindowDictPastView
 
 	def __iter__(self):
 		with self._mapping.lock:
 			yield from map(get0, reversed(self._mapping.stack))
 
-	def __contains__(self, item: int):
+	def __reversed__(self):
 		with self._mapping.lock:
-			return item in self._mapping and item in map(
-				get0, self._mapping.stack
-			)
+			yield from map(get0, self._mapping.stack)
+
+	def __contains__(self, item: int):
+		return item in self._mapping
+
+
+class WindowDictFutureKeysView(KeysView):
+	_mapping: WindowDictFutureView
+
+	def __iter__(self):
+		with self._mapping.lock:
+			yield from map(get0, self._mapping.stack)
+
+	def __reversed__(self):
+		with self._mapping.lock:
+			yield from map(get0, reversed(self._mapping.stack))
+
+	def __contains__(self, item):
+		return item in self._mapping
 
 
 class WindowDictPastFutureItemsView(ItemsView):
@@ -173,15 +229,16 @@ class WindowDictPastFutureItemsView(ItemsView):
 		with self._mapping.lock:
 			yield from reversed(self._mapping.stack)
 
+	def __reversed__(self):
+		with self._mapping.lock:
+			yield from self._mapping.stack
+
 	def __contains__(self, item: tuple[int, Any]):
 		with self._mapping.lock:
 			if self._out_of_range(item, self._mapping.stack):
 				return False
-			i0, i1 = item
-			for j0, j1 in self._mapping.stack:
-				if i0 == j0:
-					return i1 == j1
-			return False
+			k, v = item
+			return self._mapping[k] == v
 
 
 class WindowDictPastItemsView(WindowDictPastFutureItemsView):
@@ -230,16 +287,25 @@ class WindowDictValuesView(ValuesView):
 			if past:
 				yield from map(get1, past)
 			if future:
+				yield from map(get1, reversed(future))
+
+	def __reversed__(self):
+		with self._mapping._lock:
+			past = self._mapping._past
+			future = self._mapping._future
+			if future:
 				yield from map(get1, future)
+			if past:
+				yield from map(get1, reversed(past))
 
 
 class WindowDictPastFutureView(ABC, Mapping):
 	"""Abstract class for historical views on WindowDict"""
 
 	__slots__ = ("stack", "lock")
-	stack: list[tuple[int, Any]]
+	stack: list[tuple[int, Value]]
 
-	def __init__(self, stack: list[tuple[int, Any]], lock: RLock) -> None:
+	def __init__(self, stack: list[tuple[int, Value]], lock: RLock) -> None:
 		self.stack = stack
 		self.lock = lock
 
@@ -250,27 +316,34 @@ class WindowDictPastFutureView(ABC, Mapping):
 				return 0
 			return len(stack)
 
+	def __copy__(self):
+		return type(self)(self.stack.copy(), RLock())
+
 
 class WindowDictPastView(WindowDictPastFutureView):
-	"""Read-only mapping of just the past of a WindowDict"""
+	"""Read-only mapping of just the past of a WindowDict
 
-	def __iter__(self) -> Iterable[int]:
+	Iterates in descending order
+
+	"""
+
+	def __iter__(self) -> Iterator[int]:
 		with self.lock:
-			stack = self.stack
-			return map(get0, reversed(stack))
+			yield from map(get0, reversed(self.stack))
 
-	def __getitem__(self, key: int) -> Any:
+	def __reversed__(self) -> Iterator[int]:
+		with self.lock:
+			yield from map(get0, self.stack)
+
+	def __getitem__(self, key: int) -> Value:
 		with self.lock:
 			stack = self.stack
 			if not stack or key < stack[0][0] or key > stack[-1][0]:
-				raise KeyError
-			for rev, value in stack:
-				if rev == key:
-					return value
-			raise KeyError
+				raise KeyError("Out of range", key)
+			return _recurse(key, stack)[1]
 
-	def keys(self) -> WindowDictPastFutureKeysView:
-		return WindowDictPastFutureKeysView(self)
+	def keys(self) -> WindowDictPastKeysView:
+		return WindowDictPastKeysView(self)
 
 	def items(self) -> WindowDictPastItemsView:
 		return WindowDictPastItemsView(self)
@@ -280,25 +353,31 @@ class WindowDictPastView(WindowDictPastFutureView):
 
 
 class WindowDictFutureView(WindowDictPastFutureView):
-	"""Read-only mapping of just the future of a WindowDict"""
+	"""Read-only mapping of just the future of a WindowDict
 
-	def __iter__(self):
+	Iterates in ascending order
+
+	"""
+
+	def __iter__(self) -> Iterator[int]:
 		with self.lock:
-			stack = self.stack
-			return map(get0, reversed(stack))
+			yield from map(get0, reversed(self.stack))
+
+	def __reversed__(self) -> Iterator[int]:
+		with self.lock:
+			yield from map(get0, self.stack)
 
 	def __getitem__(self, key: int):
 		with self.lock:
-			stack = self.stack
-			if not stack or key < stack[-1][0] or key > stack[0][0]:
-				raise KeyError
-			for rev, value in stack:
-				if rev == key:
-					return value
-			raise KeyError("No such revision", key)
+			stack = list(reversed(self.stack))
+			if not stack:
+				raise KeyError("No data")
+			if key < stack[0][0] or key > stack[-1][0]:
+				raise KeyError("No such revision", key)
+			return _recurse(key, stack)[1]
 
-	def keys(self) -> WindowDictPastFutureKeysView:
-		return WindowDictPastFutureKeysView(self)
+	def keys(self) -> WindowDictFutureKeysView:
+		return WindowDictFutureKeysView(self)
 
 	def items(self) -> WindowDictFutureItemsView:
 		return WindowDictFutureItemsView(self)
@@ -316,191 +395,186 @@ class WindowDictSlice:
 		self.dic = dic
 		self.slic = slic
 
-	def __reversed__(self) -> Iterable:
-		step_iter = self._step_iter
-		iter_items_until = self._iter_items_until
-		dic = self.dic
-		with dic._lock:
-			if not dic:
-				return iter(())
+	def __iter__(self) -> Iterator[Value]:
+		with self.dic._lock:
 			slic = self.slic
-			start = slic.start
-			if start is not None and start < 0:
-				start = len(dic) - start
-				if start < 0:
-					raise IndexError("WindowDict index out of range", start)
-			stop = slic.stop
-			if stop is not None and stop < 0:
-				stop = len(dic) - stop
-				if stop < 0:
-					raise IndexError("WindowDict index out of range", stop)
-			step = slic.step
-			seek = dic._seek
-			past = dic._past
-			future = dic._future
-			if start is None and stop is None:
-				if step is None:
-					return chain(map(get1, future), map(get1, reversed(past)))
-				else:
-					return step_iter(chain(future, reversed(past)), step)
-			if start is not None and stop is not None:
-				if stop == start:
-					seek(start)
-					if past and past[-1][0] == start:
-						return iter((past[-1][1],))
-					else:
-						return iter(())
-				if start < stop:
-					left, right = start, stop
-					cmp = ge
-				elif step is None or step > 0:
-					return iter(())
-				else:
-					left, right = stop, start
-					cmp = gt
-				seek(right)
-				if not past:
-					return iter(())
-				if past[-1][0] == right:
-					future.append(past.pop())
-				if not past:
-					return iter(())
-				if step is None or step > 0:
-					inner_inner_it = reversed(past)
-				else:
-					inner_inner_it = iter(past)
-				inner_it = iter_items_until(inner_inner_it, partial(cmp, left))
-				if step is None:
-					return map(get1, inner_it)
-				else:
-					return step_iter(inner_it, abs(step))
-			elif start is None:
-				seek(stop)
-				if not past:
-					return iter(())
-				if step is None:
-					return map(get1, reversed(past))
-				elif step < 0:
-					return step_iter(iter(past), abs(step))
-				else:
-					return step_iter(reversed(past), step)
+			if slic.step:
+				return self._step_iter()
+			start, stop = self._modulo(slic.start, slic.stop)
+			if stop < start:
+				it = self._get_item_iterator_stepless_reversed(
+					stop, start, include_start=False, include_stop=True
+				)
 			else:
-				assert stop is None
-				seek(start)
-				if past and past[-1][0] == start:
-					future.append(past.pop())
-				if step is None:
-					return map(get1, future)
-				elif step < 0:
-					return step_iter(reversed(future), abs(step))
-				else:
-					return step_iter(iter(future), step)
+				it = self._get_item_iterator_stepless(start, stop)
+			return map(get1, it)
 
-	@staticmethod
-	def _step_iter(
-		it: Iterator[tuple[int, Value]], step: int
-	) -> Iterator[Value]:
-		for rev, val in it:
-			if rev % step == 0:
-				yield val
+	def __reversed__(self) -> Iterator[Value]:
+		with self.dic._lock:
+			slic = self.slic
+			if slic.step:
+				return self._step_iter_reversed()
+			start, stop = self._modulo(slic.start, slic.stop)
+			if stop < start:
+				items = self._get_item_iterator_stepless(
+					stop, start, include_start=False, include_stop=True
+				)
+			else:
+				items = self._get_item_iterator_stepless_reversed(start, stop)
+			return map(get1, items)
+
+	def _step_iter(self):
+		dic = self.dic
+		slic = self.slic
+		start, stop = self._modulo(slic.start, slic.stop)
+		for i in range(start, stop, slic.step):
+			yield dic[i]
+
+	def _step_iter_reversed(self):
+		dic = self.dic
+		slic = self.slic
+		start, stop = self._modulo(slic.start, slic.stop)
+		for i in reversed(range(start, stop, slic.step)):
+			yield dic[i]
 
 	@staticmethod
 	def _iter_items_until(
-		it: Iterator[tuple[int, Value]], until: Callable[[int], bool]
+		it: Iterator[tuple[int, Value]],
+		until: Callable[[int], bool],
+		include_last: bool = False,
 	) -> Iterator[tuple[int, Value]]:
-		for rev, val in it:
-			if until(rev):
-				return
-			yield rev, val
+		if include_last:
+			for rev, val in it:
+				yield rev, val
+				if until(rev):
+					return
+		else:
+			for rev, val in it:
+				if until(rev):
+					return
+				yield rev, val
 
-	def __iter__(self):
-		step_iter = self._step_iter
-		iter_items_until = self._iter_items_until
+	def _iter_past_items_until(
+		self,
+		rev: int,
+		until: Callable[[int], bool],
+		include_last: bool = False,
+	):
+		return self._iter_items_until(
+			iter(self.dic.past(rev).items()), until, include_last
+		)
+
+	def _iter_future_items_until(
+		self,
+		rev: int,
+		until: Callable[[int], bool],
+		include_last: bool = False,
+	):
+		return self._iter_items_until(
+			iter(self.dic.future(rev).items()), until, include_last
+		)
+
+	def _modulo(self, start: int | None, stop: int | None) -> tuple[int, int]:
 		dic = self.dic
-		with dic._lock:
-			if not dic:
-				return iter(())
-			slic = self.slic
-			start = slic.start
-			if start is not None and start < 0:
-				start = len(dic) - start
-				if start < 0:
-					raise IndexError("WindowDict index out of range", start)
-			stop = slic.stop
-			if stop is not None and stop < 0:
-				stop = len(dic) - stop
-				if stop < 0:
-					raise IndexError("WindowDict index out of range", stop)
-			step = slic.step
-			seek = dic._seek
-			past = dic._past
-			future = dic._future
-			if not past and not future:
-				return iter(())
-			if start is None and stop is None:
-				if step is None:
-					return chain(map(get1, past), map(get1, reversed(future)))
-				elif step < 0:
-					return step_iter(chain(future, reversed(past)), abs(step))
-				else:
-					return step_iter(chain(past, reversed(future)), step)
-			if start is not None and stop is not None:
-				if stop == start:
-					seek(start)
-					if past and past[-1][0] == start:
-						return iter((past[-1][1],))
-					else:
-						return iter(())
-				if start < stop:
-					left, right = start, stop
-					cmp = lt
-				elif step is None or step > 0:
-					return iter(())
-				else:
-					left, right = stop, start
-					cmp = le
-				seek(right)
-				if not past:
-					return iter(())
-				if past[-1][0] == right:
-					future.append(past.pop())
-				if not past:
-					return iter(())
-				seek(left)
-				if past and past[-1][0] == start:
-					future.append(past.pop())
-				if step is None or step > 0:
-					inner_inner_it = reversed(future)
-				else:
-					inner_inner_it = iter(future)
-				inner_it = iter_items_until(
-					inner_inner_it, partial(cmp, right)
-				)
-				if step is None:
-					return map(get1, inner_it)
-				else:
-					return step_iter(inner_it, abs(step))
-			elif start is None:
-				seek(stop)
-				if not past:
-					return iter(())
-				if step is None:
-					return map(get1, past)
-				elif step < 0:
-					return step_iter(reversed(past), abs(step))
-				else:
-					return step_iter(iter(past), step)
+		biggest = 0
+		if dic._future:
+			biggest = dic._future[0][0]
+		elif dic._past:
+			biggest = dic._past[-1][0]
+		if start is None:
+			start = 0
+		elif start < 0:
+			start = biggest + start
+			if start < 0:
+				raise IndexError("WindowDict index out of range", start)
+		if stop is None:
+			stop = biggest + 1
+		elif stop < 0:
+			stop = biggest + stop
+			if stop < 0:
+				raise IndexError("WindowDict index out of range", stop)
+		return start, stop
+
+	def _get_item_iterator_stepless_reversed(
+		self,
+		start: int,
+		stop: int,
+		include_start: bool = True,
+		include_stop: bool = False,
+	) -> Iterator[tuple[int, Value]]:
+		if isinstance(start, int) and isinstance(stop, int) and start > stop:
+			raise ValueError("start should come before stop", start, stop)
+		dic = self.dic
+		if not dic:
+			return iter(())
+		seek = dic._seek
+		past = dic._past
+		future = dic._future
+		if not past and not future:
+			return iter(())
+		if stop == start:
+			seek(start)
+			if past and past[-1][0] == start:
+				return iter((past[-1][1],))
 			else:
-				assert stop is None
-				seek(start)
-				if past and past[-1][0] == start:
-					future.append(past.pop())
-				if step is None:
-					return map(get1, reversed(future))
-				elif step < 0:
-					return step_iter(iter(future), abs(step))
-				else:
-					return step_iter(reversed(future), step)
+				return iter(())
+		seek(stop)
+		if not include_stop and past and past[-1][0] == stop:
+			future.append(past.pop())
+		return self._iter_items_until(
+			reversed(past), partial(ge, start), include_last=include_start
+		)
+
+	def _get_item_iterator_stepless(
+		self,
+		start: int,
+		stop: int,
+		include_start: bool = True,
+		include_stop: bool = False,
+	) -> Iterator[tuple[int, Value]]:
+		if isinstance(start, int) and isinstance(stop, int) and start > stop:
+			raise ValueError("start should come before stop", start, stop)
+		dic = self.dic
+		if not dic:
+			return iter(())
+		seek = dic._seek
+		past = dic._past
+		future = dic._future
+		if not past and not future:
+			return iter(())
+		if stop == start:
+			seek(start)
+			if past and past[-1][0] == start:
+				return iter((past[-1][1],))
+			else:
+				return iter(())
+		it = self._iter_future_items_until(
+			start, partial(le, stop), include_last=include_stop
+		)
+		if include_start and past and past[-1][0] == start:
+			return chain((past[-1],), it)
+		return it
+
+
+def _recurse(rev: int, revs: list[tuple[int, Any]]) -> tuple[int, Any]:
+	if len(revs) < 1:
+		raise HistoricKeyError("No data ever for revision", rev, deleted=False)
+	elif len(revs) == 1:
+		if revs[0][0] <= rev:
+			return revs[0]
+		raise HistoricKeyError("Can't retrieve revision", rev, deleted=False)
+	pivot = len(revs) // 2
+	before = revs[:pivot]
+	after = revs[pivot:]
+	assert before and after
+	if rev < after[0][0]:
+		if rev > before[-1][0]:
+			return before[-1]
+		return _recurse(rev, before)
+	elif rev == after[0][0]:
+		return after[0]
+	else:
+		return _recurse(rev, after)
 
 
 class WindowDict(MutableMapping):
@@ -525,12 +599,11 @@ class WindowDict(MutableMapping):
 
 	"""
 
-	__slots__ = ("_future", "_past", "_keys", "_last", "_lock")
+	__slots__ = ("_future", "_past", "_keys", "_lock")
 
 	_past: list[tuple[int, Any]]
 	_future: list[tuple[int, Any]]
 	_keys: set[int]
-	_last: int | None
 
 	@property
 	def beginning(self) -> int | None:
@@ -550,27 +623,61 @@ class WindowDict(MutableMapping):
 				return self._past[-1][0]
 			return self._future[0][0]
 
-	def future(self, rev: int = None) -> WindowDictFutureView:
+	def future(
+		self, rev: int, include_same_rev: bool = False, copy: bool = False
+	) -> WindowDictFutureView:
 		"""Return a Mapping of items after the given revision.
 
-		Default revision is the last one looked up.
+		:param include_same_rev: Whether to include the specified revision in
+			the Mapping, if present in the `WindowDict`. `False` by default.
+		:param copy: Whether to make a copy of the data, so that the Mapping
+			won't mutate when you access the underlying `WindowDict`. Default
+			`False`. The Mapping has a `copy` method, too.
 
 		"""
-		if rev is not None:
-			with self._lock:
-				self._seek(rev)
-		return WindowDictFutureView(self._future, self._lock)
+		if not isinstance(rev, int):
+			raise TypeError("rev must be int")
+		with self._lock:
+			self._seek(rev)
+			if include_same_rev and self._past and self._past[-1][0] == rev:
+				self._future.append(self._past.pop())
+			if copy:
+				future = self._future.copy()
+				lock = self._lock
+			else:
+				future = self._future
+				lock = RLock()
+		return WindowDictFutureView(future, lock)
 
-	def past(self, rev: int = None) -> WindowDictPastView:
+	def past(
+		self, rev: int, include_same_rev: bool = True, copy: bool = False
+	) -> WindowDictPastView:
 		"""Return a Mapping of items at or before the given revision.
 
-		Default revision is the last one looked up.
+		:param include_same_rev: Whether to include the specified revision in
+			the Mapping, if present in the `WindowDict`. `True` by default.
+		:param copy: Whether to make a copy of the data, so that the Mapping
+			won't mutate when you access the underlying `WindowDict`. Default
+			`False`. The Mapping has a `copy` method, too.
 
 		"""
-		if rev is not None:
-			with self._lock:
-				self._seek(rev)
-		return WindowDictPastView(self._past, self._lock)
+		if not isinstance(rev, int):
+			raise TypeError("rev must be int")
+		with self._lock:
+			self._seek(rev)
+			if (
+				not include_same_rev
+				and self._future
+				and self._future[-1][0] == rev
+			):
+				self._past.append(self._future.pop())
+			if copy:
+				past = self._past.copy()
+				lock = RLock()
+			else:
+				past = self._past
+				lock = self._lock
+		return WindowDictPastView(past, lock)
 
 	def search(self, rev: int) -> Any:
 		"""Alternative access for far-away revisions
@@ -579,34 +686,9 @@ class WindowDict(MutableMapping):
 		access, but not in the case of fast-forward and rewind, which are
 		more common in time travel.
 
-		This arranges the cache to optimize retrieval of the same and
-		nearby revisions, same as normal lookups.
+		This doesn't change the state of the cache.
 
 		"""
-
-		def recurse(revs: list[tuple[int, Any]]) -> Any:
-			if len(revs) < 1:
-				raise HistoricKeyError(
-					"No data ever for revision", rev, deleted=False
-				)
-			elif len(revs) == 1:
-				if revs[0][0] <= rev:
-					return revs[0]
-				raise HistoricKeyError(
-					"Can't retrieve revision", rev, deleted=True
-				)
-			pivot = len(revs) // 2
-			before = revs[:pivot]
-			after = revs[pivot:]
-			assert before and after
-			if rev < after[0][0]:
-				if rev > before[-1][0]:
-					return before[-1]
-				return recurse(before)
-			elif rev == after[0][0]:
-				return after[0]
-			else:
-				return recurse(after)
 
 		with self._lock:
 			revs = self._past + list(reversed(self._future))
@@ -617,17 +699,13 @@ class WindowDict(MutableMapping):
 						"No data ever for revision", rev, deleted=False
 					)
 			else:
-				result_rev, result = recurse(revs)
-			i = revs.index((result_rev, result)) + 1
-			self._past = revs[:i]
-			self._future = list(reversed(revs[i:]))
-			self._last = rev
+				result_rev, result = _recurse(rev, revs)
 			return result
 
 	def _seek(self, rev: int) -> None:
 		"""Arrange the caches to help look up the given revision."""
-		if rev == self._last:
-			return
+		if not isinstance(rev, int):
+			raise TypeError("Need integer revision", rev)
 		past = self._past
 		future = self._future
 		if future:
@@ -650,7 +728,6 @@ class WindowDict(MutableMapping):
 					past_end = past[-1][0]
 				else:
 					break
-		self._last = rev
 
 	def rev_gettable(self, rev: int) -> bool:
 		beg = self.beginning
@@ -658,7 +735,7 @@ class WindowDict(MutableMapping):
 			return False
 		return rev >= beg
 
-	def rev_before(self, rev: int, search=False):
+	def rev_before(self, rev: int, search=False) -> int | None:
 		"""Return the latest past rev on which the value changed.
 
 		If it changed on this exact rev, return the rev.
@@ -666,21 +743,25 @@ class WindowDict(MutableMapping):
 		"""
 		with self._lock:
 			if search:
-				self.search(rev)
+				rev, _ = _recurse(
+					rev, self._past + list(reversed(self._future))
+				)
+				return rev
 			else:
 				self._seek(rev)
-			if self._past:
-				return self._past[-1][0]
+				if self._past:
+					return self._past[-1][0]
+				else:
+					return None
 
-	def rev_after(self, rev: int, search=False):
+	def rev_after(self, rev: int) -> int | None:
 		"""Return the earliest future rev on which the value will change."""
 		with self._lock:
-			if search:
-				self.search(rev)
-			else:
-				self._seek(rev)
+			self._seek(rev)
 			if self._future:
 				return self._future[-1][0]
+			else:
+				return None
 
 	def initial(self) -> Any:
 		"""Return the earliest value we have"""
@@ -701,7 +782,7 @@ class WindowDict(MutableMapping):
 			raise KeyError("No data")
 
 	def truncate(
-		self, rev: int, direction: Direction = Direction.FORWARD, search=False
+		self, rev: int, direction: Direction = Direction.FORWARD
 	) -> set[int]:
 		"""Delete everything after the given revision, exclusive.
 
@@ -715,10 +796,7 @@ class WindowDict(MutableMapping):
 			direction = Direction(direction)
 		deleted = set()
 		with self._lock:
-			if search:
-				self.search(rev)
-			else:
-				self._seek(rev)
+			self._seek(rev)
 			if direction == Direction.FORWARD:
 				to_delete = set(map(get0, self._future))
 				deleted.update(to_delete)
@@ -759,7 +837,6 @@ class WindowDict(MutableMapping):
 			empty._past = self._past.copy()
 			empty._future = self._future.copy()
 			empty._keys = self._keys.copy()
-			empty._last = self._last
 			return empty
 
 	def __init__(
@@ -777,21 +854,23 @@ class WindowDict(MutableMapping):
 			self._past.sort()
 			self._future = []
 			self._keys = set(map(get0, self._past))
-			self._last = None
 
 	def __iter__(self) -> Iterable[Any]:
 		if not self:
 			return
-		if self._past:
-			yield from map(get0, self._past)
-		if self._future:
-			yield from map(get0, self._future)
+		with self._lock:
+			if self._past:
+				yield from map(get0, self._past)
+			if self._future:
+				yield from map(get0, self._future)
 
 	def __contains__(self, item: int) -> bool:
-		return item in self._keys
+		with self._lock:
+			return item in self._keys
 
 	def __len__(self) -> int:
-		return len(self._keys)
+		with self._lock:
+			return len(self._keys)
 
 	def __getitem__(self, rev: int) -> Any:
 		if isinstance(rev, slice):
@@ -806,16 +885,10 @@ class WindowDict(MutableMapping):
 			return past[-1][1]
 
 	def __setitem__(self, rev: int, v: Any) -> None:
-		self.set_item(rev, v)
-
-	def set_item(self, rev: int, v: Any, search=False) -> None:
 		past = self._past
 		with self._lock:
 			if past or self._future:
-				if search:
-					self.search(rev)
-				else:
-					self._seek(rev)
+				self._seek(rev)
 				if past:
 					if past[-1][0] == rev:
 						past[-1] = (rev, v)
@@ -828,9 +901,6 @@ class WindowDict(MutableMapping):
 			self._keys.add(rev)
 
 	def __delitem__(self, rev: int) -> None:
-		self.del_item(rev)
-
-	def del_item(self, rev: int, search=False) -> None:
 		# Not checking for rev's presence at the beginning because
 		# to do so would likely require iterating thru history,
 		# which I have to do anyway in deleting.
@@ -850,10 +920,7 @@ class WindowDict(MutableMapping):
 		elif not self.beginning <= rev <= self.end:
 			raise HistoricKeyError("Rev outside of history: {}".format(rev))
 		with self._lock:
-			if search:
-				self.search(rev)
-			else:
-				self._seek(rev)
+			self._seek(rev)
 			past = self._past
 			if not past or past[-1][0] != rev:
 				raise HistoricKeyError("Rev not present: {}".format(rev))
@@ -861,12 +928,13 @@ class WindowDict(MutableMapping):
 			self._keys.remove(rev)
 
 	def __repr__(self) -> str:
-		me = {}
-		if self._past:
-			me.update(self._past)
-		if self._future:
-			me.update(self._future)
-		return "{}({})".format(self.__class__.__name__, me)
+		with self._lock:
+			me = {}
+			if self._past:
+				me.update(self._past)
+			if self._future:
+				me.update(self._future)
+			return "{}({})".format(self.__class__.__name__, me)
 
 
 class FuturistWindowDict(WindowDict):
