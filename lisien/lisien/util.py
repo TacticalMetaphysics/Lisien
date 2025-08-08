@@ -96,6 +96,7 @@ if TYPE_CHECKING:
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
 NONE: bytes = msgpack.packb(None)
+EMPTY: bytes = msgpack.packb({})
 ELLIPSIS: bytes = b"\xc7\x00{"
 NAME: bytes = msgpack.packb("name")
 NODES: bytes = msgpack.packb("nodes")
