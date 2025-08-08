@@ -78,7 +78,7 @@ from .types import (
 	UniversalKeyframe,
 	Value,
 )
-from .util import garbage, NONE, EMPTY, ELLIPSIS
+from .util import garbage, EMPTY, ELLIPSIS
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
