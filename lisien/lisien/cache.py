@@ -1796,7 +1796,9 @@ class Cache:
 
 		"""
 		retr = self._base_retrieve(args, search=search)
-		return retr is not ... and not isinstance(retr, Exception)
+		return not (
+			self._count_as_deleted(retr) or isinstance(retr, Exception)
+		)
 
 
 class GraphValCache(Cache):
