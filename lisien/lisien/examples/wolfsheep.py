@@ -88,7 +88,7 @@ def install(
 		return (
 			not (critter["sickle_a"] or critter["sickle_b"])
 			and critter.engine.random()
-			< critter.user.only.stat["malaria_chance"]
+			< critter.leader.only.stat["malaria_chance"]
 		)
 
 	@phys.rule(always=True)
@@ -117,7 +117,7 @@ def install(
 	def mate(critter):
 		"""If I share my location with another critter, attempt to mate"""
 		engine = critter.engine
-		species = critter.user.only
+		species = critter.leader.only
 		suitors = list(
 			oc
 			for oc in critter.location.contents()
@@ -133,7 +133,7 @@ def install(
 		]
 		engine.shuffle(sickles)
 		species.stat["n_creatures"] += 1
-		name = str(critter.user.only.name) + str(species.stat["n_creatures"])
+		name = str(critter.leader.only.name) + str(species.stat["n_creatures"])
 		engine.character["physical"].add_thing(
 			name,
 			critter["location"],
@@ -160,7 +160,9 @@ def install(
 
 	@mate.prereq
 	def in_the_mood(critter):
-		return critter.engine.random() < critter.user.only.stat["mate_chance"]
+		return (
+			critter.engine.random() < critter.leader.only.stat["mate_chance"]
+		)
 
 	@sheeps.unit.rule(always=True)
 	def wander(shep):
@@ -204,7 +206,7 @@ def install(
 			sheepch = wolff.engine.character["sheep"]
 			n_del = 0
 			for the_sheep in wolff.location.contents():
-				if the_sheep.user.only is sheepch:
+				if the_sheep.leader.only is sheepch:
 					the_sheep.delete()
 					n_del += 1
 			return

@@ -76,13 +76,13 @@ def install(eng):
 		# Or we could have put the 'lazy' stat onto the node instead of the
 		# character... or kept the student character in a stat of the node...
 		# or assigned this rule to the student directly.
-		for user in node.user.values():
+		for user in node.leader.values():
 			if user.name not in ("physical", "student_body"):
 				return not user.stat["lazy"] or node.engine.coin_flip()
 
 	@student_body.unit.rule
 	def leave_class(node):
-		for user in node.user.values():
+		for user in node.leader.values():
 			if user.name != "student_body":
 				node.travel_to(user.stat["room"])
 				return
@@ -138,7 +138,7 @@ def install(eng):
 
 	@eng.rule
 	def learn(node):
-		for user in node.user.values():
+		for user in node.leader.values():
 			if "xp" in user.stat:
 				user.stat["xp"] += 1
 
@@ -196,10 +196,10 @@ def install(eng):
 			student0 = eng.new_character("dorm{}room{}student0".format(n, i))
 			body0 = room.new_thing("dorm{}room{}student0".format(n, i))
 			student0.add_unit(body0)
-			assert student0 in body0.user.values()
+			assert student0 in body0.leader.values()
 			student_body.add_unit(body0)
-			assert student_body in body0.user.values()
-			assert student0 in body0.user.values()
+			assert student_body in body0.leader.values()
+			assert student0 in body0.leader.values()
 			student1 = eng.new_character("dorm{}room{}student1".format(n, i))
 			body1 = room.new_thing("dorm{}room{}student1".format(n, i))
 			student1.add_unit(body1)

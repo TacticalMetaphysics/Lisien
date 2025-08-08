@@ -49,7 +49,7 @@ if TYPE_CHECKING:
 	from .portal import Portal
 
 
-class UserMapping(Mapping):
+class LeaderMapping(Mapping):
 	"""A mapping of the characters that have a particular node as a unit.
 
 	Getting characters from here isn't any better than getting them from
@@ -70,7 +70,7 @@ class UserMapping(Mapping):
 
 	def _user_names(self) -> frozenset[CharName]:
 		try:
-			return self.engine._unitness_cache.user_cache.retrieve(
+			return self.engine._unitness_cache.leader_cache.retrieve(
 				self.node.character.name, self.node.name, *self.engine._btt()
 			)
 		except KeyError:
@@ -78,7 +78,7 @@ class UserMapping(Mapping):
 
 	@property
 	def only(self) -> Character:
-		"""If there's only one user, return it.
+		"""If there's only one leader, return it.
 
 		Otherwise, raise ``AmbiguousUserError``, a type of ``AttributeError``.
 
@@ -98,7 +98,7 @@ class UserMapping(Mapping):
 		yield from self._user_names()
 
 	def __contains__(self, item: CharName) -> bool:
-		return item in self.engine._unitness_cache.user_cache.retrieve(
+		return item in self.engine._unitness_cache.leader_cache.retrieve(
 			self.node.character.name, self.node.name, *self.engine._btt()
 		)
 
@@ -432,9 +432,9 @@ class Node(graph.Node, rule.RuleFollower):
 	engine: Engine = getatt("db")
 
 	@property
-	def user(self) -> UserMapping:
-		__doc__ = UserMapping.__doc__
-		return UserMapping(self)
+	def leader(self) -> LeaderMapping:
+		__doc__ = LeaderMapping.__doc__
+		return LeaderMapping(self)
 
 	def __init__(self, character: "Character", name: NodeName):
 		super().__init__(character, name)
@@ -600,7 +600,7 @@ class Node(graph.Node, rule.RuleFollower):
 				for port in list(character.preportal[n].values()):
 					port._delete(now=now)
 					now = engine._nbtt()
-			for username in list(self.user):
+			for username in list(self.leader):
 				engine._unitness_cache.store(username, g, n, *now, False)
 				engine.query.unit_set(username, g, n, *now, False)
 			for k in self:

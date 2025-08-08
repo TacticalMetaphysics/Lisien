@@ -38,7 +38,7 @@ def install(eng):
 				neighbor = next(iter(neighbor_home.contents()))
 			except StopIteration:
 				continue
-			if neighbor.user is poly.user:
+			if neighbor.leader is poly.leader:
 				similar += 1
 		if n == 0:
 			# You'd always want to move if you had *no* neighbors, I guess

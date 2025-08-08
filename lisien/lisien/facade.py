@@ -325,14 +325,14 @@ class FacadeNode(FacadeEntity, Node):
 		def __iter__(self):
 			engine = self._entity.engine
 			charn = self._entity.character.name
-			return engine._unitness_cache.user_cache.iter_keys(
+			return engine._unitness_cache.leader_cache.iter_keys(
 				charn, self._entity.name, *engine._btt()
 			)
 
 		def __len__(self):
 			engine = self._entity.engine
 			charn = self._entity.character.name
-			return engine._unitness_cache.user_cache.count_keys(
+			return engine._unitness_cache.leader_cache.count_keys(
 				charn, self._entity.name, *engine._btt()
 			)
 
@@ -341,7 +341,7 @@ class FacadeNode(FacadeEntity, Node):
 			charn = self._entity.character.name
 			try:
 				return bool(
-					engine._unitness_cache.user_cache.retrieve(
+					engine._unitness_cache.leader_cache.retrieve(
 						charn, self._entity.name, item, *engine._btt()
 					)
 				)
@@ -1163,7 +1163,7 @@ class EngineFacade(AbstractEngine):
 			self._created = cache.db._btt()
 			UnitnessCache.__init__(self, cache.db, "unitness_cache")
 			self.user_cache = EngineFacade.FacadeCache(
-				cache.user_cache, "user_cache"
+				cache.leader_cache, "user_cache"
 			)
 			self._real = cache
 

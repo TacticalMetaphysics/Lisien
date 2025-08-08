@@ -3134,7 +3134,7 @@ class Engine(AbstractEngine, Executor):
 			self._actions_cache,
 			self._rulebooks_cache,
 			self._unitness_cache,
-			self._unitness_cache.user_cache,
+			self._unitness_cache.leader_cache,
 			self._unitness_cache.dict_cache,
 			self._characters_rulebooks_cache,
 			self._units_rulebooks_cache,
@@ -3491,7 +3491,7 @@ class Engine(AbstractEngine, Executor):
 		for graph in graphs:
 			try:
 				user_set_keyframe[graph] = (
-					self._unitness_cache.user_cache.get_keyframe(
+					self._unitness_cache.leader_cache.get_keyframe(
 						graph, *then, copy=True
 					)
 				)
@@ -3599,7 +3599,7 @@ class Engine(AbstractEngine, Executor):
 				graph, *now, graph_val_keyframe[graph]
 			)
 		for char, kf in user_set_keyframe.items():
-			self._unitness_cache.user_cache.set_keyframe(char, *now, kf)
+			self._unitness_cache.leader_cache.set_keyframe(char, *now, kf)
 		self._characters_rulebooks_cache.set_keyframe(
 			*now, characters_rulebooks_keyframe
 		)
@@ -6599,7 +6599,7 @@ class Engine(AbstractEngine, Executor):
 				char, branch, turn, tick, char_kf
 			)
 		for char, kf in user_kf.items():
-			self._unitness_cache.user_cache.set_keyframe(
+			self._unitness_cache.leader_cache.set_keyframe(
 				char, branch, turn, tick, user_kf
 			)
 		rbnames = list(self._rulebooks_cache.iter_keys(branch, turn, tick))
@@ -6805,7 +6805,7 @@ class Engine(AbstractEngine, Executor):
 		self._unitness_cache.set_keyframe(graph, branch, turn, tick, units_kf)
 		for char, units in units_kf.items():
 			try:
-				user_kf = self._unitness_cache.user_cache.get_keyframe(
+				user_kf = self._unitness_cache.leader_cache.get_keyframe(
 					char, branch, turn, tick, copy=True
 				)
 			except KeyframeError:
@@ -6815,7 +6815,7 @@ class Engine(AbstractEngine, Executor):
 					user_kf[unit] |= frozenset([graph])
 				else:
 					user_kf[unit] = frozenset([graph])
-			self._unitness_cache.user_cache.set_keyframe(
+			self._unitness_cache.leader_cache.set_keyframe(
 				char, branch, turn, tick, user_kf
 			)
 		node_rb_kf = {}
