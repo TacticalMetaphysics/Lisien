@@ -86,7 +86,7 @@ class LeaderMapping(Mapping):
 		user_names = self._user_names()
 		if len(user_names) != 1:
 			raise AmbiguousLeaderError(
-				"No users, or more than one",
+				"No leaders, or more than one",
 				self.node.name,
 				*self.engine._btt(),
 				user_names,
