@@ -8190,11 +8190,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+	) -> tuple[bytes, bytes, RuleName, bytes, Branch, Turn, Tick]:
 		character, thing, rulebook = map(
 			self.pack, (character, thing, rulebook)
 		)
-		return (character, thing, rulebook, rule, branch, turn, tick)
+		return (character, rulebook, rule, thing, branch, turn, tick)
 
 	@sqlbatch("character_place_rules_handled")
 	def _char_place_rules_handled(
@@ -9846,7 +9846,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 	):
 		self._char_thing_rules_handled.append(
-			(character, thing, rulebook, rule, branch, turn, tick)
+			(character, rulebook, rule, thing, branch, turn, tick)
 		)
 
 	def handled_character_place_rule(
