@@ -4351,6 +4351,8 @@ class Engine(AbstractEngine, Executor):
 				if (branch, turn, tick) in cache:
 					earliest_future_keyframe = (branch, turn, tick)
 					break
+			if earliest_future_keyframe is not None:
+				break
 		(branch, turn, tick) = (branch_now, turn_now, tick_now)
 		if not loading or branch not in self._loaded:
 			return latest_past_keyframe, earliest_future_keyframe
