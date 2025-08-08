@@ -4341,15 +4341,15 @@ class Engine(AbstractEngine, Executor):
 				latest_past_keyframe = branch, turn, tick
 				break
 		for turn, ticks in (
-			self._keyframes_dict[branch]
+			self._keyframes_dict[branch_now]
 			.future(turn, include_same_rev=True)
 			.items()
 		):
 			for tick in sorted(ticks):
 				if (turn, tick) <= (turn_now, tick_now):
 					continue
-				if (branch, turn, tick) in cache:
-					earliest_future_keyframe = (branch, turn, tick)
+				if (branch_now, turn, tick) in cache:
+					earliest_future_keyframe = (branch_now, turn, tick)
 					break
 			if earliest_future_keyframe is not None:
 				break
