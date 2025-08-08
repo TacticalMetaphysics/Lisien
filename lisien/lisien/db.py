@@ -18,7 +18,7 @@ from __future__ import annotations
 import inspect
 import os
 import sys
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from collections import defaultdict, UserDict
 from contextlib import contextmanager
 from functools import cached_property, partial, partialmethod, wraps
@@ -2817,7 +2817,7 @@ def mutexed(func):
 	return mutexy
 
 
-class AbstractQueryEngine:
+class AbstractQueryEngine(ABC):
 	pack: callable
 	unpack: callable
 	holder_cls: type[ConnectionHolder]
@@ -2886,6 +2886,9 @@ class AbstractQueryEngine:
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick]]:
 		pass
+
+	@abstractmethod
+	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick): ...
 
 	@abstractmethod
 	def keyframe_extension_insert(
@@ -8391,6 +8394,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		graph = self.pack(graph)
 		return self.call_one("graphs_insert", graph, branch, turn, tick, typ)
 
+	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick):
+		self._new_keyframe_times.add((branch, turn, tick))
+
 	def keyframe_graph_insert(
 		self,
 		graph: CharName,
@@ -8404,7 +8410,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._new_keyframes.append(
 			(graph, branch, turn, tick, nodes, edges, graph_val)
 		)
-		self._new_keyframe_times.add((branch, turn, tick))
 		self._all_keyframe_times.add((branch, turn, tick))
 
 	def keyframes_graphs(
@@ -9868,6 +9873,20 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> None:
 		self._unit_rules_handled.append(
 			(character, graph, unit, rulebook, rule, branch, turn, tick)
+		)
+
+	def handled_character_thing_rule(
+		self,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
+		self._char_thing_rules_handled.append(
+			(character, thing, rulebook, rule, branch, turn, tick)
 		)
 
 	def handled_character_place_rule(
