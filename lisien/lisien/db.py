@@ -79,14 +79,11 @@ from .types import (
 	UniversalKeyframe,
 	Value,
 )
-from .util import garbage
+from .util import garbage, NONE, EMPTY, ELLIPSIS
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
 OperationalError = (LiteOperationalError, AlchemyOperationalError)
-
-NONE = msgpack.packb(None)
-EMPTY = msgpack.packb({})
 
 
 class GlobalKeyValueStore(MutableMapping):
@@ -259,7 +256,7 @@ class ParquetDBHolder(ConnectionHolder):
 				)
 		schemaver_b = b"\xb6_lisien_schema_version"
 		ver = self.get_global(schemaver_b)
-		if ver == b"\xc0":
+		if ver == ELLIPSIS:
 			self.set_global(schemaver_b, b"\x01")
 		elif ver != b"\x01":
 			return ValueError(
@@ -520,7 +517,7 @@ class ParquetDBHolder(ConnectionHolder):
 		)
 		if ret:
 			return ret["value"][0].as_py()
-		return NONE
+		return ELLIPSIS
 
 	def _get_schema(self, table):
 		import pyarrow as pa
@@ -5713,7 +5710,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		try:
 			return self.unpack(self.call("get_global", self.pack(key)))
 		except KeyError:
-			return None
+			return ...
 
 	def global_set(self, key: Key, value: Any) -> None:
 		pack = self.pack
