@@ -207,16 +207,6 @@ class InnerStopIteration(StopIteration):
 	pass
 
 
-class DummyEntity(dict):
-	"""Something to use in place of a node or edge"""
-
-	__slots__ = ["engine"]
-
-	def __init__(self, engine: AbstractEngine):
-		super().__init__()
-		self.engine = engine
-
-
 class PlanningContext(ContextDecorator):
 	"""A context manager for 'hypothetical' edits.
 
