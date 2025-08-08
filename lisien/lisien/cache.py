@@ -3441,7 +3441,7 @@ class PortalsRulebooksCache(InitializedCache):
 				self._set_keyframe((graph, orig), branch, turn, tick, subkf)
 
 
-class UserSetCache(Cache):
+class LeaderSetCache(Cache):
 	"""A cache for remembering what set of characters have certain nodes as units"""
 
 	def store(
@@ -3677,7 +3677,7 @@ class UnitnessCache(Cache):
 		keyframe_dict: Optional[dict] = None,
 	):
 		super().__init__(db, name, keyframe_dict)
-		self.user_cache = UserSetCache(db, "user cache")
+		self.leader_cache = LeaderSetCache(db, "user cache")
 		self.dict_cache = UnitDictCache(db, "unit dict cache")
 
 	@contextmanager
@@ -3686,7 +3686,7 @@ class UnitnessCache(Cache):
 			yield
 			return
 		self.overwrite_journal = True
-		with self.user_cache.overwriting(), self.dict_cache.overwriting():
+		with self.leader_cache.overwriting(), self.dict_cache.overwriting():
 			yield
 		del self.overwrite_journal
 
@@ -3742,7 +3742,7 @@ class UnitnessCache(Cache):
 			loading=loading,
 			contra=contra,
 		)
-		self.user_cache.store(
+		self.leader_cache.store(
 			character,
 			graph,
 			node,

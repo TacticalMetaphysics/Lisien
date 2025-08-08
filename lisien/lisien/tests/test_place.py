@@ -62,19 +62,19 @@ def test_portal(someplace):
 
 def test_user(someplace):
 	with pytest.raises(AmbiguousUserError):
-		someplace.user.only
+		someplace.leader.only
 	someone = someplace.engine.new_character("someone")
 	someone.add_unit(someplace)
-	assert someplace.user.only is someone
-	assert "someone" in someplace.user
-	assert someplace.user["someone"] is someone
+	assert someplace.leader.only is someone
+	assert "someone" in someplace.leader
+	assert someplace.leader["someone"] is someone
 	noone = someplace.engine.new_character("noone")
-	assert "noone" not in someplace.user
+	assert "noone" not in someplace.leader
 	noone.add_unit(someplace)
 	with pytest.raises(AmbiguousUserError):
-		someplace.user.only
-	assert "noone" in someplace.user
-	assert someplace.user["noone"] is noone
+		someplace.leader.only
+	assert "noone" in someplace.leader
+	assert someplace.leader["noone"] is noone
 
 
 def test_rulebook(someplace):
