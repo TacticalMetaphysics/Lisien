@@ -19,7 +19,7 @@ import inspect
 import os
 import sys
 from abc import abstractmethod
-from collections import defaultdict
+from collections import defaultdict, UserDict
 from contextlib import contextmanager
 from functools import cached_property, partial, partialmethod, wraps
 from itertools import starmap
@@ -85,7 +85,7 @@ IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
 OperationalError = (LiteOperationalError, AlchemyOperationalError)
 
 
-class GlobalKeyValueStore(MutableMapping):
+class GlobalKeyValueStore(UserDict):
 	"""A dict-like object that keeps its contents in a table.
 
 	Mostly this is for holding the current branch and revision.
@@ -94,35 +94,29 @@ class GlobalKeyValueStore(MutableMapping):
 
 	def __init__(self, qe: AbstractQueryEngine):
 		self.qe = qe
-		self._cache = dict(qe.global_items())
-
-	def __iter__(self):
-		yield from self._cache
-
-	def __len__(self):
-		return len(self._cache)
+		super().__init__(qe.global_items())
 
 	def __getitem__(self, k: Key) -> Value:
-		ret = self._cache[k]
+		ret = super().__getitem__(k)
 		if ret is ...:
 			raise KeyError(k)
 		if isinstance(ret, dict):
 			return DictWrapper(
-				lambda: self._cache[k],
+				lambda: super().__getitem__(k),
 				lambda v: self.__setitem__(k, v),
 				self,
 				k,
 			)
 		elif isinstance(ret, list):
 			return ListWrapper(
-				lambda: self._cache[k],
+				lambda: super().__getitem__(k),
 				lambda v: self.__setitem__(k, v),
 				self,
 				k,
 			)
 		elif isinstance(ret, set):
 			return SetWrapper(
-				lambda: self._cache[k],
+				lambda: super().__getitem__(k),
 				lambda v: self.__setitem__(k, v),
 				self,
 				k,
@@ -133,10 +127,10 @@ class GlobalKeyValueStore(MutableMapping):
 		if hasattr(v, "unwrap"):
 			v = v.unwrap()
 		self.qe.global_set(k, v)
-		self._cache[k] = v
+		super().__setitem__(k, v)
 
 	def __delitem__(self, k: Key):
-		del self._cache[k]
+		super().__delitem__(k)
 		self.qe.global_del(k)
 
 
@@ -9258,16 +9252,16 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self.globl = GlobalKeyValueStore(self)
 		if "main_branch" not in self.globl:
 			self.global_set("main_branch", "trunk")
-			self.globl._cache["main_branch"] = "trunk"
+			self.globl.data["main_branch"] = "trunk"
 		if "branch" not in self.globl:
 			self.global_set("branch", "trunk")
-			self.globl._cache["branch"] = "trunk"
+			self.globl.data["branch"] = "trunk"
 		if "turn" not in self.globl:
 			self.global_set("turn", 0)
-			self.globl._cache["turn"] = 0
+			self.globl.data["turn"] = 0
 		if "tick" not in self.globl:
 			self.global_set("tick", 0)
-			self.globl._cache["tick"] = 0
+			self.globl.data["tick"] = 0
 
 	def truncate_all(self):
 		"""Delete all data from every table"""
