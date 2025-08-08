@@ -157,7 +157,6 @@ from .util import (
 	NEIGHBORHOOD,
 	NODE_VAL,
 	NODES,
-	NONE,
 	ELLIPSIS,
 	PREREQS,
 	RULEBOOK,
@@ -179,7 +178,6 @@ from .util import (
 	world_locked,
 )
 from .window import (
-	SettingsTurnDict,
 	WindowDict,
 	update_backward_window,
 	update_window,
