@@ -3863,6 +3863,20 @@ class UnitnessCache(Cache):
 			char, graph, branch, turn, tick, forward=forward
 		)
 
+	def count_entities(
+		self,
+		char: CharName,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> int:
+		return self._count_entities_or_keys(
+			char, graph, branch, turn, tick, forward=forward
+		)
+
 	def get_char_only_unit(
 		self, char: CharName, branch: Branch, turn: Turn, tick: Tick
 	):
