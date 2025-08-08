@@ -7953,47 +7953,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	IntegrityError = IntegrityError
 	OperationalError = OperationalError
 	holder_cls = SQLAlchemyConnectionHolder
-	tables = [
-		"global",
-		"branches",
-		"turns",
-		"graphs",
-		"keyframes",
-		"keyframes_graphs",
-		"keyframe_extensions",
-		"graph_val",
-		"nodes",
-		"node_val",
-		"edges",
-		"edge_val",
-		"plans",
-		"plan_ticks",
-		"universals",
-		"rules",
-		"rulebooks",
-		"rule_triggers",
-		"rule_prereqs",
-		"rule_actions",
-		"character_rulebook",
-		"unit_rulebook",
-		"character_thing_rulebook",
-		"character_place_rulebook",
-		"character_portal_rulebook",
-		"character_thing_rules_handled",
-		"character_place_rules_handled",
-		"character_portal_rules_handled",
-		"node_rulebook",
-		"portal_rulebook",
-		"rule_neighborhood",
-		"rule_big",
-		"node_rules_handled",
-		"portal_rules_handled",
-		"things",
-		"units",
-		"character_rules_handled",
-		"unit_rules_handled",
-		"turns_completed",
-	]
+	tables = list(meta.tables.keys())
 	kf_interval_override: callable
 
 	def __init__(self, dbstring, connect_args, pack=None, unpack=None):
