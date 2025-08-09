@@ -63,14 +63,14 @@ def test_build_keyframe_window(null_engine):
 	)
 
 
-def test_bookmark(engy):
-	engy.bookmark("a")
-	engy.next_turn()
-	engy.bookmark("b")
-	engy.branch = "branch"
-	engy.bookmark("c")
-	assert engy.time == ("branch", 1, 0)
-	engy.bookmark("b")
-	assert engy.time == ("trunk", 1, 0)
-	engy.bookmark("a")
-	assert engy.time == ("trunk", 0, 0)
+def test_bookmark(engine):
+	engine.bookmark("a")
+	engine.next_turn()
+	engine.bookmark("b")
+	engine.branch = "branch"
+	engine.bookmark("c")
+	assert engine.time == ("branch", 1, 0)
+	engine.bookmark("b")
+	assert engine.time == ("trunk", 1, 0)
+	engine.bookmark("a")
+	assert engine.time == ("trunk", 0, 0)
