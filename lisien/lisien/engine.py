@@ -28,7 +28,7 @@ import signal
 import sys
 import zlib
 from abc import ABC, abstractmethod
-from collections import defaultdict, UserDict
+from collections import UserDict, defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
@@ -57,6 +57,7 @@ from networkx import (
 
 from . import exc
 from .cache import (
+	BignessCache,
 	CharacterPlaceRulesHandledCache,
 	CharacterPortalRulesHandledCache,
 	CharacterRulesHandledCache,
@@ -65,11 +66,10 @@ from .cache import (
 	EdgesCache,
 	EdgeValCache,
 	EntitylessCache,
+	FuncListCache,
 	GraphCache,
 	GraphValCache,
-	RulebooksCache,
 	NeighborhoodsCache,
-	BignessCache,
 	NodeContentsCache,
 	NodeRulesHandledCache,
 	NodesCache,
@@ -78,13 +78,13 @@ from .cache import (
 	PickyDefaultDict,
 	PortalRulesHandledCache,
 	PortalsRulebooksCache,
+	RulebooksCache,
 	StructuredDefaultDict,
 	ThingsCache,
 	TurnEndDict,
 	TurnEndPlanDict,
 	UnitnessCache,
 	UnitRulesHandledCache,
-	FuncListCache,
 )
 from .character import Character
 from .db import NullQueryEngine, ParquetQueryEngine, SQLAlchemyQueryEngine
@@ -152,12 +152,12 @@ from .util import (
 	BIG,
 	EDGE_VAL,
 	EDGES,
+	ELLIPSIS,
 	ETERNAL,
 	FALSE,
 	NEIGHBORHOOD,
 	NODE_VAL,
 	NODES,
-	ELLIPSIS,
 	PREREQS,
 	RULEBOOK,
 	RULEBOOKS,
@@ -178,11 +178,7 @@ from .util import (
 	timer,
 	world_locked,
 )
-from .window import (
-	WindowDict,
-	update_backward_window,
-	update_window,
-)
+from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
 	ChangeTrackingDict,
 	CharacterMapping,
