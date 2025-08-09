@@ -405,14 +405,14 @@ class ProxyLeaderMapping(Mapping):
 
 	def __getitem__(self, item: CharName):
 		if item not in self:
-			raise KeyError("Not a user of this node", item, self.node.name)
+			raise KeyError("Not a leader of this node", item, self.node.name)
 		return self.node.engine.character[item]
 
 	@property
 	def only(self):
 		if len(self) == 1:
 			return next(iter(self.values()))
-		raise AmbiguousLeaderError("No users, or more than one")
+		raise AmbiguousLeaderError("No leaders, or more than one")
 
 	def _user_names(self):
 		return self.node.engine._unit_characters_cache[self.node._charname][
