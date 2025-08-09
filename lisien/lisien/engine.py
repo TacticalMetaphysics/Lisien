@@ -166,6 +166,7 @@ from .util import (
 	TRUE,
 	UNITS,
 	UNIVERSAL,
+	AbstractBookmarkMapping,
 	AbstractCharacter,
 	AbstractEngine,
 	SizedDict,
@@ -415,7 +416,7 @@ class WorkerFormatter(Formatter):
 		return f"worker {getattr(record, 'worker_idx', '???')}: {super().formatMessage(record)}"
 
 
-class BookmarkMapping(UserDict):
+class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 	"""Points in time you might want to return to.
 
 	Call this with a valid key, like a string, to place a bookmark at the
