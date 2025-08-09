@@ -19,7 +19,7 @@ import inspect
 import os
 import sys
 from abc import ABC, abstractmethod
-from collections import defaultdict, UserDict
+from collections import UserDict, defaultdict
 from contextlib import contextmanager
 from functools import cached_property, partial, partialmethod, wraps
 from itertools import starmap
@@ -44,7 +44,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
-from .alchemy import meta, gather_sql
+from .alchemy import gather_sql, meta
 from .exc import KeyframeError
 from .types import (
 	ActionFuncName,
@@ -78,7 +78,7 @@ from .types import (
 	UniversalKeyframe,
 	Value,
 )
-from .util import garbage, EMPTY, ELLIPSIS
+from .util import ELLIPSIS, EMPTY, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)

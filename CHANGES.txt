@@ -1,4 +1,4 @@
-== 0.21.0 | 2025-08-09 ==
+== 0.21.0 | 2025-08-10 ==
 * Added the `bookmark` mapping/method. This is a convenient way to store points
   in time and travel to them. You can call it with whatever name you want to
   give your bookmark to make a new one, then call it with that name again

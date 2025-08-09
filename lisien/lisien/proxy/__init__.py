@@ -98,13 +98,13 @@ from ..types import (
 	Value,
 )
 from ..util import (
+	AbstractBookmarkMapping,
 	AbstractCharacter,
 	AbstractEngine,
 	MsgpackExtensionType,
 	TimeSignalDescriptor,
 	getatt,
 	repr_call_sig,
-	AbstractBookmarkMapping,
 )
 from ..wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from ..xcollections import (
