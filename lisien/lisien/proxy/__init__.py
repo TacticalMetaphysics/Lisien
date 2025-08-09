@@ -36,6 +36,7 @@ import random
 import sys
 import zlib
 from abc import ABC, abstractmethod
+from collections import UserDict
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -103,6 +104,7 @@ from ..util import (
 	TimeSignalDescriptor,
 	getatt,
 	repr_call_sig,
+	AbstractBookmarkMapping,
 )
 from ..wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
 from ..xcollections import (
@@ -3066,6 +3068,32 @@ class NextTurnProxy(Signal):
 			cb(*args, **kwargs)
 
 
+class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
+	def __init__(self, engine: EngineProxy):
+		self.engine = engine
+		super().__init__(self.engine.handle("bookmarks_dump"))
+
+	def __call__(self, key: Key) -> None:
+		self.data[key] = self.engine.handle("set_bookmark", key=key)
+
+	def __setitem__(self, key: Key, value: Time):
+		if not (
+			isinstance(value, tuple)
+			and len(tuple) == 3
+			and isinstance(tuple[0], str)
+			and isinstance(tuple[1], int)
+			and isinstance(tuple[2], int)
+		):
+			raise TypeError("Not a valid time", value)
+		self.data[key] = self.engine.handle(
+			"set_bookmark", key=key, time=value
+		)
+
+	def __delitem__(self, key: Key):
+		self.engine.handle("del_bookmark", key=key)
+		del self.data[key]
+
+
 class EngineProxy(AbstractEngine):
 	"""An engine-like object for controlling a lisien process
 
@@ -3080,6 +3108,10 @@ class EngineProxy(AbstractEngine):
 	portal_cls = PortalProxy
 	time = TimeSignalDescriptor()
 	is_proxy = True
+
+	@cached_property
+	def bookmark(self) -> BookmarkMappingProxy:
+		return BookmarkMappingProxy(self)
 
 	def __enter__(self):
 		return self
