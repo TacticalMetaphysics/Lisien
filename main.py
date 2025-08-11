@@ -34,10 +34,6 @@ except ImportError:
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
 
 
-def get_application_config(*args):
-	return wd + "/elide.ini"
-
-
 if __name__ == "__main__":
 	freeze_support()
 
@@ -49,7 +45,6 @@ if __name__ == "__main__":
 	app = ElideApp(
 		prefix=wd, connect_string=connect_string, logs_dir=logs_dir, workers=0
 	)
-	app.get_application_config = get_application_config
 	try:
 		app.run()
 	except BaseException as ex:
