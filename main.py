@@ -18,13 +18,14 @@ import sys
 
 try:
 	from android.storage import app_storage_path
-	from multiprocessing import freeze_support
+
+	def freeze_support(): ...
 
 	wd = os.path.join(app_storage_path(), "lisien_workspace")
 	connect_string = "sqlite:///{prefix}/world.sqlite3"
 	logs_dir = os.path.join(app_storage_path(), "app", ".kivy", "logs")
 except ImportError:
-	def freeze_support(): ...
+	from multiprocessing import freeze_support
 	wd = os.path.join(os.getcwd())
 	logs_dir = connect_string = None
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
