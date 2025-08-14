@@ -4,3 +4,4 @@ include elide/assets/*.ttf
 include elide/assets/*.atlas
 include elide/assets/rltiles/*
 include elide/assets/kenney1bit/*
+include elide/elide.kv
