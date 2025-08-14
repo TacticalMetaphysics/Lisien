@@ -12,5 +12,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from kivy.tests import async_run
+
+from elide.app import ElideApp
 
 pytest_plugins = ["kivy.tests.conftest", "kivy.tests.fixtures"]
+
+
+@async_run(app_cls_func=ElideApp)
+def elide_app(kivy_app):
+	yield kivy_app
