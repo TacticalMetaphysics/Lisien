@@ -20,6 +20,7 @@ for handler in Logger.handlers:
 	if not isinstance(handler, ConsoleHandler):
 		handler.setFormatter(formatter)
 
+resource_add_path(__path__[0])
 resource_add_path(__path__[0] + "/assets")
 
 __all__ = [
