@@ -22,6 +22,8 @@ for handler in Logger.handlers:
 
 resource_add_path(__path__[0])
 resource_add_path(__path__[0] + "/assets")
+resource_add_path(__path__[0] + "/assets/rltiles")
+resource_add_path(__path__[0] + "/assets/kenney1bit")
 
 __all__ = [
 	"graph",
