@@ -44,7 +44,6 @@ from ..types import (
 	Keyframe,
 	LinearTime,
 	NodeName,
-	NodesDict,
 	NodeValDict,
 	Plan,
 	PrereqFuncName,
