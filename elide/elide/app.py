@@ -547,6 +547,10 @@ class ElideApp(App):
 		if self.game_name != game_name:
 			self.game_name = game_name
 		gamedir = os.path.join(self.prefix, self.games_dir, game_name)
+		os.makedirs(
+			gamedir,
+			exist_ok=True,
+		)
 		self._add_screens()
 		self.manager.current = "mainscreen"
 		engine = self.engine = self.start_subprocess(gamedir)
