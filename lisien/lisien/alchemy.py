@@ -12,17 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""A script to generate the SQL needed for lisien's database backend,
-and output it in JSON form.
-
-This uses sqlalchemy to describe the queries. It extends the module of
-the same name in the ``allegedb`` package. If you change anything here,
-you won't be able to use your changes until you put the generated JSON
-where lisien will look for it, as in:
-
-``python3 sqlalchemy.py >sqlite.json``
-
-"""
 
 from collections import OrderedDict
 from functools import partial
