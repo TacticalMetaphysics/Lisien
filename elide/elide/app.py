@@ -17,7 +17,6 @@
 import json
 import os
 import shutil
-from functools import partial
 from threading import Thread
 
 from lisien.exc import OutOfTimelineError
