@@ -34,7 +34,7 @@ from kivy.properties import (
 	ObjectProperty,
 	StringProperty,
 )
-from kivy.resources import resource_add_path, resource_find
+from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 import elide
@@ -58,10 +58,6 @@ from lisien.proxy import (
 	PlaceProxy,
 	ThingProxy,
 )
-
-resource_add_path(elide.__path__[0] + "/assets")
-resource_add_path(elide.__path__[0] + "/assets/rltiles")
-resource_add_path(elide.__path__[0] + "/assets/kenney1bit")
 
 
 def trigger(func):
