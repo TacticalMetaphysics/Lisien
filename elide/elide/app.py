@@ -28,6 +28,7 @@ from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.logger import Logger
 from kivy.properties import (
+	AliasProperty,
 	BooleanProperty,
 	NumericProperty,
 	ObjectProperty,
@@ -87,6 +88,21 @@ class ElideApp(App):
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
 	character_name = ObjectProperty()
+
+	def _get_play_dir(self):
+		return os.path.join(self.prefix, self.games_dir, self.game_name)
+
+	def _set_play_dir(self, str_or_triple: str | tuple[str, str, str]):
+		if isinstance(str_or_triple, str):
+			*a, b, c = str.split(os.path.sep)
+			a = os.path.sep.join(a)
+		else:
+			a, b, c = str_or_triple
+		self.prefix, self.games_dir, self.game_name = a, b, c
+
+	play_dir = AliasProperty(
+		_get_play_dir, _set_play_dir, bind=("prefix", "games_dir", "game_name")
+	)
 
 	@logwrap
 	def on_selection(self, *_):
@@ -545,14 +561,13 @@ class ElideApp(App):
 		game_name = name or self.game_name
 		if self.game_name != game_name:
 			self.game_name = game_name
-		gamedir = os.path.join(self.prefix, self.games_dir, game_name)
 		os.makedirs(
-			gamedir,
+			self.play_dir,
 			exist_ok=True,
 		)
 		self._add_screens()
 		self.manager.current = "mainscreen"
-		engine = self.engine = self.start_subprocess(gamedir)
+		engine = self.engine = self.start_subprocess(self.play_dir)
 		self.mainscreen.populate()
 		self.init_board()
 		if cb:
