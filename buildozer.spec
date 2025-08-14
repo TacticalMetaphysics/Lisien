@@ -17,6 +17,7 @@ source.include_exts = py,png,jpg,kv,atlas,ini,sqlite3
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png
+# source.include_patterns = elide/elide/assets/*, elide/elide/elide.kv
 
 # (list) Source files to exclude (let empty to not exclude anything)
 #source.exclude_exts = spec
@@ -29,7 +30,7 @@ source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien,elide
 #source.exclude_patterns = license,images/*/*.jpg
 
 # (str) Application versioning (method 1)
-version = 0.21.0
+version = 0.21.2
 
 # (str) Application versioning (method 2)
 # version.regex = __version__ = ['"](.*)['"]
