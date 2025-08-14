@@ -29,7 +29,6 @@ from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.logger import Logger
 from kivy.properties import (
-	AliasProperty,
 	BooleanProperty,
 	NumericProperty,
 	ObjectProperty,
