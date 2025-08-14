@@ -14,8 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial, wraps
 
-from kivy import Logger
-from kivy.app import App
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.uix.behaviors import FocusBehavior

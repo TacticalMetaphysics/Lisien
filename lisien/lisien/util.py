@@ -43,11 +43,10 @@ from operator import (
 from random import Random
 from textwrap import dedent
 from time import monotonic
-from types import FunctionType, MethodType, ModuleType, TracebackType
+from types import FunctionType, MethodType, ModuleType
 from typing import (
 	TYPE_CHECKING,
 	Annotated,
-	Any,
 	Callable,
 	Hashable,
 	Iterable,

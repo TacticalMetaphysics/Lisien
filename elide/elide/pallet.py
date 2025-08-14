@@ -19,8 +19,7 @@ from the :class:`Pallet`, and the :class:`Pallet` updates its
 ``selection`` list to show what the user selected."""
 
 from kivy.atlas import Atlas
-from kivy.clock import Clock, mainthread, triggered
-from kivy.graphics import Rectangle
+from kivy.clock import Clock, triggered
 from kivy.logger import Logger
 from kivy.properties import (
 	DictProperty,
