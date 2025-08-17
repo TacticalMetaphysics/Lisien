@@ -1,0 +1,10 @@
+--- Python-3.14.0rc2/Lib/sysconfig/__init__.py	2025-08-15 00:19:47.000000000 +1200
++++ Python-3.14.0rc2-new/Lib/sysconfig/__init__.py	2025-08-16 16:26:51.254835454 +1200
+@@ -699,6 +699,7 @@
+             "i686": "x86",
+             "aarch64": "arm64_v8a",
+             "armv7l": "armeabi_v7a",
++            "arm": "arm64_v8a"
+         }[machine]
+     elif osname == "linux":
+         # At least on Linux/Intel, 'machine' is the processor --
