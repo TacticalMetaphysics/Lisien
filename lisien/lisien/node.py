@@ -86,7 +86,7 @@ class LeaderMapping(Mapping):
 		user_names = self._user_names()
 		if len(user_names) != 1:
 			raise AmbiguousLeaderError(
-				"No users, or more than one",
+				"No leaders, or more than one",
 				self.node.name,
 				*self.engine._btt(),
 				user_names,
@@ -435,6 +435,9 @@ class Node(graph.Node, rule.RuleFollower):
 	def leader(self) -> LeaderMapping:
 		__doc__ = LeaderMapping.__doc__
 		return LeaderMapping(self)
+
+	def leaders(self) -> ValuesView[Character]:
+		return self.leader.values()
 
 	def __init__(self, character: "Character", name: NodeName):
 		super().__init__(character, name)

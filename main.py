@@ -15,32 +15,24 @@
 import os
 import sys
 
-try:
-	from multiprocessing import freeze_support
-except ImportError:
-
-	def freeze_support(): ...
-
 
 try:
 	from android.storage import app_storage_path
+
+	def freeze_support(): ...
 
 	wd = os.path.join(app_storage_path(), "lisien_workspace")
 	connect_string = "sqlite:///{prefix}/world.sqlite3"
 	logs_dir = os.path.join(app_storage_path(), "app", ".kivy", "logs")
 except ImportError:
+	from multiprocessing import freeze_support
 	wd = os.path.join(os.getcwd())
 	logs_dir = connect_string = None
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
 
 
-def get_application_config(*args):
-	return wd + "/elide.ini"
-
-
 if __name__ == "__main__":
 	freeze_support()
-
 	from kivy.logger import Logger
 	from elide.app import ElideApp
 
@@ -49,7 +41,6 @@ if __name__ == "__main__":
 	app = ElideApp(
 		prefix=wd, connect_string=connect_string, logs_dir=logs_dir, workers=0
 	)
-	app.get_application_config = get_application_config
 	try:
 		app.run()
 	except BaseException as ex:

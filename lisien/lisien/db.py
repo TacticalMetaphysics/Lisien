@@ -18,8 +18,8 @@ from __future__ import annotations
 import inspect
 import os
 import sys
-from abc import abstractmethod
-from collections import defaultdict
+from abc import ABC, abstractmethod
+from collections import UserDict, defaultdict
 from contextlib import contextmanager
 from functools import cached_property, partial, partialmethod, wraps
 from itertools import starmap
@@ -29,9 +29,8 @@ from sqlite3 import IntegrityError as LiteIntegrityError
 from sqlite3 import OperationalError as LiteOperationalError
 from threading import Lock, Thread
 from types import MethodType
-from typing import Any, Iterator, Literal, MutableMapping, Optional
+from typing import Any, Iterator, Literal, Optional
 
-import msgpack
 from sqlalchemy import (
 	BLOB,
 	BOOLEAN,
@@ -45,7 +44,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
-from .alchemy import meta, gather_sql
+from .alchemy import gather_sql, meta
 from .exc import KeyframeError
 from .types import (
 	ActionFuncName,
@@ -79,14 +78,14 @@ from .types import (
 	UniversalKeyframe,
 	Value,
 )
-from .util import garbage, NONE, EMPTY, ELLIPSIS
+from .util import ELLIPSIS, EMPTY, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
 OperationalError = (LiteOperationalError, AlchemyOperationalError)
 
 
-class GlobalKeyValueStore(MutableMapping):
+class GlobalKeyValueStore(UserDict):
 	"""A dict-like object that keeps its contents in a table.
 
 	Mostly this is for holding the current branch and revision.
@@ -95,35 +94,29 @@ class GlobalKeyValueStore(MutableMapping):
 
 	def __init__(self, qe: AbstractQueryEngine):
 		self.qe = qe
-		self._cache = dict(qe.global_items())
-
-	def __iter__(self):
-		yield from self._cache
-
-	def __len__(self):
-		return len(self._cache)
+		super().__init__(qe.global_items())
 
 	def __getitem__(self, k: Key) -> Value:
-		ret = self._cache[k]
+		ret = super().__getitem__(k)
 		if ret is ...:
 			raise KeyError(k)
 		if isinstance(ret, dict):
 			return DictWrapper(
-				lambda: self._cache[k],
+				lambda: super().__getitem__(k),
 				lambda v: self.__setitem__(k, v),
 				self,
 				k,
 			)
 		elif isinstance(ret, list):
 			return ListWrapper(
-				lambda: self._cache[k],
+				lambda: super().__getitem__(k),
 				lambda v: self.__setitem__(k, v),
 				self,
 				k,
 			)
 		elif isinstance(ret, set):
 			return SetWrapper(
-				lambda: self._cache[k],
+				lambda: super().__getitem__(k),
 				lambda v: self.__setitem__(k, v),
 				self,
 				k,
@@ -134,10 +127,10 @@ class GlobalKeyValueStore(MutableMapping):
 		if hasattr(v, "unwrap"):
 			v = v.unwrap()
 		self.qe.global_set(k, v)
-		self._cache[k] = v
+		super().__setitem__(k, v)
 
 	def __delitem__(self, k: Key):
-		del self._cache[k]
+		super().__delitem__(k)
 		self.qe.global_del(k)
 
 
@@ -376,7 +369,48 @@ class ParquetDBHolder(ConnectionHolder):
 		]
 
 	def rowcount(self, table: str) -> int:
-		return self._get_db(table).read().rowcount
+		return self._get_db(table).read().num_rows
+
+	def bookmark_items(self) -> list[tuple[Key, Time]]:
+		return [
+			(d["name"], (d["branch"], d["turn"], d["tick"]))
+			for d in self.dump("bookmarks")
+		]
+
+	def set_bookmark(self, key: bytes, branch: Branch, turn: Turn, tick: Tick):
+		import pyarrow.compute as pc
+
+		db = self._get_db("bookmarks")
+		schema = self._get_schema("bookmarks")
+		try:
+			id_ = db.read(
+				filters=[pc.field("key") == pc.scalar(key)], columns=["id"]
+			)["id"][0]
+		except IndexError:
+			db.create(
+				[{"key": key, "branch": branch, "turn": turn, "tick": tick}],
+				schema=schema,
+			)
+			return
+		db.update(
+			[
+				{
+					"id": id_,
+					"key": key,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+				}
+			],
+			schema=schema,
+		)
+
+	def del_bookmark(self, key: bytes):
+		import pyarrow.compute as pc
+
+		self._get_db("bookmarks").delete(
+			filters=[pc.field("key") == pc.scalar(key)]
+		)
 
 	def rulebooks(self) -> set[RulebookName]:
 		return set(
@@ -2783,7 +2817,7 @@ def mutexed(func):
 	return mutexy
 
 
-class AbstractQueryEngine:
+class AbstractQueryEngine(ABC):
 	pack: callable
 	unpack: callable
 	holder_cls: type[ConnectionHolder]
@@ -2854,6 +2888,9 @@ class AbstractQueryEngine:
 		pass
 
 	@abstractmethod
+	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick): ...
+
+	@abstractmethod
 	def keyframe_extension_insert(
 		self,
 		branch: Branch,
@@ -2876,10 +2913,6 @@ class AbstractQueryEngine:
 		edges: EdgeKeyframe,
 		graph_val: GraphValKeyframe,
 	) -> None:
-		pass
-
-	@abstractmethod
-	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		pass
 
 	@abstractmethod
@@ -4623,6 +4656,15 @@ class AbstractQueryEngine:
 	):
 		pass
 
+	@abstractmethod
+	def bookmark_items(self) -> Iterator[tuple[Key, Time]]: ...
+
+	@abstractmethod
+	def set_bookmark(self, key: Key, time: Time) -> None: ...
+
+	@abstractmethod
+	def del_bookmark(self, key: Key) -> None: ...
+
 	def load_windows(self, windows: list[TimeWindow]) -> dict:
 		def empty_char():
 			return {
@@ -5484,6 +5526,15 @@ class NullQueryEngine(AbstractQueryEngine):
 		turn_to: Turn,
 		tick_to: Tick,
 	):
+		pass
+
+	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+		return iter(())
+
+	def set_bookmark(self, key: Key, time: Time) -> None:
+		pass
+
+	def del_bookmark(self, key: Key) -> None:
 		pass
 
 	def load_windows(self, windows: list[TimeWindow]) -> dict:
@@ -7666,6 +7717,15 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.call("initdb")
 		self._all_keyframe_times = self.call("all_keyframe_times")
 
+	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+		return iter(self.call("bookmark_items"))
+
+	def set_bookmark(self, key: Key, time: Time) -> None:
+		self.call("set_bookmark", key, *time)
+
+	def del_bookmark(self, key: Key) -> None:
+		self.call("del_bookmark", key)
+
 
 class SQLAlchemyConnectionHolder(ConnectionHolder):
 	def __init__(
@@ -7893,47 +7953,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	IntegrityError = IntegrityError
 	OperationalError = OperationalError
 	holder_cls = SQLAlchemyConnectionHolder
-	tables = [
-		"global",
-		"branches",
-		"turns",
-		"graphs",
-		"keyframes",
-		"keyframes_graphs",
-		"keyframe_extensions",
-		"graph_val",
-		"nodes",
-		"node_val",
-		"edges",
-		"edge_val",
-		"plans",
-		"plan_ticks",
-		"universals",
-		"rules",
-		"rulebooks",
-		"rule_triggers",
-		"rule_prereqs",
-		"rule_actions",
-		"character_rulebook",
-		"unit_rulebook",
-		"character_thing_rulebook",
-		"character_place_rulebook",
-		"character_portal_rulebook",
-		"character_thing_rules_handled",
-		"character_place_rules_handled",
-		"character_portal_rules_handled",
-		"node_rulebook",
-		"portal_rulebook",
-		"rule_neighborhood",
-		"rule_big",
-		"node_rules_handled",
-		"portal_rules_handled",
-		"things",
-		"units",
-		"character_rules_handled",
-		"unit_rules_handled",
-		"turns_completed",
-	]
+	tables = list(meta.tables.keys())
 	kf_interval_override: callable
 
 	def __init__(self, dbstring, connect_args, pack=None, unpack=None):
@@ -8170,11 +8190,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+	) -> tuple[bytes, bytes, RuleName, bytes, Branch, Turn, Tick]:
 		character, thing, rulebook = map(
 			self.pack, (character, thing, rulebook)
 		)
-		return (character, thing, rulebook, rule, branch, turn, tick)
+		return (character, rulebook, rule, thing, branch, turn, tick)
 
 	@sqlbatch("character_place_rules_handled")
 	def _char_place_rules_handled(
@@ -8309,6 +8329,21 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			self._outq.task_done()
 			return ret
 
+	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+		unpack = self.unpack
+		for key, branch, turn, tick in self.call_one("bookmarks_dump"):
+			yield unpack(key), (branch, turn, tick)
+
+	def set_bookmark(self, key: Key, time: Time) -> None:
+		key = self.pack(key)
+		try:
+			self.call_one("bookmarks_insert", key, *time)
+		except IntegrityError:
+			self.call_one("update_bookmark", key, *time)
+
+	def del_bookmark(self, key: Key) -> None:
+		self.call_one("delete_bookmark", self.pack(key))
+
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
 		return self.call_one("keyframes_dump")
 
@@ -8318,6 +8353,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		"""Declare a new graph by this name of this type."""
 		graph = self.pack(graph)
 		return self.call_one("graphs_insert", graph, branch, turn, tick, typ)
+
+	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick):
+		self._new_keyframe_times.add((branch, turn, tick))
 
 	def keyframe_graph_insert(
 		self,
@@ -8332,7 +8370,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._new_keyframes.append(
 			(graph, branch, turn, tick, nodes, edges, graph_val)
 		)
-		self._new_keyframe_times.add((branch, turn, tick))
 		self._all_keyframe_times.add((branch, turn, tick))
 
 	def keyframes_graphs(
@@ -9259,16 +9296,16 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self.globl = GlobalKeyValueStore(self)
 		if "main_branch" not in self.globl:
 			self.global_set("main_branch", "trunk")
-			self.globl._cache["main_branch"] = "trunk"
+			self.globl.data["main_branch"] = "trunk"
 		if "branch" not in self.globl:
 			self.global_set("branch", "trunk")
-			self.globl._cache["branch"] = "trunk"
+			self.globl.data["branch"] = "trunk"
 		if "turn" not in self.globl:
 			self.global_set("turn", 0)
-			self.globl._cache["turn"] = 0
+			self.globl.data["turn"] = 0
 		if "tick" not in self.globl:
 			self.global_set("tick", 0)
-			self.globl._cache["tick"] = 0
+			self.globl.data["tick"] = 0
 
 	def truncate_all(self):
 		"""Delete all data from every table"""
@@ -9796,6 +9833,20 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> None:
 		self._unit_rules_handled.append(
 			(character, graph, unit, rulebook, rule, branch, turn, tick)
+		)
+
+	def handled_character_thing_rule(
+		self,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	):
+		self._char_thing_rules_handled.append(
+			(character, rulebook, rule, thing, branch, turn, tick)
 		)
 
 	def handled_character_place_rule(

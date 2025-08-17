@@ -44,7 +44,6 @@ from ..types import (
 	Keyframe,
 	LinearTime,
 	NodeName,
-	NodesDict,
 	NodeValDict,
 	Plan,
 	PrereqFuncName,
@@ -348,6 +347,20 @@ class EngineHandle:
 		btt_to: Time | None = None,
 	) -> SlightlyPackedDeltaType:
 		return self._real._get_slow_delta(btt_from, btt_to)
+
+	def bookmarks_dump(self) -> list[tuple[Key, Time]]:
+		return list(self._real.query.bookmark_items())
+
+	def set_bookmark(self, key: Key, time: Time | None = None) -> Time:
+		if time is None:
+			self._real.bookmark(key)
+			return tuple(self._real.time)
+		else:
+			self._real.bookmark[key] = time
+			return time
+
+	def del_bookmark(self, key: Key):
+		del self._real.bookmark[key]
 
 	def start_branch(
 		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick

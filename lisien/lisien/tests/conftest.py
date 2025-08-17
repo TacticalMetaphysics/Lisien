@@ -140,7 +140,6 @@ def engy(tmp_path, execution, database):
 			prefix=None,
 			worker_index=0,
 			eternal={"language": "eng"},
-			branches={},
 			function={},
 			method={},
 			trigger={},

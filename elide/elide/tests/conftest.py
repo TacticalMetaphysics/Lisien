@@ -12,27 +12,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from kivy.logger import ConsoleHandler, KivyFormatter, Logger
-from kivy.resources import resource_add_path
+from kivy.tests import async_run
 
-formatter = KivyFormatter("%(asctime)s [%(levelname)-7s] %(message)s")
-for handler in Logger.handlers:
-	if not isinstance(handler, ConsoleHandler):
-		handler.setFormatter(formatter)
+from elide.app import ElideApp
 
-resource_add_path(__path__[0])
-resource_add_path(__path__[0] + "/assets")
-resource_add_path(__path__[0] + "/assets/rltiles")
-resource_add_path(__path__[0] + "/assets/kenney1bit")
+pytest_plugins = ["kivy.tests.conftest", "kivy.tests.fixtures"]
 
-__all__ = [
-	"graph",
-	"grid",
-	"app",
-	"card",
-	"dialog",
-	"game",
-	"menu",
-	"spritebuilder",
-	"calendar",
-]
+
+@async_run(app_cls_func=ElideApp)
+def elide_app(kivy_app):
+	yield kivy_app

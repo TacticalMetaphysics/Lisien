@@ -12,17 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""A script to generate the SQL needed for lisien's database backend,
-and output it in JSON form.
-
-This uses sqlalchemy to describe the queries. It extends the module of
-the same name in the ``allegedb`` package. If you change anything here,
-you won't be able to use your changes until you put the generated JSON
-where lisien will look for it, as in:
-
-``python3 sqlalchemy.py >sqlite.json``
-
-"""
 
 from collections import OrderedDict
 from functools import partial
@@ -89,6 +78,14 @@ def tables_for_meta(meta):
 		Column("end_tick", INT),
 		Column("plan_end_tick", INT),
 		sqlite_with_rowid=False,
+	)
+	Table(
+		"bookmarks",
+		meta,
+		Column("key", TEXT, primary_key=True),
+		Column("branch", TEXT, default="trunk"),
+		Column("turn", INT),
+		Column("tick", INT),
 	)
 	Table(
 		"graphs",
@@ -528,9 +525,9 @@ def tables_for_meta(meta):
 		"character_thing_rules_handled",
 		meta,
 		Column("character", BLOB),
-		Column("thing", BLOB),
 		Column("rulebook", BLOB),
 		Column("rule", TEXT),
+		Column("thing", BLOB),
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
@@ -1001,6 +998,19 @@ def queries(table):
 				),
 			),
 		)
+	)
+	bookmarks = table["bookmarks"]
+	r["update_bookmark"] = (
+		bookmarks.update()
+		.where(bookmarks.c.key == bindparam("key"))
+		.values(
+			branch=bindparam("branch"),
+			turn=bindparam("turn"),
+			tick=bindparam("tick"),
+		)
+	)
+	r["delete_bookmark"] = bookmarks.delete().where(
+		bookmarks.c.key == bindparam("key")
 	)
 
 	def to_end_clause(tab: Table):

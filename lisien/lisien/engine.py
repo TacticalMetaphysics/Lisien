@@ -28,7 +28,7 @@ import signal
 import sys
 import zlib
 from abc import ABC, abstractmethod
-from collections import defaultdict
+from collections import UserDict, defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
@@ -57,6 +57,7 @@ from networkx import (
 
 from . import exc
 from .cache import (
+	BignessCache,
 	CharacterPlaceRulesHandledCache,
 	CharacterPortalRulesHandledCache,
 	CharacterRulesHandledCache,
@@ -65,11 +66,10 @@ from .cache import (
 	EdgesCache,
 	EdgeValCache,
 	EntitylessCache,
+	FuncListCache,
 	GraphCache,
 	GraphValCache,
-	RulebooksCache,
 	NeighborhoodsCache,
-	BignessCache,
 	NodeContentsCache,
 	NodeRulesHandledCache,
 	NodesCache,
@@ -78,13 +78,13 @@ from .cache import (
 	PickyDefaultDict,
 	PortalRulesHandledCache,
 	PortalsRulebooksCache,
+	RulebooksCache,
 	StructuredDefaultDict,
 	ThingsCache,
 	TurnEndDict,
 	TurnEndPlanDict,
 	UnitnessCache,
 	UnitRulesHandledCache,
-	FuncListCache,
 )
 from .character import Character
 from .db import NullQueryEngine, ParquetQueryEngine, SQLAlchemyQueryEngine
@@ -152,13 +152,12 @@ from .util import (
 	BIG,
 	EDGE_VAL,
 	EDGES,
+	ELLIPSIS,
 	ETERNAL,
 	FALSE,
 	NEIGHBORHOOD,
 	NODE_VAL,
 	NODES,
-	NONE,
-	ELLIPSIS,
 	PREREQS,
 	RULEBOOK,
 	RULEBOOKS,
@@ -167,6 +166,7 @@ from .util import (
 	TRUE,
 	UNITS,
 	UNIVERSAL,
+	AbstractBookmarkMapping,
 	AbstractCharacter,
 	AbstractEngine,
 	SizedDict,
@@ -178,12 +178,7 @@ from .util import (
 	timer,
 	world_locked,
 )
-from .window import (
-	SettingsTurnDict,
-	WindowDict,
-	update_backward_window,
-	update_window,
-)
+from .window import WindowDict, update_backward_window, update_window
 from .xcollections import (
 	ChangeTrackingDict,
 	CharacterMapping,
@@ -205,16 +200,6 @@ if "LISIEN_KILL_SUBPROCESS" in os.environ:
 
 class InnerStopIteration(StopIteration):
 	pass
-
-
-class DummyEntity(dict):
-	"""Something to use in place of a node or edge"""
-
-	__slots__ = ["engine"]
-
-	def __init__(self, engine: AbstractEngine):
-		super().__init__()
-		self.engine = engine
 
 
 class PlanningContext(ContextDecorator):
@@ -425,6 +410,46 @@ class WorkerFormatter(Formatter):
 				record,
 			)
 		return f"worker {getattr(record, 'worker_idx', '???')}: {super().formatMessage(record)}"
+
+
+class BookmarkMapping(AbstractBookmarkMapping, UserDict):
+	"""Points in time you might want to return to.
+
+	Call this with a valid key, like a string, to place a bookmark at the
+	current time, or, if there is already a bookmark by the given name,
+	then return to it.
+
+	The times stored here are triples of (branch, turn, tick). If you wish,
+	you can set the engine's `time` property to one of those triples yourself,
+	and time travel all the same.
+
+	"""
+
+	def __init__(self, eng: Engine):
+		self.eng = eng
+		super().__init__(eng.query.bookmark_items())
+
+	def __setitem__(self, key, value):
+		if not (
+			isinstance(value, tuple)
+			and len(value) == 3
+			and isinstance(value[0], str)
+			and isinstance(value[1], int)
+			and isinstance(value[2], int)
+		):
+			raise TypeError("Not a valid time", value)
+		super().__setitem__(key, value)
+		self.eng.query.set_bookmark(key, value)
+
+	def __delitem__(self, key):
+		super().__delitem__(key)
+		self.eng.query.del_bookmark(key)
+
+	def __call__(self, key: Key):
+		if key in self:
+			self.eng.time = self[key]
+		else:
+			self[key] = tuple(self.eng.time)
 
 
 class Engine(AbstractEngine, Executor):
@@ -690,6 +715,10 @@ class Engine(AbstractEngine, Executor):
 			then=(self.branch, self.turn, old_tick),
 			now=(self.branch, self.turn, v),
 		)
+
+	@cached_property
+	def bookmark(self) -> BookmarkMapping:
+		return BookmarkMapping(self)
 
 	@cached_property
 	def _where_cached(self) -> dict[Time, list]:
@@ -5579,9 +5608,9 @@ class Engine(AbstractEngine, Executor):
 	def _handled_char_thing(
 		self,
 		character: CharName,
-		thing: NodeName,
 		rulebook: RulebookName,
 		rule: RuleName,
+		thing: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -6183,9 +6212,9 @@ class Engine(AbstractEngine, Executor):
 			handled = partial(
 				handled_char_thing,
 				charn,
-				thingn,
 				rulebook,
 				rulen,
+				thingn,
 				branch,
 				turn,
 			)

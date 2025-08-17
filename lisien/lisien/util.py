@@ -43,11 +43,10 @@ from operator import (
 from random import Random
 from textwrap import dedent
 from time import monotonic
-from types import FunctionType, MethodType, ModuleType, TracebackType
+from types import FunctionType, MethodType, ModuleType
 from typing import (
 	TYPE_CHECKING,
 	Annotated,
-	Any,
 	Callable,
 	Hashable,
 	Iterable,
@@ -471,6 +470,11 @@ def fake_submit(func: callable, *args, **kwargs) -> FakeFuture:
 	return FakeFuture(func, *args, **kwargs)
 
 
+class AbstractBookmarkMapping(MutableMapping, Callable):
+	@abstractmethod
+	def __call__(self, key: Key) -> None: ...
+
+
 class AbstractEngine(ABC):
 	"""Parent class to the real Engine as well as EngineProxy.
 
@@ -501,6 +505,7 @@ class AbstractEngine(ABC):
 	trigger: ModuleType | "FunctionStore"
 	prereq: ModuleType | "FunctionStore"
 	action: ModuleType | "FunctionStore"
+	bookmark: AbstractBookmarkMapping
 	_rando: Random
 	_branches_d: dict[
 		Optional[Branch], tuple[Optional[Branch], Turn, Tick, Turn, Tick]
