@@ -88,6 +88,7 @@ class HostPython3Recipe(Recipe):
 	def should_build(self, arch):
 		if Path(self.python_exe).exists():
 			# no need to build, but we must set hostpython for our Context
+			self.site_dir = self.ctx.get_site_packages_dir(arch)
 			self.ctx.hostpython = self.python_exe
 			return False
 		return True
