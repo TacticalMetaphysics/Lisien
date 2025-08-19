@@ -256,7 +256,7 @@ class Python3Recipe(TargetPythonRecipe):
 				recipe.link_libs_flags(),
 			)
 
-		for library_name in {"libbz2", "liblzma"}:
+		for library_name in {"libbz2", "liblzma", "libzstd"}:
 			if library_name in self.ctx.recipe_build_order:
 				info(f"Activating flags for {library_name}")
 				recipe = Recipe.get_recipe(library_name, self.ctx)
