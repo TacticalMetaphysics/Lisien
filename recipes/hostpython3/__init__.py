@@ -156,6 +156,7 @@ class HostPython3Recipe(Recipe):
 					break
 
 		self.ctx.hostpython = self.python_exe
+		shprint(sh.Command(self.python_exe), "-m", "ensurepip")
 
 
 recipe = HostPython3Recipe()
