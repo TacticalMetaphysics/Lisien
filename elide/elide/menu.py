@@ -127,11 +127,15 @@ class GamePickerModal(ModalView):
 	@logwrap(section="GamePickerModal")
 	def _decompress_and_start(self, game_file_path, game, *_):
 		app = App.get_running_app()
-		game_dir = str(os.path.join(app.prefix, game))
-		if os.path.exists(game_dir):
+		game_name = os.path.basename(game_file_path)
+		if game_name[-4:] == ".zip":
+			game_name = game_name[:-4]
+		app.game_name = game_name
+		play_dir = str(app.play_dir)
+		if os.path.exists(play_dir):
 			# Likely left over from a failed run of Elide
-			shutil.rmtree(game_dir)
-		shutil.unpack_archive(game_file_path, game_dir)
+			shutil.rmtree(play_dir)
+		shutil.unpack_archive(game_file_path, play_dir)
 		Clock.schedule_once(partial(app.start_game, name=game), 0.001)
 		self.dismiss(force=True)
 

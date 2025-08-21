@@ -588,8 +588,8 @@ class ElideApp(App):
 			return  # already closed
 
 		self._copy_log_files()
-		game_wd = os.path.join(self.prefix, self.game_name)
-		pycache = os.path.join(self.prefix, self.game_name, "__pycache__")
+		game_wd = self.play_dir
+		pycache = os.path.join(game_wd, "__pycache__")
 		if os.path.exists(pycache):
 			shutil.rmtree(pycache)
 		archived = shutil.make_archive(
