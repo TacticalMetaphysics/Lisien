@@ -4781,10 +4781,6 @@ class EngineProcessManager:
 				kwargs={"log_queue": self._logq},
 			)
 			self._p.start()
-			self._log_thread = Thread(
-				target=self._sync_log_forever, daemon=True
-			)
-			self._log_thread.start()
 			self.engine_proxy = EngineProxy(
 				self._proxy_in_pipe,
 				self._proxy_out_pipe,
@@ -4830,76 +4826,6 @@ class EngineProcessManager:
 			self._undictify_logrec_traceback(pickle.loads(logrec_packed))
 		)
 
-	def _send_input_forever(self, input_queue):
-		from pythonosc.osc_message_builder import OscMessageBuilder
-
-		assert hasattr(self, "engine_proxy"), (
-			"EngineProcessManager tried to send input with no EngineProxy"
-		)
-		while True:
-			cmd = input_queue.get()
-			msg = zlib.compress(self.engine_proxy.pack(cmd))
-			chunks = len(msg) // 1024
-			if len(msg) % 1024:
-				chunks += 1
-			self.logger.debug(
-				f"EngineProcessManager: about to send {cmd} to core in {chunks} chunks"
-			)
-			for n in range(chunks):
-				builder = OscMessageBuilder("/")
-				builder.add_arg(self._top_uid, OscMessageBuilder.ARG_TYPE_INT)
-				builder.add_arg(chunks, OscMessageBuilder.ARG_TYPE_INT)
-				if n == chunks:
-					builder.add_arg(
-						msg[n * 1024 :], OscMessageBuilder.ARG_TYPE_BLOB
-					)
-				else:
-					builder.add_arg(
-						msg[n * 1024 : (n + 1) * 1024],
-						OscMessageBuilder.ARG_TYPE_BLOB,
-					)
-				built = builder.build()
-				self._client.send(built)
-				self.logger.debug(
-					"EngineProcessManager: sent the %d-byte chunk %d of message %d to %s",
-					len(built.dgram),
-					n,
-					self._top_uid,
-					built.address,
-				)
-			self.logger.debug(
-				"EngineProcessManager: sent %d bytes of %s",
-				len(msg),
-				cmd.get("command", "???"),
-			)
-			if cmd == "close":
-				self.logger.debug("EngineProcessManager: closing input loop")
-				return
-
-	def _receive_output(self, _, uid: int, chunks: int, msg: bytes) -> None:
-		if uid != self._top_uid:
-			self.logger.error(
-				"EngineProcessManager: expected uid %d, got uid %d",
-				self._top_uid,
-				uid,
-			)
-		self.logger.debug(
-			"EngineProcessManager: received %d bytes of the %dth chunk out of %d for uid %d",
-			len(msg),
-			len(self._output_received),
-			chunks,
-			uid,
-		)
-		self._output_received.append(msg)
-		if len(self._output_received) == chunks:
-			self._output_queue.put(
-				self.engine_proxy.unpack(
-					zlib.decompress(b"".join(self._output_received))
-				)
-			)
-			self._top_uid += 1
-			self._output_received = []
-
 	def log(self, level: str | int, msg: str):
 		if isinstance(level, str):
 			level = {
@@ -4919,11 +4845,6 @@ class EngineProcessManager:
 				self.engine_proxy._pipe_out.send_bytes(b"shutdown")
 				self._p.join(timeout=1)
 			del self.engine_proxy
-		if hasattr(self, "_client"):
-			self._client.send_message("/shutdown", "")
-			self._core_service.stop(self._mActivity)
-		if hasattr(self, "_server"):
-			self._server.shutdown()
 
 	def __enter__(self):
 		return self.start()
