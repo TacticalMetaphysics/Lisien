@@ -38,7 +38,7 @@ from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
 from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
-from random import Random, randint
+from random import Random
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
