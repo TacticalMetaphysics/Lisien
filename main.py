@@ -26,6 +26,7 @@ try:
 	logs_dir = os.path.join(app_storage_path(), "app", ".kivy", "logs")
 except ImportError:
 	from multiprocessing import freeze_support
+
 	wd = os.path.join(os.getcwd())
 	logs_dir = connect_string = None
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
@@ -39,7 +40,11 @@ if __name__ == "__main__":
 	Logger.setLevel(10)
 
 	app = ElideApp(
-		prefix=wd, connect_string=connect_string, logs_dir=logs_dir, workers=0
+		prefix=wd,
+		connect_string=connect_string,
+		logs_dir=logs_dir,
+		workers=0,
+		use_thread=True,
 	)
 	try:
 		app.run()

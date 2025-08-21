@@ -4644,6 +4644,20 @@ def worker_subprocess(
 		eng._initialized = True
 
 
+class ThreadConnection:
+	def __init__(self, q: SimpleQueue):
+		self._lock = RLock()
+		self._q = q
+
+	def send_bytes(self, b: bytes):
+		with self._lock:
+			self._q.put(b)
+
+	def recv_bytes(self):
+		with self._lock:
+			return self._q.get()
+
+
 class EngineProcessManager:
 	"""Container for a Lisien proxy and a logger for it
 
@@ -4671,22 +4685,7 @@ class EngineProcessManager:
 		self._args = args
 		self._kwargs = kwargs
 
-	def start(self, *args, **kwargs):
-		"""Start lisien in a subprocess, and return a proxy to it"""
-		if hasattr(self, "engine_proxy"):
-			raise RuntimeError("Already started")
-		try:
-			import android
-
-			android = True
-		except ImportError:
-			from multiprocessing import Pipe, SimpleQueue
-
-			android = False
-			(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(duplex=False)
-			(self._proxy_in_pipe, self._handle_out_pipe) = Pipe(duplex=False)
-			self._logq = SimpleQueue()
-
+	def _config_logger(self, kwargs):
 		handlers = []
 		logl = {
 			"debug": logging.DEBUG,
@@ -4718,6 +4717,44 @@ class EngineProcessManager:
 			except OSError:
 				pass
 			del kwargs["logfile"]
+		formatter = logging.Formatter(
+			fmt="[{levelname}] lisien.proxy({process}) {message}", style="{"
+		)
+		for handler in handlers:
+			handler.setFormatter(formatter)
+			self.logger.addHandler(handler)
+
+	def start(self, *args, **kwargs):
+		"""Start lisien in a subprocess, and return a proxy to it"""
+		if hasattr(self, "engine_proxy"):
+			raise RuntimeError("Already started")
+		self._config_logger(kwargs)
+		try:
+			import android
+
+			android = True
+		except ImportError:
+			android = False
+			if hasattr(self, "use_thread"):
+				from queue import SimpleQueue
+
+				inq = SimpleQueue()
+				self._handle_in_pipe = ThreadConnection(inq)
+				self._proxy_out_pipe = ThreadConnection(inq)
+				outq = SimpleQueue()
+				self._proxy_in_pipe = ThreadConnection(outnq)
+				self._handle_out_pipe = ThreadConnection(outq)
+				self._logq = SimpleQueue()
+			else:
+				from multiprocessing import Pipe, SimpleQueue
+
+				(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(
+					duplex=False
+				)
+				(self._proxy_in_pipe, self._handle_out_pipe) = Pipe(
+					duplex=False
+				)
+				self._logq = SimpleQueue()
 		replay_file = kwargs.pop("replay_file", "") or None
 		install_modules = (
 			kwargs.pop("install_modules")
@@ -4725,12 +4762,7 @@ class EngineProcessManager:
 			else []
 		)
 		enforce_end_of_time = kwargs.get("enforce_end_of_time", False)
-		formatter = logging.Formatter(
-			fmt="[{levelname}] lisien.proxy({process}) {message}", style="{"
-		)
-		for handler in handlers:
-			handler.setFormatter(formatter)
-			self.logger.addHandler(handler)
+
 		if hasattr(self, "_handle_in_pipe") and hasattr(
 			self, "_handle_out_pipe"
 		):
