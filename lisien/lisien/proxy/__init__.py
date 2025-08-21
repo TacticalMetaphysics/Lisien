@@ -45,7 +45,7 @@ from inspect import getsource
 from multiprocessing.connection import Connection
 from queue import Queue, SimpleQueue
 from random import Random
-from threading import Lock, Thread
+from threading import Lock, RLock
 from time import monotonic
 from types import MethodType
 from typing import Hashable, Iterable, Iterator, Literal, Optional
