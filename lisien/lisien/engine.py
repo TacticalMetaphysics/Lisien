@@ -523,11 +523,6 @@ class Engine(AbstractEngine, Executor):
 		side effects. If you don't want this, instead use
 		``workers=1``, which *does* disable parallelism in the case
 		of trigger functions.
-
-		This option can also be a list of integers, in which case, the engine
-		will connect to those ports on the same host it's running on. This
-		form will only work on Android.
-	:param port: TCP port to serve the engine on. Only supported on Android.
 	"""
 
 	char_cls = Character
@@ -2057,8 +2052,7 @@ class Engine(AbstractEngine, Executor):
 		keyframe_on_close: bool = True,
 		enforce_end_of_time: bool = True,
 		logger: Optional[Logger] = None,
-		workers: Optional[int | list[int]] = None,
-		port: Optional[int] = None,
+		workers: Optional[int] = None,
 	):
 		if workers is None:
 			workers = os.cpu_count()
@@ -2098,7 +2092,7 @@ class Engine(AbstractEngine, Executor):
 		self._init_random(random_seed)
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
-		if workers != 0 and port is None:
+		if workers != 0:
 			self._start_worker_processes(prefix, workers)
 
 	def _init_func_stores(
@@ -2382,44 +2376,6 @@ class Engine(AbstractEngine, Executor):
 			target=self._manage_futs, daemon=True
 		)
 		self._fut_manager_thread.start()
-
-	def _connect_worker_services(self, route: str, arg: bytes):
-		from pythonosc import osc_server, udp_client
-		from pythonosc.dispatcher import Dispatcher
-
-		ports = self.unpack(arg)
-		dispatcher = Dispatcher()
-		dispatcher.map("/worker-reply", self._handle_worker_reply)
-		start_port = randint(32768, 65535)
-		for my_port in range(start_port, start_port + 100):
-			try:
-				serv = self._osc_server = osc_server.ThreadingOSCUDPServer(
-					("127.0.0.1", my_port), dispatcher
-				)
-				break
-			except OSError:
-				continue
-		else:
-			sys.exit("couldn't find a port to serve the Lisien core on")
-		self._osc_clients: list[udp_client.SimpleUDPClient] = []
-		for port in ports:
-			self._osc_clients.append(
-				udp_client.SimpleUDPClient("127.0.0.1", port)
-			)
-		self._setup_fut_manager(len(ports))
-		self._osc_serv_thread = Thread(target=serv.serve_forever)
-		self._osc_serv_thread.start()
-		self.debug(f"core: started serving to workers on port {my_port}")
-		return my_port
-
-	def _handle_worker_reply(self, data: bytes):
-		uid = int.from_bytes(data[:8], "little")
-		ret = self.unpack(zlib.decompress(data[8:]))
-		fut = self._uid_to_fut[uid]
-		if isinstance(ret, Exception):
-			fut.set_exception(ret)
-		else:
-			fut.set_result(ret)
 
 	def _start_branch(
 		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick
