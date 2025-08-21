@@ -4724,6 +4724,17 @@ class EngineProcessManager:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
 
+	def _make_queues_in_thread(self):
+		from queue import SimpleQueue
+
+		inq = SimpleQueue()
+		self._handle_in_pipe = ThreadConnection(inq)
+		self._proxy_out_pipe = ThreadConnection(inq)
+		outq = SimpleQueue()
+		self._proxy_in_pipe = ThreadConnection(outq)
+		self._handle_out_pipe = ThreadConnection(outq)
+		self._logq = SimpleQueue()
+
 	def start(self, *args, **kwargs):
 		"""Start lisien in a subprocess, and return a proxy to it"""
 		if hasattr(self, "engine_proxy"):
@@ -4732,19 +4743,10 @@ class EngineProcessManager:
 		try:
 			import android
 
-			android = True
+			self._make_queues_in_thread()
 		except ImportError:
-			android = False
 			if hasattr(self, "use_thread"):
-				from queue import SimpleQueue
-
-				inq = SimpleQueue()
-				self._handle_in_pipe = ThreadConnection(inq)
-				self._proxy_out_pipe = ThreadConnection(inq)
-				outq = SimpleQueue()
-				self._proxy_in_pipe = ThreadConnection(outq)
-				self._handle_out_pipe = ThreadConnection(outq)
-				self._logq = SimpleQueue()
+				self._make_queues_in_thread()
 			else:
 				from multiprocessing import Pipe, SimpleQueue
 
@@ -4755,7 +4757,6 @@ class EngineProcessManager:
 					duplex=False
 				)
 				self._logq = SimpleQueue()
-		replay_file = kwargs.pop("replay_file", "") or None
 		install_modules = (
 			kwargs.pop("install_modules")
 			if "install_modules" in kwargs
