@@ -45,7 +45,7 @@ from inspect import getsource
 from multiprocessing.connection import Connection
 from queue import Queue, SimpleQueue
 from random import Random
-from threading import Lock, RLock
+from threading import Lock, RLock, Thread
 from time import monotonic
 from types import MethodType
 from typing import Hashable, Iterable, Iterator, Literal, Optional
@@ -4548,7 +4548,7 @@ def engine_subthread(args, kwargs, input_queue, output_queue):
 	engine_handle = EngineHandle(*args, **kwargs)
 
 	def send_output(cmd, r):
-		output_queue.put(cmd, *engine_handle._real.time, r)
+		output_queue.put((cmd, *engine_handle._real.time, r))
 
 	def send_output_bytes(cmd, r):
 		output_queue.put(
@@ -4724,17 +4724,6 @@ class EngineProcessManager:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
 
-	def _make_queues_in_thread(self):
-		from queue import SimpleQueue
-
-		inq = SimpleQueue()
-		self._handle_in_pipe = ThreadConnection(inq)
-		self._proxy_out_pipe = ThreadConnection(inq)
-		outq = SimpleQueue()
-		self._proxy_in_pipe = ThreadConnection(outq)
-		self._handle_out_pipe = ThreadConnection(outq)
-		self._logq = SimpleQueue()
-
 	def start(self, *args, **kwargs):
 		"""Start lisien in a subprocess, and return a proxy to it"""
 		if hasattr(self, "engine_proxy"):
@@ -4742,12 +4731,8 @@ class EngineProcessManager:
 		self._config_logger(kwargs)
 		try:
 			import android
-
-			self._make_queues_in_thread()
 		except ImportError:
-			if hasattr(self, "use_thread"):
-				self._make_queues_in_thread()
-			else:
+			if not hasattr(self, "use_thread"):
 				from multiprocessing import Pipe, SimpleQueue
 
 				(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(
@@ -4789,7 +4774,29 @@ class EngineProcessManager:
 				enforce_end_of_time=enforce_end_of_time,
 			)
 		else:
-			raise RuntimeError("Couldn't start process or service")
+			from queue import SimpleQueue
+
+			self._input_queue = SimpleQueue()
+			self._output_queue = SimpleQueue()
+
+			self._t = Thread(
+				target=engine_subthread,
+				args=(
+					args or self._args,
+					self._kwargs | kwargs,
+					self._input_queue,
+					self._output_queue,
+				),
+			)
+			self._t.start()
+
+			self.engine_proxy = EngineProxy(
+				self._input_queue,
+				self._output_queue,
+				self.logger,
+				install_modules,
+				enforce_end_of_time=enforce_end_of_time,
+			)
 
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
@@ -4844,6 +4851,9 @@ class EngineProcessManager:
 			if hasattr(self, "_p"):
 				self.engine_proxy._pipe_out.send_bytes(b"shutdown")
 				self._p.join(timeout=1)
+			if hasattr(self, "_t"):
+				self._input_queue.put("shutdown")
+				self._t.join(timeout=1)
 			del self.engine_proxy
 
 	def __enter__(self):
