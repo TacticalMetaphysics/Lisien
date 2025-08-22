@@ -2287,6 +2287,7 @@ class Engine(AbstractEngine, Executor):
 	):
 		from multiprocessing import get_context
 		from multiprocessing.process import BaseProcess
+		from multiprocessing.connection import Connection
 
 		for store in self.stores:
 			if hasattr(store, "save"):
@@ -2299,11 +2300,16 @@ class Engine(AbstractEngine, Executor):
 		self._worker_processes: list[BaseProcess] = []
 		wp = self._worker_processes
 		self._mp_ctx = ctx = get_context("spawn")
-		self._worker_inputs = wi = []
-		self._worker_outputs = wo = []
-		self._worker_locks = wlk = []
-		self._worker_log_queues = wl = []
-		self._worker_log_threads = wlt = []
+		self._worker_inputs: list[Connection] = []
+		wi = self._worker_inputs
+		self._worker_outputs: list[Connection] = []
+		wo = self._worker_outputs
+		self._worker_locks: list[Lock] = []
+		wlk = self._worker_locks
+		self._worker_log_queues: list[SimpleQueue] = []
+		wl = self._worker_log_queues
+		self._worker_log_threads: list[Thread] = []
+		wlt = self._worker_log_threads
 		for i in range(workers):
 			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
 			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
@@ -4680,6 +4686,7 @@ class Engine(AbstractEngine, Executor):
 		if wait:
 			futwait(self._uid_to_fut.values())
 		self._uid_to_fut = {}
+
 		if hasattr(self, "_worker_processes"):
 			for i, (lock, pipein, pipeout, proc) in enumerate(
 				zip(
