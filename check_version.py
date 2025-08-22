@@ -6,7 +6,19 @@ import tomllib
 with open("lisien/pyproject.toml", "rb") as inf:
 	lisien_version_str = tomllib.load(inf)["project"]["version"]
 with open("elide/pyproject.toml", "rb") as inf:
-	elide_version_str = tomllib.load(inf)["project"]["version"]
+	loaded = tomllib.load(inf)
+	elide_version_str = loaded["project"]["version"]
+	for dependency in loaded["project"]["dependencies"]:
+		if not dependency.startswith("lisien"):
+			continue
+		_, ver = dependency.split("==")
+		if ver != lisien_version_str:
+			raise RuntimeError(
+				f"Elide depends on Lisien version {ver}, not {lisien_version_str}"
+			)
+		break
+	else:
+		raise RuntimeError("Elide doesn't depend on Lisien")
 with open("buildozer.spec", "rt") as inf:
 	for line in inf:
 		if line.startswith("version"):
