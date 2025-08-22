@@ -4653,15 +4653,6 @@ class Engine(AbstractEngine, Executor):
 			)
 			self._uid_to_fut[uid] = ret
 			self._futs_to_start.put(ret)
-		elif hasattr(self, "_osc_clients"):
-			ret = Future()
-			ret._t = Thread(
-				target=self._call_in_service,
-				args=(uid, fn, ret, *args),
-				kwargs=kwargs,
-			)
-			self._uid_to_fut[uid] = ret
-			self._futs_to_start.put(ret)
 		else:
 			ret = fake_submit(fn, *args, **kwargs)
 		ret.uid = uid
@@ -4681,9 +4672,7 @@ class Engine(AbstractEngine, Executor):
 			sleep(0.001)
 
 	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
-		if not hasattr(self, "_worker_processes") and not hasattr(
-			self, "_osc_serv_thread"
-		):
+		if not hasattr(self, "_worker_processes"):
 			return
 		if cancel_futures:
 			for fut in self._uid_to_fut.values():
@@ -4718,12 +4707,6 @@ class Engine(AbstractEngine, Executor):
 					pipein.close()
 					pipeout.close()
 			del self._worker_processes
-		if hasattr(self, "_osc_serv_thread"):
-			for client in self._osc_clients:
-				client.send_message("/shutdown", [])
-			self._osc_server.shutdown()
-			self._osc_serv_thread.join()
-			del self._osc_serv_thread
 
 	def _detect_kf_interval_override(self):
 		if self._planning:
