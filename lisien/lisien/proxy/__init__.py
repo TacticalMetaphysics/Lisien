@@ -4644,20 +4644,6 @@ def worker_subprocess(
 		eng._initialized = True
 
 
-class ThreadConnection:
-	def __init__(self, q: SimpleQueue):
-		self._lock = RLock()
-		self._q = q
-
-	def send_bytes(self, b: bytes):
-		with self._lock:
-			self._q.put(b)
-
-	def recv_bytes(self):
-		with self._lock:
-			return self._q.get()
-
-
 class EngineProcessManager:
 	"""Container for a Lisien proxy and a logger for it
 
