@@ -4697,6 +4697,8 @@ class Engine(AbstractEngine, Executor):
 				)
 			):
 				with lock:
+					if not proc.is_alive():
+						continue
 					pipein.send_bytes(b"shutdown")
 					proc.join(timeout=SUBPROCESS_TIMEOUT)
 					if proc.exitcode is None:
