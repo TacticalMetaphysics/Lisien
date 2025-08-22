@@ -1,3 +1,10 @@
+== 0.21.3 | 2025-08-21 ==
+* Fix Elide's session management; exiting and resuming a game weren't always
+  really doing that.
+* Removed the remainder of the parallelism on Android, because that was causing
+  issues with starting the game. I'll try again once python-for-android can
+  deploy Python 3.14 and its new `concurrent.interpreters` module.
+
 == 0.21.2 | 2025-08-13 ==
 * Fix a packaging issue that was causing Elide's main menu not to show up.
   0.21.1 was meant to fix the same, but didn't really.

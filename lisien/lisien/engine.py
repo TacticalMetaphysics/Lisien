@@ -2286,8 +2286,8 @@ class Engine(AbstractEngine, Executor):
 		self, prefix: str | os.PathLike | None, workers: int
 	):
 		from multiprocessing import get_context
-		from multiprocessing.process import BaseProcess
 		from multiprocessing.connection import Connection
+		from multiprocessing.process import BaseProcess
 
 		for store in self.stores:
 			if hasattr(store, "save"):
