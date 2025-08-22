@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.graph.board &#8212; Lisien 0.19.0 documentation</title>
+    <title>elide.graph.board &#8212; Lisien 0.21.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../../_static/documentation_options.js?v=cbfb3150"></script>
+    <script src="../../../_static/documentation_options.js?v=f301a15e"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
@@ -51,7 +51,6 @@
 <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">monotonic</span>
 
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">mainthread</span><span class="p">,</span> <span class="n">triggered</span>
-<span class="kn">from</span> <span class="nn">kivy.lang</span> <span class="kn">import</span> <span class="n">Builder</span>
 <span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
 <span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
 	<span class="n">BooleanProperty</span><span class="p">,</span>
@@ -74,6 +73,7 @@
 <span class="kn">from</span> <span class="nn">..boardview</span> <span class="kn">import</span> <span class="n">BoardView</span>
 <span class="kn">from</span> <span class="nn">..dummy</span> <span class="kn">import</span> <span class="n">Dummy</span>
 <span class="kn">from</span> <span class="nn">..kivygarden.texturestack</span> <span class="kn">import</span> <span class="n">Stack</span><span class="p">,</span> <span class="n">TextureStackPlane</span>
+<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="n">store_kv</span>
 <span class="kn">from</span> <span class="nn">.arrow</span> <span class="kn">import</span> <span class="p">(</span>
 	<span class="n">DEFAULT_ARROW_LABEL_KWARGS</span><span class="p">,</span>
 	<span class="n">ArrowPlane</span><span class="p">,</span>
@@ -1250,23 +1250,26 @@
 
 
 
-<span class="n">Builder</span><span class="o">.</span><span class="n">load_string</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">&lt;GraphBoard&gt;:</span>
-<span class="s2">	app: app</span>
-<span class="s2">	size_hint: None, None</span>
-<span class="s2">&lt;GraphBoardView&gt;:</span>
-<span class="s2">	plane: boardplane</span>
-<span class="s2">	GraphBoardScatterPlane:</span>
-<span class="s2">		id: boardplane</span>
-<span class="s2">		board: root.board</span>
-<span class="s2">		adding_portal: root.adding_portal</span>
-<span class="s2">		reciprocal_portal: root.reciprocal_portal</span>
-<span class="s2">		scale_min: root.scale_min</span>
-<span class="s2">		scale_max: root.scale_max</span>
-<span class="s2">		pos: root.pos</span>
-<span class="s2">		size: root.size</span>
-<span class="s2">		size_hint: None, None</span>
-<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<span class="n">store_kv</span><span class="p">(</span>
+	<span class="vm">__name__</span><span class="p">,</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&lt;GraphBoard&gt;:</span>
+<span class="sd">	app: app</span>
+<span class="sd">	size_hint: None, None</span>
+<span class="sd">&lt;GraphBoardView&gt;:</span>
+<span class="sd">	plane: boardplane</span>
+<span class="sd">	GraphBoardScatterPlane:</span>
+<span class="sd">		id: boardplane</span>
+<span class="sd">		board: root.board</span>
+<span class="sd">		adding_portal: root.adding_portal</span>
+<span class="sd">		reciprocal_portal: root.reciprocal_portal</span>
+<span class="sd">		scale_min: root.scale_min</span>
+<span class="sd">		scale_max: root.scale_max</span>
+<span class="sd">		pos: root.pos</span>
+<span class="sd">		size: root.size</span>
+<span class="sd">		size_hint: None, None</span>
+<span class="sd">&quot;&quot;&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 </pre></div>
 
           </div>

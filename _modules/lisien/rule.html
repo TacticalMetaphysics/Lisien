@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>lisien.rule &#8212; Lisien 0.19.0 documentation</title>
+    <title>lisien.rule &#8212; Lisien 0.21.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=cbfb3150"></script>
+    <script src="../../_static/documentation_options.js?v=f301a15e"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -111,18 +111,40 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">from</span> <span class="nn">ast</span> <span class="kn">import</span> <span class="n">parse</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">MutableSequence</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">MutableSequence</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">cached_property</span><span class="p">,</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">astunparse</span> <span class="kn">import</span> <span class="n">unparse</span>
 <span class="kn">from</span> <span class="nn">blinker</span> <span class="kn">import</span> <span class="n">Signal</span>
 
-<span class="kn">from</span> <span class="nn">.cache</span> <span class="kn">import</span> <span class="n">Cache</span>
+<span class="kn">from</span> <span class="nn">.cache</span> <span class="kn">import</span> <span class="n">FuncListCache</span>
+<span class="kn">from</span> <span class="nn">.types</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">ActionFuncName</span><span class="p">,</span>
+	<span class="n">Branch</span><span class="p">,</span>
+	<span class="n">Key</span><span class="p">,</span>
+	<span class="n">PrereqFuncName</span><span class="p">,</span>
+	<span class="n">RuleBig</span><span class="p">,</span>
+	<span class="n">RulebookName</span><span class="p">,</span>
+	<span class="n">RulebookPriority</span><span class="p">,</span>
+	<span class="n">RuleFunc</span><span class="p">,</span>
+	<span class="n">RuleFuncName</span><span class="p">,</span>
+	<span class="n">RuleName</span><span class="p">,</span>
+	<span class="n">RuleNeighborhood</span><span class="p">,</span>
+	<span class="n">Tick</span><span class="p">,</span>
+	<span class="n">TriggerFuncName</span><span class="p">,</span>
+	<span class="n">Turn</span><span class="p">,</span>
+	<span class="n">Value</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">AbstractEngine</span><span class="p">,</span> <span class="n">dedent_source</span>
 <span class="kn">from</span> <span class="nn">.xcollections</span> <span class="kn">import</span> <span class="n">FunctionStore</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+	<span class="kn">from</span> <span class="nn">.engine</span> <span class="kn">import</span> <span class="n">Engine</span>
 
 
 <span class="k">def</span> <span class="nf">roundtrip_dedent</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
@@ -135,45 +157,39 @@
 
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;rule&quot;</span><span class="p">]</span>
 	<span class="n">_funcstore</span><span class="p">:</span> <span class="n">FunctionStore</span>
-	<span class="n">_cache</span><span class="p">:</span> <span class="n">Cache</span>
-	<span class="n">_setter</span><span class="p">:</span> <span class="n">Callable</span>
+	<span class="n">_cache</span><span class="p">:</span> <span class="n">FuncListCache</span>
+	<span class="n">_setter</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RuleName</span><span class="p">,</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleFuncName</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="p">:</span> <span class="n">Rule</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">rule</span> <span class="o">=</span> <span class="n">rule</span>
 
 	<span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;class &#39;lisien.rule.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&#39; [</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">())</span><span class="si">}</span><span class="s2">]&gt;&quot;</span>
 
-	<span class="k">def</span> <span class="nf">_nominate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_nominate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleFuncName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleFuncName</span><span class="p">:</span>
 		<span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 			<span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="vm">__name__</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
-				<span class="s2">&quot;No </span><span class="si">{typ}</span><span class="s2"> function named </span><span class="si">{n}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-					<span class="n">typ</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="o">.</span><span class="n">_filename</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.py&quot;</span><span class="p">),</span> <span class="n">n</span><span class="o">=</span><span class="n">v</span>
-				<span class="p">)</span>
+				<span class="s2">&quot;No function by that name in this store&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span>
 			<span class="p">)</span>
 		<span class="k">return</span> <span class="n">v</span>
 
-	<span class="k">def</span> <span class="nf">_get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_get</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleFuncName</span><span class="p">]:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span>
 
-	<span class="k">def</span> <span class="nf">_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleFuncName</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_setter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">try</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="o">.</span><span class="n">reimport</span><span class="p">()</span>
-		<span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">FileNotFoundError</span><span class="p">):</span>
-			<span class="k">pass</span>
 		<span class="k">for</span> <span class="n">funcname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">():</span>
 			<span class="k">yield</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="n">funcname</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleFuncName</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s2">&quot;__name__&quot;</span><span class="p">):</span>
 			<span class="n">item</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="vm">__name__</span>
 		<span class="k">return</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">()</span>
@@ -181,29 +197,29 @@
 	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">())</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">()[</span><span class="n">i</span><span class="p">])</span>
 
-	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleFuncName</span><span class="p">):</span>
 		<span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nominate</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 		<span class="n">l</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">())</span>
 		<span class="n">l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 		<span class="n">l</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">())</span>
 		<span class="k">del</span> <span class="n">l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleFuncName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">l</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">())</span>
 		<span class="n">l</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nominate</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleFuncName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">old</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">()</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -211,7 +227,12 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">old</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_nominate</span><span class="p">(</span><span class="n">v</span><span class="p">)])</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">index</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">x</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleFuncName</span><span class="p">,</span>
+		<span class="n">start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+		<span class="n">end</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+	<span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
 			<span class="n">x</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcstore</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
@@ -221,15 +242,17 @@
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A list of trigger functions for rules&quot;&quot;&quot;</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_funcstore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_funcstore</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FunctionStore</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">trigger</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InitializedEntitylessCache</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_triggers_cache</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RuleName</span><span class="p">,</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">TriggerFuncName</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_triggers</span>
 
 
@@ -237,15 +260,17 @@
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A list of prereq functions for rules&quot;&quot;&quot;</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_funcstore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_funcstore</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FunctionStore</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">prereq</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InitializedEntitylessCache</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_prereqs_cache</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RuleName</span><span class="p">,</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">PrereqFuncName</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_prereqs</span>
 
 
@@ -253,15 +278,17 @@
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A list of action functions for rules&quot;&quot;&quot;</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_funcstore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_funcstore</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FunctionStore</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">action</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InitializedEntitylessCache</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_actions_cache</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RuleName</span><span class="p">,</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">ActionFuncName</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_actions</span>
 
 
@@ -277,12 +304,12 @@
 	<span class="k">def</span> <span class="nf">flid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="s2">&quot;_funclist&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
-	<span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Rule</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleFuncList</span><span class="p">:</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flid</span><span class="p">):</span>
 			<span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
 		<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flid</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Rule</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleFuncName</span><span class="p">]):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flid</span><span class="p">):</span>
 			<span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
 		<span class="n">flist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flid</span><span class="p">)</span>
@@ -314,50 +341,61 @@
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="n">triggers</span> <span class="o">=</span> <span class="n">RuleFuncListDescriptor</span><span class="p">(</span><span class="n">TriggerList</span><span class="p">)</span>
-	<span class="n">prereqs</span> <span class="o">=</span> <span class="n">RuleFuncListDescriptor</span><span class="p">(</span><span class="n">PrereqList</span><span class="p">)</span>
-	<span class="n">actions</span> <span class="o">=</span> <span class="n">RuleFuncListDescriptor</span><span class="p">(</span><span class="n">ActionList</span><span class="p">)</span>
+	<span class="n">triggers</span><span class="p">:</span> <span class="n">TriggerList</span> <span class="o">=</span> <span class="n">RuleFuncListDescriptor</span><span class="p">(</span><span class="n">TriggerList</span><span class="p">)</span>
+	<span class="n">prereqs</span><span class="p">:</span> <span class="n">PrereqList</span> <span class="o">=</span> <span class="n">RuleFuncListDescriptor</span><span class="p">(</span><span class="n">PrereqList</span><span class="p">)</span>
+	<span class="n">actions</span><span class="p">:</span> <span class="n">ActionList</span> <span class="o">=</span> <span class="n">RuleFuncListDescriptor</span><span class="p">(</span><span class="n">ActionList</span><span class="p">)</span>
+	<span class="n">name</span><span class="p">:</span> <span class="n">RuleName</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleNeighborhood</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+			<span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 			<span class="p">)</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="k">return</span> <span class="kc">None</span>
+		<span class="k">return</span> <span class="n">ret</span>
 
 	<span class="nd">@neighborhood</span><span class="o">.</span><span class="n">setter</span>
-	<span class="k">def</span> <span class="nf">neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">:</span> <span class="n">RuleNeighborhood</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">neighbors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">neighbors</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Not an int&quot;</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">neighbors</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t be negative&quot;</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">)</span>
 		<span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhoods_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
+			<span class="n">Key</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">Value</span><span class="p">(</span><span class="n">neighbors</span><span class="p">)</span>
+		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">)</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">big</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">big</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleBig</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 			<span class="p">)</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-			<span class="k">return</span> <span class="kc">False</span>
+			<span class="k">return</span> <span class="n">RuleBig</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
 	<span class="nd">@big</span><span class="o">.</span><span class="n">setter</span>
-	<span class="k">def</span> <span class="nf">big</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">big</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">big</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">big</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="n">RuleBig</span><span class="p">):</span>
 		<span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">big</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_bigness_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">Value</span><span class="p">(</span><span class="n">big</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rule_big</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">,</span> <span class="n">big</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
-		<span class="n">engine</span><span class="p">,</span>
-		<span class="n">name</span><span class="p">,</span>
-		<span class="n">triggers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-		<span class="n">prereqs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-		<span class="n">actions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-		<span class="n">neighborhood</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-		<span class="n">big</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-		<span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+		<span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;Engine&quot;</span><span class="p">,</span>
+		<span class="n">name</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+		<span class="n">triggers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TriggerFuncName</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span>
+		<span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">prereqs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">PrereqFuncName</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span>
+		<span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">actions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ActionFuncName</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span>
+		<span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">neighborhood</span><span class="p">:</span> <span class="n">RuleNeighborhood</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">big</span><span class="p">:</span> <span class="n">RuleBig</span> <span class="o">=</span> <span class="n">RuleBig</span><span class="p">(</span><span class="kc">False</span><span class="p">),</span>
+		<span class="n">create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 	<span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Store the engine and my name, make myself a record in the database</span>
 <span class="sd">		if needed, and instantiate one FunList each for my triggers,</span>
@@ -365,7 +403,10 @@
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">name</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">RuleName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		<span class="c1"># It&#39;d be more correct to subclass InitializedEntitylessCache and</span>
+		<span class="c1"># give all its methods more specific signatures that take RuleName.</span>
+		<span class="n">name</span> <span class="o">=</span> <span class="n">Key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">create</span><span class="p">:</span>
 			<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
 			<span class="k">if</span> <span class="p">(</span>
@@ -499,10 +540,14 @@
 					<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">bigkf</span>
 				<span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-		<span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span>
+	<span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Rule</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Rule</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span>
 
-	<span class="k">def</span> <span class="nf">_fun_names_iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">functyp</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_fun_names_iter</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">functyp</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;trigger&quot;</span><span class="p">,</span> <span class="s2">&quot;prereq&quot;</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">],</span>
+		<span class="n">val</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleFuncName</span><span class="p">],</span>
+	<span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over the names of the functions in ``val``,</span>
 <span class="sd">		adding them to ``funcstore`` if they are missing;</span>
 <span class="sd">		or if the items in ``val`` are already the names of functions</span>
@@ -523,11 +568,13 @@
 				<span class="k">yield</span> <span class="n">v</span>
 
 	<span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="s2">&quot;Rule(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+		<span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;Rule(</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}</span><span class="s2">)&gt;&quot;</span>
 
 <div class="viewcode-block" id="Rule.trigger">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.rule.Rule.trigger">[docs]</a>
-	<span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">TriggerFuncName</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">TriggerFuncName</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Decorator to append the function to my triggers list.&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">triggers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fun</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">fun</span></div>
@@ -535,7 +582,9 @@
 
 <div class="viewcode-block" id="Rule.prereq">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.rule.Rule.prereq">[docs]</a>
-	<span class="k">def</span> <span class="nf">prereq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">prereq</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">PrereqFuncName</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">PrereqFuncName</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Decorator to append the function to my prereqs list.&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">prereqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fun</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">fun</span></div>
@@ -543,33 +592,17 @@
 
 <div class="viewcode-block" id="Rule.action">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.rule.Rule.action">[docs]</a>
-	<span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">action</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">ActionFuncName</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">ActionFuncName</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Decorator to append the function to my actions list.&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fun</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">fun</span></div>
 
 
-<div class="viewcode-block" id="Rule.duplicate">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.rule.Rule.duplicate">[docs]</a>
-	<span class="k">def</span> <span class="nf">duplicate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">newname</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new rule that&#39;s just like this one, but under a new</span>
-<span class="sd">		name.</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">haverule</span><span class="p">(</span><span class="n">newname</span><span class="p">):</span>
-			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have a rule called </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">newname</span><span class="p">))</span>
-		<span class="k">return</span> <span class="n">Rule</span><span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span>
-			<span class="n">newname</span><span class="p">,</span>
-			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">triggers</span><span class="p">),</span>
-			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prereqs</span><span class="p">),</span>
-			<span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="p">),</span>
-		<span class="p">)</span></div>
-
-
 <div class="viewcode-block" id="Rule.always">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.rule.Rule.always">[docs]</a>
-	<span class="k">def</span> <span class="nf">always</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">always</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Arrange to be triggered every turn&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">triggers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">truth</span><span class="p">]</span></div>
 </div>
@@ -579,40 +612,52 @@
 <span class="k">class</span> <span class="nc">RuleBook</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A list of rules to be followed for some Character, or a part of it&quot;&quot;&quot;</span>
 
-	<span class="k">def</span> <span class="nf">_get_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_get_cache</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="n">Tick</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">RuleName</span><span class="p">],</span> <span class="n">RulebookPriority</span><span class="p">]:</span>
+		<span class="n">rules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleName</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">prio</span> <span class="o">=</span> <span class="n">RulebookPriority</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">rules</span><span class="p">,</span> <span class="n">prio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span>
 			<span class="p">)</span>
-			<span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">rules</span><span class="p">),</span> <span class="n">prio</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-			<span class="k">return</span> <span class="p">[],</span> <span class="mf">0.0</span>
+			<span class="k">pass</span>
+		<span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">rules</span><span class="p">),</span> <span class="n">prio</span>
 
-	<span class="k">def</span> <span class="nf">_set_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_set_cache</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">branch</span><span class="p">:</span> <span class="n">Branch</span><span class="p">,</span>
+		<span class="n">turn</span><span class="p">:</span> <span class="n">Turn</span><span class="p">,</span>
+		<span class="n">tick</span><span class="p">:</span> <span class="n">Tick</span><span class="p">,</span>
+		<span class="n">v</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">RuleName</span><span class="p">],</span> <span class="n">RulebookPriority</span><span class="p">],</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;lisien.Engine&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;Engine&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">RulebookName</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RulebookPriority</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
 
 	<span class="nd">@priority</span><span class="o">.</span><span class="n">setter</span>
-	<span class="k">def</span> <span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-		<span class="n">v</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
+	<span class="k">def</span> <span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">RulebookPriority</span><span class="p">):</span>
+		<span class="n">v</span> <span class="o">=</span> <span class="n">RulebookPriority</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
 		<span class="n">cache</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="n">Rule</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Rule</span><span class="p">]:</span>
+		<span class="n">rule_name</span><span class="p">:</span> <span class="n">RuleName</span>
+		<span class="k">for</span> <span class="n">rule_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())[</span><span class="mi">0</span><span class="p">]:</span>
+			<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">[</span><span class="n">rule_name</span><span class="p">]</span>
 
 	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">try</span><span class="p">:</span>
@@ -620,30 +665,34 @@
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 			<span class="k">return</span> <span class="mi">0</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
 
-	<span class="k">def</span> <span class="nf">_coerce_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_coerce_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Rule</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Rule</span><span class="p">):</span>
 			<span class="k">return</span> <span class="n">v</span>
 		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="k">return</span> <span class="n">Rule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid rule name&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-		<span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Rule</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleName</span><span class="p">):</span>
+		<span class="n">v</span> <span class="o">=</span> <span class="n">RuleName</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
 		<span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Illegal rule name&quot;</span><span class="p">)</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
+		<span class="n">cache</span><span class="p">,</span> <span class="n">prio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="n">cache</span><span class="p">,</span> <span class="n">prio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
 			<span class="n">cache</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-			<span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-				<span class="k">raise</span> <span class="ne">IndexError</span>
-			<span class="n">cache</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">]</span>
-			<span class="n">prio</span> <span class="o">=</span> <span class="mf">0.0</span>
+		<span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cache</span><span class="p">):</span>
+				<span class="k">raise</span>
+			<span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+				<span class="n">cache</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">]</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="k">assert</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">cache</span><span class="p">)</span>
+				<span class="n">cache</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+			<span class="n">prio</span> <span class="o">=</span> <span class="n">RulebookPriority</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_set_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">prio</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rulebook</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">prio</span>
@@ -651,8 +700,8 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-		<span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Rule</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="n">v</span> <span class="o">=</span> <span class="n">RuleName</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
 		<span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Illegal rule name&quot;</span><span class="p">)</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
@@ -663,7 +712,7 @@
 			<span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
 				<span class="k">raise</span> <span class="ne">IndexError</span>
 			<span class="n">cache</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">]</span>
-			<span class="n">prio</span> <span class="o">=</span> <span class="mf">0.0</span>
+			<span class="n">prio</span> <span class="o">=</span> <span class="n">RulebookPriority</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_set_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">prio</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rulebook</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">prio</span>
@@ -671,7 +720,9 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">index</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Rule</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RuleName</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 		<span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="n">start</span><span class="p">]</span>
 		<span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stop</span><span class="p">)</span>
@@ -682,7 +733,7 @@
 				<span class="k">raise</span> <span class="ne">ValueError</span>
 		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="n">cache</span><span class="p">,</span> <span class="n">prio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
@@ -727,7 +778,9 @@
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">):</span>
+	<span class="n">rulebook</span><span class="p">:</span> <span class="n">RuleBook</span>
+
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;Engine&quot;</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">:</span> <span class="n">RuleBook</span> <span class="o">|</span> <span class="n">RulebookName</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_rule_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span>
@@ -740,31 +793,33 @@
 		<span class="k">return</span> <span class="s2">&quot;RuleMapping(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">])</span>
 
 	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="p">)</span>
+		<span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">_get_cache</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span>
 
 	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">Rule</span> <span class="o">|</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Rule &#39;</span><span class="si">{}</span><span class="s2">&#39; is not in effect&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rule_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 		<span class="k">raise</span> <span class="ne">AttributeError</span>
 
-	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Rule</span> <span class="o">|</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span>
+	<span class="p">):</span>
 		<span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Illegal rule name&quot;</span><span class="p">)</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">:</span>
 			<span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
-		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-			<span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+			<span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Rule</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
 			<span class="c1"># create a new rule, named k, performing action v</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
@@ -777,14 +832,14 @@
 
 	<span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
-		<span class="n">v</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-		<span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">v</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RuleFunc</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 		<span class="o">*</span><span class="p">,</span>
-		<span class="n">neighborhood</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+		<span class="n">neighborhood</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
 		<span class="n">big</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 		<span class="n">always</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 	<span class="p">):</span>
-		<span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleFunc</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 			<span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">v</span><span class="o">.</span><span class="vm">__name__</span>
 			<span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
 				<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Illegal rule name&quot;</span><span class="p">)</span>
@@ -798,27 +853,27 @@
 				<span class="n">r</span><span class="o">.</span><span class="n">big</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;big&quot;</span><span class="p">]</span>
 			<span class="k">return</span> <span class="n">r</span>
 
-		<span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;big&quot;</span><span class="p">:</span> <span class="n">big</span><span class="p">}</span>
+		<span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;big&quot;</span><span class="p">:</span> <span class="n">big</span><span class="p">}</span>
 		<span class="k">if</span> <span class="n">always</span><span class="p">:</span>
 			<span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;always&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-		<span class="k">if</span> <span class="n">neighborhood</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">neighborhood</span> <span class="ow">is</span> <span class="ow">not</span> <span class="o">...</span><span class="p">:</span>
 			<span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;neighborhood&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">neighborhood</span>
 		<span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">wrap</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">wrap</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">):</span>
 		<span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RulebookPriority</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">priority</span>
 
 	<span class="nd">@priority</span><span class="o">.</span><span class="n">setter</span>
-	<span class="k">def</span> <span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">priority</span> <span class="o">=</span> <span class="n">v</span>
+	<span class="k">def</span> <span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RulebookPriority</span> <span class="o">|</span> <span class="nb">float</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">priority</span> <span class="o">=</span> <span class="n">RulebookPriority</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">RuleFollower</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
@@ -829,27 +884,28 @@
 
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
 	<span class="n">engine</span><span class="p">:</span> <span class="n">AbstractEngine</span>
+	<span class="n">_rulebook</span><span class="p">:</span> <span class="n">RuleBook</span>
+
+	<span class="nd">@cached_property</span>
+	<span class="k">def</span> <span class="nf">_rule_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleMapping</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_rule_mapping</span><span class="p">()</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">_rule_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_real_rule_mapping&quot;</span><span class="p">):</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_real_rule_mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_rule_mapping</span><span class="p">()</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_real_rule_mapping</span>
-
-	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">rule</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleMapping</span> <span class="o">|</span> <span class="n">partial</span><span class="p">[</span><span class="n">Rule</span><span class="p">]:</span>
 		<span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rule_mapping</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rule_mapping</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleBook</span><span class="p">:</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_rulebook&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_upd_rulebook</span><span class="p">()</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rulebook</span>
 
 	<span class="nd">@rulebook</span><span class="o">.</span><span class="n">setter</span>
-	<span class="k">def</span> <span class="nf">rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleBook</span> <span class="o">|</span> <span class="n">RulebookName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">):</span>
 		<span class="n">n</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">RuleBook</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_rulebook_name</span><span class="p">():</span>
@@ -862,10 +918,10 @@
 	<span class="k">def</span> <span class="nf">_upd_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_rulebook</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_rulebook</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="nf">_get_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_get_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleBook</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rulebook</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_rulebook_name</span><span class="p">()]</span>
 
-	<span class="k">def</span> <span class="nf">rules</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">rules</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Rule</span><span class="p">]:</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;engine&quot;</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Need an engine before I can get rules&quot;</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rule_mapping</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
@@ -881,7 +937,7 @@
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;_get_rulebook_name&quot;</span><span class="p">)</span>
 
 	<span class="nd">@abstractmethod</span>
-	<span class="k">def</span> <span class="nf">_set_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_set_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="n">RulebookName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Tell the database that this is the name of the rulebook to use for</span>
 <span class="sd">		me.</span>
 
@@ -892,28 +948,30 @@
 <span class="k">class</span> <span class="nc">AllRuleBooks</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;engine&quot;</span><span class="p">,</span> <span class="s2">&quot;_cache&quot;</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;Engine&quot;</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">{}</span>
 
-	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">RulebookName</span><span class="p">]:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">iter_entities</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">())</span>
 
 	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">RulebookName</span> <span class="o">|</span> <span class="n">Key</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">contains_entity</span><span class="p">(</span>
 			<span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 		<span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">RulebookName</span> <span class="o">|</span> <span class="n">Key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleBook</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">RuleBook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">RulebookName</span> <span class="o">|</span> <span class="n">Key</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">RuleBook</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Rule</span> <span class="o">|</span> <span class="n">RuleName</span><span class="p">]</span>
+	<span class="p">):</span>
 		<span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">RuleBook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
 		<span class="n">rb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -921,7 +979,7 @@
 			<span class="k">del</span> <span class="n">rb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 		<span class="n">rb</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">RulebookName</span> <span class="o">|</span> <span class="n">Key</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_del_rulebook</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
 
 
@@ -933,27 +991,29 @@
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;Engine&quot;</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">RuleName</span><span class="p">,</span> <span class="n">Rule</span><span class="p">]:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rules_cache</span>
 
-	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">RuleName</span><span class="p">]:</span>
 		<span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
 
 	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
 
-	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
-	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Rule</span> <span class="o">|</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="n">RuleFuncName</span> <span class="o">|</span> <span class="nb">str</span>
+	<span class="p">):</span>
 		<span class="c1"># you can use the name of a stored function or rule</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
@@ -976,7 +1036,7 @@
 			<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">new</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="n">Key</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such rule&quot;</span><span class="p">)</span>
 		<span class="k">for</span> <span class="n">rulebook</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rulebooks</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
@@ -989,13 +1049,13 @@
 
 	<span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
-		<span class="n">v</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-		<span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+		<span class="n">v</span><span class="p">:</span> <span class="n">RuleFunc</span> <span class="o">|</span> <span class="n">RuleFuncName</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">name</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 		<span class="o">*</span><span class="p">,</span>
-		<span class="n">neighborhood</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-		<span class="n">always</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+		<span class="n">neighborhood</span><span class="p">:</span> <span class="n">RuleNeighborhood</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+		<span class="n">always</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 	<span class="p">):</span>
-		<span class="k">def</span> <span class="nf">r</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">r</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleFunc</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 			<span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 				<span class="n">name</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="vm">__name__</span>
 			<span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
@@ -1011,13 +1071,13 @@
 		<span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="k">if</span> <span class="n">always</span><span class="p">:</span>
 			<span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;always&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-		<span class="k">if</span> <span class="n">neighborhood</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">neighborhood</span> <span class="ow">is</span> <span class="ow">not</span> <span class="o">...</span><span class="p">:</span>
 			<span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;neighborhood&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">neighborhood</span>
 		<span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">r</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">new_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">new_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">RuleName</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a new rule with no actions or anything, and return it.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have rule </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>

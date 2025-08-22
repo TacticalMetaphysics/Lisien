@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.card &#8212; Lisien 0.19.0 documentation</title>
+    <title>elide.card &#8212; Lisien 0.21.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=cbfb3150"></script>
+    <script src="../../_static/documentation_options.js?v=f301a15e"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -51,6 +51,8 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
 <span class="kn">import</span> <span class="nn">pygments</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span>
 <span class="kn">from</span> <span class="nn">kivy.graphics</span> <span class="kn">import</span> <span class="n">InstructionGroup</span>
@@ -77,7 +79,7 @@
 <span class="kn">from</span> <span class="nn">pygments.formatters.bbcode</span> <span class="kn">import</span> <span class="n">BBCodeFormatter</span>
 <span class="kn">from</span> <span class="nn">pygments.lexers</span> <span class="kn">import</span> <span class="n">PythonLexer</span>
 
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">load_string_once</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">logwrap</span><span class="p">,</span> <span class="n">store_kv</span>
 
 <span class="n">dbg</span> <span class="o">=</span> <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span>
 
@@ -239,6 +241,7 @@
 	<span class="n">editable</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 	<span class="n">edit_func</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="s2">&quot;main_text&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_text</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -265,6 +268,7 @@
 
 <div class="viewcode-block" id="Card.on_background_source">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.on_background_source">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_background_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;When I get a new ``background_source``, load it as an</span>
 <span class="sd">		:class:`Image` and store that in ``background_image``.</span>
@@ -276,6 +280,7 @@
 
 <div class="viewcode-block" id="Card.on_background_image">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.on_background_image">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_background_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;When I get a new ``background_image``, store its texture in</span>
 <span class="sd">		``background_texture``.</span>
@@ -287,6 +292,7 @@
 
 <div class="viewcode-block" id="Card.on_foreground_source">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.on_foreground_source">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_foreground_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;When I get a new ``foreground_source``, load it as an</span>
 <span class="sd">		:class:`Image` and store that in ``foreground_image``.</span>
@@ -298,6 +304,7 @@
 
 <div class="viewcode-block" id="Card.on_foreground_image">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.on_foreground_image">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_foreground_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;When I get a new ``foreground_image``, store its texture in my</span>
 <span class="sd">		``foreground_texture``.</span>
@@ -309,6 +316,7 @@
 
 <div class="viewcode-block" id="Card.on_art_source">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.on_art_source">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_art_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;When I get a new ``art_source``, load it as an :class:`Image` and</span>
 <span class="sd">		store that in ``art_image``.</span>
@@ -320,6 +328,7 @@
 
 <div class="viewcode-block" id="Card.on_art_image">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.on_art_image">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_art_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;When I get a new ``art_image``, store its texture in</span>
 <span class="sd">		``art_texture``.</span>
@@ -331,6 +340,7 @@
 
 <div class="viewcode-block" id="Card.on_touch_down">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.on_touch_down">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;If I&#39;m the first card to collide this touch, grab it, store my</span>
 <span class="sd">		metadata in its userdict, and store the relative coords upon</span>
@@ -341,7 +351,11 @@
 			<span class="k">return</span>
 		<span class="k">if</span> <span class="s2">&quot;card&quot;</span> <span class="ow">in</span> <span class="n">touch</span><span class="o">.</span><span class="n">ud</span><span class="p">:</span>
 			<span class="k">return</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">editable</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">editbut</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">):</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">editable</span>
+			<span class="ow">and</span> <span class="s2">&quot;editbut&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span>
+			<span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">editbut</span><span class="o">.</span><span class="n">collide_point</span><span class="p">(</span><span class="o">*</span><span class="n">touch</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+		<span class="p">):</span>
 			<span class="n">touch</span><span class="o">.</span><span class="n">grab</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">editbut</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">editbut</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="s2">&quot;on_touch_down&quot;</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span>
 			<span class="k">return</span>
@@ -357,6 +371,7 @@
 
 <div class="viewcode-block" id="Card.on_touch_move">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.on_touch_move">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;If I&#39;m being dragged, move so as to be always positioned the same</span>
 <span class="sd">		relative to the touch.</span>
@@ -370,6 +385,7 @@
 
 <div class="viewcode-block" id="Card.on_touch_up">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.on_touch_up">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Stop dragging if needed.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dragging</span><span class="p">:</span>
@@ -380,6 +396,7 @@
 
 <div class="viewcode-block" id="Card.copy">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Card.copy">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Card&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a new :class:`Card` just like me.&quot;&quot;&quot;</span>
 		<span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
@@ -450,6 +467,7 @@
 
 <div class="viewcode-block" id="Foundation.upd_pos">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Foundation.upd_pos">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Foundation&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">upd_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Ask the foundation where I should be, based on what deck I&#39;m</span>
 <span class="sd">		for.</span>
@@ -460,6 +478,7 @@
 
 <div class="viewcode-block" id="Foundation.upd_size">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.Foundation.upd_size">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Foundation&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">upd_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;I&#39;m the same size as any given card in my :class:`DeckLayout`.&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span>
@@ -468,6 +487,9 @@
 		<span class="p">)</span></div>
 </div>
 
+
+
+<span class="n">wraplog_DeckBuilderLayout</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">logwrap</span><span class="p">,</span> <span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderLayout&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="DeckBuilderLayout">
@@ -562,6 +584,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.scroll_deck_x">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.scroll_deck_x">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Foundation&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">scroll_deck_x</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_x</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Move a deck left or right.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">decknum</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">):</span>
@@ -576,6 +599,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.scroll_deck_y">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.scroll_deck_y">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Foundation&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">scroll_deck_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_y</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Move a deck up or down.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">decknum</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">):</span>
@@ -590,12 +614,14 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.scroll_deck">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.scroll_deck">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Foundation&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">scroll_deck</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_x</span><span class="p">,</span> <span class="n">scroll_y</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Move a deck.&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">scroll_deck_x</span><span class="p">(</span><span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_x</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">scroll_deck_y</span><span class="p">(</span><span class="n">decknum</span><span class="p">,</span> <span class="n">scroll_y</span><span class="p">)</span></div>
 
 
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Foundation&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">_get_foundation_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Private. Get the absolute coordinates to use for a deck&#39;s</span>
 <span class="sd">		foundation, based on the ``starting_pos_hint``, the</span>
@@ -610,6 +636,7 @@
 		<span class="n">y</span> <span class="o">=</span> <span class="n">phy</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span>
 		<span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Foundation&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">_get_foundation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a :class:`Foundation` for some deck, creating it if</span>
 <span class="sd">		needed.</span>
@@ -640,6 +667,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.remove_widget">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.remove_widget">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Foundation&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">Foundation</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span>
@@ -656,6 +684,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.on_decks">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.on_decks">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;Foundation&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_decks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Inform the cards of their deck and their index within the deck;</span>
 <span class="sd">		extend the ``_hint_offsets`` properties as needed; and trigger</span>
@@ -698,6 +727,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.point_before_card">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.point_before_card">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderLayout&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">point_before_card</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">card</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return whether ``(x, y)`` is somewhere before ``card``, given how I</span>
 <span class="sd">		know cards to be arranged.</span>
@@ -734,6 +764,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.point_after_card">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.point_after_card">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderLayout&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">point_after_card</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">card</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return whether ``(x, y)`` is somewhere after ``card``, given how I</span>
 <span class="sd">		know cards to be arranged.</span>
@@ -770,6 +801,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.on_touch_move">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.on_touch_move">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderLayout&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;If a card is being dragged, move other cards out of the way to show</span>
 <span class="sd">		where the dragged card will go if you drop it.</span>
@@ -843,6 +875,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.on_touch_up">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.on_touch_up">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderLayout&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;If a card is being dragged, put it in the place it was just dropped</span>
 <span class="sd">		and trigger a layout.</span>
@@ -877,6 +910,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.on_insertion_card">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.on_insertion_card">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderLayout&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_insertion_card</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Trigger a layout&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion_card</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -887,7 +921,7 @@
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.do_layout">[docs]</a>
 	<span class="k">def</span> <span class="nf">do_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Layout each of my decks&quot;&quot;&quot;</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decks</span><span class="p">)):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">layout_deck</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></div>
@@ -895,6 +929,7 @@
 
 <div class="viewcode-block" id="DeckBuilderLayout.layout_deck">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderLayout.layout_deck">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderLayout&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">layout_deck</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Stack the cards, starting at my deck&#39;s foundation, and proceeding</span>
 <span class="sd">		by ``card_pos_hint``</span>
@@ -969,6 +1004,7 @@
 
 <div class="viewcode-block" id="ScrollBarBar.on_touch_down">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.ScrollBarBar.on_touch_down">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;ScrollBarBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_touch_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Tell my parent if I&#39;ve been touched&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -977,6 +1013,9 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">bar_touched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">)</span></div>
 </div>
 
+
+
+<span class="n">wraplog_DeckBuilderScrollBar</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">logwrap</span><span class="p">,</span> <span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="DeckBuilderScrollBar">
@@ -1026,10 +1065,12 @@
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">_get_scroll</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">zero</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scroll</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">scroll_min</span>
 		<span class="k">return</span> <span class="n">zero</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scroll_hint</span>
 
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">_set_scroll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
 			<span class="n">v</span> <span class="o">=</span> <span class="mi">0</span>
@@ -1046,6 +1087,7 @@
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">_get_vbar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -1063,6 +1105,7 @@
 	<span class="p">)</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A tuple of ``(y, height)`` for my scroll bar, if it&#39;s vertical.&quot;&quot;&quot;</span>
 
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">_get_hbar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -1113,17 +1156,19 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">pos_hint</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hbar</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">size_hint_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vbar</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">pos_hint</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">vbar</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span>
-		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">do_layout</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">pos_hint</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">vbar</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span></div>
 
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.upd_scroll">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderScrollBar.upd_scroll">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">upd_scroll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Update my own ``scroll`` property to where my deck is actually</span>
 <span class="sd">		scrolled.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_scroll_bound&quot;</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_scroll_bound</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;scroll&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">upd_scroll</span><span class="p">)</span>
 		<span class="n">att</span> <span class="o">=</span> <span class="s2">&quot;deck_</span><span class="si">{}</span><span class="s2">_hint_offsets&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
 			<span class="s2">&quot;x&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span> <span class="o">==</span> <span class="s2">&quot;horizontal&quot;</span> <span class="k">else</span> <span class="s2">&quot;y&quot;</span>
 		<span class="p">)</span>
@@ -1144,16 +1189,18 @@
 		<span class="p">)</span>
 		<span class="n">offs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="p">,</span> <span class="n">att</span><span class="p">)</span>
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">offs</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deckidx</span><span class="p">:</span>
-			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_deckbuilder</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">att</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">upd_scroll</span><span class="p">})</span>
 			<span class="k">return</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">scroll</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">handle_scroll</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">att</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">upd_scroll</span><span class="p">})</span>
+		<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;DeckBuilderScrollBar: on_deckbuilder&quot;</span><span class="p">)</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_scroll_bound&quot;</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_scroll_bound</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;_scroll_bound&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">upd_scroll</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">upd_scroll</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">deckbuilder</span><span class="o">.</span><span class="n">_trigger_layout</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.handle_scroll">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderScrollBar.handle_scroll">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">handle_scroll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;When my ``scroll`` changes, tell my deckbuilder how it&#39;s scrolled</span>
 <span class="sd">		now.</span>
@@ -1176,6 +1223,7 @@
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.bar_touched">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderScrollBar.bar_touched">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">bar_touched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Start scrolling, and record where I started scrolling.&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">scrolling</span> <span class="o">=</span> <span class="kc">True</span>
@@ -1193,6 +1241,7 @@
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.on_touch_move">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderScrollBar.on_touch_move">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_touch_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Move the scrollbar to the touch, and update my ``scroll``</span>
 <span class="sd">		accordingly.</span>
@@ -1217,6 +1266,7 @@
 
 <div class="viewcode-block" id="DeckBuilderScrollBar.on_touch_up">
 <a class="viewcode-back" href="../../elide/index.html#elide.card.DeckBuilderScrollBar.on_touch_up">[docs]</a>
+	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DeckBuilderScrollBar&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_touch_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">touch</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Stop scrolling.&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">scrolling</span> <span class="o">=</span> <span class="kc">False</span></div>
@@ -1224,126 +1274,129 @@
 
 
 
-<span class="n">load_string_once</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">&lt;ColorTextureBox&gt;:</span>
-<span class="s2">	canvas:</span>
-<span class="s2">		Color:</span>
-<span class="s2">			rgba: root.color</span>
-<span class="s2">		Rectangle:</span>
-<span class="s2">			texture: root.texture</span>
-<span class="s2">			pos: root.pos</span>
-<span class="s2">			size: root.size</span>
-<span class="s2">		Color:</span>
-<span class="s2">			rgba: root.outline_color</span>
-<span class="s2">		Line:</span>
-<span class="s2">			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]</span>
-<span class="s2">		Color:</span>
-<span class="s2">			rgba: [1, 1, 1, 1]</span>
-<span class="s2">&lt;Foundation&gt;:</span>
-<span class="s2">	color: [0, 0, 0, 0]</span>
-<span class="s2">	outline_color: [1, 1, 1, 1]</span>
-<span class="s2">&lt;Card&gt;:</span>
-<span class="s2">	headline: headline</span>
-<span class="s2">	midline: midline</span>
-<span class="s2">	footer: footer</span>
-<span class="s2">	art: art</span>
-<span class="s2">	foreground: foreground</span>
-<span class="s2">	canvas:</span>
-<span class="s2">		Color:</span>
-<span class="s2">			rgba: root.background_color</span>
-<span class="s2">		Rectangle:</span>
-<span class="s2">			texture: root.background_texture</span>
-<span class="s2">			pos: root.pos</span>
-<span class="s2">			size: root.size</span>
-<span class="s2">		Color:</span>
-<span class="s2">			rgba: root.outline_color</span>
-<span class="s2">		Line:</span>
-<span class="s2">			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]</span>
-<span class="s2">		Color:</span>
-<span class="s2">			rgba: [1, 1, 1, 1]</span>
-<span class="s2">	BoxLayout:</span>
-<span class="s2">		size_hint: 0.9, 0.9</span>
-<span class="s2">		pos_hint: {&#39;x&#39;: 0.05, &#39;y&#39;: 0.05}</span>
-<span class="s2">		orientation: &#39;vertical&#39;</span>
-<span class="s2">		canvas:</span>
-<span class="s2">			Color:</span>
-<span class="s2">				rgba: root.content_outline_color</span>
-<span class="s2">			Line:</span>
-<span class="s2">				points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]</span>
-<span class="s2">			Color:</span>
-<span class="s2">				rgba: [1, 1, 1, 1]</span>
-<span class="s2">		Label:</span>
-<span class="s2">			id: headline</span>
-<span class="s2">			text: root.headline_text</span>
-<span class="s2">			markup: root.headline_markup</span>
-<span class="s2">			font_name: root.headline_font_name</span>
-<span class="s2">			font_size: root.headline_font_size</span>
-<span class="s2">			color: root.headline_color</span>
-<span class="s2">			size_hint: (None, None)</span>
-<span class="s2">			size: self.texture_size</span>
-<span class="s2">		ColorTextureBox:</span>
-<span class="s2">			id: art</span>
-<span class="s2">			color: root.art_color</span>
-<span class="s2">			texture: root.art_texture</span>
-<span class="s2">			outline_color: root.art_outline_color if root.show_art else [0, 0, 0, 0]</span>
-<span class="s2">			size_hint: (1, 1) if root.show_art else (None, None)</span>
-<span class="s2">			size: (0, 0)</span>
-<span class="s2">		Label:</span>
-<span class="s2">			id: midline</span>
-<span class="s2">			text: root.midline_text</span>
-<span class="s2">			markup: root.midline_markup</span>
-<span class="s2">			font_name: root.midline_font_name</span>
-<span class="s2">			font_size: root.midline_font_size</span>
-<span class="s2">			color: root.midline_color</span>
-<span class="s2">			size_hint: (None, None)</span>
-<span class="s2">			size: self.texture_size</span>
-<span class="s2">		ColorTextureBox:</span>
-<span class="s2">			id: foreground</span>
-<span class="s2">			color: root.foreground_color</span>
-<span class="s2">			outline_color: root.foreground_outline_color</span>
-<span class="s2">			texture: root.foreground_texture</span>
-<span class="s2">			Label:</span>
-<span class="s2">				id: main_text</span>
-<span class="s2">				color: root.text_color</span>
-<span class="s2">				markup: root.markup</span>
-<span class="s2">				font_name: root.font_name</span>
-<span class="s2">				font_size: root.font_size</span>
-<span class="s2">				text_size: foreground.size</span>
-<span class="s2">				size_hint: (None, None)</span>
-<span class="s2">				size: self.texture_size</span>
-<span class="s2">				pos: foreground.pos</span>
-<span class="s2">				valign: &#39;top&#39;</span>
-<span class="s2">			Button:</span>
-<span class="s2">				id: editbut</span>
-<span class="s2">				background_normal: &#39;atlas://data/images/defaulttheme/button&#39; if root.editable else &#39;&#39;</span>
-<span class="s2">				background_down: &#39;atlas://data/images/defaulttheme/button_pressed&#39; if root.editable else &#39;&#39;</span>
-<span class="s2">				color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)</span>
-<span class="s2">				background_color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)</span>
-<span class="s2">				text_size: self.size</span>
-<span class="s2">				size: self.texture_size</span>
-<span class="s2">				size_hint: (None, None)</span>
-<span class="s2">				font_name: &#39;DejaVuSans&#39;</span>
-<span class="s2">				font_size: 30</span>
-<span class="s2">				x: foreground.right - self.width - (.1 * self.width)</span>
-<span class="s2">				y: foreground.top - self.height - (.1 * self.height)</span>
-<span class="s2">				text: &#39;✐&#39; if root.editable else &#39;&#39;</span>
-<span class="s2">				on_press: root.edit_func(root)</span>
-<span class="s2">				disabled: not root.editable</span>
-<span class="s2">		Label:</span>
-<span class="s2">			id: footer</span>
-<span class="s2">			text: root.footer_text</span>
-<span class="s2">			markup: root.footer_markup</span>
-<span class="s2">			font_name: root.footer_font_name</span>
-<span class="s2">			font_size: root.footer_font_size</span>
-<span class="s2">			color: root.footer_color</span>
-<span class="s2">			size_hint: (None, None)</span>
-<span class="s2">			size: self.texture_size</span>
-<span class="s2">&lt;DeckBuilderScrollBar&gt;:</span>
-<span class="s2">	ScrollBarBar:</span>
-<span class="s2">		id: bar</span>
-<span class="s2">		color: root.bar_color if root.scrolling else root.bar_inactive_color</span>
-<span class="s2">		texture: root.bar_texture</span>
-<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<span class="n">store_kv</span><span class="p">(</span>
+	<span class="vm">__name__</span><span class="p">,</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&lt;ColorTextureBox&gt;:</span>
+<span class="sd">	canvas:</span>
+<span class="sd">		Color:</span>
+<span class="sd">			rgba: root.color</span>
+<span class="sd">		Rectangle:</span>
+<span class="sd">			texture: root.texture</span>
+<span class="sd">			pos: root.pos</span>
+<span class="sd">			size: root.size</span>
+<span class="sd">		Color:</span>
+<span class="sd">			rgba: root.outline_color</span>
+<span class="sd">		Line:</span>
+<span class="sd">			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]</span>
+<span class="sd">		Color:</span>
+<span class="sd">			rgba: [1, 1, 1, 1]</span>
+<span class="sd">&lt;Foundation&gt;:</span>
+<span class="sd">	color: [0, 0, 0, 0]</span>
+<span class="sd">	outline_color: [1, 1, 1, 1]</span>
+<span class="sd">&lt;Card&gt;:</span>
+<span class="sd">	headline: headline</span>
+<span class="sd">	midline: midline</span>
+<span class="sd">	footer: footer</span>
+<span class="sd">	art: art</span>
+<span class="sd">	foreground: foreground</span>
+<span class="sd">	canvas:</span>
+<span class="sd">		Color:</span>
+<span class="sd">			rgba: root.background_color</span>
+<span class="sd">		Rectangle:</span>
+<span class="sd">			texture: root.background_texture</span>
+<span class="sd">			pos: root.pos</span>
+<span class="sd">			size: root.size</span>
+<span class="sd">		Color:</span>
+<span class="sd">			rgba: root.outline_color</span>
+<span class="sd">		Line:</span>
+<span class="sd">			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]</span>
+<span class="sd">		Color:</span>
+<span class="sd">			rgba: [1, 1, 1, 1]</span>
+<span class="sd">	BoxLayout:</span>
+<span class="sd">		size_hint: 0.9, 0.9</span>
+<span class="sd">		pos_hint: {&#39;x&#39;: 0.05, &#39;y&#39;: 0.05}</span>
+<span class="sd">		orientation: &#39;vertical&#39;</span>
+<span class="sd">		canvas:</span>
+<span class="sd">			Color:</span>
+<span class="sd">				rgba: root.content_outline_color</span>
+<span class="sd">			Line:</span>
+<span class="sd">				points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]</span>
+<span class="sd">			Color:</span>
+<span class="sd">				rgba: [1, 1, 1, 1]</span>
+<span class="sd">		Label:</span>
+<span class="sd">			id: headline</span>
+<span class="sd">			text: root.headline_text</span>
+<span class="sd">			markup: root.headline_markup</span>
+<span class="sd">			font_name: root.headline_font_name</span>
+<span class="sd">			font_size: root.headline_font_size</span>
+<span class="sd">			color: root.headline_color</span>
+<span class="sd">			size_hint: (None, None)</span>
+<span class="sd">			size: self.texture_size</span>
+<span class="sd">		ColorTextureBox:</span>
+<span class="sd">			id: art</span>
+<span class="sd">			color: root.art_color</span>
+<span class="sd">			texture: root.art_texture</span>
+<span class="sd">			outline_color: root.art_outline_color if root.show_art else [0, 0, 0, 0]</span>
+<span class="sd">			size_hint: (1, 1) if root.show_art else (None, None)</span>
+<span class="sd">			size: (0, 0)</span>
+<span class="sd">		Label:</span>
+<span class="sd">			id: midline</span>
+<span class="sd">			text: root.midline_text</span>
+<span class="sd">			markup: root.midline_markup</span>
+<span class="sd">			font_name: root.midline_font_name</span>
+<span class="sd">			font_size: root.midline_font_size</span>
+<span class="sd">			color: root.midline_color</span>
+<span class="sd">			size_hint: (None, None)</span>
+<span class="sd">			size: self.texture_size</span>
+<span class="sd">		ColorTextureBox:</span>
+<span class="sd">			id: foreground</span>
+<span class="sd">			color: root.foreground_color</span>
+<span class="sd">			outline_color: root.foreground_outline_color</span>
+<span class="sd">			texture: root.foreground_texture</span>
+<span class="sd">			Label:</span>
+<span class="sd">				id: main_text</span>
+<span class="sd">				color: root.text_color</span>
+<span class="sd">				markup: root.markup</span>
+<span class="sd">				font_name: root.font_name</span>
+<span class="sd">				font_size: root.font_size</span>
+<span class="sd">				text_size: foreground.size</span>
+<span class="sd">				size_hint: (None, None)</span>
+<span class="sd">				size: self.texture_size</span>
+<span class="sd">				pos: foreground.pos</span>
+<span class="sd">				valign: &#39;top&#39;</span>
+<span class="sd">			Button:</span>
+<span class="sd">				id: editbut</span>
+<span class="sd">				background_normal: &#39;atlas://data/images/defaulttheme/button&#39; if root.editable else &#39;&#39;</span>
+<span class="sd">				background_down: &#39;atlas://data/images/defaulttheme/button_pressed&#39; if root.editable else &#39;&#39;</span>
+<span class="sd">				color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)</span>
+<span class="sd">				background_color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)</span>
+<span class="sd">				text_size: self.size</span>
+<span class="sd">				size: self.texture_size</span>
+<span class="sd">				size_hint: (None, None)</span>
+<span class="sd">				font_name: &#39;DejaVuSans&#39;</span>
+<span class="sd">				font_size: 30</span>
+<span class="sd">				x: foreground.right - self.width - (.1 * self.width)</span>
+<span class="sd">				y: foreground.top - self.height - (.1 * self.height)</span>
+<span class="sd">				text: &#39;✐&#39; if root.editable else &#39;&#39;</span>
+<span class="sd">				on_press: root.edit_func(root)</span>
+<span class="sd">				disabled: not root.editable</span>
+<span class="sd">		Label:</span>
+<span class="sd">			id: footer</span>
+<span class="sd">			text: root.footer_text</span>
+<span class="sd">			markup: root.footer_markup</span>
+<span class="sd">			font_name: root.footer_font_name</span>
+<span class="sd">			font_size: root.footer_font_size</span>
+<span class="sd">			color: root.footer_color</span>
+<span class="sd">			size_hint: (None, None)</span>
+<span class="sd">			size: self.texture_size</span>
+<span class="sd">&lt;DeckBuilderScrollBar&gt;:</span>
+<span class="sd">	ScrollBarBar:</span>
+<span class="sd">		id: bar</span>
+<span class="sd">		color: root.bar_color if root.scrolling else root.bar_inactive_color</span>
+<span class="sd">		texture: root.bar_texture</span>
+<span class="sd">&quot;&quot;&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
 	<span class="n">deck0</span> <span class="o">=</span> <span class="p">[</span>
