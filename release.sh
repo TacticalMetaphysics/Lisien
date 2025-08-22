@@ -18,8 +18,7 @@ isort lisien
 isort elide
 ruff format lisien
 ruff format elide
-tox -c lisien/tox.ini -e py313
-#for env in $(tox -c lisien/tox.ini -l); do tox -c lisien/tox.ini -e $env; done
+for env in $(tox -c lisien/tox.ini -l); do tox -c lisien/tox.ini -e $env; done
 for env in $(tox -c elide/tox.ini -l); do tox -c elide/tox.ini -e $env; done
 rm -rf bin lisien/dist elide/dist
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android clean debug
