@@ -114,29 +114,17 @@ def install(eng):
 
 
 if __name__ == "__main__":
-	import sys
+	import shutil
+	from tempfile import TemporaryDirectory
 
 	from lisien import Engine
 
-	with Engine(sys.argv[-1], clear=True) as eng, eng.batch():
-		install(eng)
-	if "--profile" in sys.argv:
-		import cProfile
-
-		def test():
-			with Engine() as eng:
-				for n in range(10):
-					eng.next_turn()
-
-		cProfile.run("test()", "polygons.prof")
-
-	if "--time" in sys.argv:
-		# only report the time it takes to actually simulate,
-		# excluding startup time and such
-		import time
-
-		with Engine() as eng:
-			start = time.monotonic()
-			for n in range(10):
-				eng.next_turn()
-		print(time.monotonic() - start)
+	with TemporaryDirectory() as td:
+		with Engine(
+			td,
+			random_seed=69105,
+			connect_string=f"sqlite:///{td}/world.sqlite3",
+		) as eng:
+			install(eng)
+		archive_filename = shutil.make_archive("polygons", "zip", td)
+		print("Exported to " + str(archive_filename))
