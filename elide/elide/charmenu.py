@@ -263,6 +263,9 @@ store_kv(
 	portaladdbut: portaladdbut
 	portaldirbut: portaldirbut
 	Button:
+		text: 'Logs'
+		on_release: app.log_screen.toggle()
+	Button:
 		text: 'Delete'
 		disabled: app.edit_locked
 		on_release: app.delete_selection()
