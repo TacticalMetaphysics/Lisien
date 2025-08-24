@@ -4,6 +4,7 @@ from logging import Handler
 
 from kivy.logger import Logger
 from kivy.properties import NumericProperty, ObjectProperty
+from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
@@ -25,6 +26,10 @@ class LogViewHandler(Handler):
 			return
 		print(f"ok, got record {msg}")
 		self.logview.data.append({"text": str(msg)})
+
+
+class LogLabel(Label):
+	pass
 
 
 class LogView(RecycleView):
@@ -51,8 +56,11 @@ class LogScreen(Screen):
 
 
 kv = """
+<LogLabel>:
+	halign: 'left'
+	text_size: self.width, dp(56)
 <LogView>:
-	viewclass: 'Label'
+	viewclass: 'LogLabel'
 	RecycleBoxLayout:
 		orientation: 'vertical'
 		height: self.minimum_height
