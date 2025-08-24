@@ -3,7 +3,7 @@ from __future__ import annotations
 from logging import Handler
 
 from kivy.logger import Logger
-from kivy.properties import ListProperty, NumericProperty, ObjectProperty
+from kivy.properties import NumericProperty, ObjectProperty
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
