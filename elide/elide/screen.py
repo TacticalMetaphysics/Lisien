@@ -551,6 +551,14 @@ class MainScreen(Screen):
 		else:
 			self.manager.current = "mainscreen"
 
+	@trigger
+	@logwrap(section="TimePanel")
+	def toggle_log(self, *_):
+		if self.manager.current != "log":
+			self.manager.current = "log"
+		else:
+			self.manager.current = "mainscreen"
+
 
 class CharMenuContainer(BoxLayout):
 	screen = ObjectProperty()
