@@ -17,6 +17,7 @@
 import json
 import os
 import shutil
+from functools import cached_property
 from threading import Thread
 
 from lisien.exc import OutOfTimelineError
@@ -33,6 +34,7 @@ from kivy.properties import (
 	NumericProperty,
 	ObjectProperty,
 	StringProperty,
+	DictProperty,
 )
 from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
@@ -40,6 +42,7 @@ from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 import elide
 import elide.charsview
 import elide.dialog
+import elide.logview
 import elide.menu
 import elide.rulesview
 import elide.screen
@@ -88,6 +91,10 @@ class ElideApp(App):
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
 	character_name = ObjectProperty()
+
+	@cached_property
+	def _togglers(self):
+		return {}
 
 	def _get_play_dir(self):
 		return os.path.join(self.prefix, self.games_dir, self.game_name)
@@ -307,7 +314,7 @@ class ElideApp(App):
 			from kivy.modules import inspector
 
 			inspector.create_inspector(Window, self.manager)
-		self.mainmenu = elide.menu.MainMenuScreen(toggle=self._toggler("main"))
+		self.mainmenu = elide.menu.MainMenuScreen(toggle=self.toggler("main"))
 		self.manager.add_widget(self.mainmenu)
 		if self.immediate_start:
 			self.start_game()
@@ -424,18 +431,26 @@ class ElideApp(App):
 				self.engine.character[self.engine.eternal["boardchar"]]
 			)
 
-	def _toggler(self, screenname):
+	def toggler(self, screenname):
+		"""Return a function that shows or hides a named screen"""
+		if screenname in self._togglers:
+			return self._togglers[screenname]
+
 		def tog(*_):
 			if self.manager.current == screenname:
+				Logger.debug("ElideApp: toggling back to mainscreen")
 				self.manager.current = "mainscreen"
 			else:
+				Logger.debug(f"ElideApp: toggling to {screenname}")
 				self.manager.current = screenname
+
+		self._togglers[screenname] = tog
 
 		return tog
 
 	def _add_screens(self, *_):
 		Logger.debug("ElideApp: _add_screens")
-		toggler = self._toggler
+		toggler = self.toggler
 		config = self.config
 
 		pawndata = json.loads(config["elide"]["thing_graphics"])
@@ -495,6 +510,10 @@ class ElideApp(App):
 		self.timestream = elide.timestream.TimestreamScreen(
 			name="timestream", toggle=toggler("timestream")
 		)
+		load_kv("elide.logview")
+		self.log_screen = elide.logview.LogScreen(
+			name="log", toggle=toggler("log")
+		)
 		load_kv("elide.screen")
 		load_kv("elide.charmenu")
 		load_kv("elide.statcfg")
@@ -522,6 +541,7 @@ class ElideApp(App):
 			self.strings,
 			self.funcs,
 			self.timestream,
+			self.log_screen,
 		):
 			self.manager.add_widget(wid)
 
