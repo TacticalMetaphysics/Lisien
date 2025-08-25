@@ -48,7 +48,7 @@ class LogView(RecycleView):
 		self._handler.level = int(self.level)
 
 	def on_data(self, *_):
-		print(f"{len(self.data)} log lines")
+		self.scroll_y = 0.0
 
 
 class LogScreen(Screen):
@@ -61,6 +61,7 @@ kv = """
 	text_size: self.width, dp(56)
 <LogView>:
 	viewclass: 'LogLabel'
+	do_scroll_x: False
 	RecycleBoxLayout:
 		orientation: 'vertical'
 		height: self.minimum_height
@@ -71,11 +72,9 @@ kv = """
 	name: 'log'
 	BoxLayout:
 		orientation: 'vertical'
-		ScrollView:
-			do_scroll_x: False
+		LogView:
+			level: 10
 			size_hint_y: 0.9
-			LogView:
-				level: 10
 		Button:
 			text: 'Close'
 			on_release: root.toggle()
