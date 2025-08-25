@@ -24,7 +24,6 @@ class LogViewHandler(Handler):
 		else:
 			Logger.warning("Can't format log record")
 			return
-		print(f"ok, got record {msg}")
 		self.logview.data.append({"text": str(msg)})
 
 
