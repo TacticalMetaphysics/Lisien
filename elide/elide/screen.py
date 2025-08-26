@@ -377,6 +377,8 @@ class MainScreen(Screen):
 
 	@logwrap(section="TimePanel")
 	def on_touch_down(self, touch):
+		if self.boardview is None:
+			return
 		if self.visible:
 			touch.grab(self)
 		for interceptor in (
