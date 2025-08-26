@@ -44,7 +44,6 @@ def trigger(func):
 dbg = Logger.debug
 
 
-# How do these get instantiated?
 class RuleButton(ToggleButton, RecycleDataViewBehavior):
 	"""A button to select a rule to edit"""
 
