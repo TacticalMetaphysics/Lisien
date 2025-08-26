@@ -56,7 +56,7 @@ class RuleBuilderTest(ELiDEAppTest):
 		self.rules_list = rules_list = rules_box.ids.ruleslist
 		self.rules_view = rules_box.ids.rulesview
 		idle_until(
-			lambda: rules_list.children[0].children,
+			lambda: list(rules_list.iter_rule_buttons()),
 			100,
 			"Never filled rules list",
 		)
@@ -74,11 +74,11 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 		rules_view = self.rules_view
 		idle_until(
 			lambda: "shrubsprint"
-			in {rulebut.text for rulebut in rules_list.children[0].children},
+			in {rulebut.text for rulebut in rules_list.iter_rule_buttons()},
 			100,
 			"Never made shrubsprint button",
 		)
-		for rulebut in rules_list.children[0].children:
+		for rulebut in rules_list.iter_rule_buttons():
 			if rulebut.text == "shrubsprint":
 				rulebut.state = "down"
 				break
@@ -115,11 +115,11 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 		rules_view = self.rules_view
 		idle_until(
 			lambda: "shrubsprint"
-			in {rulebut.text for rulebut in rules_list.children[0].children},
+			in {rulebut.text for rulebut in rules_list.iter_rule_buttons()},
 			100,
 			"Never made shrubsprint button",
 		)
-		for rulebut in rules_list.children[0].children:
+		for rulebut in rules_list.iter_rule_buttons():
 			if rulebut.text == "shrubsprint":
 				rulebut.state = "down"
 				break
@@ -363,17 +363,17 @@ class TestCharRuleBuilder(ELiDEAppTest):
 		)
 		rules_list = rules_box.ruleslist
 		idle_until(
-			lambda: rules_list.children[0].children,
+			lambda: list(rules_list.iter_rule_buttons()),
 			1000,
 			"Never filled rules list",
 		)
 		idle_until(
 			lambda: "relocate"
-			in {rulebut.text for rulebut in rules_list.children[0].children},
+			in {rulebut.text for rulebut in rules_list.iter_rule_buttons()},
 			1000,
 			"Never made relocate button",
 		)
-		for rulebut in rules_list.children[0].children:
+		for rulebut in rules_list.iter_rule_buttons():
 			if rulebut.text == "relocate":
 				rulebut.state = "down"
 				break
