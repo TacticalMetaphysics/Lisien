@@ -31,10 +31,10 @@ from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
 	BooleanProperty,
+	DictProperty,
 	NumericProperty,
 	ObjectProperty,
 	StringProperty,
-	DictProperty,
 )
 from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager

@@ -1,3 +1,8 @@
+== 0.21.4 | 2025-08-27 ==
+* Fix an issue causing some valid exported games not to import right in Elide,
+  causing an empty map and a freeze
+* Add ↑ and ↓ buttons to rules in Elide, for you to reorder them
+
 == 0.21.3 | 2025-08-21 ==
 * Fix Elide's session management; exiting and resuming a game weren't always
   really doing that.
