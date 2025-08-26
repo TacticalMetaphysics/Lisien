@@ -223,11 +223,11 @@ class TestRuleBuilderKobold(RuleBuilderTest):
 		rules_view = self.rules_view
 		idle_until(
 			lambda: "shrubsprint"
-			in {rulebut.text for rulebut in rules_list.children[0].children},
+			in {rulebut.text for rulebut in rules_list.iter_rule_buttons()},
 			100,
 			"Never made shrubsprint button",
 		)
-		for rulebut in rules_list.children[0].children:
+		for rulebut in rules_list.iter_rule_buttons():
 			if rulebut.text == "shrubsprint":
 				rulebut.state = "down"
 				break
