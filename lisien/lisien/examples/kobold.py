@@ -204,6 +204,7 @@ def inittest(
 if __name__ == "__main__":
 	import shutil
 	from tempfile import TemporaryDirectory
+
 	from lisien.engine import Engine
 
 	with TemporaryDirectory() as td:

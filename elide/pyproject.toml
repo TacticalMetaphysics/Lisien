@@ -8,7 +8,7 @@ packages = ["elide", "elide.graph", "elide.grid", "elide.kivygarden.texturestack
 
 [project]
 name = "elide"
-version = "0.21.3.post1"
+version = "0.21.4"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -23,7 +23,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"lisien==0.21.3",
+	"lisien==0.21.4",
 	"kivy>=2.0.0,<3",
 	"kivy_garden.collider",
 	"kivy-deps.glew ; sys_platform == 'win32'",

@@ -19,7 +19,7 @@ from operator import attrgetter
 from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.logger import Logger
-from kivy.properties import ObjectProperty, StringProperty, NumericProperty
+from kivy.properties import NumericProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
