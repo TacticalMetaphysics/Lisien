@@ -584,7 +584,10 @@ class RuleBook(MutableSequence, Signal):
 		tick: Tick,
 		v: tuple[list[RuleName], RulebookPriority],
 	) -> None:
-		self.engine._rulebooks_cache.store(self.name, branch, turn, tick, v)
+		with self.engine._rulebooks_cache.overwriting():
+			self.engine._rulebooks_cache.store(
+				self.name, branch, turn, tick, v
+			)
 
 	def __init__(self, engine: "Engine", name: RulebookName):
 		super().__init__()
