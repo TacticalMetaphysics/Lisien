@@ -19,7 +19,7 @@ from operator import attrgetter
 from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.logger import Logger
-from kivy.properties import ObjectProperty, StringProperty
+from kivy.properties import ObjectProperty, StringProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
@@ -44,7 +44,7 @@ def trigger(func):
 dbg = Logger.debug
 
 
-class RuleButton(ToggleButton, RecycleDataViewBehavior):
+class RuleButton(ToggleButton):
 	"""A button to select a rule to edit"""
 
 	rulesview = ObjectProperty()
@@ -57,9 +57,32 @@ class RuleButton(ToggleButton, RecycleDataViewBehavior):
 		# This really ought to be done with the selection behavior
 		if self.state == "down":
 			self.rulesview.rule = self.rule
-			for button in self.ruleslist.children[0].children:
+			for button in self.ruleslist.iter_rule_buttons():
 				if button != self:
 					button.state = "normal"
+
+
+class RuleButtonBox(BoxLayout, RecycleDataViewBehavior):
+	rulesview = ObjectProperty()
+	ruleslist = ObjectProperty()
+	rule = ObjectProperty()
+	button = ObjectProperty()
+	index = NumericProperty()
+
+	@trigger
+	def move_rule_up(self, *_):
+		i = int(self.index)
+		if i <= 0:
+			return
+		self.ruleslist.rulebook.move_rule_back(i)
+
+	@trigger
+	def move_rule_down(self, *_):
+		i = int(self.index)
+		if i >= len(self.ruleslist.rulebook):
+			return
+		self.ruleslist.rulebook.move_rule_forward(i)
+		self.index = i + 1
 
 
 class RulesList(RecycleView):
@@ -102,6 +125,10 @@ class RulesList(RecycleView):
 		if hasattr(self, "_scheduled_redata"):
 			Clock.unschedule(self._scheduled_redata)
 		self._scheduled_redata = Clock.schedule_once(self.redata, 0)
+
+	def iter_rule_buttons(self):
+		for rules_box in self.children:
+			yield rules_box.button
 
 
 class RulesView(Widget):
@@ -627,8 +654,29 @@ store_kv(
 	"""
 <RuleButton>:
     text: self.rule.name if self.rule else ''
+<RuleButtonBox>:
+	orientation: 'horizontal'
+	button: rule_button
+	Button:
+		id: up
+		text: '↑'
+		font_name: 'Symbola'
+		on_release: root.move_rule_up()
+		size_hint_x: 0.1
+	Button:
+		id: down
+		text: '↓'
+		font_name: 'Symbola'
+		on_release: root.move_rule_down()
+		size_hint_x: 0.1
+	RuleButton:
+		id: rule_button
+		rulesview: root.rulesview
+		ruleslist: root.ruleslist
+		rule: root.rule
+		size_hint_x: 0.8
 <RulesList>:
-    viewclass: 'RuleButton'
+    viewclass: 'RuleButtonBox'
     SelectableRecycleBoxLayout:
         default_size: None, dp(56)
         default_size_hint: 1, None
