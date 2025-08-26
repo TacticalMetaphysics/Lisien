@@ -1894,6 +1894,32 @@ class RuleBookProxy(MutableSequence, Signal):
 		for j in range(i, len(self)):
 			self.send(self, i=j, val=self[j])
 
+	def move_rule_back(self, i: int) -> int:
+		self._worker_check()
+		if i <= 0 or i > len(self):
+			raise IndexError("Invalid rule index", i)
+		prox = self._cache.pop(i)
+		self._cache.insert(i - 1, prox)
+		return self.engine.handle(
+			"move_rulebook_rule_back",
+			rulebook=self.name,
+			i=i,
+			cb=partial(self.send, self, i=i - 1, val=prox),
+		)
+
+	def move_rule_forward(self, i: int):
+		self._worker_check()
+		if i < 0 or i >= len(self):
+			raise IndexError("Invalid rule index", i)
+		prox = self._cache.pop(i)
+		self._cache.insert(i + 1, prox)
+		return self.engine.handle(
+			"move_rulebook_rule_forward",
+			rulebook=self.name,
+			i=i,
+			cb=partial(self.send, self, i=i + 1, val=prox),
+		)
+
 
 class UnitMapProxy(Mapping, RuleFollowerProxy, Signal):
 	engine = getatt("character.engine")

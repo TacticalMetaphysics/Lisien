@@ -783,6 +783,20 @@ class EngineHandle:
 	def del_rulebook_rule(self, rulebook: RulebookName, i: int) -> None:
 		del self._real.rulebook[rulebook][i]
 
+	def move_rulebook_rule_back(self, rulebook: RulebookName, i: int) -> int:
+		rb = self._real.rulebook[rulebook]
+		rule = rb.pop(i)
+		rb.insert(i - 1, rule)
+		return i - 1
+
+	def move_rulebook_rule_forward(
+		self, rulebook: RulebookName, i: int
+	) -> int:
+		rb = self._real.rulebook[rulebook]
+		rule = rb.pop(i)
+		rb.insert(i + 1, rule)
+		return i + 1
+
 	def del_rulebook(self, rulebook: RulebookName) -> None:
 		del self._real.rulebook[rulebook]
 
