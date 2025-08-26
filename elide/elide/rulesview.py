@@ -127,7 +127,9 @@ class RulesList(RecycleView):
 		self._scheduled_redata = Clock.schedule_once(self.redata, 0)
 
 	def iter_rule_buttons(self):
-		for rules_box in self.children:
+		if not self.children:
+			return
+		for rules_box in self.children[0].children:
 			yield rules_box.button
 
 
