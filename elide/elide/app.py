@@ -394,6 +394,10 @@ class ElideApp(App):
 				self.character = engine.character[self.character_name]
 			else:
 				self.character = engine.new_character(self.character_name)
+		elif engine.character:
+			self.character = next(iter(engine.character.values()))
+		else:
+			self.character = engine.new_character("physical")
 		Logger.debug("Pulled character")
 		self.pull_time()
 		Logger.debug("Pulled time")
