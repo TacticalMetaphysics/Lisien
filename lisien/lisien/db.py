@@ -9740,10 +9740,20 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		prio: RulebookPriority = 0.0,
 	) -> None:
 		name, rules = map(self.pack, (name, rules or []))
-		self.call_one(
-			"rulebooks_insert", name, branch, turn, tick, rules, float(prio)
-		)
-		self._increc()
+		try:
+			self.call_one(
+				"rulebooks_insert",
+				name,
+				branch,
+				turn,
+				tick,
+				rules,
+				float(prio),
+			)
+			self._increc()
+		except IntegrityError:
+			self.call_one("rulebooks_update", rules, name, branch, turn, tick)
+			# not incrementing because this didn't create a new record
 
 	def set_rulebook_on_character(
 		self,
