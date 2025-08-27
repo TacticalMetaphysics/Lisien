@@ -131,6 +131,13 @@ class MockEngine(Signal):
 		pass
 
 
+def advance_frames(frames: int) -> None:
+	from kivy.base import EventLoop
+
+	for _ in range(frames):
+		EventLoop.idle()
+
+
 class ELiDEAppTest(GraphicUnitTest):
 	games_dir = "games"
 	game_name = "test"
