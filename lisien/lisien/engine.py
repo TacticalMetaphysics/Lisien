@@ -2271,7 +2271,7 @@ class Engine(AbstractEngine, Executor):
 			)
 
 	def _sync_log_forever(self, q: SimpleQueue[LogRecord]) -> None:
-		while True:
+		while not hasattr(self, "_closed"):
 			recs: list[LogRecord] = []
 			while True:
 				try:
@@ -4666,7 +4666,7 @@ class Engine(AbstractEngine, Executor):
 		return ret
 
 	def _manage_futs(self):
-		while True:
+		while not hasattr(self, "_closed"):
 			while self._how_many_futs_running < self._workers:
 				try:
 					fut = self._futs_to_start.get()
