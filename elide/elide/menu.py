@@ -322,9 +322,7 @@ class NewGameModal(ModalView):
 				cb=lambda: worldstart.grid_config.generate(app.engine),
 			)
 		else:
-			app.start_game(
-				name=game_name, cb=lambda: app.engine.add_character("physical")
-			)
+			app.start_game(name=game_name)
 		app.select_character(app.engine.character["physical"])
 		self.dismiss()
 
