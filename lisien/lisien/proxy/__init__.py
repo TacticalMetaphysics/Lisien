@@ -2820,6 +2820,15 @@ class AllRuleBooksProxy(MutableMapping):
 		del self._cache[key]
 		self.engine.handle("del_rulebook", rulebook=key)
 
+	def patch_priorities(self, patch: dict[RulebookName, RulebookPriority]):
+		for name, prio in patch.items():
+			if name in self._cache:
+				rules, _ = self._cache[name]
+				self._cache[name] = rules, prio
+			else:
+				self._cache[name] = [], prio
+		self.engine.handle("patch_rulebook_priorities", patch=patch)
+
 
 class AllRulesProxy(MutableMapping):
 	@property

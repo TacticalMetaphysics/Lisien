@@ -765,6 +765,12 @@ class EngineHandle:
 	) -> None:
 		self._real.rulebook[rulebook].priority = priority
 
+	def patch_rulebook_priorities(
+		self, patch: dict[RulebookName, RulebookPriority]
+	) -> None:
+		for rulebook, priority in patch.items():
+			self._real.rulebook[rulebook].priority = priority
+
 	def set_rulebook_rules(
 		self, rulebook: RulebookName, rules: list[RuleName]
 	) -> None:

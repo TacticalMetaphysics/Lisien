@@ -20,6 +20,7 @@ from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.logger import Logger
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty
+from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
@@ -27,6 +28,8 @@ from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
+from kivy.uix.recycleview.layout import LayoutSelectionBehavior
+from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
@@ -53,13 +56,13 @@ class RuleButton(ToggleButton):
 
 	@logwrap(section="RuleButton")
 	def on_state(self, *args):
-		"""If I'm pressed, unpress all other buttons in the ruleslist"""
-		# This really ought to be done with the selection behavior
 		if self.state == "down":
 			self.rulesview.rule = self.rule
-			for button in self.ruleslist.iter_rule_buttons():
-				if button != self:
-					button.state = "normal"
+
+
+class RulebookButton(ToggleButton):
+	rulebooks_list = ObjectProperty()
+	rulebook = ObjectProperty()
 
 
 class RuleButtonBox(BoxLayout, RecycleDataViewBehavior):
@@ -583,14 +586,13 @@ class RulesScreen(Screen):
 
 	@logwrap(section="RulesScreen")
 	def new_rule(self, *_):
-		self.children[0].new_rule()
+		self.ids.box.new_rule()
 
 
-class CharacterRulesScreen(Screen):
+class CharacterRulesBox(BoxLayout):
 	"""Screen with TabbedPanel for all the character-rulebooks"""
 
 	character = ObjectProperty()
-	toggle = ObjectProperty()
 
 	@logwrap(section="CharacterRulesScreen")
 	def _get_rulebook(self, rb):
@@ -602,11 +604,11 @@ class CharacterRulesScreen(Screen):
 			"character_portal": self.character.portal.rulebook,
 		}[rb]
 
-	@logwrap(section="CharacterRulesScreen")
+	@logwrap(section="CharacterRulesBox")
 	def finalize(self, *args):
 		if hasattr(self, "_finalized"):
 			return
-		if not (self.toggle and self.character):
+		if not self.character:
 			Clock.schedule_once(self.finalize, 0)
 			return
 		self._tabs = TabbedPanel(do_default_tab=False)
@@ -630,7 +632,7 @@ class CharacterRulesScreen(Screen):
 		self.add_widget(self._tabs)
 		self._finalized = True
 
-	@logwrap(section="CharacterRulesScreen")
+	@logwrap(section="CharacterRulesBox")
 	def on_character(self, *_):
 		if not hasattr(self, "_finalized"):
 			self.finalize()
@@ -649,6 +651,176 @@ class CharacterRulesScreen(Screen):
 		# in elide, so I don't need to account for that, but what if the
 		# rulebook changes as a result of some code running in the lisien core?
 		# 2018-08-13
+
+
+class RulebooksList(RecycleView):
+	engine = ObjectProperty()
+
+	def on_engine(self, *_):
+		self.engine.rulebook.connect(self.trigger_redata)
+
+	def _sorted_rulebooks(self):
+		return sorted(
+			(rulebook.priority, rulebook.name)
+			for rulebook in self.engine.rulebook.values()
+		)
+
+	@trigger
+	def trigger_redata(self, *_):
+		self.data = [
+			{"text": rulebook_name, "rulebooks_list": self}
+			for (_, rulebook_name) in self._sorted_rulebooks()
+		]
+
+	def _get_rulebooks_and_one(self, rulebook_name):
+		if rulebook_name not in self.engine.rulebook:
+			raise KeyError(f"RulebooksList: No such rulebook: {rulebook_name}")
+		sorted_rulebooks = self._sorted_rulebooks()
+		for i, (prio, name) in enumerate(sorted_rulebooks):
+			if name == rulebook_name:
+				break
+		else:
+			raise KeyError(
+				f"RulebooksList: can't find rulebook {rulebook_name}"
+			)
+		return sorted_rulebooks, prio, i
+
+	def move_rulebook_up(self, rulebook_name):
+		try:
+			sorted_rulebooks, prio, i = self._get_rulebooks_and_one(
+				rulebook_name
+			)
+		except KeyError as err:
+			Logger.error(err.args[0])
+			return
+		if i == 0:
+			Logger.error(
+				f"RulebooksList: {rulebook_name} is already at the top"
+			)
+		elif i == 1:
+			old_lowest_prio, old_first_rulebook = sorted_rulebooks[0]
+			new_lowest_prio = old_lowest_prio - 1
+			if not (new_lowest_prio < old_lowest_prio):
+				Logger.error(
+					f"RulebooksList: {old_first_rulebook} has priority -inf, so we can't put {rulebook_name} before it"
+				)
+				return
+			self.engine.rulebook[rulebook_name].priority = new_lowest_prio
+		elif i > len(sorted_rulebooks):
+			raise IndexError(f"RulebooksList: what? how did you get index {i}")
+		# Find the last rulebook that has a priority less than this one's.
+		# If needed, assign new priorities to rulebooks in between that
+		# preserve their current execution order.
+		# Then, reduce this rulebook's priority just enough to put it before
+		# the one before it.
+		earlier_prio, earlier_rulebook = sorted_rulebooks[i - 1]
+		if earlier_prio < prio:
+			if i - 1 == 0:
+				new_prio = earlier_prio - 1.0
+				Logger.info(
+					f"RulebooksList: setting {rulebook_name}'s priority to {new_prio}"
+				)
+				self.engine.rulebook[rulebook_name].priority = new_prio
+				return
+			ante_prio, _ = sorted_rulebooks[i - 2]
+			width = earlier_prio - ante_prio
+			new_prio = prio - (width / 2)
+			Logger.info(
+				f"RulebooksList: setting {rulebook_name}'s priority to {new_prio}"
+			)
+			self.engine.rulebook[rulebook_name].priority = new_prio
+			return
+		j = i - 2
+		while earlier_prio == prio and j > 0:
+			earlier_prio, earlier_rulebook = sorted_rulebooks[j]
+			j -= 1
+		# Assign new priorities to rulebooks prior to this one,
+		# preserving their execution order
+		prios_patch = {}
+		if j == 0:
+			new_lowest_prio = prio - 1.0
+		else:
+			new_lowest_prio = earlier_prio
+		gap = 1.0 / (i - j)
+		new_prios = [
+			new_lowest_prio + gap * priodex for priodex in range(j, i)
+		]
+		for (_, prior_rulebook), new_prio in zip(
+			sorted_rulebooks[j:i], new_prios
+		):
+			prios_patch[prior_rulebook] = new_prio
+		# Set a priority for this rulebook that puts it
+		# between the last two before it
+		subgap = gap / 2
+		prios_patch[rulebook_name] = new_prios[-1] - subgap
+		self.engine.rulebook.patch_priorities(prios_patch)
+
+	def move_rulebook_down(self, rulebook_name):
+		try:
+			rulebooks, prio, i = self._get_rulebooks_and_one(rulebook_name)
+		except KeyError as err:
+			Logger.error(err.args[0])
+			return
+		if i == len(rulebooks):
+			Logger.error(
+				f"RulebooksList: {rulebook_name} is already at the bottom"
+			)
+			return
+		elif i > len(rulebooks):
+			raise IndexError(f"RulebooksList: how did you get index {i}?")
+		# Find the first rulebook that has a priority greater than this one's.
+		# If needed, assign new priorities to rulebooks in between, preserving
+		# their execution order.
+		# Then, increase this rulebook's priority to put it after the one just
+		# after it.
+		later_prio, later_rulebook = rulebooks[i + 1]
+		if later_prio > prio:
+			if i + 1 == len(rulebooks):
+				new_prio = later_prio + 1.0
+				Logger.info(
+					f"RulebooksList: setting {rulebook_name}'s priority to {new_prio}"
+				)
+				self.engine.rulebook[rulebook_name].priority = new_prio
+				return
+			post_prio, _ = rulebooks[i + 2]
+			width = post_prio - later_prio
+			new_prio = prio + (width / 2)
+			Logger.info(
+				f"RulebooksList: setting {rulebook_name}'s priority to {new_prio}"
+			)
+			self.engine.rulebook[rulebook_name].priority = new_prio
+			return
+		for j, (later_prio, later_rulebook) in enumerate(
+			rulebooks[i + 2 :], start=i + 2
+		):
+			if later_prio > prio:
+				break
+		else:
+			j = len(rulebooks)
+		# Assign new priorities to rulebooks after this one, preserving
+		# their execution order
+		prios_patch = {}
+		if j == len(rulebooks):
+			new_highest_prio = prio + 1.0
+		else:
+			new_highest_prio = later_prio
+		gap = 1.0 / (j - i)
+		new_prios = [
+			new_highest_prio + gap * priodex for priodex in range(i, j)
+		]
+		for (_, post_rulebook), new_prio in zip(rulebooks[i:j], new_prios):
+			prios_patch[post_rulebook] = new_prio
+		# Set a priority for the current rulebook that puts it between the two
+		# following it
+		subgap = gap / 2
+		prios_patch[rulebook_name] = new_prios[0] + subgap
+		self.engine.rulebook.patch_priorities(prios_patch)
+
+
+class SelectableRulebooksLayout(
+	FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout
+):
+	pass
 
 
 store_kv(
@@ -725,13 +897,23 @@ store_kv(
             on_release: root.toggle()
 <RulesScreen>:
     name: 'rules'
+    rulebook_list: rb_list
     rulesview: box.rulesview
-    RulesBox:
-        id: box
-        rulebook: root.rulebook
-        entity: root.entity
-        toggle: root.toggle
-<CharacterRulesScreen>:
-    name: 'charrules'
+    BoxLayout:
+        orientation: 'horizontal'
+        RulebooksList:
+            id: rb_list
+            size_hint_x: 0.2
+            SelectableRulebooksLayout:
+                default_size: None, dp(56)
+	            default_size_hint: 1, None
+	            size_hint_y: None
+	            height: self.minimum_height
+	            orientation: 'vertical'
+	            multiselect: False
+	            touch_multiselect: False
+	    Widget:
+	        id: rules_box_goes_here
+	        size_hint_x: 0.8
 """,
 )

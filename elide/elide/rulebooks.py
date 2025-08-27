@@ -8,10 +8,6 @@ from kivy.uix.screenmanager import Screen
 from .util import store_kv
 
 
-class RulebookList(RecycleView):
-	pass
-
-
 class RulebookItem(BoxLayout):
 	pass
 
