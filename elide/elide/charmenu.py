@@ -135,11 +135,7 @@ class CharMenu(BoxLayout):
 		):
 			self.app.rules.entity = self.app.selected_proxy
 			self.app.rules.rulebook = self.app.selected_proxy.rulebook
-		if isinstance(self.app.selected_proxy, CharStatProxy):
-			self.app.charrules.character = self.app.selected_proxy
-			self.app.charrules.toggle()
-		else:
-			self.app.rules.toggle()
+		self.app.rules.toggle()
 
 	@logwrap(section="CharMenu")
 	def toggle_funcs_editor(self):

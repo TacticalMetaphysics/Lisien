@@ -486,10 +486,6 @@ class ElideApp(App):
 		load_kv("elide.rulesview")
 		self.rules = elide.rulesview.RulesScreen(toggle=toggler("rules"))
 
-		self.charrules = elide.rulesview.CharacterRulesScreen(
-			character=self.character, toggle=toggler("charrules")
-		)
-		self.bind(character=self.charrules.setter("character"))
 		load_kv("elide.charsview")
 		self.chars = elide.charsview.CharactersScreen(
 			toggle=toggler("chars"), new_board=self.new_board
@@ -540,7 +536,6 @@ class ElideApp(App):
 			self.spotcfg,
 			self.statcfg,
 			self.rules,
-			self.charrules,
 			self.chars,
 			self.strings,
 			self.funcs,
@@ -561,7 +556,6 @@ class ElideApp(App):
 			"spotcfg",
 			"statcfg",
 			"rules",
-			"charrules",
 			"chars",
 			"strings",
 			"funcs",
