@@ -898,13 +898,13 @@ store_kv(
 <RulesScreen>:
     name: 'rules'
     rulebook_list: rb_list
-    rulesview: box.rulesview
     BoxLayout:
         orientation: 'horizontal'
         RulebooksList:
             id: rb_list
             size_hint_x: 0.2
             SelectableRulebooksLayout:
+                id: rb_layout
                 default_size: None, dp(56)
 	            default_size_hint: 1, None
 	            size_hint_y: None
@@ -912,8 +912,11 @@ store_kv(
 	            orientation: 'vertical'
 	            multiselect: False
 	            touch_multiselect: False
-	    Widget:
-	        id: rules_box_goes_here
+	    RulesBox:
+	        id: rules_box
 	        size_hint_x: 0.8
+	        rulebook: rb_layout.selected_nodes[0].rulebook if rb_layout.selected_nodes else None
+	        entity: rb_layout.selected_nodes[0].entity if rb_layout.selected_nodes else None
+	        toggle: root.toggle
 """,
 )
