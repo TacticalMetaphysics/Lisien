@@ -934,29 +934,29 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def _characters_rulebooks_cache(self) -> CharactersRulebooksCache:
 		return CharactersRulebooksCache(
-			self, name="characters rulebooks cache"
+			self, name="character_rulebook"
 		)
 
 	@cached_property
 	def _units_rulebooks_cache(self) -> CharactersRulebooksCache:
-		return CharactersRulebooksCache(self, name="units rulebooks cache")
+		return CharactersRulebooksCache(self, name="unit_ulebook")
 
 	@cached_property
 	def _characters_things_rulebooks_cache(self) -> CharactersRulebooksCache:
 		return CharactersRulebooksCache(
-			self, name="characters things rulebooks cache"
+			self, name="character_thing_rulebook"
 		)
 
 	@cached_property
 	def _characters_places_rulebooks_cache(self) -> CharactersRulebooksCache:
 		return CharactersRulebooksCache(
-			self, name="characters places rulebooks cache"
+			self, name="character_place_rulebook"
 		)
 
 	@cached_property
 	def _characters_portals_rulebooks_cache(self) -> CharactersRulebooksCache:
 		return CharactersRulebooksCache(
-			self, name="characters portals rulebooks cache"
+			self, name="character_portals_rulebook"
 		)
 
 	@cached_property
@@ -6553,10 +6553,10 @@ class Engine(AbstractEngine, Executor):
 		user_kf = {}
 		for char in all_graphs:
 			char_kf = {}
-			for graph in self._unitness_cache.iter_keys(
+			for graph in self._unitness_cache.iter_char_graphs(
 				char, branch, turn, tick
 			):
-				for unit in self._unitness_cache.iter_keys(
+				for unit in self._unitness_cache.iter_entities(
 					char, graph, branch, turn, tick
 				):
 					char_kf[graph] = {
@@ -6634,7 +6634,7 @@ class Engine(AbstractEngine, Executor):
 		for charname in all_graphs:
 			locs = {}
 			conts_mut = {}
-			for thingname in self._things_cache.iter_keys(
+			for thingname in self._things_cache.iter_things(
 				charname, branch, turn, tick
 			):
 				try:
@@ -6670,9 +6670,12 @@ class Engine(AbstractEngine, Executor):
 			self._characters_portals_rulebooks_cache,
 		):
 			kf = {
-				ch: rbcache.retrieve(ch, branch, turn, tick)
-				for ch in all_graphs
 			}
+			for ch in all_graphs:
+				try:
+					kf[ch] = rbcache.retrieve(ch, branch, turn, tick)
+				except KeyError:
+					kf[ch] = (rbcache.name, ch)
 			rbcache.set_keyframe(branch, turn, tick, kf)
 		self.query.keyframe_extension_insert(
 			branch,
@@ -6696,7 +6699,7 @@ class Engine(AbstractEngine, Executor):
 		nrbcache = self._nodes_rulebooks_cache
 		porbcache = self._portals_rulebooks_cache
 		for graphn in all_graphs:
-			graph = self.graph[graphn]
+			graph = self.character[graphn]
 			nodes = graph._nodes_state()
 			edges = graph._edges_state()
 			val = graph._val_state()
