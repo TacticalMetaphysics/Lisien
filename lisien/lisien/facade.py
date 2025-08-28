@@ -1052,8 +1052,9 @@ class EngineFacade(AbstractEngine):
 	portal_cls = FacadePortal
 	time = TimeSignalDescriptor()
 
-	class FacadeUniversalMapping(MutableMapping):
+	class FacadeUniversalMapping(Signal, MutableMapping):
 		def __init__(self, engine: AbstractEngine):
+			super().__init__()
 			assert not isinstance(engine, EngineFacade)
 			self.engine = engine
 			self._patch = {}
@@ -1093,12 +1094,14 @@ class EngineFacade(AbstractEngine):
 			self._patch[key] = value
 			if value is not ...:
 				self._deleted.discard(key)
+			self.send(self, key=key, value=value)
 
 		def __delitem__(self, key):
 			if key not in self.engine.universal:
 				raise KeyError("No key to delete", key)
 			self._patch[key] = ...
 			self._deleted.add(key)
+			self.send(self, key=key, value=...)
 
 	class FacadeCharacterMapping(Mapping):
 		def __init__(self, engine: "EngineFacade"):
