@@ -1218,7 +1218,15 @@ class EngineFacade(AbstractEngine):
 					real._unitness_cache
 				)
 		else:
-			self._branches_d = {}
+			self._branches_d = {
+				"trunk": (
+					None,
+					0,
+					0,
+					0,
+					0,
+				)
+			}
 			self._turn_end_plan = {}
 			self.branch = "trunk"
 			self.turn = 0
