@@ -16,7 +16,7 @@ import os
 
 import pytest
 from kivy.config import ConfigParser
-from kivy.base import EventLoop
+from kivy.base import EventLoop, stopTouchApp
 from kivy.core.window import Window
 
 from elide.app import ElideApp
@@ -40,7 +40,7 @@ def random_seed(request):
 
 
 @pytest.fixture
-def elide_app(play_dir):
+def kivy():
 	def clear_window_and_event_loop():
 		for child in Window.children[:]:
 			Window.remove_widget(child)
@@ -49,25 +49,22 @@ def elide_app(play_dir):
 		Window.canvas.after.clear()
 		EventLoop.touches.clear()
 		for post_proc in EventLoop.postproc_modules:
-			if hasattr(post_proc, 'touches'):
+			if hasattr(post_proc, "touches"):
 				post_proc.touches.clear()
-			elif hasattr(post_proc, 'last_touches'):
+			elif hasattr(post_proc, "last_touches"):
 				post_proc.last_touches.clear()
-	game_name = os.path.basename(play_dir)
-	games_dir = os.path.basename(play_dir[:-len(game_name)-1])
-	prefix = play_dir[:-(len(games_dir) + len(game_name) + 1)]
-	character_name = "physical"
 
 	from os import environ
-	environ['KIVY_USE_DEFAULTCONFIG'] = '1'
+
+	environ["KIVY_USE_DEFAULTCONFIG"] = "1"
 
 	# force window size + remove all inputs
 	from kivy.config import Config
-	Config.set('graphics', 'width', '320')
-	Config.set('graphics', 'height', '240')
-	for items in Config.items('input'):
-		Config.remove_option('input', items[0])
 
+	Config.set("graphics", "width", "320")
+	Config.set("graphics", "height", "240")
+	for items in Config.items("input"):
+		Config.remove_option("input", items[0])
 
 	# ensure our window is correctly created
 	Window.create_window()
@@ -76,6 +73,18 @@ def elide_app(play_dir):
 	Window.close = lambda *s: None
 	clear_window_and_event_loop()
 
+	yield
+	if EventLoop.status == "started":
+		clear_window_and_event_loop()
+		stopTouchApp()
+
+
+@pytest.fixture
+def elide_app(kivy, play_dir):
+	game_name = os.path.basename(play_dir)
+	games_dir = os.path.basename(play_dir[: -len(game_name) - 1])
+	prefix = play_dir[: -(len(games_dir) + len(game_name) + 1)]
+	character_name = "physical"
 	app = ElideApp(
 		immediate_start=True,
 		prefix=prefix,
@@ -89,5 +98,5 @@ def elide_app(play_dir):
 	app.build_config(app.config)
 	Window.add_widget(app.build())
 	yield app
-	clear_window_and_event_loop()
+	EventLoop.idle()
 	app.stop()
