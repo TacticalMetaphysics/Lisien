@@ -1060,9 +1060,11 @@ class EngineFacade(AbstractEngine):
 			self._deleted = set()
 
 		def _effective_keys(self):
-			return (
-				self.engine.universal.keys() | self._patch.keys()
-			) - self._deleted
+			if self.engine:
+				return (
+					self.engine.universal.keys() | self._patch.keys()
+				) - self._deleted
+			return self._patch.keys() - self._deleted
 
 		def __iter__(self):
 			yield from self._effective_keys()
@@ -1072,7 +1074,8 @@ class EngineFacade(AbstractEngine):
 
 		def __contains__(self, item):
 			return item not in self._deleted and (
-				item in self._patch or item in self.engine.universal
+				item in self._patch
+				and (not self.engine or item in self.engine.universal)
 			)
 
 		def __getitem__(self, item):
@@ -1081,7 +1084,7 @@ class EngineFacade(AbstractEngine):
 				if ret is ...:
 					raise KeyError("Universal key deleted", item)
 				return ret
-			elif item in self.engine.universal:
+			elif self.engine and item in self.engine.universal:
 				return self.engine.universal[item]
 			else:
 				raise KeyError("No universal key", item)
