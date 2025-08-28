@@ -89,6 +89,5 @@ def elide_app(play_dir):
 	app.build_config(app.config)
 	Window.add_widget(app.build())
 	yield app
-	app.stop()
 	clear_window_and_event_loop()
-	EventLoop.close()
+	app.stop()
