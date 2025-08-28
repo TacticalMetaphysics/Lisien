@@ -34,6 +34,7 @@ from .util import (
 	SignalDict,
 	getatt,
 	timer,
+	TimeSignalDescriptor,
 )
 from .wrap import MutableMappingUnwrapper
 from .xcollections import CompositeDict
@@ -1049,6 +1050,7 @@ class EngineFacade(AbstractEngine):
 	thing_cls = FacadeThing
 	place_cls = FacadePlace
 	portal_cls = FacadePortal
+	time = TimeSignalDescriptor()
 
 	class FacadeUniversalMapping(MutableMapping):
 		def __init__(self, engine: AbstractEngine):
