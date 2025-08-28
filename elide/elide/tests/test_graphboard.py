@@ -8,7 +8,6 @@ from kivy.core.window import Window
 from elide.app import ElideApp
 from elide.graph.arrow import ArrowPlane
 from elide.graph.board import GraphBoard, GraphBoardView
-from lisien import Engine
 from lisien.facade import CharacterFacade, EngineFacade
 from lisien.util import SignalDict
 from lisien.xcollections import FunctionStore
@@ -293,14 +292,7 @@ def test_pawn_add_new_place():
 	)
 
 
-@pytest.fixture
-def switch_graph_state(play_dir):
-	with Engine(play_dir) as eng:
-		eng.add_character("physical", nx.grid_2d_graph(10, 1))
-		eng.add_character("tall", nx.grid_2d_graph(1, 10))
-
-
-@pytest.mark.usefixtures("switch_graph_state")
+@pytest.mark.usefixtures("line_shaped_graphs")
 def test_character_switch_graph(elide_app):
 	app = elide_app
 	idle_until(

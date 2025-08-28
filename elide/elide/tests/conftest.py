@@ -14,12 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 
+import networkx as nx
 import pytest
 from kivy.config import ConfigParser
 from kivy.base import EventLoop, stopTouchApp
 from kivy.core.window import Window
 
 from elide.app import ElideApp
+from lisien import Engine
 
 
 @pytest.fixture
@@ -100,3 +102,10 @@ def elide_app(kivy, play_dir):
 	yield app
 	EventLoop.idle()
 	app.stop()
+
+
+@pytest.fixture
+def line_shaped_graphs(play_dir):
+	with Engine(play_dir) as eng:
+		eng.add_character("physical", nx.grid_2d_graph(10, 1))
+		eng.add_character("tall", nx.grid_2d_graph(1, 10))
