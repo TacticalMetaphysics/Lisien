@@ -933,9 +933,7 @@ class Engine(AbstractEngine, Executor):
 
 	@cached_property
 	def _characters_rulebooks_cache(self) -> CharactersRulebooksCache:
-		return CharactersRulebooksCache(
-			self, name="character_rulebook"
-		)
+		return CharactersRulebooksCache(self, name="character_rulebook")
 
 	@cached_property
 	def _units_rulebooks_cache(self) -> CharactersRulebooksCache:
@@ -943,15 +941,11 @@ class Engine(AbstractEngine, Executor):
 
 	@cached_property
 	def _characters_things_rulebooks_cache(self) -> CharactersRulebooksCache:
-		return CharactersRulebooksCache(
-			self, name="character_thing_rulebook"
-		)
+		return CharactersRulebooksCache(self, name="character_thing_rulebook")
 
 	@cached_property
 	def _characters_places_rulebooks_cache(self) -> CharactersRulebooksCache:
-		return CharactersRulebooksCache(
-			self, name="character_place_rulebook"
-		)
+		return CharactersRulebooksCache(self, name="character_place_rulebook")
 
 	@cached_property
 	def _characters_portals_rulebooks_cache(self) -> CharactersRulebooksCache:
@@ -6669,8 +6663,7 @@ class Engine(AbstractEngine, Executor):
 			self._characters_places_rulebooks_cache,
 			self._characters_portals_rulebooks_cache,
 		):
-			kf = {
-			}
+			kf = {}
 			for ch in all_graphs:
 				try:
 					kf[ch] = rbcache.retrieve(ch, branch, turn, tick)

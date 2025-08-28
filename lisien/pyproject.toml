@@ -9,7 +9,7 @@ packages = ["lisien", "lisien.examples", "lisien.proxy", "lisien.server", "lisie
 
 [project]
 name = "lisien"
-version = "0.21.4"
+version = "0.21.5"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -37,8 +37,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://codeberg.org/clayote/lisien"
-"Bug Tracker" = "https://codeberg.org/clayote/lisien/issues"
+"Homepage" = "https://codeberg.org/clayote/Lisien"
+"Bug Tracker" = "https://codeberg.org/clayote/Lisien/issues"
 
 [tool.pytest.ini_options]
 markers = [
