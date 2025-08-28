@@ -1,5 +1,5 @@
-import pytest
 import networkx as nx
+import pytest
 from kivy.base import EventLoop
 from kivy.core.window import Window
 

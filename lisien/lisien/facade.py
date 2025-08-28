@@ -32,9 +32,9 @@ from .util import (
 	AbstractEngine,
 	AbstractThing,
 	SignalDict,
+	TimeSignalDescriptor,
 	getatt,
 	timer,
-	TimeSignalDescriptor,
 )
 from .wrap import MutableMappingUnwrapper
 from .xcollections import CompositeDict
