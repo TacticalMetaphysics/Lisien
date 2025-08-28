@@ -101,7 +101,8 @@ def elide_app(kivy, play_dir):
 	Window.add_widget(app.build())
 	yield app
 	EventLoop.idle()
-	app.stop()
+	if not hasattr(app, "stopped"):
+		app.stop()
 
 
 @pytest.fixture
