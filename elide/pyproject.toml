@@ -8,7 +8,7 @@ packages = ["elide", "elide.graph", "elide.grid", "elide.kivygarden.texturestack
 
 [project]
 name = "elide"
-version = "0.21.4"
+version = "0.21.5"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -23,7 +23,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"lisien==0.21.4",
+	"lisien==0.21.5",
 	"kivy>=2.0.0,<3",
 	"kivy_garden.collider",
 	"kivy-deps.glew ; sys_platform == 'win32'",
@@ -32,8 +32,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://codeberg.org/clayote/LiSE"
-"Bug Tracker" = "https://codeberg.org/clayote/LiSE/issues"
+"Homepage" = "https://codeberg.org/clayote/Lisien"
+"Bug Tracker" = "https://codeberg.org/clayote/Lisien/issues"
 
 [tool.pytest.ini_options]
 markers = [
