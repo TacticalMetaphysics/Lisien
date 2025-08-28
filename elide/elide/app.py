@@ -484,6 +484,7 @@ class ElideApp(App):
 		load_kv("elide.statcfg")
 		self.statcfg = elide.statcfg.StatScreen(toggle=toggler("statcfg"))
 		load_kv("elide.rulesview")
+		load_kv("elide.card")
 		self.rules = elide.rulesview.RulesScreen(toggle=toggler("rules"))
 
 		self.charrules = elide.rulesview.CharacterRulesScreen(
