@@ -1220,6 +1220,9 @@ class EngineFacade(AbstractEngine):
 		else:
 			self._branches_d = {}
 			self._turn_end_plan = {}
+			self.branch = "trunk"
+			self.turn = 0
+			self.tick = 0
 
 	def _get_node(
 		self, char: AbstractCharacter | CharName, node: NodeName
