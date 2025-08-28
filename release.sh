@@ -2,7 +2,7 @@
 set -euxo
 dos2unix -V
 alias python=python3.12
-python3.12 check_version.py
+VERSION=$(python3.12 check_version.py)
 python -m build --version
 twine --version
 python -m sphinx --version
@@ -23,6 +23,13 @@ for env in $(tox -c elide/tox.ini -l); do tox -c elide/tox.ini -e $env; done
 rm -rf bin lisien/dist elide/dist
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android clean debug
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
+cd docs
+git add .
+git commit -m "Release v$(VERSION)"
+git push
+cd ..
+git commit -am "Release v$(VERSION)"
+git push
 python -m build lisien/
 python -m build elide/
 twine check lisien/dist/* elide/dist/*

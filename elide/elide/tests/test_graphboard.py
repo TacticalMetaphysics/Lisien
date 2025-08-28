@@ -2,8 +2,8 @@ from math import sqrt
 
 import networkx as nx
 import pytest
-from kivy.tests.common import UnitTestTouch
 from kivy.core.window import Window
+from kivy.tests.common import UnitTestTouch
 
 from elide.app import ElideApp
 from elide.graph.arrow import ArrowPlane
@@ -14,7 +14,7 @@ from lisien.xcollections import FunctionStore
 
 from ..dummy import Dummy
 from ..kivygarden.texturestack import TextureStackPlane
-from .util import idle_until, advance_frames
+from .util import advance_frames, idle_until
 
 
 class FakeEngineProxy:

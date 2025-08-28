@@ -16,8 +16,8 @@ import os
 
 import networkx as nx
 import pytest
-from kivy.config import ConfigParser
 from kivy.base import EventLoop, stopTouchApp
+from kivy.config import ConfigParser
 from kivy.core.window import Window
 
 from elide.app import ElideApp
