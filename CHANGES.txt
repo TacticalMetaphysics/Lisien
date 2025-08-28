@@ -1,3 +1,11 @@
+== 0.21.6 | 2025-08-28 ==
+* Fix Elide's rule builder not showing the cards
+
+== 0.21.5 | 2025-08-27 ==
+* Fix "New game" button in a different way
+* Fix a crash that happened when a Lisien engine created state, advanced time,
+  and then closed or otherwise keyframed
+
 == 0.21.4 | 2025-08-27 ==
 * Fix an issue causing some valid exported games not to import right in Elide,
   causing an empty map and a freeze
