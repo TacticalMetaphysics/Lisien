@@ -29,7 +29,8 @@ git commit -m "Release v$(VERSION)"
 git push
 cd ..
 git commit -am "Release v$(VERSION)"
-git push
+git tag "v$(VERSION)"
+git push --tags
 python -m build lisien/
 python -m build elide/
 twine check lisien/dist/* elide/dist/*
