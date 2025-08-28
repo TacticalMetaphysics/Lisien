@@ -562,7 +562,7 @@ class RulesBox(BoxLayout):
 	def _upd_ruleslist_selection(self, *_):
 		if not hasattr(self, "_new_rule_name"):
 			return
-		for child in self.ruleslist.children[0].children:
+		for child in self.ruleslist.iter_rule_buttons():
 			if child.text == self._new_rule_name:
 				child.state = "down"
 			else:
