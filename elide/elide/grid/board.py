@@ -19,7 +19,7 @@ from elide.boardscatter import BoardScatterPlane
 
 from ..boardview import BoardView
 from ..kivygarden.texturestack import Stack, TextureStackPlane
-from ..util import store_kv
+from ..util import store_kv, logwrap
 
 
 class GridPawn(Stack):
@@ -54,6 +54,7 @@ class GridBoard(Widget):
 		self.contained = defaultdict(set)
 		super().__init__(**kwargs)
 
+	@logwrap(section="GridBoard")
 	def update(self):
 		make_spot = self.make_spot
 		make_pawn = self.make_pawn
@@ -66,6 +67,7 @@ class GridBoard(Widget):
 		self.spot_plane.redraw()
 		self.pawn_plane.redraw()
 
+	@logwrap(section="GridBoard")
 	def add_spot(self, placen, *args):
 		if placen not in self.character.place:
 			raise KeyError(f"No such place for spot: {placen}")
@@ -75,6 +77,7 @@ class GridBoard(Widget):
 		self.spot_plane.add_datum(spt)
 		self.spot[placen] = self.spot_cls(board=self, proxy=spt["proxy"])
 
+	@logwrap(section="GridBoard")
 	def make_spot(self, place):
 		placen = place["name"]
 		if not isinstance(placen, tuple) or len(placen) != 2:
@@ -106,6 +109,7 @@ class GridBoard(Widget):
 		}
 		return r
 
+	@logwrap(section="GridBoard")
 	def make_pawn(self, thing) -> dict:
 		location = self.spot[thing["location"]]
 		r = {
@@ -122,6 +126,7 @@ class GridBoard(Widget):
 		}
 		return r
 
+	@logwrap(section="GridBoard")
 	def add_pawn(self, thingn, *args):
 		if thingn not in self.character.thing:
 			raise KeyError(f"No such thing: {thingn}")
@@ -142,6 +147,7 @@ class GridBoard(Widget):
 		Clock.unschedule(part)
 		Clock.schedule_once(part, 0)
 
+	@logwrap(section="GridBoard")
 	def on_parent(self, *args):
 		if self.character is None:
 			Clock.schedule_once(self.on_parent, 0)
@@ -232,6 +238,7 @@ class GridBoard(Widget):
 			f" seconds"
 		)
 
+	@logwrap(section="GridBoard")
 	def rm_spot(self, name):
 		spot = self.spot.pop(name)
 		if spot in self.selection_candidates:
@@ -240,12 +247,14 @@ class GridBoard(Widget):
 			self.rm_pawn(thing.name)
 		self.spot_plane.remove(name)
 
+	@logwrap(section="GridBoard")
 	def rm_pawn(self, name):
 		pwn = self.pawn.pop(name)
 		if pwn in self.selection_candidates:
 			self.selection_candidates.remove(pwn)
 		self.pawn_plane.remove(name)
 
+	@logwrap(section="GridBoard")
 	def update_from_thing(self, thing, key, value):
 		if thing and not (key is None and not value):
 			if thing.name not in self.pawn:
@@ -263,6 +272,7 @@ class GridBoard(Widget):
 			if thing.name in self.pawn:
 				self.rm_pawn(thing.name)
 
+	@logwrap(section="GridBoard")
 	def update_from_place(self, place, key, value):
 		if place and not (key is None and not value):
 			if key == "_image_paths":

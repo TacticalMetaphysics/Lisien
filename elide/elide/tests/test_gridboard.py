@@ -1,12 +1,17 @@
 import networkx as nx
 import pytest
-from kivy.base import EventLoop
 from kivy.core.window import Window
 
 from elide.grid.board import GridBoard, GridBoardView
 from lisien.facade import CharacterFacade
 
 from .util import all_pawns_placed, all_spots_placed, idle_until
+from ..util import load_kv
+
+
+@pytest.fixture(autouse=True)
+def grid_kv():
+	load_kv("elide.grid.board")
 
 
 @pytest.mark.usefixtures("kivy")
@@ -21,7 +26,8 @@ def test_layout_grid():
 	otherthing = char.place[2, 2].new_thing("otherthing")
 	assert len(char.thing) == 2
 	board = GridBoard(character=char)
-	Window.add_widget(GridBoardView(board=board))
+	view = GridBoardView(board=board)
+	Window.add_widget(view)
 	idle_until(
 		lambda: all_spots_placed(board, char)
 		and all_pawns_placed(board, char),
