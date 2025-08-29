@@ -95,7 +95,8 @@
 			size_hint_y: 0.1
 			font_size: self.height
 		GameList:
-			path: app.games_dir
+			id: game_list
+			path: app.games_path
 			picker: root
 			size_hint_y: 0.8
 		Button:
@@ -132,7 +133,7 @@
 			font_size: self.height
 		GameList:
 			id: game_list
-			path: app.games_dir
+			path: app.games_path
 			picker: root
 			size_hint_y: 0.8
 		BoxLayout:
