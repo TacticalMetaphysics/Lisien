@@ -131,7 +131,7 @@ class GamePickerModal(ModalView):
 		if game_name[-4:] == ".zip":
 			game_name = game_name[:-4]
 		app.game_name = game_name
-		play_dir = str(app.play_dir)
+		play_dir = str(app.play_path)
 		if os.path.exists(play_dir):
 			# Likely left over from a failed run of Elide
 			shutil.rmtree(play_dir)

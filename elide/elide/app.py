@@ -107,7 +107,7 @@ class ElideApp(App):
 			a, b, c = str_or_triple
 		self.prefix, self.games_dir, self.game_name = a, b, c
 
-	play_dir = AliasProperty(
+	play_path = AliasProperty(
 		_get_play_dir, _set_play_dir, bind=("prefix", "games_dir", "game_name")
 	)
 
@@ -587,12 +587,12 @@ class ElideApp(App):
 		if self.game_name != game_name:
 			self.game_name = game_name
 		os.makedirs(
-			self.play_dir,
+			self.play_path,
 			exist_ok=True,
 		)
 		self._add_screens()
 		self.manager.current = "mainscreen"
-		engine = self.engine = self.start_subprocess(self.play_dir)
+		engine = self.engine = self.start_subprocess(self.play_path)
 		self.mainscreen.populate()
 		self.init_board()
 		if cb:
@@ -613,7 +613,7 @@ class ElideApp(App):
 			return  # already closed
 
 		self._copy_log_files()
-		game_wd = self.play_dir
+		game_wd = self.play_path
 		pycache = os.path.join(game_wd, "__pycache__")
 		if os.path.exists(pycache):
 			shutil.rmtree(pycache)
