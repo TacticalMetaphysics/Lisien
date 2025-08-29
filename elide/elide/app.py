@@ -96,6 +96,20 @@ class ElideApp(App):
 	def _togglers(self):
 		return {}
 
+	def _get_games_path(self):
+		return os.path.join(self.prefix, self.games_dir)
+
+	def _set_games_path(self, str_or_pair: str | tuple[str, str]):
+		if isinstance(str_or_pair, str):
+			a, b = os.path.split(str_or_pair)
+		else:
+			a, b = str_or_pair
+		self.prefix, self.games_dir = a, b
+
+	games_path = AliasProperty(
+		_get_games_path, _set_games_path, bind=("prefix", "games_dir")
+	)
+
 	def _get_play_dir(self):
 		return os.path.join(self.prefix, self.games_dir, self.game_name)
 
