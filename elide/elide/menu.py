@@ -214,15 +214,15 @@ class GameLoaderModal(GamePickerModal):
 	@logwrap(section="GameLoaderModal")
 	def pick(self, game, *_):
 		app = App.get_running_app()
-		if os.path.isfile(app.games_dir):
+		if os.path.isfile(app.games_path):
 			raise RuntimeError(
 				"You put a file where I want to keep the games directory",
 				app.games_dir,
 			)
-		if not os.path.exists(app.games_dir):
-			os.makedirs(app.games_dir)
-		if game + ".zip" in os.listdir(app.games_dir):
-			game_file_path = str(os.path.join(app.games_dir, game + ".zip"))
+		if not os.path.exists(app.games_path):
+			os.makedirs(app.games_path)
+		if game + ".zip" in os.listdir(app.games_path):
+			game_file_path = str(os.path.join(app.games_path, game + ".zip"))
 			if not zipfile.is_zipfile(game_file_path):
 				raise RuntimeError("Game format invalid", game_file_path)
 		else:
