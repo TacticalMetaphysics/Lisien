@@ -22,10 +22,12 @@ def test_layout_grid():
 	assert len(char.thing) == 2
 	board = GridBoard(character=char)
 	Window.add_widget(GridBoardView(board=board))
-	while not (
-		all_spots_placed(board, char) and all_pawns_placed(board, char)
-	):
-		EventLoop.idle()
+	idle_until(
+		lambda: all_spots_placed(board, char)
+		and all_pawns_placed(board, char),
+		100,
+		"Spots and pawns not placed",
+	)
 	otherthing["location"] = (0, 0)
 	board.spot_plane.data = list(map(board.make_spot, char.place.values()))
 	board.spot_plane.redraw()
