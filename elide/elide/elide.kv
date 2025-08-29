@@ -40,6 +40,7 @@
 				size_hint_x: 0.8
 			Button:
 				text: 'Start'
+				id: start_new_game_button
 				on_release: root.validate_and_start()
 
 <MainMenuScreen>:
@@ -57,18 +58,22 @@
 				height: self.texture_size[1]
 			Button:
 				text: 'New game'
+				id: new_game_button
 				font_size: 50
 				on_release: root.new_game()
 			Button:
 				text: 'Load game'
+				id: load_game_button
 				font_size: 50
 				on_release: root.load_game()
 			Button:
 				text: 'Import game'
+				id: import_game_button
 				font_size: 50
 				on_release: root.import_game()
 			Button:
 				text: 'Export game'
+				id: export_game_button
 				font_size: 50
 				on_release: root.export_game()
 		Widget:
