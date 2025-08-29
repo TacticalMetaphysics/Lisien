@@ -19,6 +19,8 @@ import pytest
 from kivy.base import EventLoop, stopTouchApp
 from kivy.config import ConfigParser
 from kivy.core.window import Window
+from kivy.lang import Builder
+from kivy.resources import resource_find
 
 from elide.app import ElideApp
 from lisien import Engine
@@ -82,21 +84,34 @@ def kivy():
 		stopTouchApp()
 
 
-@pytest.fixture
-def elide_app(kivy, play_dir):
+def make_elide_app(play_dir, **kwargs):
 	game_name = os.path.basename(play_dir)
 	games_dir = os.path.basename(play_dir[: -len(game_name) - 1])
 	prefix = play_dir[: -(len(games_dir) + len(game_name) + 1)]
-	character_name = "physical"
-	app = ElideApp(
-		immediate_start=True,
-		prefix=prefix,
-		games_dir=games_dir,
-		game_name=game_name,
-		character_name=character_name,
-		workers=0,
+	Builder.load_file(resource_find("elide.kv"))
+	return ElideApp(
+		prefix=prefix, games_dir=games_dir, game_name=game_name, **kwargs
+	)
+
+
+@pytest.fixture
+def elide_app(kivy, play_dir):
+	app = make_elide_app(
+		play_dir, immediate_start=True, character_name="physical", workers=0
 	)
 	app.leave_game = True
+	app.config = ConfigParser(None)
+	app.build_config(app.config)
+	Window.add_widget(app.build())
+	yield app
+	EventLoop.idle()
+	if not hasattr(app, "stopped"):
+		app.stop()
+
+
+@pytest.fixture
+def elide_app_main_menu(kivy, play_dir):
+	app = make_elide_app(play_dir, workers=0)
 	app.config = ConfigParser(None)
 	app.build_config(app.config)
 	Window.add_widget(app.build())
