@@ -660,18 +660,19 @@ store_kv(
 <RuleButtonBox>:
 	orientation: 'horizontal'
 	button: rule_button
-	Button:
-		id: up
-		text: '↑'
-		font_name: 'Symbola'
-		on_release: root.move_rule_up()
-		size_hint_x: 0.1
-	Button:
-		id: down
-		text: '↓'
-		font_name: 'Symbola'
-		on_release: root.move_rule_down()
-		size_hint_x: 0.1
+	BoxLayout:
+		orientation: 'vertical'
+		size_hint_x: 0.2
+		Button:
+			id: up
+			text: '↑'
+			font_name: 'Symbola'
+			on_release: root.move_rule_up()
+		Button:
+			id: down
+			text: '↓'
+			font_name: 'Symbola'
+			on_release: root.move_rule_down()
 	RuleButton:
 		id: rule_button
 		rulesview: root.rulesview
