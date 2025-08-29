@@ -576,6 +576,7 @@ class RulesScreen(Screen):
 	rulebook = ObjectProperty()
 	toggle = ObjectProperty()
 	rulesview = ObjectProperty()
+	box = ObjectProperty()
 
 	@property
 	def engine(self):
@@ -726,6 +727,7 @@ store_kv(
 <RulesScreen>:
     name: 'rules'
     rulesview: box.rulesview
+    box: box
     RulesBox:
         id: box
         rulebook: root.rulebook
