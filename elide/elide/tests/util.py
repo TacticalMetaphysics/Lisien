@@ -1,16 +1,7 @@
-import os
-import shutil
-import sys
 from functools import partial
-from tempfile import mkdtemp
 
 from blinker import Signal
 from kivy.base import EventLoop
-from kivy.config import ConfigParser
-from kivy.input.motionevent import MotionEvent
-from kivy.tests.common import GraphicUnitTest
-
-from elide.app import ElideApp
 
 
 def all_spots_placed(board, char=None):
@@ -76,59 +67,9 @@ def idle_until(condition=None, timeout=100, message="Timed out"):
 	raise TimeoutError(message)
 
 
-class MockTouch(MotionEvent):
-	def depack(self, args):
-		self.is_touch = True
-		self.sx = args["sx"]
-		self.sy = args["sy"]
-		super().depack(args)
-
-
 class ListenableDict(dict, Signal):
 	def __init__(self):
 		Signal.__init__(self)
-
-
-class MockTime(Signal):
-	pass
-
-
-class MockEngine(Signal):
-	eternal = ListenableDict()
-	universal = ListenableDict()
-	character = ListenableDict()
-	string = ListenableDict()
-	time = MockTime()
-	closed = False
-
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self.turn = self.initial_turn = self.final_turn = 0
-		self._ready = True
-
-	def __setattr__(self, key, value):
-		if not hasattr(self, "_ready"):
-			super().__setattr__(key, value)
-			return
-		self.send(self, key=key, value=value)
-		super().__setattr__(key, value)
-
-	def branch_start_turn(self, branch: str | None = None) -> int:
-		return self.initial_turn
-
-	def branch_end_turn(self, branch=None):
-		return self.final_turn
-
-	def next_turn(self, *args, **kwargs):
-		self.turn += 1
-		self.final_turn = self.turn
-		kwargs["cb"]("next_turn", "trunk", self.turn, 0, ([], {}))
-
-	def handle(self, *args, **kwargs):
-		return {"trunk": (None, 0, 1, 2, 3)}
-
-	def commit(self):
-		pass
 
 
 def advance_frames(frames: int) -> None:
@@ -136,50 +77,3 @@ def advance_frames(frames: int) -> None:
 
 	for _ in range(frames):
 		EventLoop.idle()
-
-
-class ELiDEAppTest(GraphicUnitTest):
-	games_dir = "games"
-	game_name = "test"
-	character_name = "physical"
-
-	@property
-	def engine_prefix(self):
-		return os.path.join(self.prefix, self.games_dir, self.game_name)
-
-	def __init__(self, methodName="runTest"):
-		super().__init__(methodName)
-		self.prefix = mkdtemp()
-		self.addCleanup(self.cleanup)
-
-	def cleanup(self):
-		shutil.rmtree(self.prefix)
-
-	def setUp(self):
-		super(ELiDEAppTest, self).setUp()
-		os.makedirs(
-			os.path.join(self.prefix, self.games_dir, self.game_name),
-			exist_ok=True,
-		)
-		if hasattr(self, "install"):
-			from lisien import Engine
-
-			with Engine(
-				os.path.join(self.prefix, self.games_dir, self.game_name)
-			) as eng:
-				self.install(eng)
-		self.app = ElideApp(
-			immediate_start=True,
-			prefix=self.prefix,
-			games_dir=self.games_dir,
-			game_name=self.game_name,
-			character_name=self.character_name,
-		)
-		self.app.leave_game = True
-		self.app.config = ConfigParser(None)
-		self.app.build_config(self.app.config)
-
-	def tearDown(self, fake=False):
-		EventLoop.idle()
-		super().tearDown(fake=fake)
-		self.app.stop()
