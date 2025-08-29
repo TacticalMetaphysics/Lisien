@@ -23,6 +23,7 @@ from kivy.lang import Builder
 from kivy.resources import resource_find
 
 from elide.app import ElideApp
+from elide.tests.util import idle_until
 from lisien import Engine
 from lisien.examples import polygons, kobold, sickle
 
@@ -115,6 +116,21 @@ def elide_app_main_menu(kivy, play_dir):
 	app.config = ConfigParser(None)
 	app.build_config(app.config)
 	Window.add_widget(app.build())
+	manager = app.manager
+	idle_until(
+		lambda: manager.current == "main",
+		100,
+		"Never switched to 'main' screen",
+	)
+	idle_until(
+		lambda: manager.current_screen.ids, 100, "Never got manager.ids"
+	)
+	for button in manager.current_screen.ids.values():
+		idle_until(
+			lambda: button.pos != [0, 0],
+			100,
+			"Never laid out the buttons",
+		)
 	yield app
 	EventLoop.idle()
 	if not hasattr(app, "stopped"):
