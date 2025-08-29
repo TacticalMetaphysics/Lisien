@@ -22,6 +22,7 @@ from kivy.core.window import Window
 
 from elide.app import ElideApp
 from lisien import Engine
+from lisien.examples import polygons, kobold, sickle
 
 
 @pytest.fixture
@@ -110,3 +111,21 @@ def line_shaped_graphs(play_dir):
 	with Engine(play_dir) as eng:
 		eng.add_character("physical", nx.grid_2d_graph(10, 1))
 		eng.add_character("tall", nx.grid_2d_graph(1, 10))
+
+
+@pytest.fixture
+def sickle_sim(play_dir, random_seed):
+	with Engine(play_dir, workers=0, random_seed=random_seed) as eng:
+		sickle.install(eng)
+
+
+@pytest.fixture
+def kobold_sim(play_dir, random_seed):
+	with Engine(play_dir, workers=0, random_seed=random_seed) as eng:
+		kobold.inittest(eng)
+
+
+@pytest.fixture
+def polygons_sim(play_dir, random_seed):
+	with Engine(play_dir, workers=0, random_seed=random_seed) as eng:
+		polygons.install(eng)

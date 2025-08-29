@@ -24,12 +24,6 @@ def get_actions_box(elide_app):
 	return actions_box
 
 
-@pytest.fixture
-def sickle_sim(play_dir):
-	with Engine(play_dir, workers=0) as eng:
-		sickle.install(eng)
-
-
 @pytest.mark.usefixtures("sickle_sim")
 def test_show_code(elide_app):
 	app = elide_app
