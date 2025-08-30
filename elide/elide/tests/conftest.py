@@ -40,9 +40,9 @@ def play_dir(tmp_path):
 	yield play_dir
 
 
-@pytest.fixture(params=[69105])
-def random_seed(request):
-	yield request.param
+@pytest.fixture()
+def random_seed():
+	yield 69105
 
 
 @pytest.fixture
