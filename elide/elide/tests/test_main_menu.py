@@ -48,7 +48,7 @@ def zipped_kobold(play_dir, kobold_sim):
 
 
 @pytest.fixture
-def zipped_kobold_in_games_dir(zipped_kobold):
+def zipped_kobold_in_games_dir(play_dir, zipped_kobold):
 	archive_name = os.path.basename(zipped_kobold)
 	shutil.move(
 		zipped_kobold, os.path.join(os.path.dirname(play_dir), archive_name)
@@ -153,3 +153,35 @@ def test_import_game(zipped_kobold, elide_app_main_menu):
 		100,
 		"Never loaded into the imported game",
 	)
+
+
+def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
+	app = elide_app_main_menu
+	manager = app.manager
+	export_game_button: Button = manager.current_screen.ids.export_game_button
+	x, y = export_game_button.center
+	touch = UnitTestTouch(x, y)
+	touch.touch_down()
+	advance_frames(5)
+	touch.touch_up()
+	idle_until(
+		lambda: hasattr(manager.current_screen, "_popover_export_game"),
+		100,
+		"Never created game export modal",
+	)
+	modal = manager.current_screen._popover_export_game
+	idle_until(lambda: modal._is_open, 100, "Never opened game export modal")
+	idle_until(lambda: "game_list" in modal.ids, 100, "Never built game list")
+	game_list = modal.ids.game_list
+	idle_until(lambda: game_list.data, 100, "Never got saved game data")
+	button = game_list._viewport.children[0]
+	assert button.text == "kobold"
+	x, y = game_list.to_parent(*button.center)
+	touch = UnitTestTouch(x, y)
+	touch.touch_down()
+	advance_frames(5)
+	touch.touch_up()
+	idle_until(
+		lambda: not modal._is_open, 100, "Never closed game export modal"
+	)
+	assert "kobold.zip" in os.listdir(".")
