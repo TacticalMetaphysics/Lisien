@@ -50,7 +50,7 @@ def idle_until(
 	condition: Callable[[], bool] | None = None,
 	timeout: int | None = 100,
 	message: str | None = None,
-) -> None:
+) -> partial | None:
 	"""Advance frames until ``condition()`` is true
 
 	With integer ``timeout``, give up after that many frames,
