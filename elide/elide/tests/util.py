@@ -45,7 +45,7 @@ def board_is_arranged(board, char=None):
 	)
 
 
-def idle_until(condition=None, timeout=100, message="Timed out"):
+def idle_until(condition=None, timeout=100, message=None):
 	"""Advance frames until ``condition()`` is true
 
 	With integer ``timeout``, give up after that many frames,
@@ -64,6 +64,11 @@ def idle_until(condition=None, timeout=100, message="Timed out"):
 		if condition():
 			return
 		EventLoop.idle()
+	if message is None:
+		if hasattr(condition, "__name__"):
+			message = f"{condition.__name__} timed out"
+		else:
+			message = "Timed out"
 	raise TimeoutError(message)
 
 
