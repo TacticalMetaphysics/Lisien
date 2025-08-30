@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Callable
 
 from blinker import Signal
 from kivy.base import EventLoop
@@ -45,7 +46,11 @@ def board_is_arranged(board, char=None):
 	)
 
 
-def idle_until(condition=None, timeout=100, message=None):
+def idle_until(
+	condition: Callable[[], bool] | None = None,
+	timeout: int | None = 100,
+	message: str | None = None,
+) -> None:
 	"""Advance frames until ``condition()`` is true
 
 	With integer ``timeout``, give up after that many frames,
