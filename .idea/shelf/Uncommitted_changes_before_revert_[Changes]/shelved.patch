@@ -1,0 +1,97 @@
+Index: elide/elide/tests/test_character_switcher.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import pytest\n\nfrom kivy.tests.common import UnitTestTouch\n\nfrom lisien.examples import polygons\nfrom lisien.engine import Engine\n\nfrom .util import advance_frames, idle_until\n\n\n@pytest.fixture(autouse=True)\ndef polygons_sim(play_dir):\n\twith Engine(play_dir, random_seed=0, workers=0) as eng:\n\t\tpolygons.install(eng)\n\ndef test_character_switcher(elide_app):\n\tapp = elide_app\n\tidle_until(\n\t\tlambda: app.manager.current == \"mainscreen\",\n\t\t100,\n\t\t\"Never switched to mainscreen\",\n\t)\n\tapp.mainscreen.populate()\n\tidle_until(\n\t\tlambda: app.mainscreen.boardview, 100, \"never got boardview\"\n\t)\n\tidle_until(\n\t\tlambda: app.mainscreen.boardview.board.spot, 100, \"never got spots\"\n\t)\n\tphysspots = len(app.mainscreen.boardview.board.spot)\n\tapp.mainscreen.charmenu.charmenu.toggle_chars_screen()\n\tidle_until(\n\t\tlambda: app.manager.current == \"chars\",\n\t\t100,\n\t\t\"Never switched to chars\",\n\t)\n\tboxl = app.chars.ids.charsview.ids.boxl\n\tidle_until(\n\t\tlambda: len(boxl.children) == 3,\n\t\t100,\n\t\t\"Didn't get all three characters\",\n\t)\n\tfor charb in boxl.children:\n\t\tif charb.text == \"triangle\":\n\t\t\ttouch = UnitTestTouch(*charb.center)\n\t\t\ttouch.pos = charb.center\n\t\t\tassert charb.dispatch(\"on_touch_down\", touch)\n\t\t\tadvance_frames(5)\n\t\t\tcharb.dispatch(\"on_touch_up\", touch)\n\t\t\tidle_until(\n\t\t\t\tlambda: charb.state == \"down\",\n\t\t\t\t10,\n\t\t\t\t\"Button press did not work\",\n\t\t\t)\n\t\t\tbreak\n\telse:\n\t\tassert False, 'No button for \"triangle\" character'\n\tidle_until(\n\t\tlambda: app.chars.ids.charsview.character_name == \"triangle\",\n\t\t100,\n\t\t\"Never propagated character_name\",\n\t)\n\tapp.chars.toggle()\n\tidle_until(\n\t\tlambda: app.manager.current == \"mainscreen\",\n\t\t100,\n\t\t\"Didn't switch back to mainscreen\",\n\t)\n\tidle_until(\n\t\tlambda: not app.mainscreen.boardview.board.spot,\n\t\t100,\n\t\t\"Didn't clear out spots, {} left\".format(\n\t\t\tlen(app.mainscreen.boardview.board.spot)\n\t\t),\n\t)\n\tapp.mainscreen.charmenu.charmenu.toggle_chars_screen()\n\tidle_until(\n\t\tlambda: app.manager.current == \"chars\",\n\t\t100,\n\t\t\"Never switched to chars\",\n\t)\n\n\tfor charb in boxl.children:\n\t\tif charb.text == \"physical\":\n\t\t\ttouch = UnitTestTouch(*charb.center)\n\t\t\ttouch.pos = charb.center\n\t\t\tassert charb.dispatch(\"on_touch_down\", touch)\n\t\t\tadvance_frames(5)\n\t\t\tcharb.dispatch(\"on_touch_up\", touch)\n\t\t\tidle_until(\n\t\t\t\tlambda: charb.state == \"down\",\n\t\t\t\t10,\n\t\t\t\t\"Button press did not work\",\n\t\t\t)\n\t\t\tbreak\n\telse:\n\t\tassert False, 'No button for \"physical\" character'\n\tidle_until(\n\t\tlambda: app.chars.ids.charsview.character_name == \"physical\",\n\t\t100,\n\t\t\"Never propagated character_name\",\n\t)\n\tapp.chars.toggle()\n\tidle_until(\n\t\tlambda: len(app.mainscreen.boardview.board.spot) == physspots,\n\t\t100,\n\t\t\"Never got physical back\",\n\t)\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/elide/elide/tests/test_character_switcher.py b/elide/elide/tests/test_character_switcher.py
+--- a/elide/elide/tests/test_character_switcher.py	(revision 88a2449a682cf4ee82f65c7754adf3cbed014cf5)
++++ b/elide/elide/tests/test_character_switcher.py	(date 1756295953014)
+@@ -1,9 +1,8 @@
+ import pytest
+-
+ from kivy.tests.common import UnitTestTouch
+ 
+-from lisien.examples import polygons
+ from lisien.engine import Engine
++from lisien.examples import polygons
+ 
+ from .util import advance_frames, idle_until
+ 
+@@ -13,6 +12,7 @@
+ 	with Engine(play_dir, random_seed=0, workers=0) as eng:
+ 		polygons.install(eng)
+ 
++
+ def test_character_switcher(elide_app):
+ 	app = elide_app
+ 	idle_until(
+@@ -21,9 +21,7 @@
+ 		"Never switched to mainscreen",
+ 	)
+ 	app.mainscreen.populate()
+-	idle_until(
+-		lambda: app.mainscreen.boardview, 100, "never got boardview"
+-	)
++	idle_until(lambda: app.mainscreen.boardview, 100, "never got boardview")
+ 	idle_until(
+ 		lambda: app.mainscreen.boardview.board.spot, 100, "never got spots"
+ 	)
+Index: elide/elide/tests/conftest.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># This file is part of Elide, frontend to Lisien, a framework for life simulation games.\n# Copyright (c) Zachary Spector, public@zacharyspector.com\n#\n# This program is free software: you can redistribute it and/or modify\n# it under the terms of the GNU Affero General Public License as published by\n# the Free Software Foundation, version 3.\n#\n# This program is distributed in the hope that it will be useful,\n# but WITHOUT ANY WARRANTY; without even the implied warranty of\n# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n# GNU Affero General Public License for more details.\n#\n# You should have received a copy of the GNU Affero General Public License\n# along with this program.  If not, see <https://www.gnu.org/licenses/>.\nimport os\n\nimport pytest\nfrom kivy.config import ConfigParser\nfrom kivy.base import EventLoop\nfrom kivy.core.window import Window\n\nfrom elide.app import ElideApp\n\n\n@pytest.fixture\ndef play_dir(tmp_path):\n\tgames_dir = \"games\"\n\tgame_name = \"test\"\n\tplay_dir = os.path.join(tmp_path, games_dir, game_name)\n\tos.makedirs(\n\t\tplay_dir,\n\t\texist_ok=True,\n\t)\n\tyield play_dir\n\n\n@pytest.fixture(params=[69105])\ndef random_seed(request):\n\tyield request.param\n\n\n@pytest.fixture\ndef elide_app(play_dir):\n\tdef clear_window_and_event_loop():\n\t\tfor child in Window.children[:]:\n\t\t\tWindow.remove_widget(child)\n\t\tWindow.canvas.before.clear()\n\t\tWindow.canvas.clear()\n\t\tWindow.canvas.after.clear()\n\t\tEventLoop.touches.clear()\n\t\tfor post_proc in EventLoop.postproc_modules:\n\t\t\tif hasattr(post_proc, 'touches'):\n\t\t\t\tpost_proc.touches.clear()\n\t\t\telif hasattr(post_proc, 'last_touches'):\n\t\t\t\tpost_proc.last_touches.clear()\n\tgame_name = os.path.basename(play_dir)\n\tgames_dir = os.path.basename(play_dir[:-len(game_name)-1])\n\tprefix = play_dir[:-(len(games_dir) + len(game_name) + 1)]\n\tcharacter_name = \"physical\"\n\n\tfrom os import environ\n\tenviron['KIVY_USE_DEFAULTCONFIG'] = '1'\n\n\t# force window size + remove all inputs\n\tfrom kivy.config import Config\n\tConfig.set('graphics', 'width', '320')\n\tConfig.set('graphics', 'height', '240')\n\tfor items in Config.items('input'):\n\t\tConfig.remove_option('input', items[0])\n\n\n\t# ensure our window is correctly created\n\tWindow.create_window()\n\tWindow.register()\n\tWindow.initialized = True\n\tWindow.close = lambda *s: None\n\tclear_window_and_event_loop()\n\n\tapp = ElideApp(\n\t\timmediate_start=True,\n\t\tprefix=prefix,\n\t\tgames_dir=games_dir,\n\t\tgame_name=game_name,\n\t\tcharacter_name=character_name,\n\t\tworkers=0,\n\t)\n\tapp.leave_game = True\n\tapp.config = ConfigParser(None)\n\tapp.build_config(app.config)\n\tWindow.add_widget(app.build())\n\tyield app\n\tapp.stop()\n\tclear_window_and_event_loop()\n\tEventLoop.close()\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/elide/elide/tests/conftest.py b/elide/elide/tests/conftest.py
+--- a/elide/elide/tests/conftest.py	(revision 88a2449a682cf4ee82f65c7754adf3cbed014cf5)
++++ b/elide/elide/tests/conftest.py	(date 1756295953014)
+@@ -15,8 +15,8 @@
+ import os
+ 
+ import pytest
+-from kivy.config import ConfigParser
+ from kivy.base import EventLoop
++from kivy.config import ConfigParser
+ from kivy.core.window import Window
+ 
+ from elide.app import ElideApp
+@@ -49,25 +49,27 @@
+ 		Window.canvas.after.clear()
+ 		EventLoop.touches.clear()
+ 		for post_proc in EventLoop.postproc_modules:
+-			if hasattr(post_proc, 'touches'):
++			if hasattr(post_proc, "touches"):
+ 				post_proc.touches.clear()
+-			elif hasattr(post_proc, 'last_touches'):
++			elif hasattr(post_proc, "last_touches"):
+ 				post_proc.last_touches.clear()
++
+ 	game_name = os.path.basename(play_dir)
+-	games_dir = os.path.basename(play_dir[:-len(game_name)-1])
+-	prefix = play_dir[:-(len(games_dir) + len(game_name) + 1)]
++	games_dir = os.path.basename(play_dir[: -len(game_name) - 1])
++	prefix = play_dir[: -(len(games_dir) + len(game_name) + 1)]
+ 	character_name = "physical"
+ 
+ 	from os import environ
+-	environ['KIVY_USE_DEFAULTCONFIG'] = '1'
++
++	environ["KIVY_USE_DEFAULTCONFIG"] = "1"
+ 
+ 	# force window size + remove all inputs
+ 	from kivy.config import Config
+-	Config.set('graphics', 'width', '320')
+-	Config.set('graphics', 'height', '240')
+-	for items in Config.items('input'):
+-		Config.remove_option('input', items[0])
+ 
++	Config.set("graphics", "width", "320")
++	Config.set("graphics", "height", "240")
++	for items in Config.items("input"):
++		Config.remove_option("input", items[0])
+ 
+ 	# ensure our window is correctly created
+ 	Window.create_window()
