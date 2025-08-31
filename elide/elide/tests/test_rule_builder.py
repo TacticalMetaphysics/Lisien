@@ -2,10 +2,8 @@ from functools import partial
 
 import pytest
 from kivy.tests.common import UnitTestTouch
-from kivy.core.window import Window
 
 from lisien import Engine
-from lisien.examples import kobold, polygons
 
 from ..card import Card, Foundation
 from .util import idle_until, advance_frames
