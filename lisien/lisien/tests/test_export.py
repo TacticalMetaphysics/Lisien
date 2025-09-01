@@ -8,7 +8,7 @@ from lisien.export import game_path_to_etree
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"], autouse=True)
-def test_sim(tmp_path, random_seed, request):
+def sim(tmp_path, random_seed, request):
 	if request.param == "kobold":
 		install = kobold.inittest
 	elif request.param == "polygons":
