@@ -34,7 +34,6 @@ def sqlite_to_etree(
 
 def game_path_to_etree(game_path: str | os.PathLike) -> ElementTree:
 	game_history = sqlite_to_etree(os.path.join(game_path, "world.sqlite3"))
-	# add python files here?
 	return game_history
 
 
