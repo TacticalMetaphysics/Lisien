@@ -77,6 +77,7 @@ from .types import (
 	Turn,
 	UniversalKeyframe,
 	Value,
+	CharDict,
 )
 from .util import ELLIPSIS, EMPTY, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
@@ -4143,10 +4144,37 @@ class AbstractQueryEngine(ABC):
 	@abstractmethod
 	def get_all_keyframe_graphs(
 		self, branch: Branch, turn: Turn, tick: Tick
-	) -> Iterator[
-		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
-	]:
+	) -> Iterator[tuple[CharName, NodeKeyframe, EdgeKeyframe, CharDict]]:
 		pass
+
+	@abstractmethod
+	def get_all_keyframe_graphs_ever(
+		self,
+	) -> Iterator[
+		tuple[
+			CharName,
+			Branch,
+			Turn,
+			Tick,
+			NodeKeyframe,
+			EdgeKeyframe,
+			CharDict,
+		]
+	]: ...
+
+	@abstractmethod
+	def get_all_keyframe_extensions_ever(
+		self,
+	) -> Iterator[
+		tuple[
+			Branch,
+			Turn,
+			Tick,
+			UniversalKeyframe,
+			RuleKeyframe,
+			RulebookKeyframe,
+		]
+	]: ...
 
 	@abstractmethod
 	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
@@ -4729,6 +4757,35 @@ class NullQueryEngine(AbstractQueryEngine):
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> Iterator[
 		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
+	]:
+		return iter(())
+
+	def get_all_keyframe_graphs_ever(
+		self,
+	) -> Iterator[
+		tuple[
+			CharName,
+			Branch,
+			Turn,
+			Tick,
+			NodeKeyframe,
+			EdgeKeyframe,
+			GraphValKeyframe,
+		]
+	]:
+		return iter(())
+
+	def get_all_keyframe_extensions_ever(
+		self,
+	) -> Iterator[
+		tuple[
+			Branch,
+			Turn,
+			Tick,
+			UniversalKeyframe,
+			RuleKeyframe,
+			RulebookKeyframe,
+		]
 	]:
 		return iter(())
 
@@ -7703,6 +7760,54 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(graph_val),
 			)
 
+	def get_all_keyframe_graphs_ever(
+		self,
+	) -> Iterator[
+		tuple[
+			CharName,
+			Branch,
+			Turn,
+			Tick,
+			NodeKeyframe,
+			EdgeKeyframe,
+			CharDict,
+		]
+	]:
+		unpack = self.unpack
+		for d in self.call("dump", "keyframes_graphs"):
+			yield (
+				unpack(d["graph"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["nodes"]),
+				unpack(d["edges"]),
+				unpack(d["graph_val"]),
+			)
+
+	def get_all_keyframe_extensions_ever(
+		self,
+	) -> Iterator[
+		tuple[
+			Branch,
+			Turn,
+			Tick,
+			UniversalKeyframe,
+			RuleKeyframe,
+			RulebookKeyframe,
+		]
+	]:
+		unpack = self.unpack
+		for d in self.call("dump", "keyframe_extensions"):
+			yield (
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["universal"]),
+				unpack(d["rule"]),
+				unpack(d["rulebook"]),
+			)
+
 	def truncate_all(self) -> None:
 		self.call("truncate_all")
 
@@ -8415,6 +8520,64 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(nodes),
 				unpack(edges),
 				unpack(graph_val),
+			)
+
+	def get_all_keyframe_graphs_ever(
+		self,
+	) -> Iterator[
+		tuple[
+			CharName,
+			Branch,
+			Turn,
+			Tick,
+			NodeKeyframe,
+			EdgeKeyframe,
+			CharDict,
+		]
+	]:
+		unpack = self.unpack
+		for (
+			graph,
+			branch,
+			turn,
+			tick,
+			nodes,
+			edges,
+			graph_val,
+		) in self.call_one("keyframes_graphs_dump"):
+			yield (
+				unpack(graph),
+				branch,
+				turn,
+				tick,
+				unpack(nodes),
+				unpack(edges),
+				unpack(graph_val),
+			)
+
+	def get_all_keyframe_extensions_ever(
+		self,
+	) -> Iterator[
+		tuple[
+			Branch,
+			Turn,
+			Tick,
+			UniversalKeyframe,
+			RuleKeyframe,
+			RulebookKeyframe,
+		]
+	]:
+		unpack = self.unpack
+		for branch, turn, tick, universal, rule, rulebook in self.call_one(
+			"keyframe_extensions_dump"
+		):
+			yield (
+				branch,
+				turn,
+				tick,
+				unpack(universal),
+				unpack(rule),
+				unpack(rulebook),
 			)
 
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
