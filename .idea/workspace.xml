@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e8321c39-6e7d-4b20-9738-ecd47aeaed44" name="Changes" comment="Correct type hint of `idle_until`" />
+    <list default="true" id="e8321c39-6e7d-4b20-9738-ecd47aeaed44" name="Changes" comment="Factor out `add_keyframe_to_branch_el`">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lisien/lisien/proxy/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/lisien/lisien/proxy/__init__.py" afterDir="false" />
+    </list>
     <list id="69b632fb-c2b5-446d-ba86-fc1394f4c043" name="do not commit" comment="do not commit" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,7 +28,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="50262161bcafc6a44d0d5de5c0226c3ebe37324a" />
+        <entry key="$PROJECT_DIR$" value="export" />
         <entry key="$PROJECT_DIR$/docs" value="main" />
       </map>
     </option>
@@ -308,7 +311,7 @@
       <recent name="$PROJECT_DIR$/lisien" />
     </key>
   </component>
-  <component name="RunManager" selected="Python tests.pytest for elide.tests.test_main_menu.test_export_game">
+  <component name="RunManager" selected="Python.elide">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <module name="Lisien" />
       <option name="ENV_FILES" value="" />
@@ -1372,11 +1375,11 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.pytest for elide.tests.test_main_menu.test_load_game" />
+        <item itemvalue="Python tests.pytest in tests" />
+        <item itemvalue="Python tests.pytest for test_main_menu.test_new_game" />
         <item itemvalue="Python tests.pytest for elide.tests.test_main_menu.test_new_game" />
         <item itemvalue="Python tests.pytest for elide.tests.test_main_menu.test_load_game" />
-        <item itemvalue="Python tests.pytest for test_main_menu.test_new_game" />
-        <item itemvalue="Python tests.pytest in tests" />
+        <item itemvalue="Python tests.pytest for elide.tests.test_main_menu.test_load_game" />
       </list>
     </recent_temporary>
   </component>
@@ -1997,7 +2000,8 @@
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_lisien_tests_test_delta_test_character_existence_delta.coverage" NAME="pytest for lisien.tests.test_delta.test_character_existence_delta Coverage Results" MODIFIED="1754269678862" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_in_test_examples_py.coverage" NAME="pytest in test_examples.py Coverage Results" MODIFIED="1749542827515" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_lisien_tests_test_delta_test_character_existence_delta__1_.coverage" NAME="pytest for lisien.tests.test_delta.test_character_existence_delta (1) Coverage Results" MODIFIED="1753686687546" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
-    <SUITE FILE_PATH="coverage/Lisien$elide.coverage" NAME="elide Coverage Results" MODIFIED="1756514750690" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$ProjectFileDir$" />
+    <SUITE FILE_PATH="coverage/Lisien$pytest_for_test_export_test_export.coverage" NAME="pytest for test_export.test_export Coverage Results" MODIFIED="1756716952793" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
+    <SUITE FILE_PATH="coverage/Lisien$elide.coverage" NAME="elide Coverage Results" MODIFIED="1756735847635" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$ProjectFileDir$" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_lisien_tests_test_thing_test_future_contents.coverage" NAME="pytest for lisien.tests.test_thing.test_future_contents Coverage Results" MODIFIED="1752213024558" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
     <SUITE FILE_PATH="coverage/Lisien$scratch_73.coverage" NAME="scratch_73 Coverage Results" MODIFIED="1751780053809" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
     <SUITE FILE_PATH="coverage/Lisien$main.coverage" NAME="main Coverage Results" MODIFIED="1748843472667" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
@@ -2009,6 +2013,7 @@
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_lisien_tests_test_contents_test_contents_over_time_sqlite.coverage" NAME="pytest for lisien.tests.test_contents.test_contents_over_time sqlite Coverage Results" MODIFIED="1751252633997" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_lisien_tests_test_examples.coverage" NAME="pytest for lisien.tests.test_examples Coverage Results" MODIFIED="1751179697554" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Lisien$.coverage" NAME=" Coverage Results" MODIFIED="1754106535212" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/Lisien$pytest_for_lisien_tests_test_import_export_test_export.coverage" NAME="pytest for lisien.tests.test_import_export.test_export Coverage Results" MODIFIED="1756705956783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_tests_test_rule_builder_TestRuleBuilderKobold_test_rule_builder_add_trigger.coverage" NAME="pytest for tests.test_rule_builder.TestRuleBuilderKobold.test_rule_builder_add_trigger Coverage Results" MODIFIED="1756341714530" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_in_test_next_turn_py.coverage" NAME="pytest in test_next_turn.py Coverage Results" MODIFIED="1754708394483" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_tests_test_python_editor_TestShowCode_test_show_code.coverage" NAME="pytest for tests.test_python_editor.TestShowCode.test_show_code Coverage Results" MODIFIED="1752680088368" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/elide/elide" />
@@ -2099,8 +2104,10 @@
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_lisien_tests_test_branch_plan_test_multi_plan.coverage" NAME="pytest for lisien.tests.test_branch_plan.test_multi_plan Coverage Results" MODIFIED="1754539093131" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_in_test_place_py.coverage" NAME="pytest in test_place.py Coverage Results" MODIFIED="1752199027682" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_in_test_rule_py.coverage" NAME="pytest in test_rule.py Coverage Results" MODIFIED="1754623277720" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
+    <SUITE FILE_PATH="coverage/Lisien$pytest_for_test_import_export_test_export.coverage" NAME="pytest for test_import_export.test_export Coverage Results" MODIFIED="1756713930962" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
     <SUITE FILE_PATH="coverage/Lisien$scratch_72__1_.coverage" NAME="scratch_72 (1) Coverage Results" MODIFIED="1751528381590" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
     <SUITE FILE_PATH="coverage/Lisien$scratch_81.coverage" NAME="scratch_81 Coverage Results" MODIFIED="1753848763460" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
+    <SUITE FILE_PATH="coverage/Lisien$pytest_for_lisien_tests_test_export_test_export.coverage" NAME="pytest for lisien.tests.test_export.test_export Coverage Results" MODIFIED="1756719243205" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_in_test_thing_py.coverage" NAME="pytest in test_thing.py Coverage Results" MODIFIED="1754623608787" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien/lisien/tests" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_lisien_tests_test_load_test_keyframe_unload.coverage" NAME="pytest for lisien.tests.test_load.test_keyframe_unload Coverage Results" MODIFIED="1754422442980" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Lisien$pytest_for_tests_test_window_test_slice.coverage" NAME="pytest for tests.test_window.test_slice Coverage Results" MODIFIED="1754016623746" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lisien" />

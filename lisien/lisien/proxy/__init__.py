@@ -3815,6 +3815,8 @@ class EngineProxy(AbstractEngine):
 		self.debug("EngineProxy: finished core __init__")
 
 	def _init_pull_from_core(self):
+		self.debug("EngineProxy: Waiting for core...")
+		self.recv()
 		self.debug("EngineProxy: Getting time...")
 		self.send({"command": "get_btt"})
 		received = self.recv()
@@ -4538,7 +4540,6 @@ def engine_subprocess(
 	args, kwargs, input_pipe, output_pipe, *, log_queue=None
 ):
 	"""Loop to handle one command at a time and pipe results back"""
-	engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
 
 	def send_output(cmd, r):
 		output_pipe.send_bytes(
@@ -4556,6 +4557,8 @@ def engine_subprocess(
 			)
 		)
 
+	engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
+	send_output("ready", None)
 	while True:
 		inst = input_pipe.recv_bytes()
 		if inst == b"shutdown":
@@ -4571,8 +4574,6 @@ def engine_subprocess(
 
 
 def engine_subthread(args, kwargs, input_queue, output_queue):
-	engine_handle = EngineHandle(*args, **kwargs)
-
 	def send_output(cmd, r):
 		output_queue.put((cmd, *engine_handle._real.time, r))
 
@@ -4584,6 +4585,9 @@ def engine_subthread(args, kwargs, input_queue, output_queue):
 				)
 			)
 		)
+
+	engine_handle = EngineHandle(*args, **kwargs)
+	send_output("ready", None)
 
 	while True:
 		instruction = input_queue.get()
