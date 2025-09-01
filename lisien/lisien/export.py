@@ -79,7 +79,11 @@ def _query_engine_to_tree(
 			playtree = Element("playtree", game=name, trunk=branch)
 			playtrees[branch] = playtree
 			branch_element = branch_elements[branch] = Element(
-				"branch", end_turn=str(end_turn), end_tick=str(end_tick)
+				"branch",
+				start_turn="0",
+				start_tick="0",
+				end_turn=str(end_turn),
+				end_tick=str(end_tick),
 			)
 			root.append(playtree)
 			playtree.append(branch_element)
