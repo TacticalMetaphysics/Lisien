@@ -276,8 +276,8 @@ Keyframe: TypeAlias = dict[
 	| dict[RuleName, list[TriggerFuncName]]
 	| dict[RuleName, list[PrereqFuncName]]
 	| dict[RuleName, list[ActionFuncName]]
-	| dict[RuleName, int]
-	| dict[RuleName, bool]
+	| dict[RuleName, RuleNeighborhood]
+	| dict[RuleName, RuleBig]
 	| dict[RulebookName, RulebookKeyframe],
 ]
 SlightlyPackedDeltaType: TypeAlias = dict[
