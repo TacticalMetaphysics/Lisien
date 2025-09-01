@@ -32,6 +32,7 @@ from sqlalchemy import (
 	and_,
 	bindparam,
 	func,
+	null,
 	or_,
 	select,
 )
@@ -769,6 +770,11 @@ def queries(table):
 				),
 			)
 		),
+		"main_branch_ends": select(
+			table["branches"].c.branch,
+			table["branches"].c.end_turn,
+			table["branches"].c.end_tick,
+		).where(table["branches"].c.parent == null()),
 		"update_branches": table["branches"]
 		.update()
 		.values(
