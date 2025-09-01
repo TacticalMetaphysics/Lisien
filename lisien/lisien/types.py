@@ -179,7 +179,9 @@ RuleKeyframe = dict[
 	| RuleNeighborhood
 	| RuleBig,
 ]
-RulebookKeyframe: TypeAlias = tuple[list[RuleName], RulebookPriority]
+RulebookKeyframe: TypeAlias = dict[
+	RulebookName, tuple[list[RuleName], RulebookPriority]
+]
 NodeKeyframe = NewType("NodeKeyframe", dict)
 EdgeKeyframe = NewType("EdgeKeyframe", dict)
 NodeRowType: TypeAlias = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
@@ -278,7 +280,7 @@ Keyframe: TypeAlias = dict[
 	| dict[RuleName, list[ActionFuncName]]
 	| dict[RuleName, RuleNeighborhood]
 	| dict[RuleName, RuleBig]
-	| dict[RulebookName, RulebookKeyframe],
+	| dict[RulebookName, tuple[list[RuleName], RulebookPriority]],
 ]
 SlightlyPackedDeltaType: TypeAlias = dict[
 	bytes,
