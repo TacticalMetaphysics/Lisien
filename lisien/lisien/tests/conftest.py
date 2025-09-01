@@ -39,6 +39,11 @@ def handle(tmp_path):
 	hand.close()
 
 
+@pytest.fixture(scope="session")
+def random_seed():
+	yield 69105
+
+
 @pytest.fixture(
 	scope="function",
 	params=[

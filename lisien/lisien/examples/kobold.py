@@ -206,6 +206,7 @@ if __name__ == "__main__":
 	from tempfile import TemporaryDirectory
 
 	from lisien.engine import Engine
+	from lisien.export import sqlite_to_xml
 
 	with TemporaryDirectory() as td:
 		with Engine(
@@ -223,5 +224,5 @@ if __name__ == "__main__":
 					]
 				)
 			)
-		archive_name = shutil.make_archive("kobold", "zip", td)
+		archive_name = "kobold_export.xml"
 		print("Exported to " + str(archive_name))
