@@ -14,9 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Test the API of the Rule objects and mappings"""
 
-import networkx as nx
-import pytest
-
 
 def something_dot_rule_test(something, engy):
 	"""Utility function to test some rule-follower"""
