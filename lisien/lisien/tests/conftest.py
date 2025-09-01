@@ -25,7 +25,7 @@ from lisien.proxy.handle import EngineHandle
 from ..examples import college, kobold, sickle
 from ..proxy import EngineProcessManager, EngineProxy
 from . import data
-from .util import make_test_engine_kwargs
+from .util import make_test_engine_kwargs, make_test_engine_facade
 
 
 @pytest.fixture(scope="function")
@@ -37,6 +37,11 @@ def handle(tmp_path):
 	)
 	yield hand
 	hand.close()
+
+
+@pytest.fixture
+def engine_facade():
+	return make_test_engine_facade()
 
 
 @pytest.fixture(scope="session")
