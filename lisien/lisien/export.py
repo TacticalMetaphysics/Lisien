@@ -21,12 +21,13 @@ from lisien.types import (
 	RuleNeighborhood,
 	RuleBig,
 	RulebookName,
-	RulebookKeyframe,
 	RulebookPriority,
 	GraphNodeValKeyframe,
 	CharName,
 	GraphEdgeValKeyframe,
 	GraphValKeyframe,
+	Turn,
+	Tick,
 )
 from lisien.util import AbstractThing
 
@@ -159,6 +160,95 @@ def value_to_xml(value: Value | dict[Key, Value]) -> Element:
 		raise TypeError("Can't convert to XML", value)
 
 
+def add_keyframe_to_branch_el(
+	branch_el: Element, turn: Turn, tick: Tick, keyframe: Keyframe
+) -> None:
+	kfel = Element("keyframe", turn=str(turn), tick=str(tick))
+	branch_el.append(kfel)
+	universal_d: dict[Key, Value] = keyframe["universal"]
+	univel = value_to_xml(universal_d)
+	univel.tag = "universal"
+	kfel.append(univel)
+	triggers_kf: dict[RuleName, list[TriggerFuncName]] = keyframe["triggers"]
+	prereqs_kf: dict[RuleName, list[PrereqFuncName]] = keyframe["prereqs"]
+	actions_kf: dict[RuleName, list[ActionFuncName]] = keyframe["actions"]
+	neighborhoods_kf: dict[RuleName, RuleNeighborhood] = keyframe[
+		"neighborhood"
+	]
+	bigs_kf: dict[RuleName, RuleBig] = keyframe["big"]
+	for rule_name in (
+		triggers_kf.keys() | prereqs_kf.keys() | actions_kf.keys()
+	):
+		rule_name: RuleName
+		rule_el = Element(
+			"rule",
+			name=rule_name,
+			big="T" if bigs_kf.get(rule_name) else "F",
+		)
+		kfel.append(rule_el)
+		if neighborhood := neighborhoods_kf.get(rule_name) is not None:
+			rule_el.set("neighborhood", neighborhood)
+		if trigs := triggers_kf.get(rule_name):
+			for trig in trigs:
+				rule_el.append(Element("trigger", name=trig))
+		if preqs := prereqs_kf.get(rule_name):
+			for preq in preqs:
+				rule_el.append(Element("prereq", name=preq))
+		if acts := actions_kf.get(rule_name):
+			for act in acts:
+				rule_el.append(Element("action", name=act))
+	rulebook_kf: dict[
+		RulebookName, tuple[list[RuleName], RulebookPriority]
+	] = keyframe["rulebook"]
+	for rulebook_name, (rule_list, priority) in rulebook_kf.items():
+		rulebook_el = Element(
+			"rulebook", name=repr(rulebook_name), priority=repr(priority)
+		)
+		kfel.append(rulebook_el)
+		for rule_name in rule_list:
+			rulebook_el.append(Element("rule", name=rule_name))
+	char_els: dict[CharName, Element] = {}
+	graph_val_kf: GraphValKeyframe = keyframe["graph_val"]
+	for char_name, vals in graph_val_kf.items():
+		char_el = char_els[char_name] = Element(
+			"character", name=repr(char_name)
+		)
+
+	node_val_kf: GraphNodeValKeyframe = keyframe["node_val"]
+	for char_name, node_vals in node_val_kf.items():
+		if char_name in char_els:
+			char_el = char_els[char_name]
+		else:
+			char_el = char_els[char_name] = Element(
+				"character", name=repr(char_name)
+			)
+			kfel.append(char_el)
+		for node, val in node_vals.items():
+			node_el = Element("node", name=repr(node))
+			char_el.append(node_el)
+			for k, v in val.items():
+				item_el = Element("dict_item", key=repr(k))
+				node_el.append(item_el)
+				item_el.append(value_to_xml(v))
+	edge_val_kf: GraphEdgeValKeyframe = keyframe["edge_val"]
+	for char_name, edge_vals in edge_val_kf.items():
+		if char_name in char_els:
+			char_el = char_els[char_name]
+		else:
+			char_el = char_els[char_name] = Element(
+				"character", name=repr(char_name)
+			)
+			kfel.append(char_el)
+		for orig, dests in edge_vals.items():
+			for dest, val in dests.items():
+				edge_el = Element("edge", orig=repr(orig), dest=repr(dest))
+				char_el.append(edge_el)
+				for k, v in val.items():
+					item_el = Element("dict_item", key=repr(k))
+					edge_el.append(item_el)
+					item_el.append(value_to_xml(v))
+
+
 def query_engine_to_tree(
 	name: str, query: AbstractQueryEngine, tree: ElementTree
 ) -> ElementTree:
@@ -267,92 +357,9 @@ def query_engine_to_tree(
 	for (branch, turn, tick), keyframe in keyframes.items():
 		if not (branch in branches_d and branch in branch_elements):
 			raise RuntimeError("Keyframe in invalid branch", branch)
-		kfel = Element("keyframe", turn=str(turn), tick=str(tick))
-		branch_elements[branch].append(kfel)
-		universal_d: dict[Key, Value] = keyframe["universal"]
-		univel = value_to_xml(universal_d)
-		univel.tag = "universal"
-		kfel.append(univel)
-		triggers_kf: dict[RuleName, list[TriggerFuncName]] = keyframe[
-			"triggers"
-		]
-		prereqs_kf: dict[RuleName, list[PrereqFuncName]] = keyframe["prereqs"]
-		actions_kf: dict[RuleName, list[ActionFuncName]] = keyframe["actions"]
-		neighborhoods_kf: dict[RuleName, RuleNeighborhood] = keyframe[
-			"neighborhood"
-		]
-		bigs_kf: dict[RuleName, RuleBig] = keyframe["big"]
-		for rule_name in (
-			triggers_kf.keys() | prereqs_kf.keys() | actions_kf.keys()
-		):
-			rule_name: RuleName
-			rule_el = Element(
-				"rule",
-				name=rule_name,
-				big="T" if bigs_kf.get(rule_name) else "F",
-			)
-			kfel.append(rule_el)
-			if neighborhood := neighborhoods_kf.get(rule_name) is not None:
-				rule_el.set("neighborhood", neighborhood)
-			if trigs := triggers_kf.get(rule_name):
-				for trig in trigs:
-					rule_el.append(Element("trigger", name=trig))
-			if preqs := prereqs_kf.get(rule_name):
-				for preq in preqs:
-					rule_el.append(Element("prereq", name=preq))
-			if acts := actions_kf.get(rule_name):
-				for act in acts:
-					rule_el.append(Element("action", name=act))
-		rulebook_kf: dict[
-			RulebookName, tuple[list[RuleName], RulebookPriority]
-		] = keyframe["rulebook"]
-		for rulebook_name, (rule_list, priority) in rulebook_kf.items():
-			rulebook_el = Element(
-				"rulebook", name=repr(rulebook_name), priority=repr(priority)
-			)
-			kfel.append(rulebook_el)
-			for rule_name in rule_list:
-				rulebook_el.append(Element("rule", name=rule_name))
-		char_els: dict[CharName, Element] = {}
-		graph_val_kf: GraphValKeyframe = keyframe["graph_val"]
-		for char_name, vals in graph_val_kf.items():
-			char_el = char_els[char_name] = Element(
-				"character", name=repr(char_name)
-			)
-
-		node_val_kf: GraphNodeValKeyframe = keyframe["node_val"]
-		for char_name, node_vals in node_val_kf.items():
-			if char_name in char_els:
-				char_el = char_els[char_name]
-			else:
-				char_el = char_els[char_name] = Element(
-					"character", name=repr(char_name)
-				)
-				kfel.append(char_el)
-			for node, val in node_vals.items():
-				node_el = Element("node", name=repr(node))
-				char_el.append(node_el)
-				for k, v in val.items():
-					item_el = Element("dict_item", key=repr(k))
-					node_el.append(item_el)
-					item_el.append(value_to_xml(v))
-		edge_val_kf: GraphEdgeValKeyframe = keyframe["edge_val"]
-		for char_name, edge_vals in edge_val_kf.items():
-			if char_name in char_els:
-				char_el = char_els[char_name]
-			else:
-				char_el = char_els[char_name] = Element(
-					"character", name=repr(char_name)
-				)
-				kfel.append(char_el)
-			for orig, dests in edge_vals.items():
-				for dest, val in dests.items():
-					edge_el = Element("edge", orig=repr(orig), dest=repr(dest))
-					char_el.append(edge_el)
-					for k, v in val.items():
-						item_el = Element("dict_item", key=repr(k))
-						edge_el.append(item_el)
-						item_el.append(value_to_xml(v))
+		add_keyframe_to_branch_el(
+			branch_elements[branch], turn, tick, keyframe
+		)
 	return tree
 
 
