@@ -1,4 +1,5 @@
 import os
+from collections import deque
 from pathlib import Path
 from xml.etree.ElementTree import ElementTree, Element
 
@@ -52,16 +53,57 @@ def _query_engine_to_tree(
 	name: str, query: AbstractQueryEngine, tree: ElementTree
 ) -> ElementTree:
 	root = tree.getroot()
-	for branch, turn, tick in query.main_branch_ends():
-		playthru = Element("playthru", game=name)
-		root.append(playthru)
-		trunk = Element(
-			"trunk",
-			branch=branch,
-			turn_to=str(turn),
-			tick_to=str(tick),
+	trunks = set()
+	branches_d = {}
+	branch_elements = {}
+	playtrees = {}
+	branch2do = deque(query.all_branches())
+	while branch2do:
+		(
+			branch,
+			parent,
+			parent_turn,
+			parent_tick,
+			end_turn,
+			end_tick,
+		) = branch2do.popleft()
+		branches_d[branch] = (
+			parent,
+			parent_turn,
+			parent_tick,
+			end_turn,
+			end_tick,
 		)
-		playthru.append(trunk)
+		if parent is None:
+			trunks.add(branch)
+			playtree = Element("playtree", game=name, trunk=branch)
+			playtrees[branch] = playtree
+			branch_element = branch_elements[branch] = Element(
+				"branch", end_turn=str(end_turn), end_tick=str(end_tick)
+			)
+			root.append(playtree)
+			playtree.append(branch_element)
+		elif parent in branch_elements:
+			branch_el = Element(
+				"branch",
+				parent=parent,
+				start_turn=str(parent_turn),
+				start_tick=str(parent_tick),
+				end_turn=str(end_turn),
+				end_tick=str(end_tick),
+			)
+			branch_elements[parent].append(branch_el)
+		else:
+			branch2do.append(
+				(
+					branch,
+					parent,
+					parent_turn,
+					parent_tick,
+					end_turn,
+					end_tick,
+				)
+			)
 	return tree
 
 
