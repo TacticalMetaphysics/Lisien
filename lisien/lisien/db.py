@@ -599,18 +599,6 @@ class ParquetDBHolder(ConnectionHolder):
 		if ret:
 			return ret["id"][0].as_py()
 
-	def main_branch_ends(self):
-		import pyarrow.compute as pc
-
-		db = self._get_db("branches")
-		return [
-			(d["branch"], d["end_turn"], d["end_tick"])
-			for d in db.read(
-				columns=["branch", "end_turn", "end_tick"],
-				filters=[pc.field("parent").is_null()],
-			).to_pylist()
-		]
-
 	def update_branch(
 		self,
 		branch: Branch,
@@ -2946,10 +2934,6 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def main_branch_ends(self) -> Iterator[Time]:
-		pass
-
-	@abstractmethod
 	def global_get(self, key: Key) -> Value:
 		pass
 
@@ -4795,11 +4779,6 @@ class NullQueryEngine(AbstractQueryEngine):
 	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
 		return iter(())
 
-	def main_branch_ends(
-		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, Turn, Tick]]:
-		return iter(())
-
 	def global_get(self, key: Key) -> Any:
 		return self.globl[key]
 
@@ -5782,9 +5761,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["end_turn"],
 				d["end_tick"],
 			)
-
-	def main_branch_ends(self) -> Iterator[Time]:
-		return iter(self.call("main_branch_ends"))
 
 	def global_get(self, key: Key) -> Any:
 		try:
@@ -8504,9 +8480,6 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 		"""
 		return self.call_one("branches_dump")
-
-	def main_branch_ends(self) -> Iterator[Time]:
-		return self.call_one("main_branch_ends")
 
 	def global_get(self, key: Key) -> Value:
 		"""Return the value for the given key in the ``globals`` table."""
