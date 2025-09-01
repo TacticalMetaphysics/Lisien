@@ -1,4 +1,7 @@
+from unittest.mock import MagicMock
+
 from lisien import Engine
+from lisien.facade import EngineFacade
 
 
 def make_test_engine_kwargs(
@@ -21,3 +24,13 @@ def make_test_engine_kwargs(
 
 def make_test_engine(path, execution, database):
 	return Engine(**make_test_engine_kwargs(path, execution, database))
+
+
+def make_test_engine_facade() -> EngineFacade:
+	fac = EngineFacade(None)
+	fac.function = MagicMock()
+	fac.method = MagicMock()
+	fac.trigger = MagicMock()
+	fac.prereq = MagicMock()
+	fac.action = MagicMock()
+	return fac
