@@ -24,6 +24,8 @@ def sim(tmp_path, random_seed, request):
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
 		install(eng)
+		for _ in range(10):
+			eng.next_turn()
 
 
 def test_export(tmp_path):
