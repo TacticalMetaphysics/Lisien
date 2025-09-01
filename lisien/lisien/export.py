@@ -53,16 +53,15 @@ def _query_engine_to_tree(
 ) -> ElementTree:
 	root = tree.getroot()
 	for branch, turn, tick in query.main_branch_ends():
-		playthru = Element(
-			"playthru",
-			game=name,
+		playthru = Element("playthru", game=name)
+		root.append(playthru)
+		trunk = Element(
+			"trunk",
 			branch=branch,
-			turn_from="0",
-			tick_from="0",
 			turn_to=str(turn),
 			tick_to=str(tick),
 		)
-		root.append(playthru)
+		playthru.append(trunk)
 	return tree
 
 
