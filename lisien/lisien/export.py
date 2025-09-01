@@ -26,7 +26,7 @@ def sqlite_to_etree(
 	if tree is None:
 		tree = ElementTree(Element("lisien"))
 	return query_engine_to_tree(
-		str(os.path.basename(sqlite_path)).removesuffix(".sqlite3"),
+		str(os.path.basename(os.path.dirname(sqlite_path))),
 		query,
 		tree,
 	)
