@@ -25,7 +25,7 @@ def sqlite_to_etree(
 	)
 	if tree is None:
 		tree = ElementTree(Element("lisien"))
-	return _query_engine_to_tree(
+	return query_engine_to_tree(
 		str(os.path.basename(sqlite_path)).removesuffix(".sqlite3"),
 		query,
 		tree,
@@ -49,7 +49,7 @@ def game_path_to_xml(
 	tree.write(xml_file_path)
 
 
-def _query_engine_to_tree(
+def query_engine_to_tree(
 	name: str, query: AbstractQueryEngine, tree: ElementTree
 ) -> ElementTree:
 	root = tree.getroot()
