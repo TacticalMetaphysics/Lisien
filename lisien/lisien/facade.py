@@ -16,6 +16,7 @@ import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
+from functools import cached_property
 from operator import attrgetter
 from threading import RLock
 from typing import Any, Mapping, MutableMapping, MutableSequence, Type
@@ -37,7 +38,7 @@ from .util import (
 	timer,
 )
 from .wrap import MutableMappingUnwrapper
-from .xcollections import CompositeDict
+from .xcollections import CompositeDict, FunctionStore
 
 
 class FacadeEntity(MutableMapping, Signal, ABC):
@@ -1051,6 +1052,26 @@ class EngineFacade(AbstractEngine):
 	place_cls = FacadePlace
 	portal_cls = FacadePortal
 	time = TimeSignalDescriptor()
+
+	@cached_property
+	def function(self):
+		return FunctionStore(None)
+
+	@cached_property
+	def method(self):
+		return FunctionStore(None)
+
+	@cached_property
+	def trigger(self):
+		return FunctionStore(None)
+
+	@cached_property
+	def prereq(self):
+		return FunctionStore(None)
+
+	@cached_property
+	def action(self):
+		return FunctionStore(None)
 
 	class FacadeUniversalMapping(Signal, MutableMapping):
 		def __init__(self, engine: AbstractEngine):
