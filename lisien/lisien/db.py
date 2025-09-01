@@ -510,9 +510,6 @@ class ParquetDBHolder(ConnectionHolder):
 			rec["graph_val"][0].as_py(),
 		)
 
-	class InsertException(ValueError):
-		pass
-
 	def insert1(self, table: str, data: dict):
 		try:
 			return self.insert(table, [data])
