@@ -1,11 +1,27 @@
 import os
-from collections import deque
+from collections import defaultdict, deque
 from pathlib import Path
+from typing import Literal
 from xml.etree.ElementTree import ElementTree, Element
 
-import msgpack
-
 from lisien.db import AbstractQueryEngine
+from lisien.facade import EngineFacade
+from lisien.types import (
+	Time,
+	CharName,
+	GraphValKeyframe,
+	GraphNodeValKeyframe,
+	GraphEdgeValKeyframe,
+	UniversalKey,
+	Value,
+	RuleName,
+	TriggerFuncName,
+	PrereqFuncName,
+	ActionFuncName,
+	Keyframe,
+	RulebookName,
+	RulebookKeyframe,
+)
 
 
 def sqlite_to_etree(
@@ -16,11 +32,12 @@ def sqlite_to_etree(
 	if not isinstance(sqlite_path, os.PathLike):
 		sqlite_path = Path(sqlite_path)
 
+	eng = EngineFacade(None)
 	query = SQLAlchemyQueryEngine(
 		"sqlite:///" + str(os.path.abspath(sqlite_path)),
 		{},
-		pack=msgpack.packb,
-		unpack=lambda x: x,
+		pack=eng.pack,
+		unpack=eng.unpack,
 	)
 	if tree is None:
 		tree = ElementTree(Element("lisien"))
@@ -108,6 +125,52 @@ def _query_engine_to_tree(
 					end_tick,
 				)
 			)
+
+	def make_keyframe_dict() -> Keyframe:
+		return {
+			"universal": {},
+			"triggers": {},
+			"prereqs": {},
+			"actions": {},
+			"rulebook": {},
+			"big": {},
+			"neighborhood": {},
+			"node_val": {},
+			"edge_val": {},
+			"graph_val": {},
+		}
+
+	keyframes = defaultdict(make_keyframe_dict)
+	for (
+		branch,
+		turn,
+		tick,
+		universal,
+		rule,
+		rulebook,
+	) in query.get_all_keyframe_extensions_ever():
+		kf = keyframes[branch, turn, tick]
+		kf["universal"] = universal
+		kf["rulebook"] = rulebook
+		for rule, d in rule.items():
+			kf["triggers"][rule] = d.get("triggers", [])
+			kf["prereqs"][rule] = d.get("prereqs", [])
+			kf["actions"][rule] = d.get("actions", [])
+			kf["neighborhood"][rule] = d.get("neighborhood", None)
+			kf["big"][rule] = d.get("big", False)
+	for (
+		char_name,
+		branch,
+		turn,
+		tick,
+		nodes,
+		edges,
+		graph_val,
+	) in query.get_all_keyframe_graphs_ever():
+		kf = keyframes[branch, turn, tick]
+		kf["node_val"][char_name] = nodes
+		kf["edge_val"][char_name] = edges
+		kf["graph_val"][char_name] = graph_val
 	return tree
 
 

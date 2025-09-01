@@ -171,7 +171,14 @@ PrereqFuncName = NewType("PrereqFuncName", FuncName)
 ActionFuncName = NewType("ActionFuncName", FuncName)
 RuleFuncName: TypeAlias = TriggerFuncName | PrereqFuncName | ActionFuncName
 UniversalKeyframe = NewType("UniversalKeyframe", dict)
-RuleKeyframe = NewType("RuleKeyframe", dict)
+RuleKeyframe = dict[
+	Literal["triggers", "prereqs", "actions", "neighborhood", "big"],
+	list[TriggerFuncName]
+	| list[PrereqFuncName]
+	| list[ActionFuncName]
+	| RuleNeighborhood
+	| RuleBig,
+]
 RulebookKeyframe = NewType("RulebookKeyframe", dict)
 NodeKeyframe = NewType("NodeKeyframe", dict)
 EdgeKeyframe = NewType("EdgeKeyframe", dict)
