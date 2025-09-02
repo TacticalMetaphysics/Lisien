@@ -1226,7 +1226,7 @@ class EngineFacade(AbstractEngine):
 				"error",
 				"critical",
 			):
-				setattr(self, getattr(logger, loggish))
+				setattr(self, loggish, getattr(logger, loggish))
 		self.closed = False
 		self._real = real
 		self._planning = False
