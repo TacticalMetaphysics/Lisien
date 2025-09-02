@@ -7763,6 +7763,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			self.logger.debug(
 				f"SQLAlchemyConnectionHolder: {statement}  %  {repositioned}; got {ret.rowcount} rows"
 			)
+			return ret
 		elif largs:
 			raise TypeError("{} is a DDL query, I think".format(k))
 		ret: CursorResult = self.connection.execute(self.sql[k], kwargs)
@@ -7899,13 +7900,10 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 			except Exception as ex:
 				return ex
 		schemaver_b = b"\xb6_lisien_schema_version"
-		ver = self.call_one("global_get", schemaver_b).fetchone()
-		self.logger.debug(
-			f"SQLAlchemyConnectionHolder: Lisien schema version {ver}"
-		)
-		if ver is ...:
+		ver = self.call_one("global_get", schemaver_b)
+		if ver.rowcount == -1:
 			self.call_one("global_insert", schemaver_b, b"\x01")
-		elif ver[0] != b"\x01":
+		elif ver.fetchone()[0] != b"\x01":
 			return ValueError(
 				f"Unsupported database schema version: {ver}", ver
 			)
