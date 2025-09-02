@@ -1199,6 +1199,34 @@ class EngineFacade(AbstractEngine):
 					setattr(self, alias, getattr(real, alias))
 				except AttributeError:
 					print(f"{alias} not implemented on {type(real)}")
+		elif mock:
+			import sys
+			from unittest.mock import MagicMock
+
+			from .xcollections import FunctionStore, StringStore
+
+			for funcs in ("function", "method", "trigger", "prereq", "action"):
+				setattr(self, funcs, FunctionStore(None))
+			self.string = StringStore({}, None)
+			for mockery in ("submit", "load_at"):
+				setattr(self, mockery, MagicMock())
+			if "kivy" in sys.modules:
+				from kivy.logger import Logger
+
+				logger = Logger
+			else:
+				from logging import getLogger
+
+				logger = getLogger("lisien")
+			for loggish in (
+				"log",
+				"debug",
+				"info",
+				"warning",
+				"error",
+				"critical",
+			):
+				setattr(self, getattr(logger, loggish))
 		self.closed = False
 		self._real = real
 		self._planning = False
