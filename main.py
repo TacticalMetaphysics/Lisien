@@ -21,9 +21,9 @@ try:
 
 	def freeze_support(): ...
 
-	wd = os.path.join(app_storage_path(), "lisien_workspace")
+	wd = app_storage_path()
 	connect_string = "sqlite:///{prefix}/world.sqlite3"
-	logs_dir = os.path.join(app_storage_path(), "app", ".kivy", "logs")
+	logs_dir = os.path.join(wd, "app", ".kivy", "logs")
 except ImportError:
 	from multiprocessing import freeze_support
 
@@ -41,6 +41,7 @@ if __name__ == "__main__":
 
 	app = ElideApp(
 		prefix=wd,
+		games_dir="lisien_workspace",
 		connect_string=connect_string,
 		logs_dir=logs_dir,
 		workers=0,
