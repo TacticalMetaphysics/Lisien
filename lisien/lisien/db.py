@@ -7753,15 +7753,23 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		return self.call_one("create_{}".format(tbl))
 
 	def call_one(self, k, *largs, **kwargs):
+		from sqlalchemy import CursorResult
+
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
 		if hasattr(statement, "positiontup"):
 			kwargs.update(dict(zip(statement.positiontup, largs)))
 			repositioned = [kwargs[param] for param in statement.positiontup]
-			self.logger.debug(f"{statement}  |  {repositioned}")
-			return self.connection.execute(statement, kwargs)
+			ret: CursorResult = self.connection.execute(statement, kwargs)
+			self.logger.debug(
+				f"SQLAlchemyConnectionHolder: {statement}  %  {repositioned}; got {ret.rowcount} rows"
+			)
 		elif largs:
 			raise TypeError("{} is a DDL query, I think".format(k))
-		return self.connection.execute(self.sql[k], kwargs)
+		ret: CursorResult = self.connection.execute(self.sql[k], kwargs)
+		self.logger.debug(
+			f"SQLAlchemyConnectionHolder: {statement}; got {ret.rowcount} rows"
+		)
+		return ret
 
 	def call_many(self, k, largs):
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
@@ -7892,6 +7900,9 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				return ex
 		schemaver_b = b"\xb6_lisien_schema_version"
 		ver = self.call_one("global_get", schemaver_b).fetchone()
+		self.logger.debug(
+			f"SQLAlchemyConnectionHolder: Lisien schema version {ver}"
+		)
 		if ver is None:
 			self.call_one("global_insert", schemaver_b, b"\x01")
 		elif ver[0] != b"\x01":
