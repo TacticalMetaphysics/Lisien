@@ -9292,6 +9292,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._t.join()
 
 	def initdb(self):
+		if hasattr(self, "_initialized"):
+			raise RuntimeError("Tried to initialize database twice")
+		self._initialized = True
 		with self.mutex():
 			self._inq.put("initdb")
 			ret = self._outq.get()
