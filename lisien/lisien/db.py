@@ -7903,7 +7903,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		self.logger.debug(
 			f"SQLAlchemyConnectionHolder: Lisien schema version {ver}"
 		)
-		if ver is None:
+		if ver is ...:
 			self.call_one("global_insert", schemaver_b, b"\x01")
 		elif ver[0] != b"\x01":
 			return ValueError(
