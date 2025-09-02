@@ -7910,7 +7910,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				pass
 			except Exception as ex:
 				return ex
-		glob_d = dict(self.call_one("global_dump"))
+		glob_d = dict(self.call_one("global_dump").fetchall())
 		if SCHEMAVER_B not in glob_d:
 			self.call_one("global_insert", SCHEMAVER_B, SCHEMA_VERSION)
 		elif glob_d[SCHEMAVER_B] != SCHEMA_VERSION:
