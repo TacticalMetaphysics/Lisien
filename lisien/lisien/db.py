@@ -7759,16 +7759,22 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		if hasattr(statement, "positiontup"):
 			kwargs.update(dict(zip(statement.positiontup, largs)))
 			repositioned = [kwargs[param] for param in statement.positiontup]
+			self.logger.debug(
+				f"SQLAlchemyConnectionHolder: calling {k}; {statement}  %  {repositioned}"
+			)
 			ret: CursorResult = self.connection.execute(statement, kwargs)
 			self.logger.debug(
-				f"SQLAlchemyConnectionHolder: {statement}  %  {repositioned}; got {ret.rowcount} rows"
+				f"SQLAlchemyConnectionHolder: {k} got {ret.rowcount} rows"
 			)
 			return ret
 		elif largs:
 			raise TypeError("{} is a DDL query, I think".format(k))
+		self.logger.debug(
+			f"SQLAlchemyConnectionHolder: calling {k}; {statement}"
+		)
 		ret: CursorResult = self.connection.execute(self.sql[k], kwargs)
 		self.logger.debug(
-			f"SQLAlchemyConnectionHolder: {statement}; got {ret.rowcount} rows"
+			f"SQLAlchemyConnectionHolder: {k} got {ret.rowcount} rows"
 		)
 		return ret
 
