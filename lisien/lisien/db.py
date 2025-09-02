@@ -137,7 +137,7 @@ class GlobalKeyValueStore(UserDict):
 class ConnectionHolder:
 	strings: dict
 	lock: Lock
-	existence_lock: Lock
+	existence_lock = Lock()
 	_inq: Queue
 	_outq: Queue
 
@@ -222,8 +222,7 @@ class ParquetDBHolder(ConnectionHolder):
 		self._schema = {}
 		self._path = path
 		self.lock = Lock()
-		self.existence_lock = Lock()
-		self.existence_lock.acquire()
+		self.existence_lock.acquire(timeout=1)
 
 	@staticmethod
 	def echo(*args, **_):
@@ -7737,8 +7736,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		tables: list[str],
 	):
 		self.lock = Lock()
-		self.existence_lock = Lock()
-		self.existence_lock.acquire()
+		self.existence_lock.acquire(timeout=1)
 		self._dbstring = dbstring
 		self._connect_args = connect_args
 		self.inq = inq
