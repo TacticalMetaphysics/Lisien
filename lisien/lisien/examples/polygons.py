@@ -124,6 +124,7 @@ if __name__ == "__main__":
 			td,
 			random_seed=69105,
 			connect_string=f"sqlite:///{td}/world.sqlite3",
+			workers=0,
 		) as eng:
 			install(eng)
 		archive_filename = shutil.make_archive("polygons", "zip", td)
