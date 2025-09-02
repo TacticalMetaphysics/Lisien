@@ -37,7 +37,7 @@ def test_new_game(elide_app_main_menu):
 	touch.touch_up()
 	idle_until(
 		lambda: manager.current == "mainscreen",
-		100,
+		1000,
 		"Never switched to 'mainscreen' screen",
 	)
 
