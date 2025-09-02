@@ -19,7 +19,7 @@ filenames = list(
 )
 os.makedirs("kivylogs", exist_ok=True)
 for fn in filenames:
-	with open(os.path.join("kivylogs", fn), "wb") as outf:
+	with open(os.path.join("kivylogs", fn[:-3] + "log"), "wb") as outf:
 		outf.write(
 			subprocess.run(
 				[
