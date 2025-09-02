@@ -98,7 +98,8 @@ class GlobalKeyValueStore(UserDict):
 
 	def __init__(self, qe: AbstractQueryEngine, data: dict):
 		self.qe = qe
-		super().__init__(data)
+		super().__init__()
+		self.data = data
 
 	def __getitem__(self, k: Key) -> Value:
 		ret = super().__getitem__(k)
