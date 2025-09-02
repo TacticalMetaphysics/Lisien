@@ -143,11 +143,11 @@ class ConnectionHolder:
 
 	@cached_property
 	def logger(self):
-		try:
+		if "kivy" in sys.modules:
 			from kivy.logger import Logger
 
 			return Logger
-		except ImportError:
+		else:
 			from logging import getLogger
 
 			return getLogger(self.__class__.__name__)
@@ -7906,6 +7906,20 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		schemaver_b = b"\xb6_lisien_schema_version"
 		ver = self.call_one("global_get", schemaver_b)
 		if ver.rowcount == -1:
+			from sqlalchemy import text
+
+			if (
+				self.connection.execute(
+					text("SELECT COUNT(*) FROM global")
+				).scalar()
+				!= 0
+			):
+				glob_d = dict(self.call_one("global_dump").fetchall())
+				self.logger.error(
+					"SQLAlchemyConnectionHolder: database already has globals in it during initdb, but no schemaver"
+				)
+				self.logger.error(f"globals: {glob_d}")
+				raise RuntimeError("Bad initial globals", glob_d)
 			self.call_one("global_insert", schemaver_b, b"\x01")
 		elif ver.fetchone()[0] != b"\x01":
 			return ValueError(
