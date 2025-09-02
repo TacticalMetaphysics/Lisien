@@ -212,6 +212,7 @@ if __name__ == "__main__":
 			td,
 			random_seed=69105,
 			connect_string=f"sqlite:///{td}/world.sqlite3",
+			workers=0,
 		) as engine:
 			inittest(engine, shrubberies=20, kobold_sprint_chance=0.9)
 			engine.commit()
