@@ -85,6 +85,10 @@ IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
 OperationalError = (LiteOperationalError, AlchemyOperationalError)
 
 
+SCHEMAVER_B = b"\xb6_lisien_schema_version"
+SCHEMA_VERSION = b"\x01"
+
+
 class GlobalKeyValueStore(UserDict):
 	"""A dict-like object that keeps its contents in a table.
 
@@ -92,9 +96,9 @@ class GlobalKeyValueStore(UserDict):
 
 	"""
 
-	def __init__(self, qe: AbstractQueryEngine):
+	def __init__(self, qe: AbstractQueryEngine, data: dict):
 		self.qe = qe
-		super().__init__(qe.global_items())
+		super().__init__(data)
 
 	def __getitem__(self, k: Key) -> Value:
 		ret = super().__getitem__(k)
@@ -248,14 +252,15 @@ class ParquetDBHolder(ConnectionHolder):
 					initial[table],
 					schema=schema,
 				)
-		schemaver_b = b"\xb6_lisien_schema_version"
-		ver = self.get_global(schemaver_b)
-		if ver == ELLIPSIS:
-			self.set_global(schemaver_b, b"\x01")
-		elif ver != b"\x01":
+		glob_d = {d["key"]: d["value"] for d in self.dump("global")}
+		if SCHEMAVER_B not in glob_d:
+			glob_d[SCHEMAVER_B] = SCHEMA_VERSION
+			self.set_global(SCHEMAVER_B, SCHEMA_VERSION)
+		elif glob_d[SCHEMAVER_B] != b"\x01":
 			return ValueError(
-				f"Unsupported database schema version: {ver}", ver
+				f"Unsupported database schema version", glob_d[SCHEMAVER_B]
 			)
+		return glob_d
 
 	def _get_db(self, table: str):
 		from parquetdb import ParquetDB
@@ -5624,8 +5629,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._btts = set()
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
-		self.initdb()
-		self.globl = GlobalKeyValueStore(self)
+		self.globl = GlobalKeyValueStore(
+			self, {unpack(k): unpack(v) for (k, v) in self.initdb().items()}
+		)
 		self._all_keyframe_times = self.call("all_keyframe_times")
 
 	@mutexed
@@ -7713,8 +7719,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.call("commit")
 
 	def initdb(self) -> None:
-		self.call("initdb")
+		ret = self.call("initdb")
 		self._all_keyframe_times = self.call("all_keyframe_times")
+		return ret
 
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
 		return iter(self.call("bookmark_items"))
@@ -7891,7 +7898,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 						self.outq.put(o)
 					self.inq.task_done()
 
-	def initdb(self):
+	def initdb(self) -> dict[bytes, bytes]:
 		"""Set up the database schema, both for allegedb and the special
 		extensions for lisien
 
@@ -7903,28 +7910,14 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				pass
 			except Exception as ex:
 				return ex
-		schemaver_b = b"\xb6_lisien_schema_version"
-		ver = self.call_one("global_get", schemaver_b)
-		if ver.rowcount == -1:
-			from sqlalchemy import text
-
-			if (
-				self.connection.execute(
-					text("SELECT COUNT(*) FROM global")
-				).scalar()
-				!= 0
-			):
-				glob_d = dict(self.call_one("global_dump").fetchall())
-				self.logger.error(
-					"SQLAlchemyConnectionHolder: database already has globals in it during initdb, but no schemaver"
-				)
-				self.logger.error(f"globals: {glob_d}")
-				raise RuntimeError("Bad initial globals", glob_d)
-			self.call_one("global_insert", schemaver_b, b"\x01")
-		elif ver.fetchone()[0] != b"\x01":
+		glob_d = dict(self.call_one("global_dump"))
+		if SCHEMAVER_B not in glob_d:
+			self.call_one("global_insert", SCHEMAVER_B, SCHEMA_VERSION)
+		elif glob_d[SCHEMAVER_B] != SCHEMA_VERSION:
 			return ValueError(
-				f"Unsupported database schema version: {ver}", ver
+				"Unsupported database schema version", glob_d[SCHEMAVER_B]
 			)
+		return glob_d
 
 
 class SQLAlchemyBatch(list):
@@ -9313,17 +9306,20 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._initialized = True
 		with self.mutex():
 			self._inq.put("initdb")
-			ret = self._outq.get()
+			globals = self._outq.get()
 			self._outq.task_done()
-			if isinstance(ret, Exception):
-				raise ret
+			if isinstance(globals, Exception):
+				raise globals
+			self.globl = GlobalKeyValueStore(
+				self,
+				{self.unpack(k): self.unpack(v) for (k, v) in globals.items()},
+			)
 			self._inq.put(("one", "keyframes_dump", (), {}))
 			ret = self._outq.get()
 			self._outq.task_done()
 			if isinstance(ret, Exception):
 				raise ret
 			self._all_keyframe_times = set(ret)
-		self.globl = GlobalKeyValueStore(self)
 		if "main_branch" not in self.globl:
 			self.global_set("main_branch", "trunk")
 			self.globl.data["main_branch"] = "trunk"
