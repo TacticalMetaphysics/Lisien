@@ -247,7 +247,7 @@ class GameList(RecycleView):
 	def regen(self, *_):
 		if not self.picker:
 			Logger.debug("GameList: awaiting picker")
-			Clock.schedule_once(self.on_path, 0)
+			Clock.schedule_once(self.regen, 0)
 			return
 		if not os.path.isdir(self.path):
 			return
