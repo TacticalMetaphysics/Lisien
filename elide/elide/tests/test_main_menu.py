@@ -77,6 +77,9 @@ def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 	idle_until(lambda: "game_list" in modal.ids, 100, "Never built game list")
 	game_list = modal.ids.game_list
 	idle_until(lambda: game_list.data, 100, "Never got saved game data")
+	idle_until(
+		lambda: game_list._viewport, 100, "Never got game list viewport"
+	)
 	button = game_list._viewport.children[0]
 	assert button.text == "kobold"
 	x, y = game_list.to_parent(*button.center)
