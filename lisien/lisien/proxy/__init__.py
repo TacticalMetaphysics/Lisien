@@ -3816,9 +3816,6 @@ class EngineProxy(AbstractEngine):
 
 	def _init_pull_from_core(self):
 		self.debug("EngineProxy: Waiting for core...")
-		self.recv()
-		self.debug("EngineProxy: Getting time...")
-		self.send({"command": "get_btt"})
 		received = self.recv()
 		self.debug(f"EngineProxy: Got time: {received}")
 		self._branch, self._turn, self._tick = received[-1]
@@ -4558,7 +4555,7 @@ def engine_subprocess(
 		)
 
 	engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
-	send_output("ready", None)
+	send_output("get_btt", engine_handle.get_btt())
 	while True:
 		inst = input_pipe.recv_bytes()
 		if inst == b"shutdown":
@@ -4587,7 +4584,7 @@ def engine_subthread(args, kwargs, input_queue, output_queue):
 		)
 
 	engine_handle = EngineHandle(*args, **kwargs)
-	send_output("ready", None)
+	send_output("get_btt", engine_handle.get_btt())
 
 	while True:
 		instruction = input_queue.get()
