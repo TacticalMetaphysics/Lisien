@@ -4827,6 +4827,8 @@ class AbstractQueryEngine(ABC):
 			"rule_triggers",
 			"rule_prereqs",
 			"rule_actions",
+			"rule_neighborhood",
+			"rule_big",
 		]
 		| CharName,
 		list[UniversalRowType]
