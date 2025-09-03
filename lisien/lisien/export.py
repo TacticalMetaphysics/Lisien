@@ -707,7 +707,7 @@ def query_engine_to_tree(
 			query,
 			turn_from,
 			turn_to,
-			turn_end_plan_d,
+			turn_end_plan_d[b],
 			data,
 			branch_elements[b],
 			keyframe_times,
