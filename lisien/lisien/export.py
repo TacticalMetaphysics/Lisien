@@ -219,8 +219,12 @@ def add_keyframe_to_branch_el(
 			big="T" if bigs_kf.get(rule_name) else "F",
 		)
 		kfel.append(rule_el)
-		if neighborhood := neighborhoods_kf.get(rule_name) is not None:
-			rule_el.set("neighborhood", neighborhood)
+		if rule_name in neighborhoods_kf:
+			neighborhood = neighborhoods_kf[rule_name]
+			rule_el.set(
+				"neighborhood",
+				"" if neighborhood is None else str(neighborhood),
+			)
 		if trigs := triggers_kf.get(rule_name):
 			for trig in trigs:
 				rule_el.append(Element("trigger", name=trig))
