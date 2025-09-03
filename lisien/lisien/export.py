@@ -1,8 +1,8 @@
 import os
-from collections import defaultdict, deque
+from collections import deque
 from pathlib import Path
 from types import FunctionType, MethodType
-from typing import Literal, TypeAlias
+from typing import Literal
 from xml.etree.ElementTree import ElementTree, Element
 
 import networkx as nx
