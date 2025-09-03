@@ -190,17 +190,23 @@ def add_keyframe_to_branch_el(
 ) -> None:
 	kfel = Element("keyframe", branch=branch, turn=str(turn), tick=str(tick))
 	branch_el.append(kfel)
-	universal_d: dict[Key, Value] = keyframe["universal"]
+	universal_d: dict[Key, Value] = keyframe.get("universal", {})
 	univel = value_to_xml(universal_d)
 	univel.tag = "universal"
 	kfel.append(univel)
-	triggers_kf: dict[RuleName, list[TriggerFuncName]] = keyframe["triggers"]
-	prereqs_kf: dict[RuleName, list[PrereqFuncName]] = keyframe["prereqs"]
-	actions_kf: dict[RuleName, list[ActionFuncName]] = keyframe["actions"]
-	neighborhoods_kf: dict[RuleName, RuleNeighborhood] = keyframe[
-		"neighborhood"
-	]
-	bigs_kf: dict[RuleName, RuleBig] = keyframe["big"]
+	triggers_kf: dict[RuleName, list[TriggerFuncName]] = keyframe.get(
+		"triggers", {}
+	)
+	prereqs_kf: dict[RuleName, list[PrereqFuncName]] = keyframe.get(
+		"prereqs", {}
+	)
+	actions_kf: dict[RuleName, list[ActionFuncName]] = keyframe.get(
+		"actions", {}
+	)
+	neighborhoods_kf: dict[RuleName, RuleNeighborhood] = keyframe.get(
+		"neighborhood", {}
+	)
+	bigs_kf: dict[RuleName, RuleBig] = keyframe.get("big", {})
 	for rule_name in (
 		triggers_kf.keys() | prereqs_kf.keys() | actions_kf.keys()
 	):
@@ -224,7 +230,7 @@ def add_keyframe_to_branch_el(
 				rule_el.append(Element("action", name=act))
 	rulebook_kf: dict[
 		RulebookName, tuple[list[RuleName], RulebookPriority]
-	] = keyframe["rulebook"]
+	] = keyframe.get("rulebook", {})
 	for rulebook_name, (rule_list, priority) in rulebook_kf.items():
 		rulebook_el = Element(
 			"rulebook", name=repr(rulebook_name), priority=repr(priority)
@@ -233,17 +239,16 @@ def add_keyframe_to_branch_el(
 		for rule_name in rule_list:
 			rulebook_el.append(Element("rule", name=rule_name))
 	char_els: dict[CharName, Element] = {}
-	if "graph_val" in keyframe:
-		graph_val_kf: GraphValKeyframe = keyframe["graph_val"]
-		for char_name, vals in graph_val_kf.items():
-			graph_el = char_els[char_name] = Element(
-				"character", name=repr(char_name)
-			)
-			for k, v in vals.items():
-				item_el = Element("dict_item", key=repr(k))
-				graph_el.append(item_el)
-				item_el.append(value_to_xml(v))
-	node_val_kf: GraphNodeValKeyframe = keyframe["node_val"]
+	graph_val_kf: GraphValKeyframe = keyframe.get("graph_val", {})
+	for char_name, vals in graph_val_kf.items():
+		graph_el = char_els[char_name] = Element(
+			"character", name=repr(char_name)
+		)
+		for k, v in vals.items():
+			item_el = Element("dict_item", key=repr(k))
+			graph_el.append(item_el)
+			item_el.append(value_to_xml(v))
+	node_val_kf: GraphNodeValKeyframe = keyframe.get("node_val", {})
 	for char_name, node_vals in node_val_kf.items():
 		if char_name in char_els:
 			char_el = char_els[char_name]
@@ -259,7 +264,7 @@ def add_keyframe_to_branch_el(
 				item_el = Element("dict_item", key=repr(k))
 				node_el.append(item_el)
 				item_el.append(value_to_xml(v))
-	edge_val_kf: GraphEdgeValKeyframe = keyframe["edge_val"]
+	edge_val_kf: GraphEdgeValKeyframe = keyframe.get("edge_val", {})
 	for char_name, edge_vals in edge_val_kf.items():
 		if char_name in char_els:
 			char_el = char_els[char_name]
