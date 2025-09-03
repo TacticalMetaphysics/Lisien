@@ -4837,20 +4837,33 @@ class AbstractQueryEngine(ABC):
 		| LoadedCharWindow,
 	]:
 		def empty_char() -> LoadedCharWindow:
+			nodes_l: list[NodeRowType] = []
+			edges_l: list[EdgeRowType] = []
+			graph_val_l: list[GraphValRowType] = []
+			node_val_l: list[NodeValRowType] = []
+			edge_val_l: list[EdgeValRowType] = []
+			things_l: list[ThingRowType] = []
+			character_rulebook_l: list[CharRulebookRowType] = []
+			unit_rulebook_l: list[CharRulebookRowType] = []
+			char_thing_rulebook_l: list[CharRulebookRowType] = []
+			char_place_rulebook_l: list[CharRulebookRowType] = []
+			char_portal_rulebook_l: list[CharRulebookRowType] = []
+			node_rulebook_l: list[NodeRulebookRowType] = []
+			portal_rulebook_l: list[PortalRulebookRowType] = []
 			return {
-				"nodes": [],
-				"edges": [],
-				"graph_val": [],
-				"node_val": [],
-				"edge_val": [],
-				"things": [],
-				"character_rulebook": [],
-				"unit_rulebook": [],
-				"character_thing_rulebook": [],
-				"character_place_rulebook": [],
-				"character_portal_rulebook": [],
-				"node_rulebook": [],
-				"portal_rulebook": [],
+				"nodes": nodes_l,
+				"edges": edges_l,
+				"graph_val": graph_val_l,
+				"node_val": node_val_l,
+				"edge_val": edge_val_l,
+				"things": things_l,
+				"character_rulebook": character_rulebook_l,
+				"unit_rulebook": unit_rulebook_l,
+				"character_thing_rulebook": char_thing_rulebook_l,
+				"character_place_rulebook": char_place_rulebook_l,
+				"character_portal_rulebook": char_portal_rulebook_l,
+				"node_rulebook": node_rulebook_l,
+				"portal_rulebook": portal_rulebook_l,
 			}
 
 		self.debug(f"load_windows({windows})")
