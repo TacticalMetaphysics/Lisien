@@ -184,16 +184,47 @@ RulebookKeyframe: TypeAlias = dict[
 ]
 NodeKeyframe = NewType("NodeKeyframe", dict)
 EdgeKeyframe = NewType("EdgeKeyframe", dict)
+UniversalRowType: TypeAlias = tuple[UniversalKey, Branch, Turn, Tick, Value]
+RulebookRowType: TypeAlias = tuple[
+	RulebookName,
+	Branch,
+	Turn,
+	Tick,
+	tuple[list[RuleName], RulebookPriority],
+]
+RuleRowType: TypeAlias = tuple[
+	RuleName,
+	Branch,
+	Turn,
+	Tick,
+	list[TriggerFuncName]
+	| list[PrereqFuncName]
+	| list[ActionFuncName]
+	| RuleNeighborhood
+	| RuleBig,
+]
 NodeRowType: TypeAlias = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
 EdgeRowType: TypeAlias = tuple[
 	CharName, NodeName, NodeName, Branch, Turn, Tick, bool
 ]
-GraphValRowType: TypeAlias = tuple[CharName, Key, Branch, Turn, Tick, Value]
+GraphValRowType: TypeAlias = tuple[CharName, Stat, Branch, Turn, Tick, Value]
 NodeValRowType: TypeAlias = tuple[
-	CharName, NodeName, Key, Branch, Turn, Tick, Value
+	CharName, NodeName, Stat, Branch, Turn, Tick, Value
 ]
 EdgeValRowType: TypeAlias = tuple[
-	CharName, NodeName, NodeName, Key, Branch, Turn, Tick, Value
+	CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value
+]
+ThingRowType: TypeAlias = tuple[
+	CharName, NodeName, Branch, Turn, Tick, NodeName
+]
+CharRulebookRowType: TypeAlias = tuple[
+	CharName, Branch, Turn, Tick, RulebookName
+]
+NodeRulebookRowType: TypeAlias = tuple[
+	CharName, NodeName, Branch, Turn, Tick, RulebookName
+]
+PortalRulebookRowType: TypeAlias = tuple[
+	CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName
 ]
 StatDict: TypeAlias = dict[Stat | Literal["rulebook"], Value]
 CharDict: TypeAlias = dict[
