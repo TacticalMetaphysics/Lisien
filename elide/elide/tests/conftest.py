@@ -25,7 +25,7 @@ from kivy.resources import resource_find
 from elide.app import ElideApp
 from elide.tests.util import idle_until
 from lisien import Engine
-from lisien.examples import polygons, kobold, sickle
+from lisien.examples import kobold, polygons, sickle
 
 
 @pytest.fixture
@@ -110,7 +110,7 @@ def elide_app(kivy, play_dir):
 		app.stop()
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def elide_app_main_menu(kivy, play_dir):
 	app = make_elide_app(play_dir, workers=0)
 	app.config = ConfigParser(None)

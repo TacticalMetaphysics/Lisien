@@ -5,6 +5,7 @@ from kivy.base import EventLoop
 from kivy.tests.common import UnitTestTouch
 
 from lisien import Engine
+
 from .util import idle_until
 
 

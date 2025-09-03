@@ -1,3 +1,12 @@
+== 0.21.7 | 2025-09-03 ==
+* Fix imported games on Android being extracted to a different directory than
+  what Elide opens, resulting in "imported" games being empty all the time,
+  or, if they shared a name with an existing game, you'd load into that game
+  instead.
+* Rearranged the ↑ and ↓ buttons in the rule builder.
+* Tidied the initial connection to the database a bit. This seemed to fix
+  crashes on starting the game on Android, but I'm not sure why.
+
 == 0.21.6 | 2025-08-28 ==
 * Fix Elide's rule builder not showing the cards
 

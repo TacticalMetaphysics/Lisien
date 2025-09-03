@@ -6,7 +6,7 @@ from kivy.tests.common import UnitTestTouch
 from lisien import Engine
 
 from ..card import Card, Foundation
-from .util import idle_until, advance_frames
+from .util import advance_frames, idle_until
 
 
 def builder_has_foundation(builder):

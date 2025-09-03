@@ -8,7 +8,7 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 
 from ..app import ElideApp
-from .util import idle_until, advance_frames
+from .util import advance_frames, idle_until
 
 
 def test_new_game(elide_app_main_menu):
