@@ -745,7 +745,7 @@ class CharacterFacade(AbstractCharacter):
 			self.name, charn, noden, *self.engine._btt(), True
 		)
 
-	def __init__(self, character=None, engine=None):
+	def __init__(self, character=None, engine=None, init_rulebooks=None):
 		self.character = character
 		if isinstance(engine, EngineFacade):
 			self.db = engine
