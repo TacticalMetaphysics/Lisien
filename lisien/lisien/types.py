@@ -203,6 +203,19 @@ RuleRowType: TypeAlias = tuple[
 	| RuleNeighborhood
 	| RuleBig,
 ]
+TriggerRowType: TypeAlias = tuple[
+	RuleName, Branch, Turn, Tick, list[TriggerFuncName]
+]
+PrereqRowType: TypeAlias = tuple[
+	RuleName, Branch, Turn, Tick, list[PrereqFuncName]
+]
+ActionRowType: TypeAlias = tuple[
+	RuleName, Branch, Turn, Tick, list[ActionFuncName]
+]
+RuleNeighborhoodRowType: TypeAlias = tuple[
+	RuleName, Branch, Turn, Tick, RuleNeighborhood
+]
+RuleBigRowType: TypeAlias = tuple[RuleName, Branch, Turn, Tick, RuleBig]
 NodeRowType: TypeAlias = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
 EdgeRowType: TypeAlias = tuple[
 	CharName, NodeName, NodeName, Branch, Turn, Tick, bool
