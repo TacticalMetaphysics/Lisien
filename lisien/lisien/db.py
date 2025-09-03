@@ -4147,6 +4147,28 @@ class AbstractQueryEngine(ABC):
 	) -> Iterator[tuple[CharName, NodeKeyframe, EdgeKeyframe, CharDict]]:
 		pass
 
+	def get_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> Keyframe:
+		kf = self.get_keyframe_extensions(branch, turn, tick)
+		for (
+			char,
+			node_val,
+			edge_val,
+			graph_val,
+		) in self.get_all_keyframe_graphs(branch, turn, tick):
+			if "node_val" in kf:
+				kf["node_val"][char] = node_val
+			else:
+				kf["node_val"] = {char: node_val}
+			if "edge_val" in kf:
+				kf["edge_val"][char] = edge_val
+			else:
+				kf["edge_val"] = {char: edge_val}
+			if "graph_val" in kf:
+				kf["graph_val"][char] = graph_val
+			else:
+				kf["graph_val"] = {char: graph_val}
+		return kf
+
 	@abstractmethod
 	def get_all_keyframe_graphs_ever(
 		self,
