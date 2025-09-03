@@ -70,11 +70,13 @@ from .types import (
 	RuleKeyframe,
 	RuleName,
 	RuleNeighborhood,
+	Stat,
 	Tick,
 	Time,
 	TimeWindow,
 	TriggerFuncName,
 	Turn,
+	UniversalKey,
 	UniversalKeyframe,
 	Value,
 	CharDict,
@@ -2820,6 +2822,38 @@ def mutexed(func):
 	return mutexy
 
 
+LoadedCharWindow: TypeAlias = dict[
+	Literal[
+		"nodes",
+		"edges",
+		"graph_val",
+		"node_val",
+		"edge_val",
+		"things",
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+		"node_rulebook",
+		"portal_rulebook",
+	],
+	list[tuple[CharName, NodeName, Branch, Turn, Tick, bool]]
+	| list[tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, bool]]
+	| list[tuple[CharName, Stat, Branch, Turn, Tick, Value]]
+	| list[tuple[CharName, NodeName, Stat, Branch, Turn, Tick, Value]]
+	| list[
+		tuple[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value]
+	]
+	| list[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]
+	| list[tuple[CharName, Branch, Turn, Tick, RulebookName]]
+	| list[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]
+	| list[
+		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
+	],
+]
+
+
 class AbstractQueryEngine(ABC):
 	pack: callable
 	unpack: callable
@@ -3423,8 +3457,11 @@ class AbstractQueryEngine(ABC):
 			raise RuntimeError("Expected beginning of nodes", got)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, bytes, Turn, Tick, bool]]
 			for graph, node, turn, tick, ex in got:
 				(graph, node) = map(unpack, (graph, node))
+				graph: CharName
+				node: NodeName
 				ret[graph]["nodes"].append(
 					(graph, node, branch, turn, tick, ex or None)
 				)
@@ -3456,8 +3493,12 @@ class AbstractQueryEngine(ABC):
 			raise RuntimeError("Expected beginning of edges", got)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]
 			for graph, orig, dest, turn, tick, ex in got:
 				(graph, orig, dest) = map(unpack, (graph, orig, dest))
+				graph: CharName
+				orig: NodeName
+				dest: NodeName
 				ret[graph]["edges"].append(
 					(
 						graph,
@@ -3496,8 +3537,12 @@ class AbstractQueryEngine(ABC):
 
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, bytes, Turn, Tick, bytes]]
 			for graph, key, turn, tick, val in got:
 				(graph, key, val) = map(unpack, (graph, key, val))
+				graph: CharName
+				key: Stat
+				val: Value
 				ret[graph]["graph_val"].append(
 					(graph, key, branch, turn, tick, val)
 				)
@@ -3531,8 +3576,13 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]
 			for graph, node, key, turn, tick, val in got:
 				(graph, node, key, val) = map(unpack, (graph, node, key, val))
+				graph: CharName
+				node: NodeName
+				key: Stat
+				val: Value
 				ret[graph]["node_val"].append(
 					(graph, node, key, branch, turn, tick, val)
 				)
@@ -3566,10 +3616,16 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]
 			for graph, orig, dest, key, turn, tick, val in got:
 				(graph, orig, dest, key, val) = map(
 					unpack, (graph, orig, dest, key, val)
 				)
+				graph: CharName
+				orig: NodeName
+				dest: NodeName
+				key: Stat
+				val: Value
 				ret[graph]["edge_val"].append(
 					(
 						graph,
@@ -3612,8 +3668,12 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, bytes, Turn, Tick, bytes]]
 			for graph, node, turn, tick, loc in got:
 				(graph, node, loc) = map(unpack, (graph, node, loc))
+				graph: CharName
+				node: NodeName
+				loc: NodeName
 				ret[graph]["things"].append(
 					(graph, node, branch, turn, tick, loc)
 				)
@@ -3647,8 +3707,11 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, Turn, Tick, bytes]]
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
+				graph: CharName
+				rb: RulebookName
 				ret[graph]["character_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
@@ -3682,8 +3745,11 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, Turn, Tick, bytes]]
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
+				graph: CharName
+				rb: RulebookName
 				ret[graph]["unit_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
@@ -3717,8 +3783,11 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, Turn, Tick, bytes]]
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
+				graph: CharName
+				rb: RulebookName
 				ret[graph]["character_thing_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
@@ -3752,8 +3821,11 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, Turn, Tick, bytes]]
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
+				graph: CharName
+				rb: RulebookName
 				ret[graph]["character_place_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
@@ -3787,8 +3859,11 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, Turn, Tick, bytes]]
 			for graph, turn, tick, rb in got:
 				(graph, rb) = map(unpack, (graph, rb))
+				graph: CharName
+				rb: RulebookName
 				ret[graph]["character_portal_rulebook"].append(
 					(graph, branch, turn, tick, rb)
 				)
@@ -3820,8 +3895,12 @@ class AbstractQueryEngine(ABC):
 
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, bytes, Turn, Tick, bytes]]
 			for graph, node, turn, tick, rb in got:
 				(graph, node, rb) = map(unpack, (graph, node, rb))
+				graph: CharName
+				node: NodeName
+				rb: RulebookName
 				ret[graph]["node_rulebook"].append(
 					(graph, node, branch, turn, tick, rb)
 				)
@@ -3853,8 +3932,13 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]
 			for graph, orig, dest, turn, tick, rb in got:
 				(graph, orig, dest, rb) = map(unpack, (graph, orig, dest, rb))
+				graph: CharName
+				orig: NodeName
+				dest: NodeName
+				rb: RulebookName
 				ret[graph]["portal_rulebook"].append(
 					(graph, orig, dest, branch, turn, tick, rb)
 				)
@@ -3888,8 +3972,11 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, Turn, Tick, bytes]]
 			for key, turn, tick, val in got:
 				(key, val) = map(unpack, (key, val))
+				key: UniversalKey
+				val: Value
 				if "universals" in ret:
 					ret["universals"].append((key, branch, turn, tick, val))
 				else:
@@ -3924,8 +4011,11 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, Turn, Tick, bytes, RulebookPriority]]
 			for rulebook, turn, tick, rules, priority in got:
 				(rulebook, rules) = map(unpack, (rulebook, rules))
+				rulebook: RulebookName
+				rules: list[RuleName]
 				if "rulebooks" in ret:
 					ret["rulebooks"].append(
 						(rulebook, branch, turn, tick, (rules, priority))
@@ -3964,8 +4054,9 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[RuleName, Turn, Tick, bytes]]
 			for rule, turn, tick, triggers in got:
-				triggers = unpack(triggers)
+				triggers: list[TriggerFuncName] = unpack(triggers)
 				if "rule_triggers" in ret:
 					ret["rule_triggers"].append(
 						(rule, branch, turn, tick, triggers)
@@ -4004,8 +4095,9 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[RuleName, Turn, Tick, bytes]]
 			for rule, turn, tick, prereqs in got:
-				prereqs = unpack(prereqs)
+				prereqs: list[PrereqFuncName] = unpack(prereqs)
 				if "rule_prereqs" in ret:
 					ret["rule_prereqs"].append(
 						(rule, branch, turn, tick, prereqs)
@@ -4042,8 +4134,9 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[RuleName, Turn, Tick, bytes]]
 			for rule, turn, tick, actions in got:
-				actions = unpack(actions)
+				actions: list[ActionFuncName] = unpack(actions)
 				if "rule_actions" in ret:
 					ret["rule_actions"].append(
 						(rule, branch, turn, tick, actions)
@@ -4080,8 +4173,9 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[RuleName, Turn, Tick, bytes]
 			for rule, turn, tick, neighborhoods in got:
-				neighborhoods = unpack(neighborhoods)
+				neighborhoods: RuleNeighborhood = unpack(neighborhoods)
 				if "rule_neighborhoods" in ret:
 					ret["rule_neighborhoods"].append(
 						(rule, branch, turn, tick, neighborhoods)
@@ -4120,6 +4214,7 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
+			got: list[tuple[RuleName, Turn, Tick, RuleBig]]
 			for rule, turn, tick, big in got:
 				if "rule_big" in ret:
 					ret["rule_big"].append((rule, branch, turn, tick, big))
@@ -4199,7 +4294,9 @@ class AbstractQueryEngine(ABC):
 	]: ...
 
 	@abstractmethod
-	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
+	def universals_dump(
+		self,
+	) -> Iterator[tuple[Key, Branch, Turn, Tick, Value]]:
 		pass
 
 	@abstractmethod
@@ -4717,8 +4814,42 @@ class AbstractQueryEngine(ABC):
 	@abstractmethod
 	def del_bookmark(self, key: Key) -> None: ...
 
-	def load_windows(self, windows: list[TimeWindow]) -> dict:
-		def empty_char():
+	def load_windows(
+		self, windows: list[TimeWindow]
+	) -> dict[
+		Literal[
+			"universals",
+			"rulebooks",
+			"rule_triggers",
+			"rule_prereqs",
+			"rule_actions",
+		]
+		| CharName,
+		list[tuple[UniversalKey, Branch, Turn, Tick, Value]]
+		| list[
+			tuple[
+				RulebookName,
+				Branch,
+				Turn,
+				Tick,
+				tuple[list[RuleName], RulebookPriority],
+			]
+		]
+		| list[
+			tuple[
+				RuleName,
+				Branch,
+				Turn,
+				Tick,
+				list[TriggerFuncName]
+				| list[PrereqFuncName]
+				| list[ActionFuncName]
+				| RuleNeighborhood
+				| RuleBig,
+			]
+		],
+	]:
+		def empty_char() -> LoadedCharWindow:
 			return {
 				"nodes": [],
 				"edges": [],
