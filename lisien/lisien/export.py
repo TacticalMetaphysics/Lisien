@@ -631,9 +631,11 @@ def query_engine_to_tree(
 	root = tree.getroot()
 	trunks = set()
 	branches_d = {}
+	branch_descendants = {}
 	turn_end_plan_d = {}
 	branch_elements = {}
-	playtrees = {}
+	playtrees: dict[Branch, Element] = {}
+	keyframe_times: set[Time] = set(query.keyframes_dump())
 	for branch, turn, last_real_tick, last_planned_tick in query.turns_dump():
 		if branch in turn_end_plan_d:
 			turn_end_plan_d[branch][turn] = last_planned_tick
@@ -669,79 +671,54 @@ def query_engine_to_tree(
 			)
 			root.append(playtree)
 			playtree.append(branch_element)
-		elif parent in branch_elements:
-			branch_el = Element(
-				"branch",
-				parent=parent,
-				start_turn=str(parent_turn),
-				start_tick=str(parent_tick),
-				end_turn=str(end_turn),
-				end_tick=str(end_tick),
-			)
-			branch_elements[parent].append(branch_el)
 		else:
-			branch2do.append(
-				(
-					branch,
-					parent,
-					parent_turn,
-					parent_tick,
-					end_turn,
-					end_tick,
+			if parent in branch_descendants:
+				branch_descendants[parent].add(branch)
+			else:
+				branch_descendants[parent] = {branch}
+			if parent in branch_elements:
+				branch_el = Element(
+					"branch",
+					parent=parent,
+					start_turn=str(parent_turn),
+					start_tick=str(parent_tick),
+					end_turn=str(end_turn),
+					end_tick=str(end_tick),
 				)
-			)
+				branch_elements[parent].append(branch_el)
+			else:
+				branch2do.append(
+					(
+						branch,
+						parent,
+						parent_turn,
+						parent_tick,
+						end_turn,
+						end_tick,
+					)
+				)
 
-	def make_keyframe_dict() -> Keyframe:
-		return {
-			"universal": {},
-			"triggers": {},
-			"prereqs": {},
-			"actions": {},
-			"rulebook": {},
-			"big": {},
-			"neighborhood": {},
-			"node_val": {},
-			"edge_val": {},
-			"graph_val": {},
-		}
-
-	keyframes = defaultdict(make_keyframe_dict)
-	for (
-		branch,
-		turn,
-		tick,
-		universal,
-		rule,
-		rulebook,
-	) in query.get_all_keyframe_extensions_ever():
-		kf = keyframes[branch, turn, tick]
-		kf["universal"] = universal
-		kf["rulebook"] = rulebook
-		for rule, d in rule.items():
-			kf["triggers"][rule] = d.get("triggers", [])
-			kf["prereqs"][rule] = d.get("prereqs", [])
-			kf["actions"][rule] = d.get("actions", [])
-			kf["neighborhood"][rule] = d.get("neighborhood", None)
-			kf["big"][rule] = d.get("big", False)
-	for (
-		char_name,
-		branch,
-		turn,
-		tick,
-		nodes,
-		edges,
-		graph_val,
-	) in query.get_all_keyframe_graphs_ever():
-		kf = keyframes[branch, turn, tick]
-		kf["node_val"][char_name] = nodes
-		kf["edge_val"][char_name] = edges
-		kf["graph_val"][char_name] = graph_val
-	for (branch, turn, tick), keyframe in keyframes.items():
-		if not (branch in branches_d and branch in branch_elements):
-			raise RuntimeError("Keyframe in invalid branch", branch)
-		add_keyframe_to_branch_el(
-			branch_elements[branch], turn, tick, keyframe
+	def recurse_branch(b: Branch):
+		parent, turn_from, tick_from, turn_to, tick_to = branches_d[b]
+		data = query.load_windows(
+			[(b, turn_from, tick_from, turn_to, tick_to)]
 		)
+		fill_branch_element(
+			query,
+			turn_from,
+			turn_to,
+			turn_end_plan_d,
+			data,
+			branch_elements[b],
+			keyframe_times,
+			b,
+		)
+		for desc in branch_descendants[b]:
+			recurse_branch(desc)
+
+	for trunk in trunks:
+		recurse_branch(trunk)
+
 	return tree
 
 
