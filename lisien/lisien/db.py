@@ -4848,7 +4848,8 @@ class AbstractQueryEngine(ABC):
 				| RuleNeighborhood
 				| RuleBig,
 			]
-		],
+		]
+		| LoadedCharWindow,
 	]:
 		def empty_char() -> LoadedCharWindow:
 			return {
