@@ -474,6 +474,9 @@ class FacadePlace(FacadeNode):
 		from .node import Place
 
 		super().__init__(mapping, real_or_name, **kwargs)
+		if isinstance(mapping, CharacterFacade):
+			mapping.place._patch[real_or_name] = self
+			return
 		if not isinstance(real_or_name, Place):
 			if real_or_name in mapping._patch:
 				real_or_name = mapping._patch[real_or_name]
@@ -746,18 +749,22 @@ class CharacterFacade(AbstractCharacter):
 		)
 
 	def __init__(self, character=None, engine=None, init_rulebooks=None):
-		self.character = character
-		if isinstance(engine, EngineFacade):
-			self.db = engine
-		else:
-			self.db = EngineFacade(engine or getattr(character, "db", None))
-		self._stat_map = self.StatMapping(self)
-		self._rb_patch = {}
-		if hasattr(character, "name"):
-			self.db.character._patch[character.name] = self
-			self._name = character.name
+		if isinstance(character, AbstractCharacter):
+			self.character = character
+			if hasattr(character, "name"):
+				self.db.character._patch[character.name] = self
+				self._name = character.name
+			else:
+				self._name = character
 		else:
 			self._name = character
+			self.character = None
+		if isinstance(engine, EngineFacade):
+			self.db = engine
+		elif hasattr(character, "db"):
+			self.db = EngineFacade(character.db)
+		self._stat_map = self.StatMapping(self)
+		self._rb_patch = {}
 
 	@property
 	def graph(self):
