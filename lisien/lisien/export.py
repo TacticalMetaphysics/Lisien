@@ -75,7 +75,7 @@ def game_path_to_xml(
 
 def value_to_xml(value: Value | dict[Key, Value]) -> Element:
 	if value is ...:
-		return Element("...")
+		return Element("Ellipsis")
 	elif value is None:
 		return Element("None")
 	elif isinstance(value, int):
