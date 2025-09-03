@@ -2,13 +2,14 @@ import os
 from collections import defaultdict, deque
 from pathlib import Path
 from types import FunctionType, MethodType
+from typing import Literal, TypeAlias
 from xml.etree.ElementTree import ElementTree, Element
 
 import networkx as nx
 from tblib import Traceback
 
 import lisien.graph
-from lisien.db import AbstractQueryEngine
+from lisien.db import AbstractQueryEngine, LoadedCharWindow
 from lisien.facade import EngineFacade
 from lisien.types import (
 	Keyframe,
@@ -28,6 +29,26 @@ from lisien.types import (
 	GraphValKeyframe,
 	Turn,
 	Tick,
+	Branch,
+	Stat,
+	UniversalRowType,
+	RulebookRowType,
+	Time,
+	RuleRowType,
+	TriggerRowType,
+	PrereqRowType,
+	ActionRowType,
+	RuleNeighborhoodRowType,
+	RuleBigRowType,
+	NodeRowType,
+	NodeValRowType,
+	EdgeRowType,
+	EdgeValRowType,
+	GraphValRowType,
+	ThingRowType,
+	CharRulebookRowType,
+	NodeRulebookRowType,
+	PortalRulebookRowType,
 )
 from lisien.util import AbstractThing
 
@@ -161,9 +182,13 @@ def value_to_xml(value: Value | dict[Key, Value]) -> Element:
 
 
 def add_keyframe_to_branch_el(
-	branch_el: Element, turn: Turn, tick: Tick, keyframe: Keyframe
+	branch_el: Element,
+	branch: Branch,
+	turn: Turn,
+	tick: Tick,
+	keyframe: Keyframe,
 ) -> None:
-	kfel = Element("keyframe", turn=str(turn), tick=str(tick))
+	kfel = Element("keyframe", branch=branch, turn=str(turn), tick=str(tick))
 	branch_el.append(kfel)
 	universal_d: dict[Key, Value] = keyframe["universal"]
 	univel = value_to_xml(universal_d)
@@ -249,14 +274,371 @@ def add_keyframe_to_branch_el(
 					item_el.append(value_to_xml(v))
 
 
+def fill_branch_element(
+	query: AbstractQueryEngine,
+	turn_from: Turn,
+	turn_to: Turn,
+	turn_ends: dict[Turn, Tick],
+	data: dict[
+		Literal[
+			"universals",
+			"rulebooks",
+			"rule_triggers",
+			"rule_prereqs",
+			"rule_actions",
+			"rule_neighborhood",
+			"rule_big",
+		]
+		| CharName,
+		list[UniversalRowType]
+		| list[RulebookRowType]
+		| list[RuleRowType]
+		| LoadedCharWindow,
+	],
+	branch_el: Element,
+	keyframe_times: set[Time],
+	branch: Branch,
+):
+	def append_univ_el(universal_rec: UniversalRowType):
+		key, b, r, t, val = universal_rec
+		univ_el = Element(
+			"universal",
+			key=repr(key),
+			branch=b,
+			turn=str(r),
+			tick=str(t),
+		)
+		univ_el.append(value_to_xml(val))
+		branch_el.append(univ_el)
+
+	def append_rulebook_el(rulebook_rec: RulebookRowType):
+		rb, b, r, t, (rules, prio) = rulebook_rec
+		rb_el = Element("rulebook", name=repr(rulebook), priority=repr(prio))
+		branch_el.append(rb_el)
+		for i, rule in enumerate(rules):
+			rb_el.append(Element("rule_placement", rule=rule, idx=str(i)))
+
+	def append_rule_el(
+		trig_rec: TriggerRowType,
+		preq_rec: PrereqRowType,
+		act_rec: ActionRowType,
+		nbr_rec: RuleNeighborhoodRowType,
+		big_rec: RuleBigRowType,
+	):
+		assert (
+			trig_rec[0]
+			== preq_rec[0]
+			== act_rec[0]
+			== nbr_rec[0]
+			== big_rec[0]
+		)
+		assert (
+			trig_rec[1:4]
+			== preq_rec[1:4]
+			== act_rec[1:4]
+			== nbr_rec[1:4]
+			== big_rec[1:4]
+			== (branch, turn, tick)
+		)
+		trigs = trig_rec[-1]
+		preqs = preq_rec[-1]
+		acts = act_rec[-1]
+		nbr = nbr_rec[-1]
+		big = big_rec[-1]
+		rule_el = Element(
+			"rule",
+			name=rule,
+			branch=branch,
+			turn=str(turn),
+			tick=str(tick),
+			big="T" if big else "F",
+		)
+		branch_el.append(rule_el)
+		if nbr is not None:
+			rule_el.set("neighborhood", str(nbr))
+		if trigs:
+			trigs_el = Element("triggers")
+			rule_el.append(trigs_el)
+			for trig in trigs:
+				trigs_el.append(Element("trigger", name=trig))
+		if preqs:
+			preqs_el = Element("prereqs")
+			rule_el.append(preqs_el)
+			for preq in preqs:
+				preqs_el.append(Element("prereq", name=preq))
+		if acts:
+			acts_el = Element("actions")
+			rule_el.append(acts_el)
+			for act in acts:
+				acts_el.append(Element("action", name=act))
+
+	def append_graph_val_el(graph_val: GraphValRowType):
+		char, stat, b, r, t, val = graph_val
+		graph_val_el = Element(
+			"graph_val",
+			character=repr(char),
+			key=repr(stat),
+			branch=b,
+			turn=str(r),
+			tick=str(t),
+		)
+		branch_el.append(graph_val_el)
+		graph_val_el.append(value_to_xml(val))
+
+	def append_nodes_el(nodes: NodeRowType):
+		char, node, b, r, t, ex = nodes
+		branch_el.append(
+			Element(
+				"node",
+				character=repr(char),
+				name=repr(node),
+				branch=b,
+				turn=str(r),
+				tick=str(t),
+				exists="T" if ex else "F",
+			)
+		)
+
+	def append_node_val_el(node_val: NodeValRowType):
+		char, node, stat, b, r, t, val = node_val
+		node_val_el = Element(
+			"node_val",
+			character=repr(char),
+			node=repr(node),
+			key=repr(stat),
+			branch=b,
+			turn=str(r),
+			tick=str(t),
+		)
+		branch_el.append(node_val_el)
+		node_val_el.append(value_to_xml(val))
+
+	def append_edges_el(edges: EdgeRowType):
+		char, orig, dest, b, r, t, ex = edges
+		branch_el.append(
+			Element(
+				"edge",
+				character=repr(char),
+				orig=repr(orig),
+				dest=repr(dest),
+				branch=b,
+				turn=str(r),
+				tick=str(t),
+				exists="T" if ex else "F",
+			)
+		)
+
+	def append_edge_val_el(edge_val: EdgeValRowType):
+		char, orig, dest, stat, b, r, t, val = edge_val
+		edge_val_el = Element(
+			"edge_val",
+			character=repr(char),
+			orig=repr(orig),
+			dest=repr(dest),
+			key=repr(stat),
+			branch=b,
+			turn=str(r),
+			tick=str(t),
+		)
+		branch_el.append(edge_val_el)
+		edge_val_el.append(value_to_xml(val))
+
+	def append_thing_el(thing: ThingRowType):
+		char, thing, b, r, t, loc = thing
+		branch_el.append(
+			Element(
+				"location",
+				character=repr(char),
+				thing=repr(thing),
+				branch=b,
+				turn=str(r),
+				tick=str(t),
+				location=repr(loc),
+			)
+		)
+
+	def append_char_rb_el(rbtyp: str, rbrow: CharRulebookRowType):
+		char, b, r, t, rb = rbrow
+		branch_el.append(
+			Element(
+				rbtyp,
+				character=repr(char),
+				branch=b,
+				turn=str(r),
+				tick=str(t),
+				rulebook=repr(rb),
+			)
+		)
+
+	def append_node_rb_el(nrb_row: NodeRulebookRowType):
+		char, node, b, r, t, rb = nrb_row
+		branch_el.append(
+			Element(
+				"node_rulebok",
+				character=repr(char),
+				node=repr(node),
+				branch=b,
+				turn=str(r),
+				tick=str(t),
+				rulebook=repr(rb),
+			)
+		)
+
+	def append_portal_rb_el(port_rb_row: PortalRulebookRowType):
+		char, orig, dest, b, r, t, rb = port_rb_row
+		branch_el.append(
+			Element(
+				"portal_rulebook",
+				character=repr(char),
+				node=repr(node),
+				branch=b,
+				turn=str(r),
+				tick=str(t),
+				rulebook=repr(rb),
+			)
+		)
+
+	turn: Turn
+	for turn in range(turn_from, turn_to + 1):
+		tick: Tick
+		for tick in range(turn_ends[turn]):
+			if (branch, turn, tick) in keyframe_times:
+				kf = query.get_keyframe(branch, turn, tick)
+				add_keyframe_to_branch_el(branch_el, branch, turn, tick, kf)
+			if data["universals"]:
+				universal_rec: UniversalRowType = data["universals"][0]
+				key, branch_now, turn_now, tick_now, val = universal_rec
+				if (branch_now, turn_now, tick_now) != (branch, turn, tick):
+					append_univ_el(universal_rec)
+					del data["universals"][0]
+			if data["rulebooks"]:
+				rulebook_rec: RulebookRowType = data["rulebooks"][0]
+				rulebook, branch_now, turn_now, tick_now, (rules, prio) = (
+					rulebook_rec
+				)
+				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
+					append_rulebook_el(rulebook_rec)
+					del data["rulebooks"][0]
+			if data["rule_triggers"]:
+				trig_rec: TriggerRowType = data["rule_triggers"][0]
+				rule, branch_now, turn_now, tick_now, trigs = trig_rec
+				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
+					preq_rec: PrereqRowType = data["rule_prereqs"][0]
+					act_rec: ActionRowType = data["rule_actions"][0]
+					nbr_rec: RuleNeighborhoodRowType = data[
+						"rule_neighborhood"
+					][0]
+					big_rec: RuleBigRowType = data["rule_big"][0]
+					append_rule_el(
+						trig_rec, preq_rec, act_rec, nbr_rec, big_rec
+					)
+					del data["rule_triggers"][0]
+					del data["rule_prereqs"][0]
+					del data["rule_actions"][0]
+					del data["rule_neighborhood"][0]
+					del data["rule_big"][0]
+			for char_name in data.keys() - {
+				"universals",
+				"rulebooks",
+				"rule_triggers",
+				"rule_prereqs",
+				"rule_actions",
+				"rule_neighborhood",
+				"rule_big",
+			}:
+				char_data: LoadedCharWindow = data[char_name]
+				if char_data["graph_val"]:
+					graph_val_row: GraphValRowType = char_data["graph_val"][0]
+					_, __, b, r, t, ___ = graph_val_row
+					if (b, r, t) == (branch, turn, tick):
+						append_graph_val_el(graph_val_row)
+						del char_data["graph_val"][0]
+				if char_data["nodes"]:
+					nodes_row: NodeRowType = char_data["nodes"][0]
+					char, node, branch_now, turn_now, tick_now, ex = nodes_row
+					if (branch_now, turn_now, tick_now) == (
+						branch,
+						turn,
+						tick,
+					):
+						append_nodes_el(nodes_row)
+						del char_data["nodes"][0]
+				if char_data["node_val"]:
+					node_val_row: NodeValRowType = char_data["node_val"][0]
+					char, node, stat, branch_now, turn_now, tick_now, val = (
+						node_val_row
+					)
+					if (branch_now, turn_now, tick_now) == (
+						branch,
+						turn,
+						tick,
+					):
+						append_node_val_el(node_val_row)
+				if char_data["edges"]:
+					edges_row: EdgeRowType = char_data["edges"][0]
+					_, __, ___, b, r, t, ____ = edges_row
+					if (b, r, t) == (branch, turn, tick):
+						append_edges_el(edges_row)
+						del char_data["edges"][0]
+				if char_data["edge_val"]:
+					edge_val_row: EdgeValRowType = char_data["edge_val"][0]
+					_, __, ___, ____, b, r, t, _____ = edge_val_row
+					if (b, r, t) == (branch, turn, tick):
+						append_edge_val_el(edge_val_row)
+						del char_data["edge_val"][0]
+				if char_data["things"]:
+					thing_row: ThingRowType = char_data["things"][0]
+					_, __, b, r, t, ___ = thing_row
+					if (b, r, t) == (branch, turn, tick):
+						append_thing_el(thing_row)
+						del char_data["things"][0]
+				for char_rb_typ in (
+					"character_rulebook",
+					"unit_rulebook",
+					"character_thing_rulebook",
+					"character_place_rulebook",
+					"character_portal_rulebook",
+				):
+					if char_data[char_rb_typ]:
+						char_rb_row: CharRulebookRowType = char_data[
+							char_rb_typ
+						][0]
+						_, b, r, t, __ = char_rb_row
+						if (b, r, t) == (branch, turn, tick):
+							append_char_rb_el(char_rb_typ, char_rb_row)
+							del char_data[char_rb_typ][0]
+				if "node_rulebook" in char_data:
+					node_rb_row: NodeRulebookRowType = char_data[
+						"node_rulebook"
+					][0]
+					_, __, b, r, t, ___ = node_rb_row
+					if (b, r, t) == (branch, turn, tick):
+						append_node_rb_el(node_rb_row)
+						del char_data["node_rulebook"][0]
+				if "portal_rulebook" in char_data:
+					port_rb_row: PortalRulebookRowType = char_data[
+						"portal_rulebook"
+					][0]
+					_, __, ___, b, r, t, ____ = port_rb_row
+					if (b, r, t) == (branch, turn, tick):
+						append_portal_rb_el(port_rb_row)
+						del char_data["portal_rulebook"][0]
+
+
 def query_engine_to_tree(
 	name: str, query: AbstractQueryEngine, tree: ElementTree
 ) -> ElementTree:
 	root = tree.getroot()
 	trunks = set()
 	branches_d = {}
+	turn_end_plan_d = {}
 	branch_elements = {}
 	playtrees = {}
+	for branch, turn, last_real_tick, last_planned_tick in query.turns_dump():
+		if branch in turn_end_plan_d:
+			turn_end_plan_d[branch][turn] = last_planned_tick
+		else:
+			turn_end_plan_d[branch] = {turn: last_planned_tick}
 	branch2do = deque(query.all_branches())
 	while branch2do:
 		(
