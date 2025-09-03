@@ -319,43 +319,50 @@ def fill_branch_element(
 			rb_el.append(Element("rule_placement", rule=rule, idx=str(i)))
 
 	def append_rule_el(
-		trig_rec: TriggerRowType,
-		preq_rec: PrereqRowType,
-		act_rec: ActionRowType,
-		nbr_rec: RuleNeighborhoodRowType,
-		big_rec: RuleBigRowType,
+		trig_rec: TriggerRowType = ...,
+		preq_rec: PrereqRowType = ...,
+		act_rec: ActionRowType = ...,
+		nbr_rec: RuleNeighborhoodRowType = ...,
+		big_rec: RuleBigRowType = ...,
 	):
-		assert (
-			trig_rec[0]
-			== preq_rec[0]
-			== act_rec[0]
-			== nbr_rec[0]
-			== big_rec[0]
-		)
-		assert (
-			trig_rec[1:4]
-			== preq_rec[1:4]
-			== act_rec[1:4]
-			== nbr_rec[1:4]
-			== big_rec[1:4]
-			== (branch, turn, tick)
-		)
-		trigs = trig_rec[-1]
-		preqs = preq_rec[-1]
-		acts = act_rec[-1]
-		nbr = nbr_rec[-1]
-		big = big_rec[-1]
+		if trig_rec is not ...:
+			trigs = trig_rec[-1]
+		else:
+			trigs = None
+		if preq_rec is not ...:
+			preqs = preq_rec[-1]
+		else:
+			preqs = None
+		if act_rec is not ...:
+			acts = act_rec[-1]
+		else:
+			acts = None
+		if nbr_rec is not ...:
+			nbr = nbr_rec[-1]
+		else:
+			nbr = ...
+		if big_rec is not ...:
+			big = big_rec[-1]
+		else:
+			big = ...
+		for reck in (trig_rec, preq_rec, act_rec, nbr_rec, big_rec):
+			if reck is not ...:
+				rule = reck[0]
+				break
+		else:
+			raise ValueError("Appending rule element without rule data?")
 		rule_el = Element(
 			"rule",
 			name=rule,
 			branch=branch,
 			turn=str(turn),
 			tick=str(tick),
-			big="T" if big else "F",
 		)
+		if big is not ...:
+			rule_el.set("big", "T" if big else "F")
 		branch_el.append(rule_el)
-		if nbr is not None:
-			rule_el.set("neighborhood", str(nbr))
+		if nbr is not ...:
+			rule_el.set("neighborhood", "" if nbr is None else str(nbr))
 		if trigs:
 			trigs_el = Element("triggers")
 			rule_el.append(trigs_el)
@@ -519,24 +526,74 @@ def fill_branch_element(
 				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
 					append_rulebook_el(rulebook_rec)
 					del data["rulebooks"][0]
-			if data["rule_triggers"]:
+			rule_kwargs = {}
+			if (
+				"rule_triggers" in data
+				and data["rule_triggers"]
+				and data["rule_triggers"][0][1:4]
+				== (
+					branch,
+					turn,
+					tick,
+				)
+			):
 				trig_rec: TriggerRowType = data["rule_triggers"][0]
-				rule, branch_now, turn_now, tick_now, trigs = trig_rec
-				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
-					preq_rec: PrereqRowType = data["rule_prereqs"][0]
-					act_rec: ActionRowType = data["rule_actions"][0]
-					nbr_rec: RuleNeighborhoodRowType = data[
-						"rule_neighborhood"
-					][0]
-					big_rec: RuleBigRowType = data["rule_big"][0]
-					append_rule_el(
-						trig_rec, preq_rec, act_rec, nbr_rec, big_rec
-					)
-					del data["rule_triggers"][0]
-					del data["rule_prereqs"][0]
-					del data["rule_actions"][0]
-					del data["rule_neighborhood"][0]
-					del data["rule_big"][0]
+				rule_kwargs["trig_rec"] = trig_rec
+			if (
+				"rule_prereqs" in data
+				and data["rule_prereqs"]
+				and data["rule_prereqs"][0][1:4]
+				== (
+					branch,
+					turn,
+					tick,
+				)
+			):
+				preq_rec: PrereqRowType = data["rule_prereqs"][0]
+				rule_kwargs["preq_rec"] = preq_rec
+			if (
+				"rule_actions" in data
+				and data["rule_actions"]
+				and data["rule_actions"][0][1:4]
+				== (
+					branch,
+					turn,
+					tick,
+				)
+			):
+				act_rec: ActionRowType = data["rule_actions"][0]
+				rule_kwargs["act_rec"] = act_rec
+			if (
+				"rule_neighborhood" in data
+				and data["rule_neighborhood"]
+				and data["rule_neighborhood"][0][1:4] == (branch, turn, tick)
+			):
+				nbr_rec: RuleNeighborhoodRowType = data["rule_neighborhood"][0]
+				rule_kwargs["nbr_rec"] = nbr_rec
+			if (
+				"rule_big" in data
+				and data["rule_big"]
+				and data["rule_big"][0][1:4]
+				== (
+					branch,
+					turn,
+					tick,
+				)
+			):
+				big_rec: RuleBigRowType = data["rule_big"][0]
+				rule_kwargs["big_rec"] = big_rec
+			if rule_kwargs:
+				append_rule_el(**rule_kwargs)
+			if "trig_rec" in rule_kwargs:
+				del data["rule_triggers"][0]
+			if "preq_rec" in rule_kwargs:
+				del data["rule_prereqs"][0]
+			if "act_rec" in rule_kwargs:
+				del data["rule_actions"][0]
+			if "nbr_rec" in rule_kwargs:
+				del data["rule_neighborhood"][0]
+			if "big_rec" in rule_kwargs:
+				del data["rule_big"][0]
 			for char_name in data.keys() - {
 				"universals",
 				"rulebooks",
@@ -713,8 +770,9 @@ def query_engine_to_tree(
 			keyframe_times,
 			b,
 		)
-		for desc in branch_descendants[b]:
-			recurse_branch(desc)
+		if b in branch_descendants:
+			for desc in branch_descendants[b]:
+				recurse_branch(desc)
 
 	for trunk in trunks:
 		recurse_branch(trunk)
