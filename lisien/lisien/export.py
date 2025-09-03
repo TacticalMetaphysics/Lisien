@@ -607,7 +607,7 @@ def fill_branch_element(
 						if (b, r, t) == (branch, turn, tick):
 							append_char_rb_el(char_rb_typ, char_rb_row)
 							del char_data[char_rb_typ][0]
-				if "node_rulebook" in char_data:
+				if char_data["node_rulebook"]:
 					node_rb_row: NodeRulebookRowType = char_data[
 						"node_rulebook"
 					][0]
@@ -615,7 +615,7 @@ def fill_branch_element(
 					if (b, r, t) == (branch, turn, tick):
 						append_node_rb_el(node_rb_row)
 						del char_data["node_rulebook"][0]
-				if "portal_rulebook" in char_data:
+				if char_data["portal_rulebook"]:
 					port_rb_row: PortalRulebookRowType = char_data[
 						"portal_rulebook"
 					][0]
