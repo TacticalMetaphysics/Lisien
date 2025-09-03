@@ -4247,7 +4247,7 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	def get_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> Keyframe:
-		kf = self.get_keyframe_extensions(branch, turn, tick)
+		kf: Keyframe = dict(self.get_keyframe_extensions(branch, turn, tick))
 		for (
 			char,
 			node_val,
