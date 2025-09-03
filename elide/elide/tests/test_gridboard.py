@@ -5,8 +5,8 @@ from kivy.core.window import Window
 from elide.grid.board import GridBoard, GridBoardView
 from lisien.facade import CharacterFacade
 
-from .util import all_pawns_placed, all_spots_placed, idle_until
 from ..util import load_kv
+from .util import all_pawns_placed, all_spots_placed, idle_until
 
 
 @pytest.fixture(autouse=True)
