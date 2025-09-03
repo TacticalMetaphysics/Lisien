@@ -50,6 +50,7 @@ from .types import (
 	ActionFuncName,
 	Branch,
 	CharName,
+	CharRulebookRowType,
 	EdgeKeyframe,
 	EdgeRowType,
 	EdgeValRowType,
@@ -59,18 +60,23 @@ from .types import (
 	NodeKeyframe,
 	NodeName,
 	NodeRowType,
+	NodeRulebookRowType,
 	NodeValRowType,
 	Plan,
+	PortalRulebookRowType,
 	PrereqFuncName,
 	RuleBig,
 	RulebookKeyframe,
 	RulebookName,
 	RulebookPriority,
+	RulebookRowType,
 	RulebookTypeStr,
 	RuleKeyframe,
 	RuleName,
 	RuleNeighborhood,
+	RuleRowType,
 	Stat,
+	ThingRowType,
 	Tick,
 	Time,
 	TimeWindow,
@@ -78,6 +84,7 @@ from .types import (
 	Turn,
 	UniversalKey,
 	UniversalKeyframe,
+	UniversalRowType,
 	Value,
 	CharDict,
 	Keyframe,
@@ -2839,19 +2846,15 @@ LoadedCharWindow: TypeAlias = dict[
 		"node_rulebook",
 		"portal_rulebook",
 	],
-	list[tuple[CharName, NodeName, Branch, Turn, Tick, bool]]
-	| list[tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, bool]]
-	| list[tuple[CharName, Stat, Branch, Turn, Tick, Value]]
-	| list[tuple[CharName, NodeName, Stat, Branch, Turn, Tick, Value]]
-	| list[
-		tuple[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value]
-	]
-	| list[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]
-	| list[tuple[CharName, Branch, Turn, Tick, RulebookName]]
-	| list[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]
-	| list[
-		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
-	],
+	list[NodeRowType]
+	| list[EdgeRowType]
+	| list[GraphValRowType]
+	| list[NodeValRowType]
+	| list[EdgeValRowType]
+	| list[ThingRowType]
+	| list[CharRulebookRowType]
+	| list[NodeRulebookRowType]
+	| list[PortalRulebookRowType],
 ]
 
 
@@ -4826,29 +4829,9 @@ class AbstractQueryEngine(ABC):
 			"rule_actions",
 		]
 		| CharName,
-		list[tuple[UniversalKey, Branch, Turn, Tick, Value]]
-		| list[
-			tuple[
-				RulebookName,
-				Branch,
-				Turn,
-				Tick,
-				tuple[list[RuleName], RulebookPriority],
-			]
-		]
-		| list[
-			tuple[
-				RuleName,
-				Branch,
-				Turn,
-				Tick,
-				list[TriggerFuncName]
-				| list[PrereqFuncName]
-				| list[ActionFuncName]
-				| RuleNeighborhood
-				| RuleBig,
-			]
-		]
+		list[UniversalRowType]
+		| list[RulebookRowType]
+		| list[RuleRowType]
 		| LoadedCharWindow,
 	]:
 		def empty_char() -> LoadedCharWindow:
