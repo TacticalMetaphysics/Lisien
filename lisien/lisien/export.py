@@ -543,7 +543,7 @@ def fill_branch_element(
 				"rule_triggers",
 				"rule_prereqs",
 				"rule_actions",
-				"rule_neighborhood",
+				"rule_neighborhoods",
 				"rule_big",
 			}:
 				char_data: LoadedCharWindow = data[char_name]
