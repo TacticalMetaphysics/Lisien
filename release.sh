@@ -3,6 +3,7 @@ set -euxo
 dos2unix -V
 alias python=python3.12
 VERSION=$(python3.12 check_version.py)
+export VERSION
 python -m build --version
 twine --version
 python -m sphinx --version
