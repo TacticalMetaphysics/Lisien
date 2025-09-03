@@ -80,6 +80,7 @@ from .types import (
 	UniversalKeyframe,
 	Value,
 	CharDict,
+	Keyframe,
 )
 from .util import ELLIPSIS, EMPTY, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
