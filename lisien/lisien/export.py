@@ -233,12 +233,16 @@ def add_keyframe_to_branch_el(
 		for rule_name in rule_list:
 			rulebook_el.append(Element("rule", name=rule_name))
 	char_els: dict[CharName, Element] = {}
-	graph_val_kf: GraphValKeyframe = keyframe["graph_val"]
-	for char_name, vals in graph_val_kf.items():
-		char_el = char_els[char_name] = Element(
-			"character", name=repr(char_name)
-		)
-
+	if "graph_val" in keyframe:
+		graph_val_kf: GraphValKeyframe = keyframe["graph_val"]
+		for char_name, vals in graph_val_kf.items():
+			graph_el = char_els[char_name] = Element(
+				"character", name=repr(char_name)
+			)
+			for k, v in vals.items():
+				item_el = Element("dict_item", key=repr(k))
+				graph_el.append(item_el)
+				item_el.append(value_to_xml(v))
 	node_val_kf: GraphNodeValKeyframe = keyframe["node_val"]
 	for char_name, node_vals in node_val_kf.items():
 		if char_name in char_els:
