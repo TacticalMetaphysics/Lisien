@@ -4247,7 +4247,13 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	def get_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> Keyframe:
-		kf: Keyframe = dict(self.get_keyframe_extensions(branch, turn, tick))
+		universal_kf, rule_kf, rulebook_kf = self.get_keyframe_extensions(
+			branch, turn, tick
+		)
+		kf: Keyframe = {
+			"universal": universal_kf,
+			"rulebook": rulebook_kf,
+		} | rule_kf
 		for (
 			char,
 			node_val,
