@@ -3463,7 +3463,7 @@ class AbstractQueryEngine(ABC):
 				graph: CharName
 				node: NodeName
 				ret[graph]["nodes"].append(
-					(graph, node, branch, turn, tick, ex or None)
+					(graph, node, branch, turn, tick, ex)
 				)
 			outq.task_done()
 		if got != (
@@ -3507,7 +3507,7 @@ class AbstractQueryEngine(ABC):
 						branch,
 						turn,
 						tick,
-						ex or None,
+						ex,
 					)
 				)
 			outq.task_done()
