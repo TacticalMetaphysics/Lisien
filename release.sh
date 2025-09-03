@@ -27,11 +27,11 @@ PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
 cd docs
 git add .
 git commit -m "Release v$(VERSION)"
-git push
+git push --all
 cd ..
 git commit -am "Release v$(VERSION)"
 git tag "v$(VERSION)"
-git push --tags
+git push --all
 python -m build lisien/
 python -m build elide/
 twine check lisien/dist/* elide/dist/*
