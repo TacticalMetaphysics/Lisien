@@ -26,11 +26,11 @@ JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android clean debug
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
 cd docs
 git add .
-git commit -m "Release v$(VERSION)"
+git commit -m "Release v${VERSION}"
 git push --all
 cd ..
-git commit -am "Release v$(VERSION)"
-git tag "v$(VERSION)"
+git commit -am "Release v${VERSION}"
+git tag "v${VERSION}"
 git push --all
 python -m build lisien/
 python -m build elide/
