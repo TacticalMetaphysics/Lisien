@@ -1,4 +1,5 @@
 import os
+from io import IOBase
 from collections import deque
 from pathlib import Path
 from types import FunctionType, MethodType
@@ -83,15 +84,23 @@ def game_path_to_etree(game_path: str | os.PathLike) -> ElementTree:
 
 
 def game_path_to_xml(
-	game_path: str | os.PathLike, xml_file_path: str | os.PathLike
+	game_path: str | os.PathLike,
+	xml_file_path: str | os.PathLike | IOBase,
+	indent: bool = True,
 ) -> None:
 	if not isinstance(game_path, os.PathLike):
 		game_path = Path(game_path)
-	if not isinstance(xml_file_path, os.PathLike):
+	if not isinstance(xml_file_path, os.PathLike) and not isinstance(
+		xml_file_path, IOBase
+	):
 		xml_file_path = Path(xml_file_path)
 
 	tree = game_path_to_etree(game_path)
-	tree.write(xml_file_path)
+	if indent:
+		from xml.etree.ElementTree import indent
+
+		indent(tree)
+	tree.write(xml_file_path, encoding="utf-8")
 
 
 def value_to_xml(value: Value | dict[Key, Value]) -> Element:
