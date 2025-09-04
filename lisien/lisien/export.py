@@ -51,23 +51,26 @@ from lisien.types import (
 	NodeRulebookRowType,
 	PortalRulebookRowType,
 )
-from lisien.util import AbstractThing
+from lisien.util import AbstractThing, AbstractEngine
 
 
 def sqlite_to_etree(
-	sqlite_path: str | os.PathLike, tree: ElementTree | None = None
+	sqlite_path: str | os.PathLike,
+	tree: ElementTree | None = None,
+	engine: AbstractEngine | None = None,
 ) -> ElementTree:
 	from .db import SQLAlchemyQueryEngine
 
 	if not isinstance(sqlite_path, os.PathLike):
 		sqlite_path = Path(sqlite_path)
 
-	eng = EngineFacade(None)
+	if engine is None:
+		engine = EngineFacade(None)
 	query = SQLAlchemyQueryEngine(
 		"sqlite:///" + str(os.path.abspath(sqlite_path)),
 		{},
-		pack=eng.pack,
-		unpack=eng.unpack,
+		pack=engine.pack,
+		unpack=engine.unpack,
 	)
 	if tree is None:
 		tree = ElementTree(Element("lisien"))
