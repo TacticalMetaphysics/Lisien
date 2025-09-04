@@ -15,6 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Implementation of Parable of the Polygons http://ncase.me/polygons/"""
 
+from operator import attrgetter
+
 from lisien.character import grid_2d_8graph
 
 
@@ -49,11 +51,16 @@ def install(eng):
 	def relocate(poly):
 		"""Move to a random unoccupied place"""
 		if "unoccupied" not in poly.engine.universal:
-			poly.engine.universal["unoccupied"] = [
-				place
-				for place in poly.character.place.values()
-				if not place.content
-			]
+			# .values() sets, like sets generally, are unordered.
+			# You have to sort them yourself if you want determinism.
+			poly.engine.universal["unoccupied"] = sorted(
+				[
+					place
+					for place in poly.character.place.values()
+					if not place.content
+				],
+				key=attrgetter("name"),
+			)
 		unoccupied = poly.engine.universal["unoccupied"]
 		newloc = unoccupied.pop(poly.engine.randrange(0, len(unoccupied)))
 		while not newloc:  # the unoccupied location may have been deleted
