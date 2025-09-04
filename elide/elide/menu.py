@@ -139,6 +139,7 @@ class GamePickerModal(ModalView):
 		if os.path.exists(play_dir):
 			# Likely left over from a failed run of Elide
 			shutil.rmtree(play_dir)
+		Logger.debug(f"GamePickerModal: unpacking to {play_dir}")
 		shutil.unpack_archive(game_file_path, play_dir)
 		Clock.schedule_once(partial(app.start_game, name=game), 0.001)
 		self.dismiss(force=True)
@@ -149,9 +150,9 @@ class GameExporterModal(GamePickerModal):
 	@logwrap(section="GameExporterModal")
 	def pick(self, game, *_):
 		app = App.get_running_app()
-		app.copy_to_shared_storage(
-			os.path.join(app.games_dir, game + ".zip"), "application/zip"
-		)
+		orig = os.path.join(app.prefix, app.games_dir, game + ".zip")
+		Logger.debug(f"GameExporterModal: copying {orig} to shared storage")
+		app.copy_to_shared_storage(orig, "application/zip")
 		self.dismiss()
 
 	@logwrap(section="GameExporterModal")
@@ -385,24 +386,23 @@ class MainMenuScreen(Screen):
 		if not game_file_path.endswith(".zip"):
 			return
 		game = str(os.path.basename(game_file_path).removesuffix(".zip"))
-		app = App.get_running_app()
 		self._please_wait = ModalView()
 		self._please_wait.add_widget(
 			Label(text="Please wait...", font_size=80)
 		)
 		self._please_wait.open()
-		game_dir = str(os.path.join(app.prefix, game))
-		if os.path.exists(game_dir):
-			# Likely left over from a failed run of Elide
-			shutil.rmtree(game_dir)
 		Clock.schedule_once(
-			partial(self._unpack_and_open, game_file_path, game_dir, game),
+			partial(self._unpack_and_open, game_file_path, game),
 			0.05,
 		)
 
-	def _unpack_and_open(self, game_file_path, game_dir, game, *_):
+	def _unpack_and_open(self, game_file_path, game, *_):
 		app = App.get_running_app()
-		shutil.unpack_archive(game_file_path, game_dir)
+		app.game_name = game
+		Logger.debug(
+			f"MainMenuScreen: unpacking import {game_file_path} into {app.play_path}"
+		)
+		shutil.unpack_archive(game_file_path, app.play_path)
 		app.start_game(name=game, cb=self._please_wait.dismiss)
 
 	@trigger
