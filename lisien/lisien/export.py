@@ -534,7 +534,7 @@ def fill_branch_element(
 		char, node, b, r, t, rb = nrb_row
 		branch_el.append(
 			Element(
-				"node_rulebok",
+				"node_rulebook",
 				character=repr(char),
 				node=repr(node),
 				branch=b,
