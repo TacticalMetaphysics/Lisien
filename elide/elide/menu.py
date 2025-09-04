@@ -258,6 +258,9 @@ class GameList(RecycleView):
 			Clock.schedule_once(self.regen, 0)
 			return
 		if not os.path.isdir(self.path):
+			Logger.error(
+				f"GameList: Can't list games at non-directory {self.path}"
+			)
 			return
 		self.data = [
 			{
