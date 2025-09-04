@@ -262,16 +262,14 @@ class GameList(RecycleView):
 				f"GameList: Can't list games at non-directory {self.path}"
 			)
 			return
+		Logger.debug(f"GameList: listing games in {self.path}")
 		self.data = [
 			{
-				"text": game.removesuffix(".zip"),
-				"on_release": partial(
-					self.picker.pick, game.removesuffix(".zip")
-				),
+				"text": game[:-4],
+				"on_release": partial(self.picker.pick, game[:-4]),
 			}
 			for game in filter(
-				lambda game: game.endswith(".zip")
-				and not game.startswith("."),
+				lambda game: game[-4:] == ".zip" and not game.startswith("."),
 				os.listdir(self.path or "."),
 			)
 		]
