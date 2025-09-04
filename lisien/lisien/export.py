@@ -81,8 +81,34 @@ def sqlite_to_etree(
 	)
 
 
+def pqdb_to_etree(
+	pqdb_path: str | os.PathLike,
+	tree: ElementTree | None = None,
+	engine: AbstractEngine | None = None,
+) -> ElementTree:
+	from .db import ParquetQueryEngine
+
+	if not isinstance(pqdb_path, os.PathLike):
+		pqdb_path = Path(pqdb_path)
+
+	if engine is None:
+		engine = EngineFacade(None)
+	query = ParquetQueryEngine(
+		pqdb_path, pack=engine.pack, unpack=engine.unpack
+	)
+	if tree is None:
+		tree = ElementTree(Element("lisien"))
+	return query_engine_to_tree(
+		str(os.path.basename(os.path.dirname(pqdb_path))), query, tree
+	)
+
+
 def game_path_to_etree(game_path: str | os.PathLike) -> ElementTree:
-	game_history = sqlite_to_etree(os.path.join(game_path, "world.sqlite3"))
+	world = os.path.join(game_path, "world")
+	if os.path.isdir(world):
+		game_history = pqdb_to_etree(world)
+	else:
+		game_history = sqlite_to_etree(world + ".sqlite3")
 	return game_history
 
 
