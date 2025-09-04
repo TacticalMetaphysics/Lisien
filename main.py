@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
 	app = ElideApp(
 		prefix=wd,
-		games_dir="lisien_workspace",
+		games_dir="games",
 		connect_string=connect_string,
 		logs_dir=logs_dir,
 		workers=0,
