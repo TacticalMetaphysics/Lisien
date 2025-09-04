@@ -139,7 +139,9 @@ class GamePickerModal(ModalView):
 		if os.path.exists(play_dir):
 			# Likely left over from a failed run of Elide
 			shutil.rmtree(play_dir)
-		Logger.debug(f"GamePickerModal: unpacking to {play_dir}")
+		Logger.debug(
+			f"GamePickerModal: unpacking {game_file_path} to {play_dir}"
+		)
 		shutil.unpack_archive(game_file_path, play_dir)
 		Clock.schedule_once(partial(app.start_game, name=game), 0.001)
 		self.dismiss(force=True)
@@ -219,15 +221,16 @@ class GameLoaderModal(GamePickerModal):
 	@logwrap(section="GameLoaderModal")
 	def pick(self, game, *_):
 		app = App.get_running_app()
-		if os.path.isfile(app.games_path):
+		games_path = str(os.path.join(app.prefix, app.games_path))
+		if os.path.isfile(games_path):
 			raise RuntimeError(
 				"You put a file where I want to keep the games directory",
 				app.games_dir,
 			)
-		if not os.path.exists(app.games_path):
+		if not os.path.exists(games_path):
 			os.makedirs(app.games_path)
-		if game + ".zip" in os.listdir(app.games_path):
-			game_file_path = str(os.path.join(app.games_path, game + ".zip"))
+		if game + ".zip" in os.listdir(games_path):
+			game_file_path = str(os.path.join(games_path, game + ".zip"))
 			if not zipfile.is_zipfile(game_file_path):
 				raise RuntimeError("Game format invalid", game_file_path)
 		else:
