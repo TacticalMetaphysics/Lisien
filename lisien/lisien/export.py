@@ -150,16 +150,9 @@ def value_to_xml(value: Value | dict[Key, Value]) -> Element:
 		# keys and also serialize to msgpack, I don't think there's any name
 		# an entity can have that can't be repr'd
 		return Element("character", name=repr(value.name))
-	elif isinstance(value, AbstractThing):
-		return Element(
-			"thing",
-			character=repr(value.character.name),
-			name=repr(value.name),
-			location=repr(value.location.name),
-		)
 	elif isinstance(value, lisien.graph.Node):
 		return Element(
-			"place", character=repr(value.graph.name), name=repr(value.name)
+			"node", character=repr(value.graph.name), name=repr(value.name)
 		)
 	elif isinstance(value, lisien.graph.Edge):
 		return Element(
