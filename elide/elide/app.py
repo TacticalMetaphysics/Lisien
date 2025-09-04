@@ -627,20 +627,19 @@ class ElideApp(App):
 			return  # already closed
 
 		self._copy_log_files()
-		game_wd = self.play_path
-		pycache = os.path.join(game_wd, "__pycache__")
+		pycache = os.path.join(self.play_path, "__pycache__")
 		if os.path.exists(pycache):
 			shutil.rmtree(pycache)
 		archived = shutil.make_archive(
-			self.game_name, "zip", str(game_wd), logger=Logger
+			self.game_name, "zip", str(self.play_path), logger=Logger
 		)
 		archived_base = os.path.basename(archived)
-		os.makedirs(self.games_dir, exist_ok=True)
-		if os.path.exists(os.path.join(self.games_dir, archived_base)):
-			os.remove(os.path.join(self.games_dir, archived_base))
-		os.rename(archived, os.path.join(self.games_dir, archived_base))
+		os.makedirs(self.games_path, exist_ok=True)
+		if os.path.exists(os.path.join(self.games_path, archived_base)):
+			os.remove(os.path.join(self.games_path, archived_base))
+		os.rename(archived, os.path.join(self.games_path, archived_base))
 		if not hasattr(self, "leave_game"):
-			shutil.rmtree(game_wd)
+			shutil.rmtree(self.play_path)
 		self._remove_screens()
 		if cb:
 			cb()
