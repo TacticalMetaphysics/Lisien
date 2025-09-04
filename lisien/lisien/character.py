@@ -1039,7 +1039,7 @@ class Character(AbstractCharacter, RuleFollower):
 		time travel. This makes it much speedier to work with.
 
 		"""
-		return CharacterFacade(self)
+		return CharacterFacade(character=self)
 
 	def add_place(self, node_for_adding: NodeName, **attr):
 		"""Add a new Place"""
