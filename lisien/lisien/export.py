@@ -736,6 +736,7 @@ def query_engine_to_tree(
 			playtrees[branch] = playtree
 			branch_element = branch_elements[branch] = Element(
 				"branch",
+				name=branch,
 				start_turn="0",
 				start_tick="0",
 				end_turn=str(end_turn),
