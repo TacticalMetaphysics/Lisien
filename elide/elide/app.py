@@ -631,7 +631,11 @@ class ElideApp(App):
 		if os.path.exists(pycache):
 			shutil.rmtree(pycache)
 		archived = shutil.make_archive(
-			self.game_name, "zip", str(self.play_path), logger=Logger
+			self.game_name,
+			"zip",
+			str(self.play_path),
+			str(self.play_path),
+			logger=Logger,
 		)
 		archived_base = os.path.basename(archived)
 		os.makedirs(self.games_path, exist_ok=True)
