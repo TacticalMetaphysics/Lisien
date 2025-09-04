@@ -1,3 +1,8 @@
+== 0.21.8 | 2025-09-04 ==
+* Fix the import and load game functions on Android *again*. They weren't
+  consistently respecting an Elide session running somewhere other than the
+  working directory.
+
 == 0.21.7 | 2025-09-03 ==
 * Fix imported games on Android being extracted to a different directory than
   what Elide opens, resulting in "imported" games being empty all the time,
