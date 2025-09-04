@@ -748,21 +748,22 @@ class CharacterFacade(AbstractCharacter):
 			self.name, charn, noden, *self.engine._btt(), True
 		)
 
-	def __init__(self, character=None, engine=None, init_rulebooks=None):
+	def __init__(self, engine=None, character=None, init_rulebooks=None):
+		if engine is None:
+			engine = self.db = EngineFacade(getattr(character, "db", None))
+		elif isinstance(engine, EngineFacade):
+			self.db = engine
 		if isinstance(character, AbstractCharacter):
 			self.character = character
 			if hasattr(character, "name"):
-				self.db.character._patch[character.name] = self
+				engine.character._patch[character.name] = self
 				self._name = character.name
 			else:
 				self._name = character
 		else:
 			self._name = character
 			self.character = None
-		if isinstance(engine, EngineFacade):
-			self.db = engine
-		elif hasattr(character, "db"):
-			self.db = EngineFacade(character.db)
+
 		self._stat_map = self.StatMapping(self)
 		self._rb_patch = {}
 
@@ -1143,11 +1144,9 @@ class EngineFacade(AbstractEngine):
 				raise KeyError("No character", key)
 			if key not in self._patch:
 				if realeng:
-					fac = CharacterFacade(
-						realeng.character[key], engine=realeng
-					)
+					fac = CharacterFacade(self.engine, realeng.character[key])
 				elif self.engine._mockup:
-					fac = CharacterFacade(key, engine=self.engine)
+					fac = CharacterFacade(self.engine, key)
 				else:
 					raise KeyError("No character", key)
 				self._patch[key] = fac

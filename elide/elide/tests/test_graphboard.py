@@ -30,7 +30,7 @@ def test_layout_grid(elide_app):
 	spots_wide = 3
 	spots_tall = 3
 	graph = nx.grid_2d_graph(spots_wide, spots_tall)
-	char = CharacterFacade(graph)
+	char = CharacterFacade(character=graph)
 	app = elide_app
 	spotlayout = TextureStackPlane()
 	arrowlayout = ArrowPlane()
