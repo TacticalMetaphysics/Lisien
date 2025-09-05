@@ -408,7 +408,16 @@ def tree_to_db(
 				)
 
 				for elem in branch:
-					getattr(importer, elem.tag)(elem)
+					if elem.tag == "turns":
+						for turn in elem:
+							query.set_turn(
+								Branch(turn.get("branch")),
+								Turn(int(turn.get("turn"))),
+								Tick(int(turn.get("end_tick"))),
+								Tick(int(turn.get("plan_end_tick"))),
+							)
+					else:
+						getattr(importer, elem.tag)(elem)
 		else:
 			k = literal_eval(el.get("key"))
 			v = importer.xml_to_value(el[0])

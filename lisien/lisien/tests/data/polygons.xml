@@ -19,6 +19,10 @@
   </dict-item>
   <playtree game="test_export_polygons_0" trunk="trunk">
     <branch name="trunk" start_turn="0" start_tick="0" end_turn="1" end_tick="241">
+      <turns branch="trunk">
+        <turn branch="trunk" turn="0" end_tick="254" plan_end_tick="254" />
+        <turn branch="trunk" turn="1" end_tick="241" plan_end_tick="241" />
+      </turns>
       <keyframe branch="trunk" turn="0" tick="0">
         <universal>
           <dict-item key="'rando_state'">
