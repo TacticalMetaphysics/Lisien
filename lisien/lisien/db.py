@@ -29,7 +29,15 @@ from sqlite3 import IntegrityError as LiteIntegrityError
 from sqlite3 import OperationalError as LiteOperationalError
 from threading import Lock, Thread
 from types import MethodType
-from typing import Any, Iterator, Literal, Optional, TypeAlias, MutableMapping
+from typing import (
+	Any,
+	Iterator,
+	Literal,
+	Optional,
+	TypeAlias,
+	MutableMapping,
+	Callable,
+)
 
 from sqlalchemy import (
 	BLOB,
@@ -2863,9 +2871,13 @@ class AbstractQueryEngine(ABC):
 	unpack: callable
 	holder_cls: type[ConnectionHolder]
 	eternal: MutableMapping
+	kf_interval_override: Callable[[Any], bool | None] = lambda _: None
+	keyframe_interval: int | None
+	snap_keyframe: callable
 	_inq: Queue
 	_outq: Queue
 	_holder: holder_cls
+	_records: int
 
 	@cached_property
 	def logger(self):
@@ -3409,11 +3421,6 @@ class AbstractQueryEngine(ABC):
 		self._inq.join()
 		for window in windows:
 			self._get_one_window(ret, *window)
-
-	_records: int
-	kf_interval_override: callable
-	keyframe_interval: int | None
-	snap_keyframe: callable
 
 	def _increc(self):
 		"""Snap a keyframe, if the keyframe interval has passed.
