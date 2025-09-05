@@ -6415,7 +6415,9 @@ class Engine(AbstractEngine, Executor):
 		# TODO: if there's a paradox while following some rule,
 		#  start a new branch, copying handled rules
 		for prio, rulebook in sort_set(todo.keys()):
-			for rule, handled, entity_keys in todo[prio, rulebook]:
+			for rule, handled, entity_keys in filter(
+				None, todo[prio, rulebook]
+			):
 				for entity_key in sort_set(entity_keys):
 					yield self._follow_one_rule(
 						rule, handled, self._get_entity_from_key(entity_key)
