@@ -50,6 +50,7 @@ from lisien.types import (
 	CharRulebookRowType,
 	NodeRulebookRowType,
 	PortalRulebookRowType,
+	GraphRowType,
 )
 from lisien.util import AbstractThing, AbstractEngine
 
@@ -334,6 +335,7 @@ def fill_branch_element(
 			"rule_actions",
 			"rule_neighborhood",
 			"rule_big",
+			"graphs",
 		]
 		| CharName,
 		list[UniversalRowType]
@@ -431,6 +433,18 @@ def fill_branch_element(
 			rule_el.append(acts_el)
 			for act in acts:
 				acts_el.append(Element("action", name=act))
+
+	def append_graph_el(graph: GraphRowType):
+		char, b, r, t, typ_str = graph
+		graph_el = Element(
+			"graph",
+			character=repr(char),
+			branch=b,
+			turn=str(r),
+			tick=str(t),
+			type=typ_str,
+		)
+		branch_el.append(graph_el)
 
 	def append_graph_val_el(graph_val: GraphValRowType):
 		char, stat, b, r, t, val = graph_val
@@ -592,6 +606,12 @@ def fill_branch_element(
 				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
 					append_rulebook_el(rulebook_rec)
 					del data["rulebooks"][0]
+			if data["graphs"]:
+				graph_rec: GraphRowType = data["graphs"][0]
+				graph, branch_now, turn_now, tick_now, typ_str = graph_rec
+				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
+					append_graph_el(graph_rec)
+					del data["graphs"][0]
 			rule_kwargs = {}
 			if (
 				"rule_triggers" in data
@@ -661,6 +681,7 @@ def fill_branch_element(
 			if "big_rec" in rule_kwargs:
 				del data["rule_big"][0]
 			for char_name in data.keys() - {
+				"graphs",
 				"universals",
 				"rulebooks",
 				"rule_triggers",
