@@ -2862,6 +2862,7 @@ class AbstractQueryEngine(ABC):
 	pack: callable
 	unpack: callable
 	holder_cls: type[ConnectionHolder]
+	eternal: MutableMapping
 	_inq: Queue
 	_outq: Queue
 	_holder: holder_cls
@@ -4890,7 +4891,7 @@ class NullQueryEngine(AbstractQueryEngine):
 	"""
 
 	@cached_property
-	def globl(self) -> dict:
+	def eternal(self) -> dict:
 		return {
 			"branch": "trunk",
 			"turn": 0,
@@ -4996,25 +4997,25 @@ class NullQueryEngine(AbstractQueryEngine):
 		return iter(())
 
 	def global_get(self, key: Key) -> Any:
-		return self.globl[key]
+		return self.eternal[key]
 
 	def global_items(self) -> Iterator[tuple[Key, Any]]:
-		return iter(self.globl.items())
+		return iter(self.eternal.items())
 
 	def get_branch(self) -> Branch:
-		return self.globl["branch"]
+		return self.eternal["branch"]
 
 	def get_turn(self) -> Turn:
-		return self.globl["turn"]
+		return self.eternal["turn"]
 
 	def get_tick(self) -> Tick:
-		return self.globl["tick"]
+		return self.eternal["tick"]
 
 	def global_set(self, key: Key, value: Any):
-		self.globl[key] = value
+		self.eternal[key] = value
 
 	def global_del(self, key: Key):
-		del self.globl[key]
+		del self.eternal[key]
 
 	def new_branch(
 		self,
@@ -5843,7 +5844,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._btts = set()
 		self._t = Thread(target=self._holder.run, daemon=True)
 		self._t.start()
-		self.globl = GlobalKeyValueStore(
+		self.eternal = GlobalKeyValueStore(
 			self, {unpack(k): unpack(v) for (k, v) in self.initdb().items()}
 		)
 		self._all_keyframe_times = self.call("all_keyframe_times")
@@ -8821,7 +8822,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def get_branch(self) -> Branch:
 		v = self.call_one("global_get", self.pack("branch"))[0]
 		if v is None:
-			return self.globl["main_branch"]
+			return self.eternal["main_branch"]
 		return self.unpack(v[0])
 
 	def get_turn(self) -> Turn:
@@ -9630,7 +9631,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			self._outq.task_done()
 			if isinstance(globals, Exception):
 				raise globals
-			self.globl = GlobalKeyValueStore(
+			self.eternal = GlobalKeyValueStore(
 				self,
 				{self.unpack(k): self.unpack(v) for (k, v) in globals.items()},
 			)
@@ -9640,18 +9641,18 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			if isinstance(ret, Exception):
 				raise ret
 			self._all_keyframe_times = set(ret)
-		if "main_branch" not in self.globl:
+		if "main_branch" not in self.eternal:
 			self.global_set("main_branch", "trunk")
-			self.globl.data["main_branch"] = "trunk"
-		if "branch" not in self.globl:
+			self.eternal.data["main_branch"] = "trunk"
+		if "branch" not in self.eternal:
 			self.global_set("branch", "trunk")
-			self.globl.data["branch"] = "trunk"
-		if "turn" not in self.globl:
+			self.eternal.data["branch"] = "trunk"
+		if "turn" not in self.eternal:
 			self.global_set("turn", 0)
-			self.globl.data["turn"] = 0
-		if "tick" not in self.globl:
+			self.eternal.data["turn"] = 0
+		if "tick" not in self.eternal:
 			self.global_set("tick", 0)
-			self.globl.data["tick"] = 0
+			self.eternal.data["tick"] = 0
 
 	def truncate_all(self):
 		"""Delete all data from every table"""
