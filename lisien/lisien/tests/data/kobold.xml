@@ -1,9 +1,27 @@
 <lisien>
+  <dict-item key="'tick'">
+    <int value="2" />
+  </dict-item>
+  <dict-item key="'turn'">
+    <int value="1" />
+  </dict-item>
+  <dict-item key="'branch'">
+    <str value="trunk" />
+  </dict-item>
+  <dict-item key="'language'">
+    <str value="eng" />
+  </dict-item>
+  <dict-item key="'main_branch'">
+    <str value="trunk" />
+  </dict-item>
+  <dict-item key="'_lisien_schema_version'">
+    <int value="1" />
+  </dict-item>
   <playtree game="test_export_kobold_0" trunk="trunk">
     <branch name="trunk" start_turn="0" start_tick="0" end_turn="1" end_tick="2">
       <keyframe branch="trunk" turn="0" tick="0">
         <universal>
-          <dict_item key="'rando_state'">
+          <dict-item key="'rando_state'">
             <tuple>
               <int value="3" />
               <tuple>
@@ -635,7 +653,7 @@
               </tuple>
               <None />
             </tuple>
-          </dict_item>
+          </dict-item>
         </universal>
       </keyframe>
       <character_rulebook character="'physical'" branch="trunk" turn="0" tick="0" rulebook="('character_rulebook', 'physical')" />
@@ -2545,7 +2563,7 @@
       <node character="'physical'" name="'dwarf'" branch="trunk" turn="0" tick="4" exists="T" />
       <location character="'physical'" thing="'dwarf'" branch="trunk" turn="0" tick="4" location="(0, 0)" />
       <node_val character="'physical'" node="'dwarf'" key="'seen_kobold'" branch="trunk" turn="0" tick="6">
-        <int value="False" />
+        <bool value="F" />
       </node_val>
       <rulebook name="('physical', 'kobold')" priority="0.0">
         <rule_placement rule="shrubsprint" idx="0" />
