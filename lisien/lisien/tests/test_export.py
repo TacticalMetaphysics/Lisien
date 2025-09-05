@@ -5,7 +5,7 @@ from functools import partial
 import pytest
 
 from lisien import Engine
-from lisien.export import game_path_to_xml
+from lisien.exporter import game_path_to_xml
 from lisien.tests.data import DATA_DIR
 
 
