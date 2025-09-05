@@ -9650,6 +9650,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def commit(self):
 		"""Commit the transaction"""
+		self.flush()
 		self._inq.put("commit")
 		self._inq.join()
 		if (got := self.echo("committed")) != "committed":
