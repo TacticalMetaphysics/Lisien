@@ -547,7 +547,7 @@ class Engine(AbstractEngine, Executor):
 
 	@property
 	def eternal(self):
-		return self.query.globl
+		return self.query.eternal
 
 	@property
 	def branch(self) -> Branch:
@@ -602,7 +602,7 @@ class Engine(AbstractEngine, Executor):
 
 	@property
 	def main_branch(self):
-		return self.query.globl["main_branch"]
+		return self.query.eternal["main_branch"]
 
 	def switch_main_branch(self, branch: Branch) -> None:
 		if self.branch != self.main_branch or self.turn != 0 or self.tick != 0:
@@ -613,7 +613,7 @@ class Engine(AbstractEngine, Executor):
 		):
 			raise ValueError("Not a main branch")
 		then = self._btt()
-		self.query.globl["main_branch"] = self.branch = branch
+		self.query.eternal["main_branch"] = self.branch = branch
 		self.time.send(self, then=then, now=self._btt())
 
 	@property
@@ -2153,13 +2153,13 @@ class Engine(AbstractEngine, Executor):
 		self.query.keyframe_interval = keyframe_interval
 		self._load_keyframe_times()
 		if main_branch is not None:
-			self.query.globl["main_branch"] = main_branch
-		elif "main_branch" not in self.query.globl:
-			main_branch = self.query.globl["main_branch"] = "trunk"
+			self.query.eternal["main_branch"] = main_branch
+		elif "main_branch" not in self.query.eternal:
+			main_branch = self.query.eternal["main_branch"] = "trunk"
 		else:
-			main_branch = self.query.globl["main_branch"]
+			main_branch = self.query.eternal["main_branch"]
 		assert main_branch is not None
-		assert main_branch == self.query.globl["main_branch"]
+		assert main_branch == self.query.eternal["main_branch"]
 		self._obranch = self.query.get_branch()
 		self._oturn = self.query.get_turn()
 		self._otick = self.query.get_tick()
@@ -4474,16 +4474,16 @@ class Engine(AbstractEngine, Executor):
 					None,
 					list(
 						self.query.graphs_types(
-							self.query.globl["main_branch"], 0, 0
+							self.query.eternal["main_branch"], 0, 0
 						)
 					),
 					self.query.load_windows(
-						[(self.query.globl["main_branch"], 0, 0, None, None)]
+						[(self.query.eternal["main_branch"], 0, 0, None, None)]
 					),
 				)
 			else:
 				windows = self._build_loading_windows(
-					self.query.globl["main_branch"], 0, 0, branch, turn, tick
+					self.query.eternal["main_branch"], 0, 0, branch, turn, tick
 				)
 		else:
 			past_branch, past_turn, past_tick = latest_past_keyframe
@@ -6919,9 +6919,9 @@ class Engine(AbstractEngine, Executor):
 		Call with ``unload=False`` if you want to keep the written state in memory.
 
 		"""
-		self.query.globl["branch"] = self._obranch
-		self.query.globl["turn"] = self._oturn
-		self.query.globl["tick"] = self._otick
+		self.query.eternal["branch"] = self._obranch
+		self.query.eternal["turn"] = self._oturn
+		self.query.eternal["tick"] = self._otick
 		self.flush()
 		self.query.commit()
 		if unload:
