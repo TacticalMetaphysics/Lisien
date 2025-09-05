@@ -170,7 +170,7 @@ TriggerFuncName = NewType("TriggerFuncName", FuncName)
 PrereqFuncName = NewType("PrereqFuncName", FuncName)
 ActionFuncName = NewType("ActionFuncName", FuncName)
 RuleFuncName: TypeAlias = TriggerFuncName | PrereqFuncName | ActionFuncName
-UniversalKeyframe = NewType("UniversalKeyframe", dict)
+UniversalKeyframe: TypeAlias = dict[UniversalKey, Value]
 RuleKeyframe = dict[
 	Literal["triggers", "prereqs", "actions", "neighborhood", "big"],
 	list[TriggerFuncName]
@@ -182,8 +182,6 @@ RuleKeyframe = dict[
 RulebookKeyframe: TypeAlias = dict[
 	RulebookName, tuple[list[RuleName], RulebookPriority]
 ]
-NodeKeyframe = NewType("NodeKeyframe", dict)
-EdgeKeyframe = NewType("EdgeKeyframe", dict)
 UniversalRowType: TypeAlias = tuple[UniversalKey, Branch, Turn, Tick, Value]
 RulebookRowType: TypeAlias = tuple[
 	RulebookName,
@@ -254,8 +252,10 @@ CharDict: TypeAlias = dict[
 ]
 GraphValKeyframe: TypeAlias = dict[CharName, CharDict]
 NodeValDict: TypeAlias = dict[NodeName, StatDict]
+NodeKeyframe = NodeValDict
 GraphNodeValKeyframe: TypeAlias = dict[CharName, NodeValDict]
 EdgeValDict: TypeAlias = dict[NodeName, dict[NodeName, StatDict]]
+EdgeKeyframe = EdgeValDict
 GraphEdgeValKeyframe: TypeAlias = dict[CharName, EdgeValDict]
 NodesDict: TypeAlias = dict[NodeName, bool]
 GraphNodesKeyframe: TypeAlias = dict[CharName, NodesDict]
