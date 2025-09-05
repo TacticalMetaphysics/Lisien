@@ -2952,7 +2952,7 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		nodes: NodeKeyframe,
 		edges: EdgeKeyframe,
-		graph_val: GraphValKeyframe,
+		graph_val: CharDict,
 	) -> None:
 		pass
 
