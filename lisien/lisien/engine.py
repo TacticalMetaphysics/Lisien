@@ -146,6 +146,7 @@ from .types import (
 	Turn,
 	UniversalKey,
 	Value,
+	EntityKey,
 )
 from .util import (
 	ACTIONS,
@@ -6057,11 +6058,22 @@ class Engine(AbstractEngine, Executor):
 			node_objs[key] = self.place_cls(self.character[graphn], placen)
 		return node_objs[key]
 
-	def _eval_triggers(self):
+	RulesTodoType = dict[
+		tuple[float, RulebookName],
+		list[
+			tuple[
+				Rule,
+				Callable,
+				list[char_cls | place_cls | thing_cls | portal_cls],
+			]
+		],
+	]
+
+	def _eval_triggers(self) -> RulesTodoType:
 		branch, turn, tick = self._btt()
 		charmap = self.character
 		rulemap = self.rule
-		todo = defaultdict(list)
+		todo = {}
 		trig_futs = []
 
 		for (
@@ -6306,13 +6318,23 @@ class Engine(AbstractEngine, Executor):
 
 		for fut in trig_futs:
 			if fut.result():
-				todo[fut.prio, fut.rulebook].append(
-					(
-						fut.rule,
-						fut.handled,
-						fut.entity,
-					)
-				)
+				todo_key = (fut.prio, fut.rulebook)
+				rulebook = self.rulebook[fut.rulebook]
+				rbidx = rulebook.index(rule)
+				if todo_key in todo:
+					rulez = todo[todo_key]
+					if rulez[rbidx] is None:
+						rulez[rbidx] = (fut.rule, fut.handled, [fut.entity])
+					else:
+						rule, handled, entities = rulez[rulebook.index(rule)]
+						entities.append(fut.entity)
+				else:
+					entity_cls = self.entity_cls
+					rulez: list[
+						tuple[Rule, Callable, list[entity_cls]] | None
+					] = [None] * len(rulebook)
+					todo[todo_key] = rulez
+					rulez[rbidx] = (fut.rule, fut.handled, [fut.entity])
 			else:
 				fut.handled(self.tick)
 
@@ -6362,25 +6384,27 @@ class Engine(AbstractEngine, Executor):
 			except StopIteration as ex:
 				raise InnerStopIteration from ex
 
+	@classmethod
+	def _get_entity_key(cls, ent: entity_cls) -> EntityKey:
+		if isinstance(ent, cls.char_cls):
+			return (ent.name,)
+		elif isinstance(ent, (cls.place_cls, cls.thing_cls)):
+			return (ent.character.name, ent.name)
+		else:
+			assert isinstance(ent, cls.edge_cls)
+			return (ent.character.name, ent.orig, ent.dest)
+
 	def _follow_rules(
 		self,
-		todo: dict[
-			float,
-			list[
-				tuple[
-					RuleName,
-					callable,
-					char_cls | place_cls | thing_cls | portal_cls,
-				]
-			],
-		],
+		todo: RulesTodoType,
 	):
 		# TODO: roll back changes done by rules that raise an exception
 		# TODO: if there's a paradox while following some rule,
 		#  start a new branch, copying handled rules
-		for prio_rulebook in sort_set(todo.keys()):
-			for rule, handled, entity in todo[prio_rulebook]:
-				yield self._follow_one_rule(rule, handled, entity)
+		for prio, rulebook in sort_set(todo.keys()):
+			for rule, handled, entities in todo[prio, rulebook]:
+				for entity in sorted(entities, key=self._get_entity_key):
+					yield self._follow_one_rule(rule, handled, entity)
 
 	def new_character(
 		self,
