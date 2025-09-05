@@ -3,8 +3,10 @@ import os
 from functools import partial
 
 import pytest
+from sqlalchemy import create_engine
 
 from lisien import Engine
+from ..alchemy import meta
 from lisien.exporter import game_path_to_xml
 from lisien.importer import xml_to_sqlite
 from lisien.tests.data import DATA_DIR
@@ -48,7 +50,19 @@ def test_export(tmp_path, exported):
 
 
 def test_import(tmp_path, exported):
-	testworld = os.path.join(tmp_path, "testworld.sqlite3")
-	xml_to_sqlite(exported, testworld)
+	test_world = os.path.join(tmp_path, "testworld.sqlite3")
+	correct_world = os.path.join(tmp_path, "world.sqlite3")
+	xml_to_sqlite(exported, test_world)
 
-	assert filecmp.cmp(os.path.join(tmp_path, "world.sqlite3"), testworld)
+	test_engine = create_engine("sqlite:///" + test_world)
+	correct_engine = create_engine("sqlite:///" + correct_world)
+	with (
+		test_engine.connect() as test_connection,
+		correct_engine.connect() as correct_connection,
+	):
+		for tab in meta.tables.values():
+			cols = list(tab.columns.values())
+			sel = tab.select().order_by(*cols)
+			test_recs = test_connection.execute(sel).fetchall()
+			correct_recs = correct_connection.execute(sel).fetchall()
+			assert test_recs == correct_recs
