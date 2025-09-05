@@ -403,6 +403,7 @@ def tree_to_db(
 			k = literal_eval(el.get("key"))
 			v = importer.xml_to_value(el[0])
 			query.eternal[k] = v
+	query.commit()
 
 
 def tree_to_sqlite(
