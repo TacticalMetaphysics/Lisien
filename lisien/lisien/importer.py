@@ -310,7 +310,7 @@ class Importer:
 	def node(self, el: Element):
 		branch, turn, tick = self._get_time(el)
 		char = CharName(literal_eval(el.get("character")))
-		node = NodeName(literal_eval(el.get("node")))
+		node = NodeName(literal_eval(el.get("name")))
 		ex = el.get("exists") == "T"
 		self.query.exist_node(char, node, branch, turn, tick, ex)
 
