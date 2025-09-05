@@ -62,6 +62,7 @@ from .types import (
 	EdgeKeyframe,
 	EdgeRowType,
 	EdgeValRowType,
+	GraphRowType,
 	GraphValKeyframe,
 	GraphValRowType,
 	Key,
@@ -447,7 +448,7 @@ class ParquetDBHolder(ConnectionHolder):
 			for name in self._get_db("graphs").read(columns=["graph"])["graph"]
 		)
 
-	def list_graphs_to_end(self, branch: Branch, turn: Turn, tick: Tick):
+	def load_graphs_tick_to_end(self, branch: Branch, turn: Turn, tick: Tick):
 		from pyarrow import compute as pc
 
 		data = (
@@ -464,7 +465,7 @@ class ParquetDBHolder(ConnectionHolder):
 			if d["turn"] > turn or (d["turn"] == turn and d["tick"] >= tick)
 		]
 
-	def list_graphs_to_tick(
+	def load_graphs_tick_to_tick(
 		self,
 		branch: Branch,
 		turn_from: Turn,
@@ -3299,6 +3300,7 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	_infixes2load = [
+		"graphs",
 		"nodes",
 		"edges",
 		"graph_val",
@@ -3456,6 +3458,36 @@ class AbstractQueryEngine(ABC):
 		)
 		unpack = self.unpack
 		outq = self._outq
+		got = outq.get()
+		if got != (
+			"begin",
+			"graphs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of graphs", got)
+		outq.task_done()
+		if "graphs" not in ret:
+			ret["graphs"] = []
+		while isinstance(got := outq.get(), list):
+			got: list[tuple[bytes, Turn, Tick, str]]
+			for graph, turn, tick, typ_str in got:
+				ret["graphs"].append((graph, branch, turn, tick, typ_str))
+			outq.task_done()
+		if got != (
+			"end",
+			"graphs",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected end of graphs", got)
+		outq.task_done()
 		got = outq.get()
 		if got != (
 			"begin",
@@ -4843,6 +4875,7 @@ class AbstractQueryEngine(ABC):
 			"rule_actions",
 			"rule_neighborhood",
 			"rule_big",
+			"graphs",
 		]
 		| CharName,
 		list[UniversalRowType]
@@ -5948,13 +5981,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			if tick_to is not None:
 				raise TypeError("Need both or neither of turn_to, tick_to")
 			data = self.call(
-				"list_graphs_to_end", branch, turn_from, tick_from
+				"load_graphs_tick_to_end", branch, turn_from, tick_from
 			)
 		else:
 			if tick_to is None:
 				raise TypeError("Need both or neither of turn_to, tick_to")
 			data = self.call(
-				"list_graphs_to_tick",
+				"load_graphs_tick_to_tick",
 				branch,
 				turn_from,
 				tick_from,

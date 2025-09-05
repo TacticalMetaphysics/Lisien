@@ -622,6 +622,8 @@ def queries(table):
 			),
 		)
 
+	g = table["graphs"]
+
 	r = {
 		"global_get": select(table["global"].c.value).where(
 			table["global"].c.key == bindparam("key")
@@ -839,6 +841,12 @@ def queries(table):
 				table["keyframes_graphs"].c.tick == bindparam("tick"),
 			)
 		),
+		"load_graphs_tick_to_end": select(
+			g.c.graph, g.c.turn, g.c.tick, g.c.type
+		).where(tick_to_end_clause(g)),
+		"load_graphs_tick_to_tick": select(
+			g.c.graph, g.c.turn, g.c.tick, g.c.type
+		).where(tick_to_tick_clause(g)),
 		"load_nodes_tick_to_end": select(
 			table["nodes"].c.graph,
 			table["nodes"].c.node,
