@@ -324,7 +324,7 @@ def fill_branch_element(
 	query: AbstractQueryEngine,
 	turn_from: Turn,
 	turn_to: Turn,
-	turn_ends: dict[Turn, Tick],
+	turn_ends: dict[Turn, tuple[Tick, Tick]],
 	data: dict[
 		Literal[
 			"universals",
@@ -560,9 +560,21 @@ def fill_branch_element(
 		)
 
 	turn: Turn
+	turns_el = Element("turns", branch=branch)
+	branch_el.append(turns_el)
+	for turn, (ending_tick, plan_ending_tick) in turn_ends.items():
+		turns_el.append(
+			Element(
+				"turn",
+				branch=branch,
+				turn=str(turn),
+				end_tick=str(ending_tick),
+				plan_end_tick=str(plan_ending_tick),
+			)
+		)
 	for turn in range(turn_from, turn_to + 1):
 		tick: Tick
-		for tick in range(turn_ends[turn]):
+		for tick in range(turn_ends[turn][1]):
 			if (branch, turn, tick) in keyframe_times:
 				kf = query.get_keyframe(branch, turn, tick)
 				add_keyframe_to_branch_el(branch_el, branch, turn, tick, kf)
@@ -747,15 +759,17 @@ def query_engine_to_tree(
 	trunks = set()
 	branches_d = {}
 	branch_descendants = {}
-	turn_end_plan_d = {}
+	turn_end_plan_d: dict[Branch, dict[Turn, tuple[Tick, Tick]]] = {}
 	branch_elements = {}
 	playtrees: dict[Branch, Element] = {}
 	keyframe_times: set[Time] = set(query.keyframes_dump())
 	for branch, turn, last_real_tick, last_planned_tick in query.turns_dump():
 		if branch in turn_end_plan_d:
-			turn_end_plan_d[branch][turn] = last_planned_tick
+			turn_end_plan_d[branch][turn] = (last_real_tick, last_planned_tick)
 		else:
-			turn_end_plan_d[branch] = {turn: last_planned_tick}
+			turn_end_plan_d[branch] = {
+				turn: (last_real_tick, last_planned_tick)
+			}
 	branch2do = deque(query.all_branches())
 	while branch2do:
 		(
