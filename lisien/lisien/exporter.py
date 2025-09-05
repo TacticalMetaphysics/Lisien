@@ -359,7 +359,14 @@ def fill_branch_element(
 
 	def append_rulebook_el(rulebook_rec: RulebookRowType):
 		rb, b, r, t, (rules, prio) = rulebook_rec
-		rb_el = Element("rulebook", name=repr(rulebook), priority=repr(prio))
+		rb_el = Element(
+			"rulebook",
+			name=repr(rulebook),
+			priority=repr(prio),
+			branch=b,
+			turn=str(r),
+			tick=str(t),
+		)
 		branch_el.append(rb_el)
 		for i, rule in enumerate(rules):
 			rb_el.append(Element("rule_placement", rule=rule, idx=str(i)))

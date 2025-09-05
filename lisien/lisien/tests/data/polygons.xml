@@ -2733,7 +2733,7 @@
           <node character="'physical'" name="(11, 7)" />
         </list>
       </universal>
-      <rulebook name="'parable'" priority="0.0">
+      <rulebook name="'parable'" priority="0.0" branch="trunk" turn="0" tick="5">
         <rule_placement rule="relocate" idx="0" />
       </rulebook>
       <universal key="'unoccupied'" branch="trunk" turn="1" tick="12">
