@@ -65,4 +65,4 @@ def test_import(tmp_path, exported):
 			sel = tab.select().order_by(*cols)
 			test_recs = test_connection.execute(sel).fetchall()
 			correct_recs = correct_connection.execute(sel).fetchall()
-			assert test_recs == correct_recs
+			assert test_recs == correct_recs, tab.name + " differs"
