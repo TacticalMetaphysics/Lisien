@@ -206,7 +206,7 @@ def value_to_xml(value: Value | dict[Key, Value]) -> Element:
 	elif isinstance(value, dict):
 		el = Element("dict")
 		for k, v in value.items():
-			dict_item = Element("dict_item", key=repr(k))
+			dict_item = Element("dict-item", key=repr(k))
 			dict_item.append(value_to_xml(v))
 			el.append(dict_item)
 		return el
