@@ -4567,6 +4567,8 @@ class Engine(AbstractEngine, Executor):
 			self._neighborhoods_cache.load(rule_neighborhoods)
 		if rule_big := loaded.pop("rule_big", None):
 			self._rule_bigness_cache.load(rule_big)
+		if graphs := loaded.pop("graphs", None):
+			self._graph_cache.load(graphs)
 		for loaded_graph, data in loaded.items():
 			assert isinstance(data, dict)
 			if data.get("things"):

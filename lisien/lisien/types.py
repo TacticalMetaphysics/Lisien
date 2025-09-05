@@ -214,6 +214,7 @@ RuleNeighborhoodRowType: TypeAlias = tuple[
 	RuleName, Branch, Turn, Tick, RuleNeighborhood
 ]
 RuleBigRowType: TypeAlias = tuple[RuleName, Branch, Turn, Tick, RuleBig]
+GraphRowType: TypeAlias = tuple[CharName, Branch, Turn, Tick, str]
 NodeRowType: TypeAlias = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
 EdgeRowType: TypeAlias = tuple[
 	CharName, NodeName, NodeName, Branch, Turn, Tick, bool
