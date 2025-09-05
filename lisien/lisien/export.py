@@ -819,7 +819,7 @@ def query_engine_to_tree(
 			b,
 		)
 		if b in branch_descendants:
-			for desc in branch_descendants[b]:
+			for desc in sorted(branch_descendants[b], key=branches_d.get):
 				recurse_branch(desc)
 
 	for trunk in trunks:
