@@ -137,14 +137,14 @@ def value_to_xml(value: Value | dict[Key, Value]) -> Element:
 		return Element("Ellipsis")
 	elif value is None:
 		return Element("None")
+	elif isinstance(value, bool):
+		return Element("bool", value="T" if value else "F")
 	elif isinstance(value, int):
 		return Element("int", value=str(value))
 	elif isinstance(value, float):
 		return Element("float", value=str(value))
 	elif isinstance(value, str):
 		return Element("str", value=value)
-	elif isinstance(value, bool):
-		return Element("bool", value="T" if value else "F")
 	elif isinstance(value, lisien.graph.DiGraph):
 		# Since entity names are restricted to what we can use for dict
 		# keys and also serialize to msgpack, I don't think there's any name
