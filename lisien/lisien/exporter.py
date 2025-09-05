@@ -241,7 +241,7 @@ def add_keyframe_to_branch_el(
 		"neighborhood", {}
 	)
 	bigs_kf: dict[RuleName, RuleBig] = keyframe.get("big", {})
-	for rule_name in (
+	for rule_name in sorted(
 		triggers_kf.keys() | prereqs_kf.keys() | actions_kf.keys()
 	):
 		rule_name: RuleName

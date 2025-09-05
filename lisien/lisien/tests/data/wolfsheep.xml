@@ -45101,17 +45101,82 @@
           <prereq name="malaria" />
         </prereqs>
       </rule>
+      <rule name="grow" branch="trunk" turn="0" tick="324" big="F">
+        <actions>
+          <action name="grow" />
+        </actions>
+      </rule>
+      <rulebook name="('character_rulebook', 'physical')" priority="0.0" branch="trunk" turn="0" tick="325">
+        <rule_placement rule="grow" idx="0" />
+      </rulebook>
+      <rule name="grow" branch="trunk" turn="0" tick="326">
+        <triggers>
+          <trigger name="truth" />
+        </triggers>
+      </rule>
+      <rule name="grow" branch="trunk" turn="0" tick="327" big="F" />
       <rule name="graze" branch="trunk" turn="0" tick="328" big="F">
         <actions>
           <action name="graze" />
         </actions>
       </rule>
+      <rulebook name="('unit_rulebook', 'sheep')" priority="0.0" branch="trunk" turn="0" tick="329">
+        <rule_placement rule="graze" idx="0" />
+      </rulebook>
       <rule name="graze" branch="trunk" turn="0" tick="330" big="F" />
       <rule name="graze" branch="trunk" turn="0" tick="331">
         <triggers>
           <trigger name="grass_here" />
         </triggers>
       </rule>
+      <rulebook name="('unit_rulebook', 'sheep')" priority="0.0" branch="trunk" turn="0" tick="332">
+        <rule_placement rule="graze" idx="0" />
+        <rule_placement rule="die_of_malaria_or_anemia" idx="1" />
+      </rulebook>
+      <rule name="mate" branch="trunk" turn="0" tick="333" big="F">
+        <actions>
+          <action name="mate" />
+        </actions>
+      </rule>
+      <rulebook name="('unit_rulebook', 'sheep')" priority="0.0" branch="trunk" turn="0" tick="334">
+        <rule_placement rule="graze" idx="0" />
+        <rule_placement rule="die_of_malaria_or_anemia" idx="1" />
+        <rule_placement rule="mate" idx="2" />
+      </rulebook>
+      <rule name="mate" branch="trunk" turn="0" tick="335" big="F" />
+      <rule name="mate" branch="trunk" turn="0" tick="336">
+        <triggers>
+          <trigger name="once_per_turn" />
+        </triggers>
+      </rule>
+      <rule name="mate" branch="trunk" turn="0" tick="337">
+        <prereqs>
+          <prereq name="mate_present" />
+        </prereqs>
+      </rule>
+      <rule name="mate" branch="trunk" turn="0" tick="338">
+        <prereqs>
+          <prereq name="mate_present" />
+          <prereq name="in_the_mood" />
+        </prereqs>
+      </rule>
+      <rule name="wander" branch="trunk" turn="0" tick="339" big="F">
+        <actions>
+          <action name="wander" />
+        </actions>
+      </rule>
+      <rulebook name="('unit_rulebook', 'sheep')" priority="0.0" branch="trunk" turn="0" tick="340">
+        <rule_placement rule="graze" idx="0" />
+        <rule_placement rule="die_of_malaria_or_anemia" idx="1" />
+        <rule_placement rule="mate" idx="2" />
+        <rule_placement rule="wander" idx="3" />
+      </rulebook>
+      <rule name="wander" branch="trunk" turn="0" tick="341">
+        <triggers>
+          <trigger name="truth" />
+        </triggers>
+      </rule>
+      <rule name="wander" branch="trunk" turn="0" tick="342" big="F" />
       <rulebook name="('unit_rulebook', 'wolf')" priority="0.0" branch="trunk" turn="0" tick="343">
         <rule_placement rule="die_of_malaria_or_anemia" idx="0" />
       </rulebook>
@@ -45119,11 +45184,27 @@
         <rule_placement rule="die_of_malaria_or_anemia" idx="0" />
         <rule_placement rule="mate" idx="1" />
       </rulebook>
+      <rule name="pursue_sheep" branch="trunk" turn="0" tick="345" big="F">
+        <actions>
+          <action name="pursue_sheep" />
+        </actions>
+      </rule>
       <rulebook name="('unit_rulebook', 'wolf')" priority="0.0" branch="trunk" turn="0" tick="346">
         <rule_placement rule="die_of_malaria_or_anemia" idx="0" />
         <rule_placement rule="mate" idx="1" />
         <rule_placement rule="pursue_sheep" idx="2" />
       </rulebook>
+      <rule name="pursue_sheep" branch="trunk" turn="0" tick="347">
+        <triggers>
+          <trigger name="truth" />
+        </triggers>
+      </rule>
+      <rule name="pursue_sheep" branch="trunk" turn="0" tick="348" big="F" />
+      <rule name="pursue_sheep" branch="trunk" turn="0" tick="349">
+        <prereqs>
+          <prereq name="sheep_remains" />
+        </prereqs>
+      </rule>
       <graph_val character="'physical'" key="'bare_places'" branch="trunk" turn="1" tick="2">
         <list>
           <tuple>
@@ -66145,16 +66226,6 @@
             </tuple>
           </dict-item>
         </universal>
-        <rule name="mate" big="F">
-          <trigger name="once_per_turn" />
-          <prereq name="mate_present" />
-          <prereq name="in_the_mood" />
-          <action name="mate" />
-        </rule>
-        <rule name="grow" big="F">
-          <trigger name="truth" />
-          <action name="grow" />
-        </rule>
         <rule name="die_of_malaria_or_anemia" big="F">
           <trigger name="truth" />
           <prereq name="malaria" />
@@ -66164,14 +66235,24 @@
           <trigger name="grass_here" />
           <action name="graze" />
         </rule>
-        <rule name="wander" big="F">
+        <rule name="grow" big="F">
           <trigger name="truth" />
-          <action name="wander" />
+          <action name="grow" />
+        </rule>
+        <rule name="mate" big="F">
+          <trigger name="once_per_turn" />
+          <prereq name="mate_present" />
+          <prereq name="in_the_mood" />
+          <action name="mate" />
         </rule>
         <rule name="pursue_sheep" big="F">
           <trigger name="truth" />
           <prereq name="sheep_remains" />
           <action name="pursue_sheep" />
+        </rule>
+        <rule name="wander" big="F">
+          <trigger name="truth" />
+          <action name="wander" />
         </rule>
         <rulebook name="('character_rulebook', 'physical')" priority="0.0">
           <rule name="grow" />
