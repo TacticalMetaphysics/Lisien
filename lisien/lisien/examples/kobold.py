@@ -206,7 +206,7 @@ if __name__ == "__main__":
 	from tempfile import TemporaryDirectory
 
 	from lisien.engine import Engine
-	from lisien.export import sqlite_to_xml
+	from lisien.exporter import sqlite_to_xml
 
 	with TemporaryDirectory() as td:
 		with Engine(
