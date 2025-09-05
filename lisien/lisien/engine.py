@@ -6320,17 +6320,18 @@ class Engine(AbstractEngine, Executor):
 			if fut.result():
 				todo_key = (fut.prio, fut.rulebook)
 				rulebook = self.rulebook[fut.rulebook]
-				rbidx = rulebook.index(rule)
+				rbidx = rulebook.index(fut.rule)
 				entity_key = self._get_entity_key(fut.entity)
 				if todo_key in todo:
 					rulez = todo[todo_key]
 					if rulez[rbidx] is None:
 						rulez[rbidx] = (fut.rule, fut.handled, {entity_key})
 					else:
-						rule, handled, entities = rulez[rulebook.index(rule)]
+						rule, handled, entities = rulez[
+							rulebook.index(fut.rule)
+						]
 						entities.add(entity_key)
 				else:
-					entity_cls = self.entity_cls
 					rulez: list[
 						tuple[Rule, Callable, set[EntityKey]] | None
 					] = [None] * len(rulebook)
