@@ -394,10 +394,15 @@ def tree_to_db(
 ):
 	importer = Importer(query, engine)
 	root = tree.getroot()
-	for playtree in root:
-		for branch in playtree:
-			for elem in branch:
-				getattr(importer, elem.tag)(elem)
+	for el in root:
+		if el.tag == "playtree":
+			for branch in el:
+				for elem in branch:
+					getattr(importer, elem.tag)(elem)
+		else:
+			k = literal_eval(el.get("key"))
+			v = importer.el_to_value(el[0])
+			query.eternal[k] = v
 
 
 def tree_to_sqlite(
