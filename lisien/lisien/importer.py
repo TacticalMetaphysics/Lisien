@@ -397,6 +397,16 @@ def tree_to_db(
 	for el in root:
 		if el.tag == "playtree":
 			for branch in el:
+				parent: Branch | None = branch.get("parent")
+				name = Branch(branch.get("name"))
+				start_turn = Turn(int(branch.get("start_turn")))
+				start_tick = Tick(int(branch.get("start_tick")))
+				end_turn = Turn(int(branch.get("end_turn")))
+				end_tick = Tick(int(branch.get("end_tick")))
+				query.set_branch(
+					name, parent, start_turn, start_tick, end_turn, end_tick
+				)
+
 				for elem in branch:
 					getattr(importer, elem.tag)(elem)
 		else:
