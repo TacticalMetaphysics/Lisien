@@ -5409,6 +5409,7 @@
           <node character="'physical'" name="(12, 2)" />
         </list>
       </universal>
+      <graph character="b'\xa6square'" branch="trunk" turn="0" tick="9" type="DiGraph" />
       <character_rulebook character="'square'" branch="trunk" turn="0" tick="9" rulebook="('character_rulebook', 'square')" />
       <unit_rulebook character="'square'" branch="trunk" turn="0" tick="9" rulebook="('unit_rulebook', 'square')" />
       <character_thing_rulebook character="'square'" branch="trunk" turn="0" tick="9" rulebook="('character_thing_rulebook', 'square')" />
