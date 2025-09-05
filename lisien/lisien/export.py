@@ -543,7 +543,8 @@ def fill_branch_element(
 			Element(
 				"portal_rulebook",
 				character=repr(char),
-				node=repr(node),
+				orig=repr(orig),
+				dest=repr(dest),
 				branch=b,
 				turn=str(r),
 				tick=str(t),
