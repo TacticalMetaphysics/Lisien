@@ -44,7 +44,7 @@ class Importer:
 		self.query = query
 		self.engine = engine
 
-	def el_to_value(self, el: Element) -> Value:
+	def xml_to_value(self, el: Element) -> Value:
 		eng = self.engine
 		match el.tag:
 			case "Ellipsis":
@@ -70,20 +70,20 @@ class Importer:
 				dest = NodeName(literal_eval(el.get("destination")))
 				return eng.character[char_name].portal[orig][dest]
 			case "list":
-				return Value([self.el_to_value(listel) for listel in el])
+				return Value([self.xml_to_value(listel) for listel in el])
 			case "tuple":
-				return Value(tuple(self.el_to_value(tupel) for tupel in el))
+				return Value(tuple(self.xml_to_value(tupel) for tupel in el))
 			case "set":
-				return Value({self.el_to_value(setel) for setel in el})
+				return Value({self.xml_to_value(setel) for setel in el})
 			case "frozenset":
 				return Value(
-					frozenset(self.el_to_value(setel) for setel in el)
+					frozenset(self.xml_to_value(setel) for setel in el)
 				)
 			case "dict":
 				ret = {}
 				for dict_item_el in el:
 					ret[literal_eval(dict_item_el.get("key"))] = (
-						self.el_to_value(dict_item_el[0])
+						self.xml_to_value(dict_item_el[0])
 					)
 				return Value(ret)
 			case "exception":
@@ -129,7 +129,7 @@ class Importer:
 			if subel.tag == "universal":
 				for univel in subel:
 					k = literal_eval(univel.get("key"))
-					v = self.el_to_value(univel[0])
+					v = self.xml_to_value(univel[0])
 					universal_kf[k] = v
 			elif subel.tag == "rule":
 				rule = RuleName(el.get("name"))
@@ -190,7 +190,7 @@ class Importer:
 				for key_el in subel:
 					if key_el.tag == "dict_item":
 						key = literal_eval(key_el.get("key"))
-						graph_vals[key] = self.el_to_value(key_el[0])
+						graph_vals[key] = self.xml_to_value(key_el[0])
 					elif key_el.tag == "node":
 						char = literal_eval(key_el.get("character"))
 						name = literal_eval(key_el.get("name"))
@@ -201,7 +201,7 @@ class Importer:
 							val = nv[name] = {}
 						for item_el in key_el:
 							val[literal_eval(item_el.get("key"))] = (
-								self.el_to_value(item_el[0])
+								self.xml_to_value(item_el[0])
 							)
 					elif key_el.tag == "edge":
 						char = literal_eval(key_el.get("character"))
@@ -215,7 +215,7 @@ class Importer:
 						val = ev[orig][dest]
 						for item_el in key_el:
 							val[literal_eval(item_el.get("key"))] = (
-								self.el_to_value(item_el[0])
+								self.xml_to_value(item_el[0])
 							)
 					else:
 						raise ValueError(
@@ -244,7 +244,7 @@ class Importer:
 		turn = Turn(int(el.get("turn")))
 		tick = Tick(int(el.get("tick")))
 		key = UniversalKey(literal_eval(el.get("key")))
-		value = self.el_to_value(el[0])
+		value = self.xml_to_value(el[0])
 		self.query.universal_set(key, branch, turn, tick, value)
 
 	def rulebook(self, el: Element):
@@ -304,7 +304,7 @@ class Importer:
 		branch, turn, tick = self._get_time(el)
 		graph = CharName(literal_eval(el.get("character")))
 		key = Stat(literal_eval(el.get("key")))
-		value = self.el_to_value(el[0])
+		value = self.xml_to_value(el[0])
 		self.query.graph_val_set(graph, key, branch, turn, tick, value)
 
 	def node(self, el: Element):
@@ -319,7 +319,7 @@ class Importer:
 		char = CharName(literal_eval(el.get("character")))
 		node = NodeName(literal_eval(el.get("node")))
 		key = Stat(literal_eval(el.get("key")))
-		val = self.el_to_value(el[0])
+		val = self.xml_to_value(el[0])
 		self.query.node_val_set(char, node, key, branch, turn, tick, val)
 
 	def edge(self, el: Element):
@@ -336,7 +336,7 @@ class Importer:
 		orig = NodeName(literal_eval(el.get("orig")))
 		dest = NodeName(literal_eval(el.get("dest")))
 		key = Stat(literal_eval(el.get("key")))
-		val = self.el_to_value(el[0])
+		val = self.xml_to_value(el[0])
 		self.query.edge_val_set(char, orig, dest, key, branch, turn, tick, val)
 
 	def location(self, el: Element):
@@ -401,7 +401,7 @@ def tree_to_db(
 					getattr(importer, elem.tag)(elem)
 		else:
 			k = literal_eval(el.get("key"))
-			v = importer.el_to_value(el[0])
+			v = importer.xml_to_value(el[0])
 			query.eternal[k] = v
 
 
