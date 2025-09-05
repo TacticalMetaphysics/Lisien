@@ -29,7 +29,7 @@ from sqlite3 import IntegrityError as LiteIntegrityError
 from sqlite3 import OperationalError as LiteOperationalError
 from threading import Lock, Thread
 from types import MethodType
-from typing import Any, Iterator, Literal, Optional, TypeAlias
+from typing import Any, Iterator, Literal, Optional, TypeAlias, MutableMapping
 
 from sqlalchemy import (
 	BLOB,
