@@ -1111,37 +1111,17 @@ def queries(table):
 		to_tick_clause(ptab)
 	)
 
-	def generic_tick_to_end_clause(tab: Table):
-		return and_(
-			tab.c.branch == bindparam("branch"),
-			or_(
-				tab.c.turn > bindparam("turn_from"),
-				and_(
-					tab.c.turn == bindparam("turn_from"),
-					tab.c.tick >= bindparam("tick_from"),
-				),
-			),
-		)
-
-	def generic_tick_to_tick_clause(tab: Table):
-		return and_(
-			generic_tick_to_end_clause(tab),
-			or_(
-				tab.c.turn < bindparam("turn_to"),
-				and_(
-					tab.c.turn == bindparam("turn_to"),
-					tab.c.tick < bindparam("tick_to"),
-				),
-			),
-		)
-
 	univ = table["universals"]
-	r["load_universals_tick_to_end"] = select(
-		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
-	).where(generic_tick_to_end_clause(univ))
-	r["load_universals_tick_to_tick"] = select(
-		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
-	).where(generic_tick_to_tick_clause(univ))
+	r["load_universals_tick_to_end"] = (
+		select(univ.c.key, univ.c.turn, univ.c.tick, univ.c.value)
+		.where(tick_to_end_clause(univ))
+		.order_by(univ.c.turn, univ.c.tick)
+	)
+	r["load_universals_tick_to_tick"] = (
+		select(univ.c.key, univ.c.turn, univ.c.tick, univ.c.value)
+		.where(tick_to_tick_clause(univ))
+		.order_by(univ.c.turn, univ.c.tick)
+	)
 
 	rbs = table["rulebooks"]
 	rbsel = select(
@@ -1152,11 +1132,11 @@ def queries(table):
 		rbs.c.priority,
 	)
 	r["load_rulebooks_tick_to_end"] = rbsel.where(
-		generic_tick_to_end_clause(rbs)
-	)
+		tick_to_end_clause(rbs)
+	).order_by(rbs.c.turn, rbs.c.tick, rbs.c.rulebook)
 	r["load_rulebooks_tick_to_tick"] = rbsel.where(
-		generic_tick_to_tick_clause(rbs)
-	)
+		tick_to_tick_clause(rbs)
+	).order_by(rbs.c.turn, rbs.c.tick, rbs.c.rulebook)
 
 	hood = table["rule_neighborhood"]
 	trig = table["rule_triggers"]
@@ -1169,40 +1149,40 @@ def queries(table):
 		hood.c.neighborhood,
 	)
 	r["load_rule_neighborhoods_tick_to_end"] = hoodsel.where(
-		generic_tick_to_end_clause(hood)
-	)
+		tick_to_end_clause(hood)
+	).order_by(hood.c.turn, hood.c.tick, hood.c.rule)
 	r["load_rule_neighborhoods_tick_to_tick"] = hoodsel.where(
-		generic_tick_to_tick_clause(hood)
-	)
+		tick_to_tick_clause(hood)
+	).order_by(hood.c.turn, hood.c.tick, hood.c.rule)
 	big = table["rule_big"]
 	bigsel = select(big.c.rule, big.c.turn, big.c.tick, big.c.big)
 	r["load_rule_big_tick_to_end"] = bigsel.where(
-		generic_tick_to_end_clause(big)
-	)
+		tick_to_end_clause(big)
+	).order_by(big.c.turn, big.c.tick, big.c.rule)
 	r["load_rule_big_tick_to_tick"] = bigsel.where(
-		generic_tick_to_tick_clause(big)
-	)
+		tick_to_tick_clause(big)
+	).order_by(big.c.turn, big.c.tick, big.c.rule)
 	trigsel = select(trig.c.rule, trig.c.turn, trig.c.tick, trig.c.triggers)
 	r["load_rule_triggers_tick_to_end"] = trigsel.where(
-		generic_tick_to_end_clause(trig)
-	)
+		tick_to_end_clause(trig)
+	).order_by(trig.c.turn, trig.c.tick, trig.c.rule)
 	r["load_rule_triggers_tick_to_tick"] = trigsel.where(
-		generic_tick_to_tick_clause(trig)
-	)
+		tick_to_tick_clause(trig)
+	).order_by(trig.c.turn, trig.c.tick, trig.c.rule)
 	preqsel = select(preq.c.rule, preq.c.turn, preq.c.tick, preq.c.prereqs)
 	r["load_rule_prereqs_tick_to_end"] = preqsel.where(
-		generic_tick_to_end_clause(preq)
-	)
+		tick_to_end_clause(preq)
+	).order_by(preq.c.turn, preq.c.tick, preq.c.rule)
 	r["load_rule_prereqs_tick_to_tick"] = preqsel.where(
-		generic_tick_to_tick_clause(preq)
-	)
+		tick_to_tick_clause(preq)
+	).order_by(preq.c.turn, preq.c.tick, preq.c.rule)
 	actsel = select(act.c.rule, act.c.turn, act.c.tick, act.c.actions)
 	r["load_rule_actions_tick_to_end"] = actsel.where(
-		generic_tick_to_end_clause(act)
-	)
+		tick_to_end_clause(act)
+	).order_by(act.c.turn, act.c.tick, act.c.rule)
 	r["load_rule_actions_tick_to_tick"] = actsel.where(
-		generic_tick_to_tick_clause(act)
-	)
+		tick_to_tick_clause(act)
+	).order_by(act.c.turn, act.c.tick, act.c.rule)
 	kf = table["keyframes"]
 
 	def time_clause(tab):
