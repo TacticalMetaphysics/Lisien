@@ -6,6 +6,7 @@ import pytest
 
 from lisien import Engine
 from lisien.exporter import game_path_to_xml
+from lisien.importer import xml_to_sqlite
 from lisien.tests.data import DATA_DIR
 
 
@@ -44,3 +45,10 @@ def test_export(tmp_path, exported):
 	game_path_to_xml(tmp_path, test_xml)
 
 	assert filecmp.cmp(test_xml, exported)
+
+
+def test_import(tmp_path, exported):
+	testworld = os.path.join(tmp_path, "testworld.sqlite3")
+	xml_to_sqlite(exported, testworld)
+
+	assert filecmp.cmp(os.path.join(tmp_path, "world.sqlite3"), testworld)
