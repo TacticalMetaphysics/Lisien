@@ -300,6 +300,12 @@ class Importer:
 			big,
 		)
 
+	def graph(self, el: Element):
+		branch, turn, tick = self._get_time(el)
+		graph = CharName(literal_eval(el.get("character")))
+		typ_str = el.get("type")
+		self.query.graphs_insert(graph, branch, turn, tick, typ_str)
+
 	def graph_val(self, el: Element):
 		branch, turn, tick = self._get_time(el)
 		graph = CharName(literal_eval(el.get("character")))
