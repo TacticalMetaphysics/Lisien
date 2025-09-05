@@ -134,9 +134,7 @@ class Importer:
 			elif subel.tag == "rule":
 				rule = RuleName(el.get("name"))
 				bigs_kf[rule] = RuleBig(el.get("big") == "T")
-				neighborhoods_kf[rule] = RuleNeighborhood(
-					el.get("neighborhood") or None
-				)
+				neighborhoods_kf[rule] = el.get("neighborhood") or None
 				for funcl_el in subel:
 					name = FuncName(funcl_el.get("name"))
 					if not isinstance(name, str):
