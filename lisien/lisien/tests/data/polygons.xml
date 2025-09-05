@@ -83629,6 +83629,995 @@
       <node character="'physical'" name="'triangle30'" branch="trunk" turn="0" tick="253" exists="T" />
       <node_rulebook character="'physical'" node="'triangle30'" branch="trunk" turn="0" tick="253" rulebook="('physical', 'triangle30')" />
       <location character="'physical'" thing="'square1'" branch="trunk" turn="1" tick="5" location="(17, 19)" />
+      <keyframe branch="trunk" turn="1" tick="241">
+        <universal>
+          <dict-item key="'rando_state'">
+            <tuple>
+              <int value="3" />
+              <tuple>
+                <int value="1989331378" />
+                <int value="1031396473" />
+                <int value="1719278157" />
+                <int value="2827464685" />
+                <int value="716049864" />
+                <int value="2028324482" />
+                <int value="3974224582" />
+                <int value="4063294246" />
+                <int value="3789157813" />
+                <int value="3714652349" />
+                <int value="1541743976" />
+                <int value="2250499930" />
+                <int value="1898764780" />
+                <int value="4185935247" />
+                <int value="1756909093" />
+                <int value="4082710556" />
+                <int value="767164613" />
+                <int value="2877880648" />
+                <int value="3639034838" />
+                <int value="3644974506" />
+                <int value="42652543" />
+                <int value="2252096215" />
+                <int value="663008360" />
+                <int value="2888866691" />
+                <int value="3383454432" />
+                <int value="2859788327" />
+                <int value="4282472322" />
+                <int value="3835237694" />
+                <int value="1105843653" />
+                <int value="3208758750" />
+                <int value="63311103" />
+                <int value="3445434851" />
+                <int value="1298154376" />
+                <int value="4281867847" />
+                <int value="1368014875" />
+                <int value="2247585229" />
+                <int value="2958977405" />
+                <int value="4246614150" />
+                <int value="3631547582" />
+                <int value="3046972380" />
+                <int value="781075867" />
+                <int value="4020780206" />
+                <int value="1406741163" />
+                <int value="3527141535" />
+                <int value="2225862587" />
+                <int value="2089554949" />
+                <int value="767449567" />
+                <int value="3702085994" />
+                <int value="1455067933" />
+                <int value="347100511" />
+                <int value="533008755" />
+                <int value="3249254878" />
+                <int value="823338119" />
+                <int value="1018008966" />
+                <int value="3236776382" />
+                <int value="2943323412" />
+                <int value="4092880254" />
+                <int value="3502495939" />
+                <int value="3251010399" />
+                <int value="278215511" />
+                <int value="2146043993" />
+                <int value="1056625330" />
+                <int value="1181737713" />
+                <int value="2713432905" />
+                <int value="3212799031" />
+                <int value="1567450645" />
+                <int value="451426394" />
+                <int value="373068037" />
+                <int value="374210368" />
+                <int value="257010777" />
+                <int value="1009432797" />
+                <int value="1757569215" />
+                <int value="1994188543" />
+                <int value="1262767830" />
+                <int value="3640587526" />
+                <int value="2898331058" />
+                <int value="2169812600" />
+                <int value="2980718558" />
+                <int value="2939913170" />
+                <int value="4249303412" />
+                <int value="3318275764" />
+                <int value="1254315686" />
+                <int value="434650952" />
+                <int value="3780533700" />
+                <int value="760764235" />
+                <int value="4064583868" />
+                <int value="4251482635" />
+                <int value="1892694488" />
+                <int value="1789455142" />
+                <int value="1613893744" />
+                <int value="1634435153" />
+                <int value="584904704" />
+                <int value="2114995215" />
+                <int value="3548071362" />
+                <int value="2896978463" />
+                <int value="4168796035" />
+                <int value="3723107137" />
+                <int value="459018504" />
+                <int value="3973076603" />
+                <int value="1236990867" />
+                <int value="1227502034" />
+                <int value="1479819077" />
+                <int value="378973443" />
+                <int value="2053746671" />
+                <int value="1825634660" />
+                <int value="3967096280" />
+                <int value="3824386641" />
+                <int value="1921798919" />
+                <int value="3559724753" />
+                <int value="4261704509" />
+                <int value="1521392117" />
+                <int value="2039755760" />
+                <int value="3757581987" />
+                <int value="2365978590" />
+                <int value="1494586019" />
+                <int value="3446800633" />
+                <int value="975666740" />
+                <int value="2657159297" />
+                <int value="1099400585" />
+                <int value="1456586178" />
+                <int value="1383694949" />
+                <int value="67265930" />
+                <int value="2172485838" />
+                <int value="211705255" />
+                <int value="2720425872" />
+                <int value="2934425084" />
+                <int value="2406542735" />
+                <int value="2277513419" />
+                <int value="2605985484" />
+                <int value="338396626" />
+                <int value="690902983" />
+                <int value="1693567513" />
+                <int value="1262173591" />
+                <int value="2488651143" />
+                <int value="3493754991" />
+                <int value="638984037" />
+                <int value="485016118" />
+                <int value="950881183" />
+                <int value="288450239" />
+                <int value="488213937" />
+                <int value="2704900690" />
+                <int value="4002554663" />
+                <int value="2222288847" />
+                <int value="704474223" />
+                <int value="3476659217" />
+                <int value="289507763" />
+                <int value="1837317479" />
+                <int value="2997837477" />
+                <int value="2902320544" />
+                <int value="3977238206" />
+                <int value="702649467" />
+                <int value="2789811263" />
+                <int value="2238950146" />
+                <int value="3796493538" />
+                <int value="108512286" />
+                <int value="3340636036" />
+                <int value="2968815233" />
+                <int value="743128764" />
+                <int value="1486191895" />
+                <int value="3805970151" />
+                <int value="1817367960" />
+                <int value="1864380439" />
+                <int value="1284775017" />
+                <int value="1819557199" />
+                <int value="1671088796" />
+                <int value="2254820699" />
+                <int value="819949062" />
+                <int value="2839441607" />
+                <int value="3853012587" />
+                <int value="2695763093" />
+                <int value="1058764056" />
+                <int value="274067593" />
+                <int value="2927733426" />
+                <int value="4107964512" />
+                <int value="209944660" />
+                <int value="1844756858" />
+                <int value="2500533070" />
+                <int value="1946860971" />
+                <int value="2253934014" />
+                <int value="2980166050" />
+                <int value="2989293845" />
+                <int value="1138752256" />
+                <int value="2187852082" />
+                <int value="4123999121" />
+                <int value="19199041" />
+                <int value="1401462482" />
+                <int value="3766034127" />
+                <int value="3684279076" />
+                <int value="3385785280" />
+                <int value="4118639641" />
+                <int value="3906099485" />
+                <int value="2671833486" />
+                <int value="728825784" />
+                <int value="1444595714" />
+                <int value="1370329754" />
+                <int value="947328038" />
+                <int value="1777966646" />
+                <int value="1837796706" />
+                <int value="3167391809" />
+                <int value="2300795032" />
+                <int value="2898187941" />
+                <int value="54591844" />
+                <int value="1894538018" />
+                <int value="538541769" />
+                <int value="155726289" />
+                <int value="1148246864" />
+                <int value="315409650" />
+                <int value="272543253" />
+                <int value="3821446107" />
+                <int value="3921430323" />
+                <int value="580307973" />
+                <int value="4139732689" />
+                <int value="3625962209" />
+                <int value="1810899942" />
+                <int value="60094147" />
+                <int value="1526698888" />
+                <int value="1761409158" />
+                <int value="1691520627" />
+                <int value="251888899" />
+                <int value="1364682273" />
+                <int value="158700430" />
+                <int value="2142828611" />
+                <int value="240417072" />
+                <int value="1360487310" />
+                <int value="2483744550" />
+                <int value="1173075638" />
+                <int value="3486330261" />
+                <int value="866704839" />
+                <int value="1037079448" />
+                <int value="2952115588" />
+                <int value="2220537293" />
+                <int value="3851783622" />
+                <int value="3156610179" />
+                <int value="4135351472" />
+                <int value="4013063299" />
+                <int value="1438566637" />
+                <int value="2570381831" />
+                <int value="1269908235" />
+                <int value="697688790" />
+                <int value="1758264668" />
+                <int value="1078875277" />
+                <int value="1178943705" />
+                <int value="1246917192" />
+                <int value="3342265793" />
+                <int value="1985072640" />
+                <int value="2882999006" />
+                <int value="921713406" />
+                <int value="2939509978" />
+                <int value="247443403" />
+                <int value="3591605777" />
+                <int value="1261497495" />
+                <int value="3702812914" />
+                <int value="3149185074" />
+                <int value="244431411" />
+                <int value="3537210442" />
+                <int value="46201428" />
+                <int value="769890086" />
+                <int value="1191738157" />
+                <int value="2165672651" />
+                <int value="3361332839" />
+                <int value="3364218801" />
+                <int value="3613718613" />
+                <int value="986219579" />
+                <int value="3879029110" />
+                <int value="2640608088" />
+                <int value="1167250183" />
+                <int value="2778833039" />
+                <int value="1164582245" />
+                <int value="2109962285" />
+                <int value="959601985" />
+                <int value="2777744884" />
+                <int value="3638153281" />
+                <int value="1349339821" />
+                <int value="2041606945" />
+                <int value="3954770189" />
+                <int value="2157543896" />
+                <int value="479481046" />
+                <int value="1101061296" />
+                <int value="850959358" />
+                <int value="3052843684" />
+                <int value="2937917524" />
+                <int value="1920640719" />
+                <int value="2691895469" />
+                <int value="3066254916" />
+                <int value="589507958" />
+                <int value="2297614262" />
+                <int value="4024055652" />
+                <int value="1646354686" />
+                <int value="1723327892" />
+                <int value="995891548" />
+                <int value="2362833756" />
+                <int value="1398087191" />
+                <int value="302408583" />
+                <int value="2722351558" />
+                <int value="3384415515" />
+                <int value="4251213154" />
+                <int value="1550890807" />
+                <int value="4105523268" />
+                <int value="2512823506" />
+                <int value="1689681307" />
+                <int value="593349216" />
+                <int value="1268975934" />
+                <int value="3098060124" />
+                <int value="956351096" />
+                <int value="3896719593" />
+                <int value="314247397" />
+                <int value="1464599704" />
+                <int value="3971823295" />
+                <int value="1767723991" />
+                <int value="3151210722" />
+                <int value="703791987" />
+                <int value="2668774062" />
+                <int value="3177016251" />
+                <int value="3260658468" />
+                <int value="1344813155" />
+                <int value="3740839650" />
+                <int value="1934694023" />
+                <int value="1487980681" />
+                <int value="150872576" />
+                <int value="1516196045" />
+                <int value="2190628239" />
+                <int value="845957976" />
+                <int value="4031340114" />
+                <int value="1715021444" />
+                <int value="2532171314" />
+                <int value="801326955" />
+                <int value="880465681" />
+                <int value="2489950765" />
+                <int value="2382480066" />
+                <int value="2523529938" />
+                <int value="2560662353" />
+                <int value="4263770615" />
+                <int value="3115628680" />
+                <int value="3060537043" />
+                <int value="2894424801" />
+                <int value="2265894636" />
+                <int value="4250968187" />
+                <int value="255291330" />
+                <int value="563698093" />
+                <int value="1300987182" />
+                <int value="1060589460" />
+                <int value="3723722882" />
+                <int value="2795366916" />
+                <int value="4216960497" />
+                <int value="3637854905" />
+                <int value="402176861" />
+                <int value="400218347" />
+                <int value="2274897800" />
+                <int value="2984566340" />
+                <int value="709015868" />
+                <int value="998593109" />
+                <int value="3722436308" />
+                <int value="2687405077" />
+                <int value="3251200312" />
+                <int value="2693185556" />
+                <int value="581405808" />
+                <int value="2411799512" />
+                <int value="2044096791" />
+                <int value="1713805388" />
+                <int value="1224226556" />
+                <int value="430782353" />
+                <int value="1996843080" />
+                <int value="2552233313" />
+                <int value="812346005" />
+                <int value="3277897402" />
+                <int value="2205717153" />
+                <int value="2207376163" />
+                <int value="1153543584" />
+                <int value="387453675" />
+                <int value="2125289089" />
+                <int value="2402242432" />
+                <int value="2000199101" />
+                <int value="3306450443" />
+                <int value="12401265" />
+                <int value="2366305994" />
+                <int value="773788262" />
+                <int value="858916991" />
+                <int value="2870855206" />
+                <int value="2010993654" />
+                <int value="1754158287" />
+                <int value="1300501172" />
+                <int value="230255803" />
+                <int value="1802662113" />
+                <int value="1122369308" />
+                <int value="1925842807" />
+                <int value="1253706480" />
+                <int value="4153425102" />
+                <int value="1268510125" />
+                <int value="2791165680" />
+                <int value="1113253869" />
+                <int value="1535264318" />
+                <int value="3685163612" />
+                <int value="3331319490" />
+                <int value="1899043010" />
+                <int value="1265566926" />
+                <int value="2153403703" />
+                <int value="3955564427" />
+                <int value="1912712892" />
+                <int value="2802232978" />
+                <int value="1933307261" />
+                <int value="2571926779" />
+                <int value="2482003354" />
+                <int value="3652888787" />
+                <int value="2221255354" />
+                <int value="3017157057" />
+                <int value="861827986" />
+                <int value="930700211" />
+                <int value="973027432" />
+                <int value="2852890684" />
+                <int value="1288351797" />
+                <int value="3540407616" />
+                <int value="2695564855" />
+                <int value="1915073515" />
+                <int value="2396728169" />
+                <int value="2358132391" />
+                <int value="1123437360" />
+                <int value="1646042249" />
+                <int value="361247650" />
+                <int value="3884833260" />
+                <int value="1610822293" />
+                <int value="718078940" />
+                <int value="1729822216" />
+                <int value="2773033518" />
+                <int value="1450013944" />
+                <int value="3393584140" />
+                <int value="3611246932" />
+                <int value="1401028844" />
+                <int value="1371213725" />
+                <int value="2943879681" />
+                <int value="2003248707" />
+                <int value="1389117429" />
+                <int value="3681381436" />
+                <int value="3723884518" />
+                <int value="969763540" />
+                <int value="871724723" />
+                <int value="3139075155" />
+                <int value="393018427" />
+                <int value="3100519119" />
+                <int value="1310414524" />
+                <int value="682007755" />
+                <int value="2932991623" />
+                <int value="4146749560" />
+                <int value="2442184898" />
+                <int value="4103551609" />
+                <int value="1660640363" />
+                <int value="104959423" />
+                <int value="1128198726" />
+                <int value="2301976708" />
+                <int value="4128432311" />
+                <int value="2119705616" />
+                <int value="1121209670" />
+                <int value="4043371075" />
+                <int value="1721576005" />
+                <int value="2933959806" />
+                <int value="4075135829" />
+                <int value="823284684" />
+                <int value="2500931032" />
+                <int value="2878499695" />
+                <int value="3652930639" />
+                <int value="2359789801" />
+                <int value="152525932" />
+                <int value="1350451680" />
+                <int value="4199869878" />
+                <int value="1884043615" />
+                <int value="1906958633" />
+                <int value="934281360" />
+                <int value="2844036162" />
+                <int value="1093390179" />
+                <int value="3803082468" />
+                <int value="1309884743" />
+                <int value="2553272475" />
+                <int value="3377424404" />
+                <int value="1314775701" />
+                <int value="3901686794" />
+                <int value="1056219285" />
+                <int value="2108170148" />
+                <int value="906074605" />
+                <int value="3080788883" />
+                <int value="2316505124" />
+                <int value="2905115595" />
+                <int value="3027140070" />
+                <int value="3777072313" />
+                <int value="3154328673" />
+                <int value="4095864599" />
+                <int value="1255223940" />
+                <int value="2090844403" />
+                <int value="2005191889" />
+                <int value="1971885586" />
+                <int value="2752976262" />
+                <int value="544179540" />
+                <int value="488139611" />
+                <int value="1317571180" />
+                <int value="1209002047" />
+                <int value="2024941346" />
+                <int value="3381010693" />
+                <int value="1112919826" />
+                <int value="1168977797" />
+                <int value="2003842326" />
+                <int value="3657095676" />
+                <int value="2365020613" />
+                <int value="2682900317" />
+                <int value="1128372568" />
+                <int value="3000474372" />
+                <int value="2413543487" />
+                <int value="2569081494" />
+                <int value="3955806990" />
+                <int value="2349076190" />
+                <int value="422273690" />
+                <int value="4070547643" />
+                <int value="3387391103" />
+                <int value="4288797605" />
+                <int value="1163156450" />
+                <int value="3039332216" />
+                <int value="451410429" />
+                <int value="1478064114" />
+                <int value="1447812681" />
+                <int value="4062174475" />
+                <int value="1296518188" />
+                <int value="1573836749" />
+                <int value="3025024967" />
+                <int value="2287921203" />
+                <int value="400229761" />
+                <int value="2170361848" />
+                <int value="138945552" />
+                <int value="3207091834" />
+                <int value="1827069557" />
+                <int value="2034089682" />
+                <int value="3285871321" />
+                <int value="85103771" />
+                <int value="2468734975" />
+                <int value="3074168870" />
+                <int value="3466826179" />
+                <int value="135743634" />
+                <int value="519197135" />
+                <int value="2723144598" />
+                <int value="3393045601" />
+                <int value="2862086378" />
+                <int value="2998758673" />
+                <int value="1469802357" />
+                <int value="2171969209" />
+                <int value="3027468618" />
+                <int value="4153260909" />
+                <int value="4233682162" />
+                <int value="646493996" />
+                <int value="4203549815" />
+                <int value="4124389729" />
+                <int value="3366997252" />
+                <int value="249652901" />
+                <int value="4179365034" />
+                <int value="1852470795" />
+                <int value="487012466" />
+                <int value="2911133629" />
+                <int value="3829284980" />
+                <int value="1026691064" />
+                <int value="3665528905" />
+                <int value="2517467137" />
+                <int value="2948637764" />
+                <int value="1201710502" />
+                <int value="1237226721" />
+                <int value="1163454343" />
+                <int value="2632818021" />
+                <int value="3637894359" />
+                <int value="697915725" />
+                <int value="2168538175" />
+                <int value="2435954555" />
+                <int value="1923677741" />
+                <int value="3231158587" />
+                <int value="4216833791" />
+                <int value="3161683270" />
+                <int value="3933140761" />
+                <int value="2032021087" />
+                <int value="3581682411" />
+                <int value="1932357208" />
+                <int value="2954046724" />
+                <int value="2982622140" />
+                <int value="68673527" />
+                <int value="2756004717" />
+                <int value="2364798764" />
+                <int value="3698216963" />
+                <int value="3074681377" />
+                <int value="4014190197" />
+                <int value="225426447" />
+                <int value="2893885301" />
+                <int value="2702103174" />
+                <int value="3352901290" />
+                <int value="2406744616" />
+                <int value="82809818" />
+                <int value="931561659" />
+                <int value="1569868438" />
+                <int value="3548048270" />
+                <int value="3207330407" />
+                <int value="3008956936" />
+                <int value="37898893" />
+                <int value="1986814290" />
+                <int value="1325253255" />
+                <int value="4062219358" />
+                <int value="689519692" />
+                <int value="2908418912" />
+                <int value="2761009401" />
+                <int value="295941794" />
+                <int value="3660351803" />
+                <int value="3283387652" />
+                <int value="560697222" />
+                <int value="730455087" />
+                <int value="3579660630" />
+                <int value="1643588133" />
+                <int value="2027160605" />
+                <int value="2734735710" />
+                <int value="3435564470" />
+                <int value="2883232809" />
+                <int value="1213223709" />
+                <int value="1464183331" />
+                <int value="2870050851" />
+                <int value="3761946621" />
+                <int value="761218434" />
+                <int value="4133062269" />
+                <int value="2350366251" />
+                <int value="952550826" />
+                <int value="687730940" />
+                <int value="1087247922" />
+                <int value="4111158997" />
+                <int value="1093668222" />
+                <int value="235458295" />
+                <int value="2425125714" />
+                <int value="46" />
+              </tuple>
+              <None />
+            </tuple>
+          </dict-item>
+          <dict-item key="'unoccupied'">
+            <list>
+              <node character="'physical'" name="(0, 0)" />
+              <node character="'physical'" name="(0, 2)" />
+              <node character="'physical'" name="(0, 3)" />
+              <node character="'physical'" name="(0, 5)" />
+              <node character="'physical'" name="(0, 6)" />
+              <node character="'physical'" name="(0, 9)" />
+              <node character="'physical'" name="(0, 10)" />
+              <node character="'physical'" name="(0, 11)" />
+              <node character="'physical'" name="(0, 12)" />
+              <node character="'physical'" name="(0, 13)" />
+              <node character="'physical'" name="(0, 14)" />
+              <node character="'physical'" name="(0, 15)" />
+              <node character="'physical'" name="(0, 17)" />
+              <node character="'physical'" name="(0, 18)" />
+              <node character="'physical'" name="(0, 19)" />
+              <node character="'physical'" name="(1, 0)" />
+              <node character="'physical'" name="(1, 1)" />
+              <node character="'physical'" name="(1, 2)" />
+              <node character="'physical'" name="(1, 3)" />
+              <node character="'physical'" name="(1, 4)" />
+              <node character="'physical'" name="(1, 5)" />
+              <node character="'physical'" name="(1, 7)" />
+              <node character="'physical'" name="(1, 8)" />
+              <node character="'physical'" name="(1, 10)" />
+              <node character="'physical'" name="(1, 11)" />
+              <node character="'physical'" name="(1, 12)" />
+              <node character="'physical'" name="(1, 14)" />
+              <node character="'physical'" name="(1, 15)" />
+              <node character="'physical'" name="(1, 16)" />
+              <node character="'physical'" name="(1, 17)" />
+              <node character="'physical'" name="(1, 18)" />
+              <node character="'physical'" name="(1, 19)" />
+              <node character="'physical'" name="(2, 0)" />
+              <node character="'physical'" name="(2, 1)" />
+              <node character="'physical'" name="(2, 2)" />
+              <node character="'physical'" name="(2, 3)" />
+              <node character="'physical'" name="(2, 7)" />
+              <node character="'physical'" name="(2, 10)" />
+              <node character="'physical'" name="(2, 11)" />
+              <node character="'physical'" name="(2, 12)" />
+              <node character="'physical'" name="(2, 13)" />
+              <node character="'physical'" name="(2, 19)" />
+              <node character="'physical'" name="(3, 1)" />
+              <node character="'physical'" name="(3, 2)" />
+              <node character="'physical'" name="(3, 5)" />
+              <node character="'physical'" name="(3, 6)" />
+              <node character="'physical'" name="(3, 8)" />
+              <node character="'physical'" name="(3, 9)" />
+              <node character="'physical'" name="(3, 10)" />
+              <node character="'physical'" name="(3, 11)" />
+              <node character="'physical'" name="(3, 14)" />
+              <node character="'physical'" name="(3, 16)" />
+              <node character="'physical'" name="(3, 18)" />
+              <node character="'physical'" name="(3, 19)" />
+              <node character="'physical'" name="(4, 1)" />
+              <node character="'physical'" name="(4, 2)" />
+              <node character="'physical'" name="(4, 3)" />
+              <node character="'physical'" name="(4, 4)" />
+              <node character="'physical'" name="(4, 6)" />
+              <node character="'physical'" name="(4, 8)" />
+              <node character="'physical'" name="(4, 12)" />
+              <node character="'physical'" name="(4, 13)" />
+              <node character="'physical'" name="(4, 14)" />
+              <node character="'physical'" name="(4, 15)" />
+              <node character="'physical'" name="(4, 16)" />
+              <node character="'physical'" name="(4, 17)" />
+              <node character="'physical'" name="(4, 18)" />
+              <node character="'physical'" name="(4, 19)" />
+              <node character="'physical'" name="(5, 2)" />
+              <node character="'physical'" name="(5, 3)" />
+              <node character="'physical'" name="(5, 4)" />
+              <node character="'physical'" name="(5, 5)" />
+              <node character="'physical'" name="(5, 6)" />
+              <node character="'physical'" name="(5, 7)" />
+              <node character="'physical'" name="(5, 8)" />
+              <node character="'physical'" name="(5, 10)" />
+              <node character="'physical'" name="(5, 11)" />
+              <node character="'physical'" name="(5, 12)" />
+              <node character="'physical'" name="(5, 13)" />
+              <node character="'physical'" name="(5, 14)" />
+              <node character="'physical'" name="(5, 15)" />
+              <node character="'physical'" name="(5, 17)" />
+              <node character="'physical'" name="(5, 18)" />
+              <node character="'physical'" name="(5, 19)" />
+              <node character="'physical'" name="(6, 0)" />
+              <node character="'physical'" name="(6, 2)" />
+              <node character="'physical'" name="(6, 3)" />
+              <node character="'physical'" name="(6, 4)" />
+              <node character="'physical'" name="(6, 5)" />
+              <node character="'physical'" name="(6, 6)" />
+              <node character="'physical'" name="(6, 8)" />
+              <node character="'physical'" name="(6, 10)" />
+              <node character="'physical'" name="(6, 11)" />
+              <node character="'physical'" name="(6, 12)" />
+              <node character="'physical'" name="(6, 13)" />
+              <node character="'physical'" name="(6, 17)" />
+              <node character="'physical'" name="(6, 18)" />
+              <node character="'physical'" name="(7, 0)" />
+              <node character="'physical'" name="(7, 2)" />
+              <node character="'physical'" name="(7, 3)" />
+              <node character="'physical'" name="(7, 4)" />
+              <node character="'physical'" name="(7, 5)" />
+              <node character="'physical'" name="(7, 6)" />
+              <node character="'physical'" name="(7, 7)" />
+              <node character="'physical'" name="(7, 8)" />
+              <node character="'physical'" name="(7, 10)" />
+              <node character="'physical'" name="(7, 11)" />
+              <node character="'physical'" name="(7, 12)" />
+              <node character="'physical'" name="(7, 13)" />
+              <node character="'physical'" name="(7, 14)" />
+              <node character="'physical'" name="(7, 15)" />
+              <node character="'physical'" name="(7, 16)" />
+              <node character="'physical'" name="(7, 17)" />
+              <node character="'physical'" name="(7, 19)" />
+              <node character="'physical'" name="(8, 2)" />
+              <node character="'physical'" name="(8, 3)" />
+              <node character="'physical'" name="(8, 4)" />
+              <node character="'physical'" name="(8, 5)" />
+              <node character="'physical'" name="(8, 7)" />
+              <node character="'physical'" name="(8, 8)" />
+              <node character="'physical'" name="(8, 9)" />
+              <node character="'physical'" name="(8, 10)" />
+              <node character="'physical'" name="(8, 11)" />
+              <node character="'physical'" name="(8, 12)" />
+              <node character="'physical'" name="(8, 13)" />
+              <node character="'physical'" name="(8, 15)" />
+              <node character="'physical'" name="(8, 16)" />
+              <node character="'physical'" name="(8, 17)" />
+              <node character="'physical'" name="(8, 18)" />
+              <node character="'physical'" name="(8, 19)" />
+              <node character="'physical'" name="(9, 0)" />
+              <node character="'physical'" name="(9, 1)" />
+              <node character="'physical'" name="(9, 2)" />
+              <node character="'physical'" name="(9, 3)" />
+              <node character="'physical'" name="(9, 4)" />
+              <node character="'physical'" name="(9, 5)" />
+              <node character="'physical'" name="(9, 6)" />
+              <node character="'physical'" name="(9, 7)" />
+              <node character="'physical'" name="(9, 8)" />
+              <node character="'physical'" name="(9, 9)" />
+              <node character="'physical'" name="(9, 10)" />
+              <node character="'physical'" name="(9, 11)" />
+              <node character="'physical'" name="(9, 12)" />
+              <node character="'physical'" name="(9, 13)" />
+              <node character="'physical'" name="(9, 14)" />
+              <node character="'physical'" name="(9, 15)" />
+              <node character="'physical'" name="(9, 16)" />
+              <node character="'physical'" name="(9, 17)" />
+              <node character="'physical'" name="(9, 18)" />
+              <node character="'physical'" name="(10, 0)" />
+              <node character="'physical'" name="(10, 3)" />
+              <node character="'physical'" name="(10, 4)" />
+              <node character="'physical'" name="(10, 5)" />
+              <node character="'physical'" name="(10, 6)" />
+              <node character="'physical'" name="(10, 7)" />
+              <node character="'physical'" name="(10, 8)" />
+              <node character="'physical'" name="(10, 9)" />
+              <node character="'physical'" name="(10, 11)" />
+              <node character="'physical'" name="(10, 13)" />
+              <node character="'physical'" name="(10, 16)" />
+              <node character="'physical'" name="(10, 18)" />
+              <node character="'physical'" name="(10, 19)" />
+              <node character="'physical'" name="(11, 0)" />
+              <node character="'physical'" name="(11, 1)" />
+              <node character="'physical'" name="(11, 3)" />
+              <node character="'physical'" name="(11, 5)" />
+              <node character="'physical'" name="(11, 6)" />
+              <node character="'physical'" name="(11, 9)" />
+              <node character="'physical'" name="(11, 11)" />
+              <node character="'physical'" name="(11, 12)" />
+              <node character="'physical'" name="(11, 13)" />
+              <node character="'physical'" name="(11, 14)" />
+              <node character="'physical'" name="(11, 16)" />
+              <node character="'physical'" name="(11, 19)" />
+              <node character="'physical'" name="(12, 4)" />
+              <node character="'physical'" name="(12, 5)" />
+              <node character="'physical'" name="(12, 7)" />
+              <node character="'physical'" name="(12, 8)" />
+              <node character="'physical'" name="(12, 9)" />
+              <node character="'physical'" name="(12, 10)" />
+              <node character="'physical'" name="(12, 11)" />
+              <node character="'physical'" name="(12, 13)" />
+              <node character="'physical'" name="(12, 15)" />
+              <node character="'physical'" name="(12, 16)" />
+              <node character="'physical'" name="(12, 17)" />
+              <node character="'physical'" name="(12, 18)" />
+              <node character="'physical'" name="(13, 0)" />
+              <node character="'physical'" name="(13, 1)" />
+              <node character="'physical'" name="(13, 4)" />
+              <node character="'physical'" name="(13, 5)" />
+              <node character="'physical'" name="(13, 7)" />
+              <node character="'physical'" name="(13, 8)" />
+              <node character="'physical'" name="(13, 9)" />
+              <node character="'physical'" name="(13, 10)" />
+              <node character="'physical'" name="(13, 11)" />
+              <node character="'physical'" name="(13, 12)" />
+              <node character="'physical'" name="(13, 14)" />
+              <node character="'physical'" name="(13, 15)" />
+              <node character="'physical'" name="(13, 16)" />
+              <node character="'physical'" name="(13, 17)" />
+              <node character="'physical'" name="(13, 18)" />
+              <node character="'physical'" name="(13, 19)" />
+              <node character="'physical'" name="(14, 1)" />
+              <node character="'physical'" name="(14, 3)" />
+              <node character="'physical'" name="(14, 4)" />
+              <node character="'physical'" name="(14, 6)" />
+              <node character="'physical'" name="(14, 7)" />
+              <node character="'physical'" name="(14, 8)" />
+              <node character="'physical'" name="(14, 9)" />
+              <node character="'physical'" name="(14, 13)" />
+              <node character="'physical'" name="(14, 15)" />
+              <node character="'physical'" name="(14, 16)" />
+              <node character="'physical'" name="(14, 17)" />
+              <node character="'physical'" name="(14, 18)" />
+              <node character="'physical'" name="(14, 19)" />
+              <node character="'physical'" name="(15, 0)" />
+              <node character="'physical'" name="(15, 1)" />
+              <node character="'physical'" name="(15, 3)" />
+              <node character="'physical'" name="(15, 4)" />
+              <node character="'physical'" name="(15, 5)" />
+              <node character="'physical'" name="(15, 6)" />
+              <node character="'physical'" name="(15, 8)" />
+              <node character="'physical'" name="(15, 9)" />
+              <node character="'physical'" name="(15, 10)" />
+              <node character="'physical'" name="(15, 11)" />
+              <node character="'physical'" name="(15, 14)" />
+              <node character="'physical'" name="(15, 15)" />
+              <node character="'physical'" name="(15, 16)" />
+              <node character="'physical'" name="(15, 17)" />
+              <node character="'physical'" name="(15, 18)" />
+              <node character="'physical'" name="(15, 19)" />
+              <node character="'physical'" name="(16, 0)" />
+              <node character="'physical'" name="(16, 3)" />
+              <node character="'physical'" name="(16, 4)" />
+              <node character="'physical'" name="(16, 5)" />
+              <node character="'physical'" name="(16, 6)" />
+              <node character="'physical'" name="(16, 7)" />
+              <node character="'physical'" name="(16, 8)" />
+              <node character="'physical'" name="(16, 9)" />
+              <node character="'physical'" name="(16, 10)" />
+              <node character="'physical'" name="(16, 12)" />
+              <node character="'physical'" name="(16, 14)" />
+              <node character="'physical'" name="(16, 15)" />
+              <node character="'physical'" name="(16, 16)" />
+              <node character="'physical'" name="(16, 17)" />
+              <node character="'physical'" name="(16, 18)" />
+              <node character="'physical'" name="(17, 2)" />
+              <node character="'physical'" name="(17, 3)" />
+              <node character="'physical'" name="(17, 4)" />
+              <node character="'physical'" name="(17, 7)" />
+              <node character="'physical'" name="(17, 8)" />
+              <node character="'physical'" name="(17, 9)" />
+              <node character="'physical'" name="(17, 10)" />
+              <node character="'physical'" name="(17, 11)" />
+              <node character="'physical'" name="(17, 12)" />
+              <node character="'physical'" name="(17, 16)" />
+              <node character="'physical'" name="(17, 17)" />
+              <node character="'physical'" name="(17, 18)" />
+              <node character="'physical'" name="(18, 0)" />
+              <node character="'physical'" name="(18, 1)" />
+              <node character="'physical'" name="(18, 3)" />
+              <node character="'physical'" name="(18, 4)" />
+              <node character="'physical'" name="(18, 6)" />
+              <node character="'physical'" name="(18, 7)" />
+              <node character="'physical'" name="(18, 8)" />
+              <node character="'physical'" name="(18, 9)" />
+              <node character="'physical'" name="(18, 10)" />
+              <node character="'physical'" name="(18, 12)" />
+              <node character="'physical'" name="(18, 13)" />
+              <node character="'physical'" name="(18, 14)" />
+              <node character="'physical'" name="(18, 15)" />
+              <node character="'physical'" name="(18, 18)" />
+              <node character="'physical'" name="(19, 0)" />
+              <node character="'physical'" name="(19, 1)" />
+              <node character="'physical'" name="(19, 2)" />
+              <node character="'physical'" name="(19, 5)" />
+              <node character="'physical'" name="(19, 6)" />
+              <node character="'physical'" name="(19, 7)" />
+              <node character="'physical'" name="(19, 8)" />
+              <node character="'physical'" name="(19, 9)" />
+              <node character="'physical'" name="(19, 12)" />
+              <node character="'physical'" name="(19, 13)" />
+              <node character="'physical'" name="(19, 14)" />
+              <node character="'physical'" name="(19, 15)" />
+              <node character="'physical'" name="(19, 16)" />
+              <node character="'physical'" name="(19, 17)" />
+              <node character="'physical'" name="(2, 18)" />
+              <node character="'physical'" name="(11, 7)" />
+              <node character="'physical'" name="(17, 0)" />
+              <node character="'physical'" name="(12, 2)" />
+              <node character="'physical'" name="(7, 1)" />
+              <node character="'physical'" name="(4, 10)" />
+              <node character="'physical'" name="(12, 3)" />
+              <node character="'physical'" name="(13, 6)" />
+              <node character="'physical'" name="(4, 0)" />
+              <node character="'physical'" name="(2, 6)" />
+              <node character="'physical'" name="(16, 11)" />
+              <node character="'physical'" name="(16, 13)" />
+              <node character="'physical'" name="(8, 0)" />
+              <node character="'physical'" name="(14, 14)" />
+              <node character="'physical'" name="(13, 2)" />
+              <node character="'physical'" name="(18, 5)" />
+              <node character="'physical'" name="(6, 9)" />
+              <node character="'physical'" name="(1, 9)" />
+              <node character="'physical'" name="(16, 2)" />
+              <node character="'physical'" name="(15, 7)" />
+              <node character="'physical'" name="(19, 10)" />
+              <node character="'physical'" name="(14, 12)" />
+              <node character="'physical'" name="(3, 4)" />
+              <node character="'physical'" name="(13, 13)" />
+              <node character="'physical'" name="(17, 13)" />
+              <node character="'physical'" name="(14, 5)" />
+              <node character="'physical'" name="(9, 19)" />
+              <node character="'physical'" name="(14, 0)" />
+              <node character="'physical'" name="(14, 2)" />
+              <node character="'physical'" name="(6, 14)" />
+              <node character="'physical'" name="(0, 1)" />
+              <node character="'physical'" name="(14, 11)" />
+              <node character="'physical'" name="(19, 18)" />
+              <node character="'physical'" name="(17, 1)" />
+              <node character="'physical'" name="(6, 19)" />
+              <node character="'physical'" name="(15, 13)" />
+              <node character="'physical'" name="(6, 15)" />
+              <node character="'physical'" name="(7, 18)" />
+              <node character="'physical'" name="(12, 12)" />
+              <node character="'physical'" name="(14, 10)" />
+              <node character="'physical'" name="(10, 2)" />
+              <node character="'physical'" name="(19, 11)" />
+              <node character="'physical'" name="(3, 12)" />
+              <node character="'physical'" name="(2, 5)" />
+              <node character="'physical'" name="(2, 14)" />
+              <node character="'physical'" name="(0, 4)" />
+              <node character="'physical'" name="(11, 2)" />
+              <node character="'physical'" name="(17, 5)" />
+              <node character="'physical'" name="(11, 4)" />
+              <node character="'physical'" name="(6, 1)" />
+              <node character="'physical'" name="(6, 16)" />
+              <node character="'physical'" name="(0, 16)" />
+              <node character="'physical'" name="(19, 4)" />
+              <node character="'physical'" name="(18, 11)" />
+            </list>
+          </dict-item>
+        </universal>
+        <rule name="relocate" big="F" neighborhood="1">
+          <trigger name="similar_neighbors" />
+          <trigger name="dissimilar_neighbors" />
+          <action name="relocate" />
+        </rule>
+        <rulebook name="'parable'" priority="0.0">
+          <rule name="relocate" />
+        </rulebook>
+      </keyframe>
     </branch>
   </playtree>
 </lisien>

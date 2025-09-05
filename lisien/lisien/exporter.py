@@ -588,10 +588,11 @@ def fill_branch_element(
 		)
 	for turn in range(turn_from, turn_to + 1):
 		tick: Tick
-		for tick in range(turn_ends[turn][1]):
+		for tick in range(turn_ends[turn][1] + 1):
 			if (branch, turn, tick) in keyframe_times:
 				kf = query.get_keyframe(branch, turn, tick)
 				add_keyframe_to_branch_el(branch_el, branch, turn, tick, kf)
+				keyframe_times.remove((branch, turn, tick))
 			if data["universals"]:
 				universal_rec: UniversalRowType = data["universals"][0]
 				key, branch_now, turn_now, tick_now, val = universal_rec
@@ -767,6 +768,7 @@ def fill_branch_element(
 					if (b, r, t) == (branch, turn, tick):
 						append_portal_rb_el(port_rb_row)
 						del char_data["portal_rulebook"][0]
+	assert not keyframe_times, keyframe_times
 
 
 def query_engine_to_tree(
