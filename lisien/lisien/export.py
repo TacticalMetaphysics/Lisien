@@ -733,6 +733,10 @@ def query_engine_to_tree(
 	name: str, query: AbstractQueryEngine, tree: ElementTree
 ) -> ElementTree:
 	root = tree.getroot()
+	for k, v in query.eternal.items():
+		el = Element("dict-item", key=repr(k))
+		root.append(el)
+		el.append(value_to_xml(v))
 	trunks = set()
 	branches_d = {}
 	branch_descendants = {}
