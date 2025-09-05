@@ -6064,7 +6064,7 @@ class Engine(AbstractEngine, Executor):
 			tuple[
 				Rule,
 				Callable,
-				list[char_cls | place_cls | thing_cls | portal_cls],
+				set[EntityKey],
 			]
 		],
 	]
@@ -6321,20 +6321,21 @@ class Engine(AbstractEngine, Executor):
 				todo_key = (fut.prio, fut.rulebook)
 				rulebook = self.rulebook[fut.rulebook]
 				rbidx = rulebook.index(rule)
+				entity_key = self._get_entity_key(fut.entity)
 				if todo_key in todo:
 					rulez = todo[todo_key]
 					if rulez[rbidx] is None:
-						rulez[rbidx] = (fut.rule, fut.handled, [fut.entity])
+						rulez[rbidx] = (fut.rule, fut.handled, {entity_key})
 					else:
 						rule, handled, entities = rulez[rulebook.index(rule)]
-						entities.append(fut.entity)
+						entities.add(entity_key)
 				else:
 					entity_cls = self.entity_cls
 					rulez: list[
-						tuple[Rule, Callable, list[entity_cls]] | None
+						tuple[Rule, Callable, set[EntityKey]] | None
 					] = [None] * len(rulebook)
 					todo[todo_key] = rulez
-					rulez[rbidx] = (fut.rule, fut.handled, [fut.entity])
+					rulez[rbidx] = (fut.rule, fut.handled, {entity_key})
 			else:
 				fut.handled(self.tick)
 
@@ -6394,6 +6395,17 @@ class Engine(AbstractEngine, Executor):
 			assert isinstance(ent, cls.edge_cls)
 			return (ent.character.name, ent.orig, ent.dest)
 
+	def _get_entity_from_key(self, ent_key: EntityKey) -> entity_cls:
+		if len(ent_key) == 1:
+			(name,) = ent_key
+			return self.character[name]
+		elif len(ent_key) == 2:
+			(char, name) = ent_key
+			return self.character[char].node[name]
+		else:
+			(char, orig, dest) = ent_key
+			return self.character[char].portal[orig][dest]
+
 	def _follow_rules(
 		self,
 		todo: RulesTodoType,
@@ -6402,9 +6414,11 @@ class Engine(AbstractEngine, Executor):
 		# TODO: if there's a paradox while following some rule,
 		#  start a new branch, copying handled rules
 		for prio, rulebook in sort_set(todo.keys()):
-			for rule, handled, entities in todo[prio, rulebook]:
-				for entity in sorted(entities, key=self._get_entity_key):
-					yield self._follow_one_rule(rule, handled, entity)
+			for rule, handled, entity_keys in todo[prio, rulebook]:
+				for entity_key in sort_set(entity_keys):
+					yield self._follow_one_rule(
+						rule, handled, self._get_entity_from_key(entity_key)
+					)
 
 	def new_character(
 		self,
