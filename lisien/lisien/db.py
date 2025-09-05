@@ -3475,6 +3475,7 @@ class AbstractQueryEngine(ABC):
 		while isinstance(got := outq.get(), list):
 			got: list[tuple[bytes, Turn, Tick, str]]
 			for graph, turn, tick, typ_str in got:
+				graph: CharName = unpack(graph)
 				ret["graphs"].append((graph, branch, turn, tick, typ_str))
 			outq.task_done()
 		if got != (
