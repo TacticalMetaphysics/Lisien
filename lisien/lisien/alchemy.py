@@ -843,24 +843,42 @@ def queries(table):
 		),
 		"load_graphs_tick_to_end": select(
 			g.c.graph, g.c.turn, g.c.tick, g.c.type
-		).where(tick_to_end_clause(g)),
+		)
+		.where(tick_to_end_clause(g))
+		.order_by(g.c.turn, g.c.tick, g.c.graph),
 		"load_graphs_tick_to_tick": select(
 			g.c.graph, g.c.turn, g.c.tick, g.c.type
-		).where(tick_to_tick_clause(g)),
+		)
+		.where(tick_to_tick_clause(g))
+		.order_by(g.c.turn, g.c.tick, g.c.graph),
 		"load_nodes_tick_to_end": select(
 			table["nodes"].c.graph,
 			table["nodes"].c.node,
 			table["nodes"].c.turn,
 			table["nodes"].c.tick,
 			table["nodes"].c.extant,
-		).where(tick_to_end_clause(table["nodes"])),
+		)
+		.where(tick_to_end_clause(table["nodes"]))
+		.order_by(
+			table["nodes"].c.turn,
+			table["nodes"].c.tick,
+			table["nodes"].c.graph,
+			table["nodes"].c.node,
+		),
 		"load_nodes_tick_to_tick": select(
 			table["nodes"].c.graph,
 			table["nodes"].c.node,
 			table["nodes"].c.turn,
 			table["nodes"].c.tick,
 			table["nodes"].c.extant,
-		).where(tick_to_tick_clause(table["nodes"])),
+		)
+		.where(tick_to_tick_clause(table["nodes"]))
+		.order_by(
+			table["nodes"].c.turn,
+			table["nodes"].c.tick,
+			table["nodes"].c.graph,
+			table["nodes"].c.node,
+		),
 		"load_edges_tick_to_end": select(
 			table["edges"].c.graph,
 			table["edges"].c.orig,
@@ -868,7 +886,15 @@ def queries(table):
 			table["edges"].c.turn,
 			table["edges"].c.tick,
 			table["edges"].c.extant,
-		).where(tick_to_end_clause(table["edges"])),
+		)
+		.where(tick_to_end_clause(table["edges"]))
+		.order_by(
+			table["edges"].c.turn,
+			table["edges"].c.tick,
+			table["edges"].c.graph,
+			table["edges"].c.orig,
+			table["edges"].c.dest,
+		),
 		"load_edges_tick_to_tick": select(
 			table["edges"].c.graph,
 			table["edges"].c.orig,
@@ -876,7 +902,15 @@ def queries(table):
 			table["edges"].c.turn,
 			table["edges"].c.tick,
 			table["edges"].c.extant,
-		).where(tick_to_tick_clause(table["edges"])),
+		)
+		.where(tick_to_tick_clause(table["edges"]))
+		.order_by(
+			table["edges"].c.turn,
+			table["edges"].c.tick,
+			table["edges"].c.graph,
+			table["edges"].c.orig,
+			table["edges"].c.dest,
+		),
 		"load_node_val_tick_to_end": select(
 			table["node_val"].c.graph,
 			table["node_val"].c.node,
@@ -884,7 +918,15 @@ def queries(table):
 			table["node_val"].c.turn,
 			table["node_val"].c.tick,
 			table["node_val"].c.value,
-		).where(tick_to_end_clause(table["node_val"])),
+		)
+		.where(tick_to_end_clause(table["node_val"]))
+		.order_by(
+			table["node_val"].c.turn,
+			table["node_val"].c.tick,
+			table["node_val"].c.graph,
+			table["node_val"].c.node,
+			table["node_val"].c.key,
+		),
 		"load_node_val_tick_to_tick": select(
 			table["node_val"].c.graph,
 			table["node_val"].c.node,
@@ -892,7 +934,15 @@ def queries(table):
 			table["node_val"].c.turn,
 			table["node_val"].c.tick,
 			table["node_val"].c.value,
-		).where(tick_to_tick_clause(table["node_val"])),
+		)
+		.where(tick_to_tick_clause(table["node_val"]))
+		.order_by(
+			table["node_val"].c.turn,
+			table["node_val"].c.tick,
+			table["node_val"].c.graph,
+			table["node_val"].c.node,
+			table["node_val"].c.key,
+		),
 		"load_edge_val_tick_to_end": select(
 			table["edge_val"].c.graph,
 			table["edge_val"].c.orig,
@@ -901,7 +951,16 @@ def queries(table):
 			table["edge_val"].c.turn,
 			table["edge_val"].c.tick,
 			table["edge_val"].c.value,
-		).where(tick_to_end_clause(table["edge_val"])),
+		)
+		.where(tick_to_end_clause(table["edge_val"]))
+		.order_by(
+			table["edge_val"].c.turn,
+			table["edge_val"].c.tick,
+			table["edge_val"].c.graph,
+			table["edge_val"].c.orig,
+			table["edge_val"].c.dest,
+			table["edge_val"].c.key,
+		),
 		"load_edge_val_tick_to_tick": select(
 			table["edge_val"].c.graph,
 			table["edge_val"].c.orig,
@@ -910,21 +969,44 @@ def queries(table):
 			table["edge_val"].c.turn,
 			table["edge_val"].c.tick,
 			table["edge_val"].c.value,
-		).where(tick_to_tick_clause(table["edge_val"])),
+		)
+		.where(tick_to_tick_clause(table["edge_val"]))
+		.order_by(
+			table["edge_val"].c.turn,
+			table["edge_val"].c.tick,
+			table["edge_val"].c.graph,
+			table["edge_val"].c.orig,
+			table["edge_val"].c.dest,
+			table["edge_val"].c.key,
+		),
 		"load_graph_val_tick_to_end": select(
 			table["graph_val"].c.graph,
 			table["graph_val"].c.key,
 			table["graph_val"].c.turn,
 			table["graph_val"].c.tick,
 			table["graph_val"].c.value,
-		).where(tick_to_end_clause(table["graph_val"])),
+		)
+		.where(tick_to_end_clause(table["graph_val"]))
+		.order_by(
+			table["graph_val"].c.turn,
+			table["graph_val"].c.tick,
+			table["graph_val"].c.graph,
+			table["graph_val"].c.key,
+		),
 		"load_graph_val_tick_to_tick": select(
 			table["graph_val"].c.graph,
 			table["graph_val"].c.key,
 			table["graph_val"].c.turn,
 			table["graph_val"].c.tick,
 			table["graph_val"].c.value,
-		).where(tick_to_tick_clause(table["graph_val"])),
+		)
+		.where(tick_to_tick_clause(table["graph_val"]))
+		.order_by(
+			table["graph_val"].c.turn,
+			table["graph_val"].c.tick,
+			table["graph_val"].c.graph,
+			table["graph_val"].c.key,
+		),
 	}
 	for t in table.values():
 		key = list(t.primary_key)
