@@ -720,6 +720,7 @@ def fill_branch_element(
 						tick,
 					):
 						append_node_val_el(node_val_row)
+						del char_data["node_val"][0]
 				if char_data["edges"]:
 					edges_row: EdgeRowType = char_data["edges"][0]
 					_, __, ___, b, r, t, ____ = edges_row
