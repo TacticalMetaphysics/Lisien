@@ -53,6 +53,8 @@ class Importer:
 				return Value(None)
 			case "int":
 				return Value(int(el.get("value")))
+			case "float":
+				return Value(float(el.get("value")))
 			case "str":
 				return Value(el.get("value"))
 			case "bool":
