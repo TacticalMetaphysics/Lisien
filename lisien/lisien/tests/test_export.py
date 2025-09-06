@@ -3,17 +3,16 @@ import os
 from functools import partial
 
 import pytest
-from sqlalchemy import create_engine
 
-from lisien import Engine
-from ..alchemy import meta
-from lisien.exporter import game_path_to_xml
-from lisien.importer import xml_to_sqlite
-from lisien.tests.data import DATA_DIR
+from ..db import ParquetQueryEngine, SQLAlchemyQueryEngine
+from ..engine import Engine
+from ..exporter import game_path_to_xml
+from ..importer import xml_to_sqlite, xml_to_pqdb
+from .data import DATA_DIR
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def exported(tmp_path, random_seed, request):
+def exported(tmp_path, random_seed, non_null_database, request):
 	if request.param == "kobold":
 		from lisien.examples.kobold import inittest as install
 
@@ -34,7 +33,9 @@ def exported(tmp_path, random_seed, request):
 		tmp_path,
 		workers=0,
 		random_seed=random_seed,
-		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
+		if non_null_database == "sqlite"
+		else None,
 	) as eng:
 		install(eng)
 		for _ in range(1):
@@ -49,20 +50,52 @@ def test_export(tmp_path, exported):
 	assert filecmp.cmp(test_xml, exported)
 
 
-def test_import(tmp_path, exported):
-	test_world = os.path.join(tmp_path, "testworld.sqlite3")
-	correct_world = os.path.join(tmp_path, "world.sqlite3")
-	xml_to_sqlite(exported, test_world)
+def test_import(tmp_path, exported, non_null_database, engine_facade):
+	if non_null_database == "parquetdb":
+		test_world = os.path.join(tmp_path, "testworld")
+		correct_world = os.path.join(tmp_path, "world")
+		xml_to_pqdb(exported, test_world)
+		test_engine = ParquetQueryEngine(
+			test_world, engine_facade.pack, engine_facade.unpack
+		)
+		correct_engine = ParquetQueryEngine(
+			correct_world, engine_facade.pack, engine_facade.unpack
+		)
+	else:
+		test_world = os.path.join(tmp_path, "testworld.sqlite3")
+		correct_world = os.path.join(tmp_path, "world.sqlite3")
+		xml_to_sqlite(exported, test_world)
+		test_engine = SQLAlchemyQueryEngine(
+			"sqlite:///" + test_world,
+			{},
+			engine_facade.pack,
+			engine_facade.unpack,
+		)
+		correct_engine = SQLAlchemyQueryEngine(
+			"sqlite:///" + correct_world,
+			{},
+			engine_facade.pack,
+			engine_facade.unpack,
+		)
 
-	test_engine = create_engine("sqlite:///" + test_world)
-	correct_engine = create_engine("sqlite:///" + correct_world)
-	with (
-		test_engine.connect() as test_connection,
-		correct_engine.connect() as correct_connection,
+	for dump_method in (
+		"global_dump",
+		"turns_completed_dump",
+		"universals_dump",
+		"rulebooks_dump",
+		"rules_dump",
+		"rule_triggers_dump",
+		"rule_prereqs_dump",
+		"rule_actions_dump",
+		"rule_neighborhood_dump",
+		"rule_big_dump",
+		"node_rulebook_dump",
+		"portal_rulebook_dump",
+		"things_dump",
+		"units_dump",
+		"keyframes_graphs_dump",
+		"keyframe_extensions_dump",
 	):
-		for tab in meta.tables.values():
-			cols = list(tab.columns.values())
-			sel = tab.select().order_by(*cols)
-			test_recs = test_connection.execute(sel).fetchall()
-			correct_recs = correct_connection.execute(sel).fetchall()
-			assert test_recs == correct_recs, tab.name + " differs"
+		assert sorted(getattr(test_engine, dump_method)()) == sorted(
+			getattr(correct_engine, dump_method)()
+		)
