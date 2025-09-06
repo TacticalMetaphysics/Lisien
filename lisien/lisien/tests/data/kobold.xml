@@ -17,7 +17,7 @@
   <dict-item key="'_lisien_schema_version'">
     <int value="1" />
   </dict-item>
-  <playtree game="test_export_kobold_sqlite_0" trunk="trunk">
+  <playtree game="test_export" trunk="trunk">
     <branch name="trunk" start_turn="0" start_tick="0" end_turn="1" end_tick="2">
       <turns branch="trunk">
         <turn branch="trunk" turn="0" end_tick="116" plan_end_tick="116" />

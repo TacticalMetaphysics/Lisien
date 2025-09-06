@@ -57,6 +57,7 @@ from lisien.util import AbstractThing, AbstractEngine
 
 def sqlite_to_etree(
 	sqlite_path: str | os.PathLike,
+	name: str | None = None,
 	tree: ElementTree | None = None,
 	engine: AbstractEngine | None = None,
 ) -> ElementTree:
@@ -75,8 +76,10 @@ def sqlite_to_etree(
 	)
 	if tree is None:
 		tree = ElementTree(Element("lisien"))
+	if name is None:
+		name = str(os.path.basename(os.path.dirname(sqlite_path)))
 	return query_engine_to_tree(
-		str(os.path.basename(os.path.dirname(sqlite_path))),
+		name,
 		query,
 		tree,
 	)
@@ -84,6 +87,7 @@ def sqlite_to_etree(
 
 def pqdb_to_etree(
 	pqdb_path: str | os.PathLike,
+	name: str | None = None,
 	tree: ElementTree | None = None,
 	engine: AbstractEngine | None = None,
 ) -> ElementTree:
@@ -99,17 +103,19 @@ def pqdb_to_etree(
 	)
 	if tree is None:
 		tree = ElementTree(Element("lisien"))
-	return query_engine_to_tree(
-		str(os.path.basename(os.path.dirname(pqdb_path))), query, tree
-	)
+	if name is None:
+		name = str(os.path.basename(os.path.dirname(pqdb_path)))
+	return query_engine_to_tree(name, query, tree)
 
 
-def game_path_to_etree(game_path: str | os.PathLike) -> ElementTree:
+def game_path_to_etree(
+	game_path: str | os.PathLike, name: str | None = None
+) -> ElementTree:
 	world = os.path.join(game_path, "world")
 	if os.path.isdir(world):
-		game_history = pqdb_to_etree(world)
+		game_history = pqdb_to_etree(world, name)
 	else:
-		game_history = sqlite_to_etree(world + ".sqlite3")
+		game_history = sqlite_to_etree(world + ".sqlite3", name)
 	return game_history
 
 
@@ -117,6 +123,7 @@ def game_path_to_xml(
 	game_path: str | os.PathLike,
 	xml_file_path: str | os.PathLike | IOBase,
 	indent: bool = True,
+	name: str | None = None,
 ) -> None:
 	if not isinstance(game_path, os.PathLike):
 		game_path = Path(game_path)
@@ -125,7 +132,7 @@ def game_path_to_xml(
 	):
 		xml_file_path = Path(xml_file_path)
 
-	tree = game_path_to_etree(game_path)
+	tree = game_path_to_etree(game_path, name)
 	if indent:
 		from xml.etree.ElementTree import indent
 
