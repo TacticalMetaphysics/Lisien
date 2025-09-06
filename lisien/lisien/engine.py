@@ -2171,7 +2171,7 @@ class Engine(AbstractEngine, Executor):
 			parent_tick,
 			end_turn,
 			end_tick,
-		) in self.query.all_branches():
+		) in self.query.branches_dump():
 			self._branches_d[branch] = (
 				parent,
 				parent_turn,

@@ -3162,7 +3162,7 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def all_branches(
+	def branches_dump(
 		self,
 	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
 		pass
@@ -5229,7 +5229,7 @@ class NullQueryEngine(AbstractQueryEngine):
 	def have_branch(self, branch: Branch) -> bool:
 		pass
 
-	def all_branches(
+	def branches_dump(
 		self,
 	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
 		return iter(())
@@ -6204,7 +6204,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def have_branch(self, branch: Branch) -> bool:
 		return self.call("have_branch", branch)
 
-	def all_branches(
+	def branches_dump(
 		self,
 	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
 		for d in self.call("dump", "branches"):
@@ -9033,7 +9033,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		"""Return whether the branch thus named exists in the database."""
 		return bool(self.call_one("ctbranch", branch)[0][0])
 
-	def all_branches(
+	def branches_dump(
 		self,
 	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
 		"""Return all the branch data in tuples of (branch, parent,

@@ -802,7 +802,7 @@ def query_engine_to_tree(
 			turn_end_plan_d[branch] = {
 				turn: (last_real_tick, last_planned_tick)
 			}
-	branch2do = deque(query.all_branches())
+	branch2do = deque(query.branches_dump())
 	while branch2do:
 		(
 			branch,
