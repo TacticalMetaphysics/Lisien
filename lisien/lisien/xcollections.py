@@ -430,7 +430,7 @@ class FunctionStore(Signal):
 			self._ast_idx[name] = len(self._ast.body)
 			self._ast.body.append(expr)
 		locl = {}
-		exec(compile(mod, self._filename, "exec"), {}, locl)
+		exec(compile(mod, self._filename or "", "exec"), {}, locl)
 		self._locl.update(locl)
 		self.send(self, attr=name, val=locl[name])
 
