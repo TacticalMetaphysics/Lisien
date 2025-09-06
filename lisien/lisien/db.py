@@ -3172,7 +3172,7 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def global_items(self) -> Iterator[tuple[Key, Value]]:
+	def global_dump(self) -> Iterator[tuple[Key, Value]]:
 		pass
 
 	@abstractmethod
@@ -5237,7 +5237,7 @@ class NullQueryEngine(AbstractQueryEngine):
 	def global_get(self, key: Key) -> Any:
 		return self.eternal[key]
 
-	def global_items(self) -> Iterator[tuple[Key, Any]]:
+	def global_dump(self) -> Iterator[tuple[Key, Any]]:
 		return iter(self.eternal.items())
 
 	def get_branch(self) -> Branch:
@@ -6230,7 +6230,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def global_del(self, key: Key) -> None:
 		return self.call("del_global", self.pack(key))
 
-	def global_items(self) -> Iterator[tuple[Key, Any]]:
+	def global_dump(self) -> Iterator[tuple[Key, Any]]:
 		unpack = self.unpack
 		for d in self.call("dump", "global"):
 			yield unpack(d["key"]), unpack(d["value"])
@@ -9050,7 +9050,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			raise KeyError("Not set")
 		return self.unpack(r[0])
 
-	def global_items(self) -> Iterator[tuple[Key, Value]]:
+	def global_dump(self) -> Iterator[tuple[Key, Value]]:
 		"""Iterate over (key, value) pairs in the ``globals`` table."""
 		unpack = self.unpack
 		dumped = self.call_one("global_dump")
