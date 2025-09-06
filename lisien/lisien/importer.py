@@ -193,11 +193,10 @@ class Importer:
 						graph_vals[key] = self.xml_to_value(key_el[0])
 					elif key_el.tag == "node":
 						name = literal_eval(key_el.get("name"))
-						nv = node_vals.setdefault(char_name, {})
-						if name in nv:
-							val = nv[name]
+						if name in node_vals:
+							val = node_vals[name]
 						else:
-							val = nv[name] = {}
+							val = node_vals[name] = {}
 						for item_el in key_el:
 							val[literal_eval(item_el.get("key"))] = (
 								self.xml_to_value(item_el[0])
@@ -205,12 +204,11 @@ class Importer:
 					elif key_el.tag == "edge":
 						orig = literal_eval(key_el.get("orig"))
 						dest = literal_eval(key_el.get("dest"))
-						ev = edge_vals.setdefault(char_name, {})
-						if orig not in ev:
-							ev[orig] = {dest: {}}
-						if dest not in ev[orig]:
-							ev[orig][dest] = {}
-						val = ev[orig][dest]
+						if orig not in edge_vals:
+							edge_vals[orig] = {dest: {}}
+						if dest not in edge_vals[orig]:
+							edge_vals[orig][dest] = {}
+						val = edge_vals[orig][dest]
 						for item_el in key_el:
 							val[literal_eval(item_el.get("key"))] = (
 								self.xml_to_value(item_el[0])
