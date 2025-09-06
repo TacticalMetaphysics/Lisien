@@ -4916,7 +4916,26 @@ class AbstractQueryEngine(ABC):
 
 		self.debug(f"load_windows({windows})")
 
-		ret = defaultdict(empty_char)
+		ret: dict[
+			Literal[
+				"universals",
+				"rulebooks",
+				"rule_triggers",
+				"rule_prereqs",
+				"rule_actions",
+				"rule_neighborhood",
+				"rule_big",
+				"graphs",
+			]
+			| CharName,
+			list[UniversalRowType]
+			| list[RulebookRowType]
+			| list[RuleRowType]
+			| LoadedCharWindow,
+		] = defaultdict(empty_char)
+		ret["universals"]: list[UniversalRowType] = []
+		ret["rule_triggers"]: list[RuleRowType] = []
+		ret["rulebooks"]: list[RulebookRowType] = []
 		self._load_windows_into(ret, windows)
 		self.debug(f"finished loading windows {windows}")
 		return ret
