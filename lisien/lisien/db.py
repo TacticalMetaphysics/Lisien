@@ -4494,7 +4494,7 @@ class AbstractQueryEngine(ABC):
 		return kf
 
 	@abstractmethod
-	def get_all_keyframe_graphs_ever(
+	def keyframes_graphs_dump(
 		self,
 	) -> Iterator[
 		tuple[
@@ -5163,7 +5163,7 @@ class NullQueryEngine(AbstractQueryEngine):
 	]:
 		return iter(())
 
-	def get_all_keyframe_graphs_ever(
+	def keyframes_graphs_dump(
 		self,
 	) -> Iterator[
 		tuple[
@@ -8174,7 +8174,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(graph_val),
 			)
 
-	def get_all_keyframe_graphs_ever(
+	def keyframes_graphs_dump(
 		self,
 	) -> Iterator[
 		tuple[
@@ -8936,7 +8936,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				unpack(graph_val),
 			)
 
-	def get_all_keyframe_graphs_ever(
+	def keyframes_graphs_dump(
 		self,
 	) -> Iterator[
 		tuple[
