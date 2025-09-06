@@ -181,18 +181,17 @@ class Importer:
 				name = literal_eval(name)
 				if not isinstance(name, Key):
 					raise TypeError("character names must be Key", name)
-				name = CharName(name)
-				graph_vals = graph_val_kf[name] = {}
-				node_vals = node_val_kf[name] = {}
-				edge_vals = edge_val_kf[name] = {}
+				char_name = CharName(name)
+				graph_vals = graph_val_kf[char_name] = {}
+				node_vals = node_val_kf[char_name] = {}
+				edge_vals = edge_val_kf[char_name] = {}
 				for key_el in subel:
 					if key_el.tag == "dict_item":
 						key = literal_eval(key_el.get("key"))
 						graph_vals[key] = self.xml_to_value(key_el[0])
 					elif key_el.tag == "node":
-						char = literal_eval(key_el.get("character"))
 						name = literal_eval(key_el.get("name"))
-						nv = node_vals.setdefault(char, {})
+						nv = node_vals.setdefault(char_name, {})
 						if name in nv:
 							val = nv[name]
 						else:
@@ -202,10 +201,9 @@ class Importer:
 								self.xml_to_value(item_el[0])
 							)
 					elif key_el.tag == "edge":
-						char = literal_eval(key_el.get("character"))
 						orig = literal_eval(key_el.get("orig"))
 						dest = literal_eval(key_el.get("dest"))
-						ev = edge_vals.setdefault(char, {})
+						ev = edge_vals.setdefault(char_name, {})
 						if orig not in ev:
 							ev[orig] = {dest: {}}
 						if dest not in ev[orig]:
