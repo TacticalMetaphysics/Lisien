@@ -4565,6 +4565,11 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
+	def rule_big_dump(
+		self,
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]: ...
+
+	@abstractmethod
 	def node_rulebook_dump(
 		self,
 	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
@@ -5528,6 +5533,11 @@ class NullQueryEngine(AbstractQueryEngine):
 	def rule_neighborhood_dump(
 		self,
 	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
+		return iter(())
+
+	def rule_big_dump(
+		self,
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]:
 		return iter(())
 
 	def node_rulebook_dump(
@@ -6552,6 +6562,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["tick"],
 				d["neighborhood"],
 			)
+
+	def rule_big_dump(
+		self,
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]:
+		for d in self.call("dump", "rule_big"):
+			yield (d["rule"], d["branch"], d["turn"], d["tick"], d["big"])
 
 	def node_rulebook_dump(
 		self,
@@ -9969,6 +9985,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def rule_neighborhood_dump(self):
 		return self._rule_dump("neighborhood")
+
+	def rule_big_dump(self):
+		return self._rule_dump("big")
 
 	def node_rulebook_dump(self):
 		unpack = self.unpack
