@@ -282,6 +282,7 @@ def add_keyframe_to_branch_el(
 		graph_el = char_els[char_name] = Element(
 			"character", name=repr(char_name)
 		)
+		kfel.append(graph_el)
 		for k, v in vals.items():
 			item_el = Element("dict_item", key=repr(k))
 			graph_el.append(item_el)
