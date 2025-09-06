@@ -448,22 +448,27 @@ class ParquetDBHolder(ConnectionHolder):
 			for name in self._get_db("graphs").read(columns=["graph"])["graph"]
 		)
 
-	def load_graphs_tick_to_end(self, branch: Branch, turn: Turn, tick: Tick):
+	def load_graphs_tick_to_end(
+		self, branch: Branch, turn_from: Turn, tick_from: Tick
+	):
 		from pyarrow import compute as pc
 
 		data = (
 			self._get_db("graphs").read(
 				filters=[
 					pc.field("branch") == branch,
-					pc.field("turn") >= turn,
+					pc.field("turn") >= turn_from,
 				],
 			)
 		).to_pylist()
-		return [
-			d
-			for d in data
-			if d["turn"] > turn or (d["turn"] == turn and d["tick"] >= tick)
-		]
+		return sorted(
+			[
+				(d["graph"], d["turn"], d["tick"], d["type"])
+				for d in data
+				if (turn_from, tick_from) <= (d["turn"], d["tick"])
+			],
+			key=lambda d: (d[1], d[2], d[0]),
+		)
 
 	def load_graphs_tick_to_tick(
 		self,
@@ -484,18 +489,16 @@ class ParquetDBHolder(ConnectionHolder):
 				]
 			)
 		).to_pylist()
-		return [
-			d
-			for d in data
-			if (
-				d["turn"] > turn_from
-				or (d["turn"] == turn_from and d["tick"] >= tick_from)
-			)
-			and (
-				d["turn"] < turn_to
-				or (d["turn"] == turn_to and d["tick"] <= tick_to)
-			)
-		]
+		return sorted(
+			[
+				(d["graph"], d["turn"], d["tick"], d["type"])
+				for d in data
+				if (turn_from, tick_from)
+				<= (d["turn"], d["tick"])
+				<= (turn_to, tick_to)
+			],
+			key=lambda d: (d[2], d[3], d[0]),
+		)
 
 	def list_keyframes(self) -> list:
 		return (
@@ -728,8 +731,9 @@ class ParquetDBHolder(ConnectionHolder):
 	def load_universals_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
-			self._iter_universals_tick_to_end(branch, turn_from, tick_from)
+		return sorted(
+			self._iter_universals_tick_to_end(branch, turn_from, tick_from),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _table_columns(self, table: str) -> list[str]:
@@ -798,13 +802,11 @@ class ParquetDBHolder(ConnectionHolder):
 				],
 				columns=self._table_columns(table),
 			).to_pylist():
-				if d["turn"] == turn_from:
-					if d["tick"] >= tick_from:
-						yield d
-				elif d["turn"] == turn_to:
-					if d["tick"] < tick_to:
-						yield d
-				else:
+				if (
+					(turn_from, tick_from)
+					<= (d["turn"], d["tick"])
+					<= (turn_to, tick_to)
+				):
 					yield d
 
 	def load_universals_tick_to_tick(
@@ -817,8 +819,16 @@ class ParquetDBHolder(ConnectionHolder):
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
 		return [
 			(d["key"], d["turn"], d["tick"], d["value"])
-			for d in self._iter_part_tick_to_tick(
-				"universals", branch, turn_from, tick_from, turn_to, tick_to
+			for d in sorted(
+				self._iter_part_tick_to_tick(
+					"universals",
+					branch,
+					turn_from,
+					tick_from,
+					turn_to,
+					tick_to,
+				),
+				key=lambda dee: (dee["turn"], dee["tick"], dee["key"]),
 			)
 		]
 
@@ -831,23 +841,26 @@ class ParquetDBHolder(ConnectionHolder):
 	def _load_things_tick_to_end_all(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		return list(
-			self._iter_things_tick_to_end_all(branch, turn_from, tick_from)
-		)
-
-	def _iter_things_tick_to_end_all(
-		self, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> Iterator[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		for d in self._iter_part_tick_to_end(
-			"things", branch, turn_from, tick_from
-		):
-			yield (
+		return [
+			(
 				d["character"],
 				d["thing"],
 				d["turn"],
 				d["tick"],
 				d["location"],
 			)
+			for d in sorted(
+				self._iter_part_tick_to_end(
+					"things", branch, turn_from, tick_from
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["thing"],
+				),
+			)
+		]
 
 	def _load_things_tick_to_end_character(
 		self,
@@ -856,37 +869,24 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_from: Turn,
 		tick_from: Tick,
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
-			self._iter_things_tick_to_end_character(
-				character, branch, turn_from, tick_from
-			)
-		)
+		import pyarrow.compute as pc
 
-	def _iter_things_tick_to_end_character(
-		self,
-		character: bytes,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-	) -> Iterator[tuple[bytes, Turn, Tick, bytes]]:
-		from pyarrow import compute as pc
-
-		for d in (
-			self._get_db("things")
-			.read(
-				filters=[
-					pc.field("character") == character,
-					pc.field("branch") == branch,
-					pc.field("turn") >= turn_from,
-				],
+		return [
+			(d["thing"], d["turn"], d["tick"], d["location"])
+			for d in sorted(
+				self._get_db("things")
+				.read(
+					filters=[
+						pc.field("character") == character,
+						pc.field("branch") == branch,
+						pc.field("turn") >= turn_from,
+					],
+				)
+				.to_pylist(),
+				key=lambda d: (d["turn"], d["tick"], d["thing"]),
 			)
-			.to_pylist()
-		):
-			if d["turn"] == turn_from:
-				if d["tick"] >= tick_from:
-					yield d["thing"], d["turn"], d["tick"], d["location"]
-			else:
-				yield d["thing"], d["turn"], d["tick"], d["location"]
+			if (turn_from, tick_from) <= (d["turn"], d["tick"])
+		]
 
 	def load_things_tick_to_tick(self, *args, **kwargs):
 		if len(args) + len(kwargs) == 6:
@@ -902,30 +902,26 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		return list(
-			self._iter_things_tick_to_tick_all(
-				branch, turn_from, tick_from, turn_to, tick_to
-			)
-		)
-
-	def _iter_things_tick_to_tick_all(
-		self,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Turn,
-		tick_to: Tick,
-	) -> Iterator[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		for d in self._iter_part_tick_to_tick(
-			"things", branch, turn_from, tick_from, turn_to, tick_to
-		):
-			yield (
+		return [
+			(
 				d["character"],
 				d["thing"],
 				d["turn"],
 				d["tick"],
 				d["location"],
 			)
+			for d in sorted(
+				self._iter_part_tick_to_tick(
+					"things", branch, turn_from, tick_from, turn_to, tick_to
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["thing"],
+				),
+			)
+		]
 
 	def _load_things_tick_to_tick_character(
 		self,
@@ -936,10 +932,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_things_tick_to_tick_character(
 				character, branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_things_tick_to_tick_character(
@@ -992,8 +989,9 @@ class ParquetDBHolder(ConnectionHolder):
 	def _load_graph_val_tick_to_end_all(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		return list(
-			self._iter_graph_val_tick_to_end_all(branch, turn_from, tick_from)
+		return sorted(
+			self._iter_graph_val_tick_to_end_all(branch, turn_from, tick_from),
+			key=lambda t: (t[2], t[3], t[0], t[1]),
 		)
 
 	def _iter_graph_val_tick_to_end_all(
@@ -1013,10 +1011,11 @@ class ParquetDBHolder(ConnectionHolder):
 	def _load_graph_val_tick_to_end_graph(
 		self, graph: bytes, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_graph_val_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_graph_val_tick_to_end_graph(
@@ -1055,10 +1054,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_graph_val_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[2], t[3], t[0], t[1]),
 		)
 
 	def _iter_graph_val_tick_to_tick_all(
@@ -1083,10 +1083,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_graph_val_tick_to_tick(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_graph_val_tick_to_tick(
@@ -1105,18 +1106,20 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_nodes_tick_to_end_graph(
 		self, graph: bytes, branch: Branch, turn_from: Turn, tick_from: Tick
-	):
-		return list(
+	) -> list[tuple[bytes, Turn, Tick, bool]]:
+		return sorted(
 			self._iter_nodes_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _load_nodes_tick_to_end_all(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
-	):
-		return list(
-			self._iter_nodes_tick_to_end_all(branch, turn_from, tick_from)
+	) -> list[tuple[bytes, bytes, Turn, Tick, bool]]:
+		return sorted(
+			self._iter_nodes_tick_to_end_all(branch, turn_from, tick_from),
+			key=lambda t: (t[2], t[3], t[0], t[1]),
 		)
 
 	def load_nodes_tick_to_end(self, *args, **kwargs):
@@ -1185,10 +1188,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, bytes, Turn, Tick, bool]]:
-		return list(
+		return sorted(
 			self._iter_nodes_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[2], t[3], t[0], t[1]),
 		)
 
 	def load_nodes_tick_to_tick_graph(
@@ -1200,10 +1204,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, Turn, Tick, bool]]:
-		return list(
+		return sorted(
 			self._iter_nodes_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_nodes_tick_to_tick_all(
@@ -1288,18 +1293,20 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_node_val_tick_to_end_graph(
 		self, graph: bytes, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> list[tuple[bytes, bytes, int, int, bytes]]:
-		return list(
+	) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
+		return sorted(
 			self._iter_node_val_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[2], t[3], t[0], t[1]),
 		)
 
 	def _load_node_val_tick_to_end_all(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-		return list(
-			self._iter_node_val_tick_to_end_all(branch, turn_from, tick_from)
+		return sorted(
+			self._iter_node_val_tick_to_end_all(branch, turn_from, tick_from),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_node_val_tick_to_end_all(
@@ -1318,7 +1325,7 @@ class ParquetDBHolder(ConnectionHolder):
 			)
 
 	def _iter_node_val_tick_to_end_graph(
-		self, graph: bytes, branch: str, turn_from: int, tick_from: int
+		self, graph: bytes, branch: str, turn_from: Turn, tick_from: Tick
 	) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
 		from pyarrow import compute as pc
 
@@ -1359,10 +1366,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_node_val_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_node_val_tick_to_tick_all(
@@ -1394,10 +1402,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_node_val_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[2], t[3], t[0], t[1]),
 		)
 
 	def _iter_node_val_tick_to_tick_graph(
@@ -1473,14 +1482,15 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_edges_tick_to_end_all(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> list[tuple[bytes, bytes, bytes, int, Turn, Tick, bool]]:
-		return list(
-			self._iter_edges_tick_to_end_all(branch, turn_from, tick_from)
+	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
+		return sorted(
+			self._iter_edges_tick_to_end_all(branch, turn_from, tick_from),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_edges_tick_to_end_all(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> Iterator[tuple[bytes, bytes, bytes, int, Turn, Tick, bool]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
 		for d in self._iter_part_tick_to_end(
 			"edges", branch, turn_from, tick_from
 		):
@@ -1495,16 +1505,17 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_edges_tick_to_end_graph(
 		self, graph: bytes, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> list[tuple[bytes, bytes, int, Turn, Tick, bool]]:
-		return list(
+	) -> list[tuple[bytes, bytes, Turn, Tick, bool]]:
+		return sorted(
 			self._iter_edges_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[2], t[3], t[0], t[1]),
 		)
 
 	def _iter_edges_tick_to_end_graph(
 		self, graph: bytes, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> Iterator[tuple[bytes, bytes, int, Turn, Tick, bool]]:
+	) -> Iterator[tuple[bytes, bytes, Turn, Tick, bool]]:
 		from pyarrow import compute as pc
 
 		for d in (
@@ -1549,11 +1560,12 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	) -> list[tuple[bytes, bytes, bytes, bytes, int, Turn, Tick, bytes]]:
-		return list(
+	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
+		return sorted(
 			self._iter_edges_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_edges_tick_to_tick_all(
@@ -1563,7 +1575,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	) -> Iterator[tuple[bytes, bytes, bytes, bytes, int, Turn, Tick, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
 		for d in self._iter_part_tick_to_tick(
 			"edges", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -1584,11 +1596,12 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	) -> list[tuple[bytes, bytes, bytes, int, Turn, Tick, bytes]]:
-		return list(
+	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
+		return sorted(
 			self._iter_edges_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_edges_tick_to_tick_graph(
@@ -1599,7 +1612,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	) -> Iterator[tuple[bytes, bytes, bytes, int, Turn, Tick, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
 		from pyarrow import compute as pc
 
 		db = self._get_db("edges")
@@ -1664,14 +1677,15 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_edge_val_tick_to_end_all(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> list[tuple[bytes, bytes, bytes, int, Turn, Tick, bytes]]:
-		return list(
-			self._iter_edge_val_tick_to_end_all(branch, turn_from, tick_from)
+	) -> list[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]:
+		return sorted(
+			self._iter_edge_val_tick_to_end_all(branch, turn_from, tick_from),
+			key=lambda t: (t[4], t[5], t[0], t[1], t[2], t[3]),
 		)
 
 	def _iter_edge_val_tick_to_end_all(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> Iterator[tuple[bytes, bytes, bytes, int, Turn, Tick, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]:
 		for d in self._iter_part_tick_to_end(
 			"edge_val", branch, turn_from, tick_from
 		):
@@ -1687,16 +1701,17 @@ class ParquetDBHolder(ConnectionHolder):
 
 	def _load_edge_val_tick_to_end_graph(
 		self, graph: bytes, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> list[tuple[bytes, bytes, int, Turn, Tick, bytes]]:
-		return list(
+	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
+		return sorted(
 			self._iter_edge_val_tick_to_end_graph(
 				graph, branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_edge_val_tick_to_end_graph(
 		self, graph: bytes, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> Iterator[tuple[bytes, bytes, int, Turn, Tick, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
 		from pyarrow import compute as pc
 
 		for d in (
@@ -1743,11 +1758,12 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	) -> list[tuple[bytes, bytes, bytes, bytes, int, Turn, Tick, bytes]]:
-		return list(
+	) -> list[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]:
+		return sorted(
 			self._iter_edge_val_tick_to_tick_all(
 				branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[4], t[5], t[0], t[1], t[2], t[3]),
 		)
 
 	def _iter_edge_val_tick_to_tick_all(
@@ -1757,7 +1773,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	) -> Iterator[tuple[bytes, bytes, bytes, bytes, int, Turn, Tick, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]:
 		for d in self._iter_part_tick_to_tick(
 			"edge_val", branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -1779,11 +1795,12 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	) -> list[tuple[bytes, bytes, bytes, int, Turn, Tick, bytes]]:
-		return list(
+	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
+		return sorted(
 			self._iter_edge_val_tick_to_tick_graph(
 				graph, branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_edge_val_tick_to_tick_graph(
@@ -1794,7 +1811,7 @@ class ParquetDBHolder(ConnectionHolder):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	) -> Iterator[tuple[bytes, bytes, bytes, int, Turn, Tick, bytes]]:
+	) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
 		from pyarrow import compute as pc
 
 		db = self._get_db("edge_val")
@@ -1858,10 +1875,11 @@ class ParquetDBHolder(ConnectionHolder):
 	def load_character_rulebook_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_end_part(
 				"character", branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_character_rulebook_tick_to_end_part(
@@ -1880,10 +1898,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"character", branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_character_rulebook_tick_to_tick_part(
@@ -1903,10 +1922,11 @@ class ParquetDBHolder(ConnectionHolder):
 	def load_unit_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
 	) -> list[tuple[bytes, int, int, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_end_part(
 				"unit", branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def load_unit_rulebook_tick_to_tick(
@@ -1917,19 +1937,21 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: int,
 		tick_to: int,
 	) -> list[tuple[bytes, int, int, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"unit", branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def load_character_thing_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
 	) -> list[tuple[bytes, int, int, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_end_part(
 				"character_thing", branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def load_character_thing_rulebook_tick_to_tick(
@@ -1940,7 +1962,7 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: int,
 		tick_to: int,
 	) -> list[tuple[bytes, int, int, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"character_thing",
 				branch,
@@ -1948,16 +1970,18 @@ class ParquetDBHolder(ConnectionHolder):
 				tick_from,
 				turn_to,
 				tick_to,
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def load_character_place_rulebook_tick_to_end(
 		self, branch: str, turn_from: int, tick_from: int
 	) -> list[tuple[bytes, int, int, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_end_part(
 				"character_place", branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def load_character_place_rulebook_tick_to_tick(
@@ -1968,7 +1992,7 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"character_place",
 				branch,
@@ -1976,16 +2000,18 @@ class ParquetDBHolder(ConnectionHolder):
 				tick_from,
 				turn_to,
 				tick_to,
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def load_character_portal_rulebook_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_end_part(
 				"character_portal", branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def load_character_portal_rulebook_tick_to_tick(
@@ -1996,7 +2022,7 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_character_rulebook_tick_to_tick_part(
 				"character_portal",
 				branch,
@@ -2004,14 +2030,16 @@ class ParquetDBHolder(ConnectionHolder):
 				tick_from,
 				turn_to,
 				tick_to,
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def load_node_rulebook_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, bytes, int, int, bytes]]:
-		return list(
-			self._iter_node_rulebook_tick_to_end(branch, turn_from, tick_from)
+		return sorted(
+			self._iter_node_rulebook_tick_to_end(branch, turn_from, tick_from),
+			key=lambda t: (t[2], t[3], t[0], t[1]),
 		)
 
 	def _iter_node_rulebook_tick_to_end(
@@ -2036,10 +2064,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_node_rulebook_tick_to_tick(
 				branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[2], t[3], t[0], t[1]),
 		)
 
 	def _iter_node_rulebook_tick_to_tick(
@@ -2064,10 +2093,11 @@ class ParquetDBHolder(ConnectionHolder):
 	def load_portal_rulebook_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_portal_rulebook_tick_to_end(
 				branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_portal_rulebook_tick_to_end(
@@ -2093,10 +2123,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-		return list(
+		return sorted(
 			self._iter_portal_rulebook_tick_to_tick(
 				branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_portal_rulebook_tick_to_tick(
@@ -2152,8 +2183,9 @@ class ParquetDBHolder(ConnectionHolder):
 	def load_rulebooks_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, Turn, Tick, bytes, RulebookPriority]]:
-		return list(
-			self._iter_rulebooks_tick_to_end(branch, turn_from, tick_from)
+		return sorted(
+			self._iter_rulebooks_tick_to_end(branch, turn_from, tick_from),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_rulebooks_tick_to_end(
@@ -2178,10 +2210,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, Turn, Tick, bytes, RulebookPriority]]:
-		return list(
+		return sorted(
 			self._iter_rulebooks_tick_to_tick(
 				branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_rulebooks_tick_to_tick(
@@ -2206,10 +2239,11 @@ class ParquetDBHolder(ConnectionHolder):
 	def _load_rule_part_tick_to_end(
 		self, part, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[RuleName, Turn, Tick, bytes | RuleBig]]:
-		return list(
+		return sorted(
 			self._iter_rule_part_tick_to_end(
 				part, branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_rule_part_tick_to_end(
@@ -2229,10 +2263,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[str, int, int, bytes | RuleBig]]:
-		return list(
+		return sorted(
 			self._iter_rule_part_tick_to_tick(
 				part, branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[1], t[2], t[0]),
 		)
 
 	def _iter_rule_part_tick_to_tick(
@@ -2347,10 +2382,11 @@ class ParquetDBHolder(ConnectionHolder):
 	def load_character_rules_handled_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, bytes, RuleName, Turn, Tick]]:
-		return list(
+		return sorted(
 			self._iter_character_rules_handled_tick_to_end(
 				branch, turn_from, tick_from
-			)
+			),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_character_rules_handled_tick_to_end(
@@ -2375,10 +2411,11 @@ class ParquetDBHolder(ConnectionHolder):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, bytes, RuleName, Turn, Tick]]:
-		return list(
+		return sorted(
 			self._iter_character_rules_handled_tick_to_tick(
 				branch, turn_from, tick_from, turn_to, tick_to
-			)
+			),
+			key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
 		)
 
 	def _iter_character_rules_handled_tick_to_tick(
@@ -2418,8 +2455,19 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_end(
-				"unit_rules_handled", branch, turn_from, tick_from
+			for d in sorted(
+				self._iter_part_tick_to_end(
+					"unit_rules_handled", branch, turn_from, tick_from
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["graph"],
+					d["unit"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2441,13 +2489,24 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_tick(
-				"unit_rules_handled",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
+			for d in sorted(
+				self._iter_part_tick_to_tick(
+					"unit_rules_handled",
+					branch,
+					turn_from,
+					tick_from,
+					turn_to,
+					tick_to,
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["graph"],
+					d["unit"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2463,8 +2522,21 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_end(
-				"character_thing_rules_handled", branch, turn_from, tick_from
+			for d in sorted(
+				self._iter_part_tick_to_end(
+					"character_thing_rules_handled",
+					branch,
+					turn_from,
+					tick_from,
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["thing"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2485,13 +2557,23 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_tick(
-				"character_thing_rules_handled",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
+			for d in sorted(
+				self._iter_part_tick_to_tick(
+					"character_thing_rules_handled",
+					branch,
+					turn_from,
+					tick_from,
+					turn_to,
+					tick_to,
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["thing"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2507,8 +2589,21 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_end(
-				"character_place_rules_handled", branch, turn_from, tick_from
+			for d in sorted(
+				self._iter_part_tick_to_end(
+					"character_place_rules_handled",
+					branch,
+					turn_from,
+					tick_from,
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["place"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2529,13 +2624,23 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_tick(
-				"character_place_rules_handled",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
+			for d in sorted(
+				self._iter_part_tick_to_tick(
+					"character_place_rules_handled",
+					branch,
+					turn_from,
+					tick_from,
+					turn_to,
+					tick_to,
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["place"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2552,8 +2657,22 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_end(
-				"character_portal_rules_handled", branch, turn_from, tick_from
+			for d in sorted(
+				self._iter_part_tick_to_end(
+					"character_portal_rules_handled",
+					branch,
+					turn_from,
+					tick_from,
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["orig"],
+					d["dest"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2575,13 +2694,24 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_tick(
-				"character_portal_rules_handled",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
+			for d in sorted(
+				self._iter_part_tick_to_tick(
+					"character_portal_rules_handled",
+					branch,
+					turn_from,
+					tick_from,
+					turn_to,
+					tick_to,
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["orig"],
+					d["dest"],
+					d["rlulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2597,8 +2727,18 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_end(
-				"node_rules_handled", branch, turn_from, tick_from
+			for d in sorted(
+				self._iter_part_tick_to_end(
+					"node_rules_handled", branch, turn_from, tick_from
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["node"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2619,13 +2759,23 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_tick(
-				"node_rules_handled",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
+			for d in sorted(
+				self._iter_part_tick_to_tick(
+					"node_rules_handled",
+					branch,
+					turn_from,
+					tick_from,
+					turn_to,
+					tick_to,
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["node"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2642,8 +2792,19 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_end(
-				"portal_rules_handled", branch, turn_from, tick_from
+			for d in sorted(
+				self._iter_part_tick_to_end(
+					"portal_rules_handled", branch, turn_from, tick_from
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["orig"],
+					d["dest"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2665,13 +2826,24 @@ class ParquetDBHolder(ConnectionHolder):
 				d["turn"],
 				d["tick"],
 			)
-			for d in self._iter_part_tick_to_tick(
-				"portal_rules_handled",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
+			for d in sorted(
+				self._iter_part_tick_to_tick(
+					"portal_rules_handled",
+					branch,
+					turn_from,
+					tick_from,
+					turn_to,
+					tick_to,
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character"],
+					d["orig"],
+					d["dest"],
+					d["rulebook"],
+					d["rule"],
+				),
 			)
 		]
 
@@ -2687,8 +2859,17 @@ class ParquetDBHolder(ConnectionHolder):
 				d["tick"],
 				d["is_unit"],
 			)
-			for d in self._iter_part_tick_to_end(
-				"units", branch, turn_from, tick_from
+			for d in sorted(
+				self._iter_part_tick_to_end(
+					"units", branch, turn_from, tick_from
+				),
+				key=lambda d: (
+					d["turn"],
+					d["tick"],
+					d["character_graph"],
+					d["unit_graph"],
+					d["unit_node"],
+				),
 			)
 		]
 
@@ -4022,10 +4203,7 @@ class AbstractQueryEngine(ABC):
 				(key, val) = map(unpack, (key, val))
 				key: UniversalKey
 				val: Value
-				if "universals" in ret:
-					ret["universals"].append((key, branch, turn, tick, val))
-				else:
-					ret["universals"] = [(key, branch, turn, tick, val)]
+				ret["universals"].append((key, branch, turn, tick, val))
 			outq.task_done()
 		if got != (
 			"end",
@@ -6014,13 +6192,13 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				turn_to,
 				tick_to,
 			)
-		for d in data:
+		for graph, turn, tick, typ in data:
 			yield (
-				unpack(d["graph"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				d["type"],
+				unpack(graph),
+				branch,
+				turn,
+				tick,
+				typ,
 			)
 
 	def have_branch(self, branch: Branch) -> bool:
