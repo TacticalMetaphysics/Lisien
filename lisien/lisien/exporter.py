@@ -457,7 +457,7 @@ def fill_branch_element(
 	def append_graph_val_el(graph_val: GraphValRowType):
 		char, stat, b, r, t, val = graph_val
 		graph_val_el = Element(
-			"graph_val",
+			"graph-val",
 			character=repr(char),
 			key=repr(stat),
 			branch=b,
@@ -484,7 +484,7 @@ def fill_branch_element(
 	def append_node_val_el(node_val: NodeValRowType):
 		char, node, stat, b, r, t, val = node_val
 		node_val_el = Element(
-			"node_val",
+			"node-val",
 			character=repr(char),
 			node=repr(node),
 			key=repr(stat),
@@ -513,7 +513,7 @@ def fill_branch_element(
 	def append_edge_val_el(edge_val: EdgeValRowType):
 		char, orig, dest, stat, b, r, t, val = edge_val
 		edge_val_el = Element(
-			"edge_val",
+			"edge-val",
 			character=repr(char),
 			orig=repr(orig),
 			dest=repr(dest),

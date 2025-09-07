@@ -2396,9 +2396,9 @@
           <None />
         </tuple>
       </universal>
-      <node_val character="'physical'" node="'kobold'" key="'sprint_chance'" branch="trunk" turn="0" tick="2">
+      <node-val character="'physical'" node="'kobold'" key="'sprint_chance'" branch="trunk" turn="0" tick="2">
         <float value="0.1" />
-      </node_val>
+      </node-val>
       <universal key="'rando_state'" branch="trunk" turn="1" tick="1">
         <tuple>
           <int value="3" />
@@ -3032,11 +3032,11 @@
           <None />
         </tuple>
       </universal>
-      <node_val character="'physical'" node="'kobold'" key="'_image_paths'" branch="trunk" turn="0" tick="3">
+      <node-val character="'physical'" node="'kobold'" key="'_image_paths'" branch="trunk" turn="0" tick="3">
         <list>
           <str value="atlas://rltiles/base.atlas/kobold_m" />
         </list>
-      </node_val>
+      </node-val>
       <universal key="'rando_state'" branch="trunk" turn="1" tick="2">
         <tuple>
           <int value="3" />
@@ -3672,258 +3672,258 @@
       </universal>
       <node character="'physical'" name="'dwarf'" branch="trunk" turn="0" tick="4" exists="T" />
       <location character="'physical'" thing="'dwarf'" branch="trunk" turn="0" tick="4" location="(0, 0)" />
-      <node_val character="'physical'" node="'dwarf'" key="'sight_radius'" branch="trunk" turn="0" tick="5">
+      <node-val character="'physical'" node="'dwarf'" key="'sight_radius'" branch="trunk" turn="0" tick="5">
         <int value="2" />
-      </node_val>
-      <node_val character="'physical'" node="'dwarf'" key="'seen_kobold'" branch="trunk" turn="0" tick="6">
+      </node-val>
+      <node-val character="'physical'" node="'dwarf'" key="'seen_kobold'" branch="trunk" turn="0" tick="6">
         <bool value="F" />
-      </node_val>
-      <node_val character="'physical'" node="'dwarf'" key="'_image_paths'" branch="trunk" turn="0" tick="7">
+      </node-val>
+      <node-val character="'physical'" node="'dwarf'" key="'_image_paths'" branch="trunk" turn="0" tick="7">
         <list>
           <str value="atlas://rltiles/base.atlas/dwarf_m" />
         </list>
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub0'" branch="trunk" turn="0" tick="9" exists="T" />
-      <node_val character="'physical'" node="'shrub0'" key="'cover'" branch="trunk" turn="0" tick="10">
+      <node-val character="'physical'" node="'shrub0'" key="'cover'" branch="trunk" turn="0" tick="10">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub0'" key="'_image_paths'" branch="trunk" turn="0" tick="11">
+      </node-val>
+      <node-val character="'physical'" node="'shrub0'" key="'_image_paths'" branch="trunk" turn="0" tick="11">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub0'" key="'_group'" branch="trunk" turn="0" tick="12">
+      </node-val>
+      <node-val character="'physical'" node="'shrub0'" key="'_group'" branch="trunk" turn="0" tick="12">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub1'" branch="trunk" turn="0" tick="13" exists="T" />
-      <node_val character="'physical'" node="'shrub1'" key="'cover'" branch="trunk" turn="0" tick="14">
+      <node-val character="'physical'" node="'shrub1'" key="'cover'" branch="trunk" turn="0" tick="14">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub1'" key="'_image_paths'" branch="trunk" turn="0" tick="15">
+      </node-val>
+      <node-val character="'physical'" node="'shrub1'" key="'_image_paths'" branch="trunk" turn="0" tick="15">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub1'" key="'_group'" branch="trunk" turn="0" tick="16">
+      </node-val>
+      <node-val character="'physical'" node="'shrub1'" key="'_group'" branch="trunk" turn="0" tick="16">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub2'" branch="trunk" turn="0" tick="17" exists="T" />
-      <node_val character="'physical'" node="'shrub2'" key="'cover'" branch="trunk" turn="0" tick="18">
+      <node-val character="'physical'" node="'shrub2'" key="'cover'" branch="trunk" turn="0" tick="18">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub2'" key="'_image_paths'" branch="trunk" turn="0" tick="19">
+      </node-val>
+      <node-val character="'physical'" node="'shrub2'" key="'_image_paths'" branch="trunk" turn="0" tick="19">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub2'" key="'_group'" branch="trunk" turn="0" tick="20">
+      </node-val>
+      <node-val character="'physical'" node="'shrub2'" key="'_group'" branch="trunk" turn="0" tick="20">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub3'" branch="trunk" turn="0" tick="21" exists="T" />
-      <node_val character="'physical'" node="'shrub3'" key="'cover'" branch="trunk" turn="0" tick="22">
+      <node-val character="'physical'" node="'shrub3'" key="'cover'" branch="trunk" turn="0" tick="22">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub3'" key="'_image_paths'" branch="trunk" turn="0" tick="23">
+      </node-val>
+      <node-val character="'physical'" node="'shrub3'" key="'_image_paths'" branch="trunk" turn="0" tick="23">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub3'" key="'_group'" branch="trunk" turn="0" tick="24">
+      </node-val>
+      <node-val character="'physical'" node="'shrub3'" key="'_group'" branch="trunk" turn="0" tick="24">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub4'" branch="trunk" turn="0" tick="25" exists="T" />
-      <node_val character="'physical'" node="'shrub4'" key="'cover'" branch="trunk" turn="0" tick="26">
+      <node-val character="'physical'" node="'shrub4'" key="'cover'" branch="trunk" turn="0" tick="26">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub4'" key="'_image_paths'" branch="trunk" turn="0" tick="27">
+      </node-val>
+      <node-val character="'physical'" node="'shrub4'" key="'_image_paths'" branch="trunk" turn="0" tick="27">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub4'" key="'_group'" branch="trunk" turn="0" tick="28">
+      </node-val>
+      <node-val character="'physical'" node="'shrub4'" key="'_group'" branch="trunk" turn="0" tick="28">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub5'" branch="trunk" turn="0" tick="29" exists="T" />
-      <node_val character="'physical'" node="'shrub5'" key="'cover'" branch="trunk" turn="0" tick="30">
+      <node-val character="'physical'" node="'shrub5'" key="'cover'" branch="trunk" turn="0" tick="30">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub5'" key="'_image_paths'" branch="trunk" turn="0" tick="31">
+      </node-val>
+      <node-val character="'physical'" node="'shrub5'" key="'_image_paths'" branch="trunk" turn="0" tick="31">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub5'" key="'_group'" branch="trunk" turn="0" tick="32">
+      </node-val>
+      <node-val character="'physical'" node="'shrub5'" key="'_group'" branch="trunk" turn="0" tick="32">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub6'" branch="trunk" turn="0" tick="33" exists="T" />
-      <node_val character="'physical'" node="'shrub6'" key="'cover'" branch="trunk" turn="0" tick="34">
+      <node-val character="'physical'" node="'shrub6'" key="'cover'" branch="trunk" turn="0" tick="34">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub6'" key="'_image_paths'" branch="trunk" turn="0" tick="35">
+      </node-val>
+      <node-val character="'physical'" node="'shrub6'" key="'_image_paths'" branch="trunk" turn="0" tick="35">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub6'" key="'_group'" branch="trunk" turn="0" tick="36">
+      </node-val>
+      <node-val character="'physical'" node="'shrub6'" key="'_group'" branch="trunk" turn="0" tick="36">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub7'" branch="trunk" turn="0" tick="37" exists="T" />
-      <node_val character="'physical'" node="'shrub7'" key="'cover'" branch="trunk" turn="0" tick="38">
+      <node-val character="'physical'" node="'shrub7'" key="'cover'" branch="trunk" turn="0" tick="38">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub7'" key="'_image_paths'" branch="trunk" turn="0" tick="39">
+      </node-val>
+      <node-val character="'physical'" node="'shrub7'" key="'_image_paths'" branch="trunk" turn="0" tick="39">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub7'" key="'_group'" branch="trunk" turn="0" tick="40">
+      </node-val>
+      <node-val character="'physical'" node="'shrub7'" key="'_group'" branch="trunk" turn="0" tick="40">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub8'" branch="trunk" turn="0" tick="41" exists="T" />
-      <node_val character="'physical'" node="'shrub8'" key="'cover'" branch="trunk" turn="0" tick="42">
+      <node-val character="'physical'" node="'shrub8'" key="'cover'" branch="trunk" turn="0" tick="42">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub8'" key="'_image_paths'" branch="trunk" turn="0" tick="43">
+      </node-val>
+      <node-val character="'physical'" node="'shrub8'" key="'_image_paths'" branch="trunk" turn="0" tick="43">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub8'" key="'_group'" branch="trunk" turn="0" tick="44">
+      </node-val>
+      <node-val character="'physical'" node="'shrub8'" key="'_group'" branch="trunk" turn="0" tick="44">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub9'" branch="trunk" turn="0" tick="45" exists="T" />
-      <node_val character="'physical'" node="'shrub9'" key="'cover'" branch="trunk" turn="0" tick="46">
+      <node-val character="'physical'" node="'shrub9'" key="'cover'" branch="trunk" turn="0" tick="46">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub9'" key="'_image_paths'" branch="trunk" turn="0" tick="47">
+      </node-val>
+      <node-val character="'physical'" node="'shrub9'" key="'_image_paths'" branch="trunk" turn="0" tick="47">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub9'" key="'_group'" branch="trunk" turn="0" tick="48">
+      </node-val>
+      <node-val character="'physical'" node="'shrub9'" key="'_group'" branch="trunk" turn="0" tick="48">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub10'" branch="trunk" turn="0" tick="49" exists="T" />
-      <node_val character="'physical'" node="'shrub10'" key="'cover'" branch="trunk" turn="0" tick="50">
+      <node-val character="'physical'" node="'shrub10'" key="'cover'" branch="trunk" turn="0" tick="50">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub10'" key="'_image_paths'" branch="trunk" turn="0" tick="51">
+      </node-val>
+      <node-val character="'physical'" node="'shrub10'" key="'_image_paths'" branch="trunk" turn="0" tick="51">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub10'" key="'_group'" branch="trunk" turn="0" tick="52">
+      </node-val>
+      <node-val character="'physical'" node="'shrub10'" key="'_group'" branch="trunk" turn="0" tick="52">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub11'" branch="trunk" turn="0" tick="53" exists="T" />
-      <node_val character="'physical'" node="'shrub11'" key="'cover'" branch="trunk" turn="0" tick="54">
+      <node-val character="'physical'" node="'shrub11'" key="'cover'" branch="trunk" turn="0" tick="54">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub11'" key="'_image_paths'" branch="trunk" turn="0" tick="55">
+      </node-val>
+      <node-val character="'physical'" node="'shrub11'" key="'_image_paths'" branch="trunk" turn="0" tick="55">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub11'" key="'_group'" branch="trunk" turn="0" tick="56">
+      </node-val>
+      <node-val character="'physical'" node="'shrub11'" key="'_group'" branch="trunk" turn="0" tick="56">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub12'" branch="trunk" turn="0" tick="57" exists="T" />
-      <node_val character="'physical'" node="'shrub12'" key="'cover'" branch="trunk" turn="0" tick="58">
+      <node-val character="'physical'" node="'shrub12'" key="'cover'" branch="trunk" turn="0" tick="58">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub12'" key="'_image_paths'" branch="trunk" turn="0" tick="59">
+      </node-val>
+      <node-val character="'physical'" node="'shrub12'" key="'_image_paths'" branch="trunk" turn="0" tick="59">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub12'" key="'_group'" branch="trunk" turn="0" tick="60">
+      </node-val>
+      <node-val character="'physical'" node="'shrub12'" key="'_group'" branch="trunk" turn="0" tick="60">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub13'" branch="trunk" turn="0" tick="61" exists="T" />
-      <node_val character="'physical'" node="'shrub13'" key="'cover'" branch="trunk" turn="0" tick="62">
+      <node-val character="'physical'" node="'shrub13'" key="'cover'" branch="trunk" turn="0" tick="62">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub13'" key="'_image_paths'" branch="trunk" turn="0" tick="63">
+      </node-val>
+      <node-val character="'physical'" node="'shrub13'" key="'_image_paths'" branch="trunk" turn="0" tick="63">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub13'" key="'_group'" branch="trunk" turn="0" tick="64">
+      </node-val>
+      <node-val character="'physical'" node="'shrub13'" key="'_group'" branch="trunk" turn="0" tick="64">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub14'" branch="trunk" turn="0" tick="65" exists="T" />
-      <node_val character="'physical'" node="'shrub14'" key="'cover'" branch="trunk" turn="0" tick="66">
+      <node-val character="'physical'" node="'shrub14'" key="'cover'" branch="trunk" turn="0" tick="66">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub14'" key="'_image_paths'" branch="trunk" turn="0" tick="67">
+      </node-val>
+      <node-val character="'physical'" node="'shrub14'" key="'_image_paths'" branch="trunk" turn="0" tick="67">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub14'" key="'_group'" branch="trunk" turn="0" tick="68">
+      </node-val>
+      <node-val character="'physical'" node="'shrub14'" key="'_group'" branch="trunk" turn="0" tick="68">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub15'" branch="trunk" turn="0" tick="69" exists="T" />
-      <node_val character="'physical'" node="'shrub15'" key="'cover'" branch="trunk" turn="0" tick="70">
+      <node-val character="'physical'" node="'shrub15'" key="'cover'" branch="trunk" turn="0" tick="70">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub15'" key="'_image_paths'" branch="trunk" turn="0" tick="71">
+      </node-val>
+      <node-val character="'physical'" node="'shrub15'" key="'_image_paths'" branch="trunk" turn="0" tick="71">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub15'" key="'_group'" branch="trunk" turn="0" tick="72">
+      </node-val>
+      <node-val character="'physical'" node="'shrub15'" key="'_group'" branch="trunk" turn="0" tick="72">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub16'" branch="trunk" turn="0" tick="73" exists="T" />
-      <node_val character="'physical'" node="'shrub16'" key="'cover'" branch="trunk" turn="0" tick="74">
+      <node-val character="'physical'" node="'shrub16'" key="'cover'" branch="trunk" turn="0" tick="74">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub16'" key="'_image_paths'" branch="trunk" turn="0" tick="75">
+      </node-val>
+      <node-val character="'physical'" node="'shrub16'" key="'_image_paths'" branch="trunk" turn="0" tick="75">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub16'" key="'_group'" branch="trunk" turn="0" tick="76">
+      </node-val>
+      <node-val character="'physical'" node="'shrub16'" key="'_group'" branch="trunk" turn="0" tick="76">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub17'" branch="trunk" turn="0" tick="77" exists="T" />
-      <node_val character="'physical'" node="'shrub17'" key="'cover'" branch="trunk" turn="0" tick="78">
+      <node-val character="'physical'" node="'shrub17'" key="'cover'" branch="trunk" turn="0" tick="78">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub17'" key="'_image_paths'" branch="trunk" turn="0" tick="79">
+      </node-val>
+      <node-val character="'physical'" node="'shrub17'" key="'_image_paths'" branch="trunk" turn="0" tick="79">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub17'" key="'_group'" branch="trunk" turn="0" tick="80">
+      </node-val>
+      <node-val character="'physical'" node="'shrub17'" key="'_group'" branch="trunk" turn="0" tick="80">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub18'" branch="trunk" turn="0" tick="81" exists="T" />
-      <node_val character="'physical'" node="'shrub18'" key="'cover'" branch="trunk" turn="0" tick="82">
+      <node-val character="'physical'" node="'shrub18'" key="'cover'" branch="trunk" turn="0" tick="82">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub18'" key="'_image_paths'" branch="trunk" turn="0" tick="83">
+      </node-val>
+      <node-val character="'physical'" node="'shrub18'" key="'_image_paths'" branch="trunk" turn="0" tick="83">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub18'" key="'_group'" branch="trunk" turn="0" tick="84">
+      </node-val>
+      <node-val character="'physical'" node="'shrub18'" key="'_group'" branch="trunk" turn="0" tick="84">
         <str value="shrub" />
-      </node_val>
+      </node-val>
       <node character="'physical'" name="'shrub19'" branch="trunk" turn="0" tick="85" exists="T" />
-      <node_val character="'physical'" node="'shrub19'" key="'cover'" branch="trunk" turn="0" tick="86">
+      <node-val character="'physical'" node="'shrub19'" key="'cover'" branch="trunk" turn="0" tick="86">
         <int value="1" />
-      </node_val>
-      <node_val character="'physical'" node="'shrub19'" key="'_image_paths'" branch="trunk" turn="0" tick="87">
+      </node-val>
+      <node-val character="'physical'" node="'shrub19'" key="'_image_paths'" branch="trunk" turn="0" tick="87">
         <list>
           <str value="atlas://rltiles/dc-mon.atlas/fungus" />
         </list>
-      </node_val>
-      <node_val character="'physical'" node="'shrub19'" key="'_group'" branch="trunk" turn="0" tick="88">
+      </node-val>
+      <node-val character="'physical'" node="'shrub19'" key="'_group'" branch="trunk" turn="0" tick="88">
         <str value="shrub" />
-      </node_val>
-      <node_val character="'physical'" node="'kobold'" key="'shrub_places'" branch="trunk" turn="0" tick="89">
+      </node-val>
+      <node-val character="'physical'" node="'kobold'" key="'shrub_places'" branch="trunk" turn="0" tick="89">
         <list>
           <tuple>
             <int value="1" />
@@ -4006,7 +4006,7 @@
             <int value="1" />
           </tuple>
         </list>
-      </node_val>
+      </node-val>
       <rule name="shrubsprint" branch="trunk" turn="0" tick="90" big="F">
         <actions>
           <action name="shrubsprint" />
