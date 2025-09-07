@@ -1763,6 +1763,7 @@
         </tuple>
       </universal>
       <node character="'physical'" name="'kobold'" branch="trunk" turn="0" tick="1" exists="T" />
+      <location character="'physical'" thing="'kobold'" branch="trunk" turn="0" tick="1" location="(9, 9)" />
       <universal key="'rando_state'" branch="trunk" turn="0" tick="8">
         <tuple>
           <int value="3" />
@@ -3684,6 +3685,7 @@
         </list>
       </node-val>
       <node character="'physical'" name="'shrub0'" branch="trunk" turn="0" tick="9" exists="T" />
+      <location character="'physical'" thing="'shrub0'" branch="trunk" turn="0" tick="9" location="(1, 9)" />
       <node-val character="'physical'" node="'shrub0'" key="'cover'" branch="trunk" turn="0" tick="10">
         <int value="1" />
       </node-val>
@@ -3696,6 +3698,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub1'" branch="trunk" turn="0" tick="13" exists="T" />
+      <location character="'physical'" thing="'shrub1'" branch="trunk" turn="0" tick="13" location="(2, 2)" />
       <node-val character="'physical'" node="'shrub1'" key="'cover'" branch="trunk" turn="0" tick="14">
         <int value="1" />
       </node-val>
@@ -3708,6 +3711,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub2'" branch="trunk" turn="0" tick="17" exists="T" />
+      <location character="'physical'" thing="'shrub2'" branch="trunk" turn="0" tick="17" location="(6, 0)" />
       <node-val character="'physical'" node="'shrub2'" key="'cover'" branch="trunk" turn="0" tick="18">
         <int value="1" />
       </node-val>
@@ -3720,6 +3724,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub3'" branch="trunk" turn="0" tick="21" exists="T" />
+      <location character="'physical'" thing="'shrub3'" branch="trunk" turn="0" tick="21" location="(7, 4)" />
       <node-val character="'physical'" node="'shrub3'" key="'cover'" branch="trunk" turn="0" tick="22">
         <int value="1" />
       </node-val>
@@ -3732,6 +3737,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub4'" branch="trunk" turn="0" tick="25" exists="T" />
+      <location character="'physical'" thing="'shrub4'" branch="trunk" turn="0" tick="25" location="(5, 0)" />
       <node-val character="'physical'" node="'shrub4'" key="'cover'" branch="trunk" turn="0" tick="26">
         <int value="1" />
       </node-val>
@@ -3744,6 +3750,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub5'" branch="trunk" turn="0" tick="29" exists="T" />
+      <location character="'physical'" thing="'shrub5'" branch="trunk" turn="0" tick="29" location="(6, 5)" />
       <node-val character="'physical'" node="'shrub5'" key="'cover'" branch="trunk" turn="0" tick="30">
         <int value="1" />
       </node-val>
@@ -3756,6 +3763,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub6'" branch="trunk" turn="0" tick="33" exists="T" />
+      <location character="'physical'" thing="'shrub6'" branch="trunk" turn="0" tick="33" location="(8, 7)" />
       <node-val character="'physical'" node="'shrub6'" key="'cover'" branch="trunk" turn="0" tick="34">
         <int value="1" />
       </node-val>
@@ -3768,6 +3776,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub7'" branch="trunk" turn="0" tick="37" exists="T" />
+      <location character="'physical'" thing="'shrub7'" branch="trunk" turn="0" tick="37" location="(8, 5)" />
       <node-val character="'physical'" node="'shrub7'" key="'cover'" branch="trunk" turn="0" tick="38">
         <int value="1" />
       </node-val>
@@ -3780,6 +3789,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub8'" branch="trunk" turn="0" tick="41" exists="T" />
+      <location character="'physical'" thing="'shrub8'" branch="trunk" turn="0" tick="41" location="(2, 3)" />
       <node-val character="'physical'" node="'shrub8'" key="'cover'" branch="trunk" turn="0" tick="42">
         <int value="1" />
       </node-val>
@@ -3792,6 +3802,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub9'" branch="trunk" turn="0" tick="45" exists="T" />
+      <location character="'physical'" thing="'shrub9'" branch="trunk" turn="0" tick="45" location="(5, 7)" />
       <node-val character="'physical'" node="'shrub9'" key="'cover'" branch="trunk" turn="0" tick="46">
         <int value="1" />
       </node-val>
@@ -3804,6 +3815,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub10'" branch="trunk" turn="0" tick="49" exists="T" />
+      <location character="'physical'" thing="'shrub10'" branch="trunk" turn="0" tick="49" location="(9, 0)" />
       <node-val character="'physical'" node="'shrub10'" key="'cover'" branch="trunk" turn="0" tick="50">
         <int value="1" />
       </node-val>
@@ -3816,6 +3828,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub11'" branch="trunk" turn="0" tick="53" exists="T" />
+      <location character="'physical'" thing="'shrub11'" branch="trunk" turn="0" tick="53" location="(1, 6)" />
       <node-val character="'physical'" node="'shrub11'" key="'cover'" branch="trunk" turn="0" tick="54">
         <int value="1" />
       </node-val>
@@ -3828,6 +3841,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub12'" branch="trunk" turn="0" tick="57" exists="T" />
+      <location character="'physical'" thing="'shrub12'" branch="trunk" turn="0" tick="57" location="(7, 3)" />
       <node-val character="'physical'" node="'shrub12'" key="'cover'" branch="trunk" turn="0" tick="58">
         <int value="1" />
       </node-val>
@@ -3840,6 +3854,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub13'" branch="trunk" turn="0" tick="61" exists="T" />
+      <location character="'physical'" thing="'shrub13'" branch="trunk" turn="0" tick="61" location="(1, 8)" />
       <node-val character="'physical'" node="'shrub13'" key="'cover'" branch="trunk" turn="0" tick="62">
         <int value="1" />
       </node-val>
@@ -3852,6 +3867,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub14'" branch="trunk" turn="0" tick="65" exists="T" />
+      <location character="'physical'" thing="'shrub14'" branch="trunk" turn="0" tick="65" location="(3, 9)" />
       <node-val character="'physical'" node="'shrub14'" key="'cover'" branch="trunk" turn="0" tick="66">
         <int value="1" />
       </node-val>
@@ -3864,6 +3880,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub15'" branch="trunk" turn="0" tick="69" exists="T" />
+      <location character="'physical'" thing="'shrub15'" branch="trunk" turn="0" tick="69" location="(2, 9)" />
       <node-val character="'physical'" node="'shrub15'" key="'cover'" branch="trunk" turn="0" tick="70">
         <int value="1" />
       </node-val>
@@ -3876,6 +3893,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub16'" branch="trunk" turn="0" tick="73" exists="T" />
+      <location character="'physical'" thing="'shrub16'" branch="trunk" turn="0" tick="73" location="(4, 5)" />
       <node-val character="'physical'" node="'shrub16'" key="'cover'" branch="trunk" turn="0" tick="74">
         <int value="1" />
       </node-val>
@@ -3888,6 +3906,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub17'" branch="trunk" turn="0" tick="77" exists="T" />
+      <location character="'physical'" thing="'shrub17'" branch="trunk" turn="0" tick="77" location="(4, 2)" />
       <node-val character="'physical'" node="'shrub17'" key="'cover'" branch="trunk" turn="0" tick="78">
         <int value="1" />
       </node-val>
@@ -3900,6 +3919,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub18'" branch="trunk" turn="0" tick="81" exists="T" />
+      <location character="'physical'" thing="'shrub18'" branch="trunk" turn="0" tick="81" location="(3, 8)" />
       <node-val character="'physical'" node="'shrub18'" key="'cover'" branch="trunk" turn="0" tick="82">
         <int value="1" />
       </node-val>
@@ -3912,6 +3932,7 @@
         <str value="shrub" />
       </node-val>
       <node character="'physical'" name="'shrub19'" branch="trunk" turn="0" tick="85" exists="T" />
+      <location character="'physical'" thing="'shrub19'" branch="trunk" turn="0" tick="85" location="(0, 1)" />
       <node-val character="'physical'" node="'shrub19'" key="'cover'" branch="trunk" turn="0" tick="86">
         <int value="1" />
       </node-val>
