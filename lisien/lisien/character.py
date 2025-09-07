@@ -249,7 +249,6 @@ class Character(AbstractCharacter, RuleFollower):
 		self, engine: "Engine", name: CharName, *, init_rulebooks: bool = False
 	):
 		super().__init__(engine, name)
-		self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
 		if not init_rulebooks:
 			return
 		cachemap = {
