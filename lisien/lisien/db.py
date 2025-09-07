@@ -6821,10 +6821,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	@pqbatch("universals")
 	def _universals2set(
-		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Value
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick, value: Value
 	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
 		pack = self.pack
-		return pack(key), branch, turn, tick, pack(val)
+		return pack(key), branch, turn, tick, pack(value)
 
 	def universal_set(
 		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Value
