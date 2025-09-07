@@ -1133,20 +1133,32 @@ def queries(table):
 			),
 		)
 
-	r["load_things_tick_to_end"] = select(
-		things.c.character,
-		things.c.thing,
-		things.c.turn,
-		things.c.tick,
-		things.c.location,
-	).where(to_end_clause(things))
-	r["load_things_tick_to_tick"] = select(
-		things.c.character,
-		things.c.thing,
-		things.c.turn,
-		things.c.tick,
-		things.c.location,
-	).where(to_tick_clause(things))
+	r["load_things_tick_to_end"] = (
+		select(
+			things.c.character,
+			things.c.thing,
+			things.c.turn,
+			things.c.tick,
+			things.c.location,
+		)
+		.where(to_end_clause(things))
+		.order_by(
+			things.c.turn, things.c.tick, things.c.character, things.c.thing
+		)
+	)
+	r["load_things_tick_to_tick"] = (
+		select(
+			things.c.character,
+			things.c.thing,
+			things.c.turn,
+			things.c.tick,
+			things.c.location,
+		)
+		.where(to_tick_clause(things))
+		.order_by(
+			things.c.turn, things.c.tick, things.c.character, things.c.thing
+		)
+	)
 	for name in (
 		"character_rulebook",
 		"unit_rulebook",
