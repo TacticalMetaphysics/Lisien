@@ -246,7 +246,7 @@ class Character(AbstractCharacter, RuleFollower):
 		return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
 	def __init__(
-		self, engine: "Engine", name: CharName, *, init_rulebooks: bool = True
+		self, engine: "Engine", name: CharName, *, init_rulebooks: bool = False
 	):
 		super().__init__(engine, name)
 		self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
