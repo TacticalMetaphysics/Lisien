@@ -1173,10 +1173,10 @@ def queries(table):
 	)
 	r["load_node_rulebook_tick_to_end"] = node_rb_select.where(
 		to_end_clause(ntab)
-	)
+	).order_by(ntab.c.turn, ntab.c.tick, ntab.c.character, ntab.c.node)
 	r["load_node_rulebook_tick_to_tick"] = node_rb_select.where(
 		to_tick_clause(ntab)
-	)
+	).order_by(ntab.c.turn, ntab.c.tick, ntab.c.character, ntab.c.node)
 	ptab = table["portal_rulebook"]
 	port_rb_select = select(
 		ptab.c.character,
@@ -1188,9 +1188,13 @@ def queries(table):
 	)
 	r["load_portal_rulebook_tick_to_end"] = port_rb_select.where(
 		to_end_clause(ptab)
+	).order_by(
+		ptab.c.turn, ptab.c.tick, ptab.c.character, ptab.c.orig, ptab.c.dest
 	)
 	r["load_portal_rulebook_tick_to_tick"] = port_rb_select.where(
 		to_tick_clause(ptab)
+	).order_by(
+		ptab.c.turn, ptab.c.tick, ptab.c.character, ptab.c.orig, ptab.c.dest
 	)
 
 	univ = table["universals"]
