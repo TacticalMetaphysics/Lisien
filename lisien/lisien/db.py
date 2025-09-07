@@ -5121,7 +5121,7 @@ class AbstractQueryEngine(ABC):
 		ret["rulebooks"]: list[RulebookRowType] = []
 		self._load_windows_into(ret, windows)
 		self.debug(f"finished loading windows {windows}")
-		return ret
+		return dict(ret)
 
 
 class NullQueryEngine(AbstractQueryEngine):
