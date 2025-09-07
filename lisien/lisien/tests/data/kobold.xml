@@ -1,8 +1,5 @@
 <lisien>
-  <dict-item key="'tick'">
-    <int value="2" />
-  </dict-item>
-  <dict-item key="'turn'">
+  <dict-item key="'_lisien_schema_version'">
     <int value="1" />
   </dict-item>
   <dict-item key="'branch'">
@@ -14,7 +11,10 @@
   <dict-item key="'main_branch'">
     <str value="trunk" />
   </dict-item>
-  <dict-item key="'_lisien_schema_version'">
+  <dict-item key="'tick'">
+    <int value="2" />
+  </dict-item>
+  <dict-item key="'turn'">
     <int value="1" />
   </dict-item>
   <playtree game="test_export" trunk="trunk">
@@ -4007,6 +4007,7 @@
           </tuple>
         </list>
       </node-val>
+      <node_rulebook character="'physical'" node="'kobold'" branch="trunk" turn="0" tick="89" rulebook="('physical', 'kobold')" />
       <rule name="shrubsprint" branch="trunk" turn="0" tick="90" big="F">
         <actions>
           <action name="shrubsprint" />
