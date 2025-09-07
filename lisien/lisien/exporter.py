@@ -784,7 +784,7 @@ def query_engine_to_tree(
 	name: str, query: AbstractQueryEngine, tree: ElementTree
 ) -> ElementTree:
 	root = tree.getroot()
-	for k, v in query.eternal.items():
+	for k, v in sorted(query.eternal.items()):
 		el = Element("dict-item", key=repr(k))
 		root.append(el)
 		el.append(value_to_xml(v))
@@ -802,7 +802,7 @@ def query_engine_to_tree(
 			turn_end_plan_d[branch] = {
 				turn: (last_real_tick, last_planned_tick)
 			}
-	branch2do = deque(query.branches_dump())
+	branch2do = deque(sorted(query.branches_dump()))
 	while branch2do:
 		(
 			branch,
