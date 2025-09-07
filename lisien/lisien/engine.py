@@ -6533,7 +6533,6 @@ class Engine(AbstractEngine, Executor):
 			self.snap_keyframe(silent=True, update_worker_processes=False)
 		if hasattr(self, "_worker_processes"):
 			self._update_all_worker_process_states(clobber=True)
-		self._graph_objs[name] = self.char_cls(self, name)
 
 	@world_locked
 	def del_character(self, name: CharName) -> None:
