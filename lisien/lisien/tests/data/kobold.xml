@@ -4019,7 +4019,7 @@
             </tuple>
           </list>
         </node-val>
-        <node_rulebook character="'physical'" node="'kobold'" tick="89" rulebook="('physical', 'kobold')" />
+        <node-rulebook character="'physical'" node="'kobold'" tick="89" rulebook="('physical', 'kobold')" />
         <rule name="shrubsprint" tick="90" big="F">
           <actions>
             <action name="shrubsprint" />
@@ -4045,7 +4045,7 @@
             <prereq name="not_traveling" />
           </prereqs>
         </rule>
-        <node_rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')" />
+        <node-rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')" />
         <rule name="fight" tick="96" big="F">
           <actions>
             <action name="fight" />
