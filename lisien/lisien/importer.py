@@ -419,7 +419,7 @@ def tree_to_db(
 								Tick(int(turn.get("plan_end_tick"))),
 							)
 					else:
-						getattr(importer, elem.tag)(elem)
+						getattr(importer, elem.tag.replace("-", "_"))(elem)
 		else:
 			k = literal_eval(el.get("key"))
 			v = importer.xml_to_value(el[0])
