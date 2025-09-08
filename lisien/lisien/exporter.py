@@ -538,7 +538,7 @@ def fill_branch_element(
 		char, node, b, r, t, rb = nrb_row
 		turn_el.append(
 			Element(
-				"node_rulebook",
+				"node-rulebook",
 				character=repr(char),
 				node=repr(node),
 				tick=str(t),
@@ -552,7 +552,7 @@ def fill_branch_element(
 		char, orig, dest, b, r, t, rb = port_rb_row
 		turn_el.append(
 			Element(
-				"portal_rulebook",
+				"portal-rulebook",
 				character=repr(char),
 				orig=repr(orig),
 				dest=repr(dest),
@@ -741,7 +741,9 @@ def fill_branch_element(
 						_, b, r, t, __ = char_rb_row
 						if (b, r, t) == (branch, turn, tick):
 							append_char_rb_el(
-								turn_el, char_rb_typ, char_rb_row
+								turn_el,
+								char_rb_typ.replace("_", "-"),
+								char_rb_row,
 							)
 							del char_data[char_rb_typ][0]
 				if char_data["node_rulebook"]:
