@@ -222,15 +222,13 @@ def value_to_xml(value: Value | dict[Key, Value]) -> Element:
 		raise TypeError("Can't convert to XML", value)
 
 
-def add_keyframe_to_branch_el(
-	branch_el: Element,
-	branch: Branch,
-	turn: Turn,
+def add_keyframe_to_turn_el(
+	turn_el: Element,
 	tick: Tick,
 	keyframe: Keyframe,
 ) -> None:
-	kfel = Element("keyframe", branch=branch, turn=str(turn), tick=str(tick))
-	branch_el.append(kfel)
+	kfel = Element("keyframe", tick=str(tick))
+	turn_el.append(kfel)
 	universal_d: dict[Key, Value] = keyframe.get("universal", {})
 	univel = value_to_xml(universal_d)
 	univel.tag = "universal"
@@ -356,42 +354,32 @@ def fill_branch_element(
 	if branch_ is None:
 		raise TypeError("branch missing")
 	branch = Branch(branch_)
-	turn_ = branch_el.get("start_turn")
-	if turn_ is None:
-		raise TypeError("start_turn missing")
-	turn_from = Turn(int(turn_))
-	turn_ = branch_el.get("end_turn")
-	if turn_ is None:
-		raise TypeError("end_turn missing")
-	turn_to = Turn(int(turn_))
 
-	def append_univ_el(universal_rec: UniversalRowType):
+	def append_univ_el(turn_el: Element, universal_rec: UniversalRowType):
 		key, b, r, t, val = universal_rec
 		univ_el = Element(
 			"universal",
 			key=repr(key),
-			branch=b,
-			turn=str(r),
 			tick=str(t),
 		)
 		univ_el.append(value_to_xml(val))
-		branch_el.append(univ_el)
+		turn_el.append(univ_el)
 
-	def append_rulebook_el(rulebook_rec: RulebookRowType):
+	def append_rulebook_el(turn_el: Element, rulebook_rec: RulebookRowType):
 		rb, b, r, t, (rules, prio) = rulebook_rec
 		rb_el = Element(
 			"rulebook",
 			name=repr(rulebook),
 			priority=repr(prio),
-			branch=b,
-			turn=str(r),
 			tick=str(t),
 		)
-		branch_el.append(rb_el)
+		turn_el.append(rb_el)
 		for i, rule in enumerate(rules):
 			rb_el.append(Element("rule_placement", rule=rule, idx=str(i)))
 
 	def append_rule_el(
+		turn_el: Element,
+		tick: Tick,
 		trig_rec: TriggerRowType = ...,
 		preq_rec: PrereqRowType = ...,
 		act_rec: ActionRowType = ...,
@@ -427,13 +415,11 @@ def fill_branch_element(
 		rule_el = Element(
 			"rule",
 			name=rule,
-			branch=branch,
-			turn=str(turn),
 			tick=str(tick),
 		)
 		if big is not ...:
 			rule_el.set("big", "T" if big else "F")
-		branch_el.append(rule_el)
+		turn_el.append(rule_el)
 		if nbr is not ...:
 			rule_el.set("neighborhood", "" if nbr is None else str(nbr))
 		if trigs:
@@ -452,75 +438,65 @@ def fill_branch_element(
 			for act in acts:
 				acts_el.append(Element("action", name=act))
 
-	def append_graph_el(graph: GraphRowType):
+	def append_graph_el(turn_el: Element, graph: GraphRowType):
 		char, b, r, t, typ_str = graph
 		graph_el = Element(
 			"graph",
 			character=repr(char),
-			branch=b,
-			turn=str(r),
 			tick=str(t),
 			type=typ_str,
 		)
-		branch_el.append(graph_el)
+		turn_el.append(graph_el)
 
-	def append_graph_val_el(graph_val: GraphValRowType):
+	def append_graph_val_el(turn_el: Element, graph_val: GraphValRowType):
 		char, stat, b, r, t, val = graph_val
 		graph_val_el = Element(
 			"graph-val",
 			character=repr(char),
 			key=repr(stat),
-			branch=b,
-			turn=str(r),
 			tick=str(t),
 		)
-		branch_el.append(graph_val_el)
+		turn_el.append(graph_val_el)
 		graph_val_el.append(value_to_xml(val))
 
-	def append_nodes_el(nodes: NodeRowType):
+	def append_nodes_el(turn_el: Element, nodes: NodeRowType):
 		char, node, b, r, t, ex = nodes
-		branch_el.append(
+		turn_el.append(
 			Element(
 				"node",
 				character=repr(char),
 				name=repr(node),
-				branch=b,
-				turn=str(r),
 				tick=str(t),
 				exists="T" if ex else "F",
 			)
 		)
 
-	def append_node_val_el(node_val: NodeValRowType):
+	def append_node_val_el(turn_el: Element, node_val: NodeValRowType):
 		char, node, stat, b, r, t, val = node_val
 		node_val_el = Element(
 			"node-val",
 			character=repr(char),
 			node=repr(node),
 			key=repr(stat),
-			branch=b,
-			turn=str(r),
 			tick=str(t),
 		)
-		branch_el.append(node_val_el)
+		turn_el.append(node_val_el)
 		node_val_el.append(value_to_xml(val))
 
-	def append_edges_el(edges: EdgeRowType):
+	def append_edges_el(turn_el: Element, edges: EdgeRowType):
 		char, orig, dest, b, r, t, ex = edges
-		branch_el.append(
+		turn_el.append(
 			Element(
 				"edge",
 				character=repr(char),
 				orig=repr(orig),
 				dest=repr(dest),
-				branch=b,
-				turn=str(r),
 				tick=str(t),
 				exists="T" if ex else "F",
 			)
 		)
 
-	def append_edge_val_el(edge_val: EdgeValRowType):
+	def append_edge_val_el(turn_el: Element, edge_val: EdgeValRowType):
 		char, orig, dest, stat, b, r, t, val = edge_val
 		edge_val_el = Element(
 			"edge-val",
@@ -528,110 +504,105 @@ def fill_branch_element(
 			orig=repr(orig),
 			dest=repr(dest),
 			key=repr(stat),
-			branch=b,
-			turn=str(r),
 			tick=str(t),
 		)
-		branch_el.append(edge_val_el)
+		turn_el.append(edge_val_el)
 		edge_val_el.append(value_to_xml(val))
 
-	def append_thing_el(thing: ThingRowType):
+	def append_thing_el(turn_el: Element, thing: ThingRowType):
 		char, thing, b, r, t, loc = thing
-		branch_el.append(
+		turn_el.append(
 			Element(
 				"location",
 				character=repr(char),
 				thing=repr(thing),
-				branch=b,
-				turn=str(r),
 				tick=str(t),
 				location=repr(loc),
 			)
 		)
 
-	def append_char_rb_el(rbtyp: str, rbrow: CharRulebookRowType):
+	def append_char_rb_el(
+		turn_el: Element, rbtyp: str, rbrow: CharRulebookRowType
+	):
 		char, b, r, t, rb = rbrow
-		branch_el.append(
+		turn_el.append(
 			Element(
 				rbtyp,
 				character=repr(char),
-				branch=b,
-				turn=str(r),
 				tick=str(t),
 				rulebook=repr(rb),
 			)
 		)
 
-	def append_node_rb_el(nrb_row: NodeRulebookRowType):
+	def append_node_rb_el(turn_el: Element, nrb_row: NodeRulebookRowType):
 		char, node, b, r, t, rb = nrb_row
-		branch_el.append(
+		turn_el.append(
 			Element(
 				"node_rulebook",
 				character=repr(char),
 				node=repr(node),
-				branch=b,
-				turn=str(r),
 				tick=str(t),
 				rulebook=repr(rb),
 			)
 		)
 
-	def append_portal_rb_el(port_rb_row: PortalRulebookRowType):
+	def append_portal_rb_el(
+		turn_el: Element, port_rb_row: PortalRulebookRowType
+	):
 		char, orig, dest, b, r, t, rb = port_rb_row
-		branch_el.append(
+		turn_el.append(
 			Element(
 				"portal_rulebook",
 				character=repr(char),
 				orig=repr(orig),
 				dest=repr(dest),
-				branch=b,
-				turn=str(r),
 				tick=str(t),
 				rulebook=repr(rb),
 			)
 		)
 
 	turn: Turn
-	turns_el = Element("turns", branch=branch)
-	branch_el.append(turns_el)
 	for turn, (ending_tick, plan_ending_tick) in turn_ends.items():
-		turns_el.append(
-			Element(
-				"turn",
-				branch=branch,
-				turn=str(turn),
-				end_tick=str(ending_tick),
-				plan_end_tick=str(plan_ending_tick),
-			)
+		turn_el = Element(
+			"turn",
+			number=str(turn),
+			end_tick=str(ending_tick),
+			plan_end_tick=str(plan_ending_tick),
 		)
-	for turn in range(turn_from, turn_to + 1):
+		branch_el.append(turn_el)
 		tick: Tick
 		for tick in range(turn_ends[turn][1] + 1):
 			if (branch, turn, tick) in keyframe_times:
 				kf = query.get_keyframe(branch, turn, tick)
-				add_keyframe_to_branch_el(branch_el, branch, turn, tick, kf)
+				add_keyframe_to_turn_el(turn_el, tick, kf)
 				keyframe_times.remove((branch, turn, tick))
 			if data["universals"]:
 				universal_rec: UniversalRowType = data["universals"][0]
-				key, branch_now, turn_now, tick_now, val = universal_rec
+				key, branch_now, turn_now, tick_now, _ = universal_rec
 				if (branch_now, turn_now, tick_now) != (branch, turn, tick):
-					append_univ_el(universal_rec)
+					append_univ_el(turn_el, universal_rec)
 					del data["universals"][0]
 			if data["rulebooks"]:
 				rulebook_rec: RulebookRowType = data["rulebooks"][0]
-				rulebook, branch_now, turn_now, tick_now, (rules, prio) = (
-					rulebook_rec
-				)
+				rulebook, branch_now, turn_now, tick_now, _ = rulebook_rec
 				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
-					append_rulebook_el(rulebook_rec)
+					append_rulebook_el(turn_el, rulebook_rec)
 					del data["rulebooks"][0]
 			if data["graphs"]:
 				graph_rec: GraphRowType = data["graphs"][0]
-				graph, branch_now, turn_now, tick_now, typ_str = graph_rec
+				_, branch_now, turn_now, tick_now, _ = graph_rec
 				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
-					append_graph_el(graph_rec)
+					append_graph_el(turn_el, graph_rec)
 					del data["graphs"][0]
-			rule_kwargs = {}
+			rule_kwargs: dict[
+				str,
+				Tick
+				| TriggerRowType
+				| PrereqRowType
+				| ActionRowType
+				| RuleBigRowType
+				| RuleNeighborhoodRowType,
+			] = {"tick": tick}
 			if (
 				"rule_triggers" in data
 				and data["rule_triggers"]
@@ -687,8 +658,8 @@ def fill_branch_element(
 			):
 				big_rec: RuleBigRowType = data["rule_big"][0]
 				rule_kwargs["big_rec"] = big_rec
-			if rule_kwargs:
-				append_rule_el(**rule_kwargs)
+			if rule_kwargs.keys() - {"tick"}:
+				append_rule_el(turn_el, **rule_kwargs)
 			if "trig_rec" in rule_kwargs:
 				del data["rule_triggers"][0]
 			if "preq_rec" in rule_kwargs:
@@ -714,7 +685,7 @@ def fill_branch_element(
 					graph_val_row: GraphValRowType = char_data["graph_val"][0]
 					_, __, b, r, t, ___ = graph_val_row
 					if (b, r, t) == (branch, turn, tick):
-						append_graph_val_el(graph_val_row)
+						append_graph_val_el(turn_el, graph_val_row)
 						del char_data["graph_val"][0]
 				if char_data["nodes"]:
 					nodes_row: NodeRowType = char_data["nodes"][0]
@@ -724,7 +695,7 @@ def fill_branch_element(
 						turn,
 						tick,
 					):
-						append_nodes_el(nodes_row)
+						append_nodes_el(turn_el, nodes_row)
 						del char_data["nodes"][0]
 				if char_data["node_val"]:
 					node_val_row: NodeValRowType = char_data["node_val"][0]
@@ -736,7 +707,7 @@ def fill_branch_element(
 						turn,
 						tick,
 					):
-						append_node_val_el(node_val_row)
+						append_node_val_el(turn_el, node_val_row)
 						del char_data["node_val"][0]
 				if char_data["edges"]:
 					edges_row: EdgeRowType = char_data["edges"][0]
@@ -748,13 +719,13 @@ def fill_branch_element(
 					edge_val_row: EdgeValRowType = char_data["edge_val"][0]
 					_, __, ___, ____, b, r, t, _____ = edge_val_row
 					if (b, r, t) == (branch, turn, tick):
-						append_edge_val_el(edge_val_row)
+						append_edge_val_el(turn_el, edge_val_row)
 						del char_data["edge_val"][0]
 				if char_data["things"]:
 					thing_row: ThingRowType = char_data["things"][0]
 					_, __, b, r, t, ___ = thing_row
 					if (b, r, t) == (branch, turn, tick):
-						append_thing_el(thing_row)
+						append_thing_el(turn_el, thing_row)
 						del char_data["things"][0]
 				for char_rb_typ in (
 					"character_rulebook",
@@ -769,7 +740,9 @@ def fill_branch_element(
 						][0]
 						_, b, r, t, __ = char_rb_row
 						if (b, r, t) == (branch, turn, tick):
-							append_char_rb_el(char_rb_typ, char_rb_row)
+							append_char_rb_el(
+								turn_el, char_rb_typ, char_rb_row
+							)
 							del char_data[char_rb_typ][0]
 				if char_data["node_rulebook"]:
 					node_rb_row: NodeRulebookRowType = char_data[
@@ -777,7 +750,7 @@ def fill_branch_element(
 					][0]
 					_, __, b, r, t, ___ = node_rb_row
 					if (b, r, t) == (branch, turn, tick):
-						append_node_rb_el(node_rb_row)
+						append_node_rb_el(turn_el, node_rb_row)
 						del char_data["node_rulebook"][0]
 				if char_data["portal_rulebook"]:
 					port_rb_row: PortalRulebookRowType = char_data[
@@ -785,7 +758,7 @@ def fill_branch_element(
 					][0]
 					_, __, ___, b, r, t, ____ = port_rb_row
 					if (b, r, t) == (branch, turn, tick):
-						append_portal_rb_el(port_rb_row)
+						append_portal_rb_el(turn_el, port_rb_row)
 						del char_data["portal_rulebook"][0]
 	assert not keyframe_times, keyframe_times
 
@@ -804,6 +777,7 @@ def query_engine_to_etree(
 	turn_end_plan_d: dict[Branch, dict[Turn, tuple[Tick, Tick]]] = {}
 	branch_elements = {}
 	playtrees: dict[Branch, Element] = {}
+	turns_completed_d: dict[Branch, Turn] = dict(query.turns_completed_dump())
 	keyframe_times: set[Time] = set(query.keyframes_dump())
 	for branch, turn, last_real_tick, last_planned_tick in query.turns_dump():
 		if branch in turn_end_plan_d:
@@ -838,6 +812,7 @@ def query_engine_to_etree(
 				name=branch,
 				start_turn="0",
 				start_tick="0",
+				last_turn_completed=str(turns_completed_d[branch]),
 				end_turn=str(end_turn),
 				end_tick=str(end_tick),
 			)
@@ -854,6 +829,7 @@ def query_engine_to_etree(
 					parent=parent,
 					start_turn=str(parent_turn),
 					start_tick=str(parent_tick),
+					last_turn_completed=str(turns_completed_d[branch]),
 					end_turn=str(end_turn),
 					end_tick=str(end_tick),
 				)
