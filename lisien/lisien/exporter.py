@@ -331,9 +331,12 @@ def add_keyframe_to_branch_el(
 
 def fill_branch_element(
 	query: AbstractQueryEngine,
+	branch_el: Element,
+	branch: Branch,
 	turn_from: Turn,
 	turn_to: Turn,
 	turn_ends: dict[Turn, tuple[Tick, Tick]],
+	keyframe_times: set[Time],
 	data: dict[
 		Literal[
 			"universals",
@@ -351,9 +354,6 @@ def fill_branch_element(
 		| list[RuleRowType]
 		| LoadedCharWindow,
 	],
-	branch_el: Element,
-	keyframe_times: set[Time],
-	branch: Branch,
 ):
 	def append_univ_el(universal_rec: UniversalRowType):
 		key, b, r, t, val = universal_rec
@@ -867,13 +867,13 @@ def query_engine_to_etree(
 		)
 		fill_branch_element(
 			query,
+			branch_elements[b],
+			b,
 			turn_from,
 			turn_to,
 			turn_end_plan_d[b],
-			data,
-			branch_elements[b],
 			keyframe_times,
-			b,
+			data,
 		)
 		if b in branch_descendants:
 			for desc in sorted(branch_descendants[b], key=branches_d.get):
