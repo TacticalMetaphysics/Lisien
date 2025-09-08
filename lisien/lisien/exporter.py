@@ -283,7 +283,7 @@ def add_keyframe_to_turn_el(
 			rulebook_el.append(Element("rule", name=rule_name))
 	char_els: dict[CharName, Element] = {}
 	graph_val_kf: GraphValKeyframe = keyframe.get("graph_val", {})
-	for char_name, vals in graph_val_kf.items():
+	for char_name, vals in sorted(graph_val_kf.items()):
 		graph_el = char_els[char_name] = Element(
 			"character", name=repr(char_name)
 		)
