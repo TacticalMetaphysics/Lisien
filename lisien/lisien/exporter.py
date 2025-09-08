@@ -332,9 +332,6 @@ def add_keyframe_to_branch_el(
 def fill_branch_element(
 	query: AbstractQueryEngine,
 	branch_el: Element,
-	branch: Branch,
-	turn_from: Turn,
-	turn_to: Turn,
 	turn_ends: dict[Turn, tuple[Tick, Tick]],
 	keyframe_times: set[Time],
 	data: dict[
@@ -355,6 +352,19 @@ def fill_branch_element(
 		| LoadedCharWindow,
 	],
 ):
+	branch_ = branch_el.get("name")
+	if branch_ is None:
+		raise TypeError("branch missing")
+	branch = Branch(branch_)
+	turn_ = branch_el.get("start_turn")
+	if turn_ is None:
+		raise TypeError("start_turn missing")
+	turn_from = Turn(int(turn_))
+	turn_ = branch_el.get("end_turn")
+	if turn_ is None:
+		raise TypeError("end_turn missing")
+	turn_to = Turn(int(turn_))
+
 	def append_univ_el(universal_rec: UniversalRowType):
 		key, b, r, t, val = universal_rec
 		univ_el = Element(
@@ -868,9 +878,6 @@ def query_engine_to_etree(
 		fill_branch_element(
 			query,
 			branch_elements[b],
-			b,
-			turn_from,
-			turn_to,
 			turn_end_plan_d[b],
 			keyframe_times,
 			data,
