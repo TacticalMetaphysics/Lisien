@@ -78,7 +78,7 @@ def sqlite_to_etree(
 		tree = ElementTree(Element("lisien"))
 	if name is None:
 		name = str(os.path.basename(os.path.dirname(sqlite_path)))
-	return query_engine_to_tree(
+	return query_engine_to_etree(
 		name,
 		query,
 		tree,
@@ -105,7 +105,7 @@ def pqdb_to_etree(
 		tree = ElementTree(Element("lisien"))
 	if name is None:
 		name = str(os.path.basename(os.path.dirname(pqdb_path)))
-	return query_engine_to_tree(name, query, tree)
+	return query_engine_to_etree(name, query, tree)
 
 
 def game_path_to_etree(
@@ -780,7 +780,7 @@ def fill_branch_element(
 	assert not keyframe_times, keyframe_times
 
 
-def query_engine_to_tree(
+def query_engine_to_etree(
 	name: str, query: AbstractQueryEngine, tree: ElementTree
 ) -> ElementTree:
 	root = tree.getroot()
