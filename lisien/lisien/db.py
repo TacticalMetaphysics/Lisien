@@ -2927,10 +2927,12 @@ class ParquetDBHolder(ConnectionHolder):
 				pc.field("tick") == tick,
 			]
 		)
-		return [
-			(d["graph"], d["nodes"], d["edges"], d["graph_val"])
-			for d in data.to_pylist()
-		]
+		return sorted(
+			[
+				(d["graph"], d["nodes"], d["edges"], d["graph_val"])
+				for d in data.to_pylist()
+			]
+		)
 
 	def run(self):
 		def loud_exit(inst, ex):
