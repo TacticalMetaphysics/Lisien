@@ -44,7 +44,7 @@ class Importer:
 		self.query = query
 		self.engine = engine
 
-	def xml_to_value(self, el: Element) -> Value:
+	def element_to_value(self, el: Element) -> Value:
 		eng = self.engine
 		match el.tag:
 			case "Ellipsis":
@@ -72,20 +72,22 @@ class Importer:
 				dest = NodeName(literal_eval(el.get("destination")))
 				return eng.character[char_name].portal[orig][dest]
 			case "list":
-				return Value([self.xml_to_value(listel) for listel in el])
+				return Value([self.element_to_value(listel) for listel in el])
 			case "tuple":
-				return Value(tuple(self.xml_to_value(tupel) for tupel in el))
+				return Value(
+					tuple(self.element_to_value(tupel) for tupel in el)
+				)
 			case "set":
-				return Value({self.xml_to_value(setel) for setel in el})
+				return Value({self.element_to_value(setel) for setel in el})
 			case "frozenset":
 				return Value(
-					frozenset(self.xml_to_value(setel) for setel in el)
+					frozenset(self.element_to_value(setel) for setel in el)
 				)
 			case "dict":
 				ret = {}
 				for dict_item_el in el:
 					ret[literal_eval(dict_item_el.get("key"))] = (
-						self.xml_to_value(dict_item_el[0])
+						self.element_to_value(dict_item_el[0])
 					)
 				return Value(ret)
 			case "exception":
@@ -103,10 +105,19 @@ class Importer:
 			case default:
 				raise ValueError("Can't deserialize the element", default)
 
-	def keyframe(self, el: Element):
-		branch = Branch(el.get("branch"))
-		turn = Turn(int(el.get("turn")))
-		tick = Tick(int(el.get("tick")))
+	@staticmethod
+	def _get_time(branch_el: Element, turn_el: Element, el: Element) -> Time:
+		ret = (
+			Branch(branch_el.get("name")),
+			Turn(int(turn_el.get("number"))),
+			Tick(int(el.get("tick"))),
+		)
+		if not isinstance(ret[0], str):
+			raise TypeError("nonstring branch", ret[0])
+		return ret
+
+	def keyframe(self, branch_el: Element, turn_el: Element, kf_el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, kf_el)
 		self.query.keyframe_insert(branch, turn, tick)
 		universal_kf: UniversalKeyframe = {}
 		triggers_kf: dict[RuleName, list[TriggerFuncName]] = {}
@@ -127,16 +138,16 @@ class Importer:
 		graph_val_kf: GraphValKeyframe = {}
 		node_val_kf: GraphNodeValKeyframe = {}
 		edge_val_kf: GraphEdgeValKeyframe = {}
-		for subel in el:
+		for subel in kf_el:
 			if subel.tag == "universal":
 				for univel in subel:
 					k = literal_eval(univel.get("key"))
-					v = self.xml_to_value(univel[0])
+					v = self.element_to_value(univel[0])
 					universal_kf[k] = v
 			elif subel.tag == "rule":
-				rule = RuleName(el.get("name"))
-				bigs_kf[rule] = RuleBig(el.get("big") == "T")
-				neighborhoods_kf[rule] = el.get("neighborhood") or None
+				rule = RuleName(kf_el.get("name"))
+				bigs_kf[rule] = RuleBig(kf_el.get("big") == "T")
+				neighborhoods_kf[rule] = kf_el.get("neighborhood") or None
 				for funcl_el in subel:
 					name = FuncName(funcl_el.get("name"))
 					if not isinstance(name, str):
@@ -190,7 +201,7 @@ class Importer:
 				for key_el in subel:
 					if key_el.tag == "dict_item":
 						key = literal_eval(key_el.get("key"))
-						graph_vals[key] = self.xml_to_value(key_el[0])
+						graph_vals[key] = self.element_to_value(key_el[0])
 					elif key_el.tag == "node":
 						name = literal_eval(key_el.get("name"))
 						if name in node_vals:
@@ -199,7 +210,7 @@ class Importer:
 							val = node_vals[name] = {}
 						for item_el in key_el:
 							val[literal_eval(item_el.get("key"))] = (
-								self.xml_to_value(item_el[0])
+								self.element_to_value(item_el[0])
 							)
 					elif key_el.tag == "edge":
 						orig = literal_eval(key_el.get("orig"))
@@ -211,7 +222,7 @@ class Importer:
 						val = edge_vals[orig][dest]
 						for item_el in key_el:
 							val[literal_eval(item_el.get("key"))] = (
-								self.xml_to_value(item_el[0])
+								self.element_to_value(item_el[0])
 							)
 					else:
 						raise ValueError(
@@ -235,18 +246,14 @@ class Importer:
 				graph_val_kf.get(graph, {}),
 			)
 
-	def universal(self, el: Element):
-		branch = Branch(el.get("branch"))
-		turn = Turn(int(el.get("turn")))
-		tick = Tick(int(el.get("tick")))
+	def universal(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		key = UniversalKey(literal_eval(el.get("key")))
-		value = self.xml_to_value(el[0])
+		value = self.element_to_value(el[0])
 		self.query.universal_set(key, branch, turn, tick, value)
 
-	def rulebook(self, el: Element):
-		branch = Branch(el.get("branch"))
-		turn = Turn(int(el.get("turn")))
-		tick = Tick(int(el.get("tick")))
+	def rulebook(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		rulebook = RulebookName(literal_eval(el.get("name")))
 		priority = RulebookPriority(float(el.get("priority")))
 		rules: list[RuleName] = []
@@ -256,16 +263,8 @@ class Importer:
 			rules.append(RuleName(subel.get("rule")))
 		self.query.set_rulebook(rulebook, branch, turn, tick, rules, priority)
 
-	@staticmethod
-	def _get_time(el: Element) -> Time:
-		return (
-			Branch(el.get("branch")),
-			Turn(int(el.get("turn"))),
-			Tick(int(el.get("tick"))),
-		)
-
-	def rule(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def rule(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		rule = RuleName(el.get("name"))
 		triggers = []
 		prereqs = []
@@ -296,90 +295,110 @@ class Importer:
 			big,
 		)
 
-	def graph(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def graph(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		graph = CharName(literal_eval(el.get("character")))
 		typ_str = el.get("type")
 		self.query.graphs_insert(graph, branch, turn, tick, typ_str)
 
-	def graph_val(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def graph_val(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		graph = CharName(literal_eval(el.get("character")))
 		key = Stat(literal_eval(el.get("key")))
-		value = self.xml_to_value(el[0])
+		value = self.element_to_value(el[0])
 		self.query.graph_val_set(graph, key, branch, turn, tick, value)
 
-	def node(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def node(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
 		node = NodeName(literal_eval(el.get("name")))
 		ex = el.get("exists") == "T"
 		self.query.exist_node(char, node, branch, turn, tick, ex)
 
-	def node_val(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def node_val(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
 		node = NodeName(literal_eval(el.get("node")))
 		key = Stat(literal_eval(el.get("key")))
-		val = self.xml_to_value(el[0])
+		val = self.element_to_value(el[0])
 		self.query.node_val_set(char, node, key, branch, turn, tick, val)
 
-	def edge(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def edge(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
 		orig = NodeName(literal_eval(el.get("orig")))
 		dest = NodeName(literal_eval(el.get("dest")))
 		ex = el.get("exists") == "T"
 		self.query.exist_edge(char, orig, dest, branch, turn, tick, ex)
 
-	def edge_val(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def edge_val(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
 		orig = NodeName(literal_eval(el.get("orig")))
 		dest = NodeName(literal_eval(el.get("dest")))
 		key = Stat(literal_eval(el.get("key")))
-		val = self.xml_to_value(el[0])
+		val = self.element_to_value(el[0])
 		self.query.edge_val_set(char, orig, dest, key, branch, turn, tick, val)
 
-	def location(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def location(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
 		thing = NodeName(literal_eval(el.get("thing")))
 		location = NodeName(literal_eval(el.get("location")))
 		self.query.set_thing_loc(char, thing, branch, turn, tick, location)
 
-	def _some_character_rulebook(self, rbtyp: str, el: Element):
+	def _some_character_rulebook(
+		self, branch_el: Element, turn_el: Element, rbtyp: str, el: Element
+	):
 		assert el.tag == rbtyp
 		meth = getattr(self.query, f"set_{rbtyp}")
-		branch, turn, tick = self._get_time(el)
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
 		rb = RulebookName(literal_eval(el.get("rulebook")))
 		meth(char, branch, turn, tick, rb)
 
-	def character_rulebook(self, el: Element):
-		self._some_character_rulebook("character_rulebook", el)
+	def character_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		self._some_character_rulebook(
+			branch_el, turn_el, "character_rulebook", el
+		)
 
-	def unit_rulebook(self, el: Element):
-		self._some_character_rulebook("unit_rulebook", el)
+	def unit_rulebook(self, branch_el: Element, turn_el: Element, el: Element):
+		self._some_character_rulebook(branch_el, turn_el, "unit_rulebook", el)
 
-	def character_thing_rulebook(self, el: Element):
-		self._some_character_rulebook("character_thing_rulebook", el)
+	def character_thing_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		self._some_character_rulebook(
+			branch_el, turn_el, "character_thing_rulebook", el
+		)
 
-	def character_place_rulebook(self, el: Element):
-		self._some_character_rulebook("character_place_rulebook", el)
+	def character_place_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		self._some_character_rulebook(
+			branch_el, turn_el, "character_place_rulebook", el
+		)
 
-	def character_portal_rulebook(self, el: Element):
-		self._some_character_rulebook("character_portal_rulebook", el)
+	def character_portal_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		self._some_character_rulebook(
+			branch_el, turn_el, "character_portal_rulebook", el
+		)
 
-	def node_rulebook(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def node_rulebook(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
 		node = NodeName(literal_eval(el.get("node")))
 		rb = RulebookName(literal_eval(el.get("rulebook")))
 		self.query.set_node_rulebook(char, node, branch, turn, tick, rb)
 
-	def portal_rulebook(self, el: Element):
-		branch, turn, tick = self._get_time(el)
+	def portal_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
 		orig = NodeName(literal_eval(el.get("orig")))
 		dest = NodeName(literal_eval(el.get("dest")))
@@ -398,31 +417,33 @@ def tree_to_db(
 	root = tree.getroot()
 	for el in root:
 		if el.tag == "playtree":
-			for branch in el:
-				parent: Branch | None = branch.get("parent")
-				name = Branch(branch.get("name"))
-				start_turn = Turn(int(branch.get("start_turn")))
-				start_tick = Tick(int(branch.get("start_tick")))
-				end_turn = Turn(int(branch.get("end_turn")))
-				end_tick = Tick(int(branch.get("end_tick")))
-				query.set_branch(
-					name, parent, start_turn, start_tick, end_turn, end_tick
+			for branch_el in el:
+				parent: Branch | None = branch_el.get("parent")
+				branch = Branch(branch_el.get("name"))
+				start_turn = Turn(int(branch_el.get("start_turn")))
+				start_tick = Tick(int(branch_el.get("start_tick")))
+				last_completed_turn = Turn(
+					int(branch_el.get("last_turn_completed"))
 				)
+				end_turn = Turn(int(branch_el.get("end_turn")))
+				end_tick = Tick(int(branch_el.get("end_tick")))
+				query.set_branch(
+					branch, parent, start_turn, start_tick, end_turn, end_tick
+				)
+				query.complete_turn(branch, last_completed_turn, False)
 
-				for elem in branch:
-					if elem.tag == "turns":
-						for turn in elem:
-							query.set_turn(
-								Branch(turn.get("branch")),
-								Turn(int(turn.get("turn"))),
-								Tick(int(turn.get("end_tick"))),
-								Tick(int(turn.get("plan_end_tick"))),
-							)
-					else:
-						getattr(importer, elem.tag.replace("-", "_"))(elem)
+				for turn_el in branch_el:
+					turn = Turn(int(turn_el.get("number")))
+					end_tick = Tick(int(turn_el.get("end_tick")))
+					plan_end_tick = Tick(int(turn_el.get("plan_end_tick")))
+					query.set_turn(branch, turn, end_tick, plan_end_tick)
+					for elem in turn_el:
+						getattr(importer, elem.tag.replace("-", "_"))(
+							branch_el, turn_el, elem
+						)
 		else:
 			k = literal_eval(el.get("key"))
-			v = importer.xml_to_value(el[0])
+			v = importer.element_to_value(el[0])
 			query.eternal[k] = v
 	query.commit()
 
