@@ -7445,9 +7445,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	@pqbatch("units")
 	def _unitness(
 		self,
-		character: CharName,
-		graph: CharName,
-		node: NodeName,
+		character_graph: CharName,
+		unit_graph: CharName,
+		unit_node: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -7455,9 +7455,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]:
 		pack = self.pack
 		return (
-			pack(character),
-			pack(graph),
-			pack(node),
+			pack(character_graph),
+			pack(unit_graph),
+			pack(unit_node),
 			branch,
 			turn,
 			tick,
@@ -8749,9 +8749,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	@sqlbatch("units")
 	def _unitness(
 		self,
-		character: CharName,
-		graph: CharName,
-		node: NodeName,
+		character_graph: CharName,
+		unit_graph: CharName,
+		unit_node: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
