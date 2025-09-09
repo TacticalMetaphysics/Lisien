@@ -290,7 +290,7 @@ def add_keyframe_to_turn_el(
 		)
 		kfel.append(graph_el)
 		for k, v in vals.items():
-			item_el = Element("dict_item", key=repr(k))
+			item_el = Element("dict-item", key=repr(k))
 			graph_el.append(item_el)
 			item_el.append(value_to_xml(v))
 	node_val_kf: GraphNodeValKeyframe = keyframe.get("node_val", {})
@@ -503,10 +503,12 @@ def fill_branch_element(
 		char, graph, node, b, r, t, is_unit = unit
 		unit_el = Element(
 			"unit",
-			character_graph=repr(char),
-			unit_graph=repr(graph),
-			unit_node=repr(node),
-			tick=str(t),
+			{
+				"character-graph": repr(char),
+				"unit-graph": repr(graph),
+				"unit-node": repr(node),
+				"tick": str(t),
+			},
 		)
 		unit_el.set("is-unit", "T" if is_unit else "F")
 		turn_el.append(unit_el)
@@ -565,9 +567,11 @@ def fill_branch_element(
 	for turn, (ending_tick, plan_ending_tick) in turn_ends.items():
 		turn_el = Element(
 			"turn",
-			number=str(turn),
-			end_tick=str(ending_tick),
-			plan_end_tick=str(plan_ending_tick),
+			{
+				"number": str(turn),
+				"end-tick": str(ending_tick),
+				"plan-end-tick": str(plan_ending_tick),
+			},
 		)
 		branch_el.append(turn_el)
 		tick: Tick
@@ -790,15 +794,17 @@ def query_engine_to_etree(
 			playtrees[branch] = playtree
 			branch_element = branch_elements[branch] = Element(
 				"branch",
-				name=branch,
-				start_turn="0",
-				start_tick="0",
-				end_turn=str(end_turn),
-				end_tick=str(end_tick),
+				{
+					"name": branch,
+					"start-turn": "0",
+					"start-tick": "0",
+					"end-turn": str(end_turn),
+					"end-tick": str(end_tick),
+				},
 			)
 			if branch in turns_completed_d:
 				branch_element.set(
-					"last_turn_completed", str(turns_completed_d[branch])
+					"last-turn-completed", str(turns_completed_d[branch])
 				)
 			root.append(playtree)
 			playtree.append(branch_element)
@@ -810,15 +816,18 @@ def query_engine_to_etree(
 			if parent in branch_elements:
 				branch_el = Element(
 					"branch",
-					parent=parent,
-					start_turn=str(parent_turn),
-					start_tick=str(parent_tick),
-					end_turn=str(end_turn),
-					end_tick=str(end_tick),
+					{
+						"name": branch,
+						"parent": parent,
+						"start-turn": str(parent_turn),
+						"start-tick": str(parent_tick),
+						"end-turn": str(end_turn),
+						"end-tick": str(end_tick),
+					},
 				)
 				if branch in turns_completed_d:
 					branch_el.set(
-						"last_turn_completed", str(turns_completed_d[branch])
+						"last-turn-completed", str(turns_completed_d[branch])
 					)
 				branch_elements[parent].append(branch_el)
 			else:
