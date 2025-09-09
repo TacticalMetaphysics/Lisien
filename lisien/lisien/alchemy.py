@@ -1173,8 +1173,12 @@ def queries(table):
 			tab.c.tick,
 			tab.c.rulebook,
 		)
-		r[f"load_{name}_tick_to_end"] = sel.where(to_end_clause(tab))
-		r[f"load_{name}_tick_to_tick"] = sel.where(to_tick_clause(tab))
+		r[f"load_{name}_tick_to_end"] = sel.where(to_end_clause(tab)).order_by(
+			tab.c.turn, tab.c.tick, tab.c.character
+		)
+		r[f"load_{name}_tick_to_tick"] = sel.where(
+			to_tick_clause(tab)
+		).order_by(tab.c.turn, tab.c.tick, tab.c.character)
 	ntab = table["node_rulebook"]
 	node_rb_select = select(
 		ntab.c.character,
