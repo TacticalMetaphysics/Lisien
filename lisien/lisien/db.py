@@ -2934,6 +2934,29 @@ class ParquetDBHolder(ConnectionHolder):
 			]
 		)
 
+	def have_rule(self, rule: str) -> bool:
+		from pyarrow import compute as pc
+
+		db = self._get_db("rules")
+		return bool(db.read(filters=[pc.field("rule") == rule]).count_rows())
+
+	def have_rulebook_at_time(
+		self, rulebook: bytes, branch: str, turn: int, tick: int
+	) -> bool:
+		from pyarrow import compute as pc
+
+		db = self._get_db("rulebooks")
+		return bool(
+			db.read(
+				filters=[
+					pc.field("rulebook") == rulebook,
+					pc.field("branch") == branch,
+					pc.field("turn") == turn,
+					pc.field("tick") == tick,
+				]
+			).count_rows()
+		)
+
 	def run(self):
 		def loud_exit(inst, ex):
 			try:
@@ -6790,9 +6813,11 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Value
 	):
 		self._universals2set.append((key, branch, turn, tick, val))
+		self._increc()
 
 	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		self.universal_set(key, branch, turn, tick, None)
+		self._increc()
 
 	def count_all_table(self, tbl: str) -> int:
 		return self.call("rowcount", tbl)
@@ -6816,6 +6841,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				"triggers": self.pack(flist),
 			},
 		)
+		self._increc()
 
 	def set_rule_prereqs(
 		self,
@@ -6836,6 +6862,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				"prereqs": self.pack(flist),
 			},
 		)
+		self._increc()
 
 	def set_rule_actions(
 		self,
@@ -6856,6 +6883,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				"actions": self.pack(flist),
 			},
 		)
+		self._increc()
 
 	def set_rule_neighborhood(
 		self,
@@ -6876,6 +6904,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				"neighborhood": self.pack(neighborhood),
 			},
 		)
+		self._increc()
 
 	def set_rule_big(
 		self,
@@ -6896,6 +6925,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				"big": big,
 			},
 		)
+		self._increc()
 
 	@mutexed
 	def set_rule(
@@ -6910,7 +6940,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		neighborhood: RuleNeighborhood,
 		big: RuleBig,
 	) -> None:
-		self._inq.put(("silent", "insert1", ["rules", {"rule": rule}]))
+		if not self.call("have_rule", rule=rule):
+			self._inq.put(("silent", "insert1", ["rules", {"rule": rule}]))
+			self._increc()
 		self._inq.put(
 			(
 				"silent",
@@ -7005,18 +7037,37 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		prio: RulebookPriority = 0.0,
 	) -> None:
 		pack = self.pack
-		self.call(
-			"insert1",
-			"rulebooks",
-			{
-				"rulebook": pack(name),
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"rules": pack(rules),
-				"priority": prio,
-			},
-		)
+		name = pack(name)
+		rules = pack(rules)
+		if self.call(
+			"have_rulebook_at_time",
+			dict(rulebook=name, branch=branch, turn=turn, tick=tick),
+		):
+			self.call(
+				"update_rulebooks",
+				dict(
+					rulebook=name,
+					branch=branch,
+					turn=turn,
+					tick=tick,
+					rules=rules,
+					priority=prio,
+				),
+			)
+		else:
+			self.call(
+				"insert1",
+				"rulebooks",
+				{
+					"rulebook": pack(name),
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"rules": pack(rules),
+					"priority": prio,
+				},
+			)
+			self._increc()
 
 	def _set_character_something_rulebook(
 		self,
@@ -7128,6 +7179,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._noderb2set.append(
 			(character, node, branch, turn, tick, rulebook)
 		)
+		self._increc()
 
 	@pqbatch("portal_rulebook")
 	def _portrb2set(
@@ -7164,6 +7216,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._portrb2set.append(
 			(character, orig, dest, branch, turn, tick, rulebook)
 		)
+		self._increc()
 
 	@pqbatch("character_rules_handled")
 	def _char_rules_handled(
@@ -7471,6 +7524,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		loc: NodeName,
 	) -> None:
 		self._location.append((character, thing, branch, turn, tick, loc))
+		self._increc()
 
 	@pqbatch("units")
 	def _unitness(
@@ -7507,6 +7561,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._unitness.append(
 			(character, graph, node, branch, turn, tick, is_unit)
 		)
+		self._increc()
 
 	def rulebook_set(
 		self,
@@ -7528,6 +7583,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				rules=pack(rules),
 			),
 		)
+		self._increc()
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		for d in self.call("dump", "turns_completed"):
@@ -7634,6 +7690,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		val: Value,
 	) -> None:
 		self._graphvals2set.append((graph, key, branch, turn, tick, val))
+		self._increc()
 
 	def graph_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self.call("graph_val_del_time", branch, turn, tick)
@@ -7672,6 +7729,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		extant: bool,
 	) -> None:
 		self._nodes2set.append((graph, node, branch, turn, tick, extant))
+		self._increc()
 
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self.call("nodes_del_time", branch, turn, tick)
@@ -7910,6 +7968,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		extant: bool,
 	) -> None:
 		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
+		self._increc()
 
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self.call("edges_del_time", branch, turn, tick)
@@ -8009,6 +8068,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._edgevals2set.append(
 			(graph, orig, dest, key, branch, turn, tick, value)
 		)
+		self._increc()
 
 	def edge_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -9439,6 +9499,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._nodevals2set.append(
 			(graph, node, key, branch, turn, tick, value)
 		)
+		self._increc()
 
 	def node_val_del_time(self, branch, turn, tick):
 		self._flush_node_val()
