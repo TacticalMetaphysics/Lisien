@@ -46,7 +46,16 @@ class Importer:
 		self.engine = engine
 		self.known_rules: set[RuleName] = set()
 
-	def element_to_value(self, el: Element) -> Value:
+	def element_to_value(
+		self, el: Element
+	) -> (
+		Value
+		| list[Value]
+		| tuple[Value, ...]
+		| set[Key]
+		| frozenset[Key]
+		| dict[Key, Value]
+	):
 		eng = self.engine
 		match el.tag:
 			case "Ellipsis":
@@ -74,24 +83,20 @@ class Importer:
 				dest = NodeName(literal_eval(el.get("destination")))
 				return eng.character[char_name].portal[orig][dest]
 			case "list":
-				return Value([self.element_to_value(listel) for listel in el])
+				return [self.element_to_value(listel) for listel in el]
 			case "tuple":
-				return Value(
-					tuple(self.element_to_value(tupel) for tupel in el)
-				)
+				return tuple(self.element_to_value(tupel) for tupel in el)
 			case "set":
-				return Value({self.element_to_value(setel) for setel in el})
+				return {self.element_to_value(setel) for setel in el}
 			case "frozenset":
-				return Value(
-					frozenset(self.element_to_value(setel) for setel in el)
-				)
+				return frozenset(self.element_to_value(setel) for setel in el)
 			case "dict":
 				ret = {}
 				for dict_item_el in el:
 					ret[literal_eval(dict_item_el.get("key"))] = (
 						self.element_to_value(dict_item_el[0])
 					)
-				return Value(ret)
+				return ret
 			case "exception":
 				raise NotImplementedError(
 					"Deserializing exceptions from XML not implemented"
