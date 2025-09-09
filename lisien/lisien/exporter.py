@@ -579,7 +579,7 @@ def fill_branch_element(
 			if data["universals"]:
 				universal_rec: UniversalRowType = data["universals"][0]
 				key, branch_now, turn_now, tick_now, _ = universal_rec
-				if (branch_now, turn_now, tick_now) != (branch, turn, tick):
+				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
 					append_univ_el(turn_el, universal_rec)
 					del data["universals"][0]
 			if data["rulebooks"]:
