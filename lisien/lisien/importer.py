@@ -150,7 +150,8 @@ class Importer:
 				rule = RuleName(subel.get("name"))
 				if rule is None:
 					raise TypeError("Rules need names")
-				bigs_kf[rule] = RuleBig(kf_el.get("big") == "T")
+				if "big" in kf_el:
+					bigs_kf[rule] = RuleBig(kf_el.get("big") == "T")
 				if "neighborhood" in kf_el:
 					neighborhoods_kf[rule] = kf_el.get("neighborhood")
 				for funcl_el in subel:
