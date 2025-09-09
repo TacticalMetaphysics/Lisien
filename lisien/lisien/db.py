@@ -6549,6 +6549,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			raise RuntimeError("Failed flush", got)
 
 	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "universals"):
 			yield (
@@ -6564,6 +6565,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "rulebooks"):
 			yield (
@@ -6575,10 +6577,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 
 	def rules_dump(self) -> Iterator[RuleName]:
+		self.flush()
 		for d in self.call("dump", "rules"):
 			yield d["rule"]
 
 	def _rule_dump(self, typ: Literal["triggers", "prereqs", "actions"]):
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "rule_" + typ):
 			yield (
@@ -6625,6 +6629,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def node_rulebook_dump(
 		self,
 	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "node_rulebook"):
 			yield (
@@ -6641,6 +6646,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "portal_rulebook"):
 			yield (
@@ -6654,6 +6660,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 
 	def _character_rulebook_dump(self, typ: RulebookTypeStr):
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", f"{typ}_rulebook"):
 			yield (
@@ -6692,6 +6699,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def character_rules_handled_dump(
 		self,
 	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "character_rules_handled"):
 			yield (
@@ -6717,6 +6725,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			Tick,
 		]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "unit_rules_handled"):
 			yield (
@@ -6735,6 +6744,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "character_thing_rules_handled"):
 			yield (
@@ -6752,6 +6762,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "character_place_rules_handled"):
 			yield (
@@ -6778,6 +6789,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			Tick,
 		]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "character_portal_rules_handled"):
 			yield (
@@ -6796,6 +6808,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "node_rules_handled"):
 			yield (
@@ -6822,6 +6835,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			Tick,
 		]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "portal_rules_handled"):
 			yield (
@@ -6838,6 +6852,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def things_dump(
 		self,
 	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "things"):
 			yield (
@@ -6854,6 +6869,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "units"):
 			yield (
@@ -7563,6 +7579,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._increc()
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
+		self.flush()
 		for d in self.call("dump", "turns_completed"):
 			yield d["branch"], d["turn"]
 
@@ -7598,6 +7615,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "graph_val"):
 			yield (
@@ -7673,6 +7691,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.call("graph_val_del_time", branch, turn, tick)
 
 	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "graphs"):
 			yield (
@@ -7712,6 +7731,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.call("nodes_del_time", branch, turn, tick)
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "nodes"):
 			yield (
@@ -7759,6 +7779,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			yield graph, unpack(node), branch, turn, tick, extant
 
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "node_val"):
 			yield (
@@ -7857,6 +7878,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.call("node_val_del_time", branch, turn, tick)
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "edges"):
 			yield (
@@ -7951,6 +7973,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.call("edges_del_time", branch, turn, tick)
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "edge_val"):
 			yield (
@@ -8053,6 +8076,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.call("edge_val_del_time", branch, turn, tick)
 
 	def plans_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
+		self.flush()
 		for d in self.call("dump", "plans"):
 			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
 
@@ -8081,6 +8105,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._planticks2set.append((plan_id, turn, tick))
 
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Turn, Tick]]:
+		self.flush()
 		for d in self.call("dump", "plan_ticks"):
 			yield d["plan_id"], d["turn"], d["tick"]
 
@@ -8184,6 +8209,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			CharDict,
 		]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "keyframes_graphs"):
 			yield (
@@ -8208,6 +8234,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			RulebookKeyframe,
 		]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "keyframe_extensions"):
 			yield (
@@ -8864,6 +8891,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			return ret
 
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+		self.flush()
 		unpack = self.unpack
 		for key, branch, turn, tick in self.call_one("bookmarks_dump"):
 			yield unpack(key), (branch, turn, tick)
@@ -8879,6 +8907,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self.call_one("delete_bookmark", self.pack(key))
 
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+		self.flush()
 		return self.call_one("keyframes_dump")
 
 	def new_graph(
@@ -8946,6 +8975,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			CharDict,
 		]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for (
 			graph,
@@ -8978,6 +9008,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			RulebookKeyframe,
 		]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for branch, turn, tick, universal, rule, rulebook in self.call_one(
 			"keyframe_extensions_dump"
@@ -9053,6 +9084,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		start_turn, start_tick, end_turn, end_tick).
 
 		"""
+		self.flush()
 		return self.call_one("branches_dump")
 
 	def global_get(self, key: Key) -> Value:
@@ -9065,6 +9097,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def global_dump(self) -> Iterator[tuple[Key, Value]]:
 		"""Iterate over (key, value) pairs in the ``globals`` table."""
+		self.flush()
 		unpack = self.unpack
 		dumped = self.call_one("global_dump")
 		for k, v in dumped:
@@ -9219,6 +9252,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
+		self.flush()
 		return self.call_one("turns_dump")
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
@@ -9316,6 +9350,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			yield unpack(graph), branch, turn, tick, typ
 
 	def characters(self):
+		self.flush()
 		unpack = self.unpack
 		for graph, branch, turn, tick, typ in self.call_one("graphs_dump"):
 			yield unpack(graph), branch, turn, tick, typ
@@ -9682,6 +9717,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self.call_one("edge_val_del_time", branch, turn, tick)
 
 	def plans_dump(self):
+		self.flush()
 		return self.call_one("plans_dump")
 
 	def plans_insert(self, plan_id, branch, turn, tick):
@@ -9694,6 +9730,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		return self.call_one("plan_ticks_insert", plan_id, turn, tick)
 
 	def plan_ticks_dump(self):
+		self.flush()
 		return self.call_one("plan_ticks_dump")
 
 	@garbage
@@ -9954,11 +9991,13 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		)
 
 	def universals_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for key, branch, turn, tick, value in self.call_one("universals_dump"):
 			yield unpack(key), branch, turn, tick, unpack(value)
 
 	def rulebooks_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for rulebook, branch, turn, tick, rules, prio in self.call_one(
 			"rulebooks_dump"
@@ -9966,6 +10005,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			yield unpack(rulebook), branch, turn, tick, (unpack(rules), prio)
 
 	def _rule_dump(self, typ):
+		self.flush()
 		unpack = self.unpack
 		for rule, branch, turn, tick, lst in self.call_one(
 			"rule_{}_dump".format(typ)
@@ -9988,6 +10028,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		return self._rule_dump("big")
 
 	def node_rulebook_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for character, node, branch, turn, tick, rulebook in self.call_one(
 			"node_rulebook_dump"
@@ -10002,6 +10043,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def portal_rulebook_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for (
 			character,
@@ -10023,6 +10065,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def _charactery_rulebook_dump(self, qry):
+		self.flush()
 		unpack = self.unpack
 		for character, branch, turn, tick, rulebook in self.call_one(
 			qry + "_rulebook_dump"
@@ -10044,6 +10087,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	)
 
 	def character_rules_handled_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for character, rulebook, rule, branch, turn, tick in self.call_one(
 			"character_rules_handled_dump"
@@ -10051,6 +10095,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			yield unpack(character), unpack(rulebook), rule, branch, turn, tick
 
 	def character_rules_changes_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for (
 			character,
@@ -10074,6 +10119,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def unit_rules_handled_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for (
 			character,
@@ -10097,6 +10143,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def unit_rules_changes_dump(self):
+		self.flush()
 		jl = self.unpack
 		for (
 			character,
@@ -10124,6 +10171,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def character_thing_rules_handled_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for (
 			character,
@@ -10145,6 +10193,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def character_place_rules_handled_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for (
 			character,
@@ -10166,6 +10215,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def character_portal_rules_handled_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for (
 			character,
@@ -10189,6 +10239,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def node_rules_handled_dump(self):
+		self.flush()
 		for (
 			character,
 			node,
@@ -10209,6 +10260,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def portal_rules_handled_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for (
 			character,
@@ -10232,6 +10284,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 
 	def things_dump(self):
+		self.flush()
 		unpack = self.unpack
 		for character, thing, branch, turn, tick, location in self.call_one(
 			"things_dump"
@@ -10250,6 +10303,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> Iterator[
 		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
 	]:
+		self.flush()
 		unpack = self.unpack
 		for (
 			character_graph,
@@ -10284,6 +10338,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		return self.call_one("{}_count".format(tbl)).fetchone()[0]
 
 	def rules_dump(self):
+		self.flush()
 		for (name,) in self.call_one("rules_dump"):
 			yield name
 
@@ -10575,6 +10630,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				)
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
+		self.flush()
 		return self.call_one("turns_completed_dump")
 
 	def complete_turn(
