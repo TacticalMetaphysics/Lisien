@@ -831,7 +831,7 @@ class Engine(AbstractEngine, Executor):
 	) -> ChangeTrackingDict[
 		Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
 	]:
-		"""Parent, start time, and end time of each branch. Includes plans."""
+		"""Parent, start time, and end time of each branch. Plans not included."""
 		return ChangeTrackingDict()
 
 	@cached_property
