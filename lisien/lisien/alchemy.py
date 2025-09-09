@@ -1159,6 +1159,44 @@ def queries(table):
 			things.c.turn, things.c.tick, things.c.character, things.c.thing
 		)
 	)
+
+	units = table["units"]
+	r["load_units_tick_to_end"] = (
+		select(
+			units.c.character_graph,
+			units.c.unit_graph,
+			units.c.unit_node,
+			units.c.turn,
+			units.c.tick,
+			units.c.is_unit,
+		)
+		.where(to_end_clause(units))
+		.order_by(
+			units.c.turn,
+			units.c.tick,
+			units.c.character_graph,
+			units.c.unit_graph,
+			units.c.unit_node,
+		)
+	)
+	r["load_units_tick_to_tick"] = (
+		select(
+			units.c.character_graph,
+			units.c.unit_graph,
+			units.c.unit_node,
+			units.c.turn,
+			units.c.tick,
+			units.c.is_unit,
+		)
+		.where(to_tick_clause(units))
+		.order_by(
+			units.c.turn,
+			units.c.tick,
+			units.c.character_graph,
+			units.c.unit_graph,
+			units.c.unit_node,
+		)
+	)
 	for name in (
 		"character_rulebook",
 		"unit_rulebook",

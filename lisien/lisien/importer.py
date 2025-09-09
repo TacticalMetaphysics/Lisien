@@ -364,6 +364,21 @@ class Importer:
 		location = NodeName(literal_eval(el.get("location")))
 		self.query.set_thing_loc(char, thing, branch, turn, tick, location)
 
+	def unit(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		char = CharName(literal_eval(el.get("character_graph")))
+		graph = CharName(literal_eval(el.get("unit_graph")))
+		node = NodeName(literal_eval(el.get("unit_node")))
+		self.query.unit_set(
+			char,
+			graph,
+			node,
+			branch,
+			turn,
+			tick,
+			el.get("is-unit", "F") == "T",
+		)
+
 	def _some_character_rulebook(
 		self, branch_el: Element, turn_el: Element, rbtyp: str, el: Element
 	):

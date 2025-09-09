@@ -229,6 +229,9 @@ EdgeValRowType: TypeAlias = tuple[
 ThingRowType: TypeAlias = tuple[
 	CharName, NodeName, Branch, Turn, Tick, NodeName
 ]
+UnitRowType: TypeAlias = tuple[
+	CharName, CharName, NodeName, Branch, Turn, Tick, bool
+]
 CharRulebookRowType: TypeAlias = tuple[
 	CharName, Branch, Turn, Tick, RulebookName
 ]

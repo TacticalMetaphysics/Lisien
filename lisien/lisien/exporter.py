@@ -32,7 +32,7 @@ from lisien.types import (
 	Turn,
 	Tick,
 	Branch,
-	Stat,
+	UnitRowType,
 	UniversalRowType,
 	RulebookRowType,
 	Time,
@@ -499,6 +499,18 @@ def fill_branch_element(
 			)
 		)
 
+	def append_unit_el(turn_el: Element, unit: UnitRowType):
+		char, graph, node, b, r, t, is_unit = unit
+		unit_el = Element(
+			"unit",
+			character_graph=repr(char),
+			unit_graph=repr(graph),
+			unit_node=repr(node),
+			tick=str(t),
+		)
+		unit_el.set("is-unit", "T" if is_unit else "F")
+		turn_el.append(unit_el)
+
 	def append_char_rb_el(
 		turn_el: Element, rbtyp: str, rbrow: CharRulebookRowType
 	):
@@ -682,6 +694,12 @@ def fill_branch_element(
 					if (b, r, t) == (branch, turn, tick):
 						append_thing_el(turn_el, thing_row)
 						del char_data["things"][0]
+				if char_data["units"]:
+					units_row: UnitRowType = char_data["units"][0]
+					_, __, ___, b, r, t, ____ = units_row
+					if (b, r, t) == (branch, turn, tick):
+						append_unit_el(turn_el, units_row)
+						del char_data["units"][0]
 				for char_rb_typ in (
 					"character_rulebook",
 					"unit_rulebook",
