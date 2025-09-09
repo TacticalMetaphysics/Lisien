@@ -375,7 +375,7 @@ def fill_branch_element(
 		)
 		turn_el.append(rb_el)
 		for i, rule in enumerate(rules):
-			rb_el.append(Element("rule_placement", rule=rule, idx=str(i)))
+			rb_el.append(Element("rule", name=rule))
 
 	def append_rule_el(
 		turn_el: Element,

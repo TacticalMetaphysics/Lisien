@@ -2760,7 +2760,7 @@
           </actions>
         </rule>
         <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
-          <rule_placement rule="shrubsprint" idx="0" />
+          <rule name="shrubsprint" />
         </rulebook>
         <rule name="shrubsprint" tick="92" big="F" />
         <rule name="shrubsprint" tick="93">
@@ -2786,7 +2786,7 @@
           </actions>
         </rule>
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
-          <rule_placement rule="fight" idx="0" />
+          <rule name="fight" />
         </rulebook>
         <rule name="fight" tick="98" big="F" />
         <rule name="fight" tick="99">
@@ -2811,8 +2811,8 @@
           </actions>
         </rule>
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="103">
-          <rule_placement rule="fight" idx="0" />
-          <rule_placement rule="kill_kobold" idx="1" />
+          <rule name="fight" />
+          <rule name="kill_kobold" />
         </rulebook>
         <rule name="kill_kobold" tick="104" big="F" />
         <rule name="kill_kobold" tick="105">
@@ -2831,9 +2831,9 @@
           </actions>
         </rule>
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="108">
-          <rule_placement rule="fight" idx="0" />
-          <rule_placement rule="kill_kobold" idx="1" />
-          <rule_placement rule="go2kobold" idx="2" />
+          <rule name="fight" />
+          <rule name="kill_kobold" />
+          <rule name="go2kobold" />
         </rulebook>
         <rule name="go2kobold" tick="109" big="F" />
         <rule name="go2kobold" tick="110">
@@ -2858,10 +2858,10 @@
           </actions>
         </rule>
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="114">
-          <rule_placement rule="fight" idx="0" />
-          <rule_placement rule="kill_kobold" idx="1" />
-          <rule_placement rule="go2kobold" idx="2" />
-          <rule_placement rule="wander" idx="3" />
+          <rule name="fight" />
+          <rule name="kill_kobold" />
+          <rule name="go2kobold" />
+          <rule name="wander" />
         </rulebook>
         <rule name="wander" tick="115" big="F" />
         <rule name="wander" tick="116">

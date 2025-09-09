@@ -258,9 +258,9 @@ class Importer:
 		priority = RulebookPriority(float(el.get("priority")))
 		rules: list[RuleName] = []
 		for subel in el:
-			if subel.tag != "rule_placement":
+			if subel.tag != "rule":
 				raise ValueError("Don't know what to do with tag", subel.tag)
-			rules.append(RuleName(subel.get("rule")))
+			rules.append(RuleName(subel.get("name")))
 		self.query.set_rulebook(rulebook, branch, turn, tick, rules, priority)
 
 	def rule(self, branch_el: Element, turn_el: Element, el: Element):
