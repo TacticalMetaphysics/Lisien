@@ -7040,7 +7040,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def create_rule(
 		self,
 		rule: RuleName,
-	) -> None:
+	) -> bool:
 		if self.call(
 			"create_rule",
 			rule=rule,
