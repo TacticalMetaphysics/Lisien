@@ -405,7 +405,7 @@ def fill_branch_element(
 				neighbors=str(nbr),
 			)
 		else:
-			nbr_el = Element("rule-neighborhood", rule=rule)
+			nbr_el = Element("rule-neighborhood", rule=rule, tick=str(tick))
 		turn_el.append(nbr_el)
 
 	def append_rule_big_el(turn_el: Element, big_rec: RuleBigRowType):
