@@ -6309,6 +6309,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				self._portrb2set,
 				self._graphvals2set,
 				self._nodes2set,
+				self._nodevals2set,
 				self._edges2set,
 				self._edgevals2set,
 				self._planticks2set,
