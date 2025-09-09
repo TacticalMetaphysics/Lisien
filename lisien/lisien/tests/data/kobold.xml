@@ -4126,30 +4126,30 @@
               </tuple>
             </dict-item>
           </universal>
-          <rule name="fight" big="F">
+          <rule name="fight">
             <trigger name="sametile" />
             <prereq name="kobold_alive" />
             <prereq name="aware" />
             <action name="fight" />
           </rule>
-          <rule name="go2kobold" big="F">
+          <rule name="go2kobold">
             <trigger name="aware" />
             <prereq name="kobold_alive" />
             <prereq name="kobold_not_here" />
             <action name="go2kobold" />
           </rule>
-          <rule name="kill_kobold" big="F">
+          <rule name="kill_kobold">
             <trigger name="kobold_alive" />
             <prereq name="unmerciful" />
             <action name="kill_kobold" />
           </rule>
-          <rule name="shrubsprint" big="F">
+          <rule name="shrubsprint">
             <trigger name="uncovered" />
             <prereq name="breakcover" />
             <prereq name="not_traveling" />
             <action name="shrubsprint" />
           </rule>
-          <rule name="wander" big="F">
+          <rule name="wander">
             <trigger name="standing_still" />
             <action name="wander" />
           </rule>
