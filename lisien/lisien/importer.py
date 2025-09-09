@@ -271,20 +271,11 @@ class Importer:
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		rule = RuleName(el.get("rule"))
 		funcs = [FuncName(func_el.get("name")) for func_el in el]
-		if rule in self.known_rules:
-			mth = getattr(self.query, f"set_rule_{what}")
-			mth(rule, branch, turn, tick, funcs)
-		else:
-			kw = {
-				"triggers": [],
-				"prereqs": [],
-				"actions": [],
-				"neighborhood": None,
-				"big": False,
-			}
-			kw[what] = funcs
-			self.query.set_rule(rule, branch, turn, tick, **kw)
-			self.known_rules.add(rule)
+		if rule not in self.known_rules:
+			self.query.create_rule(rule)
+		self.known_rules.add(rule)
+		mth = getattr(self.query, f"set_rule_{what}")
+		mth(rule, branch, turn, tick, funcs)
 
 	rule_triggers = partialmethod(_rule_func_list, "triggers")
 	rule_prereqs = partialmethod(_rule_func_list, "prereqs")
@@ -298,41 +289,19 @@ class Importer:
 		if nbrs is not None:
 			nbrs = int(nbrs)
 		rule = RuleName(el.get("rule"))
-		if rule in self.known_rules:
-			self.query.set_rule_neighborhood(rule, branch, turn, tick, nbrs)
-		else:
-			self.query.set_rule(
-				rule,
-				branch,
-				turn,
-				tick,
-				triggers=[],
-				prereqs=[],
-				actions=[],
-				big=RuleBig(False),
-				neighborhood=nbrs,
-			)
+		if rule not in self.known_rules:
+			self.query.create_rule(rule)
 			self.known_rules.add(rule)
+		self.query.set_rule_neighborhood(rule, branch, turn, tick, nbrs)
 
 	def rule_big(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		big = RuleBig(el.get("big") == "T")
 		rule = RuleName(el.get("rule"))
-		if rule in self.known_rules:
-			self.query.set_rule_big(rule, branch, turn, tick, big)
-		else:
-			self.query.set_rule(
-				rule,
-				branch,
-				turn,
-				tick,
-				triggers=[],
-				prereqs=[],
-				actions=[],
-				big=big,
-				neighborhood=None,
-			)
+		if rule not in self.known_rules:
+			self.query.create_rule(rule)
 			self.known_rules.add(rule)
+		self.query.set_rule_big(rule, branch, turn, tick, big)
 
 	def graph(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
