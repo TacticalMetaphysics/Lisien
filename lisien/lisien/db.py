@@ -6541,6 +6541,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def rule_neighborhood_dump(
 		self,
 	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
+		self.flush()
 		for d in self.call("dump", "rule_neighborhood"):
 			yield (
 				d["rule"],
@@ -6553,6 +6554,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def rule_big_dump(
 		self,
 	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]:
+		self.flush()
 		for d in self.call("dump", "rule_big"):
 			yield (d["rule"], d["branch"], d["turn"], d["tick"], d["big"])
 
