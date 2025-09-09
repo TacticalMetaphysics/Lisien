@@ -1119,7 +1119,6 @@
             <edge orig="(9, 9)" dest="(9, 8)" />
           </character>
         </keyframe>
-        <graph character="'physical'" tick="0" type="DiGraph" />
         <universal key="'rando_state'" tick="0">
           <tuple>
             <int value="3" />
@@ -1753,8 +1752,30 @@
             <None />
           </tuple>
         </universal>
+        <graph character="'physical'" tick="0" type="DiGraph" />
         <node character="'physical'" name="'kobold'" tick="1" exists="T" />
         <location character="'physical'" thing="'kobold'" tick="1" location="(9, 9)" />
+        <node-val character="'physical'" node="'kobold'" key="'sprint_chance'" tick="2">
+          <float value="0.1" />
+        </node-val>
+        <node-val character="'physical'" node="'kobold'" key="'_image_paths'" tick="3">
+          <list>
+            <str value="atlas://rltiles/base.atlas/kobold_m" />
+          </list>
+        </node-val>
+        <node character="'physical'" name="'dwarf'" tick="4" exists="T" />
+        <location character="'physical'" thing="'dwarf'" tick="4" location="(0, 0)" />
+        <node-val character="'physical'" node="'dwarf'" key="'sight_radius'" tick="5">
+          <int value="2" />
+        </node-val>
+        <node-val character="'physical'" node="'dwarf'" key="'seen_kobold'" tick="6">
+          <bool value="F" />
+        </node-val>
+        <node-val character="'physical'" node="'dwarf'" key="'_image_paths'" tick="7">
+          <list>
+            <str value="atlas://rltiles/base.atlas/dwarf_m" />
+          </list>
+        </node-val>
         <universal key="'rando_state'" tick="8">
           <tuple>
             <int value="3" />
@@ -2388,9 +2409,468 @@
             <None />
           </tuple>
         </universal>
-        <node-val character="'physical'" node="'kobold'" key="'sprint_chance'" tick="2">
-          <float value="0.1" />
+        <node character="'physical'" name="'shrub0'" tick="9" exists="T" />
+        <location character="'physical'" thing="'shrub0'" tick="9" location="(1, 9)" />
+        <node-val character="'physical'" node="'shrub0'" key="'cover'" tick="10">
+          <int value="1" />
         </node-val>
+        <node-val character="'physical'" node="'shrub0'" key="'_image_paths'" tick="11">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub0'" key="'_group'" tick="12">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub1'" tick="13" exists="T" />
+        <location character="'physical'" thing="'shrub1'" tick="13" location="(2, 2)" />
+        <node-val character="'physical'" node="'shrub1'" key="'cover'" tick="14">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub1'" key="'_image_paths'" tick="15">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub1'" key="'_group'" tick="16">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub2'" tick="17" exists="T" />
+        <location character="'physical'" thing="'shrub2'" tick="17" location="(6, 0)" />
+        <node-val character="'physical'" node="'shrub2'" key="'cover'" tick="18">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub2'" key="'_image_paths'" tick="19">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub2'" key="'_group'" tick="20">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub3'" tick="21" exists="T" />
+        <location character="'physical'" thing="'shrub3'" tick="21" location="(7, 4)" />
+        <node-val character="'physical'" node="'shrub3'" key="'cover'" tick="22">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub3'" key="'_image_paths'" tick="23">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub3'" key="'_group'" tick="24">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub4'" tick="25" exists="T" />
+        <location character="'physical'" thing="'shrub4'" tick="25" location="(5, 0)" />
+        <node-val character="'physical'" node="'shrub4'" key="'cover'" tick="26">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub4'" key="'_image_paths'" tick="27">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub4'" key="'_group'" tick="28">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub5'" tick="29" exists="T" />
+        <location character="'physical'" thing="'shrub5'" tick="29" location="(6, 5)" />
+        <node-val character="'physical'" node="'shrub5'" key="'cover'" tick="30">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub5'" key="'_image_paths'" tick="31">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub5'" key="'_group'" tick="32">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub6'" tick="33" exists="T" />
+        <location character="'physical'" thing="'shrub6'" tick="33" location="(8, 7)" />
+        <node-val character="'physical'" node="'shrub6'" key="'cover'" tick="34">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub6'" key="'_image_paths'" tick="35">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub6'" key="'_group'" tick="36">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub7'" tick="37" exists="T" />
+        <location character="'physical'" thing="'shrub7'" tick="37" location="(8, 5)" />
+        <node-val character="'physical'" node="'shrub7'" key="'cover'" tick="38">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub7'" key="'_image_paths'" tick="39">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub7'" key="'_group'" tick="40">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub8'" tick="41" exists="T" />
+        <location character="'physical'" thing="'shrub8'" tick="41" location="(2, 3)" />
+        <node-val character="'physical'" node="'shrub8'" key="'cover'" tick="42">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub8'" key="'_image_paths'" tick="43">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub8'" key="'_group'" tick="44">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub9'" tick="45" exists="T" />
+        <location character="'physical'" thing="'shrub9'" tick="45" location="(5, 7)" />
+        <node-val character="'physical'" node="'shrub9'" key="'cover'" tick="46">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub9'" key="'_image_paths'" tick="47">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub9'" key="'_group'" tick="48">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub10'" tick="49" exists="T" />
+        <location character="'physical'" thing="'shrub10'" tick="49" location="(9, 0)" />
+        <node-val character="'physical'" node="'shrub10'" key="'cover'" tick="50">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub10'" key="'_image_paths'" tick="51">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub10'" key="'_group'" tick="52">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub11'" tick="53" exists="T" />
+        <location character="'physical'" thing="'shrub11'" tick="53" location="(1, 6)" />
+        <node-val character="'physical'" node="'shrub11'" key="'cover'" tick="54">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub11'" key="'_image_paths'" tick="55">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub11'" key="'_group'" tick="56">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub12'" tick="57" exists="T" />
+        <location character="'physical'" thing="'shrub12'" tick="57" location="(7, 3)" />
+        <node-val character="'physical'" node="'shrub12'" key="'cover'" tick="58">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub12'" key="'_image_paths'" tick="59">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub12'" key="'_group'" tick="60">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub13'" tick="61" exists="T" />
+        <location character="'physical'" thing="'shrub13'" tick="61" location="(1, 8)" />
+        <node-val character="'physical'" node="'shrub13'" key="'cover'" tick="62">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub13'" key="'_image_paths'" tick="63">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub13'" key="'_group'" tick="64">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub14'" tick="65" exists="T" />
+        <location character="'physical'" thing="'shrub14'" tick="65" location="(3, 9)" />
+        <node-val character="'physical'" node="'shrub14'" key="'cover'" tick="66">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub14'" key="'_image_paths'" tick="67">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub14'" key="'_group'" tick="68">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub15'" tick="69" exists="T" />
+        <location character="'physical'" thing="'shrub15'" tick="69" location="(2, 9)" />
+        <node-val character="'physical'" node="'shrub15'" key="'cover'" tick="70">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub15'" key="'_image_paths'" tick="71">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub15'" key="'_group'" tick="72">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub16'" tick="73" exists="T" />
+        <location character="'physical'" thing="'shrub16'" tick="73" location="(4, 5)" />
+        <node-val character="'physical'" node="'shrub16'" key="'cover'" tick="74">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub16'" key="'_image_paths'" tick="75">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub16'" key="'_group'" tick="76">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub17'" tick="77" exists="T" />
+        <location character="'physical'" thing="'shrub17'" tick="77" location="(4, 2)" />
+        <node-val character="'physical'" node="'shrub17'" key="'cover'" tick="78">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub17'" key="'_image_paths'" tick="79">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub17'" key="'_group'" tick="80">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub18'" tick="81" exists="T" />
+        <location character="'physical'" thing="'shrub18'" tick="81" location="(3, 8)" />
+        <node-val character="'physical'" node="'shrub18'" key="'cover'" tick="82">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub18'" key="'_image_paths'" tick="83">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub18'" key="'_group'" tick="84">
+          <str value="shrub" />
+        </node-val>
+        <node character="'physical'" name="'shrub19'" tick="85" exists="T" />
+        <location character="'physical'" thing="'shrub19'" tick="85" location="(0, 1)" />
+        <node-val character="'physical'" node="'shrub19'" key="'cover'" tick="86">
+          <int value="1" />
+        </node-val>
+        <node-val character="'physical'" node="'shrub19'" key="'_image_paths'" tick="87">
+          <list>
+            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
+          </list>
+        </node-val>
+        <node-val character="'physical'" node="'shrub19'" key="'_group'" tick="88">
+          <str value="shrub" />
+        </node-val>
+        <node-val character="'physical'" node="'kobold'" key="'shrub_places'" tick="89">
+          <list>
+            <tuple>
+              <int value="1" />
+              <int value="9" />
+            </tuple>
+            <tuple>
+              <int value="2" />
+              <int value="2" />
+            </tuple>
+            <tuple>
+              <int value="6" />
+              <int value="0" />
+            </tuple>
+            <tuple>
+              <int value="7" />
+              <int value="4" />
+            </tuple>
+            <tuple>
+              <int value="5" />
+              <int value="0" />
+            </tuple>
+            <tuple>
+              <int value="6" />
+              <int value="5" />
+            </tuple>
+            <tuple>
+              <int value="8" />
+              <int value="7" />
+            </tuple>
+            <tuple>
+              <int value="8" />
+              <int value="5" />
+            </tuple>
+            <tuple>
+              <int value="2" />
+              <int value="3" />
+            </tuple>
+            <tuple>
+              <int value="5" />
+              <int value="7" />
+            </tuple>
+            <tuple>
+              <int value="9" />
+              <int value="0" />
+            </tuple>
+            <tuple>
+              <int value="1" />
+              <int value="6" />
+            </tuple>
+            <tuple>
+              <int value="7" />
+              <int value="3" />
+            </tuple>
+            <tuple>
+              <int value="1" />
+              <int value="8" />
+            </tuple>
+            <tuple>
+              <int value="3" />
+              <int value="9" />
+            </tuple>
+            <tuple>
+              <int value="2" />
+              <int value="9" />
+            </tuple>
+            <tuple>
+              <int value="4" />
+              <int value="5" />
+            </tuple>
+            <tuple>
+              <int value="4" />
+              <int value="2" />
+            </tuple>
+            <tuple>
+              <int value="3" />
+              <int value="8" />
+            </tuple>
+            <tuple>
+              <int value="0" />
+              <int value="1" />
+            </tuple>
+          </list>
+        </node-val>
+        <node-rulebook character="'physical'" node="'kobold'" tick="89" rulebook="('physical', 'kobold')" />
+        <rule name="shrubsprint" tick="90" big="F">
+          <actions>
+            <action name="shrubsprint" />
+          </actions>
+        </rule>
+        <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
+          <rule_placement rule="shrubsprint" idx="0" />
+        </rulebook>
+        <rule name="shrubsprint" tick="92" big="F" />
+        <rule name="shrubsprint" tick="93">
+          <triggers>
+            <trigger name="uncovered" />
+          </triggers>
+        </rule>
+        <rule name="shrubsprint" tick="94">
+          <prereqs>
+            <prereq name="breakcover" />
+          </prereqs>
+        </rule>
+        <rule name="shrubsprint" tick="95">
+          <prereqs>
+            <prereq name="breakcover" />
+            <prereq name="not_traveling" />
+          </prereqs>
+        </rule>
+        <node-rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')" />
+        <rule name="fight" tick="96" big="F">
+          <actions>
+            <action name="fight" />
+          </actions>
+        </rule>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
+          <rule_placement rule="fight" idx="0" />
+        </rulebook>
+        <rule name="fight" tick="98" big="F" />
+        <rule name="fight" tick="99">
+          <triggers>
+            <trigger name="sametile" />
+          </triggers>
+        </rule>
+        <rule name="fight" tick="100">
+          <prereqs>
+            <prereq name="kobold_alive" />
+          </prereqs>
+        </rule>
+        <rule name="fight" tick="101">
+          <prereqs>
+            <prereq name="kobold_alive" />
+            <prereq name="aware" />
+          </prereqs>
+        </rule>
+        <rule name="kill_kobold" tick="102" big="F">
+          <actions>
+            <action name="kill_kobold" />
+          </actions>
+        </rule>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="103">
+          <rule_placement rule="fight" idx="0" />
+          <rule_placement rule="kill_kobold" idx="1" />
+        </rulebook>
+        <rule name="kill_kobold" tick="104" big="F" />
+        <rule name="kill_kobold" tick="105">
+          <triggers>
+            <trigger name="kobold_alive" />
+          </triggers>
+        </rule>
+        <rule name="kill_kobold" tick="106">
+          <prereqs>
+            <prereq name="unmerciful" />
+          </prereqs>
+        </rule>
+        <rule name="go2kobold" tick="107" big="F">
+          <actions>
+            <action name="go2kobold" />
+          </actions>
+        </rule>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="108">
+          <rule_placement rule="fight" idx="0" />
+          <rule_placement rule="kill_kobold" idx="1" />
+          <rule_placement rule="go2kobold" idx="2" />
+        </rulebook>
+        <rule name="go2kobold" tick="109" big="F" />
+        <rule name="go2kobold" tick="110">
+          <triggers>
+            <trigger name="aware" />
+          </triggers>
+        </rule>
+        <rule name="go2kobold" tick="111">
+          <prereqs>
+            <prereq name="kobold_alive" />
+          </prereqs>
+        </rule>
+        <rule name="go2kobold" tick="112">
+          <prereqs>
+            <prereq name="kobold_alive" />
+            <prereq name="kobold_not_here" />
+          </prereqs>
+        </rule>
+        <rule name="wander" tick="113" big="F">
+          <actions>
+            <action name="wander" />
+          </actions>
+        </rule>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="114">
+          <rule_placement rule="fight" idx="0" />
+          <rule_placement rule="kill_kobold" idx="1" />
+          <rule_placement rule="go2kobold" idx="2" />
+          <rule_placement rule="wander" idx="3" />
+        </rulebook>
+        <rule name="wander" tick="115" big="F" />
+        <rule name="wander" tick="116">
+          <triggers>
+            <trigger name="standing_still" />
+          </triggers>
+        </rule>
+      </turn>
+      <turn number="1" end_tick="2" plan_end_tick="2">
         <universal key="'rando_state'" tick="1">
           <tuple>
             <int value="3" />
@@ -3024,1119 +3504,6 @@
             <None />
           </tuple>
         </universal>
-        <node-val character="'physical'" node="'kobold'" key="'_image_paths'" tick="3">
-          <list>
-            <str value="atlas://rltiles/base.atlas/kobold_m" />
-          </list>
-        </node-val>
-        <universal key="'rando_state'" tick="2">
-          <tuple>
-            <int value="3" />
-            <tuple>
-              <int value="3399532814" />
-              <int value="1922621091" />
-              <int value="1318639202" />
-              <int value="1200287287" />
-              <int value="3284435864" />
-              <int value="3808930300" />
-              <int value="1747335490" />
-              <int value="3737760233" />
-              <int value="2715492764" />
-              <int value="183638019" />
-              <int value="3103353611" />
-              <int value="1217069546" />
-              <int value="1194190910" />
-              <int value="2470141417" />
-              <int value="528883139" />
-              <int value="1247094542" />
-              <int value="3065920289" />
-              <int value="4023506129" />
-              <int value="3986236424" />
-              <int value="3749810207" />
-              <int value="1213377109" />
-              <int value="2392958591" />
-              <int value="2637425708" />
-              <int value="506243303" />
-              <int value="1974338482" />
-              <int value="3524827911" />
-              <int value="3156542393" />
-              <int value="1548342757" />
-              <int value="91283707" />
-              <int value="3403533555" />
-              <int value="1364512744" />
-              <int value="993712879" />
-              <int value="949917159" />
-              <int value="3456526842" />
-              <int value="1616759050" />
-              <int value="1515251065" />
-              <int value="357043951" />
-              <int value="1352385251" />
-              <int value="1680586795" />
-              <int value="1069902820" />
-              <int value="2286504344" />
-              <int value="3262948456" />
-              <int value="1610629301" />
-              <int value="319919651" />
-              <int value="45107944" />
-              <int value="2045917580" />
-              <int value="2110902311" />
-              <int value="2464357864" />
-              <int value="2664307689" />
-              <int value="902983258" />
-              <int value="208177230" />
-              <int value="4130108282" />
-              <int value="1416039765" />
-              <int value="2461894687" />
-              <int value="3110756236" />
-              <int value="3470141532" />
-              <int value="2028342787" />
-              <int value="1781709104" />
-              <int value="2771498538" />
-              <int value="1351265847" />
-              <int value="304183294" />
-              <int value="2487644610" />
-              <int value="1121378284" />
-              <int value="4234462150" />
-              <int value="2171696954" />
-              <int value="1432476127" />
-              <int value="2747857624" />
-              <int value="3695920921" />
-              <int value="3988302868" />
-              <int value="1157199368" />
-              <int value="1411756053" />
-              <int value="2572580540" />
-              <int value="1410510534" />
-              <int value="2587342452" />
-              <int value="3046977583" />
-              <int value="4287127259" />
-              <int value="3252310090" />
-              <int value="1889562274" />
-              <int value="1285232301" />
-              <int value="2102539750" />
-              <int value="919647060" />
-              <int value="1878729190" />
-              <int value="837997469" />
-              <int value="3914202568" />
-              <int value="2865558995" />
-              <int value="1433236156" />
-              <int value="424157963" />
-              <int value="3858575292" />
-              <int value="3800780810" />
-              <int value="1344639319" />
-              <int value="1383058302" />
-              <int value="3649145092" />
-              <int value="1740604493" />
-              <int value="2985246546" />
-              <int value="3429535288" />
-              <int value="3587084276" />
-              <int value="3916818711" />
-              <int value="228645474" />
-              <int value="2798976986" />
-              <int value="1008992183" />
-              <int value="1597917797" />
-              <int value="3526936843" />
-              <int value="533626492" />
-              <int value="2612010317" />
-              <int value="1351135423" />
-              <int value="619036742" />
-              <int value="758900773" />
-              <int value="3167620717" />
-              <int value="4262803307" />
-              <int value="2927613508" />
-              <int value="1341810555" />
-              <int value="1385677314" />
-              <int value="3486740390" />
-              <int value="3628505064" />
-              <int value="3160038644" />
-              <int value="632320893" />
-              <int value="2972236317" />
-              <int value="2973155055" />
-              <int value="1040615847" />
-              <int value="1810847522" />
-              <int value="3695375695" />
-              <int value="1473230679" />
-              <int value="1785517482" />
-              <int value="2323990347" />
-              <int value="3829344560" />
-              <int value="1815628020" />
-              <int value="3228109550" />
-              <int value="1845817718" />
-              <int value="1600290058" />
-              <int value="2564572512" />
-              <int value="687088198" />
-              <int value="375571221" />
-              <int value="2647569431" />
-              <int value="2897219002" />
-              <int value="3029332029" />
-              <int value="3468442471" />
-              <int value="1471060578" />
-              <int value="1634853903" />
-              <int value="1706206173" />
-              <int value="2578029018" />
-              <int value="1402177220" />
-              <int value="3044222267" />
-              <int value="1413430456" />
-              <int value="4244498995" />
-              <int value="289959273" />
-              <int value="4106915877" />
-              <int value="1480055840" />
-              <int value="1670828849" />
-              <int value="2150193753" />
-              <int value="892238790" />
-              <int value="2021671481" />
-              <int value="2086509740" />
-              <int value="427575208" />
-              <int value="4044745485" />
-              <int value="3627920350" />
-              <int value="1612182500" />
-              <int value="1671043380" />
-              <int value="405713855" />
-              <int value="3483664227" />
-              <int value="2304922558" />
-              <int value="395614077" />
-              <int value="2350797015" />
-              <int value="1180850316" />
-              <int value="292433483" />
-              <int value="1333511644" />
-              <int value="3743603295" />
-              <int value="4019721169" />
-              <int value="2379423817" />
-              <int value="2431258913" />
-              <int value="1466514764" />
-              <int value="1066129045" />
-              <int value="477558949" />
-              <int value="3877267071" />
-              <int value="3674243700" />
-              <int value="1751659787" />
-              <int value="4097551726" />
-              <int value="3747439107" />
-              <int value="189793079" />
-              <int value="2467327892" />
-              <int value="3890055699" />
-              <int value="1656543049" />
-              <int value="175532463" />
-              <int value="1044881562" />
-              <int value="2954406023" />
-              <int value="2218430029" />
-              <int value="946001334" />
-              <int value="4103474870" />
-              <int value="766186315" />
-              <int value="1042145935" />
-              <int value="260188682" />
-              <int value="2878489308" />
-              <int value="3555411741" />
-              <int value="3023986187" />
-              <int value="3467384247" />
-              <int value="2174864312" />
-              <int value="3362440253" />
-              <int value="2953378436" />
-              <int value="19660317" />
-              <int value="1757532286" />
-              <int value="3513031710" />
-              <int value="1652951194" />
-              <int value="3049088961" />
-              <int value="3175452919" />
-              <int value="2035270037" />
-              <int value="1155415543" />
-              <int value="2934246475" />
-              <int value="840464792" />
-              <int value="407633508" />
-              <int value="1887661269" />
-              <int value="2359172041" />
-              <int value="968886421" />
-              <int value="911588093" />
-              <int value="3008303476" />
-              <int value="3521303176" />
-              <int value="828495762" />
-              <int value="771710338" />
-              <int value="298906623" />
-              <int value="3010795838" />
-              <int value="2770235797" />
-              <int value="3070544645" />
-              <int value="1353617353" />
-              <int value="2112742085" />
-              <int value="3228737385" />
-              <int value="3051453342" />
-              <int value="1594607522" />
-              <int value="4006552785" />
-              <int value="2729135020" />
-              <int value="3270702932" />
-              <int value="175384810" />
-              <int value="2169675714" />
-              <int value="554581549" />
-              <int value="3652858944" />
-              <int value="2892390819" />
-              <int value="999749053" />
-              <int value="893082860" />
-              <int value="973414218" />
-              <int value="3672054543" />
-              <int value="146531700" />
-              <int value="547933382" />
-              <int value="1836935847" />
-              <int value="868239712" />
-              <int value="1099781051" />
-              <int value="1576672760" />
-              <int value="3221746967" />
-              <int value="3876109239" />
-              <int value="2309164847" />
-              <int value="3865092624" />
-              <int value="1836244759" />
-              <int value="1768849141" />
-              <int value="2736176007" />
-              <int value="3510572365" />
-              <int value="2081525655" />
-              <int value="708719652" />
-              <int value="2743095338" />
-              <int value="1370536669" />
-              <int value="3969463016" />
-              <int value="106061602" />
-              <int value="2538980431" />
-              <int value="2308763556" />
-              <int value="412173904" />
-              <int value="945969761" />
-              <int value="1870394348" />
-              <int value="1070338339" />
-              <int value="3429806675" />
-              <int value="2933276694" />
-              <int value="1089771452" />
-              <int value="165596877" />
-              <int value="2692314790" />
-              <int value="1472770556" />
-              <int value="2529683641" />
-              <int value="3587633108" />
-              <int value="4015381206" />
-              <int value="954486772" />
-              <int value="3653418320" />
-              <int value="672945660" />
-              <int value="3995119822" />
-              <int value="509035573" />
-              <int value="2420650770" />
-              <int value="3167460230" />
-              <int value="1412904447" />
-              <int value="1004162553" />
-              <int value="359688731" />
-              <int value="1463730013" />
-              <int value="2654550898" />
-              <int value="2322490996" />
-              <int value="3587214037" />
-              <int value="2456381906" />
-              <int value="1284471257" />
-              <int value="3147223374" />
-              <int value="2962910796" />
-              <int value="2053633882" />
-              <int value="3671887914" />
-              <int value="3930424831" />
-              <int value="517344036" />
-              <int value="3276178055" />
-              <int value="2367449475" />
-              <int value="3829540347" />
-              <int value="2789357276" />
-              <int value="2737746061" />
-              <int value="1209592165" />
-              <int value="2765436616" />
-              <int value="1345522028" />
-              <int value="346724815" />
-              <int value="684933596" />
-              <int value="3266939327" />
-              <int value="869416558" />
-              <int value="1225816017" />
-              <int value="1711741543" />
-              <int value="1391185942" />
-              <int value="1195117282" />
-              <int value="4133900011" />
-              <int value="593222865" />
-              <int value="3599059573" />
-              <int value="506697230" />
-              <int value="2120454750" />
-              <int value="1106248566" />
-              <int value="1521609271" />
-              <int value="650513902" />
-              <int value="1941344688" />
-              <int value="1413850112" />
-              <int value="3365808516" />
-              <int value="600973466" />
-              <int value="261174065" />
-              <int value="275198882" />
-              <int value="1169627701" />
-              <int value="2842886091" />
-              <int value="3023520671" />
-              <int value="4219492612" />
-              <int value="2291549761" />
-              <int value="511351473" />
-              <int value="3018341917" />
-              <int value="2005076163" />
-              <int value="2549571737" />
-              <int value="2877512352" />
-              <int value="2873043204" />
-              <int value="2382566003" />
-              <int value="642232442" />
-              <int value="2261362316" />
-              <int value="2872306798" />
-              <int value="807064762" />
-              <int value="385341093" />
-              <int value="1450447147" />
-              <int value="3151840765" />
-              <int value="3621770746" />
-              <int value="2968319541" />
-              <int value="2372441200" />
-              <int value="2902359464" />
-              <int value="2182531666" />
-              <int value="433207909" />
-              <int value="1507595811" />
-              <int value="1685000795" />
-              <int value="3996524516" />
-              <int value="2146661000" />
-              <int value="2643629010" />
-              <int value="494082414" />
-              <int value="1317908926" />
-              <int value="1106650311" />
-              <int value="2244226475" />
-              <int value="569396640" />
-              <int value="95331498" />
-              <int value="126228182" />
-              <int value="702584211" />
-              <int value="2087141873" />
-              <int value="1308796343" />
-              <int value="3641135430" />
-              <int value="1166707701" />
-              <int value="377653635" />
-              <int value="2399255707" />
-              <int value="4192288347" />
-              <int value="3238330919" />
-              <int value="1201738531" />
-              <int value="2142578273" />
-              <int value="3256050407" />
-              <int value="2595925711" />
-              <int value="1518079532" />
-              <int value="2135642334" />
-              <int value="3084160563" />
-              <int value="241884221" />
-              <int value="3085550853" />
-              <int value="2436468269" />
-              <int value="1776983589" />
-              <int value="1837796627" />
-              <int value="396185930" />
-              <int value="3939082101" />
-              <int value="3593704069" />
-              <int value="1023570838" />
-              <int value="610201550" />
-              <int value="714376274" />
-              <int value="3482480746" />
-              <int value="552246385" />
-              <int value="496891656" />
-              <int value="1877800674" />
-              <int value="3261771839" />
-              <int value="2178180914" />
-              <int value="2212294024" />
-              <int value="4138961325" />
-              <int value="3420731064" />
-              <int value="2530612796" />
-              <int value="439727944" />
-              <int value="3703037321" />
-              <int value="2305158689" />
-              <int value="1529731382" />
-              <int value="217504291" />
-              <int value="1519235821" />
-              <int value="2732418024" />
-              <int value="1034439019" />
-              <int value="1478303207" />
-              <int value="1067492765" />
-              <int value="2780107589" />
-              <int value="3787048903" />
-              <int value="793506737" />
-              <int value="1301470626" />
-              <int value="1896781139" />
-              <int value="3277478514" />
-              <int value="3712248652" />
-              <int value="774847238" />
-              <int value="610271327" />
-              <int value="2631053471" />
-              <int value="3366302913" />
-              <int value="4053422276" />
-              <int value="2531760730" />
-              <int value="2041550780" />
-              <int value="1835981092" />
-              <int value="141364655" />
-              <int value="2133448092" />
-              <int value="4254040931" />
-              <int value="3622543914" />
-              <int value="2270417239" />
-              <int value="1209717711" />
-              <int value="1784903541" />
-              <int value="2400647874" />
-              <int value="3853156984" />
-              <int value="375118437" />
-              <int value="18561235" />
-              <int value="1443060812" />
-              <int value="3348607308" />
-              <int value="2981740304" />
-              <int value="1336940463" />
-              <int value="111193131" />
-              <int value="3277410661" />
-              <int value="3546533355" />
-              <int value="3092441981" />
-              <int value="3681307849" />
-              <int value="617600811" />
-              <int value="180806721" />
-              <int value="206808112" />
-              <int value="310645112" />
-              <int value="617818318" />
-              <int value="848332715" />
-              <int value="2705674327" />
-              <int value="1612233280" />
-              <int value="2810600848" />
-              <int value="1242839754" />
-              <int value="3337435622" />
-              <int value="3260744662" />
-              <int value="814455963" />
-              <int value="428179624" />
-              <int value="1976119480" />
-              <int value="1603386692" />
-              <int value="2019394322" />
-              <int value="3775072468" />
-              <int value="1288122375" />
-              <int value="1284053881" />
-              <int value="3989121801" />
-              <int value="1625343759" />
-              <int value="1949385796" />
-              <int value="3159082124" />
-              <int value="813794179" />
-              <int value="46872540" />
-              <int value="2076655045" />
-              <int value="2290247198" />
-              <int value="1043491508" />
-              <int value="3425447319" />
-              <int value="4177821993" />
-              <int value="250551383" />
-              <int value="2442303777" />
-              <int value="3861864670" />
-              <int value="4063579719" />
-              <int value="3409088439" />
-              <int value="760136108" />
-              <int value="758683634" />
-              <int value="1206840853" />
-              <int value="1743258086" />
-              <int value="3482774997" />
-              <int value="26579421" />
-              <int value="2612171602" />
-              <int value="1225127375" />
-              <int value="1303069907" />
-              <int value="3356197625" />
-              <int value="1726471078" />
-              <int value="3041788638" />
-              <int value="3326813669" />
-              <int value="365462487" />
-              <int value="2604299888" />
-              <int value="137785061" />
-              <int value="734599551" />
-              <int value="4281167486" />
-              <int value="4181648776" />
-              <int value="399704187" />
-              <int value="2185630586" />
-              <int value="2334476143" />
-              <int value="2124552519" />
-              <int value="1675645205" />
-              <int value="1687958968" />
-              <int value="2492364909" />
-              <int value="2199059955" />
-              <int value="15855711" />
-              <int value="1944418548" />
-              <int value="1585284131" />
-              <int value="3017502039" />
-              <int value="3542669732" />
-              <int value="2462391234" />
-              <int value="1290726696" />
-              <int value="4222914972" />
-              <int value="1483406477" />
-              <int value="1953508888" />
-              <int value="3791157178" />
-              <int value="2694244625" />
-              <int value="825495391" />
-              <int value="490181556" />
-              <int value="2122434879" />
-              <int value="3560588266" />
-              <int value="2396209291" />
-              <int value="4168258868" />
-              <int value="2825987662" />
-              <int value="2537163900" />
-              <int value="1079088369" />
-              <int value="3138881170" />
-              <int value="4078837965" />
-              <int value="493042506" />
-              <int value="1461355846" />
-              <int value="778622211" />
-              <int value="1304515156" />
-              <int value="3042476270" />
-              <int value="2474420910" />
-              <int value="501590610" />
-              <int value="1959808723" />
-              <int value="579379216" />
-              <int value="2223881595" />
-              <int value="587409929" />
-              <int value="4166117892" />
-              <int value="1817470172" />
-              <int value="2103076771" />
-              <int value="3309364256" />
-              <int value="733168470" />
-              <int value="4134197315" />
-              <int value="1212630909" />
-              <int value="399465005" />
-              <int value="2868316139" />
-              <int value="619834971" />
-              <int value="2388078861" />
-              <int value="1987853804" />
-              <int value="4141024030" />
-              <int value="636186497" />
-              <int value="2459021778" />
-              <int value="472143048" />
-              <int value="806913414" />
-              <int value="4082453804" />
-              <int value="202447953" />
-              <int value="3710630803" />
-              <int value="1271521185" />
-              <int value="3573749612" />
-              <int value="1755409516" />
-              <int value="4013838077" />
-              <int value="2017708168" />
-              <int value="2384253133" />
-              <int value="644042496" />
-              <int value="2821241237" />
-              <int value="3134223209" />
-              <int value="3271682952" />
-              <int value="434518586" />
-              <int value="916346595" />
-              <int value="2605891748" />
-              <int value="1235986954" />
-              <int value="2105707105" />
-              <int value="1824405608" />
-              <int value="1509384921" />
-              <int value="773752093" />
-              <int value="1560030029" />
-              <int value="56827310" />
-              <int value="786091112" />
-              <int value="1561697946" />
-              <int value="1774426505" />
-              <int value="799287221" />
-              <int value="1570759356" />
-              <int value="3457150661" />
-              <int value="3769914743" />
-              <int value="405752396" />
-              <int value="1549233748" />
-              <int value="3576579516" />
-              <int value="382348766" />
-              <int value="2895134811" />
-              <int value="1618176356" />
-              <int value="2959397351" />
-              <int value="1508533597" />
-              <int value="2490949198" />
-              <int value="4167064789" />
-              <int value="795399578" />
-              <int value="3303766464" />
-              <int value="2504198967" />
-              <int value="2608779501" />
-              <int value="2268202795" />
-              <int value="494725020" />
-              <int value="518601664" />
-              <int value="2977409184" />
-              <int value="2088836832" />
-              <int value="743764902" />
-              <int value="2696192420" />
-              <int value="4011378283" />
-              <int value="2968429477" />
-              <int value="859883567" />
-              <int value="359356418" />
-              <int value="3407829672" />
-              <int value="1900442649" />
-              <int value="2941584998" />
-              <int value="3448328286" />
-              <int value="2684915994" />
-              <int value="2928398899" />
-              <int value="3330869032" />
-              <int value="1420084479" />
-              <int value="1049788511" />
-              <int value="979750289" />
-              <int value="348001120" />
-              <int value="2931054143" />
-              <int value="143" />
-            </tuple>
-            <None />
-          </tuple>
-        </universal>
-        <node character="'physical'" name="'dwarf'" tick="4" exists="T" />
-        <location character="'physical'" thing="'dwarf'" tick="4" location="(0, 0)" />
-        <node-val character="'physical'" node="'dwarf'" key="'sight_radius'" tick="5">
-          <int value="2" />
-        </node-val>
-        <node-val character="'physical'" node="'dwarf'" key="'seen_kobold'" tick="6">
-          <bool value="F" />
-        </node-val>
-        <node-val character="'physical'" node="'dwarf'" key="'_image_paths'" tick="7">
-          <list>
-            <str value="atlas://rltiles/base.atlas/dwarf_m" />
-          </list>
-        </node-val>
-        <node character="'physical'" name="'shrub0'" tick="9" exists="T" />
-        <location character="'physical'" thing="'shrub0'" tick="9" location="(1, 9)" />
-        <node-val character="'physical'" node="'shrub0'" key="'cover'" tick="10">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub0'" key="'_image_paths'" tick="11">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub0'" key="'_group'" tick="12">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub1'" tick="13" exists="T" />
-        <location character="'physical'" thing="'shrub1'" tick="13" location="(2, 2)" />
-        <node-val character="'physical'" node="'shrub1'" key="'cover'" tick="14">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub1'" key="'_image_paths'" tick="15">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub1'" key="'_group'" tick="16">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub2'" tick="17" exists="T" />
-        <location character="'physical'" thing="'shrub2'" tick="17" location="(6, 0)" />
-        <node-val character="'physical'" node="'shrub2'" key="'cover'" tick="18">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub2'" key="'_image_paths'" tick="19">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub2'" key="'_group'" tick="20">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub3'" tick="21" exists="T" />
-        <location character="'physical'" thing="'shrub3'" tick="21" location="(7, 4)" />
-        <node-val character="'physical'" node="'shrub3'" key="'cover'" tick="22">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub3'" key="'_image_paths'" tick="23">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub3'" key="'_group'" tick="24">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub4'" tick="25" exists="T" />
-        <location character="'physical'" thing="'shrub4'" tick="25" location="(5, 0)" />
-        <node-val character="'physical'" node="'shrub4'" key="'cover'" tick="26">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub4'" key="'_image_paths'" tick="27">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub4'" key="'_group'" tick="28">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub5'" tick="29" exists="T" />
-        <location character="'physical'" thing="'shrub5'" tick="29" location="(6, 5)" />
-        <node-val character="'physical'" node="'shrub5'" key="'cover'" tick="30">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub5'" key="'_image_paths'" tick="31">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub5'" key="'_group'" tick="32">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub6'" tick="33" exists="T" />
-        <location character="'physical'" thing="'shrub6'" tick="33" location="(8, 7)" />
-        <node-val character="'physical'" node="'shrub6'" key="'cover'" tick="34">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub6'" key="'_image_paths'" tick="35">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub6'" key="'_group'" tick="36">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub7'" tick="37" exists="T" />
-        <location character="'physical'" thing="'shrub7'" tick="37" location="(8, 5)" />
-        <node-val character="'physical'" node="'shrub7'" key="'cover'" tick="38">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub7'" key="'_image_paths'" tick="39">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub7'" key="'_group'" tick="40">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub8'" tick="41" exists="T" />
-        <location character="'physical'" thing="'shrub8'" tick="41" location="(2, 3)" />
-        <node-val character="'physical'" node="'shrub8'" key="'cover'" tick="42">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub8'" key="'_image_paths'" tick="43">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub8'" key="'_group'" tick="44">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub9'" tick="45" exists="T" />
-        <location character="'physical'" thing="'shrub9'" tick="45" location="(5, 7)" />
-        <node-val character="'physical'" node="'shrub9'" key="'cover'" tick="46">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub9'" key="'_image_paths'" tick="47">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub9'" key="'_group'" tick="48">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub10'" tick="49" exists="T" />
-        <location character="'physical'" thing="'shrub10'" tick="49" location="(9, 0)" />
-        <node-val character="'physical'" node="'shrub10'" key="'cover'" tick="50">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub10'" key="'_image_paths'" tick="51">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub10'" key="'_group'" tick="52">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub11'" tick="53" exists="T" />
-        <location character="'physical'" thing="'shrub11'" tick="53" location="(1, 6)" />
-        <node-val character="'physical'" node="'shrub11'" key="'cover'" tick="54">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub11'" key="'_image_paths'" tick="55">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub11'" key="'_group'" tick="56">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub12'" tick="57" exists="T" />
-        <location character="'physical'" thing="'shrub12'" tick="57" location="(7, 3)" />
-        <node-val character="'physical'" node="'shrub12'" key="'cover'" tick="58">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub12'" key="'_image_paths'" tick="59">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub12'" key="'_group'" tick="60">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub13'" tick="61" exists="T" />
-        <location character="'physical'" thing="'shrub13'" tick="61" location="(1, 8)" />
-        <node-val character="'physical'" node="'shrub13'" key="'cover'" tick="62">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub13'" key="'_image_paths'" tick="63">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub13'" key="'_group'" tick="64">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub14'" tick="65" exists="T" />
-        <location character="'physical'" thing="'shrub14'" tick="65" location="(3, 9)" />
-        <node-val character="'physical'" node="'shrub14'" key="'cover'" tick="66">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub14'" key="'_image_paths'" tick="67">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub14'" key="'_group'" tick="68">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub15'" tick="69" exists="T" />
-        <location character="'physical'" thing="'shrub15'" tick="69" location="(2, 9)" />
-        <node-val character="'physical'" node="'shrub15'" key="'cover'" tick="70">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub15'" key="'_image_paths'" tick="71">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub15'" key="'_group'" tick="72">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub16'" tick="73" exists="T" />
-        <location character="'physical'" thing="'shrub16'" tick="73" location="(4, 5)" />
-        <node-val character="'physical'" node="'shrub16'" key="'cover'" tick="74">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub16'" key="'_image_paths'" tick="75">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub16'" key="'_group'" tick="76">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub17'" tick="77" exists="T" />
-        <location character="'physical'" thing="'shrub17'" tick="77" location="(4, 2)" />
-        <node-val character="'physical'" node="'shrub17'" key="'cover'" tick="78">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub17'" key="'_image_paths'" tick="79">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub17'" key="'_group'" tick="80">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub18'" tick="81" exists="T" />
-        <location character="'physical'" thing="'shrub18'" tick="81" location="(3, 8)" />
-        <node-val character="'physical'" node="'shrub18'" key="'cover'" tick="82">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub18'" key="'_image_paths'" tick="83">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub18'" key="'_group'" tick="84">
-          <str value="shrub" />
-        </node-val>
-        <node character="'physical'" name="'shrub19'" tick="85" exists="T" />
-        <location character="'physical'" thing="'shrub19'" tick="85" location="(0, 1)" />
-        <node-val character="'physical'" node="'shrub19'" key="'cover'" tick="86">
-          <int value="1" />
-        </node-val>
-        <node-val character="'physical'" node="'shrub19'" key="'_image_paths'" tick="87">
-          <list>
-            <str value="atlas://rltiles/dc-mon.atlas/fungus" />
-          </list>
-        </node-val>
-        <node-val character="'physical'" node="'shrub19'" key="'_group'" tick="88">
-          <str value="shrub" />
-        </node-val>
-        <node-val character="'physical'" node="'kobold'" key="'shrub_places'" tick="89">
-          <list>
-            <tuple>
-              <int value="1" />
-              <int value="9" />
-            </tuple>
-            <tuple>
-              <int value="2" />
-              <int value="2" />
-            </tuple>
-            <tuple>
-              <int value="6" />
-              <int value="0" />
-            </tuple>
-            <tuple>
-              <int value="7" />
-              <int value="4" />
-            </tuple>
-            <tuple>
-              <int value="5" />
-              <int value="0" />
-            </tuple>
-            <tuple>
-              <int value="6" />
-              <int value="5" />
-            </tuple>
-            <tuple>
-              <int value="8" />
-              <int value="7" />
-            </tuple>
-            <tuple>
-              <int value="8" />
-              <int value="5" />
-            </tuple>
-            <tuple>
-              <int value="2" />
-              <int value="3" />
-            </tuple>
-            <tuple>
-              <int value="5" />
-              <int value="7" />
-            </tuple>
-            <tuple>
-              <int value="9" />
-              <int value="0" />
-            </tuple>
-            <tuple>
-              <int value="1" />
-              <int value="6" />
-            </tuple>
-            <tuple>
-              <int value="7" />
-              <int value="3" />
-            </tuple>
-            <tuple>
-              <int value="1" />
-              <int value="8" />
-            </tuple>
-            <tuple>
-              <int value="3" />
-              <int value="9" />
-            </tuple>
-            <tuple>
-              <int value="2" />
-              <int value="9" />
-            </tuple>
-            <tuple>
-              <int value="4" />
-              <int value="5" />
-            </tuple>
-            <tuple>
-              <int value="4" />
-              <int value="2" />
-            </tuple>
-            <tuple>
-              <int value="3" />
-              <int value="8" />
-            </tuple>
-            <tuple>
-              <int value="0" />
-              <int value="1" />
-            </tuple>
-          </list>
-        </node-val>
-        <node-rulebook character="'physical'" node="'kobold'" tick="89" rulebook="('physical', 'kobold')" />
-        <rule name="shrubsprint" tick="90" big="F">
-          <actions>
-            <action name="shrubsprint" />
-          </actions>
-        </rule>
-        <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
-          <rule_placement rule="shrubsprint" idx="0" />
-        </rulebook>
-        <rule name="shrubsprint" tick="92" big="F" />
-        <rule name="shrubsprint" tick="93">
-          <triggers>
-            <trigger name="uncovered" />
-          </triggers>
-        </rule>
-        <rule name="shrubsprint" tick="94">
-          <prereqs>
-            <prereq name="breakcover" />
-          </prereqs>
-        </rule>
-        <rule name="shrubsprint" tick="95">
-          <prereqs>
-            <prereq name="breakcover" />
-            <prereq name="not_traveling" />
-          </prereqs>
-        </rule>
-        <node-rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')" />
-        <rule name="fight" tick="96" big="F">
-          <actions>
-            <action name="fight" />
-          </actions>
-        </rule>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
-          <rule_placement rule="fight" idx="0" />
-        </rulebook>
-        <rule name="fight" tick="98" big="F" />
-        <rule name="fight" tick="99">
-          <triggers>
-            <trigger name="sametile" />
-          </triggers>
-        </rule>
-        <rule name="fight" tick="100">
-          <prereqs>
-            <prereq name="kobold_alive" />
-          </prereqs>
-        </rule>
-        <rule name="fight" tick="101">
-          <prereqs>
-            <prereq name="kobold_alive" />
-            <prereq name="aware" />
-          </prereqs>
-        </rule>
-        <rule name="kill_kobold" tick="102" big="F">
-          <actions>
-            <action name="kill_kobold" />
-          </actions>
-        </rule>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="103">
-          <rule_placement rule="fight" idx="0" />
-          <rule_placement rule="kill_kobold" idx="1" />
-        </rulebook>
-        <rule name="kill_kobold" tick="104" big="F" />
-        <rule name="kill_kobold" tick="105">
-          <triggers>
-            <trigger name="kobold_alive" />
-          </triggers>
-        </rule>
-        <rule name="kill_kobold" tick="106">
-          <prereqs>
-            <prereq name="unmerciful" />
-          </prereqs>
-        </rule>
-        <rule name="go2kobold" tick="107" big="F">
-          <actions>
-            <action name="go2kobold" />
-          </actions>
-        </rule>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="108">
-          <rule_placement rule="fight" idx="0" />
-          <rule_placement rule="kill_kobold" idx="1" />
-          <rule_placement rule="go2kobold" idx="2" />
-        </rulebook>
-        <rule name="go2kobold" tick="109" big="F" />
-        <rule name="go2kobold" tick="110">
-          <triggers>
-            <trigger name="aware" />
-          </triggers>
-        </rule>
-        <rule name="go2kobold" tick="111">
-          <prereqs>
-            <prereq name="kobold_alive" />
-          </prereqs>
-        </rule>
-        <rule name="go2kobold" tick="112">
-          <prereqs>
-            <prereq name="kobold_alive" />
-            <prereq name="kobold_not_here" />
-          </prereqs>
-        </rule>
-        <rule name="wander" tick="113" big="F">
-          <actions>
-            <action name="wander" />
-          </actions>
-        </rule>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="114">
-          <rule_placement rule="fight" idx="0" />
-          <rule_placement rule="kill_kobold" idx="1" />
-          <rule_placement rule="go2kobold" idx="2" />
-          <rule_placement rule="wander" idx="3" />
-        </rulebook>
-        <rule name="wander" tick="115" big="F" />
-        <rule name="wander" tick="116">
-          <triggers>
-            <trigger name="standing_still" />
-          </triggers>
-        </rule>
-      </turn>
-      <turn number="1" end_tick="2" plan_end_tick="2">
         <keyframe tick="2">
           <universal>
             <dict-item key="'rando_state'">
@@ -11976,6 +11343,639 @@
             </edge>
           </character>
         </keyframe>
+        <universal key="'rando_state'" tick="2">
+          <tuple>
+            <int value="3" />
+            <tuple>
+              <int value="3399532814" />
+              <int value="1922621091" />
+              <int value="1318639202" />
+              <int value="1200287287" />
+              <int value="3284435864" />
+              <int value="3808930300" />
+              <int value="1747335490" />
+              <int value="3737760233" />
+              <int value="2715492764" />
+              <int value="183638019" />
+              <int value="3103353611" />
+              <int value="1217069546" />
+              <int value="1194190910" />
+              <int value="2470141417" />
+              <int value="528883139" />
+              <int value="1247094542" />
+              <int value="3065920289" />
+              <int value="4023506129" />
+              <int value="3986236424" />
+              <int value="3749810207" />
+              <int value="1213377109" />
+              <int value="2392958591" />
+              <int value="2637425708" />
+              <int value="506243303" />
+              <int value="1974338482" />
+              <int value="3524827911" />
+              <int value="3156542393" />
+              <int value="1548342757" />
+              <int value="91283707" />
+              <int value="3403533555" />
+              <int value="1364512744" />
+              <int value="993712879" />
+              <int value="949917159" />
+              <int value="3456526842" />
+              <int value="1616759050" />
+              <int value="1515251065" />
+              <int value="357043951" />
+              <int value="1352385251" />
+              <int value="1680586795" />
+              <int value="1069902820" />
+              <int value="2286504344" />
+              <int value="3262948456" />
+              <int value="1610629301" />
+              <int value="319919651" />
+              <int value="45107944" />
+              <int value="2045917580" />
+              <int value="2110902311" />
+              <int value="2464357864" />
+              <int value="2664307689" />
+              <int value="902983258" />
+              <int value="208177230" />
+              <int value="4130108282" />
+              <int value="1416039765" />
+              <int value="2461894687" />
+              <int value="3110756236" />
+              <int value="3470141532" />
+              <int value="2028342787" />
+              <int value="1781709104" />
+              <int value="2771498538" />
+              <int value="1351265847" />
+              <int value="304183294" />
+              <int value="2487644610" />
+              <int value="1121378284" />
+              <int value="4234462150" />
+              <int value="2171696954" />
+              <int value="1432476127" />
+              <int value="2747857624" />
+              <int value="3695920921" />
+              <int value="3988302868" />
+              <int value="1157199368" />
+              <int value="1411756053" />
+              <int value="2572580540" />
+              <int value="1410510534" />
+              <int value="2587342452" />
+              <int value="3046977583" />
+              <int value="4287127259" />
+              <int value="3252310090" />
+              <int value="1889562274" />
+              <int value="1285232301" />
+              <int value="2102539750" />
+              <int value="919647060" />
+              <int value="1878729190" />
+              <int value="837997469" />
+              <int value="3914202568" />
+              <int value="2865558995" />
+              <int value="1433236156" />
+              <int value="424157963" />
+              <int value="3858575292" />
+              <int value="3800780810" />
+              <int value="1344639319" />
+              <int value="1383058302" />
+              <int value="3649145092" />
+              <int value="1740604493" />
+              <int value="2985246546" />
+              <int value="3429535288" />
+              <int value="3587084276" />
+              <int value="3916818711" />
+              <int value="228645474" />
+              <int value="2798976986" />
+              <int value="1008992183" />
+              <int value="1597917797" />
+              <int value="3526936843" />
+              <int value="533626492" />
+              <int value="2612010317" />
+              <int value="1351135423" />
+              <int value="619036742" />
+              <int value="758900773" />
+              <int value="3167620717" />
+              <int value="4262803307" />
+              <int value="2927613508" />
+              <int value="1341810555" />
+              <int value="1385677314" />
+              <int value="3486740390" />
+              <int value="3628505064" />
+              <int value="3160038644" />
+              <int value="632320893" />
+              <int value="2972236317" />
+              <int value="2973155055" />
+              <int value="1040615847" />
+              <int value="1810847522" />
+              <int value="3695375695" />
+              <int value="1473230679" />
+              <int value="1785517482" />
+              <int value="2323990347" />
+              <int value="3829344560" />
+              <int value="1815628020" />
+              <int value="3228109550" />
+              <int value="1845817718" />
+              <int value="1600290058" />
+              <int value="2564572512" />
+              <int value="687088198" />
+              <int value="375571221" />
+              <int value="2647569431" />
+              <int value="2897219002" />
+              <int value="3029332029" />
+              <int value="3468442471" />
+              <int value="1471060578" />
+              <int value="1634853903" />
+              <int value="1706206173" />
+              <int value="2578029018" />
+              <int value="1402177220" />
+              <int value="3044222267" />
+              <int value="1413430456" />
+              <int value="4244498995" />
+              <int value="289959273" />
+              <int value="4106915877" />
+              <int value="1480055840" />
+              <int value="1670828849" />
+              <int value="2150193753" />
+              <int value="892238790" />
+              <int value="2021671481" />
+              <int value="2086509740" />
+              <int value="427575208" />
+              <int value="4044745485" />
+              <int value="3627920350" />
+              <int value="1612182500" />
+              <int value="1671043380" />
+              <int value="405713855" />
+              <int value="3483664227" />
+              <int value="2304922558" />
+              <int value="395614077" />
+              <int value="2350797015" />
+              <int value="1180850316" />
+              <int value="292433483" />
+              <int value="1333511644" />
+              <int value="3743603295" />
+              <int value="4019721169" />
+              <int value="2379423817" />
+              <int value="2431258913" />
+              <int value="1466514764" />
+              <int value="1066129045" />
+              <int value="477558949" />
+              <int value="3877267071" />
+              <int value="3674243700" />
+              <int value="1751659787" />
+              <int value="4097551726" />
+              <int value="3747439107" />
+              <int value="189793079" />
+              <int value="2467327892" />
+              <int value="3890055699" />
+              <int value="1656543049" />
+              <int value="175532463" />
+              <int value="1044881562" />
+              <int value="2954406023" />
+              <int value="2218430029" />
+              <int value="946001334" />
+              <int value="4103474870" />
+              <int value="766186315" />
+              <int value="1042145935" />
+              <int value="260188682" />
+              <int value="2878489308" />
+              <int value="3555411741" />
+              <int value="3023986187" />
+              <int value="3467384247" />
+              <int value="2174864312" />
+              <int value="3362440253" />
+              <int value="2953378436" />
+              <int value="19660317" />
+              <int value="1757532286" />
+              <int value="3513031710" />
+              <int value="1652951194" />
+              <int value="3049088961" />
+              <int value="3175452919" />
+              <int value="2035270037" />
+              <int value="1155415543" />
+              <int value="2934246475" />
+              <int value="840464792" />
+              <int value="407633508" />
+              <int value="1887661269" />
+              <int value="2359172041" />
+              <int value="968886421" />
+              <int value="911588093" />
+              <int value="3008303476" />
+              <int value="3521303176" />
+              <int value="828495762" />
+              <int value="771710338" />
+              <int value="298906623" />
+              <int value="3010795838" />
+              <int value="2770235797" />
+              <int value="3070544645" />
+              <int value="1353617353" />
+              <int value="2112742085" />
+              <int value="3228737385" />
+              <int value="3051453342" />
+              <int value="1594607522" />
+              <int value="4006552785" />
+              <int value="2729135020" />
+              <int value="3270702932" />
+              <int value="175384810" />
+              <int value="2169675714" />
+              <int value="554581549" />
+              <int value="3652858944" />
+              <int value="2892390819" />
+              <int value="999749053" />
+              <int value="893082860" />
+              <int value="973414218" />
+              <int value="3672054543" />
+              <int value="146531700" />
+              <int value="547933382" />
+              <int value="1836935847" />
+              <int value="868239712" />
+              <int value="1099781051" />
+              <int value="1576672760" />
+              <int value="3221746967" />
+              <int value="3876109239" />
+              <int value="2309164847" />
+              <int value="3865092624" />
+              <int value="1836244759" />
+              <int value="1768849141" />
+              <int value="2736176007" />
+              <int value="3510572365" />
+              <int value="2081525655" />
+              <int value="708719652" />
+              <int value="2743095338" />
+              <int value="1370536669" />
+              <int value="3969463016" />
+              <int value="106061602" />
+              <int value="2538980431" />
+              <int value="2308763556" />
+              <int value="412173904" />
+              <int value="945969761" />
+              <int value="1870394348" />
+              <int value="1070338339" />
+              <int value="3429806675" />
+              <int value="2933276694" />
+              <int value="1089771452" />
+              <int value="165596877" />
+              <int value="2692314790" />
+              <int value="1472770556" />
+              <int value="2529683641" />
+              <int value="3587633108" />
+              <int value="4015381206" />
+              <int value="954486772" />
+              <int value="3653418320" />
+              <int value="672945660" />
+              <int value="3995119822" />
+              <int value="509035573" />
+              <int value="2420650770" />
+              <int value="3167460230" />
+              <int value="1412904447" />
+              <int value="1004162553" />
+              <int value="359688731" />
+              <int value="1463730013" />
+              <int value="2654550898" />
+              <int value="2322490996" />
+              <int value="3587214037" />
+              <int value="2456381906" />
+              <int value="1284471257" />
+              <int value="3147223374" />
+              <int value="2962910796" />
+              <int value="2053633882" />
+              <int value="3671887914" />
+              <int value="3930424831" />
+              <int value="517344036" />
+              <int value="3276178055" />
+              <int value="2367449475" />
+              <int value="3829540347" />
+              <int value="2789357276" />
+              <int value="2737746061" />
+              <int value="1209592165" />
+              <int value="2765436616" />
+              <int value="1345522028" />
+              <int value="346724815" />
+              <int value="684933596" />
+              <int value="3266939327" />
+              <int value="869416558" />
+              <int value="1225816017" />
+              <int value="1711741543" />
+              <int value="1391185942" />
+              <int value="1195117282" />
+              <int value="4133900011" />
+              <int value="593222865" />
+              <int value="3599059573" />
+              <int value="506697230" />
+              <int value="2120454750" />
+              <int value="1106248566" />
+              <int value="1521609271" />
+              <int value="650513902" />
+              <int value="1941344688" />
+              <int value="1413850112" />
+              <int value="3365808516" />
+              <int value="600973466" />
+              <int value="261174065" />
+              <int value="275198882" />
+              <int value="1169627701" />
+              <int value="2842886091" />
+              <int value="3023520671" />
+              <int value="4219492612" />
+              <int value="2291549761" />
+              <int value="511351473" />
+              <int value="3018341917" />
+              <int value="2005076163" />
+              <int value="2549571737" />
+              <int value="2877512352" />
+              <int value="2873043204" />
+              <int value="2382566003" />
+              <int value="642232442" />
+              <int value="2261362316" />
+              <int value="2872306798" />
+              <int value="807064762" />
+              <int value="385341093" />
+              <int value="1450447147" />
+              <int value="3151840765" />
+              <int value="3621770746" />
+              <int value="2968319541" />
+              <int value="2372441200" />
+              <int value="2902359464" />
+              <int value="2182531666" />
+              <int value="433207909" />
+              <int value="1507595811" />
+              <int value="1685000795" />
+              <int value="3996524516" />
+              <int value="2146661000" />
+              <int value="2643629010" />
+              <int value="494082414" />
+              <int value="1317908926" />
+              <int value="1106650311" />
+              <int value="2244226475" />
+              <int value="569396640" />
+              <int value="95331498" />
+              <int value="126228182" />
+              <int value="702584211" />
+              <int value="2087141873" />
+              <int value="1308796343" />
+              <int value="3641135430" />
+              <int value="1166707701" />
+              <int value="377653635" />
+              <int value="2399255707" />
+              <int value="4192288347" />
+              <int value="3238330919" />
+              <int value="1201738531" />
+              <int value="2142578273" />
+              <int value="3256050407" />
+              <int value="2595925711" />
+              <int value="1518079532" />
+              <int value="2135642334" />
+              <int value="3084160563" />
+              <int value="241884221" />
+              <int value="3085550853" />
+              <int value="2436468269" />
+              <int value="1776983589" />
+              <int value="1837796627" />
+              <int value="396185930" />
+              <int value="3939082101" />
+              <int value="3593704069" />
+              <int value="1023570838" />
+              <int value="610201550" />
+              <int value="714376274" />
+              <int value="3482480746" />
+              <int value="552246385" />
+              <int value="496891656" />
+              <int value="1877800674" />
+              <int value="3261771839" />
+              <int value="2178180914" />
+              <int value="2212294024" />
+              <int value="4138961325" />
+              <int value="3420731064" />
+              <int value="2530612796" />
+              <int value="439727944" />
+              <int value="3703037321" />
+              <int value="2305158689" />
+              <int value="1529731382" />
+              <int value="217504291" />
+              <int value="1519235821" />
+              <int value="2732418024" />
+              <int value="1034439019" />
+              <int value="1478303207" />
+              <int value="1067492765" />
+              <int value="2780107589" />
+              <int value="3787048903" />
+              <int value="793506737" />
+              <int value="1301470626" />
+              <int value="1896781139" />
+              <int value="3277478514" />
+              <int value="3712248652" />
+              <int value="774847238" />
+              <int value="610271327" />
+              <int value="2631053471" />
+              <int value="3366302913" />
+              <int value="4053422276" />
+              <int value="2531760730" />
+              <int value="2041550780" />
+              <int value="1835981092" />
+              <int value="141364655" />
+              <int value="2133448092" />
+              <int value="4254040931" />
+              <int value="3622543914" />
+              <int value="2270417239" />
+              <int value="1209717711" />
+              <int value="1784903541" />
+              <int value="2400647874" />
+              <int value="3853156984" />
+              <int value="375118437" />
+              <int value="18561235" />
+              <int value="1443060812" />
+              <int value="3348607308" />
+              <int value="2981740304" />
+              <int value="1336940463" />
+              <int value="111193131" />
+              <int value="3277410661" />
+              <int value="3546533355" />
+              <int value="3092441981" />
+              <int value="3681307849" />
+              <int value="617600811" />
+              <int value="180806721" />
+              <int value="206808112" />
+              <int value="310645112" />
+              <int value="617818318" />
+              <int value="848332715" />
+              <int value="2705674327" />
+              <int value="1612233280" />
+              <int value="2810600848" />
+              <int value="1242839754" />
+              <int value="3337435622" />
+              <int value="3260744662" />
+              <int value="814455963" />
+              <int value="428179624" />
+              <int value="1976119480" />
+              <int value="1603386692" />
+              <int value="2019394322" />
+              <int value="3775072468" />
+              <int value="1288122375" />
+              <int value="1284053881" />
+              <int value="3989121801" />
+              <int value="1625343759" />
+              <int value="1949385796" />
+              <int value="3159082124" />
+              <int value="813794179" />
+              <int value="46872540" />
+              <int value="2076655045" />
+              <int value="2290247198" />
+              <int value="1043491508" />
+              <int value="3425447319" />
+              <int value="4177821993" />
+              <int value="250551383" />
+              <int value="2442303777" />
+              <int value="3861864670" />
+              <int value="4063579719" />
+              <int value="3409088439" />
+              <int value="760136108" />
+              <int value="758683634" />
+              <int value="1206840853" />
+              <int value="1743258086" />
+              <int value="3482774997" />
+              <int value="26579421" />
+              <int value="2612171602" />
+              <int value="1225127375" />
+              <int value="1303069907" />
+              <int value="3356197625" />
+              <int value="1726471078" />
+              <int value="3041788638" />
+              <int value="3326813669" />
+              <int value="365462487" />
+              <int value="2604299888" />
+              <int value="137785061" />
+              <int value="734599551" />
+              <int value="4281167486" />
+              <int value="4181648776" />
+              <int value="399704187" />
+              <int value="2185630586" />
+              <int value="2334476143" />
+              <int value="2124552519" />
+              <int value="1675645205" />
+              <int value="1687958968" />
+              <int value="2492364909" />
+              <int value="2199059955" />
+              <int value="15855711" />
+              <int value="1944418548" />
+              <int value="1585284131" />
+              <int value="3017502039" />
+              <int value="3542669732" />
+              <int value="2462391234" />
+              <int value="1290726696" />
+              <int value="4222914972" />
+              <int value="1483406477" />
+              <int value="1953508888" />
+              <int value="3791157178" />
+              <int value="2694244625" />
+              <int value="825495391" />
+              <int value="490181556" />
+              <int value="2122434879" />
+              <int value="3560588266" />
+              <int value="2396209291" />
+              <int value="4168258868" />
+              <int value="2825987662" />
+              <int value="2537163900" />
+              <int value="1079088369" />
+              <int value="3138881170" />
+              <int value="4078837965" />
+              <int value="493042506" />
+              <int value="1461355846" />
+              <int value="778622211" />
+              <int value="1304515156" />
+              <int value="3042476270" />
+              <int value="2474420910" />
+              <int value="501590610" />
+              <int value="1959808723" />
+              <int value="579379216" />
+              <int value="2223881595" />
+              <int value="587409929" />
+              <int value="4166117892" />
+              <int value="1817470172" />
+              <int value="2103076771" />
+              <int value="3309364256" />
+              <int value="733168470" />
+              <int value="4134197315" />
+              <int value="1212630909" />
+              <int value="399465005" />
+              <int value="2868316139" />
+              <int value="619834971" />
+              <int value="2388078861" />
+              <int value="1987853804" />
+              <int value="4141024030" />
+              <int value="636186497" />
+              <int value="2459021778" />
+              <int value="472143048" />
+              <int value="806913414" />
+              <int value="4082453804" />
+              <int value="202447953" />
+              <int value="3710630803" />
+              <int value="1271521185" />
+              <int value="3573749612" />
+              <int value="1755409516" />
+              <int value="4013838077" />
+              <int value="2017708168" />
+              <int value="2384253133" />
+              <int value="644042496" />
+              <int value="2821241237" />
+              <int value="3134223209" />
+              <int value="3271682952" />
+              <int value="434518586" />
+              <int value="916346595" />
+              <int value="2605891748" />
+              <int value="1235986954" />
+              <int value="2105707105" />
+              <int value="1824405608" />
+              <int value="1509384921" />
+              <int value="773752093" />
+              <int value="1560030029" />
+              <int value="56827310" />
+              <int value="786091112" />
+              <int value="1561697946" />
+              <int value="1774426505" />
+              <int value="799287221" />
+              <int value="1570759356" />
+              <int value="3457150661" />
+              <int value="3769914743" />
+              <int value="405752396" />
+              <int value="1549233748" />
+              <int value="3576579516" />
+              <int value="382348766" />
+              <int value="2895134811" />
+              <int value="1618176356" />
+              <int value="2959397351" />
+              <int value="1508533597" />
+              <int value="2490949198" />
+              <int value="4167064789" />
+              <int value="795399578" />
+              <int value="3303766464" />
+              <int value="2504198967" />
+              <int value="2608779501" />
+              <int value="2268202795" />
+              <int value="494725020" />
+              <int value="518601664" />
+              <int value="2977409184" />
+              <int value="2088836832" />
+              <int value="743764902" />
+              <int value="2696192420" />
+              <int value="4011378283" />
+              <int value="2968429477" />
+              <int value="859883567" />
+              <int value="359356418" />
+              <int value="3407829672" />
+              <int value="1900442649" />
+              <int value="2941584998" />
+              <int value="3448328286" />
+              <int value="2684915994" />
+              <int value="2928398899" />
+              <int value="3330869032" />
+              <int value="1420084479" />
+              <int value="1049788511" />
+              <int value="979750289" />
+              <int value="348001120" />
+              <int value="2931054143" />
+              <int value="143" />
+            </tuple>
+            <None />
+          </tuple>
+        </universal>
       </turn>
       <turn number="2" end_tick="1" plan_end_tick="1" />
       <turn number="3" end_tick="1" plan_end_tick="1" />
