@@ -44,6 +44,7 @@ class Importer:
 			engine = EngineFacade(None)
 		self.query = query
 		self.engine = engine
+		self.known_rules: set[RuleName] = set()
 
 	def element_to_value(self, el: Element) -> Value:
 		eng = self.engine
@@ -270,8 +271,20 @@ class Importer:
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		rule = RuleName(el.get("rule"))
 		funcs = [FuncName(func_el.get("name")) for func_el in el]
-		mth = getattr(self.query, f"set_rule_{what}")
-		mth(rule, branch, turn, tick, funcs)
+		if rule in self.known_rules:
+			mth = getattr(self.query, f"set_rule_{what}")
+			mth(rule, branch, turn, tick, funcs)
+		else:
+			kw = {
+				"triggers": [],
+				"prereqs": [],
+				"actions": [],
+				"neighborhood": None,
+				"big": False,
+			}
+			kw[what] = funcs
+			self.query.set_rule(rule, branch, turn, tick, **kw)
+			self.known_rules.add(rule)
 
 	rule_triggers = partialmethod(_rule_func_list, "triggers")
 	rule_prereqs = partialmethod(_rule_func_list, "prereqs")
@@ -284,16 +297,42 @@ class Importer:
 		nbrs = el.get("neighbors")
 		if nbrs is not None:
 			nbrs = int(nbrs)
-		self.query.set_rule_neighborhood(
-			RuleName(el.get("rule")), branch, turn, tick, nbrs
-		)
+		rule = RuleName(el.get("rule"))
+		if rule in self.known_rules:
+			self.query.set_rule_neighborhood(rule, branch, turn, tick, nbrs)
+		else:
+			self.query.set_rule(
+				rule,
+				branch,
+				turn,
+				tick,
+				triggers=[],
+				prereqs=[],
+				actions=[],
+				big=RuleBig(False),
+				neighborhood=nbrs,
+			)
+			self.known_rules.add(rule)
 
 	def rule_big(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		big = RuleBig(el.get("big") == "T")
-		self.query.set_rule_big(
-			RuleName(el.get("rule")), branch, turn, tick, big
-		)
+		rule = RuleName(el.get("rule"))
+		if rule in self.known_rules:
+			self.query.set_rule_big(rule, branch, turn, tick, big)
+		else:
+			self.query.set_rule(
+				rule,
+				branch,
+				turn,
+				tick,
+				triggers=[],
+				prereqs=[],
+				actions=[],
+				big=big,
+				neighborhood=None,
+			)
+			self.known_rules.add(rule)
 
 	def graph(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
