@@ -147,7 +147,7 @@ class Importer:
 					v = self.element_to_value(univel[0])
 					universal_kf[k] = v
 			elif subel.tag == "rule":
-				rule = RuleName(kf_el.get("name"))
+				rule = RuleName(subel.get("name"))
 				if rule is None:
 					raise TypeError("Rules need names")
 				bigs_kf[rule] = RuleBig(kf_el.get("big") == "T")
