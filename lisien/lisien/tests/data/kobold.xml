@@ -2762,22 +2762,41 @@
         <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
           <rule name="shrubsprint" />
         </rulebook>
-        <rule name="shrubsprint" tick="92" big="F" />
-        <rule name="shrubsprint" tick="93">
+        <rule name="shrubsprint" tick="92" big="F">
+          <actions>
+            <action name="shrubsprint" />
+          </actions>
+        </rule>
+        <rule name="shrubsprint" tick="93" big="F">
           <triggers>
             <trigger name="uncovered" />
           </triggers>
+          <actions>
+            <action name="shrubsprint" />
+          </actions>
         </rule>
-        <rule name="shrubsprint" tick="94">
+        <rule name="shrubsprint" tick="94" big="F">
+          <triggers>
+            <trigger name="uncovered" />
+          </triggers>
           <prereqs>
             <prereq name="breakcover" />
           </prereqs>
+          <actions>
+            <action name="shrubsprint" />
+          </actions>
         </rule>
-        <rule name="shrubsprint" tick="95">
+        <rule name="shrubsprint" tick="95" big="F">
+          <triggers>
+            <trigger name="uncovered" />
+          </triggers>
           <prereqs>
             <prereq name="breakcover" />
             <prereq name="not_traveling" />
           </prereqs>
+          <actions>
+            <action name="shrubsprint" />
+          </actions>
         </rule>
         <node-rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')" />
         <rule name="fight" tick="96" big="F">
@@ -2788,22 +2807,41 @@
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
           <rule name="fight" />
         </rulebook>
-        <rule name="fight" tick="98" big="F" />
-        <rule name="fight" tick="99">
+        <rule name="fight" tick="98" big="F">
+          <actions>
+            <action name="fight" />
+          </actions>
+        </rule>
+        <rule name="fight" tick="99" big="F">
           <triggers>
             <trigger name="sametile" />
           </triggers>
+          <actions>
+            <action name="fight" />
+          </actions>
         </rule>
-        <rule name="fight" tick="100">
+        <rule name="fight" tick="100" big="F">
+          <triggers>
+            <trigger name="sametile" />
+          </triggers>
           <prereqs>
             <prereq name="kobold_alive" />
           </prereqs>
+          <actions>
+            <action name="fight" />
+          </actions>
         </rule>
-        <rule name="fight" tick="101">
+        <rule name="fight" tick="101" big="F">
+          <triggers>
+            <trigger name="sametile" />
+          </triggers>
           <prereqs>
             <prereq name="kobold_alive" />
             <prereq name="aware" />
           </prereqs>
+          <actions>
+            <action name="fight" />
+          </actions>
         </rule>
         <rule name="kill_kobold" tick="102" big="F">
           <actions>
@@ -2814,16 +2852,29 @@
           <rule name="fight" />
           <rule name="kill_kobold" />
         </rulebook>
-        <rule name="kill_kobold" tick="104" big="F" />
-        <rule name="kill_kobold" tick="105">
+        <rule name="kill_kobold" tick="104" big="F">
+          <actions>
+            <action name="kill_kobold" />
+          </actions>
+        </rule>
+        <rule name="kill_kobold" tick="105" big="F">
           <triggers>
             <trigger name="kobold_alive" />
           </triggers>
+          <actions>
+            <action name="kill_kobold" />
+          </actions>
         </rule>
-        <rule name="kill_kobold" tick="106">
+        <rule name="kill_kobold" tick="106" big="F">
+          <triggers>
+            <trigger name="kobold_alive" />
+          </triggers>
           <prereqs>
             <prereq name="unmerciful" />
           </prereqs>
+          <actions>
+            <action name="kill_kobold" />
+          </actions>
         </rule>
         <rule name="go2kobold" tick="107" big="F">
           <actions>
@@ -2835,22 +2886,41 @@
           <rule name="kill_kobold" />
           <rule name="go2kobold" />
         </rulebook>
-        <rule name="go2kobold" tick="109" big="F" />
-        <rule name="go2kobold" tick="110">
+        <rule name="go2kobold" tick="109" big="F">
+          <actions>
+            <action name="go2kobold" />
+          </actions>
+        </rule>
+        <rule name="go2kobold" tick="110" big="F">
           <triggers>
             <trigger name="aware" />
           </triggers>
+          <actions>
+            <action name="go2kobold" />
+          </actions>
         </rule>
-        <rule name="go2kobold" tick="111">
+        <rule name="go2kobold" tick="111" big="F">
+          <triggers>
+            <trigger name="aware" />
+          </triggers>
           <prereqs>
             <prereq name="kobold_alive" />
           </prereqs>
+          <actions>
+            <action name="go2kobold" />
+          </actions>
         </rule>
-        <rule name="go2kobold" tick="112">
+        <rule name="go2kobold" tick="112" big="F">
+          <triggers>
+            <trigger name="aware" />
+          </triggers>
           <prereqs>
             <prereq name="kobold_alive" />
             <prereq name="kobold_not_here" />
           </prereqs>
+          <actions>
+            <action name="go2kobold" />
+          </actions>
         </rule>
         <rule name="wander" tick="113" big="F">
           <actions>
@@ -2863,11 +2933,18 @@
           <rule name="go2kobold" />
           <rule name="wander" />
         </rulebook>
-        <rule name="wander" tick="115" big="F" />
-        <rule name="wander" tick="116">
+        <rule name="wander" tick="115" big="F">
+          <actions>
+            <action name="wander" />
+          </actions>
+        </rule>
+        <rule name="wander" tick="116" big="F">
           <triggers>
             <trigger name="standing_still" />
           </triggers>
+          <actions>
+            <action name="wander" />
+          </actions>
         </rule>
       </turn>
       <turn number="1" end_tick="2" plan_end_tick="2">
