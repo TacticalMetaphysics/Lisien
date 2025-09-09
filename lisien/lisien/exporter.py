@@ -1,6 +1,7 @@
 import os
 from io import IOBase
 from collections import deque
+from functools import partial
 from pathlib import Path
 from types import FunctionType, MethodType
 from typing import Literal
@@ -377,66 +378,43 @@ def fill_branch_element(
 		for i, rule in enumerate(rules):
 			rb_el.append(Element("rule", name=rule))
 
-	def append_rule_el(
+	def append_rule_flist_el(
+		typ: str,
 		turn_el: Element,
-		tick: Tick,
-		trig_rec: TriggerRowType = ...,
-		preq_rec: PrereqRowType = ...,
-		act_rec: ActionRowType = ...,
-		nbr_rec: RuleNeighborhoodRowType = ...,
-		big_rec: RuleBigRowType = ...,
+		rec: TriggerRowType | PrereqRowType | ActionRowType,
 	):
-		if trig_rec is not ...:
-			trigs = trig_rec[-1]
+		rule, _, __, tick, funcs = rec
+		func_el = Element(f"{typ}s", rule=rule, tick=str(tick))
+		turn_el.append(func_el)
+		for func in funcs:
+			func_el.append(Element(typ[5:], name=func))
+
+	append_rule_triggers_el = partial(append_rule_flist_el, "rule-trigger")
+	append_rule_prereqs_el = partial(append_rule_flist_el, "rule-prereq")
+	append_rule_actions_el = partial(append_rule_flist_el, "rule-action")
+
+	def append_rule_neighborhood_el(
+		turn_el: Element, nbr_rec: RuleNeighborhoodRowType
+	):
+		rule, _, __, tick, nbr = nbr_rec
+		if nbr is not None:
+			nbr_el = Element(
+				"rule-neighborhood",
+				rule=rule,
+				tick=str(tick),
+				neighbors=str(nbr),
+			)
 		else:
-			trigs = None
-		if preq_rec is not ...:
-			preqs = preq_rec[-1]
-		else:
-			preqs = None
-		if act_rec is not ...:
-			acts = act_rec[-1]
-		else:
-			acts = None
-		if nbr_rec is not ...:
-			nbr = nbr_rec[-1]
-		else:
-			nbr = ...
-		if big_rec is not ...:
-			big = big_rec[-1]
-		else:
-			big = ...
-		for reck in (trig_rec, preq_rec, act_rec, nbr_rec, big_rec):
-			if reck is not ...:
-				rule = reck[0]
-				break
-		else:
-			raise ValueError("Appending rule element without rule data?")
-		rule_el = Element(
-			"rule",
-			name=rule,
-			tick=str(tick),
+			nbr_el = Element("rule-neighborhood", rule=rule)
+		turn_el.append(nbr_el)
+
+	def append_rule_big_el(turn_el: Element, big_rec: RuleBigRowType):
+		rule, _, __, tick, big = big_rec
+		turn_el.append(
+			Element(
+				"rule-big", rule=rule, tick=str(tick), big="T" if big else "F"
+			)
 		)
-		if big is not ...:
-			rule_el.set("big", "T" if big else "F")
-		turn_el.append(rule_el)
-		if nbr is not ...:
-			rule_el.set("neighborhood", "" if nbr is None else str(nbr))
-		if trigs:
-			trigs_el = Element("triggers")
-			rule_el.append(trigs_el)
-			for trig in trigs:
-				trigs_el.append(Element("trigger", name=trig))
-		if preqs:
-			preqs_el = Element("prereqs")
-			rule_el.append(preqs_el)
-			for preq in preqs:
-				preqs_el.append(Element("prereq", name=preq))
-		if acts:
-			acts_el = Element("actions")
-			rule_el.append(acts_el)
-			for act in acts:
-				acts_el.append(Element("action", name=act))
 
 	def append_graph_el(turn_el: Element, graph: GraphRowType):
 		char, b, r, t, typ_str = graph
@@ -571,18 +549,6 @@ def fill_branch_element(
 		)
 		branch_el.append(turn_el)
 		tick: Tick
-		rules_kwargs: dict[
-			str,
-			dict[
-				str,
-				Tick
-				| TriggerRowType
-				| PrereqRowType
-				| ActionRowType
-				| RuleBigRowType
-				| RuleNeighborhoodRowType,
-			],
-		] = {}
 		for tick in range(turn_ends[turn][1] + 1):
 			if (branch, turn, tick) in keyframe_times:
 				kf = query.get_keyframe(branch, turn, tick)
@@ -606,16 +572,6 @@ def fill_branch_element(
 				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
 					append_graph_el(turn_el, graph_rec)
 					del data["graphs"][0]
-			rule: str | None = None
-			rule_kwargs: dict[
-				str,
-				Tick
-				| TriggerRowType
-				| PrereqRowType
-				| ActionRowType
-				| RuleBigRowType
-				| RuleNeighborhoodRowType,
-			] = {"tick": tick}
 			if (
 				"rule_triggers" in data
 				and data["rule_triggers"]
@@ -626,9 +582,7 @@ def fill_branch_element(
 					tick,
 				)
 			):
-				trig_rec: TriggerRowType = data["rule_triggers"].pop(0)
-				rule = trig_rec[0]
-				rule_kwargs["trig_rec"] = trig_rec
+				append_rule_triggers_el(turn_el, data["rule_triggers"].pop(0))
 			if (
 				"rule_prereqs" in data
 				and data["rule_prereqs"]
@@ -639,9 +593,7 @@ def fill_branch_element(
 					tick,
 				)
 			):
-				preq_rec: PrereqRowType = data["rule_prereqs"].pop(0)
-				rule = preq_rec[0]
-				rule_kwargs["preq_rec"] = preq_rec
+				append_rule_prereqs_el(turn_el, data["rule_prereqs"].pop(0))
 			if (
 				"rule_actions" in data
 				and data["rule_actions"]
@@ -652,19 +604,15 @@ def fill_branch_element(
 					tick,
 				)
 			):
-				act_rec: ActionRowType = data["rule_actions"].pop(0)
-				rule = act_rec[0]
-				rule_kwargs["act_rec"] = act_rec
+				append_rule_actions_el(turn_el, data["rule_actions"].pop(0))
 			if (
 				"rule_neighborhood" in data
 				and data["rule_neighborhood"]
 				and data["rule_neighborhood"][0][1:4] == (branch, turn, tick)
 			):
-				nbr_rec: RuleNeighborhoodRowType = data[
-					"rule_neighborhood"
-				].pop(0)
-				rule = nbr_rec[0]
-				rule_kwargs["nbr_rec"] = nbr_rec
+				append_rule_neighborhood_el(
+					turn_el, data["rule_neighborhood"].pop(0)
+				)
 			if (
 				"rule_big" in data
 				and data["rule_big"]
@@ -675,18 +623,7 @@ def fill_branch_element(
 					tick,
 				)
 			):
-				big_rec: RuleBigRowType = data["rule_big"].pop(0)
-				rule = big_rec[0]
-				rule_kwargs["big_rec"] = big_rec
-			if rule is not None:
-				if rule in rules_kwargs:
-					for k, v in rules_kwargs[rule].items():
-						if k not in rule_kwargs:
-							rule_kwargs[k] = v
-				rules_kwargs[rule] = {
-					k: v for (k, v) in rule_kwargs.items() if k != "tick"
-				}
-				append_rule_el(turn_el, **rule_kwargs)
+				append_rule_big_el(turn_el, data["rule_big"].pop(0))
 			for char_name in data.keys() - {
 				"graphs",
 				"universals",
