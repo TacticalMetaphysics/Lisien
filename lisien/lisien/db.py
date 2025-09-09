@@ -2934,28 +2934,98 @@ class ParquetDBHolder(ConnectionHolder):
 			]
 		)
 
-	def have_rule(self, rule: str) -> bool:
-		from pyarrow import compute as pc
-
-		db = self._get_db("rules")
-		return bool(db.read(filters=[pc.field("rule") == rule]).count_rows())
-
-	def have_rulebook_at_time(
-		self, rulebook: bytes, branch: str, turn: int, tick: int
+	def set_rule(
+		self,
+		rule: str,
+		branch: str,
+		turn: int,
+		tick: int,
+		triggers: bytes,
+		prereqs: bytes,
+		actions: bytes,
+		neighborhood: bytes,
+		big: bool,
 	) -> bool:
 		from pyarrow import compute as pc
 
+		db = self._get_db("rules")
+		named_data = [
+			("triggers", triggers),
+			("prereqs", prereqs),
+			("actions", actions),
+			("neighborhood", neighborhood),
+			("big", big),
+		]
+		create = not bool(db.read(filters=[pc.field("rule") == rule]).num_rows)
+		if create:
+			db.create([{"rule": rule}])
+			for name, data in named_data:
+				datum = {
+					"rule": rule,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+				}
+				datum[name] = data
+				self._get_db(f"rule_{name}").create([datum])
+		else:
+			for name, datum in named_data:
+				db = self._get_db(f"rule_{name}")
+				extant = db.read(filters=[pc.field("rule") == rule])
+				if extant.num_rows:
+					id_ = extant["id"][0].as_py()
+					datum = {
+						"id": id_,
+						"rule": rule,
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+					}
+					datum[name] = data
+					db.update([datum])
+				else:
+					datum = {
+						"rule": rule,
+						"branch": branch,
+						"turn": turn,
+						"tick": tick,
+					}
+					datum[name] = data
+					db.create([datum])
+		return create
+
+	def set_rulebook(
+		self,
+		rulebook: bytes,
+		branch: str,
+		turn: int,
+		tick: int,
+		rules: bytes,
+		priority: float,
+	) -> bool:
+		import pyarrow.compute as pc
+
 		db = self._get_db("rulebooks")
-		return bool(
-			db.read(
-				filters=[
-					pc.field("rulebook") == rulebook,
-					pc.field("branch") == branch,
-					pc.field("turn") == turn,
-					pc.field("tick") == tick,
-				]
-			).count_rows()
+		named_data = {
+			"rulebook": rulebook,
+			"branch": branch,
+			"turn": turn,
+			"tick": tick,
+		}
+		extant = db.read(
+			filters=[
+				pc.field(key) == value for (key, value) in named_data.items()
+			]
 		)
+		create = not bool(extant.num_rows)
+		named_data["rules"] = rules
+		named_data["priority"] = priority
+		if create:
+			db.create([named_data])
+		else:
+			named_data["id"] = extant["id"][0].as_py()
+			db.update([named_data])
+		return create
 
 	def run(self):
 		def loud_exit(inst, ex):
@@ -3026,10 +3096,10 @@ class ParquetDBHolder(ConnectionHolder):
 						if isinstance(res, Exception):
 							break
 					inq.task_done()
-				case (cmd, args):
-					call_method(cmd, *args, silent=silent)
 				case (cmd, args, kwargs):
 					call_method(cmd, *args, silent=silent, **kwargs)
+				case (cmd, args):
+					call_method(cmd, *args, silent=silent)
 				case cmd:
 					call_method(cmd)
 
@@ -6927,7 +6997,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 		self._increc()
 
-	@mutexed
 	def set_rule(
 		self,
 		rule: RuleName,
@@ -6940,92 +7009,19 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		neighborhood: RuleNeighborhood,
 		big: RuleBig,
 	) -> None:
-		if not self.call("have_rule", rule=rule):
-			self._inq.put(("silent", "insert1", ["rules", {"rule": rule}]))
+		if self.call(
+			"set_rule",
+			rule=rule,
+			branch=branch,
+			turn=turn,
+			tick=tick,
+			triggers=self.pack(triggers),
+			prereqs=self.pack(prereqs),
+			actions=self.pack(actions),
+			neighborhood=self.pack(neighborhood),
+			big=big,
+		):
 			self._increc()
-		self._inq.put(
-			(
-				"silent",
-				"insert1",
-				[
-					"rule_triggers",
-					{
-						"rule": rule,
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"triggers": self.pack(triggers),
-					},
-				],
-			)
-		)
-		self._inq.put(
-			(
-				"silent",
-				"insert1",
-				[
-					"rule_prereqs",
-					{
-						"rule": rule,
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"prereqs": self.pack(prereqs),
-					},
-				],
-			)
-		)
-		self._inq.put(
-			(
-				"silent",
-				"insert1",
-				[
-					"rule_actions",
-					{
-						"rule": rule,
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"actions": self.pack(actions),
-					},
-				],
-			)
-		)
-		self._inq.put(
-			(
-				"silent",
-				"insert1",
-				[
-					"rule_neighborhood",
-					{
-						"rule": rule,
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"neighborhood": self.pack(neighborhood),
-					},
-				],
-			)
-		)
-		self._inq.put(
-			(
-				"silent",
-				"insert1",
-				[
-					"rule_big",
-					{
-						"rule": rule,
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"big": big,
-					},
-				],
-			)
-		)
-		self._inq.put(("echo", "rule set"))
-		if (got := self._outq.get()) != "rule set":
-			raise RuntimeError("Failed to set rule", got)
 
 	def set_rulebook(
 		self,
@@ -7040,33 +7036,14 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		name = pack(name)
 		rules = pack(rules)
 		if self.call(
-			"have_rulebook_at_time",
-			dict(rulebook=name, branch=branch, turn=turn, tick=tick),
+			"set_rulebook",
+			rulebook=name,
+			branch=branch,
+			turn=turn,
+			tick=tick,
+			rules=rules,
+			priority=prio,
 		):
-			self.call(
-				"update_rulebooks",
-				dict(
-					rulebook=name,
-					branch=branch,
-					turn=turn,
-					tick=tick,
-					rules=rules,
-					priority=prio,
-				),
-			)
-		else:
-			self.call(
-				"insert1",
-				"rulebooks",
-				{
-					"rulebook": pack(name),
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"rules": pack(rules),
-					"priority": prio,
-				},
-			)
 			self._increc()
 
 	def _set_character_something_rulebook(
