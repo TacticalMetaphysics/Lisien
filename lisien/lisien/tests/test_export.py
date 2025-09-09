@@ -45,7 +45,7 @@ def exported(tmp_path, random_seed, non_null_database, request):
 
 
 def test_export(tmp_path, exported):
-	test_xml = os.path.join(tmp_path, "test.xml")
+	test_xml = exported  # os.path.join(tmp_path, "test.xml")
 	game_path_to_xml(tmp_path, test_xml, name="test_export")
 
 	assert filecmp.cmp(test_xml, exported)

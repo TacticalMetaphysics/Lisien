@@ -210,7 +210,7 @@ class Importer:
 				node_vals = node_val_kf[char_name] = {}
 				edge_vals = edge_val_kf[char_name] = {}
 				for key_el in subel:
-					if key_el.tag == "dict_item":
+					if key_el.tag == "dict-item":
 						key = literal_eval(key_el.get("key"))
 						graph_vals[key] = self.element_to_value(key_el[0])
 					elif key_el.tag == "node":
@@ -366,9 +366,9 @@ class Importer:
 
 	def unit(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
-		char = CharName(literal_eval(el.get("character_graph")))
-		graph = CharName(literal_eval(el.get("unit_graph")))
-		node = NodeName(literal_eval(el.get("unit_node")))
+		char = CharName(literal_eval(el.get("character-graph")))
+		graph = CharName(literal_eval(el.get("unit-graph")))
+		node = NodeName(literal_eval(el.get("unit-node")))
 		self.query.unit_set(
 			char,
 			graph,
@@ -451,16 +451,16 @@ def tree_to_db(
 			for branch_el in el:
 				parent: Branch | None = branch_el.get("parent")
 				branch = Branch(branch_el.get("name"))
-				start_turn = Turn(int(branch_el.get("start_turn")))
-				start_tick = Tick(int(branch_el.get("start_tick")))
-				end_turn = Turn(int(branch_el.get("end_turn")))
-				end_tick = Tick(int(branch_el.get("end_tick")))
+				start_turn = Turn(int(branch_el.get("start-turn")))
+				start_tick = Tick(int(branch_el.get("start-tick")))
+				end_turn = Turn(int(branch_el.get("end-turn")))
+				end_tick = Tick(int(branch_el.get("end-tick")))
 				query.set_branch(
 					branch, parent, start_turn, start_tick, end_turn, end_tick
 				)
 				try:
 					last_completed_turn = Turn(
-						int(branch_el.get("last_turn_completed"))
+						int(branch_el.get("last-turn-completed"))
 					)
 					query.complete_turn(branch, last_completed_turn, False)
 				except KeyError:
@@ -468,8 +468,8 @@ def tree_to_db(
 
 				for turn_el in branch_el:
 					turn = Turn(int(turn_el.get("number")))
-					end_tick = Tick(int(turn_el.get("end_tick")))
-					plan_end_tick = Tick(int(turn_el.get("plan_end_tick")))
+					end_tick = Tick(int(turn_el.get("end-tick")))
+					plan_end_tick = Tick(int(turn_el.get("plan-end-tick")))
 					query.set_turn(branch, turn, end_tick, plan_end_tick)
 					for elem in turn_el:
 						getattr(importer, elem.tag.replace("-", "_"))(
