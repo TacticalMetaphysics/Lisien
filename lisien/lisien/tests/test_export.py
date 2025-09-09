@@ -36,6 +36,7 @@ def exported(tmp_path, random_seed, non_null_database, request):
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if non_null_database == "sqlite"
 		else None,
+		keyframe_on_close=False,
 	) as eng:
 		install(eng)
 		for _ in range(1):
