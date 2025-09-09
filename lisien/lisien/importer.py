@@ -430,15 +430,18 @@ def tree_to_db(
 				branch = Branch(branch_el.get("name"))
 				start_turn = Turn(int(branch_el.get("start_turn")))
 				start_tick = Tick(int(branch_el.get("start_tick")))
-				last_completed_turn = Turn(
-					int(branch_el.get("last_turn_completed"))
-				)
 				end_turn = Turn(int(branch_el.get("end_turn")))
 				end_tick = Tick(int(branch_el.get("end_tick")))
 				query.set_branch(
 					branch, parent, start_turn, start_tick, end_turn, end_tick
 				)
-				query.complete_turn(branch, last_completed_turn, False)
+				try:
+					last_completed_turn = Turn(
+						int(branch_el.get("last_turn_completed"))
+					)
+					query.complete_turn(branch, last_completed_turn, False)
+				except KeyError:
+					pass
 
 				for turn_el in branch_el:
 					turn = Turn(int(turn_el.get("number")))
