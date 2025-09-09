@@ -1,6 +1,7 @@
 import os
 import sys
 from ast import literal_eval
+from functools import partialmethod
 from pathlib import Path
 from xml.etree.ElementTree import Element, ElementTree, parse
 
@@ -263,36 +264,35 @@ class Importer:
 			rules.append(RuleName(subel.get("name")))
 		self.query.set_rulebook(rulebook, branch, turn, tick, rules, priority)
 
-	def rule(self, branch_el: Element, turn_el: Element, el: Element):
+	def _rule_func_list(
+		self, what: str, branch_el: Element, turn_el: Element, el: Element
+	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
-		rule = RuleName(el.get("name"))
-		triggers = []
-		prereqs = []
-		actions = []
-		neighborhood = el.get("neighborhood") or None
+		rule = RuleName(el.get("rule"))
+		funcs = [FuncName(func_el.get("name")) for func_el in el]
+		mth = getattr(self.query, f"set_rule_{what}")
+		mth(rule, branch, turn, tick, funcs)
+
+	rule_triggers = partialmethod(_rule_func_list, "triggers")
+	rule_prereqs = partialmethod(_rule_func_list, "prereqs")
+	rule_actions = partialmethod(_rule_func_list, "actions")
+
+	def rule_neighborhood(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		nbrs = el.get("neighbors")
+		if nbrs is not None:
+			nbrs = int(nbrs)
+		self.query.set_rule_neighborhood(
+			RuleName(el.get("rule")), branch, turn, tick, nbrs
+		)
+
+	def rule_big(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		big = RuleBig(el.get("big") == "T")
-		for subel in el:
-			if subel.tag == "triggers":
-				for trigel in subel:
-					triggers.append(trigel.get("name"))
-			elif subel.tag == "prereqs":
-				for preqel in subel:
-					prereqs.append(preqel.get("name"))
-			elif subel.tag == "actions":
-				for actel in subel:
-					actions.append(actel.get("name"))
-			else:
-				raise ValueError("Don't know what to do with tag", subel.tag)
-		self.query.set_rule(
-			rule,
-			branch,
-			turn,
-			tick,
-			triggers,
-			prereqs,
-			actions,
-			neighborhood,
-			big,
+		self.query.set_rule_big(
+			RuleName(el.get("rule")), branch, turn, tick, big
 		)
 
 	def graph(self, branch_el: Element, turn_el: Element, el: Element):
