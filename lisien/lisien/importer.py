@@ -474,6 +474,7 @@ def tree_to_sqlite(
 
 	if engine is None:
 		engine = EngineFacade(None)
+		engine._mockup = True
 
 	query = SQLAlchemyQueryEngine(
 		"sqlite:///" + str(os.path.abspath(sqlite_path)),
@@ -509,6 +510,7 @@ def tree_to_pqdb(
 
 	if engine is None:
 		engine = EngineFacade(None)
+		engine._mockup = True
 
 	query = ParquetQueryEngine(
 		pqdb_path, pack=engine.pack, unpack=engine.unpack
