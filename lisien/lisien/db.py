@@ -6476,6 +6476,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 					) in kfs.items()
 				],
 			)
+			self._new_keyframes.clear()
 		self._new_keyframe_extensions()
 
 		self._inq.put(("echo", "flushed"))
