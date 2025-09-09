@@ -817,6 +817,13 @@ def query_engine_to_etree(
 
 	def recurse_branch(b: Branch):
 		parent, turn_from, tick_from, turn_to, tick_to = branches_d[b]
+		if b in turn_end_plan_d:
+			turn_to, tick_to = max(
+				[
+					(turn_to, tick_to),
+					*((r, t) for r, (_, t) in turn_end_plan_d[branch].items()),
+				]
+			)
 		data = query.load_windows(
 			[(b, turn_from, tick_from, turn_to, tick_to)]
 		)

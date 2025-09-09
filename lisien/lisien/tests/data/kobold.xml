@@ -18,7 +18,7 @@
     <int value="1" />
   </dict-item>
   <playtree game="test_export" trunk="trunk">
-    <branch name="trunk" start_turn="0" start_tick="0" last_turn_completed="1" end_turn="1" end_tick="2">
+    <branch name="trunk" start_turn="0" start_tick="0" end_turn="1" end_tick="2" last_turn_completed="1">
       <turn number="0" end_tick="116" plan_end_tick="116">
         <keyframe tick="0">
           <universal>
@@ -11963,12 +11963,24 @@
           </tuple>
         </universal>
       </turn>
-      <turn number="2" end_tick="1" plan_end_tick="1" />
-      <turn number="3" end_tick="1" plan_end_tick="1" />
-      <turn number="4" end_tick="1" plan_end_tick="1" />
-      <turn number="5" end_tick="1" plan_end_tick="1" />
-      <turn number="6" end_tick="1" plan_end_tick="1" />
-      <turn number="7" end_tick="1" plan_end_tick="1" />
+      <turn number="2" end_tick="1" plan_end_tick="1">
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 0)" />
+      </turn>
+      <turn number="3" end_tick="1" plan_end_tick="1">
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 1)" />
+      </turn>
+      <turn number="4" end_tick="1" plan_end_tick="1">
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 2)" />
+      </turn>
+      <turn number="5" end_tick="1" plan_end_tick="1">
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 3)" />
+      </turn>
+      <turn number="6" end_tick="1" plan_end_tick="1">
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 4)" />
+      </turn>
+      <turn number="7" end_tick="1" plan_end_tick="1">
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 5)" />
+      </turn>
     </branch>
   </playtree>
 </lisien>
