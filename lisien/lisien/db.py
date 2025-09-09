@@ -62,7 +62,7 @@ from .types import (
 	EdgeKeyframe,
 	EdgeRowType,
 	EdgeValRowType,
-	GraphRowType,
+	UnitRowType,
 	GraphValKeyframe,
 	GraphValRowType,
 	Key,
@@ -3072,6 +3072,7 @@ LoadedCharWindow: TypeAlias = dict[
 		"node_val",
 		"edge_val",
 		"things",
+		"units",
 		"character_rulebook",
 		"unit_rulebook",
 		"character_thing_rulebook",
@@ -3086,6 +3087,7 @@ LoadedCharWindow: TypeAlias = dict[
 	| list[NodeValRowType]
 	| list[EdgeValRowType]
 	| list[ThingRowType]
+	| list[UnitRowType]
 	| list[CharRulebookRowType]
 	| list[NodeRulebookRowType]
 	| list[PortalRulebookRowType],
@@ -3532,6 +3534,7 @@ class AbstractQueryEngine(ABC):
 		"node_val",
 		"edge_val",
 		"things",
+		"units",
 		"character_rulebook",
 		"unit_rulebook",
 		"character_thing_rulebook",
@@ -3961,6 +3964,36 @@ class AbstractQueryEngine(ABC):
 				"Expected end of things",
 				got,
 			)
+		outq.task_done()
+		if (got := outq.get()) != (
+			"begin",
+			"units",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of units", got)
+		outq.task_done()
+		while isinstance((got := outq.get()), list):
+			got: list[tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]]
+			for char, graph, node, turn, tick, is_unit in got:
+				(char, graph, node) = map(unpack, (char, graph, node))
+				ret[graph]["units"].append(
+					(char, graph, node, branch, turn, tick, is_unit)
+				)
+			outq.task_done()
+		if got != (
+			"end",
+			"units",
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected end of units", got)
 		outq.task_done()
 		if (got := outq.get()) != (
 			"begin",
@@ -5098,6 +5131,7 @@ class AbstractQueryEngine(ABC):
 			node_val_l: list[NodeValRowType] = []
 			edge_val_l: list[EdgeValRowType] = []
 			things_l: list[ThingRowType] = []
+			units_l: list[UnitRowType] = []
 			character_rulebook_l: list[CharRulebookRowType] = []
 			unit_rulebook_l: list[CharRulebookRowType] = []
 			char_thing_rulebook_l: list[CharRulebookRowType] = []
@@ -5112,6 +5146,7 @@ class AbstractQueryEngine(ABC):
 				"node_val": node_val_l,
 				"edge_val": edge_val_l,
 				"things": things_l,
+				"units": units_l,
 				"character_rulebook": character_rulebook_l,
 				"unit_rulebook": unit_rulebook_l,
 				"character_thing_rulebook": char_thing_rulebook_l,
@@ -8757,8 +8792,18 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		is_unit: bool,
 	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]:
-		(character, graph, node) = map(self.pack, (character, graph, node))
-		return character, graph, node, branch, turn, tick, is_unit
+		(character_graph, unit_graph, unit_node) = map(
+			self.pack, (character_graph, unit_graph, unit_node)
+		)
+		return (
+			character_graph,
+			unit_graph,
+			unit_node,
+			branch,
+			turn,
+			tick,
+			is_unit,
+		)
 
 	@sqlbatch("things")
 	def _location(
