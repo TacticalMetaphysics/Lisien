@@ -8418,7 +8418,7 @@ class SQLAlchemyBatch(list):
 		return starmap(self._serialize_record, super().__iter__())
 
 	def __getitem__(self, item: int):
-		return self._serialize_record(super().__getitem__(item))
+		return self._serialize_record(*super().__getitem__(item))
 
 
 def sqlbatch(table: str, serialize_record: callable = None):
