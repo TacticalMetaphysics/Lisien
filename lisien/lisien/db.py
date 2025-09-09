@@ -2934,64 +2934,13 @@ class ParquetDBHolder(ConnectionHolder):
 			]
 		)
 
-	def set_rule(
-		self,
-		rule: str,
-		branch: str,
-		turn: int,
-		tick: int,
-		triggers: bytes,
-		prereqs: bytes,
-		actions: bytes,
-		neighborhood: bytes,
-		big: bool,
-	) -> bool:
-		from pyarrow import compute as pc
+	def create_rule(self, rule: RuleName) -> bool:
+		import pyarrow.compute as pc
 
 		db = self._get_db("rules")
-		named_data = [
-			("triggers", triggers),
-			("prereqs", prereqs),
-			("actions", actions),
-			("neighborhood", neighborhood),
-			("big", big),
-		]
 		create = not bool(db.read(filters=[pc.field("rule") == rule]).num_rows)
 		if create:
 			db.create([{"rule": rule}])
-			for name, data in named_data:
-				datum = {
-					"rule": rule,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-				}
-				datum[name] = data
-				self._get_db(f"rule_{name}").create([datum])
-		else:
-			for name, data in named_data:
-				db = self._get_db(f"rule_{name}")
-				extant = db.read(filters=[pc.field("rule") == rule])
-				if extant.num_rows:
-					id_ = extant["id"][0].as_py()
-					datum = {
-						"id": id_,
-						"rule": rule,
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-					}
-					datum[name] = data
-					db.update([datum])
-				else:
-					datum = {
-						"rule": rule,
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-					}
-					datum[name] = data
-					db.create([datum])
 		return create
 
 	def set_rulebook(
@@ -4815,7 +4764,7 @@ class AbstractQueryEngine(ABC):
 
 	@abstractmethod
 	def count_all_table(self, tbl: str) -> int:
-		pass
+		pas
 
 	@abstractmethod
 	def set_rule_triggers(
@@ -4873,18 +4822,10 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def set_rule(
+	def create_rule(
 		self,
 		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		triggers: list[TriggerFuncName],
-		prereqs: list[PrereqFuncName],
-		actions: list[ActionFuncName],
-		neighborhood: RuleNeighborhood,
-		big: RuleBig,
-	):
+	) -> bool:
 		pass
 
 	@abstractmethod
@@ -5757,6 +5698,9 @@ class NullQueryEngine(AbstractQueryEngine):
 	def count_all_table(self, tbl: str) -> int:
 		pass
 
+	def create_rule(self, name) -> bool:
+		return False
+
 	def set_rule_triggers(
 		self,
 		rule: RuleName,
@@ -5805,20 +5749,6 @@ class NullQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		big: RuleBig,
 	) -> None:
-		pass
-
-	def set_rule(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		triggers: list[TriggerFuncName],
-		prereqs: list[PrereqFuncName],
-		actions: list[ActionFuncName],
-		neighborhood: RuleNeighborhood,
-		big: bool,
-	):
 		pass
 
 	def set_rulebook(
@@ -7013,31 +6943,17 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 		self._increc()
 
-	def set_rule(
+	def create_rule(
 		self,
 		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		triggers: list[TriggerFuncName],
-		prereqs: list[PrereqFuncName],
-		actions: list[ActionFuncName],
-		neighborhood: RuleNeighborhood,
-		big: RuleBig,
 	) -> None:
 		if self.call(
-			"set_rule",
+			"create_rule",
 			rule=rule,
-			branch=branch,
-			turn=turn,
-			tick=tick,
-			triggers=self.pack(triggers),
-			prereqs=self.pack(prereqs),
-			actions=self.pack(actions),
-			neighborhood=self.pack(neighborhood),
-			big=big,
 		):
 			self._increc()
+			return True
+		return False
 
 	def set_rulebook(
 		self,
@@ -10365,28 +10281,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self.call_one("rule_big_insert", rule, branch, turn, tick, big)
 		self._increc()
 
-	def set_rule(
-		self,
-		rule,
-		branch,
-		turn,
-		tick,
-		triggers=None,
-		prereqs=None,
-		actions=None,
-		neighborhood=None,
-		big=False,
-	):
+	def create_rule(self, rule: RuleName) -> bool:
 		try:
 			self.call_one("rules_insert", rule)
-			self._increc()
+			return True
 		except IntegrityError:
-			pass
-		self.set_rule_triggers(rule, branch, turn, tick, triggers or [])
-		self.set_rule_prereqs(rule, branch, turn, tick, prereqs or [])
-		self.set_rule_actions(rule, branch, turn, tick, actions or [])
-		self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
-		self.set_rule_big(rule, branch, turn, tick, big)
+			return False
 
 	def set_rulebook(
 		self,

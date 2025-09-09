@@ -389,17 +389,20 @@ class Rule:
 			triggers = list(self._fun_names_iter("trigger", triggers or []))
 			prereqs = list(self._fun_names_iter("prereq", prereqs or []))
 			actions = list(self._fun_names_iter("action", actions or []))
-			self.engine.query.set_rule(
-				name,
-				branch,
-				turn,
-				tick,
-				triggers,
-				prereqs,
-				actions,
-				neighborhood,
-				big,
+			self.engine.query.create_rule(name)
+			self.engine.query.set_rule_triggers(
+				name, branch, turn, tick, triggers
 			)
+			self.engine.query.set_rule_prereqs(
+				name, branch, turn, tick, prereqs
+			)
+			self.engine.query.set_rule_actions(
+				name, branch, turn, tick, actions
+			)
+			self.engine.query.set_rule_neighborhood(
+				name, branch, turn, tick, neighborhood
+			)
+			self.engine.query.set_rule_big(name, branch, turn, tick, big)
 			self.engine._triggers_cache.store(
 				name, branch, turn, tick, triggers
 			)
