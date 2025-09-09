@@ -362,7 +362,6 @@ class Importer:
 	def _some_character_rulebook(
 		self, branch_el: Element, turn_el: Element, rbtyp: str, el: Element
 	):
-		assert el.tag == rbtyp
 		meth = getattr(self.query, f"set_{rbtyp}")
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
