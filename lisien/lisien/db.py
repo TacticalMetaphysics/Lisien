@@ -9944,10 +9944,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		return self._rule_dump("actions")
 
 	def rule_neighborhood_dump(self):
-		return self._rule_dump("neighborhood")
+		self.flush()
+		return self.call_one("rule_neighborhood_dump")
 
 	def rule_big_dump(self):
-		return self._rule_dump("big")
+		self.flush()
+		return self.call_one("rule_big_dump")
 
 	def node_rulebook_dump(self):
 		self.flush()
