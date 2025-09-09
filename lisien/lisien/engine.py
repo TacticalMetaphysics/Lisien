@@ -3449,18 +3449,15 @@ class Engine(AbstractEngine, Executor):
 		if "rulebooks" in delta:
 			rulebooks_keyframe.update(delta["rulebooks"])
 		for rule, funcs in delta.get("rules", {}).items():
-			triggers_keyframe[rule] = funcs.get(
-				"triggers", triggers_keyframe.get(rule, [])
-			)
-			prereqs_keyframe[rule] = funcs.get(
-				"prereqs", prereqs_keyframe.get(rule, [])
-			)
-			actions_keyframe[rule] = funcs.get(
-				"actions", actions_keyframe.get(rule, [])
-			)
-			if "neighborhood" in funcs:
+			if "triggers" in funcs and funcs["triggers"]:
+				triggers_keyframe[rule] = funcs["triggers"]
+			if "prereqs" in funcs and funcs["prereqs"]:
+				prereqs_keyframe[rule] = funcs["prereqs"]
+			if "actions" in funcs and funcs["actions"]:
+				actions_keyframe[rule] = funcs["actions"]
+			if "neighborhood" in funcs and funcs["neighborhood"] is not None:
 				neighborhoods_keyframe[rule] = funcs["neighborhood"]
-			if "big" in funcs:
+			if "big" in funcs and funcs["big"]:
 				bigs[rule] = funcs["big"]
 		things_keyframe = {}
 		nodes_rulebooks_keyframe = {}
@@ -6633,35 +6630,45 @@ class Engine(AbstractEngine, Executor):
 		bigs = {}
 		for rule in rulenames:
 			try:
-				trigs[rule] = self._triggers_cache.retrieve(
+				triggers = self._triggers_cache.retrieve(
 					rule, branch, turn, tick
 				)
+				if triggers:
+					trigs[rule] = triggers
 			except KeyError:
-				trigs[rule] = tuple()
+				pass
 			try:
-				preqs[rule] = self._prereqs_cache.retrieve(
+				prereqs = self._prereqs_cache.retrieve(
 					rule, branch, turn, tick
 				)
+				if prereqs:
+					preqs[rule] = prereqs
 			except KeyError:
-				preqs[rule] = tuple()
+				pass
 			try:
-				acts[rule] = self._actions_cache.retrieve(
+				actions = self._actions_cache.retrieve(
 					rule, branch, turn, tick
 				)
+				if actions:
+					acts[rule] = actions
 			except KeyError:
-				acts[rule] = tuple()
+				pass
 			try:
-				nbrs[rule] = self._neighborhoods_cache.retrieve(
+				neighbors = self._neighborhoods_cache.retrieve(
 					rule, branch, turn, tick
 				)
+				if neighbors is not None:
+					nbrs[rule] = neighbors
 			except KeyError:
-				nbrs[rule] = None
+				pass
 			try:
-				bigs[rule] = self._rule_bigness_cache.retrieve(
+				big = self._rule_bigness_cache.retrieve(
 					rule, branch, turn, tick
 				)
+				if big:
+					bigs[rule] = big
 			except KeyError:
-				bigs[rule] = False
+				pass
 		self._triggers_cache.set_keyframe(branch, turn, tick, trigs)
 		self._prereqs_cache.set_keyframe(branch, turn, tick, preqs)
 		self._actions_cache.set_keyframe(branch, turn, tick, acts)

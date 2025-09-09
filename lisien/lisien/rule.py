@@ -145,7 +145,12 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 		return v
 
 	def _get(self) -> list[RuleFuncName]:
-		return self._cache.retrieve(self.rule.name, *self.rule.engine._btt())
+		try:
+			return self._cache.retrieve(
+				self.rule.name, *self.rule.engine._btt()
+			)
+		except KeyError:
+			return []
 
 	def _set(self, v: list[RuleFuncName]) -> None:
 		branch, turn, tick = self.rule.engine._nbtt()
