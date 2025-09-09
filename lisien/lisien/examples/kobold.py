@@ -199,30 +199,3 @@ def inittest(
 			"destination" not in thing
 			or thing["destination"] == thing.location
 		)
-
-
-if __name__ == "__main__":
-	import shutil
-	from tempfile import TemporaryDirectory
-
-	from lisien.engine import Engine
-	from lisien.exporter import sqlite_to_xml
-
-	with TemporaryDirectory() as td:
-		with Engine(
-			td,
-			random_seed=69105,
-			connect_string=f"sqlite:///{td}/world.sqlite3",
-			workers=0,
-		) as engine:
-			inittest(engine, shrubberies=20, kobold_sprint_chance=0.9)
-			engine.commit()
-			print(
-				"shrub_places beginning: {}".format(
-					engine.character["physical"].thing["kobold"][
-						"shrub_places"
-					]
-				)
-			)
-		archive_name = "kobold_export.xml"
-		print("Exported to " + str(archive_name))
