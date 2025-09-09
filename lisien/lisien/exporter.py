@@ -775,10 +775,13 @@ def query_engine_to_etree(
 				name=branch,
 				start_turn="0",
 				start_tick="0",
-				last_turn_completed=str(turns_completed_d[branch]),
 				end_turn=str(end_turn),
 				end_tick=str(end_tick),
 			)
+			if branch in turns_completed_d:
+				branch_element.set(
+					"last_turn_completed", str(turns_completed_d[branch])
+				)
 			root.append(playtree)
 			playtree.append(branch_element)
 		else:
