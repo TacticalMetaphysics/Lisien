@@ -218,7 +218,7 @@ class TriggerList(RuleFuncList):
 		return self.rule.engine.trigger
 
 	@cached_property
-	def _cache(self) -> InitializedEntitylessCache:
+	def _cache(self) -> FuncListCache:
 		return self.rule.engine._triggers_cache
 
 	@cached_property
@@ -236,7 +236,7 @@ class PrereqList(RuleFuncList):
 		return self.rule.engine.prereq
 
 	@cached_property
-	def _cache(self) -> InitializedEntitylessCache:
+	def _cache(self) -> FuncListCache:
 		return self.rule.engine._prereqs_cache
 
 	@cached_property
@@ -254,7 +254,7 @@ class ActionList(RuleFuncList):
 		return self.rule.engine.action
 
 	@cached_property
-	def _cache(self) -> InitializedEntitylessCache:
+	def _cache(self) -> FuncListCache:
 		return self.rule.engine._actions_cache
 
 	@cached_property
