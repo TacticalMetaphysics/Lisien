@@ -539,7 +539,7 @@ class ParquetDBHolder(ConnectionHolder):
 		except Exception as ex:
 			return ex
 
-	def set_rulebook_on_character(
+	def _set_rulebook_on_character(
 		self,
 		rbtyp: RulebookTypeStr,
 		char: CharName,
@@ -5030,18 +5030,6 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def set_rulebook_on_character(
-		self,
-		rbtyp: str,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	):
-		pass
-
-	@abstractmethod
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]: ...
 
 	@abstractmethod
@@ -5954,17 +5942,6 @@ class NullQueryEngine(AbstractQueryEngine):
 	):
 		pass
 
-	def set_rulebook_on_character(
-		self,
-		rbtyp: str,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	):
-		pass
-
 	def _put_window_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	):
@@ -6138,26 +6115,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		)
 
 	new_character = graphs_insert = new_graph
-
-	def set_rulebook_on_character(
-		self,
-		rbtyp: str,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	):
-		pack = self.pack
-		self.call(
-			"set_rulebook_on_character",
-			rbtyp,
-			pack(char),
-			branch,
-			turn,
-			tick,
-			pack(rb),
-		)
 
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -10362,7 +10319,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			self.call_one("rulebooks_update", rules, name, branch, turn, tick)
 			# not incrementing because this didn't create a new record
 
-	def set_rulebook_on_character(
+	def _set_rulebook_on_character(
 		self,
 		rbtyp: RulebookTypeStr,
 		char: CharName,
@@ -10376,19 +10333,19 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._increc()
 
 	set_character_rulebook = partialmethod(
-		set_rulebook_on_character, "character_rulebook"
+		_set_rulebook_on_character, "character_rulebook"
 	)
 	set_unit_rulebook = partialmethod(
-		set_rulebook_on_character, "unit_rulebook"
+		_set_rulebook_on_character, "unit_rulebook"
 	)
 	set_character_thing_rulebook = partialmethod(
-		set_rulebook_on_character, "character_thing_rulebook"
+		_set_rulebook_on_character, "character_thing_rulebook"
 	)
 	set_character_place_rulebook = partialmethod(
-		set_rulebook_on_character, "character_place_rulebook"
+		_set_rulebook_on_character, "character_place_rulebook"
 	)
 	set_character_portal_rulebook = partialmethod(
-		set_rulebook_on_character, "character_portal_rulebook"
+		_set_rulebook_on_character, "character_portal_rulebook"
 	)
 
 	def rulebooks(self):
