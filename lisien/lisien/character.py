@@ -38,7 +38,7 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from itertools import chain
 from types import MethodType
-from typing import TYPE_CHECKING, Iterable, Iterator
+from typing import TYPE_CHECKING, Iterable, Iterator, Callable
 
 import networkx as nx
 from blinker import Signal
@@ -65,6 +65,10 @@ from .types import (
 	RulebookTypeStr,
 	Stat,
 	StatDict,
+	Branch,
+	Turn,
+	Tick,
+	RulebookName,
 )
 from .util import AbstractCharacter, getatt, singleton_get, timer
 from .wrap import MutableMappingUnwrapper, SpecialMapping
@@ -148,20 +152,24 @@ class RuleFollower(BaseRuleFollower):
 	def _get_rulebook_cache(self):
 		pass
 
-	def _get_rulebook_name(self):
+	def _get_rulebook_name(self) -> RulebookName:
 		try:
 			return self._get_rulebook_cache().retrieve(
 				self.character.name, *self.engine._btt()
 			)
 		except KeyError:
-			ret = (self._book + "_rulebook", self.character.name)
+			ret = RulebookName(
+				Key((self._book + "_rulebook", self.character.name))
+			)
 			self._set_rulebook_name(ret)
 			return ret
 
-	def _set_rulebook_name(self, n):
+	def _set_rulebook_name(self, n: RulebookName):
 		branch, turn, tick = self.engine._nbtt()
-		self.engine.query.set_rulebook_on_character(
-			self._book + "_rulebook",
+		set_rb: Callable[
+			[CharName, Branch, Turn, Tick, RulebookName], None
+		] = getattr(self.engine.query, f"set_{self._book}_rulebook")
+		set_rb(
 			self.character.name,
 			branch,
 			turn,
@@ -260,10 +268,11 @@ class Character(AbstractCharacter, RuleFollower):
 		}
 		branch, turn, tick = engine._btt()
 		for rulebook, cache in cachemap.items():
-			rulebook_name = (rulebook, name)
-			engine.query.set_rulebook_on_character(
-				rulebook, name, branch, turn, tick, rulebook_name
-			)
+			rulebook_name = RulebookName(Key((rulebook, name)))
+			set_rb: Callable[
+				[CharName, Branch, Turn, Tick, RulebookName], None
+			] = getattr(engine.query, f"set_{rulebook}")
+			set_rb(name, branch, turn, tick, rulebook_name)
 			cache.store(name, branch, turn, tick, rulebook_name)
 
 	class ThingMapping(
