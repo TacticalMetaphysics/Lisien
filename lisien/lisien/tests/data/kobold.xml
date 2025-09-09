@@ -2759,6 +2759,7 @@
         <rule-actions rule="shrubsprint" tick="90">
           <action name="shrubsprint" />
         </rule-actions>
+        <rule-neighborhood rule="shrubsprint" />
         <rule-big rule="shrubsprint" tick="90" big="F" />
         <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
           <rule name="shrubsprint" />
@@ -2780,6 +2781,7 @@
         <rule-actions rule="fight" tick="96">
           <action name="fight" />
         </rule-actions>
+        <rule-neighborhood rule="fight" />
         <rule-big rule="fight" tick="96" big="F" />
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
           <rule name="fight" />
@@ -2800,6 +2802,7 @@
         <rule-actions rule="kill_kobold" tick="102">
           <action name="kill_kobold" />
         </rule-actions>
+        <rule-neighborhood rule="kill_kobold" />
         <rule-big rule="kill_kobold" tick="102" big="F" />
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="103">
           <rule name="fight" />
@@ -2817,6 +2820,7 @@
         <rule-actions rule="go2kobold" tick="107">
           <action name="go2kobold" />
         </rule-actions>
+        <rule-neighborhood rule="go2kobold" />
         <rule-big rule="go2kobold" tick="107" big="F" />
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="108">
           <rule name="fight" />
@@ -2839,6 +2843,7 @@
         <rule-actions rule="wander" tick="113">
           <action name="wander" />
         </rule-actions>
+        <rule-neighborhood rule="wander" />
         <rule-big rule="wander" tick="113" big="F" />
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="114">
           <rule name="fight" />
