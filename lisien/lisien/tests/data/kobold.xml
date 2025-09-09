@@ -2754,198 +2754,102 @@
           </list>
         </node-val>
         <node-rulebook character="'physical'" node="'kobold'" tick="89" rulebook="('physical', 'kobold')" />
-        <rule name="shrubsprint" tick="90" big="F">
-          <actions>
-            <action name="shrubsprint" />
-          </actions>
-        </rule>
+        <rule-triggers rule="shrubsprint" tick="90" />
+        <rule-prereqs rule="shrubsprint" tick="90" />
+        <rule-actions rule="shrubsprint" tick="90">
+          <action name="shrubsprint" />
+        </rule-actions>
+        <rule-big rule="shrubsprint" tick="90" big="F" />
         <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
           <rule name="shrubsprint" />
         </rulebook>
-        <rule name="shrubsprint" tick="92" big="F">
-          <actions>
-            <action name="shrubsprint" />
-          </actions>
-        </rule>
-        <rule name="shrubsprint" tick="93" big="F">
-          <triggers>
-            <trigger name="uncovered" />
-          </triggers>
-          <actions>
-            <action name="shrubsprint" />
-          </actions>
-        </rule>
-        <rule name="shrubsprint" tick="94" big="F">
-          <triggers>
-            <trigger name="uncovered" />
-          </triggers>
-          <prereqs>
-            <prereq name="breakcover" />
-          </prereqs>
-          <actions>
-            <action name="shrubsprint" />
-          </actions>
-        </rule>
-        <rule name="shrubsprint" tick="95" big="F">
-          <triggers>
-            <trigger name="uncovered" />
-          </triggers>
-          <prereqs>
-            <prereq name="breakcover" />
-            <prereq name="not_traveling" />
-          </prereqs>
-          <actions>
-            <action name="shrubsprint" />
-          </actions>
-        </rule>
+        <rule-big rule="shrubsprint" tick="92" big="F" />
+        <rule-triggers rule="shrubsprint" tick="93">
+          <trigger name="uncovered" />
+        </rule-triggers>
+        <rule-prereqs rule="shrubsprint" tick="94">
+          <prereq name="breakcover" />
+        </rule-prereqs>
+        <rule-prereqs rule="shrubsprint" tick="95">
+          <prereq name="breakcover" />
+          <prereq name="not_traveling" />
+        </rule-prereqs>
         <node-rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')" />
-        <rule name="fight" tick="96" big="F">
-          <actions>
-            <action name="fight" />
-          </actions>
-        </rule>
+        <rule-triggers rule="fight" tick="96" />
+        <rule-prereqs rule="fight" tick="96" />
+        <rule-actions rule="fight" tick="96">
+          <action name="fight" />
+        </rule-actions>
+        <rule-big rule="fight" tick="96" big="F" />
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
           <rule name="fight" />
         </rulebook>
-        <rule name="fight" tick="98" big="F">
-          <actions>
-            <action name="fight" />
-          </actions>
-        </rule>
-        <rule name="fight" tick="99" big="F">
-          <triggers>
-            <trigger name="sametile" />
-          </triggers>
-          <actions>
-            <action name="fight" />
-          </actions>
-        </rule>
-        <rule name="fight" tick="100" big="F">
-          <triggers>
-            <trigger name="sametile" />
-          </triggers>
-          <prereqs>
-            <prereq name="kobold_alive" />
-          </prereqs>
-          <actions>
-            <action name="fight" />
-          </actions>
-        </rule>
-        <rule name="fight" tick="101" big="F">
-          <triggers>
-            <trigger name="sametile" />
-          </triggers>
-          <prereqs>
-            <prereq name="kobold_alive" />
-            <prereq name="aware" />
-          </prereqs>
-          <actions>
-            <action name="fight" />
-          </actions>
-        </rule>
-        <rule name="kill_kobold" tick="102" big="F">
-          <actions>
-            <action name="kill_kobold" />
-          </actions>
-        </rule>
+        <rule-big rule="fight" tick="98" big="F" />
+        <rule-triggers rule="fight" tick="99">
+          <trigger name="sametile" />
+        </rule-triggers>
+        <rule-prereqs rule="fight" tick="100">
+          <prereq name="kobold_alive" />
+        </rule-prereqs>
+        <rule-prereqs rule="fight" tick="101">
+          <prereq name="kobold_alive" />
+          <prereq name="aware" />
+        </rule-prereqs>
+        <rule-triggers rule="kill_kobold" tick="102" />
+        <rule-prereqs rule="kill_kobold" tick="102" />
+        <rule-actions rule="kill_kobold" tick="102">
+          <action name="kill_kobold" />
+        </rule-actions>
+        <rule-big rule="kill_kobold" tick="102" big="F" />
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="103">
           <rule name="fight" />
           <rule name="kill_kobold" />
         </rulebook>
-        <rule name="kill_kobold" tick="104" big="F">
-          <actions>
-            <action name="kill_kobold" />
-          </actions>
-        </rule>
-        <rule name="kill_kobold" tick="105" big="F">
-          <triggers>
-            <trigger name="kobold_alive" />
-          </triggers>
-          <actions>
-            <action name="kill_kobold" />
-          </actions>
-        </rule>
-        <rule name="kill_kobold" tick="106" big="F">
-          <triggers>
-            <trigger name="kobold_alive" />
-          </triggers>
-          <prereqs>
-            <prereq name="unmerciful" />
-          </prereqs>
-          <actions>
-            <action name="kill_kobold" />
-          </actions>
-        </rule>
-        <rule name="go2kobold" tick="107" big="F">
-          <actions>
-            <action name="go2kobold" />
-          </actions>
-        </rule>
+        <rule-big rule="kill_kobold" tick="104" big="F" />
+        <rule-triggers rule="kill_kobold" tick="105">
+          <trigger name="kobold_alive" />
+        </rule-triggers>
+        <rule-prereqs rule="kill_kobold" tick="106">
+          <prereq name="unmerciful" />
+        </rule-prereqs>
+        <rule-triggers rule="go2kobold" tick="107" />
+        <rule-prereqs rule="go2kobold" tick="107" />
+        <rule-actions rule="go2kobold" tick="107">
+          <action name="go2kobold" />
+        </rule-actions>
+        <rule-big rule="go2kobold" tick="107" big="F" />
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="108">
           <rule name="fight" />
           <rule name="kill_kobold" />
           <rule name="go2kobold" />
         </rulebook>
-        <rule name="go2kobold" tick="109" big="F">
-          <actions>
-            <action name="go2kobold" />
-          </actions>
-        </rule>
-        <rule name="go2kobold" tick="110" big="F">
-          <triggers>
-            <trigger name="aware" />
-          </triggers>
-          <actions>
-            <action name="go2kobold" />
-          </actions>
-        </rule>
-        <rule name="go2kobold" tick="111" big="F">
-          <triggers>
-            <trigger name="aware" />
-          </triggers>
-          <prereqs>
-            <prereq name="kobold_alive" />
-          </prereqs>
-          <actions>
-            <action name="go2kobold" />
-          </actions>
-        </rule>
-        <rule name="go2kobold" tick="112" big="F">
-          <triggers>
-            <trigger name="aware" />
-          </triggers>
-          <prereqs>
-            <prereq name="kobold_alive" />
-            <prereq name="kobold_not_here" />
-          </prereqs>
-          <actions>
-            <action name="go2kobold" />
-          </actions>
-        </rule>
-        <rule name="wander" tick="113" big="F">
-          <actions>
-            <action name="wander" />
-          </actions>
-        </rule>
+        <rule-big rule="go2kobold" tick="109" big="F" />
+        <rule-triggers rule="go2kobold" tick="110">
+          <trigger name="aware" />
+        </rule-triggers>
+        <rule-prereqs rule="go2kobold" tick="111">
+          <prereq name="kobold_alive" />
+        </rule-prereqs>
+        <rule-prereqs rule="go2kobold" tick="112">
+          <prereq name="kobold_alive" />
+          <prereq name="kobold_not_here" />
+        </rule-prereqs>
+        <rule-triggers rule="wander" tick="113" />
+        <rule-prereqs rule="wander" tick="113" />
+        <rule-actions rule="wander" tick="113">
+          <action name="wander" />
+        </rule-actions>
+        <rule-big rule="wander" tick="113" big="F" />
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="114">
           <rule name="fight" />
           <rule name="kill_kobold" />
           <rule name="go2kobold" />
           <rule name="wander" />
         </rulebook>
-        <rule name="wander" tick="115" big="F">
-          <actions>
-            <action name="wander" />
-          </actions>
-        </rule>
-        <rule name="wander" tick="116" big="F">
-          <triggers>
-            <trigger name="standing_still" />
-          </triggers>
-          <actions>
-            <action name="wander" />
-          </actions>
-        </rule>
+        <rule-big rule="wander" tick="115" big="F" />
+        <rule-triggers rule="wander" tick="116">
+          <trigger name="standing_still" />
+        </rule-triggers>
       </turn>
       <turn number="1" end_tick="2" plan_end_tick="2">
         <universal key="'rando_state'" tick="1">
