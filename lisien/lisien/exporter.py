@@ -254,14 +254,14 @@ def add_keyframe_to_turn_el(
 		rule_el = Element(
 			"rule",
 			name=rule_name,
-			big="T" if bigs_kf.get(rule_name) else "F",
 		)
 		kfel.append(rule_el)
-		if rule_name in neighborhoods_kf:
-			neighborhood = neighborhoods_kf[rule_name]
+		if rule_name in bigs_kf and bigs_kf[rule_name]:
+			rule_el.set("big", "T")
+		if rule_name in neighborhoods_kf and neighborhoods_kf[rule_name]:
 			rule_el.set(
 				"neighborhood",
-				"" if neighborhood is None else str(neighborhood),
+				str(neighborhoods_kf[rule_name]),
 			)
 		if trigs := triggers_kf.get(rule_name):
 			for trig in trigs:
