@@ -6941,7 +6941,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._increc(
 			self.call(
 				"set_rule",
-				{
+				**{
 					"rule": rule,
 					"branch": branch,
 					"turn": turn,
@@ -6962,7 +6962,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._increc(
 			self.call(
 				"set_rule",
-				{
+				**{
 					"rule": rule,
 					"branch": branch,
 					"turn": turn,
@@ -6983,7 +6983,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._increc(
 			self.call(
 				"set_rule",
-				{
+				**{
 					"rule": rule,
 					"branch": branch,
 					"turn": turn,
@@ -7003,9 +7003,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	):
 		self._increc(
 			self.call(
-				"insert1",
-				"rule_neighborhood",
-				{
+				"set_rule",
+				**{
 					"rule": rule,
 					"branch": branch,
 					"turn": turn,
@@ -7027,7 +7026,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			self.call(
 				"insert1",
 				"rule_big",
-				{
+				**{
 					"rule": rule,
 					"branch": branch,
 					"turn": turn,
