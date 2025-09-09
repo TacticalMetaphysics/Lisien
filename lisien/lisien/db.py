@@ -2379,6 +2379,52 @@ class ParquetDBHolder(ConnectionHolder):
 			"big", branch, turn_from, tick_from, turn_to, tick_to
 		)
 
+	def set_rule(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: bytes | ... = ...,
+		prereqs: bytes | ... = ...,
+		actions: bytes | ... = ...,
+		neighborhood: bool | ... = ...,
+		big: bool | ... = ...,
+	):
+		import pyarrow.compute as pc
+
+		the_rule_filters = [
+			pc.field("rule") == rule,
+			pc.field("branch") == branch,
+			pc.field("turn") == turn,
+			pc.field("tick") == tick,
+		]
+		basic_datum = {
+			"rule": rule,
+			"branch": branch,
+			"turn": turn,
+			"tick": tick,
+		}
+		increc = 0
+		for functyp, data in [
+			("triggers", triggers),
+			("prereqs", prereqs),
+			("actions", actions),
+			("neighborhood", neighborhood),
+			("big", big),
+		]:
+			if data is not ...:
+				db = self._get_db(f"rule_{functyp}")
+				extant = db.read(filters=the_rule_filters)
+				datum = {functyp: data, **basic_datum}
+				if extant.num_rows:
+					datum["id"] = extant[0]["id"].as_py()
+					db.update([datum])
+				else:
+					db.create([datum])
+					increc += 1
+		return increc
+
 	def load_character_rules_handled_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, bytes, RuleName, Turn, Tick]]:
@@ -3652,7 +3698,7 @@ class AbstractQueryEngine(ABC):
 		for window in windows:
 			self._get_one_window(ret, *window)
 
-	def _increc(self):
+	def _increc(self, n: int = 1):
 		"""Snap a keyframe, if the keyframe interval has passed.
 
 		But the engine can override this behavior when it'd be impractical,
@@ -3660,7 +3706,11 @@ class AbstractQueryEngine(ABC):
 		until next we get a falsy result from the override function.
 
 		"""
-		self._records += 1
+		if n == 0:
+			return
+		if n < 0:
+			raise ValueError("Don't reduce the count of written records")
+		self._records += n
 		override: bool | None = self.kf_interval_override()
 		if override:
 			self._kf_interval_overridden = True
@@ -6888,18 +6938,18 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		flist: list[TriggerFuncName],
 	):
-		self.call(
-			"insert1",
-			"rule_triggers",
-			{
-				"rule": rule,
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"triggers": self.pack(flist),
-			},
+		self._increc(
+			self.call(
+				"set_rule",
+				{
+					"rule": rule,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"triggers": self.pack(flist),
+				},
+			)
 		)
-		self._increc()
 
 	def set_rule_prereqs(
 		self,
@@ -6909,18 +6959,18 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		flist: list[PrereqFuncName],
 	):
-		self.call(
-			"insert1",
-			"rule_prereqs",
-			{
-				"rule": rule,
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"prereqs": self.pack(flist),
-			},
+		self._increc(
+			self.call(
+				"set_rule",
+				{
+					"rule": rule,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"prereqs": self.pack(flist),
+				},
+			)
 		)
-		self._increc()
 
 	def set_rule_actions(
 		self,
@@ -6930,18 +6980,18 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		flist: list[ActionFuncName],
 	):
-		self.call(
-			"insert1",
-			"rule_actions",
-			{
-				"rule": rule,
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"actions": self.pack(flist),
-			},
+		self._increc(
+			self.call(
+				"set_rule",
+				{
+					"rule": rule,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"actions": self.pack(flist),
+				},
+			)
 		)
-		self._increc()
 
 	def set_rule_neighborhood(
 		self,
@@ -6951,18 +7001,19 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		neighborhood: RuleNeighborhood,
 	):
-		self.call(
-			"insert1",
-			"rule_neighborhood",
-			{
-				"rule": rule,
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"neighborhood": self.pack(neighborhood),
-			},
+		self._increc(
+			self.call(
+				"insert1",
+				"rule_neighborhood",
+				{
+					"rule": rule,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"neighborhood": self.pack(neighborhood),
+				},
+			)
 		)
-		self._increc()
 
 	def set_rule_big(
 		self,
@@ -6972,18 +7023,19 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		big: RuleBig,
 	) -> None:
-		self.call(
-			"insert1",
-			"rule_big",
-			{
-				"rule": rule,
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"big": big,
-			},
+		self._increc(
+			self.call(
+				"insert1",
+				"rule_big",
+				{
+					"rule": rule,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+					"big": big,
+				},
+			)
 		)
-		self._increc()
 
 	def create_rule(
 		self,
@@ -10312,17 +10364,64 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		for (name,) in self.call_one("rules_dump"):
 			yield name
 
-	def _set_rule_something(self, what, rule, branch, turn, tick, flist):
-		flist = self.pack(flist)
-		self.call_one(
-			"rule_{}_insert".format(what), rule, branch, turn, tick, flist
-		)
-		self._increc()
+	def _set_rule_something(
+		self, what, rule, branch, turn, tick, flist, *, pack=True
+	):
+		if pack:
+			flist = self.pack(flist)
+		try:
+			self.call_one(
+				f"rule_{what}_insert", rule, branch, turn, tick, flist
+			)
+			self._increc()
+		except IntegrityError:
+			self.call_one(
+				f"rule_{what}_update", flist, rule, branch, turn, tick
+			)
 
-	set_rule_triggers = partialmethod(_set_rule_something, "triggers")
-	set_rule_prereqs = partialmethod(_set_rule_something, "prereqs")
-	set_rule_actions = partialmethod(_set_rule_something, "actions")
-	set_rule_neighborhood = partialmethod(_set_rule_something, "neighborhood")
+	def set_rule_triggers(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: list[TriggerFuncName],
+	):
+		self._set_rule_something(
+			"triggers", rule, branch, turn, tick, triggers
+		)
+
+	def set_rule_prereqs(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		prereqs: list[PrereqFuncName],
+	):
+		self._set_rule_something("prereqs", rule, branch, turn, tick, prereqs)
+
+	def set_rule_actions(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		actions: list[ActionFuncName],
+	):
+		self._set_rule_something("actions", rule, branch, turn, tick, actions)
+
+	def set_rule_neighborhood(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		neighborhood: RuleNeighborhood,
+	):
+		self._set_rule_something(
+			"neighborhood", rule, branch, turn, tick, neighborhood
+		)
 
 	def set_rule_big(
 		self,
@@ -10332,8 +10431,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		big: RuleBig,
 	) -> None:
-		self.call_one("rule_big_insert", rule, branch, turn, tick, big)
-		self._increc()
+		self._set_rule_something(
+			"big", rule, branch, turn, tick, big, pack=False
+		)
 
 	def create_rule(self, rule: RuleName) -> bool:
 		try:

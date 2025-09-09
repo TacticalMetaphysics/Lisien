@@ -1278,10 +1278,42 @@ def queries(table):
 		tick_to_tick_clause(rbs)
 	).order_by(rbs.c.turn, rbs.c.tick, rbs.c.rulebook)
 
+	def rule_update_cond(t: Table) -> and_:
+		return and_(
+			t.c.rule == bindparam("rule"),
+			t.c.branch == bindparam("branch"),
+			t.c.turn == bindparam("turn"),
+			t.c.tick == bindparam("tick"),
+		)
+
 	hood = table["rule_neighborhood"]
+	r["rule_neighborhood_update"] = (
+		hood.update()
+		.where(rule_update_cond(hood))
+		.values(neighborhood=bindparam("neighborhood"))
+	)
+	big = table["rule_big"]
+	r["rule_big_update"] = (
+		big.update().where(rule_update_cond(big)).values(big=bindparam("big"))
+	)
 	trig = table["rule_triggers"]
+	r["rule_triggers_update"] = (
+		trig.update()
+		.where(rule_update_cond(trig))
+		.values(triggers=bindparam("triggers"))
+	)
 	preq = table["rule_prereqs"]
+	r["rule_prereqs_update"] = (
+		preq.update()
+		.where(rule_update_cond(preq))
+		.values(prereqs=bindparam("prereqs"))
+	)
 	act = table["rule_actions"]
+	r["rule_actions_update"] = (
+		act.update()
+		.where(rule_update_cond(act))
+		.values(actions=bindparam("actions"))
+	)
 	hoodsel = select(
 		hood.c.rule,
 		hood.c.turn,
@@ -1294,7 +1326,6 @@ def queries(table):
 	r["load_rule_neighborhoods_tick_to_tick"] = hoodsel.where(
 		tick_to_tick_clause(hood)
 	).order_by(hood.c.turn, hood.c.tick, hood.c.rule)
-	big = table["rule_big"]
 	bigsel = select(big.c.rule, big.c.turn, big.c.tick, big.c.big)
 	r["load_rule_big_tick_to_end"] = bigsel.where(
 		tick_to_end_clause(big)
