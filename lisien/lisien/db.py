@@ -4797,7 +4797,7 @@ class AbstractQueryEngine(ABC):
 
 	@abstractmethod
 	def count_all_table(self, tbl: str) -> int:
-		pas
+		pass
 
 	@abstractmethod
 	def set_rule_triggers(
