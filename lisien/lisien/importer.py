@@ -148,6 +148,8 @@ class Importer:
 					universal_kf[k] = v
 			elif subel.tag == "rule":
 				rule = RuleName(kf_el.get("name"))
+				if rule is None:
+					raise TypeError("Rules need names")
 				bigs_kf[rule] = RuleBig(kf_el.get("big") == "T")
 				neighborhoods_kf[rule] = kf_el.get("neighborhood") or None
 				for funcl_el in subel:
