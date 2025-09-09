@@ -2969,7 +2969,7 @@ class ParquetDBHolder(ConnectionHolder):
 				datum[name] = data
 				self._get_db(f"rule_{name}").create([datum])
 		else:
-			for name, datum in named_data:
+			for name, data in named_data:
 				db = self._get_db(f"rule_{name}")
 				extant = db.read(filters=[pc.field("rule") == rule])
 				if extant.num_rows:
