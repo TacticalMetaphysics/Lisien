@@ -4443,12 +4443,12 @@ class AbstractQueryEngine(ABC):
 			got: list[RuleName, Turn, Tick, bytes]
 			for rule, turn, tick, neighborhoods in got:
 				neighborhoods: RuleNeighborhood = unpack(neighborhoods)
-				if "rule_neighborhoods" in ret:
-					ret["rule_neighborhoods"].append(
+				if "rule_neighborhood" in ret:
+					ret["rule_neighborhood"].append(
 						(rule, branch, turn, tick, neighborhoods)
 					)
 				else:
-					ret["rule_neighborhoods"] = [
+					ret["rule_neighborhood"] = [
 						(rule, branch, turn, tick, neighborhoods)
 					]
 			outq.task_done()
@@ -5142,6 +5142,10 @@ class AbstractQueryEngine(ABC):
 		] = defaultdict(empty_char)
 		ret["universals"]: list[UniversalRowType] = []
 		ret["rule_triggers"]: list[RuleRowType] = []
+		ret["rule_prereqs"]: list[RuleRowType] = []
+		ret["rule_actions"]: list[RuleRowType] = []
+		ret["rule_neighborhood"]: list[RuleRowType] = []
+		ret["rule_big"]: list[RuleRowType] = []
 		ret["rulebooks"]: list[RulebookRowType] = []
 		self._load_windows_into(ret, windows)
 		self.debug(f"finished loading windows {windows}")

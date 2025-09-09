@@ -4563,7 +4563,7 @@ class Engine(AbstractEngine, Executor):
 			self._prereqs_cache.load(rule_prereqs)
 		if rule_actions := loaded.pop("rule_actions", None):
 			self._actions_cache.load(rule_actions)
-		if rule_neighborhoods := loaded.pop("rule_neighborhoods", None):
+		if rule_neighborhoods := loaded.pop("rule_neighborhood", None):
 			self._neighborhoods_cache.load(rule_neighborhoods)
 		if rule_big := loaded.pop("rule_big", None):
 			self._rule_bigness_cache.load(rule_big)
