@@ -7618,10 +7618,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		val: Value,
+		value: Value,
 	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
 		pack = self.pack
-		return pack(graph), pack(key), branch, turn, tick, pack(val)
+		return pack(graph), pack(key), branch, turn, tick, pack(value)
 
 	def graph_val_set(
 		self,
