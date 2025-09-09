@@ -571,6 +571,18 @@ def fill_branch_element(
 		)
 		branch_el.append(turn_el)
 		tick: Tick
+		rules_kwargs: dict[
+			str,
+			dict[
+				str,
+				Tick
+				| TriggerRowType
+				| PrereqRowType
+				| ActionRowType
+				| RuleBigRowType
+				| RuleNeighborhoodRowType,
+			],
+		] = {}
 		for tick in range(turn_ends[turn][1] + 1):
 			if (branch, turn, tick) in keyframe_times:
 				kf = query.get_keyframe(branch, turn, tick)
@@ -594,6 +606,7 @@ def fill_branch_element(
 				if (branch_now, turn_now, tick_now) == (branch, turn, tick):
 					append_graph_el(turn_el, graph_rec)
 					del data["graphs"][0]
+			rule: str | None = None
 			rule_kwargs: dict[
 				str,
 				Tick
@@ -613,7 +626,8 @@ def fill_branch_element(
 					tick,
 				)
 			):
-				trig_rec: TriggerRowType = data["rule_triggers"][0]
+				trig_rec: TriggerRowType = data["rule_triggers"].pop(0)
+				rule = trig_rec[0]
 				rule_kwargs["trig_rec"] = trig_rec
 			if (
 				"rule_prereqs" in data
@@ -625,7 +639,8 @@ def fill_branch_element(
 					tick,
 				)
 			):
-				preq_rec: PrereqRowType = data["rule_prereqs"][0]
+				preq_rec: PrereqRowType = data["rule_prereqs"].pop(0)
+				rule = preq_rec[0]
 				rule_kwargs["preq_rec"] = preq_rec
 			if (
 				"rule_actions" in data
@@ -637,14 +652,18 @@ def fill_branch_element(
 					tick,
 				)
 			):
-				act_rec: ActionRowType = data["rule_actions"][0]
+				act_rec: ActionRowType = data["rule_actions"].pop(0)
+				rule = act_rec[0]
 				rule_kwargs["act_rec"] = act_rec
 			if (
 				"rule_neighborhood" in data
 				and data["rule_neighborhood"]
 				and data["rule_neighborhood"][0][1:4] == (branch, turn, tick)
 			):
-				nbr_rec: RuleNeighborhoodRowType = data["rule_neighborhood"][0]
+				nbr_rec: RuleNeighborhoodRowType = data[
+					"rule_neighborhood"
+				].pop(0)
+				rule = nbr_rec[0]
 				rule_kwargs["nbr_rec"] = nbr_rec
 			if (
 				"rule_big" in data
@@ -656,20 +675,18 @@ def fill_branch_element(
 					tick,
 				)
 			):
-				big_rec: RuleBigRowType = data["rule_big"][0]
+				big_rec: RuleBigRowType = data["rule_big"].pop(0)
+				rule = big_rec[0]
 				rule_kwargs["big_rec"] = big_rec
-			if rule_kwargs.keys() - {"tick"}:
+			if rule is not None:
+				if rule in rules_kwargs:
+					for k, v in rules_kwargs[rule].items():
+						if k not in rule_kwargs:
+							rule_kwargs[k] = v
+				rules_kwargs[rule] = {
+					k: v for (k, v) in rule_kwargs.items() if k != "tick"
+				}
 				append_rule_el(turn_el, **rule_kwargs)
-			if "trig_rec" in rule_kwargs:
-				del data["rule_triggers"][0]
-			if "preq_rec" in rule_kwargs:
-				del data["rule_prereqs"][0]
-			if "act_rec" in rule_kwargs:
-				del data["rule_actions"][0]
-			if "nbr_rec" in rule_kwargs:
-				del data["rule_neighborhood"][0]
-			if "big_rec" in rule_kwargs:
-				del data["rule_big"][0]
 			for char_name in data.keys() - {
 				"graphs",
 				"universals",
