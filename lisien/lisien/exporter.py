@@ -539,6 +539,16 @@ def fill_branch_element(
 			)
 		)
 
+	uncharacterized = {
+		"graphs",
+		"universals",
+		"rulebooks",
+		"rule_triggers",
+		"rule_prereqs",
+		"rule_actions",
+		"rule_neighborhood",
+		"rule_big",
+	}
 	turn: Turn
 	for turn, (ending_tick, plan_ending_tick) in turn_ends.items():
 		turn_el = Element(
@@ -624,16 +634,7 @@ def fill_branch_element(
 				)
 			):
 				append_rule_big_el(turn_el, data["rule_big"].pop(0))
-			for char_name in data.keys() - {
-				"graphs",
-				"universals",
-				"rulebooks",
-				"rule_triggers",
-				"rule_prereqs",
-				"rule_actions",
-				"rule_neighborhood",
-				"rule_big",
-			}:
+			for char_name in data.keys() - uncharacterized:
 				char_data: LoadedCharWindow = data[char_name]
 				if char_data["graph_val"]:
 					graph_val_row: GraphValRowType = char_data["graph_val"][0]
@@ -716,6 +717,12 @@ def fill_branch_element(
 					if (b, r, t) == (branch, turn, tick):
 						append_portal_rb_el(turn_el, port_rb_row)
 						del char_data["portal_rulebook"][0]
+	for k in uncharacterized:
+		if k in data:
+			assert not data[k]
+	for char_name in data.keys() - uncharacterized:
+		for k, v in data[char_name].items():
+			assert not v, f"Leftover data in {k}: {v}"
 	assert not keyframe_times, keyframe_times
 
 
