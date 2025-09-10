@@ -366,7 +366,7 @@ class Importer:
 	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		rule = RuleName(el.get("rule"))
-		neighborhood = el.get("neighborhood")
+		neighborhood = el.get("neighbors")
 		if neighborhood is not None:
 			neighborhood = int(neighborhood)
 		self._memorize_rule(
