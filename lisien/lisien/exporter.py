@@ -258,7 +258,10 @@ def add_keyframe_to_turn_el(
 		kfel.append(rule_el)
 		if rule_name in bigs_kf and bigs_kf[rule_name]:
 			rule_el.set("big", "T")
-		if rule_name in neighborhoods_kf and neighborhoods_kf[rule_name]:
+		if (
+			rule_name in neighborhoods_kf
+			and neighborhoods_kf[rule_name] is not None
+		):
 			rule_el.set(
 				"neighborhood",
 				str(neighborhoods_kf[rule_name]),
