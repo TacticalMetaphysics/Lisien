@@ -36,7 +36,7 @@ from typing import (
 	Optional,
 	TypeAlias,
 	MutableMapping,
-	Callable,
+	Callable, Iterable,
 )
 
 from sqlalchemy import (
