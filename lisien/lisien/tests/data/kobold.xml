@@ -2754,6 +2754,8 @@
           </list>
         </node-val>
         <node-rulebook character="'physical'" node="'kobold'" tick="89" rulebook="('physical', 'kobold')" />
+        <rule-triggers rule="shrubsprint" tick="90" />
+        <rule-prereqs rule="shrubsprint" tick="90" />
         <rule-actions rule="shrubsprint" tick="90">
           <action name="shrubsprint" />
         </rule-actions>
@@ -2774,6 +2776,8 @@
           <prereq name="not_traveling" />
         </rule-prereqs>
         <node-rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')" />
+        <rule-triggers rule="fight" tick="96" />
+        <rule-prereqs rule="fight" tick="96" />
         <rule-actions rule="fight" tick="96">
           <action name="fight" />
         </rule-actions>
@@ -2793,6 +2797,8 @@
           <prereq name="kobold_alive" />
           <prereq name="aware" />
         </rule-prereqs>
+        <rule-triggers rule="kill_kobold" tick="102" />
+        <rule-prereqs rule="kill_kobold" tick="102" />
         <rule-actions rule="kill_kobold" tick="102">
           <action name="kill_kobold" />
         </rule-actions>
@@ -2809,6 +2815,8 @@
         <rule-prereqs rule="kill_kobold" tick="106">
           <prereq name="unmerciful" />
         </rule-prereqs>
+        <rule-triggers rule="go2kobold" tick="107" />
+        <rule-prereqs rule="go2kobold" tick="107" />
         <rule-actions rule="go2kobold" tick="107">
           <action name="go2kobold" />
         </rule-actions>
@@ -2830,6 +2838,8 @@
           <prereq name="kobold_alive" />
           <prereq name="kobold_not_here" />
         </rule-prereqs>
+        <rule-triggers rule="wander" tick="113" />
+        <rule-prereqs rule="wander" tick="113" />
         <rule-actions rule="wander" tick="113">
           <action name="wander" />
         </rule-actions>
