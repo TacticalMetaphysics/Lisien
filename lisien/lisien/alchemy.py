@@ -322,7 +322,7 @@ def tables_for_meta(meta):
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("neighborhood", BLOB, default=b"\xc0"),
+		Column("neighborhood", INT, nullable=True, default=None),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
 	)
