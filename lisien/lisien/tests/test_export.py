@@ -92,8 +92,13 @@ def test_import(tmp_path, exported, non_null_database, engine_facade):
 		"rule_big_dump",
 		"node_rulebook_dump",
 		"portal_rulebook_dump",
+		"nodes_dump",
+		"edges_dump",
 		"things_dump",
 		"units_dump",
+		"node_val_dump",
+		"edge_val_dump",
+		"graph_val_dump",
 		"keyframes_graphs_dump",
 		"keyframe_extensions_dump",
 	):
