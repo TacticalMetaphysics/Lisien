@@ -36,7 +36,8 @@ from typing import (
 	Optional,
 	TypeAlias,
 	MutableMapping,
-	Callable, Iterable,
+	Callable,
+	Iterable,
 )
 
 from sqlalchemy import (
@@ -98,7 +99,7 @@ from .types import (
 	CharDict,
 	Keyframe,
 )
-from .util import ELLIPSIS, EMPTY, garbage
+from .util import ELLIPSIS, EMPTY, EMPTY_LIST, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
@@ -7062,9 +7063,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		triggers: Iterable[TriggerFuncName] = (),
-		prereqs: Iterable[PrereqFuncName] = (),
-		actions: Iterable[ActionFuncName] = (),
+		triggers: Iterable[TriggerFuncName] | ... = ...,
+		prereqs: Iterable[PrereqFuncName] | ... = ...,
+		actions: Iterable[ActionFuncName] | ... = ...,
 		neighborhood: RuleNeighborhood = None,
 		big: RuleBig = False,
 	) -> bool:
@@ -7072,18 +7073,28 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			"create_rule",
 			rule=rule,
 		):
-			self.call(
-				"set_rule",
-				rule=rule,
-				branch=branch,
-				turn=turn,
-				tick=tick,
-				triggers=triggers,
-				prereqs=prereqs,
-				actions=actions,
-				neighborhood=neighborhood,
-				big=big,
-			)
+			pack = self.pack
+			kwargs = {
+				"rule": rule,
+				"branch": branch,
+				"turn": turn,
+				"tick": tick,
+				"neighborhood": neighborhood,
+				"big": big,
+			}
+			if triggers is ...:
+				kwargs["triggers"] = EMPTY_LIST
+			else:
+				kwargs["triggers"] = pack(triggers)
+			if prereqs is ...:
+				kwargs["prereqs"] = EMPTY_LIST
+			else:
+				kwargs["prereqs"] = pack(prereqs)
+			if actions is ...:
+				kwargs["actions"] = EMPTY_LIST
+			else:
+				kwargs["actions"] = pack(actions)
+			self.call("set_rule", **kwargs)
 			self._increc()
 			return True
 		return False
