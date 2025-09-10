@@ -10469,7 +10469,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		neighborhood: RuleNeighborhood,
 	):
 		self._set_rule_something(
-			"neighborhood", rule, branch, turn, tick, neighborhood
+			"neighborhood", rule, branch, turn, tick, neighborhood, pack=False
 		)
 
 	def set_rule_big(
