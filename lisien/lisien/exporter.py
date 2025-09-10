@@ -292,6 +292,60 @@ def add_keyframe_to_turn_el(
 			"character", name=repr(char_name)
 		)
 		kfel.append(graph_el)
+		if units_kf := vals.pop("units", {}):
+			units_el = Element("units")
+			any_unit_graphs = False
+			for graph, nodes in units_kf.items():
+				unit_graphs_el = Element("graph", character=repr(graph))
+				any_unit_nodes = False
+				for node, is_unit in nodes.items():
+					if is_unit:
+						any_unit_nodes = True
+						unit_graphs_el.append(Element("unit", node=repr(node)))
+				if any_unit_nodes:
+					units_el.append(unit_graphs_el)
+					any_unit_graphs = True
+			if any_unit_graphs:
+				graph_el.append(units_el)
+		graph_el.set(
+			"character-rulebook",
+			repr(
+				vals.pop(
+					"character_rulebook", ("character_rulebook", char_name)
+				)
+			),
+		)
+		graph_el.set(
+			"unit-rulebook",
+			repr(vals.pop("unit_rulebook", ("unit_rulebook", char_name))),
+		)
+		graph_el.set(
+			"character-thing-rulebook",
+			repr(
+				vals.pop(
+					"character_thing_rulebook",
+					("character_thing_rulebook", char_name),
+				)
+			),
+		)
+		graph_el.set(
+			"character-place-rulebook",
+			repr(
+				vals.pop(
+					"character_place_rulebook",
+					("character_place_rulebook", char_name),
+				)
+			),
+		)
+		graph_el.set(
+			"character-portal-rulebook",
+			repr(
+				vals.pop(
+					"character_portal_rulebook",
+					("character_portal_rulebook", char_name),
+				)
+			),
+		)
 		for k, v in vals.items():
 			item_el = Element("dict-item", key=repr(k))
 			graph_el.append(item_el)
@@ -306,7 +360,11 @@ def add_keyframe_to_turn_el(
 			)
 			kfel.append(char_el)
 		for node, val in node_vals.items():
-			node_el = Element("node", name=repr(node))
+			node_el = Element(
+				"node",
+				name=repr(node),
+				rulebook=repr(val.pop("rulebook", (char_name, node))),
+			)
 			char_el.append(node_el)
 			for k, v in val.items():
 				item_el = Element("dict_item", key=repr(k))
@@ -323,7 +381,14 @@ def add_keyframe_to_turn_el(
 			kfel.append(char_el)
 		for orig, dests in edge_vals.items():
 			for dest, val in dests.items():
-				edge_el = Element("edge", orig=repr(orig), dest=repr(dest))
+				edge_el = Element(
+					"edge",
+					orig=repr(orig),
+					dest=repr(dest),
+					rulebook=repr(
+						val.pop("rulebook", (char_name, orig, dest))
+					),
+				)
 				char_el.append(edge_el)
 				for k, v in val.items():
 					item_el = Element("dict_item", key=repr(k))
