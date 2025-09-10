@@ -384,8 +384,6 @@ def fill_branch_element(
 		rec: TriggerRowType | PrereqRowType | ActionRowType,
 	):
 		rule, _, __, tick, funcs = rec
-		if not funcs:
-			return
 		func_el = Element(f"{typ}s", rule=rule, tick=str(tick))
 		turn_el.append(func_el)
 		for func in funcs:
