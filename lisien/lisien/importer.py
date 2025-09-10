@@ -188,10 +188,12 @@ class Importer:
 				rule = RuleName(subel.get("name"))
 				if rule is None:
 					raise TypeError("Rules need names")
-				if "big" in subel:
+				if "big" in subel.keys():
 					bigs_kf[rule] = RuleBig(subel.get("big") == "T")
-				if "neighborhood" in subel:
-					neighborhoods_kf[rule] = subel.get("neighborhood")
+				if "neighborhood" in subel.keys():
+					neighborhoods_kf[rule] = int(subel.get("neighborhood"))
+				else:
+					neighborhoods_kf[rule] = None
 				for funcl_el in subel:
 					name = FuncName(funcl_el.get("name"))
 					if not isinstance(name, str):
