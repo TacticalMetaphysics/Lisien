@@ -7032,7 +7032,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 					"branch": branch,
 					"turn": turn,
 					"tick": tick,
-					"neighborhood": self.pack(neighborhood),
+					"neighborhood": neighborhood,
 				},
 			)
 		)
