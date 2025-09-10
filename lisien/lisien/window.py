@@ -1058,6 +1058,32 @@ class SettingsTurnDict(WindowDict):
 		else:
 			self[turn] = {tick: value}
 
+	@property
+	def beginning(self) -> Turn | None:
+		if self._past:
+			return self._past[0][0]
+		if self._future:
+			return self._future[-1][0]
+		return None
+
+	@property
+	def end(self) -> Turn | None:
+		if self._future:
+			return self._future[0][0]
+		if self._past:
+			return self._past[-1][0]
+		return None
+
+	def start_time(self) -> tuple[Turn, Tick] | None:
+		if not self:
+			return None
+		return self.beginning, self.initial().beginning
+
+	def end_time(self) -> tuple[Turn, Tick] | None:
+		if not self:
+			return None
+		return self.end, self.final().end
+
 
 class EntikeySettingsTurnDict(SettingsTurnDict):
 	cls = EntikeyWindowDict
