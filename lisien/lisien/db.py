@@ -6229,6 +6229,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			yield unpack(key)
 
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+		self.flush()
 		for d in self.call("dump", "keyframes"):
 			yield d["branch"], d["turn"], d["tick"]
 
