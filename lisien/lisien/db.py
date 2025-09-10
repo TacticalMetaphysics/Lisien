@@ -2414,14 +2414,16 @@ class ParquetDBHolder(ConnectionHolder):
 			("big", big),
 		]:
 			if data is not ...:
-				db = self._get_db(f"rule_{functyp}")
+				table = f"rule_{functyp}"
+				db = self._get_db(table)
+				schema = self._get_schema(table)
 				extant = db.read(filters=the_rule_filters)
 				datum = {functyp: data, **basic_datum}
 				if extant.num_rows:
 					datum["id"] = extant[0]["id"].as_py()
-					db.update([datum])
+					db.update([datum], schema=schema)
 				else:
-					db.create([datum])
+					db.create([datum], schema=schema)
 					increc += 1
 		return increc
 
