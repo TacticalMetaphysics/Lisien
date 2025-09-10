@@ -5242,6 +5242,7 @@ class AbstractQueryEngine(ABC):
 		ret["rule_neighborhood"]: list[RuleRowType] = []
 		ret["rule_big"]: list[RuleRowType] = []
 		ret["rulebooks"]: list[RulebookRowType] = []
+		self.flush()
 		self._load_windows_into(ret, windows)
 		self.debug(f"finished loading windows {windows}")
 		return dict(ret)
