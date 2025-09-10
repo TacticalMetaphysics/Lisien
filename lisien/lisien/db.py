@@ -4908,6 +4908,14 @@ class AbstractQueryEngine(ABC):
 	def create_rule(
 		self,
 		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: Iterable[TriggerFuncName] = (),
+		prereqs: Iterable[PrereqFuncName] = (),
+		actions: Iterable[ActionFuncName] = (),
+		neighborhood: RuleNeighborhood = None,
+		big: RuleBig = False,
 	) -> bool:
 		pass
 
@@ -5787,7 +5795,18 @@ class NullQueryEngine(AbstractQueryEngine):
 	def count_all_table(self, tbl: str) -> int:
 		pass
 
-	def create_rule(self, name) -> bool:
+	def create_rule(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: Iterable[TriggerFuncName] = (),
+		prereqs: Iterable[PrereqFuncName] = (),
+		actions: Iterable[ActionFuncName] = (),
+		neighborhood: RuleNeighborhood = None,
+		big: RuleBig = False,
+	) -> bool:
 		return False
 
 	def set_rule_triggers(
@@ -7024,8 +7043,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> None:
 		self._increc(
 			self.call(
-				"insert1",
-				"rule_big",
+				"set_rule",
 				**{
 					"rule": rule,
 					"branch": branch,
@@ -7039,11 +7057,31 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	def create_rule(
 		self,
 		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: Iterable[TriggerFuncName] = (),
+		prereqs: Iterable[PrereqFuncName] = (),
+		actions: Iterable[ActionFuncName] = (),
+		neighborhood: RuleNeighborhood = None,
+		big: RuleBig = False,
 	) -> bool:
 		if self.call(
 			"create_rule",
 			rule=rule,
 		):
+			self.call(
+				"set_rule",
+				rule=rule,
+				branch=branch,
+				turn=turn,
+				tick=tick,
+				triggers=triggers,
+				prereqs=prereqs,
+				actions=actions,
+				neighborhood=neighborhood,
+				big=big,
+			)
 			self._increc()
 			return True
 		return False
@@ -10434,9 +10472,25 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			"big", rule, branch, turn, tick, big, pack=False
 		)
 
-	def create_rule(self, rule: RuleName) -> bool:
+	def create_rule(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: Iterable[TriggerFuncName] = (),
+		prereqs: Iterable[PrereqFuncName] = (),
+		actions: Iterable[ActionFuncName] = (),
+		neighborhood: RuleNeighborhood = None,
+		big: RuleBig = False,
+	) -> bool:
 		try:
 			self.call_one("rules_insert", rule)
+			self.set_rule_triggers(rule, branch, turn, tick, triggers)
+			self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
+			self.set_rule_actions(rule, branch, turn, tick, actions)
+			self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
+			self.set_rule_big(rule, branch, turn, tick, big)
 			return True
 		except IntegrityError:
 			return False
