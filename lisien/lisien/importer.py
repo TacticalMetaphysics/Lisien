@@ -2,9 +2,10 @@ import os
 import sys
 from ast import literal_eval
 from functools import partialmethod
+from itertools import chain
 from operator import itemgetter
 from pathlib import Path
-from typing import Literal, Any
+from typing import Literal, Any, TypeAlias
 from xml.etree.ElementTree import Element, ElementTree, parse
 
 from lisien.rule import RuleFuncList
@@ -35,6 +36,7 @@ from lisien.types import (
 	Stat,
 	RuleFuncName,
 )
+from lisien.window import SettingsTurnDict
 from .db import AbstractQueryEngine
 from .facade import EngineFacade
 from .util import AbstractEngine
@@ -48,33 +50,33 @@ class Importer:
 			engine = EngineFacade(None)
 		self.query = query
 		self.engine = engine
-		self.known_rules: dict[
+		self.known_triggers: dict[
 			RuleName,
-			tuple[
+			dict[
 				Branch,
-				Turn,
-				Tick,
-				dict[
-					Literal[
-						"triggers", "prereqs", "actions", "neighborhood", "big"
-					],
-					list[RuleFuncName],
-				],
+				SettingsTurnDict[Turn, dict[Tick, list[TriggerFuncName]]],
 			],
 		] = {}
-		self.rule_updates: dict[
+		self.known_prereqs: dict[
 			RuleName,
-			list[
-				tuple[
-					Branch,
-					Turn,
-					Tick,
-					Literal[
-						"triggers", "prereqs", "actions", "neighborhood", "big"
-					],
-					Any,
-				]
+			dict[
+				Branch,
+				SettingsTurnDict[Turn, dict[Tick, list[PrereqFuncName]]],
 			],
+		] = {}
+		self.known_actions: dict[
+			RuleName,
+			dict[
+				Branch,
+				SettingsTurnDict[Turn, dict[Tick, list[ActionFuncName]]],
+			],
+		] = {}
+		self.known_neighborhoods: dict[
+			RuleName,
+			dict[Branch, SettingsTurnDict[Turn, dict[Tick, RuleNeighborhood]]],
+		] = {}
+		self.known_big: dict[
+			RuleName, dict[Branch, SettingsTurnDict[Turn, dict[Tick, RuleBig]]]
 		] = {}
 
 	def element_to_value(
@@ -317,18 +319,43 @@ class Importer:
 		funcs: list[RuleFuncName] = [
 			FuncName(func_el.get("name")) for func_el in el
 		]
-		if rule in self.known_rules:
-			b, r, t, d = self.known_rules[rule]
-			if (b, r, t) == (branch, turn, tick):
-				d[what] = funcs
-			elif rule in self.rule_updates:
-				self.rule_updates[rule].append(
-					(branch, turn, tick, what, funcs)
-				)
-			else:
-				self.rule_updates[rule] = [(branch, turn, tick, what, funcs)]
+		self._memorize_rule(what, rule, branch, turn, tick, funcs)
+
+	def _memorize_rule(
+		self,
+		what: Literal["triggers", "prereqs", "actions", "neighborhood", "big"],
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		datum: list[TriggerFuncName]
+		| list[PrereqFuncName]
+		| list[ActionFuncName]
+		| RuleNeighborhood
+		| RuleBig,
+	):
+		if what == "triggers":
+			d = self.known_triggers
+		elif what == "prereqs":
+			d = self.known_prereqs
+		elif what == "actions":
+			d = self.known_actions
+		elif what == "neighborhood":
+			d = self.known_neighborhoods
+		elif what == "big":
+			d = self.known_big
 		else:
-			self.known_rules[rule] = (branch, turn, tick, {what: funcs})
+			raise ValueError(what)
+		if rule in d:
+			if branch in d[rule]:
+				if turn in d[rule][branch]:
+					d[rule][branch][turn][tick] = datum
+				else:
+					d[rule][branch][turn] = {tick: datum}
+			else:
+				d[rule][branch] = SettingsTurnDict({turn: {tick: datum}})
+		else:
+			d[rule] = {branch: SettingsTurnDict({turn: {tick: datum}})}
 
 	rule_triggers = partialmethod(_rule_func_list, "triggers")
 	rule_prereqs = partialmethod(_rule_func_list, "prereqs")
@@ -338,46 +365,24 @@ class Importer:
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
-		nbrs = el.get("neighbors")
-		if nbrs is not None:
-			nbrs = int(nbrs)
 		rule = RuleName(el.get("rule"))
-		if rule in self.known_rules:
-			b, r, t, d = self.known_rules[rule]
-			if (b, r, t) == (branch, turn, tick):
-				d["neighborhood"] = nbrs
-			elif rule in self.rule_updates:
-				self.rule_updates[rule].append(
-					(branch, turn, tick, "neighborhood", nbrs)
-				)
-			else:
-				self.rule_updates[rule] = [
-					(branch, turn, tick, "neighborhood", nbrs)
-				]
-		else:
-			self.known_rules[rule] = (
-				branch,
-				turn,
-				tick,
-				{"neighborhood": nbrs},
-			)
+		neighborhood = el.get("neighborhood")
+		if neighborhood is not None:
+			neighborhood = int(neighborhood)
+		self._memorize_rule(
+			"neighborhood",
+			rule,
+			branch,
+			turn,
+			tick,
+			neighborhood,
+		)
 
 	def rule_big(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		big = RuleBig(el.get("big") == "T")
 		rule = RuleName(el.get("rule"))
-		if rule in self.known_rules:
-			b, r, t, d = self.known_rules[rule]
-			if (b, r, t) == (branch, turn, tick):
-				d["big"] = big
-			elif rule in self.rule_updates:
-				self.rule_updates[rule].append(
-					(branch, turn, tick, "big", big)
-				)
-			else:
-				self.rule_updates[rule] = [branch, turn, tick, "big", big]
-		else:
-			self.known_rules[rule] = (branch, turn, tick, {"big": big})
+		self._memorize_rule("big", rule, branch, turn, tick, big)
 
 	def graph(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
@@ -505,116 +510,156 @@ class Importer:
 			char, orig, dest, branch, turn, tick, rb
 		)
 
+	@staticmethod
+	def _iter_descendants(
+		branch_descendants: dict[Branch, list[Branch]],
+		branch: Branch = "trunk",
+		stop=lambda obj: False,
+		key=None,
+	):
+		branch_descendants[branch].sort(key=key)
+		for desc in branch_descendants[branch]:
+			yield desc
+			if stop(desc):
+				continue
+			if desc in branch_descendants:
+				yield from Importer._iter_descendants(branch_descendants, desc)
 
-def tree_to_db(
-	tree: ElementTree,
-	query: AbstractQueryEngine,
-	engine: AbstractEngine | None = None,
-):
-	importer = Importer(query, engine)
-	root = tree.getroot()
-	for el in root:
-		if el.tag == "playtree":
-			for branch_el in el:
-				parent: Branch | None = branch_el.get("parent")
-				branch = Branch(branch_el.get("name"))
-				start_turn = Turn(int(branch_el.get("start-turn")))
-				start_tick = Tick(int(branch_el.get("start-tick")))
-				end_turn = Turn(int(branch_el.get("end-turn")))
-				end_tick = Tick(int(branch_el.get("end-tick")))
-				query.set_branch(
-					branch, parent, start_turn, start_tick, end_turn, end_tick
-				)
-				try:
-					last_completed_turn = Turn(
-						int(branch_el.get("last-turn-completed"))
-					)
-					query.complete_turn(branch, last_completed_turn, False)
-				except KeyError:
-					pass
+	def _create_rule(
+		self, rule: RuleName, branch: Branch, turn: Turn, tick: Tick
+	):
+		kwargs = {}
+		for mapping, kwarg in [
+			(self.known_triggers, "triggers"),
+			(self.known_prereqs, "prereqs"),
+			(self.known_actions, "actions"),
+			(self.known_neighborhoods, "neighborhood"),
+			(self.known_big, "big"),
+		]:
+			if (
+				rule in mapping
+				and branch in mapping[rule]
+				and turn in mapping[rule][branch]
+				and tick in mapping[rule][branch][turn]
+			):
+				kwargs[kwarg] = mapping[rule][branch][turn].pop(tick)
+		self.query.create_rule(rule, branch, turn, tick, **kwargs)
 
-				for turn_el in branch_el:
-					turn = Turn(int(turn_el.get("number")))
-					end_tick = Tick(int(turn_el.get("end-tick")))
-					plan_end_tick = Tick(int(turn_el.get("plan-end-tick")))
-					query.set_turn(branch, turn, end_tick, plan_end_tick)
-					for elem in turn_el:
-						getattr(importer, elem.tag.replace("-", "_"))(
-							branch_el, turn_el, elem
-						)
-			for branch_el in el:
-				# I don't like doing a second pass for rules, but it's the easiest
-				for turn_el in branch_el:
-					turn = Turn(int(turn_el.get("number")))
-					for elem in turn_el:
-						if elem.tag not in {
-							"rule-triggers",
-							"rule-prereqs",
-							"rule-actions",
-							"rule-neighborhood",
-							"rule-big",
-						}:
-							continue
-						tick = Tick(int(elem.get("tick")))
-						rule = RuleName(elem.get("rule"))
-						b, r, t, ruled = importer.known_rules[rule]
-						if (b, r, t) == (branch, turn, tick):
-							importer.query.create_rule(rule)
-							importer.query.set_rule_triggers(
-								rule,
-								branch,
-								turn,
-								tick,
-								ruled.get("triggers", []),
-							)
-							importer.query.set_rule_prereqs(
-								rule,
-								branch,
-								turn,
-								tick,
-								ruled.get("prereqs", []),
-							)
-							importer.query.set_rule_actions(
-								rule,
-								branch,
-								turn,
-								tick,
-								ruled.get("actions", []),
-							)
-							importer.query.set_rule_neighborhood(
-								rule,
-								branch,
-								turn,
-								tick,
-								ruled.get("neighborhood", None),
-							)
-							importer.query.set_rule_big(
-								rule,
-								branch,
-								turn,
-								tick,
-								ruled.get("big", False),
-							)
+	def tree_to_db(
+		self,
+		tree: ElementTree,
+	):
+		root = tree.getroot()
+		branch_descendants: dict[Branch, list[Branch]] = {"trunk": []}
+		branch_starts: dict[Branch, tuple[Turn, Tick]] = {}
+		for el in root:
+			if el.tag == "playtree":
+				for branch_el in el:
+					parent: Branch | None = branch_el.get("parent")
+					branch = Branch(branch_el.get("name"))
+					if parent is not None:
+						if parent in branch_descendants:
+							branch_descendants[parent].append(branch)
 						else:
-							while importer.rule_updates.get(
-								rule, None
-							) and importer.rule_updates[rule][0][:3] == (
-								branch,
-								turn,
-								tick,
+							branch_descendants[parent] = [branch]
+					start_turn = Turn(int(branch_el.get("start-turn")))
+					start_tick = Tick(int(branch_el.get("start-tick")))
+					branch_starts[branch] = (start_turn, start_tick)
+					end_turn = Turn(int(branch_el.get("end-turn")))
+					end_tick = Tick(int(branch_el.get("end-tick")))
+					self.query.set_branch(
+						branch,
+						parent,
+						start_turn,
+						start_tick,
+						end_turn,
+						end_tick,
+					)
+					try:
+						last_completed_turn = Turn(
+							int(branch_el.get("last-turn-completed"))
+						)
+						self.query.complete_turn(
+							branch, last_completed_turn, False
+						)
+					except KeyError:
+						pass
+
+					for turn_el in branch_el:
+						turn = Turn(int(turn_el.get("number")))
+						end_tick = Tick(int(turn_el.get("end-tick")))
+						plan_end_tick = Tick(int(turn_el.get("plan-end-tick")))
+						self.query.set_turn(
+							branch, turn, end_tick, plan_end_tick
+						)
+						for elem in turn_el:
+							getattr(self, elem.tag.replace("-", "_"))(
+								branch_el, turn_el, elem
+							)
+				known_rules = (
+					self.known_triggers.keys()
+					| self.known_prereqs.keys()
+					| self.known_actions.keys()
+					| self.known_neighborhoods.keys()
+					| self.known_big.keys()
+				)
+				trunk = Branch(el.get("trunk"))
+				rules_created = set(self.query.rules_dump())
+				for rule in known_rules:
+					for mapp in [
+						self.known_triggers,
+						self.known_prereqs,
+						self.known_actions,
+						self.known_neighborhoods,
+						self.known_big,
+					]:
+						if rule not in mapp:
+							continue
+						if rule not in rules_created:
+							# Iterate depth first down the timestream, but no
+							# deeper than when the rule is first set.
+							# The game may have a rule by the same name
+							# created in many branches independently.
+							for branch in (
+								trunk,
+								*self._iter_descendants(
+									branch_descendants,
+									trunk,
+									mapp[rule].__contains__,
+									branch_starts.get,
+								),
 							):
-								suffix, val = importer.rule_updates[rule].pop(
-									0
-								)[3:]
-								mth = getattr(
-									importer.query, f"set_rule_{suffix}"
-								)
-								mth(rule, branch, turn, tick, val)
-		else:
-			k = literal_eval(el.get("key"))
-			v = importer.element_to_value(el[0])
-			query.eternal[k] = v
-	query.commit()
+								turn, tick = mapp[rule][branch].start_time()
+								self._create_rule(rule, branch, turn, tick)
+								rules_created.add(rule)
+				for mapp, setter in [
+					(
+						self.known_triggers,
+						self.query.set_rule_triggers,
+					),
+					(self.known_prereqs, self.query.set_rule_prereqs),
+					(self.known_actions, self.query.set_rule_actions),
+					(
+						self.known_neighborhoods,
+						self.query.set_rule_neighborhood,
+					),
+					(self.known_big, self.query.set_rule_big),
+				]:
+					for rule in mapp:
+						for branch in mapp[rule]:
+							for turn in mapp[rule][branch]:
+								# Turn and tick are guaranteed to be in
+								# chronological order here, because that's what
+								# a SettingsTurnDict does.
+								for tick, datum in mapp[rule][branch][
+									turn
+								].items():
+									setter(rule, branch, turn, tick, datum)
+			else:
+				k = literal_eval(el.get("key"))
+				v = self.element_to_value(el[0])
+				self.query.eternal[k] = v
+		self.query.commit()
 
 
 def tree_to_sqlite(
@@ -637,7 +682,7 @@ def tree_to_sqlite(
 		pack=engine.pack,
 		unpack=engine.unpack,
 	)
-	return tree_to_db(tree, query, engine)
+	return Importer(query, engine).tree_to_db(tree)
 
 
 def xml_to_sqlite(
@@ -671,7 +716,7 @@ def tree_to_pqdb(
 		pqdb_path, pack=engine.pack, unpack=engine.unpack
 	)
 
-	return tree_to_db(tree, query, engine)
+	return Importer(query, engine).tree_to_db(tree)
 
 
 def xml_to_pqdb(
