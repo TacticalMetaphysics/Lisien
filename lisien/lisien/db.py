@@ -4526,16 +4526,15 @@ class AbstractQueryEngine(ABC):
 			)
 		outq.task_done()
 		while isinstance(got := outq.get(), list):
-			got: list[RuleName, Turn, Tick, bytes]
-			for rule, turn, tick, neighborhoods in got:
-				neighborhoods: RuleNeighborhood = unpack(neighborhoods)
+			got: list[tuple[RuleName, Turn, Tick, RuleNeighborhood]]
+			for rule, turn, tick, neighbors in got:
 				if "rule_neighborhood" in ret:
 					ret["rule_neighborhood"].append(
-						(rule, branch, turn, tick, neighborhoods)
+						(rule, branch, turn, tick, neighbors)
 					)
 				else:
 					ret["rule_neighborhood"] = [
-						(rule, branch, turn, tick, neighborhoods)
+						(rule, branch, turn, tick, neighbors)
 					]
 			outq.task_done()
 		if got != (
