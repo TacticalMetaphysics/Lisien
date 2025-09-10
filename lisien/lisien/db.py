@@ -10499,14 +10499,14 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> bool:
 		try:
 			self.call_one("rules_insert", rule)
-			self.set_rule_triggers(rule, branch, turn, tick, triggers)
-			self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
-			self.set_rule_actions(rule, branch, turn, tick, actions)
-			self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
-			self.set_rule_big(rule, branch, turn, tick, big)
-			return True
 		except IntegrityError:
 			return False
+		self.set_rule_triggers(rule, branch, turn, tick, triggers)
+		self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
+		self.set_rule_actions(rule, branch, turn, tick, actions)
+		self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
+		self.set_rule_big(rule, branch, turn, tick, big)
+		return True
 
 	def set_rulebook(
 		self,
