@@ -1021,10 +1021,19 @@ class SettingsTurnDict(WindowDict):
 
 	"""
 
-	__slots__ = ("_future", "_past")
 	_future: list[tuple[Turn, Any]]
 	_past: list[tuple[Turn, Any]]
 	cls = WindowDict
+
+	def __init__(
+		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
+	) -> None:
+		if data:
+			data = data.copy()
+			for k, v in data.items():
+				if not isinstance(v, self.cls):
+					data[k] = self.cls(v)
+		super().__init__(data)
 
 	def __setitem__(self, turn: Turn, value: cls | dict) -> None:
 		if not isinstance(value, self.cls):
