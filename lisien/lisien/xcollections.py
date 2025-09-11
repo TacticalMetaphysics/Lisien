@@ -41,8 +41,7 @@ import networkx as nx
 from astunparse import Unparser
 from blinker import Signal
 
-from .graph import GraphsMapping
-from .types import CharName, Key
+from .types import CharName, Key, GraphsMapping
 from .util import AbstractEngine, dedent_source, getatt
 from .wrap import wrapval
 

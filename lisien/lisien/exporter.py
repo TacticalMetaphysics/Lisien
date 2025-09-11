@@ -10,8 +10,8 @@ from xml.etree.ElementTree import ElementTree, Element
 import networkx as nx
 from tblib import Traceback
 
-import lisien.graph
-from lisien.db import AbstractQueryEngine, LoadedCharWindow
+import lisien.types
+from lisien.db import AbstractDatabaseConnector, LoadedCharWindow
 from lisien.facade import EngineFacade
 from lisien.types import (
 	Keyframe,
@@ -53,7 +53,7 @@ from lisien.types import (
 	PortalRulebookRowType,
 	GraphRowType,
 )
-from lisien.util import AbstractThing, AbstractEngine
+from lisien.util import AbstractThing, AbstractEngine, sort_set
 
 
 def sqlite_to_etree(
@@ -62,14 +62,14 @@ def sqlite_to_etree(
 	tree: ElementTree | None = None,
 	engine: AbstractEngine | None = None,
 ) -> ElementTree:
-	from .db import SQLAlchemyQueryEngine
+	from .db import SQLAlchemyDatabaseConnector
 
 	if not isinstance(sqlite_path, os.PathLike):
 		sqlite_path = Path(sqlite_path)
 
 	if engine is None:
 		engine = EngineFacade(None)
-	query = SQLAlchemyQueryEngine(
+	query = SQLAlchemyDatabaseConnector(
 		"sqlite:///" + str(os.path.abspath(sqlite_path)),
 		{},
 		pack=engine.pack,
@@ -92,14 +92,14 @@ def pqdb_to_etree(
 	tree: ElementTree | None = None,
 	engine: AbstractEngine | None = None,
 ) -> ElementTree:
-	from .db import ParquetQueryEngine
+	from .db import ParquetDatabaseConnector
 
 	if not isinstance(pqdb_path, os.PathLike):
 		pqdb_path = Path(pqdb_path)
 
 	if engine is None:
 		engine = EngineFacade(None)
-	query = ParquetQueryEngine(
+	query = ParquetDatabaseConnector(
 		pqdb_path, pack=engine.pack, unpack=engine.unpack
 	)
 	if tree is None:
@@ -154,16 +154,16 @@ def value_to_xml(value: Value | dict[Key, Value]) -> Element:
 		return Element("float", value=str(value))
 	elif isinstance(value, str):
 		return Element("str", value=value)
-	elif isinstance(value, lisien.graph.DiGraph):
+	elif isinstance(value, lisien.types.DiGraph):
 		# Since entity names are restricted to what we can use for dict
 		# keys and also serialize to msgpack, I don't think there's any name
 		# an entity can have that can't be repr'd
 		return Element("character", name=repr(value.name))
-	elif isinstance(value, lisien.graph.Node):
+	elif isinstance(value, lisien.types.Node):
 		return Element(
 			"node", character=repr(value.graph.name), name=repr(value.name)
 		)
-	elif isinstance(value, lisien.graph.Edge):
+	elif isinstance(value, lisien.types.Edge):
 		return Element(
 			"portal",
 			character=repr(value.graph.name),
@@ -397,7 +397,7 @@ def add_keyframe_to_turn_el(
 
 
 def fill_branch_element(
-	query: AbstractQueryEngine,
+	query: AbstractDatabaseConnector,
 	branch_el: Element,
 	turn_ends: dict[Turn, tuple[Tick, Tick]],
 	keyframe_times: set[Time],
@@ -817,13 +817,13 @@ def fill_branch_element(
 
 
 def query_engine_to_etree(
-	name: str, query: AbstractQueryEngine, tree: ElementTree
+	name: str, query: AbstractDatabaseConnector, tree: ElementTree
 ) -> ElementTree:
 	root = tree.getroot()
-	for k, v in sorted(query.eternal.items()):
+	for k in sort_set(query.eternal.keys()):
 		el = Element("dict-item", key=repr(k))
 		root.append(el)
-		el.append(value_to_xml(v))
+		el.append(value_to_xml(query.eternal[k]))
 	trunks = set()
 	branches_d = {}
 	branch_descendants = {}

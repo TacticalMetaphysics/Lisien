@@ -38,8 +38,10 @@ from operator import ge, itemgetter, le
 from threading import RLock
 from typing import Any, Callable, Iterable, Iterator, Union
 
+from sortedcontainers import SortedSet
+
 from .exc import HistoricKeyError
-from .types import Tick, Turn, Value
+from .types import Tick, Turn, Value, LinearTime
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -937,6 +939,21 @@ class WindowDict(MutableMapping):
 			return "{}({})".format(self.__class__.__name__, me)
 
 
+class LinearTimeSetDict(WindowDict):
+	def __getitem__(self, rev: Turn) -> SortedSet[Tick]:
+		if rev in self:
+			return super().__getitem__(rev)
+		else:
+			default = SortedSet()
+			super().__setitem__(rev, default)
+			return default
+
+	def iter_times(self) -> Iterator[LinearTime]:
+		for turn, tick_set in self.items():
+			for tick in tick_set:
+				yield turn, tick
+
+
 class FuturistWindowDict(WindowDict):
 	"""A WindowDict that does not let you rewrite the past."""
 
@@ -1092,6 +1109,11 @@ class SettingsTurnDict(WindowDict):
 		if not self:
 			return None
 		return self.end, self.final().end
+
+	def times(self) -> Iterator[tuple[Turn, Tick]]:
+		for trn, tcks in self.items():
+			for tck in tcks:
+				yield trn, tck
 
 
 class EntikeySettingsTurnDict(SettingsTurnDict):

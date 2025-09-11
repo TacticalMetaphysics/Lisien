@@ -68,12 +68,12 @@ from tblib import Traceback
 
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
-from .graph import DiGraph, Edge, GraphMapping, Node
 from .types import (
 	Branch,
 	CharName,
 	EdgeValDict,
 	EternalKey,
+	LinearTime,
 	NodeName,
 	NodeValDict,
 	RulebookName,
@@ -81,10 +81,14 @@ from .types import (
 	Stat,
 	Tick,
 	Time,
-	TimeWindow,
 	Turn,
 	UniversalKey,
 	Value,
+	Key,
+	GraphMapping,
+	Node,
+	Edge,
+	DiGraph,
 )
 from .wrap import SpecialMapping
 
@@ -870,13 +874,13 @@ class AbstractEngine(ABC):
 			return None
 		return self._branches_d[branch][0]
 
-	def _branch_start(self, branch: Branch | None = None) -> tuple[Turn, Tick]:
+	def _branch_start(self, branch: Branch | None = None) -> LinearTime:
 		if branch is None:
 			branch = self.branch
 		_, turn, tick, _, _ = self._branches_d[branch]
 		return turn, tick
 
-	def _branch_end(self, branch: Branch | None = None) -> tuple[Turn, Tick]:
+	def _branch_end(self, branch: Branch | None = None) -> LinearTime:
 		if branch is None:
 			branch = self.branch
 		_, _, _, turn, tick = self._branches_d[branch]

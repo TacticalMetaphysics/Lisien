@@ -37,14 +37,16 @@ from lisien.types import (
 	RuleFuncName,
 )
 from lisien.window import SettingsTurnDict
-from .db import AbstractQueryEngine
+from .db import AbstractDatabaseConnector
 from .facade import EngineFacade
 from .util import AbstractEngine
 
 
 class Importer:
 	def __init__(
-		self, query: AbstractQueryEngine, engine: AbstractEngine | None = None
+		self,
+		query: AbstractDatabaseConnector,
+		engine: AbstractEngine | None = None,
 	):
 		if engine is None:
 			engine = EngineFacade(None)
@@ -276,6 +278,7 @@ class Importer:
 						)
 			else:
 				raise ValueError("Don't know how to deal with tag", subel.tag)
+		self.query.keyframe_insert(branch, turn, tick)
 		self.query.keyframe_extension_insert(
 			branch, turn, tick, universal_kf, rule_kf, rulebook_kf
 		)
@@ -669,7 +672,7 @@ def tree_to_sqlite(
 	sqlite_path: str | os.PathLike,
 	engine: AbstractEngine | None = None,
 ):
-	from .db import SQLAlchemyQueryEngine
+	from .db import SQLAlchemyDatabaseConnector
 
 	if not isinstance(sqlite_path, os.PathLike):
 		sqlite_path = Path(sqlite_path)
@@ -678,7 +681,7 @@ def tree_to_sqlite(
 		engine = EngineFacade(None)
 		engine._mockup = True
 
-	query = SQLAlchemyQueryEngine(
+	query = SQLAlchemyDatabaseConnector(
 		"sqlite:///" + str(os.path.abspath(sqlite_path)),
 		{},
 		pack=engine.pack,
@@ -705,7 +708,7 @@ def tree_to_pqdb(
 	pqdb_path: str | os.PathLike,
 	engine: AbstractEngine | None = None,
 ):
-	from .db import ParquetQueryEngine
+	from .db import ParquetDatabaseConnector
 
 	if not isinstance(pqdb_path, os.PathLike):
 		pqdb_path = Path(pqdb_path)
@@ -714,7 +717,7 @@ def tree_to_pqdb(
 		engine = EngineFacade(None)
 		engine._mockup = True
 
-	query = ParquetQueryEngine(
+	query = ParquetDatabaseConnector(
 		pqdb_path, pack=engine.pack, unpack=engine.unpack
 	)
 

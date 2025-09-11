@@ -26,8 +26,7 @@ from blinker import Signal
 
 from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
 from .exc import NotInKeyframeError, TotalKeyError
-from .graph import DiGraph, Edge, Node
-from .types import CharName, Key, NodeName
+from .types import CharName, Key, NodeName, Node, Edge, DiGraph
 from .util import (
 	AbstractCharacter,
 	AbstractEngine,

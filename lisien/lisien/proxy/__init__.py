@@ -63,7 +63,6 @@ from ..exc import (
 	WorkerProcessReadOnlyError,
 )
 from ..facade import CharacterFacade
-from ..graph import Edge, Node
 from ..node import Place, Thing
 from ..portal import Portal
 from ..types import (
@@ -96,6 +95,8 @@ from ..types import (
 	Turn,
 	UniversalKey,
 	Value,
+	Node,
+	Edge,
 )
 from ..util import (
 	AbstractBookmarkMapping,

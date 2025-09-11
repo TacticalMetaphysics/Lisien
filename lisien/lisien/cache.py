@@ -394,7 +394,6 @@ class Cache:
 			db._extend_branch,
 			self._store_journal,
 			self.time_entity,
-			db._where_cached,
 			self.keycache,
 			db,
 			self._update_keycache,
@@ -1015,7 +1014,6 @@ class Cache:
 			db_extend_branch,
 			self_store_journal,
 			self_time_entity,
-			db_where_cached,
 			keycache,
 			db,
 			update_keycache,
@@ -1088,7 +1086,7 @@ class Cache:
 						)
 					)
 				plan = time_plan[branch, turn, tick] = db._last_plan
-				plan_ticks[plan][turn].add(tick)
+				plan_ticks[plan][branch][turn].add(tick)
 			branches[branch] = turns
 			if not loading and not planning:
 				db_extend_branch(branch, turn, tick)
@@ -1104,9 +1102,6 @@ class Cache:
 				new[tick] = value
 				turns[turn] = new
 			self_time_entity[branch, turn, tick] = parent, entity, key
-			where_cached = db_where_cached[branch, turn, tick]
-			if self not in where_cached:
-				where_cached.append(self)
 			if not loading:
 				update_keycache(*args, forward=forward)
 
@@ -1236,6 +1231,12 @@ class Cache:
 					del entty[key]
 			if not entty:
 				del keys[keykey]
+
+	def discard(self, branch: Branch, turn: Turn, tick: Tick):
+		"""Delete all data from a specific tick, if present"""
+		if (branch, turn, tick) not in self.time_entity:
+			return
+		self.remove(branch, turn, tick)
 
 	def remove(self, branch: Branch, turn: Turn, tick: Tick):
 		"""Delete all data from a specific tick"""
@@ -1621,47 +1622,19 @@ class Cache:
 						return hint(
 							NotInKeyframeError("No value", entikey, b0, r0, t0)
 						)
-				if b0 in branchentk and r0 in branchentk[b0]:
-					# No keyframe *right* now; we might have one earlier this turn
-					# ... but let's check branches first
-					if t0 in branchentk[b0][r0]:
-						# Yeah, branches has a value at this very moment!
+				if b0 in branchentk and (
+					(
+						r0 in branchentk[b0]
+						and branchentk[b0][r0].rev_gettable(t0)
+					)
+					or branchentk[b0].rev_gettable(r0)
+				):
+					if r0 in branchentk[b0] and branchentk[b0][
+						r0
+					].rev_gettable(t0):
 						return hint(branchentk[b0][r0][t0])
-					elif (
-						branches_tick := branchentk[b0][r0].rev_before(
-							t0, search=search
-						)
-					) is not None:
-						# branches has a value this turn.
-						# Is there a loaded keyframe this turn, as well?
-						if b0 == b1 and r0 == r1:
-							# There is; is it more recent than branches' value?
-							if t1 > branches_tick:
-								# It is, so use the keyframe.
-								# If that keyframe includes a value stored here,
-								# return it; otherwise return an error
-								if (
-									b1 in keyframes
-									and r1 in keyframes[b1]
-									and t1 in keyframes[b1][r1]
-								):
-									kf = keyframes[b1][r1][t1]
-									if key in kf:
-										return hint(kf[key])
-									else:
-										return hint(
-											NotInKeyframeError(
-												"No value", entikey, b1, r1, t1
-											)
-										)
-								else:
-									return hint(
-										NotInKeyframeError(
-											"No value", entikey, b1, r1, t1
-										)
-									)
-						# No keyframe this turn, so use the value from branches
-						return hint(get(branchentk[b0][r0], t0))
+					else:
+						return hint(branchentk[b0][r0].final())
 				elif b0 in branchentk and (
 					r0 != r1
 					and branchentk[b0].rev_gettable(r0)
@@ -4649,26 +4622,17 @@ class NodeContentsCache(Cache):
 		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
 
 	def delete_plan(self, plan: Plan) -> None:
-		branch, turn, tick = self.db._btt()
 		plan_ticks = self.db._plan_ticks[plan]
 		with self.db.world_lock:
-			for trn, tcks in plan_ticks.items():
-				if trn == turn:
-					for tck in tcks:
-						if (
-							tck >= tick
-							and self in self.db._where_cached[branch, trn, tck]
-						):
-							self.remove(branch, trn, tck)
-							self.db._where_cached[branch, trn, tck].remove(
-								self
-							)
-				elif trn > turn:
-					for tck in tcks:
-						if self not in self.db._where_cached[branch, trn, tck]:
-							continue
-						self.remove(branch, trn, tck)
-						self.db._where_cached[branch, trn, tck].remove(self)
+			for branch, trns in plan_ticks.items():
+				times = trns.iter_times()
+				for start_turn, start_tick in times:
+					if self.db._branch_end(branch) < (start_turn, start_tick):
+						break
+				else:
+					continue
+				for trn, tck in times:
+					self.remove(branch, trn, tck)
 
 	def store(
 		self,

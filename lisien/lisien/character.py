@@ -46,11 +46,6 @@ from blinker import Signal
 from .cache import FuturistWindowDict, PickyDefaultDict
 from .exc import AmbiguousLeaderError, WorldIntegrityError
 from .facade import CharacterFacade
-from .graph import (
-	DiGraphPredecessorsMapping,
-	DiGraphSuccessorsMapping,
-	GraphNodeMapping,
-)
 from .node import Node, Place, Thing
 from .portal import Portal
 from .query import CharacterStatAlias, UnitsAlias
@@ -69,6 +64,9 @@ from .types import (
 	Turn,
 	Tick,
 	RulebookName,
+	GraphNodeMapping,
+	DiGraphSuccessorsMapping,
+	DiGraphPredecessorsMapping,
 )
 from .util import AbstractCharacter, getatt, singleton_get, timer
 from .wrap import MutableMappingUnwrapper, SpecialMapping

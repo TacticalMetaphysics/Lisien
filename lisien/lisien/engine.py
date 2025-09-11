@@ -87,7 +87,11 @@ from .cache import (
 	UnitRulesHandledCache,
 )
 from .character import Character
-from .db import NullQueryEngine, ParquetQueryEngine, SQLAlchemyQueryEngine
+from .db import (
+	NullDatabaseConnector,
+	ParquetDatabaseConnector,
+	SQLAlchemyDatabaseConnector,
+)
 from .exc import (
 	GraphNameError,
 	HistoricKeyError,
@@ -95,7 +99,6 @@ from .exc import (
 	OutOfTimelineError,
 )
 from .facade import CharacterFacade
-from .graph import DiGraph
 from .node import Place, Thing
 from .portal import Portal
 from .proxy import worker_subprocess
@@ -147,6 +150,7 @@ from .types import (
 	UniversalKey,
 	Value,
 	EntityKey,
+	DiGraph,
 )
 from .util import (
 	ACTIONS,
@@ -179,7 +183,12 @@ from .util import (
 	timer,
 	world_locked,
 )
-from .window import WindowDict, update_backward_window, update_window
+from .window import (
+	WindowDict,
+	LinearTimeSetDict,
+	update_backward_window,
+	update_window,
+)
 from .xcollections import (
 	ChangeTrackingDict,
 	CharacterMapping,
@@ -717,10 +726,6 @@ class Engine(AbstractEngine, Executor):
 		return BookmarkMapping(self)
 
 	@cached_property
-	def _where_cached(self) -> dict[Time, list]:
-		return defaultdict(list)
-
-	@cached_property
 	def _node_objs(self) -> SizedDict:
 		return SizedDict()
 
@@ -860,8 +865,10 @@ class Engine(AbstractEngine, Executor):
 		return defaultdict(set)
 
 	@cached_property
-	def _plan_ticks(self) -> dict[Plan, dict[Turn, set[Tick]]]:
-		return defaultdict(lambda: defaultdict(set))
+	def _plan_ticks(
+		self,
+	) -> dict[Plan, dict[Branch, LinearTimeSetDict]]:
+		return defaultdict(lambda: defaultdict(LinearTimeSetDict))
 
 	@cached_property
 	def _time_plan(self) -> dict[Time, Plan]:
@@ -910,6 +917,7 @@ class Engine(AbstractEngine, Executor):
 	def _things_cache(self) -> ThingsCache:
 		ret = ThingsCache(self, name="things cache")
 		ret.setdb = self.query.set_thing_loc
+		ret.deldb = self.query.things_del_time
 		return ret
 
 	@cached_property
@@ -1143,8 +1151,12 @@ class Engine(AbstractEngine, Executor):
 					self.turn,
 					tick,
 				)
-			plan_ticks[last_plan][turn].add(tick)
-			self.query.plan_ticks_insert(last_plan, turn, tick)
+			this_plan = plan_ticks[last_plan][branch]
+			if turn in this_plan:
+				this_plan[turn].add(tick)
+			else:
+				this_plan[turn] = {tick}
+			self.query.plans_insert(last_plan, branch, turn, tick)
 			time_plan[branch, turn, tick] = last_plan
 		else:
 			end_turn, _ = self._branch_end(branch)
@@ -1309,7 +1321,6 @@ class Engine(AbstractEngine, Executor):
 		time_plan = self._time_plan
 		plans = self._plans
 		branch = self.branch
-		where_cached = self._where_cached
 		turn_end_plan = self._turn_end_plan
 		was_planning = self._planning
 		self._planning = True
@@ -1324,35 +1335,38 @@ class Engine(AbstractEngine, Executor):
 				turn_end_plan[branch_from, start_turn] = start_tick
 			if (start_turn, start_tick) > (turn_from, tick_from):
 				continue
-			incremented = False
-			for turn, ticks in list(plan_ticks[plan_id].items()):
-				if turn < turn_from:
-					continue
-				for tick in ticks:
-					if (turn, tick) < (turn_from, tick_from):
+			times = plan_ticks[plan_id][branch_from].iter_times()
+			for turn, tick in times:
+				if (turn_from, tick_from) <= (turn, tick):
+					break
+			else:
+				continue
+			self._last_plan += 1
+			plans[self._last_plan] = branch, turn, tick
+			if (
+				branch,
+				turn,
+			) not in turn_end_plan or tick > turn_end_plan[branch, turn]:
+				turn_end_plan[branch, turn] = tick
+			for turn, tick in times:
+				plan_ticks[self._last_plan][branch][turn].add(tick)
+				self.query.plans_insert(self._last_plan, branch, turn, tick)
+				for cache in self._caches:
+					if not hasattr(cache, "settings"):
 						continue
-					if not incremented:
-						self._last_plan += 1
-						incremented = True
-						plans[self._last_plan] = branch, turn, tick
-					if (
-						branch,
-						turn,
-					) not in turn_end_plan or tick > turn_end_plan[
-						branch, turn
-					]:
-						turn_end_plan[branch, turn] = tick
-					plan_ticks[self._last_plan][turn].add(tick)
-					self.query.plan_ticks_insert(self._last_plan, turn, tick)
-					for cache in where_cached[branch_from, turn, tick]:
+					try:
 						data = cache.settings[branch_from][turn][tick]
-						value = data[-1]
-						key = data[:-1]
-						args = key + (branch, turn, tick, value)
-						if hasattr(cache, "setdb"):
-							cache.setdb(*args)
-						cache.store(*args, planning=True)
-						time_plan[branch, turn, tick] = self._last_plan
+					except KeyError:
+						continue
+					value = data[-1]
+					key = data[:-1]
+					if key[0] is None:
+						key = key[1:]
+					args = key + (branch, turn, tick, value)
+					if hasattr(cache, "setdb"):
+						cache.setdb(*args)
+					cache.store(*args, planning=True)
+					time_plan[branch, turn, tick] = self._last_plan
 		self._planning = was_planning
 
 	@world_locked
@@ -1363,54 +1377,35 @@ class Engine(AbstractEngine, Executor):
 				   ``with self.plan() as plan:``
 
 		"""
-		branch, turn, tick = self._btt()
-		to_delete: list[LinearTime] = []
 		plan_ticks = self._plan_ticks[plan]
-		start_turn = start_tick = float("inf")
-		for (
-			trn,
-			tcks,
-		) in (
-			plan_ticks.items()
-		):  # might improve performance to use a WindowDict for plan_ticks
-			if turn == trn:
-				for tck in tcks:
-					if (trn, tck) < (start_turn, start_tick):
-						(start_turn, start_tick) = (trn, tck)
-					if tck >= tick:
-						to_delete.append((trn, tck))
-			elif trn > turn:
-				for tck in tcks:
-					if (trn, tck) < (start_turn, start_tick):
-						(start_turn, start_tick) = (trn, tck)
-					to_delete.append((trn, tck))
+		for branch in plan_ticks:
+			plan_times = plan_ticks[branch].iter_times()
+			for start_turn, start_tick in plan_times:
+				if self._branch_end() < (start_turn, start_tick):
+					break
 			else:
-				for tck in tcks:
-					if (trn, tck) < (start_turn, start_tick):
-						(start_turn, start_tick) = (trn, tck)
-		# Delete stuff that happened at contradicted times,
-		# and then delete the times from the plan
-		where_cached = self._where_cached
-		time_plan = self._time_plan
-		for trn, tck in to_delete:
-			for cache in where_cached[branch, trn, tck]:
-				cache.remove(branch, trn, tck)
-				if hasattr(cache, "deldb"):
-					cache.deldb(branch, trn, tck)
-			del where_cached[branch, trn, tck]
-			plan_ticks[trn].remove(tck)
-			if not plan_ticks[trn]:
-				del plan_ticks[trn]
-			del time_plan[branch, trn, tck]
-		# Delete keyframes on or after the start of the plan
-		kf2del = []
-		for r, ts in self._keyframes_dict[branch].items():
-			if r > start_turn:
-				kf2del.extend((r, t) for t in ts)
-			elif r == start_turn:
-				kf2del.extend((r, t) for t in ts if t >= start_tick)
-		for kf_turn, kf_tick in kf2del:
-			self._delete_keyframe(branch, kf_turn, kf_tick)
+				continue
+			time_plan = self._time_plan
+			for trn, tck in ((start_turn, start_tick), *plan_times):
+				for cache in self._caches:
+					if hasattr(cache, "discard"):
+						cache.discard(branch, trn, tck)
+					if hasattr(cache, "deldb"):
+						cache.deldb(branch, trn, tck)
+				plan_ticks[branch][trn].remove(tck)
+				if not plan_ticks[branch][trn]:
+					del plan_ticks[branch][trn]
+				if (branch, trn, tck) in time_plan:
+					del time_plan[branch, trn, tck]
+			# Delete keyframes on or after the start of the plan
+			kf2del = []
+			for r, ts in self._keyframes_dict[branch].items():
+				if r > start_turn:
+					kf2del.extend((r, t) for t in ts)
+				elif r == start_turn:
+					kf2del.extend((r, t) for t in ts if t >= start_tick)
+			for kf_turn, kf_tick in kf2del:
+				self._delete_keyframe(branch, kf_turn, kf_tick)
 
 	def _delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		if (branch, turn, tick) not in self._keyframes_times:
@@ -2128,9 +2123,9 @@ class Engine(AbstractEngine, Executor):
 	):
 		if prefix is None:
 			if connect_string is None:
-				self.query = NullQueryEngine()
+				self.query = NullDatabaseConnector()
 			else:
-				self.query = SQLAlchemyQueryEngine(
+				self.query = SQLAlchemyDatabaseConnector(
 					connect_string, connect_args or {}, self.pack, self.unpack
 				)
 		else:
@@ -2139,13 +2134,13 @@ class Engine(AbstractEngine, Executor):
 			if not os.path.isdir(prefix):
 				raise FileExistsError("Need a directory")
 			if connect_string is None:
-				self.query = ParquetQueryEngine(
+				self.query = ParquetDatabaseConnector(
 					os.path.join(prefix, "world"),
 					self.pack,
 					self.unpack,
 				)
 			else:
-				self.query = SQLAlchemyQueryEngine(
+				self.query = SQLAlchemyDatabaseConnector(
 					connect_string, connect_args or {}, self.pack, self.unpack
 				)
 			if clear:
@@ -2161,9 +2156,9 @@ class Engine(AbstractEngine, Executor):
 			main_branch = self.query.eternal["main_branch"]
 		assert main_branch is not None
 		assert main_branch == self.query.eternal["main_branch"]
-		self._obranch = self.query.get_branch()
-		self._oturn = self.query.get_turn()
-		self._otick = self.query.get_tick()
+		self._obranch = self.query.eternal["branch"]
+		self._oturn = self.query.eternal["turn"]
+		self._otick = self.query.eternal["tick"]
 		for (
 			branch,
 			parent,
@@ -3027,9 +3022,8 @@ class Engine(AbstractEngine, Executor):
 		plan_ticks = self._plan_ticks
 		time_plan = self._time_plan
 		turn_end_plan = self._turn_end_plan
-		for plan, turn, tick in q.plan_ticks_dump():
-			plan_ticks[plan][turn].add(tick)
-			branch = plans[plan][0]
+		for plan, branch, turn, tick in q.plan_ticks_dump():
+			plan_ticks[plan][branch][turn].add(tick)
 			turn_end_plan[branch, turn] = max(
 				(turn_end_plan[branch, turn], tick)
 			)
@@ -4099,7 +4093,7 @@ class Engine(AbstractEngine, Executor):
 		"""Remove everything from memory that can be removed."""
 		# If we're not connected to some database, we can't unload anything
 		# without losing data
-		if isinstance(self.query, NullQueryEngine):
+		if isinstance(self.query, NullDatabaseConnector):
 			return
 		# find the slices of time that need to stay loaded
 		branch, turn, tick = self._btt()
