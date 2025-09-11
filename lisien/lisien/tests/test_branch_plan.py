@@ -21,9 +21,15 @@ def test_single_plan(serial_engine):
 		g.node[2]["successful"] = True
 	eng.turn = 1
 	assert 2 not in g.node
-	eng.branch = "b"
+	eng.branch = "b"  # copying the plan
 	assert 2 not in g.node
 	assert 1 in g
+	eng.next_turn()
+	assert eng.turn == 2
+	assert 2 in g.node
+	eng.turn = 1
+	eng.branch = "trunk"
+	assert 2 not in g.node
 	eng.next_turn()
 	assert eng.turn == 2
 	assert 2 in g.node

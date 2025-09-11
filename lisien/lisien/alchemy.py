@@ -241,6 +241,7 @@ def tables_for_meta(meta):
 		"plan_ticks",
 		meta,
 		Column("plan_id", INT, primary_key=True),
+		Column("branch", TEXT, primary_key=True),
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
 		ForeignKeyConstraint(("plan_id",), ("plans.id",)),
@@ -728,6 +729,16 @@ def queries(table):
 		"graphs_types": select(
 			table["graphs"].c.graph, table["graphs"].c.type
 		),
+		"graphs_delete": table["graphs"]
+		.delete()
+		.where(
+			and_(
+				table["graphs"].c.graph == bindparam("graph"),
+				table["graphs"].c.branch == bindparam("branch"),
+				table["graphs"].c.turn == bindparam("turn"),
+				table["graphs"].c.tick == bindparam("tick"),
+			)
+		),
 		"graphs_named": select(func.COUNT())
 		.select_from(table["graphs"])
 		.where(table["graphs"].c.graph == bindparam("graph")),
@@ -1079,6 +1090,13 @@ def queries(table):
 			),
 		)
 	)
+	r["things_del_time"] = things.delete().where(
+		and_(
+			things.c.branch == bindparam("branch"),
+			things.c.turn == bindparam("turn"),
+			things.c.tick == bindparam("tick"),
+		)
+	)
 	units = table["units"]
 	r["del_units_after"] = units.delete().where(
 		and_(
@@ -1217,6 +1235,14 @@ def queries(table):
 		r[f"load_{name}_tick_to_tick"] = sel.where(
 			to_tick_clause(tab)
 		).order_by(tab.c.turn, tab.c.tick, tab.c.character)
+		r[f"{name}_delete"] = tab.delete().where(
+			and_(
+				tab.c.character == bindparam("character"),
+				tab.c.branch == bindparam("branch"),
+				tab.c.turn == bindparam("turn"),
+				tab.c.tick == bindparam("tick"),
+			)
+		)
 	ntab = table["node_rulebook"]
 	node_rb_select = select(
 		ntab.c.character,

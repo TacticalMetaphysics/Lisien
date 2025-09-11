@@ -4,7 +4,7 @@ from functools import partial
 
 import pytest
 
-from ..db import ParquetQueryEngine, SQLAlchemyQueryEngine
+from ..db import ParquetDatabaseConnector, SQLAlchemyDatabaseConnector
 from ..engine import Engine
 from ..exporter import game_path_to_xml
 from ..importer import xml_to_sqlite, xml_to_pqdb
@@ -56,23 +56,23 @@ def test_import(tmp_path, exported, non_null_database, engine_facade):
 		test_world = os.path.join(tmp_path, "testworld")
 		correct_world = os.path.join(tmp_path, "world")
 		xml_to_pqdb(exported, test_world)
-		test_engine = ParquetQueryEngine(
+		test_engine = ParquetDatabaseConnector(
 			test_world, engine_facade.pack, engine_facade.unpack
 		)
-		correct_engine = ParquetQueryEngine(
+		correct_engine = ParquetDatabaseConnector(
 			correct_world, engine_facade.pack, engine_facade.unpack
 		)
 	else:
 		test_world = os.path.join(tmp_path, "testworld.sqlite3")
 		correct_world = os.path.join(tmp_path, "world.sqlite3")
 		xml_to_sqlite(exported, test_world)
-		test_engine = SQLAlchemyQueryEngine(
+		test_engine = SQLAlchemyDatabaseConnector(
 			"sqlite:///" + test_world,
 			{},
 			engine_facade.pack,
 			engine_facade.unpack,
 		)
-		correct_engine = SQLAlchemyQueryEngine(
+		correct_engine = SQLAlchemyDatabaseConnector(
 			"sqlite:///" + correct_world,
 			{},
 			engine_facade.pack,

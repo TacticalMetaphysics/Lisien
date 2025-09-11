@@ -19,25 +19,28 @@ import inspect
 import os
 import sys
 from abc import ABC, abstractmethod
+import builtins
 from collections import UserDict, defaultdict
 from contextlib import contextmanager
 from functools import cached_property, partial, partialmethod, wraps
-from itertools import starmap
+from itertools import starmap, filterfalse
 from operator import itemgetter
 from queue import Queue
 from sqlite3 import IntegrityError as LiteIntegrityError
 from sqlite3 import OperationalError as LiteOperationalError
 from threading import Lock, Thread
-from types import MethodType
+from types import MethodType, EllipsisType
 from typing import (
 	Any,
 	Iterator,
 	Literal,
 	Optional,
 	TypeAlias,
+	Union,
 	MutableMapping,
 	Callable,
 	Iterable,
+	get_type_hints,
 )
 
 from sqlalchemy import (
@@ -55,6 +58,7 @@ from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
 from .alchemy import gather_sql, meta
 from .exc import KeyframeError
+import lisien.types
 from .types import (
 	ActionFuncName,
 	Branch,
@@ -64,6 +68,7 @@ from .types import (
 	EdgeRowType,
 	EdgeValRowType,
 	UnitRowType,
+	GraphTypeStr,
 	GraphValKeyframe,
 	GraphValRowType,
 	Key,
@@ -99,8 +104,14 @@ from .types import (
 	CharDict,
 	Keyframe,
 )
-from .util import ELLIPSIS, EMPTY, EMPTY_LIST, garbage
+from .util import ELLIPSIS, EMPTY, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
+
+if sys.version_info.minor < 11:
+
+	class ExceptionGroup(Exception):
+		pass
+
 
 IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
 OperationalError = (LiteOperationalError, AlchemyOperationalError)
@@ -117,7 +128,7 @@ class GlobalKeyValueStore(UserDict):
 
 	"""
 
-	def __init__(self, qe: AbstractQueryEngine, data: dict):
+	def __init__(self, qe: AbstractDatabaseConnector, data: dict):
 		self.qe = qe
 		super().__init__()
 		self.data = data
@@ -160,12 +171,13 @@ class GlobalKeyValueStore(UserDict):
 		self.qe.global_del(k)
 
 
-class ConnectionHolder:
+class ConnectionLooper:
 	strings: dict
 	lock: Lock
-	existence_lock = Lock()
-	_inq: Queue
-	_outq: Queue
+
+	@cached_property
+	def existence_lock(self):
+		return Lock()
 
 	@cached_property
 	def logger(self):
@@ -195,7 +207,7 @@ class ConnectionHolder:
 		pass
 
 
-class ParquetDBHolder(ConnectionHolder):
+class ParquetDBLooper(ConnectionLooper):
 	@cached_property
 	def schema(self):
 		import pyarrow as pa
@@ -325,6 +337,13 @@ class ParquetDBHolder(ConnectionHolder):
 		self._get_db("keyframes").delete(filters=filters)
 		self._get_db("keyframes_graphs").delete(filters=filters)
 		self._get_db("keyframe_extensions").delete(filters=filters)
+
+	def delete(self, table: str, data: list[dict]):
+		from pyarrow import compute as pc
+
+		db = self._get_db(table)
+		for datum in data:
+			db.delete(filters=[pc.field(k) == v for (k, v) in datum.items()])
 
 	def all_keyframe_times(self):
 		return {
@@ -2386,11 +2405,11 @@ class ParquetDBHolder(ConnectionHolder):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		triggers: bytes | ... = ...,
-		prereqs: bytes | ... = ...,
-		actions: bytes | ... = ...,
-		neighborhood: bool | ... = ...,
-		big: bool | ... = ...,
+		triggers: bytes | EllipsisType = ...,
+		prereqs: bytes | EllipsisType = ...,
+		actions: bytes | EllipsisType = ...,
+		neighborhood: bool | EllipsisType = ...,
+		big: bool | EllipsisType = ...,
 	):
 		import pyarrow.compute as pc
 
@@ -3032,10 +3051,10 @@ class ParquetDBHolder(ConnectionHolder):
 					f"While calling {inst[0]}"
 					f"({', '.join(map(repr, inst[1]))}{', ' if inst[2] else ''}"
 					f"{', '.join('='.join(pair) for pair in inst[2].items())})"
-					f"silenced, ParquetDBHolder got the exception: {ex}"
+					f"silenced, ParquetDBHolder got the exception: {repr(ex)}"
 				)
 			except:
-				msg = f"called {inst}; got exception {ex}"
+				msg = f"called {inst}; got exception {repr(ex)}"
 			print(msg, file=sys.stderr)
 			sys.exit(msg)
 
@@ -3043,8 +3062,12 @@ class ParquetDBHolder(ConnectionHolder):
 		outq = self._outq
 
 		def call_method(name, *args, silent=False, **kwargs):
+			if callable(name):
+				mth = name
+			else:
+				mth = getattr(self, name)
 			try:
-				res = getattr(self, name)(*args, **kwargs)
+				res = mth(*args, **kwargs)
 			except Exception as ex:
 				if silent:
 					loud_exit(inst, ex)
@@ -3143,18 +3166,857 @@ LoadedCharWindow: TypeAlias = dict[
 ]
 
 
-class AbstractQueryEngine(ABC):
+class Batch(list):
+	silent: bool = True
+
+	_hint2type = {}
+
+	def __init__(
+		self,
+		qe: AbstractDatabaseConnector,
+		table: str,
+		key_len: int,
+		inc_rec_counter: bool,
+		staging_method_name: str | None,
+		serialize_record: callable,
+	):
+		super().__init__()
+		self._qe = qe
+		self.table = table
+		self.key_len = key_len
+		self.inc_rec_counter = inc_rec_counter
+		self.serialize_record = serialize_record
+		self.argspec = inspect.getfullargspec(self.serialize_record)
+		self.staging_func_name = staging_method_name
+
+	def cull(self, condition: Callable[[...], bool]) -> None:
+		"""Remove records matching a condition from the batch
+
+		Records are unpacked before being passed into the condition function.
+
+		"""
+		datta = list(self)
+		self.clear()
+		self.extend(
+			filterfalse(
+				partial(self._call_with_unpacked_tuple, condition), datta
+			)
+		)
+
+	@staticmethod
+	def _call_with_unpacked_tuple(func, tup):
+		return func(*tup)
+
+	def _validate(self, t: tuple):
+		def deannotate(annotation):
+			if "|" in annotation:
+				for a in annotation.split("|"):
+					yield from deannotate(a.strip())
+				return
+			if "Literal" == annotation[:7]:
+				for a in annotation[7:].strip("[]").split(", "):
+					yield from deannotate(a)
+				return
+			elif "[" in annotation:
+				annotation = annotation[: annotation.index("[")]
+			if hasattr(builtins, annotation):
+				typ = getattr(builtins, annotation)
+			elif annotation == "EllipsisType":
+				yield EllipsisType
+				return
+			else:
+				typ = getattr(lisien.types, annotation)
+			if hasattr(typ, "__supertype__"):
+				typ = typ.__supertype__
+			if hasattr(typ, "__origin__"):
+				if typ.__origin__ is Union:
+					for arg in typ.__args__:
+						yield getattr(arg, "__origin__", arg)
+				elif typ.__origin__ is Literal:
+					yield from map(type, typ.__args__)
+				else:
+					yield typ.__origin__
+			else:
+				yield typ
+
+		if not isinstance(t, tuple):
+			raise TypeError("Can only batch tuples")
+		if len(t) != len(self.argspec.args) - 1:  # exclude self
+			raise TypeError(
+				f"Need a tuple of length {len(self.argspec.args) - 1}, not {len(t)}"
+			)
+		for i, (name, value) in enumerate(zip(self.argspec.args[1:], t)):
+			annot = self.argspec.annotations[name]
+
+			if not isinstance(value, tuple(deannotate(annot))):
+				raise TypeError(
+					f"Tuple element {i} is of type {type(value)};"
+					f" should be {self.argspec.annotations[name]}"
+				)
+
+	def __setitem__(self, i: int, v):
+		self._validate(v)
+		super().__setitem__(i, v)
+
+	def insert(self, i: int, v):
+		self._validate(v)
+		super().insert(i, v)
+
+	def append(self, v):
+		self._validate(v)
+		super().append(v)
+
+	def __call__(self):
+		if not self:
+			return 0
+		if self.key_len:
+			deduplicated = {
+				rec[: self.key_len]: rec[self.key_len :] for rec in self
+			}
+			records = starmap(
+				self.serialize_record,
+				((*key, *value) for (key, value) in deduplicated.items()),
+			)
+		else:
+			records = starmap(self.serialize_record, self)
+		data = list(records)
+		if self.staging_func_name is not None and hasattr(
+			self._qe, self.staging_func_name
+		):
+			getattr(self._qe, self.staging_func_name)(data)
+		argnames = self.argspec.args[1:]
+		if self.silent:
+			self._qe.insert_many_silent(
+				self.table, [dict(zip(argnames, datum)) for datum in data]
+			)
+		else:
+			self._qe.insert_many(
+				self.table, [dict(zip(argnames, datum)) for datum in data]
+			)
+		n = len(data)
+		self.clear()
+		if self.inc_rec_counter:
+			self._qe._increc(n)
+		return n
+
+
+def batched(
+	table: str,
+	serialize_record: Callable | None = None,
+	*,
+	key_len: int = 0,
+	inc_rec_counter: bool = True,
+	staging_method_name: str | None = None,
+) -> partial | cached_property:
+	if staging_method_name is not None and not isinstance(
+		staging_method_name, str
+	):
+		raise TypeError(
+			"staging_method_name must be str if present", staging_method_name
+		)
+	if serialize_record is None:
+		return partial(
+			batched,
+			table,
+			key_len=key_len,
+			inc_rec_counter=inc_rec_counter,
+			staging_method_name=staging_method_name,
+		)
+	serialized_tuple_type = get_type_hints(serialize_record)["return"]
+
+	def the_batch(
+		self,
+	) -> Batch[serialized_tuple_type]:
+		return Batch(
+			self,
+			table,
+			key_len,
+			inc_rec_counter,
+			staging_method_name,
+			MethodType(serialize_record, self),
+		)
+
+	return cached_property(the_batch)
+
+
+class AbstractDatabaseConnector(ABC):
 	pack: callable
 	unpack: callable
-	holder_cls: type[ConnectionHolder]
+	looper_cls: type[ConnectionLooper]
 	eternal: MutableMapping
 	kf_interval_override: Callable[[Any], bool | None] = lambda _: None
 	keyframe_interval: int | None
 	snap_keyframe: callable
+	all_rules: set[RuleName]
 	_inq: Queue
 	_outq: Queue
-	_holder: holder_cls
+	_looper: looper_cls
 	_records: int
+
+	@batched("plan_ticks", inc_rec_counter=False)
+	def _planticks2set(
+		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
+	) -> tuple[Plan, Branch, Turn, Tick]:
+		return plan_id, branch, turn, tick
+
+	@batched("universals", key_len=4)
+	def _universals2set(
+		self,
+		key: UniversalKey,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return pack(key), branch, turn, tick, pack(value)
+
+	@batched("rule_triggers", key_len=4)
+	def _triggers2set(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		triggers: list[TriggerFuncName],
+	) -> tuple[RuleName, Branch, Turn, Tick, bytes]:
+		return (rule, branch, turn, tick, self.pack(triggers))
+
+	@batched("rule_prereqs", key_len=4)
+	def _prereqs2set(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		prereqs: list[PrereqFuncName],
+	) -> tuple[RuleName, Branch, Turn, Tick, bytes]:
+		return (rule, branch, turn, tick, self.pack(prereqs))
+
+	@batched("rule_actions", key_len=4)
+	def _actions2set(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		actions: list[ActionFuncName],
+	) -> tuple[RuleName, Branch, Turn, Tick, bytes]:
+		return (rule, branch, turn, tick, self.pack(actions))
+
+	@batched("rule_neighborhood", key_len=4)
+	def _neighbors2set(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		neighborhood: RuleNeighborhood,
+	) -> tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]:
+		return (rule, branch, turn, tick, neighborhood)
+
+	@batched("rule_big", key_len=4)
+	def _big2set(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		big: RuleBig,
+	) -> tuple[RuleName, Branch, Turn, Tick, RuleBig]:
+		return (rule, branch, turn, tick, big)
+
+	@batched("rulebooks", key_len=4)
+	def _rulebooks2set(
+		self,
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rules: Iterable[RuleName] = (),
+		priority: RulebookPriority = 0.0,
+	) -> tuple[bytes, Branch, Turn, Tick, bytes, RulebookPriority]:
+		return (
+			self.pack(rulebook),
+			branch,
+			turn,
+			tick,
+			self.pack(rules),
+			priority,
+		)
+
+	@batched("graphs", staging_method_name="_stage_graphs", key_len=4)
+	def _graphs2set(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		type: GraphTypeStr,
+	) -> tuple[bytes, Branch, Turn, Tick, GraphTypeStr]:
+		return self.pack(graph), branch, turn, tick, type
+
+	@batched(
+		"character_rulebook",
+		staging_method_name="_stage_character_rulebook",
+		key_len=4,
+	)
+	def _character_rulebooks_to_set(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return pack(character), branch, turn, tick, pack(rulebook)
+
+	@batched(
+		"unit_rulebook", staging_method_name="_stage_unit_rulebook", key_len=4
+	)
+	def _unit_rulebooks_to_set(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return pack(character), branch, turn, tick, pack(rulebook)
+
+	@batched(
+		"character_thing_rulebook",
+		staging_method_name="_stage_character_thing_rulebook",
+		key_len=4,
+	)
+	def _character_thing_rulebooks_to_set(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return pack(character), branch, turn, tick, pack(rulebook)
+
+	@batched(
+		"character_place_rulebook",
+		staging_method_name="_stage_character_place_rulebook",
+		key_len=4,
+	)
+	def _character_place_rulebooks_to_set(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return pack(character), branch, turn, tick, pack(rulebook)
+
+	@batched(
+		"character_portal_rulebook",
+		staging_method_name="_stage_character_portal_rulebook",
+		key_len=4,
+	)
+	def _character_portal_rulebooks_to_set(
+		self,
+		character: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return pack(character), branch, turn, tick, pack(rulebook)
+
+	@batched("node_rulebook", key_len=5)
+	def _noderb2set(
+		self,
+		character: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return pack(character), pack(node), branch, turn, tick, pack(rulebook)
+
+	@batched("portal_rulebook", key_len=6)
+	def _portrb2set(
+		self,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rulebook: RulebookName,
+	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return (
+			pack(character),
+			pack(orig),
+			pack(dest),
+			branch,
+			turn,
+			tick,
+			pack(rulebook),
+		)
+
+	@batched("nodes", key_len=5)
+	def _nodes2set(
+		self,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		extant: bool,
+	) -> tuple[bytes, bytes, Branch, Turn, Tick, bool]:
+		pack = self.pack
+		return pack(graph), pack(node), branch, turn, tick, bool(extant)
+
+	@batched("edges", key_len=6)
+	def _edges2set(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		extant: bool,
+	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]:
+		pack = self.pack
+		return (
+			pack(graph),
+			pack(orig),
+			pack(dest),
+			branch,
+			turn,
+			tick,
+			bool(extant),
+		)
+
+	@batched("node_val", key_len=6)
+	def _nodevals2set(
+		self,
+		graph: CharName,
+		node: NodeName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return (
+			pack(graph),
+			pack(node),
+			pack(key),
+			branch,
+			turn,
+			tick,
+			pack(value),
+		)
+
+	@batched("edge_val", key_len=7)
+	def _edgevals2set(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+	) -> tuple[bytes, bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return (
+			pack(graph),
+			pack(orig),
+			pack(dest),
+			pack(key),
+			branch,
+			turn,
+			tick,
+			pack(value),
+		)
+
+	@batched("graph_val", key_len=5)
+	def _graphvals2set(
+		self,
+		graph: CharName,
+		key: Stat,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
+		pack = self.pack
+		return pack(graph), pack(key), branch, turn, tick, pack(value)
+
+	@batched(
+		"keyframes",
+		inc_rec_counter=False,
+	)
+	def _new_keyframes(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> tuple[Branch, Turn, Tick]:
+		return branch, turn, tick
+
+	@batched(
+		"keyframes_graphs",
+		key_len=4,
+		inc_rec_counter=False,
+		staging_method_name="_stage_new_keyframes_graphs",
+	)
+	def _new_keyframes_graphs(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		nodes: NodeKeyframe,
+		edges: EdgeKeyframe,
+		graph_val: GraphValKeyframe,
+	) -> tuple[bytes, Branch, Turn, Tick, bytes, bytes, bytes]:
+		pack = self.pack
+		return (
+			pack(graph),
+			branch,
+			turn,
+			tick,
+			pack(nodes),
+			pack(edges),
+			pack(graph_val),
+		)
+
+	@batched(
+		"keyframe_extensions",
+		key_len=3,
+		inc_rec_counter=False,
+		staging_method_name="_stage_new_keyframe_extensions",
+	)
+	def _new_keyframe_extensions(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		universal: UniversalKeyframe,
+		rule: RuleKeyframe,
+		rulebook: RulebookKeyframe,
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
+		pack = self.pack
+		return branch, turn, tick, pack(universal), pack(rule), pack(rulebook)
+
+	@batched("character_rules_handled", inc_rec_counter=False)
+	def _char_rules_handled(
+		self,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	) -> tuple[bytes, bytes, RuleName, Branch, Turn, Tick]:
+		(character, rulebook) = map(self.pack, (character, rulebook))
+		return (character, rulebook, rule, branch, turn, tick)
+
+	@batched("unit_rules_handled", inc_rec_counter=False)
+	def _unit_rules_handled(
+		self,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		graph: CharName,
+		unit: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+		character, graph, unit, rulebook = map(
+			self.pack, (character, graph, unit, rulebook)
+		)
+		return character, rulebook, rule, graph, unit, branch, turn, tick
+
+	@batched("character_thing_rules_handled", inc_rec_counter=False)
+	def _char_thing_rules_handled(
+		self,
+		character: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	) -> tuple[bytes, bytes, RuleName, bytes, Branch, Turn, Tick]:
+		character, thing, rulebook = map(
+			self.pack, (character, thing, rulebook)
+		)
+		return (character, rulebook, rule, thing, branch, turn, tick)
+
+	@batched("character_place_rules_handled", inc_rec_counter=False)
+	def _char_place_rules_handled(
+		self,
+		character: CharName,
+		place: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+		character, rulebook, place = map(
+			self.pack, (character, rulebook, place)
+		)
+		return (character, place, rulebook, rule, branch, turn, tick)
+
+	@batched("character_portal_rules_handled", inc_rec_counter=False)
+	def _char_portal_rules_handled(
+		self,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+		character, rulebook, orig, dest = map(
+			self.pack, (character, rulebook, orig, dest)
+		)
+		return character, orig, dest, rulebook, rule, branch, turn, tick
+
+	@batched("node_rules_handled", inc_rec_counter=False)
+	def _node_rules_handled(
+		self,
+		character: CharName,
+		node: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+		character, rulebook, node = map(self.pack, (character, rulebook, node))
+		return character, node, rulebook, rule, branch, turn, tick
+
+	@batched("portal_rules_handled", inc_rec_counter=False)
+	def _portal_rules_handled(
+		self,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		rulebook: RulebookName,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+		(character, orig, dest, rulebook) = map(
+			self.pack, (character, orig, dest, rulebook)
+		)
+		return character, orig, dest, rulebook, rule, branch, turn, tick
+
+	@batched("units", key_len=6)
+	def _unitness(
+		self,
+		character_graph: CharName,
+		unit_graph: CharName,
+		unit_node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		is_unit: bool,
+	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]:
+		(character_graph, unit_graph, unit_node) = map(
+			self.pack, (character_graph, unit_graph, unit_node)
+		)
+		return (
+			character_graph,
+			unit_graph,
+			unit_node,
+			branch,
+			turn,
+			tick,
+			is_unit,
+		)
+
+	@batched("things", key_len=5, staging_method_name="_stage_location")
+	def _location(
+		self,
+		character: CharName,
+		thing: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		location: NodeName | EllipsisType,
+	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
+		(character, thing, location) = map(
+			self.pack, (character, thing, location)
+		)
+		return character, thing, branch, turn, tick, location
+
+	def universal_set(
+		self,
+		key: UniversalKey,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+	) -> None:
+		self._universals2set.append((key, branch, turn, tick, value))
+
+	def universal_del(
+		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		self.universal_set(key, branch, turn, tick, None)
+
+	def exist_node(
+		self,
+		graph: CharName,
+		node: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		extant: bool,
+	) -> None:
+		self._nodes2set.append((graph, node, branch, turn, tick, extant))
+
+	@cached_property
+	def _all_keyframe_times(self):
+		return set(self.keyframes_dump())
+
+	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		self._new_keyframes.append((branch, turn, tick))
+		self._all_keyframe_times.add((branch, turn, tick))
+
+	def keyframe_graph_insert(
+		self,
+		graph: CharName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		nodes: NodeKeyframe,
+		edges: EdgeKeyframe,
+		graph_val: CharDict,
+	) -> None:
+		self._new_keyframes_graphs.append(
+			(graph, branch, turn, tick, nodes, edges, graph_val)
+		)
+
+	def keyframe_extension_insert(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		universal: UniversalKeyframe,
+		rule: RuleKeyframe,
+		rulebook: RulebookKeyframe,
+	):
+		self._new_keyframe_extensions.append(
+			(
+				branch,
+				turn,
+				tick,
+				universal,
+				rule,
+				rulebook,
+			)
+		)
+
+	def node_val_set(
+		self,
+		graph: CharName,
+		node: NodeName,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+	):
+		self._nodevals2set.append(
+			(graph, node, key, branch, turn, tick, value)
+		)
+
+	def edge_val_set(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		value: Value,
+	) -> None:
+		self._edgevals2set.append(
+			(graph, orig, dest, key, branch, turn, tick, value)
+		)
+
+	def plans_insert(
+		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		self._planticks2set.append((plan_id, branch, turn, tick))
+
+	def plans_insert_many(
+		self, many: list[tuple[Plan, Branch, Turn, Tick]]
+	) -> None:
+		self._planticks2set.extend(many)
+
+	@garbage
+	def flush(self):
+		"""Put all pending changes into the SQL transaction, or write to disk."""
+		if (wat := self.echo("ready")) != "ready":
+			raise RuntimeError("Not ready to flush", wat)
+		self._flush()
+		if (wat := self.echo("flushed")) != "flushed":
+			raise RuntimeError("Failed flush", wat)
+
+	@mutexed
+	def _flush(self):
+		self._universals2set()
+		self._triggers2set()
+		self._prereqs2set()
+		self._actions2set()
+		self._neighbors2set()
+		self._big2set()
+		self._rulebooks2set()
+		self._graphs2set()
+		self._character_rulebooks_to_set()
+		self._unit_rulebooks_to_set()
+		self._character_thing_rulebooks_to_set()
+		self._character_place_rulebooks_to_set()
+		self._character_portal_rulebooks_to_set()
+		self._nodes2set()
+		self._edges2set()
+		self._noderb2set()
+		self._portrb2set()
+		self._graphvals2set()
+		self._nodevals2set()
+		self._edgevals2set()
+		self._location()
+		self._new_keyframes()
+		self._new_keyframes_graphs()
+		self._new_keyframe_extensions()
+		self._char_rules_handled()
+		self._unit_rules_handled()
+		self._char_thing_rules_handled()
+		self._char_place_rules_handled()
+		self._char_portal_rules_handled()
+		self._node_rules_handled()
+		self._portal_rules_handled()
+		self._unitness()
+		self._planticks2set()
 
 	@cached_property
 	def logger(self):
@@ -3193,6 +4055,26 @@ class AbstractQueryEngine(ABC):
 			return ret
 
 	@abstractmethod
+	def call(self, query_name: str, *args, **kwargs): ...
+
+	@abstractmethod
+	def call_silent(self, query_name: str, *args, **kwargs): ...
+
+	@abstractmethod
+	def call_many(self, query_name: str, args: list) -> None: ...
+
+	@abstractmethod
+	def call_many_silent(self, query_name: str, args: list) -> None: ...
+
+	@abstractmethod
+	def insert_many(self, table_name: str, args: list[dict]) -> None: ...
+
+	@abstractmethod
+	def insert_many_silent(
+		self, table_name: str, args: list[dict]
+	) -> None: ...
+
+	@abstractmethod
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
@@ -3206,50 +4088,43 @@ class AbstractQueryEngine(ABC):
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		pass
 
-	@abstractmethod
-	def new_graph(
-		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
-	) -> None:
-		pass
-
-	@abstractmethod
-	def keyframes_graphs(
-		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick]]:
-		pass
-
-	@abstractmethod
-	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick): ...
-
-	@abstractmethod
-	def keyframe_extension_insert(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		universal: UniversalKeyframe,
-		rule: RuleKeyframe,
-		rulebook: RulebookKeyframe,
-	) -> None:
-		pass
-
-	@abstractmethod
-	def keyframe_graph_insert(
+	def graphs_insert(
 		self,
 		graph: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		nodes: NodeKeyframe,
-		edges: EdgeKeyframe,
-		graph_val: CharDict,
+		type: GraphTypeStr,
 	) -> None:
-		pass
+		self._graphs2set.append((graph, branch, turn, tick, type))
+
+	def graph_val_set(
+		self,
+		graph: CharName,
+		key: Key,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		val: Value,
+	) -> None:
+		self._graphvals2set.append((graph, key, branch, turn, tick, val))
+
+	def exist_edge(
+		self,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		extant: bool,
+	) -> None:
+		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
 
 	@abstractmethod
-	def graphs_insert(
-		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
-	) -> None:
+	def keyframes_graphs(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick]]:
 		pass
 
 	@abstractmethod
@@ -3297,18 +4172,6 @@ class AbstractQueryEngine(ABC):
 		parent: Branch,
 		parent_turn: Turn,
 		parent_tick: Tick,
-	) -> None:
-		pass
-
-	@abstractmethod
-	def update_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-		end_turn: Turn,
-		end_tick: Tick,
 	) -> None:
 		pass
 
@@ -3367,24 +4230,6 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def graph_val_set(
-		self,
-		graph: CharName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		val: Value,
-	) -> None:
-		pass
-
-	@abstractmethod
-	def graph_val_del_time(
-		self, branch: Branch, turn: Turn, tick: Tick
-	) -> None:
-		pass
-
-	@abstractmethod
 	def graphs_types(
 		self,
 		branch: Branch,
@@ -3400,35 +4245,11 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def exist_node(
-		self,
-		graph: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		extant: bool,
-	) -> None:
-		pass
-
-	@abstractmethod
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		pass
 
 	@abstractmethod
 	def nodes_dump(self) -> Iterator[NodeRowType]:
-		pass
-
-	@abstractmethod
-	def load_nodes(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[NodeRowType]:
 		pass
 
 	@abstractmethod
@@ -3445,19 +4266,6 @@ class AbstractQueryEngine(ABC):
 		turn_to: Optional[Turn] = None,
 		tick_to: Optional[Tick] = None,
 	) -> Iterator[NodeValRowType]:
-		pass
-
-	@abstractmethod
-	def node_val_set(
-		self,
-		graph: CharName,
-		node: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Value,
-	):
 		pass
 
 	@abstractmethod
@@ -3483,19 +4291,6 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def exist_edge(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		extant: bool,
-	) -> None:
-		pass
-
-	@abstractmethod
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		pass
 
@@ -3512,20 +4307,6 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def edge_val_set(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Value,
-	):
-		pass
-
-	@abstractmethod
 	def edge_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
@@ -3533,30 +4314,6 @@ class AbstractQueryEngine(ABC):
 
 	@abstractmethod
 	def plans_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
-		pass
-
-	@abstractmethod
-	def plans_insert(
-		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
-	) -> None:
-		pass
-
-	@abstractmethod
-	def plans_insert_many(
-		self, many: list[tuple[Plan, Branch, Turn, Tick]]
-	) -> None:
-		pass
-
-	@abstractmethod
-	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick) -> None:
-		pass
-
-	@abstractmethod
-	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Turn, Tick]]:
-		pass
-
-	@abstractmethod
-	def flush(self) -> None:
 		pass
 
 	@abstractmethod
@@ -3683,7 +4440,7 @@ class AbstractQueryEngine(ABC):
 
 	@contextmanager
 	def mutex(self):
-		with self._holder.lock:
+		with self._looper.lock:
 			yield
 			if self._outq.qsize() != 0:
 				raise RuntimeError("Unhandled items in output queue")
@@ -3707,6 +4464,9 @@ class AbstractQueryEngine(ABC):
 		But the engine can override this behavior when it'd be impractical,
 		such as during a rule's execution. This defers the keyframe snap
 		until next we get a falsy result from the override function.
+
+		Not to be called directly. Instead, use a batch, likely created via
+		the ``@batch`` decorator.
 
 		"""
 		if n == 0:
@@ -4838,53 +5598,48 @@ class AbstractQueryEngine(ABC):
 		pass
 
 	@abstractmethod
-	def universal_set(
-		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Any
-	):
-		pass
-
-	@abstractmethod
-	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
-		pass
-
-	@abstractmethod
 	def count_all_table(self, tbl: str) -> int:
 		pass
 
-	@abstractmethod
 	def set_rule_triggers(
 		self,
 		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		flist: list[TriggerFuncName],
+		triggers: list[TriggerFuncName],
 	):
-		pass
+		if rule in self.all_rules:
+			self._triggers2set.append((rule, branch, turn, tick, triggers))
+		else:
+			self.create_rule(rule, branch, turn, tick, triggers=triggers)
 
-	@abstractmethod
 	def set_rule_prereqs(
 		self,
 		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		flist: list[PrereqFuncName],
+		prereqs: list[PrereqFuncName],
 	):
-		pass
+		if rule in self.all_rules:
+			self._prereqs2set.append((rule, branch, turn, tick, prereqs))
+		else:
+			self.create_rule(rule, branch, turn, tick, prereqs=prereqs)
 
-	@abstractmethod
 	def set_rule_actions(
 		self,
 		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		flist: list[ActionFuncName],
+		actions: list[ActionFuncName],
 	):
-		pass
+		if rule in self.all_rules:
+			self._actions2set.append((rule, branch, turn, tick, actions))
+		else:
+			self.create_rule(rule, branch, turn, tick, actions=actions)
 
-	@abstractmethod
 	def set_rule_neighborhood(
 		self,
 		rule: RuleName,
@@ -4893,9 +5648,15 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		neighborhood: RuleNeighborhood,
 	):
-		pass
+		if rule in self.all_rules:
+			self._neighbors2set.append(
+				(rule, branch, turn, tick, neighborhood)
+			)
+		else:
+			self.create_rule(
+				rule, branch, turn, tick, neighborhood=neighborhood
+			)
 
-	@abstractmethod
 	def set_rule_big(
 		self,
 		rule: RuleName,
@@ -4904,9 +5665,14 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		big: RuleBig,
 	) -> None:
-		pass
+		if rule in self.all_rules:
+			self._big2set.append((rule, branch, turn, tick, big))
+		else:
+			self.create_rule(rule, branch, turn, tick, big=big)
 
 	@abstractmethod
+	def rules_insert(self, rule: RuleName): ...
+
 	def create_rule(
 		self,
 		rule: RuleName,
@@ -4918,10 +5684,15 @@ class AbstractQueryEngine(ABC):
 		actions: Iterable[ActionFuncName] = (),
 		neighborhood: RuleNeighborhood = None,
 		big: RuleBig = False,
-	) -> bool:
-		pass
+	) -> None:
+		self._triggers2set.append((rule, branch, turn, tick, list(triggers)))
+		self._prereqs2set.append((rule, branch, turn, tick, list(prereqs)))
+		self._actions2set.append((rule, branch, turn, tick, list(actions)))
+		self._neighbors2set.append((rule, branch, turn, tick, neighborhood))
+		self._big2set.append((rule, branch, turn, tick, big))
+		self.all_rules.add(rule)
+		self.rules_insert(rule)
 
-	@abstractmethod
 	def set_rulebook(
 		self,
 		name: RulebookName,
@@ -4931,9 +5702,10 @@ class AbstractQueryEngine(ABC):
 		rules: Optional[list[RuleName]] = None,
 		prio: RulebookPriority = 0.0,
 	):
-		pass
+		self._rulebooks2set.append(
+			(name, branch, turn, tick, rules or [], prio)
+		)
 
-	@abstractmethod
 	def set_character_rulebook(
 		self,
 		char: CharName,
@@ -4942,9 +5714,8 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		pass
+		self._character_rulebooks_to_set.append((char, branch, turn, tick, rb))
 
-	@abstractmethod
 	def set_unit_rulebook(
 		self,
 		char: CharName,
@@ -4953,9 +5724,8 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		pass
+		self._unit_rulebooks_to_set.append((char, branch, turn, tick, rb))
 
-	@abstractmethod
 	def set_character_thing_rulebook(
 		self,
 		char: CharName,
@@ -4964,9 +5734,10 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		pass
+		self._character_thing_rulebooks_to_set.append(
+			(char, branch, turn, tick, rb)
+		)
 
-	@abstractmethod
 	def set_character_place_rulebook(
 		self,
 		char: CharName,
@@ -4975,9 +5746,10 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		pass
+		self._character_place_rulebooks_to_set.append(
+			(char, branch, turn, tick, rb)
+		)
 
-	@abstractmethod
 	def set_character_portal_rulebook(
 		self,
 		char: CharName,
@@ -4986,13 +5758,14 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		pass
+		self._character_portal_rulebooks_to_set.append(
+			(char, branch, turn, tick, rb)
+		)
 
 	@abstractmethod
 	def rulebooks(self) -> Iterator[RulebookName]:
 		pass
 
-	@abstractmethod
 	def set_node_rulebook(
 		self,
 		character: CharName,
@@ -5002,9 +5775,10 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		rulebook: RulebookName,
 	):
-		pass
+		self._noderb2set.append(
+			(character, node, branch, turn, tick, rulebook)
+		)
 
-	@abstractmethod
 	def set_portal_rulebook(
 		self,
 		character: CharName,
@@ -5015,9 +5789,10 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		rulebook: RulebookName,
 	):
-		pass
+		self._portrb2set.append(
+			(character, orig, dest, branch, turn, tick, rulebook)
+		)
 
-	@abstractmethod
 	def handled_character_rule(
 		self,
 		character: CharName,
@@ -5027,9 +5802,10 @@ class AbstractQueryEngine(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		pass
+		self._char_rules_handled.append(
+			(character, rulebook, rule, branch, turn, tick)
+		)
 
-	@abstractmethod
 	def handled_unit_rule(
 		self,
 		character: CharName,
@@ -5041,9 +5817,10 @@ class AbstractQueryEngine(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		pass
+		self._unit_rules_handled.append(
+			(character, rulebook, rule, branch, turn, tick)
+		)
 
-	@abstractmethod
 	def handled_character_thing_rule(
 		self,
 		character: CharName,
@@ -5054,9 +5831,10 @@ class AbstractQueryEngine(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		pass
+		self._char_thing_rules_handled.append(
+			(character, rulebook, rule, thing, branch, turn, tick)
+		)
 
-	@abstractmethod
 	def handled_character_place_rule(
 		self,
 		character: CharName,
@@ -5067,9 +5845,10 @@ class AbstractQueryEngine(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		pass
+		self._char_place_rules_handled.append(
+			(character, rulebook, rule, place, branch, turn, tick)
+		)
 
-	@abstractmethod
 	def handled_character_portal_rule(
 		self,
 		character: CharName,
@@ -5081,9 +5860,10 @@ class AbstractQueryEngine(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		pass
+		self._char_portal_rules_handled.append(
+			(character, rulebook, rule, orig, dest, branch, turn, tick)
+		)
 
-	@abstractmethod
 	def handled_node_rule(
 		self,
 		character: CharName,
@@ -5094,9 +5874,10 @@ class AbstractQueryEngine(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		pass
+		self._node_rules_handled.append(
+			(character, node, rulebook, rule, branch, turn, tick)
+		)
 
-	@abstractmethod
 	def handled_portal_rule(
 		self,
 		character: CharName,
@@ -5108,9 +5889,10 @@ class AbstractQueryEngine(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		pass
+		self._portal_rules_handled.append(
+			(character, orig, dest, rulebook, rule, branch, turn, tick)
+		)
 
-	@abstractmethod
 	def set_thing_loc(
 		self,
 		character: CharName,
@@ -5120,9 +5902,11 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		loc: NodeName,
 	):
-		pass
+		self._location.append((character, thing, branch, turn, tick, loc))
 
 	@abstractmethod
+	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick): ...
+
 	def unit_set(
 		self,
 		character: CharName,
@@ -5133,18 +5917,9 @@ class AbstractQueryEngine(ABC):
 		tick: Tick,
 		is_unit: bool,
 	):
-		pass
-
-	@abstractmethod
-	def rulebook_set(
-		self,
-		rulebook: RulebookName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rules: list[RuleName],
-	):
-		pass
+		self._unitness.append(
+			(character, graph, node, branch, turn, tick, is_unit)
+		)
 
 	@abstractmethod
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
@@ -5248,7 +6023,7 @@ class AbstractQueryEngine(ABC):
 		return dict(ret)
 
 
-class NullQueryEngine(AbstractQueryEngine):
+class NullDatabaseConnector(AbstractDatabaseConnector):
 	"""Query engine that does nothing, connects to no database
 
 	For tests, mainly. If you want to run Lisien in-memory,
@@ -5326,32 +6101,6 @@ class NullQueryEngine(AbstractQueryEngine):
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick]]:
 		return iter(())
 
-	def keyframe_extension_insert(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		universal: dict,
-		rule: dict,
-		rulebook: dict,
-	) -> None:
-		pass
-
-	def keyframe_graph_insert(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		nodes: dict,
-		edges: dict,
-		graph_val: dict,
-	) -> None:
-		pass
-
-	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		pass
-
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		pass
 
@@ -5390,17 +6139,6 @@ class NullQueryEngine(AbstractQueryEngine):
 		parent: Branch,
 		parent_turn: Turn,
 		parent_tick: Tick,
-	):
-		pass
-
-	def update_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-		end_turn: Turn,
-		end_tick: Tick,
 	):
 		pass
 
@@ -5520,18 +6258,6 @@ class NullQueryEngine(AbstractQueryEngine):
 	) -> Iterator[NodeValRowType]:
 		return iter(())
 
-	def node_val_set(
-		self,
-		graph: CharName,
-		node: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Any,
-	):
-		pass
-
 	def node_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
@@ -5548,18 +6274,6 @@ class NullQueryEngine(AbstractQueryEngine):
 		tick_to: Optional[Tick] = None,
 	) -> Iterator[EdgeRowType]:
 		return iter(())
-
-	def exist_edge(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		extant: bool,
-	):
-		pass
 
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
@@ -5578,35 +6292,11 @@ class NullQueryEngine(AbstractQueryEngine):
 	) -> Iterator[EdgeValRowType]:
 		return iter(())
 
-	def edge_val_set(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Any,
-	):
-		pass
-
 	def edge_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	def plans_dump(self) -> Iterator:
 		return iter(())
-
-	def plans_insert(
-		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
-	):
-		pass
-
-	def plans_insert_many(self, many: list[tuple[Plan, Branch, Turn, Tick]]):
-		pass
-
-	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick):
-		pass
 
 	def plan_ticks_dump(self) -> Iterator:
 		return iter(())
@@ -5635,6 +6325,10 @@ class NullQueryEngine(AbstractQueryEngine):
 		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
 	]:
 		return iter(())
+
+	@cached_property
+	def all_rules(self) -> set[RuleName]:
+		return set()
 
 	def rules_dump(self) -> Iterator[str]:
 		return iter(())
@@ -5792,11 +6486,8 @@ class NullQueryEngine(AbstractQueryEngine):
 	):
 		pass
 
-	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
-		pass
-
 	def count_all_table(self, tbl: str) -> int:
-		pass
+		return 0
 
 	def create_rule(
 		self,
@@ -6046,6 +6737,9 @@ class NullQueryEngine(AbstractQueryEngine):
 	):
 		pass
 
+	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+		pass
+
 	def unit_set(
 		self,
 		character: CharName,
@@ -6121,68 +6815,13 @@ class NullQueryEngine(AbstractQueryEngine):
 		return {}
 
 
-class ParquetBatch(list):
-	# Set ``silent = False`` if it hangs when called.
-	# Better for performance if ``silent = True``.
-
-	silent = True
-
-	def __init__(
-		self,
-		qe: "AbstractQueryEngine",
-		table: str,
-		serialize_record: callable,
-	):
-		super().__init__()
-		self._qe = qe
-		self._table = table
-		self._serialize_record = serialize_record
-		self._argspec = inspect.getfullargspec(serialize_record)
-
-	def __call__(self):
-		if not self:
-			return 0
-		if self.silent:
-			meth = self._qe.call_silent
-		else:
-			meth = self._qe.call
-		meth(
-			"insert",
-			self._table,
-			[
-				dict(zip(self._argspec[0][1:], rec))
-				for rec in starmap(self._serialize_record, super().__iter__())
-			],
-		)
-		n = len(self)
-		self.clear()
-		return n
-
-	def __iter__(self):
-		return starmap(self._serialize_record, super().__iter__())
-
-	def __getitem__(self, item):
-		return self._serialize_record(*super().__getitem__(item))
-
-
-def pqbatch(table: str, serialize_record: callable = None):
-	if serialize_record is None:
-		return partial(pqbatch, table)
-
-	@cached_property
-	def the_batch(self):
-		return ParquetBatch(self, table, MethodType(serialize_record, self))
-
-	return the_batch
-
-
-class ParquetQueryEngine(AbstractQueryEngine):
-	holder_cls = ParquetDBHolder
+class ParquetDatabaseConnector(AbstractDatabaseConnector):
+	looper_cls = ParquetDBLooper
 
 	def __init__(self, path, pack=None, unpack=None, logger=None):
 		self._inq = Queue()
 		self._outq = Queue()
-		self._holder = self.holder_cls(path, self._inq, self._outq)
+		self._looper = self.looper_cls(path, self._inq, self._outq)
 		self._records = 0
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
@@ -6203,25 +6842,47 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.unpack = unpack
 		self._branches = {}
 		self._btts = set()
-		self._t = Thread(target=self._holder.run, daemon=True)
+		self._t = Thread(target=self._looper.run, daemon=True)
 		self._t.start()
 		self.eternal = GlobalKeyValueStore(
 			self, {unpack(k): unpack(v) for (k, v) in self.initdb().items()}
 		)
 		self._all_keyframe_times = self.call("all_keyframe_times")
+		self.all_rules = set(self.call("dump", "rules"))
 
 	@mutexed
 	def call(self, method, *args, **kwargs):
 		self._inq.put((method, args, kwargs))
 		ret = self._outq.get()
-		if isinstance(ret, Exception):
-			self._outq.task_done()
-			raise ret
 		self._outq.task_done()
+		if isinstance(ret, Exception):
+			raise ret
 		return ret
 
 	def call_silent(self, method, *args, **kwargs):
 		self._inq.put(("silent", method, args, kwargs))
+
+	@mutexed
+	def call_many(self, query_name: str, args: list):
+		self._inq.put(("many", query_name, args))
+		ret = self._outq.get()
+		self._outq.task_done()
+		if isinstance(ret, Exception):
+			raise ret
+		return ret
+
+	def call_many_silent(self, query_name: str, args: list):
+		self._inq.put(("silent", "many", query_name, args))
+
+	@mutexed
+	def insert_many(self, table_name: str, args: list[dict]):
+		self.call("insert", table_name, args)
+
+	def insert_many_silent(self, table_name: str, args: list[dict]):
+		self.call_silent("insert", table_name, args)
+
+	def delete_many_silent(self, table_name: str, args: list[dict]):
+		self._inq.put(("one", "delete", table_name, args))
 
 	def global_keys(self):
 		unpack = self.unpack
@@ -6232,24 +6893,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.flush()
 		for d in self.call("dump", "keyframes"):
 			yield d["branch"], d["turn"], d["tick"]
-
-	def new_graph(
-		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
-	) -> None:
-		graph = self.pack(graph)
-		self.call(
-			"insert1",
-			"graphs",
-			{
-				"graph": graph,
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"type": typ,
-			},
-		)
-
-	new_character = graphs_insert = new_graph
 
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -6382,25 +7025,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			},
 		)
 
-	def update_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-		end_turn: Turn,
-		end_tick: Tick,
-	):
-		return self.call(
-			"update_branch",
-			branch,
-			parent,
-			parent_turn,
-			parent_tick,
-			end_turn,
-			end_tick,
-		)
-
 	def set_branch(
 		self,
 		branch: Branch,
@@ -6434,162 +7058,42 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		for d in self.call("dump", "turns"):
 			yield d["branch"], d["turn"], d["end_tick"], d["plan_end_tick"]
 
-	@garbage
-	@mutexed
-	def flush(self):
-		if not any(
-			(
-				self._universals2set,
-				self._noderb2set,
-				self._portrb2set,
-				self._graphvals2set,
-				self._nodes2set,
-				self._nodevals2set,
-				self._edges2set,
-				self._edgevals2set,
-				self._planticks2set,
-				self._unitness,
-				self._location,
-				self._char_rules_handled,
-				self._unit_rules_handled,
-				self._char_thing_rules_handled,
-				self._char_place_rules_handled,
-				self._char_portal_rules_handled,
-				self._node_rules_handled,
-				self._portal_rules_handled,
-				self._new_keyframes,
-				self._new_keyframe_times,
-				self._new_keyframe_extensions,
-			)
-		):
-			return
-		records = sum(
-			(
-				self._universals2set(),
-				self._noderb2set(),
-				self._portrb2set(),
-				self._graphvals2set(),
-				self._nodes2set(),
-				self._nodevals2set(),
-				self._edges2set(),
-				self._edgevals2set(),
-				self._planticks2set(),
-			)
+	def _stage_location(self, recs):
+		self.call_silent(
+			"del_things_after",
+			[
+				{
+					"character": character,
+					"thing": thing,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+				}
+				for (
+					character,
+					thing,
+					branch,
+					turn,
+					tick,
+					_,
+				) in recs
+			],
 		)
-		if self._unitness:
-			self.call_silent(
-				"del_units_after",
-				[
-					(character, graph, node, branch, turn, tick)
-					for (
-						character,
-						graph,
-						node,
-						branch,
-						turn,
-						tick,
-						_,
-					) in self._unitness
-				],
-			)
-			records += self._unitness()
-		if self._location:
-			self.call_silent(
-				"del_things_after",
-				[
-					(character, thing, branch, turn, tick)
-					for (
-						character,
-						thing,
-						branch,
-						turn,
-						tick,
-						_,
-					) in self._location
-				],
-			)
-			records += self._location()
-		self._char_rules_handled()
-		self._unit_rules_handled()
-		self._char_thing_rules_handled()
-		self._char_place_rules_handled()
-		self._char_portal_rules_handled()
-		self._node_rules_handled()
-		self._portal_rules_handled()
-		override = self.kf_interval_override()
-		if override is False or (
-			self.keyframe_interval is not None
-			and self._records + records > self.keyframe_interval
-		):
-			self.snap_keyframe()
-		if self.keyframe_interval:
-			self._records = (self._records + records) % self.keyframe_interval
-		else:
-			self._records += records
-		if self._new_keyframe_times:
-			self.call_silent(
-				"insert",
-				"keyframes",
-				[
-					{"branch": branch, "turn": turn, "tick": tick}
-					for (
-						branch,
-						turn,
-						tick,
-					) in self._new_keyframe_times
-				],
-			)
-			self._new_keyframe_times = set()
-		if self._new_keyframes:
-			kfs = {}
-			for (
-				graph,
-				branch,
-				turn,
-				tick,
-				nodes,
-				edges,
-				graph_val,
-			) in self._new_keyframes:
-				kfs[graph, branch, turn, tick] = (nodes, edges, graph_val)
-			self.call_silent(
-				"keyframes_graphs_delete",
-				[
-					{
-						"graph": graph,
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-					}
-					for (graph, branch, turn, tick) in kfs
-				],
-			)
-			self.call_silent(
-				"insert",
-				"keyframes_graphs",
-				[
-					{
-						"graph": graph,
-						"branch": branch,
-						"turn": turn,
-						"tick": tick,
-						"nodes": nodes,
-						"edges": edges,
-						"graph_val": graph_val,
-					}
-					for (graph, branch, turn, tick), (
-						nodes,
-						edges,
-						graph_val,
-					) in kfs.items()
-				],
-			)
-			self._new_keyframes.clear()
-		self._new_keyframe_extensions()
 
-		self._inq.put(("echo", "flushed"))
-		if (got := self._outq.get()) != "flushed":
-			raise RuntimeError("Failed flush", got)
+	def _stage_new_keyframes_graphs(self, recs):
+		self.call_silent(
+			"delete",
+			"keyframes_graphs",
+			[
+				{
+					"graph": graph,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+				}
+				for (graph, branch, turn, tick, *_) in recs
+			],
+		)
 
 	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
 		self.flush()
@@ -6704,6 +7208,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(d["rulebook"]),
 			)
 
+	def rules_insert(self, rule):
+		self.call("insert1", "rule", {"rule": rule})
+
 	def _character_rulebook_dump(self, typ: RulebookTypeStr):
 		self.flush()
 		unpack = self.unpack
@@ -6715,6 +7222,37 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["tick"],
 				unpack(d["rulebook"]),
 			)
+
+	def _stage_charactery_rulebook(self, what: str, recs):
+		self.call_silent(
+			"delete",
+			what,
+			[
+				{
+					"character": character,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+				}
+				for (character, branch, turn, tick, _) in recs
+			],
+		)
+
+	_stage_character_rulebook = partialmethod(
+		_stage_charactery_rulebook, "character_rulebook"
+	)
+	_stage_unit_rulebook = partialmethod(
+		_stage_charactery_rulebook, "unit_rulebook"
+	)
+	_stage_character_thing_rulebook = partialmethod(
+		_stage_charactery_rulebook, "character_thing_rulebook"
+	)
+	_stage_character_place_rulebook = partialmethod(
+		_stage_charactery_rulebook, "character_place_rulebook"
+	)
+	_stage_character_portal_rulebook = partialmethod(
+		_stage_charactery_rulebook, "character_portal_rulebook"
+	)
 
 	def character_rulebook_dump(
 		self,
@@ -6927,30 +7465,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["is_unit"],
 			)
 
-	@pqbatch("plan_ticks")
-	def _planticks2set(
-		self, plan_id: Plan, turn: Turn, tick: Tick
-	) -> tuple[Plan, Turn, Tick]:
-		return plan_id, turn, tick
-
-	@pqbatch("universals")
-	def _universals2set(
-		self, key: Key, branch: Branch, turn: Turn, tick: Tick, value: Value
-	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return pack(key), branch, turn, tick, pack(value)
-
-	def universal_set(
-		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Value
-	):
-		self._universals2set.append((key, branch, turn, tick, val))
-		self._increc()
-
-	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
-		self.universal_set(key, branch, turn, tick, None)
-		self._increc()
-
 	def count_all_table(self, tbl: str) -> int:
+		self.flush()
 		return self.call("rowcount", tbl)
 
 	def set_rule_triggers(
@@ -6959,20 +7475,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		flist: list[TriggerFuncName],
+		triggers: list[TriggerFuncName],
 	):
-		self._increc(
-			self.call(
-				"set_rule",
-				**{
-					"rule": rule,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"triggers": self.pack(flist),
-				},
-			)
-		)
+		if not self.create_rule(rule, branch, turn, tick, triggers):
+			self._triggers2set.append((rule, branch, turn, tick, triggers))
 
 	def set_rule_prereqs(
 		self,
@@ -6980,20 +7486,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		flist: list[PrereqFuncName],
+		prereqs: list[PrereqFuncName],
 	):
-		self._increc(
-			self.call(
-				"set_rule",
-				**{
-					"rule": rule,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"prereqs": self.pack(flist),
-				},
-			)
-		)
+		if not self.create_rule(rule, branch, turn, tick, prereqs=prereqs):
+			self._prereqs2set.append((rule, branch, turn, tick, prereqs))
 
 	def set_rule_actions(
 		self,
@@ -7001,20 +7497,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		flist: list[ActionFuncName],
+		actions: list[ActionFuncName],
 	):
-		self._increc(
-			self.call(
-				"set_rule",
-				**{
-					"rule": rule,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"actions": self.pack(flist),
-				},
-			)
-		)
+		if not self.create_rule(rule, branch, turn, tick, actions=actions):
+			self._actions2set.append((rule, branch, turn, tick, actions))
 
 	def set_rule_neighborhood(
 		self,
@@ -7024,18 +7510,12 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		neighborhood: RuleNeighborhood,
 	):
-		self._increc(
-			self.call(
-				"set_rule",
-				**{
-					"rule": rule,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"neighborhood": neighborhood,
-				},
+		if not self.create_rule(
+			rule, branch, turn, tick, neighborhood=neighborhood
+		):
+			self._neighbors2set.append(
+				(rule, branch, turn, tick, neighborhood)
 			)
-		)
 
 	def set_rule_big(
 		self,
@@ -7045,18 +7525,8 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		tick: Tick,
 		big: RuleBig,
 	) -> None:
-		self._increc(
-			self.call(
-				"set_rule",
-				**{
-					"rule": rule,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-					"big": big,
-				},
-			)
-		)
+		if not self.create_rule(rule, branch, turn, tick, big=big):
+			self._big2set.append((rule, branch, turn, tick, big))
 
 	def create_rule(
 		self,
@@ -7064,9 +7534,9 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		triggers: Iterable[TriggerFuncName] | ... = ...,
-		prereqs: Iterable[PrereqFuncName] | ... = ...,
-		actions: Iterable[ActionFuncName] | ... = ...,
+		triggers: Iterable[TriggerFuncName] = (),
+		prereqs: Iterable[PrereqFuncName] = (),
+		actions: Iterable[ActionFuncName] = (),
 		neighborhood: RuleNeighborhood = None,
 		big: RuleBig = False,
 	) -> bool:
@@ -7074,152 +7544,20 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			"create_rule",
 			rule=rule,
 		):
-			pack = self.pack
-			kwargs = {
-				"rule": rule,
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"neighborhood": neighborhood,
-				"big": big,
-			}
-			if triggers is ...:
-				kwargs["triggers"] = EMPTY_LIST
-			else:
-				kwargs["triggers"] = pack(triggers)
-			if prereqs is ...:
-				kwargs["prereqs"] = EMPTY_LIST
-			else:
-				kwargs["prereqs"] = pack(prereqs)
-			if actions is ...:
-				kwargs["actions"] = EMPTY_LIST
-			else:
-				kwargs["actions"] = pack(actions)
-			self.call("set_rule", **kwargs)
-			self._increc()
+			self._triggers2set.append(
+				(rule, branch, turn, tick, list(triggers))
+			)
+			self._prereqs2set.append((rule, branch, turn, tick, list(prereqs)))
+			self._actions2set.append((rule, branch, turn, tick, list(actions)))
+			self._neighbors2set.append(
+				(rule, branch, turn, tick, neighborhood)
+			)
+			self._big2set.append((rule, branch, turn, tick, big))
 			return True
 		return False
 
-	def set_rulebook(
-		self,
-		name: RulebookName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rules: Optional[list[RuleName]] = None,
-		prio: RulebookPriority = 0.0,
-	) -> None:
-		pack = self.pack
-		name = pack(name)
-		rules = pack(rules)
-		if self.call(
-			"set_rulebook",
-			rulebook=name,
-			branch=branch,
-			turn=turn,
-			tick=tick,
-			rules=rules,
-			priority=prio,
-		):
-			self._increc()
-
-	def _set_character_something_rulebook(
-		self,
-		tab: str,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	) -> None:
-		pack = self.pack
-		self.call(
-			"insert1",
-			tab,
-			{
-				"character": pack(char),
-				"branch": branch,
-				"turn": turn,
-				"tick": tick,
-				"rulebook": pack(rb),
-			},
-		)
-
-	def set_character_rulebook(
-		self,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	) -> None:
-		self._set_character_something_rulebook(
-			"character_rulebook", char, branch, turn, tick, rb
-		)
-
-	def set_unit_rulebook(
-		self,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	) -> None:
-		self._set_character_something_rulebook(
-			"unit_rulebook", char, branch, turn, tick, rb
-		)
-
-	def set_character_thing_rulebook(
-		self,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	) -> None:
-		self._set_character_something_rulebook(
-			"character_thing_rulebook", char, branch, turn, tick, rb
-		)
-
-	def set_character_place_rulebook(
-		self,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	) -> None:
-		self._set_character_something_rulebook(
-			"character_place_rulebook", char, branch, turn, tick, rb
-		)
-
-	def set_character_portal_rulebook(
-		self,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	) -> None:
-		self._set_character_something_rulebook(
-			"character_portal_rulebook", char, branch, turn, tick, rb
-		)
-
 	def rulebooks(self) -> Iterator[RulebookName]:
 		return map(self.pack, self.call("rulebooks"))
-
-	@pqbatch("node_rulebook")
-	def _noderb2set(
-		self,
-		character: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rulebook: RulebookName,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return pack(character), pack(node), branch, turn, tick, pack(rulebook)
 
 	def set_node_rulebook(
 		self,
@@ -7232,29 +7570,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> None:
 		self._noderb2set.append(
 			(character, node, branch, turn, tick, rulebook)
-		)
-		self._increc()
-
-	@pqbatch("portal_rulebook")
-	def _portrb2set(
-		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rulebook: RulebookName,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return (
-			pack(character),
-			pack(orig),
-			pack(dest),
-			branch,
-			turn,
-			tick,
-			pack(rulebook),
 		)
 
 	def set_portal_rulebook(
@@ -7270,20 +7585,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._portrb2set.append(
 			(character, orig, dest, branch, turn, tick, rulebook)
 		)
-		self._increc()
-
-	@pqbatch("character_rules_handled")
-	def _char_rules_handled(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, RuleName, Branch, Turn, Tick]:
-		pack = self.pack
-		return pack(character), pack(rulebook), rule, branch, turn, tick
 
 	def handled_character_rule(
 		self,
@@ -7296,30 +7597,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> None:
 		self._char_rules_handled.append(
 			(character, rulebook, rule, branch, turn, tick)
-		)
-
-	@pqbatch("unit_rules_handled")
-	def _unit_rules_handled(
-		self,
-		character: CharName,
-		graph: CharName,
-		unit: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		pack = self.pack
-		return (
-			pack(character),
-			pack(graph),
-			pack(unit),
-			pack(rulebook),
-			rule,
-			branch,
-			turn,
-			tick,
 		)
 
 	def handled_unit_rule(
@@ -7346,28 +7623,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 		)
 
-	@pqbatch("character_thing_rules_handled")
-	def _char_thing_rules_handled(
-		self,
-		character: CharName,
-		thing: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		pack = self.pack
-		return (
-			pack(character),
-			pack(thing),
-			pack(rulebook),
-			rule,
-			branch,
-			turn,
-			tick,
-		)
-
 	def handled_character_thing_rule(
 		self,
 		character: CharName,
@@ -7388,28 +7643,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				turn,
 				tick,
 			)
-		)
-
-	@pqbatch("character_place_rules_handled")
-	def _char_place_rules_handled(
-		self,
-		character: CharName,
-		place: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		pack = self.pack
-		return (
-			pack(character),
-			pack(place),
-			pack(rulebook),
-			rule,
-			branch,
-			turn,
-			tick,
 		)
 
 	def handled_character_place_rule(
@@ -7434,30 +7667,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			)
 		)
 
-	@pqbatch("character_portal_rules_handled")
-	def _char_portal_rules_handled(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		pack = self.pack
-		return (
-			pack(character),
-			pack(orig),
-			pack(dest),
-			pack(rulebook),
-			rule,
-			branch,
-			turn,
-			tick,
-		)
-
 	def handled_character_portal_rule(
 		self,
 		character: CharName,
@@ -7473,28 +7682,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
 
-	@pqbatch("node_rules_handled")
-	def _node_rules_handled(
-		self,
-		character: CharName,
-		node: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		pack = self.pack
-		return (
-			pack(character),
-			pack(node),
-			pack(rulebook),
-			rule,
-			branch,
-			turn,
-			tick,
-		)
-
 	def handled_node_rule(
 		self,
 		character: CharName,
@@ -7507,30 +7694,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 	) -> None:
 		self._node_rules_handled.append(
 			(character, node, rulebook, rule, branch, turn, tick)
-		)
-
-	@pqbatch("portal_rules_handled")
-	def _portal_rules_handled(
-		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		pack = self.pack
-		return (
-			pack(character),
-			pack(orig),
-			pack(dest),
-			pack(rulebook),
-			rule,
-			branch,
-			turn,
-			tick,
 		)
 
 	def handled_portal_rule(
@@ -7548,26 +7711,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
 
-	@pqbatch("things")
-	def _location(
-		self,
-		character: CharName,
-		thing: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		location: NodeName,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return (
-			pack(character),
-			pack(thing),
-			branch,
-			turn,
-			tick,
-			pack(location),
-		)
-
 	def set_thing_loc(
 		self,
 		character: CharName,
@@ -7578,28 +7721,15 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		loc: NodeName,
 	) -> None:
 		self._location.append((character, thing, branch, turn, tick, loc))
-		self._increc()
 
-	@pqbatch("units")
-	def _unitness(
-		self,
-		character_graph: CharName,
-		unit_graph: CharName,
-		unit_node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		is_unit: bool,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]:
-		pack = self.pack
-		return (
-			pack(character_graph),
-			pack(unit_graph),
-			pack(unit_node),
-			branch,
-			turn,
-			tick,
-			is_unit,
+	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+		self._location.cull(
+			lambda c, th, b, r, t, l: (b, r, t) == (branch, turn, tick)
+		)
+		self.call(
+			"delete",
+			"things",
+			[{"branch": branch, "turn": turn, "tick": tick}],
 		)
 
 	def unit_set(
@@ -7615,7 +7745,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self._unitness.append(
 			(character, graph, node, branch, turn, tick, is_unit)
 		)
-		self._increc()
 
 	def rulebook_set(
 		self,
@@ -7637,7 +7766,6 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				rules=pack(rules),
 			),
 		)
-		self._increc()
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		self.flush()
@@ -7723,32 +7851,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		for key, turn, tick, value in it:
 			yield graph, unpack(key), branch, turn, tick, unpack(value)
 
-	@pqbatch("graph_val")
-	def _graphvals2set(
-		self,
-		graph: CharName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Value,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return pack(graph), pack(key), branch, turn, tick, pack(value)
-
-	def graph_val_set(
-		self,
-		graph: CharName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		val: Value,
-	) -> None:
-		self._graphvals2set.append((graph, key, branch, turn, tick, val))
-		self._increc()
-
 	def graph_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+		self._graphvals2set.cull(
+			lambda g, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
+		)
 		self.call("graph_val_del_time", branch, turn, tick)
 
 	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
@@ -7763,32 +7869,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				d["type"],
 			)
 
-	@pqbatch("nodes")
-	def _nodes2set(
-		self,
-		graph: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		extant: bool,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bool]:
-		pack = self.pack
-		return pack(graph), pack(node), branch, turn, tick, extant
-
-	def exist_node(
-		self,
-		graph: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		extant: bool,
-	) -> None:
-		self._nodes2set.append((graph, node, branch, turn, tick, extant))
-		self._increc()
-
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		self._nodes2set.cull(
+			lambda g, n, b, r, t, x: (b, r, t) == (branch, turn, tick)
+		)
 		self.call("nodes_del_time", branch, turn, tick)
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
@@ -7896,50 +7980,16 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(value),
 			)
 
-	@pqbatch("node_val")
-	def _nodevals2set(
-		self,
-		graph: CharName,
-		node: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Any,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return (
-			pack(graph),
-			pack(node),
-			pack(key),
-			branch,
-			turn,
-			tick,
-			pack(value),
-		)
-
-	def node_val_set(
-		self,
-		graph: CharName,
-		node: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Any,
-	) -> None:
-		self._nodevals2set.append(
-			(graph, node, key, branch, turn, tick, value)
-		)
-		self._increc()
-
 	def node_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
+		self._nodevals2set.cull(
+			lambda g, n, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
+		)
 		self.call("node_val_del_time", branch, turn, tick)
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
-		self.flush()
+		self._edges2set()
 		unpack = self.unpack
 		for d in self.call("dump", "edges"):
 			yield (
@@ -7995,42 +8045,10 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				extant,
 			)
 
-	@pqbatch("edges")
-	def _edges2set(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		extant: bool,
-	) -> tuple[bytes, bytes, bytes, int, Branch, Turn, Tick, bool]:
-		pack = self.pack
-		return (
-			pack(graph),
-			pack(orig),
-			pack(dest),
-			branch,
-			turn,
-			tick,
-			bool(extant),
-		)
-
-	def exist_edge(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		extant: bool,
-	) -> None:
-		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
-		self._increc()
-
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		self._edges2set.cull(
+			lambda g, o, d, b, r, t, x: (b, r, t) == (branch, turn, tick)
+		)
 		self.call("edges_del_time", branch, turn, tick)
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
@@ -8091,153 +8109,23 @@ class ParquetQueryEngine(AbstractQueryEngine):
 				unpack(value),
 			)
 
-	@pqbatch("edge_val")
-	def _edgevals2set(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Value,
-	) -> tuple[bytes, bytes, bytes, int, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return (
-			pack(graph),
-			pack(orig),
-			pack(dest),
-			pack(key),
-			branch,
-			turn,
-			tick,
-			pack(value),
-		)
-
-	def edge_val_set(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Value,
-	) -> None:
-		self._edgevals2set.append(
-			(graph, orig, dest, key, branch, turn, tick, value)
-		)
-		self._increc()
-
 	def edge_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
+		self._edgevals2set.cull(
+			lambda g, o, d, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
+		)
 		self.call("edge_val_del_time", branch, turn, tick)
 
 	def plans_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
-		self.flush()
+		self._planticks2set()
 		for d in self.call("dump", "plans"):
 			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
 
-	def plans_insert(
-		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
-	) -> None:
-		self.call(
-			"insert1",
-			"plans",
-			dict(plan_id=plan_id, branch=branch, turn=turn, tick=tick),
-		)
-
-	def plans_insert_many(
-		self, many: list[tuple[Plan, Branch, Turn, Tick]]
-	) -> None:
-		self.call(
-			"insert",
-			"plans",
-			[
-				dict(zip(("plan_id", "branch", "turn", "tick"), plan))
-				for plan in many
-			],
-		)
-
-	def plan_ticks_insert(self, plan_id: Plan, turn: Turn, tick: Tick) -> None:
-		self._planticks2set.append((plan_id, turn, tick))
-
-	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Turn, Tick]]:
+	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		self.flush()
 		for d in self.call("dump", "plan_ticks"):
-			yield d["plan_id"], d["turn"], d["tick"]
-
-	@pqbatch("keyframes_graphs")
-	def _new_keyframes(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		nodes: NodeKeyframe,
-		edges: EdgeKeyframe,
-		graph_val: GraphValKeyframe,
-	) -> tuple[bytes, Branch, Turn, Tick, bytes, bytes, bytes]:
-		pack = self.pack
-		return (
-			pack(graph),
-			branch,
-			turn,
-			tick,
-			pack(nodes),
-			pack(edges),
-			pack(graph_val),
-		)
-
-	def keyframe_graph_insert(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		nodes: NodeKeyframe,
-		edges: EdgeKeyframe,
-		graph_val: GraphValKeyframe,
-	) -> None:
-		self._new_keyframes.append(
-			(graph, branch, turn, tick, nodes, edges, graph_val)
-		)
-		self._new_keyframe_times.add((branch, turn, tick))
-		self._all_keyframe_times.add((branch, turn, tick))
-
-	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		self._new_keyframe_times.add((branch, turn, tick))
-		self._all_keyframe_times.add((branch, turn, tick))
-
-	@pqbatch("keyframe_extensions")
-	def _new_keyframe_extensions(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		universal: UniversalKeyframe,
-		rule: RuleKeyframe,
-		rulebook: RulebookKeyframe,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(universal), pack(rule), pack(rulebook)
-
-	def keyframe_extension_insert(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		universal: UniversalKeyframe,
-		rule: RuleKeyframe,
-		rulebook: RulebookKeyframe,
-	) -> None:
-		self._new_keyframe_extensions.append(
-			(branch, turn, tick, universal, rule, rulebook)
-		)
-		self._new_keyframe_times.add((branch, turn, tick))
+			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
 
 	def get_all_keyframe_graphs(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -8270,7 +8158,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			CharDict,
 		]
 	]:
-		self.flush()
+		self._new_keyframes_graphs()
 		unpack = self.unpack
 		for d in self.call("dump", "keyframes_graphs"):
 			yield (
@@ -8295,7 +8183,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 			RulebookKeyframe,
 		]
 	]:
-		self.flush()
+		self._new_keyframe_extensions()
 		unpack = self.unpack
 		for d in self.call("dump", "keyframe_extensions"):
 			yield (
@@ -8312,15 +8200,15 @@ class ParquetQueryEngine(AbstractQueryEngine):
 
 	def close(self) -> None:
 		self._inq.put("close")
-		self._holder.existence_lock.acquire()
-		self._holder.existence_lock.release()
+		self._looper.existence_lock.acquire()
+		self._looper.existence_lock.release()
 		self._t.join()
 
 	def commit(self) -> None:
 		self.flush()
 		self.call("commit")
 
-	def initdb(self) -> None:
+	def initdb(self) -> dict:
 		ret = self.call("initdb")
 		self._all_keyframe_times = self.call("all_keyframe_times")
 		return ret
@@ -8335,7 +8223,7 @@ class ParquetQueryEngine(AbstractQueryEngine):
 		self.call("del_bookmark", key)
 
 
-class SQLAlchemyConnectionHolder(ConnectionHolder):
+class SQLAlchemyConnectionLooper(ConnectionLooper):
 	def __init__(
 		self,
 		dbstring: str,
@@ -8357,9 +8245,9 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		self.transaction = self.connection.begin()
 
 	def init_table(self, tbl):
-		return self.call_one("create_{}".format(tbl))
+		return self.call("create_{}".format(tbl))
 
-	def call_one(self, k, *largs, **kwargs):
+	def call(self, k, *largs, **kwargs):
 		from sqlalchemy import CursorResult
 
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
@@ -8387,9 +8275,15 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 
 	def call_many(self, k, largs):
 		statement = self.sql[k].compile(dialect=self.engine.dialect)
+		aargs = []
+		for larg in largs:
+			if isinstance(larg, dict):
+				aargs.append(larg)
+			else:
+				aargs.append(dict(zip(statement.positiontup, larg)))
 		return self.connection.execute(
 			statement,
-			[dict(zip(statement.positiontup, larg)) for larg in largs],
+			aargs,
 		)
 
 	def gather(self, meta):
@@ -8450,7 +8344,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 							else:
 								o = list(res)
 					except Exception as ex:
-						print(ex)
+						print(repr(ex))
 						if silent:
 							print(f"while silenced: {ex}")
 							sys.exit(repr(ex))
@@ -8460,7 +8354,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 					self.inq.task_done()
 				case ("one", cmd, args, kwargs):
 					try:
-						res = self.call_one(cmd, *args, **kwargs)
+						res = self.call(cmd, *args, **kwargs)
 						if not silent:
 							if hasattr(res, "returns_rows"):
 								if res.returns_rows:
@@ -8470,9 +8364,9 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 							else:
 								o = list(res)
 					except Exception as ex:
-						print(ex)
+						print(repr(ex))
 						if silent:
-							print(f"while silenced: {ex}")
+							print(f"while silenced: {repr(ex)}")
 							sys.exit(repr(ex))
 						o = ex
 					if not silent:
@@ -8500,7 +8394,7 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 						self.outq.put(o)
 					self.inq.task_done()
 
-	def initdb(self) -> dict[bytes, bytes]:
+	def initdb(self) -> dict[bytes, bytes] | Exception:
 		"""Set up the database schema, both for allegedb and the special
 		extensions for lisien
 
@@ -8512,9 +8406,9 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 				pass
 			except Exception as ex:
 				return ex
-		glob_d = dict(self.call_one("global_dump").fetchall())
+		glob_d = dict(self.call("global_dump").fetchall())
 		if SCHEMAVER_B not in glob_d:
-			self.call_one("global_insert", SCHEMAVER_B, SCHEMA_VERSION)
+			self.call("global_insert", SCHEMAVER_B, SCHEMA_VERSION)
 		elif glob_d[SCHEMAVER_B] != SCHEMA_VERSION:
 			return ValueError(
 				"Unsupported database schema version", glob_d[SCHEMAVER_B]
@@ -8522,72 +8416,22 @@ class SQLAlchemyConnectionHolder(ConnectionHolder):
 		return glob_d
 
 
-class SQLAlchemyBatch(list):
-	silent = True
-
-	def __init__(
-		self,
-		qe: "SQLAlchemyQueryEngine",
-		table: str,
-		serialize_record: callable,
-	):
-		super().__init__()
-		self._qe = qe
-		self._table = table
-		self._serialize_record = serialize_record
-		self._argspec = inspect.getfullargspec(serialize_record)
-
-	def __call__(self):
-		if not self:
-			return 0
-		if self.silent:
-			self._qe._inq.put(
-				("silent", "many", self._table + "_insert", list(self))
-			)
-		else:
-			self._qe.call_many(self._table + "_insert", list(self))
-		n = len(self)
-		self.clear()
-		return n
-
-	def copy(self) -> list:
-		return list(super().__iter__())
-
-	def __iter__(self):
-		return starmap(self._serialize_record, super().__iter__())
-
-	def __getitem__(self, item: int):
-		return self._serialize_record(*super().__getitem__(item))
-
-
-def sqlbatch(table: str, serialize_record: callable = None):
-	if serialize_record is None:
-		return partial(sqlbatch, table)
-
-	@cached_property
-	def the_batch(self):
-		return SQLAlchemyBatch(self, table, MethodType(serialize_record, self))
-
-	return the_batch
-
-
-class SQLAlchemyQueryEngine(AbstractQueryEngine):
+class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	IntegrityError = IntegrityError
 	OperationalError = OperationalError
-	holder_cls = SQLAlchemyConnectionHolder
-	tables = list(meta.tables.keys())
+	looper_cls = SQLAlchemyConnectionLooper
 	kf_interval_override: callable
 
 	def __init__(self, dbstring, connect_args, pack=None, unpack=None):
 		dbstring = dbstring or "sqlite:///:memory:"
 		self._inq = Queue()
 		self._outq = Queue()
-		self._holder = self.holder_cls(
+		self._looper = self.looper_cls(
 			dbstring,
 			connect_args,
 			self._inq,
 			self._outq,
-			self.tables,
+			list(meta.tables.keys()),
 		)
 
 		if pack is None:
@@ -8604,331 +8448,30 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self.pack = pack
 		self.unpack = unpack
 		self._branches = {}
-		self._new_keyframes: list[
-			tuple[
-				CharName,
-				Branch,
-				Turn,
-				Tick,
-				NodeKeyframe,
-				EdgeKeyframe,
-				GraphValKeyframe,
-			]
-		] = []
 		self._new_keyframe_times: set[Time] = set()
 		self._records = 0
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
-		self._t = Thread(target=self._holder.run, daemon=True)
+		self._t = Thread(target=self._looper.run, daemon=True)
 		self._t.start()
-		self.initdb()
-
-	@sqlbatch("universals")
-	def _universals2set(
-		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Value
-	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return pack(key), branch, turn, tick, pack(val)
-
-	@sqlbatch("node_rulebook")
-	def _node_rulebook_to_set(
-		self,
-		character: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rulebook: RulebookName,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return pack(character), pack(node), branch, turn, tick, pack(rulebook)
-
-	@sqlbatch("portal_rulebook")
-	def _portal_rulebook_to_set(
-		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rulebook: RulebookName,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return (
-			pack(character),
-			pack(orig),
-			pack(dest),
-			branch,
-			turn,
-			tick,
-			pack(rulebook),
-		)
-
-	@sqlbatch("nodes")
-	def _nodes2set(
-		self,
-		graph: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		extant: bool,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bool]:
-		pack = self.pack
-		return pack(graph), pack(node), branch, turn, tick, bool(extant)
-
-	@sqlbatch("edges")
-	def _edges2set(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		extant: bool,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return (
-			pack(graph),
-			pack(orig),
-			pack(dest),
-			branch,
-			turn,
-			tick,
-			bool(extant),
-		)
-
-	@sqlbatch("node_val")
-	def _nodevals2set(
-		self,
-		graph: CharName,
-		node: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Value,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return (
-			pack(graph),
-			pack(node),
-			pack(key),
-			branch,
-			turn,
-			tick,
-			pack(value),
-		)
-
-	@sqlbatch("edge_val")
-	def _edgevals2set(
-		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		value: Value,
-	) -> tuple[bytes, bytes, bytes, int, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return (
-			pack(graph),
-			pack(orig),
-			pack(dest),
-			pack(key),
-			branch,
-			turn,
-			tick,
-			pack(value),
-		)
-
-	@sqlbatch("graph_val")
-	def _graphvals2set(
-		self,
-		graph: CharName,
-		key: Key,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		val: Value,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
-		pack = self.pack
-		return pack(graph), pack(key), branch, turn, tick, pack(val)
-
-	@sqlbatch("keyframe_extensions")
-	def _new_keyframe_extensions(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		universal: UniversalKeyframe,
-		rule: RuleKeyframe,
-		rulebook: RulebookKeyframe,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(universal), pack(rule), pack(rulebook)
-
-	@sqlbatch("character_rules_handled")
-	def _char_rules_handled(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, RuleName, Branch, Turn, Tick]:
-		(character, rulebook) = map(self.pack, (character, rulebook))
-		return (character, rulebook, rule, branch, turn, tick)
-
-	@sqlbatch("unit_rules_handled")
-	def _unit_rules_handled(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		graph: CharName,
-		unit: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		character, graph, unit, rulebook = map(
-			self.pack, (character, graph, unit, rulebook)
-		)
-		return character, graph, unit, rulebook, rule, branch, turn, tick
-
-	@sqlbatch("character_thing_rules_handled")
-	def _char_thing_rules_handled(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		thing: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, RuleName, bytes, Branch, Turn, Tick]:
-		character, thing, rulebook = map(
-			self.pack, (character, thing, rulebook)
-		)
-		return (character, rulebook, rule, thing, branch, turn, tick)
-
-	@sqlbatch("character_place_rules_handled")
-	def _char_place_rules_handled(
-		self,
-		character: CharName,
-		place: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		character, rulebook, place = map(
-			self.pack, (character, rulebook, place)
-		)
-		return (character, place, rulebook, rule, branch, turn, tick)
-
-	@sqlbatch("character_portal_rules_handled")
-	def _char_portal_rules_handled(
-		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		character, rulebook, orig, dest = map(
-			self.pack, (character, rulebook, orig, dest)
-		)
-		return character, orig, dest, rulebook, rule, branch, turn, tick
-
-	@sqlbatch("node_rules_handled")
-	def _node_rules_handled(
-		self,
-		character: CharName,
-		node: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		(character, node, rulebook) = map(
-			self.pack, (character, node, rulebook)
-		)
-		return (character, node, rulebook, rule, branch, turn, tick)
-
-	@sqlbatch("portal_rules_handled")
-	def _portal_rules_handled(
-		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
-		(character, orig, dest, rulebook) = map(
-			self.pack, (character, orig, dest, rulebook)
-		)
-		return character, orig, dest, rulebook, rule, branch, turn, tick
-
-	@sqlbatch("units")
-	def _unitness(
-		self,
-		character_graph: CharName,
-		unit_graph: CharName,
-		unit_node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		is_unit: bool,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]:
-		(character_graph, unit_graph, unit_node) = map(
-			self.pack, (character_graph, unit_graph, unit_node)
-		)
-		return (
-			character_graph,
-			unit_graph,
-			unit_node,
-			branch,
-			turn,
-			tick,
-			is_unit,
-		)
-
-	@sqlbatch("things")
-	def _location(
-		self,
-		character: CharName,
-		thing: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		location: NodeName,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
-		(character, thing, location) = map(
-			self.pack, (character, thing, location)
-		)
-		return character, thing, branch, turn, tick, location
+		self.eternal = GlobalKeyValueStore(self, self.initdb())
+		self.all_rules = set(self.rules_dump())
 
 	@mutexed
-	def call_one(self, string, *args, **kwargs):
+	def call(self, string, *args, **kwargs):
 		if self._outq.unfinished_tasks != 0:
-			raise RuntimeError(
-				f"{self._outq.unfinished_tasks} unfinished tasks in output queue "
+			excs = []
+			unfinished_tasks = self._outq.unfinished_tasks
+			while not self._outq.empty():
+				got = self._outq.get()
+				if isinstance(got, Exception):
+					excs.append(got)
+				else:
+					excs.append(ValueError("Unconsumed output", got))
+			raise ExceptionGroup(
+				f"{unfinished_tasks} unfinished tasks in output queue "
 				"before call_one",
+				excs,
 			)
 		self._inq.put(("one", string, args, kwargs))
 		ret = self._outq.get()
@@ -8942,6 +8485,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			raise ret
 		return ret
 
+	def call_silent(self, string, *args, **kwargs):
+		self._inq.put(("one", string, args, kwargs))
+
 	def call_many(self, string, args):
 		with self.mutex():
 			self._inq.put(("many", string, args))
@@ -8950,6 +8496,22 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		if isinstance(ret, Exception):
 			raise ret
 		return ret
+
+	def call_many_silent(self, string, args):
+		self._inq.put(("silent", "many", string, args))
+
+	@mutexed
+	def insert_many(self, table_name: str, args: list[dict]):
+		with self.mutex():
+			self._inq.put(("many", table_name + "_insert", args))
+			ret = self._outq.get()
+			self._outq.task_done()
+		if isinstance(ret, Exception):
+			raise ret
+		return ret
+
+	def insert_many_silent(self, table_name: str, args: list[dict]) -> None:
+		self._inq.put(("silent", "many", table_name + "_insert", args))
 
 	def execute(self, stmt, *args):
 		if not isinstance(stmt, Select):
@@ -8961,58 +8523,44 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			self._outq.task_done()
 			return ret
 
+	def rules_insert(self, rule: RuleName):
+		self.call("rules_insert", rule)
+
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
 		self.flush()
 		unpack = self.unpack
-		for key, branch, turn, tick in self.call_one("bookmarks_dump"):
+		for key, branch, turn, tick in self.call("bookmarks_dump"):
 			yield unpack(key), (branch, turn, tick)
 
 	def set_bookmark(self, key: Key, time: Time) -> None:
 		key = self.pack(key)
 		try:
-			self.call_one("bookmarks_insert", key, *time)
+			self.call("bookmarks_insert", key, *time)
 		except IntegrityError:
-			self.call_one("update_bookmark", key, *time)
+			self.call("update_bookmark", key, *time)
 
 	def del_bookmark(self, key: Key) -> None:
-		self.call_one("delete_bookmark", self.pack(key))
+		self.call("delete_bookmark", self.pack(key))
 
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
 		self.flush()
-		return self.call_one("keyframes_dump")
+		return self.call("keyframes_dump")
 
-	def new_graph(
-		self, graph: CharName, branch: Branch, turn: Turn, tick: Tick, typ: str
-	) -> None:
-		"""Declare a new graph by this name of this type."""
-		graph = self.pack(graph)
-		return self.call_one("graphs_insert", graph, branch, turn, tick, typ)
-
-	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick):
-		self._new_keyframe_times.add((branch, turn, tick))
-
-	def keyframe_graph_insert(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		nodes: NodeKeyframe,
-		edges: EdgeKeyframe,
-		graph_val: GraphValKeyframe,
-	) -> None:
-		self._new_keyframes.append(
-			(graph, branch, turn, tick, nodes, edges, graph_val)
+	def _stage_graphs(self, recs):
+		self.call_many_silent(
+			"graphs_delete",
+			[
+				{"graph": graph, "branch": branch, "turn": turn, "tick": tick}
+				for (graph, branch, turn, tick, _) in recs
+			],
 		)
-		self._all_keyframe_times.add((branch, turn, tick))
 
 	def keyframes_graphs(
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick]]:
+		self._new_keyframes_graphs()
 		unpack = self.unpack
-		for graph, branch, turn, tick in self.call_one(
-			"keyframes_graphs_list"
-		):
+		for graph, branch, turn, tick in self.call("keyframes_graphs_list"):
 			yield unpack(graph), branch, turn, tick
 
 	def get_all_keyframe_graphs(
@@ -9023,7 +8571,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		if (branch, turn, tick) not in self._all_keyframe_times:
 			raise KeyframeError(branch, turn, tick)
 		unpack = self.unpack
-		for graph, nodes, edges, graph_val in self.call_one(
+		for graph, nodes, edges, graph_val in self.call(
 			"all_graphs_in_keyframe", branch, turn, tick
 		):
 			yield (
@@ -9056,7 +8604,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			nodes,
 			edges,
 			graph_val,
-		) in self.call_one("keyframes_graphs_dump"):
+		) in self.call("keyframes_graphs_dump"):
 			yield (
 				unpack(graph),
 				branch,
@@ -9081,7 +8629,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	]:
 		self.flush()
 		unpack = self.unpack
-		for branch, turn, tick, universal, rule, rulebook in self.call_one(
+		for branch, turn, tick, universal, rule, rulebook in self.call(
 			"keyframe_extensions_dump"
 		):
 			yield (
@@ -9111,7 +8659,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self._new_keyframe_extensions.extend(
 			filter(keyframe_extension_filter, new_keyframe_extensions)
 		)
-		with self._holder.lock:
+		with self._looper.lock:
 			self._inq.put(
 				(
 					"silent",
@@ -9146,7 +8694,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def have_branch(self, branch):
 		"""Return whether the branch thus named exists in the database."""
-		return bool(self.call_one("ctbranch", branch)[0][0])
+		return bool(self.call("ctbranch", branch)[0][0])
 
 	def branches_dump(
 		self,
@@ -9156,12 +8704,12 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 		"""
 		self.flush()
-		return self.call_one("branches_dump")
+		return self.call("branches_dump")
 
 	def global_get(self, key: Key) -> Value:
 		"""Return the value for the given key in the ``globals`` table."""
 		key = self.pack(key)
-		r = self.call_one("global_get", key)[0]
+		r = self.call("global_get", key)[0]
 		if r is None:
 			raise KeyError("Not set")
 		return self.unpack(r[0])
@@ -9170,24 +8718,24 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		"""Iterate over (key, value) pairs in the ``globals`` table."""
 		self.flush()
 		unpack = self.unpack
-		dumped = self.call_one("global_dump")
+		dumped = self.call("global_dump")
 		for k, v in dumped:
 			yield (unpack(k), unpack(v))
 
 	def get_branch(self) -> Branch:
-		v = self.call_one("global_get", self.pack("branch"))[0]
+		v = self.call("global_get", self.pack("branch"))[0]
 		if v is None:
 			return self.eternal["main_branch"]
 		return self.unpack(v[0])
 
 	def get_turn(self) -> Turn:
-		v = self.call_one("global_get", self.pack("turn"))[0]
+		v = self.call("global_get", self.pack("turn"))[0]
 		if v is None:
 			return 0
 		return self.unpack(v[0])
 
 	def get_tick(self) -> Tick:
-		v = self.call_one("global_get", self.pack("tick"))[0]
+		v = self.call("global_get", self.pack("tick"))[0]
 		if v is None:
 			return 0
 		return self.unpack(v[0])
@@ -9199,18 +8747,18 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		"""
 		(key, value) = map(self.pack, (key, value))
 		try:
-			return self.call_one("global_insert", key, value)
+			return self.call("global_insert", key, value)
 		except IntegrityError:
 			try:
-				return self.call_one("global_update", value, key)
+				return self.call("global_update", value, key)
 			except IntegrityError:
 				self.commit()
-				return self.call_one("global_update", value, key)
+				return self.call("global_update", value, key)
 
 	def global_del(self, key: Key) -> None:
 		"""Delete the global record for the key."""
 		key = self.pack(key)
-		return self.call_one("global_del", key)
+		return self.call("global_del", key)
 
 	def new_branch(
 		self,
@@ -9223,7 +8771,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		``parent_turn``, ``parent_tick``
 
 		"""
-		return self.call_one(
+		return self.call(
 			"branches_insert",
 			branch,
 			parent,
@@ -9242,7 +8790,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		end_turn: Turn,
 		end_tick: Tick,
 	) -> None:
-		return self.call_one(
+		return self.call(
 			"update_branches",
 			parent,
 			parent_turn,
@@ -9262,7 +8810,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		end_tick: Tick,
 	):
 		try:
-			self.call_one(
+			self.call(
 				"branches_insert",
 				branch,
 				parent,
@@ -9299,38 +8847,34 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		end_tick: Tick = 0,
 		plan_end_tick: Tick = 0,
 	):
-		return self.call_one(
-			"turns_insert", branch, turn, end_tick, plan_end_tick
-		)
+		return self.call("turns_insert", branch, turn, end_tick, plan_end_tick)
 
 	def update_turn(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	):
-		return self.call_one(
-			"update_turns", end_tick, plan_end_tick, branch, turn
-		)
+		return self.call("update_turns", end_tick, plan_end_tick, branch, turn)
 
 	def set_turn(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	):
 		try:
-			return self.call_one(
+			return self.call(
 				"turns_insert", branch, turn, end_tick, plan_end_tick
 			)
 		except IntegrityError:
-			return self.call_one(
+			return self.call(
 				"update_turns", end_tick, plan_end_tick, branch, turn
 			)
 
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
 		self.flush()
-		return self.call_one("turns_dump")
+		return self.call("turns_dump")
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		"""Yield the entire contents of the graph_val table."""
-		self._flush_graph_val()
+		self._graphvals2set()
 		unpack = self.unpack
-		for graph, key, branch, turn, tick, value in self.call_one(
+		for graph, key, branch, turn, tick, value in self.call(
 			"graph_val_dump"
 		):
 			yield (
@@ -9347,11 +8891,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> Iterator[GraphValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise ValueError("I need both or neither of turn_to and tick_to")
-		self._flush_graph_val()
+		self._graphvals2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.call_one(
+			it = self.call(
 				"load_graph_val_tick_to_end",
 				pack(graph),
 				branch,
@@ -9360,7 +8904,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				tick_from,
 			)
 		else:
-			it = self.call_one(
+			it = self.call(
 				"load_graph_val_tick_to_tick",
 				pack(graph),
 				branch,
@@ -9374,19 +8918,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		for key, turn, tick, value in it:
 			yield graph, unpack(key), branch, turn, tick, unpack(value)
 
-	def _flush_graph_val(self):
-		"""Send all new and changed graph values to the database."""
-		if not self._graphvals2set:
-			return
-		self._graphvals2set()
-
-	def graph_val_set(self, graph, key, branch, turn, tick, value):
-		self._graphvals2set.append((graph, key, branch, turn, tick, value))
-		self._increc()
-
 	def graph_val_del_time(self, branch, turn, tick):
-		self._flush_graph_val()
-		self.call_one("graph_val_del_time", branch, turn, tick)
+		self._graphvals2set.cull(
+			lambda g, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
+		)
+		self.call("graph_val_del_time", branch, turn, tick)
 
 	def graphs_types(
 		self,
@@ -9400,7 +8936,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		if turn_to is None:
 			if tick_to is not None:
 				raise ValueError("Need both or neither of turn_to and tick_to")
-			for graph, turn, tick, typ in self.call_one(
+			for graph, turn, tick, typ in self.call(
 				"graphs_after", branch, turn_from, turn_from, tick_from
 			):
 				yield unpack(graph), branch, turn, tick, typ
@@ -9408,7 +8944,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		else:
 			if tick_to is None:
 				raise ValueError("Need both or neither of turn_to and tick_to")
-		for graph, turn, tick, typ in self.call_one(
+		for graph, turn, tick, typ in self.call(
 			"graphs_between",
 			branch,
 			turn_from,
@@ -9423,39 +8959,20 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def characters(self):
 		self.flush()
 		unpack = self.unpack
-		for graph, branch, turn, tick, typ in self.call_one("graphs_dump"):
+		for graph, branch, turn, tick, typ in self.call("graphs_dump"):
 			yield unpack(graph), branch, turn, tick, typ
 
-	def graphs_insert(
-		self, graph: Key, branch: str, turn: int, tick: int, typ: str
-	) -> None:
-		self.call_one(
-			"graphs_insert", self.pack(graph), branch, turn, tick, typ
-		)
-
-	def _flush_nodes(self):
-		self._nodes2set()
-
-	def exist_node(self, graph, node, branch, turn, tick, extant):
-		"""Declare that the node exists or doesn't.
-
-		Inserts a new record or updates an old one, as needed.
-
-		"""
-		self._nodes2set.append((graph, node, branch, turn, tick, extant))
-		self._increc()
-
 	def nodes_del_time(self, branch, turn, tick):
-		self._flush_nodes()
-		self.call_one("nodes_del_time", branch, turn, tick)
+		self._nodes2set.cull(
+			lambda g, n, b, r, t, x: (b, r, t) == (branch, turn, tick)
+		)
+		self.call("nodes_del_time", branch, turn, tick)
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		"""Dump the entire contents of the nodes table."""
-		self._flush_nodes()
+		self._nodes2set()
 		unpack = self.unpack
-		for graph, node, branch, turn, tick, extant in self.call_one(
-			"nodes_dump"
-		):
+		for graph, node, branch, turn, tick, extant in self.call("nodes_dump"):
 			yield (
 				unpack(graph),
 				unpack(node),
@@ -9470,11 +8987,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> Iterator[NodeRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._flush_nodes()
+		self._nodes2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.call_one(
+			it = self.call(
 				"load_nodes_tick_to_end",
 				pack(graph),
 				branch,
@@ -9483,7 +9000,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				tick_from,
 			)
 		else:
-			it = self.call_one(
+			it = self.call(
 				"load_nodes_tick_to_tick",
 				pack(graph),
 				branch,
@@ -9508,9 +9025,9 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		"""Yield the entire contents of the node_val table."""
-		self._flush_node_val()
+		self._nodevals2set()
 		unpack = self.unpack
-		for graph, node, key, branch, turn, tick, value in self.call_one(
+		for graph, node, key, branch, turn, tick, value in self.call(
 			"node_val_dump"
 		):
 			yield (
@@ -9528,11 +9045,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	) -> Iterator[NodeValRowType]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._flush_node_val()
+		self._nodevals2set()
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.call_one(
+			it = self.call(
 				"load_node_val_tick_to_end",
 				pack(graph),
 				branch,
@@ -9541,7 +9058,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				tick_from,
 			)
 		else:
-			it = self.call_one(
+			it = self.call(
 				"load_node_val_tick_to_tick",
 				pack(graph),
 				branch,
@@ -9572,25 +9089,15 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			)
 		)
 
-	def _flush_node_val(self):
-		if not self._nodevals2set:
-			return
-		self._nodevals2set()
-
-	def node_val_set(self, graph, node, key, branch, turn, tick, value):
-		"""Set a key-value pair on a node at a specific branch and revision"""
-		self._nodevals2set.append(
-			(graph, node, key, branch, turn, tick, value)
-		)
-		self._increc()
-
 	def node_val_del_time(self, branch, turn, tick):
-		self._flush_node_val()
-		self.call_one("node_val_del_time", branch, turn, tick)
+		self._nodevals2set.cull(
+			lambda g, n, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
+		)
+		self.call("node_val_del_time", branch, turn, tick)
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		"""Dump the entire contents of the edges table."""
-		self._flush_edges()
+		self._edges2set()
 		unpack = self.unpack
 		for (
 			graph,
@@ -9600,7 +9107,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			turn,
 			tick,
 			extant,
-		) in self.call_one("edges_dump"):
+		) in self.call("edges_dump"):
 			yield (
 				unpack(graph),
 				unpack(orig),
@@ -9620,7 +9127,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.call_one(
+			it = self.call(
 				"load_edges_tick_to_end",
 				pack(graph),
 				branch,
@@ -9629,7 +9136,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				tick_from,
 			)
 		else:
-			it = self.call_one(
+			it = self.call(
 				"load_edges_tick_to_tick",
 				pack(graph),
 				branch,
@@ -9678,14 +9185,11 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			return
 		self._edges2set()
 
-	def exist_edge(self, graph, orig, dest, branch, turn, tick, extant):
-		"""Declare whether or not this edge exists."""
-		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
-		self._increc()
-
 	def edges_del_time(self, branch, turn, tick):
-		self._flush_edges()
-		self.call_one("edges_del_time", branch, turn, tick)
+		self._edges2set.cull(
+			lambda g, o, d, b, r, t, x: (b, r, t) == (branch, turn, tick)
+		)
+		self.call("edges_del_time", branch, turn, tick)
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		"""Yield the entire contents of the edge_val table."""
@@ -9700,7 +9204,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			turn,
 			tick,
 			value,
-		) in self.call_one("edge_val_dump"):
+		) in self.call("edge_val_dump"):
 			yield (
 				unpack(graph),
 				unpack(orig),
@@ -9721,7 +9225,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		pack = self.pack
 		unpack = self.unpack
 		if turn_to is None:
-			it = self.call_one(
+			it = self.call(
 				"load_edge_val_tick_to_end",
 				pack(graph),
 				branch,
@@ -9730,7 +9234,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 				tick_from,
 			)
 		else:
-			it = self.call_one(
+			it = self.call(
 				"load_edge_val_tick_to_tick",
 				pack(graph),
 				branch,
@@ -9776,196 +9280,28 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			pack(value),
 		)
 
-	def edge_val_set(self, graph, orig, dest, key, branch, turn, tick, value):
-		"""Set this key of this edge to this value."""
-		self._edgevals2set.append(
-			(graph, orig, dest, key, branch, turn, tick, value)
-		)
-		self._increc()
-
 	def edge_val_del_time(self, branch, turn, tick):
-		self._edgevals2set()
-		self.call_one("edge_val_del_time", branch, turn, tick)
+		self._edgevals2set.cull(
+			lambda g, o, d, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
+		)
+		self.call("edge_val_del_time", branch, turn, tick)
 
 	def plans_dump(self):
-		self.flush()
-		return self.call_one("plans_dump")
-
-	def plans_insert(self, plan_id, branch, turn, tick):
-		return self.call_one("plans_insert", plan_id, branch, turn, tick)
-
-	def plans_insert_many(self, many):
-		return self.call_many("plans_insert", many)
-
-	def plan_ticks_insert(self, plan_id, turn, tick):
-		return self.call_one("plan_ticks_insert", plan_id, turn, tick)
+		self._planticks2set()
+		return self.call("plans_dump")
 
 	def plan_ticks_dump(self):
-		self.flush()
-		return self.call_one("plan_ticks_dump")
+		self._planticks2set()
+		return self.call("plan_ticks_dump")
 
-	@garbage
-	@mutexed
-	def flush(self):
-		"""Put all pending changes into the SQL transaction."""
-		if not any(
-			(
-				self._universals2set,
-				self._nodes2set,
-				self._edges2set,
-				self._node_rulebook_to_set,
-				self._portal_rulebook_to_set,
-				self._graphvals2set,
-				self._nodevals2set,
-				self._edgevals2set,
-				self._new_keyframes,
-				self._new_keyframe_times,
-				self._new_keyframe_extensions,
-				self._unitness,
-				self._location,
-				self._char_rules_handled,
-				self._char_thing_rules_handled,
-				self._char_place_rules_handled,
-				self._char_portal_rules_handled,
-				self._unit_rules_handled,
-				self._node_rules_handled,
-				self._portal_rules_handled,
-			)
-		):
-			return
-		self._inq.put(("echo", "ready"))
-		readied = self._outq.get()
-		if readied != "ready":
-			raise RuntimeError("Not ready to flush", readied)
-		self._outq.task_done()
-		self._flush()
-		self._inq.put(("echo", "flushed"))
-		flushed = self._outq.get()
-		if flushed != "flushed":
-			raise RuntimeError("Failed flush", flushed)
-		self._outq.task_done()
-
-	def _flush(self):
-		pack = self.pack
-		put = self._inq.put
-		self._universals2set()
-		self._nodes2set()
-		self._edges2set()
-		self._node_rulebook_to_set()
-		self._portal_rulebook_to_set()
-		self._graphvals2set()
-		self._nodevals2set()
-		self._edgevals2set()
-		if self._new_keyframe_times:
-			put(
-				(
-					"silent",
-					"many",
-					"keyframes_insert",
-					list(self._new_keyframe_times),
-				)
-			)
-			self._new_keyframe_times = set()
-		if self._new_keyframes:
-			# use only the most recent version of any given keyframe
-			kfs = {}
-			for (
-				graph,
-				branch,
-				turn,
-				tick,
-				nodes,
-				edges,
-				graph_val,
-			) in self._new_keyframes:
-				kfs[graph, branch, turn, tick] = (nodes, edges, graph_val)
-			put(
-				(
-					"silent",
-					"many",
-					"delete_keyframe_graph",
-					[
-						(pack(graph), branch, turn, tick)
-						for (graph, branch, turn, tick) in kfs
-					],
-				)
-			)
-			put(
-				(
-					"silent",
-					"many",
-					"keyframes_graphs_insert",
-					[
-						(
-							pack(graph),
-							branch,
-							turn,
-							tick,
-							pack(nodes),
-							pack(edges),
-							pack(graph_val),
-						)
-						for (graph, branch, turn, tick), (
-							nodes,
-							edges,
-							graph_val,
-						) in kfs.items()
-					],
-				)
-			)
-			self._new_keyframes = []
-		self._new_keyframe_extensions()
-
-		put = self._inq.put
-
-		if self._unitness:
-			put(
-				(
-					"silent",
-					"many",
-					"del_units_after",
-					[
-						(character, graph, node, branch, turn, turn, tick)
-						for (
-							character,
-							graph,
-							node,
-							branch,
-							turn,
-							tick,
-							_,
-						) in self._unitness
-					],
-				)
-			)
-			self._unitness()
-		if self._location:
-			put(
-				(
-					"silent",
-					"many",
-					"del_things_after",
-					[
-						(character, thing, branch, turn, turn, tick)
-						for (
-							character,
-							thing,
-							branch,
-							turn,
-							tick,
-							_,
-						) in self._location
-					],
-				)
-			)
-			self._location()
-		self._char_rules_handled()
-		self._char_thing_rules_handled()
-		self._char_place_rules_handled()
-		self._char_portal_rules_handled()
-		self._unit_rules_handled()
-		self._node_rules_handled()
-		self._portal_rules_handled()
+	def _stage_new_keyframes_graphs(self, recs):
+		self.call_many_silent(
+			"delete_keyframe_graph",
+			[
+				(graph, branch, turn, tick)
+				for (graph, branch, turn, tick, *_) in recs
+			],
+		)
 
 	def commit(self):
 		"""Commit the transaction"""
@@ -9978,79 +9314,54 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def close(self):
 		"""Commit the transaction, then close the connection"""
 		self._inq.put("shutdown")
-		self._holder.existence_lock.acquire()
-		self._holder.existence_lock.release()
+		self._looper.existence_lock.acquire()
+		self._looper.existence_lock.release()
 		self._t.join()
 
-	def initdb(self):
+	def initdb(self) -> dict:
 		if hasattr(self, "_initialized"):
 			raise RuntimeError("Tried to initialize database twice")
 		self._initialized = True
 		with self.mutex():
 			self._inq.put("initdb")
-			globals = self._outq.get()
+			globals = {
+				self.unpack(k): self.unpack(v)
+				for (k, v) in self._outq.get().items()
+			}
 			self._outq.task_done()
 			if isinstance(globals, Exception):
 				raise globals
-			self.eternal = GlobalKeyValueStore(
-				self,
-				{self.unpack(k): self.unpack(v) for (k, v) in globals.items()},
-			)
 			self._inq.put(("one", "keyframes_dump", (), {}))
-			ret = self._outq.get()
+			x = self._outq.get()
 			self._outq.task_done()
-			if isinstance(ret, Exception):
-				raise ret
-			self._all_keyframe_times = set(ret)
-		if "main_branch" not in self.eternal:
-			self.global_set("main_branch", "trunk")
-			self.eternal.data["main_branch"] = "trunk"
-		if "branch" not in self.eternal:
-			self.global_set("branch", "trunk")
-			self.eternal.data["branch"] = "trunk"
-		if "turn" not in self.eternal:
-			self.global_set("turn", 0)
-			self.eternal.data["turn"] = 0
-		if "tick" not in self.eternal:
-			self.global_set("tick", 0)
-			self.eternal.data["tick"] = 0
+			if isinstance(x, Exception):
+				raise x
+			self._all_keyframe_times = set(x)
+		if "main_branch" not in globals:
+			globals["main_branch"] = "trunk"
+		if "branch" not in globals:
+			globals["branch"] = "trunk"
+		if "turn" not in globals:
+			globals["turn"] = 0
+		if "tick" not in globals:
+			globals["tick"] = 0
+		return globals
 
 	def truncate_all(self):
 		"""Delete all data from every table"""
-		for table in self.tables:
+		for table in meta.tables.keys():
 			try:
-				self.call_one("truncate_" + table)
+				self.call("truncate_" + table)
 			except OperationalError:
 				pass  # table wasn't created yet
 		self.commit()
-
-	def keyframe_extension_insert(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		universal: UniversalKeyframe,
-		rule: RuleKeyframe,
-		rulebook: RulebookKeyframe,
-	):
-		self._new_keyframe_extensions.append(
-			(
-				branch,
-				turn,
-				tick,
-				universal,
-				rule,
-				rulebook,
-			)
-		)
-		self._new_keyframe_times.add((branch, turn, tick))
 
 	def get_keyframe_extensions(self, branch: Branch, turn: Turn, tick: Tick):
 		if (branch, turn, tick) not in self._all_keyframe_times:
 			raise KeyframeError(branch, turn, tick)
 		self.flush()
 		unpack = self.unpack
-		exts = self.call_one("get_keyframe_extensions", branch, turn, tick)
+		exts = self.call("get_keyframe_extensions", branch, turn, tick)
 		if not exts:
 			raise KeyframeError(branch, turn, tick)
 		assert len(exts) == 1, f"Incoherent keyframe {branch, turn, tick}"
@@ -10064,13 +9375,13 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def universals_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for key, branch, turn, tick, value in self.call_one("universals_dump"):
+		for key, branch, turn, tick, value in self.call("universals_dump"):
 			yield unpack(key), branch, turn, tick, unpack(value)
 
 	def rulebooks_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for rulebook, branch, turn, tick, rules, prio in self.call_one(
+		for rulebook, branch, turn, tick, rules, prio in self.call(
 			"rulebooks_dump"
 		):
 			yield unpack(rulebook), branch, turn, tick, (unpack(rules), prio)
@@ -10078,7 +9389,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def _rule_dump(self, typ):
 		self.flush()
 		unpack = self.unpack
-		for rule, branch, turn, tick, lst in self.call_one(
+		for rule, branch, turn, tick, lst in self.call(
 			"rule_{}_dump".format(typ)
 		):
 			yield rule, branch, turn, tick, unpack(lst)
@@ -10094,16 +9405,16 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 
 	def rule_neighborhood_dump(self):
 		self.flush()
-		return self.call_one("rule_neighborhood_dump")
+		return self.call("rule_neighborhood_dump")
 
 	def rule_big_dump(self):
 		self.flush()
-		return self.call_one("rule_big_dump")
+		return self.call("rule_big_dump")
 
 	def node_rulebook_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for character, node, branch, turn, tick, rulebook in self.call_one(
+		for character, node, branch, turn, tick, rulebook in self.call(
 			"node_rulebook_dump"
 		):
 			yield (
@@ -10126,7 +9437,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			turn,
 			tick,
 			rulebook,
-		) in self.call_one("portal_rulebook_dump"):
+		) in self.call("portal_rulebook_dump"):
 			yield (
 				unpack(character),
 				unpack(orig),
@@ -10140,7 +9451,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def _charactery_rulebook_dump(self, qry):
 		self.flush()
 		unpack = self.unpack
-		for character, branch, turn, tick, rulebook in self.call_one(
+		for character, branch, turn, tick, rulebook in self.call(
 			qry + "_rulebook_dump"
 		):
 			yield unpack(character), branch, turn, tick, unpack(rulebook)
@@ -10162,7 +9473,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def character_rules_handled_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for character, rulebook, rule, branch, turn, tick in self.call_one(
+		for character, rulebook, rule, branch, turn, tick in self.call(
 			"character_rules_handled_dump"
 		):
 			yield unpack(character), unpack(rulebook), rule, branch, turn, tick
@@ -10179,7 +9490,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			tick,
 			handled_branch,
 			handled_turn,
-		) in self.call_one("character_rules_changes_dump"):
+		) in self.call("character_rules_changes_dump"):
 			yield (
 				unpack(character),
 				unpack(rulebook),
@@ -10203,7 +9514,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			branch,
 			turn,
 			tick,
-		) in self.call_one("unit_rules_handled_dump"):
+		) in self.call("unit_rules_handled_dump"):
 			yield (
 				unpack(character),
 				unpack(graph),
@@ -10229,7 +9540,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			tick,
 			handled_branch,
 			handled_turn,
-		) in self.call_one("unit_rules_changes_dump"):
+		) in self.call("unit_rules_changes_dump"):
 			yield (
 				jl(character),
 				jl(rulebook),
@@ -10254,7 +9565,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			branch,
 			turn,
 			tick,
-		) in self.call_one("character_thing_rules_handled_dump"):
+		) in self.call("character_thing_rules_handled_dump"):
 			yield (
 				unpack(character),
 				unpack(thing),
@@ -10276,7 +9587,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			branch,
 			turn,
 			tick,
-		) in self.call_one("character_place_rules_handled_dump"):
+		) in self.call("character_place_rules_handled_dump"):
 			yield (
 				unpack(character),
 				unpack(place),
@@ -10299,7 +9610,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			branch,
 			turn,
 			tick,
-		) in self.call_one("character_portal_rules_handled_dump"):
+		) in self.call("character_portal_rules_handled_dump"):
 			yield (
 				unpack(character),
 				unpack(rulebook),
@@ -10321,7 +9632,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			branch,
 			turn,
 			tick,
-		) in self.call_one("node_rules_handled_dump"):
+		) in self.call("node_rules_handled_dump"):
 			yield (
 				self.unpack(character),
 				self.unpack(node),
@@ -10344,7 +9655,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			branch,
 			turn,
 			tick,
-		) in self.call_one("portal_rules_handled_dump"):
+		) in self.call("portal_rules_handled_dump"):
 			yield (
 				unpack(character),
 				unpack(orig),
@@ -10359,7 +9670,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 	def things_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for character, thing, branch, turn, tick, location in self.call_one(
+		for character, thing, branch, turn, tick, location in self.call(
 			"things_dump"
 		):
 			yield (
@@ -10386,7 +9697,7 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 			turn,
 			tick,
 			is_av,
-		) in self.call_one("units_dump"):
+		) in self.call("units_dump"):
 			yield (
 				unpack(character_graph),
 				unpack(unit_graph),
@@ -10401,200 +9712,76 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Value
 	) -> None:
 		self._universals2set.append((key, branch, turn, tick, val))
-		self._increc()
 
 	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		self._universals2set.append((key, branch, turn, tick, None))
-		self._increc()
 
 	def count_all_table(self, tbl):
-		return self.call_one("{}_count".format(tbl)).fetchone()[0]
+		return self.call("{}_count".format(tbl)).fetchone()[0]
 
 	def rules_dump(self):
 		self.flush()
-		for (name,) in self.call_one("rules_dump"):
+		for (name,) in self.call("rules_dump"):
 			yield name
 
-	def _set_rule_something(
-		self, what, rule, branch, turn, tick, flist, *, pack=True
-	):
-		if pack:
-			flist = self.pack(flist)
-		try:
-			self.call_one(
-				f"rule_{what}_insert", rule, branch, turn, tick, flist
-			)
-			self._increc()
-		except IntegrityError:
-			self.call_one(
-				f"rule_{what}_update", flist, rule, branch, turn, tick
-			)
-
-	def set_rule_triggers(
+	def _stage_rulebooks(
 		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		triggers: list[TriggerFuncName],
+		recs: list[
+			tuple[
+				RulebookName,
+				Branch,
+				Turn,
+				Tick,
+				list[RuleName],
+				RulebookPriority,
+			]
+		],
 	):
-		self._set_rule_something(
-			"triggers", rule, branch, turn, tick, triggers
+		self.call_many(
+			"rulebooks_delete",
+			[
+				{"rulebook": rb, "branch": branch, "turn": turn, "tick": tick}
+				for (rb, branch, turn, tick, _) in recs
+			],
 		)
 
-	def set_rule_prereqs(
+	def _stage_charactery_rulebook(
 		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		prereqs: list[PrereqFuncName],
-	):
-		self._set_rule_something("prereqs", rule, branch, turn, tick, prereqs)
-
-	def set_rule_actions(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		actions: list[ActionFuncName],
-	):
-		self._set_rule_something("actions", rule, branch, turn, tick, actions)
-
-	def set_rule_neighborhood(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		neighborhood: RuleNeighborhood,
-	):
-		self._set_rule_something(
-			"neighborhood", rule, branch, turn, tick, neighborhood, pack=False
+		what: str,
+		recs: list[tuple[CharName, Branch, Turn, Tick, RulebookName]],
+	) -> None:
+		self.call_many_silent(
+			f"{what}_delete",
+			[
+				{
+					"character": character,
+					"branch": branch,
+					"turn": turn,
+					"tick": tick,
+				}
+				for (character, branch, turn, tick, _) in recs
+			],
 		)
 
-	def set_rule_big(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		big: RuleBig,
-	) -> None:
-		self._set_rule_something(
-			"big", rule, branch, turn, tick, big, pack=False
-		)
-
-	def create_rule(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		triggers: Iterable[TriggerFuncName] = (),
-		prereqs: Iterable[PrereqFuncName] = (),
-		actions: Iterable[ActionFuncName] = (),
-		neighborhood: RuleNeighborhood = None,
-		big: RuleBig = False,
-	) -> bool:
-		try:
-			self.call_one("rules_insert", rule)
-		except IntegrityError:
-			return False
-		self.set_rule_triggers(rule, branch, turn, tick, triggers)
-		self.set_rule_prereqs(rule, branch, turn, tick, prereqs)
-		self.set_rule_actions(rule, branch, turn, tick, actions)
-		self.set_rule_neighborhood(rule, branch, turn, tick, neighborhood)
-		self.set_rule_big(rule, branch, turn, tick, big)
-		return True
-
-	def set_rulebook(
-		self,
-		name: RulebookName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rules: Optional[list[RuleName]] = None,
-		prio: RulebookPriority = 0.0,
-	) -> None:
-		name, rules = map(self.pack, (name, rules or []))
-		try:
-			self.call_one(
-				"rulebooks_insert",
-				name,
-				branch,
-				turn,
-				tick,
-				rules,
-				float(prio),
-			)
-			self._increc()
-		except IntegrityError:
-			self.call_one("rulebooks_update", rules, name, branch, turn, tick)
-			# not incrementing because this didn't create a new record
-
-	def _set_rulebook_on_character(
-		self,
-		rbtyp: RulebookTypeStr,
-		char: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rb: RulebookName,
-	) -> None:
-		char, rb = map(self.pack, (char, rb))
-		self.call_one(rbtyp + "_insert", char, branch, turn, tick, rb)
-		self._increc()
-
-	set_character_rulebook = partialmethod(
-		_set_rulebook_on_character, "character_rulebook"
+	_stage_character_rulebook = partialmethod(
+		_stage_charactery_rulebook, "character_rulebook"
 	)
-	set_unit_rulebook = partialmethod(
-		_set_rulebook_on_character, "unit_rulebook"
+	_stage_unit_rulebook = partialmethod(
+		_stage_charactery_rulebook, "unit_rulebook"
 	)
-	set_character_thing_rulebook = partialmethod(
-		_set_rulebook_on_character, "character_thing_rulebook"
+	_stage_character_thing_rulebook = partialmethod(
+		_stage_charactery_rulebook, "character_thing_rulebook"
 	)
-	set_character_place_rulebook = partialmethod(
-		_set_rulebook_on_character, "character_place_rulebook"
+	_stage_character_place_rulebook = partialmethod(
+		_stage_charactery_rulebook, "character_place_rulebook"
 	)
-	set_character_portal_rulebook = partialmethod(
-		_set_rulebook_on_character, "character_portal_rulebook"
+	_stage_character_portal_rulebook = partialmethod(
+		_stage_charactery_rulebook, "character_portal_rulebook"
 	)
 
 	def rulebooks(self):
-		for book in self.call_one("rulebooks"):
+		for book in self.call("rulebooks"):
 			yield self.unpack(book)
-
-	def set_node_rulebook(
-		self,
-		character: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rulebook: RulebookName,
-	) -> None:
-		self._node_rulebook_to_set.append(
-			(character, node, branch, turn, tick, rulebook)
-		)
-		self._increc()
-
-	def set_portal_rulebook(
-		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rulebook: RulebookName,
-	) -> None:
-		self._portal_rulebook_to_set.append(
-			(character, orig, dest, branch, turn, tick, rulebook)
-		)
-		self._increc()
 
 	def handled_character_rule(
 		self,
@@ -10703,10 +9890,15 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		loc: NodeName,
+		loc: NodeName | EllipsisType,
 	) -> None:
 		self._location.append((character, thing, branch, turn, tick, loc))
-		self._increc()
+
+	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+		self._location.cull(
+			lambda c, th, b, r, t, l: (b, r, t) == (branch, turn, tick)
+		)
+		self.call("things_del_time", branch, turn, tick)
 
 	def unit_set(
 		self,
@@ -10735,36 +9927,34 @@ class SQLAlchemyQueryEngine(AbstractQueryEngine):
 		# should that happen in the query engine or elsewhere?
 		rulebook, rules = map(self.pack, (rulebook, rules))
 		try:
-			self.call_one(
-				"rulebooks_insert", rulebook, branch, turn, tick, rules
-			)
+			self.call("rulebooks_insert", rulebook, branch, turn, tick, rules)
 			self._increc()
 		except IntegrityError:
 			try:
-				self.call_one(
+				self.call(
 					"rulebooks_update", rules, rulebook, branch, turn, tick
 				)
 			except IntegrityError:
 				self.commit()
-				self.call_one(
+				self.call(
 					"rulebooks_update", rules, rulebook, branch, turn, tick
 				)
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		self.flush()
-		return self.call_one("turns_completed_dump")
+		return self.call("turns_completed_dump")
 
 	def complete_turn(
 		self, branch: Branch, turn: Turn, discard_rules: bool = False
 	) -> None:
 		try:
-			self.call_one("turns_completed_insert", branch, turn)
+			self.call("turns_completed_insert", branch, turn)
 		except IntegrityError:
 			try:
-				self.call_one("turns_completed_update", turn, branch)
+				self.call("turns_completed_update", turn, branch)
 			except IntegrityError:
 				self.commit()
-				self.call_one("turns_completed_update", turn, branch)
+				self.call("turns_completed_update", turn, branch)
 		self._increc()
 		if discard_rules:
 			self._char_rules_handled.clear()
