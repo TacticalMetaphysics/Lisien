@@ -6875,7 +6875,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 			self, {unpack(k): unpack(v) for (k, v) in self.initdb().items()}
 		)
 		self._all_keyframe_times = self.call("all_keyframe_times")
-		self.all_rules = set(self.call("dump", "rules"))
+		self.all_rules = set(d["rule"] for d in self.call("dump", "rules"))
 
 	@mutexed
 	def call(self, method, *args, **kwargs):
