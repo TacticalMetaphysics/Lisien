@@ -203,14 +203,19 @@ def test_keyframe_unload(tmp_path, execution, non_null_database):
 		)
 
 
-def test_keyframe_load_init(tmp_path):
+def test_keyframe_load_init(tmp_path, non_null_database):
 	"""Can load a keyframe at start of branch, including locations"""
-	eng = Engine(tmp_path, workers=0)
+	cs = (
+		f"sqlite:///{tmp_path}/world.sqlite3"
+		if non_null_database == "sqlite"
+		else None
+	)
+	eng = Engine(tmp_path, workers=0, connect_string=cs)
 	inittest(eng)
 	eng.branch = "new"
 	# eng.snap_keyframe()
 	eng.close()
-	eng = Engine(tmp_path, workers=0)
+	eng = Engine(tmp_path, workers=0, connect_string=cs)
 	# the graphs keyframe is coming up empty
 	assert "kobold" in eng.character["physical"].thing
 	assert (0, 0) in eng.character["physical"].place
@@ -218,10 +223,18 @@ def test_keyframe_load_init(tmp_path):
 	eng.close()
 
 
-def test_multi_keyframe(tmp_path):
-	eng = Engine(
-		tmp_path, enforce_end_of_time=False, keyframe_on_close=False, workers=0
+def test_multi_keyframe(tmp_path, non_null_database):
+	myengine = partial(
+		Engine,
+		tmp_path,
+		enforce_end_of_time=False,
+		keyframe_on_close=False,
+		workers=0,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
+		if non_null_database == "sqlite"
+		else None,
 	)
+	eng = myengine()
 	inittest(eng)
 	eng.snap_keyframe()
 	tick0 = eng.tick
@@ -238,7 +251,7 @@ def test_multi_keyframe(tmp_path):
 		tick1
 	]
 	eng.close()
-	eng = Engine(tmp_path, keyframe_on_close=False, workers=0)
+	eng = myengine()
 	eng.load_at("trunk", 0, tick0)
 	assert eng._time_is_loaded("trunk", 0, tick0)
 	assert eng._time_is_loaded("trunk", 0, tick0 + 1)
