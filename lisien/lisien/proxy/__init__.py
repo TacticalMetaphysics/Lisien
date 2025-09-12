@@ -3232,7 +3232,7 @@ class EngineProxy(AbstractEngine):
 		return self.handle("turn_end_plan", branch=branch, turn=turn)
 
 	@property
-	def main_branch(self) -> Branch:
+	def trunk(self) -> Branch:
 		return self.handle("main_branch")
 
 	def snap_keyframe(self) -> Keyframe:

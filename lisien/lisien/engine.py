@@ -470,7 +470,8 @@ class Engine(AbstractEngine, Executor):
 	:param prefix: directory containing the simulation and its code;
 		defaults to the working directory. If ``None``, Lisien won't save
 		any rules code to disk, and won't save world data unless you supply
-		:param connect_string:.
+		:param connect_string:. This is the only positional argument;
+		all others require keywords.
 	:param string: module storing strings to be used in the game; if absent,
 		we'll use a :class:`lisien.xcollections.StringStore` to keep them in a
 		JSON file in the ``prefix``.
@@ -493,18 +494,22 @@ class Engine(AbstractEngine, Executor):
 		mutating it (and possibly the rest of the world); if absent, we'll
 		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
 		file in the ``prefix``.
-	:param main_branch: the string name of the branch to start from. Defaults
+	:param trunk: the string name of the branch to start games from. Defaults
 		to "trunk" if not set in some prior session. You should only change
-		this if your game generates new initial conditions for each
+		this if your game generated a new initial world state for a new
 		playthrough.
-	:param connect_string: a rfc1738 URI for a database to connect to. Leave
-		``None`` to use the ParquetDB database in the ``prefix``.
+	:param connect_string: a URL for a database to connect to. Leave
+		it as the default, ``None``, to use the ParquetDB database in the
+		``prefix``. This uses SQLAlchemy's URL structure:
+		https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls
 	:param connect_args: Dictionary of keyword arguments for the
-		database connection
+		database connection. Only meaningful when combined with
+		``connect_string``. For details, see:
+		https://docs.sqlalchemy.org/en/20/core/engines.html#custom-dbapi-args
 	:param schema: A Schema class that determines which changes to allow to
 		the world; used when a player should not be able to change just
 		anything. Defaults to :class:`NullSchema`, which allows all changes.
-	:param flush_interval: lisien will put pending changes into the database
+	:param flush_interval: Lisien will put pending changes into the database
 		transaction every ``flush_interval`` turns. If ``None``, only flush
 		on commit. Default ``None``.
 	:param keyframe_interval: How many records to let through before automatically
@@ -513,7 +518,9 @@ class Engine(AbstractEngine, Executor):
 	:param commit_interval: Lisien will commit changes to disk every
 		``commit_interval`` turns. If ``None`` (the default), only commit
 		on close or manual call to ``commit``.
-	:param random_seed: A number to initialize the randomizer.
+	:param random_seed: A number to initialize the randomizer. Lisien saves
+		the state of the randomizer, so you only need to supply this when
+		starting a game for the first time.
 	:param clear: Whether to delete *any and all* existing data
 		and code in ``prefix`` and the database. Use with caution!
 	:param keep_rules_journal: Boolean; if ``True`` (the default), keep
@@ -526,7 +533,8 @@ class Engine(AbstractEngine, Executor):
 	:param enforce_end_of_time: Whether to raise an exception when
 		time travelling to a point after the time that's been simulated.
 		Default ``True``. You normally want this, but it could cause problems
-		if you're not using the rules engine.
+		if you use something other than Lisien's rules engine for game
+		logic.
 	:param workers: How many subprocesses to use as workers for
 		parallel processing. When ``None`` (the default), use as many
 		subprocesses as we have CPU cores. When ``0``, parallel processing
@@ -578,7 +586,7 @@ class Engine(AbstractEngine, Executor):
 		# make sure I'll end up within the revision range of the
 		# destination branch
 		v = Branch(v)
-		if v != self.main_branch and v in self.branches():
+		if v != self.trunk and v in self.branches():
 			parturn = self._branch_start(v)[0]
 			if curturn < parturn:
 				raise OutOfTimelineError(
@@ -613,19 +621,20 @@ class Engine(AbstractEngine, Executor):
 		self.time.send(self.time, then=then, now=self._btt())
 
 	@property
-	def main_branch(self):
-		return self.query.eternal["main_branch"]
+	def trunk(self):
+		return self.query.eternal["trunk"]
 
-	def switch_main_branch(self, branch: Branch) -> None:
-		if self.branch != self.main_branch or self.turn != 0 or self.tick != 0:
+	@trunk.setter
+	def trunk(self, branch: Branch) -> None:
+		if self.branch != self.trunk or self.turn != 0 or self.tick != 0:
 			raise ValueError("Go to the start of time first")
 		if (
 			branch in self.branches()
 			and self.branch_parent(branch) is not None
 		):
-			raise ValueError("Not a main branch")
+			raise ValueError("Not a trunk branch")
 		then = self._btt()
-		self.query.eternal["main_branch"] = self.branch = branch
+		self.query.eternal["trunk"] = self.branch = branch
 		self.time.send(self, then=then, now=self._btt())
 
 	@property
@@ -2033,7 +2042,7 @@ class Engine(AbstractEngine, Executor):
 		action: FunctionStore | ModuleType | None = None,
 		function: FunctionStore | ModuleType | None = None,
 		method: FunctionStore | ModuleType | None = None,
-		main_branch: Branch | None = None,
+		trunk: Branch | None = None,
 		connect_string: str | None = None,
 		connect_args: dict | None = None,
 		schema_cls: Type[AbstractSchema] = NullSchema,
@@ -2063,7 +2072,7 @@ class Engine(AbstractEngine, Executor):
 		self.commit_interval = commit_interval
 		self.schema = schema_cls(self)
 		# in case this is the first startup
-		self._obranch = main_branch or "trunk"
+		self._obranch = trunk or "trunk"
 		self._otick = self._oturn = 0
 		if logger is not None:
 			self._logger = logger
@@ -2080,7 +2089,7 @@ class Engine(AbstractEngine, Executor):
 			connect_string,
 			connect_args,
 			keyframe_interval,
-			main_branch,
+			trunk,
 			clear,
 		)
 		self._init_random(random_seed)
@@ -2153,13 +2162,13 @@ class Engine(AbstractEngine, Executor):
 		self.query.keyframe_interval = keyframe_interval
 		self._load_keyframe_times()
 		if main_branch is not None:
-			self.query.eternal["main_branch"] = main_branch
-		elif "main_branch" not in self.query.eternal:
-			main_branch = self.query.eternal["main_branch"] = "trunk"
+			self.query.eternal["trunk"] = main_branch
+		elif "trunk" not in self.query.eternal:
+			main_branch = self.query.eternal["trunk"] = "trunk"
 		else:
-			main_branch = self.query.eternal["main_branch"]
+			main_branch = self.query.eternal["trunk"]
 		assert main_branch is not None
-		assert main_branch == self.query.eternal["main_branch"]
+		assert main_branch == self.query.eternal["trunk"]
 		self._obranch = self.query.eternal["branch"]
 		self._oturn = self.query.eternal["turn"]
 		self._otick = self.query.eternal["tick"]
@@ -4471,16 +4480,16 @@ class Engine(AbstractEngine, Executor):
 					None,
 					list(
 						self.query.graphs_types(
-							self.query.eternal["main_branch"], 0, 0
+							self.query.eternal["trunk"], 0, 0
 						)
 					),
 					self.query.load_windows(
-						[(self.query.eternal["main_branch"], 0, 0, None, None)]
+						[(self.query.eternal["trunk"], 0, 0, None, None)]
 					),
 				)
 			else:
 				windows = self._build_loading_windows(
-					self.query.eternal["main_branch"], 0, 0, branch, turn, tick
+					self.query.eternal["trunk"], 0, 0, branch, turn, tick
 				)
 		else:
 			past_branch, past_turn, past_tick = latest_past_keyframe
@@ -6564,7 +6573,7 @@ class Engine(AbstractEngine, Executor):
 		# When initializing the world state, we don't have to worry about deltas;
 		# it's OK to make multiple characters at ('trunk', 0, 0).
 		# At any time past the start, we have to advance the tick.
-		if self.branch != self.main_branch or self.turn != 0 or self.tick != 0:
+		if self.branch != self.trunk or self.turn != 0 or self.tick != 0:
 			self._nbtt()
 		self._init_graph(name, "DiGraph", data)
 		if self._btt() not in self._keyframes_times:
