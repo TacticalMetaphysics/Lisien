@@ -257,6 +257,7 @@ class Importer:
 					"character_portal_rulebook": literal_eval(
 						subel.get("character-portal-rulebook")
 					),
+					"units": {},
 				}
 				node_vals = node_val_kf[char_name] = {}
 				edge_vals = edge_val_kf[char_name] = {}
@@ -294,6 +295,18 @@ class Importer:
 							val[literal_eval(item_el.get("key"))] = (
 								self.element_to_value(item_el[0])
 							)
+					elif key_el.tag == "units":
+						for unit_graph_el in key_el:
+							unit_graph_name = literal_eval(
+								unit_graph_el.get("name")
+							)
+							unit_graph_nodes_d = graph_vals["units"][
+								unit_graph_name
+							] = {}
+							for unit_node_el in unit_graph_el:
+								unit_graph_nodes_d[
+									literal_eval(unit_node_el.get("node"))
+								] = True
 					else:
 						raise ValueError(
 							"Don't know how to deal with tag", key_el.tag
