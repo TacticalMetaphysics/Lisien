@@ -1,6 +1,7 @@
 import pytest
 
 from lisien import Engine
+from lisien.db import SCHEMA_VERSION
 from lisien.proxy.handle import EngineHandle
 
 
@@ -42,7 +43,10 @@ def test_language(handle_empty):
 
 def test_eternal(handle_empty, database):
 	unpack = handle_empty.unpack
-	assert unpack(handle_empty.get_eternal("_lisien_schema_version")) == 1
+	assert (
+		unpack(handle_empty.get_eternal("_lisien_schema_version"))
+		== SCHEMA_VERSION
+	)
 	assert unpack(handle_empty.get_eternal("main_branch")) == "trunk"
 	assert unpack(handle_empty.get_eternal("language")) == "eng"
 	handle_empty.set_eternal("haha", "lol")
