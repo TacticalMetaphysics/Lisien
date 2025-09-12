@@ -2169,9 +2169,12 @@ class Engine(AbstractEngine, Executor):
 			main_branch = self.query.eternal["trunk"]
 		assert main_branch is not None
 		assert main_branch == self.query.eternal["trunk"]
-		self._obranch = self.query.eternal["branch"]
-		self._oturn = self.query.eternal["turn"]
-		self._otick = self.query.eternal["tick"]
+		if "branch" in self.query.eternal:
+			self._obranch = self.query.eternal["branch"]
+		if "turn" in self.query.eternal:
+			self._oturn = self.query.eternal["turn"]
+		if "tick" in self.query.eternal:
+			self._otick = self.query.eternal["tick"]
 		for (
 			branch,
 			parent,
