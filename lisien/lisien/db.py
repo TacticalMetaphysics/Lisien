@@ -8607,10 +8607,10 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		unpack = self.unpack
 		for (
-			graph,
 			branch,
 			turn,
 			tick,
+			graph,
 			nodes,
 			edges,
 			graph_val,
@@ -8864,7 +8864,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		"""Yield the entire contents of the graph_val table."""
 		self._graphvals2set()
 		unpack = self.unpack
-		for graph, key, branch, turn, tick, value in self.call(
+		for branch, turn, tick, graph, key, value in self.call(
 			"graph_val_dump"
 		):
 			yield (
@@ -8949,7 +8949,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def characters(self):
 		self.flush()
 		unpack = self.unpack
-		for graph, branch, turn, tick, typ in self.call("graphs_dump"):
+		for branch, turn, tick, graph, typ in self.call("graphs_dump"):
 			yield unpack(graph), branch, turn, tick, typ
 
 	def nodes_del_time(self, branch, turn, tick):
@@ -8962,7 +8962,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		"""Dump the entire contents of the nodes table."""
 		self._nodes2set()
 		unpack = self.unpack
-		for graph, node, branch, turn, tick, extant in self.call("nodes_dump"):
+		for branch, turn, tick, graph, node, extant in self.call("nodes_dump"):
 			yield (
 				unpack(graph),
 				unpack(node),
@@ -9017,7 +9017,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		"""Yield the entire contents of the node_val table."""
 		self._nodevals2set()
 		unpack = self.unpack
-		for graph, node, key, branch, turn, tick, value in self.call(
+		for branch, turn, tick, graph, node, key, value in self.call(
 			"node_val_dump"
 		):
 			yield (
@@ -9099,12 +9099,12 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 			extant,
 		) in self.call("edges_dump"):
 			yield (
-				unpack(graph),
-				unpack(orig),
-				unpack(dest),
 				branch,
 				turn,
 				tick,
+				unpack(graph),
+				unpack(orig),
+				unpack(dest),
 				bool(extant),
 			)
 
@@ -9186,13 +9186,13 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self._edgevals2set()
 		unpack = self.unpack
 		for (
+			branch,
+			turn,
+			tick,
 			graph,
 			orig,
 			dest,
 			key,
-			branch,
-			turn,
-			tick,
 			value,
 		) in self.call("edge_val_dump"):
 			yield (
@@ -9368,13 +9368,13 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def universals_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for key, branch, turn, tick, value in self.call("universals_dump"):
+		for branch, turn, tick, key, value in self.call("universals_dump"):
 			yield unpack(key), branch, turn, tick, unpack(value)
 
 	def rulebooks_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for rulebook, branch, turn, tick, rules, prio in self.call(
+		for branch, turn, tick, rulebook, rules, prio in self.call(
 			"rulebooks_dump"
 		):
 			yield unpack(rulebook), branch, turn, tick, (unpack(rules), prio)
@@ -9382,7 +9382,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def _rule_dump(self, typ):
 		self.flush()
 		unpack = self.unpack
-		for rule, branch, turn, tick, lst in self.call(
+		for branch, turn, tick, rule, lst in self.call(
 			"rule_{}_dump".format(typ)
 		):
 			yield rule, branch, turn, tick, unpack(lst)
@@ -9407,7 +9407,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def node_rulebook_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for character, node, branch, turn, tick, rulebook in self.call(
+		for branch, turn, tick, character, node, rulebook in self.call(
 			"node_rulebook_dump"
 		):
 			yield (
@@ -9423,12 +9423,12 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		unpack = self.unpack
 		for (
-			character,
-			orig,
-			dest,
 			branch,
 			turn,
 			tick,
+			character,
+			orig,
+			dest,
 			rulebook,
 		) in self.call("portal_rulebook_dump"):
 			yield (
@@ -9444,7 +9444,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def _charactery_rulebook_dump(self, qry):
 		self.flush()
 		unpack = self.unpack
-		for character, branch, turn, tick, rulebook in self.call(
+		for branch, turn, tick, character, rulebook in self.call(
 			qry + "_rulebook_dump"
 		):
 			yield unpack(character), branch, turn, tick, unpack(rulebook)
@@ -9466,46 +9466,22 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def character_rules_handled_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for character, rulebook, rule, branch, turn, tick in self.call(
+		for branch, turn, character, rulebook, rule, tick in self.call(
 			"character_rules_handled_dump"
 		):
 			yield unpack(character), unpack(rulebook), rule, branch, turn, tick
-
-	def character_rules_changes_dump(self):
-		self.flush()
-		unpack = self.unpack
-		for (
-			character,
-			rulebook,
-			rule,
-			branch,
-			turn,
-			tick,
-			handled_branch,
-			handled_turn,
-		) in self.call("character_rules_changes_dump"):
-			yield (
-				unpack(character),
-				unpack(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
-				handled_branch,
-				handled_turn,
-			)
 
 	def unit_rules_handled_dump(self):
 		self.flush()
 		unpack = self.unpack
 		for (
 			character,
+			branch,
+			turn,
 			graph,
 			unit,
 			rulebook,
 			rule,
-			branch,
-			turn,
 			tick,
 		) in self.call("unit_rules_handled_dump"):
 			yield (
@@ -9519,44 +9495,16 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 				tick,
 			)
 
-	def unit_rules_changes_dump(self):
-		self.flush()
-		jl = self.unpack
-		for (
-			character,
-			rulebook,
-			rule,
-			graph,
-			unit,
-			branch,
-			turn,
-			tick,
-			handled_branch,
-			handled_turn,
-		) in self.call("unit_rules_changes_dump"):
-			yield (
-				jl(character),
-				jl(rulebook),
-				rule,
-				jl(graph),
-				jl(unit),
-				branch,
-				turn,
-				tick,
-				handled_branch,
-				handled_turn,
-			)
-
 	def character_thing_rules_handled_dump(self):
 		self.flush()
 		unpack = self.unpack
 		for (
+			branch,
+			turn,
 			character,
 			thing,
 			rulebook,
 			rule,
-			branch,
-			turn,
 			tick,
 		) in self.call("character_thing_rules_handled_dump"):
 			yield (
@@ -9573,12 +9521,12 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		unpack = self.unpack
 		for (
+			branch,
+			turn,
 			character,
 			place,
 			rulebook,
 			rule,
-			branch,
-			turn,
 			tick,
 		) in self.call("character_place_rules_handled_dump"):
 			yield (
@@ -9595,13 +9543,13 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		unpack = self.unpack
 		for (
+			branch,
+			turn,
 			character,
 			rulebook,
 			rule,
 			orig,
 			dest,
-			branch,
-			turn,
 			tick,
 		) in self.call("character_portal_rules_handled_dump"):
 			yield (
@@ -9618,12 +9566,12 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def node_rules_handled_dump(self):
 		self.flush()
 		for (
+			branch,
+			turn,
 			character,
 			node,
 			rulebook,
 			rule,
-			branch,
-			turn,
 			tick,
 		) in self.call("node_rules_handled_dump"):
 			yield (
@@ -9640,13 +9588,13 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		unpack = self.unpack
 		for (
+			branch,
+			turn,
 			character,
 			orig,
 			dest,
 			rulebook,
 			rule,
-			branch,
-			turn,
 			tick,
 		) in self.call("portal_rules_handled_dump"):
 			yield (
@@ -9663,7 +9611,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def things_dump(self):
 		self.flush()
 		unpack = self.unpack
-		for character, thing, branch, turn, tick, location in self.call(
+		for branch, turn, tick, character, thing, location in self.call(
 			"things_dump"
 		):
 			yield (
@@ -9683,12 +9631,12 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		unpack = self.unpack
 		for (
-			character_graph,
-			unit_graph,
-			unit_node,
 			branch,
 			turn,
 			tick,
+			character_graph,
+			unit_graph,
+			unit_node,
 			is_av,
 		) in self.call("units_dump"):
 			yield (
