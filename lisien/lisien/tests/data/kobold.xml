@@ -5,17 +5,14 @@
   <dict-item key="'branch'">
     <str value="trunk" />
   </dict-item>
-  <dict-item key="'language'">
-    <str value="eng" />
-  </dict-item>
   <dict-item key="'main_branch'">
     <str value="trunk" />
   </dict-item>
   <dict-item key="'tick'">
-    <int value="2" />
+    <int value="0" />
   </dict-item>
   <dict-item key="'turn'">
-    <int value="1" />
+    <int value="0" />
   </dict-item>
   <playtree game="test_export" trunk="trunk">
     <branch name="trunk" start-turn="0" start-tick="0" end-turn="1" end-tick="2" last-turn-completed="1">
