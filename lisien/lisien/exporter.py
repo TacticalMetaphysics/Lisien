@@ -831,10 +831,16 @@ def query_engine_to_etree(
 	name: str, query: AbstractDatabaseConnector, tree: ElementTree
 ) -> ElementTree:
 	root = tree.getroot()
-	for k in sort_set(query.eternal.keys()):
+	eternals = dict(query.eternal.items())
+	root.set("db-schema-version", str(eternals.pop("_lisien_schema_version")))
+	root.set("trunk", str(eternals.pop("trunk")))
+	root.set("branch", str(eternals.pop("branch")))
+	root.set("turn", str(eternals.pop("turn")))
+	root.set("tick", str(eternals.pop("tick")))
+	for k in sort_set(eternals.keys()):
 		el = Element("dict-item", key=repr(k))
 		root.append(el)
-		el.append(value_to_xml(query.eternal[k]))
+		el.append(value_to_xml(eternals[k]))
 	trunks = set()
 	branches_d = {}
 	branch_descendants = {}
