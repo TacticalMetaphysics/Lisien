@@ -309,45 +309,50 @@ def add_keyframe_to_turn_el(
 					any_unit_graphs = True
 			if any_unit_graphs:
 				graph_el.append(units_el)
-		graph_el.set(
-			"character-rulebook",
-			repr(
-				vals.pop(
-					"character_rulebook", ("character_rulebook", char_name)
-				)
-			),
-		)
-		graph_el.set(
-			"unit-rulebook",
-			repr(vals.pop("unit_rulebook", ("unit_rulebook", char_name))),
-		)
-		graph_el.set(
-			"character-thing-rulebook",
-			repr(
-				vals.pop(
-					"character_thing_rulebook",
-					("character_thing_rulebook", char_name),
-				)
-			),
-		)
-		graph_el.set(
-			"character-place-rulebook",
-			repr(
-				vals.pop(
-					"character_place_rulebook",
-					("character_place_rulebook", char_name),
-				)
-			),
-		)
-		graph_el.set(
-			"character-portal-rulebook",
-			repr(
-				vals.pop(
-					"character_portal_rulebook",
-					("character_portal_rulebook", char_name),
-				)
-			),
-		)
+		if "character_rulebook" in vals:
+			graph_el.set(
+				"character-rulebook",
+				repr(
+					vals.pop(
+						"character_rulebook", ("character_rulebook", char_name)
+					)
+				),
+			)
+		if "unit_rulebook" in vals:
+			graph_el.set(
+				"unit-rulebook",
+				repr(vals.pop("unit_rulebook", ("unit_rulebook", char_name))),
+			)
+		if "character_thing_rulebook" in vals:
+			graph_el.set(
+				"character-thing-rulebook",
+				repr(
+					vals.pop(
+						"character_thing_rulebook",
+						("character_thing_rulebook", char_name),
+					)
+				),
+			)
+		if "character_place_rulebook" in vals:
+			graph_el.set(
+				"character-place-rulebook",
+				repr(
+					vals.pop(
+						"character_place_rulebook",
+						("character_place_rulebook", char_name),
+					)
+				),
+			)
+		if "character_portal_rulebook" in vals:
+			graph_el.set(
+				"character-portal-rulebook",
+				repr(
+					vals.pop(
+						"character_portal_rulebook",
+						("character_portal_rulebook", char_name),
+					)
+				),
+			)
 		for k, v in vals.items():
 			item_el = Element("dict-item", key=repr(k))
 			graph_el.append(item_el)
@@ -365,8 +370,9 @@ def add_keyframe_to_turn_el(
 			node_el = Element(
 				"node",
 				name=repr(node),
-				rulebook=repr(val.pop("rulebook", (char_name, node))),
 			)
+			if "rulebook" in val:
+				node_el.set("rulebook", repr(val.pop("rulebook")))
 			char_el.append(node_el)
 			for k, v in val.items():
 				item_el = Element("dict_item", key=repr(k))
@@ -387,10 +393,9 @@ def add_keyframe_to_turn_el(
 					"edge",
 					orig=repr(orig),
 					dest=repr(dest),
-					rulebook=repr(
-						val.pop("rulebook", (char_name, orig, dest))
-					),
 				)
+				if "rulebook" in val:
+					edge_el.set("rulebook", repr(val.pop("rulebook")))
 				char_el.append(edge_el)
 				for k, v in val.items():
 					item_el = Element("dict_item", key=repr(k))
