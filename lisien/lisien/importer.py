@@ -243,7 +243,21 @@ class Importer:
 				if not isinstance(name, Key):
 					raise TypeError("character names must be Key", name)
 				char_name = CharName(name)
-				graph_vals = graph_val_kf[char_name] = {}
+				graph_vals = graph_val_kf[char_name] = {
+					"character_rulebook": literal_eval(
+						subel.get("character-rulebook")
+					),
+					"unit_rulebook": literal_eval(subel.get("unit-rulebook")),
+					"character_thing_rulebook": literal_eval(
+						subel.get("character-thing-rulebook")
+					),
+					"character_place_rulebook": literal_eval(
+						subel.get("character-place-rulebook")
+					),
+					"character_portal_rulebook": literal_eval(
+						subel.get("character-portal-rulebook")
+					),
+				}
 				node_vals = node_val_kf[char_name] = {}
 				edge_vals = edge_val_kf[char_name] = {}
 				for key_el in subel:
@@ -254,8 +268,15 @@ class Importer:
 						name = literal_eval(key_el.get("name"))
 						if name in node_vals:
 							val = node_vals[name]
+							val["rulebook"] = literal_eval(
+								key_el.get("rulebook")
+							)
 						else:
-							val = node_vals[name] = {}
+							val = node_vals[name] = {
+								"rulebook": literal_eval(
+									key_el.get("rulebook")
+								)
+							}
 						for item_el in key_el:
 							val[literal_eval(item_el.get("key"))] = (
 								self.element_to_value(item_el[0])
@@ -268,6 +289,7 @@ class Importer:
 						if dest not in edge_vals[orig]:
 							edge_vals[orig][dest] = {}
 						val = edge_vals[orig][dest]
+						val["rulebook"] = literal_eval(key_el.get("rulebook"))
 						for item_el in key_el:
 							val[literal_eval(item_el.get("key"))] = (
 								self.element_to_value(item_el[0])
