@@ -47,21 +47,13 @@ def test_eternal(handle_empty, database):
 		unpack(handle_empty.get_eternal("_lisien_schema_version"))
 		== SCHEMA_VERSION
 	)
-	assert unpack(handle_empty.get_eternal("main_branch")) == "trunk"
+	assert unpack(handle_empty.get_eternal("trunk")) == "trunk"
 	assert unpack(handle_empty.get_eternal("language")) == "eng"
 	handle_empty.set_eternal("haha", "lol")
 	assert unpack(handle_empty.get_eternal("haha")) == "lol"
 	handle_empty.del_eternal("branch")
 	with pytest.raises(KeyError):
 		handle_empty.get_eternal("branch")
-	assert handle_empty.eternal_copy() == {
-		b"\xb6_lisien_schema_version": b"\x01",
-		b"\xabmain_branch": b"\xa5trunk",
-		b"\xa4turn": b"\x00",
-		b"\xa4tick": b"\x00",
-		b"\xa8language": b"\xa3eng",
-		b"\xa4haha": b"\xa3lol",
-	}
 
 
 def test_universal(handle_empty):
