@@ -6,9 +6,12 @@ from itertools import chain
 from operator import itemgetter
 from pathlib import Path
 from typing import Literal, Any, TypeAlias
-from xml.etree.ElementTree import Element, ElementTree, parse
 
-from lisien.rule import RuleFuncList
+try:
+	from lxml.etree import Element, ElementTree, parse
+except ModuleNotFoundError:
+	from xml.etree.ElementTree import Element, ElementTree, parse
+
 from lisien.types import (
 	RuleName,
 	PrereqFuncName,
