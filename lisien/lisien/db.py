@@ -6048,6 +6048,27 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 			"_lisien_schema_version": SCHEMA_VERSION,
 		}
 
+	def call(self, query_name: str, *args, **kwargs):
+		pass
+
+	def call_silent(self, query_name: str, *args, **kwargs):
+		pass
+
+	def call_many(self, query_name: str, args: list) -> None:
+		pass
+
+	def call_many_silent(self, query_name: str, args: list) -> None:
+		pass
+
+	def insert_many(self, table_name: str, args: list[dict]) -> None:
+		pass
+
+	def insert_many_silent(self, table_name: str, args: list[dict]) -> None:
+		pass
+
+	def rules_insert(self, rule: RuleName):
+		pass
+
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
