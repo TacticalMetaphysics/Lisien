@@ -690,7 +690,7 @@ class RuleBook(MutableSequence, Signal):
 			try:
 				return self._get_cache(*self.engine._btt())[0].index(*args)
 			except KeyError:
-				raise ValueError
+				raise ValueError("Not the name of a rule", v)
 		return super().index(*args)
 
 	def __delitem__(self, i: int) -> None:

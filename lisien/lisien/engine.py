@@ -97,6 +97,7 @@ from .exc import (
 	HistoricKeyError,
 	KeyframeError,
 	OutOfTimelineError,
+	RedundantRuleError,
 )
 from .facade import CharacterFacade
 from .node import Place, Thing
@@ -151,6 +152,7 @@ from .types import (
 	Value,
 	EntityKey,
 	DiGraph,
+	RulebookPriority,
 )
 from .util import (
 	ACTIONS,
@@ -1265,7 +1267,9 @@ class Engine(AbstractEngine, Executor):
 		total_hash.update(self._graph_state_hash(nodes, edges, vals))
 		return total_hash.digest()
 
-	def _get_node(self, graph: CharName | Character, node: NodeName):
+	def _get_node(
+		self, graph: CharName | Character, node: NodeName
+	) -> place_cls | thing_cls:
 		node_objs, retrieve, btt, make_node = self._get_node_stuff
 		if hasattr(graph, "name"):
 			graphn = graph.name
@@ -5498,18 +5502,9 @@ class Engine(AbstractEngine, Executor):
 		turn: Turn,
 		tick: Tick,
 	) -> None:
-		try:
-			self._character_rules_handled_cache.store(
-				charn, rulebook, rulen, branch, turn, tick
-			)
-		except ValueError:
-			assert (
-				rulen
-				in self._character_rules_handled_cache.handled[
-					charn, rulebook, branch, turn
-				]
-			)
-			return
+		self._character_rules_handled_cache.store(
+			charn, rulebook, rulen, branch, turn, tick
+		)
 		self.query.handled_character_rule(
 			charn, rulebook, rulen, branch, turn, tick
 		)
@@ -5525,18 +5520,9 @@ class Engine(AbstractEngine, Executor):
 		turn: Turn,
 		tick: Tick,
 	) -> None:
-		try:
-			self._unit_rules_handled_cache.store(
-				character, graph, avatar, rulebook, rule, branch, turn, tick
-			)
-		except ValueError:
-			assert (
-				rule
-				in self._unit_rules_handled_cache.handled[
-					character, graph, avatar, rulebook, branch, turn
-				]
-			)
-			return
+		self._unit_rules_handled_cache.store(
+			character, graph, avatar, rulebook, rule, branch, turn, tick
+		)
 		self.query.handled_unit_rule(
 			character, rulebook, rule, graph, avatar, branch, turn, tick
 		)
@@ -5551,18 +5537,9 @@ class Engine(AbstractEngine, Executor):
 		turn: Turn,
 		tick: Tick,
 	) -> None:
-		try:
-			self._character_thing_rules_handled_cache.store(
-				character, thing, rulebook, rule, branch, turn, tick
-			)
-		except ValueError:
-			assert (
-				rule
-				in self._character_thing_rules_handled_cache.handled[
-					character, thing, rulebook, branch, turn
-				]
-			)
-			return
+		self._character_thing_rules_handled_cache.store(
+			character, thing, rulebook, rule, branch, turn, tick
+		)
 		self.query.handled_character_thing_rule(
 			character, rulebook, rule, thing, branch, turn, tick
 		)
@@ -5577,18 +5554,9 @@ class Engine(AbstractEngine, Executor):
 		turn: Turn,
 		tick: Tick,
 	) -> None:
-		try:
-			self._character_place_rules_handled_cache.store(
-				character, place, rulebook, rule, branch, turn, tick
-			)
-		except ValueError:
-			assert (
-				rule
-				in self._character_place_rules_handled_cache.handled[
-					character, place, rulebook, branch, turn
-				]
-			)
-			return
+		self._character_place_rules_handled_cache.store(
+			character, place, rulebook, rule, branch, turn, tick
+		)
 		self.query.handled_character_place_rule(
 			character, rulebook, rule, place, branch, turn, tick
 		)
@@ -5604,18 +5572,9 @@ class Engine(AbstractEngine, Executor):
 		turn: Turn,
 		tick: Tick,
 	) -> None:
-		try:
-			self._character_portal_rules_handled_cache.store(
-				character, orig, dest, rulebook, rule, branch, turn, tick
-			)
-		except ValueError:
-			assert (
-				rule
-				in self._character_portal_rules_handled_cache.handled[
-					character, orig, dest, rulebook, branch, turn
-				]
-			)
-			return
+		self._character_portal_rules_handled_cache.store(
+			character, orig, dest, rulebook, rule, branch, turn, tick
+		)
 		self.query.handled_character_portal_rule(
 			character, rulebook, rule, orig, dest, branch, turn, tick
 		)
@@ -5630,18 +5589,9 @@ class Engine(AbstractEngine, Executor):
 		turn: Turn,
 		tick: Tick,
 	) -> None:
-		try:
-			self._node_rules_handled_cache.store(
-				character, node, rulebook, rule, branch, turn, tick
-			)
-		except ValueError:
-			assert (
-				rule
-				in self._node_rules_handled_cache.handled[
-					character, node, rulebook, branch, turn
-				]
-			)
-			return
+		self._node_rules_handled_cache.store(
+			character, node, rulebook, rule, branch, turn, tick
+		)
 		self.query.handled_node_rule(
 			character, node, rulebook, rule, branch, turn, tick
 		)
@@ -5657,18 +5607,9 @@ class Engine(AbstractEngine, Executor):
 		turn: Turn,
 		tick: Tick,
 	) -> None:
-		try:
-			self._portal_rules_handled_cache.store(
-				character, orig, dest, rulebook, rule, branch, turn, tick
-			)
-		except ValueError:
-			assert (
-				rule
-				in self._portal_rules_handled_cache.handled[
-					character, orig, dest, rulebook, branch, turn
-				]
-			)
-			return
+		self._portal_rules_handled_cache.store(
+			character, orig, dest, rulebook, rule, branch, turn, tick
+		)
 		self.query.handled_portal_rule(
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
@@ -5826,8 +5767,9 @@ class Engine(AbstractEngine, Executor):
 		prio: float,
 		rulebook: RulebookName,
 		rule: Rule,
-		handled_fun: callable,
-		entity,
+		check_handled: Callable[[], bool],
+		mark_handled: Callable[[Tick], None],
+		entity: char_cls | thing_cls | place_cls | portal_cls,
 		neighbors: Iterable = None,
 	):
 		changed = self._changed
@@ -5842,7 +5784,8 @@ class Engine(AbstractEngine, Executor):
 			fut.prio = prio
 			fut.entity = entity
 			fut.rulebook = rulebook
-			fut.handled = handled_fun
+			fut.check_handled = check_handled
+			fut.mark_handled = mark_handled
 			yield fut
 			return
 		for trigger in rule.triggers:
@@ -5851,20 +5794,25 @@ class Engine(AbstractEngine, Executor):
 			fut.prio = prio
 			fut.entity = entity
 			fut.rulebook = rulebook
-			fut.handled = handled_fun
+			fut.check_handled = check_handled
+			fut.mark_handled = mark_handled
 			yield fut
 
-	def _check_prereqs(self, rule: Rule, handled_fun: callable, entity):
+	def _check_prereqs(
+		self, rule: Rule, mark_handled: Callable[[Tick], None], entity
+	):
 		if not entity:
 			return False
 		for prereq in rule.prereqs:
 			res = prereq(entity)
 			if not res:
-				handled_fun(self.tick)
+				mark_handled(self.tick)
 				return False
 		return True
 
-	def _do_actions(self, rule: Rule, handled_fun: callable, entity):
+	def _do_actions(
+		self, rule: Rule, mark_handled: Callable[[Tick], None], entity
+	):
 		if rule.big:
 			entity = entity.facade()
 		actres = []
@@ -5877,7 +5825,7 @@ class Engine(AbstractEngine, Executor):
 		if rule.big:
 			with self.batch():
 				entity.engine.apply()
-		handled_fun(self.tick)
+		mark_handled(self.tick)
 		return actres
 
 	def _get_place_neighbors(
@@ -6056,8 +6004,7 @@ class Engine(AbstractEngine, Executor):
 		list[
 			tuple[
 				Rule,
-				Callable,
-				set[EntityKey],
+				list[tuple[Callable[..., bool], Callable, EntityKey]],
 			]
 		],
 	]
@@ -6066,7 +6013,22 @@ class Engine(AbstractEngine, Executor):
 		branch, turn, tick = self._btt()
 		charmap = self.character
 		rulemap = self.rule
-		todo = {}
+		todo: dict[
+			tuple[RulebookPriority, RulebookName],
+			list[
+				tuple[
+					Rule,
+					list[
+						tuple[
+							Callable[[], bool],
+							Callable[[Tick], None],
+							EntityKey,
+						],
+					]
+					| None,
+				],
+			],
+		] = {}
 		trig_futs = []
 
 		for (
@@ -6080,7 +6042,15 @@ class Engine(AbstractEngine, Executor):
 			if charactername not in charmap:
 				continue
 			rule = rulemap[rulename]
-			handled = partial(
+			check_handled = partial(
+				self._character_rules_handled_cache.was_handled,
+				branch,
+				turn,
+				rulebook,
+				rulename,
+				charactername,
+			)
+			mark_handled = partial(
 				self._handled_char,
 				charactername,
 				rulebook,
@@ -6094,7 +6064,8 @@ class Engine(AbstractEngine, Executor):
 					prio,
 					rulebook,
 					rule,
-					handled,
+					check_handled,
+					mark_handled,
 					entity,
 					None,
 				)
@@ -6105,7 +6076,6 @@ class Engine(AbstractEngine, Executor):
 		get_node = self._get_node
 		get_thing = self._get_thing
 		get_place = self._get_place
-
 		for (
 			prio,
 			charn,
@@ -6121,7 +6091,17 @@ class Engine(AbstractEngine, Executor):
 			) in (KeyError, None):
 				continue
 			rule = rulemap[rulen]
-			handled = partial(
+			check_handled = partial(
+				self._unit_rules_handled_cache.was_handled,
+				branch,
+				turn,
+				rulebook,
+				rulen,
+				charn,
+				graphn,
+				avn,
+			)
+			mark_handled = partial(
 				self._handled_av,
 				charn,
 				graphn,
@@ -6137,7 +6117,8 @@ class Engine(AbstractEngine, Executor):
 					prio,
 					rulebook,
 					rule,
-					handled,
+					check_handled,
+					mark_handled,
 					entity,
 					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
@@ -6156,7 +6137,16 @@ class Engine(AbstractEngine, Executor):
 			if not node_exists(charn, thingn) or not is_thing(charn, thingn):
 				continue
 			rule = rulemap[rulen]
-			handled = partial(
+			check_handled = partial(
+				self._character_thing_rules_handled_cache.was_handled,
+				branch,
+				turn,
+				rulebook,
+				rulen,
+				charn,
+				thingn,
+			)
+			mark_handled = partial(
 				handled_char_thing,
 				charn,
 				rulebook,
@@ -6171,7 +6161,8 @@ class Engine(AbstractEngine, Executor):
 					prio,
 					rulebook,
 					rule,
-					handled,
+					check_handled,
+					mark_handled,
 					entity,
 					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
@@ -6189,7 +6180,16 @@ class Engine(AbstractEngine, Executor):
 			if not node_exists(charn, placen) or is_thing(charn, placen):
 				continue
 			rule = rulemap[rulen]
-			handled = partial(
+			check_handled = partial(
+				self._character_place_rules_handled_cache.was_handled,
+				branch,
+				turn,
+				rulebook,
+				rulen,
+				charn,
+				placen,
+			)
+			mark_handled = partial(
 				handled_char_place,
 				charn,
 				placen,
@@ -6204,7 +6204,8 @@ class Engine(AbstractEngine, Executor):
 					prio,
 					rulebook,
 					rule,
-					handled,
+					check_handled,
+					mark_handled,
 					entity,
 					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
@@ -6225,7 +6226,17 @@ class Engine(AbstractEngine, Executor):
 			if not edge_exists(charn, orign, destn):
 				continue
 			rule = rulemap[rulen]
-			handled = partial(
+			check_handled = partial(
+				self._character_rules_handled_cache.was_handled,
+				branch,
+				turn,
+				rulebook,
+				rulen,
+				charn,
+				orign,
+				destn,
+			)
+			mark_handled = partial(
 				handled_char_port,
 				charn,
 				orign,
@@ -6241,7 +6252,8 @@ class Engine(AbstractEngine, Executor):
 					prio,
 					rulebook,
 					rule,
-					handled,
+					check_handled,
+					mark_handled,
 					entity,
 					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
@@ -6259,7 +6271,16 @@ class Engine(AbstractEngine, Executor):
 			if not node_exists(charn, noden):
 				continue
 			rule = rulemap[rulen]
-			handled = partial(
+			check_handled = partial(
+				self._node_rules_handled_cache.was_handled,
+				branch,
+				turn,
+				rulebook,
+				rulen,
+				charn,
+				noden,
+			)
+			mark_handled = partial(
 				handled_node, charn, noden, rulebook, rulen, branch, turn
 			)
 			entity = get_node(charn, noden)
@@ -6268,7 +6289,8 @@ class Engine(AbstractEngine, Executor):
 					prio,
 					rulebook,
 					rule,
-					handled,
+					check_handled,
+					mark_handled,
 					entity,
 					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
@@ -6287,7 +6309,17 @@ class Engine(AbstractEngine, Executor):
 			if not edge_exists(charn, orign, destn):
 				continue
 			rule = rulemap[rulen]
-			handled = partial(
+			check_handled = partial(
+				self._portal_rules_handled_cache.was_handled,
+				branch,
+				turn,
+				rulebook,
+				rulen,
+				charn,
+				orign,
+				destn,
+			)
+			mark_handled = partial(
 				handled_portal,
 				charn,
 				orign,
@@ -6303,7 +6335,8 @@ class Engine(AbstractEngine, Executor):
 					prio,
 					rulebook,
 					rule,
-					handled,
+					check_handled,
+					mark_handled,
 					entity,
 					self._get_effective_neighbors(entity, rule.neighborhood),
 				)
@@ -6315,23 +6348,22 @@ class Engine(AbstractEngine, Executor):
 				rulebook = self.rulebook[fut.rulebook]
 				rbidx = rulebook.index(fut.rule)
 				entity_key = self._get_entity_key(fut.entity)
+				what_do = (fut.check_handled, fut.mark_handled, entity_key)
 				if todo_key in todo:
 					rulez = todo[todo_key]
 					if rulez[rbidx] is None:
-						rulez[rbidx] = (fut.rule, fut.handled, {entity_key})
+						rulez[rbidx] = (fut.rule, [what_do])
 					else:
-						rule, handled, entities = rulez[
-							rulebook.index(fut.rule)
-						]
-						entities.add(entity_key)
+						rule, applications = rulez[rulebook.index(fut.rule)]
+						if what_do not in applications:
+							applications.append(what_do)
 				else:
-					rulez: list[
-						tuple[Rule, Callable, set[EntityKey]] | None
-					] = [None] * len(rulebook)
+					rulez = [None] * len(rulebook)
 					todo[todo_key] = rulez
-					rulez[rbidx] = (fut.rule, fut.handled, {entity_key})
-			else:
-				fut.handled(self.tick)
+					rulez[rbidx] = (
+						fut.rule,
+						[(fut.check_handled, fut.mark_handled, entity_key)],
+					)
 
 		return todo
 
@@ -6349,7 +6381,8 @@ class Engine(AbstractEngine, Executor):
 	def _follow_one_rule(
 		self,
 		rule: Rule,
-		handled: callable,
+		check_handled: Callable[[], bool],
+		mark_handled: Callable[[Tick], None],
 		entity: char_cls | thing_cls | place_cls | portal_cls,
 	):
 		check_prereqs = self._check_prereqs
@@ -6361,16 +6394,23 @@ class Engine(AbstractEngine, Executor):
 				f"on nonexistent entity {self._fmtent(entity)}"
 			)
 			return
+		if check_handled():
+			msg = (
+				f"Tried to run rule {rule.name} on {entity}, but "
+				"it's already been run this turn, in the same rulebook"
+			)
+			self.error(msg)
+			raise RedundantRuleError(msg, rule, entity)
 		self.debug(
 			f"checking prereqs for rule {rule.name} on entity {self._fmtent(entity)}"
 		)
-		if check_prereqs(rule, handled, entity):
+		if check_prereqs(rule, mark_handled, entity):
 			self.debug(
 				f"prereqs for rule {rule.name} on entity "
 				f"{self._fmtent(entity)} satisfied, will run actions"
 			)
 			try:
-				ret = do_actions(rule, handled, entity)
+				ret = do_actions(rule, mark_handled, entity)
 				self.debug(
 					f"actions for rule {rule.name} on entity "
 					f"{self._fmtent(entity)} have run without incident"
@@ -6408,12 +6448,13 @@ class Engine(AbstractEngine, Executor):
 		# TODO: if there's a paradox while following some rule,
 		#  start a new branch, copying handled rules
 		for prio, rulebook in sort_set(todo.keys()):
-			for rule, handled, entity_keys in filter(
-				None, todo[prio, rulebook]
-			):
-				for entity_key in sort_set(entity_keys):
+			for rule, applications in filter(None, todo[prio, rulebook]):
+				for check_handled, mark_handled, entity_key in applications:
 					yield self._follow_one_rule(
-						rule, handled, self._get_entity_from_key(entity_key)
+						rule,
+						check_handled,
+						mark_handled,
+						self._get_entity_from_key(entity_key),
 					)
 
 	def new_character(
