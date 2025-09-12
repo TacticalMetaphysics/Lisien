@@ -6342,12 +6342,18 @@ class Engine(AbstractEngine, Executor):
 				)
 			)
 
+		to_done: set[RulebookName, RuleName, EntityKey] = set()
 		for fut in trig_futs:
-			if fut.result():
+			entity_key = self._get_entity_key(fut.entity)
+			if (
+				fut.rulebook,
+				fut.rule.name,
+				entity_key,
+			) not in to_done and fut.result():
+				to_done.add((fut.rulebook, fut.rule.name, entity_key))
 				todo_key = (fut.prio, fut.rulebook)
 				rulebook = self.rulebook[fut.rulebook]
 				rbidx = rulebook.index(fut.rule)
-				entity_key = self._get_entity_key(fut.entity)
 				what_do = (fut.check_handled, fut.mark_handled, entity_key)
 				if todo_key in todo:
 					rulez = todo[todo_key]
@@ -6355,8 +6361,7 @@ class Engine(AbstractEngine, Executor):
 						rulez[rbidx] = (fut.rule, [what_do])
 					else:
 						rule, applications = rulez[rulebook.index(fut.rule)]
-						if what_do not in applications:
-							applications.append(what_do)
+						applications.append(what_do)
 				else:
 					rulez = [None] * len(rulebook)
 					todo[todo_key] = rulez
