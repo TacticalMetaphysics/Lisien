@@ -3990,7 +3990,7 @@ class AbstractDatabaseConnector(ABC):
 
 	@mutexed
 	def _flush(self):
-		self._eternal2set
+		self._eternal2set()
 		self._universals2set()
 		self._triggers2set()
 		self._prereqs2set()
