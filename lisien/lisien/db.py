@@ -119,7 +119,8 @@ OperationalError = (LiteOperationalError, AlchemyOperationalError)
 
 
 SCHEMAVER_B = b"\xb6_lisien_schema_version"
-SCHEMA_VERSION = b"\x01"
+SCHEMA_VERSION = 2
+SCHEMA_VERSION_B = SCHEMA_VERSION.to_bytes(1, "little")
 
 
 class GlobalKeyValueStore(UserDict):
@@ -232,8 +233,8 @@ class ParquetDBLooper(ConnectionLooper):
 	initial = {
 		"global": [
 			{
-				"key": b"\xb6_lisien_schema_version",
-				"value": b"\x01",
+				"key": SCHEMAVER_B,
+				"value": SCHEMA_VERSION_B,
 			},
 			{"key": b"\xa5trunk", "value": b"\xa5trunk"},
 			{"key": b"\xa6branch", "value": b"\xa5trunk"},
@@ -289,8 +290,8 @@ class ParquetDBLooper(ConnectionLooper):
 				)
 		glob_d = {d["key"]: d["value"] for d in self.dump("global")}
 		if SCHEMAVER_B not in glob_d:
-			glob_d[SCHEMAVER_B] = SCHEMA_VERSION
-			self.set_global(SCHEMAVER_B, SCHEMA_VERSION)
+			glob_d[SCHEMAVER_B] = SCHEMA_VERSION_B
+			self.set_global(SCHEMAVER_B, SCHEMA_VERSION_B)
 		elif glob_d[SCHEMAVER_B] != b"\x01":
 			return ValueError(
 				f"Unsupported database schema version", glob_d[SCHEMAVER_B]
@@ -6043,7 +6044,8 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 			"turn": 0,
 			"tick": 0,
 			"language": "eng",
-			"_lisien_schema_version": 1,
+			"trunk": "trunk",
+			"_lisien_schema_version": SCHEMA_VERSION,
 		}
 
 	def get_keyframe_extensions(
@@ -8418,8 +8420,8 @@ class SQLAlchemyConnectionLooper(ConnectionLooper):
 				return ex
 		glob_d = dict(self.call("global_dump").fetchall())
 		if SCHEMAVER_B not in glob_d:
-			self.call("global_insert", SCHEMAVER_B, SCHEMA_VERSION)
-		elif glob_d[SCHEMAVER_B] != SCHEMA_VERSION:
+			self.call("global_insert", SCHEMAVER_B, SCHEMA_VERSION_B)
+		elif glob_d[SCHEMAVER_B] != SCHEMA_VERSION_B:
 			return ValueError(
 				"Unsupported database schema version", glob_d[SCHEMAVER_B]
 			)
