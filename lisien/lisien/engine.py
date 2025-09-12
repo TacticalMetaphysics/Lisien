@@ -3705,7 +3705,8 @@ class Engine(AbstractEngine, Executor):
 			combined_graph_val_keyframe["character_portal_rulebook"] = (
 				characters_portals_rulebooks_keyframe[graph]
 			)
-			combined_graph_val_keyframe["units"] = units_keyframe[graph]
+			if units_keyframe[graph]:
+				combined_graph_val_keyframe["units"] = units_keyframe[graph]
 			inskf(
 				graph,
 				*now,
