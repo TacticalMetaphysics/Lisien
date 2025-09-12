@@ -590,7 +590,7 @@ class Importer:
 		tree: ElementTree,
 	):
 		root = tree.getroot()
-		branch_descendants: dict[Branch, list[Branch]] = {"trunk": []}
+		branch_descendants: dict[Branch, list[Branch]] = {Branch("trunk"): []}
 		branch_starts: dict[Branch, tuple[Turn, Tick]] = {}
 		for el in root:
 			if el.tag == "playtree":
