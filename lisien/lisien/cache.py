@@ -37,6 +37,7 @@ from .types import (
 	CharName,
 	EntityKey,
 	Key,
+	LinearTime,
 	NodeName,
 	Plan,
 	RuleBig,
@@ -1036,7 +1037,7 @@ class Cache:
 		parent: tuple[Key, ...] = args[:-6]
 		entikey = (entity, key)
 		parentikey = parent + (entity, key)
-		contras = []
+		contras: list[LinearTime]
 		with lock:
 			self_store_journal(*args)
 			if parent:

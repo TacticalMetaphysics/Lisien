@@ -29,7 +29,7 @@ from queue import Queue
 from sqlite3 import IntegrityError as LiteIntegrityError
 from sqlite3 import OperationalError as LiteOperationalError
 from threading import Lock, Thread
-from types import MethodType, EllipsisType
+from types import MethodType
 from typing import (
 	Any,
 	Iterator,
@@ -67,6 +67,7 @@ from .types import (
 	EdgeKeyframe,
 	EdgeRowType,
 	EdgeValRowType,
+	EternalKey,
 	UnitRowType,
 	GraphTypeStr,
 	GraphValKeyframe,
@@ -607,22 +608,6 @@ class ParquetDBLooper(ConnectionLooper):
 			return self._schema[table]
 		ret = self._schema[table] = pa.schema(self.schema[table])
 		return ret
-
-	def set_global(self, key: bytes, value: bytes):
-		id_ = self.field_get_id("global", "key", key)
-		schema = self._get_schema("global")
-		db = self._get_db("global")
-		if id_ is None:
-			return db.create(
-				[{"key": key, "value": value}],
-				schema=schema,
-			)
-		return db.update([{"id": id_, "value": value}])
-
-	def del_global(self, key: bytes):
-		from pyarrow import compute as pc
-
-		self._get_db("global").delete(filters=[pc.field("key") == key])
 
 	def global_keys(self):
 		return [
@@ -2405,11 +2390,11 @@ class ParquetDBLooper(ConnectionLooper):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		triggers: bytes | EllipsisType = ...,
-		prereqs: bytes | EllipsisType = ...,
-		actions: bytes | EllipsisType = ...,
-		neighborhood: bool | EllipsisType = ...,
-		big: bool | EllipsisType = ...,
+		triggers: bytes | type(...) = ...,
+		prereqs: bytes | type(...) = ...,
+		actions: bytes | type(...) = ...,
+		neighborhood: bool | type(...) = ...,
+		big: bool | type(...) = ...,
 	):
 		import pyarrow.compute as pc
 
@@ -3168,6 +3153,14 @@ LoadedCharWindow: TypeAlias = dict[
 
 class Batch(list):
 	silent: bool = True
+	"""Whether to tell the connector not to listen for a response to the INSERT.
+	
+	Needs to be ``True`` in order to work inside ``AbstractDatabaseConnector.flush()``,
+	which holds onto the same lock we'd otherwise use to indicate we're listening.
+	
+	"""
+	validate: bool = True
+	"""Whether to check that records added to the batch are correctly typed tuples"""
 
 	_hint2type = {}
 
@@ -3189,7 +3182,7 @@ class Batch(list):
 		self.argspec = inspect.getfullargspec(self.serialize_record)
 		self.staging_func_name = staging_method_name
 
-	def cull(self, condition: Callable[[...], bool]) -> None:
+	def cull(self, condition: Callable[..., bool]) -> None:
 		"""Remove records matching a condition from the batch
 
 		Records are unpacked before being passed into the condition function.
@@ -3221,8 +3214,8 @@ class Batch(list):
 				annotation = annotation[: annotation.index("[")]
 			if hasattr(builtins, annotation):
 				typ = getattr(builtins, annotation)
-			elif annotation == "EllipsisType":
-				yield EllipsisType
+			elif annotation == "type(...)":
+				yield type(...)
 				return
 			else:
 				typ = getattr(lisien.types, annotation)
@@ -3255,15 +3248,18 @@ class Batch(list):
 				)
 
 	def __setitem__(self, i: int, v):
-		self._validate(v)
+		if self.validate:
+			self._validate(v)
 		super().__setitem__(i, v)
 
 	def insert(self, i: int, v):
-		self._validate(v)
+		if self.validate:
+			self._validate(v)
 		super().insert(i, v)
 
 	def append(self, v):
-		self._validate(v)
+		if self.validate:
+			self._validate(v)
 		super().append(v)
 
 	def __call__(self):
@@ -3352,6 +3348,13 @@ class AbstractDatabaseConnector(ABC):
 	_outq: Queue
 	_looper: looper_cls
 	_records: int
+
+	@batched("global", key_len=1, staging_method_name="_stage_global")
+	def _eternal2set(
+		self, key: EternalKey, value: Value
+	) -> tuple[bytes, bytes]:
+		pack = self.pack
+		return pack(key), pack(value)
 
 	@batched("plan_ticks", inc_rec_counter=False)
 	def _planticks2set(
@@ -3665,7 +3668,9 @@ class AbstractDatabaseConnector(ABC):
 
 	@batched(
 		"keyframes",
+		key_len=3,
 		inc_rec_counter=False,
+		staging_method_name="_stage_new_keyframes",
 	)
 	def _new_keyframes(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -3859,7 +3864,7 @@ class AbstractDatabaseConnector(ABC):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		location: NodeName | EllipsisType,
+		location: NodeName | type(...),
 	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
 		(character, thing, location) = map(
 			self.pack, (character, thing, location)
@@ -3984,6 +3989,7 @@ class AbstractDatabaseConnector(ABC):
 
 	@mutexed
 	def _flush(self):
+		self._eternal2set
 		self._universals2set()
 		self._triggers2set()
 		self._prereqs2set()
@@ -4157,13 +4163,11 @@ class AbstractDatabaseConnector(ABC):
 	def get_tick(self) -> Tick:
 		pass
 
-	@abstractmethod
-	def global_set(self, key: Key, value: Value):
-		pass
+	def global_set(self, key: EternalKey, value: Value):
+		self._eternal2set.append((key, value))
 
-	@abstractmethod
 	def global_del(self, key: Key) -> None:
-		pass
+		self._eternal2set.append((key, ...))
 
 	@abstractmethod
 	def new_branch(
@@ -6970,13 +6974,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		except KeyError:
 			return ...
 
-	def global_set(self, key: Key, value: Any) -> None:
-		pack = self.pack
-		return self.call("set_global", pack(key), pack(value))
-
-	def global_del(self, key: Key) -> None:
-		return self.call("del_global", self.pack(key))
-
 	def global_dump(self) -> Iterator[tuple[Key, Any]]:
 		unpack = self.unpack
 		for d in self.call("dump", "global"):
@@ -7077,6 +7074,19 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 					tick,
 					_,
 				) in recs
+			],
+		)
+
+	def _stage_global(self, recs):
+		self.call_silent("delete", "global", [{"key": k} for (k, _) in recs])
+
+	def _stage_new_keyframes(self, recs):
+		self.call_silent(
+			"delete",
+			"keyframes",
+			[
+				{"branch": branch, "turn": turn, "tick": tick}
+				for (branch, turn, tick) in recs
 			],
 		)
 
@@ -8740,26 +8750,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 			return 0
 		return self.unpack(v[0])
 
-	def global_set(self, key: Key, value: Value) -> None:
-		"""Set ``key`` to ``value`` globally (not at any particular branch or
-		revision)
-
-		"""
-		(key, value) = map(self.pack, (key, value))
-		try:
-			return self.call("global_insert", key, value)
-		except IntegrityError:
-			try:
-				return self.call("global_update", value, key)
-			except IntegrityError:
-				self.commit()
-				return self.call("global_update", value, key)
-
-	def global_del(self, key: Key) -> None:
-		"""Delete the global record for the key."""
-		key = self.pack(key)
-		return self.call("global_del", key)
-
 	def new_branch(
 		self,
 		branch: Branch,
@@ -9293,6 +9283,9 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def plan_ticks_dump(self):
 		self._planticks2set()
 		return self.call("plan_ticks_dump")
+
+	def _stage_new_keyframes(self, recs):
+		self.call_many_silent("delete_keyframe", recs)
 
 	def _stage_new_keyframes_graphs(self, recs):
 		self.call_many_silent(
@@ -9890,7 +9883,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		loc: NodeName | EllipsisType,
+		loc: NodeName | type(...),
 	) -> None:
 		self._location.append((character, thing, branch, turn, tick, loc))
 
