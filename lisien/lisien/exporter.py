@@ -5,7 +5,11 @@ from functools import partial
 from pathlib import Path
 from types import FunctionType, MethodType
 from typing import Literal
-from xml.etree.ElementTree import ElementTree, Element
+
+try:
+	from lxml.etree import ElementTree, Element, indent
+except ModuleNotFoundError:
+	from xml.etree.ElementTree import ElementTree, Element, indent
 
 import networkx as nx
 from tblib import Traceback
@@ -135,8 +139,6 @@ def game_path_to_xml(
 
 	tree = game_path_to_etree(game_path, name)
 	if indent:
-		from xml.etree.ElementTree import indent
-
 		indent(tree)
 	tree.write(xml_file_path, encoding="utf-8")
 
