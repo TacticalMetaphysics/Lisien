@@ -22802,7 +22802,6 @@ KOBOLD_KEYFRAME_0 = {
 		"go2kobold": ["kobold_alive", "kobold_not_here"],
 		"kill_kobold": ["unmerciful"],
 		"shrubsprint": ["breakcover", "not_traveling"],
-		"wander": [],
 	},
 	"rulebook": {
 		("physical", "dwarf"): (
@@ -23925,7 +23924,6 @@ KOBOLD_KEYFRAME_1 = {
 		"fight": ["kobold_alive", "aware"],
 		"kill_kobold": ["unmerciful"],
 		"go2kobold": ["kobold_alive", "kobold_not_here"],
-		"wander": [],
 	},
 	"actions": {
 		"shrubsprint": ["shrubsprint"],
