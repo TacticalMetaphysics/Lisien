@@ -291,7 +291,7 @@ class ParquetDBLooper(ConnectionLooper):
 		glob_d = {d["key"]: d["value"] for d in self.dump("global")}
 		if SCHEMAVER_B not in glob_d:
 			glob_d[SCHEMAVER_B] = SCHEMA_VERSION_B
-			self.set_global(SCHEMAVER_B, SCHEMA_VERSION_B)
+			self.insert1("global", [{SCHEMAVER_B: SCHEMA_VERSION_B}])
 		elif glob_d[SCHEMAVER_B] != b"\x01":
 			return ValueError(
 				f"Unsupported database schema version", glob_d[SCHEMAVER_B]
