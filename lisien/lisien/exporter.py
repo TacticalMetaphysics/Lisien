@@ -7,9 +7,13 @@ from types import FunctionType, MethodType
 from typing import Literal
 
 try:
-	from lxml.etree import ElementTree, Element, indent
+	from lxml.etree import ElementTree, Element, indent as indent_tree
 except ModuleNotFoundError:
-	from xml.etree.ElementTree import ElementTree, Element, indent
+	from xml.etree.ElementTree import (
+		ElementTree,
+		Element,
+		indent as indent_tree,
+	)
 
 import networkx as nx
 from tblib import Traceback
@@ -139,7 +143,7 @@ def game_path_to_xml(
 
 	tree = game_path_to_etree(game_path, name)
 	if indent:
-		indent(tree)
+		indent_tree(tree)
 	tree.write(xml_file_path, encoding="utf-8")
 
 
