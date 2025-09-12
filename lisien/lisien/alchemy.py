@@ -842,6 +842,15 @@ def queries(table):
 				table["keyframes_graphs"].c.tick == bindparam("tick"),
 			)
 		),
+		"delete_keyframe": table["keyframes"]
+		.delete()
+		.where(
+			and_(
+				table["keyframes"].c.branch == bindparam("branch"),
+				table["keyframes"].c.turn == bindparam("turn"),
+				table["keyframes"].c.tick == bindparam("tick"),
+			)
+		),
 		"delete_keyframe_graph": table["keyframes_graphs"]
 		.delete()
 		.where(

@@ -856,6 +856,9 @@ class GraphNodeMapping(AllegedMapping):
 		if node in self.db._node_objs:
 			del self.db._node_objs[key]
 
+	def __repr__(self):
+		return f"<{self.__class__.__name__} containing {', '.join(map(repr, self.keys()))}>"
+
 	def update(self, m, /, **kwargs):
 		for node, value in chain(m.items(), kwargs.items()):
 			if value is ...:
