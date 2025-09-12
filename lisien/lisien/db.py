@@ -235,7 +235,7 @@ class ParquetDBLooper(ConnectionLooper):
 				"key": b"\xb6_lisien_schema_version",
 				"value": b"\x01",
 			},
-			{"key": b"\xabmain_branch", "value": b"\xa5trunk"},
+			{"key": b"\xa5trunk", "value": b"\xa5trunk"},
 			{"key": b"\xa6branch", "value": b"\xa5trunk"},
 			{"key": b"\xa4turn", "value": b"\x00"},
 			{"key": b"\xa4tick", "value": b"\x00"},
@@ -6983,7 +6983,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		v = self.unpack(self.call("get_global", b"\xa6branch"))
 		if v is ...:
 			mainbranch = Branch(
-				self.unpack(self.call("get_global", b"\xabmain_branch"))
+				self.unpack(self.call("get_global", b"\xa5trunk"))
 			)
 			if mainbranch is None:
 				return Branch("trunk")
@@ -8735,7 +8735,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def get_branch(self) -> Branch:
 		v = self.call("global_get", self.pack("branch"))[0]
 		if v is None:
-			return self.eternal["main_branch"]
+			return self.eternal["trunk"]
 		return self.unpack(v[0])
 
 	def get_turn(self) -> Turn:
@@ -9330,8 +9330,8 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 			if isinstance(x, Exception):
 				raise x
 			self._all_keyframe_times = set(x)
-		if "main_branch" not in globals:
-			globals["main_branch"] = "trunk"
+		if "trunk" not in globals:
+			globals["trunk"] = "trunk"
 		if "branch" not in globals:
 			globals["branch"] = "trunk"
 		if "turn" not in globals:

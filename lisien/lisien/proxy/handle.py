@@ -1001,10 +1001,10 @@ class EngineHandle:
 		return dict(self._real._branches_d)
 
 	def main_branch(self) -> Branch:
-		return self._real.main_branch
+		return self._real.trunk
 
 	def switch_main_branch(self, branch: Branch) -> Keyframe:
-		self._real.switch_main_branch(branch)
+		self._real.switch_trunk_branch(branch)
 		return self.snap_keyframe()
 
 	def game_init(
