@@ -70,7 +70,7 @@ def handle_initialized(request, tmp_path, database):
 		assert request.param == "sickle"
 		install = sickle.install
 		keyframe = {0: data.SICKLE_KEYFRAME_0, 1: data.SICKLE_KEYFRAME_1}
-	if database == "null":
+	if database == "nodb":
 		ret = EngineHandle(None, workers=0, random_seed=69105)
 		install(ret._real)
 		ret.keyframe = keyframe
