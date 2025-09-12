@@ -619,12 +619,15 @@ class Node(AbstractEntityMapping):
 		self._set_cache_stuff = (db._node_val_cache.store, graphn, node)
 
 	def __repr__(self):
-		return "{}(graph={}, name={})".format(
+		return "<{}(graph={}, name={})>".format(
 			self.__class__.__name__, repr(self.graph), repr(self.name)
 		)
 
 	def __str__(self):
-		return f"Node of class {self.__class__.__name__} named {self.name}with stats {dict(self)}"
+		return (
+			f"Node of class {self.__class__.__name__} "
+			f"in graph {self.graph.name} named {self.name}"
+		)
 
 	def __iter__(self):
 		iter_entity_keys, graphn, node, btt = self._iter_stuff
