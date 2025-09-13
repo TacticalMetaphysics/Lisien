@@ -8315,6 +8315,29 @@ class SQLAlchemyConnectionLooper(ConnectionLooper):
 				inst = inst[1:]
 				silent = True
 			self.logger.debug(inst[:2])
+
+			def _call_n(mth, cmd, *args, silent=False, **kwargs):
+				try:
+					res = mth(cmd, *args, **kwargs)
+					if silent:
+						return ...
+					else:
+						if hasattr(res, "returns_rows") and res.returns_rows:
+							return list(res)
+						return None
+				except Exception as ex:
+					self.logger.error(repr(ex))
+					if silent:
+						print(
+							f"Got exception while silenced: {repr(ex)}",
+							file=sys.stderr,
+						)
+						sys.exit(repr(ex))
+					return ex
+
+			call_one = partial(_call_n, self.call)
+			call_many = partial(_call_n, self.call_many)
+			call_select = partial(_call_n, self.connection.execute)
 			match inst:
 				case ("echo", msg):
 					self.outq.put(msg)
@@ -8323,63 +8346,17 @@ class SQLAlchemyConnectionLooper(ConnectionLooper):
 					self.outq.put(msg)
 					self.inq.task_done()
 				case ("select", qry, args):
-					try:
-						res = self.connection.execute(qry, args)
-						if not silent:
-							if hasattr(res, "returns_rows"):
-								if res.returns_rows:
-									o = list(res)
-								else:
-									o = None
-							else:
-								o = list(res)
-					except Exception as ex:
-						print(repr(ex))
-						if silent:
-							print(f"while silenced: {ex}")
-							sys.exit(repr(ex))
-						o = ex
+					o = self.call_select(qry, args, silent=silent)
 					if not silent:
 						self.outq.put(o)
 					self.inq.task_done()
 				case ("one", cmd, args, kwargs):
-					try:
-						res = self.call(cmd, *args, **kwargs)
-						if not silent:
-							if hasattr(res, "returns_rows"):
-								if res.returns_rows:
-									o = list(res)
-								else:
-									o = None
-							else:
-								o = list(res)
-					except Exception as ex:
-						print(repr(ex))
-						if silent:
-							print(f"while silenced: {repr(ex)}")
-							sys.exit(repr(ex))
-						o = ex
+					o = call_one(cmd, *args, silent=silent, **kwargs)
 					if not silent:
 						self.outq.put(o)
 					self.inq.task_done()
 				case ("many", cmd, several):
-					try:
-						res = self.call_many(cmd, several)
-						if not silent:
-							if hasattr(res, "returns_rows"):
-								if res.returns_rows:
-									o = list(res)
-								else:
-									o = None
-							else:
-								rez = list(res.fetchall())
-								o = rez or None
-					except Exception as ex:
-						if silent:
-							msg = "got exception while silenced: " + repr(ex)
-							print(msg)
-							sys.exit(msg)
-						o = ex
+					o = call_many(cmd, several, silent=silent)
 					if not silent:
 						self.outq.put(o)
 					self.inq.task_done()
