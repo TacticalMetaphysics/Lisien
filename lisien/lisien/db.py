@@ -3085,13 +3085,6 @@ LoadedCharWindow: TypeAlias = dict[
 
 
 class Batch(list):
-	silent: bool = True
-	"""Whether to tell the connector not to listen for a response to the INSERT.
-	
-	Needs to be ``True`` in order to work inside ``AbstractDatabaseConnector.flush()``,
-	which holds onto the same lock we'd otherwise use to indicate we're listening.
-	
-	"""
 	validate: bool = True
 	"""Whether to check that records added to the batch are correctly typed tuples"""
 
@@ -3103,7 +3096,6 @@ class Batch(list):
 		table: str,
 		key_len: int,
 		inc_rec_counter: bool,
-		staging_method_name: str | None,
 		serialize_record: callable,
 	):
 		super().__init__()
@@ -3113,7 +3105,6 @@ class Batch(list):
 		self.inc_rec_counter = inc_rec_counter
 		self.serialize_record = serialize_record
 		self.argspec = inspect.getfullargspec(self.serialize_record)
-		self.staging_func_name = staging_method_name
 
 	def cull(self, condition: Callable[..., bool]) -> None:
 		"""Remove records matching a condition from the batch
@@ -3211,19 +3202,18 @@ class Batch(list):
 		else:
 			records = starmap(self.serialize_record, self)
 		data = list(records)
-		if self.staging_func_name is not None and hasattr(
-			self._qe, self.staging_func_name
-		):
-			getattr(self._qe, self.staging_func_name)(data)
 		argnames = self.argspec.args[1:]
-		if self.silent:
-			self._qe.insert_many_silent(
-				self.table, [dict(zip(argnames, datum)) for datum in data]
+		if self.key_len is not None:
+			self._qe.delete_many_silent(
+				self.table,
+				[
+					dict(zip(argnames[: self.key_len], datum))
+					for datum in {rec[: self.key_len] for rec in data}
+				],
 			)
-		else:
-			self._qe.insert_many(
-				self.table, [dict(zip(argnames, datum)) for datum in data]
-			)
+		self._qe.insert_many_silent(
+			self.table, [dict(zip(argnames, datum)) for datum in data]
+		)
 		n = len(data)
 		self.clear()
 		if self.inc_rec_counter:
@@ -3237,21 +3227,13 @@ def batched(
 	*,
 	key_len: int = 0,
 	inc_rec_counter: bool = True,
-	staging_method_name: str | None = None,
 ) -> partial | cached_property:
-	if staging_method_name is not None and not isinstance(
-		staging_method_name, str
-	):
-		raise TypeError(
-			"staging_method_name must be str if present", staging_method_name
-		)
 	if serialize_record is None:
 		return partial(
 			batched,
 			table,
 			key_len=key_len,
 			inc_rec_counter=inc_rec_counter,
-			staging_method_name=staging_method_name,
 		)
 	serialized_tuple_type = get_type_hints(serialize_record)["return"]
 
@@ -3263,7 +3245,6 @@ def batched(
 			table,
 			key_len,
 			inc_rec_counter,
-			staging_method_name,
 			MethodType(serialize_record, self),
 		)
 
@@ -3287,7 +3268,6 @@ class AbstractDatabaseConnector(ABC):
 	@batched(
 		"global",
 		key_len=1,
-		staging_method_name="_stage_global",
 		inc_rec_counter=False,
 	)
 	def _eternal2set(
@@ -3296,13 +3276,9 @@ class AbstractDatabaseConnector(ABC):
 		pack = self.pack
 		return pack(key), pack(value)
 
-	@abstractmethod
-	def _stage_global(self, recs: list[tuple[EternalKey, Value]]) -> None: ...
-
 	@batched(
 		"branches",
 		key_len=1,
-		staging_method_name="_stage_branches",
 		inc_rec_counter=False,
 	)
 	def _branches2set(
@@ -3316,32 +3292,20 @@ class AbstractDatabaseConnector(ABC):
 	) -> tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]:
 		return branch, parent, parent_turn, parent_tick, end_turn, end_tick
 
-	@abstractmethod
-	def _stage_branches(
-		self, recs: list[tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]]
-	) -> None: ...
-
-	@batched("turns", key_len=2, staging_method_name="_stage_turns")
+	@batched("turns", key_len=2)
 	def _turns2set(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	) -> tuple[Branch, Turn, Tick, Tick]:
 		return (branch, turn, end_tick, plan_end_tick)
 
-	@abstractmethod
-	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]): ...
-
 	@batched(
 		"turns_completed",
 		key_len=1,
-		staging_method_name="_stage_turns_completed",
 	)
 	def _turns_completed_to_set(
 		self, branch: Branch, turn: Turn
 	) -> tuple[Branch, Turn]:
 		return (branch, turn)
-
-	@abstractmethod
-	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]): ...
 
 	def complete_turn(
 		self, branch: Branch, turn: Turn, discard_rules: bool = False
@@ -3407,7 +3371,10 @@ class AbstractDatabaseConnector(ABC):
 	) -> tuple[RuleName, Branch, Turn, Tick, bytes]:
 		return (rule, branch, turn, tick, self.pack(actions))
 
-	@batched("rule_neighborhood", key_len=4)
+	@batched(
+		"rule_neighborhood",
+		key_len=4,
+	)
 	def _neighbors2set(
 		self,
 		rule: RuleName,
@@ -3448,7 +3415,7 @@ class AbstractDatabaseConnector(ABC):
 			priority,
 		)
 
-	@batched("graphs", staging_method_name="_stage_graphs", key_len=4)
+	@batched("graphs", key_len=4)
 	def _graphs2set(
 		self,
 		graph: CharName,
@@ -3461,7 +3428,6 @@ class AbstractDatabaseConnector(ABC):
 
 	@batched(
 		"character_rulebook",
-		staging_method_name="_stage_character_rulebook",
 		key_len=4,
 	)
 	def _character_rulebooks_to_set(
@@ -3475,9 +3441,7 @@ class AbstractDatabaseConnector(ABC):
 		pack = self.pack
 		return pack(character), branch, turn, tick, pack(rulebook)
 
-	@batched(
-		"unit_rulebook", staging_method_name="_stage_unit_rulebook", key_len=4
-	)
+	@batched("unit_rulebook", key_len=4)
 	def _unit_rulebooks_to_set(
 		self,
 		character: CharName,
@@ -3491,7 +3455,6 @@ class AbstractDatabaseConnector(ABC):
 
 	@batched(
 		"character_thing_rulebook",
-		staging_method_name="_stage_character_thing_rulebook",
 		key_len=4,
 	)
 	def _character_thing_rulebooks_to_set(
@@ -3507,7 +3470,6 @@ class AbstractDatabaseConnector(ABC):
 
 	@batched(
 		"character_place_rulebook",
-		staging_method_name="_stage_character_place_rulebook",
 		key_len=4,
 	)
 	def _character_place_rulebooks_to_set(
@@ -3523,7 +3485,6 @@ class AbstractDatabaseConnector(ABC):
 
 	@batched(
 		"character_portal_rulebook",
-		staging_method_name="_stage_character_portal_rulebook",
 		key_len=4,
 	)
 	def _character_portal_rulebooks_to_set(
@@ -3550,7 +3511,10 @@ class AbstractDatabaseConnector(ABC):
 		pack = self.pack
 		return pack(character), pack(node), branch, turn, tick, pack(rulebook)
 
-	@batched("portal_rulebook", key_len=6)
+	@batched(
+		"portal_rulebook",
+		key_len=6,
+	)
 	def _portrb2set(
 		self,
 		character: CharName,
@@ -3670,18 +3634,14 @@ class AbstractDatabaseConnector(ABC):
 		"keyframes",
 		key_len=3,
 		inc_rec_counter=False,
-		staging_method_name="_stage_new_keyframes",
 	)
-	def _new_keyframes(
-		self, branch: Branch, turn: Turn, tick: Tick
-	) -> tuple[Branch, Turn, Tick]:
+	def _new_keyframes(self, branch: Branch, turn: Turn, tick: Tick) -> Time:
 		return branch, turn, tick
 
 	@batched(
 		"keyframes_graphs",
 		key_len=4,
 		inc_rec_counter=False,
-		staging_method_name="_stage_new_keyframes_graphs",
 	)
 	def _new_keyframes_graphs(
 		self,
@@ -3708,7 +3668,6 @@ class AbstractDatabaseConnector(ABC):
 		"keyframe_extensions",
 		key_len=3,
 		inc_rec_counter=False,
-		staging_method_name="_stage_new_keyframe_extensions",
 	)
 	def _new_keyframe_extensions(
 		self,
@@ -3856,7 +3815,7 @@ class AbstractDatabaseConnector(ABC):
 			is_unit,
 		)
 
-	@batched("things", key_len=5, staging_method_name="_stage_location")
+	@batched("things", key_len=5)
 	def _location(
 		self,
 		character: CharName,
@@ -4078,6 +4037,11 @@ class AbstractDatabaseConnector(ABC):
 
 	@abstractmethod
 	def insert_many_silent(
+		self, table_name: str, args: list[dict]
+	) -> None: ...
+
+	@abstractmethod
+	def delete_many_silent(
 		self, table_name: str, args: list[dict]
 	) -> None: ...
 
@@ -6028,6 +5992,9 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def call_many_silent(self, query_name: str, args: list) -> None:
 		pass
 
+	def delete_many_silent(self, table_name: str, args: list[dict]) -> None:
+		pass
+
 	def insert_many(self, table_name: str, args: list[dict]) -> None:
 		pass
 
@@ -6139,20 +6106,9 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	):
 		pass
 
-	def _stage_branches(
-		self, recs: list[tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]]
-	) -> None:
-		pass
-
-	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
-		pass
-
 	def set_turn(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	):
-		pass
-
-	def _stage_turns(self, recs):
 		pass
 
 	def turns_dump(self):
@@ -6981,83 +6937,9 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 			return Tick(0)
 		return v
 
-	def _stage_branches(
-		self, recs: list[tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]]
-	) -> None:
-		self.call(
-			"delete",
-			"branches",
-			[{"branch": branch} for branch in set(map(itemgetter(0), recs))],
-		)
-
-	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]):
-		self.call(
-			"delete",
-			"turns",
-			[
-				{
-					"branch": branch,
-					"turn": turn,
-				}
-				for (branch, turn) in {
-					(branch, turn) for (branch, turn, _, _) in recs
-				}
-			],
-		)
-
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
 		for d in self.call("dump", "turns"):
 			yield d["branch"], d["turn"], d["end_tick"], d["plan_end_tick"]
-
-	def _stage_location(self, recs):
-		self.call_silent(
-			"del_things_after",
-			[
-				{
-					"character": character,
-					"thing": thing,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-				}
-				for (
-					character,
-					thing,
-					branch,
-					turn,
-					tick,
-					_,
-				) in recs
-			],
-		)
-
-	def _stage_global(self, recs):
-		self.call_silent("delete", "global", [{"key": k} for (k, _) in recs])
-
-	def _stage_new_keyframes(self, recs):
-		self.call_silent(
-			"delete",
-			"keyframes",
-			[
-				{"branch": branch, "turn": turn, "tick": tick}
-				for (branch, turn, tick) in recs
-			],
-		)
-
-	def _stage_new_keyframes_graphs(self, recs):
-		self.call_silent(
-			"delete",
-			"keyframes_graphs",
-			[
-				{
-					"graph": graph,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-				}
-				for (graph, branch, turn, tick, *_) in recs
-			],
-		)
 
 	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
 		self.flush()
@@ -7186,37 +7068,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 				d["tick"],
 				unpack(d["rulebook"]),
 			)
-
-	def _stage_charactery_rulebook(self, what: str, recs):
-		self.call_silent(
-			"delete",
-			what,
-			[
-				{
-					"character": character,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-				}
-				for (character, branch, turn, tick, _) in recs
-			],
-		)
-
-	_stage_character_rulebook = partialmethod(
-		_stage_charactery_rulebook, "character_rulebook"
-	)
-	_stage_unit_rulebook = partialmethod(
-		_stage_charactery_rulebook, "unit_rulebook"
-	)
-	_stage_character_thing_rulebook = partialmethod(
-		_stage_charactery_rulebook, "character_thing_rulebook"
-	)
-	_stage_character_place_rulebook = partialmethod(
-		_stage_charactery_rulebook, "character_place_rulebook"
-	)
-	_stage_character_portal_rulebook = partialmethod(
-		_stage_charactery_rulebook, "character_portal_rulebook"
-	)
 
 	def character_rulebook_dump(
 		self,
@@ -7735,13 +7586,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		for d in self.call("dump", "turns_completed"):
 			yield d["branch"], d["turn"]
-
-	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
-		self.call_silent(
-			"delete",
-			"turns_completed",
-			[{"branch": branch} for (branch, _) in set(recs)],
-		)
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		self.flush()
@@ -8409,6 +8253,9 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def call_many_silent(self, string, args):
 		self._inq.put(("silent", "many", string, args))
 
+	def delete_many_silent(self, table, args):
+		self.call_many_silent(table + "_del", args)
+
 	@mutexed
 	def insert_many(self, table_name: str, args: list[dict]):
 		with self.mutex():
@@ -8432,37 +8279,15 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 			self._outq.task_done()
 			return ret
 
-	def rules_insert(self, rule: RuleName):
-		self.call("rules_insert", rule)
-
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
 		self.flush()
 		unpack = self.unpack
 		for key, branch, turn, tick in self.call("bookmarks_dump"):
 			yield unpack(key), (branch, turn, tick)
 
-	def set_bookmark(self, key: Key, time: Time) -> None:
-		key = self.pack(key)
-		try:
-			self.call("bookmarks_insert", key, *time)
-		except IntegrityError:
-			self.call("update_bookmark", key, *time)
-
-	def del_bookmark(self, key: Key) -> None:
-		self.call("delete_bookmark", self.pack(key))
-
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
 		self.flush()
 		return self.call("keyframes_dump")
-
-	def _stage_graphs(self, recs):
-		self.call_many_silent(
-			"graphs_delete",
-			[
-				{"graph": graph, "branch": branch, "turn": turn, "tick": tick}
-				for (graph, branch, turn, tick, _) in recs
-			],
-		)
 
 	def keyframes_graphs(
 		self,
@@ -8648,21 +8473,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		if v is None:
 			return 0
 		return self.unpack(v[0])
-
-	def _stage_branches(
-		self, recs: list[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]
-	) -> None:
-		self.call_many_silent(
-			"branches_del",
-			[{"branch": branch} for branch in set(map(itemgetter(0), recs))],
-		)
-
-	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]):
-		turns2del = {(branch, turn) for (branch, turn, _, _) in recs}
-		self.call_many_silent(
-			"turns_del",
-			[{"branch": branch, "turn": turn} for (branch, turn) in turns2del],
-		)
 
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
 		self._turns2set()
@@ -9092,18 +8902,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self._planticks2set()
 		return self.call("plan_ticks_dump")
 
-	def _stage_new_keyframes(self, recs):
-		self.call_many_silent("delete_keyframe", recs)
-
-	def _stage_new_keyframes_graphs(self, recs):
-		self.call_many_silent(
-			"delete_keyframe_graph",
-			[
-				(graph, branch, turn, tick)
-				for (graph, branch, turn, tick, *_) in recs
-			],
-		)
-
 	def commit(self):
 		"""Commit the transaction"""
 		self.flush()
@@ -9473,61 +9271,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		for (name,) in self.call("rules_dump"):
 			yield name
 
-	def _stage_rulebooks(
-		self,
-		recs: list[
-			tuple[
-				RulebookName,
-				Branch,
-				Turn,
-				Tick,
-				list[RuleName],
-				RulebookPriority,
-			]
-		],
-	):
-		self.call_many(
-			"rulebooks_delete",
-			[
-				{"rulebook": rb, "branch": branch, "turn": turn, "tick": tick}
-				for (rb, branch, turn, tick, _) in recs
-			],
-		)
-
-	def _stage_charactery_rulebook(
-		self,
-		what: str,
-		recs: list[tuple[CharName, Branch, Turn, Tick, RulebookName]],
-	) -> None:
-		self.call_many_silent(
-			f"{what}_delete",
-			[
-				{
-					"character": character,
-					"branch": branch,
-					"turn": turn,
-					"tick": tick,
-				}
-				for (character, branch, turn, tick, _) in recs
-			],
-		)
-
-	_stage_character_rulebook = partialmethod(
-		_stage_charactery_rulebook, "character_rulebook"
-	)
-	_stage_unit_rulebook = partialmethod(
-		_stage_charactery_rulebook, "unit_rulebook"
-	)
-	_stage_character_thing_rulebook = partialmethod(
-		_stage_charactery_rulebook, "character_thing_rulebook"
-	)
-	_stage_character_place_rulebook = partialmethod(
-		_stage_charactery_rulebook, "character_place_rulebook"
-	)
-	_stage_character_portal_rulebook = partialmethod(
-		_stage_charactery_rulebook, "character_portal_rulebook"
-	)
-
 	def rulebooks(self):
 		for book in self.call("rulebooks"):
 			yield self.unpack(book)
@@ -9693,14 +9436,11 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self._turns_completed_to_set()
 		return self.call("turns_completed_dump")
 
-	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
-		self.call_many_silent(
-			"turns_completed_del", [{"branch": branch} for (branch, _) in recs]
-		)
+	def rules_insert(self, rule: RuleName):
+		pass
 
-	def _stage_global(self, recs: list[tuple[EternalKey, Value]]):
-		pack = self.pack
-		self.call_many_silent(
-			"global_del",
-			[{"key": pack(key)} for key in set(map(itemgetter(0), recs))],
-		)
+	def set_bookmark(self, key: Key, time: Time) -> None:
+		pass
+
+	def del_bookmark(self, key: Key) -> None:
+		pass
