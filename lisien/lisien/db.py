@@ -3370,15 +3370,7 @@ class AbstractDatabaseConnector(ABC):
 	def complete_turn(
 		self, branch: Branch, turn: Turn, discard_rules: bool = False
 	) -> None:
-		try:
-			self.call("turns_completed_insert", branch, turn)
-		except IntegrityError:
-			try:
-				self.call("turns_completed_update", turn, branch)
-			except IntegrityError:
-				self.commit()
-				self.call("turns_completed_update", turn, branch)
-		self._increc()
+		self._turns_completed_to_set.append((branch, turn))
 		if discard_rules:
 			self._char_rules_handled.clear()
 			self._unit_rules_handled.clear()
@@ -9834,7 +9826,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 				)
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
-		self.flush()
+		self._turns_completed_to_set()
 		return self.call("turns_completed_dump")
 
 	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
