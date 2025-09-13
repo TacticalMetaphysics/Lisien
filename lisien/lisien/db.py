@@ -7958,6 +7958,10 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 
 	def initdb(self) -> dict:
 		ret = self.call("initdb")
+		if isinstance(ret, Exception):
+			raise ret
+		elif not isinstance(ret, dict):
+			raise TypeError("initdb didn't return a dictionary", ret)
 		self._all_keyframe_times = self.call("all_keyframe_times")
 		return ret
 
@@ -8883,9 +8887,13 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self._initialized = True
 		with self.mutex():
 			self._inq.put("initdb")
+			got = self._outq.get()
+			if isinstance(got, Exception):
+				raise got
+			elif not isinstance(got, dict):
+				raise TypeError("initdb didn't return a dictionary", got)
 			globals = {
-				self.unpack(k): self.unpack(v)
-				for (k, v) in self._outq.get().items()
+				self.unpack(k): self.unpack(v) for (k, v) in got.items()
 			}
 			self._outq.task_done()
 			if isinstance(globals, Exception):
