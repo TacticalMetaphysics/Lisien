@@ -298,7 +298,7 @@ class Importer:
 						graph_vals["units"] = {}
 						for unit_graph_el in key_el:
 							unit_graph_name = literal_eval(
-								unit_graph_el.get("name")
+								unit_graph_el.get("character")
 							)
 							unit_graph_nodes_d = graph_vals["units"][
 								unit_graph_name
