@@ -4133,18 +4133,6 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def load_graph_val(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[GraphValRowType]:
-		pass
-
-	@abstractmethod
 	def graphs_types(
 		self,
 		branch: Branch,
@@ -4172,18 +4160,6 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def load_node_val(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[NodeValRowType]:
-		pass
-
-	@abstractmethod
 	def node_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
@@ -4194,31 +4170,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def load_edges(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[EdgeRowType]:
-		pass
-
-	@abstractmethod
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
-		pass
-
-	@abstractmethod
-	def load_edge_val(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[EdgeValRowType]:
 		pass
 
 	@abstractmethod
@@ -6089,17 +6041,6 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		return iter(())
 
-	def load_graph_val(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	):
-		pass
-
 	def graph_val_set(
 		self,
 		graph: CharName,
@@ -6144,29 +6085,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		return iter(())
 
-	def load_nodes(
-		self,
-		graph: CharName,
-		branch: NodeName,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Turn = None,
-		tick_to: Tick = None,
-	):
-		pass
-
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
-		return iter(())
-
-	def load_node_val(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[NodeValRowType]:
 		return iter(())
 
 	def node_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
@@ -6175,32 +6094,10 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		return iter(())
 
-	def load_edges(
-		self,
-		graph: Key,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[EdgeRowType]:
-		return iter(())
-
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
-		return iter(())
-
-	def load_edge_val(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[EdgeValRowType]:
 		return iter(())
 
 	def edge_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
@@ -7343,169 +7240,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	def rulebooks(self) -> Iterator[RulebookName]:
 		return map(self.pack, self.call("rulebooks"))
 
-	def set_node_rulebook(
-		self,
-		character: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rulebook: RulebookName,
-	) -> None:
-		self._noderb2set.append(
-			(character, node, branch, turn, tick, rulebook)
-		)
-
-	def set_portal_rulebook(
-		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rulebook: RulebookName,
-	) -> None:
-		self._portrb2set.append(
-			(character, orig, dest, branch, turn, tick, rulebook)
-		)
-
-	def handled_character_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._char_rules_handled.append(
-			(character, rulebook, rule, branch, turn, tick)
-		)
-
-	def handled_unit_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		graph: CharName,
-		unit: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._unit_rules_handled.append(
-			(
-				character,
-				graph,
-				unit,
-				rulebook,
-				rule,
-				branch,
-				turn,
-				tick,
-			)
-		)
-
-	def handled_character_thing_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		thing: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._char_thing_rules_handled.append(
-			(
-				character,
-				thing,
-				rulebook,
-				rule,
-				branch,
-				turn,
-				tick,
-			)
-		)
-
-	def handled_character_place_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		place: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._char_place_rules_handled.append(
-			(
-				character,
-				place,
-				rulebook,
-				rule,
-				branch,
-				turn,
-				tick,
-			)
-		)
-
-	def handled_character_portal_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._char_portal_rules_handled.append(
-			(character, orig, dest, rulebook, rule, branch, turn, tick)
-		)
-
-	def handled_node_rule(
-		self,
-		character: CharName,
-		node: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._node_rules_handled.append(
-			(character, node, rulebook, rule, branch, turn, tick)
-		)
-
-	def handled_portal_rule(
-		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._portal_rules_handled.append(
-			(character, orig, dest, rulebook, rule, branch, turn, tick)
-		)
-
-	def set_thing_loc(
-		self,
-		character: CharName,
-		thing: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		loc: NodeName,
-	) -> None:
-		self._location.append((character, thing, branch, turn, tick, loc))
-
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self._location.cull(
 			lambda c, th, b, r, t, l: (b, r, t) == (branch, turn, tick)
@@ -7569,41 +7303,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 				unpack(d["value"]),
 			)
 
-	def load_graph_val(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[GraphValRowType]:
-		if (turn_to is None) ^ (tick_to is None):
-			raise ValueError("I need both or neither of turn_to and tick_to")
-		self._graphvals2set()
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			it = self.call(
-				"load_graph_val_tick_to_end",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-			)
-		else:
-			it = self.call(
-				"load_graph_val_tick_to_tick",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			)
-		for key, turn, tick, value in it:
-			yield graph, unpack(key), branch, turn, tick, unpack(value)
-
 	def graph_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self._graphvals2set.cull(
 			lambda g, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
@@ -7641,41 +7340,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 				d["extant"],
 			)
 
-	def load_nodes(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[NodeRowType]:
-		if (turn_to is None) ^ (tick_to is None):
-			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._nodes2set()
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			it = self.call(
-				"load_nodes_tick_to_end",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-			)
-		else:
-			it = self.call(
-				"load_nodes_tick_to_tick",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			)
-		for node, turn, tick, extant in it:
-			yield graph, unpack(node), branch, turn, tick, extant
-
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		self.flush()
 		unpack = self.unpack
@@ -7688,49 +7352,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 				d["turn"],
 				d["tick"],
 				unpack(d["value"]),
-			)
-
-	def load_node_val(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[NodeValRowType]:
-		if (turn_to is None) ^ (tick_to is None):
-			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._nodevals2set()
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			it = self.call(
-				"load_node_val_tick_to_end",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-			)
-		else:
-			it = self.call(
-				"load_node_val_tick_to_tick",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			)
-		for node, key, turn, tick, value in it:
-			yield (
-				graph,
-				unpack(node),
-				unpack(key),
-				branch,
-				turn,
-				tick,
-				unpack(value),
 			)
 
 	def node_val_del_time(
@@ -7755,49 +7376,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 				d["extant"],
 			)
 
-	def load_edges(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[EdgeRowType]:
-		if (turn_to is None) ^ (tick_to is None):
-			raise ValueError("I need both or neither of turn_to and tick_to")
-		self._edges2set()
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			it = self.call(
-				"load_edges_tick_to_end",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-			)
-		else:
-			it = self.call(
-				"load_edges_tick_to_tick",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			)
-		for orig, dest, turn, tick, extant in it:
-			yield (
-				graph,
-				unpack(orig),
-				unpack(dest),
-				branch,
-				turn,
-				tick,
-				extant,
-			)
-
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self._edges2set.cull(
 			lambda g, o, d, b, r, t, x: (b, r, t) == (branch, turn, tick)
@@ -7816,50 +7394,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 				d["turn"],
 				d["tick"],
 				unpack(d["value"]),
-			)
-
-	def load_edge_val(
-		self,
-		graph: CharName,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Optional[Turn] = None,
-		tick_to: Optional[Tick] = None,
-	) -> Iterator[EdgeValRowType]:
-		if (turn_to is None) ^ (tick_to is None):
-			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._edgevals2set()
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			it = self.call(
-				"load_edge_val_tick_to_end",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-			)
-		else:
-			it = self.call(
-				"load_edge_val_tick_to_tick",
-				pack(graph),
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			)
-		for orig, dest, key, turn, tick, value in it:
-			yield (
-				graph,
-				unpack(orig),
-				unpack(dest),
-				unpack(key),
-				branch,
-				turn,
-				tick,
-				unpack(value),
 			)
 
 	def edge_val_del_time(
@@ -8463,38 +7997,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 				unpack(value),
 			)
 
-	def load_graph_val(
-		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	) -> Iterator[GraphValRowType]:
-		if (turn_to is None) ^ (tick_to is None):
-			raise ValueError("I need both or neither of turn_to and tick_to")
-		self._graphvals2set()
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			it = self.call(
-				"load_graph_val_tick_to_end",
-				pack(graph),
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-			)
-		else:
-			it = self.call(
-				"load_graph_val_tick_to_tick",
-				pack(graph),
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-				turn_to,
-				turn_to,
-				tick_to,
-			)
-		for key, turn, tick, value in it:
-			yield graph, unpack(key), branch, turn, tick, unpack(value)
-
 	def graph_val_del_time(self, branch, turn, tick):
 		self._graphvals2set.cull(
 			lambda g, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
@@ -8591,15 +8093,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		for node, turn, tick, extant in it:
 			yield graph, unpack(node), branch, turn, tick, extant
 
-	def load_nodes(
-		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	) -> list[NodeRowType]:
-		return list(
-			self._iter_nodes(
-				graph, branch, turn_from, tick_from, turn_to, tick_to
-			)
-		)
-
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		"""Yield the entire contents of the node_val table."""
 		self._nodevals2set()
@@ -8656,15 +8149,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 				tick,
 				unpack(value),
 			)
-
-	def load_node_val(
-		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	):
-		return list(
-			self._iter_node_val(
-				graph, branch, turn_from, tick_from, turn_to, tick_to
-			)
-		)
 
 	def node_val_del_time(self, branch, turn, tick):
 		self._nodevals2set.cull(
@@ -8734,33 +8218,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 				tick,
 				extant,
 			)
-
-	def load_edges(
-		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	) -> list[EdgeRowType]:
-		return list(
-			self.iter_edges(
-				graph, branch, turn_from, tick_from, turn_to, tick_to
-			)
-		)
-
-	def _pack_edge2set(self, tup):
-		graph, orig, dest, branch, turn, tick, extant = tup
-		pack = self.pack
-		return (
-			pack(graph),
-			pack(orig),
-			pack(dest),
-			branch,
-			turn,
-			tick,
-			extant,
-		)
-
-	def _flush_edges(self):
-		if not self._edges2set:
-			return
-		self._edges2set()
 
 	def edges_del_time(self, branch, turn, tick):
 		self._edges2set.cull(
@@ -8833,29 +8290,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 				tick,
 				unpack(value),
 			)
-
-	def load_edge_val(
-		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	):
-		return list(
-			self._iter_edge_val(
-				graph, branch, turn_from, tick_from, turn_to, tick_to
-			)
-		)
-
-	def _pack_edgeval2set(self, tup):
-		graph, orig, dest, key, branch, turn, tick, value = tup
-		pack = self.pack
-		return (
-			pack(graph),
-			pack(orig),
-			pack(dest),
-			pack(key),
-			branch,
-			turn,
-			tick,
-			pack(value),
-		)
 
 	def edge_val_del_time(self, branch, turn, tick):
 		self._edgevals2set.cull(
@@ -9224,14 +8658,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 				is_av,
 			)
 
-	def universal_set(
-		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Value
-	) -> None:
-		self._universals2set.append((key, branch, turn, tick, val))
-
-	def universal_del(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
-		self._universals2set.append((key, branch, turn, tick, None))
-
 	def count_all_table(self, tbl):
 		return self.call("{}_count".format(tbl)).fetchone()[0]
 
@@ -9244,137 +8670,11 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		for book in self.call("rulebooks"):
 			yield self.unpack(book)
 
-	def handled_character_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._char_rules_handled.append(
-			(character, rulebook, rule, branch, turn, tick)
-		)
-
-	def handled_unit_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		graph: CharName,
-		unit: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._unit_rules_handled.append(
-			(character, graph, unit, rulebook, rule, branch, turn, tick)
-		)
-
-	def handled_character_thing_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		thing: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	):
-		self._char_thing_rules_handled.append(
-			(character, rulebook, rule, thing, branch, turn, tick)
-		)
-
-	def handled_character_place_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		place: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._char_place_rules_handled.append(
-			(character, place, rulebook, rule, branch, turn, tick)
-		)
-
-	def handled_character_portal_rule(
-		self,
-		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		orig: NodeName,
-		dest: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._char_portal_rules_handled.append(
-			(character, orig, dest, rulebook, rule, branch, turn, tick)
-		)
-
-	def handled_node_rule(
-		self,
-		character: CharName,
-		node: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._node_rules_handled.append(
-			(character, node, rulebook, rule, branch, turn, tick)
-		)
-
-	def handled_portal_rule(
-		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
-		rulebook: RulebookName,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-	) -> None:
-		self._portal_rules_handled.append(
-			(character, orig, dest, rulebook, rule, branch, turn, tick)
-		)
-
-	def set_thing_loc(
-		self,
-		character: CharName,
-		thing: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		loc: NodeName | type(...),
-	) -> None:
-		self._location.append((character, thing, branch, turn, tick, loc))
-
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self._location.cull(
 			lambda c, th, b, r, t, l: (b, r, t) == (branch, turn, tick)
 		)
 		self.call("things_del_time", branch, turn, tick)
-
-	def unit_set(
-		self,
-		character: CharName,
-		graph: CharName,
-		node: NodeName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		is_unit: bool,
-	) -> None:
-		self._unitness.append(
-			(character, graph, node, branch, turn, tick, is_unit)
-		)
-		self._increc()
 
 	def rulebook_set(
 		self,
