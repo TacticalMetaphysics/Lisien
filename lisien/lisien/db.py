@@ -3203,7 +3203,7 @@ class Batch(list):
 			records = starmap(self.serialize_record, self)
 		data = list(records)
 		argnames = self.argspec.args[1:]
-		if self.key_len is not None:
+		if self.key_len:
 			self._qe.delete_many_silent(
 				self.table,
 				[
