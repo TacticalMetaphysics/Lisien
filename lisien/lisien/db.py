@@ -3352,7 +3352,36 @@ class AbstractDatabaseConnector(ABC):
 		return (branch, turn, end_tick, plan_end_tick)
 
 	@abstractmethod
-	def _stage_turns(self, recs): ...
+	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]): ...
+	
+	@batched("turns_completed", key_len=1, staging_method_name="_stage_turns_completed")
+	def _turns_completed_to_set(self, branch: Branch, turn: Turn) -> tuple[Branch, Turn]:
+		return (branch, turn)
+	
+	@abstractmethod
+	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]): ...
+
+	def complete_turn(
+		self, branch: Branch, turn: Turn, discard_rules: bool = False
+	) -> None:
+		try:
+			self.call("turns_completed_insert", branch, turn)
+		except IntegrityError:
+			try:
+				self.call("turns_completed_update", turn, branch)
+			except IntegrityError:
+				self.commit()
+				self.call("turns_completed_update", turn, branch)
+		self._increc()
+		if discard_rules:
+			self._char_rules_handled.clear()
+			self._unit_rules_handled.clear()
+			self._char_thing_rules_handled.clear()
+			self._char_place_rules_handled.clear()
+			self._char_portal_rules_handled.clear()
+			self._node_rules_handled.clear()
+			self._portal_rules_handled.clear()
+
 
 	@batched("plan_ticks", inc_rec_counter=False)
 	def _planticks2set(
@@ -5912,12 +5941,6 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def complete_turn(
-		self, branch: Branch, turn: Turn, discard_rules: bool = False
-	):
-		pass
-
-	@abstractmethod
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]: ...
 
 	@abstractmethod
@@ -7779,19 +7802,9 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		for d in self.call("dump", "turns_completed"):
 			yield d["branch"], d["turn"]
-
-	def complete_turn(
-		self, branch: Branch, turn: Turn, discard_rules: bool = False
-	) -> None:
-		self.call("insert1", "turns_completed", dict(branch=branch, turn=turn))
-		if discard_rules:
-			self._char_rules_handled.clear()
-			self._unit_rules_handled.clear()
-			self._char_thing_rules_handled.clear()
-			self._char_place_rules_handled.clear()
-			self._char_portal_rules_handled.clear()
-			self._node_rules_handled.clear()
-			self._portal_rules_handled.clear()
+	
+	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
+		self.call_silent("delete", "turns_completed", [{"branch": branch} for (branch, _) in set(recs)])
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		self.flush()
@@ -9822,24 +9835,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		self.flush()
 		return self.call("turns_completed_dump")
-
-	def complete_turn(
-		self, branch: Branch, turn: Turn, discard_rules: bool = False
-	) -> None:
-		try:
-			self.call("turns_completed_insert", branch, turn)
-		except IntegrityError:
-			try:
-				self.call("turns_completed_update", turn, branch)
-			except IntegrityError:
-				self.commit()
-				self.call("turns_completed_update", turn, branch)
-		self._increc()
-		if discard_rules:
-			self._char_rules_handled.clear()
-			self._unit_rules_handled.clear()
-			self._char_thing_rules_handled.clear()
-			self._char_place_rules_handled.clear()
-			self._char_portal_rules_handled.clear()
-			self._node_rules_handled.clear()
-			self._portal_rules_handled.clear()
+	
+	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
+		self.call_many_silent("turns_completed_del", [{"branch": branch} for (branch, _) in recs])
