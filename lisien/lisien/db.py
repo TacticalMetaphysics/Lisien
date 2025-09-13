@@ -8858,7 +8858,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		)
 		self.call("edge_val_del_time", branch, turn, tick)
 
-	def plans_dump(self):
+	def plan_ticks_dump(self):
 		self._planticks2set()
 		return self.call("plan_ticks_dump")
 
