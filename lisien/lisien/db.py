@@ -3326,6 +3326,20 @@ class AbstractDatabaseConnector(ABC):
 	) -> tuple[Plan, Branch, Turn, Tick]:
 		return plan_id, branch, turn, tick
 
+	@batched("bookmarks", key_len=1, inc_rec_counter=False)
+	def _bookmarks2set(
+		self, key: str, branch: Branch, turn: Turn, tick: Tick
+	) -> tuple[str, Branch, Turn, Tick]:
+		return (key, branch, turn, tick)
+
+	def set_bookmark(
+		self, key: str, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		self._bookmarks2set.append((key, branch, turn, tick))
+
+	@abstractmethod
+	def del_bookmark(self, key: str) -> None: ...
+
 	@batched("universals", key_len=4)
 	def _universals2set(
 		self,
@@ -5795,12 +5809,6 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]: ...
 
-	@abstractmethod
-	def set_bookmark(self, key: Key, time: Time) -> None: ...
-
-	@abstractmethod
-	def del_bookmark(self, key: Key) -> None: ...
-
 	def load_windows(
 		self, windows: list[TimeWindow]
 	) -> dict[
@@ -7502,9 +7510,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
 		return iter(self.call("bookmark_items"))
 
-	def set_bookmark(self, key: Key, time: Time) -> None:
-		self.call("set_bookmark", key, *time)
-
 	def del_bookmark(self, key: Key) -> None:
 		self.call("del_bookmark", key)
 
@@ -8706,10 +8711,8 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		return self.call("turns_completed_dump")
 
 	def rules_insert(self, rule: RuleName):
-		pass
-
-	def set_bookmark(self, key: Key, time: Time) -> None:
-		pass
+		self.call("rules_insert", rule)
 
 	def del_bookmark(self, key: Key) -> None:
-		pass
+		self._bookmarks2set.cull(lambda keey, _: key == keey)
+		self.call("bookmarks_del", key)
