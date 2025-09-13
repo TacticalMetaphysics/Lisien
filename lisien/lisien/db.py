@@ -8352,7 +8352,7 @@ class SQLAlchemyConnectionLooper(ConnectionLooper):
 					self.outq.put(msg)
 					self.inq.task_done()
 				case ("select", qry, args):
-					o = self.call_select(qry, args, silent=silent)
+					o = call_select(qry, args, silent=silent)
 					if not silent:
 						self.outq.put(o)
 					self.inq.task_done()
