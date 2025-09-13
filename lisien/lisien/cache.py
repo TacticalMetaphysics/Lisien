@@ -4032,9 +4032,10 @@ class RulesHandledCache(ABC):
 	def remove_branch(self, branch: Branch):
 		if branch in self.handled_deep:
 			for turn, ticks in self.handled_deep[branch].items():
-				for tick, (entity, rulebook, rule) in ticks.items():
-					if (entity, rulebook, branch, turn) in self.handled:
-						del self.handled[entity, rulebook, branch, turn]
+				for tick, rbset in ticks.items():
+					for entity, rulebook, rule in rbset:
+						if (entity, rulebook, branch, turn) in self.handled:
+							del self.handled[entity, rulebook, branch, turn]
 			del self.handled_deep[branch]
 
 	def total_size(
