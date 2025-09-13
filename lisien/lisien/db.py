@@ -3948,41 +3948,13 @@ class AbstractDatabaseConnector(ABC):
 
 	@mutexed
 	def _flush(self):
-		self._turns2set()
-		self._eternal2set()
-		self._universals2set()
-		self._triggers2set()
-		self._prereqs2set()
-		self._actions2set()
-		self._neighbors2set()
-		self._big2set()
-		self._rulebooks2set()
-		self._graphs2set()
-		self._character_rulebooks_to_set()
-		self._unit_rulebooks_to_set()
-		self._character_thing_rulebooks_to_set()
-		self._character_place_rulebooks_to_set()
-		self._character_portal_rulebooks_to_set()
-		self._nodes2set()
-		self._edges2set()
-		self._noderb2set()
-		self._portrb2set()
-		self._graphvals2set()
-		self._nodevals2set()
-		self._edgevals2set()
-		self._location()
-		self._new_keyframes()
-		self._new_keyframes_graphs()
-		self._new_keyframe_extensions()
-		self._char_rules_handled()
-		self._unit_rules_handled()
-		self._char_thing_rules_handled()
-		self._char_place_rules_handled()
-		self._char_portal_rules_handled()
-		self._node_rules_handled()
-		self._portal_rules_handled()
-		self._unitness()
-		self._planticks2set()
+		for att in dir(self.__class__):
+			attr = getattr(self.__class__, att)
+			if not isinstance(attr, cached_property):
+				continue
+			batch = getattr(self, att)
+			if isinstance(batch, Batch):
+				batch()
 
 	@cached_property
 	def logger(self):
