@@ -2200,7 +2200,6 @@ class Engine(AbstractEngine, Executor):
 			)
 		if main_branch not in self._branches_d:
 			self._branches_d[main_branch] = None, 0, 0, 0, 0
-		self._load_graphs()
 		self._load_plans()
 		self._load_rules_handled()
 		self._turns_completed_d.update(self.query.turns_completed_dump())
@@ -4963,19 +4962,6 @@ class Engine(AbstractEngine, Executor):
 		if branch not in self._turns_completed_d:
 			return None
 		return self._turns_completed_d[branch]
-
-	def _load_graphs(self) -> None:
-		for charn, branch, turn, tick, typ in self.query.characters():
-			self._graph_cache.store(
-				charn,
-				branch,
-				turn,
-				tick,
-				(typ if typ != "Deleted" else None),
-			)
-			self._graph_objs[charn] = self.char_cls(
-				self, charn, init_rulebooks=False
-			)
 
 	def _make_node(
 		self, graph: Character, node: NodeName
