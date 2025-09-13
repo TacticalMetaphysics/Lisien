@@ -3314,7 +3314,7 @@ class AbstractDatabaseConnector(ABC):
 		end_turn: Turn,
 		end_tick: Tick,
 	) -> tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]:
-		return (branch, parent, turn, tick, turn, tick)
+		return branch, parent, parent_turn, parent_tick, end_turn, end_tick
 
 	@abstractmethod
 	def _stage_branches(
