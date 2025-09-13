@@ -3296,6 +3296,9 @@ class AbstractDatabaseConnector(ABC):
 		pack = self.pack
 		return pack(key), pack(value)
 
+	@abstractmethod
+	def _stage_global(self, recs: list[tuple[EternalKey, Value]]) -> None: ...
+
 	@batched(
 		"branches",
 		key_len=1,
@@ -9693,4 +9696,11 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
 		self.call_many_silent(
 			"turns_completed_del", [{"branch": branch} for (branch, _) in recs]
+		)
+
+	def _stage_global(self, recs: list[tuple[EternalKey, Value]]):
+		pack = self.pack
+		self.call_many_silent(
+			"global_del",
+			[{"key": pack(key)} for key in set(map(itemgetter(0), recs))],
 		)
