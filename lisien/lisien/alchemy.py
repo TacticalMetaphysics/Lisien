@@ -532,12 +532,11 @@ def tables(meta: MetaData):
 		meta,
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True),
-		Column("tick", INT, primary_key=True),
 		Column("character", BLOB, primary_key=True),
 		Column("rulebook", BLOB, primary_key=True),
 		Column("rule", TEXT, primary_key=True),
-		Column("thing", BLOB),
-		sqlite_with_rowid=True,
+		Column("thing", BLOB, primary_key=True),
+		Column("tick", INT),
 	)
 
 	Table(
