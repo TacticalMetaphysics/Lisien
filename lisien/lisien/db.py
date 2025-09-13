@@ -3350,7 +3350,12 @@ class AbstractDatabaseConnector(ABC):
 	_looper: looper_cls
 	_records: int
 
-	@batched("global", key_len=1, staging_method_name="_stage_global")
+	@batched(
+		"global",
+		key_len=1,
+		staging_method_name="_stage_global",
+		inc_rec_counter=False,
+	)
 	def _eternal2set(
 		self, key: EternalKey, value: Value
 	) -> tuple[bytes, bytes]:
