@@ -8130,6 +8130,7 @@ class SQLAlchemyConnectionLooper(ConnectionLooper):
 		glob_d = dict(self.call("global_dump").fetchall())
 		if SCHEMAVER_B not in glob_d:
 			self.call("global_insert", SCHEMAVER_B, SCHEMA_VERSION_B)
+			glob_d[SCHEMAVER_B] = SCHEMA_VERSION_B
 		elif glob_d[SCHEMAVER_B] != SCHEMA_VERSION_B:
 			return ValueError(
 				"Unsupported database schema version", glob_d[SCHEMAVER_B]
