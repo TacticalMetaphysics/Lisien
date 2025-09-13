@@ -2408,7 +2408,7 @@ class Engine(AbstractEngine, Executor):
 		self._turn_end[branch, turn] = self._turn_end_plan[branch, turn] = tick
 		self._loaded[branch] = (turn, tick, None, None)
 		self._upd_branch_parentage(parent, branch)
-		self.query.new_branch(branch, parent, turn, tick)
+		self.query.set_branch(branch, parent, turn, tick, turn, tick)
 
 	def _extend_branch(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		"""Record a change in the span of time that a branch includes"""
