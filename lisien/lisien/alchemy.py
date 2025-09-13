@@ -578,16 +578,7 @@ def tables(meta: MetaData):
 	return meta.tables
 
 
-def indices(meta: MetaData):
-	return {}
-
-
 def queries(meta: MetaData):
-	"""Given dictionaries of tables and view-queries, return a dictionary
-	of all the rest of the queries I need.
-
-	"""
-
 	def update_where(updcols, wherecols):
 		"""Return an ``UPDATE`` statement that updates the columns ``updcols``
 		when the ``wherecols`` match. Every column has a bound parameter of
@@ -1022,7 +1013,10 @@ def queries(meta: MetaData):
 			graph_val.c.key,
 		),
 	}
+
 	for t in table.values():
+		r["create_" + t.name] = CreateTable(t)
+		r["truncate_" + t.name] = t.delete()
 		key = list(t.primary_key)
 		if (
 			"branch" in t.columns
@@ -1425,37 +1419,5 @@ def queries(meta: MetaData):
 	return r
 
 
-def gather_sql(meta):
-	r = {}
-	table = tables(meta)
-	index = indices(meta)
-	query = queries(meta)
-
-	for t in table.values():
-		r["create_" + t.name] = CreateTable(t)
-		r["truncate_" + t.name] = t.delete()
-	for tab, idx in index.items():
-		r["index_" + tab] = CreateIndex(idx)
-	r.update(query)
-
-	return r
-
-
 meta = MetaData()
-table = tables(meta)
-
-if __name__ == "__main__":
-	from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
-
-	r = {}
-	dia = SQLiteDialect_pysqlite()
-	for n, t in table.items():
-		r["create_" + n] = str(CreateTable(t).compile(dialect=dia))
-		r["truncate_" + n] = str(t.delete().compile(dialect=dia))
-	index = indices(table)
-	for n, x in index.items():
-		r["index_" + n] = str(CreateIndex(x).compile(dialect=dia))
-	query = queries(table)
-	for n, q in query.items():
-		r[n] = str(q.compile(dialect=dia))
-	print(dumps(r, sort_keys=True, indent=4))
+tables(meta)
