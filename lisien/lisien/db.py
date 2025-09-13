@@ -56,7 +56,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
-from .alchemy import gather_sql, meta
+from .alchemy import queries, meta
 from .exc import KeyframeError
 import lisien.types
 from .types import (
@@ -3353,11 +3353,17 @@ class AbstractDatabaseConnector(ABC):
 
 	@abstractmethod
 	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]): ...
-	
-	@batched("turns_completed", key_len=1, staging_method_name="_stage_turns_completed")
-	def _turns_completed_to_set(self, branch: Branch, turn: Turn) -> tuple[Branch, Turn]:
+
+	@batched(
+		"turns_completed",
+		key_len=1,
+		staging_method_name="_stage_turns_completed",
+	)
+	def _turns_completed_to_set(
+		self, branch: Branch, turn: Turn
+	) -> tuple[Branch, Turn]:
 		return (branch, turn)
-	
+
 	@abstractmethod
 	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]): ...
 
@@ -3381,7 +3387,6 @@ class AbstractDatabaseConnector(ABC):
 			self._char_portal_rules_handled.clear()
 			self._node_rules_handled.clear()
 			self._portal_rules_handled.clear()
-
 
 	@batched("plan_ticks", inc_rec_counter=False)
 	def _planticks2set(
@@ -7802,9 +7807,13 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		for d in self.call("dump", "turns_completed"):
 			yield d["branch"], d["turn"]
-	
+
 	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
-		self.call_silent("delete", "turns_completed", [{"branch": branch} for (branch, _) in set(recs)])
+		self.call_silent(
+			"delete",
+			"turns_completed",
+			[{"branch": branch} for (branch, _) in set(recs)],
+		)
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		self.flush()
@@ -8289,20 +8298,12 @@ class SQLAlchemyConnectionLooper(ConnectionLooper):
 			aargs,
 		)
 
-	def gather(self, meta):
-		return gather_sql(meta)
-
 	def run(self):
 		dbstring = self._dbstring
 		connect_args = self._connect_args
-		if hasattr(self, "gather"):
-			gather_sql = self.gather
-		else:
-			from .alchemy import gather_sql
 		self.logger.debug("about to connect " + dbstring)
 		self.engine = create_engine(dbstring, connect_args=connect_args)
-		self.meta = MetaData()
-		self.sql = gather_sql(self.meta)
+		self.sql = queries(meta)
 		self.connection = self.engine.connect()
 		self.transaction = self.connection.begin()
 		self.logger.debug("transaction started")
@@ -9835,6 +9836,8 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		self.flush()
 		return self.call("turns_completed_dump")
-	
+
 	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
-		self.call_many_silent("turns_completed_del", [{"branch": branch} for (branch, _) in recs])
+		self.call_many_silent(
+			"turns_completed_del", [{"branch": branch} for (branch, _) in recs]
+		)
