@@ -6790,7 +6790,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self.call_silent("insert", table_name, args)
 
 	def delete_many_silent(self, table_name: str, args: list[dict]):
-		self._inq.put(("one", "delete", table_name, args))
+		self.call_silent("delete", table_name, args)
 
 	def global_keys(self):
 		unpack = self.unpack
