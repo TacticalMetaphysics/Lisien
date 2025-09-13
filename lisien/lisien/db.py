@@ -8790,7 +8790,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]):
 		turns2del = {(branch, turn) for (branch, turn, _, _) in recs}
 		self.call_many_silent(
-			"turns_delete",
+			"turns_del",
 			[{"branch": branch, "turn": turn} for (branch, turn) in turns2del],
 		)
 
