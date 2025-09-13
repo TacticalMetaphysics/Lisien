@@ -3028,21 +3028,20 @@ class Engine(AbstractEngine, Executor):
 		last_plan = -1
 		plans = self._plans
 		branches_plans = self._branches_plans
-		for plan, branch, turn, tick in q.plans_dump():
-			plans[plan] = branch, turn, tick
-			branches_plans[branch].add(plan)
-			if plan > last_plan:
-				last_plan = plan
-		self._last_plan = last_plan
 		plan_ticks = self._plan_ticks
 		time_plan = self._time_plan
 		turn_end_plan = self._turn_end_plan
 		for plan, branch, turn, tick in q.plan_ticks_dump():
+			plans[plan] = branch, turn, tick
+			branches_plans[branch].add(plan)
+			if plan > last_plan:
+				last_plan = plan
 			plan_ticks[plan][branch][turn].add(tick)
 			turn_end_plan[branch, turn] = max(
 				(turn_end_plan[branch, turn], tick)
 			)
 			time_plan[branch, turn, tick] = plan
+		self._last_plan = last_plan
 
 	def _load_rules_handled(self):
 		q = self.query

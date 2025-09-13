@@ -4228,7 +4228,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def plans_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
+	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		pass
 
 	@abstractmethod
@@ -6206,9 +6206,6 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def edge_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		pass
 
-	def plans_dump(self) -> Iterator:
-		return iter(())
-
 	def plan_ticks_dump(self) -> Iterator:
 		return iter(())
 
@@ -7873,13 +7870,8 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		)
 		self.call("edge_val_del_time", branch, turn, tick)
 
-	def plans_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
-		self._planticks2set()
-		for d in self.call("dump", "plans"):
-			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
-
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
-		self.flush()
+		self._planticks2set()
 		for d in self.call("dump", "plan_ticks"):
 			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
 
@@ -8867,10 +8859,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self.call("edge_val_del_time", branch, turn, tick)
 
 	def plans_dump(self):
-		self._planticks2set()
-		return self.call("plans_dump")
-
-	def plan_ticks_dump(self):
 		self._planticks2set()
 		return self.call("plan_ticks_dump")
 
