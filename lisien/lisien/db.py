@@ -5685,7 +5685,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._unit_rules_handled.append(
-			(character, rulebook, rule, branch, turn, tick)
+			(character, rulebook, rule, graph, unit, branch, turn, tick)
 		)
 
 	def handled_character_thing_rule(
