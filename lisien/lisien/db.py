@@ -628,57 +628,6 @@ class ParquetDBLooper(ConnectionLooper):
 		if ret:
 			return ret["id"][0].as_py()
 
-	def update_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-		end_turn: Turn,
-		end_tick: Tick,
-	) -> None:
-		id_ = self.field_get_id("branches", "branch", branch)
-		if id_ is None:
-			raise KeyError(f"No branch: {branch}")
-		self._get_db("branches").update(
-			[
-				{
-					"id": id_,
-					"parent": parent,
-					"parent_turn": parent_turn,
-					"parent_tick": parent_tick,
-					"end_turn": end_turn,
-					"end_tick": end_tick,
-				}
-			],
-		)
-
-	def set_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-		end_turn: Turn,
-		end_tick: Tick,
-	) -> None:
-		try:
-			self.update_branch(
-				branch, parent, parent_turn, parent_tick, end_turn, end_tick
-			)
-		except KeyError:
-			self.insert1(
-				"branches",
-				{
-					"branch": branch,
-					"parent": parent,
-					"parent_turn": parent_turn,
-					"parent_tick": parent_tick,
-					"end_turn": end_turn,
-					"end_tick": end_tick,
-				},
-			)
-
 	def have_branch(self, branch: Branch) -> bool:
 		from pyarrow import compute as pc
 
@@ -3198,6 +3147,8 @@ class Batch(list):
 				annotation = annotation[: annotation.index("[")]
 			if hasattr(builtins, annotation):
 				typ = getattr(builtins, annotation)
+				if not isinstance(typ, type):
+					typ = type(typ)
 			elif annotation in ("type(...)", "..."):
 				yield type(...)
 				return
@@ -3344,6 +3295,28 @@ class AbstractDatabaseConnector(ABC):
 	) -> tuple[bytes, bytes]:
 		pack = self.pack
 		return pack(key), pack(value)
+
+	@batched(
+		"branches",
+		key_len=1,
+		staging_method_name="_stage_branches",
+		inc_rec_counter=False,
+	)
+	def _branches2set(
+		self,
+		branch: Branch,
+		parent: Branch | None,
+		parent_turn: Turn,
+		parent_tick: Tick,
+		end_turn: Turn,
+		end_tick: Tick,
+	) -> tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]:
+		return (branch, parent, turn, tick, turn, tick)
+
+	@abstractmethod
+	def _stage_branches(
+		self, recs: list[tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]]
+	) -> None: ...
 
 	@batched("turns", key_len=2, staging_method_name="_stage_turns")
 	def _turns2set(
@@ -4194,17 +4167,6 @@ class AbstractDatabaseConnector(ABC):
 	def global_del(self, key: Key) -> None:
 		self._eternal2set.append((key, ...))
 
-	@abstractmethod
-	def new_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-	) -> None:
-		pass
-
-	@abstractmethod
 	def set_branch(
 		self,
 		branch: Branch,
@@ -4214,7 +4176,9 @@ class AbstractDatabaseConnector(ABC):
 		end_turn: Turn,
 		end_tick: Tick,
 	) -> None:
-		pass
+		self._branches2set.append(
+			(branch, parent, parent_turn, parent_tick, end_turn, end_tick)
+		)
 
 	def set_turn(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
@@ -6161,15 +6125,6 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def global_del(self, key: Key):
 		del self.eternal[key]
 
-	def new_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-	):
-		pass
-
 	def set_branch(
 		self,
 		branch: Branch,
@@ -6179,6 +6134,14 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 		end_turn: Turn,
 		end_tick: Tick,
 	):
+		pass
+
+	def _stage_branches(
+		self, recs: list[tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]]
+	) -> None:
+		pass
+
+	def _stage_turns_completed(self, recs: list[tuple[Branch, Turn]]):
 		pass
 
 	def set_turn(
@@ -7015,43 +6978,13 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 			return Tick(0)
 		return v
 
-	def new_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-	):
-		return self.call(
-			"insert1",
+	def _stage_branches(
+		self, recs: list[tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]]
+	) -> None:
+		self.call(
+			"delete",
 			"branches",
-			{
-				"branch": branch,
-				"parent": parent,
-				"parent_turn": parent_turn,
-				"parent_tick": parent_tick,
-				"end_turn": parent_turn,
-				"end_tick": parent_tick,
-			},
-		)
-
-	def set_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-		end_turn: Turn,
-		end_tick: Tick,
-	):
-		return self.call(
-			"set_branch",
-			branch,
-			parent,
-			parent_turn,
-			parent_tick,
-			end_turn,
-			end_tick,
+			[{"branch": branch} for branch in set(map(itemgetter(0), recs))],
 		)
 
 	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]):
@@ -8713,85 +8646,13 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 			return 0
 		return self.unpack(v[0])
 
-	def new_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
+	def _stage_branches(
+		self, recs: list[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]
 	) -> None:
-		"""Declare that the ``branch`` is descended from ``parent`` at
-		``parent_turn``, ``parent_tick``
-
-		"""
-		return self.call(
-			"branches_insert",
-			branch,
-			parent,
-			parent_turn,
-			parent_tick,
-			parent_turn,
-			parent_tick,
+		self.call_many_silent(
+			"branches_del",
+			[{"branch": branch} for branch in set(map(itemgetter(0), recs))],
 		)
-
-	def update_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-		end_turn: Turn,
-		end_tick: Tick,
-	) -> None:
-		return self.call(
-			"update_branches",
-			parent,
-			parent_turn,
-			parent_tick,
-			end_turn,
-			end_tick,
-			branch,
-		)
-
-	def set_branch(
-		self,
-		branch: Branch,
-		parent: Branch,
-		parent_turn: Turn,
-		parent_tick: Tick,
-		end_turn: Turn,
-		end_tick: Tick,
-	):
-		try:
-			self.call(
-				"branches_insert",
-				branch,
-				parent,
-				parent_turn,
-				parent_tick,
-				end_turn,
-				end_tick,
-			)
-		except IntegrityError:
-			try:
-				self.update_branch(
-					branch,
-					parent,
-					parent_turn,
-					parent_tick,
-					end_turn,
-					end_tick,
-				)
-			except IntegrityError:
-				self.commit()
-				self.update_branch(
-					branch,
-					parent,
-					parent_turn,
-					parent_tick,
-					end_turn,
-					end_tick,
-				)
 
 	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]):
 		turns2del = {(branch, turn) for (branch, turn, _, _) in recs}
