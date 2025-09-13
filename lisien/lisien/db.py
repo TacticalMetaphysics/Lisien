@@ -3198,7 +3198,7 @@ class Batch(list):
 				annotation = annotation[: annotation.index("[")]
 			if hasattr(builtins, annotation):
 				typ = getattr(builtins, annotation)
-			elif annotation == "type(...)":
+			elif annotation in ("type(...)", "..."):
 				yield type(...)
 				return
 			else:
