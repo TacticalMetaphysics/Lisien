@@ -717,23 +717,6 @@ class ParquetDBLooper(ConnectionLooper):
 			]
 		)
 
-	def set_turn(
-		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	) -> None:
-		from pyarrow import ArrowInvalid
-
-		try:
-			self.update_turn(branch, turn, end_tick, plan_end_tick)
-		except (ArrowInvalid, IndexError):
-			self._get_db("turns").create(
-				{
-					"branch": branch,
-					"turn": turn,
-					"end_tick": end_tick,
-					"plan_end_tick": plan_end_tick,
-				}
-			)
-
 	def load_universals_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, Turn, Tick, bytes]]:
@@ -3362,6 +3345,15 @@ class AbstractDatabaseConnector(ABC):
 		pack = self.pack
 		return pack(key), pack(value)
 
+	@batched("turns", key_len=2, staging_method_name="_stage_turns")
+	def _turns2set(
+		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
+	) -> tuple[Branch, Turn, Tick, Tick]:
+		return (branch, turn, end_tick, plan_end_tick)
+
+	@abstractmethod
+	def _stage_turns(self, recs): ...
+
 	@batched("plan_ticks", inc_rec_counter=False)
 	def _planticks2set(
 		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
@@ -3995,6 +3987,7 @@ class AbstractDatabaseConnector(ABC):
 
 	@mutexed
 	def _flush(self):
+		self._turns2set()
 		self._eternal2set()
 		self._universals2set()
 		self._triggers2set()
@@ -4197,27 +4190,10 @@ class AbstractDatabaseConnector(ABC):
 	) -> None:
 		pass
 
-	@abstractmethod
-	def new_turn(
-		self,
-		branch: Branch,
-		turn: Turn,
-		end_tick: Tick = 0,
-		plan_end_tick: Tick = 0,
-	) -> None:
-		pass
-
-	@abstractmethod
-	def update_turn(
-		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	) -> None:
-		pass
-
-	@abstractmethod
 	def set_turn(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	) -> None:
-		pass
+		self._turns2set.append((branch, turn, end_tick, plan_end_tick))
 
 	@abstractmethod
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
@@ -6185,23 +6161,12 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	):
 		pass
 
-	def new_turn(
-		self,
-		branch: Branch,
-		turn: Turn,
-		end_tick: Tick = 0,
-		plan_end_tick: Tick = 0,
-	):
-		pass
-
-	def update_turn(
-		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	):
-		pass
-
 	def set_turn(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
 	):
+		pass
+
+	def _stage_turns(self, recs):
 		pass
 
 	def turns_dump(self):
@@ -7069,15 +7034,20 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 			end_tick,
 		)
 
-	def update_turn(
-		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	):
-		return self.call("update_turn", branch, turn, end_tick, plan_end_tick)
-
-	def set_turn(
-		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	):
-		return self.call("set_turn", branch, turn, end_tick, plan_end_tick)
+	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]):
+		self.call(
+			"delete",
+			"turns",
+			[
+				{
+					"branch": branch,
+					"turn": turn,
+				}
+				for (branch, turn) in {
+					(branch, turn) for (branch, turn, _, _) in recs
+				}
+			],
+		)
 
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
 		for d in self.call("dump", "turns"):
@@ -7822,24 +7792,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 			self._char_portal_rules_handled.clear()
 			self._node_rules_handled.clear()
 			self._portal_rules_handled.clear()
-
-	def new_turn(
-		self,
-		branch: Branch,
-		turn: Turn,
-		end_tick: Tick = 0,
-		plan_end_tick: Tick = 0,
-	) -> None:
-		self.call(
-			"insert1",
-			"turns",
-			dict(
-				branch=branch,
-				turn=turn,
-				end_tick=end_tick,
-				plan_end_tick=plan_end_tick,
-			),
-		)
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		self.flush()
@@ -8858,34 +8810,15 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 					end_tick,
 				)
 
-	def new_turn(
-		self,
-		branch: Branch,
-		turn: Turn,
-		end_tick: Tick = 0,
-		plan_end_tick: Tick = 0,
-	):
-		return self.call("turns_insert", branch, turn, end_tick, plan_end_tick)
-
-	def update_turn(
-		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	):
-		return self.call("update_turns", end_tick, plan_end_tick, branch, turn)
-
-	def set_turn(
-		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	):
-		try:
-			return self.call(
-				"turns_insert", branch, turn, end_tick, plan_end_tick
-			)
-		except IntegrityError:
-			return self.call(
-				"update_turns", end_tick, plan_end_tick, branch, turn
-			)
+	def _stage_turns(self, recs: list[tuple[Branch, Turn, Tick, Tick]]):
+		turns2del = {(branch, turn) for (branch, turn, _, _) in recs}
+		self.call_many_silent(
+			"turns_delete",
+			[{"branch": branch, "turn": turn} for (branch, turn) in turns2del],
+		)
 
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
-		self.flush()
+		self._turns2set()
 		return self.call("turns_dump")
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
