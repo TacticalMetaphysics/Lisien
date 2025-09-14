@@ -3268,6 +3268,11 @@ class AbstractDatabaseConnector(ABC):
 	_looper: looper_cls
 	_records: int
 
+	@abstractmethod
+	def __init__(
+		self, dbstring, connect_args, pack=None, unpack=None, *, clear=False
+	): ...
+
 	@batched(
 		"global",
 		key_len=1,
@@ -6655,8 +6660,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self._btts = set()
 		self._t = Thread(target=self._looper.run, daemon=True)
 		self._t.start()
-		self._all_keyframe_times = self.call("all_keyframe_times")
-		self.all_rules = set(d["rule"] for d in self.call("dump", "rules"))
+		self.initdb()
 
 	@mutexed
 	def call(self, method, *args, **kwargs):
@@ -7563,6 +7567,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 			self, {unpack(k): unpack(v) for (k, v) in ret.items()}
 		)
 		self._all_keyframe_times = self.call("all_keyframe_times")
+		self.all_rules = set(d["rule"] for d in self.call("dump", "rules"))
 		return ret
 
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
@@ -7741,7 +7746,9 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	looper_cls = SQLAlchemyConnectionLooper
 	kf_interval_override: callable
 
-	def __init__(self, dbstring, connect_args, pack=None, unpack=None):
+	def __init__(
+		self, dbstring, connect_args, pack=None, unpack=None, *, clear=False
+	):
 		dbstring = dbstring or "sqlite:///:memory:"
 		self._inq = Queue()
 		self._outq = Queue()
@@ -7773,7 +7780,9 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self.snap_keyframe = lambda: None
 		self._t = Thread(target=self._looper.run, daemon=True)
 		self._t.start()
-		self.all_rules = set(self.rules_dump())
+		if clear:
+			self.truncate_all()
+		self.initdb()
 
 	@mutexed
 	def call(self, string, *args, **kwargs):
@@ -8414,6 +8423,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 			self._eternal2set.append(("tick", 0))
 			globals["tick"] = 0
 		self.eternal = GlobalKeyValueStore(self, globals)
+		self.all_rules = set(self.rules_dump())
 		return globals
 
 	def truncate_all(self):

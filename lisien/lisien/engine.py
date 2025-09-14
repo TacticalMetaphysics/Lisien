@@ -2140,6 +2140,7 @@ class Engine(AbstractEngine, Executor):
 			else:
 				self.query = SQLAlchemyDatabaseConnector(
 					connect_string, connect_args or {}, self.pack, self.unpack
+					clear=clear,
 				)
 		else:
 			if not os.path.exists(prefix):
@@ -2151,14 +2152,12 @@ class Engine(AbstractEngine, Executor):
 					os.path.join(prefix, "world"),
 					self.pack,
 					self.unpack,
+					clear=clear,
 				)
 			else:
 				self.query = SQLAlchemyDatabaseConnector(
-					connect_string, connect_args or {}, self.pack, self.unpack
+					connect_string, connect_args or {}, self.pack, self.unpack, clear=clear,
 				)
-			if clear:
-				self.query.truncate_all()
-		self.query.initdb()
 
 		self.query.keyframe_interval = keyframe_interval
 		self._load_keyframe_times()
