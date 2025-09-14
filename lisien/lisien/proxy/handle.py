@@ -1004,7 +1004,7 @@ class EngineHandle:
 		return self._real.trunk
 
 	def switch_main_branch(self, branch: Branch) -> Keyframe:
-		self._real.switch_trunk_branch(branch)
+		self._real.trunk = branch
 		return self.snap_keyframe()
 
 	def game_init(
