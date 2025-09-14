@@ -500,7 +500,7 @@ class AbstractEngine(ABC):
 	universal: MutableMapping[UniversalKey, Value]
 	rulebook: MutableMapping[RulebookName, "RuleBook"]
 	rule: MutableMapping[RuleName, "Rule"]
-	main_branch: Branch
+	trunk: Branch
 	branch: Branch
 	turn: Turn
 	tick: Tick
@@ -553,9 +553,9 @@ class AbstractEngine(ABC):
 			raise ValueError("Not a branch", parent)
 		if child not in branches:
 			raise ValueError("Not a branch", child)
-		if parent is None or parent == child or parent == self.main_branch:
+		if parent is None or parent == child or parent == self.trunk:
 			return True
-		if child == self.main_branch:
+		if child == self.trunk:
 			return False
 		if self.branch_parent(child) == parent:
 			return True
