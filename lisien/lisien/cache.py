@@ -64,9 +64,7 @@ from .util import sort_set
 from .window import (
 	Direction,
 	EntikeySettingsTurnDict,
-	FuturistWindowDict,
 	SettingsTurnDict,
-	TurnDict,
 	WindowDict,
 )
 from .xcollections import ChangeTrackingDict
@@ -1100,16 +1098,7 @@ class Cache:
 			if not loading and not planning:
 				db_extend_branch(branch, turn, tick)
 			self.shallowest[(*parent, entity, key, branch, turn, tick)] = value
-			if turn in turns:
-				the_turn = turns[turn]
-				if truncate:
-					turns.truncate(turn)
-					the_turn.truncate(tick)
-				the_turn[tick] = value
-			else:
-				new = FuturistWindowDict()
-				new[tick] = value
-				turns[turn] = new
+			turns.store_at(turn, tick, value)
 			self_time_entity[branch, turn, tick] = parent, entity, key
 			if not loading:
 				update_keycache(*args, forward=forward)
@@ -2551,6 +2540,8 @@ class EdgesCache(Cache):
 			try:
 				pred_ticks = branches[branch][turn]
 			except KeyError:
+				continue
+			if not pred_ticks.rev_gettable(tick):
 				continue
 			predecessors[graph,][dest][orig][branch].store_at(
 				turn, tick, pred_ticks[tick]
