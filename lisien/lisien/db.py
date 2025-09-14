@@ -7500,7 +7500,10 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 			raise ret
 		elif not isinstance(ret, dict):
 			raise TypeError("initdb didn't return a dictionary", ret)
-		self.eternal = GlobalKeyValueStore(self, ret)
+		unpack = self.unpack
+		self.eternal = GlobalKeyValueStore(
+			self, {unpack(k): unpack(v) for (k, v) in ret.items()}
+		)
 		self._all_keyframe_times = self.call("all_keyframe_times")
 		return ret
 
