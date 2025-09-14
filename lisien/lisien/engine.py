@@ -6340,7 +6340,7 @@ class Engine(AbstractEngine, Executor):
 				)
 			)
 
-		to_done: set[RulebookName, RuleName, EntityKey] = set()
+		to_done: set[tuple[RulebookName, RuleName, EntityKey]] = set()
 		for fut in trig_futs:
 			entity_key = self._get_entity_key(fut.entity)
 			if (
