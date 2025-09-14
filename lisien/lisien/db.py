@@ -3972,14 +3972,9 @@ class AbstractDatabaseConnector(ABC):
 
 	@cached_property
 	def logger(self):
-		try:
-			from kivy.logger import Logger
+		from logging import getLogger
 
-			return Logger
-		except ImportError:
-			from logging import getLogger
-
-			return getLogger(self.__class__.__name__)
+		return getLogger("lisien." + self.__class__.__name__)
 
 	def log(self, level, msg, *args):
 		self.logger.log(level, msg, *args)
