@@ -2139,7 +2139,10 @@ class Engine(AbstractEngine, Executor):
 				self.query = NullDatabaseConnector()
 			else:
 				self.query = SQLAlchemyDatabaseConnector(
-					connect_string, connect_args or {}, self.pack, self.unpack
+					connect_string,
+					connect_args or {},
+					self.pack,
+					self.unpack,
 					clear=clear,
 				)
 		else:
@@ -2156,7 +2159,11 @@ class Engine(AbstractEngine, Executor):
 				)
 			else:
 				self.query = SQLAlchemyDatabaseConnector(
-					connect_string, connect_args or {}, self.pack, self.unpack, clear=clear,
+					connect_string,
+					connect_args or {},
+					self.pack,
+					self.unpack,
+					clear=clear,
 				)
 
 		self.query.keyframe_interval = keyframe_interval
