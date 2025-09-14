@@ -108,7 +108,7 @@ from .types import (
 	Value,
 )
 from .util import AbstractEngine, dedent_source
-from .xcollections import FunctionStore
+from .collections import FunctionStore
 
 if TYPE_CHECKING:
 	from .engine import Engine

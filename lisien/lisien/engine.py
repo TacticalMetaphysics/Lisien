@@ -191,7 +191,7 @@ from .window import (
 	update_backward_window,
 	update_window,
 )
-from .xcollections import (
+from .collections import (
 	ChangeTrackingDict,
 	CharacterMapping,
 	FunctionStore,

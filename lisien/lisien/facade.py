@@ -37,7 +37,7 @@ from .util import (
 	timer,
 )
 from .wrap import MutableMappingUnwrapper
-from .xcollections import CompositeDict, FunctionStore
+from .collections import CompositeDict, FunctionStore
 
 
 class FacadeEntity(MutableMapping, Signal, ABC):
@@ -1229,7 +1229,7 @@ class EngineFacade(AbstractEngine):
 			import sys
 			from unittest.mock import MagicMock
 
-			from .xcollections import FunctionStore, StringStore
+			from .collections import FunctionStore, StringStore
 
 			for funcs in ("function", "method", "trigger", "prereq", "action"):
 				setattr(self, funcs, FunctionStore(None))

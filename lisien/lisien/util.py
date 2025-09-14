@@ -94,7 +94,7 @@ from .wrap import SpecialMapping
 
 if TYPE_CHECKING:
 	from .rule import Rule, RuleBook
-	from .xcollections import FunctionStore
+	from .collections import FunctionStore
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)

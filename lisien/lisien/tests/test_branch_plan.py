@@ -1,5 +1,5 @@
 from lisien import Engine
-from lisien.xcollections import FunctionStore, StringStore
+from lisien.collections import FunctionStore, StringStore
 
 
 def test_single_plan(serial_engine):
