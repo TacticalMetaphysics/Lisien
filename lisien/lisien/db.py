@@ -6654,9 +6654,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self._btts = set()
 		self._t = Thread(target=self._looper.run, daemon=True)
 		self._t.start()
-		self.eternal = GlobalKeyValueStore(
-			self, {unpack(k): unpack(v) for (k, v) in self.initdb().items()}
-		)
 		self._all_keyframe_times = self.call("all_keyframe_times")
 		self.all_rules = set(d["rule"] for d in self.call("dump", "rules"))
 
@@ -7501,6 +7498,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 			raise ret
 		elif not isinstance(ret, dict):
 			raise TypeError("initdb didn't return a dictionary", ret)
+		self.eternal = GlobalKeyValueStore(self, ret)
 		self._all_keyframe_times = self.call("all_keyframe_times")
 		return ret
 
