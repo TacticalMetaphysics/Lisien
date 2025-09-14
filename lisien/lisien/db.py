@@ -5727,7 +5727,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._char_place_rules_handled.append(
-			(character, rulebook, rule, place, branch, turn, tick)
+			(character, place, rulebook, rule, branch, turn, tick)
 		)
 
 	def handled_character_portal_rule(
