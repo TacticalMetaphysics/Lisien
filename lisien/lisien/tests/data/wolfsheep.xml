@@ -59748,7 +59748,7 @@
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(16, 22)" key="'bare'" tick="11">
+        <node-val character="'physical'" node="(23, 14)" key="'bare'" tick="11">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="12">
@@ -61002,17 +61002,17 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
+              <int value="23"/>
+              <int value="14"/>
             </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(16, 22)" key="'_image_paths'" tick="13">
+        <node-val character="'physical'" node="(23, 14)" key="'_image_paths'" tick="13">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(13, 23)" key="'bare'" tick="14">
+        <node-val character="'physical'" node="(20, 4)" key="'bare'" tick="14">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="15">
@@ -62266,21 +62266,21 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
+              <int value="23"/>
+              <int value="14"/>
             </tuple>
             <tuple>
-              <int value="13"/>
-              <int value="23"/>
+              <int value="20"/>
+              <int value="4"/>
             </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(13, 23)" key="'_image_paths'" tick="16">
+        <node-val character="'physical'" node="(20, 4)" key="'_image_paths'" tick="16">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(11, 13)" key="'bare'" tick="17">
+        <node-val character="'physical'" node="(4, 13)" key="'bare'" tick="17">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="18">
@@ -63534,25 +63534,25 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
               <int value="23"/>
+              <int value="14"/>
             </tuple>
             <tuple>
-              <int value="11"/>
+              <int value="20"/>
+              <int value="4"/>
+            </tuple>
+            <tuple>
+              <int value="4"/>
               <int value="13"/>
             </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(11, 13)" key="'_image_paths'" tick="19">
+        <node-val character="'physical'" node="(4, 13)" key="'_image_paths'" tick="19">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(6, 12)" key="'bare'" tick="20">
+        <node-val character="'physical'" node="(22, 11)" key="'bare'" tick="20">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="21">
@@ -64806,29 +64806,29 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
               <int value="23"/>
+              <int value="14"/>
             </tuple>
             <tuple>
-              <int value="11"/>
+              <int value="20"/>
+              <int value="4"/>
+            </tuple>
+            <tuple>
+              <int value="4"/>
               <int value="13"/>
             </tuple>
             <tuple>
-              <int value="6"/>
-              <int value="12"/>
+              <int value="22"/>
+              <int value="11"/>
             </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(6, 12)" key="'_image_paths'" tick="22">
+        <node-val character="'physical'" node="(22, 11)" key="'_image_paths'" tick="22">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(23, 14)" key="'bare'" tick="23">
+        <node-val character="'physical'" node="(6, 3)" key="'bare'" tick="23">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="24">
@@ -66082,33 +66082,33 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
-              <int value="23"/>
-            </tuple>
-            <tuple>
-              <int value="11"/>
-              <int value="13"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="12"/>
-            </tuple>
-            <tuple>
               <int value="23"/>
               <int value="14"/>
             </tuple>
+            <tuple>
+              <int value="20"/>
+              <int value="4"/>
+            </tuple>
+            <tuple>
+              <int value="4"/>
+              <int value="13"/>
+            </tuple>
+            <tuple>
+              <int value="22"/>
+              <int value="11"/>
+            </tuple>
+            <tuple>
+              <int value="6"/>
+              <int value="3"/>
+            </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(23, 14)" key="'_image_paths'" tick="25">
+        <node-val character="'physical'" node="(6, 3)" key="'_image_paths'" tick="25">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(20, 4)" key="'bare'" tick="26">
+        <node-val character="'physical'" node="(4, 6)" key="'bare'" tick="26">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="27">
@@ -67362,22 +67362,6 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
-              <int value="23"/>
-            </tuple>
-            <tuple>
-              <int value="11"/>
-              <int value="13"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="12"/>
-            </tuple>
-            <tuple>
               <int value="23"/>
               <int value="14"/>
             </tuple>
@@ -67385,14 +67369,30 @@
               <int value="20"/>
               <int value="4"/>
             </tuple>
+            <tuple>
+              <int value="4"/>
+              <int value="13"/>
+            </tuple>
+            <tuple>
+              <int value="22"/>
+              <int value="11"/>
+            </tuple>
+            <tuple>
+              <int value="6"/>
+              <int value="3"/>
+            </tuple>
+            <tuple>
+              <int value="4"/>
+              <int value="6"/>
+            </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(20, 4)" key="'_image_paths'" tick="28">
+        <node-val character="'physical'" node="(4, 6)" key="'_image_paths'" tick="28">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(4, 13)" key="'bare'" tick="29">
+        <node-val character="'physical'" node="(16, 22)" key="'bare'" tick="29">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="30">
@@ -68646,22 +68646,6 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
-              <int value="23"/>
-            </tuple>
-            <tuple>
-              <int value="11"/>
-              <int value="13"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="12"/>
-            </tuple>
-            <tuple>
               <int value="23"/>
               <int value="14"/>
             </tuple>
@@ -68673,14 +68657,30 @@
               <int value="4"/>
               <int value="13"/>
             </tuple>
+            <tuple>
+              <int value="22"/>
+              <int value="11"/>
+            </tuple>
+            <tuple>
+              <int value="6"/>
+              <int value="3"/>
+            </tuple>
+            <tuple>
+              <int value="4"/>
+              <int value="6"/>
+            </tuple>
+            <tuple>
+              <int value="16"/>
+              <int value="22"/>
+            </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(4, 13)" key="'_image_paths'" tick="31">
+        <node-val character="'physical'" node="(16, 22)" key="'_image_paths'" tick="31">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(22, 11)" key="'bare'" tick="32">
+        <node-val character="'physical'" node="(1, 23)" key="'bare'" tick="32">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="33">
@@ -69934,22 +69934,6 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
-              <int value="23"/>
-            </tuple>
-            <tuple>
-              <int value="11"/>
-              <int value="13"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="12"/>
-            </tuple>
-            <tuple>
               <int value="23"/>
               <int value="14"/>
             </tuple>
@@ -69965,14 +69949,30 @@
               <int value="22"/>
               <int value="11"/>
             </tuple>
+            <tuple>
+              <int value="6"/>
+              <int value="3"/>
+            </tuple>
+            <tuple>
+              <int value="4"/>
+              <int value="6"/>
+            </tuple>
+            <tuple>
+              <int value="16"/>
+              <int value="22"/>
+            </tuple>
+            <tuple>
+              <int value="1"/>
+              <int value="23"/>
+            </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(22, 11)" key="'_image_paths'" tick="34">
+        <node-val character="'physical'" node="(1, 23)" key="'_image_paths'" tick="34">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(6, 3)" key="'bare'" tick="35">
+        <node-val character="'physical'" node="(10, 14)" key="'bare'" tick="35">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="36">
@@ -71226,22 +71226,6 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
-              <int value="23"/>
-            </tuple>
-            <tuple>
-              <int value="11"/>
-              <int value="13"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="12"/>
-            </tuple>
-            <tuple>
               <int value="23"/>
               <int value="14"/>
             </tuple>
@@ -71261,14 +71245,30 @@
               <int value="6"/>
               <int value="3"/>
             </tuple>
+            <tuple>
+              <int value="4"/>
+              <int value="6"/>
+            </tuple>
+            <tuple>
+              <int value="16"/>
+              <int value="22"/>
+            </tuple>
+            <tuple>
+              <int value="1"/>
+              <int value="23"/>
+            </tuple>
+            <tuple>
+              <int value="10"/>
+              <int value="14"/>
+            </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(6, 3)" key="'_image_paths'" tick="37">
+        <node-val character="'physical'" node="(10, 14)" key="'_image_paths'" tick="37">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(4, 6)" key="'bare'" tick="38">
+        <node-val character="'physical'" node="(20, 20)" key="'bare'" tick="38">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="39">
@@ -72522,22 +72522,6 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
-              <int value="23"/>
-            </tuple>
-            <tuple>
-              <int value="11"/>
-              <int value="13"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="12"/>
-            </tuple>
-            <tuple>
               <int value="23"/>
               <int value="14"/>
             </tuple>
@@ -72561,14 +72545,30 @@
               <int value="4"/>
               <int value="6"/>
             </tuple>
+            <tuple>
+              <int value="16"/>
+              <int value="22"/>
+            </tuple>
+            <tuple>
+              <int value="1"/>
+              <int value="23"/>
+            </tuple>
+            <tuple>
+              <int value="10"/>
+              <int value="14"/>
+            </tuple>
+            <tuple>
+              <int value="20"/>
+              <int value="20"/>
+            </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(4, 6)" key="'_image_paths'" tick="40">
+        <node-val character="'physical'" node="(20, 20)" key="'_image_paths'" tick="40">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(1, 23)" key="'bare'" tick="41">
+        <node-val character="'physical'" node="(13, 23)" key="'bare'" tick="41">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="42">
@@ -73822,22 +73822,6 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
-              <int value="23"/>
-            </tuple>
-            <tuple>
-              <int value="11"/>
-              <int value="13"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="12"/>
-            </tuple>
-            <tuple>
               <int value="23"/>
               <int value="14"/>
             </tuple>
@@ -73862,17 +73846,33 @@
               <int value="6"/>
             </tuple>
             <tuple>
+              <int value="16"/>
+              <int value="22"/>
+            </tuple>
+            <tuple>
               <int value="1"/>
+              <int value="23"/>
+            </tuple>
+            <tuple>
+              <int value="10"/>
+              <int value="14"/>
+            </tuple>
+            <tuple>
+              <int value="20"/>
+              <int value="20"/>
+            </tuple>
+            <tuple>
+              <int value="13"/>
               <int value="23"/>
             </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(1, 23)" key="'_image_paths'" tick="43">
+        <node-val character="'physical'" node="(13, 23)" key="'_image_paths'" tick="43">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(10, 14)" key="'bare'" tick="44">
+        <node-val character="'physical'" node="(11, 13)" key="'bare'" tick="44">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="45">
@@ -75126,22 +75126,6 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
-              <int value="23"/>
-            </tuple>
-            <tuple>
-              <int value="11"/>
-              <int value="13"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="12"/>
-            </tuple>
-            <tuple>
               <int value="23"/>
               <int value="14"/>
             </tuple>
@@ -75166,6 +75150,10 @@
               <int value="6"/>
             </tuple>
             <tuple>
+              <int value="16"/>
+              <int value="22"/>
+            </tuple>
+            <tuple>
               <int value="1"/>
               <int value="23"/>
             </tuple>
@@ -75173,14 +75161,26 @@
               <int value="10"/>
               <int value="14"/>
             </tuple>
+            <tuple>
+              <int value="20"/>
+              <int value="20"/>
+            </tuple>
+            <tuple>
+              <int value="13"/>
+              <int value="23"/>
+            </tuple>
+            <tuple>
+              <int value="11"/>
+              <int value="13"/>
+            </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(10, 14)" key="'_image_paths'" tick="46">
+        <node-val character="'physical'" node="(11, 13)" key="'_image_paths'" tick="46">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
         </node-val>
-        <node-val character="'physical'" node="(20, 20)" key="'bare'" tick="47">
+        <node-val character="'physical'" node="(6, 12)" key="'bare'" tick="47">
           <bool value="T"/>
         </node-val>
         <graph-val character="'physical'" key="'bare_places'" tick="48">
@@ -76434,22 +76434,6 @@
               <int value="10"/>
             </tuple>
             <tuple>
-              <int value="16"/>
-              <int value="22"/>
-            </tuple>
-            <tuple>
-              <int value="13"/>
-              <int value="23"/>
-            </tuple>
-            <tuple>
-              <int value="11"/>
-              <int value="13"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="12"/>
-            </tuple>
-            <tuple>
               <int value="23"/>
               <int value="14"/>
             </tuple>
@@ -76474,6 +76458,10 @@
               <int value="6"/>
             </tuple>
             <tuple>
+              <int value="16"/>
+              <int value="22"/>
+            </tuple>
+            <tuple>
               <int value="1"/>
               <int value="23"/>
             </tuple>
@@ -76485,9 +76473,21 @@
               <int value="20"/>
               <int value="20"/>
             </tuple>
+            <tuple>
+              <int value="13"/>
+              <int value="23"/>
+            </tuple>
+            <tuple>
+              <int value="11"/>
+              <int value="13"/>
+            </tuple>
+            <tuple>
+              <int value="6"/>
+              <int value="12"/>
+            </tuple>
           </list>
         </graph-val>
-        <node-val character="'physical'" node="(20, 20)" key="'_image_paths'" tick="49">
+        <node-val character="'physical'" node="(6, 12)" key="'_image_paths'" tick="49">
           <list>
             <str value="atlas://rltiles/floor/floor-normal"/>
           </list>
@@ -89154,19 +89154,11 @@
         </universal>
         <location character="'physical'" thing="'sheep0'" tick="70" location="(12, 5)"/>
         <location character="'physical'" thing="'sheep1'" tick="71" location="(23, 10)"/>
-        <location character="'physical'" thing="'sheep2'" tick="72" location="(16, 21)"/>
-        <location character="'physical'" thing="'sheep3'" tick="73" location="(11, 12)"/>
-        <location character="'physical'" thing="'sheep4'" tick="74" location="(14, 23)"/>
-        <location character="'physical'" thing="'sheep5'" tick="75" location="(19, 13)"/>
-        <location character="'physical'" thing="'sheep6'" tick="76" location="(10, 13)"/>
-        <location character="'physical'" thing="'sheep7'" tick="77" location="(6, 13)"/>
-        <location character="'physical'" thing="'sheep8'" tick="78" location="(0, 17)"/>
-        <location character="'physical'" thing="'sheep9'" tick="79" location="(1, 0)"/>
-        <location character="'physical'" thing="'sheep10'" tick="80" location="(9, 21)"/>
-        <location character="'physical'" thing="'sheep11'" tick="81" location="(22, 14)"/>
-        <location character="'physical'" thing="'sheep12'" tick="82" location="(17, 8)"/>
-        <location character="'physical'" thing="'sheep13'" tick="83" location="(20, 5)"/>
-        <universal key="'rando_state'" tick="84">
+        <location character="'physical'" thing="'sheep10'" tick="72" location="(9, 21)"/>
+        <location character="'physical'" thing="'sheep11'" tick="73" location="(22, 14)"/>
+        <location character="'physical'" thing="'sheep12'" tick="74" location="(17, 8)"/>
+        <location character="'physical'" thing="'sheep13'" tick="75" location="(20, 5)"/>
+        <universal key="'rando_state'" tick="76">
           <tuple>
             <int value="3"/>
             <tuple>
@@ -89799,14 +89791,15 @@
             <None/>
           </tuple>
         </universal>
-        <location character="'physical'" thing="'sheep14'" tick="85" location="(4, 12)"/>
-        <location character="'physical'" thing="'sheep15'" tick="86" location="(4, 5)"/>
-        <location character="'physical'" thing="'sheep16'" tick="87" location="(22, 12)"/>
-        <location character="'physical'" thing="'sheep17'" tick="88" location="(18, 20)"/>
-        <location character="'physical'" thing="'sheep18'" tick="89" location="(6, 2)"/>
-        <location character="'physical'" thing="'sheep19'" tick="90" location="(5, 6)"/>
-        <location character="'physical'" thing="'sheep20'" tick="91" location="(13, 5)"/>
-        <universal key="'rando_state'" tick="92">
+        <location character="'physical'" thing="'sheep14'" tick="77" location="(4, 12)"/>
+        <location character="'physical'" thing="'sheep15'" tick="78" location="(4, 5)"/>
+        <location character="'physical'" thing="'sheep16'" tick="79" location="(22, 12)"/>
+        <location character="'physical'" thing="'sheep17'" tick="80" location="(18, 20)"/>
+        <location character="'physical'" thing="'sheep18'" tick="81" location="(6, 2)"/>
+        <location character="'physical'" thing="'sheep19'" tick="82" location="(5, 6)"/>
+        <location character="'physical'" thing="'sheep2'" tick="83" location="(16, 21)"/>
+        <location character="'physical'" thing="'sheep20'" tick="84" location="(13, 5)"/>
+        <universal key="'rando_state'" tick="85">
           <tuple>
             <int value="3"/>
             <tuple>
@@ -90439,10 +90432,17 @@
             <None/>
           </tuple>
         </universal>
-        <location character="'physical'" thing="'sheep21'" tick="93" location="(2, 23)"/>
-        <location character="'physical'" thing="'sheep22'" tick="94" location="(11, 14)"/>
-        <location character="'physical'" thing="'sheep23'" tick="95" location="(0, 9)"/>
-        <location character="'physical'" thing="'sheep24'" tick="96" location="(21, 20)"/>
+        <location character="'physical'" thing="'sheep21'" tick="86" location="(2, 23)"/>
+        <location character="'physical'" thing="'sheep22'" tick="87" location="(11, 14)"/>
+        <location character="'physical'" thing="'sheep23'" tick="88" location="(0, 9)"/>
+        <location character="'physical'" thing="'sheep24'" tick="89" location="(21, 20)"/>
+        <location character="'physical'" thing="'sheep3'" tick="90" location="(11, 12)"/>
+        <location character="'physical'" thing="'sheep4'" tick="91" location="(14, 23)"/>
+        <location character="'physical'" thing="'sheep5'" tick="92" location="(19, 13)"/>
+        <location character="'physical'" thing="'sheep6'" tick="93" location="(10, 13)"/>
+        <location character="'physical'" thing="'sheep7'" tick="94" location="(6, 13)"/>
+        <location character="'physical'" thing="'sheep8'" tick="95" location="(0, 17)"/>
+        <location character="'physical'" thing="'sheep9'" tick="96" location="(1, 0)"/>
         <universal key="'rando_state'" tick="97">
           <tuple>
             <int value="3"/>
