@@ -2158,6 +2158,7 @@ class Engine(AbstractEngine, Executor):
 				)
 			if clear:
 				self.query.truncate_all()
+		self.query.initdb()
 
 		self.query.keyframe_interval = keyframe_interval
 		self._load_keyframe_times()
