@@ -4022,17 +4022,13 @@ class Engine(AbstractEngine, Executor):
 		edgerows = []
 		edgevalrows = []
 		graphvalrows = []
-		graphsrows = list(
-			self.query.graphs_types(
-				branch, turn_from, tick_from, turn_to, tick_to
-			)
-		)
-		self._graph_cache.load(graphsrows)
 		loaded_graphs = self.query.load_windows(
 			[(branch, turn_from, tick_from, turn_to, tick_to)]
 		)
 		for graph, loaded in loaded_graphs.items():
 			match graph:
+				case "graphs":
+					self._graph_cache.load(loaded)
 				case "universals":
 					self._universal_cache.load(loaded)
 				case "rulebooks":
