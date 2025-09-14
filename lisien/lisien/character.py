@@ -43,8 +43,7 @@ from typing import TYPE_CHECKING, Iterable, Iterator, Callable
 import networkx as nx
 from blinker import Signal
 
-from .cache import FuturistWindowDict, PickyDefaultDict
-from .exc import AmbiguousLeaderError, WorldIntegrityError
+from .exc import WorldIntegrityError
 from .facade import CharacterFacade
 from .node import Node, Place, Thing
 from .portal import Portal

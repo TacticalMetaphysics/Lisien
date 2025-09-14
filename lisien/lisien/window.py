@@ -954,53 +954,6 @@ class LinearTimeSetDict(WindowDict):
 				yield turn, tick
 
 
-class FuturistWindowDict(WindowDict):
-	"""A WindowDict that does not let you rewrite the past."""
-
-	__slots__ = (
-		"_future",
-		"_past",
-	)
-	_future: list[tuple[int, Any]]
-	_past: list[tuple[int, Any]]
-
-	def __setitem__(self, rev: int, v: Any) -> None:
-		if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):
-			v = v.unwrap()
-		with self._lock:
-			self._seek(rev)
-			past = self._past
-			future = self._future
-			if future:
-				raise HistoricKeyError(
-					"Already have some history after {}".format(rev)
-				)
-			if not past:
-				past.append((rev, v))
-			elif rev > past[-1][0]:
-				past.append((rev, v))
-			elif rev == past[-1][0]:
-				past[-1] = (rev, v)
-			else:
-				raise HistoricKeyError(
-					"Already have some history after {} "
-					"(and my seek function is broken?)".format(rev)
-				)
-			self._keys.add(rev)
-
-
-class TurnDict(FuturistWindowDict):
-	__slots__ = ("_future", "_past")
-	_future: list[tuple[Turn, Any]]
-	_past: list[tuple[Turn, Any]]
-	cls = FuturistWindowDict
-
-	def __setitem__(self, turn: Turn, value: Any) -> None:
-		if type(value) is not FuturistWindowDict:
-			value = FuturistWindowDict(value)
-		FuturistWindowDict.__setitem__(self, turn, value)
-
-
 class EntikeyWindowDict(WindowDict):
 	__slots__ = ("_past", "_future", "entikeys")
 
