@@ -6232,7 +6232,7 @@ class Engine(AbstractEngine, Executor):
 				continue
 			rule = rulemap[rulen]
 			check_handled = partial(
-				self._character_rules_handled_cache.was_handled,
+				self._character_portal_rules_handled_cache.was_handled,
 				branch,
 				turn,
 				rulebook,
