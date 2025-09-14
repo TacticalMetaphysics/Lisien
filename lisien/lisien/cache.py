@@ -67,7 +67,7 @@ from .window import (
 	SettingsTurnDict,
 	WindowDict,
 )
-from .xcollections import ChangeTrackingDict
+from .collections import ChangeTrackingDict
 
 if TYPE_CHECKING:
 	from . import engine

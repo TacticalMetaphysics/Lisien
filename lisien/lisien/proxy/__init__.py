@@ -108,7 +108,7 @@ from ..util import (
 	repr_call_sig,
 )
 from ..wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
-from ..xcollections import (
+from ..collections import (
 	AbstractLanguageDescriptor,
 	FunctionStore,
 	StringStore,
