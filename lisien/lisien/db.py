@@ -7773,7 +7773,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self.snap_keyframe = lambda: None
 		self._t = Thread(target=self._looper.run, daemon=True)
 		self._t.start()
-		self.eternal = GlobalKeyValueStore(self, self.initdb())
 		self.all_rules = set(self.rules_dump())
 
 	@mutexed
@@ -8414,6 +8413,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		if "tick" not in globals:
 			self._eternal2set.append(("tick", 0))
 			globals["tick"] = 0
+		self.eternal = GlobalKeyValueStore(self, globals)
 		return globals
 
 	def truncate_all(self):
