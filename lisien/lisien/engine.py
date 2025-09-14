@@ -4043,7 +4043,7 @@ class Engine(AbstractEngine, Executor):
 					self._prereqs_cache.load(loaded)
 				case "rule_actions":
 					self._actions_cache.load(loaded)
-				case "rule_neighborhoods":
+				case "rule_neighborhood":
 					self._neighborhoods_cache.load(loaded)
 				case "rule_big":
 					self._rule_bigness_cache.load(loaded)
