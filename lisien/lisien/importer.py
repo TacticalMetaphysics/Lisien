@@ -592,9 +592,15 @@ class Importer:
 		root = tree.getroot()
 		branch_descendants: dict[Branch, list[Branch]] = {Branch("trunk"): []}
 		branch_starts: dict[Branch, tuple[Turn, Tick]] = {}
-		self.query.eternal["_lisien_schema_version"] = int(
-			root.get("db-schema-version")
-		)
+		if "_lisien_schema_version" in self.query.eternal:
+			if self.query.eternal["_lisien_schema_version"] != int(
+				root.get("db-schema-version")
+			):
+				raise RuntimeError("Incompatible database versions")
+		else:
+			self.query.eternal["_lisien_schema_version"] = int(
+				root.get("db-schema-version")
+			)
 		self.query.eternal["trunk"] = root.get("trunk")
 		self.query.eternal["branch"] = root.get("branch")
 		self.query.eternal["turn"] = int(root.get("turn"))
