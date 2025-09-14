@@ -762,6 +762,7 @@ def tree_to_pqdb(
 	query = ParquetDatabaseConnector(
 		pqdb_path, pack=engine.pack, unpack=engine.unpack
 	)
+	query.initdb()
 
 	return Importer(query, engine).tree_to_db(tree)
 
