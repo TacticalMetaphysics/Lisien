@@ -6779,8 +6779,10 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 
 	def global_dump(self) -> Iterator[tuple[Key, Any]]:
 		unpack = self.unpack
-		for d in self.call("dump", "global"):
-			yield unpack(d["key"]), unpack(d["value"])
+		yield from sorted(
+			(unpack(d["key"]), unpack(d["value"]))
+			for d in self.call("dump", "global")
+		)
 
 	def get_branch(self) -> Branch:
 		v = self.unpack(self.call("get_global", b"\xa6branch"))
