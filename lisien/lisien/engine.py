@@ -451,7 +451,7 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 		):
 			raise TypeError("Not a valid time", value)
 		super().__setitem__(key, value)
-		self.eng.query.set_bookmark(key, value)
+		self.eng.query.set_bookmark(key, *value)
 
 	def __delitem__(self, key):
 		super().__delitem__(key)
