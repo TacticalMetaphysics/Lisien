@@ -3915,43 +3915,8 @@ class RulesHandledCache(ABC):
 		self.lock = RLock()
 		self.engine = engine
 		self.name = name
-
-		class LoudSet(set):
-			def add(self, other):
-				print(f"adding {other} to handledness set for {self.k}")
-				super().add(other)
-
-		class LoudDict(dict):
-			def __getitem__(self, k):
-				if k not in self:
-					self[k] = s = LoudSet()
-					s.k = k
-				return super().__getitem__(k)
-
-			def __setitem__(self, key, value):
-				if not isinstance(value, LoudSet):
-					value = LoudSet(value)
-					value.k = key
-				super().__setitem__(key, value)
-
-		class LoudWindowDict(WindowDict):
-			def __getitem__(self, k):
-				if k not in self:
-					self[k] = s = LoudSet()
-					s.k = k
-				return super().__getitem__(k)
-
-			def __setitem__(self, key, value):
-				if not isinstance(value, LoudSet):
-					value = LoudSet(value)
-					value.k = key
-				super().__setitem__(key, value)
-
-		class LoudSettingsTurnDict(SettingsTurnDict):
-			cls = LoudWindowDict
-
 		self.handled = {}
-		self.handled_deep = PickyDefaultDict(LoudSettingsTurnDict)
+		self.handled_deep = PickyDefaultDict(SettingsTurnDict)
 
 	def __init_subclass__(cls, **kwargs):
 		iter_unhandled_rules = getattr(cls, "iter_unhandled_rules")
