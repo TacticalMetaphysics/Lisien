@@ -627,12 +627,12 @@ class Engine(AbstractEngine, Executor):
 	@trunk.setter
 	def trunk(self, branch: Branch) -> None:
 		if self.branch != self.trunk or self.turn != 0 or self.tick != 0:
-			raise ValueError("Go to the start of time first")
+			raise AttributeError("Go to the start of time first")
 		if (
 			branch in self.branches()
 			and self.branch_parent(branch) is not None
 		):
-			raise ValueError("Not a trunk branch")
+			raise AttributeError("Not a trunk branch")
 		then = self._btt()
 		self.query.eternal["trunk"] = self.branch = branch
 		self.time.send(self, then=then, now=self._btt())
