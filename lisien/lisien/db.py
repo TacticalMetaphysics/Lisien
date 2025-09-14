@@ -8345,12 +8345,16 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 				raise x
 			self._all_keyframe_times = set(x)
 		if "trunk" not in globals:
+			self._eternal2set.append(("trunk", "trunk"))
 			globals["trunk"] = "trunk"
 		if "branch" not in globals:
+			self._eternal2set.append(("branch", "trunk"))
 			globals["branch"] = "trunk"
 		if "turn" not in globals:
+			self._eternal2set.append(("turn", 0))
 			globals["turn"] = 0
 		if "tick" not in globals:
+			self._eternal2set.append(("tick", 0))
 			globals["tick"] = 0
 		return globals
 
