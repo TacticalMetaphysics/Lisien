@@ -6460,12 +6460,17 @@ class Engine(AbstractEngine, Executor):
 		for prio, rulebook in sort_set(todo.keys()):
 			for rule, applications in filter(None, todo[prio, rulebook]):
 				for entity_key in sort_set(applications.keys()):
+					try:
+						entity = self._get_entity_from_key(entity_key)
+					except KeyError:
+						# entity was deleted by some earlier rule application
+						continue
 					check_handled, mark_handled = applications[entity_key]
 					yield self._follow_one_rule(
 						rule,
 						check_handled,
 						mark_handled,
-						self._get_entity_from_key(entity_key),
+						entity,
 					)
 
 	def new_character(
