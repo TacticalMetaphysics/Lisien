@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data=true
-packages = ["lisien", "lisien.examples", "lisien.proxy", "lisien.server", "lisien.tests"]
+packages = ["lisien", "lisien.examples", "lisien.proxy", "lisien.server", "lisien.tests", "lisien.tests.data"]
 
 
 [project]
