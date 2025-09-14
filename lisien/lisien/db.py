@@ -4209,7 +4209,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def initdb(self) -> None:
+	def _init_db(self) -> None:
 		pass
 
 	@abstractmethod
@@ -6126,7 +6126,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def close(self):
 		pass
 
-	def initdb(self):
+	def _init_db(self):
 		pass
 
 	def truncate_all(self):
@@ -6634,7 +6634,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	looper_cls = ParquetDBLooper
 
-	def __init__(self, path, pack=None, unpack=None, logger=None):
+	def __init__(self, path, pack=None, unpack=None, *, clear=False):
 		self._inq = Queue()
 		self._outq = Queue()
 		self._looper = self.looper_cls(path, self._inq, self._outq)
@@ -6660,7 +6660,9 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self._btts = set()
 		self._t = Thread(target=self._looper.run, daemon=True)
 		self._t.start()
-		self.initdb()
+		if clear:
+			self.truncate_all()
+		self._init_db()
 
 	@mutexed
 	def call(self, method, *args, **kwargs):
@@ -7556,7 +7558,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self.flush()
 		self.call("commit")
 
-	def initdb(self) -> dict:
+	def _init_db(self) -> dict:
 		ret = self.call("initdb")
 		if isinstance(ret, Exception):
 			raise ret
@@ -7782,7 +7784,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self._t.start()
 		if clear:
 			self.truncate_all()
-		self.initdb()
+		self._init_db()
 
 	@mutexed
 	def call(self, string, *args, **kwargs):
@@ -8387,7 +8389,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self._looper.existence_lock.release()
 		self._t.join()
 
-	def initdb(self) -> dict:
+	def _init_db(self) -> dict:
 		if hasattr(self, "_initialized"):
 			raise RuntimeError("Tried to initialize database twice")
 		self._initialized = True
