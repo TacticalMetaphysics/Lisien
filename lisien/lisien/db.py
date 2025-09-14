@@ -8567,12 +8567,12 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 			yield unpack(character), unpack(rulebook), rule, branch, turn, tick
 
 	def unit_rules_handled_dump(self):
-		self.flush()
+		self._unit_rules_handled()
 		unpack = self.unpack
 		for (
-			character,
 			branch,
 			turn,
+			character,
 			graph,
 			unit,
 			rulebook,
