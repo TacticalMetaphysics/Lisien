@@ -272,21 +272,28 @@ class ParquetDBLooper(ConnectionLooper):
 		self.existence_lock.release()
 
 	def initdb(self):
+		if hasattr(self, "_initialized"):
+			return RuntimeError("Already initialized the database")
+		self._initialized = True
 		initial = self.initial
 		for table, schema in self.schema.items():
 			schema = self._get_schema(table)
 			db = self._get_db(table)
-			if db.dataset_exists():
-				continue
-			if table in initial:
+			if db.is_empty() and table in initial:
 				db.create(
 					initial[table],
 					schema=schema,
 				)
-		glob_d = {d["key"]: d["value"] for d in self.dump("global")}
+		glob_d = {}
+		for d in self.dump("global"):
+			if d["key"] in glob_d:
+				return KeyError(
+					"Initialization resulted in duplicate eternal record",
+					d["key"],
+				)
+			glob_d[d["key"]] = d["value"]
 		if SCHEMAVER_B not in glob_d:
-			glob_d[SCHEMAVER_B] = SCHEMA_VERSION_B
-			self.insert1("global", [{SCHEMAVER_B: SCHEMA_VERSION_B}])
+			return ValueError("Not a Lisien database")
 		elif glob_d[SCHEMAVER_B] != SCHEMA_VERSION_B:
 			return ValueError(
 				f"Unsupported database schema version", glob_d[SCHEMAVER_B]
