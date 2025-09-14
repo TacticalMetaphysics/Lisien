@@ -7365,7 +7365,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		unpack = self.unpack
 		for d in self.call("dump", "graph_val"):
 			yield (
-				unpack(d["character"]),
+				unpack(d["graph"]),
 				unpack(d["key"]),
 				d["branch"],
 				d["turn"],
