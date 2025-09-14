@@ -6621,7 +6621,9 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
 		return iter(())
 
-	def set_bookmark(self, key: Key, time: Time) -> None:
+	def set_bookmark(
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
 		pass
 
 	def del_bookmark(self, key: Key) -> None:
