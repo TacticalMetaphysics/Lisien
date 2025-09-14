@@ -46768,10 +46768,7 @@ COLLEGE_KEYFRAME_0 = {
 		"drink": ["is_drunkard"],
 		"go_to_class": ["absent", "be_timely"],
 		"learn": ["class_in_session", "pay_attention"],
-		"leave_class": [],
 		"sloth": ["class_in_session"],
-		"sober_up": [],
-		"time_passes": [],
 	},
 	"rulebook": {
 		("character_place_rulebook", "dorm0room0student0"): (
@@ -70313,10 +70310,7 @@ COLLEGE_KEYFRAME_1 = {
 		"drink": ["is_drunkard"],
 		"go_to_class": ["absent", "be_timely"],
 		"learn": ["class_in_session", "pay_attention"],
-		"leave_class": [],
 		"sloth": ["class_in_session"],
-		"sober_up": [],
-		"time_passes": [],
 	},
 	"rulebook": {
 		("character_place_rulebook", "dorm0room0student0"): (
