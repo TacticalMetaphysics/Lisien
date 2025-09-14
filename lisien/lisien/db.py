@@ -5742,7 +5742,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._char_portal_rules_handled.append(
-			(character, rulebook, rule, orig, dest, branch, turn, tick)
+			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
 
 	def handled_node_rule(
