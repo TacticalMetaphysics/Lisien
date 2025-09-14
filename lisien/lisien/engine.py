@@ -6352,20 +6352,20 @@ class Engine(AbstractEngine, Executor):
 				todo_key = (fut.prio, fut.rulebook)
 				rulebook = self.rulebook[fut.rulebook]
 				rbidx = rulebook.index(fut.rule)
-				what_do = (fut.check_handled, fut.mark_handled, entity_key)
+				what_do = (fut.check_handled, fut.mark_handled)
 				if todo_key in todo:
 					rulez = todo[todo_key]
 					if rulez[rbidx] is None:
-						rulez[rbidx] = (fut.rule, [what_do])
+						rulez[rbidx] = (fut.rule, {entity_key: what_do})
 					else:
 						rule, applications = rulez[rulebook.index(fut.rule)]
-						applications.append(what_do)
+						applications[entity_key] = what_do
 				else:
 					rulez = [None] * len(rulebook)
 					todo[todo_key] = rulez
 					rulez[rbidx] = (
 						fut.rule,
-						[(fut.check_handled, fut.mark_handled, entity_key)],
+						{entity_key: what_do},
 					)
 
 		return todo
@@ -6452,7 +6452,8 @@ class Engine(AbstractEngine, Executor):
 		#  start a new branch, copying handled rules
 		for prio, rulebook in sort_set(todo.keys()):
 			for rule, applications in filter(None, todo[prio, rulebook]):
-				for check_handled, mark_handled, entity_key in applications:
+				for entity_key in sort_set(applications.keys()):
+					check_handled, mark_handled = applications[entity_key]
 					yield self._follow_one_rule(
 						rule,
 						check_handled,
