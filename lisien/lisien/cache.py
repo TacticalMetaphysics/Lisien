@@ -2194,7 +2194,7 @@ class EdgesCache(Cache):
 	):
 		super().__init__(db, name, keyframe_dict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
-		self.predecessors = StructuredDefaultDict(3, TurnDict)
+		self.predecessors = StructuredDefaultDict(3, SettingsTurnDict)
 		self._origcache_lru = OrderedDict()
 		self._get_origcache_stuff: tuple[
 			PickyDefaultDict,
@@ -2552,11 +2552,9 @@ class EdgesCache(Cache):
 				pred_ticks = branches[branch][turn]
 			except KeyError:
 				continue
-			preds_branch = predecessors[graph,][dest][orig][branch]
-			if turn in preds_branch:
-				preds_branch[turn][tick] = pred_ticks[tick]
-			else:
-				preds_branch[turn] = pred_ticks
+			predecessors[graph,][dest][orig][branch].store_at(
+				turn, tick, pred_ticks[tick]
+			)
 
 	def retrieve(
 		self,
