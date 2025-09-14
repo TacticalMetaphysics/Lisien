@@ -5915,9 +5915,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 			"_lisien_schema_version": SCHEMA_VERSION,
 		}
 
-	def __init__(
-		self, dbstring, connect_args, pack=None, unpack=None, *, clear=False
-	):
+	def __init__(self):
 		pass
 
 	def call(self, query_name: str, *args, **kwargs):
