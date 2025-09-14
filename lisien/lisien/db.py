@@ -183,14 +183,9 @@ class ConnectionLooper:
 
 	@cached_property
 	def logger(self):
-		if "kivy" in sys.modules:
-			from kivy.logger import Logger
+		from logging import getLogger
 
-			return Logger
-		else:
-			from logging import getLogger
-
-			return getLogger(self.__class__.__name__)
+		return getLogger("lisien." + self.__class__.__name__)
 
 	@abstractmethod
 	def run(self):
