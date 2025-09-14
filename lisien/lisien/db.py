@@ -6840,8 +6840,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 			)
 
 	def rules_dump(self) -> Iterator[RuleName]:
-		self.flush()
-		for d in self.call("dump", "rules"):
+		for d in sorted(self.call("dump", "rules"), key=itemgetter("rule")):
 			yield d["rule"]
 
 	def _rule_dump(self, typ: Literal["triggers", "prereqs", "actions"]):
