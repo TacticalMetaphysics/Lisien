@@ -953,6 +953,19 @@ class CharacterFacade(AbstractCharacter):
 			self.facade = facade
 			self._patch = {}
 
+		def copy(self):
+			d = {}
+			if hasattr(self.facade.character, "graph"):
+				for k, v in self.facade.character.graph.items():
+					if k not in self._patch:
+						d[k] = v
+					elif self._patch[k] is not ...:
+						d[k] = self._patch[k]
+			for k, v in self._patch.items():
+				if v is not ...:
+					d[k] = v
+			return d
+
 		def __iter__(self):
 			seen = set()
 			if hasattr(self.facade.character, "graph"):
