@@ -179,7 +179,9 @@ def test_facade_creation(tmp_path, char_data):
 		assert fac.edges == char.edges
 		assert set(fac.edges) == set(char.edges)
 		assert fac.stat == char.stat
+		assert char.stat == fac.stat
 		assert dict(fac.stat) == dict(char.stat)
+		assert dict(char.stat) == dict(fac.stat)
 
 
 # TODO parametrize bunch of characters
