@@ -2077,16 +2077,6 @@ class Engine(AbstractEngine, Executor):
 		self._otick = self._oturn = 0
 		if logger is not None:
 			self._logger = logger
-		if "PYTHONHASHSEED" not in os.environ:
-			self.logger.warning(
-				"Lisien is starting with a random Python hash seed. "
-				"This may cause unexpected randomness in iterating over "
-				"sets and dictionaries. Lisien can't see the hash seed, "
-				"so the usual way randomness works, where it's the same random "
-				"outcome if everything else was, may not always work now. "
-				"If this is a problem, set the environment variable "
-				"PYTHONHASHSEED to 0 before running Python."
-			)
 		worker_handler = StreamHandler()
 		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
 		worker_handler.setLevel(DEBUG)
