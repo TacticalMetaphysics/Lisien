@@ -509,7 +509,7 @@ class GraphMapping(AbstractEntityMapping):
 		yield from iter_entity_keys(graphn, *btt())
 
 	def __repr__(self):
-		return f"<{self.__class__.__name__} for {self.graph.name} containing {dict(self)}>"
+		return f"<{self.__class__.__name__} for {self.graph.name} containing {dict(unwrap_items(self.items()))}>"
 
 	def _cache_contains(self, key, branch, turn, tick):
 		contains_key, graphn = self._cache_contains_stuff
