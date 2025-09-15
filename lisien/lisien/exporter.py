@@ -68,10 +68,10 @@ from lisien.util import AbstractEngine, sort_set
 @dataclass
 class Exporter:
 	db: AbstractDatabaseConnector
+	engine: AbstractEngine = field(default_factory=partial(EngineFacade, None))
 	tree: ElementTree = field(
 		default_factory=lambda: ElementTree(Element("lisien"))
 	)
-	engine: AbstractEngine = field(default_factory=partial(EngineFacade, None))
 
 	def db_to_etree(self, name: str) -> ElementTree:
 		root = self.tree.getroot()
@@ -489,6 +489,10 @@ class Exporter:
 		indent: bool = True,
 	) -> None:
 		if not isinstance(path, os.PathLike):
+			if path is None:
+				if name is None:
+					raise ValueError("Need a name or a path")
+				path = os.path.join(os.getcwd(), name + ".xml")
 			path = Path(path)
 		if name is None:
 			name = os.path.basename(path)

@@ -4573,8 +4573,8 @@ def engine_subprocess(
 			)
 		)
 
-	engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
-	send_output("get_btt", engine_handle.get_btt())
+	engine_handle = None
+	n = len("from_archive")
 	while True:
 		inst = input_pipe.recv_bytes()
 		if inst == b"shutdown":
@@ -4583,6 +4583,14 @@ def engine_subprocess(
 			if log_queue:
 				log_queue.close()
 			return 0
+		elif inst[:n] == b"from_archive":
+			if engine_handle is not None:
+				engine_handle.close()
+			engine_handle = EngineHandle.from_archive(inst[n:])
+			send_output("get_btt", engine_handle.get_btt())
+		elif engine_handle is None:
+			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
+			send_output("get_btt", engine_handle.get_btt())
 		instruction = engine_handle.unpack(zlib.decompress(inst))
 		_engine_subroutine_step(
 			engine_handle, instruction, send_output, send_output_bytes
@@ -4602,13 +4610,22 @@ def engine_subthread(args, kwargs, input_queue, output_queue):
 			)
 		)
 
-	engine_handle = EngineHandle(*args, **kwargs)
-	send_output("get_btt", engine_handle.get_btt())
+	engine_handle = None
 
 	while True:
 		instruction = input_queue.get()
 		if instruction == "shutdown" or instruction == b"shutdown":
 			return
+		if (
+			isinstance(instruction, tuple)
+			and instruction
+			and instruction[0] == "from_archive"
+		):
+			engine_handle = EngineHandle.from_archive(instruction[1])
+			send_output("get_btt", engine_handle.get_btt())
+		if engine_handle is None:
+			engine_handle = EngineHandle(*args, **kwargs)
+			send_output("get_btt", engine_handle.get_btt())
 		_engine_subroutine_step(
 			engine_handle, instruction, send_output, send_output_bytes
 		)
@@ -4756,11 +4773,7 @@ class EngineProcessManager:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
 
-	def start(self, *args, **kwargs):
-		"""Start lisien in a subprocess, and return a proxy to it"""
-		if hasattr(self, "engine_proxy"):
-			raise RuntimeError("Already started")
-		self._config_logger(kwargs)
+	def _start_subprocess(self, *args, **kwargs):
 		try:
 			import android
 		except ImportError:
@@ -4774,13 +4787,6 @@ class EngineProcessManager:
 					duplex=False
 				)
 				self._logq = SimpleQueue()
-		install_modules = (
-			kwargs.pop("install_modules")
-			if "install_modules" in kwargs
-			else []
-		)
-		enforce_end_of_time = kwargs.get("enforce_end_of_time", False)
-
 		if hasattr(self, "_handle_in_pipe") and hasattr(
 			self, "_handle_out_pipe"
 		):
@@ -4798,13 +4804,6 @@ class EngineProcessManager:
 				kwargs={"log_queue": self._logq},
 			)
 			self._p.start()
-			self.engine_proxy = EngineProxy(
-				self._proxy_in_pipe,
-				self._proxy_out_pipe,
-				self.logger,
-				install_modules,
-				enforce_end_of_time=enforce_end_of_time,
-			)
 		else:
 			from queue import SimpleQueue
 
@@ -4822,6 +4821,27 @@ class EngineProcessManager:
 			)
 			self._t.start()
 
+	def _make_proxy(self, *args, **kwargs):
+		self._config_logger(kwargs)
+		install_modules = (
+			kwargs.pop("install_modules")
+			if "install_modules" in kwargs
+			else []
+		)
+		if not hasattr(self, "_t"):
+			self._start_subprocess(*args, **kwargs)
+		enforce_end_of_time = kwargs.get("enforce_end_of_time", False)
+		if hasattr(self, "_handle_in_pipe") and hasattr(
+			self, "_handle_out_pipe"
+		):
+			self.engine_proxy = EngineProxy(
+				self._proxy_in_pipe,
+				self._proxy_out_pipe,
+				self.logger,
+				install_modules,
+				enforce_end_of_time=enforce_end_of_time,
+			)
+		else:
 			self.engine_proxy = EngineProxy(
 				self._input_queue,
 				self._output_queue,
@@ -4830,6 +4850,40 @@ class EngineProcessManager:
 				enforce_end_of_time=enforce_end_of_time,
 			)
 
+		return self.engine_proxy
+
+	def load_archive(
+		self,
+		archive_path: str | os.PathLike,
+		prefix: str | os.PathLike,
+		**kwargs,
+	) -> EngineProxy:
+		"""Load a game from a .lisien archive, start Lisien on it, and return its proxy"""
+		n = len(".lisien")
+		if archive_path[n:] != ".lisien":
+			raise RuntimeError("Not a .lisien archive")
+		self._start_subprocess()
+		if hasattr(self, "_proxy_in_pipe"):
+			self._proxy_in_pipe.send(
+				b"from_archive"
+				+ msgpack.packb(
+					{"archive_path": archive_path, "prefix": prefix, **kwargs}
+				)
+			)
+		else:
+			self._input_queue.put(
+				(
+					"from_archive",
+					{"archive_path": archive_path, "prefix": prefix, **kwargs},
+				)
+			)
+		return self._make_proxy()
+
+	def start(self, *args, **kwargs) -> EngineProxy:
+		"""Start lisien in a subprocess, and return a proxy to it"""
+		if hasattr(self, "engine_proxy"):
+			raise RuntimeError("Already started")
+		self._make_proxy(*args, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
