@@ -22,7 +22,6 @@ of themselves to allegedb every time they are changed.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 from collections.abc import (
 	Container,
 	Iterable,
@@ -45,7 +44,7 @@ if TYPE_CHECKING:
 class OrderedSet(Set, MutableSet):
 	def __init__(self, data: Iterable[Hashable] = ()):
 		super().__init__()
-		self._data = OrderedDict()
+		self._data = {}
 		for k in data:
 			self._data[k] = True
 
@@ -132,8 +131,8 @@ class OrderedSet(Set, MutableSet):
 	def remove(self, value):
 		del self._data[value]
 
-	def pop(self, last=True):
-		k, _ = self._data.popitem(last)
+	def pop(self):
+		k, _ = self._data.popitem()
 		return k
 
 	def clear(self):
@@ -307,7 +306,7 @@ class MutableMappingWrapper(
 		return unwrap_items(self.items())
 
 
-class SubDictWrapper(MutableMappingWrapper, OrderedDict):
+class SubDictWrapper(MutableMappingWrapper, dict):
 	__slots__ = ("_getter", "_set")
 	_getter: Callable
 	_set: Callable
@@ -318,10 +317,10 @@ class SubDictWrapper(MutableMappingWrapper, OrderedDict):
 		self._set = setter
 
 	def _copy(self):
-		return OrderedDict(self._getter())
+		return dict(self._getter())
 
 	def _subset(self, k, v):
-		new = OrderedDict(self._getter())
+		new = dict(self._getter())
 		new[k] = v
 		self._set(new)
 
@@ -481,8 +480,8 @@ class SubSetWrapper(MutableWrapperSet):
 		return OrderedSet(self._getter())
 
 
-def unwrap_items(it: Iterable[tuple[Any, Any]]) -> OrderedDict:
-	ret = OrderedDict()
+def unwrap_items(it: Iterable[tuple[Any, Any]]) -> dict:
+	ret = {}
 	for k, v in it:
 		if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):
 			ret[k] = v.unwrap()
@@ -491,7 +490,7 @@ def unwrap_items(it: Iterable[tuple[Any, Any]]) -> OrderedDict:
 	return ret
 
 
-class DictWrapper(MutableMappingWrapper, OrderedDict):
+class DictWrapper(MutableMappingWrapper, dict):
 	"""A dictionary synchronized with a serialized field.
 
 	This is meant to be used in allegedb entities (graph, node, or
@@ -509,7 +508,7 @@ class DictWrapper(MutableMappingWrapper, OrderedDict):
 		self._key = key
 
 	def _copy(self):
-		return OrderedDict(self._getter())
+		return dict(self._getter())
 
 	def _set(self, v):
 		self._outer[self._key] = v
