@@ -41,7 +41,13 @@ if TYPE_CHECKING:
 	from .util import AbstractCharacter
 
 
-class OrderedSet(set, Set, MutableSet):
+class OrderlySet(set, Set, MutableSet):
+	"""A set with deterministic order of iteration
+
+	Order is not regarded as significant for the purposes of equality.
+
+	"""
+
 	def __init__(self, data: Iterable[Hashable] = ()):
 		super().__init__()
 		self._data = {}
@@ -49,16 +55,16 @@ class OrderedSet(set, Set, MutableSet):
 			self._data[k] = True
 
 	def copy(self):
-		return OrderedSet(self._data.copy())
+		return OrderlySet(self._data.copy())
 
 	def difference(self, *s):
-		return OrderedSet(self._data.keys() - s)
+		return OrderlySet(self._data.keys() - s)
 
 	def difference_update(self, *s):
 		self._data = {k: True for k in self._data.keys() - s}
 
 	def intersection(self, *s):
-		return OrderedSet(self._data.keys() & s)
+		return OrderlySet(self._data.keys() & s)
 
 	def intersection_update(self, *s):
 		self._data = {k: True for k in self._data.keys() & s}
@@ -74,7 +80,7 @@ class OrderedSet(set, Set, MutableSet):
 		return self._data.keys() >= __s
 
 	def symmetric_difference(self, __s):
-		return OrderedSet(self._data.keys() ^ __s)
+		return OrderlySet(self._data.keys() ^ __s)
 
 	def symmetric_difference_update(self, __s):
 		self._data = {k: True for k in self._data.keys() ^ __s}
@@ -173,13 +179,13 @@ class OrderedSet(set, Set, MutableSet):
 		return self._data.keys() >= other
 
 	def __and__(self, other):
-		return OrderedSet(self._data.keys() & other)
+		return OrderlySet(self._data.keys() & other)
 
 	def __or__(self, other):
-		return OrderedSet(self._data.keys() | other)
+		return OrderlySet(self._data.keys() | other)
 
 	def __sub__(self, other):
-		return OrderedSet(self._data.keys() - other)
+		return OrderlySet(self._data.keys() - other)
 
 	def __xor__(self, other):
 		return super().__xor__(other)
@@ -376,7 +382,7 @@ class MutableWrapperSet(MutableWrapper, MutableSet, Set, set):
 	_set: Callable
 
 	def _copy(self):
-		return OrderedSet(self._getter())
+		return OrderlySet(self._getter())
 
 	def pop(self):
 		me = self._copy()
@@ -401,7 +407,7 @@ class MutableWrapperSet(MutableWrapper, MutableSet, Set, set):
 
 	def unwrap(self):
 		"""Deep copy myself as a set, all contents unwrapped"""
-		unwrapped = OrderedSet()
+		unwrapped = OrderlySet()
 		for v in self:
 			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):
 				unwrapped.add(v.unwrap())
@@ -410,7 +416,7 @@ class MutableWrapperSet(MutableWrapper, MutableSet, Set, set):
 		return unwrapped
 
 	def clear(self):
-		self._set(OrderedSet())
+		self._set(OrderlySet())
 
 	def __repr__(self):
 		return f"<{type(self).__name__} containing {set(self._getter())}>"
@@ -448,16 +454,16 @@ class MutableWrapperSet(MutableWrapper, MutableSet, Set, set):
 		return self._getter() >= other
 
 	def __and__(self, other):
-		return OrderedSet(self._getter() & other)
+		return OrderlySet(self._getter() & other)
 
 	def __or__(self, other):
-		return OrderedSet(self._getter() | other)
+		return OrderlySet(self._getter() | other)
 
 	def __sub__(self, other):
-		return OrderedSet(self._getter() - other)
+		return OrderlySet(self._getter() - other)
 
 	def __xor__(self, other):
-		return OrderedSet(self._getter() ^ other)
+		return OrderlySet(self._getter() ^ other)
 
 	def __eq__(self, other):
 		return self._getter() == other
@@ -477,7 +483,7 @@ class SubSetWrapper(MutableWrapperSet):
 		self._set = setter
 
 	def _copy(self):
-		return OrderedSet(self._getter())
+		return OrderlySet(self._getter())
 
 
 def unwrap_items(it: Iterable[tuple[Any, Any]]) -> dict:

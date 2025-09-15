@@ -110,7 +110,7 @@ from ..util import (
 from ..wrap import (
 	DictWrapper,
 	ListWrapper,
-	OrderedSet,
+	OrderlySet,
 	SetWrapper,
 	UnwrappingDict,
 )
@@ -4512,7 +4512,7 @@ def _engine_subroutine_step(
 	branching = instruction.pop("branching", False)
 	command = getattr(handle, cmd)
 	builtins = __builtins__.copy()
-	builtins["set"] = OrderedSet
+	builtins["set"] = OrderlySet
 	globls = globals().copy()
 	globls["__builtins__"] = builtins
 	r = None

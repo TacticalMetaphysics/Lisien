@@ -41,7 +41,7 @@ from .wrap import (
 	ListWrapper,
 	SetWrapper,
 	MutableMappingUnwrapper,
-	OrderedSet,
+	OrderlySet,
 	SpecialMapping,
 	wrapval,
 	unwrap_items,
@@ -96,7 +96,7 @@ _Value: TypeAlias = (
 	| ListWrapper
 	| SetWrapper
 	| Set["_Value"]
-	| OrderedSet["_Value"]
+	| OrderlySet["_Value"]
 	| Mapping[_Key, "_Value"]
 	| type(...)
 )

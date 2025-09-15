@@ -198,7 +198,7 @@ from .collections import (
 	StringStore,
 	UniversalMapping,
 )
-from .wrap import OrderedSet
+from .wrap import OrderlySet
 
 SUBPROCESS_TIMEOUT = 30
 if "LISIEN_SUBPROCESS_TIMEOUT" in os.environ:
@@ -4678,7 +4678,7 @@ class Engine(AbstractEngine, Executor):
 			self._futs_to_start.put(ret)
 		else:
 			builtins = __builtins__.copy()
-			builtins["set"] = OrderedSet
+			builtins["set"] = OrderlySet
 			globls = globals().copy()
 			ret = eval(
 				"fake_submit(fn, *args, **kwargs)",
@@ -6434,7 +6434,7 @@ class Engine(AbstractEngine, Executor):
 			f"checking prereqs for rule {rule.name} on entity {self._fmtent(entity)}"
 		)
 		builtins = __builtins__.copy()
-		builtins["set"] = OrderedSet
+		builtins["set"] = OrderlySet
 		globls = globals().copy()
 		globls["__builtins__"] = builtins
 		if eval(
