@@ -103,7 +103,7 @@ class OrderlySet(set):
 			self._data[k] = True
 
 	def __repr__(self):
-		return f"OrderedSet({set(self._data.keys())})"
+		return repr(set(self))
 
 	def __iter__(self):
 		return iter(self._data.keys())
@@ -260,6 +260,9 @@ class OrderlyFrozenSet(frozenset):
 
 	def __iter__(self):
 		return iter(self._data)
+
+	def __repr__(self):
+		return repr(frozenset(self))
 
 	def copy(self):
 		return OrderlyFrozenSet(self._data)
