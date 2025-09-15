@@ -39,6 +39,7 @@ from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
 from random import Random
+from tempfile import TemporaryDirectory
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
@@ -99,7 +100,9 @@ from .exc import (
 	OutOfTimelineError,
 	RedundantRuleError,
 )
+from .exporter import Exporter
 from .facade import CharacterFacade
+from .importer import xml_to_sqlite, xml_to_pqdb
 from .node import Place, Thing
 from .portal import Portal
 from .proxy import worker_subprocess
@@ -2135,37 +2138,38 @@ class Engine(AbstractEngine, Executor):
 		main_branch: Branch,
 		clear: bool,
 	):
-		if prefix is None:
-			if connect_string is None:
-				self.query = NullDatabaseConnector()
+		if not hasattr(self, "query"):
+			if prefix is None:
+				if connect_string is None:
+					self.query = NullDatabaseConnector()
+				else:
+					self.query = SQLAlchemyDatabaseConnector(
+						connect_string,
+						connect_args or {},
+						self.pack,
+						self.unpack,
+						clear=clear,
+					)
 			else:
-				self.query = SQLAlchemyDatabaseConnector(
-					connect_string,
-					connect_args or {},
-					self.pack,
-					self.unpack,
-					clear=clear,
-				)
-		else:
-			if not os.path.exists(prefix):
-				os.mkdir(prefix)
-			if not os.path.isdir(prefix):
-				raise FileExistsError("Need a directory")
-			if connect_string is None:
-				self.query = ParquetDatabaseConnector(
-					os.path.join(prefix, "world"),
-					self.pack,
-					self.unpack,
-					clear=clear,
-				)
-			else:
-				self.query = SQLAlchemyDatabaseConnector(
-					connect_string,
-					connect_args or {},
-					self.pack,
-					self.unpack,
-					clear=clear,
-				)
+				if not os.path.exists(prefix):
+					os.mkdir(prefix)
+				if not os.path.isdir(prefix):
+					raise FileExistsError("Need a directory")
+				if connect_string is None:
+					self.query = ParquetDatabaseConnector(
+						os.path.join(prefix, "world"),
+						self.pack,
+						self.unpack,
+						clear=clear,
+					)
+				else:
+					self.query = SQLAlchemyDatabaseConnector(
+						connect_string,
+						connect_args or {},
+						self.pack,
+						self.unpack,
+						clear=clear,
+					)
 
 		self.query.keyframe_interval = keyframe_interval
 		self._load_keyframe_times()
@@ -7272,3 +7276,83 @@ class Engine(AbstractEngine, Executor):
 		game_start = importlib.util.module_from_spec(spec)
 		loader.exec_module(game_start)
 		game_start.game_start(self)
+
+	@classmethod
+	def from_archive(
+		cls,
+		archive_path: str | os.PathLike,
+		prefix: str | os.PathLike = ".",
+		**kwargs,
+	) -> Engine:
+		"""Make a new Lisien engine out of an archive exported from another engine"""
+		shutil.unpack_archive(archive_path, prefix)
+		extracted = os.listdir(prefix)
+		if "world.xml" in extracted:
+			xml_path = os.path.join(prefix, "world.xml")
+			if "connect_string" in kwargs:
+				xml_to_sqlite(xml_path, os.path.join(prefix, "world.sqlite3"))
+			else:
+				os.makedirs(os.path.join(prefix, "world"), exist_ok=True)
+				xml_to_pqdb(xml_path, os.path.join(prefix, "world"))
+		return Engine(prefix, **kwargs)
+
+	def export(
+		self,
+		name: str | None = None,
+		path: str | os.PathLike | None = None,
+		indent: bool = True,
+	) -> None:
+		if path is None:
+			if name is None:
+				raise ValueError(
+					"Need a path to export to, or at least a name"
+				)
+			path = os.path.join(os.getcwd(), f"{name}.lisien")
+		with TemporaryDirectory() as td:
+			xml_path = os.path.join(td, "world.xml")
+			Exporter(self.query, self).write_xml(xml_path, name, indent)
+			if isinstance(self.string, StringStore):
+				self.string.save()
+				shutil.copytree(
+					self.string._prefix, os.path.join(td, "strings")
+				)
+			elif isinstance(self.string, dict):
+				import json
+
+				for lang, strings in self.string.items():
+					os.makedirs(os.path.join(td, "strings"), exist_ok=True)
+					with open(os.path.join(td, "strings", lang), "wt") as outf:
+						json.dump(strings, outf)
+			else:
+				self.error(
+					f"Couldn't save strings; don't know how to save {type(self.string)}"
+				)
+			for store in self.stores:
+				if store is self.string:
+					continue
+				if isinstance(store, FunctionStore):
+					with open(
+						os.path.join(td, store.__name__ + ".py"), "wt"
+					) as outf:
+						for _, function in store.iterplain():
+							outf.write(function + "\n\n")
+				elif hasattr(store, "__file__"):
+					shutil.copyfile(
+						store.__file__,
+						os.path.join(td, os.path.basename(store.__file__)),
+					)
+				else:
+					self.error(
+						f"Couldn't export {store}, because we don't know what file it's in"
+					)
+			archived = shutil.make_archive(name + ".zip", td, td)
+		shutil.move(archived, path)
+
+		try:
+			from androidstorage4kivy import SharedStorage
+		except ModuleNotFoundError:
+			return
+		if not hasattr(self, "_shared_storage"):
+			self._shared_storage = SharedStorage()
+		ss = self._shared_storage
+		ss.copy_to_shared(path)

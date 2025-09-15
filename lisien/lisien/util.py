@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import gc
+import os
 import sys
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -562,6 +563,7 @@ class AbstractEngine(ABC):
 		return self.is_ancestor_of(parent, self.branch_parent(child))
 
 	@cached_property
+	@classmethod
 	def pack(self) -> Callable[[Value], bytes]:
 		try:
 			from lise_ormsgpack import packb
@@ -679,6 +681,7 @@ class AbstractEngine(ABC):
 		return packer
 
 	@cached_property
+	@classmethod
 	def unpack(
 		self,
 	) -> Callable[
@@ -952,6 +955,23 @@ class AbstractEngine(ABC):
 	):
 		self.add_character(name, data)
 		return self.character[name]
+
+	@abstractmethod
+	def export(
+		self,
+		name: str | None,
+		path: str | os.PathLike | None = None,
+		indent: bool = True,
+	) -> None: ...
+
+	@classmethod
+	@abstractmethod
+	def from_archive(
+		cls,
+		path: str | os.PathLike,
+		prefix: str | os.PathLike | None = ".",
+		**kwargs,
+	) -> AbstractEngine: ...
 
 	def coin_flip(self) -> bool:
 		"""Return True or False with equal probability."""
