@@ -104,6 +104,7 @@ def test_import(tmp_path, exported, non_null_database, engine_facade):
 	):
 		test_data = list(getattr(test_engine, dump_method)())
 		correct_data = list(getattr(correct_engine, dump_method)())
+		print(dump_method)
 		assert test_data == correct_data, (
 			dump_method + " gave different results"
 		)
