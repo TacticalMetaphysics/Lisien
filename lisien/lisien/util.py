@@ -569,6 +569,12 @@ class AbstractEngine(ABC):
 			return packb
 		except ImportError:
 			pass
+
+		def pack_set(s):
+			return msgpack.ExtType(
+				MsgpackExtensionType.set.value, packer(list(s))
+			)
+
 		handlers = {
 			type(...): lambda _: msgpack.ExtType(
 				MsgpackExtensionType.ellipsis.value, b""
@@ -602,9 +608,7 @@ class AbstractEngine(ABC):
 			frozenset: lambda frozs: msgpack.ExtType(
 				MsgpackExtensionType.frozenset.value, packer(list(frozs))
 			),
-			set: lambda s: msgpack.ExtType(
-				MsgpackExtensionType.set.value, packer(list(s))
-			),
+			set: pack_set,
 			FunctionType: lambda func: msgpack.ExtType(
 				getattr(MsgpackExtensionType, func.__module__).value,
 				packer(func.__name__),
@@ -658,6 +662,8 @@ class AbstractEngine(ABC):
 						]
 					),
 				)
+			elif isinstance(obj, Set):
+				return pack_set(obj)
 			elif isinstance(obj, Mapping):
 				return dict(obj)
 			elif isinstance(obj, list):

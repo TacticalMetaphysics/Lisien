@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Set, Mapping, Sequence
 from itertools import chain
 from types import GenericAlias
 from typing import (
@@ -31,10 +31,11 @@ from typing import (
 	TYPE_CHECKING,
 )
 
+from annotated_types import Ge
 import networkx
 import networkx as nx
-from annotated_types import Ge
 from networkx import NetworkXError
+from ordered_set import OrderedSet
 
 from .wrap import (
 	DictWrapper,
@@ -43,6 +44,7 @@ from .wrap import (
 	MutableMappingUnwrapper,
 	SpecialMapping,
 	wrapval,
+	unwrap_items,
 )
 
 if TYPE_CHECKING:
@@ -93,6 +95,9 @@ _Value: TypeAlias = (
 	| DictWrapper
 	| ListWrapper
 	| SetWrapper
+	| Set["_Value"]
+	| OrderedSet["_Value"]
+	| Mapping[_Key, "_Value"]
 	| type(...)
 )
 
@@ -111,9 +116,7 @@ def is_valid_value(obj: _Value) -> TypeGuard[Value]:
 			and all(map(is_valid_value, obj.values()))
 		)
 		or (
-			isinstance(
-				obj, (tuple, list, set, frozenset, ListWrapper, SetWrapper)
-			)
+			isinstance(obj, (Set, Sequence))
 			and isinstance(obj, Iterable)
 			and all(map(is_valid_value, obj))
 		)
@@ -556,12 +559,7 @@ class GraphMapping(AbstractEntityMapping):
 			del self[k]
 
 	def unwrap(self):
-		return {
-			k: v.unwrap()
-			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
-			else v
-			for (k, v) in self.items()
-		}
+		return unwrap_items(self.items())
 
 	def __eq__(self, other):
 		if hasattr(other, "unwrap"):

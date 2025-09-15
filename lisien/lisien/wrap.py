@@ -22,24 +22,171 @@ of themselves to allegedb every time they are changed.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from collections.abc import (
 	Container,
 	Iterable,
 	Mapping,
 	MutableMapping,
 	MutableSequence,
-	MutableSet,
 	Sequence,
 	Sized,
 )
 from functools import partial
 from itertools import zip_longest
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Any, MutableSet, Hashable, Set
 
 from blinker import Signal
 
 if TYPE_CHECKING:
 	from .util import AbstractCharacter
+
+
+class OrderedSet(MutableSet, Set):
+	def __init__(self, data: Iterable[Hashable] = ()):
+		super().__init__()
+		self._data = OrderedDict()
+		for k in data:
+			self._data[k] = True
+
+	def copy(self):
+		return OrderedSet(self._data)
+
+	def difference(self, *s):
+		return OrderedSet(self._data.keys() - s)
+
+	def difference_update(self, *s):
+		self._data = {k: True for k in self._data.keys() - s}
+
+	def intersection(self, *s):
+		return OrderedSet(self._data.keys() & s)
+
+	def intersection_update(self, *s):
+		self._data = {k: True for k in self._data.keys() & s}
+
+	def issubset(self, __s):
+		if not isinstance(__s, Set):
+			__s = set(__s)
+		return self._data.keys() <= __s
+
+	def issuperset(self, __s):
+		if not isinstance(__s, Set):
+			__s = set(__s)
+		return self._data.keys() >= __s
+
+	def symmetric_difference(self, __s):
+		return OrderedSet(self._data.keys() ^ __s)
+
+	def symmetric_difference_update(self, __s):
+		self._data = {k: True for k in self._data.keys() ^ __s}
+
+	def union(self, *s):
+		self._data.update({k: True for k in s})
+
+	def __repr__(self):
+		return f"OrderedSet({set(self._data.keys())})"
+
+	def __iter__(self):
+		return iter(self._data.keys())
+
+	def __len__(self):
+		return len(self._data)
+
+	def __contains__(self, item):
+		return item in self._data
+
+	def __eq__(self, other):
+		if not isinstance(other, Set):
+			return False
+		if len(self) != len(other):
+			return False
+		return self._data.keys() == other
+
+	def __ne__(self, other):
+		if not isinstance(other, Set):
+			return True
+		return self._data.keys() != other
+
+	def __isub__(self, it):
+		for item in it:
+			self.remove(item)
+
+	def __ixor__(self, it):
+		for item in list(self):
+			if item in it:
+				self.remove(item)
+		for item in it:
+			if item in self:
+				self.remove(item)
+			else:
+				self.add(item)
+
+	def __iand__(self, it):
+		for item in list(self):
+			if item not in it:
+				self.remove(item)
+
+	def __ior__(self, it):
+		self.update(it)
+
+	def remove(self, value):
+		del self._data[value]
+
+	def pop(self, last=True):
+		k, _ = self._data.popitem(last)
+		return k
+
+	def clear(self):
+		self._data.clear()
+
+	def add(self, item):
+		self._data[item] = True
+
+	def discard(self, value):
+		if value in self._data:
+			del self._data[value]
+
+	def update(self, it):
+		for item in it:
+			self.add(item)
+
+	def __copy__(self):
+		return OrderedSet(self._data)
+
+	def __le__(self, other):
+		if not isinstance(other, Set):
+			return False
+		return self._data.keys() <= other
+
+	def __lt__(self, other):
+		if not isinstance(other, Set):
+			return False
+		return self._data.keys() < other
+
+	def __gt__(self, other):
+		if not isinstance(other, Set):
+			return False
+		return self._data.keys() > other
+
+	def __ge__(self, other):
+		if not isinstance(other, Set):
+			return False
+		return self._data.keys() >= other
+
+	def __and__(self, other):
+		return OrderedSet(self._data.keys() & other)
+
+	def __or__(self, other):
+		return OrderedSet(self._data.keys() | other)
+
+	def __sub__(self, other):
+		return OrderedSet(self._data.keys() - other)
+
+	def __xor__(self, other):
+		return super().__xor__(other)
+
+	def isdisjoint(self, other):
+		return super().isdisjoint(other)
 
 
 class SpecialMapping(Mapping, Signal, ABC):
@@ -137,23 +284,17 @@ class MutableMappingUnwrapper(MutableMapping, ABC):
 		for k in self.keys():
 			me = self[k]
 			you = other[k]
-			if hasattr(me, "unwrap"):
+			if hasattr(me, "unwrap") and not hasattr(me, "no_unwrap"):
 				me = me.unwrap()
-			if hasattr(you, "unwrap"):
+			if hasattr(you, "unwrap") and not hasattr(you, "no_unwrap"):
 				you = you.unwrap()
 			if me != you:
 				return False
 		else:
 			return True
 
-	def unwrap(self):
-		"""Deep copy myself as a dict, all contents unwrapped"""
-		return {
-			k: v.unwrap()
-			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
-			else v
-			for (k, v) in self.items()
-		}
+	def __repr__(self):
+		return f"<{type(self).__name__} {unwrap_items(self.items())}>"
 
 
 class MutableMappingWrapper(
@@ -163,10 +304,10 @@ class MutableMappingWrapper(
 		return MutableMappingUnwrapper.__eq__(self, other)
 
 	def unwrap(self):
-		return MutableMappingUnwrapper.unwrap(self)
+		return unwrap_items(self.items())
 
 
-class SubDictWrapper(MutableMappingWrapper, dict):
+class SubDictWrapper(MutableMappingWrapper, OrderedDict):
 	__slots__ = ("_getter", "_set")
 	_getter: Callable
 	_set: Callable
@@ -177,10 +318,10 @@ class SubDictWrapper(MutableMappingWrapper, dict):
 		self._set = setter
 
 	def _copy(self):
-		return dict(self._getter())
+		return OrderedDict(self._getter())
 
 	def _subset(self, k, v):
-		new = dict(self._getter())
+		new = OrderedDict(self._getter())
 		new[k] = v
 		self._set(new)
 
@@ -230,13 +371,13 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		self._set(me)
 
 
-class MutableWrapperSet(MutableWrapper, MutableSet):
+class MutableWrapperSet(MutableWrapper, MutableSet, Set):
 	__slots__ = ()
 	_getter: Callable
 	_set: Callable
 
 	def _copy(self):
-		return set(self._getter())
+		return OrderedSet(self._getter())
 
 	def pop(self):
 		me = self._copy()
@@ -261,15 +402,72 @@ class MutableWrapperSet(MutableWrapper, MutableSet):
 
 	def unwrap(self):
 		"""Deep copy myself as a set, all contents unwrapped"""
-		return {
-			v.unwrap()
-			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap")
-			else v
-			for v in self
-		}
+		unwrapped = OrderedSet()
+		for v in self:
+			if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):
+				unwrapped.add(v.unwrap())
+			else:
+				unwrapped.add(v)
+		return unwrapped
+
+	def clear(self):
+		self._set(OrderedSet())
+
+	def __repr__(self):
+		return f"<{type(self).__name__} containing {set(self._getter())}>"
+
+	def __ior__(self, it):
+		me = self._copy()
+		me |= it
+		self._set(me)
+
+	def __iand__(self, it):
+		me = self._copy()
+		me &= it
+		self._set(me)
+
+	def __ixor__(self, it):
+		me = self._copy()
+		me ^= it
+		self._set(me)
+
+	def __isub__(self, it):
+		me = self._copy()
+		me -= it
+		self._set(me)
+
+	def __le__(self, other):
+		return self._getter() <= other
+
+	def __lt__(self, other):
+		return self._getter() < other
+
+	def __gt__(self, other):
+		return self._getter() > other
+
+	def __ge__(self, other):
+		return self._getter() >= other
+
+	def __and__(self, other):
+		return OrderedSet(self._getter() & other)
+
+	def __or__(self, other):
+		return OrderedSet(self._getter() | other)
+
+	def __sub__(self, other):
+		return OrderedSet(self._getter() - other)
+
+	def __xor__(self, other):
+		return OrderedSet(self._getter() ^ other)
+
+	def __eq__(self, other):
+		return self._getter() == other
+
+	def isdisjoint(self, other):
+		return self._getter().isdisjoint(other)
 
 
-class SubSetWrapper(MutableWrapperSet, set):
+class SubSetWrapper(MutableWrapperSet):
 	__slots__ = ("_getter", "_set")
 	_getter: Callable
 	_set: Callable
@@ -280,10 +478,20 @@ class SubSetWrapper(MutableWrapperSet, set):
 		self._set = setter
 
 	def _copy(self):
-		return set(self._getter())
+		return OrderedSet(self._getter())
 
 
-class DictWrapper(MutableMappingWrapper, dict):
+def unwrap_items(it: Iterable[tuple[Any, Any]]) -> OrderedDict:
+	ret = OrderedDict()
+	for k, v in it:
+		if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):
+			ret[k] = v.unwrap()
+		else:
+			ret[k] = v
+	return ret
+
+
+class DictWrapper(MutableMappingWrapper, OrderedDict):
 	"""A dictionary synchronized with a serialized field.
 
 	This is meant to be used in allegedb entities (graph, node, or
@@ -301,13 +509,13 @@ class DictWrapper(MutableMappingWrapper, dict):
 		self._key = key
 
 	def _copy(self):
-		return dict(self._getter())
+		return OrderedDict(self._getter())
 
 	def _set(self, v):
 		self._outer[self._key] = v
 
 
-class ListWrapper(MutableWrapperDictList, MutableSequence, list):
+class ListWrapper(MutableWrapperDictList, MutableSequence):
 	"""A list synchronized with a serialized field.
 
 	This is meant to be used in allegedb entities (graph, node, or
@@ -363,7 +571,7 @@ class ListWrapper(MutableWrapperDictList, MutableSequence, list):
 		]
 
 
-class SetWrapper(MutableWrapperSet, set):
+class SetWrapper(MutableWrapperSet):
 	"""A set synchronized with a serialized field.
 
 	This is meant to be used in allegedb entities (graph, node, or
