@@ -33,7 +33,7 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import zip_longest
-from typing import TYPE_CHECKING, Callable, Any, MutableSet, Hashable, Set
+from typing import TYPE_CHECKING, Callable, Any, Hashable, Set
 
 from blinker import Signal
 
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 	from .util import AbstractCharacter
 
 
-class OrderlySet(set, Set, MutableSet):
+class OrderlySet(set):
 	"""A set with deterministic order of iteration
 
 	Order is not regarded as significant for the purposes of equality.
@@ -440,7 +440,7 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		self._set(me)
 
 
-class MutableWrapperSet(MutableWrapper, MutableSet, Set, set):
+class MutableWrapperSet(MutableWrapper, set):
 	__slots__ = ()
 	_getter: Callable
 	_set: Callable
