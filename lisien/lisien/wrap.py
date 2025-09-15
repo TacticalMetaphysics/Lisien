@@ -370,7 +370,7 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		self._set(me)
 
 
-class MutableWrapperSet(MutableWrapper, MutableSet):
+class MutableWrapperSet(MutableWrapper, MutableSet, Set):
 	__slots__ = ()
 	_getter: Callable
 	_set: Callable
