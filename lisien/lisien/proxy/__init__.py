@@ -107,7 +107,13 @@ from ..util import (
 	getatt,
 	repr_call_sig,
 )
-from ..wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
+from ..wrap import (
+	DictWrapper,
+	ListWrapper,
+	OrderedSet,
+	SetWrapper,
+	UnwrappingDict,
+)
 from ..collections import (
 	AbstractLanguageDescriptor,
 	FunctionStore,
@@ -4504,16 +4510,29 @@ def _engine_subroutine_step(
 	silent = instruction.pop("silent", False)
 	cmd = instruction.pop("command")
 	branching = instruction.pop("branching", False)
+	command = getattr(handle, cmd)
+	builtins = __builtins__.copy()
+	builtins["set"] = OrderedSet
+	globls = globals().copy()
+	globls["__builtins__"] = builtins
 	r = None
+
+	def do_it():
+		return eval(
+			"command(**instruction)",
+			globls,
+			{"command": command, "instruction": instruction},
+		)
+
 	try:
 		if branching:
 			try:
-				r = getattr(handle, cmd)(**instruction)
+				r = do_it()
 			except OutOfTimelineError:
 				handle.increment_branch()
-				r = getattr(handle, cmd)(**instruction)
+				r = do_it()
 		else:
-			r = getattr(handle, cmd)(**instruction)
+			r = do_it()
 	except AssertionError:
 		raise
 	except Exception as ex:
