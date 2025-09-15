@@ -526,12 +526,15 @@ class ParquetDBLooper(ConnectionLooper):
 		)
 
 	def list_keyframes(self) -> list:
-		return (
-			self._get_db("keyframes")
-			.read(
-				columns=["graph", "branch", "turn", "tick"],
-			)
-			.to_pylist()
+		return sorted(
+			(
+				self._get_db("keyframes")
+				.read(
+					columns=["graph", "branch", "turn", "tick"],
+				)
+				.to_pylist()
+			),
+			key=lambda d: (d["branch"], d["turn"], d["tick"], d["graph"]),
 		)
 
 	def get_keyframe(
