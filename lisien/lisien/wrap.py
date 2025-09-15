@@ -194,6 +194,17 @@ class OrderlySet(set, Set, MutableSet):
 		return super().isdisjoint(other)
 
 
+class OrderlyFrozenSet(frozenset):
+	"""A frozenset with deterministic order of iteration"""
+
+	def __init__(self, data):
+		self._data = tuple(data)
+		super().__init__(data)
+
+	def __iter__(self):
+		return iter(self._data)
+
+
 class SpecialMapping(Mapping, Signal, ABC):
 	@abstractmethod
 	def __init__(self, character: AbstractCharacter): ...
