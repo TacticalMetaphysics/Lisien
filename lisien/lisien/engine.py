@@ -198,6 +198,7 @@ from .collections import (
 	StringStore,
 	UniversalMapping,
 )
+from .wrap import OrderedSet
 
 SUBPROCESS_TIMEOUT = 30
 if "LISIEN_SUBPROCESS_TIMEOUT" in os.environ:
@@ -4676,7 +4677,19 @@ class Engine(AbstractEngine, Executor):
 			self._uid_to_fut[uid] = ret
 			self._futs_to_start.put(ret)
 		else:
-			ret = fake_submit(fn, *args, **kwargs)
+			builtins = __builtins__.copy()
+			builtins["set"] = OrderedSet
+			globls = globals().copy()
+			ret = eval(
+				"fake_submit(fn, *args, **kwargs)",
+				globls,
+				{
+					"fake_submit": fake_submit,
+					"fn": fn,
+					"args": args,
+					"kwargs": kwargs,
+				},
+			)
 		ret.uid = uid
 		self._top_uid += 1
 		return ret
@@ -6420,13 +6433,35 @@ class Engine(AbstractEngine, Executor):
 		self.debug(
 			f"checking prereqs for rule {rule.name} on entity {self._fmtent(entity)}"
 		)
-		if check_prereqs(rule, mark_handled, entity):
+		builtins = __builtins__.copy()
+		builtins["set"] = OrderedSet
+		globls = globals().copy()
+		globls["__builtins__"] = builtins
+		if eval(
+			"check_prereqs(rule, mark_handled, entity)",
+			globls,
+			{
+				"check_prereqs": check_prereqs,
+				"rule": rule,
+				"mark_handled": mark_handled,
+				"entity": entity,
+			},
+		):
 			self.debug(
 				f"prereqs for rule {rule.name} on entity "
 				f"{self._fmtent(entity)} satisfied, will run actions"
 			)
 			try:
-				ret = do_actions(rule, mark_handled, entity)
+				ret = eval(
+					"do_actions(rule, mark_handled, entity)",
+					globls,
+					{
+						"do_actions": do_actions,
+						"rule": rule,
+						"mark_handled": mark_handled,
+						"entity": entity,
+					},
+				)
 				self.debug(
 					f"actions for rule {rule.name} on entity "
 					f"{self._fmtent(entity)} have run without incident"
