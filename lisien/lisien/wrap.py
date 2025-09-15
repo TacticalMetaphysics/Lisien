@@ -49,7 +49,7 @@ class OrderedSet(Set, MutableSet):
 			self._data[k] = True
 
 	def copy(self):
-		return OrderedSet(self._data)
+		return OrderedSet(self._data.copy())
 
 	def difference(self, *s):
 		return OrderedSet(self._data.keys() - s)
@@ -150,7 +150,7 @@ class OrderedSet(Set, MutableSet):
 			self.add(item)
 
 	def __copy__(self):
-		return OrderedSet(self._data)
+		return self.copy()
 
 	def __le__(self, other):
 		if not isinstance(other, Set):
