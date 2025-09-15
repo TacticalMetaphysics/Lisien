@@ -195,7 +195,12 @@ class OrderlySet(set):
 
 
 class OrderlyFrozenSet(frozenset):
-	"""A frozenset with deterministic order of iteration"""
+	"""A frozenset with deterministic order of iteration
+
+	Order is not considered significant for the purpose of determining
+	equality.
+
+	"""
 
 	def __init__(self, data):
 		self._data = tuple(data)
