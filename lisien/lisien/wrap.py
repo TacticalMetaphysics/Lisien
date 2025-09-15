@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 	from .util import AbstractCharacter
 
 
-class OrderedSet(MutableSet):
+class OrderedSet(Set, MutableSet):
 	def __init__(self, data: Iterable[Hashable] = ()):
 		super().__init__()
 		self._data = OrderedDict()
