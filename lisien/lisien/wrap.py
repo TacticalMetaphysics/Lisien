@@ -188,7 +188,7 @@ class OrderlySet(set):
 		return OrderlySet(self._data.keys() - other)
 
 	def __xor__(self, other):
-		return super().__xor__(other)
+		return OrderlySet(super().__xor__(other))
 
 	def isdisjoint(self, other):
 		return super().isdisjoint(other)
