@@ -35,13 +35,13 @@ from annotated_types import Ge
 import networkx
 import networkx as nx
 from networkx import NetworkXError
-from ordered_set import OrderedSet
 
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
 	SetWrapper,
 	MutableMappingUnwrapper,
+	OrderedSet,
 	SpecialMapping,
 	wrapval,
 	unwrap_items,
