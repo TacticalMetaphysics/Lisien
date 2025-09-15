@@ -1003,6 +1003,24 @@ class CharacterFacade(AbstractCharacter):
 		def __delitem__(self, k):
 			self._patch[k] = ...
 
+		def __repr__(self):
+			toshow = {}
+			if hasattr(self.facade.character, "graph"):
+				for k in (
+					self._patch.keys() | self.facade.character.graph.keys()
+				):
+					if k in self._patch:
+						if self._patch[k] is not ...:
+							toshow[k] = self._patch[k]
+					elif k in self.facade.character.graph:
+						v = self.facade.character.graph[k]
+						if hasattr(v, "unwrap") and not hasattr(
+							v, "no_unwrap"
+						):
+							v = v.unwrap()
+						toshow[k] = v
+			return f"<StatMapping {toshow}>"
+
 	def apply(self):
 		"""Do all my changes for real in a batch"""
 		realchar = self.character
