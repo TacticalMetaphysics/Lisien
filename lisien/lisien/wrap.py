@@ -204,6 +204,59 @@ class OrderlyFrozenSet(frozenset):
 	def __iter__(self):
 		return iter(self._data)
 
+	def copy(self):
+		return OrderlyFrozenSet(self._data)
+
+	def difference(self, *s):
+		diffed = super().difference(s)
+		return OrderlyFrozenSet(
+			datum for datum in self._data if datum in diffed
+		)
+
+	def intersection(self, *s):
+		intersected = super().intersection(s)
+		return OrderlyFrozenSet(
+			datum for datum in self._data if datum in intersected
+		)
+
+	def union(self, *s):
+		unified = super().union(*s)
+		return OrderlyFrozenSet(
+			datum for datum in self._data if datum in unified
+		)
+
+	def __xor__(self, __value):
+		return OrderlyFrozenSet(
+			*(datum for datum in self._data if datum not in __value),
+			*(datum for datum in __value if datum not in self),
+		)
+
+	def __and__(self, __value):
+		intersected = super().__and__(__value)
+		return OrderlyFrozenSet(
+			datum for datum in self._data if datum in intersected
+		)
+
+	def __or__(self, __value):
+		return OrderlyFrozenSet(
+			(
+				*self._data,
+				*(datum for datum in __value if datum not in self),
+			)
+		)
+
+	def __sub__(self, __value):
+		subtracted = super().__sub__(__value)
+		return OrderlyFrozenSet(
+			datum for datum in self._data if datum in subtracted
+		)
+
+	def symmetric_difference(self, __s):
+		return OrderlyFrozenSet(
+			*(datum for datum in self._data if datum not in __s),
+			*(datum for datum in __s if datum not in self),
+		)
+
 
 class SpecialMapping(Mapping, Signal, ABC):
 	@abstractmethod
