@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 	from .util import AbstractCharacter
 
 
-class OrderedSet(MutableSet, Set):
+class OrderedSet(MutableSet):
 	def __init__(self, data: Iterable[Hashable] = ()):
 		super().__init__()
 		self._data = OrderedDict()
@@ -371,7 +371,7 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		self._set(me)
 
 
-class MutableWrapperSet(MutableWrapper, MutableSet, Set):
+class MutableWrapperSet(MutableWrapper, MutableSet):
 	__slots__ = ()
 	_getter: Callable
 	_set: Callable
