@@ -32,7 +32,7 @@ from collections.abc import (
 	Sized,
 )
 from functools import partial
-from itertools import zip_longest
+from itertools import zip_longest, chain
 from typing import TYPE_CHECKING, Callable, Any, Hashable, Set
 
 from blinker import Signal
@@ -58,16 +58,25 @@ class OrderlySet(set):
 		return OrderlySet(self._data.copy())
 
 	def difference(self, *s):
-		return OrderlySet(self._data.keys() - s)
+		dat = self._data.copy()
+		for subtracted in dat.keys() - s:
+			del dat[subtracted]
+		ret = OrderlySet()
+		ret._data = dat
+		return ret
 
 	def difference_update(self, *s):
-		self._data = {k: True for k in self._data.keys() - s}
+		for k in s:
+			if k in self._data:
+				del self._data[k]
 
 	def intersection(self, *s):
 		return OrderlySet(self._data.keys() & s)
 
 	def intersection_update(self, *s):
-		self._data = {k: True for k in self._data.keys() & s}
+		for k in list(self._data.keys()):
+			if k not in s:
+				del self._data[k]
 
 	def issubset(self, __s):
 		if not isinstance(__s, Set):
@@ -80,13 +89,18 @@ class OrderlySet(set):
 		return self._data.keys() >= __s
 
 	def symmetric_difference(self, __s):
+		if not isinstance(__s, Set):
+			__s = set(__s)
 		return OrderlySet(self._data.keys() ^ __s)
 
 	def symmetric_difference_update(self, __s):
+		if not isinstance(__s, Set):
+			__s = set(__s)
 		self._data = {k: True for k in self._data.keys() ^ __s}
 
 	def union(self, *s):
-		self._data.update({k: True for k in s})
+		for k in s:
+			self._data[k] = True
 
 	def __repr__(self):
 		return f"OrderedSet({set(self._data.keys())})"
@@ -114,7 +128,7 @@ class OrderlySet(set):
 
 	def __isub__(self, it):
 		for item in it:
-			self.remove(item)
+			self.discard(item)
 
 	def __ixor__(self, it):
 		for item in list(self):
@@ -161,36 +175,74 @@ class OrderlySet(set):
 	def __le__(self, other):
 		if not isinstance(other, Set):
 			return False
+		if isinstance(other, OrderlySet):
+			return self._data.keys() <= other._data.keys()
 		return self._data.keys() <= other
 
 	def __lt__(self, other):
 		if not isinstance(other, Set):
 			return False
+		if isinstance(other, OrderlySet):
+			return self._data.keys() < other._data.keys()
 		return self._data.keys() < other
 
 	def __gt__(self, other):
 		if not isinstance(other, Set):
 			return False
+		if isinstance(other, OrderlySet):
+			return self._data.keys() > other._data.keys()
 		return self._data.keys() > other
 
 	def __ge__(self, other):
 		if not isinstance(other, Set):
 			return False
+		if isinstance(other, OrderlySet):
+			return self._data.keys() >= other._data.keys()
 		return self._data.keys() >= other
 
 	def __and__(self, other):
-		return OrderlySet(self._data.keys() & other)
+		if isinstance(other, Set):
+			if isinstance(other, OrderlySet):
+				other = other._data.keys()
+			intersection = self._data.keys() & other
+			return OrderlySet(
+				datum for datum in self._data.keys() if datum in intersection
+			)
+		return OrderlySet(
+			datum for datum in self._data.keys() if datum in other
+		)
 
 	def __or__(self, other):
-		return OrderlySet(self._data.keys() | other)
+		if isinstance(other, OrderlySet):
+			ret = OrderlySet()
+			ret._data = {**self._data, **other._data}
+			return ret
+		return OrderlySet(chain(self, other))
 
 	def __sub__(self, other):
-		return OrderlySet(self._data.keys() - other)
+		return OrderlySet(k for k in self if k not in other)
 
 	def __xor__(self, other):
-		return OrderlySet(super().__xor__(other))
+		if isinstance(other, Set):
+			if isinstance(other, OrderlySet):
+				other = other._data.keys()
+			split = self._data.keys() ^ other
+			return OrderlySet(
+				chain(
+					(k for k in self._data if k in split),
+					(k for k in other if k in split),
+				)
+			)
+		return OrderlySet(
+			chain(
+				(k for k in self if k not in other),
+				(k for k in other if k not in self),
+			)
+		)
 
 	def isdisjoint(self, other):
+		if isinstance(other, OrderlySet):
+			return self._data.keys().isdisjoint(other._data.keys())
 		return super().isdisjoint(other)
 
 
