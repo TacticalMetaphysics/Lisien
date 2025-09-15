@@ -198,7 +198,7 @@ from .collections import (
 	StringStore,
 	UniversalMapping,
 )
-from .wrap import OrderlySet
+from .wrap import OrderlySet, OrderlyFrozenSet
 
 SUBPROCESS_TIMEOUT = 30
 if "LISIEN_SUBPROCESS_TIMEOUT" in os.environ:
@@ -4669,6 +4669,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			builtins = __builtins__.copy()
 			builtins["set"] = OrderlySet
+			builtins["frozenset"] = OrderlyFrozenSet
 			globls = globals().copy()
 			ret = eval(
 				"fake_submit(fn, *args, **kwargs)",
@@ -6425,6 +6426,7 @@ class Engine(AbstractEngine, Executor):
 		)
 		builtins = __builtins__.copy()
 		builtins["set"] = OrderlySet
+		builtins["frozenset"] = OrderlyFrozenSet
 		globls = globals().copy()
 		globls["__builtins__"] = builtins
 		if eval(
