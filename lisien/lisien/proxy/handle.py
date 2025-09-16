@@ -178,6 +178,7 @@ class EngineHandle:
 			raise TypeError("No archive path")
 		if "prefix" not in kwargs:
 			raise TypeError("No prefix")
+		do_game_start = kwargs.pop("do_game_start")
 
 		new = cls.__new__(cls)
 		new._real = Engine.from_archive(
@@ -191,6 +192,8 @@ class EngineHandle:
 
 		new.pack_pair = pack_pair
 		new.unpack = new._real.unpack
+		if do_game_start:
+			new.do_game_start()
 		return new
 
 	def export(self, name: str | None, path: str | None):
