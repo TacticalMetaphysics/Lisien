@@ -33,6 +33,7 @@ from ast import Expr, Module, parse
 from collections import UserDict
 from collections.abc import MutableMapping
 from copy import deepcopy
+from hashlib import blake2b
 from inspect import getsource
 from io import StringIO
 from typing import TYPE_CHECKING
@@ -59,6 +60,13 @@ def unparse(tree):
 	v = StringIO()
 	TabUnparser(tree, file=v)
 	return v.getvalue()
+
+
+# 0x241d is the group separator
+# 0x241e is the record separator
+# per Unicode 1.1
+GROUP_SEP = chr(0x241D).encode()
+REC_SEP = chr(0x241E).encode()
 
 
 class AbstractLanguageDescriptor(Signal, ABC):
@@ -267,6 +275,15 @@ class StringStore(MutableMapping, Signal):
 					json.load(inf)
 				)
 
+	def blake2b(self) -> bytes:
+		the_hash = blake2b()
+		for k, v in self.items():
+			the_hash.update(k.encode())
+			the_hash.update(GROUP_SEP)
+			the_hash.update(v.encode())
+			the_hash.update(REC_SEP)
+		return the_hash.digest()
+
 
 class FunctionStore(Signal):
 	"""A module-like object that lets you alter its code and save your changes.
@@ -437,6 +454,15 @@ class FunctionStore(Signal):
 		if name == "truth":
 			return "def truth(*args):\n\treturn True"
 		return unparse(self._ast.body[self._ast_idx[name]])
+
+	def blake2b(self) -> bytes:
+		hashed = blake2b()
+		for k, v in self.iterplain():
+			hashed.update(k.encode())
+			hashed.update(GROUP_SEP)
+			hashed.update(v.encode())
+			hashed.update(REC_SEP)
+		return hashed.digest()
 
 	@staticmethod
 	def truth(*args):
