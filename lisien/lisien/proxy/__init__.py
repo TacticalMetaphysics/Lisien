@@ -42,6 +42,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from functools import cached_property, partial
 from inspect import getsource
+from logging import FileHandler, getLogger
 from multiprocessing.connection import Connection
 from queue import Queue, SimpleQueue
 from random import Random
@@ -4753,7 +4754,7 @@ class EngineProcessManager:
 		self._args = args
 		self._kwargs = kwargs
 
-	def _config_logger(self, kwargs):
+	def _config_logger(self, **kwargs):
 		handlers = []
 		logl = {
 			"debug": logging.DEBUG,
@@ -4784,7 +4785,6 @@ class EngineProcessManager:
 				handlers[-1].setLevel(loglevel)
 			except OSError:
 				pass
-			del kwargs["logfile"]
 		formatter = logging.Formatter(
 			fmt="[{levelname}] lisien.proxy({process}) {message}", style="{"
 		)
@@ -4841,7 +4841,7 @@ class EngineProcessManager:
 			self._t.start()
 
 	def _make_proxy(self, *args, **kwargs):
-		self._config_logger(kwargs)
+		self._config_logger(**kwargs)
 		install_modules = (
 			kwargs.pop("install_modules")
 			if "install_modules" in kwargs
@@ -4882,6 +4882,9 @@ class EngineProcessManager:
 		if archive_path[-n:] != ".lisien":
 			raise RuntimeError("Not a .lisien archive")
 		self._start_subprocess()
+		self._config_logger(
+			logfile=kwargs.pop("logfile"), loglevel=kwargs.pop("loglevel")
+		)
 		if hasattr(self, "_proxy_in_pipe"):
 			self._proxy_in_pipe.send(
 				b"from_archive"
