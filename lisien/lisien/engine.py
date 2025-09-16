@@ -7301,7 +7301,7 @@ class Engine(AbstractEngine, Executor):
 		name: str | None = None,
 		path: str | os.PathLike | None = None,
 		indent: bool = True,
-	) -> None:
+	) -> str | os.PathLike:
 		if path is None:
 			if name is None:
 				raise ValueError(
@@ -7351,8 +7351,8 @@ class Engine(AbstractEngine, Executor):
 		try:
 			from androidstorage4kivy import SharedStorage
 		except ModuleNotFoundError:
-			return
+			return path
 		if not hasattr(self, "_shared_storage"):
 			self._shared_storage = SharedStorage()
 		ss = self._shared_storage
-		ss.copy_to_shared(path)
+		return ss.copy_to_shared(path)
