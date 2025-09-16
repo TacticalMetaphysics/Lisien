@@ -960,7 +960,7 @@ class AbstractEngine(ABC):
 		name: str | None,
 		path: str | os.PathLike | None = None,
 		indent: bool = True,
-	) -> None: ...
+	) -> str | os.PathLike: ...
 
 	@classmethod
 	@abstractmethod

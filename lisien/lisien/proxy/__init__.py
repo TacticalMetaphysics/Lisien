@@ -3147,7 +3147,9 @@ class EngineProxy(AbstractEngine):
 	def bookmark(self) -> BookmarkMappingProxy:
 		return BookmarkMappingProxy(self)
 
-	def export(self, name: str | None, path: str | os.PathLike | None):
+	def export(
+		self, name: str | None, path: str | os.PathLike | None
+	) -> str | os.PathLike:
 		if name is None and path is None:
 			raise ValueError("Need name or path")
 		return self.handle("export", name=name, path=path)
