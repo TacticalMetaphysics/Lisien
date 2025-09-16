@@ -7285,7 +7285,7 @@ class Engine(AbstractEngine, Executor):
 		**kwargs,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
-		shutil.unpack_archive(archive_path, prefix)
+		shutil.unpack_archive(archive_path, prefix, "zip")
 		extracted = os.listdir(prefix)
 		if "world.xml" in extracted:
 			xml_path = os.path.join(prefix, "world.xml")
