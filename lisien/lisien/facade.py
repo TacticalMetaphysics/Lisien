@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import os
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -1357,6 +1358,25 @@ class EngineFacade(AbstractEngine):
 	) -> None:
 		self._branches_d[branch] = (parent, turn, tick, turn, tick)
 		self._extend_branch(branch, turn, tick)
+
+	def export(
+		self,
+		name: str | None,
+		path: str | os.PathLike | None = None,
+		indent: bool = True,
+	) -> None:
+		raise RuntimeError("Can't export facades")
+
+	@classmethod
+	def from_archive(
+		cls,
+		path: str | os.PathLike,
+		prefix: str | os.PathLike | None = ".",
+		**kwargs,
+	) -> AbstractEngine:
+		raise RuntimeError(
+			"Can't import archived Lisien games into facades. Use a regular Engine."
+		)
 
 	def load_at(self, branch: str, turn: int, tick: int) -> None:
 		pass
