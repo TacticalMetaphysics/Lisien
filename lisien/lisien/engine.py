@@ -7345,7 +7345,7 @@ class Engine(AbstractEngine, Executor):
 					self.error(
 						f"Couldn't export {store}, because we don't know what file it's in"
 					)
-			archived = shutil.make_archive(name + ".zip", td, td)
+			archived = shutil.make_archive(name, "zip", td, td)
 		shutil.move(archived, path)
 
 		try:
