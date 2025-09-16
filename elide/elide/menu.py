@@ -128,6 +128,11 @@ class GamePickerModal(ModalView):
 		load_kv("elide.menu")
 		super().__init__(**kwargs)
 
+	@staticmethod
+	def _switch_to_main_screen(*_):
+		app = App.get_running_app()
+		app.manager.current = "mainscreen"
+
 	@logwrap(section="GamePickerModal")
 	def _decompress_and_start(self, game_file_path, game, *_):
 		app = App.get_running_app()
@@ -143,7 +148,10 @@ class GamePickerModal(ModalView):
 			f"GamePickerModal: unpacking {game_file_path} to {play_dir}"
 		)
 		shutil.unpack_archive(game_file_path, play_dir)
-		Clock.schedule_once(partial(app.start_game, name=game), 0.001)
+		Clock.schedule_once(
+			partial(app.start_game, name=game, cb=self._switch_to_main_screen),
+			0.001,
+		)
 		self.dismiss(force=True)
 
 
