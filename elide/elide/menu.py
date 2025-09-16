@@ -137,8 +137,8 @@ class GamePickerModal(ModalView):
 	def _decompress_and_start(self, game_file_path, game, *_):
 		app = App.get_running_app()
 		game_name = os.path.basename(game_file_path)
-		if game_name[-4:] == ".zip":
-			game_name = game_name[:-4]
+		if game_name[-7:] == ".lisien":
+			game_name = game_name[:-7]
 		app.game_name = game_name
 		play_dir = str(app.play_path)
 		if os.path.exists(play_dir):
@@ -147,9 +147,13 @@ class GamePickerModal(ModalView):
 		Logger.debug(
 			f"GamePickerModal: unpacking {game_file_path} to {play_dir}"
 		)
-		shutil.unpack_archive(game_file_path, play_dir)
 		Clock.schedule_once(
-			partial(app.start_game, name=game, cb=self._switch_to_main_screen),
+			partial(
+				app.start_game,
+				name=game,
+				archive_path=game_file_path,
+				cb=self._switch_to_main_screen,
+			),
 			0.001,
 		)
 		self.dismiss(force=True)
@@ -159,10 +163,29 @@ class GameExporterModal(GamePickerModal):
 	@triggered()
 	@logwrap(section="GameExporterModal")
 	def pick(self, game, *_):
+		import shutil
+		from tempfile import TemporaryDirectory
+
+		from lisien.engine import Engine
+
 		app = App.get_running_app()
-		orig = os.path.join(app.prefix, app.games_dir, game + ".zip")
-		Logger.debug(f"GameExporterModal: copying {orig} to shared storage")
-		app.copy_to_shared_storage(orig, "application/zip")
+		with TemporaryDirectory() as td:
+			shutil.unpack_archive(
+				str(os.path.join(app.games_path, game + ".zip")), td
+			)
+			connect_string = None
+			if "world.sqlite3" in os.listdir(td):
+				connect_string = f"sqlite:///{td}/world.sqlite3"
+			Logger.debug(f"GameExporterModal: about to export {game}")
+			with Engine(
+				td,
+				workers=0,
+				keyframe_on_close=False,
+				connect_string=connect_string,
+			) as eng:
+				if hasattr(app, "_ss"):
+					eng._shared_storage = app._ss
+				eng.export(game)
 		self.dismiss()
 
 	@logwrap(section="GameExporterModal")
@@ -190,7 +213,7 @@ class GameImporterModal(GamePickerModal):
 		if os.path.isdir(uri_s):
 			return
 		try:
-			game_name = os.path.basename(uri).removesuffix(".zip")
+			game_name = os.path.basename(uri).removesuffix(".lisien")
 			self._decompress_and_start(uri, game_name)
 		except (
 			NotADirectoryError,
@@ -381,13 +404,13 @@ class MainMenuScreen(Screen):
 				self._system_file_chooser = Chooser(
 					self._copy_from_shared_and_start_game
 				)
-			self._system_file_chooser.choose_content("application/zip")
+			self._system_file_chooser.choose_content("application/lisien")
 		except ImportError as err:
 			Logger.debug(repr(err))
 			Logger.debug("Using Kivy file chooser")
 			if not hasattr(self, "_popover_import_game"):
 				self._popover_import_game = GameImporterModal(
-					headline="Pick zipped game to import"
+					headline="Pick .lisien game to import"
 				)
 			self._popover_import_game.open()
 
