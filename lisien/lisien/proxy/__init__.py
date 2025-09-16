@@ -3147,6 +3147,21 @@ class EngineProxy(AbstractEngine):
 	def bookmark(self) -> BookmarkMappingProxy:
 		return BookmarkMappingProxy(self)
 
+	def export(self, name: str | None, path: str | os.PathLike | None):
+		if name is None and path is None:
+			raise ValueError("Need name or path")
+		return self.handle("export", name=name, path=path)
+
+	def from_archive(
+		cls,
+		path: str | os.PathLike,
+		prefix: str | os.PathLike | None = ".",
+		**kwargs,
+	) -> AbstractEngine:
+		raise TypeError(
+			"You want the ``from_archive`` method of ``EngineProcessManager`` instead"
+		)
+
 	def __enter__(self):
 		return self
 

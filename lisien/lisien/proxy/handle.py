@@ -193,6 +193,9 @@ class EngineHandle:
 		new.unpack = new._real.unpack
 		return new
 
+	def export(self, name: str | None, path: str | None):
+		return self._real.export(name, path)
+
 	def log(self, level: str | int, message: str) -> None:
 		if isinstance(level, str):
 			level = {
