@@ -4,6 +4,7 @@ import json
 import os
 from functools import partial
 
+from astunparse import unparse
 import pytest
 
 from ..db import ParquetDatabaseConnector, SQLAlchemyDatabaseConnector
@@ -121,9 +122,11 @@ def compare_stored_python_code(
 				open(os.path.join(test_prefix, pyfilename), "rt") as test_py,
 				open(os.path.join(correct_prefix, pyfilename)) as good_py,
 			):
-				assert parse(test_py.read()) == parse(good_py.read()), (
-					f"{pyfilename} has incorrect Python code"
-				)
+				test_parsed = parse(test_py.read())
+				correct_parsed = parse(good_py.read())
+			assert unparse(test_parsed) == unparse(correct_parsed), (
+				f"{pyfilename} has incorrect Python code"
+			)
 		else:
 			assert pyfilename not in correct_ls, (
 				f"{pyfilename} should be in test data, but isn't"
