@@ -16,14 +16,22 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod, ABC
 from collections import OrderedDict, defaultdict, deque
 from contextlib import contextmanager
-from functools import cached_property
+from functools import cached_property, wraps
 from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
-from typing import TYPE_CHECKING, Hashable, Iterator, Literal, Optional
+from typing import (
+	TYPE_CHECKING,
+	Hashable,
+	Iterator,
+	Literal,
+	Optional,
+	Callable,
+)
 
 from . import engine
 from .exc import (
@@ -37,6 +45,7 @@ from .types import (
 	CharName,
 	EntityKey,
 	Key,
+	LinearTime,
 	NodeName,
 	Plan,
 	RuleBig,
@@ -55,12 +64,10 @@ from .util import sort_set
 from .window import (
 	Direction,
 	EntikeySettingsTurnDict,
-	FuturistWindowDict,
 	SettingsTurnDict,
-	TurnDict,
 	WindowDict,
 )
-from .xcollections import ChangeTrackingDict
+from .collections import ChangeTrackingDict
 
 if TYPE_CHECKING:
 	from . import engine
@@ -394,7 +401,6 @@ class Cache:
 			db._extend_branch,
 			self._store_journal,
 			self.time_entity,
-			db._where_cached,
 			self.keycache,
 			db,
 			self._update_keycache,
@@ -1015,7 +1021,6 @@ class Cache:
 			db_extend_branch,
 			self_store_journal,
 			self_time_entity,
-			db_where_cached,
 			keycache,
 			db,
 			update_keycache,
@@ -1038,7 +1043,7 @@ class Cache:
 		parent: tuple[Key, ...] = args[:-6]
 		entikey = (entity, key)
 		parentikey = parent + (entity, key)
-		contras = []
+		contras: list[LinearTime]
 		with lock:
 			self_store_journal(*args)
 			if parent:
@@ -1088,25 +1093,13 @@ class Cache:
 						)
 					)
 				plan = time_plan[branch, turn, tick] = db._last_plan
-				plan_ticks[plan][turn].add(tick)
+				plan_ticks[plan][branch][turn].add(tick)
 			branches[branch] = turns
 			if not loading and not planning:
 				db_extend_branch(branch, turn, tick)
 			self.shallowest[(*parent, entity, key, branch, turn, tick)] = value
-			if turn in turns:
-				the_turn = turns[turn]
-				if truncate:
-					turns.truncate(turn)
-					the_turn.truncate(tick)
-				the_turn[tick] = value
-			else:
-				new = FuturistWindowDict()
-				new[tick] = value
-				turns[turn] = new
+			turns.store_at(turn, tick, value)
 			self_time_entity[branch, turn, tick] = parent, entity, key
-			where_cached = db_where_cached[branch, turn, tick]
-			if self not in where_cached:
-				where_cached.append(self)
 			if not loading:
 				update_keycache(*args, forward=forward)
 
@@ -1236,6 +1229,12 @@ class Cache:
 					del entty[key]
 			if not entty:
 				del keys[keykey]
+
+	def discard(self, branch: Branch, turn: Turn, tick: Tick):
+		"""Delete all data from a specific tick, if present"""
+		if (branch, turn, tick) not in self.time_entity:
+			return
+		self.remove(branch, turn, tick)
 
 	def remove(self, branch: Branch, turn: Turn, tick: Tick):
 		"""Delete all data from a specific tick"""
@@ -1621,47 +1620,19 @@ class Cache:
 						return hint(
 							NotInKeyframeError("No value", entikey, b0, r0, t0)
 						)
-				if b0 in branchentk and r0 in branchentk[b0]:
-					# No keyframe *right* now; we might have one earlier this turn
-					# ... but let's check branches first
-					if t0 in branchentk[b0][r0]:
-						# Yeah, branches has a value at this very moment!
+				if b0 in branchentk and (
+					(
+						r0 in branchentk[b0]
+						and branchentk[b0][r0].rev_gettable(t0)
+					)
+					or branchentk[b0].rev_gettable(r0)
+				):
+					if r0 in branchentk[b0] and branchentk[b0][
+						r0
+					].rev_gettable(t0):
 						return hint(branchentk[b0][r0][t0])
-					elif (
-						branches_tick := branchentk[b0][r0].rev_before(
-							t0, search=search
-						)
-					) is not None:
-						# branches has a value this turn.
-						# Is there a loaded keyframe this turn, as well?
-						if b0 == b1 and r0 == r1:
-							# There is; is it more recent than branches' value?
-							if t1 > branches_tick:
-								# It is, so use the keyframe.
-								# If that keyframe includes a value stored here,
-								# return it; otherwise return an error
-								if (
-									b1 in keyframes
-									and r1 in keyframes[b1]
-									and t1 in keyframes[b1][r1]
-								):
-									kf = keyframes[b1][r1][t1]
-									if key in kf:
-										return hint(kf[key])
-									else:
-										return hint(
-											NotInKeyframeError(
-												"No value", entikey, b1, r1, t1
-											)
-										)
-								else:
-									return hint(
-										NotInKeyframeError(
-											"No value", entikey, b1, r1, t1
-										)
-									)
-						# No keyframe this turn, so use the value from branches
-						return hint(get(branchentk[b0][r0], t0))
+					else:
+						return hint(branchentk[b0][r0].final())
 				elif b0 in branchentk and (
 					r0 != r1
 					and branchentk[b0].rev_gettable(r0)
@@ -2212,7 +2183,7 @@ class EdgesCache(Cache):
 	):
 		super().__init__(db, name, keyframe_dict)
 		self.origcache = PickyDefaultDict(SettingsTurnDict)
-		self.predecessors = StructuredDefaultDict(3, TurnDict)
+		self.predecessors = StructuredDefaultDict(3, SettingsTurnDict)
 		self._origcache_lru = OrderedDict()
 		self._get_origcache_stuff: tuple[
 			PickyDefaultDict,
@@ -2570,11 +2541,11 @@ class EdgesCache(Cache):
 				pred_ticks = branches[branch][turn]
 			except KeyError:
 				continue
-			preds_branch = predecessors[graph,][dest][orig][branch]
-			if turn in preds_branch:
-				preds_branch[turn][tick] = pred_ticks[tick]
-			else:
-				preds_branch[turn] = pred_ticks
+			if not pred_ticks.rev_gettable(tick):
+				continue
+			predecessors[graph,][dest][orig][branch].store_at(
+				turn, tick, pred_ticks[tick]
+			)
 
 	def retrieve(
 		self,
@@ -3372,7 +3343,7 @@ class PortalsRulebooksCache(InitializedCache):
 		tick: Tick,
 		*,
 		search: bool = False,
-	):
+	) -> dict[NodeName, RulebookName]:
 		return self._retrieve(char, orig, branch, turn, tick, search=search)
 
 	def get_keyframe(
@@ -3904,38 +3875,75 @@ class UnitnessCache(Cache):
 		return self.dict_cache.iter_entities(char, branch, turn, tick)
 
 
-class RulesHandledCache:
+def oner(f: Callable[..., Iterator]) -> Callable[..., Iterator]:
+	@wraps(f)
+	def oned(*args, **kwargs):
+		already = set()
+		for one in f(*args, **kwargs):
+			if one in already:
+				raise RuntimeError("Already yielded", one)
+			already.add(one)
+			yield one
+
+	return oned
+
+
+class RulesHandledCache(ABC):
+	handled: dict[
+		tuple[CharName, RulebookName, Branch, Turn]
+		| tuple[CharName, NodeName, RulebookName, Branch, Turn]
+		| tuple[CharName, NodeName, NodeName, RulebookName, Branch, Turn]
+		| tuple[CharName, CharName, NodeName, RulebookName, Branch, Turn],
+		set[RuleName],
+	]
+	handled_deep: dict[
+		Branch,
+		SettingsTurnDict[
+			Turn,
+			dict[
+				Tick,
+				tuple[
+					EntityKey,
+					RulebookName,
+					RuleName,
+				],
+			],
+		],
+	]
+
 	def __init__(self, engine: "engine.Engine", name: str):
 		self.lock = RLock()
 		self.engine = engine
 		self.name = name
-		self.handled: dict[
-			tuple[CharName, RulebookName, Branch, Turn]
-			| tuple[CharName, NodeName, RulebookName, Branch, Turn]
-			| tuple[CharName, NodeName, NodeName, RulebookName, Branch, Turn]
-			| tuple[CharName, CharName, NodeName, RulebookName, Branch, Turn],
-			set[RuleName],
-		] = {}
-		self.handled_deep: dict[
-			Branch,
-			SettingsTurnDict[
-				Turn,
-				dict[
-					Tick,
-					tuple[
-						EntityKey,
-						RulebookName,
-						RuleName,
-					],
-				],
-			],
-		] = PickyDefaultDict(SettingsTurnDict)
+		self.handled = {}
+		self.handled_deep = PickyDefaultDict(SettingsTurnDict)
 
-	def get_rulebook(self, *args):
-		raise NotImplementedError
+	def __init_subclass__(cls, **kwargs):
+		iter_unhandled_rules = getattr(cls, "iter_unhandled_rules")
+		setattr(cls, "iter_unhandled_rules", oner(iter_unhandled_rules))
 
-	def iter_unhandled_rules(self, branch: Branch, turn: Turn, tick: Tick):
-		raise NotImplementedError
+	@abstractmethod
+	def get_rulebook(self, *args): ...
+
+	@abstractmethod
+	def iter_unhandled_rules(self, branch: Branch, turn: Turn, tick: Tick): ...
+
+	@abstractmethod
+	def was_handled(
+		self,
+		branch: Branch,
+		turn: Turn,
+		rulebook: RulebookName,
+		rule: RuleName,
+		entity: tuple[CharName]
+		| tuple[CharName, NodeName]
+		| tuple[CharName, NodeName, NodeName]
+		| tuple[CharName, CharName, NodeName],
+	) -> bool:
+		key = (*entity, rulebook, branch, turn)
+		if key not in self.handled:
+			return False
+		return rule in self.handled[key]
 
 	def store(self, *args, loading: bool = False):
 		entity: EntityKey = args[:-5]
@@ -3945,20 +3953,43 @@ class RulesHandledCache:
 		turn: Turn
 		tick: Tick
 		rulebook, rule, branch, turn, tick = args[-5:]
-		self.handled.setdefault((*entity, rulebook, branch, turn), set()).add(
-			rule
-		)
 		if turn in self.handled_deep[branch]:
-			self.handled_deep[branch][turn][tick] = (entity, rulebook, rule)
+			if tick in self.handled_deep[branch][turn]:
+				self.handled_deep[branch][turn][tick].add(
+					(entity, rulebook, rule)
+				)
+			else:
+				self.handled_deep[branch].store_at(
+					turn, tick, {(entity, rulebook, rule)}
+				)
 		else:
-			self.handled_deep[branch][turn] = {tick: (entity, rulebook, rule)}
+			self.handled_deep[branch] = {
+				turn: {tick: {(entity, rulebook, rule)}}
+			}
+		key = (*entity, rulebook, branch, turn)
+		if key in self.handled:
+			rules_handled_this_turn = self.handled[key]
+			if rule in rules_handled_this_turn:
+				raise RuntimeError(
+					"Rule already run for same entity and rulebook",
+					entity,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+			rules_handled_this_turn.add(rule)
+		else:
+			self.handled[key] = {rule}
 
 	def remove_branch(self, branch: Branch):
 		if branch in self.handled_deep:
 			for turn, ticks in self.handled_deep[branch].items():
-				for tick, (entity, rulebook, rule) in ticks.items():
-					if (entity, rulebook, branch, turn) in self.handled:
-						del self.handled[entity, rulebook, branch, turn]
+				for tick, rbset in ticks.items():
+					for entity, rulebook, rule in rbset:
+						if (entity, rulebook, branch, turn) in self.handled:
+							del self.handled[entity, rulebook, branch, turn]
 			del self.handled_deep[branch]
 
 	def total_size(
@@ -3979,7 +4010,7 @@ class RulesHandledCache:
 		all_handlers = {
 			tuple: iter,
 			list: iter,
-			RulesHandledCache: lambda d: [d.handled, d.handled_deep],
+			RulesHandledCache: lambda d: [d.mark_handled, d.handled_deep],
 			dict: lambda d: chain.from_iterable(d.items()),
 			set: iter,
 			frozenset: iter,
@@ -4028,17 +4059,19 @@ class RulesHandledCache:
 
 		with self.lock:
 			turn_d = self.handled_deep[branch]
-			if turn in turn_d:
-				for t, (entity, rulebook, rule) in (
-					turn_d[turn].future(tick)
-					if direction == "forward"
-					else turn_d[turn].past(tick)
-				).items():
-					if (entity, rulebook, branch, turn) in self.handled:
-						tick_set = self.handled[entity, rulebook, branch, turn]
-						tick_set.discard(t)
-						if not tick_set:
-							del self.handled[entity, rulebook, branch, turn]
+			if turn in turn_d and (
+				view := turn_d[turn].future(tick)
+				if direction == "forward"
+				else turn_d[turn].past(tick)
+			):
+				for ruled in view.values():
+					for entity, rulebook, rule in ruled:
+						key = (*entity, rulebook, branch, turn)
+						if key in self.handled:
+							rule_set = self.handled[key]
+							rule_set.discard(rule)
+							if not rule_set:
+								del self.handled[key]
 				turn_d[turn].truncate(turn, direction)
 			to_del = (
 				turn_d.future(turn)
@@ -4046,12 +4079,15 @@ class RulesHandledCache:
 				else turn_d.past(turn)
 			)
 			for r in to_del.keys():
-				for t, (entity, rulebook, rule) in turn_d[r].items():
-					if (entity, rulebook, branch, r) in self.handled:
-						tick_set = self.handled[entity, rulebook, branch, r]
-						tick_set.discard(t)
-						if not tick_set:
-							del self.handled[entity, rulebook, branch, r]
+				for t, ruled in turn_d[r].items():
+					for entity, rulebook, rule in ruled:
+						if (entity, rulebook, branch, r) in self.handled:
+							rule_set = self.handled[
+								entity, rulebook, branch, r
+							]
+							rule_set.discard(t)
+							if not rule_set:
+								del self.handled[entity, rulebook, branch, r]
 			turn_d.truncate(turn, Direction(direction))
 
 	def retrieve(self, *args):
@@ -4059,17 +4095,28 @@ class RulesHandledCache:
 
 	def get_handled_rules(
 		self,
-		entity: EntityKey,
+		entity: tuple[CharName]
+		| tuple[CharName, NodeName]
+		| tuple[CharName, NodeName, NodeName]
+		| tuple[CharName, CharName, NodeName],
 		rulebook: RulebookName,
 		branch: Branch,
 		turn: Turn,
 	):
-		return self.handled.setdefault(
-			entity + (rulebook, branch, turn), set()
-		)
+		key = (*entity, rulebook, branch, turn)
+		if key not in self.handled:
+			if (
+				branch in self.handled_deep
+				and turn in self.handled_deep[branch]
+			):
+				raise RuntimeError(f"Incoherent {self.__class__.__name__}")
+			self.handled[key] = set()
+		return self.handled[key]
 
 
 class CharacterRulesHandledCache(RulesHandledCache):
+	handled: dict[tuple[CharName, RulebookName, Branch, Turn], set[RuleName]]
+
 	def get_rulebook(
 		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
 	):
@@ -4096,8 +4143,23 @@ class CharacterRulesHandledCache(RulesHandledCache):
 				if rule not in handled:
 					yield prio, character, rb, rule
 
+	def was_handled(
+		self,
+		branch: Branch,
+		turn: Turn,
+		rulebook: RulebookName,
+		rule: RuleName,
+		character: CharName,
+	) -> bool:
+		return super().was_handled(branch, turn, rulebook, rule, (character,))
+
 
 class UnitRulesHandledCache(RulesHandledCache):
+	handled: dict[
+		tuple[CharName, CharName, NodeName, RulebookName, Branch, Turn],
+		set[RuleName],
+	]
+
 	def get_rulebook(
 		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
 	):
@@ -4135,14 +4197,32 @@ class UnitRulesHandledCache(RulesHandledCache):
 					if not ex:
 						continue
 					handled = self.get_handled_rules(
-						(charname, graphname), rb, branch, turn
+						(charname, graphname, node), rb, branch, turn
 					)
 					for rule in rules:
 						if rule not in handled:
 							yield prio, charname, graphname, node, rb, rule
 
+	def was_handled(
+		self,
+		branch: Branch,
+		turn: Turn,
+		rulebook: RulebookName,
+		rule: RuleName,
+		character_graph: CharName,
+		unit_graph: CharName,
+		unit: NodeName,
+	) -> bool:
+		return super().was_handled(
+			branch, turn, rulebook, rule, (character_graph, unit_graph, unit)
+		)
+
 
 class CharacterThingRulesHandledCache(RulesHandledCache):
+	handled: dict[
+		tuple[CharName, NodeName, RulebookName, Branch, Turn], set[RuleName]
+	]
+
 	def get_rulebook(
 		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
 	):
@@ -4177,8 +4257,25 @@ class CharacterThingRulesHandledCache(RulesHandledCache):
 					if rule not in handled:
 						yield prio, character, thing, rulebook, rule
 
+	def was_handled(
+		self,
+		branch: Branch,
+		turn: Turn,
+		rulebook: RulebookName,
+		rule: RuleName,
+		character: CharName,
+		thing: NodeName,
+	) -> bool:
+		return super().was_handled(
+			branch, turn, rulebook, rule, (character, thing)
+		)
+
 
 class CharacterPlaceRulesHandledCache(RulesHandledCache):
+	handled: dict[
+		tuple[CharName, NodeName, RulebookName, Branch, Turn], set[RuleName]
+	]
+
 	def get_rulebook(
 		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
 	):
@@ -4209,8 +4306,26 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache):
 					if rule not in handled:
 						yield prio, character, place, rulebook, rule
 
+	def was_handled(
+		self,
+		branch: Branch,
+		turn: Turn,
+		rulebook: RulebookName,
+		rule: RuleName,
+		character: CharName,
+		place: NodeName,
+	) -> bool:
+		return super().was_handled(
+			branch, turn, rulebook, rule, (character, place)
+		)
+
 
 class CharacterPortalRulesHandledCache(RulesHandledCache):
+	handled: dict[
+		tuple[CharName, NodeName, NodeName, RulebookName, Branch, Turn],
+		set[RuleName],
+	]
+
 	def get_rulebook(
 		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
 	):
@@ -4249,8 +4364,26 @@ class CharacterPortalRulesHandledCache(RulesHandledCache):
 						if rule not in handled:
 							yield prio, character, orig, dest, rulebook, rule
 
+	def was_handled(
+		self,
+		branch: Branch,
+		turn: Turn,
+		rulebook: RulebookName,
+		rule: RuleName,
+		character: CharName,
+		origin: NodeName,
+		destination: NodeName,
+	) -> bool:
+		return super().was_handled(
+			branch, turn, rulebook, rule, (character, origin, destination)
+		)
+
 
 class NodeRulesHandledCache(RulesHandledCache):
+	handled: dict[
+		tuple[CharName, NodeName, RulebookName, Branch, Turn], set[RuleName]
+	]
+
 	def get_rulebook(
 		self,
 		character: CharName,
@@ -4288,8 +4421,26 @@ class NodeRulesHandledCache(RulesHandledCache):
 					if rule not in handled:
 						yield prio, character_name, node_name, rulebook, rule
 
+	def was_handled(
+		self,
+		branch: Branch,
+		turn: Turn,
+		rulebook: RulebookName,
+		rule: RuleName,
+		character: CharName,
+		node: NodeName,
+	) -> bool:
+		return super().was_handled(
+			branch, turn, rulebook, rule, (character, node)
+		)
+
 
 class PortalRulesHandledCache(RulesHandledCache):
+	handled: dict[
+		tuple[CharName, NodeName, NodeName, RulebookName, Branch, Turn],
+		set[RuleName],
+	]
+
 	def get_rulebook(
 		self,
 		character: CharName,
@@ -4351,6 +4502,20 @@ class PortalRulesHandledCache(RulesHandledCache):
 								rulebook,
 								rule,
 							)
+
+	def was_handled(
+		self,
+		branch: Branch,
+		turn: Turn,
+		rulebook: RulebookName,
+		rule: RuleName,
+		character: CharName,
+		origin: NodeName,
+		destination: NodeName,
+	) -> bool:
+		return super().was_handled(
+			branch, turn, rulebook, rule, (character, origin, destination)
+		)
 
 
 class ThingsCache(Cache):
@@ -4649,26 +4814,17 @@ class NodeContentsCache(Cache):
 		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
 
 	def delete_plan(self, plan: Plan) -> None:
-		branch, turn, tick = self.db._btt()
 		plan_ticks = self.db._plan_ticks[plan]
 		with self.db.world_lock:
-			for trn, tcks in plan_ticks.items():
-				if trn == turn:
-					for tck in tcks:
-						if (
-							tck >= tick
-							and self in self.db._where_cached[branch, trn, tck]
-						):
-							self.remove(branch, trn, tck)
-							self.db._where_cached[branch, trn, tck].remove(
-								self
-							)
-				elif trn > turn:
-					for tck in tcks:
-						if self not in self.db._where_cached[branch, trn, tck]:
-							continue
-						self.remove(branch, trn, tck)
-						self.db._where_cached[branch, trn, tck].remove(self)
+			for branch, trns in plan_ticks.items():
+				times = trns.iter_times()
+				for start_turn, start_tick in times:
+					if self.db._branch_end(branch) < (start_turn, start_tick):
+						break
+				else:
+					continue
+				for trn, tck in times:
+					self.remove(branch, trn, tck)
 
 	def store(
 		self,

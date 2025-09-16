@@ -38,8 +38,10 @@ from operator import ge, itemgetter, le
 from threading import RLock
 from typing import Any, Callable, Iterable, Iterator, Union
 
+from sortedcontainers import SortedSet
+
 from .exc import HistoricKeyError
-from .types import Tick, Turn, Value
+from .types import Tick, Turn, Value, LinearTime
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -937,51 +939,19 @@ class WindowDict(MutableMapping):
 			return "{}({})".format(self.__class__.__name__, me)
 
 
-class FuturistWindowDict(WindowDict):
-	"""A WindowDict that does not let you rewrite the past."""
+class LinearTimeSetDict(WindowDict):
+	def __getitem__(self, rev: Turn) -> SortedSet[Tick]:
+		if rev in self:
+			return super().__getitem__(rev)
+		else:
+			default = SortedSet()
+			super().__setitem__(rev, default)
+			return default
 
-	__slots__ = (
-		"_future",
-		"_past",
-	)
-	_future: list[tuple[int, Any]]
-	_past: list[tuple[int, Any]]
-
-	def __setitem__(self, rev: int, v: Any) -> None:
-		if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):
-			v = v.unwrap()
-		with self._lock:
-			self._seek(rev)
-			past = self._past
-			future = self._future
-			if future:
-				raise HistoricKeyError(
-					"Already have some history after {}".format(rev)
-				)
-			if not past:
-				past.append((rev, v))
-			elif rev > past[-1][0]:
-				past.append((rev, v))
-			elif rev == past[-1][0]:
-				past[-1] = (rev, v)
-			else:
-				raise HistoricKeyError(
-					"Already have some history after {} "
-					"(and my seek function is broken?)".format(rev)
-				)
-			self._keys.add(rev)
-
-
-class TurnDict(FuturistWindowDict):
-	__slots__ = ("_future", "_past")
-	_future: list[tuple[Turn, Any]]
-	_past: list[tuple[Turn, Any]]
-	cls = FuturistWindowDict
-
-	def __setitem__(self, turn: Turn, value: Any) -> None:
-		if type(value) is not FuturistWindowDict:
-			value = FuturistWindowDict(value)
-		FuturistWindowDict.__setitem__(self, turn, value)
+	def iter_times(self) -> Iterator[LinearTime]:
+		for turn, tick_set in self.items():
+			for tick in tick_set:
+				yield turn, tick
 
 
 class EntikeyWindowDict(WindowDict):
@@ -1021,10 +991,19 @@ class SettingsTurnDict(WindowDict):
 
 	"""
 
-	__slots__ = ("_future", "_past")
 	_future: list[tuple[Turn, Any]]
 	_past: list[tuple[Turn, Any]]
 	cls = WindowDict
+
+	def __init__(
+		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
+	) -> None:
+		if data:
+			data = data.copy()
+			for k, v in data.items():
+				if not isinstance(v, self.cls):
+					data[k] = self.cls(v)
+		super().__init__(data)
 
 	def __setitem__(self, turn: Turn, value: cls | dict) -> None:
 		if not isinstance(value, self.cls):
@@ -1057,6 +1036,37 @@ class SettingsTurnDict(WindowDict):
 			self[turn][tick] = value
 		else:
 			self[turn] = {tick: value}
+
+	@property
+	def beginning(self) -> Turn | None:
+		if self._past:
+			return self._past[0][0]
+		if self._future:
+			return self._future[-1][0]
+		return None
+
+	@property
+	def end(self) -> Turn | None:
+		if self._future:
+			return self._future[0][0]
+		if self._past:
+			return self._past[-1][0]
+		return None
+
+	def start_time(self) -> tuple[Turn, Tick] | None:
+		if not self:
+			return None
+		return self.beginning, self.initial().beginning
+
+	def end_time(self) -> tuple[Turn, Tick] | None:
+		if not self:
+			return None
+		return self.end, self.final().end
+
+	def times(self) -> Iterator[tuple[Turn, Tick]]:
+		for trn, tcks in self.items():
+			for tck in tcks:
+				yield trn, tck
 
 
 class EntikeySettingsTurnDict(SettingsTurnDict):

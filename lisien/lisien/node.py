@@ -26,7 +26,8 @@ from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 
 from networkx import shortest_path, shortest_path_length
 
-from . import graph, rule
+import lisien.types
+from . import rule
 from .exc import AmbiguousLeaderError
 from .facade import FacadePlace, FacadeThing
 from .query import EntityStatAlias
@@ -370,7 +371,7 @@ class NeighborMapping(Mapping):
 		return NeighborValues(self)
 
 
-class Node(graph.Node, rule.RuleFollower):
+class Node(lisien.types.Node, rule.RuleFollower):
 	"""The fundamental graph component, which portals go between.
 
 	Every lisien node is either a thing or a place. They share in common

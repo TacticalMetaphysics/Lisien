@@ -15,6 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Implementation of Parable of the Polygons http://ncase.me/polygons/"""
 
+from operator import attrgetter
+
 from lisien.character import grid_2d_8graph
 
 
@@ -32,10 +34,16 @@ def install(eng):
 		home = poly.location
 		similar = 0
 		n = 0
-		for n, neighbor_home in enumerate(home.neighbors(), 1):
+		for neighbor_home in sorted(home.neighbors(), key=attrgetter("name")):
 			# assume only 1 poly per home for now; this is faithful to the original
 			try:
-				neighbor = next(iter(neighbor_home.contents()))
+				neighbor = next(
+					iter(
+						sorted(
+							neighbor_home.contents(), key=attrgetter("name")
+						)
+					)
+				)
 			except StopIteration:
 				continue
 			if neighbor.leader is poly.leader:
@@ -49,11 +57,16 @@ def install(eng):
 	def relocate(poly):
 		"""Move to a random unoccupied place"""
 		if "unoccupied" not in poly.engine.universal:
-			poly.engine.universal["unoccupied"] = [
-				place
-				for place in poly.character.place.values()
-				if not place.content
-			]
+			# .values() sets, like sets generally, are unordered.
+			# You have to sort them yourself if you want determinism.
+			poly.engine.universal["unoccupied"] = sorted(
+				[
+					place
+					for place in poly.character.place.values()
+					if not place.content
+				],
+				key=attrgetter("name"),
+			)
 		unoccupied = poly.engine.universal["unoccupied"]
 		newloc = unoccupied.pop(poly.engine.randrange(0, len(unoccupied)))
 		while not newloc:  # the unoccupied location may have been deleted
@@ -95,7 +108,7 @@ def install(eng):
 	triangle = eng.new_character("triangle")
 	square.unit.rulebook = triangle.unit.rulebook = "parable"
 
-	empty = list(physical.place.values())
+	empty = sorted(physical.place.values(), key=attrgetter("name"))
 	eng.shuffle(empty)
 	# distribute 30 of each shape randomly among the empty places
 	for i in range(1, 31):

@@ -17,6 +17,9 @@ ordinary method calls.
 
 """
 
+from __future__ import annotations
+
+import os
 from importlib import import_module
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match
@@ -160,9 +163,41 @@ class EngineHandle:
 		self.pack_pair = pack_pair
 		self.unpack = self._real.unpack
 
-		self._cache_arranger_started = False
 		if do_game_start:
 			self.do_game_start()
+
+	@classmethod
+	def from_archive(cls, b: bytes | dict) -> EngineHandle:
+		from ..engine import Engine
+
+		if isinstance(b, bytes):
+			kwargs: dict = msgpack.unpackb(b)
+		else:
+			kwargs = b
+		if "archive_path" not in kwargs:
+			raise TypeError("No archive path")
+		if "prefix" not in kwargs:
+			raise TypeError("No prefix")
+		do_game_start = kwargs.pop("do_game_start")
+
+		new = cls.__new__(cls)
+		new._real = Engine.from_archive(
+			kwargs.pop("archive_path"), kwargs.pop("prefix"), **kwargs
+		)
+		new.pack = pack = new._real.pack
+
+		def pack_pair(pair):
+			k, v = pair
+			return pack(k), pack(v)
+
+		new.pack_pair = pack_pair
+		new.unpack = new._real.unpack
+		if do_game_start:
+			new.do_game_start()
+		return new
+
+	def export(self, name: str | None, path: str | None):
+		return self._real.export(name, path)
 
 	def log(self, level: str | int, message: str) -> None:
 		if isinstance(level, str):
@@ -1001,10 +1036,10 @@ class EngineHandle:
 		return dict(self._real._branches_d)
 
 	def main_branch(self) -> Branch:
-		return self._real.main_branch
+		return self._real.trunk
 
 	def switch_main_branch(self, branch: Branch) -> Keyframe:
-		self._real.switch_main_branch(branch)
+		self._real.trunk = branch
 		return self.snap_keyframe()
 
 	def game_init(

@@ -38,19 +38,13 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from itertools import chain
 from types import MethodType
-from typing import TYPE_CHECKING, Iterable, Iterator
+from typing import TYPE_CHECKING, Iterable, Iterator, Callable
 
 import networkx as nx
 from blinker import Signal
 
-from .cache import FuturistWindowDict, PickyDefaultDict
-from .exc import AmbiguousLeaderError, WorldIntegrityError
+from .exc import WorldIntegrityError
 from .facade import CharacterFacade
-from .graph import (
-	DiGraphPredecessorsMapping,
-	DiGraphSuccessorsMapping,
-	GraphNodeMapping,
-)
 from .node import Node, Place, Thing
 from .portal import Portal
 from .query import CharacterStatAlias, UnitsAlias
@@ -65,6 +59,13 @@ from .types import (
 	RulebookTypeStr,
 	Stat,
 	StatDict,
+	Branch,
+	Turn,
+	Tick,
+	RulebookName,
+	GraphNodeMapping,
+	DiGraphSuccessorsMapping,
+	DiGraphPredecessorsMapping,
 )
 from .util import AbstractCharacter, getatt, singleton_get, timer
 from .wrap import MutableMappingUnwrapper, SpecialMapping
@@ -148,20 +149,24 @@ class RuleFollower(BaseRuleFollower):
 	def _get_rulebook_cache(self):
 		pass
 
-	def _get_rulebook_name(self):
+	def _get_rulebook_name(self) -> RulebookName:
 		try:
 			return self._get_rulebook_cache().retrieve(
 				self.character.name, *self.engine._btt()
 			)
 		except KeyError:
-			ret = (self._book + "_rulebook", self.character.name)
+			ret = RulebookName(
+				Key((self._book + "_rulebook", self.character.name))
+			)
 			self._set_rulebook_name(ret)
 			return ret
 
-	def _set_rulebook_name(self, n):
+	def _set_rulebook_name(self, n: RulebookName):
 		branch, turn, tick = self.engine._nbtt()
-		self.engine.query.set_rulebook_on_character(
-			self._book + "_rulebook",
+		set_rb: Callable[
+			[CharName, Branch, Turn, Tick, RulebookName], None
+		] = getattr(self.engine.query, f"set_{self._book}_rulebook")
+		set_rb(
 			self.character.name,
 			branch,
 			turn,
@@ -246,10 +251,9 @@ class Character(AbstractCharacter, RuleFollower):
 		return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
 	def __init__(
-		self, engine: "Engine", name: CharName, *, init_rulebooks: bool = True
+		self, engine: "Engine", name: CharName, *, init_rulebooks: bool = False
 	):
 		super().__init__(engine, name)
-		self._avatars_cache = PickyDefaultDict(FuturistWindowDict)
 		if not init_rulebooks:
 			return
 		cachemap = {
@@ -261,10 +265,11 @@ class Character(AbstractCharacter, RuleFollower):
 		}
 		branch, turn, tick = engine._btt()
 		for rulebook, cache in cachemap.items():
-			rulebook_name = (rulebook, name)
-			engine.query.set_rulebook_on_character(
-				rulebook, name, branch, turn, tick, rulebook_name
-			)
+			rulebook_name = RulebookName(Key((rulebook, name)))
+			set_rb: Callable[
+				[CharName, Branch, Turn, Tick, RulebookName], None
+			] = getattr(engine.query, f"set_{rulebook}")
+			set_rb(name, branch, turn, tick, rulebook_name)
 			cache.store(name, branch, turn, tick, rulebook_name)
 
 	class ThingMapping(
@@ -1039,7 +1044,7 @@ class Character(AbstractCharacter, RuleFollower):
 		time travel. This makes it much speedier to work with.
 
 		"""
-		return CharacterFacade(self)
+		return CharacterFacade(character=self)
 
 	def add_place(self, node_for_adding: NodeName, **attr):
 		"""Add a new Place"""

@@ -42,6 +42,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from functools import cached_property, partial
 from inspect import getsource
+from logging import FileHandler, getLogger
 from multiprocessing.connection import Connection
 from queue import Queue, SimpleQueue
 from random import Random
@@ -63,7 +64,6 @@ from ..exc import (
 	WorkerProcessReadOnlyError,
 )
 from ..facade import CharacterFacade
-from ..graph import Edge, Node
 from ..node import Place, Thing
 from ..portal import Portal
 from ..types import (
@@ -96,6 +96,8 @@ from ..types import (
 	Turn,
 	UniversalKey,
 	Value,
+	Node,
+	Edge,
 )
 from ..util import (
 	AbstractBookmarkMapping,
@@ -106,8 +108,15 @@ from ..util import (
 	getatt,
 	repr_call_sig,
 )
-from ..wrap import DictWrapper, ListWrapper, SetWrapper, UnwrappingDict
-from ..xcollections import (
+from ..wrap import (
+	DictWrapper,
+	ListWrapper,
+	OrderlyFrozenSet,
+	OrderlySet,
+	SetWrapper,
+	UnwrappingDict,
+)
+from ..collections import (
 	AbstractLanguageDescriptor,
 	FunctionStore,
 	StringStore,
@@ -2527,7 +2536,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		)
 
 	def facade(self) -> CharacterFacade:
-		return CharacterFacade(self)
+		return CharacterFacade(character=self)
 
 	def grid_2d_8graph(self, m: int, n: int) -> None:
 		self.engine.handle(
@@ -3139,6 +3148,23 @@ class EngineProxy(AbstractEngine):
 	def bookmark(self) -> BookmarkMappingProxy:
 		return BookmarkMappingProxy(self)
 
+	def export(
+		self, name: str | None, path: str | os.PathLike | None
+	) -> str | os.PathLike:
+		if name is None and path is None:
+			raise ValueError("Need name or path")
+		return self.handle("export", name=name, path=path)
+
+	def from_archive(
+		cls,
+		path: str | os.PathLike,
+		prefix: str | os.PathLike | None = ".",
+		**kwargs,
+	) -> AbstractEngine:
+		raise TypeError(
+			"You want the ``load_archive`` method of ``EngineProcessManager`` instead"
+		)
+
 	def __enter__(self):
 		return self
 
@@ -3231,8 +3257,19 @@ class EngineProxy(AbstractEngine):
 		return self.handle("turn_end_plan", branch=branch, turn=turn)
 
 	@property
-	def main_branch(self) -> Branch:
+	def trunk(self) -> Branch:
 		return self.handle("main_branch")
+
+	@trunk.setter
+	def trunk(self, branch: Branch) -> None:
+		self._worker_check()
+		if self.branch != self.trunk or self.turn != 0 or self._tick != 0:
+			raise AttributeError("Go to the start of time first")
+		kf = self.handle(
+			"switch_main_branch", branch=branch, cb=self._upd_time
+		)
+		assert self.branch == branch
+		self._replace_state_with_kf(kf)
 
 	def snap_keyframe(self) -> Keyframe:
 		if self._worker and not getattr(self, "_mutable_worker", False):
@@ -3292,20 +3329,6 @@ class EngineProxy(AbstractEngine):
 		self._turn = turn
 		self._tick = tick
 		self._initialized = True
-
-	def switch_main_branch(self, branch: Branch) -> None:
-		self._worker_check()
-		if (
-			self.branch != self.main_branch
-			or self.turn != 0
-			or self._tick != 0
-		):
-			raise ValueError("Go to the start of time first")
-		kf = self.handle(
-			"switch_main_branch", branch=branch, cb=self._upd_time
-		)
-		assert self.branch == branch
-		self._replace_state_with_kf(kf)
 
 	def _replace_state_with_kf(self, result: Keyframe | None, **kwargs):
 		things = self._things_cache
@@ -4506,16 +4529,30 @@ def _engine_subroutine_step(
 	silent = instruction.pop("silent", False)
 	cmd = instruction.pop("command")
 	branching = instruction.pop("branching", False)
+	command = getattr(handle, cmd)
+	builtins = __builtins__.copy()
+	builtins["set"] = OrderlySet
+	builtins["frozenset"] = OrderlyFrozenSet
+	globls = globals().copy()
+	globls["__builtins__"] = builtins
 	r = None
+
+	def do_it():
+		return eval(
+			"command(**instruction)",
+			globls,
+			{"command": command, "instruction": instruction},
+		)
+
 	try:
 		if branching:
 			try:
-				r = getattr(handle, cmd)(**instruction)
+				r = do_it()
 			except OutOfTimelineError:
 				handle.increment_branch()
-				r = getattr(handle, cmd)(**instruction)
+				r = do_it()
 		else:
-			r = getattr(handle, cmd)(**instruction)
+			r = do_it()
 	except AssertionError:
 		raise
 	except Exception as ex:
@@ -4554,8 +4591,8 @@ def engine_subprocess(
 			)
 		)
 
-	engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
-	send_output("get_btt", engine_handle.get_btt())
+	engine_handle = None
+	n = len("from_archive")
 	while True:
 		inst = input_pipe.recv_bytes()
 		if inst == b"shutdown":
@@ -4564,6 +4601,16 @@ def engine_subprocess(
 			if log_queue:
 				log_queue.close()
 			return 0
+		elif len(inst) > n and inst[:n] == b"from_archive":
+			if engine_handle is not None:
+				engine_handle.close()
+			engine_handle = EngineHandle.from_archive(inst[n:])
+			send_output("get_btt", engine_handle.get_btt())
+			continue
+		elif engine_handle is None:
+			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
+			send_output("get_btt", engine_handle.get_btt())
+			continue
 		instruction = engine_handle.unpack(zlib.decompress(inst))
 		_engine_subroutine_step(
 			engine_handle, instruction, send_output, send_output_bytes
@@ -4583,13 +4630,24 @@ def engine_subthread(args, kwargs, input_queue, output_queue):
 			)
 		)
 
-	engine_handle = EngineHandle(*args, **kwargs)
-	send_output("get_btt", engine_handle.get_btt())
+	engine_handle = None
 
 	while True:
 		instruction = input_queue.get()
 		if instruction == "shutdown" or instruction == b"shutdown":
 			return
+		if (
+			isinstance(instruction, tuple)
+			and instruction
+			and instruction[0] == "from_archive"
+		):
+			engine_handle = EngineHandle.from_archive(instruction[1])
+			send_output("get_btt", engine_handle.get_btt())
+			continue
+		if engine_handle is None:
+			engine_handle = EngineHandle(*args, **kwargs)
+			send_output("get_btt", engine_handle.get_btt())
+			continue
 		_engine_subroutine_step(
 			engine_handle, instruction, send_output, send_output_bytes
 		)
@@ -4698,7 +4756,7 @@ class EngineProcessManager:
 		self._args = args
 		self._kwargs = kwargs
 
-	def _config_logger(self, kwargs):
+	def _config_logger(self, **kwargs):
 		handlers = []
 		logl = {
 			"debug": logging.DEBUG,
@@ -4729,7 +4787,6 @@ class EngineProcessManager:
 				handlers[-1].setLevel(loglevel)
 			except OSError:
 				pass
-			del kwargs["logfile"]
 		formatter = logging.Formatter(
 			fmt="[{levelname}] lisien.proxy({process}) {message}", style="{"
 		)
@@ -4737,11 +4794,7 @@ class EngineProcessManager:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
 
-	def start(self, *args, **kwargs):
-		"""Start lisien in a subprocess, and return a proxy to it"""
-		if hasattr(self, "engine_proxy"):
-			raise RuntimeError("Already started")
-		self._config_logger(kwargs)
+	def _start_subprocess(self, *args, **kwargs):
 		try:
 			import android
 		except ImportError:
@@ -4755,13 +4808,6 @@ class EngineProcessManager:
 					duplex=False
 				)
 				self._logq = SimpleQueue()
-		install_modules = (
-			kwargs.pop("install_modules")
-			if "install_modules" in kwargs
-			else []
-		)
-		enforce_end_of_time = kwargs.get("enforce_end_of_time", False)
-
 		if hasattr(self, "_handle_in_pipe") and hasattr(
 			self, "_handle_out_pipe"
 		):
@@ -4779,13 +4825,6 @@ class EngineProcessManager:
 				kwargs={"log_queue": self._logq},
 			)
 			self._p.start()
-			self.engine_proxy = EngineProxy(
-				self._proxy_in_pipe,
-				self._proxy_out_pipe,
-				self.logger,
-				install_modules,
-				enforce_end_of_time=enforce_end_of_time,
-			)
 		else:
 			from queue import SimpleQueue
 
@@ -4803,6 +4842,27 @@ class EngineProcessManager:
 			)
 			self._t.start()
 
+	def _make_proxy(self, *args, **kwargs):
+		self._config_logger(**kwargs)
+		install_modules = (
+			kwargs.pop("install_modules")
+			if "install_modules" in kwargs
+			else []
+		)
+		if not hasattr(self, "_t"):
+			self._start_subprocess(*args, **kwargs)
+		enforce_end_of_time = kwargs.get("enforce_end_of_time", False)
+		if hasattr(self, "_handle_in_pipe") and hasattr(
+			self, "_handle_out_pipe"
+		):
+			self.engine_proxy = EngineProxy(
+				self._proxy_in_pipe,
+				self._proxy_out_pipe,
+				self.logger,
+				install_modules,
+				enforce_end_of_time=enforce_end_of_time,
+			)
+		else:
 			self.engine_proxy = EngineProxy(
 				self._input_queue,
 				self._output_queue,
@@ -4811,6 +4871,49 @@ class EngineProcessManager:
 				enforce_end_of_time=enforce_end_of_time,
 			)
 
+		return self.engine_proxy
+
+	def load_archive(
+		self,
+		archive_path: str | os.PathLike,
+		prefix: str | os.PathLike,
+		**kwargs,
+	) -> EngineProxy:
+		"""Load a game from a .lisien archive, start Lisien on it, and return its proxy"""
+		n = len(".lisien")
+		if archive_path[-n:] != ".lisien":
+			raise RuntimeError("Not a .lisien archive")
+		self._start_subprocess()
+		self._config_logger(
+			logfile=kwargs.pop("logfile"), loglevel=kwargs.pop("loglevel")
+		)
+		if hasattr(self, "_proxy_in_pipe"):
+			self._proxy_in_pipe.send(
+				b"from_archive"
+				+ msgpack.packb(
+					{"archive_path": archive_path, "prefix": prefix, **kwargs}
+				)
+			)
+		else:
+			self._input_queue.put(
+				(
+					"from_archive",
+					{"archive_path": archive_path, "prefix": prefix, **kwargs},
+				)
+			)
+		self._make_proxy()
+		self.engine_proxy._init_pull_from_core()
+		return self.engine_proxy
+
+	def start(self, *args, **kwargs) -> EngineProxy:
+		"""Start lisien in a subprocess, and return a proxy to it"""
+		if hasattr(self, "engine_proxy"):
+			raise RuntimeError("Already started")
+		self._make_proxy(*args, **kwargs)
+		if hasattr(self, "_input_queue"):
+			self._input_queue.put(b"")
+		else:
+			self._proxy_in_pipe.send(b"")
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
