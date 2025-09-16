@@ -4896,7 +4896,9 @@ class EngineProcessManager:
 					{"archive_path": archive_path, "prefix": prefix, **kwargs},
 				)
 			)
-		return self._make_proxy()
+		self._make_proxy()
+		self.engine_proxy._init_pull_from_core()
+		return self.engine_proxy
 
 	def start(self, *args, **kwargs) -> EngineProxy:
 		"""Start lisien in a subprocess, and return a proxy to it"""

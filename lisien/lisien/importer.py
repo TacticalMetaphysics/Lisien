@@ -628,15 +628,13 @@ class Importer:
 						end_turn,
 						end_tick,
 					)
-					try:
+					if "last-turn-completed" in branch_el.keys():
 						last_completed_turn = Turn(
 							int(branch_el.get("last-turn-completed"))
 						)
 						self.query.complete_turn(
 							branch, last_completed_turn, False
 						)
-					except KeyError:
-						pass
 
 					for turn_el in branch_el:
 						turn = Turn(int(turn_el.get("number")))
