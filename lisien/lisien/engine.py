@@ -7289,7 +7289,7 @@ class Engine(AbstractEngine, Executor):
 		extracted = os.listdir(prefix)
 		if "world.xml" in extracted:
 			xml_path = os.path.join(prefix, "world.xml")
-			if "connect_string" in kwargs:
+			if "connect_string" in kwargs and kwargs["connect_string"]:
 				xml_to_sqlite(xml_path, os.path.join(prefix, "world.sqlite3"))
 			else:
 				os.makedirs(os.path.join(prefix, "world"), exist_ok=True)
