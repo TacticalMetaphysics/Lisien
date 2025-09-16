@@ -606,6 +606,8 @@ class Importer:
 		self.query.eternal["turn"] = int(root.get("turn"))
 		self.query.eternal["tick"] = int(root.get("tick"))
 		for el in root:
+			if el.tag == "language":
+				continue
 			if el.tag == "playtree":
 				for branch_el in el:
 					parent: Branch | None = branch_el.get("parent")

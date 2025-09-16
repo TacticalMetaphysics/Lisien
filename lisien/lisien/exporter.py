@@ -27,6 +27,7 @@ import networkx as nx
 from tblib import Traceback
 
 import lisien.types
+from .collections import FunctionStore, REC_SEP, GROUP_SEP
 from lisien.db import AbstractDatabaseConnector, LoadedCharWindow
 from lisien.facade import EngineFacade
 from lisien.types import (
@@ -91,6 +92,7 @@ class Exporter:
 		root.set("branch", str(eternals.pop("branch")))
 		root.set("turn", str(eternals.pop("turn")))
 		root.set("tick", str(eternals.pop("tick")))
+		root.set("language", str(eternals.pop("language")))
 		for k in sort_set(eternals.keys()):
 			el = Element("dict-item", key=repr(k))
 			root.append(el)
@@ -1033,11 +1035,54 @@ def pqdb_to_etree(
 def game_path_to_etree(
 	game_path: str | os.PathLike, name: str | None = None
 ) -> ElementTree:
+	from base64 import urlsafe_b64encode
+	from hashlib import blake2b
+	import json
+
+	from .collections import FunctionStore
+
 	world = os.path.join(game_path, "world")
 	if os.path.isdir(world):
 		game_history = pqdb_to_etree(world, name)
 	else:
 		game_history = sqlite_to_etree(world + ".sqlite3", name)
+	lisien_el: Element = game_history.getroot()
+
+	ls = os.listdir(game_path)
+	# Take the hash of code and strings--*not* the hash of their *files*--
+	# so that if the file gets reformatted, as often happens as a side effect
+	# of ast.parse and astunparse, this does not change its hash.
+	for modname in ("function", "method", "trigger", "prereq", "action"):
+		modpy = modname + ".py"
+		if modpy in ls:
+			srchash = FunctionStore(os.path.join(game_path, modpy)).blake2b()
+			lisien_el.set(modname, urlsafe_b64encode(srchash).decode("utf-8"))
+	strings_dir = os.path.join(game_path, "strings")
+	if (
+		"strings" in ls
+		and os.path.isdir(strings_dir)
+		and (langfiles := os.listdir(strings_dir))
+	):
+		for fn in langfiles:
+			langhash = blake2b()
+			with open(os.path.join(strings_dir, fn), "rb") as inf:
+				langlines = json.load(inf)
+			for k, v in langlines.items():
+				langhash.update(k.encode())
+				langhash.update(GROUP_SEP)
+				langhash.update(v.encode())
+				langhash.update(REC_SEP)
+			if len(fn) > 5 and fn[-5:] == ".json":
+				fn = fn[:-5]
+			lisien_el.append(
+				Element(
+					"language",
+					code=fn,
+					blake2b=urlsafe_b64encode(langhash.digest()).decode(
+						"utf-8"
+					),
+				)
+			)
 	return game_history
 
 
