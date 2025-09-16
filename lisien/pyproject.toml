@@ -35,6 +35,7 @@ dependencies = [
 	"parquetdb @ git+https://github.com/lllangWV/ParquetDB.git#egg=bcc6613d2d552ece646c4628a514b43c381d2bc6",
 	"annotated-types~=0.7.0",
 	"lxml~=6.0",
+	"sortedcontainers~=2.4",
 ]
 
 [project.urls]
