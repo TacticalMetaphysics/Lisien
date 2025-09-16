@@ -81,8 +81,8 @@ DUMP_METHOD_NAMES = (
 
 def compare_engines_world_state(test_engine: Engine, correct_engine: Engine):
 	for dump_method in DUMP_METHOD_NAMES:
-		test_data = list(getattr(test_engine, dump_method)())
-		correct_data = list(getattr(correct_engine, dump_method)())
+		test_data = list(getattr(test_engine.query, dump_method)())
+		correct_data = list(getattr(correct_engine.query, dump_method)())
 		print(dump_method)
 		assert test_data == correct_data, (
 			dump_method + " gave different results"
