@@ -12,10 +12,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import os
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
+from functools import cached_property
 from operator import attrgetter
 from threading import RLock
 from typing import Any, Mapping, MutableMapping, MutableSequence, Type
@@ -25,8 +27,7 @@ from blinker import Signal
 
 from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
 from .exc import NotInKeyframeError, TotalKeyError
-from .graph import DiGraph, Edge, Node
-from .types import CharName, Key, NodeName
+from .types import CharName, Key, NodeName, Node, Edge, DiGraph
 from .util import (
 	AbstractCharacter,
 	AbstractEngine,
@@ -37,7 +38,7 @@ from .util import (
 	timer,
 )
 from .wrap import MutableMappingUnwrapper
-from .xcollections import CompositeDict
+from .collections import CompositeDict, FunctionStore
 
 
 class FacadeEntity(MutableMapping, Signal, ABC):
@@ -473,6 +474,9 @@ class FacadePlace(FacadeNode):
 		from .node import Place
 
 		super().__init__(mapping, real_or_name, **kwargs)
+		if isinstance(mapping, CharacterFacade):
+			mapping.place._patch[real_or_name] = self
+			return
 		if not isinstance(real_or_name, Place):
 			if real_or_name in mapping._patch:
 				real_or_name = mapping._patch[real_or_name]
@@ -744,19 +748,24 @@ class CharacterFacade(AbstractCharacter):
 			self.name, charn, noden, *self.engine._btt(), True
 		)
 
-	def __init__(self, character=None, engine=None):
-		self.character = character
-		if isinstance(engine, EngineFacade):
+	def __init__(self, engine=None, character=None, init_rulebooks=None):
+		if engine is None:
+			engine = self.db = EngineFacade(getattr(character, "db", None))
+		elif isinstance(engine, EngineFacade):
 			self.db = engine
-		else:
-			self.db = EngineFacade(engine or getattr(character, "db", None))
-		self._stat_map = self.StatMapping(self)
-		self._rb_patch = {}
-		if hasattr(character, "name"):
-			self.db.character._patch[character.name] = self
-			self._name = character.name
+		if isinstance(character, AbstractCharacter):
+			self.character = character
+			if hasattr(character, "name"):
+				engine.character._patch[character.name] = self
+				self._name = character.name
+			else:
+				self._name = character
 		else:
 			self._name = character
+			self.character = None
+
+		self._stat_map = self.StatMapping(self)
+		self._rb_patch = {}
 
 	@property
 	def graph(self):
@@ -945,6 +954,19 @@ class CharacterFacade(AbstractCharacter):
 			self.facade = facade
 			self._patch = {}
 
+		def copy(self):
+			d = {}
+			if hasattr(self.facade.character, "graph"):
+				for k, v in self.facade.character.graph.items():
+					if k not in self._patch:
+						d[k] = v
+					elif self._patch[k] is not ...:
+						d[k] = self._patch[k]
+			for k, v in self._patch.items():
+				if v is not ...:
+					d[k] = v
+			return d
+
 		def __iter__(self):
 			seen = set()
 			if hasattr(self.facade.character, "graph"):
@@ -994,6 +1016,24 @@ class CharacterFacade(AbstractCharacter):
 
 		def __delitem__(self, k):
 			self._patch[k] = ...
+
+		def __repr__(self):
+			toshow = {}
+			if hasattr(self.facade.character, "graph"):
+				for k in (
+					self._patch.keys() | self.facade.character.graph.keys()
+				):
+					if k in self._patch:
+						if self._patch[k] is not ...:
+							toshow[k] = self._patch[k]
+					elif k in self.facade.character.graph:
+						v = self.facade.character.graph[k]
+						if hasattr(v, "unwrap") and not hasattr(
+							v, "no_unwrap"
+						):
+							v = v.unwrap()
+						toshow[k] = v
+			return f"<StatMapping {toshow}>"
 
 	def apply(self):
 		"""Do all my changes for real in a batch"""
@@ -1051,6 +1091,26 @@ class EngineFacade(AbstractEngine):
 	place_cls = FacadePlace
 	portal_cls = FacadePortal
 	time = TimeSignalDescriptor()
+
+	@cached_property
+	def function(self):
+		return FunctionStore(None)
+
+	@cached_property
+	def method(self):
+		return FunctionStore(None)
+
+	@cached_property
+	def trigger(self):
+		return FunctionStore(None)
+
+	@cached_property
+	def prereq(self):
+		return FunctionStore(None)
+
+	@cached_property
+	def action(self):
+		return FunctionStore(None)
 
 	class FacadeUniversalMapping(Signal, MutableMapping):
 		def __init__(self, engine: AbstractEngine):
@@ -1115,11 +1175,9 @@ class EngineFacade(AbstractEngine):
 				raise KeyError("No character", key)
 			if key not in self._patch:
 				if realeng:
-					fac = CharacterFacade(
-						realeng.character[key], engine=realeng
-					)
+					fac = CharacterFacade(self.engine, realeng.character[key])
 				elif self.engine._mockup:
-					fac = CharacterFacade(key, engine=self.engine)
+					fac = CharacterFacade(self.engine, key)
 				else:
 					raise KeyError("No character", key)
 				self._patch[key] = fac
@@ -1203,7 +1261,7 @@ class EngineFacade(AbstractEngine):
 			import sys
 			from unittest.mock import MagicMock
 
-			from .xcollections import FunctionStore, StringStore
+			from .collections import FunctionStore, StringStore
 
 			for funcs in ("function", "method", "trigger", "prereq", "action"):
 				setattr(self, funcs, FunctionStore(None))
@@ -1300,6 +1358,25 @@ class EngineFacade(AbstractEngine):
 	) -> None:
 		self._branches_d[branch] = (parent, turn, tick, turn, tick)
 		self._extend_branch(branch, turn, tick)
+
+	def export(
+		self,
+		name: str | None,
+		path: str | os.PathLike | None = None,
+		indent: bool = True,
+	) -> None:
+		raise RuntimeError("Can't export facades")
+
+	@classmethod
+	def from_archive(
+		cls,
+		path: str | os.PathLike,
+		prefix: str | os.PathLike | None = ".",
+		**kwargs,
+	) -> AbstractEngine:
+		raise RuntimeError(
+			"Can't import archived Lisien games into facades. Use a regular Engine."
+		)
 
 	def load_at(self, branch: str, turn: int, tick: int) -> None:
 		pass

@@ -21,11 +21,10 @@ from typing import Any, Optional
 
 from .exc import HistoricKeyError
 from .facade import FacadePortal
-from .graph import Edge
 from .query import EntityStatAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .types import Key, Time
+from .types import Key, Time, Edge
 from .util import AbstractCharacter, getatt
 
 

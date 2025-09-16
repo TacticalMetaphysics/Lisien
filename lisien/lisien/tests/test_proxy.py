@@ -99,15 +99,15 @@ def test_manip_deleted(sqleng):
 	assert 1 not in phys.adj
 
 
-def test_switch_main_branch(engine):
+def test_switch_trunk_branch(engine):
 	phys = engine.new_character("physical", hello="hi")
 	engine.next_turn()
 	phys.stat["hi"] = "hello"
-	with pytest.raises(ValueError):
-		engine.switch_main_branch("tronc")
+	with pytest.raises(AttributeError):
+		engine.trunk = "tronc"
 	engine.turn = 0
 	engine.tick = 0
-	engine.switch_main_branch("tronc")
+	engine.trunk = "tronc"
 	assert engine.branch == "tronc"
 	assert phys
 	assert "hi" not in phys.stat
@@ -116,7 +116,7 @@ def test_switch_main_branch(engine):
 	phys.stat["hi"] = "hey there"
 	engine.turn = 0
 	engine.tick = 0
-	engine.switch_main_branch("trunk")
+	engine.trunk = "trunk"
 	assert phys.stat["hello"] == "hi"
 	engine.turn = 1
 	assert phys.stat["hello"] == "hi"

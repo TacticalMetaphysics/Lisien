@@ -32,6 +32,7 @@ from sqlalchemy import (
 	and_,
 	bindparam,
 	func,
+	null,
 	or_,
 	select,
 )
@@ -41,7 +42,7 @@ BaseColumn = Column
 Column = partial(BaseColumn, nullable=False)
 
 
-def tables_for_meta(meta):
+def tables(meta: MetaData):
 	"""Return a dictionary full of all the tables I need for lisien. Use the
 	provided metadata object.
 
@@ -90,10 +91,10 @@ def tables_for_meta(meta):
 	Table(
 		"graphs",
 		meta,
-		Column("graph", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True),
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
+		Column("graph", BLOB, primary_key=True),
 		Column("type", TEXT, default="Graph", nullable=True),
 		CheckConstraint(
 			"type IN "
@@ -117,7 +118,6 @@ def tables_for_meta(meta):
 	Table(
 		"keyframes_graphs",
 		meta,
-		Column("graph", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -126,6 +126,7 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("graph", BLOB, primary_key=True),
 		Column("nodes", BLOB),
 		Column("edges", BLOB),
 		Column("graph_val", BLOB),
@@ -137,8 +138,6 @@ def tables_for_meta(meta):
 	Table(
 		"graph_val",
 		meta,
-		Column("graph", BLOB, primary_key=True),
-		Column("key", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -148,14 +147,14 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("graph", BLOB, primary_key=True),
+		Column("key", BLOB, primary_key=True),
 		Column("value", BLOB),
 		sqlite_with_rowid=False,
 	)
 	Table(
 		"nodes",
 		meta,
-		Column("graph", BLOB, primary_key=True),
-		Column("node", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -165,15 +164,14 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("graph", BLOB, primary_key=True),
+		Column("node", BLOB, primary_key=True),
 		Column("extant", BOOLEAN),
 		sqlite_with_rowid=False,
 	)
 	Table(
 		"node_val",
 		meta,
-		Column("graph", BLOB, primary_key=True),
-		Column("node", BLOB, primary_key=True),
-		Column("key", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -183,15 +181,15 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("graph", BLOB, primary_key=True),
+		Column("node", BLOB, primary_key=True),
+		Column("key", BLOB, primary_key=True),
 		Column("value", BLOB),
 		sqlite_with_rowid=False,
 	)
 	Table(
 		"edges",
 		meta,
-		Column("graph", BLOB, primary_key=True),
-		Column("orig", BLOB, primary_key=True),
-		Column("dest", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -201,16 +199,15 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("graph", BLOB, primary_key=True),
+		Column("orig", BLOB, primary_key=True),
+		Column("dest", BLOB, primary_key=True),
 		Column("extant", BOOLEAN),
 		sqlite_with_rowid=False,
 	)
 	Table(
 		"edge_val",
 		meta,
-		Column("graph", BLOB, primary_key=True),
-		Column("orig", BLOB, primary_key=True),
-		Column("dest", BLOB, primary_key=True),
-		Column("key", BLOB, primary_key=True),
 		Column(
 			"branch",
 			TEXT,
@@ -220,6 +217,10 @@ def tables_for_meta(meta):
 		),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("graph", BLOB, primary_key=True),
+		Column("orig", BLOB, primary_key=True),
+		Column("dest", BLOB, primary_key=True),
+		Column("key", BLOB, primary_key=True),
 		Column("value", BLOB),
 		sqlite_with_rowid=False,
 	)
@@ -240,6 +241,7 @@ def tables_for_meta(meta):
 		"plan_ticks",
 		meta,
 		Column("plan_id", INT, primary_key=True),
+		Column("branch", TEXT, primary_key=True),
 		Column("turn", INT, primary_key=True),
 		Column("tick", INT, primary_key=True),
 		ForeignKeyConstraint(("plan_id",), ("plans.id",)),
@@ -250,10 +252,10 @@ def tables_for_meta(meta):
 	Table(
 		"universals",
 		meta,
-		Column("key", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("key", BLOB, primary_key=True),
 		Column("value", BLOB),
 		sqlite_with_rowid=False,
 	)
@@ -289,10 +291,10 @@ def tables_for_meta(meta):
 	Table(
 		"rulebooks",
 		meta,
-		Column("rulebook", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("rulebook", BLOB, primary_key=True),
 		Column("rules", BLOB, default=b"\x90"),  # empty array
 		Column("priority", FLOAT, default=0.0),
 		sqlite_with_rowid=False,
@@ -303,10 +305,10 @@ def tables_for_meta(meta):
 	Table(
 		"rule_triggers",
 		meta,
-		Column("rule", TEXT, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("rule", TEXT, primary_key=True),
 		Column("triggers", BLOB, default=b"\x90"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
@@ -317,11 +319,11 @@ def tables_for_meta(meta):
 	Table(
 		"rule_neighborhood",
 		meta,
-		Column("rule", TEXT, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
-		Column("neighborhood", BLOB, default=b"\xc0"),
+		Column("rule", TEXT, primary_key=True),
+		Column("neighborhood", INT, nullable=True, default=None),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
 	)
@@ -331,10 +333,10 @@ def tables_for_meta(meta):
 	Table(
 		"rule_prereqs",
 		meta,
-		Column("rule", TEXT, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("rule", TEXT, primary_key=True),
 		Column("prereqs", BLOB, default=b"\x90"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
@@ -345,10 +347,10 @@ def tables_for_meta(meta):
 	Table(
 		"rule_actions",
 		meta,
-		Column("rule", TEXT, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("rule", TEXT, primary_key=True),
 		Column("actions", BLOB, default=b"\x90"),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
@@ -358,10 +360,10 @@ def tables_for_meta(meta):
 	Table(
 		"rule_big",
 		meta,
-		Column("rule", TEXT, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("rule", TEXT, primary_key=True),
 		Column("big", BOOLEAN, default=False),
 		ForeignKeyConstraint(("rule",), ["rules.rule"]),
 		sqlite_with_rowid=False,
@@ -382,10 +384,10 @@ def tables_for_meta(meta):
 		Table(
 			name,
 			meta,
-			Column("character", BLOB, primary_key=True),
 			Column("branch", TEXT, primary_key=True, default="trunk"),
 			Column("turn", INT, primary_key=True, default=0),
 			Column("tick", INT, primary_key=True, default=0),
+			Column("character", BLOB, primary_key=True),
 			Column("rulebook", BLOB),
 			sqlite_with_rowid=False,
 		)
@@ -395,12 +397,12 @@ def tables_for_meta(meta):
 	nrh = Table(
 		"node_rules_handled",
 		meta,
+		Column("branch", TEXT, primary_key=True, default="trunk"),
+		Column("turn", INT, primary_key=True, default=0),
 		Column("character", BLOB, primary_key=True),
 		Column("node", BLOB, primary_key=True),
 		Column("rulebook", BLOB, primary_key=True),
 		Column("rule", TEXT, primary_key=True),
-		Column("branch", TEXT, primary_key=True, default="trunk"),
-		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT),
 		sqlite_with_rowid=False,
 	)
@@ -410,13 +412,13 @@ def tables_for_meta(meta):
 	porh = Table(
 		"portal_rules_handled",
 		meta,
+		Column("branch", TEXT, primary_key=True, default="trunk"),
+		Column("turn", INT, primary_key=True, default=0),
 		Column("character", BLOB, primary_key=True),
 		Column("orig", BLOB, primary_key=True),
 		Column("dest", BLOB, primary_key=True),
 		Column("rulebook", BLOB, primary_key=True),
 		Column("rule", TEXT, primary_key=True),
-		Column("branch", TEXT, primary_key=True, default="trunk"),
-		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT),
 		sqlite_with_rowid=False,
 	)
@@ -429,11 +431,11 @@ def tables_for_meta(meta):
 	Table(
 		"things",
 		meta,
-		Column("character", BLOB, primary_key=True),
-		Column("thing", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("character", BLOB, primary_key=True),
+		Column("thing", BLOB, primary_key=True),
 		# when location is null, this node is not a thing, but a place
 		Column("location", BLOB),
 		sqlite_with_rowid=False,
@@ -443,11 +445,11 @@ def tables_for_meta(meta):
 	Table(
 		"node_rulebook",
 		meta,
-		Column("character", BLOB, primary_key=True),
-		Column("node", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("character", BLOB, primary_key=True),
+		Column("node", BLOB, primary_key=True),
 		Column("rulebook", BLOB),
 		sqlite_with_rowid=False,
 	)
@@ -461,12 +463,12 @@ def tables_for_meta(meta):
 	Table(
 		"portal_rulebook",
 		meta,
-		Column("character", BLOB, primary_key=True),
-		Column("orig", BLOB, primary_key=True),
-		Column("dest", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("character", BLOB, primary_key=True),
+		Column("orig", BLOB, primary_key=True),
+		Column("dest", BLOB, primary_key=True),
 		Column("rulebook", BLOB),
 		sqlite_with_rowid=False,
 	)
@@ -485,79 +487,82 @@ def tables_for_meta(meta):
 	Table(
 		"units",
 		meta,
-		Column("character_graph", BLOB, primary_key=True),
-		Column("unit_graph", BLOB, primary_key=True),
-		Column("unit_node", BLOB, primary_key=True),
 		Column("branch", TEXT, primary_key=True, default="trunk"),
 		Column("turn", INT, primary_key=True, default=0),
 		Column("tick", INT, primary_key=True, default=0),
+		Column("character_graph", BLOB, primary_key=True),
+		Column("unit_graph", BLOB, primary_key=True),
+		Column("unit_node", BLOB, primary_key=True),
 		Column("is_unit", BOOLEAN),
 		sqlite_with_rowid=False,
 	)
 
-	crh = Table(
+	Table(
 		"character_rules_handled",
 		meta,
-		Column("character", BLOB),
-		Column("rulebook", BLOB),
-		Column("rule", TEXT),
-		Column("branch", TEXT, default="trunk"),
-		Column("turn", INT),
+		Column("branch", TEXT, primary_key=True, default="trunk"),
+		Column("turn", INT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("rulebook", BLOB, primary_key=True),
+		Column("rule", TEXT, primary_key=True),
 		Column("tick", INT),
 		sqlite_with_rowid=True,
 	)
 
-	arh = Table(
+	Table(
 		"unit_rules_handled",
 		meta,
-		Column("character", BLOB),
-		Column("graph", BLOB),
-		Column("unit", BLOB),
-		Column("rulebook", BLOB),
-		Column("rule", TEXT),
-		Column("branch", TEXT, default="trunk"),
-		Column("turn", INT),
+		Column("branch", TEXT, primary_key=True, default="trunk"),
+		Column("turn", INT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("graph", BLOB, primary_key=True),
+		Column(
+			"unit",
+			BLOB,
+			primary_key=True,
+		),
+		Column("rulebook", BLOB, primary_key=True),
+		Column("rule", TEXT, primary_key=True),
 		Column("tick", INT),
 		sqlite_with_rowid=True,
 	)
 
-	ctrh = Table(
+	Table(
 		"character_thing_rules_handled",
 		meta,
-		Column("character", BLOB),
-		Column("rulebook", BLOB),
-		Column("rule", TEXT),
-		Column("thing", BLOB),
-		Column("branch", TEXT, default="trunk"),
-		Column("turn", INT),
+		Column("branch", TEXT, primary_key=True, default="trunk"),
+		Column("turn", INT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("rulebook", BLOB, primary_key=True),
+		Column("rule", TEXT, primary_key=True),
+		Column("thing", BLOB, primary_key=True),
 		Column("tick", INT),
-		sqlite_with_rowid=True,
 	)
 
-	cprh = Table(
+	Table(
 		"character_place_rules_handled",
 		meta,
-		Column("character", BLOB),
-		Column("place", BLOB),
-		Column("rulebook", BLOB),
-		Column("rule", TEXT),
-		Column("branch", TEXT, default="trunk"),
-		Column("turn", INT),
+		Column("branch", TEXT, primary_key=True, default="trunk"),
+		Column("turn", INT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("place", BLOB, primary_key=True),
+		Column("rulebook", BLOB, primary_key=True),
+		Column("rule", TEXT, primary_key=True),
 		Column("tick", INT),
 		sqlite_with_rowid=True,
 	)
 
-	cporh = Table(
+	Table(
 		"character_portal_rules_handled",
 		meta,
-		Column("character", BLOB),
-		Column("orig", BLOB),
-		Column("dest", BLOB),
-		Column("rulebook", BLOB),
-		Column("rule", TEXT),
-		Column("branch", TEXT, default="trunk"),
-		Column("turn", INT),
-		Column("tick", INT),
+		Column("branch", TEXT, primary_key=True, default="trunk"),
+		Column("turn", INT, primary_key=True),
+		Column("character", BLOB, primary_key=True),
+		Column("orig", BLOB, primary_key=True),
+		Column("dest", BLOB, primary_key=True),
+		Column("rulebook", BLOB, primary_key=True),
+		Column("rule", TEXT, primary_key=True),
+		Column("tick", INT, primary_key=True),
 		sqlite_with_rowid=True,
 	)
 
@@ -572,16 +577,7 @@ def tables_for_meta(meta):
 	return meta.tables
 
 
-def indices_for_table_dict(table):
-	return {}
-
-
-def queries(table):
-	"""Given dictionaries of tables and view-queries, return a dictionary
-	of all the rest of the queries I need.
-
-	"""
-
+def queries(meta: MetaData):
 	def update_where(updcols, wherecols):
 		"""Return an ``UPDATE`` statement that updates the columns ``updcols``
 		when the ``wherecols`` match. Every column has a bound parameter of
@@ -621,156 +617,168 @@ def queries(table):
 			),
 		)
 
+	table = meta.tables
+
+	graphs = table["graphs"]
+	globtab = table["global"]
+	edge_val = table["edge_val"]
+	edges = table["edges"]
+	nodes = table["nodes"]
+	node_val = table["node_val"]
+	graph_val = table["graph_val"]
+	branches = table["branches"]
+	turns = table["turns"]
+	keyframes_graphs = table["keyframes_graphs"]
+	keyframes = table["keyframes"]
 	r = {
-		"global_get": select(table["global"].c.value).where(
-			table["global"].c.key == bindparam("key")
+		"global_get": select(globtab.c.value).where(
+			globtab.c.key == bindparam("key")
 		),
-		"global_update": table["global"]
-		.update()
+		"global_update": globtab.update()
 		.values(value=bindparam("value"))
-		.where(table["global"].c.key == bindparam("key")),
-		"graph_type": select(table["graphs"].c.type).where(
-			table["graphs"].c.graph == bindparam("graph")
+		.where(globtab.c.key == bindparam("key")),
+		"graph_type": select(graphs.c.type).where(
+			graphs.c.graph == bindparam("graph")
 		),
-		"del_edge_val_after": table["edge_val"]
-		.delete()
-		.where(
+		"del_edge_val_after": edge_val.delete().where(
 			and_(
-				table["edge_val"].c.graph == bindparam("graph"),
-				table["edge_val"].c.orig == bindparam("orig"),
-				table["edge_val"].c.dest == bindparam("dest"),
-				table["edge_val"].c.key == bindparam("key"),
-				table["edge_val"].c.branch == bindparam("branch"),
+				edge_val.c.graph == bindparam("graph"),
+				edge_val.c.orig == bindparam("orig"),
+				edge_val.c.dest == bindparam("dest"),
+				edge_val.c.key == bindparam("key"),
+				edge_val.c.branch == bindparam("branch"),
 				or_(
-					table["edge_val"].c.turn > bindparam("turn"),
+					edge_val.c.turn > bindparam("turn"),
 					and_(
-						table["edge_val"].c.turn == bindparam("turn"),
-						table["edge_val"].c.tick >= bindparam("tick"),
+						edge_val.c.turn == bindparam("turn"),
+						edge_val.c.tick >= bindparam("tick"),
 					),
 				),
 			)
 		),
-		"del_edges_graph": table["edges"]
-		.delete()
-		.where(table["edges"].c.graph == bindparam("graph")),
-		"del_edges_after": table["edges"]
-		.delete()
-		.where(
+		"del_edges_graph": edges.delete().where(
+			edges.c.graph == bindparam("graph")
+		),
+		"del_edges_after": edges.delete().where(
 			and_(
-				table["edges"].c.graph == bindparam("graph"),
-				table["edges"].c.orig == bindparam("orig"),
-				table["edges"].c.dest == bindparam("dest"),
-				table["edges"].c.branch == bindparam("branch"),
+				edges.c.graph == bindparam("graph"),
+				edges.c.orig == bindparam("orig"),
+				edges.c.dest == bindparam("dest"),
+				edges.c.branch == bindparam("branch"),
 				or_(
-					table["edges"].c.turn > bindparam("turn"),
+					edges.c.turn > bindparam("turn"),
 					and_(
-						table["edges"].c.turn == bindparam("turn"),
-						table["edges"].c.tick >= bindparam("tick"),
+						edges.c.turn == bindparam("turn"),
+						edges.c.tick >= bindparam("tick"),
 					),
 				),
 			)
 		),
-		"del_nodes_after": table["nodes"]
-		.delete()
-		.where(
+		"del_nodes_after": nodes.delete().where(
 			and_(
-				table["nodes"].c.graph == bindparam("graph"),
-				table["nodes"].c.node == bindparam("node"),
-				table["nodes"].c.branch == bindparam("branch"),
+				nodes.c.graph == bindparam("graph"),
+				nodes.c.node == bindparam("node"),
+				nodes.c.branch == bindparam("branch"),
 				or_(
-					table["nodes"].c.turn > bindparam("turn"),
+					nodes.c.turn > bindparam("turn"),
 					and_(
-						table["nodes"].c.turn == bindparam("turn"),
-						table["nodes"].c.tick >= bindparam("tick"),
+						nodes.c.turn == bindparam("turn"),
+						nodes.c.tick >= bindparam("tick"),
 					),
 				),
 			)
 		),
-		"del_node_val_after": table["node_val"]
-		.delete()
-		.where(
+		"del_node_val_after": node_val.delete().where(
 			and_(
-				table["node_val"].c.graph == bindparam("graph"),
-				table["node_val"].c.node == bindparam("node"),
-				table["node_val"].c.key == bindparam("key"),
-				table["node_val"].c.branch == bindparam("branch"),
+				node_val.c.graph == bindparam("graph"),
+				node_val.c.node == bindparam("node"),
+				node_val.c.key == bindparam("key"),
+				node_val.c.branch == bindparam("branch"),
 				or_(
-					table["node_val"].c.turn > bindparam("turn"),
+					node_val.c.turn > bindparam("turn"),
 					and_(
-						table["node_val"].c.turn == bindparam("turn"),
-						table["node_val"].c.tick >= bindparam("tick"),
+						node_val.c.turn == bindparam("turn"),
+						node_val.c.tick >= bindparam("tick"),
 					),
 				),
 			)
 		),
-		"del_graph_val_after": table["graph_val"]
-		.delete()
-		.where(
+		"del_graph_val_after": graph_val.delete().where(
 			and_(
-				table["graph_val"].c.graph == bindparam("graph"),
-				table["graph_val"].c.key == bindparam("key"),
-				table["graph_val"].c.branch == bindparam("branch"),
+				graph_val.c.graph == bindparam("graph"),
+				graph_val.c.key == bindparam("key"),
+				graph_val.c.branch == bindparam("branch"),
 				or_(
-					table["graph_val"].c.turn > bindparam("turn"),
+					graph_val.c.turn > bindparam("turn"),
 					and_(
-						table["graph_val"].c.turn == bindparam("turn"),
-						table["graph_val"].c.tick >= bindparam("tick"),
+						graph_val.c.turn == bindparam("turn"),
+						graph_val.c.tick >= bindparam("tick"),
 					),
 				),
 			)
 		),
-		"global_delete": table["global"]
-		.delete()
-		.where(table["global"].c.key == bindparam("key")),
-		"graphs_types": select(
-			table["graphs"].c.graph, table["graphs"].c.type
+		"global_delete": globtab.delete().where(
+			globtab.c.key == bindparam("key")
+		),
+		"graphs_types": select(graphs.c.graph, graphs.c.type),
+		"graphs_delete": graphs.delete().where(
+			and_(
+				graphs.c.graph == bindparam("graph"),
+				graphs.c.branch == bindparam("branch"),
+				graphs.c.turn == bindparam("turn"),
+				graphs.c.tick == bindparam("tick"),
+			)
 		),
 		"graphs_named": select(func.COUNT())
-		.select_from(table["graphs"])
-		.where(table["graphs"].c.graph == bindparam("graph")),
+		.select_from(graphs)
+		.where(graphs.c.graph == bindparam("graph")),
 		"graphs_between": select(
-			table["graphs"].c.graph,
-			table["graphs"].c.turn,
-			table["graphs"].c.tick,
-			table["graphs"].c.type,
+			graphs.c.graph,
+			graphs.c.turn,
+			graphs.c.tick,
+			graphs.c.type,
 		).where(
 			and_(
-				table["graphs"].c.branch == bindparam("branch"),
+				graphs.c.branch == bindparam("branch"),
 				or_(
-					table["graphs"].c.turn > bindparam("turn_from_a"),
+					graphs.c.turn > bindparam("turn_from_a"),
 					and_(
-						table["graphs"].c.turn == bindparam("turn_from_b"),
-						table["graphs"].c.tick >= bindparam("tick_from"),
+						graphs.c.turn == bindparam("turn_from_b"),
+						graphs.c.tick >= bindparam("tick_from"),
 					),
 				),
 				or_(
-					table["graphs"].c.turn < bindparam("turn_to_a"),
+					graphs.c.turn < bindparam("turn_to_a"),
 					and_(
-						table["graphs"].c.turn == bindparam("turn_to_b"),
-						table["graphs"].c.tick <= bindparam("tick_to"),
+						graphs.c.turn == bindparam("turn_to_b"),
+						graphs.c.tick <= bindparam("tick_to"),
 					),
 				),
 			)
 		),
 		"graphs_after": select(
-			table["graphs"].c.graph,
-			table["graphs"].c.turn,
-			table["graphs"].c.tick,
-			table["graphs"].c.type,
+			graphs.c.graph,
+			graphs.c.turn,
+			graphs.c.tick,
+			graphs.c.type,
 		).where(
 			and_(
-				table["graphs"].c.branch == bindparam("branch"),
+				graphs.c.branch == bindparam("branch"),
 				or_(
-					table["graphs"].c.turn > bindparam("turn_from_a"),
+					graphs.c.turn > bindparam("turn_from_a"),
 					and_(
-						table["graphs"].c.turn == bindparam("turn_from_b"),
-						table["graphs"].c.tick >= bindparam("tick_from"),
+						graphs.c.turn == bindparam("turn_from_b"),
+						graphs.c.tick >= bindparam("tick_from"),
 					),
 				),
 			)
 		),
-		"update_branches": table["branches"]
-		.update()
+		"main_branch_ends": select(
+			branches.c.branch,
+			branches.c.end_turn,
+			branches.c.end_tick,
+		).where(branches.c.parent == null()),
+		"update_branches": branches.update()
 		.values(
 			parent=bindparam("parent"),
 			parent_turn=bindparam("parent_turn"),
@@ -778,141 +786,236 @@ def queries(table):
 			end_turn=bindparam("end_turn"),
 			end_tick=bindparam("end_tick"),
 		)
-		.where(table["branches"].c.branch == bindparam("branch")),
-		"update_turns": table["turns"]
-		.update()
+		.where(branches.c.branch == bindparam("branch")),
+		"update_turns": turns.update()
 		.values(
 			end_tick=bindparam("end_tick"),
 			plan_end_tick=bindparam("plan_end_tick"),
 		)
 		.where(
 			and_(
-				table["turns"].c.branch == bindparam("branch"),
-				table["turns"].c.turn == bindparam("turn"),
+				turns.c.branch == bindparam("branch"),
+				turns.c.turn == bindparam("turn"),
 			)
 		),
 		"keyframes_graphs_list": select(
-			table["keyframes_graphs"].c.graph,
-			table["keyframes_graphs"].c.branch,
-			table["keyframes_graphs"].c.turn,
-			table["keyframes_graphs"].c.tick,
+			keyframes_graphs.c.graph,
+			keyframes_graphs.c.branch,
+			keyframes_graphs.c.turn,
+			keyframes_graphs.c.tick,
 		),
 		"all_graphs_in_keyframe": select(
-			table["keyframes_graphs"].c.graph,
-			table["keyframes_graphs"].c.nodes,
-			table["keyframes_graphs"].c.edges,
-			table["keyframes_graphs"].c.graph_val,
+			keyframes_graphs.c.graph,
+			keyframes_graphs.c.nodes,
+			keyframes_graphs.c.edges,
+			keyframes_graphs.c.graph_val,
 		)
 		.where(
 			and_(
-				table["keyframes_graphs"].c.branch == bindparam("branch"),
-				table["keyframes_graphs"].c.turn == bindparam("turn"),
-				table["keyframes_graphs"].c.tick == bindparam("tick"),
+				keyframes_graphs.c.branch == bindparam("branch"),
+				keyframes_graphs.c.turn == bindparam("turn"),
+				keyframes_graphs.c.tick == bindparam("tick"),
 			)
 		)
-		.order_by(table["keyframes_graphs"].c.graph),
+		.order_by(keyframes_graphs.c.graph),
 		"get_keyframe_graph": select(
-			table["keyframes_graphs"].c.nodes,
-			table["keyframes_graphs"].c.edges,
-			table["keyframes_graphs"].c.graph_val,
+			keyframes_graphs.c.nodes,
+			keyframes_graphs.c.edges,
+			keyframes_graphs.c.graph_val,
 		).where(
 			and_(
-				table["keyframes_graphs"].c.graph == bindparam("graph"),
-				table["keyframes_graphs"].c.branch == bindparam("branch"),
-				table["keyframes_graphs"].c.turn == bindparam("turn"),
-				table["keyframes_graphs"].c.tick == bindparam("tick"),
+				keyframes_graphs.c.graph == bindparam("graph"),
+				keyframes_graphs.c.branch == bindparam("branch"),
+				keyframes_graphs.c.turn == bindparam("turn"),
+				keyframes_graphs.c.tick == bindparam("tick"),
 			)
 		),
-		"delete_keyframe_graph": table["keyframes_graphs"]
-		.delete()
-		.where(
+		"delete_keyframe": keyframes.delete().where(
 			and_(
-				table["keyframes_graphs"].c.graph == bindparam("graph"),
-				table["keyframes_graphs"].c.branch == bindparam("branch"),
-				table["keyframes_graphs"].c.turn == bindparam("turn"),
-				table["keyframes_graphs"].c.tick == bindparam("tick"),
+				keyframes.c.branch == bindparam("branch"),
+				keyframes.c.turn == bindparam("turn"),
+				keyframes.c.tick == bindparam("tick"),
 			)
 		),
+		"delete_keyframe_graph": keyframes_graphs.delete().where(
+			and_(
+				keyframes_graphs.c.graph == bindparam("graph"),
+				keyframes_graphs.c.branch == bindparam("branch"),
+				keyframes_graphs.c.turn == bindparam("turn"),
+				keyframes_graphs.c.tick == bindparam("tick"),
+			)
+		),
+		"load_graphs_tick_to_end": select(
+			graphs.c.graph, graphs.c.turn, graphs.c.tick, graphs.c.type
+		)
+		.where(tick_to_end_clause(graphs))
+		.order_by(graphs.c.turn, graphs.c.tick, graphs.c.graph),
+		"load_graphs_tick_to_tick": select(
+			graphs.c.graph, graphs.c.turn, graphs.c.tick, graphs.c.type
+		)
+		.where(tick_to_tick_clause(graphs))
+		.order_by(graphs.c.turn, graphs.c.tick, graphs.c.graph),
 		"load_nodes_tick_to_end": select(
-			table["nodes"].c.graph,
-			table["nodes"].c.node,
-			table["nodes"].c.turn,
-			table["nodes"].c.tick,
-			table["nodes"].c.extant,
-		).where(tick_to_end_clause(table["nodes"])),
+			nodes.c.graph,
+			nodes.c.node,
+			nodes.c.turn,
+			nodes.c.tick,
+			nodes.c.extant,
+		)
+		.where(tick_to_end_clause(nodes))
+		.order_by(
+			nodes.c.turn,
+			nodes.c.tick,
+			nodes.c.graph,
+			nodes.c.node,
+		),
 		"load_nodes_tick_to_tick": select(
-			table["nodes"].c.graph,
-			table["nodes"].c.node,
-			table["nodes"].c.turn,
-			table["nodes"].c.tick,
-			table["nodes"].c.extant,
-		).where(tick_to_tick_clause(table["nodes"])),
+			nodes.c.graph,
+			nodes.c.node,
+			nodes.c.turn,
+			nodes.c.tick,
+			nodes.c.extant,
+		)
+		.where(tick_to_tick_clause(nodes))
+		.order_by(
+			nodes.c.turn,
+			nodes.c.tick,
+			nodes.c.graph,
+			nodes.c.node,
+		),
 		"load_edges_tick_to_end": select(
-			table["edges"].c.graph,
-			table["edges"].c.orig,
-			table["edges"].c.dest,
-			table["edges"].c.turn,
-			table["edges"].c.tick,
-			table["edges"].c.extant,
-		).where(tick_to_end_clause(table["edges"])),
+			edges.c.graph,
+			edges.c.orig,
+			edges.c.dest,
+			edges.c.turn,
+			edges.c.tick,
+			edges.c.extant,
+		)
+		.where(tick_to_end_clause(edges))
+		.order_by(
+			edges.c.turn,
+			edges.c.tick,
+			edges.c.graph,
+			edges.c.orig,
+			edges.c.dest,
+		),
 		"load_edges_tick_to_tick": select(
-			table["edges"].c.graph,
-			table["edges"].c.orig,
-			table["edges"].c.dest,
-			table["edges"].c.turn,
-			table["edges"].c.tick,
-			table["edges"].c.extant,
-		).where(tick_to_tick_clause(table["edges"])),
+			edges.c.graph,
+			edges.c.orig,
+			edges.c.dest,
+			edges.c.turn,
+			edges.c.tick,
+			edges.c.extant,
+		)
+		.where(tick_to_tick_clause(edges))
+		.order_by(
+			edges.c.turn,
+			edges.c.tick,
+			edges.c.graph,
+			edges.c.orig,
+			edges.c.dest,
+		),
 		"load_node_val_tick_to_end": select(
-			table["node_val"].c.graph,
-			table["node_val"].c.node,
-			table["node_val"].c.key,
-			table["node_val"].c.turn,
-			table["node_val"].c.tick,
-			table["node_val"].c.value,
-		).where(tick_to_end_clause(table["node_val"])),
+			node_val.c.graph,
+			node_val.c.node,
+			node_val.c.key,
+			node_val.c.turn,
+			node_val.c.tick,
+			node_val.c.value,
+		)
+		.where(tick_to_end_clause(node_val))
+		.order_by(
+			node_val.c.turn,
+			node_val.c.tick,
+			node_val.c.graph,
+			node_val.c.node,
+			node_val.c.key,
+		),
 		"load_node_val_tick_to_tick": select(
-			table["node_val"].c.graph,
-			table["node_val"].c.node,
-			table["node_val"].c.key,
-			table["node_val"].c.turn,
-			table["node_val"].c.tick,
-			table["node_val"].c.value,
-		).where(tick_to_tick_clause(table["node_val"])),
+			node_val.c.graph,
+			node_val.c.node,
+			node_val.c.key,
+			node_val.c.turn,
+			node_val.c.tick,
+			node_val.c.value,
+		)
+		.where(tick_to_tick_clause(node_val))
+		.order_by(
+			node_val.c.turn,
+			node_val.c.tick,
+			node_val.c.graph,
+			node_val.c.node,
+			node_val.c.key,
+		),
 		"load_edge_val_tick_to_end": select(
-			table["edge_val"].c.graph,
-			table["edge_val"].c.orig,
-			table["edge_val"].c.dest,
-			table["edge_val"].c.key,
-			table["edge_val"].c.turn,
-			table["edge_val"].c.tick,
-			table["edge_val"].c.value,
-		).where(tick_to_end_clause(table["edge_val"])),
+			edge_val.c.graph,
+			edge_val.c.orig,
+			edge_val.c.dest,
+			edge_val.c.key,
+			edge_val.c.turn,
+			edge_val.c.tick,
+			edge_val.c.value,
+		)
+		.where(tick_to_end_clause(edge_val))
+		.order_by(
+			edge_val.c.turn,
+			edge_val.c.tick,
+			edge_val.c.graph,
+			edge_val.c.orig,
+			edge_val.c.dest,
+			edge_val.c.key,
+		),
 		"load_edge_val_tick_to_tick": select(
-			table["edge_val"].c.graph,
-			table["edge_val"].c.orig,
-			table["edge_val"].c.dest,
-			table["edge_val"].c.key,
-			table["edge_val"].c.turn,
-			table["edge_val"].c.tick,
-			table["edge_val"].c.value,
-		).where(tick_to_tick_clause(table["edge_val"])),
+			edge_val.c.graph,
+			edge_val.c.orig,
+			edge_val.c.dest,
+			edge_val.c.key,
+			edge_val.c.turn,
+			edge_val.c.tick,
+			edge_val.c.value,
+		)
+		.where(tick_to_tick_clause(edge_val))
+		.order_by(
+			edge_val.c.turn,
+			edge_val.c.tick,
+			edge_val.c.graph,
+			edge_val.c.orig,
+			edge_val.c.dest,
+			edge_val.c.key,
+		),
 		"load_graph_val_tick_to_end": select(
-			table["graph_val"].c.graph,
-			table["graph_val"].c.key,
-			table["graph_val"].c.turn,
-			table["graph_val"].c.tick,
-			table["graph_val"].c.value,
-		).where(tick_to_end_clause(table["graph_val"])),
+			graph_val.c.graph,
+			graph_val.c.key,
+			graph_val.c.turn,
+			graph_val.c.tick,
+			graph_val.c.value,
+		)
+		.where(tick_to_end_clause(graph_val))
+		.order_by(
+			graph_val.c.turn,
+			graph_val.c.tick,
+			graph_val.c.graph,
+			graph_val.c.key,
+		),
 		"load_graph_val_tick_to_tick": select(
-			table["graph_val"].c.graph,
-			table["graph_val"].c.key,
-			table["graph_val"].c.turn,
-			table["graph_val"].c.tick,
-			table["graph_val"].c.value,
-		).where(tick_to_tick_clause(table["graph_val"])),
+			graph_val.c.graph,
+			graph_val.c.key,
+			graph_val.c.turn,
+			graph_val.c.tick,
+			graph_val.c.value,
+		)
+		.where(tick_to_tick_clause(graph_val))
+		.order_by(
+			graph_val.c.turn,
+			graph_val.c.tick,
+			graph_val.c.graph,
+			graph_val.c.key,
+		),
 	}
+
 	for t in table.values():
+		r["create_" + t.name] = CreateTable(t)
+		r["truncate_" + t.name] = t.delete()
 		key = list(t.primary_key)
 		if (
 			"branch" in t.columns
@@ -1037,20 +1140,70 @@ def queries(table):
 			),
 		)
 
-	r["load_things_tick_to_end"] = select(
-		things.c.character,
-		things.c.thing,
-		things.c.turn,
-		things.c.tick,
-		things.c.location,
-	).where(to_end_clause(things))
-	r["load_things_tick_to_tick"] = select(
-		things.c.character,
-		things.c.thing,
-		things.c.turn,
-		things.c.tick,
-		things.c.location,
-	).where(to_tick_clause(things))
+	r["load_things_tick_to_end"] = (
+		select(
+			things.c.character,
+			things.c.thing,
+			things.c.turn,
+			things.c.tick,
+			things.c.location,
+		)
+		.where(to_end_clause(things))
+		.order_by(
+			things.c.turn, things.c.tick, things.c.character, things.c.thing
+		)
+	)
+	r["load_things_tick_to_tick"] = (
+		select(
+			things.c.character,
+			things.c.thing,
+			things.c.turn,
+			things.c.tick,
+			things.c.location,
+		)
+		.where(to_tick_clause(things))
+		.order_by(
+			things.c.turn, things.c.tick, things.c.character, things.c.thing
+		)
+	)
+
+	units = table["units"]
+	r["load_units_tick_to_end"] = (
+		select(
+			units.c.character_graph,
+			units.c.unit_graph,
+			units.c.unit_node,
+			units.c.turn,
+			units.c.tick,
+			units.c.is_unit,
+		)
+		.where(to_end_clause(units))
+		.order_by(
+			units.c.turn,
+			units.c.tick,
+			units.c.character_graph,
+			units.c.unit_graph,
+			units.c.unit_node,
+		)
+	)
+	r["load_units_tick_to_tick"] = (
+		select(
+			units.c.character_graph,
+			units.c.unit_graph,
+			units.c.unit_node,
+			units.c.turn,
+			units.c.tick,
+			units.c.is_unit,
+		)
+		.where(to_tick_clause(units))
+		.order_by(
+			units.c.turn,
+			units.c.tick,
+			units.c.character_graph,
+			units.c.unit_graph,
+			units.c.unit_node,
+		)
+	)
 	for name in (
 		"character_rulebook",
 		"unit_rulebook",
@@ -1065,8 +1218,20 @@ def queries(table):
 			tab.c.tick,
 			tab.c.rulebook,
 		)
-		r[f"load_{name}_tick_to_end"] = sel.where(to_end_clause(tab))
-		r[f"load_{name}_tick_to_tick"] = sel.where(to_tick_clause(tab))
+		r[f"load_{name}_tick_to_end"] = sel.where(to_end_clause(tab)).order_by(
+			tab.c.turn, tab.c.tick, tab.c.character
+		)
+		r[f"load_{name}_tick_to_tick"] = sel.where(
+			to_tick_clause(tab)
+		).order_by(tab.c.turn, tab.c.tick, tab.c.character)
+		r[f"{name}_delete"] = tab.delete().where(
+			and_(
+				tab.c.character == bindparam("character"),
+				tab.c.branch == bindparam("branch"),
+				tab.c.turn == bindparam("turn"),
+				tab.c.tick == bindparam("tick"),
+			)
+		)
 	ntab = table["node_rulebook"]
 	node_rb_select = select(
 		ntab.c.character,
@@ -1077,10 +1242,10 @@ def queries(table):
 	)
 	r["load_node_rulebook_tick_to_end"] = node_rb_select.where(
 		to_end_clause(ntab)
-	)
+	).order_by(ntab.c.turn, ntab.c.tick, ntab.c.character, ntab.c.node)
 	r["load_node_rulebook_tick_to_tick"] = node_rb_select.where(
 		to_tick_clause(ntab)
-	)
+	).order_by(ntab.c.turn, ntab.c.tick, ntab.c.character, ntab.c.node)
 	ptab = table["portal_rulebook"]
 	port_rb_select = select(
 		ptab.c.character,
@@ -1092,42 +1257,26 @@ def queries(table):
 	)
 	r["load_portal_rulebook_tick_to_end"] = port_rb_select.where(
 		to_end_clause(ptab)
+	).order_by(
+		ptab.c.turn, ptab.c.tick, ptab.c.character, ptab.c.orig, ptab.c.dest
 	)
 	r["load_portal_rulebook_tick_to_tick"] = port_rb_select.where(
 		to_tick_clause(ptab)
+	).order_by(
+		ptab.c.turn, ptab.c.tick, ptab.c.character, ptab.c.orig, ptab.c.dest
 	)
 
-	def generic_tick_to_end_clause(tab: Table):
-		return and_(
-			tab.c.branch == bindparam("branch"),
-			or_(
-				tab.c.turn > bindparam("turn_from"),
-				and_(
-					tab.c.turn == bindparam("turn_from"),
-					tab.c.tick >= bindparam("tick_from"),
-				),
-			),
-		)
-
-	def generic_tick_to_tick_clause(tab: Table):
-		return and_(
-			generic_tick_to_end_clause(tab),
-			or_(
-				tab.c.turn < bindparam("turn_to"),
-				and_(
-					tab.c.turn == bindparam("turn_to"),
-					tab.c.tick < bindparam("tick_to"),
-				),
-			),
-		)
-
 	univ = table["universals"]
-	r["load_universals_tick_to_end"] = select(
-		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
-	).where(generic_tick_to_end_clause(univ))
-	r["load_universals_tick_to_tick"] = select(
-		univ.c.key, univ.c.turn, univ.c.tick, univ.c.value
-	).where(generic_tick_to_tick_clause(univ))
+	r["load_universals_tick_to_end"] = (
+		select(univ.c.key, univ.c.turn, univ.c.tick, univ.c.value)
+		.where(tick_to_end_clause(univ))
+		.order_by(univ.c.turn, univ.c.tick)
+	)
+	r["load_universals_tick_to_tick"] = (
+		select(univ.c.key, univ.c.turn, univ.c.tick, univ.c.value)
+		.where(tick_to_tick_clause(univ))
+		.order_by(univ.c.turn, univ.c.tick)
+	)
 
 	rbs = table["rulebooks"]
 	rbsel = select(
@@ -1138,16 +1287,48 @@ def queries(table):
 		rbs.c.priority,
 	)
 	r["load_rulebooks_tick_to_end"] = rbsel.where(
-		generic_tick_to_end_clause(rbs)
-	)
+		tick_to_end_clause(rbs)
+	).order_by(rbs.c.turn, rbs.c.tick, rbs.c.rulebook)
 	r["load_rulebooks_tick_to_tick"] = rbsel.where(
-		generic_tick_to_tick_clause(rbs)
-	)
+		tick_to_tick_clause(rbs)
+	).order_by(rbs.c.turn, rbs.c.tick, rbs.c.rulebook)
+
+	def rule_update_cond(t: Table) -> and_:
+		return and_(
+			t.c.rule == bindparam("rule"),
+			t.c.branch == bindparam("branch"),
+			t.c.turn == bindparam("turn"),
+			t.c.tick == bindparam("tick"),
+		)
 
 	hood = table["rule_neighborhood"]
+	r["rule_neighborhood_update"] = (
+		hood.update()
+		.where(rule_update_cond(hood))
+		.values(neighborhood=bindparam("neighborhood"))
+	)
+	big = table["rule_big"]
+	r["rule_big_update"] = (
+		big.update().where(rule_update_cond(big)).values(big=bindparam("big"))
+	)
 	trig = table["rule_triggers"]
+	r["rule_triggers_update"] = (
+		trig.update()
+		.where(rule_update_cond(trig))
+		.values(triggers=bindparam("triggers"))
+	)
 	preq = table["rule_prereqs"]
+	r["rule_prereqs_update"] = (
+		preq.update()
+		.where(rule_update_cond(preq))
+		.values(prereqs=bindparam("prereqs"))
+	)
 	act = table["rule_actions"]
+	r["rule_actions_update"] = (
+		act.update()
+		.where(rule_update_cond(act))
+		.values(actions=bindparam("actions"))
+	)
 	hoodsel = select(
 		hood.c.rule,
 		hood.c.turn,
@@ -1155,41 +1336,40 @@ def queries(table):
 		hood.c.neighborhood,
 	)
 	r["load_rule_neighborhoods_tick_to_end"] = hoodsel.where(
-		generic_tick_to_end_clause(hood)
-	)
+		tick_to_end_clause(hood)
+	).order_by(hood.c.turn, hood.c.tick, hood.c.rule)
 	r["load_rule_neighborhoods_tick_to_tick"] = hoodsel.where(
-		generic_tick_to_tick_clause(hood)
-	)
-	big = table["rule_big"]
+		tick_to_tick_clause(hood)
+	).order_by(hood.c.turn, hood.c.tick, hood.c.rule)
 	bigsel = select(big.c.rule, big.c.turn, big.c.tick, big.c.big)
 	r["load_rule_big_tick_to_end"] = bigsel.where(
-		generic_tick_to_end_clause(big)
-	)
+		tick_to_end_clause(big)
+	).order_by(big.c.turn, big.c.tick, big.c.rule)
 	r["load_rule_big_tick_to_tick"] = bigsel.where(
-		generic_tick_to_tick_clause(big)
-	)
+		tick_to_tick_clause(big)
+	).order_by(big.c.turn, big.c.tick, big.c.rule)
 	trigsel = select(trig.c.rule, trig.c.turn, trig.c.tick, trig.c.triggers)
 	r["load_rule_triggers_tick_to_end"] = trigsel.where(
-		generic_tick_to_end_clause(trig)
-	)
+		tick_to_end_clause(trig)
+	).order_by(trig.c.turn, trig.c.tick, trig.c.rule)
 	r["load_rule_triggers_tick_to_tick"] = trigsel.where(
-		generic_tick_to_tick_clause(trig)
-	)
+		tick_to_tick_clause(trig)
+	).order_by(trig.c.turn, trig.c.tick, trig.c.rule)
 	preqsel = select(preq.c.rule, preq.c.turn, preq.c.tick, preq.c.prereqs)
 	r["load_rule_prereqs_tick_to_end"] = preqsel.where(
-		generic_tick_to_end_clause(preq)
-	)
+		tick_to_end_clause(preq)
+	).order_by(preq.c.turn, preq.c.tick, preq.c.rule)
 	r["load_rule_prereqs_tick_to_tick"] = preqsel.where(
-		generic_tick_to_tick_clause(preq)
-	)
+		tick_to_tick_clause(preq)
+	).order_by(preq.c.turn, preq.c.tick, preq.c.rule)
 	actsel = select(act.c.rule, act.c.turn, act.c.tick, act.c.actions)
 	r["load_rule_actions_tick_to_end"] = actsel.where(
-		generic_tick_to_end_clause(act)
-	)
+		tick_to_end_clause(act)
+	).order_by(act.c.turn, act.c.tick, act.c.rule)
 	r["load_rule_actions_tick_to_tick"] = actsel.where(
-		generic_tick_to_tick_clause(act)
-	)
-	kf = table["keyframes"]
+		tick_to_tick_clause(act)
+	).order_by(act.c.turn, act.c.tick, act.c.rule)
+	kf = keyframes
 
 	def time_clause(tab):
 		return and_(
@@ -1199,7 +1379,7 @@ def queries(table):
 		)
 
 	r["delete_from_keyframes"] = kf.delete().where(time_clause(kf))
-	kfg = table["keyframes_graphs"]
+	kfg = keyframes_graphs
 	r["delete_from_keyframes_graphs"] = kfg.delete().where(time_clause(kfg))
 	kfx = table["keyframe_extensions"]
 	r["delete_from_keyframe_extensions"] = kfx.delete().where(time_clause(kfx))
@@ -1226,7 +1406,7 @@ def queries(table):
 			)
 		)
 
-	branches = table["branches"]
+	branches = branches
 
 	r["branch_children"] = select(branches.c.branch).where(
 		branches.c.parent == bindparam("branch")
@@ -1238,37 +1418,5 @@ def queries(table):
 	return r
 
 
-def gather_sql(meta):
-	r = {}
-	table = tables_for_meta(meta)
-	index = indices_for_table_dict(table)
-	query = queries(table)
-
-	for t in table.values():
-		r["create_" + t.name] = CreateTable(t)
-		r["truncate_" + t.name] = t.delete()
-	for tab, idx in index.items():
-		r["index_" + tab] = CreateIndex(idx)
-	r.update(query)
-
-	return r
-
-
 meta = MetaData()
-table = tables_for_meta(meta)
-
-if __name__ == "__main__":
-	from sqlalchemy.dialects.sqlite.pysqlite import SQLiteDialect_pysqlite
-
-	r = {}
-	dia = SQLiteDialect_pysqlite()
-	for n, t in table.items():
-		r["create_" + n] = str(CreateTable(t).compile(dialect=dia))
-		r["truncate_" + n] = str(t.delete().compile(dialect=dia))
-	index = indices_for_table_dict(table)
-	for n, x in index.items():
-		r["index_" + n] = str(CreateIndex(x).compile(dialect=dia))
-	query = queries(table)
-	for n, q in query.items():
-		r[n] = str(q.compile(dialect=dia))
-	print(dumps(r, sort_keys=True, indent=4))
+tables(meta)

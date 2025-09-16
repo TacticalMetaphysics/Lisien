@@ -21,7 +21,7 @@ def test_layout_grid():
 	spot_width = 32
 	spot_height = 32
 	graph = nx.grid_2d_graph(spots_wide, spots_tall)
-	char = CharacterFacade(graph)
+	char = CharacterFacade(character=graph)
 	char.place[1, 1].add_thing("something")
 	otherthing = char.place[2, 2].new_thing("otherthing")
 	assert len(char.thing) == 2

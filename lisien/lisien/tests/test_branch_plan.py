@@ -1,5 +1,5 @@
 from lisien import Engine
-from lisien.xcollections import FunctionStore, StringStore
+from lisien.collections import FunctionStore, StringStore
 
 
 def test_single_plan(serial_engine):
@@ -21,9 +21,15 @@ def test_single_plan(serial_engine):
 		g.node[2]["successful"] = True
 	eng.turn = 1
 	assert 2 not in g.node
-	eng.branch = "b"
+	eng.branch = "b"  # copying the plan
 	assert 2 not in g.node
 	assert 1 in g
+	eng.next_turn()
+	assert eng.turn == 2
+	assert 2 in g.node
+	eng.turn = 1
+	eng.branch = "trunk"
+	assert 2 not in g.node
 	eng.next_turn()
 	assert eng.turn == 2
 	assert 2 in g.node
@@ -103,20 +109,25 @@ def test_plan_vs_plan(serial_engine):
 		g1.add_edge(3, 1)
 	eng.turn = 0
 	with eng.plan():
-		g1.add_node(0)  # not a contradiction, just two plans
+		g1.add_node(0)  # Not a contradiction. Just two unrelated plans so far.
 		g1.add_edge(0, 1)
-	eng.turn = 1
-	eng.tick = eng.turn_end_plan()
-	assert 0 in g1.node
-	assert 1 in g1.node
-	assert 2 in g1.node
-	assert 3 in g1.node
-	assert 1 in g1.edge[0]
-	assert 2 in g1.edge[1]
+	with eng.plan():
+		# Still using a plan-block here, even though we're not planning
+		# anything, because when we go to turn 1, normally, that would accept
+		# the plan's changes for that turn. Even if we don't do anything but
+		# read.
+		eng.turn = 1
+		eng.tick = eng.turn_end_plan()
+		assert 0 in g1.node
+		assert 1 in g1.node  #
+		assert 2 in g1.node  #
+		assert 3 in g1.node
+		assert 1 in g1.edge[0]
+		assert 2 in g1.edge[1]
 	eng.turn = 0
 	eng.tick = eng.turn_end_plan()
 	with eng.plan():
-		del g1.node[2]
+		del g1.node[2]  # A contradiction. Should only cancel the earlier plan.
 	eng.turn = 2
 	eng.tick = eng.turn_end_plan()
 	assert 3 not in g1.node

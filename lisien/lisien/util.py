@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import gc
+import os
 import sys
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -68,12 +69,12 @@ from tblib import Traceback
 
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
-from .graph import DiGraph, Edge, GraphMapping, Node
 from .types import (
 	Branch,
 	CharName,
 	EdgeValDict,
 	EternalKey,
+	LinearTime,
 	NodeName,
 	NodeValDict,
 	RulebookName,
@@ -81,21 +82,26 @@ from .types import (
 	Stat,
 	Tick,
 	Time,
-	TimeWindow,
 	Turn,
 	UniversalKey,
 	Value,
+	Key,
+	GraphMapping,
+	Node,
+	Edge,
+	DiGraph,
 )
 from .wrap import SpecialMapping
 
 if TYPE_CHECKING:
 	from .rule import Rule, RuleBook
-	from .xcollections import FunctionStore
+	from .collections import FunctionStore
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
 NONE: bytes = msgpack.packb(None)
 EMPTY: bytes = msgpack.packb({})
+EMPTY_LIST: bytes = msgpack.packb([])
 ELLIPSIS: bytes = b"\xc7\x00{"
 NAME: bytes = msgpack.packb("name")
 NODES: bytes = msgpack.packb("nodes")
@@ -495,7 +501,7 @@ class AbstractEngine(ABC):
 	universal: MutableMapping[UniversalKey, Value]
 	rulebook: MutableMapping[RulebookName, "RuleBook"]
 	rule: MutableMapping[RuleName, "Rule"]
-	main_branch: Branch
+	trunk: Branch
 	branch: Branch
 	turn: Turn
 	tick: Tick
@@ -548,9 +554,9 @@ class AbstractEngine(ABC):
 			raise ValueError("Not a branch", parent)
 		if child not in branches:
 			raise ValueError("Not a branch", child)
-		if parent is None or parent == child or parent == self.main_branch:
+		if parent is None or parent == child or parent == self.trunk:
 			return True
-		if child == self.main_branch:
+		if child == self.trunk:
 			return False
 		if self.branch_parent(child) == parent:
 			return True
@@ -564,6 +570,12 @@ class AbstractEngine(ABC):
 			return packb
 		except ImportError:
 			pass
+
+		def pack_set(s):
+			return msgpack.ExtType(
+				MsgpackExtensionType.set.value, packer(list(s))
+			)
+
 		handlers = {
 			type(...): lambda _: msgpack.ExtType(
 				MsgpackExtensionType.ellipsis.value, b""
@@ -597,9 +609,7 @@ class AbstractEngine(ABC):
 			frozenset: lambda frozs: msgpack.ExtType(
 				MsgpackExtensionType.frozenset.value, packer(list(frozs))
 			),
-			set: lambda s: msgpack.ExtType(
-				MsgpackExtensionType.set.value, packer(list(s))
-			),
+			set: pack_set,
 			FunctionType: lambda func: msgpack.ExtType(
 				getattr(MsgpackExtensionType, func.__module__).value,
 				packer(func.__name__),
@@ -653,6 +663,8 @@ class AbstractEngine(ABC):
 						]
 					),
 				)
+			elif isinstance(obj, Set):
+				return pack_set(obj)
 			elif isinstance(obj, Mapping):
 				return dict(obj)
 			elif isinstance(obj, list):
@@ -869,13 +881,13 @@ class AbstractEngine(ABC):
 			return None
 		return self._branches_d[branch][0]
 
-	def _branch_start(self, branch: Branch | None = None) -> tuple[Turn, Tick]:
+	def _branch_start(self, branch: Branch | None = None) -> LinearTime:
 		if branch is None:
 			branch = self.branch
 		_, turn, tick, _, _ = self._branches_d[branch]
 		return turn, tick
 
-	def _branch_end(self, branch: Branch | None = None) -> tuple[Turn, Tick]:
+	def _branch_end(self, branch: Branch | None = None) -> LinearTime:
 		if branch is None:
 			branch = self.branch
 		_, _, _, turn, tick = self._branches_d[branch]
@@ -941,6 +953,23 @@ class AbstractEngine(ABC):
 	):
 		self.add_character(name, data)
 		return self.character[name]
+
+	@abstractmethod
+	def export(
+		self,
+		name: str | None,
+		path: str | os.PathLike | None = None,
+		indent: bool = True,
+	) -> str | os.PathLike: ...
+
+	@classmethod
+	@abstractmethod
+	def from_archive(
+		cls,
+		path: str | os.PathLike,
+		prefix: str | os.PathLike | None = ".",
+		**kwargs,
+	) -> AbstractEngine: ...
 
 	def coin_flip(self) -> bool:
 		"""Return True or False with equal probability."""

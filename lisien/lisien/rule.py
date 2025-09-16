@@ -108,7 +108,7 @@ from .types import (
 	Value,
 )
 from .util import AbstractEngine, dedent_source
-from .xcollections import FunctionStore
+from .collections import FunctionStore
 
 if TYPE_CHECKING:
 	from .engine import Engine
@@ -145,7 +145,12 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 		return v
 
 	def _get(self) -> list[RuleFuncName]:
-		return self._cache.retrieve(self.rule.name, *self.rule.engine._btt())
+		try:
+			return self._cache.retrieve(
+				self.rule.name, *self.rule.engine._btt()
+			)
+		except KeyError:
+			return []
 
 	def _set(self, v: list[RuleFuncName]) -> None:
 		branch, turn, tick = self.rule.engine._nbtt()
@@ -213,7 +218,7 @@ class TriggerList(RuleFuncList):
 		return self.rule.engine.trigger
 
 	@cached_property
-	def _cache(self) -> InitializedEntitylessCache:
+	def _cache(self) -> FuncListCache:
 		return self.rule.engine._triggers_cache
 
 	@cached_property
@@ -231,7 +236,7 @@ class PrereqList(RuleFuncList):
 		return self.rule.engine.prereq
 
 	@cached_property
-	def _cache(self) -> InitializedEntitylessCache:
+	def _cache(self) -> FuncListCache:
 		return self.rule.engine._prereqs_cache
 
 	@cached_property
@@ -249,7 +254,7 @@ class ActionList(RuleFuncList):
 		return self.rule.engine.action
 
 	@cached_property
-	def _cache(self) -> InitializedEntitylessCache:
+	def _cache(self) -> FuncListCache:
 		return self.rule.engine._actions_cache
 
 	@cached_property
@@ -389,16 +394,16 @@ class Rule:
 			triggers = list(self._fun_names_iter("trigger", triggers or []))
 			prereqs = list(self._fun_names_iter("prereq", prereqs or []))
 			actions = list(self._fun_names_iter("action", actions or []))
-			self.engine.query.set_rule(
+			self.engine.query.create_rule(
 				name,
 				branch,
 				turn,
 				tick,
-				triggers,
-				prereqs,
-				actions,
-				neighborhood,
-				big,
+				triggers=triggers,
+				prereqs=prereqs,
+				actions=actions,
+				neighborhood=neighborhood,
+				big=big,
 			)
 			self.engine._triggers_cache.store(
 				name, branch, turn, tick, triggers
@@ -685,7 +690,7 @@ class RuleBook(MutableSequence, Signal):
 			try:
 				return self._get_cache(*self.engine._btt())[0].index(*args)
 			except KeyError:
-				raise ValueError
+				raise ValueError("Not the name of a rule", v)
 		return super().index(*args)
 
 	def __delitem__(self, i: int) -> None:
