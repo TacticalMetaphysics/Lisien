@@ -4606,6 +4606,7 @@ def engine_subprocess(
 				engine_handle.close()
 			engine_handle = EngineHandle.from_archive(inst[n:])
 			send_output("get_btt", engine_handle.get_btt())
+			continue
 		elif engine_handle is None:
 			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
 			send_output("get_btt", engine_handle.get_btt())
@@ -4642,6 +4643,7 @@ def engine_subthread(args, kwargs, input_queue, output_queue):
 		):
 			engine_handle = EngineHandle.from_archive(instruction[1])
 			send_output("get_btt", engine_handle.get_btt())
+			continue
 		if engine_handle is None:
 			engine_handle = EngineHandle(*args, **kwargs)
 			send_output("get_btt", engine_handle.get_btt())
