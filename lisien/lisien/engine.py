@@ -2096,6 +2096,13 @@ class Engine(AbstractEngine, Executor):
 			trunk,
 			clear,
 		)
+		if not self._turn_end or not self._turn_end_plan:
+			self.query.set_turn(
+				"trunk",
+				0,
+				self._turn_end.setdefault(("trunk", 0), 0),
+				self._turn_end_plan.setdefault(("trunk", 0), 0),
+			)
 		self._init_random(random_seed)
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
