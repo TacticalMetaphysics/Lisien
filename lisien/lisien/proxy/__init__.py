@@ -4879,7 +4879,7 @@ class EngineProcessManager:
 	) -> EngineProxy:
 		"""Load a game from a .lisien archive, start Lisien on it, and return its proxy"""
 		n = len(".lisien")
-		if archive_path[n:] != ".lisien":
+		if archive_path[-n:] != ".lisien":
 			raise RuntimeError("Not a .lisien archive")
 		self._start_subprocess()
 		if hasattr(self, "_proxy_in_pipe"):
