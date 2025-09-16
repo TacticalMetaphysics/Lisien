@@ -563,7 +563,6 @@ class AbstractEngine(ABC):
 		return self.is_ancestor_of(parent, self.branch_parent(child))
 
 	@cached_property
-	@classmethod
 	def pack(self) -> Callable[[Value], bytes]:
 		try:
 			from lise_ormsgpack import packb
@@ -681,7 +680,6 @@ class AbstractEngine(ABC):
 		return packer
 
 	@cached_property
-	@classmethod
 	def unpack(
 		self,
 	) -> Callable[
