@@ -7,7 +7,11 @@ from functools import partial
 from astunparse import unparse
 import pytest
 
-from ..db import ParquetDatabaseConnector, SQLAlchemyDatabaseConnector
+from ..db import (
+	ParquetDatabaseConnector,
+	SQLAlchemyDatabaseConnector,
+	AbstractDatabaseConnector,
+)
 from ..engine import Engine
 from ..exporter import game_path_to_xml
 from ..importer import xml_to_sqlite, xml_to_pqdb
@@ -80,10 +84,15 @@ DUMP_METHOD_NAMES = (
 )
 
 
-def compare_engines_world_state(test_engine: Engine, correct_engine: Engine):
+def compare_engines_world_state(
+	test_engine: Engine | AbstractDatabaseConnector,
+	correct_engine: Engine | AbstractDatabaseConnector,
+):
+	test_engine = getattr(test_engine, "query", test_engine)
+	correct_engine = getattr(correct_engine, "query", test_engine)
 	for dump_method in DUMP_METHOD_NAMES:
-		test_data = list(getattr(test_engine.query, dump_method)())
-		correct_data = list(getattr(correct_engine.query, dump_method)())
+		test_data = list(getattr(test_engine, dump_method)())
+		correct_data = list(getattr(correct_engine, dump_method)())
 		print(dump_method)
 		assert test_data == correct_data, (
 			dump_method + " gave different results"
