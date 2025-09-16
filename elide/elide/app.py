@@ -353,7 +353,7 @@ class ElideApp(App):
 		self.branch, self.turn, self.tick = now
 		self.mainscreen.ids.turnscroll.value = self.turn
 
-	def start_subprocess(self, path=None, *_):
+	def start_subprocess(self, path=None, archive_path=None, *_):
 		"""Start the lisien core and get a proxy to it
 
 		Must be called before ``init_board``
@@ -399,7 +399,12 @@ class ElideApp(App):
 		self.procman = EngineProcessManager(
 			use_thread=self.use_thread,
 		)
-		self.engine = engine = self.procman.start(path, **enkw)
+		if archive_path is None:
+			self.engine = engine = self.procman.start(path, **enkw)
+		else:
+			self.engine = engine = self.procman.load_archive(
+				archive_path, path, **enkw
+			)
 		Logger.debug("Got EngineProxy")
 		if "boardchar" in engine.eternal:
 			self.character_name = engine.eternal["boardchar"]
@@ -592,7 +597,7 @@ class ElideApp(App):
 				continue
 			self.manager.remove_widget(wid)
 
-	def start_game(self, *_, name=None, cb=None):
+	def start_game(self, *_, name=None, archive_path=None, cb=None):
 		Logger.debug(f"ElideApp: start_game(name={name!r}, cb={cb!r})")
 		if hasattr(self, "engine"):
 			Logger.error("Already started the game")
@@ -605,8 +610,9 @@ class ElideApp(App):
 			exist_ok=True,
 		)
 		self._add_screens()
-		self.manager.current = "mainscreen"
-		engine = self.engine = self.start_subprocess(self.play_path)
+		engine = self.engine = self.start_subprocess(
+			self.play_path, archive_path
+		)
 		self.mainscreen.populate()
 		self.init_board()
 		if cb:
