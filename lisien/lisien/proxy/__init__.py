@@ -4600,7 +4600,7 @@ def engine_subprocess(
 			if log_queue:
 				log_queue.close()
 			return 0
-		elif inst[:n] == b"from_archive":
+		elif len(inst) > n and inst[:n] == b"from_archive":
 			if engine_handle is not None:
 				engine_handle.close()
 			engine_handle = EngineHandle.from_archive(inst[n:])
@@ -4608,6 +4608,7 @@ def engine_subprocess(
 		elif engine_handle is None:
 			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
 			send_output("get_btt", engine_handle.get_btt())
+			continue
 		instruction = engine_handle.unpack(zlib.decompress(inst))
 		_engine_subroutine_step(
 			engine_handle, instruction, send_output, send_output_bytes
@@ -4643,6 +4644,7 @@ def engine_subthread(args, kwargs, input_queue, output_queue):
 		if engine_handle is None:
 			engine_handle = EngineHandle(*args, **kwargs)
 			send_output("get_btt", engine_handle.get_btt())
+			continue
 		_engine_subroutine_step(
 			engine_handle, instruction, send_output, send_output_bytes
 		)
@@ -4901,6 +4903,10 @@ class EngineProcessManager:
 		if hasattr(self, "engine_proxy"):
 			raise RuntimeError("Already started")
 		self._make_proxy(*args, **kwargs)
+		if hasattr(self, "_input_queue"):
+			self._input_queue.put(b"")
+		else:
+			self._proxy_in_pipe.send(b"")
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
