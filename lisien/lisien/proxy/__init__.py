@@ -3161,7 +3161,7 @@ class EngineProxy(AbstractEngine):
 		**kwargs,
 	) -> AbstractEngine:
 		raise TypeError(
-			"You want the ``from_archive`` method of ``EngineProcessManager`` instead"
+			"You want the ``load_archive`` method of ``EngineProcessManager`` instead"
 		)
 
 	def __enter__(self):
