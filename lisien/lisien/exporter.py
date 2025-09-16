@@ -5,16 +5,23 @@ from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 from types import FunctionType, MethodType
-from typing import Literal, Set, Mapping, MutableSet
+from typing import Literal, Set, Mapping, MutableSet, TYPE_CHECKING
 
-try:
-	from lxml.etree import ElementTree, Element, indent as indent_tree
-except ModuleNotFoundError:
+if TYPE_CHECKING:
 	from xml.etree.ElementTree import (
 		ElementTree,
 		Element,
 		indent as indent_tree,
 	)
+else:
+	try:
+		from lxml.etree import ElementTree, Element, indent as indent_tree
+	except ModuleNotFoundError:
+		from xml.etree.ElementTree import (
+			ElementTree,
+			Element,
+			indent as indent_tree,
+		)
 
 import networkx as nx
 from tblib import Traceback
