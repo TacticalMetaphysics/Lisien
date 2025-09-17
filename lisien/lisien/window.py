@@ -940,11 +940,11 @@ class WindowDict(MutableMapping):
 class LinearTimeSetDict(WindowDict):
 	def __getitem__(self, rev: Turn) -> list[Tick]:
 		if rev in self:
-			return super().__getitem__(rev)
+			return super().__getitem__(rev).copy()
 		else:
 			default = []
 			super().__setitem__(rev, default)
-			return default
+			return default.copy()
 
 	def __setitem__(self, rev: Turn, value: list[Tick]):
 		if not isinstance(value, list):
