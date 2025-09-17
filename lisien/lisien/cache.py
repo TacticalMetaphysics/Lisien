@@ -1093,7 +1093,9 @@ class Cache:
 						)
 					)
 				plan = time_plan[branch, turn, tick] = db._last_plan
-				plan_ticks[plan][branch][turn].add(tick)
+				ticks = plan_ticks[plan][branch][turn]
+				ticks.append(tick)
+				plan_ticks[plan][branch][turn] = ticks
 			branches[branch] = turns
 			if not loading and not planning:
 				db_extend_branch(branch, turn, tick)
