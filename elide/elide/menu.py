@@ -131,9 +131,11 @@ class GamePickerModal(ModalView):
 	@logwrap(section="GamePickerModal")
 	def _decompress_and_start(self, game_file_path, game, *_):
 		app = App.get_running_app()
-		game_name = os.path.basename(game_file_path)
-		if game_name[-7:] == ".lisien":
-			game_name = game_name[:-7]
+		game_name = (
+			os.path.basename(game_file_path)
+			.removesuffix(".lisien")
+			.removesuffix(".zip")
+		)
 		app.game_name = game_name
 		play_dir = str(app.play_path)
 		if os.path.exists(play_dir):
