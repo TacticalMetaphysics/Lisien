@@ -2323,54 +2323,6 @@ class ParquetDBLooper(ConnectionLooper):
 			"big", branch, turn_from, tick_from, turn_to, tick_to
 		)
 
-	def set_rule(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		triggers: bytes | type(...) = ...,
-		prereqs: bytes | type(...) = ...,
-		actions: bytes | type(...) = ...,
-		neighborhood: bool | type(...) = ...,
-		big: bool | type(...) = ...,
-	):
-		import pyarrow.compute as pc
-
-		the_rule_filters = [
-			pc.field("rule") == rule,
-			pc.field("branch") == branch,
-			pc.field("turn") == turn,
-			pc.field("tick") == tick,
-		]
-		basic_datum = {
-			"rule": rule,
-			"branch": branch,
-			"turn": turn,
-			"tick": tick,
-		}
-		increc = 0
-		for functyp, data in [
-			("triggers", triggers),
-			("prereqs", prereqs),
-			("actions", actions),
-			("neighborhood", neighborhood),
-			("big", big),
-		]:
-			if data is not ...:
-				table = f"rule_{functyp}"
-				db = self._get_db(table)
-				schema = self._get_schema(table)
-				extant = db.read(filters=the_rule_filters)
-				datum = {functyp: data, **basic_datum}
-				if extant.num_rows:
-					datum["id"] = extant[0]["id"].as_py()
-					db.update([datum], schema=schema)
-				else:
-					db.create([datum], schema=schema)
-					increc += 1
-		return increc
-
 	def load_character_rules_handled_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> list[tuple[bytes, bytes, RuleName, Turn, Tick]]:
