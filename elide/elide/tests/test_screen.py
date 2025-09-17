@@ -15,8 +15,8 @@ class MockStore:
 
 
 @pytest.fixture(autouse=True)
-def screen_test_state(play_dir):
-	with Engine(play_dir, workers=0) as eng:
+def screen_test_state(prefix):
+	with Engine(prefix, workers=0) as eng:
 		foo = eng.new_character("physical")
 		here = foo.new_place((0, 0))
 		foo.add_place((1, 1))

@@ -43,17 +43,17 @@ def test_new_game(elide_app_main_menu):
 
 
 @pytest.fixture
-def zipped_kobold(play_dir, kobold_sim):
-	yield shutil.make_archive("kobold", "zip", play_dir, play_dir)
+def zipped_kobold(prefix, kobold_sim):
+	yield shutil.make_archive("kobold", "zip", prefix, prefix)
 
 
 @pytest.fixture
-def zipped_kobold_in_games_dir(play_dir, zipped_kobold):
+def zipped_kobold_in_games_dir(prefix, zipped_kobold):
 	archive_name = os.path.basename(zipped_kobold)
 	shutil.move(
-		zipped_kobold, os.path.join(os.path.dirname(play_dir), archive_name)
+		zipped_kobold, os.path.join(os.path.dirname(prefix), archive_name)
 	)
-	assert archive_name in os.listdir(os.path.dirname(play_dir))
+	assert archive_name in os.listdir(os.path.dirname(prefix))
 
 
 def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
