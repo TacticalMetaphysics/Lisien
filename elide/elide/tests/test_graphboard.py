@@ -17,10 +17,6 @@ from ..kivygarden.texturestack import TextureStackPlane
 from .util import advance_frames, idle_until
 
 
-class FakeEngineProxy:
-	def handle(self, *args, **kwargs):
-		pass
-
 
 def pos_near(x0, y0, x1, y1):
 	return abs(sqrt(x0**2 + y0**2) - sqrt(x1**2 + y1**2)) < 10
@@ -30,7 +26,8 @@ def test_layout_grid(elide_app):
 	spots_wide = 3
 	spots_tall = 3
 	graph = nx.grid_2d_graph(spots_wide, spots_tall)
-	char = CharacterFacade(character=graph)
+	eng = EngineFacade(None)
+	char = eng.new_character("grid", graph)
 	app = elide_app
 	spotlayout = TextureStackPlane()
 	arrowlayout = ArrowPlane()
@@ -40,7 +37,7 @@ def test_layout_grid(elide_app):
 		stack_plane=spotlayout,
 		arrow_plane=arrowlayout,
 	)
-	board.engine = FakeEngineProxy()
+	board.engine = eng
 	spotlayout.pos = board.pos
 	board.bind(pos=spotlayout.setter("pos"))
 	spotlayout.size = board.size
