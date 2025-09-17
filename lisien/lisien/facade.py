@@ -1008,7 +1008,7 @@ class CharacterFacade(AbstractCharacter):
 			return self._patch[k]
 
 		def __setitem__(self, k, v):
-			if self.facade.engine._planning:
+			if hasattr(self.facade, "engine") and self.facade.engine._planning:
 				self.facade.engine._planned[
 					self.facade.character.engine._curplan
 				][self.facade.engine.turn].append((self.facade.name, k, v))
