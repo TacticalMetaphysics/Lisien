@@ -148,12 +148,12 @@ getname = attrgetter("name")
 class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 	"""Mapping that contains entities in a Facade.
 
-	All the entities are of the same type, ``facadecls``, possibly
+	All the entities are of the same type, ``cls``, possibly
 	being distorted views of entities of the type ``innercls``.
 
 	"""
 
-	facadecls: Type[FacadeEntity]
+	cls: Type[FacadeEntity]
 
 	@abstractmethod
 	def _get_inner_map(self):
@@ -164,8 +164,8 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 			for badkey in ("character", "engine", "name"):
 				if badkey in v:
 					del v[badkey]
-			return self.facadecls(self, k, **v)
-		return self.facadecls(self, v)
+			return self.cls(self, k, **v)
+		return self.cls(self, v)
 
 	engine = getatt("facade.engine")
 
@@ -209,12 +209,12 @@ class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
 		ret = self._patch[k]
 		if ret is ...:
 			raise KeyError(k)
-		if type(ret) is not self.facadecls:
+		if type(ret) is not self.cls:
 			ret = self._patch[k] = self._make(k, ret)
 		return ret
 
 	def __setitem__(self, k, v):
-		if not isinstance(v, self.facadecls):
+		if not isinstance(v, self.cls):
 			v = self._make(k, v)
 		self._patch[k] = v
 		if self is not self.facade.node:
@@ -589,7 +589,7 @@ class FacadePortal(FacadeEntity, Edge):
 
 
 class FacadePortalSuccessors(FacadeEntityMapping):
-	facadecls = FacadePortal
+	cls = FacadePortal
 	innercls: type
 
 	def __init__(self, facade, origname):
@@ -600,7 +600,7 @@ class FacadePortalSuccessors(FacadeEntityMapping):
 		self.orig = origname
 
 	def _make(self, k, v):
-		return self.facadecls(self, k, **v)
+		return self.cls(self, k, **v)
 
 	def _get_inner_map(self):
 		try:
@@ -612,7 +612,7 @@ class FacadePortalSuccessors(FacadeEntityMapping):
 
 
 class FacadePortalPredecessors(FacadeEntityMapping):
-	facadecls = FacadePortal
+	cls = FacadePortal
 	innercls: type
 
 	def __init__(self, facade, destname):
@@ -623,7 +623,7 @@ class FacadePortalPredecessors(FacadeEntityMapping):
 		self.dest = destname
 
 	def _make(self, k, v):
-		return self.facadecls(self.facade.portal[k], v)
+		return self.cls(self.facade.portal[k], v)
 
 	def _get_inner_map(self):
 		try:
@@ -867,7 +867,7 @@ class CharacterFacade(AbstractCharacter):
 			return self.UnitMapping(self.character, item)
 
 	class ThingMapping(FacadeEntityMapping):
-		facadecls = FacadeThing
+		cls = FacadeThing
 		innercls: type
 
 		def __init__(self, facade, _=None):
@@ -891,7 +891,7 @@ class CharacterFacade(AbstractCharacter):
 			self.facade.node.patch(d)
 
 	class PlaceMapping(FacadeEntityMapping):
-		facadecls = FacadePlace
+		cls = FacadePlace
 		innercls: type
 
 		def __init__(self, facade, _=None):
