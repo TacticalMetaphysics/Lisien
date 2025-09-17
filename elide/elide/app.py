@@ -111,18 +111,18 @@ class ElideApp(App):
 	)
 
 	def _get_play_dir(self):
-		return os.path.join(self.prefix, self.games_dir, self.game_name)
+		return os.path.join(self.prefix, self.game_name)
 
-	def _set_play_dir(self, str_or_triple: str | tuple[str, str, str]):
-		if isinstance(str_or_triple, str):
-			*a, b, c = str.split(os.path.sep)
+	def _set_play_dir(self, str_or_pair: str | tuple[str, str]):
+		if isinstance(str_or_pair, str):
+			*a, b = str.split(os.path.sep)
 			a = os.path.sep.join(a)
 		else:
-			a, b, c = str_or_triple
-		self.prefix, self.games_dir, self.game_name = a, b, c
+			a, b = str_or_pair
+		self.prefix, self.game_name = a, b
 
 	play_path = AliasProperty(
-		_get_play_dir, _set_play_dir, bind=("prefix", "games_dir", "game_name")
+		_get_play_dir, _set_play_dir, bind=("prefix", "game_name")
 	)
 
 	@logwrap
