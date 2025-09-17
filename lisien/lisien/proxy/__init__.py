@@ -4377,7 +4377,7 @@ class EngineProxy(AbstractEngine):
 
 	def add_character(
 		self,
-		char: CharName,
+		char: Key,
 		data: CharDelta | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
@@ -4388,17 +4388,18 @@ class EngineProxy(AbstractEngine):
 			raise WorkerProcessReadOnlyError(
 				"Tried to change world state in a worker process"
 			)
-		self._add_character(char, data, layout, node, edge, **attr)
+		self._add_character(CharName(char), data, layout, node, edge, **attr)
 
 	def new_character(
 		self,
-		char: CharName,
+		char: Key,
 		data: CharDelta | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
 		edge: EdgeValDict | None = None,
 		**attr: StatDict,
 	):
+		char = CharName(char)
 		self.add_character(char, data, layout, node, edge, **attr)
 		return self._char_cache[char]
 
@@ -4415,16 +4416,17 @@ class EngineProxy(AbstractEngine):
 		self._character_portals_cache.delete_char(char)
 		self.handle(command="del_character", char=char, branching=True)
 
-	def del_character(self, char: CharName) -> None:
+	def del_character(self, char: Key) -> None:
 		if self._worker and not getattr(self, "_mutable_worker", False):
 			raise WorkerProcessReadOnlyError(
 				"tried to change world state in a worker process"
 			)
-		self._del_character(char)
+		self._del_character(CharName(char))
 
 	del_graph = del_character
 
-	def del_node(self, char: CharName, node: NodeName) -> None:
+	def del_node(self, char: Key, node: NodeName) -> None:
+		char = CharName(char)
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		if (
@@ -4456,9 +4458,8 @@ class EngineProxy(AbstractEngine):
 				del nv[char]
 		self.handle(command="del_node", char=char, node=node, branching=True)
 
-	def del_portal(
-		self, char: CharName, orig: NodeName, dest: NodeName
-	) -> None:
+	def del_portal(self, char: Key, orig: NodeName, dest: NodeName) -> None:
+		char = CharName(char)
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		self._character_portals_cache.delete(char, orig, dest)
