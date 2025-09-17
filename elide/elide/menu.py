@@ -434,11 +434,11 @@ class MainMenuScreen(Screen):
 	def _unpack_and_open(self, game_file_path, game, *_):
 		app = App.get_running_app()
 		app.game_name = game
-		Logger.debug(
-			f"MainMenuScreen: unpacking import {game_file_path} into {app.play_path}"
+		app.start_game(
+			name=game,
+			archive_path=game_file_path,
+			cb=self._please_wait.dismiss,
 		)
-		shutil.unpack_archive(game_file_path, app.play_path)
-		app.start_game(name=game, cb=self._please_wait.dismiss)
 
 	@trigger
 	@logwrap(section="MainMenuScreen")
