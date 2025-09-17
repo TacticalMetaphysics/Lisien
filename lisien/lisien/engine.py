@@ -190,7 +190,7 @@ from .util import (
 )
 from .window import (
 	WindowDict,
-	LinearTimeSetDict,
+	LinearTimeListDict,
 	update_backward_window,
 	update_window,
 )
@@ -882,8 +882,8 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def _plan_ticks(
 		self,
-	) -> dict[Plan, dict[Branch, LinearTimeSetDict]]:
-		return defaultdict(lambda: defaultdict(LinearTimeSetDict))
+	) -> dict[Plan, dict[Branch, LinearTimeListDict]]:
+		return defaultdict(lambda: defaultdict(LinearTimeListDict))
 
 	@cached_property
 	def _time_plan(self) -> dict[Time, Plan]:

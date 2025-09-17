@@ -937,7 +937,7 @@ class WindowDict(MutableMapping):
 			return "{}({})".format(self.__class__.__name__, me)
 
 
-class LinearTimeSetDict(WindowDict):
+class LinearTimeListDict(WindowDict):
 	def __getitem__(self, rev: Turn) -> list[Tick]:
 		if rev in self:
 			return super().__getitem__(rev).copy()
