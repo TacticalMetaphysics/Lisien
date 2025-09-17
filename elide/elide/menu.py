@@ -241,7 +241,7 @@ class GameImporterModal(GamePickerModal):
 			path = primary_external_storage_path()
 			self._android = True
 		except ImportError:
-			path = os.getcwd()
+			path = App.get_running_app().prefix
 			self._android = False
 		if not hasattr(self, "_file_chooser"):
 			self._file_chooser = FileChooserIconView(path=path)
