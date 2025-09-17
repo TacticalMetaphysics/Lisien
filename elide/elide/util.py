@@ -29,7 +29,6 @@ KV = {}
 def store_kv(name: str, kv: str) -> None:
 	if name in KV:
 		raise KeyError("Already have that kv", name)
-	print("storing kv: " + name)
 	KV[name] = kv
 
 
@@ -39,7 +38,6 @@ def load_kv(name: str) -> None:
 	if name not in KV:
 		Logger.error("No kv: " + name)
 		Logger.error("I've stored: " + ", ".join(KV.keys()))
-	print("loading kv: " + name)
 	Builder.load_string(KV[name])
 	loaded_kv.add(name)
 
