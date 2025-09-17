@@ -38,8 +38,6 @@ from operator import ge, itemgetter, le
 from threading import RLock
 from typing import Any, Callable, Iterable, Iterator, Union
 
-from sortedcontainers import SortedSet
-
 from .exc import HistoricKeyError
 from .types import Tick, Turn, Value, LinearTime
 
@@ -940,13 +938,20 @@ class WindowDict(MutableMapping):
 
 
 class LinearTimeSetDict(WindowDict):
-	def __getitem__(self, rev: Turn) -> SortedSet[Tick]:
+	def __getitem__(self, rev: Turn) -> list[Tick]:
 		if rev in self:
 			return super().__getitem__(rev)
 		else:
-			default = SortedSet()
+			default = []
 			super().__setitem__(rev, default)
 			return default
+
+	def __setitem__(self, rev: Turn, value: list[Tick]):
+		if not isinstance(value, list):
+			raise TypeError("lists of ticks only")
+		value = value.copy()
+		value.sort()
+		super().__setitem__(rev, value)
 
 	def iter_times(self) -> Iterator[LinearTime]:
 		for turn, tick_set in self.items():
