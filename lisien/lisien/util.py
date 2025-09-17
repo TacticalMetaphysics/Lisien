@@ -934,7 +934,7 @@ class AbstractEngine(ABC):
 	@abstractmethod
 	def add_character(
 		self,
-		name: CharName,
+		name: Key,
 		data: nx.Graph | DiGraph | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
@@ -944,13 +944,14 @@ class AbstractEngine(ABC):
 
 	def new_character(
 		self,
-		name: CharName,
+		name: Key,
 		data: nx.Graph | DiGraph | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
 		edge: EdgeValDict | None = None,
 		**kwargs,
 	):
+		name = CharName(name)
 		self.add_character(name, data)
 		return self.character[name]
 
