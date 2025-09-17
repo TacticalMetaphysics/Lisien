@@ -430,14 +430,15 @@ class ElideApp(App):
 
 	trigger_start_subprocess = trigger(start_subprocess)
 
+	@logwrap
 	def init_board(self, *_):
 		"""Get the board widgets initialized to display the game state
 
 		Must be called after start_subprocess
 
 		"""
-		Logger.debug("ElideApp: init_board")
 		self.chars.names = char_names = list(self.engine.character)
+		Logger.debug(f"ElideApp: making grid boards for: {char_names}")
 		for name in char_names:
 			if name not in self.mainscreen.graphboards:
 				load_kv("elide.graph.board")
