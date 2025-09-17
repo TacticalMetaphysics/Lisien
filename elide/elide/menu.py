@@ -128,11 +128,6 @@ class GamePickerModal(ModalView):
 		load_kv("elide.menu")
 		super().__init__(**kwargs)
 
-	@staticmethod
-	def _switch_to_main_screen(*_):
-		app = App.get_running_app()
-		app.manager.current = "mainscreen"
-
 	@logwrap(section="GamePickerModal")
 	def _decompress_and_start(self, game_file_path, game, *_):
 		app = App.get_running_app()
@@ -152,7 +147,6 @@ class GamePickerModal(ModalView):
 				app.start_game,
 				name=game,
 				archive_path=game_file_path,
-				cb=self._switch_to_main_screen,
 			),
 			0.001,
 		)
