@@ -407,7 +407,9 @@ class MainMenuScreen(Screen):
 				self._system_file_chooser = Chooser(
 					self._copy_from_shared_and_start_game
 				)
-			self._system_file_chooser.choose_content()
+			self._system_file_chooser.choose_content(
+				"application/octet-stream"
+			)
 		except ImportError as err:
 			Logger.debug(repr(err))
 			Logger.debug("Using Kivy file chooser")
