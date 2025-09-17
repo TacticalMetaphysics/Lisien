@@ -94,7 +94,7 @@ def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 	)
 
 
-def test_import_game(zipped_kobold, elide_app_main_menu):
+def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	app = elide_app_main_menu
 	manager = app.manager
 	import_game_button: Button = manager.current_screen.ids.import_game_button
@@ -124,12 +124,12 @@ def test_import_game(zipped_kobold, elide_app_main_menu):
 		"Never filled the stack of file icons",
 	)
 	for file_icon in stacklayout.children:
-		if file_icon.path == zipped_kobold:
+		if file_icon.path == kobold_sim_exported:
 			x, y = file_icon.center
 			break
 	else:
 		raise RuntimeError(
-			"File isn't visible to the chooser: " + zipped_kobold
+			"File isn't visible to the chooser: " + kobold_sim_exported
 		)
 	x, y = chooser.parent.to_parent(*scrollview.to_parent(x, y))
 	touch = UnitTestTouch(x, y)
@@ -187,4 +187,4 @@ def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 	idle_until(
 		lambda: not modal._is_open, 100, "Never closed game export modal"
 	)
-	assert "kobold.zip" in os.listdir(".")
+	assert "kobold.lisien" in os.listdir(".")

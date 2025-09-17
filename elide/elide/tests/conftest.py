@@ -30,14 +30,19 @@ from lisien.examples import kobold, polygons, sickle
 
 @pytest.fixture
 def play_dir(tmp_path):
-	games_dir = "games"
-	game_name = "test"
-	play_dir = os.path.join(tmp_path, games_dir, game_name)
 	os.makedirs(
-		play_dir,
-		exist_ok=True,
+		os.path.join(
+			tmp_path,
+			"games",
+		)
 	)
-	yield play_dir
+	os.makedirs(
+		os.path.join(
+			tmp_path,
+			"test",
+		)
+	)
+	yield str(tmp_path)
 
 
 @pytest.fixture()
@@ -86,12 +91,9 @@ def kivy():
 
 
 def make_elide_app(play_dir, **kwargs):
-	game_name = os.path.basename(play_dir)
-	games_dir = os.path.basename(play_dir[: -len(game_name) - 1])
-	prefix = play_dir[: -(len(games_dir) + len(game_name) + 1)]
 	Builder.load_file(resource_find("elide.kv"))
 	return ElideApp(
-		prefix=prefix, games_dir=games_dir, game_name=game_name, **kwargs
+		prefix=play_dir, games_dir="games", game_name="test", **kwargs
 	)
 
 
@@ -154,6 +156,12 @@ def sickle_sim(play_dir, random_seed):
 def kobold_sim(play_dir, random_seed):
 	with Engine(play_dir, workers=0, random_seed=random_seed) as eng:
 		kobold.inittest(eng)
+
+@pytest.fixture
+def kobold_sim_exported(tmp_path, random_seed):
+	with Engine(os.path.join(tmp_path, "kobold"), workers=0, random_seed=random_seed) as eng:
+		exported = eng.export("kobold", os.path.join(tmp_path, "kobold.lisien"))
+	yield exported
 
 
 @pytest.fixture
