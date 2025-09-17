@@ -418,9 +418,9 @@ class MainMenuScreen(Screen):
 	@logwrap(section="MainMenuScreen")
 	def _copy_from_shared_and_start_game(self, files):
 		game_file_path = self._ss.copy_from_shared(files[0])
-		if not game_file_path.endswith(".zip"):
+		if not game_file_path.endswith(".lisien"):
 			return
-		game = str(os.path.basename(game_file_path).removesuffix(".zip"))
+		game = str(os.path.basename(game_file_path).removesuffix(".lisien"))
 		self._please_wait = ModalView()
 		self._please_wait.add_widget(
 			Label(text="Please wait...", font_size=80)
