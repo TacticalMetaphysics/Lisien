@@ -2823,6 +2823,18 @@ class GraphCache(Cache):
 
 	iter_entities = iter_keys
 
+	def count_keys(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		forward: bool | None = None,
+	) -> int:
+		kc = self._get_keycache(
+			(Key(None),), branch, turn, tick, forward=forward
+		)
+		return len(kc)
+
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
 	):

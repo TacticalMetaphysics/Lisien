@@ -42,7 +42,7 @@ import networkx as nx
 from astunparse import Unparser
 from blinker import Signal
 
-from .types import CharName, Key, GraphsMapping
+from .types import CharName, Key
 from .util import AbstractEngine, dedent_source, getatt
 from .wrap import wrapval
 
@@ -517,7 +517,7 @@ class UniversalMapping(MutableMapping, Signal):
 		self.send(self, key=k, val=...)
 
 
-class CharacterMapping(GraphsMapping, Signal):
+class CharacterMapping(MutableMapping, Signal):
 	"""A mapping by which to access :class:`Character` objects.
 
 	If a character already exists, you can always get its name here to
@@ -531,8 +531,26 @@ class CharacterMapping(GraphsMapping, Signal):
 	engine = getatt("orm")
 
 	def __init__(self, orm):
-		GraphsMapping.__init__(self, orm)
+		self.orm = orm
 		Signal.__init__(self)
+
+	def __iter__(self):
+		branch, turn, tick = self.engine._btt()
+		return self.engine._graph_cache.iter_keys(branch, turn, tick)
+
+	def __len__(self):
+		branch, turn, tick = self.engine._btt()
+		return self.engine._graph_cache.count_keys(branch, turn, tick)
+
+	def __contains__(self, item):
+		branch, turn, tick = self.engine._btt()
+		try:
+			return (
+				self.engine._graph_cache.retrieve(item, branch, turn, tick)
+				== "DiGraph"
+			)
+		except KeyError:
+			return False
 
 	def __getitem__(self, name: Key | CharName) -> "Character":
 		"""Return the named character, if it's been created.
