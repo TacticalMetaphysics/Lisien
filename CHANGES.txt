@@ -1,3 +1,14 @@
+== 0.22.0 | 2025-09-18 ==
+* Switch to a new XML-based export format, with .lisien file extension.
+  They're just zip files, like earlier versions' exports, but now you can
+  open the file world.xml in a text editor and change the history of the game,
+  if you want. This improves compatibility between desktop and Android, but
+  breaks compatibility with previous versions, including games that haven't
+  been exported, because of the following item...
+* Ordered all database tables chronologically.
+* Made the rules engine deterministic. It wasn't consistent about what order
+  rules were applied to many entities, but now it is.
+
 == 0.21.8 | 2025-09-04 ==
 * Fix the import and load game functions on Android *again*. They weren't
   consistently respecting an Elide session running somewhere other than the
