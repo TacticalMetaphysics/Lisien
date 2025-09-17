@@ -3058,7 +3058,9 @@ class Engine(AbstractEngine, Executor):
 			branches_plans[branch].add(plan)
 			if plan > last_plan:
 				last_plan = plan
-			plan_ticks[plan][branch][turn].add(tick)
+			ticks = plan_ticks[plan][branch][turn]
+			ticks.append(tick)
+			plan_ticks[plan][branch][turn] = ticks
 			turn_end_plan[branch, turn] = max(
 				(turn_end_plan[branch, turn], tick)
 			)
