@@ -33,17 +33,18 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from functools import cached_property, partial, wraps
+from io import TextIOWrapper
 from itertools import chain, pairwise
 from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
 from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
 from random import Random
-from tempfile import TemporaryDirectory
 from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
 from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Type
+from zipfile import ZipFile, ZIP_DEFLATED
 
 import networkx as nx
 import numpy as np
@@ -1168,9 +1169,11 @@ class Engine(AbstractEngine, Executor):
 				)
 			this_plan = plan_ticks[last_plan][branch]
 			if turn in this_plan:
-				this_plan[turn].add(tick)
+				ticks = this_plan[turn]
+				ticks.append(tick)
+				this_plan[turn] = ticks
 			else:
-				this_plan[turn] = {tick}
+				this_plan[turn] = [tick]
 			self.query.plans_insert(last_plan, branch, turn, tick)
 			time_plan[branch, turn, tick] = last_plan
 		else:
@@ -7315,21 +7318,29 @@ class Engine(AbstractEngine, Executor):
 					"Need a path to export to, or at least a name"
 				)
 			path = os.path.join(os.getcwd(), f"{name}.lisien")
-		with TemporaryDirectory() as td:
-			xml_path = os.path.join(td, "world.xml")
-			Exporter(self.query, self).write_xml(xml_path, name, indent)
+		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
+			with zf.open("world.xml", "w") as f:
+				Exporter(self.query, self).write_xml(f, name, indent)
 			if isinstance(self.string, StringStore):
 				self.string.save()
-				shutil.copytree(
-					self.string._prefix, os.path.join(td, "strings")
-				)
+				zf.mkdir("strings")
+				for lang in os.listdir(self.string._prefix):
+					with (
+						open(
+							os.path.join(self.string._prefix, lang), "rb"
+						) as inf,
+						zf.open(os.path.join("strings", lang), "w") as outf,
+					):
+						outf.writelines(inf)
 			elif isinstance(self.string, dict):
 				import json
 
 				for lang, strings in self.string.items():
-					os.makedirs(os.path.join(td, "strings"), exist_ok=True)
-					with open(os.path.join(td, "strings", lang), "wt") as outf:
-						json.dump(strings, outf)
+					with (
+						zf.open(f"strings/{lang}.json", "w") as outfb,
+						TextIOWrapper(outfb) as outf,
+					):
+						json.dump(strings, outf, indent=2)
 			else:
 				self.error(
 					f"Couldn't save strings; don't know how to save {type(self.string)}"
@@ -7338,22 +7349,22 @@ class Engine(AbstractEngine, Executor):
 				if store is self.string:
 					continue
 				if isinstance(store, FunctionStore):
-					with open(
-						os.path.join(td, store.__name__ + ".py"), "wt"
-					) as outf:
+					with (
+						zf.open(store.__name__ + ".py", "w") as outfb,
+						TextIOWrapper(outfb) as outf,
+					):
 						for _, function in store.iterplain():
 							outf.write(function + "\n\n")
 				elif hasattr(store, "__file__"):
-					shutil.copyfile(
-						store.__file__,
-						os.path.join(td, os.path.basename(store.__file__)),
-					)
+					with (
+						open(store.__file__, "rb") as inf,
+						zf.open(os.path.basename(store.__file__), "w") as outf,
+					):
+						outf.writelines(inf)
 				else:
 					self.error(
 						f"Couldn't export {store}, because we don't know what file it's in"
 					)
-			archived = shutil.make_archive(name, "zip", td, td)
-		shutil.move(archived, path)
 
 		try:
 			from androidstorage4kivy import SharedStorage
