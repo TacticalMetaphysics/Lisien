@@ -35,6 +35,7 @@ from .util import (
 	SignalDict,
 	TimeSignalDescriptor,
 	getatt,
+	print_call_sig,
 	timer,
 )
 from .wrap import MutableMappingUnwrapper
@@ -1325,6 +1326,9 @@ class EngineFacade(AbstractEngine):
 			self.branch = "trunk"
 			self.turn = 0
 			self.tick = 0
+
+	def handle(self, *args, **kwargs):
+		print_call_sig("handle", *args, **kwargs)
 
 	def _get_node(
 		self, char: AbstractCharacter | CharName, node: NodeName
