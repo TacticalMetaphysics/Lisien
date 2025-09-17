@@ -617,6 +617,7 @@ class ElideApp(App):
 		self.init_board()
 		if cb:
 			cb()
+		self.manager.current = "mainscreen"
 		return engine
 
 	def close_game(self, *_, cb=None):
