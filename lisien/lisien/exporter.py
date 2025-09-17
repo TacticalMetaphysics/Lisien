@@ -493,18 +493,18 @@ class Exporter:
 
 	def write_xml(
 		self,
-		path: str | os.PathLike | IOBase,
+		to: str | os.PathLike | IOBase,
 		name: str = None,
 		indent: bool = True,
 	) -> None:
-		if not isinstance(path, os.PathLike):
-			if path is None:
+		if not isinstance(to, os.PathLike) and not isinstance(to, IOBase):
+			if to is None:
 				if name is None:
 					raise ValueError("Need a name or a path")
-				path = os.path.join(os.getcwd(), name + ".xml")
-			path = Path(path)
-		if name is None:
-			name = os.path.basename(path)
+				to = os.path.join(os.getcwd(), name + ".xml")
+			to = Path(to)
+		if isinstance(to, Path) and name is None:
+			name = os.path.basename(to)
 		if name[-4:] == ".xml":
 			name = name[:-4]
 
@@ -512,7 +512,7 @@ class Exporter:
 
 		if indent:
 			indent_tree(tree)
-		tree.write(path, encoding="utf-8")
+		tree.write(to, encoding="utf-8")
 
 	@classmethod
 	def append_univ_el(cls, turn_el: Element, universal_rec: UniversalRowType):
