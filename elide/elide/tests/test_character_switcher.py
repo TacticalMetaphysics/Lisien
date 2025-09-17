@@ -7,20 +7,13 @@ from lisien.examples import polygons
 from .util import advance_frames, idle_until
 
 
-@pytest.fixture(autouse=True)
-def polygons_sim(play_dir):
-	with Engine(play_dir, random_seed=0, workers=0) as eng:
-		polygons.install(eng)
-
-
-def test_character_switcher(elide_app):
+def test_character_switcher(polygons_sim, elide_app):
 	app = elide_app
 	idle_until(
 		lambda: app.manager.current == "mainscreen",
 		100,
 		"Never switched to mainscreen",
 	)
-	app.mainscreen.populate()
 	idle_until(lambda: app.mainscreen.boardview, 100, "never got boardview")
 	idle_until(
 		lambda: app.mainscreen.boardview.board.spot, 100, "never got spots"
