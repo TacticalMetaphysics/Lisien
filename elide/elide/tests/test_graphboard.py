@@ -17,7 +17,6 @@ from ..kivygarden.texturestack import TextureStackPlane
 from .util import advance_frames, idle_until
 
 
-
 def pos_near(x0, y0, x1, y1):
 	return abs(sqrt(x0**2 + y0**2) - sqrt(x1**2 + y1**2)) < 10
 
@@ -108,6 +107,7 @@ def test_select_arrow():
 	app.engine = eng
 	board = GraphBoard(app=app, character=char)
 	boardview = GraphBoardView(board=board)
+	boardview.add_widget(board)
 	Window.add_widget(boardview)
 	idle_until(
 		lambda: board.arrow_plane, 100, "GraphBoard never got arrow_plane"
