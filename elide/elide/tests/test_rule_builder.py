@@ -288,7 +288,7 @@ def test_rule_builder_add_trigger(rules_view_app):
 
 
 @pytest.fixture
-def char_rules_view_app(play_dir, polygons_sim, elide_app):
+def char_rules_view_app(prefix, polygons_sim, elide_app):
 	app = elide_app
 	idle_until(lambda: hasattr(app, "engine"), 100, "App never made engine")
 	idle_until(
@@ -311,7 +311,7 @@ def char_rules_view_app(play_dir, polygons_sim, elide_app):
 	yield app
 
 
-def test_char_rule_builder_remove_unit_trigger(play_dir, char_rules_view_app):
+def test_char_rule_builder_remove_unit_trigger(prefix, char_rules_view_app):
 	app = char_rules_view_app
 	idle_until(
 		lambda: getattr(app.charrules, "_finalized", False),
@@ -440,7 +440,7 @@ def test_char_rule_builder_remove_unit_trigger(play_dir, char_rules_view_app):
 		"similar_neighbors still in proxy triggers list",
 	)
 	app.stop()
-	with Engine(play_dir) as eng:
+	with Engine(prefix) as eng:
 		assert list(
 			eng.character["triangle"].unit.rule["relocate"].triggers
 		) == [eng.trigger.dissimilar_neighbors]

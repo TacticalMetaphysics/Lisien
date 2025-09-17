@@ -6,7 +6,7 @@ from lisien import Engine
 from .util import advance_frames, idle_until
 
 
-def test_strings_editor(play_dir, elide_app):
+def test_strings_editor(prefix, elide_app):
 	assert "lisien" in elide_app.config
 	app = elide_app
 	idle_until(
@@ -54,6 +54,6 @@ def test_strings_editor(play_dir, elide_app):
 	advance_frames(10)
 	edbox.dismiss()
 	app.stop()
-	with Engine(play_dir, workers=0) as eng:
+	with Engine(prefix, workers=0) as eng:
 		assert "a string" in eng.string
 		assert eng.string["a string"] == "its value"

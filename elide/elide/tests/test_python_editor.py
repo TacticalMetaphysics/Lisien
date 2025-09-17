@@ -53,12 +53,12 @@ def test_show_code(elide_app):
 
 
 @pytest.mark.usefixtures("kivy")
-def test_create_action(play_dir, elide_app):
+def test_create_action(prefix, elide_app):
 	app = elide_app
 	actions_box = get_actions_box(app)
 	actions_box.editor.ids.funname.text = "new_func"
 	actions_box.editor.ids.code.text = 'return "Hello, world!"'
 	app.stop()
 	assert app.stopped
-	with Engine(play_dir, workers=0) as eng:
+	with Engine(prefix, workers=0) as eng:
 		assert hasattr(eng.action, "new_func")

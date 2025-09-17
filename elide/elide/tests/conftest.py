@@ -29,7 +29,7 @@ from lisien.examples import kobold, polygons, sickle
 
 
 @pytest.fixture
-def play_dir(tmp_path):
+def prefix(tmp_path):
 	os.makedirs(
 		os.path.join(
 			tmp_path,
@@ -98,9 +98,9 @@ def make_elide_app(play_dir, **kwargs):
 
 
 @pytest.fixture
-def elide_app(kivy, play_dir):
+def elide_app(kivy, prefix):
 	app = make_elide_app(
-		play_dir, immediate_start=True, character_name="physical", workers=0
+		prefix, immediate_start=True, character_name="physical", workers=0
 	)
 	app.leave_game = True
 	app.config = ConfigParser(None)
@@ -113,8 +113,8 @@ def elide_app(kivy, play_dir):
 
 
 @pytest.fixture(scope="function")
-def elide_app_main_menu(kivy, play_dir):
-	app = make_elide_app(play_dir, workers=0)
+def elide_app_main_menu(kivy, prefix):
+	app = make_elide_app(prefix, workers=0)
 	app.config = ConfigParser(None)
 	app.build_config(app.config)
 	Window.add_widget(app.build())
@@ -140,21 +140,21 @@ def elide_app_main_menu(kivy, play_dir):
 
 
 @pytest.fixture
-def line_shaped_graphs(play_dir):
-	with Engine(os.path.join(play_dir, "test")) as eng:
+def line_shaped_graphs(prefix):
+	with Engine(os.path.join(prefix, "test")) as eng:
 		eng.add_character("physical", nx.grid_2d_graph(10, 1))
 		eng.add_character("tall", nx.grid_2d_graph(1, 10))
 
 
 @pytest.fixture
-def sickle_sim(play_dir, random_seed):
-	with Engine(os.path.join(play_dir, "test"), workers=0, random_seed=random_seed) as eng:
+def sickle_sim(prefix, random_seed):
+	with Engine(os.path.join(prefix, "test"), workers=0, random_seed=random_seed) as eng:
 		sickle.install(eng)
 
 
 @pytest.fixture
-def kobold_sim(play_dir, random_seed):
-	with Engine(os.path.join(play_dir, "test"), workers=0, random_seed=random_seed) as eng:
+def kobold_sim(prefix, random_seed):
+	with Engine(os.path.join(prefix, "test"), workers=0, random_seed=random_seed) as eng:
 		kobold.inittest(eng)
 
 @pytest.fixture
@@ -165,6 +165,6 @@ def kobold_sim_exported(tmp_path, random_seed):
 
 
 @pytest.fixture
-def polygons_sim(play_dir, random_seed):
-	with Engine(os.path.join(play_dir, "test"), workers=0, random_seed=random_seed) as eng:
+def polygons_sim(prefix, random_seed):
+	with Engine(os.path.join(prefix, "test"), workers=0, random_seed=random_seed) as eng:
 		polygons.install(eng)
