@@ -4756,7 +4756,7 @@ class EngineProcessManager:
 		self._args = args
 		self._kwargs = kwargs
 
-	def _config_logger(self, **kwargs):
+	def _config_logger(self, kwargs):
 		handlers = []
 		logl = {
 			"debug": logging.DEBUG,
@@ -4782,7 +4782,7 @@ class EngineProcessManager:
 			handlers[0].setLevel(loglevel)
 		if "logfile" in kwargs:
 			try:
-				fh = logging.FileHandler(kwargs["logfile"])
+				fh = logging.FileHandler(kwargs.pop("logfile"))
 				handlers.append(fh)
 				handlers[-1].setLevel(loglevel)
 			except OSError:
@@ -4843,7 +4843,7 @@ class EngineProcessManager:
 			self._t.start()
 
 	def _make_proxy(self, *args, **kwargs):
-		self._config_logger(**kwargs)
+		self._config_logger(kwargs)
 		install_modules = (
 			kwargs.pop("install_modules")
 			if "install_modules" in kwargs
@@ -4884,9 +4884,7 @@ class EngineProcessManager:
 		if archive_path[-n:] != ".lisien":
 			raise RuntimeError("Not a .lisien archive")
 		self._start_subprocess()
-		self._config_logger(
-			logfile=kwargs.pop("logfile"), loglevel=kwargs.pop("loglevel")
-		)
+		self._config_logger(kwargs)
 		if hasattr(self, "_proxy_in_pipe"):
 			self._proxy_in_pipe.send(
 				b"from_archive"
@@ -4909,6 +4907,7 @@ class EngineProcessManager:
 		"""Start lisien in a subprocess, and return a proxy to it"""
 		if hasattr(self, "engine_proxy"):
 			raise RuntimeError("Already started")
+		self._config_logger(kwargs)
 		self._make_proxy(*args, **kwargs)
 		if hasattr(self, "_input_queue"):
 			self._input_queue.put(b"")

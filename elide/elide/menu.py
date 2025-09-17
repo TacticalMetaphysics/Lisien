@@ -141,14 +141,19 @@ class GamePickerModal(ModalView):
 		if os.path.exists(play_dir):
 			# Likely left over from a failed run of Elide
 			shutil.rmtree(play_dir)
-		Logger.debug(
-			f"GamePickerModal: unpacking {game_file_path} to {play_dir}"
-		)
+		if hasattr(self, "_decompress"):
+			Logger.debug(
+				f"GamePickerModal: unpacking {game_file_path} to {play_dir}"
+			)
+			self._decompress(game_file_path, play_dir)
+			archive_path = None
+		else:
+			archive_path = game_file_path
 		Clock.schedule_once(
 			partial(
 				app.start_game,
 				name=game,
-				archive_path=game_file_path,
+				archive_path=archive_path,
 			),
 			0.001,
 		)
@@ -267,6 +272,8 @@ class GameLoaderModal(GamePickerModal):
 		Clock.schedule_once(
 			partial(self._decompress_and_start, game_file_path, game), 0.05
 		)
+
+	_decompress = staticmethod(shutil.unpack_archive)
 
 
 class GameList(RecycleView):
