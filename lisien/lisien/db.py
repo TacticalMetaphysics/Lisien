@@ -6914,6 +6914,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 
 	def _character_rulebook_dump(self, typ: RulebookTypeStr):
 		getattr(self, f"_{typ}_rulebook_to_set")()
+		unpack = self.unpack
 		return iter(
 			sorted(
 				(
