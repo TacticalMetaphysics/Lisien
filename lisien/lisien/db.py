@@ -2193,8 +2193,11 @@ class ParquetDBLooper(ConnectionLooper):
 	def _iter_rule_part_tick_to_end(
 		self, part, branch: Branch, turn_from: Turn, tick_from: Tick
 	) -> Iterator[tuple[RuleName, Turn, Tick, bytes | RuleBig]]:
-		for d in self._iter_part_tick_to_end(
-			f"rule_{part}", branch, turn_from, tick_from
+		for d in sorted(
+			self._iter_part_tick_to_end(
+				f"rule_{part}", branch, turn_from, tick_from
+			),
+			key=lambda d: (d["turn"], d["tick"], d["rule"]),
 		):
 			yield d["rule"], d["turn"], d["tick"], d[part]
 
