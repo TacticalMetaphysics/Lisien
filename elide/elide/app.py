@@ -613,8 +613,8 @@ class ElideApp(App):
 		engine = self.engine = self.start_subprocess(
 			self.play_path, archive_path
 		)
-		self.mainscreen.populate()
 		self.init_board()
+		self.mainscreen.populate()
 		if cb:
 			cb()
 		self.manager.current = "mainscreen"
