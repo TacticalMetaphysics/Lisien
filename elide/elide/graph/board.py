@@ -435,7 +435,9 @@ class GraphBoard(RelativeLayout):
 		self.update()
 
 	def on_character(self, *args):
-		if self.character is None or self.character.engine.closed:
+		if self.character is None or (
+			hasattr(self.character, "engine") and self.character.engine.closed
+		):
 			return
 		if self.parent is None:
 			Clock.schedule_once(self.on_character, 0)
