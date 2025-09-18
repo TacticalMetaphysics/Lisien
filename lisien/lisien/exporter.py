@@ -772,7 +772,7 @@ class Exporter:
 			"rule_big",
 		}
 		turn: Turn
-		for turn, (ending_tick, plan_ending_tick) in turn_ends.items():
+		for turn, (ending_tick, plan_ending_tick) in sorted(turn_ends.items()):
 			turn_el = Element(
 				"turn",
 				{
