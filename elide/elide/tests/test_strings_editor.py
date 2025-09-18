@@ -1,3 +1,5 @@
+import os
+
 from kivy.base import EventLoop
 from kivy.tests import UnitTestTouch
 
@@ -54,6 +56,6 @@ def test_strings_editor(prefix, elide_app):
 	advance_frames(10)
 	edbox.dismiss()
 	app.stop()
-	with Engine(prefix, workers=0) as eng:
+	with Engine(os.path.join(prefix, "test"), workers=0) as eng:
 		assert "a string" in eng.string
 		assert eng.string["a string"] == "its value"
