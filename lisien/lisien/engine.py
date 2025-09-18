@@ -1369,7 +1369,9 @@ class Engine(AbstractEngine, Executor):
 			) not in turn_end_plan or tick > turn_end_plan[branch, turn]:
 				turn_end_plan[branch, turn] = tick
 			for turn, tick in times:
-				plan_ticks[self._last_plan][branch][turn].add(tick)
+				ticks = plan_ticks[self._last_plan][branch][turn]
+				ticks.append(tick)
+				plan_ticks[self._last_plan][branch][turn] = ticks
 				self.query.plans_insert(self._last_plan, branch, turn, tick)
 				for cache in self._caches:
 					if not hasattr(cache, "settings"):
