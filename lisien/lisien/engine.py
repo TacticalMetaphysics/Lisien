@@ -7325,7 +7325,6 @@ class Engine(AbstractEngine, Executor):
 				Exporter(self.query, self).write_xml(f, name, indent)
 			if isinstance(self.string, StringStore):
 				self.string.save()
-				zf.mkdir("strings")
 				for lang in os.listdir(self.string._prefix):
 					with (
 						open(
