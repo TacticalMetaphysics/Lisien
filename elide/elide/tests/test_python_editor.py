@@ -21,6 +21,7 @@ def get_actions_box(elide_app):
 	actions_box = app.funcs.ids.actions
 	idle_until(lambda: actions_box.editor, 100, "Never got FuncEditor")
 	idle_until(lambda: actions_box.storelist, 100, "Never got StoreList")
+	idle_until(lambda: actions_box.store, 100, "Never got FuncStoreProxy")
 	return actions_box
 
 
