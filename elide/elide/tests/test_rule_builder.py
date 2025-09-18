@@ -1,3 +1,4 @@
+import os
 from functools import partial
 
 import pytest
@@ -440,7 +441,7 @@ def test_char_rule_builder_remove_unit_trigger(prefix, char_rules_view_app):
 		"similar_neighbors still in proxy triggers list",
 	)
 	app.stop()
-	with Engine(prefix) as eng:
+	with Engine(os.path.join(prefix, "test")) as eng:
 		assert list(
 			eng.character["triangle"].unit.rule["relocate"].triggers
 		) == [eng.trigger.dissimilar_neighbors]
