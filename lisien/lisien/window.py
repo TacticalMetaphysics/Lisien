@@ -949,9 +949,7 @@ class LinearTimeListDict(WindowDict):
 	def __setitem__(self, rev: Turn, value: list[Tick]):
 		if not isinstance(value, list):
 			raise TypeError("lists of ticks only")
-		value = value.copy()
-		value.sort()
-		super().__setitem__(rev, value)
+		super().__setitem__(rev, sorted(set(value)))
 
 	def iter_times(self) -> Iterator[LinearTime]:
 		for turn, tick_set in self.items():
