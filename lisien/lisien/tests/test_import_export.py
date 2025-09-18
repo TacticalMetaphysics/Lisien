@@ -1,5 +1,6 @@
 from ast import parse
 import filecmp
+import difflib
 import json
 import os
 from functools import partial
@@ -58,7 +59,20 @@ def test_export_db(tmp_path, exported):
 		os.path.join(tmp_path, "game"), test_xml, name="test_export"
 	)
 
-	assert filecmp.cmp(test_xml, exported)
+	if not filecmp.cmp(test_xml, exported):
+		with (
+			open(test_xml, "rt") as testfile,
+			open(exported, "rt") as goodfile,
+		):
+			differences = list(
+				difflib.unified_diff(
+					testfile.readlines(),
+					goodfile.readlines(),
+					test_xml,
+					exported,
+				)
+			)
+			assert not differences, "".join(differences)
 
 
 DUMP_METHOD_NAMES = (
