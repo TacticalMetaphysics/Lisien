@@ -783,7 +783,7 @@ class Exporter:
 			)
 			branch_el.append(turn_el)
 			tick: Tick
-			for tick in range(turn_ends[turn][1] + 1):
+			for tick in range(plan_ending_tick + 1):
 				if (branch, turn, tick) in keyframe_times:
 					kf = query.get_keyframe(branch, turn, tick)
 					Exporter._add_keyframe_to_turn_el(turn_el, tick, kf)
