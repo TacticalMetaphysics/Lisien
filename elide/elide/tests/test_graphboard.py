@@ -107,7 +107,8 @@ def test_select_arrow():
 	app.engine = eng
 	board = GraphBoard(app=app, character=char)
 	boardview = GraphBoardView(board=board)
-	boardview.add_widget(board)
+	if not board.parent:
+		boardview.add_widget(board)
 	Window.add_widget(boardview)
 	idle_until(
 		lambda: board.arrow_plane, 100, "GraphBoard never got arrow_plane"
