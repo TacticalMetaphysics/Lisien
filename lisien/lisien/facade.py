@@ -756,6 +756,11 @@ class CharacterFacade(AbstractCharacter):
 			engine = self.db = EngineFacade(getattr(character, "db", None))
 		elif isinstance(engine, EngineFacade):
 			self.db = engine
+		else:
+			raise TypeError(
+				"Can't instantiate CharacterFacade with this for an engine",
+				engine,
+			)
 		if isinstance(character, AbstractCharacter):
 			self.character = character
 			if hasattr(character, "name"):
@@ -1122,6 +1127,7 @@ class EngineFacade(AbstractEngine):
 			self.engine = engine
 			self._patch = {}
 			self._deleted = set()
+			self.closed = False
 
 		def _effective_keys(self):
 			if self.engine:
@@ -1436,7 +1442,7 @@ class EngineFacade(AbstractEngine):
 		edge: dict = None,
 		**kwargs,
 	):
-		self.character._patch[name] = char = CharacterFacade(name, self)
+		self.character._patch[name] = char = CharacterFacade(self, name)
 		if data:
 			char.become(data)
 		if node:
