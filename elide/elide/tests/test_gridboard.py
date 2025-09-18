@@ -3,7 +3,7 @@ import pytest
 from kivy.core.window import Window
 
 from elide.grid.board import GridBoard, GridBoardView
-from lisien.facade import CharacterFacade
+from lisien.facade import EngineFacade
 
 from ..util import load_kv
 from .util import all_pawns_placed, all_spots_placed, idle_until
@@ -21,7 +21,8 @@ def test_layout_grid():
 	spot_width = 32
 	spot_height = 32
 	graph = nx.grid_2d_graph(spots_wide, spots_tall)
-	char = CharacterFacade(character=graph)
+	eng = EngineFacade(None)
+	char = eng.new_character("grid", graph)
 	char.place[1, 1].add_thing("something")
 	otherthing = char.place[2, 2].new_thing("otherthing")
 	assert len(char.thing) == 2
