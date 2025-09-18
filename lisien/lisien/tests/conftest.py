@@ -264,6 +264,7 @@ def college24_premade(tmp_path, request):
 	shutil.unpack_archive(
 		os.path.join(
 			os.path.abspath(os.path.dirname(__file__)),
+			"data",
 			"college24_premade.tar.xz",
 		),
 		tmp_path,
