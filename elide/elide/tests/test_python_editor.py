@@ -64,5 +64,5 @@ def test_create_action(prefix, elide_app):
 	actions_box.editor.ids.code.text = 'return "Hello, world!"'
 	app.stop()
 	assert app.stopped
-	with Engine(prefix, workers=0) as eng:
+	with Engine(app.play_path, workers=0) as eng:
 		assert hasattr(eng.action, "new_func")
