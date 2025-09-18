@@ -28,6 +28,9 @@ def get_actions_box(elide_app):
 def test_show_code(elide_app):
 	app = elide_app
 	actions_box = get_actions_box(app)
+	idle_until(
+		lambda: actions_box.storelist.data, 100, "Never got actions data"
+	)
 	last = actions_box.storelist.data[-1]["name"]
 	actions_box.storelist.selection_name = last
 	idle_until(
