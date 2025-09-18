@@ -1458,7 +1458,7 @@ class Cache:
 			setticks = settings_turns[turn]
 			if not hasattr(self, "overwrite_journal") and tick in setticks:
 				raise KeyError(
-					"Already have journal entry", self, branch, turn, tick
+					"Already have journal entry", self.name, branch, turn, tick
 				)
 			# assert tick not in setticks
 			presetticks = presettings_turns[turn]
