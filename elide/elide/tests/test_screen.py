@@ -1,3 +1,4 @@
+import os
 from functools import partial
 
 import pytest
@@ -16,7 +17,7 @@ class MockStore:
 
 @pytest.fixture(autouse=True)
 def screen_test_state(prefix):
-	with Engine(prefix, workers=0) as eng:
+	with Engine(os.path.join(prefix, "test"), workers=0) as eng:
 		foo = eng.new_character("physical")
 		here = foo.new_place((0, 0))
 		foo.add_place((1, 1))
