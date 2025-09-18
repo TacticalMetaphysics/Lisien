@@ -634,6 +634,8 @@ class FacadePortalPredecessors(FacadeEntityMapping):
 
 
 class CharacterFacade(AbstractCharacter):
+	engine = getatt("db")
+
 	def __getstate__(self):
 		ports = {}
 		for o in self.portal:
