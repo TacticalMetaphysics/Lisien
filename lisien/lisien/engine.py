@@ -1081,8 +1081,8 @@ class Engine(AbstractEngine, Executor):
 		return set()
 
 	@cached_property
-	def _caches(self) -> list:
-		return [
+	def _caches(self) -> tuple[Cache, ...]:
+		return (
 			self._things_cache,
 			self._node_contents_cache,
 			self._universal_cache,
@@ -1110,7 +1110,7 @@ class Engine(AbstractEngine, Executor):
 			self._edges_cache,
 			self._node_val_cache,
 			self._edge_val_cache,
-		]
+		)
 
 	@cached_property
 	def character(self) -> CharacterMapping:
