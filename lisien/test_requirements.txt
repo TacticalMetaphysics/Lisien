@@ -7,6 +7,7 @@ sqlalchemy>=1.4,<3
 numpy>=1.19.5,<3
 tblib>=1.7.0,<2
 parquetdb>=1.0.1,<2
+lxml~=6.0.1
 build
 twine
 pytest
