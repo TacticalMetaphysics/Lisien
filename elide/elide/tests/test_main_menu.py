@@ -50,10 +50,12 @@ def zipped_kobold(prefix, kobold_sim):
 @pytest.fixture
 def zipped_kobold_in_games_dir(prefix, zipped_kobold):
 	archive_name = os.path.basename(zipped_kobold)
+	games_dir = os.path.join(prefix, "games")
 	shutil.move(
-		zipped_kobold, os.path.join(os.path.dirname(prefix), archive_name)
+		zipped_kobold,
+		os.path.join(games_dir, archive_name),
 	)
-	assert archive_name in os.listdir(os.path.dirname(prefix))
+	assert archive_name in os.listdir(games_dir)
 
 
 def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
