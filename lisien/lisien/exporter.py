@@ -981,7 +981,7 @@ class Exporter:
 				assert not data[k]
 		for char_name in data.keys() - uncharacterized:
 			for k, v in data[char_name].items():
-				assert not v, f"Leftover data in {k}: {v}"
+				assert not v, f"Leftover data in {char_name}'s {k}: {v}"
 		assert not keyframe_times, keyframe_times
 
 
