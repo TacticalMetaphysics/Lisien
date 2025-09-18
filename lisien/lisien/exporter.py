@@ -1069,10 +1069,10 @@ def game_path_to_etree(
 			langhash = blake2b()
 			with open(os.path.join(strings_dir, fn), "rb") as inf:
 				langlines = json.load(inf)
-			for k, v in langlines.items():
+			for k in sort_set(langlines.keys()):
 				langhash.update(k.encode())
 				langhash.update(GROUP_SEP)
-				langhash.update(v.encode())
+				langhash.update(langlines[k].encode())
 				langhash.update(REC_SEP)
 			if len(fn) > 5 and fn[-5:] == ".json":
 				fn = fn[:-5]

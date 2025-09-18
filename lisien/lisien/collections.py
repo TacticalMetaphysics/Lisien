@@ -43,7 +43,7 @@ from astunparse import Unparser
 from blinker import Signal
 
 from .types import CharName, Key
-from .util import AbstractEngine, dedent_source, getatt
+from .util import AbstractEngine, dedent_source, getatt, sort_set
 from .wrap import wrapval
 
 if TYPE_CHECKING:
@@ -456,11 +456,13 @@ class FunctionStore(Signal):
 		return unparse(self._ast.body[self._ast_idx[name]])
 
 	def blake2b(self) -> bytes:
+		"""Return the blake2b hash digest of the code stored here"""
 		hashed = blake2b()
-		for k, v in self.iterplain():
+		todo = dict(self.iterplain())
+		for k in sort_set(todo.keys()):
 			hashed.update(k.encode())
 			hashed.update(GROUP_SEP)
-			hashed.update(v.encode())
+			hashed.update(todo[k].encode())
 			hashed.update(REC_SEP)
 		return hashed.digest()
 
