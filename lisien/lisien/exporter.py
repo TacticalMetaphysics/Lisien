@@ -96,7 +96,7 @@ class Exporter:
 		for k in sort_set(eternals.keys()):
 			el = Element("dict-item", key=repr(k))
 			root.append(el)
-			el.append(self.value_to_xml(eternals[k]))
+			el.append(self._value_to_xml_el(eternals[k]))
 		trunks = set()
 		branches_d = {}
 		branch_descendants = {}
@@ -209,7 +209,7 @@ class Exporter:
 			data = query.load_windows(
 				[(b, turn_from, tick_from, turn_to, tick_to)]
 			)
-			self.fill_branch_element(
+			self._fill_branch_element(
 				branch_elements[b],
 				turn_end_plan_d[b],
 				keyframe_times,
@@ -225,7 +225,7 @@ class Exporter:
 		return self.tree
 
 	@classmethod
-	def value_to_xml(cls, value: Value | dict[Key, Value]) -> Element:
+	def _value_to_xml_el(cls, value: Value | dict[Key, Value]) -> Element:
 		if value is ...:
 			return Element("Ellipsis")
 		elif value is None:
@@ -274,41 +274,41 @@ class Exporter:
 			if hasattr(value, "__traceback__"):
 				el.set("traceback", str(Traceback(value.__traceback__)))
 			for arg in value.args:
-				el.append(cls.value_to_xml(arg))
+				el.append(cls._value_to_xml_el(arg))
 			return el
 		elif isinstance(value, list):
 			el = Element("list")
 			for v in value:
-				el.append(cls.value_to_xml(v))
+				el.append(cls._value_to_xml_el(v))
 			return el
 		elif isinstance(value, tuple):
 			el = Element("tuple")
 			for v in value:
-				el.append(cls.value_to_xml(v))
+				el.append(cls._value_to_xml_el(v))
 			return el
 		elif isinstance(value, Set):
 			if isinstance(value, (set, MutableSet)):
 				el = Element("set")
 				for v in value:
-					el.append(cls.value_to_xml(v))
+					el.append(cls._value_to_xml_el(v))
 				return el
 			else:
 				el = Element("frozenset")
 				for v in value:
-					el.append(cls.value_to_xml(v))
+					el.append(cls._value_to_xml_el(v))
 				return el
 		elif isinstance(value, Mapping):
 			el = Element("dict")
 			for k, v in value.items():
 				dict_item = Element("dict-item", key=repr(k))
-				dict_item.append(cls.value_to_xml(v))
+				dict_item.append(cls._value_to_xml_el(v))
 				el.append(dict_item)
 			return el
 		else:
 			raise TypeError("Can't convert to XML", value)
 
 	@classmethod
-	def add_keyframe_to_turn_el(
+	def _add_keyframe_to_turn_el(
 		cls,
 		turn_el: Element,
 		tick: Tick,
@@ -317,7 +317,7 @@ class Exporter:
 		kfel = Element("keyframe", tick=str(tick))
 		turn_el.append(kfel)
 		universal_d: dict[Key, Value] = keyframe.get("universal", {})
-		univel = cls.value_to_xml(universal_d)
+		univel = cls._value_to_xml_el(universal_d)
 		univel.tag = "universal"
 		kfel.append(univel)
 		triggers_kf: dict[RuleName, list[TriggerFuncName]] = keyframe.get(
@@ -445,7 +445,7 @@ class Exporter:
 			for k, v in vals.items():
 				item_el = Element("dict-item", key=repr(k))
 				graph_el.append(item_el)
-				item_el.append(cls.value_to_xml(v))
+				item_el.append(cls._value_to_xml_el(v))
 		node_val_kf: GraphNodeValKeyframe = keyframe.get("node_val", {})
 		for char_name, node_vals in node_val_kf.items():
 			if char_name in char_els:
@@ -466,7 +466,7 @@ class Exporter:
 				for k, v in val.items():
 					item_el = Element("dict_item", key=repr(k))
 					node_el.append(item_el)
-					item_el.append(cls.value_to_xml(v))
+					item_el.append(cls._value_to_xml_el(v))
 		edge_val_kf: GraphEdgeValKeyframe = keyframe.get("edge_val", {})
 		for char_name, edge_vals in edge_val_kf.items():
 			if char_name in char_els:
@@ -489,7 +489,7 @@ class Exporter:
 					for k, v in val.items():
 						item_el = Element("dict_item", key=repr(k))
 						edge_el.append(item_el)
-						item_el.append(Exporter.value_to_xml(v))
+						item_el.append(Exporter._value_to_xml_el(v))
 
 	def write_xml(
 		self,
@@ -515,18 +515,20 @@ class Exporter:
 		tree.write(to, encoding="utf-8")
 
 	@classmethod
-	def append_univ_el(cls, turn_el: Element, universal_rec: UniversalRowType):
+	def _append_univ_el(
+		cls, turn_el: Element, universal_rec: UniversalRowType
+	):
 		key, b, r, t, val = universal_rec
 		univ_el = Element(
 			"universal",
 			key=repr(key),
 			tick=str(t),
 		)
-		univ_el.append(cls.value_to_xml(val))
+		univ_el.append(cls._value_to_xml_el(val))
 		turn_el.append(univ_el)
 
 	@staticmethod
-	def append_rulebook_el(turn_el: Element, rulebook_rec: RulebookRowType):
+	def _append_rulebook_el(turn_el: Element, rulebook_rec: RulebookRowType):
 		rb, b, r, t, (rules, prio) = rulebook_rec
 		rb_el = Element(
 			"rulebook",
@@ -539,7 +541,7 @@ class Exporter:
 			rb_el.append(Element("rule", name=rule))
 
 	@staticmethod
-	def append_rule_flist_el(
+	def _append_rule_flist_el(
 		typ: str,
 		turn_el: Element,
 		rec: TriggerRowType | PrereqRowType | ActionRowType,
@@ -550,12 +552,12 @@ class Exporter:
 		for func in funcs:
 			func_el.append(Element(typ[5:], name=func))
 
-	append_rule_triggers_el = partial(append_rule_flist_el, "rule-trigger")
-	append_rule_prereqs_el = partial(append_rule_flist_el, "rule-prereq")
-	append_rule_actions_el = partial(append_rule_flist_el, "rule-action")
+	append_rule_triggers_el = partial(_append_rule_flist_el, "rule-trigger")
+	append_rule_prereqs_el = partial(_append_rule_flist_el, "rule-prereq")
+	append_rule_actions_el = partial(_append_rule_flist_el, "rule-action")
 
 	@staticmethod
-	def append_rule_neighborhood_el(
+	def _append_rule_neighborhood_el(
 		turn_el: Element, nbr_rec: RuleNeighborhoodRowType
 	):
 		rule, _, __, tick, nbr = nbr_rec
@@ -571,7 +573,7 @@ class Exporter:
 		turn_el.append(nbr_el)
 
 	@staticmethod
-	def append_rule_big_el(turn_el: Element, big_rec: RuleBigRowType):
+	def _append_rule_big_el(turn_el: Element, big_rec: RuleBigRowType):
 		rule, _, __, tick, big = big_rec
 		turn_el.append(
 			Element(
@@ -583,7 +585,7 @@ class Exporter:
 		)
 
 	@staticmethod
-	def append_graph_el(turn_el: Element, graph: GraphRowType):
+	def _append_graph_el(turn_el: Element, graph: GraphRowType):
 		char, b, r, t, typ_str = graph
 		graph_el = Element(
 			"graph",
@@ -594,7 +596,7 @@ class Exporter:
 		turn_el.append(graph_el)
 
 	@staticmethod
-	def append_graph_val_el(turn_el: Element, graph_val: GraphValRowType):
+	def _append_graph_val_el(turn_el: Element, graph_val: GraphValRowType):
 		char, stat, b, r, t, val = graph_val
 		graph_val_el = Element(
 			"graph-val",
@@ -603,10 +605,10 @@ class Exporter:
 			tick=str(t),
 		)
 		turn_el.append(graph_val_el)
-		graph_val_el.append(Exporter.value_to_xml(val))
+		graph_val_el.append(Exporter._value_to_xml_el(val))
 
 	@staticmethod
-	def append_nodes_el(turn_el: Element, nodes: NodeRowType):
+	def _append_nodes_el(turn_el: Element, nodes: NodeRowType):
 		char, node, b, r, t, ex = nodes
 		turn_el.append(
 			Element(
@@ -619,7 +621,7 @@ class Exporter:
 		)
 
 	@staticmethod
-	def append_node_val_el(turn_el: Element, node_val: NodeValRowType):
+	def _append_node_val_el(turn_el: Element, node_val: NodeValRowType):
 		char, node, stat, b, r, t, val = node_val
 		node_val_el = Element(
 			"node-val",
@@ -629,10 +631,10 @@ class Exporter:
 			tick=str(t),
 		)
 		turn_el.append(node_val_el)
-		node_val_el.append(Exporter.value_to_xml(val))
+		node_val_el.append(Exporter._value_to_xml_el(val))
 
 	@staticmethod
-	def append_edges_el(turn_el: Element, edges: EdgeRowType):
+	def _append_edges_el(turn_el: Element, edges: EdgeRowType):
 		char, orig, dest, b, r, t, ex = edges
 		turn_el.append(
 			Element(
@@ -646,7 +648,7 @@ class Exporter:
 		)
 
 	@staticmethod
-	def append_edge_val_el(turn_el: Element, edge_val: EdgeValRowType):
+	def _append_edge_val_el(turn_el: Element, edge_val: EdgeValRowType):
 		char, orig, dest, stat, b, r, t, val = edge_val
 		edge_val_el = Element(
 			"edge-val",
@@ -657,10 +659,10 @@ class Exporter:
 			tick=str(t),
 		)
 		turn_el.append(edge_val_el)
-		edge_val_el.append(Exporter.value_to_xml(val))
+		edge_val_el.append(Exporter._value_to_xml_el(val))
 
 	@staticmethod
-	def append_thing_el(turn_el: Element, thing: ThingRowType):
+	def _append_thing_el(turn_el: Element, thing: ThingRowType):
 		char, thing, b, r, t, loc = thing
 		turn_el.append(
 			Element(
@@ -673,7 +675,7 @@ class Exporter:
 		)
 
 	@staticmethod
-	def append_unit_el(turn_el: Element, unit: UnitRowType):
+	def _append_unit_el(turn_el: Element, unit: UnitRowType):
 		char, graph, node, b, r, t, is_unit = unit
 		unit_el = Element(
 			"unit",
@@ -688,7 +690,7 @@ class Exporter:
 		turn_el.append(unit_el)
 
 	@staticmethod
-	def append_char_rb_el(
+	def _append_char_rb_el(
 		turn_el: Element, rbtyp: str, rbrow: CharRulebookRowType
 	):
 		char, b, r, t, rb = rbrow
@@ -702,7 +704,7 @@ class Exporter:
 		)
 
 	@staticmethod
-	def append_node_rb_el(turn_el: Element, nrb_row: NodeRulebookRowType):
+	def _append_node_rb_el(turn_el: Element, nrb_row: NodeRulebookRowType):
 		char, node, b, r, t, rb = nrb_row
 		turn_el.append(
 			Element(
@@ -715,7 +717,7 @@ class Exporter:
 		)
 
 	@staticmethod
-	def append_portal_rb_el(
+	def _append_portal_rb_el(
 		turn_el: Element, port_rb_row: PortalRulebookRowType
 	):
 		char, orig, dest, b, r, t, rb = port_rb_row
@@ -730,7 +732,7 @@ class Exporter:
 			)
 		)
 
-	def fill_branch_element(
+	def _fill_branch_element(
 		self,
 		branch_el: Element,
 		turn_ends: dict[Turn, tuple[Tick, Tick]],
@@ -784,7 +786,7 @@ class Exporter:
 			for tick in range(turn_ends[turn][1] + 1):
 				if (branch, turn, tick) in keyframe_times:
 					kf = query.get_keyframe(branch, turn, tick)
-					Exporter.add_keyframe_to_turn_el(turn_el, tick, kf)
+					Exporter._add_keyframe_to_turn_el(turn_el, tick, kf)
 					keyframe_times.remove((branch, turn, tick))
 				if data["universals"]:
 					universal_rec: UniversalRowType = data["universals"][0]
@@ -794,7 +796,7 @@ class Exporter:
 						turn,
 						tick,
 					):
-						self.append_univ_el(turn_el, universal_rec)
+						self._append_univ_el(turn_el, universal_rec)
 						del data["universals"][0]
 				if data["rulebooks"]:
 					rulebook_rec: RulebookRowType = data["rulebooks"][0]
@@ -804,7 +806,7 @@ class Exporter:
 						turn,
 						tick,
 					):
-						self.append_rulebook_el(turn_el, rulebook_rec)
+						self._append_rulebook_el(turn_el, rulebook_rec)
 						del data["rulebooks"][0]
 				if data["graphs"]:
 					graph_rec: GraphRowType = data["graphs"][0]
@@ -814,7 +816,7 @@ class Exporter:
 						turn,
 						tick,
 					):
-						self.append_graph_el(turn_el, graph_rec)
+						self._append_graph_el(turn_el, graph_rec)
 						del data["graphs"][0]
 				if (
 					"rule_triggers" in data
@@ -861,7 +863,7 @@ class Exporter:
 					and data["rule_neighborhood"][0][1:4]
 					== (branch, turn, tick)
 				):
-					self.append_rule_neighborhood_el(
+					self._append_rule_neighborhood_el(
 						turn_el, data["rule_neighborhood"].pop(0)
 					)
 				if (
@@ -874,7 +876,7 @@ class Exporter:
 						tick,
 					)
 				):
-					self.append_rule_big_el(turn_el, data["rule_big"].pop(0))
+					self._append_rule_big_el(turn_el, data["rule_big"].pop(0))
 				for char_name in data.keys() - uncharacterized:
 					char_data: LoadedCharWindow = data[char_name]
 					if char_data["graph_val"]:
@@ -883,7 +885,7 @@ class Exporter:
 						][0]
 						_, __, b, r, t, ___ = graph_val_row
 						if (b, r, t) == (branch, turn, tick):
-							self.append_graph_val_el(turn_el, graph_val_row)
+							self._append_graph_val_el(turn_el, graph_val_row)
 							del char_data["graph_val"][0]
 					if char_data["nodes"]:
 						nodes_row: NodeRowType = char_data["nodes"][0]
@@ -895,7 +897,7 @@ class Exporter:
 							turn,
 							tick,
 						):
-							self.append_nodes_el(turn_el, nodes_row)
+							self._append_nodes_el(turn_el, nodes_row)
 							del char_data["nodes"][0]
 					if char_data["node_val"]:
 						node_val_row: NodeValRowType = char_data["node_val"][0]
@@ -913,31 +915,31 @@ class Exporter:
 							turn,
 							tick,
 						):
-							self.append_node_val_el(turn_el, node_val_row)
+							self._append_node_val_el(turn_el, node_val_row)
 							del char_data["node_val"][0]
 					if char_data["edges"]:
 						edges_row: EdgeRowType = char_data["edges"][0]
 						_, __, ___, b, r, t, ____ = edges_row
 						if (b, r, t) == (branch, turn, tick):
-							self.append_edges_el(edges_row)
+							self._append_edges_el(edges_row)
 							del char_data["edges"][0]
 					if char_data["edge_val"]:
 						edge_val_row: EdgeValRowType = char_data["edge_val"][0]
 						_, __, ___, ____, b, r, t, _____ = edge_val_row
 						if (b, r, t) == (branch, turn, tick):
-							self.append_edge_val_el(turn_el, edge_val_row)
+							self._append_edge_val_el(turn_el, edge_val_row)
 							del char_data["edge_val"][0]
 					if char_data["things"]:
 						thing_row: ThingRowType = char_data["things"][0]
 						_, __, b, r, t, ___ = thing_row
 						if (b, r, t) == (branch, turn, tick):
-							self.append_thing_el(turn_el, thing_row)
+							self._append_thing_el(turn_el, thing_row)
 							del char_data["things"][0]
 					if char_data["units"]:
 						units_row: UnitRowType = char_data["units"][0]
 						_, __, ___, b, r, t, ____ = units_row
 						if (b, r, t) == (branch, turn, tick):
-							self.append_unit_el(turn_el, units_row)
+							self._append_unit_el(turn_el, units_row)
 							del char_data["units"][0]
 					for char_rb_typ in (
 						"character_rulebook",
@@ -952,7 +954,7 @@ class Exporter:
 							][0]
 							_, b, r, t, __ = char_rb_row
 							if (b, r, t) == (branch, turn, tick):
-								self.append_char_rb_el(
+								self._append_char_rb_el(
 									turn_el,
 									char_rb_typ.replace("_", "-"),
 									char_rb_row,
@@ -964,7 +966,7 @@ class Exporter:
 						][0]
 						_, __, b, r, t, ___ = node_rb_row
 						if (b, r, t) == (branch, turn, tick):
-							self.append_node_rb_el(turn_el, node_rb_row)
+							self._append_node_rb_el(turn_el, node_rb_row)
 							del char_data["node_rulebook"][0]
 					if char_data["portal_rulebook"]:
 						port_rb_row: PortalRulebookRowType = char_data[
@@ -972,7 +974,7 @@ class Exporter:
 						][0]
 						_, __, ___, b, r, t, ____ = port_rb_row
 						if (b, r, t) == (branch, turn, tick):
-							self.append_portal_rb_el(turn_el, port_rb_row)
+							self._append_portal_rb_el(turn_el, port_rb_row)
 							del char_data["portal_rulebook"][0]
 		for k in uncharacterized:
 			if k in data:
