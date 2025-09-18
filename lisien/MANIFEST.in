@@ -1,2 +1,2 @@
 include lisien/py.typed
-include lisien/tests/college24_premade.tar.xz
+include lisien/tests/data/*
