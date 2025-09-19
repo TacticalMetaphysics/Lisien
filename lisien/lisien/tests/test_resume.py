@@ -2,6 +2,7 @@ import pytest
 
 from lisien import Engine
 from lisien.examples.polygons import install
+
 from .util import make_test_engine_kwargs
 
 

@@ -72,9 +72,14 @@ from .exc import TimeError, WorkerProcessReadOnlyError
 from .types import (
 	Branch,
 	CharName,
+	DiGraph,
+	Edge,
 	EdgeValDict,
 	EternalKey,
+	GraphMapping,
+	Key,
 	LinearTime,
+	Node,
 	NodeName,
 	NodeValDict,
 	RulebookName,
@@ -85,17 +90,12 @@ from .types import (
 	Turn,
 	UniversalKey,
 	Value,
-	Key,
-	GraphMapping,
-	Node,
-	Edge,
-	DiGraph,
 )
 from .wrap import SpecialMapping
 
 if TYPE_CHECKING:
-	from .rule import Rule, RuleBook
 	from .collections import FunctionStore
+	from .rule import Rule, RuleBook
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)

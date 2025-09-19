@@ -39,7 +39,7 @@ from threading import RLock
 from typing import Any, Callable, Iterable, Iterator, Union
 
 from .exc import HistoricKeyError
-from .types import Tick, Turn, Value, LinearTime
+from .types import LinearTime, Tick, Turn, Value
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)

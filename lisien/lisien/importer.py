@@ -5,7 +5,7 @@ from functools import partialmethod
 from itertools import chain
 from operator import itemgetter
 from pathlib import Path
-from typing import Literal, Any, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 try:
 	from lxml.etree import Element, ElementTree, parse
@@ -13,33 +13,34 @@ except ModuleNotFoundError:
 	from xml.etree.ElementTree import Element, ElementTree, parse
 
 from lisien.types import (
-	RuleName,
-	PrereqFuncName,
-	TriggerFuncName,
 	ActionFuncName,
-	RuleNeighborhood,
 	Branch,
-	Turn,
-	Tick,
-	RuleBig,
-	FuncName,
-	RulebookPriority,
-	RulebookName,
-	Key,
-	GraphValKeyframe,
-	GraphNodeValKeyframe,
-	GraphEdgeValKeyframe,
-	UniversalKey,
-	Value,
 	CharName,
+	FuncName,
+	GraphEdgeValKeyframe,
+	GraphNodeValKeyframe,
+	GraphValKeyframe,
+	Key,
 	NodeName,
-	RuleKeyframe,
-	UniversalKeyframe,
-	Time,
-	Stat,
+	PrereqFuncName,
+	RuleBig,
+	RulebookName,
+	RulebookPriority,
 	RuleFuncName,
+	RuleKeyframe,
+	RuleName,
+	RuleNeighborhood,
+	Stat,
+	Tick,
+	Time,
+	TriggerFuncName,
+	Turn,
+	UniversalKey,
+	UniversalKeyframe,
+	Value,
 )
 from lisien.window import SettingsTurnDict
+
 from .db import AbstractDatabaseConnector
 from .facade import EngineFacade
 from .util import AbstractEngine

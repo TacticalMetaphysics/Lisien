@@ -26,8 +26,9 @@ import networkx as nx
 from blinker import Signal
 
 from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
+from .collections import CompositeDict, FunctionStore
 from .exc import NotInKeyframeError, TotalKeyError
-from .types import CharName, Key, NodeName, Node, Edge, DiGraph
+from .types import CharName, DiGraph, Edge, Key, Node, NodeName
 from .util import (
 	AbstractCharacter,
 	AbstractEngine,
@@ -39,7 +40,6 @@ from .util import (
 	timer,
 )
 from .wrap import MutableMappingUnwrapper
-from .collections import CompositeDict, FunctionStore
 
 
 class FacadeEntity(MutableMapping, Signal, ABC):
