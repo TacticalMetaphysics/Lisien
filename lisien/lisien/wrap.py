@@ -32,8 +32,8 @@ from collections.abc import (
 	Sized,
 )
 from functools import partial
-from itertools import zip_longest, chain
-from typing import TYPE_CHECKING, Callable, Any, Hashable, Set
+from itertools import chain, zip_longest
+from typing import TYPE_CHECKING, Any, Callable, Hashable, Set
 
 from blinker import Signal
 

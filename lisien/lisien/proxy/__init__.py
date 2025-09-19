@@ -58,6 +58,11 @@ import tblib
 from blinker import Signal
 
 from ..cache import PickyDefaultDict, StructuredDefaultDict
+from ..collections import (
+	AbstractLanguageDescriptor,
+	FunctionStore,
+	StringStore,
+)
 from ..exc import (
 	AmbiguousLeaderError,
 	OutOfTimelineError,
@@ -72,6 +77,7 @@ from ..types import (
 	CharDelta,
 	CharName,
 	DeltaDict,
+	Edge,
 	EdgesDict,
 	EdgeValDict,
 	EternalKey,
@@ -79,6 +85,7 @@ from ..types import (
 	FuncStoreName,
 	Key,
 	Keyframe,
+	Node,
 	NodeName,
 	NodesDict,
 	NodeValDict,
@@ -96,8 +103,6 @@ from ..types import (
 	Turn,
 	UniversalKey,
 	Value,
-	Node,
-	Edge,
 )
 from ..util import (
 	AbstractBookmarkMapping,
@@ -115,11 +120,6 @@ from ..wrap import (
 	OrderlySet,
 	SetWrapper,
 	UnwrappingDict,
-)
-from ..collections import (
-	AbstractLanguageDescriptor,
-	FunctionStore,
-	StringStore,
 )
 from .handle import EngineHandle
 

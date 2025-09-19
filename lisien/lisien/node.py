@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 from networkx import shortest_path, shortest_path_length
 
 import lisien.types
+
 from . import rule
 from .exc import AmbiguousLeaderError
 from .facade import FacadePlace, FacadeThing

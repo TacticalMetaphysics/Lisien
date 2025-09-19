@@ -48,3 +48,4 @@ for line in output.split("\n"):
 
 if lisien_version_str in vers:
 	sys.exit(f"Version {lisien_version_str} is already in PyPI.")
+print(lisien_version_str)

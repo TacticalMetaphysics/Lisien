@@ -24,7 +24,7 @@ from .facade import FacadePortal
 from .query import EntityStatAlias
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .types import Key, Time, Edge
+from .types import Edge, Key, Time
 from .util import AbstractCharacter, getatt
 
 

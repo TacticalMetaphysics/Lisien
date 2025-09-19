@@ -1,4 +1,4 @@
-== 0.22.0 | 2025-09-18 ==
+== 0.22.0 | 2025-09-19 ==
 * Switch to a new XML-based export format, with .lisien file extension.
   They're just zip files, like earlier versions' exports, but now you can
   open the file world.xml in a text editor and change the history of the game,

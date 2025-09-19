@@ -8,9 +8,9 @@ from kivy.tests.common import UnitTestTouch
 from elide.app import ElideApp
 from elide.graph.arrow import ArrowPlane
 from elide.graph.board import GraphBoard, GraphBoardView
+from lisien.collections import FunctionStore
 from lisien.facade import CharacterFacade, EngineFacade
 from lisien.util import SignalDict
-from lisien.collections import FunctionStore
 
 from ..dummy import Dummy
 from ..kivygarden.texturestack import TextureStackPlane

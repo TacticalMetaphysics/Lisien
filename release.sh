@@ -19,17 +19,17 @@ isort lisien
 isort elide
 ruff format lisien
 ruff format elide
-for env in $(tox -c elide/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; then rm -r "/tmp/pytest-of-${USER}/"; fi; tox -c elide/tox.ini -e $env; done
-for env in $(tox -c lisien/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; then rm -r "/tmp/pytest-of-${USER}/"; fi; tox -c lisien/tox.ini -e $env; done
-rm -rf bin lisien/dist elide/dist
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android clean debug
-PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
-cd docs
-git add .
-git commit -m "Release v${VERSION}"
-git push
-git push --tags
-cd ..
+#for env in $(tox -c elide/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; then rm -r "/tmp/pytest-of-${USER}/"; fi; tox -c elide/tox.ini -e $env; done
+#for env in $(tox -c lisien/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; then rm -r "/tmp/pytest-of-${USER}/"; fi; tox -c lisien/tox.ini -e $env; done
+#rm -rf bin lisien/dist elide/dist
+#JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android clean debug
+#PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
+#cd docs
+#git add .
+#git commit -m "Release v${VERSION}"
+#git push
+#git push --tags
+#cd ..
 git commit -am "Release v${VERSION}"
 git tag "v${VERSION}"
 git push

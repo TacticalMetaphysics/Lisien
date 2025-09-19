@@ -25,7 +25,7 @@ from lisien.proxy.handle import EngineHandle
 from ..examples import college, kobold, sickle
 from ..proxy import EngineProcessManager, EngineProxy
 from . import data
-from .util import make_test_engine_kwargs, make_test_engine_facade
+from .util import make_test_engine_facade, make_test_engine_kwargs
 
 
 @pytest.fixture(scope="function")

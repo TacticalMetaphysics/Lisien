@@ -90,6 +90,7 @@ from astunparse import unparse
 from blinker import Signal
 
 from .cache import FuncListCache
+from .collections import FunctionStore
 from .types import (
 	ActionFuncName,
 	Branch,
@@ -108,7 +109,6 @@ from .types import (
 	Value,
 )
 from .util import AbstractEngine, dedent_source
-from .collections import FunctionStore
 
 if TYPE_CHECKING:
 	from .engine import Engine

@@ -38,7 +38,7 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from itertools import chain
 from types import MethodType
-from typing import TYPE_CHECKING, Iterable, Iterator, Callable
+from typing import TYPE_CHECKING, Callable, Iterable, Iterator
 
 import networkx as nx
 from blinker import Signal
@@ -52,20 +52,20 @@ from .rule import RuleBook
 from .rule import RuleFollower as BaseRuleFollower
 from .rule import RuleMapping
 from .types import (
+	Branch,
 	CharName,
+	DiGraphPredecessorsMapping,
+	DiGraphSuccessorsMapping,
 	EdgeValDict,
+	GraphNodeMapping,
 	Key,
 	NodeName,
+	RulebookName,
 	RulebookTypeStr,
 	Stat,
 	StatDict,
-	Branch,
-	Turn,
 	Tick,
-	RulebookName,
-	GraphNodeMapping,
-	DiGraphSuccessorsMapping,
-	DiGraphPredecessorsMapping,
+	Turn,
 )
 from .util import AbstractCharacter, getatt, singleton_get, timer
 from .wrap import MutableMappingUnwrapper, SpecialMapping

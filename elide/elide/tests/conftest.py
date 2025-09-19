@@ -148,23 +148,34 @@ def line_shaped_graphs(prefix):
 
 @pytest.fixture
 def sickle_sim(prefix, random_seed):
-	with Engine(os.path.join(prefix, "test"), workers=0, random_seed=random_seed) as eng:
+	with Engine(
+		os.path.join(prefix, "test"), workers=0, random_seed=random_seed
+	) as eng:
 		sickle.install(eng)
 
 
 @pytest.fixture
 def kobold_sim(prefix, random_seed):
-	with Engine(os.path.join(prefix, "test"), workers=0, random_seed=random_seed) as eng:
+	with Engine(
+		os.path.join(prefix, "test"), workers=0, random_seed=random_seed
+	) as eng:
 		kobold.inittest(eng)
+
 
 @pytest.fixture
 def kobold_sim_exported(tmp_path, random_seed):
-	with Engine(os.path.join(tmp_path, "kobold"), workers=0, random_seed=random_seed) as eng:
-		exported = eng.export("kobold", os.path.join(tmp_path, "kobold.lisien"))
+	with Engine(
+		os.path.join(tmp_path, "kobold"), workers=0, random_seed=random_seed
+	) as eng:
+		exported = eng.export(
+			"kobold", os.path.join(tmp_path, "kobold.lisien")
+		)
 	yield exported
 
 
 @pytest.fixture
 def polygons_sim(prefix, random_seed):
-	with Engine(os.path.join(prefix, "test"), workers=0, random_seed=random_seed) as eng:
+	with Engine(
+		os.path.join(prefix, "test"), workers=0, random_seed=random_seed
+	) as eng:
 		polygons.install(eng)

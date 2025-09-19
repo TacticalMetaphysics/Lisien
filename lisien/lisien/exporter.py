@@ -1,21 +1,19 @@
 import os
-from io import IOBase
 from collections import deque
 from dataclasses import dataclass, field
 from functools import partial
+from io import IOBase
 from pathlib import Path
 from types import FunctionType, MethodType
-from typing import Literal, Set, Mapping, MutableSet, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, Mapping, MutableSet, Set
 
 if TYPE_CHECKING:
-	from xml.etree.ElementTree import (
-		ElementTree,
-		Element,
-		indent as indent_tree,
-	)
+	from xml.etree.ElementTree import Element, ElementTree
+	from xml.etree.ElementTree import indent as indent_tree
 else:
 	try:
-		from lxml.etree import ElementTree, Element, indent as indent_tree
+		from lxml.etree import Element, ElementTree
+		from lxml.etree import indent as indent_tree
 	except ModuleNotFoundError:
 		from xml.etree.ElementTree import (
 			ElementTree,
@@ -27,50 +25,51 @@ import networkx as nx
 from tblib import Traceback
 
 import lisien.types
-from .collections import FunctionStore, REC_SEP, GROUP_SEP
 from lisien.db import AbstractDatabaseConnector, LoadedCharWindow
 from lisien.facade import EngineFacade
 from lisien.types import (
-	Keyframe,
-	Value,
-	Key,
-	RuleName,
-	TriggerFuncName,
-	PrereqFuncName,
 	ActionFuncName,
-	RuleNeighborhood,
-	RuleBig,
-	RulebookName,
-	RulebookPriority,
-	GraphNodeValKeyframe,
-	CharName,
-	GraphEdgeValKeyframe,
-	GraphValKeyframe,
-	Turn,
-	Tick,
-	Branch,
-	UnitRowType,
-	UniversalRowType,
-	RulebookRowType,
-	Time,
-	RuleRowType,
-	TriggerRowType,
-	PrereqRowType,
 	ActionRowType,
-	RuleNeighborhoodRowType,
-	RuleBigRowType,
-	NodeRowType,
-	NodeValRowType,
+	Branch,
+	CharName,
+	CharRulebookRowType,
 	EdgeRowType,
 	EdgeValRowType,
-	GraphValRowType,
-	ThingRowType,
-	CharRulebookRowType,
-	NodeRulebookRowType,
-	PortalRulebookRowType,
+	GraphEdgeValKeyframe,
+	GraphNodeValKeyframe,
 	GraphRowType,
+	GraphValKeyframe,
+	GraphValRowType,
+	Key,
+	Keyframe,
+	NodeRowType,
+	NodeRulebookRowType,
+	NodeValRowType,
+	PortalRulebookRowType,
+	PrereqFuncName,
+	PrereqRowType,
+	RuleBig,
+	RuleBigRowType,
+	RulebookName,
+	RulebookPriority,
+	RulebookRowType,
+	RuleName,
+	RuleNeighborhood,
+	RuleNeighborhoodRowType,
+	RuleRowType,
+	ThingRowType,
+	Tick,
+	Time,
+	TriggerFuncName,
+	TriggerRowType,
+	Turn,
+	UnitRowType,
+	UniversalRowType,
+	Value,
 )
 from lisien.util import AbstractEngine, sort_set
+
+from .collections import GROUP_SEP, REC_SEP, FunctionStore
 
 
 @dataclass
@@ -1037,9 +1036,9 @@ def pqdb_to_etree(
 def game_path_to_etree(
 	game_path: str | os.PathLike, name: str | None = None
 ) -> ElementTree:
+	import json
 	from base64 import urlsafe_b64encode
 	from hashlib import blake2b
-	import json
 
 	from .collections import FunctionStore
 

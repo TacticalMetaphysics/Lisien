@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict, deque
 from contextlib import contextmanager
 from functools import cached_property, wraps
@@ -26,14 +26,15 @@ from sys import getsizeof, stderr
 from threading import RLock
 from typing import (
 	TYPE_CHECKING,
+	Callable,
 	Hashable,
 	Iterator,
 	Literal,
 	Optional,
-	Callable,
 )
 
 from . import engine
+from .collections import ChangeTrackingDict
 from .exc import (
 	HistoricKeyError,
 	KeyframeError,
@@ -67,7 +68,6 @@ from .window import (
 	SettingsTurnDict,
 	WindowDict,
 )
-from .collections import ChangeTrackingDict
 
 if TYPE_CHECKING:
 	from . import engine

@@ -16,35 +16,35 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Iterable, Set, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence, Set
 from itertools import chain
 from types import GenericAlias
 from typing import (
+	TYPE_CHECKING,
 	Annotated,
 	Any,
 	Callable,
 	Literal,
+	MutableMapping,
 	NewType,
 	TypeAlias,
 	TypeGuard,
-	MutableMapping,
-	TYPE_CHECKING,
 )
 
-from annotated_types import Ge
 import networkx
 import networkx as nx
+from annotated_types import Ge
 from networkx import NetworkXError
 
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
-	SetWrapper,
 	MutableMappingUnwrapper,
 	OrderlySet,
+	SetWrapper,
 	SpecialMapping,
-	wrapval,
 	unwrap_items,
+	wrapval,
 )
 
 if TYPE_CHECKING:

@@ -1,21 +1,21 @@
-from ast import parse
-import filecmp
 import difflib
+import filecmp
 import json
 import os
+from ast import parse
 from functools import partial
 
-from astunparse import unparse
 import pytest
+from astunparse import unparse
 
 from ..db import (
+	AbstractDatabaseConnector,
 	ParquetDatabaseConnector,
 	SQLAlchemyDatabaseConnector,
-	AbstractDatabaseConnector,
 )
 from ..engine import Engine
 from ..exporter import game_path_to_xml
-from ..importer import xml_to_sqlite, xml_to_pqdb
+from ..importer import xml_to_pqdb, xml_to_sqlite
 from .data import DATA_DIR
 
 

@@ -15,15 +15,15 @@
 
 from __future__ import annotations
 
+import builtins
 import inspect
 import os
 import sys
 from abc import ABC, abstractmethod
-import builtins
 from collections import UserDict, defaultdict
 from contextlib import contextmanager
 from functools import cached_property, partial, partialmethod, wraps
-from itertools import starmap, filterfalse
+from itertools import filterfalse, starmap
 from operator import itemgetter
 from queue import Queue
 from sqlite3 import IntegrityError as LiteIntegrityError
@@ -32,14 +32,14 @@ from threading import Lock, Thread
 from types import MethodType
 from typing import (
 	Any,
+	Callable,
+	Iterable,
 	Iterator,
 	Literal,
+	MutableMapping,
 	Optional,
 	TypeAlias,
 	Union,
-	MutableMapping,
-	Callable,
-	Iterable,
 	get_type_hints,
 )
 
@@ -56,23 +56,25 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
-from .alchemy import queries, meta
-from .exc import KeyframeError
 import lisien.types
+
+from .alchemy import meta, queries
+from .exc import KeyframeError
 from .types import (
 	ActionFuncName,
 	Branch,
+	CharDict,
 	CharName,
 	CharRulebookRowType,
 	EdgeKeyframe,
 	EdgeRowType,
 	EdgeValRowType,
 	EternalKey,
-	UnitRowType,
 	GraphTypeStr,
 	GraphValKeyframe,
 	GraphValRowType,
 	Key,
+	Keyframe,
 	NodeKeyframe,
 	NodeName,
 	NodeRowType,
@@ -99,12 +101,11 @@ from .types import (
 	TimeWindow,
 	TriggerFuncName,
 	Turn,
+	UnitRowType,
 	UniversalKey,
 	UniversalKeyframe,
 	UniversalRowType,
 	Value,
-	CharDict,
-	Keyframe,
 )
 from .util import ELLIPSIS, EMPTY, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
