@@ -412,11 +412,14 @@ class ParquetDBLooper(ConnectionLooper):
 			db.delete(ids)
 
 	def dump(self, table: str) -> list:
-		return [
+		data = [
 			d
 			for d in self._get_db(table).read().to_pylist()
 			if d.keys() - {"id"}
 		]
+		schema = self._get_schema(table)
+		data.sort(key=lambda d: tuple(d[name] for name in schema.names))
+		return data
 
 	def rowcount(self, table: str) -> int:
 		return self._get_db(table).read().num_rows
@@ -608,7 +611,7 @@ class ParquetDBLooper(ConnectionLooper):
 			return ret["value"][0].as_py()
 		return ELLIPSIS
 
-	def _get_schema(self, table):
+	def _get_schema(self, table) -> pa.schema:
 		import pyarrow as pa
 
 		if table in self._schema:
@@ -6749,7 +6752,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 
 	def global_dump(self) -> Iterator[tuple[Key, Any]]:
 		unpack = self.unpack
-		yield from sorted(
+		yield from (
 			(unpack(d["key"]), unpack(d["value"]))
 			for d in self.call("dump", "global")
 		)
