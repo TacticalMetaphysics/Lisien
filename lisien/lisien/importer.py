@@ -108,7 +108,7 @@ class Importer:
 			case "str":
 				return Value(el.get("value"))
 			case "bool":
-				return Value(el.get("value") == "T")
+				return Value(el.get("value") in ("T", "true"))
 			case "character":
 				name = CharName(literal_eval(el.get("name")))
 				return eng.character[name]

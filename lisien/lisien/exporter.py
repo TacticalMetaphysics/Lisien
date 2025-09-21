@@ -463,7 +463,7 @@ class Exporter:
 					node_el.set("rulebook", repr(val.pop("rulebook")))
 				char_el.append(node_el)
 				for k, v in val.items():
-					item_el = Element("dict_item", key=repr(k))
+					item_el = Element("dict-item", key=repr(k))
 					node_el.append(item_el)
 					item_el.append(cls._value_to_xml_el(v))
 		edge_val_kf: GraphEdgeValKeyframe = keyframe.get("edge_val", {})
@@ -486,7 +486,7 @@ class Exporter:
 						edge_el.set("rulebook", repr(val.pop("rulebook")))
 					char_el.append(edge_el)
 					for k, v in val.items():
-						item_el = Element("dict_item", key=repr(k))
+						item_el = Element("dict-item", key=repr(k))
 						edge_el.append(item_el)
 						item_el.append(Exporter._value_to_xml_el(v))
 
