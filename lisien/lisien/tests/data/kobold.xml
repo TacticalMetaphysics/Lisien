@@ -1735,7 +1735,7 @@
           </tuple>
         </universal>
         <graph character="'physical'" tick="0" type="DiGraph"/>
-        <node character="'physical'" name="'kobold'" tick="1" exists="T"/>
+        <node character="'physical'" name="'kobold'" tick="1" exists="true"/>
         <location character="'physical'" thing="'kobold'" tick="1" location="(9, 9)"/>
         <node-val character="'physical'" node="'kobold'" key="'sprint_chance'" tick="2">
           <float value="0.1"/>
@@ -1745,13 +1745,13 @@
             <str value="atlas://rltiles/base.atlas/kobold_m"/>
           </list>
         </node-val>
-        <node character="'physical'" name="'dwarf'" tick="4" exists="T"/>
+        <node character="'physical'" name="'dwarf'" tick="4" exists="true"/>
         <location character="'physical'" thing="'dwarf'" tick="4" location="(0, 0)"/>
         <node-val character="'physical'" node="'dwarf'" key="'sight_radius'" tick="5">
           <int value="2"/>
         </node-val>
         <node-val character="'physical'" node="'dwarf'" key="'seen_kobold'" tick="6">
-          <bool value="F"/>
+          <bool value="false"/>
         </node-val>
         <node-val character="'physical'" node="'dwarf'" key="'_image_paths'" tick="7">
           <list>
@@ -2391,7 +2391,7 @@
             <None/>
           </tuple>
         </universal>
-        <node character="'physical'" name="'shrub0'" tick="9" exists="T"/>
+        <node character="'physical'" name="'shrub0'" tick="9" exists="true"/>
         <location character="'physical'" thing="'shrub0'" tick="9" location="(1, 9)"/>
         <node-val character="'physical'" node="'shrub0'" key="'cover'" tick="10">
           <int value="1"/>
@@ -2404,7 +2404,7 @@
         <node-val character="'physical'" node="'shrub0'" key="'_group'" tick="12">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub1'" tick="13" exists="T"/>
+        <node character="'physical'" name="'shrub1'" tick="13" exists="true"/>
         <location character="'physical'" thing="'shrub1'" tick="13" location="(2, 2)"/>
         <node-val character="'physical'" node="'shrub1'" key="'cover'" tick="14">
           <int value="1"/>
@@ -2417,7 +2417,7 @@
         <node-val character="'physical'" node="'shrub1'" key="'_group'" tick="16">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub2'" tick="17" exists="T"/>
+        <node character="'physical'" name="'shrub2'" tick="17" exists="true"/>
         <location character="'physical'" thing="'shrub2'" tick="17" location="(6, 0)"/>
         <node-val character="'physical'" node="'shrub2'" key="'cover'" tick="18">
           <int value="1"/>
@@ -2430,7 +2430,7 @@
         <node-val character="'physical'" node="'shrub2'" key="'_group'" tick="20">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub3'" tick="21" exists="T"/>
+        <node character="'physical'" name="'shrub3'" tick="21" exists="true"/>
         <location character="'physical'" thing="'shrub3'" tick="21" location="(7, 4)"/>
         <node-val character="'physical'" node="'shrub3'" key="'cover'" tick="22">
           <int value="1"/>
@@ -2443,7 +2443,7 @@
         <node-val character="'physical'" node="'shrub3'" key="'_group'" tick="24">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub4'" tick="25" exists="T"/>
+        <node character="'physical'" name="'shrub4'" tick="25" exists="true"/>
         <location character="'physical'" thing="'shrub4'" tick="25" location="(5, 0)"/>
         <node-val character="'physical'" node="'shrub4'" key="'cover'" tick="26">
           <int value="1"/>
@@ -2456,7 +2456,7 @@
         <node-val character="'physical'" node="'shrub4'" key="'_group'" tick="28">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub5'" tick="29" exists="T"/>
+        <node character="'physical'" name="'shrub5'" tick="29" exists="true"/>
         <location character="'physical'" thing="'shrub5'" tick="29" location="(6, 5)"/>
         <node-val character="'physical'" node="'shrub5'" key="'cover'" tick="30">
           <int value="1"/>
@@ -2469,7 +2469,7 @@
         <node-val character="'physical'" node="'shrub5'" key="'_group'" tick="32">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub6'" tick="33" exists="T"/>
+        <node character="'physical'" name="'shrub6'" tick="33" exists="true"/>
         <location character="'physical'" thing="'shrub6'" tick="33" location="(8, 7)"/>
         <node-val character="'physical'" node="'shrub6'" key="'cover'" tick="34">
           <int value="1"/>
@@ -2482,7 +2482,7 @@
         <node-val character="'physical'" node="'shrub6'" key="'_group'" tick="36">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub7'" tick="37" exists="T"/>
+        <node character="'physical'" name="'shrub7'" tick="37" exists="true"/>
         <location character="'physical'" thing="'shrub7'" tick="37" location="(8, 5)"/>
         <node-val character="'physical'" node="'shrub7'" key="'cover'" tick="38">
           <int value="1"/>
@@ -2495,7 +2495,7 @@
         <node-val character="'physical'" node="'shrub7'" key="'_group'" tick="40">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub8'" tick="41" exists="T"/>
+        <node character="'physical'" name="'shrub8'" tick="41" exists="true"/>
         <location character="'physical'" thing="'shrub8'" tick="41" location="(2, 3)"/>
         <node-val character="'physical'" node="'shrub8'" key="'cover'" tick="42">
           <int value="1"/>
@@ -2508,7 +2508,7 @@
         <node-val character="'physical'" node="'shrub8'" key="'_group'" tick="44">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub9'" tick="45" exists="T"/>
+        <node character="'physical'" name="'shrub9'" tick="45" exists="true"/>
         <location character="'physical'" thing="'shrub9'" tick="45" location="(5, 7)"/>
         <node-val character="'physical'" node="'shrub9'" key="'cover'" tick="46">
           <int value="1"/>
@@ -2521,7 +2521,7 @@
         <node-val character="'physical'" node="'shrub9'" key="'_group'" tick="48">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub10'" tick="49" exists="T"/>
+        <node character="'physical'" name="'shrub10'" tick="49" exists="true"/>
         <location character="'physical'" thing="'shrub10'" tick="49" location="(9, 0)"/>
         <node-val character="'physical'" node="'shrub10'" key="'cover'" tick="50">
           <int value="1"/>
@@ -2534,7 +2534,7 @@
         <node-val character="'physical'" node="'shrub10'" key="'_group'" tick="52">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub11'" tick="53" exists="T"/>
+        <node character="'physical'" name="'shrub11'" tick="53" exists="true"/>
         <location character="'physical'" thing="'shrub11'" tick="53" location="(1, 6)"/>
         <node-val character="'physical'" node="'shrub11'" key="'cover'" tick="54">
           <int value="1"/>
@@ -2547,7 +2547,7 @@
         <node-val character="'physical'" node="'shrub11'" key="'_group'" tick="56">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub12'" tick="57" exists="T"/>
+        <node character="'physical'" name="'shrub12'" tick="57" exists="true"/>
         <location character="'physical'" thing="'shrub12'" tick="57" location="(7, 3)"/>
         <node-val character="'physical'" node="'shrub12'" key="'cover'" tick="58">
           <int value="1"/>
@@ -2560,7 +2560,7 @@
         <node-val character="'physical'" node="'shrub12'" key="'_group'" tick="60">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub13'" tick="61" exists="T"/>
+        <node character="'physical'" name="'shrub13'" tick="61" exists="true"/>
         <location character="'physical'" thing="'shrub13'" tick="61" location="(1, 8)"/>
         <node-val character="'physical'" node="'shrub13'" key="'cover'" tick="62">
           <int value="1"/>
@@ -2573,7 +2573,7 @@
         <node-val character="'physical'" node="'shrub13'" key="'_group'" tick="64">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub14'" tick="65" exists="T"/>
+        <node character="'physical'" name="'shrub14'" tick="65" exists="true"/>
         <location character="'physical'" thing="'shrub14'" tick="65" location="(3, 9)"/>
         <node-val character="'physical'" node="'shrub14'" key="'cover'" tick="66">
           <int value="1"/>
@@ -2586,7 +2586,7 @@
         <node-val character="'physical'" node="'shrub14'" key="'_group'" tick="68">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub15'" tick="69" exists="T"/>
+        <node character="'physical'" name="'shrub15'" tick="69" exists="true"/>
         <location character="'physical'" thing="'shrub15'" tick="69" location="(2, 9)"/>
         <node-val character="'physical'" node="'shrub15'" key="'cover'" tick="70">
           <int value="1"/>
@@ -2599,7 +2599,7 @@
         <node-val character="'physical'" node="'shrub15'" key="'_group'" tick="72">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub16'" tick="73" exists="T"/>
+        <node character="'physical'" name="'shrub16'" tick="73" exists="true"/>
         <location character="'physical'" thing="'shrub16'" tick="73" location="(4, 5)"/>
         <node-val character="'physical'" node="'shrub16'" key="'cover'" tick="74">
           <int value="1"/>
@@ -2612,7 +2612,7 @@
         <node-val character="'physical'" node="'shrub16'" key="'_group'" tick="76">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub17'" tick="77" exists="T"/>
+        <node character="'physical'" name="'shrub17'" tick="77" exists="true"/>
         <location character="'physical'" thing="'shrub17'" tick="77" location="(4, 2)"/>
         <node-val character="'physical'" node="'shrub17'" key="'cover'" tick="78">
           <int value="1"/>
@@ -2625,7 +2625,7 @@
         <node-val character="'physical'" node="'shrub17'" key="'_group'" tick="80">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub18'" tick="81" exists="T"/>
+        <node character="'physical'" name="'shrub18'" tick="81" exists="true"/>
         <location character="'physical'" thing="'shrub18'" tick="81" location="(3, 8)"/>
         <node-val character="'physical'" node="'shrub18'" key="'cover'" tick="82">
           <int value="1"/>
@@ -2638,7 +2638,7 @@
         <node-val character="'physical'" node="'shrub18'" key="'_group'" tick="84">
           <str value="shrub"/>
         </node-val>
-        <node character="'physical'" name="'shrub19'" tick="85" exists="T"/>
+        <node character="'physical'" name="'shrub19'" tick="85" exists="true"/>
         <location character="'physical'" thing="'shrub19'" tick="85" location="(0, 1)"/>
         <node-val character="'physical'" node="'shrub19'" key="'cover'" tick="86">
           <int value="1"/>
@@ -2742,11 +2742,11 @@
           <action name="shrubsprint"/>
         </rule-actions>
         <rule-neighborhood rule="shrubsprint" tick="90"/>
-        <rule-big rule="shrubsprint" tick="90" big="F"/>
+        <rule-big rule="shrubsprint" tick="90" big="false"/>
         <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
           <rule name="shrubsprint"/>
         </rulebook>
-        <rule-big rule="shrubsprint" tick="92" big="F"/>
+        <rule-big rule="shrubsprint" tick="92" big="false"/>
         <rule-triggers rule="shrubsprint" tick="93">
           <trigger name="uncovered"/>
         </rule-triggers>
@@ -2764,11 +2764,11 @@
           <action name="fight"/>
         </rule-actions>
         <rule-neighborhood rule="fight" tick="96"/>
-        <rule-big rule="fight" tick="96" big="F"/>
+        <rule-big rule="fight" tick="96" big="false"/>
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
           <rule name="fight"/>
         </rulebook>
-        <rule-big rule="fight" tick="98" big="F"/>
+        <rule-big rule="fight" tick="98" big="false"/>
         <rule-triggers rule="fight" tick="99">
           <trigger name="sametile"/>
         </rule-triggers>
@@ -2785,12 +2785,12 @@
           <action name="kill_kobold"/>
         </rule-actions>
         <rule-neighborhood rule="kill_kobold" tick="102"/>
-        <rule-big rule="kill_kobold" tick="102" big="F"/>
+        <rule-big rule="kill_kobold" tick="102" big="false"/>
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="103">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
         </rulebook>
-        <rule-big rule="kill_kobold" tick="104" big="F"/>
+        <rule-big rule="kill_kobold" tick="104" big="false"/>
         <rule-triggers rule="kill_kobold" tick="105">
           <trigger name="kobold_alive"/>
         </rule-triggers>
@@ -2803,13 +2803,13 @@
           <action name="go2kobold"/>
         </rule-actions>
         <rule-neighborhood rule="go2kobold" tick="107"/>
-        <rule-big rule="go2kobold" tick="107" big="F"/>
+        <rule-big rule="go2kobold" tick="107" big="false"/>
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="108">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
         </rulebook>
-        <rule-big rule="go2kobold" tick="109" big="F"/>
+        <rule-big rule="go2kobold" tick="109" big="false"/>
         <rule-triggers rule="go2kobold" tick="110">
           <trigger name="aware"/>
         </rule-triggers>
@@ -2826,14 +2826,14 @@
           <action name="wander"/>
         </rule-actions>
         <rule-neighborhood rule="wander" tick="113"/>
-        <rule-big rule="wander" tick="113" big="F"/>
+        <rule-big rule="wander" tick="113" big="false"/>
         <rulebook name="('physical', 'dwarf')" priority="0.0" tick="114">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
           <rule name="wander"/>
         </rulebook>
-        <rule-big rule="wander" tick="115" big="F"/>
+        <rule-big rule="wander" tick="115" big="false"/>
         <rule-triggers rule="wander" tick="116">
           <trigger name="standing_still"/>
         </rule-triggers>
