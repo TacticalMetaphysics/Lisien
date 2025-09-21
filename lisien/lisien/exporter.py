@@ -1037,7 +1037,7 @@ def game_path_to_etree(
 	game_path: str | os.PathLike, name: str | None = None
 ) -> ElementTree:
 	import json
-	from base64 import urlsafe_b64encode
+	from base64 import b64encode
 	from hashlib import blake2b
 
 	from .collections import FunctionStore
@@ -1057,7 +1057,7 @@ def game_path_to_etree(
 		modpy = modname + ".py"
 		if modpy in ls:
 			srchash = FunctionStore(os.path.join(game_path, modpy)).blake2b()
-			lisien_el.set(modname, urlsafe_b64encode(srchash).decode("utf-8"))
+			lisien_el.set(modname, b64encode(srchash).decode("utf-8"))
 	strings_dir = os.path.join(game_path, "strings")
 	if (
 		"strings" in ls
@@ -1079,9 +1079,7 @@ def game_path_to_etree(
 				Element(
 					"language",
 					code=fn,
-					blake2b=urlsafe_b64encode(langhash.digest()).decode(
-						"utf-8"
-					),
+					blake2b=b64encode(langhash.digest()).decode("utf-8"),
 				)
 			)
 	return game_history
