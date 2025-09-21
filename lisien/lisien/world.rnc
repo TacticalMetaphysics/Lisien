@@ -1,0 +1,189 @@
+default namespace = ""
+
+start =
+    element lisien {
+        attribute action { xsd:base64Binary },
+        attribute branch { xsd:NCName },
+        attribute db-schema-version { xsd:integer },
+        attribute function { xsd:base64Binary },
+        attribute language { xsd:NCName },
+        attribute method { xsd:base64Binary },
+        attribute prereq { xsd:base64Binary },
+        tick,
+        attribute trigger { xsd:base64Binary },
+        attribute trunk { xsd:NCName },
+        attribute turn { xsd:nonNegativeInteger },
+        element playtree {
+            attribute game { xsd:NCName },
+            attribute trunk { xsd:NCName },
+            element branch {
+                attribute end-tick { xsd:nonNegativeInteger },
+                attribute end-turn { xsd:nonNegativeInteger },
+                attribute last-turn-completed { xsd:nonNegativeInteger },
+                attribute name { xsd:NCName },
+                attribute start-tick { xsd:nonNegativeInteger },
+                attribute start-turn { xsd:nonNegativeInteger },
+                element turn {
+                    attribute end-tick { xsd:nonNegativeInteger },
+                    attribute number { xsd:nonNegativeInteger },
+                    attribute plan-end-tick { xsd:nonNegativeInteger },
+                    (element node {
+        attribute character { text },
+        attribute exists { xsd:boolean },
+        attribute name { text },
+        attribute rulebook { text }?,
+        tick,
+        element dict-item { attribute key { repr },
+        value}*
+    } | element edge {
+		attribute dest { text },
+		attribute orig { text },
+		attribute rulebook { text }?
+	}
+                     | element universal {
+        tick,
+        attribute key { repr },
+        value
+    }
+                     | element graph {
+                           attribute character { repr },
+                           tick,
+                           attribute type { xsd:NCName }
+                       }
+                     | element graph-val {
+                           attribute character { repr },
+                           key,
+                           tick,
+                           value
+                       }
+                     | element keyframe {
+                           tick,
+                           element universal {
+                           element dict-item {
+                           attribute key {repr},
+                           value
+                           }*
+                           },
+                           element character {
+                               attribute character-place-rulebook { repr }?,
+                               attribute character-portal-rulebook { repr }?,
+                               attribute character-rulebook { repr }?,
+                               attribute character-thing-rulebook { repr }?,
+                               attribute name { repr },
+                               attribute unit-rulebook { repr }?,
+                               element dict-item {
+        attribute key { repr },
+        value
+    }*,
+                               element node {
+                               attribute name { repr },
+                               attribute rulebook { repr }?,
+                               element dict-item {
+                               attribute key { repr },
+                               value
+                               }*
+                               }*,
+                               element edge {
+                               attribute orig { repr },
+                               attribute dest { repr },
+                               attribute rulebook { repr }?,
+                               element dict-item {
+                               attribute key { repr },
+                               value
+                               }*
+                               }*
+                           }*
+                       }
+                     | element location {
+                           attribute character { repr },
+                           attribute location { repr },
+                           attribute thing { repr },
+                           tick
+                       }
+                     | element node-rulebook {
+                           attribute character { repr },
+                           attribute node { repr },
+                           attribute rulebook { repr },
+                           tick
+                       }
+                     | element node-val {
+                           attribute character { repr },
+                           key,
+                           attribute node { repr },
+                           tick,
+                           value
+                       }
+                     | element unit {
+                           attribute character-graph { repr },
+                           attribute is-unit { xsd:boolean },
+                           tick,
+                           attribute unit-graph { repr },
+                           attribute unit-node { repr }
+                       })+,
+                    (element rule-actions {
+                         attribute rule { xsd:NCName },
+                         tick,
+                         element action {
+                             attribute name { xsd:NCName }
+                         }*
+                     }
+                     | element rule-big {
+                           attribute big { xsd:boolean },
+                           attribute rule { xsd:NCName },
+                           tick
+                       }
+                     | element rule-neighborhood {
+                           attribute rule { xsd:NCName },
+                           attribute neighbors { xsd:nonNegativeInteger }?,
+                           tick
+                       }
+                     | element rule-prereqs {
+                           attribute rule { xsd:NCName },
+                           tick,
+                           element prereq {
+                               attribute name { xsd:NCName }
+                           }*
+                       }
+                     | element rule-triggers {
+                           attribute rule { xsd:NCName },
+                           tick,
+                           element trigger {
+                               attribute name { xsd:NCName }
+                           }*
+                       }
+                     | element rulebook {
+                           attribute name { repr },
+                           attribute priority { xsd:decimal },
+                           tick,
+                           element rule {
+                               attribute name { xsd:NCName }
+                           }*
+                       })*
+                }+
+            }
+        }
+    }
+float = element float {
+	attribute value { xsd:decimal }
+}
+key = attribute key { repr }
+dict = element dict { element dict-item {
+        attribute key { repr },
+        value
+    }* }
+none = element None { empty }
+ellipsis = element Ellipsis { empty }
+int = element int { attribute value { xsd:integer } }
+value = (pylist | str | tuple | float | int | bool | dict | none | ellipsis)
+bool = element bool { attribute value {xsd:boolean} }
+pylist = element \list { value* }
+tick = attribute tick { xsd:nonNegativeInteger }
+tuple =
+    element tuple {
+        value*
+    }
+str =
+    element str {
+        attribute value { text }
+    }
+repr = text
