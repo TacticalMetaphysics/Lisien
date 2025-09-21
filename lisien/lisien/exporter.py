@@ -230,7 +230,7 @@ class Exporter:
 		elif value is None:
 			return Element("None")
 		elif isinstance(value, bool):
-			return Element("bool", value="T" if value else "F")
+			return Element("bool", value="true" if value else "false")
 		elif isinstance(value, int):
 			return Element("int", value=str(value))
 		elif isinstance(value, float):
@@ -342,7 +342,7 @@ class Exporter:
 			)
 			kfel.append(rule_el)
 			if rule_name in bigs_kf and bigs_kf[rule_name]:
-				rule_el.set("big", "T")
+				rule_el.set("big", "true")
 			if (
 				rule_name in neighborhoods_kf
 				and neighborhoods_kf[rule_name] is not None
@@ -579,7 +579,7 @@ class Exporter:
 				"rule-big",
 				rule=rule,
 				tick=str(tick),
-				big="T" if big else "F",
+				big="true" if big else "false",
 			)
 		)
 
@@ -615,7 +615,7 @@ class Exporter:
 				character=repr(char),
 				name=repr(node),
 				tick=str(t),
-				exists="T" if ex else "F",
+				exists="true" if ex else "false",
 			)
 		)
 
@@ -642,7 +642,7 @@ class Exporter:
 				orig=repr(orig),
 				dest=repr(dest),
 				tick=str(t),
-				exists="T" if ex else "F",
+				exists="true" if ex else "false",
 			)
 		)
 
@@ -685,7 +685,7 @@ class Exporter:
 				"tick": str(t),
 			},
 		)
-		unit_el.set("is-unit", "T" if is_unit else "F")
+		unit_el.set("is-unit", "true" if is_unit else "false")
 		turn_el.append(unit_el)
 
 	@staticmethod
