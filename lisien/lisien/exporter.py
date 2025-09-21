@@ -83,6 +83,7 @@ class Exporter:
 	def db_to_etree(self, name: str) -> ElementTree:
 		root = self.tree.getroot()
 		query = self.db
+		query.commit()
 		eternals = dict(query.eternal.items())
 		root.set(
 			"db-schema-version", str(eternals.pop("_lisien_schema_version"))
