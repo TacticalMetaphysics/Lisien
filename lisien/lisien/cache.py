@@ -984,7 +984,6 @@ class Cache:
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: Optional[bool] = None,
-		truncate: bool = False,
 	) -> None:
 		"""Put a value in various dictionaries for later .retrieve(...).
 
@@ -1004,9 +1003,6 @@ class Cache:
 
 		``loading=True`` prevents me from updating the ORM's records
 		of the ends of branches and turns.
-
-		``truncate=True`` throws away stored data after the turn and tick
-		provided. Be careful!
 
 		"""
 		(
@@ -1814,7 +1810,6 @@ class GraphValCache(Cache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-		truncate: bool = False,
 	) -> None:
 		self._store(
 			graph,
@@ -1827,7 +1822,6 @@ class GraphValCache(Cache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -2087,7 +2081,6 @@ class NodeValCache(Cache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-		truncate: bool = False,
 	) -> None:
 		self._store(
 			graph,
@@ -2101,7 +2094,6 @@ class NodeValCache(Cache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -2586,7 +2578,6 @@ class EdgeValCache(Cache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-		truncate: bool = False,
 	):
 		self._store(
 			graph,
@@ -2601,7 +2592,6 @@ class EdgeValCache(Cache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -2786,7 +2776,6 @@ class GraphCache(Cache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-		truncate: bool = False,
 	) -> None:
 		self._store(
 			None,
@@ -2799,7 +2788,6 @@ class GraphCache(Cache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -2899,7 +2887,6 @@ class RulebooksCache(Cache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-		truncate: bool = False,
 	) -> None:
 		self._store(
 			None,
@@ -2912,7 +2899,6 @@ class RulebooksCache(Cache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -2974,7 +2960,6 @@ class FuncListCache(InitializedCache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-		truncate: bool = False,
 	) -> None:
 		self._store(
 			None,
@@ -2987,7 +2972,6 @@ class FuncListCache(InitializedCache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -3053,7 +3037,6 @@ class NeighborhoodsCache(InitializedCache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-		truncate: bool = False,
 	):
 		self._store(
 			Key(None),
@@ -3066,7 +3049,6 @@ class NeighborhoodsCache(InitializedCache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -3113,7 +3095,6 @@ class BignessCache(InitializedCache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-		truncate: bool = False,
 	) -> None:
 		self._store(
 			None,
@@ -3126,7 +3107,6 @@ class BignessCache(InitializedCache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -3196,7 +3176,6 @@ class NodesRulebooksCache(InitializedCache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-		truncate: bool = False,
 	) -> None:
 		self._store(
 			graph,
@@ -3209,7 +3188,6 @@ class NodesRulebooksCache(InitializedCache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -3258,7 +3236,6 @@ class CharactersRulebooksCache(InitializedCache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool = None,
-		truncate: bool = False,
 	) -> None:
 		self._store(
 			None,
@@ -3271,7 +3248,6 @@ class CharactersRulebooksCache(InitializedCache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
@@ -4855,7 +4831,6 @@ class NodeContentsCache(Cache):
 		forward: Optional[bool] = None,
 		loading: bool = False,
 		contra: Optional[bool] = None,
-		truncate: bool = True,
 	):
 		self.loc_settings[character, place][branch].store_at(
 			turn, tick, contents
@@ -4872,7 +4847,6 @@ class NodeContentsCache(Cache):
 			forward=forward,
 			loading=loading,
 			contra=contra,
-			truncate=truncate,
 		)
 
 	def retrieve(
