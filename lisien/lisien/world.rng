@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar ns="" xmlns="http://relaxng.org/ns/structure/1.0"
+		 datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+	<start>
+		<element name="lisien">
+			<attribute name="trunk">
+				<data type="NCName"/>
+			</attribute>
+			<attribute name="branch">
+				<data type="NCName"/>
+			</attribute>
+			<attribute name="turn">
+				<data type="nonNegativeInteger"/>
+			</attribute>
+			<attribute name="tick">
+				<data type="nonNegativeInteger"/>
+			</attribute>
+			<attribute name="db-schema-version">
+				<data type="nonNegativeInteger"/>
+			</attribute>
+			<attribute name="language">
+				<data type="NCName"/>
+			</attribute>
+			<attribute name="function">
+				<data type="base64Binary"/>
+			</attribute>
+			<attribute name="method">
+				<data type="base64Binary"/>
+			</attribute>
+			<attribute name="action">
+				<data type="base64Binary"/>
+			</attribute>
+			<attribute name="prereq">
+				<data type="base64Binary"/>
+			</attribute>
+			<attribute name="trigger">
+				<data type="base64Binary"/>
+			</attribute>
+			<element name="playtree">
+				<attribute name="game">
+					<data type="NCName"/>
+				</attribute>
+				<attribute name="trunk">
+					<data type="NCName"/>
+				</attribute>
+				<element name="branch">
+					<attribute name="end-tick">
+						<data type="nonNegativeInteger"/>
+					</attribute>
+					<attribute name="end-turn">
+						<data type="nonNegativeInteger"/>
+					</attribute>
+					<attribute name="last-turn-completed">
+						<data type="nonNegativeInteger"/>
+					</attribute>
+					<attribute name="name">
+						<data type="NCName"/>
+					</attribute>
+					<attribute name="start-tick">
+						<data type="nonNegativeInteger"/>
+					</attribute>
+					<attribute name="start-turn">
+						<data type="nonNegativeInteger"/>
+					</attribute>
+					<oneOrMore>
+						<element name="turn">
+							<attribute name="number">
+								<data type="nonNegativeInteger"/>
+							</attribute>
+							<attribute name="end-tick">
+								<data type="nonNegativeInteger"/>
+							</attribute>
+							<attribute name="plan-end-tick">
+								<data type="nonNegativeInteger"/>
+							</attribute>
+							<oneOrMore>
+								<choice>
+									<ref name="node"/>
+									<ref name="rulebook"/>
+									<ref name="universal"/>
+									<element name="graph">
+										<attribute name="character"/>
+										<attribute name="tick">
+											<data type="nonNegativeInteger"/>
+										</attribute>
+										<attribute name="type">
+											<data type="NCName"/>
+										</attribute>
+									</element>
+									<element name="keyframe">
+										<attribute name="tick">
+											<data type="nonNegativeInteger"/>
+										</attribute>
+										<ref name="universal"/>
+										<optional>
+											<ref name="rule"/>
+											<ref name="rulebook"/>
+											<oneOrMore>
+												<element name="character">
+													<optional>
+														<attribute
+															name="character-place-rulebook"/>
+													</optional>
+													<optional>
+														<attribute
+															name="character-portal-rulebook"/>
+													</optional>
+													<optional>
+														<attribute
+															name="character-rulebook"/>
+													</optional>
+													<optional>
+														<attribute
+															name="character-thing-rulebook"/>
+													</optional>
+													<attribute name="name"/>
+													<optional>
+														<attribute
+															name="unit-rulebook"/>
+													</optional>
+													<optional>
+														<oneOrMore>
+															<ref
+																name="dict-item"/>
+														</oneOrMore>
+														<oneOrMore>
+															<ref name="node"/>
+														</oneOrMore>
+														<oneOrMore>
+															<ref name="edge"/>
+														</oneOrMore>
+													</optional>
+												</element>
+											</oneOrMore>
+										</optional>
+									</element>
+									<element name="location">
+										<attribute name="character"/>
+										<attribute name="location"/>
+										<attribute name="thing"/>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+									</element>
+									<element name="node-rulebook">
+										<attribute name="character"/>
+										<attribute name="node"/>
+										<attribute name="rulebook"/>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+									</element>
+									<element name="node-val">
+										<attribute name="character"/>
+										<attribute name="key"/>
+										<attribute name="node"/>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+										<ref name="list"/>
+									</element>
+									<element name="rule-actions">
+										<attribute name="rule">
+											<data type="NCName"/>
+										</attribute>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+										<ref name="action"/>
+									</element>
+									<element name="rule-big">
+										<attribute name="big">
+											<data type="NCName"/>
+										</attribute>
+										<attribute name="rule">
+											<data type="NCName"/>
+										</attribute>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+									</element>
+									<element name="rule-neighborhood">
+										<optional>
+											<attribute name="neighbors">
+												<data type="integer"/>
+											</attribute>
+										</optional>
+										<attribute name="rule">
+											<data type="NCName"/>
+										</attribute>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+									</element>
+									<element name="rule-prereqs">
+										<attribute name="rule">
+											<data type="NCName"/>
+										</attribute>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+									</element>
+									<element name="rule-triggers">
+										<attribute name="rule">
+											<data type="NCName"/>
+										</attribute>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+										<zeroOrMore>
+											<ref name="trigger"/>
+										</zeroOrMore>
+									</element>
+									<element name="unit">
+										<attribute name="character-graph"/>
+										<attribute name="is-unit">
+											<data type="boolean"/>
+										</attribute>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+										<attribute name="unit-graph"/>
+										<attribute name="unit-node"/>
+									</element>
+									<element name="unit-rulebook">
+										<attribute name="character"/>
+										<attribute name="rulebook"/>
+										<attribute name="tick">
+											<data type="integer"/>
+										</attribute>
+									</element>
+								</choice>
+							</oneOrMore>
+						</element>
+					</oneOrMore>
+				</element>
+			</element>
+		</element>
+	</start>
+	<define name="repr"><data type="string"/></define>
+	<define name="universal">
+		<element name="universal">
+			<attribute name="key"><ref name="repr"/></attribute>
+			<attribute name="tick">
+				<data type="integer"/>
+			</attribute>
+			<ref name="value"/>
+		</element>
+	</define>
+	<define name="rule">
+		<element name="rule">
+			<attribute name="name">
+				<ref name="repr"/>
+			</attribute>
+			<optional>
+				<attribute name="neighborhood">
+					<data type="integer"/>
+				</attribute>
+			</optional>
+			<zeroOrMore>
+				<ref name="trigger"/>
+			</zeroOrMore>
+			<zeroOrMore><ref name="prereq"/></zeroOrMore>
+			<zeroOrMore><ref name="action"/></zeroOrMore>
+		</element>
+	</define>
+	<define name="rulebook">
+		<element name="rulebook">
+			<attribute name="name"/>
+			<attribute name="priority">
+				<data type="decimal"/>
+			</attribute>
+			<optional>
+				<attribute name="tick">
+					<data type="integer"/>
+				</attribute>
+			</optional>
+			<ref name="rule"/>
+		</element>
+	</define>
+	<define name="None">
+		<element name="None">
+			<empty/>
+		</element>
+	</define>
+	<define name="Ellipsis">
+		<element name="Ellipsis">
+			<empty/>
+		</element>
+	</define>
+	<define name="float">
+		<element name="float">
+			<attribute name="value">
+				<data type="decimal"/>
+			</attribute>
+		</element>
+	</define>
+	<define name="int">
+		<element name="int">
+			<attribute name="value">
+				<data type="integer"/>
+			</attribute>
+		</element>
+	</define>
+	<define name="dict">
+		<oneOrMore>
+			<ref name="dict-item"/>
+		</oneOrMore>
+	</define>
+	<define name="dict-item">
+		<element name="dict-item">
+			<attribute name="key"/>
+			<ref name="value"/>
+		</element>
+	</define>
+	<define name="value">
+		<choice>
+			<ref name="None"/>
+			<ref name="Ellipsis"/>
+			<ref name="tuple"/>
+			<ref name="float"/>
+			<ref name="int"/>
+			<ref name="str"/>
+			<ref name="dict"/>
+			<ref name="node"/>
+		</choice>
+	</define>
+	<define name="node">
+		<element name="node">
+			<optional>
+				<attribute name="character"/>
+			</optional>
+			<optional>
+				<attribute name="exists">
+					<data type="boolean"/>
+				</attribute>
+			</optional>
+			<attribute name="name"/>
+			<optional>
+				<attribute name="rulebook"/>
+			</optional>
+			<optional>
+				<attribute name="tick">
+					<data type="nonNegativeInteger"/>
+				</attribute>
+			</optional>
+		</element>
+	</define>
+	<define name="edge">
+		<element
+			name="edge">
+			<attribute
+				name="orig"/>
+			<attribute
+				name="dest"/>
+			<optional>
+				<attribute
+					name="rulebook"/>
+			</optional>
+		</element>
+	</define>
+	<define name="trigger">
+		<element name="trigger">
+			<attribute name="name">
+				<data type="string"/>
+			</attribute>
+		</element>
+	</define>
+	<define name="prereq"><element name="prereq"><attribute name="name"><data type="string"/></attribute></element></define>
+	<define name="action">
+		<element name="action">
+			<attribute name="name">
+				<data type="string"/>
+			</attribute>
+		</element>
+	</define>
+	<define name="list">
+		<element name="list">
+			<oneOrMore><ref name="value"/></oneOrMore>
+		</element>
+	</define>
+	<define name="tuple">
+		<element name="tuple">
+			<ref name="value"/>
+		</element>
+	</define>
+	<define name="str">
+		<element name="str">
+			<attribute name="value">
+				<data type="string"/>
+			</attribute>
+		</element>
+	</define>
+</grammar>
