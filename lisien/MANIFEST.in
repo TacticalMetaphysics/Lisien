@@ -1,2 +1,3 @@
 include lisien/py.typed
+include lisien/world.rng
 include lisien/tests/data/*
