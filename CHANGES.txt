@@ -1,3 +1,11 @@
+== 0.22.1 | 2025-09-22 ==
+* Added an XML schema for the export format.
+* Fixed the exporter to actually follow the schema:
+  * Booleans are now standard "true" and "false", not "T" or "F"
+  * Base64 hashes use the standard character set
+* Fixed the importer to accept compliant world.xml. Noncompliant XML from the
+  0.22.0 release will still work.
+
 == 0.22.0 | 2025-09-19 ==
 * Switch to a new XML-based export format, with .lisien file extension.
   They're just zip files, like earlier versions' exports, but now you can
