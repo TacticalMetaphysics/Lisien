@@ -108,7 +108,7 @@ class Importer:
 			case "str":
 				return Value(el.get("value"))
 			case "bool":
-				return Value(el.get("value") in ("T", "true"))
+				return Value(el.get("value") in {"T", "true"})
 			case "character":
 				name = CharName(literal_eval(el.get("name")))
 				return eng.character[name]
@@ -195,7 +195,7 @@ class Importer:
 				if rule is None:
 					raise TypeError("Rules need names")
 				if "big" in subel.keys():
-					bigs_kf[rule] = RuleBig(subel.get("big") == "T")
+					bigs_kf[rule] = RuleBig(subel.get("big") in {"T", "true"})
 				if "neighborhood" in subel.keys():
 					neighborhoods_kf[rule] = int(subel.get("neighborhood"))
 				else:
@@ -421,7 +421,7 @@ class Importer:
 
 	def _rule_big(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
-		big = RuleBig(el.get("big") == "T")
+		big = RuleBig(el.get("big") in {"T", "true"})
 		rule = RuleName(el.get("rule"))
 		self._memorize_rule("big", rule, branch, turn, tick, big)
 
@@ -442,7 +442,7 @@ class Importer:
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		char = CharName(literal_eval(el.get("character")))
 		node = NodeName(literal_eval(el.get("name")))
-		ex = el.get("exists") == "T"
+		ex = el.get("exists") in {"T", "true"}
 		self.query.exist_node(char, node, branch, turn, tick, ex)
 
 	def _node_val(self, branch_el: Element, turn_el: Element, el: Element):
@@ -458,7 +458,7 @@ class Importer:
 		char = CharName(literal_eval(el.get("character")))
 		orig = NodeName(literal_eval(el.get("orig")))
 		dest = NodeName(literal_eval(el.get("dest")))
-		ex = el.get("exists") == "T"
+		ex = el.get("exists") in {"T", "true"}
 		self.query.exist_edge(char, orig, dest, branch, turn, tick, ex)
 
 	def _edge_val(self, branch_el: Element, turn_el: Element, el: Element):
@@ -489,7 +489,7 @@ class Importer:
 			branch,
 			turn,
 			tick,
-			el.get("is-unit", "F") == "T",
+			el.get("is-unit", "false") in {"T", "true"},
 		)
 
 	def _some_character_rulebook(
