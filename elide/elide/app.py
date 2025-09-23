@@ -20,6 +20,7 @@ import shutil
 from functools import cached_property
 from threading import Thread
 
+from elide.roll import RollerView
 from lisien.exc import OutOfTimelineError
 
 if "KIVY_NO_ARGS" not in os.environ:
@@ -263,6 +264,14 @@ class ElideApp(App):
 		self.character = char
 		self.selected_proxy = self._get_selected_proxy()
 		self.engine.eternal["boardchar"] = char.name
+
+	@triggered()
+	@logwrap
+	def show_roller(self, *_):
+		if not hasattr(self, "_roller_view"):
+			load_kv("elide.roll")
+			self._roller_view = RollerView()
+		self._roller_view.open()
 
 	@logwrap
 	def build_config(self, config):
