@@ -371,6 +371,11 @@ store_kv(
 			disabled: app.edit_locked
 			on_release: root.toggle_reciprocal()
 	Button:
+		text: '🎲'
+		font_name: 'Symbola'
+		font_size: self.height - 2
+		on_release: app.show_roller()
+	Button:
 		text: 'Quit'
 		id: quit_button
 		on_release: root.close_game()
