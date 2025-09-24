@@ -647,9 +647,11 @@ class ElideApp(App):
 			os.remove(archived_abs)
 		with ZipFile(archived_abs, "x", ZIP_DEFLATED) as zf:
 			for fn in os.listdir(self.play_path):
-				if os.path.isdir(fn):
+				if os.path.isdir(os.path.join(self.play_path, fn)):
 					for fnn in os.listdir(os.path.join(self.play_path, fn)):
-						if os.path.isdir(fnn):
+						if os.path.isdir(
+							os.path.join(self.play_path, fn, fnn)
+						):
 							for pqfn in os.listdir(
 								os.path.join(self.play_path, fn, fnn)
 							):
