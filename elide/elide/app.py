@@ -643,6 +643,8 @@ class ElideApp(App):
 		archived_base = self.game_name + ".zip"
 		os.makedirs(self.games_path, exist_ok=True)
 		archived_abs = str(os.path.join(self.games_path, archived_base))
+		if os.path.exists(archived_abs):
+			os.remove(archived_abs)
 		with ZipFile(archived_abs, "x", ZIP_DEFLATED) as zf:
 			for fn in os.listdir(self.play_path):
 				if os.path.isdir(fn):
