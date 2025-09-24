@@ -622,6 +622,7 @@ class ElideApp(App):
 		self.manager.current = "mainscreen"
 		return engine
 
+	@triggered()
 	def close_game(self, *_, cb=None):
 		Logger.debug(f"ElideApp: close_game(cb={cb!r})")
 		self.mainmenu.invalidate_popovers()
