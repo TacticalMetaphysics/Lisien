@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
+import shutil
 
 import networkx as nx
 import pytest
@@ -34,13 +35,15 @@ def prefix(tmp_path):
 		os.path.join(
 			tmp_path,
 			"games",
-		)
+		),
+		exist_ok=True,
 	)
 	os.makedirs(
 		os.path.join(
 			tmp_path,
 			"test",
-		)
+		),
+		exist_ok=True,
 	)
 	yield str(tmp_path)
 
@@ -135,7 +138,7 @@ def elide_app_main_menu(kivy, prefix):
 		)
 	yield app
 	EventLoop.idle()
-	if not hasattr(app, "stopped"):
+	if not app.stopped:
 		app.stop()
 
 
