@@ -19,6 +19,7 @@ import os
 import shutil
 from functools import cached_property
 from threading import Thread
+from zipfile import ZipFile, ZIP_DEFLATED
 
 from lisien.exc import OutOfTimelineError
 
@@ -638,18 +639,19 @@ class ElideApp(App):
 		pycache = os.path.join(self.play_path, "__pycache__")
 		if os.path.exists(pycache):
 			shutil.rmtree(pycache)
-		archived = shutil.make_archive(
-			self.game_name,
-			"zip",
-			str(self.play_path),
-			str(self.play_path),
-			logger=Logger,
-		)
-		archived_base = os.path.basename(archived)
+		archived_base = self.game_name + ".zip"
 		os.makedirs(self.games_path, exist_ok=True)
-		if os.path.exists(os.path.join(self.games_path, archived_base)):
-			os.remove(os.path.join(self.games_path, archived_base))
-		shutil.move(archived, os.path.join(self.games_path, archived_base))
+		archived_abs = str(os.path.join(self.games_path, archived_base))
+		with ZipFile(archived_abs, "x", ZIP_DEFLATED) as zf:
+			for fn in os.listdir(self.play_path):
+				if os.path.isdir(fn):
+					for fnn in os.listdir(os.path.join(self.play_path, fn)):
+						zf.write(
+							os.path.join(self.play_path, fn, fnn),
+							os.path.join(fn, fnn),
+						)
+				else:
+					zf.write(os.path.join(self.play_path, fn), fn)
 		if not hasattr(self, "leave_game"):
 			shutil.rmtree(self.play_path)
 		self._remove_screens()
