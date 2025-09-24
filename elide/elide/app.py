@@ -17,7 +17,7 @@
 import json
 import os
 import shutil
-from functools import cached_property
+from functools import cached_property, partial
 from threading import Thread
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -92,6 +92,7 @@ class ElideApp(App):
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
 	character_name = ObjectProperty()
+	stopped = BooleanProperty(False)
 
 	@cached_property
 	def _togglers(self):
@@ -624,6 +625,9 @@ class ElideApp(App):
 
 	@triggered()
 	def close_game(self, *_, cb=None):
+		self._close_game(cb=cb)
+
+	def _close_game(self, *_, cb=None):
 		Logger.debug(f"ElideApp: close_game(cb={cb!r})")
 		self.mainmenu.invalidate_popovers()
 		if hasattr(self, "manager") and "main" in self.manager.screen_names:
@@ -880,16 +884,20 @@ class ElideApp(App):
 
 	def on_stop(self, *largs):
 		"""Sync the database, wrap up the game, and halt."""
-		Logger.debug("ElideApp: stopping")
-		if hasattr(self, "stopped"):
+		if self.stopped:
 			return
+		Logger.debug("ElideApp: stopping")
 		if hasattr(self, "funcs"):
 			self.funcs.save()
 		if hasattr(self, "engine"):
-			self.close_game()
-		self.stopped = True
-		Logger.debug("ElideApp: stopped")
+			self._close_game(cb=partial(self.setter("stopped"), 0.0, True))
+		else:
+			self.stopped = True
 		return True
+
+	def on_stopped(self, *_):
+		if self.stopped:
+			Logger.debug("ElideApp: stopped")
 
 	def delete_selection(self):
 		"""Delete both the selected widget and whatever it represents."""

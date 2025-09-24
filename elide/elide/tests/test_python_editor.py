@@ -63,6 +63,6 @@ def test_create_action(prefix, elide_app):
 	actions_box.editor.ids.funname.text = "new_func"
 	actions_box.editor.ids.code.text = 'return "Hello, world!"'
 	app.stop()
-	assert app.stopped
+	idle_until(lambda: app.stopped, 100, "Didn't stop the app")
 	with Engine(app.play_path, workers=0) as eng:
 		assert hasattr(eng.action, "new_func")
