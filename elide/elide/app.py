@@ -646,10 +646,21 @@ class ElideApp(App):
 			for fn in os.listdir(self.play_path):
 				if os.path.isdir(fn):
 					for fnn in os.listdir(os.path.join(self.play_path, fn)):
-						zf.write(
-							os.path.join(self.play_path, fn, fnn),
-							os.path.join(fn, fnn),
-						)
+						if os.path.isdir(fnn):
+							for pqfn in os.listdir(
+								os.path.join(self.play_path, fn, fnn)
+							):
+								zf.write(
+									os.path.join(
+										self.play_path, fn, fnn, pqfn
+									),
+									os.path.join(fn, fnn, pqfn),
+								)
+						else:
+							zf.write(
+								os.path.join(self.play_path, fn, fnn),
+								os.path.join(fn, fnn),
+							)
 				else:
 					zf.write(os.path.join(self.play_path, fn), fn)
 		if not hasattr(self, "leave_game"):
