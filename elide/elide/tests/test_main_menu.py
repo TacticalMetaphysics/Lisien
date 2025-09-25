@@ -9,6 +9,7 @@ from kivy.uix.textinput import TextInput
 
 from ..app import ElideApp
 from .util import advance_frames, idle_until
+from ..graph.board import GraphBoardView
 
 
 def test_new_game(elide_app_main_menu):
@@ -43,8 +44,8 @@ def test_new_game(elide_app_main_menu):
 
 
 @pytest.fixture
-def zipped_kobold(prefix, kobold_sim):
-	yield shutil.make_archive("kobold", "zip", prefix, prefix)
+def zipped_kobold(kobold_sim):
+	yield shutil.make_archive("kobold", "zip", kobold_sim, kobold_sim)
 
 
 @pytest.fixture
@@ -58,21 +59,25 @@ def zipped_kobold_in_games_dir(prefix, zipped_kobold):
 	assert archive_name in os.listdir(games_dir)
 
 
-def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
-	app = elide_app_main_menu
-	manager = app.manager
-	load_game_button: Button = manager.current_screen.ids.load_game_button
-	x, y = load_game_button.center
+def get_load_game_modal(app):
+	assert app.manager.current == "main"
+	load_game_button: Button = app.manager.current_screen.ids.load_game_button
+	x, y = app.manager.current_screen.to_parent(*load_game_button.center)
+	assert load_game_button.collide_point(x, y)
 	touch = UnitTestTouch(x=x, y=y)
 	touch.touch_down()
-	advance_frames(5)
+
+	@idle_until(timeout=100)
+	def load_game_pressed():
+		return load_game_button.state == "down"
+
 	touch.touch_up()
 	idle_until(
-		lambda: hasattr(manager.current_screen, "_popover_load_game"),
+		lambda: hasattr(app.manager.current_screen, "_popover_load_game"),
 		100,
 		"Never created game selection popover",
 	)
-	modal = manager.current_screen._popover_load_game
+	modal = app.manager.current_screen._popover_load_game
 	idle_until(
 		lambda: modal._is_open, 100, "Never opened game selection modal"
 	)
@@ -82,18 +87,45 @@ def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 	idle_until(
 		lambda: game_list._viewport, 100, "Never got game list viewport"
 	)
+	return modal
+
+
+def load_kobold(app):
+	modal = get_load_game_modal(app)
+	game_list = modal.ids.game_list
 	button = game_list._viewport.children[0]
 	assert button.text == "kobold"
 	x, y = game_list.to_parent(*button.center)
 	touch = UnitTestTouch(x, y)
 	touch.touch_down()
-	advance_frames(5)
+
+	@idle_until(timeout=100)
+	def kobold_pressed():
+		return button.state == "down"
+
 	touch.touch_up()
 	idle_until(
-		lambda: manager.current == "mainscreen",
+		lambda: app.manager.current == "mainscreen",
 		100,
 		"Never switched to mainscreen",
 	)
+	main_scr = app.manager.current_screen
+	main_view = main_scr.ids.mainview
+
+	@idle_until(timeout=100)
+	def stuff_in_main_view():
+		return main_view.children
+
+	boardview = main_view.children[0]
+	assert isinstance(boardview, GraphBoardView)
+
+	@idle_until(timeout=100)
+	def have_kobold():
+		return "kobold" in boardview.board.pawn
+
+
+def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
+	load_kobold(elide_app_main_menu)
 
 
 def test_import_game(kobold_sim_exported, elide_app_main_menu):
