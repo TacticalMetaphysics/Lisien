@@ -572,7 +572,7 @@ class FuncEditor(Editor):
 	_do_parse = True
 
 	def _get_source(self):
-		code = self.get_default_text(self.name)
+		code = self.get_default_text(self.name or self.name_wid.text)
 		if self._text:
 			code += indent(self._text, " " * 4)
 		else:
