@@ -92,6 +92,12 @@ def test_load_game(elide_app_main_menu):
 		"Never created game selection popover",
 	)
 	modal = manager.current_screen._popover_load_game
+
+	@idle100
+	def path_propagated():
+		return modal.ids.game_list.path == app.games_path
+
+	modal.ids.game_list.regen()
 	idle_until(
 		lambda: modal._is_open, 100, "Never opened game selection modal"
 	)
@@ -101,6 +107,11 @@ def test_load_game(elide_app_main_menu):
 	idle_until(
 		lambda: game_list._viewport, 100, "Never got game list viewport"
 	)
+
+	@idle100
+	def viewport_children():
+		return game_list._viewport.children
+
 	button = game_list._viewport.children[0]
 	assert button.text == "kobold"
 	x, y = game_list.to_parent(*button.center)
