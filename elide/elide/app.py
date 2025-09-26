@@ -601,6 +601,7 @@ class ElideApp(App):
 				)
 				continue
 			self.manager.remove_widget(wid)
+		self.manager.current = "main"
 
 	def start_game(self, *_, name=None, archive_path=None, cb=None):
 		Logger.debug(f"ElideApp: start_game(name={name!r}, cb={cb!r})")
