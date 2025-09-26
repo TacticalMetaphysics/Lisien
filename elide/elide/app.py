@@ -625,11 +625,7 @@ class ElideApp(App):
 		self.manager.current = "mainscreen"
 		return engine
 
-	@triggered()
 	def close_game(self, *_, cb=None):
-		self._close_game(cb=cb)
-
-	def _close_game(self, *_, cb=None):
 		Logger.debug(f"ElideApp: close_game(cb={cb!r})")
 		self.mainmenu.invalidate_popovers()
 		if hasattr(self, "manager") and "main" in self.manager.screen_names:
@@ -893,7 +889,7 @@ class ElideApp(App):
 		if hasattr(self, "funcs"):
 			self.funcs.save()
 		if hasattr(self, "engine"):
-			self._close_game(cb=partial(self.setter("stopped"), 0.0, True))
+			self.close_game(cb=partial(self.setter("stopped"), 0.0, True))
 		else:
 			self.stopped = True
 		return True
