@@ -186,7 +186,11 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	assert quit_button.collide_point(x, y)
 	touch = UnitTestTouch(x, y)
 	touch.touch_down()
-	advance_frames(5)
+
+	@idle100
+	def pressed():
+		return quit_button.state == "down"
+
 	touch.touch_up()
 
 	@idle100
