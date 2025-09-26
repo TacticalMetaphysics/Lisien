@@ -249,6 +249,12 @@ class GameImporterModal(GamePickerModal):
 
 
 class GameLoaderModal(GamePickerModal):
+	path = StringProperty()
+
+	def on_open(self, *_):
+		app = App.get_running_app()
+		self.path = str(app.games_path)
+
 	@triggered()
 	@logwrap(section="GameLoaderModal")
 	def pick(self, game, *_):
@@ -279,6 +285,10 @@ class GameLoaderModal(GamePickerModal):
 class GameList(RecycleView):
 	picker = ObjectProperty()
 	path = StringProperty()
+
+	def on_open(self, *_):
+		app = App.get_running_app()
+		self.path = str(app.games_path)
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -311,6 +321,8 @@ class GameList(RecycleView):
 
 
 class NewGameModal(ModalView):
+	path = StringProperty()
+
 	@triggered()
 	@logwrap(section="NewGameModal")
 	def validate_and_start(self, *_):
