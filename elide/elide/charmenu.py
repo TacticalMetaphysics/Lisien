@@ -342,6 +342,7 @@ store_kv(
 			on_release: root.toggle_reciprocal()
 	Button:
 		text: 'Quit'
+		id: quit_button
 		on_release: app.close_game()
 """,
 )
