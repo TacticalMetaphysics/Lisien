@@ -163,10 +163,8 @@ def kobold_sim(prefix, random_seed):
 
 
 @pytest.fixture
-def kobold_sim_exported(tmp_path, random_seed):
-	with Engine(
-		os.path.join(tmp_path, "kobold"), workers=0, random_seed=random_seed
-	) as eng:
+def kobold_sim_exported(tmp_path, kobold_sim):
+	with Engine(kobold_sim, workers=0) as eng:
 		exported = eng.export(
 			"kobold", os.path.join(tmp_path, "kobold.lisien")
 		)
