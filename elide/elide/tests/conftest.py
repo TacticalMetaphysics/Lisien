@@ -135,7 +135,7 @@ def elide_app_main_menu(kivy, prefix):
 		)
 	yield app
 	EventLoop.idle()
-	if not hasattr(app, "stopped"):
+	if not app.stopped:
 		app.stop()
 
 
