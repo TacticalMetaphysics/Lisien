@@ -43,8 +43,8 @@ def test_new_game(elide_app_main_menu):
 
 
 @pytest.fixture
-def zipped_kobold(prefix, kobold_sim):
-	yield shutil.make_archive("kobold", "zip", prefix, prefix)
+def zipped_kobold(kobold_sim):
+	yield shutil.make_archive("kobold", "zip", kobold_sim, kobold_sim)
 
 
 @pytest.fixture

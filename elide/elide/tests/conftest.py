@@ -156,10 +156,10 @@ def sickle_sim(prefix, random_seed):
 
 @pytest.fixture
 def kobold_sim(prefix, random_seed):
-	with Engine(
-		os.path.join(prefix, "test"), workers=0, random_seed=random_seed
-	) as eng:
+	play_prefix = os.path.join(prefix, "test")
+	with Engine(play_prefix, workers=0, random_seed=random_seed) as eng:
 		kobold.inittest(eng)
+	yield play_prefix
 
 
 @pytest.fixture
