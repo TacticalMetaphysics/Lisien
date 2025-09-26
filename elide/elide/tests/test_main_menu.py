@@ -2,13 +2,15 @@ import os
 import shutil
 
 import pytest
+
+from kivy.app import App
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 
 from ..app import ElideApp
-from .util import advance_frames, idle_until, idle100
+from .util import advance_frames, idle100, idle_until
 
 
 def test_new_game(elide_app_main_menu):
@@ -181,7 +183,7 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	advance_frames(5)
 	idle_until_kobold_is_loaded(manager)
 	charmenu = manager.current_screen.charmenu.charmenu
-	quit_button = charmenu.ids.quit_button
+	quit_button = charmenu.ids.quit_button.__ref__()
 	x, y = charmenu.to_parent(*quit_button.center)
 	assert quit_button.collide_point(x, y)
 	touch = UnitTestTouch(x, y)
@@ -191,13 +193,15 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	def pressed():
 		return quit_button.state == "down"
 
+	touch.grab(quit_button)
+	touch.grab_current = quit_button
+	advance_frames(5)
 	touch.touch_up()
 
-	@idle100
+	@idle_until
 	def main_menu():
-		return manager.current == "main"
+		return len(app.get_running_app().manager.children) == 1
 
-	advance_frames(5)
 	test_load_game(elide_app_main_menu)
 
 
