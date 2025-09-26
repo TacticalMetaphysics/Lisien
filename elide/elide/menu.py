@@ -253,7 +253,7 @@ class GameLoaderModal(GamePickerModal):
 	@logwrap(section="GameLoaderModal")
 	def pick(self, game, *_):
 		app = App.get_running_app()
-		games_path = str(os.path.join(app.prefix, app.games_path))
+		games_path = str(app.games_path)
 		if os.path.isfile(games_path):
 			raise RuntimeError(
 				"You put a file where I want to keep the games directory",
