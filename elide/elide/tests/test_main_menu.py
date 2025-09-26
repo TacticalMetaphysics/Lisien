@@ -82,6 +82,7 @@ def idle_until_kobold_is_loaded(manager):
 def test_load_game(elide_app_main_menu):
 	app = elide_app_main_menu
 	manager = app.manager
+	idle_until(lambda: manager.current == "main", 100, "Never got main screen")
 	load_game_button: Button = manager.current_screen.ids.load_game_button
 	x, y = load_game_button.center
 	touch = UnitTestTouch(x=x, y=y)
