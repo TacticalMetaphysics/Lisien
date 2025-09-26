@@ -19,7 +19,7 @@ import os
 import shutil
 from functools import cached_property, partial
 from threading import Thread
-from zipfile import ZipFile, ZIP_DEFLATED
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from lisien.exc import OutOfTimelineError
 
@@ -92,6 +92,7 @@ class ElideApp(App):
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
 	character_name = ObjectProperty()
+	closed = BooleanProperty(True)
 	stopped = BooleanProperty(False)
 
 	@cached_property
@@ -364,6 +365,7 @@ class ElideApp(App):
 		Logger.debug(f"ElideApp: start_subprocess(path={path!r})")
 		if hasattr(self, "procman") and hasattr(self.procman, "engine_proxy"):
 			raise ChildProcessError("Subprocess already running")
+		self.closed = False
 		config = self.config
 		enkw = {
 			"do_game_start": getattr(self, "do_game_start", False),
@@ -677,6 +679,7 @@ class ElideApp(App):
 		self._remove_screens()
 		if cb:
 			cb()
+		self.closed = True
 
 	def update_calendar(self, calendar, past_turns=1, future_turns=5):
 		"""Fill in a calendar widget with actual simulation data"""
