@@ -38,8 +38,18 @@ def load_kv(name: str) -> None:
 	if name not in KV:
 		Logger.error("No kv: " + name)
 		Logger.error("I've stored: " + ", ".join(KV.keys()))
-	Builder.load_string(KV[name])
+	Builder.load_string(KV[name], filename=name)
 	loaded_kv.add(name)
+
+
+def unload_kv(name: str) -> None:
+	loaded_kv.remove(name)
+	Builder.unload_file(name)
+
+
+def unload_all_kv() -> None:
+	for name in list(loaded_kv):
+		unload_kv(name)
 
 
 class SelectableRecycleBoxLayout(
