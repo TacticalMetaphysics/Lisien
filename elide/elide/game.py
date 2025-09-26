@@ -42,6 +42,9 @@ Factory.register("GridBoardView", GridBoardView)
 Factory.register("DialogLayout", DialogLayout)
 
 
+wraplog_GameScreen = partial(logwrap, section="GameScreen")
+
+
 class GameScreen(Screen):
 	switch_screen = ObjectProperty()
 	"""Method to set the ``screen`` attribute of the main :class:`kivy.uix.screenmanager.ScreenManager`"""
