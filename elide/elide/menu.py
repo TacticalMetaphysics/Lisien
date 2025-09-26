@@ -161,6 +161,12 @@ class GamePickerModal(ModalView):
 
 
 class GameExporterModal(GamePickerModal):
+	path = StringProperty()
+
+	def on_open(self):
+		app = App.get_running_app()
+		self.path = str(app.games_path)
+
 	@triggered()
 	@logwrap(section="GameExporterModal")
 	def pick(self, game, *_):
