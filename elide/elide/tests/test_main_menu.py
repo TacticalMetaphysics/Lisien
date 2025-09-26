@@ -127,6 +127,7 @@ def test_load_game(elide_app_main_menu):
 def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	app = elide_app_main_menu
 	manager = app.manager
+	idle_until(lambda: manager.current == "main", 100, "Never got main menu")
 	import_game_button: Button = manager.current_screen.ids.import_game_button
 	x, y = import_game_button.center
 	touch = UnitTestTouch(x, y)
