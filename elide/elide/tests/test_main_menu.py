@@ -182,6 +182,7 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	def main_menu():
 		return manager.current == "main"
 
+	advance_frames(5)
 	test_load_game(elide_app_main_menu)
 
 
