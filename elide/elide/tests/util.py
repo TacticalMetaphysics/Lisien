@@ -77,6 +77,9 @@ def idle_until(
 	raise TimeoutError(message)
 
 
+idle100 = partial(idle_until, timeout=100)
+
+
 class ListenableDict(dict, Signal):
 	def __init__(self):
 		Signal.__init__(self)
