@@ -17,8 +17,9 @@
 import json
 import os
 import shutil
-from functools import cached_property
+from functools import cached_property, partial
 from threading import Thread
+from zipfile import ZipFile, ZIP_DEFLATED
 
 from lisien.exc import OutOfTimelineError
 
@@ -91,6 +92,7 @@ class ElideApp(App):
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
 	character_name = ObjectProperty()
+	stopped = BooleanProperty(False)
 
 	@cached_property
 	def _togglers(self):
@@ -621,7 +623,11 @@ class ElideApp(App):
 		self.manager.current = "mainscreen"
 		return engine
 
+	@triggered()
 	def close_game(self, *_, cb=None):
+		self._close_game(cb=cb)
+
+	def _close_game(self, *_, cb=None):
 		Logger.debug(f"ElideApp: close_game(cb={cb!r})")
 		self.mainmenu.invalidate_popovers()
 		if hasattr(self, "manager") and "main" in self.manager.screen_names:
@@ -638,18 +644,34 @@ class ElideApp(App):
 		pycache = os.path.join(self.play_path, "__pycache__")
 		if os.path.exists(pycache):
 			shutil.rmtree(pycache)
-		archived = shutil.make_archive(
-			self.game_name,
-			"zip",
-			str(self.play_path),
-			str(self.play_path),
-			logger=Logger,
-		)
-		archived_base = os.path.basename(archived)
+		archived_base = self.game_name + ".zip"
 		os.makedirs(self.games_path, exist_ok=True)
-		if os.path.exists(os.path.join(self.games_path, archived_base)):
-			os.remove(os.path.join(self.games_path, archived_base))
-		shutil.move(archived, os.path.join(self.games_path, archived_base))
+		archived_abs = str(os.path.join(self.games_path, archived_base))
+		if os.path.exists(archived_abs):
+			os.remove(archived_abs)
+		with ZipFile(archived_abs, "x", ZIP_DEFLATED) as zf:
+			for fn in os.listdir(self.play_path):
+				if os.path.isdir(os.path.join(self.play_path, fn)):
+					for fnn in os.listdir(os.path.join(self.play_path, fn)):
+						if os.path.isdir(
+							os.path.join(self.play_path, fn, fnn)
+						):
+							for pqfn in os.listdir(
+								os.path.join(self.play_path, fn, fnn)
+							):
+								zf.write(
+									os.path.join(
+										self.play_path, fn, fnn, pqfn
+									),
+									os.path.join(fn, fnn, pqfn),
+								)
+						else:
+							zf.write(
+								os.path.join(self.play_path, fn, fnn),
+								os.path.join(fn, fnn),
+							)
+				else:
+					zf.write(os.path.join(self.play_path, fn), fn)
 		if not hasattr(self, "leave_game"):
 			shutil.rmtree(self.play_path)
 		self._remove_screens()
@@ -862,16 +884,20 @@ class ElideApp(App):
 
 	def on_stop(self, *largs):
 		"""Sync the database, wrap up the game, and halt."""
-		Logger.debug("ElideApp: stopping")
-		if hasattr(self, "stopped"):
+		if self.stopped:
 			return
+		Logger.debug("ElideApp: stopping")
 		if hasattr(self, "funcs"):
 			self.funcs.save()
 		if hasattr(self, "engine"):
-			self.close_game()
-		self.stopped = True
-		Logger.debug("ElideApp: stopped")
+			self._close_game(cb=partial(self.setter("stopped"), 0.0, True))
+		else:
+			self.stopped = True
 		return True
+
+	def on_stopped(self, *_):
+		if self.stopped:
+			Logger.debug("ElideApp: stopped")
 
 	def delete_selection(self):
 		"""Delete both the selected widget and whatever it represents."""
