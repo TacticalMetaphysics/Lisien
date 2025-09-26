@@ -58,7 +58,26 @@ def zipped_kobold_in_games_dir(prefix, zipped_kobold):
 	assert archive_name in os.listdir(games_dir)
 
 
-def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
+def idle_until_kobold_is_loaded(manager):
+	idle_until(
+		lambda: manager.current == "mainscreen",
+		100,
+		"Never loaded into the imported game",
+	)
+
+	@idle100
+	def phys_board_made():
+		return "physical" in manager.current_screen.graphboards
+
+	board = manager.current_screen.graphboards["physical"]
+
+	@idle100
+	def kobold_in_pawn():
+		return "kobold" in board.pawn
+
+
+@pytest.mark.usefixtures("zipped_kobold_in_games_dir")
+def test_load_game(elide_app_main_menu):
 	app = elide_app_main_menu
 	manager = app.manager
 	load_game_button: Button = manager.current_screen.ids.load_game_button
@@ -89,21 +108,7 @@ def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 	touch.touch_down()
 	advance_frames(5)
 	touch.touch_up()
-	idle_until(
-		lambda: manager.current == "mainscreen",
-		100,
-		"Never switched to mainscreen",
-	)
-
-	@idle100
-	def phys_board_made():
-		return "physical" in manager.current_screen.graphboards
-
-	board = manager.current_screen.graphboards["physical"]
-
-	@idle100
-	def kobold_in_pawn():
-		return "kobold" in board.pawn
+	idle_until_kobold_is_loaded(manager)
 
 
 def test_import_game(kobold_sim_exported, elide_app_main_menu):
@@ -163,11 +168,21 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	advance_frames(5)
 	touch.touch_up()
 	advance_frames(5)
-	idle_until(
-		lambda: manager.current == "mainscreen",
-		100,
-		"Never loaded into the imported game",
-	)
+	idle_until_kobold_is_loaded(manager)
+	charmenu = manager.current_screen.charmenu.charmenu
+	quit_button = charmenu.ids.quit_button
+	x, y = charmenu.to_parent(*quit_button.center)
+	assert quit_button.collide_point(x, y)
+	touch = UnitTestTouch(x, y)
+	touch.touch_down()
+	advance_frames(5)
+	touch.touch_up()
+
+	@idle100
+	def main_menu():
+		return manager.current == "main"
+
+	test_load_game(elide_app_main_menu)
 
 
 def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
