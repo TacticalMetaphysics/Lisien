@@ -8,7 +8,7 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 
 from ..app import ElideApp
-from .util import advance_frames, idle_until
+from .util import advance_frames, idle_until, idle100
 
 
 def test_new_game(elide_app_main_menu):
@@ -94,6 +94,16 @@ def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 		100,
 		"Never switched to mainscreen",
 	)
+
+	@idle100
+	def phys_board_made():
+		return "physical" in manager.current_screen.graphboards
+
+	board = manager.current_screen.graphboards["physical"]
+
+	@idle100
+	def kobold_in_pawn():
+		return "kobold" in board.pawn
 
 
 def test_import_game(kobold_sim_exported, elide_app_main_menu):
