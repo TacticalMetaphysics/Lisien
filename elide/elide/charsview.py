@@ -20,8 +20,7 @@ from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
-from .util import SelectableRecycleBoxLayout, logwrap, store_kv, devour
-
+from .util import SelectableRecycleBoxLayout, devour, logwrap, store_kv
 
 # TODO: Visual preview
 # TODO: Background image chooser
@@ -33,6 +32,8 @@ class CharactersRecycleBoxLayout(SelectableRecycleBoxLayout):
 	@partial(logwrap, section="CharactersRecycleBoxLayout")
 	def apply_selection(self, index, view, is_selected):
 		super().apply_selection(index, view, is_selected)
+		if self.disabled:
+			return
 		if is_selected:
 			self.character_name = view.text
 
@@ -141,6 +142,7 @@ store_kv(
 	character_name: boxl.character_name
 	CharactersRecycleBoxLayout:
 		id: boxl
+		disabled: app.manager.current != 'chars'
 		multiselect: False
 		default_size: None, dp(56)
 		default_size_hint: 1, None
