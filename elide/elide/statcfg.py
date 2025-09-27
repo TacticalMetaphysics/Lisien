@@ -58,10 +58,10 @@ class ControlTypePicker(Button):
 
 	@logwrap(section="ControlTypePicker")
 	def build(self, *_):
-		if None in (self.key, self.set_control):
+		app = App.get_running_app()
+		if None in (self.key, self.set_control, app):
 			Clock.schedule_once(self.build, 0)
 			return
-		app = App.get_running_app()
 		binds = app._bindings
 		self.mainbutton = None
 		self.dropdown = None
