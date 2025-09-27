@@ -93,3 +93,9 @@ def logwrap(func=None, *, section="ElideApp"):
 		return ret
 
 	return fn
+
+
+def devour(s):
+	"""Iterate over items in s while removing them"""
+	while s:
+		yield s.pop()

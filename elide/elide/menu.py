@@ -32,19 +32,34 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .gen import GridGeneratorDialog
-from .util import load_kv, logwrap, store_kv
+from .util import load_kv, logwrap, store_kv, devour
 
 
 class MenuTextInput(TextInput):
 	"""Special text input for setting the branch"""
 
 	set_value = ObjectProperty()
+	name = StringProperty()
 
 	def __init__(self, **kwargs):
 		"""Disable multiline, and bind ``on_text_validate`` to ``on_enter``"""
 		kwargs["multiline"] = False
 		super().__init__(**kwargs)
-		self.bind(on_text_validate=self.on_enter)
+
+	def on_name(self, *_):
+		app = App.get_running_app()
+		app._bindings[type(self).__name__, self.name, "on_text_validate"].add(
+			self.fbind("on_text_validate", self.on_enter)
+		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		for uid in devour(
+			App.get_running_app()._bindings[
+				type(self).__name__, self.name, "on_text_validate"
+			]
+		):
+			self.unbind_uid("on_text_validate", uid)
 
 	@logwrap(section="MenuTextInput")
 	def on_enter(self, *_):
@@ -95,6 +110,7 @@ class WorldStartConfigurator(BoxLayout):
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
+		binds = App.get_running_app()._bindings
 		self.grid_config = GridGeneratorDialog()
 		self.generator_dropdown = DropDown()
 
@@ -105,7 +121,14 @@ class WorldStartConfigurator(BoxLayout):
 			self.generator_dropdown.add_widget(
 				GeneratorButton(text=opt, on_release=select_txt)
 			)
-		self.generator_dropdown.bind(on_select=self.select_generator_type)
+		binds_on_select = binds[
+			"WorldStartConfigurator", "generator_dropdown", "on_select"
+		]
+		while binds_on_select:
+			self.unbind_uid("on_select", binds_on_select.pop())
+		binds["WorldStartConfigurator", "generator_dropdown", "on_select"].add(
+			self.fbind("on_select", self.select_generator_type)
+		)
 
 	@logwrap(section="WorldStartConfigurator")
 	def select_generator_type(self, instance, value):
@@ -291,6 +314,7 @@ class GameLoaderModal(GamePickerModal):
 class GameList(RecycleView):
 	picker = ObjectProperty()
 	path = StringProperty()
+	name = StringProperty()
 
 	def on_open(self, *_):
 		app = App.get_running_app()
@@ -298,8 +322,21 @@ class GameList(RecycleView):
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
+		app = App.get_running_app()
+		binds = app._bindings
 		self._trigger_regen = Clock.create_trigger(self.regen)
-		self.bind(picker=self._trigger_regen, path=self._trigger_regen)
+		for att in ("picker", "path"):
+			assert not binds["GameList", id(self), att]
+			binds["GameList", id(self), att].add(
+				self.fbind(att, self._trigger_regen)
+			)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for att in ("picker", "path"):
+			for uid in devour(binds["GameList", id(self), att]):
+				self.unbind_uid(att, uid)
 
 	@logwrap(section="GameList")
 	def regen(self, *_):
@@ -372,6 +409,14 @@ class NewGameModal(ModalView):
 			):
 				app.close_game()
 			Clock.schedule_once(partial(self._really_start, game_name), 0.05)
+
+	def on_dismiss(self, *_):
+		binds = App.get_running_app()._bindings
+		world_on_select = binds[
+			"WorldStartConfigurator", "generator_dropdown", "on_select"
+		]
+		while world_on_select:
+			self.ids.worldstart.unbind_uid("on_select", world_on_select.pop())
 
 	@logwrap(section="NewGameModal")
 	def _really_start(self, game_name, *_):

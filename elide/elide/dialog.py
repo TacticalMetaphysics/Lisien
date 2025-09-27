@@ -34,7 +34,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 
-from .util import logwrap, store_kv
+from .util import logwrap, store_kv, devour
 
 
 class Box(Widget):
@@ -89,9 +89,15 @@ class DialogMenu(Box):
 	@mainthread
 	@partial(logwrap, section="DialogMenu")
 	def on_options(self, *_):
+		binds = App.get_running_app()._bindings
 		if not hasattr(self, "_sv"):
 			self._sv = ScrollView(size=self.size, pos=self.pos)
-			self.bind(size=self._set_sv_size, pos=self._set_sv_pos)
+			assert not binds["DialogMenu", "size"]
+			binds["DialogMenu", "size"].add(
+				self.fbind("size", self._set_sv_size)
+			)
+			assert not binds["DialogMenu", "pos"]
+			binds["DialogMenu", "pos"].add(self.fbind("pos", self._set_sv_pos))
 			layout = BoxLayout(orientation="vertical")
 			self._sv.add_widget(layout)
 			self.add_widget(self._sv)
@@ -109,7 +115,10 @@ class DialogMenu(Box):
 				valign="center",
 				halign="center",
 			)
-			butn.bind(size=butn.setter("text_size"))
+			if not binds["DialogMenu", "Button", id(butn), "size"]:
+				binds["DialogMenu", "Button", id(butn), "size"].add(
+					butn.fbind("size", butn.setter("text_size"))
+				)
 			layout.add_widget(butn)
 
 
@@ -128,12 +137,26 @@ class Dialog(BoxLayout):
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.bind(
-			message_kwargs=self._propagate_msg_kwargs,
-			menu_kwargs=self._propagate_menu_kwargs,
+		app = App.get_running_app()
+		binds = app._bindings
+		assert not binds["Dialog", id(self), "message_kwargs"]
+		binds["Dialog", id(self), "message_kwargs"].add(
+			self.fbind("message_kwargs", self._propagate_msg_kwargs)
+		)
+		assert not binds["Dialog", id(self), "menu_kwargs"]
+		binds["Dialog", id(self), "menu_kwargs"].add(
+			self.fbind("menu_kwargs", self._propagate_menu_kwargs)
 		)
 		self._propagate_msg_kwargs()
 		self._propagate_menu_kwargs()
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["Dialog", id(self), "message_kwargs"]):
+			self.unbind_uid("message_kwargs", uid)
+		for uid in devour(binds["Dialog", id(self), "menu_kwargs"]):
+			self.unbind_uid("menu_kwargs", uid)
 
 	@partial(logwrap, section="Dialog")
 	def _propagate_msg_kwargs(self, *_):

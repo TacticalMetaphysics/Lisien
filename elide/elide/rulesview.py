@@ -34,7 +34,7 @@ from kivy.uix.widget import Widget
 
 from .card import Card, DeckBuilderScrollBar, DeckBuilderView
 from .stores import FuncEditor
-from .util import logwrap, store_kv
+from .util import logwrap, store_kv, devour
 
 
 def trigger(func):
@@ -173,6 +173,17 @@ class RulesView(Widget):
 		super().__init__(**kwargs)
 		self.finalize()
 
+	def unbind_all(self, *_):
+		binds = App.get_running_app()._bindings
+		for att in ("size", "pos"):
+			for uid in devour(binds["RulesView", att]):
+				self.unbind_uid(att, uid)
+		for functyp in "trigger", "prereq", "action":
+			for uid in devour(binds["RulesView", "rule", functyp]):
+				self.unbind_uid("rule", uid)
+			for uid in devour(binds["RulesView", functyp, "decks"]):
+				getattr(self, f"_{functyp}_builder").unbind_uid("decks", uid)
+
 	@logwrap(section="RulesView")
 	def finalize(self, *_):
 		"""Add my tabs"""
@@ -180,6 +191,8 @@ class RulesView(Widget):
 		if not self.canvas:
 			Clock.schedule_once(self.finalize, 0)
 			return
+		app = App.get_running_app()
+		binds = app._bindings
 
 		deck_builder_kwargs = {
 			"pos_hint": {"x": 0, "y": 0},
@@ -192,7 +205,12 @@ class RulesView(Widget):
 		self._tabs = TabbedPanel(
 			size=self.size, pos=self.pos, do_default_tab=False
 		)
-		self.bind(size=self._tabs.setter("size"), pos=self._tabs.setter("pos"))
+		for att in ("size", "pos"):
+			for uid in devour(binds["RulesView", att]):
+				self.unbind_uid(att, uid)
+			binds["RulesView", att].add(
+				self.fbind(att, self._tabs.setter(att))
+			)
 		self.add_widget(self._tabs)
 
 		for functyp in "trigger", "prereq", "action":
@@ -201,13 +219,17 @@ class RulesView(Widget):
 			self._tabs.add_widget(getattr(self, "_{}_tab".format(functyp)))
 			builder = DeckBuilderView(**deck_builder_kwargs)
 			setattr(self, "_{}_builder".format(functyp), builder)
+			for uid in devour(binds["RulesView", functyp, "decks"]):
+				builder.unbind_uid("decks", uid)
+			uid = builder.fbind(
+				"decks", getattr(self, f"_trigger_push_{functyp}s")
+			)
 			setattr(
 				self,
 				f"_trigger_push_{functyp}s_uid",
-				builder.fbind(
-					"decks", getattr(self, f"_trigger_push_{functyp}s")
-				),
+				uid,
 			)
+			binds["RulesView", functyp, "decks"].add(uid)
 			scroll_left = DeckBuilderScrollBar(
 				size_hint_x=0.01,
 				pos_hint={"x": 0, "y": 0},
@@ -244,7 +266,12 @@ class RulesView(Widget):
 					size_hint=(None, None),
 				)
 			)
-			self.bind(rule=getattr(self, "_trigger_pull_{}s".format(functyp)))
+			for uid in devour(binds["RulesView", "rule", functyp]):
+				self.unbind_uid("rule", uid)
+			binds["RulesView", "rule", functyp].add(
+				self.fbind("rule", getattr(self, f"_trigger_pull_{functyp}s"))
+			)
+		app._unbinders.append(self.unbind_all)
 		self._finalized = True
 
 	@logwrap(section="RulesView")
@@ -366,6 +393,10 @@ class RulesView(Widget):
 	@logwrap(section="RulesView")
 	def pull_triggers(self, *args):
 		"""Refresh the cards in the trigger builder"""
+		binds = App.get_running_app()._bindings
+		binds["RulesView", "trigger", "decks"].remove(
+			self._trigger_push_triggers_uid
+		)
 		self._trigger_builder.unbind_uid(
 			"decks", self._trigger_push_triggers_uid
 		)
@@ -373,12 +404,19 @@ class RulesView(Widget):
 		self._trigger_push_triggers_uid = self._trigger_builder.fbind(
 			"decks", self._trigger_push_triggers
 		)
+		binds["RulesView", "trigger", "decks"].add(
+			self._trigger_push_triggers_uid
+		)
 
 	_trigger_pull_triggers = trigger(pull_triggers)
 
 	@logwrap(section="RulesView")
 	def pull_prereqs(self, *args):
 		"""Refresh the cards in the prereq builder"""
+		binds = App.get_running_app()._bindings
+		binds["RulesView", "prereq", "decks"].remove(
+			self._trigger_push_prereqs_uid
+		)
 		self._prereq_builder.unbind_uid(
 			"decks", self._trigger_push_prereqs_uid
 		)
@@ -388,12 +426,19 @@ class RulesView(Widget):
 		self._trigger_push_prereqs_uid = self._prereq_builder.fbind(
 			"decks", self._trigger_push_prereqs
 		)
+		binds["RulesView", "prereq", "decks"].add(
+			self._trigger_push_prereqs_uid
+		)
 
 	_trigger_pull_prereqs = trigger(pull_prereqs)
 
 	@logwrap(section="RulesView")
 	def pull_actions(self, *args):
 		"""Refresh the cards in the action builder"""
+		binds = App.get_running_app()._bindings
+		binds["RulesView", "action", "decks"].remove(
+			self._trigger_push_actions_uid
+		)
 		self._action_builder.unbind_uid(
 			"decks", self._trigger_push_actions_uid
 		)
@@ -402,6 +447,9 @@ class RulesView(Widget):
 		)
 		self._trigger_push_actions_uid = self._action_builder.fbind(
 			"decks", self._trigger_push_actions
+		)
+		binds["RulesView", "action", "decks"].add(
+			self._trigger_push_actions_uid
 		)
 
 	_trigger_pull_actions = trigger(pull_actions)
@@ -448,9 +496,11 @@ class RulesView(Widget):
 		:param what: a string, 'trigger', 'prereq', or 'action'
 
 		"""
+		binds = App.get_running_app()._bindings
 		builder = getattr(self, "_{}_builder".format(what))
 		updtrig = getattr(self, "_trigger_upd_unused_{}s".format(what))
-		builder.unbind(decks=updtrig)
+		while binds["RulesView", "builder", what]:
+			self.unbind_uid("decks", binds[RulesView, "builder", what].pop())
 		funcs = OrderedDict()
 		cards = list(self._action_builder.decks[1])
 		cards.reverse()
@@ -462,7 +512,7 @@ class RulesView(Widget):
 		unused = list(funcs.values())
 		unused.reverse()
 		builder.decks[1] = unused
-		builder.bind(decks=updtrig)
+		binds["RulesView", "builder", what].add(builder.bind("decks", updtrig))
 
 	@logwrap(section="RulesView")
 	def upd_unused_actions(self, *_):
@@ -535,16 +585,30 @@ class RulesBox(BoxLayout):
 	ruleslist = ObjectProperty()
 	rulesview = ObjectProperty()
 
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		App.get_running_app()._unbinders.append(self.unbind_all)
+
 	@property
 	def engine(self):
 		return App.get_running_app().engine
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["RulesBox", "ruleslist", "children"]):
+			self.unbind_uid("children", uid)
 
 	@logwrap(section="RulesBox")
 	def on_ruleslist(self, *_):
 		if not self.ruleslist.children:
 			Clock.schedule_once(self.on_ruleslist, 0)
 			return
-		self.ruleslist.children[0].bind(children=self._upd_ruleslist_selection)
+		binds = App.get_running_app()._bindings[
+			"RulesBox", "ruleslist", "children"
+		]
+		while binds:
+			self.unbind_uid("children", binds.pop())
+		binds.add(self.fbind("children", self._upd_ruleslist_selection))
 
 	@logwrap(section="RulesBox")
 	def new_rule(self, *_):

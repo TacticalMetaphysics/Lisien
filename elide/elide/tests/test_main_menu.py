@@ -3,14 +3,14 @@ import shutil
 
 import pytest
 
-from kivy.app import App
+from kivy.base import EventLoop
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 
 from ..app import ElideApp
-from .util import advance_frames, idle100, idle_until
+from .util import advance_frames, idle100, idle_until, transition_over
 
 
 def test_new_game(elide_app_main_menu):
@@ -126,21 +126,33 @@ def test_load_game(elide_app_main_menu):
 
 
 def test_import_game(kobold_sim_exported, elide_app_main_menu):
-	app = elide_app_main_menu
-	manager = app.manager
-	idle_until(lambda: manager.current == "main", 100, "Never got main menu")
-	import_game_button: Button = manager.current_screen.ids.import_game_button
+	same_app = elide_app_main_menu.get_running_app()
+	same_manager = same_app.manager
+
+	def app():
+		assert elide_app_main_menu.get_running_app() is same_app
+		return same_app
+
+	def manager():
+		assert app().manager is same_manager
+		return same_manager
+
+	idle_until(lambda: app().closed, 100, "Never closed previous test")
+	idle_until(lambda: manager().current == "main", 100, "Never got main menu")
+	import_game_button: Button = (
+		manager().current_screen.ids.import_game_button
+	)
 	x, y = import_game_button.center
 	touch = UnitTestTouch(x, y)
 	touch.touch_down()
 	advance_frames(5)
 	touch.touch_up()
 	idle_until(
-		lambda: hasattr(manager.current_screen, "_popover_import_game"),
+		lambda: hasattr(manager().current_screen, "_popover_import_game"),
 		100,
 		"Never created game import popover",
 	)
-	modal = manager.current_screen._popover_import_game
+	modal = manager().current_screen._popover_import_game
 	idle_until(lambda: modal._is_open, 100, "Never opened game import modal")
 	idle_until(
 		lambda: hasattr(modal, "_file_chooser"), 100, "Never made file chooser"
@@ -183,11 +195,21 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	advance_frames(5)
 	touch.touch_up()
 	advance_frames(5)
-	idle_until_kobold_is_loaded(manager)
-	charmenu = manager.current_screen.charmenu.charmenu
+	idle_until_kobold_is_loaded(manager())
+	idle_until(transition_over)
+	charmenu = manager().current_screen.charmenu.charmenu
 	quit_button = charmenu.ids.quit_button.__ref__()
-	x, y = charmenu.to_parent(*quit_button.center)
+	x, y = quit_button.parent.parent.parent.parent.to_parent(
+		*quit_button.parent.parent.parent.to_parent(
+			*quit_button.parent.parent.to_parent(
+				*quit_button.parent.to_parent(
+					*quit_button.to_parent(*quit_button.center)
+				)
+			)
+		)
+	)
 	assert quit_button.collide_point(x, y)
+	idle_until(transition_over)
 	touch = UnitTestTouch(x, y)
 	touch.touch_down()
 
@@ -195,16 +217,30 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	def pressed():
 		return quit_button.state == "down"
 
-	touch.grab(quit_button)
-	touch.grab_current = quit_button
 	advance_frames(5)
 	touch.touch_up()
 
-	@idle_until
-	def main_menu():
-		return len(app.get_running_app().manager.children) == 1
+	for _ in range(100):
+		if manager().current == "main":
+			break
+		EventLoop.idle()
+	else:
+		raise RuntimeError(f"Never switched from {manager().current}")
 
-	test_load_game(elide_app_main_menu)
+	assert manager().current == "main"
+	manager().current_screen.load_game()
+
+	@idle100
+	def game_loader_modal_present():
+		return hasattr(manager().current_screen, "_popover_load_game")
+
+	@idle100
+	def game_load_menu_has_data():
+		lodr = getattr(manager().current_screen, "_popover_load_game")
+		if not lodr or "game_list" not in lodr.ids:
+			return False
+		game_list = lodr.ids.game_list
+		return game_list.data
 
 
 def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
