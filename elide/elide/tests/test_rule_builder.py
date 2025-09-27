@@ -366,11 +366,11 @@ def test_char_rule_builder_remove_unit_trigger(prefix, char_rules_view_app):
 		"Never filled rules view",
 	)
 	rules_list = rules_box.ruleslist
-	idle_until(
-		lambda: bool(list(rules_list.iter_rule_buttons())),
-		1000,
-		"Never filled rules list",
-	)
+
+	@idle_until(timeout=1000, message="Never filled rules list")
+	def any_rule_buttons():
+		return rules_list.children and rules_list.children[0].children
+
 	idle_until(
 		lambda: "relocate"
 		in {rulebut.text for rulebut in rules_list.iter_rule_buttons()},
