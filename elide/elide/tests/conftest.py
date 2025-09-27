@@ -109,7 +109,7 @@ def elide_app(kivy, prefix):
 	Window.add_widget(app.build())
 	yield app
 	EventLoop.idle()
-	if not hasattr(app, "stopped"):
+	if not app.stopped:
 		app.stop()
 	unload_all_kv()
 
