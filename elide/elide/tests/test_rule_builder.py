@@ -367,7 +367,7 @@ def test_char_rule_builder_remove_unit_trigger(prefix, char_rules_view_app):
 	)
 	rules_list = rules_box.ruleslist
 	idle_until(
-		lambda: list(rules_list.iter_rule_buttons()),
+		lambda: bool(list(rules_list.iter_rule_buttons())),
 		1000,
 		"Never filled rules list",
 	)
