@@ -4966,10 +4966,10 @@ class EngineProcessManager:
 			self.engine_proxy.close()
 			if hasattr(self, "_p"):
 				self.engine_proxy._pipe_out.send_bytes(b"shutdown")
-				self._p.join(timeout=1)
+				self._p.join()
 			if hasattr(self, "_t"):
 				self._input_queue.put("shutdown")
-				self._t.join(timeout=1)
+				self._t.join()
 			del self.engine_proxy
 
 	def __enter__(self):
