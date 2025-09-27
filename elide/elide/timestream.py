@@ -54,18 +54,22 @@ class ThornyRectangle(Button):
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.bind(
-			pos=self._trigger_redraw,
-			size=self._trigger_redraw,
-			left_margin=self._trigger_redraw,
-			right_margin=self._trigger_redraw,
-			top_margin=self._trigger_redraw,
-			bottom_margin=self._trigger_redraw,
-			draw_left=self._trigger_redraw,
-			draw_right=self._trigger_redraw,
-			draw_up=self._trigger_redraw,
-			draw_down=self._trigger_redraw,
-		)
+		binds = App.get_running_app()._bindings
+		for att in (
+			"pos",
+			"size",
+			"left_margin",
+			"right_margin",
+			"top_margin",
+			"bottom_margin",
+			"draw_left",
+			"draw_right",
+			"draw_up",
+			"draw_down",
+		):
+			binds["ThornyRectangle", id(self)].add(
+				self.fbind(att, self._trigger_redraw)
+			)
 		self._trigger_redraw()
 
 	@logwrap(section="ThornyRectangle")
@@ -181,14 +185,16 @@ class Cross(Widget):
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.bind(
-			draw_left=self._trigger_redraw,
-			draw_right=self._trigger_redraw,
-			draw_up=self._trigger_redraw,
-			draw_down=self._trigger_redraw,
-			size=self._trigger_redraw,
-			pos=self._trigger_redraw,
-		)
+		binds = App.get_running_app()._bindings
+		for att in (
+			"draw_left",
+			"draw_right",
+			"draw_up",
+			"draw_down",
+			"size",
+			"pos",
+		):
+			binds["Cross", id(self)].add(self.fbind(att, self._trigger_redraw))
 
 	@logwrap(section="Cross")
 	def _draw_line(self, enabled, name, get_points):

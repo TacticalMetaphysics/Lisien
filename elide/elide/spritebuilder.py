@@ -15,7 +15,9 @@
 import json
 import os
 import shutil
+from functools import partial
 
+from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.core.image import Image
 from kivy.logger import Logger
@@ -37,7 +39,7 @@ from sqlalchemy import and_, bindparam, column
 
 from .kivygarden.texturestack import ImageStack
 from .pallet import Pallet, PalletBox
-from .util import logwrap, store_kv
+from .util import logwrap, store_kv, devour
 
 
 def trigger(func):
@@ -64,13 +66,16 @@ class SpriteSelector(BoxLayout):
 			Logger.debug("SpriteSelector: no preview")
 			Clock.schedule_once(self.on_imgpaths, 0)
 			return
+		app = App.get_running_app()
+		binds = app._bindings
 		if hasattr(self, "_imgstack"):
 			self._imgstack.paths = self.imgpaths
 		else:
 			self._imgstack = ImageStack(paths=self.imgpaths)
-			self._imgstack.bind(
-				pos=self._position_imgstack, size=self._position_imgstack
-			)
+			for att in ("pos", "size"):
+				binds["SpriteSelector", att].add(
+					self.fbind(att, self._position_imgstack)
+				)
 			self.preview.add_widget(self._imgstack)
 
 	@trigger
@@ -81,8 +86,24 @@ class SpriteSelector(BoxLayout):
 
 	@logwrap(section="SpriteSelector")
 	def on_pallets(self, *_):
+		app = App.get_running_app()
+		binds = app._bindings
 		for pallet in self.pallets:
-			pallet.fbind("selection", self._upd_imgpaths)
+			binds["Pallet", pallet.filename, "selection"].add(
+				pallet.fbind("selection", self._upd_imgpaths)
+			)
+			app._unbinders.append(
+				partial(self._unbind_pallet_selection, pallet)
+			)
+
+	@staticmethod
+	def _unbind_pallet_selection(pallet):
+		for uid in devour(
+			App.get_running_app()._bindings[
+				"Pallet", pallet.filename, "selection"
+			]
+		):
+			pallet.unbind_uid("selection", uid)
 
 	@logwrap(section="SpriteSelector")
 	def _upd_imgpaths(self, *_):
@@ -102,11 +123,33 @@ class SpriteBuilder(ScrollView):
 	default_imgpaths = ListProperty()
 	data = ListProperty()
 	labels = ListProperty()
+	name = StringProperty()
 	pallets = ListProperty()
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.bind(data=self._trigger_update)
+
+	def on_name(self, *_):
+		app = App.get_running_app()
+		binds = app._bindings
+		binds["SpriteBuilder", self.name, "data"].add(
+			self.fbind("data", self._trigger_update)
+		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["SpriteBuilder", self.name, "data"]):
+			self.unbind_uid("data", uid)
+		for uid in devour(binds["PalletBox", "width"]):
+			self._palbox.unbind_uid("width", uid)
+		for pallet in self.pallets:
+			for uid in devour(
+				binds["Pallet", pallet.filename, "minimum_height"]
+			):
+				pallet.unbind_uid("minimum_height", uid)
+			for uid in devour(binds["Pallet", pallet.filename, "height"]):
+				pallet.unbind_uid("height", uid)
 
 	@logwrap(section="SpriteBuilder")
 	def update(self, *args):
@@ -115,23 +158,28 @@ class SpriteBuilder(ScrollView):
 		if not self.canvas:
 			Clock.schedule_once(self.update, 0)
 			return
+		binds = App.get_running_app()._bindings
 		if not hasattr(self, "_palbox"):
 			self._palbox = PalletBox(orientation="vertical", size_hint_y=None)
 			self.add_widget(self._palbox)
 		else:
 			self._palbox.clear_widgets()
-		if hasattr(self._palbox, "_bound_width"):
-			for uid in self._palbox._bound_width:
-				self._palbox.unbind_uid("width", uid)
-			del self._palbox._bound_width
+		for uid in devour(binds["PalletBox", "width"]):
+			self._palbox.unbind_uid("width", uid)
 		self.labels = []
 		for pallet in self.pallets:
 			if hasattr(pallet, "_bound_minimum_height"):
+				binds["Pallet", pallet.filename, "minimum_height"].remove(
+					pallet._bound_minimum_height
+				)
 				pallet.unbind_uid(
 					"minimum_height", pallet._bound_minimum_height
 				)
 				del pallet._bound_minimum_height
 			if hasattr(pallet, "_bound_height"):
+				binds["Pallet", pallet.filename, "height"].remove(
+					pallet._bound_height
+				)
 				pallet.unbind_uid("height", pallet._bound_height)
 				del pallet._bound_height
 		self.pallets = []
@@ -150,8 +198,14 @@ class SpriteBuilder(ScrollView):
 			pallet._bound_minimum_height = (
 				pallet.fbind("minimum_height", pallet.setter("height")),
 			)
+			binds["Pallet", pallet.filename, "minimum_height"].add(
+				pallet._bound_minimum_height
+			)
 			pallet._bound_height = pallet.fbind(
 				"height", self._trigger_reheight
+			)
+			binds["Pallet", pallet.filename, "height"].add(
+				pallet._bound_height
 			)
 			self.labels.append(label)
 			self.pallets.append(pallet)
@@ -181,6 +235,7 @@ class SpriteDialog(BoxLayout):
 	default_imgpaths = ListProperty()
 	data = ListProperty()
 	pallet_box_height = NumericProperty()
+	name = StringProperty()
 
 	@logwrap(section="SpriteDialog")
 	def pressed(self):
@@ -381,6 +436,7 @@ store_kv(
 	orientation: 'vertical'
 	SpriteBuilder:
 		id: builder
+		name: root.name
 		prefix: root.prefix
 		default_imgpaths: root.default_imgpaths
 		imgpaths: root.imgpaths
@@ -415,6 +471,7 @@ store_kv(
 	imgpaths: dialog.imgpaths
 	PawnConfigDialog:
 		id: dialog
+		name: 'pawn'
 		toggle: root.toggle
 		default_imgpaths: ['atlas://rltiles/base/unseen']
 		custom_imgs_header: root.custom_imgs_header
@@ -425,6 +482,7 @@ store_kv(
 	imgpaths: dialog.imgpaths
 	SpotConfigDialog:
 		id: dialog
+		name: 'spot'
 		toggle: root.toggle
 		default_imgpaths: ['atlas://rltiles/floor/floor-stone']
 		custom_imgs_header: root.custom_imgs_header

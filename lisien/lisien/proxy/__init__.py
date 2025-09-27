@@ -2641,6 +2641,7 @@ class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
 class StringStoreProxy(Signal):
 	language = ProxyLanguageDescriptor()
 	_cache: dict
+	_store = "string"
 
 	def __init__(self, engine_proxy: EngineProxy):
 		self._cache = {}

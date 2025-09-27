@@ -167,9 +167,16 @@ class CalendarOptionButton(CalendarWidget, Button):
 		super().__init__(**kwargs)
 		self._make_modalview()
 		self._update_modalview()
-		self.bind(cols=self._make_modalview)
-		self.bind(options=self._update_modalview)
-		self.bind(on_release=self.modalview.open)
+		binds = App.get_running_app()._bindings
+		binds["CalendarOptionButton", id(self), "cols"].add(
+			self.fbind("cols", self._make_modalview)
+		)
+		binds["CalendarOptionButton", id(self), "options"].add(
+			self.fbind("options", self._update_modalview)
+		)
+		binds["CalendarOptionButton", id(self), "on_release"].add(
+			self.fbind("on_release", self.modalview.open)
+		)
 
 	@logwrap(section="CalendarOptionButton")
 	def _make_modalview(self, *_):

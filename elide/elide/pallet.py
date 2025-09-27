@@ -18,6 +18,9 @@ one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a
 from the :class:`Pallet`, and the :class:`Pallet` updates its
 ``selection`` list to show what the user selected."""
 
+from functools import partial
+
+from kivy.app import App
 from kivy.atlas import Atlas
 from kivy.clock import Clock, triggered
 from kivy.logger import Logger
@@ -35,7 +38,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import logwrap, store_kv
+from .util import logwrap, store_kv, devour
 
 
 def trigger(func):
@@ -107,8 +110,22 @@ class Pallet(StackLayout):
 	def on_atlas(self, *_):
 		if self.atlas is None:
 			return
+		app = App.get_running_app()
+		binds = app._bindings
 		self.upd_textures()
-		self.atlas.bind(textures=self._trigger_upd_textures)
+		assert not binds["Pallet", self.filename, "atlas", "textures"]
+		new_uid = self.atlas.fbind("textures", self._trigger_upd_textures)
+		binds["Pallet", self.filename, "atlas", "textures"].add(new_uid)
+		app._unbinders.append(
+			partial(self._unbind_atlas, self.filename, self.atlas, new_uid)
+		)
+
+	@staticmethod
+	def _unbind_atlas(filename, atlas, uid):
+		App.get_running_app()._bindings[
+			"Pallet", filename, "atlas", "textures"
+		].remove(uid)
+		atlas.unbind_uid("textures", uid)
 
 	def upd_textures(self, *_):
 		"""Create one :class:`SwatchButton` for each texture"""

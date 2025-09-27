@@ -20,7 +20,8 @@ from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
-from .util import SelectableRecycleBoxLayout, logwrap, store_kv
+from .util import SelectableRecycleBoxLayout, logwrap, store_kv, devour
+
 
 # TODO: Visual preview
 # TODO: Background image chooser
@@ -52,11 +53,20 @@ class CharactersScreen(Screen):
 	wallpaper_path = StringProperty()
 	names = ListProperty()
 	new_board = ObjectProperty()
-	push_character_name = ObjectProperty()
 
 	@property
 	def engine(self):
 		return App.get_running_app().engine
+
+	def push_character_name(self, _, name):
+		app = App.get_running_app()
+		binds = app._bindings
+		for uid in devour(binds["CharactersScreen", "character_name"]):
+			self.unbind_uid("character_name", uid)
+		app.character_name = name
+		binds["CharactersScreen", "character_name"].add(
+			self.fbind("character_name", self.push_character_name)
+		)
 
 	@logwrap(section="CharactersScreen")
 	def new_character(self, name, *_):
@@ -68,7 +78,7 @@ class CharactersScreen(Screen):
 		self.charsview.data.append({"index": i, "text": name})
 		self.names.append(name)
 		self.new_board(name)
-		self.push_character_name(name)
+		self.character_name = name
 
 	@logwrap(section="CharactersScreen")
 	def _trigger_new_character(self, name):
@@ -102,8 +112,24 @@ class CharactersScreen(Screen):
 		if not self.push_character_name:
 			Clock.schedule_once(self.on_charsview, 0)
 			return
-		self.charsview.bind(character_name=self.setter("character_name"))
-		self.bind(character_name=self.push_character_name)
+		app = App.get_running_app()
+		binds = app._bindings
+		binds["CharactersView", "character_name"].add(
+			self.charsview.fbind(
+				"character_name", self.setter("character_name")
+			)
+		)
+		binds["CharactersScreen", "character_name"].add(
+			self.fbind("character_name", self.push_character_name)
+		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["CharactersView", "character_name"]):
+			self.charsview.unbind_uid("character_name", uid)
+		for uid in devour(binds["CharactersScreen", "character_name"]):
+			self.unbind_uid("character_name", uid)
 
 
 store_kv(

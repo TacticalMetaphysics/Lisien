@@ -14,11 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Object to configure, start, and stop elide."""
 
+from collections import defaultdict
+
 import json
 import os
 import shutil
 from functools import cached_property, partial
 from threading import Thread
+from typing import Callable
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from lisien.exc import OutOfTimelineError
@@ -54,7 +57,7 @@ import elide.timestream
 from elide.graph.arrow import GraphArrow
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
-from elide.util import load_kv, logwrap
+from elide.util import load_kv, logwrap, devour
 from lisien.proxy import (
 	CharacterProxy,
 	CharStatProxy,
@@ -94,6 +97,52 @@ class ElideApp(App):
 	character_name = ObjectProperty()
 	closed = BooleanProperty(True)
 	stopped = BooleanProperty(False)
+
+	@cached_property
+	def _bindings(self) -> dict[tuple, set[int]]:
+		class OnceSet(set):
+			def add(self, __element):
+				if __element in self:
+					raise RuntimeError("Already bound", __element)
+				super().add(__element)
+
+		return defaultdict(OnceSet)
+
+	@cached_property
+	def _unbinders(self) -> list[Callable[[], None]]:
+		return [self.unbind_all]
+
+	def unbind_all(self):
+		for uid in devour(self._bindings["ElideApp", "character"]):
+			self.unbind_uid("character", uid)
+		for uid in devour(self._bindings["ElideApp", "character_name"]):
+			self.unbind_uid("character_name", uid)
+		for uid in devour(
+			self._bindings["CharactersScreen", "character_name"]
+		):
+			self.chars.unbind_uid("character_name", uid)
+		for uid in devour(self._bindings["ElideApp", "selected_proxy"]):
+			self.unbind_uid("selected_proxy", uid)
+		for uid in devour(self._bindings["MainScreen", "statlist"]):
+			self.mainscreen.unbind_uid("statlist", uid)
+		for uid in devour(self._bindings["ElideApp", "selection"]):
+			self.unbind_uid("selection", uid)
+		for uid in devour(self._bindings["ElideApp", "character"]):
+			self.unbind_uid("character", uid)
+		for graphboard in self.mainscreen.graphboards:
+			for uid in devour(
+				self._bindings["GraphBoard", graphboard, "selection"]
+			):
+				self.mainscreen.graphboards[graphboard].unbind_uid(
+					"selection", uid
+				)
+		for gridboard in self.mainscreen.gridboards:
+			for uid in devour(
+				self._bindings["GridBoard", gridboard, "selection"]
+			):
+				self.mainscreen.gridboards[gridboard].unbind_uid(
+					"selection", uid
+				)
 
 	@cached_property
 	def _togglers(self):
@@ -150,7 +199,7 @@ class ElideApp(App):
 			str(origin.name) + "->" + str(destination.name)
 		)
 
-	def on_character_name(self, name, *_):
+	def on_character_name(self, _, name):
 		if (
 			hasattr(self, "engine")
 			and name in self.engine.character
@@ -326,6 +375,7 @@ class ElideApp(App):
 			pdb.set_trace()
 
 		self.manager = ScreenManager(transition=NoTransition())
+		print(f"created screen manager with id {id(self.manager)}")
 		if config["elide"]["inspector"] == "yes":
 			from kivy.core.window import Window
 			from kivy.modules import inspector
@@ -514,27 +564,26 @@ class ElideApp(App):
 		self.charrules = elide.rulesview.CharacterRulesScreen(
 			character=self.character, toggle=toggler("charrules")
 		)
-		self.bind(character=self.charrules.setter("character"))
+		self._bindings["ElideApp", "character"].add(
+			self.fbind("character", self.charrules.setter("character"))
+		)
 		load_kv("elide.charsview")
 		self.chars = elide.charsview.CharactersScreen(
 			toggle=toggler("chars"), new_board=self.new_board
 		)
-		self.bind(character_name=self.chars.setter("character_name"))
+		self._bindings["ElideApp", "character_name"].add(
+			self.fbind("character_name", self.chars.setter("character_name"))
+		)
 
-		def chars_push_character_name(*_):
-			self.unbind(character_name=self.chars.setter("character_name"))
-			self.character_name = self.chars.character_name
-			self.bind(character_name=self.chars.setter("character_name"))
-
-		self.chars.push_character_name = chars_push_character_name
 		load_kv("elide.stores")
 		self.strings = elide.stores.StringsEdScreen(toggle=toggler("strings"))
 
 		self.funcs = elide.stores.FuncsEdScreen(
 			name="funcs", toggle=toggler("funcs")
 		)
-
-		self.bind(selected_proxy=self.statcfg.setter("proxy"))
+		self._bindings["ElideApp", "selected_proxy"].add(
+			self.fbind("selected_proxy", self.statcfg.setter("proxy"))
+		)
 		load_kv("elide.timestream")
 		self.timestream = elide.timestream.TimestreamScreen(
 			name="timestream", toggle=toggler("timestream")
@@ -554,10 +603,14 @@ class ElideApp(App):
 		)
 		if self.mainscreen.statlist:
 			self.statcfg.statlist = self.mainscreen.statlist
-		self.mainscreen.bind(statlist=self.statcfg.setter("statlist"))
-		self.bind(
-			selection=self.refresh_selected_proxy,
-			character=self.refresh_selected_proxy,
+		self._bindings["MainScreen", "statlist"].add(
+			self.mainscreen.fbind("statlist", self.statcfg.setter("statlist"))
+		)
+		self._bindings["ElideApp", "selection"].add(
+			self.fbind("selection", self.refresh_selected_proxy)
+		)
+		self._bindings["ElideApp", "character"].add(
+			self.fbind("character", self.refresh_selected_proxy)
 		)
 		for wid in (
 			self.mainscreen,
@@ -754,18 +807,28 @@ class ElideApp(App):
 		if self.character_name != self.character.name:
 			self.character_name = self.character.name
 		if hasattr(self, "_oldchar"):
-			self.mainscreen.graphboards[self._oldchar.name].unbind(
-				selection=self.setter("selection")
-			)
-			self.mainscreen.gridboards[self._oldchar.name].unbind(
-				selection=self.setter("selection")
-			)
+			for uid in devour(
+				self._bindings["GraphBoard", self._oldchar.name, "selection"]
+			):
+				self.mainscreen.graphboards[self._oldchar.name].unbind_uid(
+					"selection", uid
+				)
+			for uid in devour(
+				self._bindings["GridBoard", self._oldchar.name, "selection"]
+			):
+				self.mainscreen.gridboards[self._oldchar.name].unbind_uid(
+					"selection", uid
+				)
 		self.selection = None
-		self.mainscreen.graphboards[self.character.name].bind(
-			selection=self.setter("selection")
+		self._bindings["GraphBoard", self.character.name, "selection"].add(
+			self.mainscreen.graphboards[self.character.name].fbind(
+				"selection", self.setter("selection")
+			)
 		)
-		self.mainscreen.gridboards[self.character.name].bind(
-			selection=self.setter("selection")
+		self._bindings["GridBoard", self.character.name, "selection"].add(
+			self.mainscreen.gridboards[self.character.name].fbind(
+				"selection", self.setter("selection")
+			)
 		)
 
 	def copy_to_shared_storage(
@@ -893,6 +956,11 @@ class ElideApp(App):
 			self.close_game(cb=partial(self.setter("stopped"), 0.0, True))
 		else:
 			self.stopped = True
+		for unbinder in self._unbinders:
+			unbinder()
+		for k, v in self._bindings.items():
+			if v:
+				raise RuntimeError("Still bound", k, v)
 		return True
 
 	def on_stopped(self, *_):

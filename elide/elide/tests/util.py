@@ -2,6 +2,7 @@ from functools import partial
 from typing import Callable
 
 from blinker import Signal
+from kivy.app import App
 from kivy.base import EventLoop
 
 
@@ -90,3 +91,10 @@ def advance_frames(frames: int) -> None:
 
 	for _ in range(frames):
 		EventLoop.idle()
+
+
+def transition_over():
+	# Even though there's "no transition," the screen manager still considers
+	# a transition to be active for a few frames, and will refuse input for
+	# the duration
+	return not App.get_running_app().manager.transition.is_active

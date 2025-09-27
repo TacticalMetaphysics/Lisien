@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
 
+from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.properties import ObjectProperty
 
@@ -37,6 +38,7 @@ class ImageStackProxy(ImageStack):
 		if self.proxy is None or not hasattr(self.proxy, "name"):
 			Clock.schedule_once(self.finalize, 0)
 			return
+		binds = App.get_running_app()._bindings
 		if initial:
 			self.name = self.proxy.name
 			if "_image_paths" in self.proxy:
@@ -51,11 +53,17 @@ class ImageStackProxy(ImageStack):
 					"_image_paths", self.default_image_paths
 				)
 			self.finalize_children(initial)
+		assert not binds["ImageStackProxy", self.name, "paths"]
 		self._paths_binding = self.fbind(
 			"paths", self._trigger_push_image_paths
 		)
+		binds["ImageStackProxy", self.name, "paths"].add(self._paths_binding)
+		assert not binds["ImageStackProxy", self.name, "offxs"]
 		self._offxs_binding = self.fbind("offxs", self._trigger_push_offxs)
+		binds["ImageStackProxy", self.name, "offxs"].add(self._offxs_binding)
+		assert not binds["ImageStackProxy", self.name, "offys"]
 		self._offys_binding = self.fbind("offys", self._trigger_push_offys)
+		binds["ImageStackProxy", self.name, "offys"].add(self._offys_binding)
 		self._finalized = True
 
 	@logwrap(section="ImageStackProxy")
@@ -66,8 +74,18 @@ class ImageStackProxy(ImageStack):
 
 	@logwrap(section="ImageStackProxy")
 	def unfinalize(self):
+		binds = App.get_running_app()._bindings
+		binds["ImageStackProxy", self.name, "paths"].remove(
+			self._paths_binding
+		)
 		self.unbind_uid("paths", self._paths_binding)
+		binds["ImageStackProxy", self.name, "offxs"].remove(
+			self._offxs_binding
+		)
 		self.unbind_uid("offxs", self._offxs_binding)
+		binds["ImageStackProxy", self.name, "offys"].remove(
+			self._offys_binding
+		)
 		self.unbind_uid("offys", self._offys_binding)
 		self._finalized = False
 

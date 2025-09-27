@@ -46,7 +46,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import logwrap, store_kv
+from .util import logwrap, store_kv, devour
 
 
 def trigger(func):
@@ -112,6 +112,14 @@ class StoreList(RecycleView):
 		self._i2name = {}
 		self._name2i = {}
 		super().__init__(**kwargs)
+		App.get_running_app()._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(
+			binds["StoreList", self.store._store, "boxl", "selected_nodes"]
+		):
+			self.boxl.unbind_uid("selected_nodes", uid)
 
 	@logwrap(section="RecycleToggleButton")
 	def on_store(self, *_):
@@ -120,7 +128,18 @@ class StoreList(RecycleView):
 
 	@logwrap(section="RecycleToggleButton")
 	def on_boxl(self, *_):
-		self.boxl.bind(selected_nodes=self._pull_selection)
+		if self.store is None:
+			Clock.schedule_once(self.on_boxl, 0)
+			return
+		app = App.get_running_app()
+		if not app:
+			return
+		binds = app._bindings[
+			"StoreList", self.store._store, "boxl", "selected_nodes"
+		]
+		for uid in devour(binds):
+			self.boxl.unbind_uid("selected_nodes", uid)
+		binds.add(self.boxl.fbind("selected_nodes", self._pull_selection))
 
 	@logwrap(section="RecycleToggleButton")
 	def _pull_selection(self, *_):
@@ -325,12 +344,23 @@ class StringInput(Editor):
 	validate_name_input = ObjectProperty()
 	"""Boolean function for checking if a string name is acceptable"""
 
+	def unbind_all(self):
+		for uid in devour(
+			App.get_running_app()._bindings["StringInput", "name_wid", "text"]
+		):
+			self.name_wid.unbind_uid("text", uid)
+
 	@logwrap(section="StringInput")
 	def on_name_wid(self, *_):
 		if not self.validate_name_input:
 			Clock.schedule_once(self.on_name_wid, 0)
 			return
-		self.name_wid.bind(text=self.validate_name_input)
+		app = App.get_running_app()
+		binds = app._bindings
+		binds["StringInput", "name_wid", "text"].add(
+			self.name_wid.fbind("text", self.validate_name_input)
+		)
+		app._unbinders.append(self.unbind_all)
 
 	@logwrap(section="StringInput")
 	def _get_name(self):
@@ -392,10 +422,30 @@ class EdBox(BoxLayout):
 			Clock.schedule_once(self.on_store_name, 0)
 			return
 		self.store = getattr(app.engine, self.store_name)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(
+			binds["EdBox", self.store_name, "storelist", "selection_name"]
+		):
+			self.storelist.unbind_uid("selection_name", uid)
 
 	@logwrap(section="EdBox")
 	def on_storelist(self, *_):
-		self.storelist.bind(selection_name=self.setter("selection_name"))
+		if not self.store_name:
+			Clock.schedule_once(self.on_storelist, 0)
+			return
+		binds = App.get_running_app()._bindings[
+			"EdBox", self.store_name, "storelist", "selection_name"
+		]
+		for uid in devour(binds):
+			self.storelist.unbind_uid("selection_name", uid)
+		binds.add(
+			self.storelist.fbind(
+				"selection_name", self.setter("selection_name")
+			)
+		)
 
 	@trigger
 	@logwrap(section="EdBox")
@@ -579,14 +629,26 @@ class FuncEditor(Editor):
 			code += " " * 4 + "pass"
 		return code.rstrip(" \n\t")
 
+	def unbind_all(self):
+		for uid in devour(
+			App.get_running_app()._bindings["FuncEditor", "codeinput", "text"]
+		):
+			self.codeinput.unbind_uid("text", uid)
+
 	@logwrap(section="FuncEditor")
 	def _set_source(self, v):
 		if not self.codeinput:
 			Clock.schedule_once(partial(self._set_source, v), 0)
 			return
-		self.codeinput.unbind(text=self.setter("_text"))
+		binds = App.get_running_app()._bindings
+		while binds["FuncEditor", "codeinput", "text"]:
+			self.codeinput.unbind_uid(
+				"text", binds["FuncEditor", "codeinput", "text"].pop()
+			)
 		self.params, self.codeinput.text = munge_source(str(v))
-		self.codeinput.bind(text=self.setter("_text"))
+		binds["FuncEditor", "codeinput", "text"].add(
+			self.codeinput.fbind("text", self.setter("_text"))
+		)
 
 	source = AliasProperty(_get_source, _set_source, bind=("_text", "params"))
 
@@ -596,8 +658,13 @@ class FuncEditor(Editor):
 		return "def {}({}):\n".format(name, ", ".join(self.params))
 
 	def on_codeinput(self, *args):
+		app = App.get_running_app()
+		app._unbinders.append(self.unbind_all)
+		binds = app._bindings["FuncEditor", "codeinput", "text"]
 		self._text = self.codeinput.text
-		self.codeinput.bind(text=self.setter("_text"))
+		while binds:
+			self.codeinput.unbind_uid("text", binds.pop())
+		binds.add(self.codeinput.fbind("text", self.setter("_text")))
 
 
 class FuncsEdBox(EdBox):

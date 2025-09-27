@@ -27,7 +27,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .statlist import BaseStatListView
-from .util import logwrap, store_kv
+from .util import logwrap, store_kv, devour
 
 
 class FloatInput(TextInput):
@@ -61,6 +61,8 @@ class ControlTypePicker(Button):
 		if None in (self.key, self.set_control):
 			Clock.schedule_once(self.build, 0)
 			return
+		app = App.get_running_app()
+		binds = app._bindings
 		self.mainbutton = None
 		self.dropdown = None
 		self.dropdown = DropDown()
@@ -73,8 +75,15 @@ class ControlTypePicker(Button):
 			height=self.height,
 			background_color=(0.7, 0.7, 0.7, 1),
 		)
-		readoutbut.bind(
-			on_release=lambda instance: self.dropdown.select("readout")
+		while binds["ControlTypePicker", "readout", "on_release"]:
+			readoutbut.unbind_uid(
+				"on_release",
+				binds["ControlTypePicker", "readout", "on_release"].pop(),
+			)
+		binds["ControlTypePicker", "readout", "on_release"].add(
+			readoutbut.fbind(
+				"on_release", lambda _: self.dropdown.select("readout")
+			)
 		)
 		self.dropdown.add_widget(readoutbut)
 		textinbut = Button(
@@ -83,8 +92,15 @@ class ControlTypePicker(Button):
 			height=self.height,
 			background_color=(0.7, 0.7, 0.7, 1),
 		)
-		textinbut.bind(
-			on_release=lambda instance: self.dropdown.select("textinput")
+		while binds["ControlTypePicker", "textinput", "on_release"]:
+			textinbut.unbind_uid(
+				"on_release",
+				binds["ControlTypePicker", "textinput", "on_release"].pop(),
+			)
+		binds["ControlTypePicker", "textinput", "on_release"].add(
+			textinbut.fbind(
+				"on_release", lambda _: self.dropdown.select("textinput")
+			)
 		)
 		self.dropdown.add_widget(textinbut)
 		togbut = Button(
@@ -93,8 +109,15 @@ class ControlTypePicker(Button):
 			height=self.height,
 			background_color=(0.7, 0.7, 0.7, 1),
 		)
-		togbut.bind(
-			on_release=lambda instance: self.dropdown.select("togglebutton")
+		while binds["ControlTypePicker", "togglebutton", "on_release"]:
+			togbut.unbind_uid(
+				"on_release",
+				binds["ControlTypePicker", "togglebutton", "on_release"].pop(),
+			)
+		binds["ControlTypePicker", "togglebutton", "on_release"].add(
+			togbut.fbind(
+				"on_release", lambda _: self.dropdown.select("togglebutton")
+			)
 		)
 		self.dropdown.add_widget(togbut)
 		sliderbut = Button(
@@ -103,11 +126,37 @@ class ControlTypePicker(Button):
 			height=self.height,
 			background_color=(0.7, 0.7, 0.7, 1),
 		)
-		sliderbut.bind(
-			on_release=lambda instance: self.dropdown.select("slider")
+		while binds["ControlTypePicker", "slider", "on_release"]:
+			sliderbut.unbind_uid(
+				"on_release",
+				binds["ControlTypePicker", "slider", "on_release"].pop(),
+			)
+		binds["ControlTypePicker", "slider", "on_release"].add(
+			sliderbut.fbind(
+				"on_release", lambda _: self.dropdown.select("slider")
+			)
 		)
 		self.dropdown.add_widget(sliderbut)
-		self.bind(on_release=self.dropdown.open)
+		while binds["ControlTypePicker", "on_release"]:
+			self.unbind_uid(
+				"on_release", binds["ControlTypePicker", "on_release"].pop()
+			)
+		binds["ControlTypePicker", "on_release"].add(
+			self.fbind("on_release", self.dropdown.open)
+		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["ControlTypePicker", "on_release"]):
+			self.unbind_uid("on_release", uid)
+		for button in self.dropdown.children[0].children:
+			if not hasattr(button, "text"):
+				continue
+			for uid in devour(
+				binds["ControlTypePicker", button.text, "on_release"]
+			):
+				button.unbind_uid("on_release", uid)
 
 
 class ConfigListItemToggleButton(BoxLayout):

@@ -51,7 +51,7 @@ from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .stepper import RuleStepper
-from .util import dummynum, logwrap, store_kv
+from .util import dummynum, logwrap, store_kv, devour
 
 
 def trigger(func):
@@ -183,14 +183,16 @@ class TimePanel(BoxLayout):
 		):
 			Clock.schedule_once(self.on_screen, 0)
 			return
+		app = App.get_running_app()
+		binds = app._bindings
 		self.ids.branchfield.hint_text = self.screen.app.branch
 		self.ids.turnfield.hint_text = str(self.screen.app.turn)
 		self.ids.tickfield.hint_text = str(self.screen.app.tick)
-		self.screen.app.bind(
-			branch=self._upd_branch_hint,
-			turn=self._upd_turn_hint,
-			tick=self._upd_tick_hint,
+		binds["ElideApp", "branch"].add(
+			app.fbind("branch", self._upd_branch_hint)
 		)
+		binds["ElideApp", "turn"].add(app.fbind("turn", self._upd_turn_hint))
+		binds["ElideApp", "tick"].add(app.fbind("tick", self._upd_tick_hint))
 
 
 class MainScreen(Screen):
@@ -269,6 +271,8 @@ class MainScreen(Screen):
 				)
 			Clock.schedule_once(self.populate, 0)
 			return
+		app = App.get_running_app()
+		binds = app._bindings
 		self.boardview = GraphBoardView(
 			scale_min=0.2,
 			scale_max=4.0,
@@ -277,12 +281,20 @@ class MainScreen(Screen):
 			board=self.graphboards[self.app.character_name],
 			adding_portal=self.charmenu.portaladdbut.state == "down",
 		)
-		self.mainview.bind(
-			size=self.boardview.setter("size"),
-			pos=self.boardview.setter("pos"),
+		binds["MainScreen", "mainview", "size"].add(
+			self.mainview.fbind("size", self.boardview.setter("size"))
 		)
-		self.charmenu.portaladdbut.bind(state=self._update_adding_portal)
-		self.app.bind(character_name=self._update_board)
+		binds["MainScreen", "mainview", "pos"].add(
+			self.mainview.fbind("pos", self.boardview.setter("pos"))
+		)
+		binds["CharMenu", "portaladdbut", "state"].add(
+			self.charmenu.portaladdbut.fbind(
+				"state", self._update_adding_portal
+			)
+		)
+		binds["ElideApp", "character_name"].add(
+			app.fbind("character_name", self._update_board)
+		)
 		self.calendar = Agenda(update_mode="present")
 		self.calendar_view = ScrollView(
 			size=self.mainview.size, pos=self.mainview.pos
@@ -294,28 +306,48 @@ class MainScreen(Screen):
 			pos=self.mainview.pos,
 			board=self.gridboards[self.app.character_name],
 		)
-		self.mainview.bind(
-			size=self.calendar_view.setter("size"),
-			pos=self.calendar_view.setter("pos"),
+		binds["MainScreen", "mainview", "size"].add(
+			self.mainview.fbind("size", self.calendar_view.setter("size"))
 		)
-		self.mainview.bind(
-			size=self.gridview.setter("size"), pos=self.gridview.setter("pos")
+		binds["MainScreen", "mainview", "pos"].add(
+			self.mainview.fbind("pos", self.calendar_view.setter("pos"))
+		)
+		binds["MainScreen", "mainview", "size"].add(
+			self.mainview.fbind("size", self.gridview.setter("size"))
+		)
+		binds["MainScreen", "mainview", "pos"].add(
+			self.mainview.fbind("pos", self.gridview.setter("pos"))
 		)
 		self.calendar_view.add_widget(self.calendar)
 		self.mainview.add_widget(self.boardview)
+		app._unbinders.append(self.unbind_all)
 		self._populated = True
+
+	def unbind_all(self):
+		app = App.get_running_app()
+		binds = app._bindings
+		for uid in devour(binds["MainScreen", "mainview", "size"]):
+			self.mainview.unbind_uid("size", uid)
+		for uid in devour(binds["MainScreen", "mainview", "pos"]):
+			self.mainview.unbind_uid("pos", uid)
+		for uid in devour(binds["CharMenu", "portaladdbut", "state"]):
+			self.charmenu.portaladdbut.unbind_uid("state", uid)
+		for uid in devour(binds["ElideApp", "character_name"]):
+			app.unbind_uid("character_name", uid)
+		for uid in devour(binds["MainScreen", "mainview", "size"]):
+			self.mainview.unbind_uid("size", uid)
+		for uid in devour(binds["MainScreen", "mainview", "pos"]):
+			self.mainview.unbind_uid("pos", uid)
 
 	@logwrap(section="TimePanel")
 	def on_statpanel(self, *_):
 		if not self.app:
 			Clock.schedule_once(self.on_statpanel, 0)
 			return
-		self.app.bind(
-			selected_proxy=self._update_statlist,
-			branch=self._update_statlist,
-			turn=self._update_statlist,
-			tick=self._update_statlist,
-		)
+		app = App.get_running_app()
+		binds = app._bindings
+		for att in ("selected_proxy", "branch", "turn", "tick"):
+			binds["ElideApp", att].add(app.fbind(att, self._update_statlist))
 
 	@trigger
 	@logwrap(section="TimePanel")
@@ -418,9 +450,11 @@ class MainScreen(Screen):
 		:class:`graph.Pawn` or :class:`graph.Spot`.
 
 		"""
-		if not self.app.character:
+		app = App.get_running_app()
+		if not app.character:
 			Clock.schedule_once(self.on_dummies, 0)
 			return
+		binds = app._bindings
 
 		def renum_dummy(dummy, *_):
 			dummy.num = dummynum(self.app.character, dummy.prefix) + 1
@@ -429,9 +463,13 @@ class MainScreen(Screen):
 			if dummy is None or hasattr(dummy, "_numbered"):
 				continue
 			if dummy == self.dummything:
-				self.app.pawncfg.bind(imgpaths=dummy.setter("paths"))
+				binds["ElideApp", "pawncfg", "imgpaths"].add(
+					app.pawncfg.fbind("imgpaths", dummy.setter("paths"))
+				)
 			if dummy == self.dummyplace:
-				self.app.spotcfg.bind(imgpaths=dummy.setter("paths"))
+				binds["ElideApp", "spotcfg", "imgpaths"].add(
+					app.spotcfg.fbind("imgpaths", dummy.setter("paths"))
+				)
 			dummy.num = dummynum(self.app.character, dummy.prefix) + 1
 			Logger.debug("MainScreen: dummy #{}".format(dummy.num))
 			dummy.bind(prefix=partial(renum_dummy, dummy))
@@ -572,19 +610,35 @@ class CharMenuContainer(BoxLayout):
 
 	def __init__(self, **kwargs):
 		super(CharMenuContainer, self).__init__(**kwargs)
+		app = App.get_running_app()
+		binds = app._bindings
 		self.charmenu = CharMenu(screen=self.screen, size_hint_y=0.9)
-		self.bind(screen=self.charmenu.setter("screen"))
+		binds["ElideApp", "screen"].add(
+			app.fbind("screen", self.charmenu.setter("screen"))
+		)
 		self.dummyplace = self.charmenu.dummyplace
-		self.charmenu.bind(dummyplace=self.setter("dummyplace"))
+		binds["CharMenu", "dummyplace"].add(
+			self.charmenu.fbind("dummyplace", self.setter("dummyplace"))
+		)
 		self.dummything = self.charmenu.dummything
-		self.charmenu.bind(dummything=self.setter("dummything"))
+		binds["CharMenu", "dummything"].add(
+			self.charmenu.fbind("dummything", self.setter("dummything"))
+		)
 		self.portaladdbut = self.charmenu.portaladdbut
-		self.charmenu.bind(portaladdbut=self.setter("portaladdbut"))
+		binds["CharMenu", "portaladdbut"].add(
+			self.charmenu.fbind("portaladdbut", self.setter("portaladdbut"))
+		)
 		if self.toggle_gridview:
 			self.charmenu = self.toggle_gridview
-		self.bind(
-			toggle_gridview=self.charmenu.setter("toggle_gridview"),
-			toggle_timestream=self.charmenu.setter("toggle_timestream"),
+		binds["CharMenuContainer", "toggle_gridview"].add(
+			self.fbind(
+				"toggle_gridview", self.charmenu.setter("toggle_gridview")
+			)
+		)
+		binds["CharMenuContainer", "toggle_timestream"].add(
+			self.fbind(
+				"toggle_timestream", self.charmenu.setter("toggle_timestream")
+			)
 		)
 		self.stepper = RuleStepper(size_hint_y=0.9)
 		self.button = Button(
@@ -592,12 +646,42 @@ class CharMenuContainer(BoxLayout):
 			text="Rule\nstepper",
 			size_hint_y=0.1,
 		)
-		app = App.get_running_app()
-		app.bind(
-			branch=self.switch_to_menu,
-			turn=self.switch_to_menu,
-			edit_locked=self.button.setter("disabled"),
+		binds["ElideApp", "branch"].add(
+			app.fbind("branch", self.switch_to_menu)
 		)
+		binds["ElideApp", "turn"].add(app.fbind("turn", self.switch_to_menu))
+		binds["ElideApp", "edit_locked"].add(
+			app.fbind("edit_locked", self.button.setter("disabled"))
+		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		app = App.get_running_app()
+		binds = app._bindings
+		for uid in devour(binds["ElideApp", "screen"]):
+			app.unbind_uid("screen", uid)
+		for uid in devour(binds["CharMenu", "dummyplace"]):
+			self.charmenu.unbind_uid("dummyplace", uid)
+		for uid in devour(binds["CharMenu", "dummything"]):
+			self.charmenu.unbind_uid("dummything", uid)
+		for uid in devour(binds["CharMenu", "portaladdbut"]):
+			self.charmenu.unbind_uid("portaladdbut", uid)
+		for uid in devour(binds["CharMenuContainer", "toggle_gridview"]):
+			self.charmenu.unbind_uid("toggle_gridview", uid)
+		for uid in devour(binds["CharMenuContainer", "toggle_timestream"]):
+			self.charmenu.unbind_uid("toggle_timestream", uid)
+		for uid in devour(binds["ElideApp", "branch"]):
+			app.unbind_uid("branch", uid)
+		for uid in devour(binds["ElideApp", "turn"]):
+			app.unbind_uid("turn", uid)
+		for uid in devour(binds["ElideApp", "tick"]):
+			app.unbind_uid("tick", uid)
+		for uid in devour(binds["ElideApp", "edit_locked"]):
+			app.unbind_uid("edit_locked", uid)
+		for uid in devour(binds["ElideApp", "pawncfg", "imgpaths"]):
+			app.pawncfg.unbind_uid("imgpaths", uid)
+		for uid in devour(binds["ElideApp", "spotcfg", "imgpaths"]):
+			app.spotcfg.unbind_uid("imgpaths", uid)
 
 	@logwrap(section="TimePanel")
 	def on_parent(self, *_):
@@ -753,6 +837,7 @@ store_kv(
 				text: 'Branch'
 			MenuTextInput:
 				id: branchfield
+				name: 'turn'
 				set_value: root.set_branch
 				hint_text: root.screen.app.branch if root.screen else ''
 				disabled: app.edit_locked
@@ -764,6 +849,7 @@ store_kv(
 					text: 'Turn'
 				MenuIntInput:
 					id: turnfield
+					name: 'turn'
 					set_value: root.set_turn
 					hint_text: str(root.screen.app.turn) if root.screen else ''
 					disabled: app.edit_locked
@@ -774,6 +860,7 @@ store_kv(
 					text: 'Tick'
 				MenuIntInput:
 					id: tickfield
+					name: 'tick'
 					set_value: root.set_tick
 					hint_text: str(root.screen.app.tick) if root.screen else ''
 					disabled: app.edit_locked
