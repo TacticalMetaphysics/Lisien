@@ -554,6 +554,15 @@ class ElideApp(App):
 			toggle=toggler("spotcfg"),
 			data=spotdata,
 		)
+		for builder in (
+			self.pawncfg.ids.dialog.ids.builder.__ref__(),
+			self.spotcfg.ids.dialog.ids.builder.__ref__(),
+		):
+			self._bindings["SpriteBuilder", id(builder), "data"].add(
+				builder.fbind("data", builder._trigger_update)
+			)
+			self._unbinders.append(builder.unbind_all)
+			builder.update()
 
 		load_kv("elide.statcfg")
 		self.statcfg = elide.statcfg.StatScreen(toggle=toggler("statcfg"))

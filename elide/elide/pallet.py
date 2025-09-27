@@ -113,9 +113,8 @@ class Pallet(StackLayout):
 		app = App.get_running_app()
 		binds = app._bindings
 		self.upd_textures()
-		assert not binds["Pallet", self.filename, "atlas", "textures"]
 		new_uid = self.atlas.fbind("textures", self._trigger_upd_textures)
-		binds["Pallet", self.filename, "atlas", "textures"].add(new_uid)
+		binds["Pallet", id(self), "atlas", "textures"].add(new_uid)
 		app._unbinders.append(
 			partial(self._unbind_atlas, self.filename, self.atlas, new_uid)
 		)
