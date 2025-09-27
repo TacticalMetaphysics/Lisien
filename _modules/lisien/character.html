@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>lisien.character &#8212; Lisien 0.21.3 documentation</title>
+    <title>lisien.character &#8212; Lisien 0.22.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=f301a15e"></script>
+    <script src="../../_static/documentation_options.js?v=c506fbac"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -71,19 +71,13 @@
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
 <span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">MethodType</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span>
 
 <span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
 <span class="kn">from</span> <span class="nn">blinker</span> <span class="kn">import</span> <span class="n">Signal</span>
 
-<span class="kn">from</span> <span class="nn">.cache</span> <span class="kn">import</span> <span class="n">FuturistWindowDict</span><span class="p">,</span> <span class="n">PickyDefaultDict</span>
-<span class="kn">from</span> <span class="nn">.exc</span> <span class="kn">import</span> <span class="n">AmbiguousLeaderError</span><span class="p">,</span> <span class="n">WorldIntegrityError</span>
+<span class="kn">from</span> <span class="nn">.exc</span> <span class="kn">import</span> <span class="n">WorldIntegrityError</span>
 <span class="kn">from</span> <span class="nn">.facade</span> <span class="kn">import</span> <span class="n">CharacterFacade</span>
-<span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="p">(</span>
-	<span class="n">DiGraphPredecessorsMapping</span><span class="p">,</span>
-	<span class="n">DiGraphSuccessorsMapping</span><span class="p">,</span>
-	<span class="n">GraphNodeMapping</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.node</span> <span class="kn">import</span> <span class="n">Node</span><span class="p">,</span> <span class="n">Place</span><span class="p">,</span> <span class="n">Thing</span>
 <span class="kn">from</span> <span class="nn">.portal</span> <span class="kn">import</span> <span class="n">Portal</span>
 <span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="n">CharacterStatAlias</span><span class="p">,</span> <span class="n">UnitsAlias</span>
@@ -91,13 +85,20 @@
 <span class="kn">from</span> <span class="nn">.rule</span> <span class="kn">import</span> <span class="n">RuleFollower</span> <span class="k">as</span> <span class="n">BaseRuleFollower</span>
 <span class="kn">from</span> <span class="nn">.rule</span> <span class="kn">import</span> <span class="n">RuleMapping</span>
 <span class="kn">from</span> <span class="nn">.types</span> <span class="kn">import</span> <span class="p">(</span>
+	<span class="n">Branch</span><span class="p">,</span>
 	<span class="n">CharName</span><span class="p">,</span>
+	<span class="n">DiGraphPredecessorsMapping</span><span class="p">,</span>
+	<span class="n">DiGraphSuccessorsMapping</span><span class="p">,</span>
 	<span class="n">EdgeValDict</span><span class="p">,</span>
+	<span class="n">GraphNodeMapping</span><span class="p">,</span>
 	<span class="n">Key</span><span class="p">,</span>
 	<span class="n">NodeName</span><span class="p">,</span>
+	<span class="n">RulebookName</span><span class="p">,</span>
 	<span class="n">RulebookTypeStr</span><span class="p">,</span>
 	<span class="n">Stat</span><span class="p">,</span>
 	<span class="n">StatDict</span><span class="p">,</span>
+	<span class="n">Tick</span><span class="p">,</span>
+	<span class="n">Turn</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">AbstractCharacter</span><span class="p">,</span> <span class="n">getatt</span><span class="p">,</span> <span class="n">singleton_get</span><span class="p">,</span> <span class="n">timer</span>
 <span class="kn">from</span> <span class="nn">.wrap</span> <span class="kn">import</span> <span class="n">MutableMappingUnwrapper</span><span class="p">,</span> <span class="n">SpecialMapping</span>
@@ -181,20 +182,24 @@
 	<span class="k">def</span> <span class="nf">_get_rulebook_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">pass</span>
 
-	<span class="k">def</span> <span class="nf">_get_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_get_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RulebookName</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_rulebook_cache</span><span class="p">()</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 			<span class="p">)</span>
 		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-			<span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_book</span> <span class="o">+</span> <span class="s2">&quot;_rulebook&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+			<span class="n">ret</span> <span class="o">=</span> <span class="n">RulebookName</span><span class="p">(</span>
+				<span class="n">Key</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_book</span> <span class="o">+</span> <span class="s2">&quot;_rulebook&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+			<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_set_rulebook_name</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
 			<span class="k">return</span> <span class="n">ret</span>
 
-	<span class="k">def</span> <span class="nf">_set_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">_set_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="n">RulebookName</span><span class="p">):</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rulebook_on_character</span><span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_book</span> <span class="o">+</span> <span class="s2">&quot;_rulebook&quot;</span><span class="p">,</span>
+		<span class="n">set_rb</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span>
+			<span class="p">[</span><span class="n">CharName</span><span class="p">,</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">,</span> <span class="n">RulebookName</span><span class="p">],</span> <span class="kc">None</span>
+		<span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;set_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_book</span><span class="si">}</span><span class="s2">_rulebook&quot;</span><span class="p">)</span>
+		<span class="n">set_rb</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
 			<span class="n">branch</span><span class="p">,</span>
 			<span class="n">turn</span><span class="p">,</span>
@@ -284,10 +289,9 @@
 		<span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.character[</span><span class="si">{}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">),</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-		<span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;Engine&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">CharName</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">init_rulebooks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;Engine&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">CharName</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">init_rulebooks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 	<span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_avatars_cache</span> <span class="o">=</span> <span class="n">PickyDefaultDict</span><span class="p">(</span><span class="n">FuturistWindowDict</span><span class="p">)</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">init_rulebooks</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="n">cachemap</span> <span class="o">=</span> <span class="p">{</span>
@@ -299,10 +303,11 @@
 		<span class="p">}</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_btt</span><span class="p">()</span>
 		<span class="k">for</span> <span class="n">rulebook</span><span class="p">,</span> <span class="n">cache</span> <span class="ow">in</span> <span class="n">cachemap</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-			<span class="n">rulebook_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">rulebook</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-			<span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">set_rulebook_on_character</span><span class="p">(</span>
-				<span class="n">rulebook</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook_name</span>
-			<span class="p">)</span>
+			<span class="n">rulebook_name</span> <span class="o">=</span> <span class="n">RulebookName</span><span class="p">(</span><span class="n">Key</span><span class="p">((</span><span class="n">rulebook</span><span class="p">,</span> <span class="n">name</span><span class="p">)))</span>
+			<span class="n">set_rb</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span>
+				<span class="p">[</span><span class="n">CharName</span><span class="p">,</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">,</span> <span class="n">RulebookName</span><span class="p">],</span> <span class="kc">None</span>
+			<span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;set_</span><span class="si">{</span><span class="n">rulebook</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+			<span class="n">set_rb</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook_name</span><span class="p">)</span>
 			<span class="n">cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook_name</span><span class="p">)</span>
 
 	<span class="k">class</span> <span class="nc">ThingMapping</span><span class="p">(</span>
@@ -1079,7 +1084,7 @@
 <span class="sd">		time travel. This makes it much speedier to work with.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">return</span> <span class="n">CharacterFacade</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+		<span class="k">return</span> <span class="n">CharacterFacade</span><span class="p">(</span><span class="n">character</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Character.add_place">
@@ -1395,7 +1400,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.xcollections">xcollections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#xcollections">xcollections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 

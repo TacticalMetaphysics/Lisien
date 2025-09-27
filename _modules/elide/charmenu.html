@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.charmenu &#8212; Lisien 0.21.3 documentation</title>
+    <title>elide.charmenu &#8212; Lisien 0.22.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=f301a15e"></script>
+    <script src="../../_static/documentation_options.js?v=c506fbac"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -47,6 +47,7 @@
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
+<span class="kn">from</span> <span class="nn">kivy.app</span> <span class="kn">import</span> <span class="n">App</span>
 <span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">triggered</span>
 <span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="p">(</span>
 	<span class="n">BooleanProperty</span><span class="p">,</span>
@@ -78,12 +79,6 @@
 	<span class="n">dummies</span> <span class="o">=</span> <span class="n">ReferenceListProperty</span><span class="p">(</span><span class="n">dummyplace</span><span class="p">,</span> <span class="n">dummything</span><span class="p">)</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">app</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="p">:</span>
-			<span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No screen, therefore no app&quot;</span><span class="p">)</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span>
-
-	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">app</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t get engine from screen&quot;</span><span class="p">)</span>
@@ -100,14 +95,21 @@
 		<span class="p">):</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_screen</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
+		<span class="n">binds</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">_bindings</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">forearrow</span> <span class="o">=</span> <span class="n">GraphArrowWidget</span><span class="p">(</span>
 			<span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">board</span><span class="p">,</span>
 			<span class="n">origin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span><span class="p">,</span>
 			<span class="n">destination</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyright</span><span class="p">,</span>
 		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">forearrow</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">forearrow</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyright</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">forearrow</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+		<span class="k">assert</span> <span class="ow">not</span> <span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyleft&quot;</span><span class="p">,</span> <span class="s2">&quot;fore&quot;</span><span class="p">]</span>
+		<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyleft&quot;</span><span class="p">,</span> <span class="s2">&quot;fore&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">forearrow</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+		<span class="p">)</span>
+		<span class="k">assert</span> <span class="ow">not</span> <span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyright&quot;</span><span class="p">,</span> <span class="s2">&quot;fore&quot;</span><span class="p">]</span>
+		<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyright&quot;</span><span class="p">,</span> <span class="s2">&quot;fore&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyright</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">forearrow</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+		<span class="p">)</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reciprocal_portal</span><span class="p">:</span>
 			<span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span> <span class="ow">is</span> <span class="kc">None</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span> <span class="o">=</span> <span class="n">GraphArrowWidget</span><span class="p">(</span>
@@ -116,10 +118,22 @@
 				<span class="n">destination</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span><span class="p">,</span>
 			<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyright</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-			<span class="n">reciprocal_portal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;reciprocal_portal&quot;</span><span class="p">)</span>
+			<span class="k">assert</span> <span class="ow">not</span> <span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyleft&quot;</span><span class="p">,</span> <span class="s2">&quot;rev&quot;</span><span class="p">]</span>
+			<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyleft&quot;</span><span class="p">,</span> <span class="s2">&quot;rev&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+			<span class="p">)</span>
+			<span class="k">assert</span> <span class="ow">not</span> <span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyright&quot;</span><span class="p">,</span> <span class="s2">&quot;rev&quot;</span><span class="p">]</span>
+			<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyright&quot;</span><span class="p">,</span> <span class="s2">&quot;rev&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyright</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+					<span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="o">.</span><span class="n">_trigger_repoint</span>
+				<span class="p">)</span>
+			<span class="p">)</span>
+		<span class="k">assert</span> <span class="ow">not</span> <span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;reciprocal_portal&quot;</span><span class="p">]</span>
+		<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;reciprocal_portal&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+				<span class="s2">&quot;reciprocal_portal&quot;</span><span class="p">,</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">setter</span><span class="p">(</span><span class="s2">&quot;reciprocal_portal&quot;</span><span class="p">),</span>
+			<span class="p">)</span>
 		<span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">)</span>
@@ -128,12 +142,13 @@
 			<span class="k">return</span>
 		<span class="k">if</span> <span class="n">dummy</span><span class="o">.</span><span class="n">collide_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 			<span class="k">return</span>
+		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
 		<span class="n">name</span> <span class="o">=</span> <span class="n">dummy</span><span class="o">.</span><span class="n">name</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">spot_from_dummy</span><span class="p">(</span><span class="n">dummy</span><span class="p">)</span>
-		<span class="n">graphboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
+		<span class="n">graphboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">graphboard</span><span class="o">.</span><span class="n">spot</span><span class="p">:</span>
 			<span class="n">graphboard</span><span class="o">.</span><span class="n">add_spot</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-		<span class="n">gridboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
+		<span class="n">gridboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
 		<span class="k">if</span> <span class="p">(</span>
 			<span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">gridboard</span><span class="o">.</span><span class="n">spot</span>
 			<span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
@@ -146,13 +161,14 @@
 		<span class="n">name</span> <span class="o">=</span> <span class="n">dummy</span><span class="o">.</span><span class="n">name</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">mainview</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pawn_from_dummy</span><span class="p">(</span><span class="n">dummy</span><span class="p">):</span>
 			<span class="k">return</span>
-		<span class="n">graphboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
+		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
+		<span class="n">graphboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">graphboards</span><span class="p">[</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">graphboard</span><span class="o">.</span><span class="n">pawn</span><span class="p">:</span>
 			<span class="n">graphboard</span><span class="o">.</span><span class="n">add_pawn</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-		<span class="n">gridboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
+		<span class="n">gridboard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">gridboards</span><span class="p">[</span><span class="n">app</span><span class="o">.</span><span class="n">character_name</span><span class="p">]</span>
 		<span class="k">if</span> <span class="p">(</span>
 			<span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">gridboard</span><span class="o">.</span><span class="n">pawn</span>
-			<span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">gridboard</span><span class="o">.</span><span class="n">spot</span>
+			<span class="ow">and</span> <span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">gridboard</span><span class="o">.</span><span class="n">spot</span>
 		<span class="p">):</span>
 			<span class="n">gridboard</span><span class="o">.</span><span class="n">add_pawn</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
@@ -162,7 +178,7 @@
 	<span class="k">def</span> <span class="nf">toggle_chars_screen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Display or hide the list you use to switch between characters.&quot;&quot;&quot;</span>
 		<span class="c1"># TODO: update the list of chars</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
+		<span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="CharMenu.toggle_rules">
@@ -170,16 +186,17 @@
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">toggle_rules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Display or hide the view for constructing rules out of cards.&quot;&quot;&quot;</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">!=</span> <span class="s2">&quot;rules&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">,</span> <span class="n">CharStatProxy</span>
+		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
+		<span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">!=</span> <span class="s2">&quot;rules&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+			<span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">,</span> <span class="n">CharStatProxy</span>
 		<span class="p">):</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">entity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">rulebook</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="o">.</span><span class="n">rulebook</span>
-		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">,</span> <span class="n">CharStatProxy</span><span class="p">):</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">charrules</span><span class="o">.</span><span class="n">character</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">charrules</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+			<span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">entity</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span>
+			<span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">rulebook</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="o">.</span><span class="n">rulebook</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span><span class="p">,</span> <span class="n">CharStatProxy</span><span class="p">):</span>
+			<span class="n">app</span><span class="o">.</span><span class="n">charrules</span><span class="o">.</span><span class="n">character</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">selected_proxy</span>
+			<span class="n">app</span><span class="o">.</span><span class="n">charrules</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
+			<span class="n">app</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="CharMenu.toggle_funcs_editor">
@@ -187,12 +204,12 @@
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">toggle_funcs_editor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Display or hide the text editing window for functions.&quot;&quot;&quot;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">funcs</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
+		<span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">funcs</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">toggle_strings_editor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
+		<span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span>
 
 <div class="viewcode-block" id="CharMenu.toggle_spot_cfg">
 <a class="viewcode-back" href="../../elide/index.html#elide.charmenu.CharMenu.toggle_spot_cfg">[docs]</a>
@@ -202,24 +219,23 @@
 <span class="sd">		or hide it if already showing.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">==</span> <span class="s2">&quot;spotcfg&quot;</span><span class="p">:</span>
+		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
+		<span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">==</span> <span class="s2">&quot;spotcfg&quot;</span><span class="p">:</span>
 			<span class="n">dummyplace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screendummyplace</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">placetab</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="n">dummyplace</span><span class="p">)</span>
 			<span class="n">dummyplace</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">prefix</span><span class="p">:</span>
-				<span class="n">dummyplace</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">prefix</span>
-				<span class="n">dummyplace</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="p">(</span>
-					<span class="n">dummynum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">dummyplace</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-				<span class="p">)</span>
-			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">imgpaths</span><span class="p">:</span>
-				<span class="n">dummyplace</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">imgpaths</span>
+				<span class="n">dummyplace</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">prefix</span>
+				<span class="n">dummyplace</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">dummynum</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">dummyplace</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+			<span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">imgpaths</span><span class="p">:</span>
+				<span class="n">dummyplace</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">imgpaths</span>
 			<span class="k">else</span><span class="p">:</span>
 				<span class="n">dummyplace</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;atlas://rltiles/floor/floor-stone&quot;</span><span class="p">]</span>
 			<span class="n">dummyplace</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">placetab</span><span class="o">.</span><span class="n">center</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">placetab</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">dummyplace</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">dummyplace</span><span class="o">.</span><span class="n">prefix</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
+			<span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">dummyplace</span><span class="o">.</span><span class="n">prefix</span>
+		<span class="n">app</span><span class="o">.</span><span class="n">spotcfg</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="CharMenu.toggle_pawn_cfg">
@@ -227,23 +243,22 @@
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">toggle_pawn_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Show or hide the pop-over where you can configure the dummy pawn&quot;&quot;&quot;</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">==</span> <span class="s2">&quot;pawncfg&quot;</span><span class="p">:</span>
-			<span class="n">dummything</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">dummything</span>
+		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
+		<span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">current</span> <span class="o">==</span> <span class="s2">&quot;pawncfg&quot;</span><span class="p">:</span>
+			<span class="n">dummything</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">dummything</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">thingtab</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="n">dummything</span><span class="p">)</span>
 			<span class="n">dummything</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">prefix</span><span class="p">:</span>
-				<span class="n">dummything</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">prefix</span>
-				<span class="n">dummything</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="p">(</span>
-					<span class="n">dummynum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">dummything</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-				<span class="p">)</span>
-			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">imgpaths</span><span class="p">:</span>
-				<span class="n">dummything</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">imgpaths</span>
+			<span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">prefix</span><span class="p">:</span>
+				<span class="n">dummything</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">prefix</span>
+				<span class="n">dummything</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">dummynum</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="n">dummything</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+			<span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">imgpaths</span><span class="p">:</span>
+				<span class="n">dummything</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">imgpaths</span>
 			<span class="k">else</span><span class="p">:</span>
 				<span class="n">dummything</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;atlas://rltiles/base/unseen&quot;</span><span class="p">]</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">thingtab</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="n">dummything</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">dummything</span><span class="o">.</span><span class="n">prefix</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
+			<span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">dummything</span><span class="o">.</span><span class="n">prefix</span>
+		<span class="n">app</span><span class="o">.</span><span class="n">pawncfg</span><span class="o">.</span><span class="n">toggle</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="CharMenu.toggle_reciprocal">
@@ -255,6 +270,7 @@
 <span class="sd">		fact.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">binds</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">_bindings</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">reciprocal_portal</span> <span class="o">=</span> <span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">reciprocal_portal</span>
 		<span class="p">)</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">boardview</span><span class="o">.</span><span class="n">reciprocal_portal</span>
@@ -266,8 +282,18 @@
 				<span class="n">destination</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span><span class="p">,</span>
 			<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyright</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="o">.</span><span class="n">_trigger_repoint</span><span class="p">)</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyright&quot;</span><span class="p">,</span> <span class="s2">&quot;rev&quot;</span><span class="p">]:</span>
+				<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyright&quot;</span><span class="p">,</span> <span class="s2">&quot;rev&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyright</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+						<span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="o">.</span><span class="n">_trigger_repoint</span>
+					<span class="p">)</span>
+				<span class="p">)</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyleft&quot;</span><span class="p">,</span> <span class="s2">&quot;rev&quot;</span><span class="p">]:</span>
+				<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">,</span> <span class="s2">&quot;emptyleft&quot;</span><span class="p">,</span> <span class="s2">&quot;rev&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">emptyleft</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span>
+						<span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="o">.</span><span class="n">_trigger_repoint</span>
+					<span class="p">)</span>
+				<span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;revarrow&quot;</span><span class="p">):</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">portaladdbut</span><span class="o">.</span><span class="n">remove_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">revarrow</span><span class="p">)</span>
@@ -276,16 +302,15 @@
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">new_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">but</span><span class="p">):</span>
-		<span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newname</span><span class="o">.</span><span class="n">text</span>
+		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
+		<span class="n">name</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newname</span><span class="o">.</span><span class="n">text</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+			<span class="n">charn</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 		<span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
 			<span class="n">charn</span> <span class="o">=</span> <span class="n">name</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">select_character</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">new_character</span><span class="p">(</span><span class="n">charn</span><span class="p">))</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newname</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">adapter</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-		<span class="p">)</span>
+		<span class="n">app</span><span class="o">.</span><span class="n">select_character</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">new_character</span><span class="p">(</span><span class="n">charn</span><span class="p">))</span>
+		<span class="n">app</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">newname</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+		<span class="n">app</span><span class="o">.</span><span class="n">chars</span><span class="o">.</span><span class="n">charsview</span><span class="o">.</span><span class="n">adapter</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 		<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">toggle_chars_screen</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">)</span>
@@ -301,9 +326,13 @@
 	<span class="nd">@trigger</span>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharMenu&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">_trigger_deselect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
-		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="p">):</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">selected</span> <span class="o">=</span> <span class="kc">False</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="kc">None</span></div>
+		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">selection</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="p">):</span>
+			<span class="n">app</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">selected</span> <span class="o">=</span> <span class="kc">False</span>
+		<span class="n">app</span><span class="o">.</span><span class="n">selection</span> <span class="o">=</span> <span class="kc">None</span>
+
+	<span class="k">def</span> <span class="nf">close_game</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+		<span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">close_game</span><span class="p">()</span></div>
 
 
 
@@ -316,6 +345,9 @@
 <span class="sd">	dummything: dummything</span>
 <span class="sd">	portaladdbut: portaladdbut</span>
 <span class="sd">	portaldirbut: portaldirbut</span>
+<span class="sd">	Button:</span>
+<span class="sd">		text: &#39;Logs&#39;</span>
+<span class="sd">		on_release: app.log_screen.toggle()</span>
 <span class="sd">	Button:</span>
 <span class="sd">		text: &#39;Delete&#39;</span>
 <span class="sd">		disabled: app.edit_locked</span>
@@ -339,6 +371,7 @@
 <span class="sd">		on_release: root.toggle_funcs_editor()</span>
 <span class="sd">	Button:</span>
 <span class="sd">		text: &#39;Rules&#39;</span>
+<span class="sd">		id: rules_button</span>
 <span class="sd">		disabled: app.edit_locked</span>
 <span class="sd">		on_release: root.toggle_rules()</span>
 <span class="sd">	Button:</span>
@@ -393,7 +426,8 @@
 <span class="sd">			on_release: root.toggle_reciprocal()</span>
 <span class="sd">	Button:</span>
 <span class="sd">		text: &#39;Quit&#39;</span>
-<span class="sd">		on_release: app.close_game()</span>
+<span class="sd">		id: quit_button</span>
+<span class="sd">		on_release: root.close_game()</span>
 <span class="sd">&quot;&quot;&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
@@ -433,7 +467,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.xcollections">xcollections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#xcollections">xcollections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 
