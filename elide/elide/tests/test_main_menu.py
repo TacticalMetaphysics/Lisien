@@ -2,7 +2,6 @@ import os
 import shutil
 
 import pytest
-
 from kivy.base import EventLoop
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.button import Button

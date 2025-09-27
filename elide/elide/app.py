@@ -14,11 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Object to configure, start, and stop elide."""
 
-from collections import defaultdict
-
 import json
 import os
 import shutil
+from collections import defaultdict
 from functools import cached_property, partial
 from threading import Thread
 from typing import Callable
@@ -57,7 +56,7 @@ import elide.timestream
 from elide.graph.arrow import GraphArrow
 from elide.graph.board import GraphBoard
 from elide.grid.board import GridBoard
-from elide.util import load_kv, logwrap, devour
+from elide.util import devour, load_kv, logwrap
 from lisien.proxy import (
 	CharacterProxy,
 	CharStatProxy,
@@ -113,6 +112,7 @@ class ElideApp(App):
 		return [self.unbind_all]
 
 	def unbind_all(self):
+		Logger.debug("ElideApp: unbinding everything")
 		for uid in devour(self._bindings["ElideApp", "character"]):
 			self.unbind_uid("character", uid)
 		for uid in devour(self._bindings["ElideApp", "character_name"]):
@@ -574,6 +574,7 @@ class ElideApp(App):
 		self._bindings["ElideApp", "character"].add(
 			self.fbind("character", self.charrules.setter("character"))
 		)
+		Logger.debug("ElideApp: bound charrules setter")
 		load_kv("elide.charsview")
 		self.chars = elide.charsview.CharactersScreen(
 			toggle=toggler("chars"), new_board=self.new_board

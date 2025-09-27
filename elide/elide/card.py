@@ -21,7 +21,6 @@ of other cards.
 from functools import partial
 
 import pygments
-
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.graphics import InstructionGroup
@@ -48,7 +47,7 @@ from kivy.utils import get_hex_from_color
 from pygments.formatters.bbcode import BBCodeFormatter
 from pygments.lexers import PythonLexer
 
-from .util import logwrap, store_kv, devour
+from .util import devour, logwrap, store_kv
 
 dbg = Logger.debug
 

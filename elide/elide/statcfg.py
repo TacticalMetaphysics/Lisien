@@ -27,7 +27,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .statlist import BaseStatListView
-from .util import logwrap, store_kv, devour
+from .util import devour, logwrap, store_kv
 
 
 class FloatInput(TextInput):

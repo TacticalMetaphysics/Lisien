@@ -26,7 +26,6 @@ from operator import itemgetter
 from typing import Iterator, Optional, Tuple
 
 import numpy as np
-
 from kivy.app import App
 from kivy.clock import Clock, mainthread
 from kivy.core.text import Label

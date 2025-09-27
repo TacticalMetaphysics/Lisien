@@ -34,7 +34,7 @@ from kivy.uix.widget import Widget
 
 from .card import Card, DeckBuilderScrollBar, DeckBuilderView
 from .stores import FuncEditor
-from .util import logwrap, store_kv, devour
+from .util import devour, logwrap, store_kv
 
 
 def trigger(func):
@@ -100,14 +100,25 @@ class RulesList(RecycleView):
 		"""Make sure to update when the rulebook changes"""
 		if self.rulebook is None:
 			return
+		Logger.debug("RulesList: got rulebook")
 		self.rulebook.connect(self._trigger_redata, weak=False)
+		self.redata()
+
+	@logwrap(section="RulesList")
+	def on_rulesview(self, *_):
+		if self.rulebook is None:
+			Logger.debug("RulesList: got rulesview before rulebook")
+			return
 		self.redata()
 
 	@logwrap(section="RulesList")
 	def redata(self, *_):
 		"""Make my data represent what's in my rulebook right now"""
 		if self.rulesview is None:
-			Clock.schedule_once(self.redata, 0)
+			Logger.debug(
+				"RulesList: delaying redata until rulesview available"
+			)
+			self._trigger_redata()
 			return
 		data = [
 			{
