@@ -38,7 +38,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import logwrap, store_kv, devour
+from .util import devour, logwrap, store_kv
 
 
 def trigger(func):

@@ -317,6 +317,7 @@ store_kv(
 		on_release: root.toggle_funcs_editor()
 	Button:
 		text: 'Rules'
+		id: rules_button
 		disabled: app.edit_locked
 		on_release: root.toggle_rules()
 	Button:

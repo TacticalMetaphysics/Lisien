@@ -32,7 +32,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .gen import GridGeneratorDialog
-from .util import load_kv, logwrap, store_kv, devour
+from .util import devour, load_kv, logwrap, store_kv
 
 
 class MenuTextInput(TextInput):

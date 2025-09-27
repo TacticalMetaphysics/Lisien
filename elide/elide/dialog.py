@@ -34,7 +34,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 
-from .util import logwrap, store_kv, devour
+from .util import devour, logwrap, store_kv
 
 
 class Box(Widget):

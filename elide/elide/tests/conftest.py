@@ -23,8 +23,8 @@ from kivy.lang import Builder
 from kivy.resources import resource_find
 
 from elide.app import ElideApp
-from elide.util import unload_all_kv
 from elide.tests.util import idle_until
+from elide.util import unload_all_kv
 from lisien import Engine
 from lisien.examples import kobold, polygons, sickle
 

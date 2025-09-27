@@ -41,7 +41,7 @@ from ..boardscatter import BoardScatterPlane
 from ..boardview import BoardView
 from ..dummy import Dummy
 from ..kivygarden.texturestack import Stack, TextureStackPlane
-from ..util import store_kv, logwrap, devour
+from ..util import devour, logwrap, store_kv
 from .arrow import (
 	DEFAULT_ARROW_LABEL_KWARGS,
 	ArrowPlane,
