@@ -127,8 +127,6 @@ class ElideApp(App):
 			self.mainscreen.unbind_uid("statlist", uid)
 		for uid in devour(self._bindings["ElideApp", "selection"]):
 			self.unbind_uid("selection", uid)
-		for uid in devour(self._bindings["ElideApp", "character"]):
-			self.unbind_uid("character", uid)
 		for graphboard in self.mainscreen.graphboards:
 			for uid in devour(
 				self._bindings["GraphBoard", graphboard, "selection"]
