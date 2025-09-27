@@ -53,6 +53,19 @@ class SpriteSelector(BoxLayout):
 	default_imgpaths = ListProperty()
 	preview = ObjectProperty()
 
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		App.get_running_app()._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for att in ("pos", "size"):
+			for uid in devour(binds["SpriteSelector", "ImageStack", att]):
+				self._imgstack.unbind_uid(att, uid)
+		for pallet in self.pallets:
+			for uid in devour(binds["Pallet", id(pallet), "selection"]):
+				pallet.unbind_uid("selection", uid)
+
 	@logwrap(section="SpriteSelector")
 	def on_prefix(self, *_):
 		if "textbox" not in self.ids:
@@ -73,8 +86,8 @@ class SpriteSelector(BoxLayout):
 		else:
 			self._imgstack = ImageStack(paths=self.imgpaths)
 			for att in ("pos", "size"):
-				binds["SpriteSelector", att].add(
-					self.fbind(att, self._position_imgstack)
+				binds["SpriteSelector", "ImageStack", att].add(
+					self._imgstack.fbind(att, self._position_imgstack)
 				)
 			self.preview.add_widget(self._imgstack)
 
@@ -89,19 +102,14 @@ class SpriteSelector(BoxLayout):
 		app = App.get_running_app()
 		binds = app._bindings
 		for pallet in self.pallets:
-			binds["Pallet", pallet.filename, "selection"].add(
+			binds["Pallet", id(pallet), "selection"].add(
 				pallet.fbind("selection", self._upd_imgpaths)
-			)
-			app._unbinders.append(
-				partial(self._unbind_pallet_selection, pallet)
 			)
 
 	@staticmethod
 	def _unbind_pallet_selection(pallet):
 		for uid in devour(
-			App.get_running_app()._bindings[
-				"Pallet", pallet.filename, "selection"
-			]
+			App.get_running_app()._bindings["Pallet", id(pallet), "selection"]
 		):
 			pallet.unbind_uid("selection", uid)
 
@@ -123,39 +131,23 @@ class SpriteBuilder(ScrollView):
 	default_imgpaths = ListProperty()
 	data = ListProperty()
 	labels = ListProperty()
-	name = StringProperty()
 	pallets = ListProperty()
-
-	def __init__(self, **kwargs):
-		super().__init__(**kwargs)
-
-	def on_name(self, *_):
-		app = App.get_running_app()
-		binds = app._bindings
-		binds["SpriteBuilder", self.name, "data"].add(
-			self.fbind("data", self._trigger_update)
-		)
-		app._unbinders.append(self.unbind_all)
 
 	def unbind_all(self):
 		binds = App.get_running_app()._bindings
-		for uid in devour(binds["SpriteBuilder", self.name, "data"]):
+		for uid in devour(binds["SpriteBuilder", id(self), "data"]):
 			self.unbind_uid("data", uid)
 		for uid in devour(binds["PalletBox", "width"]):
 			self._palbox.unbind_uid("width", uid)
 		for pallet in self.pallets:
-			for uid in devour(
-				binds["Pallet", pallet.filename, "minimum_height"]
-			):
+			for uid in devour(binds["Pallet", id(pallet), "minimum_height"]):
 				pallet.unbind_uid("minimum_height", uid)
-			for uid in devour(binds["Pallet", pallet.filename, "height"]):
+			for uid in devour(binds["Pallet", id(pallet), "height"]):
 				pallet.unbind_uid("height", uid)
 
 	@logwrap(section="SpriteBuilder")
 	def update(self, *args):
-		if self.data is None:
-			return
-		if not self.canvas:
+		if self.data is None or not self.canvas:
 			Clock.schedule_once(self.update, 0)
 			return
 		binds = App.get_running_app()._bindings
@@ -169,7 +161,7 @@ class SpriteBuilder(ScrollView):
 		self.labels = []
 		for pallet in self.pallets:
 			if hasattr(pallet, "_bound_minimum_height"):
-				binds["Pallet", pallet.filename, "minimum_height"].remove(
+				binds["Pallet", id(pallet), "minimum_height"].remove(
 					pallet._bound_minimum_height
 				)
 				pallet.unbind_uid(
@@ -177,7 +169,7 @@ class SpriteBuilder(ScrollView):
 				)
 				del pallet._bound_minimum_height
 			if hasattr(pallet, "_bound_height"):
-				binds["Pallet", pallet.filename, "height"].remove(
+				binds["Pallet", id(pallet), "height"].remove(
 					pallet._bound_height
 				)
 				pallet.unbind_uid("height", pallet._bound_height)
@@ -198,15 +190,13 @@ class SpriteBuilder(ScrollView):
 			pallet._bound_minimum_height = (
 				pallet.fbind("minimum_height", pallet.setter("height")),
 			)
-			binds["Pallet", pallet.filename, "minimum_height"].add(
+			binds["Pallet", id(pallet), "minimum_height"].add(
 				pallet._bound_minimum_height
 			)
 			pallet._bound_height = pallet.fbind(
 				"height", self._trigger_reheight
 			)
-			binds["Pallet", pallet.filename, "height"].add(
-				pallet._bound_height
-			)
+			binds["Pallet", id(pallet), "height"].add(pallet._bound_height)
 			self.labels.append(label)
 			self.pallets.append(pallet)
 		n = len(self.labels)
@@ -471,7 +461,6 @@ store_kv(
 	imgpaths: dialog.imgpaths
 	PawnConfigDialog:
 		id: dialog
-		name: 'pawn'
 		toggle: root.toggle
 		default_imgpaths: ['atlas://rltiles/base/unseen']
 		custom_imgs_header: root.custom_imgs_header
@@ -482,7 +471,6 @@ store_kv(
 	imgpaths: dialog.imgpaths
 	SpotConfigDialog:
 		id: dialog
-		name: 'spot'
 		toggle: root.toggle
 		default_imgpaths: ['atlas://rltiles/floor/floor-stone']
 		custom_imgs_header: root.custom_imgs_header
