@@ -26,7 +26,7 @@ from kivy.uix.boxlayout import BoxLayout
 from lisien.proxy import CharStatProxy
 
 from .graph.arrow import GraphArrowWidget
-from .util import dummynum, logwrap, store_kv
+from .util import dummynum, logwrap, store_kv, devour
 
 
 def trigger(func):
@@ -60,7 +60,8 @@ class CharMenu(BoxLayout):
 		):
 			Clock.schedule_once(self.on_screen, 0)
 			return
-		binds = App.get_running_app()._bindings
+		app = App.get_running_app()
+		binds = app._bindings
 		self.forearrow = GraphArrowWidget(
 			board=self.screen.boardview.board,
 			origin=self.ids.emptyleft,
@@ -100,6 +101,20 @@ class CharMenu(BoxLayout):
 				self.screen.boardview.setter("reciprocal_portal"),
 			)
 		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["CharMenu", "emptyleft", "fore"]):
+			self.ids.emptyleft.unbind_uid("pos", uid)
+		for uid in devour(binds["CharMenu", "emptyright", "fore"]):
+			self.ids.emptyright.unbind_uid("pos", uid)
+		for uid in devour(binds["CharMenu", "emptyleft", "rev"]):
+			self.ids.emptyleft.unbind_uid("pos", uid)
+		for uid in devour(binds["CharMenu", "emptyright", "rev"]):
+			self.ids.emptyright.unbind_uid("pos", uid)
+		for uid in devour(binds["CharMenu", "reciprocal_portal"]):
+			self.unbind_uid("reciprocal_portal", uid)
 
 	@logwrap(section="CharMenu")
 	def spot_from_dummy(self, dummy):
