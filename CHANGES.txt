@@ -1,3 +1,7 @@
+== 0.22.3 | 2025-09-28 ==
+* Fixed basic entity creation in Elide, which broke in 0.22.2.
+  Sorry...
+
 == 0.22.2 | 2025-09-27 ==
 * Fixed a crash when quitting out of a recently imported game in Elide
   (meaning the game wouldn't be saved)

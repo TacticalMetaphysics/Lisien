@@ -26,7 +26,7 @@ from kivy.uix.boxlayout import BoxLayout
 from lisien.proxy import CharStatProxy
 
 from .graph.arrow import GraphArrowWidget
-from .util import dummynum, logwrap, store_kv, devour
+from .util import devour, dummynum, logwrap, store_kv
 
 
 def trigger(func):

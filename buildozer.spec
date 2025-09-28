@@ -30,11 +30,11 @@ source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien,elide
 #source.exclude_patterns = license,images/*/*.jpg
 
 # (str) Application versioning (method 1)
-version = 0.22.2
+#version = 0.22.2
 
 # (str) Application versioning (method 2)
-# version.regex = __version__ = ['"](.*)['"]
-# version.filename = %(source.dir)s/main.py
+version.regex = version = ['"](.*)['"]
+version.filename = %(source.dir)s/elide/pyproject.toml
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
