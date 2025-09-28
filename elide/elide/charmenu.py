@@ -68,14 +68,18 @@ class CharMenu(BoxLayout):
 			destination=self.ids.emptyright,
 		)
 		self.ids.portaladdbut.add_widget(self.forearrow)
-		assert not binds["CharMenu", "emptyleft", "fore"]
-		binds["CharMenu", "emptyleft", "fore"].add(
-			self.ids.emptyleft.fbind("pos", self.forearrow._trigger_repoint)
-		)
-		assert not binds["CharMenu", "emptyright", "fore"]
-		binds["CharMenu", "emptyright", "fore"].add(
-			self.ids.emptyright.fbind("pos", self.forearrow._trigger_repoint)
-		)
+		if not binds["CharMenu", "emptyleft", "fore"]:
+			binds["CharMenu", "emptyleft", "fore"].add(
+				self.ids.emptyleft.fbind(
+					"pos", self.forearrow._trigger_repoint
+				)
+			)
+		if not binds["CharMenu", "emptyright", "fore"]:
+			binds["CharMenu", "emptyright", "fore"].add(
+				self.ids.emptyright.fbind(
+					"pos", self.forearrow._trigger_repoint
+				)
+			)
 		if self.reciprocal_portal:
 			assert self.revarrow is None
 			self.revarrow = GraphArrowWidget(
@@ -84,23 +88,25 @@ class CharMenu(BoxLayout):
 				destination=self.ids.emptyleft,
 			)
 			self.ids.portaladdbut.add_widget(self.revarrow)
-			assert not binds["CharMenu", "emptyleft", "rev"]
-			binds["CharMenu", "emptyleft", "rev"].add(
-				self.ids.emptyleft.fbind("pos", self.revarrow._trigger_repoint)
-			)
-			assert not binds["CharMenu", "emptyright", "rev"]
-			binds["CharMenu", "emptyright", "rev"].add(
-				self.ids.emptyright.fbind(
-					"pos", self.revarrow._trigger_repoint
+			if not binds["CharMenu", "emptyleft", "rev"]:
+				binds["CharMenu", "emptyleft", "rev"].add(
+					self.ids.emptyleft.fbind(
+						"pos", self.revarrow._trigger_repoint
+					)
+				)
+			if not binds["CharMenu", "emptyright", "rev"]:
+				binds["CharMenu", "emptyright", "rev"].add(
+					self.ids.emptyright.fbind(
+						"pos", self.revarrow._trigger_repoint
+					)
+				)
+		if not binds["CharMenu", "reciprocal_portal"]:
+			binds["CharMenu", "reciprocal_portal"].add(
+				self.fbind(
+					"reciprocal_portal",
+					self.screen.boardview.setter("reciprocal_portal"),
 				)
 			)
-		assert not binds["CharMenu", "reciprocal_portal"]
-		binds["CharMenu", "reciprocal_portal"].add(
-			self.fbind(
-				"reciprocal_portal",
-				self.screen.boardview.setter("reciprocal_portal"),
-			)
-		)
 		app._unbinders.append(self.unbind_all)
 
 	def unbind_all(self):
