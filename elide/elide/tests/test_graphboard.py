@@ -206,66 +206,134 @@ def test_pawn_drag():
 	idle_until(lambda: that.proxy["location"] == 1, 100)
 
 
-@pytest.mark.usefixtures("kivy")
-def test_spot_and_pawn_from_dummy():
-	char = CharacterFacade()
-	app = ElideApp()
-	board = GraphBoard(app=app, character=char)
-	board._connect_proxy_objects()
-	view = GraphBoardView(board=board)
+def test_spot_and_pawn_from_dummy(elide_app):
+	@idle_until(timeout=100)
+	def charmenu_present():
+		return (
+			hasattr(elide_app, "mainscreen")
+			and hasattr(elide_app.mainscreen, "charmenu")
+			and elide_app.mainscreen.charmenu.charmenu
+		)
+
+	charmenu = elide_app.mainscreen.charmenu.charmenu
+
+	@idle_until(timeout=100)
+	def charmenu_has_parent():
+		return charmenu.parent is not None
+
+	@idle_until(timeout=100)
+	def charmenu_has_screen():
+		return charmenu.screen is not None
+
+	@idle_until(timeout=100)
+	def dummy_place_created():
+		return "dummyplace" in charmenu.ids
+
+	dummy_place = charmenu.ids.dummyplace
+	x0, y0 = charmenu.to_parent(*dummy_place.center)
+	touch = UnitTestTouch(x0, y0)
+	touch.touch_down()
+
+	@idle_until(timeout=100)
+	def dummy_got_touch():
+		return getattr(dummy_place, "_touch") is touch
+
+	x1, y1 = elide_app.mainscreen.mainview.center
+
+	xdist = x1 - x0
+	ydist = y1 - y0
+	dummy_name = dummy_place.name
+	for i in range(15, 0, -1):
+		touch.touch_move(x0 + (xdist / i), y0 + (ydist / i))
+		advance_frames(1)
+	advance_frames(3)
+	touch.touch_up()
+
+	boardview = elide_app.mainscreen.boardview
 	idle_until(
-		lambda: view.plane is not None, 100, "Never made BoardScatterPlane"
-	)
-	idle_until(
-		lambda: board.stack_plane is not None, 100, "Never made StackPlane"
-	)
-	Window.add_widget(view)
-	dummy = Dummy(
-		name="hello",
-		paths=["atlas://rltiles/base/unseen"],
-		size=(32, 32),
-		pos=(0, 0),
-	)
-	board.add_widget(dummy)
-	idle_until(
-		lambda: dummy in board.children, 100, "Dummy didn't get to board"
-	)
-	dummy_name = dummy.name
-	view.spot_from_dummy(dummy)
-	idle_until(lambda: dummy_name in char.node, 100, "Dummy didn't add place")
-	dummy2 = Dummy(
-		name="goodbye",
-		paths=["atlas://rltiles/base/unseen"],
-		pos=dummy.pos,
-		size=(32, 32),
-	)
-	dummy2_name = dummy2.name = "dummy2"
-	board.add_widget(dummy2)
-	idle_until(
-		lambda: dummy2 in board.children,
+		lambda: dummy_name in elide_app.character.place,
 		100,
-		"Dummy 2 didn't get to board",
+		"Didn't create first new place from dummy",
 	)
 	idle_until(
-		lambda: board.stack_plane.data,
+		lambda: dummy_name in boardview.board.spot,
 		100,
-		"Dummy 2 didn't get into the board's stack_plane",
+		"Didn't create first new spot from dummy",
 	)
-	view.pawn_from_dummy(dummy2)
-	idle_until(
-		lambda: dummy2_name in char.thing, 100, "Dummy 2 didn't add thing"
+	first_new_spot = boardview.board.spot[dummy_name]
+	assert boardview.plane.to_parent(
+		*boardview.board.spot[dummy_name].center
+	) == (
+		x1,
+		y1,
 	)
+
+	@idle_until(timeout=100)
+	def dummy_returned():
+		return charmenu.to_parent(*dummy_place.center) == (x0, y0)
+
 	idle_until(
-		lambda: dummy2_name in board.pawn,
+		lambda: dummy_name != dummy_place.name, 100, "Never renamed dummy"
+	)
+	dummy_name = dummy_place.name
+	x2 = x1 - 50
+	y2 = y1 - 50
+	xdist = x2 - x0
+	ydist = y2 - y0
+	touch = UnitTestTouch(x0, y0)
+	touch.touch_down()
+
+	idle_until(dummy_got_touch, timeout=100)
+	for i in range(15, 0, -1):
+		touch.touch_move(x0 + xdist / i, y0 + ydist / i)
+		advance_frames(1)
+	touch.touch_up()
+
+	idle_until(
+		lambda: dummy_name in elide_app.character.place,
 		100,
-		"Board didn't add pawn for dummy 2",
+		"Didn't create second new place from dummy",
 	)
-	spot = board.spot[dummy_name]
+	assert boardview.plane.to_parent(
+		*boardview.board.spot[dummy_name].center
+	) == (x2, y2)
+
+	dummy_thing = charmenu.ids.dummything
+	dummy_name = dummy_thing.name
+	(x0, y0) = charmenu.to_parent(*dummy_thing.center)
+	xdist = x1 - x0
+	ydist = y1 - y0
+	touch = UnitTestTouch(x0, y0)
+	touch.touch_down()
+
+	@idle_until(timeout=100)
+	def dummy_thing_got_touch():
+		return getattr(dummy_thing, "_touch") is touch
+
+	for i in range(15, 0, -1):
+		touch.touch_move(x0 + xdist / i, y0 + ydist / i)
+		advance_frames(1)
+	touch.touch_up()
+
 	idle_until(
-		lambda: board.pawn[dummy2_name].pos == (spot.right, spot.top),
+		lambda: dummy_name in elide_app.character.thing,
 		100,
-		"Dummy 2 didn't get to dummy 1",
+		"Didn't create a new thing from dummy",
 	)
+	idle_until(
+		lambda: dummy_name in boardview.board.pawn,
+		100,
+		"Didn't create a new pawn from dummy",
+	)
+	pawn = boardview.board.pawn[dummy_name]
+	dx, dy = getattr(pawn, "rel_pos", (0, 0))
+
+	@idle_until(timeout=100)
+	def pawn_positioned_correctly():
+		return (
+			pawn.x == first_new_spot.right + dx
+			and pawn.y == first_new_spot.top + dy
+		)
 
 
 @pytest.mark.usefixtures("kivy")
