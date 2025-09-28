@@ -340,6 +340,7 @@ def test_spot_and_pawn_from_dummy(elide_app):
 def test_pawn_add_new_place():
 	char = CharacterFacade()
 	app = ElideApp()
+	load_kv("elide.graph.board")
 	board = GraphBoard(app=app, character=char)
 	board._connect_proxy_objects()
 	boardview = GraphBoardView(board=board)
