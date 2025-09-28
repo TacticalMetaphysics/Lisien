@@ -38,15 +38,57 @@ def test_spot_from_dummy(elide_app):
 
 	xdist = x1 - x0
 	ydist = y1 - y0
-	print(f"xdist={xdist}, ydist={ydist}")
+	dummy_name = dummy_place.name
 	for i in range(15, 0, -1):
 		touch.touch_move(x0 + (xdist / i), y0 + (ydist / i))
-		print(touch.pos)
 		advance_frames(1)
 	advance_frames(3)
-	former_place_len = len(elide_app.character.place)
 	touch.touch_up()
 
+	boardview = elide_app.mainscreen.boardview
+	idle_until(
+		lambda: dummy_name in elide_app.character.place,
+		100,
+		"Didn't create first new place from dummy",
+	)
+	idle_until(
+		lambda: dummy_name in boardview.board.spot,
+		100,
+		"Didn't create first new spot from dummy",
+	)
+	assert boardview.plane.to_parent(
+		*boardview.board.spot[dummy_name].center
+	) == (
+		x1,
+		y1,
+	)
+
 	@idle_until(timeout=100)
-	def place_created():
-		return len(elide_app.character.place) > former_place_len
+	def dummy_returned():
+		return charmenu.to_parent(*dummy_place.center) == (x0, y0)
+
+	idle_until(
+		lambda: dummy_name != dummy_place.name, 100, "Never renamed dummy"
+	)
+	dummy_name = dummy_place.name
+	x2 = x1 - 50
+	y2 = y1 - 50
+	xdist = x2 - x0
+	ydist = y2 - y0
+	touch = UnitTestTouch(x0, y0)
+	touch.touch_down()
+
+	idle_until(dummy_got_touch, timeout=100)
+	for i in range(15, 0, -1):
+		touch.touch_move(x0 + xdist / i, y0 + ydist / i)
+		advance_frames(1)
+	touch.touch_up()
+
+	idle_until(
+		lambda: dummy_name in elide_app.character.place,
+		100,
+		"Didn't create second new place from dummy",
+	)
+	assert boardview.plane.to_parent(
+		*boardview.board.spot[dummy_name].center
+	) == (x2, y2)
