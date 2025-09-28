@@ -613,8 +613,8 @@ class CharMenuContainer(BoxLayout):
 		app = App.get_running_app()
 		binds = app._bindings
 		self.charmenu = CharMenu(screen=self.screen, size_hint_y=0.9)
-		binds["ElideApp", "screen"].add(
-			app.fbind("screen", self.charmenu.setter("screen"))
+		binds["CharMenuContainer", "screen"].add(
+			self.fbind("screen", self.charmenu.setter("screen"))
 		)
 		self.dummyplace = self.charmenu.dummyplace
 		binds["CharMenu", "dummyplace"].add(
@@ -658,7 +658,7 @@ class CharMenuContainer(BoxLayout):
 	def unbind_all(self):
 		app = App.get_running_app()
 		binds = app._bindings
-		for uid in devour(binds["ElideApp", "screen"]):
+		for uid in devour(binds["CharMenuContainer", "screen"]):
 			app.unbind_uid("screen", uid)
 		for uid in devour(binds["CharMenu", "dummyplace"]):
 			self.charmenu.unbind_uid("dummyplace", uid)
