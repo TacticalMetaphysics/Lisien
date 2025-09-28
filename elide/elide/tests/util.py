@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import partial
 from typing import Callable
 
@@ -47,11 +49,21 @@ def board_is_arranged(board, char=None):
 	)
 
 
+_idle_until_sig = Callable[
+	[
+		Callable[[], bool] | None,
+		int | None,
+		str | None,
+	],
+	Callable[[], bool] | partial["_idle_until_sig"],
+]
+
+
 def idle_until(
 	condition: Callable[[], bool] | None = None,
 	timeout: int | None = 100,
 	message: str | None = None,
-) -> partial | None:
+) -> partial[_idle_until_sig] | Callable[[], bool]:
 	"""Advance frames until ``condition()`` is true
 
 	With integer ``timeout``, give up after that many frames,
@@ -65,10 +77,10 @@ def idle_until(
 	if timeout is None:
 		while not condition():
 			EventLoop.idle()
-		return
+		return condition
 	for _ in range(timeout):
 		if condition():
-			return
+			return condition
 		EventLoop.idle()
 	if message is None:
 		if hasattr(condition, "__name__"):
