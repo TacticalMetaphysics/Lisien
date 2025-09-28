@@ -305,10 +305,8 @@ class ElideApp(App):
 		if char == self.character:
 			return
 		if char.name not in self.mainscreen.graphboards:
-			load_kv("elide.graph.board")
 			self.mainscreen.graphboards[char.name] = GraphBoard(character=char)
 		if char.name not in self.mainscreen.gridboards:
-			load_kv("elide.grid.board")
 			self.mainscreen.gridboards[char.name] = GridBoard(character=char)
 		self.character = char
 		self.selected_proxy = self._get_selected_proxy()
