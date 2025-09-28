@@ -21,8 +21,12 @@ with open("elide/pyproject.toml", "rb") as inf:
 		raise RuntimeError("Elide doesn't depend on Lisien")
 with open("buildozer.spec", "rt") as inf:
 	for line in inf:
-		if line.startswith("version"):
+		if line.startswith("version") and not line.startswith("version."):
 			buildozer_version_str = line.split("=")[-1].strip()
+			break
+	else:
+		# using the regex for versions, no test to do
+		buildozer_version_str = elide_version_str
 
 pat = r"(\d+?\.\d+?\.\d+?)(\.post[0-9]+)?"
 lisien_version = re.match(pat, lisien_version_str).group(1)
