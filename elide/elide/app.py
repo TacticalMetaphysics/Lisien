@@ -34,7 +34,6 @@ from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
 	BooleanProperty,
-	DictProperty,
 	NumericProperty,
 	ObjectProperty,
 	StringProperty,
@@ -45,6 +44,7 @@ from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 import elide
 import elide.charsview
 import elide.dialog
+import elide.dummy
 import elide.logview
 import elide.menu
 import elide.rulesview
@@ -599,6 +599,7 @@ class ElideApp(App):
 			name="log", toggle=toggler("log")
 		)
 		load_kv("elide.screen")
+		load_kv("elide.dummy")
 		load_kv("elide.charmenu")
 		load_kv("elide.statcfg")
 		load_kv("elide.stepper")
