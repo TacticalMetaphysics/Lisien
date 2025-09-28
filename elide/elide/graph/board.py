@@ -1099,10 +1099,14 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 		(x, y) = self.to_local(*dummy.pos_up)
 		x /= self.board.width
 		y /= self.board.height
+		prefix = dummy.prefix
+		num = dummy.num
+		while f"{prefix}{num}" in self.board.character.node:
+			num += 1
 		self.board.character.new_place(
-			dummy.name, _x=x, _y=y, _image_paths=list(dummy.paths)
+			f"{prefix}{num}", _x=x, _y=y, _image_paths=list(dummy.paths)
 		)
-		dummy.num += 1
+		dummy.num = num + 1
 
 	def pawn_from_dummy(self, dummy):
 		"""Make a real thing and its pawn from a dummy pawn.
@@ -1128,10 +1132,16 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 				thereto = Vector(*thereat.center).distance(dummy_center)
 				if thereto < dist:
 					whereat, dist = thereat, thereto
+		prefix = dummy.prefix
+		num = dummy.num
+		while f"{prefix}{num}" in self.board.character.node:
+			num += 1
 		self.board.character.new_thing(
-			dummy.name, whereat.proxy.name, _image_paths=list(dummy.paths)
+			f"{prefix}{num}",
+			whereat.proxy.name,
+			_image_paths=list(dummy.paths),
 		)
-		dummy.num += 1
+		dummy.num = num + 1
 
 	def on_board(self, *args):
 		app = App.get_running_app()
