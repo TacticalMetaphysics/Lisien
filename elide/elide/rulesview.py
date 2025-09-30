@@ -34,7 +34,7 @@ from kivy.uix.widget import Widget
 
 from .card import Card, DeckBuilderScrollBar, DeckBuilderView
 from .stores import FuncEditor
-from .util import devour, logwrap
+from .util import devour, logwrap, load_kv
 
 
 def trigger(func):
@@ -657,6 +657,11 @@ class RulesScreen(Screen):
 	def engine(self):
 		return App.get_running_app().engine
 
+	def __init__(self, **kw):
+		load_kv("rulesview.kv")
+		load_kv("card.kv")
+		super().__init__(**kw)
+
 	@logwrap(section="RulesScreen")
 	def new_rule(self, *_):
 		self.children[0].new_rule()
@@ -667,6 +672,11 @@ class CharacterRulesScreen(Screen):
 
 	character = ObjectProperty()
 	toggle = ObjectProperty()
+
+	def __init__(self, **kw):
+		load_kv("rulesview.kv")
+		load_kv("card.kv")
+		super().__init__(**kw)
 
 	@logwrap(section="CharacterRulesScreen")
 	def _get_rulebook(self, rb):

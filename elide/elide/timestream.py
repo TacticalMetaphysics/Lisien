@@ -31,7 +31,7 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
-from .util import logwrap
+from .util import logwrap, load_kv
 
 
 def trigger(func):
@@ -364,6 +364,10 @@ class TimestreamScreen(Screen):
 	toggle = ObjectProperty()
 	timestream = ObjectProperty()
 	_thread: Thread
+
+	def __init__(self, **kw):
+		load_kv("timestream.kv")
+		super().__init__(**kw)
 
 	@logwrap(section="TimestreamScreen")
 	def on_pre_enter(self, *_):
