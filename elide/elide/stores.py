@@ -46,7 +46,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import devour, logwrap
+from .util import devour, logwrap, load_kv
 
 
 def trigger(func):
@@ -222,6 +222,10 @@ class StringsEdScreen(Screen):
 	"""Code identifying the language we're editing"""
 	edbox = ObjectProperty()
 	"""Widget containing editors for the current string and its name"""
+
+	def __init__(self, **kw):
+		load_kv("stores.kv")
+		super().__init__(**kw)
 
 	@logwrap(section="RecycleToggleButton")
 	def on_language(self, *_):
@@ -704,6 +708,10 @@ class FuncsEdScreen(Screen):
 	"""
 
 	toggle = ObjectProperty()
+
+	def __init__(self, **kw):
+		load_kv("stores.kv")
+		super().__init__(**kw)
 
 	@logwrap(section="FuncsEdScreen")
 	def save(self, *args):

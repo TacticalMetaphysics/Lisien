@@ -27,7 +27,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .statlist import BaseStatListView
-from .util import devour, logwrap
+from .util import devour, logwrap, load_kv
 
 
 class FloatInput(TextInput):
@@ -313,3 +313,7 @@ class StatScreen(Screen):
 			self.proxy[key] = value
 		self.ids.newstatkey.text = ""
 		self.ids.newstatval.text = ""
+
+	def __init__(self, **kw):
+		load_kv("statcfg.kv")
+		super().__init__(**kw)

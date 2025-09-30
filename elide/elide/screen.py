@@ -53,7 +53,7 @@ from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .stepper import RuleStepper
-from .util import devour, dummynum, logwrap
+from .util import devour, dummynum, logwrap, load_kv
 
 
 def trigger(func):
@@ -237,6 +237,17 @@ class MainScreen(Screen):
 	@property
 	def app(self):
 		return App.get_running_app()
+
+	def __init__(self, **kw):
+		for screen_kv in [
+			"screen",
+			"dummy",
+			"charmenu",
+			"statcfg",
+			"stepper",
+		]:
+			load_kv(screen_kv + ".kv")
+		super().__init__(**kw)
 
 	@logwrap(section="TimePanel")
 	def _update_adding_portal(self, *_):

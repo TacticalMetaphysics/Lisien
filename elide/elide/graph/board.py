@@ -134,6 +134,10 @@ class GraphBoard(RelativeLayout):
 	_scheduled_discard_pawn = DictProperty()
 	_scheduled_add_pawn = DictProperty()
 
+	def __init__(self, **kw):
+		load_kv("graph/board.kv")
+		super().__init__(**kw)
+
 	@property
 	def widkwargs(self):
 		return {"size_hint": (None, None), "size": self.size, "pos": (0, 0)}

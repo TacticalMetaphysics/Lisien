@@ -38,7 +38,7 @@ from sqlalchemy import and_, bindparam, column
 
 from .kivygarden.texturestack import ImageStack
 from .pallet import Pallet, PalletBox
-from .util import devour, logwrap
+from .util import devour, logwrap, load_kv
 
 
 def trigger(func):
@@ -410,9 +410,17 @@ class PawnConfigScreen(Screen):
 	custom_imgs_header = "Custom pawns"
 	imgpaths = ListProperty()
 
+	def __init__(self, **kwargs):
+		load_kv("spritebuilder.kv")
+		super().__init__(**kwargs)
+
 
 class SpotConfigScreen(Screen):
 	toggle = ObjectProperty()
 	data = ListProperty()
 	custom_imgs_header = "Custom spots"
 	imgpaths = ListProperty()
+
+	def __init__(self, **kw):
+		load_kv("spritebuilder.kv")
+		super().__init__(**kw)

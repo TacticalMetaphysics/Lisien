@@ -54,7 +54,7 @@ from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 from .graph.arrow import GraphArrow
 from .graph.board import GraphBoard
 from .grid.board import GridBoard
-from .util import devour, logwrap, load_kv
+from .util import devour, logwrap
 from lisien.proxy import (
 	CharacterProxy,
 	CharStatProxy,
@@ -490,12 +490,10 @@ class ElideApp(App):
 		Logger.debug(f"ElideApp: making grid boards for: {char_names}")
 		for name in char_names:
 			if name not in self.mainscreen.graphboards:
-				load_kv("graph/board.kv")
 				self.mainscreen.graphboards[name] = GraphBoard(
 					character=self.engine.character[name]
 				)
 			if name not in self.mainscreen.gridboards:
-				load_kv("grid/board.kv")
 				self.mainscreen.gridboards[name] = GridBoard(
 					character=self.engine.character[name]
 				)
@@ -533,7 +531,6 @@ class ElideApp(App):
 				["Custom pawns", "custom_pawn_imgs/custom.atlas"]
 			] + pawndata
 
-		load_kv("spritebuilder.kv")
 		self.pawncfg = PawnConfigScreen(
 			toggle=toggler("pawncfg"),
 			data=pawndata,
@@ -558,13 +555,8 @@ class ElideApp(App):
 			)
 			self._unbinders.append(builder.unbind_all)
 			builder.update()
-
-		load_kv("statcfg.kv")
 		self.statcfg = StatScreen(toggle=toggler("statcfg"))
-		load_kv("rulesview.kv")
-		load_kv("card.kv")
 		self.rules = RulesScreen(toggle=toggler("rules"))
-
 		self.charrules = CharacterRulesScreen(
 			character=self.character, toggle=toggler("charrules")
 		)
@@ -572,35 +564,21 @@ class ElideApp(App):
 			self.fbind("character", self.charrules.setter("character"))
 		)
 		Logger.debug("ElideApp: bound charrules setter")
-		load_kv("charsview.kv")
 		self.chars = CharactersScreen(
 			toggle=toggler("chars"), new_board=self.new_board
 		)
 		self._bindings["ElideApp", "character_name"].add(
 			self.fbind("character_name", self.chars.setter("character_name"))
 		)
-
-		load_kv("stores.kv")
 		self.strings = StringsEdScreen(toggle=toggler("strings"))
-
 		self.funcs = FuncsEdScreen(name="funcs", toggle=toggler("funcs"))
 		self._bindings["ElideApp", "selected_proxy"].add(
 			self.fbind("selected_proxy", self.statcfg.setter("proxy"))
 		)
-		load_kv("timestream.kv")
 		self.timestream = TimestreamScreen(
 			name="timestream", toggle=toggler("timestream")
 		)
-		load_kv("logview.kv")
 		self.log_screen = LogScreen(name="log", toggle=toggler("log"))
-		for screen_kv in [
-			"screen",
-			"dummy",
-			"charmenu",
-			"statcfg",
-			"stepper",
-		]:
-			load_kv(screen_kv + ".kv")
 		self.mainscreen = MainScreen(
 			use_kv=config["elide"]["user_kv"] == "yes",
 			play_speed=int(config["elide"]["play_speed"]),

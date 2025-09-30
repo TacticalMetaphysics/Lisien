@@ -49,6 +49,7 @@ class GridBoard(Widget):
 	spot_cls = GridSpot
 
 	def __init__(self, **kwargs):
+		load_kv("grid/board.kv")
 		self.pawn = {}
 		self.spot = {}
 		self.contained = defaultdict(set)

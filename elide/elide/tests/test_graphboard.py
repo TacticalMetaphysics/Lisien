@@ -146,7 +146,6 @@ def test_select_spot():
 	char = CharacterFacade()
 	char.add_place(0, _x=0.1, _y=0.1)
 	app = ElideApp()
-	Builder.load_file("graph/board.kv")
 	board = GraphBoard(app=app, character=char)
 	boardview = GraphBoardView(board=board)
 	Window.add_widget(boardview)
@@ -340,7 +339,6 @@ def test_spot_and_pawn_from_dummy(elide_app):
 def test_pawn_add_new_place():
 	char = CharacterFacade()
 	app = ElideApp()
-	load_kv("graph/board.kv")
 	board = GraphBoard(app=app, character=char)
 	board._connect_proxy_objects()
 	boardview = GraphBoardView(board=board)

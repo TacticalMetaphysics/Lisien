@@ -20,7 +20,8 @@ from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
-from .util import SelectableRecycleBoxLayout, devour, logwrap
+from .util import SelectableRecycleBoxLayout, devour, logwrap, load_kv
+
 
 # TODO: Visual preview
 # TODO: Background image chooser
@@ -58,6 +59,10 @@ class CharactersScreen(Screen):
 	@property
 	def engine(self):
 		return App.get_running_app().engine
+
+	def __init__(self, **kw):
+		load_kv("charsview.kv")
+		super().__init__(**kw)
 
 	def push_character_name(self, _, name):
 		app = App.get_running_app()

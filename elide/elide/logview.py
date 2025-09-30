@@ -8,6 +8,8 @@ from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
+from elide.util import load_kv
+
 
 class LogViewHandler(Handler):
 	def __init__(self, logview: LogView, level=0):
@@ -50,3 +52,7 @@ class LogView(RecycleView):
 
 class LogScreen(Screen):
 	toggle = ObjectProperty()
+
+	def __init__(self, **kw):
+		load_kv("logview.kv")
+		super().__init__(**kw)
