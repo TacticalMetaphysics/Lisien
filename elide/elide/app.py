@@ -125,20 +125,21 @@ class ElideApp(App):
 			self.mainscreen.unbind_uid("statlist", uid)
 		for uid in devour(self._bindings["ElideApp", "selection"]):
 			self.unbind_uid("selection", uid)
-		for graphboard in self.mainscreen.graphboards:
-			for uid in devour(
-				self._bindings["GraphBoard", graphboard, "selection"]
-			):
-				self.mainscreen.graphboards[graphboard].unbind_uid(
-					"selection", uid
-				)
-		for gridboard in self.mainscreen.gridboards:
-			for uid in devour(
-				self._bindings["GridBoard", gridboard, "selection"]
-			):
-				self.mainscreen.gridboards[gridboard].unbind_uid(
-					"selection", uid
-				)
+		if hasattr(self, "mainscreen"):
+			for graphboard in self.mainscreen.graphboards:
+				for uid in devour(
+					self._bindings["GraphBoard", graphboard, "selection"]
+				):
+					self.mainscreen.graphboards[graphboard].unbind_uid(
+						"selection", uid
+					)
+			for gridboard in self.mainscreen.gridboards:
+				for uid in devour(
+					self._bindings["GridBoard", gridboard, "selection"]
+				):
+					self.mainscreen.gridboards[gridboard].unbind_uid(
+						"selection", uid
+					)
 
 	@cached_property
 	def _togglers(self):
@@ -965,7 +966,11 @@ class ElideApp(App):
 			if v:
 				raise RuntimeError("Still bound", k, v)
 		for loaded_kv in Builder.files[:]:
-			Builder.unload_file(loaded_kv)
+			if "elide" in os.path.abspath(loaded_kv):
+				Builder.unload_file(loaded_kv)
+				Logger.debug(f"ElideApp: unloaded {loaded_kv}")
+			else:
+				Logger.debug(f"ElideApp: won't unload {loaded_kv}")
 		return True
 
 	def on_stopped(self, *_):
