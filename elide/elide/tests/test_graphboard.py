@@ -3,6 +3,7 @@ from math import sqrt
 import networkx as nx
 import pytest
 from kivy.core.window import Window
+from kivy.lang import Builder
 from kivy.tests.common import UnitTestTouch
 
 from elide.app import ElideApp
@@ -12,10 +13,9 @@ from lisien.collections import FunctionStore
 from lisien.facade import CharacterFacade, EngineFacade
 from lisien.util import SignalDict
 
-from ..dummy import Dummy
 from ..kivygarden.texturestack import TextureStackPlane
-from ..util import load_kv
 from .util import advance_frames, idle_until
+from ..util import load_kv
 
 
 def pos_near(x0, y0, x1, y1):
@@ -146,7 +146,7 @@ def test_select_spot():
 	char = CharacterFacade()
 	char.add_place(0, _x=0.1, _y=0.1)
 	app = ElideApp()
-	load_kv("elide.graph.board")
+	Builder.load_file("graph/board.kv")
 	board = GraphBoard(app=app, character=char)
 	boardview = GraphBoardView(board=board)
 	Window.add_widget(boardview)
@@ -340,7 +340,7 @@ def test_spot_and_pawn_from_dummy(elide_app):
 def test_pawn_add_new_place():
 	char = CharacterFacade()
 	app = ElideApp()
-	load_kv("elide.graph.board")
+	load_kv("graph/board.kv")
 	board = GraphBoard(app=app, character=char)
 	board._connect_proxy_objects()
 	boardview = GraphBoardView(board=board)

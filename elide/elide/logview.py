@@ -8,8 +8,6 @@ from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
-from .util import store_kv
-
 
 class LogViewHandler(Handler):
 	def __init__(self, logview: LogView, level=0):
@@ -52,34 +50,3 @@ class LogView(RecycleView):
 
 class LogScreen(Screen):
 	toggle = ObjectProperty()
-
-
-kv = """
-<LogLabel>:
-	halign: 'left'
-	text_size: self.width, dp(56)
-<LogView>:
-	viewclass: 'LogLabel'
-	do_scroll_x: False
-	RecycleBoxLayout:
-		orientation: 'vertical'
-		height: self.minimum_height
-		size_hint_y: None
-		default_size_hint: 1, None
-		default_size: None, dp(56)
-<LogScreen>:
-	name: 'log'
-	BoxLayout:
-		orientation: 'vertical'
-		LogView:
-			level: 10
-			size_hint_y: 0.9
-		Button:
-			text: 'Close'
-			on_release: root.toggle()
-			size_hint_y: 0.1
-"""
-store_kv(
-	__name__,
-	kv,
-)

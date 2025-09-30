@@ -20,7 +20,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.recycleview import RecycleView
 
-from .util import logwrap, store_kv
+from .util import logwrap
 
 
 class RuleStepper(RecycleView):
@@ -134,47 +134,3 @@ class RulebookLabel(Label):
 
 class RulebookTypeLabel(Label):
 	name = StringProperty()
-
-
-store_kv(
-	__name__,
-	"""
-#:import ScrollEffect kivy.effects.scroll.ScrollEffect
-<RuleStepper>:
-	key_viewclass: 'widget'
-	effect_cls: ScrollEffect
-	RecycleGridLayout:
-		cols: 1
-		size_hint_y: None
-		default_size_hint: 1, None
-		default_height: 20
-		height: self.minimum_height
-<RuleStepperRuleButton>:
-	text: '\\n'.join((self.name, str(self.end_tick)))
-	font_size: 14
-	text_size: self.width, None
-	halign: 'center'
-	tick: app.tick
-	set_tick: app.time_travel_to_tick
-<EntityLabel>:
-	multiline: True
-	text: str(self.name)
-	text_size: self.width, None
-	size: self.texture_size
-	font_size: 14
-	padding_x: 8
-<RulebookLabel>:
-	text: str(self.name)
-	text_size: self.width, None
-	size: self.texture_size
-	font_size: 14
-	bold: True
-	padding_x: 4
-<RulebookTypeLabel>:
-	text: self.name
-	text_size: self.width, None
-	font_size: 16
-	bold: True
-	size: self.texture_size
-""",
-)

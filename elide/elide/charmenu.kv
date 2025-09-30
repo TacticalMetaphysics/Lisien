@@ -1,0 +1,90 @@
+
+<CharMenu>:
+	orientation: 'vertical'
+	dummyplace: dummyplace
+	dummything: dummything
+	portaladdbut: portaladdbut
+	portaldirbut: portaldirbut
+	Button:
+		text: 'Logs'
+		on_release: app.log_screen.toggle()
+	Button:
+		text: 'Delete'
+		disabled: app.edit_locked
+		on_release: app.delete_selection()
+	Button:
+		id: timestreambut
+		text: 'Timestream'
+		disabled: app.edit_locked
+		on_release: root.toggle_timestream()
+	Button:
+		id: gridviewbut
+		text: 'Toggle grid'
+		on_release: root.toggle_gridview()
+	Button:
+		text: 'Strings'
+		disabled: app.edit_locked
+		on_release: root.toggle_strings_editor()
+	Button:
+		text: 'Python'
+		disabled: app.edit_locked
+		on_release: root.toggle_funcs_editor()
+	Button:
+		text: 'Rules'
+		id: rules_button
+		disabled: app.edit_locked
+		on_release: root.toggle_rules()
+	Button:
+		text: 'Characters'
+		on_release: root.toggle_chars_screen()
+	BoxLayout:
+		Widget:
+			id: placetab
+			Dummy:
+				id: dummyplace
+				center: placetab.center
+				prefix: 'place'
+				disabled: app.edit_locked
+				on_pos_up: root.spot_from_dummy(self)
+		Button:
+			text: 'cfg'
+			disabled: app.edit_locked
+			on_release: root.toggle_spot_cfg()
+	BoxLayout:
+		Widget:
+			id: thingtab
+			Dummy:
+				id: dummything
+				center: thingtab.center
+				prefix: 'thing'
+				disabled: app.edit_locked
+				on_pos_up: root.pawn_from_dummy(self)
+		Button:
+			text: 'cfg'
+			disabled: app.edit_locked
+			on_release: root.toggle_pawn_cfg()
+	BoxLayout:
+		orientation: 'vertical'
+		ToggleButton:
+			id: portaladdbut
+			disabled: app.edit_locked
+			on_state: root._trigger_deselect()
+			Widget:
+				id: emptyleft
+				center_x: portaladdbut.x + portaladdbut.width / 3
+				center_y: portaladdbut.center_y
+				size: (0, 0)
+			Widget:
+				id: emptyright
+				center_x: portaladdbut.right - portaladdbut.width / 3
+				center_y: portaladdbut.center_y
+				size: (0, 0)
+		Button:
+			id: portaldirbut
+			text: 'One-way' if root.reciprocal_portal else 'Two-way'
+			disabled: app.edit_locked
+			on_release: root.toggle_reciprocal()
+	Button:
+		text: 'Quit'
+		id: quit_button
+		on_release: root.close_game()

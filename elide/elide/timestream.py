@@ -31,7 +31,7 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
-from .util import logwrap, store_kv
+from .util import logwrap
 
 
 def trigger(func):
@@ -383,38 +383,6 @@ class TimestreamScreen(Screen):
 		Logger.debug("Timestream: loaded!")
 		self.timestream.disabled = False
 
-
-store_kv(
-	__name__,
-	r"""
-<ThornyRectangle>:
-	text: f"{self.branch}\n{int(self.turn)}"
-<Timestream>:
-	key_viewclass: 'widget'
-	effect_cls: 'ScrollEffect'
-	RecycleGridLayout:
-		cols: root.cols
-		default_width: 100
-		default_height: 100
-		default_size_hint: None, None
-		height: self.minimum_height
-		width: self.minimum_width
-		size_hint: None, None
-<TimestreamScreen>:
-	name: 'timestream'
-	timestream: timestream
-	BoxLayout:
-		orientation: 'vertical'
-		Timestream:
-			id: timestream
-			size_hint_y: 0.95
-		BoxLayout:
-			size_hint_y: 0.05
-			Button:
-				text: 'Cancel'
-				on_press: root.toggle()
-""",
-)
 
 if __name__ == "__main__":
 	from kivy.base import runTouchApp

@@ -41,7 +41,7 @@ from ..boardscatter import BoardScatterPlane
 from ..boardview import BoardView
 from ..dummy import Dummy
 from ..kivygarden.texturestack import Stack, TextureStackPlane
-from ..util import devour, logwrap, store_kv
+from ..util import devour, load_kv
 from .arrow import (
 	DEFAULT_ARROW_LABEL_KWARGS,
 	ArrowPlane,
@@ -1228,25 +1228,3 @@ class GraphBoardView(BoardView):
 			self.unbind_uid("adding_portal", uid)
 		for uid in devour(binds["GraphBoardView", "reciprocal_portal"]):
 			self.unbind_uid("reciprocal_portal", uid)
-
-
-store_kv(
-	__name__,
-	"""
-<GraphBoard>:
-	app: app
-	size_hint: None, None
-<GraphBoardView>:
-	plane: boardplane
-	GraphBoardScatterPlane:
-		id: boardplane
-		board: root.board
-		adding_portal: root.adding_portal
-		reciprocal_portal: root.reciprocal_portal
-		scale_min: root.scale_min
-		scale_max: root.scale_max
-		pos: root.pos
-		size: root.size
-		size_hint: None, None
-""",
-)

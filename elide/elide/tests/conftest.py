@@ -24,7 +24,6 @@ from kivy.resources import resource_find
 
 from elide.app import ElideApp
 from elide.tests.util import idle_until
-from elide.util import unload_all_kv
 from lisien import Engine
 from lisien.examples import kobold, polygons, sickle
 
@@ -111,7 +110,6 @@ def elide_app(kivy, prefix):
 	EventLoop.idle()
 	if not app.stopped:
 		app.stop()
-	unload_all_kv()
 
 
 @pytest.fixture(scope="function")
@@ -120,6 +118,7 @@ def elide_app_main_menu(kivy, prefix):
 	app.config = ConfigParser(None)
 	app.build_config(app.config)
 	Window.add_widget(app.build())
+	idle_until(lambda: any(fn.endswith("elide.kv") for fn in Builder.files))
 	manager = app.manager
 	idle_until(
 		lambda: manager.current == "main",

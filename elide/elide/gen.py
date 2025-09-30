@@ -20,7 +20,7 @@ from networkx import grid_2d_graph
 
 from lisien.character import grid_2d_8graph
 
-from .util import logwrap, store_kv
+from .util import logwrap
 
 
 class GridGeneratorDialog(BoxLayout):
@@ -47,35 +47,3 @@ class GridGeneratorDialog(BoxLayout):
 	@logwrap(section="GridGeneratorDialog")
 	def validate(self):
 		return self.directions and int(self.xval) and int(self.yval)
-
-
-store_kv(
-	__name__,
-	"""
-<GridGeneratorDialog>:
-	directions: 4 if but4.state == 'down' else 8
-	orientation: 'vertical'
-	BoxLayout:
-		orientation: 'horizontal'
-		MenuIntInput:
-			id: input_x
-			hint_text: str(root.xval) if root.xval else 'x'
-			set_value: root.setter('xval')
-		Label:
-			text: 'x'
-			size_hint_x: 0.1
-		MenuIntInput:
-			id: input_y
-			hint_text: str(root.yval) if root.yval else 'y'
-			set_value: root.setter('yval')
-	BoxLayout:
-		ToggleButton:
-			id: but4
-			group: 'dir'
-			text: '4-way'
-			state: 'down'
-		ToggleButton:
-			id: but8
-			group: 'dir'
-			text: '8-way'""",
-)
