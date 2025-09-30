@@ -32,7 +32,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .gen import GridGeneratorDialog
-from .util import devour, load_kv, logwrap, store_kv
+from .util import devour, load_kv, logwrap
 
 
 class MenuTextInput(TextInput):
@@ -148,7 +148,7 @@ class GamePickerModal(ModalView):
 	headline = StringProperty()
 
 	def __init__(self, **kwargs):
-		load_kv("elide.menu")
+		load_kv("menu.kv")
 		super().__init__(**kwargs)
 
 	@logwrap(section="GamePickerModal")
@@ -527,16 +527,3 @@ class MainMenuScreen(Screen):
 			del self._popover_load_game
 		if hasattr(self, "_popover_export_game"):
 			del self._popover_export_game
-
-
-kv = """
-<GameList>:
-	viewclass: 'Button'
-	RecycleBoxLayout:
-		default_size: None, dp(56)
-        default_size_hint: 1, None
-        height: self.minimum_height
-        size_hint_y: None
-        orientation: 'vertical'
-"""
-store_kv(__name__, kv)

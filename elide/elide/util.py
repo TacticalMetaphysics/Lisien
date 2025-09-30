@@ -16,46 +16,28 @@ from functools import partial, wraps
 
 from kivy.lang import Builder
 from kivy.logger import Logger
+from kivy.resources import resource_find
 from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 
 from lisien.util import repr_call_sig
 
-loaded_kv = set()
-KV = {}
-
-
-def store_kv(name: str, kv: str) -> None:
-	if name in KV:
-		raise KeyError("Already have that kv", name)
-	KV[name] = kv
-
-
-def load_kv(name: str) -> None:
-	if name in loaded_kv:
-		return
-	if name not in KV:
-		Logger.error("No kv: " + name)
-		Logger.error("I've stored: " + ", ".join(KV.keys()))
-	Builder.load_string(KV[name], filename=name)
-	loaded_kv.add(name)
-
-
-def unload_kv(name: str) -> None:
-	loaded_kv.remove(name)
-	Builder.unload_file(name)
-
-
-def unload_all_kv() -> None:
-	for name in list(loaded_kv):
-		unload_kv(name)
-
 
 class SelectableRecycleBoxLayout(
 	FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout
 ):
 	pass
+
+
+def load_kv(filename: str) -> None:
+	"""Load a kv file unless it's already been loaded"""
+	filename = resource_find(filename)
+	if not filename:
+		raise FileNotFoundError(filename)
+	if filename in Builder.files:
+		return
+	Builder.load_file(filename)
 
 
 def dummynum(character, name):

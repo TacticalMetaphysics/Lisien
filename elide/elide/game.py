@@ -30,7 +30,7 @@ from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 import lisien.proxy
 
-from .dialog import DialogLayout
+from .screen import DialogLayout
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
 from .util import logwrap

@@ -38,7 +38,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
-from elide.util import logwrap, store_kv
+from elide.util import logwrap
 
 wraplog_CalendarWidget = partial(logwrap, section="CalendarWidget")
 
@@ -479,45 +479,6 @@ class Calendar(RecycleView, CalendarBehavior):
 			self.cols = endturn - curturn
 		self.data = data
 
-
-store_kv(
-	__name__,
-	"""
-<Agenda>:
-	key_viewclass: 'widget'
-	RecycleGridLayout:
-		cols: root.cols
-		size_hint: None, None
-		default_size: dp(84), dp(36)
-		default_size_hint: None, None
-		size_hint: None, None
-		size: self.minimum_size
-		orientation: 'tb-lr'
-<Calendar>:
-	turn_labels: False
-	key_viewclass: 'widget'
-	RecycleGridLayout:
-		cols: 1
-		orientation: 'lr-tb'
-		default_size_hint: 1, None
-		default_size: dp(84), dp(36)
-		size: self.minimum_size
-<CalendarLabel>:
-	text: str(self.val) if self.val is not None else ''
-<CalendarSlider>:
-	padding: 5
-	Label:
-		x: root.center_x - (self.width / 2)
-		y: root.center_y
-		text: str(root.value)
-		size: self.texture_size
-<CalendarOptionButton>:
-	text: str(self.val)
-<CalendarTextInput>:
-	multiline: False
-	on_text_validate: self._trigger_parse_text()
-""",
-)
 
 if __name__ == "__main__":
 	from kivy.app import App

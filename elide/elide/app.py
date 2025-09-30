@@ -24,12 +24,22 @@ from typing import Callable
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from lisien.exc import OutOfTimelineError
+from .charsview import CharactersScreen
+from .logview import LogScreen
+from .menu import MainMenuScreen
+from .rulesview import RulesScreen, CharacterRulesScreen
+from .screen import MainScreen
+from .spritebuilder import PawnConfigScreen, SpotConfigScreen
+from .statcfg import StatScreen
+from .stores import StringsEdScreen, FuncsEdScreen
+from .timestream import TimestreamScreen
 
 if "KIVY_NO_ARGS" not in os.environ:
 	os.environ["KIVY_NO_ARGS"] = "1"
 
 from kivy.app import App
 from kivy.clock import Clock, triggered
+from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
@@ -41,22 +51,10 @@ from kivy.properties import (
 from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
-import elide
-import elide.charsview
-import elide.dialog
-import elide.dummy
-import elide.logview
-import elide.menu
-import elide.rulesview
-import elide.screen
-import elide.spritebuilder
-import elide.statcfg
-import elide.stores
-import elide.timestream
-from elide.graph.arrow import GraphArrow
-from elide.graph.board import GraphBoard
-from elide.grid.board import GridBoard
-from elide.util import devour, load_kv, logwrap
+from .graph.arrow import GraphArrow
+from .graph.board import GraphBoard
+from .grid.board import GridBoard
+from .util import devour, logwrap, load_kv
 from lisien.proxy import (
 	CharacterProxy,
 	CharStatProxy,
@@ -377,7 +375,7 @@ class ElideApp(App):
 			from kivy.modules import inspector
 
 			inspector.create_inspector(Window, self.manager)
-		self.mainmenu = elide.menu.MainMenuScreen(toggle=self.toggler("main"))
+		self.mainmenu = MainMenuScreen(toggle=self.toggler("main"))
 		self.manager.add_widget(self.mainmenu)
 		if self.immediate_start:
 			self.start_game()
@@ -491,12 +489,12 @@ class ElideApp(App):
 		Logger.debug(f"ElideApp: making grid boards for: {char_names}")
 		for name in char_names:
 			if name not in self.mainscreen.graphboards:
-				load_kv("elide.graph.board")
+				load_kv("graph/board.kv")
 				self.mainscreen.graphboards[name] = GraphBoard(
 					character=self.engine.character[name]
 				)
 			if name not in self.mainscreen.gridboards:
-				load_kv("elide.grid.board")
+				load_kv("grid/board.kv")
 				self.mainscreen.gridboards[name] = GridBoard(
 					character=self.engine.character[name]
 				)
@@ -534,8 +532,8 @@ class ElideApp(App):
 				["Custom pawns", "custom_pawn_imgs/custom.atlas"]
 			] + pawndata
 
-		load_kv("elide.spritebuilder")
-		self.pawncfg = elide.spritebuilder.PawnConfigScreen(
+		load_kv("spritebuilder.kv")
+		self.pawncfg = PawnConfigScreen(
 			toggle=toggler("pawncfg"),
 			data=pawndata,
 		)
@@ -546,7 +544,7 @@ class ElideApp(App):
 			spotdata = [
 				["Custom spots", "custom_spot_imgs/custom.atlas"]
 			] + spotdata
-		self.spotcfg = elide.spritebuilder.SpotConfigScreen(
+		self.spotcfg = SpotConfigScreen(
 			toggle=toggler("spotcfg"),
 			data=spotdata,
 		)
@@ -560,51 +558,49 @@ class ElideApp(App):
 			self._unbinders.append(builder.unbind_all)
 			builder.update()
 
-		load_kv("elide.statcfg")
-		self.statcfg = elide.statcfg.StatScreen(toggle=toggler("statcfg"))
-		load_kv("elide.rulesview")
-		load_kv("elide.card")
-		self.rules = elide.rulesview.RulesScreen(toggle=toggler("rules"))
+		load_kv("statcfg.kv")
+		self.statcfg = StatScreen(toggle=toggler("statcfg"))
+		load_kv("rulesview.kv")
+		load_kv("card.kv")
+		self.rules = RulesScreen(toggle=toggler("rules"))
 
-		self.charrules = elide.rulesview.CharacterRulesScreen(
+		self.charrules = CharacterRulesScreen(
 			character=self.character, toggle=toggler("charrules")
 		)
 		self._bindings["ElideApp", "character"].add(
 			self.fbind("character", self.charrules.setter("character"))
 		)
 		Logger.debug("ElideApp: bound charrules setter")
-		load_kv("elide.charsview")
-		self.chars = elide.charsview.CharactersScreen(
+		load_kv("charsview.kv")
+		self.chars = CharactersScreen(
 			toggle=toggler("chars"), new_board=self.new_board
 		)
 		self._bindings["ElideApp", "character_name"].add(
 			self.fbind("character_name", self.chars.setter("character_name"))
 		)
 
-		load_kv("elide.stores")
-		self.strings = elide.stores.StringsEdScreen(toggle=toggler("strings"))
+		load_kv("stores.kv")
+		self.strings = StringsEdScreen(toggle=toggler("strings"))
 
-		self.funcs = elide.stores.FuncsEdScreen(
-			name="funcs", toggle=toggler("funcs")
-		)
+		self.funcs = FuncsEdScreen(name="funcs", toggle=toggler("funcs"))
 		self._bindings["ElideApp", "selected_proxy"].add(
 			self.fbind("selected_proxy", self.statcfg.setter("proxy"))
 		)
-		load_kv("elide.timestream")
-		self.timestream = elide.timestream.TimestreamScreen(
+		load_kv("timestream.kv")
+		self.timestream = TimestreamScreen(
 			name="timestream", toggle=toggler("timestream")
 		)
-		load_kv("elide.logview")
-		self.log_screen = elide.logview.LogScreen(
-			name="log", toggle=toggler("log")
-		)
-		load_kv("elide.screen")
-		load_kv("elide.dummy")
-		load_kv("elide.charmenu")
-		load_kv("elide.statcfg")
-		load_kv("elide.stepper")
-		load_kv("elide.dialog")
-		self.mainscreen = elide.screen.MainScreen(
+		load_kv("logview.kv")
+		self.log_screen = LogScreen(name="log", toggle=toggler("log"))
+		for screen_kv in [
+			"screen",
+			"dummy",
+			"charmenu",
+			"statcfg",
+			"stepper",
+		]:
+			load_kv(screen_kv + ".kv")
+		self.mainscreen = MainScreen(
 			use_kv=config["elide"]["user_kv"] == "yes",
 			play_speed=int(config["elide"]["play_speed"]),
 		)
@@ -968,6 +964,8 @@ class ElideApp(App):
 		for k, v in self._bindings.items():
 			if v:
 				raise RuntimeError("Still bound", k, v)
+		for loaded_kv in Builder.files[:]:
+			Builder.unload_file(loaded_kv)
 		return True
 
 	def on_stopped(self, *_):

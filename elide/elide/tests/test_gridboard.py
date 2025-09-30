@@ -1,17 +1,19 @@
 import networkx as nx
 import pytest
 from kivy.core.window import Window
+from kivy.lang import Builder
 
 from elide.grid.board import GridBoard, GridBoardView
 from lisien.facade import EngineFacade
 
-from ..util import load_kv
 from .util import all_pawns_placed, all_spots_placed, idle_until
 
 
 @pytest.fixture(autouse=True)
 def grid_kv():
-	load_kv("elide.grid.board")
+	Builder.load_file("grid/board.kv")
+	yield
+	Builder.unload_file("grid/board.kv")
 
 
 @pytest.mark.usefixtures("kivy")

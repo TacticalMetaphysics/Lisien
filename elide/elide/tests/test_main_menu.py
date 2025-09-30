@@ -3,6 +3,7 @@ import shutil
 
 import pytest
 from kivy.base import EventLoop
+from kivy.lang import Builder
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView

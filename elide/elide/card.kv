@@ -1,0 +1,119 @@
+
+<ColorTextureBox>:
+	canvas:
+		Color:
+			rgba: root.color
+		Rectangle:
+			texture: root.texture
+			pos: root.pos
+			size: root.size
+		Color:
+			rgba: root.outline_color
+		Line:
+			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
+		Color:
+			rgba: [1, 1, 1, 1]
+<Foundation>:
+	color: [0, 0, 0, 0]
+	outline_color: [1, 1, 1, 1]
+<Card>:
+	headline: headline
+	midline: midline
+	footer: footer
+	art: art
+	foreground: foreground
+	canvas:
+		Color:
+			rgba: root.background_color
+		Rectangle:
+			texture: root.background_texture
+			pos: root.pos
+			size: root.size
+		Color:
+			rgba: root.outline_color
+		Line:
+			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
+		Color:
+			rgba: [1, 1, 1, 1]
+	BoxLayout:
+		size_hint: 0.9, 0.9
+		pos_hint: {'x': 0.05, 'y': 0.05}
+		orientation: 'vertical'
+		canvas:
+			Color:
+				rgba: root.content_outline_color
+			Line:
+				points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
+			Color:
+				rgba: [1, 1, 1, 1]
+		Label:
+			id: headline
+			text: root.headline_text
+			markup: root.headline_markup
+			font_name: root.headline_font_name
+			font_size: root.headline_font_size
+			color: root.headline_color
+			size_hint: (None, None)
+			size: self.texture_size
+		ColorTextureBox:
+			id: art
+			color: root.art_color
+			texture: root.art_texture
+			outline_color: root.art_outline_color if root.show_art else [0, 0, 0, 0]
+			size_hint: (1, 1) if root.show_art else (None, None)
+			size: (0, 0)
+		Label:
+			id: midline
+			text: root.midline_text
+			markup: root.midline_markup
+			font_name: root.midline_font_name
+			font_size: root.midline_font_size
+			color: root.midline_color
+			size_hint: (None, None)
+			size: self.texture_size
+		ColorTextureBox:
+			id: foreground
+			color: root.foreground_color
+			outline_color: root.foreground_outline_color
+			texture: root.foreground_texture
+			Label:
+				id: main_text
+				color: root.text_color
+				markup: root.markup
+				font_name: root.font_name
+				font_size: root.font_size
+				text_size: foreground.size
+				size_hint: (None, None)
+				size: self.texture_size
+				pos: foreground.pos
+				valign: 'top'
+			Button:
+				id: editbut
+				background_normal: 'atlas://data/images/defaulttheme/button' if root.editable else ''
+				background_down: 'atlas://data/images/defaulttheme/button_pressed' if root.editable else ''
+				color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)
+				background_color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)
+				text_size: self.size
+				size: self.texture_size
+				size_hint: (None, None)
+				font_name: 'DejaVuSans'
+				font_size: 30
+				x: foreground.right - self.width - (.1 * self.width)
+				y: foreground.top - self.height - (.1 * self.height)
+				text: '✐' if root.editable else ''
+				on_press: root.edit_func(root)
+				disabled: not root.editable
+		Label:
+			id: footer
+			text: root.footer_text
+			markup: root.footer_markup
+			font_name: root.footer_font_name
+			font_size: root.footer_font_size
+			color: root.footer_color
+			size_hint: (None, None)
+			size: self.texture_size
+<DeckBuilderScrollBar>:
+	ScrollBarBar:
+		id: bar
+		color: root.bar_color if root.scrolling else root.bar_inactive_color
+		texture: root.bar_texture

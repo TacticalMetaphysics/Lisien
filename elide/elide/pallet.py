@@ -38,7 +38,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import devour, logwrap, store_kv
+from .util import logwrap
 
 
 def trigger(func):
@@ -151,28 +151,6 @@ class Pallet(StackLayout):
 					size=swatch_size,
 				)
 				add_widget(swatches[name])
-
-
-store_kv(
-	__name__,
-	"""
-<SwatchButton>:
-	canvas:
-		Rectangle:
-			pos:
-				(
-				root.x + (root.width / 2 - root.tex.size[0] / 2) if root.tex else 0,
-				root.y + root.height - root.tex.size[1] if root.tex else 0
-				)
-			size: root.tex.size
-			texture: root.tex
-<Pallet>:
-	orientation: 'lr-tb'
-	padding_y: 100
-	size_hint: (None, None)
-	height: self.minimum_height
-""",
-)
 
 
 class PalletBox(BoxLayout):
