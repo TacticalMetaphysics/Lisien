@@ -29,17 +29,15 @@ import json
 import os
 import sys
 from abc import ABC, abstractmethod
-from ast import Expr, Module, parse
+from ast import Expr, Module, parse, unparse
 from collections import UserDict
 from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from io import StringIO
 from typing import TYPE_CHECKING
 
 import networkx as nx
-from astunparse import Unparser
 from blinker import Signal
 
 from .types import CharName, Key
@@ -48,18 +46,6 @@ from .wrap import wrapval
 
 if TYPE_CHECKING:
 	from .character import Character
-
-
-class TabUnparser(Unparser):
-	def fill(self, text: str = ""):
-		__doc__ = Unparser.fill.__doc__
-		self.f.write("\n" + "\t" * self._indent + text)
-
-
-def unparse(tree):
-	v = StringIO()
-	TabUnparser(tree, file=v)
-	return v.getvalue()
 
 
 # 0x241d is the group separator
@@ -398,8 +384,7 @@ class FunctionStore(Signal):
 		if self._filename is None:
 			return
 		with open(self._filename, "w", encoding="utf-8") as outf:
-			outf.write("# encoding: utf-8")
-			Unparser(self._ast, outf)
+			outf.write(unparse(self._ast))
 		self._need_save = False
 		if reimport:
 			self.reimport()

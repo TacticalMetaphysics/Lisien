@@ -2,11 +2,10 @@ import difflib
 import filecmp
 import json
 import os
-from ast import parse
+from ast import parse, unparse
 from functools import partial
 
 import pytest
-from astunparse import unparse
 
 from ..db import (
 	AbstractDatabaseConnector,

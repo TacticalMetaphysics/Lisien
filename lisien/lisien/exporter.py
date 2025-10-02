@@ -1053,7 +1053,7 @@ def game_path_to_etree(
 	ls = os.listdir(game_path)
 	# Take the hash of code and strings--*not* the hash of their *files*--
 	# so that if the file gets reformatted, as often happens as a side effect
-	# of ast.parse and astunparse, this does not change its hash.
+	# of ast.parse and ast.unparse, this does not change its hash.
 	for modname in ("function", "method", "trigger", "prereq", "action"):
 		modpy = modname + ".py"
 		if modpy in ls:
