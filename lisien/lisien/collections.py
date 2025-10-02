@@ -385,7 +385,7 @@ class FunctionStore(Signal):
 		if self._filename is None:
 			return
 		with open(self._filename, "w", encoding="utf-8") as outf:
-			outf.write(astor.code_gen.to_source(self._ast))
+			outf.write(astor.code_gen.to_source(self._ast, indent_with="\t"))
 		self._need_save = False
 		if reimport:
 			self.reimport()
@@ -413,7 +413,7 @@ class FunctionStore(Signal):
 
 	def iterplain(self):
 		for name, idx in self._ast_idx.items():
-			yield name, astor.dump_tree(self._ast.body[idx])
+			yield name, astor.to_source(self._ast.body[idx], indent_with="\t")
 
 	def store_source(self, v, name=None):
 		self._need_save = True
@@ -450,7 +450,11 @@ class FunctionStore(Signal):
 		for k in sort_set(todo.keys()):
 			hashed.update(k.encode())
 			hashed.update(GROUP_SEP)
-			hashed.update(astor.dump_tree(stripped_ast[todo[k]]).encode())
+			hashed.update(
+				astor.dump_tree(
+					stripped_ast[todo[k]], indentation="\t"
+				).encode()
+			)
 			hashed.update(REC_SEP)
 		return hashed.digest()
 
