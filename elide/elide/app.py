@@ -944,7 +944,7 @@ class ElideApp(App):
 			if v:
 				raise RuntimeError("Still bound", k, v)
 		for loaded_kv in Builder.files[:]:
-			if "elide" in os.path.abspath(loaded_kv):
+			if not loaded_kv.endswith("/kivy/data/style.kv"):
 				Builder.unload_file(loaded_kv)
 				Logger.debug(f"ElideApp: unloaded {loaded_kv}")
 			else:
