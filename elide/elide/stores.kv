@@ -106,14 +106,21 @@
 			_trigger_save: root._trigger_save
 			on_text: root.validate_name_input(self.text)
 			hint_text: root.name
+		Label:
+		    text: '('
+		    size_hint: (0.05, None)
+		    height: self.line_height + self.font_size
 		Py3CodeInput:
 			id: params
-			text: '({}):'.format(', '.join(root.params))
-			disabled: True
-			size_hint_y: None
+			disabled: root.params_disabled
+			size_hint: (0.5, None)
 			height: self.line_height + self.font_size
 			background_disabled_normal: ''
 			disabled_foreground_color: self.foreground_color
+		Label:
+		    text: '):'
+		    size_hint: (0.05, None)
+		    height: self.line_height + self.font_size
 		Button:
 			text: 'del'
 			size_hint_x: 0.1 if not self.disabled else 0.0
@@ -141,7 +148,7 @@
 		Py3CodeInput:
 			id: code
 			disabled: root.disable_text_input
-<FuncsEdBox>:
+<RuleFuncsEdBox@FuncsEdBox>:
 	editor: funcs_ed
 	storelist: funcs_list
 	orientation: 'vertical'
@@ -156,6 +163,63 @@
 				store: root.store
 		FuncEditor:
 			id: funcs_ed
+			params_text: '{}'.format(', '.join(self.params))
+			name: root.selection_name
+			store: root.store
+			storelist: funcs_list
+			disable_text_input: root.disable_text_input
+			validate_name_input: root.validate_name_input
+			_trigger_save: root._trigger_save
+			_trigger_delete: root._trigger_delete
+	BoxLayout:
+		size_hint_y: 0.07
+		Button:
+			text: 'Close'
+			on_release: root.dismiss()
+<MethodEdBox@FuncsEdBox>:
+	editor: funcs_ed
+	storelist: funcs_list
+	orientation: 'vertical'
+	data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
+	BoxLayout:
+		orientation: 'horizontal'
+		BoxLayout:
+			orientation: 'vertical'
+			size_hint_x: 0.2
+			StoreList:
+				id: funcs_list
+				store: root.store
+		MethodEditor:
+			id: funcs_ed
+			params_disabled: False
+			name: root.selection_name
+			store: root.store
+			storelist: funcs_list
+			disable_text_input: root.disable_text_input
+			validate_name_input: root.validate_name_input
+			_trigger_save: root._trigger_save
+			_trigger_delete: root._trigger_delete
+	BoxLayout:
+		size_hint_y: 0.07
+		Button:
+			text: 'Close'
+			on_release: root.dismiss()
+<FunctionEdBox@FuncsEdBox>:
+	editor: funcs_ed
+	storelist: funcs_list
+	orientation: 'vertical'
+	data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
+	BoxLayout:
+		orientation: 'horizontal'
+		BoxLayout:
+			orientation: 'vertical'
+			size_hint_x: 0.2
+			StoreList:
+				id: funcs_list
+				store: root.store
+		FunctionEditor:
+			id: funcs_ed
+			params_disabled: False
 			name: root.selection_name
 			store: root.store
 			storelist: funcs_list
@@ -171,12 +235,28 @@
 <FuncsEdScreen>:
 	name: 'funcs'
 	TabbedPanel:
-		default_tab: action
+		default_tab: method
+		TabbedPanelItem:
+		    id: method
+		    text: 'Method'
+		    on_state: methods.save()
+		    MethodEdBox:
+		        id: methods
+		        toggle: root.toggle
+		        store_name: 'method'
+		TabbedPanelItem:
+		    id: function
+		    text: 'Function'
+		    on_state: functions.save()
+		    FunctionEdBox:
+		        id: functions
+		        toggle: root.toggle
+		        store_name: 'function'
 		TabbedPanelItem:
 			id: trigger
 			text: 'Trigger'
 			on_state: triggers.save()
-			FuncsEdBox:
+			RuleFuncsEdBox:
 				id: triggers
 				toggle: root.toggle
 				store_name: 'trigger'
@@ -184,7 +264,7 @@
 			id: prereq
 			text: 'Prereq'
 			on_state: prereqs.save()
-			FuncsEdBox:
+			RuleFuncsEdBox:
 				id: prereqs
 				toggle: root.toggle
 				store_name: 'prereq'
@@ -192,7 +272,7 @@
 			id: action
 			text: 'Action'
 			on_state: actions.save()
-			FuncsEdBox:
+			RuleFuncsEdBox:
 				id: actions
 				toggle: root.toggle
 				store_name: 'action'
