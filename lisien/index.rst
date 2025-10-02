@@ -300,10 +300,10 @@
    .. autoclass:: QueryResult
 
 ##############
- xcollections
+ collections
 ##############
 
-.. automodule:: lisien.xcollections
+.. automodule:: lisien.collections
 
    .. autoclass:: StringStore
 
