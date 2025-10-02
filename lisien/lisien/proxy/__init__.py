@@ -36,22 +36,21 @@ import random
 import sys
 import zlib
 from abc import ABC, abstractmethod
+from ast import unparse
 from collections import UserDict
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from functools import cached_property, partial
 from inspect import getsource
-from logging import FileHandler, getLogger
 from multiprocessing.connection import Connection
 from queue import Queue, SimpleQueue
 from random import Random
-from threading import Lock, RLock, Thread
+from threading import Lock, Thread
 from time import monotonic
 from types import MethodType
 from typing import Hashable, Iterable, Iterator, Literal, Optional
 
-import astunparse
 import msgpack
 import networkx as nx
 import tblib
@@ -3876,7 +3875,7 @@ class EngineProxy(AbstractEngine):
 						elif hasattr(arg.value, "value"):
 							args.append(arg.value.value)
 						else:
-							args.append(astunparse.unparse(arg.value))
+							args.append(unparse(arg.value))
 					for kw in expr.value.keywords:
 						if isinstance(kw.value, ast.Subscript):
 							whatmap = kw.value.value.attr
@@ -3886,7 +3885,7 @@ class EngineProxy(AbstractEngine):
 							if hasattr(kw.value, "value"):
 								kwargs[kw.arg] = kw.value.value
 							else:
-								kwargs[kw.arg] = astunparse.unparse(kw.value)
+								kwargs[kw.arg] = unparse(kw.value)
 					self.handle(method, *args, **kwargs)
 
 	def __repr__(self):

@@ -1,5 +1,4 @@
 annotated-types>=0.7.0
-astunparse>=1.6.3,<2
 blinker>=1.4,<2
 msgpack>=1.0.0
 networkx>=2.4,<4
