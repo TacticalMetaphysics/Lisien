@@ -108,8 +108,7 @@
 			hint_text: root.name
 		Label:
 		    text: '('
-		    size_hint: (0.05, None)
-		    height: self.line_height + self.font_size
+		    size_hint: (0.05, 1.0)
 		Py3CodeInput:
 			id: params
 			disabled: root.params_disabled
@@ -119,8 +118,7 @@
 			disabled_foreground_color: self.foreground_color
 		Label:
 		    text: '):'
-		    size_hint: (0.05, None)
-		    height: self.line_height + self.font_size
+		    size_hint: (0.05, 1.0)
 		Button:
 			text: 'del'
 			size_hint_x: 0.1 if not self.disabled else 0.0
