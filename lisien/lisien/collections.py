@@ -29,7 +29,7 @@ import json
 import os
 import sys
 from abc import ABC, abstractmethod
-from ast import Expr, Module, parse, unparse
+from ast import Module, Expr, parse
 from collections import UserDict
 from collections.abc import MutableMapping
 from copy import deepcopy
@@ -37,6 +37,7 @@ from hashlib import blake2b
 from inspect import getsource
 from typing import TYPE_CHECKING
 
+import astor
 import networkx as nx
 from blinker import Signal
 
@@ -294,7 +295,7 @@ class FunctionStore(Signal):
 		if filename is None:
 			self._filename = None
 			self._module = module
-			self._ast = Module(body=[])
+			self._ast = Module(body=[], type_ignores=[])
 			self._ast_idx = {}
 			self._need_save = False
 			self._locl = initial
@@ -384,7 +385,7 @@ class FunctionStore(Signal):
 		if self._filename is None:
 			return
 		with open(self._filename, "w", encoding="utf-8") as outf:
-			outf.write(unparse(self._ast))
+			outf.write(astor.code_gen.to_source(self._ast))
 		self._need_save = False
 		if reimport:
 			self.reimport()
@@ -412,7 +413,7 @@ class FunctionStore(Signal):
 
 	def iterplain(self):
 		for name, idx in self._ast_idx.items():
-			yield name, unparse(self._ast.body[idx])
+			yield name, astor.dump_tree(self._ast.body[idx])
 
 	def store_source(self, v, name=None):
 		self._need_save = True
@@ -438,16 +439,18 @@ class FunctionStore(Signal):
 	def get_source(self, name):
 		if name == "truth":
 			return "def truth(*args):\n\treturn True"
-		return unparse(self._ast.body[self._ast_idx[name]])
+		return astor.dump_tree(self._ast.body[self._ast_idx[name]])
 
 	def blake2b(self) -> bytes:
 		"""Return the blake2b hash digest of the code stored here"""
 		hashed = blake2b()
-		todo = dict(self.iterplain())
+		todo = dict(self._ast_idx)
+		stripped_ast = deepcopy(self._ast.body)
+		astor.strip_tree(stripped_ast)
 		for k in sort_set(todo.keys()):
 			hashed.update(k.encode())
 			hashed.update(GROUP_SEP)
-			hashed.update(todo[k].encode())
+			hashed.update(astor.dump_tree(stripped_ast[todo[k]]).encode())
 			hashed.update(REC_SEP)
 		return hashed.digest()
 

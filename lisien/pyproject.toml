@@ -25,6 +25,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
+	"astor~=0.8.1",
 	"blinker~=1.4",
 	"msgpack~=1.0.0",
 	"networkx~=2.4",
