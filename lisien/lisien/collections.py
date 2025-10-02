@@ -308,7 +308,7 @@ class FunctionStore(Signal):
 				self.reimport()
 			except (FileNotFoundError, ModuleNotFoundError):
 				self._module = module
-				self._ast = Module(body=[])
+				self._ast = Module(body=[], type_ignores=[])
 				self._ast_idx = {}
 				self.save()
 			self._need_save = False
