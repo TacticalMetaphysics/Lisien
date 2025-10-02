@@ -218,7 +218,8 @@ call, then return a menu description like this one.:
            return "Wake up?", [("Yes", character.engine.wake_alice), ("No", None)]
 
 Only methods defined with the ``@engine.method`` function store may be
-used in a menu.
+used in a menu. In Elide, that means you have to define them in the Method
+tab of the Python editor.
 
 *********
  Proxies
