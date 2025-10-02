@@ -621,9 +621,17 @@ class FuncEditor(Editor):
 	"""Instance of ``StoreList`` that shows all the functions you can edit"""
 	codeinput = ObjectProperty()
 	params = ListProperty(["obj"])
+	params_disabled = BooleanProperty(True)
+	params_text = StringProperty()
 	name = StringProperty()
 	_text = StringProperty()
 	_do_parse = True
+
+	def on_params_text(self, *_):
+		if "params" not in self.ids:
+			Clock.schedule_once(self.on_params_text, 0)
+			return
+		self.ids.params.text = self.params_text
 
 	def _get_source(self):
 		code = self.get_default_text(self.name or self.name_wid.text)
@@ -669,6 +677,23 @@ class FuncEditor(Editor):
 		while binds:
 			self.codeinput.unbind_uid("text", binds.pop())
 		binds.add(self.codeinput.fbind("text", self.setter("_text")))
+
+
+class MethodEditor(FuncEditor):
+	def on_params_text(self, *_):
+		params = self.params_text.split(", ")
+		if self._validate_params(params):
+			self.params = params
+
+	@staticmethod
+	def _validate_params(params: list[str]) -> bool:
+		return params[0] == "self"
+
+
+class FunctionEditor(MethodEditor):
+	@staticmethod
+	def _validate_params(params: list[str]) -> bool:
+		return True
 
 
 class FuncsEdBox(EdBox):
