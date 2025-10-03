@@ -451,8 +451,8 @@ class FunctionStore(Signal):
 			hashed.update(k.encode())
 			hashed.update(GROUP_SEP)
 			hashed.update(
-				astor.dump_tree(
-					stripped_ast[todo[k]], indentation="\t"
+				astor.code_gen.to_source(
+					stripped_ast[todo[k]], indent_with="\t"
 				).encode()
 			)
 			hashed.update(REC_SEP)
