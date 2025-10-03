@@ -34,7 +34,7 @@ from kivy.uix.widget import Widget
 
 from .card import Card, DeckBuilderScrollBar, DeckBuilderView
 from .stores import FuncEditor
-from .util import devour, logwrap, load_kv
+from .util import devour, load_kv, logwrap
 
 
 def trigger(func):

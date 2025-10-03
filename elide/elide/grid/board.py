@@ -19,7 +19,7 @@ from elide.boardscatter import BoardScatterPlane
 
 from ..boardview import BoardView
 from ..kivygarden.texturestack import Stack, TextureStackPlane
-from ..util import logwrap, load_kv
+from ..util import load_kv, logwrap
 
 
 class GridPawn(Stack):

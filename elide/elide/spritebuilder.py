@@ -38,7 +38,7 @@ from sqlalchemy import and_, bindparam, column
 
 from .kivygarden.texturestack import ImageStack
 from .pallet import Pallet, PalletBox
-from .util import devour, logwrap, load_kv
+from .util import devour, load_kv, logwrap
 
 
 def trigger(func):

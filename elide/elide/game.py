@@ -30,9 +30,9 @@ from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 import lisien.proxy
 
-from .screen import DialogLayout
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
+from .screen import DialogLayout
 from .util import logwrap
 
 Factory.register("GraphBoard", GraphBoard)

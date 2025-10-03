@@ -31,7 +31,7 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
-from .util import logwrap, load_kv
+from .util import load_kv, logwrap
 
 
 def trigger(func):
