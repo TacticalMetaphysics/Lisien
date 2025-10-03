@@ -20,8 +20,7 @@ from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
-from .util import SelectableRecycleBoxLayout, devour, logwrap, load_kv
-
+from .util import SelectableRecycleBoxLayout, devour, load_kv, logwrap
 
 # TODO: Visual preview
 # TODO: Background image chooser

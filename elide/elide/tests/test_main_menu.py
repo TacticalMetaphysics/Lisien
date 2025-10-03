@@ -160,6 +160,11 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	idle_until(
 		lambda: modal._file_chooser.layout, 100, "Never filled file chooser"
 	)
+	idle_until(
+		lambda: "FileIconEntry" in Builder.templates,
+		100,
+		"Never built file chooser",
+	)
 	chooser: FileChooserIconView = modal._file_chooser
 	scrollview = chooser.layout.children[0]
 	scatter = scrollview._viewport

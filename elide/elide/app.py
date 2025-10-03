@@ -24,14 +24,15 @@ from typing import Callable
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from lisien.exc import OutOfTimelineError
+
 from .charsview import CharactersScreen
 from .logview import LogScreen
 from .menu import MainMenuScreen
-from .rulesview import RulesScreen, CharacterRulesScreen
+from .rulesview import CharacterRulesScreen, RulesScreen
 from .screen import MainScreen
 from .spritebuilder import PawnConfigScreen, SpotConfigScreen
 from .statcfg import StatScreen
-from .stores import StringsEdScreen, FuncsEdScreen
+from .stores import FuncsEdScreen, StringsEdScreen
 from .timestream import TimestreamScreen
 
 if "KIVY_NO_ARGS" not in os.environ:
@@ -51,10 +52,6 @@ from kivy.properties import (
 from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
-from .graph.arrow import GraphArrow
-from .graph.board import GraphBoard
-from .grid.board import GridBoard
-from .util import devour, logwrap
 from lisien.proxy import (
 	CharacterProxy,
 	CharStatProxy,
@@ -62,6 +59,11 @@ from lisien.proxy import (
 	PlaceProxy,
 	ThingProxy,
 )
+
+from .graph.arrow import GraphArrow
+from .graph.board import GraphBoard
+from .grid.board import GridBoard
+from .util import devour, logwrap
 
 
 def trigger(func):

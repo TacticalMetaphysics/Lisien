@@ -29,7 +29,7 @@ import json
 import os
 import sys
 from abc import ABC, abstractmethod
-from ast import Module, Expr, parse
+from ast import Expr, Module, parse
 from collections import UserDict
 from collections.abc import MutableMapping
 from copy import deepcopy

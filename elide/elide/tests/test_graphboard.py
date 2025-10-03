@@ -14,8 +14,8 @@ from lisien.facade import CharacterFacade, EngineFacade
 from lisien.util import SignalDict
 
 from ..kivygarden.texturestack import TextureStackPlane
-from .util import advance_frames, idle_until
 from ..util import load_kv
+from .util import advance_frames, idle_until
 
 
 def pos_near(x0, y0, x1, y1):

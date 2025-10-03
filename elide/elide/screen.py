@@ -32,12 +32,12 @@ from kivy.properties import (
 	BooleanProperty,
 	BoundedNumericProperty,
 	DictProperty,
+	ListProperty,
 	NumericProperty,
 	ObjectProperty,
 	ReferenceListProperty,
 	StringProperty,
 	VariableListProperty,
-	ListProperty,
 )
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -53,7 +53,7 @@ from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .stepper import RuleStepper
-from .util import devour, dummynum, logwrap, load_kv
+from .util import devour, dummynum, load_kv, logwrap
 
 
 def trigger(func):

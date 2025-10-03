@@ -58,7 +58,7 @@ tester knew to look for it.
 
 ## Core
 
-* *Infinite time travel*, rendering traditional save files obsolete.
+* *Multiverse time travel*, rendering traditional save files obsolete.
 * Integration with [NetworkX](http://networkx.github.io) for
   convenient access to various *graph algorithms*, particularly
   pathfinding.
