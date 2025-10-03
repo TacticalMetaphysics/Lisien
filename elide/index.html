@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Elide &#8212; Lisien 0.22.3 documentation</title>
+    <title>Elide &#8212; Lisien 0.22.4 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
-    <script src="../_static/documentation_options.js?v=617e7fb5"></script>
+    <script src="../_static/documentation_options.js?v=aaf7ef78"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -635,9 +635,77 @@ of the widget tree.</p>
 <p>Handles touch, selection, and time control. Contains a graph, a stat
 grid, the time control panel, and the menu.</p>
 <dl class="py class">
+<dt class="sig sig-object py" id="elide.screen.Box">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.screen.</span></span><span class="sig-name descname"><span class="pre">Box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#Box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.Box" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="elide.screen.CharMenuContainer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.screen.</span></span><span class="sig-name descname"><span class="pre">CharMenuContainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#CharMenuContainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.CharMenuContainer" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="elide.screen.Dialog">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.screen.</span></span><span class="sig-name descname"><span class="pre">Dialog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#Dialog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.Dialog" title="Link to this definition">¶</a></dt>
+<dd><p>MessageBox with a DialogMenu beneath it.</p>
+<p>Set the properties <code class="docutils literal notranslate"><span class="pre">message_kwargs</span></code> and <code class="docutils literal notranslate"><span class="pre">menu_kwargs</span></code>,
+respectively, to control them – but you probably want
+to do that by returning a pair of dicts from an action
+in lisien.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="elide.screen.DialogLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.screen.</span></span><span class="sig-name descname"><span class="pre">DialogLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#DialogLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.DialogLayout" title="Link to this definition">¶</a></dt>
+<dd><p>A layout, normally empty, that can generate dialogs</p>
+<p>To make dialogs, set my <code class="docutils literal notranslate"><span class="pre">todo</span></code> property to a list. It may contain:</p>
+<ul class="simple">
+<li><p>Strings, which will be displayed with an “OK” button to dismiss them</p></li>
+<li><p>Lists of pairs of strings and callables, which generate buttons with the
+string on them that, when clicked, call the callable</p></li>
+<li><p>Lists of pairs of dictionaries, which are interpreted as keyword
+arguments to <a class="reference internal" href="#elide.screen.MessageBox" title="elide.screen.MessageBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">MessageBox</span></code></a> and <a class="reference internal" href="#elide.screen.DialogMenu" title="elide.screen.DialogMenu"><code class="xref py py-class docutils literal notranslate"><span class="pre">DialogMenu</span></code></a></p></li>
+</ul>
+<p>In place of a callable you can use the name of a function in my
+<code class="docutils literal notranslate"><span class="pre">usermod</span></code>, a Python module given by name. I’ll import it when I need it.</p>
+<p>Needs to be instantiated with a lisien <code class="docutils literal notranslate"><span class="pre">engine</span></code> – probably an
+<code class="xref py py-class docutils literal notranslate"><span class="pre">EngineProxy</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="elide.screen.DialogLayout.advance_dialog">
+<span class="sig-name descname"><span class="pre">advance_dialog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">after_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#DialogLayout.advance_dialog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.DialogLayout.advance_dialog" title="Link to this definition">¶</a></dt>
+<dd><p>Try to display the next dialog described in my <code class="docutils literal notranslate"><span class="pre">todo</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>after_ok</strong> – An optional callable. Will be called after the user clicks</p>
+</dd>
+</dl>
+<p>a dialog option–as well as after any game-specific code for that option
+has run.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="elide.screen.DialogLayout.ok">
+<span class="sig-name descname"><span class="pre">ok</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#DialogLayout.ok"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.DialogLayout.ok" title="Link to this definition">¶</a></dt>
+<dd><p>Clear dialog widgets, call <code class="docutils literal notranslate"><span class="pre">cb</span></code> if provided, and advance the dialog queue</p>
+<p><code class="docutils literal notranslate"><span class="pre">cb2</span></code> will be called after advancing the dialog.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="elide.screen.DialogMenu">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.screen.</span></span><span class="sig-name descname"><span class="pre">DialogMenu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#DialogMenu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.DialogMenu" title="Link to this definition">¶</a></dt>
+<dd><p>Some buttons that make the game do things.</p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">options</span></code> to a list of pairs of <code class="docutils literal notranslate"><span class="pre">(text,</span> <span class="pre">function)</span></code> and the
+menu will be populated with buttons that say <code class="docutils literal notranslate"><span class="pre">text</span></code> that call
+<code class="docutils literal notranslate"><span class="pre">function</span></code> when pressed.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="elide.screen.DialogMenu.options">
+<span class="sig-name descname"><span class="pre">options</span></span><a class="headerlink" href="#elide.screen.DialogMenu.options" title="Link to this definition">¶</a></dt>
+<dd><p>List of pairs of (button_text, callable)</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="elide.screen.KvLayout">
@@ -720,17 +788,23 @@ of the widget tree.</p>
 <p>If you want to disable this, set <code class="docutils literal notranslate"><span class="pre">engine.universal['block']</span> <span class="pre">=</span> <span class="pre">True</span></code></p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="elide.screen.MainScreen.remake_display">
-<span class="sig-name descname"><span class="pre">remake_display</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#MainScreen.remake_display"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.MainScreen.remake_display" title="Link to this definition">¶</a></dt>
-<dd><p>Remake any affected widgets after a change in my <code class="docutils literal notranslate"><span class="pre">kv</span></code>.</p>
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="elide.screen.MessageBox">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.screen.</span></span><span class="sig-name descname"><span class="pre">MessageBox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#MessageBox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.MessageBox" title="Link to this definition">¶</a></dt>
+<dd><p>Looks like a TextInput but doesn’t accept any input.</p>
+<p>Does support styled text with BBcode.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="elide.screen.OneTurnButton">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.screen.</span></span><span class="sig-name descname"><span class="pre">OneTurnButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#OneTurnButton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.OneTurnButton" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="elide.screen.ScrollableLabel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.screen.</span></span><span class="sig-name descname"><span class="pre">ScrollableLabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/screen.html#ScrollableLabel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.screen.ScrollableLabel" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
@@ -1426,87 +1500,6 @@ for applying the selection.</p>
 <section id="dialog">
 <h2>dialog<a class="headerlink" href="#dialog" title="Link to this heading">¶</a></h2>
 <p>Simple data-driven UI interactions</p>
-<p id="module-elide.dialog">Generic dialog boxes and menus, for in front of a Board</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="elide.dialog.Box">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.dialog.</span></span><span class="sig-name descname"><span class="pre">Box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/dialog.html#Box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.dialog.Box" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="elide.dialog.Dialog">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.dialog.</span></span><span class="sig-name descname"><span class="pre">Dialog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/dialog.html#Dialog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.dialog.Dialog" title="Link to this definition">¶</a></dt>
-<dd><p>MessageBox with a DialogMenu beneath it.</p>
-<p>Set the properties <code class="docutils literal notranslate"><span class="pre">message_kwargs</span></code> and <code class="docutils literal notranslate"><span class="pre">menu_kwargs</span></code>,
-respectively, to control them – but you probably want
-to do that by returning a pair of dicts from an action
-in lisien.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="elide.dialog.DialogLayout">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.dialog.</span></span><span class="sig-name descname"><span class="pre">DialogLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/dialog.html#DialogLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.dialog.DialogLayout" title="Link to this definition">¶</a></dt>
-<dd><p>A layout, normally empty, that can generate dialogs</p>
-<p>To make dialogs, set my <code class="docutils literal notranslate"><span class="pre">todo</span></code> property to a list. It may contain:</p>
-<ul class="simple">
-<li><p>Strings, which will be displayed with an “OK” button to dismiss them</p></li>
-<li><p>Lists of pairs of strings and callables, which generate buttons with the
-string on them that, when clicked, call the callable</p></li>
-<li><p>Lists of pairs of dictionaries, which are interpreted as keyword
-arguments to <a class="reference internal" href="#elide.dialog.MessageBox" title="elide.dialog.MessageBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">MessageBox</span></code></a> and <a class="reference internal" href="#elide.dialog.DialogMenu" title="elide.dialog.DialogMenu"><code class="xref py py-class docutils literal notranslate"><span class="pre">DialogMenu</span></code></a></p></li>
-</ul>
-<p>In place of a callable you can use the name of a function in my
-<code class="docutils literal notranslate"><span class="pre">usermod</span></code>, a Python module given by name. I’ll import it when I need it.</p>
-<p>Needs to be instantiated with a lisien <code class="docutils literal notranslate"><span class="pre">engine</span></code> – probably an
-<code class="xref py py-class docutils literal notranslate"><span class="pre">EngineProxy</span></code>.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="elide.dialog.DialogLayout.advance_dialog">
-<span class="sig-name descname"><span class="pre">advance_dialog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">after_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/dialog.html#DialogLayout.advance_dialog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.dialog.DialogLayout.advance_dialog" title="Link to this definition">¶</a></dt>
-<dd><p>Try to display the next dialog described in my <code class="docutils literal notranslate"><span class="pre">todo</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>after_ok</strong> – An optional callable. Will be called after the user clicks</p>
-</dd>
-</dl>
-<p>a dialog option–as well as after any game-specific code for that option
-has run.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="elide.dialog.DialogLayout.ok">
-<span class="sig-name descname"><span class="pre">ok</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/dialog.html#DialogLayout.ok"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.dialog.DialogLayout.ok" title="Link to this definition">¶</a></dt>
-<dd><p>Clear dialog widgets, call <code class="docutils literal notranslate"><span class="pre">cb</span></code> if provided, and advance the dialog queue</p>
-<p><code class="docutils literal notranslate"><span class="pre">cb2</span></code> will be called after advancing the dialog.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="elide.dialog.DialogMenu">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.dialog.</span></span><span class="sig-name descname"><span class="pre">DialogMenu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/dialog.html#DialogMenu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.dialog.DialogMenu" title="Link to this definition">¶</a></dt>
-<dd><p>Some buttons that make the game do things.</p>
-<p>Set <code class="docutils literal notranslate"><span class="pre">options</span></code> to a list of pairs of <code class="docutils literal notranslate"><span class="pre">(text,</span> <span class="pre">function)</span></code> and the
-menu will be populated with buttons that say <code class="docutils literal notranslate"><span class="pre">text</span></code> that call
-<code class="docutils literal notranslate"><span class="pre">function</span></code> when pressed.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="elide.dialog.DialogMenu.options">
-<span class="sig-name descname"><span class="pre">options</span></span><a class="headerlink" href="#elide.dialog.DialogMenu.options" title="Link to this definition">¶</a></dt>
-<dd><p>List of pairs of (button_text, callable)</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="elide.dialog.MessageBox">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.dialog.</span></span><span class="sig-name descname"><span class="pre">MessageBox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/dialog.html#MessageBox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.dialog.MessageBox" title="Link to this definition">¶</a></dt>
-<dd><p>Looks like a TextInput but doesn’t accept any input.</p>
-<p>Does support styled text with BBcode.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="elide.dialog.ScrollableLabel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.dialog.</span></span><span class="sig-name descname"><span class="pre">ScrollableLabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/dialog.html#ScrollableLabel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.dialog.ScrollableLabel" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </section>
 <section id="menu">
 <h2>menu<a class="headerlink" href="#menu" title="Link to this heading">¶</a></h2>
@@ -1777,7 +1770,7 @@ Thing.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="elide.spritebuilder.PawnConfigScreen">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.spritebuilder.</span></span><span class="sig-name descname"><span class="pre">PawnConfigScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/spritebuilder.html#PawnConfigScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.spritebuilder.PawnConfigScreen" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.spritebuilder.</span></span><span class="sig-name descname"><span class="pre">PawnConfigScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/spritebuilder.html#PawnConfigScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.spritebuilder.PawnConfigScreen" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
@@ -2234,6 +2227,11 @@ FuncEditor showing the source of the selected one, and a close button.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="elide.stores.FunctionEditor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.stores.</span></span><span class="sig-name descname"><span class="pre">FunctionEditor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/stores.html#FunctionEditor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.stores.FunctionEditor" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="elide.stores.FunctionNameInput">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.stores.</span></span><span class="sig-name descname"><span class="pre">FunctionNameInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/stores.html#FunctionNameInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.stores.FunctionNameInput" title="Link to this definition">¶</a></dt>
 <dd><p>Input for the name of a function</p>
@@ -2258,6 +2256,11 @@ function in order to pre-process text for input validation.</p>
 </dd></dl>
 
 </dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="elide.stores.MethodEditor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">elide.stores.</span></span><span class="sig-name descname"><span class="pre">MethodEditor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/stores.html#MethodEditor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.stores.MethodEditor" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="elide.stores.RecycleToggleButton">
@@ -2449,6 +2452,12 @@ multiple languages, and switch between them programmatically by setting
 <span class="sig-prename descclassname"><span class="pre">elide.util.</span></span><span class="sig-name descname"><span class="pre">dummynum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">character</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/elide/util.html#dummynum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.util.dummynum" title="Link to this definition">¶</a></dt>
 <dd><p>Count how many nodes there already are in the character whose name
 starts the same.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="elide.util.load_kv">
+<span class="sig-prename descclassname"><span class="pre">elide.util.</span></span><span class="sig-name descname"><span class="pre">load_kv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/elide/util.html#load_kv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#elide.util.load_kv" title="Link to this definition">¶</a></dt>
+<dd><p>Load a kv file unless it’s already been loaded</p>
 </dd></dl>
 
 </section>
@@ -2644,7 +2653,7 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l1"><a class="reference internal" href="../lisien/index.html#module-lisien.portal">portal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../lisien/index.html#module-lisien.rule">rule</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../lisien/index.html#xcollections">xcollections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../lisien/index.html#module-lisien.collections">collections</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Elide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#game">game</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#elide.game.GameApp"><code class="docutils literal notranslate"><span class="pre">GameApp</span></code></a></li>
@@ -2665,10 +2674,16 @@ set the title in the class as previously stated in the documentation.</p>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-elide.screen">screen</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#elide.screen.Box"><code class="docutils literal notranslate"><span class="pre">Box</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.screen.CharMenuContainer"><code class="docutils literal notranslate"><span class="pre">CharMenuContainer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elide.screen.Dialog"><code class="docutils literal notranslate"><span class="pre">Dialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elide.screen.DialogLayout"><code class="docutils literal notranslate"><span class="pre">DialogLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elide.screen.DialogMenu"><code class="docutils literal notranslate"><span class="pre">DialogMenu</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.screen.KvLayout"><code class="docutils literal notranslate"><span class="pre">KvLayout</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.screen.MainScreen"><code class="docutils literal notranslate"><span class="pre">MainScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elide.screen.MessageBox"><code class="docutils literal notranslate"><span class="pre">MessageBox</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.screen.OneTurnButton"><code class="docutils literal notranslate"><span class="pre">OneTurnButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elide.screen.ScrollableLabel"><code class="docutils literal notranslate"><span class="pre">ScrollableLabel</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.screen.SimulateButton"><code class="docutils literal notranslate"><span class="pre">SimulateButton</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.screen.StatListPanel"><code class="docutils literal notranslate"><span class="pre">StatListPanel</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.screen.TimePanel"><code class="docutils literal notranslate"><span class="pre">TimePanel</span></code></a></li>
@@ -2698,15 +2713,7 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l3"><a class="reference internal" href="#elide.charsview.CharactersView"><code class="docutils literal notranslate"><span class="pre">CharactersView</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#dialog">dialog</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#elide.dialog.Box"><code class="docutils literal notranslate"><span class="pre">Box</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#elide.dialog.Dialog"><code class="docutils literal notranslate"><span class="pre">Dialog</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#elide.dialog.DialogLayout"><code class="docutils literal notranslate"><span class="pre">DialogLayout</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#elide.dialog.DialogMenu"><code class="docutils literal notranslate"><span class="pre">DialogMenu</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#elide.dialog.MessageBox"><code class="docutils literal notranslate"><span class="pre">MessageBox</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#elide.dialog.ScrollableLabel"><code class="docutils literal notranslate"><span class="pre">ScrollableLabel</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#dialog">dialog</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#menu">menu</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#elide.menu.GameExporterModal"><code class="docutils literal notranslate"><span class="pre">GameExporterModal</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.menu.GameImporterModal"><code class="docutils literal notranslate"><span class="pre">GameImporterModal</span></code></a></li>
@@ -2754,8 +2761,10 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l3"><a class="reference internal" href="#elide.stores.FuncEditor"><code class="docutils literal notranslate"><span class="pre">FuncEditor</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.stores.FuncsEdBox"><code class="docutils literal notranslate"><span class="pre">FuncsEdBox</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.stores.FuncsEdScreen"><code class="docutils literal notranslate"><span class="pre">FuncsEdScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elide.stores.FunctionEditor"><code class="docutils literal notranslate"><span class="pre">FunctionEditor</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.stores.FunctionNameInput"><code class="docutils literal notranslate"><span class="pre">FunctionNameInput</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.stores.LanguageInput"><code class="docutils literal notranslate"><span class="pre">LanguageInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elide.stores.MethodEditor"><code class="docutils literal notranslate"><span class="pre">MethodEditor</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.stores.RecycleToggleButton"><code class="docutils literal notranslate"><span class="pre">RecycleToggleButton</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.stores.StoreButton"><code class="docutils literal notranslate"><span class="pre">StoreButton</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.stores.StoreList"><code class="docutils literal notranslate"><span class="pre">StoreList</span></code></a></li>
@@ -2772,6 +2781,7 @@ set the title in the class as previously stated in the documentation.</p>
 <li class="toctree-l3"><a class="reference internal" href="#elide.util.SelectableRecycleBoxLayout"><code class="docutils literal notranslate"><span class="pre">SelectableRecycleBoxLayout</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.util.devour"><code class="docutils literal notranslate"><span class="pre">devour()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#elide.util.dummynum"><code class="docutils literal notranslate"><span class="pre">dummynum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elide.util.load_kv"><code class="docutils literal notranslate"><span class="pre">load_kv()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#app">app</a><ul>

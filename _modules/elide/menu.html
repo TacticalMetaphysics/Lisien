@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.menu &#8212; Lisien 0.22.3 documentation</title>
+    <title>elide.menu &#8212; Lisien 0.22.4 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=617e7fb5"></script>
+    <script src="../../_static/documentation_options.js?v=aaf7ef78"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -65,7 +65,7 @@
 <span class="kn">from</span> <span class="nn">kivy.uix.textinput</span> <span class="kn">import</span> <span class="n">TextInput</span>
 
 <span class="kn">from</span> <span class="nn">.gen</span> <span class="kn">import</span> <span class="n">GridGeneratorDialog</span>
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">devour</span><span class="p">,</span> <span class="n">load_kv</span><span class="p">,</span> <span class="n">logwrap</span><span class="p">,</span> <span class="n">store_kv</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">devour</span><span class="p">,</span> <span class="n">load_kv</span><span class="p">,</span> <span class="n">logwrap</span>
 
 
 <div class="viewcode-block" id="MenuTextInput">
@@ -207,7 +207,7 @@
 	<span class="n">headline</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
 
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-		<span class="n">load_kv</span><span class="p">(</span><span class="s2">&quot;elide.menu&quot;</span><span class="p">)</span>
+		<span class="n">load_kv</span><span class="p">(</span><span class="s2">&quot;menu.kv&quot;</span><span class="p">)</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;GamePickerModal&quot;</span><span class="p">)</span>
@@ -337,12 +337,9 @@
 			<span class="n">Logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
 				<span class="s2">&quot;GameImporterModal: running on Android, where it won&#39;t work&quot;</span>
 			<span class="p">)</span>
-			<span class="n">path</span> <span class="o">=</span> <span class="n">primary_external_storage_path</span><span class="p">()</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_android</span> <span class="o">=</span> <span class="kc">True</span>
+			<span class="k">return</span>
 		<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
 			<span class="n">path</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">prefix</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_android</span> <span class="o">=</span> <span class="kc">False</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_file_chooser&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_file_chooser</span> <span class="o">=</span> <span class="n">FileChooserIconView</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">chooser_goes_here</span><span class="o">.</span><span class="n">add_widget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file_chooser</span><span class="p">)</span></div>
 </div>
@@ -617,19 +614,6 @@
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_popover_export_game&quot;</span><span class="p">):</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_popover_export_game</span></div>
 
-
-
-<span class="n">kv</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">&lt;GameList&gt;:</span>
-<span class="s2">	viewclass: &#39;Button&#39;</span>
-<span class="s2">	RecycleBoxLayout:</span>
-<span class="s2">		default_size: None, dp(56)</span>
-<span class="s2">        default_size_hint: 1, None</span>
-<span class="s2">        height: self.minimum_height</span>
-<span class="s2">        size_hint_y: None</span>
-<span class="s2">        orientation: &#39;vertical&#39;</span>
-<span class="s2">&quot;&quot;&quot;</span>
-<span class="n">store_kv</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">kv</span><span class="p">)</span>
 </pre></div>
 
           </div>
@@ -667,7 +651,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#xcollections">xcollections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.collections">collections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 

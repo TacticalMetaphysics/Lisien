@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.stores &#8212; Lisien 0.22.3 documentation</title>
+    <title>elide.stores &#8212; Lisien 0.22.4 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=617e7fb5"></script>
+    <script src="../../_static/documentation_options.js?v=aaf7ef78"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -79,7 +79,7 @@
 <span class="kn">from</span> <span class="nn">kivy.uix.textinput</span> <span class="kn">import</span> <span class="n">TextInput</span>
 <span class="kn">from</span> <span class="nn">kivy.uix.togglebutton</span> <span class="kn">import</span> <span class="n">ToggleButton</span>
 
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">devour</span><span class="p">,</span> <span class="n">logwrap</span><span class="p">,</span> <span class="n">store_kv</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">devour</span><span class="p">,</span> <span class="n">load_kv</span><span class="p">,</span> <span class="n">logwrap</span>
 
 
 <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
@@ -278,6 +278,10 @@
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Code identifying the language we&#39;re editing&quot;&quot;&quot;</span>
 	<span class="n">edbox</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Widget containing editors for the current string and its name&quot;&quot;&quot;</span>
+
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+		<span class="n">load_kv</span><span class="p">(</span><span class="s2">&quot;stores.kv&quot;</span><span class="p">)</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kw</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RecycleToggleButton&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">on_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
@@ -706,9 +710,17 @@
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Instance of ``StoreList`` that shows all the functions you can edit&quot;&quot;&quot;</span>
 	<span class="n">codeinput</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">params</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">([</span><span class="s2">&quot;obj&quot;</span><span class="p">])</span>
+	<span class="n">params_disabled</span> <span class="o">=</span> <span class="n">BooleanProperty</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+	<span class="n">params_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
 	<span class="n">name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
 	<span class="n">_text</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
 	<span class="n">_do_parse</span> <span class="o">=</span> <span class="kc">True</span>
+
+	<span class="k">def</span> <span class="nf">on_params_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+		<span class="k">if</span> <span class="s2">&quot;params&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">:</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_params_text</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_text</span>
 
 	<span class="k">def</span> <span class="nf">_get_source</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_wid</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
@@ -757,6 +769,29 @@
 
 
 
+<div class="viewcode-block" id="MethodEditor">
+<a class="viewcode-back" href="../../elide/index.html#elide.stores.MethodEditor">[docs]</a>
+<span class="k">class</span> <span class="nc">MethodEditor</span><span class="p">(</span><span class="n">FuncEditor</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">on_params_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+		<span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">)</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_params</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
+
+	<span class="nd">@staticmethod</span>
+	<span class="k">def</span> <span class="nf">_validate_params</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;self&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="FunctionEditor">
+<a class="viewcode-back" href="../../elide/index.html#elide.stores.FunctionEditor">[docs]</a>
+<span class="k">class</span> <span class="nc">FunctionEditor</span><span class="p">(</span><span class="n">MethodEditor</span><span class="p">):</span>
+	<span class="nd">@staticmethod</span>
+	<span class="k">def</span> <span class="nf">_validate_params</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+		<span class="k">return</span> <span class="kc">True</span></div>
+
+
+
 <div class="viewcode-block" id="FuncsEdBox">
 <a class="viewcode-back" href="../../elide/index.html#elide.stores.FuncsEdBox">[docs]</a>
 <span class="k">class</span> <span class="nc">FuncsEdBox</span><span class="p">(</span><span class="n">EdBox</span><span class="p">):</span>
@@ -800,217 +835,16 @@
 
 	<span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+		<span class="n">load_kv</span><span class="p">(</span><span class="s2">&quot;stores.kv&quot;</span><span class="p">)</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;FuncsEdScreen&quot;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">triggers</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">prereqs</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
 
-
-
-<span class="n">store_kv</span><span class="p">(</span>
-	<span class="vm">__name__</span><span class="p">,</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">#: import py3lexer pygments.lexers.Python3Lexer</span>
-<span class="sd">&lt;StoreButton&gt;:</span>
-<span class="sd">	size_hint_y: None</span>
-<span class="sd">	height: 30</span>
-<span class="sd">&lt;StoreList&gt;:</span>
-<span class="sd">	viewclass: &#39;StoreButton&#39;</span>
-<span class="sd">	boxl: boxl</span>
-<span class="sd">	SelectableRecycleBoxLayout:</span>
-<span class="sd">		id: boxl</span>
-<span class="sd">		default_size: None, dp(56)</span>
-<span class="sd">		default_size_hint: 1, None</span>
-<span class="sd">		height: self.minimum_height</span>
-<span class="sd">		size_hint_y: None</span>
-<span class="sd">		orientation: &#39;vertical&#39;</span>
-<span class="sd">&lt;StringInput&gt;:</span>
-<span class="sd">	name_wid: stringname</span>
-<span class="sd">	orientation: &#39;vertical&#39;</span>
-<span class="sd">	BoxLayout:</span>
-<span class="sd">		size_hint_y: 0.07</span>
-<span class="sd">		Label:</span>
-<span class="sd">			id: title</span>
-<span class="sd">			text: &#39;Title: &#39;</span>
-<span class="sd">			size_hint_x: None</span>
-<span class="sd">			width: self.texture_size[0]</span>
-<span class="sd">		StringNameInput:</span>
-<span class="sd">			id: stringname</span>
-<span class="sd">			multiline: False</span>
-<span class="sd">			write_tab: False</span>
-<span class="sd">			_trigger_save: root._trigger_save</span>
-<span class="sd">		Button:</span>
-<span class="sd">			text: &#39;del&#39;</span>
-<span class="sd">			size_hint_x: 0.1</span>
-<span class="sd">			on_release: root._trigger_delete()</span>
-<span class="sd">	TextInput:</span>
-<span class="sd">		id: string</span>
-<span class="sd">		disabled: root.disable_text_input</span>
-<span class="sd">&lt;StringsEdBox&gt;:</span>
-<span class="sd">	editor: strings_ed</span>
-<span class="sd">	storelist: strings_list</span>
-<span class="sd">	orientation: &#39;vertical&#39;</span>
-<span class="sd">	BoxLayout:</span>
-<span class="sd">		orientation: &#39;horizontal&#39;</span>
-<span class="sd">		StoreList:</span>
-<span class="sd">			id: strings_list</span>
-<span class="sd">			size_hint_x: 0.2</span>
-<span class="sd">			store: root.store</span>
-<span class="sd">		StringInput:</span>
-<span class="sd">			id: strings_ed</span>
-<span class="sd">			store: root.store</span>
-<span class="sd">			disable_text_input: root.disable_text_input</span>
-<span class="sd">			validate_name_input: root.validate_name_input</span>
-<span class="sd">			_trigger_save: root._trigger_save</span>
-<span class="sd">			_trigger_delete: root._trigger_delete</span>
-<span class="sd">&lt;StringsEdScreen&gt;:</span>
-<span class="sd">	name: &#39;strings&#39;</span>
-<span class="sd">	edbox: edbox</span>
-<span class="sd">	BoxLayout:</span>
-<span class="sd">		orientation: &#39;vertical&#39;</span>
-<span class="sd">		StringsEdBox:</span>
-<span class="sd">			id: edbox</span>
-<span class="sd">			toggle: root.toggle</span>
-<span class="sd">			store_name: &#39;string&#39;</span>
-<span class="sd">			language: root.language</span>
-<span class="sd">		BoxLayout:</span>
-<span class="sd">			size_hint_y: 0.05</span>
-<span class="sd">			Label:</span>
-<span class="sd">				text_size: self.size</span>
-<span class="sd">				halign: &#39;right&#39;</span>
-<span class="sd">				valign: &#39;middle&#39;</span>
-<span class="sd">				text: &#39;Language: &#39;</span>
-<span class="sd">				size_hint_x: 0.2</span>
-<span class="sd">			LanguageInput:</span>
-<span class="sd">				id: language</span>
-<span class="sd">				screen: root</span>
-<span class="sd">				hint_text: root.language</span>
-<span class="sd">				write_tab: False</span>
-<span class="sd">				multiline: False</span>
-<span class="sd">			Button:</span>
-<span class="sd">				text: &#39;Close&#39;</span>
-<span class="sd">				on_release: edbox.dismiss()</span>
-<span class="sd">&lt;Py3CodeInput@CodeInput&gt;:</span>
-<span class="sd">	lexer: py3lexer()</span>
-<span class="sd">&lt;FuncEditor&gt;:</span>
-<span class="sd">	codeinput: code</span>
-<span class="sd">	name_wid: funname</span>
-<span class="sd">	orientation: &#39;vertical&#39;</span>
-<span class="sd">	BoxLayout:</span>
-<span class="sd">		orientation: &#39;horizontal&#39;</span>
-<span class="sd">		size_hint_y: None</span>
-<span class="sd">		height: funname.height</span>
-<span class="sd">		Py3CodeInput:</span>
-<span class="sd">			id: imafunction</span>
-<span class="sd">			text: &#39;def&#39;</span>
-<span class="sd">			disabled: True</span>
-<span class="sd">			size_hint: (None, None)</span>
-<span class="sd">			height: self.line_height + self.font_size</span>
-<span class="sd">			width: self.font_size * len(self.text)</span>
-<span class="sd">			background_disabled_normal: &#39;&#39;</span>
-<span class="sd">			disabled_foreground_color: self.foreground_color</span>
-<span class="sd">		FunctionNameInput:</span>
-<span class="sd">			id: funname</span>
-<span class="sd">			size_hint: (0.4, None)</span>
-<span class="sd">			height: self.line_height + self.font_size</span>
-<span class="sd">			multiline: False</span>
-<span class="sd">			write_tab: False</span>
-<span class="sd">			_trigger_save: root._trigger_save</span>
-<span class="sd">			on_text: root.validate_name_input(self.text)</span>
-<span class="sd">			hint_text: root.name</span>
-<span class="sd">		Py3CodeInput:</span>
-<span class="sd">			id: params</span>
-<span class="sd">			text: &#39;({}):&#39;.format(&#39;, &#39;.join(root.params))</span>
-<span class="sd">			disabled: True</span>
-<span class="sd">			size_hint_y: None</span>
-<span class="sd">			height: self.line_height + self.font_size</span>
-<span class="sd">			background_disabled_normal: &#39;&#39;</span>
-<span class="sd">			disabled_foreground_color: self.foreground_color</span>
-<span class="sd">		Button:</span>
-<span class="sd">			text: &#39;del&#39;</span>
-<span class="sd">			size_hint_x: 0.1 if not self.disabled else 0.0</span>
-<span class="sd">			background_disabled_normal: &#39;&#39;</span>
-<span class="sd">			background_disabled_down: &#39;&#39;</span>
-<span class="sd">			disabled_color: (0., 0., 0., 0.)</span>
-<span class="sd">			background_disabled_color: (0., 0., 0., 0.)</span>
-<span class="sd">			on_release: root._trigger_delete()</span>
-<span class="sd">			disabled: not root.deletable</span>
-<span class="sd">	BoxLayout:</span>
-<span class="sd">		orientation: &#39;horizontal&#39;</span>
-<span class="sd">		Label:</span>
-<span class="sd">			canvas:</span>
-<span class="sd">				Color:</span>
-<span class="sd">					rgba: params.background_color</span>
-<span class="sd">				Rectangle:</span>
-<span class="sd">					pos: self.pos</span>
-<span class="sd">					size: self.size</span>
-<span class="sd">				Color:</span>
-<span class="sd">					rgba: [1., 1., 1., 1.]</span>
-<span class="sd">			# PEP8 standard indentation width is 4 spaces</span>
-<span class="sd">			text: &#39; &#39; * 4</span>
-<span class="sd">			size_hint_x: None</span>
-<span class="sd">			width: self.texture_size[0]</span>
-<span class="sd">		Py3CodeInput:</span>
-<span class="sd">			id: code</span>
-<span class="sd">			disabled: root.disable_text_input</span>
-<span class="sd">&lt;FuncsEdBox&gt;:</span>
-<span class="sd">	editor: funcs_ed</span>
-<span class="sd">	storelist: funcs_list</span>
-<span class="sd">	orientation: &#39;vertical&#39;</span>
-<span class="sd">	data: [(item[&#39;name&#39;], self.store.get_source(item[&#39;name&#39;])) for item in funcs_list.data[1:]]</span>
-<span class="sd">	BoxLayout:</span>
-<span class="sd">		orientation: &#39;horizontal&#39;</span>
-<span class="sd">		BoxLayout:</span>
-<span class="sd">			orientation: &#39;vertical&#39;</span>
-<span class="sd">			size_hint_x: 0.2</span>
-<span class="sd">			StoreList:</span>
-<span class="sd">				id: funcs_list</span>
-<span class="sd">				store: root.store</span>
-<span class="sd">		FuncEditor:</span>
-<span class="sd">			id: funcs_ed</span>
-<span class="sd">			name: root.selection_name</span>
-<span class="sd">			store: root.store</span>
-<span class="sd">			storelist: funcs_list</span>
-<span class="sd">			disable_text_input: root.disable_text_input</span>
-<span class="sd">			validate_name_input: root.validate_name_input</span>
-<span class="sd">			_trigger_save: root._trigger_save</span>
-<span class="sd">			_trigger_delete: root._trigger_delete</span>
-<span class="sd">	BoxLayout:</span>
-<span class="sd">		size_hint_y: 0.07</span>
-<span class="sd">		Button:</span>
-<span class="sd">			text: &#39;Close&#39;</span>
-<span class="sd">			on_release: root.dismiss()</span>
-<span class="sd">&lt;FuncsEdScreen&gt;:</span>
-<span class="sd">	name: &#39;funcs&#39;</span>
-<span class="sd">	TabbedPanel:</span>
-<span class="sd">		default_tab: action</span>
-<span class="sd">		TabbedPanelItem:</span>
-<span class="sd">			id: trigger</span>
-<span class="sd">			text: &#39;Trigger&#39;</span>
-<span class="sd">			on_state: triggers.save()</span>
-<span class="sd">			FuncsEdBox:</span>
-<span class="sd">				id: triggers</span>
-<span class="sd">				toggle: root.toggle</span>
-<span class="sd">				store_name: &#39;trigger&#39;</span>
-<span class="sd">		TabbedPanelItem:</span>
-<span class="sd">			id: prereq</span>
-<span class="sd">			text: &#39;Prereq&#39;</span>
-<span class="sd">			on_state: prereqs.save()</span>
-<span class="sd">			FuncsEdBox:</span>
-<span class="sd">				id: prereqs</span>
-<span class="sd">				toggle: root.toggle</span>
-<span class="sd">				store_name: &#39;prereq&#39;</span>
-<span class="sd">		TabbedPanelItem:</span>
-<span class="sd">			id: action</span>
-<span class="sd">			text: &#39;Action&#39;</span>
-<span class="sd">			on_state: actions.save()</span>
-<span class="sd">			FuncsEdBox:</span>
-<span class="sd">				id: actions</span>
-<span class="sd">				toggle: root.toggle</span>
-<span class="sd">				store_name: &#39;action&#39;</span>
-<span class="sd">&quot;&quot;&quot;</span><span class="p">,</span>
-<span class="p">)</span>
 </pre></div>
 
           </div>
@@ -1048,7 +882,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#xcollections">xcollections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.collections">collections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 

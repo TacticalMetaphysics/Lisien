@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.card &#8212; Lisien 0.22.3 documentation</title>
+    <title>elide.card &#8212; Lisien 0.22.4 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=617e7fb5"></script>
+    <script src="../../_static/documentation_options.js?v=aaf7ef78"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -80,7 +80,7 @@
 <span class="kn">from</span> <span class="nn">pygments.formatters.bbcode</span> <span class="kn">import</span> <span class="n">BBCodeFormatter</span>
 <span class="kn">from</span> <span class="nn">pygments.lexers</span> <span class="kn">import</span> <span class="n">PythonLexer</span>
 
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">devour</span><span class="p">,</span> <span class="n">logwrap</span><span class="p">,</span> <span class="n">store_kv</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">devour</span><span class="p">,</span> <span class="n">logwrap</span>
 
 <span class="n">dbg</span> <span class="o">=</span> <span class="n">Logger</span><span class="o">.</span><span class="n">debug</span>
 
@@ -1333,130 +1333,6 @@
 
 
 
-<span class="n">store_kv</span><span class="p">(</span>
-	<span class="vm">__name__</span><span class="p">,</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">&lt;ColorTextureBox&gt;:</span>
-<span class="sd">	canvas:</span>
-<span class="sd">		Color:</span>
-<span class="sd">			rgba: root.color</span>
-<span class="sd">		Rectangle:</span>
-<span class="sd">			texture: root.texture</span>
-<span class="sd">			pos: root.pos</span>
-<span class="sd">			size: root.size</span>
-<span class="sd">		Color:</span>
-<span class="sd">			rgba: root.outline_color</span>
-<span class="sd">		Line:</span>
-<span class="sd">			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]</span>
-<span class="sd">		Color:</span>
-<span class="sd">			rgba: [1, 1, 1, 1]</span>
-<span class="sd">&lt;Foundation&gt;:</span>
-<span class="sd">	color: [0, 0, 0, 0]</span>
-<span class="sd">	outline_color: [1, 1, 1, 1]</span>
-<span class="sd">&lt;Card&gt;:</span>
-<span class="sd">	headline: headline</span>
-<span class="sd">	midline: midline</span>
-<span class="sd">	footer: footer</span>
-<span class="sd">	art: art</span>
-<span class="sd">	foreground: foreground</span>
-<span class="sd">	canvas:</span>
-<span class="sd">		Color:</span>
-<span class="sd">			rgba: root.background_color</span>
-<span class="sd">		Rectangle:</span>
-<span class="sd">			texture: root.background_texture</span>
-<span class="sd">			pos: root.pos</span>
-<span class="sd">			size: root.size</span>
-<span class="sd">		Color:</span>
-<span class="sd">			rgba: root.outline_color</span>
-<span class="sd">		Line:</span>
-<span class="sd">			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]</span>
-<span class="sd">		Color:</span>
-<span class="sd">			rgba: [1, 1, 1, 1]</span>
-<span class="sd">	BoxLayout:</span>
-<span class="sd">		size_hint: 0.9, 0.9</span>
-<span class="sd">		pos_hint: {&#39;x&#39;: 0.05, &#39;y&#39;: 0.05}</span>
-<span class="sd">		orientation: &#39;vertical&#39;</span>
-<span class="sd">		canvas:</span>
-<span class="sd">			Color:</span>
-<span class="sd">				rgba: root.content_outline_color</span>
-<span class="sd">			Line:</span>
-<span class="sd">				points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]</span>
-<span class="sd">			Color:</span>
-<span class="sd">				rgba: [1, 1, 1, 1]</span>
-<span class="sd">		Label:</span>
-<span class="sd">			id: headline</span>
-<span class="sd">			text: root.headline_text</span>
-<span class="sd">			markup: root.headline_markup</span>
-<span class="sd">			font_name: root.headline_font_name</span>
-<span class="sd">			font_size: root.headline_font_size</span>
-<span class="sd">			color: root.headline_color</span>
-<span class="sd">			size_hint: (None, None)</span>
-<span class="sd">			size: self.texture_size</span>
-<span class="sd">		ColorTextureBox:</span>
-<span class="sd">			id: art</span>
-<span class="sd">			color: root.art_color</span>
-<span class="sd">			texture: root.art_texture</span>
-<span class="sd">			outline_color: root.art_outline_color if root.show_art else [0, 0, 0, 0]</span>
-<span class="sd">			size_hint: (1, 1) if root.show_art else (None, None)</span>
-<span class="sd">			size: (0, 0)</span>
-<span class="sd">		Label:</span>
-<span class="sd">			id: midline</span>
-<span class="sd">			text: root.midline_text</span>
-<span class="sd">			markup: root.midline_markup</span>
-<span class="sd">			font_name: root.midline_font_name</span>
-<span class="sd">			font_size: root.midline_font_size</span>
-<span class="sd">			color: root.midline_color</span>
-<span class="sd">			size_hint: (None, None)</span>
-<span class="sd">			size: self.texture_size</span>
-<span class="sd">		ColorTextureBox:</span>
-<span class="sd">			id: foreground</span>
-<span class="sd">			color: root.foreground_color</span>
-<span class="sd">			outline_color: root.foreground_outline_color</span>
-<span class="sd">			texture: root.foreground_texture</span>
-<span class="sd">			Label:</span>
-<span class="sd">				id: main_text</span>
-<span class="sd">				color: root.text_color</span>
-<span class="sd">				markup: root.markup</span>
-<span class="sd">				font_name: root.font_name</span>
-<span class="sd">				font_size: root.font_size</span>
-<span class="sd">				text_size: foreground.size</span>
-<span class="sd">				size_hint: (None, None)</span>
-<span class="sd">				size: self.texture_size</span>
-<span class="sd">				pos: foreground.pos</span>
-<span class="sd">				valign: &#39;top&#39;</span>
-<span class="sd">			Button:</span>
-<span class="sd">				id: editbut</span>
-<span class="sd">				background_normal: &#39;atlas://data/images/defaulttheme/button&#39; if root.editable else &#39;&#39;</span>
-<span class="sd">				background_down: &#39;atlas://data/images/defaulttheme/button_pressed&#39; if root.editable else &#39;&#39;</span>
-<span class="sd">				color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)</span>
-<span class="sd">				background_color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)</span>
-<span class="sd">				text_size: self.size</span>
-<span class="sd">				size: self.texture_size</span>
-<span class="sd">				size_hint: (None, None)</span>
-<span class="sd">				font_name: &#39;DejaVuSans&#39;</span>
-<span class="sd">				font_size: 30</span>
-<span class="sd">				x: foreground.right - self.width - (.1 * self.width)</span>
-<span class="sd">				y: foreground.top - self.height - (.1 * self.height)</span>
-<span class="sd">				text: &#39;✐&#39; if root.editable else &#39;&#39;</span>
-<span class="sd">				on_press: root.edit_func(root)</span>
-<span class="sd">				disabled: not root.editable</span>
-<span class="sd">		Label:</span>
-<span class="sd">			id: footer</span>
-<span class="sd">			text: root.footer_text</span>
-<span class="sd">			markup: root.footer_markup</span>
-<span class="sd">			font_name: root.footer_font_name</span>
-<span class="sd">			font_size: root.footer_font_size</span>
-<span class="sd">			color: root.footer_color</span>
-<span class="sd">			size_hint: (None, None)</span>
-<span class="sd">			size: self.texture_size</span>
-<span class="sd">&lt;DeckBuilderScrollBar&gt;:</span>
-<span class="sd">	ScrollBarBar:</span>
-<span class="sd">		id: bar</span>
-<span class="sd">		color: root.bar_color if root.scrolling else root.bar_inactive_color</span>
-<span class="sd">		texture: root.bar_texture</span>
-<span class="sd">&quot;&quot;&quot;</span><span class="p">,</span>
-<span class="p">)</span>
-
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
 	<span class="n">deck0</span> <span class="o">=</span> <span class="p">[</span>
 		<span class="n">Card</span><span class="p">(</span>
@@ -1547,7 +1423,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#xcollections">xcollections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.collections">collections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 
