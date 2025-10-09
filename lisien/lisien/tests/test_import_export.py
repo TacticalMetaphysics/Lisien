@@ -2,6 +2,7 @@ import difflib
 import filecmp
 import json
 import os
+import shutil
 from ast import parse, unparse
 from functools import partial
 
@@ -19,7 +20,7 @@ from .data import DATA_DIR
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def exported(tmp_path, random_seed, non_null_database, request):
+def export_to(tmp_path, random_seed, non_null_database, request):
 	if request.param == "kobold":
 		from lisien.examples.kobold import inittest as install
 
@@ -52,23 +53,23 @@ def exported(tmp_path, random_seed, non_null_database, request):
 	yield path
 
 
-def test_export_db(tmp_path, exported):
+def test_export_db(tmp_path, export_to):
 	test_xml = os.path.join(tmp_path, "test.xml")
 	game_path_to_xml(
 		os.path.join(tmp_path, "game"), test_xml, name="test_export"
 	)
 
-	if not filecmp.cmp(test_xml, exported):
+	if not filecmp.cmp(test_xml, export_to):
 		with (
 			open(test_xml, "rt") as testfile,
-			open(exported, "rt") as goodfile,
+			open(export_to, "rt") as goodfile,
 		):
 			differences = list(
 				difflib.unified_diff(
 					testfile.readlines(),
 					goodfile.readlines(),
 					test_xml,
-					exported,
+					export_to,
 				)
 			)
 			assert not differences, "".join(differences)
@@ -157,7 +158,7 @@ def compare_stored_python_code(
 			)
 
 
-def test_export_import_engine(tmp_path, non_null_database, exported):
+def test_export_import_engine(tmp_path, non_null_database, export_to):
 	prefix = os.path.join(tmp_path, "game")
 	prefix2 = os.path.join(tmp_path, "game2")
 	connect_string = (
@@ -185,11 +186,11 @@ def test_export_import_engine(tmp_path, non_null_database, exported):
 	compare_stored_python_code(prefix2, prefix)
 
 
-def test_import_db(tmp_path, exported, non_null_database, engine_facade):
+def test_import_db(tmp_path, export_to, non_null_database, engine_facade):
 	if non_null_database == "parquetdb":
 		test_world = os.path.join(tmp_path, "testworld")
 		correct_world = os.path.join(tmp_path, "world")
-		xml_to_pqdb(exported, test_world)
+		xml_to_pqdb(export_to, test_world)
 		test_engine = ParquetDatabaseConnector(
 			test_world, engine_facade.pack, engine_facade.unpack
 		)
@@ -199,7 +200,7 @@ def test_import_db(tmp_path, exported, non_null_database, engine_facade):
 	else:
 		test_world = os.path.join(tmp_path, "testworld.sqlite3")
 		correct_world = os.path.join(tmp_path, "world.sqlite3")
-		xml_to_sqlite(exported, test_world)
+		xml_to_sqlite(export_to, test_world)
 		test_engine = SQLAlchemyDatabaseConnector(
 			"sqlite:///" + test_world,
 			{},
