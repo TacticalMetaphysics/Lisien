@@ -53,7 +53,7 @@ def exported(tmp_path, random_seed, non_null_database, request):
 
 
 def test_export_db(tmp_path, exported):
-	test_xml = exported  # os.path.join(tmp_path, "test.xml")
+	test_xml = os.path.join(tmp_path, "test.xml")
 	game_path_to_xml(
 		os.path.join(tmp_path, "game"), test_xml, name="test_export"
 	)
