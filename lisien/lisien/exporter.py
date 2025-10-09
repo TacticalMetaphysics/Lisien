@@ -14,7 +14,7 @@ else:
 	try:
 		from lxml.etree import Element, ElementTree
 		from lxml.etree import indent as indent_tree
-	except ModuleNotFoundError:
+	except ImportError:
 		from xml.etree.ElementTree import (
 			ElementTree,
 			Element,
