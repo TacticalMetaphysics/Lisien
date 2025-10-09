@@ -294,7 +294,7 @@ class FunctionStore(Signal):
 		super().__init__()
 		if filename is None:
 			self._filename = None
-			self._module = module
+			self._module = self.__name__ = module
 			self._ast = Module(body=[], type_ignores=[])
 			self._ast_idx = {}
 			self._need_save = False

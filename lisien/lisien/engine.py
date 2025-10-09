@@ -21,6 +21,7 @@ flow of time.
 from __future__ import annotations
 
 import gc
+import io
 import os
 import pickle
 import shutil
@@ -7324,18 +7325,33 @@ class Engine(AbstractEngine, Executor):
 			path = os.path.join(os.getcwd(), f"{name}.lisien")
 		self.commit()
 		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
-			with zf.open("world.xml", "w") as f:
-				Exporter(self.query, self).write_xml(f, name, indent)
+			if self._prefix is not None:
+				with zf.open("world.xml", "w") as f:
+					Exporter(self.query, self).write_xml(f, name, indent)
+			else:
+				self.error(
+					"No database to export from, so the exported world.xml will be empty"
+				)
 			if isinstance(self.string, StringStore):
 				self.string.save()
-				for lang in os.listdir(self.string._prefix):
-					with (
-						open(
-							os.path.join(self.string._prefix, lang), "rb"
-						) as inf,
-						zf.open(os.path.join("strings", lang), "w") as outf,
-					):
-						outf.writelines(inf)
+				if self.string._prefix is None:
+					import json
+
+					with zf.open(self.string.language + ".json", "w") as outf:
+						json.dump(
+							dict(self.string.items()), io.TextIOWrapper(outf)
+						)
+				else:
+					for lang in os.listdir(self.string._prefix):
+						with (
+							open(
+								os.path.join(self.string._prefix, lang), "rb"
+							) as inf,
+							zf.open(
+								os.path.join("strings", lang), "w"
+							) as outf,
+						):
+							outf.writelines(inf)
 			elif isinstance(self.string, dict):
 				import json
 
