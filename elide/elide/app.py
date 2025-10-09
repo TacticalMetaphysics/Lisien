@@ -109,7 +109,7 @@ class ElideApp(App):
 
 	@cached_property
 	def _unbinders(self) -> list[Callable[[], None]]:
-		return [self.unbind_all]
+		return []
 
 	def unbind_all(self):
 		Logger.debug("ElideApp: unbinding everything")
@@ -142,6 +142,8 @@ class ElideApp(App):
 					self.mainscreen.gridboards[gridboard].unbind_uid(
 						"selection", uid
 					)
+		for unbinder in self._unbinders:
+			unbinder()
 
 	@cached_property
 	def _togglers(self):
@@ -711,6 +713,7 @@ class ElideApp(App):
 		if not hasattr(self, "leave_game"):
 			shutil.rmtree(self.play_path)
 		self._remove_screens()
+		self.unbind_all()
 		if cb:
 			cb()
 		self.closed = True
@@ -940,8 +943,7 @@ class ElideApp(App):
 			self.close_game(cb=partial(self.setter("stopped"), 0.0, True))
 		else:
 			self.stopped = True
-		for unbinder in self._unbinders:
-			unbinder()
+		self.unbind_all()
 		for k, v in self._bindings.items():
 			if v:
 				raise RuntimeError("Still bound", k, v)
