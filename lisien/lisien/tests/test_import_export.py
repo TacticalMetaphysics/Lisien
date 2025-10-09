@@ -19,24 +19,26 @@ from ..importer import xml_to_pqdb, xml_to_sqlite
 from .data import DATA_DIR
 
 
-@pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def export_to(tmp_path, random_seed, non_null_database, request):
-	if request.param == "kobold":
+def get_install_func(sim, random_seed):
+	if sim == "kobold":
 		from lisien.examples.kobold import inittest as install
 
-		path = os.path.join(DATA_DIR, "kobold.xml")
-	elif request.param == "polygons":
+		return install
+	elif sim == "polygons":
 		from lisien.examples.polygons import install
 
-		path = os.path.join(DATA_DIR, "polygons.xml")
-	elif request.param == "wolfsheep":
+		return install
+	elif sim == "wolfsheep":
 		from lisien.examples.wolfsheep import install
 
-		install = partial(install, seed=random_seed)
-
-		path = os.path.join(DATA_DIR, "wolfsheep.xml")
+		return partial(install, seed=random_seed)
 	else:
-		raise ValueError("Unknown sim", request.param)
+		raise ValueError("Unknown sim", sim)
+
+
+@pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
+def export_to(tmp_path, random_seed, non_null_database, request):
+	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
 		prefix,
@@ -50,7 +52,7 @@ def export_to(tmp_path, random_seed, non_null_database, request):
 		install(eng)
 		for _ in range(1):
 			eng.next_turn()
-	yield path
+	yield str(os.path.join(DATA_DIR, request.param + ".xml"))
 
 
 def test_export_db(tmp_path, export_to):
@@ -73,6 +75,48 @@ def test_export_db(tmp_path, export_to):
 				)
 			)
 			assert not differences, "".join(differences)
+
+
+@pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
+def exported(tmp_path, random_seed, non_null_database, request):
+	install = get_install_func(request.param, random_seed)
+	prefix = os.path.join(tmp_path, "game")
+	with Engine(
+		prefix,
+		workers=0,
+		random_seed=random_seed,
+		connect_string=f"sqlite:///{prefix}/world.sqlite3"
+		if non_null_database == "sqlite"
+		else None,
+		keyframe_on_close=False,
+	) as eng:
+		install(eng)
+		archive_name = eng.export(request.param)
+	yield archive_name
+
+
+def test_round_trip(tmp_path, exported, non_null_database):
+	prefix1 = os.path.join(tmp_path, "game")
+	prefix2 = os.path.join(tmp_path, "game2")
+	with (
+		Engine(
+			prefix1,
+			workers=0,
+			connect_string=f"sqlite:///{prefix1}/world.sqlite3"
+			if non_null_database == "sqlite"
+			else None,
+			keyframe_on_close=False,
+		) as eng1,
+		Engine(
+			prefix2,
+			workers=0,
+			connect_string=f"sqlite:///{prefix1}/world.sqlite3"
+			if non_null_database == "sqlite"
+			else None,
+			keyframe_on_close=False,
+		) as eng2,
+	):
+		compare_engines_world_state(eng2, eng1)
 
 
 DUMP_METHOD_NAMES = (
