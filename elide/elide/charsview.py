@@ -62,6 +62,7 @@ class CharactersScreen(Screen):
 	def __init__(self, **kw):
 		load_kv("charsview.kv")
 		super().__init__(**kw)
+		App.get_running_app()._unbinders.append(self.unbind_all)
 
 	def push_character_name(self, _, name):
 		app = App.get_running_app()
@@ -127,7 +128,6 @@ class CharactersScreen(Screen):
 		binds["CharactersScreen", "character_name"].add(
 			self.fbind("character_name", self.push_character_name)
 		)
-		app._unbinders.append(self.unbind_all)
 
 	def unbind_all(self):
 		binds = App.get_running_app()._bindings
