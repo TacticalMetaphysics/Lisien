@@ -7,7 +7,7 @@ from typing import Literal
 
 try:
 	from lxml.etree import Element, ElementTree, parse
-except ModuleNotFoundError:
+except ImportError:
 	from xml.etree.ElementTree import Element, ElementTree, parse
 
 from lisien.types import (
