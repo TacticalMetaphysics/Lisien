@@ -552,9 +552,15 @@ class Exporter:
 		for func in funcs:
 			func_el.append(Element(typ[5:], name=func))
 
-	append_rule_triggers_el = partial(_append_rule_flist_el, "rule-trigger")
-	append_rule_prereqs_el = partial(_append_rule_flist_el, "rule-prereq")
-	append_rule_actions_el = partial(_append_rule_flist_el, "rule-action")
+	append_rule_triggers_el = staticmethod(
+		partial(_append_rule_flist_el, "rule-trigger")
+	)
+	append_rule_prereqs_el = staticmethod(
+		partial(_append_rule_flist_el, "rule-prereq")
+	)
+	append_rule_actions_el = staticmethod(
+		partial(_append_rule_flist_el, "rule-action")
+	)
 
 	@staticmethod
 	def _append_rule_neighborhood_el(
