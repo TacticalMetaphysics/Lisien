@@ -494,7 +494,7 @@ class Exporter:
 	def write_xml(
 		self,
 		to: str | os.PathLike | IOBase,
-		name: str = None,
+		name: str,
 		indent: bool = True,
 	) -> None:
 		if not isinstance(to, os.PathLike) and not isinstance(to, IOBase):
@@ -503,10 +503,7 @@ class Exporter:
 					raise ValueError("Need a name or a path")
 				to = os.path.join(os.getcwd(), name + ".xml")
 			to = Path(to)
-		if isinstance(to, Path) and name is None:
-			name = os.path.basename(to)
-		if name[-4:] == ".xml":
-			name = name[:-4]
+		name = name.removesuffix(".xml")
 
 		tree = self.db_to_etree(name)
 
