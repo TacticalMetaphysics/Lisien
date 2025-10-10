@@ -2,10 +2,8 @@ import os
 import sys
 from ast import literal_eval
 from functools import partialmethod
-from itertools import chain
-from operator import itemgetter
 from pathlib import Path
-from typing import Any, Literal, TypeAlias
+from typing import Literal
 
 try:
 	from lxml.etree import Element, ElementTree, parse

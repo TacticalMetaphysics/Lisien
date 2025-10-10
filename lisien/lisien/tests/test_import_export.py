@@ -2,7 +2,6 @@ import difflib
 import filecmp
 import json
 import os
-import shutil
 from ast import parse, unparse
 from functools import partial
 
