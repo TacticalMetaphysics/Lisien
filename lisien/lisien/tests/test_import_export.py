@@ -130,6 +130,7 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed):
 			if non_null_database == "sqlite"
 			else None,
 			keyframe_on_close=False,
+			random_seed=random_seed,
 		) as eng2,
 	):
 		install(eng2)
