@@ -35,8 +35,13 @@ def get_install_func(sim, random_seed):
 		raise ValueError("Unknown sim", sim)
 
 
+@pytest.fixture(params=["zero", "one"])
+def turns(request):
+	yield {"zero": 0, "one": 1}[request.param]
+
+
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def export_to(tmp_path, random_seed, non_null_database, request):
+def export_to(tmp_path, random_seed, non_null_database, request, turns):
 	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
@@ -49,7 +54,7 @@ def export_to(tmp_path, random_seed, non_null_database, request):
 		keyframe_on_close=False,
 	) as eng:
 		install(eng)
-		for _ in range(TURNS):
+		for _ in range(turns):
 			eng.next_turn()
 	yield str(os.path.join(DATA_DIR, request.param + ".xml"))
 
@@ -76,11 +81,8 @@ def test_export_db(tmp_path, export_to):
 			assert not differences, "".join(differences)
 
 
-TURNS = 1
-
-
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def exported(tmp_path, random_seed, non_null_database, request):
+def exported(tmp_path, random_seed, non_null_database, request, turns):
 	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
@@ -93,13 +95,13 @@ def exported(tmp_path, random_seed, non_null_database, request):
 		keyframe_on_close=False,
 	) as eng:
 		install(eng)
-		for _ in range(TURNS):
+		for _ in range(turns):
 			eng.next_turn()
 		archive_name = eng.export(request.param)
 	yield archive_name
 
 
-def test_round_trip(tmp_path, exported, non_null_database, random_seed):
+def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 	prefix1 = os.path.join(tmp_path, "game")
 	prefix2 = os.path.join(tmp_path, "game2")
 	if exported.endswith("kobold.lisien"):
@@ -133,7 +135,7 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed):
 		) as eng2,
 	):
 		install(eng2)
-		for _ in range(TURNS):
+		for _ in range(turns):
 			eng2.next_turn()
 		compare_engines_world_state(eng2, eng1)
 
