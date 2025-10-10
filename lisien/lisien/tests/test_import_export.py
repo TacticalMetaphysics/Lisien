@@ -95,9 +95,19 @@ def exported(tmp_path, random_seed, non_null_database, request):
 	yield archive_name
 
 
-def test_round_trip(tmp_path, exported, non_null_database):
+def test_round_trip(tmp_path, exported, non_null_database, random_seed):
 	prefix1 = os.path.join(tmp_path, "game")
 	prefix2 = os.path.join(tmp_path, "game2")
+	if exported.endswith("kobold.lisien"):
+		from lisien.examples.kobold import inittest as install
+	elif exported.endswith("wolfsheep.lisien"):
+		from lisien.examples.wolfsheep import install
+
+		install = partial(install, seed=random_seed)
+	elif exported.endswith("polygons.lisien"):
+		from lisien.examples.polygons import install
+	else:
+		raise pytest.fail(f"Unknown export: {exported}")
 	with (
 		Engine.from_archive(
 			exported,
@@ -117,6 +127,7 @@ def test_round_trip(tmp_path, exported, non_null_database):
 			keyframe_on_close=False,
 		) as eng2,
 	):
+		install(eng2)
 		compare_engines_world_state(eng2, eng1)
 
 
