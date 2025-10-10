@@ -7323,6 +7323,8 @@ class Engine(AbstractEngine, Executor):
 					"Need a path to export to, or at least a name"
 				)
 			path = os.path.join(os.getcwd(), f"{name}.lisien")
+		elif name is None:
+			name = os.path.basename(path).removesuffix(".lisien")
 		self.commit()
 		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
 			if self._prefix is not None:
