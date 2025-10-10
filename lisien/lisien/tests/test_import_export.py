@@ -99,7 +99,8 @@ def test_round_trip(tmp_path, exported, non_null_database):
 	prefix1 = os.path.join(tmp_path, "game")
 	prefix2 = os.path.join(tmp_path, "game2")
 	with (
-		Engine(
+		Engine.from_archive(
+			exported,
 			prefix1,
 			workers=0,
 			connect_string=f"sqlite:///{prefix1}/world.sqlite3"
