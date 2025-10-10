@@ -49,7 +49,6 @@ from sqlalchemy import (
 	FLOAT,
 	INT,
 	TEXT,
-	MetaData,
 	Select,
 	create_engine,
 )

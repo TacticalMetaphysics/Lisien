@@ -12,8 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from functools import partial
-
 from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.properties import (

@@ -69,7 +69,7 @@ from lisien.types import (
 )
 from lisien.util import AbstractEngine, sort_set
 
-from .collections import GROUP_SEP, REC_SEP, FunctionStore
+from .collections import GROUP_SEP, REC_SEP
 
 
 @dataclass
