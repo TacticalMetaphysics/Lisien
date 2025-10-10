@@ -50,7 +50,7 @@ def export_to(tmp_path, random_seed, non_null_database, request):
 		keyframe_on_close=False,
 	) as eng:
 		install(eng)
-		for _ in range(1):
+		for _ in range(TURNS):
 			eng.next_turn()
 	yield str(os.path.join(DATA_DIR, request.param + ".xml"))
 
@@ -133,7 +133,7 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed):
 		) as eng2,
 	):
 		install(eng2)
-		for _ in range(1):
+		for _ in range(TURNS):
 			eng2.next_turn()
 		compare_engines_world_state(eng2, eng1)
 
