@@ -170,6 +170,8 @@ def compare_engines_world_state(
 	test_engine: Engine | AbstractDatabaseConnector,
 	correct_engine: Engine | AbstractDatabaseConnector,
 ):
+	test_engine.commit()
+	correct_engine.commit()
 	test_engine = getattr(test_engine, "query", test_engine)
 	correct_engine = getattr(correct_engine, "query", test_engine)
 	for dump_method in DUMP_METHOD_NAMES:
