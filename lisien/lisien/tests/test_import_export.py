@@ -126,7 +126,7 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed):
 		Engine(
 			prefix2,
 			workers=0,
-			connect_string=f"sqlite:///{prefix1}/world.sqlite3"
+			connect_string=f"sqlite:///{prefix2}/world.sqlite3"
 			if non_null_database == "sqlite"
 			else None,
 			keyframe_on_close=False,
