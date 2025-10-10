@@ -128,6 +128,8 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed):
 		) as eng2,
 	):
 		install(eng2)
+		for _ in range(1):
+			eng2.next_turn()
 		compare_engines_world_state(eng2, eng1)
 
 	compare_stored_strings(prefix1, prefix2)
