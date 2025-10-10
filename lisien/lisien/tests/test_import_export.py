@@ -77,6 +77,9 @@ def test_export_db(tmp_path, export_to):
 			assert not differences, "".join(differences)
 
 
+TURNS = 1
+
+
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
 def exported(tmp_path, random_seed, non_null_database, request):
 	install = get_install_func(request.param, random_seed)
@@ -91,6 +94,8 @@ def exported(tmp_path, random_seed, non_null_database, request):
 		keyframe_on_close=False,
 	) as eng:
 		install(eng)
+		for _ in range(TURNS):
+			eng.next_turn()
 		archive_name = eng.export(request.param)
 	yield archive_name
 
