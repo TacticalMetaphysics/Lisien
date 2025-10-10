@@ -130,6 +130,9 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed):
 		install(eng2)
 		compare_engines_world_state(eng2, eng1)
 
+	compare_stored_strings(prefix1, prefix2)
+	compare_stored_python_code(prefix1, prefix2)
+
 
 DUMP_METHOD_NAMES = (
 	"global_dump",
@@ -212,34 +215,6 @@ def compare_stored_python_code(
 			assert pyfilename not in correct_ls, (
 				f"{pyfilename} should be in test data, but isn't"
 			)
-
-
-def test_export_import_engine(tmp_path, non_null_database, export_to):
-	prefix = os.path.join(tmp_path, "game")
-	prefix2 = os.path.join(tmp_path, "game2")
-	connect_string = (
-		f"sqlite:///{prefix}/world.sqlite3"
-		if non_null_database == "sqlite"
-		else None
-	)
-	with Engine(
-		prefix,
-		workers=0,
-		connect_string=connect_string,
-		keyframe_on_close=False,
-	) as correct_engine:
-		correct_engine.export("test")
-		os.mkdir(prefix2)
-		with Engine.from_archive(
-			"test.lisien",
-			prefix2,
-			workers=0,
-			connect_string=connect_string,
-			keyframe_on_close=False,
-		) as test_engine:
-			compare_engines_world_state(test_engine, correct_engine)
-	compare_stored_strings(prefix2, prefix)
-	compare_stored_python_code(prefix2, prefix)
 
 
 def test_import_db(tmp_path, export_to, non_null_database, engine_facade):
