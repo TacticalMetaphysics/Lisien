@@ -56,7 +56,7 @@ def export_to(tmp_path, random_seed, non_null_database, request, turns):
 		install(eng)
 		for _ in range(turns):
 			eng.next_turn()
-	yield str(os.path.join(DATA_DIR, request.param + ".xml"))
+	yield str(os.path.join(DATA_DIR, request.param + f"_{turns}.xml"))
 
 
 def test_export_db(tmp_path, export_to):
