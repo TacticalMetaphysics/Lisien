@@ -123,68 +123,14 @@ class EngineProcessManager:
 			)
 			self._log_thread.start()
 			self.engine_proxy = EngineProxy(
-				self._proxy_in_pipe.recv,
-				self._proxy_out_pipe.send,
+				self._proxy_in_pipe.recv_bytes,
+				self._proxy_out_pipe.send_bytes,
 				self.logger,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
 			)
-		elif android:
+		else:
 			from queue import SimpleQueue
-
-			from jnius import autoclass
-			from pythonosc.dispatcher import Dispatcher
-			from pythonosc.osc_message_builder import OscMessageBuilder
-			from pythonosc.osc_tcp_server import ThreadingOSCTCPServer
-			from pythonosc.tcp_client import SimpleTCPClient
-
-			if "workers" in kwargs:
-				workers = kwargs["workers"]
-			else:
-				workers = os.cpu_count()
-			if "logger" in kwargs:
-				raise ValueError(
-					"Can't pass loggers between processes on Android"
-				)
-			# Android makes us hardcode some number of service workers, to be
-			# used or not. I've defined 64 of them in buildozer.spec.
-			workers = min((workers, 64))
-			self._output_queue = output_queue = SimpleQueue()
-			self._input_queue = input_queue = SimpleQueue()
-			worker_port_queue = SimpleQueue()
-			core_port_queue = SimpleQueue()
-			disp = Dispatcher()
-			disp.map(
-				"/core-report-port", lambda _, port: core_port_queue.put(port)
-			)
-			disp.map(
-				"/worker-report-port",
-				lambda _, port: worker_port_queue.put(port),
-			)
-			disp.map("/log", self._handle_log_record)
-			self._output_received = []
-			disp.map("/", self._receive_output)
-			low_port = 32000
-			high_port = 60999
-			for _ in range(128):
-				procman_port = random.randint(low_port, high_port)
-				try:
-					self._server = ThreadingOSCTCPServer(
-						("127.0.0.1", procman_port), disp
-					)
-					self._server_thread = Thread(
-						target=self._server.serve_forever
-					)
-					self._server_thread.start()
-					self.logger.debug(
-						"EngineProcessManager: started server at port %d",
-						procman_port,
-					)
-					break
-				except OSError:
-					pass
-			else:
-				sys.exit("couldn't get port for process manager")
 
 			branches_d = {"trunk": (None, 0, 0, 0, 0)}
 			eternal_d = {
@@ -269,9 +215,11 @@ class EngineProcessManager:
 					.to_pylist()
 				):
 					eternal_d[d["key"]] = d["value"]
+			input_queue = self._input_queue = SimpleQueue()
+			output_queue = self._output_queue = SimpleQueue()
 			self.engine_proxy = EngineProxy(
-				input_queue,
-				output_queue,
+				input_queue.get,
+				output_queue.put,
 				self.logger,
 				install_modules,
 				replay_file=replay_file,
@@ -279,71 +227,6 @@ class EngineProcessManager:
 				eternal=eternal_d,
 			)
 			self.logger.debug("EngineProcessManager: made engine proxy")
-			mActivity = self._mActivity = autoclass(
-				"org.kivy.android.PythonActivity"
-			).mActivity
-			core_service = self._core_service = autoclass(
-				"org.tacmeta.elide.ServiceCore"
-			)
-			argument = repr(
-				[
-					low_port,
-					high_port,
-					procman_port,
-					args or self._args,
-					kwargs | self._kwargs | {"workers": workers},
-				]
-			)
-			try:
-				core_service.start(mActivity, argument)
-			except Exception as ex:
-				self.logger.critical(repr(ex))
-				sys.exit(repr(ex))
-			self.logger.debug("EngineProcessManager: started core")
-			core_port = core_port_queue.get()
-			self._client = SimpleTCPClient("127.0.0.1", core_port)
-			self.logger.debug(
-				"EngineProcessManager: connected to lisien core at port %d",
-				core_port,
-			)
-			if workers:
-				for i in range(workers):
-					argument = repr(
-						[
-							i,
-							low_port,
-							high_port,
-							procman_port,
-							core_port,
-							args[0],
-							branches_d,
-							eternal_d,
-						]
-					)
-					autoclass(f"org.tacmeta.elide.ServiceWorker{i}").start(
-						mActivity, argument
-					)
-					self.logger.debug(
-						"EngineProcessManager: started worker %d", i
-					)
-				worker_ports = []
-				for i in range(workers):
-					port = worker_port_queue.get()
-					self.logger.debug(
-						"EngineProcessManager: worker %d says it's on port %d",
-						i,
-						port,
-					)
-					worker_ports.append(port)
-				workers_payload = OscMessageBuilder("/connect-workers")
-				workers_payload.add_arg(
-					msgpack.packb(worker_ports),
-					OscMessageBuilder.ARG_TYPE_BLOB,
-				)
-				self._client.send(workers_payload.build())
-				self.logger.debug(
-					"EngineProcessManager: sent ports to core/connect-workers"
-				)
 			self._top_uid = 0
 			self._input_sender_thread = Thread(
 				target=self._send_input_forever,
@@ -351,8 +234,6 @@ class EngineProcessManager:
 				daemon=True,
 			)
 			self._input_sender_thread.start()
-		else:
-			raise RuntimeError("Couldn't start process or service")
 
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
@@ -473,12 +354,9 @@ class EngineProcessManager:
 		if hasattr(self, "engine_proxy"):
 			self.engine_proxy.close()
 			if hasattr(self, "_p"):
-				self.engine_proxy._pipe_out.send_bytes(b"shutdown")
+				self.engine_proxy.send_bytes(b"shutdown")
 				self._p.join(timeout=1)
 			del self.engine_proxy
-		if hasattr(self, "_client"):
-			self._client.send_message("/shutdown", "")
-			self._core_service.stop(self._mActivity)
 		if hasattr(self, "_server"):
 			self._server.shutdown()
 
