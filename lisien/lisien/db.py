@@ -43,15 +43,7 @@ from typing import (
 	get_type_hints,
 )
 
-from sqlalchemy import (
-	BLOB,
-	BOOLEAN,
-	FLOAT,
-	INT,
-	TEXT,
-	Select,
-	create_engine,
-)
+from sqlalchemy import BLOB, BOOLEAN, FLOAT, INT, TEXT, Select, create_engine
 from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 

@@ -1,7 +1,8 @@
+import os
 from functools import partial
 from itertools import product
-import os
 from tempfile import TemporaryDirectory
+
 from lisien.engine import Engine
 from lisien.exporter import game_path_to_xml
 from lisien.tests.data import DATA_DIR

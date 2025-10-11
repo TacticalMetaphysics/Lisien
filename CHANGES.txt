@@ -1,3 +1,7 @@
+== 0.22.5 | 2025-10-11 ==
+* Fixed some data loss when exporting a game without simulating anything on
+  ParquetDB. It made the .lisien files on the itch page kind of weird.
+
 == 0.22.4 | 2025-10-03 ==
 * Added the Method and Function code stores to the Python editor in Elide
 * Switched from astunparse to astor
