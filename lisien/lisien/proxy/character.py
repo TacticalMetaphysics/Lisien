@@ -1715,7 +1715,7 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		)
 
 	def facade(self) -> CharacterFacade:
-		return CharacterFacade(self)
+		return CharacterFacade(character=self)
 
 	def grid_2d_8graph(self, m: int, n: int) -> None:
 		self.engine.handle(
