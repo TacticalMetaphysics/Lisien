@@ -1,4 +1,5 @@
 from functools import partial
+from itertools import product
 import os
 from tempfile import TemporaryDirectory
 from lisien.engine import Engine
@@ -6,9 +7,8 @@ from lisien.exporter import game_path_to_xml
 from lisien.tests.data import DATA_DIR
 
 RANDOM_SEED = 69105
-TURNS = 1
 
-for sim in ["kobold", "polygons", "wolfsheep"]:
+for turns, sim in product([0, 1], ["kobold", "polygons", "wolfsheep"]):
 	if sim == "kobold":
 		from lisien.examples.kobold import inittest as install
 	elif sim == "polygons":
@@ -29,10 +29,10 @@ for sim in ["kobold", "polygons", "wolfsheep"]:
 			keyframe_on_close=False,
 		) as eng:
 			install(eng)
-			for _ in range(TURNS):
+			for _ in range(turns):
 				eng.next_turn()
 		game_path_to_xml(
 			prefix,
-			os.path.join(DATA_DIR, sim + ".xml"),
+			os.path.join(DATA_DIR, f"{sim}_{turns}.xml"),
 			name="test_export",
 		)
