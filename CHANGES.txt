@@ -2,7 +2,7 @@
 * Added the Method and Function code stores to the Python editor in Elide
 * Switched from astunparse to astor
   The astunparse package isn't maintained anymore.
-  astor supports canonicalizing code for comparison,.
+  astor supports canonicalizing code for comparison.
 * Fixed a crash when quitting out of Elide without opening a game
 
 == 0.22.3 | 2025-09-28 ==
