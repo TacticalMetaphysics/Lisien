@@ -65,15 +65,15 @@ def test_export_db(tmp_path, export_to):
 		os.path.join(tmp_path, "game"), test_xml, name="test_export"
 	)
 
-	if not filecmp.cmp(test_xml, export_to):
+	if not filecmp.cmp(export_to, test_xml):
 		with (
 			open(test_xml, "rt") as testfile,
 			open(export_to, "rt") as goodfile,
 		):
 			differences = list(
 				difflib.unified_diff(
-					testfile.readlines(),
 					goodfile.readlines(),
+					testfile.readlines(),
 					test_xml,
 					export_to,
 				)
@@ -137,10 +137,10 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 		install(eng2)
 		for _ in range(turns):
 			eng2.next_turn()
-		compare_engines_world_state(eng2, eng1)
+		compare_engines_world_state(eng1, eng2)
 
-	compare_stored_strings(prefix1, prefix2)
-	compare_stored_python_code(prefix1, prefix2)
+	compare_stored_strings(prefix2, prefix1)
+	compare_stored_python_code(prefix2, prefix1)
 
 
 DUMP_METHOD_NAMES = (
@@ -169,8 +169,8 @@ DUMP_METHOD_NAMES = (
 
 
 def compare_engines_world_state(
-	test_engine: Engine | AbstractDatabaseConnector,
 	correct_engine: Engine | AbstractDatabaseConnector,
+	test_engine: Engine | AbstractDatabaseConnector,
 ):
 	test_engine.commit()
 	correct_engine.commit()
@@ -180,13 +180,13 @@ def compare_engines_world_state(
 		test_data = list(getattr(test_engine, dump_method)())
 		correct_data = list(getattr(correct_engine, dump_method)())
 		print(dump_method)
-		assert test_data == correct_data, (
+		assert correct_data == test_data, (
 			dump_method + " gave different results"
 		)
 
 
 def compare_stored_strings(
-	test_prefix: str | os.PathLike, correct_prefix: str | os.PathLike
+	correct_prefix: str | os.PathLike, test_prefix: str | os.PathLike
 ):
 	langs = os.listdir(os.path.join(test_prefix, "strings"))
 	assert langs == os.listdir(os.path.join(correct_prefix, "strings")), (
@@ -197,13 +197,13 @@ def compare_stored_strings(
 			open(os.path.join(test_prefix, lang), "rb") as test_file,
 			open(os.path.join(correct_prefix, lang), "rb") as correct_file,
 		):
-			assert json.load(test_file) == json.load(correct_file), (
+			assert json.load(correct_file) == json.load(test_file), (
 				f"Different strings for language: {lang[:-5]}"
 			)
 
 
 def compare_stored_python_code(
-	test_prefix: str | os.PathLike, correct_prefix: str | os.PathLike
+	correct_prefix: str | os.PathLike, test_prefix: str | os.PathLike
 ):
 	test_ls = os.listdir(test_prefix)
 	correct_ls = os.listdir(correct_prefix)
@@ -219,7 +219,7 @@ def compare_stored_python_code(
 			):
 				test_parsed = parse(test_py.read())
 				correct_parsed = parse(good_py.read())
-			assert unparse(test_parsed) == unparse(correct_parsed), (
+			assert unparse(correct_parsed) == unparse(test_parsed), (
 				f"{pyfilename} has incorrect Python code"
 			)
 		else:
@@ -256,4 +256,4 @@ def test_import_db(tmp_path, export_to, non_null_database, engine_facade):
 			engine_facade.unpack,
 		)
 
-	compare_engines_world_state(test_engine, correct_engine)
+	compare_engines_world_state(correct_engine, test_engine)
