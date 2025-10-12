@@ -6953,17 +6953,18 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
 		self._char_rules_handled()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["rulebook"]),
-					d["rule"],
-					d["branch"],
-					d["turn"],
-					d["tick"],
-				)
-				for d in self.call("dump", "character_rules_handled")
+		return (
+			(
+				unpack(d["character"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in sorted(
+				self.call("dump", "character_rules_handled"),
+				key=lambda d: (d["branch"], d["turn"], d["tick"]),
 			)
 		)
 
@@ -6983,19 +6984,20 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		self._unit_rules_handled()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["graph"]),
-					unpack(d["unit"]),
-					unpack(d["rulebook"]),
-					d["rule"],
-					d["branch"],
-					d["turn"],
-					d["tick"],
-				)
-				for d in self.call("dump", "unit_rules_handled")
+		return (
+			(
+				unpack(d["character"]),
+				unpack(d["graph"]),
+				unpack(d["unit"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in sorted(
+				self.call("dump", "unit_rules_handled"),
+				key=lambda d: (d["branch"], d["turn"], d["tick"]),
 			)
 		)
 
@@ -7006,18 +7008,19 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		self._char_thing_rules_handled()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["thing"]),
-					unpack(d["rulebook"]),
-					d["rule"],
-					d["branch"],
-					d["turn"],
-					d["tick"],
-				)
-				for d in self.call("dump", "character_thing_rules_handled")
+		return (
+			(
+				unpack(d["character"]),
+				unpack(d["thing"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
+			)
+			for d in sorted(
+				self.call("dump", "character_thing_rules_handled"),
+				key=lambda d: (d["branch"], d["turn"], d["tick"]),
 			)
 		)
 
@@ -7028,19 +7031,17 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		self._char_place_rules_handled()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["place"]),
-					unpack(d["rulebook"]),
-					d["rule"],
-					d["branch"],
-					d["turn"],
-					d["tick"],
-				)
-				for d in self.call("dump", "character_place_rules_handled")
+		return (
+			(
+				unpack(d["character"]),
+				unpack(d["place"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
 			)
+			for d in self.call("dump", "character_place_rules_handled")
 		)
 
 	def character_portal_rules_handled_dump(
@@ -7059,20 +7060,18 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		self.flush()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["orig"]),
-					unpack(d["dest"]),
-					unpack(d["rulebook"]),
-					d["rule"],
-					d["branch"],
-					d["turn"],
-					d["tick"],
-				)
-				for d in self.call("dump", "character_portal_rules_handled")
+		return (
+			(
+				unpack(d["character"]),
+				unpack(d["orig"]),
+				unpack(d["dest"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
 			)
+			for d in self.call("dump", "character_portal_rules_handled")
 		)
 
 	def node_rules_handled_dump(
@@ -7082,19 +7081,17 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		self._node_rules_handled()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["node"]),
-					unpack(d["rulebook"]),
-					d["rule"],
-					d["branch"],
-					d["turn"],
-					d["tick"],
-				)
-				for d in self.call("dump", "node_rules_handled")
+		return (
+			(
+				unpack(d["character"]),
+				unpack(d["node"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
 			)
+			for d in self.call("dump", "node_rules_handled")
 		)
 
 	def portal_rules_handled_dump(
@@ -7113,20 +7110,18 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		self._portal_rules_handled()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["orig"]),
-					unpack(d["dest"]),
-					unpack(d["rulebook"]),
-					d["rule"],
-					d["branch"],
-					d["turn"],
-					d["tick"],
-				)
-				for d in self.call("dump", "portal_rules_handled")
+		return (
+			(
+				unpack(d["character"]),
+				unpack(d["orig"]),
+				unpack(d["dest"]),
+				unpack(d["rulebook"]),
+				d["rule"],
+				d["branch"],
+				d["turn"],
+				d["tick"],
 			)
+			for d in self.call("dump", "portal_rules_handled")
 		)
 
 	def things_dump(
@@ -7134,18 +7129,16 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
 		self._location()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["thing"]),
-					d["branch"],
-					d["turn"],
-					d["tick"],
-					unpack(d["location"]),
-				)
-				for d in self.call("dump", "things")
+		return (
+			(
+				unpack(d["character"]),
+				unpack(d["thing"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				unpack(d["location"]),
 			)
+			for d in self.call("dump", "things")
 		)
 
 	def units_dump(
@@ -7155,19 +7148,17 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		self._unitness()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character_graph"]),
-					unpack(d["unit_graph"]),
-					unpack(d["unit_node"]),
-					d["branch"],
-					d["turn"],
-					d["tick"],
-					d["is_unit"],
-				)
-				for d in self.call("dump", "units")
+		return (
+			(
+				unpack(d["character_graph"]),
+				unpack(d["unit_graph"]),
+				unpack(d["unit_node"]),
+				d["branch"],
+				d["turn"],
+				d["tick"],
+				d["is_unit"],
 			)
+			for d in self.call("dump", "units")
 		)
 
 	def count_all_table(self, tbl: str) -> int:
