@@ -33,6 +33,7 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from functools import cached_property, partial, wraps
+from multiprocessing import get_all_start_methods
 from io import TextIOWrapper
 from itertools import chain, pairwise
 from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
@@ -113,6 +114,7 @@ from .importer import xml_to_pqdb, xml_to_sqlite
 from .node import Place, Thing
 from .portal import Portal
 from .proxy.process import worker_subprocess
+from .proxy.manager import Sub
 from .query import (
 	CharacterStatAccessor,
 	CombinedQueryResult,
@@ -480,26 +482,26 @@ class Engine(AbstractEngine, Executor):
 		:param connect_string:. This is the only positional argument;
 		all others require keywords.
 	:param string: module storing strings to be used in the game; if absent,
-		we'll use a :class:`lisien.xcollections.StringStore` to keep them in a
+		we'll use a :class:`lisien.collections.StringStore` to keep them in a
 		JSON file in the ``prefix``.
 	:param function: module containing utility functions; if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
+		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
 		file in the ``prefix``
 	:param method: module containing functions taking this engine as
 		first arg; if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
+		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
 		file in the ``prefix``.
 	:param trigger: module containing trigger functions, taking a lisien
 		entity and returning a boolean for whether to run a rule; if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
+		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
 		file in the ``prefix``.
 	:param prereq: module containing prereq functions, taking a lisien entity and
 		returning a boolean for whether to permit a rule to run; if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
+		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
 		file in the ``prefix``.
 	:param action: module containing action functions, taking a lisien entity and
 		mutating it (and possibly the rest of the world); if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
+		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
 		file in the ``prefix``.
 	:param trunk: the string name of the branch to start games from. Defaults
 		to "trunk" if not set in some prior session. You should only change
@@ -542,22 +544,21 @@ class Engine(AbstractEngine, Executor):
 		Default ``True``. You normally want this, but it could cause problems
 		if you use something other than Lisien's rules engine for game
 		logic.
-	:param workers: How many subprocesses to use as workers for
-		parallel processing. When ``None`` (the default), use as many
-		subprocesses as we have CPU cores. When ``0``, parallel processing
-		is disabled. Note that ``workers=0`` implies that trigger
-		functions operate on bare lisien objects, and can therefore have
-		side effects. If you don't want this, instead use
-		``workers=1``, which *does* disable parallelism in the case
-		of trigger functions.
-
-		This option can also be a list of integers, in which case, the engine
-		will connect to those ports on the same host it's running on. This
-		form will only work on Android.
-	:param subinterpreters: Whether the workers should be subinterpreters,
-		rather than subprocesses. Defaults to `True`, but is only effective
-		on Python versions 3.14 and later.
-	:param port: TCP port to serve the engine on. Only supported on Android.
+	:param workers: How many processes, interpreters, or threads to use
+		as workers for parallel processing. When ``None`` (the default),
+		use as many subprocesses as we have CPU cores. When ``0``, parallel
+		processing is disabled. Note that ``workers=0`` implies that trigger
+		functions operate on bare lisien objects, and can therefore have side
+		effects. If you don't want this, instead use ``workers=1``,
+		which *does* disable parallelism in the case of trigger functions.
+	:param sub_mode: What kind of parallelism to use. Options are
+		``"subprocess"``, ``"subinterpreter"``, and ``"subthread"``. Defaults
+		to ``"subinterpreter"``, which only works on Python 3.14 or above,
+		so ``"subprocess"`` if it's unavailable, or, if we can't launch
+		processes (perhaps because we're on Android or in a web browser),
+		``"subthread"``. Irrelevant when ``workers=0``. ``"subthread"`` won't
+		have any performance benefits, unless work done in a thread releases
+		the Global Interpreter Lock.
 	"""
 
 	char_cls = Character
@@ -2075,7 +2076,7 @@ class Engine(AbstractEngine, Executor):
 		enforce_end_of_time: bool = True,
 		logger: Optional[Logger] = None,
 		workers: Optional[int | list[int]] = None,
-		subinterpreters: bool = True,
+		sub_mode: Sub | None = None,
 	):
 		if workers is None:
 			workers = os.cpu_count()
@@ -2123,10 +2124,24 @@ class Engine(AbstractEngine, Executor):
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
 		if workers != 0:
-			if subinterpreters and sys.version_info[1] >= 14:
-				self._start_worker_interpreters(prefix, workers)
-			else:
-				self._start_worker_processes(prefix, workers)
+			match sub_mode:
+				case Sub.interpreter if sys.version_info[1] >= 14:
+					self._start_worker_interpreters(prefix, workers)
+				case Sub.process:
+					self._start_worker_processes(prefix, workers)
+				case Sub.thread:
+					self._start_worker_threads(prefix, workers)
+				case None:
+					if sys.version_info[1] >= 14:
+						try:
+							self._start_worker_interpreters(prefix, workers)
+							return
+						except ModuleNotFoundError:
+							pass
+					if get_all_start_methods():
+						self._start_worker_processes(prefix, workers)
+					else:
+						self._start_worker_threads(prefix, workers)
 
 	def _init_func_stores(
 		self,
@@ -2432,6 +2447,52 @@ class Engine(AbstractEngine, Executor):
 			get_func_dict(self.prereq),
 			get_func_dict(self.action),
 		)
+
+	def _start_worker_threads(
+		self, prefix: str | os.PathLike | None, workers: int
+	):
+		from threading import Thread
+		from queue import SimpleQueue
+
+		self._worker_last_eternal = dict(self.eternal.items())
+		initial_payload = self._get_worker_kf_payload()
+
+		self._worker_threads: list[Thread] = []
+		wt = self._worker_threads
+		self._worker_inputs: list[SimpleQueue[bytes]] = []
+		self._worker_outputs: list[SimpleQueue[bytes]] = []
+		wi = self._worker_inputs
+		wo = self._worker_outputs
+		self._worker_locks: list[Lock] = []
+		wlk = self._worker_locks
+		self._worker_log_queues: list[SimpleQueue] = []
+		wl = self._worker_log_queues
+		self._worker_log_threads: list[Thread] = []
+		wlt = self._worker_log_threads
+
+		for i in range(workers):
+			inq = SimpleQueue()
+			outq = SimpleQueue()
+			logq = SimpleQueue()
+			logthread = Thread(
+				target=self._sync_log_forever, args=(logq,), daemon=True
+			)
+			thred = Thread(
+				target=worker_subprocess,
+				args=self._build_worker_args(prefix, i) + (inq, outq),
+			)
+			wi.append(inq)
+			wo.append(outq)
+			wl.append(logq)
+			wlk.append(Lock())
+			wlt.append(logthread)
+			wt.append(thred)
+			logthread.start()
+			thred.start()
+			with wlk[-1]:
+				inq.put(initial_payload)
+
+		self._setup_fut_manager(workers)
 
 	def _start_worker_processes(
 		self, prefix: str | os.PathLike | None, workers: int
@@ -4857,7 +4918,7 @@ class Engine(AbstractEngine, Executor):
 					pipein.close()
 					pipeout.close()
 			del self._worker_processes
-		if hasattr(self, "_worker_interpreters"):
+		elif hasattr(self, "_worker_interpreters"):
 			for i, (lock, inq, outq, thread, terp) in enumerate(
 				zip(
 					self._worker_locks,
@@ -4871,12 +4932,18 @@ class Engine(AbstractEngine, Executor):
 					inq.put(b"shutdown")
 					thread.join()
 					terp.close()
-		if hasattr(self, "_osc_serv_thread"):
-			for client in self._osc_clients:
-				client.send_message("/shutdown", [])
-			self._osc_server.shutdown()
-			self._osc_serv_thread.join()
-			del self._osc_serv_thread
+		elif hasattr(self, "_worker_threads"):
+			for i, (lock, inq, outq, thread) in enumerate(
+				zip(
+					self._worker_locks,
+					self._worker_inputs,
+					self._worker_outputs,
+					self._worker_threads,
+				)
+			):
+				with lock:
+					inq.put(b"shutdown")
+					thread.join()
 
 	def _detect_kf_interval_override(self):
 		if self._planning:

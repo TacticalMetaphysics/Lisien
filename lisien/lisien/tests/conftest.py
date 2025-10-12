@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import shutil
+import sys
 from functools import partial
 from logging import getLogger
 
@@ -99,20 +100,39 @@ def handle_initialized(request, tmp_path, database):
 	ret.close()
 
 
+KINDS_OF_PARALLEL = [
+	pytest.param(
+		"process", marks=[pytest.mark.parallel, pytest.mark.subprocess]
+	),
+	pytest.param(
+		"interpreter",
+		marks=[
+			pytest.mark.parallel,
+			pytest.mark.subinterpreter,
+			pytest.mark.skipif(
+				sys.version_info.minor < 14,
+				reason="Subinterpreters are unavailable before Python 3.14",
+			),
+		],
+	),
+	pytest.param(
+		"thread", marks=[pytest.mark.parallel, pytest.mark.subthread]
+	),
+]
+
+
 @pytest.fixture(
 	params=[
-		"proxy",
+		pytest.param("proxy", marks=pytest.mark.proxy),
 		"serial",
-		pytest.param("parallel", marks=pytest.mark.parallel),
+		*KINDS_OF_PARALLEL,
 	]
 )
 def execution(request):
 	return request.param
 
 
-@pytest.fixture(
-	params=["serial", pytest.param("parallel", marks=pytest.mark.parallel)]
-)
+@pytest.fixture(params=["serial", *KINDS_OF_PARALLEL])
 def serial_or_parallel(request):
 	return request.param
 

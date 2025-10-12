@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 from lisien import Engine
 from lisien.facade import EngineFacade
+from lisien.proxy.manager import Sub
 
 
 def make_test_engine_kwargs(
@@ -18,7 +19,11 @@ def make_test_engine_kwargs(
 	}
 	if database == "sqlite":
 		kwargs["connect_string"] = f"sqlite:///{path}/world.sqlite3"
-	kwargs["workers"] = 2 if execution == "parallel" else 0
+	if execution == "serial":
+		kwargs["workers"] = 0
+	else:
+		kwargs["workers"] = 2
+		kwargs["sub_mode"] = Sub(execution)
 	return kwargs
 
 
