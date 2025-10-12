@@ -231,6 +231,7 @@ class EngineProxy(AbstractEngine):
 		return BookmarkMappingProxy(self)
 
 	def export(
+		self,
 		name: str | None = None,
 		path: str | os.PathLike | None = None,
 		indent: bool = True,
