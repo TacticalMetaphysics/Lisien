@@ -109,11 +109,11 @@ class EngineProcessManager:
 			self.logger.addHandler(handler)
 		match self.sub_mode:
 			case Sub.process:
-				self._start_subprocess()
+				self._start_subprocess(*args, **kwargs)
 			case Sub.thread:
-				self._start_subthread()
+				self._start_subthread(*args, **kwargs)
 			case Sub.interpreter:
-				self._start_subinterpreter()
+				self._start_subinterpreter(*args, **kwargs)
 		self._make_proxy(args, kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
