@@ -113,7 +113,6 @@ def engine_subprocess(
 				log_queue.close()
 			return 0
 		instruction = engine_handle.unpack(inst)
-		print(instruction)
 		_engine_subroutine_step(
 			engine_handle, instruction, send_output, send_output_bytes
 		)
