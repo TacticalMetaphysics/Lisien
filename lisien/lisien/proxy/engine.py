@@ -329,11 +329,12 @@ class EngineProxy(AbstractEngine):
 
 		portals = self._character_portals_cache
 		if result is None:
-			self._char_cache = {}
-			self._universal_cache = {}
+			self._char_cache.clear()
+			self._universal_cache.clear()
 			return
 		self._universal_cache = result["universal"]
-		rc = self._rules_cache = {}
+		self._rules_cache.clear()
+		rc = self._rules_cache
 		triggers: list[TriggerFuncName]
 		for rule, triggers in result["triggers"].items():
 			triglist = []
@@ -433,19 +434,16 @@ class EngineProxy(AbstractEngine):
 					"actions": actlist,
 				}
 		self._rulebooks_cache = result["rulebook"]
-		self._char_cache = chars = {
-			graph: CharacterProxy(self, graph)
-			if (graph not in self._char_cache)
-			else self._char_cache[graph]
-			for graph in (
-				result["graph_val"].keys()
-				| result["nodes"].keys()
-				| result["node_val"].keys()
-				| result["edges"].keys()
-				| result["edge_val"].keys()
-				| self._char_cache.keys()
-			)
-		}
+		chars = self._char_cache
+		chars.clear()
+		for graph in (
+			result["graph_val"].keys()
+			| result["nodes"].keys()
+			| result["node_val"].keys()
+			| result["edges"].keys()
+			| result["edge_val"].keys()
+		):
+			chars[graph] = CharacterProxy(self, graph)
 		for graph, stats in result["graph_val"].items():
 			if "character_rulebook" in stats:
 				self._character_rulebooks_cache[graph]["character"] = (
