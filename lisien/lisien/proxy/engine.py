@@ -780,6 +780,10 @@ class EngineProxy(AbstractEngine):
 				os.path.join(prefix, "prereq.py") if prefix else None,
 				initial=prereq,
 			)
+			if trigger is None:
+				trigger = {"truth": "def truth(obj):\n\treturn True"}
+			elif "truth" not in trigger:
+				trigger["truth"] = "def truth(obj):\n\treturn True"
 			self.trigger = FunctionStore(
 				os.path.join(prefix, "trigger.py") if prefix else None,
 				initial=trigger,
@@ -834,18 +838,6 @@ class EngineProxy(AbstractEngine):
 		received = self.recv()
 		self.debug(f"EngineProxy: Got time: {received}")
 		self._branch, self._turn, self._tick = received[-1]
-		self.debug("EngineProxy: Getting branches...")
-		self.send({"command": "branches"})
-		self._branches_d = self.recv()[-1]
-		self.debug(f"Got {len(self._branches_d)} branches")
-		self.method.load()
-		self.action.load()
-		self.prereq.load()
-		self.trigger.load()
-		self.trigger._cache["truth"] = "def truth(obj):\n\treturn True"
-		self.function.load()
-		self._eternal_cache = self.handle("eternal_copy")
-		self.debug(f"Got {len(self._eternal_cache)} eternal vars")
 		self._initialized = False
 		self._pull_kf_now()
 		self._initialized = True
@@ -1595,6 +1587,7 @@ class FuncStoreProxy(Signal):
 		super().__init__()
 		self.engine = engine_proxy
 		self._store = store
+		self._cache = {}
 		self._proxy_cache = {}
 
 	def load(self):
@@ -1653,6 +1646,10 @@ class FuncStoreProxy(Signal):
 		return self.engine.handle(
 			command="get_source", store=self._store, name=func_name
 		)
+
+	@staticmethod
+	def truth():
+		return True
 
 
 class CharacterMapProxy(MutableMapping, Signal):

@@ -7,6 +7,7 @@ import pickle
 import sys
 from threading import Thread
 
+import astor
 import msgpack
 import tblib
 
@@ -114,7 +115,9 @@ class EngineProcessManager:
 				self._start_subthread(*args, **kwargs)
 			case Sub.interpreter:
 				self._start_subinterpreter(*args, **kwargs)
-		self._make_proxy(args, kwargs)
+		args = args or self._args
+		prefix = args[0]
+		self._make_proxy(prefix, enforce_end_of_time=enforce_end_of_time)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
@@ -355,10 +358,24 @@ class EngineProcessManager:
 		)
 
 	def _make_proxy(
-		self, *args, install_modules=(), enforce_end_of_time=False, **kwargs
+		self, prefix, install_modules=(), enforce_end_of_time=False, **kwargs
 	):
 		self._config_logger(kwargs)
 		branches_d, eternal_d = self._initialize_proxy_db(**kwargs)
+		game_source_code = {}
+		for store in ("function", "method", "trigger", "prereq", "action"):
+			pyfile = os.path.join(prefix, store + ".py")
+			if os.path.exists(pyfile):
+				code = game_source_code[store] = {}
+				parsed = astor.parse_file(pyfile)
+				for funk in parsed.body:
+					try:
+						code[funk.value.body[0].name] = astor.to_source(
+							funk, indent_with="\t"
+						)
+					except Exception as ex:
+						print(ex)  # bad
+
 		if hasattr(self, "_handle_in_pipe") and hasattr(
 			self, "_handle_out_pipe"
 		):
@@ -370,6 +387,7 @@ class EngineProcessManager:
 				enforce_end_of_time=enforce_end_of_time,
 				branches=branches_d,
 				eternal=eternal_d,
+				**game_source_code,
 			)
 		else:
 			self.engine_proxy = EngineProxy(
@@ -380,6 +398,7 @@ class EngineProcessManager:
 				enforce_end_of_time=enforce_end_of_time,
 				branches=branches_d,
 				eternal=eternal_d,
+				**game_source_code,
 			)
 
 		return self.engine_proxy
