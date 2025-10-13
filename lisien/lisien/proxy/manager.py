@@ -116,7 +116,13 @@ class EngineProcessManager:
 			case Sub.interpreter:
 				self._start_subinterpreter(*args, **kwargs)
 		args = args or self._args
-		prefix = args[0]
+		kwargs |= self._kwargs
+		if args:
+			prefix = args[0]
+		elif "prefix" in kwargs:
+			prefix = kwargs.pop("prefix")
+		else:
+			raise RuntimeError("No prefix")
 		self._make_proxy(prefix, enforce_end_of_time=enforce_end_of_time)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
