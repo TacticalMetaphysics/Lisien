@@ -881,7 +881,9 @@ class EngineProxy(AbstractEngine):
 							if hasattr(kw.value, "value"):
 								kwargs[kw.arg] = kw.value.value
 							else:
-								kwargs[kw.arg] = astunparse.unparse(kw.value)
+								kwargs[kw.arg] = astor.to_source(
+									kw.value, indent_with="\t"
+								)
 					self.handle(method, *args, **kwargs)
 
 	def __repr__(self):
