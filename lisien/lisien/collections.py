@@ -315,7 +315,7 @@ class FunctionStore(Signal):
 			self._need_save = False
 			self._locl = {}
 			for k, v in initial.items():
-				self[k] = v
+				setattr(self, k, v)
 
 	def __dir__(self):
 		yield from self._locl
