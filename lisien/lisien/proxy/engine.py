@@ -1862,15 +1862,15 @@ class GlobalVarProxy(MutableMapping, Signal):
 		self._worker_check()
 		del self._cache[k]
 		self.engine.handle("del_universal", k=k, branching=True)
-		self.send(self, key=k, value=None)
+		self.send(self, key=k, value=...)
 
 	def _update_cache(self, data: dict[UniversalKey, Value]):
 		for k, v in data.items():
-			if v is None:
+			if v is ...:
 				if k not in self._cache:
 					continue
 				del self._cache[k]
-				self.send(self, key=k, value=None)
+				self.send(self, key=k, value=...)
 			else:
 				self._cache[k] = v
 				self.send(self, key=k, value=v)
