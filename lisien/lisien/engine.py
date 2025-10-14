@@ -5033,6 +5033,24 @@ class Engine(AbstractEngine, Executor):
 
 		return call_with_all_worker_locks
 
+	@staticmethod
+	def _all_code_stores_saved(fn):
+		@wraps(fn)
+		def save_all_code_stores_and_call(self, *args, **kwargs):
+			for store in (
+				self.function,
+				self.method,
+				self.trigger,
+				self.prereq,
+				self.action,
+			):
+				if store._need_save:
+					store.save()
+			return fn(self, *args, **kwargs)
+
+		return save_all_code_stores_and_call
+
+	@_all_code_stores_saved
 	@_all_worker_locks
 	def _call_every_worker(self, method: str, *args, **kwargs):
 		ret = []
