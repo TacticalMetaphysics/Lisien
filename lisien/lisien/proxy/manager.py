@@ -355,12 +355,10 @@ class EngineProcessManager:
 		self._terp = create()
 		self._t = self._terp.call_in_thread(
 			engine_subthread,
-			args=(
-				args or self._args,
-				self._kwargs | kwargs,
-				self._input_queue,
-				self._output_queue,
-			),
+			args or self._args,
+			self._kwargs | kwargs,
+			self._input_queue,
+			self._output_queue,
 		)
 
 	def _make_proxy(
