@@ -153,7 +153,7 @@ class EngineProxy(AbstractEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Optional[Tick] = None,
-		cb: Optional[callable] = None,
+		cb: Optional[Callable] = None,
 	):
 		return self.handle(
 			"time_travel",
@@ -1602,7 +1602,7 @@ class FuncStoreProxy(Signal):
 		else:
 			raise AttributeError(k)
 
-	def __call__(self, func: callable):
+	def __call__(self, func: Callable):
 		src = getsource(func)
 		self.engine.handle(
 			"store_source", v=src, name=func.__name__, store=self._store
@@ -1611,7 +1611,7 @@ class FuncStoreProxy(Signal):
 		self._cache[funcname] = src
 		self._proxy_cache[funcname] = FuncProxy(self, funcname)
 
-	def __setattr__(self, func_name: str, func: callable | str):
+	def __setattr__(self, func_name: str, func: Callable | str):
 		if func_name in (
 			"engine",
 			"_store",
@@ -1968,7 +1968,7 @@ class AllRulesProxy(MutableMapping):
 
 	def __call__(
 		self,
-		action: callable | FuncProxy | None = None,
+		action: Callable | FuncProxy | None = None,
 		always: bool = False,
 		neighborhood: Optional[int] = None,
 	):

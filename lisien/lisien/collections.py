@@ -35,7 +35,7 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 import astor
 import networkx as nx
@@ -338,7 +338,7 @@ class FunctionStore(Signal):
 			return
 		self._set_source(k, getsource(v), func=v)
 
-	def _set_source(self, k: str, source: str, func: callable = None):
+	def _set_source(self, k: str, source: str, func: Callable | None = None):
 		if func is None:
 			holder = {}
 			exec(source, holder)
