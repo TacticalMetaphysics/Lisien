@@ -223,8 +223,19 @@ class EngineProxy(AbstractEngine):
 		return self.handle("turn_end_plan", branch=branch, turn=turn)
 
 	@property
-	def main_branch(self) -> Branch:
+	def trunk(self) -> Branch:
 		return self.handle("main_branch")
+
+	@trunk.setter
+	def trunk(self, branch: Branch) -> None:
+		self._worker_check()
+		if self.branch != self.trunk or self.turn != 0 or self._tick != 0:
+			raise AttributeError("Go to the start of time first")
+		kf = self.handle(
+			"switch_main_branch", branch=branch, cb=self._upd_time
+		)
+		assert self.branch == branch
+		self._replace_state_with_kf(kf)
 
 	@cached_property
 	def bookmark(self) -> BookmarkMappingProxy:
