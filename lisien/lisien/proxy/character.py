@@ -43,6 +43,47 @@ if TYPE_CHECKING:
 	from .engine import EngineProxy
 
 
+class ProxyLeaderMapping(Mapping):
+	"""A mapping to the ``CharacterProxy``s that have this node as a unit"""
+
+	def __init__(self, node: NodeProxy):
+		self.node = node
+
+	def __iter__(self):
+		try:
+			return iter(self._user_names())
+		except KeyError:
+			return iter(())
+
+	def __len__(self):
+		try:
+			return len(self._user_names())
+		except KeyError:
+			return 0
+
+	def __contains__(self, item: CharName) -> bool:
+		try:
+			return item in self._user_names()
+		except KeyError:
+			return False
+
+	def __getitem__(self, item: CharName):
+		if item not in self:
+			raise KeyError("Not a leader of this node", item, self.node.name)
+		return self.node.engine.character[item]
+
+	@property
+	def only(self):
+		if len(self) == 1:
+			return next(iter(self.values()))
+		raise AmbiguousLeaderError("No leaders, or more than one")
+
+	def _user_names(self):
+		return self.node.engine._unit_characters_cache[self.node._charname][
+			self.node.name
+		]
+
+
 class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	name: NodeName
 
@@ -132,6 +173,10 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	def delete(self):
 		self._worker_check()
 		self.engine.del_node(self._charname, self.name)
+
+	@property
+	def leader(self) -> ProxyLeaderMapping:
+		return ProxyLeaderMapping(self)
 
 	@property
 	def content(self):
