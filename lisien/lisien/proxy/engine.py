@@ -1145,7 +1145,7 @@ class EngineProxy(AbstractEngine):
 			rulebookproxy.send(rulebookproxy, rules=delta)
 		to_delete = set()
 		for char, chardelta in deltas.items():
-			if chardelta is None:
+			if chardelta in (None, ...):
 				to_delete.add(char)
 				continue
 			if char not in self._char_cache:
