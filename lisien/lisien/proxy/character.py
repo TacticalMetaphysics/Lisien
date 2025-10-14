@@ -1147,7 +1147,7 @@ class CharStatProxy(CachingEntityProxy):
 	def _apply_delta(self, delta: StatDict):
 		for k, v in delta.items():
 			assert k != "rulebook"
-			if v is None:
+			if v is ...:
 				if k in self._cache:
 					del self._cache[k]
 					self.send(self, key=k, value=None)
