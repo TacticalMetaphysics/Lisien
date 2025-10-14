@@ -367,18 +367,19 @@ class EngineProcessManager:
 		self._config_logger(kwargs)
 		branches_d, eternal_d = self._initialize_proxy_db(**kwargs)
 		game_source_code = {}
-		for store in ("function", "method", "trigger", "prereq", "action"):
-			pyfile = os.path.join(prefix, store + ".py")
-			if os.path.exists(pyfile):
-				code = game_source_code[store] = {}
-				parsed = astor.parse_file(pyfile)
-				for funk in parsed.body:
-					try:
-						code[funk.value.body[0].name] = astor.to_source(
-							funk, indent_with="\t"
-						)
-					except Exception as ex:
-						print(ex)  # bad
+		if prefix is not None:
+			for store in ("function", "method", "trigger", "prereq", "action"):
+				pyfile = os.path.join(prefix, store + ".py")
+				if os.path.exists(pyfile):
+					code = game_source_code[store] = {}
+					parsed = astor.parse_file(pyfile)
+					for funk in parsed.body:
+						try:
+							code[funk.value.body[0].name] = astor.to_source(
+								funk, indent_with="\t"
+							)
+						except Exception as ex:
+							print(ex)  # bad
 
 		if hasattr(self, "_handle_in_pipe") and hasattr(
 			self, "_handle_out_pipe"
