@@ -21,7 +21,7 @@ def make_test_engine_kwargs(
 		kwargs["connect_string"] = f"sqlite:///{path}/world.sqlite3"
 	if execution == "serial":
 		kwargs["workers"] = 0
-	else:
+	elif execution != "proxy":
 		kwargs["workers"] = 2
 		kwargs["sub_mode"] = Sub(execution)
 	return kwargs
