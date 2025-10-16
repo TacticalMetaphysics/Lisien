@@ -38,10 +38,12 @@ def test_serialize_function(tmp_path):
 			return bar + bas + " is correct"
 
 	procm = EngineProcessManager(workers=0)
-	engprox = procm.start(tmp_path)
-	funcprox = engprox.function.foo
-	assert funcprox("foo", "bar") == "foobar is correct"
-	procm.shutdown()
+	try:
+		engprox = procm.start(tmp_path)
+		funcprox = engprox.function.foo
+		assert funcprox("foo", "bar") == "foobar is correct"
+	finally:
+		procm.shutdown()
 
 
 def test_serialize_method(tmp_path):
