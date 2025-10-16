@@ -757,11 +757,11 @@ class EngineProxy(AbstractEngine):
 			self.logger.debug("EngineProxy: starting proxy to core")
 			self._worker = False
 			self.next_turn = NextTurnProxy(self)
-			self.method = FuncStoreProxy(self, "method")
-			self.action = FuncStoreProxy(self, "action")
-			self.prereq = FuncStoreProxy(self, "prereq")
-			self.trigger = FuncStoreProxy(self, "trigger")
-			self.function = FuncStoreProxy(self, "function")
+			self.method = FuncStoreProxy(self, "method", initial=method)
+			self.action = FuncStoreProxy(self, "action", initial=action)
+			self.prereq = FuncStoreProxy(self, "prereq", initial=prereq)
+			self.trigger = FuncStoreProxy(self, "trigger", initial=trigger)
+			self.function = FuncStoreProxy(self, "function", initial=function)
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
 		else:
@@ -1597,11 +1597,19 @@ class FuncStoreProxy(Signal):
 	def _worker_check(self):
 		self.engine._worker_check()
 
-	def __init__(self, engine_proxy: EngineProxy, store: FuncStoreName):
+	def __init__(
+		self,
+		engine_proxy: EngineProxy,
+		store: FuncStoreName,
+		initial: dict[str, str] | None = None,
+	):
 		super().__init__()
 		self.engine = engine_proxy
 		self._store = store
-		self._cache = {}
+		if initial is None:
+			self._cache = {}
+		else:
+			self._cache = initial
 		self._proxy_cache = {}
 
 	def load(self):
