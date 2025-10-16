@@ -59,44 +59,6 @@ class EngineProcessManager:
 		except ImportError:
 			android = False
 
-		handlers = []
-		logl = {
-			"debug": logging.DEBUG,
-			"info": logging.INFO,
-			"warning": logging.WARNING,
-			"error": logging.ERROR,
-			"critical": logging.CRITICAL,
-		}
-		loglevel = self.loglevel
-		if "loglevel" in kwargs:
-			if kwargs["loglevel"] in logl:
-				loglevel = logl[kwargs["loglevel"]]
-			else:
-				loglevel = kwargs["loglevel"]
-			del kwargs["loglevel"]
-		if "logger" in kwargs:
-			self.logger = kwargs["logger"]
-		else:
-			self.logger = logging.getLogger(__name__)
-			stdout = logging.StreamHandler(sys.stdout)
-			stdout.set_name("stdout")
-			handlers.append(stdout)
-			handlers[0].setLevel(loglevel)
-		if "logfile" in kwargs:
-			try:
-				fh = logging.FileHandler(kwargs["logfile"])
-				handlers.append(fh)
-				handlers[-1].setLevel(loglevel)
-			except OSError:
-				pass
-			del kwargs["logfile"]
-		enforce_end_of_time = kwargs.get("enforce_end_of_time", False)
-		formatter = logging.Formatter(
-			fmt="[{levelname}] lisien.proxy({process}) {message}", style="{"
-		)
-		for handler in handlers:
-			handler.setFormatter(formatter)
-			self.logger.addHandler(handler)
 		match self.sub_mode:
 			case Sub.process:
 				self._start_subprocess(*args, **kwargs)
@@ -112,7 +74,7 @@ class EngineProcessManager:
 			prefix = kwargs.pop("prefix")
 		else:
 			raise RuntimeError("No prefix")
-		self._make_proxy(prefix, enforce_end_of_time=enforce_end_of_time)
+		self._make_proxy(prefix, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
