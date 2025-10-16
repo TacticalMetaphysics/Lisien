@@ -13,6 +13,7 @@ import tblib
 
 from .engine import EngineProxy
 from .process import engine_subprocess, engine_subthread
+from ..types import EternalKey, Value, Tick, Turn, Branch, Key
 
 
 class Sub(Enum):
@@ -110,13 +111,20 @@ class EngineProcessManager:
 			self._undictify_logrec_traceback(pickle.loads(logrec_packed))
 		)
 
-	def _initialize_proxy_db(self, **kwargs):
-		branches_d = {"trunk": (None, 0, 0, 0, 0)}
-		eternal_d = {
-			"branch": "trunk",
-			"turn": 0,
-			"tick": 0,
-			"_lisien_schema_version": 0,
+	def _initialize_proxy_db(
+		self, **kwargs
+	) -> tuple[
+		dict[Branch, tuple[Branch, Turn, Tick, Turn, Tick]],
+		dict[EternalKey, Value],
+	]:
+		branches_d: dict[Branch, tuple[Branch, Turn, Tick, Turn, Tick]] = {
+			"trunk": (None, 0, 0, 0, 0)
+		}
+		eternal_d: dict[EternalKey, Value] = {
+			EternalKey(Key("branch")): Value("trunk"),
+			EternalKey(Key("turn")): Value(0),
+			EternalKey(Key("tick")): Value(0),
+			EternalKey(Key("_lisien_schema_version")): Value(0),
 		}
 
 		if "connect_string" in kwargs:
@@ -192,7 +200,7 @@ class EngineProcessManager:
 				ParquetDB("global").read(columns=["key", "value"]).to_pylist()
 			):
 				eternal_d[d["key"]] = d["value"]
-			return branches_d, eternal_d
+		return branches_d, eternal_d
 
 	def log(self, level: str | int, msg: str):
 		if isinstance(level, str):
