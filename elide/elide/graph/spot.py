@@ -17,6 +17,7 @@ top of these.
 
 """
 
+from kivy.app import App
 from kivy.clock import Clock, triggered
 
 from elide.pawnspot import GraphPawnSpot
@@ -61,7 +62,11 @@ class GraphSpot(GraphPawnSpot):
 
 	def on_board(self, *args):
 		super().on_board(*args)
-		self.board.bind(size=self._upd_pos)
+		App.get_running_app()._bindings[
+			"GraphBoard",
+			self.board.character.name,
+			"size",
+		].add(self.board.fbind("size", self._upd_pos))
 
 	def on_pos(self, *args):
 		def upd(orig, dest):

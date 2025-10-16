@@ -27,7 +27,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 from .statlist import BaseStatListView
-from .util import logwrap, store_kv
+from .util import devour, load_kv, logwrap
 
 
 class FloatInput(TextInput):
@@ -58,9 +58,11 @@ class ControlTypePicker(Button):
 
 	@logwrap(section="ControlTypePicker")
 	def build(self, *_):
-		if None in (self.key, self.set_control):
+		app = App.get_running_app()
+		if None in (self.key, self.set_control, app):
 			Clock.schedule_once(self.build, 0)
 			return
+		binds = app._bindings
 		self.mainbutton = None
 		self.dropdown = None
 		self.dropdown = DropDown()
@@ -73,8 +75,15 @@ class ControlTypePicker(Button):
 			height=self.height,
 			background_color=(0.7, 0.7, 0.7, 1),
 		)
-		readoutbut.bind(
-			on_release=lambda instance: self.dropdown.select("readout")
+		while binds["ControlTypePicker", "readout", "on_release"]:
+			readoutbut.unbind_uid(
+				"on_release",
+				binds["ControlTypePicker", "readout", "on_release"].pop(),
+			)
+		binds["ControlTypePicker", "readout", "on_release"].add(
+			readoutbut.fbind(
+				"on_release", lambda _: self.dropdown.select("readout")
+			)
 		)
 		self.dropdown.add_widget(readoutbut)
 		textinbut = Button(
@@ -83,8 +92,15 @@ class ControlTypePicker(Button):
 			height=self.height,
 			background_color=(0.7, 0.7, 0.7, 1),
 		)
-		textinbut.bind(
-			on_release=lambda instance: self.dropdown.select("textinput")
+		while binds["ControlTypePicker", "textinput", "on_release"]:
+			textinbut.unbind_uid(
+				"on_release",
+				binds["ControlTypePicker", "textinput", "on_release"].pop(),
+			)
+		binds["ControlTypePicker", "textinput", "on_release"].add(
+			textinbut.fbind(
+				"on_release", lambda _: self.dropdown.select("textinput")
+			)
 		)
 		self.dropdown.add_widget(textinbut)
 		togbut = Button(
@@ -93,8 +109,15 @@ class ControlTypePicker(Button):
 			height=self.height,
 			background_color=(0.7, 0.7, 0.7, 1),
 		)
-		togbut.bind(
-			on_release=lambda instance: self.dropdown.select("togglebutton")
+		while binds["ControlTypePicker", "togglebutton", "on_release"]:
+			togbut.unbind_uid(
+				"on_release",
+				binds["ControlTypePicker", "togglebutton", "on_release"].pop(),
+			)
+		binds["ControlTypePicker", "togglebutton", "on_release"].add(
+			togbut.fbind(
+				"on_release", lambda _: self.dropdown.select("togglebutton")
+			)
 		)
 		self.dropdown.add_widget(togbut)
 		sliderbut = Button(
@@ -103,11 +126,37 @@ class ControlTypePicker(Button):
 			height=self.height,
 			background_color=(0.7, 0.7, 0.7, 1),
 		)
-		sliderbut.bind(
-			on_release=lambda instance: self.dropdown.select("slider")
+		while binds["ControlTypePicker", "slider", "on_release"]:
+			sliderbut.unbind_uid(
+				"on_release",
+				binds["ControlTypePicker", "slider", "on_release"].pop(),
+			)
+		binds["ControlTypePicker", "slider", "on_release"].add(
+			sliderbut.fbind(
+				"on_release", lambda _: self.dropdown.select("slider")
+			)
 		)
 		self.dropdown.add_widget(sliderbut)
-		self.bind(on_release=self.dropdown.open)
+		while binds["ControlTypePicker", "on_release"]:
+			self.unbind_uid(
+				"on_release", binds["ControlTypePicker", "on_release"].pop()
+			)
+		binds["ControlTypePicker", "on_release"].add(
+			self.fbind("on_release", self.dropdown.open)
+		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["ControlTypePicker", "on_release"]):
+			self.unbind_uid("on_release", uid)
+		for button in self.dropdown.children[0].children:
+			if not hasattr(button, "text"):
+				continue
+			for uid in devour(
+				binds["ControlTypePicker", button.text, "on_release"]
+			):
+				button.unbind_uid("on_release", uid)
 
 
 class ConfigListItemToggleButton(BoxLayout):
@@ -265,98 +314,6 @@ class StatScreen(Screen):
 		self.ids.newstatkey.text = ""
 		self.ids.newstatval.text = ""
 
-
-store_kv(
-	__name__,
-	"""
-<ConfigListItemCustomization>:
-	pos_hint: {'x': 0, 'y': 0}
-<ConfigListItemToggleButton>:
-	Label:
-		text: 'True text:'
-	TextInput:
-		id: truetext
-		hint_text: root.true_text
-		on_text_validate: root.set_true_text()
-	Label:
-		text: 'False text:'
-	TextInput:
-		id: falsetext
-		hint_text: root.false_text
-		on_text_validate: root.set_false_text()
-<ConfigListItemSlider>:
-	Label:
-		text: 'Minimum:'
-	TextInput:
-		id: minimum
-		hint_text: str(root.min)
-		multiline: False
-		on_text_validate: root.set_min()
-	Label:
-		text: 'Maximum:'
-	TextInput:
-		id: maximum
-		hint_text: str(root.max)
-		multiline: False
-		on_text_validate: root.set_max()
-<ConfigListItem>:
-	height: 30
-	Button:
-		size_hint_x: 0.4 / 3
-		text: 'del'
-		on_release: root.deleter(root.key)
-	Label:
-		size_hint_x: 0.4 / 3
-		text: str(root.key)
-	ControlTypePicker:
-		size_hint_x: 0.4 / 3
-		key: root.key
-		set_control: root.set_control
-		text: root.config['control'] if 'control' in root.config else 'readout'
-	ConfigListItemCustomizer:
-		size_hint_x: 0.6
-		control: root.config['control'] if 'control' in root.config else 'readout'
-		config: root.config
-		key: root.key
-		set_config: root.set_config
-<StatScreen>:
-	name: 'statcfg'
-	statcfg: cfg
-	BoxLayout:
-		orientation: 'vertical'
-		StatListViewConfigurator:
-			viewclass: 'ConfigListItem'
-			id: cfg
-			app: app
-			proxy: root.proxy
-			statlist: root.statlist
-			size_hint_y: 0.95
-			RecycleBoxLayout:
-				default_size: None, dp(56)
-				default_size_hint: 1, None
-				size_hint_y: None
-				height: self.minimum_height
-				orientation: 'vertical'
-		BoxLayout:
-			orientation: 'horizontal'
-			size_hint_y: 0.05
-			TextInput:
-				id: newstatkey
-				multiline: False
-				write_tab: False
-				hint_text: 'New stat'
-			TextInput:
-				id: newstatval
-				multiline: False
-				write_tab: False
-				hint_text: 'Value'
-			Button:
-				id: newstatbut
-				text: '+'
-				on_release: root.new_stat()
-			Button:
-				id: closer
-				text: 'Close'
-				on_release: root.toggle()
-""",
-)
+	def __init__(self, **kw):
+		load_kv("statcfg.kv")
+		super().__init__(**kw)

@@ -1,3 +1,26 @@
+== 0.22.5 | 2025-10-11 ==
+* Fixed some data loss when exporting a game without simulating anything on
+  ParquetDB. It made the .lisien files on the itch page kind of weird.
+
+== 0.22.4 | 2025-10-03 ==
+* Added the Method and Function code stores to the Python editor in Elide
+* Switched from astunparse to astor
+  The astunparse package isn't maintained anymore.
+  astor supports canonicalizing code for comparison.
+* Fixed a crash when quitting out of Elide without opening a game
+
+== 0.22.3 | 2025-09-28 ==
+* Fixed basic entity creation in Elide, which broke in 0.22.2.
+  Sorry...
+
+== 0.22.2 | 2025-09-27 ==
+* Fixed a crash when quitting out of a recently imported game in Elide
+  (meaning the game wouldn't be saved)
+* Fix occasional loss of user's Python code, depending on when Elide was
+  closed
+* And fix that code sometimes getting a different function name than intended
+* Fix saving games using ParquetDB in Elide on desktop
+
 == 0.22.1 | 2025-09-22 ==
 * Added an XML schema for the export format.
 * Fixed the exporter to actually follow the schema:

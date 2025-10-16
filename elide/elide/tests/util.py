@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from functools import partial
 from typing import Callable
 
 from blinker import Signal
+from kivy.app import App
 from kivy.base import EventLoop
 
 
@@ -46,11 +49,21 @@ def board_is_arranged(board, char=None):
 	)
 
 
+_idle_until_sig = Callable[
+	[
+		Callable[[], bool] | None,
+		int | None,
+		str | None,
+	],
+	Callable[[], bool] | partial["_idle_until_sig"],
+]
+
+
 def idle_until(
 	condition: Callable[[], bool] | None = None,
 	timeout: int | None = 100,
 	message: str | None = None,
-) -> partial | None:
+) -> partial[_idle_until_sig] | Callable[[], bool]:
 	"""Advance frames until ``condition()`` is true
 
 	With integer ``timeout``, give up after that many frames,
@@ -64,10 +77,10 @@ def idle_until(
 	if timeout is None:
 		while not condition():
 			EventLoop.idle()
-		return
+		return condition
 	for _ in range(timeout):
 		if condition():
-			return
+			return condition
 		EventLoop.idle()
 	if message is None:
 		if hasattr(condition, "__name__"):
@@ -75,6 +88,9 @@ def idle_until(
 		else:
 			message = "Timed out"
 	raise TimeoutError(message)
+
+
+idle100 = partial(idle_until, timeout=100)
 
 
 class ListenableDict(dict, Signal):
@@ -87,3 +103,10 @@ def advance_frames(frames: int) -> None:
 
 	for _ in range(frames):
 		EventLoop.idle()
+
+
+def transition_over():
+	# Even though there's "no transition," the screen manager still considers
+	# a transition to be active for a few frames, and will refuse input for
+	# the duration
+	return not App.get_running_app().manager.transition.is_active

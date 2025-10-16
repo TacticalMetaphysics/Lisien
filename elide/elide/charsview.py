@@ -20,7 +20,7 @@ from kivy.properties import ListProperty, ObjectProperty, StringProperty
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 
-from .util import SelectableRecycleBoxLayout, logwrap, store_kv
+from .util import SelectableRecycleBoxLayout, devour, load_kv, logwrap
 
 # TODO: Visual preview
 # TODO: Background image chooser
@@ -32,6 +32,8 @@ class CharactersRecycleBoxLayout(SelectableRecycleBoxLayout):
 	@partial(logwrap, section="CharactersRecycleBoxLayout")
 	def apply_selection(self, index, view, is_selected):
 		super().apply_selection(index, view, is_selected)
+		if self.disabled:
+			return
 		if is_selected:
 			self.character_name = view.text
 
@@ -52,11 +54,25 @@ class CharactersScreen(Screen):
 	wallpaper_path = StringProperty()
 	names = ListProperty()
 	new_board = ObjectProperty()
-	push_character_name = ObjectProperty()
 
 	@property
 	def engine(self):
 		return App.get_running_app().engine
+
+	def __init__(self, **kw):
+		load_kv("charsview.kv")
+		super().__init__(**kw)
+		App.get_running_app()._unbinders.append(self.unbind_all)
+
+	def push_character_name(self, _, name):
+		app = App.get_running_app()
+		binds = app._bindings
+		for uid in devour(binds["CharactersScreen", "character_name"]):
+			self.unbind_uid("character_name", uid)
+		app.character_name = name
+		binds["CharactersScreen", "character_name"].add(
+			self.fbind("character_name", self.push_character_name)
+		)
 
 	@logwrap(section="CharactersScreen")
 	def new_character(self, name, *_):
@@ -68,7 +84,7 @@ class CharactersScreen(Screen):
 		self.charsview.data.append({"index": i, "text": name})
 		self.names.append(name)
 		self.new_board(name)
-		self.push_character_name(name)
+		self.character_name = name
 
 	@logwrap(section="CharactersScreen")
 	def _trigger_new_character(self, name):
@@ -102,48 +118,20 @@ class CharactersScreen(Screen):
 		if not self.push_character_name:
 			Clock.schedule_once(self.on_charsview, 0)
 			return
-		self.charsview.bind(character_name=self.setter("character_name"))
-		self.bind(character_name=self.push_character_name)
+		app = App.get_running_app()
+		binds = app._bindings
+		binds["CharactersView", "character_name"].add(
+			self.charsview.fbind(
+				"character_name", self.setter("character_name")
+			)
+		)
+		binds["CharactersScreen", "character_name"].add(
+			self.fbind("character_name", self.push_character_name)
+		)
 
-
-store_kv(
-	__name__,
-	"""
-#: import resource_find kivy.resources.resource_find
-<CharactersView>:
-	viewclass: 'RecycleToggleButton'
-	character_name: boxl.character_name
-	CharactersRecycleBoxLayout:
-		id: boxl
-		multiselect: False
-		default_size: None, dp(56)
-		default_size_hint: 1, None
-		size_hint_y: None
-		height: self.minimum_height
-		orientation: 'vertical'
-<CharactersScreen>:
-	name: 'chars'
-	charsview: charsview
-	BoxLayout:
-		id: chars
-		orientation: 'vertical'
-		CharactersView:
-			id: charsview
-			size_hint_y: 0.8
-			character_name: root.character_name
-		TextInput:
-			id: newname
-			size_hint_y: 0.1
-			hint_text: 'New character name'
-			write_tab: False
-			multiline: False
-		Button:
-			text: '+'
-			on_release: root._trigger_new_character(newname.text)
-			size_hint_y: 0.05
-		Button:
-			text: 'Close'
-			on_release: root.toggle()
-			size_hint_y: 0.05
-""",
-)
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["CharactersView", "character_name"]):
+			self.charsview.unbind_uid("character_name", uid)
+		for uid in devour(binds["CharactersScreen", "character_name"]):
+			self.unbind_uid("character_name", uid)

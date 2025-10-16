@@ -3,13 +3,24 @@ import subprocess
 import sys
 import tomllib
 
+SOFT_REQUIREMENTS = {"lxml", "parquetdb"}
+
+DEP_NAME_PAT = r"([a-zA-Z0-9_-]+)([~!<>=]=)?.*"
+REQUIREMENTS_PAT = r"requirements *= *(.+)"
+
 with open("lisien/pyproject.toml", "rb") as inf:
-	lisien_version_str = tomllib.load(inf)["project"]["version"]
+	loaded = tomllib.load(inf)
+lisien_version_str = loaded["project"]["version"]
+deps = {
+	re.match(DEP_NAME_PAT, dep).group(1)
+	for dep in loaded["project"]["dependencies"]
+} - SOFT_REQUIREMENTS
 with open("elide/pyproject.toml", "rb") as inf:
 	loaded = tomllib.load(inf)
 	elide_version_str = loaded["project"]["version"]
 	for dependency in loaded["project"]["dependencies"]:
 		if not dependency.startswith("lisien"):
+			deps.add(re.match(DEP_NAME_PAT, dependency).group(1))
 			continue
 		_, ver = dependency.split("==")
 		if ver != lisien_version_str:
@@ -21,17 +32,22 @@ with open("elide/pyproject.toml", "rb") as inf:
 		raise RuntimeError("Elide doesn't depend on Lisien")
 with open("buildozer.spec", "rt") as inf:
 	for line in inf:
-		if line.startswith("version"):
-			buildozer_version_str = line.split("=")[-1].strip()
+		if reqs := re.match(REQUIREMENTS_PAT, line):
+			deps.difference_update(reqs.group(1).split(","))
+			break
+	else:
+		sys.exit("No requirements line in buildozer.spec")
+
+if deps:
+	sys.exit(f"Requirements missing from buildozer.spec: {', '.join(deps)}")
 
 pat = r"(\d+?\.\d+?\.\d+?)(\.post[0-9]+)?"
 lisien_version = re.match(pat, lisien_version_str).group(1)
 elide_version = re.match(pat, elide_version_str).group(1)
-buildozer_version = re.match(pat, buildozer_version_str).group(1)
 
-if not (lisien_version == elide_version == buildozer_version):
+if not (lisien_version == elide_version):
 	sys.exit(
-		f"Version numbers differ. lisien: {lisien_version}, elide: {elide_version}, buildozer: {buildozer_version}"
+		f"Version numbers differ. lisien: {lisien_version}, elide: {elide_version}"
 	)
 
 output = subprocess.check_output(

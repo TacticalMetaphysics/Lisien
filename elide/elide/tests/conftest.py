@@ -111,7 +111,7 @@ def elide_app(kivy, prefix):
 	Window.add_widget(app.build())
 	yield app
 	EventLoop.idle()
-	if not hasattr(app, "stopped"):
+	if not app.stopped:
 		app.stop()
 
 
@@ -121,6 +121,7 @@ def elide_app_main_menu(kivy, prefix):
 	app.config = ConfigParser(None)
 	app.build_config(app.config)
 	Window.add_widget(app.build())
+	idle_until(lambda: any(fn.endswith("elide.kv") for fn in Builder.files))
 	manager = app.manager
 	idle_until(
 		lambda: manager.current == "main",
@@ -159,17 +160,15 @@ def sickle_sim(prefix, random_seed):
 
 @pytest.fixture
 def kobold_sim(prefix, random_seed):
-	game_prefix = os.path.join(prefix, "test")
-	with Engine(game_prefix, workers=0, random_seed=random_seed) as eng:
+	play_prefix = os.path.join(prefix, "test")
+	with Engine(play_prefix, workers=0, random_seed=random_seed) as eng:
 		kobold.inittest(eng)
-	yield game_prefix
+	yield play_prefix
 
 
 @pytest.fixture
-def kobold_sim_exported(tmp_path, random_seed):
-	with Engine(
-		os.path.join(tmp_path, "kobold"), workers=0, random_seed=random_seed
-	) as eng:
+def kobold_sim_exported(tmp_path, kobold_sim):
+	with Engine(kobold_sim, workers=0) as eng:
 		exported = eng.export(
 			"kobold", os.path.join(tmp_path, "kobold.lisien")
 		)

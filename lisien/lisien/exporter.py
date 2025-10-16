@@ -69,7 +69,7 @@ from lisien.types import (
 )
 from lisien.util import AbstractEngine, sort_set
 
-from .collections import GROUP_SEP, REC_SEP, FunctionStore
+from .collections import GROUP_SEP, REC_SEP
 
 
 @dataclass
@@ -494,7 +494,7 @@ class Exporter:
 	def write_xml(
 		self,
 		to: str | os.PathLike | IOBase,
-		name: str = None,
+		name: str,
 		indent: bool = True,
 	) -> None:
 		if not isinstance(to, os.PathLike) and not isinstance(to, IOBase):
@@ -503,10 +503,7 @@ class Exporter:
 					raise ValueError("Need a name or a path")
 				to = os.path.join(os.getcwd(), name + ".xml")
 			to = Path(to)
-		if isinstance(to, Path) and name is None:
-			name = os.path.basename(to)
-		if name[-4:] == ".xml":
-			name = name[:-4]
+		name = name.removesuffix(".xml")
 
 		tree = self.db_to_etree(name)
 
@@ -552,9 +549,15 @@ class Exporter:
 		for func in funcs:
 			func_el.append(Element(typ[5:], name=func))
 
-	append_rule_triggers_el = partial(_append_rule_flist_el, "rule-trigger")
-	append_rule_prereqs_el = partial(_append_rule_flist_el, "rule-prereq")
-	append_rule_actions_el = partial(_append_rule_flist_el, "rule-action")
+	append_rule_triggers_el = staticmethod(
+		partial(_append_rule_flist_el, "rule-trigger")
+	)
+	append_rule_prereqs_el = staticmethod(
+		partial(_append_rule_flist_el, "rule-prereq")
+	)
+	append_rule_actions_el = staticmethod(
+		partial(_append_rule_flist_el, "rule-action")
+	)
 
 	@staticmethod
 	def _append_rule_neighborhood_el(
@@ -1053,7 +1056,7 @@ def game_path_to_etree(
 	ls = os.listdir(game_path)
 	# Take the hash of code and strings--*not* the hash of their *files*--
 	# so that if the file gets reformatted, as often happens as a side effect
-	# of ast.parse and astunparse, this does not change its hash.
+	# of ast.parse and ast.unparse, this does not change its hash.
 	for modname in ("function", "method", "trigger", "prereq", "action"):
 		modpy = modname + ".py"
 		if modpy in ls:

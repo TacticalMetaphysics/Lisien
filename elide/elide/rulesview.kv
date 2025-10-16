@@ -1,0 +1,81 @@
+<RuleButton>:
+    text: self.rule.name if self.rule else ''
+<RuleButtonBox>:
+	orientation: 'horizontal'
+	button: rule_button
+	BoxLayout:
+		orientation: 'vertical'
+		size_hint_x: 0.2
+		Button:
+			id: up
+			text: '↑'
+			font_name: 'Symbola'
+			on_release: root.move_rule_up()
+		Button:
+			id: down
+			text: '↓'
+			font_name: 'Symbola'
+			on_release: root.move_rule_down()
+	RuleButton:
+		id: rule_button
+		rulesview: root.rulesview
+		ruleslist: root.ruleslist
+		rule: root.rule
+		size_hint_x: 0.8
+<RulesList>:
+    viewclass: 'RuleButtonBox'
+    SelectableRecycleBoxLayout:
+        default_size: None, dp(56)
+        default_size_hint: 1, None
+        height: self.minimum_height
+        size_hint_y: None
+        orientation: 'vertical'
+<RulesBox>:
+    new_rule_name: rulename.text
+    ruleslist: ruleslist
+    rulesview: rulesview
+    rulebook_name: str(self.rulebook.name) if self.rulebook is not None else ''
+    entity_name: str(self.entity.name) if self.entity is not None else ''
+    orientation: 'vertical'
+    Label:
+        text: root.entity_name + '    -    ' + root.rulebook_name
+        size_hint_y: 0.05
+    BoxLayout:
+        orientation: 'horizontal'
+        RulesList:
+            id: ruleslist
+            rulebook: root.rulebook
+            entity: root.entity
+            rulesview: rulesview
+            size_hint_x: 0.2
+        RulesView:
+            id: rulesview
+            rulebook: root.rulebook
+            entity: root.entity
+            size_hint_x: 0.8
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.07
+        TextInput:
+            id: rulename
+            hint_text: 'New rule name'
+            write_tab: False
+            multiline: False
+        Button:
+            text: '+'
+            on_release: root.new_rule()
+        Button:
+            id: closebut
+            text: 'Close'
+            on_release: root.toggle()
+<RulesScreen>:
+    name: 'rules'
+    rulesview: box.rulesview
+    box: box
+    RulesBox:
+        id: box
+        rulebook: root.rulebook
+        entity: root.entity
+        toggle: root.toggle
+<CharacterRulesScreen>:
+    name: 'charrules'

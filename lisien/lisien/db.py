@@ -43,16 +43,7 @@ from typing import (
 	get_type_hints,
 )
 
-from sqlalchemy import (
-	BLOB,
-	BOOLEAN,
-	FLOAT,
-	INT,
-	TEXT,
-	MetaData,
-	Select,
-	create_engine,
-)
+from sqlalchemy import BLOB, BOOLEAN, FLOAT, INT, TEXT, Select, create_engine
 from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
@@ -717,7 +708,7 @@ class ParquetDBLooper(ConnectionLooper):
 			except KeyError:
 				continue
 
-	def _iter_part_tick_to_tick(
+	def _list_part_tick_to_tick(
 		self,
 		table: str,
 		branch: Branch,
@@ -730,18 +721,17 @@ class ParquetDBLooper(ConnectionLooper):
 
 		db = self._get_db(table)
 		if turn_from == turn_to:
-			return iter(
-				db.read(
-					filters=[
-						pc.field("branch") == branch,
-						pc.field("turn") == turn_from,
-						pc.field("tick") >= tick_from,
-						pc.field("tick") < tick_to,
-					],
-					columns=self._table_columns(table),
-				).to_pylist()
-			)
+			return db.read(
+				filters=[
+					pc.field("branch") == branch,
+					pc.field("turn") == turn_from,
+					pc.field("tick") >= tick_from,
+					pc.field("tick") <= tick_to,
+				],
+				columns=self._table_columns(table),
+			).to_pylist()
 		else:
+			ret = []
 			for d in db.read(
 				filters=[
 					pc.field("branch") == branch,
@@ -755,7 +745,8 @@ class ParquetDBLooper(ConnectionLooper):
 					<= (d["turn"], d["tick"])
 					<= (turn_to, tick_to)
 				):
-					yield d
+					ret.append(d)
+			return ret
 
 	def load_universals_tick_to_tick(
 		self,
@@ -768,7 +759,7 @@ class ParquetDBLooper(ConnectionLooper):
 		return [
 			(d["key"], d["turn"], d["tick"], d["value"])
 			for d in sorted(
-				self._iter_part_tick_to_tick(
+				self._list_part_tick_to_tick(
 					"universals",
 					branch,
 					turn_from,
@@ -850,6 +841,13 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
+		def sort_key(d: dict) -> tuple[int, int, bytes, bytes]:
+			return d["turn"], d["tick"], d["character"], d["thing"]
+
+		data = self._list_part_tick_to_tick(
+			"things", branch, turn_from, tick_from, turn_to, tick_to
+		)
+		data.sort(key=sort_key)
 		return [
 			(
 				d["character"],
@@ -858,17 +856,7 @@ class ParquetDBLooper(ConnectionLooper):
 				d["tick"],
 				d["location"],
 			)
-			for d in sorted(
-				self._iter_part_tick_to_tick(
-					"things", branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda d: (
-					d["turn"],
-					d["tick"],
-					d["character"],
-					d["thing"],
-				),
-			)
+			for d in data
 		]
 
 	def _load_things_tick_to_tick_character(
@@ -1017,7 +1005,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"graph_val", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield d["graph"], d["key"], d["turn"], d["tick"], d["value"]
@@ -1047,7 +1035,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, Turn, Tick, bytes]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"graph_val", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield d["key"], d["turn"], d["tick"], d["value"]
@@ -1167,7 +1155,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, bytes, Turn, Tick, bool]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"nodes", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield d["graph"], d["node"], d["turn"], d["tick"], d["extant"]
@@ -1329,7 +1317,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"node_val", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield (
@@ -1524,7 +1512,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"edges", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield (
@@ -1722,7 +1710,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"edge_val", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield (
@@ -1862,7 +1850,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, Turn, Tick, bytes]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			f"{part}_rulebook", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield d["character"], d["turn"], d["tick"], d["rulebook"]
@@ -2027,7 +2015,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, bytes, Turn, Tick, bytes]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"node_rulebook", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield (
@@ -2086,7 +2074,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"portal_rulebook", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield (
@@ -2173,7 +2161,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, Turn, Tick, bytes, RulebookPriority]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"rulebooks", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield (
@@ -2230,7 +2218,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: int,
 		tick_to: int,
 	) -> Iterator[tuple[str, int, int, bytes]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			f"rule_{part}", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield d["rule"], d["turn"], d["tick"], d[part]
@@ -2377,7 +2365,7 @@ class ParquetDBLooper(ConnectionLooper):
 		turn_to: Turn,
 		tick_to: Tick,
 	) -> Iterator[tuple[bytes, bytes, RuleName, Turn, Tick]]:
-		for d in self._iter_part_tick_to_tick(
+		for d in self._list_part_tick_to_tick(
 			"character_rules_handled",
 			branch,
 			turn_from,
@@ -2441,7 +2429,7 @@ class ParquetDBLooper(ConnectionLooper):
 				d["tick"],
 			)
 			for d in sorted(
-				self._iter_part_tick_to_tick(
+				self._list_part_tick_to_tick(
 					"unit_rules_handled",
 					branch,
 					turn_from,
@@ -2509,7 +2497,7 @@ class ParquetDBLooper(ConnectionLooper):
 				d["tick"],
 			)
 			for d in sorted(
-				self._iter_part_tick_to_tick(
+				self._list_part_tick_to_tick(
 					"character_thing_rules_handled",
 					branch,
 					turn_from,
@@ -2576,7 +2564,7 @@ class ParquetDBLooper(ConnectionLooper):
 				d["tick"],
 			)
 			for d in sorted(
-				self._iter_part_tick_to_tick(
+				self._list_part_tick_to_tick(
 					"character_place_rules_handled",
 					branch,
 					turn_from,
@@ -2646,7 +2634,7 @@ class ParquetDBLooper(ConnectionLooper):
 				d["tick"],
 			)
 			for d in sorted(
-				self._iter_part_tick_to_tick(
+				self._list_part_tick_to_tick(
 					"character_portal_rules_handled",
 					branch,
 					turn_from,
@@ -2711,7 +2699,7 @@ class ParquetDBLooper(ConnectionLooper):
 				d["tick"],
 			)
 			for d in sorted(
-				self._iter_part_tick_to_tick(
+				self._list_part_tick_to_tick(
 					"node_rules_handled",
 					branch,
 					turn_from,
@@ -2778,7 +2766,7 @@ class ParquetDBLooper(ConnectionLooper):
 				d["tick"],
 			)
 			for d in sorted(
-				self._iter_part_tick_to_tick(
+				self._list_part_tick_to_tick(
 					"portal_rules_handled",
 					branch,
 					turn_from,
@@ -2841,7 +2829,7 @@ class ParquetDBLooper(ConnectionLooper):
 				d["tick"],
 				d["is_unit"],
 			)
-			for d in self._iter_part_tick_to_tick(
+			for d in self._list_part_tick_to_tick(
 				"units", branch, turn_from, tick_from, turn_to, tick_to
 			)
 		]

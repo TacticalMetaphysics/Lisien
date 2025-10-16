@@ -2,14 +2,15 @@ import os
 import shutil
 
 import pytest
+from kivy.base import EventLoop
+from kivy.lang import Builder
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 
 from ..app import ElideApp
-from .util import advance_frames, idle_until
-from ..graph.board import GraphBoardView
+from .util import advance_frames, idle100, idle_until, transition_over
 
 
 def test_new_game(elide_app_main_menu):
@@ -59,11 +60,31 @@ def zipped_kobold_in_games_dir(prefix, zipped_kobold):
 	assert archive_name in os.listdir(games_dir)
 
 
-def get_load_game_modal(app):
-	assert app.manager.current == "main"
-	load_game_button: Button = app.manager.current_screen.ids.load_game_button
-	x, y = app.manager.current_screen.to_parent(*load_game_button.center)
-	assert load_game_button.collide_point(x, y)
+def idle_until_kobold_is_loaded(manager):
+	idle_until(
+		lambda: manager.current == "mainscreen",
+		100,
+		"Never loaded into the imported game",
+	)
+
+	@idle100
+	def phys_board_made():
+		return "physical" in manager.current_screen.graphboards
+
+	board = manager.current_screen.graphboards["physical"]
+
+	@idle100
+	def kobold_in_pawn():
+		return "kobold" in board.pawn
+
+
+@pytest.mark.usefixtures("zipped_kobold_in_games_dir")
+def test_load_game(elide_app_main_menu):
+	app = elide_app_main_menu
+	manager = app.manager
+	idle_until(lambda: manager.current == "main", 100, "Never got main screen")
+	load_game_button: Button = manager.current_screen.ids.load_game_button
+	x, y = load_game_button.center
 	touch = UnitTestTouch(x=x, y=y)
 	touch.touch_down()
 
@@ -77,7 +98,13 @@ def get_load_game_modal(app):
 		100,
 		"Never created game selection popover",
 	)
-	modal = app.manager.current_screen._popover_load_game
+	modal = manager.current_screen._popover_load_game
+
+	@idle100
+	def path_propagated():
+		return modal.ids.game_list.path == app.games_path
+
+	modal.ids.game_list.regen()
 	idle_until(
 		lambda: modal._is_open, 100, "Never opened game selection modal"
 	)
@@ -87,12 +114,11 @@ def get_load_game_modal(app):
 	idle_until(
 		lambda: game_list._viewport, 100, "Never got game list viewport"
 	)
-	return modal
 
+	@idle100
+	def viewport_children():
+		return game_list._viewport.children
 
-def load_kobold(app):
-	modal = get_load_game_modal(app)
-	game_list = modal.ids.game_list
 	button = game_list._viewport.children[0]
 	assert button.text == "kobold"
 	x, y = game_list.to_parent(*button.center)
@@ -104,51 +130,50 @@ def load_kobold(app):
 		return button.state == "down"
 
 	touch.touch_up()
-	idle_until(
-		lambda: app.manager.current == "mainscreen",
-		100,
-		"Never switched to mainscreen",
-	)
-	main_scr = app.manager.current_screen
-	main_view = main_scr.ids.mainview
-
-	@idle_until(timeout=100)
-	def stuff_in_main_view():
-		return main_view.children
-
-	boardview = main_view.children[0]
-	assert isinstance(boardview, GraphBoardView)
-
-	@idle_until(timeout=100)
-	def have_kobold():
-		return "kobold" in boardview.board.pawn
-
-
-def test_load_game(zipped_kobold_in_games_dir, elide_app_main_menu):
-	load_kobold(elide_app_main_menu)
+	idle_until_kobold_is_loaded(manager)
 
 
 def test_import_game(kobold_sim_exported, elide_app_main_menu):
-	app = elide_app_main_menu
-	manager = app.manager
-	import_game_button: Button = manager.current_screen.ids.import_game_button
+	same_app = elide_app_main_menu.get_running_app()
+	same_manager = same_app.manager
+
+	def app():
+		assert elide_app_main_menu.get_running_app() is same_app
+		return same_app
+
+	def manager():
+		assert app().manager is same_manager
+		return same_manager
+
+	idle_until(lambda: app().closed, 100, "Never closed previous test")
+	idle_until(lambda: manager().current == "main", 100, "Never got main menu")
+	import_game_button: Button = (
+		manager().current_screen.ids.import_game_button
+	)
 	x, y = import_game_button.center
 	touch = UnitTestTouch(x, y)
 	touch.touch_down()
 	advance_frames(5)
 	touch.touch_up()
 	idle_until(
-		lambda: hasattr(manager.current_screen, "_popover_import_game"),
+		lambda: hasattr(manager().current_screen, "_popover_import_game"),
 		100,
 		"Never created game import popover",
 	)
-	modal = manager.current_screen._popover_import_game
+	modal = manager().current_screen._popover_import_game
 	idle_until(lambda: modal._is_open, 100, "Never opened game import modal")
 	idle_until(
 		lambda: hasattr(modal, "_file_chooser"), 100, "Never made file chooser"
 	)
+	idle_until(
+		lambda: modal._file_chooser.layout, 100, "Never filled file chooser"
+	)
+	idle_until(
+		lambda: "FileIconEntry" in Builder.templates,
+		100,
+		"Never built file chooser",
+	)
 	chooser: FileChooserIconView = modal._file_chooser
-	idle_until(lambda: chooser.layout, 100, "Never filled file chooser")
 	scrollview = chooser.layout.children[0]
 	scatter = scrollview._viewport
 	stacklayout = scatter.children[0]
@@ -185,11 +210,52 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 	advance_frames(5)
 	touch.touch_up()
 	advance_frames(5)
-	idle_until(
-		lambda: manager.current == "mainscreen",
-		100,
-		"Never loaded into the imported game",
+	idle_until_kobold_is_loaded(manager())
+	idle_until(transition_over)
+	charmenu = manager().current_screen.charmenu.charmenu
+	quit_button = charmenu.ids.quit_button.__ref__()
+	x, y = quit_button.parent.parent.parent.parent.to_parent(
+		*quit_button.parent.parent.parent.to_parent(
+			*quit_button.parent.parent.to_parent(
+				*quit_button.parent.to_parent(
+					*quit_button.to_parent(*quit_button.center)
+				)
+			)
+		)
 	)
+	assert quit_button.collide_point(x, y)
+	idle_until(transition_over)
+	touch = UnitTestTouch(x, y)
+	touch.touch_down()
+
+	@idle100
+	def pressed():
+		return quit_button.state == "down"
+
+	advance_frames(5)
+	touch.touch_up()
+
+	for _ in range(100):
+		if manager().current == "main":
+			break
+		EventLoop.idle()
+	else:
+		raise RuntimeError(f"Never switched from {manager().current}")
+
+	assert manager().current == "main"
+	manager().current_screen.load_game()
+
+	@idle100
+	def game_loader_modal_present():
+		return hasattr(manager().current_screen, "_popover_load_game")
+
+	@idle100
+	def game_load_menu_has_data():
+		lodr = getattr(manager().current_screen, "_popover_load_game")
+		if not lodr or "game_list" not in lodr.ids:
+			return False
+		game_list = lodr.ids.game_list
+		return game_list.data
 
 
 def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
@@ -222,3 +288,5 @@ def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 		lambda: not modal._is_open, 100, "Never closed game export modal"
 	)
 	assert "kobold.lisien" in os.listdir(".")
+	shutil.move("kobold.lisien", app.prefix + "/kobold.lisien")
+	test_import_game(app.prefix + "/kobold.lisien", app)

@@ -18,6 +18,9 @@ one :class:`kivy.uix.togglebutton.ToggleButton` apiece, arranged in a
 from the :class:`Pallet`, and the :class:`Pallet` updates its
 ``selection`` list to show what the user selected."""
 
+from functools import partial
+
+from kivy.app import App
 from kivy.atlas import Atlas
 from kivy.clock import Clock, triggered
 from kivy.logger import Logger
@@ -35,7 +38,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.togglebutton import ToggleButton
 
-from .util import logwrap, store_kv
+from .util import logwrap
 
 
 def trigger(func):
@@ -107,8 +110,21 @@ class Pallet(StackLayout):
 	def on_atlas(self, *_):
 		if self.atlas is None:
 			return
+		app = App.get_running_app()
+		binds = app._bindings
 		self.upd_textures()
-		self.atlas.bind(textures=self._trigger_upd_textures)
+		new_uid = self.atlas.fbind("textures", self._trigger_upd_textures)
+		binds["Pallet", id(self), "atlas", "textures"].add(new_uid)
+		app._unbinders.append(partial(self._unbind_atlas, self.atlas, new_uid))
+
+	def _unbind_atlas(self, atlas, uid):
+		binds = App.get_running_app()._bindings[
+			"Pallet", id(self), "atlas", "textures"
+		]
+		if not binds:
+			return
+		binds.remove(uid)
+		atlas.unbind_uid("textures", uid)
 
 	def upd_textures(self, *_):
 		"""Create one :class:`SwatchButton` for each texture"""
@@ -135,28 +151,6 @@ class Pallet(StackLayout):
 					size=swatch_size,
 				)
 				add_widget(swatches[name])
-
-
-store_kv(
-	__name__,
-	"""
-<SwatchButton>:
-	canvas:
-		Rectangle:
-			pos:
-				(
-				root.x + (root.width / 2 - root.tex.size[0] / 2) if root.tex else 0,
-				root.y + root.height - root.tex.size[1] if root.tex else 0
-				)
-			size: root.tex.size
-			texture: root.tex
-<Pallet>:
-	orientation: 'lr-tb'
-	padding_y: 100
-	size_hint: (None, None)
-	height: self.minimum_height
-""",
-)
 
 
 class PalletBox(BoxLayout):

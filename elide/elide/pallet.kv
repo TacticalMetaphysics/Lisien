@@ -1,0 +1,15 @@
+<SwatchButton>:
+	canvas:
+		Rectangle:
+			pos:
+				(
+				root.x + (root.width / 2 - root.tex.size[0] / 2) if root.tex else 0,
+				root.y + root.height - root.tex.size[1] if root.tex else 0
+				)
+			size: root.tex.size
+			texture: root.tex
+<Pallet>:
+	orientation: 'lr-tb'
+	padding_y: 100
+	size_hint: (None, None)
+	height: self.minimum_height

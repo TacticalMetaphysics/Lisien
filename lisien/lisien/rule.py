@@ -81,12 +81,11 @@ the function's name.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from ast import parse
+from ast import parse, unparse
 from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
 from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
 
-from astunparse import unparse
 from blinker import Signal
 
 from .cache import FuncListCache

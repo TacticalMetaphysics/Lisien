@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.properties import NumericProperty, ObjectProperty
 
@@ -48,37 +49,68 @@ class PawnBehavior:
 		if not self.parent:
 			Clock.schedule_once(self.on_parent, 0)
 			return
+		binds = App.get_running_app()._bindings
 		self.board = self.parent.board
 		self._relocate_binding = self.fbind("loc_name", self._trigger_relocate)
+		binds[
+			"Pawn",
+			self.parent.board.character.name,
+			self.proxy.name,
+			"loc_name",
+		].add(self._relocate_binding)
 		if self.proxy:
 			self._trigger_relocate()
 
 	@logwrap(section="PawnBehavior")
 	def finalize(self, initial=True):
+		binds = App.get_running_app()._bindings
 		if initial:
 			self.loc_name = self.proxy["location"]
 			self.priority = self.proxy.get("_priority", 0.0)
 		self._push_loc_binding = self.fbind(
 			"loc_name", self._trigger_push_location
 		)
+		binds[
+			"Pawn",
+			self.parent.board.character.name,
+			self.proxy.name,
+			"loc_name",
+		].add(self._push_loc_binding)
 		super().finalize(initial)
 
 	@logwrap(section="PawnBehavior")
 	def unfinalize(self):
+		binds = App.get_running_app()._bindings
+		binds[
+			"Pawn",
+			self.parent.board.character.name,
+			self.proxy.name,
+			"loc_name",
+		].remove(self._push_loc_binding)
 		self.unbind_uid("loc_name", self._push_loc_binding)
+		del self._push_loc_binding
 		super().unfinalize()
 
 	@logwrap(section="PawnBehavior")
 	def pull_from_proxy(self, *args):
+		binds = App.get_running_app()._bindings
 		super().pull_from_proxy(*args)
 		relocate = False
 		if self.loc_name != self.proxy["location"]:
 			self.unfinalize()
+			binds_here = binds[
+				"Pawn",
+				self.parent.board.character.name,
+				self.proxy.name,
+				"loc_name",
+			]
+			binds_here.remove(self._relocate_binding)
 			self.unbind_uid("loc_name", self._relocate_binding)
 			self.loc_name = self.proxy["location"]
 			self._relocate_binding = self.fbind(
 				"loc_name", self._trigger_relocate
 			)
+			binds_here.add(self._relocate_binding)
 			self.finalize(initial=False)
 			relocate = True
 		if "_priority" in self.proxy:
