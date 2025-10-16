@@ -25,8 +25,8 @@ from threading import Thread
 
 from kivy.app import App
 from kivy.clock import Clock, mainthread, triggered
+from kivy.core.text import DEFAULT_FONT
 from kivy.factory import Factory
-from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import (
 	BooleanProperty,
@@ -37,6 +37,7 @@ from kivy.properties import (
 	ObjectProperty,
 	ReferenceListProperty,
 	StringProperty,
+	VariableListProperty,
 )
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -45,13 +46,14 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.slider import Slider
 from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.widget import Widget
 
 from .calendar import Agenda
 from .charmenu import CharMenu
 from .graph.board import GraphBoardView
 from .grid.board import GridBoardView
 from .stepper import RuleStepper
-from .util import dummynum, logwrap, store_kv
+from .util import devour, dummynum, load_kv, logwrap
 
 
 def trigger(func):
@@ -183,14 +185,16 @@ class TimePanel(BoxLayout):
 		):
 			Clock.schedule_once(self.on_screen, 0)
 			return
+		app = App.get_running_app()
+		binds = app._bindings
 		self.ids.branchfield.hint_text = self.screen.app.branch
 		self.ids.turnfield.hint_text = str(self.screen.app.turn)
 		self.ids.tickfield.hint_text = str(self.screen.app.tick)
-		self.screen.app.bind(
-			branch=self._upd_branch_hint,
-			turn=self._upd_turn_hint,
-			tick=self._upd_tick_hint,
+		binds["ElideApp", "branch"].add(
+			app.fbind("branch", self._upd_branch_hint)
 		)
+		binds["ElideApp", "turn"].add(app.fbind("turn", self._upd_turn_hint))
+		binds["ElideApp", "tick"].add(app.fbind("tick", self._upd_tick_hint))
 
 
 class MainScreen(Screen):
@@ -234,6 +238,17 @@ class MainScreen(Screen):
 	def app(self):
 		return App.get_running_app()
 
+	def __init__(self, **kw):
+		for screen_kv in [
+			"screen",
+			"dummy",
+			"charmenu",
+			"statcfg",
+			"stepper",
+		]:
+			load_kv(screen_kv + ".kv")
+		super().__init__(**kw)
+
 	@logwrap(section="TimePanel")
 	def _update_adding_portal(self, *_):
 		self.boardview.adding_portal = (
@@ -269,6 +284,8 @@ class MainScreen(Screen):
 				)
 			Clock.schedule_once(self.populate, 0)
 			return
+		app = App.get_running_app()
+		binds = app._bindings
 		self.boardview = GraphBoardView(
 			scale_min=0.2,
 			scale_max=4.0,
@@ -277,12 +294,20 @@ class MainScreen(Screen):
 			board=self.graphboards[self.app.character_name],
 			adding_portal=self.charmenu.portaladdbut.state == "down",
 		)
-		self.mainview.bind(
-			size=self.boardview.setter("size"),
-			pos=self.boardview.setter("pos"),
+		binds["MainScreen", "mainview", "size"].add(
+			self.mainview.fbind("size", self.boardview.setter("size"))
 		)
-		self.charmenu.portaladdbut.bind(state=self._update_adding_portal)
-		self.app.bind(character_name=self._update_board)
+		binds["MainScreen", "mainview", "pos"].add(
+			self.mainview.fbind("pos", self.boardview.setter("pos"))
+		)
+		binds["CharMenu", "portaladdbut", "state"].add(
+			self.charmenu.portaladdbut.fbind(
+				"state", self._update_adding_portal
+			)
+		)
+		binds["ElideApp", "character_name"].add(
+			app.fbind("character_name", self._update_board)
+		)
 		self.calendar = Agenda(update_mode="present")
 		self.calendar_view = ScrollView(
 			size=self.mainview.size, pos=self.mainview.pos
@@ -294,28 +319,48 @@ class MainScreen(Screen):
 			pos=self.mainview.pos,
 			board=self.gridboards[self.app.character_name],
 		)
-		self.mainview.bind(
-			size=self.calendar_view.setter("size"),
-			pos=self.calendar_view.setter("pos"),
+		binds["MainScreen", "mainview", "size"].add(
+			self.mainview.fbind("size", self.calendar_view.setter("size"))
 		)
-		self.mainview.bind(
-			size=self.gridview.setter("size"), pos=self.gridview.setter("pos")
+		binds["MainScreen", "mainview", "pos"].add(
+			self.mainview.fbind("pos", self.calendar_view.setter("pos"))
+		)
+		binds["MainScreen", "mainview", "size"].add(
+			self.mainview.fbind("size", self.gridview.setter("size"))
+		)
+		binds["MainScreen", "mainview", "pos"].add(
+			self.mainview.fbind("pos", self.gridview.setter("pos"))
 		)
 		self.calendar_view.add_widget(self.calendar)
 		self.mainview.add_widget(self.boardview)
+		app._unbinders.append(self.unbind_all)
 		self._populated = True
+
+	def unbind_all(self):
+		app = App.get_running_app()
+		binds = app._bindings
+		for uid in devour(binds["MainScreen", "mainview", "size"]):
+			self.mainview.unbind_uid("size", uid)
+		for uid in devour(binds["MainScreen", "mainview", "pos"]):
+			self.mainview.unbind_uid("pos", uid)
+		for uid in devour(binds["CharMenu", "portaladdbut", "state"]):
+			self.charmenu.portaladdbut.unbind_uid("state", uid)
+		for uid in devour(binds["ElideApp", "character_name"]):
+			app.unbind_uid("character_name", uid)
+		for uid in devour(binds["MainScreen", "mainview", "size"]):
+			self.mainview.unbind_uid("size", uid)
+		for uid in devour(binds["MainScreen", "mainview", "pos"]):
+			self.mainview.unbind_uid("pos", uid)
 
 	@logwrap(section="TimePanel")
 	def on_statpanel(self, *_):
 		if not self.app:
 			Clock.schedule_once(self.on_statpanel, 0)
 			return
-		self.app.bind(
-			selected_proxy=self._update_statlist,
-			branch=self._update_statlist,
-			turn=self._update_statlist,
-			tick=self._update_statlist,
-		)
+		app = App.get_running_app()
+		binds = app._bindings
+		for att in ("selected_proxy", "branch", "turn", "tick"):
+			binds["ElideApp", att].add(app.fbind(att, self._update_statlist))
 
 	@trigger
 	@logwrap(section="TimePanel")
@@ -364,18 +409,6 @@ class MainScreen(Screen):
 		)
 
 	@logwrap(section="TimePanel")
-	def remake_display(self, *_):
-		"""Remake any affected widgets after a change in my ``kv``."""
-		Builder.load_string(self.kv)
-		if hasattr(self, "_kv_layout"):
-			self.remove_widget(self._kv_layout)
-			del self._kv_layout
-		self._kv_layout = KvLayout()
-		self.add_widget(self._kv_layout)
-
-	_trigger_remake_display = trigger(remake_display)
-
-	@logwrap(section="TimePanel")
 	def on_touch_down(self, touch):
 		if self.boardview is None:
 			return
@@ -418,9 +451,11 @@ class MainScreen(Screen):
 		:class:`graph.Pawn` or :class:`graph.Spot`.
 
 		"""
-		if not self.app.character:
+		app = App.get_running_app()
+		if not app.character:
 			Clock.schedule_once(self.on_dummies, 0)
 			return
+		binds = app._bindings
 
 		def renum_dummy(dummy, *_):
 			dummy.num = dummynum(self.app.character, dummy.prefix) + 1
@@ -429,9 +464,13 @@ class MainScreen(Screen):
 			if dummy is None or hasattr(dummy, "_numbered"):
 				continue
 			if dummy == self.dummything:
-				self.app.pawncfg.bind(imgpaths=dummy.setter("paths"))
+				binds["ElideApp", "pawncfg", "imgpaths"].add(
+					app.pawncfg.fbind("imgpaths", dummy.setter("paths"))
+				)
 			if dummy == self.dummyplace:
-				self.app.spotcfg.bind(imgpaths=dummy.setter("paths"))
+				binds["ElideApp", "spotcfg", "imgpaths"].add(
+					app.spotcfg.fbind("imgpaths", dummy.setter("paths"))
+				)
 			dummy.num = dummynum(self.app.character, dummy.prefix) + 1
 			Logger.debug("MainScreen: dummy #{}".format(dummy.num))
 			dummy.bind(prefix=partial(renum_dummy, dummy))
@@ -572,19 +611,35 @@ class CharMenuContainer(BoxLayout):
 
 	def __init__(self, **kwargs):
 		super(CharMenuContainer, self).__init__(**kwargs)
+		app = App.get_running_app()
+		binds = app._bindings
 		self.charmenu = CharMenu(screen=self.screen, size_hint_y=0.9)
-		self.bind(screen=self.charmenu.setter("screen"))
+		binds["CharMenuContainer", "screen"].add(
+			self.fbind("screen", self.charmenu.setter("screen"))
+		)
 		self.dummyplace = self.charmenu.dummyplace
-		self.charmenu.bind(dummyplace=self.setter("dummyplace"))
+		binds["CharMenu", "dummyplace"].add(
+			self.charmenu.fbind("dummyplace", self.setter("dummyplace"))
+		)
 		self.dummything = self.charmenu.dummything
-		self.charmenu.bind(dummything=self.setter("dummything"))
+		binds["CharMenu", "dummything"].add(
+			self.charmenu.fbind("dummything", self.setter("dummything"))
+		)
 		self.portaladdbut = self.charmenu.portaladdbut
-		self.charmenu.bind(portaladdbut=self.setter("portaladdbut"))
+		binds["CharMenu", "portaladdbut"].add(
+			self.charmenu.fbind("portaladdbut", self.setter("portaladdbut"))
+		)
 		if self.toggle_gridview:
 			self.charmenu = self.toggle_gridview
-		self.bind(
-			toggle_gridview=self.charmenu.setter("toggle_gridview"),
-			toggle_timestream=self.charmenu.setter("toggle_timestream"),
+		binds["CharMenuContainer", "toggle_gridview"].add(
+			self.fbind(
+				"toggle_gridview", self.charmenu.setter("toggle_gridview")
+			)
+		)
+		binds["CharMenuContainer", "toggle_timestream"].add(
+			self.fbind(
+				"toggle_timestream", self.charmenu.setter("toggle_timestream")
+			)
 		)
 		self.stepper = RuleStepper(size_hint_y=0.9)
 		self.button = Button(
@@ -592,12 +647,42 @@ class CharMenuContainer(BoxLayout):
 			text="Rule\nstepper",
 			size_hint_y=0.1,
 		)
-		app = App.get_running_app()
-		app.bind(
-			branch=self.switch_to_menu,
-			turn=self.switch_to_menu,
-			edit_locked=self.button.setter("disabled"),
+		binds["ElideApp", "branch"].add(
+			app.fbind("branch", self.switch_to_menu)
 		)
+		binds["ElideApp", "turn"].add(app.fbind("turn", self.switch_to_menu))
+		binds["ElideApp", "edit_locked"].add(
+			app.fbind("edit_locked", self.button.setter("disabled"))
+		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		app = App.get_running_app()
+		binds = app._bindings
+		for uid in devour(binds["CharMenuContainer", "screen"]):
+			app.unbind_uid("screen", uid)
+		for uid in devour(binds["CharMenu", "dummyplace"]):
+			self.charmenu.unbind_uid("dummyplace", uid)
+		for uid in devour(binds["CharMenu", "dummything"]):
+			self.charmenu.unbind_uid("dummything", uid)
+		for uid in devour(binds["CharMenu", "portaladdbut"]):
+			self.charmenu.unbind_uid("portaladdbut", uid)
+		for uid in devour(binds["CharMenuContainer", "toggle_gridview"]):
+			self.charmenu.unbind_uid("toggle_gridview", uid)
+		for uid in devour(binds["CharMenuContainer", "toggle_timestream"]):
+			self.charmenu.unbind_uid("toggle_timestream", uid)
+		for uid in devour(binds["ElideApp", "branch"]):
+			app.unbind_uid("branch", uid)
+		for uid in devour(binds["ElideApp", "turn"]):
+			app.unbind_uid("turn", uid)
+		for uid in devour(binds["ElideApp", "tick"]):
+			app.unbind_uid("tick", uid)
+		for uid in devour(binds["ElideApp", "edit_locked"]):
+			app.unbind_uid("edit_locked", uid)
+		for uid in devour(binds["ElideApp", "pawncfg", "imgpaths"]):
+			app.pawncfg.unbind_uid("imgpaths", uid)
+		for uid in devour(binds["ElideApp", "spotcfg", "imgpaths"]):
+			app.spotcfg.unbind_uid("imgpaths", uid)
 
 	@logwrap(section="TimePanel")
 	def on_parent(self, *_):
@@ -688,162 +773,335 @@ class TurnScroll(Slider):
 			app.engine.time.connect(self._receive_time)
 
 
-store_kv(
-	__name__,
+class Box(Widget):
+	padding = VariableListProperty(6)
+	border = VariableListProperty(4)
+	font_size = StringProperty("15sp")
+	font_name = StringProperty(DEFAULT_FONT)
+	background = StringProperty()
+	background_color = VariableListProperty([1, 1, 1, 1])
+	foreground_color = VariableListProperty([0, 0, 0, 1])
+
+
+class ScrollableLabel(ScrollView):
+	font_size = StringProperty("15sp")
+	font_name = StringProperty(DEFAULT_FONT)
+	color = VariableListProperty([0, 0, 0, 1])
+	line_spacing = NumericProperty(0)
+	text = StringProperty()
+
+
+class MessageBox(Box):
+	"""Looks like a TextInput but doesn't accept any input.
+
+	Does support styled text with BBcode.
+
 	"""
-#: import resource_find kivy.resources.resource_find
-<StatListPanel>:
-	orientation: 'vertical'
-	statlist: statlist
-	id: statpanel
-	proxy: app.selected_proxy
-	Label:
-		size_hint_y: 0.05
-		text: root.selection_name
-		bold: True
-	Calendar:
-		id: statlist
-		do_scroll_x: False
-		do_scroll_y: True
-		entity: root.proxy
-		update_mode: 'present'
-		disabled: app.edit_locked
-	Button:
-		id: cfgstatbut
-		size_hint_y: 0.05
-		text: root.button_text
-		disabled: app.edit_locked
-		on_release: root.toggle_stat_cfg()
-<SimulateButton>:
-	Image:
-		x: root.center_x - root.width / 3
-		y: root.y + root.font_size + 3
-		width: root.width / 1.5
-		height: root.height / 1.5
-		source: 'right.png'
-	Label:
-		id: playlabel
-		font_size: root.font_size
-		center_x: root.center_x
-		y: root.y
-		size: self.texture_size
-		text: 'Simulate'
-<OneTurnButton>:
-	Image:
-		x: root.center_x - (root.width / 3)
-		y: root.y + root.font_size + 3
-		width: root.width / 1.5
-		height: root.height / 1.5
-		source: 'next.png' 
-	Label:
-		font_size: root.font_size
-		center_x: root.center_x
-		y: root.y
-		size: self.texture_size
-		text: '1 turn'
-<TimePanel>:
-	orientation: 'vertical'
-	playbut: playbut
-	BoxLayout:
-		size_hint_y: 0.4
-		BoxLayout:
-			orientation: 'vertical'
-			Label:
-				size_hint_y: 0.4
-				text: 'Branch'
-			MenuTextInput:
-				id: branchfield
-				set_value: root.set_branch
-				hint_text: root.screen.app.branch if root.screen else ''
-				disabled: app.edit_locked
-		BoxLayout:
-			BoxLayout:
-				orientation: 'vertical'
-				Label:
-					size_hint_y: 0.4
-					text: 'Turn'
-				MenuIntInput:
-					id: turnfield
-					set_value: root.set_turn
-					hint_text: str(root.screen.app.turn) if root.screen else ''
-					disabled: app.edit_locked
-			BoxLayout:
-				orientation: 'vertical'
-				Label:
-					size_hint_y: 0.4
-					text: 'Tick'
-				MenuIntInput:
-					id: tickfield
-					set_value: root.set_tick
-					hint_text: str(root.screen.app.tick) if root.screen else ''
-					disabled: app.edit_locked
-	BoxLayout:
-		size_hint_y: 0.6
-		SimulateButton:
-			id: playbut
-			font_size: root.buttons_font_size
-			disabled: self.state != 'down' and app.edit_locked
-		OneTurnButton:
-			id: stepbut
-			font_size: root.buttons_font_size
-			screen: root.screen
-			disabled: root.disable_one_turn or app.edit_locked
-<MainScreen>:
-	name: 'mainscreen'
-	dummyplace: charmenu.dummyplace
-	dummything: charmenu.dummything
-	mainview: mainview
-	playbut: timepanel.playbut
-	portaladdbut: charmenu.portaladdbut
-	charmenu: charmenu
-	statlist: statpanel.statlist
-	statpanel: statpanel
-	timepanel: timepanel
-	turnscroll: turnscroll
-	dialoglayout: dialoglayout
-	TurnScroll:
-		id: turnscroll
-		value_track: True
-		pos_hint: {'bot': 0}
-		size_hint: (1, 0.1)
-		disabled: app.edit_locked
-	Widget:
-		id: mainview
-		x: statpanel.right
-		y: turnscroll.top
-		size_hint: (None, None)
-		width: charmenu.x - statpanel.right
-		height: root.height
-	StatListPanel:
-		id: statpanel
-		toggle_stat_cfg: app.statcfg.toggle
-		x: 0
-		y: timepanel.top
-		size_hint: (0.25, 0.7)
-		selection_name: app.selected_proxy_name
-		toggle_timestream: root.toggle_timestream
-	TimePanel:
-		id: timepanel
-		screen: root
-		x: 0
-		y: turnscroll.top
-		size_hint: (0.25, 0.2)
-		disable_one_turn: root.tmp_block
-	CharMenuContainer:
-		id: charmenu
-		toggle_calendar: root.toggle_calendar
-		toggle_gridview: root.toggle_gridview
-		toggle_timestream: root.toggle_timestream
-		orientation: 'vertical'
-		screen: root
-		pos_hint: {'right': 1, 'top': 1}
-		size_hint: (0.2, 0.9)
-	DialogLayout:
-		id: dialoglayout
-		size_hint: None, None
-		x: statpanel.right
-		y: timepanel.top
-		width: charmenu.x - statpanel.right
-		height: root.height - timepanel.top
-""",
-)
+
+	line_spacing = NumericProperty(0)
+	text = StringProperty()
+
+
+class DialogMenu(Box):
+	"""Some buttons that make the game do things.
+
+	Set ``options`` to a list of pairs of ``(text, function)`` and the
+	menu will be populated with buttons that say ``text`` that call
+	``function`` when pressed.
+
+	"""
+
+	options = ListProperty()
+	"""List of pairs of (button_text, callable)"""
+
+	def _set_sv_size(self, *_):
+		self._sv.width = self.width - self.padding[0] - self.padding[2]
+		self._sv.height = self.height - self.padding[1] - self.padding[3]
+
+	def _set_sv_pos(self, *_):
+		self._sv.x = self.x + self.padding[0]
+		self._sv.y = self.y + self.padding[3]
+
+	@mainthread
+	@partial(logwrap, section="DialogMenu")
+	def on_options(self, *_):
+		binds = App.get_running_app()._bindings
+		if not hasattr(self, "_sv"):
+			self._sv = ScrollView(size=self.size, pos=self.pos)
+			assert not binds["DialogMenu", "size"]
+			binds["DialogMenu", "size"].add(
+				self.fbind("size", self._set_sv_size)
+			)
+			assert not binds["DialogMenu", "pos"]
+			binds["DialogMenu", "pos"].add(self.fbind("pos", self._set_sv_pos))
+			layout = BoxLayout(orientation="vertical")
+			self._sv.add_widget(layout)
+			self.add_widget(self._sv)
+		else:
+			layout = self._sv.children[0]
+			layout.clear_widgets()
+		for txt, part in self.options:
+			if not callable(part):
+				raise TypeError("Menu options must be callable")
+			butn = Button(
+				text=txt,
+				on_release=part,
+				font_name=self.font_name,
+				font_size=self.font_size,
+				valign="center",
+				halign="center",
+			)
+			if not binds["DialogMenu", "Button", id(butn), "size"]:
+				binds["DialogMenu", "Button", id(butn), "size"].add(
+					butn.fbind("size", butn.setter("text_size"))
+				)
+			layout.add_widget(butn)
+
+
+class Dialog(BoxLayout):
+	"""MessageBox with a DialogMenu beneath it.
+
+	Set the properties ``message_kwargs`` and ``menu_kwargs``,
+	respectively, to control them -- but you probably want
+	to do that by returning a pair of dicts from an action
+	in lisien.
+
+	"""
+
+	message_kwargs = DictProperty({})
+	menu_kwargs = DictProperty({})
+
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		app = App.get_running_app()
+		binds = app._bindings
+		assert not binds["Dialog", id(self), "message_kwargs"]
+		binds["Dialog", id(self), "message_kwargs"].add(
+			self.fbind("message_kwargs", self._propagate_msg_kwargs)
+		)
+		assert not binds["Dialog", id(self), "menu_kwargs"]
+		binds["Dialog", id(self), "menu_kwargs"].add(
+			self.fbind("menu_kwargs", self._propagate_menu_kwargs)
+		)
+		self._propagate_msg_kwargs()
+		self._propagate_menu_kwargs()
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["Dialog", id(self), "message_kwargs"]):
+			self.unbind_uid("message_kwargs", uid)
+		for uid in devour(binds["Dialog", id(self), "menu_kwargs"]):
+			self.unbind_uid("menu_kwargs", uid)
+
+	@partial(logwrap, section="Dialog")
+	def _propagate_msg_kwargs(self, *_):
+		if "msg" not in self.ids:
+			Clock.schedule_once(self._propagate_msg_kwargs, 0)
+			return
+		kw = dict(self.message_kwargs)
+		kw.setdefault(
+			"background", "atlas://data/images/defaulttheme/textinput"
+		)
+		for k, v in kw.items():
+			setattr(self.ids.msg, k, v)
+
+	@partial(logwrap, section="Dialog")
+	def _propagate_menu_kwargs(self, *_):
+		if "menu" not in self.ids:
+			Clock.schedule_once(self._propagate_menu_kwargs, 0)
+			return
+		kw = dict(self.menu_kwargs)
+		kw.setdefault(
+			"background",
+			"atlas://data/images/defaulttheme/vkeyboard_background",
+		)
+		for k, v in kw.items():
+			setattr(self.ids.menu, k, v)
+
+
+class DialogLayout(FloatLayout):
+	"""A layout, normally empty, that can generate dialogs
+
+	To make dialogs, set my ``todo`` property to a list. It may contain:
+
+	* Strings, which will be displayed with an "OK" button to dismiss them
+	* Lists of pairs of strings and callables, which generate buttons with the
+	  string on them that, when clicked, call the callable
+	* Lists of pairs of dictionaries, which are interpreted as keyword
+	  arguments to :class:`MessageBox` and :class:`DialogMenu`
+
+	In place of a callable you can use the name of a function in my
+	``usermod``, a Python module given by name. I'll import it when I need it.
+
+	Needs to be instantiated with a lisien ``engine`` -- probably an
+	:class:`EngineProxy`.
+
+	"""
+
+	dialog = ObjectProperty()
+	todo = ListProperty()
+	usermod = StringProperty("user")
+	userpkg = StringProperty(None, allownone=True)
+
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self.dialog = Dialog()
+		self._finalize()
+
+	@logwrap(section="DialogLayout")
+	def _finalize(self, *_):
+		app = App.get_running_app()
+		if not hasattr(app, "engine"):
+			Clock.schedule_once(self._finalize, 0)
+			return
+		engine = app.engine
+		todo = engine.universal.get("last_result")
+		if isinstance(todo, list):
+			self.todo = todo
+		else:
+			self.todo = []
+		self.idx = engine.universal.get("last_result_idx", 0)
+		engine.universal.connect(self._pull)
+		if self.todo:
+			self.advance_dialog()
+
+	@logwrap(section="DialogLayout")
+	def _pull(self, *_, key, value):
+		if key == "last_result":
+			self.todo = value if value and isinstance(value, list) else []
+		elif key == "last_result_idx":
+			self.idx = value if value and isinstance(value, int) else 0
+
+	@logwrap(section="DialogLayout")
+	def on_idx(self, *_):
+		lidx = self.engine.universal.get("last_result_idx")
+		if lidx is not None and lidx != self.idx:
+			self.engine.universal["last_result_idx"] = self.idx
+		Logger.debug(f"DialogLayout.idx = {self.idx}")
+
+	@mainthread
+	@logwrap(section="DialogLayout")
+	def advance_dialog(self, after_ok=None, *args):
+		"""Try to display the next dialog described in my ``todo``.
+
+		:param after_ok: An optional callable. Will be called after the user clicks
+		a dialog option--as well as after any game-specific code for that option
+		has run.
+
+		"""
+		self.clear_widgets()
+		try:
+			Logger.debug(f"About to update dialog: {self.todo[0]}")
+			self._update_dialog(self.todo.pop(0), after_ok)
+		except IndexError:
+			if after_ok is not None:
+				after_ok()
+
+	@mainthread
+	@logwrap(section="DialogLayout")
+	def _update_dialog(self, diargs, after_ok, **kwargs):
+		if diargs is None:
+			Logger.debug("DialogLayout: null dialog")
+			return
+		if isinstance(diargs, tuple) and diargs[0] == "stop":
+			if len(diargs) == 1:
+				Logger.debug("DialogLayout: null dialog")
+				return
+			diargs = diargs[1]
+		dia = self.dialog
+		# Simple text dialogs just tell the player something and let them click OK
+		if isinstance(diargs, str):
+			dia.message_kwargs = {"text": diargs}
+			dia.menu_kwargs = {
+				"options": [("OK", partial(self.ok, cb=after_ok))]
+			}
+		# List dialogs are for when you need the player to make a choice and don't care much
+		# about presentation
+		elif isinstance(diargs, list):
+			dia.message_kwargs = {"text": "Select from the following:"}
+			dia.menu_kwargs = {
+				"options": list(
+					map(partial(self._munge_menu_option, after_ok), diargs)
+				)
+			}
+		# For real control of the dialog, you need a pair of dicts --
+		# the 0th describes the message shown to the player, the 1th
+		# describes the menu below
+		elif isinstance(diargs, tuple):
+			if len(diargs) != 2:
+				raise TypeError(
+					"Need a tuple of (message, menu) where message is a string, "
+					"and menu is a dict or list describing options"
+				)
+			msgkwargs, mnukwargs = diargs
+			if isinstance(msgkwargs, dict):
+				dia.message_kwargs = msgkwargs
+			elif isinstance(msgkwargs, str):
+				dia.message_kwargs["text"] = msgkwargs
+			else:
+				raise TypeError("Message must be dict or str")
+			if isinstance(mnukwargs, dict):
+				mnukwargs["options"] = list(
+					map(
+						partial(self._munge_menu_option, after_ok),
+						mnukwargs["options"],
+					)
+				)
+				dia.menu_kwargs = mnukwargs
+			elif isinstance(mnukwargs, (list, tuple)):
+				dia.menu_kwargs["options"] = list(
+					map(partial(self._munge_menu_option, after_ok), mnukwargs)
+				)
+			else:
+				raise TypeError("Menu must be dict or list")
+		else:
+			raise TypeError(
+				"Don't know how to turn {} into a dialog".format(type(diargs))
+			)
+		if dia.parent != self:
+			Logger.debug("DialogLayout: Adding the dialog to the layout")
+			self.add_widget(dia)
+		else:
+			Logger.debug("DialogLayout: Dialog is already in the layout")
+
+	@logwrap(section="DialogLayout")
+	def ok(self, *_, cb=None, cb2=None):
+		"""Clear dialog widgets, call ``cb`` if provided, and advance the dialog queue
+
+		``cb2`` will be called after advancing the dialog."""
+		self.clear_widgets()
+		if cb:
+			cb()
+		self.advance_dialog(after_ok=cb2)
+
+	@logwrap(section="DialogLayout")
+	def _lookup_func(self, funcname):
+		from importlib import import_module
+
+		if not hasattr(self, "_usermod"):
+			self._usermod = import_module(self.usermod, self.userpkg)
+		return getattr(self.usermod, funcname)
+
+	@logwrap(section="DialogLayout")
+	def _munge_menu_option(self, after_ok, option):
+		if not isinstance(option, tuple):
+			raise TypeError
+		name, func = option
+		if func is None:
+			return name, partial(self.ok, cb2=after_ok)
+		if callable(func):
+			return name, partial(self.ok, cb=func, cb2=after_ok)
+		if isinstance(func, tuple):
+			fun = func[0]
+			if isinstance(fun, str):
+				fun = self._lookup_func(fun)
+			args = func[1]
+			if len(func) == 3:
+				kwargs = func[2]
+				func = partial(fun, *args, **kwargs)
+			else:
+				func = partial(fun, *args)
+		if isinstance(func, str):
+			func = self._lookup_func(func)
+		return name, partial(self.ok, cb=func, cb2=after_ok)

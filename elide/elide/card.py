@@ -21,6 +21,7 @@ of other cards.
 from functools import partial
 
 import pygments
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.graphics import InstructionGroup
 from kivy.logger import Logger
@@ -46,7 +47,7 @@ from kivy.utils import get_hex_from_color
 from pygments.formatters.bbcode import BBCodeFormatter
 from pygments.lexers import PythonLexer
 
-from .util import logwrap, store_kv
+from .util import devour, logwrap
 
 dbg = Logger.debug
 
@@ -481,17 +482,42 @@ class DeckBuilderLayout(Layout):
 	def __init__(self, **kwargs):
 		"""Bind most of my custom properties to ``_trigger_layout``."""
 		super().__init__(**kwargs)
-		self.bind(
-			card_size_hint=self._trigger_layout,
-			starting_pos_hint=self._trigger_layout,
-			card_hint_step=self._trigger_layout,
-			deck_hint_step=self._trigger_layout,
-			decks=self._trigger_layout,
-			deck_x_hint_offsets=self._trigger_layout,
-			deck_y_hint_offsets=self._trigger_layout,
-			insertion_deck=self._trigger_layout,
-			insertion_card=self._trigger_layout,
-		)
+		app = App.get_running_app()
+		binds = app._bindings
+		for att in (
+			"card_size_hint",
+			"starting_pos_hint",
+			"card_hint_step",
+			"deck_hint_step",
+			"decks",
+			"deck_x_hint_offsets",
+			"deck_y_hint_offsets",
+			"insertion_deck",
+			"insertion_card",
+		):
+			binds["DeckBuilderLayout", id(self), att].add(
+				self.fbind(att, self._trigger_layout)
+			)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for att in (
+			"card_size_hint",
+			"starting_pos_hint",
+			"card_hint_step",
+			"deck_hint_step",
+			"decks",
+			"deck_x_hint_offsets",
+			"deck_y_hint_offsets",
+			"insertion_deck",
+			"insertion_card",
+		):
+			for uid in devour(binds["DeckBuilderLayout", id(self), att]):
+				self.unbind_uid(att, uid)
+		for widget in self.children:
+			if isinstance(widget, Foundation):
+				self._unbind_foundation(widget)
 
 	@logwrap(section="Foundation")
 	def scroll_deck_x(self, decknum, scroll_x):
@@ -545,6 +571,7 @@ class DeckBuilderLayout(Layout):
 
 		"""
 		if i >= len(self._foundations) or self._foundations[i] is None:
+			binds = App.get_running_app()._bindings
 			oldfound = list(self._foundations)
 			extend = i - len(oldfound) + 1
 			if extend > 0:
@@ -554,31 +581,46 @@ class DeckBuilderLayout(Layout):
 			found = Foundation(
 				pos=self._get_foundation_pos(i), size=(width, height), deck=i
 			)
-			self.bind(
-				pos=found.upd_pos,
-				card_size_hint=found.upd_pos,
-				deck_hint_step=found.upd_pos,
-				size=found.upd_pos,
-				deck_x_hint_offsets=found.upd_pos,
-				deck_y_hint_offsets=found.upd_pos,
+			for att in (
+				"pos",
+				"card_size_hint",
+				"deck_hint_step",
+				"size",
+				"deck_x_hint_offsets",
+				"deck_y_hint_offsets",
+			):
+				binds["DeckBuilderLayout", id(self), i, att].add(
+					self.fbind(att, found.upd_pos)
+				)
+			binds["DeckBuilderLayout", id(self), i, "size"].add(
+				self.fbind("size", found.upd_size)
 			)
-			self.bind(size=found.upd_size, card_size_hint=found.upd_size)
+			binds["DeckBuilderLayout", id(self), i, "card_size_hint"].add(
+				(self.fbind("card_size_hint", found.upd_size))
+			)
 			oldfound[i] = found
 			self._foundations = oldfound
 		return self._foundations[i]
 
+	def _unbind_foundation(self, widget: Foundation):
+		binds = App.get_running_app()._bindings
+		for att in (
+			"pos",
+			"card_size_hint",
+			"deck_hint_step",
+			"size",
+			"deck_x_hint_offsets",
+			"deck_y_hint_offsets",
+		):
+			for uid in devour(
+				binds["DeckBuilderLayout", id(self), widget.deck, att]
+			):
+				self.unbind_uid(att, uid)
+
 	@logwrap(section="Foundation")
 	def remove_widget(self, widget, *args, **kwargs):
 		if isinstance(widget, Foundation):
-			self.unbind(
-				pos=widget.upd_pos,
-				card_size_hint=widget.upd_pos,
-				deck_hint_step=widget.upd_pos,
-				size=widget.upd_pos,
-				deck_x_hint_offsets=widget.upd_pos,
-				deck_y_hint_offsets=widget.upd_pos,
-			)
-			self.unbind(size=widget.upd_size, card_size_hint=widget.upd_size)
+			self._unbind_foundation(widget)
 		super().remove_widget(widget, *args, **kwargs)
 
 	@logwrap(section="Foundation")
@@ -998,11 +1040,19 @@ class DeckBuilderScrollBar(FloatLayout):
 
 		"""
 		super().__init__(**kwargs)
-		self.bind(
-			_scroll=self._trigger_layout,
-			scroll_min=self._trigger_layout,
-			scroll_max=self._trigger_layout,
-		)
+		app = App.get_running_app()
+		binds = app._bindings
+		for att in ("_scroll", "scroll_min", "scroll_max"):
+			binds["DeckBuilderScrollBar", id(self), att].add(
+				self.fbind(att, self._trigger_layout)
+			)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for att in ("scroll", "_scroll", "scroll_min", "scroll_max"):
+			for uid in devour(binds["DeckBuilderScrollBar", id(self), att]):
+				self.unbind_uid(att, uid)
 
 	def do_layout(self, *args):
 		"""Put the bar where it's supposed to be, and size it in proportion to
@@ -1027,6 +1077,9 @@ class DeckBuilderScrollBar(FloatLayout):
 		"""
 		if not hasattr(self, "_scroll_bound"):
 			self._scroll_bound = self.fbind("scroll", self.upd_scroll)
+			App.get_running_app()._bindings[
+				"DeckBuilderScrollBar", id(self), "scroll"
+			].add(self._scroll_bound)
 		att = "deck_{}_hint_offsets".format(
 			"x" if self.orientation == "horizontal" else "y"
 		)
@@ -1039,16 +1092,22 @@ class DeckBuilderScrollBar(FloatLayout):
 		"""
 		if self.deckbuilder is None:
 			return
+		binds = App.get_running_app()._bindings
 		att = "deck_{}_hint_offsets".format(
 			"x" if self.orientation == "horizontal" else "y"
 		)
 		offs = getattr(self.deckbuilder, att)
 		if len(offs) <= self.deckidx:
-			self.deckbuilder.bind(**{att: self.upd_scroll})
+			binds["DeckBuilderLayout", id(self.deckbuilder), att].add(
+				self.deckbuilder.fbind(att, self.upd_scroll)
+			)
 			return
 		Logger.debug("DeckBuilderScrollBar: on_deckbuilder")
 		if not hasattr(self, "_scroll_bound"):
 			self._scroll_bound = self.fbind("_scroll_bound", self.upd_scroll)
+			binds["DeckBuilderScrollBar", id(self), "_scroll_bound"].add(
+				self._scroll_bound
+			)
 		self.upd_scroll()
 		self.deckbuilder._trigger_layout()
 
@@ -1114,130 +1173,6 @@ class DeckBuilderScrollBar(FloatLayout):
 		"""Stop scrolling."""
 		self.scrolling = False
 
-
-store_kv(
-	__name__,
-	"""
-<ColorTextureBox>:
-	canvas:
-		Color:
-			rgba: root.color
-		Rectangle:
-			texture: root.texture
-			pos: root.pos
-			size: root.size
-		Color:
-			rgba: root.outline_color
-		Line:
-			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
-		Color:
-			rgba: [1, 1, 1, 1]
-<Foundation>:
-	color: [0, 0, 0, 0]
-	outline_color: [1, 1, 1, 1]
-<Card>:
-	headline: headline
-	midline: midline
-	footer: footer
-	art: art
-	foreground: foreground
-	canvas:
-		Color:
-			rgba: root.background_color
-		Rectangle:
-			texture: root.background_texture
-			pos: root.pos
-			size: root.size
-		Color:
-			rgba: root.outline_color
-		Line:
-			points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
-		Color:
-			rgba: [1, 1, 1, 1]
-	BoxLayout:
-		size_hint: 0.9, 0.9
-		pos_hint: {'x': 0.05, 'y': 0.05}
-		orientation: 'vertical'
-		canvas:
-			Color:
-				rgba: root.content_outline_color
-			Line:
-				points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
-			Color:
-				rgba: [1, 1, 1, 1]
-		Label:
-			id: headline
-			text: root.headline_text
-			markup: root.headline_markup
-			font_name: root.headline_font_name
-			font_size: root.headline_font_size
-			color: root.headline_color
-			size_hint: (None, None)
-			size: self.texture_size
-		ColorTextureBox:
-			id: art
-			color: root.art_color
-			texture: root.art_texture
-			outline_color: root.art_outline_color if root.show_art else [0, 0, 0, 0]
-			size_hint: (1, 1) if root.show_art else (None, None)
-			size: (0, 0)
-		Label:
-			id: midline
-			text: root.midline_text
-			markup: root.midline_markup
-			font_name: root.midline_font_name
-			font_size: root.midline_font_size
-			color: root.midline_color
-			size_hint: (None, None)
-			size: self.texture_size
-		ColorTextureBox:
-			id: foreground
-			color: root.foreground_color
-			outline_color: root.foreground_outline_color
-			texture: root.foreground_texture
-			Label:
-				id: main_text
-				color: root.text_color
-				markup: root.markup
-				font_name: root.font_name
-				font_size: root.font_size
-				text_size: foreground.size
-				size_hint: (None, None)
-				size: self.texture_size
-				pos: foreground.pos
-				valign: 'top'
-			Button:
-				id: editbut
-				background_normal: 'atlas://data/images/defaulttheme/button' if root.editable else ''
-				background_down: 'atlas://data/images/defaulttheme/button_pressed' if root.editable else ''
-				color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)
-				background_color: (1., 1., 1., 1.) if root.editable else (0., 0., 0., 0.)
-				text_size: self.size
-				size: self.texture_size
-				size_hint: (None, None)
-				font_name: 'DejaVuSans'
-				font_size: 30
-				x: foreground.right - self.width - (.1 * self.width)
-				y: foreground.top - self.height - (.1 * self.height)
-				text: '✐' if root.editable else ''
-				on_press: root.edit_func(root)
-				disabled: not root.editable
-		Label:
-			id: footer
-			text: root.footer_text
-			markup: root.footer_markup
-			font_name: root.footer_font_name
-			font_size: root.footer_font_size
-			color: root.footer_color
-			size_hint: (None, None)
-			size: self.texture_size
-<DeckBuilderScrollBar>:
-	ScrollBarBar:
-		id: bar
-		color: root.bar_color if root.scrolling else root.bar_inactive_color
-		texture: root.bar_texture
-""",
-)
 
 if __name__ == "__main__":
 	deck0 = [

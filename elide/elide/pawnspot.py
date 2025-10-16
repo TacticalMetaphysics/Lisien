@@ -17,6 +17,7 @@
 from collections import defaultdict
 from functools import partial
 
+from kivy.app import App
 from kivy.clock import Clock, triggered
 from kivy.graphics import (
 	Color,
@@ -56,7 +57,10 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		if "proxy" in kwargs:
 			kwargs["name"] = kwargs["proxy"].name
 		super().__init__(**kwargs)
-		self.bind(pos=self._position)
+		binds = App.get_running_app()._bindings
+		binds[
+			"GraphPawnSpot", self.board.character.name, kwargs["name"], "pos"
+		].add(self.fbind("pos", self._position))
 
 	@logwrap(section="GraphPawnSpot")
 	def on_touch_move(self, touch):
@@ -95,15 +99,34 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 			self.offys = self.proxy.setdefault("_offys", zeroes)
 			self.proxy.connect(self._trigger_pull_from_proxy)
 			self.finalize_children(initial=True)
+		binds = App.get_running_app()._bindings
+		assert not binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "paths"
+		]
 		self._push_image_paths_binding = self.fbind(
 			"paths", self._trigger_push_image_paths
 		)
+		binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "paths"
+		].add(self._push_image_paths_binding)
+		assert not binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "offxs"
+		]
 		self._push_offxs_binding = self.fbind(
 			"offxs", self._trigger_push_offxs
 		)
+		binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "offxs"
+		].add(self._push_offxs_binding)
+		assert not binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "offys"
+		]
 		self._push_offys_binding = self.fbind(
 			"offys", self._trigger_push_offys
 		)
+		binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "offys"
+		].add(self._push_offys_binding)
 
 		def upd_box_translate(*_):
 			self.box_translate.xy = self.pos
@@ -131,7 +154,13 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 		self.box = Line()
 		upd_box_points()
 		self._upd_box_points_binding = self.fbind("size", upd_box_points)
+		binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "size"
+		].add(self._upd_box_points_binding)
 		self._upd_box_translate_binding = self.fbind("pos", upd_box_translate)
+		binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "pos"
+		].add(self._upd_box_translate_binding)
 		boxgrp.add(self.box)
 		boxgrp.add(Color(1.0, 1.0, 1.0))
 		boxgrp.add(PopMatrix())
@@ -139,9 +168,22 @@ class GraphPawnSpot(ImageStackProxy, Layout):
 
 	@logwrap(section="GraphPawnSpot")
 	def unfinalize(self):
+		binds = App.get_running_app()._bindings
 		self.unbind_uid("paths", self._push_image_paths_binding)
+		binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "paths"
+		].remove(self._push_image_paths_binding)
+		del self._push_image_paths_binding
 		self.unbind_uid("offxs", self._push_offxs_binding)
+		binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "offxs"
+		].remove(self._push_offxs_binding)
+		del self._push_offxs_binding
 		self.unbind_uid("offys", self._push_offys_binding)
+		binds[
+			"GraphPawnSpot", self.board.character.name, self.name, "offys"
+		].remove(self._push_offys_binding)
+		del self._push_offys_binding
 		self._finalized = False
 
 	@logwrap(section="GraphPawnSpot")

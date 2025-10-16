@@ -31,7 +31,7 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
-from .util import logwrap, store_kv
+from .util import load_kv, logwrap
 
 
 def trigger(func):
@@ -54,18 +54,22 @@ class ThornyRectangle(Button):
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.bind(
-			pos=self._trigger_redraw,
-			size=self._trigger_redraw,
-			left_margin=self._trigger_redraw,
-			right_margin=self._trigger_redraw,
-			top_margin=self._trigger_redraw,
-			bottom_margin=self._trigger_redraw,
-			draw_left=self._trigger_redraw,
-			draw_right=self._trigger_redraw,
-			draw_up=self._trigger_redraw,
-			draw_down=self._trigger_redraw,
-		)
+		binds = App.get_running_app()._bindings
+		for att in (
+			"pos",
+			"size",
+			"left_margin",
+			"right_margin",
+			"top_margin",
+			"bottom_margin",
+			"draw_left",
+			"draw_right",
+			"draw_up",
+			"draw_down",
+		):
+			binds["ThornyRectangle", id(self)].add(
+				self.fbind(att, self._trigger_redraw)
+			)
 		self._trigger_redraw()
 
 	@logwrap(section="ThornyRectangle")
@@ -181,14 +185,16 @@ class Cross(Widget):
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.bind(
-			draw_left=self._trigger_redraw,
-			draw_right=self._trigger_redraw,
-			draw_up=self._trigger_redraw,
-			draw_down=self._trigger_redraw,
-			size=self._trigger_redraw,
-			pos=self._trigger_redraw,
-		)
+		binds = App.get_running_app()._bindings
+		for att in (
+			"draw_left",
+			"draw_right",
+			"draw_up",
+			"draw_down",
+			"size",
+			"pos",
+		):
+			binds["Cross", id(self)].add(self.fbind(att, self._trigger_redraw))
 
 	@logwrap(section="Cross")
 	def _draw_line(self, enabled, name, get_points):
@@ -359,6 +365,10 @@ class TimestreamScreen(Screen):
 	timestream = ObjectProperty()
 	_thread: Thread
 
+	def __init__(self, **kw):
+		load_kv("timestream.kv")
+		super().__init__(**kw)
+
 	@logwrap(section="TimestreamScreen")
 	def on_pre_enter(self, *_):
 		self.timestream.disabled = True
@@ -377,38 +387,6 @@ class TimestreamScreen(Screen):
 		Logger.debug("Timestream: loaded!")
 		self.timestream.disabled = False
 
-
-store_kv(
-	__name__,
-	r"""
-<ThornyRectangle>:
-	text: f"{self.branch}\n{int(self.turn)}"
-<Timestream>:
-	key_viewclass: 'widget'
-	effect_cls: 'ScrollEffect'
-	RecycleGridLayout:
-		cols: root.cols
-		default_width: 100
-		default_height: 100
-		default_size_hint: None, None
-		height: self.minimum_height
-		width: self.minimum_width
-		size_hint: None, None
-<TimestreamScreen>:
-	name: 'timestream'
-	timestream: timestream
-	BoxLayout:
-		orientation: 'vertical'
-		Timestream:
-			id: timestream
-			size_hint_y: 0.95
-		BoxLayout:
-			size_hint_y: 0.05
-			Button:
-				text: 'Cancel'
-				on_press: root.toggle()
-""",
-)
 
 if __name__ == "__main__":
 	from kivy.base import runTouchApp

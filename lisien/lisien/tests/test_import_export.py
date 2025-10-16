@@ -2,11 +2,10 @@ import difflib
 import filecmp
 import json
 import os
-from ast import parse
+from ast import parse, unparse
 from functools import partial
 
 import pytest
-from astunparse import unparse
 
 from ..db import (
 	AbstractDatabaseConnector,
@@ -19,24 +18,31 @@ from ..importer import xml_to_pqdb, xml_to_sqlite
 from .data import DATA_DIR
 
 
-@pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def exported(tmp_path, random_seed, non_null_database, request):
-	if request.param == "kobold":
+def get_install_func(sim, random_seed):
+	if sim == "kobold":
 		from lisien.examples.kobold import inittest as install
 
-		path = os.path.join(DATA_DIR, "kobold.xml")
-	elif request.param == "polygons":
+		return install
+	elif sim == "polygons":
 		from lisien.examples.polygons import install
 
-		path = os.path.join(DATA_DIR, "polygons.xml")
-	elif request.param == "wolfsheep":
+		return install
+	elif sim == "wolfsheep":
 		from lisien.examples.wolfsheep import install
 
-		install = partial(install, seed=random_seed)
-
-		path = os.path.join(DATA_DIR, "wolfsheep.xml")
+		return partial(install, seed=random_seed)
 	else:
-		raise ValueError("Unknown sim", request.param)
+		raise ValueError("Unknown sim", sim)
+
+
+@pytest.fixture(params=["zero", "one"])
+def turns(request):
+	yield {"zero": 0, "one": 1}[request.param]
+
+
+@pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
+def export_to(tmp_path, random_seed, non_null_database, request, turns):
+	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
 		prefix,
@@ -48,31 +54,93 @@ def exported(tmp_path, random_seed, non_null_database, request):
 		keyframe_on_close=False,
 	) as eng:
 		install(eng)
-		for _ in range(1):
+		for _ in range(turns):
 			eng.next_turn()
-	yield path
+	yield str(os.path.join(DATA_DIR, request.param + f"_{turns}.xml"))
 
 
-def test_export_db(tmp_path, exported):
+def test_export_db(tmp_path, export_to):
 	test_xml = os.path.join(tmp_path, "test.xml")
 	game_path_to_xml(
 		os.path.join(tmp_path, "game"), test_xml, name="test_export"
 	)
 
-	if not filecmp.cmp(test_xml, exported):
+	if not filecmp.cmp(export_to, test_xml):
 		with (
 			open(test_xml, "rt") as testfile,
-			open(exported, "rt") as goodfile,
+			open(export_to, "rt") as goodfile,
 		):
 			differences = list(
 				difflib.unified_diff(
-					testfile.readlines(),
 					goodfile.readlines(),
+					testfile.readlines(),
 					test_xml,
-					exported,
+					export_to,
 				)
 			)
 			assert not differences, "".join(differences)
+
+
+@pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
+def exported(tmp_path, random_seed, non_null_database, request, turns):
+	install = get_install_func(request.param, random_seed)
+	prefix = os.path.join(tmp_path, "game")
+	with Engine(
+		prefix,
+		workers=0,
+		random_seed=random_seed,
+		connect_string=f"sqlite:///{prefix}/world.sqlite3"
+		if non_null_database == "sqlite"
+		else None,
+		keyframe_on_close=False,
+	) as eng:
+		install(eng)
+		for _ in range(turns):
+			eng.next_turn()
+		archive_name = eng.export(request.param)
+	yield archive_name
+
+
+def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
+	prefix1 = os.path.join(tmp_path, "game")
+	prefix2 = os.path.join(tmp_path, "game2")
+	if exported.endswith("kobold.lisien"):
+		from lisien.examples.kobold import inittest as install
+	elif exported.endswith("wolfsheep.lisien"):
+		from lisien.examples.wolfsheep import install
+
+		install = partial(install, seed=random_seed)
+	elif exported.endswith("polygons.lisien"):
+		from lisien.examples.polygons import install
+	else:
+		raise pytest.fail(f"Unknown export: {exported}")
+	with (
+		Engine.from_archive(
+			exported,
+			prefix1,
+			workers=0,
+			connect_string=f"sqlite:///{prefix1}/world.sqlite3"
+			if non_null_database == "sqlite"
+			else None,
+			keyframe_on_close=False,
+		) as eng1,
+		Engine(
+			prefix2,
+			workers=0,
+			connect_string=f"sqlite:///{prefix2}/world.sqlite3"
+			if non_null_database == "sqlite"
+			else None,
+			keyframe_on_close=False,
+			random_seed=random_seed,
+		) as eng2,
+	):
+		install(eng2)
+		for _ in range(turns):
+			eng2.next_turn()
+		compare_engines_world_state(eng1, eng2)
+
+	compare_stored_strings(prefix2, prefix1)
+	compare_stored_python_code(prefix2, prefix1)
 
 
 DUMP_METHOD_NAMES = (
@@ -101,22 +169,24 @@ DUMP_METHOD_NAMES = (
 
 
 def compare_engines_world_state(
-	test_engine: Engine | AbstractDatabaseConnector,
 	correct_engine: Engine | AbstractDatabaseConnector,
+	test_engine: Engine | AbstractDatabaseConnector,
 ):
+	test_engine.commit()
+	correct_engine.commit()
 	test_engine = getattr(test_engine, "query", test_engine)
 	correct_engine = getattr(correct_engine, "query", test_engine)
 	for dump_method in DUMP_METHOD_NAMES:
 		test_data = list(getattr(test_engine, dump_method)())
 		correct_data = list(getattr(correct_engine, dump_method)())
 		print(dump_method)
-		assert test_data == correct_data, (
+		assert correct_data == test_data, (
 			dump_method + " gave different results"
 		)
 
 
 def compare_stored_strings(
-	test_prefix: str | os.PathLike, correct_prefix: str | os.PathLike
+	correct_prefix: str | os.PathLike, test_prefix: str | os.PathLike
 ):
 	langs = os.listdir(os.path.join(test_prefix, "strings"))
 	assert langs == os.listdir(os.path.join(correct_prefix, "strings")), (
@@ -127,13 +197,13 @@ def compare_stored_strings(
 			open(os.path.join(test_prefix, lang), "rb") as test_file,
 			open(os.path.join(correct_prefix, lang), "rb") as correct_file,
 		):
-			assert json.load(test_file) == json.load(correct_file), (
+			assert json.load(correct_file) == json.load(test_file), (
 				f"Different strings for language: {lang[:-5]}"
 			)
 
 
 def compare_stored_python_code(
-	test_prefix: str | os.PathLike, correct_prefix: str | os.PathLike
+	correct_prefix: str | os.PathLike, test_prefix: str | os.PathLike
 ):
 	test_ls = os.listdir(test_prefix)
 	correct_ls = os.listdir(correct_prefix)
@@ -149,7 +219,7 @@ def compare_stored_python_code(
 			):
 				test_parsed = parse(test_py.read())
 				correct_parsed = parse(good_py.read())
-			assert unparse(test_parsed) == unparse(correct_parsed), (
+			assert unparse(correct_parsed) == unparse(test_parsed), (
 				f"{pyfilename} has incorrect Python code"
 			)
 		else:
@@ -158,39 +228,11 @@ def compare_stored_python_code(
 			)
 
 
-def test_export_import_engine(tmp_path, non_null_database, exported):
-	prefix = os.path.join(tmp_path, "game")
-	prefix2 = os.path.join(tmp_path, "game2")
-	connect_string = (
-		f"sqlite:///{prefix}/world.sqlite3"
-		if non_null_database == "sqlite"
-		else None
-	)
-	with Engine(
-		prefix,
-		workers=0,
-		connect_string=connect_string,
-		keyframe_on_close=False,
-	) as correct_engine:
-		correct_engine.export("test")
-		os.mkdir(prefix2)
-		with Engine.from_archive(
-			"test.lisien",
-			prefix2,
-			workers=0,
-			connect_string=connect_string,
-			keyframe_on_close=False,
-		) as test_engine:
-			compare_engines_world_state(test_engine, correct_engine)
-	compare_stored_strings(prefix2, prefix)
-	compare_stored_python_code(prefix2, prefix)
-
-
-def test_import_db(tmp_path, exported, non_null_database, engine_facade):
+def test_import_db(tmp_path, export_to, non_null_database, engine_facade):
 	if non_null_database == "parquetdb":
 		test_world = os.path.join(tmp_path, "testworld")
 		correct_world = os.path.join(tmp_path, "world")
-		xml_to_pqdb(exported, test_world)
+		xml_to_pqdb(export_to, test_world)
 		test_engine = ParquetDatabaseConnector(
 			test_world, engine_facade.pack, engine_facade.unpack
 		)
@@ -200,7 +242,7 @@ def test_import_db(tmp_path, exported, non_null_database, engine_facade):
 	else:
 		test_world = os.path.join(tmp_path, "testworld.sqlite3")
 		correct_world = os.path.join(tmp_path, "world.sqlite3")
-		xml_to_sqlite(exported, test_world)
+		xml_to_sqlite(export_to, test_world)
 		test_engine = SQLAlchemyDatabaseConnector(
 			"sqlite:///" + test_world,
 			{},
@@ -214,4 +256,4 @@ def test_import_db(tmp_path, exported, non_null_database, engine_facade):
 			engine_facade.unpack,
 		)
 
-	compare_engines_world_state(test_engine, correct_engine)
+	compare_engines_world_state(correct_engine, test_engine)

@@ -17,6 +17,7 @@
 from functools import partial
 from time import monotonic
 
+from kivy.app import App
 from kivy.clock import Clock, mainthread, triggered
 from kivy.logger import Logger
 from kivy.properties import (
@@ -40,7 +41,7 @@ from ..boardscatter import BoardScatterPlane
 from ..boardview import BoardView
 from ..dummy import Dummy
 from ..kivygarden.texturestack import Stack, TextureStackPlane
-from ..util import store_kv
+from ..util import devour, load_kv
 from .arrow import (
 	DEFAULT_ARROW_LABEL_KWARGS,
 	ArrowPlane,
@@ -78,7 +79,9 @@ class FinalLayout(FloatLayout):
 	def finalize_all(self, *args):
 		for child in self.children:
 			child.finalize()
-		self.bind(children=self._trigger_finalize_all)
+		App.get_running_app()._bindings[
+			"FinalLayout", id(self), "children"
+		].add(self.fbind("children", self._trigger_finalize_all))
 
 	_trigger_finalize_all = trigger(finalize_all)
 
@@ -130,6 +133,10 @@ class GraphBoard(RelativeLayout):
 	_scheduled_rm_arrow = DictProperty()
 	_scheduled_discard_pawn = DictProperty()
 	_scheduled_add_pawn = DictProperty()
+
+	def __init__(self, **kw):
+		load_kv("graph/board.kv")
+		super().__init__(**kw)
 
 	@property
 	def widkwargs(self):
@@ -420,7 +427,13 @@ class GraphBoard(RelativeLayout):
 			return
 		self._parented = True
 		self.wallpaper = Image(source=self.wallpaper_path)
-		self.bind(wallpaper_path=self._pull_image)
+		app = App.get_running_app()
+		binds = app._bindings[
+			"GraphBoard", self.character.name, "wallpaper_path"
+		]
+		for uid in devour(binds):
+			self.unbind_uid("wallpaper_path", uid)
+		binds.add(self.fbind("wallpaper_path", self._pull_image))
 		self._pull_size()
 		self.kvlayoutback = KvLayoutBack(**self.widkwargs)
 		self.arrow_plane = ArrowPlane(**self.widkwargs)
@@ -432,7 +445,16 @@ class GraphBoard(RelativeLayout):
 			wid.size = self.size
 			if wid is not self.wallpaper:
 				self.bind(size=wid.setter("size"))
+		app._unbinders.append(self.unbind_all)
 		self.update()
+
+	def unbind_all(self):
+		app = App.get_running_app()
+		binds = app._bindings
+		for uid in devour(
+			binds["GraphBoard", self.character.name, "wallpaper_path"]
+		):
+			self.unbind_uid("wallpaper_path", uid)
 
 	def on_character(self, *args):
 		if self.character is None or (
@@ -454,7 +476,7 @@ class GraphBoard(RelativeLayout):
 			control = self.character.stat.get("_control", {})
 			control["wallpaper"] = "textinput"
 		self.wallpaper_path = wallpaper_path
-		self.trigger_update()
+		self.update()
 
 	def update_from_stat(self, sender, *, k, v):
 		if k == "wallpaper":
@@ -1081,10 +1103,14 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 		(x, y) = self.to_local(*dummy.pos_up)
 		x /= self.board.width
 		y /= self.board.height
+		prefix = dummy.prefix
+		num = dummy.num
+		while f"{prefix}{num}" in self.board.character.node:
+			num += 1
 		self.board.character.new_place(
-			dummy.name, _x=x, _y=y, _image_paths=list(dummy.paths)
+			f"{prefix}{num}", _x=x, _y=y, _image_paths=list(dummy.paths)
 		)
-		dummy.num += 1
+		dummy.num = num + 1
 
 	def pawn_from_dummy(self, dummy):
 		"""Make a real thing and its pawn from a dummy pawn.
@@ -1110,26 +1136,55 @@ class GraphBoardScatterPlane(BoardScatterPlane):
 				thereto = Vector(*thereat.center).distance(dummy_center)
 				if thereto < dist:
 					whereat, dist = thereat, thereto
+		prefix = dummy.prefix
+		num = dummy.num
+		while f"{prefix}{num}" in self.board.character.node:
+			num += 1
 		self.board.character.new_thing(
-			dummy.name, whereat.proxy.name, _image_paths=list(dummy.paths)
+			f"{prefix}{num}",
+			whereat.proxy.name,
+			_image_paths=list(dummy.paths),
 		)
-		dummy.num += 1
+		dummy.num = num + 1
 
 	def on_board(self, *args):
-		if hasattr(self, "_oldboard"):
-			self.unbind(
-				adding_portal=self._oldboard.setter("adding_portal"),
-				reciprocal_portal=self._oldboard.setter("reciprocal_portal"),
+		app = App.get_running_app()
+		binds = app._bindings
+		addbinds = binds["GraphBoardScatterPlane", "adding_portal"]
+		while addbinds:
+			self.unbind_uid(
+				"adding_portal",
+				addbinds.pop(),
+			)
+		recibinds = binds["GraphBoardScatterPlane", "reciprocal_portal"]
+		while recibinds:
+			self.unbind_uid(
+				"reciprocal_portal",
+				recibinds.pop(),
 			)
 		self.clear_widgets()
 		self.add_widget(self.board)
 		self.board.adding_portal = self.adding_portal
 		self.board.reciprocal_portal = self.reciprocal_portal
-		self.bind(
-			adding_portal=self.board.setter("adding_portal"),
-			reciprocal_portal=self.board.setter("reciprocal_portal"),
+		addbinds.add(
+			self.fbind("adding_portal", self.board.setter("adding_portal"))
+		)
+		recibinds.add(
+			self.fbind(
+				"reciprocal_portal", self.board.setter("reciprocal_portal")
+			)
 		)
 		self._oldboard = self.board
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["GraphBoardScatterPlane", "adding_portal"]):
+			self.unbind_uid("adding_portal", uid)
+		for uid in devour(
+			binds["GraphBoardScatterPlane", "reciprocal_portal"]
+		):
+			self.unbind_uid("reciprocal_portal", uid)
 
 
 class GraphBoardView(BoardView):
@@ -1149,24 +1204,31 @@ class GraphBoardView(BoardView):
 		character = self.engine.character[self.character_name]
 		self.board = GraphBoard(character=character)
 
+	def on_plane(self, *_):
+		if not self.plane.board:
+			Clock.schedule_once(self.on_plane, 0)
+			return
+		app = App.get_running_app()
+		binds = app._bindings
+		addbinds = binds["GraphBoardView", "adding_portal"]
+		while addbinds:
+			self.unbind_uid("adding_portal", addbinds.pop())
+		addbinds.add(
+			self.fbind("adding_portal", self.plane.setter("adding_portal"))
+		)
+		recibinds = binds["GraphBoardView", "reciprocal_portal"]
+		while recibinds:
+			self.unbind_uid("reciprocal_portal", recibinds.pop())
+		recibinds.add(
+			self.fbind(
+				"reciprocal_portal", self.plane.setter("reciprocal_portal")
+			)
+		)
+		app._unbinders.append(self.unbind_all)
 
-store_kv(
-	__name__,
-	"""
-<GraphBoard>:
-	app: app
-	size_hint: None, None
-<GraphBoardView>:
-	plane: boardplane
-	GraphBoardScatterPlane:
-		id: boardplane
-		board: root.board
-		adding_portal: root.adding_portal
-		reciprocal_portal: root.reciprocal_portal
-		scale_min: root.scale_min
-		scale_max: root.scale_max
-		pos: root.pos
-		size: root.size
-		size_hint: None, None
-""",
-)
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(binds["GraphBoardView", "adding_portal"]):
+			self.unbind_uid("adding_portal", uid)
+		for uid in devour(binds["GraphBoardView", "reciprocal_portal"]):
+			self.unbind_uid("reciprocal_portal", uid)

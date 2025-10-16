@@ -26,12 +26,15 @@ from operator import itemgetter
 from typing import Iterator, Optional, Tuple
 
 import numpy as np
+from kivy.app import App
 from kivy.clock import Clock, mainthread
 from kivy.core.text import Label
 from kivy.graphics import Color, InstructionGroup, Quad, Rectangle, Translate
 from kivy.graphics.fbo import Fbo
 from kivy.properties import ListProperty, NumericProperty
 from kivy.uix.widget import Widget
+
+from ..util import devour
 
 try:
 	from kivy.garden.collider import Collide2DPoly
@@ -552,22 +555,34 @@ class GraphArrowWidget(Widget, GraphArrow):
 		super().__init__(**kwargs)
 
 	def on_origin(self, *args):
-		if hasattr(self, "_origin_bind_uid"):
-			self.unbind_uid(self._origin_bind_uid)
-			del self._origin_bind_uid
+		binds = App.get_running_app()._bindings
+		key = (
+			"GraphArrowWidget",
+			self.board.character.name,
+			self.origin.name,
+			self.destination.name,
+			"origin",
+		)
+		while binds[key]:
+			self.unbind_uid(binds[key].pop())
 		if not self.origin:
 			return
-		self._origin_bind_uid = self.origin.fbind("pos", self._trigger_repoint)
+		binds[key].add(self.origin.fbind("pos", self._trigger_repoint))
 
 	def on_destination(self, *args):
-		if hasattr(self, "_destination_bind_uid"):
-			self.unbind_uid(self._destination_bind_uid)
-			del self._destination_bind_uid
+		binds = App.get_running_app()._bindings
+		key = (
+			"GraphArrowWidget",
+			self.board.character.name,
+			self.origin.name,
+			self.destination.name,
+			"destination",
+		)
+		while binds[key]:
+			self.unbind_uid(binds[key].pop())
 		if not self.destination:
 			return
-		self._destination_bind_uid = self.destination.fbind(
-			"pos", self._trigger_repoint
-		)
+		binds[key].add(self.destination.fbind("pos", self._trigger_repoint))
 
 	def on_parent(self, *args):
 		if not self.origin or not self.destination or not self.canvas:
@@ -638,10 +653,16 @@ class ArrowPlane(Widget):
 	fg_color_selected = ListProperty([1.0, 1.0, 1.0, 1.0])
 
 	def __init__(self, **kwargs):
+		app = App.get_running_app()
+		binds = app._bindings
 		self._labels = defaultdict(lambda: defaultdict(lambda: None))
 		self._trigger_redraw = Clock.create_trigger(self.redraw)
-		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
-		self.bind(arrowhead_size=self._trigger_redraw)
+		binds["ArrowPlane", id(self), "data"].add(
+			self.fbind("data", self._trigger_redraw)
+		)
+		binds["ArrowPlane", id(self), "arrowhead_size"].add(
+			self.fbind("arrowhead_size", self._trigger_redraw)
+		)
 		self._colliders_map = {}
 		self._instructions_map = {}
 		self._port_index = {}
@@ -651,6 +672,13 @@ class ArrowPlane(Widget):
 		self._top_right_corner_ys = np.array([])
 		self._top_right_corner_xs = np.array([])
 		super().__init__(**kwargs)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for att in ("data", "arrowhead_size"):
+			for uid in devour(binds["ArrowPlane", id(self), att]):
+				self.unbind_uid(att, uid)
 
 	def on_parent(self, *args):
 		if not self.canvas:
@@ -772,12 +800,14 @@ class ArrowPlane(Widget):
 		self._top_right_corner_ys = np.array(top_right_corner_ys)
 
 	def add_new_portal(self, datum: dict) -> None:
+		binds = App.get_running_app()._bindings
 		orig_spot = datum["origspot"]
 		dest_spot = datum["destspot"]
 		shaft_points, head_points = get_points(
 			orig_spot, dest_spot, self.arrowhead_size
 		)
-		self.unbind_uid("data", self._redraw_bind_uid)
+		while binds["ArrowPlane", id(self), "data"]:
+			self.unbind_uid(binds["ArrowPlane", id(self), "data"].pop())
 		self.data.append(datum)
 		r = self.arrow_width / 2
 		bgr = r * self.bg_scale_unselected
@@ -836,7 +866,9 @@ class ArrowPlane(Widget):
 			points=instructions["shaft_bg"].points
 		)
 		self.canvas.ask_update()
-		self._redraw_bind_uid = self.fbind("data", self._trigger_redraw)
+		App.get_running_app()._bindings["ArrowPlane", id(self), "data"].add(
+			self.fbind("data", self._trigger_redraw)
+		)
 
 	def remove_edge(self, orig, dest):
 		self._fbo.bind()

@@ -1,0 +1,276 @@
+#: import py3lexer pygments.lexers.Python3Lexer
+<StoreButton>:
+	size_hint_y: None
+	height: 30
+<StoreList>:
+	viewclass: 'StoreButton'
+	boxl: boxl
+	SelectableRecycleBoxLayout:
+		id: boxl
+		default_size: None, dp(56)
+		default_size_hint: 1, None
+		height: self.minimum_height
+		size_hint_y: None
+		orientation: 'vertical'
+<StringInput>:
+	name_wid: stringname
+	orientation: 'vertical'
+	BoxLayout:
+		size_hint_y: 0.07
+		Label:
+			id: title
+			text: 'Title: '
+			size_hint_x: None
+			width: self.texture_size[0]
+		StringNameInput:
+			id: stringname
+			multiline: False
+			write_tab: False
+			_trigger_save: root._trigger_save
+		Button:
+			text: 'del'
+			size_hint_x: 0.1
+			on_release: root._trigger_delete()
+	TextInput:
+		id: string
+		disabled: root.disable_text_input
+<StringsEdBox>:
+	editor: strings_ed
+	storelist: strings_list
+	orientation: 'vertical'
+	BoxLayout:
+		orientation: 'horizontal'
+		StoreList:
+			id: strings_list
+			size_hint_x: 0.2
+			store: root.store
+		StringInput:
+			id: strings_ed
+			store: root.store
+			disable_text_input: root.disable_text_input
+			validate_name_input: root.validate_name_input
+			_trigger_save: root._trigger_save
+			_trigger_delete: root._trigger_delete
+<StringsEdScreen>:
+	name: 'strings'
+	edbox: edbox
+	BoxLayout:
+		orientation: 'vertical'
+		StringsEdBox:
+			id: edbox
+			toggle: root.toggle
+			store_name: 'string'
+			language: root.language
+		BoxLayout:
+			size_hint_y: 0.05
+			Label:
+				text_size: self.size
+				halign: 'right'
+				valign: 'middle'
+				text: 'Language: '
+				size_hint_x: 0.2
+			LanguageInput:
+				id: language
+				screen: root
+				hint_text: root.language
+				write_tab: False
+				multiline: False
+			Button:
+				text: 'Close'
+				on_release: edbox.dismiss()
+<Py3CodeInput@CodeInput>:
+	lexer: py3lexer()
+<FuncEditor>:
+	codeinput: code
+	name_wid: funname
+	orientation: 'vertical'
+	BoxLayout:
+		orientation: 'horizontal'
+		size_hint_y: None
+		height: funname.height
+		Py3CodeInput:
+			id: imafunction
+			text: 'def'
+			disabled: True
+			size_hint: (None, None)
+			height: self.line_height + self.font_size
+			width: self.font_size * len(self.text)
+			background_disabled_normal: ''
+			disabled_foreground_color: self.foreground_color
+		FunctionNameInput:
+			id: funname
+			size_hint: (0.4, None)
+			height: self.line_height + self.font_size
+			multiline: False
+			write_tab: False
+			_trigger_save: root._trigger_save
+			on_text: root.validate_name_input(self.text)
+			hint_text: root.name
+		Label:
+		    text: '('
+		    size_hint: (0.05, 1.0)
+		Py3CodeInput:
+			id: params
+			disabled: root.params_disabled
+			size_hint: (0.5, None)
+			height: self.line_height + self.font_size
+			background_disabled_normal: ''
+			disabled_foreground_color: self.foreground_color
+		Label:
+		    text: '):'
+		    size_hint: (0.05, 1.0)
+		Button:
+			text: 'del'
+			size_hint_x: 0.1 if not self.disabled else 0.0
+			background_disabled_normal: ''
+			background_disabled_down: ''
+			disabled_color: (0., 0., 0., 0.)
+			background_disabled_color: (0., 0., 0., 0.)
+			on_release: root._trigger_delete()
+			disabled: not root.deletable
+	BoxLayout:
+		orientation: 'horizontal'
+		Label:
+			canvas:
+				Color:
+					rgba: params.background_color
+				Rectangle:
+					pos: self.pos
+					size: self.size
+				Color:
+					rgba: [1., 1., 1., 1.]
+			# PEP8 standard indentation width is 4 spaces
+			text: ' ' * 4
+			size_hint_x: None
+			width: self.texture_size[0]
+		Py3CodeInput:
+			id: code
+			disabled: root.disable_text_input
+<RuleFuncsEdBox@FuncsEdBox>:
+	editor: funcs_ed
+	storelist: funcs_list
+	orientation: 'vertical'
+	data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
+	BoxLayout:
+		orientation: 'horizontal'
+		BoxLayout:
+			orientation: 'vertical'
+			size_hint_x: 0.2
+			StoreList:
+				id: funcs_list
+				store: root.store
+		FuncEditor:
+			id: funcs_ed
+			params_text: '{}'.format(', '.join(self.params))
+			name: root.selection_name
+			store: root.store
+			storelist: funcs_list
+			disable_text_input: root.disable_text_input
+			validate_name_input: root.validate_name_input
+			_trigger_save: root._trigger_save
+			_trigger_delete: root._trigger_delete
+	BoxLayout:
+		size_hint_y: 0.07
+		Button:
+			text: 'Close'
+			on_release: root.dismiss()
+<MethodEdBox@FuncsEdBox>:
+	editor: funcs_ed
+	storelist: funcs_list
+	orientation: 'vertical'
+	data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
+	BoxLayout:
+		orientation: 'horizontal'
+		BoxLayout:
+			orientation: 'vertical'
+			size_hint_x: 0.2
+			StoreList:
+				id: funcs_list
+				store: root.store
+		MethodEditor:
+			id: funcs_ed
+			params_disabled: False
+			name: root.selection_name
+			store: root.store
+			storelist: funcs_list
+			disable_text_input: root.disable_text_input
+			validate_name_input: root.validate_name_input
+			_trigger_save: root._trigger_save
+			_trigger_delete: root._trigger_delete
+	BoxLayout:
+		size_hint_y: 0.07
+		Button:
+			text: 'Close'
+			on_release: root.dismiss()
+<FunctionEdBox@FuncsEdBox>:
+	editor: funcs_ed
+	storelist: funcs_list
+	orientation: 'vertical'
+	data: [(item['name'], self.store.get_source(item['name'])) for item in funcs_list.data[1:]]
+	BoxLayout:
+		orientation: 'horizontal'
+		BoxLayout:
+			orientation: 'vertical'
+			size_hint_x: 0.2
+			StoreList:
+				id: funcs_list
+				store: root.store
+		FunctionEditor:
+			id: funcs_ed
+			params_disabled: False
+			name: root.selection_name
+			store: root.store
+			storelist: funcs_list
+			disable_text_input: root.disable_text_input
+			validate_name_input: root.validate_name_input
+			_trigger_save: root._trigger_save
+			_trigger_delete: root._trigger_delete
+	BoxLayout:
+		size_hint_y: 0.07
+		Button:
+			text: 'Close'
+			on_release: root.dismiss()
+<FuncsEdScreen>:
+	name: 'funcs'
+	TabbedPanel:
+		default_tab: method
+		TabbedPanelItem:
+		    id: method
+		    text: 'Method'
+		    on_state: methods.save()
+		    MethodEdBox:
+		        id: methods
+		        toggle: root.toggle
+		        store_name: 'method'
+		TabbedPanelItem:
+		    id: function
+		    text: 'Function'
+		    on_state: functions.save()
+		    FunctionEdBox:
+		        id: functions
+		        toggle: root.toggle
+		        store_name: 'function'
+		TabbedPanelItem:
+			id: trigger
+			text: 'Trigger'
+			on_state: triggers.save()
+			RuleFuncsEdBox:
+				id: triggers
+				toggle: root.toggle
+				store_name: 'trigger'
+		TabbedPanelItem:
+			id: prereq
+			text: 'Prereq'
+			on_state: prereqs.save()
+			RuleFuncsEdBox:
+				id: prereqs
+				toggle: root.toggle
+				store_name: 'prereq'
+		TabbedPanelItem:
+			id: action
+			text: 'Action'
+			on_state: actions.save()
+			RuleFuncsEdBox:
+				id: actions
+				toggle: root.toggle
+				store_name: 'action'

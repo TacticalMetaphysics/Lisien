@@ -30,15 +30,15 @@ source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien,elide
 #source.exclude_patterns = license,images/*/*.jpg
 
 # (str) Application versioning (method 1)
-version = 0.22.1
+#version = 0.22.2
 
 # (str) Application versioning (method 2)
-# version.regex = __version__ = ['"](.*)['"]
-# version.filename = %(source.dir)s/main.py
+version.regex = version = ['"](.*)['"]
+version.filename = %(source.dir)s/elide/pyproject.toml
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,astunparse,blinker,sqlalchemy,typing_extensions,tblib,pygments,libbz2,liblzma,python-osc,lisien,elide,android,androidstorage4kivy,annotated-types
+requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,blinker,sqlalchemy,typing_extensions,tblib,pygments,libbz2,liblzma,python-osc,lisien,elide,android,androidstorage4kivy,annotated-types,astor
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes

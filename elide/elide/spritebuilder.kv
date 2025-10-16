@@ -1,0 +1,54 @@
+<SpriteDialog>:
+	orientation: 'vertical'
+	SpriteBuilder:
+		id: builder
+		name: root.name
+		prefix: root.prefix
+		default_imgpaths: root.default_imgpaths
+		imgpaths: root.imgpaths
+		data: root.data
+	SpriteSelector:
+		id: selector
+		textbox: textbox
+		size_hint_y: 0.1
+		prefix: root.prefix
+		default_imgpaths: root.default_imgpaths
+		imgpaths: root.imgpaths
+		pallets: builder.pallets
+		preview: preview
+		TextInput:
+			id: textbox
+			multiline: False
+			write_tab: False
+			hint_text: 'Enter name prefix'
+		Widget:
+			id: preview
+			canvas:
+				Color:
+					rgba: 1, 1, 1, 1
+		Button:
+			text: 'Import'
+			on_release: root._choose_graphic_to_import()
+		Button:
+			text: 'OK'
+			on_release: root.pressed()
+<PawnConfigScreen>:
+	name: 'pawncfg'
+	imgpaths: dialog.imgpaths
+	PawnConfigDialog:
+		id: dialog
+		toggle: root.toggle
+		default_imgpaths: ['atlas://rltiles/base/unseen']
+		custom_imgs_header: root.custom_imgs_header
+		custom_imgs_dir: app.prefix + '/custom_pawn_imgs'
+		data: root.data
+<SpotConfigScreen>:
+	name: 'spotcfg'
+	imgpaths: dialog.imgpaths
+	SpotConfigDialog:
+		id: dialog
+		toggle: root.toggle
+		default_imgpaths: ['atlas://rltiles/floor/floor-stone']
+		custom_imgs_header: root.custom_imgs_header
+		custom_imgs_dir: app.prefix + '/custom_spot_imgs'
+		data: root.data

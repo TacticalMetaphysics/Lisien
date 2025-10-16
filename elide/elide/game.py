@@ -30,9 +30,9 @@ from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 import lisien.proxy
 
-from .dialog import DialogLayout
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
+from .screen import DialogLayout
 from .util import logwrap
 
 Factory.register("GraphBoard", GraphBoard)
@@ -40,6 +40,9 @@ Factory.register("GridBoard", GridBoard)
 Factory.register("GraphBoardView", GraphBoardView)
 Factory.register("GridBoardView", GridBoardView)
 Factory.register("DialogLayout", DialogLayout)
+
+
+wraplog_GameScreen = partial(logwrap, section="GameScreen")
 
 
 class GameScreen(Screen):

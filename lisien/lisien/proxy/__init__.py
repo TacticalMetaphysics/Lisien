@@ -36,22 +36,21 @@ import random
 import sys
 import zlib
 from abc import ABC, abstractmethod
+from ast import unparse
 from collections import UserDict
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from functools import cached_property, partial
 from inspect import getsource
-from logging import FileHandler, getLogger
 from multiprocessing.connection import Connection
 from queue import Queue, SimpleQueue
 from random import Random
-from threading import Lock, RLock, Thread
+from threading import Lock, Thread
 from time import monotonic
 from types import MethodType
 from typing import Hashable, Iterable, Iterator, Literal, Optional
 
-import astunparse
 import msgpack
 import networkx as nx
 import tblib
@@ -2641,6 +2640,7 @@ class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
 class StringStoreProxy(Signal):
 	language = ProxyLanguageDescriptor()
 	_cache: dict
+	_store = "string"
 
 	def __init__(self, engine_proxy: EngineProxy):
 		self._cache = {}
@@ -3875,7 +3875,7 @@ class EngineProxy(AbstractEngine):
 						elif hasattr(arg.value, "value"):
 							args.append(arg.value.value)
 						else:
-							args.append(astunparse.unparse(arg.value))
+							args.append(unparse(arg.value))
 					for kw in expr.value.keywords:
 						if isinstance(kw.value, ast.Subscript):
 							whatmap = kw.value.value.attr
@@ -3885,7 +3885,7 @@ class EngineProxy(AbstractEngine):
 							if hasattr(kw.value, "value"):
 								kwargs[kw.arg] = kw.value.value
 							else:
-								kwargs[kw.arg] = astunparse.unparse(kw.value)
+								kwargs[kw.arg] = unparse(kw.value)
 					self.handle(method, *args, **kwargs)
 
 	def __repr__(self):
@@ -4966,10 +4966,10 @@ class EngineProcessManager:
 			self.engine_proxy.close()
 			if hasattr(self, "_p"):
 				self.engine_proxy._pipe_out.send_bytes(b"shutdown")
-				self._p.join(timeout=1)
+				self._p.join()
 			if hasattr(self, "_t"):
 				self._input_queue.put("shutdown")
-				self._t.join(timeout=1)
+				self._t.join()
 			del self.engine_proxy
 
 	def __enter__(self):

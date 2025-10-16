@@ -19,7 +19,7 @@ from elide.boardscatter import BoardScatterPlane
 
 from ..boardview import BoardView
 from ..kivygarden.texturestack import Stack, TextureStackPlane
-from ..util import logwrap, store_kv
+from ..util import load_kv, logwrap
 
 
 class GridPawn(Stack):
@@ -49,6 +49,7 @@ class GridBoard(Widget):
 	spot_cls = GridSpot
 
 	def __init__(self, **kwargs):
+		load_kv("grid/board.kv")
 		self.pawn = {}
 		self.spot = {}
 		self.contained = defaultdict(set)
@@ -381,22 +382,3 @@ class GridBoardScatterPlane(BoardScatterPlane):
 
 class GridBoardView(BoardView):
 	pass
-
-
-store_kv(
-	__name__,
-	"""
-<GridBoard>:
-	app: app
-	size_hint: None, None
-<GridBoardView>:
-	plane: boardplane
-	GridBoardScatterPlane:
-		id: boardplane
-		board: root.board
-		scale_min: root.scale_min
-		scale_max: root.scale_max
-		pos: root.pos
-		size: root.size
-""",
-)

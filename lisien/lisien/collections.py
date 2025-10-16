@@ -35,11 +35,10 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from io import StringIO
 from typing import TYPE_CHECKING
 
+import astor
 import networkx as nx
-from astunparse import Unparser
 from blinker import Signal
 
 from .types import CharName, Key
@@ -48,18 +47,6 @@ from .wrap import wrapval
 
 if TYPE_CHECKING:
 	from .character import Character
-
-
-class TabUnparser(Unparser):
-	def fill(self, text: str = ""):
-		__doc__ = Unparser.fill.__doc__
-		self.f.write("\n" + "\t" * self._indent + text)
-
-
-def unparse(tree):
-	v = StringIO()
-	TabUnparser(tree, file=v)
-	return v.getvalue()
 
 
 # 0x241d is the group separator
@@ -307,8 +294,8 @@ class FunctionStore(Signal):
 		super().__init__()
 		if filename is None:
 			self._filename = None
-			self._module = module
-			self._ast = Module(body=[])
+			self._module = self.__name__ = module
+			self._ast = Module(body=[], type_ignores=[])
 			self._ast_idx = {}
 			self._need_save = False
 			self._locl = initial
@@ -322,7 +309,7 @@ class FunctionStore(Signal):
 				self.reimport()
 			except (FileNotFoundError, ModuleNotFoundError):
 				self._module = module
-				self._ast = Module(body=[])
+				self._ast = Module(body=[], type_ignores=[])
 				self._ast_idx = {}
 				self.save()
 			self._need_save = False
@@ -398,8 +385,7 @@ class FunctionStore(Signal):
 		if self._filename is None:
 			return
 		with open(self._filename, "w", encoding="utf-8") as outf:
-			outf.write("# encoding: utf-8")
-			Unparser(self._ast, outf)
+			outf.write(astor.code_gen.to_source(self._ast, indent_with="\t"))
 		self._need_save = False
 		if reimport:
 			self.reimport()
@@ -427,7 +413,7 @@ class FunctionStore(Signal):
 
 	def iterplain(self):
 		for name, idx in self._ast_idx.items():
-			yield name, unparse(self._ast.body[idx])
+			yield name, astor.to_source(self._ast.body[idx], indent_with="\t")
 
 	def store_source(self, v, name=None):
 		self._need_save = True
@@ -453,16 +439,22 @@ class FunctionStore(Signal):
 	def get_source(self, name):
 		if name == "truth":
 			return "def truth(*args):\n\treturn True"
-		return unparse(self._ast.body[self._ast_idx[name]])
+		return astor.dump_tree(self._ast.body[self._ast_idx[name]])
 
 	def blake2b(self) -> bytes:
 		"""Return the blake2b hash digest of the code stored here"""
 		hashed = blake2b()
-		todo = dict(self.iterplain())
+		todo = dict(self._ast_idx)
+		stripped_ast = deepcopy(self._ast.body)
+		astor.strip_tree(stripped_ast)
 		for k in sort_set(todo.keys()):
 			hashed.update(k.encode())
 			hashed.update(GROUP_SEP)
-			hashed.update(todo[k].encode())
+			hashed.update(
+				astor.code_gen.to_source(
+					stripped_ast[todo[k]], indent_with="\t"
+				).encode()
+			)
 			hashed.update(REC_SEP)
 		return hashed.digest()
 

@@ -38,7 +38,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
-from elide.util import logwrap, store_kv
+from elide.util import logwrap
 
 wraplog_CalendarWidget = partial(logwrap, section="CalendarWidget")
 
@@ -167,9 +167,16 @@ class CalendarOptionButton(CalendarWidget, Button):
 		super().__init__(**kwargs)
 		self._make_modalview()
 		self._update_modalview()
-		self.bind(cols=self._make_modalview)
-		self.bind(options=self._update_modalview)
-		self.bind(on_release=self.modalview.open)
+		binds = App.get_running_app()._bindings
+		binds["CalendarOptionButton", id(self), "cols"].add(
+			self.fbind("cols", self._make_modalview)
+		)
+		binds["CalendarOptionButton", id(self), "options"].add(
+			self.fbind("options", self._update_modalview)
+		)
+		binds["CalendarOptionButton", id(self), "on_release"].add(
+			self.fbind("on_release", self.modalview.open)
+		)
 
 	@logwrap(section="CalendarOptionButton")
 	def _make_modalview(self, *_):
@@ -472,45 +479,6 @@ class Calendar(RecycleView, CalendarBehavior):
 			self.cols = endturn - curturn
 		self.data = data
 
-
-store_kv(
-	__name__,
-	"""
-<Agenda>:
-	key_viewclass: 'widget'
-	RecycleGridLayout:
-		cols: root.cols
-		size_hint: None, None
-		default_size: dp(84), dp(36)
-		default_size_hint: None, None
-		size_hint: None, None
-		size: self.minimum_size
-		orientation: 'tb-lr'
-<Calendar>:
-	turn_labels: False
-	key_viewclass: 'widget'
-	RecycleGridLayout:
-		cols: 1
-		orientation: 'lr-tb'
-		default_size_hint: 1, None
-		default_size: dp(84), dp(36)
-		size: self.minimum_size
-<CalendarLabel>:
-	text: str(self.val) if self.val is not None else ''
-<CalendarSlider>:
-	padding: 5
-	Label:
-		x: root.center_x - (self.width / 2)
-		y: root.center_y
-		text: str(root.value)
-		size: self.texture_size
-<CalendarOptionButton>:
-	text: str(self.val)
-<CalendarTextInput>:
-	multiline: False
-	on_text_validate: self._trigger_parse_text()
-""",
-)
 
 if __name__ == "__main__":
 	from kivy.app import App

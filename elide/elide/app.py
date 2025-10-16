@@ -17,22 +17,34 @@
 import json
 import os
 import shutil
+from collections import defaultdict
 from functools import cached_property, partial
 from threading import Thread
-from zipfile import ZipFile, ZIP_DEFLATED
+from typing import Callable
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from lisien.exc import OutOfTimelineError
+
+from .charsview import CharactersScreen
+from .logview import LogScreen
+from .menu import MainMenuScreen
+from .rulesview import CharacterRulesScreen, RulesScreen
+from .screen import MainScreen
+from .spritebuilder import PawnConfigScreen, SpotConfigScreen
+from .statcfg import StatScreen
+from .stores import FuncsEdScreen, StringsEdScreen
+from .timestream import TimestreamScreen
 
 if "KIVY_NO_ARGS" not in os.environ:
 	os.environ["KIVY_NO_ARGS"] = "1"
 
 from kivy.app import App
 from kivy.clock import Clock, triggered
+from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.properties import (
 	AliasProperty,
 	BooleanProperty,
-	DictProperty,
 	NumericProperty,
 	ObjectProperty,
 	StringProperty,
@@ -40,21 +52,6 @@ from kivy.properties import (
 from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
-import elide
-import elide.charsview
-import elide.dialog
-import elide.logview
-import elide.menu
-import elide.rulesview
-import elide.screen
-import elide.spritebuilder
-import elide.statcfg
-import elide.stores
-import elide.timestream
-from elide.graph.arrow import GraphArrow
-from elide.graph.board import GraphBoard
-from elide.grid.board import GridBoard
-from elide.util import load_kv, logwrap
 from lisien.proxy import (
 	CharacterProxy,
 	CharStatProxy,
@@ -62,6 +59,11 @@ from lisien.proxy import (
 	PlaceProxy,
 	ThingProxy,
 )
+
+from .graph.arrow import GraphArrow
+from .graph.board import GraphBoard
+from .grid.board import GridBoard
+from .util import devour, logwrap
 
 
 def trigger(func):
@@ -92,7 +94,56 @@ class ElideApp(App):
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
 	character_name = ObjectProperty()
+	closed = BooleanProperty(True)
 	stopped = BooleanProperty(False)
+
+	@cached_property
+	def _bindings(self) -> dict[tuple, set[int]]:
+		class OnceSet(set):
+			def add(self, __element):
+				if __element in self:
+					raise RuntimeError("Already bound", __element)
+				super().add(__element)
+
+		return defaultdict(OnceSet)
+
+	@cached_property
+	def _unbinders(self) -> list[Callable[[], None]]:
+		return []
+
+	def unbind_all(self):
+		Logger.debug("ElideApp: unbinding everything")
+		for uid in devour(self._bindings["ElideApp", "character"]):
+			self.unbind_uid("character", uid)
+		for uid in devour(self._bindings["ElideApp", "character_name"]):
+			self.unbind_uid("character_name", uid)
+		for uid in devour(
+			self._bindings["CharactersScreen", "character_name"]
+		):
+			self.chars.unbind_uid("character_name", uid)
+		for uid in devour(self._bindings["ElideApp", "selected_proxy"]):
+			self.unbind_uid("selected_proxy", uid)
+		for uid in devour(self._bindings["MainScreen", "statlist"]):
+			self.mainscreen.unbind_uid("statlist", uid)
+		for uid in devour(self._bindings["ElideApp", "selection"]):
+			self.unbind_uid("selection", uid)
+		if hasattr(self, "mainscreen"):
+			for graphboard in self.mainscreen.graphboards:
+				for uid in devour(
+					self._bindings["GraphBoard", graphboard, "selection"]
+				):
+					self.mainscreen.graphboards[graphboard].unbind_uid(
+						"selection", uid
+					)
+			for gridboard in self.mainscreen.gridboards:
+				for uid in devour(
+					self._bindings["GridBoard", gridboard, "selection"]
+				):
+					self.mainscreen.gridboards[gridboard].unbind_uid(
+						"selection", uid
+					)
+		for unbinder in self._unbinders:
+			unbinder()
 
 	@cached_property
 	def _togglers(self):
@@ -149,7 +200,7 @@ class ElideApp(App):
 			str(origin.name) + "->" + str(destination.name)
 		)
 
-	def on_character_name(self, name, *_):
+	def on_character_name(self, _, name):
 		if (
 			hasattr(self, "engine")
 			and name in self.engine.character
@@ -257,10 +308,8 @@ class ElideApp(App):
 		if char == self.character:
 			return
 		if char.name not in self.mainscreen.graphboards:
-			load_kv("elide.graph.board")
 			self.mainscreen.graphboards[char.name] = GraphBoard(character=char)
 		if char.name not in self.mainscreen.gridboards:
-			load_kv("elide.grid.board")
 			self.mainscreen.gridboards[char.name] = GridBoard(character=char)
 		self.character = char
 		self.selected_proxy = self._get_selected_proxy()
@@ -325,12 +374,13 @@ class ElideApp(App):
 			pdb.set_trace()
 
 		self.manager = ScreenManager(transition=NoTransition())
+		print(f"created screen manager with id {id(self.manager)}")
 		if config["elide"]["inspector"] == "yes":
 			from kivy.core.window import Window
 			from kivy.modules import inspector
 
 			inspector.create_inspector(Window, self.manager)
-		self.mainmenu = elide.menu.MainMenuScreen(toggle=self.toggler("main"))
+		self.mainmenu = MainMenuScreen(toggle=self.toggler("main"))
 		self.manager.add_widget(self.mainmenu)
 		if self.immediate_start:
 			self.start_game()
@@ -364,6 +414,7 @@ class ElideApp(App):
 		Logger.debug(f"ElideApp: start_subprocess(path={path!r})")
 		if hasattr(self, "procman") and hasattr(self.procman, "engine_proxy"):
 			raise ChildProcessError("Subprocess already running")
+		self.closed = False
 		config = self.config
 		enkw = {
 			"do_game_start": getattr(self, "do_game_start", False),
@@ -443,12 +494,10 @@ class ElideApp(App):
 		Logger.debug(f"ElideApp: making grid boards for: {char_names}")
 		for name in char_names:
 			if name not in self.mainscreen.graphboards:
-				load_kv("elide.graph.board")
 				self.mainscreen.graphboards[name] = GraphBoard(
 					character=self.engine.character[name]
 				)
 			if name not in self.mainscreen.gridboards:
-				load_kv("elide.grid.board")
 				self.mainscreen.gridboards[name] = GridBoard(
 					character=self.engine.character[name]
 				)
@@ -486,8 +535,7 @@ class ElideApp(App):
 				["Custom pawns", "custom_pawn_imgs/custom.atlas"]
 			] + pawndata
 
-		load_kv("elide.spritebuilder")
-		self.pawncfg = elide.spritebuilder.PawnConfigScreen(
+		self.pawncfg = PawnConfigScreen(
 			toggle=toggler("pawncfg"),
 			data=pawndata,
 		)
@@ -498,64 +546,57 @@ class ElideApp(App):
 			spotdata = [
 				["Custom spots", "custom_spot_imgs/custom.atlas"]
 			] + spotdata
-		self.spotcfg = elide.spritebuilder.SpotConfigScreen(
+		self.spotcfg = SpotConfigScreen(
 			toggle=toggler("spotcfg"),
 			data=spotdata,
 		)
-
-		load_kv("elide.statcfg")
-		self.statcfg = elide.statcfg.StatScreen(toggle=toggler("statcfg"))
-		load_kv("elide.rulesview")
-		load_kv("elide.card")
-		self.rules = elide.rulesview.RulesScreen(toggle=toggler("rules"))
-
-		self.charrules = elide.rulesview.CharacterRulesScreen(
+		for builder in (
+			self.pawncfg.ids.dialog.ids.builder.__ref__(),
+			self.spotcfg.ids.dialog.ids.builder.__ref__(),
+		):
+			self._bindings["SpriteBuilder", id(builder), "data"].add(
+				builder.fbind("data", builder._trigger_update)
+			)
+			self._unbinders.append(builder.unbind_all)
+			builder.update()
+		self.statcfg = StatScreen(toggle=toggler("statcfg"))
+		self.rules = RulesScreen(toggle=toggler("rules"))
+		self.charrules = CharacterRulesScreen(
 			character=self.character, toggle=toggler("charrules")
 		)
-		self.bind(character=self.charrules.setter("character"))
-		load_kv("elide.charsview")
-		self.chars = elide.charsview.CharactersScreen(
+		self._bindings["ElideApp", "character"].add(
+			self.fbind("character", self.charrules.setter("character"))
+		)
+		Logger.debug("ElideApp: bound charrules setter")
+		self.chars = CharactersScreen(
 			toggle=toggler("chars"), new_board=self.new_board
 		)
-		self.bind(character_name=self.chars.setter("character_name"))
-
-		def chars_push_character_name(*_):
-			self.unbind(character_name=self.chars.setter("character_name"))
-			self.character_name = self.chars.character_name
-			self.bind(character_name=self.chars.setter("character_name"))
-
-		self.chars.push_character_name = chars_push_character_name
-		load_kv("elide.stores")
-		self.strings = elide.stores.StringsEdScreen(toggle=toggler("strings"))
-
-		self.funcs = elide.stores.FuncsEdScreen(
-			name="funcs", toggle=toggler("funcs")
+		self._bindings["ElideApp", "character_name"].add(
+			self.fbind("character_name", self.chars.setter("character_name"))
 		)
-
-		self.bind(selected_proxy=self.statcfg.setter("proxy"))
-		load_kv("elide.timestream")
-		self.timestream = elide.timestream.TimestreamScreen(
+		self.strings = StringsEdScreen(toggle=toggler("strings"))
+		self.funcs = FuncsEdScreen(name="funcs", toggle=toggler("funcs"))
+		self._bindings["ElideApp", "selected_proxy"].add(
+			self.fbind("selected_proxy", self.statcfg.setter("proxy"))
+		)
+		self.timestream = TimestreamScreen(
 			name="timestream", toggle=toggler("timestream")
 		)
-		load_kv("elide.logview")
-		self.log_screen = elide.logview.LogScreen(
-			name="log", toggle=toggler("log")
-		)
-		load_kv("elide.screen")
-		load_kv("elide.charmenu")
-		load_kv("elide.statcfg")
-		load_kv("elide.stepper")
-		load_kv("elide.dialog")
-		self.mainscreen = elide.screen.MainScreen(
+		self.log_screen = LogScreen(name="log", toggle=toggler("log"))
+		self.mainscreen = MainScreen(
 			use_kv=config["elide"]["user_kv"] == "yes",
 			play_speed=int(config["elide"]["play_speed"]),
 		)
 		if self.mainscreen.statlist:
 			self.statcfg.statlist = self.mainscreen.statlist
-		self.mainscreen.bind(statlist=self.statcfg.setter("statlist"))
-		self.bind(
-			selection=self.refresh_selected_proxy,
-			character=self.refresh_selected_proxy,
+		self._bindings["MainScreen", "statlist"].add(
+			self.mainscreen.fbind("statlist", self.statcfg.setter("statlist"))
+		)
+		self._bindings["ElideApp", "selection"].add(
+			self.fbind("selection", self.refresh_selected_proxy)
+		)
+		self._bindings["ElideApp", "character"].add(
+			self.fbind("character", self.refresh_selected_proxy)
 		)
 		for wid in (
 			self.mainscreen,
@@ -599,6 +640,7 @@ class ElideApp(App):
 				)
 				continue
 			self.manager.remove_widget(wid)
+		self.manager.current = "main"
 
 	def start_game(self, *_, name=None, archive_path=None, cb=None):
 		Logger.debug(f"ElideApp: start_game(name={name!r}, cb={cb!r})")
@@ -623,11 +665,7 @@ class ElideApp(App):
 		self.manager.current = "mainscreen"
 		return engine
 
-	@triggered()
 	def close_game(self, *_, cb=None):
-		self._close_game(cb=cb)
-
-	def _close_game(self, *_, cb=None):
 		Logger.debug(f"ElideApp: close_game(cb={cb!r})")
 		self.mainmenu.invalidate_popovers()
 		if hasattr(self, "manager") and "main" in self.manager.screen_names:
@@ -675,8 +713,10 @@ class ElideApp(App):
 		if not hasattr(self, "leave_game"):
 			shutil.rmtree(self.play_path)
 		self._remove_screens()
+		self.unbind_all()
 		if cb:
 			cb()
+		self.closed = True
 
 	def update_calendar(self, calendar, past_turns=1, future_turns=5):
 		"""Fill in a calendar widget with actual simulation data"""
@@ -754,18 +794,28 @@ class ElideApp(App):
 		if self.character_name != self.character.name:
 			self.character_name = self.character.name
 		if hasattr(self, "_oldchar"):
-			self.mainscreen.graphboards[self._oldchar.name].unbind(
-				selection=self.setter("selection")
-			)
-			self.mainscreen.gridboards[self._oldchar.name].unbind(
-				selection=self.setter("selection")
-			)
+			for uid in devour(
+				self._bindings["GraphBoard", self._oldchar.name, "selection"]
+			):
+				self.mainscreen.graphboards[self._oldchar.name].unbind_uid(
+					"selection", uid
+				)
+			for uid in devour(
+				self._bindings["GridBoard", self._oldchar.name, "selection"]
+			):
+				self.mainscreen.gridboards[self._oldchar.name].unbind_uid(
+					"selection", uid
+				)
 		self.selection = None
-		self.mainscreen.graphboards[self.character.name].bind(
-			selection=self.setter("selection")
+		self._bindings["GraphBoard", self.character.name, "selection"].add(
+			self.mainscreen.graphboards[self.character.name].fbind(
+				"selection", self.setter("selection")
+			)
 		)
-		self.mainscreen.gridboards[self.character.name].bind(
-			selection=self.setter("selection")
+		self._bindings["GridBoard", self.character.name, "selection"].add(
+			self.mainscreen.gridboards[self.character.name].fbind(
+				"selection", self.setter("selection")
+			)
 		)
 
 	def copy_to_shared_storage(
@@ -890,9 +940,19 @@ class ElideApp(App):
 		if hasattr(self, "funcs"):
 			self.funcs.save()
 		if hasattr(self, "engine"):
-			self._close_game(cb=partial(self.setter("stopped"), 0.0, True))
+			self.close_game(cb=partial(self.setter("stopped"), 0.0, True))
 		else:
 			self.stopped = True
+		self.unbind_all()
+		for k, v in self._bindings.items():
+			if v:
+				raise RuntimeError("Still bound", k, v)
+		for loaded_kv in Builder.files[:]:
+			if not loaded_kv.endswith("/kivy/data/style.kv"):
+				Builder.unload_file(loaded_kv)
+				Logger.debug(f"ElideApp: unloaded {loaded_kv}")
+			else:
+				Logger.debug(f"ElideApp: won't unload {loaded_kv}")
 		return True
 
 	def on_stopped(self, *_):

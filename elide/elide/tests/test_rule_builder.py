@@ -314,6 +314,7 @@ def char_rules_view_app(prefix, polygons_sim, elide_app):
 
 def test_char_rule_builder_remove_unit_trigger(prefix, char_rules_view_app):
 	app = char_rules_view_app
+	assert app.charrules.character.name == "triangle"
 	idle_until(
 		lambda: getattr(app.charrules, "_finalized", False),
 		100,
@@ -321,9 +322,31 @@ def test_char_rule_builder_remove_unit_trigger(prefix, char_rules_view_app):
 	)
 	tabitem = app.charrules._unit_tab
 	idle_until(lambda: tabitem.content, 100, "unit tab never got content")
-	tabitem.on_press()
-	advance_frames(1)
-	tabitem.on_release()
+	assert (
+		tabitem.content.rulebook.name
+		== tabitem.content.ruleslist.rulebook.name
+		== "parable"
+	)
+	idle_until(
+		lambda: tabitem.pos != [0, 0], 100, "unit tab never repositioned"
+	)
+	idle_until(
+		lambda: tabitem.parent.parent, 100, "unit tab never got grandparent"
+	)
+	idle_until(
+		lambda: tabitem.parent.parent.parent,
+		100,
+		"unit tab never got great-grandparent",
+	)
+	touch = UnitTestTouch(
+		*tabitem.parent.parent.to_parent(
+			*tabitem.parent.to_parent(*tabitem.to_parent(*tabitem.center))
+		)
+	)
+	touch.touch_down()
+	idle_until(lambda: tabitem.state == "down", 100, "Couldn't press unit tab")
+	advance_frames(5)
+	touch.touch_up()
 	idle_until(
 		lambda: app.charrules._tabs.current_tab == tabitem,
 		100,
@@ -343,11 +366,11 @@ def test_char_rule_builder_remove_unit_trigger(prefix, char_rules_view_app):
 		"Never filled rules view",
 	)
 	rules_list = rules_box.ruleslist
-	idle_until(
-		lambda: list(rules_list.iter_rule_buttons()),
-		1000,
-		"Never filled rules list",
-	)
+
+	@idle_until(timeout=1000, message="Never filled rules list")
+	def any_rule_buttons():
+		return rules_list.children and rules_list.children[0].children
+
 	idle_until(
 		lambda: "relocate"
 		in {rulebut.text for rulebut in rules_list.iter_rule_buttons()},

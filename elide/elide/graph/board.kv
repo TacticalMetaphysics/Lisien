@@ -1,0 +1,15 @@
+<GraphBoard>:
+	app: app
+	size_hint: None, None
+<GraphBoardView>:
+	plane: boardplane
+	GraphBoardScatterPlane:
+		id: boardplane
+		board: root.board
+		adding_portal: root.adding_portal
+		reciprocal_portal: root.reciprocal_portal
+		scale_min: root.scale_min
+		scale_max: root.scale_max
+		pos: root.pos
+		size: root.size
+		size_hint: None, None

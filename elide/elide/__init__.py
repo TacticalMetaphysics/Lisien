@@ -21,16 +21,18 @@ for handler in Logger.handlers:
 		handler.setFormatter(formatter)
 
 resource_add_path(__path__[0])
-resource_add_path(__path__[0] + "/assets")
-resource_add_path(__path__[0] + "/assets/rltiles")
-resource_add_path(__path__[0] + "/assets/kenney1bit")
+for submodule in [
+	"/assets",
+	"/assets/rltiles",
+	"/assets/kenney1bit",
+]:
+	resource_add_path(__path__[0] + submodule)
 
 __all__ = [
 	"graph",
 	"grid",
 	"app",
 	"card",
-	"dialog",
 	"game",
 	"menu",
 	"spritebuilder",

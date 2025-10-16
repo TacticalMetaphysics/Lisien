@@ -9,7 +9,7 @@ packages = ["lisien", "lisien.examples", "lisien.proxy", "lisien.server", "lisie
 
 [project]
 name = "lisien"
-version = "0.22.1"
+version = "0.22.5"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
@@ -25,7 +25,7 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"astunparse~=1.6.3",
+	"astor~=0.8.1",
 	"blinker~=1.4",
 	"msgpack~=1.0.0",
 	"networkx~=2.4",
