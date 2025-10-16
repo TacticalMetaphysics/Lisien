@@ -57,12 +57,7 @@ class EngineProcessManager:
 
 			android = True
 		except ImportError:
-			from multiprocessing import Pipe, SimpleQueue
-
 			android = False
-			(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(duplex=False)
-			(self._proxy_in_pipe, self._handle_out_pipe) = Pipe(duplex=False)
-			self._logq = SimpleQueue()
 
 		handlers = []
 		logl = {
