@@ -90,12 +90,6 @@ class EngineProcessManager:
 			except OSError:
 				pass
 			del kwargs["logfile"]
-		replay_file = kwargs.pop("replay_file", "") or None
-		install_modules = (
-			kwargs.pop("install_modules")
-			if "install_modules" in kwargs
-			else []
-		)
 		enforce_end_of_time = kwargs.get("enforce_end_of_time", False)
 		formatter = logging.Formatter(
 			fmt="[{levelname}] lisien.proxy({process}) {message}", style="{"
