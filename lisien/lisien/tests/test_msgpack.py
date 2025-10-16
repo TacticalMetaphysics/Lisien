@@ -56,6 +56,8 @@ def test_serialize_method(tmp_path):
 			return bar + bas + " is correct"
 
 	procm = EngineProcessManager()
-	engprox = procm.start(tmp_path, workers=0)
-	assert engprox.foo("bar", "bas") == "barbas is correct"
-	procm.shutdown()
+	try:
+		engprox = procm.start(tmp_path, workers=0)
+		assert engprox.foo("bar", "bas") == "barbas is correct"
+	finally:
+		procm.shutdown()
