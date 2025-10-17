@@ -60,6 +60,8 @@ class EngineProcessManager:
 		except ImportError:
 			android = False
 
+		self._config_logger(kwargs)
+
 		match kwargs.pop("sub_mode", self.sub_mode):
 			case Sub.process:
 				self._start_subprocess(*args, **kwargs)
@@ -328,7 +330,6 @@ class EngineProcessManager:
 	def _make_proxy(
 		self, prefix, install_modules=(), enforce_end_of_time=False, **kwargs
 	):
-		self._config_logger(kwargs)
 		branches_d, eternal_d = self._initialize_proxy_db(**kwargs)
 		game_source_code = {}
 		if prefix is not None:
@@ -379,6 +380,7 @@ class EngineProcessManager:
 		n = len(".lisien")
 		if archive_path[-n:] != ".lisien":
 			raise RuntimeError("Not a .lisien archive")
+		self._config_logger(kwargs)
 		match self.sub_mode:
 			case Sub.interpreter:
 				self._start_subinterpreter(prefix, **kwargs)
@@ -386,7 +388,6 @@ class EngineProcessManager:
 				self._start_subprocess(prefix, **kwargs)
 			case Sub.thread:
 				self._start_subthread(prefix, **kwargs)
-		self._config_logger(kwargs)
 		if hasattr(self, "_proxy_in_pipe"):
 			self._handle_out_pipe.send(
 				b"from_archive"
