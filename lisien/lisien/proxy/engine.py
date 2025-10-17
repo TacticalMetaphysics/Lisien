@@ -846,7 +846,6 @@ class EngineProxy(AbstractEngine):
 
 	def _init_pull_from_core(self):
 		self.debug("EngineProxy: Getting time...")
-		self.send({"command": "get_btt"})
 		received = self.recv()
 		self.debug(f"EngineProxy: Got time: {received}")
 		self._branch, self._turn, self._tick = received[-1]
@@ -1002,7 +1001,7 @@ class EngineProxy(AbstractEngine):
 
 		"""
 		then = self._btt()
-		if self._worker or getattr(self, "_mutable_worker", False):
+		if self._worker or getattr(super(EngineProxy, self), "_mutable_worker", False):
 			return
 		if self.closed:
 			raise RuntimeError(f"Already closed: {id(self)}")
@@ -1013,7 +1012,7 @@ class EngineProxy(AbstractEngine):
 		else:
 			raise TypeError("No command")
 		assert not kwargs.get("silent")
-		if hasattr(self, "_replay_file"):
+		if hasattr(super(EngineProxy, self), "_replay_file"):
 			self._replay_file.write(repr_call_sig(cmd, **kwargs) + "\n")
 		start_ts = monotonic()
 		with self._round_trip_lock:
