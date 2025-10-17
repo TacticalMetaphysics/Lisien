@@ -93,7 +93,7 @@ from .types import (
 from .wrap import SpecialMapping
 
 if TYPE_CHECKING:
-	from .collections import FunctionStore
+	from .collections import FunctionStore, AbstractFunctionStore
 	from .rule import Rule, RuleBook
 
 TRUE: bytes = msgpack.packb(True)
@@ -505,11 +505,11 @@ class AbstractEngine(ABC):
 	turn: Turn
 	tick: Tick
 	time: Time
-	function: ModuleType | "FunctionStore"
-	method: ModuleType | "FunctionStore"
-	trigger: ModuleType | "FunctionStore"
-	prereq: ModuleType | "FunctionStore"
-	action: ModuleType | "FunctionStore"
+	function: ModuleType | AbstractFunctionStore
+	method: ModuleType | AbstractFunctionStore
+	trigger: ModuleType | AbstractFunctionStore
+	prereq: ModuleType | AbstractFunctionStore
+	action: ModuleType | AbstractFunctionStore
 	bookmark: AbstractBookmarkMapping
 	_rando: Random
 	_branches_d: dict[

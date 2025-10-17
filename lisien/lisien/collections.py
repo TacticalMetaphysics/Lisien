@@ -35,7 +35,7 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Iterator
 
 import astor
 import networkx as nx
@@ -272,7 +272,27 @@ class StringStore(MutableMapping, Signal):
 		return the_hash.digest()
 
 
-class FunctionStore(Signal):
+class AbstractFunctionStore(ABC):
+	@abstractmethod
+	def save(self, reimport: bool = True) -> None: ...
+
+	@abstractmethod
+	def reimport(self) -> None: ...
+
+	@abstractmethod
+	def iterplain(self) -> Iterator[tuple[str, str]]: ...
+
+	def store_source(self, v: str, name: str | None = None) -> None: ...
+
+	@abstractmethod
+	def get_source(self, name: str) -> str: ...
+
+	@staticmethod
+	def truth(*args):
+		return True
+
+
+class FunctionStore(AbstractFunctionStore, Signal):
 	"""A module-like object that lets you alter its code and save your changes.
 
 	Instantiate it with a path to a file that you want to keep the code in.
@@ -415,7 +435,7 @@ class FunctionStore(Signal):
 		for name, idx in self._ast_idx.items():
 			yield name, astor.to_source(self._ast.body[idx], indent_with="\t")
 
-	def store_source(self, v, name=None):
+	def store_source(self, v: str, name: str | None = None) -> None:
 		self._need_save = True
 		outdented = dedent_source(v)
 		mod = parse(outdented)
@@ -436,10 +456,12 @@ class FunctionStore(Signal):
 		self._locl.update(locl)
 		self.send(self, attr=name, val=locl[name])
 
-	def get_source(self, name):
+	def get_source(self, name: str) -> str:
 		if name == "truth":
 			return "def truth(*args):\n\treturn True"
-		return astor.dump_tree(self._ast.body[self._ast_idx[name]])
+		return astor.code_gen.to_source(
+			self._ast.body[self._ast_idx[name]], indent_with="\t"
+		)
 
 	def blake2b(self) -> bytes:
 		"""Return the blake2b hash digest of the code stored here"""
@@ -457,10 +479,6 @@ class FunctionStore(Signal):
 			)
 			hashed.update(REC_SEP)
 		return hashed.digest()
-
-	@staticmethod
-	def truth(*args):
-		return True
 
 	def __getstate__(self):
 		return self._locl, self._ast, self._ast_idx

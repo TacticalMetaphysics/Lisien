@@ -40,6 +40,7 @@ from .abc import (
 from .character import CharacterProxy, PlaceProxy, ThingProxy, PortalProxy
 
 from ..cache import StructuredDefaultDict, PickyDefaultDict
+from ..collections import AbstractFunctionStore
 from ..exc import (
 	WorkerProcessReadOnlyError,
 	OutOfTimelineError,
@@ -1591,7 +1592,16 @@ class PortalObjCache:
 			del self.predecessors[char]
 
 
-class FuncStoreProxy(Signal):
+class FuncStoreProxy(AbstractFunctionStore, Signal):
+	def save(self, reimport: bool = True) -> None:
+		self.engine.handle("save_code", reimport=reimport)
+
+	def reimport(self) -> None:
+		self.engine.handle("reimport_code")
+
+	def iterplain(self) -> Iterator[tuple[str, str]]:
+		return iter(self._cache.items())
+
 	_cache: dict
 
 	def _worker_check(self):
@@ -1668,10 +1678,6 @@ class FuncStoreProxy(Signal):
 		return self.engine.handle(
 			command="get_source", store=self._store, name=func_name
 		)
-
-	@staticmethod
-	def truth():
-		return True
 
 
 class CharacterMapProxy(MutableMapping, Signal):
