@@ -115,6 +115,8 @@ class StoreList(RecycleView):
 		App.get_running_app()._unbinders.append(self.unbind_all)
 
 	def unbind_all(self):
+		if not hasattr(self.store, "_store"):
+			return
 		binds = App.get_running_app()._bindings
 		for uid in devour(
 			binds["StoreList", self.store._store, "boxl", "selected_nodes"]
