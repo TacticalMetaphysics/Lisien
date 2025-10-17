@@ -388,8 +388,8 @@ class EngineProcessManager:
 				self._start_subprocess(prefix, **kwargs)
 			case Sub.thread:
 				self._start_subthread(prefix, **kwargs)
-		if hasattr(self, "_proxy_in_pipe"):
-			self._handle_out_pipe.send(
+		if hasattr(self, "_proxy_out_pipe"):
+			self._proxy_out_pipe.send_bytes(
 				b"from_archive"
 				+ msgpack.packb(
 					{"archive_path": archive_path, "prefix": prefix, **kwargs}
