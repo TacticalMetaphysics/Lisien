@@ -152,6 +152,7 @@ class ChangeTrackingDict(UserDict):
 
 class StringStore(MutableMapping, Signal):
 	language = LanguageDescriptor()
+	_store = "strings"
 
 	def __init__(
 		self,
@@ -325,6 +326,7 @@ class FunctionStore(AbstractFunctionStore, Signal):
 					"FunctionStore can only work with pure Python source code"
 				)
 			self._filename = os.path.abspath(os.path.realpath(filename))
+			self._store = os.path.basename(self._filename).removesuffix(".py")
 			try:
 				self.reimport()
 			except (FileNotFoundError, ModuleNotFoundError):
