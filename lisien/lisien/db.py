@@ -6613,7 +6613,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self.unpack = unpack
 		self._branches = {}
 		self._btts = set()
-		self._t = Thread(target=self._looper.run, daemon=True)
+		self._t = Thread(target=self._looper.run)
 		self._t.start()
 		if clear:
 			self.truncate_all()
@@ -7727,7 +7727,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self._records = 0
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
-		self._t = Thread(target=self._looper.run, daemon=True)
+		self._t = Thread(target=self._looper.run)
 		self._t.start()
 		if clear:
 			self.truncate_all()
