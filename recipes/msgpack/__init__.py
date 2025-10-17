@@ -2,10 +2,10 @@ from pythonforandroid.recipe import CythonRecipe
 
 
 class MsgPackRecipe(CythonRecipe):
-    version = '1.1.0'
-    url = 'https://files.pythonhosted.org/packages/cb/d0/7555686ae7ff5731205df1012ede15dd9d927f6227ea151e901c7406af4f/msgpack-1.1.0.tar.gz'
-    depends = ["setuptools"]
-    call_hostpython_via_targetpython = False
+	version = "1.1.2"
+	url = "https://files.pythonhosted.org/packages/4d/f2/bfb55a6236ed8725a96b0aa3acbd0ec17588e6a2c3b62a93eb513ed8783f/msgpack-1.1.2.tar.gz"
+	depends = ["setuptools"]
+	call_hostpython_via_targetpython = False
 
 
 recipe = MsgPackRecipe()
