@@ -347,8 +347,8 @@ class EngineProcessManager:
 								funk, indent_with="\t"
 							)
 
-		if hasattr(self, "_handle_in_pipe") and hasattr(
-			self, "_handle_out_pipe"
+		if hasattr(self, "_proxy_in_pipe") and hasattr(
+			self, "_proxy_out_pipe"
 		):
 			self.engine_proxy = EngineProxy(
 				self._proxy_in_pipe.recv_bytes,
