@@ -384,7 +384,7 @@ class EngineProcessManager:
 				self._start_subthread(prefix, **kwargs)
 		self._config_logger(kwargs)
 		if hasattr(self, "_proxy_in_pipe"):
-			self._proxy_in_pipe.send(
+			self._handle_out_pipe.send(
 				b"from_archive"
 				+ msgpack.packb(
 					{"archive_path": archive_path, "prefix": prefix, **kwargs}
@@ -397,7 +397,7 @@ class EngineProcessManager:
 					{"archive_path": archive_path, "prefix": prefix, **kwargs},
 				)
 			)
-		self._make_proxy()
+		self._make_proxy(prefix, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
