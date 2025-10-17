@@ -47,6 +47,7 @@ from kivy.properties import (
 	BooleanProperty,
 	NumericProperty,
 	ObjectProperty,
+	OptionProperty,
 	StringProperty,
 )
 from kivy.resources import resource_find
@@ -58,7 +59,7 @@ from lisien.proxy.character import (
 	PlaceProxy,
 	ThingProxy,
 )
-from lisien.proxy.manager import EngineProcessManager
+from lisien.proxy.manager import EngineProcessManager, Sub
 
 from .graph.arrow import GraphArrow
 from .graph.board import GraphBoard
@@ -89,7 +90,7 @@ class ElideApp(App):
 	games_dir = StringProperty("games")
 	logs_dir = StringProperty(None, allownone=True)
 	game_name = StringProperty("game0")
-	use_thread = BooleanProperty(False)
+	sub_mode = OptionProperty(Sub.interpreter, options=list(Sub))
 	connect_string = StringProperty(None, allownone=True)
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
@@ -450,7 +451,7 @@ class ElideApp(App):
 			os.makedirs(path, exist_ok=True)
 		Logger.debug(f"About to start EngineProcessManager with kwargs={enkw}")
 		self.procman = EngineProcessManager(
-			use_thread=self.use_thread,
+			sub_mode=self.sub_mode,
 		)
 		if archive_path is None:
 			self.engine = engine = self.procman.start(path, **enkw)

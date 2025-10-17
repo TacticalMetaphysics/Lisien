@@ -44,8 +44,6 @@ if __name__ == "__main__":
 		games_dir="games",
 		connect_string=connect_string,
 		logs_dir=logs_dir,
-		workers=0,
-		use_thread=True,
 	)
 	try:
 		app.run()
