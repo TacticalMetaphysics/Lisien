@@ -375,7 +375,13 @@ class EngineProcessManager:
 		n = len(".lisien")
 		if archive_path[-n:] != ".lisien":
 			raise RuntimeError("Not a .lisien archive")
-		self._start_subprocess()
+		match kwargs.pop("sub_mode", self.sub_mode):
+			case Sub.interpreter:
+				self._start_subinterpreter(prefix, **kwargs)
+			case Sub.process:
+				self._start_subprocess(prefix, **kwargs)
+			case Sub.thread:
+				self._start_subthread(prefix, **kwargs)
 		self._config_logger(kwargs)
 		if hasattr(self, "_proxy_in_pipe"):
 			self._proxy_in_pipe.send(
