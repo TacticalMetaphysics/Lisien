@@ -60,7 +60,7 @@ class EngineProcessManager:
 		except ImportError:
 			android = False
 
-		match self.sub_mode:
+		match kwargs.pop("sub_mode", self.sub_mode):
 			case Sub.process:
 				self._start_subprocess(*args, **kwargs)
 			case Sub.thread:
@@ -375,7 +375,7 @@ class EngineProcessManager:
 		n = len(".lisien")
 		if archive_path[-n:] != ".lisien":
 			raise RuntimeError("Not a .lisien archive")
-		match kwargs.pop("sub_mode", self.sub_mode):
+		match self.sub_mode:
 			case Sub.interpreter:
 				self._start_subinterpreter(prefix, **kwargs)
 			case Sub.process:

@@ -2343,6 +2343,7 @@ class Engine(AbstractEngine, Executor):
 	def _start_worker_interpreters(
 		self, prefix: str | os.PathLike | None, workers: int
 	) -> None:
+		self.debug(f"starting {workers} worker interpreters")
 		from concurrent.interpreters import (
 			Interpreter,
 			Queue,
