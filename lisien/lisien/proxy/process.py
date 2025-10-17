@@ -104,7 +104,6 @@ def engine_subprocess(
 			)
 		)
 
-	print("begin subprocess")
 	while True:
 		recvd = input_pipe.recv_bytes()
 		if recvd == b"shutdown":
@@ -115,14 +114,12 @@ def engine_subprocess(
 				log_queue.close()
 			return 0
 		elif recvd.startswith(b"from_archive"):
-			print("from_archive")
 			if engine_handle is not None:
 				engine_handle.close()
 			engine_handle = EngineHandle.from_archive(recvd.removeprefix(b"from_archive"))
 			send_output("get_btt", engine_handle.get_btt())
 			continue
 		elif engine_handle is None:
-			print("making engine handle")
 			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
 			send_output("get_btt", engine_handle.get_btt())
 			continue
