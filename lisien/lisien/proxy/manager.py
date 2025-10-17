@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import ast
+import io
 from enum import Enum
 import logging
 import os
 import pickle
 import sys
 from threading import Thread
+from zipfile import ZipFile
 
 import astor
 import msgpack
@@ -328,20 +331,21 @@ class EngineProcessManager:
 		self._log_thread.start()
 
 	def _make_proxy(
-		self, prefix, install_modules=(), enforce_end_of_time=False, **kwargs
+		self, prefix, install_modules=(), enforce_end_of_time=False, game_source_code: dict[str, str] | None = None, **kwargs
 	):
 		branches_d, eternal_d = self._initialize_proxy_db(**kwargs)
-		game_source_code = {}
-		if prefix is not None:
-			for store in ("function", "method", "trigger", "prereq", "action"):
-				pyfile = os.path.join(prefix, store + ".py")
-				if os.path.exists(pyfile):
-					code = game_source_code[store] = {}
-					parsed = astor.parse_file(pyfile)
-					for funk in parsed.body:
-						code[funk.name] = astor.to_source(
-							funk, indent_with="\t"
-						)
+		if game_source_code is None:
+			game_source_code = {}
+			if prefix is not None:
+				for store in ("function", "method", "trigger", "prereq", "action"):
+					pyfile = os.path.join(prefix, store + ".py")
+					if os.path.exists(pyfile):
+						code = game_source_code[store] = {}
+						parsed = astor.parse_file(pyfile)
+						for funk in parsed.body:
+							code[funk.name] = astor.to_source(
+								funk, indent_with="\t"
+							)
 
 		if hasattr(self, "_handle_in_pipe") and hasattr(
 			self, "_handle_out_pipe"
@@ -380,6 +384,20 @@ class EngineProcessManager:
 		n = len(".lisien")
 		if archive_path[-n:] != ".lisien":
 			raise RuntimeError("Not a .lisien archive")
+		game_code = {}
+		with ZipFile(archive_path) as zf:
+			namelist = zf.namelist()
+			for pypre in ["function", "method", "trigger", "prereq", "action"]:
+				pyfn = pypre + ".py"
+				if pyfn in namelist:
+					code = game_code[pypre] = {}
+					with zf.open(pyfn, "r") as inf:
+						parsed = ast.parse(inf.read().decode("utf-8"), pyfn)
+					funk: ast.FunctionDef
+					for funk in parsed.body:
+						code[funk.name] = astor.to_source(
+							funk, indent_with="\t"
+						)
 		self._config_logger(kwargs)
 		match self.sub_mode:
 			case Sub.interpreter:
@@ -402,7 +420,7 @@ class EngineProcessManager:
 					{"archive_path": archive_path, "prefix": prefix, **kwargs},
 				)
 			)
-		self._make_proxy(prefix, **kwargs)
+		self._make_proxy(prefix, game_source_code=game_code, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
