@@ -90,7 +90,7 @@ def engine_subprocess(
 	args, kwargs, input_pipe, output_pipe, *, log_queue=None
 ):
 	"""Loop to handle one command at a time and pipe results back"""
-	engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
+	engine_handle = None
 
 	def send_output(cmd, r):
 		output_pipe.send_bytes(
