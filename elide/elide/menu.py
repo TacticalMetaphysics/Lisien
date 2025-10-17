@@ -270,8 +270,9 @@ class GameImporterModal(GamePickerModal):
 			return
 		except ImportError:
 			path = App.get_running_app().prefix
-			self._file_chooser = FileChooserIconView(path=path)
-			self.ids.chooser_goes_here.add_widget(self._file_chooser)
+			if not hasattr(self, "_file_chooser"):
+				self._file_chooser = FileChooserIconView(path=path)
+				self.ids.chooser_goes_here.add_widget(self._file_chooser)
 
 
 class GameLoaderModal(GamePickerModal):
