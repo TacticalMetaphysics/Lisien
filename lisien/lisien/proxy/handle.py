@@ -925,7 +925,12 @@ class EngineHandle:
 	def save_code(self, store: FuncStoreName, reimport: bool = True):
 		getattr(self._real, store).save(reimport=reimport)
 
-	def reimport_code(self, store: FuncStoreName):
+	def reimport_code(self, store: FuncStoreName | None = None):
+		if store is None:
+			for store in self._real.stores:
+				if hasattr(store, "reimport"):
+					store.reimport()
+			return
 		getattr(self._real, store).reimport()
 
 	def del_source(self, store: FuncStoreName, k: FuncName) -> None:
