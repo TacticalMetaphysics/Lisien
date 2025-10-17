@@ -311,6 +311,8 @@ class EngineProcessManager:
 
 		self._input_queue: Queue = create_queue()
 		self._output_queue: Queue = create_queue()
+		self._logq: Queue = create_queue()
+		kwargs["log_queue"] = self._logq
 
 		self._terp = create()
 		self._t = self._terp.call_in_thread(
@@ -320,6 +322,8 @@ class EngineProcessManager:
 			self._input_queue,
 			self._output_queue,
 		)
+		self._log_thread = Thread(target=self._sync_log_forever, daemon=True)
+		self._log_thread.start()
 
 	def _make_proxy(
 		self, prefix, install_modules=(), enforce_end_of_time=False, **kwargs
