@@ -65,7 +65,7 @@ class EngineProcessManager:
 
 		self._config_logger(kwargs)
 
-		match kwargs.pop("sub_mode", self.sub_mode):
+		match self.sub_mode:
 			case Sub.process:
 				self._start_subprocess(*args, **kwargs)
 			case Sub.thread:
