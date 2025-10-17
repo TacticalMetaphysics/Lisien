@@ -90,7 +90,7 @@ class ElideApp(App):
 	games_dir = StringProperty("games")
 	logs_dir = StringProperty(None, allownone=True)
 	game_name = StringProperty("game0")
-	sub_mode = OptionProperty(Sub.interpreter, options=list(Sub))
+	sub_mode = OptionProperty(Sub.process, options=list(Sub))
 	connect_string = StringProperty(None, allownone=True)
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
@@ -447,6 +447,8 @@ class ElideApp(App):
 			enkw["workers"] = int(self.workers)
 		elif workers := config["lisien"].get("workers"):
 			enkw["workers"] = int(workers)
+		if sub_mode := config["lisien"].get("sub_mode"):
+			enkw["sub_mode"] = sub_mode
 		if path:
 			os.makedirs(path, exist_ok=True)
 		Logger.debug(f"About to start EngineProcessManager with kwargs={enkw}")
