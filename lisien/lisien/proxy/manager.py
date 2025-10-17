@@ -288,6 +288,7 @@ class EngineProcessManager:
 		self._log_thread.start()
 
 	def _start_subthread(self, *args, **kwargs):
+		self.logger.debug("EngineProcessManager: starting subthread!")
 		from queue import SimpleQueue
 
 		self._input_queue = SimpleQueue()
