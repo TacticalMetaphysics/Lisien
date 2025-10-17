@@ -674,6 +674,7 @@ class EngineProxy(AbstractEngine):
 		trigger: dict = None,
 		prereq: dict = None,
 		action: dict = None,
+		strings: dict = None,
 		enforce_end_of_time: bool = True,
 	):
 		if eternal is None:
@@ -765,6 +766,8 @@ class EngineProxy(AbstractEngine):
 			self.function = FuncStoreProxy(self, "function", initial=function)
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
+			if strings is not None:
+				self.string._cache = strings
 		else:
 			self.debug("EngineProxy: starting worker %d" % worker_index)
 			self._worker = True
