@@ -1004,7 +1004,9 @@ class EngineProxy(AbstractEngine):
 
 		"""
 		then = self._btt()
-		if self._worker or getattr(super(EngineProxy, self), "_mutable_worker", False):
+		if self._worker or getattr(
+			super(EngineProxy, self), "_mutable_worker", False
+		):
 			return
 		if self.closed:
 			raise RuntimeError(f"Already closed: {id(self)}")

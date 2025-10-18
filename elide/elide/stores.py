@@ -133,9 +133,13 @@ class StoreList(RecycleView):
 		if self.store is None or not hasattr(self.store, "_store"):
 			Clock.schedule_once(self.on_boxl, 0)
 			if self.store is None:
-				Logger.debug("StoreList: deferring binding until we have a store")
+				Logger.debug(
+					"StoreList: deferring binding until we have a store"
+				)
 			else:
-				Logger.debug(f"StoreList: deferring binding until we know what {self.store} is for")
+				Logger.debug(
+					f"StoreList: deferring binding until we know what {self.store} is for"
+				)
 			return
 		app = App.get_running_app()
 		if not app:
