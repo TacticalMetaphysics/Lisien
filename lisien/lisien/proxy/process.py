@@ -116,7 +116,9 @@ def engine_subprocess(
 		elif recvd.startswith(b"from_archive"):
 			if engine_handle is not None:
 				engine_handle.close()
-			engine_handle = EngineHandle.from_archive(recvd.removeprefix(b"from_archive"))
+			engine_handle = EngineHandle.from_archive(
+				recvd.removeprefix(b"from_archive")
+			)
 			send_output("get_btt", engine_handle.get_btt())
 			continue
 		elif engine_handle is None:
