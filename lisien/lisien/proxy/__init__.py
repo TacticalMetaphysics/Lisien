@@ -26,4 +26,4 @@ call its ``start`` method with the same arguments you'd give a real
 """
 
 from .handle import EngineHandle
-from .manager import EngineProcessManager
+from .manager import EngineProxyManager

@@ -20,7 +20,7 @@ import pytest
 import lisien.examples.kobold as kobold
 import lisien.examples.polygons as polygons
 from lisien.engine import Engine
-from lisien.proxy.manager import EngineProcessManager
+from lisien.proxy.manager import EngineProxyManager
 from lisien.proxy.handle import EngineHandle
 from lisien.tests import data
 
@@ -174,7 +174,7 @@ def test_thing_place_iter(tmp_path):
 	# set up some world state with things and places, before starting the proxy
 	with Engine(tmp_path, workers=0) as eng:
 		kobold.inittest(eng)
-	manager = EngineProcessManager()
+	manager = EngineProxyManager()
 	engine = manager.start(tmp_path, workers=0)
 	phys = engine.character["physical"]
 	for place_name in phys.place:
@@ -256,7 +256,7 @@ def test_apply_delta(tmp_path, algorithm):
 		else:
 			eng.turn = 0
 			eng.tick = 0
-	mang = EngineProcessManager()
+	mang = EngineProxyManager()
 	try:
 		prox = mang.start(tmp_path, workers=0)
 		assert prox.turn == 0
@@ -290,7 +290,7 @@ def polys(tmp_path):
 
 
 def test_change_triggers(polys):
-	procman = EngineProcessManager()
+	procman = EngineProxyManager()
 	eng = procman.start(polys)
 	relocate = eng.character["triangle"].unit.rule["relocate"]
 	assert list(relocate.triggers) == [

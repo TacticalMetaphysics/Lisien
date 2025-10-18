@@ -25,7 +25,7 @@ from lisien.proxy.handle import EngineHandle
 
 from ..examples import college, kobold, sickle
 from ..proxy.engine import EngineProxy
-from ..proxy.manager import EngineProcessManager
+from ..proxy.manager import EngineProxyManager
 from . import data
 from .util import make_test_engine_facade, make_test_engine_kwargs
 
@@ -201,7 +201,7 @@ def local_or_remote(request):
 def engine(tmp_path, serial_or_parallel, local_or_remote, database):
 	"""Engine or EngineProxy with a subprocess"""
 	if local_or_remote == "remote":
-		procman = EngineProcessManager()
+		procman = EngineProxyManager()
 		with procman.start(
 			**make_test_engine_kwargs(tmp_path, serial_or_parallel, database)
 		) as proxy:

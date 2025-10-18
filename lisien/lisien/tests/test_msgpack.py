@@ -1,5 +1,5 @@
 from lisien import Engine
-from lisien.proxy.manager import EngineProcessManager
+from lisien.proxy.manager import EngineProxyManager
 
 
 def test_serialize_character(sqleng):
@@ -37,7 +37,7 @@ def test_serialize_function(tmp_path):
 		def foo(bar: str, bas: str) -> str:
 			return bar + bas + " is correct"
 
-	procm = EngineProcessManager(workers=0)
+	procm = EngineProxyManager(workers=0)
 	try:
 		engprox = procm.start(tmp_path)
 		funcprox = engprox.function.foo
@@ -55,7 +55,7 @@ def test_serialize_method(tmp_path):
 		def foo(self, bar: str, bas: str) -> str:
 			return bar + bas + " is correct"
 
-	procm = EngineProcessManager()
+	procm = EngineProxyManager()
 	try:
 		engprox = procm.start(tmp_path, workers=0)
 		assert engprox.foo("bar", "bas") == "barbas is correct"

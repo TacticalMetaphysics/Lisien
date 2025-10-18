@@ -4,7 +4,7 @@ import networkx as nx
 import pytest
 
 from lisien import Engine
-from lisien.proxy.manager import EngineProcessManager
+from lisien.proxy.manager import EngineProxyManager
 
 
 @pytest.mark.parquetdb
@@ -14,7 +14,7 @@ def test_follow_path(tmp_path):
 	straightly = nx.shortest_path(big_grid, (0, 0), (99, 99))
 	with Engine(tmp_path) as eng:
 		eng.add_character("grid", big_grid)
-	with EngineProcessManager(tmp_path, workers=0) as prox:
+	with EngineProxyManager(tmp_path, workers=0) as prox:
 		them = prox.character["grid"].thing["them"]
 		start = monotonic()
 		them.follow_path(straightly)
