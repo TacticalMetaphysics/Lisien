@@ -23,6 +23,9 @@ call its ``start`` method with the same arguments you'd give a real
 ``Engine``. You'll get an ``EngineProxy``, which acts like the underlying
 ``Engine`` for most purposes.
 
+``EngineHandle`` is a fairly thin wrapper around a real Lisien ``Engine``
+that exposes all functionality that proxies need in simple methods.
+
 """
 
 from .handle import EngineHandle
