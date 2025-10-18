@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import ast
 import json
+import time
+import zlib
 from enum import Enum
 import logging
 import os
@@ -54,27 +56,27 @@ class EngineProxyManager:
 		self.sub_mode = Sub(sub_mode)
 		self._args = args
 		self._kwargs = kwargs
+		self._top_uid = 0
 
 	def start(self, *args, **kwargs):
 		"""Start lisien in a subprocess, and return a proxy to it"""
 		if hasattr(self, "engine_proxy"):
 			raise RuntimeError("Already started")
-		try:
-			import android
-
-			android = True
-		except ImportError:
-			android = False
 
 		self._config_logger(kwargs)
 
-		match self.sub_mode:
-			case Sub.process:
-				self._start_subprocess(*args, **kwargs)
-			case Sub.thread:
-				self._start_subthread(*args, **kwargs)
-			case Sub.interpreter:
-				self._start_subinterpreter(*args, **kwargs)
+		try:
+			import android
+
+			self._start_osc(*args, **kwargs)
+		except ModuleNotFoundError:
+			match self.sub_mode:
+				case Sub.process:
+					self._start_subprocess(*args, **kwargs)
+				case Sub.thread:
+					self._start_subthread(*args, **kwargs)
+				case Sub.interpreter:
+					self._start_subinterpreter(*args, **kwargs)
 		args = args or self._args
 		kwargs |= self._kwargs
 		if args:
@@ -233,8 +235,13 @@ class EngineProxyManager:
 				self.engine_proxy.send_bytes(b"shutdown")
 				self._p.join(timeout=1)
 			del self.engine_proxy
+		if hasattr(self, "_client"):
+			self._input_queue.put("shutdown")
+			while not self._input_queue.empty():
+				time.sleep(0.01)
 		if hasattr(self, "_server"):
 			self._server.shutdown()
+		self.logger.debug("EngineProxyManager: shutdown")
 
 	def _config_logger(self, kwargs):
 		handlers = []
@@ -298,6 +305,147 @@ class EngineProxyManager:
 
 		self._log_thread = Thread(target=self._sync_log_forever, daemon=True)
 		self._log_thread.start()
+
+	def _start_osc(self, *args, **kwargs):
+		if hasattr(self, "_core_service"):
+			self.logger.info(
+				"EngineProxyManager: reusing existing OSC core service at %s",
+				self._core_service.server_address,
+			)
+			return
+		from queue import SimpleQueue
+		import random
+
+		from android import autoclass
+		from pythonosc.dispatcher import Dispatcher
+		from pythonosc.osc_tcp_server import ThreadingOSCTCPServer
+		from pythonosc.tcp_client import SimpleTCPClient
+
+		low_port = 32000
+		high_port = 65535
+		core_port_queue = SimpleQueue()
+		disp = Dispatcher()
+		disp.map(
+			"/core-report-port", lambda _, port: core_port_queue.put(port)
+		)
+		disp.map("/log", self._handle_log_record)
+		self._output_received = []
+		disp.map("/", self._receive_output)
+		for _ in range(128):
+			procman_port = random.randint(low_port, high_port)
+			try:
+				self._server = ThreadingOSCTCPServer(
+					("127.0.0.1", procman_port), disp
+				)
+				self._server_thread = Thread(target=self._server.serve_forever)
+				self._server_thread.start()
+				self.logger.debug(
+					"EngineProcessManager: started server at port %d",
+					procman_port,
+				)
+				break
+			except OSError:
+				pass
+		else:
+			sys.exit("couldn't get port for process manager")
+
+		mActivity = self._mActivity = autoclass(
+			"org.kivy.android.PythonActivity"
+		).mActivity
+		core_service = self._core_service = autoclass(
+			"org.tacmeta.elide.ServiceCore"
+		)
+		argument = repr(
+			[
+				low_port,
+				high_port,
+				procman_port,
+				args or self._args,
+				kwargs | self._kwargs,
+			]
+		)
+		try:
+			self.logger.debug("EngineProxyManager: starting core...")
+			core_service.start(mActivity, argument)
+		except Exception as ex:
+			self.logger.critical(repr(ex))
+			sys.exit(repr(ex))
+		core_port = core_port_queue.get()
+		self._client = SimpleTCPClient("127.0.0.1", core_port)
+		self.logger.info(
+			"EngineProxyManager: connected to lisien core over OSC at port %d",
+			core_port,
+		)
+
+	def _send_input_forever(self, input_queue):
+		from pythonosc.osc_message_builder import OscMessageBuilder
+
+		assert hasattr(self, "engine_proxy"), (
+			"EngineProxyManager tried to send input with no EngineProxy"
+		)
+		while True:
+			cmd = input_queue.get()
+			msg = zlib.compress(self.engine_proxy.pack(cmd))
+			chunks = len(msg) // 1024
+			if len(msg) % 1024:
+				chunks += 1
+			self.logger.debug(
+				f"EngineProcessManager: about to send {cmd} to core in {chunks} chunks"
+			)
+			for n in range(chunks):
+				builder = OscMessageBuilder("/")
+				builder.add_arg(self._top_uid, OscMessageBuilder.ARG_TYPE_INT)
+				builder.add_arg(chunks, OscMessageBuilder.ARG_TYPE_INT)
+				if n == chunks:
+					builder.add_arg(
+						msg[n * 1024 :], OscMessageBuilder.ARG_TYPE_BLOB
+					)
+				else:
+					builder.add_arg(
+						msg[n * 1024 : (n + 1) * 1024],
+						OscMessageBuilder.ARG_TYPE_BLOB,
+					)
+				built = builder.build()
+				self._client.send(built)
+				self.logger.debug(
+					"EngineProcessManager: sent the %d-byte chunk %d of message %d to %s",
+					len(built.dgram),
+					n,
+					self._top_uid,
+					built.address,
+				)
+			self.logger.debug(
+				"EngineProcessManager: sent %d bytes of %s",
+				len(msg),
+				cmd.get("command", "???"),
+			)
+			if cmd == "close":
+				self.logger.debug("EngineProcessManager: closing input loop")
+				return
+
+	def _receive_output(self, _, uid: int, chunks: int, msg: bytes) -> None:
+		if uid != self._top_uid:
+			self.logger.error(
+				"EngineProcessManager: expected uid %d, got uid %d",
+				self._top_uid,
+				uid,
+			)
+		self.logger.debug(
+			"EngineProcessManager: received %d bytes of the %dth chunk out of %d for uid %d",
+			len(msg),
+			len(self._output_received),
+			chunks,
+			uid,
+		)
+		self._output_received.append(msg)
+		if len(self._output_received) == chunks:
+			self._output_queue.put(
+				self.engine_proxy.unpack(
+					zlib.decompress(b"".join(self._output_received))
+				)
+			)
+			self._top_uid += 1
+			self._output_received = []
 
 	def _start_subthread(self, *args, **kwargs):
 		self.logger.debug("EngineProcessManager: starting subthread!")
@@ -399,6 +547,13 @@ class EngineProxyManager:
 				strings=game_strings,
 				**game_source_code,
 			)
+			if hasattr(self, "_mActivity"):  # we're on Android
+				self._input_sender_thread = Thread(
+					target=self._send_input_forever,
+					args=[self._input_queue],
+					daemon=True,
+				)
+				self._input_sender_thread.start()
 
 		return self.engine_proxy
 
@@ -427,13 +582,18 @@ class EngineProxyManager:
 							funk, indent_with="\t"
 						)
 		self._config_logger(kwargs)
-		match self.sub_mode:
-			case Sub.interpreter:
-				self._start_subinterpreter(prefix, **kwargs)
-			case Sub.process:
-				self._start_subprocess(prefix, **kwargs)
-			case Sub.thread:
-				self._start_subthread(prefix, **kwargs)
+		try:
+			import android
+
+			self._start_osc(prefix, **kwargs)
+		except ModuleNotFoundError:
+			match self.sub_mode:
+				case Sub.interpreter:
+					self._start_subinterpreter(prefix, **kwargs)
+				case Sub.process:
+					self._start_subprocess(prefix, **kwargs)
+				case Sub.thread:
+					self._start_subthread(prefix, **kwargs)
 		if hasattr(self, "_proxy_out_pipe"):
 			self._proxy_out_pipe.send_bytes(
 				b"from_archive"
@@ -452,8 +612,22 @@ class EngineProxyManager:
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
+	def close(self):
+		self.shutdown()
+		if hasattr(self, "_client"):
+			self._client.send_message("127.0.0.1/shutdown")
+			self.logger.debug(
+				"EngineProxyManager: joining input sender thread"
+			)
+			self._input_sender_thread.join()
+			self.logger.debug("EngineProxyManager: joined input sender thread")
+			self.logger.debug("EngineProxyManager: stopping core service")
+			self._core_service.stop()
+			self.logger.debug("EngineProxyManager: stopped core service")
+		self.logger.debug("EngineProxyManager: closed")
+
 	def __enter__(self):
 		return self.start()
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.shutdown()
+		self.close()
