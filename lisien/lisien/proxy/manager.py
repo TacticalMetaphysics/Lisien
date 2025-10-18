@@ -368,10 +368,10 @@ class EngineProxyManager:
 		if game_strings is None:
 			if os.path.isdir(os.path.join(prefix, "strings")):
 				lang = eternal_d.get(EternalKey(Key("language")), "eng")
-				with open(
-					os.path.join(prefix, "strings", str(lang) + ".json")
-				) as inf:
-					game_strings = json.load(inf)
+				jsonpath = os.path.join(prefix, "strings", str(lang) + ".json")
+				if os.path.isfile(jsonpath):
+					with open(jsonpath) as inf:
+						game_strings = json.load(inf)
 
 		if hasattr(self, "_proxy_in_pipe") and hasattr(
 			self, "_proxy_out_pipe"
