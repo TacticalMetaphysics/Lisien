@@ -36,6 +36,7 @@ if __name__ == "__main__":
 	freeze_support()
 	from kivy.logger import Logger
 	from elide.app import ElideApp
+	from lisien.proxy.manager import Sub
 
 	Logger.setLevel(10)
 
@@ -44,6 +45,7 @@ if __name__ == "__main__":
 		games_dir="games",
 		connect_string=connect_string,
 		logs_dir=logs_dir,
+		sub_mode=Sub.thread
 	)
 	try:
 		app.run()
