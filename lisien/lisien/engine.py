@@ -2380,6 +2380,7 @@ class Engine(AbstractEngine, Executor):
 			logthread = Thread(
 				target=self._sync_log_forever, args=(logq,), daemon=True
 			)
+			logthread.start()
 			terp: Interpreter = create()
 			wi.append(input)
 			wo.append(output)
