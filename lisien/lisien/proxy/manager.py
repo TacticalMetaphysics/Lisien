@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import io
 import json
 from enum import Enum
 import logging
