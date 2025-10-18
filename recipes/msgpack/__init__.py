@@ -1,5 +1,3 @@
-import os
-
 from pythonforandroid.recipe import CythonRecipe
 
 
@@ -11,9 +9,6 @@ class MsgPackRecipe(CythonRecipe):
 
 	def apply_patches(self, arch, build_dir=None):
 		build_dir = build_dir if build_dir else self.get_build_dir(arch.arch)
-		fallback_py = os.path.join(build_dir, "msgpack", "fallback.py")
-		if os.path.exists(fallback_py):
-			os.remove(fallback_py)
 		super().apply_patches(arch, build_dir)
 
 
