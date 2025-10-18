@@ -87,7 +87,7 @@ class EngineProxyManager:
 		if hasattr(self, "_proxy_out_pipe"):
 			self._proxy_out_pipe.send_bytes(b"")
 		else:
-			self._output_queue.put(None)
+			self._input_queue.put(None)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
