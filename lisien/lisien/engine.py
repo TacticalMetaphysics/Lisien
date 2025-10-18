@@ -2351,7 +2351,7 @@ class Engine(AbstractEngine, Executor):
 			create,
 			create_queue,
 		)
-		import lisien.proxy.thread
+		import lisien.proxy.interpreter
 
 		for store in self.stores:
 			if hasattr(store, "save"):
@@ -2392,7 +2392,7 @@ class Engine(AbstractEngine, Executor):
 				target=terp.call,
 				name=f"lisien worker {i}",
 				args=(
-					lisien.proxy.thread.worker_subthread,
+					lisien.proxy.interpreter.worker_subinterpreter,
 					sys.path,
 					i,
 					self._prefix,

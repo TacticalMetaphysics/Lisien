@@ -1,4 +1,4 @@
-def worker_subthread(
+def worker_subinterpreter(
 	sys_path,
 	i,
 	prefix: str,
