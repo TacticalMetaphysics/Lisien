@@ -35,9 +35,12 @@ class EngineProcessManager:
 	when you're done with the :class:`lisien.proxy.EngineProxy`. That way,
 	we can join the thread that listens to the subprocess's logs.
 
-	:param sub_mode: What form the subprocess should take, ``Sub.process`` by
-	default. ``Sub.thread`` is more widely available, but doesn't allow
-	true parallelism. On Python 3.14 and later, ``Sub.interpreter`` is available.
+	:param sub_mode: What form the subprocess should take. ``Sub.thread``
+	is the most widely available, and is therefore the default, but doesn't
+	allow true parallelism unless you're running a GIL-less build of Python.
+	``Sub.process`` does allow true parallelism, but isn't available on Android.
+	``Sub.interpreter`` is, and allows true parallelism as well, but is only
+	available on Python 3.14 or later.
 
 	"""
 
@@ -46,7 +49,7 @@ class EngineProcessManager:
 	def __init__(
 		self,
 		*args,
-		sub_mode: Sub = Sub.process,
+		sub_mode: Sub = Sub.thread,
 		**kwargs,
 	):
 		self.sub_mode = Sub(sub_mode)
