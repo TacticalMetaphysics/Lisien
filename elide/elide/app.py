@@ -59,7 +59,7 @@ from lisien.proxy.character import (
 	PlaceProxy,
 	ThingProxy,
 )
-from lisien.proxy.manager import EngineProcessManager, Sub
+from lisien.proxy.manager import EngineProxyManager, Sub
 
 from .graph.arrow import GraphArrow
 from .graph.board import GraphBoard
@@ -452,7 +452,7 @@ class ElideApp(App):
 		if path:
 			os.makedirs(path, exist_ok=True)
 		Logger.debug(f"About to start EngineProcessManager with kwargs={enkw}")
-		self.procman = EngineProcessManager(
+		self.procman = EngineProxyManager(
 			sub_mode=self.sub_mode,
 		)
 		if archive_path is None:

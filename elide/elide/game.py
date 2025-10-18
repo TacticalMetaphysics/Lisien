@@ -258,7 +258,7 @@ class GameApp(App):
 
 	@logwrap(section="GameApp")
 	def build(self):
-		self.procman = lisien.proxy.manager.EngineProcessManager()
+		self.procman = lisien.proxy.manager.EngineProxyManager()
 		self.engine = self.procman.start(
 			self.prefix,
 			logger=Logger,
