@@ -32,6 +32,7 @@ from collections import UserDict, defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
+import contextvars
 from functools import cached_property, partial, wraps
 from multiprocessing import get_all_start_methods
 from io import TextIOWrapper
@@ -2350,6 +2351,7 @@ class Engine(AbstractEngine, Executor):
 			create,
 			create_queue,
 		)
+		import lisien.proxy.thread
 
 		for store in self.stores:
 			if hasattr(store, "save"):
@@ -2378,7 +2380,7 @@ class Engine(AbstractEngine, Executor):
 			logthread = Thread(
 				target=self._sync_log_forever, args=(logq,), daemon=True
 			)
-			terp = create()
+			terp: Interpreter = create()
 			wi.append(input)
 			wo.append(output)
 			wlq.append(logq)
@@ -2386,15 +2388,24 @@ class Engine(AbstractEngine, Executor):
 			wlk.append(lock)
 			wlt.append(logthread)
 			wint.append(terp)
-			wt.append(
-				terp.call_in_thread(
-					worker_subprocess,
-					*self._build_worker_args(prefix, i),
+			thred = Thread(
+				target=terp.call,
+				name=f"lisien worker {i}",
+				args=(
+					lisien.proxy.thread.worker_subthread,
+					sys.path,
+					i,
+					self._prefix,
+					dict(self._branches_d),
+					dict(self.eternal),
 					input,
 					output,
 					logq,
-				)
+				),
+				context=contextvars.copy_context(),
 			)
+			thred.start()
+			wt.append(thred)
 			with lock:
 				input.put(initial_payload)
 		if hasattr(self.trigger, "connect"):
