@@ -2076,7 +2076,7 @@ class Engine(AbstractEngine, Executor):
 		keyframe_on_close: bool = True,
 		enforce_end_of_time: bool = True,
 		logger: Optional[Logger] = None,
-		workers: Optional[int | list[int]] = None,
+		workers: Optional[int] = None,
 		sub_mode: Sub | None = None,
 	):
 		if workers is None:
