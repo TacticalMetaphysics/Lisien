@@ -46,6 +46,7 @@ class EngineProxyManager:
 	"""
 
 	loglevel = logging.DEBUG
+	android = False
 
 	def __init__(
 		self,
@@ -65,11 +66,9 @@ class EngineProxyManager:
 
 		self._config_logger(kwargs)
 
-		try:
-			import android
-
+		if self.android:
 			self._start_osc(*args, **kwargs)
-		except ModuleNotFoundError:
+		else:
 			match self.sub_mode:
 				case Sub.process:
 					self._start_subprocess(*args, **kwargs)

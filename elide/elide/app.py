@@ -97,6 +97,7 @@ class ElideApp(App):
 	character_name = ObjectProperty()
 	closed = BooleanProperty(True)
 	stopped = BooleanProperty(False)
+	android = BooleanProperty(False)
 
 	@cached_property
 	def _bindings(self) -> dict[tuple, set[int]]:
@@ -458,6 +459,7 @@ class ElideApp(App):
 		self.procman = EngineProxyManager(
 			sub_mode=self.sub_mode,
 		)
+		self.procman.android = self.android
 		if archive_path is None:
 			self.engine = engine = self.procman.start(path, **enkw)
 		else:
