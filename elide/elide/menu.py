@@ -119,8 +119,8 @@ class WorldStartConfigurator(BoxLayout):
 		def select_txt(btn):
 			self.generator_dropdown.select(btn.text)
 
-		for opt in ["None", "Grid"]:
-			btn = GeneratorButton(text=opt)
+		for opt in self.generator_options:
+			btn = GeneratorButton(text=opt.capitalize())
 			binds_on_release = binds[
 				"WorldStartConfigurator",
 				"generator_dropdown",
@@ -145,10 +145,16 @@ class WorldStartConfigurator(BoxLayout):
 
 	def unbind_all(self):
 		binds = App.get_running_app()._bindings
-		for uid in devour(
-			binds["WorldStartConfigurator", "generator_dropdown", "on_release"]
-		):
-			self._buttons_bound[uid].unbind_uid("on_release", uid)
+		for opt in self.generator_options:
+			for uid in devour(
+				binds[
+					"WorldStartConfigurator",
+					"generator_dropdown",
+					"on_release",
+					opt,
+				]
+			):
+				self._buttons_bound[uid].unbind_uid("on_release", uid)
 		for uid in devour(
 			binds["WorldStartConfigurator", "generator_dropdown", "on_select"]
 		):
