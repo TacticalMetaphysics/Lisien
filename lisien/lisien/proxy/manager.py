@@ -555,7 +555,7 @@ class EngineProxyManager:
 			if self.android:
 				self._input_sender_thread = Thread(
 					target=self._send_input_forever,
-					args=[self._input_queue],
+					args=[self._output_queue],
 					daemon=True,
 				)
 				self._input_sender_thread.start()
