@@ -2128,6 +2128,9 @@ class Engine(AbstractEngine, Executor):
 			match sub_mode:
 				case Sub.interpreter if sys.version_info[1] >= 14:
 					self._start_worker_interpreters(prefix, workers)
+					self.debug(
+						f"started {workers} worker interpreters successfully"
+					)
 				case Sub.process:
 					self._start_worker_processes(prefix, workers)
 				case Sub.thread:
@@ -2136,6 +2139,10 @@ class Engine(AbstractEngine, Executor):
 					if sys.version_info[1] >= 14:
 						try:
 							self._start_worker_interpreters(prefix, workers)
+							self.debug(
+								f"started {workers} worker interpreters successfully"
+							)
+							self.debug("engine ready")
 							return
 						except ModuleNotFoundError:
 							pass
@@ -2143,6 +2150,7 @@ class Engine(AbstractEngine, Executor):
 						self._start_worker_processes(prefix, workers)
 					else:
 						self._start_worker_threads(prefix, workers)
+		self.debug("engine ready")
 
 	def _init_func_stores(
 		self,
@@ -2409,13 +2417,18 @@ class Engine(AbstractEngine, Executor):
 			wt.append(thred)
 			with lock:
 				input.put(initial_payload)
+		self.debug(f"all {i + 1} worker interpreters have started")
 		if hasattr(self.trigger, "connect"):
 			self.trigger.connect(self._reimport_trigger_functions)
 		if hasattr(self.function, "connect"):
 			self.function.connect(self._reimport_worker_functions)
 		if hasattr(self.method, "connect"):
 			self.method.connect(self._reimport_worker_methods)
+		self.debug(
+			"connected function stores to reimporters; setting up fut_manager"
+		)
 		self._setup_fut_manager(workers)
+		self.debug("fut_manager started")
 
 	def _build_worker_args(
 		self, prefix: str | os.PathLike | None, i: int

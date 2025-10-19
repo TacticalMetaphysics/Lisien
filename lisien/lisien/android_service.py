@@ -195,6 +195,7 @@ def core_server(
 		logger=logger,
 		**kwargs,
 	)
+	hand.debug("started engine handle in core_server")
 
 	is_shutdown = Event()
 

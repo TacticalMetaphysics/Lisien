@@ -154,6 +154,7 @@ class EngineHandle:
 			handler = EngineHandleLogHandler(0, log_queue)
 			logger.addHandler(handler)
 		self._real = Engine(*args, **kwargs)
+		self.debug("started engine in a handle")
 		self.pack = pack = self._real.pack
 
 		def pack_pair(pair):
@@ -164,7 +165,9 @@ class EngineHandle:
 		self.unpack = self._real.unpack
 
 		if do_game_start:
+			self.debug("starting game...")
 			self.do_game_start()
+			self.debug("game started")
 
 	@classmethod
 	def from_archive(cls, b: bytes | dict) -> EngineHandle:
