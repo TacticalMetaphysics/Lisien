@@ -5742,9 +5742,13 @@ class Engine(AbstractEngine, Executor):
 		"""Return myself. For compatibility with ``with`` semantics."""
 		return self
 
-	def __exit__(self, *args):
-		"""Close on exit."""
-		self.close()
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		super().__exit__(exc_type, exc_val, exc_tb)
+		try:
+			self.close()
+		finally:
+			if exc_val:
+				raise exc_val
 
 	def _handled_char(
 		self,
