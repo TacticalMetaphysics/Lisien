@@ -323,6 +323,8 @@ class EngineProxyManager:
 		low_port = 32000
 		high_port = 65535
 		core_port_queue = SimpleQueue()
+		self._input_queue = SimpleQueue()
+		self._output_queue = SimpleQueue()
 		disp = Dispatcher()
 		disp.map(
 			"/core-report-port", lambda _, port: core_port_queue.put(port)
