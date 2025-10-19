@@ -948,7 +948,9 @@ class EngineProxy(AbstractEngine):
 		if hasattr(self.trigger, "reimport"):
 			self.trigger.reimport()
 
-	def _reimport_code(self, stores: list[str]) -> None:
+	def _reimport_code(self, stores: list[str] | None = None) -> None:
+		if stores is None:
+			stores = ["function", "method", "trigger", "prereq", "action"]
 		for store_name in stores:
 			store = getattr(self, store_name)
 			store.reimport()
@@ -1306,6 +1308,8 @@ class EngineProxy(AbstractEngine):
 				self._replace_funcs_pkl(**to_replace_pkl)
 			if to_replace_plain:
 				self._replace_funcs_plain(**to_replace_plain)
+		elif self._worker:
+			self._reimport_code()
 		else:
 			self._save_and_reimport_all_code()
 		self._upd_caches(*args, **kwargs)
