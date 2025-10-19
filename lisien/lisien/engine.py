@@ -5885,18 +5885,22 @@ class Engine(AbstractEngine, Executor):
 		else:
 			raise RuntimeError("No workers")
 		for i in range(n):
-			if not clobber:
-				branch_from, turn_from, tick_from = self._worker_updated_btts[
-					i
-				]
-				if (branch_from, turn_from, tick_from) == self._btt():
-					continue
+			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+			if (
+				not clobber
+				and (branch_from, turn_from, tick_from) == self._btt()
+			):
+				continue
 			input = self._worker_inputs[i]
 			if hasattr(input, "send_bytes"):
 				put = input.send_bytes
 			else:
 				put = input.put
-			if not clobber and branch_from == self.branch:
+			if clobber or branch_from != self.branch:
+				if kf_payload is None:
+					kf_payload = self._get_worker_kf_payload()
+				put(kf_payload)
+			else:
 				old_eternal = self._worker_last_eternal
 				new_eternal = self._worker_last_eternal = dict(
 					self.eternal.items()
@@ -5953,10 +5957,6 @@ class Engine(AbstractEngine, Executor):
 				)
 
 				put(argbytes)
-			else:
-				if kf_payload is None:
-					kf_payload = self._get_worker_kf_payload()
-				put(kf_payload)
 			self._worker_updated_btts[i] = self._btt()
 			self.debug(
 				"Updated all worker process states at "
