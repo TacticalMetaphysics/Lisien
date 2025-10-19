@@ -238,8 +238,8 @@ class EngineProxyManager:
 				self._p.join(timeout=1)
 			del self.engine_proxy
 		if hasattr(self, "_client"):
-			self._input_queue.put("shutdown")
-			while not self._input_queue.empty():
+			self._output_queue.put(b"shutdown")
+			while not self._output_queue.empty():
 				time.sleep(0.01)
 		if hasattr(self, "_server"):
 			self._server.shutdown()
@@ -464,8 +464,8 @@ class EngineProxyManager:
 			args=(
 				args or self._args,
 				self._kwargs | kwargs,
-				self._input_queue,
 				self._output_queue,
+				self._input_queue,
 			),
 		)
 		self._t.start()
@@ -606,7 +606,7 @@ class EngineProxyManager:
 				)
 			)
 		else:
-			self._input_queue.put(
+			self._output_queue.put(
 				(
 					"from_archive",
 					{"archive_path": archive_path, "prefix": prefix, **kwargs},
