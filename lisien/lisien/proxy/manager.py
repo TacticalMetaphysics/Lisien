@@ -91,7 +91,7 @@ class EngineProxyManager:
 		if hasattr(self, "_proxy_out_pipe"):
 			self._proxy_out_pipe.send_bytes(GET_TIME)
 		else:
-			self._input_queue.put({"command": "get_time"})
+			self._output_queue.put(GET_TIME)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
