@@ -17,7 +17,7 @@ import msgpack
 import tblib
 
 from .engine import EngineProxy
-from .process import engine_subprocess, engine_subthread
+from .routine import engine_subprocess, engine_subthread
 from ..types import EternalKey, Value, Tick, Turn, Branch, Key
 
 
@@ -297,10 +297,8 @@ class EngineProxyManager:
 				self._kwargs | kwargs,
 				self._handle_in_pipe,
 				self._handle_out_pipe,
+				self._logq,
 			),
-			kwargs={
-				"log_queue": self._logq,
-			},
 		)
 		self._p.start()
 
@@ -464,6 +462,7 @@ class EngineProxyManager:
 				self._kwargs | kwargs,
 				self._output_queue,
 				self._input_queue,
+				None,
 			),
 		)
 		self._t.start()

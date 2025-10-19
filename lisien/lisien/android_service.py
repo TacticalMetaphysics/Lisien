@@ -35,7 +35,7 @@ from pythonosc.tcp_client import SimpleTCPClient
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_message_builder import OscMessageBuilder
 
-from lisien.proxy.process import _engine_subroutine_step, _finish_packing
+from lisien.proxy.routine import _engine_subroutine_step, _finish_packing
 from lisien.proxy.handle import EngineHandle
 
 
