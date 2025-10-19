@@ -104,7 +104,8 @@ class GeneratorButton(Button):
 class WorldStartConfigurator(BoxLayout):
 	"""Give options for how to initialize the world state"""
 
-	generator_type = OptionProperty("none", options=["none", "grid"])
+	generator_options = ["none", "grid"]
+	generator_type = OptionProperty("none", options=generator_options)
 	dismiss = ObjectProperty()
 	init_board = ObjectProperty()
 
@@ -457,7 +458,17 @@ class NewGameModal(ModalView):
 			)
 		else:
 			app.start_game(name=game_name)
-		app.select_character(app.engine.character["physical"])
+		if app.character_name:
+			if app.character_name in app.engine.character:
+				app.select_character(app.engine.character_name)
+			else:
+				app.select_character(
+					app.engine.new_character(app.character_name)
+				)
+		elif "physical" in app.engine.character:
+			app.select_character(app.engine.character["physical"])
+		else:
+			app.select_character(app.engine.new_character("physical"))
 		self.dismiss()
 
 
