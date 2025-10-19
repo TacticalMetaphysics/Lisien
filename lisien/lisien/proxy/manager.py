@@ -340,7 +340,7 @@ class EngineProxyManager:
 				self._server_thread = Thread(target=self._server.serve_forever)
 				self._server_thread.start()
 				self.logger.debug(
-					"EngineProcessManager: started server at port %d",
+					"EngineProxyManager: started server at port %d",
 					procman_port,
 				)
 				break
@@ -390,7 +390,7 @@ class EngineProxyManager:
 			if len(msg) % 1024:
 				chunks += 1
 			self.logger.debug(
-				f"EngineProcessManager: about to send {cmd} to core in {chunks} chunks"
+				f"EngineProxyManager: about to send {cmd} to core in {chunks} chunks"
 			)
 			for n in range(chunks):
 				builder = OscMessageBuilder("/")
@@ -408,30 +408,30 @@ class EngineProxyManager:
 				built = builder.build()
 				self._client.send(built)
 				self.logger.debug(
-					"EngineProcessManager: sent the %d-byte chunk %d of message %d to %s",
+					"EngineProxyManager: sent the %d-byte chunk %d of message %d to %s",
 					len(built.dgram),
 					n,
 					self._top_uid,
 					built.address,
 				)
 			self.logger.debug(
-				"EngineProcessManager: sent %d bytes of %s",
+				"EngineProxyManager: sent %d bytes of %s",
 				len(msg),
 				cmd.get("command", "???"),
 			)
 			if cmd == "close":
-				self.logger.debug("EngineProcessManager: closing input loop")
+				self.logger.debug("EngineProxyManager: closing input loop")
 				return
 
 	def _receive_output(self, _, uid: int, chunks: int, msg: bytes) -> None:
 		if uid != self._top_uid:
 			self.logger.error(
-				"EngineProcessManager: expected uid %d, got uid %d",
+				"EngineProxyManager: expected uid %d, got uid %d",
 				self._top_uid,
 				uid,
 			)
 		self.logger.debug(
-			"EngineProcessManager: received %d bytes of the %dth chunk out of %d for uid %d",
+			"EngineProxyManager: received %d bytes of the %dth chunk out of %d for uid %d",
 			len(msg),
 			len(self._output_received),
 			chunks,
@@ -448,7 +448,7 @@ class EngineProxyManager:
 			self._output_received = []
 
 	def _start_subthread(self, *args, **kwargs):
-		self.logger.debug("EngineProcessManager: starting subthread!")
+		self.logger.debug("EngineProxyManager: starting subthread!")
 		from queue import SimpleQueue
 
 		self._input_queue = SimpleQueue()
