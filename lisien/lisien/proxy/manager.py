@@ -569,8 +569,7 @@ class EngineProxyManager:
 		**kwargs,
 	) -> EngineProxy:
 		"""Load a game from a .lisien archive, start Lisien on it, and return its proxy"""
-		n = len(".lisien")
-		if archive_path[-n:] != ".lisien":
+		if not archive_path.endswith(".lisien"):
 			raise RuntimeError("Not a .lisien archive")
 		game_code = {}
 		with ZipFile(archive_path) as zf:
