@@ -90,10 +90,17 @@ def kivy():
 		stopTouchApp()
 
 
-def make_elide_app(play_dir, **kwargs):
+def make_elide_app(
+	play_dir, immediate_start=True, character_name="physical", **kwargs
+):
 	Builder.load_file(resource_find("elide.kv"))
 	return ElideApp(
-		prefix=play_dir, games_dir="games", game_name="test", **kwargs
+		prefix=play_dir,
+		games_dir="games",
+		game_name="test",
+		character_name=character_name,
+		immediate_start=immediate_start,
+		**kwargs,
 	)
 
 
