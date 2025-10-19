@@ -552,7 +552,7 @@ class EngineProxyManager:
 				strings=game_strings,
 				**game_source_code,
 			)
-			if hasattr(self, "_mActivity"):  # we're on Android
+			if self.android:
 				self._input_sender_thread = Thread(
 					target=self._send_input_forever,
 					args=[self._input_queue],
