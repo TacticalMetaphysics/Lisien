@@ -460,8 +460,6 @@ class FunctionStore(AbstractFunctionStore, Signal):
 		self.send(self, attr=name, val=locl[name])
 
 	def get_source(self, name: str) -> str:
-		if name == "truth":
-			return "def truth(*args):\n\treturn True"
 		return astor.code_gen.to_source(
 			self._ast.body[self._ast_idx[name]], indent_with="\t"
 		)
@@ -488,6 +486,17 @@ class FunctionStore(AbstractFunctionStore, Signal):
 
 	def __setstate__(self, state):
 		self._locl, self._ast, self._ast_idx = state
+
+
+class TriggerStore(FunctionStore):
+	def get_source(self, name: str) -> str:
+		if name == "truth":
+			return "def truth(*args):\n\treturn True"
+		return super().get_source(name)
+
+	@staticmethod
+	def truth(*args):
+		return True
 
 
 class UniversalMapping(MutableMapping, Signal):

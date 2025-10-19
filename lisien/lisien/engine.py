@@ -94,6 +94,7 @@ from .collections import (
 	ChangeTrackingDict,
 	CharacterMapping,
 	FunctionStore,
+	TriggerStore,
 	StringStore,
 	UniversalMapping,
 )
@@ -2172,10 +2173,18 @@ class Engine(AbstractEngine, Executor):
 		action: ModuleType | FunctionStore,
 		clear: bool,
 	):
+		if isinstance(trigger, ModuleType):
+			self.trigger = trigger
+		elif prefix is None:
+			self.trigger = FunctionStore(None, module="trigger")
+		else:
+			fn = os.path.join(prefix, "trigger.py")
+			self.trigger = TriggerStore(fn, module="trigger")
+			if clear and os.path.exists(fn):
+				os.remove(fn)
 		for module, name in (
 			(function, "function"),
 			(method, "method"),
-			(trigger, "trigger"),
 			(prereq, "prereq"),
 			(action, "action"),
 		):
