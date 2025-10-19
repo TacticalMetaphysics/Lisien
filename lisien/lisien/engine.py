@@ -2420,6 +2420,11 @@ class Engine(AbstractEngine, Executor):
 			thred.start()
 			wt.append(thred)
 			with lock:
+				input.put(b"echoImReady")
+				if (echoed := output.get(timeout=5.0)) != b"ImReady":
+					raise RuntimeError(
+						f"Got garbled output from worker terp {i}", echoed
+					)
 				input.put(initial_payload)
 		self.debug(f"all {i + 1} worker interpreters have started")
 		if hasattr(self.trigger, "connect"):
@@ -2485,6 +2490,11 @@ class Engine(AbstractEngine, Executor):
 			logthread.start()
 			thred.start()
 			with wlk[-1]:
+				inq.put(b"echoImReady")
+				if (echoed := outq.get(timeout=5.0)) != b"ImReady":
+					raise RuntimeError(
+						f"Got garbled output from worker {i}", echoed
+					)
 				inq.put(initial_payload)
 
 		self._setup_fut_manager(workers)
@@ -2544,6 +2554,15 @@ class Engine(AbstractEngine, Executor):
 			logthread.start()
 			proc.start()
 			with wlk[-1]:
+				inpipe_here.send_bytes(b"echoImReady")
+				if not outpipe_here.poll(5.0):
+					raise TimeoutError(
+						f"Couldn't connect to worker process {i} in 5s"
+					)
+				if (received := outpipe_here.recv_bytes()) != b"ImReady":
+					raise RuntimeError(
+						f"Got garbled output from worker process {i}", received
+					)
 				inpipe_here.send_bytes(initial_payload)
 		if hasattr(self.trigger, "connect"):
 			self.trigger.connect(self._reimport_trigger_functions)

@@ -55,6 +55,9 @@ def worker_subroutine(
 				logq.close()
 			send_output_bytes(b"done")
 			return 0
+		if inst.startswith(b"echo"):
+			send_output_bytes(inst.removeprefix(b"echo"))
+			continue
 		uid = int.from_bytes(inst[:8], "little")
 		(method, args, kwargs) = unpack(inst[8:])
 		if isinstance(method, str):
@@ -195,6 +198,9 @@ def engine_subroutine(
 		recvd = get_input_bytes()
 		if recvd == b"shutdown":
 			return 0
+		if recvd.startswith(b"echo"):
+			send_output_bytes(recvd.removeprefix(b"echo"))
+			continue
 		if recvd.startswith(b"from_archive"):
 			if engine_handle is not None:
 				engine_handle.close()
