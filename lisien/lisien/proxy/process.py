@@ -166,14 +166,14 @@ def _engine_subroutine_step(
 
 def engine_subthread(args, kwargs, input_queue, output_queue):
 	def send_output(cmd, r):
-		output_queue.put((cmd, *engine_handle._real.time, r))
+		output_queue.put(
+			engine_handle.pack((cmd, *engine_handle._real.time, r))
+		)
 
 	def send_output_bytes(cmd, r):
 		output_queue.put(
-			engine_handle.unpack(
-				_finish_packing(
-					engine_handle.pack, cmd, *engine_handle._real.time, r
-				)
+			_finish_packing(
+				engine_handle.pack, cmd, *engine_handle._real.time, r
 			)
 		)
 
@@ -196,5 +196,8 @@ def engine_subthread(args, kwargs, input_queue, output_queue):
 			send_output("get_btt", engine_handle.get_btt())
 			continue
 		_engine_subroutine_step(
-			engine_handle, instruction, send_output, send_output_bytes
+			engine_handle,
+			engine_handle.unpack(instruction),
+			send_output,
+			send_output_bytes,
 		)
