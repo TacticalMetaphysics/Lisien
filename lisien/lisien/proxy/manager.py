@@ -333,8 +333,8 @@ class EngineProxyManager:
 			"/core-report-port", lambda _, port: core_port_queue.put(port)
 		)
 		disp.map("/log", self._handle_log_record)
-		self._output_received = []
-		disp.map("/", self._receive_output)
+		self._input_received = []
+		disp.map("/", self._receive_input)
 		for _ in range(128):
 			procman_port = random.randint(low_port, high_port)
 			try:
@@ -381,20 +381,20 @@ class EngineProxyManager:
 			core_port,
 		)
 
-	def _send_input_forever(self, input_queue):
+	def _send_output_forever(self, output_queue):
 		from pythonosc.osc_message_builder import OscMessageBuilder
 
 		assert hasattr(self, "engine_proxy"), (
 			"EngineProxyManager tried to send input with no EngineProxy"
 		)
 		while True:
-			cmd = input_queue.get()
-			msg = zlib.compress(self.engine_proxy.pack(cmd))
+			cmd = output_queue.get()
+			msg = zlib.compress(cmd)
 			chunks = len(msg) // 1024
 			if len(msg) % 1024:
 				chunks += 1
 			self.logger.debug(
-				f"EngineProxyManager: about to send {cmd} to core in {chunks} chunks"
+				f"EngineProxyManager: about to send a command to core in {chunks} chunks"
 			)
 			for n in range(chunks):
 				builder = OscMessageBuilder("/")
@@ -427,7 +427,7 @@ class EngineProxyManager:
 				self.logger.debug("EngineProxyManager: closing input loop")
 				return
 
-	def _receive_output(self, _, uid: int, chunks: int, msg: bytes) -> None:
+	def _receive_input(self, _, uid: int, chunks: int, msg: bytes) -> None:
 		if uid != self._top_uid:
 			self.logger.error(
 				"EngineProxyManager: expected uid %d, got uid %d",
@@ -437,20 +437,20 @@ class EngineProxyManager:
 		self.logger.debug(
 			"EngineProxyManager: received %d bytes of the %dth chunk out of %d for uid %d",
 			len(msg),
-			len(self._output_received),
+			len(self._input_received),
 			chunks,
 			uid,
 		)
-		self._output_received.append(msg)
-		if len(self._output_received) == chunks:
-			recvd = zlib.decompress(b"".join(self._output_received))
+		self._input_received.append(msg)
+		if len(self._input_received) == chunks:
+			recvd = zlib.decompress(b"".join(self._input_received))
 			self.logger.debug(
 				"EngineProxyManager: received a complete message, "
 				f"decompressed to {len(recvd)} bytes"
 			)
 			self._input_queue.put(recvd)
 			self._top_uid += 1
-			self._output_received = []
+			self._input_received = []
 
 	def _start_subthread(self, *args, **kwargs):
 		self.logger.debug("EngineProxyManager: starting subthread!")
@@ -553,12 +553,12 @@ class EngineProxyManager:
 				**game_source_code,
 			)
 			if self.android:
-				self._input_sender_thread = Thread(
-					target=self._send_input_forever,
+				self._output_sender_thread = Thread(
+					target=self._send_output_forever,
 					args=[self._output_queue],
 					daemon=True,
 				)
-				self._input_sender_thread.start()
+				self._output_sender_thread.start()
 
 		return self.engine_proxy
 
@@ -623,7 +623,7 @@ class EngineProxyManager:
 			self.logger.debug(
 				"EngineProxyManager: joining input sender thread"
 			)
-			self._input_sender_thread.join()
+			self._output_sender_thread.join()
 			self.logger.debug("EngineProxyManager: joined input sender thread")
 			self.logger.debug("EngineProxyManager: stopping core service")
 			self._core_service.stop()
