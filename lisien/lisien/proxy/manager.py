@@ -419,9 +419,8 @@ class EngineProxyManager:
 					built.address,
 				)
 			self.logger.debug(
-				"EngineProxyManager: sent %d bytes of %s",
+				"EngineProxyManager: sent %d bytes",
 				len(msg),
-				cmd.get("command", "???"),
 			)
 			if cmd == "close":
 				self.logger.debug("EngineProxyManager: closing input loop")
