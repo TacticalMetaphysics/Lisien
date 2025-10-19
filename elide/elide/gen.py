@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from functools import partial
 
+from kivy.lang import Builder
 from kivy.properties import NumericProperty, OptionProperty
 from kivy.uix.boxlayout import BoxLayout
 from networkx import grid_2d_graph
@@ -27,6 +28,11 @@ class GridGeneratorDialog(BoxLayout):
 	xval = NumericProperty()
 	yval = NumericProperty()
 	directions = OptionProperty(None, options=[None, 4, 8])
+
+	def __init__(self, **kwargs):
+		if "gen.kv" not in Builder.files:
+			Builder.load_file("gen.kv")
+		super().__init__(**kwargs)
 
 	@partial(logwrap, section="GridGeneratorDialog")
 	def generate(self, engine):
