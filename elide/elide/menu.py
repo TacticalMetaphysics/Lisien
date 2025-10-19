@@ -460,7 +460,7 @@ class NewGameModal(ModalView):
 			app.start_game(name=game_name)
 		if app.character_name:
 			if app.character_name in app.engine.character:
-				app.select_character(app.engine.character_name)
+				app.select_character(app.character)
 			else:
 				app.select_character(
 					app.engine.new_character(app.character_name)
