@@ -948,6 +948,11 @@ class EngineProxy(AbstractEngine):
 		if hasattr(self.trigger, "reimport"):
 			self.trigger.reimport()
 
+	def _reimport_code(self, stores: list[str]) -> None:
+		for store_name in stores:
+			store = getattr(self, store_name)
+			store.reimport()
+
 	def _replace_triggers_pkl(self, replacement: bytes) -> None:
 		assert self._worker, "Loaded replacement triggers outside a worker"
 		self.trigger._locl = pickle.loads(replacement)

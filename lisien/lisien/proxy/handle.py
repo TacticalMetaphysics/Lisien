@@ -942,11 +942,17 @@ class EngineHandle:
 			return
 		getattr(self._real, store).save(reimport=reimport)
 
-	def reimport_code(self, store: FuncStoreName | None = None):
+	def reimport_code(
+		self, store: FuncStoreName | list[FuncStoreName] | None = None
+	):
 		if store is None:
 			for store in self._real.stores:
 				if hasattr(store, "reimport"):
 					store.reimport()
+			return
+		elif isinstance(store, list):
+			for stor in store:
+				getattr(self._real, stor).reimport()
 			return
 		getattr(self._real, store).reimport()
 
