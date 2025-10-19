@@ -929,12 +929,6 @@ class EngineProxy(AbstractEngine):
 		try:
 			meth = method.__getattr__(item)
 		except AttributeError:
-			if not hasattr(method, "reimport"):
-				raise
-			try:
-				method.reimport()
-			except FileNotFoundError:
-				pass
 			try:
 				meth = method.__getattr__(item)
 			except AttributeError:
