@@ -207,6 +207,12 @@ from .window import (
 )
 from .wrap import OrderlyFrozenSet, OrderlySet
 
+if sys.version_info.minor < 11:
+
+	class ExceptionGroup(Exception):
+		pass
+
+
 SUBPROCESS_TIMEOUT = 30
 if "LISIEN_SUBPROCESS_TIMEOUT" in os.environ:
 	try:
@@ -5743,9 +5749,17 @@ class Engine(AbstractEngine, Executor):
 		return self
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
-		super().__exit__(exc_type, exc_val, exc_tb)
 		try:
+			super().__exit__(exc_type, exc_val, exc_tb)
 			self.close()
+		except Exception as ex:
+			if exc_val:
+				raise ExceptionGroup(
+					"Multiple exceptions during lisien.Engine.__exit__",
+					ex,
+					exc_val,
+				)
+			raise
 		finally:
 			if exc_val:
 				raise exc_val
