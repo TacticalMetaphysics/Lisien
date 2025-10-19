@@ -451,7 +451,10 @@ class ElideApp(App):
 			enkw["sub_mode"] = sub_mode
 		if path:
 			os.makedirs(path, exist_ok=True)
-		Logger.debug(f"About to start EngineProcessManager with kwargs={enkw}")
+		Logger.debug(
+			"ElideApp: About to start EngineProxyManager "
+			f"with path={path}, sub_mode={self.sub_mode}, kwargs={enkw}"
+		)
 		self.procman = EngineProxyManager(
 			sub_mode=self.sub_mode,
 		)
