@@ -149,7 +149,7 @@ def elide_app_main_menu(kivy, prefix):
 
 @pytest.fixture
 def line_shaped_graphs(prefix):
-	with Engine(os.path.join(prefix, "test")) as eng:
+	with Engine(os.path.join(prefix, "test"), workers=0) as eng:
 		eng.add_character("physical", nx.grid_2d_graph(10, 1))
 		eng.add_character("tall", nx.grid_2d_graph(1, 10))
 
