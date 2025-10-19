@@ -16,6 +16,7 @@ import os
 import shutil
 import zipfile
 from functools import partial
+from typing import Callable
 
 from kivy import Logger
 from kivy.app import App
@@ -472,7 +473,7 @@ class NewGameModal(ModalView):
 		self.dismiss()
 
 
-def trigger(func: callable) -> callable:
+def trigger(func: Callable) -> Callable:
 	return triggered()(func)
 
 
