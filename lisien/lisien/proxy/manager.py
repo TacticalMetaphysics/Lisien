@@ -443,9 +443,12 @@ class EngineProxyManager:
 		)
 		self._output_received.append(msg)
 		if len(self._output_received) == chunks:
-			self._output_queue.put(
-				zlib.decompress(b"".join(self._output_received))
+			recvd = zlib.decompress(b"".join(self._output_received))
+			self.logger.debug(
+				"EngineProxyManager: received a complete message, "
+				f"decompressed to {len(recvd)} bytes"
 			)
+			self._input_queue.put(recvd)
 			self._top_uid += 1
 			self._output_received = []
 
