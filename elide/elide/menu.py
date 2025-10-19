@@ -110,7 +110,9 @@ class WorldStartConfigurator(BoxLayout):
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		binds = App.get_running_app()._bindings
+		app = App.get_running_app()
+		binds = app._bindings
+		self._buttons_bound = {}
 		self.grid_config = GridGeneratorDialog()
 		self.generator_dropdown = DropDown()
 
@@ -118,30 +120,52 @@ class WorldStartConfigurator(BoxLayout):
 			self.generator_dropdown.select(btn.text)
 
 		for opt in ["None", "Grid"]:
-			self.generator_dropdown.add_widget(
-				GeneratorButton(text=opt, on_release=select_txt)
-			)
+			btn = GeneratorButton(text=opt)
+			binds_on_release = binds[
+				"WorldStartConfigurator",
+				"generator_dropdown",
+				"on_release",
+				opt,
+			]
+			uid = btn.fbind("on_release", select_txt)
+			self._buttons_bound[uid] = btn
+			binds_on_release.add(uid)
+			self.generator_dropdown.add_widget(btn)
 		binds_on_select = binds[
 			"WorldStartConfigurator", "generator_dropdown", "on_select"
 		]
 		while binds_on_select:
 			self.unbind_uid("on_select", binds_on_select.pop())
 		binds["WorldStartConfigurator", "generator_dropdown", "on_select"].add(
-			self.fbind("on_select", self.select_generator_type)
+			self.generator_dropdown.fbind(
+				"on_select", self.select_generator_type
+			)
 		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for uid in devour(
+			binds["WorldStartConfigurator", "generator_dropdown", "on_release"]
+		):
+			self._buttons_bound[uid].unbind_uid("on_release", uid)
+		for uid in devour(
+			binds["WorldStartConfigurator", "generator_dropdown", "on_select"]
+		):
+			self.unbind_uid("on_select", uid)
 
 	@logwrap(section="WorldStartConfigurator")
 	def select_generator_type(self, instance, value):
 		self.ids.drop.text = value
-		if value == "none":
-			self.ids.controls.clear_widgets()
-			self.generator_type = "none"
-		elif value == "Grid":
-			self.ids.controls.clear_widgets()
-			self.ids.controls.add_widget(self.grid_config)
-			self.grid_config.size = self.ids.controls.size
-			self.grid_config.pos = self.ids.controls.pos
-			self.generator_type = "grid"
+		self.ids.controls.clear_widgets()
+		match value.lower():
+			case "none":
+				self.generator_type = "none"
+			case "grid":
+				self.ids.controls.add_widget(self.grid_config)
+				self.grid_config.size = self.ids.controls.size
+				self.grid_config.pos = self.ids.controls.pos
+				self.generator_type = "grid"
 
 
 class GamePickerModal(ModalView):
