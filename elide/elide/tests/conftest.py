@@ -121,7 +121,7 @@ def elide_app(kivy, prefix):
 
 @pytest.fixture(scope="function")
 def elide_app_main_menu(kivy, prefix):
-	app = make_elide_app(prefix, workers=0)
+	app = make_elide_app(prefix, workers=0, immediate_start=False)
 	app.config = ConfigParser(None)
 	app.build_config(app.config)
 	Window.add_widget(app.build())
