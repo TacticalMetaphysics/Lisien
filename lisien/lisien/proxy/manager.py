@@ -233,12 +233,11 @@ class EngineProxyManager:
 		"""Close the engine in the subprocess, then join the subprocess"""
 		if hasattr(self, "engine_proxy"):
 			self.engine_proxy.close()
+			self.engine_proxy.send_bytes(b"shutdown")
 			if hasattr(self, "_p"):
-				self.engine_proxy.send_bytes(b"shutdown")
 				self._p.join(timeout=1)
 			del self.engine_proxy
 		if hasattr(self, "_client"):
-			self._output_queue.put(b"shutdown")
 			while not self._output_queue.empty():
 				time.sleep(0.01)
 		if hasattr(self, "_server"):
