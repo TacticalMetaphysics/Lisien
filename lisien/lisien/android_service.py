@@ -192,7 +192,6 @@ def core_server(
 
 	hand = EngineHandle(
 		*args,
-		port=my_port,
 		logger=logger,
 		**kwargs,
 	)
