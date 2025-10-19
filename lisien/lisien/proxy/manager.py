@@ -444,9 +444,7 @@ class EngineProxyManager:
 		self._output_received.append(msg)
 		if len(self._output_received) == chunks:
 			self._output_queue.put(
-				self.engine_proxy.unpack(
-					zlib.decompress(b"".join(self._output_received))
-				)
+				zlib.decompress(b"".join(self._output_received))
 			)
 			self._top_uid += 1
 			self._output_received = []
