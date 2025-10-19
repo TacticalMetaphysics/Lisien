@@ -22,6 +22,7 @@ def test_sim_start(three3):
 			place["it_ran"] = True
 
 	eng = three3.engine
+	assert eng.action.get_source("did_it_run")
 	eng.next_turn()
 	assert three3.place[1, 1]["it_ran"]
 	assert "it_ran" not in three3.stat
