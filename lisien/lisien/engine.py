@@ -2396,7 +2396,7 @@ class Engine(AbstractEngine, Executor):
 					lisien.proxy.interpreter.worker_subinterpreter,
 					sys.path,
 					i,
-					self._prefix,
+					prefix,
 					dict(self._branches_d),
 					dict(self.eternal),
 					input,
