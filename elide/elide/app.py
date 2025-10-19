@@ -469,16 +469,33 @@ class ElideApp(App):
 		Logger.debug("Got EngineProxy")
 		if "boardchar" in engine.eternal:
 			self.character_name = engine.eternal["boardchar"]
+			Logger.debug(
+				"ElideApp: Pulled character %s", repr(self.character_name)
+			)
 		elif self.character_name is not None:
 			if self.character_name in engine.character:
 				self.character = engine.character[self.character_name]
+				Logger.debug(
+					"ElideApp: Selected existing character %s",
+					repr(self.character_name),
+				)
 			else:
 				self.character = engine.new_character(self.character_name)
+				Logger.debug(
+					"ElideApp: Making new initial character %s",
+					repr(self.character_name),
+				)
 		elif engine.character:
 			self.character = next(iter(engine.character.values()))
+			Logger.debug(
+				"ElideApp: Defaulted to selecting character %s",
+				repr(self.character.name),
+			)
 		else:
-			self.character = engine.new_character("physical")
-		Logger.debug("Pulled character")
+			Logger.debug(
+				"ElideApp: No initial character selected. "
+				"May crash if you don't create one..."
+			)
 		self.pull_time()
 		Logger.debug("Pulled time")
 
