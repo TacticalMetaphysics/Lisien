@@ -5055,6 +5055,8 @@ class Engine(AbstractEngine, Executor):
 			n = len(self._worker_processes)
 		elif hasattr(self, "_worker_interpreters"):
 			n = len(self._worker_interpreters)
+		elif hasattr(self, "_worker_threads"):
+			n = len(self._worker_threads)
 		else:
 			raise RuntimeError("No workers")
 		for _ in range(n):
