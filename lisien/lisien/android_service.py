@@ -206,7 +206,6 @@ def core_server(
 
 	dispatcher.map("/", cmddisp.dispatch_command)
 	dispatcher.map("/shutdown", shutdown)
-	dispatcher.map("/connect-workers", hand._real._connect_worker_services)
 	Logger.info(
 		"core: about to start server at port %d, sending replies to port %d",
 		my_port,
