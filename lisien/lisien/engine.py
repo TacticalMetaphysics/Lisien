@@ -4979,7 +4979,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			callables = {}
 			for att in dir(getattr(self, some)):
-				v = getattr(getattr(self.some), att)
+				v = getattr(getattr(self, some), att)
 				if callable(v):
 					callables[att] = v
 			self._call_every_worker(
