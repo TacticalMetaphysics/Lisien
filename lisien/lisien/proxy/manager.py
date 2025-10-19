@@ -516,7 +516,7 @@ class EngineProxyManager:
 								funk, indent_with="\t"
 							)
 		if game_strings is None:
-			if os.path.isdir(os.path.join(prefix, "strings")):
+			if prefix and os.path.isdir(os.path.join(prefix, "strings")):
 				lang = eternal_d.get(EternalKey(Key("language")), "eng")
 				jsonpath = os.path.join(prefix, "strings", str(lang) + ".json")
 				if os.path.isfile(jsonpath):
