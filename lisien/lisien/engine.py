@@ -4952,7 +4952,8 @@ class Engine(AbstractEngine, Executor):
 				with lock:
 					inq.put(b"shutdown")
 					thread.join()
-					terp.close()
+					if terp.is_running():
+						terp.close()
 		elif hasattr(self, "_worker_threads"):
 			for i, (lock, inq, outq, thread) in enumerate(
 				zip(
