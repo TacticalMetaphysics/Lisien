@@ -412,7 +412,7 @@ class FunctionStore(AbstractFunctionStore, Signal):
 		if reimport:
 			self.reimport()
 
-	def reimport(self):
+	def reimport(self, signal: bool = True):
 		if self._filename is None:
 			return
 		path, filename = os.path.split(self._filename)
@@ -431,7 +431,8 @@ class FunctionStore(AbstractFunctionStore, Signal):
 				self._ast_idx[node.name] = i
 			elif hasattr(node, "__name__"):
 				self._ast_idx[node.__name__] = i
-		self.send(self, attr=None, val=None)
+		if signal:
+			self.send(self, attr=None, val=None)
 
 	def iterplain(self):
 		for name, idx in self._ast_idx.items():

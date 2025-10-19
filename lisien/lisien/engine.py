@@ -304,13 +304,17 @@ class NextTurn(Signal):
 
 	def __call__(self) -> tuple[list, DeltaDict]:
 		engine = self.engine
+		stores_to_reimport = set()
 		for store in engine.stores:
 			if getattr(store, "_need_save", None):
-				store.save()
+				stores_to_reimport.add(store.__name__)
+				store.save(reimport=False)
 		if hasattr(engine, "_worker_processes") or hasattr(
 			engine, "_worker_interpreters"
 		):
-			engine._update_all_worker_process_states()
+			engine._update_all_worker_process_states(
+				stores_to_reimport=stores_to_reimport
+			)
 		start_branch, start_turn, start_tick = engine._btt()
 		latest_turn = engine._get_last_completed_turn(start_branch)
 		if latest_turn is None or start_turn == latest_turn:
@@ -5907,9 +5911,17 @@ class Engine(AbstractEngine, Executor):
 
 	@world_locked
 	@_all_worker_locks
-	def _update_all_worker_process_states(self, clobber: bool = False):
+	def _update_all_worker_process_states(
+		self, clobber: bool = False, stores_to_reimport: set[str] | None = None
+	):
+		stores_to_reimport = stores_to_reimport or set()
 		for store in self.stores:
-			store.save(reimport=False)
+			if getattr(store, "_need_save", None):
+				if hasattr(store, "reimport"):
+					store.save(reimport=False)
+					stores_to_reimport.add(store.__name__)
+				else:
+					store.save()
 		kf_payload = None
 		deltas = {}
 		if hasattr(self, "_worker_processes"):
@@ -5930,6 +5942,13 @@ class Engine(AbstractEngine, Executor):
 				put = input.send_bytes
 			else:
 				put = input.put
+			if stores_to_reimport:
+				put(
+					sys.maxsize.to_bytes(8, "little")
+					+ self.pack(
+						("_reimport_code", (list(stores_to_reimport),), {})
+					)
+				)
 			if clobber or branch_from != self.branch:
 				if kf_payload is None:
 					kf_payload = self._get_worker_kf_payload()
