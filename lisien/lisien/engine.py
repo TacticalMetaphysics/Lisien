@@ -114,7 +114,7 @@ from .facade import CharacterFacade
 from .importer import xml_to_pqdb, xml_to_sqlite
 from .node import Place, Thing
 from .portal import Portal
-from .proxy.process import worker_subprocess
+from .proxy.routine import worker_subprocess, worker_subthread
 from .proxy.manager import Sub
 from .query import (
 	CharacterStatAccessor,
@@ -2359,7 +2359,6 @@ class Engine(AbstractEngine, Executor):
 			create,
 			create_queue,
 		)
-		import lisien.proxy.interpreter
 
 		for store in self.stores:
 			if hasattr(store, "save"):
@@ -2401,8 +2400,7 @@ class Engine(AbstractEngine, Executor):
 				target=terp.call,
 				name=f"lisien worker {i}",
 				args=(
-					lisien.proxy.interpreter.worker_subinterpreter,
-					sys.path,
+					worker_subthread,
 					i,
 					prefix,
 					dict(self._branches_d),
@@ -2429,50 +2427,6 @@ class Engine(AbstractEngine, Executor):
 		)
 		self._setup_fut_manager(workers)
 		self.debug("fut_manager started")
-
-	def _build_worker_args(
-		self, prefix: str | os.PathLike | None, i: int
-	) -> tuple[
-		int,
-		str | os.PathLike | None,
-		ChangeTrackingDict[
-			Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
-		],
-		dict[EternalKey, Value],
-		dict[str, Callable],
-		dict[str, Callable],
-		dict[str, Callable],
-		dict[str, Callable],
-		dict[str, Callable],
-	]:
-		def get_func_dict(
-			store: FunctionStore | ModuleType,
-		) -> dict[str, Callable]:
-			if hasattr(store, "_locl"):
-				return store._locl
-			elif hasattr(store, "__dict__"):
-				return {
-					k: v for (k, v) in store.__dict__.items() if callable(v)
-				}
-			else:
-				funcs = {}
-				for name in dir(store):
-					value = getattr(store, name)
-					if callable(value):
-						funcs[name] = value
-				return funcs
-
-		return (
-			i,
-			prefix,
-			self._branches_d,
-			dict(self.eternal),
-			get_func_dict(self.function),
-			get_func_dict(self.method),
-			get_func_dict(self.trigger),
-			get_func_dict(self.prereq),
-			get_func_dict(self.action),
-		)
 
 	def _start_worker_threads(
 		self, prefix: str | os.PathLike | None, workers: int
@@ -2504,8 +2458,17 @@ class Engine(AbstractEngine, Executor):
 				target=self._sync_log_forever, args=(logq,), daemon=True
 			)
 			thred = Thread(
-				target=worker_subprocess,
-				args=self._build_worker_args(prefix, i) + (inq, outq),
+				target=worker_subthread,
+				name=f"lisien worker {i}",
+				args=(
+					i,
+					prefix,
+					dict(self._branches_d),
+					dict(self.eternal),
+					inq,
+					outq,
+					logq,
+				),
 			)
 			wi.append(inq)
 			wo.append(outq)
@@ -2556,8 +2519,15 @@ class Engine(AbstractEngine, Executor):
 			)
 			proc = ctx.Process(
 				target=worker_subprocess,
-				args=self._build_worker_args(prefix, i)
-				+ (inpipe_there, outpipe_there, logq),
+				args=(
+					i,
+					prefix,
+					dict(self._branches_d),
+					dict(self.eternal),
+					inpipe_there,
+					outpipe_there,
+					logq,
+				),
 			)
 			wi.append(inpipe_here)
 			wo.append(outpipe_here)

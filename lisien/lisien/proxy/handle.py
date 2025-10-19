@@ -170,7 +170,7 @@ class EngineHandle:
 			self.debug("game started")
 
 	@classmethod
-	def from_archive(cls, b: bytes | dict) -> EngineHandle:
+	def from_archive(cls, b: bytes | dict, *, log_queue=None) -> EngineHandle:
 		from ..engine import Engine
 
 		if isinstance(b, bytes):
@@ -181,6 +181,10 @@ class EngineHandle:
 			raise TypeError("No archive path")
 		if "prefix" not in kwargs:
 			raise TypeError("No prefix")
+		if log_queue:
+			logger = kwargs["logger"] = Logger("lisien")
+			handler = EngineHandleLogHandler(0, log_queue)
+			logger.addHandler(handler)
 		do_game_start = kwargs.pop("do_game_start")
 
 		new = cls.__new__(cls)
