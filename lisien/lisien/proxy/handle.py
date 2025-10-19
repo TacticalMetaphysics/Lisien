@@ -199,6 +199,9 @@ class EngineHandle:
 			new.do_game_start()
 		return new
 
+	def get_time(self):
+		return tuple(self._real.time)
+
 	def export(self, name: str | None, path: str | None, indent: bool):
 		return self._real.export(name, path, indent=indent)
 
