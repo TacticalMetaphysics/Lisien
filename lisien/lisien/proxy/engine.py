@@ -1238,7 +1238,7 @@ class EngineProxy(AbstractEngine):
 			perfectionist=perfectionist,
 		)
 
-	def _reimport_all(self) -> None:
+	def _save_and_reimport_all_code(self) -> None:
 		for store in (
 			self.function,
 			self.method,
@@ -1247,7 +1247,7 @@ class EngineProxy(AbstractEngine):
 			self.action,
 		):
 			if hasattr(store, "reimport"):
-				store.reimport()
+				store.save(reimport=True)
 
 	def _replace_funcs_pkl(
 		self,
@@ -1302,7 +1302,7 @@ class EngineProxy(AbstractEngine):
 			if to_replace_plain:
 				self._replace_funcs_plain(**to_replace_plain)
 		else:
-			self._reimport_all()
+			self._save_and_reimport_all_code()
 		self._upd_caches(*args, **kwargs)
 		self._upd_time(*args, no_del=True, **kwargs)
 
