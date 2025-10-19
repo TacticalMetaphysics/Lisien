@@ -336,11 +336,13 @@ class EngineProxy(AbstractEngine):
 		self._replace_state_with_kf(kf)
 
 	def _replace_state_with_kf(self, result: Keyframe | None, **kwargs):
+		self.debug("EngineProxy: replacing state with a keyframe")
 		things = self._things_cache
 		places = self._character_places_cache
 
 		portals = self._character_portals_cache
 		if result is None:
+			self.debug("EngineProxy: empty keyframe; clearing caches")
 			self._char_cache.clear()
 			self._universal_cache.clear()
 			return
@@ -382,6 +384,7 @@ class EngineProxy(AbstractEngine):
 					"prereqs": [],
 					"actions": [],
 				}
+		self.debug("EngineProxy: replaced triggers with keyframe...")
 		prereqs: list[PrereqFuncName]
 		for rule, prereqs in result["prereqs"].items():
 			preqlist = []
@@ -415,6 +418,7 @@ class EngineProxy(AbstractEngine):
 					"prereqs": preqlist,
 					"actions": [],
 				}
+		self.debug("EngineProxy: replaced prereqs with keyframe...")
 		actions: list[ActionFuncName]
 		for rule, actions in result["actions"].items():
 			actlist = []
@@ -445,6 +449,7 @@ class EngineProxy(AbstractEngine):
 					"prereqs": [],
 					"actions": actlist,
 				}
+		self.debug("EngineProxy: replaced actions with keyframe...")
 		self._rulebooks_cache = result["rulebook"]
 		chars = self._char_cache
 		chars.clear()
@@ -456,6 +461,7 @@ class EngineProxy(AbstractEngine):
 			| result["edge_val"].keys()
 		):
 			chars[graph] = CharacterProxy(self, graph)
+		self.debug(f"EngineProxy: {len(chars)} characters in this keyframe...")
 		for graph, stats in result["graph_val"].items():
 			if "character_rulebook" in stats:
 				self._character_rulebooks_cache[graph]["character"] = (
@@ -482,12 +488,17 @@ class EngineProxy(AbstractEngine):
 			else:
 				self._character_units_cache[graph] = {}
 			self._char_stat_cache[graph] = stats
+			self.debug(f"EngineProxy: got keyframed stats for {graph}...")
 		nodes_to_delete = {
 			(char, node)
 			for char in things.keys() | places.keys()
 			for node in things.get(char, {}).keys()
 			| places.get(char, {}).keys()
 		}
+		self.debug(
+			f"EngineProxy: deleting {len(nodes_to_delete)} nodes "
+			"to match the keyframe..."
+		)
 		for char, nodes in result["nodes"].items():
 			nodes: NodesDict
 			for node, ex in nodes.items():
@@ -509,6 +520,10 @@ class EngineProxy(AbstractEngine):
 			else:
 				del places[char][node]
 		for char, nodestats in result["node_val"].items():
+			self.debug(
+				f"EngineProxy: Updating node stats for character {char} "
+				"from a keyframe..."
+			)
 			nodestats: NodeValDict
 			for node, stats in nodestats.items():
 				if "location" in stats:
@@ -536,6 +551,9 @@ class EngineProxy(AbstractEngine):
 			for orig in portals.successors[char]
 			for dest in portals.successors[char][orig]
 		}
+		self.debug(
+			f"EngineProxy: Deleting {len(edges_to_delete)} to match a keyframe..."
+		)
 		for char, origs in result["edges"].items():
 			origs: EdgesDict
 			for orig, dests in origs.items():
@@ -560,6 +578,10 @@ class EngineProxy(AbstractEngine):
 		for char, orig, dest in edges_to_delete:
 			portals.delete(char, orig, dest)
 		for char, origs in result["edge_val"].items():
+			self.debug(
+				f"EngineProxy: Updating portal stat values for character {char} "
+				"to match a keyframe..."
+			)
 			origs: EdgeValDict
 			for orig, dests in origs.items():
 				for dest, stats in dests.items():
@@ -850,15 +872,23 @@ class EngineProxy(AbstractEngine):
 	def _init_pull_from_core(self):
 		self.debug("EngineProxy: Getting time...")
 		received = self.recv()
-		self.debug(f"EngineProxy: Got time: {received}")
+		self.debug(
+			f"EngineProxy: Got time: {received}. Pulling initial keyframe..."
+		)
 		self._branch, self._turn, self._tick = received[-1]
 		self._initialized = False
 		self._pull_kf_now()
+		self.debug(
+			"EngineProxy: Initial keyframe pulled. "
+			f"Installing {len(self._install_modules)} modules..."
+		)
 		self._initialized = True
 		for module in self._install_modules:
 			self.handle("install_module", module=module)
 			self.debug(f"Installed module: {module}")
+		self.debug("EngineProxy: All modules installed.")
 		if hasattr(self, "_replay_txt"):
+			self.debug("EngineProxy: Running a replay.")
 			replay = ast.parse(self._replay_txt)
 			for expr in replay.body:
 				if isinstance(expr.value, ast.Call):
@@ -889,6 +919,7 @@ class EngineProxy(AbstractEngine):
 									kw.value, indent_with="\t"
 								)
 					self.handle(method, *args, **kwargs)
+		self.debug("EngineProxy: Initial pull from core completed.")
 
 	def __repr__(self):
 		return "<lisien.proxy.EngineProxy>"
