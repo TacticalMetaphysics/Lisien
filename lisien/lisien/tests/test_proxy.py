@@ -251,6 +251,7 @@ def test_apply_delta(tmp_path, algorithm):
 		assert "pointless" not in eng.character, "Failed to delete character"
 		phys.portal[0][1]["meaning"] = 42
 		del phys.portal[0][1]["omg"]
+		back_in_time = tuple(eng.time)
 		if slow:
 			eng.branch = "trunk"
 		else:
@@ -264,10 +265,7 @@ def test_apply_delta(tmp_path, algorithm):
 		assert 3 in phys.place
 		assert phys.portal[1][0]["omg"] == "blasphemy"
 		assert "it" in phys.thing
-		if slow:
-			prox.branch = "b"
-		else:
-			prox.turn = 1
+		prox.time = back_in_time
 		assert 3 not in phys.place
 		assert not list(phys.portal[1])
 		assert 2 in phys.portal[0]
