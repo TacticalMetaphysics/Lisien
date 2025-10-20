@@ -39,3 +39,4 @@ _build
 */.tox
 .tox
 /.idea/
+.buildozer
