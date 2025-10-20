@@ -98,6 +98,8 @@ class EngineProxyManager:
 	def _sync_log_forever(self):
 		while True:
 			logrec = self._logq.get()
+			if logrec == b"shutdown":
+				return
 			self.logger.handle(self._undictify_logrec_traceback(logrec))
 
 	def _undictify_logrec_traceback(
@@ -242,6 +244,9 @@ class EngineProxyManager:
 				time.sleep(0.01)
 		if hasattr(self, "_server"):
 			self._server.shutdown()
+		if hasattr(self, "_logq"):
+			self._logq.put(b"shutdown")
+			self._log_thread.join()
 		self.logger.debug("EngineProxyManager: shutdown")
 
 	def _config_logger(self, kwargs):
