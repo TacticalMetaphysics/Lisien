@@ -2357,11 +2357,18 @@ class Engine(AbstractEngine, Executor):
 			)
 
 	def _sync_log_forever(self, q: SimpleQueue[LogRecord]) -> None:
-		while not hasattr(self, "_closed"):
+		while not hasattr(self, "_closed") and not hasattr(
+			self, "_stop_sync_log"
+		):
 			recs: list[LogRecord] = []
 			while True:
 				try:
-					recs.append(q.get())
+					rec = q.get()
+					if rec == b"shutdown":
+						for rec in recs:
+							self.logger.handle(rec)
+						return
+					recs.append(rec)
 				except Empty:
 					break
 			for rec in recs:
@@ -4898,10 +4905,14 @@ class Engine(AbstractEngine, Executor):
 		return ret
 
 	def _manage_futs(self):
-		while not hasattr(self, "_closed"):
+		while not (
+			hasattr(self, "_closed") or hasattr(self, "_stop_managing_futs")
+		):
 			while self._how_many_futs_running < self._workers:
 				try:
 					fut = self._futs_to_start.get()
+					if fut == b"shutdown":
+						return
 				except Empty:
 					break
 				if not fut.running() and fut.set_running_or_notify_cancel():
@@ -4922,20 +4933,25 @@ class Engine(AbstractEngine, Executor):
 		if wait:
 			futwait(self._uid_to_fut.values())
 		self._uid_to_fut = {}
+		self._stop_managing_futs = True
+		self._stop_sync_log = True
 
 		if hasattr(self, "_worker_processes"):
-			for i, (lock, pipein, pipeout, proc) in enumerate(
+			for i, (lock, pipein, pipeout, proc, logq, logt) in enumerate(
 				zip(
 					self._worker_locks,
 					self._worker_inputs,
 					self._worker_outputs,
 					self._worker_processes,
+					self._worker_log_queues,
+					self._worker_log_threads,
 				)
 			):
 				with lock:
 					if not proc.is_alive():
 						continue
 					pipein.send_bytes(b"shutdown")
+					logq.put(b"shutdown")
 					proc.join(timeout=SUBPROCESS_TIMEOUT)
 					if proc.exitcode is None:
 						if KILL_SUBPROCESS:
@@ -4948,37 +4964,50 @@ class Engine(AbstractEngine, Executor):
 							i,
 							proc.exitcode,
 						)
+					logt.join()
 					proc.close()
 					pipein.close()
 					pipeout.close()
 			del self._worker_processes
 		elif hasattr(self, "_worker_interpreters"):
-			for i, (lock, inq, outq, thread, terp) in enumerate(
+			for i, (lock, inq, outq, thread, terp, logq, logt) in enumerate(
 				zip(
 					self._worker_locks,
 					self._worker_inputs,
 					self._worker_outputs,
 					self._worker_threads,
 					self._worker_interpreters,
+					self._worker_log_queues,
+					self._worker_log_threads,
 				)
 			):
 				with lock:
 					inq.put(b"shutdown")
+					logq.put(b"shutdown")
+					logt.join()
 					thread.join()
 					if terp.is_running():
 						terp.close()
 		elif hasattr(self, "_worker_threads"):
-			for i, (lock, inq, outq, thread) in enumerate(
+			for i, (lock, inq, outq, thread, logq, logt) in enumerate(
 				zip(
 					self._worker_locks,
 					self._worker_inputs,
 					self._worker_outputs,
 					self._worker_threads,
+					self._worker_log_queues,
+					self._worker_log_threads,
 				)
 			):
 				with lock:
 					inq.put(b"shutdown")
+					logq.put(b"shutdown")
 					thread.join()
+		if hasattr(self, "_fut_manager_thread"):
+			self._futs_to_start.put(b"shutdown")
+			self._fut_manager_thread.join()
+		del self._stop_managing_futs
+		del self._stop_sync_log
 
 	def _detect_kf_interval_override(self):
 		if self._planning:
