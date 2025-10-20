@@ -130,7 +130,7 @@ class EngineProxyManager:
 		)
 
 	def _initialize_proxy_db(
-		self, **kwargs
+		self, prefix, **kwargs
 	) -> tuple[
 		dict[Branch, tuple[Branch, Turn, Tick, Turn, Tick]],
 		dict[EternalKey, Value],
@@ -194,10 +194,13 @@ class EngineProxyManager:
 		else:
 			from parquetdb import ParquetDB
 
+			pqdb_prefix = os.path.join(prefix, "world")
+
 			for d in (
-				ParquetDB("branches")
+				ParquetDB(f"{pqdb_prefix}/branches")
 				.read(
 					columns=[
+						"branch",
 						"parent",
 						"parent_turn",
 						"parent_tick",
@@ -215,7 +218,9 @@ class EngineProxyManager:
 					d["end_tick"],
 				)
 			for d in (
-				ParquetDB("global").read(columns=["key", "value"]).to_pylist()
+				ParquetDB(f"{pqdb_prefix}/global")
+				.read(columns=["key", "value"])
+				.to_pylist()
 			):
 				eternal_d[d["key"]] = d["value"]
 		return branches_d, eternal_d
@@ -501,7 +506,7 @@ class EngineProxyManager:
 		game_strings: dict[str, str] | None = None,
 		**kwargs,
 	):
-		branches_d, eternal_d = self._initialize_proxy_db(**kwargs)
+		branches_d, eternal_d = self._initialize_proxy_db(prefix, **kwargs)
 		if game_source_code is None:
 			game_source_code = {}
 			if prefix is not None:
