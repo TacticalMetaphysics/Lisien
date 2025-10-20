@@ -117,6 +117,9 @@ class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
 		del self.data[key]
 
 
+EngineProxyCallback = Callable[[str, Branch, Turn, Tick, Value], ...]
+
+
 class EngineProxy(AbstractEngine):
 	"""An engine-like object for controlling a lisien process
 
@@ -161,7 +164,7 @@ class EngineProxy(AbstractEngine):
 			branch=branch,
 			turn=turn,
 			tick=tick,
-			cb=partial(self._upd_and_cb, cb=cb),
+			cb=partial(self._upd_and_cb, cb=cb) if cb else self._upd_and_cb,
 		)
 
 	def _start_branch(
@@ -1012,7 +1015,13 @@ class EngineProxy(AbstractEngine):
 	def critical(self, msg: str) -> None:
 		self.logger.critical(msg)
 
-	def handle(self, cmd: str | None = None, *, cb: callable = None, **kwargs):
+	def handle(
+		self,
+		cmd: str | None = None,
+		*,
+		cb: EngineProxyCallback | None = None,
+		**kwargs,
+	):
 		"""Send a command to the lisien core.
 
 		The only positional argument should be the name of a
@@ -1028,11 +1037,10 @@ class EngineProxy(AbstractEngine):
 
 		With a function ``cb``, I will call ``cb`` when I get
 		a result.
-		``cb`` will be called with keyword arguments ``command``,
-		the same command you asked for; ``result``, the value returned
-		by it, possibly ``None``; and the present ``branch``,
+		``cb`` will be called with positional arguments ``command``,
+		the name of the command you called; ``result``, the present ``branch``,
 		``turn``, and ``tick``, possibly different than when you called
-		``handle``.`.
+		``handle``.`; and the value returned by the core, possibly ``None``.
 
 		"""
 		then = self._btt()
@@ -1070,14 +1078,16 @@ class EngineProxy(AbstractEngine):
 				f"Sent command {cmd}, but received results for {command}"
 			)
 		if cb:
-			cb(command=command, branch=branch, turn=turn, tick=tick, result=r)
+			cb(command, branch, turn, tick, r)
 		return r
 
 	def _unpack_recv(self):
 		ret = self.unpack(self.recv_bytes())
 		return ret
 
-	def _callback(self, cb: callable) -> tuple[str, Branch, Turn, Tick, Value]:
+	def _callback(
+		self, cb: Callable[[str, Branch, Turn, Tick, Value], ...]
+	) -> tuple[str, Branch, Turn, Tick, Value]:
 		command, branch, turn, tick, res = self.unpack(self.recv_bytes())
 		self.debug(
 			"EngineProxy: received, with callback {}: {}".format(
@@ -1098,7 +1108,7 @@ class EngineProxy(AbstractEngine):
 					repr(ex), command, cb
 				)
 			)
-		cb(command=command, branch=branch, turn=turn, tick=tick, result=res)
+		cb(command, branch, turn, tick, res)
 		return command, branch, turn, tick, res
 
 	def _branching(
@@ -1309,7 +1319,9 @@ class EngineProxy(AbstractEngine):
 		self._upd_caches(*args, **kwargs)
 		self._upd_time(*args, no_del=True, **kwargs)
 
-	def _upd_and_cb(self, cb: callable, *args, **kwargs) -> None:
+	def _upd_and_cb(
+		self, *args, cb: EngineProxyCallback | None = None, **kwargs
+	) -> None:
 		self._upd(*args, **kwargs)
 		if cb:
 			cb(*args, **kwargs)
