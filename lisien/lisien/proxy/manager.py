@@ -81,7 +81,11 @@ class EngineProxyManager:
 					self._start_subinterpreter(*args, **kwargs)
 		args = args or self._args
 		kwargs |= self._kwargs
-		if args:
+		if args and "prefix" in kwargs:
+			raise TypeError(
+				"Got multiple arguments for prefix", args[0], kwargs["prefix"]
+			)
+		elif args:
 			prefix = args[0]
 		elif "prefix" in kwargs:
 			prefix = kwargs.pop("prefix")
