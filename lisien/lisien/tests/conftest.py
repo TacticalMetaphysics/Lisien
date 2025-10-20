@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
+import resource
 import shutil
 import sys
 from functools import partial
@@ -28,6 +29,12 @@ from ..proxy.engine import EngineProxy
 from ..proxy.manager import EngineProxyManager
 from . import data
 from .util import make_test_engine_facade, make_test_engine_kwargs
+
+
+@pytest.fixture(scope="session", autouse=True)
+def lots_of_open_files():
+	"""Allow ParquetDB to make all the files it wants"""
+	resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 69105))
 
 
 @pytest.fixture(scope="function")

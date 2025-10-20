@@ -14,7 +14,6 @@ pyclean --version
 wine git --version
 buildozer --version
 ls ~/lisien_windows
-ulimit -n 69105
 isort lisien
 isort elide
 ruff format lisien
