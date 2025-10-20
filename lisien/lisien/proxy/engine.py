@@ -1027,7 +1027,7 @@ class EngineProxy(AbstractEngine):
 		The only positional argument should be the name of a
 		method in :class:``EngineHandle``. All keyword arguments
 		will be passed to it, with the exceptions of
-		``cb``, ``branching``, and ``silent``.
+		``cb`` and ``branching``.
 
 		With ``branching=True``, handle paradoxes by creating new
 		branches of history. I will switch to the new branch if needed.
@@ -1056,7 +1056,6 @@ class EngineProxy(AbstractEngine):
 			kwargs["command"] = cmd
 		else:
 			raise TypeError("No command")
-		assert not kwargs.get("silent")
 		if hasattr(super(EngineProxy, self), "_replay_file"):
 			self._replay_file.write(repr_call_sig(cmd, **kwargs) + "\n")
 		start_ts = monotonic()
