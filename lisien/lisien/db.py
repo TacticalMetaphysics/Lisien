@@ -3205,13 +3205,13 @@ def batched(
 
 
 class AbstractDatabaseConnector(ABC):
-	pack: callable
-	unpack: callable
+	pack: Callable[[Value], bytes]
+	unpack: Callable[[bytes], Value]
 	looper_cls: type[ConnectionLooper]
 	eternal: MutableMapping
 	kf_interval_override: Callable[[Any], bool | None] = lambda _: None
 	keyframe_interval: int | None
-	snap_keyframe: callable
+	snap_keyframe: Callable[[], None]
 	all_rules: set[RuleName]
 	_inq: Queue
 	_outq: Queue
