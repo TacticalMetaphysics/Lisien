@@ -1026,14 +1026,7 @@ class EngineProxy(AbstractEngine):
 
 		The only positional argument should be the name of a
 		method in :class:``EngineHandle``. All keyword arguments
-		will be passed to it, with the exceptions of
-		``cb`` and ``branching``.
-
-		With ``branching=True``, handle paradoxes by creating new
-		branches of history. I will switch to the new branch if needed.
-		If I have an attribute ``branching_cb``, I'll call it if and
-		only if the branch changes upon completing a command with
-		``branching=True``.
+		will be passed to it, except ``cb``.
 
 		With a function ``cb``, I will call ``cb`` when I get
 		a result.
