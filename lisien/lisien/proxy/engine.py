@@ -1469,7 +1469,7 @@ class NextTurnProxy(Signal):
 		return self.engine.handle(
 			"next_turn",
 			cb=partial(
-				self.engine._upd_and_cb, partial(self._send_and_cb, cb)
+				self.engine._upd_and_cb, cb=partial(self._send_and_cb, cb)
 			),
 		)
 
