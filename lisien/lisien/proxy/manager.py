@@ -195,6 +195,10 @@ class EngineProxyManager:
 					eternal_d[key] = value
 			except OperationalError:
 				pass
+		elif prefix is None:
+			self.logger.warning(
+				"Running without a database. Lisien will be empty at start."
+			)
 		else:
 			from parquetdb import ParquetDB
 
