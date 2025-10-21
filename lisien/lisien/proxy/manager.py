@@ -488,15 +488,15 @@ class EngineProxyManager:
 		self._input_queue: Queue = create_queue()
 		self._output_queue: Queue = create_queue()
 		self._logq: Queue = create_queue()
-		kwargs["log_queue"] = self._logq
 
 		self._terp = create()
 		self._t = self._terp.call_in_thread(
 			engine_subthread,
 			args or self._args,
 			self._kwargs | kwargs,
-			self._input_queue,
 			self._output_queue,
+			self._input_queue,
+			self._logq,
 		)
 		self._log_thread = Thread(target=self._sync_log_forever, daemon=True)
 		self._log_thread.start()
