@@ -256,6 +256,10 @@ class EngineProxyManager:
 		if hasattr(self, "_logq"):
 			self._logq.put(b"shutdown")
 			self._log_thread.join()
+		if hasattr(self, "_t"):
+			self._t.join(timeout=1.0)
+			if self._t.is_alive():
+				raise TimeoutError("Couldn't join thread")
 		self.logger.debug("EngineProxyManager: shutdown")
 
 	def _config_logger(self, kwargs):
