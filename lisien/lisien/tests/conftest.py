@@ -23,6 +23,7 @@ import pytest
 
 from lisien import Engine
 from lisien.proxy.handle import EngineHandle
+from lisien.proxy.manager import Sub
 
 from ..examples import college, kobold, sickle
 from ..proxy.engine import EngineProxy
@@ -35,6 +36,29 @@ from .util import make_test_engine_facade, make_test_engine_kwargs
 def lots_of_open_files():
 	"""Allow ParquetDB to make all the files it wants"""
 	resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 69105))
+
+
+@pytest.fixture(
+	params=[
+		"thread",
+		"process",
+		pytest.param(
+			"interpreter",
+			marks=pytest.mark.skipif(
+				sys.version_info.minor < 3.14,
+				reason="Subinterpreters are unavailable before Python 3.14",
+			),
+		),
+	]
+)
+def sub_mode(request):
+	"""Modes that workers and the Lisien core can run parallel in
+
+	Originally just 'process', this has expanded to include 'thread' and
+	'interpreter', of which the latter only exists on Python 3.14 and later.
+
+	"""
+	yield Sub(request.param)
 
 
 @pytest.fixture(scope="function")

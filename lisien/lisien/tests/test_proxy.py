@@ -20,9 +20,40 @@ import pytest
 import lisien.examples.kobold as kobold
 import lisien.examples.polygons as polygons
 from lisien.engine import Engine
-from lisien.proxy.manager import EngineProxyManager
+from lisien.proxy.manager import EngineProxyManager, Sub
 from lisien.proxy.handle import EngineHandle
 from lisien.tests import data
+from lisien.tests.util import (
+	make_test_engine,
+	make_test_engine_kwargs,
+	fail_after,
+)
+
+
+@pytest.mark.parametrize("sim", ["kobold", "polygons"])
+def test_start(tmp_path, sim, non_null_database, sub_mode):
+	if non_null_database == "parquetdb" and sub_mode == Sub.interpreter:
+		raise pytest.skip(
+			"PyArrow does not yet support running in subinterpreters"
+		)
+	match sim:
+		case "kobold":
+			install = kobold.inittest
+		case "polygons":
+			install = polygons.install
+
+	with make_test_engine(tmp_path, "serial", non_null_database) as eng:
+		install(eng)
+
+	mgr = EngineProxyManager(
+		sub_mode=sub_mode,
+		**make_test_engine_kwargs(tmp_path, "serial", non_null_database),
+	)
+
+	@fail_after(10.0)
+	def start_and_shutdown_proxy():
+		prox = mgr.start(sub_mode=None)  # we're not testing workers
+		mgr.shutdown()
 
 
 def test_fast_delta(handle_initialized):
