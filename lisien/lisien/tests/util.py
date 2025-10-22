@@ -1,7 +1,7 @@
 from functools import wraps
 from queue import SimpleQueue, Empty
 from threading import Thread
-from typing import Any, Callable, Generic
+from typing import Any, Callable, TypeVar
 from unittest.mock import MagicMock
 
 from lisien import Engine
@@ -9,7 +9,7 @@ from lisien.facade import EngineFacade
 from lisien.proxy.manager import Sub
 
 
-_RETURNS = Generic()
+_RETURNS = TypeVar("_RETURNS")
 
 
 def fail_after(
