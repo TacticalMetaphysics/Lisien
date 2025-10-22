@@ -26,7 +26,6 @@ from lisien.tests import data
 from lisien.tests.util import (
 	make_test_engine,
 	make_test_engine_kwargs,
-	fail_after,
 )
 
 
@@ -49,11 +48,8 @@ def test_start(tmp_path, sim, non_null_database, sub_mode):
 		sub_mode=sub_mode,
 		**make_test_engine_kwargs(tmp_path, "serial", non_null_database),
 	)
-
-	@fail_after(10.0)
-	def start_and_shutdown_proxy():
-		prox = mgr.start(sub_mode=None)  # we're not testing workers
-		mgr.shutdown()
+	mgr.start(sub_mode=None)  # we're not testing workers
+	mgr.shutdown()
 
 
 def test_fast_delta(handle_initialized):
