@@ -35,14 +35,13 @@ def test_start(tmp_path, sim, non_null_database, sub_mode):
 		raise pytest.skip(
 			"PyArrow does not yet support running in subinterpreters"
 		)
-	match sim:
-		case "kobold":
-			install = kobold.inittest
-		case "polygons":
-			install = polygons.install
 
 	with make_test_engine(tmp_path, "serial", non_null_database) as eng:
-		install(eng)
+		match sim:
+			case "kobold":
+				kobold.inittest(eng)
+			case "polygons":
+				polygons.install(eng)
 
 	mgr = EngineProxyManager(
 		sub_mode=sub_mode,
