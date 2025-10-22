@@ -16,6 +16,7 @@ from threading import Lock
 from time import monotonic
 from types import MethodType
 from typing import (
+	Any,
 	Optional,
 	Literal,
 	Iterator,
@@ -117,7 +118,7 @@ class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
 		del self.data[key]
 
 
-EngineProxyCallback = Callable[[str, Branch, Turn, Tick, Value], ...]
+EngineProxyCallback = Callable[[str, Branch, Turn, Tick, Value], Any]
 
 
 class EngineProxy(AbstractEngine):
