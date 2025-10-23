@@ -1305,7 +1305,7 @@ class AbstractCharacter(DiGraph):
 
 		return EntityStatAlias(entity=self.stat, stat=stat)
 
-	def do(self, func: callable, *args, **kwargs) -> AbstractCharacter:
+	def do(self, func: Callable | str, *args, **kwargs) -> AbstractCharacter:
 		"""Apply the function to myself, and return myself.
 
 		Look up the function in the method store if needed. Pass it any
@@ -1319,7 +1319,7 @@ class AbstractCharacter(DiGraph):
 		func(self, *args, **kwargs)
 		return self
 
-	def copy_from(self, g: AbstractCharacter) -> None:
+	def copy_from(self, g: AbstractCharacter) -> AbstractCharacter:
 		"""Copy all nodes and edges from the given graph into this.
 
 		Return myself.
