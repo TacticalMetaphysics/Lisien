@@ -5185,7 +5185,7 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def get_all_keyframe_graphs(
 		self, branch: Branch, turn: Turn, tick: Tick
-	) -> Iterator[tuple[CharName, NodeKeyframe, EdgeKeyframe, CharDict]]:
+	) -> Iterator[tuple[CharName, NodeKeyframe, EdgeKeyframe, StatDict]]:
 		pass
 
 	def get_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> Keyframe:
