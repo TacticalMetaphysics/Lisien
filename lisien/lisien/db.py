@@ -41,6 +41,7 @@ from typing import (
 	TypeAlias,
 	Union,
 	get_type_hints,
+	TYPE_CHECKING,
 )
 
 from sqlalchemy import BLOB, BOOLEAN, FLOAT, INT, TEXT, Select, create_engine
@@ -105,6 +106,10 @@ if sys.version_info.minor < 11:
 
 	class ExceptionGroup(Exception):
 		pass
+
+
+if TYPE_CHECKING:
+	import pyarrow as pa
 
 
 IntegrityError = (LiteIntegrityError, AlchemyIntegrityError)
