@@ -1435,3 +1435,9 @@ class DiGraph(networkx.DiGraph, ABC):
 			self._pred[node_for_adding] = self.adjlist_inner_dict_factory()
 			self._node[node_for_adding] = self.node_dict_factory()
 		self._node[node_for_adding].update(attr)
+
+
+PackSignature: TypeAlias = Callable[
+	[Key | EternalKey | UniversalKey | Stat | Value], bytes
+]
+UnpackSignature: TypeAlias = Callable[[bytes], Value]

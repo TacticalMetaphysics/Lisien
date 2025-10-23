@@ -101,6 +101,8 @@ from .types import (
 	UniversalKeyframe,
 	UniversalRowType,
 	Value,
+	PackSignature,
+	UnpackSignature,
 )
 from .util import ELLIPSIS, EMPTY, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
@@ -3213,8 +3215,8 @@ def batched(
 
 
 class AbstractDatabaseConnector(ABC):
-	pack: Callable[[Value], bytes]
-	unpack: Callable[[bytes], Value]
+	pack: PackSignature
+	unpack: UnpackSignature
 	looper_cls: type[ConnectionLooper]
 	eternal: MutableMapping
 	kf_interval_override: Callable[[Any], bool | None] = lambda _: None
@@ -3228,7 +3230,13 @@ class AbstractDatabaseConnector(ABC):
 
 	@abstractmethod
 	def __init__(
-		self, dbstring, connect_args, pack=None, unpack=None, *, clear=False
+		self,
+		dbstring: str,
+		connect_args: dict[str, str],
+		pack: PackSignature | None = None,
+		unpack: UnpackSignature | None = None,
+		*,
+		clear=False,
 	): ...
 
 	@batched(
@@ -7469,7 +7477,14 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	looper_cls = ParquetDBLooper
 
-	def __init__(self, path, pack=None, unpack=None, *, clear=False):
+	def __init__(
+		self,
+		path,
+		pack: PackSignature | None = None,
+		unpack: UnpackSignature | None = None,
+		*,
+		clear=False,
+	):
 		self._inq = Queue()
 		self._outq = Queue()
 		self._looper = self.looper_cls(path, self._inq, self._outq)
@@ -8573,10 +8588,16 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	IntegrityError = IntegrityError
 	OperationalError = OperationalError
 	looper_cls = SQLAlchemyConnectionLooper
-	kf_interval_override: callable
+	kf_interval_override: Callable[[Any], bool | None]
 
 	def __init__(
-		self, dbstring, connect_args, pack=None, unpack=None, *, clear=False
+		self,
+		dbstring,
+		connect_args,
+		pack: PackSignature | None = None,
+		unpack: UnpackSignature | None = None,
+		*,
+		clear=False,
 	):
 		dbstring = dbstring or "sqlite:///:memory:"
 		self._inq = Queue()
