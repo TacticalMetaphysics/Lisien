@@ -9106,46 +9106,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 				bool(extant),
 			)
 
-	def iter_edges(
-		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	) -> Iterator[EdgeRowType]:
-		if (turn_to is None) ^ (tick_to is None):
-			raise ValueError("I need both or neither of turn_to and tick_to")
-		self._edgevals2set()
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			it = self.call(
-				"load_edges_tick_to_end",
-				pack(graph),
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-			)
-		else:
-			it = self.call(
-				"load_edges_tick_to_tick",
-				pack(graph),
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-				turn_to,
-				turn_to,
-				tick_to,
-			)
-		for orig, dest, turn, tick, extant in it:
-			yield (
-				graph,
-				unpack(orig),
-				unpack(dest),
-				branch,
-				turn,
-				tick,
-				extant,
-			)
-
 	def edges_del_time(self, branch, turn, tick):
 		self._edges2set.cull(
 			lambda g, o, d, b, r, t, x: (b, r, t) == (branch, turn, tick)
