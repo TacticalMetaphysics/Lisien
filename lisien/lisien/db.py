@@ -5232,7 +5232,7 @@ class AbstractDatabaseConnector(ABC):
 			Tick,
 			NodeKeyframe,
 			EdgeKeyframe,
-			CharDict,
+			StatDict,
 		]
 	]: ...
 
