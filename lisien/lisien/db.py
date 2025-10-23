@@ -7482,8 +7482,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 	def __init__(
 		self,
 		path,
-		pack: PackSignature | None = None,
-		unpack: UnpackSignature | None = None,
 		*,
 		clear=False,
 	):
@@ -7494,20 +7492,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
 		self._new_keyframe_times = set()
-
-		if pack is None:
-
-			def pack(s: Any) -> bytes:
-				return repr(s).encode()
-
-		if unpack is None:
-			from ast import literal_eval
-
-			def unpack(b: bytes) -> Any:
-				return literal_eval(b.decode())
-
-		self.pack = pack
-		self.unpack = unpack
 		self._branches = {}
 		self._btts = set()
 		self._t = Thread(target=self._looper.run)
@@ -8596,8 +8580,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self,
 		dbstring,
 		connect_args,
-		pack: PackSignature | None = None,
-		unpack: UnpackSignature | None = None,
 		*,
 		clear=False,
 	):
@@ -8611,20 +8593,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 			self._outq,
 			list(meta.tables.keys()),
 		)
-
-		if pack is None:
-
-			def pack(s: Any) -> bytes:
-				return repr(s).encode()
-
-		if unpack is None:
-			from ast import literal_eval
-
-			def unpack(b: bytes) -> Any:
-				return literal_eval(b.decode())
-
-		self.pack = pack
-		self.unpack = unpack
 		self._branches = {}
 		self._new_keyframe_times: set[Time] = set()
 		self._records = 0
