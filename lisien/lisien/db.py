@@ -6263,13 +6263,19 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			yield from self.eternal.items()
 
 	def get_branch(self) -> Branch:
-		return self.eternal["branch"]
+		b = self.eternal[EternalKey(Key("branch"))]
+		assert isinstance(b, str)
+		return Branch(b)
 
 	def get_turn(self) -> Turn:
-		return self.eternal["turn"]
+		r = self.eternal[EternalKey(Key("turn"))]
+		assert isinstance(r, int)
+		return Turn(r)
 
 	def get_tick(self) -> Tick:
-		return self.eternal["tick"]
+		t = self.eternal[EternalKey(Key("tick"))]
+		assert isinstance(t, int)
+		return Tick(t)
 
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
 		with self._lock:
@@ -8862,13 +8868,13 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def get_turn(self) -> Turn:
 		v = self.call("global_get", self.pack("turn"))[0]
 		if v is None:
-			return 0
+			return Turn(0)
 		return self.unpack(v[0])
 
 	def get_tick(self) -> Tick:
 		v = self.call("global_get", self.pack("tick"))[0]
 		if v is None:
-			return 0
+			return Tick(0)
 		return self.unpack(v[0])
 
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
