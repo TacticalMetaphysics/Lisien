@@ -99,9 +99,10 @@ from .collections import (
 	UniversalMapping,
 )
 from .db import (
-	NullDatabaseConnector,
+	PythonDatabaseConnector,
 	ParquetDatabaseConnector,
 	SQLAlchemyDatabaseConnector,
+	AbstractDatabaseConnector,
 )
 from .exc import (
 	GraphNameError,
@@ -571,6 +572,11 @@ class Engine(AbstractEngine, Executor):
 		``"subthread"``. Irrelevant when ``workers=0``. ``"subthread"`` won't
 		have any performance benefits, unless work done in a thread releases
 		the Global Interpreter Lock.
+	:param database: The database connector to use. If left ``None``,
+		Lisien will construct a database connector based on the other arguments:
+		SQLAlchemy if a ``connect_string`` is provided; if not, but a
+		``prefix`` is provided, then ParquetDB; or, if ``prefix`` is ``None``,
+		then an in-memory database.
 	"""
 
 	char_cls = Character
@@ -2089,6 +2095,7 @@ class Engine(AbstractEngine, Executor):
 		logger: Optional[Logger] = None,
 		workers: Optional[int] = None,
 		sub_mode: Sub | None = None,
+		database: AbstractDatabaseConnector | None = None,
 	):
 		if workers is None:
 			workers = os.cpu_count()
@@ -2124,6 +2131,7 @@ class Engine(AbstractEngine, Executor):
 			keyframe_interval,
 			trunk,
 			clear,
+			database,
 		)
 		if not self._turn_end or not self._turn_end_plan:
 			self.query.set_turn(
@@ -2206,17 +2214,18 @@ class Engine(AbstractEngine, Executor):
 		keyframe_interval: int | None,
 		main_branch: Branch,
 		clear: bool,
+		database: AbstractDatabaseConnector | None,
 	):
 		if not hasattr(self, "query"):
-			if prefix is None:
+			if database:
+				self.query = database
+			elif prefix is None:
 				if connect_string is None:
-					self.query = NullDatabaseConnector()
+					self.query = PythonDatabaseConnector()
 				else:
 					self.query = SQLAlchemyDatabaseConnector(
 						connect_string,
 						connect_args or {},
-						self.pack,
-						self.unpack,
 						clear=clear,
 					)
 			else:
@@ -2227,19 +2236,19 @@ class Engine(AbstractEngine, Executor):
 				if connect_string is None:
 					self.query = ParquetDatabaseConnector(
 						os.path.join(prefix, "world"),
-						self.pack,
-						self.unpack,
 						clear=clear,
 					)
 				else:
 					self.query = SQLAlchemyDatabaseConnector(
 						connect_string,
 						connect_args or {},
-						self.pack,
-						self.unpack,
 						clear=clear,
 					)
 
+		if not hasattr(self.query, "pack"):
+			self.query.pack = self.pack
+		if not hasattr(self.query, "unpack"):
+			self.query.unpack = self.unpack
 		self.query.keyframe_interval = keyframe_interval
 		self._load_keyframe_times()
 		if main_branch is not None:
