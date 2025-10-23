@@ -3237,17 +3237,6 @@ class AbstractDatabaseConnector(ABC):
 	_looper: looper_cls
 	_records: int
 
-	@abstractmethod
-	def __init__(
-		self,
-		dbstring: str,
-		connect_args: dict[str, str],
-		pack: PackSignature | None = None,
-		unpack: UnpackSignature | None = None,
-		*,
-		clear=False,
-	): ...
-
 	@batched(
 		"global",
 		key_len=1,
@@ -6191,13 +6180,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	]
 
 	@cached_property
+	def _lock(self) -> Lock:
+		return Lock()
+
+	@cached_property
 	def _tables(self) -> list[dict | set]:
 		return [getattr(self, tab) for tab in self._table_names]
-
-	def __init__(
-		self, dbstring, connect_args, pack=None, unpack=None, *, clear=False
-	):
-		self._lock = Lock()
 
 	@staticmethod
 	def pack(a: _T) -> _T:
