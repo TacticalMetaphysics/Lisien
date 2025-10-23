@@ -163,8 +163,26 @@ class Value(metaclass=_ValueMeta):
 
 
 Stat = NewType("Stat", Key)
+
+
+def stat(k: _Key) -> Stat:
+	return Stat(Key(k))
+
+
 EternalKey = NewType("EternalKey", Key)
+
+
+def ekey(k: _Key) -> EternalKey:
+	return EternalKey(Key(k))
+
+
 UniversalKey = NewType("UniversalKey", Key)
+
+
+def ukey(k: _Key) -> UniversalKey:
+	return UniversalKey(Key(k))
+
+
 Branch = NewType("Branch", str)
 Turn = NewType("Turn", Annotated[int, Ge(0)])
 Tick = NewType("Tick", Annotated[int, Ge(0)])

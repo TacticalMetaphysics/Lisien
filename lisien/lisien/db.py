@@ -103,6 +103,7 @@ from .types import (
 	Value,
 	PackSignature,
 	UnpackSignature,
+	ekey,
 )
 from .util import ELLIPSIS, EMPTY, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
@@ -5908,12 +5909,15 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def eternal(self) -> dict[EternalKey, Value]:
 		return {
-			EternalKey("branch"): Value("trunk"),
-			EternalKey("turn"): Value(0),
-			EternalKey("tick"): Value(0),
-			EternalKey("language"): Value("eng"),
-			EternalKey("trunk"): Value("trunk"),
-			EternalKey("_lisien_schema_version"): Value(SCHEMA_VERSION),
+			ekey(k): Value(v)
+			for (k, v) in {
+				"branch": "trunk",
+				"turn": 0,
+				"tick": 0,
+				"language": "eng",
+				"trunk": "trunk",
+				"_lisien_schema_version": SCHEMA_VERSION,
+			}.items()
 		}
 
 	@cached_property
