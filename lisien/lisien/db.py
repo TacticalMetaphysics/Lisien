@@ -212,21 +212,21 @@ class ParquetDBLooper(ConnectionLooper):
 	def schema(self):
 		import pyarrow as pa
 
-		sql2parquetdb_type = {
-			BLOB: pa.binary,
-			FLOAT: pa.float64,
-			TEXT: pa.string,
-			INT: pa.int64,
-			BOOLEAN: pa.bool_,
+		py2pq_typ = {
+			bytes: pa.binary,
+			float: pa.float64,
+			str: pa.string,
+			int: pa.int64,
+			bool: pa.bool_,
 		}
-
-		return {
-			name: [
-				(column.name, sql2parquetdb_type[type(column.type)]())
-				for column in table.columns
+		ret = {}
+		for tn in PythonDatabaseConnector._table_names:
+			prop: cached_property = getattr(PythonDatabaseConnector, tn)
+			sig = inspect.getfullargspec(prop.func)
+			ret[tn] = [
+				(arg, py2pq_typ[sig.annotations[arg]]()) for arg in sig.args
 			]
-			for (name, table) in meta.tables.items()
-		}
+		return ret
 
 	initial = {
 		"global": [
@@ -6141,50 +6141,52 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _turns_completed(self) -> dict[Branch, Turn]:
 		return {}
 
+	_table_names = [
+		"_bookmarks",
+		"eternal",
+		"_branches",
+		"_turns",
+		"_graphs",
+		"_keyframes",
+		"_keyframes_graphs",
+		"_keyframe_extensions",
+		"_graph_val",
+		"_nodes",
+		"_node_val",
+		"_edges",
+		"_edge_val",
+		"_plans",
+		"_plan_ticks",
+		"_universals",
+		"_rules",
+		"_rulebooks",
+		"_rule_triggers",
+		"_rule_neighborhood",
+		"_rule_prereqs",
+		"_rule_actions",
+		"_rule_big",
+		"_character_rulebook",
+		"_unit_rulebook",
+		"_character_thing_rulebook",
+		"_character_place_rulebook",
+		"_character_portal_rulebook",
+		"_node_rules_handled",
+		"_portal_rules_handled",
+		"_things",
+		"_node_rulebook",
+		"_portal_rulebook",
+		"_units",
+		"_character_rules_handled",
+		"_unit_rules_handled",
+		"_character_thing_rules_handled",
+		"_character_place_rules_handled",
+		"_character_portal_rules_handled",
+		"_turns_completed",
+	]
+
 	@cached_property
 	def _tables(self) -> list[dict | set]:
-		return [
-			self._bookmarks,
-			self.eternal,
-			self._branches,
-			self._turns,
-			self._graphs,
-			self._keyframes,
-			self._keyframes_graphs,
-			self._keyframe_extensions,
-			self._graph_val,
-			self._nodes,
-			self._node_val,
-			self._edges,
-			self._edge_val,
-			self._plans,
-			self._plan_ticks,
-			self._universals,
-			self._rules,
-			self._rulebooks,
-			self._rule_triggers,
-			self._rule_neighborhood,
-			self._rule_prereqs,
-			self._rule_actions,
-			self._rule_big,
-			self._character_rulebook,
-			self._unit_rulebook,
-			self._character_thing_rulebook,
-			self._character_place_rulebook,
-			self._character_portal_rulebook,
-			self._node_rules_handled,
-			self._portal_rules_handled,
-			self._things,
-			self._node_rulebook,
-			self._portal_rulebook,
-			self._units,
-			self._character_rules_handled,
-			self._unit_rules_handled,
-			self._character_thing_rules_handled,
-			self._character_place_rules_handled,
-			self._character_portal_rules_handled,
-			self._turns_completed,
-		]
+		return [getattr(self, tab) for tab in self._table_names]
 
 	def __init__(
 		self, dbstring, connect_args, pack=None, unpack=None, *, clear=False
