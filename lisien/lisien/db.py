@@ -179,7 +179,7 @@ class GlobalKeyValueStore(UserDict):
 		self.qe.global_del(k)
 
 
-class ConnectionLooper:
+class ConnectionLooper(ABC):
 	strings: dict
 	lock: Lock
 
