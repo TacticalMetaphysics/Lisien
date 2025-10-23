@@ -2184,7 +2184,7 @@ class ParquetDBLooper(ConnectionLooper):
 
 	def _load_rule_part_tick_to_end(
 		self, part, branch: Branch, turn_from: Turn, tick_from: Tick
-	) -> list[tuple[RuleName, Turn, Tick, bytes | RuleBig]]:
+	) -> list[tuple[RuleName, Turn, Tick, bytes | RuleNeighborhood | RuleBig]]:
 		return sorted(
 			self._iter_rule_part_tick_to_end(
 				part, branch, turn_from, tick_from
@@ -2211,7 +2211,7 @@ class ParquetDBLooper(ConnectionLooper):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	) -> list[tuple[str, int, int, bytes | RuleBig]]:
+	) -> list[tuple[Branch, Turn, Tick, bytes | RuleNeighborhood | RuleBig]]:
 		return sorted(
 			self._iter_rule_part_tick_to_tick(
 				part, branch, turn_from, tick_from, turn_to, tick_to
@@ -2222,77 +2222,77 @@ class ParquetDBLooper(ConnectionLooper):
 	def _iter_rule_part_tick_to_tick(
 		self,
 		part,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int,
-		tick_to: int,
-	) -> Iterator[tuple[str, int, int, bytes]]:
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
+	) -> Iterator[tuple[Branch, Turn, Tick, bytes]]:
 		for d in self._list_part_tick_to_tick(
 			f"rule_{part}", branch, turn_from, tick_from, turn_to, tick_to
 		):
 			yield d["rule"], d["turn"], d["tick"], d[part]
 
 	def load_rule_triggers_tick_to_end(
-		self, branch, turn_from, tick_from
-	) -> list[tuple[str, int, int, bytes]]:
+		self, branch: Branch, turn_from: Turn, tick_from: Tick
+	) -> list[tuple[Branch, Turn, Tick, bytes]]:
 		return self._load_rule_part_tick_to_end(
 			"triggers", branch, turn_from, tick_from
 		)
 
 	def load_rule_triggers_tick_to_tick(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int,
-		tick_to: int,
-	) -> list[tuple[str, int, int, bytes]]:
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
+	) -> list[tuple[Branch, Turn, Tick, bytes]]:
 		return self._load_rule_part_tick_to_tick(
 			"triggers", branch, turn_from, tick_from, turn_to, tick_to
 		)
 
 	def load_rule_prereqs_tick_to_end(
-		self, branch: str, turn_from: int, tick_from: int
-	) -> list[tuple[str, int, int, bytes]]:
+		self, branch: Branch, turn_from: Turn, tick_from: Tick
+	) -> list[tuple[Branch, Turn, Tick, bytes]]:
 		return self._load_rule_part_tick_to_end(
 			"prereqs", branch, turn_from, tick_from
 		)
 
 	def load_rule_prereqs_tick_to_tick(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int,
-		tick_to: int,
-	) -> list[tuple[str, int, int, bytes]]:
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
+	) -> list[tuple[Branch, Turn, Tick, bytes]]:
 		return self._load_rule_part_tick_to_tick(
 			"prereqs", branch, turn_from, tick_from, turn_to, tick_to
 		)
 
 	def load_rule_actions_tick_to_end(
-		self, branch: str, turn_from: int, tick_from: int
-	) -> list[tuple[str, int, int, bytes]]:
+		self, branch: Branch, turn_from: Turn, tick_from: Tick
+	) -> list[tuple[Branch, Turn, Tick, bytes]]:
 		return self._load_rule_part_tick_to_end(
 			"actions", branch, turn_from, tick_from
 		)
 
 	def load_rule_actions_tick_to_tick(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int,
-		tick_to: int,
-	) -> list[tuple[str, int, int, bytes]]:
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
+	) -> list[tuple[Branch, Turn, Tick, bytes]]:
 		return self._load_rule_part_tick_to_tick(
 			"actions", branch, turn_from, tick_from, turn_to, tick_to
 		)
 
 	def load_rule_neighborhoods_tick_to_end(
-		self, branch: str, turn_from: int, tick_from: int
-	) -> list[tuple[str, int, int, bytes]]:
+		self, branch: Branch, turn_from: Turn, tick_from: Tick
+	) -> list[tuple[Branch, Turn, Tick, bytes]]:
 		return self._load_rule_part_tick_to_end(
 			"neighborhood", branch, turn_from, tick_from
 		)
@@ -2824,12 +2824,12 @@ class ParquetDBLooper(ConnectionLooper):
 
 	def load_units_tick_to_tick(
 		self,
-		branch: str,
-		turn_from: int,
-		tick_from: int,
-		turn_to: int,
-		tick_to: int,
-	) -> list[tuple[bytes, bytes, bytes, int, int, bool]]:
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
+	) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
 		return [
 			(
 				d["character_graph"],
@@ -2845,7 +2845,7 @@ class ParquetDBLooper(ConnectionLooper):
 		]
 
 	def get_keyframe_extensions(
-		self, branch: str, turn: int, tick: int
+		self, branch: Branch, turn: Turn, tick: Tick
 	) -> tuple[bytes, bytes, bytes] | None:
 		from pyarrow import compute as pc
 
@@ -2865,7 +2865,7 @@ class ParquetDBLooper(ConnectionLooper):
 			data["rulebook"][0].as_py(),
 		)
 
-	def all_keyframe_graphs(self, branch: str, turn: int, tick: int):
+	def all_keyframe_graphs(self, branch: Branch, turn: Turn, tick: Tick):
 		from pyarrow import compute as pc
 
 		db = self._get_db("keyframes_graphs")
@@ -2895,11 +2895,11 @@ class ParquetDBLooper(ConnectionLooper):
 	def set_rulebook(
 		self,
 		rulebook: bytes,
-		branch: str,
-		turn: int,
-		tick: int,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		rules: bytes,
-		priority: float,
+		priority: RulebookPriority,
 	) -> bool:
 		import pyarrow.compute as pc
 
@@ -3006,7 +3006,13 @@ class ParquetDBLooper(ConnectionLooper):
 					call_method(cmd)
 
 
-def mutexed(func):
+_ARGS = TypeVar("_ARGS")
+_RET = TypeVar("_RET")
+
+
+def mutexed(
+	func: Callable[[_ARGS, ...], _RET],
+) -> Callable[[_ARGS, ...], _RET]:
 	"""Decorator for when an entire method's body holds a mutex lock"""
 
 	@wraps(func)
@@ -3059,7 +3065,7 @@ class Batch(list):
 		table: str,
 		key_len: int,
 		inc_rec_counter: bool,
-		serialize_record: callable,
+		serialize_record: Callable[[_ARGS, ...], tuple[bytes, ...]],
 	):
 		super().__init__()
 		self._qe = qe
