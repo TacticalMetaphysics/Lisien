@@ -326,6 +326,8 @@ class SpecialMapping(Mapping, Signal, ABC):
 class MutableWrapper(ABC):
 	__slots__ = ()
 
+	_getter: Callable[[], list | dict]
+
 	def __iter__(self):
 		return iter(self._getter())
 
@@ -342,10 +344,6 @@ class MutableWrapper(ABC):
 
 	def __str__(self):
 		return str(self._getter())
-
-	@abstractmethod
-	def _getter(self):
-		raise NotImplementedError
 
 	@abstractmethod
 	def _copy(self):
