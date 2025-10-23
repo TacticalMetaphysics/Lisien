@@ -194,7 +194,7 @@ PrereqFuncName = NewType("PrereqFuncName", FuncName)
 ActionFuncName = NewType("ActionFuncName", FuncName)
 RuleFuncName: TypeAlias = TriggerFuncName | PrereqFuncName | ActionFuncName
 UniversalKeyframe: TypeAlias = dict[UniversalKey, Value]
-RuleKeyframe = dict[
+RuleKeyframe: TypeAlias = dict[
 	Literal["triggers", "prereqs", "actions", "neighborhood", "big"],
 	list[TriggerFuncName]
 	| list[PrereqFuncName]
