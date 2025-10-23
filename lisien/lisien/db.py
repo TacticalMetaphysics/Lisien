@@ -139,7 +139,9 @@ class GlobalKeyValueStore(UserDict):
 		super().__init__()
 		self.data = data
 
-	def __getitem__(self, k: Key) -> Value:
+	def __getitem__(
+		self, k: Key
+	) -> Value | DictWrapper | ListWrapper | SetWrapper:
 		ret = super().__getitem__(k)
 		if ret is ...:
 			raise KeyError(k)
