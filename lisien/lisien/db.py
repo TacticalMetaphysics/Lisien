@@ -41,6 +41,7 @@ from typing import (
 	TypeAlias,
 	Union,
 	get_type_hints,
+	TypeVar,
 	TYPE_CHECKING,
 )
 
@@ -49,6 +50,7 @@ from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
 import lisien.types
+from elide.rulesview import RulesList
 
 from .alchemy import meta, queries
 from .exc import KeyframeError
@@ -87,6 +89,7 @@ from .types import (
 	RuleNeighborhood,
 	RuleRowType,
 	Stat,
+	StatDict,
 	ThingRowType,
 	Tick,
 	Time,
@@ -5850,12 +5853,878 @@ class AbstractDatabaseConnector(ABC):
 		return dict(ret)
 
 
-class NullDatabaseConnector(AbstractDatabaseConnector):
-	"""Query engine that does nothing, connects to no database
+_T = TypeVar("_T")
 
-	For tests, mainly. If you want to run Lisien in-memory,
-	:class:`SQLAlchemyQueryEngine` is more appropriate, with
-	``connect_str='sqlite:///:memory:'``
+
+class PythonDatabaseConnector(AbstractDatabaseConnector):
+	"""Database connector that holds all data in memory
+
+	You'll have to write it to disk yourself, somehow. Use the various
+	methods with names ending in 'dump' to get the stored data.
+
+	"""
+
+	@cached_property
+	def _bookmarks(self) -> dict[str, Time]:
+		return {}
+
+	@cached_property
+	def _keyframe_extensions(
+		self,
+	) -> dict[Time, tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]]:
+		return {}
+
+	@cached_property
+	def _keyframes(self) -> set[Time]:
+		return set()
+
+	@cached_property
+	def _keyframes_graphs(
+		self,
+	) -> dict[
+		tuple[Branch, Turn, Tick, CharName],
+		tuple[NodeKeyframe, EdgeKeyframe, StatDict],
+	]:
+		return {}
+
+	@cached_property
+	def _branches(self) -> dict[Branch, tuple[Branch, Turn, Tick, Turn, Tick]]:
+		return {}
+
+	@cached_property
+	def eternal(self) -> dict[EternalKey, Value]:
+		return {
+			EternalKey("branch"): Value("trunk"),
+			EternalKey("turn"): Value(0),
+			EternalKey("tick"): Value(0),
+			EternalKey("language"): Value("eng"),
+			EternalKey("trunk"): Value("trunk"),
+			EternalKey("_lisien_schema_version"): Value(SCHEMA_VERSION),
+		}
+
+	@cached_property
+	def _turns(self) -> dict[tuple[Branch, Turn], tuple[Tick, Tick]]:
+		return {}
+
+	@cached_property
+	def _graphs(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName], GraphTypeStr]:
+		return {}
+
+	@cached_property
+	def _graph_val(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName, Stat], Value]:
+		return {}
+
+	@cached_property
+	def _nodes(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName], bool]:
+		return {}
+
+	@cached_property
+	def _node_val(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName, Stat], Value]:
+		return {}
+
+	@cached_property
+	def _edges(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName, NodeName], bool]:
+		return {}
+
+	@cached_property
+	def _edge_val(
+		self,
+	) -> dict[
+		tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, Stat], Value
+	]:
+		return {}
+
+	@cached_property
+	def _plans(self) -> dict[Plan, tuple[Branch, Turn, tick]]:
+		return {}
+
+	@cached_property
+	def _plan_ticks(self) -> set[tuple[Plan, Branch, Turn, Tick]]:
+		return set()
+
+	@cached_property
+	def _universals(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, UniversalKey], Value]:
+		return {}
+
+	@cached_property
+	def _rules(self) -> set[RuleName]:
+		return set()
+
+	@cached_property
+	def _rulebooks(
+		self,
+	) -> dict[
+		tuple[
+			Branch,
+			Turn,
+			Tick,
+			RulebookName,
+		],
+		tuple[RulesList, RulebookPriority],
+	]:
+		return {}
+
+	@cached_property
+	def _rule_triggers(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, RuleName], list[TriggerFuncName]]:
+		return {}
+
+	@cached_property
+	def _rule_neighborhood(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, RuleName], RuleNeighborhood]:
+		return {}
+
+	@cached_property
+	def _rule_prereqs(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, RuleName], list[PrereqFuncName]]:
+		return {}
+
+	@cached_property
+	def _rule_actions(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, RuleName], list[ActionFuncName]]:
+		return {}
+
+	@cached_property
+	def _rule_big(self) -> dict[tuple[Branch, Turn, Tick, RuleName], RuleBig]:
+		return {}
+
+	@cached_property
+	def _character_rulebook(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
+		return {}
+
+	@cached_property
+	def _unit_rulebook(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
+		return {}
+
+	@cached_property
+	def _character_thing_rulebook(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
+		return {}
+
+	@cached_property
+	def _character_place_rulebook(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
+		return {}
+
+	@cached_property
+	def _character_portal_rulebook(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
+		return {}
+
+	@cached_property
+	def _node_rules_handled(
+		self,
+	) -> dict[
+		tuple[Branch, Turn, CharName, NodeName, RulebookName, RuleName], Tick
+	]:
+		return {}
+
+	@cached_property
+	def _portal_rules_handled(
+		self,
+	) -> dict[
+		tuple[
+			Branch, Turn, CharName, NodeName, NodeName, RulebookName, RuleName
+		],
+		Tick,
+	]:
+		return {}
+
+	@cached_property
+	def _things(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName], NodeName]:
+		return {}
+
+	@cached_property
+	def _node_rulebook(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName], RulebookName]:
+		return {}
+
+	@cached_property
+	def _portal_rulebook(
+		self,
+	) -> dict[
+		tuple[Branch, Turn, Tick, CharName, NodeName, NodeName], RulebookName
+	]:
+		return {}
+
+	@cached_property
+	def _units(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick, CharName, CharName, NodeName], bool]:
+		return {}
+
+	@cached_property
+	def _character_rules_handled(
+		self,
+	) -> dict[tuple[Branch, Turn, CharName, RulebookName, RuleName], Tick]:
+		return {}
+
+	@cached_property
+	def _unit_rules_handled(
+		self,
+	) -> dict[
+		tuple[
+			Branch, Turn, CharName, CharName, NodeName, RulebookName, RuleName
+		],
+		Tick,
+	]:
+		return {}
+
+	@cached_property
+	def _character_thing_rules_handled(
+		self,
+	) -> dict[
+		tuple[Branch, Turn, CharName, RulebookName, RuleName, NodeName], Tick
+	]:
+		return {}
+
+	@cached_property
+	def _character_place_rules_handled(
+		self,
+	) -> dict[
+		tuple[Branch, Turn, CharName, NodeName, RulebookName, RuleName], Tick
+	]:
+		return {}
+
+	@cached_property
+	def _character_portal_rules_handled(
+		self,
+	) -> dict[
+		tuple[
+			Branch, Turn, CharName, NodeName, NodeName, RulebookName, RuleName
+		],
+		Tick,
+	]:
+		return {}
+
+	@cached_property
+	def _turns_completed(self) -> dict[Branch, Turn]:
+		return {}
+
+	@cached_property
+	def _tables(self) -> list[dict | set]:
+		return [
+			self._bookmarks,
+			self.eternal,
+			self._branches,
+			self._turns,
+			self._graphs,
+			self._keyframes,
+			self._keyframes_graphs,
+			self._keyframe_extensions,
+			self._graph_val,
+			self._nodes,
+			self._node_val,
+			self._edges,
+			self._edge_val,
+			self._plans,
+			self._plan_ticks,
+			self._universals,
+			self._rules,
+			self._rulebooks,
+			self._rule_triggers,
+			self._rule_neighborhood,
+			self._rule_prereqs,
+			self._rule_actions,
+			self._rule_big,
+			self._character_rulebook,
+			self._unit_rulebook,
+			self._character_thing_rulebook,
+			self._character_place_rulebook,
+			self._character_portal_rulebook,
+			self._node_rules_handled,
+			self._portal_rules_handled,
+			self._things,
+			self._node_rulebook,
+			self._portal_rulebook,
+			self._units,
+			self._character_rules_handled,
+			self._unit_rules_handled,
+			self._character_thing_rules_handled,
+			self._character_place_rules_handled,
+			self._character_portal_rules_handled,
+			self._turns_completed,
+		]
+
+	def __init__(
+		self, dbstring, connect_args, pack=None, unpack=None, *, clear=False
+	):
+		self._lock = Lock()
+
+	@staticmethod
+	def pack(a: _T) -> _T:
+		return a
+
+	@staticmethod
+	def unpack(a: _T) -> _T:
+		return a
+
+	def del_bookmark(self, key: str) -> None:
+		self._bookmarks2set.cull(lambda k, _: k == key)
+		if key in self._bookmarks:
+			del self._bookmarks[key]
+
+	def call(self, query_name: str, *args, **kwargs):
+		raise NotImplementedError("Not a real database, so can't call it")
+
+	def call_silent(self, query_name: str, *args, **kwargs):
+		raise NotImplementedError("Not a real database, so can't call it")
+
+	def call_many(self, query_name: str, args: list) -> None:
+		raise NotImplementedError("Not a real database, so can't call it")
+
+	def call_many_silent(self, query_name: str, args: list) -> None:
+		raise NotImplementedError("Not a real database, so can't call it")
+
+	def insert_many(self, table_name: str, args: list[dict]) -> None:
+		raise NotImplementedError("Not a real database, so can't call it")
+
+	def insert_many_silent(self, table_name: str, args: list[dict]) -> None:
+		raise NotImplementedError("Not a real database, so can't call it")
+
+	def delete_many_silent(self, table_name: str, args: list[dict]) -> None:
+		raise NotImplementedError("Not a real database, so can't call it")
+
+	def get_keyframe_extensions(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
+		return self._keyframe_extensions[branch, turn, tick]
+
+	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+		with self._lock:
+			yield from self._keyframes
+
+	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		with self._lock:
+			self._keyframes.remove((branch, turn, tick))
+			del self._keyframe_extensions[branch, turn, tick]
+
+	def keyframes_graphs(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick]]:
+		with self._lock:
+			for b, r, t, g in self._keyframes:
+				yield g, b, r, t
+
+	def have_branch(self, branch: Branch) -> bool:
+		return branch in self._branches
+
+	def branches_dump(
+		self,
+	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
+		with self._lock:
+			for branch, (
+				parent,
+				parent_turn,
+				parent_tick,
+				end_turn,
+				end_tick,
+			) in self._branches.items():
+				yield (
+					branch,
+					parent,
+					parent_turn,
+					parent_tick,
+					end_turn,
+					end_tick,
+				)
+
+	def global_get(self, key: EternalKey) -> Value:
+		return self.eternal[key]
+
+	def global_dump(self) -> Iterator[tuple[Key, Value]]:
+		with self._lock:
+			yield from self.eternal.items()
+
+	def get_branch(self) -> Branch:
+		return self.eternal["branch"]
+
+	def get_turn(self) -> Turn:
+		return self.eternal["turn"]
+
+	def get_tick(self) -> Tick:
+		return self.eternal["tick"]
+
+	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
+		with self._lock:
+			for (branch, turn), (
+				end_tick,
+				plan_end_tick,
+			) in self._turns.items():
+				yield branch, turn, end_tick, plan_end_tick
+
+	def graph_val_dump(self) -> Iterator[GraphValRowType]:
+		with self._lock:
+			for (
+				branch,
+				turn,
+				tick,
+				graph,
+				key,
+			), value in self._graph_val.items():
+				yield graph, key, branch, turn, tick, value
+
+	def graphs_types(
+		self,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Optional[Turn] = None,
+		tick_to: Optional[Tick] = None,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+		if not (turn_to ^ tick_to):
+			raise TypeError("Need both or neither of 'turn_to' and 'tick_to'")
+		if turn_to is None:
+			with self._lock:
+				for (b, r, t, g), v in self._graphs.items():
+					if b != branch or not ((turn_from, tick_from) <= (r, t)):
+						continue
+					yield g, b, r, t, v
+			return
+		with self._lock:
+			for (b, r, t, g), v in self._graphs.items():
+				if b != branch or not (
+					(turn_from, tick_from) <= (r, t) < (turn_to, tick_to)
+				):
+					continue
+				yield g, b, r, t, v
+
+	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+		with self._lock:
+			for (b, r, t, g), v in self._graphs.items():
+				yield g, b, r, t, v
+
+	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		with self._lock:
+			for k in {
+				(b, r, t, g, n)
+				for (b, r, t, g, n) in self._nodes
+				if (b, r, t) == (branch, turn, tick)
+			}:
+				del self._nodes[k]
+
+	def nodes_dump(self) -> Iterator[NodeRowType]:
+		with self._lock:
+			for (b, r, t, g, n), x in self._nodes.items():
+				yield g, n, b, r, t, x
+
+	def node_val_dump(self) -> Iterator[NodeValRowType]:
+		with self._lock:
+			for (b, r, t, g, n, k), v in self._node_val.items():
+				yield g, n, k, b, r, t, v
+
+	def node_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		with self._lock:
+			for key in {
+				(b, r, t, g, n, k)
+				for (b, r, t, g, n, k) in self._node_val
+				if (b, r, t) == (branch, turn, tick)
+			}:
+				del self._node_val[key]
+
+	def edges_dump(self) -> Iterator[EdgeRowType]:
+		with self._lock:
+			for (b, r, t, g, o, d), x in self._edges.items():
+				yield g, o, d, b, r, t, x
+
+	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
+		with self._lock:
+			for (b, r, t, g, o, d, k), v in self._edge_val.items():
+				yield g, o, d, k, b, r, t, v
+
+	def edge_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		with self._lock:
+			for key in {
+				(b, r, t, g, o, d, k)
+				for (b, r, t, g, o, d, k) in self._edge_val
+				if (b, r, t) == (branch, turn, tick)
+			}:
+				del self._edge_val[key]
+
+	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
+		with self._lock:
+			for plan_id, (b, r, t) in self._plans.items():
+				yield plan_id, b, r, t
+
+	def commit(self) -> None:
+		pass
+
+	def close(self) -> None:
+		pass
+
+	def _init_db(self) -> None:
+		pass
+
+	def truncate_all(self) -> None:
+		for table in self._tables:
+			table.clear()
+
+	def get_all_keyframe_graphs(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> Iterator[tuple[CharName, NodeKeyframe, EdgeKeyframe, StatDict]]:
+		with self._lock:
+			for (b, r, t, g), (
+				nkf,
+				ekf,
+				gvkf,
+			) in self._keyframes_graphs.items():
+				if (b, r, t) != (branch, turn, tick):
+					continue
+				yield g, nkf, ekf, gvkf
+
+	def keyframes_graphs_dump(
+		self,
+	) -> Iterator[
+		tuple[
+			CharName,
+			Branch,
+			Turn,
+			Tick,
+			NodeKeyframe,
+			EdgeKeyframe,
+			StatDict,
+		]
+	]:
+		with self._lock:
+			for (b, r, t, g), (
+				nkf,
+				ekf,
+				gvkf,
+			) in self._keyframes_graphs.items():
+				yield g, b, r, t, nkf, ekf, gvkf
+
+	def keyframe_extensions_dump(
+		self,
+	) -> Iterator[
+		tuple[
+			Branch,
+			Turn,
+			Tick,
+			UniversalKeyframe,
+			RuleKeyframe,
+			RulebookKeyframe,
+		]
+	]:
+		with self._lock:
+			for (b, r, t), (
+				ukf,
+				rkf,
+				rbkf,
+			) in self._keyframe_extensions.items():
+				yield b, r, t, ukf, rkf, rbkf
+
+	def universals_dump(
+		self,
+	) -> Iterator[tuple[Key, Branch, Turn, Tick, Value]]:
+		with self._lock:
+			for (b, r, t, k), v in self._universals.items():
+				yield k, b, r, t, v
+
+	def rulebooks_dump(
+		self,
+	) -> Iterator[
+		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
+	]:
+		with self._lock:
+			for (b, r, t, rb), (rs, prio) in self._rulebooks.items():
+				yield rb, b, r, t, (rs.copy(), prio)
+
+	def rules_dump(self) -> Iterator[RuleName]:
+		with self._lock:
+			yield from self._rules
+
+	def rule_triggers_dump(
+		self,
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]]:
+		with self._lock:
+			for (b, r, t, rn), trigs in self._rule_triggers.items():
+				yield rn, b, r, t, trigs.copy()
+
+	def rule_prereqs_dump(
+		self,
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]]:
+		with self._lock:
+			for (b, r, t, rn), preqs in self._rule_prereqs.items():
+				yield rn, b, r, t, preqs.copy()
+
+	def rule_actions_dump(
+		self,
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]]:
+		with self._lock:
+			for (b, r, t, rn), acts in self._rule_actions.items():
+				yield rn, b, r, t, acts.copy()
+
+	def rule_neighborhood_dump(
+		self,
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
+		with self._lock:
+			for (b, r, t, rn), nbrs in self._rule_neighborhood.items():
+				yield rn, b, r, t, nbrs
+
+	def rule_big_dump(
+		self,
+	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]:
+		with self._lock:
+			for (b, r, t, rn), big in self._rule_big.items():
+				yield rn, b, r, t, big
+
+	def node_rulebook_dump(
+		self,
+	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
+		with self._lock:
+			for (b, r, t, g, n), rb in self._node_rulebook.items():
+				yield g, n, b, r, t, rb
+
+	def portal_rulebook_dump(
+		self,
+	) -> Iterator[
+		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
+	]:
+		with self._lock:
+			for (b, r, t, g, o, d), rb in self._portal_rulebook.items():
+				yield g, o, d, b, r, t, rb
+
+	def character_rulebook_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+		with self._lock:
+			for (b, r, t, g), rb in self._character_rulebook.items():
+				yield g, b, r, t, rb
+
+	def unit_rulebook_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+		with self._lock:
+			for (b, r, t, g), rb in self._unit_rulebook.items():
+				yield g, b, r, t, rb
+
+	def character_thing_rulebook_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+		with self._lock:
+			for (b, r, t, g), rb in self._character_thing_rulebook.items():
+				yield g, b, r, t, rb
+
+	def character_place_rulebook_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+		with self._lock:
+			for (b, r, t, g), rb in self._character_place_rulebook.items():
+				yield g, b, r, t, rb
+
+	def character_portal_rulebook_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+		with self._lock:
+			for (b, r, t, g), rb in self._character_portal_rulebook.items():
+				yield g, b, r, t, rb
+
+	def character_rules_handled_dump(
+		self,
+	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
+		with self._lock:
+			for (b, r, g, rb, rn), t in self._character_rules_handled.items():
+				yield g, rb, rn, b, r, t
+
+	def unit_rules_handled_dump(
+		self,
+	) -> Iterator[
+		tuple[
+			CharName,
+			CharName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
+		with self._lock:
+			for (
+				b,
+				r,
+				char,
+				graph,
+				node,
+				rb,
+				rn,
+			), t in self._unit_rules_handled.items():
+				yield char, graph, node, b, r, rb, rn, t
+
+	def character_thing_rules_handled_dump(
+		self,
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
+		with self._lock:
+			for (
+				b,
+				r,
+				g,
+				rb,
+				rn,
+				n,
+			), t in self._character_thing_rules_handled.items():
+				yield g, n, rb, rn, b, r, t
+
+	def character_place_rules_handled_dump(
+		self,
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
+		with self._lock:
+			for (
+				b,
+				r,
+				g,
+				n,
+				rb,
+				rn,
+			), t in self._character_place_rules_handled.items():
+				yield g, n, rb, rn, b, r, t
+
+	def character_portal_rules_handled_dump(
+		self,
+	) -> Iterator[
+		tuple[
+			CharName,
+			NodeName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
+		with self._lock:
+			for (
+				b,
+				r,
+				g,
+				o,
+				d,
+				rb,
+				rn,
+			), t in self._character_portal_rules_handled.items():
+				yield g, o, d, rb, rn, b, r, t
+
+	def node_rules_handled_dump(
+		self,
+	) -> Iterator[
+		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+	]:
+		with self._lock:
+			for (b, r, g, n, rb, rn), t in self._node_rules_handled.items():
+				yield g, n, rb, rn, b, r, t
+
+	def portal_rules_handled_dump(
+		self,
+	) -> Iterator[
+		tuple[
+			CharName,
+			NodeName,
+			NodeName,
+			RulebookName,
+			RuleName,
+			Branch,
+			Turn,
+			Tick,
+		]
+	]:
+		with self._lock:
+			for (
+				b,
+				r,
+				g,
+				o,
+				d,
+				rb,
+				rn,
+			), t in self._portal_rules_handled.items():
+				yield g, o, d, rb, rn, b, r, t
+
+	def things_dump(
+		self,
+	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
+		with self._lock:
+			for (b, r, t, g, n), loc in self._things.items():
+				yield g, n, b, r, t, loc
+
+	def units_dump(
+		self,
+	) -> Iterator[
+		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
+	]:
+		with self._lock:
+			for (b, r, t, char, graph, node), is_unit in self._units.items():
+				yield char, graph, node, b, r, t, is_unit
+
+	def count_all_table(self, tbl: str) -> int:
+		return len(getattr(self, "_" + tbl))
+
+	def rules_insert(self, rule: RuleName):
+		with self._lock:
+			self._rules.add(rule)
+
+	def rulebooks(self) -> Iterator[RulebookName]:
+		with self._lock:
+			yield from self._rulebooks
+
+	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+		with self._lock:
+			for key in {
+				(b, r, t, g, n)
+				for (b, r, t, g, n) in self._things
+				if (b, r, t) == (branch, turn, tick)
+			}:
+				del self._things[key]
+
+	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
+		with self._lock:
+			yield from self._turns_completed.items()
+
+	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+		with self._lock:
+			yield from self._bookmarks.items()
+
+
+class NullDatabaseConnector(AbstractDatabaseConnector):
+	"""Database connector that does nothing, connects to no database
+
+	This will never return any data, either. If you want it to hold data
+	you put into it, instead use :class:`PythonDatabaseConnector`.
 
 	"""
 
