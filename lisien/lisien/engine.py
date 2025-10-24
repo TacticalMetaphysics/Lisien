@@ -103,6 +103,7 @@ from .db import (
 	ParquetDatabaseConnector,
 	SQLAlchemyDatabaseConnector,
 	AbstractDatabaseConnector,
+	NullDatabaseConnector,
 )
 from .exc import (
 	GraphNameError,
@@ -4338,7 +4339,9 @@ class Engine(AbstractEngine, Executor):
 		"""Remove everything from memory that can be removed."""
 		# If we're not connected to some database, we can't unload anything
 		# without losing data
-		if isinstance(self.query, NullDatabaseConnector):
+		if isinstance(
+			self.query, (NullDatabaseConnector, PythonDatabaseConnector)
+		):
 			return
 		# find the slices of time that need to stay loaded
 		branch, turn, tick = self._btt()
