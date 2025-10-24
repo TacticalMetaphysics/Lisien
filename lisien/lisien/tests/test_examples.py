@@ -13,6 +13,7 @@ from lisien.examples import (
 	wolfsheep,
 )
 from lisien.proxy.handle import EngineHandle
+from lisien.proxy.manager import Sub
 from lisien.types import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
 
 pytestmark = [pytest.mark.big]
@@ -20,9 +21,13 @@ pytestmark = [pytest.mark.big]
 
 @pytest.mark.slow
 def test_college_nodb(serial_or_parallel):
-	with Engine(
-		None, workers=0 if serial_or_parallel == "serial" else 2
-	) as eng:
+	kwargs = {}
+	if serial_or_parallel == "serial":
+		kwargs["workers"] = 0
+	else:
+		kwargs["workers"] = 2
+		kwargs["sub_mode"] = Sub(serial_or_parallel)
+	with Engine(None, **kwargs) as eng:
 		college.install(eng)
 		for i in range(10):
 			eng.next_turn()
