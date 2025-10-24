@@ -3351,8 +3351,8 @@ class AbstractDatabaseConnector(ABC):
 			self._char_thing_rules_handled.clear()
 			self._char_place_rules_handled.clear()
 			self._char_portal_rules_handled.clear()
-			self._node_rules_handled.clear()
-			self._portal_rules_handled.clear()
+			self._node_rules_handled_to_set.clear()
+			self._portal_rules_handled_to_set.clear()
 
 	@batched("plan_ticks", inc_rec_counter=False)
 	def _planticks2set(
@@ -3813,7 +3813,7 @@ class AbstractDatabaseConnector(ABC):
 		return character, orig, dest, rulebook, rule, branch, turn, tick
 
 	@batched("node_rules_handled", inc_rec_counter=False)
-	def _node_rules_handled(
+	def _node_rules_handled_to_set(
 		self,
 		character: CharName,
 		node: NodeName,
@@ -3827,7 +3827,7 @@ class AbstractDatabaseConnector(ABC):
 		return character, node, rulebook, rule, branch, turn, tick
 
 	@batched("portal_rules_handled", inc_rec_counter=False)
-	def _portal_rules_handled(
+	def _portal_rules_handled_to_set(
 		self,
 		character: CharName,
 		orig: NodeName,
@@ -5709,7 +5709,7 @@ class AbstractDatabaseConnector(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		self._node_rules_handled.append(
+		self._node_rules_handled_to_set.append(
 			(character, node, rulebook, rule, branch, turn, tick)
 		)
 
@@ -5724,7 +5724,7 @@ class AbstractDatabaseConnector(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		self._portal_rules_handled.append(
+		self._portal_rules_handled_to_set.append(
 			(character, orig, dest, rulebook, rule, branch, turn, tick)
 		)
 
@@ -8227,7 +8227,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	) -> Iterator[
 		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
 	]:
-		self._node_rules_handled()
+		self._node_rules_handled_to_set()
 		unpack = self.unpack
 		return (
 			(
@@ -8256,7 +8256,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			Tick,
 		]
 	]:
-		self._portal_rules_handled()
+		self._portal_rules_handled_to_set()
 		unpack = self.unpack
 		return (
 			(
