@@ -2432,23 +2432,19 @@ class Engine(AbstractEngine, Executor):
 			wlk.append(lock)
 			wlt.append(logthread)
 			wint.append(terp)
-			thred = Thread(
-				target=terp.call,
-				name=f"lisien worker {i}",
-				args=(
-					worker_subthread,
-					i,
-					prefix,
-					dict(self._branches_d),
-					dict(self.eternal),
-					input,
-					output,
-					logq,
-				),
-				context=contextvars.copy_context(),
+			input.put(b"shutdown")
+			terp_args = (
+				worker_subthread,
+				i,
+				prefix,
+				dict(self._branches_d),
+				dict(self.eternal),
+				input,
+				output,
+				logq,
 			)
-			thred.start()
-			wt.append(thred)
+			terp.call(*terp_args)  # check that we can run the subthread
+			wt.append(terp.call_in_thread(*terp_args))
 			with lock:
 				input.put(b"echoImReady")
 				if (echoed := output.get(timeout=5.0)) != b"ImReady":
