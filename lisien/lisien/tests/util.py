@@ -10,6 +10,7 @@ from lisien.db import (
 	PythonDatabaseConnector,
 	SQLAlchemyDatabaseConnector,
 	ParquetDatabaseConnector,
+	NullDatabaseConnector,
 )
 from lisien.facade import EngineFacade
 from lisien.proxy.manager import Sub
@@ -99,6 +100,8 @@ def make_test_engine(path, execution, database):
 			kwargs["database"] = ParquetDatabaseConnector(
 				os.path.join(path, "world")
 			)
+		case "nodb":
+			kwargs["database"] = NullDatabaseConnector()
 		case _:
 			raise RuntimeError("Unknown database", database)
 	return Engine(path, **kwargs)
