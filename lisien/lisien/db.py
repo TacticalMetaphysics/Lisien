@@ -226,8 +226,9 @@ class ParquetDBLooper(ConnectionLooper):
 		for tn in PythonDatabaseConnector._table_names:
 			prop: cached_property = getattr(PythonDatabaseConnector, tn)
 			sig = inspect.getfullargspec(prop.func)
-			ret[tn] = [
-				(arg, py2pq_typ[sig.annotations[arg]]()) for arg in sig.args
+			ret[tn[1:]] = [
+				(arg, py2pq_typ[sig.annotations[arg]]())
+				for arg in sig.args[1:]
 			]
 		return ret
 
