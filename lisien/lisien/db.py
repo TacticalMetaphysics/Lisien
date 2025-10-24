@@ -3268,6 +3268,10 @@ class AbstractDatabaseConnector(ABC):
 	_lock: Lock
 	_records: int
 
+	@cached_property
+	def all_rules(self) -> set[RuleName]:
+		return set()
+
 	@contextmanager
 	def mutex(self):
 		with self._lock:
@@ -7146,10 +7150,6 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		return iter(())
 
-	@cached_property
-	def all_rules(self) -> set[RuleName]:
-		return set()
-
 	def rules_dump(self) -> Iterator[str]:
 		return iter(())
 
@@ -8666,7 +8666,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			self, {unpack(k): unpack(v) for (k, v) in ret.items()}
 		)
 		self._all_keyframe_times = self.call("all_keyframe_times")
-		self.all_rules = set(d["rule"] for d in self.call("dump", "rules"))
+		self.all_rules.clear()
+		self.all_rules.update(d["rule"] for d in self.call("dump", "rules"))
 		return ret
 
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
@@ -9478,7 +9479,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			self._eternal2set.append(("tick", 0))
 			globals["tick"] = 0
 		self.eternal = GlobalKeyValueStore(self, globals)
-		self.all_rules = set(self.rules_dump())
+		self.all_rules.clear()
+		self.all_rules.update(self.rules_dump())
 		return globals
 
 	def truncate_all(self):
