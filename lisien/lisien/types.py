@@ -1459,3 +1459,49 @@ PackSignature: TypeAlias = Callable[
 	[Key | EternalKey | UniversalKey | Stat | Value], bytes
 ]
 UnpackSignature: TypeAlias = Callable[[bytes], Value]
+LoadedCharWindow: TypeAlias = dict[
+	Literal[
+		"nodes",
+		"edges",
+		"graph_val",
+		"node_val",
+		"edge_val",
+		"things",
+		"units",
+		"character_rulebook",
+		"unit_rulebook",
+		"character_thing_rulebook",
+		"character_place_rulebook",
+		"character_portal_rulebook",
+		"node_rulebook",
+		"portal_rulebook",
+	],
+	list[NodeRowType]
+	| list[EdgeRowType]
+	| list[GraphValRowType]
+	| list[NodeValRowType]
+	| list[EdgeValRowType]
+	| list[ThingRowType]
+	| list[UnitRowType]
+	| list[CharRulebookRowType]
+	| list[NodeRulebookRowType]
+	| list[PortalRulebookRowType],
+]
+LoadedDict: TypeAlias = dict[
+	Literal[
+		"universals",
+		"rulebooks",
+		"rule_triggers",
+		"rule_prereqs",
+		"rule_actions",
+		"rule_neighborhood",
+		"rule_big",
+		"graphs",
+	]
+	| CharName,
+	list[UniversalRowType]
+	| list[RulebookRowType]
+	| list[RuleRowType]
+	| list[GraphRowType]
+	| LoadedCharWindow,
+]

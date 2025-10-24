@@ -38,14 +38,13 @@ from typing import (
 	Literal,
 	MutableMapping,
 	Optional,
-	TypeAlias,
 	Union,
 	get_type_hints,
 	TypeVar,
 	TYPE_CHECKING,
 )
 
-from sqlalchemy import BLOB, BOOLEAN, FLOAT, INT, TEXT, Select, create_engine
+from sqlalchemy import Select, create_engine
 from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
@@ -56,6 +55,7 @@ from .alchemy import meta, queries
 from .exc import KeyframeError
 from .types import (
 	ActionFuncName,
+	ActionRowType,
 	Branch,
 	CharDict,
 	CharName,
@@ -64,6 +64,7 @@ from .types import (
 	EdgeRowType,
 	EdgeValRowType,
 	EternalKey,
+	GraphRowType,
 	GraphTypeStr,
 	GraphValKeyframe,
 	GraphValRowType,
@@ -77,7 +78,9 @@ from .types import (
 	Plan,
 	PortalRulebookRowType,
 	PrereqFuncName,
+	PrereqRowType,
 	RuleBig,
+	RuleBigRowType,
 	RulebookKeyframe,
 	RulebookName,
 	RulebookPriority,
@@ -87,6 +90,7 @@ from .types import (
 	RuleKeyframe,
 	RuleName,
 	RuleNeighborhood,
+	RuleNeighborhoodRowType,
 	RuleRowType,
 	Stat,
 	StatDict,
@@ -95,6 +99,7 @@ from .types import (
 	Time,
 	TimeWindow,
 	TriggerFuncName,
+	TriggerRowType,
 	Turn,
 	UnitRowType,
 	UniversalKey,
@@ -104,6 +109,8 @@ from .types import (
 	PackSignature,
 	UnpackSignature,
 	ekey,
+	LoadedDict,
+	LoadedCharWindow,
 )
 from .util import ELLIPSIS, EMPTY, garbage
 from .wrap import DictWrapper, ListWrapper, SetWrapper
@@ -3027,36 +3034,6 @@ def mutexed(
 	return mutexy
 
 
-LoadedCharWindow: TypeAlias = dict[
-	Literal[
-		"nodes",
-		"edges",
-		"graph_val",
-		"node_val",
-		"edge_val",
-		"things",
-		"units",
-		"character_rulebook",
-		"unit_rulebook",
-		"character_thing_rulebook",
-		"character_place_rulebook",
-		"character_portal_rulebook",
-		"node_rulebook",
-		"portal_rulebook",
-	],
-	list[NodeRowType]
-	| list[EdgeRowType]
-	| list[GraphValRowType]
-	| list[NodeValRowType]
-	| list[EdgeValRowType]
-	| list[ThingRowType]
-	| list[UnitRowType]
-	| list[CharRulebookRowType]
-	| list[NodeRulebookRowType]
-	| list[PortalRulebookRowType],
-]
-
-
 class Batch(list):
 	validate: bool = True
 	"""Whether to check that records added to the batch are correctly typed tuples"""
@@ -3227,17 +3204,20 @@ def batched(
 class AbstractDatabaseConnector(ABC):
 	pack: PackSignature
 	unpack: UnpackSignature
-	looper_cls: type[ConnectionLooper]
 	eternal: MutableMapping
 	kf_interval_override: Callable[[Any], bool | None] = lambda _: None
 	keyframe_interval: int | None
 	snap_keyframe: Callable[[], None]
 	all_rules: set[RuleName]
-	_inq: Queue
-	_outq: Queue
-	_looper: looper_cls
+	_pack: Callable[[Any], bytes]
+	_unpack: Callable[[bytes], Any]
 	_lock: Lock
 	_records: int
+
+	@contextmanager
+	def mutex(self):
+		with self._lock:
+			yield
 
 	@property
 	def pack(self):
@@ -3258,6 +3238,10 @@ class AbstractDatabaseConnector(ABC):
 		self._unpack = v
 		if hasattr(self, "_pack"):
 			self._init_db()
+
+	@cached_property
+	def _records(self) -> int:
+		return 0
 
 	@batched(
 		"global",
@@ -4136,6 +4120,11 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
+	def graph_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None: ...
+
+	@abstractmethod
 	def graphs_types(
 		self,
 		branch: Branch,
@@ -4170,6 +4159,10 @@ class AbstractDatabaseConnector(ABC):
 
 	@abstractmethod
 	def edges_dump(self) -> Iterator[EdgeRowType]:
+		pass
+
+	@abstractmethod
+	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		pass
 
 	@abstractmethod
@@ -4226,107 +4219,6 @@ class AbstractDatabaseConnector(ABC):
 		"rule_neighborhoods",
 		"rule_big",
 	]
-
-	def _put_window_tick_to_end(
-		self, branch: Branch, turn_from: Turn, tick_from: Tick
-	):
-		putkwargs = {
-			"branch": branch,
-			"turn_from": turn_from,
-			"tick_from": tick_from,
-		}
-		for i, infix in enumerate(self._infixes2load):
-			self._inq.put(
-				(
-					"echo",
-					(
-						"begin",
-						infix,
-						branch,
-						turn_from,
-						tick_from,
-						None,
-						None,
-					),
-					{},
-				)
-			)
-			self._inq.put(("one", f"load_{infix}_tick_to_end", (), putkwargs))
-			self._inq.put(
-				(
-					"echo",
-					("end", infix, branch, turn_from, tick_from, None, None),
-					{},
-				)
-			)
-
-	def _put_window_tick_to_tick(
-		self,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Turn,
-		tick_to: Tick,
-	):
-		putkwargs = {
-			"branch": branch,
-			"turn_from": turn_from,
-			"tick_from": tick_from,
-			"turn_to": turn_to,
-			"tick_to": tick_to,
-		}
-		for i, infix in enumerate(self._infixes2load):
-			self._inq.put(
-				(
-					"echo",
-					(
-						"begin",
-						infix,
-						branch,
-						turn_from,
-						tick_from,
-						turn_to,
-						tick_to,
-					),
-					{},
-				)
-			)
-			self._inq.put(("one", f"load_{infix}_tick_to_tick", (), putkwargs))
-			self._inq.put(
-				(
-					"echo",
-					(
-						"end",
-						infix,
-						branch,
-						turn_from,
-						tick_from,
-						turn_to,
-						tick_to,
-					),
-					{},
-				)
-			)
-
-	@contextmanager
-	def mutex(self):
-		with self._lock:
-			yield
-			if self._outq.qsize() != 0:
-				raise RuntimeError("Unhandled items in output queue")
-
-	@mutexed
-	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
-		for branch, turn_from, tick_from, turn_to, tick_to in windows:
-			if turn_to is None:
-				self._put_window_tick_to_end(branch, turn_from, tick_from)
-			else:
-				self._put_window_tick_to_tick(
-					branch, turn_from, tick_from, turn_to, tick_to
-				)
-		self._inq.join()
-		for window in windows:
-			self._get_one_window(ret, *window)
 
 	def _increc(self, n: int = 1):
 		"""Snap a keyframe, if the keyframe interval has passed.
@@ -5636,6 +5528,19 @@ class AbstractDatabaseConnector(ABC):
 	def rulebooks(self) -> Iterator[RulebookName]:
 		pass
 
+	def rulebook_set(
+		self,
+		rulebook: RulebookName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		rules: list[RuleName],
+		priority: RulebookPriority,
+	):
+		self._rulebooks2set.append(
+			(rulebook, branch, turn, tick, rules, priority)
+		)
+
 	def set_node_rulebook(
 		self,
 		character: CharName,
@@ -5798,57 +5703,43 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]: ...
 
-	def load_windows(
-		self, windows: list[TimeWindow]
-	) -> dict[
-		Literal[
-			"universals",
-			"rulebooks",
-			"rule_triggers",
-			"rule_prereqs",
-			"rule_actions",
-			"rule_neighborhood",
-			"rule_big",
-			"graphs",
-		]
-		| CharName,
-		list[UniversalRowType]
-		| list[RulebookRowType]
-		| list[RuleRowType]
-		| LoadedCharWindow,
-	]:
-		def empty_char() -> LoadedCharWindow:
-			nodes_l: list[NodeRowType] = []
-			edges_l: list[EdgeRowType] = []
-			graph_val_l: list[GraphValRowType] = []
-			node_val_l: list[NodeValRowType] = []
-			edge_val_l: list[EdgeValRowType] = []
-			things_l: list[ThingRowType] = []
-			units_l: list[UnitRowType] = []
-			character_rulebook_l: list[CharRulebookRowType] = []
-			unit_rulebook_l: list[CharRulebookRowType] = []
-			char_thing_rulebook_l: list[CharRulebookRowType] = []
-			char_place_rulebook_l: list[CharRulebookRowType] = []
-			char_portal_rulebook_l: list[CharRulebookRowType] = []
-			node_rulebook_l: list[NodeRulebookRowType] = []
-			portal_rulebook_l: list[PortalRulebookRowType] = []
-			return {
-				"nodes": nodes_l,
-				"edges": edges_l,
-				"graph_val": graph_val_l,
-				"node_val": node_val_l,
-				"edge_val": edge_val_l,
-				"things": things_l,
-				"units": units_l,
-				"character_rulebook": character_rulebook_l,
-				"unit_rulebook": unit_rulebook_l,
-				"character_thing_rulebook": char_thing_rulebook_l,
-				"character_place_rulebook": char_place_rulebook_l,
-				"character_portal_rulebook": char_portal_rulebook_l,
-				"node_rulebook": node_rulebook_l,
-				"portal_rulebook": portal_rulebook_l,
-			}
+	@abstractmethod
+	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]): ...
 
+	@staticmethod
+	def empty_char() -> LoadedCharWindow:
+		nodes_l: list[NodeRowType] = []
+		edges_l: list[EdgeRowType] = []
+		graph_val_l: list[GraphValRowType] = []
+		node_val_l: list[NodeValRowType] = []
+		edge_val_l: list[EdgeValRowType] = []
+		things_l: list[ThingRowType] = []
+		units_l: list[UnitRowType] = []
+		character_rulebook_l: list[CharRulebookRowType] = []
+		unit_rulebook_l: list[CharRulebookRowType] = []
+		char_thing_rulebook_l: list[CharRulebookRowType] = []
+		char_place_rulebook_l: list[CharRulebookRowType] = []
+		char_portal_rulebook_l: list[CharRulebookRowType] = []
+		node_rulebook_l: list[NodeRulebookRowType] = []
+		portal_rulebook_l: list[PortalRulebookRowType] = []
+		return {
+			"nodes": nodes_l,
+			"edges": edges_l,
+			"graph_val": graph_val_l,
+			"node_val": node_val_l,
+			"edge_val": edge_val_l,
+			"things": things_l,
+			"units": units_l,
+			"character_rulebook": character_rulebook_l,
+			"unit_rulebook": unit_rulebook_l,
+			"character_thing_rulebook": char_thing_rulebook_l,
+			"character_place_rulebook": char_place_rulebook_l,
+			"character_portal_rulebook": char_portal_rulebook_l,
+			"node_rulebook": node_rulebook_l,
+			"portal_rulebook": portal_rulebook_l,
+		}
+
+	def load_windows(self, windows: list[TimeWindow]) -> LoadedDict:
 		self.debug(f"load_windows({windows})")
 
 		ret: dict[
@@ -5867,7 +5758,7 @@ class AbstractDatabaseConnector(ABC):
 			| list[RulebookRowType]
 			| list[RuleRowType]
 			| LoadedCharWindow,
-		] = defaultdict(empty_char)
+		] = defaultdict(self.empty_char)
 		ret["universals"]: list[UniversalRowType] = []
 		ret["rule_triggers"]: list[RuleRowType] = []
 		ret["rule_prereqs"]: list[RuleRowType] = []
@@ -5905,6 +5796,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def _keyframes(self) -> set[Time]:
 		return set()
+
+	@property
+	def _all_keyframe_times(self) -> set[Time]:
+		return self._keyframes.copy()
 
 	@cached_property
 	def _keyframes_graphs(
@@ -6221,6 +6116,167 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def unpack(a: _T) -> _T:
 		return a
 
+	def _load_window(
+		self,
+		ret: LoadedDict,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn | None = None,
+		tick_to: Tick | None = None,
+	) -> None:
+		if turn_to is None:
+			turn_to = float("inf")
+		if tick_to is None:
+			tick_to = float("inf")
+		universals: list[UniversalRowType] = ret.setdefault("universals", [])
+		rulebooks: list[RulebookRowType] = ret.setdefault("rulebooks", [])
+		rule_triggers: list[TriggerRowType] = ret.setdefault(
+			"rule_triggers", []
+		)
+		rule_prereqs: list[PrereqRowType] = ret.setdefault("rule_prereqs", [])
+		rule_actions: list[ActionRowType] = ret.setdefault("rule_actions", [])
+		rule_neighborhood: list[RuleNeighborhoodRowType] = ret.setdefault(
+			"rule_neighborhood", []
+		)
+		rule_big: list[RuleBigRowType] = ret.setdefault("rule_big", [])
+		graphs: list[GraphRowType] = ret.setdefault("graphs", [])
+		for (b, turn, tick, key), value in self._universals.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			universals.append((key, b, turn, tick, value))
+		for (b, turn, tick, rb), (rules_l, prio) in self._rulebooks.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			rulebooks.append((rb, b, turn, tick, (rules_l.copy(), prio)))
+		for (b, turn, tick, rb), trigs_l in self._rule_triggers.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			rule_triggers.append((rb, b, turn, tick, trigs_l.copy()))
+		for (b, turn, tick, rb), preqs_l in self._rule_prereqs.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			rule_prereqs.append((rb, b, turn, tick, preqs_l.copy()))
+		for (b, turn, tick, rb), acts_l in self._rule_actions.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			rule_actions.append((rb, b, turn, tick, acts_l.copy()))
+		for (b, turn, tick, rb), nbrs in self._rule_neighborhood.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			rule_neighborhood.append((rb, b, turn, tick, nbrs))
+		for (b, turn, tick, rb), big in self._rule_big.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			rule_big.append((rb, b, turn, tick, big))
+		for (b, turn, tick, g), typ in self._graphs.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			graphs.append((g, b, turn, tick, typ))
+
+		for (b, turn, tick, g, n), x in self._nodes.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["nodes"].append((g, n, b, turn, tick, x))
+		for (b, turn, tick, g, n, k), v in self._node_val.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["node_val"].append((g, n, k, b, turn, tick, v))
+		for (b, turn, tick, g, o, d), x in self._edges.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["edges"].append((g, o, d, b, turn, tick, x))
+		for (b, turn, tick, g, o, d, k), v in self._edge_val.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["edge_val"].append((g, o, d, k, b, turn, tick, v))
+		for (b, turn, tick, g, k), v in self._graph_val.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["graph_val"].append((g, k, b, turn, tick, v))
+		for (b, turn, tick, g, n), loc in self._things.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["things"].append((g, n, b, turn, tick, loc))
+		for (b, turn, tick, g, n), rb in self._node_rulebook.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["node_rulebook"].append((g, n, b, turn, tick, rb))
+		for (b, turn, tick, g, o, d), rb in self._portal_rulebook.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["portal_rulebook"].append((g, o, d, b, turn, tick, rb))
+		for (b, turn, tick, g), rb in self._character_rulebook.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["character_rulebook"].append((g, b, turn, tick, rb))
+		for (b, turn, tick, g), rb in self._unit_rulebook.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["unit_rulebook"].append((g, b, turn, tick, rb))
+		for (b, turn, tick, g), rb in self._character_thing_rulebook.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["character_thing_rulebook"].append((g, b, turn, tick, rb))
+		for (b, turn, tick, g), rb in self._character_place_rulebook.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["character_place_rulebook"].append((g, b, turn, tick, rb))
+		for (b, turn, tick, g), rb in self._character_portal_rulebook.items():
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			ret[g]["character_portal_rulebook"].append((g, b, turn, tick, rb))
+
+	def _load_windows_into(
+		self, ret: LoadedDict, windows: list[TimeWindow]
+	) -> None:
+		for branch, turn_from, tick_from, turn_to, tick_to in windows:
+			self._load_window(
+				ret, branch, turn_from, tick_from, turn_to, tick_to
+			)
+
 	def del_bookmark(self, key: str) -> None:
 		self._bookmarks2set.cull(lambda k, _: k == key)
 		if key in self._bookmarks:
@@ -6233,22 +6289,22 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		raise NotImplementedError("Not a real database, so can't call it")
 
 	def call_silent(self, query_name: str, *args, **kwargs):
-		raise NotImplementedError("Not a real database, so can't call it")
+		pass
 
 	def call_many(self, query_name: str, args: list) -> None:
 		raise NotImplementedError("Not a real database, so can't call it")
 
 	def call_many_silent(self, query_name: str, args: list) -> None:
-		raise NotImplementedError("Not a real database, so can't call it")
+		pass
 
 	def insert_many(self, table_name: str, args: list[dict]) -> None:
 		raise NotImplementedError("Not a real database, so can't call it")
 
 	def insert_many_silent(self, table_name: str, args: list[dict]) -> None:
-		raise NotImplementedError("Not a real database, so can't call it")
+		pass
 
 	def delete_many_silent(self, table_name: str, args: list[dict]) -> None:
-		raise NotImplementedError("Not a real database, so can't call it")
+		pass
 
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -6334,6 +6390,24 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				key,
 			), value in self._graph_val.items():
 				yield graph, key, branch, turn, tick, value
+
+	def graph_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		todel = set()
+		for b, r, t, g in self._graph_val:
+			if (b, r, t) == (branch, turn, tick):
+				todel.add((b, r, t, g))
+		for k in todel:
+			del self._graph_val[k]
+
+	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		todel = set()
+		for b, r, t, g, o, d in self._edges:
+			if (b, r, t) == (branch, turn, tick):
+				todel.add((b, r, t, g, o, d))
+		for k in todel:
+			del self._edges[k]
 
 	def graphs_types(
 		self,
@@ -7509,7 +7583,115 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 		return {}
 
 
-class ParquetDatabaseConnector(AbstractDatabaseConnector):
+class ThreadedDatabaseConnector(AbstractDatabaseConnector):
+	looper_cls: type[ConnectionLooper]
+	_inq: Queue
+	_outq: Queue
+	_looper: looper_cls
+
+	def _put_window_tick_to_end(
+		self, branch: Branch, turn_from: Turn, tick_from: Tick
+	):
+		putkwargs = {
+			"branch": branch,
+			"turn_from": turn_from,
+			"tick_from": tick_from,
+		}
+		for i, infix in enumerate(self._infixes2load):
+			self._inq.put(
+				(
+					"echo",
+					(
+						"begin",
+						infix,
+						branch,
+						turn_from,
+						tick_from,
+						None,
+						None,
+					),
+					{},
+				)
+			)
+			self._inq.put(("one", f"load_{infix}_tick_to_end", (), putkwargs))
+			self._inq.put(
+				(
+					"echo",
+					("end", infix, branch, turn_from, tick_from, None, None),
+					{},
+				)
+			)
+
+	def _put_window_tick_to_tick(
+		self,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
+	):
+		putkwargs = {
+			"branch": branch,
+			"turn_from": turn_from,
+			"tick_from": tick_from,
+			"turn_to": turn_to,
+			"tick_to": tick_to,
+		}
+		for i, infix in enumerate(self._infixes2load):
+			self._inq.put(
+				(
+					"echo",
+					(
+						"begin",
+						infix,
+						branch,
+						turn_from,
+						tick_from,
+						turn_to,
+						tick_to,
+					),
+					{},
+				)
+			)
+			self._inq.put(("one", f"load_{infix}_tick_to_tick", (), putkwargs))
+			self._inq.put(
+				(
+					"echo",
+					(
+						"end",
+						infix,
+						branch,
+						turn_from,
+						tick_from,
+						turn_to,
+						tick_to,
+					),
+					{},
+				)
+			)
+
+	@contextmanager
+	def mutex(self):
+		with self._lock:
+			yield
+			if self._outq.qsize() != 0:
+				raise RuntimeError("Unhandled items in output queue")
+
+	@mutexed
+	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
+		for branch, turn_from, tick_from, turn_to, tick_to in windows:
+			if turn_to is None:
+				self._put_window_tick_to_end(branch, turn_from, tick_from)
+			else:
+				self._put_window_tick_to_tick(
+					branch, turn_from, tick_from, turn_to, tick_to
+				)
+		self._inq.join()
+		for window in windows:
+			self._get_one_window(ret, *window)
+
+
+class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	looper_cls = ParquetDBLooper
 
 	def __init__(
@@ -8607,7 +8789,7 @@ class SQLAlchemyConnectionLooper(ConnectionLooper):
 		self.connection.close()
 
 
-class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
+class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	IntegrityError = IntegrityError
 	OperationalError = OperationalError
 	looper_cls = SQLAlchemyConnectionLooper

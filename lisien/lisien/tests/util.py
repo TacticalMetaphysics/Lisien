@@ -1,3 +1,4 @@
+import os
 from functools import wraps
 from queue import SimpleQueue, Empty
 from threading import Thread
@@ -5,6 +6,11 @@ from typing import Any, Callable, TypeVar
 from unittest.mock import MagicMock
 
 from lisien import Engine
+from lisien.db import (
+	PythonDatabaseConnector,
+	SQLAlchemyDatabaseConnector,
+	ParquetDatabaseConnector,
+)
 from lisien.facade import EngineFacade
 from lisien.proxy.manager import Sub
 
@@ -64,7 +70,7 @@ def make_test_engine_kwargs(
 	kwargs = {
 		"random_seed": random_seed,
 		"enforce_end_of_time": enforce_end_of_time,
-		"prefix": None if database == "nodb" else path,
+		"prefix": None if database in {"nodb", "python"} else path,
 	}
 	if database == "sqlite":
 		kwargs["connect_string"] = f"sqlite:///{path}/world.sqlite3"
@@ -77,7 +83,24 @@ def make_test_engine_kwargs(
 
 
 def make_test_engine(path, execution, database):
-	return Engine(**make_test_engine_kwargs(path, execution, database))
+	kwargs = {
+		"sub_mode": Sub(execution),
+		"workers": 0 if execution == "serial" else 2,
+	}
+	match database:
+		case "python":
+			kwargs["database"] = PythonDatabaseConnector()
+		case "sqlite":
+			kwargs["database"] = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{path}/world.sqlite3"
+			)
+		case "parquetdb":
+			kwargs["database"] = ParquetDatabaseConnector(
+				os.path.join(path, "world")
+			)
+		case _:
+			raise RuntimeError("Unknown database", database)
+	return Engine(path, **kwargs)
 
 
 def make_test_engine_facade() -> EngineFacade:
