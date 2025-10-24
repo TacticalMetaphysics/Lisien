@@ -3910,7 +3910,7 @@ class AbstractDatabaseConnector(ABC):
 
 	@cached_property
 	def _all_keyframe_times(self):
-		return set(self.keyframes_dump())
+		return set()
 
 	def keyframe_insert(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self._new_keyframes.append((branch, turn, tick))
@@ -8665,6 +8665,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		)
 		self.all_rules.clear()
 		self.all_rules.update(d["rule"] for d in self.call("dump", "rules"))
+		self._all_keyframe_times.clear()
+		self._all_keyframe_times.update(self.keyframes_dump())
 		return ret
 
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
@@ -9477,6 +9479,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		self.eternal = GlobalKeyValueStore(self, globals)
 		self.all_rules.clear()
 		self.all_rules.update(self.rules_dump())
+		self._all_keyframe_times.clear()
+		self._all_keyframe_times.update(x)
 		return globals
 
 	def truncate_all(self):
