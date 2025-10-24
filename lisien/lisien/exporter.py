@@ -25,7 +25,7 @@ import networkx as nx
 from tblib import Traceback
 
 import lisien.types
-from lisien.db import AbstractDatabaseConnector, LoadedCharWindow
+from lisien.db import AbstractDatabaseConnector
 from lisien.facade import EngineFacade
 from lisien.types import (
 	ActionFuncName,
@@ -66,6 +66,7 @@ from lisien.types import (
 	UnitRowType,
 	UniversalRowType,
 	Value,
+	LoadedCharWindow,
 )
 from lisien.util import AbstractEngine, sort_set
 
