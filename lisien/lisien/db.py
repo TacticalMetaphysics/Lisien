@@ -3888,14 +3888,14 @@ class AbstractDatabaseConnector(ABC):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: Value,
+		value: Value | type(...),
 	) -> None:
 		self._universals2set.append((key, branch, turn, tick, value))
 
 	def universal_del(
 		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
-		self.universal_set(key, branch, turn, tick, None)
+		self.universal_set(key, branch, turn, tick, ...)
 
 	def exist_node(
 		self,
