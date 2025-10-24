@@ -8579,11 +8579,13 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 	def __init__(
 		self,
 		dbstring,
-		connect_args,
+		connect_args: dict | None = None,
 		*,
 		clear=False,
 	):
 		dbstring = dbstring or "sqlite:///:memory:"
+		if connect_args is None:
+			connect_args = {}
 		self._inq = Queue()
 		self._outq = Queue()
 		self._looper = self.looper_cls(
