@@ -35,7 +35,9 @@ def test_college_nodb(serial_or_parallel):
 
 
 @pytest.mark.slow
-def test_college_premade(tmp_path, database_connector, serial_or_parallel):
+def test_college_premade(
+	tmp_path, database_connector_part, serial_or_parallel
+):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
 
@@ -50,11 +52,14 @@ def test_college_premade(tmp_path, database_connector, serial_or_parallel):
 			assert unit in phys_node_val
 			assert "location" in phys_node_val[unit]
 
-	with Engine(
-		tmp_path,
-		workers=0 if serial_or_parallel == "serial" else 2,
-		database=database_connector,
-	) as eng:
+	kwargs = {}
+	if serial_or_parallel == "serial":
+		kwargs["workers"] = 0
+	else:
+		kwargs["workers"] = 2
+		kwargs["sub_mode"] = Sub(serial_or_parallel)
+
+	with Engine(tmp_path, **kwargs, database=database_connector_part()) as eng:
 		eng._validate_final_keyframe = validate_final_keyframe
 		college.install(eng)
 		for i in range(10):
@@ -65,11 +70,7 @@ def test_college_premade(tmp_path, database_connector, serial_or_parallel):
 			staticmethod(validate_final_keyframe),
 			create=True,
 		),
-		Engine(
-			tmp_path,
-			connect_string=connect_string,
-			workers=0 if serial_or_parallel == "serial" else 2,
-		) as eng,
+		Engine(tmp_path, **kwargs, database=database_connector_part()) as eng,
 	):
 		for i in range(10):
 			eng.next_turn()
