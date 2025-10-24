@@ -3347,7 +3347,7 @@ class AbstractDatabaseConnector(ABC):
 		self._turns_completed_to_set.append((branch, turn))
 		if discard_rules:
 			self._char_rules_handled.clear()
-			self._unit_rules_handled.clear()
+			self._unit_rules_handled_to_set.clear()
 			self._char_thing_rules_handled.clear()
 			self._char_place_rules_handled.clear()
 			self._char_portal_rules_handled.clear()
@@ -3747,7 +3747,7 @@ class AbstractDatabaseConnector(ABC):
 		return (character, rulebook, rule, branch, turn, tick)
 
 	@batched("unit_rules_handled", inc_rec_counter=False)
-	def _unit_rules_handled(
+	def _unit_rules_handled_to_set(
 		self,
 		character: CharName,
 		rulebook: RulebookName,
@@ -3761,7 +3761,7 @@ class AbstractDatabaseConnector(ABC):
 		character, graph, unit, rulebook = map(
 			self.pack, (character, graph, unit, rulebook)
 		)
-		return character, rulebook, rule, graph, unit, branch, turn, tick
+		return character, graph, unit, rulebook, rule, branch, turn, tick
 
 	@batched("character_thing_rules_handled", inc_rec_counter=False)
 	def _char_thing_rules_handled(
@@ -5652,7 +5652,7 @@ class AbstractDatabaseConnector(ABC):
 		turn: Turn,
 		tick: Tick,
 	):
-		self._unit_rules_handled.append(
+		self._unit_rules_handled_to_set.append(
 			(character, rulebook, rule, graph, unit, branch, turn, tick)
 		)
 
@@ -8130,7 +8130,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			Tick,
 		]
 	]:
-		self._unit_rules_handled()
+		self._unit_rules_handled_to_set()
 		unpack = self.unpack
 		return (
 			(
@@ -9615,7 +9615,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			yield unpack(character), unpack(rulebook), rule, branch, turn, tick
 
 	def unit_rules_handled_dump(self):
-		self._unit_rules_handled()
+		self._unit_rules_handled_to_set()
 		unpack = self.unpack
 		for (
 			branch,
