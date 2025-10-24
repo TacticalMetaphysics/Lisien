@@ -4,6 +4,7 @@ import networkx as nx
 import pytest
 
 from lisien import Engine
+from lisien.db import NullDatabaseConnector
 from lisien.examples import (
 	college,
 	kobold,
@@ -27,7 +28,7 @@ def test_college_nodb(serial_or_parallel):
 	else:
 		kwargs["workers"] = 2
 		kwargs["sub_mode"] = Sub(serial_or_parallel)
-	with Engine(None, **kwargs) as eng:
+	with Engine(None, **kwargs, database=NullDatabaseConnector()) as eng:
 		college.install(eng)
 		for i in range(10):
 			eng.next_turn()
