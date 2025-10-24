@@ -52,8 +52,6 @@ from sqlalchemy.exc import IntegrityError as AlchemyIntegrityError
 from sqlalchemy.exc import OperationalError as AlchemyOperationalError
 
 import lisien.types
-from elide.rulesview import RulesList
-
 from .alchemy import meta, queries
 from .exc import KeyframeError
 from .types import (
@@ -5964,7 +5962,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			Tick,
 			RulebookName,
 		],
-		tuple[RulesList, RulebookPriority],
+		tuple[list[RuleName], RulebookPriority],
 	]:
 		return {}
 
