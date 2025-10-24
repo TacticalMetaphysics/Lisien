@@ -11,6 +11,7 @@ from ..db import (
 	AbstractDatabaseConnector,
 	ParquetDatabaseConnector,
 	SQLAlchemyDatabaseConnector,
+	PythonDatabaseConnector,
 )
 from ..engine import Engine
 from ..exporter import game_path_to_xml
@@ -41,17 +42,16 @@ def turns(request):
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def export_to(tmp_path, random_seed, non_null_database, request, turns):
+def export_to(
+	tmp_path, random_seed, persistent_database_connector_part, request, turns
+):
 	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
 		prefix,
 		workers=0,
 		random_seed=random_seed,
-		connect_string=f"sqlite:///{prefix}/world.sqlite3"
-		if non_null_database == "sqlite"
-		else None,
-		keyframe_on_close=False,
+		database=persistent_database_connector_part(),
 	) as eng:
 		install(eng)
 		for _ in range(turns):
@@ -82,17 +82,17 @@ def test_export_db(tmp_path, export_to):
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def exported(tmp_path, random_seed, non_null_database, request, turns):
+def exported(
+	tmp_path, random_seed, persistent_database_connector_part, request, turns
+):
 	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
 		prefix,
 		workers=0,
 		random_seed=random_seed,
-		connect_string=f"sqlite:///{prefix}/world.sqlite3"
-		if non_null_database == "sqlite"
-		else None,
 		keyframe_on_close=False,
+		database=persistent_database_connector_part(),
 	) as eng:
 		install(eng)
 		for _ in range(turns):
@@ -102,6 +102,23 @@ def exported(tmp_path, random_seed, non_null_database, request, turns):
 
 
 def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
+	match non_null_database:
+		case "python":
+
+			def db(path):
+				return PythonDatabaseConnector()
+		case "sqlite":
+
+			def db(path):
+				return SQLAlchemyDatabaseConnector(
+					f"sqlite:///{path}/world.sqlite3"
+				)
+		case "parquetdb":
+
+			def db(path):
+				return ParquetDatabaseConnector(os.path.join(path, "world"))
+		case _:
+			raise RuntimeError("Unknown database", non_null_database)
 	prefix1 = os.path.join(tmp_path, "game")
 	prefix2 = os.path.join(tmp_path, "game2")
 	if exported.endswith("kobold.lisien"):
@@ -119,17 +136,13 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 			exported,
 			prefix1,
 			workers=0,
-			connect_string=f"sqlite:///{prefix1}/world.sqlite3"
-			if non_null_database == "sqlite"
-			else None,
+			database=db(prefix1),
 			keyframe_on_close=False,
 		) as eng1,
 		Engine(
 			prefix2,
 			workers=0,
-			connect_string=f"sqlite:///{prefix2}/world.sqlite3"
-			if non_null_database == "sqlite"
-			else None,
+			database=db(prefix2),
 			keyframe_on_close=False,
 			random_seed=random_seed,
 		) as eng2,
@@ -228,32 +241,33 @@ def compare_stored_python_code(
 			)
 
 
-def test_import_db(tmp_path, export_to, non_null_database, engine_facade):
-	if non_null_database == "parquetdb":
-		test_world = os.path.join(tmp_path, "testworld")
-		correct_world = os.path.join(tmp_path, "world")
-		xml_to_pqdb(export_to, test_world)
-		test_engine = ParquetDatabaseConnector(
-			test_world, engine_facade.pack, engine_facade.unpack
-		)
-		correct_engine = ParquetDatabaseConnector(
-			correct_world, engine_facade.pack, engine_facade.unpack
-		)
-	else:
-		test_world = os.path.join(tmp_path, "testworld.sqlite3")
-		correct_world = os.path.join(tmp_path, "world.sqlite3")
-		xml_to_sqlite(export_to, test_world)
-		test_engine = SQLAlchemyDatabaseConnector(
-			"sqlite:///" + test_world,
-			{},
-			engine_facade.pack,
-			engine_facade.unpack,
-		)
-		correct_engine = SQLAlchemyDatabaseConnector(
-			"sqlite:///" + correct_world,
-			{},
-			engine_facade.pack,
-			engine_facade.unpack,
-		)
+@pytest.mark.parquetdb
+def test_import_parquetdb(tmp_path, export_to, engine_facade):
+	test_world = os.path.join(tmp_path, "testworld")
+	correct_world = os.path.join(tmp_path, "world")
+	xml_to_pqdb(export_to, test_world)
+	test_engine = ParquetDatabaseConnector(test_world)
+	test_engine.pack = engine_facade.pack
+	test_engine.unpack = engine_facade.unpack
+	correct_engine = ParquetDatabaseConnector(correct_world)
+	correct_engine.pack = engine_facade.pack
+	correct_engine.unpack = engine_facade.unpack
+	compare_engines_world_state(correct_engine, test_engine)
 
+
+@pytest.mark.sqlite
+def test_import_sqlite(tmp_path, export_to, engine_facade):
+	test_world = os.path.join(tmp_path, "testworld.sqlite3")
+	correct_world = os.path.join(tmp_path, "world.sqlite3")
+	xml_to_sqlite(export_to, test_world)
+	test_engine = SQLAlchemyDatabaseConnector(
+		"sqlite:///" + test_world,
+	)
+	test_engine.pack = engine_facade.pack
+	test_engine.unpack = engine_facade.unpack
+	correct_engine = SQLAlchemyDatabaseConnector(
+		"sqlite:///" + correct_world,
+	)
+	correct_engine.pack = engine_facade.pack
+	correct_engine.unpack = engine_facade.unpack
 	compare_engines_world_state(correct_engine, test_engine)

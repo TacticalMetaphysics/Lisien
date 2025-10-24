@@ -120,9 +120,9 @@ def test_keyframe_load(db):
 			)
 
 
-def test_keyframe_unload(tmp_path, execution, non_null_database):
+def test_keyframe_unload(tmp_path, execution, persistent_database):
 	# TODO: test edge cases involving tick-precise unloads
-	eng = partial(make_test_engine, tmp_path, execution, non_null_database)
+	eng = partial(make_test_engine, tmp_path, execution, persistent_database)
 	with eng() as orm:
 		g = orm.new_character("g", nx.grid_2d_graph(3, 3))
 		orm.next_turn()
@@ -203,27 +203,20 @@ def test_keyframe_unload(tmp_path, execution, non_null_database):
 		)
 
 
-def test_keyframe_load_init(tmp_path, non_null_database):
+def test_keyframe_load_init(tmp_path, persistent_database):
 	"""Can load a keyframe at start of branch, including locations"""
-	cs = (
-		f"sqlite:///{tmp_path}/world.sqlite3"
-		if non_null_database == "sqlite"
-		else None
-	)
-	eng = Engine(tmp_path, workers=0, connect_string=cs)
-	inittest(eng)
-	eng.branch = "new"
-	# eng.snap_keyframe()
-	eng.close()
-	eng = Engine(tmp_path, workers=0, connect_string=cs)
-	# the graphs keyframe is coming up empty
-	assert "kobold" in eng.character["physical"].thing
-	assert (0, 0) in eng.character["physical"].place
-	assert (0, 1) in eng.character["physical"].portal[0, 0]
-	eng.close()
+	with make_test_engine(tmp_path, "serial", persistent_database) as eng:
+		inittest(eng)
+		eng.branch = "new"
+		# eng.snap_keyframe()
+	with make_test_engine(tmp_path, "serial", persistent_database) as eng:
+		# the graphs keyframe is coming up empty
+		assert "kobold" in eng.character["physical"].thing
+		assert (0, 0) in eng.character["physical"].place
+		assert (0, 1) in eng.character["physical"].portal[0, 0]
 
 
-def test_multi_keyframe(tmp_path, non_null_database):
+def test_multi_keyframe(tmp_path, persistent_database):
 	myengine = partial(
 		Engine,
 		tmp_path,
@@ -231,7 +224,7 @@ def test_multi_keyframe(tmp_path, non_null_database):
 		keyframe_on_close=False,
 		workers=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
-		if non_null_database == "sqlite"
+		if persistent_database == "sqlite"
 		else None,
 	)
 	eng = myengine()
@@ -260,9 +253,9 @@ def test_multi_keyframe(tmp_path, non_null_database):
 	eng.close()
 
 
-def test_keyframe_load_unload(tmp_path, non_null_database):
+def test_keyframe_load_unload(tmp_path, persistent_database):
 	"""All caches can load and unload before and after kfs"""
-	if non_null_database == "sqlite":
+	if persistent_database == "sqlite":
 		connect_str = f"sqlite:///{tmp_path}/world.sqlite3"
 	else:
 		connect_str = None
@@ -305,13 +298,13 @@ def test_keyframe_load_unload(tmp_path, non_null_database):
 
 
 @pytest.fixture
-def some_state(tmp_path, non_null_database):
+def some_state(tmp_path, persistent_database):
 	with Engine(
 		tmp_path,
 		workers=0,
 		random_seed=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
-		if non_null_database == "sqlite"
+		if persistent_database == "sqlite"
 		else None,
 	) as eng:
 		initial_state = nx.DiGraph(
@@ -349,13 +342,13 @@ def some_state(tmp_path, non_null_database):
 	return tmp_path
 
 
-def test_load_branch_to_end(some_state, non_null_database):
+def test_load_branch_to_end(some_state, persistent_database):
 	with Engine(
 		some_state,
 		workers=0,
 		random_seed=0,
 		connect_string=f"sqlite:///{some_state}/world.sqlite3"
-		if non_null_database == "sqlite"
+		if persistent_database == "sqlite"
 		else None,
 	) as eng:
 		assert eng.turn == 0
