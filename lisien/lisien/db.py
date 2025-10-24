@@ -697,7 +697,7 @@ class ParquetDBLooper(ConnectionLooper):
 		)
 
 	def _table_columns(self, table: str) -> list[str]:
-		return ["id"] + list(map(itemgetter(0), self.schema[table]))
+		return list(map(itemgetter(0), self.schema[table]))
 
 	def _iter_part_tick_to_end(
 		self, table: str, branch: Branch, turn_from: Turn, tick_from: Tick
@@ -705,13 +705,16 @@ class ParquetDBLooper(ConnectionLooper):
 		from pyarrow import compute as pc
 
 		db = self._get_db(table)
-		for d in db.read(
-			filters=[
-				pc.field("branch") == branch,
-				pc.field("turn") >= turn_from,
-			],
-			columns=self._table_columns(table),
-		).to_pylist():
+		for d in filter(
+			None,
+			db.read(
+				filters=[
+					pc.field("branch") == branch,
+					pc.field("turn") >= turn_from,
+				],
+				columns=self._table_columns(table),
+			).to_pylist(),
+		):
 			if d["turn"] == turn_from:
 				if d["tick"] >= tick_from:
 					yield d
