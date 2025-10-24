@@ -8592,6 +8592,10 @@ class SQLAlchemyConnectionLooper(ConnectionLooper):
 				"Unsupported database schema version", glob_d[SCHEMAVER_B]
 			)
 		return glob_d
+	
+	def close(self):
+		self.transaction.close()
+		self.connection.close()
 
 
 class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
