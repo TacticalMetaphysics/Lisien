@@ -3236,6 +3236,7 @@ class AbstractDatabaseConnector(ABC):
 	_inq: Queue
 	_outq: Queue
 	_looper: looper_cls
+	_lock: Lock
 	_records: int
 
 	@property
@@ -4309,7 +4310,7 @@ class AbstractDatabaseConnector(ABC):
 
 	@contextmanager
 	def mutex(self):
-		with self._looper.lock:
+		with self._lock:
 			yield
 			if self._outq.qsize() != 0:
 				raise RuntimeError("Unhandled items in output queue")
@@ -7517,6 +7518,7 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self._inq = Queue()
 		self._outq = Queue()
 		self._looper = self.looper_cls(path, self._inq, self._outq)
+		self._lock = self._looper.lock
 		self._records = 0
 		self.keyframe_interval = None
 		self.snap_keyframe = lambda: None
@@ -8627,6 +8629,7 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 			self._outq,
 			list(meta.tables.keys()),
 		)
+		self._lock = self._looper.lock
 		self._branches = {}
 		self._new_keyframe_times: set[Time] = set()
 		self._records = 0
