@@ -3238,6 +3238,26 @@ class AbstractDatabaseConnector(ABC):
 	_looper: looper_cls
 	_records: int
 
+	@property
+	def pack(self):
+		return self._pack
+
+	@pack.setter
+	def pack(self, v):
+		self._pack = v
+		if hasattr(self, "_unpack"):
+			self._init_db()
+
+	@property
+	def unpack(self):
+		return self._unpack
+
+	@unpack.setter
+	def unpack(self, v):
+		self._unpack = v
+		if hasattr(self, "_pack"):
+			self._init_db()
+
 	@batched(
 		"global",
 		key_len=1,
@@ -5899,7 +5919,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		return {}
 
 	@cached_property
-	def eternal(self) -> dict[EternalKey, Value]:
+	def _global(self) -> dict[EternalKey, Value]:
 		return {
 			ekey(k): Value(v)
 			for (k, v) in {
@@ -5911,6 +5931,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				"_lisien_schema_version": SCHEMA_VERSION,
 			}.items()
 		}
+
+	@property
+	def eternal(self) -> dict[EternalKey, Value]:
+		return self._global
 
 	@cached_property
 	def _turns(self) -> dict[tuple[Branch, Turn], tuple[Tick, Tick]]:
@@ -6139,7 +6163,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	_table_names = [
 		"_bookmarks",
-		"eternal",
+		"_global",
 		"_branches",
 		"_turns",
 		"_graphs",
@@ -7499,7 +7523,6 @@ class ParquetDatabaseConnector(AbstractDatabaseConnector):
 		self._t.start()
 		if clear:
 			self.truncate_all()
-		self._init_db()
 
 	@mutexed
 	def call(self, method, *args, **kwargs):
@@ -8605,7 +8628,6 @@ class SQLAlchemyDatabaseConnector(AbstractDatabaseConnector):
 		self._t.start()
 		if clear:
 			self.truncate_all()
-		self._init_db()
 
 	@mutexed
 	def call(self, string, *args, **kwargs):
