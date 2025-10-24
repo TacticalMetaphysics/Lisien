@@ -31,6 +31,7 @@ from sqlite3 import OperationalError as LiteOperationalError
 from threading import Lock, Thread
 from types import MethodType
 from typing import (
+	Annotated,
 	Any,
 	Callable,
 	Iterable,
@@ -39,6 +40,8 @@ from typing import (
 	MutableMapping,
 	Optional,
 	Union,
+	get_args,
+	get_origin,
 	get_type_hints,
 	TypeVar,
 	TYPE_CHECKING,
@@ -222,6 +225,24 @@ class ParquetDBLooper(ConnectionLooper):
 	def schema(self):
 		import pyarrow as pa
 
+		def origif(typ):
+			if hasattr(typ, "__supertype__"):
+				return typ.__supertype__
+			ret = get_origin(typ)
+			if ret is Annotated:
+				return get_args(typ)[0]
+			return ret
+
+		def original(typ):
+			prev = origif(typ)
+			ret = origif(prev)
+			if prev is None:
+				return typ
+			while ret is not None:
+				prev = ret
+				ret = origif(ret)
+			return prev
+
 		py2pq_typ = {
 			bytes: pa.binary,
 			float: pa.float64,
@@ -230,13 +251,38 @@ class ParquetDBLooper(ConnectionLooper):
 			bool: pa.bool_,
 		}
 		ret = {}
-		for tn in PythonDatabaseConnector._table_names:
-			prop: cached_property = getattr(PythonDatabaseConnector, tn)
-			sig = inspect.getfullargspec(prop.func)
-			ret[tn[1:]] = [
-				(arg, py2pq_typ[sig.annotations[arg]]())
-				for arg in sig.args[1:]
-			]
+		for table, serializer in batched.serializers.items():
+			argspec = inspect.getfullargspec(serializer)
+			serialized_tuple_type = argspec.annotations["return"]
+			if isinstance(serialized_tuple_type, str):
+				serialized_tuple_type = eval(serialized_tuple_type)
+			columns = ret[table] = []
+			for column, serialized_type in zip(
+				argspec.args[1:], get_args(serialized_tuple_type)
+			):
+				origin = original(serialized_type)
+				if origin is Union:
+					options = get_args(serialized_type)
+					if len(options) != 2 or type(None) not in options:
+						raise TypeError(
+							"Too many options for union type",
+							column,
+							serialized_type,
+						)
+					if type(None) is options[0]:
+						origin = options[1]
+					else:
+						origin = options[0]
+				elif origin is Literal:
+					options = get_args(serialized_type)
+					origin = type(options[0])
+					if not all(isinstance(opt, origin) for opt in options):
+						raise TypeError(
+							"Literals not all of the same type",
+							column,
+							serialized_type,
+						)
+				columns.append((column, py2pq_typ[original(origin)]()))
 		return ret
 
 	initial = {
@@ -3188,6 +3234,7 @@ def batched(
 			key_len=key_len,
 			inc_rec_counter=inc_rec_counter,
 		)
+	batched.serializers[table] = serialize_record
 	serialized_tuple_type = get_type_hints(serialize_record)["return"]
 
 	def the_batch(
@@ -3201,7 +3248,11 @@ def batched(
 			MethodType(serialize_record, self),
 		)
 
-	return cached_property(the_batch)
+	return batched.tables.setdefault(table, cached_property(the_batch))
+
+
+batched.tables = {}
+batched.serializers = {}
 
 
 class AbstractDatabaseConnector(ABC):
@@ -3332,6 +3383,10 @@ class AbstractDatabaseConnector(ABC):
 	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
 		pack = self.pack
 		return pack(key), branch, turn, tick, pack(value)
+
+	@batched("rules", key_len=1)
+	def _rules2set(self, rule: RuleName) -> tuple[bytes]:
+		return (self.pack(rule),)
 
 	@batched("rule_triggers", key_len=4)
 	def _triggers2set(
@@ -6106,10 +6161,6 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def _lock(self) -> Lock:
 		return Lock()
-
-	@cached_property
-	def _tables(self) -> list[dict | set]:
-		return [getattr(self, tab) for tab in self._table_names]
 
 	@staticmethod
 	def pack(a: _T) -> _T:
