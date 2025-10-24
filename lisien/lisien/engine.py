@@ -2444,6 +2444,10 @@ class Engine(AbstractEngine, Executor):
 				logq,
 			)
 			terp.call(*terp_args)  # check that we can run the subthread
+			if (echoed := output.get(timeout=5.0)) != b"done":
+				raise RuntimeError(
+					f"Got garbled output from worker terp {i}", echoed
+				)
 			wt.append(terp.call_in_thread(*terp_args))
 			with lock:
 				input.put(b"echoImReady")
