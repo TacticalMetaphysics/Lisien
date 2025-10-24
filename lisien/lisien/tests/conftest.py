@@ -356,13 +356,15 @@ def sqleng(tmp_path, request, execution):
 
 
 @pytest.fixture(scope="function")
-def serial_engine(tmp_path, database_connector):
+def serial_engine(tmp_path, persistent_database):
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
 		workers=0,
-		database=database_connector,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
+		if persistent_database == "sqlite"
+		else None,
 	) as eng:
 		yield eng
 
