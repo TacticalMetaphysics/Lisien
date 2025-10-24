@@ -8665,7 +8665,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		self.eternal = GlobalKeyValueStore(
 			self, {unpack(k): unpack(v) for (k, v) in ret.items()}
 		)
-		self._all_keyframe_times = self.call("all_keyframe_times")
 		self.all_rules.clear()
 		self.all_rules.update(d["rule"] for d in self.call("dump", "rules"))
 		return ret
@@ -9465,7 +9464,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			self._outq.task_done()
 			if isinstance(x, Exception):
 				raise x
-			self._all_keyframe_times = set(x)
 		if "trunk" not in globals:
 			self._eternal2set.append(("trunk", "trunk"))
 			globals["trunk"] = "trunk"
