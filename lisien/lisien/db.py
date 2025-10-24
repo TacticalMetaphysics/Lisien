@@ -3757,11 +3757,11 @@ class AbstractDatabaseConnector(ABC):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+	) -> tuple[bytes, bytes, RuleName, bytes, bytes, Branch, Turn, Tick]:
 		character, graph, unit, rulebook = map(
 			self.pack, (character, graph, unit, rulebook)
 		)
-		return character, graph, unit, rulebook, rule, branch, turn, tick
+		return character, rulebook, rule, graph, unit, branch, turn, tick
 
 	@batched("character_thing_rules_handled", inc_rec_counter=False)
 	def _char_thing_rules_handled(
