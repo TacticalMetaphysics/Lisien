@@ -6339,8 +6339,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		turn_to: Optional[Turn] = None,
 		tick_to: Optional[Tick] = None,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
-		if not (turn_to ^ tick_to):
-			raise TypeError("Need both or neither of 'turn_to' and 'tick_to'")
+		if bool(turn_to) ^ bool(tick_to):
+			raise TypeError(
+				"Need both or neither of 'turn_to' and 'tick_to'",
+				turn_to,
+				tick_to,
+			)
 		if turn_to is None:
 			with self._lock:
 				for (b, r, t, g), v in self._graphs.items():
@@ -8592,7 +8596,7 @@ class SQLAlchemyConnectionLooper(ConnectionLooper):
 				"Unsupported database schema version", glob_d[SCHEMAVER_B]
 			)
 		return glob_d
-	
+
 	def close(self):
 		self.transaction.close()
 		self.connection.close()
