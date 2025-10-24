@@ -5980,7 +5980,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		return {}
 
 	@cached_property
-	def _plans(self) -> dict[Plan, tuple[Branch, Turn, tick]]:
+	def _plans(self) -> dict[Plan, tuple[Branch, Turn, Tick]]:
 		return {}
 
 	@cached_property
