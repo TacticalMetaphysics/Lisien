@@ -136,15 +136,9 @@ def test_plan_vs_plan(serial_engine):
 	assert 1 in g1.adj[0]
 
 
-def test_save_load_plan(tmp_path, non_null_database):
-	if non_null_database == "sqlite":
-		connect_str = f"sqlite:///{tmp_path}/world.db"
-		path = None
-	else:
-		connect_str = None
-		path = tmp_path
+def test_save_load_plan(tmp_path, persistent_database_connector_part):
 	with Engine(
-		path,
+		tmp_path,
 		function=FunctionStore(None),
 		method=FunctionStore(None),
 		trigger=FunctionStore(None),
@@ -152,7 +146,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 		action=FunctionStore(None),
 		string={},
 		workers=0,
-		connect_string=connect_str,
+		database=persistent_database_connector_part(),
 	) as orm:
 		g1 = orm.new_character(1)
 		g2 = orm.new_character(2)
@@ -171,7 +165,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 			tick3 = orm.tick
 		orm.turn = 0
 	with Engine(
-		path,
+		tmp_path,
 		workers=0,
 		function=FunctionStore(None),
 		method=FunctionStore(None),
@@ -179,7 +173,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 		prereq=FunctionStore(None),
 		action=FunctionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		connect_string=connect_str,
+		database=persistent_database_connector_part(),
 	) as orm:
 		g1 = orm.character[1]
 		g2 = orm.character[2]
@@ -203,7 +197,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 		assert 2 in g2.node
 		assert 2 in g2.edge[1]
 	with Engine(
-		path,
+		tmp_path,
 		workers=0,
 		function=FunctionStore(None),
 		method=FunctionStore(None),
@@ -211,7 +205,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 		prereq=FunctionStore(None),
 		action=FunctionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		connect_string=connect_str,
+		database=persistent_database_connector_part(),
 	) as orm:
 		orm.turn = 0
 		g1 = orm.character[1]
