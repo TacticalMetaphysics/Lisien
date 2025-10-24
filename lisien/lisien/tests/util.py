@@ -84,9 +84,10 @@ def make_test_engine_kwargs(
 
 def make_test_engine(path, execution, database):
 	kwargs = {
-		"sub_mode": Sub(execution),
 		"workers": 0 if execution == "serial" else 2,
 	}
+	if execution != "serial":
+		kwargs["sub_mode"] = Sub(execution)
 	match database:
 		case "python":
 			kwargs["database"] = PythonDatabaseConnector()
