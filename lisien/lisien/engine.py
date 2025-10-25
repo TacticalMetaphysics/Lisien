@@ -7653,9 +7653,10 @@ class Engine(AbstractEngine, Executor):
 				and isinstance(kwargs["database"], SQLAlchemyDatabaseConnector)
 			):
 				xml_to_sqlite(xml_path, os.path.join(prefix, "world.sqlite3"))
-			else:
+			elif "database" not in kwargs or isinstance(kwargs["database"], ParquetDatabaseConnector):
 				os.makedirs(os.path.join(prefix, "world"), exist_ok=True)
 				xml_to_pqdb(xml_path, os.path.join(prefix, "world"))
+			else:
 		return Engine(prefix, **kwargs)
 
 	def export(
