@@ -103,25 +103,26 @@ def exported(
 
 
 def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
+	prefix1 = os.path.join(tmp_path, "game")
+	os.makedirs(prefix1, exist_ok=True)
+	prefix2 = os.path.join(tmp_path, "game2")
+	os.makedirs(prefix2, exist_ok=True)
 	match non_null_database:
 		case "python":
-
-			def db(path):
-				return PythonDatabaseConnector()
+			db1 = PythonDatabaseConnector()
+			db2 = PythonDatabaseConnector()
 		case "sqlite":
-
-			def db(path):
-				return SQLAlchemyDatabaseConnector(
-					f"sqlite:///{path}/world.sqlite3"
-				)
+			db1 = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{prefix1}/world.sqlite3"
+			)
+			db2 = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{prefix2}/world.sqlite3"
+			)
 		case "parquetdb":
-
-			def db(path):
-				return ParquetDatabaseConnector(os.path.join(path, "world"))
+			db1 = ParquetDatabaseConnector(os.path.join(prefix1, "world"))
+			db2 = ParquetDatabaseConnector(os.path.join(prefix2, "world"))
 		case _:
 			raise RuntimeError("Unknown database", non_null_database)
-	prefix1 = os.path.join(tmp_path, "game")
-	prefix2 = os.path.join(tmp_path, "game2")
 	if exported.endswith("kobold.lisien"):
 		from lisien.examples.kobold import inittest as install
 	elif exported.endswith("wolfsheep.lisien"):
@@ -137,13 +138,13 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 			exported,
 			prefix1,
 			workers=0,
-			database=db(prefix1),
+			database=db1,
 			keyframe_on_close=False,
 		) as eng1,
 		Engine(
 			prefix2,
 			workers=0,
-			database=db(prefix2),
+			database=db2,
 			keyframe_on_close=False,
 			random_seed=random_seed,
 		) as eng2,
@@ -152,6 +153,8 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 		for _ in range(turns):
 			eng2.next_turn()
 		compare_engines_world_state(eng1, eng2)
+	db1.close()
+	db2.close()
 
 	compare_stored_strings(prefix2, prefix1)
 	compare_stored_python_code(prefix2, prefix1)
