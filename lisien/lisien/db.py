@@ -6473,7 +6473,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		turn_to: Optional[Turn] = None,
 		tick_to: Optional[Tick] = None,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
-		if bool(turn_to) ^ bool(tick_to):
+		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError(
 				"Need both or neither of 'turn_to' and 'tick_to'",
 				turn_to,
