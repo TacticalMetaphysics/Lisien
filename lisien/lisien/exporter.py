@@ -1011,7 +1011,7 @@ def sqlite_to_etree(
 		tree = ElementTree(Element("lisien"))
 	if name is None:
 		name = str(os.path.basename(os.path.dirname(sqlite_path)))
-	ret = Exporter(query, tree).db_to_etree(name)
+	ret = Exporter(query, engine, tree).db_to_etree(name)
 	query.close()
 	return ret
 
@@ -1035,7 +1035,7 @@ def pqdb_to_etree(
 		tree = ElementTree(Element("lisien"))
 	if name is None:
 		name = str(os.path.basename(os.path.dirname(pqdb_path)))
-	ret = Exporter(query, tree).db_to_etree(name)
+	ret = Exporter(query, engine, tree).db_to_etree(name)
 	query.close()
 	return ret
 
