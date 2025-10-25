@@ -1027,9 +1027,8 @@ def pqdb_to_etree(
 
 	if engine is None:
 		engine = EngineFacade(None)
-	query = ParquetDatabaseConnector(
-		pqdb_path, pack=engine.pack, unpack=engine.unpack
-	)
+	query = ParquetDatabaseConnector(pqdb_path)
+	(query.pack, query.unpack) = (engine.pack, engine.unpack)
 	if tree is None:
 		tree = ElementTree(Element("lisien"))
 	if name is None:
