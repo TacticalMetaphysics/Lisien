@@ -768,9 +768,8 @@ def etree_to_pqdb(
 		engine = EngineFacade(None)
 		engine._mockup = True
 
-	query = ParquetDatabaseConnector(
-		pqdb_path, pack=engine.pack, unpack=engine.unpack
-	)
+	query = ParquetDatabaseConnector(pqdb_path)
+	(query.pack, query.unpack) = (engine.pack, engine.unpack)
 
 	return Importer(query, engine).etree_to_db(tree)
 
