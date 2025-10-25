@@ -734,10 +734,8 @@ def etree_to_sqlite(
 
 	query = SQLAlchemyDatabaseConnector(
 		"sqlite:///" + str(os.path.abspath(sqlite_path)),
-		{},
-		pack=engine.pack,
-		unpack=engine.unpack,
 	)
+	(query.pack, query.unpack) = (engine.pack, engine.unpack)
 	return Importer(query, engine).etree_to_db(tree)
 
 
