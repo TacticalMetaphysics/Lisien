@@ -1011,7 +1011,9 @@ def sqlite_to_etree(
 		tree = ElementTree(Element("lisien"))
 	if name is None:
 		name = str(os.path.basename(os.path.dirname(sqlite_path)))
-	return Exporter(query, tree).db_to_etree(name)
+	ret = Exporter(query, tree).db_to_etree(name)
+	query.close()
+	return ret
 
 
 def pqdb_to_etree(
@@ -1033,7 +1035,9 @@ def pqdb_to_etree(
 		tree = ElementTree(Element("lisien"))
 	if name is None:
 		name = str(os.path.basename(os.path.dirname(pqdb_path)))
-	return Exporter(query, tree).db_to_etree(name)
+	ret = Exporter(query, tree).db_to_etree(name)
+	query.close()
+	return ret
 
 
 def game_path_to_etree(
