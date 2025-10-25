@@ -6555,11 +6555,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			for plan_id, (b, r, t) in self._plans.items():
 				yield plan_id, b, r, t
 
-	def commit(self) -> None:
-		pass
-
-	def close(self) -> None:
-		pass
+	commit = close = flush
 
 	def _init_db(self) -> None:
 		pass
