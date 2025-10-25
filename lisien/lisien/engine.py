@@ -3004,7 +3004,7 @@ class Engine(AbstractEngine, Executor):
 		if b1 in kfd and r1 in kfd[b1]:
 			kfdb = kfd[b1]
 			tcks = sorted(kfdb[r1], reverse=True)
-			while tcks[-1] > t1:
+			while tcks and tcks[-1] > t1:
 				tcks.pop()
 			if not tcks:
 				if with_fork_points:
