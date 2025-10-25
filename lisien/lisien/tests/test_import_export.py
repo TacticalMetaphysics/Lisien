@@ -42,16 +42,16 @@ def turns(request):
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def export_to(
-	tmp_path, random_seed, persistent_database_connector_part, request, turns
-):
+def export_to(tmp_path, random_seed, persistent_database, request, turns):
 	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
 		prefix,
 		workers=0,
 		random_seed=random_seed,
-		database=persistent_database_connector_part(),
+		connect_string=f"sqlite:///{prefix}/world.sqlite3"
+		if persistent_database == "sqlite"
+		else None,
 	) as eng:
 		install(eng)
 		for _ in range(turns):
