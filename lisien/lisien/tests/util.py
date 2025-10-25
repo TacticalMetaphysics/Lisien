@@ -1,5 +1,6 @@
 import os
 from functools import wraps
+from logging import getLogger
 from queue import SimpleQueue, Empty
 from threading import Thread
 from typing import Any, Callable, TypeVar
@@ -13,6 +14,7 @@ from lisien.db import (
 	NullDatabaseConnector,
 )
 from lisien.facade import EngineFacade
+from lisien.proxy.engine import EngineProxy
 from lisien.proxy.manager import Sub
 
 
@@ -84,10 +86,19 @@ def make_test_engine_kwargs(
 
 
 def make_test_engine(path, execution, database):
-	kwargs = {
-		"workers": 0 if execution == "serial" else 2,
-	}
-	if execution != "serial":
+	kwargs = {}
+	if execution == "proxy":
+		ret = EngineProxy(lambda: b"", lambda x: None, getLogger("lisien"))
+		ret._branch = "trunk"
+		ret._turn = 0
+		ret._tick = 0
+		ret.close = MagicMock()
+		ret.handle = MagicMock()
+		return ret
+	if execution == "serial":
+		kwargs["workers"] = 0
+	else:
+		kwargs["workers"] = 2
 		kwargs["sub_mode"] = Sub(execution)
 	match database:
 		case "python":
