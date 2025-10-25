@@ -52,6 +52,7 @@ def export_to(tmp_path, random_seed, persistent_database, request, turns):
 		connect_string=f"sqlite:///{prefix}/world.sqlite3"
 		if persistent_database == "sqlite"
 		else None,
+		keyframe_on_close=False,
 	) as eng:
 		install(eng)
 		for _ in range(turns):
