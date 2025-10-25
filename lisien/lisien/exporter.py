@@ -93,7 +93,8 @@ class Exporter:
 		root.set("branch", str(eternals.pop("branch")))
 		root.set("turn", str(eternals.pop("turn")))
 		root.set("tick", str(eternals.pop("tick")))
-		root.set("language", str(eternals.pop("language")))
+		if "language" in eternals:
+			root.set("language", str(eternals.pop("language")))
 		for k in sort_set(eternals.keys()):
 			el = Element("dict-item", key=repr(k))
 			root.append(el)
