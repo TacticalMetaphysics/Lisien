@@ -1004,10 +1004,8 @@ def sqlite_to_etree(
 		engine = EngineFacade(None)
 	query = SQLAlchemyDatabaseConnector(
 		"sqlite:///" + str(os.path.abspath(sqlite_path)),
-		{},
-		pack=engine.pack,
-		unpack=engine.unpack,
 	)
+	(query.pack, query.unpack) = (engine.pack, engine.unpack)
 	if tree is None:
 		tree = ElementTree(Element("lisien"))
 	if name is None:
