@@ -52,6 +52,7 @@ class Importer:
 	):
 		if engine is None:
 			engine = EngineFacade(None)
+		(query.pack, query.unpack) = (engine.pack, engine.unpack)
 		self.query = query
 		self.engine = engine
 		self.known_triggers: dict[
