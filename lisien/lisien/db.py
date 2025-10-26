@@ -9073,24 +9073,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	def __post_init__(self):
 		self._t = Thread(target=self._looper.run)
 
-	def __init__(
-		self,
-		dbstring,
-		connect_args: dict | None = None,
-		*,
-		clear=False,
-	):
-		self._lock = self._looper.lock
-		self._branches = {}
-		self._new_keyframe_times: set[Time] = set()
-		self._records = 0
-		self.keyframe_interval = None
-		self.snap_keyframe = lambda: None
-		self._t = Thread(target=self._looper.run)
-		self._t.start()
-		if clear:
-			self.truncate_all()
-
 	@mutexed
 	def call(self, string, *args, **kwargs):
 		if self._outq.unfinished_tasks != 0:
