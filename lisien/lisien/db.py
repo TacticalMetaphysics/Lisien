@@ -3829,8 +3829,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		pass
 
 	def truncate_all(self) -> None:
-		for table in self._tables:
-			table.clear()
+		for table in batched.tables:
+			getattr(self, "_" + table).clear()
 
 	def get_all_keyframe_graphs(
 		self, branch: Branch, turn: Turn, tick: Tick
