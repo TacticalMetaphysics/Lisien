@@ -37,6 +37,7 @@ from lisien.types import (
 	UniversalKey,
 	UniversalKeyframe,
 	Value,
+	Plan,
 )
 from lisien.window import SettingsTurnDict
 
@@ -84,6 +85,7 @@ class Importer:
 		self.known_big: dict[
 			RuleName, dict[Branch, SettingsTurnDict[Turn, dict[Tick, RuleBig]]]
 		] = {}
+		self.plan_times: dict[Plan, set[Time]] = {}
 
 	def _element_to_value(
 		self, el: Element
@@ -344,12 +346,24 @@ class Importer:
 
 	def _universal(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		key = UniversalKey(literal_eval(el.get("key")))
 		value = self._element_to_value(el[0])
 		self.query.universal_set(key, branch, turn, tick, value)
 
+	def _get_plans(
+		self, el: Element, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		if "plans" in el.keys():
+			for plan_id in map(int, el.get("plans").split(",")):
+				if plan_id in self.plan_times:
+					self.plan_times[plan_id].add((branch, turn, tick))
+				else:
+					self.plan_times[plan_id] = {(branch, turn, tick)}
+
 	def _rulebook(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		rulebook = RulebookName(literal_eval(el.get("name")))
 		priority = RulebookPriority(float(el.get("priority")))
 		rules: list[RuleName] = []
@@ -367,6 +381,7 @@ class Importer:
 		el: Element,
 	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		rule = RuleName(el.get("rule"))
 		funcs: list[RuleFuncName] = [
 			FuncName(func_el.get("name")) for func_el in el
@@ -417,6 +432,7 @@ class Importer:
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		rule = RuleName(el.get("rule"))
 		neighborhood = el.get("neighbors")
 		if neighborhood is not None:
@@ -432,18 +448,21 @@ class Importer:
 
 	def _rule_big(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		big = RuleBig(el.get("big") in {"T", "true"})
 		rule = RuleName(el.get("rule"))
 		self._memorize_rule("big", rule, branch, turn, tick, big)
 
 	def _graph(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		graph = CharName(literal_eval(el.get("character")))
 		typ_str = el.get("type")
 		self.query.graphs_insert(graph, branch, turn, tick, typ_str)
 
 	def _graph_val(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		graph = CharName(literal_eval(el.get("character")))
 		key = Stat(literal_eval(el.get("key")))
 		value = self._element_to_value(el[0])
@@ -451,6 +470,7 @@ class Importer:
 
 	def _node(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
 		node = NodeName(literal_eval(el.get("name")))
 		ex = el.get("exists") in {"T", "true"}
@@ -458,6 +478,7 @@ class Importer:
 
 	def _node_val(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
 		node = NodeName(literal_eval(el.get("node")))
 		key = Stat(literal_eval(el.get("key")))
@@ -466,6 +487,7 @@ class Importer:
 
 	def _edge(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
 		orig = NodeName(literal_eval(el.get("orig")))
 		dest = NodeName(literal_eval(el.get("dest")))
@@ -474,6 +496,7 @@ class Importer:
 
 	def _edge_val(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
 		orig = NodeName(literal_eval(el.get("orig")))
 		dest = NodeName(literal_eval(el.get("dest")))
@@ -483,6 +506,7 @@ class Importer:
 
 	def _location(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
 		thing = NodeName(literal_eval(el.get("thing")))
 		location = NodeName(literal_eval(el.get("location")))
@@ -490,6 +514,7 @@ class Importer:
 
 	def _unit(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character-graph")))
 		graph = CharName(literal_eval(el.get("unit-graph")))
 		node = NodeName(literal_eval(el.get("unit-node")))
@@ -508,6 +533,7 @@ class Importer:
 	):
 		meth = getattr(self.query, f"set_{rbtyp}")
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
 		rb = RulebookName(literal_eval(el.get("rulebook")))
 		meth(char, branch, turn, tick, rb)
@@ -549,6 +575,7 @@ class Importer:
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
 		node = NodeName(literal_eval(el.get("node")))
 		rb = RulebookName(literal_eval(el.get("rulebook")))
@@ -558,6 +585,7 @@ class Importer:
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
 		orig = NodeName(literal_eval(el.get("orig")))
 		dest = NodeName(literal_eval(el.get("dest")))
@@ -724,6 +752,9 @@ class Importer:
 									turn
 								].items():
 									setter(rule, branch, turn, tick, datum)
+				for plan, times in self.plan_times.items():
+					for branch, turn, tick in times:
+						self.query.plans_insert(plan, branch, turn, tick)
 			else:
 				k = literal_eval(el.get("key"))
 				v = self._element_to_value(el[0])

@@ -2839,7 +2839,7 @@
         </rule-triggers>
       </turn>
       <turn number="1" end-tick="2" plan-end-tick="2">
-        <universal key="'rando_state'" tick="1">
+        <universal key="'rando_state'" tick="1" plans="0">
           <tuple>
             <int value="3"/>
             <tuple>
@@ -4107,22 +4107,22 @@
         </universal>
       </turn>
       <turn number="2" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 0)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 0)" plans="0"/>
       </turn>
       <turn number="3" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 1)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 1)" plans="0"/>
       </turn>
       <turn number="4" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 2)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 2)" plans="0"/>
       </turn>
       <turn number="5" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 3)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 3)" plans="0"/>
       </turn>
       <turn number="6" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 4)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 4)" plans="0"/>
       </turn>
       <turn number="7" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 5)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 5)" plans="0"/>
       </turn>
     </branch>
   </playtree>
