@@ -393,6 +393,16 @@ def batched(
 	key_len: int = 0,
 	inc_rec_counter: bool = True,
 ) -> partial | cached_property:
+	"""Decorator for serializers that operate on batches of records
+
+	Needs at least the name of the ``table`` the batch will be inserted into.
+
+	:param key_len: How long the primary key is. Used to delete records matching
+		those in the batch.
+	:param inc_rec_counter: Whether to count these records toward the number
+		needed to trigger an automatic keyframe snap.
+
+	"""
 	if serialize_record is None:
 		return partial(
 			batched,
