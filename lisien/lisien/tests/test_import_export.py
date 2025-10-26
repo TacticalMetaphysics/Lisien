@@ -171,6 +171,7 @@ DUMP_METHOD_NAMES = (
 	"rule_actions_dump",
 	"rule_neighborhood_dump",
 	"rule_big_dump",
+	"characters_dump",
 	"node_rulebook_dump",
 	"portal_rulebook_dump",
 	"nodes_dump",

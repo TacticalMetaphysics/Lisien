@@ -1388,7 +1388,9 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+	def characters_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		pass
 
 	@abstractmethod
@@ -3761,7 +3763,9 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 					continue
 				yield g, b, r, t, v
 
-	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+	def characters_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		with self._lock:
 			for b, r, t, g in sort_set(self._graphs.keys()):
 				yield g, b, r, t, self._graphs[b, r, t, g]
@@ -4305,7 +4309,9 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	) -> Iterator[tuple[Key, str, int, int, str]]:
 		return iter(())
 
-	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+	def characters_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		return iter(())
 
 	def exist_node(
@@ -8640,7 +8646,9 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		)
 		self.call("graph_val_del_time", branch, turn, tick)
 
-	def characters(self) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+	def characters_dump(
+		self,
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		self.flush()
 		unpack = self.unpack
 		for d in self.call("dump", "graphs"):
@@ -9362,7 +9370,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		):
 			yield unpack(graph), branch, turn, tick, typ
 
-	def characters(self):
+	def characters_dump(self):
 		self.flush()
 		unpack = self.unpack
 		for branch, turn, tick, graph, typ in self.call("graphs_dump"):
