@@ -2,6 +2,7 @@ import os
 import sys
 from ast import literal_eval
 from functools import partialmethod
+from io import IOBase
 from pathlib import Path
 from typing import Literal
 
@@ -728,6 +729,9 @@ class Importer:
 				v = self._element_to_value(el[0])
 				self.query.eternal[k] = v
 		self.query.commit()
+
+	def load_xml(self, xml_file_path: str | os.PathLike | IOBase):
+		self.load_etree(parse(xml_file_path))
 
 
 def etree_to_sqlite(
