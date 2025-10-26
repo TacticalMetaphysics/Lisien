@@ -15,7 +15,7 @@ from ..db import (
 )
 from ..engine import Engine
 from ..exporter import game_path_to_xml
-from ..importer import xml_to_pqdb, xml_to_sqlite
+from ..importer import xml_to_pqdb, xml_to_sqlite, Importer
 from .data import DATA_DIR
 
 
@@ -260,19 +260,39 @@ def test_import_parquetdb(tmp_path, export_to, engine_facade):
 	compare_engines_world_state(correct_engine, test_engine)
 
 
-@pytest.mark.sqlite
-def test_import_sqlite(tmp_path, export_to, engine_facade):
+@pytest.fixture
+def sql_connector_under_test(tmp_path, engine_facade):
 	test_world = os.path.join(tmp_path, "testworld.sqlite3")
-	correct_world = os.path.join(tmp_path, "world.sqlite3")
-	xml_to_sqlite(export_to, test_world)
-	test_engine = SQLAlchemyDatabaseConnector(
+	connector = SQLAlchemyDatabaseConnector(
 		"sqlite:///" + test_world,
 	)
-	test_engine.pack = engine_facade.pack
-	test_engine.unpack = engine_facade.unpack
-	correct_engine = SQLAlchemyDatabaseConnector(
+	(connector.pack, connector.unpack) = (
+		engine_facade.pack,
+		engine_facade.unpack,
+	)
+	yield connector
+	connector.close()
+
+
+@pytest.fixture
+def sql_connector_correct(tmp_path, engine_facade):
+	correct_world = os.path.join(tmp_path, "world.sqlite3")
+	connector = SQLAlchemyDatabaseConnector(
 		"sqlite:///" + correct_world,
 	)
-	correct_engine.pack = engine_facade.pack
-	correct_engine.unpack = engine_facade.unpack
-	compare_engines_world_state(correct_engine, test_engine)
+	(connector.pack, connector.unpack) = (
+		engine_facade.pack,
+		engine_facade.unpack,
+	)
+	yield connector
+	connector.close()
+
+
+@pytest.mark.sqlite
+def test_import_sqlite(
+	tmp_path, export_to, sql_connector_under_test, sql_connector_correct
+):
+	Importer(sql_connector_under_test).load_xml(export_to)
+	compare_engines_world_state(
+		sql_connector_correct, sql_connector_under_test
+	)
