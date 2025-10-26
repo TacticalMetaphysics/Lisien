@@ -3900,7 +3900,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def rules_dump(self) -> Iterator[RuleName]:
 		with self._lock:
-			yield from self._rules
+			yield from sort_set(self._rules)
 
 	def rule_triggers_dump(
 		self,
