@@ -8836,7 +8836,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 @dataclass
 class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
-	connect_string: str = "sqlite://:memory:"
+	connect_string: str = "sqlite:///:memory:"
 	connect_args: dict[str, str] = field(default_factory=dict)
 	_: KW_ONLY
 	clear: bool = False
