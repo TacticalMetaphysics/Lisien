@@ -283,6 +283,32 @@ NodeRulebookRowType: TypeAlias = tuple[
 PortalRulebookRowType: TypeAlias = tuple[
 	CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName
 ]
+CharacterRulesHandledRowType: TypeAlias = tuple[
+	CharName, RulebookName, RuleName, Branch, Turn, Tick
+]
+PortalRulesHandledRowType: TypeAlias = tuple[
+	CharName,
+	NodeName,
+	NodeName,
+	RulebookName,
+	RuleName,
+	Branch,
+	Turn,
+	Tick,
+]
+NodeRulesHandledRowType: TypeAlias = tuple[
+	CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick
+]
+UnitRulesHandledRowType: TypeAlias = tuple[
+	CharName,
+	CharName,
+	NodeName,
+	RulebookName,
+	RuleName,
+	Branch,
+	Turn,
+	Tick,
+]
 StatDict: TypeAlias = dict[Stat | Literal["rulebook"], Value]
 CharDict: TypeAlias = dict[
 	Stat
