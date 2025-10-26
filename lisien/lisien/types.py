@@ -1522,12 +1522,23 @@ LoadedDict: TypeAlias = dict[
 		"rule_actions",
 		"rule_neighborhood",
 		"rule_big",
+		"character_rules_handled",
+		"unit_rules_handled",
+		"character_thing_rules_handled",
+		"character_place_rules_handled",
+		"character_portal_rules_handled",
+		"node_rules_handled",
+		"portal_rules_handled",
 		"graphs",
 	]
 	| CharName,
 	list[UniversalRowType]
 	| list[RulebookRowType]
 	| list[RuleRowType]
+	| list[CharacterRulesHandledRowType]
+	| list[UnitRulesHandledRowType]
+	| list[NodeRulesHandledRowType]
+	| list[PortalRulesHandledRowType]
 	| list[GraphRowType]
 	| LoadedCharWindow,
 ]
