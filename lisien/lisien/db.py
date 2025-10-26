@@ -114,7 +114,12 @@ from .types import (
 	ekey,
 	LoadedDict,
 	LoadedCharWindow,
+	CharacterRulesHandledRowType,
+	PortalRulesHandledRowType,
+	NodeRulesHandledRowType,
+	UnitRulesHandledRowType,
 )
+
 from .util import ELLIPSIS, EMPTY, garbage, sort_set
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
@@ -2528,82 +2533,43 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def character_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
+	) -> Iterator[CharacterRulesHandledRowType]:
 		pass
 
 	@abstractmethod
 	def unit_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			CharName,
-			NodeName,
-			RulebookName,
-			RuleName,
-			Branch,
-			Turn,
-			Tick,
-		]
-	]:
+	) -> Iterator[UnitRulesHandledRowType]:
 		pass
 
 	@abstractmethod
 	def character_thing_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
-	]:
+	) -> Iterator[NodeRulesHandledRowType]:
 		pass
 
 	@abstractmethod
 	def character_place_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
-	]:
+	) -> Iterator[NodeRulesHandledRowType]:
 		pass
 
 	@abstractmethod
 	def character_portal_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			NodeName,
-			NodeName,
-			RulebookName,
-			RuleName,
-			Branch,
-			Turn,
-			Tick,
-		]
-	]:
+	) -> Iterator[PortalRulesHandledRowType]:
 		pass
 
 	@abstractmethod
 	def node_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
-	]:
+	) -> Iterator[NodeRulesHandledRowType]:
 		pass
 
 	@abstractmethod
 	def portal_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			NodeName,
-			NodeName,
-			RulebookName,
-			RuleName,
-			Branch,
-			Turn,
-			Tick,
-		]
-	]:
+	) -> Iterator[PortalRulesHandledRowType]:
 		pass
 
 	@abstractmethod
