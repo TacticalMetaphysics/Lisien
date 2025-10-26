@@ -2778,10 +2778,6 @@ class AbstractDatabaseConnector(ABC):
 			(char, branch, turn, tick, rb)
 		)
 
-	@abstractmethod
-	def rulebooks(self) -> Iterator[RulebookName]:
-		pass
-
 	def rulebook_set(
 		self,
 		rulebook: RulebookName,
@@ -4114,10 +4110,6 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		with self._lock:
 			self._rules.add(rule)
 
-	def rulebooks(self) -> Iterator[RulebookName]:
-		with self._lock:
-			yield from {rulebook for _, __, __, rulebook in self._rulebooks}
-
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		with self._lock:
 			for key in {
@@ -4660,9 +4652,6 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 		rb: RulebookName,
 	):
 		pass
-
-	def rulebooks(self) -> Iterator[Key]:
-		return iter(())
 
 	def set_node_rulebook(
 		self,
@@ -5309,13 +5298,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 			self._get_db("bookmarks").delete(
 				filters=[pc.field("key") == pc.scalar(key)]
-			)
-
-		def rulebooks(self) -> set[RulebookName]:
-			return set(
-				self._get_db("rulebooks").read(columns=["rulebook"])[
-					"rulebook"
-				]
 			)
 
 		def graphs(self) -> set[CharName]:
@@ -8574,9 +8556,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			return True
 		return False
 
-	def rulebooks(self) -> Iterator[RulebookName]:
-		return map(self.pack, self.call("rulebooks"))
-
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self._location.cull(
 			lambda c, th, b, r, t, l: (b, r, t) == (branch, turn, tick)
@@ -9968,10 +9947,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		self.flush()
 		for (name,) in self.call("rules_dump"):
 			yield name
-
-	def rulebooks(self):
-		for book in self.call("rulebooks"):
-			yield self.unpack(book)
 
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		self._location.cull(
