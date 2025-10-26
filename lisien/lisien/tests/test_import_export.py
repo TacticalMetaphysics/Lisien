@@ -160,32 +160,6 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 	compare_stored_python_code(prefix2, prefix1)
 
 
-DUMP_METHOD_NAMES = (
-	"global_dump",
-	"turns_completed_dump",
-	"universals_dump",
-	"rulebooks_dump",
-	"rules_dump",
-	"rule_triggers_dump",
-	"rule_prereqs_dump",
-	"rule_actions_dump",
-	"rule_neighborhood_dump",
-	"rule_big_dump",
-	"characters_dump",
-	"node_rulebook_dump",
-	"portal_rulebook_dump",
-	"nodes_dump",
-	"edges_dump",
-	"things_dump",
-	"units_dump",
-	"node_val_dump",
-	"edge_val_dump",
-	"graph_val_dump",
-	"keyframes_graphs_dump",
-	"keyframe_extensions_dump",
-)
-
-
 def compare_engines_world_state(
 	correct_engine: Engine | AbstractDatabaseConnector,
 	test_engine: Engine | AbstractDatabaseConnector,
@@ -194,13 +168,15 @@ def compare_engines_world_state(
 	correct_engine.commit()
 	test_engine = getattr(test_engine, "query", test_engine)
 	correct_engine = getattr(correct_engine, "query", test_engine)
-	for dump_method in DUMP_METHOD_NAMES:
-		test_data = list(getattr(test_engine, dump_method)())
-		correct_data = list(getattr(correct_engine, dump_method)())
-		print(dump_method)
-		assert correct_data == test_data, (
-			dump_method + " gave different results"
-		)
+	test_dump = test_engine.dump_everything()
+	correct_dump = correct_engine.dump_everything()
+	assert test_dump.keys() == correct_dump.keys()
+	for k, test_data in test_dump.items():
+		if k.endswith("rules_handled"):
+			continue
+		correct_data = correct_dump[k]
+		print(k)
+		assert correct_data == test_data, f"{k} tables differ"
 
 
 def compare_stored_strings(

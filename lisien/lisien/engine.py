@@ -462,7 +462,7 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 
 	def __init__(self, eng: Engine):
 		self.eng = eng
-		super().__init__(eng.query.bookmark_items())
+		super().__init__(eng.query.bookmarks_dump())
 
 	def __setitem__(self, key, value):
 		if not (

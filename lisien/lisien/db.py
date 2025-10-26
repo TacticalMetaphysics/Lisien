@@ -489,6 +489,13 @@ class AbstractDatabaseConnector(ABC):
 		if hasattr(self, "_pack") and not hasattr(self, "_initialized"):
 			self._init_db()
 
+	def dump_everything(self) -> dict[str, list[tuple]]:
+		self.flush()
+		return {
+			table: list(getattr(self, f"{table}_dump")())
+			for table in batched.tables
+		}
+
 	@batched(
 		"global",
 		key_len=1,
@@ -672,7 +679,7 @@ class AbstractDatabaseConnector(ABC):
 		"character_rulebook",
 		key_len=4,
 	)
-	def _character_rulebooks_to_set(
+	def _character_rulebook_to_set(
 		self,
 		character: CharName,
 		branch: Branch,
@@ -684,7 +691,7 @@ class AbstractDatabaseConnector(ABC):
 		return pack(character), branch, turn, tick, pack(rulebook)
 
 	@batched("unit_rulebook", key_len=4)
-	def _unit_rulebooks_to_set(
+	def _unit_rulebook_to_set(
 		self,
 		character: CharName,
 		branch: Branch,
@@ -699,7 +706,7 @@ class AbstractDatabaseConnector(ABC):
 		"character_thing_rulebook",
 		key_len=4,
 	)
-	def _character_thing_rulebooks_to_set(
+	def _character_thing_rulebook_to_set(
 		self,
 		character: CharName,
 		branch: Branch,
@@ -714,7 +721,7 @@ class AbstractDatabaseConnector(ABC):
 		"character_place_rulebook",
 		key_len=4,
 	)
-	def _character_place_rulebooks_to_set(
+	def _character_place_rulebook_to_set(
 		self,
 		character: CharName,
 		branch: Branch,
@@ -729,7 +736,7 @@ class AbstractDatabaseConnector(ABC):
 		"character_portal_rulebook",
 		key_len=4,
 	)
-	def _character_portal_rulebooks_to_set(
+	def _character_portal_rulebook_to_set(
 		self,
 		character: CharName,
 		branch: Branch,
@@ -1388,7 +1395,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def characters_dump(
+	def graphs_dump(
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		pass
@@ -2740,7 +2747,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		self._unit_rulebooks_to_set.append((char, branch, turn, tick, rb))
+		self._unit_rulebook_to_set.append((char, branch, turn, tick, rb))
 
 	def set_character_thing_rulebook(
 		self,
@@ -2951,7 +2958,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def bookmark_items(self) -> Iterator[tuple[Key, Time]]: ...
+	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]: ...
 
 	@abstractmethod
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]): ...
@@ -3029,8 +3036,8 @@ _T = TypeVar("_T")
 class PythonDatabaseConnector(AbstractDatabaseConnector):
 	"""Database connector that holds all data in memory
 
-	You'll have to write it to disk yourself, somehow. Use the various
-	methods with names ending in 'dump' to get the stored data.
+	You'll have to write it to disk yourself, somehow. Use `dump_everything`
+	to get all the data in a dictionary.
 
 	This does not start any threads, unlike the connectors that really
 	connect to databases, making it an appropriate choice if running in
@@ -3759,7 +3766,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 					continue
 				yield g, b, r, t, v
 
-	def characters_dump(
+	def graphs_dump(
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		with self._lock:
@@ -4123,7 +4130,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		with self._lock:
 			yield from sorted(self._turns_completed.items())
 
-	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
 		with self._lock:
 			yield from sort_set(self._bookmarks.items())
 
@@ -4301,7 +4308,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	) -> Iterator[tuple[Key, str, int, int, str]]:
 		return iter(())
 
-	def characters_dump(
+	def graphs_dump(
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		return iter(())
@@ -4838,7 +4845,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	):
 		pass
 
-	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
 		return iter(())
 
 	def set_bookmark(
@@ -8625,7 +8632,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		)
 		self.call("graph_val_del_time", branch, turn, tick)
 
-	def characters_dump(
+	def graphs_dump(
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		self.flush()
@@ -8827,7 +8834,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		self._initialized = True
 		return ret
 
-	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
 		return iter(self.call("bookmark_items"))
 
 	def del_bookmark(self, key: Key) -> None:
@@ -9096,7 +9103,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			self._outq.task_done()
 			return ret
 
-	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
+	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
 		self.flush()
 		unpack = self.unpack
 		for key, branch, turn, tick in self.call("bookmarks_dump"):
@@ -9349,7 +9356,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		):
 			yield unpack(graph), branch, turn, tick, typ
 
-	def characters_dump(self):
+	def graphs_dump(self):
 		self.flush()
 		unpack = self.unpack
 		for branch, turn, tick, graph, typ in self.call("graphs_dump"):
