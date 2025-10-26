@@ -3034,6 +3034,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	You'll have to write it to disk yourself, somehow. Use the various
 	methods with names ending in 'dump' to get the stored data.
 
+	This does not start any threads, unlike the connectors that really
+	connect to databases, making it an appropriate choice if running in
+	an environment that lacks threading, such as WASI.
+
 	"""
 
 	@cached_property
