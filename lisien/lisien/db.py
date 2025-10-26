@@ -8879,6 +8879,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		self.call("commit")
 
 	def _init_db(self) -> dict:
+		if hasattr(self, "_initialized"):
+			raise RuntimeError("Initialized the database twice")
 		ret = self.call("initdb")
 		if isinstance(ret, Exception):
 			raise ret
@@ -8892,6 +8894,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		self.all_rules.update(d["rule"] for d in self.call("dump", "rules"))
 		self._all_keyframe_times.clear()
 		self._all_keyframe_times.update(self.keyframes_dump())
+		self._initialized = True
 		return ret
 
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
