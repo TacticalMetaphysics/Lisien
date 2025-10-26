@@ -8899,11 +8899,17 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	@dataclass
 	class Looper(ConnectionLooper):
 		connector: SQLAlchemyDatabaseConnector
-		dbstring: str
-		connect_args: dict[str, str]
 		inq: Queue
 		outq: Queue
-		tables = meta.tables.keys()
+		tables: ClassVar[set[str]] = meta.tables.keys()
+
+		@cached_property
+		def dbstring(self) -> str:
+			return self.connector.connect_string
+
+		@cached_property
+		def connect_args(self) -> dict[str, str]:
+			return self.connector.connect_args
 
 		def __post_init__(self):
 			self.existence_lock.acquire(timeout=1)
@@ -8957,8 +8963,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			)
 
 		def run(self):
-			dbstring = self._dbstring
-			connect_args = self._connect_args
+			dbstring = self.dbstring
+			connect_args = self.connect_args
 			self.logger.debug("about to connect " + dbstring)
 			self.engine = create_engine(dbstring, connect_args=connect_args)
 			self.sql = queries(meta)
