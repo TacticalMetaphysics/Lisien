@@ -8899,8 +8899,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	@dataclass
 	class Looper(ConnectionLooper):
 		connector: SQLAlchemyDatabaseConnector
-		inq: Queue
-		outq: Queue
 		tables: ClassVar[set[str]] = meta.tables.keys()
 
 		@cached_property
@@ -8910,6 +8908,14 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		@cached_property
 		def connect_args(self) -> dict[str, str]:
 			return self.connector.connect_args
+
+		@cached_property
+		def inq(self) -> Queue:
+			return self.connector._inq
+
+		@cached_property
+		def outq(self) -> Queue:
+			return self.connector._outq
 
 		def __post_init__(self):
 			self.existence_lock.acquire(timeout=1)
@@ -9072,6 +9078,9 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	def __post_init__(self):
 		self._t = Thread(target=self._looper.run)
+		self._t.start()
+		if self.clear:
+			self.truncate_all()
 
 	@mutexed
 	def call(self, string, *args, **kwargs):
