@@ -3637,7 +3637,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
 		with self._lock:
-			yield from self._keyframes
+			yield from sorted(self._keyframes)
 
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		with self._lock:
@@ -3664,7 +3664,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				parent_tick,
 				end_turn,
 				end_tick,
-			) in self._branches.items():
+			) in sorted(self._branches.items()):
 				yield (
 					branch,
 					parent,
@@ -3701,7 +3701,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			for (branch, turn), (
 				end_tick,
 				plan_end_tick,
-			) in self._turns.items():
+			) in sorted(self._turns.items()):
 				yield branch, turn, end_tick, plan_end_tick
 
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
@@ -3712,7 +3712,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				tick,
 				graph,
 				key,
-			), value in self._graph_val.items():
+			), value in sorted(self._graph_val.items()):
 				yield graph, key, branch, turn, tick, value
 
 	def graph_val_del_time(
@@ -3778,12 +3778,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		with self._lock:
-			for (b, r, t, g, n), x in self._nodes.items():
+			for (b, r, t, g, n), x in sorted(self._nodes.items()):
 				yield g, n, b, r, t, x
 
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		with self._lock:
-			for (b, r, t, g, n, k), v in self._node_val.items():
+			for (b, r, t, g, n, k), v in sorted(self._node_val.items()):
 				yield g, n, k, b, r, t, v
 
 	def node_val_del_time(
@@ -3799,12 +3799,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		with self._lock:
-			for (b, r, t, g, o, d), x in self._edges.items():
+			for (b, r, t, g, o, d), x in sorted(self._edges.items()):
 				yield g, o, d, b, r, t, x
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		with self._lock:
-			for (b, r, t, g, o, d, k), v in self._edge_val.items():
+			for (b, r, t, g, o, d, k), v in sorted(self._edge_val.items()):
 				yield g, o, d, k, b, r, t, v
 
 	def edge_val_del_time(
@@ -3863,7 +3863,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				nkf,
 				ekf,
 				gvkf,
-			) in self._keyframes_graphs.items():
+			) in sorted(self._keyframes_graphs.items()):
 				yield g, b, r, t, nkf, ekf, gvkf
 
 	def keyframe_extensions_dump(
@@ -3883,7 +3883,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				ukf,
 				rkf,
 				rbkf,
-			) in self._keyframe_extensions.items():
+			) in sorted(self._keyframe_extensions.items()):
 				yield b, r, t, ukf, rkf, rbkf
 
 	def universals_dump(
@@ -3899,7 +3899,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
 	]:
 		with self._lock:
-			for (b, r, t, rb), (rs, prio) in self._rulebooks.items():
+			for (b, r, t, rb), (rs, prio) in sorted(self._rulebooks.items()):
 				yield rb, b, r, t, (rs.copy(), prio)
 
 	def rules_dump(self) -> Iterator[RuleName]:
@@ -3910,42 +3910,42 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		self,
 	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]]:
 		with self._lock:
-			for (b, r, t, rn), trigs in self._rule_triggers.items():
+			for (b, r, t, rn), trigs in sorted(self._rule_triggers.items()):
 				yield rn, b, r, t, trigs.copy()
 
 	def rule_prereqs_dump(
 		self,
 	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]]:
 		with self._lock:
-			for (b, r, t, rn), preqs in self._rule_prereqs.items():
+			for (b, r, t, rn), preqs in sorted(self._rule_prereqs.items()):
 				yield rn, b, r, t, preqs.copy()
 
 	def rule_actions_dump(
 		self,
 	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]]:
 		with self._lock:
-			for (b, r, t, rn), acts in self._rule_actions.items():
+			for (b, r, t, rn), acts in sorted(self._rule_actions.items()):
 				yield rn, b, r, t, acts.copy()
 
 	def rule_neighborhood_dump(
 		self,
 	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
 		with self._lock:
-			for (b, r, t, rn), nbrs in self._rule_neighborhood.items():
+			for (b, r, t, rn), nbrs in sorted(self._rule_neighborhood.items()):
 				yield rn, b, r, t, nbrs
 
 	def rule_big_dump(
 		self,
 	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]:
 		with self._lock:
-			for (b, r, t, rn), big in self._rule_big.items():
+			for (b, r, t, rn), big in sorted(self._rule_big.items()):
 				yield rn, b, r, t, big
 
 	def node_rulebook_dump(
 		self,
 	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
 		with self._lock:
-			for (b, r, t, g, n), rb in self._node_rulebook.items():
+			for (b, r, t, g, n), rb in sorted(self._node_rulebook.items()):
 				yield g, n, b, r, t, rb
 
 	def portal_rulebook_dump(
@@ -3954,7 +3954,9 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
 	]:
 		with self._lock:
-			for (b, r, t, g, o, d), rb in self._portal_rulebook.items():
+			for (b, r, t, g, o, d), rb in sorted(
+				self._portal_rulebook.items()
+			):
 				yield g, o, d, b, r, t, rb
 
 	def character_rulebook_dump(
@@ -3968,35 +3970,43 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		with self._lock:
-			for (b, r, t, g), rb in self._unit_rulebook.items():
+			for (b, r, t, g), rb in sorted(self._unit_rulebook.items()):
 				yield g, b, r, t, rb
 
 	def character_thing_rulebook_dump(
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		with self._lock:
-			for (b, r, t, g), rb in self._character_thing_rulebook.items():
+			for (b, r, t, g), rb in sorted(
+				self._character_thing_rulebook.items()
+			):
 				yield g, b, r, t, rb
 
 	def character_place_rulebook_dump(
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		with self._lock:
-			for (b, r, t, g), rb in self._character_place_rulebook.items():
+			for (b, r, t, g), rb in sorted(
+				self._character_place_rulebook.items()
+			):
 				yield g, b, r, t, rb
 
 	def character_portal_rulebook_dump(
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
 		with self._lock:
-			for (b, r, t, g), rb in self._character_portal_rulebook.items():
+			for (b, r, t, g), rb in sorted(
+				self._character_portal_rulebook.items()
+			):
 				yield g, b, r, t, rb
 
 	def character_rules_handled_dump(
 		self,
 	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
 		with self._lock:
-			for (b, r, g, rb, rn), t in self._character_rules_handled.items():
+			for (b, r, g, rb, rn), t in sorted(
+				self._character_rules_handled.items()
+			):
 				yield g, rb, rn, b, r, t
 
 	def unit_rules_handled_dump(
@@ -4022,8 +4032,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				node,
 				rb,
 				rn,
-			), t in self._unit_rules_handled.items():
-				yield char, graph, node, b, r, rb, rn, t
+			), t in sorted(self._unit_rules_handled.items()):
+				yield char, graph, node, rb, rn, b, r, t
 
 	def character_thing_rules_handled_dump(
 		self,
@@ -4038,7 +4048,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				rb,
 				rn,
 				n,
-			), t in self._character_thing_rules_handled.items():
+			), t in sorted(self._character_thing_rules_handled.items()):
 				yield g, n, rb, rn, b, r, t
 
 	def character_place_rules_handled_dump(
@@ -4054,7 +4064,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				n,
 				rb,
 				rn,
-			), t in self._character_place_rules_handled.items():
+			), t in sorted(self._character_place_rules_handled.items()):
 				yield g, n, rb, rn, b, r, t
 
 	def character_portal_rules_handled_dump(
@@ -4080,7 +4090,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				d,
 				rb,
 				rn,
-			), t in self._character_portal_rules_handled.items():
+			), t in sorted(self._character_portal_rules_handled.items()):
 				yield g, o, d, rb, rn, b, r, t
 
 	def node_rules_handled_dump(
@@ -4089,7 +4099,9 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
 	]:
 		with self._lock:
-			for (b, r, g, n, rb, rn), t in self._node_rules_handled.items():
+			for (b, r, g, n, rb, rn), t in sorted(
+				self._node_rules_handled.items()
+			):
 				yield g, n, rb, rn, b, r, t
 
 	def portal_rules_handled_dump(
@@ -4115,14 +4127,14 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				d,
 				rb,
 				rn,
-			), t in self._portal_rules_handled.items():
+			), t in sorted(self._portal_rules_handled.items()):
 				yield g, o, d, rb, rn, b, r, t
 
 	def things_dump(
 		self,
 	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
 		with self._lock:
-			for (b, r, t, g, n), loc in self._things.items():
+			for (b, r, t, g, n), loc in sorted(self._things.items()):
 				yield g, n, b, r, t, loc
 
 	def units_dump(
@@ -4131,7 +4143,9 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
 	]:
 		with self._lock:
-			for (b, r, t, char, graph, node), is_unit in self._units.items():
+			for (b, r, t, char, graph, node), is_unit in sorted(
+				self._units.items()
+			):
 				yield char, graph, node, b, r, t, is_unit
 
 	def count_all_table(self, tbl: str) -> int:
@@ -4156,11 +4170,11 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		with self._lock:
-			yield from self._turns_completed.items()
+			yield from sorted(self._turns_completed.items())
 
 	def bookmark_items(self) -> Iterator[tuple[Key, Time]]:
 		with self._lock:
-			yield from self._bookmarks.items()
+			yield from sorted(self._bookmarks.items())
 
 
 @dataclass
