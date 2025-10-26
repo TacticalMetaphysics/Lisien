@@ -913,7 +913,7 @@ class AbstractDatabaseConnector(ABC):
 		pack = self.pack
 		return branch, turn, tick, pack(universal), pack(rule), pack(rulebook)
 
-	@batched("character_rules_handled", inc_rec_counter=False)
+	@batched("character_rules_handled", key_len=5, inc_rec_counter=False)
 	def _char_rules_handled(
 		self,
 		character: CharName,
@@ -926,7 +926,7 @@ class AbstractDatabaseConnector(ABC):
 		(character, rulebook) = map(self.pack, (character, rulebook))
 		return (character, rulebook, rule, branch, turn, tick)
 
-	@batched("unit_rules_handled", inc_rec_counter=False)
+	@batched("unit_rules_handled", key_len=7, inc_rec_counter=False)
 	def _unit_rules_handled_to_set(
 		self,
 		character: CharName,
@@ -943,7 +943,7 @@ class AbstractDatabaseConnector(ABC):
 		)
 		return character, rulebook, rule, graph, unit, branch, turn, tick
 
-	@batched("character_thing_rules_handled", inc_rec_counter=False)
+	@batched("character_thing_rules_handled", key_len=6, inc_rec_counter=False)
 	def _char_thing_rules_handled(
 		self,
 		character: CharName,
@@ -959,7 +959,7 @@ class AbstractDatabaseConnector(ABC):
 		)
 		return (character, rulebook, rule, thing, branch, turn, tick)
 
-	@batched("character_place_rules_handled", inc_rec_counter=False)
+	@batched("character_place_rules_handled", key_len=6, inc_rec_counter=False)
 	def _char_place_rules_handled(
 		self,
 		character: CharName,
@@ -975,7 +975,9 @@ class AbstractDatabaseConnector(ABC):
 		)
 		return (character, place, rulebook, rule, branch, turn, tick)
 
-	@batched("character_portal_rules_handled", inc_rec_counter=False)
+	@batched(
+		"character_portal_rules_handled", key_len=7, inc_rec_counter=False
+	)
 	def _char_portal_rules_handled(
 		self,
 		character: CharName,
@@ -992,7 +994,7 @@ class AbstractDatabaseConnector(ABC):
 		)
 		return character, orig, dest, rulebook, rule, branch, turn, tick
 
-	@batched("node_rules_handled", inc_rec_counter=False)
+	@batched("node_rules_handled", key_len=6, inc_rec_counter=False)
 	def _node_rules_handled_to_set(
 		self,
 		character: CharName,
