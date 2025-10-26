@@ -476,7 +476,7 @@ class AbstractDatabaseConnector(ABC):
 	@pack.setter
 	def pack(self, v: PackSignature) -> None:
 		self._pack = v
-		if hasattr(self, "_unpack"):
+		if hasattr(self, "_unpack") and not hasattr(self, "_initialized"):
 			self._init_db()
 
 	@property
@@ -486,7 +486,7 @@ class AbstractDatabaseConnector(ABC):
 	@unpack.setter
 	def unpack(self, v: UnpackSignature) -> None:
 		self._unpack = v
-		if hasattr(self, "_pack"):
+		if hasattr(self, "_pack") and not hasattr(self, "_initialized"):
 			self._init_db()
 
 	@batched(
