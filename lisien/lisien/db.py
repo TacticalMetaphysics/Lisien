@@ -423,7 +423,7 @@ batched.serializers = {}
 
 class AbstractDatabaseConnector(ABC):
 	_: KW_ONLY
-	kf_interval_override: Callable[[Any], bool | None] = lambda _: None
+	kf_interval_override: Callable[[], bool | None] = lambda _: None
 	keyframe_interval: int | None = 1000
 	snap_keyframe: Callable[[], None] = lambda: None
 
