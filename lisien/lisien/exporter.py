@@ -1,7 +1,7 @@
 import os
 from collections import deque
 from dataclasses import dataclass, field
-from functools import partial
+from functools import partial, partialmethod
 from io import IOBase
 from pathlib import Path
 from types import FunctionType, MethodType
@@ -45,6 +45,7 @@ from lisien.types import (
 	NodeRowType,
 	NodeRulebookRowType,
 	NodeValRowType,
+	Plan,
 	PortalRulebookRowType,
 	PrereqFuncName,
 	PrereqRowType,
@@ -99,6 +100,19 @@ class Exporter:
 			el = Element("dict-item", key=repr(k))
 			root.append(el)
 			el.append(self._value_to_xml_el(eternals[k]))
+		plan_ticks: dict[Branch, dict[Turn, dict[Plan, set[Tick]]]] = {}
+		for plan, branch, turn, tick in query.plan_ticks_dump():
+			if branch in plan_ticks:
+				if turn in plan_ticks[branch]:
+					if plan in plan_ticks[branch][turn]:
+						plan_ticks[branch][turn][plan].add(tick)
+					else:
+						plan_ticks[branch][turn][plan] = {tick}
+				else:
+					plan_ticks[branch][turn] = {plan: {tick}}
+			else:
+				plan_ticks[branch] = {turn: {plan: {tick}}}
+		self.plan_ticks = plan_ticks
 		trunks = set()
 		branches_d = {}
 		branch_descendants = {}
@@ -513,21 +527,29 @@ class Exporter:
 			indent_tree(tree)
 		tree.write(to, encoding="utf-8")
 
-	@classmethod
-	def _append_univ_el(
-		cls, turn_el: Element, universal_rec: UniversalRowType
-	):
+	def _set_plans(
+		self, el: Element, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		plans = []
+		if branch in self.plan_ticks and turn in self.plan_ticks[branch]:
+			for plan, ticks in self.plan_ticks[branch][turn].items():
+				if tick in ticks:
+					plans.append(plan)
+		if plans:
+			el.set("plans", ",".join(map(str, plans)))
+
+	def _univ_el(self, universal_rec: UniversalRowType) -> Element:
 		key, b, r, t, val = universal_rec
 		univ_el = Element(
 			"universal",
 			key=repr(key),
 			tick=str(t),
 		)
-		univ_el.append(cls._value_to_xml_el(val))
-		turn_el.append(univ_el)
+		univ_el.append(self._value_to_xml_el(val))
+		self._set_plans(univ_el, b, r, t)
+		return univ_el
 
-	@staticmethod
-	def _append_rulebook_el(turn_el: Element, rulebook_rec: RulebookRowType):
+	def _rulebook_el(self, rulebook_rec: RulebookRowType) -> Element:
 		rb, b, r, t, (rules, prio) = rulebook_rec
 		rb_el = Element(
 			"rulebook",
@@ -535,37 +557,31 @@ class Exporter:
 			priority=repr(prio),
 			tick=str(t),
 		)
-		turn_el.append(rb_el)
 		for i, rule in enumerate(rules):
 			rb_el.append(Element("rule", name=rule))
+		self._set_plans(rb_el, b, r, t)
+		return rb_el
 
-	@staticmethod
-	def _append_rule_flist_el(
+	def _rule_flist_el(
+		self,
 		typ: str,
-		turn_el: Element,
 		rec: TriggerRowType | PrereqRowType | ActionRowType,
-	):
-		rule, _, __, tick, funcs = rec
+	) -> Element:
+		rule, branch, turn, tick, funcs = rec
 		func_el = Element(f"{typ}s", rule=rule, tick=str(tick))
-		turn_el.append(func_el)
 		for func in funcs:
 			func_el.append(Element(typ[5:], name=func))
+		self._set_plans(func_el, branch, turn, tick)
+		return func_el
 
-	append_rule_triggers_el = staticmethod(
-		partial(_append_rule_flist_el, "rule-trigger")
-	)
-	append_rule_prereqs_el = staticmethod(
-		partial(_append_rule_flist_el, "rule-prereq")
-	)
-	append_rule_actions_el = staticmethod(
-		partial(_append_rule_flist_el, "rule-action")
-	)
+	_rule_triggers_el = partialmethod(_rule_flist_el, "rule-trigger")
+	_rule_prereqs_el = partialmethod(_rule_flist_el, "rule-prereq")
+	_rule_actions_el = partialmethod(_rule_flist_el, "rule-action")
 
-	@staticmethod
-	def _append_rule_neighborhood_el(
-		turn_el: Element, nbr_rec: RuleNeighborhoodRowType
-	):
-		rule, _, __, tick, nbr = nbr_rec
+	def _rule_neighborhood_el(
+		self, nbr_rec: RuleNeighborhoodRowType
+	) -> Element:
+		rule, branch, turn, tick, nbr = nbr_rec
 		if nbr is not None:
 			nbr_el = Element(
 				"rule-neighborhood",
@@ -575,22 +591,21 @@ class Exporter:
 			)
 		else:
 			nbr_el = Element("rule-neighborhood", rule=rule, tick=str(tick))
-		turn_el.append(nbr_el)
+		self._set_plans(nbr_el, branch, turn, tick)
+		return nbr_el
 
-	@staticmethod
-	def _append_rule_big_el(turn_el: Element, big_rec: RuleBigRowType):
-		rule, _, __, tick, big = big_rec
-		turn_el.append(
-			Element(
-				"rule-big",
-				rule=rule,
-				tick=str(tick),
-				big="true" if big else "false",
-			)
+	def _rule_big_el(self, big_rec: RuleBigRowType) -> Element:
+		rule, branch, turn, tick, big = big_rec
+		el = Element(
+			"rule-big",
+			rule=rule,
+			tick=str(tick),
+			big="true" if big else "false",
 		)
+		self._set_plans(el, branch, turn, tick)
+		return el
 
-	@staticmethod
-	def _append_graph_el(turn_el: Element, graph: GraphRowType):
+	def _graph_el(self, graph: GraphRowType) -> Element:
 		char, b, r, t, typ_str = graph
 		graph_el = Element(
 			"graph",
@@ -598,10 +613,10 @@ class Exporter:
 			tick=str(t),
 			type=typ_str,
 		)
-		turn_el.append(graph_el)
+		self._set_plans(graph_el, b, r, t)
+		return graph_el
 
-	@staticmethod
-	def _append_graph_val_el(turn_el: Element, graph_val: GraphValRowType):
+	def _graph_val_el(self, graph_val: GraphValRowType) -> Element:
 		char, stat, b, r, t, val = graph_val
 		graph_val_el = Element(
 			"graph-val",
@@ -609,24 +624,23 @@ class Exporter:
 			key=repr(stat),
 			tick=str(t),
 		)
-		turn_el.append(graph_val_el)
 		graph_val_el.append(Exporter._value_to_xml_el(val))
+		self._set_plans(graph_val_el, b, r, t)
+		return graph_val_el
 
-	@staticmethod
-	def _append_nodes_el(turn_el: Element, nodes: NodeRowType):
+	def _nodes_el(self, nodes: NodeRowType) -> Element:
 		char, node, b, r, t, ex = nodes
-		turn_el.append(
-			Element(
-				"node",
-				character=repr(char),
-				name=repr(node),
-				tick=str(t),
-				exists="true" if ex else "false",
-			)
+		node_el = Element(
+			"node",
+			character=repr(char),
+			name=repr(node),
+			tick=str(t),
+			exists="true" if ex else "false",
 		)
+		self._set_plans(node_el, b, r, t)
+		return node_el
 
-	@staticmethod
-	def _append_node_val_el(turn_el: Element, node_val: NodeValRowType):
+	def _node_val_el(self, node_val: NodeValRowType) -> Element:
 		char, node, stat, b, r, t, val = node_val
 		node_val_el = Element(
 			"node-val",
@@ -635,25 +649,24 @@ class Exporter:
 			key=repr(stat),
 			tick=str(t),
 		)
-		turn_el.append(node_val_el)
 		node_val_el.append(Exporter._value_to_xml_el(val))
+		self._set_plans(node_val_el, b, r, t)
+		return node_val_el
 
-	@staticmethod
-	def _append_edges_el(turn_el: Element, edges: EdgeRowType):
+	def _edge_el(self, edges: EdgeRowType) -> Element:
 		char, orig, dest, b, r, t, ex = edges
-		turn_el.append(
-			Element(
-				"edge",
-				character=repr(char),
-				orig=repr(orig),
-				dest=repr(dest),
-				tick=str(t),
-				exists="true" if ex else "false",
-			)
+		edge_el = Element(
+			"edge",
+			character=repr(char),
+			orig=repr(orig),
+			dest=repr(dest),
+			tick=str(t),
+			exists="true" if ex else "false",
 		)
+		self._set_plans(edge_el, b, r, t)
+		return edge_el
 
-	@staticmethod
-	def _append_edge_val_el(turn_el: Element, edge_val: EdgeValRowType):
+	def _edge_val_el(self, edge_val: EdgeValRowType) -> Element:
 		char, orig, dest, stat, b, r, t, val = edge_val
 		edge_val_el = Element(
 			"edge-val",
@@ -663,24 +676,23 @@ class Exporter:
 			key=repr(stat),
 			tick=str(t),
 		)
-		turn_el.append(edge_val_el)
 		edge_val_el.append(Exporter._value_to_xml_el(val))
+		self._set_plans(edge_val_el, b, r, t)
+		return edge_val_el
 
-	@staticmethod
-	def _append_thing_el(turn_el: Element, thing: ThingRowType):
+	def _thing_el(self, thing: ThingRowType) -> Element:
 		char, thing, b, r, t, loc = thing
-		turn_el.append(
-			Element(
-				"location",
-				character=repr(char),
-				thing=repr(thing),
-				tick=str(t),
-				location=repr(loc),
-			)
+		loc_el = Element(
+			"location",
+			character=repr(char),
+			thing=repr(thing),
+			tick=str(t),
+			location=repr(loc),
 		)
+		self._set_plans(loc_el, b, r, t)
+		return loc_el
 
-	@staticmethod
-	def _append_unit_el(turn_el: Element, unit: UnitRowType):
+	def _unit_el(self, unit: UnitRowType) -> Element:
 		char, graph, node, b, r, t, is_unit = unit
 		unit_el = Element(
 			"unit",
@@ -692,50 +704,44 @@ class Exporter:
 			},
 		)
 		unit_el.set("is-unit", "true" if is_unit else "false")
-		turn_el.append(unit_el)
+		self._set_plans(unit_el, b, r, t)
+		return unit_el
 
-	@staticmethod
-	def _append_char_rb_el(
-		turn_el: Element, rbtyp: str, rbrow: CharRulebookRowType
-	):
+	def _char_rb_el(self, rbtyp: str, rbrow: CharRulebookRowType) -> Element:
 		char, b, r, t, rb = rbrow
-		turn_el.append(
-			Element(
-				rbtyp,
-				character=repr(char),
-				tick=str(t),
-				rulebook=repr(rb),
-			)
+		chrbel = Element(
+			rbtyp,
+			character=repr(char),
+			tick=str(t),
+			rulebook=repr(rb),
 		)
+		self._set_plans(chrbel, b, r, t)
+		return chrbel
 
-	@staticmethod
-	def _append_node_rb_el(turn_el: Element, nrb_row: NodeRulebookRowType):
+	def _node_rb_el(self, nrb_row: NodeRulebookRowType) -> Element:
 		char, node, b, r, t, rb = nrb_row
-		turn_el.append(
-			Element(
-				"node-rulebook",
-				character=repr(char),
-				node=repr(node),
-				tick=str(t),
-				rulebook=repr(rb),
-			)
+		nrb_el = Element(
+			"node-rulebook",
+			character=repr(char),
+			node=repr(node),
+			tick=str(t),
+			rulebook=repr(rb),
 		)
+		self._set_plans(nrb_el, b, r, t)
+		return nrb_el
 
-	@staticmethod
-	def _append_portal_rb_el(
-		turn_el: Element, port_rb_row: PortalRulebookRowType
-	):
+	def _portal_rb_el(self, port_rb_row: PortalRulebookRowType) -> Element:
 		char, orig, dest, b, r, t, rb = port_rb_row
-		turn_el.append(
-			Element(
-				"portal-rulebook",
-				character=repr(char),
-				orig=repr(orig),
-				dest=repr(dest),
-				tick=str(t),
-				rulebook=repr(rb),
-			)
+		porb_el = Element(
+			"portal-rulebook",
+			character=repr(char),
+			orig=repr(orig),
+			dest=repr(dest),
+			tick=str(t),
+			rulebook=repr(rb),
 		)
+		self._set_plans(porb_el, b, r, t)
+		return porb_el
 
 	def _fill_branch_element(
 		self,
@@ -801,7 +807,8 @@ class Exporter:
 						turn,
 						tick,
 					):
-						self._append_univ_el(turn_el, universal_rec)
+						univ_el = self._univ_el(universal_rec)
+						turn_el.append(univ_el)
 						del data["universals"][0]
 				if data["rulebooks"]:
 					rulebook_rec: RulebookRowType = data["rulebooks"][0]
@@ -811,7 +818,8 @@ class Exporter:
 						turn,
 						tick,
 					):
-						self._append_rulebook_el(turn_el, rulebook_rec)
+						rulebook_el = self._rulebook_el(rulebook_rec)
+						turn_el.append(rulebook_el)
 						del data["rulebooks"][0]
 				if data["graphs"]:
 					graph_rec: GraphRowType = data["graphs"][0]
@@ -821,7 +829,8 @@ class Exporter:
 						turn,
 						tick,
 					):
-						self._append_graph_el(turn_el, graph_rec)
+						graph_el = self._graph_el(graph_rec)
+						turn_el.append(graph_el)
 						del data["graphs"][0]
 				if (
 					"rule_triggers" in data
@@ -833,9 +842,8 @@ class Exporter:
 						tick,
 					)
 				):
-					self.append_rule_triggers_el(
-						turn_el, data["rule_triggers"].pop(0)
-					)
+					trel = self._rule_triggers_el(data["rule_triggers"].pop(0))
+					turn_el.append(trel)
 				if (
 					"rule_prereqs" in data
 					and data["rule_prereqs"]
@@ -846,9 +854,8 @@ class Exporter:
 						tick,
 					)
 				):
-					self.append_rule_prereqs_el(
-						turn_el, data["rule_prereqs"].pop(0)
-					)
+					prel = self._rule_prereqs_el(data["rule_prereqs"].pop(0))
+					turn_el.append(prel)
 				if (
 					"rule_actions" in data
 					and data["rule_actions"]
@@ -859,18 +866,18 @@ class Exporter:
 						tick,
 					)
 				):
-					self.append_rule_actions_el(
-						turn_el, data["rule_actions"].pop(0)
-					)
+					actel = self._rule_actions_el(data["rule_actions"].pop(0))
+					turn_el.append(actel)
 				if (
 					"rule_neighborhood" in data
 					and data["rule_neighborhood"]
 					and data["rule_neighborhood"][0][1:4]
 					== (branch, turn, tick)
 				):
-					self._append_rule_neighborhood_el(
-						turn_el, data["rule_neighborhood"].pop(0)
+					nbrel = self._rule_neighborhood_el(
+						data["rule_neighborhood"].pop(0)
 					)
+					turn_el.append(nbrel)
 				if (
 					"rule_big" in data
 					and data["rule_big"]
@@ -881,7 +888,8 @@ class Exporter:
 						tick,
 					)
 				):
-					self._append_rule_big_el(turn_el, data["rule_big"].pop(0))
+					big_el = self._rule_big_el(data["rule_big"].pop(0))
+					turn_el.append(big_el)
 				for char_name in data.keys() - uncharacterized:
 					char_data: LoadedCharWindow = data[char_name]
 					if char_data["graph_val"]:
@@ -890,7 +898,8 @@ class Exporter:
 						][0]
 						_, __, b, r, t, ___ = graph_val_row
 						if (b, r, t) == (branch, turn, tick):
-							self._append_graph_val_el(turn_el, graph_val_row)
+							gvel = self._graph_val_el(graph_val_row)
+							turn_el.append(gvel)
 							del char_data["graph_val"][0]
 					if char_data["nodes"]:
 						nodes_row: NodeRowType = char_data["nodes"][0]
@@ -902,7 +911,8 @@ class Exporter:
 							turn,
 							tick,
 						):
-							self._append_nodes_el(turn_el, nodes_row)
+							nel = self._nodes_el(nodes_row)
+							turn_el.append(nel)
 							del char_data["nodes"][0]
 					if char_data["node_val"]:
 						node_val_row: NodeValRowType = char_data["node_val"][0]
@@ -920,31 +930,36 @@ class Exporter:
 							turn,
 							tick,
 						):
-							self._append_node_val_el(turn_el, node_val_row)
+							nvel = self._node_val_el(node_val_row)
+							turn_el.append(nvel)
 							del char_data["node_val"][0]
 					if char_data["edges"]:
 						edges_row: EdgeRowType = char_data["edges"][0]
 						_, __, ___, b, r, t, ____ = edges_row
 						if (b, r, t) == (branch, turn, tick):
-							self._append_edges_el(edges_row)
+							edgel = self._edge_el(edges_row)
+							turn_el.append(edgel)
 							del char_data["edges"][0]
 					if char_data["edge_val"]:
 						edge_val_row: EdgeValRowType = char_data["edge_val"][0]
 						_, __, ___, ____, b, r, t, _____ = edge_val_row
 						if (b, r, t) == (branch, turn, tick):
-							self._append_edge_val_el(turn_el, edge_val_row)
+							evel = self._edge_val_el(edge_val_row)
+							turn_el.append(evel)
 							del char_data["edge_val"][0]
 					if char_data["things"]:
 						thing_row: ThingRowType = char_data["things"][0]
 						_, __, b, r, t, ___ = thing_row
 						if (b, r, t) == (branch, turn, tick):
-							self._append_thing_el(turn_el, thing_row)
+							thel = self._thing_el(thing_row)
+							turn_el.append(thel)
 							del char_data["things"][0]
 					if char_data["units"]:
 						units_row: UnitRowType = char_data["units"][0]
 						_, __, ___, b, r, t, ____ = units_row
 						if (b, r, t) == (branch, turn, tick):
-							self._append_unit_el(turn_el, units_row)
+							unit_el = self._unit_el(units_row)
+							turn_el.append(unit_el)
 							del char_data["units"][0]
 					for char_rb_typ in (
 						"character_rulebook",
@@ -959,11 +974,11 @@ class Exporter:
 							][0]
 							_, b, r, t, __ = char_rb_row
 							if (b, r, t) == (branch, turn, tick):
-								self._append_char_rb_el(
-									turn_el,
+								crbel = self._char_rb_el(
 									char_rb_typ.replace("_", "-"),
 									char_rb_row,
 								)
+								turn_el.append(crbel)
 								del char_data[char_rb_typ][0]
 					if char_data["node_rulebook"]:
 						node_rb_row: NodeRulebookRowType = char_data[
@@ -971,7 +986,8 @@ class Exporter:
 						][0]
 						_, __, b, r, t, ___ = node_rb_row
 						if (b, r, t) == (branch, turn, tick):
-							self._append_node_rb_el(turn_el, node_rb_row)
+							nrbel = self._node_rb_el(node_rb_row)
+							turn_el.append(nrbel)
 							del char_data["node_rulebook"][0]
 					if char_data["portal_rulebook"]:
 						port_rb_row: PortalRulebookRowType = char_data[
@@ -979,7 +995,8 @@ class Exporter:
 						][0]
 						_, __, ___, b, r, t, ____ = port_rb_row
 						if (b, r, t) == (branch, turn, tick):
-							self._append_portal_rb_el(turn_el, port_rb_row)
+							porbel = self._portal_rb_el(port_rb_row)
+							turn_el.append(porbel)
 							del char_data["portal_rulebook"][0]
 		for k in uncharacterized:
 			if k in data:
