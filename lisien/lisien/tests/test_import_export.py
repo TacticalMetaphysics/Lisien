@@ -246,18 +246,38 @@ def compare_stored_python_code(
 			)
 
 
-@pytest.mark.parquetdb
-def test_import_parquetdb(tmp_path, export_to, engine_facade):
+@pytest.fixture
+def pqdb_connector_under_test(tmp_path, engine_facade):
 	test_world = os.path.join(tmp_path, "testworld")
+	connector = ParquetDatabaseConnector(test_world)
+	(connector.pack, connector.unpack) = (
+		engine_facade.pack,
+		engine_facade.unpack,
+	)
+	yield connector
+	connector.close()
+
+
+@pytest.fixture
+def pqdb_connector_correct(tmp_path, engine_facade):
 	correct_world = os.path.join(tmp_path, "world")
-	xml_to_pqdb(export_to, test_world)
-	test_engine = ParquetDatabaseConnector(test_world)
-	test_engine.pack = engine_facade.pack
-	test_engine.unpack = engine_facade.unpack
-	correct_engine = ParquetDatabaseConnector(correct_world)
-	correct_engine.pack = engine_facade.pack
-	correct_engine.unpack = engine_facade.unpack
-	compare_engines_world_state(correct_engine, test_engine)
+	connector = ParquetDatabaseConnector(correct_world)
+	(connector.pack, connector.unpack) = (
+		engine_facade.pack,
+		engine_facade.unpack,
+	)
+	yield connector
+	connector.close()
+
+
+@pytest.mark.parquetdb
+def test_import_parquetdb(
+	tmp_path, export_to, pqdb_connector_under_test, pqdb_connector_correct
+):
+	Importer(pqdb_connector_under_test).load_xml(export_to)
+	compare_engines_world_state(
+		pqdb_connector_correct, pqdb_connector_under_test
+	)
 
 
 @pytest.fixture
