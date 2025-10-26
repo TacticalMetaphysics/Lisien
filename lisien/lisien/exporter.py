@@ -81,7 +81,7 @@ class Exporter:
 		default_factory=lambda: ElementTree(Element("lisien"))
 	)
 
-	def db_to_etree(self, name: str) -> ElementTree:
+	def to_etree(self, name: str) -> ElementTree:
 		root = self.tree.getroot()
 		query = self.db
 		query.commit()
@@ -507,7 +507,7 @@ class Exporter:
 			to = Path(to)
 		name = name.removesuffix(".xml")
 
-		tree = self.db_to_etree(name)
+		tree = self.to_etree(name)
 
 		if indent:
 			indent_tree(tree)
@@ -989,6 +989,20 @@ class Exporter:
 				assert not v, f"Leftover data in {char_name}'s {k}: {v}"
 		assert not keyframe_times, keyframe_times
 
+	def to_xml(
+		self,
+		xml_file_path: str | os.PathLike | IOBase,
+		indent: bool = True,
+		name: str | None = None,
+	):
+		if not isinstance(xml_file_path, (os.PathLike, IOBase)):
+			xml_file_path = Path(xml_file_path)
+
+		tree = self.to_etree(name)
+		if indent:
+			indent_tree(tree)
+		tree.write(xml_file_path, encoding="utf-8")
+
 
 def sqlite_to_etree(
 	sqlite_path: str | os.PathLike,
@@ -1011,7 +1025,7 @@ def sqlite_to_etree(
 		tree = ElementTree(Element("lisien"))
 	if name is None:
 		name = str(os.path.basename(os.path.dirname(sqlite_path)))
-	ret = Exporter(query, engine, tree).db_to_etree(name)
+	ret = Exporter(query, engine, tree).to_etree(name)
 	query.close()
 	return ret
 
@@ -1035,7 +1049,7 @@ def pqdb_to_etree(
 		tree = ElementTree(Element("lisien"))
 	if name is None:
 		name = str(os.path.basename(os.path.dirname(pqdb_path)))
-	ret = Exporter(query, engine, tree).db_to_etree(name)
+	ret = Exporter(query, engine, tree).to_etree(name)
 	query.close()
 	return ret
 
