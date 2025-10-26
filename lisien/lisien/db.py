@@ -9064,12 +9064,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			self.transaction.close()
 			self.connection.close()
 
-	@cached_property
-	def _looper(self):
-		return self.Looper(
-			self.connect_string, self.connect_args, self._inq, self._outq
-		)
-
 	def __post_init__(self):
 		self._t = Thread(target=self._looper.run)
 
