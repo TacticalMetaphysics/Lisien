@@ -7656,12 +7656,12 @@ class Engine(AbstractEngine, Executor):
 		if "world.xml" in extracted:
 			xml_path = os.path.join(prefix, "world.xml")
 			if "database" in kwargs:
-				Importer(kwargs["database"]).etree_to_db(parse(xml_path))
+				Importer(kwargs["database"]).load_etree(parse(xml_path))
 			elif "connect_string" in kwargs and kwargs["connect_string"]:
 				xml_to_sqlite(xml_path, os.path.join(prefix, "world.sqlite3"))
 			elif prefix is None:
 				db = kwargs["database"] = PythonDatabaseConnector()
-				Importer(db).etree_to_db(parse(xml_path))
+				Importer(db).load_etree(parse(xml_path))
 			else:
 				os.makedirs(os.path.join(prefix, "world"), exist_ok=True)
 				xml_to_pqdb(xml_path, os.path.join(prefix, "world"))

@@ -600,7 +600,7 @@ class Importer:
 				kwargs[kwarg] = mapping[rule][branch][turn].pop(tick)
 		self.query.create_rule(rule, branch, turn, tick, **kwargs)
 
-	def etree_to_db(
+	def load_etree(
 		self,
 		tree: ElementTree,
 	) -> None:
@@ -748,7 +748,7 @@ def etree_to_sqlite(
 		"sqlite:///" + str(os.path.abspath(sqlite_path)),
 	)
 	(query.pack, query.unpack) = (engine.pack, engine.unpack)
-	Importer(query, engine).etree_to_db(tree)
+	Importer(query, engine).load_etree(tree)
 	query.close()
 
 
@@ -782,7 +782,7 @@ def etree_to_pqdb(
 	query = ParquetDatabaseConnector(pqdb_path)
 	(query.pack, query.unpack) = (engine.pack, engine.unpack)
 
-	Importer(query, engine).etree_to_db(tree)
+	Importer(query, engine).load_etree(tree)
 	query.close()
 
 
