@@ -3347,12 +3347,28 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _lock(self) -> Lock:
 		return Lock()
 
-	@staticmethod
-	def pack(a: _T) -> _T:
-		return a
+	@property
+	def pack(self):
+		return self._pack
+
+	@pack.setter
+	def pack(self, v):
+		pass
 
 	@staticmethod
-	def unpack(a: _T) -> _T:
+	def _pack(a: _T) -> _T:
+		return a
+
+	@property
+	def unpack(self):
+		return self._unpack
+
+	@unpack.setter
+	def unpack(self, v):
+		pass
+
+	@staticmethod
+	def _unpack(a: _T) -> _T:
 		return a
 
 	def _load_window(
