@@ -394,7 +394,7 @@ class EngineHandle:
 		return self._real._get_slow_delta(btt_from, btt_to)
 
 	def bookmarks_dump(self) -> list[tuple[Key, Time]]:
-		return list(self._real.query.bookmark_items())
+		return list(self._real.query.bookmarks_dump())
 
 	def set_bookmark(self, key: Key, time: Time | None = None) -> Time:
 		if time is None:
