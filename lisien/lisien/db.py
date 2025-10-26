@@ -3544,22 +3544,91 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		raise NotImplementedError("Not a real database, so can't call it")
 
 	def call_silent(self, query_name: str, *args, **kwargs):
-		pass
+		raise NotImplementedError("Not a real database, so can't call it")
 
 	def call_many(self, query_name: str, args: list) -> None:
 		raise NotImplementedError("Not a real database, so can't call it")
 
 	def call_many_silent(self, query_name: str, args: list) -> None:
-		pass
-
-	def insert_many(self, table_name: str, args: list[dict]) -> None:
 		raise NotImplementedError("Not a real database, so can't call it")
 
-	def insert_many_silent(self, table_name: str, args: list[dict]) -> None:
-		pass
+	def insert_many(self, table_name: str, args: list[dict]) -> None:
+		tab_serializer = batched.serializers[table_name]
+		key_len = getattr(self, batched.tables[table_name].attrname).key_len
+		if key_len < 1:
+			key_len = ...
+		tab_spec = inspect.getfullargspec(tab_serializer)
+		tab = getattr(self, "_" + table_name)
+		if isinstance(tab, list):
+			tab.extend(
+				tuple(d[arg] for arg in tab_spec.args[1:]) for d in args
+			)
+		elif isinstance(tab, set):
+			tab.update(
+				tuple(d[arg] for arg in tab_spec.args[1:]) for d in args
+			)
+		elif isinstance(tab, dict):
+			if key_len is ...:
+				raise TypeError("dict table without key_len")
+			elif key_len == 1:
+				key_name = tab_spec.args[1]
+				if len(tab_spec.args) == 3:
+					val_name = tab_spec.args[-1]
+					for d in args:
+						key = d[key_name]
+						tab[key] = d[val_name]
+				else:
+					for d in args:
+						key = d[key_name]
+						tab[key] = tuple(d[k] for k in tab_spec.args[2:])
+			elif (
+				key_len == len(tab_spec.args) - 2
+			):  # the self argument, and the value
+				for d in args:
+					key = tuple(d[k] for k in tab_spec.args[1:-1])
+					tab[key] = d[tab_spec.args[-1]]
+			else:
+				for d in args:
+					key = tuple(d[k] for k in tab_spec.args[1 : key_len + 1])
+					tab[key] = tuple(
+						d[k] for k in tab_spec.args[key_len + 1 :]
+					)
+		else:
+			raise TypeError("Don't know how to insert here", tab)
+
+	insert_many_silent = insert_many
 
 	def delete_many_silent(self, table_name: str, args: list[dict]) -> None:
-		pass
+		cached: cached_property = batched.tables[table_name]
+		the_batch: Batch = getattr(self, cached.attrname)
+		tab_serializer = batched.serializers[table_name]
+		tab_spec = inspect.getfullargspec(tab_serializer)
+		tab = getattr(self, "_" + table_name)
+		if the_batch.key_len >= 1:
+			key_len = the_batch.key_len
+			key_args = tab_spec.args[1 : the_batch.key_len]
+		else:
+			key_args = tab_spec.args[1:]
+			key_len = len(key_args)
+		keys2del = set(tuple(d[arg] for arg in key_args) for d in args)
+		if isinstance(tab, list):
+			setattr(
+				self,
+				"_" + table_name,
+				list(
+					filterfalse(
+						lambda t: t[:key_len] in keys2del,
+						tab,
+					)
+				),
+			)
+		elif isinstance(tab, dict):
+			for key in keys2del & tab.keys():
+				del tab[key]
+		elif isinstance(tab, set):
+			tab.difference_update(keys2del)
+		else:
+			raise TypeError("Don't know how to delete from this table", tab)
 
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
