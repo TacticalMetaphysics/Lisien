@@ -3056,8 +3056,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		return {}
 
 	@cached_property
-	def _global(self) -> dict[EternalKey, Value]:
-		return {
+	def _global(self) -> list[tuple[EternalKey, Value]]:
+		return []
+
+	@cached_property
+	def eternal(self) -> GlobalKeyValueStore:
+		initial = {
 			ekey(k): Value(v)
 			for (k, v) in {
 				"branch": "trunk",
@@ -3068,10 +3072,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				"_lisien_schema_version": SCHEMA_VERSION,
 			}.items()
 		}
-
-	@property
-	def eternal(self) -> dict[EternalKey, Value]:
-		return self._global
+		initial.update(self._global)
+		return GlobalKeyValueStore(self, initial)
 
 	@cached_property
 	def _turns(self) -> dict[tuple[Branch, Turn], tuple[Tick, Tick]]:
