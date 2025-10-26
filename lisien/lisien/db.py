@@ -4143,7 +4143,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def rulebooks(self) -> Iterator[RulebookName]:
 		with self._lock:
-			yield from self._rulebooks
+			yield from {rulebook for _, __, __, rulebook in self._rulebooks}
 
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 		with self._lock:
