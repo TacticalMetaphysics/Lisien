@@ -246,6 +246,11 @@ class Importer:
 				if not isinstance(name, Key):
 					raise TypeError("character names must be Key", name)
 				char_name = CharName(name)
+				if isinstance(self.engine, EngineFacade):
+					# Only needed for deserializing later entities.
+					# Real Engines don't require this, because they have the
+					# keyframe to work with.
+					self.engine.add_character(char_name)
 				graph_vals = graph_val_kf[char_name] = {}
 				for k in (
 					"character-rulebook",
@@ -266,6 +271,8 @@ class Importer:
 						graph_vals[key] = self._element_to_value(key_el[0])
 					elif key_el.tag == "node":
 						name = literal_eval(key_el.get("name"))
+						if isinstance(self.engine, EngineFacade):
+							self.engine.character[char_name].add_node(name)
 						if name in node_vals:
 							val = node_vals[name]
 						else:
@@ -281,6 +288,10 @@ class Importer:
 					elif key_el.tag == "edge":
 						orig = literal_eval(key_el.get("orig"))
 						dest = literal_eval(key_el.get("dest"))
+						if isinstance(self.engine, EngineFacade):
+							self.engine.character[char_name].add_edge(
+								orig, dest
+							)
 						if orig not in edge_vals:
 							edge_vals[orig] = {dest: {}}
 						if dest not in edge_vals[orig]:
