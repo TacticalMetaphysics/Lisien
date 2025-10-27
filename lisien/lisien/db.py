@@ -23,7 +23,7 @@ from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections import UserDict, defaultdict, deque
 from contextlib import contextmanager
-from dataclasses import dataclass, KW_ONLY, field
+from dataclasses import dataclass, KW_ONLY
 from functools import cached_property, partial, wraps, partialmethod
 from io import IOBase
 from itertools import filterfalse, starmap
@@ -59,15 +59,22 @@ if TYPE_CHECKING:
 		ElementTree,
 		Element,
 		indent as indent_tree,
+		parse,
 	)
 else:
 	try:
-		from lxml.etree import ElementTree, Element, indent as indent_tree
+		from lxml.etree import (
+			ElementTree,
+			Element,
+			indent as indent_tree,
+			parse,
+		)
 	except ModuleNotFoundError:
 		from xml.etree.ElementTree import (
 			ElementTree,
 			Element,
 			indent as indent_tree,
+			parse,
 		)
 
 from .window import SettingsTurnDict, WindowDict
