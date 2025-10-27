@@ -57,7 +57,24 @@ def test_basic_load(db):
 		)
 
 
-def test_keyframe_load(db):
+@pytest.fixture
+def db_noproxy(tmp_path, serial_or_parallel, database):
+	with make_test_engine(tmp_path, serial_or_parallel, database) as orm:
+		for graph in testgraphs:
+			orm.new_character(graph.name, graph)
+			if not graph.is_directed():
+				graph = nx.to_directed(graph)
+			assert set(graph.nodes.keys()) == set(
+				orm.character[graph.name].nodes.keys()
+			), "{}'s nodes changed during instantiation".format(graph.name)
+			assert set(graph.edges) == set(
+				orm.character[graph.name].edges.keys()
+			), "{}'s edges changed during instantiation".format(graph.name)
+		yield orm
+
+
+def test_keyframe_load(db_noproxy):
+	db = db_noproxy
 	for graph in testgraphs:
 		nodes_kf = db._nodes_cache.keyframe
 		assert (graph.name,) in nodes_kf, "{} not in nodes cache".format(
