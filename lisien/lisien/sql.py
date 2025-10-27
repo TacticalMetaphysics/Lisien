@@ -1169,7 +1169,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			yield name
 
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
-		self._location.cull(
+		self._things2set.cull(
 			lambda c, th, b, r, t, l: (b, r, t) == (branch, turn, tick)
 		)
 		self.call("things_del_time", branch, turn, tick)
