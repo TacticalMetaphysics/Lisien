@@ -2397,7 +2397,8 @@ class Engine(AbstractEngine, Executor):
 			if hasattr(store, "save"):
 				store.save(reimport=False)
 
-		self._worker_last_eternal = dict(self.eternal.items())
+		self._worker_last_eternal = eternal_d = dict(self.eternal.items())
+		branches_d = dict(self._branches_d)
 		initial_payload = self._get_worker_kf_payload()
 		self._worker_interpreters: list[Interpreter] = []
 		wint = self._worker_interpreters
@@ -2434,8 +2435,8 @@ class Engine(AbstractEngine, Executor):
 				worker_subthread,
 				i,
 				prefix,
-				dict(self._branches_d),
-				dict(self.eternal),
+				branches_d,
+				eternal_d,
 				input,
 				output,
 				logq,
