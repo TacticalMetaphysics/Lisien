@@ -7652,28 +7652,14 @@ class Engine(AbstractEngine, Executor):
 		**kwargs,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
-		from .importer import Importer
-
-		try:
-			from lxml.etree import parse
-		except ModuleNotFoundError:
-			from xml.etree import parse
 
 		shutil.unpack_archive(archive_path, prefix, "zip")
 		extracted = os.listdir(prefix)
+		ret = Engine(prefix, **kwargs)
 		if "world.xml" in extracted:
 			xml_path = os.path.join(prefix, "world.xml")
-			if "database" in kwargs:
-				Importer(kwargs["database"]).load_etree(parse(xml_path))
-			elif "connect_string" in kwargs and kwargs["connect_string"]:
-				xml_to_sqlite(xml_path, os.path.join(prefix, "world.sqlite3"))
-			elif prefix is None:
-				db = kwargs["database"] = PythonDatabaseConnector()
-				Importer(db).load_etree(parse(xml_path))
-			else:
-				os.makedirs(os.path.join(prefix, "world"), exist_ok=True)
-				xml_to_pqdb(xml_path, os.path.join(prefix, "world"))
-		return Engine(prefix, **kwargs)
+			ret.query.load_xml(xml_path)
+		return ret
 
 	def to_etree(self, name: str | None = None) -> ElementTree:
 		from base64 import b64encode
