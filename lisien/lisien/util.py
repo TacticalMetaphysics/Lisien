@@ -1809,7 +1809,9 @@ class TimeSignalDescriptor:
 			e.load_at(branch_now, turn_now, tick_now)
 		else:
 			e._start_branch(branch_then, branch_now, turn_now, tick_now)
-		e._set_btt(branch_now, turn_now, tick_now)
+		e._obranch = e.eternal["branch"] = branch_now
+		e._oturn = e.eternal["turn"] = turn_now
+		e._otick = e.eternal["tick"] = tick_now
 		sig.send(
 			e,
 			branch_then=branch_then,
