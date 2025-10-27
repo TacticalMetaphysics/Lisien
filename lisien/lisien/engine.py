@@ -105,8 +105,6 @@ from .db import (
 	AbstractDatabaseConnector,
 	NullDatabaseConnector,
 )
-from .pqdb import ParquetDatabaseConnector
-from .sql import SQLAlchemyDatabaseConnector
 from .exc import (
 	ExceptionGroup,
 	GraphNameError,
@@ -2233,11 +2231,15 @@ class Engine(AbstractEngine, Executor):
 				if not os.path.isdir(prefix):
 					raise FileExistsError("Need a directory")
 				if connect_string is None:
+					from .pqdb import ParquetDatabaseConnector
+
 					self.query = ParquetDatabaseConnector(
 						os.path.join(prefix, "world"),
 						clear=clear,
 					)
 				else:
+					from .sql import SQLAlchemyDatabaseConnector
+
 					self.query = SQLAlchemyDatabaseConnector(
 						connect_string,
 						connect_args or {},
