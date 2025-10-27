@@ -2819,8 +2819,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		if key in self._bookmarks:
 			del self._bookmarks[key]
 
-	def echo(self, string: str) -> str:
-		return string
+	def echo(self, *args):
+		if len(args) == 0:
+			return
+		elif len(args) == 1:
+			return args[0]
+		return args
 
 	def call(self, query_name: str, *args, **kwargs):
 		raise NotImplementedError("Not a real database, so can't call it")
