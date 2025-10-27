@@ -1405,6 +1405,12 @@ def queries(meta: MetaData):
 				ht.c.turn == bindparam("turn"),
 			)
 		)
+		r[f"load_{handledtab}_tick_to_end"] = ht.select().where(
+			to_end_clause(ht)
+		)
+		r[f"load_{handledtab}_tick_to_tick"] = ht.select().where(
+			to_tick_clause(ht)
+		)
 
 	branches = branches
 
