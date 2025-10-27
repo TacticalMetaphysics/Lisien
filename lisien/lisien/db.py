@@ -4670,10 +4670,10 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	def _unpack_char_rule_handled_rec(
 		self,
 		branch: Branch,
+		turn: Turn,
 		char_b: bytes,
 		rb_b: bytes,
 		rule: RuleName,
-		turn: Turn,
 		tick: Tick,
 	) -> CharacterRulesHandledRowType:
 		char = CharName(self.unpack_key(char_b))
@@ -4684,12 +4684,12 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	def _unpack_unit_rule_handled_rec(
 		self,
 		branch: Branch,
+		turn: Turn,
 		char_b: bytes,
 		graph_b: bytes,
 		unit_b: bytes,
 		rb_b: bytes,
 		rule: RuleName,
-		turn: Turn,
 		tick: Tick,
 	) -> UnitRulesHandledRowType:
 		char = CharName(self.unpack_key(char_b))
@@ -4702,11 +4702,11 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	def _unpack_char_thing_rule_handled_rec(
 		self,
 		branch: Branch,
+		turn: Turn,
 		char_b: bytes,
 		thing_b: bytes,
 		rb_b: bytes,
 		rule: RuleName,
-		turn: Turn,
 		tick: Tick,
 	) -> NodeRulesHandledRowType:
 		char = CharName(self.unpack_key(char_b))
@@ -4718,11 +4718,11 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	def _unpack_char_place_rule_handled_rec(
 		self,
 		branch: Branch,
+		turn: Turn,
 		char_b: bytes,
 		place_b: bytes,
 		rb_b: bytes,
 		rule: RuleName,
-		turn: Turn,
 		tick: Tick,
 	) -> NodeRulesHandledRowType:
 		char = CharName(self.unpack_key(char_b))
@@ -4734,12 +4734,12 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	def _unpack_char_portal_rule_handled_rec(
 		self,
 		branch: Branch,
+		turn: Turn,
 		char_b: bytes,
 		orig_b: bytes,
 		dest_b: bytes,
 		rb_b: bytes,
 		rule: RuleName,
-		turn: Turn,
 		tick: Tick,
 	) -> PortalRulesHandledRowType:
 		char = CharName(self.unpack_key(char_b))
@@ -4752,11 +4752,11 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	def _unpack_node_rule_handled_rec(
 		self,
 		branch: Branch,
+		turn: Turn,
 		char_b: bytes,
 		node_b: bytes,
 		rb_b: bytes,
 		rule: RuleName,
-		turn: Turn,
 		tick: Tick,
 	) -> NodeRulesHandledRowType:
 		char = CharName(self.unpack_key(char_b))
@@ -4768,12 +4768,12 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	def _unpack_portal_rule_handled_rec(
 		self,
 		branch: Branch,
+		turn: Turn,
 		char_b: bytes,
 		orig_b: bytes,
 		dest_b: bytes,
 		rb_b: bytes,
 		rule: RuleName,
-		turn: Turn,
 		tick: Tick,
 	) -> PortalRulesHandledRowType:
 		char = CharName(self.unpack_key(char_b))
