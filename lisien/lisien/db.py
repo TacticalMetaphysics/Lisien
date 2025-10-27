@@ -3974,7 +3974,7 @@ class AbstractDatabaseConnector(ABC):
 								for ellem in elem:
 									getattr(
 										self, "_" + ellem.tag.replace("-", "_")
-									)(branch_el, turn_el, elem)
+									)(branch_el, turn_el, ellem)
 							else:
 								getattr(
 									self, "_" + elem.tag.replace("-", "_")
