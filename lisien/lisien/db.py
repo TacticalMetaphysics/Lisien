@@ -146,21 +146,18 @@ class GlobalKeyValueStore(UserDict):
 		if isinstance(ret, dict):
 			return DictWrapper(
 				lambda: super().__getitem__(k),
-				lambda v: self.__setitem__(k, v),
 				self,
 				k,
 			)
 		elif isinstance(ret, list):
 			return ListWrapper(
 				lambda: super().__getitem__(k),
-				lambda v: self.__setitem__(k, v),
 				self,
 				k,
 			)
 		elif isinstance(ret, set):
 			return SetWrapper(
 				lambda: super().__getitem__(k),
-				lambda v: self.__setitem__(k, v),
 				self,
 				k,
 			)
