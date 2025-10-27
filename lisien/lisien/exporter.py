@@ -1034,7 +1034,7 @@ def sqlite_to_etree(
 	tree: ElementTree | None = None,
 	engine: AbstractEngine | None = None,
 ) -> ElementTree:
-	from .db import SQLAlchemyDatabaseConnector
+	from lisien.sql import SQLAlchemyDatabaseConnector
 
 	if not isinstance(sqlite_path, os.PathLike):
 		sqlite_path = Path(sqlite_path)
@@ -1060,7 +1060,7 @@ def pqdb_to_etree(
 	tree: ElementTree | None = None,
 	engine: AbstractEngine | None = None,
 ) -> ElementTree:
-	from .db import ParquetDatabaseConnector
+	from lisien.pqdb import ParquetDatabaseConnector
 
 	if not isinstance(pqdb_path, os.PathLike):
 		pqdb_path = Path(pqdb_path)

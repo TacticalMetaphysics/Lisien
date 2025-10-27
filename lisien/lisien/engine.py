@@ -100,11 +100,11 @@ from .collections import (
 )
 from .db import (
 	PythonDatabaseConnector,
-	ParquetDatabaseConnector,
-	SQLAlchemyDatabaseConnector,
 	AbstractDatabaseConnector,
 	NullDatabaseConnector,
 )
+from .pqdb import ParquetDatabaseConnector
+from .sql import SQLAlchemyDatabaseConnector
 from .exc import (
 	GraphNameError,
 	HistoricKeyError,

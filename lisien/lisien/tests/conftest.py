@@ -25,9 +25,9 @@ from lisien import Engine
 from lisien.db import (
 	NullDatabaseConnector,
 	PythonDatabaseConnector,
-	SQLAlchemyDatabaseConnector,
-	ParquetDatabaseConnector,
 )
+from ..pqdb import ParquetDatabaseConnector
+from ..sql import SQLAlchemyDatabaseConnector
 from lisien.proxy.handle import EngineHandle
 from lisien.proxy.manager import Sub
 
