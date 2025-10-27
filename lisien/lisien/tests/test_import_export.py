@@ -291,10 +291,11 @@ def sql_connector_correct(tmp_path, engine_facade):
 def test_import_sqlite(
 	tmp_path,
 	engine_and_exported_xml,
-	sql_connector_under_test,
 	sql_connector_correct,
+	sql_connector_under_test,
 ):
-	sql_connector_under_test.load_xml(engine_and_exported_xml)
+	_, xml = engine_and_exported_xml
+	sql_connector_under_test.load_xml(xml)
 	compare_engines_world_state(
 		sql_connector_correct, sql_connector_under_test
 	)
