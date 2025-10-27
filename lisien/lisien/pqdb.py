@@ -2365,7 +2365,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				self._iter_character_rules_handled_tick_to_tick(
 					branch, turn_from, tick_from, turn_to, tick_to
 				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
+				key=lambda t: (t[0], t[-1], t[1], t[2], t[3]),
 			)
 
 		def _iter_character_rules_handled_tick_to_tick(
@@ -2385,10 +2385,10 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				tick_to,
 			):
 				yield (
+					d["turn"],
 					d["character"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 
@@ -2397,12 +2397,12 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["graph"],
 					d["unit"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2431,12 +2431,12 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["graph"],
 					d["unit"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2465,11 +2465,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, CharName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["thing"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2500,11 +2500,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["thing"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2532,11 +2532,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["place"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2567,11 +2567,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["place"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2599,12 +2599,12 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["orig"],
 					d["dest"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2636,12 +2636,12 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["orig"],
 					d["dest"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2670,11 +2670,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["node"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2702,11 +2702,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["node"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2734,12 +2734,12 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["orig"],
 					d["dest"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
@@ -2768,12 +2768,12 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
 			return [
 				(
+					d["turn"],
 					d["character"],
 					d["orig"],
 					d["dest"],
 					d["rulebook"],
 					d["rule"],
-					d["turn"],
 					d["tick"],
 				)
 				for d in sorted(
