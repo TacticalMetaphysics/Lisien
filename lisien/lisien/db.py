@@ -4270,7 +4270,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		return {}
 
 	@cached_property
-	def _things2set(
+	def _things(
 		self,
 	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName], NodeName]:
 		return {}
@@ -4586,7 +4586,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			graph_val.append(
 				(g, k, b, turn, tick, self._graph_val[b, turn, tick, g, k])
 			)
-		for b, turn, tick, g, n in sort_set(self._things2set.keys()):
+		for b, turn, tick, g, n in sort_set(self._things.keys()):
 			if b != branch or not (
 				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
 			):
@@ -4594,7 +4594,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_d: LoadedCharWindow = ret[g]
 			things: list[ThingRowType] = char_d["things"]
 			things.append(
-				(g, n, b, turn, tick, self._things2set[b, turn, tick, g, n])
+				(g, n, b, turn, tick, self._things[b, turn, tick, g, n])
 			)
 		for b, turn, tick, g, n in sort_set(self._node_rulebook.keys()):
 			if b != branch or not (
