@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import logging
-from typing import Union, TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
 	from multiprocessing.connection import Connection
