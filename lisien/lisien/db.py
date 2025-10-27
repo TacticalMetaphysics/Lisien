@@ -3820,6 +3820,98 @@ class AbstractDatabaseConnector(ABC):
 				kwargs[kwarg] = mapping[rule][branch][turn].pop(tick)
 		self.create_rule(rule, branch, turn, tick, **kwargs)
 
+	def _rule(
+		self, branch_el: Element, turn_el: Element, rule_el: Element
+	) -> None:
+		branch = Branch(branch_el.get("name"))
+		turn = Turn(int(turn_el.get("number")))
+		tick = Tick(int(rule_el.get("end-tick")))
+		character = CharName(literal_eval(rule_el.get("character")))
+		rulebook = RulebookName(literal_eval(rule_el.get("rulebook")))
+		rule = RuleName(rule_el.get("rule"))
+		match rule_el.get("type"):
+			case "character":
+				self.handled_character_rule(
+					character,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+			case "unit":
+				graph = CharName(literal_eval(rule_el.get("graph")))
+				unit = NodeName(literal_eval(rule_el.get("unit")))
+				self.handled_unit_rule(
+					character,
+					graph,
+					unit,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+			case "character-thing":
+				thing = NodeName(literal_eval(rule_el.get("thing")))
+				self.handled_character_thing_rule(
+					character,
+					thing,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+			case "character-place":
+				place = NodeName(literal_eval(rule_el.get("place")))
+				self.handled_character_place_rule(
+					character,
+					place,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+			case "character-portal":
+				orig = NodeName(literal_eval(rule_el.get("origin")))
+				dest = NodeName(literal_eval(rule_el.get("destination")))
+				self.handled_character_portal_rule(
+					character,
+					orig,
+					dest,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+			case "node":
+				node = NodeName(literal_eval(rule_el.get("node")))
+				self.handled_node_rule(
+					character,
+					node,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+			case "portal":
+				orig = NodeName(literal_eval(rule_el.get("origin")))
+				dest = NodeName(literal_eval(rule_el.get("destination")))
+				self.handled_portal_rule(
+					character,
+					orig,
+					dest,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+
 	def load_etree(
 		self,
 		tree: ElementTree,
@@ -3877,9 +3969,16 @@ class AbstractDatabaseConnector(ABC):
 						plan_end_tick = Tick(int(turn_el.get("plan-end-tick")))
 						self.set_turn(branch, turn, end_tick, plan_end_tick)
 						for elem in turn_el:
-							getattr(self, "_" + elem.tag.replace("-", "_"))(
-								branch_el, turn_el, elem
-							)
+							if elem.tag == "rule":
+								self._rule(branch_el, turn_el, elem)
+								for ellem in elem:
+									getattr(
+										self, "_" + ellem.tag.replace("-", "_")
+									)(branch_el, turn_el, elem)
+							else:
+								getattr(
+									self, "_" + elem.tag.replace("-", "_")
+								)(branch_el, turn_el, elem)
 				known_rules = (
 					self._known_triggers.keys()
 					| self._known_prereqs.keys()
