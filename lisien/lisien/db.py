@@ -3822,7 +3822,7 @@ class AbstractDatabaseConnector(ABC):
 		tick = Tick(int(rule_el.get("end-tick")))
 		character = CharName(literal_eval(rule_el.get("character")))
 		rulebook = RulebookName(literal_eval(rule_el.get("rulebook")))
-		rule = RuleName(rule_el.get("rule"))
+		rule = RuleName(rule_el.get("name"))
 		match rule_el.get("type"):
 			case "character":
 				self.handled_character_rule(
