@@ -69,7 +69,7 @@ else:
 			indent as indent_tree,
 			parse,
 		)
-	except ModuleNotFoundError:
+	except ImportError:
 		from xml.etree.ElementTree import (
 			ElementTree,
 			Element,
