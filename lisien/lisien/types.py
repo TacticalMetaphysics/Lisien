@@ -191,15 +191,47 @@ LinearTime: TypeAlias = tuple[Turn, Tick]
 TimeWindow: TypeAlias = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", Annotated[int, Ge(0)])
 CharName = NewType("CharName", Key)
+
+
+def charn(k) -> CharName:
+	if not isinstance(k, Key):
+		raise TypeError("Invalid character name", k)
+	return CharName(k)
+
+
 NodeName = NewType("NodeName", Key)
+
+
+def nodename(k) -> NodeName:
+	if not isinstance(k, Key):
+		raise TypeError("Invalid node name", k)
+	return NodeName(k)
+
+
 EntityKey: TypeAlias = (
 	tuple[CharName]
 	| tuple[CharName, NodeName]
 	| tuple[CharName, NodeName, NodeName]
 )
 RulebookName = NewType("RulebookName", Key)
+
+
+def rbname(k) -> RulebookName:
+	if not isinstance(k, Key):
+		raise TypeError("Invalid rulebook name", k)
+	return RulebookName(k)
+
+
 RulebookPriority = NewType("RulebookPriority", float)
 RuleName = NewType("RuleName", str)
+
+
+def rulename(s) -> RuleName:
+	if not isinstance(s, str):
+		raise TypeError("Invalid rule name", s)
+	return RuleName(s)
+
+
 RuleNeighborhood: TypeAlias = Annotated[int, Ge(0)] | None
 RuleBig = NewType("RuleBig", bool)
 RuleFunc: TypeAlias = Callable[[Any], bool]
@@ -208,8 +240,26 @@ FuncStoreName: TypeAlias = Literal[
 	"trigger", "prereq", "action", "function", "method"
 ]
 TriggerFuncName = NewType("TriggerFuncName", FuncName)
+
+
+def trigfuncn(s: str) -> TriggerFuncName:
+	return TriggerFuncName(FuncName(s))
+
+
 PrereqFuncName = NewType("PrereqFuncName", FuncName)
+
+
+def preqfuncn(s: str) -> PrereqFuncName:
+	return PrereqFuncName(FuncName(s))
+
+
 ActionFuncName = NewType("ActionFuncName", FuncName)
+
+
+def actfuncn(s: str) -> ActionFuncName:
+	return ActionFuncName(FuncName(s))
+
+
 RuleFuncName: TypeAlias = TriggerFuncName | PrereqFuncName | ActionFuncName
 UniversalKeyframe: TypeAlias = dict[UniversalKey, Value]
 RuleKeyframe: TypeAlias = dict[

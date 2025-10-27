@@ -4808,6 +4808,20 @@ class Engine(AbstractEngine, Executor):
 			self._rule_bigness_cache.load(rule_big)
 		if graphs := loaded.pop("graphs", None):
 			self._graph_cache.load(graphs)
+		if charrh := loaded.pop("character_rules_handled", None):
+			self._character_rules_handled_cache.load(charrh)
+		if unitrh := loaded.pop("unit_rules_handled", None):
+			self._unit_rules_handled_cache.load(unitrh)
+		if cthrb := loaded.pop("character_thing_rules_handled", None):
+			self._character_thing_rules_handled_cache.load(cthrb)
+		if cplrh := loaded.pop("character_place_rules_handled", None):
+			self._character_place_rules_handled_cache.load(cplrh)
+		if cporh := loaded.pop("character_portal_rules_handled", None):
+			self._character_portal_rules_handled_cache.load(cporh)
+		if nrh := loaded.pop("node_rules_handled", None):
+			self._node_rules_handled_cache.load(nrh)
+		if porh := loaded.pop("portal_rules_handled", None):
+			self._portal_rules_handled_cache.load(porh)
 		for loaded_graph, data in loaded.items():
 			assert isinstance(data, dict)
 			if data.get("things"):
