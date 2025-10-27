@@ -770,7 +770,7 @@ def etree_to_sqlite(
 	sqlite_path: str | os.PathLike,
 	engine: AbstractEngine | None = None,
 ):
-	from .db import SQLAlchemyDatabaseConnector
+	from lisien.sql import SQLAlchemyDatabaseConnector
 
 	if not isinstance(sqlite_path, os.PathLike):
 		sqlite_path = Path(sqlite_path)
@@ -805,7 +805,7 @@ def etree_to_pqdb(
 	pqdb_path: str | os.PathLike,
 	engine: AbstractEngine | None = None,
 ):
-	from .db import ParquetDatabaseConnector
+	from lisien.pqdb import ParquetDatabaseConnector
 
 	if not isinstance(pqdb_path, os.PathLike):
 		pqdb_path = Path(pqdb_path)

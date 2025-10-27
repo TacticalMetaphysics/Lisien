@@ -9,10 +9,10 @@ import pytest
 
 from ..db import (
 	AbstractDatabaseConnector,
-	ParquetDatabaseConnector,
-	SQLAlchemyDatabaseConnector,
 	PythonDatabaseConnector,
 )
+from ..pqdb import ParquetDatabaseConnector
+from ..sql import SQLAlchemyDatabaseConnector
 from ..engine import Engine
 from ..exporter import game_path_to_xml
 from ..importer import xml_to_pqdb, xml_to_sqlite, Importer

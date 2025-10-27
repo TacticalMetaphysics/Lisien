@@ -9,10 +9,10 @@ from unittest.mock import MagicMock
 from lisien import Engine
 from lisien.db import (
 	PythonDatabaseConnector,
-	SQLAlchemyDatabaseConnector,
-	ParquetDatabaseConnector,
 	NullDatabaseConnector,
 )
+from lisien.pqdb import ParquetDatabaseConnector
+from lisien.sql import SQLAlchemyDatabaseConnector
 from lisien.facade import EngineFacade
 from lisien.proxy.engine import EngineProxy
 from lisien.proxy.manager import Sub
