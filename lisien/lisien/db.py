@@ -4764,7 +4764,8 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		char_b: bytes,
 		orig_b: bytes,
 		dest_b: bytes,
-		rb_b: RuleName,
+		rb_b: bytes,
+		rule: RuleName,
 		turn: Turn,
 		tick: Tick,
 	) -> PortalRulesHandledRowType:
