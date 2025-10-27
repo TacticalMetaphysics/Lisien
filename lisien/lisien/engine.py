@@ -7649,16 +7649,71 @@ class Engine(AbstractEngine, Executor):
 		cls,
 		archive_path: str | os.PathLike,
 		prefix: str | os.PathLike = ".",
-		**kwargs,
+		*,
+		string: StringStore | dict | None = None,
+		trigger: FunctionStore | ModuleType | None = None,
+		prereq: FunctionStore | ModuleType | None = None,
+		action: FunctionStore | ModuleType | None = None,
+		function: FunctionStore | ModuleType | None = None,
+		method: FunctionStore | ModuleType | None = None,
+		trunk: Branch | None = None,
+		connect_string: str | None = None,
+		connect_args: dict | None = None,
+		schema_cls: Type[AbstractSchema] = NullSchema,
+		flush_interval: int | None = None,
+		keyframe_interval: int | None = 1000,
+		commit_interval: int | None = None,
+		random_seed: int | None = None,
+		clear: bool = False,
+		keep_rules_journal: bool = True,
+		keyframe_on_close: bool = True,
+		enforce_end_of_time: bool = True,
+		logger: Optional[Logger] = None,
+		workers: Optional[int] = None,
+		sub_mode: Sub | None = None,
+		database: AbstractDatabaseConnector | None = None,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
 
 		shutil.unpack_archive(archive_path, prefix, "zip")
 		extracted = os.listdir(prefix)
-		ret = Engine(prefix, **kwargs)
+		ret = Engine(
+			prefix,
+			string=string,
+			trigger=trigger,
+			prereq=prereq,
+			action=action,
+			function=function,
+			method=method,
+			trunk=trunk,
+			connect_string=connect_string,
+			connect_args=connect_args,
+			schema_cls=schema_cls,
+			flush_interval=flush_interval,
+			keyframe_interval=keyframe_interval,
+			commit_interval=commit_interval,
+			random_seed=random_seed,
+			clear=clear,
+			keep_rules_journal=keep_rules_journal,
+			keyframe_on_close=keyframe_on_close,
+			enforce_end_of_time=enforce_end_of_time,
+			logger=logger,
+			workers=workers,
+			sub_mode=sub_mode,
+			database=database,
+		)
 		if "world.xml" in extracted:
 			xml_path = os.path.join(prefix, "world.xml")
 			ret.query.load_xml(xml_path)
+			ret._init_load(
+				prefix,
+				connect_string,
+				connect_args,
+				keyframe_interval,
+				trunk,
+				clear,
+				database,
+			)
 		return ret
 
 	def to_etree(self, name: str | None = None) -> ElementTree:
