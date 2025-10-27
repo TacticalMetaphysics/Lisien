@@ -1216,12 +1216,8 @@ class AbstractDatabaseConnector(ABC):
 	def critical(self, msg, *args):
 		self.logger.critical(msg, *args)
 
-	def echo(self, string: str) -> str:
-		with self.mutex():
-			self._inq.put(("echo", string))
-			ret = self._outq.get()
-			self._outq.task_done()
-			return ret
+	@abstractmethod
+	def echo(self, *args): ...
 
 	@abstractmethod
 	def call(self, query_name: str, *args, **kwargs): ...
@@ -4257,6 +4253,13 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def _outq(self) -> Queue:
 		return Queue()
+
+	def echo(self, string: str) -> str:
+		with self.mutex():
+			self._inq.put(("echo", string))
+			ret = self._outq.get()
+			self._outq.task_done()
+			return ret
 
 	def _put_window_tick_to_end(
 		self, branch: Branch, turn_from: Turn, tick_from: Tick
