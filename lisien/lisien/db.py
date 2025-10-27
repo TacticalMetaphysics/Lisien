@@ -3870,37 +3870,33 @@ class AbstractDatabaseConnector(ABC):
 						last_completed_turn = Turn(
 							int(branch_el.get("last-turn-completed"))
 						)
-						self.query.complete_turn(
-							branch, last_completed_turn, False
-						)
+						self.complete_turn(branch, last_completed_turn, False)
 
 					for turn_el in branch_el:
 						turn = Turn(int(turn_el.get("number")))
 						end_tick = Tick(int(turn_el.get("end-tick")))
 						plan_end_tick = Tick(int(turn_el.get("plan-end-tick")))
-						self.query.set_turn(
-							branch, turn, end_tick, plan_end_tick
-						)
+						self.set_turn(branch, turn, end_tick, plan_end_tick)
 						for elem in turn_el:
 							getattr(self, "_" + elem.tag.replace("-", "_"))(
 								branch_el, turn_el, elem
 							)
 				known_rules = (
-					self.known_triggers.keys()
-					| self.known_prereqs.keys()
-					| self.known_actions.keys()
-					| self.known_neighborhoods.keys()
-					| self.known_big.keys()
+					self._known_triggers.keys()
+					| self._known_prereqs.keys()
+					| self._known_actions.keys()
+					| self._known_neighborhoods.keys()
+					| self._known_big.keys()
 				)
 				trunk = Branch(el.get("trunk"))
 				rules_created = set(self.rules_dump())
 				for rule in known_rules:
 					for mapp in [
-						self.known_triggers,
-						self.known_prereqs,
-						self.known_actions,
-						self.known_neighborhoods,
-						self.known_big,
+						self._known_triggers,
+						self._known_prereqs,
+						self._known_actions,
+						self._known_neighborhoods,
+						self._known_big,
 					]:
 						if rule not in mapp:
 							continue
@@ -3925,16 +3921,16 @@ class AbstractDatabaseConnector(ABC):
 								rules_created.add(rule)
 				for mapp, setter in [
 					(
-						self.known_triggers,
+						self._known_triggers,
 						self.set_rule_triggers,
 					),
-					(self.known_prereqs, self.set_rule_prereqs),
-					(self.known_actions, self.set_rule_actions),
+					(self._known_prereqs, self.set_rule_prereqs),
+					(self._known_actions, self.set_rule_actions),
 					(
-						self.known_neighborhoods,
-						self.query.set_rule_neighborhood,
+						self._known_neighborhoods,
+						self.set_rule_neighborhood,
 					),
-					(self.known_big, self.set_rule_big),
+					(self._known_big, self.set_rule_big),
 				]:
 					for rule in mapp:
 						for branch in mapp[rule]:
@@ -3946,7 +3942,7 @@ class AbstractDatabaseConnector(ABC):
 									turn
 								].items():
 									setter(rule, branch, turn, tick, datum)
-				for plan, times in self.plan_times.items():
+				for plan, times in self._plan_times.items():
 					for branch, turn, tick in times:
 						self.plans_insert(plan, branch, turn, tick)
 			else:
