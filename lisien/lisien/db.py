@@ -1233,6 +1233,10 @@ class AbstractDatabaseConnector(ABC):
 	def _flush(self):
 		for table, serializer in batched.serializers.items():
 			batch = getattr(self, serializer.__name__)
+			if not isinstance(batch, Batch):
+				raise TypeError(
+					"Batch was overwritten", table, serializer.__name__, batch
+				)
 			batch()
 
 	@cached_property
