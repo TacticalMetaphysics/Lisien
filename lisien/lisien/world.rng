@@ -105,10 +105,6 @@
                   <element>
                     <name ns="">rule</name>
                     <attribute>
-                      <name ns="">end-turn</name>
-                      <data type="integer"/>
-                    </attribute>
-                    <attribute>
                       <name ns="">end-tick</name>
                       <data type="integer"/>
                     </attribute>

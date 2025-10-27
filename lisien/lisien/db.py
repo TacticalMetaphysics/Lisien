@@ -2879,7 +2879,7 @@ class AbstractDatabaseConnector(ABC):
 			return None
 		ret = Element(
 			"rule",
-			{"end-turn": str(earliest[0]), "end-tick": str(earliest[1])},
+			{"end-tick": str(earliest[1])},
 		)
 		match earliest_key:
 			case "character_rules_handled":
@@ -2995,9 +2995,8 @@ class AbstractDatabaseConnector(ABC):
 					if current_rule_el is not None:
 						turn_el.append(current_rule_el)
 				# Loop over rules that didn't result in any changes, if needed
-				while current_rule_el is not None and (turn, tick) >= (
-					int(current_rule_el.get("end-turn")),
-					int(current_rule_el.get("end-tick")),
+				while current_rule_el is not None and tick >= (
+					int(current_rule_el.get("end-tick"))
 				):
 					current_rule_el = self._get_current_rule_el(data)
 					if current_rule_el is not None:
