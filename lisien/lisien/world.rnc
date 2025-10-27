@@ -30,7 +30,6 @@ start =
                     attribute plan-end-tick { xsd:nonNegativeInteger },
                     (
     element rule {
-		attribute end-turn { xsd:integer },
 		attribute end-tick { xsd:integer },
 		attribute type { "character" | "unit" | "character-thing" | "character-place" | "character-portal" | "node" | "portal" },
 		attribute character { repr },
