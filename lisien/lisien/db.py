@@ -4201,6 +4201,7 @@ def window_getter(
 				for rec in got:
 					charn = rec[char_index]
 					ret[charn][table].append(f(self, branch, *rec))
+				self._outq.task_done()
 			if got != (
 				"end",
 				table,
@@ -4238,6 +4239,7 @@ def window_getter(
 		self._outq.task_done()
 		while isinstance(got := self._outq.get(), list):
 			ret[table].extend(starmap(partial(f, self, branch), got))
+			self._outq.task_done()
 		if got != (
 			"end",
 			table,
