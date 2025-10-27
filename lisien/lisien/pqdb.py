@@ -3517,7 +3517,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	def things_dump(
 		self,
 	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
-		self._location()
+		self._things2set()
 		unpack = self.unpack
 		return (
 			(
@@ -3643,7 +3643,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		return False
 
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
-		self._location.cull(
+		self._things2set.cull(
 			lambda c, th, b, r, t, l: (b, r, t) == (branch, turn, tick)
 		)
 		self.call(
