@@ -154,6 +154,7 @@ if sys.version_info.minor < 11:
 SCHEMAVER_B = b"\xb6_lisien_schema_version"
 SCHEMA_VERSION = 2
 SCHEMA_VERSION_B = SCHEMA_VERSION.to_bytes(1, "little")
+XML_SCHEMA_VERSION = 2
 
 
 class GlobalKeyValueStore(UserDict):
@@ -2158,6 +2159,7 @@ class AbstractDatabaseConnector(ABC):
 		root.set(
 			"db-schema-version", str(eternals.pop("_lisien_schema_version"))
 		)
+		root.set("xml-schema-version", str(XML_SCHEMA_VERSION))
 		root.set("trunk", str(eternals.pop("trunk")))
 		root.set("branch", str(eternals.pop("branch")))
 		root.set("turn", str(eternals.pop("turn")))
