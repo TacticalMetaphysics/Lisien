@@ -1854,7 +1854,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		self._character_rulebooks_to_set.append((char, branch, turn, tick, rb))
+		self._character_rulebook_to_set.append((char, branch, turn, tick, rb))
 
 	def set_unit_rulebook(
 		self,
@@ -2748,7 +2748,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				"character_thing_rulebook"
 			]
 			char_thing_rb.append((g, b, turn, tick, cthrb[b, turn, tick, g]))
-		cplrb = self._character_place_ruleboook
+		cplrb = self._character_place_rulebook
 		for b, turn, tick, g in sort_set(cplrb.keys()):
 			if b != branch or not (
 				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
