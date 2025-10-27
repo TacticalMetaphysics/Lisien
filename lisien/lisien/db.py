@@ -8870,11 +8870,19 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 					excs.append(got)
 				else:
 					excs.append(ValueError("Unconsumed output", got))
-			raise ExceptionGroup(
-				f"{unfinished_tasks} unfinished tasks in output queue "
-				"before call_one",
-				excs,
-			)
+			if excs:
+				if len(excs) == 1:
+					raise excs[-1]
+				raise ExceptionGroup(
+					f"{unfinished_tasks} unfinished tasks in output queue "
+					"before call_one",
+					excs,
+				)
+			else:
+				raise RuntimeError(
+					f"{unfinished_tasks} unfinished tasks in output queue "
+					"before call_one"
+				)
 		self._inq.put(("one", string, args, kwargs))
 		ret = self._outq.get()
 		self._outq.task_done()
