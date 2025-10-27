@@ -8,6 +8,7 @@ from threading import Thread
 from typing import ClassVar, Iterator
 
 from sqlalchemy import create_engine, Select
+from sqlalchemy.exc import IntegrityError, OperationalError
 
 from .alchemy import meta, queries
 from .db import (
