@@ -4497,10 +4497,14 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		turn: Turn,
 		tick: Tick,
 		loc_b: bytes,
-	) -> tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]:
+	) -> tuple[CharName, NodeName, Branch, Turn, Tick, NodeName | type(...)]:
 		graph = CharName(self.unpack_key(graph_b))
 		thing = NodeName(self.unpack_key(node_b))
-		loc = NodeName(self.unpack_key(loc_b))
+		loc = self.unpack(loc_b)
+		if loc is not ...:
+			if not isinstance(loc, Key):
+				raise TypeError("Invalid location", loc)
+			loc = NodeName(loc)
 		return graph, thing, branch, turn, tick, loc
 
 	@window_getter("units", per_character=True)
