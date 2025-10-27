@@ -1231,13 +1231,9 @@ class AbstractDatabaseConnector(ABC):
 
 	@mutexed
 	def _flush(self):
-		for att in dir(self.__class__):
-			attr = getattr(self.__class__, att)
-			if not isinstance(attr, cached_property):
-				continue
-			batch = getattr(self, att)
-			if isinstance(batch, Batch):
-				batch()
+		for table, serializer in batched.serializers.items():
+			batch = getattr(self, serializer.__name__)
+			batch()
 
 	@cached_property
 	def logger(self):
