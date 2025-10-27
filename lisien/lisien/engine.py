@@ -281,7 +281,7 @@ class PlanningContext(ContextDecorator):
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		self.orm._planning = False
 		if self.reset is not None:
-			self.orm._set_btt(*self.reset)
+			self.orm.time = self.reset
 		if self.forward:
 			self.orm._forward = True
 
