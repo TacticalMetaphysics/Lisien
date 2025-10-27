@@ -649,6 +649,7 @@ class Engine(AbstractEngine, Executor):
 			self.snap_keyframe(silent=True)
 			return
 		self.load_at(v, curturn, tick)
+		self.eternal["branch"] = v
 		self.time.send(self.time, then=then, now=self._btt())
 
 	@property
@@ -711,6 +712,7 @@ class Engine(AbstractEngine, Executor):
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
+		self.eternal["turn"] = v
 		self.time.send(self, then=then, now=self._btt())
 
 	@property
@@ -757,6 +759,7 @@ class Engine(AbstractEngine, Executor):
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
+		self.eternal["tick"] = v
 		self.time.send(
 			self,
 			then=(self.branch, self.turn, old_tick),
@@ -7423,9 +7426,6 @@ class Engine(AbstractEngine, Executor):
 		Call with ``unload=False`` if you want to keep the written state in memory.
 
 		"""
-		self.query.eternal["branch"] = self._obranch
-		self.query.eternal["turn"] = self._oturn
-		self.query.eternal["tick"] = self._otick
 		self.flush()
 		self.query.commit()
 		if unload:
