@@ -58,10 +58,12 @@ from .alchemy import meta, queries
 from .exc import KeyframeError
 from .types import (
 	ActionFuncName,
+	actfuncn,
 	ActionRowType,
 	Branch,
 	CharDict,
 	CharName,
+	charn,
 	CharRulebookRowType,
 	EdgeKeyframe,
 	EdgeRowType,
@@ -75,23 +77,27 @@ from .types import (
 	Keyframe,
 	NodeKeyframe,
 	NodeName,
+	nodename,
 	NodeRowType,
 	NodeRulebookRowType,
 	NodeValRowType,
 	Plan,
 	PortalRulebookRowType,
 	PrereqFuncName,
+	preqfuncn,
 	PrereqRowType,
 	RuleBig,
 	RuleBigRowType,
 	RulebookKeyframe,
 	RulebookName,
+	rbname,
 	RulebookPriority,
 	RulebookRowType,
 	RulebookTypeStr,
 	RuleFuncName,
 	RuleKeyframe,
 	RuleName,
+	rulename,
 	RuleNeighborhood,
 	RuleNeighborhoodRowType,
 	RuleRowType,
@@ -102,6 +108,7 @@ from .types import (
 	Time,
 	TimeWindow,
 	TriggerFuncName,
+	trigfuncn,
 	TriggerRowType,
 	Turn,
 	UnitRowType,
@@ -1482,8 +1489,15 @@ class AbstractDatabaseConnector(ABC):
 		"rule_triggers",
 		"rule_prereqs",
 		"rule_actions",
-		"rule_neighborhoods",
+		"rule_neighborhood",
 		"rule_big",
+		"character_rules_handled",
+		"unit_rules_handled",
+		"character_thing_rules_handled",
+		"character_place_rules_handled",
+		"character_portal_rules_handled",
+		"node_rules_handled",
+		"portal_rules_handled",
 	]
 
 	def _increc(self, n: int = 1):
@@ -1512,869 +1526,6 @@ class AbstractDatabaseConnector(ABC):
 		):
 			self.snap_keyframe()
 			self._kf_interval_overridden = False
-
-	def _get_one_window(
-		self,
-		ret,
-		branch: Branch,
-		turn_from: Turn,
-		tick_from: Tick,
-		turn_to: Turn,
-		tick_to: Tick,
-	):
-		self.debug(
-			f"_get_one_window({branch}, {turn_from}, {tick_from}, {turn_to}, {tick_to})"
-		)
-		unpack = self.unpack
-		outq = self._outq
-		got = outq.get()
-		if got != (
-			"begin",
-			"graphs",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected beginning of graphs", got)
-		outq.task_done()
-		if "graphs" not in ret:
-			ret["graphs"] = []
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, Turn, Tick, str]]
-			for graph, turn, tick, typ_str in got:
-				graph: CharName = unpack(graph)
-				ret["graphs"].append((graph, branch, turn, tick, typ_str))
-			outq.task_done()
-		if got != (
-			"end",
-			"graphs",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected end of graphs", got)
-		outq.task_done()
-		got = outq.get()
-		if got != (
-			"begin",
-			"nodes",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected beginning of nodes", got)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, bytes, Turn, Tick, bool]]
-			for graph, node, turn, tick, ex in got:
-				(graph, node) = map(unpack, (graph, node))
-				graph: CharName
-				node: NodeName
-				ret[graph]["nodes"].append(
-					(graph, node, branch, turn, tick, ex)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"nodes",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				f"Expected {('end', 'nodes', branch, turn_from, tick_from, turn_to, tick_to)}",
-				got,
-			)
-		outq.task_done()
-		got = outq.get()
-		if got != (
-			"begin",
-			"edges",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected beginning of edges", got)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]
-			for graph, orig, dest, turn, tick, ex in got:
-				(graph, orig, dest) = map(unpack, (graph, orig, dest))
-				graph: CharName
-				orig: NodeName
-				dest: NodeName
-				ret[graph]["edges"].append(
-					(
-						graph,
-						orig,
-						dest,
-						branch,
-						turn,
-						tick,
-						ex,
-					)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"edges",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected end of edges", got)
-
-		outq.task_done()
-		got = outq.get()
-		if got != (
-			"begin",
-			"graph_val",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected beginning of graph_val", got)
-
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, bytes, Turn, Tick, bytes]]
-			for graph, key, turn, tick, val in got:
-				(graph, key, val) = map(unpack, (graph, key, val))
-				graph: CharName
-				key: Stat
-				val: Value
-				ret[graph]["graph_val"].append(
-					(graph, key, branch, turn, tick, val)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"graph_val",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of graph_val",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"node_val",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of node_val",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]
-			for graph, node, key, turn, tick, val in got:
-				(graph, node, key, val) = map(unpack, (graph, node, key, val))
-				graph: CharName
-				node: NodeName
-				key: Stat
-				val: Value
-				ret[graph]["node_val"].append(
-					(graph, node, key, branch, turn, tick, val)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"node_val",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of node_val",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"edge_val",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of edge_val",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]
-			for graph, orig, dest, key, turn, tick, val in got:
-				(graph, orig, dest, key, val) = map(
-					unpack, (graph, orig, dest, key, val)
-				)
-				graph: CharName
-				orig: NodeName
-				dest: NodeName
-				key: Stat
-				val: Value
-				ret[graph]["edge_val"].append(
-					(
-						graph,
-						orig,
-						dest,
-						key,
-						branch,
-						turn,
-						tick,
-						val,
-					)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"edge_val",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of edge_val",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"things",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of things",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, bytes, Turn, Tick, bytes]]
-			for graph, node, turn, tick, loc in got:
-				(graph, node, loc) = map(unpack, (graph, node, loc))
-				graph: CharName
-				node: NodeName
-				loc: NodeName
-				ret[graph]["things"].append(
-					(graph, node, branch, turn, tick, loc)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"things",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of things",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"units",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected beginning of units", got)
-		outq.task_done()
-		while isinstance((got := outq.get()), list):
-			got: list[tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]]
-			for char, graph, node, turn, tick, is_unit in got:
-				(char, graph, node) = map(unpack, (char, graph, node))
-				ret[graph]["units"].append(
-					(char, graph, node, branch, turn, tick, is_unit)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"units",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected end of units", got)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"character_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of character_rulebook",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, Turn, Tick, bytes]]
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				graph: CharName
-				rb: RulebookName
-				ret[graph]["character_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"character_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of character_rulebook",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"unit_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of unit_rulebook",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, Turn, Tick, bytes]]
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				graph: CharName
-				rb: RulebookName
-				ret[graph]["unit_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"unit_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of unit_rulebook",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"character_thing_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of character_thing_rulebook",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, Turn, Tick, bytes]]
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				graph: CharName
-				rb: RulebookName
-				ret[graph]["character_thing_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"character_thing_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of character_thing_rulebook",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"character_place_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of character_place_rulebook",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, Turn, Tick, bytes]]
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				graph: CharName
-				rb: RulebookName
-				ret[graph]["character_place_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"character_place_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of character_place_rulebook",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"character_portal_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of character_portal_rulebook",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, Turn, Tick, bytes]]
-			for graph, turn, tick, rb in got:
-				(graph, rb) = map(unpack, (graph, rb))
-				graph: CharName
-				rb: RulebookName
-				ret[graph]["character_portal_rulebook"].append(
-					(graph, branch, turn, tick, rb)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"character_portal_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of character_portal_rulebook",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"node_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected beginning of node_rulebook", got)
-
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, bytes, Turn, Tick, bytes]]
-			for graph, node, turn, tick, rb in got:
-				(graph, node, rb) = map(unpack, (graph, node, rb))
-				graph: CharName
-				node: NodeName
-				rb: RulebookName
-				ret[graph]["node_rulebook"].append(
-					(graph, node, branch, turn, tick, rb)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"node_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError("Expected end of node_rulebook", got)
-
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"portal_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of portal_rulebook",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]
-			for graph, orig, dest, turn, tick, rb in got:
-				(graph, orig, dest, rb) = map(unpack, (graph, orig, dest, rb))
-				graph: CharName
-				orig: NodeName
-				dest: NodeName
-				rb: RulebookName
-				ret[graph]["portal_rulebook"].append(
-					(graph, orig, dest, branch, turn, tick, rb)
-				)
-			outq.task_done()
-		if got != (
-			"end",
-			"portal_rulebook",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of portal_rulebook",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"universals",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of universals",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, Turn, Tick, bytes]]
-			for key, turn, tick, val in got:
-				(key, val) = map(unpack, (key, val))
-				key: UniversalKey
-				val: Value
-				ret["universals"].append((key, branch, turn, tick, val))
-			outq.task_done()
-		if got != (
-			"end",
-			"universals",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of universals",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"rulebooks",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of rulebooks",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[bytes, Turn, Tick, bytes, RulebookPriority]]
-			for rulebook, turn, tick, rules, priority in got:
-				(rulebook, rules) = map(unpack, (rulebook, rules))
-				rulebook: RulebookName
-				rules: list[RuleName]
-				if "rulebooks" in ret:
-					ret["rulebooks"].append(
-						(rulebook, branch, turn, tick, (rules, priority))
-					)
-				else:
-					ret["rulebooks"] = [
-						(rulebook, branch, turn, tick, (rules, priority))
-					]
-			outq.task_done()
-		if got != (
-			"end",
-			"rulebooks",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of rulebooks",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"rule_triggers",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of rule_triggers",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[RuleName, Turn, Tick, bytes]]
-			for rule, turn, tick, triggers in got:
-				triggers: list[TriggerFuncName] = unpack(triggers)
-				if "rule_triggers" in ret:
-					ret["rule_triggers"].append(
-						(rule, branch, turn, tick, triggers)
-					)
-				else:
-					ret["rule_triggers"] = [
-						(rule, branch, turn, tick, triggers)
-					]
-			outq.task_done()
-		if got != (
-			"end",
-			"rule_triggers",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of rule_triggers",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"rule_prereqs",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of rule_prereqs",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[RuleName, Turn, Tick, bytes]]
-			for rule, turn, tick, prereqs in got:
-				prereqs: list[PrereqFuncName] = unpack(prereqs)
-				if "rule_prereqs" in ret:
-					ret["rule_prereqs"].append(
-						(rule, branch, turn, tick, prereqs)
-					)
-				else:
-					ret["rule_prereqs"] = [(rule, branch, turn, tick, prereqs)]
-			outq.task_done()
-		if got != (
-			"end",
-			"rule_prereqs",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of rule_prereqs",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"rule_actions",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of rule_actions",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[RuleName, Turn, Tick, bytes]]
-			for rule, turn, tick, actions in got:
-				actions: list[ActionFuncName] = unpack(actions)
-				if "rule_actions" in ret:
-					ret["rule_actions"].append(
-						(rule, branch, turn, tick, actions)
-					)
-				else:
-					ret["rule_actions"] = [(rule, branch, turn, tick, actions)]
-			outq.task_done()
-		if got != (
-			"end",
-			"rule_actions",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of rule_actions",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"rule_neighborhoods",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of rule_neighborhoods",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[RuleName, Turn, Tick, RuleNeighborhood]]
-			for rule, turn, tick, neighbors in got:
-				if "rule_neighborhood" in ret:
-					ret["rule_neighborhood"].append(
-						(rule, branch, turn, tick, neighbors)
-					)
-				else:
-					ret["rule_neighborhood"] = [
-						(rule, branch, turn, tick, neighbors)
-					]
-			outq.task_done()
-		if got != (
-			"end",
-			"rule_neighborhoods",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of rule_neighborhoods",
-				got,
-			)
-		outq.task_done()
-		if (got := outq.get()) != (
-			"begin",
-			"rule_big",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected beginning of rule_big",
-				got,
-			)
-		outq.task_done()
-		while isinstance(got := outq.get(), list):
-			got: list[tuple[RuleName, Turn, Tick, RuleBig]]
-			for rule, turn, tick, big in got:
-				if "rule_big" in ret:
-					ret["rule_big"].append((rule, branch, turn, tick, big))
-				else:
-					ret["rule_big"] = [(rule, branch, turn, tick, big)]
-			outq.task_done()
-		if got != (
-			"end",
-			"rule_big",
-			branch,
-			turn_from,
-			tick_from,
-			turn_to,
-			tick_to,
-		):
-			raise RuntimeError(
-				"Expected end of rule_big",
-				got,
-			)
-		outq.task_done()
 
 	@abstractmethod
 	def get_all_keyframe_graphs(
@@ -5001,6 +4152,111 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 		return {}
 
 
+def window_getter(
+	table: str,
+	f: Callable[[Branch, ...], None] | partial | None = None,
+	per_character: bool = False,
+):
+	"""Decorator for functions that get a window of time from the output queue"""
+	if f is None:
+		return partial(window_getter, table, per_character=per_character)
+
+	if per_character:
+		if isinstance(f, partial):
+			argspec = inspect.getfullargspec(f.func)
+		else:
+			argspec = inspect.getfullargspec(f)
+		if "return" not in argspec.annotations:
+			raise TypeError("No character in return annotation", f)
+		ret_sig = argspec.annotations["return"]
+		if isinstance(ret_sig, str):
+			ret_sig = eval(ret_sig)
+		char_index = get_args(ret_sig).index(CharName)
+		if char_index is None:
+			raise TypeError(
+				"per_character window getter needs CharName in its return signature"
+			)
+
+		def get_a_window(
+			self,
+			ret: dict,
+			branch: Branch,
+			turn_from: Turn,
+			tick_from: Tick,
+			turn_to: Turn | None,
+			tick_to: Tick | None,
+		) -> None:
+			if (got := self._outq.get()) != (
+				"begin",
+				table,
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			):
+				raise RuntimeError("Expected beginning of " + table, got)
+			self._outq.task_done()
+			while isinstance(got := self._outq.get(), list):
+				for rec in got:
+					charn = rec[char_index]
+					ret[charn][table].append(f(self, branch, *rec))
+			if got != (
+				"end",
+				table,
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			):
+				raise RuntimeError("Expected end of " + table, got)
+			self._outq.task_done()
+
+		window_getter.tables[table] = get_a_window
+		return get_a_window
+
+	def get_a_window(
+		self,
+		ret: dict,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn | None,
+		tick_to: Tick | None,
+	) -> None:
+		if (got := self._outq.get()) != (
+			"begin",
+			table,
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected beginning of " + table, got)
+		self._outq.task_done()
+		while isinstance(got := self._outq.get(), list):
+			ret[table].extend(starmap(partial(f, self, branch), got))
+		if got != (
+			"end",
+			table,
+			branch,
+			turn_from,
+			tick_from,
+			turn_to,
+			tick_to,
+		):
+			raise RuntimeError("Expected end of " + table, got)
+		self._outq.task_done()
+
+	window_getter.tables[table] = get_a_window
+	return get_a_window
+
+
+window_getter.tables = {}
+
+
 class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	Looper: ClassVar[type[ConnectionLooper]]
 	clear: bool
@@ -5117,6 +4373,7 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 
 	@mutexed
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:
+		assert "graphs" in ret
 		for branch, turn_from, tick_from, turn_to, tick_to in windows:
 			if turn_to is None:
 				self._put_window_tick_to_end(branch, turn_from, tick_from)
@@ -5127,6 +4384,433 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		self._inq.join()
 		for window in windows:
 			self._get_one_window(ret, *window)
+
+	def unpack_key(self, k: bytes) -> Key:
+		unpacked = self.unpack(k)
+		if not isinstance(unpacked, Key):
+			raise TypeError("Invalid key", unpacked)
+		return unpacked
+
+	@window_getter("graphs")
+	def _unpack_graph_rec(
+		self,
+		branch: Branch,
+		graph_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		typ_s: GraphTypeStr,
+	) -> tuple[CharName, Branch, Turn, Tick, GraphTypeStr]:
+		graph = CharName(self.unpack_key(graph_b))
+		if typ_s not in get_args(GraphTypeStr):
+			raise TypeError("Unknown graph type", typ_s)
+		return graph, branch, turn, tick, typ_s
+
+	@window_getter("nodes", per_character=True)
+	def _unpack_node_rec(
+		self,
+		branch: Branch,
+		graph_b: bytes,
+		node_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		ex: bool,
+	) -> tuple[CharName, NodeName, Branch, Turn, Tick, bool]:
+		graph = CharName(self.unpack_key(graph_b))
+		node = NodeName(self.unpack_key(node_b))
+		return graph, node, branch, turn, tick, ex
+
+	@window_getter("edges", per_character=True)
+	def _unpack_edge_rec(
+		self,
+		branch: Branch,
+		graph_b: bytes,
+		orig_b: bytes,
+		dest_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		ex: bool,
+	) -> tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, bool]:
+		graph = CharName(self.unpack_key(graph_b))
+		orig = NodeName(self.unpack_key(orig_b))
+		dest = NodeName(self.unpack_key(dest_b))
+		return graph, orig, dest, branch, turn, tick, ex
+
+	@window_getter("graph_val", per_character=True)
+	def _unpack_graph_val_rec(
+		self,
+		branch: Branch,
+		graph_b: bytes,
+		key_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		val_b: bytes,
+	) -> tuple[CharName, Stat, Branch, Turn, Tick, Value]:
+		graph = CharName(self.unpack_key(graph_b))
+		stat = Stat(self.unpack_key(key_b))
+		val = self.unpack(val_b)
+		return graph, stat, branch, turn, tick, val
+
+	@window_getter("node_val", per_character=True)
+	def _unpack_node_val_rec(
+		self,
+		branch: Branch,
+		graph_b: bytes,
+		node_b: bytes,
+		key_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		val_b: bytes,
+	) -> tuple[CharName, NodeName, Stat, Branch, Turn, Tick, Value]:
+		graph = CharName(self.unpack_key(graph_b))
+		node = NodeName(self.unpack_key(node_b))
+		key = Stat(self.unpack_key(key_b))
+		val = self.unpack(val_b)
+		return graph, node, key, branch, turn, tick, val
+
+	@window_getter("edge_val", per_character=True)
+	def _unpack_edge_val_rec(
+		self,
+		branch: Branch,
+		graph_b: bytes,
+		orig_b: bytes,
+		dest_b: bytes,
+		key_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		val_b: bytes,
+	) -> tuple[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value]:
+		graph = CharName(self.unpack_key(graph_b))
+		orig = NodeName(self.unpack_key(orig_b))
+		dest = NodeName(self.unpack_key(dest_b))
+		key = Stat(self.unpack_key(key_b))
+		val = self.unpack(val_b)
+		return graph, orig, dest, key, branch, turn, tick, val
+
+	@window_getter("things", per_character=True)
+	def _unpack_thing_rec(
+		self,
+		branch: Branch,
+		graph_b: bytes,
+		node_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		loc_b: bytes,
+	) -> tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]:
+		graph = CharName(self.unpack_key(graph_b))
+		thing = NodeName(self.unpack_key(node_b))
+		loc = NodeName(self.unpack_key(loc_b))
+		return graph, thing, branch, turn, tick, loc
+
+	@window_getter("units", per_character=True)
+	def _unpack_unit_rec(
+		self,
+		branch: Branch,
+		char_b: bytes,
+		graph_b: bytes,
+		node_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		is_unit: bool,
+	) -> tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]:
+		character = CharName(self.unpack_key(char_b))
+		graph = CharName(self.unpack_key(graph_b))
+		unit = NodeName(self.unpack_key(node_b))
+		return character, graph, unit, branch, turn, tick, is_unit
+
+	def _unpack_char_rb_rec(
+		self,
+		branch: Branch,
+		char_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		rb_b: bytes,
+	) -> tuple[CharName, Branch, Turn, Tick, RulebookName]:
+		character = CharName(self.unpack_key(char_b))
+		rulebook = RulebookName(self.unpack_key(rb_b))
+		return character, branch, turn, tick, rulebook
+
+	_unpack_character_rulebook_rec = window_getter(
+		"character_rulebook", _unpack_char_rb_rec, True
+	)
+	_unpack_unit_rb_rec = window_getter(
+		"unit_rulebook", _unpack_char_rb_rec, True
+	)
+	_unpack_char_thing_rb_rec = window_getter(
+		"character_thing_rulebook", _unpack_char_rb_rec, True
+	)
+	_unpack_char_place_rb_rec = window_getter(
+		"character_place_rulebook", _unpack_char_rb_rec, True
+	)
+	_unpack_char_portal_rb_rec = window_getter(
+		"character_portal_rulebook", _unpack_char_rb_rec, True
+	)
+
+	@window_getter("node_rulebook", per_character=True)
+	def _unpack_node_rb_rec(
+		self,
+		branch: Branch,
+		graph_b: bytes,
+		node_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		rb_b: bytes,
+	) -> tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]:
+		graph = CharName(self.unpack_key(graph_b))
+		node = NodeName(self.unpack_key(node_b))
+		rulebook = RulebookName(self.unpack_key(rb_b))
+		return graph, node, branch, turn, tick, rulebook
+
+	@window_getter("portal_rulebook", per_character=True)
+	def _unpack_port_rb_rec(
+		self,
+		branch: Branch,
+		graph_b: bytes,
+		orig_b: bytes,
+		dest_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		rb_b: bytes,
+	) -> tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]:
+		graph = CharName(self.unpack_key(graph_b))
+		orig = NodeName(self.unpack_key(orig_b))
+		dest = NodeName(self.unpack_key(dest_b))
+		rulebook = RulebookName(self.unpack_key(rb_b))
+		return graph, orig, dest, branch, turn, tick, rulebook
+
+	@window_getter("universals")
+	def _unpack_universal_rec(
+		self,
+		branch: Branch,
+		key_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		value_b: bytes,
+	) -> tuple[UniversalKey, Branch, Turn, Tick, Value]:
+		key = UniversalKey(self.unpack_key(key_b))
+		value = self.unpack(value_b)
+		return key, branch, turn, tick, value
+
+	@window_getter("rulebooks")
+	def _unpack_rulebook_rec(
+		self,
+		branch: Branch,
+		rb_b: bytes,
+		turn: Turn,
+		tick: Tick,
+		rules_b: bytes,
+		prio: RulebookPriority,
+	) -> tuple[
+		RulebookName,
+		Branch,
+		Turn,
+		Tick,
+		tuple[list[RuleName], RulebookPriority],
+	]:
+		rulebook = RulebookName(self.unpack_key(rb_b))
+		rules = self.unpack(rules_b)
+		if not isinstance(rules, list):
+			raise TypeError("Invalid rules list", rules)
+		return rulebook, branch, turn, tick, (list(map(rulename, rules)), prio)
+
+	@window_getter("rule_triggers")
+	def _unpack_rule_trigs_rec(
+		self,
+		branch: Branch,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+		trigs_b: bytes,
+	) -> tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]:
+		trigs = self.unpack(trigs_b)
+		if not isinstance(trigs, list):
+			raise TypeError("Invalid triggers list", trigs)
+		return rule, branch, turn, tick, list(map(trigfuncn, trigs))
+
+	@window_getter("rule_prereqs")
+	def _unpack_rule_preqs_rec(
+		self,
+		branch: Branch,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+		preqs_b: bytes,
+	) -> tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]:
+		preqs = self.unpack(preqs_b)
+		if not isinstance(preqs, list):
+			raise TypeError("Invalid prereqs list", preqs)
+		return rule, branch, turn, tick, list(map(preqfuncn, preqs))
+
+	@window_getter("rule_actions")
+	def _unpack_rule_acts_rec(
+		self,
+		branch: Branch,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+		acts_b: bytes,
+	) -> tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]:
+		acts = self.unpack(acts_b)
+		if not isinstance(acts, list):
+			raise TypeError("Invalid actions list", acts)
+		return rule, branch, turn, tick, list(map(actfuncn, acts))
+
+	@window_getter("rule_neighborhood")
+	def _unpack_rule_nbrs_rec(
+		self,
+		branch: Branch,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+		neighbors: RuleNeighborhood,
+	) -> tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]:
+		if neighbors is not None and not (
+			isinstance(neighbors, int) and neighbors >= 0
+		):
+			raise TypeError("Invalid rule neighborhood", neighbors)
+		return rule, branch, turn, tick, neighbors
+
+	@window_getter("rule_big")
+	def _unpack_rule_big_rec(
+		self,
+		branch: Branch,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+		big: RuleBig,
+	) -> tuple[RuleName, Branch, Turn, Tick, RuleBig]:
+		return rule, branch, turn, tick, big
+
+	@window_getter("character_rules_handled")
+	def _unpack_char_rule_handled_rec(
+		self,
+		branch: Branch,
+		char_b: bytes,
+		rb_b: bytes,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+	) -> CharacterRulesHandledRowType:
+		char = CharName(self.unpack_key(char_b))
+		rb = RulebookName(self.unpack_key(rb_b))
+		return char, rb, rule, branch, turn, tick
+
+	@window_getter("unit_rules_handled")
+	def _unpack_unit_rule_handled_rec(
+		self,
+		branch: Branch,
+		char_b: bytes,
+		graph_b: bytes,
+		unit_b: bytes,
+		rb_b: bytes,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+	) -> UnitRulesHandledRowType:
+		char = CharName(self.unpack_key(char_b))
+		graph = CharName(self.unpack_key(graph_b))
+		unit = NodeName(self.unpack_key(unit_b))
+		rb = RulebookName(self.unpack_key(rb_b))
+		return char, graph, unit, rb, rule, branch, turn, tick
+
+	@window_getter("character_thing_rules_handled")
+	def _unpack_char_thing_rule_handled_rec(
+		self,
+		branch: Branch,
+		char_b: bytes,
+		thing_b: bytes,
+		rb_b: bytes,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+	) -> NodeRulesHandledRowType:
+		char = CharName(self.unpack_key(char_b))
+		thing = NodeName(self.unpack_key(thing_b))
+		rulebook = RulebookName(self.unpack_key(rb_b))
+		return char, thing, rulebook, rule, branch, turn, tick
+
+	@window_getter("character_place_rules_handled")
+	def _unpack_char_place_rule_handled_rec(
+		self,
+		branch: Branch,
+		char_b: bytes,
+		place_b: bytes,
+		rb_b: bytes,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+	) -> NodeRulesHandledRowType:
+		char = CharName(self.unpack_key(char_b))
+		place = NodeName(self.unpack_key(place_b))
+		rulebook = RulebookName(self.unpack_key(rb_b))
+		return char, place, rulebook, rule, branch, turn, tick
+
+	@window_getter("character_portal_rules_handled")
+	def _unpack_char_portal_rule_handled_rec(
+		self,
+		branch: Branch,
+		char_b: bytes,
+		orig_b: bytes,
+		dest_b: bytes,
+		rb_b: bytes,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+	) -> PortalRulesHandledRowType:
+		char = CharName(self.unpack_key(char_b))
+		orig = NodeName(self.unpack_key(orig_b))
+		dest = NodeName(self.unpack_key(dest_b))
+		rb = RulebookName(self.unpack_key(rb_b))
+		return char, orig, dest, rb, rule, branch, turn, tick
+
+	@window_getter("node_rules_handled")
+	def _unpack_node_rule_handled_rec(
+		self,
+		branch: Branch,
+		char_b: bytes,
+		node_b: bytes,
+		rb_b: bytes,
+		rule: RuleName,
+		turn: Turn,
+		tick: Tick,
+	) -> NodeRulesHandledRowType:
+		char = CharName(self.unpack_key(char_b))
+		node = NodeName(self.unpack_key(node_b))
+		rb = RulebookName(self.unpack_key(rb_b))
+		return char, node, rb, rule, branch, turn, tick
+
+	@window_getter("portal_rules_handled")
+	def _unpack_portal_rule_handled_rec(
+		self,
+		branch: Branch,
+		char_b: bytes,
+		orig_b: bytes,
+		dest_b: bytes,
+		rb_b: RuleName,
+		turn: Turn,
+		tick: Tick,
+	) -> PortalRulesHandledRowType:
+		char = CharName(self.unpack_key(char_b))
+		orig = NodeName(self.unpack_key(orig_b))
+		dest = NodeName(self.unpack_key(dest_b))
+		rb = RulebookName(self.unpack_key(rb_b))
+		return char, orig, dest, rb, rule, branch, turn, tick
+
+	def _get_one_window(
+		self,
+		ret,
+		branch: Branch,
+		turn_from: Turn,
+		tick_from: Tick,
+		turn_to: Turn,
+		tick_to: Tick,
+	):
+		self.debug(
+			f"_get_one_window({branch}, {turn_from}, {tick_from}, {turn_to}, {tick_to})"
+		)
+		for table in self._infixes2load:
+			window_getter.tables[table](
+				self, ret, branch, turn_from, tick_from, turn_to, tick_to
+			)
 
 
 @dataclass
@@ -7353,14 +7037,14 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				"actions", branch, turn_from, tick_from, turn_to, tick_to
 			)
 
-		def load_rule_neighborhoods_tick_to_end(
+		def load_rule_neighborhood_tick_to_end(
 			self, branch: Branch, turn_from: Turn, tick_from: Tick
 		) -> list[tuple[Branch, Turn, Tick, bytes]]:
 			return self._load_rule_part_tick_to_end(
 				"neighborhood", branch, turn_from, tick_from
 			)
 
-		def load_rule_neighborhoods_tick_to_tick(
+		def load_rule_neighborhood_tick_to_tick(
 			self,
 			branch: Branch,
 			turn_from: Turn,

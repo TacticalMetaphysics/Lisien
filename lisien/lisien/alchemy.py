@@ -1335,10 +1335,10 @@ def queries(meta: MetaData):
 		hood.c.tick,
 		hood.c.neighborhood,
 	)
-	r["load_rule_neighborhoods_tick_to_end"] = hoodsel.where(
+	r["load_rule_neighborhood_tick_to_end"] = hoodsel.where(
 		tick_to_end_clause(hood)
 	).order_by(hood.c.turn, hood.c.tick, hood.c.rule)
-	r["load_rule_neighborhoods_tick_to_tick"] = hoodsel.where(
+	r["load_rule_neighborhood_tick_to_tick"] = hoodsel.where(
 		tick_to_tick_clause(hood)
 	).order_by(hood.c.turn, hood.c.tick, hood.c.rule)
 	bigsel = select(big.c.rule, big.c.turn, big.c.tick, big.c.big)

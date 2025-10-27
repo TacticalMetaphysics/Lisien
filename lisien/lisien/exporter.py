@@ -781,6 +781,13 @@ class Exporter:
 			"rule_actions",
 			"rule_neighborhood",
 			"rule_big",
+			"character_rules_handled",
+			"unit_rules_handled",
+			"character_thing_rules_handled",
+			"character_place_rules_handled",
+			"character_portal_rules_handled",
+			"node_rules_handled",
+			"portal_rules_handled",
 		}
 		turn: Turn
 		for turn, (ending_tick, plan_ending_tick) in sorted(turn_ends.items()):
