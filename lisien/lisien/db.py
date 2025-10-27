@@ -2827,16 +2827,16 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		return args
 
 	def call(self, query_name: str, *args, **kwargs):
-		raise NotImplementedError("Not a real database, so can't call it")
+		raise TypeError("Not a real database, so can't call it")
 
 	def call_silent(self, query_name: str, *args, **kwargs):
-		raise NotImplementedError("Not a real database, so can't call it")
+		raise TypeError("Not a real database, so can't call it")
 
 	def call_many(self, query_name: str, args: list) -> None:
-		raise NotImplementedError("Not a real database, so can't call it")
+		raise TypeError("Not a real database, so can't call it")
 
 	def call_many_silent(self, query_name: str, args: list) -> None:
-		raise NotImplementedError("Not a real database, so can't call it")
+		raise TypeError("Not a real database, so can't call it")
 
 	def insert_many(self, table_name: str, args: list[dict]) -> None:
 		tab_serializer = batched.serializers[table_name]
