@@ -119,6 +119,7 @@ from .facade import CharacterFacade
 from .node import Place, Thing
 from .portal import Portal
 from .proxy.routine import worker_subprocess, worker_subthread
+from .proxy.worker_subinterpreter import worker_subinterpreter
 from .proxy.manager import Sub
 from .query import (
 	CharacterStatAccessor,
@@ -2397,6 +2398,14 @@ class Engine(AbstractEngine, Executor):
 			if hasattr(store, "save"):
 				store.save(reimport=False)
 
+		# To be shareable, the worker function must not use any globals.
+		for k in list(worker_subinterpreter.__globals__):
+			del worker_subinterpreter.__globals__[k]
+		# Nor defaults.
+		worker_subinterpreter.__defaults__ = None
+		if worker_subinterpreter.__kwdefaults__:
+			for k in list(worker_subinterpreter.__kwdefaults__):
+				del worker_subinterpreter.__kwdefaults__[k]
 		self._worker_last_eternal = eternal_d = dict(self.eternal.items())
 		branches_d = dict(self._branches_d)
 		initial_payload = self._get_worker_kf_payload()
@@ -2432,7 +2441,7 @@ class Engine(AbstractEngine, Executor):
 			wint.append(terp)
 			input.put(b"shutdown")
 			terp_args = (
-				worker_subthread,
+				worker_subinterpreter,
 				i,
 				prefix,
 				branches_d,
@@ -2441,12 +2450,21 @@ class Engine(AbstractEngine, Executor):
 				output,
 				logq,
 			)
-			terp.call(*terp_args)  # check that we can run the subthread
+			terp_kwargs = {
+				"function": None,
+				"method": None,
+				"trigger": None,
+				"prereq": None,
+				"action": None,
+			}
+			terp.call(
+				*terp_args, **terp_kwargs
+			)  # check that we can run the subthread
 			if (echoed := output.get(timeout=5.0)) != b"done":
 				raise RuntimeError(
 					f"Got garbled output from worker terp {i}", echoed
 				)
-			wt.append(terp.call_in_thread(*terp_args))
+			wt.append(terp.call_in_thread(*terp_args, **terp_kwargs))
 			with lock:
 				input.put(b"echoImReady")
 				if (echoed := output.get(timeout=5.0)) != b"ImReady":
