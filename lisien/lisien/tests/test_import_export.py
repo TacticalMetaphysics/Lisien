@@ -11,11 +11,10 @@ from ..db import (
 	AbstractDatabaseConnector,
 	PythonDatabaseConnector,
 )
+from ..facade import EngineFacade
 from ..pqdb import ParquetDatabaseConnector
 from ..sql import SQLAlchemyDatabaseConnector
 from ..engine import Engine
-from ..exporter import game_path_to_xml
-from ..importer import xml_to_pqdb, xml_to_sqlite, Importer
 from .data import DATA_DIR
 
 
@@ -42,7 +41,9 @@ def turns(request):
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def export_to(tmp_path, random_seed, persistent_database, request, turns):
+def engine_and_exported_xml(
+	tmp_path, random_seed, persistent_database, request, turns
+):
 	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
@@ -57,26 +58,25 @@ def export_to(tmp_path, random_seed, persistent_database, request, turns):
 		install(eng)
 		for _ in range(turns):
 			eng.next_turn()
-	yield str(os.path.join(DATA_DIR, request.param + f"_{turns}.xml"))
+		yield eng, str(os.path.join(DATA_DIR, request.param + f"_{turns}.xml"))
 
 
-def test_export_db(tmp_path, export_to):
+def test_export_db(tmp_path, engine_and_exported_xml):
 	test_xml = os.path.join(tmp_path, "test.xml")
-	game_path_to_xml(
-		os.path.join(tmp_path, "game"), test_xml, name="test_export"
-	)
+	eng, outpath = engine_and_exported_xml
+	eng.to_xml(test_xml, name="test_export")
 
-	if not filecmp.cmp(export_to, test_xml):
+	if not filecmp.cmp(outpath, test_xml):
 		with (
 			open(test_xml, "rt") as testfile,
-			open(export_to, "rt") as goodfile,
+			open(outpath, "rt") as goodfile,
 		):
 			differences = list(
 				difflib.unified_diff(
 					goodfile.readlines(),
 					testfile.readlines(),
 					test_xml,
-					export_to,
+					outpath,
 				)
 			)
 			assert not differences, "".join(differences)
@@ -248,9 +248,12 @@ def pqdb_connector_correct(tmp_path, engine_facade):
 
 @pytest.mark.parquetdb
 def test_import_parquetdb(
-	tmp_path, export_to, pqdb_connector_under_test, pqdb_connector_correct
+	tmp_path,
+	engine_and_exported_xml,
+	pqdb_connector_under_test,
+	pqdb_connector_correct,
 ):
-	Importer(pqdb_connector_under_test).load_xml(export_to)
+	pqdb_connector_under_test.load_xml(engine_and_exported_xml)
 	compare_engines_world_state(
 		pqdb_connector_correct, pqdb_connector_under_test
 	)
@@ -286,9 +289,12 @@ def sql_connector_correct(tmp_path, engine_facade):
 
 @pytest.mark.sqlite
 def test_import_sqlite(
-	tmp_path, export_to, sql_connector_under_test, sql_connector_correct
+	tmp_path,
+	engine_and_exported_xml,
+	sql_connector_under_test,
+	sql_connector_correct,
 ):
-	Importer(sql_connector_under_test).load_xml(export_to)
+	sql_connector_under_test.load_xml(engine_and_exported_xml)
 	compare_engines_world_state(
 		sql_connector_correct, sql_connector_under_test
 	)

@@ -53,6 +53,7 @@ from .types import (
 	ActionFuncName,
 	NodeName,
 	GraphValRowType,
+	GraphTypeStr,
 	NodeRowType,
 	NodeValRowType,
 	EdgeRowType,

@@ -4,7 +4,6 @@ from itertools import product
 from tempfile import TemporaryDirectory
 
 from lisien.engine import Engine
-from lisien.exporter import game_path_to_xml
 from lisien.tests.data import DATA_DIR
 
 RANDOM_SEED = 69105
@@ -32,8 +31,7 @@ for turns, sim in product([0, 1], ["kobold", "polygons", "wolfsheep"]):
 			install(eng)
 			for _ in range(turns):
 				eng.next_turn()
-		game_path_to_xml(
-			prefix,
-			os.path.join(DATA_DIR, f"{sim}_{turns}.xml"),
-			name="test_export",
-		)
+			eng.to_xml(
+				os.path.join(DATA_DIR, f"{sim}_{turns}.xml"),
+				name="test_export",
+			)

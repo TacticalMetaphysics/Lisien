@@ -17,16 +17,20 @@ from __future__ import annotations
 
 import builtins
 import inspect
+import os
 import sys
 from abc import ABC, abstractmethod
-from collections import UserDict, defaultdict
+from ast import literal_eval
+from collections import UserDict, defaultdict, deque
 from contextlib import contextmanager
-from dataclasses import dataclass, KW_ONLY
-from functools import cached_property, partial, wraps
+from dataclasses import dataclass, KW_ONLY, field
+from functools import cached_property, partial, wraps, partialmethod
+from io import IOBase
 from itertools import filterfalse, starmap
+from pathlib import Path
 from queue import Queue
 from threading import Lock, Thread
-from types import MethodType
+from types import MethodType, FunctionType
 from typing import (
 	Any,
 	Callable,
@@ -41,9 +45,32 @@ from typing import (
 	TypeVar,
 	TYPE_CHECKING,
 	ClassVar,
+	Set,
+	MutableSet,
+	Mapping,
 )
 
+import networkx as nx
+from tblib import Traceback
 
+
+if TYPE_CHECKING:
+	from xml.etree.ElementTree import (
+		ElementTree,
+		Element,
+		indent as indent_tree,
+	)
+else:
+	try:
+		from lxml.etree import ElementTree, Element, indent as indent_tree
+	except ModuleNotFoundError:
+		from xml.etree.ElementTree import (
+			ElementTree,
+			Element,
+			indent as indent_tree,
+		)
+
+from .window import SettingsTurnDict, WindowDict
 import lisien.types
 from .types import (
 	ActionFuncName,
@@ -57,8 +84,11 @@ from .types import (
 	EdgeRowType,
 	EdgeValRowType,
 	EternalKey,
+	FuncName,
 	GraphRowType,
 	GraphTypeStr,
+	GraphNodeValKeyframe,
+	GraphEdgeValKeyframe,
 	GraphValKeyframe,
 	GraphValRowType,
 	Key,
@@ -79,6 +109,7 @@ from .types import (
 	RulebookName,
 	RulebookPriority,
 	RulebookRowType,
+	RuleFuncName,
 	RuleKeyframe,
 	RuleName,
 	rulename,
@@ -110,8 +141,8 @@ from .types import (
 	NodeRulesHandledRowType,
 	UnitRulesHandledRowType,
 )
-
-from .util import garbage, sort_set
+from .facade import EngineFacade
+from .util import garbage, sort_set, AbstractEngine
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 if sys.version_info.minor < 11:
@@ -421,6 +452,14 @@ class AbstractDatabaseConnector(ABC):
 	kf_interval_override: Callable[[], bool | None] = lambda _: None
 	keyframe_interval: int | None = 1000
 	snap_keyframe: Callable[[], None] = lambda: None
+
+	@cached_property
+	def engine(self) -> AbstractEngine:
+		return EngineFacade(None)
+
+	@cached_property
+	def tree(self) -> ElementTree:
+		return ElementTree(Element("lisien"))
 
 	@cached_property
 	def _records(self) -> int:
@@ -1052,7 +1091,7 @@ class AbstractDatabaseConnector(ABC):
 		)
 
 	@batched("things", key_len=5)
-	def _location(
+	def _things2set(
 		self,
 		character: CharName,
 		thing: NodeName,
@@ -2020,7 +2059,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		loc: NodeName,
 	):
-		self._location.append((character, thing, branch, turn, tick, loc))
+		self._things2set.append((character, thing, branch, turn, tick, loc))
 
 	@abstractmethod
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick): ...
@@ -2111,6 +2150,1677 @@ class AbstractDatabaseConnector(ABC):
 		self._load_windows_into(ret, windows)
 		self.debug(f"finished loading windows {windows}")
 		return dict(ret)
+
+	def to_etree(self, name: str) -> ElementTree:
+		root = self.tree.getroot()
+		self.commit()
+		eternals = dict(self.eternal.items())
+		root.set(
+			"db-schema-version", str(eternals.pop("_lisien_schema_version"))
+		)
+		root.set("trunk", str(eternals.pop("trunk")))
+		root.set("branch", str(eternals.pop("branch")))
+		root.set("turn", str(eternals.pop("turn")))
+		root.set("tick", str(eternals.pop("tick")))
+		if "language" in eternals:
+			root.set("language", str(eternals.pop("language")))
+		for k in sort_set(eternals.keys()):
+			el = Element("dict-item", key=repr(k))
+			root.append(el)
+			el.append(self._value_to_xml_el(eternals[k]))
+		plan_ticks: dict[Branch, dict[Turn, dict[Plan, set[Tick]]]] = {}
+		for plan, branch, turn, tick in self.plan_ticks_dump():
+			if branch in plan_ticks:
+				if turn in plan_ticks[branch]:
+					if plan in plan_ticks[branch][turn]:
+						plan_ticks[branch][turn][plan].add(tick)
+					else:
+						plan_ticks[branch][turn][plan] = {tick}
+				else:
+					plan_ticks[branch][turn] = {plan: {tick}}
+			else:
+				plan_ticks[branch] = {turn: {plan: {tick}}}
+		self._plan_ticks = plan_ticks
+		trunks = set()
+		branches_d = {}
+		branch_descendants = {}
+		turn_end_plan_d: dict[Branch, dict[Turn, tuple[Tick, Tick]]] = {}
+		branch_elements = {}
+		playtrees: dict[Branch, Element] = {}
+		turns_completed_d: dict[Branch, Turn] = dict(
+			self.turns_completed_dump()
+		)
+		keyframe_times: set[Time] = set(self.keyframes_dump())
+		for (
+			branch,
+			turn,
+			last_real_tick,
+			last_planned_tick,
+		) in self.turns_dump():
+			if branch in turn_end_plan_d:
+				turn_end_plan_d[branch][turn] = (
+					last_real_tick,
+					last_planned_tick,
+				)
+			else:
+				turn_end_plan_d[branch] = {
+					turn: (last_real_tick, last_planned_tick)
+				}
+		branch2do = deque(sorted(self.branches_dump()))
+		while branch2do:
+			(
+				branch,
+				parent,
+				parent_turn,
+				parent_tick,
+				end_turn,
+				end_tick,
+			) = branch2do.popleft()
+			branches_d[branch] = (
+				parent,
+				parent_turn,
+				parent_tick,
+				end_turn,
+				end_tick,
+			)
+			if parent is None:
+				trunks.add(branch)
+				playtree = Element("playtree", game=name, trunk=branch)
+				playtrees[branch] = playtree
+				branch_element = branch_elements[branch] = Element(
+					"branch",
+					{
+						"name": branch,
+						"start-turn": "0",
+						"start-tick": "0",
+						"end-turn": str(end_turn),
+						"end-tick": str(end_tick),
+					},
+				)
+				if branch in turns_completed_d:
+					branch_element.set(
+						"last-turn-completed", str(turns_completed_d[branch])
+					)
+				root.append(playtree)
+				playtree.append(branch_element)
+			else:
+				if parent in branch_descendants:
+					branch_descendants[parent].add(branch)
+				else:
+					branch_descendants[parent] = {branch}
+				if parent in branch_elements:
+					branch_el = Element(
+						"branch",
+						{
+							"name": branch,
+							"parent": parent,
+							"start-turn": str(parent_turn),
+							"start-tick": str(parent_tick),
+							"end-turn": str(end_turn),
+							"end-tick": str(end_tick),
+						},
+					)
+					if branch in turns_completed_d:
+						branch_el.set(
+							"last-turn-completed",
+							str(turns_completed_d[branch]),
+						)
+					branch_elements[parent].append(branch_el)
+				else:
+					branch2do.append(
+						(
+							branch,
+							parent,
+							parent_turn,
+							parent_tick,
+							end_turn,
+							end_tick,
+						)
+					)
+
+		def recurse_branch(b: Branch):
+			parent, turn_from, tick_from, turn_to, tick_to = branches_d[b]
+			if b in turn_end_plan_d:
+				turn_to, tick_to = max(
+					[
+						(turn_to, tick_to),
+						*(
+							(r, t)
+							for r, (_, t) in turn_end_plan_d[branch].items()
+						),
+					]
+				)
+			data = self.load_windows(
+				[(b, turn_from, tick_from, turn_to, tick_to)]
+			)
+			self._fill_branch_element(
+				branch_elements[b],
+				turn_end_plan_d[b],
+				keyframe_times,
+				data,
+			)
+			if b in branch_descendants:
+				for desc in sorted(branch_descendants[b], key=branches_d.get):
+					recurse_branch(desc)
+
+		for trunk in trunks:
+			recurse_branch(trunk)
+		return self.tree
+
+	def to_xml(
+		self,
+		xml_file_path: str | os.PathLike | IOBase,
+		indent: bool = True,
+		name: str | None = None,
+	) -> None:
+		if not isinstance(xml_file_path, (os.PathLike, IOBase)):
+			xml_file_path = Path(xml_file_path)
+
+		tree = self.to_etree(name)
+		if indent:
+			indent_tree(tree)
+		tree.write(xml_file_path, encoding="utf-8")
+
+	@classmethod
+	def _value_to_xml_el(cls, value: Value | dict[Key, Value]) -> Element:
+		if value is ...:
+			return Element("Ellipsis")
+		elif value is None:
+			return Element("None")
+		elif isinstance(value, bool):
+			return Element("bool", value="true" if value else "false")
+		elif isinstance(value, int):
+			return Element("int", value=str(value))
+		elif isinstance(value, float):
+			return Element("float", value=str(value))
+		elif isinstance(value, str):
+			return Element("str", value=value)
+		elif isinstance(value, lisien.types.DiGraph):
+			# Since entity names are restricted to what we can use for dict
+			# keys and also serialize to msgpack, I don't think there's any name
+			# an entity can have that can't be repr'd
+			return Element("character", name=repr(value.name))
+		elif isinstance(value, lisien.types.Node):
+			return Element(
+				"node", character=repr(value.graph.name), name=repr(value.name)
+			)
+		elif isinstance(value, lisien.types.Edge):
+			return Element(
+				"portal",
+				character=repr(value.graph.name),
+				origin=repr(value.orig),
+				destination=repr(value.dest),
+			)
+		elif isinstance(value, nx.Graph):
+			return nx.readwrite.GraphMLWriter(value).myElement
+		elif isinstance(value, FunctionType) or isinstance(value, MethodType):
+			if value.__module__ not in (
+				"trigger",
+				"prereq",
+				"action",
+				"function",
+				"method",
+			):
+				raise ValueError(
+					"Callable is not stored in the Lisien engine", value
+				)
+			return Element(value.__module__, name=value.__name__)
+		elif isinstance(value, Exception):
+			# weird but ok
+			el = Element("exception", pyclass=value.__class__.__name__)
+			if hasattr(value, "__traceback__"):
+				el.set("traceback", str(Traceback(value.__traceback__)))
+			for arg in value.args:
+				el.append(cls._value_to_xml_el(arg))
+			return el
+		elif isinstance(value, list):
+			el = Element("list")
+			for v in value:
+				el.append(cls._value_to_xml_el(v))
+			return el
+		elif isinstance(value, tuple):
+			el = Element("tuple")
+			for v in value:
+				el.append(cls._value_to_xml_el(v))
+			return el
+		elif isinstance(value, Set):
+			if isinstance(value, (set, MutableSet)):
+				el = Element("set")
+				for v in value:
+					el.append(cls._value_to_xml_el(v))
+				return el
+			else:
+				el = Element("frozenset")
+				for v in value:
+					el.append(cls._value_to_xml_el(v))
+				return el
+		elif isinstance(value, Mapping):
+			el = Element("dict")
+			for k, v in value.items():
+				dict_item = Element("dict-item", key=repr(k))
+				dict_item.append(cls._value_to_xml_el(v))
+				el.append(dict_item)
+			return el
+		else:
+			raise TypeError("Can't convert to XML", value)
+
+	@classmethod
+	def _add_keyframe_to_turn_el(
+		cls,
+		turn_el: Element,
+		tick: Tick,
+		keyframe: Keyframe,
+	) -> None:
+		kfel = Element("keyframe", tick=str(tick))
+		turn_el.append(kfel)
+		universal_d: dict[Key, Value] = keyframe.get("universal", {})
+		univel = cls._value_to_xml_el(universal_d)
+		univel.tag = "universal"
+		kfel.append(univel)
+		triggers_kf: dict[RuleName, list[TriggerFuncName]] = keyframe.get(
+			"triggers", {}
+		)
+		prereqs_kf: dict[RuleName, list[PrereqFuncName]] = keyframe.get(
+			"prereqs", {}
+		)
+		actions_kf: dict[RuleName, list[ActionFuncName]] = keyframe.get(
+			"actions", {}
+		)
+		neighborhoods_kf: dict[RuleName, RuleNeighborhood] = keyframe.get(
+			"neighborhood", {}
+		)
+		bigs_kf: dict[RuleName, RuleBig] = keyframe.get("big", {})
+		for rule_name in sorted(
+			triggers_kf.keys() | prereqs_kf.keys() | actions_kf.keys()
+		):
+			rule_name: RuleName
+			rule_el = Element(
+				"rule",
+				name=rule_name,
+			)
+			kfel.append(rule_el)
+			if rule_name in bigs_kf and bigs_kf[rule_name]:
+				rule_el.set("big", "true")
+			if (
+				rule_name in neighborhoods_kf
+				and neighborhoods_kf[rule_name] is not None
+			):
+				rule_el.set(
+					"neighborhood",
+					str(neighborhoods_kf[rule_name]),
+				)
+			if trigs := triggers_kf.get(rule_name):
+				for trig in trigs:
+					rule_el.append(Element("trigger", name=trig))
+			if preqs := prereqs_kf.get(rule_name):
+				for preq in preqs:
+					rule_el.append(Element("prereq", name=preq))
+			if acts := actions_kf.get(rule_name):
+				for act in acts:
+					rule_el.append(Element("action", name=act))
+		rulebook_kf: dict[
+			RulebookName, tuple[list[RuleName], RulebookPriority]
+		] = keyframe.get("rulebook", {})
+		for rulebook_name, (rule_list, priority) in rulebook_kf.items():
+			rulebook_el = Element(
+				"rulebook", name=repr(rulebook_name), priority=repr(priority)
+			)
+			kfel.append(rulebook_el)
+			for rule_name in rule_list:
+				rulebook_el.append(Element("rule", name=rule_name))
+		char_els: dict[CharName, Element] = {}
+		graph_val_kf: GraphValKeyframe = keyframe.get("graph_val", {})
+		for char_name, vals in sorted(graph_val_kf.items()):
+			graph_el = char_els[char_name] = Element(
+				"character", name=repr(char_name)
+			)
+			kfel.append(graph_el)
+			if units_kf := vals.pop("units", {}):
+				units_el = Element("units")
+				any_unit_graphs = False
+				for graph, nodes in units_kf.items():
+					unit_graphs_el = Element("graph", character=repr(graph))
+					any_unit_nodes = False
+					for node, is_unit in nodes.items():
+						if is_unit:
+							any_unit_nodes = True
+							unit_graphs_el.append(
+								Element("unit", node=repr(node))
+							)
+					if any_unit_nodes:
+						units_el.append(unit_graphs_el)
+						any_unit_graphs = True
+				if any_unit_graphs:
+					graph_el.append(units_el)
+			if "character_rulebook" in vals:
+				graph_el.set(
+					"character-rulebook",
+					repr(
+						vals.pop(
+							"character_rulebook",
+							("character_rulebook", char_name),
+						)
+					),
+				)
+			if "unit_rulebook" in vals:
+				graph_el.set(
+					"unit-rulebook",
+					repr(
+						vals.pop("unit_rulebook", ("unit_rulebook", char_name))
+					),
+				)
+			if "character_thing_rulebook" in vals:
+				graph_el.set(
+					"character-thing-rulebook",
+					repr(
+						vals.pop(
+							"character_thing_rulebook",
+							("character_thing_rulebook", char_name),
+						)
+					),
+				)
+			if "character_place_rulebook" in vals:
+				graph_el.set(
+					"character-place-rulebook",
+					repr(
+						vals.pop(
+							"character_place_rulebook",
+							("character_place_rulebook", char_name),
+						)
+					),
+				)
+			if "character_portal_rulebook" in vals:
+				graph_el.set(
+					"character-portal-rulebook",
+					repr(
+						vals.pop(
+							"character_portal_rulebook",
+							("character_portal_rulebook", char_name),
+						)
+					),
+				)
+			for k, v in vals.items():
+				item_el = Element("dict-item", key=repr(k))
+				graph_el.append(item_el)
+				item_el.append(cls._value_to_xml_el(v))
+		node_val_kf: GraphNodeValKeyframe = keyframe.get("node_val", {})
+		for char_name, node_vals in node_val_kf.items():
+			if char_name in char_els:
+				char_el = char_els[char_name]
+			else:
+				char_el = char_els[char_name] = Element(
+					"character", name=repr(char_name)
+				)
+				kfel.append(char_el)
+			for node, val in node_vals.items():
+				node_el = Element(
+					"node",
+					name=repr(node),
+				)
+				if "rulebook" in val:
+					node_el.set("rulebook", repr(val.pop("rulebook")))
+				char_el.append(node_el)
+				for k, v in val.items():
+					item_el = Element("dict-item", key=repr(k))
+					node_el.append(item_el)
+					item_el.append(cls._value_to_xml_el(v))
+		edge_val_kf: GraphEdgeValKeyframe = keyframe.get("edge_val", {})
+		for char_name, edge_vals in edge_val_kf.items():
+			if char_name in char_els:
+				char_el = char_els[char_name]
+			else:
+				char_el = char_els[char_name] = Element(
+					"character", name=repr(char_name)
+				)
+				kfel.append(char_el)
+			for orig, dests in edge_vals.items():
+				for dest, val in dests.items():
+					edge_el = Element(
+						"edge",
+						orig=repr(orig),
+						dest=repr(dest),
+					)
+					if "rulebook" in val:
+						edge_el.set("rulebook", repr(val.pop("rulebook")))
+					char_el.append(edge_el)
+					for k, v in val.items():
+						item_el = Element("dict-item", key=repr(k))
+						edge_el.append(item_el)
+						item_el.append(cls._value_to_xml_el(v))
+
+	def write_xml(
+		self,
+		to: str | os.PathLike | IOBase,
+		name: str,
+		indent: bool = True,
+	) -> None:
+		if not isinstance(to, os.PathLike) and not isinstance(to, IOBase):
+			if to is None:
+				if name is None:
+					raise ValueError("Need a name or a path")
+				to = os.path.join(os.getcwd(), name + ".xml")
+			to = Path(to)
+		name = name.removesuffix(".xml")
+
+		tree = self.to_etree(name)
+
+		if indent:
+			indent_tree(tree)
+		tree.write(to, encoding="utf-8")
+
+	def _set_plans(
+		self, el: Element, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		plans = []
+		if branch in self._plan_ticks and turn in self._plan_ticks[branch]:
+			for plan, ticks in self._plan_ticks[branch][turn].items():
+				if tick in ticks:
+					plans.append(plan)
+		if plans:
+			el.set("plans", ",".join(map(str, plans)))
+
+	def _univ_el(self, universal_rec: UniversalRowType) -> Element:
+		key, b, r, t, val = universal_rec
+		univ_el = Element(
+			"universal",
+			key=repr(key),
+			tick=str(t),
+		)
+		univ_el.append(self._value_to_xml_el(val))
+		self._set_plans(univ_el, b, r, t)
+		return univ_el
+
+	def _rulebook_el(self, rulebook_rec: RulebookRowType) -> Element:
+		rb, b, r, t, (rules, prio) = rulebook_rec
+		rb_el = Element(
+			"rulebook",
+			name=repr(rb),
+			priority=repr(prio),
+			tick=str(t),
+		)
+		for i, rule in enumerate(rules):
+			rb_el.append(Element("rule", name=rule))
+		self._set_plans(rb_el, b, r, t)
+		return rb_el
+
+	def _rule_flist_el(
+		self,
+		typ: str,
+		rec: TriggerRowType | PrereqRowType | ActionRowType,
+	) -> Element:
+		rule, branch, turn, tick, funcs = rec
+		func_el = Element(f"{typ}s", rule=rule, tick=str(tick))
+		for func in funcs:
+			func_el.append(Element(typ[5:], name=func))
+		self._set_plans(func_el, branch, turn, tick)
+		return func_el
+
+	_rule_triggers_el = partialmethod(_rule_flist_el, "rule-trigger")
+	_rule_prereqs_el = partialmethod(_rule_flist_el, "rule-prereq")
+	_rule_actions_el = partialmethod(_rule_flist_el, "rule-action")
+
+	def _rule_neighborhood_el(
+		self, nbr_rec: RuleNeighborhoodRowType
+	) -> Element:
+		rule, branch, turn, tick, nbr = nbr_rec
+		if nbr is not None:
+			nbr_el = Element(
+				"rule-neighborhood",
+				rule=rule,
+				tick=str(tick),
+				neighbors=str(nbr),
+			)
+		else:
+			nbr_el = Element("rule-neighborhood", rule=rule, tick=str(tick))
+		self._set_plans(nbr_el, branch, turn, tick)
+		return nbr_el
+
+	def _rule_big_el(self, big_rec: RuleBigRowType) -> Element:
+		rule, branch, turn, tick, big = big_rec
+		el = Element(
+			"rule-big",
+			rule=rule,
+			tick=str(tick),
+			big="true" if big else "false",
+		)
+		self._set_plans(el, branch, turn, tick)
+		return el
+
+	def _graph_el(self, graph: GraphRowType) -> Element:
+		char, b, r, t, typ_str = graph
+		graph_el = Element(
+			"graph",
+			character=repr(char),
+			tick=str(t),
+			type=typ_str,
+		)
+		self._set_plans(graph_el, b, r, t)
+		return graph_el
+
+	def _graph_val_el(self, graph_val: GraphValRowType) -> Element:
+		char, stat, b, r, t, val = graph_val
+		graph_val_el = Element(
+			"graph-val",
+			character=repr(char),
+			key=repr(stat),
+			tick=str(t),
+		)
+		graph_val_el.append(self._value_to_xml_el(val))
+		self._set_plans(graph_val_el, b, r, t)
+		return graph_val_el
+
+	def _nodes_el(self, nodes: NodeRowType) -> Element:
+		char, node, b, r, t, ex = nodes
+		node_el = Element(
+			"node",
+			character=repr(char),
+			name=repr(node),
+			tick=str(t),
+			exists="true" if ex else "false",
+		)
+		self._set_plans(node_el, b, r, t)
+		return node_el
+
+	def _node_val_el(self, node_val: NodeValRowType) -> Element:
+		char, node, stat, b, r, t, val = node_val
+		node_val_el = Element(
+			"node-val",
+			character=repr(char),
+			node=repr(node),
+			key=repr(stat),
+			tick=str(t),
+		)
+		node_val_el.append(self._value_to_xml_el(val))
+		self._set_plans(node_val_el, b, r, t)
+		return node_val_el
+
+	def _edge_el(self, edges: EdgeRowType) -> Element:
+		char, orig, dest, b, r, t, ex = edges
+		edge_el = Element(
+			"edge",
+			character=repr(char),
+			orig=repr(orig),
+			dest=repr(dest),
+			tick=str(t),
+			exists="true" if ex else "false",
+		)
+		self._set_plans(edge_el, b, r, t)
+		return edge_el
+
+	def _edge_val_el(self, edge_val: EdgeValRowType) -> Element:
+		char, orig, dest, stat, b, r, t, val = edge_val
+		edge_val_el = Element(
+			"edge-val",
+			character=repr(char),
+			orig=repr(orig),
+			dest=repr(dest),
+			key=repr(stat),
+			tick=str(t),
+		)
+		edge_val_el.append(self._value_to_xml_el(val))
+		self._set_plans(edge_val_el, b, r, t)
+		return edge_val_el
+
+	def _thing_el(self, thing: ThingRowType) -> Element:
+		char, thing, b, r, t, loc = thing
+		loc_el = Element(
+			"location",
+			character=repr(char),
+			thing=repr(thing),
+			tick=str(t),
+			location=repr(loc),
+		)
+		self._set_plans(loc_el, b, r, t)
+		return loc_el
+
+	def _unit_el(self, unit: UnitRowType) -> Element:
+		char, graph, node, b, r, t, is_unit = unit
+		unit_el = Element(
+			"unit",
+			{
+				"character-graph": repr(char),
+				"unit-graph": repr(graph),
+				"unit-node": repr(node),
+				"tick": str(t),
+			},
+		)
+		unit_el.set("is-unit", "true" if is_unit else "false")
+		self._set_plans(unit_el, b, r, t)
+		return unit_el
+
+	def _char_rb_el(self, rbtyp: str, rbrow: CharRulebookRowType) -> Element:
+		char, b, r, t, rb = rbrow
+		chrbel = Element(
+			rbtyp,
+			character=repr(char),
+			tick=str(t),
+			rulebook=repr(rb),
+		)
+		self._set_plans(chrbel, b, r, t)
+		return chrbel
+
+	def _node_rb_el(self, nrb_row: NodeRulebookRowType) -> Element:
+		char, node, b, r, t, rb = nrb_row
+		nrb_el = Element(
+			"node-rulebook",
+			character=repr(char),
+			node=repr(node),
+			tick=str(t),
+			rulebook=repr(rb),
+		)
+		self._set_plans(nrb_el, b, r, t)
+		return nrb_el
+
+	def _portal_rb_el(self, port_rb_row: PortalRulebookRowType) -> Element:
+		char, orig, dest, b, r, t, rb = port_rb_row
+		porb_el = Element(
+			"portal-rulebook",
+			character=repr(char),
+			orig=repr(orig),
+			dest=repr(dest),
+			tick=str(t),
+			rulebook=repr(rb),
+		)
+		self._set_plans(porb_el, b, r, t)
+		return porb_el
+
+	def _fill_branch_element(
+		self,
+		branch_el: Element,
+		turn_ends: dict[Turn, tuple[Tick, Tick]],
+		keyframe_times: set[Time],
+		data: LoadedDict,
+	):
+		branch_ = branch_el.get("name")
+		if branch_ is None:
+			raise TypeError("branch missing")
+		branch = Branch(branch_)
+
+		uncharacterized = {
+			"graphs",
+			"universals",
+			"rulebooks",
+			"rule_triggers",
+			"rule_prereqs",
+			"rule_actions",
+			"rule_neighborhood",
+			"rule_big",
+			"character_rules_handled",
+			"unit_rules_handled",
+			"character_thing_rules_handled",
+			"character_place_rules_handled",
+			"character_portal_rules_handled",
+			"node_rules_handled",
+			"portal_rules_handled",
+		}
+		turn: Turn
+		for turn, (ending_tick, plan_ending_tick) in sorted(turn_ends.items()):
+			turn_el = Element(
+				"turn",
+				{
+					"number": str(turn),
+					"end-tick": str(ending_tick),
+					"plan-end-tick": str(plan_ending_tick),
+				},
+			)
+			branch_el.append(turn_el)
+			tick: Tick
+			for tick in range(plan_ending_tick + 1):
+				if (branch, turn, tick) in keyframe_times:
+					kf = self.get_keyframe(branch, turn, tick)
+					self._add_keyframe_to_turn_el(turn_el, tick, kf)
+					keyframe_times.remove((branch, turn, tick))
+				if data["universals"]:
+					universal_rec: UniversalRowType = data["universals"][0]
+					key, branch_now, turn_now, tick_now, _ = universal_rec
+					if (branch_now, turn_now, tick_now) == (
+						branch,
+						turn,
+						tick,
+					):
+						univ_el = self._univ_el(universal_rec)
+						turn_el.append(univ_el)
+						del data["universals"][0]
+				if data["rulebooks"]:
+					rulebook_rec: RulebookRowType = data["rulebooks"][0]
+					rulebook, branch_now, turn_now, tick_now, _ = rulebook_rec
+					if (branch_now, turn_now, tick_now) == (
+						branch,
+						turn,
+						tick,
+					):
+						rulebook_el = self._rulebook_el(rulebook_rec)
+						turn_el.append(rulebook_el)
+						del data["rulebooks"][0]
+				if data["graphs"]:
+					graph_rec: GraphRowType = data["graphs"][0]
+					_, branch_now, turn_now, tick_now, _ = graph_rec
+					if (branch_now, turn_now, tick_now) == (
+						branch,
+						turn,
+						tick,
+					):
+						graph_el = self._graph_el(graph_rec)
+						turn_el.append(graph_el)
+						del data["graphs"][0]
+				if (
+					"rule_triggers" in data
+					and data["rule_triggers"]
+					and data["rule_triggers"][0][1:4]
+					== (
+						branch,
+						turn,
+						tick,
+					)
+				):
+					trel = self._rule_triggers_el(data["rule_triggers"].pop(0))
+					turn_el.append(trel)
+				if (
+					"rule_prereqs" in data
+					and data["rule_prereqs"]
+					and data["rule_prereqs"][0][1:4]
+					== (
+						branch,
+						turn,
+						tick,
+					)
+				):
+					prel = self._rule_prereqs_el(data["rule_prereqs"].pop(0))
+					turn_el.append(prel)
+				if (
+					"rule_actions" in data
+					and data["rule_actions"]
+					and data["rule_actions"][0][1:4]
+					== (
+						branch,
+						turn,
+						tick,
+					)
+				):
+					actel = self._rule_actions_el(data["rule_actions"].pop(0))
+					turn_el.append(actel)
+				if (
+					"rule_neighborhood" in data
+					and data["rule_neighborhood"]
+					and data["rule_neighborhood"][0][1:4]
+					== (branch, turn, tick)
+				):
+					nbrel = self._rule_neighborhood_el(
+						data["rule_neighborhood"].pop(0)
+					)
+					turn_el.append(nbrel)
+				if (
+					"rule_big" in data
+					and data["rule_big"]
+					and data["rule_big"][0][1:4]
+					== (
+						branch,
+						turn,
+						tick,
+					)
+				):
+					big_el = self._rule_big_el(data["rule_big"].pop(0))
+					turn_el.append(big_el)
+				for char_name in data.keys() - uncharacterized:
+					char_data: LoadedCharWindow = data[char_name]
+					if char_data["graph_val"]:
+						graph_val_row: GraphValRowType = char_data[
+							"graph_val"
+						][0]
+						_, __, b, r, t, ___ = graph_val_row
+						if (b, r, t) == (branch, turn, tick):
+							gvel = self._graph_val_el(graph_val_row)
+							turn_el.append(gvel)
+							del char_data["graph_val"][0]
+					if char_data["nodes"]:
+						nodes_row: NodeRowType = char_data["nodes"][0]
+						char, node, branch_now, turn_now, tick_now, ex = (
+							nodes_row
+						)
+						if (branch_now, turn_now, tick_now) == (
+							branch,
+							turn,
+							tick,
+						):
+							nel = self._nodes_el(nodes_row)
+							turn_el.append(nel)
+							del char_data["nodes"][0]
+					if char_data["node_val"]:
+						node_val_row: NodeValRowType = char_data["node_val"][0]
+						(
+							char,
+							node,
+							stat,
+							branch_now,
+							turn_now,
+							tick_now,
+							val,
+						) = node_val_row
+						if (branch_now, turn_now, tick_now) == (
+							branch,
+							turn,
+							tick,
+						):
+							nvel = self._node_val_el(node_val_row)
+							turn_el.append(nvel)
+							del char_data["node_val"][0]
+					if char_data["edges"]:
+						edges_row: EdgeRowType = char_data["edges"][0]
+						_, __, ___, b, r, t, ____ = edges_row
+						if (b, r, t) == (branch, turn, tick):
+							edgel = self._edge_el(edges_row)
+							turn_el.append(edgel)
+							del char_data["edges"][0]
+					if char_data["edge_val"]:
+						edge_val_row: EdgeValRowType = char_data["edge_val"][0]
+						_, __, ___, ____, b, r, t, _____ = edge_val_row
+						if (b, r, t) == (branch, turn, tick):
+							evel = self._edge_val_el(edge_val_row)
+							turn_el.append(evel)
+							del char_data["edge_val"][0]
+					if char_data["things"]:
+						thing_row: ThingRowType = char_data["things"][0]
+						_, __, b, r, t, ___ = thing_row
+						if (b, r, t) == (branch, turn, tick):
+							thel = self._thing_el(thing_row)
+							turn_el.append(thel)
+							del char_data["things"][0]
+					if char_data["units"]:
+						units_row: UnitRowType = char_data["units"][0]
+						_, __, ___, b, r, t, ____ = units_row
+						if (b, r, t) == (branch, turn, tick):
+							unit_el = self._unit_el(units_row)
+							turn_el.append(unit_el)
+							del char_data["units"][0]
+					for char_rb_typ in (
+						"character_rulebook",
+						"unit_rulebook",
+						"character_thing_rulebook",
+						"character_place_rulebook",
+						"character_portal_rulebook",
+					):
+						if char_data[char_rb_typ]:
+							char_rb_row: CharRulebookRowType = char_data[
+								char_rb_typ
+							][0]
+							_, b, r, t, __ = char_rb_row
+							if (b, r, t) == (branch, turn, tick):
+								crbel = self._char_rb_el(
+									char_rb_typ.replace("_", "-"),
+									char_rb_row,
+								)
+								turn_el.append(crbel)
+								del char_data[char_rb_typ][0]
+					if char_data["node_rulebook"]:
+						node_rb_row: NodeRulebookRowType = char_data[
+							"node_rulebook"
+						][0]
+						_, __, b, r, t, ___ = node_rb_row
+						if (b, r, t) == (branch, turn, tick):
+							nrbel = self._node_rb_el(node_rb_row)
+							turn_el.append(nrbel)
+							del char_data["node_rulebook"][0]
+					if char_data["portal_rulebook"]:
+						port_rb_row: PortalRulebookRowType = char_data[
+							"portal_rulebook"
+						][0]
+						_, __, ___, b, r, t, ____ = port_rb_row
+						if (b, r, t) == (branch, turn, tick):
+							porbel = self._portal_rb_el(port_rb_row)
+							turn_el.append(porbel)
+							del char_data["portal_rulebook"][0]
+		for k in uncharacterized:
+			if k in data:
+				assert not data[k]
+		for char_name in data.keys() - uncharacterized:
+			for k, v in data[char_name].items():
+				assert not v, f"Leftover data in {char_name}'s {k}: {v}"
+		assert not keyframe_times, keyframe_times
+
+	@cached_property
+	def _known_triggers(
+		self,
+	) -> dict[
+		RuleName,
+		dict[
+			Branch,
+			SettingsTurnDict[Turn, WindowDict[Tick, list[TriggerFuncName]]],
+		],
+	]:
+		return {}
+
+	@cached_property
+	def _known_prereqs(
+		self,
+	) -> dict[
+		RuleName,
+		dict[
+			Branch,
+			SettingsTurnDict[Turn, WindowDict[Tick, list[PrereqFuncName]]],
+		],
+	]:
+		return {}
+
+	@cached_property
+	def _known_actions(
+		self,
+	) -> dict[
+		RuleName,
+		dict[
+			Branch,
+			SettingsTurnDict[Turn, WindowDict[Tick, list[ActionFuncName]]],
+		],
+	]:
+		return {}
+
+	@cached_property
+	def _known_neighborhoods(
+		self,
+	) -> dict[
+		RuleName,
+		dict[
+			Branch, SettingsTurnDict[Turn, WindowDict[Tick, RuleNeighborhood]]
+		],
+	]:
+		return {}
+
+	@cached_property
+	def _known_big(
+		self,
+	) -> dict[
+		RuleName,
+		dict[Branch, SettingsTurnDict[Turn, WindowDict[Tick, RuleBig]]],
+	]:
+		return {}
+
+	@cached_property
+	def _plan_times(self) -> dict[Plan, set[Time]]:
+		return {}
+
+	def _element_to_value(
+		self, el: Element
+	) -> (
+		Value
+		| list[Value]
+		| tuple[Value, ...]
+		| set[Key | type(...)]
+		| frozenset[Key | type(...)]
+		| dict[Key, Value | type(...)]
+		| type(...)
+	):
+		eng = self.engine
+		match el.tag:
+			case "Ellipsis":
+				return ...
+			case "None":
+				return Value(None)
+			case "int":
+				return Value(int(el.get("value")))
+			case "float":
+				return Value(float(el.get("value")))
+			case "str":
+				return Value(el.get("value"))
+			case "bool":
+				return Value(el.get("value") in {"T", "true"})
+			case "character":
+				name = CharName(literal_eval(el.get("name")))
+				return eng.character[name]
+			case "node":
+				char_name = CharName(literal_eval(el.get("character")))
+				place_name = NodeName(literal_eval(el.get("name")))
+				return eng.character[char_name].node[place_name]
+			case "portal":
+				char_name = CharName(literal_eval(el.get("character")))
+				orig = NodeName(literal_eval(el.get("origin")))
+				dest = NodeName(literal_eval(el.get("destination")))
+				return eng.character[char_name].portal[orig][dest]
+			case "list":
+				return [self._element_to_value(listel) for listel in el]
+			case "tuple":
+				return tuple(self._element_to_value(tupel) for tupel in el)
+			case "set":
+				return {self._element_to_value(setel) for setel in el}
+			case "frozenset":
+				return frozenset(self._element_to_value(setel) for setel in el)
+			case "dict":
+				ret = {}
+				for dict_item_el in el:
+					ret[literal_eval(dict_item_el.get("key"))] = (
+						self._element_to_value(dict_item_el[0])
+					)
+				return ret
+			case "exception":
+				raise NotImplementedError(
+					"Deserializing exceptions from XML not implemented"
+				)
+			case s if s in {
+				"trigger",
+				"prereq",
+				"action",
+				"function",
+				"method",
+			}:
+				return getattr(getattr(eng, s), el.get("name"))
+			case default:
+				raise ValueError("Can't deserialize the element", default)
+
+	@staticmethod
+	def _get_time(branch_el: Element, turn_el: Element, el: Element) -> Time:
+		ret = (
+			Branch(branch_el.get("name")),
+			Turn(int(turn_el.get("number"))),
+			Tick(int(el.get("tick"))),
+		)
+		if not isinstance(ret[0], str):
+			raise TypeError("nonstring branch", ret[0])
+		return ret
+
+	def _keyframe(self, branch_el: Element, turn_el: Element, kf_el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, kf_el)
+		self.keyframe_insert(branch, turn, tick)
+		universal_kf: UniversalKeyframe = {}
+		triggers_kf: dict[RuleName, list[TriggerFuncName]] = {}
+		prereqs_kf: dict[RuleName, list[PrereqFuncName]] = {}
+		actions_kf: dict[RuleName, list[ActionFuncName]] = {}
+		neighborhoods_kf: dict[RuleName, RuleNeighborhood] = {}
+		bigs_kf: dict[RuleName, RuleBig] = {}
+		rule_kf: RuleKeyframe = {
+			"triggers": triggers_kf,
+			"prereqs": prereqs_kf,
+			"actions": actions_kf,
+			"neighborhood": neighborhoods_kf,
+			"big": bigs_kf,
+		}
+		rulebook_kf: dict[
+			RulebookName, tuple[list[RuleName], RulebookPriority]
+		] = {}
+		graph_val_kf: GraphValKeyframe = {}
+		node_val_kf: GraphNodeValKeyframe = {}
+		edge_val_kf: GraphEdgeValKeyframe = {}
+		for subel in kf_el:
+			if subel.tag == "universal":
+				for univel in subel:
+					k = literal_eval(univel.get("key"))
+					v = self._element_to_value(univel[0])
+					universal_kf[k] = v
+			elif subel.tag == "rule":
+				rule = RuleName(subel.get("name"))
+				if rule is None:
+					raise TypeError("Rules need names")
+				if "big" in subel.keys():
+					bigs_kf[rule] = RuleBig(subel.get("big") in {"T", "true"})
+				if "neighborhood" in subel.keys():
+					neighborhoods_kf[rule] = int(subel.get("neighborhood"))
+				else:
+					neighborhoods_kf[rule] = None
+				for funcl_el in subel:
+					name = FuncName(funcl_el.get("name"))
+					if not isinstance(name, str):
+						raise TypeError("Function name must be str", name)
+					if funcl_el.tag == "trigger":
+						if rule in triggers_kf:
+							triggers_kf[rule].append(TriggerFuncName(name))
+						else:
+							triggers_kf[rule] = [TriggerFuncName(name)]
+					elif funcl_el.tag == "prereq":
+						if rule in prereqs_kf:
+							prereqs_kf[rule].append(PrereqFuncName(name))
+						else:
+							prereqs_kf[rule] = [PrereqFuncName(name)]
+					elif funcl_el.tag == "action":
+						if rule in actions_kf:
+							actions_kf[rule].append(ActionFuncName(name))
+						else:
+							actions_kf[rule] = [ActionFuncName(name)]
+					else:
+						raise ValueError("Unknown rule tag", funcl_el.tag)
+			elif subel.tag == "rulebook":
+				name = subel.get("name")
+				if name is None:
+					raise TypeError("rulebook tag missing name")
+				name = literal_eval(name)
+				if not isinstance(name, Key):
+					raise TypeError("Rulebook name must be Key", name)
+				name = RulebookName(name)
+				prio = subel.get("priority")
+				if prio is None:
+					raise TypeError("rulebook tag missing priority")
+				prio = RulebookPriority(float(prio))
+				rules: list[RuleName] = []
+				for rule_el in subel:
+					if rule_el.tag != "rule":
+						raise ValueError("Expected a rule tag", rule_el.tag)
+					rules.append(RuleName(rule_el.get("name")))
+				rulebook_kf[name] = (rules, prio)
+			elif subel.tag == "character":
+				name = subel.get("name")
+				if name is None:
+					raise TypeError("character tag missing name")
+				name = literal_eval(name)
+				if not isinstance(name, Key):
+					raise TypeError("character names must be Key", name)
+				char_name = CharName(name)
+				if isinstance(self.engine, EngineFacade):
+					# Only needed for deserializing later entities.
+					# Real Engines don't require this, because they have the
+					# keyframe to work with.
+					self.engine.add_character(char_name)
+				graph_vals = graph_val_kf[char_name] = {}
+				for k in (
+					"character-rulebook",
+					"unit-rulebook",
+					"character-thing-rulebook",
+					"character-place-rulebook",
+					"character-portal-rulebook",
+				):
+					if k in subel.keys():
+						graph_vals[k.replace("-", "_")] = literal_eval(
+							subel.get(k)
+						)
+				node_vals = node_val_kf[char_name] = {}
+				edge_vals = edge_val_kf[char_name] = {}
+				for key_el in subel:
+					if key_el.tag == "dict-item":
+						key = literal_eval(key_el.get("key"))
+						graph_vals[key] = self._element_to_value(key_el[0])
+					elif key_el.tag == "node":
+						name = literal_eval(key_el.get("name"))
+						if isinstance(self.engine, EngineFacade):
+							self.engine.character[char_name].add_node(name)
+						if name in node_vals:
+							val = node_vals[name]
+						else:
+							val = node_vals[name] = {}
+						if "rulebook" in key_el.keys():
+							val["rulebook"] = literal_eval(
+								key_el.get("rulebook")
+							)
+						for item_el in key_el:
+							val[literal_eval(item_el.get("key"))] = (
+								self._element_to_value(item_el[0])
+							)
+					elif key_el.tag == "edge":
+						orig = literal_eval(key_el.get("orig"))
+						dest = literal_eval(key_el.get("dest"))
+						if isinstance(self.engine, EngineFacade):
+							self.engine.character[char_name].add_edge(
+								orig, dest
+							)
+						if orig not in edge_vals:
+							edge_vals[orig] = {dest: {}}
+						if dest not in edge_vals[orig]:
+							edge_vals[orig][dest] = {}
+						val = edge_vals[orig][dest]
+						if "rulebook" in key_el.keys():
+							val["rulebook"] = literal_eval(
+								key_el.get("rulebook")
+							)
+						for item_el in key_el:
+							val[literal_eval(item_el.get("key"))] = (
+								self._element_to_value(item_el[0])
+							)
+					elif key_el.tag == "units":
+						graph_vals["units"] = {}
+						for unit_graph_el in key_el:
+							unit_graph_name = literal_eval(
+								unit_graph_el.get("character")
+							)
+							unit_graph_nodes_d = graph_vals["units"][
+								unit_graph_name
+							] = {}
+							for unit_node_el in unit_graph_el:
+								unit_graph_nodes_d[
+									literal_eval(unit_node_el.get("node"))
+								] = True
+					else:
+						raise ValueError(
+							"Don't know how to deal with tag", key_el.tag
+						)
+			else:
+				raise ValueError("Don't know how to deal with tag", subel.tag)
+		self.keyframe_insert(branch, turn, tick)
+		self.keyframe_extension_insert(
+			branch, turn, tick, universal_kf, rule_kf, rulebook_kf
+		)
+		for graph in (
+			graph_val_kf.keys() | node_val_kf.keys() | edge_val_kf.keys()
+		):
+			self.keyframe_graph_insert(
+				graph,
+				branch,
+				turn,
+				tick,
+				node_val_kf.get(graph, {}),
+				edge_val_kf.get(graph, {}),
+				graph_val_kf.get(graph, {}),
+			)
+
+	def _universal(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		key = UniversalKey(literal_eval(el.get("key")))
+		value = self._element_to_value(el[0])
+		self.universal_set(key, branch, turn, tick, value)
+
+	def _get_plans(
+		self, el: Element, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		if "plans" in el.keys():
+			plan_id: Plan
+			for plan_id in map(int, el.get("plans").split(",")):
+				if plan_id in self._plan_times:
+					self._plan_times[plan_id].add((branch, turn, tick))
+				else:
+					self._plan_times[plan_id] = {(branch, turn, tick)}
+
+	def _rulebook(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		rulebook = RulebookName(literal_eval(el.get("name")))
+		priority = RulebookPriority(float(el.get("priority")))
+		rules: list[RuleName] = []
+		for subel in el:
+			if subel.tag != "rule":
+				raise ValueError("Don't know what to do with tag", subel.tag)
+			rules.append(RuleName(subel.get("name")))
+		self.set_rulebook(rulebook, branch, turn, tick, rules, priority)
+
+	def _rule_func_list(
+		self,
+		what: Literal["triggers", "prereqs", "actions"],
+		branch_el: Element,
+		turn_el: Element,
+		el: Element,
+	):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		rule = RuleName(el.get("rule"))
+		funcs: list[RuleFuncName] = [
+			RuleFuncName(func_el.get("name")) for func_el in el
+		]
+		self._memorize_rule(what, rule, branch, turn, tick, funcs)
+
+	def _memorize_rule(
+		self,
+		what: Literal["triggers", "prereqs", "actions", "neighborhood", "big"],
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		datum: list[TriggerFuncName]
+		| list[PrereqFuncName]
+		| list[ActionFuncName]
+		| RuleNeighborhood
+		| RuleBig,
+	):
+		if what == "triggers":
+			d = self._known_triggers
+		elif what == "prereqs":
+			d = self._known_prereqs
+		elif what == "actions":
+			d = self._known_actions
+		elif what == "neighborhood":
+			d = self._known_neighborhoods
+		elif what == "big":
+			d = self._known_big
+		else:
+			raise ValueError(what)
+		if rule in d:
+			if branch in d[rule]:
+				if turn in d[rule][branch]:
+					d[rule][branch][turn][tick] = datum
+				else:
+					d[rule][branch][turn] = {tick: datum}
+			else:
+				d[rule][branch] = SettingsTurnDict({turn: {tick: datum}})
+		else:
+			d[rule] = {branch: SettingsTurnDict({turn: {tick: datum}})}
+
+	_rule_triggers = partialmethod(_rule_func_list, "triggers")
+	_rule_prereqs = partialmethod(_rule_func_list, "prereqs")
+	_rule_actions = partialmethod(_rule_func_list, "actions")
+
+	def _rule_neighborhood(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		rule = RuleName(el.get("rule"))
+		neighborhood = el.get("neighbors")
+		if neighborhood is not None:
+			neighborhood = int(neighborhood)
+		self._memorize_rule(
+			"neighborhood",
+			rule,
+			branch,
+			turn,
+			tick,
+			neighborhood,
+		)
+
+	def _rule_big(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		big = RuleBig(el.get("big") in {"T", "true"})
+		rule = RuleName(el.get("rule"))
+		self._memorize_rule("big", rule, branch, turn, tick, big)
+
+	def _graph(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		graph = CharName(literal_eval(el.get("character")))
+		typ_str = el.get("type")
+		if typ_str is None:
+			raise TypeError("Missing graph type", el)
+		if typ_str not in get_args(GraphTypeStr):
+			raise TypeError("Unknown graph type", typ_str)
+		typ_str: GraphTypeStr
+		self.graphs_insert(graph, branch, turn, tick, typ_str)
+
+	def _graph_val(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		graph = CharName(literal_eval(el.get("character")))
+		key = Stat(literal_eval(el.get("key")))
+		value = self._element_to_value(el[0])
+		self.graph_val_set(graph, key, branch, turn, tick, value)
+
+	def _node(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		char = CharName(literal_eval(el.get("character")))
+		node = NodeName(literal_eval(el.get("name")))
+		ex = el.get("exists") in {"T", "true"}
+		self.exist_node(char, node, branch, turn, tick, ex)
+
+	def _node_val(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		char = CharName(literal_eval(el.get("character")))
+		node = NodeName(literal_eval(el.get("node")))
+		key = Stat(literal_eval(el.get("key")))
+		val = self._element_to_value(el[0])
+		self.node_val_set(char, node, key, branch, turn, tick, val)
+
+	def _edge(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		char = CharName(literal_eval(el.get("character")))
+		orig = NodeName(literal_eval(el.get("orig")))
+		dest = NodeName(literal_eval(el.get("dest")))
+		ex = el.get("exists") in {"T", "true"}
+		self.exist_edge(char, orig, dest, branch, turn, tick, ex)
+
+	def _edge_val(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		char = CharName(literal_eval(el.get("character")))
+		orig = NodeName(literal_eval(el.get("orig")))
+		dest = NodeName(literal_eval(el.get("dest")))
+		key = Stat(literal_eval(el.get("key")))
+		val = self._element_to_value(el[0])
+		self.edge_val_set(char, orig, dest, key, branch, turn, tick, val)
+
+	def _location(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		char = CharName(literal_eval(el.get("character")))
+		thing = NodeName(literal_eval(el.get("thing")))
+		location = NodeName(literal_eval(el.get("location")))
+		self.set_thing_loc(char, thing, branch, turn, tick, location)
+
+	def _unit(self, branch_el: Element, turn_el: Element, el: Element):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		char = CharName(literal_eval(el.get("character-graph")))
+		graph = CharName(literal_eval(el.get("unit-graph")))
+		node = NodeName(literal_eval(el.get("unit-node")))
+		self.unit_set(
+			char,
+			graph,
+			node,
+			branch,
+			turn,
+			tick,
+			el.get("is-unit", "false") in {"T", "true"},
+		)
+
+	def _some_character_rulebook(
+		self, branch_el: Element, turn_el: Element, rbtyp: str, el: Element
+	):
+		meth = getattr(self, f"set_{rbtyp}")
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		char = CharName(literal_eval(el.get("character")))
+		rb = RulebookName(literal_eval(el.get("rulebook")))
+		meth(char, branch, turn, tick, rb)
+
+	def _character_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		self._some_character_rulebook(
+			branch_el, turn_el, "character_rulebook", el
+		)
+
+	def _unit_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		self._some_character_rulebook(branch_el, turn_el, "unit_rulebook", el)
+
+	def _character_thing_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		self._some_character_rulebook(
+			branch_el, turn_el, "character_thing_rulebook", el
+		)
+
+	def _character_place_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		self._some_character_rulebook(
+			branch_el, turn_el, "character_place_rulebook", el
+		)
+
+	def _character_portal_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		self._some_character_rulebook(
+			branch_el, turn_el, "character_portal_rulebook", el
+		)
+
+	def _node_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		char = CharName(literal_eval(el.get("character")))
+		node = NodeName(literal_eval(el.get("node")))
+		rb = RulebookName(literal_eval(el.get("rulebook")))
+		self.set_node_rulebook(char, node, branch, turn, tick, rb)
+
+	def _portal_rulebook(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		char = CharName(literal_eval(el.get("character")))
+		orig = NodeName(literal_eval(el.get("orig")))
+		dest = NodeName(literal_eval(el.get("dest")))
+		rb = RulebookName(literal_eval(el.get("rulebook")))
+		self.set_portal_rulebook(char, orig, dest, branch, turn, tick, rb)
+
+	@classmethod
+	def _iter_descendants(
+		cls,
+		branch_descendants: dict[Branch, list[Branch]],
+		branch: Branch = "trunk",
+		stop=lambda obj: False,
+		key=None,
+	):
+		branch_descendants[branch].sort(key=key)
+		for desc in branch_descendants[branch]:
+			yield desc
+			if stop(desc):
+				continue
+			if desc in branch_descendants:
+				yield from cls._iter_descendants(branch_descendants, desc)
+
+	def _create_rule_from_etree(
+		self, rule: RuleName, branch: Branch, turn: Turn, tick: Tick
+	):
+		kwargs = {}
+		for mapping, kwarg in [
+			(self._known_triggers, "triggers"),
+			(self._known_prereqs, "prereqs"),
+			(self._known_actions, "actions"),
+			(self._known_neighborhoods, "neighborhood"),
+			(self._known_big, "big"),
+		]:
+			if (
+				rule in mapping
+				and branch in mapping[rule]
+				and turn in mapping[rule][branch]
+				and tick in mapping[rule][branch][turn]
+			):
+				kwargs[kwarg] = mapping[rule][branch][turn].pop(tick)
+		self.create_rule(rule, branch, turn, tick, **kwargs)
+
+	def load_etree(
+		self,
+		tree: ElementTree,
+	) -> None:
+		root = tree.getroot()
+		branch_descendants: dict[Branch, list[Branch]] = {Branch("trunk"): []}
+		branch_starts: dict[Branch, tuple[Turn, Tick]] = {}
+		if "_lisien_schema_version" in self.eternal:
+			if self.eternal["_lisien_schema_version"] != int(
+				root.get("db-schema-version")
+			):
+				raise RuntimeError("Incompatible database versions")
+		else:
+			self.eternal["_lisien_schema_version"] = int(
+				root.get("db-schema-version")
+			)
+		self.eternal["trunk"] = root.get("trunk")
+		self.eternal["branch"] = root.get("branch")
+		self.eternal["turn"] = int(root.get("turn"))
+		self.eternal["tick"] = int(root.get("tick"))
+		for el in root:
+			if el.tag == "language":
+				continue
+			if el.tag == "playtree":
+				for branch_el in el:
+					parent: Branch | None = branch_el.get("parent")
+					branch = Branch(branch_el.get("name"))
+					if parent is not None:
+						if parent in branch_descendants:
+							branch_descendants[parent].append(branch)
+						else:
+							branch_descendants[parent] = [branch]
+					start_turn = Turn(int(branch_el.get("start-turn")))
+					start_tick = Tick(int(branch_el.get("start-tick")))
+					branch_starts[branch] = (start_turn, start_tick)
+					end_turn = Turn(int(branch_el.get("end-turn")))
+					end_tick = Tick(int(branch_el.get("end-tick")))
+					self.set_branch(
+						branch,
+						parent,
+						start_turn,
+						start_tick,
+						end_turn,
+						end_tick,
+					)
+					if "last-turn-completed" in branch_el.keys():
+						last_completed_turn = Turn(
+							int(branch_el.get("last-turn-completed"))
+						)
+						self.query.complete_turn(
+							branch, last_completed_turn, False
+						)
+
+					for turn_el in branch_el:
+						turn = Turn(int(turn_el.get("number")))
+						end_tick = Tick(int(turn_el.get("end-tick")))
+						plan_end_tick = Tick(int(turn_el.get("plan-end-tick")))
+						self.query.set_turn(
+							branch, turn, end_tick, plan_end_tick
+						)
+						for elem in turn_el:
+							getattr(self, "_" + elem.tag.replace("-", "_"))(
+								branch_el, turn_el, elem
+							)
+				known_rules = (
+					self.known_triggers.keys()
+					| self.known_prereqs.keys()
+					| self.known_actions.keys()
+					| self.known_neighborhoods.keys()
+					| self.known_big.keys()
+				)
+				trunk = Branch(el.get("trunk"))
+				rules_created = set(self.rules_dump())
+				for rule in known_rules:
+					for mapp in [
+						self.known_triggers,
+						self.known_prereqs,
+						self.known_actions,
+						self.known_neighborhoods,
+						self.known_big,
+					]:
+						if rule not in mapp:
+							continue
+						if rule not in rules_created:
+							# Iterate depth first down the timestream, but no
+							# deeper than when the rule is first set.
+							# The game may have a rule by the same name
+							# created in many branches independently.
+							for branch in (
+								trunk,
+								*self._iter_descendants(
+									branch_descendants,
+									trunk,
+									mapp[rule].__contains__,
+									branch_starts.get,
+								),
+							):
+								turn, tick = mapp[rule][branch].start_time()
+								self._create_rule_from_etree(
+									rule, branch, turn, tick
+								)
+								rules_created.add(rule)
+				for mapp, setter in [
+					(
+						self.known_triggers,
+						self.set_rule_triggers,
+					),
+					(self.known_prereqs, self.set_rule_prereqs),
+					(self.known_actions, self.set_rule_actions),
+					(
+						self.known_neighborhoods,
+						self.query.set_rule_neighborhood,
+					),
+					(self.known_big, self.set_rule_big),
+				]:
+					for rule in mapp:
+						for branch in mapp[rule]:
+							for turn in mapp[rule][branch]:
+								# Turn and tick are guaranteed to be in
+								# chronological order here, because that's what
+								# a SettingsTurnDict does.
+								for tick, datum in mapp[rule][branch][
+									turn
+								].items():
+									setter(rule, branch, turn, tick, datum)
+				for plan, times in self.plan_times.items():
+					for branch, turn, tick in times:
+						self.plans_insert(plan, branch, turn, tick)
+			else:
+				k = literal_eval(el.get("key"))
+				v = self._element_to_value(el[0])
+				self.eternal[k] = v
+		self.commit()
+
+	def load_xml(self, xml_file_path: str | os.PathLike | IOBase):
+		self.load_etree(parse(xml_file_path))
 
 
 _T = TypeVar("_T")
@@ -2332,7 +4042,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		return {}
 
 	@cached_property
-	def _things(
+	def _things2set(
 		self,
 	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName], NodeName]:
 		return {}
@@ -2648,7 +4358,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			graph_val.append(
 				(g, k, b, turn, tick, self._graph_val[b, turn, tick, g, k])
 			)
-		for b, turn, tick, g, n in sort_set(self._things.keys()):
+		for b, turn, tick, g, n in sort_set(self._things2set.keys()):
 			if b != branch or not (
 				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
 			):
@@ -2656,7 +4366,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_d: LoadedCharWindow = ret[g]
 			things: list[ThingRowType] = char_d["things"]
 			things.append(
-				(g, n, b, turn, tick, self._things[b, turn, tick, g, n])
+				(g, n, b, turn, tick, self._things2set[b, turn, tick, g, n])
 			)
 		for b, turn, tick, g, n in sort_set(self._node_rulebook.keys()):
 			if b != branch or not (
@@ -3362,8 +5072,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		self,
 	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
 		with self._lock:
-			for b, r, t, g, n in sort_set(self._things.keys()):
-				yield g, n, b, r, t, self._things[b, r, t, g, n]
+			for b, r, t, g, n in sort_set(self._things2set.keys()):
+				yield g, n, b, r, t, self._things2set[b, r, t, g, n]
 
 	def units_dump(
 		self,
@@ -3386,16 +5096,16 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		with self._lock:
 			for key in {
 				(b, r, t, g, n)
-				for (b, r, t, g, n) in self._things
+				for (b, r, t, g, n) in self._things2set
 				if (b, r, t) == (branch, turn, tick)
 			}:
-				del self._things[key]
+				del self._things2set[key]
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		with self._lock:
 			yield from sorted(self._turns_completed.items())
 
-	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
+	def bookmarks_dump(self) -> Iterator[tuple[str, Time]]:
 		with self._lock:
 			yield from sort_set(self._bookmarks.items())
 
@@ -4211,7 +5921,10 @@ def window_getter(
 			raise RuntimeError("Expected beginning of " + table, got)
 		self._outq.task_done()
 		while isinstance(got := self._outq.get(), list):
-			ret[table].extend(starmap(partial(f, self, branch), got))
+			try:
+				ret[table].extend(starmap(partial(f, self, branch), got))
+			except TypeError as err:
+				raise TypeError(err.args[0], table, got[0]) from err
 			self._outq.task_done()
 		if got != (
 			"end",
