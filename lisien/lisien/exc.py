@@ -14,6 +14,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Exception classes for use in lisien."""
 
+import sys
+
+
+if sys.version_info.minor < 11:
+
+	class ExceptionGroup(Exception):
+		pass
+else:
+	# Just make it importable from here. Might not be necessary?
+	ExceptionGroup = ExceptionGroup
+
 
 class GraphNameError(KeyError):
 	"""For errors involving graphs' names"""

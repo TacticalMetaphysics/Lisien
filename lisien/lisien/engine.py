@@ -32,10 +32,10 @@ from collections import UserDict, defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
-import contextvars
 from functools import cached_property, partial, wraps
+from hashlib import blake2b
 from multiprocessing import get_all_start_methods
-from io import TextIOWrapper
+from io import TextIOWrapper, IOBase
 from itertools import chain, pairwise
 from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
 from operator import itemgetter, lt
@@ -46,6 +46,7 @@ from threading import Lock, RLock, Thread
 from time import sleep
 from types import FunctionType, MethodType, ModuleType
 from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Type
+from xml.etree.ElementTree import ElementTree
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import networkx as nx
@@ -88,6 +89,7 @@ from .cache import (
 	TurnEndPlanDict,
 	UnitnessCache,
 	UnitRulesHandledCache,
+	Cache,
 )
 from .character import Character
 from .collections import (
@@ -106,15 +108,14 @@ from .db import (
 from .pqdb import ParquetDatabaseConnector
 from .sql import SQLAlchemyDatabaseConnector
 from .exc import (
+	ExceptionGroup,
 	GraphNameError,
 	HistoricKeyError,
 	KeyframeError,
 	OutOfTimelineError,
 	RedundantRuleError,
 )
-from .exporter import Exporter
 from .facade import CharacterFacade
-from .importer import xml_to_pqdb, xml_to_sqlite
 from .node import Place, Thing
 from .portal import Portal
 from .proxy.routine import worker_subprocess, worker_subthread
@@ -209,11 +210,6 @@ from .window import (
 	update_window,
 )
 from .wrap import OrderlyFrozenSet, OrderlySet
-
-if sys.version_info.minor < 11:
-
-	class ExceptionGroup(Exception):
-		pass
 
 
 SUBPROCESS_TIMEOUT = 30
@@ -1253,8 +1249,6 @@ class Engine(AbstractEngine, Executor):
 	def _graph_state_hash(
 		self, nodes: NodeValDict, edges: EdgeValDict, vals: StatDict
 	) -> bytes:
-		from hashlib import blake2b
-
 		qpac = self.query.pack
 
 		if isinstance(qpac(" "), str):
@@ -7681,6 +7675,93 @@ class Engine(AbstractEngine, Executor):
 				xml_to_pqdb(xml_path, os.path.join(prefix, "world"))
 		return Engine(prefix, **kwargs)
 
+	def to_etree(self, name: str | None = None) -> ElementTree:
+		from base64 import b64encode
+		import json
+		from .collections import GROUP_SEP, REC_SEP
+
+		try:
+			from lxml.etree import ElementTree, Element
+		except ModuleNotFoundError:
+			from xml.etree.ElementTree import ElementTree, Element
+
+		if name is None:
+			if self._prefix:
+				name = os.path.basename(self._prefix)
+			else:
+				raise ValueError(
+					"Couldn't infer a name for the game. Please supply one."
+				)
+		self.commit()
+		game_history: ElementTree = self.query.to_etree(name)
+		lisien_el = game_history.getroot()
+		if self._prefix:
+			ls = os.listdir(self._prefix)
+			# Take the hash of code and strings--*not* the hash of their *files*--
+			# so that if the file gets reformatted, as often happens as a side effect
+			# of ast.parse and ast.unparse, this does not change its hash.
+			for modname in (
+				"function",
+				"method",
+				"trigger",
+				"prereq",
+				"action",
+			):
+				modpy = modname + ".py"
+				if modpy in ls:
+					srchash = FunctionStore(
+						os.path.join(self._prefix, modpy)
+					).blake2b()
+					lisien_el.set(modname, b64encode(srchash).decode("utf-8"))
+			strings_dir = os.path.join(self._prefix, "strings")
+			if (
+				"strings" in ls
+				and os.path.isdir(strings_dir)
+				and (langfiles := os.listdir(strings_dir))
+			):
+				for fn in langfiles:
+					langhash = blake2b()
+					with open(os.path.join(strings_dir, fn), "rb") as inf:
+						langlines = json.load(inf)
+					for k in sort_set(langlines.keys()):
+						langhash.update(k.encode())
+						langhash.update(GROUP_SEP)
+						langhash.update(langlines[k].encode())
+						langhash.update(REC_SEP)
+					if len(fn) > 5 and fn[-5:] == ".json":
+						fn = fn[:-5]
+					lisien_el.append(
+						Element(
+							"language",
+							code=fn,
+							blake2b=b64encode(langhash.digest()).decode(
+								"utf-8"
+							),
+						)
+					)
+		return game_history
+
+	def to_xml(
+		self,
+		xml_file_path: str | os.PathLike | io.IOBase,
+		indent: bool = True,
+		name: str | None = None,
+	) -> None:
+		if name is None and not self._prefix:
+			if isinstance(xml_file_path, IOBase):
+				raise ValueError(
+					"Couldn't infer a name for the game. Please supply one."
+				)
+			name = os.path.basename(xml_file_path)
+		tree = self.to_etree(name)
+		if indent:
+			try:
+				from lxml.etree import indent as indent_tree
+			except ModuleNotFoundError:
+				from xml.etree.ElementTree import indent as indent_tree
+			indent_tree(tree)
+		tree.write(xml_file_path, encoding="utf-8")
+
 	def export(
 		self,
 		name: str | None = None,
@@ -7699,7 +7780,7 @@ class Engine(AbstractEngine, Executor):
 		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
 			if self._prefix is not None:
 				with zf.open("world.xml", "w") as f:
-					Exporter(self.query, self).write_xml(f, name, indent)
+					self.query.write_xml(f, name, indent)
 			else:
 				self.error(
 					"No database to export from, so the exported world.xml will be empty"

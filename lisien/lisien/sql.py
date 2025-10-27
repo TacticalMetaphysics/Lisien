@@ -16,10 +16,9 @@ from .db import (
 	SCHEMAVER_B,
 	SCHEMA_VERSION_B,
 	mutexed,
-	ExceptionGroup,
 	GlobalKeyValueStore,
 )
-from .exc import KeyframeError
+from .exc import KeyframeError, ExceptionGroup
 from .types import (
 	Key,
 	Time,
