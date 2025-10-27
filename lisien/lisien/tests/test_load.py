@@ -137,9 +137,11 @@ def test_keyframe_load(db_noproxy):
 			)
 
 
-def test_keyframe_unload(tmp_path, execution, persistent_database):
+def test_keyframe_unload(tmp_path, serial_or_parallel, persistent_database):
 	# TODO: test edge cases involving tick-precise unloads
-	eng = partial(make_test_engine, tmp_path, execution, persistent_database)
+	eng = partial(
+		make_test_engine, tmp_path, serial_or_parallel, persistent_database
+	)
 	with eng() as orm:
 		g = orm.new_character("g", nx.grid_2d_graph(3, 3))
 		orm.next_turn()
