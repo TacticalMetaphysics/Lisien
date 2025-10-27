@@ -3962,7 +3962,7 @@ class RulesHandledCache(ABC):
 		key = (*entity, rulebook, branch, turn)
 		if key in self.handled:
 			rules_handled_this_turn = self.handled[key]
-			if rule in rules_handled_this_turn:
+			if not loading and rule in rules_handled_this_turn:
 				raise RuntimeError(
 					"Rule already run for same entity and rulebook",
 					entity,
@@ -3975,6 +3975,10 @@ class RulesHandledCache(ABC):
 			rules_handled_this_turn.add(rule)
 		else:
 			self.handled[key] = {rule}
+
+	def load(self, recs):
+		for rec in recs:
+			self.store(*rec, loading=True)
 
 	def remove_branch(self, branch: Branch):
 		if branch in self.handled_deep:
