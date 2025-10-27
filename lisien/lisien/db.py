@@ -2824,6 +2824,112 @@ class AbstractDatabaseConnector(ABC):
 		self._set_plans(porb_el, b, r, t)
 		return porb_el
 
+	@staticmethod
+	def _get_current_rule_el(data: dict) -> Element | None:
+		# Rules record the time they finished running, not the time they
+		# started. So we need to peek ahead to find out what the current
+		# rule is.
+		earliest = (float("inf"), float("inf"))
+		earliest_key = None
+		if data["character_rules_handled"]:
+			handled_at = data["character_rules_handled"][0][-2:]
+			if handled_at < earliest:
+				earliest = handled_at
+				earliest_key = "character_rules_handled"
+		if data["unit_rules_handled"]:
+			handled_at = data["unit_rules_handled"][0][-2:]
+			if handled_at < earliest:
+				earliest = handled_at
+				earliest_key = "unit_rules_handled"
+		if data["character_thing_rules_handled"]:
+			handled_at = data["character_thing_rules_handled"][0][-2:]
+			if handled_at < earliest:
+				earliest = handled_at
+				earliest_key = "character_thing_rules_handled"
+		if data["character_place_rules_handled"]:
+			handled_at = data["character_place_rules_handled"][0][-2:]
+			if handled_at < earliest:
+				earliest = handled_at
+				earliest_key = "character_place_rules_handled"
+		if data["character_portal_rules_handled"]:
+			handled_at = data["character_portal_rules_handled"][0][-2:]
+			if handled_at < earliest:
+				earliest = handled_at
+				earliest_key = "character_portal_rules_handled"
+		if data["node_rules_handled"]:
+			handled_at = data["node_rules_handled"][0][-2:]
+			if handled_at < earliest:
+				earliest = handled_at
+				earliest_key = "node_rules_handled"
+		if data["portal_rules_handled"]:
+			handled_at = data["portal_rules_handled"][0][-2:]
+			if handled_at < earliest:
+				earliest = handled_at
+				earliest_key = "portal_rules_handled"
+		if earliest_key is None:
+			return None
+		ret = Element(
+			"rule",
+			{"end-turn": str(earliest[0]), "end-tick": str(earliest[1])},
+		)
+		match earliest_key:
+			case "character_rules_handled":
+				char, rb, rule, b, r, t = data["character_rules_handled"].pop(
+					0
+				)
+				ret.set("type", "character")
+				ret.set("character", repr(char))
+				ret.set("rulebook", repr(rb))
+				ret.set("name", rule)
+			case "unit_rules_handled":
+				char, graph, unit, rb, rule, b, r, t = data[
+					"unit_rules_handled"
+				].pop(0)
+				ret.set("type", "unit")
+				ret.set("character", repr(char))
+				ret.set("graph", repr(graph))
+				ret.set("unit", repr(unit))
+				ret.set("rulebook", repr(rb))
+				ret.set("rule", rule)
+			case "character_thing_rules_handled":
+				char, thing, rb, rule, b, r, t = data[
+					"character_thing_rules_handled"
+				].pop(0)
+				ret.set("type", "character-thing")
+				ret.set("character", repr(char))
+				ret.set("thing", repr(thing))
+				ret.set("rulebook", repr(rb))
+				ret.set("rule", rule)
+			case "character_place_rules_handled":
+				char, place, rb, rule, b, r, t = data[
+					"character_place_rules_handled"
+				].pop(0)
+				ret.set("type", "character-place")
+				ret.set("character", repr(char))
+				ret.set("place", repr(place))
+				ret.set("rulebook", repr(rb))
+				ret.set("rule", rule)
+			case "character_portal_rules_handled":
+				char, orig, dest, rb, rule, b, r, t = data[
+					"character_portal_rules_handled"
+				].pop(0)
+				ret.set("type", "character-portal")
+				ret.set("character", repr(char))
+				ret.set("origin", repr(orig))
+				ret.set("destination", repr(dest))
+				ret.set("rulebook", repr(rb))
+				ret.set("rule", rule)
+			case "node_rules_handled":
+				char, node, rb, rule, b, r, t = data["node_rules_handled"].pop(
+					0
+				)
+				ret.set("type", "node")
+				ret.set("character", repr(char))
+				ret.set("node", repr(node))
+				ret.set("rulebook", repr(rb))
+				ret.set("rule", rule)
+		return ret
+
 	def _fill_branch_element(
 		self,
 		branch_el: Element,
@@ -2865,7 +2971,28 @@ class AbstractDatabaseConnector(ABC):
 			)
 			branch_el.append(turn_el)
 			tick: Tick
+			current_rule_el: Element | None = self._get_current_rule_el(data)
+			if current_rule_el is not None:
+				turn_el.append(current_rule_el)
+
+			def get_current_el() -> Element:
+				if current_rule_el is None:
+					return turn_el
+				return current_rule_el
+
 			for tick in range(plan_ending_tick + 1):
+				if current_rule_el is None:
+					current_rule_el = self._get_current_rule_el(data)
+					if current_rule_el is not None:
+						turn_el.append(current_rule_el)
+				# Loop over rules that didn't result in any changes, if needed
+				while current_rule_el is not None and (turn, tick) >= (
+					int(current_rule_el.get("end-turn")),
+					int(current_rule_el.get("end-tick")),
+				):
+					current_rule_el = self._get_current_rule_el(data)
+					if current_rule_el is not None:
+						turn_el.append(current_rule_el)
 				if (branch, turn, tick) in keyframe_times:
 					kf = self.get_keyframe(branch, turn, tick)
 					self._add_keyframe_to_turn_el(turn_el, tick, kf)
@@ -2879,7 +3006,7 @@ class AbstractDatabaseConnector(ABC):
 						tick,
 					):
 						univ_el = self._univ_el(universal_rec)
-						turn_el.append(univ_el)
+						get_current_el().append(univ_el)
 						del data["universals"][0]
 				if data["rulebooks"]:
 					rulebook_rec: RulebookRowType = data["rulebooks"][0]
@@ -2890,7 +3017,7 @@ class AbstractDatabaseConnector(ABC):
 						tick,
 					):
 						rulebook_el = self._rulebook_el(rulebook_rec)
-						turn_el.append(rulebook_el)
+						get_current_el().append(rulebook_el)
 						del data["rulebooks"][0]
 				if data["graphs"]:
 					graph_rec: GraphRowType = data["graphs"][0]
@@ -2901,7 +3028,7 @@ class AbstractDatabaseConnector(ABC):
 						tick,
 					):
 						graph_el = self._graph_el(graph_rec)
-						turn_el.append(graph_el)
+						get_current_el().append(graph_el)
 						del data["graphs"][0]
 				if (
 					"rule_triggers" in data
@@ -2914,7 +3041,7 @@ class AbstractDatabaseConnector(ABC):
 					)
 				):
 					trel = self._rule_triggers_el(data["rule_triggers"].pop(0))
-					turn_el.append(trel)
+					get_current_el().append(trel)
 				if (
 					"rule_prereqs" in data
 					and data["rule_prereqs"]
@@ -2926,7 +3053,7 @@ class AbstractDatabaseConnector(ABC):
 					)
 				):
 					prel = self._rule_prereqs_el(data["rule_prereqs"].pop(0))
-					turn_el.append(prel)
+					get_current_el().append(prel)
 				if (
 					"rule_actions" in data
 					and data["rule_actions"]
@@ -2938,7 +3065,7 @@ class AbstractDatabaseConnector(ABC):
 					)
 				):
 					actel = self._rule_actions_el(data["rule_actions"].pop(0))
-					turn_el.append(actel)
+					get_current_el().append(actel)
 				if (
 					"rule_neighborhood" in data
 					and data["rule_neighborhood"]
@@ -2948,7 +3075,7 @@ class AbstractDatabaseConnector(ABC):
 					nbrel = self._rule_neighborhood_el(
 						data["rule_neighborhood"].pop(0)
 					)
-					turn_el.append(nbrel)
+					get_current_el().append(nbrel)
 				if (
 					"rule_big" in data
 					and data["rule_big"]
@@ -2960,7 +3087,7 @@ class AbstractDatabaseConnector(ABC):
 					)
 				):
 					big_el = self._rule_big_el(data["rule_big"].pop(0))
-					turn_el.append(big_el)
+					get_current_el().append(big_el)
 				for char_name in data.keys() - uncharacterized:
 					char_data: LoadedCharWindow = data[char_name]
 					if char_data["graph_val"]:
@@ -2970,7 +3097,7 @@ class AbstractDatabaseConnector(ABC):
 						_, __, b, r, t, ___ = graph_val_row
 						if (b, r, t) == (branch, turn, tick):
 							gvel = self._graph_val_el(graph_val_row)
-							turn_el.append(gvel)
+							get_current_el().append(gvel)
 							del char_data["graph_val"][0]
 					if char_data["nodes"]:
 						nodes_row: NodeRowType = char_data["nodes"][0]
@@ -2983,7 +3110,7 @@ class AbstractDatabaseConnector(ABC):
 							tick,
 						):
 							nel = self._nodes_el(nodes_row)
-							turn_el.append(nel)
+							get_current_el().append(nel)
 							del char_data["nodes"][0]
 					if char_data["node_val"]:
 						node_val_row: NodeValRowType = char_data["node_val"][0]
@@ -3002,35 +3129,35 @@ class AbstractDatabaseConnector(ABC):
 							tick,
 						):
 							nvel = self._node_val_el(node_val_row)
-							turn_el.append(nvel)
+							get_current_el().append(nvel)
 							del char_data["node_val"][0]
 					if char_data["edges"]:
 						edges_row: EdgeRowType = char_data["edges"][0]
 						_, __, ___, b, r, t, ____ = edges_row
 						if (b, r, t) == (branch, turn, tick):
 							edgel = self._edge_el(edges_row)
-							turn_el.append(edgel)
+							get_current_el().append(edgel)
 							del char_data["edges"][0]
 					if char_data["edge_val"]:
 						edge_val_row: EdgeValRowType = char_data["edge_val"][0]
 						_, __, ___, ____, b, r, t, _____ = edge_val_row
 						if (b, r, t) == (branch, turn, tick):
 							evel = self._edge_val_el(edge_val_row)
-							turn_el.append(evel)
+							get_current_el().append(evel)
 							del char_data["edge_val"][0]
 					if char_data["things"]:
 						thing_row: ThingRowType = char_data["things"][0]
 						_, __, b, r, t, ___ = thing_row
 						if (b, r, t) == (branch, turn, tick):
 							thel = self._thing_el(thing_row)
-							turn_el.append(thel)
+							get_current_el().append(thel)
 							del char_data["things"][0]
 					if char_data["units"]:
 						units_row: UnitRowType = char_data["units"][0]
 						_, __, ___, b, r, t, ____ = units_row
 						if (b, r, t) == (branch, turn, tick):
 							unit_el = self._unit_el(units_row)
-							turn_el.append(unit_el)
+							get_current_el().append(unit_el)
 							del char_data["units"][0]
 					for char_rb_typ in (
 						"character_rulebook",
@@ -3049,7 +3176,7 @@ class AbstractDatabaseConnector(ABC):
 									char_rb_typ.replace("_", "-"),
 									char_rb_row,
 								)
-								turn_el.append(crbel)
+								get_current_el().append(crbel)
 								del char_data[char_rb_typ][0]
 					if char_data["node_rulebook"]:
 						node_rb_row: NodeRulebookRowType = char_data[
@@ -3058,7 +3185,7 @@ class AbstractDatabaseConnector(ABC):
 						_, __, b, r, t, ___ = node_rb_row
 						if (b, r, t) == (branch, turn, tick):
 							nrbel = self._node_rb_el(node_rb_row)
-							turn_el.append(nrbel)
+							get_current_el().append(nrbel)
 							del char_data["node_rulebook"][0]
 					if char_data["portal_rulebook"]:
 						port_rb_row: PortalRulebookRowType = char_data[
@@ -3067,7 +3194,7 @@ class AbstractDatabaseConnector(ABC):
 						_, __, ___, b, r, t, ____ = port_rb_row
 						if (b, r, t) == (branch, turn, tick):
 							porbel = self._portal_rb_el(port_rb_row)
-							turn_el.append(porbel)
+							get_current_el().append(porbel)
 							del char_data["portal_rulebook"][0]
 		for k in uncharacterized:
 			if k in data:
