@@ -3570,9 +3570,7 @@ class AbstractDatabaseConnector(ABC):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		rule = RuleName(el.get("rule"))
-		funcs: list[RuleFuncName] = [
-			RuleFuncName(func_el.get("name")) for func_el in el
-		]
+		funcs: list[RuleFuncName] = [func_el.get("name") for func_el in el]
 		self._memorize_rule(what, rule, branch, turn, tick, funcs)
 
 	def _memorize_rule(
