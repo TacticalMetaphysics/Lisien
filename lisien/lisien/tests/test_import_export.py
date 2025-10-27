@@ -253,7 +253,8 @@ def test_import_parquetdb(
 	pqdb_connector_under_test,
 	pqdb_connector_correct,
 ):
-	pqdb_connector_under_test.load_xml(engine_and_exported_xml)
+	_, xml = engine_and_exported_xml
+	pqdb_connector_under_test.load_xml(xml)
 	compare_engines_world_state(
 		pqdb_connector_correct, pqdb_connector_under_test
 	)
