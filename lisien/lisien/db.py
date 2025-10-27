@@ -5346,6 +5346,11 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def __init__(self):
 		pass
 
+	def echo(self, *args):
+		if len(args) == 1:
+			return args[0]
+		return args
+
 	def call(self, query_name: str, *args, **kwargs):
 		pass
 
