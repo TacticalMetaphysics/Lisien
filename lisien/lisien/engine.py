@@ -2220,6 +2220,8 @@ class Engine(AbstractEngine, Executor):
 				if connect_string is None:
 					self.query = PythonDatabaseConnector()
 				else:
+					from .sql import SQLAlchemyDatabaseConnector
+
 					self.query = SQLAlchemyDatabaseConnector(
 						connect_string,
 						connect_args or {},
