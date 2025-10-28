@@ -25,7 +25,7 @@ from collections import UserDict, defaultdict, deque
 from contextlib import contextmanager
 from dataclasses import dataclass, KW_ONLY
 from functools import cached_property, partial, wraps, partialmethod
-from io import IOBase
+from io import IOBase, StringIO
 from itertools import filterfalse, starmap
 from pathlib import Path
 from queue import Queue
@@ -2597,25 +2597,48 @@ class AbstractDatabaseConnector(ABC):
 						edge_el.append(item_el)
 						item_el.append(cls._value_to_xml_el(v))
 
+	def to_xml(self, name: str, indent: bool = True) -> str:
+		"""Return a string XML representation of the whole database
+
+		Use ``load_xml`` to load it later.
+
+		:param name: What to call the game in the XML.
+		:param indent: Whether to format the XML for human readers. Default
+			``True``.
+
+		"""
+		file = StringIO()
+		self.write_xml(file, name, indent)
+		return file.getvalue()
+
 	def write_xml(
 		self,
-		to: str | os.PathLike | IOBase,
-		name: str,
+		file: str | os.PathLike | IOBase,
+		name: str | None = None,
 		indent: bool = True,
 	) -> None:
-		if not isinstance(to, os.PathLike) and not isinstance(to, IOBase):
-			if to is None:
+		"""Serialize the whole database to an XML file
+
+		:param file: A file name, or a file object.
+		:param name: Optional name to give to the game in the XML. Defaults
+			to the name of the file, minus .xml extension.
+		:param indent: Whether to format the XML for a human reader. Default
+			``True``.
+
+		"""
+		if not isinstance(file, os.PathLike) and not isinstance(file, IOBase):
+			if file is None:
 				if name is None:
 					raise ValueError("Need a name or a path")
-				to = os.path.join(os.getcwd(), name + ".xml")
-			to = Path(to)
+				file = os.path.join(os.getcwd(), name + ".xml")
+			file = Path(file)
 		name = name.removesuffix(".xml")
 
 		tree = self.to_etree(name)
 
 		if indent:
 			indent_tree(tree)
-		tree.write(to, encoding="utf-8")
+		tree.write(file, encoding="utf-8")
 
 	def _set_plans(
 		self, el: Element, branch: Branch, turn: Turn, tick: Tick
@@ -4047,8 +4070,14 @@ class AbstractDatabaseConnector(ABC):
 				self.eternal[k] = v
 		self.commit()
 
-	def load_xml(self, xml_file_path: str | os.PathLike | IOBase):
-		self.load_etree(parse(xml_file_path))
+	def load_xml(self, xml_or_file_path: str | os.PathLike | IOBase):
+		"""Restore data from an XML export
+
+		Supports a string with the XML in it, a path to an XML file, or
+		a file object.
+
+		"""
+		self.load_etree(parse(xml_or_file_path))
 
 
 _T = TypeVar("_T")
@@ -4058,8 +4087,8 @@ _T = TypeVar("_T")
 class PythonDatabaseConnector(AbstractDatabaseConnector):
 	"""Database connector that holds all data in memory
 
-	You'll have to write it to disk yourself, somehow. Use `dump_everything`
-	to get all the data in a dictionary.
+	You'll have to write it to disk yourself. Use the ``write_xml`` method
+	for that, or
 
 	This does not start any threads, unlike the connectors that really
 	connect to databases, making it an appropriate choice if running in
