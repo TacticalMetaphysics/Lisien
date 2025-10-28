@@ -181,7 +181,7 @@ class StringStore(MutableMapping, Signal):
 		"""Write the current language to disk, and load the new one if available"""
 		if self._prefix is None:
 			if lang not in self._languages:
-				self._languages[lang] = {}
+				self._languages[lang] = TamperEvidentDict()
 			return
 		try:
 			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
