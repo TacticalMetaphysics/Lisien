@@ -13,7 +13,7 @@ def worker_subinterpreter(
 	prereq: dict | None,
 	action: dict | None,
 ):
-	from lisien.proxy.worker_subroutine import worker_subroutine
+	from lisien.proxy.routine import worker_subroutine
 
 	return worker_subroutine(
 		i,
