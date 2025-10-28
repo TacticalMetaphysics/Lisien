@@ -5812,9 +5812,6 @@ class Engine(AbstractEngine, Executor):
 		"""
 		if hasattr(self, "_closed"):
 			raise RuntimeError("Already closed")
-		time_was: tuple[Turn, Tick] = (self._oturn, self._otick)
-		if time_was > self._branch_end():
-			(self.turn, self.tick) = self._branch_end()
 		if (
 			self._keyframe_on_close
 			and self._btt() not in self._keyframes_times
@@ -5825,7 +5822,6 @@ class Engine(AbstractEngine, Executor):
 				)
 			else:
 				self.snap_keyframe(silent=True, update_worker_processes=False)
-		(self._oturn, self._otick) = time_was
 		for store in self.stores:
 			if hasattr(store, "save"):
 				store.save(reimport=False)
