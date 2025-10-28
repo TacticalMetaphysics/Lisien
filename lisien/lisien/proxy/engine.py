@@ -2010,7 +2010,7 @@ class AllRulesProxy(MutableMapping):
 def _finish_packing(pack, cmd, branch, turn, tick, mostly_bytes):
 	r = mostly_bytes
 	# 128 is the base value of the messagepack mapping header
-	resp = chr(128 + 5)
+	resp = (128 + 5).to_bytes(1)
 	resp += pack(cmd) + pack(branch) + pack(turn) + pack(tick)
 	if isinstance(r, dict):
 		resp += (128 + len(r)).to_bytes(1)
