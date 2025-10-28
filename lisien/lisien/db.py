@@ -5359,7 +5359,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		with self._lock:
 			for key in {
 				(b, r, t, g, n)
-				for (b, r, t, g, n) in self._things2set
+				for (b, r, t, g, n) in self._things
 				if (b, r, t) == (branch, turn, tick)
 			}:
 				del self._things2set[key]
