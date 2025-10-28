@@ -83,7 +83,7 @@ def tables(meta: MetaData):
 	Table(
 		"bookmarks",
 		meta,
-		Column("key", TEXT, primary_key=True),
+		Column("key", BLOB, primary_key=True),
 		Column("branch", TEXT, default="trunk"),
 		Column("turn", INT),
 		Column("tick", INT),
