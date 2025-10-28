@@ -2010,21 +2010,29 @@ class AllRulesProxy(MutableMapping):
 def _finish_packing(pack, cmd, branch, turn, tick, mostly_bytes):
 	def array_header(n) -> bytes:
 		if n <= 15:
-			return (0x90 + n).to_bytes(1)
+			return (0x90 + n).to_bytes(1, signed=False)
 		elif n <= 0xFFFF:
-			return (0xDC).to_bytes(1) + n.to_bytes(2)
+			return (0xDC).to_bytes(1, signed=False) + n.to_bytes(
+				2, signed=False
+			)
 		elif n <= 0xFFFFFFFF:
-			return (0xDD).to_bytes(1) + n.to_bytes(4)
+			return (0xDD).to_bytes(1, signed=False) + n.to_bytes(
+				4, signed=False
+			)
 		else:
 			raise ValueError("tuple is too large")
 
 	def map_header(n) -> bytes:
 		if n <= 15:
-			return (0x90 + n).to_bytes(1)
+			return (0x90 + n).to_bytes(1, signed=False)
 		elif n <= 0xFFFF:
-			return (0xDE).to_bytes(1) + n.to_bytes(2)
+			return (0xDE).to_bytes(1, signed=False) + n.to_bytes(
+				2, signed=False
+			)
 		elif n <= 0xFFFFFFFF:
-			return (0xDF).to_bytes(1) + n.to_bytes(4)
+			return (0xDF).to_bytes(1, signed=False) + n.to_bytes(
+				4, signed=False
+			)
 		else:
 			raise ValueError("dict is too large")
 
