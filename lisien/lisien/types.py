@@ -111,6 +111,10 @@ def is_valid_value(obj: _Value) -> TypeGuard[Value]:
 		or isinstance(obj, Edge)
 		or isinstance(obj, DiGraph)
 		or (
+			isinstance(obj, (list, ListWrapper))
+			and all(map(is_valid_value, obj))
+		)
+		or (
 			isinstance(obj, (dict, DictWrapper))
 			and all(map(is_valid_key, obj.keys()))
 			and all(map(is_valid_value, obj.values()))
