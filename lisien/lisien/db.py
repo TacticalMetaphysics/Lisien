@@ -6193,7 +6193,7 @@ def window_getter(
 			try:
 				ret[table].extend(starmap(partial(f, self, branch), got))
 			except TypeError as err:
-				raise TypeError(err.args[0], table, got[0]) from err
+				raise TypeError(*err.args, table, got[0]) from err
 			self._outq.task_done()
 		if got != (
 			"end",
