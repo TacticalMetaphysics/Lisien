@@ -74,20 +74,16 @@ from .types import (
 	DiGraph,
 	Edge,
 	EdgeValDict,
-	EternalKey,
 	GraphMapping,
 	Key,
 	LinearTime,
 	Node,
 	NodeName,
 	NodeValDict,
-	RulebookName,
-	RuleName,
 	Stat,
 	Tick,
 	Time,
 	Turn,
-	UniversalKey,
 	Value,
 	_Value,
 	_Key,
@@ -479,7 +475,7 @@ def fake_submit(func: callable, *args, **kwargs) -> FakeFuture:
 
 class AbstractBookmarkMapping(MutableMapping, Callable):
 	@abstractmethod
-	def __call__(self, key: Key) -> None: ...
+	def __call__(self, key: _Key) -> None: ...
 
 
 class AbstractEngine(ABC):
@@ -498,8 +494,8 @@ class AbstractEngine(ABC):
 	portal_cls: type
 	char_cls: type
 	character: Mapping[_Key, Type[char_cls]]
-	eternal: MutableMapping[_Key, Value]
-	universal: MutableMapping[_Key, Value]
+	eternal: MutableMapping[_Key, _Value]
+	universal: MutableMapping[_Key, _Value]
 	rulebook: MutableMapping[_Key, "RuleBook"]
 	rule: MutableMapping[_Key, "Rule"]
 	trunk: Branch
@@ -1469,8 +1465,8 @@ class AbstractThing(MutableMapping):
 
 	def follow_path(
 		self,
-		path: list[NodeName],
-		weight: Optional[Stat] = None,
+		path: list[_Key],
+		weight: Optional[_Key] = None,
 		check: bool = True,
 	) -> int:
 		"""Go to several nodes in succession, deciding how long to
@@ -1540,8 +1536,8 @@ class AbstractThing(MutableMapping):
 
 	def travel_to(
 		self,
-		dest: Node | NodeName,
-		weight: Optional[Stat] = None,
+		dest: Node | _Key,
+		weight: Optional[_Key] = None,
 		graph: nx.DiGraph = None,
 	) -> int:
 		"""Find the shortest path to the given node from where I am

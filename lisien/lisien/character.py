@@ -66,6 +66,8 @@ from .types import (
 	StatDict,
 	Tick,
 	Turn,
+	_Key,
+	_Value,
 )
 from .util import AbstractCharacter, getatt, singleton_get, timer
 from .wrap import MutableMappingUnwrapper, SpecialMapping
@@ -177,7 +179,7 @@ class RuleFollower(BaseRuleFollower):
 			self.character.name, branch, turn, tick, n
 		)
 
-	def __contains__(self, k: Key) -> bool:
+	def __contains__(self, k: _Key) -> bool:
 		return self.engine._active_rules_cache.contains_key(
 			self._get_rulebook_name(), *self.engine._btt()
 		)
@@ -307,7 +309,7 @@ class Character(AbstractCharacter, RuleFollower):
 				self.character.name, *self.engine._btt()
 			)
 
-		def __getitem__(self, thing: NodeName):
+		def __getitem__(self, thing: _Key):
 			if thing not in self:
 				raise KeyError("No such thing: {}".format(thing))
 			return self._make_thing(thing)
@@ -324,7 +326,7 @@ class Character(AbstractCharacter, RuleFollower):
 				th = cache[(self.name, thing)] = Thing(self.character, thing)
 			return th
 
-		def __setitem__(self, thing: NodeName, val: Mapping):
+		def __setitem__(self, thing: _Key, val: Mapping | dict):
 			if not isinstance(val, Mapping):
 				raise TypeError("Things are made from Mappings")
 			if "location" not in val:
@@ -352,7 +354,7 @@ class Character(AbstractCharacter, RuleFollower):
 			th.clear()
 			th.update({k: v for (k, v) in val.items() if k != "location"})
 
-		def __delitem__(self, thing: NodeName):
+		def __delitem__(self, thing: _Key):
 			self[thing].delete()
 
 		def __repr__(self):
@@ -427,14 +429,14 @@ class Character(AbstractCharacter, RuleFollower):
 				pass
 			return n
 
-		def __contains__(self, place: NodeName) -> bool:
+		def __contains__(self, place: _Key) -> bool:
 			nodes_contains, things_contains, charn, btt = self._contains_stuff
 			branch, turn, tick = btt()
 			return nodes_contains(
 				charn, place, branch, turn, tick
 			) and not things_contains(charn, place, branch, turn, tick)
 
-		def __getitem__(self, place: NodeName) -> Place:
+		def __getitem__(self, place: _Key) -> Place:
 			(nodes_contains, things_contains, charn, btt, cache, character) = (
 				self._get_stuff
 			)
@@ -450,7 +452,7 @@ class Character(AbstractCharacter, RuleFollower):
 				return ret
 			return cache[(charn, place)]
 
-		def __setitem__(self, place: NodeName, v: Place | StatDict):
+		def __setitem__(self, place: _Key, v: Place | Mapping | dict):
 			(node_exists, exist_node, get_node, charn, character) = (
 				self._set_stuff
 			)
@@ -462,7 +464,7 @@ class Character(AbstractCharacter, RuleFollower):
 				)
 			pl.update(v)
 
-		def __delitem__(self, place: NodeName):
+		def __delitem__(self, place: _Key):
 			self[place].delete()
 
 		def __repr__(self):
@@ -498,20 +500,20 @@ class Character(AbstractCharacter, RuleFollower):
 			)
 			self._placemap = character.place
 
-		def __contains__(self, k: NodeName):
+		def __contains__(self, k: _Key):
 			node_exists, charn = self._contains_stuff
 			return node_exists(charn, k)
 
-		def __getitem__(self, k: NodeName) -> Thing | Place:
+		def __getitem__(self, k: _Key) -> Thing | Place:
 			node_exists, charn, get_node, character = self._getitem_stuff
 			if not node_exists(charn, k):
 				raise KeyError("No such node: " + str(k))
 			return get_node(character, k)
 
-		def __setitem__(self, k: NodeName, v: Place | StatDict):
+		def __setitem__(self, k: _Key, v: Place | Mapping | dict):
 			self._placemap[k] = v
 
-		def __delitem__(self, k: NodeName):
+		def __delitem__(self, k: _Key):
 			(node_exists, charn, is_thing, thingmap, placemap) = (
 				self._delitem_stuff
 			)
@@ -550,7 +552,7 @@ class Character(AbstractCharacter, RuleFollower):
 		def _get_rulebook_cache(self):
 			return self._cporh
 
-		def __getitem__(self, orig: NodeName) -> Successors:
+		def __getitem__(self, orig: _Key) -> Successors:
 			node_exists, charn, cache = self._getitem_stuff
 			if node_exists(charn, orig):
 				if orig not in cache:
@@ -558,7 +560,7 @@ class Character(AbstractCharacter, RuleFollower):
 				return cache[orig]
 			raise KeyError("No such node")
 
-		def __delitem__(self, orig):
+		def __delitem__(self, orig: _Key):
 			super().__delitem__(orig)
 
 		def update(self, other: EdgeValDict, **kwargs):
@@ -711,14 +713,14 @@ class Character(AbstractCharacter, RuleFollower):
 					engine._nbtt,
 				)
 
-			def __getitem__(self, dest: NodeName) -> Portal:
+			def __getitem__(self, dest: _Key) -> Portal:
 				get_edge, graph, orig = self._getitem_stuff
 				if dest in self:
 					return get_edge(graph, orig, dest)
 				raise KeyError("No such portal", graph, orig, dest)
 
 			def __setitem__(
-				self, dest: NodeName, value: Portal | StatDict | ...
+				self, dest: _Key, value: Portal | Mapping | dict | type(...)
 			):
 				if value is ...:
 					del self[dest]
@@ -744,13 +746,15 @@ class Character(AbstractCharacter, RuleFollower):
 						charn, orig, dest, k, branch, turn, tick, v
 					)
 
-			def __delitem__(self, dest: NodeName):
+			def __delitem__(self, dest: _Key):
 				if dest not in self:
 					raise KeyError("No portal to {}".format(dest))
 				self[dest].delete()
 
 			def update(
-				self, other: dict[NodeName, StatDict] | None = None, **kwargs
+				self,
+				other: dict[_Key, dict[_Key, _Value]] | None = None,
+				**kwargs,
 			):
 				kwargs: dict[NodeName, StatDict]
 				if other is ...:
@@ -870,7 +874,7 @@ class Character(AbstractCharacter, RuleFollower):
 				if graph in self:
 					yield graph
 
-		def __contains__(self, k: NodeName):
+		def __contains__(self, k: _Key):
 			retrieve, charn, btt = self._contains_stuff
 			got = retrieve(charn, k, *btt())
 			return got is not ... and not isinstance(got, Exception)
@@ -972,7 +976,7 @@ class Character(AbstractCharacter, RuleFollower):
 					if validate(name, graphn, unit, *btt()):
 						yield unit
 
-			def __contains__(self, av: NodeName):
+			def __contains__(self, av: _Key):
 				base_retrieve, name, graphn, btt = self._contains_stuff
 				return (
 					base_retrieve(
@@ -994,7 +998,7 @@ class Character(AbstractCharacter, RuleFollower):
 						n += 1
 				return n
 
-			def __getitem__(self, av: NodeName) -> Place | Thing:
+			def __getitem__(self, av: _Key) -> Place | Thing:
 				(
 					get_char_graph_avs,
 					unitness_cache_has,
@@ -1046,31 +1050,31 @@ class Character(AbstractCharacter, RuleFollower):
 		"""
 		return CharacterFacade(character=self)
 
-	def add_place(self, node_for_adding: NodeName, **attr):
+	def add_place(self, node_for_adding: _Keey, **attr):
 		"""Add a new Place"""
 		attr: StatDict
 		self.place[node_for_adding] = attr
 
-	def add_places_from(self, seq: Iterable[NodeName], **attrs):
+	def add_places_from(self, seq: Iterable[_Key], **attrs):
 		attrs: StatDict
 		for place in seq:
 			self.add_place(place, **attrs)
 
-	def remove_place(self, place: NodeName) -> None:
+	def remove_place(self, place: _Key) -> None:
 		"""Remove an existing Place"""
 		if place in self.place:
 			self.remove_node(place)
 		else:
 			raise KeyError("No such place: {}".format(place))
 
-	def remove_thing(self, thing: NodeName) -> None:
+	def remove_thing(self, thing: _Key) -> None:
 		"""Remove an existing Thing"""
 		if thing in self.thing:
 			self.remove_node(thing)
 		else:
 			raise KeyError("No such thing: {}".format(thing))
 
-	def add_thing(self, name: NodeName, location: NodeName, **kwargs):
+	def add_thing(self, name: _Key, location: _Key, **kwargs):
 		"""Make a new Thing and set its location"""
 		kwargs: StatDict
 		if name in self.thing:
@@ -1090,7 +1094,7 @@ class Character(AbstractCharacter, RuleFollower):
 	def add_things_from(
 		self,
 		seq: Iterable[
-			tuple[NodeName, NodeName] | tuple[NodeName, NodeName, StatDict]
+			tuple[_Key, _Key] | tuple[_Key, _Key, dict[_Key, _Value]]
 		],
 		**attrs,
 	) -> None:
@@ -1102,7 +1106,7 @@ class Character(AbstractCharacter, RuleFollower):
 			kwargs = tup[2] if len(tup) > 2 else attrs
 			self.add_thing(name, location, **kwargs)
 
-	def place2thing(self, name: NodeName, location: NodeName) -> None:
+	def place2thing(self, name: _Key, location: _Key) -> None:
 		"""Turn a Place into a Thing with the given location.
 
 		It will keep all its attached Portals.
@@ -1118,7 +1122,7 @@ class Character(AbstractCharacter, RuleFollower):
 				port.destination = thing
 			self.engine._node_objs[self.name, name] = thing
 
-	def thing2place(self, name: NodeName) -> None:
+	def thing2place(self, name: _Key) -> None:
 		"""Unset a Thing's location, and thus turn it into a Place."""
 		self.engine._set_thing_loc(self.name, name, None)
 		if (self.name, name) in self.engine._node_objs:
@@ -1130,9 +1134,7 @@ class Character(AbstractCharacter, RuleFollower):
 				port.destination = place
 			self.engine._node_objs[self.name, name] = place
 
-	def add_portal(
-		self, origin: NodeName, destination: NodeName, **kwargs
-	) -> None:
+	def add_portal(self, origin: _Key, destination: _Key, **kwargs) -> None:
 		"""Connect the origin to the destination with a :class:`Portal`.
 
 		Keyword arguments are attributes of the :class:`Portal`.
@@ -1163,15 +1165,19 @@ class Character(AbstractCharacter, RuleFollower):
 				self.name, origin, destination, k, branch, turn, tick, v
 			)
 
-	def new_portal(
-		self, origin: NodeName, destination: NodeName, **kwargs
-	) -> Portal:
+	def new_portal(self, origin: _Key, destination: _Key, **kwargs) -> Portal:
 		"""Create a portal and return it"""
 		kwargs: StatDict
 		self.add_portal(origin, destination, **kwargs)
 		return self.engine._get_edge(self, origin, destination)
 
-	def add_portals_from(self, seq, **kwargs):
+	def add_portals_from(
+		self,
+		seq: Iterable[
+			tuple[_Key, _Key] | tuple[_Key, _Key, dict[_Key, _Value]]
+		],
+		**kwargs,
+	):
 		"""Make portals for a sequence of (origin, destination) pairs
 
 		Actually, triples are acceptable too, in which case the third
@@ -1185,8 +1191,8 @@ class Character(AbstractCharacter, RuleFollower):
 
 	def add_unit(
 		self,
-		a: Place | Thing | Character | CharName,
-		b: Place | Thing | NodeName | None = None,
+		a: Place | Thing | Character | _Key,
+		b: Place | Thing | _Key | None = None,
 	) -> None:
 		"""Start keeping track of a unit.
 
@@ -1242,8 +1248,8 @@ class Character(AbstractCharacter, RuleFollower):
 
 	def remove_unit(
 		self,
-		a: Place | Thing | Character | CharName,
-		b: Place | Thing | NodeName | None = None,
+		a: Place | Thing | Character | _Key,
+		b: Place | Thing | _Key | None = None,
 	):
 		"""This is no longer my unit, though it still exists"""
 		if self.engine._planning:
@@ -1273,7 +1279,7 @@ class Character(AbstractCharacter, RuleFollower):
 		for o in self.adj.values():
 			yield from o.values()
 
-	def historical(self, stat: Stat) -> UnitsAlias | CharacterStatAlias:
+	def historical(self, stat: _Key) -> UnitsAlias | CharacterStatAlias:
 		"""Get a historical view on the given stat
 
 		This functions like the value of the stat, but changes
