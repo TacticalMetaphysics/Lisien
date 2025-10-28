@@ -110,7 +110,6 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 			raise KeyError(f"{k} unset, and no underlying Thing")
 		ret = self._real[k]
 		if hasattr(ret, "unwrap"):  # a wrapped mutable object from the
-			# allegedb.wrap module
 			ret = ret.unwrap()
 			self._patch[k] = ret  # changes will be reflected in the
 		# facade but not the original

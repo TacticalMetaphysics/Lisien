@@ -1,3 +1,19 @@
+<!--
+This file is part of Lisien, a framework for life simulation games.
+Copyright (c) Zachary Spector, public@zacharyspector.com
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
 <lisien db-schema-version="2" xml-schema-version="2" trunk="trunk" branch="trunk" turn="1" tick="0" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" trigger="8zvNDTYY6LittqyfIU/+Ko8sJgQwMtArv3YbchKIWfGH2LzFMrhdcUjuS2IIzk0/J9ABgGR4FLOxz0gEOtL4CA==" prereq="LOVKNdnxowNiWFxOhkEdh0mh+n1UA17tYwDb2Ca+dbuLtMx+JchzyBrMpOuvzHiatLi6t+HnzYYj7iHhXt6Ncg==" action="dv8HKReu4jqvLnYy5YRAlnJ3QVz/sRGU1jWTfFei1BZLvTl0z6HXdsJJtFtFm8XTxcqPCBAE1RT2ZprPRGuy6w==">
   <playtree game="test_export" trunk="trunk">
     <branch name="trunk" start-turn="0" start-tick="0" end-turn="1" end-tick="113" last-turn-completed="1">
