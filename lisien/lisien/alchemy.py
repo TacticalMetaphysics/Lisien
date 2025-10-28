@@ -478,7 +478,7 @@ def tables(meta: MetaData):
 	# own stats and skill tree and social graph, and also has a location
 	# in physical space, you can represent this by creating a Thing in
 	# the Character that represents physical space, and then making that
-	# Thing an unit of Alice. On its own this doesn't do anything,
+	# Thing a unit of Alice. On its own this doesn't do anything,
 	# it's just a convenient way of indicating the relation -- but if
 	# you like, you can make rules that affect all units of some
 	# Character, irrespective of what Character the unit is actually
