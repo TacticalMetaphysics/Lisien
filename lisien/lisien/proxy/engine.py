@@ -40,7 +40,7 @@ from typing import (
 )
 
 import astor
-import msgpack
+import umsgpack
 import networkx as nx
 from blinker import Signal
 
@@ -2009,21 +2009,23 @@ class AllRulesProxy(MutableMapping):
 
 def _finish_packing(pack, cmd, branch, turn, tick, mostly_bytes):
 	r = mostly_bytes
-	resp = msgpack.Packer().pack_array_header(5)
+	# 128 is the base value of the messagepack mapping header
+	resp = chr(128 + 5)
 	resp += pack(cmd) + pack(branch) + pack(turn) + pack(tick)
 	if isinstance(r, dict):
-		resp += msgpack.Packer().pack_map_header(len(r))
+		resp += (128 + len(r)).to_bytes(1)
 		for k, v in r.items():
 			resp += k + v
 	elif isinstance(r, tuple):
-		pacr = msgpack.Packer()
-		pacr.pack_ext_type(
+		# 144 is the base value of the messagepack array header
+		ext = umsgpack.Ext(
 			MsgpackExtensionType.tuple.value,
-			msgpack.Packer().pack_array_header(len(r)) + b"".join(r),
+			(144 + len(r)).to_bytes(1) + b"".join(r),
 		)
-		resp += pacr.bytes()
+
+		resp += umsgpack.packb(ext)
 	elif isinstance(r, list):
-		resp += msgpack.Packer().pack_array_header(len(r)) + b"".join(r)
+		resp += (128 + len(r)).to_bytes(1, "little") + b"".join(r)
 	else:
 		resp += r
 	return resp

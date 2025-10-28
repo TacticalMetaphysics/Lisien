@@ -25,7 +25,7 @@ from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match
 from typing import Any, Callable, Iterable, Optional
 
-import msgpack
+import umsgpack
 import networkx as nx
 import tblib
 
@@ -94,7 +94,7 @@ FormerAndCurrentType = tuple[dict[bytes, bytes], dict[bytes, bytes]]
 
 def concat_d(r: dict[bytes, bytes]) -> bytes:
 	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
-	resp = msgpack.Packer().pack_map_header(len(r))
+	resp = (128 + len(r)).to_bytes(1)
 	for k, v in r.items():
 		resp += k + v
 	return resp
