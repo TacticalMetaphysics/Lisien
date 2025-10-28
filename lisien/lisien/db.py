@@ -522,6 +522,12 @@ class AbstractDatabaseConnector(ABC):
 			self._init_db()
 
 	def dump_everything(self) -> dict[str, list[tuple]]:
+		"""Return the whole database in a Python dictionary.
+
+		You should probably use ``to_xml`` instead, but this could be helpful
+		for debugging, or if you have your own ideas about serialization.
+
+		"""
 		self.flush()
 		return {
 			table: list(getattr(self, f"{table}_dump")())
