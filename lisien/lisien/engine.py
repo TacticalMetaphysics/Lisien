@@ -2400,14 +2400,6 @@ class Engine(AbstractEngine, Executor):
 			if hasattr(store, "save"):
 				store.save(reimport=False)
 
-		# To be shareable, the worker function must not use any globals.
-		for k in list(worker_subinterpreter.__globals__):
-			del worker_subinterpreter.__globals__[k]
-		# Nor defaults.
-		worker_subinterpreter.__defaults__ = None
-		if worker_subinterpreter.__kwdefaults__:
-			for k in list(worker_subinterpreter.__kwdefaults__):
-				del worker_subinterpreter.__kwdefaults__[k]
 		self._worker_last_eternal = eternal_d = dict(self.eternal.items())
 		branches_d = dict(self._branches_d)
 		initial_payload = self._get_worker_kf_payload()
