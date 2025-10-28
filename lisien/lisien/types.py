@@ -120,7 +120,7 @@ def is_valid_value(obj: _Value) -> TypeGuard[Value]:
 			and all(map(is_valid_value, obj.values()))
 		)
 		or (
-			isinstance(obj, (Set, Sequence))
+			isinstance(obj, (Set, Sequence, SetWrapper))
 			and isinstance(obj, Iterable)
 			and all(map(is_valid_value, obj))
 		)
