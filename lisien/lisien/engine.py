@@ -7437,6 +7437,9 @@ class Engine(AbstractEngine, Executor):
 		Call with ``unload=False`` if you want to keep the written state in memory.
 
 		"""
+		self.eternal["branch"] = self.branch
+		self.eternal["turn"] = self.turn
+		self.eternal["tick"] = self.tick
 		self.flush()
 		self.query.commit()
 		if unload:
