@@ -2008,24 +2008,42 @@ class AllRulesProxy(MutableMapping):
 
 
 def _finish_packing(pack, cmd, branch, turn, tick, mostly_bytes):
+	def array_header(n) -> bytes:
+		if n <= 15:
+			return (0x90 + n).to_bytes(1)
+		elif n <= 0xFFFF:
+			return (0xDC).to_bytes(1) + n.to_bytes(2)
+		elif n <= 0xFFFFFFFF:
+			return (0xDD).to_bytes(1) + n.to_bytes(4)
+		else:
+			raise ValueError("tuple is too large")
+
+	def map_header(n) -> bytes:
+		if n <= 15:
+			return (0x90 + n).to_bytes(1)
+		elif n <= 0xFFFF:
+			return (0xDE).to_bytes(1) + n.to_bytes(2)
+		elif n <= 0xFFFFFFFF:
+			return (0xDF).to_bytes(1) + n.to_bytes(4)
+		else:
+			raise ValueError("dict is too large")
+
 	r = mostly_bytes
-	# 128 is the base value of the messagepack mapping header
-	resp = (128 + 5).to_bytes(1)
-	resp += pack(cmd) + pack(branch) + pack(turn) + pack(tick)
+
+	resp = array_header(5) + pack(cmd) + pack(branch) + pack(turn) + pack(tick)
 	if isinstance(r, dict):
-		resp += (128 + len(r)).to_bytes(1)
+		resp += map_header(len(r))
 		for k, v in r.items():
 			resp += k + v
 	elif isinstance(r, tuple):
-		# 144 is the base value of the messagepack array header
 		ext = umsgpack.Ext(
 			MsgpackExtensionType.tuple.value,
-			(144 + len(r)).to_bytes(1) + b"".join(r),
+			array_header(len(r)) + b"".join(r),
 		)
 
 		resp += umsgpack.packb(ext)
 	elif isinstance(r, list):
-		resp += (128 + len(r)).to_bytes(1, "little") + b"".join(r)
+		resp += array_header(len(r)) + b"".join(r)
 	else:
 		resp += r
 	return resp
