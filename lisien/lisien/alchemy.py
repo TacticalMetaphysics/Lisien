@@ -458,8 +458,7 @@ def tables(meta: MetaData):
 	#
 	# "Portal" is lisien's term for an edge in any of the directed
 	# graphs it uses. The name is different to distinguish them from
-	# Edge objects, which exist in an underlying object-relational
-	# mapper called allegedb, and have a different API.
+	# Edge objects in networkx.
 	Table(
 		"portal_rulebook",
 		meta,

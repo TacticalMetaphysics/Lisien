@@ -1,4 +1,4 @@
-# This file is part of Elide, frontend to Lisien, a framework for life simulation games.
+# This file is part of Lisien, a framework for life simulation games.
 # Copyright (c) Zachary Spector, public@zacharyspector.com
 #
 # This program is free software: you can redistribute it and/or modify
