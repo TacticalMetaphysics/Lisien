@@ -90,6 +90,7 @@ from .types import (
 	UniversalKey,
 	Value,
 	_Value,
+	_Key,
 )
 from .wrap import SpecialMapping
 
@@ -496,11 +497,11 @@ class AbstractEngine(ABC):
 	place_cls: type
 	portal_cls: type
 	char_cls: type
-	character: Mapping[CharName, Type[char_cls]]
-	eternal: MutableMapping[EternalKey, Value]
-	universal: MutableMapping[UniversalKey, Value]
-	rulebook: MutableMapping[RulebookName, "RuleBook"]
-	rule: MutableMapping[RuleName, "Rule"]
+	character: Mapping[_Key, Type[char_cls]]
+	eternal: MutableMapping[_Key, Value]
+	universal: MutableMapping[_Key, Value]
+	rulebook: MutableMapping[_Key, "RuleBook"]
+	rule: MutableMapping[_Key, "Rule"]
 	trunk: Branch
 	branch: Branch
 	turn: Turn
@@ -1779,3 +1780,22 @@ class TimeSignalDescriptor:
 			turn_now=turn_now,
 			tick_now=tick_now,
 		)
+
+
+ILLEGAL_CHARACTER_NAMES = {
+	"graphs",
+	"universals",
+	"rulebooks",
+	"rule_triggers",
+	"rule_prereqs",
+	"rule_actions",
+	"rule_neighborhood",
+	"rule_big",
+	"character_rules_handled",
+	"unit_rules_handled",
+	"character_thing_rules_handled",
+	"character_place_rules_handled",
+	"character_portal_rules_handled",
+	"node_rules_handled",
+	"portal_rules_handled",
+}

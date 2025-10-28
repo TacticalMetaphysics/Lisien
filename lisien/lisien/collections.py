@@ -41,7 +41,7 @@ import astor
 import networkx as nx
 from blinker import Signal
 
-from .types import CharName, Key
+from .types import CharName, _Key
 from .util import AbstractEngine, dedent_source, getatt, sort_set
 from .wrap import wrapval
 
@@ -582,7 +582,7 @@ class CharacterMapping(MutableMapping, Signal):
 		except KeyError:
 			return False
 
-	def __getitem__(self, name: Key | CharName) -> "Character":
+	def __getitem__(self, name: _Key) -> "Character":
 		"""Return the named character, if it's been created.
 
 		Try to use the cache if possible.

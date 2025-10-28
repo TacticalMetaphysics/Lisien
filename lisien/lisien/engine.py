@@ -179,6 +179,7 @@ from .util import (
 	ELLIPSIS,
 	ETERNAL,
 	FALSE,
+	ILLEGAL_CHARACTER_NAMES,
 	NEIGHBORHOOD,
 	NODE_VAL,
 	NODES,
@@ -580,13 +581,6 @@ class Engine(AbstractEngine, Executor):
 	place_cls = node_cls = Place
 	portal_cls = edge_cls = Portal
 	entity_cls = char_cls | thing_cls | place_cls | portal_cls
-	illegal_graph_names = {
-		"global",
-		"eternal",
-		"universal",
-		"rulebooks",
-		"rules",
-	}
 	illegal_node_names = {"nodes", "node_val", "edges", "edge_val", "things"}
 	time = TimeSignalDescriptor()
 	trigger: FunctionStore
@@ -3716,7 +3710,7 @@ class Engine(AbstractEngine, Executor):
 		user_set_keyframe = {}
 		graphs: set[CharName] = (
 			set(self._graph_cache.iter_keys(*then)).union(delta.keys())
-			- self.illegal_graph_names
+			- ILLEGAL_CHARACTER_NAMES
 		)
 		for graph in graphs:
 			try:
@@ -3885,7 +3879,7 @@ class Engine(AbstractEngine, Executor):
 			kfd[branch][turn].add(tick)
 		inskf = self.query.keyframe_graph_insert
 		graphs_keyframe = {g: "DiGraph" for g in graph_val_keyframe}
-		for graph in graphs_keyframe.keys() - self.illegal_graph_names:
+		for graph in graphs_keyframe.keys() - ILLEGAL_CHARACTER_NAMES:
 			deltg = delta.get(graph, {})
 			if deltg is ...:
 				del graphs_keyframe[graph]
@@ -5198,7 +5192,7 @@ class Engine(AbstractEngine, Executor):
 		type_s: str = "DiGraph",
 		data: CharacterFacade | Graph | nx.Graph | dict | KeyframeTuple = None,
 	) -> None:
-		if name in self.illegal_graph_names:
+		if name in ILLEGAL_CHARACTER_NAMES:
 			raise GraphNameError("Illegal name")
 		branch, turn, tick = self._btt()
 		if (turn, tick) != (0, 0):
