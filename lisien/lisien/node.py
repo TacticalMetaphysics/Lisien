@@ -34,6 +34,7 @@ from .facade import FacadePlace, FacadeThing
 from .query import EntityStatAlias
 from .rule import RuleMapping
 from .types import (
+	_Key,
 	CharName,
 	Key,
 	NodeName,
@@ -112,7 +113,7 @@ class LeaderMapping(Mapping):
 			return True
 		return False
 
-	def __getitem__(self, k: CharName) -> "Character":
+	def __getitem__(self, k: lisien._Key) -> "Character":
 		ret = self.engine.character[k]
 		node = self.node
 		charn = node.character.name
@@ -177,13 +178,13 @@ class NodeContent(Mapping):
 		except KeyError:
 			return 0
 
-	def __contains__(self, item: NodeName) -> bool:
+	def __contains__(self, item: _Key) -> bool:
 		try:
 			return self.node.character.thing[item].location == self.node
 		except KeyError:
 			return False
 
-	def __getitem__(self, item: NodeName) -> "Thing":
+	def __getitem__(self, item: _Key) -> "Thing":
 		if item not in self:
 			raise KeyError
 		return self.node.character.thing[item]
@@ -222,11 +223,11 @@ class Dests(Mapping):
 			pass
 		return n
 
-	def __contains__(self, item) -> bool:
+	def __contains__(self, item: _Key) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_successor(charname, name, item, *btt())
 
-	def __getitem__(self, item) -> "Portal":
+	def __getitem__(self, item: _Key) -> "Portal":
 		portal, name = self._pn
 		return portal[name][item]
 
@@ -256,7 +257,7 @@ class Origs(Mapping):
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.iter_predecessors(charname, name, *btt())
 
-	def __contains__(self, item: NodeName) -> bool:
+	def __contains__(self, item: _Key) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_predecessor(charname, name, item, *btt())
 
@@ -267,7 +268,7 @@ class Origs(Mapping):
 			pass
 		return n
 
-	def __getitem__(self, item: NodeName) -> "Node":
+	def __getitem__(self, item: _Key) -> "Node":
 		if item not in self:
 			raise KeyError
 		portal, name = self._pn
@@ -294,7 +295,7 @@ class Portals(Set):
 			engine._btt,
 		)
 
-	def __contains__(self, x: NodeName) -> bool:
+	def __contains__(self, x: _Key) -> bool:
 		_, edges_cache, _, charname, name, btt_f = self._pecnb
 		btt = btt_f()
 		return edges_cache.has_predecessor(
@@ -353,7 +354,7 @@ class NeighborMapping(Mapping):
 			yield pred
 			seen.add(pred)
 
-	def __contains__(self, item: NodeName) -> bool:
+	def __contains__(self, item: _Key) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_predecessor(
 			charname, name, item, *btt()
@@ -362,7 +363,7 @@ class NeighborMapping(Mapping):
 	def __len__(self) -> int:
 		return len(set(iter(self)))
 
-	def __getitem__(self, item: NodeName) -> "Node":
+	def __getitem__(self, item: _Key) -> "Node":
 		node, name = self._nn
 		if item not in self:
 			raise KeyError(f"{item} is not a neighbor of {name}")
@@ -489,12 +490,12 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		for key in super().__iter__():
 			del self[key]
 
-	def __contains__(self, k: Stat):
+	def __contains__(self, k: _Key):
 		"""Handle extra keys, then delegate."""
 		return k in self._extra_keys or super().__contains__(k)
 
 	def __setitem__(
-		self, k: Stat | Literal["rulebook"], v: Value | RulebookName
+		self, k: _Key | Literal["rulebook"], v: Value | RulebookName
 	):
 		if k == "rulebook":
 			self._set_rulebook_name(v)
@@ -527,7 +528,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 			raise ValueError("{} not in {}".format(dest, self.character.name))
 
 	def shortest_path_length(
-		self, dest: NodeName | Node, weight: Stat | None = None
+		self, dest: _Key | Node, weight: Stat | None = None
 	) -> int:
 		"""Return the length of the path from me to ``dest``.
 
@@ -541,7 +542,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		)
 
 	def shortest_path(
-		self, dest: NodeName | Node, weight: Stat | None = None
+		self, dest: _Key | Node, weight: Stat | None = None
 	) -> List[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
@@ -554,7 +555,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		)
 
 	def path_exists(
-		self, dest: NodeName | Node, weight: Stat | None = None
+		self, dest: _Key | Node, weight: Stat | None = None
 	) -> bool:
 		"""Return whether there is a path leading from me to ``dest``.
 
@@ -620,27 +621,27 @@ class Node(lisien.types.Node, rule.RuleFollower):
 			)
 			return now
 
-	def add_portal(self, other: NodeName | Node, **stats) -> None:
+	def add_portal(self, other: _Key | Node, **stats) -> None:
 		"""Connect a portal from here to another node"""
 		self.character.add_portal(
 			self.name, getattr(other, "name", other), **stats
 		)
 
-	def new_portal(self, other: NodeName | Node, **stats) -> "Portal":
+	def new_portal(self, other: _Key | Node, **stats) -> "Portal":
 		"""Connect a portal from here to another node, and return it."""
 		return self.character.new_portal(
 			self.name, getattr(other, "name", other), **stats
 		)
 
-	def add_thing(self, name: NodeName, **stats) -> None:
+	def add_thing(self, name: _Key, **stats) -> None:
 		"""Make a new Thing here"""
 		self.character.add_thing(name, self.name, **stats)
 
-	def new_thing(self, name: NodeName, **stats) -> "Thing":
+	def new_thing(self, name: _Key, **stats) -> "Thing":
 		"""Create a new thing, located here, and return it."""
 		return self.character.new_thing(name, self.name, **stats)
 
-	def historical(self, stat: Stat) -> EntityStatAlias:
+	def historical(self, stat: _Key) -> EntityStatAlias:
 		"""Return a reference to the values that a stat has had in the past.
 
 		You can use the reference in comparisons to make a history
@@ -648,7 +649,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		``self.engine.ticks_when``.
 
 		"""
-		return EntityStatAlias(entity=self, stat=stat)
+		return EntityStatAlias(entity=self, stat=Stat(Key(stat)))
 
 	def __bool__(self):
 		return self.engine._node_exists(self.character.name, self.name)

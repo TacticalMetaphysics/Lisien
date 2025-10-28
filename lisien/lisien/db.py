@@ -53,7 +53,6 @@ from typing import (
 import networkx as nx
 from tblib import Traceback
 
-
 if TYPE_CHECKING:
 	from xml.etree.ElementTree import (
 		ElementTree,
@@ -149,7 +148,7 @@ from .types import (
 	UnitRulesHandledRowType,
 )
 from .facade import EngineFacade
-from .util import garbage, sort_set, AbstractEngine
+from .util import garbage, sort_set, AbstractEngine, ILLEGAL_CHARACTER_NAMES
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 if sys.version_info.minor < 11:
@@ -2980,23 +2979,7 @@ class AbstractDatabaseConnector(ABC):
 			raise TypeError("branch missing")
 		branch = Branch(branch_)
 
-		uncharacterized = {
-			"graphs",
-			"universals",
-			"rulebooks",
-			"rule_triggers",
-			"rule_prereqs",
-			"rule_actions",
-			"rule_neighborhood",
-			"rule_big",
-			"character_rules_handled",
-			"unit_rules_handled",
-			"character_thing_rules_handled",
-			"character_place_rules_handled",
-			"character_portal_rules_handled",
-			"node_rules_handled",
-			"portal_rules_handled",
-		}
+		uncharacterized = ILLEGAL_CHARACTER_NAMES
 		turn: Turn
 		for turn, (ending_tick, plan_ending_tick) in sorted(turn_ends.items()):
 			turn_el = Element(
