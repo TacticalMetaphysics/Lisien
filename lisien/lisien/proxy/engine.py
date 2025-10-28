@@ -120,9 +120,9 @@ class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
 		if not (
 			isinstance(value, tuple)
 			and len(tuple) == 3
-			and isinstance(tuple[0], str)
-			and isinstance(tuple[1], int)
-			and isinstance(tuple[2], int)
+			and isinstance(value[0], str)
+			and isinstance(value[1], int)
+			and isinstance(value[2], int)
 		):
 			raise TypeError("Not a valid time", value)
 		self.data[key] = self.engine.handle(
