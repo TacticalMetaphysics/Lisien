@@ -4277,6 +4277,20 @@ class Engine(AbstractEngine, Executor):
 					self._neighborhoods_cache.load(loaded)
 				case "rule_big":
 					self._rule_bigness_cache.load(loaded)
+				case "character_rules_handled":
+					self._character_rules_handled_cache.load(loaded)
+				case "unit_rules_handled":
+					self._unit_rules_handled_cache.load(loaded)
+				case "character_thing_rules_handled":
+					self._character_thing_rules_handled_cache.load(loaded)
+				case "character_place_rules_handled":
+					self._character_place_rules_handled_cache.load(loaded)
+				case "character_portal_rules_handled":
+					self._character_portal_rules_handled_cache.load(loaded)
+				case "node_rules_handled":
+					self._node_rules_handled_cache.load(loaded)
+				case "portal_rules_handled":
+					self._portal_rules_handled_cache.load(loaded)
 				case _:
 					noderows.extend(loaded["nodes"])
 					edgerows.extend(loaded["edges"])
