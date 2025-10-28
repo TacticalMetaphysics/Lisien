@@ -3955,6 +3955,10 @@ class AbstractDatabaseConnector(ABC):
 			self.eternal["_lisien_schema_version"] = int(
 				root.get("db-schema-version")
 			)
+		if "xml-schema-version" in root.keys():
+			ver = int(root.get("xml_schema_version"))
+			if ver > XML_SCHEMA_VERSION:
+				raise RuntimeError("Incompatible XML schema version", ver)
 		self.eternal["trunk"] = root.get("trunk")
 		self.eternal["branch"] = root.get("branch")
 		self.eternal["turn"] = int(root.get("turn"))
