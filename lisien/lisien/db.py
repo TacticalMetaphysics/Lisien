@@ -596,17 +596,17 @@ class AbstractDatabaseConnector(ABC):
 
 	@batched("bookmarks", key_len=1, inc_rec_counter=False)
 	def _bookmarks2set(
-		self, key: str, branch: Branch, turn: Turn, tick: Tick
-	) -> tuple[str, Branch, Turn, Tick]:
-		return (key, branch, turn, tick)
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick
+	) -> tuple[bytes, Branch, Turn, Tick]:
+		return (self.pack(key), branch, turn, tick)
 
 	def set_bookmark(
-		self, key: str, branch: Branch, turn: Turn, tick: Tick
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		self._bookmarks2set.append((key, branch, turn, tick))
 
 	@abstractmethod
-	def del_bookmark(self, key: str) -> None: ...
+	def del_bookmark(self, key: Key) -> None: ...
 
 	@batched("universals", key_len=4)
 	def _universals2set(
@@ -4090,7 +4090,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	"""
 
 	@cached_property
-	def _bookmarks(self) -> dict[str, Time]:
+	def _bookmarks(self) -> dict[Key, Time]:
 		return {}
 
 	@cached_property
@@ -4774,7 +4774,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				ret, branch, turn_from, tick_from, turn_to, tick_to
 			)
 
-	def del_bookmark(self, key: str) -> None:
+	def del_bookmark(self, key: Key) -> None:
 		self._bookmarks2set.cull(lambda k, _: k == key)
 		if key in self._bookmarks:
 			del self._bookmarks[key]
@@ -5355,7 +5355,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		with self._lock:
 			yield from sorted(self._turns_completed.items())
 
-	def bookmarks_dump(self) -> Iterator[tuple[str, Time]]:
+	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
 		with self._lock:
 			yield from sort_set(self._bookmarks.items())
 
