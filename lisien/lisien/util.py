@@ -1966,7 +1966,7 @@ def msgpack_array_header(n) -> bytes:
 
 def msgpack_map_header(n) -> bytes:
 	if n <= 15:
-		return (0x90 + n).to_bytes(1, signed=False)
+		return (0x80 + n).to_bytes(1, signed=False)
 	elif n <= 0xFFFF:
 		return (0xDE).to_bytes(1, signed=False) + n.to_bytes(2, signed=False)
 	elif n <= 0xFFFFFFFF:
