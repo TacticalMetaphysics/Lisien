@@ -93,7 +93,7 @@ def test_export_db(tmp_path, engine_and_exported_xml):
 					outpath,
 				)
 			)
-			assert not differences, "".join(differences)
+		assert filecmp.cmp(outpath, test_xml), "".join(differences)
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
