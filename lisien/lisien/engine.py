@@ -3118,7 +3118,7 @@ class Engine(AbstractEngine, Executor):
 			except KeyframeError:
 				locs_kf = {}
 				for thing in list(
-					self._things_cache.iter_entities(k, branch, turn, tick)
+					self._things_cache.iter_things(k, branch, turn, tick)
 				):
 					locs_kf[thing] = self._things_cache.retrieve(
 						k, thing, branch, turn, tick
