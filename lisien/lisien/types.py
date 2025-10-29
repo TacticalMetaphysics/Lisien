@@ -401,6 +401,7 @@ CharDelta: TypeAlias = dict[
 		"edges",
 		"edge_val",
 		"rulebooks",
+		"rules",
 		"units",
 	],
 	NodesDict
@@ -409,6 +410,15 @@ CharDelta: TypeAlias = dict[
 	| EdgeValDict
 	| RulebookName
 	| UnitsDict
+	| dict[
+		RuleName,
+		dict[
+			Literal["triggers", "prereqs", "actions"],
+			list[TriggerFuncName]
+			| list[PrereqFuncName]
+			| list[ActionFuncName],
+		],
+	]
 	| Value,
 ]
 DeltaDict: TypeAlias = dict[
