@@ -1483,7 +1483,7 @@ class EngineFacade(AbstractEngine):
 									# it did while planning
 									now = realeng._nbtt()
 									realeng._things_cache.store(
-										char, node, *now, v
+										char, node, *now, v, loading=True
 									)
 									realeng.query.set_thing_loc(
 										char, node, *now, v
