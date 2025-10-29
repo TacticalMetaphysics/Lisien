@@ -40,7 +40,7 @@ from typing import (
 )
 
 import astor
-import umsgpack
+import msgpack
 import networkx as nx
 from blinker import Signal
 
