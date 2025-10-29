@@ -80,6 +80,7 @@ from ..util import (
 	BadTimeException,
 	timer,
 	msgpack_map_header,
+	ILLEGAL_CHARACTER_NAMES,
 )
 
 SlightlyPackedDeltaType = dict[
@@ -254,11 +255,15 @@ class EngineHandle:
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
 		for char, chardelta in delta.items():
+			if char in ILLEGAL_CHARACTER_NAMES:
+				pchar = pack(char)
+				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = {
+					pack(k): pack(v) for (k, v) in chardelta.items()
+				}
+				continue
 			if chardelta is ...:
 				pchar = pack(char)
-				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = (
-					None
-				)
+				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = ...
 				continue
 			chardelta = chardelta.copy()
 			pchar = pack(char)
