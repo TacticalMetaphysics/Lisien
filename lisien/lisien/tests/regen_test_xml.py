@@ -19,6 +19,7 @@ from tempfile import TemporaryDirectory
 
 from lisien.engine import Engine
 from lisien.tests.data import DATA_DIR
+from lisien.db import PythonDatabaseConnector
 
 RANDOM_SEED = 69105
 
@@ -39,7 +40,7 @@ for turns, sim in product([0, 1], ["kobold", "polygons", "wolfsheep"]):
 			prefix,
 			workers=0,
 			random_seed=RANDOM_SEED,
-			connect_string=f"sqlite:///{prefix}/world.sqlite3",
+			database=PythonDatabaseConnector(),
 			keyframe_on_close=False,
 		) as eng:
 			install(eng)
