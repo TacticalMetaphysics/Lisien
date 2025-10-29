@@ -27,7 +27,6 @@ from threading import Thread
 from zipfile import ZipFile
 
 import astor
-import msgpack
 import tblib
 
 from .engine import EngineProxy
@@ -635,10 +634,14 @@ class EngineProxyManager:
 					self._start_subprocess(prefix, **kwargs)
 				case Sub.thread:
 					self._start_subthread(prefix, **kwargs)
+		try:
+			from msgpack._cmsgpack import packb
+		except ImportError:
+			from umsgpack import packb
 		if hasattr(self, "_proxy_out_pipe"):
 			self._proxy_out_pipe.send_bytes(
 				b"from_archive"
-				+ msgpack.packb(
+				+ packb(
 					{"archive_path": archive_path, "prefix": prefix, **kwargs}
 				)
 			)

@@ -40,17 +40,24 @@ from typing import (
 )
 
 import astor
-import msgpack
 import networkx as nx
 from blinker import Signal
+
+try:
+	import msgpack._cmsgpack
+	import msgpack
+
+	Ext = msgpack.ExtType
+except ImportError:
+	import umsgpack as msgpack
+
+	Ext = msgpack.Ext
 
 from .abc import (
 	FuncProxy,
 	FuncListProxy,
 	RuleProxy,
 	RuleBookProxy,
-	RuleMapProxy,
-	RuleFollowerProxyDescriptor,
 )
 from .character import CharacterProxy, PlaceProxy, ThingProxy, PortalProxy
 
@@ -99,6 +106,8 @@ from ..util import (
 	repr_call_sig,
 	MsgpackExtensionType,
 	AbstractBookmarkMapping,
+	msgpack_array_header,
+	msgpack_map_header,
 )
 from ..wrap import UnwrappingDict
 from ..collections import (
@@ -2008,50 +2017,28 @@ class AllRulesProxy(MutableMapping):
 
 
 def _finish_packing(pack, cmd, branch, turn, tick, mostly_bytes):
-	def array_header(n) -> bytes:
-		if n <= 15:
-			return (0x90 + n).to_bytes(1, signed=False)
-		elif n <= 0xFFFF:
-			return (0xDC).to_bytes(1, signed=False) + n.to_bytes(
-				2, signed=False
-			)
-		elif n <= 0xFFFFFFFF:
-			return (0xDD).to_bytes(1, signed=False) + n.to_bytes(
-				4, signed=False
-			)
-		else:
-			raise ValueError("tuple is too large")
-
-	def map_header(n) -> bytes:
-		if n <= 15:
-			return (0x90 + n).to_bytes(1, signed=False)
-		elif n <= 0xFFFF:
-			return (0xDE).to_bytes(1, signed=False) + n.to_bytes(
-				2, signed=False
-			)
-		elif n <= 0xFFFFFFFF:
-			return (0xDF).to_bytes(1, signed=False) + n.to_bytes(
-				4, signed=False
-			)
-		else:
-			raise ValueError("dict is too large")
-
 	r = mostly_bytes
 
-	resp = array_header(5) + pack(cmd) + pack(branch) + pack(turn) + pack(tick)
+	resp = (
+		msgpack_array_header(5)
+		+ pack(cmd)
+		+ pack(branch)
+		+ pack(turn)
+		+ pack(tick)
+	)
 	if isinstance(r, dict):
-		resp += map_header(len(r))
+		resp += msgpack_map_header(len(r))
 		for k, v in r.items():
 			resp += k + v
 	elif isinstance(r, tuple):
-		ext = umsgpack.Ext(
+		ext = Ext(
 			MsgpackExtensionType.tuple.value,
-			array_header(len(r)) + b"".join(r),
+			msgpack_array_header(len(r)) + b"".join(r),
 		)
 
-		resp += umsgpack.packb(ext)
+		resp += msgpack.packb(ext)
 	elif isinstance(r, list):
-		resp += array_header(len(r)) + b"".join(r)
+		resp += msgpack_array_header(len(r)) + b"".join(r)
 	else:
 		resp += r
 	return resp
