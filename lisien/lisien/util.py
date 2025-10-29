@@ -41,6 +41,7 @@ from operator import (
 	sub,
 	truediv,
 )
+from pprint import pformat
 from random import Random
 from textwrap import dedent
 from time import monotonic
@@ -1721,20 +1722,22 @@ class AbstractThing(MutableMapping):
 		return self.follow_path(path, weight)
 
 
-def repr_call_sig(func: callable | str, *args, **kwargs):
+def format_call_sig(func: Callable | str, *args, **kwargs):
 	if not isinstance(func, (str, bytes)):
 		func = func.__name__
+	if not kwargs:
+		return str(func) + pformat(args)
 	return (
-		f"{func}({', '.join(map(repr, args))}"
+		f"{func}({', '.join(map(pformat, args))}"
 		f"{', ' if args and kwargs else ''}"
-		f"{', '.join(f'{arg}={repr(item)}' for (arg, item) in kwargs.items())})"
+		f"{', '.join(f'{arg}={pformat(item)}' for (arg, item) in kwargs.items())})"
 	)
 
 
 def print_call_sig(
-	func: callable | str, *args, file=sys.stdout, end="\n", **kwargs
+	func: Callable | str, *args, file=sys.stdout, end="\n", **kwargs
 ):
-	print(repr_call_sig(func, *args, **kwargs), file=file, end=end)
+	print(format_call_sig(func, *args, **kwargs), file=file, end=end)
 
 
 @contextmanager

@@ -62,6 +62,7 @@ def worker_subroutine(
 	pack = eng.pack
 	unpack = eng.unpack
 	eng._initialized = False
+
 	while True:
 		inst = get_input_bytes()
 		if inst == b"shutdown":

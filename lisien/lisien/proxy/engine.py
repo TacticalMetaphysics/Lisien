@@ -103,7 +103,7 @@ from ..util import (
 	AbstractEngine,
 	TimeSignalDescriptor,
 	AbstractCharacter,
-	repr_call_sig,
+	format_call_sig,
 	MsgpackExtensionType,
 	AbstractBookmarkMapping,
 	msgpack_array_header,
@@ -1076,7 +1076,7 @@ class EngineProxy(AbstractEngine):
 		else:
 			raise TypeError("No command")
 		if hasattr(super(EngineProxy, self), "_replay_file"):
-			self._replay_file.write(repr_call_sig(cmd, **kwargs) + "\n")
+			self._replay_file.write(format_call_sig(cmd, **kwargs) + "\n")
 		start_ts = monotonic()
 		with self._round_trip_lock:
 			self.send(Value(kwargs))
