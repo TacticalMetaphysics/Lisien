@@ -174,7 +174,7 @@ class EngineHandle:
 		from ..engine import Engine
 
 		if isinstance(b, bytes):
-			kwargs: dict = umsgpack.unpackb(b)
+			kwargs: dict = msgpack.unpackb(b)
 		else:
 			kwargs = b
 		if "archive_path" not in kwargs:
