@@ -60,7 +60,7 @@ from typing import (
 	TypeVar,
 )
 
-import umsgpack
+import msgpack
 import networkx as nx
 from annotated_types import Ge, Le
 from blinker import Signal
@@ -94,32 +94,32 @@ if TYPE_CHECKING:
 	from .collections import FunctionStore, AbstractFunctionStore
 	from .rule import Rule, RuleBook
 
-TRUE: bytes = umsgpack.packb(True)
-FALSE: bytes = umsgpack.packb(False)
-NONE: bytes = umsgpack.packb(None)
-EMPTY: bytes = umsgpack.packb({})
-EMPTY_LIST: bytes = umsgpack.packb([])
+TRUE: bytes = msgpack.packb(True)
+FALSE: bytes = msgpack.packb(False)
+NONE: bytes = msgpack.packb(None)
+EMPTY: bytes = msgpack.packb({})
+EMPTY_LIST: bytes = msgpack.packb([])
 ELLIPSIS: bytes = b"\xc7\x00{"
-NAME: bytes = umsgpack.packb("name")
-NODES: bytes = umsgpack.packb("nodes")
-EDGES: bytes = umsgpack.packb("edges")
-UNITS: bytes = umsgpack.packb("units")
-RULEBOOK: bytes = umsgpack.packb("rulebook")
-RULEBOOKS: bytes = umsgpack.packb("rulebooks")
-NODE_VAL: bytes = umsgpack.packb("node_val")
-EDGE_VAL: bytes = umsgpack.packb("edge_val")
-ETERNAL: bytes = umsgpack.packb("eternal")
-UNIVERSAL: bytes = umsgpack.packb("universal")
-STRINGS: bytes = umsgpack.packb("strings")
-RULES: bytes = umsgpack.packb("rules")
-TRIGGERS: bytes = umsgpack.packb("triggers")
-PREREQS: bytes = umsgpack.packb("prereqs")
-ACTIONS: bytes = umsgpack.packb("actions")
-NEIGHBORHOOD: bytes = umsgpack.packb("neighborhood")
-BIG: bytes = umsgpack.packb("big")
-LOCATION: bytes = umsgpack.packb("location")
-BRANCH: bytes = umsgpack.packb("branch")
-EMPTY_MAPPING: bytes = umsgpack.packb({})
+NAME: bytes = msgpack.packb("name")
+NODES: bytes = msgpack.packb("nodes")
+EDGES: bytes = msgpack.packb("edges")
+UNITS: bytes = msgpack.packb("units")
+RULEBOOK: bytes = msgpack.packb("rulebook")
+RULEBOOKS: bytes = msgpack.packb("rulebooks")
+NODE_VAL: bytes = msgpack.packb("node_val")
+EDGE_VAL: bytes = msgpack.packb("edge_val")
+ETERNAL: bytes = msgpack.packb("eternal")
+UNIVERSAL: bytes = msgpack.packb("universal")
+STRINGS: bytes = msgpack.packb("strings")
+RULES: bytes = msgpack.packb("rules")
+TRIGGERS: bytes = msgpack.packb("triggers")
+PREREQS: bytes = msgpack.packb("prereqs")
+ACTIONS: bytes = msgpack.packb("actions")
+NEIGHBORHOOD: bytes = msgpack.packb("neighborhood")
+BIG: bytes = msgpack.packb("big")
+LOCATION: bytes = msgpack.packb("location")
+BRANCH: bytes = msgpack.packb("branch")
+EMPTY_MAPPING: bytes = msgpack.packb({})
 
 
 class SignalDict(Signal, dict):
@@ -141,7 +141,7 @@ class BadTimeException(Exception):
 
 
 class MsgpackExtensionType(Enum):
-	"""Type codes for packing special lisien types into umsgpack"""
+	"""Type codes for packing special lisien types into msgpack"""
 
 	tuple = 0x00
 	frozenset = 0x01
@@ -560,14 +560,26 @@ class AbstractEngine(ABC):
 		return self.is_ancestor_of(parent, self.branch_parent(child))
 
 	@cached_property
-	def _umsgpack_handlers(self):
-		return {
-			type(...): lambda _: umsgpack.Ext(
+	def pack(self) -> Callable[[Value], bytes]:
+		try:
+			from lise_ormsgpack import packb
+
+			return packb
+		except ImportError:
+			pass
+
+		def pack_set(s):
+			return msgpack.ExtType(
+				MsgpackExtensionType.set.value, packer(list(s))
+			)
+
+		handlers = {
+			type(...): lambda _: msgpack.ExtType(
 				MsgpackExtensionType.ellipsis.value, b""
 			),
-			nx.Graph: lambda graf: umsgpack.Ext(
+			nx.Graph: lambda graf: msgpack.ExtType(
 				MsgpackExtensionType.graph.value,
-				self.pack(
+				packer(
 					[
 						"Graph",
 						graf._node,
@@ -576,37 +588,35 @@ class AbstractEngine(ABC):
 					]
 				),
 			),
-			nx.DiGraph: lambda graf: umsgpack.Ext(
+			nx.DiGraph: lambda graf: msgpack.ExtType(
 				MsgpackExtensionType.graph.value,
-				self.pack(["DiGraph", graf._node, graf._adj, graf.graph]),
+				packer(["DiGraph", graf._node, graf._adj, graf.graph]),
 			),
-			nx.MultiGraph: lambda graf: umsgpack.Ext(
+			nx.MultiGraph: lambda graf: msgpack.ExtType(
 				MsgpackExtensionType.graph.value,
-				self.pack(["MultiGraph", graf._node, graf._adj, graf.graph]),
+				packer(["MultiGraph", graf._node, graf._adj, graf.graph]),
 			),
-			nx.MultiDiGraph: lambda graf: umsgpack.Ext(
+			nx.MultiDiGraph: lambda graf: msgpack.ExtType(
 				MsgpackExtensionType.graph.value,
-				self.pack(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
+				packer(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
 			),
-			tuple: lambda tup: umsgpack.Ext(
-				MsgpackExtensionType.tuple.value, self.pack(list(tup))
+			tuple: lambda tup: msgpack.ExtType(
+				MsgpackExtensionType.tuple.value, packer(list(tup))
 			),
-			frozenset: lambda frozs: umsgpack.Ext(
-				MsgpackExtensionType.frozenset.value, self.pack(list(frozs))
+			frozenset: lambda frozs: msgpack.ExtType(
+				MsgpackExtensionType.frozenset.value, packer(list(frozs))
 			),
-			set: lambda s: umsgpack.Ext(
-				MsgpackExtensionType.set.value, self.pack(list(s))
-			),
-			FunctionType: lambda func: umsgpack.Ext(
+			set: pack_set,
+			FunctionType: lambda func: msgpack.ExtType(
 				getattr(MsgpackExtensionType, func.__module__).value,
-				self.pack(func.__name__),
+				packer(func.__name__),
 			),
-			MethodType: lambda meth: umsgpack.Ext(
-				MsgpackExtensionType.method.value, self.pack(meth.__name__)
+			MethodType: lambda meth: msgpack.ExtType(
+				MsgpackExtensionType.method.value, packer(meth.__name__)
 			),
-			Exception: lambda exc: umsgpack.Ext(
+			Exception: lambda exc: msgpack.ExtType(
 				MsgpackExtensionType.exception.value,
-				self.pack(
+				packer(
 					[
 						exc.__class__.__name__,
 						Traceback(exc.__traceback__).to_dict()
@@ -616,39 +626,55 @@ class AbstractEngine(ABC):
 					+ list(exc.args)
 				),
 			),
-			self.char_cls: lambda obj: umsgpack.Ext(
-				MsgpackExtensionType.character.value, self.pack(obj.name)
-			),
-			self.thing_cls: lambda obj: umsgpack.Ext(
-				MsgpackExtensionType.thing.value,
-				self.pack([obj.character.name, obj.name]),
-			),
-			self.place_cls: lambda obj: umsgpack.Ext(
-				MsgpackExtensionType.place.value,
-				self.pack([obj.graph.name, obj.name]),
-			),
-			self.portal_cls: lambda obj: umsgpack.Ext(
-				MsgpackExtensionType.portal.value,
-				self.pack(
-					[
-						obj.graph.name,
-						obj.orig,
-						obj.dest,
-					]
-				),
-			),
 		}
 
-	@cached_property
-	def pack(self) -> Callable[[_Value], bytes]:
-		try:
-			from lise_ormsgpack import packb
+		def pack_handler(obj):
+			if isinstance(obj, Exception):
+				typ = Exception
+			else:
+				typ = type(obj)
+			if typ in handlers:
+				return handlers[typ](obj)
+			elif isinstance(obj, DiGraph):
+				return msgpack.ExtType(
+					MsgpackExtensionType.character.value, packer(obj.name)
+				)
+			elif isinstance(obj, AbstractThing):
+				return msgpack.ExtType(
+					MsgpackExtensionType.thing.value,
+					packer([obj.character.name, obj.name]),
+				)
+			elif isinstance(obj, Node):
+				return msgpack.ExtType(
+					MsgpackExtensionType.place.value,
+					packer([obj.graph.name, obj.name]),
+				)
+			elif isinstance(obj, Edge):
+				return msgpack.ExtType(
+					MsgpackExtensionType.portal.value,
+					packer(
+						[
+							obj.graph.name,
+							obj.orig,
+							obj.dest,
+						]
+					),
+				)
+			elif isinstance(obj, Set):
+				return pack_set(obj)
+			elif isinstance(obj, Mapping):
+				return dict(obj)
+			elif isinstance(obj, list):
+				return list(obj)
+			raise TypeError("Can't pack {}".format(typ))
 
-			return packb
-		except ImportError:
-			pass
-
-		return partial(umsgpack.packb, ext_handlers=self._umsgpack_handlers)
+		packer = partial(
+			msgpack.packb,
+			default=pack_handler,
+			strict_types=True,
+			use_bin_type=True,
+		)
+		return packer
 
 	@cached_property
 	def unpack(
@@ -732,8 +758,8 @@ class AbstractEngine(ABC):
 			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
 		}
 
-		def unpack_graph(ext: umsgpack.Ext) -> nx.Graph:
-			cls, node, adj, graph = unpacker(ext.data)
+		def unpack_graph(ext: bytes) -> nx.Graph:
+			cls, node, adj, graph = unpacker(ext)
 			blank = {
 				"Graph": nx.Graph,
 				"DiGraph": nx.DiGraph,
@@ -745,8 +771,8 @@ class AbstractEngine(ABC):
 			blank.graph = graph
 			return blank
 
-		def unpack_exception(ext: umsgpack.Ext) -> Exception:
-			data: tuple[str, dict | None] = unpacker(ext.data)
+		def unpack_exception(ext: bytes) -> Exception:
+			data: tuple[str, dict | None] = unpacker(ext)
 			if data[0] not in excs:
 				return Exception(*data)
 			ret = excs[data[0]](*data[2:])
@@ -754,35 +780,35 @@ class AbstractEngine(ABC):
 				ret.__traceback__ = Traceback.from_dict(data[1]).to_traceback()
 			return ret
 
-		def unpack_char(ext: umsgpack.Ext) -> char_cls:
-			charn = unpacker(ext.data)
+		def unpack_char(ext: bytes) -> char_cls:
+			charn = unpacker(ext)
 			return char_cls(self, charn, init_rulebooks=False)
 
-		def unpack_place(ext: umsgpack.Ext) -> place_cls:
-			charn, placen = unpacker(ext.data)
+		def unpack_place(ext: bytes) -> place_cls:
+			charn, placen = unpacker(ext)
 			return place_cls(
 				char_cls(self, charn, init_rulebooks=False), placen
 			)
 
-		def unpack_thing(ext: umsgpack.Ext) -> thing_cls:
-			charn, thingn = unpacker(ext.data)
+		def unpack_thing(ext: bytes) -> thing_cls:
+			charn, thingn = unpacker(ext)
 			# Breaks if the thing hasn't been instantiated yet, not great
 			return self.character[charn].thing[thingn]
 
-		def unpack_portal(ext: umsgpack.Ext) -> portal_cls:
-			charn, orign, destn = unpacker(ext.data)
+		def unpack_portal(ext: bytes) -> portal_cls:
+			charn, orign, destn = unpacker(ext)
 			return portal_cls(
 				char_cls(self, charn, init_rulebooks=False), orign, destn
 			)
 
-		def unpack_seq(t: type[_T], ext: umsgpack.Ext) -> _T:
-			unpacked = unpacker(ext.data)
+		def unpack_seq(t: type[_T], ext: bytes) -> _T:
+			unpacked = unpacker(ext)
 			if not isinstance(unpacked, list):
 				raise TypeError("Tried to unpack", type(unpacked), t)
 			return t(unpacked)
 
-		def unpack_func(store: FunctionStore, ext: umsgpack.Ext) -> Callable:
-			unpacked = unpacker(ext.data)
+		def unpack_func(store: FunctionStore, ext: bytes) -> callable:
+			unpacked = unpacker(ext)
 			if not isinstance(unpacked, str):
 				raise TypeError("Tried to unpack as func", type(unpacked))
 			return getattr(store, unpacked)
@@ -817,7 +843,24 @@ class AbstractEngine(ABC):
 			MsgpackExtensionType.exception.value: unpack_exception,
 		}
 
-		unpacker = partial(umsgpack.unpackb, ext_handlers=handlers)
+		def unpack_handler(
+			code: MsgpackExtensionType, data: bytes
+		) -> Value | Exception | msgpack.ExtType:
+			if code in handlers:
+				return handlers[code](data)
+			return msgpack.ExtType(code, data)
+
+		def unpacker(b: bytes):
+			the_unpacker = msgpack.Unpacker(
+				ext_hook=unpack_handler, raw=False, strict_map_key=False
+			)
+			the_unpacker.feed(b)
+			# Deliberately only returning the initial item;
+			# others are likely to be null bytes as a result of the
+			# way browsers work, and anyway if you really want more
+			# you can just pack a list
+			return the_unpacker.unpack()
+
 		return unpacker
 
 	@abstractmethod
