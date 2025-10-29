@@ -616,9 +616,9 @@ class AbstractDatabaseConnector(ABC):
 		turn: Turn,
 		tick: Tick,
 		value: Value,
-	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
 		pack = self.pack
-		return pack(key), branch, turn, tick, pack(value)
+		return branch, turn, tick, pack(key), pack(value)
 
 	@batched("rules", key_len=1)
 	def _rules2set(self, rule: RuleName) -> tuple[bytes]:
@@ -3019,7 +3019,7 @@ class AbstractDatabaseConnector(ABC):
 					keyframe_times.remove((branch, turn, tick))
 				if data["universals"]:
 					universal_rec: UniversalRowType = data["universals"][0]
-					key, branch_now, turn_now, tick_now, _ = universal_rec
+					branch, turn, tick, key, _ = universal_rec
 					if (branch_now, turn_now, tick_now) == (
 						branch,
 						turn,
