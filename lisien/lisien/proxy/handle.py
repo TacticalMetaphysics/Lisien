@@ -331,7 +331,7 @@ class EngineHandle:
 			packd.update(todo)
 		return slightly_packed_delta, concat_d(
 			{
-				charn: (concat_d(stuff) if stuff is not None else NONE)
+				charn: (concat_d(stuff) if stuff is not ... else NONE)
 				for charn, stuff in mostly_packed_delta.items()
 			}
 		)
