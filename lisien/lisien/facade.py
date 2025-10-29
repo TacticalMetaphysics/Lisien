@@ -20,7 +20,14 @@ from contextlib import contextmanager
 from functools import cached_property
 from operator import attrgetter
 from threading import RLock
-from typing import Any, Mapping, MutableMapping, MutableSequence, Type
+from typing import (
+	Any,
+	Mapping,
+	MutableMapping,
+	MutableSequence,
+	Type,
+	TYPE_CHECKING,
+)
 
 import networkx as nx
 from blinker import Signal
@@ -40,6 +47,9 @@ from .util import (
 	timer,
 )
 from .wrap import MutableMappingUnwrapper
+
+if TYPE_CHECKING:
+	from .engine import Engine
 
 
 class FacadeEntity(MutableMapping, Signal, ABC):
@@ -1450,7 +1460,15 @@ class EngineFacade(AbstractEngine):
 			char.adj.update(edge)
 
 	def apply(self):
-		realeng = self._real
+		if self._real is None:
+			raise TypeError("Can't apply changes to nothing")
+		from lisien import Engine
+
+		if not isinstance(self._real, Engine):
+			raise TypeError(
+				"Currently, we can only apply changes to the core Lisien engine"
+			)
+		realeng: Engine = self._real
 		self.character.apply()
 		if not getattr(self, "_planned", None):
 			return
@@ -1468,20 +1486,33 @@ class EngineFacade(AbstractEngine):
 					# would save the state of the randomizer, which is not
 					# relevant here
 					realeng._oturn = turn
+					# The ``store`` calls are all ``loading=True`` because that
+					# disables keycaching. If you cache keys (stats and node
+					# contents and stuff) big batches get really slow.
 					for tup in self._planned[plan_num][turn]:
 						if len(tup) == 3:
 							char, k, v = tup
-							realeng.character[char].stat[k] = v
+							now = realeng._nbtt()
+							realeng._graph_val_cache.store(
+								char, k, *now, v, loading=True
+							)
+							realeng.query.graph_val_set(char, k, *now, v)
 						elif len(tup) == 4:
 							char, node, k, v = tup
-							realchar = realeng.character[char]
-							if node in realchar.node:
+							now = realeng._nbtt()
+							if realeng._nodes_cache.node_exists(
+								char, node, *realeng.time
+							):
 								if k is ...:
-									realchar.remove_node(node)
+									realeng._nodes_cache.store(
+										char, node, *now, False, loading=True
+									)
+									realeng.query.exist_node(
+										char, node, *now, False
+									)
 								elif k == "location":
 									# assume the location really exists, since
 									# it did while planning
-									now = realeng._nbtt()
 									realeng._things_cache.store(
 										char, node, *now, v, loading=True
 									)
@@ -1489,21 +1520,63 @@ class EngineFacade(AbstractEngine):
 										char, node, *now, v
 									)
 								else:
-									realchar.node[node][k] = v
+									realeng._node_val_cache.store(
+										char, node, k, *now, v, loading=True
+									)
+									realeng.query.node_val_set(
+										char, node, k, *now, v
+									)
 							elif k == "location":
-								realchar.add_thing(node, v)
+								if not realeng._nodes_cache.node_exists(
+									char, node, *realeng.time
+								):
+									realeng._nodes_cache.store(
+										char, node, *now, True, loading=True
+									)
+									realeng.query.exist_node(
+										char, node, *now, True
+									)
+									now = realeng._nbtt()
+								realeng._things_cache.store(
+									char, node, *now, v, loading=True
+								)
+								realeng.query.set_thing_loc(
+									char, node, *now, v
+								)
 							else:
-								realchar.add_place(node, **{k: v})
+								realeng._nodes_cache.store(
+									char, node, *now, True, loading=True
+								)
+								realeng.query.exist_node(
+									char, node, *now, True
+								)
+								now = realeng._nbtt()
+								realeng._node_val_cache.store(
+									char, node, k, *now, v, loading=True
+								)
+								realeng.query.node_val_set(
+									char, node, k, *now, v
+								)
 						elif len(tup) == 5:
 							char, orig, dest, k, v = tup
-							realchar = realeng.character[char]
-							if (
-								orig in realchar.portal
-								and dest in realchar.portal[orig]
+							now = realeng._nbtt()
+							if not realeng._edges_cache.has_predecessor(
+								char, orig, dest, *realeng.time
 							):
-								if k is ...:
-									realchar.remove_portal(orig, dest)
-								else:
-									realchar.portal[orig][dest][k] = v
-							else:
-								realchar.add_portal(orig, dest, **{k: v})
+								realeng._edges_cache.store(
+									char, orig, dest, *now, True, loading=True
+								)
+								realeng.query.exist_edge(
+									char, orig, dest, *now, True
+								)
+								now = realeng._nbtt()
+							realeng._edge_val_cache.store(
+								char, orig, dest, k, *now, v, loading=True
+							)
+							realeng.query.edge_val_set(
+								char, orig, dest, k, *now, v
+							)
+						else:
+							raise TypeError(
+								"Not a valid change for a plan", tup
+							)
