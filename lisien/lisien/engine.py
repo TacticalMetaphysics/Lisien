@@ -3689,7 +3689,7 @@ class Engine(AbstractEngine, Executor):
 				universal_keyframe[k] = v
 		if "rulebooks" in delta:
 			rulebooks_keyframe.update(delta["rulebooks"])
-		for rule, funcs in delta.get("rules", {}).items():
+		for rule, funcs in delta.pop("rules", {}).items():
 			if "triggers" in funcs and funcs["triggers"]:
 				triggers_keyframe[rule] = funcs["triggers"]
 			if "prereqs" in funcs and funcs["prereqs"]:
