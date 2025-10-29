@@ -1935,6 +1935,7 @@ class TimeSignalDescriptor:
 
 ILLEGAL_CHARACTER_NAMES = {
 	"graphs",
+	"universal",
 	"universals",
 	"rulebooks",
 	"rule_triggers",
