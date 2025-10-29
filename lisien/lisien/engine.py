@@ -5313,7 +5313,9 @@ class Engine(AbstractEngine, Executor):
 				raise TypeError("Invalid graph data")
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
 			self.query.keyframe_graph_insert(name, branch, turn, tick, *data)
-		if hasattr(self, "_worker_processes"):
+		if hasattr(self, "_worker_processes") or hasattr(
+			self, "_worker_interpreters"
+		):
 			self._call_every_worker("_add_character", name, data)
 
 	@world_locked
