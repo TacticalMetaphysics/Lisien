@@ -60,7 +60,15 @@ from typing import (
 	TypeVar,
 )
 
-import msgpack
+try:
+	import msgpack._cmsgpack
+	import msgpack
+
+	C_MSGPACK = True
+except ImportError:
+	import umsgpack as msgpack
+
+	C_MSGPACK = False
 import networkx as nx
 from annotated_types import Ge, Le
 from blinker import Signal
@@ -562,11 +570,14 @@ class AbstractEngine(ABC):
 	@cached_property
 	def pack(self) -> Callable[[Value], bytes]:
 		try:
-			from lise_ormsgpack import packb
-
-			return packb
+			import msgpack._cmsgpack
+			import msgpack
 		except ImportError:
-			pass
+			import umsgpack
+
+			return partial(
+				umsgpack.packb, ext_handlers=self._umsgpack_pack_handlers
+			)
 
 		def pack_set(s):
 			return msgpack.ExtType(
@@ -677,19 +688,7 @@ class AbstractEngine(ABC):
 		return packer
 
 	@cached_property
-	def unpack(
-		self,
-	) -> Callable[
-		[bytes],
-		Value
-		| nx.DiGraph
-		| char_cls
-		| place_cls
-		| thing_cls
-		| portal_cls
-		| Exception
-		| callable,
-	]:
+	def _unpack_handlers(self):
 		char_cls = self.char_cls
 		place_cls = self.place_cls
 		portal_cls = self.portal_cls
@@ -759,7 +758,9 @@ class AbstractEngine(ABC):
 		}
 
 		def unpack_graph(ext: bytes) -> nx.Graph:
-			cls, node, adj, graph = unpacker(ext)
+			if hasattr(ext, "data"):  # umsgpack.Ext
+				ext = ext.data
+			cls, node, adj, graph = self.unpack(ext)
 			blank = {
 				"Graph": nx.Graph,
 				"DiGraph": nx.DiGraph,
@@ -772,7 +773,9 @@ class AbstractEngine(ABC):
 			return blank
 
 		def unpack_exception(ext: bytes) -> Exception:
-			data: tuple[str, dict | None] = unpacker(ext)
+			data: tuple[str, dict | None] = self.unpack(
+				getattr(ext, "data", ext)
+			)
 			if data[0] not in excs:
 				return Exception(*data)
 			ret = excs[data[0]](*data[2:])
@@ -781,39 +784,39 @@ class AbstractEngine(ABC):
 			return ret
 
 		def unpack_char(ext: bytes) -> char_cls:
-			charn = unpacker(ext)
+			charn = self.unpack(getattr(ext, "data", ext))
 			return char_cls(self, charn, init_rulebooks=False)
 
 		def unpack_place(ext: bytes) -> place_cls:
-			charn, placen = unpacker(ext)
+			charn, placen = self.unpack(getattr(ext, "data", ext))
 			return place_cls(
 				char_cls(self, charn, init_rulebooks=False), placen
 			)
 
 		def unpack_thing(ext: bytes) -> thing_cls:
-			charn, thingn = unpacker(ext)
+			charn, thingn = self.unpack(getattr(ext, "data", ext))
 			# Breaks if the thing hasn't been instantiated yet, not great
 			return self.character[charn].thing[thingn]
 
 		def unpack_portal(ext: bytes) -> portal_cls:
-			charn, orign, destn = unpacker(ext)
+			charn, orign, destn = self.unpack(getattr(ext, "data", ext))
 			return portal_cls(
 				char_cls(self, charn, init_rulebooks=False), orign, destn
 			)
 
 		def unpack_seq(t: type[_T], ext: bytes) -> _T:
-			unpacked = unpacker(ext)
+			unpacked = self.unpack(getattr(ext, "data", ext))
 			if not isinstance(unpacked, list):
 				raise TypeError("Tried to unpack", type(unpacked), t)
 			return t(unpacked)
 
-		def unpack_func(store: FunctionStore, ext: bytes) -> callable:
-			unpacked = unpacker(ext)
+		def unpack_func(store: FunctionStore, ext: bytes) -> Callable:
+			unpacked = self.unpack(getattr(ext, "data", ext))
 			if not isinstance(unpacked, str):
 				raise TypeError("Tried to unpack as func", type(unpacked))
 			return getattr(store, unpacked)
 
-		handlers = {
+		return {
 			MsgpackExtensionType.ellipsis.value: lambda _: ...,
 			MsgpackExtensionType.graph.value: unpack_graph,
 			MsgpackExtensionType.character.value: unpack_char,
@@ -843,11 +846,35 @@ class AbstractEngine(ABC):
 			MsgpackExtensionType.exception.value: unpack_exception,
 		}
 
+	@cached_property
+	def unpack(
+		self,
+	) -> Callable[
+		[bytes],
+		Value
+		| nx.DiGraph
+		| char_cls
+		| place_cls
+		| thing_cls
+		| portal_cls
+		| Exception
+		| callable,
+	]:
+		try:
+			import msgpack._cmsgpack
+			import msgpack
+		except ImportError:
+			import umsgpack
+
+			return partial(
+				umsgpack.unpackb, ext_handlers=self._unpack_handlers
+			)
+
 		def unpack_handler(
 			code: MsgpackExtensionType, data: bytes
 		) -> Value | Exception | msgpack.ExtType:
-			if code in handlers:
-				return handlers[code](data)
+			if code in self._unpack_handlers:
+				return self._unpack_handlers[code](data)
 			return msgpack.ExtType(code, data)
 
 		def unpacker(b: bytes):
@@ -862,6 +889,88 @@ class AbstractEngine(ABC):
 			return the_unpacker.unpack()
 
 		return unpacker
+
+	@cached_property
+	def _umsgpack_pack_handlers(self):
+		import umsgpack
+
+		return {
+			type(...): lambda _: umsgpack.Ext(
+				MsgpackExtensionType.ellipsis.value, b""
+			),
+			nx.Graph: lambda graf: umsgpack.Ext(
+				MsgpackExtensionType.graph.value,
+				self.pack(
+					[
+						"Graph",
+						graf._node,
+						graf._adj,
+						graf.graph,
+					]
+				),
+			),
+			nx.DiGraph: lambda graf: umsgpack.Ext(
+				MsgpackExtensionType.graph.value,
+				self.pack(["DiGraph", graf._node, graf._adj, graf.graph]),
+			),
+			nx.MultiGraph: lambda graf: umsgpack.Ext(
+				MsgpackExtensionType.graph.value,
+				self.pack(["MultiGraph", graf._node, graf._adj, graf.graph]),
+			),
+			nx.MultiDiGraph: lambda graf: umsgpack.Ext(
+				MsgpackExtensionType.graph.value,
+				self.pack(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
+			),
+			tuple: lambda tup: umsgpack.Ext(
+				MsgpackExtensionType.tuple.value, self.pack(list(tup))
+			),
+			frozenset: lambda frozs: umsgpack.Ext(
+				MsgpackExtensionType.frozenset.value, self.pack(list(frozs))
+			),
+			set: lambda s: umsgpack.Ext(
+				MsgpackExtensionType.set.value, self.pack(list(s))
+			),
+			FunctionType: lambda func: umsgpack.Ext(
+				getattr(MsgpackExtensionType, func.__module__).value,
+				self.pack(func.__name__),
+			),
+			MethodType: lambda meth: umsgpack.Ext(
+				MsgpackExtensionType.method.value, self.pack(meth.__name__)
+			),
+			Exception: lambda exc: umsgpack.Ext(
+				MsgpackExtensionType.exception.value,
+				self.pack(
+					[
+						exc.__class__.__name__,
+						Traceback(exc.__traceback__).to_dict()
+						if hasattr(exc, "__traceback__")
+						else None,
+					]
+					+ list(exc.args)
+				),
+			),
+			self.char_cls: lambda obj: umsgpack.Ext(
+				MsgpackExtensionType.character.value, self.pack(obj.name)
+			),
+			self.thing_cls: lambda obj: umsgpack.Ext(
+				MsgpackExtensionType.thing.value,
+				self.pack([obj.character.name, obj.name]),
+			),
+			self.place_cls: lambda obj: umsgpack.Ext(
+				MsgpackExtensionType.place.value,
+				self.pack([obj.graph.name, obj.name]),
+			),
+			self.portal_cls: lambda obj: umsgpack.Ext(
+				MsgpackExtensionType.portal.value,
+				self.pack(
+					[
+						obj.graph.name,
+						obj.orig,
+						obj.dest,
+					]
+				),
+			),
+		}
 
 	@abstractmethod
 	def _get_node(
@@ -1838,3 +1947,25 @@ ILLEGAL_CHARACTER_NAMES = {
 	"node_rules_handled",
 	"portal_rules_handled",
 }
+
+
+def msgpack_array_header(n) -> bytes:
+	if n <= 15:
+		return (0x90 + n).to_bytes(1, signed=False)
+	elif n <= 0xFFFF:
+		return (0xDC).to_bytes(1, signed=False) + n.to_bytes(2, signed=False)
+	elif n <= 0xFFFFFFFF:
+		return (0xDD).to_bytes(1, signed=False) + n.to_bytes(4, signed=False)
+	else:
+		raise ValueError("tuple is too large")
+
+
+def msgpack_map_header(n) -> bytes:
+	if n <= 15:
+		return (0x90 + n).to_bytes(1, signed=False)
+	elif n <= 0xFFFF:
+		return (0xDE).to_bytes(1, signed=False) + n.to_bytes(2, signed=False)
+	elif n <= 0xFFFFFFFF:
+		return (0xDF).to_bytes(1, signed=False) + n.to_bytes(4, signed=False)
+	else:
+		raise ValueError("dict is too large")

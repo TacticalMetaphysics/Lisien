@@ -25,7 +25,6 @@ from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match
 from typing import Any, Callable, Iterable, Optional
 
-import msgpack
 import networkx as nx
 import tblib
 
@@ -80,6 +79,7 @@ from ..util import (
 	AbstractCharacter,
 	BadTimeException,
 	timer,
+	msgpack_map_header,
 )
 
 SlightlyPackedDeltaType = dict[
@@ -94,7 +94,7 @@ FormerAndCurrentType = tuple[dict[bytes, bytes], dict[bytes, bytes]]
 
 def concat_d(r: dict[bytes, bytes]) -> bytes:
 	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
-	resp = msgpack.Packer().pack_map_header(len(r))
+	resp = msgpack_map_header(len(r))
 	for k, v in r.items():
 		resp += k + v
 	return resp
@@ -171,10 +171,15 @@ class EngineHandle:
 
 	@classmethod
 	def from_archive(cls, b: bytes | dict, *, log_queue=None) -> EngineHandle:
+		try:
+			from msgpack._cmsgpack import unpackb
+		except ImportError:
+			from umsgpack import unpackb
+
 		from ..engine import Engine
 
 		if isinstance(b, bytes):
-			kwargs: dict = msgpack.unpackb(b)
+			kwargs: dict = unpackb(b)
 		else:
 			kwargs = b
 		if "archive_path" not in kwargs:
