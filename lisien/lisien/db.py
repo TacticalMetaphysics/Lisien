@@ -277,6 +277,15 @@ def mutexed(
 
 
 class Batch(list):
+	"""A list of tuples to be serialized with a given function and sent to the database
+
+	Construct these with the :func:`batched` decorator.
+
+	The type annotations on the decorated function will be used to generate the
+	schema for at least SQL and ParquetDB databases, and preferably every other.
+
+	"""
+
 	validate: bool = True
 	"""Whether to check that records added to the batch are correctly typed tuples"""
 
@@ -390,6 +399,9 @@ def batched(
 	"""Decorator for serializers that operate on batches of records
 
 	Needs at least the name of the ``table`` the batch will be inserted into.
+
+	The type annotations on the decorated function will be used to generate the
+	schema for at least SQL and ParquetDB databases, and preferably every other.
 
 	:param key_len: How long the primary key is. Used to delete records matching
 		those in the batch.
