@@ -7472,6 +7472,8 @@ class Engine(AbstractEngine, Executor):
 				  ``historical(..)``
 
 		"""
+		if not hasattr(self.query, "execute"):
+			raise NotImplementedError("turns_when only works with SQL for now")
 		unpack = self.unpack
 		end = self._branch_end()[0] + 1
 
@@ -7502,11 +7504,17 @@ class Engine(AbstractEngine, Executor):
 		if isinstance(
 			left, (EntityStatAccessor, CharacterStatAccessor)
 		) and isinstance(right, (EntityStatAccessor, CharacterStatAccessor)):
+			meta = self.query._looper.meta
 			left_sel = _make_side_sel(
-				left.entity, left.stat, branches, self.pack, mid_turn
+				meta,
+				left.entity,
+				left.stat,
+				branches,
+				self.pack,
+				mid_turn,
 			)
 			right_sel = _make_side_sel(
-				right.entity, right.stat, branches, self.pack, mid_turn
+				meta, right.entity, right.stat, branches, self.pack, mid_turn
 			)
 			left_data = self.query.execute(left_sel)
 			right_data = self.query.execute(right_sel)
@@ -7526,7 +7534,12 @@ class Engine(AbstractEngine, Executor):
 				)
 		elif isinstance(left, (EntityStatAccessor, CharacterStatAccessor)):
 			left_sel = _make_side_sel(
-				left.entity, left.stat, branches, self.pack, mid_turn
+				self.query._looper.meta,
+				left.entity,
+				left.stat,
+				branches,
+				self.pack,
+				mid_turn,
 			)
 			left_data = self.query.execute(left_sel)
 			if mid_turn:
@@ -7545,7 +7558,12 @@ class Engine(AbstractEngine, Executor):
 				)
 		elif isinstance(right, (EntityStatAccessor, CharacterStatAccessor)):
 			right_sel = _make_side_sel(
-				right.entity, right.stat, branches, self.pack, mid_turn
+				self.query.looper._meta,
+				right.entity,
+				right.stat,
+				branches,
+				self.pack,
+				mid_turn,
 			)
 			right_data = self.query.execute(right_sel)
 			if mid_turn:

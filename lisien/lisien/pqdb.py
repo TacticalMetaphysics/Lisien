@@ -19,7 +19,7 @@ import os
 import sys
 from _operator import itemgetter
 from dataclasses import dataclass, KW_ONLY
-from functools import cached_property
+from functools import cached_property, partial
 from typing import (
 	get_origin,
 	Annotated,
@@ -31,9 +31,11 @@ from typing import (
 	Optional,
 	Any,
 	Iterable,
+	Callable,
 )
 
 import pyarrow as pa
+from pyarrow import compute as pc
 
 from .db import (
 	ThreadedDatabaseConnector,
@@ -77,6 +79,10 @@ from .types import (
 	EdgeKeyframe,
 	GraphValKeyframe,
 	CharDict,
+	Value,
+	UniversalKey,
+	Stat,
+	GraphRowType,
 )
 from .util import ELLIPSIS, EMPTY
 
@@ -408,56 +414,60 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				]
 			)
 
-		def load_graphs_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		):
-			from pyarrow import compute as pc
-
-			data = (
-				self._get_db("graphs").read(
+		def load_tick_to_end(
+			self, table: str, branch: Branch, turn_from: Turn, tick_from: Tick
+		) -> list[dict]:
+			data = filter(
+				lambda d: (turn_from, tick_from) <= (d["turn"], d["tick"]),
+				self._get_db(table)
+				.read(
 					filters=[
 						pc.field("branch") == branch,
 						pc.field("turn") >= turn_from,
-					],
+					]
 				)
-			).to_pylist()
+				.to_pylist(),
+			)
 			return sorted(
-				[
-					(d["graph"], d["turn"], d["tick"], d["type"])
-					for d in data
-					if (turn_from, tick_from) <= (d["turn"], d["tick"])
-				],
-				key=lambda d: (d[1], d[2], d[0]),
+				data,
+				key=self._sort_key(table),
 			)
 
-		def load_graphs_tick_to_tick(
+		def _sort_key(self, table: str) -> Callable[[dict], tuple]:
+			def a_sort_key(d: dict) -> tuple:
+				return tuple(
+					d[colname]
+					for colname in map(itemgetter(0), self.schema[table])
+				)
+
+			return a_sort_key
+
+		def load_tick_to_tick(
 			self,
+			table: str,
 			branch: Branch,
 			turn_from: Turn,
 			tick_from: Tick,
 			turn_to: Turn,
 			tick_to: Tick,
-		):
-			from pyarrow import compute as pc
-
-			data = (
-				self._get_db("graphs").read(
+		) -> list[dict]:
+			data = filter(
+				lambda d: (turn_from, tick_from)
+				<= (d["turn"], d["tick"])
+				<= (turn_to, tick_to),
+				self._get_db(table)
+				.read(
 					filters=[
 						pc.field("branch") == branch,
 						pc.field("turn") >= turn_from,
-						pc.field("turn") <= turn_to,
+						pc.field("tick") <= tick_from,
 					]
 				)
-			).to_pylist()
+				.to_pylist(),
+			)
 			return sorted(
-				[
-					(d["graph"], d["turn"], d["tick"], d["type"])
-					for d in data
-					if (turn_from, tick_from)
-					<= (d["turn"], d["tick"])
-					<= (turn_to, tick_to)
-				],
-				key=lambda d: (d[2], d[3], d[0]),
+				data,
+				key=self._sort_key(table),
 			)
 
 		def list_keyframes(self) -> list:
@@ -615,1495 +625,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				]
 			)
 
-		def load_universals_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_universals_tick_to_end(
-					branch, turn_from, tick_from
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
 		def _table_columns(self, table: str) -> list[str]:
 			return list(map(itemgetter(0), self.schema[table]))
-
-		def _iter_part_tick_to_end(
-			self, table: str, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[dict]:
-			from pyarrow import compute as pc
-
-			db = self._get_db(table)
-			for d in filter(
-				None,
-				db.read(
-					filters=[
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-					],
-					columns=self._table_columns(table),
-				).to_pylist(),
-			):
-				if d["turn"] == turn_from:
-					if d["tick"] >= tick_from:
-						yield d
-				else:
-					yield d
-
-		def _iter_universals_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, Turn, Tick, bytes]]:
-			for d in self._iter_part_tick_to_end(
-				"universals", branch, turn_from, tick_from
-			):
-				try:
-					yield d["key"], d["turn"], d["tick"], d["value"]
-				except KeyError:
-					continue
-
-		def _list_part_tick_to_tick(
-			self,
-			table: str,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[dict]:
-			from pyarrow import compute as pc
-
-			db = self._get_db(table)
-			if turn_from == turn_to:
-				return db.read(
-					filters=[
-						pc.field("branch") == branch,
-						pc.field("turn") == turn_from,
-						pc.field("tick") >= tick_from,
-						pc.field("tick") <= tick_to,
-					],
-					columns=self._table_columns(table),
-				).to_pylist()
-			else:
-				ret = []
-				for d in db.read(
-					filters=[
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-						pc.field("turn") <= turn_to,
-					],
-					columns=self._table_columns(table),
-				).to_pylist():
-					if (
-						(turn_from, tick_from)
-						<= (d["turn"], d["tick"])
-						<= (turn_to, tick_to)
-					):
-						ret.append(d)
-				return ret
-
-		def load_universals_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return [
-				(d["key"], d["turn"], d["tick"], d["value"])
-				for d in sorted(
-					self._list_part_tick_to_tick(
-						"universals",
-						branch,
-						turn_from,
-						tick_from,
-						turn_to,
-						tick_to,
-					),
-					key=lambda dee: (dee["turn"], dee["tick"], dee["key"]),
-				)
-			]
-
-		def load_things_tick_to_end(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 4:
-				return self._load_things_tick_to_end_character(*args, **kwargs)
-			else:
-				return self._load_things_tick_to_end_all(*args, **kwargs)
-
-		def _load_things_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			return [
-				(
-					d["character"],
-					d["thing"],
-					d["turn"],
-					d["tick"],
-					d["location"],
-				)
-				for d in sorted(
-					self._iter_part_tick_to_end(
-						"things", branch, turn_from, tick_from
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["thing"],
-					),
-				)
-			]
-
-		def _load_things_tick_to_end_character(
-			self,
-			character: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			import pyarrow.compute as pc
-
-			return [
-				(d["thing"], d["turn"], d["tick"], d["location"])
-				for d in sorted(
-					self._get_db("things")
-					.read(
-						filters=[
-							pc.field("character") == character,
-							pc.field("branch") == branch,
-							pc.field("turn") >= turn_from,
-						],
-					)
-					.to_pylist(),
-					key=lambda d: (d["turn"], d["tick"], d["thing"]),
-				)
-				if (turn_from, tick_from) <= (d["turn"], d["tick"])
-			]
-
-		def load_things_tick_to_tick(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 6:
-				return self._load_things_tick_to_tick_character(
-					*args, **kwargs
-				)
-			else:
-				return self._load_things_tick_to_tick_all(*args, **kwargs)
-
-		def _load_things_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			def sort_key(d: dict) -> tuple[int, int, bytes, bytes]:
-				return d["turn"], d["tick"], d["character"], d["thing"]
-
-			data = self._list_part_tick_to_tick(
-				"things", branch, turn_from, tick_from, turn_to, tick_to
-			)
-			data.sort(key=sort_key)
-			return [
-				(
-					d["character"],
-					d["thing"],
-					d["turn"],
-					d["tick"],
-					d["location"],
-				)
-				for d in data
-			]
-
-		def _load_things_tick_to_tick_character(
-			self,
-			character: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_things_tick_to_tick_character(
-					character, branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_things_tick_to_tick_character(
-			self,
-			character: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		):
-			from pyarrow import compute as pc
-
-			db = self._get_db("things")
-			if turn_from == turn_to:
-				for d in db.read(
-					filters=[
-						pc.field("character") == character,
-						pc.field("branch") == branch,
-						pc.field("turn") == turn_from,
-						pc.field("tick") >= tick_from,
-						pc.field("tick") <= tick_to,
-					],
-				).to_pylist():
-					yield d["thing"], d["turn"], d["tick"], d["location"]
-			else:
-				for d in db.read(
-					filters=[
-						pc.field("character") == character,
-						pc.field("branch") == branch,
-						pc.field("turn_from") >= turn_from,
-						pc.field("turn_to") <= turn_to,
-					],
-				).to_pylist():
-					if d["turn"] == turn_from:
-						if d["tick"] >= tick_from:
-							yield (
-								d["thing"],
-								d["turn"],
-								d["tick"],
-								d["location"],
-							)
-					elif d["turn"] == turn_to:
-						if d["tick"] <= tick_to:
-							yield (
-								d["thing"],
-								d["turn"],
-								d["tick"],
-								d["location"],
-							)
-					else:
-						yield d["thing"], d["turn"], d["tick"], d["location"]
-
-		def load_graph_val_tick_to_end(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 4:
-				return self._load_graph_val_tick_to_end_graph(*args, **kwargs)
-			else:
-				return self._load_graph_val_tick_to_end_all(*args, **kwargs)
-
-		def _load_graph_val_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_graph_val_tick_to_end_all(
-					branch, turn_from, tick_from
-				),
-				key=lambda t: (t[2], t[3], t[0], t[1]),
-			)
-
-		def _iter_graph_val_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._iter_part_tick_to_end(
-				"graph_val", branch, turn_from, tick_from
-			):
-				yield (
-					d["graph"],
-					d["key"],
-					d["turn"],
-					d["tick"],
-					d["value"],
-				)
-
-		def _load_graph_val_tick_to_end_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_graph_val_tick_to_end_graph(
-					graph, branch, turn_from, tick_from
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_graph_val_tick_to_end_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> Iterator[tuple[bytes, Turn, Tick, bytes]]:
-			from pyarrow import compute as pc
-
-			for d in (
-				self._get_db("graph_val")
-				.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-					],
-				)
-				.to_pylist()
-			):
-				if d["turn"] == turn_from:
-					if d["tick"] >= tick_from:
-						yield d["key"], d["turn"], d["tick"], d["value"]
-				else:
-					yield d["key"], d["turn"], d["tick"], d["value"]
-
-		def load_graph_val_tick_to_tick(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 6:
-				return self._load_graph_val_tick_to_tick_graph(*args, **kwargs)
-			else:
-				return self._load_graph_val_tick_to_tick_all(*args, **kwargs)
-
-		def _load_graph_val_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_graph_val_tick_to_tick_all(
-					branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[2], t[3], t[0], t[1]),
-			)
-
-		def _iter_graph_val_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._list_part_tick_to_tick(
-				"graph_val", branch, turn_from, tick_from, turn_to, tick_to
-			):
-				yield d["graph"], d["key"], d["turn"], d["tick"], d["value"]
-
-		def _load_graph_val_tick_to_tick_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_graph_val_tick_to_tick(
-					graph, branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_graph_val_tick_to_tick(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, Turn, Tick, bytes]]:
-			for d in self._list_part_tick_to_tick(
-				"graph_val", branch, turn_from, tick_from, turn_to, tick_to
-			):
-				yield d["key"], d["turn"], d["tick"], d["value"]
-
-		def _load_nodes_tick_to_end_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bool]]:
-			return sorted(
-				self._iter_nodes_tick_to_end_graph(
-					graph, branch, turn_from, tick_from
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _load_nodes_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, Turn, Tick, bool]]:
-			return sorted(
-				self._iter_nodes_tick_to_end_all(branch, turn_from, tick_from),
-				key=lambda t: (t[2], t[3], t[0], t[1]),
-			)
-
-		def load_nodes_tick_to_end(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 4:
-				return self._load_nodes_tick_to_end_graph(*args, **kwargs)
-			else:
-				return self._load_nodes_tick_to_end_all(*args, **kwargs)
-
-		def _iter_nodes_tick_to_end_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> Iterator[tuple[bytes, Turn, Tick, bool]]:
-			from pyarrow import compute as pc
-
-			for d in (
-				self._get_db("nodes")
-				.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-					],
-				)
-				.to_pylist()
-			):
-				if d["turn"] == turn_from:
-					if d["tick"] >= tick_from:
-						yield (
-							d["node"],
-							d["turn"],
-							d["tick"],
-							d["extant"],
-						)
-				else:
-					yield (
-						d["node"],
-						d["turn"],
-						d["tick"],
-						d["extant"],
-					)
-
-		def _iter_nodes_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, bytes, Turn, Tick, bool]]:
-			for d in self._iter_part_tick_to_end(
-				"nodes", branch, turn_from, tick_from
-			):
-				yield (
-					d["graph"],
-					d["node"],
-					d["turn"],
-					d["tick"],
-					d["extant"],
-				)
-
-		def load_nodes_tick_to_tick(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 6:
-				return self.load_nodes_tick_to_tick_graph(*args, **kwargs)
-			else:
-				return self.load_nodes_tick_to_tick_all(*args, **kwargs)
-
-		def load_nodes_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, Turn, Tick, bool]]:
-			return sorted(
-				self._iter_nodes_tick_to_tick_all(
-					branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[2], t[3], t[0], t[1]),
-			)
-
-		def load_nodes_tick_to_tick_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bool]]:
-			return sorted(
-				self._iter_nodes_tick_to_tick_graph(
-					graph, branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_nodes_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, Turn, Tick, bool]]:
-			for d in self._list_part_tick_to_tick(
-				"nodes", branch, turn_from, tick_from, turn_to, tick_to
-			):
-				yield d["graph"], d["node"], d["turn"], d["tick"], d["extant"]
-
-		def _iter_nodes_tick_to_tick_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, Turn, Tick, bool]]:
-			from pyarrow import compute as pc
-
-			db = self._get_db("nodes")
-			if turn_from == turn_to:
-				for d in db.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") == turn_from,
-						pc.field("tick") >= tick_from,
-						pc.field("tick") <= tick_to,
-					],
-				).to_pylist():
-					yield (
-						d["node"],
-						d["turn"],
-						d["tick"],
-						d["extant"],
-					)
-			else:
-				for d in db.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-						pc.field("turn") <= turn_to,
-					],
-				).to_pylist():
-					if d["turn"] == turn_from:
-						if d["tick"] >= tick_from:
-							yield (
-								d["node"],
-								d["turn"],
-								d["tick"],
-								d["extant"],
-							)
-					elif d["turn"] == turn_to:
-						if d["tick"] <= tick_to:
-							yield (
-								d["node"],
-								d["turn"],
-								d["tick"],
-								d["extant"],
-							)
-					else:
-						yield (
-							d["node"],
-							d["turn"],
-							d["tick"],
-							d["extant"],
-						)
-
-		def load_node_val_tick_to_end(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 4:
-				return self._load_node_val_tick_to_end_graph(*args, **kwargs)
-			else:
-				return self._load_node_val_tick_to_end_all(*args, **kwargs)
-
-		def _load_node_val_tick_to_end_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_node_val_tick_to_end_graph(
-					graph, branch, turn_from, tick_from
-				),
-				key=lambda t: (t[2], t[3], t[0], t[1]),
-			)
-
-		def _load_node_val_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_node_val_tick_to_end_all(
-					branch, turn_from, tick_from
-				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_node_val_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._iter_part_tick_to_end(
-				"node_val", branch, turn_from, tick_from
-			):
-				yield (
-					d["graph"],
-					d["node"],
-					d["key"],
-					d["turn"],
-					d["tick"],
-					d["value"],
-				)
-
-		def _iter_node_val_tick_to_end_graph(
-			self, graph: bytes, branch: str, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, bytes, int, int, bytes]]:
-			from pyarrow import compute as pc
-
-			for d in (
-				self._get_db("node_val")
-				.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-					],
-				)
-				.to_pylist()
-			):
-				if d["turn"] == turn_from:
-					if d["tick"] >= tick_from:
-						yield (
-							d["node"],
-							d["key"],
-							d["turn"],
-							d["tick"],
-							d["value"],
-						)
-				else:
-					yield d["node"], d["key"], d["turn"], d["tick"], d["value"]
-
-		def load_node_val_tick_to_tick(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 6:
-				return self._load_node_val_tick_to_tick_graph(*args, **kwargs)
-			else:
-				return self._load_node_val_tick_to_tick_all(*args, **kwargs)
-
-		def _load_node_val_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_node_val_tick_to_tick_all(
-					branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_node_val_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._list_part_tick_to_tick(
-				"node_val", branch, turn_from, tick_from, turn_to, tick_to
-			):
-				yield (
-					d["graph"],
-					d["node"],
-					d["key"],
-					d["turn"],
-					d["tick"],
-					d["value"],
-				)
-
-		def _load_node_val_tick_to_tick_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_node_val_tick_to_tick_graph(
-					graph, branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[2], t[3], t[0], t[1]),
-			)
-
-		def _iter_node_val_tick_to_tick_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			from pyarrow import compute as pc
-
-			db = self._get_db("node_val")
-			if turn_from == turn_to:
-				for d in db.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") == turn_from,
-						pc.field("tick") >= tick_from,
-						pc.field("tick") <= tick_to,
-					],
-				).to_pylist():
-					yield (
-						d["node"],
-						d["key"],
-						d["turn"],
-						d["tick"],
-						d["value"],
-					)
-			else:
-				for d in db.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-						pc.field("turn") <= turn_to,
-					],
-				).to_pylist():
-					if d["turn"] == turn_from:
-						if d["tick"] >= tick_from:
-							yield (
-								d["node"],
-								d["key"],
-								d["turn"],
-								d["tick"],
-								d["value"],
-							)
-					elif d["turn"] == turn_to:
-						if d["tick"] <= tick_to:
-							yield (
-								d["node"],
-								d["key"],
-								d["turn"],
-								d["tick"],
-								d["value"],
-							)
-					else:
-						yield (
-							d["node"],
-							d["key"],
-							d["turn"],
-							d["tick"],
-							d["value"],
-						)
-
-		def load_edges_tick_to_end(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 4:
-				return self._load_edges_tick_to_end_graph(*args, **kwargs)
-			else:
-				return self._load_edges_tick_to_end_all(*args, **kwargs)
-
-		def _load_edges_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
-			return sorted(
-				self._iter_edges_tick_to_end_all(branch, turn_from, tick_from),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_edges_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
-			for d in self._iter_part_tick_to_end(
-				"edges", branch, turn_from, tick_from
-			):
-				yield (
-					d["graph"],
-					d["orig"],
-					d["dest"],
-					d["turn"],
-					d["tick"],
-					d["extant"],
-				)
-
-		def _load_edges_tick_to_end_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> list[tuple[bytes, bytes, Turn, Tick, bool]]:
-			return sorted(
-				self._iter_edges_tick_to_end_graph(
-					graph, branch, turn_from, tick_from
-				),
-				key=lambda t: (t[2], t[3], t[0], t[1]),
-			)
-
-		def _iter_edges_tick_to_end_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> Iterator[tuple[bytes, bytes, Turn, Tick, bool]]:
-			from pyarrow import compute as pc
-
-			for d in (
-				self._get_db("edges")
-				.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-					],
-				)
-				.to_pylist()
-			):
-				if d["turn"] == turn_from:
-					if d["tick"] >= tick_from:
-						yield (
-							d["orig"],
-							d["dest"],
-							d["turn"],
-							d["tick"],
-							d["extant"],
-						)
-				else:
-					yield (
-						d["orig"],
-						d["dest"],
-						d["turn"],
-						d["tick"],
-						d["extant"],
-					)
-
-		def load_edges_tick_to_tick(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 6:
-				return self._load_edges_tick_to_tick_graph(*args, **kwargs)
-			else:
-				return self._load_edges_tick_to_tick_all(*args, **kwargs)
-
-		def _load_edges_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
-			return sorted(
-				self._iter_edges_tick_to_tick_all(
-					branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_edges_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
-			for d in self._list_part_tick_to_tick(
-				"edges", branch, turn_from, tick_from, turn_to, tick_to
-			):
-				yield (
-					d["graph"],
-					d["orig"],
-					d["dest"],
-					d["turn"],
-					d["tick"],
-					d["extant"],
-				)
-
-		def _load_edges_tick_to_tick_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
-			return sorted(
-				self._iter_edges_tick_to_tick_graph(
-					graph, branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_edges_tick_to_tick_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
-			from pyarrow import compute as pc
-
-			db = self._get_db("edges")
-			if turn_from == turn_to:
-				for d in db.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") == turn_from,
-						pc.field("tick") >= tick_from,
-						pc.field("tick") <= tick_to,
-					],
-				).to_pylist():
-					yield (
-						d["orig"],
-						d["dest"],
-						d["turn"],
-						d["tick"],
-						d["extant"],
-					)
-			else:
-				for d in db.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-						pc.field("turn") <= turn_to,
-					],
-				).to_pylist():
-					if d["turn"] == turn_from:
-						if d["tick"] >= tick_from:
-							yield (
-								d["orig"],
-								d["dest"],
-								d["turn"],
-								d["tick"],
-								d["extant"],
-							)
-					elif d["turn"] == turn_to:
-						if d["tick"] <= tick_to:
-							yield (
-								d["orig"],
-								d["dest"],
-								d["turn"],
-								d["tick"],
-								d["extant"],
-							)
-					else:
-						yield (
-							d["orig"],
-							d["dest"],
-							d["turn"],
-							d["tick"],
-							d["extant"],
-						)
-
-		def load_edge_val_tick_to_end(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 6:
-				return self._load_edge_val_tick_to_end_graph(*args, **kwargs)
-			else:
-				return self._load_edge_val_tick_to_end_all(*args, **kwargs)
-
-		def _load_edge_val_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_edge_val_tick_to_end_all(
-					branch, turn_from, tick_from
-				),
-				key=lambda t: (t[4], t[5], t[0], t[1], t[2], t[3]),
-			)
-
-		def _iter_edge_val_tick_to_end_all(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._iter_part_tick_to_end(
-				"edge_val", branch, turn_from, tick_from
-			):
-				yield (
-					d["graph"],
-					d["orig"],
-					d["dest"],
-					d["key"],
-					d["turn"],
-					d["tick"],
-					d["value"],
-				)
-
-		def _load_edge_val_tick_to_end_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_edge_val_tick_to_end_graph(
-					graph, branch, turn_from, tick_from
-				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_edge_val_tick_to_end_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-		) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			from pyarrow import compute as pc
-
-			for d in (
-				self._get_db("edge_val")
-				.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-					],
-				)
-				.to_pylist()
-			):
-				if d["turn"] == turn_from:
-					if d["tick"] >= tick_from:
-						yield (
-							d["orig"],
-							d["dest"],
-							d["key"],
-							d["turn"],
-							d["tick"],
-							d["value"],
-						)
-				else:
-					yield (
-						d["orig"],
-						d["dest"],
-						d["key"],
-						d["turn"],
-						d["tick"],
-						d["value"],
-					)
-
-		def load_edge_val_tick_to_tick(self, *args, **kwargs):
-			if len(args) + len(kwargs) == 6:
-				return self._load_edge_val_tick_to_tick_graph(*args, **kwargs)
-			else:
-				return self._load_edge_val_tick_to_tick_all(*args, **kwargs)
-
-		def _load_edge_val_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_edge_val_tick_to_tick_all(
-					branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[4], t[5], t[0], t[1], t[2], t[3]),
-			)
-
-		def _iter_edge_val_tick_to_tick_all(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._list_part_tick_to_tick(
-				"edge_val", branch, turn_from, tick_from, turn_to, tick_to
-			):
-				yield (
-					d["graph"],
-					d["orig"],
-					d["dest"],
-					d["key"],
-					d["turn"],
-					d["tick"],
-					d["value"],
-				)
-
-		def _load_edge_val_tick_to_tick_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_edge_val_tick_to_tick_graph(
-					graph, branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_edge_val_tick_to_tick_graph(
-			self,
-			graph: bytes,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			from pyarrow import compute as pc
-
-			db = self._get_db("edge_val")
-			if turn_from == turn_to:
-				for d in db.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") == turn_from,
-						pc.field("tick") >= tick_from,
-						pc.field("tick") <= tick_to,
-					],
-				).to_pylist():
-					yield (
-						d["orig"],
-						d["dest"],
-						d["key"],
-						d["turn"],
-						d["tick"],
-						d["value"],
-					)
-			else:
-				for d in db.read(
-					filters=[
-						pc.field("graph") == graph,
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-						pc.field("turn") <= turn_to,
-					],
-				).to_pylist():
-					if d["turn"] == turn_from:
-						if d["tick"] >= tick_from:
-							yield (
-								d["orig"],
-								d["dest"],
-								d["key"],
-								d["turn"],
-								d["tick"],
-								d["value"],
-							)
-					elif d["turn"] == turn_to:
-						if d["tick"] <= tick_to:
-							yield (
-								d["orig"],
-								d["dest"],
-								d["key"],
-								d["turn"],
-								d["tick"],
-								d["value"],
-							)
-					else:
-						yield (
-							d["orig"],
-							d["dest"],
-							d["key"],
-							d["turn"],
-							d["tick"],
-							d["value"],
-						)
-
-		def load_character_rulebook_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_end_part(
-					"character", branch, turn_from, tick_from
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_character_rulebook_tick_to_end_part(
-			self, part: str, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, Turn, Tick, bytes]]:
-			for d in self._iter_part_tick_to_end(
-				f"{part}_rulebook", branch, turn_from, tick_from
-			):
-				yield d["character"], d["turn"], d["tick"], d["rulebook"]
-
-		def load_character_rulebook_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_tick_part(
-					"character", branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_character_rulebook_tick_to_tick_part(
-			self,
-			part: str,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, Turn, Tick, bytes]]:
-			for d in self._list_part_tick_to_tick(
-				f"{part}_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			):
-				yield d["character"], d["turn"], d["tick"], d["rulebook"]
-
-		def load_unit_rulebook_tick_to_end(
-			self, branch: str, turn_from: int, tick_from: int
-		) -> list[tuple[bytes, int, int, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_end_part(
-					"unit", branch, turn_from, tick_from
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def load_unit_rulebook_tick_to_tick(
-			self,
-			branch: str,
-			turn_from: int,
-			tick_from: int,
-			turn_to: int,
-			tick_to: int,
-		) -> list[tuple[bytes, int, int, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_tick_part(
-					"unit", branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def load_character_thing_rulebook_tick_to_end(
-			self, branch: str, turn_from: int, tick_from: int
-		) -> list[tuple[bytes, int, int, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_end_part(
-					"character_thing", branch, turn_from, tick_from
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def load_character_thing_rulebook_tick_to_tick(
-			self,
-			branch: str,
-			turn_from: int,
-			tick_from: int,
-			turn_to: int,
-			tick_to: int,
-		) -> list[tuple[bytes, int, int, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_tick_part(
-					"character_thing",
-					branch,
-					turn_from,
-					tick_from,
-					turn_to,
-					tick_to,
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def load_character_place_rulebook_tick_to_end(
-			self, branch: str, turn_from: int, tick_from: int
-		) -> list[tuple[bytes, int, int, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_end_part(
-					"character_place", branch, turn_from, tick_from
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def load_character_place_rulebook_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_tick_part(
-					"character_place",
-					branch,
-					turn_from,
-					tick_from,
-					turn_to,
-					tick_to,
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def load_character_portal_rulebook_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_end_part(
-					"character_portal", branch, turn_from, tick_from
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def load_character_portal_rulebook_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_character_rulebook_tick_to_tick_part(
-					"character_portal",
-					branch,
-					turn_from,
-					tick_from,
-					turn_to,
-					tick_to,
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def load_node_rulebook_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, int, int, bytes]]:
-			return sorted(
-				self._iter_node_rulebook_tick_to_end(
-					branch, turn_from, tick_from
-				),
-				key=lambda t: (t[2], t[3], t[0], t[1]),
-			)
-
-		def _iter_node_rulebook_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._iter_part_tick_to_end(
-				"node_rulebook", branch, turn_from, tick_from
-			):
-				yield (
-					d["character"],
-					d["node"],
-					d["turn"],
-					d["tick"],
-					d["rulebook"],
-				)
-
-		def load_node_rulebook_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_node_rulebook_tick_to_tick(
-					branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[2], t[3], t[0], t[1]),
-			)
-
-		def _iter_node_rulebook_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._list_part_tick_to_tick(
-				"node_rulebook", branch, turn_from, tick_from, turn_to, tick_to
-			):
-				yield (
-					d["character"],
-					d["node"],
-					d["turn"],
-					d["tick"],
-					d["rulebook"],
-				)
-
-		def load_portal_rulebook_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_portal_rulebook_tick_to_end(
-					branch, turn_from, tick_from
-				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_portal_rulebook_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._iter_part_tick_to_end(
-				"portal_rulebook", branch, turn_from, tick_from
-			):
-				yield (
-					d["character"],
-					d["orig"],
-					d["dest"],
-					d["turn"],
-					d["tick"],
-					d["rulebook"],
-				)
-
-		def load_portal_rulebook_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			return sorted(
-				self._iter_portal_rulebook_tick_to_tick(
-					branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_portal_rulebook_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, bytes, Turn, Tick, bytes]]:
-			for d in self._list_part_tick_to_tick(
-				"portal_rulebook",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			):
-				yield (
-					d["character"],
-					d["orig"],
-					d["dest"],
-					d["turn"],
-					d["tick"],
-					d["rulebook"],
-				)
 
 		def _del_time(
 			self, table: str, branch: Branch, turn: Turn, tick: Tick
@@ -2136,728 +659,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 		def edge_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
 			self._del_time("edge_val", branch, turn, tick)
-
-		def load_rulebooks_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, Turn, Tick, bytes, RulebookPriority]]:
-			return sorted(
-				self._iter_rulebooks_tick_to_end(branch, turn_from, tick_from),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_rulebooks_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, Turn, Tick, bytes, RulebookPriority]]:
-			for d in self._iter_part_tick_to_end(
-				"rulebooks", branch, turn_from, tick_from
-			):
-				yield (
-					d["rulebook"],
-					d["turn"],
-					d["tick"],
-					d["rules"],
-					d["priority"],
-				)
-
-		def load_rulebooks_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, Turn, Tick, bytes, RulebookPriority]]:
-			return sorted(
-				self._iter_rulebooks_tick_to_tick(
-					branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_rulebooks_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, Turn, Tick, bytes, RulebookPriority]]:
-			for d in self._list_part_tick_to_tick(
-				"rulebooks", branch, turn_from, tick_from, turn_to, tick_to
-			):
-				yield (
-					d["rulebook"],
-					d["turn"],
-					d["tick"],
-					d["rules"],
-					d["priority"],
-				)
-
-		def _load_rule_part_tick_to_end(
-			self, part, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[
-			tuple[RuleName, Turn, Tick, bytes | RuleNeighborhood | RuleBig]
-		]:
-			return sorted(
-				self._iter_rule_part_tick_to_end(
-					part, branch, turn_from, tick_from
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_rule_part_tick_to_end(
-			self, part, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[RuleName, Turn, Tick, bytes | RuleBig]]:
-			for d in sorted(
-				self._iter_part_tick_to_end(
-					f"rule_{part}", branch, turn_from, tick_from
-				),
-				key=lambda d: (d["turn"], d["tick"], d["rule"]),
-			):
-				yield d["rule"], d["turn"], d["tick"], d[part]
-
-		def _load_rule_part_tick_to_tick(
-			self,
-			part: str,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[
-			tuple[Branch, Turn, Tick, bytes | RuleNeighborhood | RuleBig]
-		]:
-			return sorted(
-				self._iter_rule_part_tick_to_tick(
-					part, branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[1], t[2], t[0]),
-			)
-
-		def _iter_rule_part_tick_to_tick(
-			self,
-			part,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[Branch, Turn, Tick, bytes]]:
-			for d in self._list_part_tick_to_tick(
-				f"rule_{part}", branch, turn_from, tick_from, turn_to, tick_to
-			):
-				yield d["rule"], d["turn"], d["tick"], d[part]
-
-		def load_rule_triggers_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[Branch, Turn, Tick, bytes]]:
-			return self._load_rule_part_tick_to_end(
-				"triggers", branch, turn_from, tick_from
-			)
-
-		def load_rule_triggers_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[Branch, Turn, Tick, bytes]]:
-			return self._load_rule_part_tick_to_tick(
-				"triggers", branch, turn_from, tick_from, turn_to, tick_to
-			)
-
-		def load_rule_prereqs_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[Branch, Turn, Tick, bytes]]:
-			return self._load_rule_part_tick_to_end(
-				"prereqs", branch, turn_from, tick_from
-			)
-
-		def load_rule_prereqs_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[Branch, Turn, Tick, bytes]]:
-			return self._load_rule_part_tick_to_tick(
-				"prereqs", branch, turn_from, tick_from, turn_to, tick_to
-			)
-
-		def load_rule_actions_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[Branch, Turn, Tick, bytes]]:
-			return self._load_rule_part_tick_to_end(
-				"actions", branch, turn_from, tick_from
-			)
-
-		def load_rule_actions_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[Branch, Turn, Tick, bytes]]:
-			return self._load_rule_part_tick_to_tick(
-				"actions", branch, turn_from, tick_from, turn_to, tick_to
-			)
-
-		def load_rule_neighborhood_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[Branch, Turn, Tick, bytes]]:
-			return self._load_rule_part_tick_to_end(
-				"neighborhood", branch, turn_from, tick_from
-			)
-
-		def load_rule_neighborhood_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[RuleName, Turn, Tick, bytes]]:
-			return self._load_rule_part_tick_to_tick(
-				"neighborhood", branch, turn_from, tick_from, turn_to, tick_to
-			)
-
-		def load_rule_big_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[RuleName, Turn, Tick, RuleBig]]:
-			return self._load_rule_part_tick_to_end(
-				"big", branch, turn_from, tick_from
-			)
-
-		def load_rule_big_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[RuleName, Turn, Tick, RuleBig]]:
-			return self._load_rule_part_tick_to_tick(
-				"big", branch, turn_from, tick_from, turn_to, tick_to
-			)
-
-		def load_character_rules_handled_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, RuleName, Turn, Tick]]:
-			return sorted(
-				self._iter_character_rules_handled_tick_to_end(
-					branch, turn_from, tick_from
-				),
-				key=lambda t: (t[3], t[4], t[0], t[1], t[2]),
-			)
-
-		def _iter_character_rules_handled_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> Iterator[tuple[bytes, bytes, RuleName, Turn, Tick]]:
-			for d in self._iter_part_tick_to_end(
-				"character_rules_handled", branch, turn_from, tick_from
-			):
-				yield (
-					d["character"],
-					d["rulebook"],
-					d["rule"],
-					d["turn"],
-					d["tick"],
-				)
-
-		def load_character_rules_handled_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, RuleName, Turn, Tick]]:
-			return sorted(
-				self._iter_character_rules_handled_tick_to_tick(
-					branch, turn_from, tick_from, turn_to, tick_to
-				),
-				key=lambda t: (t[0], t[-1], t[1], t[2], t[3]),
-			)
-
-		def _iter_character_rules_handled_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> Iterator[tuple[bytes, bytes, RuleName, Turn, Tick]]:
-			for d in self._list_part_tick_to_tick(
-				"character_rules_handled",
-				branch,
-				turn_from,
-				tick_from,
-				turn_to,
-				tick_to,
-			):
-				yield (
-					d["turn"],
-					d["character"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-
-		def load_unit_rules_handled_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["graph"],
-					d["unit"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._iter_part_tick_to_end(
-						"unit_rules_handled", branch, turn_from, tick_from
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["graph"],
-						d["unit"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_unit_rules_handled_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["graph"],
-					d["unit"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._list_part_tick_to_tick(
-						"unit_rules_handled",
-						branch,
-						turn_from,
-						tick_from,
-						turn_to,
-						tick_to,
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["graph"],
-						d["unit"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_character_thing_rules_handled_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, CharName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["thing"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._iter_part_tick_to_end(
-						"character_thing_rules_handled",
-						branch,
-						turn_from,
-						tick_from,
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["thing"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_character_thing_rules_handled_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["thing"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._list_part_tick_to_tick(
-						"character_thing_rules_handled",
-						branch,
-						turn_from,
-						tick_from,
-						turn_to,
-						tick_to,
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["thing"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_character_place_rules_handled_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["place"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._iter_part_tick_to_end(
-						"character_place_rules_handled",
-						branch,
-						turn_from,
-						tick_from,
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["place"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_character_place_rules_handled_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["place"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._list_part_tick_to_tick(
-						"character_place_rules_handled",
-						branch,
-						turn_from,
-						tick_from,
-						turn_to,
-						tick_to,
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["place"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_character_portal_rules_handled_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["orig"],
-					d["dest"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._iter_part_tick_to_end(
-						"character_portal_rules_handled",
-						branch,
-						turn_from,
-						tick_from,
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["orig"],
-						d["dest"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_character_portal_rules_handled_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["orig"],
-					d["dest"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._list_part_tick_to_tick(
-						"character_portal_rules_handled",
-						branch,
-						turn_from,
-						tick_from,
-						turn_to,
-						tick_to,
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["orig"],
-						d["dest"],
-						d["rlulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_node_rules_handled_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["node"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._iter_part_tick_to_end(
-						"node_rules_handled", branch, turn_from, tick_from
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["node"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_node_rules_handled_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["node"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._list_part_tick_to_tick(
-						"node_rules_handled",
-						branch,
-						turn_from,
-						tick_from,
-						turn_to,
-						tick_to,
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["node"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_portal_rules_handled_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["orig"],
-					d["dest"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._iter_part_tick_to_end(
-						"portal_rules_handled", branch, turn_from, tick_from
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["orig"],
-						d["dest"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_portal_rules_handled_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, bytes, RuleName, Turn, Tick]]:
-			return [
-				(
-					d["turn"],
-					d["character"],
-					d["orig"],
-					d["dest"],
-					d["rulebook"],
-					d["rule"],
-					d["tick"],
-				)
-				for d in sorted(
-					self._list_part_tick_to_tick(
-						"portal_rules_handled",
-						branch,
-						turn_from,
-						tick_from,
-						turn_to,
-						tick_to,
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character"],
-						d["orig"],
-						d["dest"],
-						d["rulebook"],
-						d["rule"],
-					),
-				)
-			]
-
-		def load_units_tick_to_end(
-			self, branch: Branch, turn_from: Turn, tick_from: Tick
-		) -> list[tuple[bytes, bytes, bytes, int, int, bool]]:
-			return [
-				(
-					d["character_graph"],
-					d["unit_graph"],
-					d["unit_node"],
-					d["turn"],
-					d["tick"],
-					d["is_unit"],
-				)
-				for d in sorted(
-					self._iter_part_tick_to_end(
-						"units", branch, turn_from, tick_from
-					),
-					key=lambda d: (
-						d["turn"],
-						d["tick"],
-						d["character_graph"],
-						d["unit_graph"],
-						d["unit_node"],
-					),
-				)
-			]
-
-		def load_units_tick_to_tick(
-			self,
-			branch: Branch,
-			turn_from: Turn,
-			tick_from: Tick,
-			turn_to: Turn,
-			tick_to: Tick,
-		) -> list[tuple[bytes, bytes, bytes, Turn, Tick, bool]]:
-			return [
-				(
-					d["character_graph"],
-					d["unit_graph"],
-					d["unit_node"],
-					d["turn"],
-					d["tick"],
-					d["is_unit"],
-				)
-				for d in self._list_part_tick_to_tick(
-					"units", branch, turn_from, tick_from, turn_to, tick_to
-				)
-			]
 
 		def get_keyframe_extensions(
 			self, branch: Branch, turn: Turn, tick: Tick
@@ -2963,8 +764,24 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			def call_method(name, *args, silent=False, **kwargs):
 				if callable(name):
 					mth = name
-				else:
+				elif hasattr(self, name):
 					mth = getattr(self, name)
+				elif name.startswith("load_") and name.endswith(
+					"_tick_to_end"
+				):
+					table = name.removeprefix("load_").removesuffix(
+						"_tick_to_end"
+					)
+					mth = partial(self.load_tick_to_end, table)
+				elif name.startswith("load_") and name.endswith(
+					"_tick_to_tick"
+				):
+					table = name.removeprefix("load_").removesuffix(
+						"_tick_to_tick"
+					)
+					mth = partial(self.load_tick_to_tick, table)
+				else:
+					raise ValueError("No method", name)
 				try:
 					res = mth(*args, **kwargs)
 				except Exception as ex:
@@ -3094,31 +911,32 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		turn_to: Optional[Turn] = None,
 		tick_to: Optional[Tick] = None,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
-		unpack = self.unpack
+		unpack = self.unpack_key
 		if turn_to is None:
 			if tick_to is not None:
 				raise TypeError("Need both or neither of turn_to, tick_to")
 			data = self.call(
-				"load_graphs_tick_to_end", branch, turn_from, tick_from
+				"load_tick_to_end", "graphs", branch, turn_from, tick_from
 			)
 		else:
 			if tick_to is None:
 				raise TypeError("Need both or neither of turn_to, tick_to")
 			data = self.call(
-				"load_graphs_tick_to_tick",
+				"load_tick_to_tick",
+				"graphs",
 				branch,
 				turn_from,
 				tick_from,
 				turn_to,
 				tick_to,
 			)
-		for graph, turn, tick, typ in data:
+		for d in data:
 			yield (
-				unpack(graph),
+				CharName(unpack(d["graph"])),
 				branch,
-				turn,
-				tick,
-				typ,
+				Turn(d["turn"]),
+				Tick(d["tick"]),
+				str(d["type"]),
 			)
 
 	def have_branch(self, branch: Branch) -> bool:
@@ -3143,66 +961,98 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		except KeyError:
 			return ...
 
-	def global_dump(self) -> Iterator[tuple[Key, Any]]:
+	def global_dump(self) -> Iterator[tuple[Key, Value]]:
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		yield from (
-			(unpack(d["key"]), unpack(d["value"]))
+			(unpack_key(d["key"]), unpack(d["value"]))
 			for d in self.call("dump", "global")
 		)
 
 	def get_branch(self) -> Branch:
 		v = self.unpack(self.call("get_global", b"\xa6branch"))
 		if v is ...:
-			mainbranch = Branch(
-				self.unpack(self.call("get_global", b"\xa5trunk"))
-			)
+			mainbranch = self.unpack_key(self.call("get_global", b"\xa5trunk"))
+			if not isinstance(mainbranch, str):
+				raise TypeError("Invalid trunk", mainbranch)
 			if mainbranch is None:
 				return Branch("trunk")
-			return mainbranch
+			return Branch(mainbranch)
 		return v
 
 	def get_turn(self) -> Turn:
 		v = self.unpack(self.call("get_global", b"\xa4turn"))
 		if v is ...:
 			return Turn(0)
-		return v
+		if not isinstance(v, int):
+			raise TypeError("Invalid turn", v)
+		return Turn(v)
 
 	def get_tick(self) -> Tick:
 		v = self.unpack(self.call("get_global", b"\xa4tick"))
 		if v is ...:
 			return Tick(0)
-		return v
+		if not isinstance(v, int):
+			raise TypeError("Invalid tick", v)
+		return Tick(v)
 
 	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
 		for d in self.call("dump", "turns"):
 			yield d["branch"], d["turn"], d["end_tick"], d["plan_end_tick"]
 
-	def universals_dump(self) -> Iterator[tuple[Key, Branch, Turn, Tick, Any]]:
+	def _extract_time(self, d: dict) -> Time:
+		branch = d["branch"]
+		if not isinstance(branch, str):
+			raise TypeError("Invalid branch", branch)
+		turn = d["turn"]
+		if not isinstance(turn, int):
+			raise TypeError("Invalid turn", turn)
+		tick = d["tick"]
+		if not isinstance(tick, int):
+			raise TypeError("Invalid tick")
+		return Branch(branch), Turn(turn), Tick(tick)
+
+	def universals_dump(
+		self,
+	) -> Iterator[tuple[Branch, Turn, Tick, UniversalKey, Value]]:
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for d in self.call("dump", "universals"):
+			branch, turn, tick = self._extract_time(d)
 			yield (
-				unpack(d["key"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
+				branch,
+				turn,
+				tick,
+				UniversalKey(unpack_key(d["key"])),
 				unpack(d["value"]),
 			)
 
 	def rulebooks_dump(
 		self,
 	) -> Iterator[
-		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
+		tuple[Branch, Turn, Tick, RulebookName, tuple[list[RuleName], float]]
 	]:
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for d in self.call("dump", "rulebooks"):
+			branch, turn, tick = self._extract_time(d)
+			_rules = unpack(d["rules"])
+			if not isinstance(_rules, list) or not all(
+				isinstance(rule, str) for rule in _rules
+			):
+				raise TypeError("Invalid rules", _rules)
+			rules: list[RuleName] = _rules
+			priority = d["priority"]
+			if not isinstance(priority, float):
+				raise TypeError("Invalid priority", priority)
 			yield (
-				unpack(d["rulebook"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				(unpack(d["rules"]), d["priority"]),
+				branch,
+				turn,
+				tick,
+				unpack_key(d["rulebook"]),
+				(rules, priority),
 			)
 
 	def rules_dump(self) -> Iterator[RuleName]:
@@ -3211,32 +1061,36 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def _rule_dump(
 		self, typ: Literal["triggers", "prereqs", "actions"]
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[RuleFuncName]]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[RuleFuncName]]]:
 		getattr(self, f"_{typ}2set")()
 		unpack = self.unpack
 		unpacked: dict[
-			tuple[RuleName, Branch, Turn, Tick], list[RuleFuncName]
+			tuple[Branch, Turn, Tick, RuleName], list[RuleFuncName]
 		] = {}
 		for d in self.call("dump", "rule_" + typ):
-			unpacked[d["rule"], d["branch"], d["turn"], d["tick"]] = unpack(
-				d[typ]
-			)
-		for rule, branch, turn, tick in sorted(unpacked):
-			yield rule, branch, turn, tick, unpacked[rule, branch, turn, tick]
+			an_rule = unpack(d[typ])
+			if not isinstance(an_rule, list) or not all(
+				isinstance(f, str) for f in an_rule
+			):
+				raise TypeError("Invalid func list", an_rule)
+			funx: list[RuleFuncName] = an_rule
+			unpacked[d["rule"], d["branch"], d["turn"], d["tick"]] = funx
+		for branch, turn, tick, rule in sorted(unpacked):
+			yield branch, turn, tick, rule, unpacked[branch, turn, tick, rule]
 
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[TriggerFuncName]]]:
 		return self._rule_dump("triggers")
 
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[PrereqFuncName]]]:
 		return self._rule_dump("prereqs")
 
 	def rule_actions_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[ActionFuncName]]]:
 		return self._rule_dump("actions")
 
 	def rule_neighborhood_dump(
@@ -3269,364 +1123,236 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, CharName, NodeName, RulebookName]]:
 		self._noderb2set()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["node"]),
-					d["branch"],
-					d["turn"],
-					d["tick"],
-					unpack(d["rulebook"]),
-				)
-				for d in self.call("dump", "node_rulebook")
-			)
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "node_rulebook"):
+			charn = CharName(unpack_key(d["character"]))
+			nn = NodeName(unpack_key(d["node"]))
+			branch, turn, tick = self._extract_time(d)
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			yield branch, turn, tick, charn, nn, rb
 
 	def portal_rulebook_dump(
 		self,
 	) -> Iterator[
-		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
+		tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName]
 	]:
 		self._portrb2set()
 		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					unpack(d["orig"]),
-					unpack(d["dest"]),
-					d["branch"],
-					d["turn"],
-					d["tick"],
-					unpack(d["rulebook"]),
-				)
-				for d in self.call("dump", "portal_rulebook")
-			)
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "portal_rulebook"):
+			charn = CharName(unpack_key(d["character"]))
+			orig = NodeName(unpack_key(d["orig"]))
+			dest = NodeName(unpack_key(d["dest"]))
+			branch, turn, tick = self._extract_time(d)
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			yield branch, turn, tick, charn, orig, dest, rb
 
-	def rules_insert(self, rule):
+	def rules_insert(self, rule: RuleName) -> None:
 		self.call("insert1", "rule", {"rule": rule})
 
-	def _character_rulebook_dump(self, typ: RulebookTypeStr):
+	def _character_rulebook_dump(
+		self, typ: RulebookTypeStr
+	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
 		getattr(self, f"_{typ}_rulebook_to_set")()
-		unpack = self.unpack
-		return iter(
-			sorted(
-				(
-					unpack(d["character"]),
-					d["branch"],
-					d["turn"],
-					d["tick"],
-					unpack(d["rulebook"]),
-				)
-				for d in self.call("dump", f"{typ}_rulebook")
-			)
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", f"{typ}_rulebook"):
+			charn = CharName(unpack_key(d["character"]))
+			branch, turn, tick = self._extract_time(d)
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			yield branch, turn, tick, charn, rb
 
 	def character_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
 		return self._character_rulebook_dump("character")
 
 	def unit_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
 		return self._character_rulebook_dump("unit")
 
 	def character_thing_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
 		return self._character_rulebook_dump("character_thing")
 
 	def character_place_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
 		return self._character_rulebook_dump("character_place")
 
 	def character_portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
 		return self._character_rulebook_dump("character_portal")
 
 	def character_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
+	) -> Iterator[tuple[Branch, Turn, CharName, RulebookName, RuleName, Tick]]:
 		self._char_rules_handled()
-		unpack = self.unpack
-		return (
-			(
-				unpack(d["character"]),
-				unpack(d["rulebook"]),
-				d["rule"],
-				d["branch"],
-				d["turn"],
-				d["tick"],
-			)
-			for d in sorted(
-				self.call("dump", "character_rules_handled"),
-				key=lambda d: (d["branch"], d["turn"], d["tick"]),
-			)
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "character_rules_handled"):
+			charn = CharName(unpack_key(d["character"]))
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			rule = RuleName(d["rule"])
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, charn, rb, rule, tick
 
 	def unit_rules_handled_dump(
 		self,
 	) -> Iterator[
 		tuple[
+			Branch,
+			Turn,
 			CharName,
 			CharName,
 			NodeName,
 			RulebookName,
 			RuleName,
-			Branch,
-			Turn,
 			Tick,
 		]
 	]:
 		self._unit_rules_handled_to_set()
-		unpack = self.unpack
-		return (
-			(
-				unpack(d["character"]),
-				unpack(d["graph"]),
-				unpack(d["unit"]),
-				unpack(d["rulebook"]),
-				d["rule"],
-				d["branch"],
-				d["turn"],
-				d["tick"],
-			)
-			for d in sorted(
-				self.call("dump", "unit_rules_handled"),
-				key=lambda d: (d["branch"], d["turn"], d["tick"]),
-			)
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "unit_rules_handled"):
+			charn = CharName(unpack_key(d["character"]))
+			graph = CharName(unpack_key(d["graph"]))
+			unit = NodeName(unpack_key(d["unit"]))
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			rule = RuleName(d["rule"])
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, charn, graph, unit, rb, rule, tick
 
 	def character_thing_rules_handled_dump(
 		self,
 	) -> Iterator[
-		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+		tuple[Branch, Turn, CharName, NodeName, RulebookName, RuleName, Tick]
 	]:
 		self._char_thing_rules_handled()
-		unpack = self.unpack
-		return (
-			(
-				unpack(d["character"]),
-				unpack(d["thing"]),
-				unpack(d["rulebook"]),
-				d["rule"],
-				d["branch"],
-				d["turn"],
-				d["tick"],
-			)
-			for d in sorted(
-				self.call("dump", "character_thing_rules_handled"),
-				key=lambda d: (d["branch"], d["turn"], d["tick"]),
-			)
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "character_thing_rules_handled"):
+			charn = CharName(unpack_key(d["character"]))
+			thing = NodeName(unpack_key(d["thing"]))
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			rule = RuleName(d["rule"])
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, charn, thing, rb, rule, tick
 
 	def character_place_rules_handled_dump(
 		self,
 	) -> Iterator[
-		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+		tuple[Branch, Turn, CharName, NodeName, RulebookName, RuleName, Tick]
 	]:
 		self._char_place_rules_handled()
-		unpack = self.unpack
-		return (
-			(
-				unpack(d["character"]),
-				unpack(d["place"]),
-				unpack(d["rulebook"]),
-				d["rule"],
-				d["branch"],
-				d["turn"],
-				d["tick"],
-			)
-			for d in self.call("dump", "character_place_rules_handled")
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "character_place_rules_handled"):
+			charn = CharName(unpack_key(d["character"]))
+			place = NodeName(unpack_key(d["place"]))
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			rule = RuleName(d["rule"])
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, charn, place, rb, rule, tick
 
 	def character_portal_rules_handled_dump(
 		self,
 	) -> Iterator[
 		tuple[
+			Branch,
+			Turn,
 			CharName,
 			NodeName,
 			NodeName,
 			RulebookName,
 			RuleName,
-			Branch,
-			Turn,
 			Tick,
 		]
 	]:
 		self.flush()
-		unpack = self.unpack
-		return (
-			(
-				unpack(d["character"]),
-				unpack(d["orig"]),
-				unpack(d["dest"]),
-				unpack(d["rulebook"]),
-				d["rule"],
-				d["branch"],
-				d["turn"],
-				d["tick"],
-			)
-			for d in self.call("dump", "character_portal_rules_handled")
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "character_portal_rules_handled"):
+			charn = CharName(unpack_key(d["character"]))
+			orig = NodeName(unpack_key(d["orig"]))
+			dest = NodeName(unpack_key(d["dest"]))
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			rule = RuleName(d["rule"])
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, charn, orig, dest, rb, rule, tick
 
 	def node_rules_handled_dump(
 		self,
 	) -> Iterator[
-		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
+		tuple[Branch, Turn, CharName, NodeName, RulebookName, RuleName, Tick]
 	]:
 		self._node_rules_handled_to_set()
-		unpack = self.unpack
-		return (
-			(
-				unpack(d["character"]),
-				unpack(d["node"]),
-				unpack(d["rulebook"]),
-				d["rule"],
-				d["branch"],
-				d["turn"],
-				d["tick"],
-			)
-			for d in self.call("dump", "node_rules_handled")
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "node_rules_handled"):
+			charn = CharName(unpack_key(d["character"]))
+			node = NodeName(unpack_key(d["node"]))
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			rule = RuleName(d["rule"])
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, charn, node, rb, rule, tick
 
 	def portal_rules_handled_dump(
 		self,
 	) -> Iterator[
 		tuple[
+			Branch,
+			Turn,
 			CharName,
 			NodeName,
 			NodeName,
 			RulebookName,
 			RuleName,
-			Branch,
-			Turn,
 			Tick,
 		]
 	]:
 		self._portal_rules_handled_to_set()
-		unpack = self.unpack
-		return (
-			(
-				unpack(d["character"]),
-				unpack(d["orig"]),
-				unpack(d["dest"]),
-				unpack(d["rulebook"]),
-				d["rule"],
-				d["branch"],
-				d["turn"],
-				d["tick"],
-			)
-			for d in self.call("dump", "portal_rules_handled")
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "portal_rules_handled"):
+			charn = CharName(unpack_key(d["character"]))
+			orig = NodeName(unpack_key(d["orig"]))
+			dest = NodeName(unpack_key(d["dest"]))
+			rb = RulebookName(unpack_key(d["rulebook"]))
+			rule = RuleName(d["rule"])
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, charn, orig, dest, rb, rule, tick
 
 	def things_dump(
 		self,
-	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
+	) -> Iterator[tuple[Branch, Turn, Tick, CharName, NodeName, NodeName]]:
 		self._things2set()
-		unpack = self.unpack
-		return (
-			(
-				unpack(d["character"]),
-				unpack(d["thing"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				unpack(d["location"]),
-			)
-			for d in self.call("dump", "things")
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "things"):
+			charn = CharName(unpack_key(d["character"]))
+			thing = NodeName(unpack_key(d["thing"]))
+			loc = NodeName(unpack_key(d["location"]))
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, tick, charn, thing, loc
 
 	def units_dump(
 		self,
 	) -> Iterator[
-		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
+		tuple[Branch, Turn, Tick, CharName, CharName, NodeName, bool]
 	]:
 		self._unitness()
-		unpack = self.unpack
-		return (
-			(
-				unpack(d["character_graph"]),
-				unpack(d["unit_graph"]),
-				unpack(d["unit_node"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				d["is_unit"],
-			)
-			for d in self.call("dump", "units")
-		)
+		unpack_key = self.unpack_key
+		for d in self.call("dump", "units"):
+			charn = CharName(unpack_key(d["character_graph"]))
+			graph = CharName(unpack_key(d["unit_graph"]))
+			unit = NodeName(unpack_key(d["unit_node"]))
+			branch, turn, tick = self._extract_time(d)
+			is_unit = d["is_unit"]
+			if not isinstance(is_unit, bool):
+				raise TypeError("Not boolean", is_unit)
+			yield branch, turn, tick, charn, graph, unit, is_unit
 
 	def count_all_table(self, tbl: str) -> int:
 		self.flush()
 		return self.call("rowcount", tbl)
-
-	def set_rule_triggers(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		triggers: list[TriggerFuncName],
-	):
-		if not self.create_rule(rule, branch, turn, tick, triggers):
-			self._triggers2set.append((rule, branch, turn, tick, triggers))
-
-	def set_rule_prereqs(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		prereqs: list[PrereqFuncName],
-	):
-		if not self.create_rule(rule, branch, turn, tick, prereqs=prereqs):
-			self._prereqs2set.append((rule, branch, turn, tick, prereqs))
-
-	def set_rule_actions(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		actions: list[ActionFuncName],
-	):
-		if not self.create_rule(rule, branch, turn, tick, actions=actions):
-			self._actions2set.append((rule, branch, turn, tick, actions))
-
-	def set_rule_neighborhood(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		neighborhood: RuleNeighborhood,
-	):
-		if not self.create_rule(
-			rule, branch, turn, tick, neighborhood=neighborhood
-		):
-			self._neighbors2set.append(
-				(rule, branch, turn, tick, neighborhood)
-			)
-
-	def set_rule_big(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		big: RuleBig,
-	) -> None:
-		if not self.create_rule(rule, branch, turn, tick, big=big):
-			self._big2set.append((rule, branch, turn, tick, big))
 
 	def create_rule(
 		self,
@@ -3645,21 +1371,19 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			rule=rule,
 		):
 			self._triggers2set.append(
-				(rule, branch, turn, tick, list(triggers))
+				(branch, turn, tick, rule, list(triggers))
 			)
-			self._prereqs2set.append((rule, branch, turn, tick, list(prereqs)))
-			self._actions2set.append((rule, branch, turn, tick, list(actions)))
+			self._prereqs2set.append((branch, turn, tick, rule, list(prereqs)))
+			self._actions2set.append((branch, turn, tick, rule, list(actions)))
 			self._neighbors2set.append(
-				(rule, branch, turn, tick, neighborhood)
+				(branch, turn, tick, rule, neighborhood)
 			)
-			self._big2set.append((rule, branch, turn, tick, big))
+			self._big2set.append((branch, turn, tick, rule, big))
 			return True
 		return False
 
-	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
-		self._things2set.cull(
-			lambda c, th, b, r, t, l: (b, r, t) == (branch, turn, tick)
-		)
+	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		super().things_del_time(branch, turn, tick)
 		self.call(
 			"delete",
 			"things",
@@ -3677,7 +1401,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		is_unit: bool,
 	) -> None:
 		self._unitness.append(
-			(character, graph, node, branch, turn, tick, is_unit)
+			(branch, turn, tick, character, graph, node, is_unit)
 		)
 
 	def rulebook_set(
@@ -3709,117 +1433,103 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
+		extract_time = self._extract_time
 		for d in self.call("dump", "graph_val"):
-			yield (
-				unpack(d["graph"]),
-				unpack(d["key"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				unpack(d["value"]),
-			)
+			graph = CharName(unpack_key(d["graph"]))
+			key = Stat(unpack_key(d["key"]))
+			value = unpack(d["value"])
+			branch, turn, tick = extract_time(d)
+			yield branch, turn, tick, graph, key, value
 
-	def graph_val_del_time(self, branch: Branch, turn: Turn, tick: Tick):
-		self._graphvals2set.cull(
-			lambda g, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
-		)
+	def graph_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		super().graph_val_del_time(branch, turn, tick)
 		self.call("graph_val_del_time", branch, turn, tick)
 
 	def graphs_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+	) -> Iterator[GraphRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
+		extract_time = self._extract_time
 		for d in self.call("dump", "graphs"):
-			yield (
-				unpack(d["graph"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				d["type"],
-			)
+			graph = CharName(unpack_key(d["graph"]))
+			type = GraphTypeStr(d["type"])
+			branch, turn, tick = extract_time(d)
+			yield branch, turn, tick, graph, type
 
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		self._nodes2set.cull(
-			lambda g, n, b, r, t, x: (b, r, t) == (branch, turn, tick)
-		)
+		super().nodes_del_time(branch, turn, tick)
 		self.call("nodes_del_time", branch, turn, tick)
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for d in self.call("dump", "nodes"):
-			yield (
-				unpack(d["graph"]),
-				unpack(d["node"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				d["extant"],
-			)
+			graph = CharName(unpack_key(d["graph"]))
+			node = NodeName(unpack_key(d["node"]))
+			extant = d["extant"]
+			if not isinstance(extant, bool):
+				raise TypeError("Not boolean", extant)
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, tick, graph, node, extant
 
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for d in self.call("dump", "node_val"):
-			yield (
-				unpack(d["graph"]),
-				unpack(d["node"]),
-				unpack(d["key"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				unpack(d["value"]),
-			)
+			graph = CharName(unpack_key(d["graph"]))
+			node = NodeName(unpack_key(d["node"]))
+			key = Stat(unpack_key(d["key"]))
+			value = unpack(d["value"])
+			branch, turn, tick = self._extract_time(d)
+			yield branch, turn, tick, graph, node, key, value
 
 	def node_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
-		self._nodevals2set.cull(
-			lambda g, n, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
-		)
+		super().node_val_del_time(branch, turn, tick)
 		self.call("node_val_del_time", branch, turn, tick)
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		self._edges2set()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
+		extract_time = self._extract_time
 		for d in self.call("dump", "edges"):
-			yield (
-				unpack(d["graph"]),
-				unpack(d["orig"]),
-				unpack(d["dest"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				d["extant"],
-			)
+			graph = CharName(unpack_key(d["graph"]))
+			orig = NodeName(unpack_key(d["orig"]))
+			dest = NodeName(unpack_key(d["dest"]))
+			extant = d["extant"]
+			if not isinstance(extant, bool):
+				raise TypeError("Not boolean", extant)
+			branch, turn, tick = extract_time(d)
+			yield branch, turn, tick, graph, orig, dest, extant
 
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		self._edges2set.cull(
-			lambda g, o, d, b, r, t, x: (b, r, t) == (branch, turn, tick)
-		)
+		super().edges_del_time(branch, turn, tick)
 		self.call("edges_del_time", branch, turn, tick)
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
+		extract_time = self._extract_time
 		for d in self.call("dump", "edge_val"):
-			yield (
-				unpack(d["character"]),
-				unpack(d["orig"]),
-				unpack(d["dest"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				unpack(d["value"]),
-			)
+			char = CharName(unpack_key(d["character"]))
+			orig = NodeName(unpack_key(d["orig"]))
+			dest = NodeName(unpack_key(d["dest"]))
+			key = Stat(unpack_key(d["key"]))
+			value = unpack(d["value"])
+			branch, turn, tick = extract_time(d)
+			yield branch, turn, tick, char, orig, dest, key, value
 
 	def edge_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
-		self._edgevals2set.cull(
-			lambda g, o, d, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
-		)
+		super().edge_val_del_time(branch, turn, tick)
 		self.call("edge_val_del_time", branch, turn, tick)
 
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
@@ -3835,24 +1545,25 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		if (branch, turn, tick) not in self._all_keyframe_times:
 			raise KeyframeError(branch, turn, tick)
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for graph, nodes, edges, graph_val in self.call(
 			"all_keyframe_graphs", branch, turn, tick
 		):
 			yield (
-				unpack(graph),
-				unpack(nodes),
-				unpack(edges),
-				unpack(graph_val),
+				CharName(unpack_key(graph)),
+				NodeKeyframe(unpack(nodes)),
+				EdgeKeyframe(unpack(edges)),
+				GraphValKeyframe(unpack(graph_val)),
 			)
 
 	def keyframes_graphs_dump(
 		self,
 	) -> Iterator[
 		tuple[
-			CharName,
 			Branch,
 			Turn,
 			Tick,
+			CharName,
 			NodeKeyframe,
 			EdgeKeyframe,
 			CharDict,
@@ -3860,16 +1571,15 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	]:
 		self._new_keyframes_graphs()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
+		extract_time = self._extract_time
 		for d in self.call("dump", "keyframes_graphs"):
-			yield (
-				unpack(d["graph"]),
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				unpack(d["nodes"]),
-				unpack(d["edges"]),
-				unpack(d["graph_val"]),
-			)
+			graph = CharName(unpack_key(d["graph"]))
+			nodes = NodeKeyframe(unpack(d["nodes"]))
+			edges = EdgeKeyframe(unpack(d["edges"]))
+			graph_val = CharDict(unpack(d["graph_val"]))
+			branch, turn, tick = extract_time(d)
+			yield branch, turn, tick, graph, nodes, edges, graph_val
 
 	def keyframe_extensions_dump(
 		self,
@@ -3885,15 +1595,13 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	]:
 		self._new_keyframe_extensions()
 		unpack = self.unpack
+		extract_time = self._extract_time
 		for d in self.call("dump", "keyframe_extensions"):
-			yield (
-				d["branch"],
-				d["turn"],
-				d["tick"],
-				unpack(d["universal"]),
-				unpack(d["rule"]),
-				unpack(d["rulebook"]),
-			)
+			branch, turn, tick = extract_time(d)
+			universal = UniversalKeyframe(unpack(d["universal"]))
+			rule = RuleKeyframe(unpack(d["rule"]))
+			rulebook = RulebookKeyframe(unpack(d["rulebook"]))
+			yield branch, turn, tick, universal, rule, rulebook
 
 	def truncate_all(self) -> None:
 		self.call("truncate_all")

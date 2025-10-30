@@ -14,26 +14,48 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import inspect
 import sys
+from collections import OrderedDict
 from dataclasses import dataclass, field, KW_ONLY
 from functools import cached_property, partial, partialmethod
 from queue import Queue
 from threading import Thread
-from typing import ClassVar, Iterator
+from typing import Annotated, Union, Iterator, get_args
 
-from sqlalchemy import create_engine, Select
+from sqlalchemy import (
+	create_engine,
+	Select,
+	bindparam,
+	and_,
+	or_,
+	Table,
+	MetaData,
+	BLOB,
+	INT,
+	TEXT,
+	BOOLEAN,
+	Column,
+	FLOAT,
+	select,
+	func,
+	null,
+	ColumnElement,
+)
 from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.sql.ddl import CreateTable
 
-from .alchemy import meta, queries
 from .db import (
 	ThreadedDatabaseConnector,
 	ConnectionLooper,
 	SCHEMAVER_B,
 	SCHEMA_VERSION_B,
 	mutexed,
+	batched,
 	GlobalKeyValueStore,
 )
 from .exc import KeyframeError, ExceptionGroup
+from . import types
 from .types import (
 	Key,
 	Time,
@@ -58,6 +80,7 @@ from .types import (
 	RulebookName,
 	RuleName,
 )
+from .util import deannotate, root_type
 
 
 @dataclass
@@ -70,7 +93,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	@dataclass
 	class Looper(ConnectionLooper):
 		connector: SQLAlchemyDatabaseConnector
-		tables: ClassVar[set[str]] = meta.tables.keys()
 
 		@cached_property
 		def dbstring(self) -> str:
@@ -139,12 +161,546 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				aargs,
 			)
 
+		@cached_property
+		def meta(self) -> MetaData:
+			the_meta = MetaData()
+			py2sql = {
+				bytes: BLOB,
+				Key: BLOB,
+				Value: BLOB,
+				int: INT,
+				str: TEXT,
+				bool: BOOLEAN,
+				float: FLOAT,
+			}
+			for table, serializer in batched.serializers.items():
+				cached_prop: cached_property = batched.cached_properties[table]
+				batch = getattr(self.connector, cached_prop.attrname)
+				spec = inspect.getfullargspec(serializer)
+				ret_annot = spec.annotations["return"]
+				if isinstance(ret_annot, str):
+					ret_annot = eval(ret_annot, types.__dict__)
+				columns = []
+				with_rowid = batch.key_len == 0
+				for n, (arg, ret_typ) in enumerate(
+					zip(spec.args[1:], get_args(ret_annot)), start=1
+				):
+					args = get_args(ret_typ)
+					nullable = type(None) in args
+					orig = root_type(ret_typ)
+					if orig is Union:
+						for orig in args:
+							if orig is not None:
+								break
+						else:
+							raise TypeError(
+								"Too many types for column", arg, orig, table
+							)
+					orig2 = root_type(orig)
+					if orig2 not in py2sql:
+						raise TypeError(
+							"Unknown type for column", arg, orig, table
+						)
+					col = Column(
+						arg,
+						py2sql[orig2],
+						primary_key=n <= batch.key_len,
+						nullable=nullable,
+					)
+					columns.append(col)
+				Table(table, the_meta, *columns, sqlite_with_rowid=with_rowid)
+			return the_meta
+
+		@cached_property
+		def sql(self) -> dict[str, Select]:
+			def update_where(updcols, wherecols):
+				"""Return an ``UPDATE`` statement that updates the columns ``updcols``
+				when the ``wherecols`` match. Every column has a bound parameter of
+				the same name.
+
+				updcols are strings, wherecols are column objects
+
+				"""
+				vmap = OrderedDict()
+				for col in updcols:
+					vmap[col] = bindparam(col)
+				wheres = [c == bindparam(c.name) for c in wherecols]
+				tab = wherecols[0].table
+				return tab.update().values(**vmap).where(and_(*wheres))
+
+			def tick_to_end_clause(tab: Table) -> ColumnElement[bool]:
+				return and_(
+					tab.c.branch == bindparam("branch"),
+					or_(
+						tab.c.turn > bindparam("turn_from"),
+						and_(
+							tab.c.turn == bindparam("turn_from"),
+							tab.c.tick >= bindparam("tick_from"),
+						),
+					),
+				)
+
+			def tick_to_tick_clause(tab: Table) -> ColumnElement[bool]:
+				return and_(
+					tick_to_end_clause(tab),
+					or_(
+						tab.c.turn < bindparam("turn_to"),
+						and_(
+							tab.c.turn == bindparam("turn_to"),
+							tab.c.tick <= bindparam("tick_to"),
+						),
+					),
+				)
+
+			def load_something_tick_to_end(tab: Table) -> Select:
+				assert tab.c[0] is tab.c.branch
+				assert tab.c[1] is tab.c.turn
+				return (
+					select(*list(tab.c)[1:])
+					.select_from(tab)
+					.where(tick_to_end_clause(tab))
+					.order_by(*tab.primary_key)
+				)
+
+			def load_something_tick_to_tick(tab: Table) -> Select:
+				assert tab.c[0] is tab.c.branch
+				assert tab.c[1] is tab.c.turn
+				return (
+					select(*list(tab.c)[1:])
+					.select_from(tab)
+					.where(tick_to_tick_clause(tab))
+					.order_by(*tab.primary_key)
+				)
+
+			def after_clause(tab: Table) -> list[ColumnElement[bool]]:
+				return [
+					edge_val.c.branch == bindparam("branch"),
+					or_(
+						edge_val.c.turn > bindparam("turn"),
+						and_(
+							edge_val.c.turn == bindparam("turn"),
+							edge_val.c.tick >= bindparam("tick"),
+						),
+					),
+				]
+
+			table = self.meta.tables
+
+			graphs = table["graphs"]
+			globtab = table["global"]
+			edge_val = table["edge_val"]
+			edges = table["edges"]
+			nodes = table["nodes"]
+			node_val = table["node_val"]
+			graph_val = table["graph_val"]
+			branches = table["branches"]
+			turns = table["turns"]
+			keyframes_graphs = table["keyframes_graphs"]
+			keyframes = table["keyframes"]
+			r = {
+				"global_get": select(globtab.c.value).where(
+					globtab.c.key == bindparam("key")
+				),
+				"global_update": globtab.update()
+				.values(value=bindparam("value"))
+				.where(globtab.c.key == bindparam("key")),
+				"graph_type": select(graphs.c.type).where(
+					graphs.c.graph == bindparam("graph")
+				),
+				"del_edge_val_after": edge_val.delete().where(
+					and_(
+						edge_val.c.graph == bindparam("graph"),
+						edge_val.c.orig == bindparam("orig"),
+						edge_val.c.dest == bindparam("dest"),
+						edge_val.c.key == bindparam("key"),
+						*after_clause(edge_val),
+					)
+				),
+				"del_edges_graph": edges.delete().where(
+					edges.c.graph == bindparam("graph")
+				),
+				"del_edges_after": edges.delete().where(
+					and_(
+						edges.c.graph == bindparam("graph"),
+						edges.c.orig == bindparam("orig"),
+						edges.c.dest == bindparam("dest"),
+						*after_clause(edges),
+					)
+				),
+				"del_nodes_after": nodes.delete().where(
+					and_(
+						nodes.c.graph == bindparam("graph"),
+						nodes.c.node == bindparam("node"),
+						*after_clause(nodes),
+					)
+				),
+				"del_node_val_after": node_val.delete().where(
+					and_(
+						node_val.c.graph == bindparam("graph"),
+						node_val.c.node == bindparam("node"),
+						node_val.c.key == bindparam("key"),
+						*after_clause(node_val),
+					)
+				),
+				"del_graph_val_after": graph_val.delete().where(
+					and_(
+						graph_val.c.graph == bindparam("graph"),
+						graph_val.c.key == bindparam("key"),
+						*after_clause(graph_val),
+					)
+				),
+				"global_delete": globtab.delete().where(
+					globtab.c.key == bindparam("key")
+				),
+				"graphs_types": select(graphs.c.graph, graphs.c.type),
+				"graphs_delete": graphs.delete().where(
+					and_(
+						graphs.c.graph == bindparam("graph"),
+						graphs.c.branch == bindparam("branch"),
+						graphs.c.turn == bindparam("turn"),
+						graphs.c.tick == bindparam("tick"),
+					)
+				),
+				"graphs_named": select(func.COUNT())
+				.select_from(graphs)
+				.where(graphs.c.graph == bindparam("graph")),
+				"graphs_between": select(
+					graphs.c.graph,
+					graphs.c.turn,
+					graphs.c.tick,
+					graphs.c.type,
+				).where(
+					and_(
+						graphs.c.branch == bindparam("branch"),
+						or_(
+							graphs.c.turn > bindparam("turn_from_a"),
+							and_(
+								graphs.c.turn == bindparam("turn_from_b"),
+								graphs.c.tick >= bindparam("tick_from"),
+							),
+						),
+						or_(
+							graphs.c.turn < bindparam("turn_to_a"),
+							and_(
+								graphs.c.turn == bindparam("turn_to_b"),
+								graphs.c.tick <= bindparam("tick_to"),
+							),
+						),
+					)
+				),
+				"graphs_after": select(
+					graphs.c.graph,
+					graphs.c.turn,
+					graphs.c.tick,
+					graphs.c.type,
+				).where(*after_clause(graphs)),
+				"main_branch_ends": select(
+					branches.c.branch,
+					branches.c.end_turn,
+					branches.c.end_tick,
+				).where(branches.c.parent == null()),
+				"update_branches": branches.update()
+				.values(
+					parent=bindparam("parent"),
+					parent_turn=bindparam("parent_turn"),
+					parent_tick=bindparam("parent_tick"),
+					end_turn=bindparam("end_turn"),
+					end_tick=bindparam("end_tick"),
+				)
+				.where(branches.c.branch == bindparam("branch")),
+				"update_turns": turns.update()
+				.values(
+					end_tick=bindparam("end_tick"),
+					plan_end_tick=bindparam("plan_end_tick"),
+				)
+				.where(
+					and_(
+						turns.c.branch == bindparam("branch"),
+						turns.c.turn == bindparam("turn"),
+					)
+				),
+				"keyframes_graphs_list": select(
+					keyframes_graphs.c.graph,
+					keyframes_graphs.c.branch,
+					keyframes_graphs.c.turn,
+					keyframes_graphs.c.tick,
+				),
+				"all_graphs_in_keyframe": select(
+					keyframes_graphs.c.graph,
+					keyframes_graphs.c.nodes,
+					keyframes_graphs.c.edges,
+					keyframes_graphs.c.graph_val,
+				)
+				.where(
+					and_(
+						keyframes_graphs.c.branch == bindparam("branch"),
+						keyframes_graphs.c.turn == bindparam("turn"),
+						keyframes_graphs.c.tick == bindparam("tick"),
+					)
+				)
+				.order_by(keyframes_graphs.c.graph),
+				"get_keyframe_graph": select(
+					keyframes_graphs.c.nodes,
+					keyframes_graphs.c.edges,
+					keyframes_graphs.c.graph_val,
+				).where(
+					and_(
+						keyframes_graphs.c.graph == bindparam("graph"),
+						keyframes_graphs.c.branch == bindparam("branch"),
+						keyframes_graphs.c.turn == bindparam("turn"),
+						keyframes_graphs.c.tick == bindparam("tick"),
+					)
+				),
+				"delete_keyframe": keyframes.delete().where(
+					and_(
+						keyframes.c.branch == bindparam("branch"),
+						keyframes.c.turn == bindparam("turn"),
+						keyframes.c.tick == bindparam("tick"),
+					)
+				),
+				"delete_keyframe_graph": keyframes_graphs.delete().where(
+					and_(
+						keyframes_graphs.c.graph == bindparam("graph"),
+						keyframes_graphs.c.branch == bindparam("branch"),
+						keyframes_graphs.c.turn == bindparam("turn"),
+						keyframes_graphs.c.tick == bindparam("tick"),
+					)
+				),
+			}
+
+			for t in table.values():
+				r["create_" + t.name] = CreateTable(t)
+				r["truncate_" + t.name] = t.delete()
+				key = list(t.primary_key)
+				if (
+					"branch" in t.columns
+					and "turn" in t.columns
+					and "tick" in t.columns
+				):
+					branch = t.columns["branch"]
+					turn = t.columns["turn"]
+					tick = t.columns["tick"]
+					if branch in key and turn in key and tick in key:
+						key = [branch, turn, tick]
+						r[t.name + "_del_time"] = t.delete().where(
+							and_(
+								t.c.branch == bindparam("branch"),
+								t.c.turn == bindparam("turn"),
+								t.c.tick == bindparam("tick"),
+							)
+						)
+				r[t.name + "_dump"] = select(*t.c.values()).order_by(*key)
+				r[t.name + "_insert"] = t.insert().values(
+					tuple(bindparam(cname) for cname in t.c.keys())
+				)
+				r[t.name + "_count"] = select(func.COUNT()).select_from(t)
+				r[t.name + "_del"] = t.delete().where(
+					and_(
+						*[
+							c == bindparam(c.name)
+							for c in (t.primary_key or t.c)
+						]
+					)
+				)
+
+			rulebooks = table["rulebooks"]
+			r["rulebooks_update"] = update_where(
+				["rules"],
+				[
+					rulebooks.c.rulebook,
+					rulebooks.c.branch,
+					rulebooks.c.turn,
+					rulebooks.c.tick,
+				],
+			)
+
+			for t in table.values():
+				key = list(t.primary_key)
+				if (
+					"branch" in t.columns
+					and "turn" in t.columns
+					and "tick" in t.columns
+				):
+					branch = t.columns["branch"]
+					turn = t.columns["turn"]
+					tick = t.columns["tick"]
+					if branch in key and turn in key and tick in key:
+						key = [branch, turn, tick]
+					if branch is t.c[0] and turn is t.c[1]:
+						r[f"load_{t.name}_tick_to_end"] = (
+							load_something_tick_to_end(t)
+						)
+						r[f"load_{t.name}_tick_to_tick"] = (
+							load_something_tick_to_tick(t)
+						)
+				r[t.name + "_dump"] = select(*t.c.values()).order_by(*key)
+				r[t.name + "_insert"] = t.insert().values(
+					tuple(bindparam(cname) for cname in t.c.keys())
+				)
+				r[t.name + "_count"] = select(func.COUNT("*")).select_from(t)
+			things = table["things"]
+			r["del_things_after"] = things.delete().where(
+				and_(
+					things.c.character == bindparam("character"),
+					things.c.thing == bindparam("thing"),
+					things.c.branch == bindparam("branch"),
+					or_(
+						things.c.turn > bindparam("turn"),
+						and_(
+							things.c.turn == bindparam("turn"),
+							things.c.tick >= bindparam("tick"),
+						),
+					),
+				)
+			)
+			units = table["units"]
+			r["del_units_after"] = units.delete().where(
+				and_(
+					units.c.character_graph == bindparam("character"),
+					units.c.unit_graph == bindparam("graph"),
+					units.c.unit_node == bindparam("unit"),
+					units.c.branch == bindparam("branch"),
+					or_(
+						units.c.turn > bindparam("turn"),
+						and_(
+							units.c.turn == bindparam("turn"),
+							units.c.tick >= bindparam("tick"),
+						),
+					),
+				)
+			)
+			bookmarks = table["bookmarks"]
+			r["update_bookmark"] = (
+				bookmarks.update()
+				.where(bookmarks.c.key == bindparam("key"))
+				.values(
+					branch=bindparam("branch"),
+					turn=bindparam("turn"),
+					tick=bindparam("tick"),
+				)
+			)
+			r["delete_bookmark"] = bookmarks.delete().where(
+				bookmarks.c.key == bindparam("key")
+			)
+
+			for name in (
+				"character_rulebook",
+				"unit_rulebook",
+				"character_thing_rulebook",
+				"character_place_rulebook",
+				"character_portal_rulebook",
+			):
+				tab = table[name]
+				sel = select(
+					tab.c.character,
+					tab.c.turn,
+					tab.c.tick,
+					tab.c.rulebook,
+				)
+				r[f"{name}_delete"] = tab.delete().where(
+					and_(
+						tab.c.character == bindparam("character"),
+						tab.c.branch == bindparam("branch"),
+						tab.c.turn == bindparam("turn"),
+						tab.c.tick == bindparam("tick"),
+					)
+				)
+
+			def rule_update_cond(t: Table) -> and_:
+				return and_(
+					t.c.rule == bindparam("rule"),
+					t.c.branch == bindparam("branch"),
+					t.c.turn == bindparam("turn"),
+					t.c.tick == bindparam("tick"),
+				)
+
+			hood = table["rule_neighborhood"]
+			r["rule_neighborhood_update"] = (
+				hood.update()
+				.where(rule_update_cond(hood))
+				.values(neighborhood=bindparam("neighborhood"))
+			)
+			big = table["rule_big"]
+			r["rule_big_update"] = (
+				big.update()
+				.where(rule_update_cond(big))
+				.values(big=bindparam("big"))
+			)
+			trig = table["rule_triggers"]
+			r["rule_triggers_update"] = (
+				trig.update()
+				.where(rule_update_cond(trig))
+				.values(triggers=bindparam("triggers"))
+			)
+			preq = table["rule_prereqs"]
+			r["rule_prereqs_update"] = (
+				preq.update()
+				.where(rule_update_cond(preq))
+				.values(prereqs=bindparam("prereqs"))
+			)
+			act = table["rule_actions"]
+			r["rule_actions_update"] = (
+				act.update()
+				.where(rule_update_cond(act))
+				.values(actions=bindparam("actions"))
+			)
+			kf = keyframes
+
+			def time_clause(tab):
+				return and_(
+					tab.c.branch == bindparam("branch"),
+					tab.c.turn == bindparam("turn"),
+					tab.c.tick == bindparam("tick"),
+				)
+
+			r["delete_from_keyframes"] = kf.delete().where(time_clause(kf))
+			kfg = keyframes_graphs
+			r["delete_from_keyframes_graphs"] = kfg.delete().where(
+				time_clause(kfg)
+			)
+			kfx = table["keyframe_extensions"]
+			r["delete_from_keyframe_extensions"] = kfx.delete().where(
+				time_clause(kfx)
+			)
+			r["get_keyframe_extensions"] = select(
+				kfx.c.universal,
+				kfx.c.rule,
+				kfx.c.rulebook,
+			).where(time_clause(kfx))
+
+			for handledtab in (
+				"character_rules_handled",
+				"unit_rules_handled",
+				"character_thing_rules_handled",
+				"character_place_rules_handled",
+				"character_portal_rules_handled",
+				"node_rules_handled",
+				"portal_rules_handled",
+			):
+				ht = table[handledtab]
+				r["del_{}_turn".format(handledtab)] = ht.delete().where(
+					and_(
+						ht.c.branch == bindparam("branch"),
+						ht.c.turn == bindparam("turn"),
+					)
+				)
+
+			branches = branches
+
+			r["branch_children"] = select(branches.c.branch).where(
+				branches.c.parent == bindparam("branch")
+			)
+
+			tc = table["turns_completed"]
+			r["turns_completed_update"] = update_where(["turn"], [tc.c.branch])
+
+			return r
+
 		def run(self):
 			dbstring = self.dbstring
 			connect_args = self.connect_args
 			self.logger.debug("about to connect " + dbstring)
 			self.engine = create_engine(dbstring, connect_args=connect_args)
-			self.sql = queries(meta)
 			self.connection = self.engine.connect()
 			self.transaction = self.connection.begin()
 			self.logger.debug("transaction started")
@@ -224,11 +780,9 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			extensions for lisien
 
 			"""
-			for table in self.tables:
+			for table in self.meta.tables:
 				try:
 					self.init_table(table)
-				except OperationalError:
-					pass
 				except Exception as ex:
 					return ex
 			glob_d: dict[bytes, bytes] = dict(
@@ -545,10 +1099,10 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				unpack(value),
 			)
 
-	def graph_val_del_time(self, branch, turn, tick):
-		self._graphvals2set.cull(
-			lambda g, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
-		)
+	def graph_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		super().graph_val_del_time(branch, turn, tick)
 		self.call("graph_val_del_time", branch, turn, tick)
 
 	def graphs_types(
@@ -589,10 +1143,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		for branch, turn, tick, graph, typ in self.call("graphs_dump"):
 			yield unpack(graph), branch, turn, tick, typ
 
-	def nodes_del_time(self, branch, turn, tick):
-		self._nodes2set.cull(
-			lambda g, n, b, r, t, x: (b, r, t) == (branch, turn, tick)
-		)
+	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		super().nodes_del_time(branch, turn, tick)
 		self.call("nodes_del_time", branch, turn, tick)
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
@@ -698,10 +1250,10 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				unpack(value),
 			)
 
-	def node_val_del_time(self, branch, turn, tick):
-		self._nodevals2set.cull(
-			lambda g, n, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
-		)
+	def node_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		super().node_val_del_time(branch, turn, tick)
 		self.call("node_val_del_time", branch, turn, tick)
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
@@ -727,10 +1279,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				bool(extant),
 			)
 
-	def edges_del_time(self, branch, turn, tick):
-		self._edges2set.cull(
-			lambda g, o, d, b, r, t, x: (b, r, t) == (branch, turn, tick)
-		)
+	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		super().edges_del_time(branch, turn, tick)
 		self.call("edges_del_time", branch, turn, tick)
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
@@ -799,10 +1349,10 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				unpack(value),
 			)
 
-	def edge_val_del_time(self, branch, turn, tick):
-		self._edgevals2set.cull(
-			lambda g, o, d, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
-		)
+	def edge_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		super().edge_val_del_time(branch, turn, tick)
 		self.call("edge_val_del_time", branch, turn, tick)
 
 	def plan_ticks_dump(self):
@@ -1182,10 +1732,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		for (name,) in self.call("rules_dump"):
 			yield name
 
-	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
-		self._things2set.cull(
-			lambda c, th, b, r, t, l: (b, r, t) == (branch, turn, tick)
-		)
+	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		super().things_del_time(branch, turn, tick)
 		self.call("things_del_time", branch, turn, tick)
 
 	def rulebook_set(

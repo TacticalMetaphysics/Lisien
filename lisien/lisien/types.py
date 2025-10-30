@@ -277,19 +277,19 @@ RuleKeyframe: TypeAlias = dict[
 RulebookKeyframe: TypeAlias = dict[
 	RulebookName, tuple[list[RuleName], RulebookPriority]
 ]
-UniversalRowType: TypeAlias = tuple[UniversalKey, Branch, Turn, Tick, Value]
+UniversalRowType: TypeAlias = tuple[Branch, Turn, Tick, UniversalKey, Value]
 RulebookRowType: TypeAlias = tuple[
-	RulebookName,
 	Branch,
 	Turn,
 	Tick,
+	RulebookName,
 	tuple[list[RuleName], RulebookPriority],
 ]
 RuleRowType: TypeAlias = tuple[
-	RuleName,
 	Branch,
 	Turn,
 	Tick,
+	RuleName,
 	list[TriggerFuncName]
 	| list[PrereqFuncName]
 	| list[ActionFuncName]
@@ -297,70 +297,81 @@ RuleRowType: TypeAlias = tuple[
 	| RuleBig,
 ]
 TriggerRowType: TypeAlias = tuple[
-	RuleName, Branch, Turn, Tick, list[TriggerFuncName]
+	Branch, Turn, Tick, RuleName, list[TriggerFuncName]
 ]
 PrereqRowType: TypeAlias = tuple[
-	RuleName, Branch, Turn, Tick, list[PrereqFuncName]
+	Branch, Turn, Tick, RuleName, list[PrereqFuncName]
 ]
 ActionRowType: TypeAlias = tuple[
-	RuleName, Branch, Turn, Tick, list[ActionFuncName]
+	Branch, Turn, Tick, RuleName, list[ActionFuncName]
 ]
 RuleNeighborhoodRowType: TypeAlias = tuple[
-	RuleName, Branch, Turn, Tick, RuleNeighborhood
+	Branch, Turn, Tick, RuleName, RuleNeighborhood
 ]
-RuleBigRowType: TypeAlias = tuple[RuleName, Branch, Turn, Tick, RuleBig]
+RuleBigRowType: TypeAlias = tuple[Branch, Turn, Tick, RuleName, RuleBig]
 GraphTypeStr: TypeAlias = Literal["DiGraph", "Deleted"]
-GraphRowType: TypeAlias = tuple[CharName, Branch, Turn, Tick, GraphTypeStr]
-NodeRowType: TypeAlias = tuple[CharName, NodeName, Branch, Turn, Tick, bool]
+GraphRowType: TypeAlias = tuple[Branch, Turn, Tick, CharName, GraphTypeStr]
+NodeRowType: TypeAlias = tuple[Branch, Turn, Tick, CharName, NodeName, bool]
 EdgeRowType: TypeAlias = tuple[
-	CharName, NodeName, NodeName, Branch, Turn, Tick, bool
+	Branch, Turn, Tick, CharName, NodeName, NodeName, bool
 ]
-GraphValRowType: TypeAlias = tuple[CharName, Stat, Branch, Turn, Tick, Value]
+GraphValRowType: TypeAlias = tuple[Branch, Turn, Tick, CharName, Stat, Value]
 NodeValRowType: TypeAlias = tuple[
-	CharName, NodeName, Stat, Branch, Turn, Tick, Value
+	Branch, Turn, Tick, CharName, NodeName, Stat, Value
 ]
 EdgeValRowType: TypeAlias = tuple[
-	CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value
+	Branch, Turn, Tick, CharName, NodeName, NodeName, Stat, Value
 ]
 ThingRowType: TypeAlias = tuple[
-	CharName, NodeName, Branch, Turn, Tick, NodeName
+	Branch, Turn, Tick, CharName, NodeName, NodeName
 ]
 UnitRowType: TypeAlias = tuple[
-	CharName, CharName, NodeName, Branch, Turn, Tick, bool
+	Branch, Turn, Tick, CharName, CharName, NodeName, bool
 ]
 CharRulebookRowType: TypeAlias = tuple[
-	CharName, Branch, Turn, Tick, RulebookName
+	Branch, Turn, Tick, CharName, RulebookName
 ]
 NodeRulebookRowType: TypeAlias = tuple[
-	CharName, NodeName, Branch, Turn, Tick, RulebookName
+	Branch, Turn, Tick, CharName, NodeName, RulebookName
 ]
 PortalRulebookRowType: TypeAlias = tuple[
-	CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName
+	Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName
 ]
 CharacterRulesHandledRowType: TypeAlias = tuple[
-	CharName, RulebookName, RuleName, Branch, Turn, Tick
+	Branch,
+	Turn,
+	CharName,
+	RulebookName,
+	RuleName,
+	Tick,
 ]
 PortalRulesHandledRowType: TypeAlias = tuple[
+	Branch,
+	Turn,
 	CharName,
 	NodeName,
 	NodeName,
 	RulebookName,
 	RuleName,
-	Branch,
-	Turn,
 	Tick,
 ]
 NodeRulesHandledRowType: TypeAlias = tuple[
-	CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick
+	Branch,
+	Turn,
+	CharName,
+	NodeName,
+	RulebookName,
+	RuleName,
+	Tick,
 ]
 UnitRulesHandledRowType: TypeAlias = tuple[
+	Branch,
+	Turn,
 	CharName,
 	CharName,
 	NodeName,
 	RulebookName,
 	RuleName,
-	Branch,
-	Turn,
 	Tick,
 ]
 StatDict: TypeAlias = dict[Stat | Literal["rulebook"], Value]
