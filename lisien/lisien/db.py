@@ -288,6 +288,10 @@ class Batch(list):
 
 	validate: bool = True
 	"""Whether to check that records added to the batch are correctly typed tuples"""
+	cached_properties = {}
+	"""`cached_property` objects produced by `@batched`"""
+	serializers = {}
+	"""Serialization functions decorated by `@batched`"""
 
 	_hint2type = {}
 
@@ -416,7 +420,7 @@ def batched(
 			key_len=key_len,
 			inc_rec_counter=inc_rec_counter,
 		)
-	batched.serializers[table] = serialize_record
+	Batch.serializers[table] = serialize_record
 	serialized_tuple_type = get_type_hints(serialize_record)["return"]
 
 	def the_batch(
@@ -430,13 +434,9 @@ def batched(
 			MethodType(serialize_record, self),
 		)
 
-	return batched.cached_properties.setdefault(
+	return Batch.cached_properties.setdefault(
 		table, cached_property(the_batch)
 	)
-
-
-batched.cached_properties = {}
-batched.serializers = {}
 
 
 class AbstractDatabaseConnector(ABC):
@@ -515,7 +515,7 @@ class AbstractDatabaseConnector(ABC):
 		self.flush()
 		return {
 			table: list(getattr(self, f"{table}_dump")())
-			for table in batched.cached_properties
+			for table in Batch.cached_properties
 		}
 
 	@batched(
@@ -1264,7 +1264,7 @@ class AbstractDatabaseConnector(ABC):
 
 	@mutexed
 	def _flush(self):
-		for table, serializer in batched.serializers.items():
+		for table, serializer in Batch.serializers.items():
 			batch = getattr(self, serializer.__name__)
 			if not isinstance(batch, Batch):
 				raise TypeError(
@@ -4755,9 +4755,9 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		raise TypeError("Not a real database, so can't call it")
 
 	def insert_many(self, table_name: str, args: list[dict]) -> None:
-		tab_serializer = batched.serializers[table_name]
+		tab_serializer = Batch.serializers[table_name]
 		key_len = getattr(
-			self, batched.cached_properties[table_name].attrname
+			self, Batch.cached_properties[table_name].attrname
 		).key_len
 		if key_len < 1:
 			key_len = ...
@@ -4803,9 +4803,9 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	insert_many_silent = insert_many
 
 	def delete_many_silent(self, table_name: str, args: list[dict]) -> None:
-		cached: cached_property = batched.cached_properties[table_name]
+		cached: cached_property = Batch.cached_properties[table_name]
 		the_batch: Batch = getattr(self, cached.attrname)
-		tab_serializer = batched.serializers[table_name]
+		tab_serializer = Batch.serializers[table_name]
 		tab_spec = inspect.getfullargspec(tab_serializer)
 		tab = getattr(self, "_" + table_name)
 		if the_batch.key_len >= 1:
@@ -5023,7 +5023,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		pass
 
 	def truncate_all(self) -> None:
-		for table in batched.cached_properties:
+		for table in Batch.cached_properties:
 			getattr(self, "_" + table).clear()
 
 	def get_all_keyframe_graphs(
