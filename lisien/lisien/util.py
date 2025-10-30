@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import builtins
 import gc
 import os
 import sys
@@ -45,6 +46,7 @@ from pprint import pformat
 from random import Random
 from textwrap import dedent
 from time import monotonic
+from . import types
 from types import FunctionType, MethodType, ModuleType
 from typing import (
 	TYPE_CHECKING,
@@ -59,6 +61,10 @@ from typing import (
 	Sequence,
 	Type,
 	TypeVar,
+	Union,
+	Literal,
+	get_origin,
+	get_args,
 )
 
 try:
@@ -457,7 +463,7 @@ def sort_set(s: Set[_T]) -> list[_T]:
 		elif isinstance(v, str):
 			return v.encode()
 		elif isinstance(v, int):
-			return v.to_bytes()
+			return v.to_bytes(8)
 		elif isinstance(v, float):
 			return b"".join(i.to_bytes() for i in v.as_integer_ratio())
 		else:
@@ -1984,3 +1990,63 @@ def msgpack_map_header(n) -> bytes:
 		return (0xDF).to_bytes(1, signed=False) + n.to_bytes(4, signed=False)
 	else:
 		raise ValueError("dict is too large")
+
+
+def root_type(t: type) -> type:
+	if t is types.Key or t is types.Value:
+		return t
+	elif (
+		t is types.Turn
+		or t is types.Tick
+		or t is types.Plan
+		or t is types.RuleNeighborhood
+	):
+		return int
+	elif hasattr(t, "__supertype__"):
+		return root_type(t.__supertype__)
+	elif hasattr(t, "__origin__"):
+		orig = get_origin(t)
+		if orig is None:
+			return t
+		ret = root_type(orig)
+		if ret is Literal:
+			for arg in get_args(orig):
+				if not isinstance(arg, str):
+					raise TypeError("Literal not storeable", arg)
+			return str
+		return ret
+	return t
+
+
+def deannotate(annotation):
+	if "|" in annotation:
+		for a in annotation.split("|"):
+			yield from deannotate(a.strip())
+		return
+	if "Literal" == annotation[:7]:
+		for a in annotation[7:].strip("[]").split(", "):
+			yield from deannotate(a)
+		return
+	elif "[" in annotation:
+		annotation = annotation[: annotation.index("[")]
+	if hasattr(builtins, annotation):
+		typ = getattr(builtins, annotation)
+		if not isinstance(typ, type):
+			typ = type(typ)
+	elif annotation in ("type(...)", "..."):
+		yield type(...)
+		return
+	else:
+		typ = getattr(types, annotation)
+	if hasattr(typ, "__supertype__"):
+		typ = typ.__supertype__
+	if hasattr(typ, "__origin__"):
+		if typ.__origin__ is Union:
+			for arg in typ.__args__:
+				yield getattr(arg, "__origin__", arg)
+		elif typ.__origin__ is Literal:
+			yield from map(type, typ.__args__)
+		else:
+			yield typ.__origin__
+	else:
+		yield typ

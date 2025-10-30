@@ -43,10 +43,9 @@ from itertools import chain
 from operator import eq, ge, gt, le, lt, ne
 from typing import Any, Callable
 
-from sqlalchemy import Table, and_, select
+from sqlalchemy import Table, and_, select, MetaData
 from sqlalchemy.sql.functions import func
 
-from .alchemy import meta
 from .util import (
 	AbstractEngine,
 	CharacterStatAccessor,
@@ -199,7 +198,11 @@ def _the_select(tab: Table, val_col="value"):
 
 
 def _make_graph_val_select(
-	graph: bytes, stat: bytes, branches: list[str], mid_turn: bool
+	meta: MetaData,
+	graph: bytes,
+	stat: bytes,
+	branches: list[str],
+	mid_turn: bool,
 ):
 	tab: Table = meta.tables["graph_val"]
 	if mid_turn:
@@ -243,7 +246,12 @@ def _make_graph_val_select(
 
 
 def _make_node_val_select(
-	graph: bytes, node: bytes, stat: bytes, branches: list[str], mid_turn: bool
+	meta: MetaData,
+	graph: bytes,
+	node: bytes,
+	stat: bytes,
+	branches: list[str],
+	mid_turn: bool,
 ):
 	tab: Table = meta.tables["node_val"]
 	if mid_turn:
@@ -291,7 +299,11 @@ def _make_node_val_select(
 
 
 def _make_location_select(
-	graph: bytes, thing: bytes, branches: list[str], mid_turn: bool
+	meta: MetaData,
+	graph: bytes,
+	thing: bytes,
+	branches: list[str],
+	mid_turn: bool,
 ):
 	tab: Table = meta.tables["things"]
 	if mid_turn:
@@ -335,6 +347,7 @@ def _make_location_select(
 
 
 def _make_edge_val_select(
+	meta: MetaData,
 	graph: bytes,
 	orig: bytes,
 	dest: bytes,
@@ -399,7 +412,12 @@ def _make_edge_val_select(
 
 
 def _make_side_sel(
-	entity, stat, branches: list[str], pack: callable, mid_turn: bool
+	meta: MetaData,
+	entity,
+	stat,
+	branches: list[str],
+	pack: callable,
+	mid_turn: bool,
 ):
 	from .character import AbstractCharacter
 	from .node import Place, Thing
@@ -407,10 +425,11 @@ def _make_side_sel(
 
 	if isinstance(entity, AbstractCharacter):
 		return _make_graph_val_select(
-			pack(entity.name), pack(stat), branches, mid_turn
+			meta, pack(entity.name), pack(stat), branches, mid_turn
 		)
 	elif isinstance(entity, Place):
 		return _make_node_val_select(
+			meta,
 			pack(entity.character.name),
 			pack(entity.name),
 			pack(stat),
@@ -420,6 +439,7 @@ def _make_side_sel(
 	elif isinstance(entity, Thing):
 		if stat == "location":
 			return _make_location_select(
+				meta,
 				pack(entity.character.name),
 				pack(entity.name),
 				branches,
@@ -427,6 +447,7 @@ def _make_side_sel(
 			)
 		else:
 			return _make_node_val_select(
+				meta,
 				pack(entity.character.name),
 				pack(entity.name),
 				pack(stat),
@@ -435,6 +456,7 @@ def _make_side_sel(
 			)
 	elif isinstance(entity, Portal):
 		return _make_edge_val_select(
+			meta,
 			pack(entity.character.name),
 			pack(entity.origin.name),
 			pack(entity.destination.name),

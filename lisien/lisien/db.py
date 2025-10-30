@@ -15,7 +15,6 @@
 
 from __future__ import annotations
 
-import builtins
 import inspect
 import os
 import sys
@@ -39,7 +38,6 @@ from typing import (
 	Literal,
 	MutableMapping,
 	Optional,
-	Union,
 	get_args,
 	get_type_hints,
 	TypeVar,
@@ -148,7 +146,13 @@ from .types import (
 	UnitRulesHandledRowType,
 )
 from .facade import EngineFacade
-from .util import garbage, sort_set, AbstractEngine, ILLEGAL_CHARACTER_NAMES
+from .util import (
+	garbage,
+	sort_set,
+	AbstractEngine,
+	ILLEGAL_CHARACTER_NAMES,
+	deannotate,
+)
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 if sys.version_info.minor < 11:
@@ -313,39 +317,6 @@ class Batch(list):
 		return func(*tup)
 
 	def _validate(self, t: tuple):
-		def deannotate(annotation):
-			if "|" in annotation:
-				for a in annotation.split("|"):
-					yield from deannotate(a.strip())
-				return
-			if "Literal" == annotation[:7]:
-				for a in annotation[7:].strip("[]").split(", "):
-					yield from deannotate(a)
-				return
-			elif "[" in annotation:
-				annotation = annotation[: annotation.index("[")]
-			if hasattr(builtins, annotation):
-				typ = getattr(builtins, annotation)
-				if not isinstance(typ, type):
-					typ = type(typ)
-			elif annotation in ("type(...)", "..."):
-				yield type(...)
-				return
-			else:
-				typ = getattr(lisien.types, annotation)
-			if hasattr(typ, "__supertype__"):
-				typ = typ.__supertype__
-			if hasattr(typ, "__origin__"):
-				if typ.__origin__ is Union:
-					for arg in typ.__args__:
-						yield getattr(arg, "__origin__", arg)
-				elif typ.__origin__ is Literal:
-					yield from map(type, typ.__args__)
-				else:
-					yield typ.__origin__
-			else:
-				yield typ
-
 		if not isinstance(t, tuple):
 			raise TypeError("Can only batch tuples")
 		if len(t) != len(self.argspec.args) - 1:  # exclude self
@@ -447,10 +418,12 @@ def batched(
 			MethodType(serialize_record, self),
 		)
 
-	return batched.tables.setdefault(table, cached_property(the_batch))
+	return batched.cached_properties.setdefault(
+		table, cached_property(the_batch)
+	)
 
 
-batched.tables = {}
+batched.cached_properties = {}
 batched.serializers = {}
 
 
@@ -530,7 +503,7 @@ class AbstractDatabaseConnector(ABC):
 		self.flush()
 		return {
 			table: list(getattr(self, f"{table}_dump")())
-			for table in batched.tables
+			for table in batched.cached_properties
 		}
 
 	@batched(
@@ -611,51 +584,51 @@ class AbstractDatabaseConnector(ABC):
 	@batched("universals", key_len=4)
 	def _universals2set(
 		self,
-		key: UniversalKey,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		key: UniversalKey,
 		value: Value,
 	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
 		pack = self.pack
 		return branch, turn, tick, pack(key), pack(value)
 
 	@batched("rules", key_len=1)
-	def _rules2set(self, rule: RuleName) -> tuple[bytes]:
-		return (self.pack(rule),)
+	def _rules2set(self, rule: RuleName) -> tuple[str]:
+		return (rule,)
 
 	@batched("rule_triggers", key_len=4)
 	def _triggers2set(
 		self,
-		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		rule: RuleName,
 		triggers: list[TriggerFuncName],
-	) -> tuple[RuleName, Branch, Turn, Tick, bytes]:
-		return (rule, branch, turn, tick, self.pack(triggers))
+	) -> tuple[Branch, Turn, Tick, RuleName, bytes]:
+		return (branch, turn, tick, rule, self.pack(triggers))
 
 	@batched("rule_prereqs", key_len=4)
 	def _prereqs2set(
 		self,
-		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		rule: RuleName,
 		prereqs: list[PrereqFuncName],
-	) -> tuple[RuleName, Branch, Turn, Tick, bytes]:
-		return (rule, branch, turn, tick, self.pack(prereqs))
+	) -> tuple[Branch, Turn, Tick, RuleName, bytes]:
+		return (branch, turn, tick, rule, self.pack(prereqs))
 
 	@batched("rule_actions", key_len=4)
 	def _actions2set(
 		self,
-		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		rule: RuleName,
 		actions: list[ActionFuncName],
-	) -> tuple[RuleName, Branch, Turn, Tick, bytes]:
-		return (rule, branch, turn, tick, self.pack(actions))
+	) -> tuple[Branch, Turn, Tick, RuleName, bytes]:
+		return (branch, turn, tick, rule, self.pack(actions))
 
 	@batched(
 		"rule_neighborhood",
@@ -663,40 +636,40 @@ class AbstractDatabaseConnector(ABC):
 	)
 	def _neighbors2set(
 		self,
-		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		rule: RuleName,
 		neighborhood: RuleNeighborhood,
-	) -> tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]:
-		return (rule, branch, turn, tick, neighborhood)
+	) -> tuple[Branch, Turn, Tick, RuleName, RuleNeighborhood]:
+		return (branch, turn, tick, rule, neighborhood)
 
 	@batched("rule_big", key_len=4)
 	def _big2set(
 		self,
-		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		rule: RuleName,
 		big: RuleBig,
-	) -> tuple[RuleName, Branch, Turn, Tick, RuleBig]:
-		return (rule, branch, turn, tick, big)
+	) -> tuple[Branch, Turn, Tick, RuleName, RuleBig]:
+		return branch, turn, tick, rule, big
 
 	@batched("rulebooks", key_len=4)
 	def _rulebooks2set(
 		self,
-		rulebook: RulebookName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		rules: Iterable[RuleName] = (),
+		rulebook: RulebookName,
+		rules: list[RuleName] = (),
 		priority: RulebookPriority = 0.0,
-	) -> tuple[bytes, Branch, Turn, Tick, bytes, RulebookPriority]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, RulebookPriority]:
 		return (
-			self.pack(rulebook),
 			branch,
 			turn,
 			tick,
+			self.pack(rulebook),
 			self.pack(rules),
 			priority,
 		)
@@ -704,13 +677,13 @@ class AbstractDatabaseConnector(ABC):
 	@batched("graphs", key_len=4)
 	def _graphs2set(
 		self,
-		graph: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		graph: CharName,
 		type: GraphTypeStr,
-	) -> tuple[bytes, Branch, Turn, Tick, GraphTypeStr]:
-		return self.pack(graph), branch, turn, tick, type
+	) -> tuple[Branch, Turn, Tick, bytes, GraphTypeStr]:
+		return branch, turn, tick, self.pack(graph), type
 
 	@batched(
 		"character_rulebook",
@@ -718,26 +691,26 @@ class AbstractDatabaseConnector(ABC):
 	)
 	def _character_rulebook_to_set(
 		self,
-		character: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
 		pack = self.pack
-		return pack(character), branch, turn, tick, pack(rulebook)
+		return branch, turn, tick, pack(character), pack(rulebook)
 
 	@batched("unit_rulebook", key_len=4)
 	def _unit_rulebook_to_set(
 		self,
-		character: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
 		pack = self.pack
-		return pack(character), branch, turn, tick, pack(rulebook)
+		return branch, turn, tick, pack(character), pack(rulebook)
 
 	@batched(
 		"character_thing_rulebook",
@@ -745,14 +718,14 @@ class AbstractDatabaseConnector(ABC):
 	)
 	def _character_thing_rulebook_to_set(
 		self,
-		character: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
 		pack = self.pack
-		return pack(character), branch, turn, tick, pack(rulebook)
+		return branch, turn, tick, pack(character), pack(rulebook)
 
 	@batched(
 		"character_place_rulebook",
@@ -760,14 +733,14 @@ class AbstractDatabaseConnector(ABC):
 	)
 	def _character_place_rulebook_to_set(
 		self,
-		character: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
 		pack = self.pack
-		return pack(character), branch, turn, tick, pack(rulebook)
+		return branch, turn, tick, pack(character), pack(rulebook)
 
 	@batched(
 		"character_portal_rulebook",
@@ -775,27 +748,27 @@ class AbstractDatabaseConnector(ABC):
 	)
 	def _character_portal_rulebook_to_set(
 		self,
-		character: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
 		pack = self.pack
-		return pack(character), branch, turn, tick, pack(rulebook)
+		return branch, turn, tick, pack(character), pack(rulebook)
 
 	@batched("node_rulebook", key_len=5)
 	def _noderb2set(
 		self,
-		character: CharName,
-		node: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		character: CharName,
+		node: NodeName,
 		rulebook: RulebookName,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
 		pack = self.pack
-		return pack(character), pack(node), branch, turn, tick, pack(rulebook)
+		return branch, turn, tick, pack(character), pack(node), pack(rulebook)
 
 	@batched(
 		"portal_rulebook",
@@ -803,118 +776,154 @@ class AbstractDatabaseConnector(ABC):
 	)
 	def _portrb2set(
 		self,
-		character: CharName,
-		orig: NodeName,
-		dest: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		rulebook: RulebookName,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes]:
 		pack = self.pack
 		return (
-			pack(character),
-			pack(orig),
-			pack(dest),
 			branch,
 			turn,
 			tick,
+			pack(character),
+			pack(orig),
+			pack(dest),
 			pack(rulebook),
 		)
 
 	@batched("nodes", key_len=5)
 	def _nodes2set(
 		self,
-		graph: CharName,
-		node: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		graph: CharName,
+		node: NodeName,
 		extant: bool,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bool]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bool]:
 		pack = self.pack
-		return pack(graph), pack(node), branch, turn, tick, bool(extant)
+		return branch, turn, tick, pack(graph), pack(node), bool(extant)
+
+	@abstractmethod
+	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		self._nodes2set.cull(
+			lambda b, r, t, *_: (b, r, t) == (branch, turn, tick)
+		)
 
 	@batched("edges", key_len=6)
 	def _edges2set(
 		self,
-		graph: CharName,
-		orig: NodeName,
-		dest: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		graph: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		extant: bool,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bool]:
 		pack = self.pack
 		return (
-			pack(graph),
-			pack(orig),
-			pack(dest),
 			branch,
 			turn,
 			tick,
+			pack(graph),
+			pack(orig),
+			pack(dest),
 			bool(extant),
+		)
+
+	@abstractmethod
+	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		self._edges2set.cull(
+			lambda b, r, t, *_: (b, r, t) == (branch, turn, tick)
 		)
 
 	@batched("node_val", key_len=6)
 	def _nodevals2set(
 		self,
-		graph: CharName,
-		node: NodeName,
-		key: Stat,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		graph: CharName,
+		node: NodeName,
+		key: Stat,
 		value: Value,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes]:
 		pack = self.pack
 		return (
-			pack(graph),
-			pack(node),
-			pack(key),
 			branch,
 			turn,
 			tick,
+			pack(graph),
+			pack(node),
+			pack(key),
 			pack(value),
+		)
+
+	@abstractmethod
+	def node_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		self._nodevals2set.cull(
+			lambda g, n, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
 		)
 
 	@batched("edge_val", key_len=7)
 	def _edgevals2set(
 		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
 		key: Stat,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
 		value: Value,
-	) -> tuple[bytes, bytes, bytes, bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes, bytes]:
 		pack = self.pack
 		return (
+			branch,
+			turn,
+			tick,
 			pack(graph),
 			pack(orig),
 			pack(dest),
 			pack(key),
-			branch,
-			turn,
-			tick,
 			pack(value),
+		)
+
+	@abstractmethod
+	def edge_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		self._edgevals2set.cull(
+			lambda b, r, t, *_: (b, r, t) == (branch, turn, tick)
 		)
 
 	@batched("graph_val", key_len=5)
 	def _graphvals2set(
 		self,
-		graph: CharName,
-		key: Stat,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		graph: CharName,
+		key: Stat,
 		value: Value,
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
 		pack = self.pack
-		return pack(graph), pack(key), branch, turn, tick, pack(value)
+		return branch, turn, tick, pack(graph), pack(key), pack(value)
+
+	@abstractmethod
+	def graph_val_del_time(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
+		self._graphvals2set.cull(
+			lambda g, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
+		)
 
 	@batched(
 		"keyframes",
@@ -931,20 +940,20 @@ class AbstractDatabaseConnector(ABC):
 	)
 	def _new_keyframes_graphs(
 		self,
-		graph: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		graph: CharName,
 		nodes: NodeKeyframe,
 		edges: EdgeKeyframe,
 		graph_val: GraphValKeyframe,
-	) -> tuple[bytes, Branch, Turn, Tick, bytes, bytes, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes]:
 		pack = self.pack
 		return (
-			pack(graph),
 			branch,
 			turn,
 			tick,
+			pack(graph),
 			pack(nodes),
 			pack(edges),
 			pack(graph_val),
@@ -970,153 +979,160 @@ class AbstractDatabaseConnector(ABC):
 	@batched("character_rules_handled", key_len=5, inc_rec_counter=False)
 	def _char_rules_handled(
 		self,
+		branch: Branch,
+		turn: Turn,
 		character: CharName,
 		rulebook: RulebookName,
 		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, RuleName, Branch, Turn, Tick]:
+	) -> tuple[
+		Branch,
+		Turn,
+		bytes,
+		bytes,
+		RuleName,
+		Tick,
+	]:
 		(character, rulebook) = map(self.pack, (character, rulebook))
-		return (character, rulebook, rule, branch, turn, tick)
+		return (branch, turn, character, rulebook, rule, tick)
 
 	@batched("unit_rules_handled", key_len=7, inc_rec_counter=False)
 	def _unit_rules_handled_to_set(
 		self,
+		branch: Branch,
+		turn: Turn,
 		character: CharName,
 		rulebook: RulebookName,
 		rule: RuleName,
 		graph: CharName,
 		unit: CharName,
-		branch: Branch,
-		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, RuleName, bytes, bytes, Branch, Turn, Tick]:
+	) -> tuple[Branch, Turn, bytes, bytes, RuleName, bytes, bytes, Tick]:
 		character, graph, unit, rulebook = map(
 			self.pack, (character, graph, unit, rulebook)
 		)
-		return character, rulebook, rule, graph, unit, branch, turn, tick
+		return branch, turn, character, rulebook, rule, graph, unit, tick
 
 	@batched("character_thing_rules_handled", key_len=6, inc_rec_counter=False)
 	def _char_thing_rules_handled(
 		self,
+		branch: Branch,
+		turn: Turn,
 		character: CharName,
 		rulebook: RulebookName,
 		rule: RuleName,
 		thing: NodeName,
-		branch: Branch,
-		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, RuleName, bytes, Branch, Turn, Tick]:
+	) -> tuple[Branch, Turn, bytes, bytes, RuleName, bytes, Tick]:
 		character, thing, rulebook = map(
 			self.pack, (character, thing, rulebook)
 		)
-		return (character, rulebook, rule, thing, branch, turn, tick)
+		return (branch, turn, character, rulebook, rule, thing, tick)
 
 	@batched("character_place_rules_handled", key_len=6, inc_rec_counter=False)
 	def _char_place_rules_handled(
 		self,
+		branch: Branch,
+		turn: Turn,
 		character: CharName,
 		place: NodeName,
 		rulebook: RulebookName,
 		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, RuleName, Tick]:
 		character, rulebook, place = map(
 			self.pack, (character, rulebook, place)
 		)
-		return (character, place, rulebook, rule, branch, turn, tick)
+		return (branch, turn, character, place, rulebook, rule, tick)
 
 	@batched(
 		"character_portal_rules_handled", key_len=7, inc_rec_counter=False
 	)
 	def _char_portal_rules_handled(
 		self,
+		branch: Branch,
+		turn: Turn,
 		character: CharName,
 		orig: NodeName,
 		dest: NodeName,
 		rulebook: RulebookName,
 		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, bytes, RuleName, Tick]:
 		character, rulebook, orig, dest = map(
 			self.pack, (character, rulebook, orig, dest)
 		)
-		return character, orig, dest, rulebook, rule, branch, turn, tick
+		return branch, turn, character, orig, dest, rulebook, rule, tick
 
 	@batched("node_rules_handled", key_len=6, inc_rec_counter=False)
 	def _node_rules_handled_to_set(
 		self,
+		branch: Branch,
+		turn: Turn,
 		character: CharName,
 		node: NodeName,
 		rulebook: RulebookName,
 		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, RuleName, Tick]:
 		character, rulebook, node = map(self.pack, (character, rulebook, node))
-		return character, node, rulebook, rule, branch, turn, tick
+		return branch, turn, character, node, rulebook, rule, tick
 
 	@batched("portal_rules_handled", inc_rec_counter=False)
 	def _portal_rules_handled_to_set(
 		self,
+		branch: Branch,
+		turn: Turn,
 		character: CharName,
 		orig: NodeName,
 		dest: NodeName,
 		rulebook: RulebookName,
 		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
 		tick: Tick,
-	) -> tuple[bytes, bytes, bytes, bytes, RuleName, Branch, Turn, Tick]:
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, bytes, RuleName, Tick]:
 		(character, orig, dest, rulebook) = map(
 			self.pack, (character, orig, dest, rulebook)
 		)
-		return character, orig, dest, rulebook, rule, branch, turn, tick
+		return branch, turn, character, orig, dest, rulebook, rule, tick
 
 	@batched("units", key_len=6)
 	def _unitness(
 		self,
-		character_graph: CharName,
-		unit_graph: CharName,
-		unit_node: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		character_graph: CharName,
+		unit_graph: CharName,
+		unit_node: NodeName,
 		is_unit: bool,
-	) -> tuple[bytes, bytes, bytes, Branch, Turn, Tick, bool]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bool]:
 		(character_graph, unit_graph, unit_node) = map(
 			self.pack, (character_graph, unit_graph, unit_node)
 		)
 		return (
-			character_graph,
-			unit_graph,
-			unit_node,
 			branch,
 			turn,
 			tick,
+			character_graph,
+			unit_graph,
+			unit_node,
 			is_unit,
 		)
 
 	@batched("things", key_len=5)
 	def _things2set(
 		self,
-		character: CharName,
-		thing: NodeName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
+		character: CharName,
+		thing: NodeName,
 		location: NodeName | type(...),
-	) -> tuple[bytes, bytes, Branch, Turn, Tick, bytes]:
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
 		(character, thing, location) = map(
 			self.pack, (character, thing, location)
 		)
-		return character, thing, branch, turn, tick, location
+		return branch, turn, tick, character, thing, location
 
 	def universal_set(
 		self,
@@ -1126,7 +1142,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		value: Value | type(...),
 	) -> None:
-		self._universals2set.append((key, branch, turn, tick, value))
+		self._universals2set.append((branch, turn, tick, key, value))
 
 	def universal_del(
 		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
@@ -1142,7 +1158,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		extant: bool,
 	) -> None:
-		self._nodes2set.append((graph, node, branch, turn, tick, extant))
+		self._nodes2set.append((branch, turn, tick, graph, node, extant))
 
 	@cached_property
 	def _all_keyframe_times(self):
@@ -1163,7 +1179,7 @@ class AbstractDatabaseConnector(ABC):
 		graph_val: CharDict,
 	) -> None:
 		self._new_keyframes_graphs.append(
-			(graph, branch, turn, tick, nodes, edges, graph_val)
+			(branch, turn, tick, graph, nodes, edges, graph_val)
 		)
 
 	def keyframe_extension_insert(
@@ -1197,7 +1213,7 @@ class AbstractDatabaseConnector(ABC):
 		value: Value,
 	):
 		self._nodevals2set.append(
-			(graph, node, key, branch, turn, tick, value)
+			(branch, turn, tick, graph, node, key, value)
 		)
 
 	def edge_val_set(
@@ -1212,7 +1228,7 @@ class AbstractDatabaseConnector(ABC):
 		value: Value,
 	) -> None:
 		self._edgevals2set.append(
-			(graph, orig, dest, key, branch, turn, tick, value)
+			(branch, turn, tick, graph, orig, dest, key, value)
 		)
 
 	def plans_insert(
@@ -1318,7 +1334,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		type: GraphTypeStr,
 	) -> None:
-		self._graphs2set.append((graph, branch, turn, tick, type))
+		self._graphs2set.append((branch, turn, tick, graph, type))
 
 	def graph_val_set(
 		self,
@@ -1329,7 +1345,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		val: Value,
 	) -> None:
-		self._graphvals2set.append((graph, key, branch, turn, tick, val))
+		self._graphvals2set.append((branch, turn, tick, graph, key, val))
 
 	def exist_edge(
 		self,
@@ -1341,7 +1357,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		extant: bool,
 	) -> None:
-		self._edges2set.append((graph, orig, dest, branch, turn, tick, extant))
+		self._edges2set.append((branch, turn, tick, graph, orig, dest, extant))
 
 	@abstractmethod
 	def keyframes_graphs(
@@ -1412,11 +1428,6 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def graph_val_del_time(
-		self, branch: Branch, turn: Turn, tick: Tick
-	) -> None: ...
-
-	@abstractmethod
 	def graphs_types(
 		self,
 		branch: Branch,
@@ -1434,10 +1445,6 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		pass
-
-	@abstractmethod
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		pass
 
@@ -1446,27 +1453,11 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def node_val_del_time(
-		self, branch: Branch, turn: Turn, tick: Tick
-	) -> None:
-		pass
-
-	@abstractmethod
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		pass
 
 	@abstractmethod
-	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
-		pass
-
-	@abstractmethod
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
-		pass
-
-	@abstractmethod
-	def edge_val_del_time(
-		self, branch: Branch, turn: Turn, tick: Tick
-	) -> None:
 		pass
 
 	@abstractmethod
@@ -1561,7 +1552,8 @@ class AbstractDatabaseConnector(ABC):
 		kf: Keyframe = {
 			"universal": universal_kf,
 			"rulebook": rulebook_kf,
-		} | rule_kf
+			**rule_kf,
+		}
 		for (
 			char,
 			node_val,
@@ -1771,7 +1763,7 @@ class AbstractDatabaseConnector(ABC):
 		triggers: list[TriggerFuncName],
 	):
 		if rule in self.all_rules:
-			self._triggers2set.append((rule, branch, turn, tick, triggers))
+			self._triggers2set.append((branch, turn, tick, rule, triggers))
 		else:
 			self.create_rule(rule, branch, turn, tick, triggers=triggers)
 
@@ -1784,7 +1776,7 @@ class AbstractDatabaseConnector(ABC):
 		prereqs: list[PrereqFuncName],
 	):
 		if rule in self.all_rules:
-			self._prereqs2set.append((rule, branch, turn, tick, prereqs))
+			self._prereqs2set.append((branch, turn, tick, rule, prereqs))
 		else:
 			self.create_rule(rule, branch, turn, tick, prereqs=prereqs)
 
@@ -1797,7 +1789,7 @@ class AbstractDatabaseConnector(ABC):
 		actions: list[ActionFuncName],
 	):
 		if rule in self.all_rules:
-			self._actions2set.append((rule, branch, turn, tick, actions))
+			self._actions2set.append((branch, turn, tick, rule, actions))
 		else:
 			self.create_rule(rule, branch, turn, tick, actions=actions)
 
@@ -1811,7 +1803,7 @@ class AbstractDatabaseConnector(ABC):
 	):
 		if rule in self.all_rules:
 			self._neighbors2set.append(
-				(rule, branch, turn, tick, neighborhood)
+				(branch, turn, tick, rule, neighborhood)
 			)
 		else:
 			self.create_rule(
@@ -1827,7 +1819,7 @@ class AbstractDatabaseConnector(ABC):
 		big: RuleBig,
 	) -> None:
 		if rule in self.all_rules:
-			self._big2set.append((rule, branch, turn, tick, big))
+			self._big2set.append((branch, turn, tick, rule, big))
 		else:
 			self.create_rule(rule, branch, turn, tick, big=big)
 
@@ -1846,11 +1838,11 @@ class AbstractDatabaseConnector(ABC):
 		neighborhood: RuleNeighborhood = None,
 		big: RuleBig = False,
 	) -> None:
-		self._triggers2set.append((rule, branch, turn, tick, list(triggers)))
-		self._prereqs2set.append((rule, branch, turn, tick, list(prereqs)))
-		self._actions2set.append((rule, branch, turn, tick, list(actions)))
-		self._neighbors2set.append((rule, branch, turn, tick, neighborhood))
-		self._big2set.append((rule, branch, turn, tick, big))
+		self._triggers2set.append((branch, turn, tick, rule, list(triggers)))
+		self._prereqs2set.append((branch, turn, tick, rule, list(prereqs)))
+		self._actions2set.append((branch, turn, tick, rule, list(actions)))
+		self._neighbors2set.append((branch, turn, tick, rule, neighborhood))
+		self._big2set.append((branch, turn, tick, rule, big))
 		self.all_rules.add(rule)
 		self.rules_insert(rule)
 
@@ -1864,7 +1856,7 @@ class AbstractDatabaseConnector(ABC):
 		prio: RulebookPriority = 0.0,
 	):
 		self._rulebooks2set.append(
-			(name, branch, turn, tick, rules or [], prio)
+			(branch, turn, tick, name, rules or [], prio)
 		)
 
 	def set_character_rulebook(
@@ -1875,7 +1867,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		self._character_rulebook_to_set.append((char, branch, turn, tick, rb))
+		self._character_rulebook_to_set.append((branch, turn, tick, char, rb))
 
 	def set_unit_rulebook(
 		self,
@@ -1885,7 +1877,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		self._unit_rulebook_to_set.append((char, branch, turn, tick, rb))
+		self._unit_rulebook_to_set.append((branch, turn, tick, char, rb))
 
 	def set_character_thing_rulebook(
 		self,
@@ -1895,8 +1887,8 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		self._character_thing_rulebooks_to_set.append(
-			(char, branch, turn, tick, rb)
+		self._character_thing_rulebook_to_set.append(
+			(branch, turn, tick, char, rb)
 		)
 
 	def set_character_place_rulebook(
@@ -1907,8 +1899,8 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		self._character_place_rulebooks_to_set.append(
-			(char, branch, turn, tick, rb)
+		self._character_place_rulebook_to_set.append(
+			(branch, turn, tick, char, rb)
 		)
 
 	def set_character_portal_rulebook(
@@ -1919,8 +1911,8 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rb: RulebookName,
 	):
-		self._character_portal_rulebooks_to_set.append(
-			(char, branch, turn, tick, rb)
+		self._character_portal_rulebook_to_set.append(
+			(branch, turn, tick, char, rb)
 		)
 
 	def rulebook_set(
@@ -1933,7 +1925,7 @@ class AbstractDatabaseConnector(ABC):
 		priority: RulebookPriority,
 	):
 		self._rulebooks2set.append(
-			(rulebook, branch, turn, tick, rules, priority)
+			(branch, turn, tick, rulebook, rules, priority)
 		)
 
 	def set_node_rulebook(
@@ -1946,7 +1938,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 	):
 		self._noderb2set.append(
-			(character, node, branch, turn, tick, rulebook)
+			(branch, turn, tick, character, node, rulebook)
 		)
 
 	def set_portal_rulebook(
@@ -1960,7 +1952,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 	):
 		self._portrb2set.append(
-			(character, orig, dest, branch, turn, tick, rulebook)
+			(branch, turn, tick, character, orig, dest, rulebook)
 		)
 
 	def handled_character_rule(
@@ -1973,7 +1965,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._char_rules_handled.append(
-			(character, rulebook, rule, branch, turn, tick)
+			(branch, turn, character, rulebook, rule, tick)
 		)
 
 	def handled_unit_rule(
@@ -1988,7 +1980,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._unit_rules_handled_to_set.append(
-			(character, rulebook, rule, graph, unit, branch, turn, tick)
+			(branch, turn, character, rulebook, rule, graph, unit, tick)
 		)
 
 	def handled_character_thing_rule(
@@ -2002,7 +1994,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._char_thing_rules_handled.append(
-			(character, rulebook, rule, thing, branch, turn, tick)
+			(branch, turn, character, rulebook, rule, thing, tick)
 		)
 
 	def handled_character_place_rule(
@@ -2016,7 +2008,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._char_place_rules_handled.append(
-			(character, place, rulebook, rule, branch, turn, tick)
+			(branch, turn, character, place, rulebook, rule, tick)
 		)
 
 	def handled_character_portal_rule(
@@ -2031,7 +2023,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._char_portal_rules_handled.append(
-			(character, orig, dest, rulebook, rule, branch, turn, tick)
+			(branch, turn, character, orig, dest, rulebook, rule, tick)
 		)
 
 	def handled_node_rule(
@@ -2045,7 +2037,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._node_rules_handled_to_set.append(
-			(character, node, rulebook, rule, branch, turn, tick)
+			(branch, turn, character, node, rulebook, rule, tick)
 		)
 
 	def handled_portal_rule(
@@ -2060,7 +2052,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 	):
 		self._portal_rules_handled_to_set.append(
-			(character, orig, dest, rulebook, rule, branch, turn, tick)
+			(branch, turn, character, orig, dest, rulebook, rule, tick)
 		)
 
 	def set_thing_loc(
@@ -2072,10 +2064,13 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		loc: NodeName,
 	):
-		self._things2set.append((character, thing, branch, turn, tick, loc))
+		self._things2set.append((branch, turn, tick, character, thing, loc))
 
 	@abstractmethod
-	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick): ...
+	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+		self._things2set.cull(
+			lambda b, r, t, *_: (b, r, t) == (branch, turn, tick)
+		)
 
 	def unit_set(
 		self,
@@ -2088,7 +2083,7 @@ class AbstractDatabaseConnector(ABC):
 		is_unit: bool,
 	):
 		self._unitness.append(
-			(character, graph, node, branch, turn, tick, is_unit)
+			(branch, turn, tick, character, graph, node, is_unit)
 		)
 
 	@abstractmethod
@@ -2657,7 +2652,7 @@ class AbstractDatabaseConnector(ABC):
 			el.set("plans", ",".join(map(str, plans)))
 
 	def _univ_el(self, universal_rec: UniversalRowType) -> Element:
-		key, b, r, t, val = universal_rec
+		b, r, t, key, val = universal_rec
 		univ_el = Element(
 			"universal",
 			key=repr(key),
@@ -2685,7 +2680,7 @@ class AbstractDatabaseConnector(ABC):
 		typ: str,
 		rec: TriggerRowType | PrereqRowType | ActionRowType,
 	) -> Element:
-		rule, branch, turn, tick, funcs = rec
+		branch, turn, tick, rule, funcs = rec
 		func_el = Element(f"{typ}s", rule=rule, tick=str(tick))
 		for func in funcs:
 			func_el.append(Element(typ[5:], name=func))
@@ -2699,7 +2694,7 @@ class AbstractDatabaseConnector(ABC):
 	def _rule_neighborhood_el(
 		self, nbr_rec: RuleNeighborhoodRowType
 	) -> Element:
-		rule, branch, turn, tick, nbr = nbr_rec
+		branch, turn, tick, rule, nbr = nbr_rec
 		if nbr is not None:
 			nbr_el = Element(
 				"rule-neighborhood",
@@ -2713,7 +2708,7 @@ class AbstractDatabaseConnector(ABC):
 		return nbr_el
 
 	def _rule_big_el(self, big_rec: RuleBigRowType) -> Element:
-		rule, branch, turn, tick, big = big_rec
+		branch, turn, tick, rule, big = big_rec
 		el = Element(
 			"rule-big",
 			rule=rule,
@@ -2724,7 +2719,7 @@ class AbstractDatabaseConnector(ABC):
 		return el
 
 	def _graph_el(self, graph: GraphRowType) -> Element:
-		char, b, r, t, typ_str = graph
+		b, r, t, char, typ_str = graph
 		graph_el = Element(
 			"graph",
 			character=repr(char),
@@ -2735,7 +2730,7 @@ class AbstractDatabaseConnector(ABC):
 		return graph_el
 
 	def _graph_val_el(self, graph_val: GraphValRowType) -> Element:
-		char, stat, b, r, t, val = graph_val
+		b, r, t, char, stat, val = graph_val
 		graph_val_el = Element(
 			"graph-val",
 			character=repr(char),
@@ -2747,7 +2742,7 @@ class AbstractDatabaseConnector(ABC):
 		return graph_val_el
 
 	def _nodes_el(self, nodes: NodeRowType) -> Element:
-		char, node, b, r, t, ex = nodes
+		b, r, t, char, node, ex = nodes
 		node_el = Element(
 			"node",
 			character=repr(char),
@@ -2759,7 +2754,7 @@ class AbstractDatabaseConnector(ABC):
 		return node_el
 
 	def _node_val_el(self, node_val: NodeValRowType) -> Element:
-		char, node, stat, b, r, t, val = node_val
+		b, r, t, char, node, stat, val = node_val
 		node_val_el = Element(
 			"node-val",
 			character=repr(char),
@@ -2772,7 +2767,7 @@ class AbstractDatabaseConnector(ABC):
 		return node_val_el
 
 	def _edge_el(self, edges: EdgeRowType) -> Element:
-		char, orig, dest, b, r, t, ex = edges
+		b, r, t, char, orig, dest, ex = edges
 		edge_el = Element(
 			"edge",
 			character=repr(char),
@@ -2785,7 +2780,7 @@ class AbstractDatabaseConnector(ABC):
 		return edge_el
 
 	def _edge_val_el(self, edge_val: EdgeValRowType) -> Element:
-		char, orig, dest, stat, b, r, t, val = edge_val
+		b, r, t, char, orig, dest, stat, val = edge_val
 		edge_val_el = Element(
 			"edge-val",
 			character=repr(char),
@@ -2799,7 +2794,7 @@ class AbstractDatabaseConnector(ABC):
 		return edge_val_el
 
 	def _thing_el(self, thing: ThingRowType) -> Element:
-		char, thing, b, r, t, loc = thing
+		b, r, t, char, thing, loc = thing
 		loc_el = Element(
 			"location",
 			character=repr(char),
@@ -2811,7 +2806,7 @@ class AbstractDatabaseConnector(ABC):
 		return loc_el
 
 	def _unit_el(self, unit: UnitRowType) -> Element:
-		char, graph, node, b, r, t, is_unit = unit
+		b, r, t, char, graph, node, is_unit = unit
 		unit_el = Element(
 			"unit",
 			{
@@ -2826,7 +2821,7 @@ class AbstractDatabaseConnector(ABC):
 		return unit_el
 
 	def _char_rb_el(self, rbtyp: str, rbrow: CharRulebookRowType) -> Element:
-		char, b, r, t, rb = rbrow
+		b, r, t, char, rb = rbrow
 		chrbel = Element(
 			rbtyp,
 			character=repr(char),
@@ -2837,7 +2832,7 @@ class AbstractDatabaseConnector(ABC):
 		return chrbel
 
 	def _node_rb_el(self, nrb_row: NodeRulebookRowType) -> Element:
-		char, node, b, r, t, rb = nrb_row
+		b, r, t, char, node, rb = nrb_row
 		nrb_el = Element(
 			"node-rulebook",
 			character=repr(char),
@@ -2849,7 +2844,7 @@ class AbstractDatabaseConnector(ABC):
 		return nrb_el
 
 	def _portal_rb_el(self, port_rb_row: PortalRulebookRowType) -> Element:
-		char, orig, dest, b, r, t, rb = port_rb_row
+		b, r, t, char, orig, dest, rb = port_rb_row
 		porb_el = Element(
 			"portal-rulebook",
 			character=repr(char),
@@ -2869,37 +2864,58 @@ class AbstractDatabaseConnector(ABC):
 		earliest = (float("inf"), float("inf"))
 		earliest_key = None
 		if data["character_rules_handled"]:
-			handled_at = data["character_rules_handled"][0][-2:]
+			rec = data["character_rules_handled"][0]
+			turn: Turn = rec[1]
+			tick: Tick = rec[-1]
+			handled_at = (turn, tick)
 			if handled_at < earliest:
 				earliest = handled_at
 				earliest_key = "character_rules_handled"
 		if data["unit_rules_handled"]:
-			handled_at = data["unit_rules_handled"][0][-2:]
+			rec = data["unit_rules_handled"][0]
+			turn: Turn = rec[1]
+			tick: Tick = rec[-1]
+			handled_at = (turn, tick)
 			if handled_at < earliest:
 				earliest = handled_at
 				earliest_key = "unit_rules_handled"
 		if data["character_thing_rules_handled"]:
-			handled_at = data["character_thing_rules_handled"][0][-2:]
+			rec = data["character_thing_rules_handled"][0]
+			turn: Turn = rec[1]
+			tick: Tick = rec[-1]
+			handled_at = (turn, tick)
 			if handled_at < earliest:
 				earliest = handled_at
 				earliest_key = "character_thing_rules_handled"
 		if data["character_place_rules_handled"]:
-			handled_at = data["character_place_rules_handled"][0][-2:]
+			rec = data["character_place_rules_handled"][0]
+			turn: Turn = rec[1]
+			tick: Tick = rec[-1]
+			handled_at = (turn, tick)
 			if handled_at < earliest:
 				earliest = handled_at
 				earliest_key = "character_place_rules_handled"
 		if data["character_portal_rules_handled"]:
-			handled_at = data["character_portal_rules_handled"][0][-2:]
+			rec = data["character_portal_rules_handled"][0]
+			turn: Turn = rec[1]
+			tick: Tick = rec[-1]
+			handled_at = (turn, tick)
 			if handled_at < earliest:
 				earliest = handled_at
 				earliest_key = "character_portal_rules_handled"
 		if data["node_rules_handled"]:
-			handled_at = data["node_rules_handled"][0][-2:]
+			rec = data["node_rules_handled"][0]
+			turn: Turn = rec[1]
+			tick: Tick = rec[-1]
+			handled_at = (turn, tick)
 			if handled_at < earliest:
 				earliest = handled_at
 				earliest_key = "node_rules_handled"
 		if data["portal_rules_handled"]:
-			handled_at = data["portal_rules_handled"][0][-2:]
+			rec = data["portal_rules_handled"][0]
+			turn: Turn = rec[1]
+			tick: Tick = rec[-1]
+			handled_at = (turn, tick)
 			if handled_at < earliest:
 				earliest = handled_at
 				earliest_key = "portal_rules_handled"
@@ -2911,7 +2927,7 @@ class AbstractDatabaseConnector(ABC):
 		)
 		match earliest_key:
 			case "character_rules_handled":
-				char, rb, rule, b, r, t = data["character_rules_handled"].pop(
+				b, r, char, rb, rule, t = data["character_rules_handled"].pop(
 					0
 				)
 				ret.set("type", "character")
@@ -2919,7 +2935,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("rulebook", repr(rb))
 				ret.set("name", rule)
 			case "unit_rules_handled":
-				char, graph, unit, rb, rule, b, r, t = data[
+				b, r, char, graph, unit, rb, rule, t = data[
 					"unit_rules_handled"
 				].pop(0)
 				ret.set("type", "unit")
@@ -2929,7 +2945,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("rulebook", repr(rb))
 				ret.set("rule", rule)
 			case "character_thing_rules_handled":
-				char, thing, rb, rule, b, r, t = data[
+				b, r, char, thing, rb, rule, t = data[
 					"character_thing_rules_handled"
 				].pop(0)
 				ret.set("type", "character-thing")
@@ -2938,7 +2954,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("rulebook", repr(rb))
 				ret.set("rule", rule)
 			case "character_place_rules_handled":
-				char, place, rb, rule, b, r, t = data[
+				b, r, char, place, rb, rule, t = data[
 					"character_place_rules_handled"
 				].pop(0)
 				ret.set("type", "character-place")
@@ -2947,7 +2963,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("rulebook", repr(rb))
 				ret.set("rule", rule)
 			case "character_portal_rules_handled":
-				char, orig, dest, rb, rule, b, r, t = data[
+				b, r, char, orig, dest, rb, rule, t = data[
 					"character_portal_rules_handled"
 				].pop(0)
 				ret.set("type", "character-portal")
@@ -2957,7 +2973,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("rulebook", repr(rb))
 				ret.set("rule", rule)
 			case "node_rules_handled":
-				char, node, rb, rule, b, r, t = data["node_rules_handled"].pop(
+				b, r, char, node, rb, rule, t = data["node_rules_handled"].pop(
 					0
 				)
 				ret.set("type", "node")
@@ -2977,15 +2993,17 @@ class AbstractDatabaseConnector(ABC):
 		branch_ = branch_el.get("name")
 		if branch_ is None:
 			raise TypeError("branch missing")
-		branch = Branch(branch_)
+		branch_now = Branch(branch_)
 
 		uncharacterized = ILLEGAL_CHARACTER_NAMES
 		turn: Turn
-		for turn, (ending_tick, plan_ending_tick) in sorted(turn_ends.items()):
+		for turn_now, (ending_tick, plan_ending_tick) in sorted(
+			turn_ends.items()
+		):
 			turn_el = Element(
 				"turn",
 				{
-					"number": str(turn),
+					"number": str(turn_now),
 					"end-tick": str(ending_tick),
 					"plan-end-tick": str(plan_ending_tick),
 				},
@@ -3001,181 +3019,113 @@ class AbstractDatabaseConnector(ABC):
 					return turn_el
 				return current_rule_el
 
-			for tick in range(plan_ending_tick + 1):
+			for tick_now in range(plan_ending_tick + 1):
+				now = (branch_now, turn_now, tick_now)
 				if current_rule_el is None:
 					current_rule_el = self._get_current_rule_el(data)
 					if current_rule_el is not None:
 						turn_el.append(current_rule_el)
 				# Loop over rules that didn't result in any changes, if needed
-				while current_rule_el is not None and tick >= (
+				while current_rule_el is not None and tick_now >= (
 					int(current_rule_el.get("end-tick"))
 				):
 					current_rule_el = self._get_current_rule_el(data)
 					if current_rule_el is not None:
 						turn_el.append(current_rule_el)
-				if (branch, turn, tick) in keyframe_times:
-					kf = self.get_keyframe(branch, turn, tick)
-					self._add_keyframe_to_turn_el(turn_el, tick, kf)
-					keyframe_times.remove((branch, turn, tick))
+				if now in keyframe_times:
+					kf = self.get_keyframe(branch_now, turn_now, tick_now)
+					self._add_keyframe_to_turn_el(turn_el, tick_now, kf)
+					keyframe_times.remove((branch_now, turn_now, tick_now))
 				if data["universals"]:
 					universal_rec: UniversalRowType = data["universals"][0]
-					branch, turn, tick, key, _ = universal_rec
-					if (branch_now, turn_now, tick_now) == (
-						branch,
-						turn,
-						tick,
-					):
+					if universal_rec[:3] == now:
 						univ_el = self._univ_el(universal_rec)
 						get_current_el().append(univ_el)
 						del data["universals"][0]
 				if data["rulebooks"]:
 					rulebook_rec: RulebookRowType = data["rulebooks"][0]
-					rulebook, branch_now, turn_now, tick_now, _ = rulebook_rec
-					if (branch_now, turn_now, tick_now) == (
-						branch,
-						turn,
-						tick,
-					):
+					if now == rulebook_rec[:3]:
 						rulebook_el = self._rulebook_el(rulebook_rec)
 						get_current_el().append(rulebook_el)
 						del data["rulebooks"][0]
 				if data["graphs"]:
 					graph_rec: GraphRowType = data["graphs"][0]
-					_, branch_now, turn_now, tick_now, _ = graph_rec
-					if (branch_now, turn_now, tick_now) == (
-						branch,
-						turn,
-						tick,
-					):
+					if now == graph_rec[:3]:
 						graph_el = self._graph_el(graph_rec)
 						get_current_el().append(graph_el)
 						del data["graphs"][0]
-				if (
-					"rule_triggers" in data
-					and data["rule_triggers"]
-					and data["rule_triggers"][0][1:4]
-					== (
-						branch,
-						turn,
-						tick,
-					)
-				):
-					trel = self._rule_triggers_el(data["rule_triggers"].pop(0))
-					get_current_el().append(trel)
-				if (
-					"rule_prereqs" in data
-					and data["rule_prereqs"]
-					and data["rule_prereqs"][0][1:4]
-					== (
-						branch,
-						turn,
-						tick,
-					)
-				):
-					prel = self._rule_prereqs_el(data["rule_prereqs"].pop(0))
-					get_current_el().append(prel)
-				if (
-					"rule_actions" in data
-					and data["rule_actions"]
-					and data["rule_actions"][0][1:4]
-					== (
-						branch,
-						turn,
-						tick,
-					)
-				):
-					actel = self._rule_actions_el(data["rule_actions"].pop(0))
-					get_current_el().append(actel)
-				if (
-					"rule_neighborhood" in data
-					and data["rule_neighborhood"]
-					and data["rule_neighborhood"][0][1:4]
-					== (branch, turn, tick)
-				):
-					nbrel = self._rule_neighborhood_el(
-						data["rule_neighborhood"].pop(0)
-					)
-					get_current_el().append(nbrel)
-				if (
-					"rule_big" in data
-					and data["rule_big"]
-					and data["rule_big"][0][1:4]
-					== (
-						branch,
-						turn,
-						tick,
-					)
-				):
-					big_el = self._rule_big_el(data["rule_big"].pop(0))
-					get_current_el().append(big_el)
+				if trig_recs := data.get("rule_triggers"):
+					trig_rec: TriggerRowType = trig_recs[0]
+					if now == trig_rec[:3]:
+						trel = self._rule_triggers_el(trig_rec)
+						get_current_el().append(trel)
+						del data["rule_triggers"][0]
+				if preq_recs := data.get("rule_prereqs"):
+					preq_rec: PrereqRowType = preq_recs[0]
+					if now == preq_rec[:3]:
+						prel = self._rule_prereqs_el(preq_rec)
+						get_current_el().append(prel)
+						del data["rule_prereqs"][0]
+				if act_recs := data.get("rule_actions"):
+					act_rec: ActionRowType = act_recs[0]
+					if now == act_rec[:3]:
+						actel = self._rule_actions_el(act_rec)
+						get_current_el().append(actel)
+						del data["rule_actions"][0]
+				if nbr_recs := data.get("rule_neighborhood"):
+					nbr_rec: RuleNeighborhoodRowType = nbr_recs[0]
+					if now == nbr_rec[:3]:
+						nbrel = self._rule_neighborhood_el(nbr_rec)
+						get_current_el().append(nbrel)
+						del data["rule_neighborhood"][0]
+				if big_recs := data.get("rule_big"):
+					big_rec: RuleBigRowType = big_recs[0]
+					if now == big_rec[:3]:
+						big_el = self._rule_big_el(big_rec)
+						get_current_el().append(big_el)
+						del data["rule_big"][0]
 				for char_name in data.keys() - uncharacterized:
 					char_data: LoadedCharWindow = data[char_name]
 					if char_data["graph_val"]:
-						graph_val_row: GraphValRowType = char_data[
-							"graph_val"
-						][0]
-						_, __, b, r, t, ___ = graph_val_row
-						if (b, r, t) == (branch, turn, tick):
+						graph_val_row: GraphValRowType
+						graph_val_row = char_data["graph_val"][0]
+						if graph_val_row[:3] == now:
 							gvel = self._graph_val_el(graph_val_row)
 							get_current_el().append(gvel)
 							del char_data["graph_val"][0]
 					if char_data["nodes"]:
 						nodes_row: NodeRowType = char_data["nodes"][0]
-						char, node, branch_now, turn_now, tick_now, ex = (
-							nodes_row
-						)
-						if (branch_now, turn_now, tick_now) == (
-							branch,
-							turn,
-							tick,
-						):
+						if now == nodes_row[:3]:
 							nel = self._nodes_el(nodes_row)
 							get_current_el().append(nel)
 							del char_data["nodes"][0]
 					if char_data["node_val"]:
 						node_val_row: NodeValRowType = char_data["node_val"][0]
-						(
-							char,
-							node,
-							stat,
-							branch_now,
-							turn_now,
-							tick_now,
-							val,
-						) = node_val_row
-						if (branch_now, turn_now, tick_now) == (
-							branch,
-							turn,
-							tick,
-						):
+						if now == node_val_row[:3]:
 							nvel = self._node_val_el(node_val_row)
 							get_current_el().append(nvel)
 							del char_data["node_val"][0]
 					if char_data["edges"]:
 						edges_row: EdgeRowType = char_data["edges"][0]
-						_, __, ___, b, r, t, ____ = edges_row
-						if (b, r, t) == (branch, turn, tick):
+						if now == edges_row[:3]:
 							edgel = self._edge_el(edges_row)
 							get_current_el().append(edgel)
 							del char_data["edges"][0]
 					if char_data["edge_val"]:
 						edge_val_row: EdgeValRowType = char_data["edge_val"][0]
-						_, __, ___, ____, b, r, t, _____ = edge_val_row
-						if (b, r, t) == (branch, turn, tick):
+						if now == edge_val_row[:3]:
 							evel = self._edge_val_el(edge_val_row)
 							get_current_el().append(evel)
 							del char_data["edge_val"][0]
 					if char_data["things"]:
 						thing_row: ThingRowType = char_data["things"][0]
-						_, __, b, r, t, ___ = thing_row
-						if (b, r, t) == (branch, turn, tick):
+						if now == thing_row[:3]:
 							thel = self._thing_el(thing_row)
 							get_current_el().append(thel)
 							del char_data["things"][0]
 					if char_data["units"]:
 						units_row: UnitRowType = char_data["units"][0]
-						_, __, ___, b, r, t, ____ = units_row
-						if (b, r, t) == (branch, turn, tick):
+						if now == units_row[:3]:
 							unit_el = self._unit_el(units_row)
 							get_current_el().append(unit_el)
 							del char_data["units"][0]
@@ -3187,11 +3137,9 @@ class AbstractDatabaseConnector(ABC):
 						"character_portal_rulebook",
 					):
 						if char_data[char_rb_typ]:
-							char_rb_row: CharRulebookRowType = char_data[
-								char_rb_typ
-							][0]
-							_, b, r, t, __ = char_rb_row
-							if (b, r, t) == (branch, turn, tick):
+							char_rb_row: CharRulebookRowType
+							char_rb_row = char_data[char_rb_typ][0]
+							if now == char_rb_row[:3]:
 								crbel = self._char_rb_el(
 									char_rb_typ.replace("_", "-"),
 									char_rb_row,
@@ -3199,20 +3147,16 @@ class AbstractDatabaseConnector(ABC):
 								get_current_el().append(crbel)
 								del char_data[char_rb_typ][0]
 					if char_data["node_rulebook"]:
-						node_rb_row: NodeRulebookRowType = char_data[
-							"node_rulebook"
-						][0]
-						_, __, b, r, t, ___ = node_rb_row
-						if (b, r, t) == (branch, turn, tick):
+						node_rb_row: NodeRulebookRowType
+						node_rb_row = char_data["node_rulebook"][0]
+						if now == node_rb_row[:3]:
 							nrbel = self._node_rb_el(node_rb_row)
 							get_current_el().append(nrbel)
 							del char_data["node_rulebook"][0]
 					if char_data["portal_rulebook"]:
-						port_rb_row: PortalRulebookRowType = char_data[
-							"portal_rulebook"
-						][0]
-						_, __, ___, b, r, t, ____ = port_rb_row
-						if (b, r, t) == (branch, turn, tick):
+						port_rb_row: PortalRulebookRowType
+						port_rb_row = char_data["portal_rulebook"][0]
+						if now == port_rb_row[:3]:
 							porbel = self._portal_rb_el(port_rb_row)
 							get_current_el().append(porbel)
 							del char_data["portal_rulebook"][0]
@@ -4488,7 +4432,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			universals.append(
-				(key, b, turn, tick, self._universals[b, turn, tick, key])
+				(b, turn, tick, key, self._universals[b, turn, tick, key])
 			)
 		for b, turn, tick, rb in sort_set(self._rulebooks.keys()):
 			if b != branch or not (
@@ -4496,35 +4440,35 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			(rules_l, prio) = self._rulebooks[b, turn, tick, rb]
-			rulebooks.append((rb, b, turn, tick, (rules_l.copy(), prio)))
+			rulebooks.append((b, turn, tick, rb, (rules_l.copy(), prio)))
 		for b, turn, tick, rb in sort_set(self._rule_triggers.keys()):
 			if b != branch or not (
 				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
 			):
 				continue
 			trigs_l = self._rule_triggers[b, turn, tick, rb]
-			rule_triggers.append((rb, b, turn, tick, trigs_l.copy()))
+			rule_triggers.append((b, turn, tick, rb, trigs_l.copy()))
 		for b, turn, tick, rb in sort_set(self._rule_prereqs.keys()):
 			if b != branch or not (
 				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
 			):
 				continue
 			preqs_l = self._rule_prereqs[b, turn, tick, rb]
-			rule_prereqs.append((rb, b, turn, tick, preqs_l.copy()))
+			rule_prereqs.append((b, turn, tick, rb, preqs_l.copy()))
 		for b, turn, tick, rb in sort_set(self._rule_actions.keys()):
 			if b != branch or not (
 				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
 			):
 				continue
 			acts_l = self._rule_actions[b, turn, tick, rb]
-			rule_actions.append((rb, b, turn, tick, acts_l.copy()))
+			rule_actions.append((b, turn, tick, rb, acts_l.copy()))
 		for b, turn, tick, rb in sort_set(self._rule_neighborhood.keys()):
 			if b != branch or not (
 				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
 			):
 				continue
 			rule_neighborhood.append(
-				(rb, b, turn, tick, self._rule_neighborhood[b, turn, tick, rb])
+				(b, turn, tick, rb, self._rule_neighborhood[b, turn, tick, rb])
 			)
 		for b, turn, tick, rb in sort_set(self._rule_big.keys()):
 			if b != branch or not (
@@ -4532,14 +4476,14 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			rule_big.append(
-				(rb, b, turn, tick, self._rule_big[b, turn, tick, rb])
+				(b, turn, tick, rb, self._rule_big[b, turn, tick, rb])
 			)
 		for b, turn, tick, g in sort_set(self._graphs.keys()):
 			if b != branch or not (
 				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
 			):
 				continue
-			graphs.append((g, b, turn, tick, self._graphs[b, turn, tick, g]))
+			graphs.append((b, turn, tick, g, self._graphs[b, turn, tick, g]))
 
 		for b, turn, tick, g, n in sort_set(self._nodes.keys()):
 			if b != branch or not (
@@ -4549,7 +4493,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_d: LoadedCharWindow = ret[g]
 			nodes: list[NodeRowType] = char_d["nodes"]
 			nodes.append(
-				(g, n, b, turn, tick, self._nodes[b, turn, tick, g, n])
+				(b, turn, tick, g, n, self._nodes[b, turn, tick, g, n])
 			)
 		for b, turn, tick, g, n, k in sort_set(self._node_val.keys()):
 			if b != branch or not (
@@ -4560,12 +4504,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			node_val: list[NodeValRowType] = char_d["node_val"]
 			node_val.append(
 				(
-					g,
-					n,
-					k,
 					b,
 					turn,
 					tick,
+					g,
+					n,
+					k,
 					self._node_val[b, turn, tick, g, n, k],
 				)
 			)
@@ -4577,7 +4521,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_d: LoadedCharWindow = ret[g]
 			edges: list[EdgeRowType] = char_d["edges"]
 			edges.append(
-				(g, o, d, b, turn, tick, self._edges[b, turn, tick, g, o, d])
+				(b, turn, tick, g, o, d, self._edges[b, turn, tick, g, o, d])
 			)
 		for b, turn, tick, g, o, d, k in sort_set(self._edge_val.keys()):
 			if b != branch or not (
@@ -4588,13 +4532,13 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			edge_val: list[EdgeValRowType] = char_d["edge_val"]
 			edge_val.append(
 				(
+					b,
+					turn,
+					tick,
 					g,
 					o,
 					d,
 					k,
-					b,
-					turn,
-					tick,
 					self._edge_val[b, turn, tick, g, o, d, k],
 				)
 			)
@@ -4606,7 +4550,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_d: LoadedCharWindow = ret[g]
 			graph_val: list[GraphValRowType] = char_d["graph_val"]
 			graph_val.append(
-				(g, k, b, turn, tick, self._graph_val[b, turn, tick, g, k])
+				(b, turn, tick, g, k, self._graph_val[b, turn, tick, g, k])
 			)
 		for b, turn, tick, g, n in sort_set(self._things.keys()):
 			if b != branch or not (
@@ -4616,7 +4560,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_d: LoadedCharWindow = ret[g]
 			things: list[ThingRowType] = char_d["things"]
 			things.append(
-				(g, n, b, turn, tick, self._things[b, turn, tick, g, n])
+				(b, turn, tick, g, n, self._things[b, turn, tick, g, n])
 			)
 		for b, turn, tick, g, n in sort_set(self._node_rulebook.keys()):
 			if b != branch or not (
@@ -4626,7 +4570,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_d: LoadedCharWindow = ret[g]
 			node_rulebook: list[NodeRulebookRowType] = char_d["node_rulebook"]
 			node_rulebook.append(
-				(g, n, b, turn, tick, self._node_rulebook[b, turn, tick, g, n])
+				(b, turn, tick, g, n, self._node_rulebook[b, turn, tick, g, n])
 			)
 		for b, turn, tick, g, o, d in sort_set(self._portal_rulebook.keys()):
 			if b != branch or not (
@@ -4637,12 +4581,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			portal_rb: list[PortalRulebookRowType] = char_d["portal_rulebook"]
 			portal_rb.append(
 				(
-					g,
-					o,
-					d,
 					b,
 					turn,
 					tick,
+					g,
+					o,
+					d,
 					self._portal_rulebook[b, turn, tick, g, o, d],
 				)
 			)
@@ -4654,7 +4598,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_d: LoadedCharWindow = ret[g]
 			char_rb: list[CharRulebookRowType] = char_d["character_rulebook"]
 			char_rb.append(
-				(g, b, turn, tick, self._character_rulebook[b, turn, tick, g])
+				(b, turn, tick, g, self._character_rulebook[b, turn, tick, g])
 			)
 		for b, turn, tick, g in sort_set(self._unit_rulebook.keys()):
 			if b != branch or not (
@@ -4664,7 +4608,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_d: LoadedCharWindow = ret[g]
 			unit_rb: list[CharRulebookRowType] = char_d["unit_rulebook"]
 			unit_rb.append(
-				(g, b, turn, tick, self._unit_rulebook[b, turn, tick, g])
+				(b, turn, tick, g, self._unit_rulebook[b, turn, tick, g])
 			)
 		cthrb = self._character_thing_rulebook
 		for b, turn, tick, g in sort_set(cthrb.keys()):
@@ -4676,7 +4620,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			char_thing_rb: list[NodeRulebookRowType] = char_d[
 				"character_thing_rulebook"
 			]
-			char_thing_rb.append((g, b, turn, tick, cthrb[b, turn, tick, g]))
+			char_thing_rb.append((b, turn, tick, g, cthrb[b, turn, tick, g]))
 		cplrb = self._character_place_rulebook
 		for b, turn, tick, g in sort_set(cplrb.keys()):
 			if b != branch or not (
@@ -4687,7 +4631,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			cprb: list[CharRulebookRowType] = char_d[
 				"character_place_rulebook"
 			]
-			cprb.append((g, b, turn, tick, cplrb[b, turn, tick, g]))
+			cprb.append((b, turn, tick, g, cplrb[b, turn, tick, g]))
 		cporb = self._character_portal_rulebook
 		for b, turn, tick, g in sort_set(cporb.keys()):
 			if b != branch or not (
@@ -4698,7 +4642,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			cporb_l: list[PortalRulebookRowType] = char_d[
 				"character_portal_rulebook"
 			]
-			cporb_l.append((g, b, turn, tick, cporb[b, turn, tick, g]))
+			cporb_l.append((b, turn, tick, g, cporb[b, turn, tick, g]))
 		nrh = self._node_rules_handled
 		for b, turn, g, n, rb, rn in sort_set(nrh.keys()):
 			if b != branch or not (
@@ -4706,7 +4650,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			node_rules_handled.append(
-				(g, n, rb, rn, b, turn, nrh[b, turn, g, n, rb, rn])
+				(b, turn, g, n, rb, rn, nrh[b, turn, g, n, rb, rn])
 			)
 		porh = self._portal_rules_handled
 		for b, r, g, o, d, rb, rn in sort_set(porh.keys()):
@@ -4715,7 +4659,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			portal_rules_handled.append(
-				(g, o, d, rb, rn, b, r, porh[b, r, g, o, d, rb, rn])
+				(b, r, g, o, d, rb, rn, porh[b, r, g, o, d, rb, rn])
 			)
 		crh = self._character_rules_handled
 		for b, r, g, rb, rn in sort_set(crh.keys()):
@@ -4724,7 +4668,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			t = crh[b, r, g, rb, rn]
-			character_rules_handled.append((g, rb, rn, b, r, t))
+			character_rules_handled.append((b, r, g, rb, rn, t))
 		urh = self._unit_rules_handled
 		for (
 			b,
@@ -4740,7 +4684,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			t = urh[b, r, char, graph, node, rb, rn]
-			unit_rules_handled.append((char, graph, node, rb, rn, b, r, t))
+			unit_rules_handled.append((b, r, char, graph, node, rb, rn, t))
 		cthrh = self._character_thing_rules_handled
 		for b, r, g, rb, rn, n in sort_set(cthrh.keys()):
 			if b != branch or not (
@@ -4748,7 +4692,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			t = cthrh[b, r, g, rb, rn, n]
-			character_thing_rules_handled.append((g, n, rb, rn, b, r, t))
+			character_thing_rules_handled.append((b, r, g, n, rb, rn, t))
 		cplrh = self._character_place_rules_handled
 		for b, r, g, n, rb, rn in sort_set(cplrh.keys()):
 			if b != branch or not (
@@ -4756,7 +4700,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			t = cplrh[b, r, g, n, rb, rn]
-			character_place_rules_handled.append((g, n, rb, rn, b, r, t))
+			character_place_rules_handled.append((b, r, g, n, rb, rn, t))
 		cporh = self._character_portal_rules_handled
 		for b, r, g, o, d, rb, rn in sort_set(cporh.keys()):
 			if b != branch or not (
@@ -4764,7 +4708,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			):
 				continue
 			t = cporh[b, r, g, o, d, rb, rn]
-			character_portal_rules_handled.append((g, o, d, rb, rn, b, r, t))
+			character_portal_rules_handled.append((b, r, g, o, d, rb, rn, t))
 
 	def _load_windows_into(
 		self, ret: LoadedDict, windows: list[TimeWindow]
@@ -4800,7 +4744,9 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def insert_many(self, table_name: str, args: list[dict]) -> None:
 		tab_serializer = batched.serializers[table_name]
-		key_len = getattr(self, batched.tables[table_name].attrname).key_len
+		key_len = getattr(
+			self, batched.cached_properties[table_name].attrname
+		).key_len
 		if key_len < 1:
 			key_len = ...
 		tab_spec = inspect.getfullargspec(tab_serializer)
@@ -4845,7 +4791,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	insert_many_silent = insert_many
 
 	def delete_many_silent(self, table_name: str, args: list[dict]) -> None:
-		cached: cached_property = batched.tables[table_name]
+		cached: cached_property = batched.cached_properties[table_name]
 		the_batch: Batch = getattr(self, cached.attrname)
 		tab_serializer = batched.serializers[table_name]
 		tab_spec = inspect.getfullargspec(tab_serializer)
@@ -4947,6 +4893,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def graph_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
+		super().graph_val_del_time(branch, turn, tick)
 		todel = set()
 		for b, r, t, g in self._graph_val:
 			if (b, r, t) == (branch, turn, tick):
@@ -4955,6 +4902,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			del self._graph_val[k]
 
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		super().edges_del_time(branch, turn, tick)
 		todel = set()
 		for b, r, t, g, o, d in self._edges:
 			if (b, r, t) == (branch, turn, tick):
@@ -4999,6 +4947,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				yield g, b, r, t, self._graphs[b, r, t, g]
 
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		super().nodes_del_time(branch, turn, tick)
 		with self._lock:
 			for k in {
 				(b, r, t, g, n)
@@ -5015,11 +4964,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
 		with self._lock:
 			for b, r, t, g, n, k in sort_set(self._node_val.keys()):
-				yield g, n, k, b, r, t, self._node_val[b, r, t, g, n, k]
+				yield b, r, t, g, n, k, self._node_val[b, r, t, g, n, k]
 
 	def node_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
+		super().node_val_del_time(branch, turn, tick)
 		with self._lock:
 			for key in {
 				(b, r, t, g, n, k)
@@ -5030,17 +4980,18 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		with self._lock:
-			for b, r, t, g, o, d in sort_set(self._edges.keys()):
-				yield g, o, d, b, r, t, self._edges[b, r, t, g, o, d]
+			for key in sort_set(self._edges.keys()):
+				yield key, self._edges[key]
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		with self._lock:
-			for b, r, t, g, o, d, k in sort_set(self._edge_val.keys()):
-				yield g, o, d, k, b, r, t, self._edge_val[b, r, t, g, o, d, k]
+			for key in sort_set(self._edge_val.keys()):
+				yield key, self._edge_val[key]
 
 	def edge_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
+		super().edge_val_del_time(branch, turn, tick)
 		with self._lock:
 			for key in {
 				(b, r, t, g, o, d, k)
@@ -5060,7 +5011,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		pass
 
 	def truncate_all(self) -> None:
-		for table in batched.tables:
+		for table in batched.cached_properties:
 			getattr(self, "_" + table).clear()
 
 	def get_all_keyframe_graphs(
@@ -5342,7 +5293,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		with self._lock:
 			self._rules.add(rule)
 
-	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick):
+	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		super().things_del_time(branch, turn, tick)
 		with self._lock:
 			for key in {
 				(b, r, t, g, n)
@@ -6096,11 +6048,11 @@ def window_getter(
 	if f is None:
 		return partial(window_getter, table, per_character=per_character)
 
+	if isinstance(f, partial):
+		argspec = inspect.getfullargspec(f.func)
+	else:
+		argspec = inspect.getfullargspec(f)
 	if per_character:
-		if isinstance(f, partial):
-			argspec = inspect.getfullargspec(f.func)
-		else:
-			argspec = inspect.getfullargspec(f)
 		if "return" not in argspec.annotations:
 			raise TypeError("No character in return annotation", f)
 		ret_sig = argspec.annotations["return"]
@@ -6134,6 +6086,8 @@ def window_getter(
 			self._outq.task_done()
 			while isinstance(got := self._outq.get(), list):
 				for rec in got:
+					if isinstance(rec, dict):
+						rec = tuple(rec[arg] for arg in argspec.args[1:])
 					charn = rec[char_index]
 					ret[charn][table].append(f(self, branch, *rec))
 				self._outq.task_done()
@@ -6173,10 +6127,10 @@ def window_getter(
 			raise RuntimeError("Expected beginning of " + table, got)
 		self._outq.task_done()
 		while isinstance(got := self._outq.get(), list):
-			try:
-				ret[table].extend(starmap(partial(f, self, branch), got))
-			except TypeError as err:
-				raise TypeError(*err.args, table, got[0]) from err
+			for rec in got:
+				if isinstance(rec, dict):
+					rec = tuple(rec[arg] for arg in argspec.args[2:])
+				ret[table].append(f(self, branch, *rec))
 			self._outq.task_done()
 		if got != (
 			"end",
@@ -6342,143 +6296,143 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	def _unpack_graph_rec(
 		self,
 		branch: Branch,
-		graph_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		typ_s: GraphTypeStr,
-	) -> tuple[CharName, Branch, Turn, Tick, GraphTypeStr]:
-		graph = CharName(self.unpack_key(graph_b))
-		if typ_s not in get_args(GraphTypeStr):
-			raise TypeError("Unknown graph type", typ_s)
-		return graph, branch, turn, tick, typ_s
+		graph: bytes,
+		type: GraphTypeStr,
+	) -> tuple[Branch, Turn, Tick, CharName, GraphTypeStr]:
+		graph = CharName(self.unpack_key(graph))
+		if type not in get_args(GraphTypeStr):
+			raise TypeError("Unknown graph type", type)
+		return branch, turn, tick, graph, type
 
 	@window_getter("nodes", per_character=True)
 	def _unpack_node_rec(
 		self,
 		branch: Branch,
-		graph_b: bytes,
-		node_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		ex: bool,
-	) -> tuple[CharName, NodeName, Branch, Turn, Tick, bool]:
-		graph = CharName(self.unpack_key(graph_b))
-		node = NodeName(self.unpack_key(node_b))
-		return graph, node, branch, turn, tick, ex
+		graph: bytes,
+		node: bytes,
+		extant: bool,
+	) -> tuple[Branch, Turn, Tick, CharName, NodeName, bool]:
+		graph = CharName(self.unpack_key(graph))
+		node = NodeName(self.unpack_key(node))
+		return branch, turn, tick, graph, node, extant
 
 	@window_getter("edges", per_character=True)
 	def _unpack_edge_rec(
 		self,
 		branch: Branch,
-		graph_b: bytes,
-		orig_b: bytes,
-		dest_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		ex: bool,
-	) -> tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, bool]:
-		graph = CharName(self.unpack_key(graph_b))
-		orig = NodeName(self.unpack_key(orig_b))
-		dest = NodeName(self.unpack_key(dest_b))
-		return graph, orig, dest, branch, turn, tick, ex
+		graph: bytes,
+		orig: bytes,
+		dest: bytes,
+		extant: bool,
+	) -> tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, bool]:
+		graph = CharName(self.unpack_key(graph))
+		orig = NodeName(self.unpack_key(orig))
+		dest = NodeName(self.unpack_key(dest))
+		return branch, turn, tick, graph, orig, dest, extant
 
 	@window_getter("graph_val", per_character=True)
 	def _unpack_graph_val_rec(
 		self,
 		branch: Branch,
-		graph_b: bytes,
-		key_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		val_b: bytes,
-	) -> tuple[CharName, Stat, Branch, Turn, Tick, Value]:
-		graph = CharName(self.unpack_key(graph_b))
-		stat = Stat(self.unpack_key(key_b))
-		val = self.unpack(val_b)
-		return graph, stat, branch, turn, tick, val
+		graph: bytes,
+		key: bytes,
+		value: bytes,
+	) -> tuple[Branch, Turn, Tick, CharName, Stat, Value]:
+		graph = CharName(self.unpack_key(graph))
+		stat = Stat(self.unpack_key(key))
+		value = self.unpack(value)
+		return branch, turn, tick, graph, stat, value
 
 	@window_getter("node_val", per_character=True)
 	def _unpack_node_val_rec(
 		self,
 		branch: Branch,
-		graph_b: bytes,
-		node_b: bytes,
-		key_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		val_b: bytes,
-	) -> tuple[CharName, NodeName, Stat, Branch, Turn, Tick, Value]:
-		graph = CharName(self.unpack_key(graph_b))
-		node = NodeName(self.unpack_key(node_b))
-		key = Stat(self.unpack_key(key_b))
-		val = self.unpack(val_b)
-		return graph, node, key, branch, turn, tick, val
+		graph: bytes,
+		node: bytes,
+		key: bytes,
+		value: bytes,
+	) -> tuple[Branch, Turn, Tick, CharName, NodeName, Stat, Value]:
+		graph = CharName(self.unpack_key(graph))
+		node = NodeName(self.unpack_key(node))
+		key = Stat(self.unpack_key(key))
+		val = self.unpack(value)
+		return branch, turn, tick, graph, node, key, val
 
 	@window_getter("edge_val", per_character=True)
 	def _unpack_edge_val_rec(
 		self,
 		branch: Branch,
-		graph_b: bytes,
-		orig_b: bytes,
-		dest_b: bytes,
-		key_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		val_b: bytes,
-	) -> tuple[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value]:
-		graph = CharName(self.unpack_key(graph_b))
-		orig = NodeName(self.unpack_key(orig_b))
-		dest = NodeName(self.unpack_key(dest_b))
-		key = Stat(self.unpack_key(key_b))
-		val = self.unpack(val_b)
-		return graph, orig, dest, key, branch, turn, tick, val
+		graph: bytes,
+		orig: bytes,
+		dest: bytes,
+		key: bytes,
+		value: bytes,
+	) -> tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, Stat, Value]:
+		graph = CharName(self.unpack_key(graph))
+		orig = NodeName(self.unpack_key(orig))
+		dest = NodeName(self.unpack_key(dest))
+		key = Stat(self.unpack_key(key))
+		val = self.unpack(value)
+		return branch, turn, tick, graph, orig, dest, key, val
 
 	@window_getter("things", per_character=True)
 	def _unpack_thing_rec(
 		self,
 		branch: Branch,
-		graph_b: bytes,
-		node_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		loc_b: bytes,
-	) -> tuple[CharName, NodeName, Branch, Turn, Tick, NodeName | type(...)]:
-		graph = CharName(self.unpack_key(graph_b))
-		thing = NodeName(self.unpack_key(node_b))
-		loc = self.unpack(loc_b)
+		character: bytes,
+		thing: bytes,
+		location: bytes,
+	) -> tuple[Branch, Turn, Tick, CharName, NodeName, NodeName | type(...)]:
+		character = CharName(self.unpack_key(character))
+		thing = NodeName(self.unpack_key(thing))
+		loc = self.unpack(location)
 		if loc is not ...:
 			if not isinstance(loc, Key):
 				raise TypeError("Invalid location", loc)
 			loc = NodeName(loc)
-		return graph, thing, branch, turn, tick, loc
+		return branch, turn, tick, character, thing, loc
 
 	@window_getter("units", per_character=True)
 	def _unpack_unit_rec(
 		self,
 		branch: Branch,
-		char_b: bytes,
-		graph_b: bytes,
-		node_b: bytes,
 		turn: Turn,
 		tick: Tick,
+		character_graph: bytes,
+		unit_graph: bytes,
+		unit_node: bytes,
 		is_unit: bool,
-	) -> tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]:
-		character = CharName(self.unpack_key(char_b))
-		graph = CharName(self.unpack_key(graph_b))
-		unit = NodeName(self.unpack_key(node_b))
-		return character, graph, unit, branch, turn, tick, is_unit
+	) -> tuple[Branch, Turn, Tick, CharName, CharName, NodeName, bool]:
+		character = CharName(self.unpack_key(character_graph))
+		graph = CharName(self.unpack_key(unit_graph))
+		unit = NodeName(self.unpack_key(unit_node))
+		return branch, turn, tick, character, graph, unit, is_unit
 
 	def _unpack_char_rb_rec(
 		self,
 		branch: Branch,
-		char_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		rb_b: bytes,
-	) -> tuple[CharName, Branch, Turn, Tick, RulebookName]:
-		character = CharName(self.unpack_key(char_b))
-		rulebook = RulebookName(self.unpack_key(rb_b))
-		return character, branch, turn, tick, rulebook
+		character: bytes,
+		rulebook: bytes,
+	) -> tuple[Branch, Turn, Tick, CharName, RulebookName]:
+		character = CharName(self.unpack_key(character))
+		rulebook = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, tick, character, rulebook
 
 	_unpack_character_rulebook_rec = window_getter(
 		"character_rulebook", _unpack_char_rb_rec, True
@@ -6500,252 +6454,258 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	def _unpack_node_rb_rec(
 		self,
 		branch: Branch,
-		graph_b: bytes,
-		node_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		rb_b: bytes,
-	) -> tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]:
-		graph = CharName(self.unpack_key(graph_b))
-		node = NodeName(self.unpack_key(node_b))
-		rulebook = RulebookName(self.unpack_key(rb_b))
-		return graph, node, branch, turn, tick, rulebook
+		character: bytes,
+		node: bytes,
+		rulebook: bytes,
+	) -> tuple[Branch, Turn, Tick, CharName, NodeName, RulebookName]:
+		graph = CharName(self.unpack_key(character))
+		node = NodeName(self.unpack_key(node))
+		rulebook = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, tick, graph, node, rulebook
 
 	@window_getter("portal_rulebook", per_character=True)
 	def _unpack_port_rb_rec(
 		self,
 		branch: Branch,
-		graph_b: bytes,
-		orig_b: bytes,
-		dest_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		rb_b: bytes,
-	) -> tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]:
-		graph = CharName(self.unpack_key(graph_b))
-		orig = NodeName(self.unpack_key(orig_b))
-		dest = NodeName(self.unpack_key(dest_b))
-		rulebook = RulebookName(self.unpack_key(rb_b))
-		return graph, orig, dest, branch, turn, tick, rulebook
+		characte: bytes,
+		orig: bytes,
+		dest: bytes,
+		rulebook: bytes,
+	) -> tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName]:
+		graph = CharName(self.unpack_key(character))
+		orig = NodeName(self.unpack_key(orig))
+		dest = NodeName(self.unpack_key(dest))
+		rulebook = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, tick, graph, orig, dest, rulebook
 
 	@window_getter("universals")
 	def _unpack_universal_rec(
 		self,
 		branch: Branch,
-		key_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		value_b: bytes,
-	) -> tuple[UniversalKey, Branch, Turn, Tick, Value]:
-		key = UniversalKey(self.unpack_key(key_b))
-		value = self.unpack(value_b)
-		return key, branch, turn, tick, value
+		key: bytes,
+		value: bytes,
+	) -> tuple[Branch, Turn, Tick, UniversalKey, Value]:
+		key = UniversalKey(self.unpack_key(key))
+		value = self.unpack(value)
+		return branch, turn, tick, key, value
 
 	@window_getter("rulebooks")
 	def _unpack_rulebook_rec(
 		self,
 		branch: Branch,
-		rb_b: bytes,
 		turn: Turn,
 		tick: Tick,
-		rules_b: bytes,
-		prio: RulebookPriority,
+		rulebook: bytes,
+		rules: bytes,
+		priority: RulebookPriority,
 	) -> tuple[
-		RulebookName,
 		Branch,
 		Turn,
 		Tick,
+		RulebookName,
 		tuple[list[RuleName], RulebookPriority],
 	]:
-		rulebook = RulebookName(self.unpack_key(rb_b))
-		rules = self.unpack(rules_b)
+		rulebook = RulebookName(self.unpack_key(rulebook))
+		rules = self.unpack(rules)
 		if not isinstance(rules, list):
 			raise TypeError("Invalid rules list", rules)
-		return rulebook, branch, turn, tick, (list(map(rulename, rules)), prio)
+		return (
+			branch,
+			turn,
+			tick,
+			rulebook,
+			(list(map(rulename, rules)), priority),
+		)
 
 	@window_getter("rule_triggers")
 	def _unpack_rule_trigs_rec(
 		self,
 		branch: Branch,
-		rule: RuleName,
 		turn: Turn,
 		tick: Tick,
-		trigs_b: bytes,
-	) -> tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]:
-		trigs = self.unpack(trigs_b)
+		rule: RuleName,
+		triggers: bytes,
+	) -> tuple[Branch, Turn, Tick, RuleName, list[TriggerFuncName]]:
+		trigs = self.unpack(triggers)
 		if not isinstance(trigs, list):
 			raise TypeError("Invalid triggers list", trigs)
-		return rule, branch, turn, tick, list(map(trigfuncn, trigs))
+		return branch, turn, tick, rule, list(map(trigfuncn, trigs))
 
 	@window_getter("rule_prereqs")
 	def _unpack_rule_preqs_rec(
 		self,
 		branch: Branch,
-		rule: RuleName,
 		turn: Turn,
 		tick: Tick,
-		preqs_b: bytes,
-	) -> tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]:
-		preqs = self.unpack(preqs_b)
+		rule: RuleName,
+		prereqs: bytes,
+	) -> tuple[Branch, Turn, Tick, RuleName, list[PrereqFuncName]]:
+		preqs = self.unpack(prereqs)
 		if not isinstance(preqs, list):
 			raise TypeError("Invalid prereqs list", preqs)
-		return rule, branch, turn, tick, list(map(preqfuncn, preqs))
+		return branch, turn, tick, rule, list(map(preqfuncn, preqs))
 
 	@window_getter("rule_actions")
 	def _unpack_rule_acts_rec(
 		self,
 		branch: Branch,
-		rule: RuleName,
 		turn: Turn,
 		tick: Tick,
-		acts_b: bytes,
-	) -> tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]:
-		acts = self.unpack(acts_b)
+		rule: RuleName,
+		actions: bytes,
+	) -> tuple[Branch, Turn, Tick, RuleName, list[ActionFuncName]]:
+		acts = self.unpack(actions)
 		if not isinstance(acts, list):
 			raise TypeError("Invalid actions list", acts)
-		return rule, branch, turn, tick, list(map(actfuncn, acts))
+		return branch, turn, tick, rule, list(map(actfuncn, acts))
 
 	@window_getter("rule_neighborhood")
 	def _unpack_rule_nbrs_rec(
 		self,
 		branch: Branch,
-		rule: RuleName,
 		turn: Turn,
 		tick: Tick,
-		neighbors: RuleNeighborhood,
-	) -> tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]:
-		if neighbors is not None and not (
-			isinstance(neighbors, int) and neighbors >= 0
+		rule: RuleName,
+		neighborhood: RuleNeighborhood,
+	) -> tuple[Branch, Turn, Tick, RuleName, RuleNeighborhood]:
+		if neighborhood is not None and not (
+			isinstance(neighborhood, int) and neighborhood >= 0
 		):
-			raise TypeError("Invalid rule neighborhood", neighbors)
-		return rule, branch, turn, tick, neighbors
+			raise TypeError("Invalid rule neighborhood", neighborhood)
+		return branch, turn, tick, rule, neighborhood
 
 	@window_getter("rule_big")
 	def _unpack_rule_big_rec(
 		self,
 		branch: Branch,
-		rule: RuleName,
 		turn: Turn,
 		tick: Tick,
+		rule: RuleName,
 		big: RuleBig,
-	) -> tuple[RuleName, Branch, Turn, Tick, RuleBig]:
-		return rule, branch, turn, tick, big
+	) -> tuple[Branch, Turn, Tick, RuleName, RuleBig]:
+		return branch, turn, tick, rule, big
 
 	@window_getter("character_rules_handled")
 	def _unpack_char_rule_handled_rec(
 		self,
 		branch: Branch,
 		turn: Turn,
-		char_b: bytes,
-		rb_b: bytes,
+		character: bytes,
+		rulebook: bytes,
 		rule: RuleName,
 		tick: Tick,
 	) -> CharacterRulesHandledRowType:
-		char = CharName(self.unpack_key(char_b))
-		rb = RulebookName(self.unpack_key(rb_b))
-		return char, rb, rule, branch, turn, tick
+		char = CharName(self.unpack_key(character))
+		rb = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, char, rb, rule, tick
 
 	@window_getter("unit_rules_handled")
 	def _unpack_unit_rule_handled_rec(
 		self,
 		branch: Branch,
 		turn: Turn,
-		char_b: bytes,
-		graph_b: bytes,
-		unit_b: bytes,
-		rb_b: bytes,
+		character_graph: bytes,
+		unit_graph: bytes,
+		unit_node: bytes,
+		rulebook: bytes,
 		rule: RuleName,
 		tick: Tick,
 	) -> UnitRulesHandledRowType:
-		char = CharName(self.unpack_key(char_b))
-		graph = CharName(self.unpack_key(graph_b))
-		unit = NodeName(self.unpack_key(unit_b))
-		rb = RulebookName(self.unpack_key(rb_b))
-		return char, graph, unit, rb, rule, branch, turn, tick
+		char = CharName(self.unpack_key(character_graph))
+		graph = CharName(self.unpack_key(unit_graph))
+		unit = NodeName(self.unpack_key(unit_node))
+		rb = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, char, graph, unit, rb, rule, tick
 
 	@window_getter("character_thing_rules_handled")
 	def _unpack_char_thing_rule_handled_rec(
 		self,
 		branch: Branch,
 		turn: Turn,
-		char_b: bytes,
-		thing_b: bytes,
-		rb_b: bytes,
+		character: bytes,
+		thing: bytes,
+		rulebook: bytes,
 		rule: RuleName,
 		tick: Tick,
 	) -> NodeRulesHandledRowType:
-		char = CharName(self.unpack_key(char_b))
-		thing = NodeName(self.unpack_key(thing_b))
-		rulebook = RulebookName(self.unpack_key(rb_b))
-		return char, thing, rulebook, rule, branch, turn, tick
+		char = CharName(self.unpack_key(character))
+		thing = NodeName(self.unpack_key(thing))
+		rulebook = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, char, thing, rulebook, rule, tick
 
 	@window_getter("character_place_rules_handled")
 	def _unpack_char_place_rule_handled_rec(
 		self,
 		branch: Branch,
 		turn: Turn,
-		char_b: bytes,
-		place_b: bytes,
-		rb_b: bytes,
+		character: bytes,
+		place: bytes,
+		rulebook: bytes,
 		rule: RuleName,
 		tick: Tick,
 	) -> NodeRulesHandledRowType:
-		char = CharName(self.unpack_key(char_b))
-		place = NodeName(self.unpack_key(place_b))
-		rulebook = RulebookName(self.unpack_key(rb_b))
-		return char, place, rulebook, rule, branch, turn, tick
+		char = CharName(self.unpack_key(character))
+		place = NodeName(self.unpack_key(place))
+		rulebook = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, char, place, rulebook, rule, tick
 
 	@window_getter("character_portal_rules_handled")
 	def _unpack_char_portal_rule_handled_rec(
 		self,
 		branch: Branch,
 		turn: Turn,
-		char_b: bytes,
-		orig_b: bytes,
-		dest_b: bytes,
-		rb_b: bytes,
+		character: bytes,
+		orig: bytes,
+		dest: bytes,
+		rulebook: bytes,
 		rule: RuleName,
 		tick: Tick,
 	) -> PortalRulesHandledRowType:
-		char = CharName(self.unpack_key(char_b))
-		orig = NodeName(self.unpack_key(orig_b))
-		dest = NodeName(self.unpack_key(dest_b))
-		rb = RulebookName(self.unpack_key(rb_b))
-		return char, orig, dest, rb, rule, branch, turn, tick
+		char = CharName(self.unpack_key(character))
+		orig = NodeName(self.unpack_key(orig))
+		dest = NodeName(self.unpack_key(dest))
+		rb = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, char, orig, dest, rb, rule, tick
 
 	@window_getter("node_rules_handled")
 	def _unpack_node_rule_handled_rec(
 		self,
 		branch: Branch,
 		turn: Turn,
-		char_b: bytes,
-		node_b: bytes,
-		rb_b: bytes,
+		character: bytes,
+		node: bytes,
+		rulebook: bytes,
 		rule: RuleName,
 		tick: Tick,
 	) -> NodeRulesHandledRowType:
-		char = CharName(self.unpack_key(char_b))
-		node = NodeName(self.unpack_key(node_b))
-		rb = RulebookName(self.unpack_key(rb_b))
-		return char, node, rb, rule, branch, turn, tick
+		char = CharName(self.unpack_key(character))
+		node = NodeName(self.unpack_key(node))
+		rb = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, char, node, rb, rule, tick
 
 	@window_getter("portal_rules_handled")
 	def _unpack_portal_rule_handled_rec(
 		self,
 		branch: Branch,
 		turn: Turn,
-		char_b: bytes,
-		orig_b: bytes,
-		dest_b: bytes,
-		rb_b: bytes,
+		character: bytes,
+		orig: bytes,
+		dest: bytes,
+		rulebook: bytes,
 		rule: RuleName,
 		tick: Tick,
 	) -> PortalRulesHandledRowType:
-		char = CharName(self.unpack_key(char_b))
-		orig = NodeName(self.unpack_key(orig_b))
-		dest = NodeName(self.unpack_key(dest_b))
-		rb = RulebookName(self.unpack_key(rb_b))
-		return char, orig, dest, rb, rule, branch, turn, tick
+		char = CharName(self.unpack_key(character))
+		orig = NodeName(self.unpack_key(orig))
+		dest = NodeName(self.unpack_key(dest))
+		rb = RulebookName(self.unpack_key(rulebook))
+		return branch, turn, char, orig, dest, rb, rule, tick
 
 	def _get_one_window(
 		self,
