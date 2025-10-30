@@ -420,14 +420,6 @@ def dedent_source(source):
 	return dedent(source)
 
 
-def _sort_set_key(v):
-	if isinstance(v, tuple):
-		return (2,) + tuple(map(repr, v))
-	if isinstance(v, str):
-		return 1, v
-	return 0, repr(v)
-
-
 class SizedDict(OrderedDict):
 	"""A dictionary that discards old entries when it gets too big."""
 
@@ -449,18 +441,37 @@ def sort_set(s: Set[_T]) -> list[_T]:
 
 	This is intended to be used to iterate over world state.
 
-	Non-strings come before strings and then tuples. Tuples compare
-	element-wise as normal.
+	Works by converting everything to bytes before comparison. Tuples get
+	their contents converted and concatenated. ``frozenset``s in the given set
+	are not supported.
 
 	This is memoized.
 
 	"""
+
+	def sort_set_key(v) -> bytes:
+		if isinstance(v, bytes):
+			return v
+		elif isinstance(v, tuple):
+			return b"".join(map(sort_set_key, v))
+		elif isinstance(v, str):
+			return v.encode()
+		elif isinstance(v, int):
+			return v.to_bytes()
+		elif isinstance(v, float):
+			return b"".join(i.to_bytes() for i in v.as_integer_ratio())
+		else:
+			raise TypeError(v)
+
 	if not isinstance(s, Set):
 		raise TypeError("sets only")
 	s = frozenset(s)
-	if s not in _sort_set_memo:
-		_sort_set_memo[s] = sorted(s, key=_sort_set_key)
-	return _sort_set_memo[s].copy()
+	if s not in sort_set.memo:
+		sort_set.memo[s] = sorted(s, key=sort_set_key)
+	return sort_set.memo[s].copy()
+
+
+sort_set.memo = SizedDict()
 
 
 class FakeFuture(Future):
