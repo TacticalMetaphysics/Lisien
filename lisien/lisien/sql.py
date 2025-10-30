@@ -51,7 +51,7 @@ from .db import (
 	SCHEMAVER_B,
 	SCHEMA_VERSION_B,
 	mutexed,
-	batched,
+	Batch,
 	GlobalKeyValueStore,
 )
 from .exc import KeyframeError, ExceptionGroup
@@ -173,8 +173,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				bool: BOOLEAN,
 				float: FLOAT,
 			}
-			for table, serializer in batched.serializers.items():
-				cached_prop: cached_property = batched.cached_properties[table]
+			for table, serializer in Batch.serializers.items():
+				cached_prop: cached_property = Batch.cached_properties[table]
 				batch = getattr(self.connector, cached_prop.attrname)
 				spec = inspect.getfullargspec(serializer)
 				ret_annot = spec.annotations["return"]

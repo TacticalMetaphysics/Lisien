@@ -40,7 +40,7 @@ from pyarrow import compute as pc
 from .db import (
 	ThreadedDatabaseConnector,
 	ConnectionLooper,
-	batched,
+	Batch,
 	SCHEMAVER_B,
 	SCHEMA_VERSION_B,
 	mutexed,
@@ -128,7 +128,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				bool: pa.bool_,
 			}
 			ret = {}
-			for table, serializer in batched.serializers.items():
+			for table, serializer in Batch.serializers.items():
 				argspec = inspect.getfullargspec(serializer)
 				serialized_tuple_type = argspec.annotations["return"]
 				if isinstance(serialized_tuple_type, str):
