@@ -5862,8 +5862,10 @@ class Engine(AbstractEngine, Executor):
 			if exc_val:
 				raise ExceptionGroup(
 					"Multiple exceptions during lisien.Engine.__exit__",
-					ex,
-					exc_val,
+					(
+						ex,
+						exc_val,
+					),
 				)
 			raise
 		finally:
