@@ -7770,13 +7770,8 @@ class Engine(AbstractEngine, Executor):
 		except ModuleNotFoundError:
 			from xml.etree.ElementTree import ElementTree, Element
 
-		if name is None:
-			if self._prefix:
-				name = os.path.basename(self._prefix)
-			else:
-				raise ValueError(
-					"Couldn't infer a name for the game. Please supply one."
-				)
+		if name is None and self._prefix:
+			name = os.path.basename(self._prefix)
 		self.commit()
 		game_history: ElementTree = self.query.to_etree(name)
 		lisien_el = game_history.getroot()
@@ -7828,12 +7823,22 @@ class Engine(AbstractEngine, Executor):
 
 	def to_xml(
 		self,
-		xml_file_path: str | os.PathLike | io.IOBase,
+		xml_file_path: str | os.PathLike | io.IOBase | None = None,
 		indent: bool = True,
 		name: str | None = None,
-	) -> None:
+	) -> str | None:
+		"""Write the history of the game to XML.
+
+		:param xml_file_path: The file to write to, or a path to one.
+			If omitted, return the XML in a string.
+		:param indent: Whether to format the XML for human eyes. Default ``True``.
+		:param name: Optional string to use to identify your game in the XML.
+			If omitted, but ``xml_file_path`` is a path to a file, the file's
+			name will be used, with the ``.xml`` suffix removed.
+
+		"""
 		if name is None and not self._prefix:
-			if isinstance(xml_file_path, IOBase):
+			if isinstance(xml_file_path, (IOBase, type(None))):
 				raise ValueError(
 					"Couldn't infer a name for the game. Please supply one."
 				)
@@ -7845,6 +7850,10 @@ class Engine(AbstractEngine, Executor):
 			except ModuleNotFoundError:
 				from xml.etree.ElementTree import indent as indent_tree
 			indent_tree(tree)
+		if xml_file_path is None:
+			f = io.StringIO()
+			tree.write(f, encoding="utf-8")
+			return f.getvalue()
 		tree.write(xml_file_path, encoding="utf-8")
 
 	def export(

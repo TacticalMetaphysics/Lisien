@@ -2246,7 +2246,9 @@ class AbstractDatabaseConnector(ABC):
 			)
 			if parent is None:
 				trunks.add(branch)
-				playtree = Element("playtree", game=name, trunk=branch)
+				playtree = Element("playtree", trunk=branch)
+				if name is not None:
+					playtree.set("game", name)
 				playtrees[branch] = playtree
 				branch_element = branch_elements[branch] = Element(
 					"branch",
