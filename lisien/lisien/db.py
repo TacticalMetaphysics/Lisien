@@ -6100,8 +6100,13 @@ def window_getter(
 				for rec in got:
 					if isinstance(rec, dict):
 						rec = tuple(rec[arg] for arg in argspec.args[1:])
+					else:
+						rec = (branch, *rec)
 					charn = rec[char_index]
-					ret[charn][table].append(f(self, branch, *rec))
+					try:
+						ret[charn][table].append(f(self, *rec))
+					except TypeError as ex:
+						raise TypeError(*ex.args, rec) from ex
 				self._outq.task_done()
 			if got != (
 				"end",
