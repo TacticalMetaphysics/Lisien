@@ -451,22 +451,24 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			turn_to: Turn,
 			tick_to: Tick,
 		) -> list[dict]:
-			data = filter(
-				lambda d: (turn_from, tick_from)
-				<= (d["turn"], d["tick"])
-				<= (turn_to, tick_to),
+			data = (
 				self._get_db(table)
 				.read(
 					filters=[
 						pc.field("branch") == branch,
 						pc.field("turn") >= turn_from,
-						pc.field("tick") <= tick_from,
+						pc.field("turn") <= turn_to,
 					]
 				)
-				.to_pylist(),
+				.to_pylist()
 			)
 			return sorted(
-				data,
+				filter(
+					lambda d: (turn_from, tick_from)
+					<= (d["turn"], d["tick"])
+					<= (turn_to, tick_to),
+					data,
+				),
 				key=self._sort_key(table),
 			)
 
