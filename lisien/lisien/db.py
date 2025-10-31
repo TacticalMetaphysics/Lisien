@@ -6043,7 +6043,7 @@ def window_getter(
 					try:
 						ret[charn][table].append(f(self, *rec))
 					except TypeError as ex:
-						raise TypeError(*ex.args, rec) from ex
+						raise TypeError(*ex.args, table, rec) from ex
 				self._outq.task_done()
 			if got != (
 				"end",
@@ -6089,7 +6089,7 @@ def window_getter(
 				try:
 					ret[table].append(f(self, *rec))
 				except TypeError as ex:
-					raise TypeError(*ex.args, rec) from ex
+					raise TypeError(*ex.args, table, rec) from ex
 			self._outq.task_done()
 		if got != (
 			"end",
