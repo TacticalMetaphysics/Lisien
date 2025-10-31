@@ -1,4 +1,4 @@
-<lisien db-schema-version="2" xml-schema-version="2" trunk="trunk" branch="trunk" turn="0" tick="116" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" trigger="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" prereq="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" action="zFqMLn0Rjq4jSM18/PXO4Tq/BogbelXzgbC0mEyZs82f2Vq2SvMGLhfHYd+ZiX8CWmoQPt+NBSIOqA2us10ucA==">
+<lisien db-schema-version="2" xml-schema-version="2" trunk="trunk" branch="trunk" turn="0" tick="116" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" trigger="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" prereq="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" action="FaZ0SaQ+ThENPCyS57XeVZ90YFKDvtwy4/kaY89zexNEt9nvEJg5T6pNXUy62XS6OtkTLUz/ZH0H0922YZ7lMA==">
   <playtree trunk="trunk" game="test_export">
     <branch name="trunk" start-turn="0" start-tick="0" end-turn="0" end-tick="116">
       <turn number="0" end-tick="116" plan-end-tick="116">
@@ -2743,7 +2743,7 @@
         <rule-neighborhood rule="shrubsprint" tick="90"/>
         <rule-prereqs rule="shrubsprint" tick="90"/>
         <rule-triggers rule="shrubsprint" tick="90"/>
-        <rulebook name="'trunk'" priority="0.0" tick="('physical', 'kobold')">
+        <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
           <rule name="shrubsprint"/>
         </rulebook>
         <rule-big rule="shrubsprint" tick="92" big="false"/>
@@ -2765,7 +2765,7 @@
         <rule-neighborhood rule="fight" tick="96"/>
         <rule-prereqs rule="fight" tick="96"/>
         <rule-triggers rule="fight" tick="96"/>
-        <rulebook name="'trunk'" priority="0.0" tick="('physical', 'dwarf')">
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
           <rule name="fight"/>
         </rulebook>
         <rule-big rule="fight" tick="98" big="false"/>
@@ -2786,7 +2786,7 @@
         <rule-neighborhood rule="kill_kobold" tick="102"/>
         <rule-prereqs rule="kill_kobold" tick="102"/>
         <rule-triggers rule="kill_kobold" tick="102"/>
-        <rulebook name="'trunk'" priority="0.0" tick="('physical', 'dwarf')">
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="103">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
         </rulebook>
@@ -2804,7 +2804,7 @@
         <rule-neighborhood rule="go2kobold" tick="107"/>
         <rule-prereqs rule="go2kobold" tick="107"/>
         <rule-triggers rule="go2kobold" tick="107"/>
-        <rulebook name="'trunk'" priority="0.0" tick="('physical', 'dwarf')">
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="108">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
@@ -2827,7 +2827,7 @@
         <rule-neighborhood rule="wander" tick="113"/>
         <rule-prereqs rule="wander" tick="113"/>
         <rule-triggers rule="wander" tick="113"/>
-        <rulebook name="'trunk'" priority="0.0" tick="('physical', 'dwarf')">
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="114">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
           <rule name="go2kobold"/>

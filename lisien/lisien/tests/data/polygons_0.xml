@@ -1287,7 +1287,7 @@
           <trigger name="similar_neighbors"/>
           <trigger name="dissimilar_neighbors"/>
         </rule-triggers>
-        <rulebook name="'trunk'" priority="0.0" tick="parable">
+        <rulebook name="'parable'" priority="0.0" tick="5">
           <rule name="relocate"/>
         </rulebook>
         <keyframe tick="7">
