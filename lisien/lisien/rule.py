@@ -332,6 +332,16 @@ class Rule:
 			raise TypeError("Not an int", neighbors)
 		if neighbors < 0:
 			raise ValueError("Can't be negative", neighbors)
+		try:
+			if (
+				self.engine._neighborhoods_cache.retrieve(
+					self.name, *self.engine._btt()
+				)
+				== neighbors
+			):
+				return
+		except KeyError:
+			pass
 		btt = self.engine._nbtt()
 		self.engine._neighborhoods_cache.store(
 			Key(self.name), *btt, Value(neighbors)
@@ -349,6 +359,18 @@ class Rule:
 
 	@big.setter
 	def big(self, big: bool | RuleBig):
+		if not isinstance(big, bool):
+			raise TypeError("Boolean only", big)
+		try:
+			if (
+				self.engine._rule_bigness_cache.retrieve(
+					self.name, *self.engine._btt()
+				)
+				== big
+			):
+				return
+		except KeyError:
+			pass
 		btt = self.engine._nbtt()
 		self.engine._rule_bigness_cache.store(Key(self.name), *btt, Value(big))
 		self.engine.query.set_rule_big(self.name, *btt, big)
