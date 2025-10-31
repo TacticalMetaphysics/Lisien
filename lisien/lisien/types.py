@@ -578,15 +578,17 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 			raise ValueError(
 				"Lisien uses the ellipsis to indicate that a key's been deleted"
 			)
-		branch, turn, tick = self.db._nbtt()
 		try:
-			if self._get_cache(key, branch, turn, tick) != value:
-				self._set_cache(key, branch, turn, tick, value)
+			if self._get_cache_now(key) == value:
+				return
 		except KeyError:
-			self._set_cache(key, branch, turn, tick, value)
+			pass
+		branch, turn, tick = self.db._nbtt()
+		self._set_cache(key, branch, turn, tick, value)
 		self._set_db(key, branch, turn, tick, value)
 
 	def __delitem__(self, key):
+		self._get_cache_now(key)  # deliberately raise KeyError if unset
 		branch, turn, tick = self.db._nbtt()
 		self._del_cache(key, branch, turn, tick)
 		self._del_db(key, branch, turn, tick)

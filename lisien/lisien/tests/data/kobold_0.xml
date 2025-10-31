@@ -2418,7 +2418,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub2'" tick="17" exists="true"/>
-        <location character="'physical'" thing="'shrub2'" tick="17" location="(7, 2)"/>
+        <location character="'physical'" thing="'shrub2'" tick="17" location="(6, 0)"/>
         <node-val character="'physical'" node="'shrub2'" key="'cover'" tick="18">
           <int value="1"/>
         </node-val>
@@ -2444,7 +2444,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub4'" tick="25" exists="true"/>
-        <location character="'physical'" thing="'shrub4'" tick="25" location="(3, 3)"/>
+        <location character="'physical'" thing="'shrub4'" tick="25" location="(5, 0)"/>
         <node-val character="'physical'" node="'shrub4'" key="'cover'" tick="26">
           <int value="1"/>
         </node-val>
@@ -2457,7 +2457,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub5'" tick="29" exists="true"/>
-        <location character="'physical'" thing="'shrub5'" tick="29" location="(7, 7)"/>
+        <location character="'physical'" thing="'shrub5'" tick="29" location="(6, 5)"/>
         <node-val character="'physical'" node="'shrub5'" key="'cover'" tick="30">
           <int value="1"/>
         </node-val>
@@ -2470,7 +2470,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub6'" tick="33" exists="true"/>
-        <location character="'physical'" thing="'shrub6'" tick="33" location="(5, 8)"/>
+        <location character="'physical'" thing="'shrub6'" tick="33" location="(8, 7)"/>
         <node-val character="'physical'" node="'shrub6'" key="'cover'" tick="34">
           <int value="1"/>
         </node-val>
@@ -2483,7 +2483,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub7'" tick="37" exists="true"/>
-        <location character="'physical'" thing="'shrub7'" tick="37" location="(9, 7)"/>
+        <location character="'physical'" thing="'shrub7'" tick="37" location="(8, 5)"/>
         <node-val character="'physical'" node="'shrub7'" key="'cover'" tick="38">
           <int value="1"/>
         </node-val>
@@ -2496,7 +2496,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub8'" tick="41" exists="true"/>
-        <location character="'physical'" thing="'shrub8'" tick="41" location="(0, 6)"/>
+        <location character="'physical'" thing="'shrub8'" tick="41" location="(2, 3)"/>
         <node-val character="'physical'" node="'shrub8'" key="'cover'" tick="42">
           <int value="1"/>
         </node-val>
@@ -2509,7 +2509,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub9'" tick="45" exists="true"/>
-        <location character="'physical'" thing="'shrub9'" tick="45" location="(3, 1)"/>
+        <location character="'physical'" thing="'shrub9'" tick="45" location="(5, 7)"/>
         <node-val character="'physical'" node="'shrub9'" key="'cover'" tick="46">
           <int value="1"/>
         </node-val>
@@ -2522,7 +2522,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub10'" tick="49" exists="true"/>
-        <location character="'physical'" thing="'shrub10'" tick="49" location="(4, 4)"/>
+        <location character="'physical'" thing="'shrub10'" tick="49" location="(9, 0)"/>
         <node-val character="'physical'" node="'shrub10'" key="'cover'" tick="50">
           <int value="1"/>
         </node-val>
@@ -2535,7 +2535,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub11'" tick="53" exists="true"/>
-        <location character="'physical'" thing="'shrub11'" tick="53" location="(8, 3)"/>
+        <location character="'physical'" thing="'shrub11'" tick="53" location="(1, 6)"/>
         <node-val character="'physical'" node="'shrub11'" key="'cover'" tick="54">
           <int value="1"/>
         </node-val>
@@ -2587,7 +2587,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub15'" tick="69" exists="true"/>
-        <location character="'physical'" thing="'shrub15'" tick="69" location="(9, 6)"/>
+        <location character="'physical'" thing="'shrub15'" tick="69" location="(2, 9)"/>
         <node-val character="'physical'" node="'shrub15'" key="'cover'" tick="70">
           <int value="1"/>
         </node-val>
@@ -2600,7 +2600,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub16'" tick="73" exists="true"/>
-        <location character="'physical'" thing="'shrub16'" tick="73" location="(6, 5)"/>
+        <location character="'physical'" thing="'shrub16'" tick="73" location="(4, 5)"/>
         <node-val character="'physical'" node="'shrub16'" key="'cover'" tick="74">
           <int value="1"/>
         </node-val>
@@ -2639,7 +2639,7 @@
           <str value="shrub"/>
         </node-val>
         <node character="'physical'" name="'shrub19'" tick="85" exists="true"/>
-        <location character="'physical'" thing="'shrub19'" tick="85" location="(9, 4)"/>
+        <location character="'physical'" thing="'shrub19'" tick="85" location="(0, 1)"/>
         <node-val character="'physical'" node="'shrub19'" key="'cover'" tick="86">
           <int value="1"/>
         </node-val>
@@ -2662,76 +2662,76 @@
               <int value="2"/>
             </tuple>
             <tuple>
-              <int value="7"/>
-              <int value="2"/>
+              <int value="6"/>
+              <int value="0"/>
             </tuple>
             <tuple>
               <int value="7"/>
               <int value="4"/>
             </tuple>
             <tuple>
-              <int value="3"/>
-              <int value="3"/>
+              <int value="5"/>
+              <int value="0"/>
             </tuple>
             <tuple>
+              <int value="6"/>
+              <int value="5"/>
+            </tuple>
+            <tuple>
+              <int value="8"/>
               <int value="7"/>
-              <int value="7"/>
+            </tuple>
+            <tuple>
+              <int value="8"/>
+              <int value="5"/>
+            </tuple>
+            <tuple>
+              <int value="2"/>
+              <int value="3"/>
             </tuple>
             <tuple>
               <int value="5"/>
-              <int value="8"/>
+              <int value="7"/>
             </tuple>
             <tuple>
               <int value="9"/>
+              <int value="0"/>
+            </tuple>
+            <tuple>
+              <int value="1"/>
+              <int value="6"/>
+            </tuple>
+            <tuple>
               <int value="7"/>
+              <int value="3"/>
+            </tuple>
+            <tuple>
+              <int value="1"/>
+              <int value="8"/>
+            </tuple>
+            <tuple>
+              <int value="3"/>
+              <int value="9"/>
+            </tuple>
+            <tuple>
+              <int value="2"/>
+              <int value="9"/>
+            </tuple>
+            <tuple>
+              <int value="4"/>
+              <int value="5"/>
+            </tuple>
+            <tuple>
+              <int value="4"/>
+              <int value="2"/>
+            </tuple>
+            <tuple>
+              <int value="3"/>
+              <int value="8"/>
             </tuple>
             <tuple>
               <int value="0"/>
-              <int value="6"/>
-            </tuple>
-            <tuple>
-              <int value="3"/>
               <int value="1"/>
-            </tuple>
-            <tuple>
-              <int value="4"/>
-              <int value="4"/>
-            </tuple>
-            <tuple>
-              <int value="8"/>
-              <int value="3"/>
-            </tuple>
-            <tuple>
-              <int value="7"/>
-              <int value="3"/>
-            </tuple>
-            <tuple>
-              <int value="1"/>
-              <int value="8"/>
-            </tuple>
-            <tuple>
-              <int value="3"/>
-              <int value="9"/>
-            </tuple>
-            <tuple>
-              <int value="9"/>
-              <int value="6"/>
-            </tuple>
-            <tuple>
-              <int value="6"/>
-              <int value="5"/>
-            </tuple>
-            <tuple>
-              <int value="4"/>
-              <int value="2"/>
-            </tuple>
-            <tuple>
-              <int value="3"/>
-              <int value="8"/>
-            </tuple>
-            <tuple>
-              <int value="9"/>
-              <int value="4"/>
             </tuple>
           </list>
         </node-val>
