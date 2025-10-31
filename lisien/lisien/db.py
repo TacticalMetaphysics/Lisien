@@ -3053,7 +3053,7 @@ class AbstractDatabaseConnector(ABC):
 					kf = self.get_keyframe(branch_now, turn_now, tick_now)
 					self._add_keyframe_to_turn_el(turn_el, tick_now, kf)
 					keyframe_times.remove((branch_now, turn_now, tick_now))
-				for uncharacter in uncharacterized:
+				for uncharacter in sorted(uncharacterized):
 					if recs := data.get(uncharacter):
 						rec = recs[0]
 						while rec[:3] == now:
@@ -3063,7 +3063,7 @@ class AbstractDatabaseConnector(ABC):
 							if not recs:
 								break
 							rec = recs[0]
-				for char_name in data.keys() - uncharacterized:
+				for char_name in sort_set(data.keys() - uncharacterized):
 					char_data: LoadedCharWindow = data[char_name]
 					charkey_literal = Literal[
 						"graph_val",
