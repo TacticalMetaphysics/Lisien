@@ -429,8 +429,9 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				pc.field("tick") >= tick_from
 			)
 			data1 = branch_data.filter(pc.field("turn") > turn_from)
-			data = pa.concat_tables([data0, data1])
-			data.sort_by(self._sort_columns(table))
+			data = pa.concat_tables([data0, data1]).sort_by(
+				self._sort_columns(table)
+			)
 			return data.to_pylist()
 
 		def load_tick_to_tick(
@@ -456,8 +457,9 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			data2 = branch_data.filter(pc.field("turn") == turn_to).filter(
 				pc.field("tick") <= tick_to
 			)
-			data = pa.concat_tables([data0, data1, data2])
-			data.sort_by(self._sort_columns(table))
+			data = pa.concat_tables([data0, data1, data2]).sort_by(
+				self._sort_columns(table)
+			)
 			return data.to_pylist()
 
 		def _sort_columns(self, table: str) -> Iterator[tuple[str, str]]:
