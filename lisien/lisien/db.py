@@ -1849,14 +1849,21 @@ class AbstractDatabaseConnector(ABC):
 		actions: Iterable[ActionFuncName] = (),
 		neighborhood: RuleNeighborhood = None,
 		big: RuleBig = False,
-	) -> None:
-		self._triggers2set.append((branch, turn, tick, rule, list(triggers)))
-		self._prereqs2set.append((branch, turn, tick, rule, list(prereqs)))
-		self._actions2set.append((branch, turn, tick, rule, list(actions)))
-		self._neighbors2set.append((branch, turn, tick, rule, neighborhood))
-		self._big2set.append((branch, turn, tick, rule, big))
-		self.all_rules.add(rule)
-		self.rules_insert(rule)
+	) -> bool:
+		if rule not in self.all_rules:
+			self._triggers2set.append(
+				(branch, turn, tick, rule, list(triggers))
+			)
+			self._prereqs2set.append((branch, turn, tick, rule, list(prereqs)))
+			self._actions2set.append((branch, turn, tick, rule, list(actions)))
+			self._neighbors2set.append(
+				(branch, turn, tick, rule, neighborhood)
+			)
+			self._big2set.append((branch, turn, tick, rule, big))
+			self.all_rules.add(rule)
+			self.rules_insert(rule)
+			return True
+		return False
 
 	def set_rulebook(
 		self,
