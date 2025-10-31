@@ -1428,7 +1428,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		extract_time = self._extract_time
 		for d in self.call("dump", "graphs"):
 			graph = CharName(unpack_key(d["graph"]))
-			type = GraphTypeStr(d["type"])
+			type: GraphTypeStr = d["type"]
 			branch, turn, tick = extract_time(d)
 			yield branch, turn, tick, graph, type
 
