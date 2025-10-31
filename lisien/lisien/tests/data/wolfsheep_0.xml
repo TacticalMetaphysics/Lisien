@@ -1,5 +1,5 @@
 <lisien db-schema-version="2" xml-schema-version="2" trunk="trunk" branch="trunk" turn="0" tick="349" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" trigger="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" prereq="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" action="PJtQGYzg8kB418C3g2a08N2XbOGXFH9uoHfENSWfPtWqaZeOgogv3xRq6SqzG16uDkjyLamMFgJw3mwganwCgQ==">
-  <playtree game="test_export" trunk="trunk">
+  <playtree trunk="trunk" game="test_export">
     <branch name="trunk" start-turn="0" start-tick="0" end-turn="0" end-tick="349">
       <turn number="0" end-tick="349" plan-end-tick="349">
         <keyframe tick="0">
@@ -9291,6 +9291,7 @@
             <edge orig="(24, 24)" dest="(24, 23)"/>
           </character>
         </keyframe>
+        <graph character="'physical'" tick="0" type="DiGraph"/>
         <universal key="'rando_state'" tick="0">
           <tuple>
             <int value="3"/>
@@ -9924,7 +9925,6 @@
             <None/>
           </tuple>
         </universal>
-        <graph character="'physical'" tick="0" type="DiGraph"/>
         <graph-val character="'physical'" key="'bare_places'" tick="1">
           <list>
             <tuple>
@@ -32960,6 +32960,7 @@
         </node-val>
         <node character="'physical'" name="'wolf0'" tick="13" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf0'" tick="13" rulebook="('physical', 'wolf0')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf0'" tick="14" is-unit="true"/>
         <universal key="'rando_state'" tick="15">
           <tuple>
             <int value="3"/>
@@ -33614,6 +33615,7 @@
         </node-val>
         <node character="'physical'" name="'wolf1'" tick="22" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf1'" tick="22" rulebook="('physical', 'wolf1')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf1'" tick="23" is-unit="true"/>
         <universal key="'rando_state'" tick="24">
           <tuple>
             <int value="3"/>
@@ -34268,6 +34270,7 @@
         </node-val>
         <node character="'physical'" name="'wolf2'" tick="31" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf2'" tick="31" rulebook="('physical', 'wolf2')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf2'" tick="32" is-unit="true"/>
         <universal key="'rando_state'" tick="33">
           <tuple>
             <int value="3"/>
@@ -34922,6 +34925,7 @@
         </node-val>
         <node character="'physical'" name="'wolf3'" tick="40" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf3'" tick="40" rulebook="('physical', 'wolf3')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf3'" tick="41" is-unit="true"/>
         <universal key="'rando_state'" tick="42">
           <tuple>
             <int value="3"/>
@@ -35576,6 +35580,7 @@
         </node-val>
         <node character="'physical'" name="'wolf4'" tick="49" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf4'" tick="49" rulebook="('physical', 'wolf4')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf4'" tick="50" is-unit="true"/>
         <universal key="'rando_state'" tick="51">
           <tuple>
             <int value="3"/>
@@ -36230,6 +36235,7 @@
         </node-val>
         <node character="'physical'" name="'wolf5'" tick="58" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf5'" tick="58" rulebook="('physical', 'wolf5')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf5'" tick="59" is-unit="true"/>
         <universal key="'rando_state'" tick="60">
           <tuple>
             <int value="3"/>
@@ -36884,6 +36890,7 @@
         </node-val>
         <node character="'physical'" name="'wolf6'" tick="67" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf6'" tick="67" rulebook="('physical', 'wolf6')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf6'" tick="68" is-unit="true"/>
         <universal key="'rando_state'" tick="69">
           <tuple>
             <int value="3"/>
@@ -37538,6 +37545,7 @@
         </node-val>
         <node character="'physical'" name="'wolf7'" tick="76" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf7'" tick="76" rulebook="('physical', 'wolf7')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf7'" tick="77" is-unit="true"/>
         <universal key="'rando_state'" tick="78">
           <tuple>
             <int value="3"/>
@@ -38192,6 +38200,7 @@
         </node-val>
         <node character="'physical'" name="'wolf8'" tick="85" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf8'" tick="85" rulebook="('physical', 'wolf8')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf8'" tick="86" is-unit="true"/>
         <universal key="'rando_state'" tick="87">
           <tuple>
             <int value="3"/>
@@ -38846,6 +38855,7 @@
         </node-val>
         <node character="'physical'" name="'wolf9'" tick="94" exists="true"/>
         <node-rulebook character="'physical'" node="'wolf9'" tick="94" rulebook="('physical', 'wolf9')"/>
+        <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf9'" tick="95" is-unit="true"/>
         <universal key="'rando_state'" tick="96">
           <tuple>
             <int value="3"/>
@@ -39500,6 +39510,7 @@
         </node-val>
         <node character="'physical'" name="'sheep0'" tick="103" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep0'" tick="103" rulebook="('physical', 'sheep0')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep0'" tick="104" is-unit="true"/>
         <universal key="'rando_state'" tick="105">
           <tuple>
             <int value="3"/>
@@ -40154,6 +40165,7 @@
         </node-val>
         <node character="'physical'" name="'sheep1'" tick="112" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep1'" tick="112" rulebook="('physical', 'sheep1')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep1'" tick="113" is-unit="true"/>
         <universal key="'rando_state'" tick="114">
           <tuple>
             <int value="3"/>
@@ -40808,6 +40820,7 @@
         </node-val>
         <node character="'physical'" name="'sheep2'" tick="121" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep2'" tick="121" rulebook="('physical', 'sheep2')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep2'" tick="122" is-unit="true"/>
         <universal key="'rando_state'" tick="123">
           <tuple>
             <int value="3"/>
@@ -41462,6 +41475,7 @@
         </node-val>
         <node character="'physical'" name="'sheep3'" tick="130" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep3'" tick="130" rulebook="('physical', 'sheep3')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep3'" tick="131" is-unit="true"/>
         <universal key="'rando_state'" tick="132">
           <tuple>
             <int value="3"/>
@@ -42116,6 +42130,7 @@
         </node-val>
         <node character="'physical'" name="'sheep4'" tick="139" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep4'" tick="139" rulebook="('physical', 'sheep4')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep4'" tick="140" is-unit="true"/>
         <universal key="'rando_state'" tick="141">
           <tuple>
             <int value="3"/>
@@ -42770,6 +42785,7 @@
         </node-val>
         <node character="'physical'" name="'sheep5'" tick="148" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep5'" tick="148" rulebook="('physical', 'sheep5')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep5'" tick="149" is-unit="true"/>
         <universal key="'rando_state'" tick="150">
           <tuple>
             <int value="3"/>
@@ -43424,6 +43440,7 @@
         </node-val>
         <node character="'physical'" name="'sheep6'" tick="157" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep6'" tick="157" rulebook="('physical', 'sheep6')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep6'" tick="158" is-unit="true"/>
         <universal key="'rando_state'" tick="159">
           <tuple>
             <int value="3"/>
@@ -44078,6 +44095,7 @@
         </node-val>
         <node character="'physical'" name="'sheep7'" tick="166" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep7'" tick="166" rulebook="('physical', 'sheep7')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep7'" tick="167" is-unit="true"/>
         <universal key="'rando_state'" tick="168">
           <tuple>
             <int value="3"/>
@@ -44732,6 +44750,7 @@
         </node-val>
         <node character="'physical'" name="'sheep8'" tick="175" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep8'" tick="175" rulebook="('physical', 'sheep8')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep8'" tick="176" is-unit="true"/>
         <universal key="'rando_state'" tick="177">
           <tuple>
             <int value="3"/>
@@ -45386,6 +45405,7 @@
         </node-val>
         <node character="'physical'" name="'sheep9'" tick="184" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep9'" tick="184" rulebook="('physical', 'sheep9')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep9'" tick="185" is-unit="true"/>
         <universal key="'rando_state'" tick="186">
           <tuple>
             <int value="3"/>
@@ -46040,6 +46060,7 @@
         </node-val>
         <node character="'physical'" name="'sheep10'" tick="193" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep10'" tick="193" rulebook="('physical', 'sheep10')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep10'" tick="194" is-unit="true"/>
         <universal key="'rando_state'" tick="195">
           <tuple>
             <int value="3"/>
@@ -46694,6 +46715,7 @@
         </node-val>
         <node character="'physical'" name="'sheep11'" tick="202" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep11'" tick="202" rulebook="('physical', 'sheep11')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep11'" tick="203" is-unit="true"/>
         <universal key="'rando_state'" tick="204">
           <tuple>
             <int value="3"/>
@@ -47348,6 +47370,7 @@
         </node-val>
         <node character="'physical'" name="'sheep12'" tick="211" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep12'" tick="211" rulebook="('physical', 'sheep12')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep12'" tick="212" is-unit="true"/>
         <universal key="'rando_state'" tick="213">
           <tuple>
             <int value="3"/>
@@ -48002,6 +48025,7 @@
         </node-val>
         <node character="'physical'" name="'sheep13'" tick="220" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep13'" tick="220" rulebook="('physical', 'sheep13')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep13'" tick="221" is-unit="true"/>
         <universal key="'rando_state'" tick="222">
           <tuple>
             <int value="3"/>
@@ -48656,6 +48680,7 @@
         </node-val>
         <node character="'physical'" name="'sheep14'" tick="229" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep14'" tick="229" rulebook="('physical', 'sheep14')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep14'" tick="230" is-unit="true"/>
         <universal key="'rando_state'" tick="231">
           <tuple>
             <int value="3"/>
@@ -49310,6 +49335,7 @@
         </node-val>
         <node character="'physical'" name="'sheep15'" tick="238" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep15'" tick="238" rulebook="('physical', 'sheep15')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep15'" tick="239" is-unit="true"/>
         <universal key="'rando_state'" tick="240">
           <tuple>
             <int value="3"/>
@@ -49964,6 +49990,7 @@
         </node-val>
         <node character="'physical'" name="'sheep16'" tick="247" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep16'" tick="247" rulebook="('physical', 'sheep16')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep16'" tick="248" is-unit="true"/>
         <universal key="'rando_state'" tick="249">
           <tuple>
             <int value="3"/>
@@ -50618,6 +50645,7 @@
         </node-val>
         <node character="'physical'" name="'sheep17'" tick="256" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep17'" tick="256" rulebook="('physical', 'sheep17')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep17'" tick="257" is-unit="true"/>
         <universal key="'rando_state'" tick="258">
           <tuple>
             <int value="3"/>
@@ -51272,6 +51300,7 @@
         </node-val>
         <node character="'physical'" name="'sheep18'" tick="265" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep18'" tick="265" rulebook="('physical', 'sheep18')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep18'" tick="266" is-unit="true"/>
         <universal key="'rando_state'" tick="267">
           <tuple>
             <int value="3"/>
@@ -51926,6 +51955,7 @@
         </node-val>
         <node character="'physical'" name="'sheep19'" tick="274" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep19'" tick="274" rulebook="('physical', 'sheep19')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep19'" tick="275" is-unit="true"/>
         <universal key="'rando_state'" tick="276">
           <tuple>
             <int value="3"/>
@@ -52580,6 +52610,7 @@
         </node-val>
         <node character="'physical'" name="'sheep20'" tick="283" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep20'" tick="283" rulebook="('physical', 'sheep20')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep20'" tick="284" is-unit="true"/>
         <universal key="'rando_state'" tick="285">
           <tuple>
             <int value="3"/>
@@ -53234,6 +53265,7 @@
         </node-val>
         <node character="'physical'" name="'sheep21'" tick="292" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep21'" tick="292" rulebook="('physical', 'sheep21')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep21'" tick="293" is-unit="true"/>
         <universal key="'rando_state'" tick="294">
           <tuple>
             <int value="3"/>
@@ -53888,6 +53920,7 @@
         </node-val>
         <node character="'physical'" name="'sheep22'" tick="301" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep22'" tick="301" rulebook="('physical', 'sheep22')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep22'" tick="302" is-unit="true"/>
         <universal key="'rando_state'" tick="303">
           <tuple>
             <int value="3"/>
@@ -54542,6 +54575,7 @@
         </node-val>
         <node character="'physical'" name="'sheep23'" tick="310" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep23'" tick="310" rulebook="('physical', 'sheep23')"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep23'" tick="311" is-unit="true"/>
         <universal key="'rando_state'" tick="312">
           <tuple>
             <int value="3"/>
@@ -55196,91 +55230,63 @@
         </node-val>
         <node character="'physical'" name="'sheep24'" tick="319" exists="true"/>
         <node-rulebook character="'physical'" node="'sheep24'" tick="319" rulebook="('physical', 'sheep24')"/>
-        <rule-triggers rule="die_of_malaria_or_anemia" tick="321"/>
-        <rule-prereqs rule="die_of_malaria_or_anemia" tick="321"/>
+        <unit character-graph="'sheep'" unit-graph="'physical'" unit-node="'sheep24'" tick="320" is-unit="true"/>
         <rule-actions rule="die_of_malaria_or_anemia" tick="321">
           <action name="die_of_malaria_or_anemia"/>
         </rule-actions>
-        <rule-neighborhood rule="die_of_malaria_or_anemia" tick="321"/>
         <rule-big rule="die_of_malaria_or_anemia" tick="321" big="false"/>
-        <rule-triggers rule="die_of_malaria_or_anemia" tick="322">
-          <trigger name="truth"/>
-        </rule-triggers>
-        <rule-prereqs rule="die_of_malaria_or_anemia" tick="323">
-          <prereq name="malaria"/>
-        </rule-prereqs>
-        <rule-triggers rule="grow" tick="324"/>
-        <rule-prereqs rule="grow" tick="324"/>
+        <rule-neighborhood rule="die_of_malaria_or_anemia" tick="321"/>
+        <rule-prereqs rule="die_of_malaria_or_anemia" tick="321"/>
+        <rule-triggers rule="die_of_malaria_or_anemia" tick="321"/>
         <rule-actions rule="grow" tick="324">
           <action name="grow"/>
         </rule-actions>
-        <rule-neighborhood rule="grow" tick="324"/>
         <rule-big rule="grow" tick="324" big="false"/>
+        <rule-neighborhood rule="grow" tick="324"/>
+        <rule-prereqs rule="grow" tick="324"/>
+        <rule-triggers rule="grow" tick="324"/>
         <rulebook name="'trunk'" priority="0.0" tick="('character_rulebook', 'physical')">
           <rule name="grow"/>
         </rulebook>
-        <rule-triggers rule="grow" tick="326">
-          <trigger name="truth"/>
-        </rule-triggers>
-        <rule-big rule="grow" tick="327" big="false"/>
-        <rule-triggers rule="graze" tick="328"/>
-        <rule-prereqs rule="graze" tick="328"/>
         <rule-actions rule="graze" tick="328">
           <action name="graze"/>
         </rule-actions>
-        <rule-neighborhood rule="graze" tick="328"/>
         <rule-big rule="graze" tick="328" big="false"/>
+        <rule-neighborhood rule="graze" tick="328"/>
+        <rule-prereqs rule="graze" tick="328"/>
+        <rule-triggers rule="graze" tick="328"/>
         <rulebook name="'trunk'" priority="0.0" tick="('unit_rulebook', 'sheep')">
           <rule name="graze"/>
         </rulebook>
-        <rule-big rule="graze" tick="330" big="false"/>
-        <rule-triggers rule="graze" tick="331">
-          <trigger name="grass_here"/>
-        </rule-triggers>
         <rulebook name="'trunk'" priority="0.0" tick="('unit_rulebook', 'sheep')">
           <rule name="graze"/>
           <rule name="die_of_malaria_or_anemia"/>
         </rulebook>
-        <rule-triggers rule="mate" tick="333"/>
-        <rule-prereqs rule="mate" tick="333"/>
         <rule-actions rule="mate" tick="333">
           <action name="mate"/>
         </rule-actions>
-        <rule-neighborhood rule="mate" tick="333"/>
         <rule-big rule="mate" tick="333" big="false"/>
+        <rule-neighborhood rule="mate" tick="333"/>
+        <rule-prereqs rule="mate" tick="333"/>
+        <rule-triggers rule="mate" tick="333"/>
         <rulebook name="'trunk'" priority="0.0" tick="('unit_rulebook', 'sheep')">
           <rule name="graze"/>
           <rule name="die_of_malaria_or_anemia"/>
           <rule name="mate"/>
         </rulebook>
-        <rule-big rule="mate" tick="335" big="false"/>
-        <rule-triggers rule="mate" tick="336">
-          <trigger name="once_per_turn"/>
-        </rule-triggers>
-        <rule-prereqs rule="mate" tick="337">
-          <prereq name="mate_present"/>
-        </rule-prereqs>
-        <rule-prereqs rule="mate" tick="338">
-          <prereq name="mate_present"/>
-          <prereq name="in_the_mood"/>
-        </rule-prereqs>
-        <rule-triggers rule="wander" tick="339"/>
-        <rule-prereqs rule="wander" tick="339"/>
         <rule-actions rule="wander" tick="339">
           <action name="wander"/>
         </rule-actions>
-        <rule-neighborhood rule="wander" tick="339"/>
         <rule-big rule="wander" tick="339" big="false"/>
+        <rule-neighborhood rule="wander" tick="339"/>
+        <rule-prereqs rule="wander" tick="339"/>
+        <rule-triggers rule="wander" tick="339"/>
         <rulebook name="'trunk'" priority="0.0" tick="('unit_rulebook', 'sheep')">
           <rule name="graze"/>
           <rule name="die_of_malaria_or_anemia"/>
           <rule name="mate"/>
           <rule name="wander"/>
         </rulebook>
-        <rule-triggers rule="wander" tick="341">
-          <trigger name="truth"/>
-        </rule-triggers>
-        <rule-big rule="wander" tick="342" big="false"/>
         <rulebook name="'trunk'" priority="0.0" tick="('unit_rulebook', 'wolf')">
           <rule name="die_of_malaria_or_anemia"/>
         </rulebook>
@@ -55288,25 +55294,18 @@
           <rule name="die_of_malaria_or_anemia"/>
           <rule name="mate"/>
         </rulebook>
-        <rule-triggers rule="pursue_sheep" tick="345"/>
-        <rule-prereqs rule="pursue_sheep" tick="345"/>
         <rule-actions rule="pursue_sheep" tick="345">
           <action name="pursue_sheep"/>
         </rule-actions>
-        <rule-neighborhood rule="pursue_sheep" tick="345"/>
         <rule-big rule="pursue_sheep" tick="345" big="false"/>
+        <rule-neighborhood rule="pursue_sheep" tick="345"/>
+        <rule-prereqs rule="pursue_sheep" tick="345"/>
+        <rule-triggers rule="pursue_sheep" tick="345"/>
         <rulebook name="'trunk'" priority="0.0" tick="('unit_rulebook', 'wolf')">
           <rule name="die_of_malaria_or_anemia"/>
           <rule name="mate"/>
           <rule name="pursue_sheep"/>
         </rulebook>
-        <rule-triggers rule="pursue_sheep" tick="347">
-          <trigger name="truth"/>
-        </rule-triggers>
-        <rule-big rule="pursue_sheep" tick="348" big="false"/>
-        <rule-prereqs rule="pursue_sheep" tick="349">
-          <prereq name="sheep_remains"/>
-        </rule-prereqs>
       </turn>
     </branch>
   </playtree>

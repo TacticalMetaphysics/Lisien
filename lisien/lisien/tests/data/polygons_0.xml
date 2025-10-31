@@ -1,5 +1,5 @@
 <lisien db-schema-version="2" xml-schema-version="2" trunk="trunk" branch="trunk" turn="0" tick="254" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" trigger="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" prereq="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" action="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==">
-  <playtree game="test_export" trunk="trunk">
+  <playtree trunk="trunk" game="test_export">
     <branch name="trunk" start-turn="0" start-tick="0" end-turn="0" end-tick="254">
       <turn number="0" end-tick="254" plan-end-tick="254">
         <keyframe tick="0">
@@ -1272,21 +1272,13 @@
             <None/>
           </tuple>
         </universal>
-        <rule-triggers rule="relocate" tick="1"/>
-        <rule-prereqs rule="relocate" tick="1"/>
         <rule-actions rule="relocate" tick="1">
           <action name="relocate"/>
         </rule-actions>
-        <rule-neighborhood rule="relocate" tick="1"/>
         <rule-big rule="relocate" tick="1" big="false"/>
-        <rule-neighborhood rule="relocate" tick="2" neighbors="1"/>
-        <rule-triggers rule="relocate" tick="3">
-          <trigger name="similar_neighbors"/>
-        </rule-triggers>
-        <rule-triggers rule="relocate" tick="4">
-          <trigger name="similar_neighbors"/>
-          <trigger name="dissimilar_neighbors"/>
-        </rule-triggers>
+        <rule-neighborhood rule="relocate" tick="1"/>
+        <rule-prereqs rule="relocate" tick="1"/>
+        <rule-triggers rule="relocate" tick="1"/>
         <rulebook name="'trunk'" priority="0.0" tick="parable">
           <rule name="relocate"/>
         </rulebook>
@@ -14081,6 +14073,7 @@
         </node-val>
         <node character="'physical'" name="'square1'" tick="17" exists="true"/>
         <node-rulebook character="'physical'" node="'square1'" tick="17" rulebook="('physical', 'square1')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square1'" tick="18" is-unit="true"/>
         <node character="'physical'" name="'square2'" tick="19" exists="true"/>
         <location character="'physical'" thing="'square2'" tick="19" location="(2, 6)"/>
         <node-val character="'physical'" node="'square2'" key="'_image_paths'" tick="20">
@@ -14090,6 +14083,7 @@
         </node-val>
         <node character="'physical'" name="'square2'" tick="21" exists="true"/>
         <node-rulebook character="'physical'" node="'square2'" tick="21" rulebook="('physical', 'square2')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square2'" tick="22" is-unit="true"/>
         <node character="'physical'" name="'square3'" tick="23" exists="true"/>
         <location character="'physical'" thing="'square3'" tick="23" location="(19, 10)"/>
         <node-val character="'physical'" node="'square3'" key="'_image_paths'" tick="24">
@@ -14099,6 +14093,7 @@
         </node-val>
         <node character="'physical'" name="'square3'" tick="25" exists="true"/>
         <node-rulebook character="'physical'" node="'square3'" tick="25" rulebook="('physical', 'square3')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square3'" tick="26" is-unit="true"/>
         <node character="'physical'" name="'square4'" tick="27" exists="true"/>
         <location character="'physical'" thing="'square4'" tick="27" location="(3, 4)"/>
         <node-val character="'physical'" node="'square4'" key="'_image_paths'" tick="28">
@@ -14108,6 +14103,7 @@
         </node-val>
         <node character="'physical'" name="'square4'" tick="29" exists="true"/>
         <node-rulebook character="'physical'" node="'square4'" tick="29" rulebook="('physical', 'square4')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square4'" tick="30" is-unit="true"/>
         <node character="'physical'" name="'square5'" tick="31" exists="true"/>
         <location character="'physical'" thing="'square5'" tick="31" location="(13, 13)"/>
         <node-val character="'physical'" node="'square5'" key="'_image_paths'" tick="32">
@@ -14117,6 +14113,7 @@
         </node-val>
         <node character="'physical'" name="'square5'" tick="33" exists="true"/>
         <node-rulebook character="'physical'" node="'square5'" tick="33" rulebook="('physical', 'square5')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square5'" tick="34" is-unit="true"/>
         <node character="'physical'" name="'square6'" tick="35" exists="true"/>
         <location character="'physical'" thing="'square6'" tick="35" location="(13, 3)"/>
         <node-val character="'physical'" node="'square6'" key="'_image_paths'" tick="36">
@@ -14126,6 +14123,7 @@
         </node-val>
         <node character="'physical'" name="'square6'" tick="37" exists="true"/>
         <node-rulebook character="'physical'" node="'square6'" tick="37" rulebook="('physical', 'square6')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square6'" tick="38" is-unit="true"/>
         <node character="'physical'" name="'square7'" tick="39" exists="true"/>
         <location character="'physical'" thing="'square7'" tick="39" location="(17, 13)"/>
         <node-val character="'physical'" node="'square7'" key="'_image_paths'" tick="40">
@@ -14135,6 +14133,7 @@
         </node-val>
         <node character="'physical'" name="'square7'" tick="41" exists="true"/>
         <node-rulebook character="'physical'" node="'square7'" tick="41" rulebook="('physical', 'square7')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square7'" tick="42" is-unit="true"/>
         <node character="'physical'" name="'square8'" tick="43" exists="true"/>
         <location character="'physical'" thing="'square8'" tick="43" location="(14, 5)"/>
         <node-val character="'physical'" node="'square8'" key="'_image_paths'" tick="44">
@@ -14144,6 +14143,7 @@
         </node-val>
         <node character="'physical'" name="'square8'" tick="45" exists="true"/>
         <node-rulebook character="'physical'" node="'square8'" tick="45" rulebook="('physical', 'square8')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square8'" tick="46" is-unit="true"/>
         <node character="'physical'" name="'square9'" tick="47" exists="true"/>
         <location character="'physical'" thing="'square9'" tick="47" location="(9, 19)"/>
         <node-val character="'physical'" node="'square9'" key="'_image_paths'" tick="48">
@@ -14153,6 +14153,7 @@
         </node-val>
         <node character="'physical'" name="'square9'" tick="49" exists="true"/>
         <node-rulebook character="'physical'" node="'square9'" tick="49" rulebook="('physical', 'square9')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square9'" tick="50" is-unit="true"/>
         <node character="'physical'" name="'square10'" tick="51" exists="true"/>
         <location character="'physical'" thing="'square10'" tick="51" location="(11, 7)"/>
         <node-val character="'physical'" node="'square10'" key="'_image_paths'" tick="52">
@@ -14162,6 +14163,7 @@
         </node-val>
         <node character="'physical'" name="'square10'" tick="53" exists="true"/>
         <node-rulebook character="'physical'" node="'square10'" tick="53" rulebook="('physical', 'square10')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square10'" tick="54" is-unit="true"/>
         <node character="'physical'" name="'square11'" tick="55" exists="true"/>
         <location character="'physical'" thing="'square11'" tick="55" location="(17, 0)"/>
         <node-val character="'physical'" node="'square11'" key="'_image_paths'" tick="56">
@@ -14171,6 +14173,7 @@
         </node-val>
         <node character="'physical'" name="'square11'" tick="57" exists="true"/>
         <node-rulebook character="'physical'" node="'square11'" tick="57" rulebook="('physical', 'square11')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square11'" tick="58" is-unit="true"/>
         <node character="'physical'" name="'square12'" tick="59" exists="true"/>
         <location character="'physical'" thing="'square12'" tick="59" location="(12, 2)"/>
         <node-val character="'physical'" node="'square12'" key="'_image_paths'" tick="60">
@@ -14180,6 +14183,7 @@
         </node-val>
         <node character="'physical'" name="'square12'" tick="61" exists="true"/>
         <node-rulebook character="'physical'" node="'square12'" tick="61" rulebook="('physical', 'square12')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square12'" tick="62" is-unit="true"/>
         <node character="'physical'" name="'square13'" tick="63" exists="true"/>
         <location character="'physical'" thing="'square13'" tick="63" location="(7, 9)"/>
         <node-val character="'physical'" node="'square13'" key="'_image_paths'" tick="64">
@@ -14189,6 +14193,7 @@
         </node-val>
         <node character="'physical'" name="'square13'" tick="65" exists="true"/>
         <node-rulebook character="'physical'" node="'square13'" tick="65" rulebook="('physical', 'square13')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square13'" tick="66" is-unit="true"/>
         <node character="'physical'" name="'square14'" tick="67" exists="true"/>
         <location character="'physical'" thing="'square14'" tick="67" location="(7, 1)"/>
         <node-val character="'physical'" node="'square14'" key="'_image_paths'" tick="68">
@@ -14198,6 +14203,7 @@
         </node-val>
         <node character="'physical'" name="'square14'" tick="69" exists="true"/>
         <node-rulebook character="'physical'" node="'square14'" tick="69" rulebook="('physical', 'square14')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square14'" tick="70" is-unit="true"/>
         <node character="'physical'" name="'square15'" tick="71" exists="true"/>
         <location character="'physical'" thing="'square15'" tick="71" location="(4, 10)"/>
         <node-val character="'physical'" node="'square15'" key="'_image_paths'" tick="72">
@@ -14207,6 +14213,7 @@
         </node-val>
         <node character="'physical'" name="'square15'" tick="73" exists="true"/>
         <node-rulebook character="'physical'" node="'square15'" tick="73" rulebook="('physical', 'square15')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square15'" tick="74" is-unit="true"/>
         <node character="'physical'" name="'square16'" tick="75" exists="true"/>
         <location character="'physical'" thing="'square16'" tick="75" location="(12, 3)"/>
         <node-val character="'physical'" node="'square16'" key="'_image_paths'" tick="76">
@@ -14216,6 +14223,7 @@
         </node-val>
         <node character="'physical'" name="'square16'" tick="77" exists="true"/>
         <node-rulebook character="'physical'" node="'square16'" tick="77" rulebook="('physical', 'square16')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square16'" tick="78" is-unit="true"/>
         <node character="'physical'" name="'square17'" tick="79" exists="true"/>
         <location character="'physical'" thing="'square17'" tick="79" location="(13, 6)"/>
         <node-val character="'physical'" node="'square17'" key="'_image_paths'" tick="80">
@@ -14225,6 +14233,7 @@
         </node-val>
         <node character="'physical'" name="'square17'" tick="81" exists="true"/>
         <node-rulebook character="'physical'" node="'square17'" tick="81" rulebook="('physical', 'square17')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square17'" tick="82" is-unit="true"/>
         <node character="'physical'" name="'square18'" tick="83" exists="true"/>
         <location character="'physical'" thing="'square18'" tick="83" location="(18, 19)"/>
         <node-val character="'physical'" node="'square18'" key="'_image_paths'" tick="84">
@@ -14234,6 +14243,7 @@
         </node-val>
         <node character="'physical'" name="'square18'" tick="85" exists="true"/>
         <node-rulebook character="'physical'" node="'square18'" tick="85" rulebook="('physical', 'square18')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square18'" tick="86" is-unit="true"/>
         <node character="'physical'" name="'square19'" tick="87" exists="true"/>
         <location character="'physical'" thing="'square19'" tick="87" location="(4, 0)"/>
         <node-val character="'physical'" node="'square19'" key="'_image_paths'" tick="88">
@@ -14243,6 +14253,7 @@
         </node-val>
         <node character="'physical'" name="'square19'" tick="89" exists="true"/>
         <node-rulebook character="'physical'" node="'square19'" tick="89" rulebook="('physical', 'square19')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square19'" tick="90" is-unit="true"/>
         <node character="'physical'" name="'square20'" tick="91" exists="true"/>
         <location character="'physical'" thing="'square20'" tick="91" location="(16, 11)"/>
         <node-val character="'physical'" node="'square20'" key="'_image_paths'" tick="92">
@@ -14252,6 +14263,7 @@
         </node-val>
         <node character="'physical'" name="'square20'" tick="93" exists="true"/>
         <node-rulebook character="'physical'" node="'square20'" tick="93" rulebook="('physical', 'square20')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square20'" tick="94" is-unit="true"/>
         <node character="'physical'" name="'square21'" tick="95" exists="true"/>
         <location character="'physical'" thing="'square21'" tick="95" location="(16, 13)"/>
         <node-val character="'physical'" node="'square21'" key="'_image_paths'" tick="96">
@@ -14261,6 +14273,7 @@
         </node-val>
         <node character="'physical'" name="'square21'" tick="97" exists="true"/>
         <node-rulebook character="'physical'" node="'square21'" tick="97" rulebook="('physical', 'square21')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square21'" tick="98" is-unit="true"/>
         <node character="'physical'" name="'square22'" tick="99" exists="true"/>
         <location character="'physical'" thing="'square22'" tick="99" location="(8, 0)"/>
         <node-val character="'physical'" node="'square22'" key="'_image_paths'" tick="100">
@@ -14270,6 +14283,7 @@
         </node-val>
         <node character="'physical'" name="'square22'" tick="101" exists="true"/>
         <node-rulebook character="'physical'" node="'square22'" tick="101" rulebook="('physical', 'square22')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square22'" tick="102" is-unit="true"/>
         <node character="'physical'" name="'square23'" tick="103" exists="true"/>
         <location character="'physical'" thing="'square23'" tick="103" location="(14, 14)"/>
         <node-val character="'physical'" node="'square23'" key="'_image_paths'" tick="104">
@@ -14279,6 +14293,7 @@
         </node-val>
         <node character="'physical'" name="'square23'" tick="105" exists="true"/>
         <node-rulebook character="'physical'" node="'square23'" tick="105" rulebook="('physical', 'square23')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square23'" tick="106" is-unit="true"/>
         <node character="'physical'" name="'square24'" tick="107" exists="true"/>
         <location character="'physical'" thing="'square24'" tick="107" location="(13, 2)"/>
         <node-val character="'physical'" node="'square24'" key="'_image_paths'" tick="108">
@@ -14288,6 +14303,7 @@
         </node-val>
         <node character="'physical'" name="'square24'" tick="109" exists="true"/>
         <node-rulebook character="'physical'" node="'square24'" tick="109" rulebook="('physical', 'square24')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square24'" tick="110" is-unit="true"/>
         <node character="'physical'" name="'square25'" tick="111" exists="true"/>
         <location character="'physical'" thing="'square25'" tick="111" location="(18, 5)"/>
         <node-val character="'physical'" node="'square25'" key="'_image_paths'" tick="112">
@@ -14297,6 +14313,7 @@
         </node-val>
         <node character="'physical'" name="'square25'" tick="113" exists="true"/>
         <node-rulebook character="'physical'" node="'square25'" tick="113" rulebook="('physical', 'square25')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square25'" tick="114" is-unit="true"/>
         <node character="'physical'" name="'square26'" tick="115" exists="true"/>
         <location character="'physical'" thing="'square26'" tick="115" location="(6, 9)"/>
         <node-val character="'physical'" node="'square26'" key="'_image_paths'" tick="116">
@@ -14306,6 +14323,7 @@
         </node-val>
         <node character="'physical'" name="'square26'" tick="117" exists="true"/>
         <node-rulebook character="'physical'" node="'square26'" tick="117" rulebook="('physical', 'square26')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square26'" tick="118" is-unit="true"/>
         <node character="'physical'" name="'square27'" tick="119" exists="true"/>
         <location character="'physical'" thing="'square27'" tick="119" location="(1, 9)"/>
         <node-val character="'physical'" node="'square27'" key="'_image_paths'" tick="120">
@@ -14315,6 +14333,7 @@
         </node-val>
         <node character="'physical'" name="'square27'" tick="121" exists="true"/>
         <node-rulebook character="'physical'" node="'square27'" tick="121" rulebook="('physical', 'square27')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square27'" tick="122" is-unit="true"/>
         <node character="'physical'" name="'square28'" tick="123" exists="true"/>
         <location character="'physical'" thing="'square28'" tick="123" location="(16, 2)"/>
         <node-val character="'physical'" node="'square28'" key="'_image_paths'" tick="124">
@@ -14324,6 +14343,7 @@
         </node-val>
         <node character="'physical'" name="'square28'" tick="125" exists="true"/>
         <node-rulebook character="'physical'" node="'square28'" tick="125" rulebook="('physical', 'square28')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square28'" tick="126" is-unit="true"/>
         <node character="'physical'" name="'square29'" tick="127" exists="true"/>
         <location character="'physical'" thing="'square29'" tick="127" location="(15, 7)"/>
         <node-val character="'physical'" node="'square29'" key="'_image_paths'" tick="128">
@@ -14333,6 +14353,7 @@
         </node-val>
         <node character="'physical'" name="'square29'" tick="129" exists="true"/>
         <node-rulebook character="'physical'" node="'square29'" tick="129" rulebook="('physical', 'square29')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square29'" tick="130" is-unit="true"/>
         <node character="'physical'" name="'square30'" tick="131" exists="true"/>
         <location character="'physical'" thing="'square30'" tick="131" location="(14, 12)"/>
         <node-val character="'physical'" node="'square30'" key="'_image_paths'" tick="132">
@@ -14342,6 +14363,7 @@
         </node-val>
         <node character="'physical'" name="'square30'" tick="133" exists="true"/>
         <node-rulebook character="'physical'" node="'square30'" tick="133" rulebook="('physical', 'square30')"/>
+        <unit character-graph="'square'" unit-graph="'physical'" unit-node="'square30'" tick="134" is-unit="true"/>
         <node character="'physical'" name="'triangle1'" tick="135" exists="true"/>
         <location character="'physical'" thing="'triangle1'" tick="135" location="(14, 0)"/>
         <node-val character="'physical'" node="'triangle1'" key="'_image_paths'" tick="136">
@@ -14351,6 +14373,7 @@
         </node-val>
         <node character="'physical'" name="'triangle1'" tick="137" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle1'" tick="137" rulebook="('physical', 'triangle1')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle1'" tick="138" is-unit="true"/>
         <node character="'physical'" name="'triangle2'" tick="139" exists="true"/>
         <location character="'physical'" thing="'triangle2'" tick="139" location="(15, 13)"/>
         <node-val character="'physical'" node="'triangle2'" key="'_image_paths'" tick="140">
@@ -14360,6 +14383,7 @@
         </node-val>
         <node character="'physical'" name="'triangle2'" tick="141" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle2'" tick="141" rulebook="('physical', 'triangle2')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle2'" tick="142" is-unit="true"/>
         <node character="'physical'" name="'triangle3'" tick="143" exists="true"/>
         <location character="'physical'" thing="'triangle3'" tick="143" location="(11, 2)"/>
         <node-val character="'physical'" node="'triangle3'" key="'_image_paths'" tick="144">
@@ -14369,6 +14393,7 @@
         </node-val>
         <node character="'physical'" name="'triangle3'" tick="145" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle3'" tick="145" rulebook="('physical', 'triangle3')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle3'" tick="146" is-unit="true"/>
         <node character="'physical'" name="'triangle4'" tick="147" exists="true"/>
         <location character="'physical'" thing="'triangle4'" tick="147" location="(11, 4)"/>
         <node-val character="'physical'" node="'triangle4'" key="'_image_paths'" tick="148">
@@ -14378,6 +14403,7 @@
         </node-val>
         <node character="'physical'" name="'triangle4'" tick="149" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle4'" tick="149" rulebook="('physical', 'triangle4')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle4'" tick="150" is-unit="true"/>
         <node character="'physical'" name="'triangle5'" tick="151" exists="true"/>
         <location character="'physical'" thing="'triangle5'" tick="151" location="(6, 1)"/>
         <node-val character="'physical'" node="'triangle5'" key="'_image_paths'" tick="152">
@@ -14387,6 +14413,7 @@
         </node-val>
         <node character="'physical'" name="'triangle5'" tick="153" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle5'" tick="153" rulebook="('physical', 'triangle5')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle5'" tick="154" is-unit="true"/>
         <node character="'physical'" name="'triangle6'" tick="155" exists="true"/>
         <location character="'physical'" thing="'triangle6'" tick="155" location="(6, 16)"/>
         <node-val character="'physical'" node="'triangle6'" key="'_image_paths'" tick="156">
@@ -14396,6 +14423,7 @@
         </node-val>
         <node character="'physical'" name="'triangle6'" tick="157" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle6'" tick="157" rulebook="('physical', 'triangle6')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle6'" tick="158" is-unit="true"/>
         <node character="'physical'" name="'triangle7'" tick="159" exists="true"/>
         <location character="'physical'" thing="'triangle7'" tick="159" location="(0, 16)"/>
         <node-val character="'physical'" node="'triangle7'" key="'_image_paths'" tick="160">
@@ -14405,6 +14433,7 @@
         </node-val>
         <node character="'physical'" name="'triangle7'" tick="161" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle7'" tick="161" rulebook="('physical', 'triangle7')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle7'" tick="162" is-unit="true"/>
         <node character="'physical'" name="'triangle8'" tick="163" exists="true"/>
         <location character="'physical'" thing="'triangle8'" tick="163" location="(19, 4)"/>
         <node-val character="'physical'" node="'triangle8'" key="'_image_paths'" tick="164">
@@ -14414,6 +14443,7 @@
         </node-val>
         <node character="'physical'" name="'triangle8'" tick="165" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle8'" tick="165" rulebook="('physical', 'triangle8')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle8'" tick="166" is-unit="true"/>
         <node character="'physical'" name="'triangle9'" tick="167" exists="true"/>
         <location character="'physical'" thing="'triangle9'" tick="167" location="(18, 11)"/>
         <node-val character="'physical'" node="'triangle9'" key="'_image_paths'" tick="168">
@@ -14423,6 +14453,7 @@
         </node-val>
         <node character="'physical'" name="'triangle9'" tick="169" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle9'" tick="169" rulebook="('physical', 'triangle9')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle9'" tick="170" is-unit="true"/>
         <node character="'physical'" name="'triangle10'" tick="171" exists="true"/>
         <location character="'physical'" thing="'triangle10'" tick="171" location="(14, 2)"/>
         <node-val character="'physical'" node="'triangle10'" key="'_image_paths'" tick="172">
@@ -14432,6 +14463,7 @@
         </node-val>
         <node character="'physical'" name="'triangle10'" tick="173" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle10'" tick="173" rulebook="('physical', 'triangle10')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle10'" tick="174" is-unit="true"/>
         <node character="'physical'" name="'triangle11'" tick="175" exists="true"/>
         <location character="'physical'" thing="'triangle11'" tick="175" location="(16, 19)"/>
         <node-val character="'physical'" node="'triangle11'" key="'_image_paths'" tick="176">
@@ -14441,6 +14473,7 @@
         </node-val>
         <node character="'physical'" name="'triangle11'" tick="177" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle11'" tick="177" rulebook="('physical', 'triangle11')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle11'" tick="178" is-unit="true"/>
         <node character="'physical'" name="'triangle12'" tick="179" exists="true"/>
         <location character="'physical'" thing="'triangle12'" tick="179" location="(6, 14)"/>
         <node-val character="'physical'" node="'triangle12'" key="'_image_paths'" tick="180">
@@ -14450,6 +14483,7 @@
         </node-val>
         <node character="'physical'" name="'triangle12'" tick="181" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle12'" tick="181" rulebook="('physical', 'triangle12')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle12'" tick="182" is-unit="true"/>
         <node character="'physical'" name="'triangle13'" tick="183" exists="true"/>
         <location character="'physical'" thing="'triangle13'" tick="183" location="(17, 6)"/>
         <node-val character="'physical'" node="'triangle13'" key="'_image_paths'" tick="184">
@@ -14459,6 +14493,7 @@
         </node-val>
         <node character="'physical'" name="'triangle13'" tick="185" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle13'" tick="185" rulebook="('physical', 'triangle13')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle13'" tick="186" is-unit="true"/>
         <node character="'physical'" name="'triangle14'" tick="187" exists="true"/>
         <location character="'physical'" thing="'triangle14'" tick="187" location="(0, 1)"/>
         <node-val character="'physical'" node="'triangle14'" key="'_image_paths'" tick="188">
@@ -14468,6 +14503,7 @@
         </node-val>
         <node character="'physical'" name="'triangle14'" tick="189" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle14'" tick="189" rulebook="('physical', 'triangle14')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle14'" tick="190" is-unit="true"/>
         <node character="'physical'" name="'triangle15'" tick="191" exists="true"/>
         <location character="'physical'" thing="'triangle15'" tick="191" location="(14, 11)"/>
         <node-val character="'physical'" node="'triangle15'" key="'_image_paths'" tick="192">
@@ -14477,6 +14513,7 @@
         </node-val>
         <node character="'physical'" name="'triangle15'" tick="193" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle15'" tick="193" rulebook="('physical', 'triangle15')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle15'" tick="194" is-unit="true"/>
         <node character="'physical'" name="'triangle16'" tick="195" exists="true"/>
         <location character="'physical'" thing="'triangle16'" tick="195" location="(19, 18)"/>
         <node-val character="'physical'" node="'triangle16'" key="'_image_paths'" tick="196">
@@ -14486,6 +14523,7 @@
         </node-val>
         <node character="'physical'" name="'triangle16'" tick="197" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle16'" tick="197" rulebook="('physical', 'triangle16')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle16'" tick="198" is-unit="true"/>
         <node character="'physical'" name="'triangle17'" tick="199" exists="true"/>
         <location character="'physical'" thing="'triangle17'" tick="199" location="(17, 1)"/>
         <node-val character="'physical'" node="'triangle17'" key="'_image_paths'" tick="200">
@@ -14495,6 +14533,7 @@
         </node-val>
         <node character="'physical'" name="'triangle17'" tick="201" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle17'" tick="201" rulebook="('physical', 'triangle17')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle17'" tick="202" is-unit="true"/>
         <node character="'physical'" name="'triangle18'" tick="203" exists="true"/>
         <location character="'physical'" thing="'triangle18'" tick="203" location="(0, 8)"/>
         <node-val character="'physical'" node="'triangle18'" key="'_image_paths'" tick="204">
@@ -14504,6 +14543,7 @@
         </node-val>
         <node character="'physical'" name="'triangle18'" tick="205" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle18'" tick="205" rulebook="('physical', 'triangle18')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle18'" tick="206" is-unit="true"/>
         <node character="'physical'" name="'triangle19'" tick="207" exists="true"/>
         <location character="'physical'" thing="'triangle19'" tick="207" location="(6, 19)"/>
         <node-val character="'physical'" node="'triangle19'" key="'_image_paths'" tick="208">
@@ -14513,6 +14553,7 @@
         </node-val>
         <node character="'physical'" name="'triangle19'" tick="209" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle19'" tick="209" rulebook="('physical', 'triangle19')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle19'" tick="210" is-unit="true"/>
         <node character="'physical'" name="'triangle20'" tick="211" exists="true"/>
         <location character="'physical'" thing="'triangle20'" tick="211" location="(6, 15)"/>
         <node-val character="'physical'" node="'triangle20'" key="'_image_paths'" tick="212">
@@ -14522,6 +14563,7 @@
         </node-val>
         <node character="'physical'" name="'triangle20'" tick="213" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle20'" tick="213" rulebook="('physical', 'triangle20')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle20'" tick="214" is-unit="true"/>
         <node character="'physical'" name="'triangle21'" tick="215" exists="true"/>
         <location character="'physical'" thing="'triangle21'" tick="215" location="(7, 18)"/>
         <node-val character="'physical'" node="'triangle21'" key="'_image_paths'" tick="216">
@@ -14531,6 +14573,7 @@
         </node-val>
         <node character="'physical'" name="'triangle21'" tick="217" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle21'" tick="217" rulebook="('physical', 'triangle21')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle21'" tick="218" is-unit="true"/>
         <node character="'physical'" name="'triangle22'" tick="219" exists="true"/>
         <location character="'physical'" thing="'triangle22'" tick="219" location="(12, 12)"/>
         <node-val character="'physical'" node="'triangle22'" key="'_image_paths'" tick="220">
@@ -14540,6 +14583,7 @@
         </node-val>
         <node character="'physical'" name="'triangle22'" tick="221" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle22'" tick="221" rulebook="('physical', 'triangle22')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle22'" tick="222" is-unit="true"/>
         <node character="'physical'" name="'triangle23'" tick="223" exists="true"/>
         <location character="'physical'" thing="'triangle23'" tick="223" location="(14, 10)"/>
         <node-val character="'physical'" node="'triangle23'" key="'_image_paths'" tick="224">
@@ -14549,6 +14593,7 @@
         </node-val>
         <node character="'physical'" name="'triangle23'" tick="225" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle23'" tick="225" rulebook="('physical', 'triangle23')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle23'" tick="226" is-unit="true"/>
         <node character="'physical'" name="'triangle24'" tick="227" exists="true"/>
         <location character="'physical'" thing="'triangle24'" tick="227" location="(10, 2)"/>
         <node-val character="'physical'" node="'triangle24'" key="'_image_paths'" tick="228">
@@ -14558,6 +14603,7 @@
         </node-val>
         <node character="'physical'" name="'triangle24'" tick="229" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle24'" tick="229" rulebook="('physical', 'triangle24')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle24'" tick="230" is-unit="true"/>
         <node character="'physical'" name="'triangle25'" tick="231" exists="true"/>
         <location character="'physical'" thing="'triangle25'" tick="231" location="(19, 11)"/>
         <node-val character="'physical'" node="'triangle25'" key="'_image_paths'" tick="232">
@@ -14567,6 +14613,7 @@
         </node-val>
         <node character="'physical'" name="'triangle25'" tick="233" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle25'" tick="233" rulebook="('physical', 'triangle25')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle25'" tick="234" is-unit="true"/>
         <node character="'physical'" name="'triangle26'" tick="235" exists="true"/>
         <location character="'physical'" thing="'triangle26'" tick="235" location="(3, 12)"/>
         <node-val character="'physical'" node="'triangle26'" key="'_image_paths'" tick="236">
@@ -14576,6 +14623,7 @@
         </node-val>
         <node character="'physical'" name="'triangle26'" tick="237" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle26'" tick="237" rulebook="('physical', 'triangle26')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle26'" tick="238" is-unit="true"/>
         <node character="'physical'" name="'triangle27'" tick="239" exists="true"/>
         <location character="'physical'" thing="'triangle27'" tick="239" location="(2, 5)"/>
         <node-val character="'physical'" node="'triangle27'" key="'_image_paths'" tick="240">
@@ -14585,6 +14633,7 @@
         </node-val>
         <node character="'physical'" name="'triangle27'" tick="241" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle27'" tick="241" rulebook="('physical', 'triangle27')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle27'" tick="242" is-unit="true"/>
         <node character="'physical'" name="'triangle28'" tick="243" exists="true"/>
         <location character="'physical'" thing="'triangle28'" tick="243" location="(2, 14)"/>
         <node-val character="'physical'" node="'triangle28'" key="'_image_paths'" tick="244">
@@ -14594,6 +14643,7 @@
         </node-val>
         <node character="'physical'" name="'triangle28'" tick="245" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle28'" tick="245" rulebook="('physical', 'triangle28')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle28'" tick="246" is-unit="true"/>
         <node character="'physical'" name="'triangle29'" tick="247" exists="true"/>
         <location character="'physical'" thing="'triangle29'" tick="247" location="(0, 4)"/>
         <node-val character="'physical'" node="'triangle29'" key="'_image_paths'" tick="248">
@@ -14603,6 +14653,7 @@
         </node-val>
         <node character="'physical'" name="'triangle29'" tick="249" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle29'" tick="249" rulebook="('physical', 'triangle29')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle29'" tick="250" is-unit="true"/>
         <node character="'physical'" name="'triangle30'" tick="251" exists="true"/>
         <location character="'physical'" thing="'triangle30'" tick="251" location="(17, 5)"/>
         <node-val character="'physical'" node="'triangle30'" key="'_image_paths'" tick="252">
@@ -14612,6 +14663,7 @@
         </node-val>
         <node character="'physical'" name="'triangle30'" tick="253" exists="true"/>
         <node-rulebook character="'physical'" node="'triangle30'" tick="253" rulebook="('physical', 'triangle30')"/>
+        <unit character-graph="'triangle'" unit-graph="'physical'" unit-node="'triangle30'" tick="254" is-unit="true"/>
       </turn>
     </branch>
   </playtree>
