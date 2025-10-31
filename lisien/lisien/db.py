@@ -293,6 +293,7 @@ class Batch(list):
 	"""`cached_property` objects produced by `@batched`"""
 	serializers = {}
 	"""Serialization functions decorated by `@batched`"""
+	argspec: inspect.FullArgSpec
 
 	_hint2type = {}
 
@@ -302,7 +303,8 @@ class Batch(list):
 		table: str,
 		key_len: int,
 		inc_rec_counter: bool,
-		serialize_record: Callable[[_ARGS, ...], tuple[bytes, ...]],
+		per_character: bool,
+		serialize_record: Callable,
 	):
 		super().__init__()
 		self._qe = qe
@@ -310,6 +312,7 @@ class Batch(list):
 		self.key_len = key_len
 		self.inc_rec_counter = inc_rec_counter
 		self.serialize_record = serialize_record
+		self.per_character = per_character
 		self.argspec = inspect.getfullargspec(self.serialize_record)
 
 	def cull(self, condition: Callable[..., bool]) -> None:
@@ -325,6 +328,128 @@ class Batch(list):
 				partial(self._call_with_unpacked_tuple, condition), datta
 			)
 		)
+
+	@cached_property
+	def deserialize(self) -> Callable[[tuple], tuple]:
+		argspec = self.argspec
+		unpack = self._qe.unpack
+
+		ret_annot = argspec.annotations["return"]
+		if isinstance(ret_annot, str):
+			ret_annot = eval(ret_annot)
+		types_on_disk = get_args(ret_annot)
+
+		# I'd like a more informative return type
+		def deserialize(rec: types_on_disk) -> tuple:
+			assert len(rec) == len(types_on_disk)
+			return tuple(
+				unpack(item) if type_on_disk is bytes else item
+				for (item, type_on_disk) in zip(rec, types_on_disk)
+			)
+
+		return deserialize
+
+	@cached_property
+	def get_lists(self) -> Callable[[dict, Branch, Queue], tuple]:
+		if self.per_character:
+			argspec = self.argspec
+			args = argspec.args[1:]
+			argtyps = [
+				eval(annot) if isinstance(annot, str) else annot
+				for annot in (argspec.annotations[arg] for arg in args)
+			]
+			char_index = argtyps.index(CharName)
+
+			def get_lists(ret: dict, branch: Branch, outq: Queue) -> tuple:
+				while isinstance(got := outq.get(), list):
+					for rec in got:
+						if isinstance(rec, dict):
+							rec = tuple(
+								rec[arg] for arg in self.argspec.args[1:]
+							)
+						else:
+							rec = (branch, *rec)
+						charn = rec[char_index]
+						try:
+							ret[charn][self.table].append(
+								self.deserialize(rec)
+							)
+						except TypeError as ex:
+							raise TypeError(*ex.args, self.table, rec) from ex
+					outq.task_done()
+				return got
+		else:
+
+			def get_lists(ret: dict, branch: Branch, outq: Queue) -> tuple:
+				while isinstance(got := outq.get(), list):
+					for rec in got:
+						if isinstance(rec, dict):
+							rec = tuple(
+								rec[arg] for arg in self.argspec.args[1:]
+							)
+						else:
+							rec = (branch, *rec)
+						try:
+							ret[self.table].append(self.deserialize(rec))
+						except TypeError as ex:
+							raise TypeError(*ex.args, self.table, rec) from ex
+					outq.task_done()
+				return got
+
+		return get_lists
+
+	@cached_property
+	def window_getter(
+		self,
+	) -> Callable[
+		[
+			ThreadedDatabaseConnector,
+			dict,
+			Branch,
+			Turn,
+			Tick,
+			Turn | None,
+			Tick | None,
+		],
+		None,
+	]:
+		table = self.table
+		get_lists = self.get_lists
+
+		def get_a_window(
+			self: ThreadedDatabaseConnector,
+			ret: dict,
+			branch: Branch,
+			turn_from: Turn,
+			tick_from: Tick,
+			turn_to: Turn | None,
+			tick_to: Tick | None,
+		) -> None:
+			outq: Queue = self._outq
+			if (got := outq.get()) != (
+				"begin",
+				table,
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			):
+				raise RuntimeError("Expected beginning of " + table, got)
+			outq.task_done()
+			got = get_lists(ret, branch, outq)
+			if got != (
+				"end",
+				table,
+				branch,
+				turn_from,
+				tick_from,
+				turn_to,
+				tick_to,
+			):
+				raise RuntimeError("Expected end of " + table, got)
+
+		return get_a_window
 
 	@staticmethod
 	def _call_with_unpacked_tuple(func, tup):
@@ -400,6 +525,7 @@ def batched(
 	*,
 	key_len: int = 0,
 	inc_rec_counter: bool = True,
+	per_character: bool = False,
 ) -> partial | cached_property:
 	"""Decorator for serializers that operate on batches of records
 
@@ -412,6 +538,9 @@ def batched(
 		those in the batch.
 	:param inc_rec_counter: Whether to count these records toward the number
 		needed to trigger an automatic keyframe snap.
+	:param per_character: Whether to group the records by the character they
+		are about when loading. Default ``False``. Won't work unless the return
+		type has a ``CharName`` annotation.
 
 	"""
 	if serialize_record is None:
@@ -420,6 +549,7 @@ def batched(
 			table,
 			key_len=key_len,
 			inc_rec_counter=inc_rec_counter,
+			per_character=per_character,
 		)
 	Batch.serializers[table] = serialize_record
 	serialized_tuple_type = get_type_hints(serialize_record)["return"]
@@ -432,6 +562,7 @@ def batched(
 			table,
 			key_len,
 			inc_rec_counter,
+			per_character,
 			MethodType(serialize_record, self),
 		)
 
@@ -701,6 +832,7 @@ class AbstractDatabaseConnector(ABC):
 	@batched(
 		"character_rulebook",
 		key_len=4,
+		per_character=True,
 	)
 	def _character_rulebook_to_set(
 		self,
@@ -713,7 +845,7 @@ class AbstractDatabaseConnector(ABC):
 		pack = self.pack
 		return branch, turn, tick, pack(character), pack(rulebook)
 
-	@batched("unit_rulebook", key_len=4)
+	@batched("unit_rulebook", key_len=4, per_character=True)
 	def _unit_rulebook_to_set(
 		self,
 		branch: Branch,
@@ -728,6 +860,7 @@ class AbstractDatabaseConnector(ABC):
 	@batched(
 		"character_thing_rulebook",
 		key_len=4,
+		per_character=True,
 	)
 	def _character_thing_rulebook_to_set(
 		self,
@@ -743,6 +876,7 @@ class AbstractDatabaseConnector(ABC):
 	@batched(
 		"character_place_rulebook",
 		key_len=4,
+		per_character=True,
 	)
 	def _character_place_rulebook_to_set(
 		self,
@@ -758,6 +892,7 @@ class AbstractDatabaseConnector(ABC):
 	@batched(
 		"character_portal_rulebook",
 		key_len=4,
+		per_character=True,
 	)
 	def _character_portal_rulebook_to_set(
 		self,
@@ -770,7 +905,7 @@ class AbstractDatabaseConnector(ABC):
 		pack = self.pack
 		return branch, turn, tick, pack(character), pack(rulebook)
 
-	@batched("node_rulebook", key_len=5)
+	@batched("node_rulebook", key_len=5, per_character=True)
 	def _noderb2set(
 		self,
 		branch: Branch,
@@ -786,6 +921,7 @@ class AbstractDatabaseConnector(ABC):
 	@batched(
 		"portal_rulebook",
 		key_len=6,
+		per_character=True,
 	)
 	def _portrb2set(
 		self,
@@ -808,7 +944,7 @@ class AbstractDatabaseConnector(ABC):
 			pack(rulebook),
 		)
 
-	@batched("nodes", key_len=5)
+	@batched("nodes", key_len=5, per_character=True)
 	def _nodes2set(
 		self,
 		branch: Branch,
@@ -827,7 +963,7 @@ class AbstractDatabaseConnector(ABC):
 			lambda b, r, t, *_: (b, r, t) == (branch, turn, tick)
 		)
 
-	@batched("edges", key_len=6)
+	@batched("edges", key_len=6, per_character=True)
 	def _edges2set(
 		self,
 		branch: Branch,
@@ -855,7 +991,7 @@ class AbstractDatabaseConnector(ABC):
 			lambda b, r, t, *_: (b, r, t) == (branch, turn, tick)
 		)
 
-	@batched("node_val", key_len=6)
+	@batched("node_val", key_len=6, per_character=True)
 	def _nodevals2set(
 		self,
 		branch: Branch,
@@ -885,7 +1021,7 @@ class AbstractDatabaseConnector(ABC):
 			lambda g, n, k, b, r, t, v: (b, r, t) == (branch, turn, tick)
 		)
 
-	@batched("edge_val", key_len=7)
+	@batched("edge_val", key_len=7, per_character=True)
 	def _edgevals2set(
 		self,
 		branch: Branch,
@@ -917,7 +1053,7 @@ class AbstractDatabaseConnector(ABC):
 			lambda b, r, t, *_: (b, r, t) == (branch, turn, tick)
 		)
 
-	@batched("graph_val", key_len=5)
+	@batched("graph_val", key_len=5, per_character=True)
 	def _graphvals2set(
 		self,
 		branch: Branch,
@@ -1108,7 +1244,7 @@ class AbstractDatabaseConnector(ABC):
 		)
 		return branch, turn, character, orig, dest, rulebook, rule, tick
 
-	@batched("units", key_len=6)
+	@batched("units", key_len=6, per_character=True)
 	def _unitness(
 		self,
 		branch: Branch,
@@ -1132,7 +1268,7 @@ class AbstractDatabaseConnector(ABC):
 			is_unit,
 		)
 
-	@batched("things", key_len=5)
+	@batched("things", key_len=5, per_character=True)
 	def _things2set(
 		self,
 		branch: Branch,
@@ -2674,7 +2810,7 @@ class AbstractDatabaseConnector(ABC):
 		return univ_el
 
 	def _rulebooks_el(self, rulebook_rec: RulebookRowType) -> Element:
-		b, r, t, rb, (rules, prio) = rulebook_rec
+		b, r, t, rb, rules, prio = rulebook_rec
 		rb_el = Element(
 			"rulebook",
 			name=repr(rb),
@@ -5975,7 +6111,7 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 			"turn_from": turn_from,
 			"tick_from": tick_from,
 		}
-		for i, infix in enumerate(self._infixes2load):
+		for infix in self._infixes2load:
 			self._inq.put(
 				(
 					"echo",
@@ -6015,7 +6151,7 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 			"turn_to": turn_to,
 			"tick_to": tick_to,
 		}
-		for i, infix in enumerate(self._infixes2load):
+		for infix in self._infixes2load:
 			self._inq.put(
 				(
 					"echo",
@@ -6075,421 +6211,6 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 			raise TypeError("Invalid key", unpacked)
 		return unpacked
 
-	@window_getter("graphs")
-	def _unpack_graph_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		graph: bytes,
-		type: GraphTypeStr,
-	) -> tuple[Branch, Turn, Tick, CharName, GraphTypeStr]:
-		graph = CharName(self.unpack_key(graph))
-		if type not in get_args(GraphTypeStr):
-			raise TypeError("Unknown graph type", type)
-		return branch, turn, tick, graph, type
-
-	@window_getter("nodes", per_character=True)
-	def _unpack_node_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		graph: bytes,
-		node: bytes,
-		extant: bool,
-	) -> tuple[Branch, Turn, Tick, CharName, NodeName, bool]:
-		graph = CharName(self.unpack_key(graph))
-		node = NodeName(self.unpack_key(node))
-		return branch, turn, tick, graph, node, extant
-
-	@window_getter("edges", per_character=True)
-	def _unpack_edge_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		graph: bytes,
-		orig: bytes,
-		dest: bytes,
-		extant: bool,
-	) -> tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, bool]:
-		graph = CharName(self.unpack_key(graph))
-		orig = NodeName(self.unpack_key(orig))
-		dest = NodeName(self.unpack_key(dest))
-		return branch, turn, tick, graph, orig, dest, extant
-
-	@window_getter("graph_val", per_character=True)
-	def _unpack_graph_val_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		graph: bytes,
-		key: bytes,
-		value: bytes,
-	) -> tuple[Branch, Turn, Tick, CharName, Stat, Value]:
-		graph = CharName(self.unpack_key(graph))
-		stat = Stat(self.unpack_key(key))
-		value = self.unpack(value)
-		return branch, turn, tick, graph, stat, value
-
-	@window_getter("node_val", per_character=True)
-	def _unpack_node_val_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		graph: bytes,
-		node: bytes,
-		key: bytes,
-		value: bytes,
-	) -> tuple[Branch, Turn, Tick, CharName, NodeName, Stat, Value]:
-		graph = CharName(self.unpack_key(graph))
-		node = NodeName(self.unpack_key(node))
-		key = Stat(self.unpack_key(key))
-		val = self.unpack(value)
-		return branch, turn, tick, graph, node, key, val
-
-	@window_getter("edge_val", per_character=True)
-	def _unpack_edge_val_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		graph: bytes,
-		orig: bytes,
-		dest: bytes,
-		key: bytes,
-		value: bytes,
-	) -> tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, Stat, Value]:
-		graph = CharName(self.unpack_key(graph))
-		orig = NodeName(self.unpack_key(orig))
-		dest = NodeName(self.unpack_key(dest))
-		key = Stat(self.unpack_key(key))
-		val = self.unpack(value)
-		return branch, turn, tick, graph, orig, dest, key, val
-
-	@window_getter("things", per_character=True)
-	def _unpack_thing_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		character: bytes,
-		thing: bytes,
-		location: bytes,
-	) -> tuple[Branch, Turn, Tick, CharName, NodeName, NodeName | type(...)]:
-		character = CharName(self.unpack_key(character))
-		thing = NodeName(self.unpack_key(thing))
-		loc = self.unpack(location)
-		if loc is not ...:
-			if not isinstance(loc, Key):
-				raise TypeError("Invalid location", loc)
-			loc = NodeName(loc)
-		return branch, turn, tick, character, thing, loc
-
-	@window_getter("units", per_character=True)
-	def _unpack_unit_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		character_graph: bytes,
-		unit_graph: bytes,
-		unit_node: bytes,
-		is_unit: bool,
-	) -> tuple[Branch, Turn, Tick, CharName, CharName, NodeName, bool]:
-		character = CharName(self.unpack_key(character_graph))
-		graph = CharName(self.unpack_key(unit_graph))
-		unit = NodeName(self.unpack_key(unit_node))
-		return branch, turn, tick, character, graph, unit, is_unit
-
-	def _unpack_char_rb_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		character: bytes,
-		rulebook: bytes,
-	) -> tuple[Branch, Turn, Tick, CharName, RulebookName]:
-		character = CharName(self.unpack_key(character))
-		rulebook = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, tick, character, rulebook
-
-	_unpack_character_rulebook_rec = window_getter(
-		"character_rulebook", _unpack_char_rb_rec, True
-	)
-	_unpack_unit_rb_rec = window_getter(
-		"unit_rulebook", _unpack_char_rb_rec, True
-	)
-	_unpack_char_thing_rb_rec = window_getter(
-		"character_thing_rulebook", _unpack_char_rb_rec, True
-	)
-	_unpack_char_place_rb_rec = window_getter(
-		"character_place_rulebook", _unpack_char_rb_rec, True
-	)
-	_unpack_char_portal_rb_rec = window_getter(
-		"character_portal_rulebook", _unpack_char_rb_rec, True
-	)
-
-	@window_getter("node_rulebook", per_character=True)
-	def _unpack_node_rb_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		character: bytes,
-		node: bytes,
-		rulebook: bytes,
-	) -> tuple[Branch, Turn, Tick, CharName, NodeName, RulebookName]:
-		graph = CharName(self.unpack_key(character))
-		node = NodeName(self.unpack_key(node))
-		rulebook = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, tick, graph, node, rulebook
-
-	@window_getter("portal_rulebook", per_character=True)
-	def _unpack_port_rb_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		characte: bytes,
-		orig: bytes,
-		dest: bytes,
-		rulebook: bytes,
-	) -> tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName]:
-		graph = CharName(self.unpack_key(character))
-		orig = NodeName(self.unpack_key(orig))
-		dest = NodeName(self.unpack_key(dest))
-		rulebook = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, tick, graph, orig, dest, rulebook
-
-	@window_getter("universals")
-	def _unpack_universal_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		key: bytes,
-		value: bytes,
-	) -> tuple[Branch, Turn, Tick, UniversalKey, Value]:
-		key = UniversalKey(self.unpack_key(key))
-		value = self.unpack(value)
-		return branch, turn, tick, key, value
-
-	@window_getter("rulebooks")
-	def _unpack_rulebook_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rulebook: bytes,
-		rules: bytes,
-		priority: RulebookPriority,
-	) -> tuple[
-		Branch,
-		Turn,
-		Tick,
-		RulebookName,
-		tuple[list[RuleName], RulebookPriority],
-	]:
-		rulebook = RulebookName(self.unpack_key(rulebook))
-		rules = self.unpack(rules)
-		if not isinstance(rules, list):
-			raise TypeError("Invalid rules list", rules)
-		return (
-			branch,
-			turn,
-			tick,
-			rulebook,
-			(list(map(rulename, rules)), priority),
-		)
-
-	@window_getter("rule_triggers")
-	def _unpack_rule_trigs_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rule: RuleName,
-		triggers: bytes,
-	) -> tuple[Branch, Turn, Tick, RuleName, list[TriggerFuncName]]:
-		trigs = self.unpack(triggers)
-		if not isinstance(trigs, list):
-			raise TypeError("Invalid triggers list", trigs)
-		return branch, turn, tick, rule, list(map(trigfuncn, trigs))
-
-	@window_getter("rule_prereqs")
-	def _unpack_rule_preqs_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rule: RuleName,
-		prereqs: bytes,
-	) -> tuple[Branch, Turn, Tick, RuleName, list[PrereqFuncName]]:
-		preqs = self.unpack(prereqs)
-		if not isinstance(preqs, list):
-			raise TypeError("Invalid prereqs list", preqs)
-		return branch, turn, tick, rule, list(map(preqfuncn, preqs))
-
-	@window_getter("rule_actions")
-	def _unpack_rule_acts_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rule: RuleName,
-		actions: bytes,
-	) -> tuple[Branch, Turn, Tick, RuleName, list[ActionFuncName]]:
-		acts = self.unpack(actions)
-		if not isinstance(acts, list):
-			raise TypeError("Invalid actions list", acts)
-		return branch, turn, tick, rule, list(map(actfuncn, acts))
-
-	@window_getter("rule_neighborhood")
-	def _unpack_rule_nbrs_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rule: RuleName,
-		neighborhood: RuleNeighborhood,
-	) -> tuple[Branch, Turn, Tick, RuleName, RuleNeighborhood]:
-		if neighborhood is not None and not (
-			isinstance(neighborhood, int) and neighborhood >= 0
-		):
-			raise TypeError("Invalid rule neighborhood", neighborhood)
-		return branch, turn, tick, rule, neighborhood
-
-	@window_getter("rule_big")
-	def _unpack_rule_big_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		rule: RuleName,
-		big: RuleBig,
-	) -> tuple[Branch, Turn, Tick, RuleName, RuleBig]:
-		return branch, turn, tick, rule, big
-
-	@window_getter("character_rules_handled")
-	def _unpack_char_rule_handled_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		character: bytes,
-		rulebook: bytes,
-		rule: RuleName,
-		tick: Tick,
-	) -> CharacterRulesHandledRowType:
-		char = CharName(self.unpack_key(character))
-		rb = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, char, rb, rule, tick
-
-	@window_getter("unit_rules_handled")
-	def _unpack_unit_rule_handled_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		character: bytes,
-		graph: bytes,
-		unit: bytes,
-		rulebook: bytes,
-		rule: RuleName,
-		tick: Tick,
-	) -> UnitRulesHandledRowType:
-		char = CharName(self.unpack_key(character))
-		graph = CharName(self.unpack_key(graph))
-		unit = NodeName(self.unpack_key(unit))
-		rb = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, char, graph, unit, rb, rule, tick
-
-	@window_getter("character_thing_rules_handled")
-	def _unpack_char_thing_rule_handled_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		character: bytes,
-		thing: bytes,
-		rulebook: bytes,
-		rule: RuleName,
-		tick: Tick,
-	) -> NodeRulesHandledRowType:
-		char = CharName(self.unpack_key(character))
-		thing = NodeName(self.unpack_key(thing))
-		rulebook = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, char, thing, rulebook, rule, tick
-
-	@window_getter("character_place_rules_handled")
-	def _unpack_char_place_rule_handled_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		character: bytes,
-		place: bytes,
-		rulebook: bytes,
-		rule: RuleName,
-		tick: Tick,
-	) -> NodeRulesHandledRowType:
-		char = CharName(self.unpack_key(character))
-		place = NodeName(self.unpack_key(place))
-		rulebook = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, char, place, rulebook, rule, tick
-
-	@window_getter("character_portal_rules_handled")
-	def _unpack_char_portal_rule_handled_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		character: bytes,
-		orig: bytes,
-		dest: bytes,
-		rulebook: bytes,
-		rule: RuleName,
-		tick: Tick,
-	) -> PortalRulesHandledRowType:
-		char = CharName(self.unpack_key(character))
-		orig = NodeName(self.unpack_key(orig))
-		dest = NodeName(self.unpack_key(dest))
-		rb = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, char, orig, dest, rb, rule, tick
-
-	@window_getter("node_rules_handled")
-	def _unpack_node_rule_handled_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		character: bytes,
-		node: bytes,
-		rulebook: bytes,
-		rule: RuleName,
-		tick: Tick,
-	) -> NodeRulesHandledRowType:
-		char = CharName(self.unpack_key(character))
-		node = NodeName(self.unpack_key(node))
-		rb = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, char, node, rb, rule, tick
-
-	@window_getter("portal_rules_handled")
-	def _unpack_portal_rule_handled_rec(
-		self,
-		branch: Branch,
-		turn: Turn,
-		character: bytes,
-		orig: bytes,
-		dest: bytes,
-		rulebook: bytes,
-		rule: RuleName,
-		tick: Tick,
-	) -> PortalRulesHandledRowType:
-		char = CharName(self.unpack_key(character))
-		orig = NodeName(self.unpack_key(orig))
-		dest = NodeName(self.unpack_key(dest))
-		rb = RulebookName(self.unpack_key(rulebook))
-		return branch, turn, char, orig, dest, rb, rule, tick
-
 	def _get_one_window(
 		self,
 		ret,
@@ -6503,6 +6224,8 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 			f"_get_one_window({branch}, {turn_from}, {tick_from}, {turn_to}, {tick_to})"
 		)
 		for table in self._infixes2load:
-			window_getter.tables[table](
+			prop = Batch.cached_properties[table]
+			batch = getattr(self, prop.attrname)
+			batch.window_getter(
 				self, ret, branch, turn_from, tick_from, turn_to, tick_to
 			)

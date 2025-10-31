@@ -283,7 +283,8 @@ RulebookRowType: TypeAlias = tuple[
 	Turn,
 	Tick,
 	RulebookName,
-	tuple[list[RuleName], RulebookPriority],
+	list[RuleName],
+	RulebookPriority,
 ]
 RuleRowType: TypeAlias = tuple[
 	Branch,
