@@ -134,6 +134,7 @@ from .types import (
 	UniversalKey,
 	UniversalKeyframe,
 	UniversalRowType,
+	_Value,
 	Value,
 	PackSignature,
 	UnpackSignature,
@@ -3173,17 +3174,7 @@ class AbstractDatabaseConnector(ABC):
 	def _plan_times(self) -> dict[Plan, set[Time]]:
 		return {}
 
-	def _element_to_value(
-		self, el: Element
-	) -> (
-		Value
-		| list[Value]
-		| tuple[Value, ...]
-		| set[Key | type(...)]
-		| frozenset[Key | type(...)]
-		| dict[Key, Value | type(...)]
-		| type(...)
-	):
+	def _element_to_value(self, el: Element) -> Value | _Value:
 		eng = self.engine
 		match el.tag:
 			case "Ellipsis":
@@ -3251,7 +3242,9 @@ class AbstractDatabaseConnector(ABC):
 			raise TypeError("nonstring branch", ret[0])
 		return ret
 
-	def _keyframe(self, branch_el: Element, turn_el: Element, kf_el: Element):
+	def _keyframe_rec(
+		self, branch_el: Element, turn_el: Element, kf_el: Element
+	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, kf_el)
 		self.keyframe_insert(branch, turn, tick)
 		universal_kf: UniversalKeyframe = {}
@@ -3431,7 +3424,9 @@ class AbstractDatabaseConnector(ABC):
 				graph_val_kf.get(graph, {}),
 			)
 
-	def _universal(self, branch_el: Element, turn_el: Element, el: Element):
+	def _universal_rec(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		key = UniversalKey(literal_eval(el.get("key")))
@@ -3498,11 +3493,11 @@ class AbstractDatabaseConnector(ABC):
 		else:
 			d[rule] = {branch: SettingsTurnDict({turn: {tick: datum}})}
 
-	_rule_triggers = partialmethod(_rule_func_list, "triggers")
-	_rule_prereqs = partialmethod(_rule_func_list, "prereqs")
-	_rule_actions = partialmethod(_rule_func_list, "actions")
+	_rule_triggers_rec = partialmethod(_rule_func_list, "triggers")
+	_rule_prereqs_rec = partialmethod(_rule_func_list, "prereqs")
+	_rule_actions_rec = partialmethod(_rule_func_list, "actions")
 
-	def _rule_neighborhood(
+	def _rule_neighborhood_rec(
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
@@ -3520,26 +3515,54 @@ class AbstractDatabaseConnector(ABC):
 			neighborhood,
 		)
 
-	def _rule_big(self, branch_el: Element, turn_el: Element, el: Element):
+	def _rule_big_rec(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		big = RuleBig(el.get("big") in {"T", "true"})
 		rule = RuleName(el.get("rule"))
 		self._memorize_rule("big", rule, branch, turn, tick, big)
 
-	def _graph(self, branch_el: Element, turn_el: Element, el: Element):
+	def _rulebook_rec(
+		self, branch_el: Element, turn_el: Element, el: Element
+	) -> None:
+		branch, turn, tick = self._get_time(branch_el, turn_el, el)
+		self._get_plans(el, branch, turn, tick)
+		rbn = el.get("name")
+		try:
+			rulebook = RulebookName(eval(rbn))
+		except TypeError as ex:
+			raise TypeError("Invalid rulebook name", rbn, *ex.args) from ex
+		pri = el.get("priority")
+		try:
+			priority = RulebookPriority(float(pri))
+		except TypeError as ex:
+			raise TypeError("Invalid rulebook priority", pri, *ex.args) from ex
+		child_el: Element
+		rules: list[RuleName] = []
+		for child_el in el:
+			rule = RuleName(child_el.get("name"))
+			if not isinstance(rule, str):
+				raise TypeError("Invalid rule name", rule)
+			rules.append(rule)
+		self._rulebooks2set.append(
+			(branch, turn, tick, rulebook, rules, priority)
+		)
+
+	def _graph_rec(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		graph = CharName(literal_eval(el.get("character")))
-		typ_str = el.get("type")
-		if typ_str is None:
+		typ_str_ = el.get("type")
+		if typ_str_ is None:
 			raise TypeError("Missing graph type", el)
-		if typ_str not in get_args(GraphTypeStr):
-			raise TypeError("Unknown graph type", typ_str)
-		typ_str: GraphTypeStr
+		if typ_str_ not in get_args(GraphTypeStr):
+			raise TypeError("Unknown graph type", typ_str_)
+		typ_str: GraphTypeStr = typ_str_
 		self.graphs_insert(graph, branch, turn, tick, typ_str)
 
-	def _graph_val(self, branch_el: Element, turn_el: Element, el: Element):
+	def _graph_val_rec(
+		self, branch_el: Element, turn_el: Element, el: Element
+	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		graph = CharName(literal_eval(el.get("character")))
@@ -3547,7 +3570,7 @@ class AbstractDatabaseConnector(ABC):
 		value = self._element_to_value(el[0])
 		self.graph_val_set(graph, key, branch, turn, tick, value)
 
-	def _node(self, branch_el: Element, turn_el: Element, el: Element):
+	def _node_rec(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
@@ -3555,7 +3578,7 @@ class AbstractDatabaseConnector(ABC):
 		ex = el.get("exists") in {"T", "true"}
 		self.exist_node(char, node, branch, turn, tick, ex)
 
-	def _node_val(self, branch_el: Element, turn_el: Element, el: Element):
+	def _node_val_rec(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
@@ -3564,7 +3587,7 @@ class AbstractDatabaseConnector(ABC):
 		val = self._element_to_value(el[0])
 		self.node_val_set(char, node, key, branch, turn, tick, val)
 
-	def _edge(self, branch_el: Element, turn_el: Element, el: Element):
+	def _edge_rec(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
@@ -3573,7 +3596,7 @@ class AbstractDatabaseConnector(ABC):
 		ex = el.get("exists") in {"T", "true"}
 		self.exist_edge(char, orig, dest, branch, turn, tick, ex)
 
-	def _edge_val(self, branch_el: Element, turn_el: Element, el: Element):
+	def _edge_val_rec(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
@@ -3583,7 +3606,7 @@ class AbstractDatabaseConnector(ABC):
 		val = self._element_to_value(el[0])
 		self.edge_val_set(char, orig, dest, key, branch, turn, tick, val)
 
-	def _location(self, branch_el: Element, turn_el: Element, el: Element):
+	def _location_rec(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character")))
@@ -3591,7 +3614,7 @@ class AbstractDatabaseConnector(ABC):
 		location = NodeName(literal_eval(el.get("location")))
 		self.set_thing_loc(char, thing, branch, turn, tick, location)
 
-	def _unit(self, branch_el: Element, turn_el: Element, el: Element):
+	def _unit_rec(self, branch_el: Element, turn_el: Element, el: Element):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
 		self._get_plans(el, branch, turn, tick)
 		char = CharName(literal_eval(el.get("character-graph")))
@@ -3617,40 +3640,40 @@ class AbstractDatabaseConnector(ABC):
 		rb = RulebookName(literal_eval(el.get("rulebook")))
 		meth(char, branch, turn, tick, rb)
 
-	def _character_rulebook(
+	def _character_rulebook_rec(
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		self._some_character_rulebook(
 			branch_el, turn_el, "character_rulebook", el
 		)
 
-	def _unit_rulebook(
+	def _unit_rulebook_rec(
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		self._some_character_rulebook(branch_el, turn_el, "unit_rulebook", el)
 
-	def _character_thing_rulebook(
+	def _character_thing_rulebook_rec(
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		self._some_character_rulebook(
 			branch_el, turn_el, "character_thing_rulebook", el
 		)
 
-	def _character_place_rulebook(
+	def _character_place_rulebook_rec(
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		self._some_character_rulebook(
 			branch_el, turn_el, "character_place_rulebook", el
 		)
 
-	def _character_portal_rulebook(
+	def _character_portal_rulebook_rec(
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		self._some_character_rulebook(
 			branch_el, turn_el, "character_portal_rulebook", el
 		)
 
-	def _node_rulebook(
+	def _node_rulebook_rec(
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
@@ -3660,7 +3683,7 @@ class AbstractDatabaseConnector(ABC):
 		rb = RulebookName(literal_eval(el.get("rulebook")))
 		self.set_node_rulebook(char, node, branch, turn, tick, rb)
 
-	def _portal_rulebook(
+	def _portal_rulebook_rec(
 		self, branch_el: Element, turn_el: Element, el: Element
 	):
 		branch, turn, tick = self._get_time(branch_el, turn_el, el)
@@ -3864,11 +3887,15 @@ class AbstractDatabaseConnector(ABC):
 								self._rule(branch_el, turn_el, elem)
 								for ellem in elem:
 									getattr(
-										self, "_" + ellem.tag.replace("-", "_")
+										self,
+										"_"
+										+ ellem.tag.replace("-", "_")
+										+ "_rec",
 									)(branch_el, turn_el, ellem)
 							else:
 								getattr(
-									self, "_" + elem.tag.replace("-", "_")
+									self,
+									"_" + elem.tag.replace("-", "_") + "_rec",
 								)(branch_el, turn_el, elem)
 				known_rules = (
 					self._known_triggers.keys()
