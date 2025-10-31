@@ -710,17 +710,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				]
 			)
 
-		def create_rule(self, rule: RuleName) -> bool:
-			import pyarrow.compute as pc
-
-			db = self._get_db("rules")
-			create = not bool(
-				db.read(filters=[pc.field("rule") == rule]).num_rows
-			)
-			if create:
-				db.create([{"rule": rule}])
-			return create
-
 		def set_rulebook(
 			self,
 			rulebook: bytes,
@@ -1364,34 +1353,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	def count_all_table(self, tbl: str) -> int:
 		self.flush()
 		return self.call("rowcount", tbl)
-
-	def create_rule(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		triggers: Iterable[TriggerFuncName] = (),
-		prereqs: Iterable[PrereqFuncName] = (),
-		actions: Iterable[ActionFuncName] = (),
-		neighborhood: RuleNeighborhood = None,
-		big: RuleBig = False,
-	) -> bool:
-		if self.call(
-			"create_rule",
-			rule=rule,
-		):
-			self._triggers2set.append(
-				(branch, turn, tick, rule, list(triggers))
-			)
-			self._prereqs2set.append((branch, turn, tick, rule, list(prereqs)))
-			self._actions2set.append((branch, turn, tick, rule, list(actions)))
-			self._neighbors2set.append(
-				(branch, turn, tick, rule, neighborhood)
-			)
-			self._big2set.append((branch, turn, tick, rule, big))
-			return True
-		return False
 
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		super().things_del_time(branch, turn, tick)

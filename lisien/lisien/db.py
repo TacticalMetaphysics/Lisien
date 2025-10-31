@@ -1835,9 +1835,6 @@ class AbstractDatabaseConnector(ABC):
 		else:
 			self.create_rule(rule, branch, turn, tick, big=big)
 
-	@abstractmethod
-	def rules_insert(self, rule: RuleName): ...
-
 	def create_rule(
 		self,
 		rule: RuleName,
@@ -1849,21 +1846,13 @@ class AbstractDatabaseConnector(ABC):
 		actions: Iterable[ActionFuncName] = (),
 		neighborhood: RuleNeighborhood = None,
 		big: RuleBig = False,
-	) -> bool:
-		if rule not in self.all_rules:
-			self._triggers2set.append(
-				(branch, turn, tick, rule, list(triggers))
-			)
-			self._prereqs2set.append((branch, turn, tick, rule, list(prereqs)))
-			self._actions2set.append((branch, turn, tick, rule, list(actions)))
-			self._neighbors2set.append(
-				(branch, turn, tick, rule, neighborhood)
-			)
-			self._big2set.append((branch, turn, tick, rule, big))
-			self.all_rules.add(rule)
-			self.rules_insert(rule)
-			return True
-		return False
+	) -> None:
+		self._triggers2set.append((branch, turn, tick, rule, list(triggers)))
+		self._prereqs2set.append((branch, turn, tick, rule, list(prereqs)))
+		self._actions2set.append((branch, turn, tick, rule, list(actions)))
+		self._neighbors2set.append((branch, turn, tick, rule, neighborhood))
+		self._big2set.append((branch, turn, tick, rule, big))
+		self.all_rules.add(rule)
 
 	def set_rulebook(
 		self,
