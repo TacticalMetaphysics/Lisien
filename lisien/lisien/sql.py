@@ -1553,10 +1553,10 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			branch,
 			turn,
 			character,
-			graph,
-			unit,
 			rulebook,
 			rule,
+			graph,
+			unit,
 			tick,
 		) in self.call("unit_rules_handled_dump"):
 			yield (
