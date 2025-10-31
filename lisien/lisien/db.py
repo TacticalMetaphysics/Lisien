@@ -4469,7 +4469,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				self._character_portal_rules_handled,
 			),
 		]:
-			for key in my_table.keys():
+			for key in sort_set(my_table.keys()):
 				b, turn = key[:2]
 				tick = my_table[key]
 				if b != branch or not (
