@@ -3110,7 +3110,7 @@ class AbstractDatabaseConnector(ABC):
 								char_rb_row = char_rb_rows[0]
 		for k in uncharacterized:
 			if k in data:
-				assert not data[k]
+				assert not data[k], f"Leftover data in {k}: {data[k]}"
 		for char_name in data.keys() - uncharacterized:
 			for k, v in data[char_name].items():
 				assert not v, f"Leftover data in {char_name}'s {k}: {v}"
