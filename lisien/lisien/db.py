@@ -6564,16 +6564,16 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		self,
 		branch: Branch,
 		turn: Turn,
-		character_graph: bytes,
-		unit_graph: bytes,
-		unit_node: bytes,
+		character: bytes,
+		graph: bytes,
+		unit: bytes,
 		rulebook: bytes,
 		rule: RuleName,
 		tick: Tick,
 	) -> UnitRulesHandledRowType:
-		char = CharName(self.unpack_key(character_graph))
-		graph = CharName(self.unpack_key(unit_graph))
-		unit = NodeName(self.unpack_key(unit_node))
+		char = CharName(self.unpack_key(character))
+		graph = CharName(self.unpack_key(graph))
+		unit = NodeName(self.unpack_key(unit))
 		rb = RulebookName(self.unpack_key(rulebook))
 		return branch, turn, char, graph, unit, rb, rule, tick
 
