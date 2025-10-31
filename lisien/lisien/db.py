@@ -2677,7 +2677,7 @@ class AbstractDatabaseConnector(ABC):
 		return univ_el
 
 	def _rulebooks_el(self, rulebook_rec: RulebookRowType) -> Element:
-		rb, b, r, t, (rules, prio) = rulebook_rec
+		b, r, t, rb, (rules, prio) = rulebook_rec
 		rb_el = Element(
 			"rulebook",
 			name=repr(rb),
