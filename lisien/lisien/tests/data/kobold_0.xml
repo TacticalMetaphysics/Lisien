@@ -2746,6 +2746,17 @@
         <rulebook name="'trunk'" priority="0.0" tick="('physical', 'kobold')">
           <rule name="shrubsprint"/>
         </rulebook>
+        <rule-big rule="shrubsprint" tick="92" big="false"/>
+        <rule-triggers rule="shrubsprint" tick="93">
+          <trigger name="uncovered"/>
+        </rule-triggers>
+        <rule-prereqs rule="shrubsprint" tick="94">
+          <prereq name="breakcover"/>
+        </rule-prereqs>
+        <rule-prereqs rule="shrubsprint" tick="95">
+          <prereq name="breakcover"/>
+          <prereq name="not_traveling"/>
+        </rule-prereqs>
         <node-rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')"/>
         <rule-actions rule="fight" tick="96">
           <action name="fight"/>
@@ -2757,6 +2768,17 @@
         <rulebook name="'trunk'" priority="0.0" tick="('physical', 'dwarf')">
           <rule name="fight"/>
         </rulebook>
+        <rule-big rule="fight" tick="98" big="false"/>
+        <rule-triggers rule="fight" tick="99">
+          <trigger name="sametile"/>
+        </rule-triggers>
+        <rule-prereqs rule="fight" tick="100">
+          <prereq name="kobold_alive"/>
+        </rule-prereqs>
+        <rule-prereqs rule="fight" tick="101">
+          <prereq name="kobold_alive"/>
+          <prereq name="aware"/>
+        </rule-prereqs>
         <rule-actions rule="kill_kobold" tick="102">
           <action name="kill_kobold"/>
         </rule-actions>
@@ -2768,6 +2790,13 @@
           <rule name="fight"/>
           <rule name="kill_kobold"/>
         </rulebook>
+        <rule-big rule="kill_kobold" tick="104" big="false"/>
+        <rule-triggers rule="kill_kobold" tick="105">
+          <trigger name="kobold_alive"/>
+        </rule-triggers>
+        <rule-prereqs rule="kill_kobold" tick="106">
+          <prereq name="unmerciful"/>
+        </rule-prereqs>
         <rule-actions rule="go2kobold" tick="107">
           <action name="go2kobold"/>
         </rule-actions>
@@ -2780,6 +2809,17 @@
           <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
         </rulebook>
+        <rule-big rule="go2kobold" tick="109" big="false"/>
+        <rule-triggers rule="go2kobold" tick="110">
+          <trigger name="aware"/>
+        </rule-triggers>
+        <rule-prereqs rule="go2kobold" tick="111">
+          <prereq name="kobold_alive"/>
+        </rule-prereqs>
+        <rule-prereqs rule="go2kobold" tick="112">
+          <prereq name="kobold_alive"/>
+          <prereq name="kobold_not_here"/>
+        </rule-prereqs>
         <rule-actions rule="wander" tick="113">
           <action name="wander"/>
         </rule-actions>
@@ -2793,6 +2833,10 @@
           <rule name="go2kobold"/>
           <rule name="wander"/>
         </rulebook>
+        <rule-big rule="wander" tick="115" big="false"/>
+        <rule-triggers rule="wander" tick="116">
+          <trigger name="standing_still"/>
+        </rule-triggers>
       </turn>
     </branch>
   </playtree>
