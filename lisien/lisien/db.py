@@ -3033,6 +3033,7 @@ class AbstractDatabaseConnector(ABC):
 					return turn_el
 				return current_rule_el
 
+			tick_now: Tick
 			for tick_now in range(plan_ending_tick + 1):
 				now = (branch_now, turn_now, tick_now)
 				if current_rule_el is None:
@@ -3050,130 +3051,137 @@ class AbstractDatabaseConnector(ABC):
 					kf = self.get_keyframe(branch_now, turn_now, tick_now)
 					self._add_keyframe_to_turn_el(turn_el, tick_now, kf)
 					keyframe_times.remove((branch_now, turn_now, tick_now))
-				if data["universals"]:
-					universal_rec: UniversalRowType = data["universals"][0]
+				if univ_recs := data.get("universals"):
+					universal_rec: UniversalRowType = univ_recs[0]
 					if universal_rec[:3] == now:
 						univ_el = self._univ_el(universal_rec)
 						get_current_el().append(univ_el)
-						del data["universals"][0]
-				if data["rulebooks"]:
-					rulebook_rec: RulebookRowType = data["rulebooks"][0]
+						del univ_recs[0]
+				if rb_recs := data.get("rulebooks"):
+					rulebook_rec: RulebookRowType = rb_recs[0]
 					if now == rulebook_rec[:3]:
 						rulebook_el = self._rulebook_el(rulebook_rec)
 						get_current_el().append(rulebook_el)
-						del data["rulebooks"][0]
-				if data["graphs"]:
-					graph_rec: GraphRowType = data["graphs"][0]
+						del rb_recs[0]
+				if graph_recs := data.get("graphs"):
+					graph_rec: GraphRowType = graph_recs[0]
 					if now == graph_rec[:3]:
 						graph_el = self._graph_el(graph_rec)
 						get_current_el().append(graph_el)
-						del data["graphs"][0]
+						del graph_recs[0]
 				if trig_recs := data.get("rule_triggers"):
 					trig_rec: TriggerRowType = trig_recs[0]
 					if now == trig_rec[:3]:
 						trel = self._rule_triggers_el(trig_rec)
 						get_current_el().append(trel)
-						del data["rule_triggers"][0]
+						del trig_recs[0]
 				if preq_recs := data.get("rule_prereqs"):
 					preq_rec: PrereqRowType = preq_recs[0]
 					if now == preq_rec[:3]:
 						prel = self._rule_prereqs_el(preq_rec)
 						get_current_el().append(prel)
-						del data["rule_prereqs"][0]
+						del preq_recs[0]
 				if act_recs := data.get("rule_actions"):
 					act_rec: ActionRowType = act_recs[0]
 					if now == act_rec[:3]:
 						actel = self._rule_actions_el(act_rec)
 						get_current_el().append(actel)
-						del data["rule_actions"][0]
+						del act_recs[0]
 				if nbr_recs := data.get("rule_neighborhood"):
 					nbr_rec: RuleNeighborhoodRowType = nbr_recs[0]
 					if now == nbr_rec[:3]:
 						nbrel = self._rule_neighborhood_el(nbr_rec)
 						get_current_el().append(nbrel)
-						del data["rule_neighborhood"][0]
+						del nbr_recs[0]
 				if big_recs := data.get("rule_big"):
 					big_rec: RuleBigRowType = big_recs[0]
 					if now == big_rec[:3]:
 						big_el = self._rule_big_el(big_rec)
 						get_current_el().append(big_el)
-						del data["rule_big"][0]
+						del big_recs[0]
 				for char_name in data.keys() - uncharacterized:
 					char_data: LoadedCharWindow = data[char_name]
-					if char_data["graph_val"]:
-						graph_val_row: GraphValRowType
-						graph_val_row = char_data["graph_val"][0]
+					if gv_rows := char_data.get("graph_val"):
+						gv_rows: list[GraphValRowType]
+						graph_val_row = gv_rows[0]
 						if graph_val_row[:3] == now:
 							gvel = self._graph_val_el(graph_val_row)
 							get_current_el().append(gvel)
-							del char_data["graph_val"][0]
-					if char_data["nodes"]:
-						nodes_row: NodeRowType = char_data["nodes"][0]
+							del gv_rows[0]
+					if n_rows := char_data.get("nodes"):
+						nodes_row: NodeRowType = n_rows[0]
 						if now == nodes_row[:3]:
 							nel = self._nodes_el(nodes_row)
 							get_current_el().append(nel)
-							del char_data["nodes"][0]
-					if char_data["node_val"]:
-						node_val_row: NodeValRowType = char_data["node_val"][0]
+							del n_rows[0]
+					if nv_rows := char_data.get("node_val"):
+						nv_rows: list[NodeValRowType]
+						node_val_row = nv_rows[0]
 						if now == node_val_row[:3]:
 							nvel = self._node_val_el(node_val_row)
 							get_current_el().append(nvel)
-							del char_data["node_val"][0]
-					if char_data["edges"]:
-						edges_row: EdgeRowType = char_data["edges"][0]
+							del nv_rows[0]
+					if e_rows := char_data.get("edges"):
+						e_rows: list[EdgeRowType]
+						edges_row = e_rows[0]
 						if now == edges_row[:3]:
 							edgel = self._edge_el(edges_row)
 							get_current_el().append(edgel)
-							del char_data["edges"][0]
-					if char_data["edge_val"]:
-						edge_val_row: EdgeValRowType = char_data["edge_val"][0]
+							del e_rows[0]
+					if ev_rows := char_data.get("edge_val"):
+						ev_rows: list[EdgeValRowType]
+						edge_val_row: EdgeValRowType = ev_rows[0]
 						if now == edge_val_row[:3]:
 							evel = self._edge_val_el(edge_val_row)
 							get_current_el().append(evel)
-							del char_data["edge_val"][0]
-					if char_data["things"]:
-						thing_row: ThingRowType = char_data["things"][0]
+							del ev_rows[0]
+					if thing_rows := char_data.get("things"):
+						thing_rows: list[ThingRowType]
+						thing_row: ThingRowType = thing_rows[0]
 						if now == thing_row[:3]:
 							thel = self._thing_el(thing_row)
 							get_current_el().append(thel)
-							del char_data["things"][0]
-					if char_data["units"]:
-						units_row: UnitRowType = char_data["units"][0]
+							del thing_rows[0]
+					if units_rows := char_data.get("units"):
+						units_rows: list[UnitRowType]
+						units_row: UnitRowType = units_rows[0]
 						if now == units_row[:3]:
 							unit_el = self._unit_el(units_row)
 							get_current_el().append(unit_el)
-							del char_data["units"][0]
-					for char_rb_typ in (
+							del units_rows[0]
+					char_rb_typ_literal = Literal[
 						"character_rulebook",
 						"unit_rulebook",
 						"character_thing_rulebook",
 						"character_place_rulebook",
 						"character_portal_rulebook",
-					):
-						if char_data[char_rb_typ]:
-							char_rb_row: CharRulebookRowType
-							char_rb_row = char_data[char_rb_typ][0]
+					]
+					char_rb_typ: char_rb_typ_literal
+					for char_rb_typ in get_args(char_rb_typ_literal):
+						if char_rb_rows := char_data.get(char_rb_typ):
+							char_rb_rows: list[CharRulebookRowType]
+							char_rb_row = char_rb_rows[0]
 							if now == char_rb_row[:3]:
 								crbel = self._char_rb_el(
 									char_rb_typ.replace("_", "-"),
 									char_rb_row,
 								)
 								get_current_el().append(crbel)
-								del char_data[char_rb_typ][0]
-					if char_data["node_rulebook"]:
-						node_rb_row: NodeRulebookRowType
-						node_rb_row = char_data["node_rulebook"][0]
+								del char_rb_rows[0]
+					if node_rb_rows := char_data.get("node_rulebook"):
+						node_rb_rows: list[NodeRulebookRowType]
+						node_rb_row = node_rb_rows[0]
 						if now == node_rb_row[:3]:
 							nrbel = self._node_rb_el(node_rb_row)
 							get_current_el().append(nrbel)
-							del char_data["node_rulebook"][0]
-					if char_data["portal_rulebook"]:
-						port_rb_row: PortalRulebookRowType
-						port_rb_row = char_data["portal_rulebook"][0]
+							del node_rb_rows[0]
+					if port_rb_rows := char_data.get("portal_rulebook"):
+						port_rb_rows: list[PortalRulebookRowType]
+						port_rb_row = port_rb_rows[0]
 						if now == port_rb_row[:3]:
 							porbel = self._portal_rb_el(port_rb_row)
 							get_current_el().append(porbel)
-							del char_data["portal_rulebook"][0]
+							del port_rb_rows[0]
 		for k in uncharacterized:
 			if k in data:
 				assert not data[k]
