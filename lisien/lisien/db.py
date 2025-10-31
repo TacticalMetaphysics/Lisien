@@ -4813,7 +4813,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		with self._lock:
 			for b, r, t, g in sort_set(self._keyframes_graphs.keys()):
-				yield g, b, r, t, *self._keyframes_graphs[b, r, t, g]
+				nkf, ekf, gkf = self._keyframes_graphs[b, r, t, g]
+				yield (CharName(g), Branch(b), Turn(r), Tick(t), nkf, ekf, gkf)
 
 	def keyframe_extensions_dump(
 		self,
@@ -4829,7 +4830,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		with self._lock:
 			for b, r, t in sort_set(self._keyframe_extensions.keys()):
-				yield b, r, t, *self._keyframe_extensions[b, r, t]
+				ukf, rkf, rbkf = self._keyframe_extensions[b, r, t]
+				yield (Branch(b), Turn(r), Tick(t), ukf, rkf, rbkf)
 
 	def universals_dump(
 		self,
