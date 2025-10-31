@@ -448,18 +448,34 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			)
 			if branch_data.num_rows == 0:
 				return []
-			data0 = branch_data.filter(pc.field("turn") == turn_from).filter(
-				pc.field("tick") >= tick_from
-			)
-			data1 = branch_data.filter(pc.field("turn") > turn_from).filter(
-				pc.field("turn") < turn_to
-			)
-			data2 = branch_data.filter(pc.field("turn") == turn_to).filter(
-				pc.field("tick") <= tick_to
-			)
-			data = pa.concat_tables([data0, data1, data2]).sort_by(
-				self._sort_columns(table)
-			)
+			if turn_from == turn_to:
+				datas = [
+					branch_data.filter(pc.field("turn") == turn_from)
+					.filter(pc.field("tick") >= tick_from)
+					.filter(pc.field("tick") <= tick_to)
+				]
+			elif turn_to == turn_from + 1:
+				datas = [
+					branch_data.filter(pc.field("turn") == turn_from).filter(
+						pc.field("tick") >= tick_from
+					),
+					branch_data.filter(pc.field("turn") == turn_to).filter(
+						pc.field("tick") <= tick_to
+					),
+				]
+			else:
+				datas = [
+					branch_data.filter(pc.field("turn") == turn_from).filter(
+						pc.field("tick") >= tick_from
+					),
+					branch_data.filter(pc.field("turn") > turn_from).filter(
+						pc.field("turn") < turn_to
+					),
+					branch_data.filter(pc.field("turn") == turn_to).filter(
+						pc.field("tick") <= tick_to
+					),
+				]
+			data = pa.concat_tables(datas).sort_by(self._sort_columns(table))
 			return data.to_pylist()
 
 		def _sort_columns(self, table: str) -> Iterator[tuple[str, str]]:
