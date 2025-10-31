@@ -4087,10 +4087,6 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		return {}
 
 	@cached_property
-	def _plans(self) -> dict[Plan, tuple[Branch, Turn, Tick]]:
-		return {}
-
-	@cached_property
 	def _plan_ticks(self) -> set[tuple[Plan, Branch, Turn, Tick]]:
 		return set()
 
@@ -4777,8 +4773,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		with self._lock:
-			for plan_id in sort_set(self._plans.keys()):
-				yield plan_id, *self._plans[plan_id]
+			for plan_tup in sort_set(self._plan_ticks):
+				yield plan_tup
 
 	commit = close = AbstractDatabaseConnector.flush
 
