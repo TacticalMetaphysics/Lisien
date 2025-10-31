@@ -4386,289 +4386,104 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			"portal_rules_handled", []
 		)
 		graphs: list[GraphRowType] = ret.setdefault("graphs", [])
-		for b, turn, tick, key in sort_set(self._universals.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			universals.append(
-				(b, turn, tick, key, self._universals[b, turn, tick, key])
-			)
-		for b, turn, tick, rb in sort_set(self._rulebooks.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			(rules_l, prio) = self._rulebooks[b, turn, tick, rb]
-			rulebooks.append((b, turn, tick, rb, (rules_l.copy(), prio)))
-		for b, turn, tick, rb in sort_set(self._rule_triggers.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			trigs_l = self._rule_triggers[b, turn, tick, rb]
-			rule_triggers.append((b, turn, tick, rb, trigs_l.copy()))
-		for b, turn, tick, rb in sort_set(self._rule_prereqs.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			preqs_l = self._rule_prereqs[b, turn, tick, rb]
-			rule_prereqs.append((b, turn, tick, rb, preqs_l.copy()))
-		for b, turn, tick, rb in sort_set(self._rule_actions.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			acts_l = self._rule_actions[b, turn, tick, rb]
-			rule_actions.append((b, turn, tick, rb, acts_l.copy()))
-		for b, turn, tick, rb in sort_set(self._rule_neighborhood.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			rule_neighborhood.append(
-				(b, turn, tick, rb, self._rule_neighborhood[b, turn, tick, rb])
-			)
-		for b, turn, tick, rb in sort_set(self._rule_big.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			rule_big.append(
-				(b, turn, tick, rb, self._rule_big[b, turn, tick, rb])
-			)
-		for b, turn, tick, g in sort_set(self._graphs.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			graphs.append((b, turn, tick, g, self._graphs[b, turn, tick, g]))
-
-		for b, turn, tick, g, n in sort_set(self._nodes.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			nodes: list[NodeRowType] = char_d["nodes"]
-			nodes.append(
-				(b, turn, tick, g, n, self._nodes[b, turn, tick, g, n])
-			)
-		for b, turn, tick, g, n, k in sort_set(self._node_val.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			node_val: list[NodeValRowType] = char_d["node_val"]
-			node_val.append(
-				(
-					b,
-					turn,
-					tick,
-					g,
-					n,
-					k,
-					self._node_val[b, turn, tick, g, n, k],
-				)
-			)
-		for b, turn, tick, g, o, d in sort_set(self._edges.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			edges: list[EdgeRowType] = char_d["edges"]
-			edges.append(
-				(b, turn, tick, g, o, d, self._edges[b, turn, tick, g, o, d])
-			)
-		for b, turn, tick, g, o, d, k in sort_set(self._edge_val.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			edge_val: list[EdgeValRowType] = char_d["edge_val"]
-			edge_val.append(
-				(
-					b,
-					turn,
-					tick,
-					g,
-					o,
-					d,
-					k,
-					self._edge_val[b, turn, tick, g, o, d, k],
-				)
-			)
-		for b, turn, tick, g, k in sort_set(self._graph_val.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			graph_val: list[GraphValRowType] = char_d["graph_val"]
-			graph_val.append(
-				(b, turn, tick, g, k, self._graph_val[b, turn, tick, g, k])
-			)
-		for b, turn, tick, g, n in sort_set(self._things.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			things: list[ThingRowType] = char_d["things"]
-			things.append(
-				(b, turn, tick, g, n, self._things[b, turn, tick, g, n])
-			)
-		for b, turn, tick, g, n in sort_set(self._node_rulebook.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			node_rulebook: list[NodeRulebookRowType] = char_d["node_rulebook"]
-			node_rulebook.append(
-				(b, turn, tick, g, n, self._node_rulebook[b, turn, tick, g, n])
-			)
-		for b, turn, tick, g, o, d in sort_set(self._portal_rulebook.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			portal_rb: list[PortalRulebookRowType] = char_d["portal_rulebook"]
-			portal_rb.append(
-				(
-					b,
-					turn,
-					tick,
-					g,
-					o,
-					d,
-					self._portal_rulebook[b, turn, tick, g, o, d],
-				)
-			)
-		for b, turn, tick, g in sort_set(self._character_rulebook.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			char_rb: list[CharRulebookRowType] = char_d["character_rulebook"]
-			char_rb.append(
-				(b, turn, tick, g, self._character_rulebook[b, turn, tick, g])
-			)
-		for b, turn, tick, g in sort_set(self._unit_rulebook.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			unit_rb: list[CharRulebookRowType] = char_d["unit_rulebook"]
-			unit_rb.append(
-				(b, turn, tick, g, self._unit_rulebook[b, turn, tick, g])
-			)
-		cthrb = self._character_thing_rulebook
-		for b, turn, tick, g in sort_set(cthrb.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			char_thing_rb: list[NodeRulebookRowType] = char_d[
-				"character_thing_rulebook"
-			]
-			char_thing_rb.append((b, turn, tick, g, cthrb[b, turn, tick, g]))
-		cplrb = self._character_place_rulebook
-		for b, turn, tick, g in sort_set(cplrb.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			cprb: list[CharRulebookRowType] = char_d[
-				"character_place_rulebook"
-			]
-			cprb.append((b, turn, tick, g, cplrb[b, turn, tick, g]))
-		cporb = self._character_portal_rulebook
-		for b, turn, tick, g in sort_set(cporb.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			char_d: LoadedCharWindow = ret[g]
-			cporb_l: list[PortalRulebookRowType] = char_d[
-				"character_portal_rulebook"
-			]
-			cporb_l.append((b, turn, tick, g, cporb[b, turn, tick, g]))
-		nrh = self._node_rules_handled
-		for b, turn, g, n, rb, rn in sort_set(nrh.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			node_rules_handled.append(
-				(b, turn, g, n, rb, rn, nrh[b, turn, g, n, rb, rn])
-			)
-		porh = self._portal_rules_handled
-		for b, r, g, o, d, rb, rn in sort_set(porh.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			portal_rules_handled.append(
-				(b, r, g, o, d, rb, rn, porh[b, r, g, o, d, rb, rn])
-			)
-		crh = self._character_rules_handled
-		for b, r, g, rb, rn in sort_set(crh.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			t = crh[b, r, g, rb, rn]
-			character_rules_handled.append((b, r, g, rb, rn, t))
-		urh = self._unit_rules_handled
-		for (
-			b,
-			r,
-			char,
-			graph,
-			node,
-			rb,
-			rn,
-		) in sort_set(urh.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			t = urh[b, r, char, graph, node, rb, rn]
-			unit_rules_handled.append((b, r, char, graph, node, rb, rn, t))
-		cthrh = self._character_thing_rules_handled
-		for b, r, g, rb, rn, n in sort_set(cthrh.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			t = cthrh[b, r, g, rb, rn, n]
-			character_thing_rules_handled.append((b, r, g, n, rb, rn, t))
-		cplrh = self._character_place_rules_handled
-		for b, r, g, n, rb, rn in sort_set(cplrh.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			t = cplrh[b, r, g, n, rb, rn]
-			character_place_rules_handled.append((b, r, g, n, rb, rn, t))
-		cporh = self._character_portal_rules_handled
-		for b, r, g, o, d, rb, rn in sort_set(cporh.keys()):
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
-			):
-				continue
-			t = cporh[b, r, g, o, d, rb, rn]
-			character_portal_rules_handled.append((b, r, g, o, d, rb, rn, t))
+		for uncharacter_l, my_table in [
+			(universals, self._universals),
+			(rulebooks, self._rulebooks),
+			(rule_triggers, self._rule_triggers),
+			(rule_prereqs, self._rule_prereqs),
+			(rule_actions, self._rule_actions),
+			(rule_neighborhood, self._rule_neighborhood),
+			(rule_big, self._rule_big),
+			(graphs, self._graphs),
+		]:
+			for key in sort_set(my_table.keys()):
+				b, turn, tick = key[:3]
+				if b != branch or not (
+					(turn_from, tick_from)
+					<= (turn, tick)
+					<= (turn_to, tick_to)
+				):
+					continue
+				the_datum = key + (my_table[key],)
+				uncharacter_l.append(the_datum)
+		for char_d_key, my_table in [
+			("nodes", self._nodes),
+			("node_val", self._node_val),
+			("edges", self._edges),
+			("edge_val", self._edge_val),
+			("graph_val", self._graph_val),
+			("things", self._things),
+			("units", self._units),
+			("character_rulebook", self._character_rulebook),
+			("unit_rulebook", self._unit_rulebook),
+			("character_thing_rulebook", self._character_thing_rulebook),
+			("character_place_rulebook", self._character_place_rulebook),
+			("character_portal_rulebook", self._character_portal_rulebook),
+			("node_rulebook", self._node_rulebook),
+			("portal_rulebook", self._portal_rulebook),
+		]:
+			for key in sort_set(my_table.keys()):
+				b, turn, tick, g = key[:4]
+				if b != branch or not (
+					(turn_from, tick_from)
+					<= (turn, tick)
+					<= (turn_to, tick_to)
+				):
+					continue
+				the_list: (
+					list[NodeRowType]
+					| list[NodeValRowType]
+					| list[EdgeRowType]
+					| list[EdgeValRowType]
+					| list[GraphValRowType]
+					| list[ThingRowType]
+					| list[UnitRowType]
+					| list[CharRulebookRowType]
+					| list[NodeRulebookRowType]
+					| list[PortalRulebookRowType]
+				) = ret[g][char_d_key]
+				the_datum: (
+					NodeRowType
+					| NodeValRowType
+					| EdgeRowType
+					| EdgeValRowType
+					| GraphValRowType
+					| ThingRowType
+					| UnitRowType
+					| CharRulebookRowType
+					| NodeRulebookRowType
+					| PortalRulebookRowType
+				) = key + (my_table[key],)
+				the_list.append(the_datum)
+		for handled_l, my_table in [
+			(node_rules_handled, self._node_rules_handled),
+			(portal_rules_handled, self._portal_rules_handled),
+			(character_rules_handled, self._character_rules_handled),
+			(unit_rules_handled, self._unit_rules_handled),
+			(
+				character_thing_rules_handled,
+				self._character_thing_rules_handled,
+			),
+			(
+				character_place_rules_handled,
+				self._character_place_rules_handled,
+			),
+			(
+				character_portal_rules_handled,
+				self._character_portal_rules_handled,
+			),
+		]:
+			for key in my_table.keys():
+				b, turn = key[:2]
+				tick = key[-1]
+				if b != branch or not (
+					(turn_from, tick_from)
+					<= (turn, tick)
+					<= (turn_to, tick_to)
+				):
+					continue
+				datum = key + (my_table[key],)
+				handled_l.append(datum)
 
 	def _load_windows_into(
 		self, ret: LoadedDict, windows: list[TimeWindow]
