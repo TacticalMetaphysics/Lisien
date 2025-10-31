@@ -420,30 +420,18 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		def load_tick_to_end(
 			self, table: str, branch: Branch, turn_from: Turn, tick_from: Tick
 		) -> list[dict]:
-			data = filter(
-				lambda d: (turn_from, tick_from) <= (d["turn"], d["tick"]),
-				self._get_db(table)
-				.read(
-					filters=[
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-					]
-				)
-				.to_pylist(),
+			branch_data = self._get_db(table).read(
+				filters=[pc.field("branch") == branch]
 			)
-			return sorted(
-				data,
-				key=self._sort_key(table),
+			if branch_data.num_rows == 0:
+				return []
+			data0 = branch_data.filter(pc.field("turn") == turn_from).filter(
+				pc.field("tick") >= tick_from
 			)
-
-		def _sort_key(self, table: str) -> Callable[[dict], tuple]:
-			def a_sort_key(d: dict) -> tuple:
-				return tuple(
-					d[colname]
-					for colname in map(itemgetter(0), self.schema[table])
-				)
-
-			return a_sort_key
+			data1 = branch_data.filter(pc.field("turn") > turn_from)
+			data = pa.concat_tables([data0, data1])
+			data.sort_by(self._sort_columns(table))
+			return data.to_pylist()
 
 		def load_tick_to_tick(
 			self,
@@ -454,25 +442,28 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			turn_to: Turn,
 			tick_to: Tick,
 		) -> list[dict]:
-			data = (
-				self._get_db(table)
-				.read(
-					filters=[
-						pc.field("branch") == branch,
-						pc.field("turn") >= turn_from,
-						pc.field("turn") <= turn_to,
-					]
-				)
-				.to_pylist()
+			branch_data = self._get_db(table).read(
+				filters=[pc.field("branch") == branch]
 			)
-			return sorted(
-				filter(
-					lambda d: (turn_from, tick_from)
-					<= (d["turn"], d["tick"])
-					<= (turn_to, tick_to),
-					data,
-				),
-				key=self._sort_key(table),
+			if branch_data.num_rows == 0:
+				return []
+			data0 = branch_data.filter(pc.field("turn") == turn_from).filter(
+				pc.field("tick") >= tick_from
+			)
+			data1 = branch_data.filter(pc.field("turn") > turn_from).filter(
+				pc.field("turn") < turn_to
+			)
+			data2 = branch_data.filter(pc.field("turn") == turn_to).filter(
+				pc.field("tick") <= tick_to
+			)
+			data = pa.concat_tables([data0, data1, data2])
+			data.sort_by(self._sort_columns(table))
+			return data.to_pylist()
+
+		def _sort_columns(self, table: str) -> Iterator[tuple[str, str]]:
+			schema = self.schema[table]
+			return zip(
+				map(itemgetter(0), schema), ("ascending",) * len(schema)
 			)
 
 		def list_keyframes(self) -> list:
@@ -629,9 +620,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					}
 				]
 			)
-
-		def _table_columns(self, table: str) -> list[str]:
-			return list(map(itemgetter(0), self.schema[table]))
 
 		def _del_time(
 			self, table: str, branch: Branch, turn: Turn, tick: Tick
