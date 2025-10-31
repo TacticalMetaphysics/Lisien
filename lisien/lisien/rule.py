@@ -153,6 +153,8 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 			return []
 
 	def _set(self, v: list[RuleFuncName]) -> None:
+		if self._get() == v:
+			return
 		branch, turn, tick = self.rule.engine._nbtt()
 		self._cache.store(Key(self.rule.name), branch, turn, tick, v)
 		self._setter(self.rule.name, branch, turn, tick, v)
@@ -175,6 +177,8 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 	def __setitem__(self, i: int, v: RuleFunc | str | RuleFuncName):
 		v = self._nominate(v)
 		l = list(self._get())
+		if l[i] == v:
+			return
 		l[i] = v
 		self._set(list(l))
 		self.send(self)
