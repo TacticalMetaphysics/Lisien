@@ -26,7 +26,6 @@ import sys
 from threading import Thread
 from zipfile import ZipFile
 
-import astor
 import tblib
 
 from .engine import EngineProxy
@@ -549,11 +548,10 @@ class EngineProxyManager:
 					pyfile = os.path.join(prefix, store + ".py")
 					if os.path.exists(pyfile):
 						code = game_source_code[store] = {}
-						parsed = astor.parse_file(pyfile)
+						parsed = ast.parse(pyfile)
+						funk: ast.FunctionDef
 						for funk in parsed.body:
-							code[funk.name] = astor.to_source(
-								funk, indent_with="\t"
-							)
+							code[funk.name] = ast.unparse(funk)
 		if game_strings is None:
 			if prefix and os.path.isdir(os.path.join(prefix, "strings")):
 				lang = eternal_d.get(EternalKey(Key("language")), "eng")
@@ -618,9 +616,7 @@ class EngineProxyManager:
 						parsed = ast.parse(inf.read().decode("utf-8"), pyfn)
 					funk: ast.FunctionDef
 					for funk in parsed.body:
-						code[funk.name] = astor.to_source(
-							funk, indent_with="\t"
-						)
+						code[funk.name] = ast.unparse(funk)
 		self._config_logger(kwargs)
 		try:
 			import android

@@ -39,7 +39,6 @@ from typing import (
 	Callable,
 )
 
-import astor
 import networkx as nx
 from blinker import Signal
 
@@ -919,11 +918,13 @@ class EngineProxy(AbstractEngine):
 		if hasattr(self, "_replay_txt"):
 			self.debug("EngineProxy: Running a replay.")
 			replay = ast.parse(self._replay_txt)
+			expr: ast.Expression
 			for expr in replay.body:
 				if isinstance(expr.value, ast.Call):
 					method = expr.value.func.id
 					args = []
 					kwargs = {}
+					arg: ast.Expression
 					for arg in expr.value.args:
 						if isinstance(arg.value, ast.Subscript):
 							whatmap = arg.value.value.attr
@@ -932,9 +933,7 @@ class EngineProxy(AbstractEngine):
 						elif hasattr(arg.value, "value"):
 							args.append(arg.value.value)
 						else:
-							args.append(
-								astor.to_source(arg.value, indent_with="\t")
-							)
+							args.append(ast.unparse(arg.value))
 					for kw in expr.value.keywords:
 						if isinstance(kw.value, ast.Subscript):
 							whatmap = kw.value.value.attr
@@ -944,9 +943,7 @@ class EngineProxy(AbstractEngine):
 							if hasattr(kw.value, "value"):
 								kwargs[kw.arg] = kw.value.value
 							else:
-								kwargs[kw.arg] = astor.to_source(
-									kw.value, indent_with="\t"
-								)
+								kwargs[kw.arg] = ast.unparse(kw.value)
 					self.handle(method, *args, **kwargs)
 		self.debug("EngineProxy: Initial pull from core completed.")
 
