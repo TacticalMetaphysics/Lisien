@@ -3074,6 +3074,7 @@ class AbstractDatabaseConnector(ABC):
 						"units",
 						"node_rulebook",
 						"portal_rulebook",
+						"things",
 					]
 					charkey: charkey_literal
 					for charkey in get_args(charkey_literal):
