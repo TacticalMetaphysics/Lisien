@@ -2684,7 +2684,7 @@ class AbstractDatabaseConnector(ABC):
 			priority=repr(prio),
 			tick=str(t),
 		)
-		for i, rule in enumerate(rules):
+		for rule in rules:
 			rb_el.append(Element("rule", name=rule))
 		self._set_plans(rb_el, b, r, t)
 		return rb_el
