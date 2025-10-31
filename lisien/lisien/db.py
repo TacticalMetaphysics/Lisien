@@ -1015,10 +1015,10 @@ class AbstractDatabaseConnector(ABC):
 		branch: Branch,
 		turn: Turn,
 		character: CharName,
-		rulebook: RulebookName,
-		rule: RuleName,
 		graph: CharName,
 		unit: CharName,
+		rulebook: RulebookName,
+		rule: RuleName,
 		tick: Tick,
 	) -> tuple[Branch, Turn, bytes, bytes, RuleName, bytes, bytes, Tick]:
 		character, graph, unit, rulebook = map(
@@ -1032,9 +1032,9 @@ class AbstractDatabaseConnector(ABC):
 		branch: Branch,
 		turn: Turn,
 		character: CharName,
+		thing: NodeName,
 		rulebook: RulebookName,
 		rule: RuleName,
-		thing: NodeName,
 		tick: Tick,
 	) -> tuple[Branch, Turn, bytes, bytes, RuleName, bytes, Tick]:
 		character, thing, rulebook = map(
