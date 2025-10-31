@@ -4475,14 +4475,14 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		]:
 			for key in my_table.keys():
 				b, turn = key[:2]
-				tick = key[-1]
+				tick = my_table[key]
 				if b != branch or not (
 					(turn_from, tick_from)
 					<= (turn, tick)
 					<= (turn_to, tick_to)
 				):
 					continue
-				datum = key + (my_table[key],)
+				datum = key + (tick,)
 				handled_l.append(datum)
 
 	def _load_windows_into(
