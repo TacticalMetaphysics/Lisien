@@ -3453,18 +3453,6 @@ class AbstractDatabaseConnector(ABC):
 				else:
 					self._plan_times[plan_id] = {(branch, turn, tick)}
 
-	def _rulebook(self, branch_el: Element, turn_el: Element, el: Element):
-		branch, turn, tick = self._get_time(branch_el, turn_el, el)
-		self._get_plans(el, branch, turn, tick)
-		rulebook = RulebookName(literal_eval(el.get("name")))
-		priority = RulebookPriority(float(el.get("priority")))
-		rules: list[RuleName] = []
-		for subel in el:
-			if subel.tag != "rule":
-				raise ValueError("Don't know what to do with tag", subel.tag)
-			rules.append(RuleName(subel.get("name")))
-		self.set_rulebook(rulebook, branch, turn, tick, rules, priority)
-
 	def _rule_func_list(
 		self,
 		what: Literal["triggers", "prereqs", "actions"],
