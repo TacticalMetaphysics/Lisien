@@ -3995,10 +3995,9 @@ class Engine(AbstractEngine, Executor):
 			if deltg is ...:
 				del graphs_keyframe[graph]
 				continue
-			combined_node_val_keyframe = {
-				node: val.copy()
-				for (node, val) in node_val_keyframe.get(graph, {}).items()
-			}
+			combined_node_val_keyframe = deepcopy(
+				node_val_keyframe.get(graph, {})
+			)
 			for node, loc in things_keyframe.get(graph, {}).items():
 				if loc is ...:
 					continue
@@ -4016,10 +4015,9 @@ class Engine(AbstractEngine, Executor):
 					combined_node_val_keyframe[node] = {
 						"rulebook": (graph, node)
 					}
-			combined_edge_val_keyframe = {
-				orig: {dest: val.copy() for (dest, val) in dests.items()}
-				for (orig, dests) in edge_val_keyframe.get(graph, {}).items()
-			}
+			combined_edge_val_keyframe = deepcopy(
+				edge_val_keyframe.get(graph, {})
+			)
 			for orig, dests in portals_rulebooks_keyframe.get(
 				graph, {}
 			).items():
@@ -4041,9 +4039,9 @@ class Engine(AbstractEngine, Executor):
 						combined_edge_val_keyframe.setdefault(
 							orig, {}
 						).setdefault(dest, {})
-			combined_graph_val_keyframe = graph_val_keyframe.get(
-				graph, {}
-			).copy()
+			combined_graph_val_keyframe = deepcopy(
+				graph_val_keyframe.get(graph, {})
+			)
 			combined_graph_val_keyframe["character_rulebook"] = (
 				characters_rulebooks_keyframe[graph]
 			)
