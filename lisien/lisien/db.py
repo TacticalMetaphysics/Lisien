@@ -4612,9 +4612,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				self._character_portal_rules_handled,
 			),
 		]:
-			for key in sort_set(my_table.keys()):
+			for key, tick in sorted(
+				my_table.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[1])
+			):
 				b, turn = key[:2]
-				tick = my_table[key]
 				if b != branch or not (
 					(turn_from, tick_from)
 					<= (turn, tick)
