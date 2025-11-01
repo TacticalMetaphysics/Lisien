@@ -30,8 +30,6 @@ from typing import (
 	Iterator,
 	Optional,
 	Any,
-	Iterable,
-	Callable,
 )
 
 import pyarrow as pa
@@ -83,6 +81,15 @@ from .types import (
 	UniversalKey,
 	Stat,
 	GraphRowType,
+	CharRulebookRowType,
+	NodeRulebookRowType,
+	PortalRulebookRowType,
+	CharacterRulesHandledRowType,
+	UnitRulesHandledRowType,
+	NodeRulesHandledRowType,
+	PortalRulesHandledRowType,
+	ThingRowType,
+	UnitRowType,
 )
 from .util import ELLIPSIS, EMPTY
 
@@ -1160,7 +1167,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def _character_rulebook_dump(
 		self, typ: RulebookTypeStr
-	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		getattr(self, f"_{typ}_rulebook_to_set")()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", f"{typ}_rulebook"):
@@ -1171,32 +1178,32 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def character_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		return self._character_rulebook_dump("character")
 
 	def unit_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		return self._character_rulebook_dump("unit")
 
 	def character_thing_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		return self._character_rulebook_dump("character_thing")
 
 	def character_place_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		return self._character_rulebook_dump("character_place")
 
 	def character_portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, CharName, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		return self._character_rulebook_dump("character_portal")
 
 	def character_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, CharName, RulebookName, RuleName, Tick]]:
+	) -> Iterator[CharacterRulesHandledRowType]:
 		self._char_rules_handled()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "character_rules_handled"):
@@ -1208,18 +1215,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def unit_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			CharName,
-			CharName,
-			NodeName,
-			RulebookName,
-			RuleName,
-			Tick,
-		]
-	]:
+	) -> Iterator[UnitRulesHandledRowType]:
 		self._unit_rules_handled_to_set()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "unit_rules_handled"):
@@ -1233,9 +1229,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def character_thing_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[Branch, Turn, CharName, NodeName, RulebookName, RuleName, Tick]
-	]:
+	) -> Iterator[NodeRulesHandledRowType]:
 		self._char_thing_rules_handled()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "character_thing_rules_handled"):
@@ -1248,9 +1242,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def character_place_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[Branch, Turn, CharName, NodeName, RulebookName, RuleName, Tick]
-	]:
+	) -> Iterator[NodeRulesHandledRowType]:
 		self._char_place_rules_handled()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "character_place_rules_handled"):
@@ -1263,18 +1255,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def character_portal_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			CharName,
-			NodeName,
-			NodeName,
-			RulebookName,
-			RuleName,
-			Tick,
-		]
-	]:
+	) -> Iterator[PortalRulesHandledRowType]:
 		self.flush()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "character_portal_rules_handled"):
@@ -1288,9 +1269,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def node_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[Branch, Turn, CharName, NodeName, RulebookName, RuleName, Tick]
-	]:
+	) -> Iterator[NodeRulesHandledRowType]:
 		self._node_rules_handled_to_set()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "node_rules_handled"):
@@ -1303,18 +1282,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def portal_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			CharName,
-			NodeName,
-			NodeName,
-			RulebookName,
-			RuleName,
-			Tick,
-		]
-	]:
+	) -> Iterator[PortalRulesHandledRowType]:
 		self._portal_rules_handled_to_set()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "portal_rules_handled"):
@@ -1328,7 +1296,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def things_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, CharName, NodeName, NodeName]]:
+	) -> Iterator[ThingRowType]:
 		self._things2set()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "things"):
@@ -1340,9 +1308,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def units_dump(
 		self,
-	) -> Iterator[
-		tuple[Branch, Turn, Tick, CharName, CharName, NodeName, bool]
-	]:
+	) -> Iterator[UnitRowType]:
 		self._unitness()
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "units"):

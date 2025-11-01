@@ -1469,7 +1469,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+	def keyframes_dump(self) -> Iterator[Time]:
 		pass
 
 	@abstractmethod
@@ -1585,13 +1585,13 @@ class AbstractDatabaseConnector(ABC):
 		tick_from: Tick,
 		turn_to: Optional[Turn] = None,
 		tick_to: Optional[Tick] = None,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+	) -> Iterator[GraphRowType]:
 		pass
 
 	@abstractmethod
 	def graphs_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+	) -> Iterator[GraphRowType]:
 		pass
 
 	@abstractmethod
@@ -5015,208 +5015,165 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]]:
+	) -> Iterator[TriggerRowType]:
 		with self._lock:
 			for b, r, t, rn in sort_set(self._rule_triggers.keys()):
-				yield rn, b, r, t, self._rule_triggers[b, r, t, rn].copy()
+				yield b, r, t, rn, self._rule_triggers[b, r, t, rn].copy()
 
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]]:
+	) -> Iterator[PrereqRowType]:
 		with self._lock:
 			for b, r, t, rn in sort_set(self._rule_prereqs.keys()):
-				yield rn, b, r, t, self._rule_prereqs[b, r, t, rn].copy()
+				yield b, r, t, rn, self._rule_prereqs[b, r, t, rn].copy()
 
 	def rule_actions_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]]:
+	) -> Iterator[ActionRowType]:
 		with self._lock:
 			for b, r, t, rn in sort_set(self._rule_actions.keys()):
-				yield rn, b, r, t, self._rule_actions[b, r, t, rn].copy()
+				yield b, r, t, rn, self._rule_actions[b, r, t, rn].copy()
 
 	def rule_neighborhood_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
+	) -> Iterator[RuleNeighborhoodRowType]:
 		with self._lock:
 			for b, r, t, rn in sort_set(self._rule_neighborhood.keys()):
-				yield rn, b, r, t, self._rule_neighborhood[b, r, t, rn]
+				yield b, r, t, rn, self._rule_neighborhood[b, r, t, rn]
 
 	def rule_big_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]:
+	) -> Iterator[RuleBigRowType]:
 		with self._lock:
 			for b, r, t, rn in sort_set(self._rule_big.keys()):
-				yield rn, b, r, t, self._rule_big[b, r, t, rn]
+				yield b, r, t, rn, self._rule_big[b, r, t, rn]
 
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[NodeRulebookRowType]:
 		with self._lock:
 			for b, r, t, g, n in sort_set(self._node_rulebook.keys()):
-				yield g, n, b, r, t, self._node_rulebook[b, r, t, g, n]
+				yield b, r, t, g, n, self._node_rulebook[b, r, t, g, n]
 
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
-	]:
+	) -> Iterator[PortalRulebookRowType]:
 		with self._lock:
 			for b, r, t, g, o, d in sort_set(self._portal_rulebook.keys()):
-				yield g, o, d, b, r, t, self._portal_rulebook[b, r, t, g, o, d]
+				yield b, r, t, g, o, d, self._portal_rulebook[b, r, t, g, o, d]
 
 	def character_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		with self._lock:
 			for b, r, t, g in sort_set(self._character_rulebook.keys()):
-				yield g, b, r, t, self._character_rulebook[b, r, t, g]
+				yield b, r, t, g, self._character_rulebook[b, r, t, g]
 
 	def unit_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		with self._lock:
 			for b, r, t, g in sort_set(self._unit_rulebook.keys()):
-				yield g, b, r, t, self._unit_rulebook[b, r, t, g]
+				yield b, r, t, g, self._unit_rulebook[b, r, t, g]
 
 	def character_thing_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		with self._lock:
 			for b, r, t, g in sort_set(self._character_thing_rulebook.keys()):
-				yield g, b, r, t, self._character_thing_rulebook[b, r, t, g]
+				yield b, r, t, g, self._character_thing_rulebook[b, r, t, g]
 
 	def character_place_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		with self._lock:
 			for b, r, t, g in sort_set(self._character_place_rulebook.keys()):
-				yield g, b, r, t, self._character_place_rulebook[b, r, t, g]
+				yield b, r, t, g, self._character_place_rulebook[b, r, t, g]
 
 	def character_portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		with self._lock:
 			for b, r, t, g in sort_set(self._character_portal_rulebook.keys()):
-				yield g, b, r, t, self._character_portal_rulebook[b, r, t, g]
+				yield b, r, t, g, self._character_portal_rulebook[b, r, t, g]
 
 	def character_rules_handled_dump(
 		self,
-	) -> Iterator[tuple[CharName, RulebookName, RuleName, Branch, Turn, Tick]]:
+	) -> Iterator[CharacterRulesHandledRowType]:
 		with self._lock:
 			crh = self._character_rules_handled
 			for b, r, g, rb, rn in sort_set(crh.keys()):
 				t = crh[b, r, g, rb, rn]
-				yield g, rb, rn, b, r, t
+				yield b, r, g, rb, rn, t
 
 	def unit_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			CharName,
-			NodeName,
-			RulebookName,
-			RuleName,
-			Branch,
-			Turn,
-			Tick,
-		]
-	]:
+	) -> Iterator[UnitRulesHandledRowType]:
 		with self._lock:
 			urh = self._unit_rules_handled
 			for b, r, char, graph, node, rb, rn in sort_set(urh.keys()):
 				t = urh[b, r, char, graph, node, rb, rn]
-				yield char, graph, node, rb, rn, b, r, t
+				yield b, r, char, graph, node, rb, rn, t
 
 	def character_thing_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
-	]:
+	) -> Iterator[NodeRulesHandledRowType]:
 		with self._lock:
 			ctrh = self._character_thing_rules_handled
 			for b, r, g, rb, rn, n in sort_set(ctrh.keys()):
 				t = ctrh[b, r, g, rb, rn, n]
-				yield g, n, rb, rn, b, r, t
+				yield b, r, g, n, rb, rn, t
 
 	def character_place_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
-	]:
+	) -> Iterator[NodeRulesHandledRowType]:
 		with self._lock:
 			cprh = self._character_place_rules_handled
 			for b, r, g, n, rb, rn in sort_set(cprh.keys()):
 				t = cprh[b, r, g, n, rb, rn]
-				yield g, n, rb, rn, b, r, t
+				yield b, r, g, n, rb, rn, t
 
 	def character_portal_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			NodeName,
-			NodeName,
-			RulebookName,
-			RuleName,
-			Branch,
-			Turn,
-			Tick,
-		]
-	]:
+	) -> Iterator[PortalRulesHandledRowType]:
 		with self._lock:
 			cporh = self._character_portal_rules_handled
 			for b, r, g, o, d, rb, rn in sort_set(cporh.keys()):
 				t = cporh[b, r, g, o, d, rb, rn]
-				yield g, o, d, rb, rn, b, r, t
+				yield b, r, g, o, d, rb, rn, t
 
 	def node_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, NodeName, RulebookName, RuleName, Branch, Turn, Tick]
-	]:
+	) -> Iterator[NodeRulesHandledRowType]:
 		with self._lock:
 			nrh = self._node_rules_handled
 			for b, r, g, n, rb, rn in sort_set(nrh.keys()):
 				t = nrh[b, r, g, n, rb, rn]
-				yield g, n, rb, rn, b, r, t
+				yield b, r, g, n, rb, rn, t
 
 	def portal_rules_handled_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			NodeName,
-			NodeName,
-			RulebookName,
-			RuleName,
-			Branch,
-			Turn,
-			Tick,
-		]
-	]:
+	) -> Iterator[PortalRulesHandledRowType]:
 		with self._lock:
 			porh = self._portal_rules_handled
 			for b, r, g, o, d, rb, rn in sort_set(porh.keys()):
 				t = porh[b, r, g, o, d, rb, rn]
-				yield g, o, d, rb, rn, b, r, t
+				yield b, r, g, o, d, rb, rn, t
 
 	def things_dump(
 		self,
-	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
+	) -> Iterator[ThingRowType]:
 		with self._lock:
 			for b, r, t, g, n in sort_set(self._things.keys()):
-				yield g, n, b, r, t, self._things[b, r, t, g, n]
+				yield b, r, t, g, n, self._things[b, r, t, g, n]
 
 	def units_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
-	]:
+	) -> Iterator[UnitRowType]:
 		with self._lock:
 			for b, r, t, char, graph, node in sort_set(self._units.keys()):
 				units = self._units[b, r, t, char, graph, node]
-				yield char, graph, node, b, r, t, units
+				yield b, r, t, char, graph, node, units
 
 	def count_all_table(self, tbl: str) -> int:
 		return len(getattr(self, "_" + tbl))
