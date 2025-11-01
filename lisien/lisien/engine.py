@@ -5478,24 +5478,14 @@ class Engine(AbstractEngine, Executor):
 			self._snap_keyframe_de_novo_graph(
 				name, branch, turn, tick, nodes, edges, {}
 			)
-			self.query.keyframe_graph_insert(
-				name,
-				branch,
-				turn,
-				tick,
-				nodes,
-				edges,
-				{},
-			)
 		elif data is None:
 			self._snap_keyframe_de_novo_graph(
-				name, branch, turn, tick, {}, {}, kf
+				name, branch, turn, tick, {}, {}, {}
 			)
 		else:
 			if len(data) != 3 or not all(isinstance(d, dict) for d in data):
 				raise TypeError("Invalid graph data")
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
-			self.query.keyframe_graph_insert(name, branch, turn, tick, *data)
 		if hasattr(self, "_worker_processes") or hasattr(
 			self, "_worker_interpreters"
 		):
