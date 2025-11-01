@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Exception classes for use in lisien."""
 
+from __future__ import annotations
+
 import sys
 
 
@@ -193,5 +195,13 @@ class TotalKeyError(KeyError):
 	"""Error class for when a key is totally absent from a cache
 
 	And was not, for instance, set at one point, then deleted later.
+
+	"""
+
+
+class BadTimeException(Exception):
+	"""You tried to do something that would make sense at a different game-time
+
+	But doesn't make sense now
 
 	"""

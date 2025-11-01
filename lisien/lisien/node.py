@@ -43,8 +43,9 @@ from .types import (
 	Time,
 	Turn,
 	Value,
+	AbstractThing,
+	getatt,
 )
-from .util import AbstractThing, getatt
 
 if TYPE_CHECKING:
 	from .character import Character

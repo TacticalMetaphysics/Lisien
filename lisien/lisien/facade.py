@@ -35,14 +35,21 @@ from blinker import Signal
 from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
 from .collections import CompositeDict, FunctionStore
 from .exc import NotInKeyframeError, TotalKeyError
-from .types import CharName, DiGraph, Edge, Key, Node, NodeName
-from .util import (
-	AbstractCharacter,
-	AbstractEngine,
-	AbstractThing,
+from .types import (
+	CharName,
+	DiGraph,
+	Edge,
+	Key,
+	Node,
+	NodeName,
 	SignalDict,
+	AbstractEngine,
+	AbstractCharacter,
+	AbstractThing,
 	TimeSignalDescriptor,
 	getatt,
+)
+from .util import (
 	print_call_sig,
 	timer,
 )

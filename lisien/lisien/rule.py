@@ -107,8 +107,9 @@ from .types import (
 	Turn,
 	Value,
 	_Key,
+	AbstractEngine,
 )
-from .util import AbstractEngine, dedent_source
+from .util import dedent_source
 
 if TYPE_CHECKING:
 	from .engine import Engine

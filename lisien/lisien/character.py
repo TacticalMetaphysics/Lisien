@@ -68,8 +68,10 @@ from .types import (
 	Turn,
 	_Key,
 	_Value,
+	AbstractCharacter,
+	getatt,
 )
-from .util import AbstractCharacter, getatt, singleton_get, timer
+from .util import singleton_get, timer
 from .wrap import MutableMappingUnwrapper, SpecialMapping
 
 if TYPE_CHECKING:

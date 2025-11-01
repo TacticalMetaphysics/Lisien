@@ -61,7 +61,6 @@ from .abc import (
 from .character import CharacterProxy, PlaceProxy, ThingProxy, PortalProxy
 
 from ..cache import StructuredDefaultDict, PickyDefaultDict
-from ..collections import AbstractFunctionStore
 from ..exc import (
 	WorkerProcessReadOnlyError,
 	OutOfTimelineError,
@@ -97,14 +96,15 @@ from ..types import (
 	FuncStoreName,
 	_Key,
 	_Value,
-)
-from ..util import (
-	AbstractEngine,
-	TimeSignalDescriptor,
-	AbstractCharacter,
-	format_call_sig,
 	MsgpackExtensionType,
 	AbstractBookmarkMapping,
+	AbstractEngine,
+	AbstractCharacter,
+	TimeSignalDescriptor,
+	AbstractFunctionStore,
+)
+from ..util import (
+	format_call_sig,
 	msgpack_array_header,
 	msgpack_map_header,
 )

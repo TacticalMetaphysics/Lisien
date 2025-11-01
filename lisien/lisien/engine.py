@@ -120,11 +120,9 @@ from .proxy.routine import worker_subprocess, worker_subthread
 from .proxy.worker_subinterpreter import worker_subinterpreter
 from .proxy.manager import Sub
 from .query import (
-	CharacterStatAccessor,
 	CombinedQueryResult,
 	ComparisonQuery,
 	CompoundQuery,
-	EntityStatAccessor,
 	Query,
 	QueryResult,
 	QueryResultEndTurn,
@@ -143,6 +141,7 @@ from .types import (
 	EdgeValDict,
 	EternalKey,
 	EntityKey,
+	FakeFuture,
 	GraphEdgesKeyframe,
 	GraphEdgeValKeyframe,
 	GraphNodesKeyframe,
@@ -170,6 +169,14 @@ from .types import (
 	Turn,
 	UniversalKey,
 	Value,
+	CharacterStatAccessor,
+	EntityStatAccessor,
+	SizedDict,
+	AbstractBookmarkMapping,
+	AbstractEngine,
+	AbstractCharacter,
+	TimeSignalDescriptor,
+	sort_set,
 )
 from .util import (
 	ACTIONS,
@@ -191,15 +198,8 @@ from .util import (
 	TRUE,
 	UNITS,
 	UNIVERSAL,
-	AbstractBookmarkMapping,
-	AbstractCharacter,
-	AbstractEngine,
-	SizedDict,
-	TimeSignalDescriptor,
-	fake_submit,
 	garbage,
 	normalize_layout,
-	sort_set,
 	timer,
 	world_locked,
 )
@@ -5025,7 +5025,7 @@ class Engine(AbstractEngine, Executor):
 				"fake_submit(fn, *args, **kwargs)",
 				globls,
 				{
-					"fake_submit": fake_submit,
+					"fake_submit": FakeFuture,
 					"fn": fn,
 					"args": args,
 					"kwargs": kwargs,
@@ -6274,7 +6274,7 @@ class Engine(AbstractEngine, Executor):
 		):
 			return
 		if self.trigger.truth in rule.triggers:
-			fut = fake_submit(self.trigger.truth)
+			fut = FakeFuture(self.trigger.truth)
 			fut.rule = rule
 			fut.prio = prio
 			fut.entity = entity
