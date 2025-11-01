@@ -5489,10 +5489,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		elif data is None:
 			self._snap_keyframe_de_novo_graph(
-				name, branch, turn, tick, {}, {}, {}
-			)
-			self.query.keyframe_graph_insert(
-				name, branch, turn, tick, {}, {}, {}
+				name, branch, turn, tick, {}, {}, kf
 			)
 		else:
 			if len(data) != 3 or not all(isinstance(d, dict) for d in data):
