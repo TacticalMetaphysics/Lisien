@@ -5037,54 +5037,96 @@ class Engine(AbstractEngine, Executor):
 			)
 		if porh := loaded.pop("portal_rules_handled", None):
 			self._portal_rules_handled_cache.load(porh)
-		for loaded_graph, data in loaded.items():
-			assert isinstance(data, dict)
-			if data.get("things"):
-				self._things_cache.load(data["things"])
-			if data.get("character_rulebook"):
-				self._characters_rulebooks_cache.load(
-					data["character_rulebook"]
-				)
-			if data.get("unit_rulebook"):
-				self._units_rulebooks_cache.load(data["unit_rulebook"])
-			if data.get("character_thing_rulebook"):
-				self._characters_things_rulebooks_cache.load(
-					data["character_thing_rulebook"]
-				)
-			if data.get("character_place_rulebook"):
-				self._characters_places_rulebooks_cache.load(
-					data["character_place_rulebook"]
-				)
-			if data.get("character_portal_rulebook"):
-				self._characters_portals_rulebooks_cache.load(
-					data["character_portal_rulebook"]
-				)
-			if data.get("node_rulebook"):
-				self._nodes_rulebooks_cache.load(data["node_rulebook"])
-			if data.get("portal_rulebook"):
-				self._portals_rulebooks_cache.load(data["portal_rulebook"])
-			if data.get("units"):
-				self._unitness_cache.load(data["units"])
-
-		self._graph_cache.load(graphs_rows)
 		noderows = []
 		edgerows = []
 		nodevalrows = []
 		edgevalrows = []
 		graphvalrows = []
-		for graph, graph_loaded in loaded.items():
-			noderows.extend(graph_loaded["nodes"])
-			edgerows.extend(graph_loaded["edges"])
-			nodevalrows.extend(graph_loaded["node_val"])
-			edgevalrows.extend(graph_loaded["edge_val"])
-			graphvalrows.extend(graph_loaded["graph_val"])
-
-		self._graph_cache.load(graphs_rows)
-		self._nodes_cache.load(noderows)
-		self._edges_cache.load(edgerows)
-		self._graph_val_cache.load(graphvalrows)
-		self._node_val_cache.load(nodevalrows)
-		self._edge_val_cache.load(edgevalrows)
+		for loaded_graph, data in loaded.items():
+			assert isinstance(data, dict)
+			if th := data.get("things"):
+				self._things_cache.load(
+					(character, thing, branch, turn, tick, location)
+					for (branch, turn, tick, character, thing, location) in th
+				)
+			for crbkey, cache in zip(
+				[
+					"character_rulebook",
+					"unit_rulebook",
+					"character_thing_rulebook",
+					"character_place_rulebook",
+					"character_portal_rulebook",
+				],
+				[
+					self._characters_rulebooks_cache,
+					self._units_rulebooks_cache,
+					self._characters_things_rulebooks_cache,
+					self._characters_places_rulebooks_cache,
+					self._characters_portals_rulebooks_cache,
+				],
+			):
+				if crb := data.get(crbkey):
+					cache.load(
+						(character, branch, turn, tick, rulebook)
+						for (branch, turn, tick, character, rulebook) in crb
+					)
+			if nrb := data.get("node_rulebook"):
+				self._nodes_rulebooks_cache.load(
+					(character, node, branch, turn, tick, rulebook)
+					for (branch, turn, tick, character, node, rulebook) in nrb
+				)
+			if porb := data.get("portal_rulebook"):
+				self._portals_rulebooks_cache.load(
+					(char, orig, dest, branch, turn, tick, rb)
+					for (branch, turn, tick, char, orig, dest, rb) in porb
+				)
+			if u := data.get("units"):
+				self._unitness_cache.load(
+					(character, graph, unit, branch, turn, tick, is_unit)
+					for (
+						branch,
+						turn,
+						tick,
+						character,
+						graph,
+						unit,
+						is_unit,
+					) in u
+				)
+			if n := data.get("nodes"):
+				self._nodes_cache.load(
+					(graph, node, branch, turn, tick, x)
+					for (branch, turn, tick, graph, node, x) in n
+				)
+			if nv := data.get("node_val"):
+				self._node_val_cache.load(
+					(graph, node, key, branch, turn, tick, value)
+					for (branch, turn, tick, graph, node, key, value) in nv
+				)
+			if e := data.get("edges"):
+				self._edges_cache.load(
+					(graph, orig, dest, branch, turn, tick, x)
+					for (branch, turn, tick, graph, orig, dest, x) in e
+				)
+			if ev := data.get("edge_val"):
+				self._edge_val_cache.load(
+					(graph, orig, dest, key, branch, turn, tick, value)
+					for (
+						branch,
+						turn,
+						tick,
+						graph,
+						orig,
+						dest,
+						key,
+						value,
+					) in ev
+				)
+			if gv := data.get("graph_val"):
+				self._graph_val_cache.load(
+					(graph, key, branch, turn, tick, value)
+					for (branch, turn, tick, graph, key, value) in gv
+				)
 
 	def turn_end(self, branch: Branch = None, turn: Turn = None) -> Tick:
 		if branch is None:

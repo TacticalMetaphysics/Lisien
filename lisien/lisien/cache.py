@@ -583,7 +583,7 @@ class Cache:
 					continue
 			self._set_keyframe(graph_ent, branch_to, turn, tick, kf)
 
-	def load(self, data: list[tuple]):
+	def load(self, data: Iterable[tuple]):
 		"""Add a bunch of data. Must be in chronological order.
 
 		But it doesn't need to all be from the same branch, as long as
