@@ -32,6 +32,7 @@ from collections import UserDict, defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
+from copy import deepcopy
 from functools import cached_property, partial, wraps
 from hashlib import blake2b
 from multiprocessing import get_all_start_methods
@@ -7475,8 +7476,11 @@ class Engine(AbstractEngine, Executor):
 		tick: Tick,
 		nodes: NodeValDict,
 		edges: EdgeValDict,
-		graph_val: StatDict,
+		graph_val: CharDict,
 	) -> None:
+		combined_nodes = deepcopy(nodes)
+		combined_edges = deepcopy(edges)
+		combined_graph_val = deepcopy(graph_val)
 		for rb_kf_type, rb_kf_cache in [
 			("character_rulebook", self._characters_rulebooks_cache),
 			("unit_rulebook", self._units_rulebooks_cache),
@@ -7499,6 +7503,7 @@ class Engine(AbstractEngine, Executor):
 				kf = {}
 			kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
+			combined_graph_val[rb_kf_type] = kf[graph]
 		units_kf = graph_val.pop("units", {})
 		self._unitness_cache.set_keyframe(graph, branch, turn, tick, units_kf)
 		for char, units in units_kf.items():
@@ -7516,11 +7521,14 @@ class Engine(AbstractEngine, Executor):
 			self._unitness_cache.leader_cache.set_keyframe(
 				char, branch, turn, tick, user_kf
 			)
+		combined_graph_val["units"] = deepcopy(units_kf)
 		node_rb_kf = {}
 		locs_kf = {}
 		conts_kf = {}
 		for unit, val in nodes.items():
-			node_rb_kf[unit] = val.pop("rulebook", (graph, unit))
+			node_rb_kf[unit] = combined_nodes[unit]["rulebook"] = val.pop(
+				"rulebook", (graph, unit)
+			)
 			if "location" not in val:
 				continue
 			locs_kf[unit] = location = val["location"]
@@ -7545,7 +7553,9 @@ class Engine(AbstractEngine, Executor):
 				continue
 			port_rb_kf[orig] = rbs = {}
 			for dest, port in dests.items():
-				rbs[dest] = port.pop("rulebook", (graph, orig, dest))
+				rbs[dest] = combined_edges[orig][dest]["rulebook"] = port.pop(
+					"rulebook", (graph, orig, dest)
+				)
 		self._portals_rulebooks_cache.set_keyframe(
 			graph,
 			branch,
@@ -7583,6 +7593,16 @@ class Engine(AbstractEngine, Executor):
 		self._edge_val_cache.set_keyframe(graph, branch, turn, tick, edges)
 		self._graph_val_cache.set_keyframe(
 			graph, branch, turn, tick, graph_val
+		)
+		self.query.keyframe_insert(branch, turn, tick)
+		self.query.keyframe_graph_insert(
+			graph,
+			branch,
+			turn,
+			tick,
+			combined_nodes,
+			combined_edges,
+			combined_graph_val,
 		)
 		if (branch, turn, tick) not in self._keyframes_times:
 			self._keyframes_times.add((branch, turn, tick))
