@@ -3891,10 +3891,10 @@ class AbstractDatabaseConnector(ABC):
 				unit = NodeName(literal_eval(rule_el.get("unit")))
 				self.handled_unit_rule(
 					character,
-					graph,
-					unit,
 					rulebook,
 					rule,
+					graph,
+					unit,
 					branch,
 					turn,
 					tick,
@@ -3903,9 +3903,9 @@ class AbstractDatabaseConnector(ABC):
 				thing = NodeName(literal_eval(rule_el.get("thing")))
 				self.handled_character_thing_rule(
 					character,
-					thing,
 					rulebook,
 					rule,
+					thing,
 					branch,
 					turn,
 					tick,
@@ -3914,9 +3914,9 @@ class AbstractDatabaseConnector(ABC):
 				place = NodeName(literal_eval(rule_el.get("place")))
 				self.handled_character_place_rule(
 					character,
-					place,
 					rulebook,
 					rule,
+					place,
 					branch,
 					turn,
 					tick,
@@ -3926,10 +3926,10 @@ class AbstractDatabaseConnector(ABC):
 				dest = NodeName(literal_eval(rule_el.get("destination")))
 				self.handled_character_portal_rule(
 					character,
-					orig,
-					dest,
 					rulebook,
 					rule,
+					orig,
+					dest,
 					branch,
 					turn,
 					tick,
