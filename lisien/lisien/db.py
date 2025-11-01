@@ -5205,8 +5205,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		self,
 	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, NodeName]]:
 		with self._lock:
-			for b, r, t, g, n in sort_set(self._things2set.keys()):
-				yield g, n, b, r, t, self._things2set[b, r, t, g, n]
+			for b, r, t, g, n in sort_set(self._things.keys()):
+				yield g, n, b, r, t, self._things[b, r, t, g, n]
 
 	def units_dump(
 		self,
