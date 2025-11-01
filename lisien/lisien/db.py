@@ -2303,6 +2303,18 @@ class AbstractDatabaseConnector(ABC):
 		self.flush()
 		self._load_windows_into(ret, windows)
 		self.debug(f"finished loading windows {windows}")
+		for k, v in ret.items():
+			if isinstance(k, bytes):
+				raise TypeError("Character name not unpacked", k)
+			elif k.endswith("handled"):
+				v.sort(key=lambda t: (t[0], t[1], t[-1], *t[2:-1]))
+			elif isinstance(v, list):
+				v.sort()
+			elif isinstance(v, dict):
+				for kk, vv in v.items():
+					vv.sort()
+			else:
+				raise TypeError("Bad loaded dictionary", v)
 		return dict(ret)
 
 	def to_etree(self, name: str) -> ElementTree:
