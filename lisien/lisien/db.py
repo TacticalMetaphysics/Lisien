@@ -2310,7 +2310,9 @@ class AbstractDatabaseConnector(ABC):
 		for k, v in ret.items():
 			if isinstance(k, bytes):
 				raise TypeError("Character name not unpacked", k)
-			elif k.endswith("handled"):
+			elif isinstance(k, str) and k.endswith("handled"):
+				# The rules-handled tables have the tick at the end because it's
+				# not in the primary key
 				v.sort(key=lambda t: (t[0], t[1], t[-1], *t[2:-1]))
 			elif isinstance(v, list):
 				v.sort()
