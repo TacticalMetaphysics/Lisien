@@ -280,12 +280,12 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 			def after_clause(tab: Table) -> list[ColumnElement[bool]]:
 				return [
-					edge_val.c.branch == bindparam("branch"),
+					tab.c.branch == bindparam("branch"),
 					or_(
-						edge_val.c.turn > bindparam("turn"),
+						tab.c.turn > bindparam("turn"),
 						and_(
-							edge_val.c.turn == bindparam("turn"),
-							edge_val.c.tick >= bindparam("tick"),
+							tab.c.turn == bindparam("turn"),
+							tab.c.tick >= bindparam("tick"),
 						),
 					),
 				]
