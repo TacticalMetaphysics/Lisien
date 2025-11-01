@@ -560,13 +560,17 @@ def batched(
 	def the_batch(
 		self,
 	) -> Batch[serialized_tuple_type]:
+		if self is None:
+			mth = partial(serialize_record, EngineFacade(None))
+		else:
+			mth = MethodType(serialize_record, self)
 		return Batch(
 			self,
 			table,
 			key_len,
 			inc_rec_counter,
 			per_character,
-			MethodType(serialize_record, self),
+			mth,
 		)
 
 	return Batch.cached_properties.setdefault(
