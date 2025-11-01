@@ -3279,26 +3279,136 @@ class Engine(AbstractEngine, Executor):
 	def _load_rules_handled(self):
 		q = self.query
 		store_crh = self._character_rules_handled_cache.store
-		for row in q.character_rules_handled_dump():
-			store_crh(*row, loading=True)
+		for (
+			branch,
+			turn,
+			character,
+			rulebook,
+			rule,
+			tick,
+		) in q.character_rules_handled_dump():
+			store_crh(
+				character, rulebook, rule, branch, turn, tick, loading=True
+			)
 		store_arh = self._unit_rules_handled_cache.store
-		for row in q.unit_rules_handled_dump():
-			store_arh(*row, loading=True)
+		for (
+			branch,
+			turn,
+			character,
+			graph,
+			unit,
+			rulebook,
+			rule,
+			tick,
+		) in q.unit_rules_handled_dump():
+			store_arh(
+				character,
+				graph,
+				unit,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
 		store_ctrh = self._character_thing_rules_handled_cache.store
-		for row in q.character_thing_rules_handled_dump():
-			store_ctrh(*row, loading=True)
+		for (
+			branch,
+			turn,
+			character,
+			thing,
+			rulebook,
+			rule,
+			tick,
+		) in q.character_thing_rules_handled_dump():
+			store_ctrh(
+				character,
+				thing,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
 		store_cprh = self._character_place_rules_handled_cache.store
-		for row in q.character_place_rules_handled_dump():
-			store_cprh(*row, loading=True)
+		for (
+			branch,
+			turn,
+			character,
+			place,
+			rulebook,
+			rule,
+			tick,
+		) in q.character_place_rules_handled_dump():
+			store_cprh(
+				character,
+				place,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
 		store_cporh = self._character_portal_rules_handled_cache.store
-		for row in q.character_portal_rules_handled_dump():
-			store_cporh(*row, loading=True)
+		for (
+			branch,
+			turn,
+			char,
+			orig,
+			dest,
+			rulebook,
+			rule,
+			tick,
+		) in q.character_portal_rules_handled_dump():
+			store_cporh(
+				char,
+				orig,
+				dest,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
 		store_cnrh = self._node_rules_handled_cache.store
-		for row in q.node_rules_handled_dump():
-			store_cnrh(*row, loading=True)
+		for (
+			branch,
+			turn,
+			char,
+			node,
+			rulebook,
+			rule,
+			tick,
+		) in q.node_rules_handled_dump():
+			store_cnrh(
+				char, node, rulebook, rule, branch, turn, tick, loading=True
+			)
 		store_porh = self._portal_rules_handled_cache.store
-		for row in q.portal_rules_handled_dump():
-			store_porh(*row, loading=True)
+		for (
+			branch,
+			turn,
+			char,
+			orig,
+			dest,
+			rulebook,
+			rule,
+			tick,
+		) in q.portal_rules_handled_dump():
+			store_porh(
+				char,
+				orig,
+				dest,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
 
 	def _upd_branch_parentage(self, parent: Branch, child: Branch) -> None:
 		self._childbranch[parent].add(child)
