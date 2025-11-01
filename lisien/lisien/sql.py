@@ -474,41 +474,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				),
 			}
 
-			for t in table.values():
-				r["create_" + t.name] = CreateTable(t)
-				r["truncate_" + t.name] = t.delete()
-				key = list(t.primary_key)
-				if (
-					"branch" in t.columns
-					and "turn" in t.columns
-					and "tick" in t.columns
-				):
-					branch = t.columns["branch"]
-					turn = t.columns["turn"]
-					tick = t.columns["tick"]
-					if branch in key and turn in key and tick in key:
-						key = [branch, turn, tick]
-						r[t.name + "_del_time"] = t.delete().where(
-							and_(
-								t.c.branch == bindparam("branch"),
-								t.c.turn == bindparam("turn"),
-								t.c.tick == bindparam("tick"),
-							)
-						)
-				r[t.name + "_dump"] = select(*t.c.values()).order_by(*key)
-				r[t.name + "_insert"] = t.insert().values(
-					tuple(bindparam(cname) for cname in t.c.keys())
-				)
-				r[t.name + "_count"] = select(func.COUNT()).select_from(t)
-				r[t.name + "_del"] = t.delete().where(
-					and_(
-						*[
-							c == bindparam(c.name)
-							for c in (t.primary_key or t.c)
-						]
-					)
-				)
-
 			rulebooks = table["rulebooks"]
 			r["rulebooks_update"] = update_where(
 				["rules"],
@@ -521,7 +486,12 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			)
 
 			for t in table.values():
-				key = list(t.primary_key)
+				key = ord_key = list(t.primary_key.c)
+				r["create_" + t.name] = CreateTable(t)
+				r["truncate_" + t.name] = t.delete()
+				r[t.name + "_del"] = t.delete().where(
+					and_(*[c == bindparam(c.name) for c in key])
+				)
 				if (
 					"branch" in t.columns
 					and "turn" in t.columns
@@ -530,8 +500,16 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 					branch = t.columns["branch"]
 					turn = t.columns["turn"]
 					tick = t.columns["tick"]
-					if branch in key and turn in key and tick in key:
-						key = [branch, turn, tick]
+					ord_key = [branch, turn, tick] + [
+						c for c in t.c if c not in (branch, turn, tick)
+					]
+					r[t.name + "_del_time"] = t.delete().where(
+						and_(
+							t.c.branch == bindparam("branch"),
+							t.c.turn == bindparam("turn"),
+							t.c.tick == bindparam("tick"),
+						)
+					)
 					if branch is t.c[0] and turn is t.c[1]:
 						r[f"load_{t.name}_tick_to_end"] = (
 							load_something_tick_to_end(t)
@@ -539,7 +517,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 						r[f"load_{t.name}_tick_to_tick"] = (
 							load_something_tick_to_tick(t)
 						)
-				r[t.name + "_dump"] = select(*t.c.values()).order_by(*key)
+				r[t.name + "_dump"] = select(*t.c.values()).order_by(*ord_key)
 				r[t.name + "_insert"] = t.insert().values(
 					tuple(bindparam(cname) for cname in t.c.keys())
 				)
@@ -1336,7 +1314,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	def plan_ticks_dump(self):
 		self._planticks2set()
-		return self.call("plan_ticks_dump")
+		for rec in (data := self.call("plan_ticks_dump")):
+			yield rec
 
 	def commit(self):
 		"""Commit the transaction"""
