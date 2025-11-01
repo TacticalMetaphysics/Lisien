@@ -478,11 +478,14 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			data = pa.concat_tables(datas).sort_by(self._sort_columns(table))
 			return data.to_pylist()
 
-		def _sort_columns(self, table: str) -> Iterator[tuple[str, str]]:
+		def _sort_columns(self, table: str) -> list[tuple[str, str]]:
 			schema = self.schema[table]
-			return zip(
-				map(itemgetter(0), schema), ("ascending",) * len(schema)
-			)
+			columns = ["branch", "turn", "tick"]
+			for column in map(itemgetter(0), schema):
+				if column in columns:
+					continue
+				columns.append(column)
+			return [(col, "ascending") for col in columns]
 
 		def list_keyframes(self) -> list:
 			return sorted(

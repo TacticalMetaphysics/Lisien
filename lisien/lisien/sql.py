@@ -253,23 +253,29 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				)
 
 			def load_something_tick_to_end(tab: Table) -> Select:
-				assert tab.c[0] is tab.c.branch
-				assert tab.c[1] is tab.c.turn
+				time_cols = [tab.c.branch, tab.c.turn, tab.c.tick]
+				other_stuff = [
+					col for col in tab.primary_key.c if col not in time_cols
+				]
+				order_cols = time_cols + other_stuff
 				return (
-					select(*list(tab.c)[1:])
+					select(*(col for col in tab.c if col is not tab.c.branch))
 					.select_from(tab)
 					.where(tick_to_end_clause(tab))
-					.order_by(*tab.primary_key)
+					.order_by(*order_cols)
 				)
 
 			def load_something_tick_to_tick(tab: Table) -> Select:
-				assert tab.c[0] is tab.c.branch
-				assert tab.c[1] is tab.c.turn
+				time_cols = [tab.c.branch, tab.c.turn, tab.c.tick]
+				other_stuff = [
+					col for col in tab.primary_key.c if col not in time_cols
+				]
+				order_cols = time_cols + other_stuff
 				return (
-					select(*list(tab.c)[1:])
+					select(*(col for col in tab.c if col is not tab.c.branch))
 					.select_from(tab)
 					.where(tick_to_tick_clause(tab))
-					.order_by(*tab.primary_key)
+					.order_by(*order_cols)
 				)
 
 			def after_clause(tab: Table) -> list[ColumnElement[bool]]:
