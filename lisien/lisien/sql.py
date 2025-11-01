@@ -21,7 +21,7 @@ from dataclasses import dataclass, field, KW_ONLY
 from functools import cached_property, partial, partialmethod
 from queue import Queue
 from threading import Thread
-from typing import Annotated, Union, Iterator, get_args
+from typing import Union, Iterator, get_args
 
 from sqlalchemy import (
 	create_engine,
@@ -54,7 +54,7 @@ from .db import (
 	Batch,
 	GlobalKeyValueStore,
 )
-from .exc import KeyframeError, ExceptionGroup
+from .exc import KeyframeError
 from . import types
 from .types import (
 	Key,
@@ -81,6 +81,10 @@ from .types import (
 	RuleName,
 	root_type,
 	deannotate,
+	CharacterRulesHandledRowType,
+	UnitRulesHandledRowType,
+	NodeRulesHandledRowType,
+	PortalRulesHandledRowType,
 )
 
 
@@ -1497,41 +1501,52 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		_charactery_rulebook_dump, "character_portal"
 	)
 
-	def character_rules_handled_dump(self):
+	def character_rules_handled_dump(
+		self,
+	) -> Iterator[CharacterRulesHandledRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, character, rulebook, rule, tick in self.call(
 			"character_rules_handled_dump"
 		):
-			yield unpack(character), unpack(rulebook), rule, branch, turn, tick
+			yield (
+				Branch(branch),
+				Turn(turn),
+				CharName(unpack_key(character)),
+				RulebookName(unpack_key(rulebook)),
+				RuleName(rule),
+				Tick(tick),
+			)
 
-	def unit_rules_handled_dump(self):
+	def unit_rules_handled_dump(self) -> Iterator[UnitRulesHandledRowType]:
 		self._unit_rules_handled_to_set()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
 			character,
-			rulebook,
-			rule,
 			graph,
 			unit,
+			rulebook,
+			rule,
 			tick,
 		) in self.call("unit_rules_handled_dump"):
 			yield (
-				unpack(character),
-				unpack(graph),
-				unpack(unit),
-				unpack(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				CharName(unpack_key(character)),
+				CharName(unpack_key(graph)),
+				NodeName(unpack_key(unit)),
+				RulebookName(unpack_key(rulebook)),
+				RuleName(rule),
+				Tick(tick),
 			)
 
-	def character_thing_rules_handled_dump(self):
+	def character_thing_rules_handled_dump(
+		self,
+	) -> Iterator[NodeRulesHandledRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -1542,18 +1557,20 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			tick,
 		) in self.call("character_thing_rules_handled_dump"):
 			yield (
-				unpack(character),
-				unpack(thing),
-				unpack(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(thing)),
+				RulebookName(unpack_key(rulebook)),
+				RuleName(rule),
+				Tick(tick),
 			)
 
-	def character_place_rules_handled_dump(self):
+	def character_place_rules_handled_dump(
+		self,
+	) -> Iterator[NodeRulesHandledRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -1564,41 +1581,44 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			tick,
 		) in self.call("character_place_rules_handled_dump"):
 			yield (
-				unpack(character),
-				unpack(place),
-				unpack(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(place)),
+				RulebookName(unpack_key(rulebook)),
+				RuleName(rule),
+				Tick(tick),
 			)
 
-	def character_portal_rules_handled_dump(self):
+	def character_portal_rules_handled_dump(
+		self,
+	) -> Iterator[PortalRulesHandledRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
 			character,
-			rulebook,
-			rule,
 			orig,
 			dest,
+			rulebook,
+			rule,
 			tick,
 		) in self.call("character_portal_rules_handled_dump"):
 			yield (
-				unpack(character),
-				unpack(rulebook),
-				unpack(orig),
-				unpack(dest),
-				rule,
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(orig)),
+				NodeName(unpack_key(dest)),
+				RulebookName(unpack_key(rulebook)),
+				RuleName(rule),
+				Tick(tick),
 			)
 
-	def node_rules_handled_dump(self):
+	def node_rules_handled_dump(self) -> Iterator[NodeRulesHandledRowType]:
 		self.flush()
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -1609,18 +1629,18 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			tick,
 		) in self.call("node_rules_handled_dump"):
 			yield (
-				self.unpack(character),
-				self.unpack(node),
-				self.unpack(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(node)),
+				RulebookName(unpack_key(rulebook)),
+				RuleName(rule),
+				Tick(tick),
 			)
 
-	def portal_rules_handled_dump(self):
+	def portal_rules_handled_dump(self) -> Iterator[PortalRulesHandledRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -1632,38 +1652,36 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			tick,
 		) in self.call("portal_rules_handled_dump"):
 			yield (
-				unpack(character),
-				unpack(orig),
-				unpack(dest),
-				unpack(rulebook),
-				rule,
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(orig)),
+				NodeName(unpack_key(dest)),
+				RulebookName(unpack_key(rulebook)),
+				RuleName(rule),
+				Tick(tick),
 			)
 
-	def things_dump(self):
+	def things_dump(self) -> Iterator[ThingRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, character, thing, location in self.call(
 			"things_dump"
 		):
 			yield (
-				unpack(character),
-				unpack(thing),
-				branch,
-				turn,
-				tick,
-				unpack(location),
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(thing)),
+				NodeName(unpack_key(location)),
 			)
 
 	def units_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, CharName, NodeName, Branch, Turn, Tick, bool]
-	]:
+	) -> Iterator[UnitRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -1671,16 +1689,16 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			character_graph,
 			unit_graph,
 			unit_node,
-			is_av,
+			is_unit,
 		) in self.call("units_dump"):
 			yield (
-				unpack(character_graph),
-				unpack(unit_graph),
-				unpack(unit_node),
-				branch,
-				turn,
-				tick,
-				is_av,
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(character_graph)),
+				CharName(unpack_key(unit_graph)),
+				NodeName(unpack_key(unit_node)),
+				is_unit,
 			)
 
 	def count_all_table(self, tbl):
