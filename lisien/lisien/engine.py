@@ -7511,7 +7511,8 @@ class Engine(AbstractEngine, Executor):
 			self._unitness_cache.leader_cache.set_keyframe(
 				char, branch, turn, tick, user_kf
 			)
-		combined_graph_val["units"] = deepcopy(units_kf)
+		if units_kf:
+			combined_graph_val["units"] = deepcopy(units_kf)
 		node_rb_kf = {}
 		locs_kf = {}
 		conts_kf = {}
