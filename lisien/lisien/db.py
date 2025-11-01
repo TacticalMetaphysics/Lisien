@@ -3093,7 +3093,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("graph", repr(graph))
 				ret.set("unit", repr(unit))
 				ret.set("rulebook", repr(rb))
-				ret.set("rule", rule)
+				ret.set("name", rule)
 			case "character_thing_rules_handled":
 				b, r, char, thing, rb, rule, t = data[
 					"character_thing_rules_handled"
@@ -3102,7 +3102,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("character", repr(char))
 				ret.set("thing", repr(thing))
 				ret.set("rulebook", repr(rb))
-				ret.set("rule", rule)
+				ret.set("name", rule)
 			case "character_place_rules_handled":
 				b, r, char, place, rb, rule, t = data[
 					"character_place_rules_handled"
@@ -3111,7 +3111,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("character", repr(char))
 				ret.set("place", repr(place))
 				ret.set("rulebook", repr(rb))
-				ret.set("rule", rule)
+				ret.set("name", rule)
 			case "character_portal_rules_handled":
 				b, r, char, orig, dest, rb, rule, t = data[
 					"character_portal_rules_handled"
@@ -3121,7 +3121,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("origin", repr(orig))
 				ret.set("destination", repr(dest))
 				ret.set("rulebook", repr(rb))
-				ret.set("rule", rule)
+				ret.set("name", rule)
 			case "node_rules_handled":
 				b, r, char, node, rb, rule, t = data["node_rules_handled"].pop(
 					0
@@ -3130,7 +3130,7 @@ class AbstractDatabaseConnector(ABC):
 				ret.set("character", repr(char))
 				ret.set("node", repr(node))
 				ret.set("rulebook", repr(rb))
-				ret.set("rule", rule)
+				ret.set("name", rule)
 		return ret
 
 	def _fill_branch_element(
@@ -3182,6 +3182,7 @@ class AbstractDatabaseConnector(ABC):
 				):
 					current_rule_el = self._get_current_rule_el(data)
 					if current_rule_el is not None:
+						assert "name" in current_rule_el.keys()
 						turn_el.append(current_rule_el)
 				if now in keyframe_times:
 					kf = self.get_keyframe(branch_now, turn_now, tick_now)
