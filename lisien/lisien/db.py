@@ -649,7 +649,9 @@ class AbstractDatabaseConnector(ABC):
 		"""
 		self.flush()
 		return {
-			table: sorted(getattr(self, f"{table}_dump")(), key=self.pack)
+			table: sorted(
+				map(tuple, getattr(self, f"{table}_dump")()), key=self.pack
+			)
 			for table in Batch.cached_properties
 		}
 
