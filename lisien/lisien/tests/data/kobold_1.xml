@@ -2,8 +2,8 @@
   <playtree trunk="trunk" game="test_export">
     <branch name="trunk" start-turn="0" start-tick="0" end-turn="1" end-tick="2" last-turn-completed="1">
       <turn number="0" end-tick="111" plan-end-tick="111">
-        <rule end-tick="0" type="node" character="'physical'" node="'dwarf'" rulebook="('physical', 'dwarf')" rule="kill_kobold"/>
-        <rule end-tick="1" type="node" character="'physical'" node="'dwarf'" rulebook="('physical', 'dwarf')" rule="wander">
+        <rule end-tick="0" type="node" character="'physical'" node="'dwarf'" rulebook="('physical', 'dwarf')" name="kill_kobold"/>
+        <rule end-tick="1" type="node" character="'physical'" node="'dwarf'" rulebook="('physical', 'dwarf')" name="wander">
           <graph character="'physical'" tick="0" type="DiGraph"/>
           <universal key="'rando_state'" tick="0">
             <tuple>
@@ -1738,7 +1738,7 @@
             <edge orig="(9, 9)" dest="(9, 8)"/>
           </character>
         </keyframe>
-        <rule end-tick="2" type="node" character="'physical'" node="'kobold'" rulebook="('physical', 'kobold')" rule="shrubsprint">
+        <rule end-tick="2" type="node" character="'physical'" node="'kobold'" rulebook="('physical', 'kobold')" name="shrubsprint">
           <node character="'physical'" name="'kobold'" tick="1" exists="true"/>
           <location character="'physical'" thing="'kobold'" tick="1" location="(9, 9)"/>
         </rule>

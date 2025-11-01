@@ -4829,17 +4829,102 @@ class Engine(AbstractEngine, Executor):
 		if graphs := loaded.pop("graphs", None):
 			self._graph_cache.load(graphs)
 		if charrh := loaded.pop("character_rules_handled", None):
-			self._character_rules_handled_cache.load(charrh)
+			self._character_rules_handled_cache.load(
+				(character, rulebook, rule, branch, turn, tick)
+				for (
+					branch,
+					turn,
+					character,
+					rulebook,
+					rule,
+					tick,
+				) in charrh
+			)
 		if unitrh := loaded.pop("unit_rules_handled", None):
-			self._unit_rules_handled_cache.load(unitrh)
+			self._unit_rules_handled_cache.load(
+				(
+					character,
+					graph,
+					unit,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+				for (
+					branch,
+					turn,
+					character,
+					graph,
+					unit,
+					rulebook,
+					rule,
+					tick,
+				) in unitrh
+			)
 		if cthrb := loaded.pop("character_thing_rules_handled", None):
-			self._character_thing_rules_handled_cache.load(cthrb)
+			self._character_thing_rules_handled_cache.load(
+				(character, thing, rulebook, rule, branch, turn, tick)
+				for (
+					branch,
+					turn,
+					character,
+					thing,
+					rulebook,
+					rule,
+					tick,
+				) in cthrb
+			)
 		if cplrh := loaded.pop("character_place_rules_handled", None):
-			self._character_place_rules_handled_cache.load(cplrh)
+			self._character_place_rules_handled_cache.load(
+				(character, place, rulebook, rule, branch, turn, tick)
+				for (
+					branch,
+					turn,
+					character,
+					place,
+					rulebook,
+					rule,
+					tick,
+				) in cplrh
+			)
 		if cporh := loaded.pop("character_portal_rules_handled", None):
-			self._character_portal_rules_handled_cache.load(cporh)
+			self._character_portal_rules_handled_cache.load(
+				(
+					character,
+					origin,
+					destination,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+				for (
+					branch,
+					turn,
+					character,
+					origin,
+					destination,
+					rulebook,
+					rule,
+					tick,
+				) in cporh
+			)
 		if nrh := loaded.pop("node_rules_handled", None):
-			self._node_rules_handled_cache.load(nrh)
+			self._node_rules_handled_cache.load(
+				(character, node, rulebook, rule, branch, turn, tick)
+				for (
+					branch,
+					turn,
+					character,
+					node,
+					rulebook,
+					rule,
+					tick,
+				) in nrh
+			)
 		if porh := loaded.pop("portal_rules_handled", None):
 			self._portal_rules_handled_cache.load(porh)
 		for loaded_graph, data in loaded.items():
