@@ -185,15 +185,15 @@ class get_rando:
 	"""
 
 	__slots__ = ("_getter", "_wrapfun", "_instance")
-	_getter: callable
+	_getter: Callable[[], Callable]
 
 	def __init__(self, attr, *attrs):
 		self._getter = attrgetter(attr, *attrs)
 
-	def __get__(self, instance, owner) -> callable:
+	def __get__(self, instance, owner) -> Callable:
 		if hasattr(self, "_wrapfun") and self._instance is instance:
 			return self._wrapfun
-		retfun: callable = self._getter(instance)
+		retfun: Callable = self._getter(instance)
 
 		@wraps(retfun)
 		def remembering_rando_state(*args, **kwargs):
@@ -209,7 +209,7 @@ class get_rando:
 
 
 @contextmanager
-def timer(msg="", logfun: callable = None):
+def timer(msg="", logfun: Callable | None = None):
 	if logfun is None:
 		logfun = print
 	start = monotonic()
@@ -484,12 +484,12 @@ sort_set.memo = SizedDict()
 class FakeFuture(Future):
 	"""A 'Future' that calls its function immediately and sets the result"""
 
-	def __init__(self, func: callable, *args, **kwargs):
+	def __init__(self, func: Callable, *args, **kwargs):
 		super().__init__()
 		self.set_result(func(*args, **kwargs))
 
 
-def fake_submit(func: callable, *args, **kwargs) -> FakeFuture:
+def fake_submit(func: Callable, *args, **kwargs) -> FakeFuture:
 	"""A replacement for `concurrent.futures.Executor.submit` that works in serial
 
 	In testing, you may use, eg.,
@@ -877,7 +877,7 @@ class AbstractEngine(ABC):
 		| thing_cls
 		| portal_cls
 		| Exception
-		| callable,
+		| Callable,
 	]:
 		try:
 			import msgpack._cmsgpack
@@ -1060,7 +1060,7 @@ class AbstractEngine(ABC):
 	@abstractmethod
 	def add_character(
 		self,
-		name: Key,
+		name: _Key,
 		data: nx.Graph | DiGraph | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
@@ -1070,14 +1070,13 @@ class AbstractEngine(ABC):
 
 	def new_character(
 		self,
-		name: Key,
+		name: _Key,
 		data: nx.Graph | DiGraph | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
 		edge: EdgeValDict | None = None,
 		**kwargs,
 	):
-		name = CharName(name)
 		self.add_character(name, data)
 		return self.character[name]
 
@@ -1491,7 +1490,7 @@ class AbstractCharacter(DiGraph):
 		self.portal.clear()
 		self.stat.clear()
 
-	def _lookup_comparator(self, comparator: callable | str) -> callable:
+	def _lookup_comparator(self, comparator: Callable | str) -> Callable:
 		if callable(comparator):
 			return comparator
 		ops = {"ge": ge, "gt": gt, "le": le, "lt": lt, "eq": eq}
@@ -1503,8 +1502,8 @@ class AbstractCharacter(DiGraph):
 		self,
 		stat: Stat,
 		threshold: float = 0.5,
-		comparator: callable | str = ge,
-	) -> None:
+		comparator: Callable | str = ge,
+	) -> AbstractCharacter:
 		"""Delete nodes whose stat >= ``threshold`` (default 0.5).
 
 		Optional argument ``comparator`` will replace >= as the test
@@ -1524,7 +1523,7 @@ class AbstractCharacter(DiGraph):
 		self,
 		stat: Stat,
 		threshold: float = 0.5,
-		comparator: callable | str = ge,
+		comparator: Callable | str = ge,
 	):
 		"""Delete portals whose stat >= ``threshold`` (default 0.5).
 
@@ -1775,7 +1774,7 @@ def _garbage_ctx(collect=True):
 		gc.collect()
 
 
-def _garbage_dec(fn: callable, collect=True) -> callable:
+def _garbage_dec(fn: Callable, collect: bool = True) -> Callable:
 	"""Decorator to disable the garbage collector for a function
 
 	:param collect: Whether to immediately collect garbage when the function returns
@@ -1790,7 +1789,7 @@ def _garbage_dec(fn: callable, collect=True) -> callable:
 	return garbage
 
 
-def garbage(arg: callable = None, collect: bool = False):
+def garbage(arg: Callable | None = None, collect: bool = False):
 	"""Disable the garbage collector, then re-enable it when done.
 
 	May be used as a context manager or a decorator.
@@ -1806,7 +1805,7 @@ def garbage(arg: callable = None, collect: bool = False):
 		return _garbage_dec(arg, collect=collect)
 
 
-def world_locked(fn: callable) -> callable:
+def world_locked(fn: Callable) -> Callable:
 	"""Decorator for functions that alter the world state
 
 	They will hold a reentrant lock, preventing more than one function
