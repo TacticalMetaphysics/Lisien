@@ -4615,17 +4615,17 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				self._character_portal_rules_handled,
 			),
 		]:
-			for key, tick in sorted(
-				my_table.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[1])
+			for rec in sort_set(
+				{(k[0], k[1], v, *k[2:]) for (k, v) in my_table.items()}
 			):
-				b, turn = key[:2]
+				b, turn, tick = rec[:3]
 				if b != branch or not (
 					(turn_from, tick_from)
 					<= (turn, tick)
 					<= (turn_to, tick_to)
 				):
 					continue
-				datum = key + (tick,)
+				datum = (b, turn, *rec[3:], tick)
 				handled_l.append(datum)
 
 	def _load_windows_into(
