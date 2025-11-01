@@ -21,6 +21,7 @@ import sys
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections import UserDict, defaultdict, deque
+from copy import copy
 from contextlib import contextmanager
 from dataclasses import dataclass, KW_ONLY
 from functools import cached_property, partial, wraps, partialmethod
@@ -4518,9 +4519,15 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			"portal_rules_handled", []
 		)
 		graphs: list[GraphRowType] = ret.setdefault("graphs", [])
+		for b, turn, tick, rulebook in sort_set(self._rulebooks.keys()):
+			rules, prio = self._rulebooks[b, turn, tick, rulebook]
+			if b != branch or not (
+				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+			):
+				continue
+			rulebooks.append((b, turn, tick, rulebook, rules, prio))
 		for uncharacter_l, my_table in [
 			(universals, self._universals),
-			(rulebooks, self._rulebooks),
 			(rule_triggers, self._rule_triggers),
 			(rule_prereqs, self._rule_prereqs),
 			(rule_actions, self._rule_actions),
@@ -4536,7 +4543,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 					<= (turn_to, tick_to)
 				):
 					continue
-				the_datum = key + (my_table[key],)
+				the_datum = key + (copy(my_table[key]),)
 				uncharacter_l.append(the_datum)
 		for char_d_key, my_table in [
 			("nodes", self._nodes),
