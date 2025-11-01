@@ -90,6 +90,49 @@ from .types import (
 	KeyframeExtensionTuple,
 )
 
+meta = MetaData()
+py2sql: dict[type, type] = {
+	bytes: BLOB,
+	Key: BLOB,
+	Value: BLOB,
+	int: INT,
+	str: TEXT,
+	bool: BOOLEAN,
+	float: FLOAT,
+}
+for table, serializer in Batch.serializers.items():
+	cached_prop: cached_property = Batch.cached_properties[table]
+	batch = cached_prop.func(None)
+	spec = inspect.getfullargspec(serializer)
+	ret_annot = spec.annotations["return"]
+	if isinstance(ret_annot, str):
+		ret_annot = eval(ret_annot, types.__dict__)
+	columns = []
+	with_rowid = batch.key_len == 0
+	for n, (arg, ret_typ) in enumerate(
+		zip(spec.args[1:], get_args(ret_annot)), start=1
+	):
+		args = get_args(ret_typ)
+		nullable = type(None) in args
+		orig = root_type(ret_typ)
+		if orig is Union:
+			for orig in args:
+				if orig is not None:
+					break
+			else:
+				raise TypeError("Too many types for column", arg, orig, table)
+		orig2 = root_type(orig)
+		if orig2 not in py2sql:
+			raise TypeError("Unknown type for column", arg, orig, table)
+		col = Column(
+			arg,
+			py2sql[orig2],
+			primary_key=n <= batch.key_len,
+			nullable=nullable,
+		)
+		columns.append(col)
+	Table(table, meta, *columns, sqlite_with_rowid=with_rowid)
+
 
 @dataclass
 class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
@@ -170,56 +213,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			)
 
 		@cached_property
-		def meta(self) -> MetaData:
-			the_meta = MetaData()
-			py2sql = {
-				bytes: BLOB,
-				Key: BLOB,
-				Value: BLOB,
-				int: INT,
-				str: TEXT,
-				bool: BOOLEAN,
-				float: FLOAT,
-			}
-			for table, serializer in Batch.serializers.items():
-				cached_prop: cached_property = Batch.cached_properties[table]
-				batch = getattr(self.connector, cached_prop.attrname)
-				spec = inspect.getfullargspec(serializer)
-				ret_annot = spec.annotations["return"]
-				if isinstance(ret_annot, str):
-					ret_annot = eval(ret_annot, types.__dict__)
-				columns = []
-				with_rowid = batch.key_len == 0
-				for n, (arg, ret_typ) in enumerate(
-					zip(spec.args[1:], get_args(ret_annot)), start=1
-				):
-					args = get_args(ret_typ)
-					nullable = type(None) in args
-					orig = root_type(ret_typ)
-					if orig is Union:
-						for orig in args:
-							if orig is not None:
-								break
-						else:
-							raise TypeError(
-								"Too many types for column", arg, orig, table
-							)
-					orig2 = root_type(orig)
-					if orig2 not in py2sql:
-						raise TypeError(
-							"Unknown type for column", arg, orig, table
-						)
-					col = Column(
-						arg,
-						py2sql[orig2],
-						primary_key=n <= batch.key_len,
-						nullable=nullable,
-					)
-					columns.append(col)
-				Table(table, the_meta, *columns, sqlite_with_rowid=with_rowid)
-			return the_meta
-
-		@cached_property
 		def sql(self) -> dict[str, Select]:
 			def update_where(updcols, wherecols):
 				"""Return an ``UPDATE`` statement that updates the columns ``updcols``
@@ -298,7 +291,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 					),
 				]
 
-			table = self.meta.tables
+			table = meta.tables
 
 			graphs = table["graphs"]
 			globtab = table["global"]
@@ -772,7 +765,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			extensions for lisien
 
 			"""
-			for table in self.meta.tables:
+			for table in meta.tables:
 				try:
 					self.init_table(table)
 				except Exception as ex:

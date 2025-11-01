@@ -165,7 +165,7 @@ class EngineProxyManager:
 			from sqlalchemy import NullPool, create_engine, select
 			from sqlalchemy.exc import OperationalError
 
-			from ..alchemy import meta
+			from ..sql import meta
 
 			eng = create_engine(
 				kwargs["connect_string"],
