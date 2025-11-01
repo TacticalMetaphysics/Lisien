@@ -5463,15 +5463,6 @@ class Engine(AbstractEngine, Executor):
 				edges,
 				data.graph,
 			)
-			self.query.keyframe_graph_insert(
-				name,
-				branch,
-				turn,
-				tick,
-				nodes,
-				edges,
-				data.graph,
-			)
 		elif isinstance(data, dict):
 			try:
 				data = nx.from_dict_of_dicts(data)
