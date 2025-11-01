@@ -36968,6 +36968,7 @@
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep0'" rulebook="('unit_rulebook', 'sheep')" name="mate">
           <unit character-graph="'wolf'" unit-graph="'physical'" unit-node="'wolf6'" tick="68" is-unit="true"/>
         </rule>
+        <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep1'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep10'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep11'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep12'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
@@ -36978,13 +36979,12 @@
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep17'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep18'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep19'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
-        <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep1'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
+        <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep2'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep20'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep21'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep22'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep23'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep24'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
-        <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep2'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep3'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep4'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>
         <rule end-tick="69" type="unit" character="'sheep'" graph="'physical'" unit="'sheep5'" rulebook="('unit_rulebook', 'sheep')" name="mate"/>

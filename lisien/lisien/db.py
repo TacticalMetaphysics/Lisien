@@ -370,7 +370,7 @@ class Batch(list):
 							)
 						else:
 							rec = (branch, *rec)
-						charn = rec[char_index]
+						charn = self._qe.unpack(rec[char_index])
 						try:
 							ret[charn][self.table].append(
 								self.deserialize(rec)
