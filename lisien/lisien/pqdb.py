@@ -347,14 +347,10 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				db.delete(ids)
 
 		def dump(self, table: str) -> list:
-			data = [
-				d
-				for d in self._get_db(table).read().to_pylist()
-				if d.keys() - {"id"}
-			]
-			schema = self._get_schema(table)
-			data.sort(key=lambda d: tuple(d[name] for name in schema.names))
-			return data
+			data = (
+				self._get_db(table).read().sort_by(self._sort_columns(table))
+			)
+			return data.to_pylist()
 
 		def rowcount(self, table: str) -> int:
 			return self._get_db(table).read().num_rows
@@ -481,10 +477,16 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		def _sort_columns(self, table: str) -> list[tuple[str, str]]:
 			schema = self.schema[table]
 			columns = ["branch", "turn", "tick"]
+			timecols = set(columns)
 			for column in map(itemgetter(0), schema):
-				if column in columns:
+				if column in timecols:
+					timecols.remove(column)
 					continue
 				columns.append(column)
+			if timecols:
+				return [
+					(col, "ascending") for col in map(itemgetter(0), schema)
+				]
 			return [(col, "ascending") for col in columns]
 
 		def list_keyframes(self) -> list:
