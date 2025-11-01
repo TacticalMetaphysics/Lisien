@@ -768,6 +768,13 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			for table in meta.tables:
 				try:
 					self.init_table(table)
+				except OperationalError as ex:
+					msg = ex.args[0]
+					if not (
+						msg.startswith("(sqlite3.OperationalError) table ")
+						and msg.endswith(" already exists")
+					):
+						raise
 				except Exception as ex:
 					return ex
 			glob_d: dict[bytes, bytes] = dict(
