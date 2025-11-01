@@ -219,6 +219,12 @@ def world_locked(fn: Callable) -> Callable:
 	return lockedy
 
 
+def unwrap(v: _T) -> _T:
+	if hasattr(v, "unwrap"):
+		return v.unwrap()
+	return v
+
+
 ILLEGAL_CHARACTER_NAMES = {
 	"graphs",
 	"universal",

@@ -22,6 +22,7 @@ have a lot in common.
 from __future__ import annotations
 
 from collections.abc import Mapping, Set, ValuesView
+from copy import deepcopy
 from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 
 from networkx import shortest_path, shortest_path_length
@@ -30,8 +31,7 @@ import lisien.types
 
 from . import rule
 from .exc import AmbiguousLeaderError
-from .facade import FacadePlace, FacadeThing
-from .query import EntityStatAlias
+from .facade import EngineFacade, FacadePlace, FacadeThing
 from .rule import RuleMapping
 from .types import (
 	_Key,
@@ -45,7 +45,9 @@ from .types import (
 	Value,
 	AbstractThing,
 	getatt,
+	EntityStatAlias,
 )
+from .util import unwrap
 
 if TYPE_CHECKING:
 	from .character import Character
@@ -622,36 +624,6 @@ class Node(lisien.types.Node, rule.RuleFollower):
 			)
 			return now
 
-	def add_portal(self, other: _Key | Node, **stats) -> None:
-		"""Connect a portal from here to another node"""
-		self.character.add_portal(
-			self.name, getattr(other, "name", other), **stats
-		)
-
-	def new_portal(self, other: _Key | Node, **stats) -> "Portal":
-		"""Connect a portal from here to another node, and return it."""
-		return self.character.new_portal(
-			self.name, getattr(other, "name", other), **stats
-		)
-
-	def add_thing(self, name: _Key, **stats) -> None:
-		"""Make a new Thing here"""
-		self.character.add_thing(name, self.name, **stats)
-
-	def new_thing(self, name: _Key, **stats) -> "Thing":
-		"""Create a new thing, located here, and return it."""
-		return self.character.new_thing(name, self.name, **stats)
-
-	def historical(self, stat: _Key) -> EntityStatAlias:
-		"""Return a reference to the values that a stat has had in the past.
-
-		You can use the reference in comparisons to make a history
-		query, and execute the query by calling it, or passing it to
-		``self.engine.ticks_when``.
-
-		"""
-		return EntityStatAlias(entity=self, stat=Stat(Key(stat)))
-
 	def __bool__(self):
 		return self.engine._node_exists(self.character.name, self.name)
 
@@ -698,6 +670,17 @@ class Place(Node):
 
 	def facade(self) -> FacadePlace:
 		return FacadePlace(self.character.facade(), self)
+
+	def __copy__(self) -> FacadePlace:
+		return self.facade()
+
+	def __deepcopy__(self, memo) -> FacadePlace:
+		eng = EngineFacade(None)
+		fakechar = eng.new_character(self.character.name)
+		me = fakechar.new_place(self.name)
+		for k, v in self.items():
+			me[k] = deepcopy(unwrap(v), memo)
+		return me
 
 
 def roerror(*args):
@@ -787,6 +770,18 @@ class Thing(Node, AbstractThing):
 
 	def facade(self) -> FacadeThing:
 		return FacadeThing(self.character.facade(), self)
+
+	def __copy__(self) -> FacadeThing:
+		return self.facade()
+
+	def __deepcopy__(self, memo) -> FacadeThing:
+		eng = EngineFacade(None)
+		fakechar = eng.new_character(self.character.name)
+		fakeloc = fakechar.new_place(self.location.name)
+		me = fakeloc.new_thing(self.name)
+		for k, v in self.items():
+			me[k] = deepcopy(unwrap(v), memo)
+		return me
 
 	def _delete(self, now: Optional[Time] = None) -> Time:
 		with (
