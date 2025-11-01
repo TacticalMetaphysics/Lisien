@@ -178,6 +178,7 @@ from .types import (
 	AbstractCharacter,
 	TimeSignalDescriptor,
 	sort_set,
+	CharDict,
 )
 from .util import (
 	ACTIONS,
