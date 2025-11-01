@@ -9384,7 +9384,7 @@
             <edge orig="(19, 19)" dest="(18, 18)" rulebook="('physical', (19, 19), (18, 18))"/>
             <edge orig="(19, 19)" dest="(19, 18)" rulebook="('physical', (19, 19), (19, 18))"/>
           </character>
-          <character name="'square'"/>
+          <character name="'square'" character-rulebook="('character_rulebook', 'square')" unit-rulebook="('unit_rulebook', 'square')" character-thing-rulebook="('character_thing_rulebook', 'square')" character-place-rulebook="('character_place_rulebook', 'square')" character-portal-rulebook="('character_portal_rulebook', 'square')"/>
         </keyframe>
         <graph character="'square'" tick="9" type="DiGraph"/>
         <keyframe tick="11">
@@ -13434,7 +13434,7 @@
             <edge orig="(19, 19)" dest="(19, 18)" rulebook="('physical', (19, 19), (19, 18))"/>
           </character>
           <character name="'square'" character-rulebook="('character_rulebook', 'square')" unit-rulebook="('unit_rulebook', 'square')" character-thing-rulebook="('character_thing_rulebook', 'square')" character-place-rulebook="('character_place_rulebook', 'square')" character-portal-rulebook="('character_portal_rulebook', 'square')"/>
-          <character name="'triangle'"/>
+          <character name="'triangle'" character-rulebook="('character_rulebook', 'triangle')" unit-rulebook="('unit_rulebook', 'triangle')" character-thing-rulebook="('character_thing_rulebook', 'triangle')" character-place-rulebook="('character_place_rulebook', 'triangle')" character-portal-rulebook="('character_portal_rulebook', 'triangle')"/>
         </keyframe>
         <graph character="'triangle'" tick="11" type="DiGraph"/>
         <unit-rulebook character="'square'" tick="12" rulebook="'parable'"/>
