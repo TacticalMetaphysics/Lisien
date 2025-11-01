@@ -809,36 +809,9 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	@mutexed
 	def call(self, string, *args, **kwargs):
-		if self._outq.unfinished_tasks != 0:
-			excs = []
-			unfinished_tasks = self._outq.unfinished_tasks
-			while not self._outq.empty():
-				got = self._outq.get()
-				if isinstance(got, Exception):
-					excs.append(got)
-				else:
-					excs.append(ValueError("Unconsumed output", got))
-			if excs:
-				if len(excs) == 1:
-					raise excs[-1]
-				raise ExceptionGroup(
-					f"{unfinished_tasks} unfinished tasks in output queue "
-					"before call_one",
-					excs,
-				)
-			else:
-				raise RuntimeError(
-					f"{unfinished_tasks} unfinished tasks in output queue "
-					"before call_one"
-				)
 		self._inq.put(("one", string, args, kwargs))
 		ret = self._outq.get()
 		self._outq.task_done()
-		if self._outq.unfinished_tasks != 0:
-			raise RuntimeError(
-				f"{self._outq.unfinished_tasks} unfinished tasks in output "
-				"queue after call_one",
-			)
 		if isinstance(ret, Exception):
 			raise ret
 		return ret
