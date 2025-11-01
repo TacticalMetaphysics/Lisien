@@ -1052,7 +1052,7 @@ class Character(AbstractCharacter, RuleFollower):
 		"""
 		return CharacterFacade(character=self)
 
-	def add_place(self, node_for_adding: _Keey, **attr):
+	def add_place(self, node_for_adding: _Key, **attr):
 		"""Add a new Place"""
 		attr: StatDict
 		self.place[node_for_adding] = attr
