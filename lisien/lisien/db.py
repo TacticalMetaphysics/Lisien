@@ -449,6 +449,7 @@ class Batch(list):
 				tick_to,
 			):
 				raise RuntimeError("Expected end of " + table, got)
+			outq.task_done()
 
 		return get_a_window
 
@@ -6062,7 +6063,7 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 
 	@contextmanager
 	def mutex(self):
-		if self._outq.unfinished_tasks != 0:
+		def consume_errors():
 			excs = []
 			unfinished_tasks = self._outq.unfinished_tasks
 			while not self._outq.empty():
@@ -6081,16 +6082,16 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 				)
 			else:
 				raise RuntimeError(
-					f"{unfinished_tasks} unfinished tasks in output queue "
+					f"{self._outq.unfinished_tasks} unfinished tasks in output queue "
 					"before call_one"
 				)
+
+		if self._outq.unfinished_tasks != 0:
+			consume_errors()
 		with self._lock:
 			yield
 		if self._outq.unfinished_tasks != 0:
-			raise RuntimeError(
-				f"{self._outq.unfinished_tasks} unfinished tasks in output "
-				"queue after call_one",
-			)
+			consume_errors()
 
 	@cached_property
 	def _looper(self) -> ConnectionLooper:
