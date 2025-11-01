@@ -79,8 +79,9 @@ from .types import (
 	NodeName,
 	RulebookName,
 	RuleName,
+	root_type,
+	deannotate,
 )
-from .util import deannotate, root_type
 
 
 @dataclass

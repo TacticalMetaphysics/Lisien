@@ -46,11 +46,12 @@ from typing import Any, Callable
 from sqlalchemy import Table, and_, select, MetaData
 from sqlalchemy.sql.functions import func
 
-from .util import (
-	AbstractEngine,
+from .types import (
+	UnitsAccessor,
 	CharacterStatAccessor,
 	EntityStatAccessor,
-	UnitsAccessor,
+	AbstractEngine,
+	AbstractCharacter,
 )
 
 
@@ -419,7 +420,6 @@ def _make_side_sel(
 	pack: callable,
 	mid_turn: bool,
 ):
-	from .character import AbstractCharacter
 	from .node import Place, Thing
 	from .portal import Portal
 

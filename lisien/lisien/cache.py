@@ -60,8 +60,8 @@ from .types import (
 	Time,
 	Turn,
 	Value,
+	sort_set,
 )
-from .util import sort_set
 from .window import (
 	Direction,
 	EntikeySettingsTurnDict,

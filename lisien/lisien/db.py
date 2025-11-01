@@ -146,14 +146,14 @@ from .types import (
 	PortalRulesHandledRowType,
 	NodeRulesHandledRowType,
 	UnitRulesHandledRowType,
+	AbstractEngine,
+	sort_set,
+	deannotate,
 )
 from .facade import EngineFacade
 from .util import (
 	garbage,
-	sort_set,
-	AbstractEngine,
 	ILLEGAL_CHARACTER_NAMES,
-	deannotate,
 )
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 

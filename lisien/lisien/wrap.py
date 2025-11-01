@@ -38,7 +38,7 @@ from typing import TYPE_CHECKING, Any, Callable, Hashable, Set
 from blinker import Signal
 
 if TYPE_CHECKING:
-	from .util import AbstractCharacter
+	from .types import AbstractCharacter
 
 
 class OrderlySet(set):

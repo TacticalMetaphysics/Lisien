@@ -35,13 +35,20 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from typing import TYPE_CHECKING, Callable, Iterator
+from typing import TYPE_CHECKING, Callable
 
 import networkx as nx
 from blinker import Signal
 
-from .types import CharName, _Key
-from .util import AbstractEngine, dedent_source, getatt, sort_set
+from .types import (
+	CharName,
+	_Key,
+	AbstractEngine,
+	sort_set,
+	AbstractFunctionStore,
+	getatt,
+)
+from .util import dedent_source
 from .wrap import wrapval
 
 if TYPE_CHECKING:
@@ -270,26 +277,6 @@ class StringStore(MutableMapping, Signal):
 			the_hash.update(v.encode())
 			the_hash.update(REC_SEP)
 		return the_hash.digest()
-
-
-class AbstractFunctionStore(ABC):
-	@abstractmethod
-	def save(self, reimport: bool = True) -> None: ...
-
-	@abstractmethod
-	def reimport(self) -> None: ...
-
-	@abstractmethod
-	def iterplain(self) -> Iterator[tuple[str, str]]: ...
-
-	def store_source(self, v: str, name: str | None = None) -> None: ...
-
-	@abstractmethod
-	def get_source(self, name: str) -> str: ...
-
-	@staticmethod
-	def truth(*args):
-		return True
 
 
 class FunctionStore(AbstractFunctionStore, Signal):

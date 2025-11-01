@@ -28,7 +28,7 @@ from typing import Any, Callable, Iterable, Optional
 import networkx as nx
 import tblib
 
-from ..exc import HistoricKeyError, OutOfTimelineError
+from ..exc import HistoricKeyError, OutOfTimelineError, BadTimeException
 from ..node import Node
 from ..portal import Portal
 from ..types import (
@@ -61,6 +61,7 @@ from ..types import (
 	Turn,
 	UnitsDict,
 	Value,
+	AbstractCharacter,
 )
 from ..util import (
 	EDGE_VAL,
@@ -76,8 +77,6 @@ from ..util import (
 	RULES,
 	UNITS,
 	UNIVERSAL,
-	AbstractCharacter,
-	BadTimeException,
 	timer,
 	msgpack_map_header,
 	ILLEGAL_CHARACTER_NAMES,

@@ -29,16 +29,13 @@ from blinker import Signal
 
 from lisien.exc import AmbiguousLeaderError
 from lisien.facade import CharacterFacade
-from lisien.types import Edge, _Key, _Value
 from lisien.node import Place, Thing
 from lisien.portal import Portal
-
-from lisien.proxy.abc import (
-	CachingProxy,
-	CachingEntityProxy,
-	RuleFollowerProxy,
-)
 from lisien.types import (
+	Edge,
+	_Key,
+	_Value,
+	AbstractCharacter,
 	NodeName,
 	StatDict,
 	Key,
@@ -50,8 +47,13 @@ from lisien.types import (
 	NodeValDict,
 	EdgeValDict,
 	CharDelta,
+	getatt,
 )
-from lisien.util import getatt, AbstractCharacter
+from lisien.proxy.abc import (
+	CachingProxy,
+	CachingEntityProxy,
+	RuleFollowerProxy,
+)
 
 if TYPE_CHECKING:
 	from .engine import EngineProxy
