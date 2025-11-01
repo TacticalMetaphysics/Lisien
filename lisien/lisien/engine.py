@@ -121,13 +121,6 @@ from .proxy.routine import worker_subprocess, worker_subthread
 from .proxy.worker_subinterpreter import worker_subinterpreter
 from .proxy.manager import Sub
 from .query import (
-	CombinedQueryResult,
-	ComparisonQuery,
-	CompoundQuery,
-	Query,
-	QueryResult,
-	QueryResultEndTurn,
-	QueryResultMidTurn,
 	_make_side_sel,
 )
 from .rule import AllRuleBooks, AllRules, Rule
@@ -179,6 +172,13 @@ from .types import (
 	TimeSignalDescriptor,
 	sort_set,
 	CharDict,
+	CompoundQuery,
+	ComparisonQuery,
+	Query,
+	QueryResult,
+	QueryResultEndTurn,
+	QueryResultMidTurn,
+	CombinedQueryResult,
 )
 from .util import (
 	ACTIONS,

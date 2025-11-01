@@ -36,6 +36,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Mapping
+from copy import deepcopy
 from itertools import chain
 from types import MethodType
 from typing import TYPE_CHECKING, Callable, Iterable, Iterator
@@ -44,10 +45,9 @@ import networkx as nx
 from blinker import Signal
 
 from .exc import WorldIntegrityError
-from .facade import CharacterFacade
+from .facade import CharacterFacade, EngineFacade
 from .node import Node, Place, Thing
 from .portal import Portal
-from .query import CharacterStatAlias, UnitsAlias
 from .rule import RuleBook
 from .rule import RuleFollower as BaseRuleFollower
 from .rule import RuleMapping
@@ -70,8 +70,10 @@ from .types import (
 	_Value,
 	AbstractCharacter,
 	getatt,
+	CharacterStatAlias,
+	UnitsAlias,
 )
-from .util import singleton_get, timer
+from .util import singleton_get, timer, unwrap
 from .wrap import MutableMappingUnwrapper, SpecialMapping
 
 if TYPE_CHECKING:
@@ -1052,6 +1054,29 @@ class Character(AbstractCharacter, RuleFollower):
 		"""
 		return CharacterFacade(character=self)
 
+	def __copy__(self) -> CharacterFacade:
+		return self.facade()
+
+	def __deepcopy__(self, memo) -> CharacterFacade:
+		eng = EngineFacade(None)
+		me = eng.new_character(self.name)
+		for stat, val in self.stat.items():
+			me.stat[stat] = me.deep_copy(unwrap(val), memo)
+		for plname, place in self.place.items():
+			fake = me.new_place(plname)
+			for k, v in place.items():
+				fake[k] = me.deep_copy(unwrap(v), memo)
+		for thname, thing in self.thing.items():
+			fake = me.new_thing(thname, thing.location.name)
+			for k, v in thing.items():
+				fake[k] = me.deep_copy(unwrap(v), memo)
+		for orig, dests in self.portal.items():
+			for dest, portal in dests.items():
+				fake = me.new_portal(orig, dest)
+				for k, v in portal.items():
+					fake[k] = me.deep_copy(unwrap(v), memo)
+		return me
+
 	def add_place(self, node_for_adding: _Key, **attr):
 		"""Add a new Place"""
 		attr: StatDict
@@ -1275,11 +1300,6 @@ class Character(AbstractCharacter, RuleFollower):
 			self.name, g, n, branch, turn, tick, False
 		)
 		self.engine.query.unit_set(self.name, g, n, branch, turn, tick, False)
-
-	def portals(self) -> Iterator[Portal]:
-		"""Iterate over all portals."""
-		for o in self.adj.values():
-			yield from o.values()
 
 	def historical(self, stat: _Key) -> UnitsAlias | CharacterStatAlias:
 		"""Get a historical view on the given stat
