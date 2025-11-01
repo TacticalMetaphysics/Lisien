@@ -3876,6 +3876,8 @@ class AbstractDatabaseConnector(ABC):
 		character = CharName(literal_eval(rule_el.get("character")))
 		rulebook = RulebookName(literal_eval(rule_el.get("rulebook")))
 		rule = RuleName(rule_el.get("name"))
+		if not isinstance(rule, str):
+			raise TypeError("Invalid rule name", rule)
 		match rule_el.get("type"):
 			case "character":
 				self.handled_character_rule(
