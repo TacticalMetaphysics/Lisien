@@ -110,7 +110,8 @@ from .types import (
 	PrereqRowType,
 	RuleBig,
 	RuleBigRowType,
-	RulebookKeyframe,
+	RulebooksKeyframe,
+	RulesKeyframe,
 	RulebookName,
 	RulebookPriority,
 	RulebookRowType,
@@ -1122,7 +1123,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		universal: UniversalKeyframe,
 		rule: RuleKeyframe,
-		rulebook: RulebookKeyframe,
+		rulebook: RulebooksKeyframe,
 	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
 		pack = self.pack
 		return branch, turn, tick, pack(universal), pack(rule), pack(rulebook)
@@ -1340,7 +1341,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		universal: UniversalKeyframe,
 		rule: RuleKeyframe,
-		rulebook: RulebookKeyframe,
+		rulebook: RulebooksKeyframe,
 	):
 		self._new_keyframe_extensions.append(
 			(
@@ -1466,7 +1467,7 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
-	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
+	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]:
 		pass
 
 	@abstractmethod
@@ -1750,7 +1751,7 @@ class AbstractDatabaseConnector(ABC):
 			Tick,
 			UniversalKeyframe,
 			RuleKeyframe,
-			RulebookKeyframe,
+			RulebooksKeyframe,
 		]
 	]: ...
 
@@ -4153,7 +4154,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def _keyframe_extensions(
 		self,
-	) -> dict[Time, tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]]:
+	) -> dict[Time, tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]]:
 		return {}
 
 	@cached_property
@@ -4755,7 +4756,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
-	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
+	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]:
 		return self._keyframe_extensions[branch, turn, tick]
 
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
@@ -4985,7 +4986,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			Tick,
 			UniversalKeyframe,
 			RuleKeyframe,
-			RulebookKeyframe,
+			RulebooksKeyframe,
 		]
 	]:
 		with self._lock:
@@ -5242,7 +5243,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
-	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
+	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]:
 		return {}, {}, {}
 
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
@@ -5284,7 +5285,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 			Tick,
 			UniversalKeyframe,
 			RuleKeyframe,
-			RulebookKeyframe,
+			RulebooksKeyframe,
 		]
 	]:
 		return iter(())
@@ -6197,12 +6198,82 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 				)
 			)
 
-	@contextmanager
-	def mutex(self):
-		with self._lock:
-			yield
-			if self._outq.qsize() != 0:
-				raise RuntimeError("Unhandled items in output queue")
+	def _unpack_node_keyframe(self, node_kf_packed: bytes) -> NodeKeyframe:
+		node_kf = self.unpack(node_kf_packed)
+		if not isinstance(node_kf, dict):
+			raise TypeError("Invalid node keyframe", node_kf)
+		return {
+			NodeName(k): {Stat(kk): Value(vv) for (kk, vv) in v.items()}
+			for (k, v) in node_kf.items()
+		}
+
+	def _unpack_edge_keyframe(self, edge_kf_packed: bytes) -> EdgeKeyframe:
+		unpacked = self.unpack(edge_kf_packed)
+		if not isinstance(unpacked, dict):
+			raise TypeError("Invalid edge keyframe", unpacked)
+		try:
+			return {
+				NodeName(orig): {
+					NodeName(dest): {
+						Stat(key): Value(val) for (key, val) in stats.items()
+					}
+					for (dest, stats) in dests.items()
+				}
+				for (orig, dests) in unpacked.items()
+			}
+		except TypeError as ex:
+			raise TypeError(*ex.args, unpacked) from ex
+
+	def _unpack_graph_val_keyframe(self, graph_val_packed: bytes) -> StatDict:
+		unpacked = self.unpack(graph_val_packed)
+		if not isinstance(unpacked, dict):
+			raise TypeError("Invalid graph stat keyframe", unpacked)
+		return {Stat(k): Value(v) for (k, v) in unpacked.items()}
+
+	def _unpack_universal_keyframe(
+		self, universal_packed: bytes
+	) -> UniversalKeyframe:
+		unpacked = self.unpack(universal_packed)
+		if not isinstance(unpacked, dict):
+			raise TypeError("Invalid universal keyframe", unpacked)
+		return {UniversalKey(k): Value(v) for (k, v) in unpacked.items()}
+
+	def _unpack_rules_keyframe(self, rule_packed: bytes) -> RulesKeyframe:
+		def make_rule_keyframe(v: dict) -> RuleKeyframe:
+			return {
+				"triggers": [
+					TriggerFuncName(trig) for trig in v.get("triggers", ())
+				],
+				"prereqs": [
+					PrereqFuncName(preq) for preq in v.get("prereqs", ())
+				],
+				"actions": [
+					ActionFuncName(act) for act in v.get("actions", ())
+				],
+				"neighborhood": v["neighborhood"]
+				if "neighborhood" in v and v["neighborhood"] is not None
+				else None,
+				"big": RuleBig(bool(v.get("big"))),
+			}
+
+		unpacked = self.unpack(rule_packed)
+		if not isinstance(unpacked, dict):
+			raise TypeError("Invalid rule keyframe", unpacked)
+		return {rule: make_rule_keyframe(v) for (rule, v) in unpacked.items()}
+
+	def _unpack_rulebooks_keyframe(
+		self, rulebook_packed: bytes
+	) -> RulebooksKeyframe:
+		unpacked = self.unpack(rulebook_packed)
+		if not isinstance(unpacked, dict):
+			raise TypeError("Invalid rulebook keyframe")
+		return {
+			RulebookName(rb): (
+				[RuleName(ru) for ru in rules],
+				RulebookPriority(prio),
+			)
+			for rb, (rules, prio) in unpacked.items()
+		}
 
 	@mutexed
 	def _load_windows_into(self, ret: dict, windows: list[TimeWindow]) -> None:

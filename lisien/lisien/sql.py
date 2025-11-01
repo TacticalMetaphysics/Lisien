@@ -69,7 +69,7 @@ from .types import (
 	CharDict,
 	UniversalKeyframe,
 	RuleKeyframe,
-	RulebookKeyframe,
+	RulebooksKeyframe,
 	Value,
 	GraphValRowType,
 	NodeRowType,
@@ -85,6 +85,9 @@ from .types import (
 	UnitRulesHandledRowType,
 	NodeRulesHandledRowType,
 	PortalRulesHandledRowType,
+	KeyframeTuple,
+	StatDict,
+	KeyframeExtensionTuple,
 )
 
 
@@ -866,37 +869,25 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	def get_all_keyframe_graphs(
 		self, branch: Branch, turn: Turn, tick: Tick
-	) -> Iterator[
-		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
-	]:
+	) -> Iterator[tuple[CharName, NodeKeyframe, EdgeKeyframe, StatDict]]:
 		if (branch, turn, tick) not in self._all_keyframe_times:
 			raise KeyframeError(branch, turn, tick)
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for graph, nodes, edges, graph_val in self.call(
 			"all_graphs_in_keyframe", branch, turn, tick
 		):
 			yield (
-				unpack(graph),
-				unpack(nodes),
-				unpack(edges),
-				unpack(graph_val),
+				CharName(unpack_key(graph)),
+				self._unpack_node_keyframe(nodes),
+				self._unpack_edge_keyframe(edges),
+				self._unpack_graph_val_keyframe(graph_val),
 			)
 
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			Branch,
-			Turn,
-			Tick,
-			NodeKeyframe,
-			EdgeKeyframe,
-			CharDict,
-		]
-	]:
+	) -> Iterator[KeyframeTuple]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -907,29 +898,19 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			graph_val,
 		) in self.call("keyframes_graphs_dump"):
 			yield (
-				unpack(graph),
 				branch,
 				turn,
 				tick,
-				unpack(nodes),
-				unpack(edges),
-				unpack(graph_val),
+				CharName(unpack_key(graph)),
+				self._unpack_node_keyframe(nodes),
+				self._unpack_edge_keyframe(edges),
+				self._unpack_graph_val_keyframe(graph_val),
 			)
 
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			Tick,
-			UniversalKeyframe,
-			RuleKeyframe,
-			RulebookKeyframe,
-		]
-	]:
+	) -> Iterator[KeyframeExtensionTuple]:
 		self.flush()
-		unpack = self.unpack
 		for branch, turn, tick, universal, rule, rulebook in self.call(
 			"keyframe_extensions_dump"
 		):
@@ -937,9 +918,9 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				branch,
 				turn,
 				tick,
-				unpack(universal),
-				unpack(rule),
-				unpack(rulebook),
+				self._unpack_universal_keyframe(universal),
+				self._unpack_rules_keyframe(rule),
+				self._unpack_rulebooks_keyframe(rulebook),
 			)
 
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:

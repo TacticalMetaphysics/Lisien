@@ -313,7 +313,8 @@ RuleKeyframe: TypeAlias = dict[
 	| RuleNeighborhood
 	| RuleBig,
 ]
-RulebookKeyframe: TypeAlias = dict[
+RulesKeyframe: TypeAlias = dict[RuleName, RuleKeyframe]
+RulebooksKeyframe: TypeAlias = dict[
 	RulebookName, tuple[list[RuleName], RulebookPriority]
 ]
 UniversalRowType: TypeAlias = tuple[Branch, Turn, Tick, UniversalKey, Value]
@@ -477,13 +478,16 @@ DeltaDict: TypeAlias = dict[
 	CharDelta | None,
 ]
 KeyframeTuple: TypeAlias = tuple[
-	CharName,
 	Branch,
 	Turn,
 	Tick,
+	CharName,
 	GraphNodeValKeyframe,
 	GraphEdgeValKeyframe,
-	GraphValKeyframe,
+	StatDict,
+]
+KeyframeExtensionTuple: TypeAlias = tuple[
+	Branch, Turn, Tick, UniversalKeyframe, RuleKeyframe, RulebooksKeyframe
 ]
 Keyframe: TypeAlias = dict[
 	Literal[

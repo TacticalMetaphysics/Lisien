@@ -60,7 +60,7 @@ from .types import (
 	RuleBig,
 	UniversalKeyframe,
 	RuleKeyframe,
-	RulebookKeyframe,
+	RulebooksKeyframe,
 	RuleFuncName,
 	TriggerFuncName,
 	PrereqFuncName,
@@ -90,6 +90,8 @@ from .types import (
 	PortalRulesHandledRowType,
 	ThingRowType,
 	UnitRowType,
+	KeyframeTuple,
+	KeyframeExtensionTuple,
 )
 from .util import ELLIPSIS, EMPTY
 
@@ -898,7 +900,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
-	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebookKeyframe]:
+	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]:
 		unpack = self.unpack
 		univ, rule, rulebook = self.call(
 			"get_keyframe_extensions", branch, turn, tick
@@ -1501,17 +1503,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			Tick,
-			CharName,
-			NodeKeyframe,
-			EdgeKeyframe,
-			CharDict,
-		]
-	]:
+	) -> Iterator[KeyframeTuple]:
 		self._new_keyframes_graphs()
 		unpack = self.unpack
 		unpack_key = self.unpack_key
@@ -1526,24 +1518,14 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			Tick,
-			UniversalKeyframe,
-			RuleKeyframe,
-			RulebookKeyframe,
-		]
-	]:
+	) -> Iterator[KeyframeExtensionTuple]:
 		self._new_keyframe_extensions()
-		unpack = self.unpack
 		extract_time = self._extract_time
 		for d in self.call("dump", "keyframe_extensions"):
 			branch, turn, tick = extract_time(d)
-			universal = UniversalKeyframe(unpack(d["universal"]))
-			rule = RuleKeyframe(unpack(d["rule"]))
-			rulebook = RulebookKeyframe(unpack(d["rulebook"]))
+			universal = self._unpack_universal_keyframe(d["universal"])
+			rule = self._unpack_rules_keyframe(d["rule"])
+			rulebook = self._unpack_rulebooks_keyframe(d["rulebook"])
 			yield branch, turn, tick, universal, rule, rulebook
 
 	def truncate_all(self) -> None:
