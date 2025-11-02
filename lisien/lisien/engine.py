@@ -4355,83 +4355,22 @@ class Engine(AbstractEngine, Executor):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	):
+	) -> None:
 		if self._time_is_loaded_between(
 			branch, turn_from, tick_from, turn_to, tick_to
 		):
-			return
+			return None
 		try:
 			self._get_keyframe(branch, turn_from, tick_from, silent=True)
+			latest_past_keyframe = (branch, turn_from, tick_from)
 		except KeyframeError:
-			self._recurse_delta_keyframes(branch, turn_from, tick_from)
-		noderows = []
-		nodevalrows = []
-		edgerows = []
-		edgevalrows = []
-		graphvalrows = []
-		loaded_graphs = self.query.load_windows(
+			latest_past_keyframe = self._recurse_delta_keyframes(
+				branch, turn_from, tick_from
+			)
+		loaded = self.query.load_windows(
 			[(branch, turn_from, tick_from, turn_to, tick_to)]
 		)
-		for graph, loaded in loaded_graphs.items():
-			match graph:
-				case "graphs":
-					self._graph_cache.load(loaded)
-				case "universals":
-					self._universal_cache.load(loaded)
-				case "rulebooks":
-					self._rulebooks_cache.load(loaded)
-				case "rule_triggers":
-					self._triggers_cache.load(loaded)
-				case "rule_prereqs":
-					self._prereqs_cache.load(loaded)
-				case "rule_actions":
-					self._actions_cache.load(loaded)
-				case "rule_neighborhood":
-					self._neighborhoods_cache.load(loaded)
-				case "rule_big":
-					self._rule_bigness_cache.load(loaded)
-				case "character_rules_handled":
-					self._character_rules_handled_cache.load(loaded)
-				case "unit_rules_handled":
-					self._unit_rules_handled_cache.load(loaded)
-				case "character_thing_rules_handled":
-					self._character_thing_rules_handled_cache.load(loaded)
-				case "character_place_rules_handled":
-					self._character_place_rules_handled_cache.load(loaded)
-				case "character_portal_rules_handled":
-					self._character_portal_rules_handled_cache.load(loaded)
-				case "node_rules_handled":
-					self._node_rules_handled_cache.load(loaded)
-				case "portal_rules_handled":
-					self._portal_rules_handled_cache.load(loaded)
-				case _:
-					noderows.extend(loaded["nodes"])
-					edgerows.extend(loaded["edges"])
-					nodevalrows.extend(loaded["node_val"])
-					edgevalrows.extend(loaded["edge_val"])
-					graphvalrows.extend(loaded["graph_val"])
-					if things := loaded.get("things"):
-						self._things_cache.load(things)
-					if crb := loaded.get("character_rulebook"):
-						self._characters_rulebooks_cache.load(crb)
-					if urb := loaded.get("unit_rulebook"):
-						self._units_rulebooks_cache.load(urb)
-					if cthrb := loaded.get("character_thing_rulebook"):
-						self._characters_things_rulebooks_cache.load(cthrb)
-					if cprb := loaded.get("character_place_rulebook"):
-						self._characters_places_rulebooks_cache.load(cprb)
-					if cporb := loaded.get("character_portal_rulebook"):
-						self._characters_portals_rulebooks_cache.load(cporb)
-					if nrb := loaded.get("node_rulebook"):
-						self._nodes_rulebooks_cache.load(nrb)
-					if porb := loaded.get("portal_rulebook"):
-						self._portals_rulebooks_cache.load(porb)
-					loaded_graphs[graph] = loaded
-		self._nodes_cache.load(noderows)
-		self._node_val_cache.load(nodevalrows)
-		self._edges_cache.load(edgerows)
-		self._edge_val_cache.load(edgevalrows)
-		self._graph_val_cache.load(graphvalrows)
+		self._load(latest_past_keyframe, None, [], loaded)
 		if not self._time_is_loaded_between(
 			branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -4446,7 +4385,6 @@ class Engine(AbstractEngine, Executor):
 			self._extend_loaded_window(
 				branch, turn_from, tick_from, turn_to, tick_to
 			)
-		return loaded_graphs
 
 	def _extend_loaded_window(
 		self,
