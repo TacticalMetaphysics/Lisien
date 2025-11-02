@@ -1635,9 +1635,9 @@ class DiGraph(networkx.DiGraph, ABC):
 
 
 PackSignature: TypeAlias = Callable[
-	[Key | EternalKey | UniversalKey | Stat | Value], bytes
+	[_Key | EternalKey | UniversalKey | Stat | _Value], bytes
 ]
-UnpackSignature: TypeAlias = Callable[[bytes], Value]
+UnpackSignature: TypeAlias = Callable[[bytes], _Value]
 LoadedCharWindow: TypeAlias = dict[
 	Literal[
 		"nodes",
