@@ -259,7 +259,7 @@ def database_connector(database_connector_part):
 	scope="function",
 )
 def engy(tmp_path, execution, database):
-	"""Engine or EngineProxy, but not connected to a subprocess"""
+	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
 	if execution == "proxy":
 		eng = EngineProxy(
 			None,
