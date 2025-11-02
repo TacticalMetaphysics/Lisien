@@ -472,7 +472,8 @@ class Batch(list):
 				raise TypeError(
 					f"While validating {self.table}: "
 					f"Tuple element {i} is of type {type(value)};"
-					f" should be {self.argspec.annotations[name]}"
+					f" should be {self.argspec.annotations[name]}",
+					value,
 				)
 
 	def __setitem__(self, i: int, v):
