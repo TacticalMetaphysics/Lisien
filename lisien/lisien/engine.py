@@ -2121,6 +2121,7 @@ class Engine(AbstractEngine, Executor):
 			prefix,
 			connect_string,
 			connect_args,
+			random_seed,
 			keyframe_interval,
 			trunk,
 			clear,
@@ -2133,7 +2134,6 @@ class Engine(AbstractEngine, Executor):
 				self._turn_end.setdefault(("trunk", 0), 0),
 				self._turn_end_plan.setdefault(("trunk", 0), 0),
 			)
-		self._init_random(random_seed)
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
 		if workers != 0:
@@ -2204,6 +2204,7 @@ class Engine(AbstractEngine, Executor):
 		prefix: str | os.PathLike | None,
 		connect_string: str | None,
 		connect_args: dict | None,
+		random_seed: int | None,
 		keyframe_interval: int | None,
 		main_branch: Branch,
 		clear: bool,
@@ -2296,6 +2297,7 @@ class Engine(AbstractEngine, Executor):
 			name: Rule(self, name, create=False)
 			for name in self.query.rules_dump()
 		}
+		self._init_random(random_seed)
 		with garbage():
 			self._load(*self._read_at(*self._btt()))
 		self.query.snap_keyframe = self.snap_keyframe
@@ -2305,9 +2307,11 @@ class Engine(AbstractEngine, Executor):
 
 	def _init_random(self, random_seed: int | None):
 		self._rando = Random()
-		if "rando_state" in self.universal:
-			self._rando.setstate(self.universal["rando_state"])
-		else:
+		try:
+			self._rando.setstate(
+				self.query.universal_get("rando_state", *self._btt())
+			)
+		except KeyError:
 			self._rando.seed(random_seed)
 			rando_state = self._rando.getstate()
 			if self._oturn == self._otick == 0:

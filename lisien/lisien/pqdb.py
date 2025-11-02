@@ -534,6 +534,22 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				rec["graph_val"][0].as_py(),
 			)
 
+		def universal_get(
+			self, key: bytes, branch: Branch, turn: Turn, tick: Tick
+		) -> bytes:
+			db = self._get_db("universals")
+			data = db.read(
+				filters=[
+					pc.field("branch") == branch,
+					pc.field("key") == key,
+					pc.field("turn") >= turn,
+				]
+			).sort_by([("turn", "ascending"), ("tick", "ascending")])
+			for d in data.to_pylist():
+				if (d["turn"], d["tick"]) >= (turn, tick):
+					return d["value"]
+			return ...
+
 		def insert1(self, table: str, data: dict):
 			try:
 				return self.insert(table, [data])
@@ -916,6 +932,16 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		self.call("delete_keyframe", branch, turn, tick)
+
+	def universal_get(
+		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
+	) -> Value:
+		b = self.call("universal_get", self.pack(key), branch, turn, tick)
+		if b is ...:
+			raise KeyError(
+				"No value for that universal key now", key, branch, turn, tick
+			)
+		return self.unpack(b)
 
 	def graphs_types(
 		self,
