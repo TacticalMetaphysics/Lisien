@@ -2309,8 +2309,6 @@ class Engine(AbstractEngine, Executor):
 		self._rando = Random()
 		try:
 			rando_state = self.query.universal_get("rando_state", *self._btt())
-			if rando_state is None:
-				raise KeyError("rando_state")
 			self._rando.setstate(rando_state)
 		except KeyError:
 			if random_seed is not None:

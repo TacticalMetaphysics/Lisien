@@ -4273,15 +4273,11 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> Value:
 		closest = ...
 		for b, r, t, k in self._universals:
-			if b != branch or k != key or (r, t) < (turn, tick):
+			if b != branch or k != key or (r, t) > (turn, tick):
 				continue
 			if (r, t) == (turn, tick):
 				return self._universals[b, r, t, k]
-			elif (
-				closest is ...
-				or (closest[0] == r and abs(tick - t) < abs(closest[1] - t))
-				or abs(turn - r) < abs(closest[0] - r)
-			):
+			elif closest is ... or (r, t) > closest:
 				closest = (r, t)
 		if closest is ...:
 			raise KeyError(

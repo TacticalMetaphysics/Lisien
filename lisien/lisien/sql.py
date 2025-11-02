@@ -312,10 +312,10 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 						univtab.c.key == bindparam("key"),
 						univtab.c.branch == bindparam("branch"),
 						or_(
-							univtab.c.turn > bindparam("turn"),
+							univtab.c.turn < bindparam("turn"),
 							and_(
 								univtab.c.turn == bindparam("turn"),
-								univtab.c.tick >= bindparam("tick"),
+								univtab.c.tick <= bindparam("tick"),
 							),
 						),
 					)
@@ -869,11 +869,20 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		self, key: Key, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
 		for (result,) in self.call(
-			"universal_get", self.pack(key), branch, turn, tick
+			"universal_get", self.pack(key), branch, turn, turn, tick
 		):
-			return self.unpack(result)
+			ret = self.unpack(result)
+			if ret is ...:
+				raise KeyError(
+					"No value for that universal key now",
+					key,
+					branch,
+					turn,
+					tick,
+				)
+			return ret
 		raise KeyError(
-			"No value for that universal key now", key, branch, turn, tick
+			"No value for that universal key ever", key, branch, turn, tick
 		)
 
 	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
