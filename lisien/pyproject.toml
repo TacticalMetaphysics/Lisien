@@ -15,7 +15,8 @@ authors = [
 ]
 description = "Life Simulator Engine"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
 requires-python = "~=3.10"
 classifiers = [
 	"Programming Language :: Python :: 3",
