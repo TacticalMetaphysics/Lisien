@@ -546,7 +546,7 @@ class EngineProxyManager:
 					"action",
 				):
 					pyfile = os.path.join(prefix, store + ".py")
-					if os.path.exists(pyfile):
+					if os.path.exists(pyfile) and os.stat(pyfile).st_size:
 						code = game_source_code[store] = {}
 						parsed = ast.parse(pyfile)
 						funk: ast.FunctionDef
