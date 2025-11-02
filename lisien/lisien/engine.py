@@ -32,7 +32,7 @@ from collections import UserDict, defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
-from copy import deepcopy
+from copy import copy
 from functools import cached_property, partial, wraps
 from hashlib import blake2b
 from multiprocessing import get_all_start_methods
@@ -3996,9 +3996,10 @@ class Engine(AbstractEngine, Executor):
 			if deltg is ...:
 				del graphs_keyframe[graph]
 				continue
-			combined_node_val_keyframe = deepcopy(
-				node_val_keyframe.get(graph, {})
-			)
+			combined_node_val_keyframe = {
+				node: val.copy()
+				for (node, val) in node_val_keyframe.get(graph, {}).items()
+			}
 			for node, loc in things_keyframe.get(graph, {}).items():
 				if loc is ...:
 					continue
@@ -4016,9 +4017,10 @@ class Engine(AbstractEngine, Executor):
 					combined_node_val_keyframe[node] = {
 						"rulebook": (graph, node)
 					}
-			combined_edge_val_keyframe = deepcopy(
-				edge_val_keyframe.get(graph, {})
-			)
+			combined_edge_val_keyframe = {
+				orig: {dest: val.copy() for (dest, val) in dests.items()}
+				for (orig, dests) in edge_val_keyframe.get(graph, {}).items()
+			}
 			for orig, dests in portals_rulebooks_keyframe.get(
 				graph, {}
 			).items():
@@ -4040,9 +4042,9 @@ class Engine(AbstractEngine, Executor):
 						combined_edge_val_keyframe.setdefault(
 							orig, {}
 						).setdefault(dest, {})
-			combined_graph_val_keyframe = deepcopy(
-				graph_val_keyframe.get(graph, {})
-			)
+			combined_graph_val_keyframe = graph_val_keyframe.get(
+				graph, {}
+			).copy()
 			combined_graph_val_keyframe["character_rulebook"] = (
 				characters_rulebooks_keyframe[graph]
 			)
@@ -7497,9 +7499,12 @@ class Engine(AbstractEngine, Executor):
 		edges: EdgeValDict,
 		graph_val: CharDict,
 	) -> None:
-		combined_nodes = deepcopy(nodes)
-		combined_edges = deepcopy(edges)
-		combined_graph_val = deepcopy(graph_val)
+		combined_nodes = {node: val.copy() for (node, val) in nodes.items()}
+		combined_edges = {
+			orig: {dest: val.copy() for (dest, val) in dests.items()}
+			for (orig, dests) in edges.items()
+		}
+		combined_graph_val = {k: copy(v) for (k, v) in graph_val.items()}
 		for rb_kf_type, rb_kf_cache in [
 			("character_rulebook", self._characters_rulebooks_cache),
 			("unit_rulebook", self._units_rulebooks_cache),
@@ -7541,7 +7546,10 @@ class Engine(AbstractEngine, Executor):
 				char, branch, turn, tick, user_kf
 			)
 		if units_kf:
-			combined_graph_val["units"] = deepcopy(units_kf)
+			combined_graph_val["units"] = {
+				graph: {unit: bool(exists) for (unit, exists) in units.items()}
+				for (graph, units) in units_kf.items()
+			}
 		node_rb_kf = {}
 		locs_kf = {}
 		conts_kf = {}
