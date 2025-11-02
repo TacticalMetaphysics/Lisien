@@ -1240,7 +1240,7 @@ class AbstractDatabaseConnector(ABC):
 		character, rulebook, node = map(self.pack, (character, rulebook, node))
 		return branch, turn, character, node, rulebook, rule, tick
 
-	@batched("portal_rules_handled", inc_rec_counter=False)
+	@batched("portal_rules_handled", key_len=7, inc_rec_counter=False)
 	def _portal_rules_handled_to_set(
 		self,
 		branch: Branch,
