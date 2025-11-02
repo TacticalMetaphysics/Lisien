@@ -1768,8 +1768,8 @@ class Cache:
 
 		"""
 		retr = self._base_retrieve(args, search=search)
-		return not (
-			self._count_as_deleted(retr) or isinstance(retr, Exception)
+		return not isinstance(retr, Exception) and not self._count_as_deleted(
+			retr
 		)
 
 
