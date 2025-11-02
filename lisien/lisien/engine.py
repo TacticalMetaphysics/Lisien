@@ -1147,6 +1147,11 @@ class Engine(AbstractEngine, Executor):
 	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick):
 		(self._obranch, self._oturn, self._otick) = (branch, turn, tick)
 
+	def _time_warp(self, branch: Branch, turn: Turn, tick: Tick):
+		self._obranch = self.eternal["branch"] = branch
+		self._oturn = self.eternal["turn"] = turn
+		self._otick = self.eternal["tick"] = tick
+
 	@world_locked
 	def _nbtt(self) -> Time:
 		"""Increment the tick and return branch, turn, tick
