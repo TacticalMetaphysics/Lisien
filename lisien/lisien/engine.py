@@ -8033,11 +8033,7 @@ class Engine(AbstractEngine, Executor):
 			name will be used, with the ``.xml`` suffix removed.
 
 		"""
-		if name is None and not self._prefix:
-			if isinstance(xml_file_path, (IOBase, type(None))):
-				raise ValueError(
-					"Couldn't infer a name for the game. Please supply one."
-				)
+		if name is None and xml_file_path and not self._prefix:
 			name = os.path.basename(xml_file_path)
 		tree = self.to_etree(name)
 		if indent:
