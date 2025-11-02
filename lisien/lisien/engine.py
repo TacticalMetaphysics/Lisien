@@ -114,7 +114,7 @@ from .exc import (
 	OutOfTimelineError,
 	RedundantRuleError,
 )
-from .facade import CharacterFacade
+from .facade import CharacterFacade, EngineFacade
 from .node import Place, Thing
 from .portal import Portal
 from .proxy.routine import worker_subprocess, worker_subthread
@@ -7904,7 +7904,35 @@ class Engine(AbstractEngine, Executor):
 
 		shutil.unpack_archive(archive_path, prefix, "zip")
 		extracted = os.listdir(prefix)
-		ret = Engine(
+		if database is None:
+			if prefix:
+				if "world.sqlite3" in extracted:
+					from .sql import SQLAlchemyDatabaseConnector
+
+					database = SQLAlchemyDatabaseConnector(
+						f"sqlite:///{prefix}/world.sqlite3"
+					)
+				else:
+					try:
+						from .pqdb import ParquetDatabaseConnector
+
+						pq_path = os.path.join(prefix, "world")
+						os.makedirs(pq_path, exist_ok=True)
+						database = ParquetDatabaseConnector(pq_path)
+					except ImportError:
+						from .sql import SQLAlchemyDatabaseConnector
+
+						database = SQLAlchemyDatabaseConnector(
+							f"sqlite:///{prefix}/world.sqlite3"
+						)
+			else:
+				database = PythonDatabaseConnector()
+		if "world.xml" in extracted:
+			fake = EngineFacade(None)
+			(database.pack, database.unpack) = (fake.pack, fake.unpack)
+			xml_path = os.path.join(prefix, "world.xml")
+			database.load_xml(xml_path)
+		return Engine(
 			prefix,
 			string=string,
 			trigger=trigger,
@@ -7929,19 +7957,6 @@ class Engine(AbstractEngine, Executor):
 			sub_mode=sub_mode,
 			database=database,
 		)
-		if "world.xml" in extracted:
-			xml_path = os.path.join(prefix, "world.xml")
-			ret.query.load_xml(xml_path)
-			ret._init_load(
-				prefix,
-				connect_string,
-				connect_args,
-				keyframe_interval,
-				trunk,
-				clear,
-				database,
-			)
-		return ret
 
 	def to_etree(self, name: str | None = None) -> ElementTree:
 		from base64 import b64encode
