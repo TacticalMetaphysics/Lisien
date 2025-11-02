@@ -1437,7 +1437,7 @@ class EngineFacade(AbstractEngine):
 		self._rando = random.Random()
 		self.world_lock = RLock()
 		if real is not None:
-			self._rando.setstate(real.universal["rando_state"])
+			self._rando.setstate(real._rando.getstate())
 			self.branch, self.turn, self.tick = real._btt()
 			self._branches_d = real._branches_d.copy()
 			self._turn_end = TurnEndDict(self)
