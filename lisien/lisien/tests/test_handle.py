@@ -82,7 +82,7 @@ def test_universal(handle_empty):
 	assert univ["spam"] == "tasty"
 
 
-def test_character(handle_initialized):
+def test_character_manip(handle_initialized):
 	origtime = handle_initialized.get_btt()
 	handle_initialized.next_turn()
 	handle_initialized.add_character(
