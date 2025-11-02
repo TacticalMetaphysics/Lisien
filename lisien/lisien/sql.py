@@ -295,6 +295,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 			graphs = table["graphs"]
 			globtab = table["global"]
+			univtab = table["universals"]
 			edge_val = table["edge_val"]
 			edges = table["edges"]
 			nodes = table["nodes"]
@@ -305,6 +306,21 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			keyframes_graphs = table["keyframes_graphs"]
 			keyframes = table["keyframes"]
 			r = {
+				"universal_get": select(univtab.c.value)
+				.where(
+					and_(
+						univtab.c.key == bindparam("key"),
+						univtab.c.branch == bindparam("branch"),
+						or_(
+							univtab.c.turn > bindparam("turn"),
+							and_(
+								univtab.c.turn == bindparam("turn"),
+								univtab.c.tick >= bindparam("tick"),
+							),
+						),
+					)
+				)
+				.order_by(univtab.c.turn, univtab.c.tick),
 				"global_get": select(globtab.c.value).where(
 					globtab.c.key == bindparam("key")
 				),
@@ -848,6 +864,17 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			ret = self._outq.get()
 			self._outq.task_done()
 			return ret
+
+	def universal_get(
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick
+	) -> Value:
+		for (result,) in self.call(
+			"universal_get", self.pack(key), branch, turn, tick
+		):
+			return self.unpack(result)
+		raise KeyError(
+			"No value for that universal key now", key, branch, turn, tick
+		)
 
 	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
 		self.flush()

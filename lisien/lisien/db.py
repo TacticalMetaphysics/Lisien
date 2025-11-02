@@ -1292,6 +1292,11 @@ class AbstractDatabaseConnector(ABC):
 		)
 		return branch, turn, tick, character, thing, location
 
+	@abstractmethod
+	def universal_get(
+		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
+	) -> Value: ...
+
 	def universal_set(
 		self,
 		key: UniversalKey,
@@ -4258,6 +4263,28 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> dict[tuple[Branch, Turn, Tick, UniversalKey], Value]:
 		return {}
 
+	def universal_get(
+		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
+	) -> Value:
+		closest = ...
+		for b, r, t, k in self._universals:
+			if b != branch or k != key or (r, t) < (turn, tick):
+				continue
+			if (r, t) == (turn, tick):
+				return self._universals[b, r, t, k]
+			elif (
+				closest is ...
+				or (closest[0] == r and abs(tick - t) < abs(closest[1] - t))
+				or abs(turn - r) < abs(closest[0] - r)
+			):
+				closest = (r, t)
+		if closest is ...:
+			raise KeyError(
+				"Universal key not set at this time", key, branch, turn, tick
+			)
+		r, t = closest
+		return self._universals[branch, r, t, key]
+
 	@cached_property
 	def _rules(self) -> set[RuleName]:
 		return set()
@@ -5605,8 +5632,18 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	]:
 		return iter(())
 
+	def universal_get(
+		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
+	) -> Value:
+		pass
+
 	def universal_set(
-		self, key: Key, branch: Branch, turn: Turn, tick: Tick, val: Any
+		self,
+		key: UniversalKey,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		val: Any,
 	):
 		pass
 
