@@ -2316,10 +2316,6 @@ class Engine(AbstractEngine, Executor):
 			rando_state = self._rando.getstate()
 			if self._oturn == self._otick == 0:
 				now = self._btt()
-				if now in self._keyframes_times:
-					assert now in self._keyframes_loaded
-					kf = self._universal_cache.get_keyframe(*now, copy=False)
-					kf["rando_state"] = rando_state
 				self._universal_cache.store(
 					"rando_state",
 					self.branch,
