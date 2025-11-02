@@ -536,17 +536,17 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 		def universal_get(
 			self, key: bytes, branch: Branch, turn: Turn, tick: Tick
-		) -> bytes:
+		) -> bytes | type(...):
 			db = self._get_db("universals")
 			data = db.read(
 				filters=[
 					pc.field("branch") == branch,
 					pc.field("key") == key,
-					pc.field("turn") >= turn,
+					pc.field("turn") <= turn,
 				]
-			).sort_by([("turn", "ascending"), ("tick", "ascending")])
+			).sort_by([("turn", "descending"), ("tick", "descending")])
 			for d in data.to_pylist():
-				if (d["turn"], d["tick"]) >= (turn, tick):
+				if (d["turn"], d["tick"]) <= (turn, tick):
 					return d["value"]
 			return ...
 
