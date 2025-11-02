@@ -5640,7 +5640,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	def universal_get(
 		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
-		pass
+		raise KeyError("NOTHING")
 
 	def universal_set(
 		self,
