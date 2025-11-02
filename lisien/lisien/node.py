@@ -669,7 +669,7 @@ class Place(Node):
 			return True
 
 	def facade(self) -> FacadePlace:
-		return FacadePlace(self.character.facade(), self)
+		return FacadePlace(self.character.facade(), self.name)
 
 	def __copy__(self) -> FacadePlace:
 		return self.facade()
@@ -769,7 +769,7 @@ class Thing(Node, AbstractThing):
 		return f"<{self.engine}.character[{charn}].thing[{self.name}]"
 
 	def facade(self) -> FacadeThing:
-		return FacadeThing(self.character.facade(), self)
+		return FacadeThing(self.character.facade(), self.name)
 
 	def __copy__(self) -> FacadeThing:
 		return self.facade()
