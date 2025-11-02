@@ -4834,6 +4834,12 @@ class Engine(AbstractEngine, Executor):
 	def load_at(
 		self, branch: Branch, turn: Turn, tick: Tick | None = None
 	) -> None:
+		"""Load history data at the given time
+
+		Will load the keyframe prior to that time, and all history
+		data following, up to (but not including) the keyframe thereafter.
+
+		"""
 		if tick is None:
 			tick = self._turn_end[branch, turn]
 		if self._time_is_loaded(branch, turn, tick):
@@ -4848,12 +4854,6 @@ class Engine(AbstractEngine, Executor):
 		graphs_rows: list,
 		loaded: dict,
 	):
-		"""Load history data at the given time
-
-		Will load the keyframe prior to that time, and all history
-		data following, up to (but not including) the keyframe thereafter.
-
-		"""
 		if latest_past_keyframe:
 			if hasattr(self, "_validate_initial_keyframe_load"):
 				self._validate_initial_keyframe_load(
