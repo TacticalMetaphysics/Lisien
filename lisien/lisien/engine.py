@@ -2312,7 +2312,8 @@ class Engine(AbstractEngine, Executor):
 				self.query.universal_get("rando_state", *self._btt())
 			)
 		except KeyError:
-			self._rando.seed(random_seed)
+			if random_seed is not None:
+				self._rando.seed(random_seed)
 			rando_state = self._rando.getstate()
 			if self._oturn == self._otick == 0:
 				now = self._btt()
