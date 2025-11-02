@@ -192,6 +192,8 @@ class EngineProxy(AbstractEngine):
 			cb=partial(self._upd_and_cb, cb=cb) if cb else self._upd_and_cb,
 		)
 
+	_time_warp = _set_btt
+
 	def _start_branch(
 		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
