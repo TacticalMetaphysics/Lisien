@@ -808,6 +808,10 @@ class AbstractDatabaseConnector(ABC):
 	) -> tuple[Branch, Turn, Tick, RuleName, RuleBig]:
 		return branch, turn, tick, rule, big
 
+	@batched("rules", key_len=1)
+	def _rules2set(self, rule: RuleName) -> tuple[str]:
+		return (rule,)
+
 	@batched("rulebooks", key_len=4)
 	def _rulebooks2set(
 		self,
@@ -2003,6 +2007,7 @@ class AbstractDatabaseConnector(ABC):
 		self._actions2set.append((branch, turn, tick, rule, list(actions)))
 		self._neighbors2set.append((branch, turn, tick, rule, neighborhood))
 		self._big2set.append((branch, turn, tick, rule, big))
+		self._rules2set.append((rule,))
 		self.all_rules.add(rule)
 
 	def set_rulebook(
