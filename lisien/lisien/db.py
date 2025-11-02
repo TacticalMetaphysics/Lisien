@@ -470,6 +470,7 @@ class Batch(list):
 
 			if not isinstance(value, tuple(deannotate(annot))):
 				raise TypeError(
+					f"While validating {self.table}: "
 					f"Tuple element {i} is of type {type(value)};"
 					f" should be {self.argspec.annotations[name]}"
 				)
