@@ -7210,7 +7210,9 @@ class Engine(AbstractEngine, Executor):
 			self._graph_cache.store(name, *now, ...)
 			self.query.graphs_insert(name, *now, "Deleted")
 			self._graph_cache.keycache.clear()
-		if hasattr(self, "_worker_processes"):
+		if hasattr(self, "_worker_processes") or hasattr(
+			self, "_worker_interpreters"
+		):
 			self._call_every_worker("_del_character", name)
 
 	def _is_thing(self, character: CharName, node: NodeName) -> bool:
