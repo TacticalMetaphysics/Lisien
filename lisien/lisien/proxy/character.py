@@ -33,8 +33,8 @@ from lisien.node import Place, Thing
 from lisien.portal import Portal
 from lisien.types import (
 	Edge,
-	_Key,
-	_Value,
+	KeyHint,
+	ValueHint,
 	AbstractCharacter,
 	NodeName,
 	StatDict,
@@ -77,13 +77,13 @@ class ProxyLeaderMapping(Mapping):
 		except KeyError:
 			return 0
 
-	def __contains__(self, item: _Key) -> bool:
+	def __contains__(self, item: KeyHint) -> bool:
 		try:
 			return item in self._user_names()
 		except KeyError:
 			return False
 
-	def __getitem__(self, item: _Key):
+	def __getitem__(self, item: KeyHint):
 		if item not in self:
 			raise KeyError("Not a leader of this node", item, self.node.name)
 		return self.node.engine.character[item]
@@ -151,19 +151,19 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 			and self.name == other.name
 		)
 
-	def __contains__(self, k: _Key):
+	def __contains__(self, k: KeyHint):
 		if k in ("character", "name"):
 			return True
 		return super().__contains__(k)
 
-	def __getitem__(self, k: _Key):
+	def __getitem__(self, k: KeyHint):
 		if k == "character":
 			return self._charname
 		elif k == "name":
 			return self.name
 		return super().__getitem__(k)
 
-	def _set_item(self, k: _Key, v: _Value):
+	def _set_item(self, k: KeyHint, v: ValueHint):
 		if k == "name":
 			raise KeyError("Nodes can't be renamed")
 		self.engine.handle(
@@ -175,7 +175,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 			branching=True,
 		)
 
-	def _del_item(self, k: _Key):
+	def _del_item(self, k: KeyHint):
 		if k == "name":
 			raise KeyError("Nodes need names")
 		self.engine.handle(
@@ -222,22 +222,22 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	def neighbors(self):
 		return self.neighbor.values()
 
-	def add_thing(self, name: _Key, **kwargs):
+	def add_thing(self, name: KeyHint, **kwargs):
 		return self.character.add_thing(NodeName(name), self.name, **kwargs)
 
-	def new_thing(self, name: _Key, **kwargs):
+	def new_thing(self, name: KeyHint, **kwargs):
 		return self.character.new_thing(NodeName(name), self.name, **kwargs)
 
-	def add_portal(self, dest: _Key, **kwargs):
+	def add_portal(self, dest: KeyHint, **kwargs):
 		self.character.add_portal(self.name, NodeName(dest), **kwargs)
 
-	def new_portal(self, dest: _Key, **kwargs):
+	def new_portal(self, dest: KeyHint, **kwargs):
 		dest = getattr(dest, "name", dest)
 		self.add_portal(dest, **kwargs)
 		return self.character.portal[self.name][dest]
 
 	def shortest_path(
-		self, dest: _Key | NodeProxy, weight: Key = None
+		self, dest: KeyHint | NodeProxy, weight: Key = None
 	) -> list[NodeName]:
 		"""Return a list of node names leading from me to ``dest``.
 
@@ -249,7 +249,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 			self.character, self.name, self._plain_dest_name(dest), weight
 		)
 
-	def _plain_dest_name(self, dest: _Key | NodeProxy) -> NodeName:
+	def _plain_dest_name(self, dest: KeyHint | NodeProxy) -> NodeName:
 		if isinstance(dest, NodeProxy):
 			if dest.character != self.character:
 				raise ValueError(
@@ -321,7 +321,7 @@ class ThingProxy(NodeProxy):
 		return self.engine.character[self._charname].node[self._location]
 
 	@location.setter
-	def location(self, v: NodeProxy | _Key | None):
+	def location(self, v: NodeProxy | KeyHint | None):
 		if isinstance(v, NodeProxy):
 			if v.character != self.character:
 				raise ValueError(
@@ -354,12 +354,12 @@ class ThingProxy(NodeProxy):
 		yield from super().__iter__()
 		yield "location"
 
-	def __getitem__(self, k: _Key):
+	def __getitem__(self, k: KeyHint):
 		if k == "location":
 			return self._location
 		return super().__getitem__(k)
 
-	def _apply_delta(self, delta: dict[_Key, _Value]):
+	def _apply_delta(self, delta: dict[KeyHint, ValueHint]):
 		for k, v in delta.items():
 			if k == "rulebook":
 				if v is ...:
@@ -419,7 +419,7 @@ class ThingProxy(NodeProxy):
 			branching=True,
 		)
 
-	def __setitem__(self, k: _Key, v: _Value):
+	def __setitem__(self, k: KeyHint, v: ValueHint):
 		self._worker_check()
 		if k == "location":
 			self._set_location(NodeName(Key(v)))

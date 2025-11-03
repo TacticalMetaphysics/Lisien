@@ -106,7 +106,7 @@ from .types import (
 	TriggerFuncName,
 	Turn,
 	Value,
-	_Key,
+	KeyHint,
 	AbstractEngine,
 )
 from .util import dedent_source
@@ -785,7 +785,7 @@ class RuleMapping(MutableMapping, Signal):
 	def __len__(self):
 		return len(self.rulebook)
 
-	def __contains__(self, k: Rule | _Key) -> bool:
+	def __contains__(self, k: Rule | KeyHint) -> bool:
 		return k in self.rulebook
 
 	def __getitem__(self, k: RuleName | str) -> Rule:

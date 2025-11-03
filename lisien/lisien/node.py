@@ -34,7 +34,7 @@ from .exc import AmbiguousLeaderError
 from .facade import EngineFacade, FacadePlace, FacadeThing
 from .rule import RuleMapping
 from .types import (
-	_Key,
+	KeyHint,
 	CharName,
 	Key,
 	NodeName,
@@ -180,13 +180,13 @@ class NodeContent(Mapping):
 		except KeyError:
 			return 0
 
-	def __contains__(self, item: _Key) -> bool:
+	def __contains__(self, item: KeyHint) -> bool:
 		try:
 			return self.node.character.thing[item].location == self.node
 		except KeyError:
 			return False
 
-	def __getitem__(self, item: _Key) -> "Thing":
+	def __getitem__(self, item: KeyHint) -> "Thing":
 		if item not in self:
 			raise KeyError
 		return self.node.character.thing[item]
@@ -225,11 +225,11 @@ class Dests(Mapping):
 			pass
 		return n
 
-	def __contains__(self, item: _Key) -> bool:
+	def __contains__(self, item: KeyHint) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_successor(charname, name, item, *btt())
 
-	def __getitem__(self, item: _Key) -> "Portal":
+	def __getitem__(self, item: KeyHint) -> "Portal":
 		portal, name = self._pn
 		return portal[name][item]
 
@@ -259,7 +259,7 @@ class Origs(Mapping):
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.iter_predecessors(charname, name, *btt())
 
-	def __contains__(self, item: _Key) -> bool:
+	def __contains__(self, item: KeyHint) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_predecessor(charname, name, item, *btt())
 
@@ -270,7 +270,7 @@ class Origs(Mapping):
 			pass
 		return n
 
-	def __getitem__(self, item: _Key) -> "Node":
+	def __getitem__(self, item: KeyHint) -> "Node":
 		if item not in self:
 			raise KeyError
 		portal, name = self._pn
@@ -297,7 +297,7 @@ class Portals(Set):
 			engine._btt,
 		)
 
-	def __contains__(self, x: _Key) -> bool:
+	def __contains__(self, x: KeyHint) -> bool:
 		_, edges_cache, _, charname, name, btt_f = self._pecnb
 		btt = btt_f()
 		return edges_cache.has_predecessor(
@@ -356,7 +356,7 @@ class NeighborMapping(Mapping):
 			yield pred
 			seen.add(pred)
 
-	def __contains__(self, item: _Key) -> bool:
+	def __contains__(self, item: KeyHint) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_predecessor(
 			charname, name, item, *btt()
@@ -365,7 +365,7 @@ class NeighborMapping(Mapping):
 	def __len__(self) -> int:
 		return len(set(iter(self)))
 
-	def __getitem__(self, item: _Key) -> "Node":
+	def __getitem__(self, item: KeyHint) -> "Node":
 		node, name = self._nn
 		if item not in self:
 			raise KeyError(f"{item} is not a neighbor of {name}")
@@ -492,12 +492,12 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		for key in super().__iter__():
 			del self[key]
 
-	def __contains__(self, k: _Key):
+	def __contains__(self, k: KeyHint):
 		"""Handle extra keys, then delegate."""
 		return k in self._extra_keys or super().__contains__(k)
 
 	def __setitem__(
-		self, k: _Key | Literal["rulebook"], v: Value | RulebookName
+		self, k: KeyHint | Literal["rulebook"], v: Value | RulebookName
 	):
 		if k == "rulebook":
 			self._set_rulebook_name(v)
@@ -530,7 +530,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 			raise ValueError("{} not in {}".format(dest, self.character.name))
 
 	def shortest_path_length(
-		self, dest: _Key | Node, weight: Stat | None = None
+		self, dest: KeyHint | Node, weight: Stat | None = None
 	) -> int:
 		"""Return the length of the path from me to ``dest``.
 
@@ -544,7 +544,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		)
 
 	def shortest_path(
-		self, dest: _Key | Node, weight: Stat | None = None
+		self, dest: KeyHint | Node, weight: Stat | None = None
 	) -> List[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
@@ -557,7 +557,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		)
 
 	def path_exists(
-		self, dest: _Key | Node, weight: Stat | None = None
+		self, dest: KeyHint | Node, weight: Stat | None = None
 	) -> bool:
 		"""Return whether there is a path leading from me to ``dest``.
 

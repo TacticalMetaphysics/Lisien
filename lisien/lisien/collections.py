@@ -42,7 +42,7 @@ from blinker import Signal
 
 from .types import (
 	CharName,
-	_Key,
+	KeyHint,
 	AbstractEngine,
 	sort_set,
 	AbstractFunctionStore,
@@ -566,7 +566,7 @@ class CharacterMapping(MutableMapping, Signal):
 		except KeyError:
 			return False
 
-	def __getitem__(self, name: _Key) -> "Character":
+	def __getitem__(self, name: KeyHint) -> "Character":
 		"""Return the named character, if it's been created.
 
 		Try to use the cache if possible.
