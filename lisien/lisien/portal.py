@@ -20,12 +20,11 @@ from collections.abc import Mapping
 from typing import Any, Optional
 
 from .exc import HistoricKeyError
-from .facade import FacadePortal
-from .query import EntityStatAlias
+from .facade import EngineFacade, FacadePortal
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .types import Edge, Key, Time
-from .util import AbstractCharacter, getatt
+from .types import Edge, Key, Time, AbstractCharacter, getatt, EntityStatAlias
+from .util import unwrap
 
 
 class RuleMapping(BaseRuleMapping):
@@ -165,11 +164,21 @@ class Portal(Edge, RuleFollower):
 		except KeyError:
 			raise AttributeError("This portal has no reciprocal")
 
-	def facade(self):
+	def facade(self) -> FacadePortal:
 		face = self.character.facade()
 		ret = FacadePortal(face.portal[self.orig], self.dest)
 		face.portal._patch = {self.orig: {self.dest: ret}}
 		return ret
+
+	def __copy__(self) -> FacadePortal:
+		return self.facade()
+
+	def __deepcopy__(self, memo) -> FacadePortal:
+		eng = EngineFacade(None)
+		fakechar = eng.new_character(self.character.name)
+		fakeorig = fakechar.new_place(self.orig)
+		fakedest = fakechar.new_place(self.dest)
+		return fakeorig.new_portal(fakedest)
 
 	def historical(self, stat: Key) -> EntityStatAlias:
 		"""Return a reference to the values that a stat has had in the past.

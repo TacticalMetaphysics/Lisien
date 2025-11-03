@@ -1,3 +1,17 @@
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from functools import cached_property
@@ -15,16 +29,13 @@ from blinker import Signal
 
 from lisien.exc import AmbiguousLeaderError
 from lisien.facade import CharacterFacade
-from lisien.types import Edge
 from lisien.node import Place, Thing
 from lisien.portal import Portal
-
-from lisien.proxy.abc import (
-	CachingProxy,
-	CachingEntityProxy,
-	RuleFollowerProxy,
-)
 from lisien.types import (
+	Edge,
+	_Key,
+	_Value,
+	AbstractCharacter,
 	NodeName,
 	StatDict,
 	Key,
@@ -36,8 +47,13 @@ from lisien.types import (
 	NodeValDict,
 	EdgeValDict,
 	CharDelta,
+	getatt,
 )
-from lisien.util import getatt, AbstractCharacter
+from lisien.proxy.abc import (
+	CachingProxy,
+	CachingEntityProxy,
+	RuleFollowerProxy,
+)
 
 if TYPE_CHECKING:
 	from .engine import EngineProxy
@@ -61,19 +77,19 @@ class ProxyLeaderMapping(Mapping):
 		except KeyError:
 			return 0
 
-	def __contains__(self, item: CharName) -> bool:
+	def __contains__(self, item: _Key) -> bool:
 		try:
 			return item in self._user_names()
 		except KeyError:
 			return False
 
-	def __getitem__(self, item: CharName):
+	def __getitem__(self, item: _Key):
 		if item not in self:
 			raise KeyError("Not a leader of this node", item, self.node.name)
 		return self.node.engine.character[item]
 
 	@property
-	def only(self):
+	def only(self) -> NodeProxy:
 		if len(self) == 1:
 			return next(iter(self.values()))
 		raise AmbiguousLeaderError("No leaders, or more than one")
@@ -135,19 +151,19 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 			and self.name == other.name
 		)
 
-	def __contains__(self, k):
+	def __contains__(self, k: _Key):
 		if k in ("character", "name"):
 			return True
 		return super().__contains__(k)
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: _Key):
 		if k == "character":
 			return self._charname
 		elif k == "name":
 			return self.name
 		return super().__getitem__(k)
 
-	def _set_item(self, k: Key, v):
+	def _set_item(self, k: _Key, v: _Value):
 		if k == "name":
 			raise KeyError("Nodes can't be renamed")
 		self.engine.handle(
@@ -159,7 +175,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 			branching=True,
 		)
 
-	def _del_item(self, k: Key):
+	def _del_item(self, k: _Key):
 		if k == "name":
 			raise KeyError("Nodes need names")
 		self.engine.handle(
@@ -206,22 +222,22 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	def neighbors(self):
 		return self.neighbor.values()
 
-	def add_thing(self, name: NodeName, **kwargs):
-		return self.character.add_thing(name, self.name, **kwargs)
+	def add_thing(self, name: _Key, **kwargs):
+		return self.character.add_thing(NodeName(name), self.name, **kwargs)
 
-	def new_thing(self, name: NodeName, **kwargs):
-		return self.character.new_thing(name, self.name, **kwargs)
+	def new_thing(self, name: _Key, **kwargs):
+		return self.character.new_thing(NodeName(name), self.name, **kwargs)
 
-	def add_portal(self, dest: NodeName, **kwargs):
-		self.character.add_portal(self.name, dest, **kwargs)
+	def add_portal(self, dest: _Key, **kwargs):
+		self.character.add_portal(self.name, NodeName(dest), **kwargs)
 
-	def new_portal(self, dest: NodeName, **kwargs):
+	def new_portal(self, dest: _Key, **kwargs):
 		dest = getattr(dest, "name", dest)
 		self.add_portal(dest, **kwargs)
 		return self.character.portal[self.name][dest]
 
 	def shortest_path(
-		self, dest: NodeName | NodeProxy, weight: Key = None
+		self, dest: _Key | NodeProxy, weight: Key = None
 	) -> list[NodeName]:
 		"""Return a list of node names leading from me to ``dest``.
 
@@ -233,7 +249,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 			self.character, self.name, self._plain_dest_name(dest), weight
 		)
 
-	def _plain_dest_name(self, dest: NodeName | NodeProxy) -> NodeName:
+	def _plain_dest_name(self, dest: _Key | NodeProxy) -> NodeName:
 		if isinstance(dest, NodeProxy):
 			if dest.character != self.character:
 				raise ValueError(
@@ -242,7 +258,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 			return dest.name
 		else:
 			if dest in self.character.node:
-				return dest
+				return NodeName(dest)
 			raise ValueError("{} not in {}".format(dest, self.character.name))
 
 
@@ -305,7 +321,7 @@ class ThingProxy(NodeProxy):
 		return self.engine.character[self._charname].node[self._location]
 
 	@location.setter
-	def location(self, v: NodeProxy | NodeName | None):
+	def location(self, v: NodeProxy | _Key | None):
 		if isinstance(v, NodeProxy):
 			if v.character != self.character:
 				raise ValueError(
@@ -338,12 +354,12 @@ class ThingProxy(NodeProxy):
 		yield from super().__iter__()
 		yield "location"
 
-	def __getitem__(self, k: NodeName):
+	def __getitem__(self, k: _Key):
 		if k == "location":
 			return self._location
 		return super().__getitem__(k)
 
-	def _apply_delta(self, delta: StatDict):
+	def _apply_delta(self, delta: dict[_Key, _Value]):
 		for k, v in delta.items():
 			if k == "rulebook":
 				if v is ...:
@@ -403,7 +419,7 @@ class ThingProxy(NodeProxy):
 			branching=True,
 		)
 
-	def __setitem__(self, k: Key, v: Value):
+	def __setitem__(self, k: _Key, v: _Value):
 		self._worker_check()
 		if k == "location":
 			self._set_location(NodeName(Key(v)))

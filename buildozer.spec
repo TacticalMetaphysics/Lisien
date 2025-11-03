@@ -320,13 +320,13 @@ android.no-byte-compile-python = True
 #
 
 # (str) python-for-android URL to use for checkout
-p4a.url = git@github.com:clayote/python-for-android.git
+# p4a.url = git@github.com:clayote/python-for-android.git
 
 # (str) python-for-android fork to use in case if p4a.url is not specified, defaults to upstream (kivy)
 #p4a.fork = kivy
 
 # (str) python-for-android branch to use, defaults to master
-p4a.branch = no-distutils
+p4a.branch = develop
 
 # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
 #p4a.commit = HEAD

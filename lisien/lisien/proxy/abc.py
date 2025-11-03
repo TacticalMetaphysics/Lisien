@@ -1,3 +1,17 @@
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
@@ -54,15 +68,15 @@ class CachingProxy(MutableMapping, Signal):
 	def __len__(self):
 		return len(self._cache)
 
-	def __contains__(self, k: Key) -> bool:
+	def __contains__(self, k: _Key) -> bool:
 		return k in self._cache
 
-	def __getitem__(self, k: Key) -> Value:
+	def __getitem__(self, k: _Key) -> Value:
 		if k not in self:
 			raise KeyError("No such key: {}".format(k))
 		return self._cache_get_munge(k, self._cache[k])
 
-	def setdefault(self, k: Key, default: Value = None) -> Value:
+	def setdefault(self, k: _Key, default: _Value = None) -> Value:
 		if k not in self:
 			if default is None:
 				raise KeyError("No such key", k)
@@ -70,13 +84,13 @@ class CachingProxy(MutableMapping, Signal):
 			return default
 		return self[k]
 
-	def __setitem__(self, k: Key, v: Value) -> None:
+	def __setitem__(self, k: _Key, v: _Value) -> None:
 		self._worker_check()
 		self._set_item(k, v)
 		self._cache[k] = self._cache_set_munge(k, v)
 		self.send(self, key=k, value=v)
 
-	def __delitem__(self, k: Key) -> None:
+	def __delitem__(self, k: _Key) -> None:
 		self._worker_check()
 		if k not in self:
 			raise KeyError("No such key: {}".format(k))
@@ -109,7 +123,9 @@ class CachingEntityProxy(CachingProxy):
 
 	name: Hashable
 
-	def _cache_get_munge(self, k: Key, v: Value) -> Value:
+	def _cache_get_munge(
+		self, k: Key, v: Value
+	) -> DictWrapper | ListWrapper | SetWrapper | Value:
 		if isinstance(v, dict):
 			return DictWrapper(lambda: self._cache[k], self, k)
 		elif isinstance(v, list):
@@ -147,7 +163,7 @@ class FuncListProxy(MutableSequence, Signal):
 
 	def index(
 		self,
-		value: FuncName | FuncProxy,
+		value: str | FuncProxy,
 		start: int = 0,
 		stop: int | ... = ...,
 	):
@@ -171,7 +187,7 @@ class FuncListProxy(MutableSequence, Signal):
 	def _get_store(self) -> FuncStoreProxy:
 		return getattr(self.rule.engine, self._key[:-1])
 
-	def __setitem__(self, i: int, value: FuncName | FuncProxy):
+	def __setitem__(self, i: int, value: str | FuncProxy):
 		if isinstance(value, str):
 			value = getattr(self._get_store(), value)
 		if self._key in self.rule._cache:
@@ -188,7 +204,7 @@ class FuncListProxy(MutableSequence, Signal):
 		del self.rule._cache[self._key][key]
 		self._handle_send()
 
-	def insert(self, index: int, value: FuncProxy | FuncName):
+	def insert(self, index: int, value: FuncProxy | str):
 		if isinstance(value, str):
 			value = getattr(self._get_store(), value)
 		elif not isinstance(value, FuncProxy):
@@ -341,7 +357,7 @@ class RuleBookProxy(MutableSequence, Signal):
 			self._proxy_cache[k] = RuleProxy(self.engine, k)
 		return self._proxy_cache[k]
 
-	def __setitem__(self, i, v: RuleProxy | RuleName):
+	def __setitem__(self, i, v: RuleProxy | str):
 		self._worker_check()
 		if isinstance(v, RuleProxy):
 			v = v._name
@@ -366,7 +382,7 @@ class RuleBookProxy(MutableSequence, Signal):
 		)
 		self.send(self, i=i, val=None)
 
-	def insert(self, i: int, v: RuleProxy | RuleName):
+	def insert(self, i: int, v: RuleProxy | str):
 		self._worker_check()
 		if isinstance(v, RuleProxy):
 			v = v._name
@@ -502,7 +518,7 @@ class RuleMapProxy(MutableMapping, Signal):
 		)[1]
 
 	@priority.setter
-	def priority(self, v: RulebookPriority):
+	def priority(self, v: float):
 		self.engine.handle(
 			"set_rulebook_priority", rulebook=self.name, priority=v
 		)
@@ -537,7 +553,7 @@ class RuleMapProxy(MutableMapping, Signal):
 
 	def __call__(
 		self,
-		action: FuncName | callable | FuncProxy | None = None,
+		action: str | callable | FuncProxy | None = None,
 		always: bool = False,
 		neighborhood: Optional[RuleNeighborhood] = None,
 	) -> callable | RuleProxy:
@@ -559,16 +575,14 @@ class RuleMapProxy(MutableMapping, Signal):
 			ret.triggers.append(self.engine.trigger.truth)
 		return ret
 
-	def __getitem__(self, key: RuleName) -> RuleProxy:
+	def __getitem__(self, key: str) -> RuleProxy:
 		if key in self._cache:
 			if key not in self._proxy_cache:
 				self._proxy_cache[key] = RuleProxy(self.engine, key)
 			return self._proxy_cache[key]
 		raise KeyError("Rule not assigned to rulebook", key, self.name)
 
-	def __setitem__(
-		self, k: RuleName, v: RuleProxy | list[FuncProxy | RuleFuncName]
-	):
+	def __setitem__(self, k: str, v: RuleProxy | list[FuncProxy | str]):
 		self._worker_check()
 		if self.name not in self.engine._rulebooks_cache:
 			self.engine.handle("new_empty_rulebook", rulebook=self.name)
@@ -596,9 +610,9 @@ class RuleMapProxy(MutableMapping, Signal):
 		)
 		self.send(self, key=k, val=v)
 
-	def __delitem__(self, key: RuleName):
+	def __delitem__(self, key: str):
 		self._worker_check()
-		i = self._cache.index(key)
+		i = self._cache.index(RuleName(key))
 		if i is None:
 			raise KeyError("Rule not set in rulebook", key, self.name)
 		del self._cache[i]

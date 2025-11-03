@@ -1,4 +1,4 @@
-# This file is part of Elide, frontend to Lisien, a framework for life simulation games.
+# This file is part of Lisien, a framework for life simulation games.
 # Copyright (c) Zachary Spector, public@zacharyspector.com
 #
 # This program is free software: you can redistribute it and/or modify
@@ -29,8 +29,8 @@ testgraphs.append(path_graph_9)
 
 
 @pytest.fixture
-def db(tmp_path, execution, database):
-	with make_test_engine(tmp_path, execution, database) as orm:
+def db(tmp_path, execution, database, random_seed):
+	with make_test_engine(tmp_path, execution, database, random_seed) as orm:
 		for graph in testgraphs:
 			orm.new_character(graph.name, graph)
 			if not graph.is_directed():
@@ -57,7 +57,26 @@ def test_basic_load(db):
 		)
 
 
-def test_keyframe_load(db):
+@pytest.fixture
+def db_noproxy(tmp_path, serial_or_parallel, database, random_seed):
+	with make_test_engine(
+		tmp_path, serial_or_parallel, database, random_seed
+	) as orm:
+		for graph in testgraphs:
+			orm.new_character(graph.name, graph)
+			if not graph.is_directed():
+				graph = nx.to_directed(graph)
+			assert set(graph.nodes.keys()) == set(
+				orm.character[graph.name].nodes.keys()
+			), "{}'s nodes changed during instantiation".format(graph.name)
+			assert set(graph.edges) == set(
+				orm.character[graph.name].edges.keys()
+			), "{}'s edges changed during instantiation".format(graph.name)
+		yield orm
+
+
+def test_keyframe_load(db_noproxy):
+	db = db_noproxy
 	for graph in testgraphs:
 		nodes_kf = db._nodes_cache.keyframe
 		assert (graph.name,) in nodes_kf, "{} not in nodes cache".format(
@@ -120,10 +139,14 @@ def test_keyframe_load(db):
 			)
 
 
-def test_keyframe_unload(tmp_path, execution, non_null_database):
+def test_keyframe_unload(
+	tmp_path, serial_or_parallel, persistent_database, random_seed
+):
 	# TODO: test edge cases involving tick-precise unloads
-	eng = partial(make_test_engine, tmp_path, execution, non_null_database)
-	with eng() as orm:
+	eng = partial(
+		make_test_engine, tmp_path, serial_or_parallel, persistent_database
+	)
+	with eng(random_seed) as orm:
 		g = orm.new_character("g", nx.grid_2d_graph(3, 3))
 		orm.next_turn()
 		assert orm.turn == 1
@@ -163,7 +186,7 @@ def test_keyframe_unload(tmp_path, execution, non_null_database):
 		assert 2 in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
 		assert 0 not in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
 		endtick = orm.tick
-	with eng() as orm:
+	with eng(None) as orm:
 		assert not orm._time_is_loaded("trunk", 1)
 		assert orm._time_is_loaded("trunk", 2, endtick)
 		assert ("g", (0, 0), (0, 1)) in orm._edges_cache.keyframe
@@ -187,7 +210,7 @@ def test_keyframe_unload(tmp_path, execution, non_null_database):
 		orm.branch = "u"
 		del g.node[1, 2]
 		orm.unload()
-	with eng() as orm:
+	with eng(None) as orm:
 		assert orm.branch == "u"
 		assert (
 			("g", (1, 1), (1, 2)) not in orm._edges_cache.keyframe
@@ -203,27 +226,24 @@ def test_keyframe_unload(tmp_path, execution, non_null_database):
 		)
 
 
-def test_keyframe_load_init(tmp_path, non_null_database):
+def test_keyframe_load_init(tmp_path, persistent_database, random_seed):
 	"""Can load a keyframe at start of branch, including locations"""
-	cs = (
-		f"sqlite:///{tmp_path}/world.sqlite3"
-		if non_null_database == "sqlite"
-		else None
-	)
-	eng = Engine(tmp_path, workers=0, connect_string=cs)
-	inittest(eng)
-	eng.branch = "new"
-	# eng.snap_keyframe()
-	eng.close()
-	eng = Engine(tmp_path, workers=0, connect_string=cs)
-	# the graphs keyframe is coming up empty
-	assert "kobold" in eng.character["physical"].thing
-	assert (0, 0) in eng.character["physical"].place
-	assert (0, 1) in eng.character["physical"].portal[0, 0]
-	eng.close()
+	with make_test_engine(
+		tmp_path, "serial", persistent_database, random_seed
+	) as eng:
+		inittest(eng)
+		eng.branch = "new"
+		# eng.snap_keyframe()
+	with make_test_engine(
+		tmp_path, "serial", persistent_database, None
+	) as eng:
+		# the graphs keyframe is coming up empty
+		assert "kobold" in eng.character["physical"].thing
+		assert (0, 0) in eng.character["physical"].place
+		assert (0, 1) in eng.character["physical"].portal[0, 0]
 
 
-def test_multi_keyframe(tmp_path, non_null_database):
+def test_multi_keyframe(tmp_path, persistent_database):
 	myengine = partial(
 		Engine,
 		tmp_path,
@@ -231,7 +251,7 @@ def test_multi_keyframe(tmp_path, non_null_database):
 		keyframe_on_close=False,
 		workers=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
-		if non_null_database == "sqlite"
+		if persistent_database == "sqlite"
 		else None,
 	)
 	eng = myengine()
@@ -260,9 +280,9 @@ def test_multi_keyframe(tmp_path, non_null_database):
 	eng.close()
 
 
-def test_keyframe_load_unload(tmp_path, non_null_database):
+def test_keyframe_load_unload(tmp_path, persistent_database):
 	"""All caches can load and unload before and after kfs"""
-	if non_null_database == "sqlite":
+	if persistent_database == "sqlite":
 		connect_str = f"sqlite:///{tmp_path}/world.sqlite3"
 	else:
 		connect_str = None
@@ -305,13 +325,13 @@ def test_keyframe_load_unload(tmp_path, non_null_database):
 
 
 @pytest.fixture
-def some_state(tmp_path, non_null_database):
+def some_state(tmp_path, persistent_database):
 	with Engine(
 		tmp_path,
 		workers=0,
 		random_seed=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
-		if non_null_database == "sqlite"
+		if persistent_database == "sqlite"
 		else None,
 	) as eng:
 		initial_state = nx.DiGraph(
@@ -349,13 +369,13 @@ def some_state(tmp_path, non_null_database):
 	return tmp_path
 
 
-def test_load_branch_to_end(some_state, non_null_database):
+def test_load_branch_to_end(some_state, persistent_database):
 	with Engine(
 		some_state,
 		workers=0,
 		random_seed=0,
 		connect_string=f"sqlite:///{some_state}/world.sqlite3"
-		if non_null_database == "sqlite"
+		if persistent_database == "sqlite"
 		else None,
 	) as eng:
 		assert eng.turn == 0

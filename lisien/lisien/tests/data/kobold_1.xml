@@ -1,7 +1,644 @@
-<lisien db-schema-version="2" trunk="trunk" branch="trunk" turn="1" tick="2" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="M4YZw8ptGhV87tkOMK8Zp5M69Q0q+62rJ55R97ko3xnTXMBDAtqk99zV28vppe27WOxLO+5AmBZWtw90knWkTQ==" trigger="1muvxr9oY/KqmMRJbJQ4YPS7nrkHFv1U97Du5VvQWZSRCgCt3kzfIEe+dA1hOORwNB+iND/77eFMFghWbG8BuQ==" prereq="gtuSlbbNnmKVKOqNCR3gfEk33Jqdhp1kDx9zrT6kt5TYvZb16M9u/hjswBqiFC1aCG3ctsnOdJLoZrXeFTchkg==" action="H874H/dm3s7hchBT4qGppD7/BMQ/L9u/I1GhWjONystYXH2BG9UXHHPzuZjuXH8z7ujcusDGNSZkuVmkNhlfxg==">
-  <playtree game="test_export" trunk="trunk">
+<lisien db-schema-version="2" xml-schema-version="2" trunk="trunk" branch="trunk" turn="1" tick="2" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="mkz4UKYlIOtbWmAo+OBbqiHGmMWtcKxXK5GC7kZBKG1fjl5rv44SIWC3DOifltm0OhRXVFk7O1ghbSUesBSv2A==" trigger="1k8dXzPuqbwxLdmG3g6OaDq1EuAtBuEMhKHA58gMUPCxhz6QmU3ASzAPIU2ATxHaLadYquO1A20MEt6N9fdNPg==" prereq="Ok5tyIkYCphXoF97A0cO98DT9fLPcrmsxm5SOK+001VfpcCHHj7BzAlhA9jcci0l9v8PHzv56QDFhFP0cULb8A==" action="ZqDZ5yn9t+ziQxOFZR8Sf8jgrq47z7fTpebjABbrdNSTTee+Bh/fdVVYe33AhmZt7Y0VJxwm8SDHVXjVbwmMXQ==">
+  <playtree trunk="trunk" game="test_export">
     <branch name="trunk" start-turn="0" start-tick="0" end-turn="1" end-tick="2" last-turn-completed="1">
-      <turn number="0" end-tick="116" plan-end-tick="116">
+      <turn number="0" end-tick="111" plan-end-tick="111">
+        <rule end-tick="0" type="node" character="'physical'" node="'dwarf'" rulebook="('physical', 'dwarf')" name="kill_kobold"/>
+        <rule end-tick="1" type="node" character="'physical'" node="'dwarf'" rulebook="('physical', 'dwarf')" name="wander">
+          <graph character="'physical'" tick="0" type="DiGraph"/>
+          <universal key="'rando_state'" tick="0">
+            <tuple>
+              <int value="3"/>
+              <tuple>
+                <int value="2147483648"/>
+                <int value="826674957"/>
+                <int value="2758048924"/>
+                <int value="71078768"/>
+                <int value="3551678985"/>
+                <int value="2081282011"/>
+                <int value="186180364"/>
+                <int value="3613093070"/>
+                <int value="4242768555"/>
+                <int value="3014681221"/>
+                <int value="3408291972"/>
+                <int value="3939650232"/>
+                <int value="1701300356"/>
+                <int value="1734711573"/>
+                <int value="264012903"/>
+                <int value="2490561951"/>
+                <int value="1681433441"/>
+                <int value="2061243497"/>
+                <int value="9632434"/>
+                <int value="3468430029"/>
+                <int value="1306077093"/>
+                <int value="3207462398"/>
+                <int value="1917969485"/>
+                <int value="1465653032"/>
+                <int value="2564295501"/>
+                <int value="946035055"/>
+                <int value="2453398751"/>
+                <int value="980013527"/>
+                <int value="2402801063"/>
+                <int value="4075384818"/>
+                <int value="2528212819"/>
+                <int value="2323908287"/>
+                <int value="3071373355"/>
+                <int value="3515898167"/>
+                <int value="615878274"/>
+                <int value="2113780790"/>
+                <int value="3578918832"/>
+                <int value="743015960"/>
+                <int value="3744194901"/>
+                <int value="4051040502"/>
+                <int value="3355140818"/>
+                <int value="1678508116"/>
+                <int value="1864914311"/>
+                <int value="2982525837"/>
+                <int value="1719282690"/>
+                <int value="2405754972"/>
+                <int value="18555493"/>
+                <int value="3318556188"/>
+                <int value="3282815295"/>
+                <int value="2371903727"/>
+                <int value="2863745374"/>
+                <int value="1491196841"/>
+                <int value="3182328552"/>
+                <int value="2804608685"/>
+                <int value="564407494"/>
+                <int value="1091664670"/>
+                <int value="698981041"/>
+                <int value="882099883"/>
+                <int value="1165802312"/>
+                <int value="2060836835"/>
+                <int value="1256951210"/>
+                <int value="288174229"/>
+                <int value="3380721775"/>
+                <int value="3408935177"/>
+                <int value="1275383350"/>
+                <int value="211277998"/>
+                <int value="4280508845"/>
+                <int value="800097475"/>
+                <int value="1694387754"/>
+                <int value="4196258244"/>
+                <int value="3917852583"/>
+                <int value="145955832"/>
+                <int value="3215705844"/>
+                <int value="2772225040"/>
+                <int value="748416028"/>
+                <int value="3375115386"/>
+                <int value="4292426436"/>
+                <int value="2811841483"/>
+                <int value="784412703"/>
+                <int value="626016741"/>
+                <int value="1331975773"/>
+                <int value="2034633676"/>
+                <int value="3554619364"/>
+                <int value="3679151300"/>
+                <int value="2101955599"/>
+                <int value="3108591111"/>
+                <int value="1940108888"/>
+                <int value="3378981103"/>
+                <int value="3134928485"/>
+                <int value="3357824157"/>
+                <int value="3672355017"/>
+                <int value="1352415551"/>
+                <int value="1446381951"/>
+                <int value="76377615"/>
+                <int value="124867760"/>
+                <int value="2086133316"/>
+                <int value="2313717796"/>
+                <int value="873128509"/>
+                <int value="3035731278"/>
+                <int value="2293718470"/>
+                <int value="978336989"/>
+                <int value="433491926"/>
+                <int value="2547104614"/>
+                <int value="3114620210"/>
+                <int value="3117124572"/>
+                <int value="1486874685"/>
+                <int value="322089568"/>
+                <int value="3142055399"/>
+                <int value="2694888273"/>
+                <int value="3710001813"/>
+                <int value="2744792412"/>
+                <int value="4278106569"/>
+                <int value="3082957199"/>
+                <int value="865167276"/>
+                <int value="1194894470"/>
+                <int value="2128761615"/>
+                <int value="701304866"/>
+                <int value="3800705200"/>
+                <int value="1997274457"/>
+                <int value="2643093409"/>
+                <int value="3195466205"/>
+                <int value="4245523782"/>
+                <int value="308852035"/>
+                <int value="2907206721"/>
+                <int value="752882884"/>
+                <int value="4214242227"/>
+                <int value="2239992924"/>
+                <int value="3187658819"/>
+                <int value="2898993616"/>
+                <int value="2248718428"/>
+                <int value="1408964795"/>
+                <int value="1892528860"/>
+                <int value="3553576770"/>
+                <int value="1629121643"/>
+                <int value="4266037600"/>
+                <int value="372830738"/>
+                <int value="1243596608"/>
+                <int value="1694623123"/>
+                <int value="1710470691"/>
+                <int value="1220027999"/>
+                <int value="1031519003"/>
+                <int value="1518828787"/>
+                <int value="1869501275"/>
+                <int value="1628724505"/>
+                <int value="3418396392"/>
+                <int value="3745245572"/>
+                <int value="324770813"/>
+                <int value="3267767060"/>
+                <int value="1556831552"/>
+                <int value="127332333"/>
+                <int value="2567902014"/>
+                <int value="3004852281"/>
+                <int value="1641821314"/>
+                <int value="1917768170"/>
+                <int value="4256809485"/>
+                <int value="512294849"/>
+                <int value="3172079891"/>
+                <int value="968081724"/>
+                <int value="555644359"/>
+                <int value="152976417"/>
+                <int value="2520731545"/>
+                <int value="615527321"/>
+                <int value="449408362"/>
+                <int value="1352499951"/>
+                <int value="1002328321"/>
+                <int value="1240350077"/>
+                <int value="1186286878"/>
+                <int value="563813536"/>
+                <int value="3663952368"/>
+                <int value="231618707"/>
+                <int value="980322324"/>
+                <int value="2800862146"/>
+                <int value="363065163"/>
+                <int value="411534984"/>
+                <int value="3581132092"/>
+                <int value="2350192232"/>
+                <int value="2811132741"/>
+                <int value="3864237910"/>
+                <int value="3586456103"/>
+                <int value="1012079770"/>
+                <int value="2820308397"/>
+                <int value="2009406661"/>
+                <int value="3173682758"/>
+                <int value="3784585553"/>
+                <int value="2690747433"/>
+                <int value="561422604"/>
+                <int value="1902097596"/>
+                <int value="4094999984"/>
+                <int value="1343179489"/>
+                <int value="3412548483"/>
+                <int value="4140399425"/>
+                <int value="2507989005"/>
+                <int value="3648257106"/>
+                <int value="213004981"/>
+                <int value="1549728036"/>
+                <int value="1617016532"/>
+                <int value="4103646641"/>
+                <int value="3320258291"/>
+                <int value="3489480555"/>
+                <int value="1545561381"/>
+                <int value="650107351"/>
+                <int value="2458389315"/>
+                <int value="4199331033"/>
+                <int value="4090534932"/>
+                <int value="2950571114"/>
+                <int value="1019011801"/>
+                <int value="3436249076"/>
+                <int value="3975032376"/>
+                <int value="1883498618"/>
+                <int value="1262528799"/>
+                <int value="3802987207"/>
+                <int value="1342588359"/>
+                <int value="770787456"/>
+                <int value="988065225"/>
+                <int value="1512615378"/>
+                <int value="1389711501"/>
+                <int value="2158900185"/>
+                <int value="770105799"/>
+                <int value="10042527"/>
+                <int value="185157947"/>
+                <int value="3564402533"/>
+                <int value="1190652224"/>
+                <int value="1403097624"/>
+                <int value="1933663035"/>
+                <int value="1724417789"/>
+                <int value="657379726"/>
+                <int value="3747089080"/>
+                <int value="692207378"/>
+                <int value="2426694836"/>
+                <int value="4057590930"/>
+                <int value="2911236863"/>
+                <int value="1292476468"/>
+                <int value="3036508080"/>
+                <int value="2663616702"/>
+                <int value="2808191486"/>
+                <int value="1710537653"/>
+                <int value="2242714643"/>
+                <int value="306931623"/>
+                <int value="3532946753"/>
+                <int value="1346869848"/>
+                <int value="1419838770"/>
+                <int value="4092020909"/>
+                <int value="1008114928"/>
+                <int value="2942203372"/>
+                <int value="1836293228"/>
+                <int value="2444418764"/>
+                <int value="1215583822"/>
+                <int value="1942119454"/>
+                <int value="3393251972"/>
+                <int value="2106511531"/>
+                <int value="4232752982"/>
+                <int value="741743339"/>
+                <int value="2474580042"/>
+                <int value="1113341945"/>
+                <int value="1061857062"/>
+                <int value="2616385136"/>
+                <int value="3787638169"/>
+                <int value="2869839389"/>
+                <int value="1041463025"/>
+                <int value="1465715497"/>
+                <int value="3223299950"/>
+                <int value="1591281289"/>
+                <int value="2655811020"/>
+                <int value="3409569972"/>
+                <int value="2153519303"/>
+                <int value="1317692501"/>
+                <int value="1237212974"/>
+                <int value="1815562834"/>
+                <int value="1348501116"/>
+                <int value="2574862999"/>
+                <int value="3751686567"/>
+                <int value="3214905937"/>
+                <int value="3923395011"/>
+                <int value="36498672"/>
+                <int value="2050472785"/>
+                <int value="3354390935"/>
+                <int value="1641895502"/>
+                <int value="1460294878"/>
+                <int value="2320504583"/>
+                <int value="365941240"/>
+                <int value="10514772"/>
+                <int value="1625221747"/>
+                <int value="1780812433"/>
+                <int value="2176864189"/>
+                <int value="4289661789"/>
+                <int value="4071153463"/>
+                <int value="3787618814"/>
+                <int value="3084316277"/>
+                <int value="1029446734"/>
+                <int value="3751887128"/>
+                <int value="1451754239"/>
+                <int value="3189180551"/>
+                <int value="928763424"/>
+                <int value="1280956927"/>
+                <int value="1210876487"/>
+                <int value="3189476156"/>
+                <int value="1095338798"/>
+                <int value="4083664473"/>
+                <int value="1457417261"/>
+                <int value="1961987170"/>
+                <int value="940871494"/>
+                <int value="4257546616"/>
+                <int value="4182577977"/>
+                <int value="3830771607"/>
+                <int value="1610826387"/>
+                <int value="3592597381"/>
+                <int value="2123518342"/>
+                <int value="3900998766"/>
+                <int value="565138022"/>
+                <int value="4196525024"/>
+                <int value="1839051518"/>
+                <int value="1045915206"/>
+                <int value="557790139"/>
+                <int value="901845037"/>
+                <int value="251095562"/>
+                <int value="86776443"/>
+                <int value="1961346887"/>
+                <int value="2502489792"/>
+                <int value="1767083296"/>
+                <int value="1719619799"/>
+                <int value="3891544218"/>
+                <int value="4074909100"/>
+                <int value="3982507259"/>
+                <int value="2259556405"/>
+                <int value="3224687829"/>
+                <int value="271548590"/>
+                <int value="525074466"/>
+                <int value="574101999"/>
+                <int value="4218242941"/>
+                <int value="895295124"/>
+                <int value="57264538"/>
+                <int value="1353729696"/>
+                <int value="1310159096"/>
+                <int value="1412702209"/>
+                <int value="1063257269"/>
+                <int value="2950844114"/>
+                <int value="1613515312"/>
+                <int value="2724310467"/>
+                <int value="2692145745"/>
+                <int value="3243851111"/>
+                <int value="3447854983"/>
+                <int value="2943607589"/>
+                <int value="1716386305"/>
+                <int value="2395671743"/>
+                <int value="1307500494"/>
+                <int value="62165428"/>
+                <int value="3570227729"/>
+                <int value="3157472427"/>
+                <int value="3165158970"/>
+                <int value="473635428"/>
+                <int value="3881928466"/>
+                <int value="1875233695"/>
+                <int value="336752040"/>
+                <int value="2811655416"/>
+                <int value="3153539704"/>
+                <int value="1726992432"/>
+                <int value="2749340008"/>
+                <int value="4563697"/>
+                <int value="1752268389"/>
+                <int value="1864703338"/>
+                <int value="47268037"/>
+                <int value="1685935975"/>
+                <int value="147827427"/>
+                <int value="1470600339"/>
+                <int value="861437866"/>
+                <int value="1123814189"/>
+                <int value="1081102416"/>
+                <int value="2890350861"/>
+                <int value="2335511809"/>
+                <int value="421803712"/>
+                <int value="409279617"/>
+                <int value="3299382175"/>
+                <int value="1576703504"/>
+                <int value="3987989892"/>
+                <int value="923501665"/>
+                <int value="4090870330"/>
+                <int value="1289057457"/>
+                <int value="3085208149"/>
+                <int value="3990174728"/>
+                <int value="628740845"/>
+                <int value="580580021"/>
+                <int value="66030575"/>
+                <int value="3648990245"/>
+                <int value="1863664988"/>
+                <int value="2696310077"/>
+                <int value="2922062795"/>
+                <int value="1465743445"/>
+                <int value="1751652703"/>
+                <int value="4194313822"/>
+                <int value="2266513786"/>
+                <int value="1292995066"/>
+                <int value="434614918"/>
+                <int value="1093559932"/>
+                <int value="3130053824"/>
+                <int value="1553525190"/>
+                <int value="2619317122"/>
+                <int value="1286811928"/>
+                <int value="185300567"/>
+                <int value="1621811437"/>
+                <int value="210149338"/>
+                <int value="4149966828"/>
+                <int value="617273514"/>
+                <int value="3867924602"/>
+                <int value="1133219621"/>
+                <int value="967884899"/>
+                <int value="1628151809"/>
+                <int value="1868639297"/>
+                <int value="3448786519"/>
+                <int value="976807336"/>
+                <int value="3986134123"/>
+                <int value="233680645"/>
+                <int value="2360858579"/>
+                <int value="2705442401"/>
+                <int value="316178890"/>
+                <int value="4019759496"/>
+                <int value="1406112177"/>
+                <int value="543535890"/>
+                <int value="1472484522"/>
+                <int value="1854006406"/>
+                <int value="3063801784"/>
+                <int value="2336759198"/>
+                <int value="2962694106"/>
+                <int value="1108203959"/>
+                <int value="2014927757"/>
+                <int value="3269103593"/>
+                <int value="2080659202"/>
+                <int value="411944837"/>
+                <int value="2367585384"/>
+                <int value="4189770277"/>
+                <int value="3378383267"/>
+                <int value="2623319739"/>
+                <int value="1587746577"/>
+                <int value="1895308961"/>
+                <int value="1131204067"/>
+                <int value="3859186326"/>
+                <int value="479282256"/>
+                <int value="1547229837"/>
+                <int value="4199500210"/>
+                <int value="1826635380"/>
+                <int value="3790220716"/>
+                <int value="1613529122"/>
+                <int value="84033222"/>
+                <int value="2692159585"/>
+                <int value="1597457193"/>
+                <int value="1782466984"/>
+                <int value="1098292033"/>
+                <int value="1619708661"/>
+                <int value="4178629957"/>
+                <int value="3908783630"/>
+                <int value="2667236060"/>
+                <int value="3262094972"/>
+                <int value="2581783043"/>
+                <int value="1124750811"/>
+                <int value="4222049673"/>
+                <int value="1217193108"/>
+                <int value="22276356"/>
+                <int value="1979672802"/>
+                <int value="2210357099"/>
+                <int value="697179434"/>
+                <int value="3192288183"/>
+                <int value="2590418141"/>
+                <int value="2268765037"/>
+                <int value="4093172182"/>
+                <int value="1830291558"/>
+                <int value="3996409868"/>
+                <int value="3501606134"/>
+                <int value="2838696196"/>
+                <int value="276577769"/>
+                <int value="2256770502"/>
+                <int value="109889742"/>
+                <int value="3430563962"/>
+                <int value="2433426962"/>
+                <int value="2154087353"/>
+                <int value="186533232"/>
+                <int value="3200796274"/>
+                <int value="3342567040"/>
+                <int value="3286806039"/>
+                <int value="175355570"/>
+                <int value="1175762452"/>
+                <int value="1549230591"/>
+                <int value="249686800"/>
+                <int value="794881551"/>
+                <int value="750561680"/>
+                <int value="2767390627"/>
+                <int value="563610705"/>
+                <int value="529648283"/>
+                <int value="2757556716"/>
+                <int value="2737399614"/>
+                <int value="1804746084"/>
+                <int value="4243686293"/>
+                <int value="2992084234"/>
+                <int value="4064370970"/>
+                <int value="3510291430"/>
+                <int value="712517846"/>
+                <int value="400036037"/>
+                <int value="3801043257"/>
+                <int value="4160966918"/>
+                <int value="1406471566"/>
+                <int value="3654292664"/>
+                <int value="1125962981"/>
+                <int value="3344292003"/>
+                <int value="2781869182"/>
+                <int value="763140470"/>
+                <int value="2844828169"/>
+                <int value="1972822810"/>
+                <int value="160208638"/>
+                <int value="4289907946"/>
+                <int value="2844625728"/>
+                <int value="2424203802"/>
+                <int value="2518408304"/>
+                <int value="4225418667"/>
+                <int value="438551980"/>
+                <int value="827784044"/>
+                <int value="2154671685"/>
+                <int value="1404825756"/>
+                <int value="2848656040"/>
+                <int value="2916917011"/>
+                <int value="2730767340"/>
+                <int value="2280873257"/>
+                <int value="3854589781"/>
+                <int value="3707063593"/>
+                <int value="1085244470"/>
+                <int value="788103898"/>
+                <int value="127816208"/>
+                <int value="945906078"/>
+                <int value="476455204"/>
+                <int value="1747548642"/>
+                <int value="278068008"/>
+                <int value="1065705652"/>
+                <int value="1951085309"/>
+                <int value="2475902218"/>
+                <int value="4287858996"/>
+                <int value="3954432199"/>
+                <int value="4230404212"/>
+                <int value="3397423041"/>
+                <int value="3638951981"/>
+                <int value="505214088"/>
+                <int value="3889727586"/>
+                <int value="466402377"/>
+                <int value="4257063659"/>
+                <int value="3642597703"/>
+                <int value="2127927723"/>
+                <int value="611314948"/>
+                <int value="2035599786"/>
+                <int value="234061201"/>
+                <int value="451583344"/>
+                <int value="967438937"/>
+                <int value="3087386362"/>
+                <int value="213092077"/>
+                <int value="542846813"/>
+                <int value="1455536852"/>
+                <int value="242312417"/>
+                <int value="3885387698"/>
+                <int value="1061419434"/>
+                <int value="2443786627"/>
+                <int value="1378079148"/>
+                <int value="460670125"/>
+                <int value="3703848558"/>
+                <int value="2172315234"/>
+                <int value="4146342180"/>
+                <int value="2511975956"/>
+                <int value="4068764605"/>
+                <int value="4235754704"/>
+                <int value="4283800961"/>
+                <int value="2699205809"/>
+                <int value="1325776311"/>
+                <int value="1247705414"/>
+                <int value="754136948"/>
+                <int value="3484401631"/>
+                <int value="3948520763"/>
+                <int value="4055457002"/>
+                <int value="778223167"/>
+                <int value="1056186387"/>
+                <int value="2893326760"/>
+                <int value="4172992251"/>
+                <int value="3443122649"/>
+                <int value="1792541722"/>
+                <int value="2153179636"/>
+                <int value="350432908"/>
+                <int value="3615820013"/>
+                <int value="2032197196"/>
+                <int value="3565280971"/>
+                <int value="13438952"/>
+                <int value="3466350702"/>
+                <int value="3701737188"/>
+                <int value="2191982481"/>
+                <int value="3991807861"/>
+                <int value="2015658501"/>
+                <int value="3209869620"/>
+                <int value="1802499982"/>
+                <int value="3766708517"/>
+                <int value="2979074258"/>
+                <int value="1798185530"/>
+                <int value="1274266914"/>
+                <int value="4292727159"/>
+                <int value="2680607283"/>
+                <int value="1530118186"/>
+                <int value="4073373156"/>
+                <int value="1368624498"/>
+                <int value="3299729149"/>
+                <int value="782291872"/>
+                <int value="2206792772"/>
+                <int value="2290971569"/>
+                <int value="1148153476"/>
+                <int value="1617562201"/>
+                <int value="3425405061"/>
+                <int value="616617589"/>
+                <int value="3368786601"/>
+                <int value="548216509"/>
+                <int value="926283599"/>
+                <int value="4244014177"/>
+                <int value="2164510475"/>
+                <int value="3030447281"/>
+                <int value="3727373251"/>
+                <int value="707868590"/>
+                <int value="965895639"/>
+                <int value="70664296"/>
+                <int value="869628777"/>
+                <int value="1413295049"/>
+                <int value="1624932907"/>
+                <int value="529369151"/>
+                <int value="1285336933"/>
+                <int value="3244499341"/>
+                <int value="4127872037"/>
+                <int value="624"/>
+              </tuple>
+              <None/>
+            </tuple>
+          </universal>
+        </rule>
         <keyframe tick="0">
           <universal>
             <dict-item key="'rando_state'">
@@ -638,1105 +1275,473 @@
               </tuple>
             </dict-item>
           </universal>
-          <character name="'physical'">
-            <node name="(0, 0)"/>
-            <node name="(0, 1)"/>
-            <node name="(0, 2)"/>
-            <node name="(0, 3)"/>
-            <node name="(0, 4)"/>
-            <node name="(0, 5)"/>
-            <node name="(0, 6)"/>
-            <node name="(0, 7)"/>
-            <node name="(0, 8)"/>
-            <node name="(0, 9)"/>
-            <node name="(1, 0)"/>
-            <node name="(1, 1)"/>
-            <node name="(1, 2)"/>
-            <node name="(1, 3)"/>
-            <node name="(1, 4)"/>
-            <node name="(1, 5)"/>
-            <node name="(1, 6)"/>
-            <node name="(1, 7)"/>
-            <node name="(1, 8)"/>
-            <node name="(1, 9)"/>
-            <node name="(2, 0)"/>
-            <node name="(2, 1)"/>
-            <node name="(2, 2)"/>
-            <node name="(2, 3)"/>
-            <node name="(2, 4)"/>
-            <node name="(2, 5)"/>
-            <node name="(2, 6)"/>
-            <node name="(2, 7)"/>
-            <node name="(2, 8)"/>
-            <node name="(2, 9)"/>
-            <node name="(3, 0)"/>
-            <node name="(3, 1)"/>
-            <node name="(3, 2)"/>
-            <node name="(3, 3)"/>
-            <node name="(3, 4)"/>
-            <node name="(3, 5)"/>
-            <node name="(3, 6)"/>
-            <node name="(3, 7)"/>
-            <node name="(3, 8)"/>
-            <node name="(3, 9)"/>
-            <node name="(4, 0)"/>
-            <node name="(4, 1)"/>
-            <node name="(4, 2)"/>
-            <node name="(4, 3)"/>
-            <node name="(4, 4)"/>
-            <node name="(4, 5)"/>
-            <node name="(4, 6)"/>
-            <node name="(4, 7)"/>
-            <node name="(4, 8)"/>
-            <node name="(4, 9)"/>
-            <node name="(5, 0)"/>
-            <node name="(5, 1)"/>
-            <node name="(5, 2)"/>
-            <node name="(5, 3)"/>
-            <node name="(5, 4)"/>
-            <node name="(5, 5)"/>
-            <node name="(5, 6)"/>
-            <node name="(5, 7)"/>
-            <node name="(5, 8)"/>
-            <node name="(5, 9)"/>
-            <node name="(6, 0)"/>
-            <node name="(6, 1)"/>
-            <node name="(6, 2)"/>
-            <node name="(6, 3)"/>
-            <node name="(6, 4)"/>
-            <node name="(6, 5)"/>
-            <node name="(6, 6)"/>
-            <node name="(6, 7)"/>
-            <node name="(6, 8)"/>
-            <node name="(6, 9)"/>
-            <node name="(7, 0)"/>
-            <node name="(7, 1)"/>
-            <node name="(7, 2)"/>
-            <node name="(7, 3)"/>
-            <node name="(7, 4)"/>
-            <node name="(7, 5)"/>
-            <node name="(7, 6)"/>
-            <node name="(7, 7)"/>
-            <node name="(7, 8)"/>
-            <node name="(7, 9)"/>
-            <node name="(8, 0)"/>
-            <node name="(8, 1)"/>
-            <node name="(8, 2)"/>
-            <node name="(8, 3)"/>
-            <node name="(8, 4)"/>
-            <node name="(8, 5)"/>
-            <node name="(8, 6)"/>
-            <node name="(8, 7)"/>
-            <node name="(8, 8)"/>
-            <node name="(8, 9)"/>
-            <node name="(9, 0)"/>
-            <node name="(9, 1)"/>
-            <node name="(9, 2)"/>
-            <node name="(9, 3)"/>
-            <node name="(9, 4)"/>
-            <node name="(9, 5)"/>
-            <node name="(9, 6)"/>
-            <node name="(9, 7)"/>
-            <node name="(9, 8)"/>
-            <node name="(9, 9)"/>
-            <edge orig="(0, 0)" dest="(1, 0)"/>
-            <edge orig="(0, 0)" dest="(0, 1)"/>
-            <edge orig="(0, 1)" dest="(1, 1)"/>
-            <edge orig="(0, 1)" dest="(0, 0)"/>
-            <edge orig="(0, 1)" dest="(0, 2)"/>
-            <edge orig="(0, 2)" dest="(1, 2)"/>
-            <edge orig="(0, 2)" dest="(0, 1)"/>
-            <edge orig="(0, 2)" dest="(0, 3)"/>
-            <edge orig="(0, 3)" dest="(1, 3)"/>
-            <edge orig="(0, 3)" dest="(0, 2)"/>
-            <edge orig="(0, 3)" dest="(0, 4)"/>
-            <edge orig="(0, 4)" dest="(1, 4)"/>
-            <edge orig="(0, 4)" dest="(0, 3)"/>
-            <edge orig="(0, 4)" dest="(0, 5)"/>
-            <edge orig="(0, 5)" dest="(1, 5)"/>
-            <edge orig="(0, 5)" dest="(0, 4)"/>
-            <edge orig="(0, 5)" dest="(0, 6)"/>
-            <edge orig="(0, 6)" dest="(1, 6)"/>
-            <edge orig="(0, 6)" dest="(0, 5)"/>
-            <edge orig="(0, 6)" dest="(0, 7)"/>
-            <edge orig="(0, 7)" dest="(1, 7)"/>
-            <edge orig="(0, 7)" dest="(0, 6)"/>
-            <edge orig="(0, 7)" dest="(0, 8)"/>
-            <edge orig="(0, 8)" dest="(1, 8)"/>
-            <edge orig="(0, 8)" dest="(0, 7)"/>
-            <edge orig="(0, 8)" dest="(0, 9)"/>
-            <edge orig="(0, 9)" dest="(1, 9)"/>
-            <edge orig="(0, 9)" dest="(0, 8)"/>
-            <edge orig="(1, 0)" dest="(0, 0)"/>
-            <edge orig="(1, 0)" dest="(2, 0)"/>
-            <edge orig="(1, 0)" dest="(1, 1)"/>
-            <edge orig="(1, 1)" dest="(0, 1)"/>
-            <edge orig="(1, 1)" dest="(2, 1)"/>
-            <edge orig="(1, 1)" dest="(1, 0)"/>
-            <edge orig="(1, 1)" dest="(1, 2)"/>
-            <edge orig="(1, 2)" dest="(0, 2)"/>
-            <edge orig="(1, 2)" dest="(2, 2)"/>
-            <edge orig="(1, 2)" dest="(1, 1)"/>
-            <edge orig="(1, 2)" dest="(1, 3)"/>
-            <edge orig="(1, 3)" dest="(0, 3)"/>
-            <edge orig="(1, 3)" dest="(2, 3)"/>
-            <edge orig="(1, 3)" dest="(1, 2)"/>
-            <edge orig="(1, 3)" dest="(1, 4)"/>
-            <edge orig="(1, 4)" dest="(0, 4)"/>
-            <edge orig="(1, 4)" dest="(2, 4)"/>
-            <edge orig="(1, 4)" dest="(1, 3)"/>
-            <edge orig="(1, 4)" dest="(1, 5)"/>
-            <edge orig="(1, 5)" dest="(0, 5)"/>
-            <edge orig="(1, 5)" dest="(2, 5)"/>
-            <edge orig="(1, 5)" dest="(1, 4)"/>
-            <edge orig="(1, 5)" dest="(1, 6)"/>
-            <edge orig="(1, 6)" dest="(0, 6)"/>
-            <edge orig="(1, 6)" dest="(2, 6)"/>
-            <edge orig="(1, 6)" dest="(1, 5)"/>
-            <edge orig="(1, 6)" dest="(1, 7)"/>
-            <edge orig="(1, 7)" dest="(0, 7)"/>
-            <edge orig="(1, 7)" dest="(2, 7)"/>
-            <edge orig="(1, 7)" dest="(1, 6)"/>
-            <edge orig="(1, 7)" dest="(1, 8)"/>
-            <edge orig="(1, 8)" dest="(0, 8)"/>
-            <edge orig="(1, 8)" dest="(2, 8)"/>
-            <edge orig="(1, 8)" dest="(1, 7)"/>
-            <edge orig="(1, 8)" dest="(1, 9)"/>
-            <edge orig="(1, 9)" dest="(0, 9)"/>
-            <edge orig="(1, 9)" dest="(2, 9)"/>
-            <edge orig="(1, 9)" dest="(1, 8)"/>
-            <edge orig="(2, 0)" dest="(1, 0)"/>
-            <edge orig="(2, 0)" dest="(3, 0)"/>
-            <edge orig="(2, 0)" dest="(2, 1)"/>
-            <edge orig="(2, 1)" dest="(1, 1)"/>
-            <edge orig="(2, 1)" dest="(3, 1)"/>
-            <edge orig="(2, 1)" dest="(2, 0)"/>
-            <edge orig="(2, 1)" dest="(2, 2)"/>
-            <edge orig="(2, 2)" dest="(1, 2)"/>
-            <edge orig="(2, 2)" dest="(3, 2)"/>
-            <edge orig="(2, 2)" dest="(2, 1)"/>
-            <edge orig="(2, 2)" dest="(2, 3)"/>
-            <edge orig="(2, 3)" dest="(1, 3)"/>
-            <edge orig="(2, 3)" dest="(3, 3)"/>
-            <edge orig="(2, 3)" dest="(2, 2)"/>
-            <edge orig="(2, 3)" dest="(2, 4)"/>
-            <edge orig="(2, 4)" dest="(1, 4)"/>
-            <edge orig="(2, 4)" dest="(3, 4)"/>
-            <edge orig="(2, 4)" dest="(2, 3)"/>
-            <edge orig="(2, 4)" dest="(2, 5)"/>
-            <edge orig="(2, 5)" dest="(1, 5)"/>
-            <edge orig="(2, 5)" dest="(3, 5)"/>
-            <edge orig="(2, 5)" dest="(2, 4)"/>
-            <edge orig="(2, 5)" dest="(2, 6)"/>
-            <edge orig="(2, 6)" dest="(1, 6)"/>
-            <edge orig="(2, 6)" dest="(3, 6)"/>
-            <edge orig="(2, 6)" dest="(2, 5)"/>
-            <edge orig="(2, 6)" dest="(2, 7)"/>
-            <edge orig="(2, 7)" dest="(1, 7)"/>
-            <edge orig="(2, 7)" dest="(3, 7)"/>
-            <edge orig="(2, 7)" dest="(2, 6)"/>
-            <edge orig="(2, 7)" dest="(2, 8)"/>
-            <edge orig="(2, 8)" dest="(1, 8)"/>
-            <edge orig="(2, 8)" dest="(3, 8)"/>
-            <edge orig="(2, 8)" dest="(2, 7)"/>
-            <edge orig="(2, 8)" dest="(2, 9)"/>
-            <edge orig="(2, 9)" dest="(1, 9)"/>
-            <edge orig="(2, 9)" dest="(3, 9)"/>
-            <edge orig="(2, 9)" dest="(2, 8)"/>
-            <edge orig="(3, 0)" dest="(2, 0)"/>
-            <edge orig="(3, 0)" dest="(4, 0)"/>
-            <edge orig="(3, 0)" dest="(3, 1)"/>
-            <edge orig="(3, 1)" dest="(2, 1)"/>
-            <edge orig="(3, 1)" dest="(4, 1)"/>
-            <edge orig="(3, 1)" dest="(3, 0)"/>
-            <edge orig="(3, 1)" dest="(3, 2)"/>
-            <edge orig="(3, 2)" dest="(2, 2)"/>
-            <edge orig="(3, 2)" dest="(4, 2)"/>
-            <edge orig="(3, 2)" dest="(3, 1)"/>
-            <edge orig="(3, 2)" dest="(3, 3)"/>
-            <edge orig="(3, 3)" dest="(2, 3)"/>
-            <edge orig="(3, 3)" dest="(4, 3)"/>
-            <edge orig="(3, 3)" dest="(3, 2)"/>
-            <edge orig="(3, 3)" dest="(3, 4)"/>
-            <edge orig="(3, 4)" dest="(2, 4)"/>
-            <edge orig="(3, 4)" dest="(4, 4)"/>
-            <edge orig="(3, 4)" dest="(3, 3)"/>
-            <edge orig="(3, 4)" dest="(3, 5)"/>
-            <edge orig="(3, 5)" dest="(2, 5)"/>
-            <edge orig="(3, 5)" dest="(4, 5)"/>
-            <edge orig="(3, 5)" dest="(3, 4)"/>
-            <edge orig="(3, 5)" dest="(3, 6)"/>
-            <edge orig="(3, 6)" dest="(2, 6)"/>
-            <edge orig="(3, 6)" dest="(4, 6)"/>
-            <edge orig="(3, 6)" dest="(3, 5)"/>
-            <edge orig="(3, 6)" dest="(3, 7)"/>
-            <edge orig="(3, 7)" dest="(2, 7)"/>
-            <edge orig="(3, 7)" dest="(4, 7)"/>
-            <edge orig="(3, 7)" dest="(3, 6)"/>
-            <edge orig="(3, 7)" dest="(3, 8)"/>
-            <edge orig="(3, 8)" dest="(2, 8)"/>
-            <edge orig="(3, 8)" dest="(4, 8)"/>
-            <edge orig="(3, 8)" dest="(3, 7)"/>
-            <edge orig="(3, 8)" dest="(3, 9)"/>
-            <edge orig="(3, 9)" dest="(2, 9)"/>
-            <edge orig="(3, 9)" dest="(4, 9)"/>
-            <edge orig="(3, 9)" dest="(3, 8)"/>
-            <edge orig="(4, 0)" dest="(3, 0)"/>
-            <edge orig="(4, 0)" dest="(5, 0)"/>
-            <edge orig="(4, 0)" dest="(4, 1)"/>
-            <edge orig="(4, 1)" dest="(3, 1)"/>
-            <edge orig="(4, 1)" dest="(5, 1)"/>
-            <edge orig="(4, 1)" dest="(4, 0)"/>
-            <edge orig="(4, 1)" dest="(4, 2)"/>
-            <edge orig="(4, 2)" dest="(3, 2)"/>
-            <edge orig="(4, 2)" dest="(5, 2)"/>
-            <edge orig="(4, 2)" dest="(4, 1)"/>
-            <edge orig="(4, 2)" dest="(4, 3)"/>
-            <edge orig="(4, 3)" dest="(3, 3)"/>
-            <edge orig="(4, 3)" dest="(5, 3)"/>
-            <edge orig="(4, 3)" dest="(4, 2)"/>
-            <edge orig="(4, 3)" dest="(4, 4)"/>
-            <edge orig="(4, 4)" dest="(3, 4)"/>
-            <edge orig="(4, 4)" dest="(5, 4)"/>
-            <edge orig="(4, 4)" dest="(4, 3)"/>
-            <edge orig="(4, 4)" dest="(4, 5)"/>
-            <edge orig="(4, 5)" dest="(3, 5)"/>
-            <edge orig="(4, 5)" dest="(5, 5)"/>
-            <edge orig="(4, 5)" dest="(4, 4)"/>
-            <edge orig="(4, 5)" dest="(4, 6)"/>
-            <edge orig="(4, 6)" dest="(3, 6)"/>
-            <edge orig="(4, 6)" dest="(5, 6)"/>
-            <edge orig="(4, 6)" dest="(4, 5)"/>
-            <edge orig="(4, 6)" dest="(4, 7)"/>
-            <edge orig="(4, 7)" dest="(3, 7)"/>
-            <edge orig="(4, 7)" dest="(5, 7)"/>
-            <edge orig="(4, 7)" dest="(4, 6)"/>
-            <edge orig="(4, 7)" dest="(4, 8)"/>
-            <edge orig="(4, 8)" dest="(3, 8)"/>
-            <edge orig="(4, 8)" dest="(5, 8)"/>
-            <edge orig="(4, 8)" dest="(4, 7)"/>
-            <edge orig="(4, 8)" dest="(4, 9)"/>
-            <edge orig="(4, 9)" dest="(3, 9)"/>
-            <edge orig="(4, 9)" dest="(5, 9)"/>
-            <edge orig="(4, 9)" dest="(4, 8)"/>
-            <edge orig="(5, 0)" dest="(4, 0)"/>
-            <edge orig="(5, 0)" dest="(6, 0)"/>
-            <edge orig="(5, 0)" dest="(5, 1)"/>
-            <edge orig="(5, 1)" dest="(4, 1)"/>
-            <edge orig="(5, 1)" dest="(6, 1)"/>
-            <edge orig="(5, 1)" dest="(5, 0)"/>
-            <edge orig="(5, 1)" dest="(5, 2)"/>
-            <edge orig="(5, 2)" dest="(4, 2)"/>
-            <edge orig="(5, 2)" dest="(6, 2)"/>
-            <edge orig="(5, 2)" dest="(5, 1)"/>
-            <edge orig="(5, 2)" dest="(5, 3)"/>
-            <edge orig="(5, 3)" dest="(4, 3)"/>
-            <edge orig="(5, 3)" dest="(6, 3)"/>
-            <edge orig="(5, 3)" dest="(5, 2)"/>
-            <edge orig="(5, 3)" dest="(5, 4)"/>
-            <edge orig="(5, 4)" dest="(4, 4)"/>
-            <edge orig="(5, 4)" dest="(6, 4)"/>
-            <edge orig="(5, 4)" dest="(5, 3)"/>
-            <edge orig="(5, 4)" dest="(5, 5)"/>
-            <edge orig="(5, 5)" dest="(4, 5)"/>
-            <edge orig="(5, 5)" dest="(6, 5)"/>
-            <edge orig="(5, 5)" dest="(5, 4)"/>
-            <edge orig="(5, 5)" dest="(5, 6)"/>
-            <edge orig="(5, 6)" dest="(4, 6)"/>
-            <edge orig="(5, 6)" dest="(6, 6)"/>
-            <edge orig="(5, 6)" dest="(5, 5)"/>
-            <edge orig="(5, 6)" dest="(5, 7)"/>
-            <edge orig="(5, 7)" dest="(4, 7)"/>
-            <edge orig="(5, 7)" dest="(6, 7)"/>
-            <edge orig="(5, 7)" dest="(5, 6)"/>
-            <edge orig="(5, 7)" dest="(5, 8)"/>
-            <edge orig="(5, 8)" dest="(4, 8)"/>
-            <edge orig="(5, 8)" dest="(6, 8)"/>
-            <edge orig="(5, 8)" dest="(5, 7)"/>
-            <edge orig="(5, 8)" dest="(5, 9)"/>
-            <edge orig="(5, 9)" dest="(4, 9)"/>
-            <edge orig="(5, 9)" dest="(6, 9)"/>
-            <edge orig="(5, 9)" dest="(5, 8)"/>
-            <edge orig="(6, 0)" dest="(5, 0)"/>
-            <edge orig="(6, 0)" dest="(7, 0)"/>
-            <edge orig="(6, 0)" dest="(6, 1)"/>
-            <edge orig="(6, 1)" dest="(5, 1)"/>
-            <edge orig="(6, 1)" dest="(7, 1)"/>
-            <edge orig="(6, 1)" dest="(6, 0)"/>
-            <edge orig="(6, 1)" dest="(6, 2)"/>
-            <edge orig="(6, 2)" dest="(5, 2)"/>
-            <edge orig="(6, 2)" dest="(7, 2)"/>
-            <edge orig="(6, 2)" dest="(6, 1)"/>
-            <edge orig="(6, 2)" dest="(6, 3)"/>
-            <edge orig="(6, 3)" dest="(5, 3)"/>
-            <edge orig="(6, 3)" dest="(7, 3)"/>
-            <edge orig="(6, 3)" dest="(6, 2)"/>
-            <edge orig="(6, 3)" dest="(6, 4)"/>
-            <edge orig="(6, 4)" dest="(5, 4)"/>
-            <edge orig="(6, 4)" dest="(7, 4)"/>
-            <edge orig="(6, 4)" dest="(6, 3)"/>
-            <edge orig="(6, 4)" dest="(6, 5)"/>
-            <edge orig="(6, 5)" dest="(5, 5)"/>
-            <edge orig="(6, 5)" dest="(7, 5)"/>
-            <edge orig="(6, 5)" dest="(6, 4)"/>
-            <edge orig="(6, 5)" dest="(6, 6)"/>
-            <edge orig="(6, 6)" dest="(5, 6)"/>
-            <edge orig="(6, 6)" dest="(7, 6)"/>
-            <edge orig="(6, 6)" dest="(6, 5)"/>
-            <edge orig="(6, 6)" dest="(6, 7)"/>
-            <edge orig="(6, 7)" dest="(5, 7)"/>
-            <edge orig="(6, 7)" dest="(7, 7)"/>
-            <edge orig="(6, 7)" dest="(6, 6)"/>
-            <edge orig="(6, 7)" dest="(6, 8)"/>
-            <edge orig="(6, 8)" dest="(5, 8)"/>
-            <edge orig="(6, 8)" dest="(7, 8)"/>
-            <edge orig="(6, 8)" dest="(6, 7)"/>
-            <edge orig="(6, 8)" dest="(6, 9)"/>
-            <edge orig="(6, 9)" dest="(5, 9)"/>
-            <edge orig="(6, 9)" dest="(7, 9)"/>
-            <edge orig="(6, 9)" dest="(6, 8)"/>
-            <edge orig="(7, 0)" dest="(6, 0)"/>
-            <edge orig="(7, 0)" dest="(8, 0)"/>
-            <edge orig="(7, 0)" dest="(7, 1)"/>
-            <edge orig="(7, 1)" dest="(6, 1)"/>
-            <edge orig="(7, 1)" dest="(8, 1)"/>
-            <edge orig="(7, 1)" dest="(7, 0)"/>
-            <edge orig="(7, 1)" dest="(7, 2)"/>
-            <edge orig="(7, 2)" dest="(6, 2)"/>
-            <edge orig="(7, 2)" dest="(8, 2)"/>
-            <edge orig="(7, 2)" dest="(7, 1)"/>
-            <edge orig="(7, 2)" dest="(7, 3)"/>
-            <edge orig="(7, 3)" dest="(6, 3)"/>
-            <edge orig="(7, 3)" dest="(8, 3)"/>
-            <edge orig="(7, 3)" dest="(7, 2)"/>
-            <edge orig="(7, 3)" dest="(7, 4)"/>
-            <edge orig="(7, 4)" dest="(6, 4)"/>
-            <edge orig="(7, 4)" dest="(8, 4)"/>
-            <edge orig="(7, 4)" dest="(7, 3)"/>
-            <edge orig="(7, 4)" dest="(7, 5)"/>
-            <edge orig="(7, 5)" dest="(6, 5)"/>
-            <edge orig="(7, 5)" dest="(8, 5)"/>
-            <edge orig="(7, 5)" dest="(7, 4)"/>
-            <edge orig="(7, 5)" dest="(7, 6)"/>
-            <edge orig="(7, 6)" dest="(6, 6)"/>
-            <edge orig="(7, 6)" dest="(8, 6)"/>
-            <edge orig="(7, 6)" dest="(7, 5)"/>
-            <edge orig="(7, 6)" dest="(7, 7)"/>
-            <edge orig="(7, 7)" dest="(6, 7)"/>
-            <edge orig="(7, 7)" dest="(8, 7)"/>
-            <edge orig="(7, 7)" dest="(7, 6)"/>
-            <edge orig="(7, 7)" dest="(7, 8)"/>
-            <edge orig="(7, 8)" dest="(6, 8)"/>
-            <edge orig="(7, 8)" dest="(8, 8)"/>
-            <edge orig="(7, 8)" dest="(7, 7)"/>
-            <edge orig="(7, 8)" dest="(7, 9)"/>
-            <edge orig="(7, 9)" dest="(6, 9)"/>
-            <edge orig="(7, 9)" dest="(8, 9)"/>
-            <edge orig="(7, 9)" dest="(7, 8)"/>
-            <edge orig="(8, 0)" dest="(7, 0)"/>
-            <edge orig="(8, 0)" dest="(9, 0)"/>
-            <edge orig="(8, 0)" dest="(8, 1)"/>
-            <edge orig="(8, 1)" dest="(7, 1)"/>
-            <edge orig="(8, 1)" dest="(9, 1)"/>
-            <edge orig="(8, 1)" dest="(8, 0)"/>
-            <edge orig="(8, 1)" dest="(8, 2)"/>
-            <edge orig="(8, 2)" dest="(7, 2)"/>
-            <edge orig="(8, 2)" dest="(9, 2)"/>
-            <edge orig="(8, 2)" dest="(8, 1)"/>
-            <edge orig="(8, 2)" dest="(8, 3)"/>
-            <edge orig="(8, 3)" dest="(7, 3)"/>
-            <edge orig="(8, 3)" dest="(9, 3)"/>
-            <edge orig="(8, 3)" dest="(8, 2)"/>
-            <edge orig="(8, 3)" dest="(8, 4)"/>
-            <edge orig="(8, 4)" dest="(7, 4)"/>
-            <edge orig="(8, 4)" dest="(9, 4)"/>
-            <edge orig="(8, 4)" dest="(8, 3)"/>
-            <edge orig="(8, 4)" dest="(8, 5)"/>
-            <edge orig="(8, 5)" dest="(7, 5)"/>
-            <edge orig="(8, 5)" dest="(9, 5)"/>
-            <edge orig="(8, 5)" dest="(8, 4)"/>
-            <edge orig="(8, 5)" dest="(8, 6)"/>
-            <edge orig="(8, 6)" dest="(7, 6)"/>
-            <edge orig="(8, 6)" dest="(9, 6)"/>
-            <edge orig="(8, 6)" dest="(8, 5)"/>
-            <edge orig="(8, 6)" dest="(8, 7)"/>
-            <edge orig="(8, 7)" dest="(7, 7)"/>
-            <edge orig="(8, 7)" dest="(9, 7)"/>
-            <edge orig="(8, 7)" dest="(8, 6)"/>
-            <edge orig="(8, 7)" dest="(8, 8)"/>
-            <edge orig="(8, 8)" dest="(7, 8)"/>
-            <edge orig="(8, 8)" dest="(9, 8)"/>
-            <edge orig="(8, 8)" dest="(8, 7)"/>
-            <edge orig="(8, 8)" dest="(8, 9)"/>
-            <edge orig="(8, 9)" dest="(7, 9)"/>
-            <edge orig="(8, 9)" dest="(9, 9)"/>
-            <edge orig="(8, 9)" dest="(8, 8)"/>
-            <edge orig="(9, 0)" dest="(8, 0)"/>
-            <edge orig="(9, 0)" dest="(9, 1)"/>
-            <edge orig="(9, 1)" dest="(8, 1)"/>
-            <edge orig="(9, 1)" dest="(9, 0)"/>
-            <edge orig="(9, 1)" dest="(9, 2)"/>
-            <edge orig="(9, 2)" dest="(8, 2)"/>
-            <edge orig="(9, 2)" dest="(9, 1)"/>
-            <edge orig="(9, 2)" dest="(9, 3)"/>
-            <edge orig="(9, 3)" dest="(8, 3)"/>
-            <edge orig="(9, 3)" dest="(9, 2)"/>
-            <edge orig="(9, 3)" dest="(9, 4)"/>
-            <edge orig="(9, 4)" dest="(8, 4)"/>
-            <edge orig="(9, 4)" dest="(9, 3)"/>
-            <edge orig="(9, 4)" dest="(9, 5)"/>
-            <edge orig="(9, 5)" dest="(8, 5)"/>
-            <edge orig="(9, 5)" dest="(9, 4)"/>
-            <edge orig="(9, 5)" dest="(9, 6)"/>
-            <edge orig="(9, 6)" dest="(8, 6)"/>
-            <edge orig="(9, 6)" dest="(9, 5)"/>
-            <edge orig="(9, 6)" dest="(9, 7)"/>
-            <edge orig="(9, 7)" dest="(8, 7)"/>
-            <edge orig="(9, 7)" dest="(9, 6)"/>
-            <edge orig="(9, 7)" dest="(9, 8)"/>
-            <edge orig="(9, 8)" dest="(8, 8)"/>
-            <edge orig="(9, 8)" dest="(9, 7)"/>
-            <edge orig="(9, 8)" dest="(9, 9)"/>
-            <edge orig="(9, 9)" dest="(8, 9)"/>
-            <edge orig="(9, 9)" dest="(9, 8)"/>
+          <character name="'physical'" character-rulebook="('character_rulebook', 'physical')" unit-rulebook="('unit_rulebook', 'physical')" character-thing-rulebook="('character_thing_rulebook', 'physical')" character-place-rulebook="('character_place_rulebook', 'physical')" character-portal-rulebook="('character_portal_rulebook', 'physical')">
+            <node name="(0, 0)" rulebook="('physical', (0, 0))"/>
+            <node name="(0, 1)" rulebook="('physical', (0, 1))"/>
+            <node name="(0, 2)" rulebook="('physical', (0, 2))"/>
+            <node name="(0, 3)" rulebook="('physical', (0, 3))"/>
+            <node name="(0, 4)" rulebook="('physical', (0, 4))"/>
+            <node name="(0, 5)" rulebook="('physical', (0, 5))"/>
+            <node name="(0, 6)" rulebook="('physical', (0, 6))"/>
+            <node name="(0, 7)" rulebook="('physical', (0, 7))"/>
+            <node name="(0, 8)" rulebook="('physical', (0, 8))"/>
+            <node name="(0, 9)" rulebook="('physical', (0, 9))"/>
+            <node name="(1, 0)" rulebook="('physical', (1, 0))"/>
+            <node name="(1, 1)" rulebook="('physical', (1, 1))"/>
+            <node name="(1, 2)" rulebook="('physical', (1, 2))"/>
+            <node name="(1, 3)" rulebook="('physical', (1, 3))"/>
+            <node name="(1, 4)" rulebook="('physical', (1, 4))"/>
+            <node name="(1, 5)" rulebook="('physical', (1, 5))"/>
+            <node name="(1, 6)" rulebook="('physical', (1, 6))"/>
+            <node name="(1, 7)" rulebook="('physical', (1, 7))"/>
+            <node name="(1, 8)" rulebook="('physical', (1, 8))"/>
+            <node name="(1, 9)" rulebook="('physical', (1, 9))"/>
+            <node name="(2, 0)" rulebook="('physical', (2, 0))"/>
+            <node name="(2, 1)" rulebook="('physical', (2, 1))"/>
+            <node name="(2, 2)" rulebook="('physical', (2, 2))"/>
+            <node name="(2, 3)" rulebook="('physical', (2, 3))"/>
+            <node name="(2, 4)" rulebook="('physical', (2, 4))"/>
+            <node name="(2, 5)" rulebook="('physical', (2, 5))"/>
+            <node name="(2, 6)" rulebook="('physical', (2, 6))"/>
+            <node name="(2, 7)" rulebook="('physical', (2, 7))"/>
+            <node name="(2, 8)" rulebook="('physical', (2, 8))"/>
+            <node name="(2, 9)" rulebook="('physical', (2, 9))"/>
+            <node name="(3, 0)" rulebook="('physical', (3, 0))"/>
+            <node name="(3, 1)" rulebook="('physical', (3, 1))"/>
+            <node name="(3, 2)" rulebook="('physical', (3, 2))"/>
+            <node name="(3, 3)" rulebook="('physical', (3, 3))"/>
+            <node name="(3, 4)" rulebook="('physical', (3, 4))"/>
+            <node name="(3, 5)" rulebook="('physical', (3, 5))"/>
+            <node name="(3, 6)" rulebook="('physical', (3, 6))"/>
+            <node name="(3, 7)" rulebook="('physical', (3, 7))"/>
+            <node name="(3, 8)" rulebook="('physical', (3, 8))"/>
+            <node name="(3, 9)" rulebook="('physical', (3, 9))"/>
+            <node name="(4, 0)" rulebook="('physical', (4, 0))"/>
+            <node name="(4, 1)" rulebook="('physical', (4, 1))"/>
+            <node name="(4, 2)" rulebook="('physical', (4, 2))"/>
+            <node name="(4, 3)" rulebook="('physical', (4, 3))"/>
+            <node name="(4, 4)" rulebook="('physical', (4, 4))"/>
+            <node name="(4, 5)" rulebook="('physical', (4, 5))"/>
+            <node name="(4, 6)" rulebook="('physical', (4, 6))"/>
+            <node name="(4, 7)" rulebook="('physical', (4, 7))"/>
+            <node name="(4, 8)" rulebook="('physical', (4, 8))"/>
+            <node name="(4, 9)" rulebook="('physical', (4, 9))"/>
+            <node name="(5, 0)" rulebook="('physical', (5, 0))"/>
+            <node name="(5, 1)" rulebook="('physical', (5, 1))"/>
+            <node name="(5, 2)" rulebook="('physical', (5, 2))"/>
+            <node name="(5, 3)" rulebook="('physical', (5, 3))"/>
+            <node name="(5, 4)" rulebook="('physical', (5, 4))"/>
+            <node name="(5, 5)" rulebook="('physical', (5, 5))"/>
+            <node name="(5, 6)" rulebook="('physical', (5, 6))"/>
+            <node name="(5, 7)" rulebook="('physical', (5, 7))"/>
+            <node name="(5, 8)" rulebook="('physical', (5, 8))"/>
+            <node name="(5, 9)" rulebook="('physical', (5, 9))"/>
+            <node name="(6, 0)" rulebook="('physical', (6, 0))"/>
+            <node name="(6, 1)" rulebook="('physical', (6, 1))"/>
+            <node name="(6, 2)" rulebook="('physical', (6, 2))"/>
+            <node name="(6, 3)" rulebook="('physical', (6, 3))"/>
+            <node name="(6, 4)" rulebook="('physical', (6, 4))"/>
+            <node name="(6, 5)" rulebook="('physical', (6, 5))"/>
+            <node name="(6, 6)" rulebook="('physical', (6, 6))"/>
+            <node name="(6, 7)" rulebook="('physical', (6, 7))"/>
+            <node name="(6, 8)" rulebook="('physical', (6, 8))"/>
+            <node name="(6, 9)" rulebook="('physical', (6, 9))"/>
+            <node name="(7, 0)" rulebook="('physical', (7, 0))"/>
+            <node name="(7, 1)" rulebook="('physical', (7, 1))"/>
+            <node name="(7, 2)" rulebook="('physical', (7, 2))"/>
+            <node name="(7, 3)" rulebook="('physical', (7, 3))"/>
+            <node name="(7, 4)" rulebook="('physical', (7, 4))"/>
+            <node name="(7, 5)" rulebook="('physical', (7, 5))"/>
+            <node name="(7, 6)" rulebook="('physical', (7, 6))"/>
+            <node name="(7, 7)" rulebook="('physical', (7, 7))"/>
+            <node name="(7, 8)" rulebook="('physical', (7, 8))"/>
+            <node name="(7, 9)" rulebook="('physical', (7, 9))"/>
+            <node name="(8, 0)" rulebook="('physical', (8, 0))"/>
+            <node name="(8, 1)" rulebook="('physical', (8, 1))"/>
+            <node name="(8, 2)" rulebook="('physical', (8, 2))"/>
+            <node name="(8, 3)" rulebook="('physical', (8, 3))"/>
+            <node name="(8, 4)" rulebook="('physical', (8, 4))"/>
+            <node name="(8, 5)" rulebook="('physical', (8, 5))"/>
+            <node name="(8, 6)" rulebook="('physical', (8, 6))"/>
+            <node name="(8, 7)" rulebook="('physical', (8, 7))"/>
+            <node name="(8, 8)" rulebook="('physical', (8, 8))"/>
+            <node name="(8, 9)" rulebook="('physical', (8, 9))"/>
+            <node name="(9, 0)" rulebook="('physical', (9, 0))"/>
+            <node name="(9, 1)" rulebook="('physical', (9, 1))"/>
+            <node name="(9, 2)" rulebook="('physical', (9, 2))"/>
+            <node name="(9, 3)" rulebook="('physical', (9, 3))"/>
+            <node name="(9, 4)" rulebook="('physical', (9, 4))"/>
+            <node name="(9, 5)" rulebook="('physical', (9, 5))"/>
+            <node name="(9, 6)" rulebook="('physical', (9, 6))"/>
+            <node name="(9, 7)" rulebook="('physical', (9, 7))"/>
+            <node name="(9, 8)" rulebook="('physical', (9, 8))"/>
+            <node name="(9, 9)" rulebook="('physical', (9, 9))"/>
+            <edge orig="(0, 0)" dest="(1, 0)" rulebook="('physical', (0, 0), (1, 0))"/>
+            <edge orig="(0, 0)" dest="(0, 1)" rulebook="('physical', (0, 0), (0, 1))"/>
+            <edge orig="(0, 1)" dest="(1, 1)" rulebook="('physical', (0, 1), (1, 1))"/>
+            <edge orig="(0, 1)" dest="(0, 0)" rulebook="('physical', (0, 1), (0, 0))"/>
+            <edge orig="(0, 1)" dest="(0, 2)" rulebook="('physical', (0, 1), (0, 2))"/>
+            <edge orig="(0, 2)" dest="(1, 2)" rulebook="('physical', (0, 2), (1, 2))"/>
+            <edge orig="(0, 2)" dest="(0, 1)" rulebook="('physical', (0, 2), (0, 1))"/>
+            <edge orig="(0, 2)" dest="(0, 3)" rulebook="('physical', (0, 2), (0, 3))"/>
+            <edge orig="(0, 3)" dest="(1, 3)" rulebook="('physical', (0, 3), (1, 3))"/>
+            <edge orig="(0, 3)" dest="(0, 2)" rulebook="('physical', (0, 3), (0, 2))"/>
+            <edge orig="(0, 3)" dest="(0, 4)" rulebook="('physical', (0, 3), (0, 4))"/>
+            <edge orig="(0, 4)" dest="(1, 4)" rulebook="('physical', (0, 4), (1, 4))"/>
+            <edge orig="(0, 4)" dest="(0, 3)" rulebook="('physical', (0, 4), (0, 3))"/>
+            <edge orig="(0, 4)" dest="(0, 5)" rulebook="('physical', (0, 4), (0, 5))"/>
+            <edge orig="(0, 5)" dest="(1, 5)" rulebook="('physical', (0, 5), (1, 5))"/>
+            <edge orig="(0, 5)" dest="(0, 4)" rulebook="('physical', (0, 5), (0, 4))"/>
+            <edge orig="(0, 5)" dest="(0, 6)" rulebook="('physical', (0, 5), (0, 6))"/>
+            <edge orig="(0, 6)" dest="(1, 6)" rulebook="('physical', (0, 6), (1, 6))"/>
+            <edge orig="(0, 6)" dest="(0, 5)" rulebook="('physical', (0, 6), (0, 5))"/>
+            <edge orig="(0, 6)" dest="(0, 7)" rulebook="('physical', (0, 6), (0, 7))"/>
+            <edge orig="(0, 7)" dest="(1, 7)" rulebook="('physical', (0, 7), (1, 7))"/>
+            <edge orig="(0, 7)" dest="(0, 6)" rulebook="('physical', (0, 7), (0, 6))"/>
+            <edge orig="(0, 7)" dest="(0, 8)" rulebook="('physical', (0, 7), (0, 8))"/>
+            <edge orig="(0, 8)" dest="(1, 8)" rulebook="('physical', (0, 8), (1, 8))"/>
+            <edge orig="(0, 8)" dest="(0, 7)" rulebook="('physical', (0, 8), (0, 7))"/>
+            <edge orig="(0, 8)" dest="(0, 9)" rulebook="('physical', (0, 8), (0, 9))"/>
+            <edge orig="(0, 9)" dest="(1, 9)" rulebook="('physical', (0, 9), (1, 9))"/>
+            <edge orig="(0, 9)" dest="(0, 8)" rulebook="('physical', (0, 9), (0, 8))"/>
+            <edge orig="(1, 0)" dest="(0, 0)" rulebook="('physical', (1, 0), (0, 0))"/>
+            <edge orig="(1, 0)" dest="(2, 0)" rulebook="('physical', (1, 0), (2, 0))"/>
+            <edge orig="(1, 0)" dest="(1, 1)" rulebook="('physical', (1, 0), (1, 1))"/>
+            <edge orig="(1, 1)" dest="(0, 1)" rulebook="('physical', (1, 1), (0, 1))"/>
+            <edge orig="(1, 1)" dest="(2, 1)" rulebook="('physical', (1, 1), (2, 1))"/>
+            <edge orig="(1, 1)" dest="(1, 0)" rulebook="('physical', (1, 1), (1, 0))"/>
+            <edge orig="(1, 1)" dest="(1, 2)" rulebook="('physical', (1, 1), (1, 2))"/>
+            <edge orig="(1, 2)" dest="(0, 2)" rulebook="('physical', (1, 2), (0, 2))"/>
+            <edge orig="(1, 2)" dest="(2, 2)" rulebook="('physical', (1, 2), (2, 2))"/>
+            <edge orig="(1, 2)" dest="(1, 1)" rulebook="('physical', (1, 2), (1, 1))"/>
+            <edge orig="(1, 2)" dest="(1, 3)" rulebook="('physical', (1, 2), (1, 3))"/>
+            <edge orig="(1, 3)" dest="(0, 3)" rulebook="('physical', (1, 3), (0, 3))"/>
+            <edge orig="(1, 3)" dest="(2, 3)" rulebook="('physical', (1, 3), (2, 3))"/>
+            <edge orig="(1, 3)" dest="(1, 2)" rulebook="('physical', (1, 3), (1, 2))"/>
+            <edge orig="(1, 3)" dest="(1, 4)" rulebook="('physical', (1, 3), (1, 4))"/>
+            <edge orig="(1, 4)" dest="(0, 4)" rulebook="('physical', (1, 4), (0, 4))"/>
+            <edge orig="(1, 4)" dest="(2, 4)" rulebook="('physical', (1, 4), (2, 4))"/>
+            <edge orig="(1, 4)" dest="(1, 3)" rulebook="('physical', (1, 4), (1, 3))"/>
+            <edge orig="(1, 4)" dest="(1, 5)" rulebook="('physical', (1, 4), (1, 5))"/>
+            <edge orig="(1, 5)" dest="(0, 5)" rulebook="('physical', (1, 5), (0, 5))"/>
+            <edge orig="(1, 5)" dest="(2, 5)" rulebook="('physical', (1, 5), (2, 5))"/>
+            <edge orig="(1, 5)" dest="(1, 4)" rulebook="('physical', (1, 5), (1, 4))"/>
+            <edge orig="(1, 5)" dest="(1, 6)" rulebook="('physical', (1, 5), (1, 6))"/>
+            <edge orig="(1, 6)" dest="(0, 6)" rulebook="('physical', (1, 6), (0, 6))"/>
+            <edge orig="(1, 6)" dest="(2, 6)" rulebook="('physical', (1, 6), (2, 6))"/>
+            <edge orig="(1, 6)" dest="(1, 5)" rulebook="('physical', (1, 6), (1, 5))"/>
+            <edge orig="(1, 6)" dest="(1, 7)" rulebook="('physical', (1, 6), (1, 7))"/>
+            <edge orig="(1, 7)" dest="(0, 7)" rulebook="('physical', (1, 7), (0, 7))"/>
+            <edge orig="(1, 7)" dest="(2, 7)" rulebook="('physical', (1, 7), (2, 7))"/>
+            <edge orig="(1, 7)" dest="(1, 6)" rulebook="('physical', (1, 7), (1, 6))"/>
+            <edge orig="(1, 7)" dest="(1, 8)" rulebook="('physical', (1, 7), (1, 8))"/>
+            <edge orig="(1, 8)" dest="(0, 8)" rulebook="('physical', (1, 8), (0, 8))"/>
+            <edge orig="(1, 8)" dest="(2, 8)" rulebook="('physical', (1, 8), (2, 8))"/>
+            <edge orig="(1, 8)" dest="(1, 7)" rulebook="('physical', (1, 8), (1, 7))"/>
+            <edge orig="(1, 8)" dest="(1, 9)" rulebook="('physical', (1, 8), (1, 9))"/>
+            <edge orig="(1, 9)" dest="(0, 9)" rulebook="('physical', (1, 9), (0, 9))"/>
+            <edge orig="(1, 9)" dest="(2, 9)" rulebook="('physical', (1, 9), (2, 9))"/>
+            <edge orig="(1, 9)" dest="(1, 8)" rulebook="('physical', (1, 9), (1, 8))"/>
+            <edge orig="(2, 0)" dest="(1, 0)" rulebook="('physical', (2, 0), (1, 0))"/>
+            <edge orig="(2, 0)" dest="(3, 0)" rulebook="('physical', (2, 0), (3, 0))"/>
+            <edge orig="(2, 0)" dest="(2, 1)" rulebook="('physical', (2, 0), (2, 1))"/>
+            <edge orig="(2, 1)" dest="(1, 1)" rulebook="('physical', (2, 1), (1, 1))"/>
+            <edge orig="(2, 1)" dest="(3, 1)" rulebook="('physical', (2, 1), (3, 1))"/>
+            <edge orig="(2, 1)" dest="(2, 0)" rulebook="('physical', (2, 1), (2, 0))"/>
+            <edge orig="(2, 1)" dest="(2, 2)" rulebook="('physical', (2, 1), (2, 2))"/>
+            <edge orig="(2, 2)" dest="(1, 2)" rulebook="('physical', (2, 2), (1, 2))"/>
+            <edge orig="(2, 2)" dest="(3, 2)" rulebook="('physical', (2, 2), (3, 2))"/>
+            <edge orig="(2, 2)" dest="(2, 1)" rulebook="('physical', (2, 2), (2, 1))"/>
+            <edge orig="(2, 2)" dest="(2, 3)" rulebook="('physical', (2, 2), (2, 3))"/>
+            <edge orig="(2, 3)" dest="(1, 3)" rulebook="('physical', (2, 3), (1, 3))"/>
+            <edge orig="(2, 3)" dest="(3, 3)" rulebook="('physical', (2, 3), (3, 3))"/>
+            <edge orig="(2, 3)" dest="(2, 2)" rulebook="('physical', (2, 3), (2, 2))"/>
+            <edge orig="(2, 3)" dest="(2, 4)" rulebook="('physical', (2, 3), (2, 4))"/>
+            <edge orig="(2, 4)" dest="(1, 4)" rulebook="('physical', (2, 4), (1, 4))"/>
+            <edge orig="(2, 4)" dest="(3, 4)" rulebook="('physical', (2, 4), (3, 4))"/>
+            <edge orig="(2, 4)" dest="(2, 3)" rulebook="('physical', (2, 4), (2, 3))"/>
+            <edge orig="(2, 4)" dest="(2, 5)" rulebook="('physical', (2, 4), (2, 5))"/>
+            <edge orig="(2, 5)" dest="(1, 5)" rulebook="('physical', (2, 5), (1, 5))"/>
+            <edge orig="(2, 5)" dest="(3, 5)" rulebook="('physical', (2, 5), (3, 5))"/>
+            <edge orig="(2, 5)" dest="(2, 4)" rulebook="('physical', (2, 5), (2, 4))"/>
+            <edge orig="(2, 5)" dest="(2, 6)" rulebook="('physical', (2, 5), (2, 6))"/>
+            <edge orig="(2, 6)" dest="(1, 6)" rulebook="('physical', (2, 6), (1, 6))"/>
+            <edge orig="(2, 6)" dest="(3, 6)" rulebook="('physical', (2, 6), (3, 6))"/>
+            <edge orig="(2, 6)" dest="(2, 5)" rulebook="('physical', (2, 6), (2, 5))"/>
+            <edge orig="(2, 6)" dest="(2, 7)" rulebook="('physical', (2, 6), (2, 7))"/>
+            <edge orig="(2, 7)" dest="(1, 7)" rulebook="('physical', (2, 7), (1, 7))"/>
+            <edge orig="(2, 7)" dest="(3, 7)" rulebook="('physical', (2, 7), (3, 7))"/>
+            <edge orig="(2, 7)" dest="(2, 6)" rulebook="('physical', (2, 7), (2, 6))"/>
+            <edge orig="(2, 7)" dest="(2, 8)" rulebook="('physical', (2, 7), (2, 8))"/>
+            <edge orig="(2, 8)" dest="(1, 8)" rulebook="('physical', (2, 8), (1, 8))"/>
+            <edge orig="(2, 8)" dest="(3, 8)" rulebook="('physical', (2, 8), (3, 8))"/>
+            <edge orig="(2, 8)" dest="(2, 7)" rulebook="('physical', (2, 8), (2, 7))"/>
+            <edge orig="(2, 8)" dest="(2, 9)" rulebook="('physical', (2, 8), (2, 9))"/>
+            <edge orig="(2, 9)" dest="(1, 9)" rulebook="('physical', (2, 9), (1, 9))"/>
+            <edge orig="(2, 9)" dest="(3, 9)" rulebook="('physical', (2, 9), (3, 9))"/>
+            <edge orig="(2, 9)" dest="(2, 8)" rulebook="('physical', (2, 9), (2, 8))"/>
+            <edge orig="(3, 0)" dest="(2, 0)" rulebook="('physical', (3, 0), (2, 0))"/>
+            <edge orig="(3, 0)" dest="(4, 0)" rulebook="('physical', (3, 0), (4, 0))"/>
+            <edge orig="(3, 0)" dest="(3, 1)" rulebook="('physical', (3, 0), (3, 1))"/>
+            <edge orig="(3, 1)" dest="(2, 1)" rulebook="('physical', (3, 1), (2, 1))"/>
+            <edge orig="(3, 1)" dest="(4, 1)" rulebook="('physical', (3, 1), (4, 1))"/>
+            <edge orig="(3, 1)" dest="(3, 0)" rulebook="('physical', (3, 1), (3, 0))"/>
+            <edge orig="(3, 1)" dest="(3, 2)" rulebook="('physical', (3, 1), (3, 2))"/>
+            <edge orig="(3, 2)" dest="(2, 2)" rulebook="('physical', (3, 2), (2, 2))"/>
+            <edge orig="(3, 2)" dest="(4, 2)" rulebook="('physical', (3, 2), (4, 2))"/>
+            <edge orig="(3, 2)" dest="(3, 1)" rulebook="('physical', (3, 2), (3, 1))"/>
+            <edge orig="(3, 2)" dest="(3, 3)" rulebook="('physical', (3, 2), (3, 3))"/>
+            <edge orig="(3, 3)" dest="(2, 3)" rulebook="('physical', (3, 3), (2, 3))"/>
+            <edge orig="(3, 3)" dest="(4, 3)" rulebook="('physical', (3, 3), (4, 3))"/>
+            <edge orig="(3, 3)" dest="(3, 2)" rulebook="('physical', (3, 3), (3, 2))"/>
+            <edge orig="(3, 3)" dest="(3, 4)" rulebook="('physical', (3, 3), (3, 4))"/>
+            <edge orig="(3, 4)" dest="(2, 4)" rulebook="('physical', (3, 4), (2, 4))"/>
+            <edge orig="(3, 4)" dest="(4, 4)" rulebook="('physical', (3, 4), (4, 4))"/>
+            <edge orig="(3, 4)" dest="(3, 3)" rulebook="('physical', (3, 4), (3, 3))"/>
+            <edge orig="(3, 4)" dest="(3, 5)" rulebook="('physical', (3, 4), (3, 5))"/>
+            <edge orig="(3, 5)" dest="(2, 5)" rulebook="('physical', (3, 5), (2, 5))"/>
+            <edge orig="(3, 5)" dest="(4, 5)" rulebook="('physical', (3, 5), (4, 5))"/>
+            <edge orig="(3, 5)" dest="(3, 4)" rulebook="('physical', (3, 5), (3, 4))"/>
+            <edge orig="(3, 5)" dest="(3, 6)" rulebook="('physical', (3, 5), (3, 6))"/>
+            <edge orig="(3, 6)" dest="(2, 6)" rulebook="('physical', (3, 6), (2, 6))"/>
+            <edge orig="(3, 6)" dest="(4, 6)" rulebook="('physical', (3, 6), (4, 6))"/>
+            <edge orig="(3, 6)" dest="(3, 5)" rulebook="('physical', (3, 6), (3, 5))"/>
+            <edge orig="(3, 6)" dest="(3, 7)" rulebook="('physical', (3, 6), (3, 7))"/>
+            <edge orig="(3, 7)" dest="(2, 7)" rulebook="('physical', (3, 7), (2, 7))"/>
+            <edge orig="(3, 7)" dest="(4, 7)" rulebook="('physical', (3, 7), (4, 7))"/>
+            <edge orig="(3, 7)" dest="(3, 6)" rulebook="('physical', (3, 7), (3, 6))"/>
+            <edge orig="(3, 7)" dest="(3, 8)" rulebook="('physical', (3, 7), (3, 8))"/>
+            <edge orig="(3, 8)" dest="(2, 8)" rulebook="('physical', (3, 8), (2, 8))"/>
+            <edge orig="(3, 8)" dest="(4, 8)" rulebook="('physical', (3, 8), (4, 8))"/>
+            <edge orig="(3, 8)" dest="(3, 7)" rulebook="('physical', (3, 8), (3, 7))"/>
+            <edge orig="(3, 8)" dest="(3, 9)" rulebook="('physical', (3, 8), (3, 9))"/>
+            <edge orig="(3, 9)" dest="(2, 9)" rulebook="('physical', (3, 9), (2, 9))"/>
+            <edge orig="(3, 9)" dest="(4, 9)" rulebook="('physical', (3, 9), (4, 9))"/>
+            <edge orig="(3, 9)" dest="(3, 8)" rulebook="('physical', (3, 9), (3, 8))"/>
+            <edge orig="(4, 0)" dest="(3, 0)" rulebook="('physical', (4, 0), (3, 0))"/>
+            <edge orig="(4, 0)" dest="(5, 0)" rulebook="('physical', (4, 0), (5, 0))"/>
+            <edge orig="(4, 0)" dest="(4, 1)" rulebook="('physical', (4, 0), (4, 1))"/>
+            <edge orig="(4, 1)" dest="(3, 1)" rulebook="('physical', (4, 1), (3, 1))"/>
+            <edge orig="(4, 1)" dest="(5, 1)" rulebook="('physical', (4, 1), (5, 1))"/>
+            <edge orig="(4, 1)" dest="(4, 0)" rulebook="('physical', (4, 1), (4, 0))"/>
+            <edge orig="(4, 1)" dest="(4, 2)" rulebook="('physical', (4, 1), (4, 2))"/>
+            <edge orig="(4, 2)" dest="(3, 2)" rulebook="('physical', (4, 2), (3, 2))"/>
+            <edge orig="(4, 2)" dest="(5, 2)" rulebook="('physical', (4, 2), (5, 2))"/>
+            <edge orig="(4, 2)" dest="(4, 1)" rulebook="('physical', (4, 2), (4, 1))"/>
+            <edge orig="(4, 2)" dest="(4, 3)" rulebook="('physical', (4, 2), (4, 3))"/>
+            <edge orig="(4, 3)" dest="(3, 3)" rulebook="('physical', (4, 3), (3, 3))"/>
+            <edge orig="(4, 3)" dest="(5, 3)" rulebook="('physical', (4, 3), (5, 3))"/>
+            <edge orig="(4, 3)" dest="(4, 2)" rulebook="('physical', (4, 3), (4, 2))"/>
+            <edge orig="(4, 3)" dest="(4, 4)" rulebook="('physical', (4, 3), (4, 4))"/>
+            <edge orig="(4, 4)" dest="(3, 4)" rulebook="('physical', (4, 4), (3, 4))"/>
+            <edge orig="(4, 4)" dest="(5, 4)" rulebook="('physical', (4, 4), (5, 4))"/>
+            <edge orig="(4, 4)" dest="(4, 3)" rulebook="('physical', (4, 4), (4, 3))"/>
+            <edge orig="(4, 4)" dest="(4, 5)" rulebook="('physical', (4, 4), (4, 5))"/>
+            <edge orig="(4, 5)" dest="(3, 5)" rulebook="('physical', (4, 5), (3, 5))"/>
+            <edge orig="(4, 5)" dest="(5, 5)" rulebook="('physical', (4, 5), (5, 5))"/>
+            <edge orig="(4, 5)" dest="(4, 4)" rulebook="('physical', (4, 5), (4, 4))"/>
+            <edge orig="(4, 5)" dest="(4, 6)" rulebook="('physical', (4, 5), (4, 6))"/>
+            <edge orig="(4, 6)" dest="(3, 6)" rulebook="('physical', (4, 6), (3, 6))"/>
+            <edge orig="(4, 6)" dest="(5, 6)" rulebook="('physical', (4, 6), (5, 6))"/>
+            <edge orig="(4, 6)" dest="(4, 5)" rulebook="('physical', (4, 6), (4, 5))"/>
+            <edge orig="(4, 6)" dest="(4, 7)" rulebook="('physical', (4, 6), (4, 7))"/>
+            <edge orig="(4, 7)" dest="(3, 7)" rulebook="('physical', (4, 7), (3, 7))"/>
+            <edge orig="(4, 7)" dest="(5, 7)" rulebook="('physical', (4, 7), (5, 7))"/>
+            <edge orig="(4, 7)" dest="(4, 6)" rulebook="('physical', (4, 7), (4, 6))"/>
+            <edge orig="(4, 7)" dest="(4, 8)" rulebook="('physical', (4, 7), (4, 8))"/>
+            <edge orig="(4, 8)" dest="(3, 8)" rulebook="('physical', (4, 8), (3, 8))"/>
+            <edge orig="(4, 8)" dest="(5, 8)" rulebook="('physical', (4, 8), (5, 8))"/>
+            <edge orig="(4, 8)" dest="(4, 7)" rulebook="('physical', (4, 8), (4, 7))"/>
+            <edge orig="(4, 8)" dest="(4, 9)" rulebook="('physical', (4, 8), (4, 9))"/>
+            <edge orig="(4, 9)" dest="(3, 9)" rulebook="('physical', (4, 9), (3, 9))"/>
+            <edge orig="(4, 9)" dest="(5, 9)" rulebook="('physical', (4, 9), (5, 9))"/>
+            <edge orig="(4, 9)" dest="(4, 8)" rulebook="('physical', (4, 9), (4, 8))"/>
+            <edge orig="(5, 0)" dest="(4, 0)" rulebook="('physical', (5, 0), (4, 0))"/>
+            <edge orig="(5, 0)" dest="(6, 0)" rulebook="('physical', (5, 0), (6, 0))"/>
+            <edge orig="(5, 0)" dest="(5, 1)" rulebook="('physical', (5, 0), (5, 1))"/>
+            <edge orig="(5, 1)" dest="(4, 1)" rulebook="('physical', (5, 1), (4, 1))"/>
+            <edge orig="(5, 1)" dest="(6, 1)" rulebook="('physical', (5, 1), (6, 1))"/>
+            <edge orig="(5, 1)" dest="(5, 0)" rulebook="('physical', (5, 1), (5, 0))"/>
+            <edge orig="(5, 1)" dest="(5, 2)" rulebook="('physical', (5, 1), (5, 2))"/>
+            <edge orig="(5, 2)" dest="(4, 2)" rulebook="('physical', (5, 2), (4, 2))"/>
+            <edge orig="(5, 2)" dest="(6, 2)" rulebook="('physical', (5, 2), (6, 2))"/>
+            <edge orig="(5, 2)" dest="(5, 1)" rulebook="('physical', (5, 2), (5, 1))"/>
+            <edge orig="(5, 2)" dest="(5, 3)" rulebook="('physical', (5, 2), (5, 3))"/>
+            <edge orig="(5, 3)" dest="(4, 3)" rulebook="('physical', (5, 3), (4, 3))"/>
+            <edge orig="(5, 3)" dest="(6, 3)" rulebook="('physical', (5, 3), (6, 3))"/>
+            <edge orig="(5, 3)" dest="(5, 2)" rulebook="('physical', (5, 3), (5, 2))"/>
+            <edge orig="(5, 3)" dest="(5, 4)" rulebook="('physical', (5, 3), (5, 4))"/>
+            <edge orig="(5, 4)" dest="(4, 4)" rulebook="('physical', (5, 4), (4, 4))"/>
+            <edge orig="(5, 4)" dest="(6, 4)" rulebook="('physical', (5, 4), (6, 4))"/>
+            <edge orig="(5, 4)" dest="(5, 3)" rulebook="('physical', (5, 4), (5, 3))"/>
+            <edge orig="(5, 4)" dest="(5, 5)" rulebook="('physical', (5, 4), (5, 5))"/>
+            <edge orig="(5, 5)" dest="(4, 5)" rulebook="('physical', (5, 5), (4, 5))"/>
+            <edge orig="(5, 5)" dest="(6, 5)" rulebook="('physical', (5, 5), (6, 5))"/>
+            <edge orig="(5, 5)" dest="(5, 4)" rulebook="('physical', (5, 5), (5, 4))"/>
+            <edge orig="(5, 5)" dest="(5, 6)" rulebook="('physical', (5, 5), (5, 6))"/>
+            <edge orig="(5, 6)" dest="(4, 6)" rulebook="('physical', (5, 6), (4, 6))"/>
+            <edge orig="(5, 6)" dest="(6, 6)" rulebook="('physical', (5, 6), (6, 6))"/>
+            <edge orig="(5, 6)" dest="(5, 5)" rulebook="('physical', (5, 6), (5, 5))"/>
+            <edge orig="(5, 6)" dest="(5, 7)" rulebook="('physical', (5, 6), (5, 7))"/>
+            <edge orig="(5, 7)" dest="(4, 7)" rulebook="('physical', (5, 7), (4, 7))"/>
+            <edge orig="(5, 7)" dest="(6, 7)" rulebook="('physical', (5, 7), (6, 7))"/>
+            <edge orig="(5, 7)" dest="(5, 6)" rulebook="('physical', (5, 7), (5, 6))"/>
+            <edge orig="(5, 7)" dest="(5, 8)" rulebook="('physical', (5, 7), (5, 8))"/>
+            <edge orig="(5, 8)" dest="(4, 8)" rulebook="('physical', (5, 8), (4, 8))"/>
+            <edge orig="(5, 8)" dest="(6, 8)" rulebook="('physical', (5, 8), (6, 8))"/>
+            <edge orig="(5, 8)" dest="(5, 7)" rulebook="('physical', (5, 8), (5, 7))"/>
+            <edge orig="(5, 8)" dest="(5, 9)" rulebook="('physical', (5, 8), (5, 9))"/>
+            <edge orig="(5, 9)" dest="(4, 9)" rulebook="('physical', (5, 9), (4, 9))"/>
+            <edge orig="(5, 9)" dest="(6, 9)" rulebook="('physical', (5, 9), (6, 9))"/>
+            <edge orig="(5, 9)" dest="(5, 8)" rulebook="('physical', (5, 9), (5, 8))"/>
+            <edge orig="(6, 0)" dest="(5, 0)" rulebook="('physical', (6, 0), (5, 0))"/>
+            <edge orig="(6, 0)" dest="(7, 0)" rulebook="('physical', (6, 0), (7, 0))"/>
+            <edge orig="(6, 0)" dest="(6, 1)" rulebook="('physical', (6, 0), (6, 1))"/>
+            <edge orig="(6, 1)" dest="(5, 1)" rulebook="('physical', (6, 1), (5, 1))"/>
+            <edge orig="(6, 1)" dest="(7, 1)" rulebook="('physical', (6, 1), (7, 1))"/>
+            <edge orig="(6, 1)" dest="(6, 0)" rulebook="('physical', (6, 1), (6, 0))"/>
+            <edge orig="(6, 1)" dest="(6, 2)" rulebook="('physical', (6, 1), (6, 2))"/>
+            <edge orig="(6, 2)" dest="(5, 2)" rulebook="('physical', (6, 2), (5, 2))"/>
+            <edge orig="(6, 2)" dest="(7, 2)" rulebook="('physical', (6, 2), (7, 2))"/>
+            <edge orig="(6, 2)" dest="(6, 1)" rulebook="('physical', (6, 2), (6, 1))"/>
+            <edge orig="(6, 2)" dest="(6, 3)" rulebook="('physical', (6, 2), (6, 3))"/>
+            <edge orig="(6, 3)" dest="(5, 3)" rulebook="('physical', (6, 3), (5, 3))"/>
+            <edge orig="(6, 3)" dest="(7, 3)" rulebook="('physical', (6, 3), (7, 3))"/>
+            <edge orig="(6, 3)" dest="(6, 2)" rulebook="('physical', (6, 3), (6, 2))"/>
+            <edge orig="(6, 3)" dest="(6, 4)" rulebook="('physical', (6, 3), (6, 4))"/>
+            <edge orig="(6, 4)" dest="(5, 4)" rulebook="('physical', (6, 4), (5, 4))"/>
+            <edge orig="(6, 4)" dest="(7, 4)" rulebook="('physical', (6, 4), (7, 4))"/>
+            <edge orig="(6, 4)" dest="(6, 3)" rulebook="('physical', (6, 4), (6, 3))"/>
+            <edge orig="(6, 4)" dest="(6, 5)" rulebook="('physical', (6, 4), (6, 5))"/>
+            <edge orig="(6, 5)" dest="(5, 5)" rulebook="('physical', (6, 5), (5, 5))"/>
+            <edge orig="(6, 5)" dest="(7, 5)" rulebook="('physical', (6, 5), (7, 5))"/>
+            <edge orig="(6, 5)" dest="(6, 4)" rulebook="('physical', (6, 5), (6, 4))"/>
+            <edge orig="(6, 5)" dest="(6, 6)" rulebook="('physical', (6, 5), (6, 6))"/>
+            <edge orig="(6, 6)" dest="(5, 6)" rulebook="('physical', (6, 6), (5, 6))"/>
+            <edge orig="(6, 6)" dest="(7, 6)" rulebook="('physical', (6, 6), (7, 6))"/>
+            <edge orig="(6, 6)" dest="(6, 5)" rulebook="('physical', (6, 6), (6, 5))"/>
+            <edge orig="(6, 6)" dest="(6, 7)" rulebook="('physical', (6, 6), (6, 7))"/>
+            <edge orig="(6, 7)" dest="(5, 7)" rulebook="('physical', (6, 7), (5, 7))"/>
+            <edge orig="(6, 7)" dest="(7, 7)" rulebook="('physical', (6, 7), (7, 7))"/>
+            <edge orig="(6, 7)" dest="(6, 6)" rulebook="('physical', (6, 7), (6, 6))"/>
+            <edge orig="(6, 7)" dest="(6, 8)" rulebook="('physical', (6, 7), (6, 8))"/>
+            <edge orig="(6, 8)" dest="(5, 8)" rulebook="('physical', (6, 8), (5, 8))"/>
+            <edge orig="(6, 8)" dest="(7, 8)" rulebook="('physical', (6, 8), (7, 8))"/>
+            <edge orig="(6, 8)" dest="(6, 7)" rulebook="('physical', (6, 8), (6, 7))"/>
+            <edge orig="(6, 8)" dest="(6, 9)" rulebook="('physical', (6, 8), (6, 9))"/>
+            <edge orig="(6, 9)" dest="(5, 9)" rulebook="('physical', (6, 9), (5, 9))"/>
+            <edge orig="(6, 9)" dest="(7, 9)" rulebook="('physical', (6, 9), (7, 9))"/>
+            <edge orig="(6, 9)" dest="(6, 8)" rulebook="('physical', (6, 9), (6, 8))"/>
+            <edge orig="(7, 0)" dest="(6, 0)" rulebook="('physical', (7, 0), (6, 0))"/>
+            <edge orig="(7, 0)" dest="(8, 0)" rulebook="('physical', (7, 0), (8, 0))"/>
+            <edge orig="(7, 0)" dest="(7, 1)" rulebook="('physical', (7, 0), (7, 1))"/>
+            <edge orig="(7, 1)" dest="(6, 1)" rulebook="('physical', (7, 1), (6, 1))"/>
+            <edge orig="(7, 1)" dest="(8, 1)" rulebook="('physical', (7, 1), (8, 1))"/>
+            <edge orig="(7, 1)" dest="(7, 0)" rulebook="('physical', (7, 1), (7, 0))"/>
+            <edge orig="(7, 1)" dest="(7, 2)" rulebook="('physical', (7, 1), (7, 2))"/>
+            <edge orig="(7, 2)" dest="(6, 2)" rulebook="('physical', (7, 2), (6, 2))"/>
+            <edge orig="(7, 2)" dest="(8, 2)" rulebook="('physical', (7, 2), (8, 2))"/>
+            <edge orig="(7, 2)" dest="(7, 1)" rulebook="('physical', (7, 2), (7, 1))"/>
+            <edge orig="(7, 2)" dest="(7, 3)" rulebook="('physical', (7, 2), (7, 3))"/>
+            <edge orig="(7, 3)" dest="(6, 3)" rulebook="('physical', (7, 3), (6, 3))"/>
+            <edge orig="(7, 3)" dest="(8, 3)" rulebook="('physical', (7, 3), (8, 3))"/>
+            <edge orig="(7, 3)" dest="(7, 2)" rulebook="('physical', (7, 3), (7, 2))"/>
+            <edge orig="(7, 3)" dest="(7, 4)" rulebook="('physical', (7, 3), (7, 4))"/>
+            <edge orig="(7, 4)" dest="(6, 4)" rulebook="('physical', (7, 4), (6, 4))"/>
+            <edge orig="(7, 4)" dest="(8, 4)" rulebook="('physical', (7, 4), (8, 4))"/>
+            <edge orig="(7, 4)" dest="(7, 3)" rulebook="('physical', (7, 4), (7, 3))"/>
+            <edge orig="(7, 4)" dest="(7, 5)" rulebook="('physical', (7, 4), (7, 5))"/>
+            <edge orig="(7, 5)" dest="(6, 5)" rulebook="('physical', (7, 5), (6, 5))"/>
+            <edge orig="(7, 5)" dest="(8, 5)" rulebook="('physical', (7, 5), (8, 5))"/>
+            <edge orig="(7, 5)" dest="(7, 4)" rulebook="('physical', (7, 5), (7, 4))"/>
+            <edge orig="(7, 5)" dest="(7, 6)" rulebook="('physical', (7, 5), (7, 6))"/>
+            <edge orig="(7, 6)" dest="(6, 6)" rulebook="('physical', (7, 6), (6, 6))"/>
+            <edge orig="(7, 6)" dest="(8, 6)" rulebook="('physical', (7, 6), (8, 6))"/>
+            <edge orig="(7, 6)" dest="(7, 5)" rulebook="('physical', (7, 6), (7, 5))"/>
+            <edge orig="(7, 6)" dest="(7, 7)" rulebook="('physical', (7, 6), (7, 7))"/>
+            <edge orig="(7, 7)" dest="(6, 7)" rulebook="('physical', (7, 7), (6, 7))"/>
+            <edge orig="(7, 7)" dest="(8, 7)" rulebook="('physical', (7, 7), (8, 7))"/>
+            <edge orig="(7, 7)" dest="(7, 6)" rulebook="('physical', (7, 7), (7, 6))"/>
+            <edge orig="(7, 7)" dest="(7, 8)" rulebook="('physical', (7, 7), (7, 8))"/>
+            <edge orig="(7, 8)" dest="(6, 8)" rulebook="('physical', (7, 8), (6, 8))"/>
+            <edge orig="(7, 8)" dest="(8, 8)" rulebook="('physical', (7, 8), (8, 8))"/>
+            <edge orig="(7, 8)" dest="(7, 7)" rulebook="('physical', (7, 8), (7, 7))"/>
+            <edge orig="(7, 8)" dest="(7, 9)" rulebook="('physical', (7, 8), (7, 9))"/>
+            <edge orig="(7, 9)" dest="(6, 9)" rulebook="('physical', (7, 9), (6, 9))"/>
+            <edge orig="(7, 9)" dest="(8, 9)" rulebook="('physical', (7, 9), (8, 9))"/>
+            <edge orig="(7, 9)" dest="(7, 8)" rulebook="('physical', (7, 9), (7, 8))"/>
+            <edge orig="(8, 0)" dest="(7, 0)" rulebook="('physical', (8, 0), (7, 0))"/>
+            <edge orig="(8, 0)" dest="(9, 0)" rulebook="('physical', (8, 0), (9, 0))"/>
+            <edge orig="(8, 0)" dest="(8, 1)" rulebook="('physical', (8, 0), (8, 1))"/>
+            <edge orig="(8, 1)" dest="(7, 1)" rulebook="('physical', (8, 1), (7, 1))"/>
+            <edge orig="(8, 1)" dest="(9, 1)" rulebook="('physical', (8, 1), (9, 1))"/>
+            <edge orig="(8, 1)" dest="(8, 0)" rulebook="('physical', (8, 1), (8, 0))"/>
+            <edge orig="(8, 1)" dest="(8, 2)" rulebook="('physical', (8, 1), (8, 2))"/>
+            <edge orig="(8, 2)" dest="(7, 2)" rulebook="('physical', (8, 2), (7, 2))"/>
+            <edge orig="(8, 2)" dest="(9, 2)" rulebook="('physical', (8, 2), (9, 2))"/>
+            <edge orig="(8, 2)" dest="(8, 1)" rulebook="('physical', (8, 2), (8, 1))"/>
+            <edge orig="(8, 2)" dest="(8, 3)" rulebook="('physical', (8, 2), (8, 3))"/>
+            <edge orig="(8, 3)" dest="(7, 3)" rulebook="('physical', (8, 3), (7, 3))"/>
+            <edge orig="(8, 3)" dest="(9, 3)" rulebook="('physical', (8, 3), (9, 3))"/>
+            <edge orig="(8, 3)" dest="(8, 2)" rulebook="('physical', (8, 3), (8, 2))"/>
+            <edge orig="(8, 3)" dest="(8, 4)" rulebook="('physical', (8, 3), (8, 4))"/>
+            <edge orig="(8, 4)" dest="(7, 4)" rulebook="('physical', (8, 4), (7, 4))"/>
+            <edge orig="(8, 4)" dest="(9, 4)" rulebook="('physical', (8, 4), (9, 4))"/>
+            <edge orig="(8, 4)" dest="(8, 3)" rulebook="('physical', (8, 4), (8, 3))"/>
+            <edge orig="(8, 4)" dest="(8, 5)" rulebook="('physical', (8, 4), (8, 5))"/>
+            <edge orig="(8, 5)" dest="(7, 5)" rulebook="('physical', (8, 5), (7, 5))"/>
+            <edge orig="(8, 5)" dest="(9, 5)" rulebook="('physical', (8, 5), (9, 5))"/>
+            <edge orig="(8, 5)" dest="(8, 4)" rulebook="('physical', (8, 5), (8, 4))"/>
+            <edge orig="(8, 5)" dest="(8, 6)" rulebook="('physical', (8, 5), (8, 6))"/>
+            <edge orig="(8, 6)" dest="(7, 6)" rulebook="('physical', (8, 6), (7, 6))"/>
+            <edge orig="(8, 6)" dest="(9, 6)" rulebook="('physical', (8, 6), (9, 6))"/>
+            <edge orig="(8, 6)" dest="(8, 5)" rulebook="('physical', (8, 6), (8, 5))"/>
+            <edge orig="(8, 6)" dest="(8, 7)" rulebook="('physical', (8, 6), (8, 7))"/>
+            <edge orig="(8, 7)" dest="(7, 7)" rulebook="('physical', (8, 7), (7, 7))"/>
+            <edge orig="(8, 7)" dest="(9, 7)" rulebook="('physical', (8, 7), (9, 7))"/>
+            <edge orig="(8, 7)" dest="(8, 6)" rulebook="('physical', (8, 7), (8, 6))"/>
+            <edge orig="(8, 7)" dest="(8, 8)" rulebook="('physical', (8, 7), (8, 8))"/>
+            <edge orig="(8, 8)" dest="(7, 8)" rulebook="('physical', (8, 8), (7, 8))"/>
+            <edge orig="(8, 8)" dest="(9, 8)" rulebook="('physical', (8, 8), (9, 8))"/>
+            <edge orig="(8, 8)" dest="(8, 7)" rulebook="('physical', (8, 8), (8, 7))"/>
+            <edge orig="(8, 8)" dest="(8, 9)" rulebook="('physical', (8, 8), (8, 9))"/>
+            <edge orig="(8, 9)" dest="(7, 9)" rulebook="('physical', (8, 9), (7, 9))"/>
+            <edge orig="(8, 9)" dest="(9, 9)" rulebook="('physical', (8, 9), (9, 9))"/>
+            <edge orig="(8, 9)" dest="(8, 8)" rulebook="('physical', (8, 9), (8, 8))"/>
+            <edge orig="(9, 0)" dest="(8, 0)" rulebook="('physical', (9, 0), (8, 0))"/>
+            <edge orig="(9, 0)" dest="(9, 1)" rulebook="('physical', (9, 0), (9, 1))"/>
+            <edge orig="(9, 1)" dest="(8, 1)" rulebook="('physical', (9, 1), (8, 1))"/>
+            <edge orig="(9, 1)" dest="(9, 0)" rulebook="('physical', (9, 1), (9, 0))"/>
+            <edge orig="(9, 1)" dest="(9, 2)" rulebook="('physical', (9, 1), (9, 2))"/>
+            <edge orig="(9, 2)" dest="(8, 2)" rulebook="('physical', (9, 2), (8, 2))"/>
+            <edge orig="(9, 2)" dest="(9, 1)" rulebook="('physical', (9, 2), (9, 1))"/>
+            <edge orig="(9, 2)" dest="(9, 3)" rulebook="('physical', (9, 2), (9, 3))"/>
+            <edge orig="(9, 3)" dest="(8, 3)" rulebook="('physical', (9, 3), (8, 3))"/>
+            <edge orig="(9, 3)" dest="(9, 2)" rulebook="('physical', (9, 3), (9, 2))"/>
+            <edge orig="(9, 3)" dest="(9, 4)" rulebook="('physical', (9, 3), (9, 4))"/>
+            <edge orig="(9, 4)" dest="(8, 4)" rulebook="('physical', (9, 4), (8, 4))"/>
+            <edge orig="(9, 4)" dest="(9, 3)" rulebook="('physical', (9, 4), (9, 3))"/>
+            <edge orig="(9, 4)" dest="(9, 5)" rulebook="('physical', (9, 4), (9, 5))"/>
+            <edge orig="(9, 5)" dest="(8, 5)" rulebook="('physical', (9, 5), (8, 5))"/>
+            <edge orig="(9, 5)" dest="(9, 4)" rulebook="('physical', (9, 5), (9, 4))"/>
+            <edge orig="(9, 5)" dest="(9, 6)" rulebook="('physical', (9, 5), (9, 6))"/>
+            <edge orig="(9, 6)" dest="(8, 6)" rulebook="('physical', (9, 6), (8, 6))"/>
+            <edge orig="(9, 6)" dest="(9, 5)" rulebook="('physical', (9, 6), (9, 5))"/>
+            <edge orig="(9, 6)" dest="(9, 7)" rulebook="('physical', (9, 6), (9, 7))"/>
+            <edge orig="(9, 7)" dest="(8, 7)" rulebook="('physical', (9, 7), (8, 7))"/>
+            <edge orig="(9, 7)" dest="(9, 6)" rulebook="('physical', (9, 7), (9, 6))"/>
+            <edge orig="(9, 7)" dest="(9, 8)" rulebook="('physical', (9, 7), (9, 8))"/>
+            <edge orig="(9, 8)" dest="(8, 8)" rulebook="('physical', (9, 8), (8, 8))"/>
+            <edge orig="(9, 8)" dest="(9, 7)" rulebook="('physical', (9, 8), (9, 7))"/>
+            <edge orig="(9, 8)" dest="(9, 9)" rulebook="('physical', (9, 8), (9, 9))"/>
+            <edge orig="(9, 9)" dest="(8, 9)" rulebook="('physical', (9, 9), (8, 9))"/>
+            <edge orig="(9, 9)" dest="(9, 8)" rulebook="('physical', (9, 9), (9, 8))"/>
           </character>
         </keyframe>
-        <universal key="'rando_state'" tick="0">
-          <tuple>
-            <int value="3"/>
-            <tuple>
-              <int value="2147483648"/>
-              <int value="826674957"/>
-              <int value="2758048924"/>
-              <int value="71078768"/>
-              <int value="3551678985"/>
-              <int value="2081282011"/>
-              <int value="186180364"/>
-              <int value="3613093070"/>
-              <int value="4242768555"/>
-              <int value="3014681221"/>
-              <int value="3408291972"/>
-              <int value="3939650232"/>
-              <int value="1701300356"/>
-              <int value="1734711573"/>
-              <int value="264012903"/>
-              <int value="2490561951"/>
-              <int value="1681433441"/>
-              <int value="2061243497"/>
-              <int value="9632434"/>
-              <int value="3468430029"/>
-              <int value="1306077093"/>
-              <int value="3207462398"/>
-              <int value="1917969485"/>
-              <int value="1465653032"/>
-              <int value="2564295501"/>
-              <int value="946035055"/>
-              <int value="2453398751"/>
-              <int value="980013527"/>
-              <int value="2402801063"/>
-              <int value="4075384818"/>
-              <int value="2528212819"/>
-              <int value="2323908287"/>
-              <int value="3071373355"/>
-              <int value="3515898167"/>
-              <int value="615878274"/>
-              <int value="2113780790"/>
-              <int value="3578918832"/>
-              <int value="743015960"/>
-              <int value="3744194901"/>
-              <int value="4051040502"/>
-              <int value="3355140818"/>
-              <int value="1678508116"/>
-              <int value="1864914311"/>
-              <int value="2982525837"/>
-              <int value="1719282690"/>
-              <int value="2405754972"/>
-              <int value="18555493"/>
-              <int value="3318556188"/>
-              <int value="3282815295"/>
-              <int value="2371903727"/>
-              <int value="2863745374"/>
-              <int value="1491196841"/>
-              <int value="3182328552"/>
-              <int value="2804608685"/>
-              <int value="564407494"/>
-              <int value="1091664670"/>
-              <int value="698981041"/>
-              <int value="882099883"/>
-              <int value="1165802312"/>
-              <int value="2060836835"/>
-              <int value="1256951210"/>
-              <int value="288174229"/>
-              <int value="3380721775"/>
-              <int value="3408935177"/>
-              <int value="1275383350"/>
-              <int value="211277998"/>
-              <int value="4280508845"/>
-              <int value="800097475"/>
-              <int value="1694387754"/>
-              <int value="4196258244"/>
-              <int value="3917852583"/>
-              <int value="145955832"/>
-              <int value="3215705844"/>
-              <int value="2772225040"/>
-              <int value="748416028"/>
-              <int value="3375115386"/>
-              <int value="4292426436"/>
-              <int value="2811841483"/>
-              <int value="784412703"/>
-              <int value="626016741"/>
-              <int value="1331975773"/>
-              <int value="2034633676"/>
-              <int value="3554619364"/>
-              <int value="3679151300"/>
-              <int value="2101955599"/>
-              <int value="3108591111"/>
-              <int value="1940108888"/>
-              <int value="3378981103"/>
-              <int value="3134928485"/>
-              <int value="3357824157"/>
-              <int value="3672355017"/>
-              <int value="1352415551"/>
-              <int value="1446381951"/>
-              <int value="76377615"/>
-              <int value="124867760"/>
-              <int value="2086133316"/>
-              <int value="2313717796"/>
-              <int value="873128509"/>
-              <int value="3035731278"/>
-              <int value="2293718470"/>
-              <int value="978336989"/>
-              <int value="433491926"/>
-              <int value="2547104614"/>
-              <int value="3114620210"/>
-              <int value="3117124572"/>
-              <int value="1486874685"/>
-              <int value="322089568"/>
-              <int value="3142055399"/>
-              <int value="2694888273"/>
-              <int value="3710001813"/>
-              <int value="2744792412"/>
-              <int value="4278106569"/>
-              <int value="3082957199"/>
-              <int value="865167276"/>
-              <int value="1194894470"/>
-              <int value="2128761615"/>
-              <int value="701304866"/>
-              <int value="3800705200"/>
-              <int value="1997274457"/>
-              <int value="2643093409"/>
-              <int value="3195466205"/>
-              <int value="4245523782"/>
-              <int value="308852035"/>
-              <int value="2907206721"/>
-              <int value="752882884"/>
-              <int value="4214242227"/>
-              <int value="2239992924"/>
-              <int value="3187658819"/>
-              <int value="2898993616"/>
-              <int value="2248718428"/>
-              <int value="1408964795"/>
-              <int value="1892528860"/>
-              <int value="3553576770"/>
-              <int value="1629121643"/>
-              <int value="4266037600"/>
-              <int value="372830738"/>
-              <int value="1243596608"/>
-              <int value="1694623123"/>
-              <int value="1710470691"/>
-              <int value="1220027999"/>
-              <int value="1031519003"/>
-              <int value="1518828787"/>
-              <int value="1869501275"/>
-              <int value="1628724505"/>
-              <int value="3418396392"/>
-              <int value="3745245572"/>
-              <int value="324770813"/>
-              <int value="3267767060"/>
-              <int value="1556831552"/>
-              <int value="127332333"/>
-              <int value="2567902014"/>
-              <int value="3004852281"/>
-              <int value="1641821314"/>
-              <int value="1917768170"/>
-              <int value="4256809485"/>
-              <int value="512294849"/>
-              <int value="3172079891"/>
-              <int value="968081724"/>
-              <int value="555644359"/>
-              <int value="152976417"/>
-              <int value="2520731545"/>
-              <int value="615527321"/>
-              <int value="449408362"/>
-              <int value="1352499951"/>
-              <int value="1002328321"/>
-              <int value="1240350077"/>
-              <int value="1186286878"/>
-              <int value="563813536"/>
-              <int value="3663952368"/>
-              <int value="231618707"/>
-              <int value="980322324"/>
-              <int value="2800862146"/>
-              <int value="363065163"/>
-              <int value="411534984"/>
-              <int value="3581132092"/>
-              <int value="2350192232"/>
-              <int value="2811132741"/>
-              <int value="3864237910"/>
-              <int value="3586456103"/>
-              <int value="1012079770"/>
-              <int value="2820308397"/>
-              <int value="2009406661"/>
-              <int value="3173682758"/>
-              <int value="3784585553"/>
-              <int value="2690747433"/>
-              <int value="561422604"/>
-              <int value="1902097596"/>
-              <int value="4094999984"/>
-              <int value="1343179489"/>
-              <int value="3412548483"/>
-              <int value="4140399425"/>
-              <int value="2507989005"/>
-              <int value="3648257106"/>
-              <int value="213004981"/>
-              <int value="1549728036"/>
-              <int value="1617016532"/>
-              <int value="4103646641"/>
-              <int value="3320258291"/>
-              <int value="3489480555"/>
-              <int value="1545561381"/>
-              <int value="650107351"/>
-              <int value="2458389315"/>
-              <int value="4199331033"/>
-              <int value="4090534932"/>
-              <int value="2950571114"/>
-              <int value="1019011801"/>
-              <int value="3436249076"/>
-              <int value="3975032376"/>
-              <int value="1883498618"/>
-              <int value="1262528799"/>
-              <int value="3802987207"/>
-              <int value="1342588359"/>
-              <int value="770787456"/>
-              <int value="988065225"/>
-              <int value="1512615378"/>
-              <int value="1389711501"/>
-              <int value="2158900185"/>
-              <int value="770105799"/>
-              <int value="10042527"/>
-              <int value="185157947"/>
-              <int value="3564402533"/>
-              <int value="1190652224"/>
-              <int value="1403097624"/>
-              <int value="1933663035"/>
-              <int value="1724417789"/>
-              <int value="657379726"/>
-              <int value="3747089080"/>
-              <int value="692207378"/>
-              <int value="2426694836"/>
-              <int value="4057590930"/>
-              <int value="2911236863"/>
-              <int value="1292476468"/>
-              <int value="3036508080"/>
-              <int value="2663616702"/>
-              <int value="2808191486"/>
-              <int value="1710537653"/>
-              <int value="2242714643"/>
-              <int value="306931623"/>
-              <int value="3532946753"/>
-              <int value="1346869848"/>
-              <int value="1419838770"/>
-              <int value="4092020909"/>
-              <int value="1008114928"/>
-              <int value="2942203372"/>
-              <int value="1836293228"/>
-              <int value="2444418764"/>
-              <int value="1215583822"/>
-              <int value="1942119454"/>
-              <int value="3393251972"/>
-              <int value="2106511531"/>
-              <int value="4232752982"/>
-              <int value="741743339"/>
-              <int value="2474580042"/>
-              <int value="1113341945"/>
-              <int value="1061857062"/>
-              <int value="2616385136"/>
-              <int value="3787638169"/>
-              <int value="2869839389"/>
-              <int value="1041463025"/>
-              <int value="1465715497"/>
-              <int value="3223299950"/>
-              <int value="1591281289"/>
-              <int value="2655811020"/>
-              <int value="3409569972"/>
-              <int value="2153519303"/>
-              <int value="1317692501"/>
-              <int value="1237212974"/>
-              <int value="1815562834"/>
-              <int value="1348501116"/>
-              <int value="2574862999"/>
-              <int value="3751686567"/>
-              <int value="3214905937"/>
-              <int value="3923395011"/>
-              <int value="36498672"/>
-              <int value="2050472785"/>
-              <int value="3354390935"/>
-              <int value="1641895502"/>
-              <int value="1460294878"/>
-              <int value="2320504583"/>
-              <int value="365941240"/>
-              <int value="10514772"/>
-              <int value="1625221747"/>
-              <int value="1780812433"/>
-              <int value="2176864189"/>
-              <int value="4289661789"/>
-              <int value="4071153463"/>
-              <int value="3787618814"/>
-              <int value="3084316277"/>
-              <int value="1029446734"/>
-              <int value="3751887128"/>
-              <int value="1451754239"/>
-              <int value="3189180551"/>
-              <int value="928763424"/>
-              <int value="1280956927"/>
-              <int value="1210876487"/>
-              <int value="3189476156"/>
-              <int value="1095338798"/>
-              <int value="4083664473"/>
-              <int value="1457417261"/>
-              <int value="1961987170"/>
-              <int value="940871494"/>
-              <int value="4257546616"/>
-              <int value="4182577977"/>
-              <int value="3830771607"/>
-              <int value="1610826387"/>
-              <int value="3592597381"/>
-              <int value="2123518342"/>
-              <int value="3900998766"/>
-              <int value="565138022"/>
-              <int value="4196525024"/>
-              <int value="1839051518"/>
-              <int value="1045915206"/>
-              <int value="557790139"/>
-              <int value="901845037"/>
-              <int value="251095562"/>
-              <int value="86776443"/>
-              <int value="1961346887"/>
-              <int value="2502489792"/>
-              <int value="1767083296"/>
-              <int value="1719619799"/>
-              <int value="3891544218"/>
-              <int value="4074909100"/>
-              <int value="3982507259"/>
-              <int value="2259556405"/>
-              <int value="3224687829"/>
-              <int value="271548590"/>
-              <int value="525074466"/>
-              <int value="574101999"/>
-              <int value="4218242941"/>
-              <int value="895295124"/>
-              <int value="57264538"/>
-              <int value="1353729696"/>
-              <int value="1310159096"/>
-              <int value="1412702209"/>
-              <int value="1063257269"/>
-              <int value="2950844114"/>
-              <int value="1613515312"/>
-              <int value="2724310467"/>
-              <int value="2692145745"/>
-              <int value="3243851111"/>
-              <int value="3447854983"/>
-              <int value="2943607589"/>
-              <int value="1716386305"/>
-              <int value="2395671743"/>
-              <int value="1307500494"/>
-              <int value="62165428"/>
-              <int value="3570227729"/>
-              <int value="3157472427"/>
-              <int value="3165158970"/>
-              <int value="473635428"/>
-              <int value="3881928466"/>
-              <int value="1875233695"/>
-              <int value="336752040"/>
-              <int value="2811655416"/>
-              <int value="3153539704"/>
-              <int value="1726992432"/>
-              <int value="2749340008"/>
-              <int value="4563697"/>
-              <int value="1752268389"/>
-              <int value="1864703338"/>
-              <int value="47268037"/>
-              <int value="1685935975"/>
-              <int value="147827427"/>
-              <int value="1470600339"/>
-              <int value="861437866"/>
-              <int value="1123814189"/>
-              <int value="1081102416"/>
-              <int value="2890350861"/>
-              <int value="2335511809"/>
-              <int value="421803712"/>
-              <int value="409279617"/>
-              <int value="3299382175"/>
-              <int value="1576703504"/>
-              <int value="3987989892"/>
-              <int value="923501665"/>
-              <int value="4090870330"/>
-              <int value="1289057457"/>
-              <int value="3085208149"/>
-              <int value="3990174728"/>
-              <int value="628740845"/>
-              <int value="580580021"/>
-              <int value="66030575"/>
-              <int value="3648990245"/>
-              <int value="1863664988"/>
-              <int value="2696310077"/>
-              <int value="2922062795"/>
-              <int value="1465743445"/>
-              <int value="1751652703"/>
-              <int value="4194313822"/>
-              <int value="2266513786"/>
-              <int value="1292995066"/>
-              <int value="434614918"/>
-              <int value="1093559932"/>
-              <int value="3130053824"/>
-              <int value="1553525190"/>
-              <int value="2619317122"/>
-              <int value="1286811928"/>
-              <int value="185300567"/>
-              <int value="1621811437"/>
-              <int value="210149338"/>
-              <int value="4149966828"/>
-              <int value="617273514"/>
-              <int value="3867924602"/>
-              <int value="1133219621"/>
-              <int value="967884899"/>
-              <int value="1628151809"/>
-              <int value="1868639297"/>
-              <int value="3448786519"/>
-              <int value="976807336"/>
-              <int value="3986134123"/>
-              <int value="233680645"/>
-              <int value="2360858579"/>
-              <int value="2705442401"/>
-              <int value="316178890"/>
-              <int value="4019759496"/>
-              <int value="1406112177"/>
-              <int value="543535890"/>
-              <int value="1472484522"/>
-              <int value="1854006406"/>
-              <int value="3063801784"/>
-              <int value="2336759198"/>
-              <int value="2962694106"/>
-              <int value="1108203959"/>
-              <int value="2014927757"/>
-              <int value="3269103593"/>
-              <int value="2080659202"/>
-              <int value="411944837"/>
-              <int value="2367585384"/>
-              <int value="4189770277"/>
-              <int value="3378383267"/>
-              <int value="2623319739"/>
-              <int value="1587746577"/>
-              <int value="1895308961"/>
-              <int value="1131204067"/>
-              <int value="3859186326"/>
-              <int value="479282256"/>
-              <int value="1547229837"/>
-              <int value="4199500210"/>
-              <int value="1826635380"/>
-              <int value="3790220716"/>
-              <int value="1613529122"/>
-              <int value="84033222"/>
-              <int value="2692159585"/>
-              <int value="1597457193"/>
-              <int value="1782466984"/>
-              <int value="1098292033"/>
-              <int value="1619708661"/>
-              <int value="4178629957"/>
-              <int value="3908783630"/>
-              <int value="2667236060"/>
-              <int value="3262094972"/>
-              <int value="2581783043"/>
-              <int value="1124750811"/>
-              <int value="4222049673"/>
-              <int value="1217193108"/>
-              <int value="22276356"/>
-              <int value="1979672802"/>
-              <int value="2210357099"/>
-              <int value="697179434"/>
-              <int value="3192288183"/>
-              <int value="2590418141"/>
-              <int value="2268765037"/>
-              <int value="4093172182"/>
-              <int value="1830291558"/>
-              <int value="3996409868"/>
-              <int value="3501606134"/>
-              <int value="2838696196"/>
-              <int value="276577769"/>
-              <int value="2256770502"/>
-              <int value="109889742"/>
-              <int value="3430563962"/>
-              <int value="2433426962"/>
-              <int value="2154087353"/>
-              <int value="186533232"/>
-              <int value="3200796274"/>
-              <int value="3342567040"/>
-              <int value="3286806039"/>
-              <int value="175355570"/>
-              <int value="1175762452"/>
-              <int value="1549230591"/>
-              <int value="249686800"/>
-              <int value="794881551"/>
-              <int value="750561680"/>
-              <int value="2767390627"/>
-              <int value="563610705"/>
-              <int value="529648283"/>
-              <int value="2757556716"/>
-              <int value="2737399614"/>
-              <int value="1804746084"/>
-              <int value="4243686293"/>
-              <int value="2992084234"/>
-              <int value="4064370970"/>
-              <int value="3510291430"/>
-              <int value="712517846"/>
-              <int value="400036037"/>
-              <int value="3801043257"/>
-              <int value="4160966918"/>
-              <int value="1406471566"/>
-              <int value="3654292664"/>
-              <int value="1125962981"/>
-              <int value="3344292003"/>
-              <int value="2781869182"/>
-              <int value="763140470"/>
-              <int value="2844828169"/>
-              <int value="1972822810"/>
-              <int value="160208638"/>
-              <int value="4289907946"/>
-              <int value="2844625728"/>
-              <int value="2424203802"/>
-              <int value="2518408304"/>
-              <int value="4225418667"/>
-              <int value="438551980"/>
-              <int value="827784044"/>
-              <int value="2154671685"/>
-              <int value="1404825756"/>
-              <int value="2848656040"/>
-              <int value="2916917011"/>
-              <int value="2730767340"/>
-              <int value="2280873257"/>
-              <int value="3854589781"/>
-              <int value="3707063593"/>
-              <int value="1085244470"/>
-              <int value="788103898"/>
-              <int value="127816208"/>
-              <int value="945906078"/>
-              <int value="476455204"/>
-              <int value="1747548642"/>
-              <int value="278068008"/>
-              <int value="1065705652"/>
-              <int value="1951085309"/>
-              <int value="2475902218"/>
-              <int value="4287858996"/>
-              <int value="3954432199"/>
-              <int value="4230404212"/>
-              <int value="3397423041"/>
-              <int value="3638951981"/>
-              <int value="505214088"/>
-              <int value="3889727586"/>
-              <int value="466402377"/>
-              <int value="4257063659"/>
-              <int value="3642597703"/>
-              <int value="2127927723"/>
-              <int value="611314948"/>
-              <int value="2035599786"/>
-              <int value="234061201"/>
-              <int value="451583344"/>
-              <int value="967438937"/>
-              <int value="3087386362"/>
-              <int value="213092077"/>
-              <int value="542846813"/>
-              <int value="1455536852"/>
-              <int value="242312417"/>
-              <int value="3885387698"/>
-              <int value="1061419434"/>
-              <int value="2443786627"/>
-              <int value="1378079148"/>
-              <int value="460670125"/>
-              <int value="3703848558"/>
-              <int value="2172315234"/>
-              <int value="4146342180"/>
-              <int value="2511975956"/>
-              <int value="4068764605"/>
-              <int value="4235754704"/>
-              <int value="4283800961"/>
-              <int value="2699205809"/>
-              <int value="1325776311"/>
-              <int value="1247705414"/>
-              <int value="754136948"/>
-              <int value="3484401631"/>
-              <int value="3948520763"/>
-              <int value="4055457002"/>
-              <int value="778223167"/>
-              <int value="1056186387"/>
-              <int value="2893326760"/>
-              <int value="4172992251"/>
-              <int value="3443122649"/>
-              <int value="1792541722"/>
-              <int value="2153179636"/>
-              <int value="350432908"/>
-              <int value="3615820013"/>
-              <int value="2032197196"/>
-              <int value="3565280971"/>
-              <int value="13438952"/>
-              <int value="3466350702"/>
-              <int value="3701737188"/>
-              <int value="2191982481"/>
-              <int value="3991807861"/>
-              <int value="2015658501"/>
-              <int value="3209869620"/>
-              <int value="1802499982"/>
-              <int value="3766708517"/>
-              <int value="2979074258"/>
-              <int value="1798185530"/>
-              <int value="1274266914"/>
-              <int value="4292727159"/>
-              <int value="2680607283"/>
-              <int value="1530118186"/>
-              <int value="4073373156"/>
-              <int value="1368624498"/>
-              <int value="3299729149"/>
-              <int value="782291872"/>
-              <int value="2206792772"/>
-              <int value="2290971569"/>
-              <int value="1148153476"/>
-              <int value="1617562201"/>
-              <int value="3425405061"/>
-              <int value="616617589"/>
-              <int value="3368786601"/>
-              <int value="548216509"/>
-              <int value="926283599"/>
-              <int value="4244014177"/>
-              <int value="2164510475"/>
-              <int value="3030447281"/>
-              <int value="3727373251"/>
-              <int value="707868590"/>
-              <int value="965895639"/>
-              <int value="70664296"/>
-              <int value="869628777"/>
-              <int value="1413295049"/>
-              <int value="1624932907"/>
-              <int value="529369151"/>
-              <int value="1285336933"/>
-              <int value="3244499341"/>
-              <int value="4127872037"/>
-              <int value="624"/>
-            </tuple>
-            <None/>
-          </tuple>
-        </universal>
-        <graph character="'physical'" tick="0" type="DiGraph"/>
-        <node character="'physical'" name="'kobold'" tick="1" exists="true"/>
-        <location character="'physical'" thing="'kobold'" tick="1" location="(9, 9)"/>
+        <rule end-tick="2" type="node" character="'physical'" node="'kobold'" rulebook="('physical', 'kobold')" name="shrubsprint">
+          <node character="'physical'" name="'kobold'" tick="1" exists="true"/>
+          <location character="'physical'" thing="'kobold'" tick="1" location="(9, 9)"/>
+        </rule>
         <node-val character="'physical'" node="'kobold'" key="'sprint_chance'" tick="2">
           <float value="0.1"/>
         </node-val>
@@ -2736,110 +2741,105 @@
           </list>
         </node-val>
         <node-rulebook character="'physical'" node="'kobold'" tick="89" rulebook="('physical', 'kobold')"/>
-        <rule-triggers rule="shrubsprint" tick="90"/>
-        <rule-prereqs rule="shrubsprint" tick="90"/>
         <rule-actions rule="shrubsprint" tick="90">
           <action name="shrubsprint"/>
         </rule-actions>
-        <rule-neighborhood rule="shrubsprint" tick="90"/>
         <rule-big rule="shrubsprint" tick="90" big="false"/>
+        <rule-neighborhood rule="shrubsprint" tick="90"/>
+        <rule-prereqs rule="shrubsprint" tick="90"/>
+        <rule-triggers rule="shrubsprint" tick="90"/>
         <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
           <rule name="shrubsprint"/>
         </rulebook>
-        <rule-big rule="shrubsprint" tick="92" big="false"/>
-        <rule-triggers rule="shrubsprint" tick="93">
+        <rule-triggers rule="shrubsprint" tick="92">
           <trigger name="uncovered"/>
         </rule-triggers>
-        <rule-prereqs rule="shrubsprint" tick="94">
+        <rule-prereqs rule="shrubsprint" tick="93">
           <prereq name="breakcover"/>
         </rule-prereqs>
-        <rule-prereqs rule="shrubsprint" tick="95">
+        <rule-prereqs rule="shrubsprint" tick="94">
           <prereq name="breakcover"/>
           <prereq name="not_traveling"/>
         </rule-prereqs>
-        <node-rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')"/>
-        <rule-triggers rule="fight" tick="96"/>
-        <rule-prereqs rule="fight" tick="96"/>
-        <rule-actions rule="fight" tick="96">
+        <node-rulebook character="'physical'" node="'dwarf'" tick="94" rulebook="('physical', 'dwarf')"/>
+        <rule-actions rule="fight" tick="95">
           <action name="fight"/>
         </rule-actions>
-        <rule-neighborhood rule="fight" tick="96"/>
-        <rule-big rule="fight" tick="96" big="false"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
+        <rule-big rule="fight" tick="95" big="false"/>
+        <rule-neighborhood rule="fight" tick="95"/>
+        <rule-prereqs rule="fight" tick="95"/>
+        <rule-triggers rule="fight" tick="95"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="96">
           <rule name="fight"/>
         </rulebook>
-        <rule-big rule="fight" tick="98" big="false"/>
-        <rule-triggers rule="fight" tick="99">
+        <rule-triggers rule="fight" tick="97">
           <trigger name="sametile"/>
         </rule-triggers>
-        <rule-prereqs rule="fight" tick="100">
+        <rule-prereqs rule="fight" tick="98">
           <prereq name="kobold_alive"/>
         </rule-prereqs>
-        <rule-prereqs rule="fight" tick="101">
+        <rule-prereqs rule="fight" tick="99">
           <prereq name="kobold_alive"/>
           <prereq name="aware"/>
         </rule-prereqs>
-        <rule-triggers rule="kill_kobold" tick="102"/>
-        <rule-prereqs rule="kill_kobold" tick="102"/>
-        <rule-actions rule="kill_kobold" tick="102">
+        <rule-actions rule="kill_kobold" tick="100">
           <action name="kill_kobold"/>
         </rule-actions>
-        <rule-neighborhood rule="kill_kobold" tick="102"/>
-        <rule-big rule="kill_kobold" tick="102" big="false"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="103">
+        <rule-big rule="kill_kobold" tick="100" big="false"/>
+        <rule-neighborhood rule="kill_kobold" tick="100"/>
+        <rule-prereqs rule="kill_kobold" tick="100"/>
+        <rule-triggers rule="kill_kobold" tick="100"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="101">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
         </rulebook>
-        <rule-big rule="kill_kobold" tick="104" big="false"/>
-        <rule-triggers rule="kill_kobold" tick="105">
+        <rule-triggers rule="kill_kobold" tick="102">
           <trigger name="kobold_alive"/>
         </rule-triggers>
-        <rule-prereqs rule="kill_kobold" tick="106">
+        <rule-prereqs rule="kill_kobold" tick="103">
           <prereq name="unmerciful"/>
         </rule-prereqs>
-        <rule-triggers rule="go2kobold" tick="107"/>
-        <rule-prereqs rule="go2kobold" tick="107"/>
-        <rule-actions rule="go2kobold" tick="107">
+        <rule-actions rule="go2kobold" tick="104">
           <action name="go2kobold"/>
         </rule-actions>
-        <rule-neighborhood rule="go2kobold" tick="107"/>
-        <rule-big rule="go2kobold" tick="107" big="false"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="108">
+        <rule-big rule="go2kobold" tick="104" big="false"/>
+        <rule-neighborhood rule="go2kobold" tick="104"/>
+        <rule-prereqs rule="go2kobold" tick="104"/>
+        <rule-triggers rule="go2kobold" tick="104"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="105">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
         </rulebook>
-        <rule-big rule="go2kobold" tick="109" big="false"/>
-        <rule-triggers rule="go2kobold" tick="110">
+        <rule-triggers rule="go2kobold" tick="106">
           <trigger name="aware"/>
         </rule-triggers>
-        <rule-prereqs rule="go2kobold" tick="111">
+        <rule-prereqs rule="go2kobold" tick="107">
           <prereq name="kobold_alive"/>
         </rule-prereqs>
-        <rule-prereqs rule="go2kobold" tick="112">
+        <rule-prereqs rule="go2kobold" tick="108">
           <prereq name="kobold_alive"/>
           <prereq name="kobold_not_here"/>
         </rule-prereqs>
-        <rule-triggers rule="wander" tick="113"/>
-        <rule-prereqs rule="wander" tick="113"/>
-        <rule-actions rule="wander" tick="113">
+        <rule-actions rule="wander" tick="109">
           <action name="wander"/>
         </rule-actions>
-        <rule-neighborhood rule="wander" tick="113"/>
-        <rule-big rule="wander" tick="113" big="false"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="114">
+        <rule-big rule="wander" tick="109" big="false"/>
+        <rule-neighborhood rule="wander" tick="109"/>
+        <rule-prereqs rule="wander" tick="109"/>
+        <rule-triggers rule="wander" tick="109"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="110">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
           <rule name="wander"/>
         </rulebook>
-        <rule-big rule="wander" tick="115" big="false"/>
-        <rule-triggers rule="wander" tick="116">
+        <rule-triggers rule="wander" tick="111">
           <trigger name="standing_still"/>
         </rule-triggers>
       </turn>
       <turn number="1" end-tick="2" plan-end-tick="2">
-        <universal key="'rando_state'" tick="1">
+        <universal key="'rando_state'" tick="1" plans="0">
           <tuple>
             <int value="3"/>
             <tuple>
@@ -4107,22 +4107,22 @@
         </universal>
       </turn>
       <turn number="2" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 0)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 0)" plans="0"/>
       </turn>
       <turn number="3" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 1)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 1)" plans="0"/>
       </turn>
       <turn number="4" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 2)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 2)" plans="0"/>
       </turn>
       <turn number="5" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 3)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 3)" plans="0"/>
       </turn>
       <turn number="6" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 4)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 4)" plans="0"/>
       </turn>
       <turn number="7" end-tick="1" plan-end-tick="1">
-        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 5)"/>
+        <location character="'physical'" thing="'dwarf'" tick="1" location="(1, 5)" plans="0"/>
       </turn>
     </branch>
   </playtree>

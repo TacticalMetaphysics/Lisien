@@ -106,8 +106,10 @@ from .types import (
 	TriggerFuncName,
 	Turn,
 	Value,
+	_Key,
+	AbstractEngine,
 )
-from .util import AbstractEngine, dedent_source
+from .util import dedent_source
 
 if TYPE_CHECKING:
 	from .engine import Engine
@@ -152,6 +154,8 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 			return []
 
 	def _set(self, v: list[RuleFuncName]) -> None:
+		if self._get() == v:
+			return
 		branch, turn, tick = self.rule.engine._nbtt()
 		self._cache.store(Key(self.rule.name), branch, turn, tick, v)
 		self._setter(self.rule.name, branch, turn, tick, v)
@@ -174,6 +178,8 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 	def __setitem__(self, i: int, v: RuleFunc | str | RuleFuncName):
 		v = self._nominate(v)
 		l = list(self._get())
+		if l[i] == v:
+			return
 		l[i] = v
 		self._set(list(l))
 		self.send(self)
@@ -331,6 +337,16 @@ class Rule:
 			raise TypeError("Not an int", neighbors)
 		if neighbors < 0:
 			raise ValueError("Can't be negative", neighbors)
+		try:
+			if (
+				self.engine._neighborhoods_cache.retrieve(
+					self.name, *self.engine._btt()
+				)
+				== neighbors
+			):
+				return
+		except KeyError:
+			pass
 		btt = self.engine._nbtt()
 		self.engine._neighborhoods_cache.store(
 			Key(self.name), *btt, Value(neighbors)
@@ -348,6 +364,18 @@ class Rule:
 
 	@big.setter
 	def big(self, big: bool | RuleBig):
+		if not isinstance(big, bool):
+			raise TypeError("Boolean only", big)
+		try:
+			if (
+				self.engine._rule_bigness_cache.retrieve(
+					self.name, *self.engine._btt()
+				)
+				== big
+			):
+				return
+		except KeyError:
+			pass
 		btt = self.engine._nbtt()
 		self.engine._rule_bigness_cache.store(Key(self.name), *btt, Value(big))
 		self.engine.query.set_rule_big(self.name, *btt, big)
@@ -757,7 +785,7 @@ class RuleMapping(MutableMapping, Signal):
 	def __len__(self):
 		return len(self.rulebook)
 
-	def __contains__(self, k: Rule | RuleName | str) -> bool:
+	def __contains__(self, k: Rule | _Key) -> bool:
 		return k in self.rulebook
 
 	def __getitem__(self, k: RuleName | str) -> Rule:

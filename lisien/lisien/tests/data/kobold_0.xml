@@ -1,7 +1,7 @@
-<lisien db-schema-version="2" trunk="trunk" branch="trunk" turn="0" tick="116" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="M4YZw8ptGhV87tkOMK8Zp5M69Q0q+62rJ55R97ko3xnTXMBDAtqk99zV28vppe27WOxLO+5AmBZWtw90knWkTQ==" trigger="1muvxr9oY/KqmMRJbJQ4YPS7nrkHFv1U97Du5VvQWZSRCgCt3kzfIEe+dA1hOORwNB+iND/77eFMFghWbG8BuQ==" prereq="gtuSlbbNnmKVKOqNCR3gfEk33Jqdhp1kDx9zrT6kt5TYvZb16M9u/hjswBqiFC1aCG3ctsnOdJLoZrXeFTchkg==" action="H874H/dm3s7hchBT4qGppD7/BMQ/L9u/I1GhWjONystYXH2BG9UXHHPzuZjuXH8z7ujcusDGNSZkuVmkNhlfxg==">
-  <playtree game="test_export" trunk="trunk">
-    <branch name="trunk" start-turn="0" start-tick="0" end-turn="0" end-tick="116">
-      <turn number="0" end-tick="116" plan-end-tick="116">
+<lisien db-schema-version="2" xml-schema-version="2" trunk="trunk" branch="trunk" turn="0" tick="111" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" trigger="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" prereq="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" action="FaZ0SaQ+ThENPCyS57XeVZ90YFKDvtwy4/kaY89zexNEt9nvEJg5T6pNXUy62XS6OtkTLUz/ZH0H0922YZ7lMA==">
+  <playtree trunk="trunk" game="test_export">
+    <branch name="trunk" start-turn="0" start-tick="0" end-turn="0" end-tick="111">
+      <turn number="0" end-tick="111" plan-end-tick="111">
         <keyframe tick="0">
           <universal>
             <dict-item key="'rando_state'">
@@ -638,469 +638,470 @@
               </tuple>
             </dict-item>
           </universal>
-          <character name="'physical'">
-            <node name="(0, 0)"/>
-            <node name="(0, 1)"/>
-            <node name="(0, 2)"/>
-            <node name="(0, 3)"/>
-            <node name="(0, 4)"/>
-            <node name="(0, 5)"/>
-            <node name="(0, 6)"/>
-            <node name="(0, 7)"/>
-            <node name="(0, 8)"/>
-            <node name="(0, 9)"/>
-            <node name="(1, 0)"/>
-            <node name="(1, 1)"/>
-            <node name="(1, 2)"/>
-            <node name="(1, 3)"/>
-            <node name="(1, 4)"/>
-            <node name="(1, 5)"/>
-            <node name="(1, 6)"/>
-            <node name="(1, 7)"/>
-            <node name="(1, 8)"/>
-            <node name="(1, 9)"/>
-            <node name="(2, 0)"/>
-            <node name="(2, 1)"/>
-            <node name="(2, 2)"/>
-            <node name="(2, 3)"/>
-            <node name="(2, 4)"/>
-            <node name="(2, 5)"/>
-            <node name="(2, 6)"/>
-            <node name="(2, 7)"/>
-            <node name="(2, 8)"/>
-            <node name="(2, 9)"/>
-            <node name="(3, 0)"/>
-            <node name="(3, 1)"/>
-            <node name="(3, 2)"/>
-            <node name="(3, 3)"/>
-            <node name="(3, 4)"/>
-            <node name="(3, 5)"/>
-            <node name="(3, 6)"/>
-            <node name="(3, 7)"/>
-            <node name="(3, 8)"/>
-            <node name="(3, 9)"/>
-            <node name="(4, 0)"/>
-            <node name="(4, 1)"/>
-            <node name="(4, 2)"/>
-            <node name="(4, 3)"/>
-            <node name="(4, 4)"/>
-            <node name="(4, 5)"/>
-            <node name="(4, 6)"/>
-            <node name="(4, 7)"/>
-            <node name="(4, 8)"/>
-            <node name="(4, 9)"/>
-            <node name="(5, 0)"/>
-            <node name="(5, 1)"/>
-            <node name="(5, 2)"/>
-            <node name="(5, 3)"/>
-            <node name="(5, 4)"/>
-            <node name="(5, 5)"/>
-            <node name="(5, 6)"/>
-            <node name="(5, 7)"/>
-            <node name="(5, 8)"/>
-            <node name="(5, 9)"/>
-            <node name="(6, 0)"/>
-            <node name="(6, 1)"/>
-            <node name="(6, 2)"/>
-            <node name="(6, 3)"/>
-            <node name="(6, 4)"/>
-            <node name="(6, 5)"/>
-            <node name="(6, 6)"/>
-            <node name="(6, 7)"/>
-            <node name="(6, 8)"/>
-            <node name="(6, 9)"/>
-            <node name="(7, 0)"/>
-            <node name="(7, 1)"/>
-            <node name="(7, 2)"/>
-            <node name="(7, 3)"/>
-            <node name="(7, 4)"/>
-            <node name="(7, 5)"/>
-            <node name="(7, 6)"/>
-            <node name="(7, 7)"/>
-            <node name="(7, 8)"/>
-            <node name="(7, 9)"/>
-            <node name="(8, 0)"/>
-            <node name="(8, 1)"/>
-            <node name="(8, 2)"/>
-            <node name="(8, 3)"/>
-            <node name="(8, 4)"/>
-            <node name="(8, 5)"/>
-            <node name="(8, 6)"/>
-            <node name="(8, 7)"/>
-            <node name="(8, 8)"/>
-            <node name="(8, 9)"/>
-            <node name="(9, 0)"/>
-            <node name="(9, 1)"/>
-            <node name="(9, 2)"/>
-            <node name="(9, 3)"/>
-            <node name="(9, 4)"/>
-            <node name="(9, 5)"/>
-            <node name="(9, 6)"/>
-            <node name="(9, 7)"/>
-            <node name="(9, 8)"/>
-            <node name="(9, 9)"/>
-            <edge orig="(0, 0)" dest="(1, 0)"/>
-            <edge orig="(0, 0)" dest="(0, 1)"/>
-            <edge orig="(0, 1)" dest="(1, 1)"/>
-            <edge orig="(0, 1)" dest="(0, 0)"/>
-            <edge orig="(0, 1)" dest="(0, 2)"/>
-            <edge orig="(0, 2)" dest="(1, 2)"/>
-            <edge orig="(0, 2)" dest="(0, 1)"/>
-            <edge orig="(0, 2)" dest="(0, 3)"/>
-            <edge orig="(0, 3)" dest="(1, 3)"/>
-            <edge orig="(0, 3)" dest="(0, 2)"/>
-            <edge orig="(0, 3)" dest="(0, 4)"/>
-            <edge orig="(0, 4)" dest="(1, 4)"/>
-            <edge orig="(0, 4)" dest="(0, 3)"/>
-            <edge orig="(0, 4)" dest="(0, 5)"/>
-            <edge orig="(0, 5)" dest="(1, 5)"/>
-            <edge orig="(0, 5)" dest="(0, 4)"/>
-            <edge orig="(0, 5)" dest="(0, 6)"/>
-            <edge orig="(0, 6)" dest="(1, 6)"/>
-            <edge orig="(0, 6)" dest="(0, 5)"/>
-            <edge orig="(0, 6)" dest="(0, 7)"/>
-            <edge orig="(0, 7)" dest="(1, 7)"/>
-            <edge orig="(0, 7)" dest="(0, 6)"/>
-            <edge orig="(0, 7)" dest="(0, 8)"/>
-            <edge orig="(0, 8)" dest="(1, 8)"/>
-            <edge orig="(0, 8)" dest="(0, 7)"/>
-            <edge orig="(0, 8)" dest="(0, 9)"/>
-            <edge orig="(0, 9)" dest="(1, 9)"/>
-            <edge orig="(0, 9)" dest="(0, 8)"/>
-            <edge orig="(1, 0)" dest="(0, 0)"/>
-            <edge orig="(1, 0)" dest="(2, 0)"/>
-            <edge orig="(1, 0)" dest="(1, 1)"/>
-            <edge orig="(1, 1)" dest="(0, 1)"/>
-            <edge orig="(1, 1)" dest="(2, 1)"/>
-            <edge orig="(1, 1)" dest="(1, 0)"/>
-            <edge orig="(1, 1)" dest="(1, 2)"/>
-            <edge orig="(1, 2)" dest="(0, 2)"/>
-            <edge orig="(1, 2)" dest="(2, 2)"/>
-            <edge orig="(1, 2)" dest="(1, 1)"/>
-            <edge orig="(1, 2)" dest="(1, 3)"/>
-            <edge orig="(1, 3)" dest="(0, 3)"/>
-            <edge orig="(1, 3)" dest="(2, 3)"/>
-            <edge orig="(1, 3)" dest="(1, 2)"/>
-            <edge orig="(1, 3)" dest="(1, 4)"/>
-            <edge orig="(1, 4)" dest="(0, 4)"/>
-            <edge orig="(1, 4)" dest="(2, 4)"/>
-            <edge orig="(1, 4)" dest="(1, 3)"/>
-            <edge orig="(1, 4)" dest="(1, 5)"/>
-            <edge orig="(1, 5)" dest="(0, 5)"/>
-            <edge orig="(1, 5)" dest="(2, 5)"/>
-            <edge orig="(1, 5)" dest="(1, 4)"/>
-            <edge orig="(1, 5)" dest="(1, 6)"/>
-            <edge orig="(1, 6)" dest="(0, 6)"/>
-            <edge orig="(1, 6)" dest="(2, 6)"/>
-            <edge orig="(1, 6)" dest="(1, 5)"/>
-            <edge orig="(1, 6)" dest="(1, 7)"/>
-            <edge orig="(1, 7)" dest="(0, 7)"/>
-            <edge orig="(1, 7)" dest="(2, 7)"/>
-            <edge orig="(1, 7)" dest="(1, 6)"/>
-            <edge orig="(1, 7)" dest="(1, 8)"/>
-            <edge orig="(1, 8)" dest="(0, 8)"/>
-            <edge orig="(1, 8)" dest="(2, 8)"/>
-            <edge orig="(1, 8)" dest="(1, 7)"/>
-            <edge orig="(1, 8)" dest="(1, 9)"/>
-            <edge orig="(1, 9)" dest="(0, 9)"/>
-            <edge orig="(1, 9)" dest="(2, 9)"/>
-            <edge orig="(1, 9)" dest="(1, 8)"/>
-            <edge orig="(2, 0)" dest="(1, 0)"/>
-            <edge orig="(2, 0)" dest="(3, 0)"/>
-            <edge orig="(2, 0)" dest="(2, 1)"/>
-            <edge orig="(2, 1)" dest="(1, 1)"/>
-            <edge orig="(2, 1)" dest="(3, 1)"/>
-            <edge orig="(2, 1)" dest="(2, 0)"/>
-            <edge orig="(2, 1)" dest="(2, 2)"/>
-            <edge orig="(2, 2)" dest="(1, 2)"/>
-            <edge orig="(2, 2)" dest="(3, 2)"/>
-            <edge orig="(2, 2)" dest="(2, 1)"/>
-            <edge orig="(2, 2)" dest="(2, 3)"/>
-            <edge orig="(2, 3)" dest="(1, 3)"/>
-            <edge orig="(2, 3)" dest="(3, 3)"/>
-            <edge orig="(2, 3)" dest="(2, 2)"/>
-            <edge orig="(2, 3)" dest="(2, 4)"/>
-            <edge orig="(2, 4)" dest="(1, 4)"/>
-            <edge orig="(2, 4)" dest="(3, 4)"/>
-            <edge orig="(2, 4)" dest="(2, 3)"/>
-            <edge orig="(2, 4)" dest="(2, 5)"/>
-            <edge orig="(2, 5)" dest="(1, 5)"/>
-            <edge orig="(2, 5)" dest="(3, 5)"/>
-            <edge orig="(2, 5)" dest="(2, 4)"/>
-            <edge orig="(2, 5)" dest="(2, 6)"/>
-            <edge orig="(2, 6)" dest="(1, 6)"/>
-            <edge orig="(2, 6)" dest="(3, 6)"/>
-            <edge orig="(2, 6)" dest="(2, 5)"/>
-            <edge orig="(2, 6)" dest="(2, 7)"/>
-            <edge orig="(2, 7)" dest="(1, 7)"/>
-            <edge orig="(2, 7)" dest="(3, 7)"/>
-            <edge orig="(2, 7)" dest="(2, 6)"/>
-            <edge orig="(2, 7)" dest="(2, 8)"/>
-            <edge orig="(2, 8)" dest="(1, 8)"/>
-            <edge orig="(2, 8)" dest="(3, 8)"/>
-            <edge orig="(2, 8)" dest="(2, 7)"/>
-            <edge orig="(2, 8)" dest="(2, 9)"/>
-            <edge orig="(2, 9)" dest="(1, 9)"/>
-            <edge orig="(2, 9)" dest="(3, 9)"/>
-            <edge orig="(2, 9)" dest="(2, 8)"/>
-            <edge orig="(3, 0)" dest="(2, 0)"/>
-            <edge orig="(3, 0)" dest="(4, 0)"/>
-            <edge orig="(3, 0)" dest="(3, 1)"/>
-            <edge orig="(3, 1)" dest="(2, 1)"/>
-            <edge orig="(3, 1)" dest="(4, 1)"/>
-            <edge orig="(3, 1)" dest="(3, 0)"/>
-            <edge orig="(3, 1)" dest="(3, 2)"/>
-            <edge orig="(3, 2)" dest="(2, 2)"/>
-            <edge orig="(3, 2)" dest="(4, 2)"/>
-            <edge orig="(3, 2)" dest="(3, 1)"/>
-            <edge orig="(3, 2)" dest="(3, 3)"/>
-            <edge orig="(3, 3)" dest="(2, 3)"/>
-            <edge orig="(3, 3)" dest="(4, 3)"/>
-            <edge orig="(3, 3)" dest="(3, 2)"/>
-            <edge orig="(3, 3)" dest="(3, 4)"/>
-            <edge orig="(3, 4)" dest="(2, 4)"/>
-            <edge orig="(3, 4)" dest="(4, 4)"/>
-            <edge orig="(3, 4)" dest="(3, 3)"/>
-            <edge orig="(3, 4)" dest="(3, 5)"/>
-            <edge orig="(3, 5)" dest="(2, 5)"/>
-            <edge orig="(3, 5)" dest="(4, 5)"/>
-            <edge orig="(3, 5)" dest="(3, 4)"/>
-            <edge orig="(3, 5)" dest="(3, 6)"/>
-            <edge orig="(3, 6)" dest="(2, 6)"/>
-            <edge orig="(3, 6)" dest="(4, 6)"/>
-            <edge orig="(3, 6)" dest="(3, 5)"/>
-            <edge orig="(3, 6)" dest="(3, 7)"/>
-            <edge orig="(3, 7)" dest="(2, 7)"/>
-            <edge orig="(3, 7)" dest="(4, 7)"/>
-            <edge orig="(3, 7)" dest="(3, 6)"/>
-            <edge orig="(3, 7)" dest="(3, 8)"/>
-            <edge orig="(3, 8)" dest="(2, 8)"/>
-            <edge orig="(3, 8)" dest="(4, 8)"/>
-            <edge orig="(3, 8)" dest="(3, 7)"/>
-            <edge orig="(3, 8)" dest="(3, 9)"/>
-            <edge orig="(3, 9)" dest="(2, 9)"/>
-            <edge orig="(3, 9)" dest="(4, 9)"/>
-            <edge orig="(3, 9)" dest="(3, 8)"/>
-            <edge orig="(4, 0)" dest="(3, 0)"/>
-            <edge orig="(4, 0)" dest="(5, 0)"/>
-            <edge orig="(4, 0)" dest="(4, 1)"/>
-            <edge orig="(4, 1)" dest="(3, 1)"/>
-            <edge orig="(4, 1)" dest="(5, 1)"/>
-            <edge orig="(4, 1)" dest="(4, 0)"/>
-            <edge orig="(4, 1)" dest="(4, 2)"/>
-            <edge orig="(4, 2)" dest="(3, 2)"/>
-            <edge orig="(4, 2)" dest="(5, 2)"/>
-            <edge orig="(4, 2)" dest="(4, 1)"/>
-            <edge orig="(4, 2)" dest="(4, 3)"/>
-            <edge orig="(4, 3)" dest="(3, 3)"/>
-            <edge orig="(4, 3)" dest="(5, 3)"/>
-            <edge orig="(4, 3)" dest="(4, 2)"/>
-            <edge orig="(4, 3)" dest="(4, 4)"/>
-            <edge orig="(4, 4)" dest="(3, 4)"/>
-            <edge orig="(4, 4)" dest="(5, 4)"/>
-            <edge orig="(4, 4)" dest="(4, 3)"/>
-            <edge orig="(4, 4)" dest="(4, 5)"/>
-            <edge orig="(4, 5)" dest="(3, 5)"/>
-            <edge orig="(4, 5)" dest="(5, 5)"/>
-            <edge orig="(4, 5)" dest="(4, 4)"/>
-            <edge orig="(4, 5)" dest="(4, 6)"/>
-            <edge orig="(4, 6)" dest="(3, 6)"/>
-            <edge orig="(4, 6)" dest="(5, 6)"/>
-            <edge orig="(4, 6)" dest="(4, 5)"/>
-            <edge orig="(4, 6)" dest="(4, 7)"/>
-            <edge orig="(4, 7)" dest="(3, 7)"/>
-            <edge orig="(4, 7)" dest="(5, 7)"/>
-            <edge orig="(4, 7)" dest="(4, 6)"/>
-            <edge orig="(4, 7)" dest="(4, 8)"/>
-            <edge orig="(4, 8)" dest="(3, 8)"/>
-            <edge orig="(4, 8)" dest="(5, 8)"/>
-            <edge orig="(4, 8)" dest="(4, 7)"/>
-            <edge orig="(4, 8)" dest="(4, 9)"/>
-            <edge orig="(4, 9)" dest="(3, 9)"/>
-            <edge orig="(4, 9)" dest="(5, 9)"/>
-            <edge orig="(4, 9)" dest="(4, 8)"/>
-            <edge orig="(5, 0)" dest="(4, 0)"/>
-            <edge orig="(5, 0)" dest="(6, 0)"/>
-            <edge orig="(5, 0)" dest="(5, 1)"/>
-            <edge orig="(5, 1)" dest="(4, 1)"/>
-            <edge orig="(5, 1)" dest="(6, 1)"/>
-            <edge orig="(5, 1)" dest="(5, 0)"/>
-            <edge orig="(5, 1)" dest="(5, 2)"/>
-            <edge orig="(5, 2)" dest="(4, 2)"/>
-            <edge orig="(5, 2)" dest="(6, 2)"/>
-            <edge orig="(5, 2)" dest="(5, 1)"/>
-            <edge orig="(5, 2)" dest="(5, 3)"/>
-            <edge orig="(5, 3)" dest="(4, 3)"/>
-            <edge orig="(5, 3)" dest="(6, 3)"/>
-            <edge orig="(5, 3)" dest="(5, 2)"/>
-            <edge orig="(5, 3)" dest="(5, 4)"/>
-            <edge orig="(5, 4)" dest="(4, 4)"/>
-            <edge orig="(5, 4)" dest="(6, 4)"/>
-            <edge orig="(5, 4)" dest="(5, 3)"/>
-            <edge orig="(5, 4)" dest="(5, 5)"/>
-            <edge orig="(5, 5)" dest="(4, 5)"/>
-            <edge orig="(5, 5)" dest="(6, 5)"/>
-            <edge orig="(5, 5)" dest="(5, 4)"/>
-            <edge orig="(5, 5)" dest="(5, 6)"/>
-            <edge orig="(5, 6)" dest="(4, 6)"/>
-            <edge orig="(5, 6)" dest="(6, 6)"/>
-            <edge orig="(5, 6)" dest="(5, 5)"/>
-            <edge orig="(5, 6)" dest="(5, 7)"/>
-            <edge orig="(5, 7)" dest="(4, 7)"/>
-            <edge orig="(5, 7)" dest="(6, 7)"/>
-            <edge orig="(5, 7)" dest="(5, 6)"/>
-            <edge orig="(5, 7)" dest="(5, 8)"/>
-            <edge orig="(5, 8)" dest="(4, 8)"/>
-            <edge orig="(5, 8)" dest="(6, 8)"/>
-            <edge orig="(5, 8)" dest="(5, 7)"/>
-            <edge orig="(5, 8)" dest="(5, 9)"/>
-            <edge orig="(5, 9)" dest="(4, 9)"/>
-            <edge orig="(5, 9)" dest="(6, 9)"/>
-            <edge orig="(5, 9)" dest="(5, 8)"/>
-            <edge orig="(6, 0)" dest="(5, 0)"/>
-            <edge orig="(6, 0)" dest="(7, 0)"/>
-            <edge orig="(6, 0)" dest="(6, 1)"/>
-            <edge orig="(6, 1)" dest="(5, 1)"/>
-            <edge orig="(6, 1)" dest="(7, 1)"/>
-            <edge orig="(6, 1)" dest="(6, 0)"/>
-            <edge orig="(6, 1)" dest="(6, 2)"/>
-            <edge orig="(6, 2)" dest="(5, 2)"/>
-            <edge orig="(6, 2)" dest="(7, 2)"/>
-            <edge orig="(6, 2)" dest="(6, 1)"/>
-            <edge orig="(6, 2)" dest="(6, 3)"/>
-            <edge orig="(6, 3)" dest="(5, 3)"/>
-            <edge orig="(6, 3)" dest="(7, 3)"/>
-            <edge orig="(6, 3)" dest="(6, 2)"/>
-            <edge orig="(6, 3)" dest="(6, 4)"/>
-            <edge orig="(6, 4)" dest="(5, 4)"/>
-            <edge orig="(6, 4)" dest="(7, 4)"/>
-            <edge orig="(6, 4)" dest="(6, 3)"/>
-            <edge orig="(6, 4)" dest="(6, 5)"/>
-            <edge orig="(6, 5)" dest="(5, 5)"/>
-            <edge orig="(6, 5)" dest="(7, 5)"/>
-            <edge orig="(6, 5)" dest="(6, 4)"/>
-            <edge orig="(6, 5)" dest="(6, 6)"/>
-            <edge orig="(6, 6)" dest="(5, 6)"/>
-            <edge orig="(6, 6)" dest="(7, 6)"/>
-            <edge orig="(6, 6)" dest="(6, 5)"/>
-            <edge orig="(6, 6)" dest="(6, 7)"/>
-            <edge orig="(6, 7)" dest="(5, 7)"/>
-            <edge orig="(6, 7)" dest="(7, 7)"/>
-            <edge orig="(6, 7)" dest="(6, 6)"/>
-            <edge orig="(6, 7)" dest="(6, 8)"/>
-            <edge orig="(6, 8)" dest="(5, 8)"/>
-            <edge orig="(6, 8)" dest="(7, 8)"/>
-            <edge orig="(6, 8)" dest="(6, 7)"/>
-            <edge orig="(6, 8)" dest="(6, 9)"/>
-            <edge orig="(6, 9)" dest="(5, 9)"/>
-            <edge orig="(6, 9)" dest="(7, 9)"/>
-            <edge orig="(6, 9)" dest="(6, 8)"/>
-            <edge orig="(7, 0)" dest="(6, 0)"/>
-            <edge orig="(7, 0)" dest="(8, 0)"/>
-            <edge orig="(7, 0)" dest="(7, 1)"/>
-            <edge orig="(7, 1)" dest="(6, 1)"/>
-            <edge orig="(7, 1)" dest="(8, 1)"/>
-            <edge orig="(7, 1)" dest="(7, 0)"/>
-            <edge orig="(7, 1)" dest="(7, 2)"/>
-            <edge orig="(7, 2)" dest="(6, 2)"/>
-            <edge orig="(7, 2)" dest="(8, 2)"/>
-            <edge orig="(7, 2)" dest="(7, 1)"/>
-            <edge orig="(7, 2)" dest="(7, 3)"/>
-            <edge orig="(7, 3)" dest="(6, 3)"/>
-            <edge orig="(7, 3)" dest="(8, 3)"/>
-            <edge orig="(7, 3)" dest="(7, 2)"/>
-            <edge orig="(7, 3)" dest="(7, 4)"/>
-            <edge orig="(7, 4)" dest="(6, 4)"/>
-            <edge orig="(7, 4)" dest="(8, 4)"/>
-            <edge orig="(7, 4)" dest="(7, 3)"/>
-            <edge orig="(7, 4)" dest="(7, 5)"/>
-            <edge orig="(7, 5)" dest="(6, 5)"/>
-            <edge orig="(7, 5)" dest="(8, 5)"/>
-            <edge orig="(7, 5)" dest="(7, 4)"/>
-            <edge orig="(7, 5)" dest="(7, 6)"/>
-            <edge orig="(7, 6)" dest="(6, 6)"/>
-            <edge orig="(7, 6)" dest="(8, 6)"/>
-            <edge orig="(7, 6)" dest="(7, 5)"/>
-            <edge orig="(7, 6)" dest="(7, 7)"/>
-            <edge orig="(7, 7)" dest="(6, 7)"/>
-            <edge orig="(7, 7)" dest="(8, 7)"/>
-            <edge orig="(7, 7)" dest="(7, 6)"/>
-            <edge orig="(7, 7)" dest="(7, 8)"/>
-            <edge orig="(7, 8)" dest="(6, 8)"/>
-            <edge orig="(7, 8)" dest="(8, 8)"/>
-            <edge orig="(7, 8)" dest="(7, 7)"/>
-            <edge orig="(7, 8)" dest="(7, 9)"/>
-            <edge orig="(7, 9)" dest="(6, 9)"/>
-            <edge orig="(7, 9)" dest="(8, 9)"/>
-            <edge orig="(7, 9)" dest="(7, 8)"/>
-            <edge orig="(8, 0)" dest="(7, 0)"/>
-            <edge orig="(8, 0)" dest="(9, 0)"/>
-            <edge orig="(8, 0)" dest="(8, 1)"/>
-            <edge orig="(8, 1)" dest="(7, 1)"/>
-            <edge orig="(8, 1)" dest="(9, 1)"/>
-            <edge orig="(8, 1)" dest="(8, 0)"/>
-            <edge orig="(8, 1)" dest="(8, 2)"/>
-            <edge orig="(8, 2)" dest="(7, 2)"/>
-            <edge orig="(8, 2)" dest="(9, 2)"/>
-            <edge orig="(8, 2)" dest="(8, 1)"/>
-            <edge orig="(8, 2)" dest="(8, 3)"/>
-            <edge orig="(8, 3)" dest="(7, 3)"/>
-            <edge orig="(8, 3)" dest="(9, 3)"/>
-            <edge orig="(8, 3)" dest="(8, 2)"/>
-            <edge orig="(8, 3)" dest="(8, 4)"/>
-            <edge orig="(8, 4)" dest="(7, 4)"/>
-            <edge orig="(8, 4)" dest="(9, 4)"/>
-            <edge orig="(8, 4)" dest="(8, 3)"/>
-            <edge orig="(8, 4)" dest="(8, 5)"/>
-            <edge orig="(8, 5)" dest="(7, 5)"/>
-            <edge orig="(8, 5)" dest="(9, 5)"/>
-            <edge orig="(8, 5)" dest="(8, 4)"/>
-            <edge orig="(8, 5)" dest="(8, 6)"/>
-            <edge orig="(8, 6)" dest="(7, 6)"/>
-            <edge orig="(8, 6)" dest="(9, 6)"/>
-            <edge orig="(8, 6)" dest="(8, 5)"/>
-            <edge orig="(8, 6)" dest="(8, 7)"/>
-            <edge orig="(8, 7)" dest="(7, 7)"/>
-            <edge orig="(8, 7)" dest="(9, 7)"/>
-            <edge orig="(8, 7)" dest="(8, 6)"/>
-            <edge orig="(8, 7)" dest="(8, 8)"/>
-            <edge orig="(8, 8)" dest="(7, 8)"/>
-            <edge orig="(8, 8)" dest="(9, 8)"/>
-            <edge orig="(8, 8)" dest="(8, 7)"/>
-            <edge orig="(8, 8)" dest="(8, 9)"/>
-            <edge orig="(8, 9)" dest="(7, 9)"/>
-            <edge orig="(8, 9)" dest="(9, 9)"/>
-            <edge orig="(8, 9)" dest="(8, 8)"/>
-            <edge orig="(9, 0)" dest="(8, 0)"/>
-            <edge orig="(9, 0)" dest="(9, 1)"/>
-            <edge orig="(9, 1)" dest="(8, 1)"/>
-            <edge orig="(9, 1)" dest="(9, 0)"/>
-            <edge orig="(9, 1)" dest="(9, 2)"/>
-            <edge orig="(9, 2)" dest="(8, 2)"/>
-            <edge orig="(9, 2)" dest="(9, 1)"/>
-            <edge orig="(9, 2)" dest="(9, 3)"/>
-            <edge orig="(9, 3)" dest="(8, 3)"/>
-            <edge orig="(9, 3)" dest="(9, 2)"/>
-            <edge orig="(9, 3)" dest="(9, 4)"/>
-            <edge orig="(9, 4)" dest="(8, 4)"/>
-            <edge orig="(9, 4)" dest="(9, 3)"/>
-            <edge orig="(9, 4)" dest="(9, 5)"/>
-            <edge orig="(9, 5)" dest="(8, 5)"/>
-            <edge orig="(9, 5)" dest="(9, 4)"/>
-            <edge orig="(9, 5)" dest="(9, 6)"/>
-            <edge orig="(9, 6)" dest="(8, 6)"/>
-            <edge orig="(9, 6)" dest="(9, 5)"/>
-            <edge orig="(9, 6)" dest="(9, 7)"/>
-            <edge orig="(9, 7)" dest="(8, 7)"/>
-            <edge orig="(9, 7)" dest="(9, 6)"/>
-            <edge orig="(9, 7)" dest="(9, 8)"/>
-            <edge orig="(9, 8)" dest="(8, 8)"/>
-            <edge orig="(9, 8)" dest="(9, 7)"/>
-            <edge orig="(9, 8)" dest="(9, 9)"/>
-            <edge orig="(9, 9)" dest="(8, 9)"/>
-            <edge orig="(9, 9)" dest="(9, 8)"/>
+          <character name="'physical'" character-rulebook="('character_rulebook', 'physical')" unit-rulebook="('unit_rulebook', 'physical')" character-thing-rulebook="('character_thing_rulebook', 'physical')" character-place-rulebook="('character_place_rulebook', 'physical')" character-portal-rulebook="('character_portal_rulebook', 'physical')">
+            <node name="(0, 0)" rulebook="('physical', (0, 0))"/>
+            <node name="(0, 1)" rulebook="('physical', (0, 1))"/>
+            <node name="(0, 2)" rulebook="('physical', (0, 2))"/>
+            <node name="(0, 3)" rulebook="('physical', (0, 3))"/>
+            <node name="(0, 4)" rulebook="('physical', (0, 4))"/>
+            <node name="(0, 5)" rulebook="('physical', (0, 5))"/>
+            <node name="(0, 6)" rulebook="('physical', (0, 6))"/>
+            <node name="(0, 7)" rulebook="('physical', (0, 7))"/>
+            <node name="(0, 8)" rulebook="('physical', (0, 8))"/>
+            <node name="(0, 9)" rulebook="('physical', (0, 9))"/>
+            <node name="(1, 0)" rulebook="('physical', (1, 0))"/>
+            <node name="(1, 1)" rulebook="('physical', (1, 1))"/>
+            <node name="(1, 2)" rulebook="('physical', (1, 2))"/>
+            <node name="(1, 3)" rulebook="('physical', (1, 3))"/>
+            <node name="(1, 4)" rulebook="('physical', (1, 4))"/>
+            <node name="(1, 5)" rulebook="('physical', (1, 5))"/>
+            <node name="(1, 6)" rulebook="('physical', (1, 6))"/>
+            <node name="(1, 7)" rulebook="('physical', (1, 7))"/>
+            <node name="(1, 8)" rulebook="('physical', (1, 8))"/>
+            <node name="(1, 9)" rulebook="('physical', (1, 9))"/>
+            <node name="(2, 0)" rulebook="('physical', (2, 0))"/>
+            <node name="(2, 1)" rulebook="('physical', (2, 1))"/>
+            <node name="(2, 2)" rulebook="('physical', (2, 2))"/>
+            <node name="(2, 3)" rulebook="('physical', (2, 3))"/>
+            <node name="(2, 4)" rulebook="('physical', (2, 4))"/>
+            <node name="(2, 5)" rulebook="('physical', (2, 5))"/>
+            <node name="(2, 6)" rulebook="('physical', (2, 6))"/>
+            <node name="(2, 7)" rulebook="('physical', (2, 7))"/>
+            <node name="(2, 8)" rulebook="('physical', (2, 8))"/>
+            <node name="(2, 9)" rulebook="('physical', (2, 9))"/>
+            <node name="(3, 0)" rulebook="('physical', (3, 0))"/>
+            <node name="(3, 1)" rulebook="('physical', (3, 1))"/>
+            <node name="(3, 2)" rulebook="('physical', (3, 2))"/>
+            <node name="(3, 3)" rulebook="('physical', (3, 3))"/>
+            <node name="(3, 4)" rulebook="('physical', (3, 4))"/>
+            <node name="(3, 5)" rulebook="('physical', (3, 5))"/>
+            <node name="(3, 6)" rulebook="('physical', (3, 6))"/>
+            <node name="(3, 7)" rulebook="('physical', (3, 7))"/>
+            <node name="(3, 8)" rulebook="('physical', (3, 8))"/>
+            <node name="(3, 9)" rulebook="('physical', (3, 9))"/>
+            <node name="(4, 0)" rulebook="('physical', (4, 0))"/>
+            <node name="(4, 1)" rulebook="('physical', (4, 1))"/>
+            <node name="(4, 2)" rulebook="('physical', (4, 2))"/>
+            <node name="(4, 3)" rulebook="('physical', (4, 3))"/>
+            <node name="(4, 4)" rulebook="('physical', (4, 4))"/>
+            <node name="(4, 5)" rulebook="('physical', (4, 5))"/>
+            <node name="(4, 6)" rulebook="('physical', (4, 6))"/>
+            <node name="(4, 7)" rulebook="('physical', (4, 7))"/>
+            <node name="(4, 8)" rulebook="('physical', (4, 8))"/>
+            <node name="(4, 9)" rulebook="('physical', (4, 9))"/>
+            <node name="(5, 0)" rulebook="('physical', (5, 0))"/>
+            <node name="(5, 1)" rulebook="('physical', (5, 1))"/>
+            <node name="(5, 2)" rulebook="('physical', (5, 2))"/>
+            <node name="(5, 3)" rulebook="('physical', (5, 3))"/>
+            <node name="(5, 4)" rulebook="('physical', (5, 4))"/>
+            <node name="(5, 5)" rulebook="('physical', (5, 5))"/>
+            <node name="(5, 6)" rulebook="('physical', (5, 6))"/>
+            <node name="(5, 7)" rulebook="('physical', (5, 7))"/>
+            <node name="(5, 8)" rulebook="('physical', (5, 8))"/>
+            <node name="(5, 9)" rulebook="('physical', (5, 9))"/>
+            <node name="(6, 0)" rulebook="('physical', (6, 0))"/>
+            <node name="(6, 1)" rulebook="('physical', (6, 1))"/>
+            <node name="(6, 2)" rulebook="('physical', (6, 2))"/>
+            <node name="(6, 3)" rulebook="('physical', (6, 3))"/>
+            <node name="(6, 4)" rulebook="('physical', (6, 4))"/>
+            <node name="(6, 5)" rulebook="('physical', (6, 5))"/>
+            <node name="(6, 6)" rulebook="('physical', (6, 6))"/>
+            <node name="(6, 7)" rulebook="('physical', (6, 7))"/>
+            <node name="(6, 8)" rulebook="('physical', (6, 8))"/>
+            <node name="(6, 9)" rulebook="('physical', (6, 9))"/>
+            <node name="(7, 0)" rulebook="('physical', (7, 0))"/>
+            <node name="(7, 1)" rulebook="('physical', (7, 1))"/>
+            <node name="(7, 2)" rulebook="('physical', (7, 2))"/>
+            <node name="(7, 3)" rulebook="('physical', (7, 3))"/>
+            <node name="(7, 4)" rulebook="('physical', (7, 4))"/>
+            <node name="(7, 5)" rulebook="('physical', (7, 5))"/>
+            <node name="(7, 6)" rulebook="('physical', (7, 6))"/>
+            <node name="(7, 7)" rulebook="('physical', (7, 7))"/>
+            <node name="(7, 8)" rulebook="('physical', (7, 8))"/>
+            <node name="(7, 9)" rulebook="('physical', (7, 9))"/>
+            <node name="(8, 0)" rulebook="('physical', (8, 0))"/>
+            <node name="(8, 1)" rulebook="('physical', (8, 1))"/>
+            <node name="(8, 2)" rulebook="('physical', (8, 2))"/>
+            <node name="(8, 3)" rulebook="('physical', (8, 3))"/>
+            <node name="(8, 4)" rulebook="('physical', (8, 4))"/>
+            <node name="(8, 5)" rulebook="('physical', (8, 5))"/>
+            <node name="(8, 6)" rulebook="('physical', (8, 6))"/>
+            <node name="(8, 7)" rulebook="('physical', (8, 7))"/>
+            <node name="(8, 8)" rulebook="('physical', (8, 8))"/>
+            <node name="(8, 9)" rulebook="('physical', (8, 9))"/>
+            <node name="(9, 0)" rulebook="('physical', (9, 0))"/>
+            <node name="(9, 1)" rulebook="('physical', (9, 1))"/>
+            <node name="(9, 2)" rulebook="('physical', (9, 2))"/>
+            <node name="(9, 3)" rulebook="('physical', (9, 3))"/>
+            <node name="(9, 4)" rulebook="('physical', (9, 4))"/>
+            <node name="(9, 5)" rulebook="('physical', (9, 5))"/>
+            <node name="(9, 6)" rulebook="('physical', (9, 6))"/>
+            <node name="(9, 7)" rulebook="('physical', (9, 7))"/>
+            <node name="(9, 8)" rulebook="('physical', (9, 8))"/>
+            <node name="(9, 9)" rulebook="('physical', (9, 9))"/>
+            <edge orig="(0, 0)" dest="(1, 0)" rulebook="('physical', (0, 0), (1, 0))"/>
+            <edge orig="(0, 0)" dest="(0, 1)" rulebook="('physical', (0, 0), (0, 1))"/>
+            <edge orig="(0, 1)" dest="(1, 1)" rulebook="('physical', (0, 1), (1, 1))"/>
+            <edge orig="(0, 1)" dest="(0, 0)" rulebook="('physical', (0, 1), (0, 0))"/>
+            <edge orig="(0, 1)" dest="(0, 2)" rulebook="('physical', (0, 1), (0, 2))"/>
+            <edge orig="(0, 2)" dest="(1, 2)" rulebook="('physical', (0, 2), (1, 2))"/>
+            <edge orig="(0, 2)" dest="(0, 1)" rulebook="('physical', (0, 2), (0, 1))"/>
+            <edge orig="(0, 2)" dest="(0, 3)" rulebook="('physical', (0, 2), (0, 3))"/>
+            <edge orig="(0, 3)" dest="(1, 3)" rulebook="('physical', (0, 3), (1, 3))"/>
+            <edge orig="(0, 3)" dest="(0, 2)" rulebook="('physical', (0, 3), (0, 2))"/>
+            <edge orig="(0, 3)" dest="(0, 4)" rulebook="('physical', (0, 3), (0, 4))"/>
+            <edge orig="(0, 4)" dest="(1, 4)" rulebook="('physical', (0, 4), (1, 4))"/>
+            <edge orig="(0, 4)" dest="(0, 3)" rulebook="('physical', (0, 4), (0, 3))"/>
+            <edge orig="(0, 4)" dest="(0, 5)" rulebook="('physical', (0, 4), (0, 5))"/>
+            <edge orig="(0, 5)" dest="(1, 5)" rulebook="('physical', (0, 5), (1, 5))"/>
+            <edge orig="(0, 5)" dest="(0, 4)" rulebook="('physical', (0, 5), (0, 4))"/>
+            <edge orig="(0, 5)" dest="(0, 6)" rulebook="('physical', (0, 5), (0, 6))"/>
+            <edge orig="(0, 6)" dest="(1, 6)" rulebook="('physical', (0, 6), (1, 6))"/>
+            <edge orig="(0, 6)" dest="(0, 5)" rulebook="('physical', (0, 6), (0, 5))"/>
+            <edge orig="(0, 6)" dest="(0, 7)" rulebook="('physical', (0, 6), (0, 7))"/>
+            <edge orig="(0, 7)" dest="(1, 7)" rulebook="('physical', (0, 7), (1, 7))"/>
+            <edge orig="(0, 7)" dest="(0, 6)" rulebook="('physical', (0, 7), (0, 6))"/>
+            <edge orig="(0, 7)" dest="(0, 8)" rulebook="('physical', (0, 7), (0, 8))"/>
+            <edge orig="(0, 8)" dest="(1, 8)" rulebook="('physical', (0, 8), (1, 8))"/>
+            <edge orig="(0, 8)" dest="(0, 7)" rulebook="('physical', (0, 8), (0, 7))"/>
+            <edge orig="(0, 8)" dest="(0, 9)" rulebook="('physical', (0, 8), (0, 9))"/>
+            <edge orig="(0, 9)" dest="(1, 9)" rulebook="('physical', (0, 9), (1, 9))"/>
+            <edge orig="(0, 9)" dest="(0, 8)" rulebook="('physical', (0, 9), (0, 8))"/>
+            <edge orig="(1, 0)" dest="(0, 0)" rulebook="('physical', (1, 0), (0, 0))"/>
+            <edge orig="(1, 0)" dest="(2, 0)" rulebook="('physical', (1, 0), (2, 0))"/>
+            <edge orig="(1, 0)" dest="(1, 1)" rulebook="('physical', (1, 0), (1, 1))"/>
+            <edge orig="(1, 1)" dest="(0, 1)" rulebook="('physical', (1, 1), (0, 1))"/>
+            <edge orig="(1, 1)" dest="(2, 1)" rulebook="('physical', (1, 1), (2, 1))"/>
+            <edge orig="(1, 1)" dest="(1, 0)" rulebook="('physical', (1, 1), (1, 0))"/>
+            <edge orig="(1, 1)" dest="(1, 2)" rulebook="('physical', (1, 1), (1, 2))"/>
+            <edge orig="(1, 2)" dest="(0, 2)" rulebook="('physical', (1, 2), (0, 2))"/>
+            <edge orig="(1, 2)" dest="(2, 2)" rulebook="('physical', (1, 2), (2, 2))"/>
+            <edge orig="(1, 2)" dest="(1, 1)" rulebook="('physical', (1, 2), (1, 1))"/>
+            <edge orig="(1, 2)" dest="(1, 3)" rulebook="('physical', (1, 2), (1, 3))"/>
+            <edge orig="(1, 3)" dest="(0, 3)" rulebook="('physical', (1, 3), (0, 3))"/>
+            <edge orig="(1, 3)" dest="(2, 3)" rulebook="('physical', (1, 3), (2, 3))"/>
+            <edge orig="(1, 3)" dest="(1, 2)" rulebook="('physical', (1, 3), (1, 2))"/>
+            <edge orig="(1, 3)" dest="(1, 4)" rulebook="('physical', (1, 3), (1, 4))"/>
+            <edge orig="(1, 4)" dest="(0, 4)" rulebook="('physical', (1, 4), (0, 4))"/>
+            <edge orig="(1, 4)" dest="(2, 4)" rulebook="('physical', (1, 4), (2, 4))"/>
+            <edge orig="(1, 4)" dest="(1, 3)" rulebook="('physical', (1, 4), (1, 3))"/>
+            <edge orig="(1, 4)" dest="(1, 5)" rulebook="('physical', (1, 4), (1, 5))"/>
+            <edge orig="(1, 5)" dest="(0, 5)" rulebook="('physical', (1, 5), (0, 5))"/>
+            <edge orig="(1, 5)" dest="(2, 5)" rulebook="('physical', (1, 5), (2, 5))"/>
+            <edge orig="(1, 5)" dest="(1, 4)" rulebook="('physical', (1, 5), (1, 4))"/>
+            <edge orig="(1, 5)" dest="(1, 6)" rulebook="('physical', (1, 5), (1, 6))"/>
+            <edge orig="(1, 6)" dest="(0, 6)" rulebook="('physical', (1, 6), (0, 6))"/>
+            <edge orig="(1, 6)" dest="(2, 6)" rulebook="('physical', (1, 6), (2, 6))"/>
+            <edge orig="(1, 6)" dest="(1, 5)" rulebook="('physical', (1, 6), (1, 5))"/>
+            <edge orig="(1, 6)" dest="(1, 7)" rulebook="('physical', (1, 6), (1, 7))"/>
+            <edge orig="(1, 7)" dest="(0, 7)" rulebook="('physical', (1, 7), (0, 7))"/>
+            <edge orig="(1, 7)" dest="(2, 7)" rulebook="('physical', (1, 7), (2, 7))"/>
+            <edge orig="(1, 7)" dest="(1, 6)" rulebook="('physical', (1, 7), (1, 6))"/>
+            <edge orig="(1, 7)" dest="(1, 8)" rulebook="('physical', (1, 7), (1, 8))"/>
+            <edge orig="(1, 8)" dest="(0, 8)" rulebook="('physical', (1, 8), (0, 8))"/>
+            <edge orig="(1, 8)" dest="(2, 8)" rulebook="('physical', (1, 8), (2, 8))"/>
+            <edge orig="(1, 8)" dest="(1, 7)" rulebook="('physical', (1, 8), (1, 7))"/>
+            <edge orig="(1, 8)" dest="(1, 9)" rulebook="('physical', (1, 8), (1, 9))"/>
+            <edge orig="(1, 9)" dest="(0, 9)" rulebook="('physical', (1, 9), (0, 9))"/>
+            <edge orig="(1, 9)" dest="(2, 9)" rulebook="('physical', (1, 9), (2, 9))"/>
+            <edge orig="(1, 9)" dest="(1, 8)" rulebook="('physical', (1, 9), (1, 8))"/>
+            <edge orig="(2, 0)" dest="(1, 0)" rulebook="('physical', (2, 0), (1, 0))"/>
+            <edge orig="(2, 0)" dest="(3, 0)" rulebook="('physical', (2, 0), (3, 0))"/>
+            <edge orig="(2, 0)" dest="(2, 1)" rulebook="('physical', (2, 0), (2, 1))"/>
+            <edge orig="(2, 1)" dest="(1, 1)" rulebook="('physical', (2, 1), (1, 1))"/>
+            <edge orig="(2, 1)" dest="(3, 1)" rulebook="('physical', (2, 1), (3, 1))"/>
+            <edge orig="(2, 1)" dest="(2, 0)" rulebook="('physical', (2, 1), (2, 0))"/>
+            <edge orig="(2, 1)" dest="(2, 2)" rulebook="('physical', (2, 1), (2, 2))"/>
+            <edge orig="(2, 2)" dest="(1, 2)" rulebook="('physical', (2, 2), (1, 2))"/>
+            <edge orig="(2, 2)" dest="(3, 2)" rulebook="('physical', (2, 2), (3, 2))"/>
+            <edge orig="(2, 2)" dest="(2, 1)" rulebook="('physical', (2, 2), (2, 1))"/>
+            <edge orig="(2, 2)" dest="(2, 3)" rulebook="('physical', (2, 2), (2, 3))"/>
+            <edge orig="(2, 3)" dest="(1, 3)" rulebook="('physical', (2, 3), (1, 3))"/>
+            <edge orig="(2, 3)" dest="(3, 3)" rulebook="('physical', (2, 3), (3, 3))"/>
+            <edge orig="(2, 3)" dest="(2, 2)" rulebook="('physical', (2, 3), (2, 2))"/>
+            <edge orig="(2, 3)" dest="(2, 4)" rulebook="('physical', (2, 3), (2, 4))"/>
+            <edge orig="(2, 4)" dest="(1, 4)" rulebook="('physical', (2, 4), (1, 4))"/>
+            <edge orig="(2, 4)" dest="(3, 4)" rulebook="('physical', (2, 4), (3, 4))"/>
+            <edge orig="(2, 4)" dest="(2, 3)" rulebook="('physical', (2, 4), (2, 3))"/>
+            <edge orig="(2, 4)" dest="(2, 5)" rulebook="('physical', (2, 4), (2, 5))"/>
+            <edge orig="(2, 5)" dest="(1, 5)" rulebook="('physical', (2, 5), (1, 5))"/>
+            <edge orig="(2, 5)" dest="(3, 5)" rulebook="('physical', (2, 5), (3, 5))"/>
+            <edge orig="(2, 5)" dest="(2, 4)" rulebook="('physical', (2, 5), (2, 4))"/>
+            <edge orig="(2, 5)" dest="(2, 6)" rulebook="('physical', (2, 5), (2, 6))"/>
+            <edge orig="(2, 6)" dest="(1, 6)" rulebook="('physical', (2, 6), (1, 6))"/>
+            <edge orig="(2, 6)" dest="(3, 6)" rulebook="('physical', (2, 6), (3, 6))"/>
+            <edge orig="(2, 6)" dest="(2, 5)" rulebook="('physical', (2, 6), (2, 5))"/>
+            <edge orig="(2, 6)" dest="(2, 7)" rulebook="('physical', (2, 6), (2, 7))"/>
+            <edge orig="(2, 7)" dest="(1, 7)" rulebook="('physical', (2, 7), (1, 7))"/>
+            <edge orig="(2, 7)" dest="(3, 7)" rulebook="('physical', (2, 7), (3, 7))"/>
+            <edge orig="(2, 7)" dest="(2, 6)" rulebook="('physical', (2, 7), (2, 6))"/>
+            <edge orig="(2, 7)" dest="(2, 8)" rulebook="('physical', (2, 7), (2, 8))"/>
+            <edge orig="(2, 8)" dest="(1, 8)" rulebook="('physical', (2, 8), (1, 8))"/>
+            <edge orig="(2, 8)" dest="(3, 8)" rulebook="('physical', (2, 8), (3, 8))"/>
+            <edge orig="(2, 8)" dest="(2, 7)" rulebook="('physical', (2, 8), (2, 7))"/>
+            <edge orig="(2, 8)" dest="(2, 9)" rulebook="('physical', (2, 8), (2, 9))"/>
+            <edge orig="(2, 9)" dest="(1, 9)" rulebook="('physical', (2, 9), (1, 9))"/>
+            <edge orig="(2, 9)" dest="(3, 9)" rulebook="('physical', (2, 9), (3, 9))"/>
+            <edge orig="(2, 9)" dest="(2, 8)" rulebook="('physical', (2, 9), (2, 8))"/>
+            <edge orig="(3, 0)" dest="(2, 0)" rulebook="('physical', (3, 0), (2, 0))"/>
+            <edge orig="(3, 0)" dest="(4, 0)" rulebook="('physical', (3, 0), (4, 0))"/>
+            <edge orig="(3, 0)" dest="(3, 1)" rulebook="('physical', (3, 0), (3, 1))"/>
+            <edge orig="(3, 1)" dest="(2, 1)" rulebook="('physical', (3, 1), (2, 1))"/>
+            <edge orig="(3, 1)" dest="(4, 1)" rulebook="('physical', (3, 1), (4, 1))"/>
+            <edge orig="(3, 1)" dest="(3, 0)" rulebook="('physical', (3, 1), (3, 0))"/>
+            <edge orig="(3, 1)" dest="(3, 2)" rulebook="('physical', (3, 1), (3, 2))"/>
+            <edge orig="(3, 2)" dest="(2, 2)" rulebook="('physical', (3, 2), (2, 2))"/>
+            <edge orig="(3, 2)" dest="(4, 2)" rulebook="('physical', (3, 2), (4, 2))"/>
+            <edge orig="(3, 2)" dest="(3, 1)" rulebook="('physical', (3, 2), (3, 1))"/>
+            <edge orig="(3, 2)" dest="(3, 3)" rulebook="('physical', (3, 2), (3, 3))"/>
+            <edge orig="(3, 3)" dest="(2, 3)" rulebook="('physical', (3, 3), (2, 3))"/>
+            <edge orig="(3, 3)" dest="(4, 3)" rulebook="('physical', (3, 3), (4, 3))"/>
+            <edge orig="(3, 3)" dest="(3, 2)" rulebook="('physical', (3, 3), (3, 2))"/>
+            <edge orig="(3, 3)" dest="(3, 4)" rulebook="('physical', (3, 3), (3, 4))"/>
+            <edge orig="(3, 4)" dest="(2, 4)" rulebook="('physical', (3, 4), (2, 4))"/>
+            <edge orig="(3, 4)" dest="(4, 4)" rulebook="('physical', (3, 4), (4, 4))"/>
+            <edge orig="(3, 4)" dest="(3, 3)" rulebook="('physical', (3, 4), (3, 3))"/>
+            <edge orig="(3, 4)" dest="(3, 5)" rulebook="('physical', (3, 4), (3, 5))"/>
+            <edge orig="(3, 5)" dest="(2, 5)" rulebook="('physical', (3, 5), (2, 5))"/>
+            <edge orig="(3, 5)" dest="(4, 5)" rulebook="('physical', (3, 5), (4, 5))"/>
+            <edge orig="(3, 5)" dest="(3, 4)" rulebook="('physical', (3, 5), (3, 4))"/>
+            <edge orig="(3, 5)" dest="(3, 6)" rulebook="('physical', (3, 5), (3, 6))"/>
+            <edge orig="(3, 6)" dest="(2, 6)" rulebook="('physical', (3, 6), (2, 6))"/>
+            <edge orig="(3, 6)" dest="(4, 6)" rulebook="('physical', (3, 6), (4, 6))"/>
+            <edge orig="(3, 6)" dest="(3, 5)" rulebook="('physical', (3, 6), (3, 5))"/>
+            <edge orig="(3, 6)" dest="(3, 7)" rulebook="('physical', (3, 6), (3, 7))"/>
+            <edge orig="(3, 7)" dest="(2, 7)" rulebook="('physical', (3, 7), (2, 7))"/>
+            <edge orig="(3, 7)" dest="(4, 7)" rulebook="('physical', (3, 7), (4, 7))"/>
+            <edge orig="(3, 7)" dest="(3, 6)" rulebook="('physical', (3, 7), (3, 6))"/>
+            <edge orig="(3, 7)" dest="(3, 8)" rulebook="('physical', (3, 7), (3, 8))"/>
+            <edge orig="(3, 8)" dest="(2, 8)" rulebook="('physical', (3, 8), (2, 8))"/>
+            <edge orig="(3, 8)" dest="(4, 8)" rulebook="('physical', (3, 8), (4, 8))"/>
+            <edge orig="(3, 8)" dest="(3, 7)" rulebook="('physical', (3, 8), (3, 7))"/>
+            <edge orig="(3, 8)" dest="(3, 9)" rulebook="('physical', (3, 8), (3, 9))"/>
+            <edge orig="(3, 9)" dest="(2, 9)" rulebook="('physical', (3, 9), (2, 9))"/>
+            <edge orig="(3, 9)" dest="(4, 9)" rulebook="('physical', (3, 9), (4, 9))"/>
+            <edge orig="(3, 9)" dest="(3, 8)" rulebook="('physical', (3, 9), (3, 8))"/>
+            <edge orig="(4, 0)" dest="(3, 0)" rulebook="('physical', (4, 0), (3, 0))"/>
+            <edge orig="(4, 0)" dest="(5, 0)" rulebook="('physical', (4, 0), (5, 0))"/>
+            <edge orig="(4, 0)" dest="(4, 1)" rulebook="('physical', (4, 0), (4, 1))"/>
+            <edge orig="(4, 1)" dest="(3, 1)" rulebook="('physical', (4, 1), (3, 1))"/>
+            <edge orig="(4, 1)" dest="(5, 1)" rulebook="('physical', (4, 1), (5, 1))"/>
+            <edge orig="(4, 1)" dest="(4, 0)" rulebook="('physical', (4, 1), (4, 0))"/>
+            <edge orig="(4, 1)" dest="(4, 2)" rulebook="('physical', (4, 1), (4, 2))"/>
+            <edge orig="(4, 2)" dest="(3, 2)" rulebook="('physical', (4, 2), (3, 2))"/>
+            <edge orig="(4, 2)" dest="(5, 2)" rulebook="('physical', (4, 2), (5, 2))"/>
+            <edge orig="(4, 2)" dest="(4, 1)" rulebook="('physical', (4, 2), (4, 1))"/>
+            <edge orig="(4, 2)" dest="(4, 3)" rulebook="('physical', (4, 2), (4, 3))"/>
+            <edge orig="(4, 3)" dest="(3, 3)" rulebook="('physical', (4, 3), (3, 3))"/>
+            <edge orig="(4, 3)" dest="(5, 3)" rulebook="('physical', (4, 3), (5, 3))"/>
+            <edge orig="(4, 3)" dest="(4, 2)" rulebook="('physical', (4, 3), (4, 2))"/>
+            <edge orig="(4, 3)" dest="(4, 4)" rulebook="('physical', (4, 3), (4, 4))"/>
+            <edge orig="(4, 4)" dest="(3, 4)" rulebook="('physical', (4, 4), (3, 4))"/>
+            <edge orig="(4, 4)" dest="(5, 4)" rulebook="('physical', (4, 4), (5, 4))"/>
+            <edge orig="(4, 4)" dest="(4, 3)" rulebook="('physical', (4, 4), (4, 3))"/>
+            <edge orig="(4, 4)" dest="(4, 5)" rulebook="('physical', (4, 4), (4, 5))"/>
+            <edge orig="(4, 5)" dest="(3, 5)" rulebook="('physical', (4, 5), (3, 5))"/>
+            <edge orig="(4, 5)" dest="(5, 5)" rulebook="('physical', (4, 5), (5, 5))"/>
+            <edge orig="(4, 5)" dest="(4, 4)" rulebook="('physical', (4, 5), (4, 4))"/>
+            <edge orig="(4, 5)" dest="(4, 6)" rulebook="('physical', (4, 5), (4, 6))"/>
+            <edge orig="(4, 6)" dest="(3, 6)" rulebook="('physical', (4, 6), (3, 6))"/>
+            <edge orig="(4, 6)" dest="(5, 6)" rulebook="('physical', (4, 6), (5, 6))"/>
+            <edge orig="(4, 6)" dest="(4, 5)" rulebook="('physical', (4, 6), (4, 5))"/>
+            <edge orig="(4, 6)" dest="(4, 7)" rulebook="('physical', (4, 6), (4, 7))"/>
+            <edge orig="(4, 7)" dest="(3, 7)" rulebook="('physical', (4, 7), (3, 7))"/>
+            <edge orig="(4, 7)" dest="(5, 7)" rulebook="('physical', (4, 7), (5, 7))"/>
+            <edge orig="(4, 7)" dest="(4, 6)" rulebook="('physical', (4, 7), (4, 6))"/>
+            <edge orig="(4, 7)" dest="(4, 8)" rulebook="('physical', (4, 7), (4, 8))"/>
+            <edge orig="(4, 8)" dest="(3, 8)" rulebook="('physical', (4, 8), (3, 8))"/>
+            <edge orig="(4, 8)" dest="(5, 8)" rulebook="('physical', (4, 8), (5, 8))"/>
+            <edge orig="(4, 8)" dest="(4, 7)" rulebook="('physical', (4, 8), (4, 7))"/>
+            <edge orig="(4, 8)" dest="(4, 9)" rulebook="('physical', (4, 8), (4, 9))"/>
+            <edge orig="(4, 9)" dest="(3, 9)" rulebook="('physical', (4, 9), (3, 9))"/>
+            <edge orig="(4, 9)" dest="(5, 9)" rulebook="('physical', (4, 9), (5, 9))"/>
+            <edge orig="(4, 9)" dest="(4, 8)" rulebook="('physical', (4, 9), (4, 8))"/>
+            <edge orig="(5, 0)" dest="(4, 0)" rulebook="('physical', (5, 0), (4, 0))"/>
+            <edge orig="(5, 0)" dest="(6, 0)" rulebook="('physical', (5, 0), (6, 0))"/>
+            <edge orig="(5, 0)" dest="(5, 1)" rulebook="('physical', (5, 0), (5, 1))"/>
+            <edge orig="(5, 1)" dest="(4, 1)" rulebook="('physical', (5, 1), (4, 1))"/>
+            <edge orig="(5, 1)" dest="(6, 1)" rulebook="('physical', (5, 1), (6, 1))"/>
+            <edge orig="(5, 1)" dest="(5, 0)" rulebook="('physical', (5, 1), (5, 0))"/>
+            <edge orig="(5, 1)" dest="(5, 2)" rulebook="('physical', (5, 1), (5, 2))"/>
+            <edge orig="(5, 2)" dest="(4, 2)" rulebook="('physical', (5, 2), (4, 2))"/>
+            <edge orig="(5, 2)" dest="(6, 2)" rulebook="('physical', (5, 2), (6, 2))"/>
+            <edge orig="(5, 2)" dest="(5, 1)" rulebook="('physical', (5, 2), (5, 1))"/>
+            <edge orig="(5, 2)" dest="(5, 3)" rulebook="('physical', (5, 2), (5, 3))"/>
+            <edge orig="(5, 3)" dest="(4, 3)" rulebook="('physical', (5, 3), (4, 3))"/>
+            <edge orig="(5, 3)" dest="(6, 3)" rulebook="('physical', (5, 3), (6, 3))"/>
+            <edge orig="(5, 3)" dest="(5, 2)" rulebook="('physical', (5, 3), (5, 2))"/>
+            <edge orig="(5, 3)" dest="(5, 4)" rulebook="('physical', (5, 3), (5, 4))"/>
+            <edge orig="(5, 4)" dest="(4, 4)" rulebook="('physical', (5, 4), (4, 4))"/>
+            <edge orig="(5, 4)" dest="(6, 4)" rulebook="('physical', (5, 4), (6, 4))"/>
+            <edge orig="(5, 4)" dest="(5, 3)" rulebook="('physical', (5, 4), (5, 3))"/>
+            <edge orig="(5, 4)" dest="(5, 5)" rulebook="('physical', (5, 4), (5, 5))"/>
+            <edge orig="(5, 5)" dest="(4, 5)" rulebook="('physical', (5, 5), (4, 5))"/>
+            <edge orig="(5, 5)" dest="(6, 5)" rulebook="('physical', (5, 5), (6, 5))"/>
+            <edge orig="(5, 5)" dest="(5, 4)" rulebook="('physical', (5, 5), (5, 4))"/>
+            <edge orig="(5, 5)" dest="(5, 6)" rulebook="('physical', (5, 5), (5, 6))"/>
+            <edge orig="(5, 6)" dest="(4, 6)" rulebook="('physical', (5, 6), (4, 6))"/>
+            <edge orig="(5, 6)" dest="(6, 6)" rulebook="('physical', (5, 6), (6, 6))"/>
+            <edge orig="(5, 6)" dest="(5, 5)" rulebook="('physical', (5, 6), (5, 5))"/>
+            <edge orig="(5, 6)" dest="(5, 7)" rulebook="('physical', (5, 6), (5, 7))"/>
+            <edge orig="(5, 7)" dest="(4, 7)" rulebook="('physical', (5, 7), (4, 7))"/>
+            <edge orig="(5, 7)" dest="(6, 7)" rulebook="('physical', (5, 7), (6, 7))"/>
+            <edge orig="(5, 7)" dest="(5, 6)" rulebook="('physical', (5, 7), (5, 6))"/>
+            <edge orig="(5, 7)" dest="(5, 8)" rulebook="('physical', (5, 7), (5, 8))"/>
+            <edge orig="(5, 8)" dest="(4, 8)" rulebook="('physical', (5, 8), (4, 8))"/>
+            <edge orig="(5, 8)" dest="(6, 8)" rulebook="('physical', (5, 8), (6, 8))"/>
+            <edge orig="(5, 8)" dest="(5, 7)" rulebook="('physical', (5, 8), (5, 7))"/>
+            <edge orig="(5, 8)" dest="(5, 9)" rulebook="('physical', (5, 8), (5, 9))"/>
+            <edge orig="(5, 9)" dest="(4, 9)" rulebook="('physical', (5, 9), (4, 9))"/>
+            <edge orig="(5, 9)" dest="(6, 9)" rulebook="('physical', (5, 9), (6, 9))"/>
+            <edge orig="(5, 9)" dest="(5, 8)" rulebook="('physical', (5, 9), (5, 8))"/>
+            <edge orig="(6, 0)" dest="(5, 0)" rulebook="('physical', (6, 0), (5, 0))"/>
+            <edge orig="(6, 0)" dest="(7, 0)" rulebook="('physical', (6, 0), (7, 0))"/>
+            <edge orig="(6, 0)" dest="(6, 1)" rulebook="('physical', (6, 0), (6, 1))"/>
+            <edge orig="(6, 1)" dest="(5, 1)" rulebook="('physical', (6, 1), (5, 1))"/>
+            <edge orig="(6, 1)" dest="(7, 1)" rulebook="('physical', (6, 1), (7, 1))"/>
+            <edge orig="(6, 1)" dest="(6, 0)" rulebook="('physical', (6, 1), (6, 0))"/>
+            <edge orig="(6, 1)" dest="(6, 2)" rulebook="('physical', (6, 1), (6, 2))"/>
+            <edge orig="(6, 2)" dest="(5, 2)" rulebook="('physical', (6, 2), (5, 2))"/>
+            <edge orig="(6, 2)" dest="(7, 2)" rulebook="('physical', (6, 2), (7, 2))"/>
+            <edge orig="(6, 2)" dest="(6, 1)" rulebook="('physical', (6, 2), (6, 1))"/>
+            <edge orig="(6, 2)" dest="(6, 3)" rulebook="('physical', (6, 2), (6, 3))"/>
+            <edge orig="(6, 3)" dest="(5, 3)" rulebook="('physical', (6, 3), (5, 3))"/>
+            <edge orig="(6, 3)" dest="(7, 3)" rulebook="('physical', (6, 3), (7, 3))"/>
+            <edge orig="(6, 3)" dest="(6, 2)" rulebook="('physical', (6, 3), (6, 2))"/>
+            <edge orig="(6, 3)" dest="(6, 4)" rulebook="('physical', (6, 3), (6, 4))"/>
+            <edge orig="(6, 4)" dest="(5, 4)" rulebook="('physical', (6, 4), (5, 4))"/>
+            <edge orig="(6, 4)" dest="(7, 4)" rulebook="('physical', (6, 4), (7, 4))"/>
+            <edge orig="(6, 4)" dest="(6, 3)" rulebook="('physical', (6, 4), (6, 3))"/>
+            <edge orig="(6, 4)" dest="(6, 5)" rulebook="('physical', (6, 4), (6, 5))"/>
+            <edge orig="(6, 5)" dest="(5, 5)" rulebook="('physical', (6, 5), (5, 5))"/>
+            <edge orig="(6, 5)" dest="(7, 5)" rulebook="('physical', (6, 5), (7, 5))"/>
+            <edge orig="(6, 5)" dest="(6, 4)" rulebook="('physical', (6, 5), (6, 4))"/>
+            <edge orig="(6, 5)" dest="(6, 6)" rulebook="('physical', (6, 5), (6, 6))"/>
+            <edge orig="(6, 6)" dest="(5, 6)" rulebook="('physical', (6, 6), (5, 6))"/>
+            <edge orig="(6, 6)" dest="(7, 6)" rulebook="('physical', (6, 6), (7, 6))"/>
+            <edge orig="(6, 6)" dest="(6, 5)" rulebook="('physical', (6, 6), (6, 5))"/>
+            <edge orig="(6, 6)" dest="(6, 7)" rulebook="('physical', (6, 6), (6, 7))"/>
+            <edge orig="(6, 7)" dest="(5, 7)" rulebook="('physical', (6, 7), (5, 7))"/>
+            <edge orig="(6, 7)" dest="(7, 7)" rulebook="('physical', (6, 7), (7, 7))"/>
+            <edge orig="(6, 7)" dest="(6, 6)" rulebook="('physical', (6, 7), (6, 6))"/>
+            <edge orig="(6, 7)" dest="(6, 8)" rulebook="('physical', (6, 7), (6, 8))"/>
+            <edge orig="(6, 8)" dest="(5, 8)" rulebook="('physical', (6, 8), (5, 8))"/>
+            <edge orig="(6, 8)" dest="(7, 8)" rulebook="('physical', (6, 8), (7, 8))"/>
+            <edge orig="(6, 8)" dest="(6, 7)" rulebook="('physical', (6, 8), (6, 7))"/>
+            <edge orig="(6, 8)" dest="(6, 9)" rulebook="('physical', (6, 8), (6, 9))"/>
+            <edge orig="(6, 9)" dest="(5, 9)" rulebook="('physical', (6, 9), (5, 9))"/>
+            <edge orig="(6, 9)" dest="(7, 9)" rulebook="('physical', (6, 9), (7, 9))"/>
+            <edge orig="(6, 9)" dest="(6, 8)" rulebook="('physical', (6, 9), (6, 8))"/>
+            <edge orig="(7, 0)" dest="(6, 0)" rulebook="('physical', (7, 0), (6, 0))"/>
+            <edge orig="(7, 0)" dest="(8, 0)" rulebook="('physical', (7, 0), (8, 0))"/>
+            <edge orig="(7, 0)" dest="(7, 1)" rulebook="('physical', (7, 0), (7, 1))"/>
+            <edge orig="(7, 1)" dest="(6, 1)" rulebook="('physical', (7, 1), (6, 1))"/>
+            <edge orig="(7, 1)" dest="(8, 1)" rulebook="('physical', (7, 1), (8, 1))"/>
+            <edge orig="(7, 1)" dest="(7, 0)" rulebook="('physical', (7, 1), (7, 0))"/>
+            <edge orig="(7, 1)" dest="(7, 2)" rulebook="('physical', (7, 1), (7, 2))"/>
+            <edge orig="(7, 2)" dest="(6, 2)" rulebook="('physical', (7, 2), (6, 2))"/>
+            <edge orig="(7, 2)" dest="(8, 2)" rulebook="('physical', (7, 2), (8, 2))"/>
+            <edge orig="(7, 2)" dest="(7, 1)" rulebook="('physical', (7, 2), (7, 1))"/>
+            <edge orig="(7, 2)" dest="(7, 3)" rulebook="('physical', (7, 2), (7, 3))"/>
+            <edge orig="(7, 3)" dest="(6, 3)" rulebook="('physical', (7, 3), (6, 3))"/>
+            <edge orig="(7, 3)" dest="(8, 3)" rulebook="('physical', (7, 3), (8, 3))"/>
+            <edge orig="(7, 3)" dest="(7, 2)" rulebook="('physical', (7, 3), (7, 2))"/>
+            <edge orig="(7, 3)" dest="(7, 4)" rulebook="('physical', (7, 3), (7, 4))"/>
+            <edge orig="(7, 4)" dest="(6, 4)" rulebook="('physical', (7, 4), (6, 4))"/>
+            <edge orig="(7, 4)" dest="(8, 4)" rulebook="('physical', (7, 4), (8, 4))"/>
+            <edge orig="(7, 4)" dest="(7, 3)" rulebook="('physical', (7, 4), (7, 3))"/>
+            <edge orig="(7, 4)" dest="(7, 5)" rulebook="('physical', (7, 4), (7, 5))"/>
+            <edge orig="(7, 5)" dest="(6, 5)" rulebook="('physical', (7, 5), (6, 5))"/>
+            <edge orig="(7, 5)" dest="(8, 5)" rulebook="('physical', (7, 5), (8, 5))"/>
+            <edge orig="(7, 5)" dest="(7, 4)" rulebook="('physical', (7, 5), (7, 4))"/>
+            <edge orig="(7, 5)" dest="(7, 6)" rulebook="('physical', (7, 5), (7, 6))"/>
+            <edge orig="(7, 6)" dest="(6, 6)" rulebook="('physical', (7, 6), (6, 6))"/>
+            <edge orig="(7, 6)" dest="(8, 6)" rulebook="('physical', (7, 6), (8, 6))"/>
+            <edge orig="(7, 6)" dest="(7, 5)" rulebook="('physical', (7, 6), (7, 5))"/>
+            <edge orig="(7, 6)" dest="(7, 7)" rulebook="('physical', (7, 6), (7, 7))"/>
+            <edge orig="(7, 7)" dest="(6, 7)" rulebook="('physical', (7, 7), (6, 7))"/>
+            <edge orig="(7, 7)" dest="(8, 7)" rulebook="('physical', (7, 7), (8, 7))"/>
+            <edge orig="(7, 7)" dest="(7, 6)" rulebook="('physical', (7, 7), (7, 6))"/>
+            <edge orig="(7, 7)" dest="(7, 8)" rulebook="('physical', (7, 7), (7, 8))"/>
+            <edge orig="(7, 8)" dest="(6, 8)" rulebook="('physical', (7, 8), (6, 8))"/>
+            <edge orig="(7, 8)" dest="(8, 8)" rulebook="('physical', (7, 8), (8, 8))"/>
+            <edge orig="(7, 8)" dest="(7, 7)" rulebook="('physical', (7, 8), (7, 7))"/>
+            <edge orig="(7, 8)" dest="(7, 9)" rulebook="('physical', (7, 8), (7, 9))"/>
+            <edge orig="(7, 9)" dest="(6, 9)" rulebook="('physical', (7, 9), (6, 9))"/>
+            <edge orig="(7, 9)" dest="(8, 9)" rulebook="('physical', (7, 9), (8, 9))"/>
+            <edge orig="(7, 9)" dest="(7, 8)" rulebook="('physical', (7, 9), (7, 8))"/>
+            <edge orig="(8, 0)" dest="(7, 0)" rulebook="('physical', (8, 0), (7, 0))"/>
+            <edge orig="(8, 0)" dest="(9, 0)" rulebook="('physical', (8, 0), (9, 0))"/>
+            <edge orig="(8, 0)" dest="(8, 1)" rulebook="('physical', (8, 0), (8, 1))"/>
+            <edge orig="(8, 1)" dest="(7, 1)" rulebook="('physical', (8, 1), (7, 1))"/>
+            <edge orig="(8, 1)" dest="(9, 1)" rulebook="('physical', (8, 1), (9, 1))"/>
+            <edge orig="(8, 1)" dest="(8, 0)" rulebook="('physical', (8, 1), (8, 0))"/>
+            <edge orig="(8, 1)" dest="(8, 2)" rulebook="('physical', (8, 1), (8, 2))"/>
+            <edge orig="(8, 2)" dest="(7, 2)" rulebook="('physical', (8, 2), (7, 2))"/>
+            <edge orig="(8, 2)" dest="(9, 2)" rulebook="('physical', (8, 2), (9, 2))"/>
+            <edge orig="(8, 2)" dest="(8, 1)" rulebook="('physical', (8, 2), (8, 1))"/>
+            <edge orig="(8, 2)" dest="(8, 3)" rulebook="('physical', (8, 2), (8, 3))"/>
+            <edge orig="(8, 3)" dest="(7, 3)" rulebook="('physical', (8, 3), (7, 3))"/>
+            <edge orig="(8, 3)" dest="(9, 3)" rulebook="('physical', (8, 3), (9, 3))"/>
+            <edge orig="(8, 3)" dest="(8, 2)" rulebook="('physical', (8, 3), (8, 2))"/>
+            <edge orig="(8, 3)" dest="(8, 4)" rulebook="('physical', (8, 3), (8, 4))"/>
+            <edge orig="(8, 4)" dest="(7, 4)" rulebook="('physical', (8, 4), (7, 4))"/>
+            <edge orig="(8, 4)" dest="(9, 4)" rulebook="('physical', (8, 4), (9, 4))"/>
+            <edge orig="(8, 4)" dest="(8, 3)" rulebook="('physical', (8, 4), (8, 3))"/>
+            <edge orig="(8, 4)" dest="(8, 5)" rulebook="('physical', (8, 4), (8, 5))"/>
+            <edge orig="(8, 5)" dest="(7, 5)" rulebook="('physical', (8, 5), (7, 5))"/>
+            <edge orig="(8, 5)" dest="(9, 5)" rulebook="('physical', (8, 5), (9, 5))"/>
+            <edge orig="(8, 5)" dest="(8, 4)" rulebook="('physical', (8, 5), (8, 4))"/>
+            <edge orig="(8, 5)" dest="(8, 6)" rulebook="('physical', (8, 5), (8, 6))"/>
+            <edge orig="(8, 6)" dest="(7, 6)" rulebook="('physical', (8, 6), (7, 6))"/>
+            <edge orig="(8, 6)" dest="(9, 6)" rulebook="('physical', (8, 6), (9, 6))"/>
+            <edge orig="(8, 6)" dest="(8, 5)" rulebook="('physical', (8, 6), (8, 5))"/>
+            <edge orig="(8, 6)" dest="(8, 7)" rulebook="('physical', (8, 6), (8, 7))"/>
+            <edge orig="(8, 7)" dest="(7, 7)" rulebook="('physical', (8, 7), (7, 7))"/>
+            <edge orig="(8, 7)" dest="(9, 7)" rulebook="('physical', (8, 7), (9, 7))"/>
+            <edge orig="(8, 7)" dest="(8, 6)" rulebook="('physical', (8, 7), (8, 6))"/>
+            <edge orig="(8, 7)" dest="(8, 8)" rulebook="('physical', (8, 7), (8, 8))"/>
+            <edge orig="(8, 8)" dest="(7, 8)" rulebook="('physical', (8, 8), (7, 8))"/>
+            <edge orig="(8, 8)" dest="(9, 8)" rulebook="('physical', (8, 8), (9, 8))"/>
+            <edge orig="(8, 8)" dest="(8, 7)" rulebook="('physical', (8, 8), (8, 7))"/>
+            <edge orig="(8, 8)" dest="(8, 9)" rulebook="('physical', (8, 8), (8, 9))"/>
+            <edge orig="(8, 9)" dest="(7, 9)" rulebook="('physical', (8, 9), (7, 9))"/>
+            <edge orig="(8, 9)" dest="(9, 9)" rulebook="('physical', (8, 9), (9, 9))"/>
+            <edge orig="(8, 9)" dest="(8, 8)" rulebook="('physical', (8, 9), (8, 8))"/>
+            <edge orig="(9, 0)" dest="(8, 0)" rulebook="('physical', (9, 0), (8, 0))"/>
+            <edge orig="(9, 0)" dest="(9, 1)" rulebook="('physical', (9, 0), (9, 1))"/>
+            <edge orig="(9, 1)" dest="(8, 1)" rulebook="('physical', (9, 1), (8, 1))"/>
+            <edge orig="(9, 1)" dest="(9, 0)" rulebook="('physical', (9, 1), (9, 0))"/>
+            <edge orig="(9, 1)" dest="(9, 2)" rulebook="('physical', (9, 1), (9, 2))"/>
+            <edge orig="(9, 2)" dest="(8, 2)" rulebook="('physical', (9, 2), (8, 2))"/>
+            <edge orig="(9, 2)" dest="(9, 1)" rulebook="('physical', (9, 2), (9, 1))"/>
+            <edge orig="(9, 2)" dest="(9, 3)" rulebook="('physical', (9, 2), (9, 3))"/>
+            <edge orig="(9, 3)" dest="(8, 3)" rulebook="('physical', (9, 3), (8, 3))"/>
+            <edge orig="(9, 3)" dest="(9, 2)" rulebook="('physical', (9, 3), (9, 2))"/>
+            <edge orig="(9, 3)" dest="(9, 4)" rulebook="('physical', (9, 3), (9, 4))"/>
+            <edge orig="(9, 4)" dest="(8, 4)" rulebook="('physical', (9, 4), (8, 4))"/>
+            <edge orig="(9, 4)" dest="(9, 3)" rulebook="('physical', (9, 4), (9, 3))"/>
+            <edge orig="(9, 4)" dest="(9, 5)" rulebook="('physical', (9, 4), (9, 5))"/>
+            <edge orig="(9, 5)" dest="(8, 5)" rulebook="('physical', (9, 5), (8, 5))"/>
+            <edge orig="(9, 5)" dest="(9, 4)" rulebook="('physical', (9, 5), (9, 4))"/>
+            <edge orig="(9, 5)" dest="(9, 6)" rulebook="('physical', (9, 5), (9, 6))"/>
+            <edge orig="(9, 6)" dest="(8, 6)" rulebook="('physical', (9, 6), (8, 6))"/>
+            <edge orig="(9, 6)" dest="(9, 5)" rulebook="('physical', (9, 6), (9, 5))"/>
+            <edge orig="(9, 6)" dest="(9, 7)" rulebook="('physical', (9, 6), (9, 7))"/>
+            <edge orig="(9, 7)" dest="(8, 7)" rulebook="('physical', (9, 7), (8, 7))"/>
+            <edge orig="(9, 7)" dest="(9, 6)" rulebook="('physical', (9, 7), (9, 6))"/>
+            <edge orig="(9, 7)" dest="(9, 8)" rulebook="('physical', (9, 7), (9, 8))"/>
+            <edge orig="(9, 8)" dest="(8, 8)" rulebook="('physical', (9, 8), (8, 8))"/>
+            <edge orig="(9, 8)" dest="(9, 7)" rulebook="('physical', (9, 8), (9, 7))"/>
+            <edge orig="(9, 8)" dest="(9, 9)" rulebook="('physical', (9, 8), (9, 9))"/>
+            <edge orig="(9, 9)" dest="(8, 9)" rulebook="('physical', (9, 9), (8, 9))"/>
+            <edge orig="(9, 9)" dest="(9, 8)" rulebook="('physical', (9, 9), (9, 8))"/>
           </character>
         </keyframe>
+        <graph character="'physical'" tick="0" type="DiGraph"/>
         <universal key="'rando_state'" tick="0">
           <tuple>
             <int value="3"/>
@@ -1734,7 +1735,6 @@
             <None/>
           </tuple>
         </universal>
-        <graph character="'physical'" tick="0" type="DiGraph"/>
         <node character="'physical'" name="'kobold'" tick="1" exists="true"/>
         <location character="'physical'" thing="'kobold'" tick="1" location="(9, 9)"/>
         <node-val character="'physical'" node="'kobold'" key="'sprint_chance'" tick="2">
@@ -2736,105 +2736,100 @@
           </list>
         </node-val>
         <node-rulebook character="'physical'" node="'kobold'" tick="89" rulebook="('physical', 'kobold')"/>
-        <rule-triggers rule="shrubsprint" tick="90"/>
-        <rule-prereqs rule="shrubsprint" tick="90"/>
         <rule-actions rule="shrubsprint" tick="90">
           <action name="shrubsprint"/>
         </rule-actions>
-        <rule-neighborhood rule="shrubsprint" tick="90"/>
         <rule-big rule="shrubsprint" tick="90" big="false"/>
+        <rule-neighborhood rule="shrubsprint" tick="90"/>
+        <rule-prereqs rule="shrubsprint" tick="90"/>
+        <rule-triggers rule="shrubsprint" tick="90"/>
         <rulebook name="('physical', 'kobold')" priority="0.0" tick="91">
           <rule name="shrubsprint"/>
         </rulebook>
-        <rule-big rule="shrubsprint" tick="92" big="false"/>
-        <rule-triggers rule="shrubsprint" tick="93">
+        <rule-triggers rule="shrubsprint" tick="92">
           <trigger name="uncovered"/>
         </rule-triggers>
-        <rule-prereqs rule="shrubsprint" tick="94">
+        <rule-prereqs rule="shrubsprint" tick="93">
           <prereq name="breakcover"/>
         </rule-prereqs>
-        <rule-prereqs rule="shrubsprint" tick="95">
+        <rule-prereqs rule="shrubsprint" tick="94">
           <prereq name="breakcover"/>
           <prereq name="not_traveling"/>
         </rule-prereqs>
-        <node-rulebook character="'physical'" node="'dwarf'" tick="95" rulebook="('physical', 'dwarf')"/>
-        <rule-triggers rule="fight" tick="96"/>
-        <rule-prereqs rule="fight" tick="96"/>
-        <rule-actions rule="fight" tick="96">
+        <node-rulebook character="'physical'" node="'dwarf'" tick="94" rulebook="('physical', 'dwarf')"/>
+        <rule-actions rule="fight" tick="95">
           <action name="fight"/>
         </rule-actions>
-        <rule-neighborhood rule="fight" tick="96"/>
-        <rule-big rule="fight" tick="96" big="false"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="97">
+        <rule-big rule="fight" tick="95" big="false"/>
+        <rule-neighborhood rule="fight" tick="95"/>
+        <rule-prereqs rule="fight" tick="95"/>
+        <rule-triggers rule="fight" tick="95"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="96">
           <rule name="fight"/>
         </rulebook>
-        <rule-big rule="fight" tick="98" big="false"/>
-        <rule-triggers rule="fight" tick="99">
+        <rule-triggers rule="fight" tick="97">
           <trigger name="sametile"/>
         </rule-triggers>
-        <rule-prereqs rule="fight" tick="100">
+        <rule-prereqs rule="fight" tick="98">
           <prereq name="kobold_alive"/>
         </rule-prereqs>
-        <rule-prereqs rule="fight" tick="101">
+        <rule-prereqs rule="fight" tick="99">
           <prereq name="kobold_alive"/>
           <prereq name="aware"/>
         </rule-prereqs>
-        <rule-triggers rule="kill_kobold" tick="102"/>
-        <rule-prereqs rule="kill_kobold" tick="102"/>
-        <rule-actions rule="kill_kobold" tick="102">
+        <rule-actions rule="kill_kobold" tick="100">
           <action name="kill_kobold"/>
         </rule-actions>
-        <rule-neighborhood rule="kill_kobold" tick="102"/>
-        <rule-big rule="kill_kobold" tick="102" big="false"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="103">
+        <rule-big rule="kill_kobold" tick="100" big="false"/>
+        <rule-neighborhood rule="kill_kobold" tick="100"/>
+        <rule-prereqs rule="kill_kobold" tick="100"/>
+        <rule-triggers rule="kill_kobold" tick="100"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="101">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
         </rulebook>
-        <rule-big rule="kill_kobold" tick="104" big="false"/>
-        <rule-triggers rule="kill_kobold" tick="105">
+        <rule-triggers rule="kill_kobold" tick="102">
           <trigger name="kobold_alive"/>
         </rule-triggers>
-        <rule-prereqs rule="kill_kobold" tick="106">
+        <rule-prereqs rule="kill_kobold" tick="103">
           <prereq name="unmerciful"/>
         </rule-prereqs>
-        <rule-triggers rule="go2kobold" tick="107"/>
-        <rule-prereqs rule="go2kobold" tick="107"/>
-        <rule-actions rule="go2kobold" tick="107">
+        <rule-actions rule="go2kobold" tick="104">
           <action name="go2kobold"/>
         </rule-actions>
-        <rule-neighborhood rule="go2kobold" tick="107"/>
-        <rule-big rule="go2kobold" tick="107" big="false"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="108">
+        <rule-big rule="go2kobold" tick="104" big="false"/>
+        <rule-neighborhood rule="go2kobold" tick="104"/>
+        <rule-prereqs rule="go2kobold" tick="104"/>
+        <rule-triggers rule="go2kobold" tick="104"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="105">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
         </rulebook>
-        <rule-big rule="go2kobold" tick="109" big="false"/>
-        <rule-triggers rule="go2kobold" tick="110">
+        <rule-triggers rule="go2kobold" tick="106">
           <trigger name="aware"/>
         </rule-triggers>
-        <rule-prereqs rule="go2kobold" tick="111">
+        <rule-prereqs rule="go2kobold" tick="107">
           <prereq name="kobold_alive"/>
         </rule-prereqs>
-        <rule-prereqs rule="go2kobold" tick="112">
+        <rule-prereqs rule="go2kobold" tick="108">
           <prereq name="kobold_alive"/>
           <prereq name="kobold_not_here"/>
         </rule-prereqs>
-        <rule-triggers rule="wander" tick="113"/>
-        <rule-prereqs rule="wander" tick="113"/>
-        <rule-actions rule="wander" tick="113">
+        <rule-actions rule="wander" tick="109">
           <action name="wander"/>
         </rule-actions>
-        <rule-neighborhood rule="wander" tick="113"/>
-        <rule-big rule="wander" tick="113" big="false"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="114">
+        <rule-big rule="wander" tick="109" big="false"/>
+        <rule-neighborhood rule="wander" tick="109"/>
+        <rule-prereqs rule="wander" tick="109"/>
+        <rule-triggers rule="wander" tick="109"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="110">
           <rule name="fight"/>
           <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
           <rule name="wander"/>
         </rulebook>
-        <rule-big rule="wander" tick="115" big="false"/>
-        <rule-triggers rule="wander" tick="116">
+        <rule-triggers rule="wander" tick="111">
           <trigger name="standing_still"/>
         </rule-triggers>
       </turn>

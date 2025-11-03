@@ -1,3 +1,17 @@
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import ast
@@ -12,8 +26,6 @@ import sys
 from threading import Thread
 from zipfile import ZipFile
 
-import astor
-import msgpack
 import tblib
 
 from .engine import EngineProxy
@@ -153,7 +165,7 @@ class EngineProxyManager:
 			from sqlalchemy import NullPool, create_engine, select
 			from sqlalchemy.exc import OperationalError
 
-			from ..alchemy import meta
+			from ..sql import meta
 
 			eng = create_engine(
 				kwargs["connect_string"],
@@ -534,13 +546,13 @@ class EngineProxyManager:
 					"action",
 				):
 					pyfile = os.path.join(prefix, store + ".py")
-					if os.path.exists(pyfile):
+					if os.path.exists(pyfile) and os.stat(pyfile).st_size:
 						code = game_source_code[store] = {}
-						parsed = astor.parse_file(pyfile)
+						with open(pyfile, "rt") as inf:
+							parsed = ast.parse(inf.read(), pyfile)
+						funk: ast.FunctionDef
 						for funk in parsed.body:
-							code[funk.name] = astor.to_source(
-								funk, indent_with="\t"
-							)
+							code[funk.name] = ast.unparse(funk)
 		if game_strings is None:
 			if prefix and os.path.isdir(os.path.join(prefix, "strings")):
 				lang = eternal_d.get(EternalKey(Key("language")), "eng")
@@ -605,9 +617,7 @@ class EngineProxyManager:
 						parsed = ast.parse(inf.read().decode("utf-8"), pyfn)
 					funk: ast.FunctionDef
 					for funk in parsed.body:
-						code[funk.name] = astor.to_source(
-							funk, indent_with="\t"
-						)
+						code[funk.name] = ast.unparse(funk)
 		self._config_logger(kwargs)
 		try:
 			import android
@@ -621,10 +631,14 @@ class EngineProxyManager:
 					self._start_subprocess(prefix, **kwargs)
 				case Sub.thread:
 					self._start_subthread(prefix, **kwargs)
+		try:
+			from msgpack._cmsgpack import packb
+		except ImportError:
+			from umsgpack import packb
 		if hasattr(self, "_proxy_out_pipe"):
 			self._proxy_out_pipe.send_bytes(
 				b"from_archive"
-				+ msgpack.packb(
+				+ packb(
 					{"archive_path": archive_path, "prefix": prefix, **kwargs}
 				)
 			)
