@@ -1,3 +1,17 @@
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from lisien import Engine
 from lisien.collections import FunctionStore, StringStore
 
@@ -136,15 +150,9 @@ def test_plan_vs_plan(serial_engine):
 	assert 1 in g1.adj[0]
 
 
-def test_save_load_plan(tmp_path, non_null_database):
-	if non_null_database == "sqlite":
-		connect_str = f"sqlite:///{tmp_path}/world.db"
-		path = None
-	else:
-		connect_str = None
-		path = tmp_path
+def test_save_load_plan(tmp_path, persistent_database_connector_part):
 	with Engine(
-		path,
+		tmp_path,
 		function=FunctionStore(None),
 		method=FunctionStore(None),
 		trigger=FunctionStore(None),
@@ -152,7 +160,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 		action=FunctionStore(None),
 		string={},
 		workers=0,
-		connect_string=connect_str,
+		database=persistent_database_connector_part(),
 	) as orm:
 		g1 = orm.new_character(1)
 		g2 = orm.new_character(2)
@@ -171,7 +179,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 			tick3 = orm.tick
 		orm.turn = 0
 	with Engine(
-		path,
+		tmp_path,
 		workers=0,
 		function=FunctionStore(None),
 		method=FunctionStore(None),
@@ -179,7 +187,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 		prereq=FunctionStore(None),
 		action=FunctionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		connect_string=connect_str,
+		database=persistent_database_connector_part(),
 	) as orm:
 		g1 = orm.character[1]
 		g2 = orm.character[2]
@@ -203,7 +211,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 		assert 2 in g2.node
 		assert 2 in g2.edge[1]
 	with Engine(
-		path,
+		tmp_path,
 		workers=0,
 		function=FunctionStore(None),
 		method=FunctionStore(None),
@@ -211,7 +219,7 @@ def test_save_load_plan(tmp_path, non_null_database):
 		prereq=FunctionStore(None),
 		action=FunctionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		connect_string=connect_str,
+		database=persistent_database_connector_part(),
 	) as orm:
 		orm.turn = 0
 		g1 = orm.character[1]

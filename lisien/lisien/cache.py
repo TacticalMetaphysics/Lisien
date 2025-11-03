@@ -60,8 +60,8 @@ from .types import (
 	Time,
 	Turn,
 	Value,
+	sort_set,
 )
-from .util import sort_set
 from .window import (
 	Direction,
 	EntikeySettingsTurnDict,
@@ -583,7 +583,7 @@ class Cache:
 					continue
 			self._set_keyframe(graph_ent, branch_to, turn, tick, kf)
 
-	def load(self, data: list[tuple]):
+	def load(self, data: Iterable[tuple]):
 		"""Add a bunch of data. Must be in chronological order.
 
 		But it doesn't need to all be from the same branch, as long as
@@ -1768,8 +1768,8 @@ class Cache:
 
 		"""
 		retr = self._base_retrieve(args, search=search)
-		return not (
-			self._count_as_deleted(retr) or isinstance(retr, Exception)
+		return not isinstance(retr, Exception) and not self._count_as_deleted(
+			retr
 		)
 
 
@@ -3962,7 +3962,7 @@ class RulesHandledCache(ABC):
 		key = (*entity, rulebook, branch, turn)
 		if key in self.handled:
 			rules_handled_this_turn = self.handled[key]
-			if rule in rules_handled_this_turn:
+			if not loading and rule in rules_handled_this_turn:
 				raise RuntimeError(
 					"Rule already run for same entity and rulebook",
 					entity,
@@ -3975,6 +3975,10 @@ class RulesHandledCache(ABC):
 			rules_handled_this_turn.add(rule)
 		else:
 			self.handled[key] = {rule}
+
+	def load(self, recs):
+		for rec in recs:
+			self.store(*rec, loading=True)
 
 	def remove_branch(self, branch: Branch):
 		if branch in self.handled_deep:

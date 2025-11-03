@@ -17,10 +17,18 @@ import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
+from copy import deepcopy
 from functools import cached_property
 from operator import attrgetter
 from threading import RLock
-from typing import Any, Mapping, MutableMapping, MutableSequence, Type
+from typing import (
+	Any,
+	Mapping,
+	MutableMapping,
+	MutableSequence,
+	Type,
+	TYPE_CHECKING,
+)
 
 import networkx as nx
 from blinker import Signal
@@ -28,18 +36,29 @@ from blinker import Signal
 from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
 from .collections import CompositeDict, FunctionStore
 from .exc import NotInKeyframeError, TotalKeyError
-from .types import CharName, DiGraph, Edge, Key, Node, NodeName
-from .util import (
-	AbstractCharacter,
-	AbstractEngine,
-	AbstractThing,
+from .types import (
+	CharName,
+	DiGraph,
+	Edge,
+	Key,
+	Node,
+	NodeName,
 	SignalDict,
+	AbstractEngine,
+	AbstractCharacter,
+	AbstractThing,
 	TimeSignalDescriptor,
 	getatt,
+)
+from .util import (
 	print_call_sig,
 	timer,
+	unwrap,
 )
 from .wrap import MutableMappingUnwrapper
+
+if TYPE_CHECKING:
+	from .engine import Engine
 
 
 class FacadeEntity(MutableMapping, Signal, ABC):
@@ -110,7 +129,6 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 			raise KeyError(f"{k} unset, and no underlying Thing")
 		ret = self._real[k]
 		if hasattr(ret, "unwrap"):  # a wrapped mutable object from the
-			# allegedb.wrap module
 			ret = ret.unwrap()
 			self._patch[k] = ret  # changes will be reflected in the
 		# facade but not the original
@@ -660,6 +678,122 @@ class CharacterFacade(AbstractCharacter):
 			self.portal._patch,
 			self.graph._patch,
 		) = state
+
+	def deep_copy(self, it, memo: dict | None = None):
+		if memo is None:
+			memo = {}
+
+		def kinda_shallow_copy(v):
+			if isinstance(v, AbstractCharacter):
+				if v.name in self.engine.character:
+					return self.engine.character[v.name]
+				else:
+					return self.engine.new_character(v.name)
+			elif isinstance(v, AbstractThing):
+				if v.character.name == self.name:
+					if v.name in self.thing:
+						return self.thing[v.name]
+					elif v.name in self.place:
+						self.place2thing(v.name, v.location.name)
+						return self.thing[v.name]
+					else:
+						return self.new_thing(v.name, v.location.name)
+				else:
+					fake_char: CharacterFacade = kinda_shallow_copy(
+						v.character
+					)
+					if v.name in fake_char.thing:
+						return fake_char.thing[v.name]
+					elif v.name in fake_char.place:
+						fake_char.place2thing(v.name)
+						return fake_char.thing[v.name]
+					else:
+						return fake_char.new_thing(v.name)
+			elif isinstance(v, Node):
+				if v.character.name == self.name:
+					if v.name in self.place:
+						return self.place[v.name]
+					elif v.name in self.thing:
+						self.thing2place(v.name)
+						return self.place[v.name]
+					else:
+						return self.new_place(v.name)
+				else:
+					fake_char: CharacterFacade = kinda_shallow_copy(
+						v.character
+					)
+					if v.name in fake_char.place:
+						return fake_char.place[v.name]
+					elif v.name in fake_char.thing:
+						fake_char.thing2place(v.name)
+						return fake_char.place[v.name]
+					else:
+						return fake_char.new_place(v.name)
+			elif isinstance(v, Edge):
+				if v.character.name == self.name:
+					if v.orig in self.portal and v.dest in self.portal[v.orig]:
+						return self.portal[v.orig][v.dest]
+					if v.orig not in self.node:
+						self.add_place(v.orig)
+					if v.dest not in self.node:
+						self.add_place(v.dest)
+					return self.new_portal(v.orig, v.dest)
+				else:
+					fake_char: CharacterFacade = kinda_shallow_copy(
+						v.character
+					)
+					if v.orig not in fake_char.node:
+						fake_char.add_place(v.orig)
+					if v.dest not in fake_char.node:
+						fake_char.add_place(v.dest)
+					if (
+						v.orig in fake_char.portal
+						and v.dest in fake_char.portal[v.orig]
+					):
+						return fake_char.portal[v.orig][v.dest]
+					else:
+						return fake_char.new_portal(v.orig, v.dest)
+			elif isinstance(v, list):
+				return list(map(kinda_shallow_copy, v))
+			elif isinstance(v, tuple):
+				return tuple(map(kinda_shallow_copy, v))
+			elif isinstance(v, set):
+				return set(map(kinda_shallow_copy, v))
+			elif isinstance(v, frozenset):
+				return frozenset(map(kinda_shallow_copy, v))
+			else:
+				return v
+
+		if isinstance(it, AbstractCharacter) and it.name == self.name:
+			for k, v in it.stat.items():
+				self.stat[k] = self.deep_copy(v, memo)
+			for pln, place in it.place.items():
+				if pln in self.place:
+					fake_place = self.place[pln]
+				else:
+					fake_place = self.new_place(pln)
+				for k, v in place.items():
+					fake_place[k] = self.deep_copy(v, memo)
+			for thn, thing in it.thing.items():
+				if thn in self.thing:
+					fake_thing = self.thing[thn]
+				else:
+					fake_thing = self.new_thing(thn, thing.location.name)
+				for k, v in thing.items():
+					fake_thing[k] = self.deep_copy(v, memo)
+			for port in it.portals():
+				if (
+					port.orig in self.portal
+					and port.dest in self.portal[port.orig]
+				):
+					fake_port = self.portal[port.orig][port.dest]
+				else:
+					fake_port = self.new_portal(port.orig, port.dest)
+				for k, v in port.items():
+					fake_port[k] = self.deep_copy(v, memo)
+			return self
+		else:
+			return kinda_shallow_copy(it)
 
 	def add_places_from(self, seq, **attrs):
 		for place in seq:
@@ -1303,7 +1437,7 @@ class EngineFacade(AbstractEngine):
 		self._rando = random.Random()
 		self.world_lock = RLock()
 		if real is not None:
-			self._rando.setstate(real.universal["rando_state"])
+			self._rando.setstate(real._rando.getstate())
 			self.branch, self.turn, self.tick = real._btt()
 			self._branches_d = real._branches_d.copy()
 			self._turn_end = TurnEndDict(self)
@@ -1334,6 +1468,56 @@ class EngineFacade(AbstractEngine):
 			self.branch = "trunk"
 			self.turn = 0
 			self.tick = 0
+
+	def deep_copy(
+		self,
+		it,
+		memo: dict | None = None,
+	):
+		"""Return a deep copy of the argument
+
+		If there are Lisien entities in it, they will be copied as facades,
+		which will *not* reference them. If the entities' stats each other,
+		so will their copies, but indirectly referenced entities won't be
+		copied so deeply--they may not have their stats.
+
+		:param memo: Passed through to stdlib's ``deepcopy`` if needed.
+		"""
+		if memo is None:
+			memo = {}
+		if hasattr(it, "engine") and it.engine is self:
+			return it
+		elif isinstance(it, AbstractCharacter):
+			if it.name in self.character:
+				fake_char = self.character[it.name]
+			else:
+				fake_char = self.new_character(it.name)
+		elif isinstance(it, AbstractThing):
+			if it.character.name in self.character:
+				fake_char = self.character[it.character.name]
+			else:
+				fake_char = self.new_character(it.character.name)
+		elif isinstance(it, Node):
+			if it.character.name in self.character:
+				fake_char = self.character[it.character.name]
+			else:
+				fake_char = self.new_character(it.character.name)
+		elif isinstance(it, Edge):
+			if it.character.name in self.character:
+				fake_char = self.character[it.character.name]
+			else:
+				fake_char = self.new_character(it.character.name)
+		elif isinstance(it, list):
+			return [self.deep_copy(v, memo) for v in it]
+		elif isinstance(it, set):
+			return {self.deep_copy(v, memo) for v in it}
+		elif isinstance(it, frozenset):
+			return frozenset(self.deep_copy(v, memo) for v in it)
+		elif isinstance(it, dict):
+			return {k: self.deep_copy(v, it) for (k, v) in it.items()}
+		else:
+			return deepcopy(it, memo)
+		return fake_char.deep_copy(it, memo)
 
 	def handle(self, *args, **kwargs):
 		print_call_sig("handle", *args, **kwargs)
@@ -1451,7 +1635,15 @@ class EngineFacade(AbstractEngine):
 			char.adj.update(edge)
 
 	def apply(self):
-		realeng = self._real
+		if self._real is None:
+			raise TypeError("Can't apply changes to nothing")
+		from lisien import Engine
+
+		if not isinstance(self._real, Engine):
+			raise TypeError(
+				"Currently, we can only apply changes to the core Lisien engine"
+			)
+		realeng: Engine = self._real
 		self.character.apply()
 		if not getattr(self, "_planned", None):
 			return
@@ -1469,42 +1661,97 @@ class EngineFacade(AbstractEngine):
 					# would save the state of the randomizer, which is not
 					# relevant here
 					realeng._oturn = turn
+					# The ``store`` calls are all ``loading=True`` because that
+					# disables keycaching. If you cache keys (stats and node
+					# contents and stuff) big batches get really slow.
 					for tup in self._planned[plan_num][turn]:
 						if len(tup) == 3:
 							char, k, v = tup
-							realeng.character[char].stat[k] = v
+							now = realeng._nbtt()
+							realeng._graph_val_cache.store(
+								char, k, *now, v, loading=True
+							)
+							realeng.query.graph_val_set(char, k, *now, v)
 						elif len(tup) == 4:
 							char, node, k, v = tup
-							realchar = realeng.character[char]
-							if node in realchar.node:
+							now = realeng._nbtt()
+							if realeng._nodes_cache.node_exists(
+								char, node, *realeng.time
+							):
 								if k is ...:
-									realchar.remove_node(node)
+									realeng._nodes_cache.store(
+										char, node, *now, False, loading=True
+									)
+									realeng.query.exist_node(
+										char, node, *now, False
+									)
 								elif k == "location":
 									# assume the location really exists, since
 									# it did while planning
-									now = realeng._nbtt()
 									realeng._things_cache.store(
-										char, node, *now, v
+										char, node, *now, v, loading=True
 									)
 									realeng.query.set_thing_loc(
 										char, node, *now, v
 									)
 								else:
-									realchar.node[node][k] = v
+									realeng._node_val_cache.store(
+										char, node, k, *now, v, loading=True
+									)
+									realeng.query.node_val_set(
+										char, node, k, *now, v
+									)
 							elif k == "location":
-								realchar.add_thing(node, v)
+								if not realeng._nodes_cache.node_exists(
+									char, node, *realeng.time
+								):
+									realeng._nodes_cache.store(
+										char, node, *now, True, loading=True
+									)
+									realeng.query.exist_node(
+										char, node, *now, True
+									)
+									now = realeng._nbtt()
+								realeng._things_cache.store(
+									char, node, *now, v, loading=True
+								)
+								realeng.query.set_thing_loc(
+									char, node, *now, v
+								)
 							else:
-								realchar.add_place(node, **{k: v})
+								realeng._nodes_cache.store(
+									char, node, *now, True, loading=True
+								)
+								realeng.query.exist_node(
+									char, node, *now, True
+								)
+								now = realeng._nbtt()
+								realeng._node_val_cache.store(
+									char, node, k, *now, v, loading=True
+								)
+								realeng.query.node_val_set(
+									char, node, k, *now, v
+								)
 						elif len(tup) == 5:
 							char, orig, dest, k, v = tup
-							realchar = realeng.character[char]
-							if (
-								orig in realchar.portal
-								and dest in realchar.portal[orig]
+							now = realeng._nbtt()
+							if not realeng._edges_cache.has_predecessor(
+								char, orig, dest, *realeng.time
 							):
-								if k is ...:
-									realchar.remove_portal(orig, dest)
-								else:
-									realchar.portal[orig][dest][k] = v
-							else:
-								realchar.add_portal(orig, dest, **{k: v})
+								realeng._edges_cache.store(
+									char, orig, dest, *now, True, loading=True
+								)
+								realeng.query.exist_edge(
+									char, orig, dest, *now, True
+								)
+								now = realeng._nbtt()
+							realeng._edge_val_cache.store(
+								char, orig, dest, k, *now, v, loading=True
+							)
+							realeng.query.edge_val_set(
+								char, orig, dest, k, *now, v
+							)
+						else:
+							raise TypeError(
+								"Not a valid change for a plan", tup
+							)

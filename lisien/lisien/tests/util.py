@@ -1,11 +1,20 @@
+import os
 from functools import wraps
+from logging import getLogger
 from queue import SimpleQueue, Empty
 from threading import Thread
 from typing import Any, Callable, TypeVar
 from unittest.mock import MagicMock
 
 from lisien import Engine
+from lisien.db import (
+	PythonDatabaseConnector,
+	NullDatabaseConnector,
+)
+from lisien.pqdb import ParquetDatabaseConnector
+from lisien.sql import SQLAlchemyDatabaseConnector
 from lisien.facade import EngineFacade
+from lisien.proxy.engine import EngineProxy
 from lisien.proxy.manager import Sub
 
 
@@ -58,13 +67,13 @@ def make_test_engine_kwargs(
 	path,
 	execution,
 	database,
-	random_seed=69105,
+	random_seed,
 	enforce_end_of_time=False,
 ):
 	kwargs = {
 		"random_seed": random_seed,
 		"enforce_end_of_time": enforce_end_of_time,
-		"prefix": None if database == "nodb" else path,
+		"prefix": None if database in {"nodb", "python"} else path,
 	}
 	if database == "sqlite":
 		kwargs["connect_string"] = f"sqlite:///{path}/world.sqlite3"
@@ -76,8 +85,51 @@ def make_test_engine_kwargs(
 	return kwargs
 
 
-def make_test_engine(path, execution, database):
-	return Engine(**make_test_engine_kwargs(path, execution, database))
+def make_test_engine(path, execution, database, random_seed):
+	kwargs = {"random_seed": random_seed}
+	if execution == "proxy":
+		eng = EngineProxy(
+			None,
+			None,
+			getLogger("lisien proxy"),
+			prefix=None,
+			worker_index=0,
+			eternal={"language": "eng"},
+			function={},
+			method={},
+			trigger={},
+			prereq={},
+			action={},
+		)
+		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
+			"trunk",
+			0,
+			0,
+			True,
+		)
+		eng._mutable_worker = True
+		return eng
+	if execution == "serial":
+		kwargs["workers"] = 0
+	else:
+		kwargs["workers"] = 2
+		kwargs["sub_mode"] = Sub(execution)
+	match database:
+		case "python":
+			kwargs["database"] = PythonDatabaseConnector()
+		case "sqlite":
+			kwargs["database"] = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{path}/world.sqlite3"
+			)
+		case "parquetdb":
+			kwargs["database"] = ParquetDatabaseConnector(
+				os.path.join(path, "world")
+			)
+		case "nodb":
+			kwargs["database"] = NullDatabaseConnector()
+		case _:
+			raise RuntimeError("Unknown database", database)
+	return Engine(path, **kwargs)
 
 
 def make_test_engine_facade() -> EngineFacade:

@@ -1,3 +1,17 @@
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import difflib
 import filecmp
 import json
@@ -9,12 +23,12 @@ import pytest
 
 from ..db import (
 	AbstractDatabaseConnector,
-	ParquetDatabaseConnector,
-	SQLAlchemyDatabaseConnector,
+	PythonDatabaseConnector,
 )
+from ..facade import EngineFacade
+from ..pqdb import ParquetDatabaseConnector
+from ..sql import SQLAlchemyDatabaseConnector
 from ..engine import Engine
-from ..exporter import game_path_to_xml
-from ..importer import xml_to_pqdb, xml_to_sqlite
 from .data import DATA_DIR
 
 
@@ -41,7 +55,9 @@ def turns(request):
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def export_to(tmp_path, random_seed, non_null_database, request, turns):
+def engine_and_exported_xml(
+	tmp_path, random_seed, persistent_database, request, turns
+):
 	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
@@ -49,50 +65,49 @@ def export_to(tmp_path, random_seed, non_null_database, request, turns):
 		workers=0,
 		random_seed=random_seed,
 		connect_string=f"sqlite:///{prefix}/world.sqlite3"
-		if non_null_database == "sqlite"
+		if persistent_database == "sqlite"
 		else None,
 		keyframe_on_close=False,
 	) as eng:
 		install(eng)
 		for _ in range(turns):
 			eng.next_turn()
-	yield str(os.path.join(DATA_DIR, request.param + f"_{turns}.xml"))
+		yield eng, str(os.path.join(DATA_DIR, request.param + f"_{turns}.xml"))
 
 
-def test_export_db(tmp_path, export_to):
+def test_export_db(tmp_path, engine_and_exported_xml):
 	test_xml = os.path.join(tmp_path, "test.xml")
-	game_path_to_xml(
-		os.path.join(tmp_path, "game"), test_xml, name="test_export"
-	)
+	eng, outpath = engine_and_exported_xml
+	eng.to_xml(test_xml, name="test_export")
 
-	if not filecmp.cmp(export_to, test_xml):
+	if not filecmp.cmp(outpath, test_xml):
 		with (
 			open(test_xml, "rt") as testfile,
-			open(export_to, "rt") as goodfile,
+			open(outpath, "rt") as goodfile,
 		):
 			differences = list(
 				difflib.unified_diff(
 					goodfile.readlines(),
 					testfile.readlines(),
 					test_xml,
-					export_to,
+					outpath,
 				)
 			)
-			assert not differences, "".join(differences)
+		assert filecmp.cmp(outpath, test_xml), "".join(differences)
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def exported(tmp_path, random_seed, non_null_database, request, turns):
+def exported(
+	tmp_path, random_seed, persistent_database_connector_part, request, turns
+):
 	install = get_install_func(request.param, random_seed)
 	prefix = os.path.join(tmp_path, "game")
 	with Engine(
 		prefix,
 		workers=0,
 		random_seed=random_seed,
-		connect_string=f"sqlite:///{prefix}/world.sqlite3"
-		if non_null_database == "sqlite"
-		else None,
 		keyframe_on_close=False,
+		database=persistent_database_connector_part(),
 	) as eng:
 		install(eng)
 		for _ in range(turns):
@@ -103,7 +118,25 @@ def exported(tmp_path, random_seed, non_null_database, request, turns):
 
 def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 	prefix1 = os.path.join(tmp_path, "game")
+	os.makedirs(prefix1, exist_ok=True)
 	prefix2 = os.path.join(tmp_path, "game2")
+	os.makedirs(prefix2, exist_ok=True)
+	match non_null_database:
+		case "python":
+			db1 = PythonDatabaseConnector()
+			db2 = PythonDatabaseConnector()
+		case "sqlite":
+			db1 = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{prefix1}/world.sqlite3"
+			)
+			db2 = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{prefix2}/world.sqlite3"
+			)
+		case "parquetdb":
+			db1 = ParquetDatabaseConnector(os.path.join(prefix1, "world"))
+			db2 = ParquetDatabaseConnector(os.path.join(prefix2, "world"))
+		case _:
+			raise RuntimeError("Unknown database", non_null_database)
 	if exported.endswith("kobold.lisien"):
 		from lisien.examples.kobold import inittest as install
 	elif exported.endswith("wolfsheep.lisien"):
@@ -119,17 +152,13 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 			exported,
 			prefix1,
 			workers=0,
-			connect_string=f"sqlite:///{prefix1}/world.sqlite3"
-			if non_null_database == "sqlite"
-			else None,
+			database=db1,
 			keyframe_on_close=False,
 		) as eng1,
 		Engine(
 			prefix2,
 			workers=0,
-			connect_string=f"sqlite:///{prefix2}/world.sqlite3"
-			if non_null_database == "sqlite"
-			else None,
+			database=db2,
 			keyframe_on_close=False,
 			random_seed=random_seed,
 		) as eng2,
@@ -138,34 +167,11 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 		for _ in range(turns):
 			eng2.next_turn()
 		compare_engines_world_state(eng1, eng2)
+	db1.close()
+	db2.close()
 
 	compare_stored_strings(prefix2, prefix1)
 	compare_stored_python_code(prefix2, prefix1)
-
-
-DUMP_METHOD_NAMES = (
-	"global_dump",
-	"turns_completed_dump",
-	"universals_dump",
-	"rulebooks_dump",
-	"rules_dump",
-	"rule_triggers_dump",
-	"rule_prereqs_dump",
-	"rule_actions_dump",
-	"rule_neighborhood_dump",
-	"rule_big_dump",
-	"node_rulebook_dump",
-	"portal_rulebook_dump",
-	"nodes_dump",
-	"edges_dump",
-	"things_dump",
-	"units_dump",
-	"node_val_dump",
-	"edge_val_dump",
-	"graph_val_dump",
-	"keyframes_graphs_dump",
-	"keyframe_extensions_dump",
-)
 
 
 def compare_engines_world_state(
@@ -176,13 +182,15 @@ def compare_engines_world_state(
 	correct_engine.commit()
 	test_engine = getattr(test_engine, "query", test_engine)
 	correct_engine = getattr(correct_engine, "query", test_engine)
-	for dump_method in DUMP_METHOD_NAMES:
-		test_data = list(getattr(test_engine, dump_method)())
-		correct_data = list(getattr(correct_engine, dump_method)())
-		print(dump_method)
-		assert correct_data == test_data, (
-			dump_method + " gave different results"
-		)
+	test_dump = test_engine.dump_everything()
+	correct_dump = correct_engine.dump_everything()
+	assert test_dump.keys() == correct_dump.keys()
+	for k, test_data in test_dump.items():
+		if k.endswith("rules_handled"):
+			continue
+		correct_data = correct_dump[k]
+		print(k)
+		assert correct_data == test_data, f"{k} tables differ"
 
 
 def compare_stored_strings(
@@ -228,32 +236,81 @@ def compare_stored_python_code(
 			)
 
 
-def test_import_db(tmp_path, export_to, non_null_database, engine_facade):
-	if non_null_database == "parquetdb":
-		test_world = os.path.join(tmp_path, "testworld")
-		correct_world = os.path.join(tmp_path, "world")
-		xml_to_pqdb(export_to, test_world)
-		test_engine = ParquetDatabaseConnector(
-			test_world, engine_facade.pack, engine_facade.unpack
-		)
-		correct_engine = ParquetDatabaseConnector(
-			correct_world, engine_facade.pack, engine_facade.unpack
-		)
-	else:
-		test_world = os.path.join(tmp_path, "testworld.sqlite3")
-		correct_world = os.path.join(tmp_path, "world.sqlite3")
-		xml_to_sqlite(export_to, test_world)
-		test_engine = SQLAlchemyDatabaseConnector(
-			"sqlite:///" + test_world,
-			{},
-			engine_facade.pack,
-			engine_facade.unpack,
-		)
-		correct_engine = SQLAlchemyDatabaseConnector(
-			"sqlite:///" + correct_world,
-			{},
-			engine_facade.pack,
-			engine_facade.unpack,
-		)
+@pytest.fixture
+def pqdb_connector_under_test(tmp_path, engine_facade):
+	test_world = os.path.join(tmp_path, "testworld")
+	connector = ParquetDatabaseConnector(test_world)
+	(connector.pack, connector.unpack) = (
+		engine_facade.pack,
+		engine_facade.unpack,
+	)
+	yield connector
+	connector.close()
 
-	compare_engines_world_state(correct_engine, test_engine)
+
+@pytest.fixture
+def pqdb_connector_correct(tmp_path, engine_facade):
+	correct_world = os.path.join(tmp_path, "world")
+	connector = ParquetDatabaseConnector(correct_world)
+	(connector.pack, connector.unpack) = (
+		engine_facade.pack,
+		engine_facade.unpack,
+	)
+	yield connector
+	connector.close()
+
+
+@pytest.mark.parquetdb
+def test_import_parquetdb(
+	tmp_path,
+	engine_and_exported_xml,
+	pqdb_connector_under_test,
+	pqdb_connector_correct,
+):
+	_, xml = engine_and_exported_xml
+	pqdb_connector_under_test.load_xml(xml)
+	compare_engines_world_state(
+		pqdb_connector_correct, pqdb_connector_under_test
+	)
+
+
+@pytest.fixture
+def sql_connector_under_test(tmp_path, engine_facade):
+	test_world = os.path.join(tmp_path, "testworld.sqlite3")
+	connector = SQLAlchemyDatabaseConnector(
+		"sqlite:///" + test_world,
+	)
+	(connector.pack, connector.unpack) = (
+		engine_facade.pack,
+		engine_facade.unpack,
+	)
+	yield connector
+	connector.close()
+
+
+@pytest.fixture
+def sql_connector_correct(tmp_path, engine_facade):
+	correct_world = os.path.join(tmp_path, "world.sqlite3")
+	connector = SQLAlchemyDatabaseConnector(
+		"sqlite:///" + correct_world,
+	)
+	(connector.pack, connector.unpack) = (
+		engine_facade.pack,
+		engine_facade.unpack,
+	)
+	yield connector
+	connector.close()
+
+
+@pytest.mark.sqlite
+def test_import_sqlite(
+	tmp_path,
+	engine_and_exported_xml,
+	sql_connector_correct,
+	sql_connector_under_test,
+):
+	_, xml = engine_and_exported_xml
+	sql_connector_under_test.load_xml(xml)
+	compare_engines_world_state(
+		sql_connector_correct, sql_connector_under_test
+	)

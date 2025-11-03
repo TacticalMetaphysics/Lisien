@@ -1,5 +1,5 @@
-# This file is part of allegedb, an object-relational mapper for versioned graphs.
-# Copyright (C) Zachary Spector. public@zacharyspector.com
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by

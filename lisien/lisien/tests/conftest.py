@@ -1,4 +1,4 @@
-# This file is part of Elide, frontend to Lisien, a framework for life simulation games.
+# This file is part of Lisien, a framework for life simulation games.
 # Copyright (c) Zachary Spector, public@zacharyspector.com
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,12 @@ from logging import getLogger
 import pytest
 
 from lisien import Engine
+from lisien.db import (
+	NullDatabaseConnector,
+	PythonDatabaseConnector,
+)
+from ..pqdb import ParquetDatabaseConnector
+from ..sql import SQLAlchemyDatabaseConnector
 from lisien.proxy.handle import EngineHandle
 from lisien.proxy.manager import Sub
 
@@ -29,7 +35,11 @@ from ..examples import college, kobold, sickle
 from ..proxy.engine import EngineProxy
 from ..proxy.manager import EngineProxyManager
 from . import data
-from .util import make_test_engine_facade, make_test_engine_kwargs
+from .util import (
+	make_test_engine_facade,
+	make_test_engine_kwargs,
+	make_test_engine,
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -103,8 +113,15 @@ def handle_initialized(request, tmp_path, database):
 		assert request.param == "sickle"
 		install = sickle.install
 		keyframe = {0: data.SICKLE_KEYFRAME_0, 1: data.SICKLE_KEYFRAME_1}
-	if database == "nodb":
-		ret = EngineHandle(None, workers=0, random_seed=69105)
+	if database in {"nodb", "python"}:
+		if database == "nodb":
+			connector = NullDatabaseConnector()
+		else:
+			assert database == "python"
+			connector = PythonDatabaseConnector()
+		ret = EngineHandle(
+			None, workers=0, random_seed=69105, database=connector
+		)
 		install(ret._real)
 		ret.keyframe = keyframe
 		yield ret
@@ -171,6 +188,7 @@ def serial_or_parallel(request):
 @pytest.fixture(
 	params=[
 		"nodb",
+		"python",
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
 	]
@@ -183,6 +201,7 @@ def database(request):
 	params=[
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
+		"python",
 	]
 )
 def non_null_database(request):
@@ -190,36 +209,58 @@ def non_null_database(request):
 
 
 @pytest.fixture(
+	params=[
+		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
+		pytest.param("sqlite", marks=pytest.mark.sqlite),
+	]
+)
+def persistent_database(request):
+	return request.param
+
+
+@pytest.fixture
+def database_connector_part(tmp_path, non_null_database):
+	match non_null_database:
+		case "python":
+			return PythonDatabaseConnector
+		case "sqlite":
+			return partial(
+				SQLAlchemyDatabaseConnector,
+				f"sqlite:///{tmp_path}/world.sqlite3",
+			)
+		case "parquetdb":
+			return partial(
+				ParquetDatabaseConnector, os.path.join(tmp_path, "world")
+			)
+	raise RuntimeError("Unknown database", non_null_database)
+
+
+@pytest.fixture
+def persistent_database_connector_part(tmp_path, persistent_database):
+	match persistent_database:
+		case "sqlite":
+			return partial(
+				SQLAlchemyDatabaseConnector,
+				f"sqlite:///{tmp_path}/world.sqlite3",
+			)
+		case "parquetdb":
+			return partial(
+				ParquetDatabaseConnector, os.path.join(tmp_path, "world")
+			)
+	raise RuntimeError("Unknown database", persistent_database)
+
+
+@pytest.fixture(scope="function")
+def database_connector(database_connector_part):
+	return database_connector_part()
+
+
+@pytest.fixture(
 	scope="function",
 )
-def engy(tmp_path, execution, database):
-	"""Engine or EngineProxy, but not connected to a subprocess"""
-	if execution == "proxy":
-		eng = EngineProxy(
-			None,
-			None,
-			getLogger("lisien proxy"),
-			prefix=None,
-			worker_index=0,
-			eternal={"language": "eng"},
-			function={},
-			method={},
-			trigger={},
-			prereq={},
-			action={},
-		)
-		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
-			"trunk",
-			0,
-			0,
-			True,
-		)
-		eng._mutable_worker = True
-		yield eng
-		return
-	with Engine(
-		**make_test_engine_kwargs(tmp_path, execution, database)
-	) as eng:
+def engy(tmp_path, execution, database, random_seed):
+	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
+	with make_test_engine(tmp_path, execution, database, random_seed) as eng:
 		yield eng
 
 
@@ -229,31 +270,39 @@ def local_or_remote(request):
 
 
 @pytest.fixture
-def engine(tmp_path, serial_or_parallel, local_or_remote, database):
+def engine(
+	tmp_path,
+	serial_or_parallel,
+	local_or_remote,
+	non_null_database,
+	random_seed,
+):
 	"""Engine or EngineProxy with a subprocess"""
 	if local_or_remote == "remote":
 		procman = EngineProxyManager()
 		with procman.start(
-			**make_test_engine_kwargs(tmp_path, serial_or_parallel, database)
+			**make_test_engine_kwargs(
+				tmp_path, serial_or_parallel, non_null_database, random_seed
+			)
 		) as proxy:
 			yield proxy
 		procman.shutdown()
 	else:
 		with Engine(
-			**make_test_engine_kwargs(tmp_path, serial_or_parallel, database)
+			**make_test_engine_kwargs(
+				tmp_path, serial_or_parallel, non_null_database, random_seed
+			)
 		) as eng:
 			yield eng
 
 
-def proxyless_engine(tmp_path, serial_or_parallel, database):
+def proxyless_engine(tmp_path, serial_or_parallel, database_connector):
 	with Engine(
-		tmp_path if database != "null" else None,
+		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
 		workers=0 if serial_or_parallel == "serial" else 2,
-		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
-		if database == "sqlite"
-		else None,
+		database=database_connector,
 	) as eng:
 		yield eng
 
@@ -284,19 +333,22 @@ def sqleng(tmp_path, request, execution):
 			random_seed=69105,
 			enforce_end_of_time=False,
 			workers=0 if execution == "serial" else 2,
+			sub_mode=Sub(execution) if execution != "serial" else None,
 			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 		) as eng:
 			yield eng
 
 
 @pytest.fixture(scope="function")
-def serial_engine(tmp_path, database):
+def serial_engine(tmp_path, persistent_database):
 	with Engine(
-		tmp_path if database == "parquetdb" else None,
+		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
 		workers=0,
-		connect_string=f"sqlite:///:memory:" if database == "sqlite" else None,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
+		if persistent_database == "sqlite"
+		else None,
 	) as eng:
 		yield eng
 
@@ -304,7 +356,11 @@ def serial_engine(tmp_path, database):
 @pytest.fixture(scope="function")
 def null_engine():
 	with Engine(
-		None, random_seed=69105, enforce_end_of_time=False, workers=0
+		None,
+		random_seed=69105,
+		enforce_end_of_time=False,
+		workers=0,
+		database=NullDatabaseConnector(),
 	) as eng:
 		yield eng
 

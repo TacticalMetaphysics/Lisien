@@ -1,621 +1,627 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <grammar xmlns="http://relaxng.org/ns/structure/1.0"
-		 datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
-	<start>
-		<element>
-			<name ns="">lisien</name>
-			<attribute>
-				<name ns="">action</name>
-				<data type="base64Binary"/>
-			</attribute>
-			<attribute>
-				<name ns="">branch</name>
-				<data type="NCName"/>
-			</attribute>
-			<attribute>
-				<name ns="">db-schema-version</name>
-				<data type="integer"/>
-			</attribute>
-			<attribute>
-				<name ns="">function</name>
-				<data type="base64Binary"/>
-			</attribute>
-			<attribute>
-				<name ns="">language</name>
-				<data type="NCName"/>
-			</attribute>
-			<attribute>
-				<name ns="">method</name>
-				<data type="base64Binary"/>
-			</attribute>
-			<attribute>
-				<name ns="">prereq</name>
-				<data type="base64Binary"/>
-			</attribute>
-			<ref name="tick"/>
-			<attribute>
-				<name ns="">trigger</name>
-				<data type="base64Binary"/>
-			</attribute>
-			<attribute>
-				<name ns="">trunk</name>
-				<data type="NCName"/>
-			</attribute>
-			<attribute>
-				<name ns="">turn</name>
-				<data type="nonNegativeInteger"/>
-			</attribute>
-			<element>
-				<name ns="">playtree</name>
-				<attribute>
-					<name ns="">game</name>
-					<data type="NCName"/>
-				</attribute>
-				<attribute>
-					<name ns="">trunk</name>
-					<data type="NCName"/>
-				</attribute>
-				<element>
-					<name ns="">branch</name>
-					<attribute>
-						<name ns="">end-tick</name>
-						<data type="nonNegativeInteger"/>
-					</attribute>
-					<attribute>
-						<name ns="">end-turn</name>
-						<data type="nonNegativeInteger"/>
-					</attribute>
-					<attribute>
-						<name ns="">last-turn-completed</name>
-						<data type="nonNegativeInteger"/>
-					</attribute>
-					<attribute>
-						<name ns="">name</name>
-						<data type="NCName"/>
-					</attribute>
-					<attribute>
-						<name ns="">start-tick</name>
-						<data type="nonNegativeInteger"/>
-					</attribute>
-					<attribute>
-						<name ns="">start-turn</name>
-						<data type="nonNegativeInteger"/>
-					</attribute>
-					<oneOrMore>
-						<element>
-							<name ns="">turn</name>
-							<attribute>
-								<name ns="">end-tick</name>
-								<data type="nonNegativeInteger"/>
-							</attribute>
-							<attribute>
-								<name ns="">number</name>
-								<data type="nonNegativeInteger"/>
-							</attribute>
-							<attribute>
-								<name ns="">plan-end-tick</name>
-								<data type="nonNegativeInteger"/>
-							</attribute>
-							<oneOrMore>
-								<choice>
-									<element>
-										<name ns="">node</name>
-										<attribute>
-											<name ns="">character</name>
-											<text/>
-										</attribute>
-										<attribute>
-											<name ns="">exists</name>
-											<data type="boolean"/>
-										</attribute>
-										<attribute>
-											<name ns="">name</name>
-											<text/>
-										</attribute>
-										<optional>
-											<attribute>
-												<name ns="">rulebook</name>
-												<text/>
-											</attribute>
-										</optional>
-										<ref name="tick"/>
-										<zeroOrMore>
-											<element>
-												<name ns="">dict-item</name>
-												<attribute>
-													<name ns="">key</name>
-													<ref name="repr"/>
-												</attribute>
-												<ref name="value"/>
-											</element>
-										</zeroOrMore>
-									</element>
-									<element>
-										<name ns="">edge</name>
-										<attribute>
-											<name ns="">dest</name>
-											<text/>
-										</attribute>
-										<attribute>
-											<name ns="">orig</name>
-											<text/>
-										</attribute>
-										<optional>
-											<attribute>
-												<name ns="">rulebook</name>
-												<text/>
-											</attribute>
-										</optional>
-									</element>
-									<element>
-										<name ns="">universal</name>
-										<ref name="tick"/>
-										<attribute>
-											<name ns="">key</name>
-											<ref name="repr"/>
-										</attribute>
-										<ref name="value"/>
-									</element>
-									<element>
-										<name ns="">graph</name>
-										<attribute>
-											<name ns="">character</name>
-											<ref name="repr"/>
-										</attribute>
-										<ref name="tick"/>
-										<attribute>
-											<name ns="">type</name>
-											<data type="NCName"/>
-										</attribute>
-									</element>
-									<element>
-										<name ns="">graph-val</name>
-										<attribute>
-											<name ns="">character</name>
-											<ref name="repr"/>
-										</attribute>
-										<ref name="key"/>
-										<ref name="tick"/>
-										<ref name="value"/>
-									</element>
-									<element>
-										<name ns="">keyframe</name>
-										<ref name="tick"/>
-										<element>
-											<name ns="">universal</name>
-											<zeroOrMore>
-												<element>
-													<name ns="">dict-item
-													</name>
-													<attribute>
-														<name ns="">key</name>
-														<ref name="repr"/>
-													</attribute>
-													<ref name="value"/>
-												</element>
-											</zeroOrMore>
-										</element>
-										<zeroOrMore>
-											<element>
-												<name ns="">character</name>
-												<optional>
-													<attribute>
-														<name ns="">
-															character-place-rulebook
-														</name>
-														<ref name="repr"/>
-													</attribute>
-												</optional>
-												<optional>
-													<attribute>
-														<name ns="">
-															character-portal-rulebook
-														</name>
-														<ref name="repr"/>
-													</attribute>
-												</optional>
-												<optional>
-													<attribute>
-														<name ns="">
-															character-rulebook
-														</name>
-														<ref name="repr"/>
-													</attribute>
-												</optional>
-												<optional>
-													<attribute>
-														<name ns="">
-															character-thing-rulebook
-														</name>
-														<ref name="repr"/>
-													</attribute>
-												</optional>
-												<attribute>
-													<name ns="">name</name>
-													<ref name="repr"/>
-												</attribute>
-												<optional>
-													<attribute>
-														<name ns="">
-															unit-rulebook
-														</name>
-														<ref name="repr"/>
-													</attribute>
-												</optional>
-												<zeroOrMore>
-													<element>
-														<name ns="">dict-item
-														</name>
-														<attribute>
-															<name ns="">key
-															</name>
-															<ref name="repr"/>
-														</attribute>
-														<ref name="value"/>
-													</element>
-												</zeroOrMore>
-												<zeroOrMore>
-													<element>
-														<name ns="">node</name>
-														<attribute>
-															<name ns="">name
-															</name>
-															<ref name="repr"/>
-														</attribute>
-														<optional>
-															<attribute>
-																<name ns="">
-																	rulebook
-																</name>
-																<ref
-																	name="repr"/>
-															</attribute>
-														</optional>
-														<zeroOrMore>
-															<element>
-																<name ns="">
-																	dict-item
-																</name>
-																<attribute>
-																	<name
-																		ns="">
-																		key
-																	</name>
-																	<ref
-																		name="repr"/>
-																</attribute>
-																<ref
-																	name="value"/>
-															</element>
-														</zeroOrMore>
-													</element>
-												</zeroOrMore>
-												<zeroOrMore>
-													<element>
-														<name ns="">edge</name>
-														<attribute>
-															<name ns="">orig
-															</name>
-															<ref name="repr"/>
-														</attribute>
-														<attribute>
-															<name ns="">dest
-															</name>
-															<ref name="repr"/>
-														</attribute>
-														<optional>
-															<attribute>
-																<name ns="">
-																	rulebook
-																</name>
-																<ref
-																	name="repr"/>
-															</attribute>
-														</optional>
-														<zeroOrMore>
-															<element>
-																<name ns="">
-																	dict-item
-																</name>
-																<attribute>
-																	<name
-																		ns="">
-																		key
-																	</name>
-																	<ref
-																		name="repr"/>
-																</attribute>
-																<ref
-																	name="value"/>
-															</element>
-														</zeroOrMore>
-													</element>
-												</zeroOrMore>
-											</element>
-										</zeroOrMore>
-									</element>
-									<element>
-										<name ns="">location</name>
-										<attribute>
-											<name ns="">character</name>
-											<ref name="repr"/>
-										</attribute>
-										<attribute>
-											<name ns="">location</name>
-											<ref name="repr"/>
-										</attribute>
-										<attribute>
-											<name ns="">thing</name>
-											<ref name="repr"/>
-										</attribute>
-										<ref name="tick"/>
-									</element>
-									<element>
-										<name ns="">node-rulebook</name>
-										<attribute>
-											<name ns="">character</name>
-											<ref name="repr"/>
-										</attribute>
-										<attribute>
-											<name ns="">node</name>
-											<ref name="repr"/>
-										</attribute>
-										<attribute>
-											<name ns="">rulebook</name>
-											<ref name="repr"/>
-										</attribute>
-										<ref name="tick"/>
-									</element>
-									<element>
-										<name ns="">node-val</name>
-										<attribute>
-											<name ns="">character</name>
-											<ref name="repr"/>
-										</attribute>
-										<ref name="key"/>
-										<attribute>
-											<name ns="">node</name>
-											<ref name="repr"/>
-										</attribute>
-										<ref name="tick"/>
-										<ref name="value"/>
-									</element>
-									<element>
-										<name ns="">unit</name>
-										<attribute>
-											<name ns="">character-graph</name>
-											<ref name="repr"/>
-										</attribute>
-										<attribute>
-											<name ns="">is-unit</name>
-											<data type="boolean"/>
-										</attribute>
-										<ref name="tick"/>
-										<attribute>
-											<name ns="">unit-graph</name>
-											<ref name="repr"/>
-										</attribute>
-										<attribute>
-											<name ns="">unit-node</name>
-											<ref name="repr"/>
-										</attribute>
-									</element>
-								</choice>
-							</oneOrMore>
-							<zeroOrMore>
-								<choice>
-									<element>
-										<name ns="">rule-actions</name>
-										<attribute>
-											<name ns="">rule</name>
-											<data type="NCName"/>
-										</attribute>
-										<ref name="tick"/>
-										<zeroOrMore>
-											<element>
-												<name ns="">action</name>
-												<attribute>
-													<name ns="">name</name>
-													<data type="NCName"/>
-												</attribute>
-											</element>
-										</zeroOrMore>
-									</element>
-									<element>
-										<name ns="">rule-big</name>
-										<attribute>
-											<name ns="">big</name>
-											<data type="boolean"/>
-										</attribute>
-										<attribute>
-											<name ns="">rule</name>
-											<data type="NCName"/>
-										</attribute>
-										<ref name="tick"/>
-									</element>
-									<element>
-										<name ns="">rule-neighborhood</name>
-										<attribute>
-											<name ns="">rule</name>
-											<data type="NCName"/>
-										</attribute>
-										<optional>
-											<attribute>
-												<name ns="">neighbors</name>
-												<data
-													type="nonNegativeInteger"/>
-											</attribute>
-										</optional>
-										<ref name="tick"/>
-									</element>
-									<element>
-										<name ns="">rule-prereqs</name>
-										<attribute>
-											<name ns="">rule</name>
-											<data type="NCName"/>
-										</attribute>
-										<ref name="tick"/>
-										<zeroOrMore>
-											<element>
-												<name ns="">prereq</name>
-												<attribute>
-													<name ns="">name</name>
-													<data type="NCName"/>
-												</attribute>
-											</element>
-										</zeroOrMore>
-									</element>
-									<element>
-										<name ns="">rule-triggers</name>
-										<attribute>
-											<name ns="">rule</name>
-											<data type="NCName"/>
-										</attribute>
-										<ref name="tick"/>
-										<zeroOrMore>
-											<element>
-												<name ns="">trigger</name>
-												<attribute>
-													<name ns="">name</name>
-													<data type="NCName"/>
-												</attribute>
-											</element>
-										</zeroOrMore>
-									</element>
-									<element>
-										<name ns="">rulebook</name>
-										<attribute>
-											<name ns="">name</name>
-											<ref name="repr"/>
-										</attribute>
-										<attribute>
-											<name ns="">priority</name>
-											<data type="decimal"/>
-										</attribute>
-										<ref name="tick"/>
-										<zeroOrMore>
-											<element>
-												<name ns="">rule</name>
-												<attribute>
-													<name ns="">name</name>
-													<data type="NCName"/>
-												</attribute>
-											</element>
-										</zeroOrMore>
-									</element>
-								</choice>
-							</zeroOrMore>
-						</element>
-					</oneOrMore>
-				</element>
-			</element>
-		</element>
-	</start>
-	<define name="float">
-		<element>
-			<name ns="">float</name>
-			<attribute>
-				<name ns="">value</name>
-				<data type="decimal"/>
-			</attribute>
-		</element>
-	</define>
-	<define name="key">
-		<attribute>
-			<name ns="">key</name>
-			<ref name="repr"/>
-		</attribute>
-	</define>
-	<define name="dict">
-		<element>
-			<name ns="">dict</name>
-			<zeroOrMore>
-				<element>
-					<name ns="">dict-item</name>
-					<attribute>
-						<name ns="">key</name>
-						<ref name="repr"/>
-					</attribute>
-					<ref name="value"/>
-				</element>
-			</zeroOrMore>
-		</element>
-	</define>
-	<define name="none">
-		<element>
-			<name ns="">None</name>
-			<empty/>
-		</element>
-	</define>
-	<define name="ellipsis">
-		<element>
-			<name ns="">Ellipsis</name>
-			<empty/>
-		</element>
-	</define>
-	<define name="int">
-		<element>
-			<name ns="">int</name>
-			<attribute>
-				<name ns="">value</name>
-				<data type="integer"/>
-			</attribute>
-		</element>
-	</define>
-	<define name="value">
-		<choice>
-			<ref name="pylist"/>
-			<ref name="str"/>
-			<ref name="tuple"/>
-			<ref name="float"/>
-			<ref name="int"/>
-			<ref name="bool"/>
-			<ref name="dict"/>
-			<ref name="none"/>
-			<ref name="ellipsis"/>
-		</choice>
-	</define>
-	<define name="bool">
-		<element>
-			<name ns="">bool</name>
-			<attribute>
-				<name ns="">value</name>
-				<data type="boolean"/>
-			</attribute>
-		</element>
-	</define>
-	<define name="pylist">
-		<element>
-			<name ns="">list</name>
-			<zeroOrMore>
-				<ref name="value"/>
-			</zeroOrMore>
-		</element>
-	</define>
-	<define name="tick">
-		<attribute>
-			<name ns="">tick</name>
-			<data type="nonNegativeInteger"/>
-		</attribute>
-	</define>
-	<define name="tuple">
-		<element>
-			<name ns="">tuple</name>
-			<zeroOrMore>
-				<ref name="value"/>
-			</zeroOrMore>
-		</element>
-	</define>
-	<define name="str">
-		<element>
-			<name ns="">str</name>
-			<attribute>
-				<name ns="">value</name>
-				<text/>
-			</attribute>
-		</element>
-	</define>
-	<define name="repr">
-		<text/>
-	</define>
+         datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <start>
+    <element>
+      <name ns="">lisien</name>
+      <attribute>
+        <name ns="">action</name>
+        <data type="base64Binary"/>
+      </attribute>
+      <attribute>
+        <name ns="">branch</name>
+        <data type="NCName"/>
+      </attribute>
+      <attribute>
+        <name ns="">db-schema-version</name>
+        <data type="integer"/>
+      </attribute>
+      <attribute>
+        <name ns="">xml-schema-version</name>
+        <value>2</value>
+      </attribute>
+      <attribute>
+        <name ns="">function</name>
+        <data type="base64Binary"/>
+      </attribute>
+      <attribute>
+        <name ns="">language</name>
+        <data type="NCName"/>
+      </attribute>
+      <attribute>
+        <name ns="">method</name>
+        <data type="base64Binary"/>
+      </attribute>
+      <attribute>
+        <name ns="">prereq</name>
+        <data type="base64Binary"/>
+      </attribute>
+      <ref name="tick"/>
+      <attribute>
+        <name ns="">trigger</name>
+        <data type="base64Binary"/>
+      </attribute>
+      <attribute>
+        <name ns="">trunk</name>
+        <data type="NCName"/>
+      </attribute>
+      <attribute>
+        <name ns="">turn</name>
+        <data type="nonNegativeInteger"/>
+      </attribute>
+      <element>
+        <name ns="">playtree</name>
+        <attribute>
+          <name ns="">game</name>
+          <data type="NCName"/>
+        </attribute>
+        <attribute>
+          <name ns="">trunk</name>
+          <data type="NCName"/>
+        </attribute>
+        <element>
+          <name ns="">branch</name>
+          <attribute>
+            <name ns="">end-tick</name>
+            <data type="nonNegativeInteger"/>
+          </attribute>
+          <attribute>
+            <name ns="">end-turn</name>
+            <data type="nonNegativeInteger"/>
+          </attribute>
+          <attribute>
+            <name ns="">last-turn-completed</name>
+            <data type="nonNegativeInteger"/>
+          </attribute>
+          <attribute>
+            <name ns="">name</name>
+            <data type="NCName"/>
+          </attribute>
+          <attribute>
+            <name ns="">start-tick</name>
+            <data type="nonNegativeInteger"/>
+          </attribute>
+          <attribute>
+            <name ns="">start-turn</name>
+            <data type="nonNegativeInteger"/>
+          </attribute>
+          <oneOrMore>
+            <element>
+              <name ns="">turn</name>
+              <attribute>
+                <name ns="">end-tick</name>
+                <data type="nonNegativeInteger"/>
+              </attribute>
+              <attribute>
+                <name ns="">number</name>
+                <data type="nonNegativeInteger"/>
+              </attribute>
+              <attribute>
+                <name ns="">plan-end-tick</name>
+                <data type="nonNegativeInteger"/>
+              </attribute>
+              <zeroOrMore>
+                <choice>
+                  <element>
+                    <name ns="">rule</name>
+                    <attribute>
+                      <name ns="">end-tick</name>
+                      <data type="integer"/>
+                    </attribute>
+                    <attribute>
+                      <name ns="">type</name>
+                      <choice>
+                        <value>character</value>
+                        <value>unit</value>
+                        <value>character-thing</value>
+                        <value>character-place</value>
+                        <value>character-portal</value>
+                        <value>node</value>
+                        <value>portal</value>
+                      </choice>
+                    </attribute>
+                    <attribute>
+                      <name ns="">character</name>
+                      <ref name="repr"/>
+                    </attribute>
+                    <optional>
+                      <attribute>
+                        <name ns="">graph</name>
+                        <ref name="repr"/>
+                      </attribute>
+                    </optional>
+                    <optional>
+                      <attribute>
+                        <name ns="">node</name>
+                        <ref name="repr"/>
+                      </attribute>
+                    </optional>
+                    <optional>
+                      <attribute>
+                        <name ns="">unit</name>
+                        <ref name="repr"/>
+                      </attribute>
+                    </optional>
+                    <optional>
+                      <attribute>
+                        <name ns="">origin</name>
+                        <ref name="repr"/>
+                      </attribute>
+                    </optional>
+                    <optional>
+                      <attribute>
+                        <name ns="">destination</name>
+                        <ref name="repr"/>
+                      </attribute>
+                    </optional>
+                    <optional>
+                      <attribute>
+                        <name ns="">rulebook</name>
+                        <ref name="repr"/>
+                      </attribute>
+                    </optional>
+                    <attribute>
+                      <name ns="">rule</name>
+                      <text/>
+                    </attribute>
+                    <zeroOrMore>
+                      <ref name="update"/>
+                    </zeroOrMore>
+                  </element>
+                  <ref name="update"/>
+                </choice>
+              </zeroOrMore>
+            </element>
+          </oneOrMore>
+        </element>
+      </element>
+    </element>
+  </start>
+  <define name="update">
+    <oneOrMore>
+      <choice>
+        <element>
+          <name ns="">node</name>
+          <attribute>
+            <name ns="">character</name>
+            <text/>
+          </attribute>
+          <attribute>
+            <name ns="">exists</name>
+            <data type="boolean"/>
+          </attribute>
+          <attribute>
+            <name ns="">name</name>
+            <text/>
+          </attribute>
+          <optional>
+            <attribute>
+              <name ns="">rulebook</name>
+              <text/>
+            </attribute>
+          </optional>
+          <ref name="tick"/>
+          <zeroOrMore>
+            <ref name="dict-item"/>
+          </zeroOrMore>
+        </element>
+        <element>
+          <name ns="">edge</name>
+          <attribute>
+            <name ns="">dest</name>
+            <text/>
+          </attribute>
+          <attribute>
+            <name ns="">orig</name>
+            <text/>
+          </attribute>
+          <optional>
+            <attribute>
+              <name ns="">rulebook</name>
+              <text/>
+            </attribute>
+          </optional>
+        </element>
+        <element>
+          <name ns="">universal</name>
+          <ref name="tick"/>
+          <attribute>
+            <name ns="">key</name>
+            <ref name="repr"/>
+          </attribute>
+          <ref name="value"/>
+        </element>
+        <element>
+          <name ns="">graph</name>
+          <attribute>
+            <name ns="">character</name>
+            <ref name="repr"/>
+          </attribute>
+          <ref name="tick"/>
+          <attribute>
+            <name ns="">type</name>
+            <data type="NCName"/>
+          </attribute>
+        </element>
+        <element>
+          <name ns="">graph-val</name>
+          <attribute>
+            <name ns="">character</name>
+            <ref name="repr"/>
+          </attribute>
+          <ref name="key"/>
+          <ref name="tick"/>
+          <ref name="value"/>
+        </element>
+        <element>
+          <name ns="">keyframe</name>
+          <ref name="tick"/>
+          <element>
+            <name ns="">universal</name>
+            <zeroOrMore>
+              <ref name="dict-item"/>
+            </zeroOrMore>
+          </element>
+          <zeroOrMore>
+            <element>
+              <name ns="">character</name>
+              <optional>
+                <attribute>
+                  <name ns="">character-place-rulebook</name>
+                  <ref name="repr"/>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute>
+                  <name ns="">character-portal-rulebook</name>
+                  <ref name="repr"/>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute>
+                  <name ns="">character-rulebook</name>
+                  <ref name="repr"/>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute>
+                  <name ns="">character-thing-rulebook</name>
+                  <ref name="repr"/>
+                </attribute>
+              </optional>
+              <attribute>
+                <name ns="">name</name>
+                <ref name="repr"/>
+              </attribute>
+              <optional>
+                <attribute>
+                  <name ns="">unit-rulebook</name>
+                  <ref name="repr"/>
+                </attribute>
+              </optional>
+              <zeroOrMore>
+                <ref name="dict-item"/>
+              </zeroOrMore>
+              <zeroOrMore>
+                <element>
+                  <name ns="">node</name>
+                  <attribute>
+                    <name ns="">name</name>
+                    <ref name="repr"/>
+                  </attribute>
+                  <optional>
+                    <attribute>
+                      <name ns="">rulebook</name>
+                      <ref name="repr"/>
+                    </attribute>
+                  </optional>
+                  <zeroOrMore>
+                    <ref name="dict-item"/>
+                  </zeroOrMore>
+                </element>
+              </zeroOrMore>
+              <zeroOrMore>
+                <element>
+                  <name ns="">edge</name>
+                  <attribute>
+                    <name ns="">orig</name>
+                    <ref name="repr"/>
+                  </attribute>
+                  <attribute>
+                    <name ns="">dest</name>
+                    <ref name="repr"/>
+                  </attribute>
+                  <optional>
+                    <attribute>
+                      <name ns="">rulebook</name>
+                      <ref name="repr"/>
+                    </attribute>
+                  </optional>
+                  <zeroOrMore>
+                    <ref name="dict-item"/>
+                  </zeroOrMore>
+                </element>
+              </zeroOrMore>
+            </element>
+          </zeroOrMore>
+        </element>
+        <element>
+          <name ns="">location</name>
+          <attribute>
+            <name ns="">character</name>
+            <ref name="repr"/>
+          </attribute>
+          <attribute>
+            <name ns="">location</name>
+            <ref name="repr"/>
+          </attribute>
+          <attribute>
+            <name ns="">thing</name>
+            <ref name="repr"/>
+          </attribute>
+          <ref name="tick"/>
+        </element>
+        <element>
+          <name ns="">node-rulebook</name>
+          <attribute>
+            <name ns="">character</name>
+            <ref name="repr"/>
+          </attribute>
+          <attribute>
+            <name ns="">node</name>
+            <ref name="repr"/>
+          </attribute>
+          <attribute>
+            <name ns="">rulebook</name>
+            <ref name="repr"/>
+          </attribute>
+          <ref name="tick"/>
+        </element>
+        <element>
+          <name ns="">node-val</name>
+          <attribute>
+            <name ns="">character</name>
+            <ref name="repr"/>
+          </attribute>
+          <ref name="key"/>
+          <attribute>
+            <name ns="">node</name>
+            <ref name="repr"/>
+          </attribute>
+          <ref name="tick"/>
+          <ref name="value"/>
+        </element>
+        <element>
+          <name ns="">unit</name>
+          <attribute>
+            <name ns="">character-graph</name>
+            <ref name="repr"/>
+          </attribute>
+          <attribute>
+            <name ns="">is-unit</name>
+            <data type="boolean"/>
+          </attribute>
+          <ref name="tick"/>
+          <attribute>
+            <name ns="">unit-graph</name>
+            <ref name="repr"/>
+          </attribute>
+          <attribute>
+            <name ns="">unit-node</name>
+            <ref name="repr"/>
+          </attribute>
+        </element>
+      </choice>
+    </oneOrMore>
+    <choice>
+      <element>
+        <name ns="">rule-actions</name>
+        <attribute>
+          <name ns="">rule</name>
+          <data type="NCName"/>
+        </attribute>
+        <ref name="tick"/>
+        <zeroOrMore>
+          <element>
+            <name ns="">action</name>
+            <attribute>
+              <name ns="">name</name>
+              <data type="NCName"/>
+            </attribute>
+          </element>
+        </zeroOrMore>
+      </element>
+      <element>
+        <name ns="">rule-big</name>
+        <attribute>
+          <name ns="">big</name>
+          <data type="boolean"/>
+        </attribute>
+        <attribute>
+          <name ns="">rule</name>
+          <data type="NCName"/>
+        </attribute>
+        <ref name="tick"/>
+      </element>
+      <element>
+        <name ns="">rule-neighborhood</name>
+        <attribute>
+          <name ns="">rule</name>
+          <data type="NCName"/>
+        </attribute>
+        <optional>
+          <attribute>
+            <name ns="">neighbors</name>
+            <data type="nonNegativeInteger"/>
+          </attribute>
+        </optional>
+        <ref name="tick"/>
+      </element>
+      <element>
+        <name ns="">rule-prereqs</name>
+        <attribute>
+          <name ns="">rule</name>
+          <data type="NCName"/>
+        </attribute>
+        <ref name="tick"/>
+        <zeroOrMore>
+          <element>
+            <name ns="">prereq</name>
+            <attribute>
+              <name ns="">name</name>
+              <data type="NCName"/>
+            </attribute>
+          </element>
+        </zeroOrMore>
+      </element>
+      <element>
+        <name ns="">rule-triggers</name>
+        <attribute>
+          <name ns="">rule</name>
+          <data type="NCName"/>
+        </attribute>
+        <ref name="tick"/>
+        <zeroOrMore>
+          <element>
+            <name ns="">trigger</name>
+            <attribute>
+              <name ns="">name</name>
+              <data type="NCName"/>
+            </attribute>
+          </element>
+        </zeroOrMore>
+      </element>
+      <element>
+        <name ns="">rulebook</name>
+        <attribute>
+          <name ns="">name</name>
+          <ref name="repr"/>
+        </attribute>
+        <attribute>
+          <name ns="">priority</name>
+          <data type="decimal"/>
+        </attribute>
+        <ref name="tick"/>
+        <zeroOrMore>
+          <element>
+            <name ns="">rule</name>
+            <attribute>
+              <name ns="">name</name>
+              <data type="NCName"/>
+            </attribute>
+          </element>
+        </zeroOrMore>
+      </element>
+    </choice>
+  </define>
+  <define name="dict-item">
+    <element>
+      <name ns="">dict-item</name>
+      <attribute>
+        <name ns="">key</name>
+        <ref name="repr"/>
+      </attribute>
+      <ref name="value"/>
+    </element>
+  </define>
+  <define name="float">
+    <element>
+      <name ns="">float</name>
+      <attribute>
+        <name ns="">value</name>
+        <data type="decimal"/>
+      </attribute>
+    </element>
+  </define>
+  <define name="key">
+    <attribute>
+      <name ns="">key</name>
+      <ref name="repr"/>
+    </attribute>
+  </define>
+  <define name="dict">
+    <element>
+      <name ns="">dict</name>
+      <zeroOrMore>
+        <ref name="dict-item"/>
+      </zeroOrMore>
+    </element>
+  </define>
+  <define name="none">
+    <element>
+      <name ns="">None</name>
+      <empty/>
+    </element>
+  </define>
+  <define name="ellipsis">
+    <element>
+      <name ns="">Ellipsis</name>
+      <empty/>
+    </element>
+  </define>
+  <define name="int">
+    <element>
+      <name ns="">int</name>
+      <attribute>
+        <name ns="">value</name>
+        <data type="integer"/>
+      </attribute>
+    </element>
+  </define>
+  <define name="value">
+    <choice>
+      <ref name="pylist"/>
+      <ref name="str"/>
+      <ref name="tuple"/>
+      <ref name="float"/>
+      <ref name="int"/>
+      <ref name="bool"/>
+      <ref name="dict"/>
+      <ref name="none"/>
+      <ref name="ellipsis"/>
+    </choice>
+  </define>
+  <define name="bool">
+    <element>
+      <name ns="">bool</name>
+      <attribute>
+        <name ns="">value</name>
+        <data type="boolean"/>
+      </attribute>
+    </element>
+  </define>
+  <define name="pylist">
+    <element>
+      <name ns="">list</name>
+      <zeroOrMore>
+        <ref name="value"/>
+      </zeroOrMore>
+    </element>
+  </define>
+  <define name="tick">
+    <attribute>
+      <name ns="">tick</name>
+      <data type="nonNegativeInteger"/>
+    </attribute>
+  </define>
+  <define name="tuple">
+    <element>
+      <name ns="">tuple</name>
+      <zeroOrMore>
+        <ref name="value"/>
+      </zeroOrMore>
+    </element>
+  </define>
+  <define name="str">
+    <element>
+      <name ns="">str</name>
+      <attribute>
+        <name ns="">value</name>
+        <text/>
+      </attribute>
+    </element>
+  </define>
+  <define name="repr">
+    <text/>
+  </define>
 </grammar>

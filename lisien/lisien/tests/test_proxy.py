@@ -30,13 +30,15 @@ from lisien.tests.util import (
 
 
 @pytest.mark.parametrize("sim", ["kobold", "polygons"])
-def test_start(tmp_path, sim, non_null_database, sub_mode):
-	if non_null_database == "parquetdb" and sub_mode == Sub.interpreter:
+def test_start(tmp_path, sim, persistent_database, sub_mode, random_seed):
+	if persistent_database == "parquetdb" and sub_mode == Sub.interpreter:
 		raise pytest.skip(
 			"PyArrow does not yet support running in subinterpreters"
 		)
 
-	with make_test_engine(tmp_path, "serial", non_null_database) as eng:
+	with make_test_engine(
+		tmp_path, "serial", persistent_database, random_seed
+	) as eng:
 		match sim:
 			case "kobold":
 				kobold.inittest(eng)
@@ -45,7 +47,9 @@ def test_start(tmp_path, sim, non_null_database, sub_mode):
 
 	mgr = EngineProxyManager(
 		sub_mode=sub_mode,
-		**make_test_engine_kwargs(tmp_path, "serial", non_null_database),
+		**make_test_engine_kwargs(
+			tmp_path, "serial", persistent_database, random_seed
+		),
 	)
 	mgr.start(sub_mode=None)  # we're not testing workers
 	mgr.shutdown()

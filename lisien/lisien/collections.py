@@ -24,25 +24,31 @@ for changes using the ``connect(..)`` method.
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import os
 import sys
 from abc import ABC, abstractmethod
-from ast import Expr, Module, parse
 from collections import UserDict
 from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from typing import TYPE_CHECKING, Callable, Iterator
+from typing import TYPE_CHECKING, Callable
 
-import astor
 import networkx as nx
 from blinker import Signal
 
-from .types import CharName, Key
-from .util import AbstractEngine, dedent_source, getatt, sort_set
+from .types import (
+	CharName,
+	_Key,
+	AbstractEngine,
+	sort_set,
+	AbstractFunctionStore,
+	getatt,
+)
+from .util import dedent_source
 from .wrap import wrapval
 
 if TYPE_CHECKING:
@@ -181,7 +187,7 @@ class StringStore(MutableMapping, Signal):
 		"""Write the current language to disk, and load the new one if available"""
 		if self._prefix is None:
 			if lang not in self._languages:
-				self._languages[lang] = {}
+				self._languages[lang] = TamperEvidentDict()
 			return
 		try:
 			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
@@ -273,26 +279,6 @@ class StringStore(MutableMapping, Signal):
 		return the_hash.digest()
 
 
-class AbstractFunctionStore(ABC):
-	@abstractmethod
-	def save(self, reimport: bool = True) -> None: ...
-
-	@abstractmethod
-	def reimport(self) -> None: ...
-
-	@abstractmethod
-	def iterplain(self) -> Iterator[tuple[str, str]]: ...
-
-	def store_source(self, v: str, name: str | None = None) -> None: ...
-
-	@abstractmethod
-	def get_source(self, name: str) -> str: ...
-
-	@staticmethod
-	def truth(*args):
-		return True
-
-
 class FunctionStore(AbstractFunctionStore, Signal):
 	"""A module-like object that lets you alter its code and save your changes.
 
@@ -316,7 +302,7 @@ class FunctionStore(AbstractFunctionStore, Signal):
 		if filename is None:
 			self._filename = None
 			self._module = self.__name__ = module
-			self._ast = Module(body=[], type_ignores=[])
+			self._ast = ast.Module(body=[], type_ignores=[])
 			self._ast_idx = {}
 			self._need_save = False
 			self._locl = initial
@@ -331,7 +317,7 @@ class FunctionStore(AbstractFunctionStore, Signal):
 				self.reimport()
 			except (FileNotFoundError, ModuleNotFoundError):
 				self._module = module
-				self._ast = Module(body=[], type_ignores=[])
+				self._ast = ast.Module(body=[], type_ignores=[])
 				self._ast_idx = {}
 				self.save()
 			self._need_save = False
@@ -370,8 +356,8 @@ class FunctionStore(AbstractFunctionStore, Signal):
 				)
 			func = holder[k]
 		outdented = dedent_source(source)
-		expr = Expr(parse(outdented))
-		expr.value.body[0].name = k
+		expr = ast.parse(outdented)
+		expr.body[0].name = k
 		if k in self._ast_idx:
 			self._ast.body[self._ast_idx[k]] = expr
 		else:
@@ -407,7 +393,7 @@ class FunctionStore(AbstractFunctionStore, Signal):
 		if self._filename is None:
 			return
 		with open(self._filename, "w", encoding="utf-8") as outf:
-			outf.write(astor.code_gen.to_source(self._ast, indent_with="\t"))
+			outf.write(ast.unparse(self._ast))
 		self._need_save = False
 		if reimport:
 			self.reimport()
@@ -424,7 +410,7 @@ class FunctionStore(AbstractFunctionStore, Signal):
 		self._module = importlib.util.module_from_spec(spec)
 		sys.modules[modname] = self._module
 		spec.loader.exec_module(self._module)
-		self._ast = parse(self._module.__loader__.get_data(self._filename))
+		self._ast = ast.parse(self._module.__loader__.get_data(self._filename))
 		self._ast_idx = {}
 		for i, node in enumerate(self._ast.body):
 			if hasattr(node, "name"):
@@ -436,13 +422,13 @@ class FunctionStore(AbstractFunctionStore, Signal):
 
 	def iterplain(self):
 		for name, idx in self._ast_idx.items():
-			yield name, astor.to_source(self._ast.body[idx], indent_with="\t")
+			yield name, ast.unparse(self._ast.body[idx])
 
 	def store_source(self, v: str, name: str | None = None) -> None:
 		self._need_save = True
 		outdented = dedent_source(v)
-		mod = parse(outdented)
-		expr = Expr(mod)
+		mod = ast.parse(outdented)
+		expr = ast.Expr(mod)
 		if len(expr.value.body) != 1:
 			raise ValueError("Tried to store more than one function")
 		if name is None:
@@ -460,24 +446,18 @@ class FunctionStore(AbstractFunctionStore, Signal):
 		self.send(self, attr=name, val=locl[name])
 
 	def get_source(self, name: str) -> str:
-		return astor.code_gen.to_source(
-			self._ast.body[self._ast_idx[name]], indent_with="\t"
-		)
+		return ast.unparse(self._ast.body[self._ast_idx[name]])
 
 	def blake2b(self) -> bytes:
 		"""Return the blake2b hash digest of the code stored here"""
 		hashed = blake2b()
 		todo = dict(self._ast_idx)
 		stripped_ast = deepcopy(self._ast.body)
-		astor.strip_tree(stripped_ast)
+		# astor.strip_tree(stripped_ast)
 		for k in sort_set(todo.keys()):
 			hashed.update(k.encode())
 			hashed.update(GROUP_SEP)
-			hashed.update(
-				astor.code_gen.to_source(
-					stripped_ast[todo[k]], indent_with="\t"
-				).encode()
-			)
+			hashed.update(ast.unparse(stripped_ast[todo[k]]).encode())
 			hashed.update(REC_SEP)
 		return hashed.digest()
 
@@ -531,6 +511,11 @@ class UniversalMapping(MutableMapping, Signal):
 
 	def __setitem__(self, k, v):
 		"""Set k=v at the current branch and tick"""
+		try:
+			if v == self._get_cache_now(k):
+				return
+		except KeyError:
+			pass
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._universal_cache.store(k, branch, turn, tick, v)
 		self.engine.query.universal_set(k, branch, turn, tick, v)
@@ -582,7 +567,7 @@ class CharacterMapping(MutableMapping, Signal):
 		except KeyError:
 			return False
 
-	def __getitem__(self, name: Key | CharName) -> "Character":
+	def __getitem__(self, name: _Key) -> "Character":
 		"""Return the named character, if it's been created.
 
 		Try to use the cache if possible.

@@ -11,7 +11,7 @@ from elide.graph.arrow import ArrowPlane
 from elide.graph.board import GraphBoard, GraphBoardView
 from lisien.collections import FunctionStore
 from lisien.facade import CharacterFacade, EngineFacade
-from lisien.util import SignalDict
+from lisien.types import SignalDict
 
 from ..kivygarden.texturestack import TextureStackPlane
 from ..util import load_kv

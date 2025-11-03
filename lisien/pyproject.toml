@@ -15,7 +15,8 @@ authors = [
 ]
 description = "Life Simulator Engine"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
 requires-python = "~=3.10"
 classifiers = [
 	"Programming Language :: Python :: 3",
@@ -25,9 +26,9 @@ classifiers = [
 	"Development Status :: 2 - Pre-Alpha"
 ]
 dependencies = [
-	"astor~=0.8.1",
 	"blinker~=1.4",
 	"msgpack~=1.0.0",
+	"umsgpack~=2.8.0",
 	"networkx~=2.4",
 	"sqlalchemy~=2.0",
 	"numpy~=1.26.4",

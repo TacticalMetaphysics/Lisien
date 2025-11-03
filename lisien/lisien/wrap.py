@@ -1,5 +1,5 @@
-# This file is part of allegedb, an object relational mapper for versioned graphs.
-# Copyright (C) Zachary Spector. public@zacharyspector.com
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -12,10 +12,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Wrapper classes to let you store mutable data types in the allegedb ORM
+"""Wrapper classes to let you store mutable data types in Lisien
 
 The wrapper objects act like regular mutable objects, but write a new copy
-of themselves to allegedb every time they are changed.
+of themselves to Lisien every time they are changed.
 
 """
 
@@ -38,7 +38,7 @@ from typing import TYPE_CHECKING, Any, Callable, Hashable, Set
 from blinker import Signal
 
 if TYPE_CHECKING:
-	from .util import AbstractCharacter
+	from .types import AbstractCharacter
 
 
 class OrderlySet(set):
@@ -326,6 +326,8 @@ class SpecialMapping(Mapping, Signal, ABC):
 class MutableWrapper(ABC):
 	__slots__ = ()
 
+	_getter: Callable[[], list | dict]
+
 	def __iter__(self):
 		return iter(self._getter())
 
@@ -342,10 +344,6 @@ class MutableWrapper(ABC):
 
 	def __str__(self):
 		return str(self._getter())
-
-	@abstractmethod
-	def _getter(self):
-		raise NotImplementedError
 
 	@abstractmethod
 	def _copy(self):
@@ -623,7 +621,7 @@ def unwrap_items(it: Iterable[tuple[Any, Any]]) -> dict:
 class DictWrapper(MutableMappingWrapper, dict):
 	"""A dictionary synchronized with a serialized field.
 
-	This is meant to be used in allegedb entities (graph, node, or
+	This is meant to be used in Lisien entities (graph, node, or
 	edge), for when the user stores a dictionary in them.
 
 	"""
@@ -647,7 +645,7 @@ class DictWrapper(MutableMappingWrapper, dict):
 class ListWrapper(MutableWrapperDictList, MutableSequence):
 	"""A list synchronized with a serialized field.
 
-	This is meant to be used in allegedb entities (graph, node, or
+	This is meant to be used in Lisien entities (graph, node, or
 	edge), for when the user stores a list in them.
 
 	"""
@@ -703,7 +701,7 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 class SetWrapper(MutableWrapperSet):
 	"""A set synchronized with a serialized field.
 
-	This is meant to be used in allegedb entities (graph, node, or
+	This is meant to be used in Lisien entities (graph, node, or
 	edge), for when the user stores a set in them.
 
 	"""

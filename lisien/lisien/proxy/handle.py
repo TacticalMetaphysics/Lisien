@@ -25,11 +25,10 @@ from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match
 from typing import Any, Callable, Iterable, Optional
 
-import msgpack
 import networkx as nx
 import tblib
 
-from ..exc import HistoricKeyError, OutOfTimelineError
+from ..exc import HistoricKeyError, OutOfTimelineError, BadTimeException
 from ..node import Node
 from ..portal import Portal
 from ..types import (
@@ -62,6 +61,7 @@ from ..types import (
 	Turn,
 	UnitsDict,
 	Value,
+	AbstractCharacter,
 )
 from ..util import (
 	EDGE_VAL,
@@ -77,9 +77,9 @@ from ..util import (
 	RULES,
 	UNITS,
 	UNIVERSAL,
-	AbstractCharacter,
-	BadTimeException,
 	timer,
+	msgpack_map_header,
+	ILLEGAL_CHARACTER_NAMES,
 )
 
 SlightlyPackedDeltaType = dict[
@@ -94,7 +94,7 @@ FormerAndCurrentType = tuple[dict[bytes, bytes], dict[bytes, bytes]]
 
 def concat_d(r: dict[bytes, bytes]) -> bytes:
 	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
-	resp = msgpack.Packer().pack_map_header(len(r))
+	resp = msgpack_map_header(len(r))
 	for k, v in r.items():
 		resp += k + v
 	return resp
@@ -171,10 +171,15 @@ class EngineHandle:
 
 	@classmethod
 	def from_archive(cls, b: bytes | dict, *, log_queue=None) -> EngineHandle:
+		try:
+			from msgpack._cmsgpack import unpackb
+		except ImportError:
+			from umsgpack import unpackb
+
 		from ..engine import Engine
 
 		if isinstance(b, bytes):
-			kwargs: dict = msgpack.unpackb(b)
+			kwargs: dict = unpackb(b)
 		else:
 			kwargs = b
 		if "archive_path" not in kwargs:
@@ -249,11 +254,15 @@ class EngineHandle:
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
 		for char, chardelta in delta.items():
+			if char in ILLEGAL_CHARACTER_NAMES:
+				pchar = pack(char)
+				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = {
+					pack(k): pack(v) for (k, v) in chardelta.items()
+				}
+				continue
 			if chardelta is ...:
 				pchar = pack(char)
-				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = (
-					None
-				)
+				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = ...
 				continue
 			chardelta = chardelta.copy()
 			pchar = pack(char)
@@ -321,7 +330,7 @@ class EngineHandle:
 			packd.update(todo)
 		return slightly_packed_delta, concat_d(
 			{
-				charn: (concat_d(stuff) if stuff is not None else NONE)
+				charn: (concat_d(stuff) if stuff is not ... else NONE)
 				for charn, stuff in mostly_packed_delta.items()
 			}
 		)
@@ -394,7 +403,7 @@ class EngineHandle:
 		return self._real._get_slow_delta(btt_from, btt_to)
 
 	def bookmarks_dump(self) -> list[tuple[Key, Time]]:
-		return list(self._real.query.bookmark_items())
+		return list(self._real.query.bookmarks_dump())
 
 	def set_bookmark(self, key: Key, time: Time | None = None) -> Time:
 		if time is None:

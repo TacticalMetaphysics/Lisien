@@ -1,9 +1,24 @@
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from unittest.mock import patch
 
 import networkx as nx
 import pytest
 
 from lisien import Engine
+from lisien.db import NullDatabaseConnector
 from lisien.examples import (
 	college,
 	kobold,
@@ -13,6 +28,7 @@ from lisien.examples import (
 	wolfsheep,
 )
 from lisien.proxy.handle import EngineHandle
+from lisien.proxy.manager import Sub
 from lisien.types import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
 
 pytestmark = [pytest.mark.big]
@@ -20,21 +36,24 @@ pytestmark = [pytest.mark.big]
 
 @pytest.mark.slow
 def test_college_nodb(serial_or_parallel):
-	with Engine(
-		None, workers=0 if serial_or_parallel == "serial" else 2
-	) as eng:
+	kwargs = {}
+	if serial_or_parallel == "serial":
+		kwargs["workers"] = 0
+	else:
+		kwargs["workers"] = 2
+		kwargs["sub_mode"] = Sub(serial_or_parallel)
+	with Engine(None, **kwargs, database=NullDatabaseConnector()) as eng:
 		college.install(eng)
 		for i in range(10):
 			eng.next_turn()
 
 
 @pytest.mark.slow
-def test_college_premade(tmp_path, non_null_database, serial_or_parallel):
+def test_college_premade(
+	tmp_path, database_connector_part, serial_or_parallel
+):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
-	connect_string = None
-	if non_null_database == "sqlite":
-		connect_string = f"sqlite:///{tmp_path}/world.db"
 
 	def validate_final_keyframe(kf: Keyframe):
 		node_val: GraphNodeValKeyframe = kf["node_val"]
@@ -47,11 +66,14 @@ def test_college_premade(tmp_path, non_null_database, serial_or_parallel):
 			assert unit in phys_node_val
 			assert "location" in phys_node_val[unit]
 
-	with Engine(
-		tmp_path,
-		connect_string=connect_string,
-		workers=0 if serial_or_parallel == "serial" else 2,
-	) as eng:
+	kwargs = {}
+	if serial_or_parallel == "serial":
+		kwargs["workers"] = 0
+	else:
+		kwargs["workers"] = 2
+		kwargs["sub_mode"] = Sub(serial_or_parallel)
+
+	with Engine(tmp_path, **kwargs, database=database_connector_part()) as eng:
 		eng._validate_final_keyframe = validate_final_keyframe
 		college.install(eng)
 		for i in range(10):
@@ -62,11 +84,7 @@ def test_college_premade(tmp_path, non_null_database, serial_or_parallel):
 			staticmethod(validate_final_keyframe),
 			create=True,
 		),
-		Engine(
-			tmp_path,
-			connect_string=connect_string,
-			workers=0 if serial_or_parallel == "serial" else 2,
-		) as eng,
+		Engine(tmp_path, **kwargs, database=database_connector_part()) as eng,
 	):
 		for i in range(10):
 			eng.next_turn()
@@ -84,11 +102,10 @@ def test_polygons(engy):
 		engy.next_turn()
 
 
-def test_char_stat_startup(tmp_path, non_null_database):
-	connect_string = None
-	if non_null_database == "sqlite":
-		connect_string = f"sqlite:///{tmp_path}/world.sqlite3"
-	with Engine(tmp_path, workers=0, connect_string=connect_string) as eng:
+def test_char_stat_startup(tmp_path, persistent_database_connector_part):
+	with Engine(
+		tmp_path, workers=0, database=persistent_database_connector_part()
+	) as eng:
 		eng.new_character("physical", nx.hexagonal_lattice_graph(20, 20))
 		tri = eng.new_character("triangle")
 		sq = eng.new_character("square")
@@ -102,7 +119,9 @@ def test_char_stat_startup(tmp_path, non_null_database):
 		tri.stat["max_sameness"] = 0.8
 		assert "max_sameness" in tri.stat
 
-	with Engine(tmp_path, workers=0, connect_string=connect_string) as eng:
+	with Engine(
+		tmp_path, workers=0, database=persistent_database_connector_part()
+	) as eng:
 		assert "min_sameness" in eng.character["square"].stat
 		assert "max_sameness" in eng.character["square"].stat
 		assert "min_sameness" in eng.character["triangle"].stat
@@ -116,16 +135,15 @@ def test_sickle(engy):
 
 
 @pytest.mark.slow
-def test_wolfsheep(tmp_path, non_null_database, serial_or_parallel):
-	connect_string = None
-	if non_null_database == "sqlite":
-		connect_string = f"sqlite:///{tmp_path}/world.sqlite3"
+def test_wolfsheep(
+	tmp_path, persistent_database_connector_part, serial_or_parallel
+):
 	workers = 0 if serial_or_parallel == "serial" else 2
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		workers=workers,
-		connect_string=connect_string,
+		database=persistent_database_connector_part(),
 	) as engy:
 		wolfsheep.install(engy, seed=69105)
 		for i in range(10):
@@ -148,7 +166,7 @@ def test_wolfsheep(tmp_path, non_null_database, serial_or_parallel):
 		tmp_path,
 		random_seed=69105,
 		workers=workers,
-		connect_string=connect_string,
+		database=persistent_database_connector_part(),
 	)
 	try:
 		hand.next_turn()
