@@ -36,7 +36,7 @@ from _operator import (
 )
 from abc import ABC, abstractmethod
 from collections import defaultdict, OrderedDict
-from collections.abc import Iterable, Mapping, Sequence, Set
+from collections.abc import Set
 from concurrent.futures import Future
 from enum import Enum
 from functools import wraps, partial, cached_property
@@ -58,7 +58,6 @@ from typing import (
 	Mapping,
 	Type,
 	Optional,
-	AbstractSet,
 	KeysView,
 	Iterable,
 	Hashable,
@@ -77,13 +76,13 @@ from tblib import Traceback
 
 from . import exc
 from .exc import WorkerProcessReadOnlyError, TimeError
+from .util import getatt
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
 	MutableMappingUnwrapper,
 	OrderlySet,
 	SetWrapper,
-	SpecialMapping,
 	unwrap_items,
 	wrapval,
 )
@@ -552,20 +551,9 @@ CharacterRulebookTypeStr: TypeAlias = Literal[
 ]
 
 
-class EntityCollisionError(ValueError):
-	"""For when there's a discrepancy between the kind of entity you're creating and the one by the same name"""
-
-
-def getatt(attribute_name):
-	"""An easy way to make an alias"""
-	from operator import attrgetter
-
-	ret = property(attrgetter(attribute_name))
-	ret.__doc__ = "Alias to `{}`".format(attribute_name)
-	return ret
-
-
-_alleged_receivers = defaultdict(list)
+class SpecialMapping(Mapping, Signal, ABC):
+	@abstractmethod
+	def __init__(self, character: AbstractCharacter): ...
 
 
 class AllegedMapping(MutableMappingUnwrapper, SpecialMapping, ABC):

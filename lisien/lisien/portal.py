@@ -23,8 +23,8 @@ from .exc import HistoricKeyError
 from .facade import EngineFacade, FacadePortal
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .types import Edge, Key, Time, AbstractCharacter, getatt, EntityStatAlias
-from .util import unwrap
+from .types import Edge, Key, Time, AbstractCharacter, EntityStatAlias
+from .util import unwrap, getatt
 
 
 class RuleMapping(BaseRuleMapping):

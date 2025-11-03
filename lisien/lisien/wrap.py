@@ -35,10 +35,8 @@ from functools import partial
 from itertools import chain, zip_longest
 from typing import TYPE_CHECKING, Any, Callable, Hashable, Set
 
-from blinker import Signal
-
 if TYPE_CHECKING:
-	from .types import AbstractCharacter
+	pass
 
 
 class OrderlySet(set):
@@ -316,11 +314,6 @@ class OrderlyFrozenSet(frozenset):
 			*(datum for datum in self._data if datum not in __s),
 			*(datum for datum in __s if datum not in self),
 		)
-
-
-class SpecialMapping(Mapping, Signal, ABC):
-	@abstractmethod
-	def __init__(self, character: AbstractCharacter): ...
 
 
 class MutableWrapper(ABC):

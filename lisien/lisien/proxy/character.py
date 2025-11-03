@@ -47,8 +47,8 @@ from lisien.types import (
 	NodeValDict,
 	EdgeValDict,
 	CharDelta,
-	getatt,
 )
+from ..util import getatt
 from lisien.proxy.abc import (
 	CachingProxy,
 	CachingEntityProxy,

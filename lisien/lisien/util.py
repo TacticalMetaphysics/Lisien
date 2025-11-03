@@ -265,3 +265,12 @@ def msgpack_map_header(n) -> bytes:
 		return (0xDF).to_bytes(1, signed=False) + n.to_bytes(4, signed=False)
 	else:
 		raise ValueError("dict is too large")
+
+
+def getatt(attribute_name):
+	"""An easy way to make an alias"""
+	from operator import attrgetter
+
+	ret = property(attrgetter(attribute_name))
+	ret.__doc__ = "Alias to `{}`".format(attribute_name)
+	return ret
