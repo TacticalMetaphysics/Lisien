@@ -67,7 +67,7 @@ def make_test_engine_kwargs(
 	path,
 	execution,
 	database,
-	random_seed=69105,
+	random_seed,
 	enforce_end_of_time=False,
 ):
 	kwargs = {
@@ -85,8 +85,8 @@ def make_test_engine_kwargs(
 	return kwargs
 
 
-def make_test_engine(path, execution, database):
-	kwargs = {}
+def make_test_engine(path, execution, database, random_seed):
+	kwargs = {"random_seed": random_seed}
 	if execution == "proxy":
 		eng = EngineProxy(
 			None,

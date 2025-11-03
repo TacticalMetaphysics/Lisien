@@ -156,7 +156,7 @@ def test_del(windd):
 		windd[1]
 
 
-def test_set(tmp_path):
+def test_set(tmp_path, random_seed):
 	wd = WindowDict()
 	assert 0 not in wd
 	wd[0] = "foo"
@@ -183,7 +183,7 @@ def test_set(tmp_path):
 	assert 4 in wd
 	assert wd[4] == {"spam": "eggs"}
 	assert 5 not in wd
-	with make_test_engine(tmp_path, "serial", "sqlite") as orm:
+	with make_test_engine(tmp_path, "serial", "sqlite", random_seed) as orm:
 		g = orm.new_character("g")
 		g.node[5] = {"ham": {"spam": "beans"}}
 		wd[5] = g.node[5]["ham"]
