@@ -115,7 +115,7 @@ class LeaderMapping(Mapping):
 			return True
 		return False
 
-	def __getitem__(self, k: lisien._Key) -> "Character":
+	def __getitem__(self, k: KeyHint) -> "Character":
 		ret = self.engine.character[k]
 		node = self.node
 		charn = node.character.name
@@ -387,14 +387,13 @@ class Node(lisien.types.Node, rule.RuleFollower):
 	"""
 
 	__slots__ = ("_real_rule_mapping",)
-	character = getatt("graph")
 	no_unwrap = True
 	_extra_keys = {
 		"name",
 	}
 
 	def _get_rule_mapping(self) -> RuleMapping:
-		return rule.RuleMapping(self.db, self.rulebook)
+		return rule.RuleMapping(self.engine, self.rulebook)
 
 	def _get_rulebook_name(self) -> RulebookName:
 		now = self.engine._btt()
@@ -434,7 +433,6 @@ class Node(lisien.types.Node, rule.RuleFollower):
 
 	successor = succ = adj = edge = getatt("portal")
 	predecessor = pred = getatt("preportal")
-	engine: Engine = getatt("db")
 
 	@property
 	def leader(self) -> LeaderMapping:
@@ -446,7 +444,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 
 	def __init__(self, character: "Character", name: NodeName):
 		super().__init__(character, name)
-		self.db = getattr(character, "engine", character.db)
+		self.engine = getattr(character, "engine", character.engine)
 
 	@property
 	def neighbor(self) -> NeighborMapping:
@@ -698,7 +696,7 @@ class Thing(Node, AbstractThing):
 	"""
 
 	__slots__ = (
-		"graph",
+		"character",
 		"db",
 		"node",
 		"_rulebook",
