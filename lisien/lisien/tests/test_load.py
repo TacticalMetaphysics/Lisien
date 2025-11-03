@@ -29,8 +29,8 @@ testgraphs.append(path_graph_9)
 
 
 @pytest.fixture
-def db(tmp_path, execution, database):
-	with make_test_engine(tmp_path, execution, database) as orm:
+def db(tmp_path, execution, database, random_seed):
+	with make_test_engine(tmp_path, execution, database, random_seed) as orm:
 		for graph in testgraphs:
 			orm.new_character(graph.name, graph)
 			if not graph.is_directed():
@@ -58,8 +58,10 @@ def test_basic_load(db):
 
 
 @pytest.fixture
-def db_noproxy(tmp_path, serial_or_parallel, database):
-	with make_test_engine(tmp_path, serial_or_parallel, database) as orm:
+def db_noproxy(tmp_path, serial_or_parallel, database, random_seed):
+	with make_test_engine(
+		tmp_path, serial_or_parallel, database, random_seed
+	) as orm:
 		for graph in testgraphs:
 			orm.new_character(graph.name, graph)
 			if not graph.is_directed():
@@ -137,12 +139,14 @@ def test_keyframe_load(db_noproxy):
 			)
 
 
-def test_keyframe_unload(tmp_path, serial_or_parallel, persistent_database):
+def test_keyframe_unload(
+	tmp_path, serial_or_parallel, persistent_database, random_seed
+):
 	# TODO: test edge cases involving tick-precise unloads
 	eng = partial(
 		make_test_engine, tmp_path, serial_or_parallel, persistent_database
 	)
-	with eng() as orm:
+	with eng(random_seed) as orm:
 		g = orm.new_character("g", nx.grid_2d_graph(3, 3))
 		orm.next_turn()
 		assert orm.turn == 1
@@ -182,7 +186,7 @@ def test_keyframe_unload(tmp_path, serial_or_parallel, persistent_database):
 		assert 2 in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
 		assert 0 not in orm._edges_cache.keyframe["g", (0, 0), (0, 1)]["trunk"]
 		endtick = orm.tick
-	with eng() as orm:
+	with eng(None) as orm:
 		assert not orm._time_is_loaded("trunk", 1)
 		assert orm._time_is_loaded("trunk", 2, endtick)
 		assert ("g", (0, 0), (0, 1)) in orm._edges_cache.keyframe
@@ -206,7 +210,7 @@ def test_keyframe_unload(tmp_path, serial_or_parallel, persistent_database):
 		orm.branch = "u"
 		del g.node[1, 2]
 		orm.unload()
-	with eng() as orm:
+	with eng(None) as orm:
 		assert orm.branch == "u"
 		assert (
 			("g", (1, 1), (1, 2)) not in orm._edges_cache.keyframe
@@ -222,13 +226,17 @@ def test_keyframe_unload(tmp_path, serial_or_parallel, persistent_database):
 		)
 
 
-def test_keyframe_load_init(tmp_path, persistent_database):
+def test_keyframe_load_init(tmp_path, persistent_database, random_seed):
 	"""Can load a keyframe at start of branch, including locations"""
-	with make_test_engine(tmp_path, "serial", persistent_database) as eng:
+	with make_test_engine(
+		tmp_path, "serial", persistent_database, random_seed
+	) as eng:
 		inittest(eng)
 		eng.branch = "new"
 		# eng.snap_keyframe()
-	with make_test_engine(tmp_path, "serial", persistent_database) as eng:
+	with make_test_engine(
+		tmp_path, "serial", persistent_database, None
+	) as eng:
 		# the graphs keyframe is coming up empty
 		assert "kobold" in eng.character["physical"].thing
 		assert (0, 0) in eng.character["physical"].place

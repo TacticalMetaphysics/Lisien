@@ -258,9 +258,9 @@ def database_connector(database_connector_part):
 @pytest.fixture(
 	scope="function",
 )
-def engy(tmp_path, execution, database):
+def engy(tmp_path, execution, database, random_seed):
 	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
-	with make_test_engine(tmp_path, execution, database) as eng:
+	with make_test_engine(tmp_path, execution, database, random_seed) as eng:
 		yield eng
 
 
@@ -270,13 +270,19 @@ def local_or_remote(request):
 
 
 @pytest.fixture
-def engine(tmp_path, serial_or_parallel, local_or_remote, non_null_database):
+def engine(
+	tmp_path,
+	serial_or_parallel,
+	local_or_remote,
+	non_null_database,
+	random_seed,
+):
 	"""Engine or EngineProxy with a subprocess"""
 	if local_or_remote == "remote":
 		procman = EngineProxyManager()
 		with procman.start(
 			**make_test_engine_kwargs(
-				tmp_path, serial_or_parallel, non_null_database
+				tmp_path, serial_or_parallel, non_null_database, random_seed
 			)
 		) as proxy:
 			yield proxy
@@ -284,7 +290,7 @@ def engine(tmp_path, serial_or_parallel, local_or_remote, non_null_database):
 	else:
 		with Engine(
 			**make_test_engine_kwargs(
-				tmp_path, serial_or_parallel, non_null_database
+				tmp_path, serial_or_parallel, non_null_database, random_seed
 			)
 		) as eng:
 			yield eng
