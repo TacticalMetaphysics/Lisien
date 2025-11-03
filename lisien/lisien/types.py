@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import builtins
+import inspect
 import operator
 import os
 from _operator import (
@@ -183,6 +184,11 @@ def is_valid_value(obj: _Value) -> TypeGuard[Value]:
 				for dest in obj.adj[orig]
 				for (k, v, *_) in obj.adj[orig][dest]
 			)
+		)
+		or (
+			inspect.isfunction(obj)
+			and obj.__module__
+			in {"function", "method", "trigger", "prereq", "action"}
 		)
 	)
 
