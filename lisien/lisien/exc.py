@@ -205,3 +205,7 @@ class BadTimeException(Exception):
 	But doesn't make sense now
 
 	"""
+
+
+class EntityCollisionError(ValueError):
+	"""For when there's a discrepancy between the kind of entity you're creating and the one by the same name"""

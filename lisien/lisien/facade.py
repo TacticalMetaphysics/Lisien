@@ -48,12 +48,12 @@ from .types import (
 	AbstractCharacter,
 	AbstractThing,
 	TimeSignalDescriptor,
-	getatt,
 )
 from .util import (
 	print_call_sig,
 	timer,
 	unwrap,
+	getatt,
 )
 from .wrap import MutableMappingUnwrapper
 

@@ -69,12 +69,12 @@ from .types import (
 	_Key,
 	_Value,
 	AbstractCharacter,
-	getatt,
 	CharacterStatAlias,
 	UnitsAlias,
+	SpecialMapping,
 )
-from .util import singleton_get, timer, unwrap
-from .wrap import MutableMappingUnwrapper, SpecialMapping
+from .util import singleton_get, timer, unwrap, getatt
+from .wrap import MutableMappingUnwrapper
 
 if TYPE_CHECKING:
 	from .engine import Engine

@@ -46,9 +46,8 @@ from .types import (
 	AbstractEngine,
 	sort_set,
 	AbstractFunctionStore,
-	getatt,
 )
-from .util import dedent_source
+from .util import dedent_source, getatt
 from .wrap import wrapval
 
 if TYPE_CHECKING:

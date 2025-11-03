@@ -44,10 +44,9 @@ from .types import (
 	Turn,
 	Value,
 	AbstractThing,
-	getatt,
 	EntityStatAlias,
 )
-from .util import unwrap
+from .util import unwrap, getatt
 
 if TYPE_CHECKING:
 	from .character import Character
