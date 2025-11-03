@@ -260,29 +260,6 @@ def database_connector(database_connector_part):
 )
 def engy(tmp_path, execution, database):
 	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
-	if execution == "proxy":
-		eng = EngineProxy(
-			None,
-			None,
-			getLogger("lisien proxy"),
-			prefix=None,
-			worker_index=0,
-			eternal={"language": "eng"},
-			function={},
-			method={},
-			trigger={},
-			prereq={},
-			action={},
-		)
-		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
-			"trunk",
-			0,
-			0,
-			True,
-		)
-		eng._mutable_worker = True
-		yield eng
-		return
 	with make_test_engine(tmp_path, execution, database) as eng:
 		yield eng
 

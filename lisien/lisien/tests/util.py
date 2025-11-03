@@ -88,13 +88,27 @@ def make_test_engine_kwargs(
 def make_test_engine(path, execution, database):
 	kwargs = {}
 	if execution == "proxy":
-		ret = EngineProxy(lambda: b"", lambda x: None, getLogger("lisien"))
-		ret._branch = "trunk"
-		ret._turn = 0
-		ret._tick = 0
-		ret.close = MagicMock()
-		ret.handle = MagicMock()
-		return ret
+		eng = EngineProxy(
+			None,
+			None,
+			getLogger("lisien proxy"),
+			prefix=None,
+			worker_index=0,
+			eternal={"language": "eng"},
+			function={},
+			method={},
+			trigger={},
+			prereq={},
+			action={},
+		)
+		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
+			"trunk",
+			0,
+			0,
+			True,
+		)
+		eng._mutable_worker = True
+		return eng
 	if execution == "serial":
 		kwargs["workers"] = 0
 	else:
