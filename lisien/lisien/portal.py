@@ -45,7 +45,7 @@ class Portal(Edge, RuleFollower):
 	"""
 
 	__slots__ = (
-		"graph",
+		"character",
 		"orig",
 		"dest",
 		"origin",
@@ -53,8 +53,6 @@ class Portal(Edge, RuleFollower):
 		"_rulebook",
 		"_real_rule_mapping",
 	)
-	character = getatt("graph")
-	engine = getatt("db")
 	no_unwrap = True
 
 	def __init__(self, graph: AbstractCharacter, orig: Key, dest: Key):

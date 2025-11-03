@@ -30,7 +30,9 @@ from blinker import Signal
 
 from ..types import (
 	Key,
+	KeyHint,
 	Value,
+	ValueHint,
 	FuncName,
 	RuleNeighborhood,
 	RuleName,
@@ -68,33 +70,33 @@ class CachingProxy(MutableMapping, Signal):
 	def __len__(self):
 		return len(self._cache)
 
-	def __contains__(self, k: _Key) -> bool:
+	def __contains__(self, k: KeyHint) -> bool:
 		return k in self._cache
 
-	def __getitem__(self, k: _Key) -> Value:
+	def __getitem__(self, k: KeyHint) -> Value:
 		if k not in self:
 			raise KeyError("No such key: {}".format(k))
 		return self._cache_get_munge(k, self._cache[k])
 
-	def setdefault(self, k: _Key, default: _Value = None) -> Value:
+	def setdefault(self, k: KeyHint, default: ValueHint = None) -> Value:
 		if k not in self:
 			if default is None:
 				raise KeyError("No such key", k)
 			self[k] = default
-			return default
+			return Value(default)
 		return self[k]
 
-	def __setitem__(self, k: _Key, v: _Value) -> None:
+	def __setitem__(self, k: KeyHint, v: ValueHint) -> None:
 		self._worker_check()
-		self._set_item(k, v)
-		self._cache[k] = self._cache_set_munge(k, v)
+		self._set_item(Key(k), Value(v))
+		self._cache[k] = self._cache_set_munge(Key(k), Value(v))
 		self.send(self, key=k, value=v)
 
-	def __delitem__(self, k: _Key) -> None:
+	def __delitem__(self, k: KeyHint) -> None:
 		self._worker_check()
 		if k not in self:
 			raise KeyError("No such key: {}".format(k))
-		self._del_item(k)
+		self._del_item(Key(k))
 		if k in self._cache:
 			del self._cache[k]
 		self.send(self, key=k, value=None)

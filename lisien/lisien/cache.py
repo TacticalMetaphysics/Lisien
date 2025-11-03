@@ -2578,7 +2578,7 @@ class EdgeValCache(Cache):
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
-	):
+	) -> None:
 		self._store(
 			graph,
 			orig,
@@ -3804,15 +3804,14 @@ class UnitnessCache(Cache):
 	def count_graphs(
 		self,
 		char: CharName,
-		graph: CharName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		*,
 		forward: bool | None = None,
 	) -> int:
-		return self._count_entities_or_keys(
-			char, graph, branch, turn, tick, forward=forward
+		return self.dict_cache._count_entities_or_keys(
+			char, branch, turn, tick, forward=forward
 		)
 
 	def iter_entities(
@@ -3845,7 +3844,7 @@ class UnitnessCache(Cache):
 
 	def get_char_only_unit(
 		self, char: CharName, branch: Branch, turn: Turn, tick: Tick
-	):
+	) -> tuple[CharName, NodeName]:
 		if self.dict_cache.count_entities(char, branch, turn, tick) != 1:
 			raise ValueError("No unit, or more than one unit")
 		for graph in self.dict_cache.iter_entities(char, branch, turn, tick):
@@ -3854,13 +3853,21 @@ class UnitnessCache(Cache):
 			return graph, next(
 				self.iter_entities(char, graph, branch, turn, tick)
 			)
+		raise ValueError("No unit")
 
 	def get_char_only_graph(
 		self, char: CharName, branch: Branch, turn: Turn, tick: Tick
-	):
-		if self.count_entities(char, branch, turn, tick) != 1:
-			raise ValueError("No unit, or more than one unit")
-		return next(self.iter_entities(char, branch, turn, tick))
+	) -> CharName:
+		n = 0
+		graph = ...
+		for n, graph in enumerate(
+			self.iter_char_graphs(char, branch, turn, tick)
+		):
+			if n > 1:
+				raise ValueError("More than one graph")
+		if graph is ...:
+			raise ValueError("No units")
+		return graph
 
 	def iter_char_graphs(
 		self, char: CharName, branch: Branch, turn: Turn, tick: Tick

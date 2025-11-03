@@ -1358,22 +1358,22 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 
 	def __init__(
 		self,
-		engine_proxy: "EngineProxy",
-		charname: CharName,
+		engine: EngineProxy,
+		name: CharName,
 		*,
 		init_rulebooks: bool = False,
 	):
 		assert not init_rulebooks, (
 			"Can't initialize rulebooks in CharacterProxy"
 		)
-		self.db: "EngineProxy" = engine_proxy
-		self._name: CharName = charname
+		self.engine = engine
+		self._name = name
 
 	def __repr__(self):
-		return f"{self.db}.character[{repr(self.name)}]"
+		return f"{self.engine}.character[{repr(self.name)}]"
 
 	def __bool__(self):
-		return self._name in self.db.character
+		return self._name in self.engine.character
 
 	def __eq__(self, other):
 		if hasattr(other, "engine"):

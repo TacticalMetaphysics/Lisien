@@ -1337,7 +1337,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _get_edge(
 		self, graph: Character | CharName, orig: NodeName, dest: NodeName
-	):
+	) -> portal_cls:
 		edge_objs, edge_exists, make_edge = self._get_edge_stuff
 		if type(graph) is str:
 			graphn = graph
@@ -4197,9 +4197,9 @@ class Engine(AbstractEngine, Executor):
 	@world_locked
 	def _exist_edge(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		exist: bool = True,
 		*,
 		now: Optional[Time] = None,
