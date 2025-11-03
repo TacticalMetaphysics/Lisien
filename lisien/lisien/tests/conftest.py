@@ -350,6 +350,7 @@ def sqleng(tmp_path, request, execution):
 			random_seed=69105,
 			enforce_end_of_time=False,
 			workers=0 if execution == "serial" else 2,
+			sub_mode=Sub(execution) if execution != "serial" else None,
 			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 		) as eng:
 			yield eng
