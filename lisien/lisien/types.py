@@ -91,10 +91,12 @@ if TYPE_CHECKING:
 	from .engine import Engine
 	from .rule import RuleBook, Rule
 
-_Key = str | int | float | None | tuple["_Key", ...] | frozenset["_Key"]
+KeyHint: TypeAlias = (
+	str | int | float | None | tuple["KeyHint", ...] | frozenset["KeyHint"]
+)
 
 
-def is_valid_key(obj: _Key) -> TypeGuard[Key]:
+def is_valid_key(obj: KeyHint) -> TypeGuard[Key]:
 	"""Is this an object that Lisien can serialize as a key?"""
 	return (
 		obj is None
@@ -110,7 +112,7 @@ class _KeyMeta(type):
 	def __instancecheck__(self, instance) -> TypeGuard[Key]:
 		return is_valid_key(instance)
 
-	def __call__(self, obj: _Key) -> Key:
+	def __call__(self, obj: KeyHint) -> Key:
 		if is_valid_key(obj):
 			return obj
 		raise TypeError("Not a valid key", obj)
@@ -120,30 +122,30 @@ class _KeyMeta(type):
 
 
 class Key(metaclass=_KeyMeta):
-	def __new__(cls, obj: _Key) -> Key:
+	def __new__(cls, obj: KeyHint) -> Key:
 		if not is_valid_key(obj):
 			raise TypeError("Invalid key")
 		return obj
 
 
-_Value: TypeAlias = (
-	_Key
-	| dict[_Key, "_Value"]
-	| tuple["_Value", ...]
-	| list["_Value"]
-	| set["_Value"]
-	| frozenset["_Value"]
+ValueHint: TypeAlias = (
+	KeyHint
+	| dict[KeyHint, "ValueHint"]
+	| tuple["ValueHint", ...]
+	| list["ValueHint"]
+	| set["ValueHint"]
+	| frozenset["ValueHint"]
 	| DictWrapper
 	| ListWrapper
 	| SetWrapper
-	| Set["_Value"]
-	| OrderlySet["_Value"]
-	| Mapping[_Key, "_Value"]
+	| Set["ValueHint"]
+	| OrderlySet["ValueHint"]
+	| Mapping[KeyHint, "ValueHint"]
 	| type(...)
 )
 
 
-def is_valid_value(obj: _Value) -> TypeGuard[Value]:
+def is_valid_value(obj: ValueHint) -> TypeGuard[Value]:
 	"""Is this an object that Lisien can serialize as a value?"""
 	return (
 		obj is ...
@@ -196,7 +198,7 @@ class _ValueMeta(type):
 	def __instancecheck__(self, instance) -> TypeGuard[Value]:
 		return is_valid_value(instance)
 
-	def __call__(self, obj: _Value) -> Value:
+	def __call__(self, obj: ValueHint) -> Value:
 		if is_valid_value(obj):
 			return obj
 		raise TypeError("Not a valid value", obj)
@@ -206,7 +208,7 @@ class _ValueMeta(type):
 
 
 class Value(metaclass=_ValueMeta):
-	def __new__(cls, obj: _Value) -> Value:
+	def __new__(cls, obj: ValueHint) -> Value:
 		if not is_valid_value(obj):
 			raise TypeError("Invalid value")
 		return obj
@@ -215,21 +217,21 @@ class Value(metaclass=_ValueMeta):
 Stat = NewType("Stat", Key)
 
 
-def stat(k: _Key) -> Stat:
+def stat(k: KeyHint) -> Stat:
 	return Stat(Key(k))
 
 
 EternalKey = NewType("EternalKey", Key)
 
 
-def ekey(k: _Key) -> EternalKey:
+def ekey(k: KeyHint) -> EternalKey:
 	return EternalKey(Key(k))
 
 
 UniversalKey = NewType("UniversalKey", Key)
 
 
-def ukey(k: _Key) -> UniversalKey:
+def ukey(k: KeyHint) -> UniversalKey:
 	return UniversalKey(Key(k))
 
 
@@ -833,27 +835,27 @@ class Node(AbstractEntityMapping):
 				return False
 		return True
 
-	def add_portal(self, other: _Key | Node, **stats) -> None:
+	def add_portal(self, other: KeyHint | Node, **stats) -> None:
 		"""Connect a portal from here to another node"""
 		self.character.add_portal(
 			self.name, getattr(other, "name", other), **stats
 		)
 
-	def new_portal(self, other: _Key | Node, **stats) -> "Portal":
+	def new_portal(self, other: KeyHint | Node, **stats) -> "Portal":
 		"""Connect a portal from here to another node, and return it."""
 		return self.character.new_portal(
 			self.name, getattr(other, "name", other), **stats
 		)
 
-	def add_thing(self, name: _Key, **stats) -> None:
+	def add_thing(self, name: KeyHint, **stats) -> None:
 		"""Make a new Thing here"""
 		self.character.add_thing(name, self.name, **stats)
 
-	def new_thing(self, name: _Key, **stats) -> "Thing":
+	def new_thing(self, name: KeyHint, **stats) -> "Thing":
 		"""Create a new thing, located here, and return it."""
 		return self.character.new_thing(name, self.name, **stats)
 
-	def historical(self, stat: _Key) -> EntityStatAlias:
+	def historical(self, stat: KeyHint) -> EntityStatAlias:
 		"""Return a reference to the values that a stat has had in the past.
 
 		You can use the reference in comparisons to make a history
@@ -1629,9 +1631,9 @@ class DiGraph(networkx.DiGraph, ABC):
 
 
 PackSignature: TypeAlias = Callable[
-	[_Key | EternalKey | UniversalKey | Stat | _Value], bytes
+	[KeyHint | EternalKey | UniversalKey | Stat | ValueHint], bytes
 ]
-UnpackSignature: TypeAlias = Callable[[bytes], _Value]
+UnpackSignature: TypeAlias = Callable[[bytes], ValueHint]
 LoadedCharWindow: TypeAlias = dict[
 	Literal[
 		"nodes",
@@ -1961,7 +1963,7 @@ class FakeFuture(Future):
 
 class AbstractBookmarkMapping(MutableMapping, Callable):
 	@abstractmethod
-	def __call__(self, key: _Key) -> None: ...
+	def __call__(self, key: KeyHint) -> None: ...
 
 
 class AbstractEngine(ABC):
@@ -1979,11 +1981,11 @@ class AbstractEngine(ABC):
 	place_cls: type
 	portal_cls: type
 	char_cls: type
-	character: Mapping[_Key, Type[char_cls]]
-	eternal: MutableMapping[_Key, _Value]
-	universal: MutableMapping[_Key, _Value]
-	rulebook: MutableMapping[_Key, "RuleBook"]
-	rule: MutableMapping[_Key, "Rule"]
+	character: Mapping[KeyHint, Type[char_cls]]
+	eternal: MutableMapping[KeyHint, ValueHint]
+	universal: MutableMapping[KeyHint, ValueHint]
+	rulebook: MutableMapping[KeyHint, "RuleBook"]
+	rule: MutableMapping[KeyHint, "Rule"]
 	trunk: Branch
 	branch: Branch
 	turn: Turn
@@ -2519,7 +2521,7 @@ class AbstractEngine(ABC):
 	@abstractmethod
 	def add_character(
 		self,
-		name: _Key,
+		name: KeyHint,
 		data: nx.Graph | DiGraph | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
@@ -2529,7 +2531,7 @@ class AbstractEngine(ABC):
 
 	def new_character(
 		self,
-		name: _Key,
+		name: KeyHint,
 		data: nx.Graph | DiGraph | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
@@ -3061,8 +3063,8 @@ class AbstractThing(MutableMapping):
 
 	def follow_path(
 		self,
-		path: list[_Key],
-		weight: Optional[_Key] = None,
+		path: list[KeyHint],
+		weight: Optional[KeyHint] = None,
 		check: bool = True,
 	) -> int:
 		"""Go to several nodes in succession, deciding how long to
@@ -3132,8 +3134,8 @@ class AbstractThing(MutableMapping):
 
 	def travel_to(
 		self,
-		dest: Node | _Key,
-		weight: Optional[_Key] = None,
+		dest: Node | KeyHint,
+		weight: Optional[KeyHint] = None,
 		graph: nx.DiGraph = None,
 	) -> int:
 		"""Find the shortest path to the given node from where I am

@@ -136,7 +136,7 @@ from .types import (
 	UniversalKey,
 	UniversalKeyframe,
 	UniversalRowType,
-	_Value,
+	ValueHint,
 	Value,
 	PackSignature,
 	UnpackSignature,
@@ -3346,7 +3346,7 @@ class AbstractDatabaseConnector(ABC):
 	def _plan_times(self) -> dict[Plan, set[Time]]:
 		return {}
 
-	def _element_to_value(self, el: Element) -> Value | _Value:
+	def _element_to_value(self, el: Element) -> Value | ValueHint:
 		eng = self.engine
 		match el.tag:
 			case "Ellipsis":
