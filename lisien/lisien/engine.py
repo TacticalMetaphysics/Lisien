@@ -7677,6 +7677,8 @@ class Engine(AbstractEngine, Executor):
 		"""
 		if not hasattr(self.query, "execute"):
 			raise NotImplementedError("turns_when only works with SQL for now")
+		from .sql import meta
+
 		unpack = self.unpack
 		end = self._branch_end()[0] + 1
 
@@ -7707,7 +7709,6 @@ class Engine(AbstractEngine, Executor):
 		if isinstance(
 			left, (EntityStatAccessor, CharacterStatAccessor)
 		) and isinstance(right, (EntityStatAccessor, CharacterStatAccessor)):
-			meta = self.query._looper.meta
 			left_sel = _make_side_sel(
 				meta,
 				left.entity,
@@ -7737,7 +7738,7 @@ class Engine(AbstractEngine, Executor):
 				)
 		elif isinstance(left, (EntityStatAccessor, CharacterStatAccessor)):
 			left_sel = _make_side_sel(
-				self.query._looper.meta,
+				meta,
 				left.entity,
 				left.stat,
 				branches,
@@ -7761,7 +7762,7 @@ class Engine(AbstractEngine, Executor):
 				)
 		elif isinstance(right, (EntityStatAccessor, CharacterStatAccessor)):
 			right_sel = _make_side_sel(
-				self.query.looper._meta,
+				meta,
 				right.entity,
 				right.stat,
 				branches,
