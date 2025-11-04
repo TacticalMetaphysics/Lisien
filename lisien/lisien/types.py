@@ -89,6 +89,7 @@ from .wrap import (
 
 if TYPE_CHECKING:
 	from .character import Character
+	from .engine import Engine
 	from .portal import Portal
 	from .node import Thing
 	from .rule import RuleBook, Rule
@@ -566,10 +567,17 @@ class SpecialMapping(Mapping, Signal, ABC):
 	def __init__(self, character: AbstractCharacter): ...
 
 
-class AllegedMapping(MutableMappingUnwrapper, SpecialMapping, ABC):
+class AllegedMapping(MutableMappingUnwrapper, ABC):
 	"""Common amenities for mappings"""
 
-	__slots__ = ()
+	__slots__ = ("character", "_engine_")
+
+	def __init__(self, character: Character):
+		self.character = character
+
+	@cached_in("_engine_")
+	def engine(self) -> Engine:
+		return self.character.engine
 
 	def clear(self):
 		"""Delete everything"""
