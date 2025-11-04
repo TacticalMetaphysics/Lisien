@@ -1638,7 +1638,7 @@ class DiGraph(networkx.DiGraph, ABC):
 		self.engine = db
 
 	def __bool__(self):
-		return self._name in self.db._graph_objs
+		return self._name in self.engine._graph_objs
 
 	@property
 	def graph(self):
