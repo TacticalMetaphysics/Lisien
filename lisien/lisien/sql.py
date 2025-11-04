@@ -112,6 +112,8 @@ for table, serializer in Batch.serializers.items():
 	for n, (arg, ret_typ) in enumerate(
 		zip(spec.args[1:], get_args(ret_annot)), start=1
 	):
+		if hasattr(ret_typ, "evaluate_value"):
+			ret_typ = ret_typ.evaluate_value()
 		args = get_args(ret_typ)
 		nullable = type(None) in args
 		orig = root_type(ret_typ)
@@ -120,10 +122,12 @@ for table, serializer in Batch.serializers.items():
 				if orig is not None:
 					break
 			else:
-				raise TypeError("Too many types for column", arg, orig, table)
+				raise TypeError(
+					"Too many types for column", table, arg, orig, table
+				)
 		orig2 = root_type(orig)
 		if orig2 not in py2sql:
-			raise TypeError("Unknown type for column", arg, orig, table)
+			raise TypeError("Unknown type for column", table, arg, orig, table)
 		col = Column(
 			arg,
 			py2sql[orig2],

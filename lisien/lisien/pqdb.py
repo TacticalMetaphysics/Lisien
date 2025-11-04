@@ -112,12 +112,19 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			import pyarrow as pa
 
 			def origif(typ):
+				if hasattr(typ, "evaluate_value"):
+					typ = typ.evaluate_value()
 				if hasattr(typ, "__supertype__"):
 					return typ.__supertype__
 				ret = get_origin(typ)
 				if ret is Annotated:
 					return get_args(typ)[0]
 				return ret
+
+			def argeval(typ: type) -> tuple[type, ...]:
+				if hasattr(typ, "evaluate_value"):
+					typ = typ.evaluate_value()
+				return get_args(typ)
 
 			def original(typ):
 				prev = origif(typ)
@@ -144,11 +151,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					serialized_tuple_type = eval(serialized_tuple_type)
 				columns = ret[table] = []
 				for column, serialized_type in zip(
-					argspec.args[1:], get_args(serialized_tuple_type)
+					argspec.args[1:], argeval(serialized_tuple_type)
 				):
 					origin = original(serialized_type)
 					if origin is Union:
-						options = get_args(serialized_type)
+						options = argeval(serialized_type)
 						if len(options) != 2 or type(None) not in options:
 							raise TypeError(
 								"Too many options for union type",
@@ -160,7 +167,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 						else:
 							origin = options[0]
 					elif origin is Literal:
-						options = get_args(serialized_type)
+						options = argeval(serialized_type)
 						origin = type(options[0])
 						if not all(isinstance(opt, origin) for opt in options):
 							raise TypeError(
@@ -1522,9 +1529,9 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		):
 			yield (
 				CharName(unpack_key(graph)),
-				NodeKeyframe(unpack(nodes)),
-				EdgeKeyframe(unpack(edges)),
-				GraphValKeyframe(unpack(graph_val)),
+				unpack(nodes),
+				unpack(edges),
+				unpack(graph_val),
 			)
 
 	def keyframes_graphs_dump(

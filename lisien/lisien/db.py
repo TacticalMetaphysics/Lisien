@@ -41,7 +41,6 @@ from typing import (
 	Optional,
 	get_args,
 	get_type_hints,
-	TypeVar,
 	TYPE_CHECKING,
 	ClassVar,
 	Set,
@@ -260,10 +259,6 @@ class ConnectionLooper(ABC):
 	@abstractmethod
 	def close(self):
 		pass
-
-
-_ARGS = TypeVar("_ARGS")
-_RET = TypeVar("_RET")
 
 
 def mutexed(
@@ -4149,9 +4144,6 @@ class AbstractDatabaseConnector(ABC):
 
 		"""
 		self.load_etree(parse(xml_or_file_path))
-
-
-_T = TypeVar("_T")
 
 
 @dataclass

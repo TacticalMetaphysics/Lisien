@@ -1063,7 +1063,9 @@ class CharacterFacade(AbstractCharacter):
 				)
 			self.facade.node.patch(d)
 
-	def ThingPlaceMapping(self, *args):
+	def ThingPlaceMapping(
+		self, *args
+	) -> CompositeDict[NodeName, FacadePlace | FacadeThing]:
 		return CompositeDict(self.place, self.thing)
 
 	class PortalSuccessorsMapping(FacadePortalMapping):

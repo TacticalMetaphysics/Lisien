@@ -33,13 +33,10 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import chain, zip_longest
-from typing import TYPE_CHECKING, Any, Callable, Hashable, Set
-
-if TYPE_CHECKING:
-	pass
+from typing import Any, Callable, Hashable, Set
 
 
-class OrderlySet(set):
+class OrderlySet[_K](set[_K]):
 	"""A set with deterministic order of iteration
 
 	Order is not regarded as significant for the purposes of equality.
