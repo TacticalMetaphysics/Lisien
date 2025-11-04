@@ -75,8 +75,8 @@ from networkx import NetworkXError
 from tblib import Traceback
 
 from . import exc
-from .exc import WorkerProcessReadOnlyError, TimeError, EntityCollisionError
-from .util import getatt
+from .exc import WorkerProcessReadOnlyError, TimeError
+from .util import getatt, cached_in
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
@@ -581,53 +581,45 @@ class AllegedMapping(MutableMappingUnwrapper, SpecialMapping, ABC):
 class AbstractEntityMapping(AllegedMapping, ABC):
 	__slots__ = ()
 
-	def __init__(self, character: AbstractCharacter):
-		super().__init__(character)
-		self.engine = character.engine
-
 	@abstractmethod
 	def _get_cache(
-		self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick
-	) -> dict:
-		raise NotImplementedError
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick
+	) -> dict: ...
 
 	def _get_cache_now(self, key):
 		return self._get_cache(key, *self.engine._btt())
 
 	@abstractmethod
 	def _cache_contains(
-		self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick
-	):
-		raise NotImplementedError
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick
+	): ...
 
 	@abstractmethod
 	def _set_db(
 		self,
-		key: KeyHint,
+		key: Key,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: ValueHint,
+		value: Value,
 	):
 		"""Set a value for a key in the database (not the cache)."""
-		raise NotImplementedError
 
 	@abstractmethod
 	def _set_cache(
 		self,
-		key: KeyHint,
+		key: Key,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: ValueHint,
-	):
-		raise NotImplementedError
+		value: Value,
+	): ...
 
-	def _del_db(self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick):
+	def _del_db(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		"""Delete a key from the database (not the cache)."""
 		self._set_db(key, branch, turn, tick, ...)
 
-	def _del_cache(self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick):
+	def _del_cache(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		self._set_cache(key, branch, turn, tick, ...)
 
 	def __getitem__(self, key: KeyHint):
@@ -670,44 +662,79 @@ class GraphMapping(AbstractEntityMapping):
 
 	__slots__ = (
 		"character",
-		"engine",
-		"_iter_stuff",
-		"_cache_contains_stuff",
-		"_len_stuff",
-		"_get_stuff",
-		"_set_db_stuff",
-		"_set_cache_stuff",
-		"_del_db_stuff",
-		"_get_cache_stuff",
+		"_engine",
+		"_iter_stuff_",
+		"_contains_stuff",
+		"_len_stuff_",
+		"_get_stuff_",
+		"_set_db_stuff_",
+		"_set_cache_stuff_",
+		"_del_db_stuff_",
+		"_get_cache_stuff_",
 	)
 
 	def __init__(self, graph: Character):
 		super().__init__(graph)
 		self.character = graph
-		self.engine = db = graph.engine
-		btt = db._btt
-		graph_val_cache = db._graph_val_cache
-		graphn = graph.name
-		self._iter_stuff = (graph_val_cache.iter_keys, graphn, btt)
-		self._cache_contains_stuff = (graph_val_cache.contains_key, graphn)
-		self._len_stuff = (graph_val_cache.count_keys, graphn, btt)
-		self._get_stuff: tuple[
-			Callable[[KeyHint, Branch, Turn, Tick], ValueHint],
-			Callable[[], Time],
-		] = (self._get_cache, btt)
-		graph_val_set = db.query.graph_val_set
-		self._set_db_stuff = (graph_val_set, graphn)
-		self._set_cache_stuff = (graph_val_cache.store, graphn)
-		self._del_db_stuff = (graph_val_set, graphn)
-		self._get_cache_stuff = (graph_val_cache.retrieve, graphn)
 
-	def __iter__(self) -> Iterator[KeyHint]:
+	@cached_in("_engine")
+	def engine(self):
+		return self.character.engine
+
+	@cached_in("_iter_stuff_")
+	def _iter_stuff(self):
+		return (
+			self.engine._graph_val_cache.iter_keys,
+			self.character.name,
+			self.engine._btt,
+		)
+
+	@cached_in("_contains_stuff_")
+	def _cache_contains_stuff(self):
+		return self.engine._graph_val_cache.contains_key, self.character.name
+
+	@cached_in("_len_stuff_")
+	def _len_stuff(self):
+		return (
+			self.engine._graph_val_cache.count_keys,
+			self.character.name,
+			self.engine._btt,
+		)
+
+	@cached_in("_get_stuff_")
+	def _get_stuff(
+		self,
+	) -> tuple[
+		Callable[[Key, Branch, Turn, Tick], Value],
+		Callable[[], Time],
+	]:
+		return self._get_cache, self.engine._btt
+
+	@cached_in("_set_db_stuff_")
+	def _set_db_stuff(self):
+		return self.engine.query.graph_val_set, self.character.name
+
+	@cached_in("_set_cache_stuff_")
+	def _set_cache_stuff(self):
+		return self.engine._graph_val_cache.store, self.character.name
+
+	@cached_in("_del_db_stuff_")
+	def _del_db_stuff(self):
+		return self.engine.query.graph_val_set, self.character.name
+
+	@cached_in("_get_cache_stuff_")
+	def _get_cache_stuff(self):
+		return (self.engine._graph_val_cache.retrieve, self.character.name)
+
+	def __iter__(self) -> Iterator[Stat]:
 		iter_entity_keys, graphn, btt = self._iter_stuff
-		yield "name"
 		yield from iter_entity_keys(graphn, *btt())
 
 	def __repr__(self):
-		return f"<{self.__class__.__name__} for {self.graph.name} containing {dict(unwrap_items(self.items()))}>"
+		return (
+			f"<{self.__class__.__name__} for {self.character.name} "
+			f"containing {dict(unwrap_items(self.items()))}>"
+		)
 
 	def _cache_contains(
 		self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick
@@ -721,7 +748,7 @@ class GraphMapping(AbstractEntityMapping):
 
 	def __getitem__(self, item: KeyHint) -> ValueHint:
 		if item == "name":
-			return self.graph.name
+			return self.character.name
 		return super().__getitem__(item)
 
 	def __setitem__(self, key: KeyHint, value: ValueHint) -> None:
@@ -730,8 +757,8 @@ class GraphMapping(AbstractEntityMapping):
 		super().__setitem__(key, value)
 
 	def _get_cache(
-		self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick
-	) -> ValueHint:
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick
+	) -> Value:
 		retrieve, graphn = self._get_cache_stuff
 		return retrieve(graphn, key, branch, turn, tick)
 
@@ -748,7 +775,7 @@ class GraphMapping(AbstractEntityMapping):
 		value: ValueHint,
 	) -> None:
 		graph_val_set, graphn = self._set_db_stuff
-		graph_val_set(graphn, key, branch, turn, tick, value)
+		graph_val_set(graphn, key, branch, turn, tick, Value(value))
 
 	def _set_cache(
 		self,
@@ -790,13 +817,13 @@ class Node(AbstractEntityMapping):
 	__slots__ = (
 		"character",
 		"name",
-		"engine",
-		"_iter_stuff",
-		"_cache_contains_stuff",
-		"_len_stuff",
-		"_get_cache_stuff",
-		"_set_db_stuff",
-		"_set_cache_stuff",
+		"_engine_",
+		"_iter_",
+		"_contains_",
+		"_len_",
+		"_get_",
+		"_set_db_",
+		"_set_cache_",
 	)
 
 	def _validate_node_type(self):
@@ -806,30 +833,56 @@ class Node(AbstractEntityMapping):
 		super().__init__(graph)
 		self.character = graph
 		self.name = node
-		self.engine = db = graph.engine
-		node_val_cache = db._node_val_cache
-		graphn = graph.name
-		btt = db._btt
-		self._iter_stuff = (
-			node_val_cache.iter_keys,
-			graphn,
-			node,
-			btt,
+
+	@cached_in("_engine_")
+	def engine(self):
+		return self.character.engine
+
+	@cached_in("_iter_")
+	def _iter_stuff(self):
+		return (
+			self.engine._node_val_cache.iter_keys,
+			self.character.name,
+			self.name,
+			self.engine._btt,
 		)
-		self._cache_contains_stuff = (
-			node_val_cache.contains_key,
-			graphn,
-			node,
+
+	@cached_in("_contains_")
+	def _cache_contains_stuff(self):
+		return (
+			self.engine._node_val_cache.contains_key,
+			self.character.name,
+			self.name,
 		)
-		self._len_stuff = (
-			node_val_cache.count_keys,
-			graphn,
-			node,
-			btt,
+
+	@cached_in("_len_")
+	def _len_stuff(self):
+		return (
+			self.engine._node_val_cache.count_keys,
+			self.character.name,
+			self.name,
+			self.engine._btt,
 		)
-		self._get_cache_stuff = (node_val_cache.retrieve, graphn, node)
-		self._set_db_stuff = (db.query.node_val_set, graphn, node)
-		self._set_cache_stuff = (db._node_val_cache.store, graphn, node)
+
+	@cached_in("_get_")
+	def _get_cache_stuff(self):
+		return (
+			self.engine._node_val_cache.retrieve,
+			self.character.name,
+			self.name,
+		)
+
+	@cached_in("_set_db_")
+	def _set_db_stuff(self):
+		return self.engine.query.node_val_set, self.character.name, self.name
+
+	@cached_in("_set_cache_")
+	def _set_cache_stuff(self):
+		return (
+			self.engine._node_val_cache.store,
+			self.character.name,
+			self.name,
+		)
 
 	def __repr__(self):
 		return "<{}(graph={}, name={})>".format(
