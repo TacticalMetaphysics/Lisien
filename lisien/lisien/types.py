@@ -1640,16 +1640,16 @@ class DiGraph(networkx.DiGraph, ABC):
 	def __bool__(self):
 		return self._name in self.engine._graph_objs
 
-	@property
-	def graph(self):
-		if not hasattr(self, "_statmap"):
-			self._statmap = self.graph_map_cls(self)
-		return self._statmap
+	@cached_in("_statmap")
+	def graph(self) -> graph_map_cls:
+		return self.graph_map_cls(self)
 
 	@graph.setter
 	def graph(self, v):
-		self.graph.clear()
-		self.graph.update(v)
+		if not hasattr(self, "_statmap"):
+			self._statmap = self.graph_map_cls(self)
+		self._statmap.clear()
+		self._statmap.update(v)
 
 	@property
 	def node(self):
