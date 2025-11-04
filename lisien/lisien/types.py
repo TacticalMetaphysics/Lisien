@@ -672,7 +672,7 @@ class GraphMapping(AbstractEntityMapping):
 		"character",
 		"_engine",
 		"_iter_stuff_",
-		"_contains_stuff",
+		"_contains_stuff_",
 		"_len_stuff_",
 		"_get_stuff_",
 		"_set_db_stuff_",
