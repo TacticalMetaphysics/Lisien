@@ -51,9 +51,7 @@ from typing import (
 	Literal,
 	MutableMapping,
 	NewType,
-	TypeAlias,
 	TypeGuard,
-	TypeVar,
 	Iterator,
 	Mapping,
 	Type,
@@ -94,7 +92,7 @@ if TYPE_CHECKING:
 	from .node import Thing
 	from .rule import RuleBook, Rule
 
-KeyHint: TypeAlias = (
+type KeyHint = (
 	str | int | float | None | tuple["KeyHint", ...] | frozenset["KeyHint"]
 )
 
@@ -131,7 +129,7 @@ class Key(metaclass=_KeyMeta):
 		return obj
 
 
-ValueHint: TypeAlias = (
+type ValueHint = (
 	KeyHint
 	| dict[KeyHint, "ValueHint"]
 	| tuple["ValueHint", ...]
@@ -247,9 +245,9 @@ def ukey(k: KeyHint) -> UniversalKey:
 Branch = NewType("Branch", str)
 Turn = NewType("Turn", Annotated[int, Ge(0)])
 Tick = NewType("Tick", Annotated[int, Ge(0)])
-Time: TypeAlias = tuple[Branch, Turn, Tick]
-LinearTime: TypeAlias = tuple[Turn, Tick]
-TimeWindow: TypeAlias = tuple[Branch, Turn, Tick, Turn, Tick]
+type Time = tuple[Branch, Turn, Tick]
+type LinearTime = tuple[Turn, Tick]
+type TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", Annotated[int, Ge(0)])
 CharName = NewType("CharName", Key)
 
@@ -269,7 +267,7 @@ def nodename(k: KeyHint) -> NodeName:
 	return NodeName(k)
 
 
-EntityKey: TypeAlias = (
+type EntityKey = (
 	tuple[CharName]
 	| tuple[CharName, NodeName]
 	| tuple[CharName, NodeName, NodeName]
@@ -293,11 +291,11 @@ def rulename(s: str) -> RuleName:
 	return RuleName(s)
 
 
-RuleNeighborhood: TypeAlias = Annotated[int, Ge(0)] | None
+type RuleNeighborhood = Annotated[int, Ge(0)] | None
 RuleBig = NewType("RuleBig", bool)
-RuleFunc: TypeAlias = Callable[[Any], bool]
+type RuleFunc = Callable[[Any], bool]
 FuncName = NewType("FuncName", str)
-FuncStoreName: TypeAlias = Literal[
+type FuncStoreName = Literal[
 	"trigger", "prereq", "action", "function", "method"
 ]
 TriggerFuncName = NewType("TriggerFuncName", FuncName)
@@ -321,9 +319,9 @@ def actfuncn(s: str) -> ActionFuncName:
 	return ActionFuncName(FuncName(s))
 
 
-RuleFuncName: TypeAlias = TriggerFuncName | PrereqFuncName | ActionFuncName
-UniversalKeyframe: TypeAlias = dict[UniversalKey, Value]
-RuleKeyframe: TypeAlias = dict[
+type RuleFuncName = TriggerFuncName | PrereqFuncName | ActionFuncName
+type UniversalKeyframe = dict[UniversalKey, Value]
+type RuleKeyframe = dict[
 	Literal["triggers", "prereqs", "actions", "neighborhood", "big"],
 	list[TriggerFuncName]
 	| list[PrereqFuncName]
@@ -331,12 +329,12 @@ RuleKeyframe: TypeAlias = dict[
 	| RuleNeighborhood
 	| RuleBig,
 ]
-RulesKeyframe: TypeAlias = dict[RuleName, RuleKeyframe]
-RulebooksKeyframe: TypeAlias = dict[
+type RulesKeyframe = dict[RuleName, RuleKeyframe]
+type RulebooksKeyframe = dict[
 	RulebookName, tuple[list[RuleName], RulebookPriority]
 ]
-UniversalRowType: TypeAlias = tuple[Branch, Turn, Tick, UniversalKey, Value]
-RulebookRowType: TypeAlias = tuple[
+type UniversalRowType = tuple[Branch, Turn, Tick, UniversalKey, Value]
+type RulebookRowType = tuple[
 	Branch,
 	Turn,
 	Tick,
@@ -344,7 +342,7 @@ RulebookRowType: TypeAlias = tuple[
 	list[RuleName],
 	RulebookPriority,
 ]
-RuleRowType: TypeAlias = tuple[
+type RuleRowType = tuple[
 	Branch,
 	Turn,
 	Tick,
@@ -355,48 +353,40 @@ RuleRowType: TypeAlias = tuple[
 	| RuleNeighborhood
 	| RuleBig,
 ]
-TriggerRowType: TypeAlias = tuple[
+type TriggerRowType = tuple[
 	Branch, Turn, Tick, RuleName, list[TriggerFuncName]
 ]
-PrereqRowType: TypeAlias = tuple[
-	Branch, Turn, Tick, RuleName, list[PrereqFuncName]
-]
-ActionRowType: TypeAlias = tuple[
-	Branch, Turn, Tick, RuleName, list[ActionFuncName]
-]
-RuleNeighborhoodRowType: TypeAlias = tuple[
+type PrereqRowType = tuple[Branch, Turn, Tick, RuleName, list[PrereqFuncName]]
+type ActionRowType = tuple[Branch, Turn, Tick, RuleName, list[ActionFuncName]]
+type RuleNeighborhoodRowType = tuple[
 	Branch, Turn, Tick, RuleName, RuleNeighborhood
 ]
-RuleBigRowType: TypeAlias = tuple[Branch, Turn, Tick, RuleName, RuleBig]
-GraphTypeStr: TypeAlias = Literal["DiGraph", "Deleted"]
-GraphRowType: TypeAlias = tuple[Branch, Turn, Tick, CharName, GraphTypeStr]
-NodeRowType: TypeAlias = tuple[Branch, Turn, Tick, CharName, NodeName, bool]
-EdgeRowType: TypeAlias = tuple[
+type RuleBigRowType = tuple[Branch, Turn, Tick, RuleName, RuleBig]
+type GraphTypeStr = Literal["DiGraph", "Deleted"]
+type GraphRowType = tuple[Branch, Turn, Tick, CharName, GraphTypeStr]
+type NodeRowType = tuple[Branch, Turn, Tick, CharName, NodeName, bool]
+type EdgeRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, bool
 ]
-GraphValRowType: TypeAlias = tuple[Branch, Turn, Tick, CharName, Stat, Value]
-NodeValRowType: TypeAlias = tuple[
+type GraphValRowType = tuple[Branch, Turn, Tick, CharName, Stat, Value]
+type NodeValRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, Stat, Value
 ]
-EdgeValRowType: TypeAlias = tuple[
+type EdgeValRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, Stat, Value
 ]
-ThingRowType: TypeAlias = tuple[
-	Branch, Turn, Tick, CharName, NodeName, NodeName
-]
-UnitRowType: TypeAlias = tuple[
+type ThingRowType = tuple[Branch, Turn, Tick, CharName, NodeName, NodeName]
+type UnitRowType = tuple[
 	Branch, Turn, Tick, CharName, CharName, NodeName, bool
 ]
-CharRulebookRowType: TypeAlias = tuple[
-	Branch, Turn, Tick, CharName, RulebookName
-]
-NodeRulebookRowType: TypeAlias = tuple[
+type CharRulebookRowType = tuple[Branch, Turn, Tick, CharName, RulebookName]
+type NodeRulebookRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, RulebookName
 ]
-PortalRulebookRowType: TypeAlias = tuple[
+type PortalRulebookRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName
 ]
-CharacterRulesHandledRowType: TypeAlias = tuple[
+type CharacterRulesHandledRowType = tuple[
 	Branch,
 	Turn,
 	CharName,
@@ -404,7 +394,7 @@ CharacterRulesHandledRowType: TypeAlias = tuple[
 	RuleName,
 	Tick,
 ]
-PortalRulesHandledRowType: TypeAlias = tuple[
+type PortalRulesHandledRowType = tuple[
 	Branch,
 	Turn,
 	CharName,
@@ -414,7 +404,7 @@ PortalRulesHandledRowType: TypeAlias = tuple[
 	RuleName,
 	Tick,
 ]
-NodeRulesHandledRowType: TypeAlias = tuple[
+type NodeRulesHandledRowType = tuple[
 	Branch,
 	Turn,
 	CharName,
@@ -423,7 +413,7 @@ NodeRulesHandledRowType: TypeAlias = tuple[
 	RuleName,
 	Tick,
 ]
-UnitRulesHandledRowType: TypeAlias = tuple[
+type UnitRulesHandledRowType = tuple[
 	Branch,
 	Turn,
 	CharName,
@@ -433,8 +423,8 @@ UnitRulesHandledRowType: TypeAlias = tuple[
 	RuleName,
 	Tick,
 ]
-StatDict: TypeAlias = dict[Stat | Literal["rulebook"], Value]
-CharDict: TypeAlias = dict[
+type StatDict = dict[Stat | Literal["rulebook"], Value]
+type CharDict = dict[
 	Stat
 	| Literal[
 		"units",
@@ -446,19 +436,19 @@ CharDict: TypeAlias = dict[
 	],
 	Value,
 ]
-GraphValKeyframe: TypeAlias = dict[CharName, CharDict]
-NodeValDict: TypeAlias = dict[NodeName, StatDict]
+type GraphValKeyframe = dict[CharName, CharDict]
+type NodeValDict = dict[NodeName, StatDict]
 NodeKeyframe = NodeValDict
-GraphNodeValKeyframe: TypeAlias = dict[CharName, NodeValDict]
-EdgeValDict: TypeAlias = dict[NodeName, dict[NodeName, StatDict]]
+type GraphNodeValKeyframe = dict[CharName, NodeValDict]
+type EdgeValDict = dict[NodeName, dict[NodeName, StatDict]]
 EdgeKeyframe = EdgeValDict
-GraphEdgeValKeyframe: TypeAlias = dict[CharName, EdgeValDict]
-NodesDict: TypeAlias = dict[NodeName, bool]
-GraphNodesKeyframe: TypeAlias = dict[CharName, NodesDict]
-EdgesDict: TypeAlias = dict[NodeName, dict[NodeName, bool]]
-GraphEdgesKeyframe: TypeAlias = dict[CharName, EdgesDict]
-UnitsDict: TypeAlias = dict[CharName, dict[NodeName, bool]]
-CharDelta: TypeAlias = dict[
+type GraphEdgeValKeyframe = dict[CharName, EdgeValDict]
+type NodesDict = dict[NodeName, bool]
+type GraphNodesKeyframe = dict[CharName, NodesDict]
+type EdgesDict = dict[NodeName, dict[NodeName, bool]]
+type GraphEdgesKeyframe = dict[CharName, EdgesDict]
+type UnitsDict = dict[CharName, dict[NodeName, bool]]
+type CharDelta = dict[
 	Stat
 	| Literal[
 		"character_rulebook",
@@ -491,11 +481,11 @@ CharDelta: TypeAlias = dict[
 	]
 	| Value,
 ]
-DeltaDict: TypeAlias = dict[
+type DeltaDict = dict[
 	CharName,
 	CharDelta | None,
 ]
-KeyframeTuple: TypeAlias = tuple[
+type KeyframeTuple = tuple[
 	Branch,
 	Turn,
 	Tick,
@@ -504,10 +494,10 @@ KeyframeTuple: TypeAlias = tuple[
 	GraphEdgeValKeyframe,
 	StatDict,
 ]
-KeyframeExtensionTuple: TypeAlias = tuple[
+type KeyframeExtensionTuple = tuple[
 	Branch, Turn, Tick, UniversalKeyframe, RuleKeyframe, RulebooksKeyframe
 ]
-Keyframe: TypeAlias = dict[
+type Keyframe = dict[
 	Literal[
 		"universal",
 		"triggers",
@@ -535,7 +525,7 @@ Keyframe: TypeAlias = dict[
 	| dict[RuleName, RuleBig]
 	| dict[RulebookName, tuple[list[RuleName], RulebookPriority]],
 ]
-SlightlyPackedDeltaType: TypeAlias = dict[
+type SlightlyPackedDeltaType = dict[
 	bytes,
 	dict[
 		bytes,
@@ -546,14 +536,14 @@ SlightlyPackedDeltaType: TypeAlias = dict[
 		],
 	],
 ]
-RulebookTypeStr: TypeAlias = Literal[
+type RulebookTypeStr = Literal[
 	"character",
 	"unit",
 	"character_thing",
 	"character_place",
 	"character_portal",
 ]
-CharacterRulebookTypeStr: TypeAlias = Literal[
+type CharacterRulebookTypeStr = Literal[
 	"character_rulebook",
 	"unit_rulebook",
 	"character_thing_rulebook",
@@ -1759,11 +1749,11 @@ class DiGraph(networkx.DiGraph, ABC):
 		self._node[node_for_adding].update(attr)
 
 
-PackSignature: TypeAlias = Callable[
+type PackSignature = Callable[
 	[KeyHint | EternalKey | UniversalKey | Stat | ValueHint], bytes
 ]
-UnpackSignature: TypeAlias = Callable[[bytes], ValueHint]
-LoadedCharWindow: TypeAlias = dict[
+type UnpackSignature = Callable[[bytes], ValueHint]
+type LoadedCharWindow = dict[
 	Literal[
 		"nodes",
 		"edges",
@@ -1791,7 +1781,7 @@ LoadedCharWindow: TypeAlias = dict[
 	| list[NodeRulebookRowType]
 	| list[PortalRulebookRowType],
 ]
-LoadedDict: TypeAlias = dict[
+type LoadedDict = dict[
 	Literal[
 		"universals",
 		"rulebooks",
@@ -1882,9 +1872,6 @@ class SignalDict(Signal, dict):
 	def __delitem__(self, __key):
 		super().__delitem__(__key)
 		self.send(self, key=__key, value=None)
-
-
-_T = TypeVar("_T")
 
 
 class EntityAccessor(ABC):
@@ -2409,7 +2396,7 @@ class AbstractEngine(ABC):
 				char_cls(self, charn, init_rulebooks=False), orign, destn
 			)
 
-		def unpack_seq(t: type[_T], ext: bytes) -> _T:
+		def unpack_seq(t: type[_SEQT], ext: bytes) -> _SEQT:
 			unpacked = self.unpack(getattr(ext, "data", ext))
 			if not isinstance(unpacked, list):
 				raise TypeError("Tried to unpack", type(unpacked), t)
@@ -3498,6 +3485,8 @@ sort_set.memo = SizedDict()
 
 
 def root_type(t: type) -> type:
+	if hasattr(t, "evaluate_value"):
+		t = t.evaluate_value()
 	if t is Key or t is Value:
 		return t
 	elif t is Turn or t is Tick or t is Plan or t is RuleNeighborhood:
@@ -3508,6 +3497,8 @@ def root_type(t: type) -> type:
 		orig = get_origin(t)
 		if orig is None:
 			return t
+		elif orig is Annotated:
+			return get_args(t)[0]
 		ret = root_type(orig)
 		if ret is Literal:
 			for arg in get_args(orig):
@@ -3538,6 +3529,8 @@ def deannotate(annotation):
 		return
 	else:
 		typ = eval(annotation)
+	if hasattr(typ, "evaluate_value"):
+		typ = typ.evaluate_value()
 	if hasattr(typ, "__supertype__"):
 		typ = typ.__supertype__
 	if hasattr(typ, "__origin__"):

@@ -35,7 +35,7 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, TypeVar
 
 import networkx as nx
 from blinker import Signal
@@ -46,6 +46,10 @@ from .types import (
 	AbstractEngine,
 	sort_set,
 	AbstractFunctionStore,
+	ValueHint,
+	Stat,
+	Value,
+	UniversalKey,
 )
 from .util import dedent_source, getatt
 from .wrap import wrapval
@@ -497,7 +501,7 @@ class UniversalMapping(MutableMapping, Signal):
 	def __len__(self):
 		return self.engine._universal_cache.count_keys(*self.engine._btt())
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: KeyHint | UniversalKey):
 		"""Get the current value of this key"""
 		return wrapval(
 			self,
@@ -505,10 +509,10 @@ class UniversalMapping(MutableMapping, Signal):
 			self._get_cache_now(k),
 		)
 
-	def _get_cache_now(self, k):
+	def _get_cache_now(self, k: UniversalKey):
 		return self.engine._universal_cache.retrieve(k, *self.engine._btt())
 
-	def __setitem__(self, k, v):
+	def __setitem__(self, k: KeyHint | UniversalKey, v: ValueHint | Value):
 		"""Set k=v at the current branch and tick"""
 		try:
 			if v == self._get_cache_now(k):
@@ -520,10 +524,10 @@ class UniversalMapping(MutableMapping, Signal):
 		self.engine.query.universal_set(k, branch, turn, tick, v)
 		self.send(self, key=k, val=v)
 
-	def _set_cache_now(self, k, v):
+	def _set_cache_now(self, k: UniversalKey, v: Value):
 		self.engine._universal_cache.store(k, *self.engine._btt(), v)
 
-	def __delitem__(self, k):
+	def __delitem__(self, k: KeyHint | UniversalKey):
 		"""Unset this key for the present (branch, tick)"""
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._universal_cache.store(k, branch, turn, tick, ...)
@@ -556,7 +560,7 @@ class CharacterMapping(MutableMapping, Signal):
 		branch, turn, tick = self.engine._btt()
 		return self.engine._graph_cache.count_keys(branch, turn, tick)
 
-	def __contains__(self, item):
+	def __contains__(self, item: KeyHint | CharName) -> bool:
 		branch, turn, tick = self.engine._btt()
 		try:
 			return (
@@ -566,7 +570,7 @@ class CharacterMapping(MutableMapping, Signal):
 		except KeyError:
 			return False
 
-	def __getitem__(self, name: KeyHint) -> "Character":
+	def __getitem__(self, name: KeyHint | CharName) -> Character:
 		"""Return the named character, if it's been created.
 
 		Try to use the cache if possible.
@@ -589,7 +593,11 @@ class CharacterMapping(MutableMapping, Signal):
 			)
 		return ret
 
-	def __setitem__(self, name: CharName, value: dict | nx.Graph):
+	def __setitem__(
+		self,
+		name: KeyHint | CharName,
+		value: dict[KeyHint | Stat, ValueHint | Value] | nx.Graph,
+	):
 		"""Make a new character by the given name, and initialize its data to
 		the given value.
 
@@ -597,12 +605,16 @@ class CharacterMapping(MutableMapping, Signal):
 		self.engine._init_graph(name, "DiGraph", value)
 		self.send(self, key=name, val=self.engine.character[name])
 
-	def __delitem__(self, name: CharName):
+	def __delitem__(self, name: KeyHint | CharName):
 		self.engine.del_character(name)
 		self.send(self, key=name, val=None)
 
 
-class CompositeDict(MutableMapping, Signal):
+_K = TypeVar("_K")
+_V = TypeVar("_V")
+
+
+class CompositeDict[_K, _V](MutableMapping[_K, _V], Signal):
 	"""Combine two dictionaries into one"""
 
 	def __init__(self, d1, d2):
