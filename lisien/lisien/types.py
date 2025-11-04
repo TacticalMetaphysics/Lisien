@@ -2999,7 +2999,7 @@ class AbstractCharacter(DiGraph):
 
 	def __bool__(self):
 		try:
-			return self.name in self.db.character
+			return self.name in self.engine.character
 		except AttributeError:
 			return False  # we can't "really exist" when we've no engine
 
