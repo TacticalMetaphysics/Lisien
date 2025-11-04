@@ -266,9 +266,9 @@ class Character(AbstractCharacter, RuleFollower):
 		return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
 	def __init__(
-		self, engine: Engine, name: KeyHint, *, init_rulebooks: bool = False
+		self, engine: Engine, name: CharName, *, init_rulebooks: bool = False
 	):
-		name = charname(name)
+		name = name
 		super().__init__(engine, name)
 		if not init_rulebooks:
 			return
