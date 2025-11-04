@@ -71,7 +71,9 @@ from .cache import (
 	EdgesCache,
 	EdgeValCache,
 	EntitylessCache,
-	FuncListCache,
+	TriggerListCache,
+	PrereqListCache,
+	ActionListCache,
 	GraphCache,
 	GraphValCache,
 	NeighborhoodsCache,
@@ -1011,16 +1013,16 @@ class Engine(AbstractEngine, Executor):
 		return PortalsRulebooksCache(self, name="portals rulebooks cache")
 
 	@cached_property
-	def _triggers_cache(self) -> FuncListCache:
-		return FuncListCache(self, name="triggers cache")
+	def _triggers_cache(self) -> TriggerListCache:
+		return TriggerListCache(self, name="triggers cache")
 
 	@cached_property
-	def _prereqs_cache(self) -> FuncListCache:
-		return FuncListCache(self, name="prereqs cache")
+	def _prereqs_cache(self) -> PrereqListCache:
+		return PrereqListCache(self, name="prereqs cache")
 
 	@cached_property
-	def _actions_cache(self) -> FuncListCache:
-		return FuncListCache(self, name="actions cache")
+	def _actions_cache(self) -> ActionListCache:
+		return ActionListCache(self, name="actions cache")
 
 	@cached_property
 	def _neighborhoods_cache(self) -> NeighborhoodsCache:

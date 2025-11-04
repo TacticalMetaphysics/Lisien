@@ -31,6 +31,7 @@ from typing import (
 	Iterator,
 	Literal,
 	Optional,
+	Iterable,
 )
 
 from . import engine
@@ -61,6 +62,9 @@ from .types import (
 	Turn,
 	Value,
 	sort_set,
+	ActionFuncName,
+	PrereqFuncName,
+	TriggerFuncName,
 )
 from .window import (
 	Direction,
@@ -2948,9 +2952,11 @@ class RulebooksCache(Cache):
 
 
 class FuncListCache(InitializedCache):
+	functype: ClassVar[type]
+
 	def store(
 		self,
-		rulebook: RulebookName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -2963,7 +2969,7 @@ class FuncListCache(InitializedCache):
 	) -> None:
 		self._store(
 			None,
-			rulebook,
+			rule,
 			branch,
 			turn,
 			tick,
@@ -2974,22 +2980,9 @@ class FuncListCache(InitializedCache):
 			contra=contra,
 		)
 
-	def retrieve(
+	def contains_rule(
 		self,
-		rulebook: RulebookName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		*,
-		search: bool = False,
-	) -> list[RuleFuncName]:
-		return self._retrieve(
-			None, rulebook, branch, turn, tick, search=search
-		)
-
-	def contains_rulebook(
-		self,
-		rulebook: RulebookName,
+		rulebook: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -3000,11 +2993,11 @@ class FuncListCache(InitializedCache):
 			None, rulebook, branch, turn, tick, search=search
 		)
 
-	contains_key = contains_rulebook
+	contains_key = contains_rule
 
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
-	) -> dict[RulebookName, list[RuleFuncName]]:
+	) -> dict[RuleName, list[RuleFuncName]]:
 		ret = self._get_keyframe((Key(None),), branch, turn, tick)
 		if copy:
 			ret = ret.copy()
@@ -3017,9 +3010,57 @@ class FuncListCache(InitializedCache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict[RulebookName, list[RuleFuncName]],
+		keyframe: dict[RuleName, list[RuleFuncName]],
 	):
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
+
+
+class TriggerListCache(FuncListCache):
+	def retrieve(
+		self,
+		rulebook: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> list[TriggerFuncName]:
+		ret = self._retrieve(None, rulebook, branch, turn, tick, search=search)
+		if not isinstance(ret, list):
+			raise TypeError("Invalid trigger func list", type(ret), ret)
+		return [TriggerFuncName(it) for it in ret]
+
+
+class PrereqListCache(FuncListCache):
+	def retrieve(
+		self,
+		rulebook: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> list[PrereqFuncName]:
+		ret = self._retrieve(None, rulebook, branch, turn, tick, search=search)
+		if not isinstance(ret, list):
+			raise TypeError("Invalid prereq func list", type(ret), ret)
+		return [PrereqFuncName(it) for it in ret]
+
+
+class ActionListCache(FuncListCache):
+	def retrieve(
+		self,
+		rulebook: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> list[ActionFuncName]:
+		ret = self._retrieve(None, rulebook, branch, turn, tick, search=search)
+		if not isinstance(ret, list):
+			raise TypeError("Invalid action func list", type(ret), ret)
+		return [ActionFuncName(it) for it in ret]
 
 
 class NeighborhoodsCache(InitializedCache):
