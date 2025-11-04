@@ -620,7 +620,7 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 	def _del_cache(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		self._set_cache(key, branch, turn, tick, ...)
 
-	def __getitem__(self, key: KeyHint):
+	def __getitem__(self, key: Key | KeyHint):
 		"""If key is 'graph', return myself as a dict, else get the present
 		value of the key and return that
 
@@ -628,12 +628,12 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 
 		return wrapval(self, key, self._get_cache_now(key))
 
-	def __contains__(self, item: KeyHint):
+	def __contains__(self, item: Key | KeyHint):
 		return item == "name" or self._cache_contains(
 			item, *self.engine._btt()
 		)
 
-	def __setitem__(self, key: KeyHint, value: ValueHint):
+	def __setitem__(self, key: Key | KeyHint, value: Value | ValueHint):
 		"""Set key=value at the present branch and revision"""
 		if value is ...:
 			raise ValueError(
@@ -648,11 +648,11 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 		self._set_cache(key, branch, turn, tick, value)
 		self._set_db(key, branch, turn, tick, value)
 
-	def __delitem__(self, key: KeyHint):
+	def __delitem__(self, key: Key | KeyHint):
 		self._get_cache_now(key)  # deliberately raise KeyError if unset
 		branch, turn, tick = self.engine._nbtt()
-		self._del_cache(key, branch, turn, tick)
-		self._del_db(key, branch, turn, tick)
+		self._del_cache(Key(key), branch, turn, tick)
+		self._del_db(Key(key), branch, turn, tick)
 
 
 class GraphMapping(AbstractEntityMapping):
@@ -735,7 +735,7 @@ class GraphMapping(AbstractEntityMapping):
 		)
 
 	def _cache_contains(
-		self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick
+		self, key: Key, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
 		contains_key, graphn = self._cache_contains_stuff
 		return contains_key(graphn, key, branch, turn, tick)
@@ -744,12 +744,14 @@ class GraphMapping(AbstractEntityMapping):
 		count_keys, graphn, btt = self._len_stuff
 		return 1 + count_keys(graphn, *btt())
 
-	def __getitem__(self, item: KeyHint) -> ValueHint:
+	def __getitem__(self, item: Key | KeyHint) -> Value | ValueHint | CharName:
 		if item == "name":
 			return self.character.name
 		return super().__getitem__(item)
 
-	def __setitem__(self, key: KeyHint, value: ValueHint) -> None:
+	def __setitem__(
+		self, key: Key | KeyHint, value: Value | ValueHint
+	) -> None:
 		if key == "name":
 			raise KeyError("name cannot be changed after creation")
 		super().__setitem__(key, value)
@@ -766,28 +768,28 @@ class GraphMapping(AbstractEntityMapping):
 
 	def _set_db(
 		self,
-		key: KeyHint,
+		key: Stat,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: ValueHint,
+		value: Value,
 	) -> None:
 		graph_val_set, graphn = self._set_db_stuff
-		graph_val_set(graphn, key, branch, turn, tick, Value(value))
+		graph_val_set(graphn, key, branch, turn, tick, value)
 
 	def _set_cache(
 		self,
-		key: KeyHint,
+		key: Stat,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: ValueHint,
+		value: Value,
 	) -> None:
 		store, graphn = self._set_cache_stuff
 		store(graphn, key, branch, turn, tick, value)
 
 	def _del_db(
-		self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick
+		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		graph_val_set, graphn = self._del_db_stuff
 		graph_val_set(graphn, key, branch, turn, tick, ...)
@@ -801,7 +803,9 @@ class GraphMapping(AbstractEntityMapping):
 	def unwrap(self):
 		return unwrap_items(self.items())
 
-	def __eq__(self, other: Mapping[KeyHint, ValueHint]) -> bool:
+	def __eq__(
+		self, other: Mapping[Stat | KeyHint, Value | ValueHint]
+	) -> bool:
 		if hasattr(other, "unwrap"):
 			other = other.unwrap()
 		other = other.copy()
@@ -898,7 +902,7 @@ class Node(AbstractEntityMapping):
 		return iter_entity_keys(graphn, node, *btt())
 
 	def _cache_contains(
-		self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick
+		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
 		contains_key, graphn, node = self._cache_contains_stuff
 		return contains_key(graphn, node, key, branch, turn, tick)
@@ -908,29 +912,29 @@ class Node(AbstractEntityMapping):
 		return count_entity_keys(graphn, node, *btt())
 
 	def _get_cache(
-		self, key: KeyHint, branch: Branch, turn: Turn, tick: Tick
+		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> ValueHint:
 		retrieve, graphn, node = self._get_cache_stuff
 		return retrieve(graphn, node, key, branch, turn, tick)
 
 	def _set_db(
 		self,
-		key: KeyHint,
+		key: Stat,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: ValueHint,
+		value: Value,
 	) -> None:
 		node_val_set, graphn, node = self._set_db_stuff
 		node_val_set(graphn, node, key, branch, turn, tick, value)
 
 	def _set_cache(
 		self,
-		key: KeyHint,
+		key: Stat,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: ValueHint,
+		value: Value,
 	) -> None:
 		store, graphn, node = self._set_cache_stuff
 		store(graphn, node, key, branch, turn, tick, value)
@@ -953,27 +957,43 @@ class Node(AbstractEntityMapping):
 				return False
 		return True
 
-	def add_portal(self, other: KeyHint | Node, **stats) -> None:
+	def add_portal(
+		self,
+		other: Key | KeyHint | Node,
+		**stats: dict[Stat | KeyHint, Value | ValueHint],
+	) -> None:
 		"""Connect a portal from here to another node"""
 		self.character.add_portal(
 			self.name, getattr(other, "name", other), **stats
 		)
 
-	def new_portal(self, other: KeyHint | Node, **stats) -> Portal:
+	def new_portal(
+		self,
+		other: KeyHint | NodeName | Node,
+		**stats: dict[Stat | KeyHint, Value | ValueHint],
+	) -> Portal:
 		"""Connect a portal from here to another node, and return it."""
 		return self.character.new_portal(
 			self.name, getattr(other, "name", other), **stats
 		)
 
-	def add_thing(self, name: KeyHint, **stats) -> None:
+	def add_thing(
+		self,
+		name: NodeName | KeyHint,
+		**stats: dict[Stat | KeyHint, Value | ValueHint],
+	) -> None:
 		"""Make a new Thing here"""
 		self.character.add_thing(name, self.name, **stats)
 
-	def new_thing(self, name: KeyHint, **stats) -> Thing:
+	def new_thing(
+		self,
+		name: NodeName | KeyHint,
+		**stats: dict[Stat | KeyHint, Value | ValueHint],
+	) -> Thing:
 		"""Create a new thing, located here, and return it."""
 		return self.character.new_thing(name, self.name, **stats)
 
-	def historical(self, stat: KeyHint) -> EntityStatAlias:
+	def historical(self, stat: Stat | KeyHint) -> EntityStatAlias:
 		"""Return a reference to the values that a stat has had in the past.
 
 		You can use the reference in comparisons to make a history
@@ -1000,9 +1020,7 @@ class Edge(AbstractEntityMapping):
 		"_set_cache_stuff",
 	)
 
-	set_db_time = set_cache_time = 0
-
-	def __init__(self, graph, orig, dest):
+	def __init__(self, graph: Character, orig: NodeName, dest: NodeName):
 		super().__init__(graph)
 		self.character = graph
 		self.engine = db = graph.engine
@@ -1190,18 +1208,17 @@ class GraphEdgeMapping(AllegedMapping):
 
 	"""
 
-	__slots__ = ("character", "engine", "_cache")
+	__slots__ = "_cache"
 
-	character: AbstractCharacter
-	engine: AbstractEngine
+	character: Character
+	engine: Engine
 
 	def __init__(self, graph):
 		super().__init__(graph)
 		self.character = graph
-		self.engine = graph.engine
 		self._cache = {}
 
-	def __eq__(self, other):
+	def __eq__(self, other: Mapping):
 		"""Compare dictified versions of the edge mappings within me.
 
 		As I serve custom Predecessor or Successor classes, which
@@ -1211,7 +1228,7 @@ class GraphEdgeMapping(AllegedMapping):
 		to work anyway.
 
 		"""
-		if not hasattr(other, "keys"):
+		if not isinstance(other, Mapping):
 			return False
 		if self.keys() != other.keys():
 			return False
@@ -1225,9 +1242,9 @@ class GraphEdgeMapping(AllegedMapping):
 
 
 class AbstractSuccessors(GraphEdgeMapping):
-	__slots__ = ("character", "engine", "container", "orig", "_cache")
-	character: AbstractCharacter
-	engine: AbstractEngine
+	__slots__ = ("container", "orig", "_cache")
+	character: Character
+	engine: Engine
 	orig: NodeName
 
 	def _order_nodes(self, node):
@@ -1476,10 +1493,10 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 				pass
 			return n
 
-		def _make_edge(self, orig):
+		def _make_edge(self, orig: NodeName):
 			return Edge(self.character, orig, self.dest)
 
-		def __getitem__(self, orig):
+		def __getitem__(self, orig: KeyHint | NodeName):
 			"""Get the edge from the given node to mine"""
 			if orig not in self:
 				raise KeyError(orig)
