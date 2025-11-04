@@ -291,3 +291,12 @@ def cached_in(
 		return the_it
 
 	return property(getter)
+
+
+def slotted(func: Callable) -> property:
+	"""Decorator to cache the func's return value in a slot named like it
+
+	With _ in front.
+
+	"""
+	return cached_in("_" + func.__name__)
