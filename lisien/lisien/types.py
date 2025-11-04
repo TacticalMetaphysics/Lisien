@@ -74,7 +74,7 @@ from tblib import Traceback
 
 from . import exc
 from .exc import WorkerProcessReadOnlyError, TimeError
-from .util import getatt, cached_in
+from .util import getatt, cached_in, slotted
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
@@ -1011,52 +1011,24 @@ class Edge(AbstractEntityMapping):
 		"character",
 		"orig",
 		"dest",
-		"engine",
-		"_iter_stuff",
-		"_cache_contains_stuff",
-		"_len_stuff",
-		"_get_cache_stuff",
-		"_set_db_stuff",
-		"_set_cache_stuff",
+		"_engine",
+		"__iter_stuff",
+		"__cache_contains_stuff",
+		"__len_stuff",
+		"__get_cache_stuff",
+		"__set_db_stuff",
+		"__set_cache_stuff",
 	)
 
 	def __init__(self, graph: Character, orig: NodeName, dest: NodeName):
 		super().__init__(graph)
 		self.character = graph
-		self.engine = db = graph.engine
 		self.orig = orig
 		self.dest = dest
-		edge_val_cache = db._edge_val_cache
-		graphn = graph.name
-		btt = db._btt
-		self._iter_stuff = (
-			edge_val_cache.iter_keys,
-			graphn,
-			orig,
-			dest,
-			btt,
-		)
-		self._cache_contains_stuff = (
-			edge_val_cache.contains_key,
-			graphn,
-			orig,
-			dest,
-		)
-		self._len_stuff = (
-			edge_val_cache.count_keys,
-			graphn,
-			orig,
-			dest,
-			btt,
-		)
-		self._get_cache_stuff = (
-			edge_val_cache.retrieve,
-			graphn,
-			orig,
-			dest,
-		)
-		self._set_db_stuff = (db.query.edge_val_set, graphn, orig, dest)
-		self._set_cache_stuff = (edge_val_cache.store, graphn, orig, dest)
+
+	@slotted
+	def engine(self):
+		return self.character.engine
 
 	def __repr__(self):
 		return "<{} in graph {} from {} to {} containing {}>".format(
@@ -1070,25 +1042,81 @@ class Edge(AbstractEntityMapping):
 	def __str__(self):
 		return str(dict(self))
 
+	@slotted
+	def _iter_stuff(self):
+		return (
+			self.character.engine._edge_val_cache.iter_keys,
+			self.character.name,
+			self.orig,
+			self.dest,
+			self.character.engine._btt,
+		)
+
 	def __iter__(self):
 		iter_entity_keys, graphn, orig, dest, btt = self._iter_stuff
 		return iter_entity_keys(graphn, orig, dest, *btt())
+
+	@slotted
+	def _cache_contains_stuff(self):
+		return (
+			self.character.engine._edge_val_cache.contains_key,
+			self.character.name,
+			self.orig,
+			self.dest,
+		)
 
 	def _cache_contains(self, key, branch, turn, tick):
 		contains_key, graphn, orig, dest = self._cache_contains_stuff
 		return contains_key(graphn, orig, dest, key, branch, turn, tick)
 
+	@slotted
+	def _len_stuff(self):
+		return (
+			self.character.engine.edge_val_cache.count_keys,
+			self.character.name,
+			self.orig,
+			self.dest,
+			self.character.engine._btt,
+		)
+
 	def __len__(self):
 		count_entity_keys, graphn, orig, dest, btt = self._len_stuff
 		return count_entity_keys(graphn, orig, dest, *btt())
+
+	@slotted
+	def _get_cache_stuff(self):
+		return (
+			self.character.engine.edge_val_cache.retrieve,
+			self.character.name,
+			self.orig,
+			self.dest,
+		)
 
 	def _get_cache(self, key, branch, turn, tick):
 		retrieve, graphn, orig, dest = self._get_cache_stuff
 		return retrieve(graphn, orig, dest, key, branch, turn, tick)
 
+	@slotted
+	def _set_db_stuff(self):
+		return (
+			self.character.engine.query.edge_val_set,
+			self.character.name,
+			self.orig,
+			self.dest,
+		)
+
 	def _set_db(self, key, branch, turn, tick, value):
 		edge_val_set, graphn, orig, dest = self._set_db_stuff
 		edge_val_set(graphn, orig, dest, key, branch, turn, tick, value)
+
+	@slotted
+	def _set_cache_stuff(self):
+		return (
+			self.character.engine._edge_val_cache.store,
+			self.character.name,
+			self.orig,
+			self.dest,
+		)
 
 	def _set_cache(self, key, branch, turn, tick, value):
 		store, graphn, orig, dest = self._set_cache_stuff
@@ -1098,14 +1126,17 @@ class Edge(AbstractEntityMapping):
 class GraphNodeMapping(AllegedMapping):
 	"""Mapping for nodes in a graph"""
 
-	__slots__ = ("character", "engine")
+	__slots__ = ("character", "_engine")
 
 	engine: AbstractEngine
 
-	def __init__(self, graph):
+	def __init__(self, graph: Character):
 		super().__init__(graph)
 		self.character = graph
-		self.engine = graph.engine
+
+	@slotted
+	def engine(self):
+		return self.character.engine
 
 	def __iter__(self):
 		"""Iterate over the names of the nodes"""
