@@ -19,15 +19,15 @@ from __future__ import annotations
 import gc
 import sys
 from contextlib import contextmanager
-from functools import wraps
+from functools import wraps, partial
 from pprint import pformat
 from textwrap import dedent
 from time import monotonic
 from typing import (
-	TYPE_CHECKING,
 	Callable,
 	Iterable,
 	TypeVar,
+	Any,
 )
 
 try:
@@ -39,10 +39,6 @@ except ImportError:
 	import umsgpack as msgpack
 
 	C_MSGPACK = False
-
-
-if TYPE_CHECKING:
-	pass
 
 TRUE: bytes = msgpack.packb(True)
 FALSE: bytes = msgpack.packb(False)
@@ -274,3 +270,24 @@ def getatt(attribute_name):
 	ret = property(attrgetter(attribute_name))
 	ret.__doc__ = "Alias to `{}`".format(attribute_name)
 	return ret
+
+
+_UNSET = object()
+
+
+def cached_in(
+	slot: str, func: Callable[[Any], Any] | None = None
+) -> partial | property:
+	"""Decorator similar to @cached_property, but using the given slot"""
+	if func is None:
+		return partial(cached_in, slot)
+
+	@wraps(func)
+	def getter(self):
+		the_it = getattr(self, slot, _UNSET)
+		if the_it is _UNSET:
+			the_it = func(self)
+			setattr(self, slot, the_it)
+		return the_it
+
+	return property(getter)
