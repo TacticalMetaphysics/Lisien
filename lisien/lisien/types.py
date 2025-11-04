@@ -672,7 +672,7 @@ class GraphMapping(AbstractEntityMapping):
 		"_get_cache_stuff_",
 	)
 
-	def __init__(self, graph: Character):
+	def __init__(self, graph: DiGraph):
 		super().__init__(graph)
 		self.character = graph
 
@@ -1129,9 +1129,7 @@ class GraphNodeMapping(AllegedMapping):
 
 	__slots__ = ("character", "_engine")
 
-	engine: AbstractEngine
-
-	def __init__(self, graph: Character):
+	def __init__(self, graph: DiGraph):
 		super().__init__(graph)
 		self.character = graph
 
@@ -1167,7 +1165,7 @@ class GraphNodeMapping(AllegedMapping):
 		else:
 			return True
 
-	def __contains__(self, node):
+	def __contains__(self, node: NodeName | KeyHint):
 		"""Return whether the node exists presently"""
 		return self.engine._nodes_cache.contains_entity(
 			self.character.name, node, *self.engine._btt()
@@ -1179,30 +1177,34 @@ class GraphNodeMapping(AllegedMapping):
 			self.character.name, *self.engine._btt()
 		)
 
-	def __getitem__(self, node):
+	def __getitem__(self, node: NodeName | KeyHint):
 		"""If the node exists at present, return it, else throw KeyError"""
 		if node not in self:
 			raise KeyError
 		return self.engine._get_node(self.character, node)
 
-	def __setitem__(self, node, dikt):
+	def __setitem__(
+		self,
+		node: NodeName | KeyHint,
+		dikt: dict[
+			NodeName | KeyHint, dict[Stat | KeyHint, Value | ValueHint]
+		],
+	):
 		"""Only accept dict-like values for assignment. These are taken to be
 		dicts of node attributes, and so, a new GraphNodeMapping.Node
 		is made with them, perhaps clearing out the one already there.
 
 		"""
-		created = False
 		db = self.engine
 		graph = self.character
 		gname = graph.name
 		if not db._node_exists(gname, node):
-			created = True
 			db._exist_node(gname, node, True)
 		n = db._get_node(graph, node)
 		n.clear()
 		n.update(dikt)
 
-	def __delitem__(self, node):
+	def __delitem__(self, node: NodeName | KeyHint):
 		"""Indicate that the given node no longer exists"""
 		if node not in self:
 			raise KeyError("No such node")
@@ -1224,8 +1226,20 @@ class GraphNodeMapping(AllegedMapping):
 	def __repr__(self):
 		return f"<{self.__class__.__name__} containing {', '.join(map(repr, self.keys()))}>"
 
-	def update(self, m, /, **kwargs):
+	def update(
+		self,
+		m: dict[
+			NodeName | KeyHint,
+			type(...) | dict[Stat | KeyHint, Value | KeyHint],
+		],
+		/,
+		**kwargs: dict[
+			NodeName | KeyHint,
+			type(...) | dict[Stat | KeyHint, Value | KeyHint],
+		],
+	):
 		for node, value in chain(m.items(), kwargs.items()):
+			node = nodename(node)
 			if value is ...:
 				del self[node]
 			elif node not in self:
@@ -1240,12 +1254,12 @@ class GraphEdgeMapping(AllegedMapping):
 
 	"""
 
-	__slots__ = "_cache"
+	__slots__ = ("character", "_cache")
 
-	character: Character
-	engine: Engine
+	character: DiGraph
+	engine: Engine = getatt("character.engine")
 
-	def __init__(self, graph):
+	def __init__(self, graph: DiGraph):
 		super().__init__(graph)
 		self.character = graph
 		self._cache = {}
@@ -1275,12 +1289,10 @@ class GraphEdgeMapping(AllegedMapping):
 
 class AbstractSuccessors(GraphEdgeMapping):
 	__slots__ = ("container", "orig", "_cache")
-	character: Character
-	engine: Engine
 	orig: NodeName
 
-	def _order_nodes(self, node):
-		raise NotImplementedError
+	@abstractmethod
+	def _order_nodes(self, node: NodeName) -> tuple[NodeName, NodeName]: ...
 
 	def __init__(self, container, orig):
 		"""Store container and node"""
@@ -1288,7 +1300,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 		self.container = container
 		self.orig = orig
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[NodeName]:
 		"""Iterate over node IDs that have an edge with my orig"""
 		for that in self.engine._edges_cache.iter_successors(
 			self.character.name, self.orig, *self.engine._btt()
@@ -1296,7 +1308,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 			if that in self:
 				yield that
 
-	def __contains__(self, dest):
+	def __contains__(self, dest: KeyHint | NodeName) -> bool:
 		"""Is there an edge leading to ``dest`` at the moment?"""
 		orig, dest = self._order_nodes(dest)
 		return self.engine._edges_cache.has_successor(
@@ -1310,24 +1322,27 @@ class AbstractSuccessors(GraphEdgeMapping):
 			pass
 		return n
 
-	def _make_edge(self, dest):
+	def _make_edge(self, dest: NodeName) -> Edge:
 		return Edge(self.character, *self._order_nodes(dest))
 
-	def __getitem__(self, dest):
+	def __getitem__(self, dest: KeyHint | NodeName):
 		"""Get the edge between my orig and the given node"""
 		if dest not in self:
 			raise KeyError("No edge {}->{}".format(self.orig, dest))
 		orig, dest = self._order_nodes(dest)
 		return self.engine._get_edge(self.character, orig, dest)
 
-	def __setitem__(self, dest, value):
+	def __setitem__(
+		self,
+		dest: KeyHint | NodeName,
+		value: dict[Stat | KeyHint, Value | ValueHint],
+	):
 		"""Set the edge between my orig and the given dest to the given
 		value, a mapping.
 
 		"""
 		real_dest = dest
 		orig, dest = self._order_nodes(dest)
-		created = dest not in self
 		if orig not in self.character.node:
 			self.character.add_node(orig)
 		if dest not in self.character.node:
@@ -1343,7 +1358,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 		e.clear()
 		e.update(value)
 
-	def __delitem__(self, dest):
+	def __delitem__(self, dest: KeyHint | NodeName):
 		"""Remove the edge between my orig and the given dest"""
 		branch, turn, tick = self.engine._nbtt()
 		orig, dest = self._order_nodes(dest)
@@ -1360,7 +1375,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 			cls.__module__, cls.__name__, dict(self)
 		)
 
-	def clear(self):
+	def clear(self) -> None:
 		"""Delete every edge with origin at my orig"""
 		for dest in list(self):
 			del self[dest]
@@ -1374,18 +1389,22 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 	class Successors(AbstractSuccessors):
 		__slots__ = ("graph", "container", "orig", "_cache")
 
-		def _order_nodes(self, dest):
+		def _order_nodes(self, dest: NodeName):
 			if dest < self.orig:
 				return (dest, self.orig)
 			else:
 				return (self.orig, dest)
 
-	def __getitem__(self, orig):
+	def __getitem__(self, orig: KeyHint | NodeName):
 		if orig not in self._cache:
 			self._cache[orig] = self.Successors(self, orig)
 		return self._cache[orig]
 
-	def __setitem__(self, key, val):
+	def __setitem__(
+		self,
+		key: KeyHint | NodeName,
+		val: dict[NodeName | KeyHint, dict[Stat | KeyHint, Value | ValueHint]],
+	):
 		"""Wipe out any edges presently emanating from orig and replace them
 		with those described by val
 
@@ -1398,12 +1417,12 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 		if val:
 			sucs.update(val)
 
-	def __delitem__(self, key):
+	def __delitem__(self, key: KeyHint | NodeName):
 		"""Wipe out edges emanating from orig"""
 		self[key].clear()
 		del self._cache[key]
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[NodeName]:
 		for node in self.character.node:
 			if node in self:
 				yield node
@@ -1415,7 +1434,7 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 				n += 1
 		return n
 
-	def __contains__(self, key):
+	def __contains__(self, key: NodeName | KeyHint) -> bool:
 		return key in self.character.node
 
 	def __repr__(self):
@@ -1436,7 +1455,7 @@ class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
 	class Successors(AbstractSuccessors):
 		__slots__ = ("graph", "container", "orig", "_cache")
 
-		def _order_nodes(self, dest):
+		def _order_nodes(self, dest: NodeName) -> tuple[NodeName, NodeName]:
 			return (self.orig, dest)
 
 
@@ -1448,7 +1467,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
 	__slots__ = ("graph",)
 
-	def __contains__(self, dest):
+	def __contains__(self, dest: KeyHint | NodeName) -> bool:
 		for orig in self.engine._edges_cache.iter_predecessors(
 			self.character.name, dest, *self.engine._btt()
 		):
@@ -1461,7 +1480,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 				continue
 		return False
 
-	def __getitem__(self, dest):
+	def __getitem__(self, dest: KeyHint | NodeName) -> Predecessors:
 		"""Return a Predecessors instance for edges ending at the given
 		node
 
@@ -1472,39 +1491,42 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 			self._cache[dest] = self.Predecessors(self, dest)
 		return self._cache[dest]
 
-	def __setitem__(self, key, val):
+	def __setitem__(
+		self,
+		key: KeyHint | NodeName,
+		val: dict[KeyHint | NodeName, dict[Stat | KeyHint, Value | ValueHint]],
+	):
 		"""Interpret ``val`` as a mapping of edges that end at ``dest``"""
-		created = key not in self
 		if key not in self._cache:
 			self._cache[key] = self.Predecessors(self, key)
 		preds = self._cache[key]
 		preds.clear()
 		preds.update(val)
 
-	def __delitem__(self, key):
+	def __delitem__(self, key: KeyHint | NodeName):
 		"""Delete all edges ending at ``dest``"""
 		it = self[key]
 		it.clear()
 		del self._cache[key]
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[NodeName]:
 		return iter(self.character.node)
 
-	def __len__(self):
+	def __len__(self) -> int:
 		return len(self.character.node)
 
 	class Predecessors(GraphEdgeMapping):
 		"""Mapping of Edges that end at a particular node"""
 
-		__slots__ = ("character", "engine", "container", "dest")
+		__slots__ = ("character", "container", "dest")
 
-		def __init__(self, container, dest):
+		def __init__(self, container, dest: NodeName):
 			"""Store container and node ID"""
 			super().__init__(container.character)
 			self.container = container
 			self.dest = dest
 
-		def __iter__(self):
+		def __iter__(self) -> Iterator[NodeName]:
 			"""Iterate over the edges that exist at the present (branch, rev)"""
 			for orig in self.engine._edges_cache.iter_predecessors(
 				self.character.name, self.dest, *self.engine._btt()
@@ -1512,7 +1534,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 				if orig in self:
 					yield orig
 
-		def __contains__(self, orig):
+		def __contains__(self, orig: NodeName | KeyHint) -> bool:
 			"""Is there an edge from ``orig`` at the moment?"""
 			return self.engine._edges_cache.has_predecessor(
 				self.character.name, self.dest, orig, *self.engine._btt()
@@ -1525,16 +1547,20 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 				pass
 			return n
 
-		def _make_edge(self, orig: NodeName):
+		def _make_edge(self, orig: NodeName) -> Edge:
 			return Edge(self.character, orig, self.dest)
 
-		def __getitem__(self, orig: KeyHint | NodeName):
+		def __getitem__(self, orig: KeyHint | NodeName) -> Edge:
 			"""Get the edge from the given node to mine"""
 			if orig not in self:
 				raise KeyError(orig)
 			return self.character.adj[orig][self.dest]
 
-		def __setitem__(self, orig, value):
+		def __setitem__(
+			self,
+			orig: NodeName | KeyHint,
+			value: dict[Stat | KeyHint, Value | ValueHint],
+		):
 			"""Use ``value`` as a mapping of edge attributes, set an edge from the
 			given node to mine.
 
@@ -1559,7 +1585,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 				self.character.name, orig, self.dest, branch, turn, tick, True
 			)
 
-		def __delitem__(self, orig):
+		def __delitem__(self, orig: NodeName | KeyHint):
 			"""Unset the existence of the edge from the given node to mine"""
 			branch, turn, tick = self.engine._nbtt()
 			self.engine.query.exist_edge(
@@ -1600,7 +1626,7 @@ class DiGraph(networkx.DiGraph, ABC):
 			self.__class__, self.name, len(self.nodes), len(self.edges)
 		)
 
-	def _nodes_state(self):
+	def _nodes_state(self) -> dict[NodeName, dict[Stat, Value]]:
 		return {
 			noden: {
 				k: v for (k, v) in unwrapped_dict(node).items() if k != "name"
@@ -1608,7 +1634,9 @@ class DiGraph(networkx.DiGraph, ABC):
 			for noden, node in self._node.items()
 		}
 
-	def _edges_state(self):
+	def _edges_state(
+		self,
+	) -> dict[NodeName, dict[NodeName, dict[Stat, Value]]]:
 		ret = {}
 		ismul = self.is_multigraph()
 		for orig, dests in self.adj.items():
@@ -1627,16 +1655,18 @@ class DiGraph(networkx.DiGraph, ABC):
 					origd[dest] = unwrapped_dict(edge)
 		return ret
 
-	def _val_state(self):
+	def _val_state(self) -> dict[Stat, Value]:
 		return {
 			k: v
 			for (k, v) in unwrapped_dict(self.graph).items()
 			if k != "name"
 		}
 
-	def __init__(self, db, name):  # user shouldn't instantiate directly
+	def __init__(
+		self, engine: Engine, name: CharName
+	):  # user shouldn't instantiate directly
 		self._name = name
-		self.engine = db
+		self.engine = engine
 
 	def __bool__(self):
 		return self._name in self.engine._graph_objs
@@ -1646,35 +1676,27 @@ class DiGraph(networkx.DiGraph, ABC):
 		return self.graph_map_cls(self)
 
 	@graph.setter
-	def graph(self, v):
+	def graph(self, v: dict[Stat | KeyHint, Value | ValueHint]):
 		if not hasattr(self, "_statmap"):
 			self._statmap = self.graph_map_cls(self)
 		self._statmap.clear()
 		self._statmap.update(v)
 
-	@property
-	def node(self):
-		if not hasattr(self, "_nodemap"):
-			self._nodemap = self.node_map_cls(self)
-		return self._nodemap
+	@cached_in("_nodemap")
+	def node(self) -> node_map_cls:
+		return self.node_map_cls(self)
 
 	_node = node
 
-	@property
-	def adj(self):
-		if not hasattr(self, "_adjmap"):
-			self._adjmap = self.adj_cls(self)
-		return self._adjmap
+	@cached_in("_adjmap")
+	def adj(self) -> adj_cls:
+		return self.adj_cls(self)
 
 	edge = succ = _succ = _adj = adj
 
-	@property
+	@cached_in("_predmap")
 	def pred(self):
-		if not hasattr(self, "pred_cls"):
-			raise TypeError("Undirected graph")
-		if not hasattr(self, "_predmap"):
-			self._predmap = self.pred_cls(self)
-		return self._predmap
+		return self.pred_cls(self)
 
 	_pred = pred
 
@@ -1686,7 +1708,7 @@ class DiGraph(networkx.DiGraph, ABC):
 	def name(self, v):
 		raise TypeError("graphs can't be renamed")
 
-	def remove_node(self, n):
+	def remove_node(self, n: NodeName | KeyHint) -> None:
 		"""Version of remove_node that minimizes writes"""
 		if n not in self._node:
 			raise NetworkXError("The node %s is not in the digraph." % (n,))
@@ -1698,7 +1720,9 @@ class DiGraph(networkx.DiGraph, ABC):
 			del self._succ[u][n]  # remove all edges n-u in digraph
 		del self._node[n]
 
-	def remove_edge(self, u, v):
+	def remove_edge(
+		self, u: NodeName | KeyHint, v: NodeName | KeyHint
+	) -> None:
 		"""Version of remove_edge that's much like normal networkx but only
 		deletes once, since the database doesn't keep separate adj and
 		succ mappings
@@ -1711,7 +1735,9 @@ class DiGraph(networkx.DiGraph, ABC):
 				"The edge {}-{} is not in the graph.".format(u, v)
 			)
 
-	def remove_edges_from(self, ebunch):
+	def remove_edges_from(
+		self, ebunch: Iterable[tuple[NodeName | KeyHint, NodeName | KeyHint]]
+	):
 		"""Version of remove_edges_from that's much like normal networkx but only
 		deletes once, since the database doesn't keep separate adj and
 		succ mappings
@@ -1722,7 +1748,13 @@ class DiGraph(networkx.DiGraph, ABC):
 			if u in self.succ and v in self.succ[u]:
 				del self.succ[u][v]
 
-	def add_edge(self, u, v, attr_dict=None, **attr):
+	def add_edge(
+		self,
+		u: NodeName | KeyHint,
+		v: NodeName | KeyHint,
+		attr_dict: dict[Stat | KeyHint, Value | ValueHint] | None = None,
+		**attr: dict[Stat | KeyHint, Value | ValueHint],
+	):
 		"""Version of add_edge that only writes to the database once"""
 		if attr_dict is None:
 			attr_dict = attr
@@ -1745,7 +1777,19 @@ class DiGraph(networkx.DiGraph, ABC):
 		datadict.update(attr_dict)
 		self.succ[u][v] = datadict
 
-	def add_edges_from(self, ebunch, attr_dict=None, **attr):
+	def add_edges_from(
+		self,
+		ebunch: Iterable[
+			tuple[NodeName | KeyHint, NodeName | KeyHint]
+			| tuple[
+				NodeName | KeyHint,
+				NodeName | KeyHint,
+				dict[Stat | KeyHint, Value | ValueHint],
+			]
+		],
+		attr_dict: dict[Stat | KeyHint, Value | ValueHint] | None = None,
+		**attr: dict[Stat | KeyHint, Value | ValueHint],
+	):
 		"""Version of add_edges_from that only writes to the database once"""
 		if attr_dict is None:
 			attr_dict = attr
@@ -1789,8 +1833,13 @@ class DiGraph(networkx.DiGraph, ABC):
 		self.node.clear()
 		self.graph.clear()
 
-	def add_node(self, node_for_adding, **attr):
+	def add_node(
+		self,
+		node_for_adding: KeyHint | NodeName,
+		**attr: dict[Stat | KeyHint, Value | ValueHint],
+	):
 		"""Version of add_node that minimizes writes"""
+		node_for_adding = NodeName(node_for_adding)
 		if node_for_adding not in self._succ:
 			self._succ[node_for_adding] = self.adjlist_inner_dict_factory()
 			self._pred[node_for_adding] = self.adjlist_inner_dict_factory()
@@ -2648,28 +2697,34 @@ class AbstractEngine(ABC):
 	) -> None: ...
 
 	@abstractmethod
-	def load_at(self, branch: Branch, turn: Turn, tick: Tick) -> None: ...
+	def load_at(
+		self, branch: str | Branch, turn: Turn, tick: Tick
+	) -> None: ...
 
-	def branch_start_turn(self, branch: Branch | None = None) -> Turn:
-		return self._branch_start(branch)[0]
+	def branch_start_turn(self, branch: str | Branch | None = None) -> Turn:
+		return self._branch_start(Branch(branch))[0]
 
-	def branch_start_tick(self, branch: Branch | None = None) -> Tick:
-		return self._branch_start(branch)[1]
+	def branch_start_tick(self, branch: str | Branch | None = None) -> Tick:
+		return self._branch_start(Branch(branch))[1]
 
-	def branch_end_turn(self, branch: Branch | None = None) -> Turn:
-		return self._branch_end(branch)[0]
+	def branch_end_turn(self, branch: str | Branch | None = None) -> Turn:
+		return self._branch_end(Branch(branch))[0]
 
-	def branch_end_tick(self, branch: Branch | None = None) -> Tick:
-		return self._branch_end(branch)[1]
+	def branch_end_tick(self, branch: str | Branch | None = None) -> Tick:
+		return self._branch_end(Branch(branch))[1]
 
 	@abstractmethod
 	def turn_end(
-		self, branch: Branch | None = None, turn: Turn | None = None
+		self,
+		branch: str | Branch | None = None,
+		turn: int | Turn | None = None,
 	) -> Tick: ...
 
 	@abstractmethod
 	def turn_end_plan(
-		self, branch: Branch | None = None, turn: Turn | None = None
+		self,
+		branch: str | Branch | None = None,
+		turn: int | Turn | None = None,
 	) -> Tick: ...
 
 	@abstractmethod
