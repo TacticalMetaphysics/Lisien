@@ -63,6 +63,7 @@ from typing import (
 	get_origin,
 	get_args,
 	Union,
+	TypeVar,
 )
 
 import networkx
@@ -2128,6 +2129,9 @@ class FakeFuture(Future):
 class AbstractBookmarkMapping(MutableMapping, Callable):
 	@abstractmethod
 	def __call__(self, key: KeyHint) -> None: ...
+
+
+_SEQT = TypeVar("_SEQT")
 
 
 class AbstractEngine(ABC):
