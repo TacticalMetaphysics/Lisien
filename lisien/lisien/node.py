@@ -131,6 +131,8 @@ class LeaderMapping(Mapping):
 
 
 class NodeContentValues(ValuesView):
+	__slots__ = ()
+
 	_mapping: NodeContent
 
 	def __iter__(self) -> Iterator[Thing]:
@@ -197,6 +199,7 @@ class NodeContent(Mapping):
 
 
 class DestsValues(ValuesView):
+	__slots__ = ()
 	_mapping: "Dests"
 
 	def __contains__(self, item: "Portal") -> bool:
@@ -239,6 +242,7 @@ class Dests(Mapping):
 
 
 class OrigsValues(ValuesView):
+	__slots__ = ()
 	_mapping: Origs
 
 	def __contains__(self, item: Portal) -> bool:
@@ -247,7 +251,7 @@ class OrigsValues(ValuesView):
 
 
 class Origs(Mapping):
-	__slots__ = ("node", "__weakref__")
+	__slots__ = ("node",)
 
 	def __init__(self, node: Node) -> None:
 		self.node = node
@@ -298,7 +302,7 @@ class Origs(Mapping):
 
 
 class Portals(Set):
-	__slots__ = ("node", "__weakref__")
+	__slots__ = ("node",)
 
 	def __init__(self, node: Node) -> None:
 		self.node = node
@@ -676,9 +680,6 @@ class Place(Node):
 	"""
 
 	__slots__ = (
-		"graph",
-		"db",
-		"node",
 		"_rulebook",
 		"_rulebooks",
 		"_real_rule_mapping",
