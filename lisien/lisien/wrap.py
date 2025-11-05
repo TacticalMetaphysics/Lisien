@@ -421,10 +421,8 @@ class MutableMappingUnwrapper(MutableMapping, MappingUnwrapperMixin, ABC): ...
 
 
 class MutableMappingWrapper(
-	MutableWrapperDictList, MutableMappingUnwrapper, ABC
-):
-	def __eq__(self, other):
-		return MappingUnwrapperMixin.__eq__(self, other)
+	MutableWrapperDictList, MutableMappingUnwrapper, MappingUnwrapperMixin, ABC
+): ...
 
 
 class SubDictWrapper(MutableMappingWrapper, dict):
