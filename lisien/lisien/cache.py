@@ -65,6 +65,7 @@ from .types import (
 	ActionFuncName,
 	PrereqFuncName,
 	TriggerFuncName,
+	root_type,
 )
 from .window import (
 	Direction,
@@ -149,7 +150,7 @@ class PickyDefaultDict(dict):
 
 	def __setitem__(self, k, v):
 		with self._lock:
-			if not isinstance(v, self.type):
+			if not isinstance(v, root_type(self.type)):
 				v = self._create(v)
 			super(PickyDefaultDict, self).__setitem__(k, v)
 

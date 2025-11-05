@@ -867,28 +867,15 @@ class EngineProxy(AbstractEngine):
 		self._things_cache = StructuredDefaultDict(1, ThingProxy)
 		self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
 		self._character_rulebooks_cache = StructuredDefaultDict(
-			1,
-			Key,
-			kwargs_munger=lambda inst, k: {
-				"engine": self,
-				"bookname": (inst.key, k),
-			},
+			1, RulebookName, args_munger=lambda inst, k: ((inst.key, k),)
 		)
 		self._char_node_rulebooks_cache = StructuredDefaultDict(
-			1,
-			Key,
-			kwargs_munger=lambda inst, k: {
-				"engine": self,
-				"bookname": (inst.key, k),
-			},
+			1, RulebookName, args_munger=lambda inst, k: ((inst.key, k),)
 		)
 		self._char_port_rulebooks_cache = StructuredDefaultDict(
 			2,
-			Key,
-			kwargs_munger=lambda inst, k: {
-				"engine": self,
-				"bookname": (inst.parent.key, inst.key, k),
-			},
+			RulebookName,
+			args_munger=lambda inst, k: ((inst.parent.key, inst.key, k),),
 		)
 		self._character_portals_cache = PortalObjCache()
 		self._character_units_cache = PickyDefaultDict(dict)
