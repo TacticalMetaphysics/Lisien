@@ -188,6 +188,8 @@ def garbage(arg: Callable | None = None, collect: bool = False):
 
 	May be used as a context manager or a decorator.
 
+	:param arg: A function to call without garbage collection; if ``None``
+		(the default), we're a context manager.
 	:param collect: Whether to immediately run a collection after re-enabling
 		the garbage collector. Default ``False``.
 
