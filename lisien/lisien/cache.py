@@ -139,12 +139,9 @@ class PickyDefaultDict(dict):
 		with self._lock:
 			if k in self:
 				return super(PickyDefaultDict, self).__getitem__(k)
-			try:
-				ret = self[k] = self.type(
-					*self.args_munger(self, k), **self.kwargs_munger(self, k)
-				)
-			except TypeError:
-				raise KeyError(k)
+			ret = self[k] = self.type(
+				*self.args_munger(self, k), **self.kwargs_munger(self, k)
+			)
 			return ret
 
 	def _create(self, v):

@@ -1015,12 +1015,12 @@ class Edge(AbstractEntityMapping):
 		"orig",
 		"dest",
 		"_engine",
-		"__iter_stuff",
-		"__cache_contains_stuff",
-		"__len_stuff",
-		"__get_cache_stuff",
-		"__set_db_stuff",
-		"__set_cache_stuff",
+		"_iter_stuff_",
+		"_cache_contains_stuff_",
+		"_len_stuff_",
+		"_get_cache_stuff_",
+		"_set_db_stuff_",
+		"_set_cache_stuff_",
 	)
 
 	def __init__(self, graph: Character, orig: NodeName, dest: NodeName):
@@ -1029,7 +1029,7 @@ class Edge(AbstractEntityMapping):
 		self.orig = orig
 		self.dest = dest
 
-	@slotted
+	@cached_in("_engine")
 	def engine(self):
 		return self.character.engine
 
