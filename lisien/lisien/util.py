@@ -19,7 +19,8 @@ from __future__ import annotations
 import gc
 import sys
 from contextlib import contextmanager
-from functools import wraps, partial
+from dataclasses import dataclass
+from functools import wraps
 from pprint import pformat
 from textwrap import dedent
 from time import monotonic
@@ -284,27 +285,29 @@ def getatt(attribute_name: str) -> property:
 _UNSET = object()
 
 
-def cached_in(
-	slot: str, func: Callable[[Any], Any] | None = None
-) -> partial | property:
+@dataclass
+class cached_in:
 	"""Decorator similar to @cached_property, but using the given attribute
 
 	Mainly useful in case you want a cached property on a class that has
 	``__slots__``.
 
 	"""
-	if func is None:
-		return partial(cached_in, slot)
 
-	@wraps(func)
-	def getter(self):
-		the_it = getattr(self, slot, _UNSET)
-		if the_it is _UNSET:
-			the_it = func(self)
-			setattr(self, slot, the_it)
-		return the_it
+	slot: str
 
-	return property(getter)
+	def __call__(self, func: Callable[[Any], Any]) -> property:
+		slot = self.slot
+
+		@wraps(func)
+		def getter(self):
+			the_it = getattr(self, slot, _UNSET)
+			if the_it is _UNSET:
+				the_it = func(self)
+				setattr(self, slot, the_it)
+			return the_it
+
+		return property(getter)
 
 
 def slotted(func: Callable) -> property:
@@ -313,4 +316,4 @@ def slotted(func: Callable) -> property:
 	With _ at the end.
 
 	"""
-	return cached_in(func.__name__ + "_", func)
+	return cached_in(func.__name__ + "_")(func)
