@@ -133,9 +133,6 @@ class CharRuleMapping(RuleMapping):
 	rules. The name of a rule may be used in place of the actual rule,
 	so long as the rule already exists.
 
-	You can also set a rule active or inactive by setting it to
-	``True`` or ``False``, respectively. Inactive rules are still in
-	the rulebook, but won't be followed.
 
 	"""
 
