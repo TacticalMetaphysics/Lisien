@@ -813,8 +813,6 @@ class GraphMapping(AbstractEntityMapping):
 			other = other.unwrap()
 		other = other.copy()
 		me = self.unwrap().copy()
-		if "name" not in other:
-			del me["name"]
 		return me == other
 
 
