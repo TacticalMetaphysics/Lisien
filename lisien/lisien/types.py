@@ -3433,6 +3433,9 @@ class TimeSignal[_BRANCH, _TURN, _TICK](
 			"TimeSignal is mutable, not hashable. Convert it to a tuple."
 		)
 
+	def __call__(self) -> tuple[Branch, Turn, Tick]:
+		return self.engine.branch, self.engine.turn, self.engine.tick
+
 	def __getitem__(self, i: str | int) -> Branch | Turn | Tick:
 		if i in ("branch", 0):
 			return self.engine.branch
