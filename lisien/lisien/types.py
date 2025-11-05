@@ -3402,13 +3402,8 @@ class AbstractThing(MutableMapping):
 		return self.follow_path(path, weight)
 
 
-_BRANCH = TypeVar("_BRANCH")
-_TURN = TypeVar("_TURN")
-_TICK = TypeVar("_TICK")
-
-
-class TimeSignal[_BRANCH, _TURN, _TICK](
-	tuple[_BRANCH, _TURN, _TICK], Signal, Sequence[_BRANCH | _TURN | _TICK]
+class TimeSignal(
+	tuple[Branch, Turn, Tick], Signal, Sequence[Branch | Turn | Tick]
 ):
 	"""Like a tuple of the present ``(branch, turn, tick)`` that follows sim-time.
 
@@ -3486,13 +3481,10 @@ class TimeSignal[_BRANCH, _TURN, _TICK](
 		return tuple(self) <= other
 
 
-type TimeSignalHint = TimeSignal[Branch, Turn, Tick]
-
-
 class TimeSignalDescriptor:
 	__doc__ = TimeSignal.__doc__
 
-	def __get__(self, inst, cls) -> TimeSignalHint:
+	def __get__(self, inst, cls) -> TimeSignal:
 		if not hasattr(inst, "_time_signal"):
 			inst._time_signal = TimeSignal((inst,))
 		return inst._time_signal
