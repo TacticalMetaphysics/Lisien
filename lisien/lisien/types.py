@@ -3404,10 +3404,14 @@ class AbstractThing(MutableMapping):
 
 
 class TimeSignal(Signal, Sequence):
-	"""Acts like a tuple of ``(branch, turn, tick)`` for the most part.
+	"""Like a tuple of the present ``(branch, turn, tick)`` for the most part.
 
 	This is a ``Signal``. To set a function to be called whenever the
 	branch or turn changes, pass it to my ``connect`` method.
+
+	This always refers to the present game time. It will change when
+	simulation occurs. If you don't want that, convert it to a tuple, or unpack
+	it like: ``branch, turn, tick = engine.time``
 
 	"""
 
