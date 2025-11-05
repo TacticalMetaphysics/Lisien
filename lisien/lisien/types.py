@@ -2193,11 +2193,11 @@ class AbstractEngine(ABC):
 	place_cls: type
 	portal_cls: type
 	char_cls: type
-	character: Mapping[KeyHint, Type[char_cls]]
-	eternal: MutableMapping[KeyHint, ValueHint]
-	universal: MutableMapping[KeyHint, ValueHint]
-	rulebook: MutableMapping[KeyHint, "RuleBook"]
-	rule: MutableMapping[KeyHint, "Rule"]
+	character: Mapping[KeyHint | CharName, Type[char_cls]]
+	eternal: MutableMapping[KeyHint | EternalKey, ValueHint]
+	universal: MutableMapping[KeyHint | UniversalKey, ValueHint]
+	rulebook: MutableMapping[KeyHint | RulebookName, "RuleBook"]
+	rule: MutableMapping[KeyHint | RuleName, "Rule"]
 	trunk: Branch
 	branch: Branch
 	turn: Turn
