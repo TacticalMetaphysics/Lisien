@@ -80,7 +80,7 @@ def timer(msg="", logfun: Callable | None = None):
 _T = TypeVar("_T")
 
 
-def singleton_get(s: Iterable[_T]) -> _T:
+def singleton_get(s: Iterable[_T]) -> _T | None:
 	"""Take an iterable and return its only item if possible, else None."""
 	it = None
 	for that in s:
@@ -90,7 +90,7 @@ def singleton_get(s: Iterable[_T]) -> _T:
 	return it
 
 
-def dedent_source(source):
+def dedent_source(source: str) -> str:
 	nlidx = source.index("\n")
 	if nlidx is None:
 		raise ValueError("Invalid source")
@@ -201,7 +201,11 @@ def garbage(arg: Callable | None = None, collect: bool = False):
 		return _garbage_dec(arg, collect=collect)
 
 
-def world_locked(fn: Callable) -> Callable:
+_U = TypeVar("_U")
+_V = TypeVar("_V")
+
+
+def world_locked(fn: Callable[[_U, ...], _V]) -> Callable[[_U, ...], _V]:
 	"""Decorator for functions that alter the world state
 
 	They will hold a reentrant lock, preventing more than one function
@@ -217,7 +221,10 @@ def world_locked(fn: Callable) -> Callable:
 	return lockedy
 
 
-def unwrap(v: _T) -> _T:
+_W = TypeVar("_W")
+
+
+def unwrap(v: _W) -> _W:
 	if hasattr(v, "unwrap"):
 		return v.unwrap()
 	return v
@@ -243,7 +250,7 @@ ILLEGAL_CHARACTER_NAMES = {
 }
 
 
-def msgpack_array_header(n) -> bytes:
+def msgpack_array_header(n: int) -> bytes:
 	if n <= 15:
 		return (0x90 + n).to_bytes(1, signed=False)
 	elif n <= 0xFFFF:
@@ -254,7 +261,7 @@ def msgpack_array_header(n) -> bytes:
 		raise ValueError("tuple is too large")
 
 
-def msgpack_map_header(n) -> bytes:
+def msgpack_map_header(n: int) -> bytes:
 	if n <= 15:
 		return (0x80 + n).to_bytes(1, signed=False)
 	elif n <= 0xFFFF:
@@ -265,7 +272,7 @@ def msgpack_map_header(n) -> bytes:
 		raise ValueError("dict is too large")
 
 
-def getatt(attribute_name):
+def getatt(attribute_name: str) -> property:
 	"""An easy way to make an alias"""
 	from operator import attrgetter
 
