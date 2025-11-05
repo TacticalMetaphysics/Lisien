@@ -1848,7 +1848,8 @@ class DiGraph(networkx.DiGraph, ABC):
 
 
 type PackSignature = Callable[
-	[KeyHint | EternalKey | UniversalKey | Stat | ValueHint], bytes
+	[Key | KeyHint | EternalKey | UniversalKey | Stat | ValueHint | Value],
+	bytes,
 ]
 type UnpackSignature = Callable[[bytes], ValueHint]
 type LoadedCharWindow = dict[
