@@ -278,7 +278,12 @@ _UNSET = object()
 def cached_in(
 	slot: str, func: Callable[[Any], Any] | None = None
 ) -> partial | property:
-	"""Decorator similar to @cached_property, but using the given slot"""
+	"""Decorator similar to @cached_property, but using the given attribute
+
+	Mainly useful in case you want a cached property on a class that has
+	``__slots__``.
+
+	"""
 	if func is None:
 		return partial(cached_in, slot)
 
