@@ -388,7 +388,7 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 		self._set(me)
 
 
-class MutableMappingUnwrapper(MutableMapping, ABC):
+class MappingUnwrapperMixin:
 	__slots__ = ()
 
 	def __eq__(self, other):
@@ -413,15 +413,16 @@ class MutableMappingUnwrapper(MutableMapping, ABC):
 	def __repr__(self):
 		return f"<{type(self).__name__} {unwrap_items(self.items())}>"
 
-
-class MutableMappingWrapper(
-	MutableWrapperDictList, MutableMappingUnwrapper, ABC
-):
-	def __eq__(self, other):
-		return MutableMappingUnwrapper.__eq__(self, other)
-
 	def unwrap(self):
 		return unwrap_items(self.items())
+
+
+class MutableMappingUnwrapper(MutableMapping, MappingUnwrapperMixin): ...
+
+
+class MutableMappingWrapper(MutableWrapperDictList, MutableMappingUnwrapper):
+	def __eq__(self, other):
+		return MappingUnwrapperMixin.__eq__(self, other)
 
 
 class SubDictWrapper(MutableMappingWrapper, dict):

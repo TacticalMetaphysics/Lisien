@@ -35,11 +35,18 @@ and their node in the physical world is a unit of it.
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from functools import cached_property
 from itertools import chain
 from types import MethodType
-from typing import TYPE_CHECKING, Callable, Iterable, Iterator
+from typing import (
+	TYPE_CHECKING,
+	Callable,
+	Iterable,
+	Iterator,
+	MutableMapping,
+	Mapping,
+)
 
 import networkx as nx
 from blinker import Signal
@@ -75,14 +82,14 @@ from .types import (
 	nodename,
 	keyval,
 	Time,
-	AllegedMapping,
+	CharacterMappingMixin,
 	Value,
 	stat,
 	ThingDict,
 	TimeSignal,
+	BaseMutableCharacterMapping,
 )
 from .util import singleton_get, timer, unwrap, getatt
-from .wrap import MutableMappingUnwrapper
 
 if TYPE_CHECKING:
 	from .engine import Engine
@@ -197,6 +204,9 @@ class RuleFollower(BaseRuleFollower):
 		)
 
 
+class MutableCharacterMapping(BaseMutableCharacterMapping, RuleFollower): ...
+
+
 class Character(AbstractCharacter, RuleFollower):
 	"""A digraph that follows game rules and has a containment hierarchy
 
@@ -291,7 +301,7 @@ class Character(AbstractCharacter, RuleFollower):
 			set_rb(name, branch, turn, tick, rulebook_name)
 			cache.store(name, branch, turn, tick, rulebook_name)
 
-	class ThingMapping(AllegedMapping, RuleFollower):
+	class ThingMapping(MutableCharacterMapping):
 		""":class:`Thing` objects that are in a :class:`Character`"""
 
 		_book = "character_thing"
@@ -378,7 +388,7 @@ class Character(AbstractCharacter, RuleFollower):
 				repr(self.engine), repr(self.name)
 			)
 
-	class PlaceMapping(AllegedMapping, RuleFollower):
+	class PlaceMapping(MutableCharacterMapping):
 		""":class:`Place` objects that are in a :class:`Character`"""
 
 		_book = "character_place"
@@ -584,8 +594,8 @@ class Character(AbstractCharacter, RuleFollower):
 			Callable[[CharName, NodeName], bool],
 			CharName,
 			Callable[[CharName, NodeName], bool],
-			AllegedMapping,
-			AllegedMapping,
+			MutableCharacterMapping,
+			MutableCharacterMapping,
 		]:
 			return (
 				self.engine._node_exists,
@@ -959,7 +969,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	pred_cls = PortalPredecessorsMapping
 
-	class UnitGraphMapping(AllegedMapping, RuleFollower):
+	class UnitGraphMapping(CharacterMappingMixin, RuleFollower):
 		"""A mapping of other characters in which one has a unit."""
 
 		class CharacterUnitMapping(Mapping):
