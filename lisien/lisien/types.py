@@ -3621,7 +3621,12 @@ def root_type(t: type) -> type:
 	return t
 
 
-def deannotate(annotation):
+def deannotate(annotation: str) -> Iterator[type]:
+	"""Yield all the types in an annotation
+
+	For when you don't know if you're dealing with a union or not.
+
+	"""
 	if "|" in annotation:
 		for a in annotation.split("|"):
 			yield from deannotate(a.strip())
