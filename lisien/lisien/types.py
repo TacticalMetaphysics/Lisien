@@ -223,6 +223,7 @@ def keyval(pair: tuple[KeyHint, ValueHint]) -> tuple[Key, Value]:
 
 
 Stat = NewType("Stat", Key)
+KeyHint |= Stat
 
 
 def stat(k: KeyHint) -> Stat:
@@ -230,6 +231,7 @@ def stat(k: KeyHint) -> Stat:
 
 
 EternalKey = NewType("EternalKey", Key)
+KeyHint |= EternalKey
 
 
 def ekey(k: KeyHint) -> EternalKey:
@@ -237,6 +239,7 @@ def ekey(k: KeyHint) -> EternalKey:
 
 
 UniversalKey = NewType("UniversalKey", Key)
+KeyHint |= UniversalKey
 
 
 def ukey(k: KeyHint) -> UniversalKey:
@@ -244,13 +247,18 @@ def ukey(k: KeyHint) -> UniversalKey:
 
 
 Branch = NewType("Branch", str)
+KeyHint |= Branch
 Turn = NewType("Turn", Annotated[int, Ge(0)])
+KeyHint |= Turn
 Tick = NewType("Tick", Annotated[int, Ge(0)])
+KeyHint |= Tick
 type Time = tuple[Branch, Turn, Tick]
 type LinearTime = tuple[Turn, Tick]
 type TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", Annotated[int, Ge(0)])
+KeyHint |= Plan
 CharName = NewType("CharName", Key)
+KeyHint |= CharName
 
 
 def charname(k: KeyHint) -> CharName:
@@ -260,6 +268,7 @@ def charname(k: KeyHint) -> CharName:
 
 
 NodeName = NewType("NodeName", Key)
+KeyHint |= NodeName
 
 
 def nodename(k: KeyHint) -> NodeName:
@@ -425,6 +434,7 @@ type UnitRulesHandledRowType = tuple[
 	Tick,
 ]
 type StatDict = dict[Stat | Literal["rulebook"], Value]
+type ThingDict = dict[Stat | Literal["rulebook", "location"], Value]
 type CharDict = dict[
 	Stat
 	| Literal[
@@ -553,20 +563,14 @@ type CharacterRulebookTypeStr = Literal[
 ]
 
 
-class SpecialMapping(Mapping, Signal, ABC):
-	@abstractmethod
-	def __init__(self, character: AbstractCharacter): ...
-
-
-class AllegedMapping(MutableMappingUnwrapper, ABC):
-	"""Common amenities for mappings"""
-
-	__slots__ = ("character", "_engine_")
+class AllegedMapping(MutableMappingUnwrapper, Signal, ABC):
+	"""Common amenities for mappings in :class:`Character`"""
 
 	def __init__(self, character: Character):
+		super().__init__()
 		self.character = character
 
-	@cached_in("_engine_")
+	@cached_property
 	def engine(self) -> Engine:
 		return self.character.engine
 
@@ -1127,13 +1131,11 @@ class Edge(AbstractEntityMapping):
 class GraphNodeMapping(AllegedMapping):
 	"""Mapping for nodes in a graph"""
 
-	__slots__ = ("character", "_engine")
-
 	def __init__(self, graph: DiGraph):
 		super().__init__(graph)
 		self.character = graph
 
-	@slotted
+	@cached_property
 	def engine(self):
 		return self.character.engine
 
@@ -3076,7 +3078,7 @@ class AbstractCharacter(DiGraph):
 	def place(self) -> PlaceMapping:
 		return self.PlaceMapping(self)
 
-	ThingPlaceMapping: type[SpecialMapping]
+	ThingPlaceMapping: type[AllegedMapping]
 
 	@cached_property
 	def _node(self) -> ThingPlaceMapping:
@@ -3097,7 +3099,7 @@ class AbstractCharacter(DiGraph):
 	edge: PortalSuccessorsMapping = getatt("_succ")
 	_adj: PortalSuccessorsMapping = getatt("_succ")
 
-	PortalPredecessorsMapping: type[SpecialMapping]
+	PortalPredecessorsMapping: type[AllegedMapping]
 
 	@cached_property
 	def _pred(self) -> PortalPredecessorsMapping:
@@ -3106,7 +3108,7 @@ class AbstractCharacter(DiGraph):
 	preportal: PortalPredecessorsMapping = getatt("_pred")
 	pred: PortalPredecessorsMapping = getatt("_pred")
 
-	UnitGraphMapping: type[SpecialMapping]
+	UnitGraphMapping: type[AllegedMapping]
 
 	@cached_property
 	def unit(self) -> UnitGraphMapping:
