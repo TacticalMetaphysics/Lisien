@@ -2688,6 +2688,9 @@ class AbstractEngine(ABC):
 	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick) -> None: ...
 
 	@abstractmethod
+	def _time_warp(self, branch: Branch, turn: Turn, tick: Tick) -> None: ...
+
+	@abstractmethod
 	def _extend_branch(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None: ...

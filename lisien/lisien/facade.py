@@ -48,6 +48,9 @@ from .types import (
 	AbstractCharacter,
 	AbstractThing,
 	TimeSignalDescriptor,
+	Turn,
+	Branch,
+	Tick,
 )
 from .util import (
 	print_call_sig,
@@ -1534,6 +1537,9 @@ class EngineFacade(AbstractEngine):
 
 	def _set_btt(self, branch: str, turn: int, tick: int) -> None:
 		(self.branch, self.turn, self.tick) = (branch, turn, tick)
+
+	def _time_warp(self, branch: Branch, turn: Turn, tick: Tick) -> None:
+		self._set_btt(branch, turn, tick)
 
 	def _extend_branch(self, branch: str, turn: int, tick: int) -> None:
 		if branch in self._branches_d:
