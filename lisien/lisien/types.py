@@ -3403,7 +3403,14 @@ class AbstractThing(MutableMapping):
 		return self.follow_path(path, weight)
 
 
-class TimeSignal(Signal, Sequence):
+_BRANCH = TypeVar("_BRANCH")
+_TURN = TypeVar("_TURN")
+_TICK = TypeVar("_TICK")
+
+
+class TimeSignal[_BRANCH, _TURN, _TICK](
+	tuple[_BRANCH, _TURN, _TICK], Signal, Sequence[_BRANCH | _TURN | _TICK]
+):
 	"""Like a tuple of the present ``(branch, turn, tick)`` for the most part.
 
 	This is a ``Signal``. To set a function to be called whenever the
@@ -3415,11 +3422,9 @@ class TimeSignal(Signal, Sequence):
 
 	"""
 
-	engine: AbstractEngine
-
-	def __init__(self, engine: AbstractEngine):
-		super().__init__()
-		self.engine = engine
+	@property
+	def engine(self):
+		return super().__getitem__(0)
 
 	def __iter__(self):
 		yield self.engine.branch
@@ -3428,6 +3433,11 @@ class TimeSignal(Signal, Sequence):
 
 	def __len__(self):
 		return 3
+
+	def __hash__(self):
+		raise TypeError(
+			"TimeSignal is mutable, not hashable. Convert it to a tuple."
+		)
 
 	def __getitem__(self, i: str | int) -> Branch | Turn | Tick:
 		if i in ("branch", 0):
@@ -3474,12 +3484,15 @@ class TimeSignal(Signal, Sequence):
 		return tuple(self) <= other
 
 
+type TimeSignalHint = TimeSignal[Branch, Turn, Tick]
+
+
 class TimeSignalDescriptor:
 	__doc__ = TimeSignal.__doc__
 
-	def __get__(self, inst, cls):
+	def __get__(self, inst, cls) -> TimeSignalHint:
 		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal(inst)
+			inst._time_signal = TimeSignal((inst,))
 		return inst._time_signal
 
 	def __set__(self, inst: AbstractEngine, val: Time):
@@ -3488,7 +3501,7 @@ class TimeSignalDescriptor:
 				"Tried to change the world state in a worker process"
 			)
 		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal(inst)
+			inst._time_signal = TimeSignal((inst,))
 		sig = inst._time_signal
 		branch_then, turn_then, tick_then = inst._btt()
 		branch_now, turn_now, tick_now = val
