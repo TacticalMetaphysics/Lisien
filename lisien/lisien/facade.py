@@ -98,7 +98,7 @@ class FacadeEntity(MutableMapping[Stat, Value], Signal, ABC):
 		| None = None,
 		**kwargs: dict[Stat, Value],
 	):
-		super().__init__()
+		Signal.__init__(self)
 		self.facade = self.graph = getattr(mapping, "facade", mapping)
 		self._mapping = mapping
 		is_name = not hasattr(real_or_name, "name") and not hasattr(
