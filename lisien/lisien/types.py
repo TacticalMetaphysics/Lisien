@@ -3555,6 +3555,9 @@ def hash_loaded_dict(data: LoadedDict) -> dict[str, dict[str, int] | int]:
 	return hashes
 
 
+_T = TypeVar("_T")
+
+
 def sort_set(s: Set[_T]) -> list[_T]:
 	"""Return a sorted list of the contents of a set
 
