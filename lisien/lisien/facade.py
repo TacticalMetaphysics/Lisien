@@ -51,6 +51,11 @@ from .types import (
 	Turn,
 	Branch,
 	Tick,
+	KeyHint,
+	Stat,
+	Value,
+	ValueHint,
+	stat,
 )
 from .util import (
 	print_call_sig,
@@ -64,7 +69,7 @@ if TYPE_CHECKING:
 	from .engine import Engine
 
 
-class FacadeEntity(MutableMapping, Signal, ABC):
+class FacadeEntity(MutableMapping[Stat, Value], Signal, ABC):
 	exists = True
 	character = getatt("graph")
 
@@ -82,7 +87,18 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 	def _get_real(self, name):
 		raise NotImplementedError()
 
-	def __init__(self, mapping, real_or_name=None, **kwargs):
+	def __init__(
+		self,
+		mapping: Mapping,
+		real_or_name: Node
+		| Edge
+		| AbstractCharacter
+		| CharName
+		| NodeName
+		| None = None,
+		**kwargs: dict[Stat, Value],
+	):
+		super().__init__()
 		self.facade = self.graph = getattr(mapping, "facade", mapping)
 		self._mapping = mapping
 		is_name = not hasattr(real_or_name, "name") and not hasattr(
@@ -167,7 +183,9 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 getname = attrgetter("name")
 
 
-class FacadeEntityMapping(MutableMapping, Signal, MappingUnwrapperMixin):
+class FacadeEntityMapping(
+	MutableMapping[Key, Node | Edge | DiGraph], Signal, MappingUnwrapperMixin
+):
 	"""Mapping that contains entities in a Facade.
 
 	All the entities are of the same type, ``cls``, possibly
@@ -343,7 +361,7 @@ class FacadeNode(FacadeEntity, Node):
 				raise AttributeError("No user, or more than one")
 			return self[next(iter(self))]
 
-		def __init__(self, node):
+		def __init__(self, node: Node):
 			self._entity = node
 
 		def __iter__(self):
@@ -455,6 +473,13 @@ class FacadeNode(FacadeEntity, Node):
 			self.character.engine.turn
 		].append((self.character.name, self.name, k, v))
 
+	def add_thing(
+		self,
+		node: NodeName | KeyHint,
+		**stats: dict[Stat | KeyHint, Value | ValueHint],
+	):
+		self.facade.add_thing(node, self.name, **stats)
+
 
 class FacadeThing(FacadeNode, AbstractThing):
 	def __init__(self, mapping, real_or_name, **kwargs):
@@ -510,9 +535,6 @@ class FacadePlace(FacadeNode):
 	def _get_real(self, name):
 		return self.character.character.place[name]
 
-	def add_thing(self, name):
-		self.facade.add_thing(name, self.name)
-
 	def new_thing(self, name):
 		return self.facade.new_thing(name, self.name)
 
@@ -544,7 +566,9 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 class FacadePortal(FacadeEntity, Edge):
 	"""Lightweight analogue of Portal for Facade use."""
 
-	def __init__(self, mapping, other, **kwargs):
+	def __init__(
+		self, mapping: Edge | CharacterFacade, other: Node | NodeName, **kwargs
+	):
 		if hasattr(mapping, "orig"):
 			self.orig = mapping.orig
 			self.dest = other
@@ -655,8 +679,6 @@ class FacadePortalPredecessors(FacadeEntityMapping):
 
 
 class CharacterFacade(AbstractCharacter):
-	engine = getatt("db")
-
 	def __getstate__(self):
 		ports = {}
 		for o in self.portal:
@@ -854,8 +876,16 @@ class CharacterFacade(AbstractCharacter):
 	def remove_thing(self, thing):
 		del self.thing[thing]
 
-	def add_thing(self, name, location, **kwargs):
-		kwargs["location"] = location
+	def add_thing(
+		self,
+		name: NodeName | KeyHint,
+		location: NodeName | KeyHint,
+		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
+	):
+		stats: dict[Stat, Value] = {
+			stat(k): Value(v) for (k, v) in kwargs.items()
+		}
+		stats[stat("location")] = Value(location)
 		self.thing[name] = kwargs
 
 	def add_portal(self, orig, dest, **kwargs):
@@ -888,11 +918,19 @@ class CharacterFacade(AbstractCharacter):
 			self.name, charn, noden, *self.engine.time, True
 		)
 
-	def __init__(self, engine=None, character=None, init_rulebooks=None):
+	def __init__(
+		self,
+		engine: EngineFacade | None = None,
+		character: AbstractCharacter | CharName | None = None,
+		init_rulebooks: bool | None = None,
+	):
+		super().__init__(engine, getattr(character, "name", character))
 		if engine is None:
-			engine = self.db = EngineFacade(getattr(character, "db", None))
+			engine = self.engine = EngineFacade(
+				getattr(character, "engine", None)
+			)
 		elif isinstance(engine, EngineFacade):
-			self.db = engine
+			self.engine = engine
 		else:
 			raise TypeError(
 				"Can't instantiate CharacterFacade with this for an engine",
@@ -925,8 +963,8 @@ class CharacterFacade(AbstractCharacter):
 		for ds in self.portal.values():
 			yield from ds.values()
 
-	class UnitGraphMapping(Mapping):
-		class UnitMapping(Mapping):
+	class UnitGraphMapping(Mapping[CharName, Mapping[NodeName, Node]]):
+		class UnitMapping(Mapping[NodeName, Node]):
 			def __init__(self, character, graph_name):
 				self.character = character
 				self.graph_name = graph_name
@@ -947,7 +985,7 @@ class CharacterFacade(AbstractCharacter):
 					*self.character.engine.time,
 				)
 
-			def __contains__(self, item):
+			def __contains__(self, item: NodeName | KeyHint):
 				try:
 					return self.character.engine._unitness_cache.retrieve(
 						self.character.name,
@@ -958,7 +996,8 @@ class CharacterFacade(AbstractCharacter):
 				except KeyError:
 					return False
 
-			def __getitem__(self, item):
+			def __getitem__(self, item: NodeName | KeyHint):
+				item = NodeName(item)
 				if item not in self:
 					if not self.character.engine._mockup:
 						raise KeyError(
@@ -976,7 +1015,7 @@ class CharacterFacade(AbstractCharacter):
 					item
 				]
 
-		def __init__(self, character):
+		def __init__(self, character: CharacterFacade):
 			self.character = character
 
 		def __iter__(self):
@@ -992,18 +1031,21 @@ class CharacterFacade(AbstractCharacter):
 				self.character.name, *self.character.engine.time
 			)
 
-		def __contains__(self, item):
+		def __contains__(self, item: NodeName | KeyHint):
 			now = self.character.engine.time
 			name = self.character.name
 			engine = self.character.engine
 			try:
-				engine._unitness_cache.retrieve(name, item, *now)
+				engine._unitness_cache.retrieve(name, NodeName(item), *now)
 				return True
 			except KeyError:
 				return False
 
-		def __getitem__(self, item):
-			if item not in self and not self.character.engine._mockup:
+		def __getitem__(self, item: NodeName | KeyHint):
+			item = NodeName(item)
+			if item not in self and not getattr(
+				self.character.engine, "_mockup", None
+			):
 				raise KeyError(
 					"Character has no units in graph",
 					self.character.name,
@@ -1317,7 +1359,7 @@ class EngineFacade(AbstractEngine):
 			self.engine = engine
 			self._patch = {}
 
-		def __getitem__(self, key, /):
+		def __getitem__(self, key: CharName | KeyHint, /):
 			realeng = self.engine._real
 			if realeng and key not in realeng.character:
 				raise KeyError("No character", key)
@@ -1535,7 +1577,7 @@ class EngineFacade(AbstractEngine):
 	def _btt(self):
 		return self.branch, self.turn, self.tick
 
-	def _set_btt(self, branch: str, turn: int, tick: int) -> None:
+	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		(self.branch, self.turn, self.tick) = (branch, turn, tick)
 
 	def _time_warp(self, branch: Branch, turn: Turn, tick: Tick) -> None:
