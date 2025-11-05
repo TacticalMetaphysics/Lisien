@@ -71,7 +71,6 @@ from .types import (
 	AbstractCharacter,
 	CharacterStatAlias,
 	UnitsAlias,
-	SpecialMapping,
 	charname,
 	nodename,
 	keyval,
@@ -79,6 +78,7 @@ from .types import (
 	AllegedMapping,
 	Value,
 	stat,
+	ThingDict,
 )
 from .util import singleton_get, timer, unwrap, getatt
 from .wrap import MutableMappingUnwrapper
@@ -240,6 +240,10 @@ class Character(AbstractCharacter, RuleFollower):
 	name: CharName
 	_book = "character"
 
+	@staticmethod
+	def node_dict_factory() -> StatDict:
+		return {}
+
 	def remove_portal(self, origin: KeyHint, destination: KeyHint):
 		__doc__ = self.remove_edge.__doc__
 		super().remove_edge(origin, destination)
@@ -288,9 +292,7 @@ class Character(AbstractCharacter, RuleFollower):
 			set_rb(name, branch, turn, tick, rulebook_name)
 			cache.store(name, branch, turn, tick, rulebook_name)
 
-	class ThingMapping(
-		MutableMappingUnwrapper, SpecialMapping, RuleFollower, Signal
-	):
+	class ThingMapping(AllegedMapping, RuleFollower):
 		""":class:`Thing` objects that are in a :class:`Character`"""
 
 		_book = "character_thing"
@@ -377,9 +379,7 @@ class Character(AbstractCharacter, RuleFollower):
 				repr(self.engine), repr(self.name)
 			)
 
-	class PlaceMapping(
-		MutableMappingUnwrapper, SpecialMapping, RuleFollower, Signal
-	):
+	class PlaceMapping(AllegedMapping, RuleFollower):
 		""":class:`Place` objects that are in a :class:`Character`"""
 
 		_book = "character_place"
@@ -530,7 +530,7 @@ class Character(AbstractCharacter, RuleFollower):
 				repr(self.character.engine), repr(self.character.name)
 			)
 
-	class ThingPlaceMapping(GraphNodeMapping, SpecialMapping, Signal):
+	class ThingPlaceMapping(GraphNodeMapping):
 		"""GraphNodeMapping but for Place and Thing"""
 
 		name: CharName = getatt("character.name")
@@ -610,9 +610,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	node_map_cls = ThingPlaceMapping
 
-	class PortalSuccessorsMapping(
-		DiGraphSuccessorsMapping, SpecialMapping, RuleFollower
-	):
+	class PortalSuccessorsMapping(DiGraphSuccessorsMapping, RuleFollower):
 		"""Mapping of nodes that have at least one outgoing edge.
 
 		Maps them to another mapping, keyed by the destination nodes,
@@ -916,9 +914,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	adj_cls = PortalSuccessorsMapping
 
-	class PortalPredecessorsMapping(
-		DiGraphPredecessorsMapping, SpecialMapping, RuleFollower
-	):
+	class PortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollower):
 		"""Mapping of nodes that have at least one incoming edge.
 
 		Maps to another mapping keyed by the origin nodes, which maps to
@@ -964,7 +960,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	pred_cls = PortalPredecessorsMapping
 
-	class UnitGraphMapping(SpecialMapping, RuleFollower):
+	class UnitGraphMapping(AllegedMapping, RuleFollower):
 		"""A mapping of other characters in which one has a unit."""
 
 		class CharacterUnitMapping(Mapping):
@@ -1300,19 +1296,21 @@ class Character(AbstractCharacter, RuleFollower):
 			raise KeyError("No such thing: {}".format(thing))
 
 	def add_thing(
-		self, name: KeyHint | NodeName, location: KeyHint | NodeName, **kwargs
+		self,
+		name: KeyHint | NodeName,
+		location: KeyHint | NodeName,
+		**kwargs: dict[KeyHint | Stat, ValueHint | Value],
 	):
 		"""Make a new Thing and set its location"""
-		kwargs: StatDict
 		if name in self.thing:
 			raise WorldIntegrityError(
 				"Already have a Thing named {}".format(name)
 			)
-		starter: StatDict = self.node_dict_factory()
-		starter.update(kwargs)
+		starter: ThingDict = self.node_dict_factory()
+		starter.update((stat(k), Value(v)) for (k, v) in kwargs.items())
 		if isinstance(location, Node):
 			location = location.name
-		starter["location"] = location
+		starter["location"] = Value(location)
 		self.thing[name] = starter
 		if name not in self._succ:
 			self._succ[name] = self.adjlist_inner_dict_factory()
