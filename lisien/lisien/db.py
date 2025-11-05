@@ -96,6 +96,7 @@ from .types import (
 	GraphValKeyframe,
 	GraphValRowType,
 	Key,
+	KeyHint,
 	Keyframe,
 	NodeKeyframe,
 	NodeName,
@@ -602,7 +603,9 @@ class AbstractDatabaseConnector(ABC):
 		return set()
 
 	@cached_property
-	def eternal(self) -> MutableMapping:
+	def eternal(
+		self,
+	) -> MutableMapping[EternalKey | KeyHint, Value | ValueHint]:
 		return {
 			"branch": "trunk",
 			"turn": 0,

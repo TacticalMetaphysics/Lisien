@@ -594,7 +594,7 @@ class Engine(AbstractEngine, Executor):
 	method: FunctionStore
 
 	@property
-	def eternal(self) -> dict[EternalKey, Value]:
+	def eternal(self):
 		return self.query.eternal
 
 	@property
