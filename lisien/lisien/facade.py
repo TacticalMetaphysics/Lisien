@@ -55,7 +55,7 @@ from .util import (
 	unwrap,
 	getatt,
 )
-from .wrap import MutableMappingUnwrapper
+from .wrap import MappingUnwrapperMixin
 
 if TYPE_CHECKING:
 	from .engine import Engine
@@ -164,7 +164,7 @@ class FacadeEntity(MutableMapping, Signal, ABC):
 getname = attrgetter("name")
 
 
-class FacadeEntityMapping(MutableMappingUnwrapper, Signal, ABC):
+class FacadeEntityMapping(MutableMapping, Signal, MappingUnwrapperMixin):
 	"""Mapping that contains entities in a Facade.
 
 	All the entities are of the same type, ``cls``, possibly
@@ -1092,7 +1092,7 @@ class CharacterFacade(AbstractCharacter):
 			except AttributeError:
 				return {}
 
-	class StatMapping(MutableMappingUnwrapper, Signal):
+	class StatMapping(MutableMapping, Signal, MappingUnwrapperMixin):
 		def __init__(self, facade):
 			super().__init__()
 			self.facade = facade

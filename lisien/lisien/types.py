@@ -79,7 +79,7 @@ from .util import getatt, cached_in, slotted
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
-	MutableMappingUnwrapper,
+	MappingUnwrapperMixin,
 	OrderlySet,
 	SetWrapper,
 	unwrap_items,
@@ -563,7 +563,7 @@ type CharacterRulebookTypeStr = Literal[
 ]
 
 
-class AllegedMapping(MutableMappingUnwrapper, Signal, ABC):
+class CharacterMappingMixin(MappingUnwrapperMixin):
 	"""Common amenities for mappings in :class:`Character`"""
 
 	def __init__(self, character: Character):
@@ -581,7 +581,7 @@ class AllegedMapping(MutableMappingUnwrapper, Signal, ABC):
 				del self[k]
 
 
-class AbstractEntityMapping(AllegedMapping, ABC):
+class AbstractEntityMapping(MutableMapping, Signal, MappingUnwrapperMixin):
 	__slots__ = ()
 
 	@abstractmethod
@@ -1124,7 +1124,7 @@ class Edge(AbstractEntityMapping):
 		store(graphn, orig, dest, key, branch, turn, tick, value)
 
 
-class GraphNodeMapping(AllegedMapping):
+class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin):
 	"""Mapping for nodes in a graph"""
 
 	def __init__(self, graph: DiGraph):
@@ -1246,7 +1246,7 @@ class GraphNodeMapping(AllegedMapping):
 				self[node].update(value)
 
 
-class GraphEdgeMapping(AllegedMapping):
+class GraphEdgeMapping(MutableMapping, Signal, CharacterMappingMixin):
 	"""Provides an adjacency mapping and possibly a predecessor mapping
 	for a graph.
 
@@ -2857,6 +2857,11 @@ class AbstractEngine(ABC):
 	weibullvariate = get_rando("_rando.weibullvariate")
 
 
+class BaseMutableCharacterMapping(
+	MutableMapping, Signal, CharacterMappingMixin
+): ...
+
+
 class AbstractCharacter(DiGraph):
 	"""The Character API, with all requisite mappings and graph generators.
 
@@ -3060,19 +3065,19 @@ class AbstractCharacter(DiGraph):
 	def __getitem__(self, k: KeyHint | NodeName):
 		return self.adj[k]
 
-	ThingMapping: type[AllegedMapping]
+	ThingMapping: type[BaseMutableCharacterMapping]
 
 	@cached_property
 	def thing(self) -> ThingMapping:
 		return self.ThingMapping(self)
 
-	PlaceMapping: type[AllegedMapping]
+	PlaceMapping: type[BaseMutableCharacterMapping]
 
 	@cached_property
 	def place(self) -> PlaceMapping:
 		return self.PlaceMapping(self)
 
-	ThingPlaceMapping: type[AllegedMapping]
+	ThingPlaceMapping: type[BaseMutableCharacterMapping]
 
 	@cached_property
 	def _node(self) -> ThingPlaceMapping:
@@ -3081,7 +3086,7 @@ class AbstractCharacter(DiGraph):
 	node: ThingPlaceMapping = getatt("_node")
 	nodes: ThingPlaceMapping = getatt("_node")
 
-	PortalSuccessorsMapping: type[AllegedMapping]
+	PortalSuccessorsMapping: type[BaseMutableCharacterMapping]
 
 	@cached_property
 	def _succ(self) -> PortalSuccessorsMapping:
@@ -3093,7 +3098,7 @@ class AbstractCharacter(DiGraph):
 	edge: PortalSuccessorsMapping = getatt("_succ")
 	_adj: PortalSuccessorsMapping = getatt("_succ")
 
-	PortalPredecessorsMapping: type[AllegedMapping]
+	PortalPredecessorsMapping: type[BaseMutableCharacterMapping]
 
 	@cached_property
 	def _pred(self) -> PortalPredecessorsMapping:
@@ -3102,7 +3107,7 @@ class AbstractCharacter(DiGraph):
 	preportal: PortalPredecessorsMapping = getatt("_pred")
 	pred: PortalPredecessorsMapping = getatt("_pred")
 
-	UnitGraphMapping: type[AllegedMapping]
+	UnitGraphMapping: type[BaseMutableCharacterMapping]
 
 	@cached_property
 	def unit(self) -> UnitGraphMapping:
