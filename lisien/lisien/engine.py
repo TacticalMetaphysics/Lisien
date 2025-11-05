@@ -586,7 +586,7 @@ class Engine(AbstractEngine, Executor):
 	portal_cls = edge_cls = Portal
 	entity_cls = char_cls | thing_cls | place_cls | portal_cls
 	illegal_node_names = {"nodes", "node_val", "edges", "edge_val", "things"}
-	time = TimeSignalDescriptor()
+	time: tuple[Branch, Turn, Tick] = TimeSignalDescriptor()
 	trigger: FunctionStore
 	prereq: FunctionStore
 	action: FunctionStore
