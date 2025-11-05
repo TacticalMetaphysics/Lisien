@@ -2179,7 +2179,7 @@ class AbstractBookmarkMapping(MutableMapping, Callable):
 	def __call__(self, key: KeyHint) -> None: ...
 
 
-_SEQT = TypeVar("_SEQT")
+_SEQT = TypeVar("_SEQT", bound=Sequence[ValueHint])
 
 
 class AbstractEngine(ABC):
