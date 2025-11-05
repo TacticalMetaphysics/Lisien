@@ -2879,7 +2879,7 @@ class AbstractCharacter(DiGraph):
 	"""
 
 	no_unwrap = True
-	name: Hashable
+	name: CharName
 	engine: AbstractEngine
 
 	@staticmethod
