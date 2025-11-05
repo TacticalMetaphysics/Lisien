@@ -1297,7 +1297,7 @@ class Character(AbstractCharacter, RuleFollower):
 			raise WorldIntegrityError(
 				"Already have a Thing named {}".format(name)
 			)
-		starter = StatDict(self.node_dict_factory())
+		starter: StatDict = self.node_dict_factory()
 		starter.update(kwargs)
 		if isinstance(location, Node):
 			location = location.name
