@@ -816,7 +816,7 @@ class GraphMapping(AbstractEntityMapping):
 		return me == other
 
 
-class Node(AbstractEntityMapping):
+class Node(AbstractEntityMapping, ABC):
 	__slots__ = (
 		"character",
 		"name",
@@ -1003,6 +1003,13 @@ class Node(AbstractEntityMapping):
 
 		"""
 		return EntityStatAlias(entity=self, stat=Stat(Key(stat)))
+
+	@property
+	@abstractmethod
+	def leader(self) -> Mapping: ...
+
+	@abstractmethod
+	def leaders(self) -> Iterator[AbstractCharacter]: ...
 
 
 class Edge(AbstractEntityMapping):
