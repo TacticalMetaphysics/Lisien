@@ -1147,9 +1147,11 @@ class Engine(AbstractEngine, Executor):
 		return Branch(self._obranch), Turn(self._oturn), Tick(self._otick)
 
 	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick):
+		"""Override the current time, skipping all integrity checks"""
 		(self._obranch, self._oturn, self._otick) = (branch, turn, tick)
 
 	def _time_warp(self, branch: Branch, turn: Turn, tick: Tick):
+		"""Override the current time, in database too, skipping all integrity checks"""
 		self._obranch = self.eternal["branch"] = branch
 		self._oturn = self.eternal["turn"] = turn
 		self._otick = self.eternal["tick"] = tick
