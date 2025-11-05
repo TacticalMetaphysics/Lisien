@@ -6413,6 +6413,7 @@ class Engine(AbstractEngine, Executor):
 		mark_handled(self.tick)
 		return actres
 
+	@world_locked
 	def _get_place_neighbors(
 		self, charn: CharName, name: NodeName
 	) -> set[Key]:
@@ -6425,12 +6426,14 @@ class Engine(AbstractEngine, Executor):
 			seen.add(pred)
 		return seen
 
+	@world_locked
 	def _get_place_contents(self, charn: CharName, name: NodeName) -> set[Key]:
 		try:
 			return self._node_contents_cache.retrieve(charn, name, *self.time)
 		except KeyError:
 			return set()
 
+	@world_locked
 	def _iter_place_portals(
 		self, charn: CharName, name: NodeName
 	) -> Iterator[tuple[Key, Key]]:
@@ -6440,6 +6443,7 @@ class Engine(AbstractEngine, Executor):
 		for orig in self._edges_cache.iter_predecessors(charn, name, *now):
 			yield (orig, name)
 
+	@world_locked
 	def _get_thing_location_tup(
 		self, charn: CharName, name: NodeName
 	) -> tuple[Key, Key] | ():
@@ -6448,6 +6452,7 @@ class Engine(AbstractEngine, Executor):
 		except KeyError:
 			return ()
 
+	@world_locked
 	def _get_neighbors(
 		self,
 		entity: place_cls | thing_cls | portal_cls,
@@ -6566,6 +6571,7 @@ class Engine(AbstractEngine, Executor):
 			return None
 		return this_turn_neighbors
 
+	@world_locked
 	def _get_thing(self, graphn: CharName, thingn: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, thingn)
@@ -6573,6 +6579,7 @@ class Engine(AbstractEngine, Executor):
 			node_objs[key] = self.thing_cls(self.character[graphn], thingn)
 		return node_objs[key]
 
+	@world_locked
 	def _get_place(self, graphn: CharName, placen: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, placen)
