@@ -1661,7 +1661,7 @@ class DiGraph(networkx.DiGraph, ABC):
 		}
 
 	def __init__(
-		self, engine: Engine, name: CharName
+		self, engine: AbstractEngine, name: CharName
 	):  # user shouldn't instantiate directly
 		self._name = name
 		self.engine = engine
