@@ -563,7 +563,7 @@ type CharacterRulebookTypeStr = Literal[
 ]
 
 
-class CharacterMappingMixin(MappingUnwrapperMixin):
+class CharacterMappingMixin(MappingUnwrapperMixin, ABC):
 	"""Common amenities for mappings in :class:`Character`"""
 
 	def __init__(self, character: Character):
@@ -581,7 +581,9 @@ class CharacterMappingMixin(MappingUnwrapperMixin):
 				del self[k]
 
 
-class AbstractEntityMapping(MutableMapping, Signal, MappingUnwrapperMixin):
+class AbstractEntityMapping(
+	MutableMapping, Signal, MappingUnwrapperMixin, ABC
+):
 	__slots__ = ()
 
 	@abstractmethod
@@ -658,7 +660,7 @@ class AbstractEntityMapping(MutableMapping, Signal, MappingUnwrapperMixin):
 		self._del_db(Key(key), branch, turn, tick)
 
 
-class GraphMapping(AbstractEntityMapping):
+class GraphMapping(AbstractEntityMapping, ABC):
 	"""Mapping for graph attributes"""
 
 	__slots__ = (
@@ -1012,7 +1014,7 @@ class Node(AbstractEntityMapping, ABC):
 	def leaders(self) -> Iterator[AbstractCharacter]: ...
 
 
-class Edge(AbstractEntityMapping):
+class Edge(AbstractEntityMapping, ABC):
 	"""Mapping for edge attributes"""
 
 	__slots__ = (
@@ -1131,7 +1133,7 @@ class Edge(AbstractEntityMapping):
 		store(graphn, orig, dest, key, branch, turn, tick, value)
 
 
-class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin):
+class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 	"""Mapping for nodes in a graph"""
 
 	def __init__(self, graph: DiGraph):
@@ -1253,7 +1255,7 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin):
 				self[node].update(value)
 
 
-class GraphEdgeMapping(MutableMapping, Signal, CharacterMappingMixin):
+class GraphEdgeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 	"""Provides an adjacency mapping and possibly a predecessor mapping
 	for a graph.
 
@@ -1292,7 +1294,7 @@ class GraphEdgeMapping(MutableMapping, Signal, CharacterMappingMixin):
 		return iter(self.character.node)
 
 
-class AbstractSuccessors(GraphEdgeMapping):
+class AbstractSuccessors(GraphEdgeMapping, ABC):
 	__slots__ = ("container", "orig", "_cache")
 	orig: NodeName
 
@@ -1386,7 +1388,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 			del self[dest]
 
 
-class GraphSuccessorsMapping(GraphEdgeMapping):
+class GraphSuccessorsMapping(GraphEdgeMapping, ABC):
 	"""Mapping for Successors (itself a MutableMapping)"""
 
 	__slots__ = ("graph",)
@@ -1454,17 +1456,17 @@ class GraphSuccessorsMapping(GraphEdgeMapping):
 		)
 
 
-class DiGraphSuccessorsMapping(GraphSuccessorsMapping):
+class DiGraphSuccessorsMapping(GraphSuccessorsMapping, ABC):
 	__slots__ = ("graph",)
 
-	class Successors(AbstractSuccessors):
+	class Successors(AbstractSuccessors, ABC):
 		__slots__ = ("graph", "container", "orig", "_cache")
 
 		def _order_nodes(self, dest: NodeName) -> tuple[NodeName, NodeName]:
 			return (self.orig, dest)
 
 
-class DiGraphPredecessorsMapping(GraphEdgeMapping):
+class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 	"""Mapping for Predecessors instances, which map to Edges that end at
 	the dest provided to this
 
@@ -2868,11 +2870,11 @@ class AbstractEngine(ABC):
 
 
 class BaseMutableCharacterMapping(
-	MutableMapping, Signal, CharacterMappingMixin
+	MutableMapping, Signal, CharacterMappingMixin, ABC
 ): ...
 
 
-class AbstractCharacter(DiGraph):
+class AbstractCharacter(DiGraph, ABC):
 	"""The Character API, with all requisite mappings and graph generators.
 
 	Mappings resemble those of a NetworkX digraph:
@@ -3252,7 +3254,7 @@ class AbstractCharacter(DiGraph):
 			yield from o.values()
 
 
-class AbstractThing(MutableMapping):
+class AbstractThing(MutableMapping, ABC):
 	character: AbstractCharacter
 	engine: AbstractEngine
 	name: NodeName

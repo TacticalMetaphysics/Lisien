@@ -388,7 +388,7 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 		self._set(me)
 
 
-class MappingUnwrapperMixin:
+class MappingUnwrapperMixin(ABC):
 	__slots__ = ()
 
 	def __eq__(self, other):
@@ -417,10 +417,12 @@ class MappingUnwrapperMixin:
 		return unwrap_items(self.items())
 
 
-class MutableMappingUnwrapper(MutableMapping, MappingUnwrapperMixin): ...
+class MutableMappingUnwrapper(MutableMapping, MappingUnwrapperMixin, ABC): ...
 
 
-class MutableMappingWrapper(MutableWrapperDictList, MutableMappingUnwrapper):
+class MutableMappingWrapper(
+	MutableWrapperDictList, MutableMappingUnwrapper, ABC
+):
 	def __eq__(self, other):
 		return MappingUnwrapperMixin.__eq__(self, other)
 
@@ -489,7 +491,7 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		self._set(me)
 
 
-class MutableWrapperSet(MutableWrapper, set):
+class MutableWrapperSet(MutableWrapper, ABC, set):
 	__slots__ = ()
 	_getter: Callable
 	_set: Callable
