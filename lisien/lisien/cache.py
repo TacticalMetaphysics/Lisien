@@ -312,7 +312,7 @@ class Cache:
 		self, db: "engine.Engine", name: str, keyframe_dict: dict | None = None
 	):
 		self.name = name
-		self.db = db
+		self.engine = db
 		self._keyframe_dict = keyframe_dict
 
 	@cached_property
@@ -392,7 +392,7 @@ class Cache:
 
 	@cached_property
 	def _store_stuff(self):
-		db = self.db
+		db = self.engine
 		return (
 			self._lock,
 			self.parents,
@@ -605,7 +605,7 @@ class Cache:
 		branches: defaultdict[Branch, list[tuple]] = defaultdict(list)
 		for row in data:
 			branches[row[-4]].append(row)
-		db = self.db
+		db = self.engine
 		# Make keycaches and valcaches. Must be done chronologically
 		# to make forwarding work.
 		childbranch = db._childbranch
@@ -627,7 +627,7 @@ class Cache:
 		self, cache: dict, branch: Branch, turn: Turn, tick: Tick
 	):
 		"""Return the value at the given time in ``cache``"""
-		for b, r, t in self.db._iter_parent_btt(branch, turn, tick):
+		for b, r, t in self.engine._iter_parent_btt(branch, turn, tick):
 			if b in cache:
 				if r in cache[b] and cache[b][r].rev_gettable(t):
 					try:
@@ -761,7 +761,9 @@ class Cache:
 					# keys[parentity], branch, turn, tick)[0]  # slow
 					return keycache3[tick]
 			# still have to get a stoptime -- the time of the last keyframe
-			stoptime, _ = self.db._build_keyframe_window(branch, turn, tick)
+			stoptime, _ = self.engine._build_keyframe_window(
+				branch, turn, tick
+			)
 			if stoptime is None:
 				ret = None
 				if parentity in self.keyframe:
@@ -781,13 +783,13 @@ class Cache:
 					ret = frozenset(kf.keys())
 				except KeyframeError:
 					if tick == 0:
-						stoptime, _ = self.db._build_keyframe_window(
+						stoptime, _ = self.engine._build_keyframe_window(
 							branch,
 							Turn(turn - 1),
-							self.db.turn_end_plan(branch, Turn(turn - 1)),
+							self.engine.turn_end_plan(branch, Turn(turn - 1)),
 						)
 					else:
-						stoptime, _ = self.db._build_keyframe_window(
+						stoptime, _ = self.engine._build_keyframe_window(
 							branch, turn, Tick(tick - 1)
 						)
 					if stoptime is None:
@@ -888,7 +890,7 @@ class Cache:
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent: tuple[Key, ...] = args[:-6]
 		self._truncate_keycache(parent, entity, branch, turn, tick)
-		if self.db._no_kc:
+		if self.engine._no_kc:
 			return
 		kc = self._get_keycache(
 			parent + (entity,), branch, turn, tick, forward=forward
@@ -935,7 +937,7 @@ class Cache:
 		deleted = set()
 		kf = self.keyframe.get(entity, None)
 		for key, branches in cache.get(entity, {}).items():
-			for branc, trn, tck in self.db._iter_parent_btt(
+			for branc, trn, tck in self.engine._iter_parent_btt(
 				branch, turn, tick, stoptime=stoptime
 			):
 				if branc not in branches or not branches[branc].rev_gettable(
@@ -962,7 +964,7 @@ class Cache:
 				break
 		if not kf:
 			return added, deleted
-		for branc, trn, tck in self.db._iter_parent_btt(
+		for branc, trn, tck in self.engine._iter_parent_btt(
 			branch, turn, tick, stoptime=stoptime
 		):
 			if branc not in kf or not kf[branc].rev_gettable(trn):
@@ -1039,7 +1041,7 @@ class Cache:
 		value: Value
 		entity, key, branch, turn, tick, value = args[-6:]
 		if loading:
-			self.db._updload(branch, turn, tick)
+			self.engine._updload(branch, turn, tick)
 		parent: tuple[Key, ...] = args[:-6]
 		entikey = (entity, key)
 		parentikey = parent + (entity, key)
@@ -1529,7 +1531,7 @@ class Cache:
 			# entity and key, or the first value in our own
 			# store, whichever took effect later.
 			it = pairwise(
-				self.db._iter_keyframes(
+				self.engine._iter_keyframes(
 					branch, turn, tick, loaded=True, with_fork_points=True
 				)
 			)
@@ -1560,10 +1562,12 @@ class Cache:
 							return hint(branchentk[b][r].final())
 					return KeyError("Not in chron data", b, r, t)
 
-				kfit = self.db._iter_keyframes(branch, turn, tick, loaded=True)
+				kfit = self.engine._iter_keyframes(
+					branch, turn, tick, loaded=True
+				)
 				try:
 					stoptime = next(kfit)
-					for b, r, t in self.db._iter_parent_btt(
+					for b, r, t in self.engine._iter_parent_btt(
 						branch, turn, tick, stoptime=stoptime
 					):
 						ret = get_chron(b, r, t)
@@ -1587,7 +1591,7 @@ class Cache:
 							)
 				except StopIteration:
 					# There are no keyframes in the past at all.
-					for b, r, t in self.db._iter_parent_btt(
+					for b, r, t in self.engine._iter_parent_btt(
 						branch, turn, tick
 					):
 						ret = get_chron(b, r, t)
@@ -1612,7 +1616,7 @@ class Cache:
 						"No keyframe loaded", entikey, b, r, t
 					)
 			for (b0, r0, t0), (b1, r1, t1) in it:
-				if (b0, r0, t0) in self.db._keyframes_loaded and (
+				if (b0, r0, t0) in self.engine._keyframes_loaded and (
 					b0 in keyframes
 					and r0 in keyframes[b0]
 					and t0 in keyframes[b0][r0]
@@ -1653,7 +1657,7 @@ class Cache:
 					# but has one for a prior turn, and it's still between
 					# the two keyframes.
 					return hint(branchentk[b0][r0 - 1].final())
-				elif (b1, r1, t1) in self.db._keyframes_loaded:
+				elif (b1, r1, t1) in self.engine._keyframes_loaded:
 					# branches has no value between these two keyframes,
 					# but we have the keyframe further back.
 					# Which doesn't mean any of its data is stored in
@@ -1676,7 +1680,7 @@ class Cache:
 		elif keyframes:
 			# We have no chronological data, just keyframes.
 			# That makes things easy.
-			for b0, r0, t0 in self.db._iter_keyframes(
+			for b0, r0, t0 in self.engine._iter_keyframes(
 				branch, turn, tick, loaded=True
 			):
 				if (
@@ -1722,13 +1726,13 @@ class Cache:
 
 		"""
 		if forward is None:
-			forward = self.db._forward
+			forward = self.engine._forward
 		entity: tuple[Key, ...] = args[:-3]
 		branch: Branch
 		turn: Turn
 		tick: Tick
 		branch, turn, tick = args[-3:]
-		if self.db._no_kc:
+		if self.engine._no_kc:
 			kc = self._get_adds_dels(entity, branch, turn, tick)[0]
 		else:
 			try:
@@ -1753,13 +1757,13 @@ class Cache:
 
 		"""
 		if forward is None:
-			forward = self.db._forward
+			forward = self.engine._forward
 		entity: tuple[Key, ...] = args[:-3]
 		branch: Branch
 		turn: Turn
 		tick: Tick
 		branch, turn, tick = args[-3:]
-		if self.db._no_kc:
+		if self.engine._no_kc:
 			return len(self._get_adds_dels(entity, branch, turn, tick)[0])
 		return len(
 			self._get_keycache(entity, branch, turn, tick, forward=forward)
@@ -2014,7 +2018,7 @@ class NodesCache(Cache):
 		yield from super()._iter_future_contradictions(
 			entity, key, turns, branch, turn, tick, value
 		)
-		yield from self.db._edges_cache._slow_iter_node_contradicted_times(
+		yield from self.engine._edges_cache._slow_iter_node_contradicted_times(
 			branch, turn, tick, entity, key
 		)
 
@@ -2200,7 +2204,7 @@ class EdgesCache(Cache):
 			self._adds_dels_predecessors,
 		)
 		self._additional_store_stuff = (
-			self.db,
+			self.engine,
 			self.predecessors,
 			self.successors,
 		)
@@ -2322,7 +2326,7 @@ class EdgesCache(Cache):
 			added = set()
 			deleted = set()
 		kf = self.keyframe
-		itparbtt = self.db._iter_parent_btt
+		itparbtt = self.engine._iter_parent_btt
 		its = [(ks, v) for (ks, v) in kf.items() if len(ks) == 3]
 		for (grap, org, dest), kfg in its:  # too much iteration!
 			if (grap, org) != (graph, orig):
@@ -2369,7 +2373,7 @@ class EdgesCache(Cache):
 					deleted.add(orig)
 		else:
 			kf = self.keyframe
-			itparbtt = self.db._iter_parent_btt
+			itparbtt = self.engine._iter_parent_btt
 			for k, kfg in kf.items():  # too much iteration!
 				if len(k) != 3:
 					continue
@@ -2433,13 +2437,13 @@ class EdgesCache(Cache):
 		forward: Optional[bool] = None,
 	):
 		"""Iterate over successors of a given origin node at a given time."""
-		if self.db._no_kc:
+		if self.engine._no_kc:
 			yield from self._adds_dels_successors(
 				(graph, orig), branch, turn, tick
 			)[0]
 			return
 		if forward is None:
-			forward = self.db._forward
+			forward = self.engine._forward
 		yield from self._get_keycache(
 			(graph, orig), branch, turn, tick, forward=forward
 		)
@@ -2455,13 +2459,13 @@ class EdgesCache(Cache):
 		forward: Optional[bool] = None,
 	):
 		"""Iterate over predecessors to a destination node at a given time."""
-		if self.db._no_kc:
+		if self.engine._no_kc:
 			yield from self._adds_dels_predecessors(
 				(graph, dest), branch, turn, tick
 			)[0]
 			return
 		if forward is None:
-			forward = self.db._forward
+			forward = self.engine._forward
 		yield from self._get_origcache(
 			graph, dest, branch, turn, tick, forward=forward
 		)
@@ -3465,7 +3469,7 @@ class LeaderSetCache(Cache):
 		contra: bool | None = None,
 	):
 		if forward is None:
-			forward = self.db._forward
+			forward = self.engine._forward
 		if is_unit:
 			users = frozenset([character])
 			try:
@@ -3711,7 +3715,7 @@ class UnitnessCache(Cache):
 		contra: Optional[bool] = None,
 	):
 		if forward is None:
-			forward = self.db._forward
+			forward = self.engine._forward
 		self._store(
 			character,
 			graph,
@@ -4596,7 +4600,7 @@ class ThingsCache(Cache):
 		tick: Tick,
 	):
 		try:
-			return self.db._node_contents_cache.retrieve(
+			return self.engine._node_contents_cache.retrieve(
 				character,
 				location,
 				branch,
@@ -4644,7 +4648,7 @@ class ThingsCache(Cache):
 			)
 			if loading:
 				return
-			node_contents_cache = self.db._node_contents_cache
+			node_contents_cache = self.engine._node_contents_cache
 			this = frozenset((thing,))
 			# Cache the contents of nodes
 			todo = defaultdict(list)
@@ -4859,12 +4863,15 @@ class NodeContentsCache(Cache):
 		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
 
 	def delete_plan(self, plan: Plan) -> None:
-		plan_ticks = self.db._plan_ticks[plan]
-		with self.db.world_lock:
+		plan_ticks = self.engine._plan_ticks[plan]
+		with self.engine.world_lock:
 			for branch, trns in plan_ticks.items():
 				times = trns.iter_times()
 				for start_turn, start_tick in times:
-					if self.db._branch_end(branch) < (start_turn, start_tick):
+					if self.engine._branch_end(branch) < (
+						start_turn,
+						start_tick,
+					):
 						break
 				else:
 					continue
@@ -4924,7 +4931,7 @@ class NodeContentsCache(Cache):
 		tick: Tick,
 		value: Value,
 	):
-		return self.db._things_cache._iter_future_contradictions(
+		return self.engine._things_cache._iter_future_contradictions(
 			entity, key, turns, branch, turn, tick, value
 		)
 
