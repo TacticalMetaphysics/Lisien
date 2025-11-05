@@ -1341,8 +1341,8 @@ class EngineFacade(AbstractEngine):
 
 	class FacadeCache(Cache):
 		def __init__(self, cache, name):
-			self._created = cache.db._btt()
-			super().__init__(cache.db, name)
+			self._created = cache.engine._btt()
+			super().__init__(cache.engine, name)
 			self._real = cache
 
 		def retrieve(self, *args, search=False):
@@ -1355,7 +1355,7 @@ class EngineFacade(AbstractEngine):
 			self, parentity, branch, turn, tick, forward: bool = None
 		):
 			if forward is None:
-				forward = self._real.db._forward
+				forward = self._real.engine._forward
 			# Find the last effective keycache before the facade was created.
 			# Get the additions and deletions since then.
 			# Apply those to the keycache and return it.
@@ -1371,8 +1371,8 @@ class EngineFacade(AbstractEngine):
 
 	class FacadeUnitnessCache(FacadeCache, UnitnessCache):
 		def __init__(self, cache):
-			self._created = cache.db._btt()
-			UnitnessCache.__init__(self, cache.db, "unitness_cache")
+			self._created = cache.engine._btt()
+			UnitnessCache.__init__(self, cache.engine, "unitness_cache")
 			self.user_cache = EngineFacade.FacadeCache(
 				cache.leader_cache, "user_cache"
 			)
