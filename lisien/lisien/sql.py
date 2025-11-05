@@ -107,6 +107,8 @@ for table, serializer in Batch.serializers.items():
 	ret_annot = spec.annotations["return"]
 	if isinstance(ret_annot, str):
 		ret_annot = eval(ret_annot, types.__dict__)
+	if hasattr(ret_annot, "evaluate_value"):
+		ret_annot = ret_annot.evaluate_value()
 	columns = []
 	with_rowid = batch.key_len == 0
 	for n, (arg, ret_typ) in enumerate(
