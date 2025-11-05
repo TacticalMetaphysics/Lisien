@@ -299,4 +299,4 @@ def slotted(func: Callable) -> property:
 	With _ in front.
 
 	"""
-	return cached_in("_" + func.__name__)
+	return cached_in("_" + func.__name__, func)
