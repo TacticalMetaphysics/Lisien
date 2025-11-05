@@ -622,15 +622,26 @@ class Character(AbstractCharacter, RuleFollower):
 
 		_book = "character_portal"
 		character: Character
-		engine: Engine
 
 		def __init__(self, graph):
 			super().__init__(graph)
-			self.engine = engine = graph.engine
 			charn = graph.name
-			self._cporh = engine._characters_portals_rulebooks_cache
-			self._getitem_stuff = (engine._node_exists, charn, self._cache)
-			self._setitem_stuff = (self._cache, self.Successors)
+
+		@cached_property
+		def _cporh(self):
+			return self.character.engine._characters_portals_rulebooks_cache
+
+		@cached_property
+		def _getitem_stuff(self):
+			return (
+				self.character.engine._node_exists,
+				self.character.name,
+				self._cache,
+			)
+
+		@cached_property
+		def _setitem_stuff(self):
+			return (self._cache, self.Successors)
 
 		def _get_rulebook_cache(self):
 			return self._cporh
