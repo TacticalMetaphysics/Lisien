@@ -36,7 +36,7 @@ from functools import partial
 from itertools import chain
 from operator import ge, itemgetter, le
 from threading import RLock
-from typing import Any, Callable, Iterable, Iterator, Union
+from typing import Any, Callable, Iterable, Iterator, Union, TypeVar
 
 from .exc import HistoricKeyError
 from .types import LinearTime, Tick, Turn, Value
@@ -577,7 +577,11 @@ def _recurse(rev: int, revs: list[tuple[int, Any]]) -> tuple[int, Any]:
 		return _recurse(rev, after)
 
 
-class WindowDict(MutableMapping):
+_K = TypeVar("_K")
+_V = TypeVar("_V")
+
+
+class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 	"""A dict that keeps every value that a variable has had over time.
 
 	Look up a revision number in this dict, and it will give you the
@@ -937,7 +941,7 @@ class WindowDict(MutableMapping):
 			return "{}({})".format(self.__class__.__name__, me)
 
 
-class LinearTimeListDict(WindowDict):
+class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 	def __getitem__(self, rev: Turn) -> list[Tick]:
 		if rev in self:
 			return super().__getitem__(rev).copy()
@@ -985,7 +989,10 @@ class EntikeyWindowDict(WindowDict):
 		self.entikeys.remove(entikey)
 
 
-class SettingsTurnDict(WindowDict):
+_VV = TypeVar("_VV")
+
+
+class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 	"""A WindowDict that contains a span of time, indexed as turns and ticks
 
 	Each turn is a series of ticks. Once a value is set at some turn and tick,
