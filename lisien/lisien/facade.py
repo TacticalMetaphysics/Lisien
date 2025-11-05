@@ -352,7 +352,7 @@ class FacadeRule:
 
 
 class FacadeNode(FacadeEntity, Node):
-	class FacadeNodeUser(Mapping):
+	class FacadeNodeLeader(Mapping[CharName, DiGraph]):
 		__slots__ = ("_entity",)
 
 		@property
@@ -462,11 +462,11 @@ class FacadeNode(FacadeEntity, Node):
 		return self.FacadeNodeContent(self)
 
 	@property
-	def user(self):
-		return self.FacadeNodeUser(self)
+	def leader(self):
+		return self.FacadeNodeLeader(self)
 
-	def users(self):
-		return self.user.values()
+	def leaders(self):
+		return self.leader.values()
 
 	def _set_plan(self, k, v):
 		self.character.engine._planned[self.character.engine._curplan][
