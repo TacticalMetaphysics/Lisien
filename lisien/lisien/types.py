@@ -3408,7 +3408,7 @@ class TimeSignal[_BRANCH, _TURN, _TICK](
 	"""Like a tuple of the present ``(branch, turn, tick)`` that follows sim-time.
 
 	This is a ``Signal``. To set a function to be called whenever the
-	branch or turn changes, pass it to my ``connect`` method.
+	time changes, pass it to my ``connect`` method.
 
 	This always refers to the present game time. It will change when
 	simulation occurs. If you don't want that, convert it to a tuple, or unpack
