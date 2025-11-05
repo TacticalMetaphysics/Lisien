@@ -147,9 +147,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 
 	def _get(self) -> list[RuleFuncName]:
 		try:
-			return self._cache.retrieve(
-				self.rule.name, *self.rule.engine._btt()
-			)
+			return self._cache.retrieve(self.rule.name, *self.rule.engine.time)
 		except KeyError:
 			return []
 
@@ -325,7 +323,7 @@ class Rule:
 	def neighborhood(self) -> RuleNeighborhood:
 		try:
 			ret = self.engine._neighborhoods_cache.retrieve(
-				self.name, *self.engine._btt()
+				self.name, *self.engine.time
 			)
 		except KeyError:
 			return None
@@ -340,7 +338,7 @@ class Rule:
 		try:
 			if (
 				self.engine._neighborhoods_cache.retrieve(
-					self.name, *self.engine._btt()
+					self.name, *self.engine.time
 				)
 				== neighbors
 			):
@@ -357,7 +355,7 @@ class Rule:
 	def big(self) -> RuleBig:
 		try:
 			return self.engine._rule_bigness_cache.retrieve(
-				self.name, *self.engine._btt()
+				self.name, *self.engine.time
 			)
 		except KeyError:
 			return RuleBig(False)
@@ -369,7 +367,7 @@ class Rule:
 		try:
 			if (
 				self.engine._rule_bigness_cache.retrieve(
-					self.name, *self.engine._btt()
+					self.name, *self.engine.time
 				)
 				== big
 			):
@@ -628,7 +626,7 @@ class RuleBook(MutableSequence, Signal):
 
 	@property
 	def priority(self) -> RulebookPriority:
-		return self._get_cache(*self.engine._btt())[1]
+		return self._get_cache(*self.engine.time)[1]
 
 	@priority.setter
 	def priority(self, v: float | RulebookPriority):
@@ -639,21 +637,21 @@ class RuleBook(MutableSequence, Signal):
 		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache, v)
 
 	def __contains__(self, v: RuleName | Rule) -> bool:
-		return getattr(v, "name", v) in self._get_cache(*self.engine._btt())[0]
+		return getattr(v, "name", v) in self._get_cache(*self.engine.time)[0]
 
 	def __iter__(self) -> Iterator[Rule]:
 		rule_name: RuleName
-		for rule_name in self._get_cache(*self.engine._btt())[0]:
+		for rule_name in self._get_cache(*self.engine.time)[0]:
 			yield self.engine.rule[rule_name]
 
 	def __len__(self):
 		try:
-			return len(self._get_cache(*self.engine._btt())[0])
+			return len(self._get_cache(*self.engine.time)[0])
 		except KeyError:
 			return 0
 
 	def __getitem__(self, i: int) -> Rule:
-		return self.engine.rule[self._get_cache(*self.engine._btt())[0][i]]
+		return self.engine.rule[self._get_cache(*self.engine.time)[0][i]]
 
 	def _coerce_rule(self, v: Rule | str | RuleName) -> Rule:
 		if isinstance(v, Rule):
@@ -715,13 +713,13 @@ class RuleBook(MutableSequence, Signal):
 			args.append(stop)
 		if isinstance(v, str):
 			try:
-				return self._get_cache(*self.engine._btt())[0].index(*args)
+				return self._get_cache(*self.engine.time)[0].index(*args)
 			except KeyError:
 				raise ValueError("Not the name of a rule", v)
 		return super().index(*args)
 
 	def __delitem__(self, i: int) -> None:
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine.time
 		try:
 			cache, prio = self._get_cache(branch, turn, tick)
 		except KeyError:
@@ -780,7 +778,7 @@ class RuleMapping(MutableMapping, Signal):
 		return "RuleMapping({})".format([k for k in self])
 
 	def __iter__(self):
-		return iter(self.rulebook._get_cache(*self.engine._btt())[0])
+		return iter(self.rulebook._get_cache(*self.engine.time)[0])
 
 	def __len__(self):
 		return len(self.rulebook)
@@ -941,14 +939,14 @@ class AllRuleBooks(MutableMapping, Signal):
 		self._cache = {}
 
 	def __iter__(self) -> Iterator[RulebookName]:
-		return self.engine._rulebooks_cache.iter_entities(*self.engine._btt())
+		return self.engine._rulebooks_cache.iter_entities(*self.engine.time)
 
 	def __len__(self):
 		return len(list(self))
 
 	def __contains__(self, k: RulebookName | Key):
 		return self.engine._rulebooks_cache.contains_entity(
-			k, *self.engine._btt()
+			k, *self.engine.time
 		)
 
 	def __getitem__(self, k: RulebookName | Key) -> RuleBook:

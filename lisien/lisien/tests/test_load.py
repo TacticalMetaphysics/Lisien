@@ -299,7 +299,7 @@ def test_keyframe_load_unload(tmp_path, persistent_database):
 		eng.snap_keyframe()
 		eng.turn = 2
 		eng.universal["hi"] = "hello"
-		now = eng._btt()
+		now = tuple(eng.time)
 	with Engine(
 		tmp_path,
 		enforce_end_of_time=False,

@@ -87,7 +87,7 @@ class Portal(Edge, RuleFollower):
 		raise KeyError("{}->{} has no rulebook?".format(self.orig, self.dest))
 
 	def _get_rulebook_name(self):
-		btt = self.engine._btt()
+		btt = tuple(self.engine.time)
 		try:
 			return self.engine._portals_rulebooks_cache.retrieve(
 				self.character.name, self.orig, self.dest, *btt
@@ -105,7 +105,7 @@ class Portal(Edge, RuleFollower):
 		cache = self.engine._portals_rulebooks_cache
 		try:
 			if rulebook == cache.retrieve(
-				character, orig, dest, *self.engine._btt()
+				character, orig, dest, *self.engine.time
 			):
 				return
 		except KeyError:

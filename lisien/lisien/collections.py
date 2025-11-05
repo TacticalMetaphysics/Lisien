@@ -496,10 +496,10 @@ class UniversalMapping(MutableMapping, Signal):
 		self.engine = engine
 
 	def __iter__(self):
-		return self.engine._universal_cache.iter_keys(*self.engine._btt())
+		return self.engine._universal_cache.iter_keys(*self.engine.time)
 
 	def __len__(self):
-		return self.engine._universal_cache.count_keys(*self.engine._btt())
+		return self.engine._universal_cache.count_keys(*self.engine.time)
 
 	def __getitem__(self, k: KeyHint | UniversalKey):
 		"""Get the current value of this key"""
@@ -510,7 +510,7 @@ class UniversalMapping(MutableMapping, Signal):
 		)
 
 	def _get_cache_now(self, k: UniversalKey):
-		return self.engine._universal_cache.retrieve(k, *self.engine._btt())
+		return self.engine._universal_cache.retrieve(k, *self.engine.time)
 
 	def __setitem__(self, k: KeyHint | UniversalKey, v: ValueHint | Value):
 		"""Set k=v at the current branch and tick"""
@@ -525,7 +525,7 @@ class UniversalMapping(MutableMapping, Signal):
 		self.send(self, key=k, val=v)
 
 	def _set_cache_now(self, k: UniversalKey, v: Value):
-		self.engine._universal_cache.store(k, *self.engine._btt(), v)
+		self.engine._universal_cache.store(k, *self.engine.time, v)
 
 	def __delitem__(self, k: KeyHint | UniversalKey):
 		"""Unset this key for the present (branch, tick)"""
@@ -553,15 +553,15 @@ class CharacterMapping(MutableMapping, Signal):
 		Signal.__init__(self)
 
 	def __iter__(self):
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine.time
 		return self.engine._graph_cache.iter_keys(branch, turn, tick)
 
 	def __len__(self):
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine.time
 		return self.engine._graph_cache.count_keys(branch, turn, tick)
 
 	def __contains__(self, item: KeyHint | CharName) -> bool:
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine.time
 		try:
 			return (
 				self.engine._graph_cache.retrieve(item, branch, turn, tick)

@@ -79,6 +79,7 @@ from .types import (
 	Value,
 	stat,
 	ThingDict,
+	TimeSignal,
 )
 from .util import singleton_get, timer, unwrap, getatt
 from .wrap import MutableMappingUnwrapper
@@ -165,7 +166,7 @@ class RuleFollower(BaseRuleFollower):
 	def _get_rulebook_name(self) -> RulebookName:
 		try:
 			return self._get_rulebook_cache().retrieve(
-				self.character.name, *self.engine._btt()
+				self.character.name, *self.engine.time
 			)
 		except KeyError:
 			ret = RulebookName(
@@ -192,7 +193,7 @@ class RuleFollower(BaseRuleFollower):
 
 	def __contains__(self, k: KeyHint) -> bool:
 		return self.engine._active_rules_cache.contains_key(
-			self._get_rulebook_name(), *self.engine._btt()
+			self._get_rulebook_name(), *self.engine.time
 		)
 
 
@@ -258,9 +259,7 @@ class Character(AbstractCharacter, RuleFollower):
 	def __bool__(self):
 		try:
 			return (
-				self.engine._graph_cache.retrieve(
-					self.name, *self.engine._btt()
-				)
+				self.engine._graph_cache.retrieve(self.name, *self.engine.time)
 				!= "Deleted"
 			)
 		except KeyError:
@@ -283,7 +282,7 @@ class Character(AbstractCharacter, RuleFollower):
 			"character_place_rulebook": engine._characters_places_rulebooks_cache,
 			"character_portal_rulebook": engine._characters_portals_rulebooks_cache,
 		}
-		branch, turn, tick = engine._btt()
+		branch, turn, tick = engine.time
 		for rulebook, cache in cachemap.items():
 			rulebook_name = RulebookName(Key((rulebook, name)))
 			set_rb: Callable[
@@ -311,18 +310,18 @@ class Character(AbstractCharacter, RuleFollower):
 		def __iter__(self):
 			cache = self.engine._things_cache
 			char = self.name
-			branch, turn, tick = self.engine._btt()
+			branch, turn, tick = self.engine.time
 			return cache.iter_things(char, branch, turn, tick)
 
 		def __contains__(self, thing):
-			branch, turn, tick = self.engine._btt()
+			branch, turn, tick = self.engine.time
 			args = self.character.name, thing, branch, turn, tick
 			cache = self.engine._things_cache
 			return cache.thing_exists(*args)
 
 		def __len__(self):
 			return self.engine._things_cache.count_keys(
-				self.character.name, *self.engine._btt()
+				self.character.name, *self.engine.time
 			)
 
 		def __getitem__(self, thing: KeyHint):
@@ -403,21 +402,21 @@ class Character(AbstractCharacter, RuleFollower):
 			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
 			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
 			CharName,
-			Callable[[], Time],
+			Time,
 		]:
 			return (
 				self.engine._nodes_cache.iter_nodes,
 				self.engine._nodes_cache.node_exists,
 				self.engine._things_cache.thing_exists,
 				self.character.name,
-				self.engine._btt,
+				self.engine.time,
 			)
 
 		def __iter__(self):
 			iter_nodes, nodes_contains, things_contains, charn, btt = (
 				self._iter_stuff
 			)
-			branch, turn, tick = btt()
+			branch, turn, tick = btt
 			for node in iter_nodes(charn, branch, turn, tick):
 				if nodes_contains(
 					charn, node, branch, turn, tick
@@ -437,18 +436,18 @@ class Character(AbstractCharacter, RuleFollower):
 			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
 			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
 			CharName,
-			Callable[[], Time],
+			Time,
 		]:
 			return (
 				self.engine._nodes_cache.node_exists,
 				self.engine._things_cache.thing_exists,
 				self.character.name,
-				self.engine._btt,
+				self.engine.time,
 			)
 
 		def __contains__(self, place: KeyHint) -> bool:
 			nodes_contains, things_contains, charn, btt = self._contains_stuff
-			branch, turn, tick = btt()
+			branch, turn, tick = btt
 			place = nodename(place)
 			return nodes_contains(
 				charn, place, branch, turn, tick
@@ -461,7 +460,7 @@ class Character(AbstractCharacter, RuleFollower):
 			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
 			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
 			CharName,
-			Callable[[], Time],
+			Time,
 			dict,
 			Character,
 		]:
@@ -469,7 +468,7 @@ class Character(AbstractCharacter, RuleFollower):
 				self.engine._nodes_cache.node_exists,
 				self.engine._things_cache.thing_exists,
 				self.character.name,
-				self.engine._btt,
+				self.engine.time,
 				self.engine._node_objs,
 				self.character,
 			)
@@ -478,7 +477,7 @@ class Character(AbstractCharacter, RuleFollower):
 			(nodes_contains, things_contains, charn, btt, cache, character) = (
 				self._get_stuff
 			)
-			branch, turn, tick = btt()
+			branch, turn, tick = btt
 			place = nodename(place)
 			if not nodes_contains(
 				charn, place, branch, turn, tick
@@ -675,7 +674,7 @@ class Character(AbstractCharacter, RuleFollower):
 			engine = self.engine
 			planning = engine._planning
 			forward = engine._forward
-			branch, turn, start_tick = engine._btt()
+			branch, turn, start_tick = engine.time
 			exist_edge = engine.query.exist_edge
 			edge_val_set = engine.query.edge_val_set
 			store_edge = engine._edges_cache.store
@@ -975,7 +974,7 @@ class Character(AbstractCharacter, RuleFollower):
 				self.name = name = outer.name
 				self.graph = graphn
 				unitcache = engine._unitness_cache
-				btt = engine._btt
+				btt = engine.time
 				self._iter_stuff = iter_stuff = (
 					unitcache.get_char_graph_units,
 					unitcache.contains_unit,
@@ -999,7 +998,7 @@ class Character(AbstractCharacter, RuleFollower):
 					get_node,
 					engine.character,
 					graphn,
-					engine._btt,
+					engine.time,
 				)
 
 			def __iter__(self):
@@ -1007,8 +1006,8 @@ class Character(AbstractCharacter, RuleFollower):
 				get_char_graph_avs, validate, name, graphn, btt = (
 					self._iter_stuff
 				)
-				for unit in get_char_graph_avs(name, graphn, *btt()):
-					if validate(name, graphn, unit, *btt()):
+				for unit in get_char_graph_avs(name, graphn, *btt):
+					if validate(name, graphn, unit, *btt):
 						yield unit
 
 			def __contains__(self, av: KeyHint):
@@ -1058,7 +1057,7 @@ class Character(AbstractCharacter, RuleFollower):
 					raise AttributeError(
 						"No unit, or more than one",
 						self.character.name,
-						*self.engine._btt(),
+						*btt,
 					)
 				try:
 					return get_node(charmap[graphn], mykey)
@@ -1067,7 +1066,7 @@ class Character(AbstractCharacter, RuleFollower):
 						"The unit doesn't exist",
 						graphn,
 						mykey,
-						*self.engine._btt(),
+						*btt,
 					) from ex
 
 			def __repr__(self):
@@ -1097,12 +1096,12 @@ class Character(AbstractCharacter, RuleFollower):
 		) -> tuple[
 			Callable[[CharName, Branch, Turn, Tick], Iterator[CharName]],
 			CharName,
-			Callable[[], Time],
+			TimeSignal,
 		]:
 			return (
 				self.engine._unitness_cache.iter_char_graphs,
 				self.character.name,
-				self.engine._btt,
+				self.engine.time,
 			)
 
 		def __call__(self, unit: Place | Thing):
@@ -1116,7 +1115,8 @@ class Character(AbstractCharacter, RuleFollower):
 		def __iter__(self):
 			"""Iterate over graphs with unit nodes in them"""
 			get_char_graphs, charn, btt = self._iter_stuff
-			for graph in get_char_graphs(charn, *btt()):
+			branch, turn, tick = btt
+			for graph in get_char_graphs(charn, branch, turn, tick):
 				if graph in self:
 					yield graph
 
@@ -1126,32 +1126,18 @@ class Character(AbstractCharacter, RuleFollower):
 		) -> tuple[
 			Callable[[CharName, CharName, Branch, Turn, Tick], bool],
 			CharName,
-			Callable[[], Time],
+			TimeSignal,
 		]:
 			return (
 				self.engine._unitness_cache.dict_cache.contains_graph,
 				self.character.name,
-				self.engine._btt,
+				self.engine.time,
 			)
 
 		def __contains__(self, k: KeyHint | CharName):
 			retrieve, charn, btt = self._contains_stuff
-			got = retrieve(charn, charname(k), *btt())
+			got = retrieve(charn, charname(k), *btt)
 			return got is not ... and not isinstance(got, Exception)
-
-		@cached_property
-		def _len_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName, Branch, Turn, Tick], int],
-			CharName,
-			Callable[[], Time],
-		]:
-			return (
-				self.engine._unitness_cache.count_graphs,
-				self.character.name,
-				self.engine._btt,
-			)
 
 		def __len__(self):
 			"""Number of graphs in which I have a unit."""
@@ -1177,13 +1163,13 @@ class Character(AbstractCharacter, RuleFollower):
 			Callable[[CharName], CharacterUnitMapping],
 			Callable[[CharName], CharName],
 			CharName,
-			Callable[[], Time],
+			TimeSignal,
 		]:
 			return (
 				self._get_char_unit_cache,
 				self.engine._unitness_cache.get_char_only_graph,
 				self.character.name,
-				self.engine._btt,
+				self.engine.time,
 			)
 
 		@property
@@ -1198,7 +1184,7 @@ class Character(AbstractCharacter, RuleFollower):
 				self._node_stuff
 			)
 			try:
-				return get_char_av_cache(get_char_only_graph(charn, *btt()))
+				return get_char_av_cache(get_char_only_graph(charn, *btt))
 			except KeyError:
 				raise AttributeError(
 					"I have no unit, or I have units in many graphs"
@@ -1212,14 +1198,14 @@ class Character(AbstractCharacter, RuleFollower):
 				[CharName, Branch, Turn, Tick], tuple[CharName, NodeName]
 			],
 			CharName,
-			Callable[[], Time],
+			TimeSignal,
 			Callable[[Character | CharName, NodeName], Thing | Place | None],
 			Mapping[CharName, Character],
 		]:
 			return (
 				self.engine._unitness_cache.get_char_only_unit,
 				self.character.name,
-				self.engine._btt,
+				self.engine.time,
 				self.engine._get_node,
 				self.engine.character,
 			)
@@ -1233,7 +1219,7 @@ class Character(AbstractCharacter, RuleFollower):
 			"""
 			get_char_only_av, charn, btt, get_node, charmap = self._only_stuff
 			try:
-				charn, noden = get_char_only_av(charn, *btt())
+				charn, noden = get_char_only_av(charn, *btt)
 				return get_node(charmap[charn], noden)
 			except (KeyError, TypeError):
 				raise AttributeError("I have no unit, or more than one unit")
