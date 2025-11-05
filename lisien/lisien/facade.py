@@ -347,14 +347,14 @@ class FacadeNode(FacadeEntity, Node):
 			engine = self._entity.engine
 			charn = self._entity.character.name
 			return engine._unitness_cache.leader_cache.iter_keys(
-				charn, self._entity.name, *engine._btt()
+				charn, self._entity.name, *engine.time
 			)
 
 		def __len__(self):
 			engine = self._entity.engine
 			charn = self._entity.character.name
 			return engine._unitness_cache.leader_cache.count_keys(
-				charn, self._entity.name, *engine._btt()
+				charn, self._entity.name, *engine.time
 			)
 
 		def __contains__(self, item):
@@ -363,7 +363,7 @@ class FacadeNode(FacadeEntity, Node):
 			try:
 				return bool(
 					engine._unitness_cache.leader_cache.retrieve(
-						charn, self._entity.name, item, *engine._btt()
+						charn, self._entity.name, item, *engine.time
 					)
 				)
 			except KeyError:
@@ -390,7 +390,7 @@ class FacadeNode(FacadeEntity, Node):
 					return self._entity.engine._node_contents_cache.retrieve(
 						self._entity.character.name,
 						self._entity.name,
-						*self._entity.engine._btt(),
+						*self._entity.engine.time,
 					)
 				except KeyError:
 					return
@@ -828,7 +828,7 @@ class CharacterFacade(AbstractCharacter):
 			else:
 				noden = b
 		self.engine._unitness_cache.store(
-			self.name, charn, noden, *self.engine._btt(), False
+			self.name, charn, noden, *self.engine.time, False
 		)
 
 	def add_place(self, name, **kwargs):
@@ -882,7 +882,7 @@ class CharacterFacade(AbstractCharacter):
 			else:
 				noden = b
 		self.engine._unitness_cache.store(
-			self.name, charn, noden, *self.engine._btt(), True
+			self.name, charn, noden, *self.engine.time, True
 		)
 
 	def __init__(self, engine=None, character=None, init_rulebooks=None):
@@ -932,7 +932,7 @@ class CharacterFacade(AbstractCharacter):
 				for key in self.character.engine._unitness_cache.iter_keys(
 					self.character.name,
 					self.graph_name,
-					*self.character.engine._btt(),
+					*self.character.engine.time,
 				):
 					if key in self:
 						yield key
@@ -941,7 +941,7 @@ class CharacterFacade(AbstractCharacter):
 				return self.character.engine._unitness_cache.count_keys(
 					self.character.name,
 					self.graph_name,
-					*self.character.engine._btt(),
+					*self.character.engine.time,
 				)
 
 			def __contains__(self, item):
@@ -950,7 +950,7 @@ class CharacterFacade(AbstractCharacter):
 						self.character.name,
 						self.graph_name,
 						item,
-						*self.character.engine._btt(),
+						*self.character.engine.time,
 					)
 				except KeyError:
 					return False
@@ -979,18 +979,18 @@ class CharacterFacade(AbstractCharacter):
 		def __iter__(self):
 			engine = self.character.engine
 			name = self.character.name
-			now = self.character.engine._btt()
+			now = self.character.engine.time
 			for key in engine._unitness_cache.iter_keys(name, *now):
 				if key in self:
 					yield key
 
 		def __len__(self):
 			return self.character.engine._unitness_cache.count_keys(
-				self.character.name, *self.character.engine._btt()
+				self.character.name, *self.character.engine.time
 			)
 
 		def __contains__(self, item):
-			now = self.character.engine._btt()
+			now = self.character.engine.time
 			name = self.character.name
 			engine = self.character.engine
 			try:
@@ -1341,7 +1341,7 @@ class EngineFacade(AbstractEngine):
 
 	class FacadeCache(Cache):
 		def __init__(self, cache, name):
-			self._created = cache.engine._btt()
+			self._created = cache.engine.time
 			super().__init__(cache.engine, name)
 			self._real = cache
 
@@ -1371,7 +1371,7 @@ class EngineFacade(AbstractEngine):
 
 	class FacadeUnitnessCache(FacadeCache, UnitnessCache):
 		def __init__(self, cache):
-			self._created = cache.engine._btt()
+			self._created = cache.engine.time
 			UnitnessCache.__init__(self, cache.engine, "unitness_cache")
 			self.user_cache = EngineFacade.FacadeCache(
 				cache.leader_cache, "user_cache"
@@ -1440,7 +1440,7 @@ class EngineFacade(AbstractEngine):
 		self.world_lock = RLock()
 		if real is not None:
 			self._rando.setstate(real._rando.getstate())
-			self.branch, self.turn, self.tick = real._btt()
+			self.branch, self.turn, self.tick = real.time
 			self._branches_d = real._branches_d.copy()
 			self._turn_end = TurnEndDict(self)
 			self._turn_end_plan = TurnEndPlanDict(self)

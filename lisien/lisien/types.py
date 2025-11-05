@@ -590,7 +590,7 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 	) -> dict: ...
 
 	def _get_cache_now(self, key):
-		return self._get_cache(key, *self.engine._btt())
+		return self._get_cache(key, *self.engine.time)
 
 	@abstractmethod
 	def _cache_contains(
@@ -634,9 +634,7 @@ class AbstractEntityMapping(AllegedMapping, ABC):
 		return wrapval(self, key, self._get_cache_now(key))
 
 	def __contains__(self, item: Key | KeyHint):
-		return item == "name" or self._cache_contains(
-			item, *self.engine._btt()
-		)
+		return item == "name" or self._cache_contains(item, *self.engine.time)
 
 	def __setitem__(self, key: Key | KeyHint, value: Value | ValueHint):
 		"""Set key=value at the present branch and revision"""
@@ -689,7 +687,7 @@ class GraphMapping(AbstractEntityMapping):
 		return (
 			self.engine._graph_val_cache.iter_keys,
 			self.character.name,
-			self.engine._btt,
+			self.engine.time,
 		)
 
 	@cached_in("_contains_stuff_")
@@ -701,7 +699,7 @@ class GraphMapping(AbstractEntityMapping):
 		return (
 			self.engine._graph_val_cache.count_keys,
 			self.character.name,
-			self.engine._btt,
+			self.engine.time,
 		)
 
 	@cached_in("_get_stuff_")
@@ -709,9 +707,9 @@ class GraphMapping(AbstractEntityMapping):
 		self,
 	) -> tuple[
 		Callable[[Key, Branch, Turn, Tick], Value],
-		Callable[[], Time],
+		TimeSignal,
 	]:
-		return self._get_cache, self.engine._btt
+		return self._get_cache, self.engine.time
 
 	@cached_in("_set_db_stuff_")
 	def _set_db_stuff(self):
@@ -731,7 +729,7 @@ class GraphMapping(AbstractEntityMapping):
 
 	def __iter__(self) -> Iterator[Stat]:
 		iter_entity_keys, graphn, btt = self._iter_stuff
-		yield from iter_entity_keys(graphn, *btt())
+		yield from iter_entity_keys(graphn, *btt)
 
 	def __repr__(self):
 		return (
@@ -747,7 +745,7 @@ class GraphMapping(AbstractEntityMapping):
 
 	def __len__(self):
 		count_keys, graphn, btt = self._len_stuff
-		return 1 + count_keys(graphn, *btt())
+		return 1 + count_keys(graphn, *btt)
 
 	def __getitem__(self, item: Key | KeyHint) -> Value | ValueHint | CharName:
 		if item == "name":
@@ -769,7 +767,7 @@ class GraphMapping(AbstractEntityMapping):
 
 	def _get(self, key: KeyHint) -> ValueHint:
 		get_cache, btt = self._get_stuff
-		return get_cache(key, *btt())
+		return get_cache(key, *btt)
 
 	def _set_db(
 		self,
@@ -851,7 +849,7 @@ class Node(AbstractEntityMapping):
 			self.engine._node_val_cache.iter_keys,
 			self.character.name,
 			self.name,
-			self.engine._btt,
+			self.engine.time,
 		)
 
 	@cached_in("_contains_")
@@ -868,7 +866,7 @@ class Node(AbstractEntityMapping):
 			self.engine._node_val_cache.count_keys,
 			self.character.name,
 			self.name,
-			self.engine._btt,
+			self.engine.time,
 		)
 
 	@cached_in("_get_")
@@ -904,7 +902,7 @@ class Node(AbstractEntityMapping):
 
 	def __iter__(self):
 		iter_entity_keys, graphn, node, btt = self._iter_stuff
-		return iter_entity_keys(graphn, node, *btt())
+		return iter_entity_keys(graphn, node, *btt)
 
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
@@ -914,7 +912,7 @@ class Node(AbstractEntityMapping):
 
 	def __len__(self):
 		count_entity_keys, graphn, node, btt = self._len_stuff
-		return count_entity_keys(graphn, node, *btt())
+		return count_entity_keys(graphn, node, *btt)
 
 	def _get_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
@@ -1054,12 +1052,12 @@ class Edge(AbstractEntityMapping):
 			self.character.name,
 			self.orig,
 			self.dest,
-			self.character.engine._btt,
+			self.character.engine.time,
 		)
 
 	def __iter__(self):
 		iter_entity_keys, graphn, orig, dest, btt = self._iter_stuff
-		return iter_entity_keys(graphn, orig, dest, *btt())
+		return iter_entity_keys(graphn, orig, dest, *btt)
 
 	@slotted
 	def _cache_contains_stuff(self):
@@ -1081,12 +1079,12 @@ class Edge(AbstractEntityMapping):
 			self.character.name,
 			self.orig,
 			self.dest,
-			self.character.engine._btt,
+			self.character.engine.time,
 		)
 
 	def __len__(self):
 		count_entity_keys, graphn, orig, dest, btt = self._len_stuff
-		return count_entity_keys(graphn, orig, dest, *btt())
+		return count_entity_keys(graphn, orig, dest, *btt)
 
 	@slotted
 	def _get_cache_stuff(self):
@@ -1141,7 +1139,7 @@ class GraphNodeMapping(AllegedMapping):
 
 	def __iter__(self):
 		"""Iterate over the names of the nodes"""
-		now = self.engine._btt()
+		now = tuple(self.engine.time)
 		gn = self.character.name
 		nc = self.engine._nodes_cache
 		for entity in nc.iter_entities(gn, *now):
@@ -1170,13 +1168,13 @@ class GraphNodeMapping(AllegedMapping):
 	def __contains__(self, node: NodeName | KeyHint):
 		"""Return whether the node exists presently"""
 		return self.engine._nodes_cache.contains_entity(
-			self.character.name, node, *self.engine._btt()
+			self.character.name, node, *self.engine.time
 		)
 
 	def __len__(self):
 		"""How many nodes exist right now?"""
 		return self.engine._nodes_cache.count_entities(
-			self.character.name, *self.engine._btt()
+			self.character.name, *self.engine.time
 		)
 
 	def __getitem__(self, node: NodeName | KeyHint):
@@ -1305,7 +1303,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 	def __iter__(self) -> Iterator[NodeName]:
 		"""Iterate over node IDs that have an edge with my orig"""
 		for that in self.engine._edges_cache.iter_successors(
-			self.character.name, self.orig, *self.engine._btt()
+			self.character.name, self.orig, *self.engine.time
 		):
 			if that in self:
 				yield that
@@ -1314,7 +1312,7 @@ class AbstractSuccessors(GraphEdgeMapping):
 		"""Is there an edge leading to ``dest`` at the moment?"""
 		orig, dest = self._order_nodes(dest)
 		return self.engine._edges_cache.has_successor(
-			self.character.name, orig, dest, *self.engine._btt()
+			self.character.name, orig, dest, *self.engine.time
 		)
 
 	def __len__(self):
@@ -1471,11 +1469,11 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 
 	def __contains__(self, dest: KeyHint | NodeName) -> bool:
 		for orig in self.engine._edges_cache.iter_predecessors(
-			self.character.name, dest, *self.engine._btt()
+			self.character.name, dest, *self.engine.time
 		):
 			try:
 				if self.engine._edges_cache.retrieve(
-					self.character.name, orig, dest, *self.engine._btt()
+					self.character.name, orig, dest, *self.engine.time
 				):
 					return True
 			except KeyError:
@@ -1531,7 +1529,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 		def __iter__(self) -> Iterator[NodeName]:
 			"""Iterate over the edges that exist at the present (branch, rev)"""
 			for orig in self.engine._edges_cache.iter_predecessors(
-				self.character.name, self.dest, *self.engine._btt()
+				self.character.name, self.dest, *self.engine.time
 			):
 				if orig in self:
 					yield orig
@@ -1539,7 +1537,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping):
 		def __contains__(self, orig: NodeName | KeyHint) -> bool:
 			"""Is there an edge from ``orig`` at the moment?"""
 			return self.engine._edges_cache.has_predecessor(
-				self.character.name, self.dest, orig, *self.engine._btt()
+				self.character.name, self.dest, orig, *self.engine.time
 			)
 
 		def __len__(self):
@@ -2662,9 +2660,6 @@ class AbstractEngine(ABC):
 		self, char: AbstractCharacter | CharName, node: NodeName
 	) -> Node: ...
 
-	@abstractmethod
-	def _btt(self) -> tuple[Branch, Turn, Tick]: ...
-
 	def branches(self) -> KeysView:
 		return self._branches_d.keys()
 
@@ -3343,7 +3338,7 @@ class AbstractThing(MutableMapping):
 		turns_total = 0
 		prevsubplace = subpath.pop(0)
 		turn_incs = []
-		branch, turn, tick = eng._btt()
+		branch, turn, tick = eng.time
 		for subplace in subpath:
 			if weight is not None:
 				turn_incs.append(
@@ -3503,7 +3498,7 @@ class TimeSignalDescriptor:
 		if not hasattr(inst, "_time_signal"):
 			inst._time_signal = TimeSignal((inst,))
 		sig = inst._time_signal
-		branch_then, turn_then, tick_then = inst._btt()
+		branch_then, turn_then, tick_then = inst.time
 		branch_now, turn_now, tick_now = val
 		if (branch_then, turn_then, tick_then) == (
 			branch_now,

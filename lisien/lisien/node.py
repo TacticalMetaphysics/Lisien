@@ -77,7 +77,7 @@ class LeaderMapping(Mapping):
 	def _user_names(self) -> frozenset[CharName]:
 		try:
 			return self.engine._unitness_cache.leader_cache.retrieve(
-				self.node.character.name, self.node.name, *self.engine._btt()
+				self.node.character.name, self.node.name, *self.engine.time
 			)
 		except KeyError:
 			return frozenset()
@@ -94,7 +94,7 @@ class LeaderMapping(Mapping):
 			raise AmbiguousLeaderError(
 				"No leaders, or more than one",
 				self.node.name,
-				*self.engine._btt(),
+				*self.engine.time,
 				user_names,
 			)
 		user_name = CharName(next(iter(user_names)))
@@ -105,7 +105,7 @@ class LeaderMapping(Mapping):
 
 	def __contains__(self, item: KeyHint) -> bool:
 		return item in self.engine._unitness_cache.leader_cache.retrieve(
-			self.node.character.name, self.node.name, *self.engine._btt()
+			self.node.character.name, self.node.name, *self.engine.time
 		)
 
 	def __len__(self) -> int:
@@ -125,7 +125,7 @@ class LeaderMapping(Mapping):
 		if charn not in avatar or nn not in avatar[charn]:
 			raise KeyError(
 				"{} not used by {}".format(self.node.name, k),
-				self.engine._btt(),
+				self.engine.time,
 			)
 		return ret
 
@@ -165,7 +165,7 @@ class NodeContent(Mapping):
 			it = self.node.engine._node_contents_cache.retrieve(
 				self.node.character.name,
 				self.node.name,
-				*self.node.engine._btt(),
+				*self.node.engine.time,
 			)
 		except KeyError:
 			return
@@ -177,7 +177,7 @@ class NodeContent(Mapping):
 				self.node.engine._node_contents_cache.retrieve(
 					self.node.character.name,
 					self.node.name,
-					*self.node.engine._btt(),
+					*self.node.engine.time,
 				)
 			)
 		except KeyError:
@@ -215,11 +215,11 @@ class Dests(Mapping):
 		character = node.character
 		engine = node.engine
 		self._pn = (character.portal, name)
-		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
+		self._ecnb = (engine._edges_cache, character.name, name, engine.time)
 
 	def __iter__(self) -> Iterator[NodeName]:
 		edges_cache, charname, name, btt = self._ecnb
-		for succ in edges_cache.iter_successors(charname, name, *btt()):
+		for succ in edges_cache.iter_successors(charname, name, *btt):
 			if succ in self:
 				yield succ
 
@@ -231,7 +231,7 @@ class Dests(Mapping):
 
 	def __contains__(self, item: KeyHint) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.has_successor(charname, name, item, *btt())
+		return edges_cache.has_successor(charname, name, item, *btt)
 
 	def __getitem__(self, item: KeyHint) -> "Portal":
 		portal, name = self._pn
@@ -274,16 +274,16 @@ class Origs(Mapping):
 			self.engine._edges_cache,
 			self.character.name,
 			self.node.name,
-			self.engine._btt,
+			self.engine.time,
 		)
 
 	def __iter__(self) -> Iterator[NodeName]:
 		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.iter_predecessors(charname, name, *btt())
+		return edges_cache.iter_predecessors(charname, name, *btt)
 
 	def __contains__(self, item: KeyHint) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.has_predecessor(charname, name, item, *btt())
+		return edges_cache.has_predecessor(charname, name, item, *btt)
 
 	def __len__(self) -> int:
 		n = 0
@@ -329,15 +329,14 @@ class Portals(Set):
 			character,
 			character.name,
 			self.node.name,
-			engine._btt,
+			engine.time,
 		)
 
 	def __contains__(self, x: KeyHint) -> bool:
-		_, edges_cache, _, charname, name, btt_f = self._pecnb
-		btt = btt_f()
+		_, edges_cache, _, charname, name, time = self._pecnb
 		return edges_cache.has_predecessor(
-			charname, name, x, *btt
-		) or edges_cache.has_successor(charname, name, x, *btt)
+			charname, name, x, *time
+		) or edges_cache.has_successor(charname, name, x, *time)
 
 	def __len__(self) -> int:
 		_, edges_cache, _, charname, name, btt_f = self._pecnb
@@ -385,16 +384,16 @@ class NeighborMapping(Mapping):
 			self.node.engine._edges_cache,
 			self.node.character.name,
 			self.node.name,
-			self.node.engine._btt,
+			self.node.engine.time,
 		)
 
 	def __iter__(self) -> Iterator[NodeName]:
 		edges_cache, charname, name, btt = self._ecnb
 		seen = set()
-		for succ in edges_cache.iter_successors(charname, name, *btt()):
+		for succ in edges_cache.iter_successors(charname, name, *btt):
 			yield succ
 			seen.add(succ)
-		for pred in edges_cache.iter_predecessors(charname, name, *btt()):
+		for pred in edges_cache.iter_predecessors(charname, name, *btt):
 			if pred in seen:
 				continue
 			yield pred
@@ -440,7 +439,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		return rule.RuleMapping(self.engine, self.rulebook)
 
 	def _get_rulebook_name(self) -> RulebookName:
-		now = self.engine._btt()
+		now = tuple(self.engine.time)
 		try:
 			return self.engine._nodes_rulebooks_cache.retrieve(
 				self.character.name, self.name, *now
@@ -463,9 +462,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		node = self.name
 		cache = self.engine._nodes_rulebooks_cache
 		try:
-			if rulebook == cache.retrieve(
-				character, node, *self.engine._btt()
-			):
+			if rulebook == cache.retrieve(character, node, *self.engine.time):
 				return
 		except KeyError:
 			pass
@@ -702,7 +699,7 @@ class Place(Node):
 	def _validate_node_type(self) -> bool:
 		try:
 			self.engine._things_cache.retrieve(
-				self.character.name, self.name, *self.engine._btt()
+				self.character.name, self.name, *self.engine.time
 			)
 			return False
 		except:
@@ -752,7 +749,7 @@ class Thing(Node, AbstractThing):
 
 	def _getloc(self) -> NodeName | None:
 		ret = self.engine._things_cache._base_retrieve(
-			(self.character.name, self.name, *self.engine._btt())
+			(self.character.name, self.name, *self.engine.time)
 		)
 		if ret is ... or isinstance(ret, Exception):
 			return None

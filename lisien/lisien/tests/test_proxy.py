@@ -63,9 +63,9 @@ def test_fast_delta(handle_initialized):
 	# a character was created, due to the way keyframes work...
 	# so don't test that
 
-	branch, turn, tick = hand._real._btt()
+	branch, turn, tick = hand._real.time
 	ret, diff = hand.next_turn()
-	btt = hand._real._btt()
+	btt = tuple(hand._real.time)
 	slowd = unpack_delta(
 		hand._get_slow_delta(btt_from=(branch, turn, tick), btt_to=btt)
 	)
@@ -75,7 +75,7 @@ def test_fast_delta(handle_initialized):
 		del fastd["universal"]["rando_state"]
 	assert fastd == slowd, "Fast delta differs from slow delta"
 	ret, diff2 = hand.time_travel("trunk", 0, tick)
-	btt2 = hand._real._btt()
+	btt2 = tuple(hand._real.time)
 	slowd2 = unpack_delta(hand._get_slow_delta(btt_from=btt, btt_to=btt2))
 	fastd2 = hand.unpack(diff2)
 	if "universal" in slowd:
@@ -83,7 +83,7 @@ def test_fast_delta(handle_initialized):
 		del fastd2["universal"]["rando_state"]
 	assert fastd2 == slowd2, "Fast delta differs from slow delta"
 	ret, diff3 = hand.time_travel("trunk", 1)
-	btt3 = hand._real._btt()
+	btt3 = tuple(hand._real.time)
 	slowd3 = unpack_delta(hand._get_slow_delta(btt_from=btt2, btt_to=btt3))
 	fastd3 = hand.unpack(diff3)
 	if "universal" in slowd:
