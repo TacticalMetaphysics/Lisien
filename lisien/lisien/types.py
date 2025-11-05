@@ -3405,7 +3405,7 @@ _TICK = TypeVar("_TICK")
 class TimeSignal[_BRANCH, _TURN, _TICK](
 	tuple[_BRANCH, _TURN, _TICK], Signal, Sequence[_BRANCH | _TURN | _TICK]
 ):
-	"""Like a tuple of the present ``(branch, turn, tick)`` for the most part.
+	"""Like a tuple of the present ``(branch, turn, tick)`` that follows sim-time.
 
 	This is a ``Signal``. To set a function to be called whenever the
 	branch or turn changes, pass it to my ``connect`` method.
