@@ -336,8 +336,11 @@ class MutableWrapper(ABC):
 		return str(self._getter())
 
 	@abstractmethod
-	def _copy(self):
+	def __copy__(self):
 		raise NotImplementedError
+
+	def copy(self):
+		return self.__copy__()
 
 	@abstractmethod
 	def _set(self, v):
@@ -357,7 +360,7 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 	__slots__ = ()
 
 	def _subset(self, k, v):
-		new = self._copy()
+		new = self.__copy__()
 		new[k] = v
 		self._set(new)
 
@@ -378,12 +381,12 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 		return ret
 
 	def __setitem__(self, key, value):
-		me = self._copy()
+		me = self.__copy__()
 		me[key] = value
 		self._set(me)
 
 	def __delitem__(self, key):
-		me = self._copy()
+		me = self.__copy__()
 		del me[key]
 		self._set(me)
 
@@ -435,7 +438,7 @@ class SubDictWrapper(MutableMappingWrapper, dict):
 		self._getter = getter
 		self._set = setter
 
-	def _copy(self):
+	def __copy__(self):
 		return dict(self._getter())
 
 	def _subset(self, k, v):
@@ -475,16 +478,16 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		self._getter = getter
 		self._set = setter
 
-	def _copy(self):
+	def __copy__(self):
 		return list(self._getter())
 
 	def insert(self, index, object):
-		me = self._copy()
+		me = self.__copy__()
 		me.insert(index, object)
 		self._set(me)
 
 	def append(self, object):
-		me = self._copy()
+		me = self.__copy__()
 		me.append(object)
 		self._set(me)
 
@@ -494,27 +497,27 @@ class MutableWrapperSet(MutableWrapper, ABC, set):
 	_getter: Callable
 	_set: Callable
 
-	def _copy(self):
+	def __copy__(self):
 		return OrderlySet(self._getter())
 
 	def pop(self):
-		me = self._copy()
+		me = self.__copy__()
 		yours = me.pop()
 		self._set(me)
 		return yours
 
 	def discard(self, element):
-		me = self._copy()
+		me = self.__copy__()
 		me.discard(element)
 		self._set(me)
 
 	def remove(self, element):
-		me = self._copy()
+		me = self.__copy__()
 		me.remove(element)
 		self._set(me)
 
 	def add(self, element):
-		me = self._copy()
+		me = self.__copy__()
 		me.add(element)
 		self._set(me)
 
@@ -535,22 +538,22 @@ class MutableWrapperSet(MutableWrapper, ABC, set):
 		return f"<{type(self).__name__} containing {set(self._getter())}>"
 
 	def __ior__(self, it):
-		me = self._copy()
+		me = self.__copy__()
 		me |= it
 		self._set(me)
 
 	def __iand__(self, it):
-		me = self._copy()
+		me = self.__copy__()
 		me &= it
 		self._set(me)
 
 	def __ixor__(self, it):
-		me = self._copy()
+		me = self.__copy__()
 		me ^= it
 		self._set(me)
 
 	def __isub__(self, it):
-		me = self._copy()
+		me = self.__copy__()
 		me -= it
 		self._set(me)
 
@@ -663,19 +666,19 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 		else:
 			return True
 
-	def _copy(self):
+	def __copy__(self):
 		return list(self._getter())
 
 	def _set(self, v):
 		self._outer[self._key] = v
 
 	def insert(self, i, v):
-		new = self._copy()
+		new = self.__copy__()
 		new.insert(i, v)
 		self._set(new)
 
 	def append(self, v):
-		new = self._copy()
+		new = self.__copy__()
 		new.append(v)
 		self._set(new)
 
