@@ -35,7 +35,7 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from typing import TYPE_CHECKING, Callable, TypeVar
+from typing import TYPE_CHECKING, Callable, TypeVar, Iterator
 
 import networkx as nx
 from blinker import Signal
@@ -97,60 +97,60 @@ class LanguageDescriptor(AbstractLanguageDescriptor):
 			inst._current_language = lang
 
 
-class TamperEvidentDict(dict):
+class TamperEvidentDict[_K, _V](dict[_K, _V]):
 	tampered: bool
 
-	def __init__(self, data=()):
+	def __init__(self, data: list[tuple[_K, _V]] | dict[_K, _V] = ()):
 		self.tampered = False
 		super().__init__(data)
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: _K, value: _V) -> None:
 		self.tampered = True
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key):
+	def __delitem__(self, key: _K) -> None:
 		self.tampered = True
 		super().__delitem__(key)
 
 
-class ChangeTrackingDict(UserDict):
-	def __init__(self, data=()):
+class ChangeTrackingDict[_K, _V](UserDict[_K, _V]):
+	def __init__(self, data: list[tuple[_K, _V]] | dict[_K, _V] = ()):
 		self.changed = {}
 		super().__init__(data)
 
-	def apply_changes(self):
+	def apply_changes(self) -> None:
 		self.data.update(self.changed)
 		self.changed.clear()
 
-	def copy(self):
+	def copy(self) -> dict[_K, _V]:
 		ret = {}
 		ret.update(self.data)
 		ret.update(self.changed)
 		return ret
 
-	def clear(self):
+	def clear(self) -> None:
 		self.data.clear()
 		self.changed.clear()
 
-	def __contains__(self, item):
+	def __contains__(self, item: _K) -> bool:
 		return item in self.changed or item in self.data
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[_K]:
 		yield from self.changed
 		yield from self.data
 
-	def __len__(self):
+	def __len__(self) -> int:
 		return len(self.changed) + len(self.data)
 
-	def __getitem__(self, item):
+	def __getitem__(self, item: _K) -> _V:
 		if item in self.changed:
 			return self.changed[item]
 		return self.data[item]
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: _K, value: _V) -> None:
 		self.changed[key] = value
 
-	def __delitem__(self, key):
+	def __delitem__(self, key: _K) -> None:
 		if key in self.changed:
 			del self.changed[key]
 			if key in self.data:
@@ -159,7 +159,7 @@ class ChangeTrackingDict(UserDict):
 			del self.data[key]
 
 
-class StringStore(MutableMapping, Signal):
+class StringStore(MutableMapping[str, str], Signal):
 	language = LanguageDescriptor()
 	_store = "strings"
 
@@ -186,7 +186,7 @@ class StringStore(MutableMapping, Signal):
 			self._current_language = lang
 			self._switch_language(lang)
 
-	def _switch_language(self, lang):
+	def _switch_language(self, lang: str) -> None:
 		"""Write the current language to disk, and load the new one if available"""
 		if self._prefix is None:
 			if lang not in self._languages:
@@ -211,21 +211,21 @@ class StringStore(MutableMapping, Signal):
 				)
 			self._languages[self._current_language].tampered = False
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[str]:
 		return iter(self._languages[self._current_language])
 
-	def __len__(self):
+	def __len__(self) -> int:
 		return len(self._languages[self._current_language])
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: str) -> str:
 		return self._languages[self._current_language][k]
 
-	def __setitem__(self, k, v):
+	def __setitem__(self, k: str, v: str) -> None:
 		"""Set the value of a string for the current language."""
 		self._languages[self._current_language][k] = v
 		self.send(self, key=k, val=v)
 
-	def __delitem__(self, k):
+	def __delitem__(self, k: str) -> None:
 		"""Delete the string from the current language, and remove it from the
 		cache.
 
@@ -233,7 +233,7 @@ class StringStore(MutableMapping, Signal):
 		del self._languages[self._current_language][k]
 		self.send(self, key=k, val=None)
 
-	def lang_items(self, lang=None):
+	def lang_items(self, lang: str | None = None) -> Iterator[tuple[str, str]]:
 		"""Yield pairs of (id, string) for the given language."""
 		if (
 			self._prefix is not None
@@ -244,7 +244,7 @@ class StringStore(MutableMapping, Signal):
 				self._languages[lang] = TamperEvidentDict(json.load(inf))
 		yield from self._languages[lang or self._current_language].items()
 
-	def save(self, reimport=False):
+	def save(self, reimport: bool = False) -> None:
 		if self._prefix is None:
 			return
 		if not os.path.exists(self._prefix):

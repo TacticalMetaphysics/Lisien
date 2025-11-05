@@ -32,6 +32,7 @@ from typing import (
 	Literal,
 	Optional,
 	Iterable,
+	Self,
 )
 
 from . import engine
@@ -78,7 +79,7 @@ if TYPE_CHECKING:
 	from . import engine
 
 
-class SizedDict(OrderedDict):
+class SizedDict[_K, _V](OrderedDict[_K, _V]):
 	"""A dictionary that discards old entries when it gets too big."""
 
 	def __init__(self, max_entries: int = 1000):
@@ -103,7 +104,7 @@ def _default_kwargs_munger(self, k):
 	return {}
 
 
-class PickyDefaultDict(dict):
+class PickyDefaultDict[_K, _V](dict[_K, _V]):
 	"""A ``defaultdict`` alternative that requires values of a specific type.
 
 	Pass some type object (such as a class) to the constructor to
@@ -128,8 +129,12 @@ class PickyDefaultDict(dict):
 	def __init__(
 		self,
 		type: type,
-		args_munger: callable = _default_args_munger,
-		kwargs_munger: callable = _default_kwargs_munger,
+		args_munger: Callable[
+			[Self, _K], tuple[_K, ...]
+		] = _default_args_munger,
+		kwargs_munger: Callable[
+			[Self, _K], dict[_K, _V]
+		] = _default_kwargs_munger,
 	):
 		self._lock = RLock()
 		self.type = type
@@ -155,7 +160,7 @@ class PickyDefaultDict(dict):
 			super(PickyDefaultDict, self).__setitem__(k, v)
 
 
-class StructuredDefaultDict(dict):
+class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 	"""A `defaultdict`-like class with values stored at a specific depth.
 
 	Requires an integer to tell it how many layers deep to go.
@@ -182,10 +187,14 @@ class StructuredDefaultDict(dict):
 		self,
 		layers: int,
 		type: type = None,
-		args_munger: callable = _default_args_munger,
-		kwargs_munger: callable = _default_kwargs_munger,
-		gettest: callable = lambda k: None,
-		settest: callable = lambda k, v: None,
+		args_munger: Callable[
+			[Self, _K], tuple[_K, ...]
+		] = _default_args_munger,
+		kwargs_munger: Callable[
+			[Self, _K], dict[_K, _V]
+		] = _default_kwargs_munger,
+		gettest: Callable[[_K], None] = lambda k: None,
+		settest: Callable[[_K, _V], None] = lambda k, v: None,
 	):
 		if layers < 1:
 			raise ValueError("Not enough layers")
@@ -198,7 +207,7 @@ class StructuredDefaultDict(dict):
 		self.gettest = gettest
 		self.settest = settest
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: _K) -> _V:
 		with self._lock:
 			self.gettest(k)
 			if k in self:
@@ -222,7 +231,7 @@ class StructuredDefaultDict(dict):
 			dict.__setitem__(self, k, ret)
 			return ret
 
-	def __setitem__(self, k, v):
+	def __setitem__(self, k: _K, v: _V) -> None:
 		with self._lock:
 			self.settest(k, v)
 			if type(v) is StructuredDefaultDict:
@@ -248,7 +257,7 @@ class StructuredDefaultDict(dict):
 			raise TypeError("Can't set layer {}".format(self.layer))
 
 
-class TurnEndDict(ChangeTrackingDict):
+class TurnEndDict(ChangeTrackingDict[tuple[Branch, Turn], Tick]):
 	"""Tick on which a (branch, turn) ends, not including any plans"""
 
 	engine: "engine.Engine"
@@ -258,13 +267,13 @@ class TurnEndDict(ChangeTrackingDict):
 		super().__init__()
 
 	@cached_property
-	def other_d(self) -> TurnEndPlanDict[tuple[Branch, Turn], Tick]:
+	def other_d(self) -> TurnEndPlanDict:
 		return self.engine._turn_end_plan
 
 	def __getitem__(self, item: tuple[Branch, Turn]) -> Tick:
 		if item not in self:
 			if item not in self.other_d:
-				self.other_d[item] = 0
+				self.other_d[item] = Tick(0)
 				super().__setitem__(item, 0)
 				return Tick(0)
 			else:
@@ -285,7 +294,7 @@ class TurnEndPlanDict(TurnEndDict):
 	engine: "engine.Engine"
 
 	@cached_property
-	def other_d(self) -> TurnEndDict[tuple[Branch, Turn], Tick]:
+	def other_d(self) -> TurnEndDict:
 		return self.engine._turn_end
 
 	def __setitem__(self, key: tuple[Branch, Turn], value: Tick):
@@ -300,10 +309,10 @@ class Cache:
 	"""A data store that's useful for tracking graph revisions."""
 
 	name: str
-	store: callable
-	retrieve: callable
-	get_keyframe: callable
-	set_keyframe: callable
+	store: Callable
+	retrieve: Callable
+	get_keyframe: Callable
+	set_keyframe: Callable
 	initial_value = ...
 
 	def __init__(
@@ -437,7 +446,7 @@ class Cache:
 	@cached_property
 	def _store_journal_stuff(
 		self,
-	) -> tuple[PickyDefaultDict, PickyDefaultDict, callable]:
+	) -> tuple[PickyDefaultDict, PickyDefaultDict, Callable]:
 		return (self.settings, self.presettings, self._base_retrieve)
 
 	def clear(self):
