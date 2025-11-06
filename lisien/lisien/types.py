@@ -574,6 +574,12 @@ class CharacterMappingMixin(MappingUnwrapperMixin, ABC):
 	def engine(self) -> Engine:
 		return self.character.engine
 
+	@abstractmethod
+	def keys(self) -> Set: ...
+
+	@abstractmethod
+	def __delitem__(self, key: Key | KeyHint) -> None: ...
+
 	def clear(self):
 		"""Delete everything"""
 		for k in list(self.keys()):
@@ -585,6 +591,8 @@ class AbstractEntityMapping(
 	MutableMapping, Signal, MappingUnwrapperMixin, ABC
 ):
 	__slots__ = ()
+
+	engine: Engine
 
 	@abstractmethod
 	def _get_cache(
@@ -676,7 +684,7 @@ class GraphMapping(AbstractEntityMapping, ABC):
 		"_get_cache_stuff_",
 	)
 
-	def __init__(self, graph: DiGraph):
+	def __init__(self, graph: Character):
 		super().__init__(graph)
 		self.character = graph
 
