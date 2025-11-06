@@ -930,36 +930,30 @@ class RuleFollower(ABC):
 		raise NotImplementedError("_set_rulebook_name")
 
 
-class AllRuleBooks(MutableMapping, Signal):
-	__slots__ = ["engine", "_cache"]
-
+class AllRuleBooks(UserDict[RulebookName, RuleBook], Signal):
 	def __init__(self, engine: "Engine"):
-		super().__init__()
+		Signal.__init__(self)
 		self.engine = engine
-		self._cache = {}
 
 	def __iter__(self) -> Iterator[RulebookName]:
-		return self.engine._rulebooks_cache.iter_entities(*self.engine.time)
-
-	def __len__(self):
-		return len(list(self))
+		return self.engine._rulebooks_cache.iter_keys(*self.engine.time)
 
 	def __contains__(self, k: RulebookName | Key):
-		return self.engine._rulebooks_cache.contains_entity(
+		return self.engine._rulebooks_cache._contains_entity_or_key(
 			k, *self.engine.time
 		)
 
 	def __getitem__(self, k: RulebookName | Key) -> RuleBook:
-		if k not in self._cache:
-			self._cache[k] = RuleBook(self.engine, k)
-		return self._cache[k]
+		if k not in self.data:
+			self.data[k] = RuleBook(self.engine, k)
+		return self.data[k]
 
 	def __setitem__(
 		self, key: RulebookName | Key, value: RuleBook | list[Rule | RuleName]
 	):
-		if key not in self._cache:
-			self._cache[key] = RuleBook(self.engine, key)
-		rb = self._cache[key]
+		if key not in self.data:
+			self.data[key] = RuleBook(self.engine, key)
+		rb = self.data[key]
 		while len(rb) > 0:
 			del rb[0]
 		rb.extend(value)
