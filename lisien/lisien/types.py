@@ -223,26 +223,17 @@ def keyval(pair: tuple[KeyHint, ValueHint]) -> tuple[Key, Value]:
 
 
 Stat = NewType("Stat", Key)
-KeyHint |= Stat
 EternalKey = NewType("EternalKey", Key)
-KeyHint |= EternalKey
 UniversalKey = NewType("UniversalKey", Key)
-KeyHint |= UniversalKey
 Branch = NewType("Branch", str)
-KeyHint |= Branch
 Turn = NewType("Turn", Annotated[int, Ge(0)])
-KeyHint |= Turn
 Tick = NewType("Tick", Annotated[int, Ge(0)])
-KeyHint |= Tick
 type Time = tuple[Branch, Turn, Tick]
 type LinearTime = tuple[Turn, Tick]
 type TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", Annotated[int, Ge(0)])
-KeyHint |= Plan
 CharName = NewType("CharName", Key)
-KeyHint |= CharName
 NodeName = NewType("NodeName", Key)
-KeyHint |= NodeName
 
 
 type EntityKey = (
