@@ -224,28 +224,10 @@ def keyval(pair: tuple[KeyHint, ValueHint]) -> tuple[Key, Value]:
 
 Stat = NewType("Stat", Key)
 KeyHint |= Stat
-
-
-def stat(k: KeyHint) -> Stat:
-	return Stat(Key(k))
-
-
 EternalKey = NewType("EternalKey", Key)
 KeyHint |= EternalKey
-
-
-def ekey(k: KeyHint) -> EternalKey:
-	return EternalKey(Key(k))
-
-
 UniversalKey = NewType("UniversalKey", Key)
 KeyHint |= UniversalKey
-
-
-def ukey(k: KeyHint) -> UniversalKey:
-	return UniversalKey(Key(k))
-
-
 Branch = NewType("Branch", str)
 KeyHint |= Branch
 Turn = NewType("Turn", Annotated[int, Ge(0)])
@@ -259,22 +241,8 @@ Plan = NewType("Plan", Annotated[int, Ge(0)])
 KeyHint |= Plan
 CharName = NewType("CharName", Key)
 KeyHint |= CharName
-
-
-def charname(k: KeyHint) -> CharName:
-	if not isinstance(k, Key):
-		raise TypeError("Invalid character name", k)
-	return CharName(k)
-
-
 NodeName = NewType("NodeName", Key)
 KeyHint |= NodeName
-
-
-def nodename(k: KeyHint) -> NodeName:
-	if not isinstance(k, Key):
-		raise TypeError("Invalid node name", k)
-	return NodeName(k)
 
 
 type EntityKey = (
@@ -283,12 +251,6 @@ type EntityKey = (
 	| tuple[CharName, NodeName, NodeName]
 )
 RulebookName = NewType("RulebookName", Key)
-
-
-def rbname(k: KeyHint) -> RulebookName:
-	if not isinstance(k, Key):
-		raise TypeError("Invalid rulebook name", k)
-	return RulebookName(k)
 
 
 RulebookPriority = NewType("RulebookPriority", float)
@@ -1254,7 +1216,7 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 		],
 	):
 		for node, value in chain(m.items(), kwargs.items()):
-			node = nodename(node)
+			node = NodeName(Key(node))
 			if value is ...:
 				del self[node]
 			elif node not in self:

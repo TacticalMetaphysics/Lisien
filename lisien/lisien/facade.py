@@ -54,7 +54,6 @@ from .types import (
 	Stat,
 	Value,
 	ValueHint,
-	stat,
 )
 from .util import (
 	print_call_sig,
@@ -766,9 +765,9 @@ class CharacterFacade(AbstractCharacter):
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
 		stats: dict[Stat, Value] = {
-			stat(k): Value(v) for (k, v) in kwargs.items()
+			Stat(Key(k)): Value(v) for (k, v) in kwargs.items()
 		}
-		stats[stat("location")] = Value(location)
+		stats[Stat(Key("location"))] = Value(location)
 		self.thing[name] = kwargs
 
 	def add_portal(self, orig, dest, **kwargs):
