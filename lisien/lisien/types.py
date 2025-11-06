@@ -2339,6 +2339,8 @@ class AbstractEngine(ABC):
 				return dict(obj)
 			elif isinstance(obj, list):
 				return list(obj)
+			elif isinstance(obj, TimeSignal):
+				return handlers[tuple](tuple(obj))
 			raise TypeError("Can't pack {}".format(typ))
 
 		packer = partial(
