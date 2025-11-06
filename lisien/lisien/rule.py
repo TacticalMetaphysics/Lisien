@@ -121,7 +121,7 @@ def roundtrip_dedent(source):
 	return unparse(parse(dedent_source(source)))
 
 
-class RuleFuncList(MutableSequence, Signal, ABC):
+class RuleFuncList[_T: RuleFuncName](MutableSequence[_T], Signal, ABC):
 	"""Abstract class for lists of functions like trigger, prereq, action"""
 
 	__slots__ = ["rule"]
@@ -136,7 +136,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 	def __repr__(self):
 		return f"<class 'lisien.rule.{self.__class__.__name__}' [{', '.join(self._get())}]>"
 
-	def _nominate(self, v: RuleFunc | str | RuleFuncName) -> RuleFuncName:
+	def _nominate(self, v: RuleFunc | str | RuleFuncName) -> _T:
 		if callable(v):
 			self._funcstore(v)
 			return v.__name__
@@ -146,17 +146,17 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 			)
 		return v
 
-	def _get(self) -> list[RuleFuncName]:
+	def _get(self) -> list[_T]:
 		try:
 			return self._cache.retrieve(self.rule.name, *self.rule.engine.time)
 		except KeyError:
 			return []
 
-	def _set(self, v: list[RuleFuncName]) -> None:
+	def _set(self, v: list[_T]) -> None:
 		if self._get() == v:
 			return
 		branch, turn, tick = self.rule.engine._nbtt()
-		self._cache.store(Key(self.rule.name), branch, turn, tick, v)
+		self._cache.store(self.rule.name, branch, turn, tick, v)
 		self._setter(self.rule.name, branch, turn, tick, v)
 
 	def __iter__(self):
@@ -174,7 +174,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 	def __getitem__(self, i: int):
 		return getattr(self._funcstore, self._get()[i])
 
-	def __setitem__(self, i: int, v: RuleFunc | str | RuleFuncName):
+	def __setitem__(self, i: int, v: RuleFunc | str | _T):
 		v = self._nominate(v)
 		l = list(self._get())
 		if l[i] == v:
@@ -189,13 +189,13 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 		self._set(list(l))
 		self.send(self)
 
-	def insert(self, i: int, v: RuleFunc | str | RuleFuncName) -> None:
+	def insert(self, i: int, v: RuleFunc | str | _T) -> None:
 		l = list(self._get())
 		l.insert(i, self._nominate(v))
 		self._set(list(l))
 		self.send(self)
 
-	def append(self, v: RuleFunc | str | RuleFuncName) -> None:
+	def append(self, v: RuleFunc | str | _T) -> None:
 		try:
 			old = self._get()
 		except KeyError:
@@ -205,7 +205,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 
 	def index(
 		self,
-		x: RuleFunc | str | RuleFuncName,
+		x: RuleFunc | str | _T,
 		start: int = 0,
 		end: int | None = None,
 	):
@@ -214,7 +214,7 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 		return super().index(x, start, end)
 
 
-class TriggerList(RuleFuncList):
+class TriggerList(RuleFuncList[TriggerFuncName]):
 	"""A list of trigger functions for rules"""
 
 	@cached_property
@@ -232,7 +232,7 @@ class TriggerList(RuleFuncList):
 		return self.rule.engine.query.set_rule_triggers
 
 
-class PrereqList(RuleFuncList):
+class PrereqList(RuleFuncList[PrereqFuncName]):
 	"""A list of prereq functions for rules"""
 
 	@cached_property
@@ -250,7 +250,7 @@ class PrereqList(RuleFuncList):
 		return self.rule.engine.query.set_rule_prereqs
 
 
-class ActionList(RuleFuncList):
+class ActionList(RuleFuncList[ActionFuncName]):
 	"""A list of action functions for rules"""
 
 	@cached_property
@@ -592,7 +592,7 @@ class Rule:
 		self.triggers = [self.engine.trigger.truth]
 
 
-class RuleBook(MutableSequence, Signal):
+class RuleBook(MutableSequence[Rule], Signal):
 	"""A list of rules to be followed for some Character, or a part of it"""
 
 	def _get_cache(
@@ -734,7 +734,7 @@ class RuleBook(MutableSequence, Signal):
 		self.send(self, i=i, v=None)
 
 
-class RuleMapping(MutableMapping, Signal):
+class RuleMapping(MutableMapping[RuleName, Rule], Signal):
 	"""Wraps a :class:`RuleBook` so you can get its rules by name.
 
 	You can access the rules in this either dictionary-style or as
