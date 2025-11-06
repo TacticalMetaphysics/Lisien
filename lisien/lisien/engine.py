@@ -2298,10 +2298,6 @@ class Engine(AbstractEngine, Executor):
 		self._load_plans()
 		self._load_rules_handled()
 		self._turns_completed_d.update(self.query.turns_completed_dump())
-		self._rules_cache = {
-			name: Rule(self, name, create=False)
-			for name in self.query.rules_dump()
-		}
 		self._init_random(random_seed)
 		with garbage():
 			self._load(*self._read_at(*self.time))
@@ -7281,7 +7277,7 @@ class Engine(AbstractEngine, Executor):
 			except KeyError:
 				rbs[rbname] = (tuple(), 0.0)
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
-		rulenames = list(self._rules_cache)
+		rulenames = list(self.rule)
 		trigs = {}
 		preqs = {}
 		acts = {}
