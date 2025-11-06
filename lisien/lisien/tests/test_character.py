@@ -14,11 +14,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import tempfile
 from shutil import rmtree
+from typing import Literal
 
 import pytest
 
 from lisien.engine import Engine
+from lisien.facade import FacadeThing, FacadePlace
 from lisien.tests.data import CHARACTER_UPDATES
+from lisien.types import (
+	NodeName,
+	Node,
+	AbstractThing,
+	AbstractCharacter,
+	Stat,
+	Value,
+)
 
 
 def set_in_mapping(mapp, stat, v):
@@ -52,13 +62,14 @@ def set_in_mapping(mapp, stat, v):
 		mapp[stat] = v
 
 
-def update_char(char, *, stat=(), nodes=(), portals=()):
+def update_char(char: AbstractCharacter, *, stat=(), nodes=(), portals=()):
 	"""Make a bunch of changes to a character-like object"""
 
 	def update(d, dd):
 		for k, v in dd.items():
-			if v is ... and k in d:
-				del d[k]
+			if v is ...:
+				if k in d:
+					del d[k]
 			else:
 				d[k] = v
 
@@ -69,8 +80,10 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 			del end_stats[stat]
 		else:
 			end_stats[stat] = v
-	end_places = dict(char.place)
-	end_things = dict(char.thing)
+	end_places: dict[NodeName, dict[Stat, Value]] = dict(char.place)
+	end_things: dict[NodeName, dict[Stat | Literal["location"], Value]] = dict(
+		char.thing
+	)
 	for node, v in nodes:
 		if v is ...:
 			del char.node[node]
@@ -83,30 +96,29 @@ def update_char(char, *, stat=(), nodes=(), portals=()):
 				del end_places[node]
 				char.place2thing(node, v.pop("location"))
 				if node in end_places:
-					me = end_things[node] = end_places.pop(node)
+					end_things[node] = end_places.pop(node)
 				else:
-					me = end_things[node] = dict(char.thing[node])
+					end_things[node] = dict(char.thing[node])
+				me = end_things[node]
 				update(me, v)
 				for k, vv in v.items():
 					set_in_mapping(char.thing[node], k, vv)
 			else:
-				if node in end_places:
-					me = end_places[node]
-				else:
-					me = end_places[node] = dict(char.place[node])
+				if node not in end_places:
+					end_places[node] = dict(char.place[node])
+				me = end_places[node]
 				update(me, v)
 				for k, vv in v.items():
 					set_in_mapping(char.place[node], k, vv)
 		elif node in char.thing:
-			if "location" in v and v["location"] is None:
+			if "location" in v and v["location"] in (None, ...):
 				if node in end_things:
-					me = end_places[node] = end_things.pop(node)
-				else:
-					me = end_places[node] = dict(char.thing[node])
-				del me["location"]
-				del v["location"]
+					del end_things[node]
+				end_places[node] = dict(char.thing[node])
 				char.thing2place(node)
+				me = end_places[node]
 				del v["location"]
+				update(me, v)
 				for k, vv in v.items():
 					set_in_mapping(char.place[node], k, vv)
 					set_in_mapping(end_places[node], k, vv)

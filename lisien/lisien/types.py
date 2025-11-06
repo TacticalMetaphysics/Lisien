@@ -64,6 +64,7 @@ from typing import (
 	get_args,
 	Union,
 	TypeVar,
+	override,
 )
 
 import networkx
@@ -800,6 +801,19 @@ class Node(AbstractEntityMapping, ABC):
 		self.character = graph
 		self.name = node
 
+	@override
+	def __getitem__(self, item: Literal["name"]) -> NodeName: ...
+
+	@override
+	def __getitem__(self, item: Key | KeyHint) -> Value: ...
+
+	def __getitem__(
+		self, item: Literal["name"] | Stat | KeyHint
+	) -> NodeName | Value:
+		if item == "name":
+			return self.name
+		return Value(super().__getitem__(item))
+
 	@cached_in("_engine_")
 	def engine(self):
 		return self.character.engine
@@ -1097,8 +1111,8 @@ class Edge(AbstractEntityMapping, ABC):
 class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 	"""Mapping for nodes in a graph"""
 
-	def __init__(self, graph: DiGraph):
-		super().__init__(graph)
+	def __init__(self, graph: AbstractCharacter):
+		super().__init__()
 		self.character = graph
 
 	@cached_property
