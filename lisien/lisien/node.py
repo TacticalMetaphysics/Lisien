@@ -251,8 +251,6 @@ class OrigsValues(ValuesView):
 
 
 class Origs(Mapping):
-	__slots__ = ("node",)
-
 	def __init__(self, node: Node) -> None:
 		self.node = node
 
