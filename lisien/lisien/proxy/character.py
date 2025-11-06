@@ -32,6 +32,7 @@ from lisien.facade import CharacterFacade
 from lisien.node import Place, Thing
 from lisien.portal import Portal
 from lisien.types import (
+	Node,
 	Edge,
 	KeyHint,
 	ValueHint,
@@ -100,6 +101,7 @@ class ProxyLeaderMapping(Mapping):
 		]
 
 
+@Node.register
 class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 	name: NodeName
 
