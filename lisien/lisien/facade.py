@@ -27,6 +27,8 @@ from typing import (
 	MutableSequence,
 	Type,
 	TYPE_CHECKING,
+	Literal,
+	ClassVar,
 )
 
 import networkx as nx
@@ -54,11 +56,11 @@ from .types import (
 	Stat,
 	Value,
 	ValueHint,
+	Time,
 )
 from .util import (
 	print_call_sig,
 	timer,
-	unwrap,
 	getatt,
 )
 from .wrap import MappingUnwrapperMixin
@@ -67,54 +69,39 @@ if TYPE_CHECKING:
 	from .engine import Engine
 
 
-class FacadeEntity(MutableMapping[Stat, Value], Signal, ABC):
-	exists = True
-	character = getatt("graph")
+class FacadeEntity(
+	MutableMapping[Stat | Literal["rulebook"], Value], Signal, ABC
+):
+	character: CharacterFacade
+	exists: ClassVar[bool] = True
+
+	def __init__(self, character: CharacterFacade):
+		super().__init__()
+		self.character = character
+
+	@property
+	@abstractmethod
+	def _real(
+		self,
+	) -> DiGraph | Node | Edge | dict[Stat | Literal["rulebook"], Value]: ...
+
+	@cached_property
+	def _patch(self) -> dict[Stat | Literal["rulebook"], Value | type(...)]:
+		return {}
 
 	@property
 	def rulebook(self):
 		if "rulebook" in self._patch:
 			return self._patch["rulebook"]
-		return self._real.rulebook
+		if hasattr(self._real, "rulebook"):
+			return self._real.rulebook
+		raise AttributeError("No rulebook")
 
 	@rulebook.setter
 	def rulebook(self, rbname):
 		self._patch["rulebook"] = rbname
 
-	@abstractmethod
-	def _get_real(self, name):
-		raise NotImplementedError()
-
-	def __init__(
-		self,
-		mapping: Mapping,
-		real_or_name: Node
-		| Edge
-		| AbstractCharacter
-		| CharName
-		| NodeName
-		| None = None,
-		**kwargs: dict[Stat, Value],
-	):
-		Signal.__init__(self)
-		self.facade = self.graph = getattr(mapping, "facade", mapping)
-		self._mapping = mapping
-		is_name = not hasattr(real_or_name, "name") and not hasattr(
-			real_or_name, "orig"
-		)
-		if is_name:
-			try:
-				self._real = self._get_real(real_or_name)
-			except (KeyError, AttributeError):
-				pass  # Entity created for Facade. No underlying real entity.
-		else:
-			self._real = real_or_name
-		self._patch = {
-			k: v.unwrap() if hasattr(v, "unwrap") else v
-			for (k, v) in kwargs.items()
-		}
-
-	def __contains__(self, item):
+	def __contains__(self, item: Stat | KeyHint) -> bool:
 		patch = self._patch
 		if item in patch:
 			return patch[item] is not ...
@@ -137,7 +124,8 @@ class FacadeEntity(MutableMapping[Stat, Value], Signal, ABC):
 			n += 1
 		return n
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: Stat | KeyHint):
+		k = Stat(Key(k))
 		if k in self._patch:
 			if self._patch[k] is ...:
 				raise KeyError("{} has been masked.".format(k))
@@ -169,7 +157,7 @@ class FacadeEntity(MutableMapping[Stat, Value], Signal, ABC):
 
 	def apply(self):
 		self._real.update(self._patch)
-		self._patch = {}
+		self._patch.clear()
 
 	def unwrap(self):
 		return {
@@ -181,8 +169,8 @@ class FacadeEntity(MutableMapping[Stat, Value], Signal, ABC):
 getname = attrgetter("name")
 
 
-class FacadeEntityMapping(
-	MutableMapping[Key, Node | Edge | DiGraph], Signal, MappingUnwrapperMixin
+class FacadeEntityMapping[_NAME: Key, _CLS: Node | Edge | DiGraph](
+	MutableMapping[_NAME, _CLS], Signal, MappingUnwrapperMixin, ABC
 ):
 	"""Mapping that contains entities in a Facade.
 
@@ -191,29 +179,46 @@ class FacadeEntityMapping(
 
 	"""
 
-	cls: Type[FacadeEntity]
+	character: CharacterFacade
+	cls: ClassVar[type[FacadeEntity]]
+
+	def __init__(self, character: CharacterFacade):
+		super().__init__()
+		self.character = character
+
+	@cached_property
+	def _patch(self) -> dict[_NAME, _CLS | type(...)]:
+		return {}
 
 	@abstractmethod
-	def _get_inner_map(self):
-		raise NotImplementedError("Missing _get_inner_map")
+	def _get_inner_map(self): ...
 
-	def _make(self, k, v):
-		if isinstance(v, dict):
-			for badkey in ("character", "engine", "name"):
-				if badkey in v:
-					del v[badkey]
-			return self.cls(self, k, **v)
-		return self.cls(self, v)
+	@abstractmethod
+	def _make(self, k, v): ...
 
-	engine = getatt("facade.engine")
+	engine = getatt("character.engine")
 
-	def __init__(self, facade, _=None):
-		"""Store the facade."""
-		super().__init__()
-		self.facade = facade
-		self._patch = {}
+	def __eq__(self, other: Mapping) -> bool:
+		if not isinstance(other, Mapping):
+			return False
+		if self.keys() != other.keys():
+			return False
+		for k in self:
+			if self[k] != other[k]:
+				return False
+		return True
 
-	def __contains__(self, k):
+	def __ne__(self, other: Mapping):
+		if not isinstance(other, Mapping):
+			return True
+		if self.keys() != other.keys():
+			return True
+		for k in self:
+			if self[k] != other[k]:
+				return True
+		return False
+
+	def __contains__(self, k: _NAME):
 		if k in self._patch:
 			return self._patch[k] is not ...
 		return k in self._get_inner_map()
@@ -234,7 +239,7 @@ class FacadeEntityMapping(
 			n += 1
 		return n
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: _NAME) -> _CLS:
 		if k not in self and not self.engine._mockup:
 			raise KeyError(k)
 		if k not in self._patch:
@@ -251,33 +256,33 @@ class FacadeEntityMapping(
 			ret = self._patch[k] = self._make(k, ret)
 		return ret
 
-	def __setitem__(self, k, v):
+	def __setitem__(self, k: _NAME, v: _CLS) -> None:
 		if not isinstance(v, self.cls):
 			v = self._make(k, v)
 		self._patch[k] = v
-		if self is not self.facade.node:
-			self.facade.node.send(self, key=k, value=v)
+		if self is not self.character.node:
+			self.character.node.send(self, key=k, value=v)
 
-	def __delitem__(self, k):
+	def __delitem__(self, k: _NAME) -> None:
 		if k not in self:
 			raise KeyError("{} not present".format(k))
 		that = self[k]
 		# Units don't work when we're wrapping an EngineProxy or nothing.
 		# I'll fix that at some point I guess.
 		# 2025-02-06
-		if hasattr(self.facade.engine._real, "_unitness_cache") and hasattr(
+		if hasattr(self.character.engine._real, "_unitness_cache") and hasattr(
 			that, "users"
 		):
 			user: CharacterFacade
 			for user in list(that.users()):
-				user.remove_unit(self.facade.name, k)
+				user.remove_unit(self.character.name, k)
 		self._patch[k] = ...
 
 
 class FacadeRulebook(MutableSequence, ABC):
-	name: Any
-	_fake: list
-	engine: "EngineFacade"
+	engine: EngineFacade
+	name: Key
+	_fake: ClassVar[list]
 
 	def __iter__(self):
 		return iter(self._fake)
@@ -323,6 +328,9 @@ class FacadeRule:
 		def __delitem__(self, key):
 			del self._me[key]
 
+		def insert(self, index, value):
+			self._me.insert(index, value)
+
 	def __init__(self, engine, name):
 		self._engine = engine
 		self.name = name
@@ -349,7 +357,27 @@ class FacadeRule:
 			realrule.actions = self._fake_actions
 
 
-class FacadeNode(FacadeEntity, Node):
+class FacadeNode(FacadeEntity, ABC):
+	name: NodeName
+
+	def __init__(
+		self,
+		character: CharacterFacade,
+		name: NodeName,
+		**kwargs,
+	):
+		kwargs: dict[Stat | Literal["rulebook"], Value]
+		super().__init__(character)
+		self.name = name
+		self.update(kwargs)
+
+	def __getitem__(
+		self, item: Literal["name"] | Stat | KeyHint
+	) -> NodeName | Value:
+		if item == "name":
+			return self.name
+		return super().__getitem__(item)
+
 	class FacadeNodeLeader(Mapping[CharName, DiGraph]):
 		__slots__ = ("_entity",)
 
@@ -437,7 +465,11 @@ class FacadeNode(FacadeEntity, Node):
 
 	@property
 	def portal(self):
-		return self.facade.portal[self["name"]]
+		return self.character.portal[self.name]
+
+	@property
+	def _real(self) -> Node:
+		return self.character.character.node[self.name]
 
 	def successors(self):
 		for dest in self.portal:
@@ -445,15 +477,6 @@ class FacadeNode(FacadeEntity, Node):
 
 	def contents(self):
 		return self.content.values()
-
-	def __init__(self, mapping, real_or_name=None, **kwargs):
-		self.name = self.node = getattr(real_or_name, "name", real_or_name)
-		super().__init__(mapping, real_or_name, **kwargs)
-
-	def __getitem__(self, item):
-		if item == "name":
-			return self.name
-		return super().__getitem__(item)
 
 	@property
 	def content(self):
@@ -476,35 +499,55 @@ class FacadeNode(FacadeEntity, Node):
 		node: NodeName | KeyHint,
 		**stats: dict[Stat | KeyHint, Value | ValueHint],
 	):
-		self.facade.add_thing(node, self.name, **stats)
+		self.character.add_thing(node, self.name, **stats)
+
+	def __eq__(self, other: Mapping) -> bool:
+		if not isinstance(other, Mapping):
+			return False
+		if self.keys() != other.keys() - {"name"}:
+			return False
+		if "name" in other and self.name != other["name"]:
+			return False
+		if hasattr(other, "name"):
+			if other.name != self.name:
+				return False
+		for k in self:
+			if self[k] != other[k]:
+				return False
+		return True
+
+	def __ne__(self, other: Mapping) -> bool:
+		if not isinstance(other, Mapping):
+			return True
+		if self.keys() != other.keys() - {"name"}:
+			return True
+		if "name" in other and self.name != other["name"]:
+			return True
+		if hasattr(other, "name"):
+			if other.name != self.name:
+				return False
+		for k in self:
+			if self[k] != other[k]:
+				return True
+		return False
 
 
-class FacadeThing(FacadeNode, AbstractThing):
-	def __init__(self, mapping, real_or_name, **kwargs):
-		from .node import Thing
+Node.register(FacadeNode)
 
-		location = kwargs.get("location")
-		if location is None and not (isinstance(real_or_name, Thing)):
-			raise TypeError(
-				"FacadeThing needs to wrap a real Thing, or have a location of its own"
-			)
-		super().__init__(mapping, real_or_name, **kwargs)
-		self.character.thing._patch[
-			getattr(real_or_name, "name", real_or_name)
-		] = self
 
+class FacadeThing(FacadeNode):
 	def _get_real(self, name):
 		return self.character.character.thing[name]
 
 	@property
 	def location(self):
-		return self.facade.node[self["location"]]
+		return self.character.node[self["location"]]
 
 	@location.setter
 	def location(self, v):
 		if isinstance(v, (FacadePlace, FacadeThing)):
 			v = v.name
-		if v not in self.facade.node:
+		if v not in self.character.node:
 			raise KeyError("Location {} not present".format(v))
 		self["location"] = v
 
@@ -512,47 +555,54 @@ class FacadeThing(FacadeNode, AbstractThing):
 		del self.character.thing[self.name]
 
 
+AbstractThing.register(FacadeThing)
+
+
 class FacadePlace(FacadeNode):
 	"""Lightweight analogue of Place for Facade use."""
 
-	def __init__(self, mapping, real_or_name, **kwargs):
-		from .node import Place
+	@property
+	def _real(self) -> Node:
+		try:
+			return self.character.character.place[self.name]
+		except KeyError as ex:
+			raise AttributeError(
+				"No real Place", self.character.name, self.name
+			) from ex
 
-		super().__init__(mapping, real_or_name, **kwargs)
-		if isinstance(mapping, CharacterFacade):
-			mapping.place._patch[real_or_name] = self
-			return
-		if not isinstance(real_or_name, Place):
-			if real_or_name in mapping._patch:
-				real_or_name = mapping._patch[real_or_name]
-			else:
-				mapping._patch[real_or_name] = self
-				return
-		self.character.place._patch[real_or_name.name] = self
-
-	def _get_real(self, name):
-		return self.character.character.place[name]
-
-	def new_thing(self, name):
-		return self.facade.new_thing(name, self.name)
+	def new_thing(
+		self,
+		name: NodeName | KeyHint,
+		**stats: dict[KeyHint, ValueHint] | dict[Stat, Value],
+	):
+		return self.character.new_thing(name, self.name, **stats)
 
 	def delete(self):
 		del self.character.place[self.name]
 
 
+class FacadePortalSubMapping(FacadeEntityMapping, ABC):
+	character: CharacterFacade
+	node: NodeName
+
+	def __init__(self, character: CharacterFacade, node: NodeName):
+		super().__init__(character)
+		self.node = node
+
+
 class FacadePortalMapping(FacadeEntityMapping, ABC):
-	cls: Type[FacadeEntityMapping]
+	cls: ClassVar[type[FacadePortalSubMapping]]
 
 	def __getitem__(self, node):
 		if node not in self:
 			raise KeyError("No such node: {}".format(node))
 		if node not in self._patch:
-			self._patch[node] = self.cls(self.facade, node)
+			self._patch[node] = self.cls(self.character, node)
 		ret = self._patch[node]
 		if ret is ...:
-			raise KeyError("masked")
+			raise KeyError("masked", node)
 		if type(ret) is not self.cls:
-			nuret = self.cls(self.facade, node)
+			nuret = self.cls(self.character, node)
 			if type(ret) is dict:
 				nuret._patch = ret
 			else:
@@ -561,40 +611,23 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 		return ret
 
 
-class FacadePortal(FacadeEntity, Edge):
+class FacadePortal(FacadeEntity):
 	"""Lightweight analogue of Portal for Facade use."""
 
+	orig: NodeName
+	dest: NodeName
+
 	def __init__(
-		self, mapping: Edge | CharacterFacade, other: Node | NodeName, **kwargs
+		self,
+		character: CharacterFacade,
+		orig: NodeName,
+		dest: NodeName,
+		**kwargs: dict[Stat | Literal["rulebook"], Value],
 	):
-		if hasattr(mapping, "orig"):
-			self.orig = mapping.orig
-			self.dest = other
-		else:
-			self.dest = mapping.dest
-			self.orig = other
-		if hasattr(mapping, "facade"):
-			facade = mapping.facade
-		else:
-			facade = mapping
-		try:
-			super().__init__(
-				facade.character.node[self.orig],
-				facade.character.node[self.dest],
-				**kwargs,
-			)
-			self._real = facade.character.portal[self.orig][self.dest]
-		except (KeyError, AttributeError):
-			if self.orig in facade.node:
-				origin = facade.node[self.orig]
-			else:
-				origin = facade.new_place(self.orig)
-			if self.dest in facade.node:
-				destination = facade.node[self.dest]
-			else:
-				destination = facade.new_place(self.dest)
-			super().__init__(origin, destination, **kwargs)
-			self._real = {}
+		super().__init__(character)
+		self.orig = orig
+		self.dest = dest
+		self._patch.update(kwargs)
 
 	def __getitem__(self, item):
 		if item == "origin":
@@ -611,15 +644,27 @@ class FacadePortal(FacadeEntity, Edge):
 		self.character.portal[self.orig]._tampered = True
 
 	@property
+	def _real(
+		self,
+	) -> DiGraph | Node | Edge | dict[Stat | Literal["rulebook"], Value]:
+		try:
+			return self.character.character.portal[self.orig][self.dest]
+		except KeyError as ex:
+			raise AttributeError(
+				"No real Portal", self.character.name, self.orig, self.dest
+			) from ex
+
+	@property
 	def origin(self):
-		return self.facade.node[self.orig]
+		return self.character.node[self.orig]
 
 	@property
 	def destination(self):
-		return self.facade.node[self.dest]
+		return self.character.node[self.dest]
 
-	def _get_real(self, name):
-		return self.character.character.portal[self._mapping.orig][name]
+	@property
+	def _get_real(self) -> Edge:
+		return self.character.character.portal[self.orig][self.dest]
 
 	def _set_plan(self, k, v):
 		self.character.engine._planned[self.character.engine._curplan][
@@ -632,51 +677,63 @@ class FacadePortal(FacadeEntity, Edge):
 		self.character.portal[self.orig]._tampered = True
 
 
-class FacadePortalSuccessors(FacadeEntityMapping):
-	cls = FacadePortal
-	innercls: type
+class FacadePortalSuccessors(FacadePortalSubMapping):
+	cls: ClassVar[type] = FacadePortal
 
-	def __init__(self, facade, origname):
+	def __init__(self, character: CharacterFacade, orig: NodeName):
+		super().__init__(character, orig)
+
+	@cached_property
+	def innercls(self):
 		from .portal import Portal
 
-		self.innercls = Portal
-		super().__init__(facade, origname)
-		self.orig = origname
+		return Portal
+
+	@cached_property
+	def orig(self) -> NodeName:
+		return self.node
 
 	def _make(self, k, v):
-		return self.cls(self, k, **v)
+		return self.cls(self.character, self.node, k, **v)
 
 	def _get_inner_map(self):
 		try:
-			return self.facade.character.portal[self.orig]
+			return self.character.character.portal[self.orig]
 		except AttributeError:
 			if not hasattr(self, "_inner_map"):
 				self._inner_map = SignalDict()
 			return self._inner_map
 
 
-class FacadePortalPredecessors(FacadeEntityMapping):
-	cls = FacadePortal
-	innercls: type
+class FacadePortalPredecessors(FacadePortalSubMapping):
+	cls: ClassVar[type] = FacadePortal
 
-	def __init__(self, facade, destname):
+	def __init__(self, character: CharacterFacade, dest: NodeName):
+		super().__init__(character, dest)
+
+	@cached_property
+	def innercls(self):
 		from .portal import Portal
 
-		self.innercls = Portal
-		super().__init__(facade, destname)
-		self.dest = destname
+		return Portal
+
+	@cached_property
+	def dest(self) -> NodeName:
+		return self.node
 
 	def _make(self, k, v):
-		return self.cls(self.facade.portal[k], v)
+		return self.cls(self.character, k, self.node, **v)
 
 	def _get_inner_map(self):
 		try:
-			return self.facade.character.preportal[self.dest]
+			return self.character.character.preportal[self.dest]
 		except AttributeError:
 			return {}
 
 
 class CharacterFacade(AbstractCharacter):
+	engine: EngineFacade
+
 	def __getstate__(self):
 		ports = {}
 		for o in self.portal:
@@ -722,7 +779,9 @@ class CharacterFacade(AbstractCharacter):
 		for it in seq:
 			self.add_portal(*it, **attrs)
 
-	def remove_unit(self, a, b=None):
+	def remove_unit(
+		self, a: Node | NodeName | KeyHint, b: FacadeNode | None = None
+	):
 		if b is None:
 			if not isinstance(a, FacadeNode):
 				raise TypeError("Need a node or character")
@@ -733,29 +792,41 @@ class CharacterFacade(AbstractCharacter):
 			if isinstance(b, FacadeNode):
 				noden = b.name
 			else:
-				noden = b
+				noden = NodeName(Key(b))
+		branch, turn, tick = self.engine.time
 		self.engine._unitness_cache.store(
-			self.name, charn, noden, *self.engine.time, False
+			self.name, charn, noden, branch, turn, tick, False
 		)
 
-	def add_place(self, name, **kwargs):
-		self.place[name] = kwargs
+	def add_place(
+		self,
+		name: NodeName | KeyHint,
+		**kwargs: dict[KeyHint, ValueHint]
+		| dict[Stat | Literal["rulebook"], Value],
+	) -> None:
+		self.place[name] = FacadePlace(self, name, **kwargs)
 
-	def add_node(self, name, **kwargs):
+	def add_node(
+		self,
+		name: NodeName | KeyHint,
+		**kwargs: dict[KeyHint, ValueHint]
+		| dict[Stat | Literal["rulebook"], Value],
+	) -> None:
 		"""Version of add_node that assumes it's a place"""
-		self.place[name] = kwargs
+		self.add_place(name, **kwargs)
 
-	def remove_node(self, node):
+	def remove_node(self, node: NodeName | KeyHint) -> None:
 		"""Version of remove_node that handles place or thing"""
+		node = NodeName(Key(node))
 		if node in self.thing:
 			del self.thing[node]
 		else:
 			del self.place[node]
 
-	def remove_place(self, place):
+	def remove_place(self, place: NodeName | KeyHint) -> None:
 		del self.place[place]
 
-	def remove_thing(self, thing):
+	def remove_thing(self, thing: NodeName | KeyHint) -> None:
 		del self.thing[thing]
 
 	def add_thing(
@@ -763,12 +834,12 @@ class CharacterFacade(AbstractCharacter):
 		name: NodeName | KeyHint,
 		location: NodeName | KeyHint,
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
-	):
-		stats: dict[Stat, Value] = {
+	) -> None:
+		stats: dict[Stat | Literal["location"], Value] = {
 			Stat(Key(k)): Value(v) for (k, v) in kwargs.items()
 		}
-		stats[Stat(Key("location"))] = Value(location)
-		self.thing[name] = kwargs
+		stats["location"] = Value(location)
+		self.thing[name] = FacadeThing(self.thing, name, **stats)
 
 	def add_portal(self, orig, dest, **kwargs):
 		self.portal[orig][dest] = kwargs
@@ -936,99 +1007,131 @@ class CharacterFacade(AbstractCharacter):
 			return self.UnitMapping(self.character, item)
 
 	class ThingMapping(FacadeEntityMapping):
-		cls = FacadeThing
-		innercls: type
+		cls: ClassVar[type] = FacadeThing
 
-		def __init__(self, facade, _=None):
+		@cached_property
+		def innercls(self):
 			from .node import Thing
 
-			self.innercls = Thing
-			super().__init__(facade, _)
+			return Thing
+
+		def _make(self, k, v):
+			return self.cls(self.character, k, location=v)
 
 		def _get_inner_map(self):
 			try:
-				return self.facade.character.thing
+				return self.character.character.thing
 			except AttributeError:
 				return {}
 
 		def patch(self, d: dict):
-			places = d.keys() & self.facade.place.keys()
+			places = d.keys() & self.character.place.keys()
 			if places:
 				raise KeyError(
 					f"Tried to patch places on thing mapping: {places}"
 				)
-			self.facade.node.patch(d)
+			self.character.node.patch(d)
+
+	@cached_property
+	def thing(self) -> ThingMapping:
+		return self.ThingMapping(self)
 
 	class PlaceMapping(FacadeEntityMapping):
-		cls = FacadePlace
-		innercls: type
+		cls: ClassVar[type] = FacadePlace
 
-		def __init__(self, facade, _=None):
+		@cached_property
+		def innercls(self):
 			from .node import Place
 
-			if not isinstance(facade, CharacterFacade):
-				raise TypeError("Need CharacterFacade")
+			return Place
 
-			self.innercls = Place
-			super().__init__(facade, _)
+		def __eq__(self, other):
+			return super().__eq__(other)
+
+		def _make(self, k, v):
+			return FacadePlace(self.character, k, **v)
 
 		def _get_inner_map(self):
-			if isinstance(self.facade.character, nx.Graph) and not isinstance(
-				self.facade.character, AbstractCharacter
-			):
-				return self.facade.character._node
+			if isinstance(
+				self.character.character, nx.Graph
+			) and not isinstance(self.character.character, AbstractCharacter):
+				return self.character.character.node
 			try:
-				return self.facade.character.place
+				return self.character.character.place
 			except AttributeError:
 				return {}
 
 		def patch(self, d: dict):
-			things = d.keys() & self.facade.thing.keys()
+			things = d.keys() & self.character.thing.keys()
 			if things:
 				raise KeyError(
 					f"Tried to patch things on place mapping: {things}"
 				)
-			self.facade.node.patch(d)
+			self.character.node.patch(d)
+
+	@cached_property
+	def place(self) -> PlaceMapping:
+		return self.PlaceMapping(self)
 
 	def ThingPlaceMapping(
 		self, *args
 	) -> CompositeDict[NodeName, FacadePlace | FacadeThing]:
 		return CompositeDict(self.place, self.thing)
 
+	@cached_property
+	def node(self) -> CompositeDict[NodeName, FacadePlace | FacadeThing]:
+		return CompositeDict(self.place, self.thing)
+
 	class PortalSuccessorsMapping(FacadePortalMapping):
-		cls = FacadePortalSuccessors
+		cls: ClassVar[type] = FacadePortalSuccessors
 
 		def __contains__(self, item):
-			return item in self.facade.node
+			return item in self.character.node
+
+		def __eq__(self, other):
+			return super().__eq__(other)
+
+		def _make(self, k, v):
+			ret = self.cls(self.character, k)
+			ret.update(v)
+			return ret
 
 		def _get_inner_map(self):
 			try:
-				return self.facade.character._adj
+				return self.character.character._adj
 			except AttributeError:
 				return {}
+
+	@cached_property
+	def adj(self) -> PortalSuccessorsMapping:
+		return self.PortalSuccessorsMapping(self)
 
 	class PortalPredecessorsMapping(FacadePortalMapping):
 		cls = FacadePortalPredecessors
 
 		def __contains__(self, item):
-			return item in self.facade._node
+			return item in self.character._node
 
 		def _get_inner_map(self):
 			try:
-				return self.facade.character.pred
+				return self.character.character.pred
 			except AttributeError:
 				return {}
 
+	@cached_property
+	def pred(self) -> PortalPredecessorsMapping:
+		return self.PortalPredecessorsMapping(self)
+
 	class StatMapping(MutableMapping, Signal, MappingUnwrapperMixin):
-		def __init__(self, facade):
+		def __init__(self, character):
 			super().__init__()
-			self.facade = facade
+			self.character = character
 			self._patch = {}
 
 		def copy(self):
 			d = {}
-			if hasattr(self.facade.character, "graph"):
-				for k, v in self.facade.character.graph.items():
+			if hasattr(self.character.character, "graph"):
+				for k, v in self.character.character.graph.items():
 					if k not in self._patch:
 						d[k] = v
 					elif self._patch[k] is not ...:
@@ -1040,8 +1143,8 @@ class CharacterFacade(AbstractCharacter):
 
 		def __iter__(self):
 			seen = set()
-			if hasattr(self.facade.character, "graph"):
-				for k in self.facade.character.graph:
+			if hasattr(self.character.character, "graph"):
+				for k in self.character.character.graph:
 					if k not in self._patch:
 						yield k
 						seen.add(k)
@@ -1059,17 +1162,17 @@ class CharacterFacade(AbstractCharacter):
 			if k in self._patch:
 				return self._patch[k] is not ...
 			if (
-				hasattr(self.facade.character, "graph")
-				and k in self.facade.character.graph
+				hasattr(self.character.character, "graph")
+				and k in self.character.character.graph
 			):
 				return True
 			return False
 
 		def __getitem__(self, k):
 			if k not in self._patch and hasattr(
-				self.facade.character, "graph"
+				self.character.character, "graph"
 			):
-				ret = self.facade.character.graph[k]
+				ret = self.character.character.graph[k]
 				if not hasattr(ret, "unwrap"):
 					return ret
 				self._patch[k] = ret.unwrap()
@@ -1078,10 +1181,15 @@ class CharacterFacade(AbstractCharacter):
 			return self._patch[k]
 
 		def __setitem__(self, k, v):
-			if hasattr(self.facade, "engine") and self.facade.engine._planning:
-				self.facade.engine._planned[
-					self.facade.character.engine._curplan
-				][self.facade.engine.turn].append((self.facade.name, k, v))
+			if (
+				hasattr(self.character, "engine")
+				and self.character.engine._planning
+			):
+				self.character.engine._planned[
+					self.character.character.engine._curplan
+				][self.character.engine.turn].append(
+					(self.character.name, k, v)
+				)
 				return
 			self._patch[k] = v
 
@@ -1090,15 +1198,15 @@ class CharacterFacade(AbstractCharacter):
 
 		def __repr__(self):
 			toshow = {}
-			if hasattr(self.facade.character, "graph"):
+			if hasattr(self.character.character, "graph"):
 				for k in (
-					self._patch.keys() | self.facade.character.graph.keys()
+					self._patch.keys() | self.character.character.graph.keys()
 				):
 					if k in self._patch:
 						if self._patch[k] is not ...:
 							toshow[k] = self._patch[k]
-					elif k in self.facade.character.graph:
-						v = self.facade.character.graph[k]
+					elif k in self.character.character.graph:
+						v = self.character.character.graph[k]
 						if hasattr(v, "unwrap") and not hasattr(
 							v, "no_unwrap"
 						):
@@ -1140,7 +1248,7 @@ class CharacterFacade(AbstractCharacter):
 			else:
 				v.apply()
 		self.place._patch = {}
-		if getattr(self.portal, "_tampered", False):
+		if hasattr(self.portal, "_tampered") and self.portal._tampered:
 			for orig, dests in self.portal._patch.items():
 				if not getattr(dests, "_tampered", False):
 					continue
@@ -1161,7 +1269,7 @@ class EngineFacade(AbstractEngine):
 	thing_cls = FacadeThing
 	place_cls = FacadePlace
 	portal_cls = FacadePortal
-	time = TimeSignalDescriptor()
+	time: Time = TimeSignalDescriptor()
 
 	@cached_property
 	def function(self):

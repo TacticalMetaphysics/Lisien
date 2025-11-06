@@ -4592,6 +4592,7 @@ class ThingsCache(Cache):
 		turn: Turn,
 		tick: Tick,
 	):
+		thing: NodeName
 		for thing in self._iter_entities_or_keys(
 			character, branch, turn, tick
 		):
