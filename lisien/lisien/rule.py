@@ -82,6 +82,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from ast import parse, unparse
+from collections import UserDict
 from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
 from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
@@ -768,7 +769,6 @@ class RuleMapping(MutableMapping, Signal):
 	def __init__(self, engine: "Engine", rulebook: RuleBook | RulebookName):
 		super().__init__()
 		self.engine = engine
-		self._rule_cache = self.engine.rule._cache
 		if isinstance(rulebook, RuleBook):
 			self.rulebook = rulebook
 		else:
@@ -789,7 +789,7 @@ class RuleMapping(MutableMapping, Signal):
 	def __getitem__(self, k: RuleName | str) -> Rule:
 		if k not in self:
 			raise KeyError("Rule '{}' is not in effect".format(k))
-		return self._rule_cache[k]
+		return self.engine.rule[k]
 
 	def __getattr__(self, k: str) -> Rule:
 		if k in self:
@@ -968,7 +968,7 @@ class AllRuleBooks(MutableMapping, Signal):
 		self.engine._del_rulebook(key)
 
 
-class AllRules(MutableMapping, Signal):
+class AllRules(UserDict[RuleName, Rule], Signal):
 	"""A mapping of every rule in the game.
 
 	You can use this as a decorator to make a rule and not assign it
@@ -976,25 +976,13 @@ class AllRules(MutableMapping, Signal):
 
 	"""
 
-	def __init__(self, engine: "Engine"):
-		super().__init__()
+	def __init__(self, engine: Engine):
+		Signal.__init__(self)
 		self.engine = engine
-
-	@cached_property
-	def _cache(self) -> dict[RuleName, Rule]:
-		return self.engine._rules_cache
-
-	def __iter__(self) -> Iterator[RuleName]:
-		yield from self._cache
-
-	def __len__(self):
-		return len(self._cache)
-
-	def __contains__(self, k: RuleName | str):
-		return k in self._cache
-
-	def __getitem__(self, k: RuleName | str) -> Rule:
-		return self._cache[k]
+		UserDict.__init__(
+			self,
+			((name, Rule(engine, name)) for name in engine.query.rules_dump()),
+		)
 
 	def __setitem__(
 		self, k: RuleName | str, v: Rule | RuleFunc | RuleFuncName | str
@@ -1010,10 +998,10 @@ class AllRules(MutableMapping, Signal):
 			else:
 				raise ValueError("Unknown function: " + v)
 		if callable(v):
-			self._cache[k] = Rule(self.engine, k, actions=[v])
-			new = self._cache[k]
+			self.data[k] = Rule(self.engine, k, actions=[v])
+			new = self.data[k]
 		elif isinstance(v, Rule):
-			self._cache[k] = v
+			self.data[k] = v
 			new = v
 		else:
 			raise TypeError(
@@ -1029,7 +1017,7 @@ class AllRules(MutableMapping, Signal):
 				del rulebook[rulebook.index(k)]
 			except IndexError:
 				pass
-		del self._cache[k]
+		super().__delitem__(k)
 		self.send(self, key=k, rule=None)
 
 	def __call__(
@@ -1067,6 +1055,6 @@ class AllRules(MutableMapping, Signal):
 		if name in self:
 			raise KeyError("Already have rule {}".format(name))
 		new = Rule(self.engine, name)
-		self._cache[name] = new
+		self.data[name] = new
 		self.send(self, rule=new, active=True)
 		return new
