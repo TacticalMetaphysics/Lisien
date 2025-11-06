@@ -222,7 +222,8 @@ def persistent_database(request):
 def database_connector_part(tmp_path, non_null_database):
 	match non_null_database:
 		case "python":
-			return PythonDatabaseConnector
+			real_connector = PythonDatabaseConnector()
+			return lambda: real_connector
 		case "sqlite":
 			return partial(
 				SQLAlchemyDatabaseConnector,
