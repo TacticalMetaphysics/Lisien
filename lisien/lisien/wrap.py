@@ -343,12 +343,10 @@ class MutableWrapper(ABC):
 		return self.__copy__()
 
 	@abstractmethod
-	def _set(self, v):
-		raise NotImplementedError
+	def _set(self, v): ...
 
 	@abstractmethod
-	def unwrap(self):
-		raise NotImplementedError
+	def unwrap(self): ...
 
 
 Iterable.register(MutableWrapper)
@@ -491,6 +489,9 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		me.append(object)
 		self._set(me)
 
+	def unwrap(self):
+		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
+
 
 class MutableWrapperSet(MutableWrapper, ABC, set):
 	__slots__ = ()
@@ -629,11 +630,17 @@ class DictWrapper(MutableMappingWrapper, dict):
 		self._outer = outer
 		self._key = key
 
-	def _copy(self):
+	def __copy__(self):
 		return dict(self._getter())
 
 	def _set(self, v):
 		self._outer[self._key] = v
+
+	def unwrap(self):
+		return {
+			k: v.unwrap() if hasattr(v, "unwrap") else v
+			for (k, v) in self.items()
+		}
 
 
 class ListWrapper(MutableWrapperDictList, MutableSequence):
