@@ -785,7 +785,7 @@ class Node(AbstractEntityMapping, ABC):
 		return True
 
 	def __init__(self, graph: Character, node: NodeName):
-		super().__init__(graph)
+		super().__init__()
 		self.character = graph
 		self.name = node
 
