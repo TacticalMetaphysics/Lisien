@@ -260,7 +260,7 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy):
 			return dest.name
 		else:
 			if dest in self.character.node:
-				return NodeName(dest)
+				return NodeName(Key(dest))
 			raise ValueError("{} not in {}".format(dest, self.character.name))
 
 

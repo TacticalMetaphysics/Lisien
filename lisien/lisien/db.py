@@ -140,7 +140,6 @@ from .types import (
 	Value,
 	PackSignature,
 	UnpackSignature,
-	ekey,
 	LoadedDict,
 	LoadedCharWindow,
 	CharacterRulesHandledRowType,
@@ -4200,7 +4199,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def eternal(self) -> GlobalKeyValueStore:
 		initial = {
-			ekey(k): Value(v)
+			EternalKey(Key(k)): Value(v)
 			for (k, v) in {
 				"branch": "trunk",
 				"turn": 0,

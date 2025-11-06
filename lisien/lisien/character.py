@@ -78,13 +78,10 @@ from .types import (
 	AbstractCharacter,
 	CharacterStatAlias,
 	UnitsAlias,
-	charname,
-	nodename,
 	keyval,
 	Time,
 	CharacterMappingMixin,
 	Value,
-	stat,
 	ThingDict,
 	TimeSignal,
 	BaseMutableCharacterMapping,
@@ -334,7 +331,7 @@ class Character(AbstractCharacter, RuleFollower):
 		def __getitem__(self, thing: KeyHint):
 			if thing not in self:
 				raise KeyError("No such thing: {}".format(thing))
-			return self._make_thing(nodename(thing))
+			return self._make_thing(NodeName(Key(thing)))
 
 		def _make_thing(self, thing: NodeName, val: Thing | None = None):
 			cache = self.engine._node_objs
@@ -353,7 +350,7 @@ class Character(AbstractCharacter, RuleFollower):
 				raise TypeError("Things are made from Mappings")
 			if "location" not in val:
 				raise ValueError("Thing needs location")
-			thing = nodename(thing)
+			thing = NodeName(Key(thing))
 			val = dict(val)
 			branch, turn, tick = self.engine._nbtt()
 			self.engine._nodes_cache.store(
@@ -455,7 +452,7 @@ class Character(AbstractCharacter, RuleFollower):
 		def __contains__(self, place: KeyHint) -> bool:
 			nodes_contains, things_contains, charn, btt = self._contains_stuff
 			branch, turn, tick = btt
-			place = nodename(place)
+			place = NodeName(Key(place))
 			return nodes_contains(
 				charn, place, branch, turn, tick
 			) and not things_contains(charn, place, branch, turn, tick)
@@ -485,7 +482,7 @@ class Character(AbstractCharacter, RuleFollower):
 				self._get_stuff
 			)
 			branch, turn, tick = btt
-			place = nodename(place)
+			place = NodeName(Key(place))
 			if not nodes_contains(
 				charn, place, branch, turn, tick
 			) or things_contains(charn, place, branch, turn, tick):
@@ -519,7 +516,7 @@ class Character(AbstractCharacter, RuleFollower):
 			(node_exists, exist_node, get_node, charn, character) = (
 				self._set_stuff
 			)
-			place = nodename(place)
+			place = NodeName(Key(place))
 			exist_node(charn, place, True)
 			pl = get_node(character, place)
 			if not isinstance(pl, Place):
@@ -556,7 +553,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 		def __contains__(self, k: KeyHint):
 			node_exists, charn = self._contains_stuff
-			return node_exists(charn, nodename(k))
+			return node_exists(charn, NodeName(Key(k)))
 
 		@cached_property
 		def _getitem_stuff(
@@ -576,7 +573,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 		def __getitem__(self, k: KeyHint) -> Thing | Place:
 			node_exists, charn, get_node, character = self._getitem_stuff
-			k = nodename(k)
+			k = NodeName(Key(k))
 			if not node_exists(charn, k):
 				raise KeyError("No such node: " + str(k))
 			return get_node(character, k)
@@ -606,7 +603,7 @@ class Character(AbstractCharacter, RuleFollower):
 			(node_exists, charn, is_thing, thingmap, placemap) = (
 				self._delitem_stuff
 			)
-			k = nodename(k)
+			k = NodeName(Key(k))
 			if not node_exists(charn, k):
 				raise KeyError("No such node: " + str(k))
 			if is_thing(charn, k):
@@ -652,7 +649,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 		def __getitem__(self, orig: KeyHint) -> Successors:
 			node_exists, charn, cache = self._getitem_stuff
-			orig = nodename(orig)
+			orig = NodeName(Key(orig))
 			if node_exists(charn, orig):
 				if orig not in cache:
 					cache[orig] = self.Successors(self, orig)
@@ -693,9 +690,9 @@ class Character(AbstractCharacter, RuleFollower):
 				"seconds spent updating PortalSuccessorsMapping", engine.debug
 			):
 				for orig, dests in chain(other.items(), kwargs.items()):
-					orig = nodename(orig)
+					orig = NodeName(Key(orig))
 					for dest, kvs in dests.items():
-						dest = nodename(dest)
+						dest = NodeName(Key(dest))
 						if kvs is ...:
 							for k in iter_edge_keys(
 								charn,
@@ -706,7 +703,7 @@ class Character(AbstractCharacter, RuleFollower):
 								start_tick,
 								forward=forward,
 							):
-								k = stat(k)
+								k = Stat(k)
 								store_edge_val(
 									charn,
 									orig,
@@ -765,7 +762,7 @@ class Character(AbstractCharacter, RuleFollower):
 							)
 							tick += 1
 							for k, v in kvs.items():
-								k = stat(k)
+								k = Stat(Key(k))
 								v = Value(v)
 								store_edge_val(
 									charn,
@@ -864,7 +861,7 @@ class Character(AbstractCharacter, RuleFollower):
 			def __getitem__(self, dest: KeyHint) -> Portal:
 				get_edge, graph, orig = self._getitem_stuff
 				if dest in self:
-					return get_edge(graph, orig, nodename(dest))
+					return get_edge(graph, orig, NodeName(Key(dest)))
 				raise KeyError("No such portal", graph, orig, dest)
 
 			def __setitem__(
@@ -886,10 +883,10 @@ class Character(AbstractCharacter, RuleFollower):
 					edge_val_cache_store,
 					nbtt,
 				) = self._setitem_stuff
-				dest = nodename(dest)
+				dest = NodeName(Key(dest))
 				exist_edge(charn, orig, dest, True)
 				for k, v in value.items():
-					k = stat(k)
+					k = Stat(Key(k))
 					v = Value(v)
 					branch, turn, tick = nbtt()
 					db_edge_val_set(
@@ -1143,7 +1140,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 		def __contains__(self, k: KeyHint | CharName):
 			retrieve, charn, btt = self._contains_stuff
-			got = retrieve(charn, charname(k), *btt)
+			got = retrieve(charn, CharName(Key(k)), *btt)
 			return got is not ... and not isinstance(got, Exception)
 
 		def __len__(self):
@@ -1300,7 +1297,7 @@ class Character(AbstractCharacter, RuleFollower):
 				"Already have a Thing named {}".format(name)
 			)
 		starter: ThingDict = self.node_dict_factory()
-		starter.update((stat(k), Value(v)) for (k, v) in kwargs.items())
+		starter.update((Stat(Key(k)), Value(v)) for (k, v) in kwargs.items())
 		if isinstance(location, Node):
 			location = location.name
 		starter["location"] = Value(location)
@@ -1337,8 +1334,8 @@ class Character(AbstractCharacter, RuleFollower):
 		It will keep all its attached Portals.
 
 		"""
-		name = nodename(name)
-		location = nodename(location)
+		name = NodeName(Key(name))
+		location = NodeName(Key(location))
 		self.engine._set_thing_loc(self.name, name, location)
 		if (self.name, name) in self.engine._node_objs:
 			obj = self.engine._node_objs[self.name, name]
@@ -1351,7 +1348,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	def thing2place(self, name: KeyHint | NodeName) -> None:
 		"""Unset a Thing's location, and thus turn it into a Place."""
-		name = nodename(name)
+		name = NodeName(Key(name))
 		self.engine._set_thing_loc(self.name, name, None)
 		if (self.name, name) in self.engine._node_objs:
 			thing = self.engine._node_objs[self.name, name]
@@ -1419,7 +1416,7 @@ class Character(AbstractCharacter, RuleFollower):
 		kwargs: StatDict
 		self.add_portal(origin, destination, **kwargs)
 		return self.engine._get_edge(
-			self, nodename(origin), nodename(destination)
+			self, NodeName(Key(origin)), NodeName(Key(destination))
 		)
 
 	def add_portals_from(
@@ -1537,8 +1534,8 @@ class Character(AbstractCharacter, RuleFollower):
 		"""
 		if key == "units":
 			return UnitsAlias(
-				entity=self.stat, stat=stat("units"), engine=self.engine
+				entity=self.stat, stat=Stat(Key("units")), engine=self.engine
 			)
 		return CharacterStatAlias(
-			entity=self.stat, stat=stat(key), engine=self.engine
+			entity=self.stat, stat=Stat(Key(key)), engine=self.engine
 		)
