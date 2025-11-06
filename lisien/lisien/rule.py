@@ -934,6 +934,7 @@ class AllRuleBooks(UserDict[RulebookName, RuleBook], Signal):
 	def __init__(self, engine: "Engine"):
 		Signal.__init__(self)
 		self.engine = engine
+		UserDict.__init__(self)
 
 	def __iter__(self) -> Iterator[RulebookName]:
 		return self.engine._rulebooks_cache.iter_keys(*self.engine.time)
