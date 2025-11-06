@@ -528,18 +528,6 @@ class CharacterMappingMixin(MappingUnwrapperMixin, ABC):
 	def engine(self) -> Engine:
 		return self.character.engine
 
-	@abstractmethod
-	def keys(self) -> Set: ...
-
-	@abstractmethod
-	def __delitem__(self, key: Key | KeyHint) -> None: ...
-
-	def clear(self):
-		"""Delete everything"""
-		for k in list(self.keys()):
-			if k in self:
-				del self[k]
-
 
 class AbstractEntityMapping(
 	MutableMapping, Signal, MappingUnwrapperMixin, ABC
