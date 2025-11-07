@@ -82,6 +82,7 @@ from .types import (
 	actfuncn,
 	ActionRowType,
 	Branch,
+	BranchRowType,
 	CharDict,
 	CharName,
 	CharRulebookRowType,
