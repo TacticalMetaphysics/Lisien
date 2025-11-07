@@ -109,6 +109,8 @@ from .types import (
 	PrereqFuncName,
 	preqfuncn,
 	PrereqRowType,
+	AssignmentRowType,
+	AssignmentRowListType,
 	RuleBig,
 	RuleBigRowType,
 	RulebooksKeyframe,
@@ -4224,40 +4226,60 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def _graphs(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName], GraphTypeStr]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[dict[CharName, GraphTypeStr]]]:
+		return defaultdict(AssignmentTimeDict)
+
+	def _graphs_insert_rec(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		graph: CharName,
+		value: GraphTypeStr,
+	) -> None:
+		try:
+			d = self._graphs[branch].retrieve_exact(turn, tick)
+		except KeyError:
+			d = {}
+		d[graph] = value
+		self._graphs[branch].store_at(turn, tick, d)
 
 	@cached_property
 	def _graph_val(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName, Stat], Value]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, Stat, Value]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _nodes(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName], bool]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, NodeName, bool]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _node_val(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName, Stat], Value]:
-		return {}
+	) -> dict[
+		Branch, AssignmentTimeDict[tuple[CharName, NodeName, Stat, Value]]
+	]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _edges(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName, NodeName], bool]:
-		return {}
+	) -> dict[
+		Branch, AssignmentTimeDict[tuple[CharName, NodeName, NodeName, bool]]
+	]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _edge_val(
 		self,
 	) -> dict[
-		tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, Stat], Value
+		Branch,
+		AssignmentTimeDict[tuple[CharName, NodeName, NodeName, Stat, Value]],
 	]:
-		return {}
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _plan_ticks(self) -> set[tuple[Plan, Branch, Turn, Tick]]:
@@ -4266,26 +4288,28 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def _universals(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, UniversalKey], Value]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[UniversalKey, Value]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	def universal_get(
 		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
-		closest = ...
-		for b, r, t, k in self._universals:
-			if b != branch or k != key or (r, t) > (turn, tick):
-				continue
-			if (r, t) == (turn, tick):
-				return self._universals[b, r, t, k]
-			elif closest is ... or (r, t) > closest:
-				closest = (r, t)
-		if closest is ...:
-			raise KeyError(
-				"Universal key not set at this time", key, branch, turn, tick
-			)
-		r, t = closest
-		return self._universals[branch, r, t, key]
+		if branch not in self._universals:
+			raise KeyError("Universal key not set in this branch", branch)
+		td = self._universals[branch]
+		if turn in td:
+			for tck, (k, v) in (
+				td[turn].past(tick, include_same_rev=True).items()
+			):
+				if k == key:
+					return v
+		for trn, tck in reversed(td.iter_times(time_to=(turn, tick))):
+			(k, v) = td.retrieve_exact()
+			if k == key:
+				return v
+		raise KeyError(
+			"Universal key not set at this time", key, branch, turn, tick
+		)
 
 	@cached_property
 	def _rules(self) -> set[RuleName]:
@@ -4295,73 +4319,78 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _rulebooks(
 		self,
 	) -> dict[
-		tuple[
-			Branch,
-			Turn,
-			Tick,
-			RulebookName,
+		Branch,
+		AssignmentTimeDict[
+			tuple[RulebookName, list[RuleName], RulebookPriority]
 		],
-		tuple[list[RuleName], RulebookPriority],
 	]:
-		return {}
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _rule_triggers(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, RuleName], list[TriggerFuncName]]:
-		return {}
+	) -> dict[
+		Branch, AssignmentTimeDict[tuple[RuleName, list[TriggerFuncName]]]
+	]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _rule_neighborhood(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, RuleName], RuleNeighborhood]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[RuleName, RuleNeighborhood]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _rule_prereqs(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, RuleName], list[PrereqFuncName]]:
-		return {}
+	) -> dict[
+		Branch, AssignmentTimeDict[tuple[RuleName, list[PrereqFuncName]]]
+	]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _rule_actions(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, RuleName], list[ActionFuncName]]:
-		return {}
+	) -> dict[
+		Branch, AssignmentTimeDict[tuple[RuleName, list[ActionFuncName]]]
+	]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
-	def _rule_big(self) -> dict[tuple[Branch, Turn, Tick, RuleName], RuleBig]:
-		return {}
+	def _rule_big(
+		self,
+	) -> dict[Branch, AssignmentTimeDict[tuple[RuleName, RuleBig]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _character_rulebook(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _unit_rulebook(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _character_thing_rulebook(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _character_place_rulebook(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _character_portal_rulebook(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName], RulebookName]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _node_rules_handled(
@@ -4385,28 +4414,33 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def _things(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName], NodeName]:
-		return {}
+	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, NodeName, NodeName]]]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _node_rulebook(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName, NodeName], RulebookName]:
-		return {}
+	) -> dict[
+		Branch, AssignmentTimeDict[tuple[CharName, NodeName, RulebookName]]
+	]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _portal_rulebook(
 		self,
 	) -> dict[
-		tuple[Branch, Turn, Tick, CharName, NodeName, NodeName], RulebookName
+		Branch,
+		AssignmentTimeDict[tuple[CharName, NodeName, NodeName, RulebookName]],
 	]:
-		return {}
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _units(
 		self,
-	) -> dict[tuple[Branch, Turn, Tick, CharName, CharName, NodeName], bool]:
-		return {}
+	) -> dict[
+		Branch, AssignmentTimeDict[tuple[CharName, CharName, NodeName, bool]]
+	]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _character_rules_handled(
@@ -4616,38 +4650,33 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			("portal_rulebook", self._portal_rulebook),
 		]:
 			for key in sort_set(my_table.keys()):
-				b, turn, tick, g = key[:4]
-				if b != branch or not (
-					(turn_from, tick_from)
-					<= (turn, tick)
-					<= (turn_to, tick_to)
-				):
-					continue
-				the_list: (
-					list[NodeRowType]
-					| list[NodeValRowType]
-					| list[EdgeRowType]
-					| list[EdgeValRowType]
-					| list[GraphValRowType]
-					| list[ThingRowType]
-					| list[UnitRowType]
-					| list[CharRulebookRowType]
-					| list[NodeRulebookRowType]
-					| list[PortalRulebookRowType]
-				) = ret[g][char_d_key]
-				the_datum: (
-					NodeRowType
-					| NodeValRowType
-					| EdgeRowType
-					| EdgeValRowType
-					| GraphValRowType
-					| ThingRowType
-					| UnitRowType
-					| CharRulebookRowType
-					| NodeRulebookRowType
-					| PortalRulebookRowType
-				) = key + (my_table[key],)
-				the_list.append(the_datum)
+				if isinstance(key, str):
+					key: Branch
+					assignments = my_table[key]
+					for r, t in assignments.iter_times(
+						(turn_from, tick_from), (turn_to, tick_to)
+					):
+						row: AssignmentRowType = assignments.retrieve_exact(
+							r, t
+						)
+						g: CharName = row[0]
+						the_list: AssignmentRowListType = ret[g][char_d_key]
+						the_list.append(row)
+				else:
+					b: Branch
+					turn: Turn
+					tick: Tick
+					g: CharName
+					b, turn, tick, g = key[:4]
+					if b != branch or not (
+						(turn_from, tick_from)
+						<= (turn, tick)
+						<= (turn_to, tick_to)
+					):
+						continue
+					the_list: AssignmentRowListType = ret[g][char_d_key]
+					the_datum: AssignmentRowType = key + (my_table[key],)
+					the_list.append(the_datum)
 		for handled_l, my_table in [
 			(node_rules_handled, self._node_rules_handled),
 			(portal_rules_handled, self._portal_rules_handled),
@@ -4729,7 +4758,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				tuple(d[arg] for arg in tab_spec.args[1:]) for d in args
 			)
 		elif isinstance(tab, dict):
-			if key_len is ...:
+			if mth := getattr(self, "_" + table_name + "_insert_rec", None):
+				for rec in args:
+					mth(**rec)
+			elif key_len is ...:
 				raise TypeError("dict table without key_len")
 			elif key_len == 1:
 				key_name = tab_spec.args[1]
@@ -4748,6 +4780,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				for d in args:
 					key = tuple(d[k] for k in tab_spec.args[1:-1])
 					tab[key] = d[tab_spec.args[-1]]
+			elif tab_spec.args[1:4] == ("branch", "turn", "tick"):
+				for d in args:
+					record = tuple(d[k] for k in tab_spec.args[4:])
+					tab[d["branch"]].store_at(d["turn"], d["tick"], record)
 			else:
 				for d in args:
 					key = tuple(d[k] for k in tab_spec.args[1 : key_len + 1])
@@ -4856,8 +4892,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def graph_val_dump(self) -> Iterator[GraphValRowType]:
 		with self._lock:
 			gv = self._graph_val
-			for b, r, t, g, k in sort_set(gv.keys()):
-				yield g, k, b, r, t, gv[b, r, t, g, k]
+			for branch in sort_set(gv.keys()):
+				for turn, tick in gv[branch].iter_times():
+					graph, key, value = gv[branch].retrieve_exact(turn, tick)
+					yield branch, turn, tick, graph, key, value
 
 	def graph_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -4886,34 +4924,36 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		tick_from: Tick,
 		turn_to: Optional[Turn] = None,
 		tick_to: Optional[Tick] = None,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+	) -> Iterator[tuple[CharName, Branch, Turn, Tick, GraphTypeStr]]:
 		if (turn_to is None) ^ (tick_to is None):
 			raise TypeError(
 				"Need both or neither of 'turn_to' and 'tick_to'",
 				turn_to,
 				tick_to,
 			)
-		if turn_to is None:
-			with self._lock:
-				for (b, r, t, g), v in self._graphs.items():
-					if b != branch or not ((turn_from, tick_from) <= (r, t)):
-						continue
-					yield g, b, r, t, v
+		if branch not in self._graphs:
 			return
 		with self._lock:
-			for (b, r, t, g), v in self._graphs.items():
-				if b != branch or not (
-					(turn_from, tick_from) <= (r, t) < (turn_to, tick_to)
-				):
-					continue
-				yield g, b, r, t, v
+			time_from = (turn_from, tick_from)
+			time_to = (
+				None if None in (turn_to, tick_to) else (turn_to, tick_to)
+			)
+			for turn, tick in self._graphs[branch].iter_times(
+				time_from, time_to
+			):
+				for g, v in self._graphs[branch][turn][tick].items():
+					yield g, branch, turn, tick, v
 
 	def graphs_dump(
 		self,
 	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
 		with self._lock:
-			for b, r, t, g in sort_set(self._graphs.keys()):
-				yield g, b, r, t, self._graphs[b, r, t, g]
+			for branch in sort_set(self._graphs.keys()):
+				for turn in sort_set(self._graphs[branch].keys()):
+					for tick in sort_set(self._graphs[branch][turn].keys()):
+						d = self._graphs[branch][turn][tick]
+						for g in sort_set(d.keys()):
+							yield g, branch, turn, tick, d[g]
 
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		super().nodes_del_time(branch, turn, tick)

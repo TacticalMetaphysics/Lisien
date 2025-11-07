@@ -24,7 +24,7 @@ from functools import wraps, partial
 from pprint import pformat
 from textwrap import dedent
 from time import monotonic
-from typing import Callable, Iterable, TypeVar, Any, override
+from typing import Callable, Iterable, TypeVar, Any, Self
 
 try:
 	import msgpack._cmsgpack
@@ -293,14 +293,14 @@ class cached_in[_ME]:
 	"""
 
 	attrname: str
-	func: Callable[[Any], _ME] | None = None
+	func: Callable[[Self], _ME] | None = None
 
 	def __post_init__(self):
 		if self.func is not None:
 			self.__doc__ = self.func.__doc__
 			self.__module__ = self.func.__module__
 
-	def __call__(self, func: Callable[[Any], _ME]) -> cached_in[_ME]:
+	def __call__(self, func: Callable[[Self], _ME]) -> cached_in[_ME]:
 		self.func = func
 		self.__doc__ = func.__doc__
 		self.__module__ = func.__module__
