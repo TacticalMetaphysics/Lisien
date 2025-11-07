@@ -813,10 +813,6 @@ class AbstractDatabaseConnector(ABC):
 	) -> tuple[Branch, Turn, Tick, RuleName, RuleBig]:
 		return branch, turn, tick, rule, big
 
-	@batched("rules", key_len=1)
-	def _rules2set(self, rule: RuleName) -> tuple[str]:
-		return (rule,)
-
 	@batched("rulebooks", key_len=4)
 	def _rulebooks2set(
 		self,
