@@ -1226,8 +1226,8 @@ class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 		time_from: tuple[Turn, Tick] | None = None,
 		time_to: tuple[Turn, Tick] | None = None,
 		reverse: bool = False,
-	) -> Iterator[tuple[Turn, Tick]]:
-		return iter(SettingsTimes(self, time_from, time_to, reverse))
+	) -> SettingsTimes:
+		return SettingsTimes(self, time_from, time_to, reverse)
 
 
 class EntikeySettingsTurnDict(SettingsTurnDict):
