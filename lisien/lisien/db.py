@@ -42,6 +42,7 @@ from typing import (
 	get_args,
 	get_type_hints,
 	TYPE_CHECKING,
+	TypeVar,
 	ClassVar,
 	Set,
 	MutableSet,
@@ -4147,6 +4148,9 @@ class AbstractDatabaseConnector(ABC):
 
 		"""
 		self.load_etree(parse(xml_or_file_path))
+
+
+_T = TypeVar("_T")
 
 
 @dataclass
