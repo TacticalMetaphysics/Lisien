@@ -5076,13 +5076,13 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def universals_dump(
 		self,
 	) -> Iterator[UniversalRowType]:
+		univ = self._universals
 		with self._lock:
-			for branch in sort_set(self._universals.keys()):
-				for turn, tick in self._rulebooks[branch].iter_times():
-					rb, rs, prio = self._rulebooks[branch].retrieve_exact(
-						turn, tick
-					)
-					yield branch, turn, tick, rb, rs.copy(), prio
+			for branch in sort_set(univ.keys()):
+				univb = univ[branch]
+				for turn, tick in univb.iter_times():
+					k, v = univb.retrieve_exact(turn, tick)
+					yield branch, turn, tick, k, v
 
 	def rulebooks_dump(
 		self,
@@ -5090,97 +5090,125 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
 	]:
 		with self._lock:
-			for b, r, t, rb in sorted(self._rulebooks.keys()):
-				(rs, prio) = self._rulebooks[b, r, t, rb]
-				yield rb, b, r, t, (rs.copy(), prio)
+			for branch in sorted(self._rulebooks.keys()):
+				for turn, tick in self._rulebooks[branch].iter_times():
+					rb, rs, prio = self._rulebooks[branch].retrieve_exact(
+						turn, tick
+					)
+					yield rb, branch, turn, tick, (rs.copy(), prio)
 
 	def rules_dump(self) -> Iterator[RuleName]:
 		with self._lock:
 			yield from sort_set(self._rules)
 
+	def _rule_something_dump(
+		self,
+		tab: dict[
+			Branch,
+			AssignmentTimeDict[
+				tuple[
+					RuleName, list[RuleFuncName] | RuleNeighborhood | RuleBig
+				]
+			],
+		],
+	):
+		with self._lock:
+			for branch in sort_set(tab.keys()):
+				turns = tab[branch]
+				for turn, tick in turns.iter_times():
+					rule, funcs = turns.retrieve_exact(turn, tick)
+					if isinstance(funcs, list):
+						funcs = funcs.copy()
+					yield branch, turn, tick, rule, funcs
+
 	def rule_triggers_dump(
 		self,
 	) -> Iterator[TriggerRowType]:
-		with self._lock:
-			for b, r, t, rn in sort_set(self._rule_triggers.keys()):
-				yield b, r, t, rn, self._rule_triggers[b, r, t, rn].copy()
+		return self._rule_something_dump(self._rule_triggers)
 
 	def rule_prereqs_dump(
 		self,
 	) -> Iterator[PrereqRowType]:
-		with self._lock:
-			for b, r, t, rn in sort_set(self._rule_prereqs.keys()):
-				yield b, r, t, rn, self._rule_prereqs[b, r, t, rn].copy()
+		return self._rule_something_dump(self._rule_prereqs)
 
 	def rule_actions_dump(
 		self,
 	) -> Iterator[ActionRowType]:
-		with self._lock:
-			for b, r, t, rn in sort_set(self._rule_actions.keys()):
-				yield b, r, t, rn, self._rule_actions[b, r, t, rn].copy()
+		return self._rule_something_dump(self._rule_actions)
 
 	def rule_neighborhood_dump(
 		self,
 	) -> Iterator[RuleNeighborhoodRowType]:
-		with self._lock:
-			for b, r, t, rn in sort_set(self._rule_neighborhood.keys()):
-				yield b, r, t, rn, self._rule_neighborhood[b, r, t, rn]
+		return self._rule_something_dump(self._rule_neighborhood)
 
 	def rule_big_dump(
 		self,
 	) -> Iterator[RuleBigRowType]:
-		with self._lock:
-			for b, r, t, rn in sort_set(self._rule_big.keys()):
-				yield b, r, t, rn, self._rule_big[b, r, t, rn]
+		return self._rule_something_dump(self._rule_big)
 
 	def node_rulebook_dump(
 		self,
 	) -> Iterator[NodeRulebookRowType]:
 		with self._lock:
-			for b, r, t, g, n in sort_set(self._node_rulebook.keys()):
-				yield b, r, t, g, n, self._node_rulebook[b, r, t, g, n]
+			for branch in sort_set(self._node_rulebook.keys()):
+				nrb = self._node_rulebook[branch]
+				for turn, tick in nrb.iter_times():
+					char, node, rb = nrb.retrieve_exact(turn, tick)
+					yield branch, turn, tick, char, node, rb
 
 	def portal_rulebook_dump(
 		self,
 	) -> Iterator[PortalRulebookRowType]:
 		with self._lock:
-			for b, r, t, g, o, d in sort_set(self._portal_rulebook.keys()):
-				yield b, r, t, g, o, d, self._portal_rulebook[b, r, t, g, o, d]
+			for branch in sort_set(self._portal_rulebook.keys()):
+				porb = self._portal_rulebook[branch]
+				for turn, tick in porb.iter_times():
+					char, orig, dest, rb = porb.retrieve_exact(turn, tick)
+					yield branch, turn, tick, char, orig, dest, rb
+
+	def _character_something_rulebook_dump(
+		self,
+		what: dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]],
+	) -> Iterator[CharRulebookRowType]:
+		with self._lock:
+			for branch in sort_set(what.keys()):
+				that = what[branch]
+				for turn, tick in that.iter_times():
+					graph, rb = that.retrieve_exact(turn, tick)
+					yield branch, turn, tick, graph, rb
 
 	def character_rulebook_dump(
 		self,
 	) -> Iterator[CharRulebookRowType]:
-		with self._lock:
-			for b, r, t, g in sort_set(self._character_rulebook.keys()):
-				yield b, r, t, g, self._character_rulebook[b, r, t, g]
+		return self._character_something_rulebook_dump(
+			self._character_rulebook
+		)
 
 	def unit_rulebook_dump(
 		self,
 	) -> Iterator[CharRulebookRowType]:
-		with self._lock:
-			for b, r, t, g in sort_set(self._unit_rulebook.keys()):
-				yield b, r, t, g, self._unit_rulebook[b, r, t, g]
+		return self._character_something_rulebook_dump(self._unit_rulebook)
 
 	def character_thing_rulebook_dump(
 		self,
 	) -> Iterator[CharRulebookRowType]:
-		with self._lock:
-			for b, r, t, g in sort_set(self._character_thing_rulebook.keys()):
-				yield b, r, t, g, self._character_thing_rulebook[b, r, t, g]
+		return self._character_something_rulebook_dump(
+			self._character_thing_rulebook
+		)
 
 	def character_place_rulebook_dump(
 		self,
 	) -> Iterator[CharRulebookRowType]:
-		with self._lock:
-			for b, r, t, g in sort_set(self._character_place_rulebook.keys()):
-				yield b, r, t, g, self._character_place_rulebook[b, r, t, g]
+		return self._character_something_rulebook_dump(
+			self._character_place_rulebook
+		)
 
 	def character_portal_rulebook_dump(
 		self,
 	) -> Iterator[CharRulebookRowType]:
-		with self._lock:
-			for b, r, t, g in sort_set(self._character_portal_rulebook.keys()):
-				yield b, r, t, g, self._character_portal_rulebook[b, r, t, g]
+		return self._character_something_rulebook_dump(
+			self._character_portal_rulebook
+		)
 
 	def character_rules_handled_dump(
 		self,
@@ -5248,17 +5276,24 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def things_dump(
 		self,
 	) -> Iterator[ThingRowType]:
+		things = self._things
 		with self._lock:
-			for b, r, t, g, n in sort_set(self._things.keys()):
-				yield b, r, t, g, n, self._things[b, r, t, g, n]
+			for branch in sort_set(things.keys()):
+				thb = things[branch]
+				for turn, tick in thb.iter_times():
+					char, thing, loc = thb.retrieve_exact(turn, tick)
+					yield branch, turn, tick, char, thing, loc
 
 	def units_dump(
 		self,
 	) -> Iterator[UnitRowType]:
+		units = self._units
 		with self._lock:
-			for b, r, t, char, graph, node in sort_set(self._units.keys()):
-				units = self._units[b, r, t, char, graph, node]
-				yield b, r, t, char, graph, node, units
+			for branch in sort_set(units.keys()):
+				ub = units[branch]
+				for turn, tick in ub.iter_times():
+					char, graph, node, is_unit = ub.retrieve_exact(turn, tick)
+					yield branch, turn, tick, char, graph, node, is_unit
 
 	def count_all_table(self, tbl: str) -> int:
 		return len(getattr(self, "_" + tbl))
@@ -5270,12 +5305,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		super().things_del_time(branch, turn, tick)
 		with self._lock:
-			for key in {
-				(b, r, t, g, n)
-				for (b, r, t, g, n) in self._things
-				if (b, r, t) == (branch, turn, tick)
-			}:
-				del self._things2set[key]
+			del self._things[branch][turn][tick]
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		with self._lock:
