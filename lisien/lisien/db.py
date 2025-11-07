@@ -4767,7 +4767,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				for d in args:
 					key = tuple(d[k] for k in tab_spec.args[1:-1])
 					tab[key] = d[tab_spec.args[-1]]
-			elif tab_spec.args[1:4] == ("branch", "turn", "tick"):
+			elif tab_spec.args[1:4] == ["branch", "turn", "tick"]:
 				for d in args:
 					record = tuple(d[k] for k in tab_spec.args[4:])
 					tab[d["branch"]].store_at(d["turn"], d["tick"], record)
