@@ -144,7 +144,7 @@ from .types import (
 	GraphValKeyframe,
 	Key,
 	Keyframe,
-	KeyframeTuple,
+	KeyframeGraphRowType,
 	LinearTime,
 	NodeName,
 	NodesDict,
@@ -5396,7 +5396,11 @@ class Engine(AbstractEngine, Executor):
 		self,
 		name: CharName,
 		type_s: str = "DiGraph",
-		data: CharacterFacade | Graph | nx.Graph | dict | KeyframeTuple = None,
+		data: CharacterFacade
+		| Graph
+		| nx.Graph
+		| dict
+		| KeyframeGraphRowType = None,
 	) -> None:
 		if name in ILLEGAL_CHARACTER_NAMES:
 			raise GraphNameError("Illegal name")

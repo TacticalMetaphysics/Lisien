@@ -90,8 +90,13 @@ from .types import (
 	PortalRulesHandledRowType,
 	ThingRowType,
 	UnitRowType,
-	KeyframeTuple,
-	KeyframeExtensionTuple,
+	KeyframeGraphRowType,
+	KeyframeExtensionRowType,
+	TriggerRowType,
+	PrereqRowType,
+	ActionRowType,
+	RuleNeighborhoodRowType,
+	RuleBigRowType,
 )
 from .util import ELLIPSIS, EMPTY
 
@@ -1127,22 +1132,22 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[TriggerFuncName]]]:
+	) -> Iterator[TriggerRowType]:
 		return self._rule_dump("triggers")
 
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[PrereqFuncName]]]:
+	) -> Iterator[PrereqRowType]:
 		return self._rule_dump("prereqs")
 
 	def rule_actions_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[ActionFuncName]]]:
+	) -> Iterator[ActionRowType]:
 		return self._rule_dump("actions")
 
 	def rule_neighborhood_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
+	) -> Iterator[RuleNeighborhoodRowType]:
 		self._neighbors2set()
 		return iter(
 			sorted(
@@ -1159,7 +1164,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def rule_big_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]:
+	) -> Iterator[RuleBigRowType]:
 		self._big2set()
 		return iter(
 			sorted(
@@ -1170,9 +1175,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, CharName, NodeName, RulebookName]]:
+	) -> Iterator[NodeRulebookRowType]:
 		self._noderb2set()
-		unpack = self.unpack
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "node_rulebook"):
 			charn = CharName(unpack_key(d["character"]))
@@ -1183,11 +1187,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[
-		tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName]
-	]:
+	) -> Iterator[PortalRulebookRowType]:
 		self._portrb2set()
-		unpack = self.unpack
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "portal_rulebook"):
 			charn = CharName(unpack_key(d["character"]))
@@ -1536,7 +1537,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[KeyframeTuple]:
+	) -> Iterator[KeyframeGraphRowType]:
 		self._new_keyframes_graphs()
 		unpack = self.unpack
 		unpack_key = self.unpack_key
@@ -1551,7 +1552,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[KeyframeExtensionTuple]:
+	) -> Iterator[KeyframeExtensionRowType]:
 		self._new_keyframe_extensions()
 		extract_time = self._extract_time
 		for d in self.call("dump", "keyframe_extensions"):
