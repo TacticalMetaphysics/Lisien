@@ -833,12 +833,14 @@ class WindowDict[_K: int, _V: Value](MutableMapping[_K, _V]):
 					to_delete = set(map(get0, self._past[:-1]))
 					deleted.update(to_delete)
 					self._keys.difference_update(to_delete)
-					self._past = [self._past[-1]]
+					past1 = self._past[-1]
+					self._past.clear()
+					self._past.append(past1)
 				else:
 					to_delete = set(map(get0, self._past))
 					deleted.update(to_delete)
 					self._keys.difference_update(to_delete)
-					self._past = []
+					self._past.clear()
 			else:
 				raise ValueError("Need direction 'forward' or 'backward'")
 		return deleted
