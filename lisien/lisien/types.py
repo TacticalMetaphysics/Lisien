@@ -350,6 +350,30 @@ type NodeRulebookRowType = tuple[
 type PortalRulebookRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName
 ]
+type AssignmentRowType = (
+	NodeRowType
+	| NodeValRowType
+	| EdgeRowType
+	| EdgeValRowType
+	| GraphValRowType
+	| ThingRowType
+	| UnitRowType
+	| CharRulebookRowType
+	| NodeRulebookRowType
+	| PortalRulebookRowType
+)
+type AssignmentRowListType = (
+	list[NodeRowType]
+	| list[NodeValRowType]
+	| list[EdgeRowType]
+	| list[EdgeValRowType]
+	| list[GraphValRowType]
+	| list[ThingRowType]
+	| list[UnitRowType]
+	| list[CharRulebookRowType]
+	| list[NodeRulebookRowType]
+	| list[PortalRulebookRowType]
+)
 type CharacterRulesHandledRowType = tuple[
 	Branch,
 	Turn,
@@ -1641,9 +1665,11 @@ class DiGraph(networkx.DiGraph, ABC):
 	def __bool__(self):
 		return self._name in self.engine._graph_objs
 
-	@cached_in("_statmap")
+	@property
 	def graph(self) -> graph_map_cls:
-		return self.graph_map_cls(self)
+		if not hasattr(self, "_statmap"):
+			self._statmap = self.graph_map_cls(self)
+		return self._statmap
 
 	@graph.setter
 	def graph(self, v: dict[Stat | KeyHint, Value | ValueHint]):
