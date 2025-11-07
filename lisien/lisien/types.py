@@ -1083,7 +1083,7 @@ class Edge(AbstractEntityMapping, ABC):
 	@slotted
 	def _get_cache_stuff(self):
 		return (
-			self.character.engine.edge_val_cache.retrieve,
+			self.character.engine._edge_val_cache.retrieve,
 			self.character.name,
 			self.orig,
 			self.dest,
