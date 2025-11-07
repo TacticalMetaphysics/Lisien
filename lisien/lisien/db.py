@@ -4607,13 +4607,16 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			"portal_rules_handled", []
 		)
 		graphs: list[GraphRowType] = ret.setdefault("graphs", [])
-		for b, turn, tick, rulebook in sort_set(self._rulebooks.keys()):
-			rules, prio = self._rulebooks[b, turn, tick, rulebook]
-			if b != branch or not (
-				(turn_from, tick_from) <= (turn, tick) <= (turn_to, tick_to)
+		rbs = self._rulebooks
+		for branch in sort_set(rbs.keys()):
+			rbb = rbs[branch]
+			for turn, tick in rbb.iter_times(
+				(turn_from, tick_from), (turn_to, tick_to)
 			):
-				continue
-			rulebooks.append((b, turn, tick, rulebook, rules, prio))
+				rulebook, rules, prio = rbb.retrieve_exact(turn, tick)
+				rulebooks.append(
+					(branch, turn, tick, rulebook, rules.copy(), prio)
+				)
 		for uncharacter_l, my_table in [
 			(universals, self._universals),
 			(rule_triggers, self._rule_triggers),
@@ -4623,16 +4626,14 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			(rule_big, self._rule_big),
 			(graphs, self._graphs),
 		]:
-			for key in sort_set(my_table.keys()):
-				b, turn, tick = key[:3]
-				if b != branch or not (
-					(turn_from, tick_from)
-					<= (turn, tick)
-					<= (turn_to, tick_to)
+			if branch in my_table:
+				for turn, tick in my_table[branch].iter_times(
+					(turn_from, tick_from), (turn_to, tick_to)
 				):
-					continue
-				the_datum = key + (copy(my_table[key]),)
-				uncharacter_l.append(the_datum)
+					the_datum = my_table[branch].retrieve_exact(turn, tick)
+					if isinstance(the_datum, list):
+						the_datum = the_datum.copy()
+					uncharacter_l.append((branch, turn, tick, the_datum))
 		for char_d_key, my_table in [
 			("nodes", self._nodes),
 			("node_val", self._node_val),
@@ -4649,34 +4650,16 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			("node_rulebook", self._node_rulebook),
 			("portal_rulebook", self._portal_rulebook),
 		]:
-			for key in sort_set(my_table.keys()):
-				if isinstance(key, str):
-					key: Branch
-					assignments = my_table[key]
-					for r, t in assignments.iter_times(
-						(turn_from, tick_from), (turn_to, tick_to)
-					):
-						row: AssignmentRowType = assignments.retrieve_exact(
-							r, t
-						)
-						g: CharName = row[0]
-						the_list: AssignmentRowListType = ret[g][char_d_key]
-						the_list.append(row)
-				else:
-					b: Branch
-					turn: Turn
-					tick: Tick
-					g: CharName
-					b, turn, tick, g = key[:4]
-					if b != branch or not (
-						(turn_from, tick_from)
-						<= (turn, tick)
-						<= (turn_to, tick_to)
-					):
-						continue
-					the_list: AssignmentRowListType = ret[g][char_d_key]
-					the_datum: AssignmentRowType = key + (my_table[key],)
-					the_list.append(the_datum)
+			if branch not in my_table:
+				continue
+			assignments = my_table[branch]
+			for r, t in assignments.iter_times(
+				(turn_from, tick_from), (turn_to, tick_to)
+			):
+				row: AssignmentRowType = assignments.retrieve_exact(r, t)
+				g: CharName = row[0]
+				the_list: AssignmentRowListType = ret[g][char_d_key]
+				the_list.append(row)
 		for handled_l, my_table in [
 			(node_rules_handled, self._node_rules_handled),
 			(portal_rules_handled, self._portal_rules_handled),
