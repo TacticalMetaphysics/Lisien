@@ -96,7 +96,8 @@ from .types import (
 	PrereqRowType,
 	ActionRowType,
 	RuleNeighborhoodRowType,
-	RuleBigRowType, StatDict,
+	RuleBigRowType,
+	StatDict,
 )
 from .util import ELLIPSIS, EMPTY
 
