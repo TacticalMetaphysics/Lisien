@@ -1221,7 +1221,7 @@ class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 			return None
 		return self.end, self.final().end
 
-	def times(
+	def iter_times(
 		self,
 		time_from: tuple[Turn, Tick] | None = None,
 		time_to: tuple[Turn, Tick] | None = None,
