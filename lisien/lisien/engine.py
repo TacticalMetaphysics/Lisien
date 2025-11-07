@@ -109,7 +109,6 @@ from .db import (
 	NullDatabaseConnector,
 )
 from .exc import (
-	ExceptionGroup,
 	GraphNameError,
 	HistoricKeyError,
 	KeyframeError,
