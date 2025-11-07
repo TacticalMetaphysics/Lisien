@@ -20,16 +20,11 @@ import gc
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import wraps
+from functools import wraps, partial
 from pprint import pformat
 from textwrap import dedent
 from time import monotonic
-from typing import (
-	Callable,
-	Iterable,
-	TypeVar,
-	Any,
-)
+from typing import Callable, Iterable, TypeVar, Any, override
 
 try:
 	import msgpack._cmsgpack
@@ -284,36 +279,43 @@ def getatt(attribute_name: str) -> property:
 
 _UNSET = object()
 
+_TEE = TypeVar("_TEE")
+
 
 @dataclass
-class cached_in:
-	"""Decorator similar to @cached_property, but using the given attribute
+class cached_in[_ME]:
+	"""Like @cached_property, but you can set the attribute name yourself.
 
-	Mainly useful in case you want a cached property on a class that has
-	``__slots__``.
-
-	"""
-
-	slot: str
-
-	def __call__(self, func: Callable[[Any], Any]) -> property:
-		slot = self.slot
-
-		@wraps(func)
-		def getter(self):
-			the_it = getattr(self, slot, _UNSET)
-			if the_it is _UNSET:
-				the_it = func(self)
-				setattr(self, slot, the_it)
-			return the_it
-
-		return property(getter)
-
-
-def slotted(func: Callable) -> property:
-	"""Decorator to cache the func's return value in a slot named like it
-
-	With _ at the end.
+	You'll still *access* the cached property by the name of the decorated
+	function. The result is merely *stored* in the attribute you specify.
+	This is useful if the class has ``__slots__``.
 
 	"""
-	return cached_in(func.__name__ + "_")(func)
+
+	attrname: str
+	func: Callable[[Any], _ME] | None = None
+
+	def __post_init__(self):
+		if self.func is not None:
+			self.__doc__ = self.func.__doc__
+			self.__module__ = self.func.__module__
+
+	def __call__(self, func: Callable[[Any], _ME]) -> cached_in[_ME]:
+		self.func = func
+		self.__doc__ = func.__doc__
+		self.__module__ = func.__module__
+		return self
+
+	def __get__(self, instance, owner=None) -> _ME:
+		if instance is None:
+			return self
+		val = getattr(instance, self.attrname, _UNSET)
+		if val is _UNSET:
+			val = self.func(instance)
+			setattr(instance, self.attrname, val)
+		return val
+
+
+def slotted(func: Callable[[Any], _TEE]) -> cached_in[_TEE]:
+	"""Cache the property in the slot named like the function, with underscore at end"""
+	return cached_in(func.__name__ + "_", func)
