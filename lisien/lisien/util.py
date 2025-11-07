@@ -330,13 +330,13 @@ class cached_property:
 				val = self.func(instance)
 				try:
 					setattr(instance, self.attrname, val)
-				except AttributeError as err:
+				except AttributeError:
 					msg = (
 						f"The class {type(instance).__name__!r} does not "
 						f"have the requested slot, {self.attrname!r}, "
 						"in its '__slots__' attribute"
 					)
-					raise TypeError(msg) from err
+					raise TypeError(msg) from None
 			return val
 		try:
 			cache = instance.__dict__
@@ -369,4 +369,6 @@ _TEE = TypeVar("_TEE")
 
 def slotted(func: Callable[[Any], _TEE]) -> cached_property[_TEE]:
 	"""Cache the property in the slot named like the function, with underscore at end"""
+	if not hasattr(func, "__doc__") or not hasattr(func, "__module__"):
+		raise TypeError("Not a real function", func)
 	return cached_property(func.__name__ + "_")(func)
