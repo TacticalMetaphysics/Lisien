@@ -131,6 +131,7 @@ from .types import (
 	Tick,
 	Time,
 	TimeWindow,
+	TurnRowType,
 	TriggerFuncName,
 	trigfuncn,
 	TriggerRowType,
@@ -1542,7 +1543,7 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def branches_dump(
 		self,
-	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
+	) -> Iterator[BranchRowType]:
 		pass
 
 	@abstractmethod
@@ -1590,7 +1591,7 @@ class AbstractDatabaseConnector(ABC):
 		self._turns2set.append((branch, turn, end_tick, plan_end_tick))
 
 	@abstractmethod
-	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
+	def turns_dump(self) -> Iterator[TurnRowType]:
 		pass
 
 	@abstractmethod
@@ -1776,15 +1777,13 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def universals_dump(
 		self,
-	) -> Iterator[tuple[Key, Branch, Turn, Tick, Value]]:
+	) -> Iterator[UniversalRowType]:
 		pass
 
 	@abstractmethod
 	def rulebooks_dump(
 		self,
-	) -> Iterator[
-		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
-	]:
+	) -> Iterator[tuple[RulebookRowType]]:
 		pass
 
 	@abstractmethod
@@ -1794,74 +1793,72 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[TriggerFuncName]]]:
+	) -> Iterator[TriggerRowType]:
 		pass
 
 	@abstractmethod
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[PrereqFuncName]]]:
+	) -> Iterator[PrereqRowType]:
 		pass
 
 	@abstractmethod
 	def rule_actions_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, list[ActionFuncName]]]:
+	) -> Iterator[ActionRowType]:
 		pass
 
 	@abstractmethod
 	def rule_neighborhood_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
+	) -> Iterator[RuleNeighborhoodRowType]:
 		pass
 
 	@abstractmethod
 	def rule_big_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]: ...
+	) -> Iterator[RuleBigRowType]: ...
 
 	@abstractmethod
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, NodeName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[NodeRulebookRowType]:
 		pass
 
 	@abstractmethod
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[
-		tuple[CharName, NodeName, NodeName, Branch, Turn, Tick, RulebookName]
-	]:
+	) -> Iterator[tuple[PortalRulebookRowType]]:
 		pass
 
 	@abstractmethod
 	def character_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		pass
 
 	@abstractmethod
 	def unit_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		pass
 
 	@abstractmethod
 	def character_thing_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		pass
 
 	@abstractmethod
 	def character_place_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		pass
 
 	@abstractmethod
 	def character_portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, RulebookName]]:
+	) -> Iterator[CharRulebookRowType]:
 		pass
 
 	@abstractmethod
@@ -2534,12 +2531,14 @@ class AbstractDatabaseConnector(ABC):
 			return Element("character", name=repr(value.name))
 		elif isinstance(value, lisien.types.Node):
 			return Element(
-				"node", character=repr(value.graph.name), name=repr(value.name)
+				"node",
+				character=repr(value.character.name),
+				name=repr(value.name),
 			)
 		elif isinstance(value, lisien.types.Edge):
 			return Element(
 				"portal",
-				character=repr(value.graph.name),
+				character=repr(value.character.name),
 				origin=repr(value.orig),
 				destination=repr(value.dest),
 			)
@@ -4858,7 +4857,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def branches_dump(
 		self,
-	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
+	) -> Iterator[BranchRowType]:
 		with self._lock:
 			for branch in sort_set(self._branches.keys()):
 				parent, r0, t0, r1, t1 = self._branches[branch]
@@ -4886,7 +4885,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		assert isinstance(t, int)
 		return Tick(t)
 
-	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
+	def turns_dump(self) -> Iterator[TurnRowType]:
 		with self._lock:
 			for (branch, turn), (
 				end_tick,
@@ -4999,20 +4998,18 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
 		with self._lock:
-			for key in sort_set(self._edge_val.keys()):
-				yield key, self._edge_val[key]
+			for branch in sort_set(self._edge_val.keys()):
+				evb = self._edge_val[branch]
+				for turn, tick in evb.iter_times():
+					k, v = evb.retrieve_exact(turn, tick)
+					yield branch, turn, tick, k, v
 
 	def edge_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		super().edge_val_del_time(branch, turn, tick)
 		with self._lock:
-			for key in {
-				(b, r, t, g, o, d, k)
-				for (b, r, t, g, o, d, k) in self._edge_val
-				if (b, r, t) == (branch, turn, tick)
-			}:
-				del self._edge_val[key]
+			del self._edge_val[branch][turn][tick]
 
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		with self._lock:
@@ -5078,10 +5075,14 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def universals_dump(
 		self,
-	) -> Iterator[tuple[Key, Branch, Turn, Tick, Value]]:
+	) -> Iterator[UniversalRowType]:
 		with self._lock:
-			for b, r, t, k in sort_set(self._universals.keys()):
-				yield k, b, r, t, *self._universals[b, r, t, k]
+			for branch in sort_set(self._universals.keys()):
+				for turn, tick in self._rulebooks[branch].iter_times():
+					rb, rs, prio = self._rulebooks[branch].retrieve_exact(
+						turn, tick
+					)
+					yield branch, turn, tick, rb, rs.copy(), prio
 
 	def rulebooks_dump(
 		self,
@@ -5390,7 +5391,7 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 
 	def branches_dump(
 		self,
-	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
+	) -> Iterator[BranchRowType]:
 		return iter(())
 
 	def global_get(self, key: Key) -> Any:
@@ -5457,12 +5458,12 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 		tick_from: Tick,
 		turn_to: Optional[Turn] = None,
 		tick_to: Optional[Tick] = None,
-	) -> Iterator[tuple[Key, str, int, int, str]]:
+	) -> Iterator[GraphRowType]:
 		return iter(())
 
 	def graphs_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
+	) -> Iterator[GraphRowType]:
 		return iter(())
 
 	def exist_node(
