@@ -295,7 +295,7 @@ class cached_property:
 			self.func = None
 
 	def __call__(self, func):
-		if self.slot is None:
+		if self.attrname is None:
 			raise TypeError("Can only use one function")
 		if not callable(func):
 			raise TypeError(
