@@ -33,7 +33,7 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from copy import copy
-from functools import cached_property, partial, wraps
+from functools import partial, wraps
 from hashlib import blake2b
 from multiprocessing import get_all_start_methods
 from io import TextIOWrapper, IOBase
@@ -205,6 +205,7 @@ from .util import (
 	normalize_layout,
 	timer,
 	world_locked,
+	cached_property,
 )
 from .window import (
 	LinearTimeListDict,

@@ -18,7 +18,7 @@ import inspect
 import sys
 from collections import OrderedDict
 from dataclasses import dataclass, field, KW_ONLY
-from functools import cached_property, partial, partialmethod
+from functools import partial, partialmethod
 from queue import Queue
 from threading import Thread
 from typing import Union, Iterator, get_args
@@ -90,6 +90,7 @@ from .types import (
 	KeyframeExtensionRowType,
 	BranchRowType,
 )
+from .util import cached_property
 
 meta = MetaData()
 py2sql: dict[type, type] = {

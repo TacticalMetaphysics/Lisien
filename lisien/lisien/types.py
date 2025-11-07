@@ -76,7 +76,7 @@ from tblib import Traceback
 
 from . import exc
 from .exc import WorkerProcessReadOnlyError, TimeError
-from .util import getatt, cached_in, slotted
+from .util import getatt, cached_property, slotted
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
@@ -656,11 +656,11 @@ class GraphMapping(AbstractEntityMapping, ABC):
 		super().__init__(graph)
 		self.character = graph
 
-	@cached_in("_engine")
+	@cached_property("_engine")
 	def engine(self):
 		return self.character.engine
 
-	@cached_in("_iter_stuff_")
+	@cached_property("_iter_stuff_")
 	def _iter_stuff(self):
 		return (
 			self.engine._graph_val_cache.iter_keys,
@@ -668,11 +668,11 @@ class GraphMapping(AbstractEntityMapping, ABC):
 			self.engine.time,
 		)
 
-	@cached_in("_contains_stuff_")
+	@cached_property("_contains_stuff_")
 	def _cache_contains_stuff(self):
 		return self.engine._graph_val_cache.contains_key, self.character.name
 
-	@cached_in("_len_stuff_")
+	@cached_property("_len_stuff_")
 	def _len_stuff(self):
 		return (
 			self.engine._graph_val_cache.count_keys,
@@ -680,7 +680,7 @@ class GraphMapping(AbstractEntityMapping, ABC):
 			self.engine.time,
 		)
 
-	@cached_in("_get_stuff_")
+	@cached_property("_get_stuff_")
 	def _get_stuff(
 		self,
 	) -> tuple[
@@ -689,19 +689,19 @@ class GraphMapping(AbstractEntityMapping, ABC):
 	]:
 		return self._get_cache, self.engine.time
 
-	@cached_in("_set_db_stuff_")
+	@cached_property("_set_db_stuff_")
 	def _set_db_stuff(self):
 		return self.engine.query.graph_val_set, self.character.name
 
-	@cached_in("_set_cache_stuff_")
+	@cached_property("_set_cache_stuff_")
 	def _set_cache_stuff(self):
 		return self.engine._graph_val_cache.store, self.character.name
 
-	@cached_in("_del_db_stuff_")
+	@cached_property("_del_db_stuff_")
 	def _del_db_stuff(self):
 		return self.engine.query.graph_val_set, self.character.name
 
-	@cached_in("_get_cache_stuff_")
+	@cached_property("_get_cache_stuff_")
 	def _get_cache_stuff(self):
 		return (self.engine._graph_val_cache.retrieve, self.character.name)
 
@@ -828,11 +828,11 @@ class Node(AbstractEntityMapping, ABC):
 			return self.name
 		return Value(super().__getitem__(item))
 
-	@cached_in("_engine_")
+	@cached_property("_engine_")
 	def engine(self):
 		return self.character.engine
 
-	@cached_in("_iter_")
+	@cached_property("_iter_")
 	def _iter_stuff(self):
 		return (
 			self.engine._node_val_cache.iter_keys,
@@ -841,7 +841,7 @@ class Node(AbstractEntityMapping, ABC):
 			self.engine.time,
 		)
 
-	@cached_in("_contains_")
+	@cached_property("_contains_")
 	def _cache_contains_stuff(self):
 		return (
 			self.engine._node_val_cache.contains_key,
@@ -849,7 +849,7 @@ class Node(AbstractEntityMapping, ABC):
 			self.name,
 		)
 
-	@cached_in("_len_")
+	@cached_property("_len_")
 	def _len_stuff(self):
 		return (
 			self.engine._node_val_cache.count_keys,
@@ -858,7 +858,7 @@ class Node(AbstractEntityMapping, ABC):
 			self.engine.time,
 		)
 
-	@cached_in("_get_")
+	@cached_property("_get_")
 	def _get_cache_stuff(self):
 		return (
 			self.engine._node_val_cache.retrieve,
@@ -866,11 +866,11 @@ class Node(AbstractEntityMapping, ABC):
 			self.name,
 		)
 
-	@cached_in("_set_db_")
+	@cached_property("_set_db_")
 	def _set_db_stuff(self):
 		return self.engine.query.node_val_set, self.character.name, self.name
 
-	@cached_in("_set_cache_")
+	@cached_property("_set_cache_")
 	def _set_cache_stuff(self):
 		return (
 			self.engine._node_val_cache.store,
@@ -1025,7 +1025,7 @@ class Edge(AbstractEntityMapping, ABC):
 		self.orig = orig
 		self.dest = dest
 
-	@cached_in("_engine")
+	@cached_property("_engine")
 	def engine(self):
 		return self.character.engine
 
@@ -1680,19 +1680,19 @@ class DiGraph(networkx.DiGraph, ABC):
 		self._statmap.clear()
 		self._statmap.update(v)
 
-	@cached_in("_nodemap")
+	@cached_property("_nodemap")
 	def node(self) -> node_map_cls:
 		return self.node_map_cls(self)
 
 	_node = node
 
-	@cached_in("_adjmap")
+	@cached_property("_adjmap")
 	def adj(self) -> adj_cls:
 		return self.adj_cls(self)
 
 	edge = succ = _succ = _adj = adj
 
-	@cached_in("_predmap")
+	@cached_property("_predmap")
 	def pred(self):
 		return self.pred_cls(self)
 

@@ -36,7 +36,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Mapping, MutableMapping
-from functools import cached_property
 from itertools import chain
 from types import MethodType
 from typing import (
@@ -86,7 +85,7 @@ from .types import (
 	TimeSignal,
 	BaseMutableCharacterMapping,
 )
-from .util import singleton_get, timer, unwrap, getatt
+from .util import singleton_get, timer, unwrap, getatt, cached_property
 
 if TYPE_CHECKING:
 	from .engine import Engine

@@ -17,7 +17,6 @@ import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import cached_property
 from operator import attrgetter
 from threading import RLock
 from typing import (
@@ -59,6 +58,7 @@ from .types import (
 	Time,
 )
 from .util import (
+	cached_property,
 	print_call_sig,
 	timer,
 	getatt,
