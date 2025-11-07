@@ -31,6 +31,7 @@ from collections.abc import (
 	MutableMapping,
 	ValuesView,
 )
+from dataclasses import dataclass, replace
 from enum import Enum
 from functools import partial
 from itertools import chain
@@ -1006,7 +1007,126 @@ class EntikeyWindowDict(WindowDict):
 		self.entikeys.remove(entikey)
 
 
-_VV = TypeVar("_VV")
+@dataclass
+class SettingsTimes(Iterable[tuple[Turn, Tick]]):
+	td: SettingsTurnDict
+	time_from: LinearTime | None
+	time_to: LinearTime | None
+	reverse: bool
+
+	def __iter__(self) -> Iterator[LinearTime]:
+		if self.reverse:
+			return self.iter_reverse()
+		else:
+			return self.iter_forward()
+
+	def __reversed__(self):
+		return replace(self, reverse=not self.reverse)
+
+	def iter_forward(self) -> Iterator[LinearTime]:
+		time_from = self.time_from
+		time_to = self.time_to
+		if time_from is None and time_to is None:
+			for trn, tcks in self.td.items():
+				for tck in tcks:
+					yield trn, tck
+		elif time_from is None:
+			turn_to, tick_to = time_to
+			for trn, tcks in self.td.items():
+				if trn >= turn_to:
+					break
+				for tck in tcks:
+					yield trn, tck
+			if turn_to in self.td:
+				for tck in self.td[turn_to]:
+					if tck >= tick_to:
+						return
+					yield turn_to, tck
+		elif time_to is None:
+			turn_from, tick_from = time_from
+			if turn_from in self.td:
+				for tck in self.td[turn_from].future(
+					tick_from, include_same_rev=True
+				):
+					yield turn_from, tck
+			for trn, tcks in self.td.future(
+				turn_from, include_same_rev=False
+			).items():
+				for tck in tcks:
+					yield trn, tck
+		else:
+			turn_from, tick_from = time_from
+			turn_to, tick_to = time_to
+			if turn_from == turn_to:
+				if turn_to not in self.td:
+					return
+				for tck in self.td[turn_to].future(
+					tick_from, include_same_rev=True
+				):
+					if tck > tick_to:
+						return
+					yield turn_to, tck
+			else:
+				for trn in self.td.future(turn_from, include_same_rev=True):
+					if trn > turn_to:
+						return
+					elif trn == turn_to:
+						for tck in reversed(
+							self.td[trn].past(tick_to, include_same_rev=True)
+						):
+							yield trn, tck
+					else:
+						for tck in self.td[trn]:
+							yield trn, tck
+
+	def iter_reverse(self) -> Iterator[LinearTime]:
+		time_from = self.time_from
+		time_to = self.time_to
+		if time_from is None and time_to is None:
+			for trn, tcks in reversed(self.td.items()):
+				for tck in reversed(tcks):
+					yield trn, tck
+		elif time_from is None:
+			turn_to, tick_to = time_to
+			if turn_to in self.td:
+				for tck in self.td[turn_to].past(
+					tick_to, include_same_rev=True
+				):
+					yield turn_to, tck
+			for trn, tcks in self.td.past(turn_to, include_same_rev=False):
+				for tck in reversed(tcks):
+					yield trn, tck
+
+		elif time_to is None:
+			turn_from, tick_from = time_from
+			for trn, tcks in reversed(
+				self.td.future(turn_from, include_same_rev=True)
+			):
+				if trn == turn_from:
+					for tck in reversed(
+						tcks.future(tick_from, include_same_rev=True)
+					):
+						yield trn, tck
+				else:
+					for tck in reversed(tcks.keys()):
+						yield trn, tck
+		else:
+			turn_from, tick_from = time_from
+			turn_to, tick_to = time_to
+			for trn, tcks in self.td.past(turn_to, include_same_rev=True):
+				if trn == turn_to:
+					for tck in tcks.past(tick_to, include_same_rev=True):
+						yield trn, tck
+				elif trn == turn_from:
+					for tck in reversed(
+						tcks.future(tick_from, include_same_rev=True)
+					):
+						yield trn, tck
+				elif trn < turn_from:
+					return
+				else:
+					for tck in reversed(tcks.keys()):
+						yield trn, tck
 
 
 class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
@@ -1105,59 +1225,9 @@ class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 		self,
 		time_from: tuple[Turn, Tick] | None = None,
 		time_to: tuple[Turn, Tick] | None = None,
+		reverse: bool = False,
 	) -> Iterator[tuple[Turn, Tick]]:
-		if time_from is None and time_to is None:
-			for trn, tcks in self.items():
-				for tck in tcks:
-					yield trn, tck
-		elif time_from is None:
-			turn_to, tick_to = time_to
-			for trn, tcks in self.items():
-				if trn >= turn_to:
-					break
-				for tck in tcks:
-					yield trn, tck
-			if turn_to in self:
-				for tck in self[turn_to]:
-					if tck >= tick_to:
-						return
-					yield turn_to, tck
-		elif time_to is None:
-			turn_from, tick_from = time_from
-			if turn_from in self:
-				for tck in self[turn_from].future(
-					tick_from, include_same_rev=True
-				):
-					yield turn_from, tck
-			for trn, tcks in self.future(
-				turn_from, include_same_rev=False
-			).items():
-				for tck in tcks:
-					yield trn, tck
-		else:
-			turn_from, tick_from = time_from
-			turn_to, tick_to = time_to
-			if turn_from == turn_to:
-				if turn_to not in self:
-					return
-				for tck in self[turn_to].future(
-					tick_from, include_same_rev=True
-				):
-					if tck > tick_to:
-						return
-					yield turn_to, tck
-			else:
-				for trn in self.future(turn_from, include_same_rev=True):
-					if trn > turn_to:
-						return
-					elif trn == turn_to:
-						for tck in reversed(
-							self[trn].past(tick_to, include_same_rev=True)
-						):
-							yield trn, tck
-					else:
-						for tck in self[trn]:
-							yield trn, tck
+		return iter(SettingsTimes(self, time_from, time_to, reverse))
 
 
 class EntikeySettingsTurnDict(SettingsTurnDict):
