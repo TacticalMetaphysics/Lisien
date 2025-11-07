@@ -4304,7 +4304,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				if k == key:
 					return v
 		for trn, tck in reversed(td.iter_times(time_to=(turn, tick))):
-			(k, v) = td.retrieve_exact()
+			(k, v) = td.retrieve_exact(trn, tck)
 			if k == key:
 				return v
 		raise KeyError(
