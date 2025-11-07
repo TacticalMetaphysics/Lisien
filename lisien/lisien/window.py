@@ -825,7 +825,7 @@ class WindowDict[_K: int, _V: Value](MutableMapping[_K, _V]):
 				to_delete = set(map(get0, self._future))
 				deleted.update(to_delete)
 				self._keys.difference_update(to_delete)
-				self._future = []
+				self._future.clear()
 			elif direction == Direction.BACKWARD:
 				if not self._past:
 					return deleted
