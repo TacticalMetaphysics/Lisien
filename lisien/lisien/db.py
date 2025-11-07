@@ -4755,9 +4755,13 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				tuple(d[arg] for arg in tab_spec.args[1:]) for d in args
 			)
 		elif isinstance(tab, set):
-			tab.update(
-				tuple(d[arg] for arg in tab_spec.args[1:]) for d in args
-			)
+			if len(tab_spec.args) == 2:  # self, and one actual column name
+				the_arg = tab_spec.args[-1]
+				tab.update(d[the_arg] for d in args)
+			else:
+				tab.update(
+					tuple(d[arg] for arg in tab_spec.args[1:]) for d in args
+				)
 		elif isinstance(tab, dict):
 			if mth := getattr(self, "_" + table_name + "_insert_rec", None):
 				for rec in args:
