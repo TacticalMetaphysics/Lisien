@@ -96,7 +96,7 @@ from .types import (
 	PrereqRowType,
 	ActionRowType,
 	RuleNeighborhoodRowType,
-	RuleBigRowType,
+	RuleBigRowType, StatDict,
 )
 from .util import ELLIPSIS, EMPTY
 
@@ -1544,9 +1544,9 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		extract_time = self._extract_time
 		for d in self.call("dump", "keyframes_graphs"):
 			graph = CharName(unpack_key(d["graph"]))
-			nodes = NodeKeyframe(unpack(d["nodes"]))
-			edges = EdgeKeyframe(unpack(d["edges"]))
-			graph_val = CharDict(unpack(d["graph_val"]))
+			nodes: NodeKeyframe = unpack(d["nodes"])
+			edges: EdgeKeyframe = unpack(d["edges"])
+			graph_val: StatDict = unpack(d["graph_val"])
 			branch, turn, tick = extract_time(d)
 			yield branch, turn, tick, graph, nodes, edges, graph_val
 

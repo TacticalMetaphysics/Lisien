@@ -481,8 +481,8 @@ type KeyframeGraphRowType = tuple[
 	Turn,
 	Tick,
 	CharName,
-	GraphNodeValKeyframe,
-	GraphEdgeValKeyframe,
+	NodeKeyframe,
+	EdgeKeyframe,
 	StatDict,
 ]
 type KeyframeExtensionRowType = tuple[
