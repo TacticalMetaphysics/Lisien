@@ -71,7 +71,7 @@ from .types import (
 from .window import (
 	Direction,
 	EntikeySettingsTurnDict,
-	SettingsTurnDict,
+	AssignmentTimeDict,
 	WindowDict,
 )
 
@@ -333,7 +333,7 @@ class Cache:
 		Deeper layers of this cache are keyed by branch and revision.
 
 		"""
-		return StructuredDefaultDict(3, SettingsTurnDict)
+		return StructuredDefaultDict(3, AssignmentTimeDict)
 
 	@cached_property
 	def keys(self):
@@ -346,12 +346,12 @@ class Cache:
 		Deeper layers of this cache are keyed by branch, turn, and tick.
 
 		"""
-		return StructuredDefaultDict(2, SettingsTurnDict)
+		return StructuredDefaultDict(2, AssignmentTimeDict)
 
 	@cached_property
 	def keycache(self):
 		"""Keys an entity has at a given turn and tick."""
-		return PickyDefaultDict(SettingsTurnDict)
+		return PickyDefaultDict(AssignmentTimeDict)
 
 	@cached_property
 	def branches(self):
@@ -361,13 +361,13 @@ class Cache:
 		but still need to iterate through history to find the value.
 
 		"""
-		return StructuredDefaultDict(1, SettingsTurnDict)
+		return StructuredDefaultDict(1, AssignmentTimeDict)
 
 	@cached_property
 	def keyframe(self):
 		"""Key-value dictionaries representing my state at a given time"""
 		return StructuredDefaultDict(
-			1, SettingsTurnDict, **(self._keyframe_dict or {})
+			1, AssignmentTimeDict, **(self._keyframe_dict or {})
 		)
 
 	@cached_property
@@ -572,7 +572,7 @@ class Cache:
 			else:
 				kfgb[turn] = {tick: keyframe}
 		else:
-			d = SettingsTurnDict()
+			d = AssignmentTimeDict()
 			d[turn] = {tick: keyframe}
 			kfg[branch] = d
 
@@ -841,7 +841,7 @@ class Cache:
 				else:
 					keycache2[turn] = {tick: ret}
 			else:
-				kcc = SettingsTurnDict()
+				kcc = AssignmentTimeDict()
 				kcc[turn] = {tick: ret}
 				keycache[keycache_key] = kcc
 			return ret
@@ -908,7 +908,9 @@ class Cache:
 			kc = kc.union((key,))
 		parentibranch = (*parent, entity, branch)
 		if parentibranch not in self.keycache:
-			self.keycache[parentibranch] = SettingsTurnDict({turn: {tick: kc}})
+			self.keycache[parentibranch] = AssignmentTimeDict(
+				{turn: {tick: kc}}
+			)
 		else:
 			self.keycache[parentibranch][turn][tick] = kc
 
@@ -2194,8 +2196,8 @@ class EdgesCache(Cache):
 		keyframe_dict: Optional[dict] = None,
 	):
 		super().__init__(db, name, keyframe_dict)
-		self.origcache = PickyDefaultDict(SettingsTurnDict)
-		self.predecessors = StructuredDefaultDict(3, SettingsTurnDict)
+		self.origcache = PickyDefaultDict(AssignmentTimeDict)
+		self.predecessors = StructuredDefaultDict(3, AssignmentTimeDict)
 		self._origcache_lru = OrderedDict()
 		self._get_origcache_stuff: tuple[
 			PickyDefaultDict,
@@ -3950,7 +3952,7 @@ class RulesHandledCache(ABC):
 	]
 	handled_deep: dict[
 		Branch,
-		SettingsTurnDict[
+		AssignmentTimeDict[
 			Turn,
 			dict[
 				Tick,
@@ -3968,7 +3970,7 @@ class RulesHandledCache(ABC):
 		self.engine = engine
 		self.name = name
 		self.handled = {}
-		self.handled_deep = PickyDefaultDict(SettingsTurnDict)
+		self.handled_deep = PickyDefaultDict(AssignmentTimeDict)
 
 	def __init_subclass__(cls, **kwargs):
 		iter_unhandled_rules = getattr(cls, "iter_unhandled_rules")
@@ -4868,7 +4870,7 @@ class NodeContentsCache(Cache):
 		keyframe_dict: Optional[dict] = None,
 	):
 		super().__init__(db, name, keyframe_dict)
-		self.loc_settings = StructuredDefaultDict(1, SettingsTurnDict)
+		self.loc_settings = StructuredDefaultDict(1, AssignmentTimeDict)
 
 	def delete_plan(self, plan: Plan) -> None:
 		plan_ticks = self.engine._plan_ticks[plan]

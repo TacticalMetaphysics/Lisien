@@ -74,7 +74,7 @@ else:
 			parse,
 		)
 
-from .window import SettingsTurnDict, WindowDict
+from .window import AssignmentTimeDict, WindowDict
 import lisien.types
 from .types import (
 	ActionFuncName,
@@ -3290,7 +3290,7 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			SettingsTurnDict[Turn, WindowDict[Tick, list[TriggerFuncName]]],
+			AssignmentTimeDict[Turn, WindowDict[Tick, list[TriggerFuncName]]],
 		],
 	]:
 		return {}
@@ -3302,7 +3302,7 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			SettingsTurnDict[Turn, WindowDict[Tick, list[PrereqFuncName]]],
+			AssignmentTimeDict[Turn, WindowDict[Tick, list[PrereqFuncName]]],
 		],
 	]:
 		return {}
@@ -3314,7 +3314,7 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			SettingsTurnDict[Turn, WindowDict[Tick, list[ActionFuncName]]],
+			AssignmentTimeDict[Turn, WindowDict[Tick, list[ActionFuncName]]],
 		],
 	]:
 		return {}
@@ -3325,7 +3325,8 @@ class AbstractDatabaseConnector(ABC):
 	) -> dict[
 		RuleName,
 		dict[
-			Branch, SettingsTurnDict[Turn, WindowDict[Tick, RuleNeighborhood]]
+			Branch,
+			AssignmentTimeDict[Turn, WindowDict[Tick, RuleNeighborhood]],
 		],
 	]:
 		return {}
@@ -3335,7 +3336,7 @@ class AbstractDatabaseConnector(ABC):
 		self,
 	) -> dict[
 		RuleName,
-		dict[Branch, SettingsTurnDict[Turn, WindowDict[Tick, RuleBig]]],
+		dict[Branch, AssignmentTimeDict[Turn, WindowDict[Tick, RuleBig]]],
 	]:
 		return {}
 
@@ -3658,9 +3659,9 @@ class AbstractDatabaseConnector(ABC):
 				else:
 					d[rule][branch][turn] = {tick: datum}
 			else:
-				d[rule][branch] = SettingsTurnDict({turn: {tick: datum}})
+				d[rule][branch] = AssignmentTimeDict({turn: {tick: datum}})
 		else:
-			d[rule] = {branch: SettingsTurnDict({turn: {tick: datum}})}
+			d[rule] = {branch: AssignmentTimeDict({turn: {tick: datum}})}
 
 	_rule_triggers_rec = partialmethod(_rule_func_list, "triggers")
 	_rule_prereqs_rec = partialmethod(_rule_func_list, "prereqs")
@@ -4124,7 +4125,7 @@ class AbstractDatabaseConnector(ABC):
 							for turn in mapp[rule][branch]:
 								# Turn and tick are guaranteed to be in
 								# chronological order here, because that's what
-								# a SettingsTurnDict does.
+								# an AssignmentTimeDict does.
 								for tick, datum in mapp[rule][branch][
 									turn
 								].items():

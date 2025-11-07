@@ -58,7 +58,7 @@ def update_window(
 	turn_to: Turn,
 	tick_to: Tick,
 	updfun: Callable[[Turn, Tick, ...], None],
-	branchd: SettingsTurnDict,
+	branchd: AssignmentTimeDict,
 ):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from == turn_to:
@@ -98,7 +98,7 @@ def update_backward_window(
 	turn_to: Turn,
 	tick_to: Tick,
 	updfun: Callable[[Turn, Tick, ...], None],
-	branchd: SettingsTurnDict,
+	branchd: AssignmentTimeDict,
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
 	if turn_from == turn_to:
@@ -1009,7 +1009,7 @@ class EntikeyWindowDict(WindowDict):
 
 @dataclass
 class SettingsTimes(Iterable[tuple[Turn, Tick]]):
-	td: SettingsTurnDict
+	td: AssignmentTimeDict
 	time_from: LinearTime | None
 	time_to: LinearTime | None
 	reverse: bool
@@ -1129,7 +1129,7 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 						yield trn, tck
 
 
-class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
+class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 	"""A WindowDict that contains a span of time, indexed as turns and ticks
 
 	Each turn is a series of ticks. Once a value is set at some turn and tick,
@@ -1230,5 +1230,5 @@ class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 		return SettingsTimes(self, time_from, time_to, reverse)
 
 
-class EntikeySettingsTurnDict(SettingsTurnDict):
+class EntikeySettingsTurnDict(AssignmentTimeDict):
 	cls = EntikeyWindowDict
