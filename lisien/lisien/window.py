@@ -40,6 +40,7 @@ from typing import Any, Callable, Iterable, Iterator, Union, TypeVar
 
 from .exc import HistoricKeyError
 from .types import LinearTime, Tick, Turn, Value
+from .util import slotted
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -126,16 +127,16 @@ def update_backward_window(
 			updfun(turn_to, tick, *state)
 
 
-class WindowDictKeysView(KeysView):
+class WindowDictKeysView[_K: int](KeysView):
 	"""Look through all the keys a WindowDict contains."""
 
-	_mapping: "WindowDict"
+	_mapping: WindowDict[_K, ...]
 
-	def __contains__(self, rev: int):
+	def __contains__(self, rev: _K) -> bool:
 		with self._mapping._lock:
 			return rev in self._mapping._keys
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[_K]:
 		with self._mapping._lock:
 			past = self._mapping._past
 			future = self._mapping._future
@@ -144,7 +145,7 @@ class WindowDictKeysView(KeysView):
 			if future:
 				yield from map(get0, reversed(future))
 
-	def __reversed__(self):
+	def __reversed__(self) -> Iterator[_K]:
 		with self._mapping._lock:
 			past = self._mapping._past
 			future = self._mapping._future
@@ -157,16 +158,16 @@ class WindowDictKeysView(KeysView):
 		return f"<WindowDictKeysView containing {list(self)}>"
 
 
-class WindowDictItemsView(ItemsView):
+class WindowDictItemsView[_K: int, _V](ItemsView[_K, _V]):
 	"""Look through everything a WindowDict contains."""
 
-	_mapping: "WindowDict"
+	_mapping: WindowDict[_K, _V]
 
-	def __contains__(self, item: tuple[int, Any]):
+	def __contains__(self, item: tuple[_K, _V]):
 		with self._mapping._lock:
 			return item in self._mapping._past or item in self._mapping._future
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[tuple[_K, _V]]:
 		with self._mapping._lock:
 			past = self._mapping._past
 			future = self._mapping._future
@@ -175,7 +176,7 @@ class WindowDictItemsView(ItemsView):
 			if future:
 				yield from reversed(future)
 
-	def __reversed__(self):
+	def __reversed__(self) -> Iterator[tuple[_K, _V]]:
 		with self._mapping._lock:
 			past = self._mapping._past
 			future = self._mapping._future
@@ -185,12 +186,12 @@ class WindowDictItemsView(ItemsView):
 				yield from reversed(past)
 
 
-class WindowDictPastKeysView(KeysView):
+class WindowDictPastKeysView[_K: int](KeysView[_K]):
 	"""View on a WindowDict's keys relative to last lookup"""
 
 	_mapping: WindowDictPastView
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[_K]:
 		with self._mapping.lock:
 			yield from map(get0, reversed(self._mapping.stack))
 
@@ -202,14 +203,14 @@ class WindowDictPastKeysView(KeysView):
 		return item in self._mapping
 
 
-class WindowDictFutureKeysView(KeysView):
-	_mapping: WindowDictFutureView
+class WindowDictFutureKeysView[_K: int](KeysView[_K]):
+	_mapping: WindowDictFutureView[_K, ...]
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[_K]:
 		with self._mapping.lock:
 			yield from map(get0, self._mapping.stack)
 
-	def __reversed__(self):
+	def __reversed__(self) -> Iterator[_K]:
 		with self._mapping.lock:
 			yield from map(get0, reversed(self._mapping.stack))
 
@@ -217,23 +218,23 @@ class WindowDictFutureKeysView(KeysView):
 		return item in self._mapping
 
 
-class WindowDictPastFutureItemsView(ItemsView):
-	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
+class WindowDictPastFutureItemsView[_K: int, _V: Value](ItemsView[_K, _V]):
+	_mapping: WindowDictPastView[_K, _V] | WindowDictFutureView[_K, _V]
 
 	@staticmethod
 	@abstractmethod
-	def _out_of_range(item: tuple, stack: list):
+	def _out_of_range(item: tuple[_K, _V], stack: list[tuple[_K, _V]]):
 		pass
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[tuple[_K, _V]]:
 		with self._mapping.lock:
 			yield from reversed(self._mapping.stack)
 
-	def __reversed__(self):
+	def __reversed__(self) -> Iterator[tuple[_K, _V]]:
 		with self._mapping.lock:
 			yield from self._mapping.stack
 
-	def __contains__(self, item: tuple[int, Any]):
+	def __contains__(self, item: tuple[_K, _V]):
 		with self._mapping.lock:
 			if self._out_of_range(item, self._mapping.stack):
 				return False
@@ -241,40 +242,44 @@ class WindowDictPastFutureItemsView(ItemsView):
 			return self._mapping[k] == v
 
 
-class WindowDictPastItemsView(WindowDictPastFutureItemsView):
+class WindowDictPastItemsView[_K: int, _V: Value](
+	WindowDictPastFutureItemsView[_K, _V]
+):
 	@staticmethod
 	def _out_of_range(item: tuple[int, Any], stack: list[tuple[int, Any]]):
 		return item[0] < stack[0][0] or item[0] > stack[-1][0]
 
 
-class WindowDictFutureItemsView(WindowDictPastFutureItemsView):
+class WindowDictFutureItemsView[_K: int, _V: Value](
+	WindowDictPastFutureItemsView[_K, _V]
+):
 	"""View on a WindowDict's future items relative to last lookup"""
 
 	@staticmethod
-	def _out_of_range(item: tuple[int, Any], stack: list[tuple[int, Any]]):
+	def _out_of_range(item: tuple[_K, _V], stack: list[tuple[_K, _V]]):
 		return item[0] < stack[-1][0] or item[0] > stack[0][0]
 
 
-class WindowDictPastFutureValuesView(ValuesView):
+class WindowDictPastFutureValuesView[_V: Value](ValuesView[_V]):
 	"""Abstract class for views on the past or future values of a WindowDict"""
 
-	_mapping: Union["WindowDictPastView", "WindowDictFutureView"]
+	_mapping: WindowDictPastView[..., _V] | WindowDictFutureView[..., _V]
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[_V]:
 		with self._mapping.lock:
 			yield from map(get1, reversed(self._mapping.stack))
 
-	def __contains__(self, item: Any):
+	def __contains__(self, item: _V):
 		with self._mapping.lock:
 			return item in map(get1, self._mapping.stack)
 
 
-class WindowDictValuesView(ValuesView):
+class WindowDictValuesView[_V: Value](ValuesView[_V]):
 	"""Look through all the values that a WindowDict contains."""
 
-	_mapping: "WindowDict"
+	_mapping: WindowDict[..., _V]
 
-	def __contains__(self, value: Any):
+	def __contains__(self, value: _V):
 		with self._mapping._lock:
 			return value in map(get1, self._mapping._past) or value in map(
 				get1, self._mapping._future
@@ -299,13 +304,13 @@ class WindowDictValuesView(ValuesView):
 				yield from map(get1, reversed(past))
 
 
-class WindowDictPastFutureView(ABC, Mapping):
+class WindowDictPastFutureView[_K: int, _V: Value](ABC, Mapping[_K, _V]):
 	"""Abstract class for historical views on WindowDict"""
 
 	__slots__ = ("stack", "lock")
-	stack: list[tuple[int, Value]]
+	stack: list[tuple[_K, _V]]
 
-	def __init__(self, stack: list[tuple[int, Value]], lock: RLock) -> None:
+	def __init__(self, stack: list[tuple[_K, _V]], lock: RLock) -> None:
 		self.stack = stack
 		self.lock = lock
 
@@ -320,54 +325,56 @@ class WindowDictPastFutureView(ABC, Mapping):
 		return type(self)(self.stack.copy(), RLock())
 
 
-class WindowDictPastView(WindowDictPastFutureView):
+class WindowDictPastView[_K: int, _V: Value](WindowDictPastFutureView[_K, _V]):
 	"""Read-only mapping of just the past of a WindowDict
 
 	Iterates in descending order
 
 	"""
 
-	def __iter__(self) -> Iterator[int]:
+	def __iter__(self) -> Iterator[_K]:
 		with self.lock:
 			yield from map(get0, reversed(self.stack))
 
-	def __reversed__(self) -> Iterator[int]:
+	def __reversed__(self) -> Iterator[_K]:
 		with self.lock:
 			yield from map(get0, self.stack)
 
-	def __getitem__(self, key: int) -> Value:
+	def __getitem__(self, key: _K) -> _V:
 		with self.lock:
 			stack = self.stack
 			if not stack or key < stack[0][0] or key > stack[-1][0]:
 				raise KeyError("Out of range", key)
 			return _recurse(key, stack)[1]
 
-	def keys(self) -> WindowDictPastKeysView:
+	def keys(self) -> WindowDictPastKeysView[_K]:
 		return WindowDictPastKeysView(self)
 
-	def items(self) -> WindowDictPastItemsView:
+	def items(self) -> WindowDictPastItemsView[_K, _V]:
 		return WindowDictPastItemsView(self)
 
-	def values(self) -> WindowDictPastFutureValuesView:
+	def values(self) -> WindowDictPastFutureValuesView[_V]:
 		return WindowDictPastFutureValuesView(self)
 
 
-class WindowDictFutureView(WindowDictPastFutureView):
+class WindowDictFutureView[_K: int, _V: Value](
+	WindowDictPastFutureView[_K, _V]
+):
 	"""Read-only mapping of just the future of a WindowDict
 
 	Iterates in ascending order
 
 	"""
 
-	def __iter__(self) -> Iterator[int]:
+	def __iter__(self) -> Iterator[_K]:
 		with self.lock:
 			yield from map(get0, reversed(self.stack))
 
-	def __reversed__(self) -> Iterator[int]:
+	def __reversed__(self) -> Iterator[_K]:
 		with self.lock:
 			yield from map(get0, self.stack)
 
-	def __getitem__(self, key: int):
+	def __getitem__(self, key: _K):
 		with self.lock:
 			stack = list(reversed(self.stack))
 			if not stack:
@@ -376,26 +383,26 @@ class WindowDictFutureView(WindowDictPastFutureView):
 				raise KeyError("No such revision", key)
 			return _recurse(key, stack)[1]
 
-	def keys(self) -> WindowDictFutureKeysView:
+	def keys(self) -> WindowDictFutureKeysView[_K]:
 		return WindowDictFutureKeysView(self)
 
-	def items(self) -> WindowDictFutureItemsView:
+	def items(self) -> WindowDictFutureItemsView[_K, _V]:
 		return WindowDictFutureItemsView(self)
 
-	def values(self) -> WindowDictPastFutureValuesView:
+	def values(self) -> WindowDictPastFutureValuesView[_V]:
 		return WindowDictPastFutureValuesView(self)
 
 
-class WindowDictSlice:
+class WindowDictSlice[_K: int, _V: Value]:
 	__slots__ = ["dic", "slic"]
-	dic: "WindowDict"
+	dic: WindowDict[_K, _V]
 	slic: slice
 
-	def __init__(self, dic: "WindowDict", slic: slice):
+	def __init__(self, dic: WindowDict[_K, _V], slic: slice):
 		self.dic = dic
 		self.slic = slic
 
-	def __iter__(self) -> Iterator[Value]:
+	def __iter__(self) -> Iterator[_V]:
 		with self.dic._lock:
 			slic = self.slic
 			if slic.step:
@@ -409,7 +416,7 @@ class WindowDictSlice:
 				it = self._get_item_iterator_stepless(start, stop)
 			return map(get1, it)
 
-	def __reversed__(self) -> Iterator[Value]:
+	def __reversed__(self) -> Iterator[_V]:
 		with self.dic._lock:
 			slic = self.slic
 			if slic.step:
@@ -423,14 +430,14 @@ class WindowDictSlice:
 				items = self._get_item_iterator_stepless_reversed(start, stop)
 			return map(get1, items)
 
-	def _step_iter(self):
+	def _step_iter(self) -> Iterator[_V]:
 		dic = self.dic
 		slic = self.slic
 		start, stop = self._modulo(slic.start, slic.stop)
 		for i in range(start, stop, slic.step):
 			yield dic[i]
 
-	def _step_iter_reversed(self):
+	def _step_iter_reversed(self) -> Iterator[_V]:
 		dic = self.dic
 		slic = self.slic
 		start, stop = self._modulo(slic.start, slic.stop)
@@ -439,10 +446,10 @@ class WindowDictSlice:
 
 	@staticmethod
 	def _iter_items_until(
-		it: Iterator[tuple[int, Value]],
-		until: Callable[[int], bool],
+		it: Iterator[tuple[_K, _V]],
+		until: Callable[[_K], bool],
 		include_last: bool = False,
-	) -> Iterator[tuple[int, Value]]:
+	) -> Iterator[tuple[_K, _V]]:
 		if include_last:
 			for rev, val in it:
 				yield rev, val
@@ -456,8 +463,8 @@ class WindowDictSlice:
 
 	def _iter_past_items_until(
 		self,
-		rev: int,
-		until: Callable[[int], bool],
+		rev: _K,
+		until: Callable[[_K], bool],
 		include_last: bool = False,
 	):
 		return self._iter_items_until(
@@ -466,15 +473,15 @@ class WindowDictSlice:
 
 	def _iter_future_items_until(
 		self,
-		rev: int,
-		until: Callable[[int], bool],
+		rev: _K,
+		until: Callable[[_K], bool],
 		include_last: bool = False,
 	):
 		return self._iter_items_until(
 			iter(self.dic.future(rev).items()), until, include_last
 		)
 
-	def _modulo(self, start: int | None, stop: int | None) -> tuple[int, int]:
+	def _modulo(self, start: _K | None, stop: _K | None) -> tuple[_K, _K]:
 		dic = self.dic
 		biggest = 0
 		if dic._future:
@@ -497,11 +504,11 @@ class WindowDictSlice:
 
 	def _get_item_iterator_stepless_reversed(
 		self,
-		start: int,
-		stop: int,
+		start: _K,
+		stop: _K,
 		include_start: bool = True,
 		include_stop: bool = False,
-	) -> Iterator[tuple[int, Value]]:
+	) -> Iterator[tuple[_K, _V]]:
 		if isinstance(start, int) and isinstance(stop, int) and start > stop:
 			raise ValueError("start should come before stop", start, stop)
 		dic = self.dic
@@ -527,11 +534,11 @@ class WindowDictSlice:
 
 	def _get_item_iterator_stepless(
 		self,
-		start: int,
-		stop: int,
+		start: _K,
+		stop: _K,
 		include_start: bool = True,
 		include_stop: bool = False,
-	) -> Iterator[tuple[int, Value]]:
+	) -> Iterator[tuple[_K, _V]]:
 		if isinstance(start, int) and isinstance(stop, int) and start > stop:
 			raise ValueError("start should come before stop", start, stop)
 		dic = self.dic
@@ -556,7 +563,11 @@ class WindowDictSlice:
 		return it
 
 
-def _recurse(rev: int, revs: list[tuple[int, Any]]) -> tuple[int, Any]:
+_RK = TypeVar("_RK", bound=int)
+_RV = TypeVar("_RV", bound=Value)
+
+
+def _recurse(rev: _RK, revs: list[tuple[_RK, _RV]]) -> tuple[_RK, _RV]:
 	if len(revs) < 1:
 		raise HistoricKeyError("No data ever for revision", rev, deleted=False)
 	elif len(revs) == 1:
@@ -577,11 +588,7 @@ def _recurse(rev: int, revs: list[tuple[int, Any]]) -> tuple[int, Any]:
 		return _recurse(rev, after)
 
 
-_K = TypeVar("_K")
-_V = TypeVar("_V")
-
-
-class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
+class WindowDict[_K: int, _V: Value](MutableMapping[_K, _V]):
 	"""A dict that keeps every value that a variable has had over time.
 
 	Look up a revision number in this dict, and it will give you the
@@ -603,14 +610,26 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 
 	"""
 
-	__slots__ = ("_future", "_past", "_keys", "_lock")
+	__slots__ = ("_future_", "_past_", "_keys_", "_lock_")
 
-	_past: list[tuple[int, Any]]
-	_future: list[tuple[int, Any]]
-	_keys: set[int]
+	@slotted
+	def _past(self) -> list[tuple[_K, _V]]:
+		return []
+
+	@slotted
+	def _future(self) -> list[tuple[_K, _V]]:
+		return []
+
+	@slotted
+	def _keys(self) -> set[_K]:
+		return set()
+
+	@slotted
+	def _lock(self) -> RLock:
+		return RLock()
 
 	@property
-	def beginning(self) -> int | None:
+	def beginning(self) -> _K | None:
 		with self._lock:
 			if not self._past:
 				if not self._future:
@@ -619,7 +638,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 			return self._past[0][0]
 
 	@property
-	def end(self) -> int | None:
+	def end(self) -> _K | None:
 		with self._lock:
 			if not self._future:
 				if not self._past:
@@ -628,7 +647,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 			return self._future[0][0]
 
 	def future(
-		self, rev: int, include_same_rev: bool = False, copy: bool = False
+		self, rev: _K, include_same_rev: bool = False, copy: bool = False
 	) -> WindowDictFutureView:
 		"""Return a Mapping of items after the given revision.
 
@@ -654,7 +673,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 		return WindowDictFutureView(future, lock)
 
 	def past(
-		self, rev: int, include_same_rev: bool = True, copy: bool = False
+		self, rev: _K, include_same_rev: bool = True, copy: bool = False
 	) -> WindowDictPastView:
 		"""Return a Mapping of items at or before the given revision.
 
@@ -683,7 +702,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 				lock = self._lock
 		return WindowDictPastView(past, lock)
 
-	def search(self, rev: int) -> Any:
+	def search(self, rev: _K) -> Any:
 		"""Alternative access for far-away revisions
 
 		This uses a binary search, which is faster in the case of random
@@ -706,7 +725,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 				result_rev, result = _recurse(rev, revs)
 			return result
 
-	def _seek(self, rev: int) -> None:
+	def _seek(self, rev: _K) -> None:
 		"""Arrange the caches to help look up the given revision."""
 		if not isinstance(rev, int):
 			raise TypeError("Need integer revision", rev)
@@ -733,13 +752,13 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 				else:
 					break
 
-	def rev_gettable(self, rev: int) -> bool:
+	def rev_gettable(self, rev: _K) -> bool:
 		beg = self.beginning
 		if beg is None:
 			return False
 		return rev >= beg
 
-	def rev_before(self, rev: int, search=False) -> int | None:
+	def rev_before(self, rev: _K, search=False) -> int | None:
 		"""Return the latest past rev on which the value changed.
 
 		If it changed on this exact rev, return the rev.
@@ -758,7 +777,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 				else:
 					return None
 
-	def rev_after(self, rev: int) -> int | None:
+	def rev_after(self, rev: _K) -> int | None:
 		"""Return the earliest future rev on which the value will change."""
 		with self._lock:
 			self._seek(rev)
@@ -767,7 +786,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 			else:
 				return None
 
-	def initial(self) -> Any:
+	def initial(self) -> _K:
 		"""Return the earliest value we have"""
 		with self._lock:
 			if self._past:
@@ -776,7 +795,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 				return self._future[-1][1]
 			raise KeyError("No data")
 
-	def final(self) -> Any:
+	def final(self) -> _K:
 		"""Return the latest value we have"""
 		with self._lock:
 			if self._future:
@@ -786,8 +805,8 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 			raise KeyError("No data")
 
 	def truncate(
-		self, rev: int, direction: Direction = Direction.FORWARD
-	) -> set[int]:
+		self, rev: _K, direction: Direction = Direction.FORWARD
+	) -> set[_K]:
 		"""Delete everything after the given revision, exclusive.
 
 		With direction='backward', delete everything before the revision,
@@ -823,43 +842,41 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 				raise ValueError("Need direction 'forward' or 'backward'")
 		return deleted
 
-	def keys(self) -> WindowDictKeysView:
+	def keys(self) -> WindowDictKeysView[_K]:
 		return WindowDictKeysView(self)
 
-	def items(self) -> WindowDictItemsView:
+	def items(self) -> WindowDictItemsView[_K, _V]:
 		return WindowDictItemsView(self)
 
-	def values(self) -> WindowDictValuesView:
+	def values(self) -> WindowDictValuesView[_V]:
 		return WindowDictValuesView(self)
 
 	def __bool__(self) -> bool:
 		return bool(self._keys)
 
-	def copy(self):
+	def copy(self) -> WindowDict[_K, _V]:
 		with self._lock:
-			empty = WindowDict.__new__(WindowDict)
-			empty._past = self._past.copy()
-			empty._future = self._future.copy()
-			empty._keys = self._keys.copy()
+			empty = WindowDict()
+			empty._past.extend(self._past)
+			empty._future.extend(self._future)
+			empty._keys.update(self._keys)
 			return empty
 
 	def __init__(
-		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
+		self, data: list[tuple[_K, _V]] | dict[_K, _V] | None = None
 	) -> None:
-		self._lock = RLock()
 		with self._lock:
 			if not data:
-				self._past = []
+				pass
 			elif isinstance(data, Mapping):
-				self._past = list(data.items())
+				self._past.extend(data.items())
 			else:
 				# assume it's an orderable sequence of pairs
-				self._past = list(data)
+				self._past.extend(data)
 			self._past.sort()
-			self._future = []
-			self._keys = set(map(get0, self._past))
+			self._keys.update(map(get0, self._past))
 
-	def __iter__(self) -> Iterable[Any]:
+	def __iter__(self) -> Iterable[_K]:
 		if not self:
 			return
 		with self._lock:
@@ -868,7 +885,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 			if self._future:
 				yield from map(get0, self._future)
 
-	def __contains__(self, item: int) -> bool:
+	def __contains__(self, item: _K) -> bool:
 		with self._lock:
 			return item in self._keys
 
@@ -876,7 +893,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 		with self._lock:
 			return len(self._keys)
 
-	def __getitem__(self, rev: int | slice) -> Any:
+	def __getitem__(self, rev: _K | slice) -> Any:
 		if isinstance(rev, slice):
 			return WindowDictSlice(self, rev)
 		with self._lock:
@@ -888,7 +905,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 				)
 			return past[-1][1]
 
-	def __setitem__(self, rev: int, v: Any) -> None:
+	def __setitem__(self, rev: _K, v: Any) -> None:
 		past = self._past
 		with self._lock:
 			if past or self._future:
@@ -904,7 +921,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 				past.append((rev, v))
 			self._keys.add(rev)
 
-	def __delitem__(self, rev: int) -> None:
+	def __delitem__(self, rev: _K) -> None:
 		# Not checking for rev's presence at the beginning because
 		# to do so would likely require iterating thru history,
 		# which I have to do anyway in deleting.
@@ -1001,9 +1018,19 @@ class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 
 	"""
 
-	_future: list[tuple[Turn, Any]]
-	_past: list[tuple[Turn, Any]]
-	cls = WindowDict
+	cls: type[WindowDict[Turn, WindowDict[Tick, _VV]]] = WindowDict
+
+	@slotted
+	def _future(self) -> list[tuple[Turn, WindowDict[Tick, _VV]]]:
+		return []
+
+	@slotted
+	def _past(self) -> list[tuple[Turn, WindowDict[Tick, _VV]]]:
+		return []
+
+	@slotted
+	def _keys(self) -> set[Turn]:
+		return set()
 
 	def __init__(
 		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
@@ -1018,7 +1045,7 @@ class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 	def __setitem__(self, turn: Turn, value: cls | dict) -> None:
 		if not isinstance(value, self.cls):
 			value = self.cls(value)
-		WindowDict.__setitem__(self, turn, value)
+		super().__setitem__(turn, value)
 
 	def retrieve(self, turn: Turn, tick: Tick) -> Any:
 		"""Retrieve the value that was in effect at this turn and tick
@@ -1026,13 +1053,14 @@ class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 		Whether or not it was *set* at this turn and tick
 
 		"""
+		turn_before = Turn(turn - 1)
 		if turn in self and self[turn].rev_gettable(tick):
 			return self[turn][tick]
-		elif self.rev_gettable(turn - 1):
-			return self[turn - 1].final()
+		elif self.rev_gettable(turn_before):
+			return self[turn_before].final()
 		raise KeyError(f"Can't retrieve turn {turn}, tick {tick}")
 
-	def retrieve_exact(self, turn: Turn, tick: Tick) -> Any:
+	def retrieve_exact(self, turn: Turn, tick: Tick) -> _VV:
 		"""Retrieve the value only if it was set at this exact turn and tick"""
 		if turn not in self:
 			raise KeyError(f"No data in turn {turn}")
@@ -1040,7 +1068,7 @@ class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 			raise KeyError(f"No data for tick {tick} in turn {turn}")
 		return self[turn][tick]
 
-	def store_at(self, turn: Turn, tick: Tick, value: Any) -> None:
+	def store_at(self, turn: Turn, tick: Tick, value: _VV) -> None:
 		"""Set a value at a time, creating the turn if needed"""
 		if turn in self:
 			self[turn][tick] = value
