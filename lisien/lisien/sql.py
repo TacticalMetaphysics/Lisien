@@ -128,8 +128,16 @@ for table, serializer in Batch.serializers.items():
 					"Too many types for column", table, arg, orig, table
 				)
 		orig2 = root_type(orig)
+		if isinstance(orig2, tuple):
+			nullable = type(None) in orig2
+			for orig3 in orig2:
+				if orig3 is not None:
+					break
+			else:
+				raise TypeError("No actual type for column", table, arg, orig2)
+			orig2 = orig3
 		if orig2 not in py2sql:
-			raise TypeError("Unknown type for column", table, arg, orig, table)
+			raise TypeError("Unknown type for column", table, arg, orig)
 		col = Column(
 			arg,
 			py2sql[orig2],
