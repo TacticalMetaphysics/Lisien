@@ -326,6 +326,8 @@ type RuleNeighborhoodRowType = tuple[
 	Branch, Turn, Tick, RuleName, RuleNeighborhood
 ]
 type RuleBigRowType = tuple[Branch, Turn, Tick, RuleName, RuleBig]
+type BranchRowType = tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]
+type TurnRowType = tuple[Branch, Turn, Tick, Tick]
 type GraphTypeStr = Literal["DiGraph", "Deleted"]
 type GraphRowType = tuple[Branch, Turn, Tick, CharName, GraphTypeStr]
 type NodeRowType = tuple[Branch, Turn, Tick, CharName, NodeName, bool]
@@ -474,7 +476,7 @@ type DeltaDict = dict[
 	CharName,
 	CharDelta | None,
 ]
-type KeyframeTuple = tuple[
+type KeyframeGraphRowType = tuple[
 	Branch,
 	Turn,
 	Tick,
@@ -483,7 +485,7 @@ type KeyframeTuple = tuple[
 	GraphEdgeValKeyframe,
 	StatDict,
 ]
-type KeyframeExtensionTuple = tuple[
+type KeyframeExtensionRowType = tuple[
 	Branch, Turn, Tick, UniversalKeyframe, RuleKeyframe, RulebooksKeyframe
 ]
 type Keyframe = dict[

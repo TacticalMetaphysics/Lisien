@@ -85,9 +85,10 @@ from .types import (
 	UnitRulesHandledRowType,
 	NodeRulesHandledRowType,
 	PortalRulesHandledRowType,
-	KeyframeTuple,
+	KeyframeGraphRowType,
 	StatDict,
-	KeyframeExtensionTuple,
+	KeyframeExtensionRowType,
+	BranchRowType,
 )
 
 meta = MetaData()
@@ -905,7 +906,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		for key, branch, turn, tick in self.call("bookmarks_dump"):
 			yield unpack(key), (branch, turn, tick)
 
-	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+	def keyframes_dump(self) -> Iterator[Time]:
 		self.flush()
 		return self.call("keyframes_dump")
 
@@ -935,7 +936,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[KeyframeTuple]:
+	) -> Iterator[KeyframeGraphRowType]:
 		self.flush()
 		unpack_key = self.unpack_key
 		for (
@@ -959,7 +960,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[KeyframeExtensionTuple]:
+	) -> Iterator[KeyframeExtensionRowType]:
 		self.flush()
 		for branch, turn, tick, universal, rule, rulebook in self.call(
 			"keyframe_extensions_dump"
@@ -1030,7 +1031,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	def branches_dump(
 		self,
-	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
+	) -> Iterator[BranchRowType]:
 		"""Return all the branch data in tuples of (branch, parent,
 		start_turn, start_tick, end_turn, end_tick).
 
@@ -1072,7 +1073,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			return Tick(0)
 		return self.unpack(v[0])
 
-	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
+	def turns_dump(self) -> Iterator[TurnRowType]:
 		self._turns2set()
 		return self.call("turns_dump")
 
@@ -1332,13 +1333,13 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			)
 		for orig, dest, key, turn, tick, value in it:
 			yield (
+				branch,
+				turn,
+				tick,
 				graph,
 				unpack(orig),
 				unpack(dest),
 				unpack(key),
-				branch,
-				turn,
-				tick,
 				unpack(value),
 			)
 
