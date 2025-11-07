@@ -5045,3 +5045,28 @@ class NodeContentsCache(Cache):
 		keyframe: dict[NodeName, frozenset[NodeName]],
 	) -> None:
 		self._set_keyframe((graph,), branch, turn, tick, keyframe)
+
+
+class PickierDefaultDict[_K, _V](PickyDefaultDict[_K, _V]):
+	"""So picky, even the keys need to be a certain type"""
+
+	__slots__ = ("key_type",)
+
+	def __init__(
+		self,
+		key_type: type,
+		value_type: type,
+		args_munger: Callable[
+			[Self, _K], tuple[_K, ...]
+		] = _default_args_munger,
+		kwargs_munger: Callable[
+			[Self, _K], dict[_K, _V]
+		] = _default_kwargs_munger,
+	):
+		self.key_type = key_type
+		super().__init__(value_type, args_munger, kwargs_munger)
+
+	def __setitem__(self, key: _K, value: _V):
+		if not isinstance(key, self.key_type):
+			raise TypeError("Wrong type of key", key, self.key_type)
+		super().__setitem__(key, value)

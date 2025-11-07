@@ -21,7 +21,6 @@ import sys
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections import UserDict, defaultdict, deque
-from copy import copy
 from contextlib import contextmanager
 from dataclasses import dataclass, KW_ONLY
 from functools import cached_property, partial, wraps, partialmethod
@@ -79,7 +78,6 @@ from .window import AssignmentTimeDict, WindowDict
 import lisien.types
 from .types import (
 	ActionFuncName,
-	actfuncn,
 	ActionRowType,
 	Branch,
 	BranchRowType,
@@ -108,7 +106,6 @@ from .types import (
 	Plan,
 	PortalRulebookRowType,
 	PrereqFuncName,
-	preqfuncn,
 	PrereqRowType,
 	AssignmentRowType,
 	AssignmentRowListType,
@@ -122,7 +119,6 @@ from .types import (
 	RuleFuncName,
 	RuleKeyframe,
 	RuleName,
-	rulename,
 	RuleNeighborhood,
 	RuleNeighborhoodRowType,
 	RuleRowType,
@@ -134,7 +130,6 @@ from .types import (
 	TimeWindow,
 	TurnRowType,
 	TriggerFuncName,
-	trigfuncn,
 	TriggerRowType,
 	Turn,
 	UnitRowType,
@@ -156,6 +151,7 @@ from .types import (
 	deannotate,
 	root_type,
 )
+from .cache import PickierDefaultDict
 from .facade import EngineFacade
 from .util import (
 	garbage,
@@ -4172,8 +4168,13 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def _keyframe_extensions(
 		self,
-	) -> dict[Time, tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]]:
-		return {}
+	) -> dict[
+		Branch,
+		AssignmentTimeDict[
+			tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]
+		],
+	]:
+		return defaultdict(AssignmentTimeDict)
 
 	@cached_property
 	def _keyframes(self) -> set[Time]:
@@ -4187,10 +4188,35 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _keyframes_graphs(
 		self,
 	) -> dict[
-		tuple[Branch, Turn, Tick, CharName],
-		tuple[NodeKeyframe, EdgeKeyframe, StatDict],
+		Branch,
+		AssignmentTimeDict[
+			dict[CharName, tuple[NodeKeyframe, EdgeKeyframe, StatDict]]
+		],
 	]:
-		return {}
+		return defaultdict(AssignmentTimeDict)
+
+	def _keyframes_graphs_insert_rec(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		graph: CharName,
+		nodes: NodeKeyframe,
+		edges: EdgeKeyframe,
+		graph_val: StatDict,
+	):
+		try:
+			self._keyframes_graphs[branch].retrieve_exact(turn, tick)[
+				graph
+			] = (
+				nodes,
+				edges,
+				graph_val,
+			)
+		except KeyError:
+			self._keyframes_graphs[branch].store_at(
+				turn, tick, {graph: (nodes, edges, graph_val)}
+			)
 
 	@cached_property
 	def _branches(self) -> dict[Branch, tuple[Branch, Turn, Tick, Turn, Tick]]:
@@ -4288,6 +4314,16 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> dict[Branch, AssignmentTimeDict[tuple[UniversalKey, Value]]]:
 		return defaultdict(AssignmentTimeDict)
 
+	def _universals_insert_rec(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		key: UniversalKey,
+		value: Value,
+	) -> None:
+		self._universals[branch].store_at(turn, tick, (key, value))
+
 	def universal_get(
 		self, key: UniversalKey, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
@@ -4321,7 +4357,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			tuple[RulebookName, list[RuleName], RulebookPriority]
 		],
 	]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _rule_triggers(
@@ -4329,13 +4365,13 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> dict[
 		Branch, AssignmentTimeDict[tuple[RuleName, list[TriggerFuncName]]]
 	]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _rule_neighborhood(
 		self,
 	) -> dict[Branch, AssignmentTimeDict[tuple[RuleName, RuleNeighborhood]]]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _rule_prereqs(
@@ -4343,7 +4379,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> dict[
 		Branch, AssignmentTimeDict[tuple[RuleName, list[PrereqFuncName]]]
 	]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _rule_actions(
@@ -4351,43 +4387,43 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> dict[
 		Branch, AssignmentTimeDict[tuple[RuleName, list[ActionFuncName]]]
 	]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _rule_big(
 		self,
 	) -> dict[Branch, AssignmentTimeDict[tuple[RuleName, RuleBig]]]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _character_rulebook(
 		self,
 	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _unit_rulebook(
 		self,
 	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _character_thing_rulebook(
 		self,
 	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _character_place_rulebook(
 		self,
 	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _character_portal_rulebook(
 		self,
 	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
-		return defaultdict(AssignmentTimeDict)
+		return PickierDefaultDict(int, AssignmentTimeDict)
 
 	@cached_property
 	def _node_rules_handled(
@@ -4605,7 +4641,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		)
 		graphs: list[GraphRowType] = ret.setdefault("graphs", [])
 		rbs = self._rulebooks
-		for branch in sort_set(rbs.keys()):
+		if branch in rbs:
 			rbb = rbs[branch]
 			for turn, tick in rbb.iter_times(
 				(turn_from, tick_from), (turn_to, tick_to)
@@ -4614,23 +4650,41 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				rulebooks.append(
 					(branch, turn, tick, rulebook, rules.copy(), prio)
 				)
+		if branch in self._graphs:
+			turns = self._graphs[branch]
+			for turn, tick in turns.iter_times(
+				(turn_from, tick_from), (turn_to, tick_to)
+			):
+				d = turns.retrieve_exact(turn, tick)
+				graphs.extend(
+					(branch, turn, tick, graph, typ)
+					for (graph, typ) in d.items()
+				)
+		if branch in self._universals:
+			turns = self._universals[branch]
+			for turn, tick in turns.iter_times(
+				(turn_from, tick_from), (turn_to, tick_to)
+			):
+				k, v = turns.retrieve_exact(turn, tick)
+				universals.append((branch, turn, tick, k, v))
 		for uncharacter_l, my_table in [
-			(universals, self._universals),
 			(rule_triggers, self._rule_triggers),
 			(rule_prereqs, self._rule_prereqs),
 			(rule_actions, self._rule_actions),
 			(rule_neighborhood, self._rule_neighborhood),
 			(rule_big, self._rule_big),
-			(graphs, self._graphs),
 		]:
 			if branch in my_table:
 				for turn, tick in my_table[branch].iter_times(
 					(turn_from, tick_from), (turn_to, tick_to)
 				):
-					the_datum = my_table[branch].retrieve_exact(turn, tick)
+					rule, the_datum = my_table[branch].retrieve_exact(
+						turn, tick
+					)
 					if isinstance(the_datum, list):
 						the_datum = the_datum.copy()
-					uncharacter_l.append((branch, turn, tick, the_datum))
+					uncharacter_l.append((branch, turn, tick, rule, the_datum))
+		my_table: dict[Branch, AssignmentTimeDict]
 		for char_d_key, my_table in [
 			("nodes", self._nodes),
 			("node_val", self._node_val),
@@ -4656,7 +4710,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				row: AssignmentRowType = assignments.retrieve_exact(r, t)
 				g: CharName = row[0]
 				the_list: AssignmentRowListType = ret[g][char_d_key]
-				the_list.append(row)
+				the_list.append((branch, r, t, *row))
 		for handled_l, my_table in [
 			(node_rules_handled, self._node_rules_handled),
 			(portal_rules_handled, self._portal_rules_handled),
@@ -4758,16 +4812,16 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 					for d in args:
 						key = d[key_name]
 						tab[key] = tuple(d[k] for k in tab_spec.args[2:])
+			elif tab_spec.args[1:4] == ["branch", "turn", "tick"]:
+				for d in args:
+					record = tuple(d[k] for k in tab_spec.args[4:])
+					tab[d["branch"]].store_at(d["turn"], d["tick"], record)
 			elif (
 				key_len == len(tab_spec.args) - 2
 			):  # the self argument, and the value
 				for d in args:
 					key = tuple(d[k] for k in tab_spec.args[1:-1])
 					tab[key] = d[tab_spec.args[-1]]
-			elif tab_spec.args[1:4] == ["branch", "turn", "tick"]:
-				for d in args:
-					record = tuple(d[k] for k in tab_spec.args[4:])
-					tab[d["branch"]].store_at(d["turn"], d["tick"], record)
 			else:
 				for d in args:
 					key = tuple(d[k] for k in tab_spec.args[1 : key_len + 1])
@@ -4814,7 +4868,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]:
-		return self._keyframe_extensions[branch, turn, tick]
+		return self._keyframe_extensions[branch].retrieve_exact(turn, tick)
 
 	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
 		with self._lock:
@@ -4823,7 +4877,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		with self._lock:
 			self._keyframes.remove((branch, turn, tick))
-			del self._keyframe_extensions[branch, turn, tick]
+			del self._keyframe_extensions[branch][turn][tick]
 
 	def keyframes_graphs(
 		self,
@@ -4928,61 +4982,63 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				for g, v in self._graphs[branch][turn][tick].items():
 					yield g, branch, turn, tick, v
 
+	def _chron_dump(
+		self,
+		table: dict[Branch, AssignmentTimeDict[_T]],
+	) -> Iterator[tuple[Time, _T]]:
+		with self._lock:
+			for branch in sort_set(table.keys()):
+				turns = table[branch]
+				for turn, tick in turns.iter_times():
+					row = turns.retrieve_exact(turn, tick)
+					yield (branch, turn, tick), row
+
 	def graphs_dump(
 		self,
-	) -> Iterator[tuple[CharName, Branch, Turn, Tick, str]]:
-		with self._lock:
-			for branch in sort_set(self._graphs.keys()):
-				for turn in sort_set(self._graphs[branch].keys()):
-					for tick in sort_set(self._graphs[branch][turn].keys()):
-						d = self._graphs[branch][turn][tick]
-						for g in sort_set(d.keys()):
-							yield g, branch, turn, tick, d[g]
+	) -> Iterator[GraphRowType]:
+		for (branch, turn, tick), d in self._chron_dump(self._graphs):
+			for graph in sort_set(d.keys()):
+				yield branch, turn, tick, graph, d[graph]
 
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		super().nodes_del_time(branch, turn, tick)
 		with self._lock:
-			for k in {
-				(b, r, t, g, n)
-				for (b, r, t, g, n) in self._nodes
-				if (b, r, t) == (branch, turn, tick)
-			}:
-				del self._nodes[k]
+			del self._nodes[branch][turn][tick]
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
-		with self._lock:
-			for b, r, t, g, n in sort_set(self._nodes.keys()):
-				yield g, n, b, r, t, self._nodes[b, r, t, g, n]
+		for (branch, turn, tick), (char, node, ex) in self._chron_dump(
+			self._nodes
+		):
+			yield branch, turn, tick, char, node, ex
 
 	def node_val_dump(self) -> Iterator[NodeValRowType]:
-		with self._lock:
-			for b, r, t, g, n, k in sort_set(self._node_val.keys()):
-				yield b, r, t, g, n, k, self._node_val[b, r, t, g, n, k]
+		for (branch, turn, tick), (char, node, key, val) in self._chron_dump(
+			self._node_val
+		):
+			yield branch, turn, tick, char, node, key, val
 
 	def node_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		super().node_val_del_time(branch, turn, tick)
 		with self._lock:
-			for key in {
-				(b, r, t, g, n, k)
-				for (b, r, t, g, n, k) in self._node_val
-				if (b, r, t) == (branch, turn, tick)
-			}:
-				del self._node_val[key]
+			del self._node_val[branch][turn][tick]
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
-		with self._lock:
-			for key in sort_set(self._edges.keys()):
-				yield key, self._edges[key]
+		for (branch, turn, tick), (char, orig, dest, ex) in self._chron_dump(
+			self._edges
+		):
+			yield branch, turn, tick, char, orig, dest, ex
 
 	def edge_val_dump(self) -> Iterator[EdgeValRowType]:
-		with self._lock:
-			for branch in sort_set(self._edge_val.keys()):
-				evb = self._edge_val[branch]
-				for turn, tick in evb.iter_times():
-					k, v = evb.retrieve_exact(turn, tick)
-					yield branch, turn, tick, k, v
+		for (branch, turn, tick), (
+			char,
+			orig,
+			dest,
+			key,
+			val,
+		) in self._chron_dump(self._edge_val):
+			yield branch, turn, tick, char, orig, dest, key, val
 
 	def edge_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -5009,13 +5065,11 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> Iterator[tuple[CharName, NodeKeyframe, EdgeKeyframe, StatDict]]:
 		with self._lock:
-			for (b, r, t, g), (
-				nkf,
-				ekf,
-				gvkf,
-			) in self._keyframes_graphs.items():
-				if (b, r, t) != (branch, turn, tick):
-					continue
+			for g, (nkf, ekf, gvkf) in (
+				self._keyframes_graphs[branch]
+				.retrieve_exact(turn, tick)
+				.items()
+			):
 				yield g, nkf, ekf, gvkf
 
 	def keyframes_graphs_dump(
@@ -5031,10 +5085,15 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			StatDict,
 		]
 	]:
+		kfg = self._keyframes_graphs
 		with self._lock:
-			for b, r, t, g in sort_set(self._keyframes_graphs.keys()):
-				nkf, ekf, gkf = self._keyframes_graphs[b, r, t, g]
-				yield (CharName(g), Branch(b), Turn(r), Tick(t), nkf, ekf, gkf)
+			for branch in sort_set(kfg.keys()):
+				kfgb = kfg[branch]
+				for turn, tick in kfgb.iter_times():
+					d = kfgb.retrieve_exact(turn, tick)
+					for g in sort_set(d.keys()):
+						nkf, ekf, gkf = d[g]
+						yield g, branch, turn, tick, nkf, ekf, gkf
 
 	def keyframe_extensions_dump(
 		self,
@@ -5048,10 +5107,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			RulebooksKeyframe,
 		]
 	]:
-		with self._lock:
-			for b, r, t in sort_set(self._keyframe_extensions.keys()):
-				ukf, rkf, rbkf = self._keyframe_extensions[b, r, t]
-				yield (Branch(b), Turn(r), Tick(t), ukf, rkf, rbkf)
+		for (branch, turn, tick), (ukf, rkf, rbkf) in self._chron_dump(
+			self._keyframe_extensions
+		):
+			yield branch, turn, tick, ukf, rkf, rbkf
 
 	def universals_dump(
 		self,
