@@ -19,7 +19,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict, deque
 from contextlib import contextmanager
-from functools import cached_property, wraps
+from functools import wraps
 from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
@@ -68,6 +68,7 @@ from .types import (
 	TriggerFuncName,
 	root_type,
 )
+from .util import cached_property
 from .window import (
 	Direction,
 	EntikeySettingsTurnDict,

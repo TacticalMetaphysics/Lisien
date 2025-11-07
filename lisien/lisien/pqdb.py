@@ -19,7 +19,7 @@ import os
 import sys
 from _operator import itemgetter
 from dataclasses import dataclass, KW_ONLY
-from functools import cached_property, partial
+from functools import partial
 from typing import (
 	get_origin,
 	Annotated,
@@ -99,7 +99,7 @@ from .types import (
 	RuleBigRowType,
 	StatDict,
 )
-from .util import ELLIPSIS, EMPTY
+from .util import ELLIPSIS, EMPTY, cached_property
 
 
 @dataclass

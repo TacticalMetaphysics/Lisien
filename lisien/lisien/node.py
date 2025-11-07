@@ -23,7 +23,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Set, ValuesView
 from copy import deepcopy
-from functools import cached_property
 from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 
 from networkx import shortest_path, shortest_path_length
@@ -47,7 +46,7 @@ from .types import (
 	ValueHint,
 	AbstractThing,
 )
-from .util import unwrap, getatt, cached_in
+from .util import unwrap, getatt, cached_property
 
 if TYPE_CHECKING:
 	from .character import Character
@@ -372,11 +371,11 @@ class NeighborMapping(Mapping):
 	def __init__(self, node: Node) -> None:
 		self.node = node
 
-	@cached_in("_node_")
+	@cached_property("_node_")
 	def _nn(self):
 		return (self.node.character.node, self.node.name)
 
-	@cached_in("_ecnb_")
+	@cached_property("_ecnb_")
 	def _ecnb(self):
 		return (
 			self.node.engine._edges_cache,

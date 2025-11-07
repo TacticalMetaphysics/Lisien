@@ -18,12 +18,13 @@ import json
 import os
 import shutil
 from collections import defaultdict
-from functools import cached_property, partial
+from functools import partial
 from threading import Thread
 from typing import Callable
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from lisien.exc import OutOfTimelineError
+from lisien.util import cached_property
 
 from .charsview import CharactersScreen
 from .logview import LogScreen

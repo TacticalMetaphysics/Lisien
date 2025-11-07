@@ -23,7 +23,7 @@ from ast import literal_eval
 from collections import UserDict, defaultdict, deque
 from contextlib import contextmanager
 from dataclasses import dataclass, KW_ONLY
-from functools import cached_property, partial, wraps, partialmethod
+from functools import partial, wraps, partialmethod
 from io import IOBase, StringIO
 from itertools import filterfalse, starmap
 from pathlib import Path
@@ -154,6 +154,7 @@ from .types import (
 from .cache import PickierDefaultDict
 from .facade import EngineFacade
 from .util import (
+	cached_property,
 	garbage,
 	ILLEGAL_CHARACTER_NAMES,
 )

@@ -24,6 +24,7 @@ from functools import wraps, partial
 from pprint import pformat
 from textwrap import dedent
 from time import monotonic
+from types import GenericAlias
 from typing import Callable, Iterable, TypeVar, Any, Self
 
 try:
@@ -277,45 +278,95 @@ def getatt(attribute_name: str) -> property:
 	return ret
 
 
-_UNSET = object()
-
-_TEE = TypeVar("_TEE")
+_NOT_FOUND = object()
 
 
-@dataclass
-class cached_in[_ME]:
-	"""Like @cached_property, but you can set the attribute name yourself.
+class cached_property:
+	def __init__(self, func):
+		if callable(func):
+			self.func = func
+			self.attrname = None
+			self.slot = False
+			self.__doc__ = func.__doc__
+			self.__module__ = func.__module__
+		else:
+			self.attrname = func
+			self.slot = True
+			self.func = None
 
-	You'll still *access* the cached property by the name of the decorated
-	function. The result is merely *stored* in the attribute you specify.
-	This is useful if the class has ``__slots__``.
-
-	"""
-
-	attrname: str
-	func: Callable[[Self], _ME] | None = None
-
-	def __post_init__(self):
-		if self.func is not None:
-			self.__doc__ = self.func.__doc__
-			self.__module__ = self.func.__module__
-
-	def __call__(self, func: Callable[[Self], _ME]) -> cached_in[_ME]:
+	def __call__(self, func):
+		if self.slot is None:
+			raise TypeError("Can only use one function")
+		if not callable(func):
+			raise TypeError(
+				"Can only cache functions as properties, not this", func
+			)
 		self.func = func
 		self.__doc__ = func.__doc__
 		self.__module__ = func.__module__
 		return self
 
-	def __get__(self, instance, owner=None) -> _ME:
+	def __set_name__(self, owner, name):
+		if self.attrname is None:
+			self.attrname = name
+		elif self.slot:
+			return
+		elif name != self.attrname:
+			raise TypeError(
+				"Cannot assign the same cached_property to two different names "
+				f"({self.attrname!r} and {name!r})."
+			)
+
+	def __get__(self, instance, owner=None):
 		if instance is None:
 			return self
-		val = getattr(instance, self.attrname, _UNSET)
-		if val is _UNSET:
+		if self.attrname is None:
+			raise TypeError(
+				"Cannot use cached_property instance without an attribute name"
+			)
+		if self.slot:
+			val = getattr(instance, self.attrname, _NOT_FOUND)
+			if val is _NOT_FOUND:
+				val = self.func(instance)
+				try:
+					setattr(instance, self.attrname, val)
+				except AttributeError as err:
+					msg = (
+						f"The class {type(instance).__name__!r} does not "
+						f"have the requested slot, {self.attrname!r}, "
+						"in its '__slots__' attribute"
+					)
+					raise TypeError(msg) from err
+			return val
+		try:
+			cache = instance.__dict__
+		except (
+			AttributeError
+		):  # not all objects have __dict__ (e.g. class defines slots)
+			msg = (
+				f"No '__dict__' attribute on {type(instance).__name__!r} "
+				f"instance to cache {self.attrname!r} property."
+			)
+			raise TypeError(msg) from None
+		val = cache.get(self.attrname, _NOT_FOUND)
+		if val is _NOT_FOUND:
 			val = self.func(instance)
-			setattr(instance, self.attrname, val)
+			try:
+				cache[self.attrname] = val
+			except TypeError:
+				msg = (
+					f"The '__dict__' attribute on {type(instance).__name__!r} instance "
+					f"does not support item assignment for caching {self.attrname!r} property."
+				)
+				raise TypeError(msg) from None
 		return val
 
+	__class_getitem__ = classmethod(GenericAlias)
 
-def slotted(func: Callable[[Any], _TEE]) -> cached_in[_TEE]:
+
+_TEE = TypeVar("_TEE")
+
+
+def slotted(func: Callable[[Any], _TEE]) -> cached_property[_TEE]:
 	"""Cache the property in the slot named like the function, with underscore at end"""
-	return cached_in(func.__name__ + "_", func)
+	return cached_property(func.__name__ + "_")(func)
