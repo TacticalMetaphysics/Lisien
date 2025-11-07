@@ -876,7 +876,7 @@ class WindowDict[_K: int, _V](MutableMapping[_K, _V]):
 		with self._lock:
 			return len(self._keys)
 
-	def __getitem__(self, rev: int) -> Any:
+	def __getitem__(self, rev: int | slice) -> Any:
 		if isinstance(rev, slice):
 			return WindowDictSlice(self, rev)
 		with self._lock:
@@ -1073,10 +1073,63 @@ class SettingsTurnDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 			return None
 		return self.end, self.final().end
 
-	def times(self) -> Iterator[tuple[Turn, Tick]]:
-		for trn, tcks in self.items():
-			for tck in tcks:
-				yield trn, tck
+	def times(
+		self,
+		time_from: tuple[Turn, Tick] | None = None,
+		time_to: tuple[Turn, Tick] | None = None,
+	) -> Iterator[tuple[Turn, Tick]]:
+		if time_from is None and time_to is None:
+			for trn, tcks in self.items():
+				for tck in tcks:
+					yield trn, tck
+		elif time_from is None:
+			turn_to, tick_to = time_to
+			for trn, tcks in self.items():
+				if trn >= turn_to:
+					break
+				for tck in tcks:
+					yield trn, tck
+			if turn_to in self:
+				for tck in self[turn_to]:
+					if tck >= tick_to:
+						return
+					yield turn_to, tck
+		elif time_to is None:
+			turn_from, tick_from = time_from
+			if turn_from in self:
+				for tck in self[turn_from].future(
+					tick_from, include_same_rev=True
+				):
+					yield turn_from, tck
+			for trn, tcks in self.future(
+				turn_from, include_same_rev=False
+			).items():
+				for tck in tcks:
+					yield trn, tck
+		else:
+			turn_from, tick_from = time_from
+			turn_to, tick_to = time_to
+			if turn_from == turn_to:
+				if turn_to not in self:
+					return
+				for tck in self[turn_to].future(
+					tick_from, include_same_rev=True
+				):
+					if tck > tick_to:
+						return
+					yield turn_to, tck
+			else:
+				for trn in self.future(turn_from, include_same_rev=True):
+					if trn > turn_to:
+						return
+					elif trn == turn_to:
+						for tck in reversed(
+							self[trn].past(tick_to, include_same_rev=True)
+						):
+							yield trn, tck
+					else:
+						for tck in self[trn]:
+							yield trn, tck
 
 
 class EntikeySettingsTurnDict(SettingsTurnDict):
