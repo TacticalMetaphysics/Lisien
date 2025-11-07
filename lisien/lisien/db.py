@@ -152,6 +152,7 @@ from .types import (
 	AbstractEngine,
 	sort_set,
 	deannotate,
+	root_type,
 )
 from .facade import EngineFacade
 from .util import (
@@ -466,7 +467,7 @@ class Batch(list):
 		for i, (name, value) in enumerate(zip(self.argspec.args[1:], t)):
 			annot = self.argspec.annotations[name]
 
-			if not isinstance(value, tuple(deannotate(annot))):
+			if not isinstance(value, tuple(map(root_type, deannotate(annot)))):
 				raise TypeError(
 					f"While validating {self.table}: "
 					f"Tuple element {i} is of type {type(value)};"

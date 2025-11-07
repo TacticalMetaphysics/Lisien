@@ -3610,7 +3610,7 @@ def sort_set(s: Set[_T]) -> list[_T]:
 sort_set.memo = SizedDict()
 
 
-def root_type(t: type) -> type:
+def root_type(t: type) -> type | tuple[type, ...]:
 	if hasattr(t, "evaluate_value"):
 		t = t.evaluate_value()
 	if t is Key or t is Value:
@@ -3631,6 +3631,8 @@ def root_type(t: type) -> type:
 				if not isinstance(arg, str):
 					raise TypeError("Literal not storeable", arg)
 			return str
+		elif ret is Union:
+			return tuple(map(root_type, get_args(t)))
 		return ret
 	return t
 
@@ -3660,18 +3662,9 @@ def deannotate(annotation: str) -> Iterator[type]:
 		return
 	else:
 		typ = eval(annotation)
-	if hasattr(typ, "evaluate_value"):
-		typ = typ.evaluate_value()
-	if hasattr(typ, "__supertype__"):
-		typ = typ.__supertype__
-	if hasattr(typ, "__origin__"):
-		if typ.__origin__ is Union:
-			for arg in typ.__args__:
-				yield getattr(arg, "__origin__", arg)
-		elif typ.__origin__ is Literal:
-			yield from map(type, typ.__args__)
-		else:
-			yield typ.__origin__
+	typ = root_type(typ)
+	if isinstance(typ, tuple):
+		yield from typ
 	else:
 		yield typ
 
