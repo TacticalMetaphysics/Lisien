@@ -4235,13 +4235,13 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		turn: Turn,
 		tick: Tick,
 		graph: CharName,
-		value: GraphTypeStr,
+		type: GraphTypeStr,
 	) -> None:
 		try:
 			d = self._graphs[branch].retrieve_exact(turn, tick)
 		except KeyError:
 			d = {}
-		d[graph] = value
+		d[graph] = type
 		self._graphs[branch].store_at(turn, tick, d)
 
 	@cached_property
