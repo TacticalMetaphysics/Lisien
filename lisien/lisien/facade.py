@@ -569,9 +569,6 @@ class FacadeThing(AbstractThing, FacadeNode):
 		del self.character.thing[self.name]
 
 
-AbstractThing.register(FacadeThing)
-
-
 class FacadePlace(FacadeNode):
 	"""Lightweight analogue of Place for Facade use."""
 
