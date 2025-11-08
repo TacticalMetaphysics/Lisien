@@ -588,7 +588,7 @@ class EngineHandle:
 		self._real.close()
 
 	def get_btt(self) -> Time:
-		return self._real.time
+		return tuple(self._real.time)
 
 	def get_language(self) -> str:
 		return str(self._real.string.language)
