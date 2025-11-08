@@ -535,7 +535,20 @@ class FacadeNode(FacadeEntity, ABC):
 Node.register(FacadeNode)
 
 
-class FacadeThing(FacadeNode):
+class FacadeThing(AbstractThing, FacadeNode):
+	character: CharacterFacade
+
+	def __init__(
+		self,
+		character: CharacterFacade,
+		name: NodeName,
+		location: Node | NodeName,
+		**kwargs,
+	):
+		if hasattr(location, "name"):
+			location = location.name
+		super().__init__(character, name, location=location, **kwargs)
+
 	def _get_real(self, name):
 		return self.character.character.thing[name]
 
