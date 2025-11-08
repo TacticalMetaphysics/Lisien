@@ -4940,21 +4940,17 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		super().graph_val_del_time(branch, turn, tick)
-		todel = set()
-		for b, r, t, g in self._graph_val:
-			if (b, r, t) == (branch, turn, tick):
-				todel.add((b, r, t, g))
-		for k in todel:
-			del self._graph_val[k]
+		try:
+			del self._graph_val[branch][turn][tick]
+		except KeyError:
+			pass
 
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		super().edges_del_time(branch, turn, tick)
-		todel = set()
-		for b, r, t, g, o, d in self._edges:
-			if (b, r, t) == (branch, turn, tick):
-				todel.add((b, r, t, g, o, d))
-		for k in todel:
-			del self._edges[k]
+		try:
+			del self._edges[branch][turn][tick]
+		except KeyError:
+			pass
 
 	def graphs_types(
 		self,
@@ -5004,7 +5000,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		super().nodes_del_time(branch, turn, tick)
 		with self._lock:
-			del self._nodes[branch][turn][tick]
+			try:
+				del self._nodes[branch][turn][tick]
+			except KeyError:
+				pass
 
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		for (branch, turn, tick), (char, node, ex) in self._chron_dump(
@@ -5023,7 +5022,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> None:
 		super().node_val_del_time(branch, turn, tick)
 		with self._lock:
-			del self._node_val[branch][turn][tick]
+			try:
+				del self._node_val[branch][turn][tick]
+			except KeyError:
+				pass
 
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		for (branch, turn, tick), (char, orig, dest, ex) in self._chron_dump(
@@ -5046,7 +5048,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> None:
 		super().edge_val_del_time(branch, turn, tick)
 		with self._lock:
-			del self._edge_val[branch][turn][tick]
+			try:
+				del self._edge_val[branch][turn][tick]
+			except KeyError:
+				pass
 
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		with self._lock:
@@ -5345,7 +5350,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def things_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		super().things_del_time(branch, turn, tick)
 		with self._lock:
-			del self._things[branch][turn][tick]
+			try:
+				del self._things[branch][turn][tick]
+			except KeyError:
+				pass
 
 	def turns_completed_dump(self) -> Iterator[tuple[Branch, Turn]]:
 		with self._lock:
