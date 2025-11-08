@@ -133,10 +133,11 @@ class FacadeEntity(
 		if not hasattr(self, "_real"):
 			raise KeyError(f"{k} unset, and no underlying Thing")
 		ret = self._real[k]
-		if hasattr(ret, "unwrap"):  # a wrapped mutable object from the
+		if hasattr(ret, "unwrap"):  # a wrapped mutable object
 			ret = ret.unwrap()
-			self._patch[k] = ret  # changes will be reflected in the
-		# facade but not the original
+			self._patch[k] = ret
+			# changes will be reflected in the
+			# facade but not the original
 		return ret
 
 	@abstractmethod
