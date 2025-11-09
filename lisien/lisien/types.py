@@ -995,7 +995,7 @@ class Edge(AbstractEntityMapping, ABC):
 	)
 
 	def __init__(self, graph: Character, orig: NodeName, dest: NodeName):
-		super().__init__(graph)
+		super().__init__()
 		self.character = graph
 		self.orig = orig
 		self.dest = dest
