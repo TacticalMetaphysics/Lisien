@@ -102,9 +102,9 @@ def test_polygons(engy):
 		engy.next_turn()
 
 
-def test_char_stat_startup(tmp_path, persistent_database_connector_part):
+def test_char_stat_startup(tmp_path, database_connector_part):
 	with Engine(
-		tmp_path, workers=0, database=persistent_database_connector_part()
+		tmp_path, workers=0, database=database_connector_part()
 	) as eng:
 		eng.new_character("physical", nx.hexagonal_lattice_graph(20, 20))
 		tri = eng.new_character("triangle")
@@ -120,7 +120,7 @@ def test_char_stat_startup(tmp_path, persistent_database_connector_part):
 		assert "max_sameness" in tri.stat
 
 	with Engine(
-		tmp_path, workers=0, database=persistent_database_connector_part()
+		tmp_path, workers=0, database=database_connector_part()
 	) as eng:
 		assert "min_sameness" in eng.character["square"].stat
 		assert "max_sameness" in eng.character["square"].stat
@@ -135,15 +135,13 @@ def test_sickle(engy):
 
 
 @pytest.mark.slow
-def test_wolfsheep(
-	tmp_path, persistent_database_connector_part, serial_or_parallel
-):
+def test_wolfsheep(tmp_path, database_connector_part, serial_or_parallel):
 	workers = 0 if serial_or_parallel == "serial" else 2
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		workers=workers,
-		database=persistent_database_connector_part(),
+		database=database_connector_part(),
 	) as engy:
 		wolfsheep.install(engy, seed=69105)
 		for i in range(10):
@@ -166,7 +164,7 @@ def test_wolfsheep(
 		tmp_path,
 		random_seed=69105,
 		workers=workers,
-		database=persistent_database_connector_part(),
+		database=database_connector_part(),
 	)
 	try:
 		hand.next_turn()
