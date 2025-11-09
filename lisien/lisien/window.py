@@ -33,15 +33,15 @@ from collections.abc import (
 )
 from dataclasses import dataclass, replace
 from enum import Enum
-from functools import partial
+from functools import partial, cached_property
 from itertools import chain
 from operator import ge, itemgetter, le
 from threading import RLock
 from typing import Any, Callable, Iterable, Iterator, Union, TypeVar
 
 from .exc import HistoricKeyError
+from .reslot import reslot
 from .types import LinearTime, Tick, Turn, Value
-from .util import slotted
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -589,6 +589,7 @@ def _recurse(rev: _RK, revs: list[tuple[_RK, _RV]]) -> tuple[_RK, _RV]:
 		return _recurse(rev, after)
 
 
+@reslot
 class WindowDict[_K: int, _V: Value](MutableMapping[_K, _V]):
 	"""A dict that keeps every value that a variable has had over time.
 
@@ -611,21 +612,21 @@ class WindowDict[_K: int, _V: Value](MutableMapping[_K, _V]):
 
 	"""
 
-	__slots__ = ("_future_", "_past_", "_keys_", "_lock_")
+	__slots__ = ("__dict__",)
 
-	@slotted
+	@cached_property
 	def _past(self) -> list[tuple[_K, _V]]:
 		return []
 
-	@slotted
+	@cached_property
 	def _future(self) -> list[tuple[_K, _V]]:
 		return []
 
-	@slotted
+	@cached_property
 	def _keys(self) -> set[_K]:
 		return set()
 
-	@slotted
+	@cached_property
 	def _lock(self) -> RLock:
 		return RLock()
 
@@ -962,6 +963,8 @@ class WindowDict[_K: int, _V: Value](MutableMapping[_K, _V]):
 
 
 class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
+	__slots__ = ()
+
 	def __getitem__(self, rev: Turn) -> list[Tick]:
 		if rev in self:
 			return super().__getitem__(rev).copy()
@@ -981,8 +984,9 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 				yield turn, tick
 
 
+@reslot
 class EntikeyWindowDict(WindowDict):
-	__slots__ = ("_past_", "_future_", "entikeys")
+	__slots__ = ()
 
 	def __init__(
 		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
@@ -1131,6 +1135,7 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 						yield trn, tck
 
 
+@reslot
 class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 	"""A WindowDict that contains a span of time, indexed as turns and ticks
 
@@ -1140,17 +1145,19 @@ class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 
 	"""
 
+	__slots__ = ()
+
 	cls: type[WindowDict[Turn, WindowDict[Tick, _VV]]] = WindowDict
 
-	@slotted
+	@cached_property
 	def _future(self) -> list[tuple[Turn, WindowDict[Tick, _VV]]]:
 		return []
 
-	@slotted
+	@cached_property
 	def _past(self) -> list[tuple[Turn, WindowDict[Tick, _VV]]]:
 		return []
 
-	@slotted
+	@cached_property
 	def _keys(self) -> set[Turn]:
 		return set()
 
@@ -1233,4 +1240,5 @@ class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 
 
 class EntikeySettingsTurnDict(AssignmentTimeDict):
+	__slots__ = ()
 	cls = EntikeyWindowDict

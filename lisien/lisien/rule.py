@@ -84,7 +84,7 @@ from abc import ABC, abstractmethod
 from ast import parse, unparse
 from collections import UserDict
 from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
-from functools import partial
+from functools import partial, cached_property
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
 
 from blinker import Signal
@@ -110,7 +110,7 @@ from .types import (
 	KeyHint,
 	AbstractEngine,
 )
-from .util import dedent_source, cached_property
+from .util import dedent_source
 
 if TYPE_CHECKING:
 	from .engine import Engine
