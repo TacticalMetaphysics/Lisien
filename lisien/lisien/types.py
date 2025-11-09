@@ -76,7 +76,7 @@ from tblib import Traceback
 
 from . import exc
 from .exc import WorkerProcessReadOnlyError, TimeError
-from .reslot import reslot
+from reslot import reslot
 from .util import getatt
 from .wrap import (
 	DictWrapper,

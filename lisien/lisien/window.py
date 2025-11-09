@@ -40,7 +40,7 @@ from threading import RLock
 from typing import Any, Callable, Iterable, Iterator, Union, TypeVar
 
 from .exc import HistoricKeyError
-from .reslot import reslot
+from reslot import reslot
 from .types import LinearTime, Tick, Turn, Value
 
 get0 = itemgetter(0)
