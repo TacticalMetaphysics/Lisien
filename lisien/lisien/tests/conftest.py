@@ -199,9 +199,9 @@ def database(request):
 
 @pytest.fixture(
 	params=[
+		pytest.param("python"),
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
-		"python",
 	]
 )
 def non_null_database(request):
