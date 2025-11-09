@@ -76,7 +76,8 @@ from tblib import Traceback
 
 from . import exc
 from .exc import WorkerProcessReadOnlyError, TimeError
-from .util import getatt, cached_property, slotted
+from .reslot import reslot
+from .util import getatt
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
@@ -555,9 +556,7 @@ class CharacterMappingMixin(MappingUnwrapperMixin, ABC):
 		return self.character.engine
 
 
-class AbstractEntityMapping(
-	MutableMapping, Signal, MappingUnwrapperMixin, ABC
-):
+class AbstractEntityMapping(MutableMapping, MappingUnwrapperMixin, ABC):
 	__slots__ = ()
 
 	engine: Engine
@@ -636,31 +635,21 @@ class AbstractEntityMapping(
 		self._del_db(Key(key), branch, turn, tick)
 
 
+@reslot
 class GraphMapping(AbstractEntityMapping, ABC):
 	"""Mapping for graph attributes"""
 
-	__slots__ = (
-		"character",
-		"_engine",
-		"_iter_stuff_",
-		"_contains_stuff_",
-		"_len_stuff_",
-		"_get_stuff_",
-		"_set_db_stuff_",
-		"_set_cache_stuff_",
-		"_del_db_stuff_",
-		"_get_cache_stuff_",
-	)
+	__slots__ = ("character", "__dict__")
 
 	def __init__(self, graph: Character):
-		super().__init__(graph)
+		super().__init__()
 		self.character = graph
 
-	@cached_property("_engine")
+	@cached_property
 	def engine(self):
 		return self.character.engine
 
-	@cached_property("_iter_stuff_")
+	@cached_property
 	def _iter_stuff(self):
 		return (
 			self.engine._graph_val_cache.iter_keys,
@@ -668,11 +657,11 @@ class GraphMapping(AbstractEntityMapping, ABC):
 			self.engine.time,
 		)
 
-	@cached_property("_contains_stuff_")
+	@cached_property
 	def _cache_contains_stuff(self):
 		return self.engine._graph_val_cache.contains_key, self.character.name
 
-	@cached_property("_len_stuff_")
+	@cached_property
 	def _len_stuff(self):
 		return (
 			self.engine._graph_val_cache.count_keys,
@@ -680,7 +669,7 @@ class GraphMapping(AbstractEntityMapping, ABC):
 			self.engine.time,
 		)
 
-	@cached_property("_get_stuff_")
+	@cached_property
 	def _get_stuff(
 		self,
 	) -> tuple[
@@ -689,19 +678,19 @@ class GraphMapping(AbstractEntityMapping, ABC):
 	]:
 		return self._get_cache, self.engine.time
 
-	@cached_property("_set_db_stuff_")
+	@cached_property
 	def _set_db_stuff(self):
 		return self.engine.query.graph_val_set, self.character.name
 
-	@cached_property("_set_cache_stuff_")
+	@cached_property
 	def _set_cache_stuff(self):
 		return self.engine._graph_val_cache.store, self.character.name
 
-	@cached_property("_del_db_stuff_")
+	@cached_property
 	def _del_db_stuff(self):
 		return self.engine.query.graph_val_set, self.character.name
 
-	@cached_property("_get_cache_stuff_")
+	@cached_property
 	def _get_cache_stuff(self):
 		return (self.engine._graph_val_cache.retrieve, self.character.name)
 
@@ -794,18 +783,9 @@ class GraphMapping(AbstractEntityMapping, ABC):
 		return me == other
 
 
+@reslot
 class Node(AbstractEntityMapping, ABC):
-	__slots__ = (
-		"character",
-		"name",
-		"_engine_",
-		"_iter_",
-		"_contains_",
-		"_len_",
-		"_get_",
-		"_set_db_",
-		"_set_cache_",
-	)
+	__slots__ = ("character", "name", "__dict__")
 
 	def _validate_node_type(self):
 		return True
@@ -828,11 +808,11 @@ class Node(AbstractEntityMapping, ABC):
 			return self.name
 		return Value(super().__getitem__(item))
 
-	@cached_property("_engine_")
+	@cached_property
 	def engine(self):
 		return self.character.engine
 
-	@cached_property("_iter_")
+	@cached_property
 	def _iter_stuff(self):
 		return (
 			self.engine._node_val_cache.iter_keys,
@@ -841,7 +821,7 @@ class Node(AbstractEntityMapping, ABC):
 			self.engine.time,
 		)
 
-	@cached_property("_contains_")
+	@cached_property
 	def _cache_contains_stuff(self):
 		return (
 			self.engine._node_val_cache.contains_key,
@@ -849,7 +829,7 @@ class Node(AbstractEntityMapping, ABC):
 			self.name,
 		)
 
-	@cached_property("_len_")
+	@cached_property
 	def _len_stuff(self):
 		return (
 			self.engine._node_val_cache.count_keys,
@@ -858,7 +838,7 @@ class Node(AbstractEntityMapping, ABC):
 			self.engine.time,
 		)
 
-	@cached_property("_get_")
+	@cached_property
 	def _get_cache_stuff(self):
 		return (
 			self.engine._node_val_cache.retrieve,
@@ -866,11 +846,11 @@ class Node(AbstractEntityMapping, ABC):
 			self.name,
 		)
 
-	@cached_property("_set_db_")
+	@cached_property
 	def _set_db_stuff(self):
 		return self.engine.query.node_val_set, self.character.name, self.name
 
-	@cached_property("_set_cache_")
+	@cached_property
 	def _set_cache_stuff(self):
 		return (
 			self.engine._node_val_cache.store,
@@ -1003,6 +983,7 @@ class Node(AbstractEntityMapping, ABC):
 	def leaders(self) -> Iterator[AbstractCharacter]: ...
 
 
+@reslot
 class Edge(AbstractEntityMapping, ABC):
 	"""Mapping for edge attributes"""
 
@@ -1010,13 +991,7 @@ class Edge(AbstractEntityMapping, ABC):
 		"character",
 		"orig",
 		"dest",
-		"_engine",
-		"_iter_stuff_",
-		"_cache_contains_stuff_",
-		"_len_stuff_",
-		"_get_cache_stuff_",
-		"_set_db_stuff_",
-		"_set_cache_stuff_",
+		"__dict__",
 	)
 
 	def __init__(self, graph: Character, orig: NodeName, dest: NodeName):
@@ -1025,7 +1000,7 @@ class Edge(AbstractEntityMapping, ABC):
 		self.orig = orig
 		self.dest = dest
 
-	@cached_property("_engine")
+	@property
 	def engine(self):
 		return self.character.engine
 
@@ -1041,7 +1016,7 @@ class Edge(AbstractEntityMapping, ABC):
 	def __str__(self):
 		return str(dict(self))
 
-	@slotted
+	@cached_property
 	def _iter_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.iter_keys,
@@ -1055,7 +1030,7 @@ class Edge(AbstractEntityMapping, ABC):
 		iter_entity_keys, graphn, orig, dest, btt = self._iter_stuff
 		return iter_entity_keys(graphn, orig, dest, *btt)
 
-	@slotted
+	@cached_property
 	def _cache_contains_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.contains_key,
@@ -1068,7 +1043,7 @@ class Edge(AbstractEntityMapping, ABC):
 		contains_key, graphn, orig, dest = self._cache_contains_stuff
 		return contains_key(graphn, orig, dest, key, branch, turn, tick)
 
-	@slotted
+	@cached_property
 	def _len_stuff(self):
 		return (
 			self.character.engine.edge_val_cache.count_keys,
@@ -1082,7 +1057,7 @@ class Edge(AbstractEntityMapping, ABC):
 		count_entity_keys, graphn, orig, dest, btt = self._len_stuff
 		return count_entity_keys(graphn, orig, dest, *btt)
 
-	@slotted
+	@cached_property
 	def _get_cache_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.retrieve,
@@ -1095,7 +1070,7 @@ class Edge(AbstractEntityMapping, ABC):
 		retrieve, graphn, orig, dest = self._get_cache_stuff
 		return retrieve(graphn, orig, dest, key, branch, turn, tick)
 
-	@slotted
+	@cached_property
 	def _set_db_stuff(self):
 		return (
 			self.character.engine.query.edge_val_set,
@@ -1108,7 +1083,7 @@ class Edge(AbstractEntityMapping, ABC):
 		edge_val_set, graphn, orig, dest = self._set_db_stuff
 		edge_val_set(graphn, orig, dest, key, branch, turn, tick, value)
 
-	@slotted
+	@cached_property
 	def _set_cache_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.store,
@@ -1680,23 +1655,31 @@ class DiGraph(networkx.DiGraph, ABC):
 		self._statmap.clear()
 		self._statmap.update(v)
 
-	@cached_property("_nodemap")
-	def node(self) -> node_map_cls:
+	@cached_property
+	def _node(self) -> node_map_cls:
 		return self.node_map_cls(self)
 
-	_node = node
+	@property
+	def node(self) -> node_map_cls:
+		return self._node
 
-	@cached_property("_adjmap")
-	def adj(self) -> adj_cls:
+	@cached_property
+	def _adj(self) -> adj_cls:
 		return self.adj_cls(self)
 
-	edge = succ = _succ = _adj = adj
+	@property
+	def adj(self) -> adj_cls:
+		return self._adj
 
-	@cached_property("_predmap")
-	def pred(self):
+	edge = succ = _succ = adj
+
+	@cached_property
+	def _pred(self) -> pred_cls:
 		return self.pred_cls(self)
 
-	_pred = pred
+	@property
+	def pred(self) -> pred_cls:
+		return self._pred
 
 	@property
 	def name(self):

@@ -23,11 +23,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Set, ValuesView
 from copy import deepcopy
+from functools import cached_property
 from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 
 from networkx import shortest_path, shortest_path_length
 
 import lisien.types
+from reslot import reslot
 
 from . import rule
 from .exc import AmbiguousLeaderError
@@ -46,7 +48,7 @@ from .types import (
 	ValueHint,
 	AbstractThing,
 )
-from .util import unwrap, getatt, cached_property
+from .util import unwrap, getatt
 
 if TYPE_CHECKING:
 	from .character import Character
@@ -298,8 +300,9 @@ class Origs(Mapping):
 		return OrigsValues(self)
 
 
+@reslot
 class Portals(Set):
-	__slots__ = ("node",)
+	__slots__ = ("node", "__dict__")
 
 	def __init__(self, node: Node) -> None:
 		self.node = node
@@ -365,17 +368,18 @@ class NeighborValues(ValuesView):
 		return item.name in self._mapping
 
 
+@reslot
 class NeighborMapping(Mapping):
-	__slots__ = ("node", "_node_", "_ecnb_")
+	__slots__ = ("node", "__dict__")
 
 	def __init__(self, node: Node) -> None:
 		self.node = node
 
-	@cached_property("_node_")
+	@cached_property
 	def _nn(self):
 		return (self.node.character.node, self.node.name)
 
-	@cached_property("_ecnb_")
+	@cached_property
 	def _ecnb(self):
 		return (
 			self.node.engine._edges_cache,
