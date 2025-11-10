@@ -872,15 +872,8 @@ class RuleFollower(ABC):
 	_rulebook: RuleBook
 
 	@cached_property
-	def _rule_mapping(self) -> RuleMapping:
+	def rule(self) -> RuleMapping:
 		return self._get_rule_mapping()
-
-	def rule(
-		self, v: RuleFunc | None = None, name: RuleName | str | None = None
-	) -> RuleMapping | partial[Rule]:
-		if v is not None:
-			return self._rule_mapping(v, name)
-		return self._rule_mapping
 
 	@property
 	def rulebook(self) -> RuleBook:
