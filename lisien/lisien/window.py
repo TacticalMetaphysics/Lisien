@@ -986,7 +986,7 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 
 @reslot
 class EntikeyWindowDict(WindowDict):
-	__slots__ = ()
+	__slots__ = ("entikeys",)
 
 	def __init__(
 		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
