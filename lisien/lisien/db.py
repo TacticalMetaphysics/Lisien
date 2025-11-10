@@ -159,12 +159,6 @@ from .util import (
 )
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
-if sys.version_info.minor < 11:
-
-	class ExceptionGroup(Exception):
-		pass
-
-
 SCHEMAVER_B = b"\xb6_lisien_schema_version"
 SCHEMA_VERSION = 2
 SCHEMA_VERSION_B = SCHEMA_VERSION.to_bytes(1, "little")
