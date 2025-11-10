@@ -7528,6 +7528,10 @@ class Engine(AbstractEngine, Executor):
 			graph, branch, turn, tick, node_rb_kf
 		)
 		self._things_cache.set_keyframe(graph, branch, turn, tick, locs_kf)
+		assert (graph,) in self._things_cache.keyframe
+		assert branch in self._things_cache.keyframe[graph,]
+		assert turn in self._things_cache.keyframe[graph,][branch]
+		assert tick in self._things_cache.keyframe[graph,][branch][turn]
 		self._node_contents_cache.set_keyframe(
 			graph,
 			branch,
@@ -7603,12 +7607,6 @@ class Engine(AbstractEngine, Executor):
 					turns[turn] = {tick}
 			else:
 				self._keyframes_dict[branch] = {turn: {tick}}
-		assert (
-			(graph,) in self._things_cache.keyframe
-			and branch in self._things_cache.keyframe[graph,]
-			and turn in self._things_cache.keyframe[graph,][branch]
-			and tick in self._things_cache.keyframe[graph,][branch][turn]
-		)
 
 	def flush(self) -> None:
 		"""Write pending changes to disk.
