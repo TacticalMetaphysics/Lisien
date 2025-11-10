@@ -41,7 +41,7 @@ from typing import Any, Callable, Iterable, Iterator, Union, TypeVar
 
 from .exc import HistoricKeyError
 from reslot import reslot
-from .types import LinearTime, Tick, Turn, Value
+from .types import LinearTime, Tick, Turn, Value, ValueHint
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -590,7 +590,7 @@ def _recurse(rev: _RK, revs: list[tuple[_RK, _RV]]) -> tuple[_RK, _RV]:
 
 
 @reslot
-class WindowDict[_K: int, _V: Value](MutableMapping[_K, _V]):
+class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 	"""A dict that keeps every value that a variable has had over time.
 
 	Look up a revision number in this dict, and it will give you the
