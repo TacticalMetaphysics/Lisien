@@ -430,7 +430,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 
 	"""
 
-	__slots__ = ("_real_rule_mapping",)
+	__slots__ = ()
 	no_unwrap = True
 	_extra_keys = {
 		"name",
@@ -677,11 +677,7 @@ class Place(Node):
 
 	"""
 
-	__slots__ = (
-		"_rulebook",
-		"_rulebooks",
-		"_real_rule_mapping",
-	)
+	__slots__ = ()
 
 	extrakeys = {
 		"name",
@@ -736,12 +732,7 @@ class Thing(Node, AbstractThing):
 
 	"""
 
-	__slots__ = (
-		"character",
-		"_rulebook",
-		"_rulebooks",
-		"_real_rule_mapping",
-	)
+	__slots__ = ()
 
 	_extra_keys = {"name", "location"}
 
