@@ -875,7 +875,6 @@ class RuleFollower(ABC):
 	def _rule_mapping(self) -> RuleMapping:
 		return self._get_rule_mapping()
 
-	@property
 	def rule(
 		self, v: RuleFunc | None = None, name: RuleName | str | None = None
 	) -> RuleMapping | partial[Rule]:
