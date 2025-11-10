@@ -976,7 +976,10 @@ class AllRules(UserDict[RuleName, Rule], Signal):
 		self.engine = engine
 		UserDict.__init__(
 			self,
-			((name, Rule(engine, name)) for name in engine.query.rules_dump()),
+			(
+				(name, Rule(engine, name, create=False))
+				for name in engine.query.rules_dump()
+			),
 		)
 
 	def __setitem__(
