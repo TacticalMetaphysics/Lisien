@@ -911,6 +911,8 @@ class Cache:
 			self.keycache[parentibranch] = AssignmentTimeDict(
 				{turn: {tick: kc}}
 			)
+		elif turn not in self.keycache[parentibranch]:
+			self.keycache[parentibranch][turn] = {tick: kc}
 		else:
 			self.keycache[parentibranch][turn][tick] = kc
 
