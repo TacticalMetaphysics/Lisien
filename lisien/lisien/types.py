@@ -1000,6 +1000,14 @@ class Edge(AbstractEntityMapping, ABC):
 		self.orig = orig
 		self.dest = dest
 
+	@cached_property
+	def origin(self) -> Node:
+		return self.character.node[self.orig]
+
+	@cached_property
+	def destination(self):
+		return self.character.node[self.dest]
+
 	@property
 	def engine(self):
 		return self.character.engine

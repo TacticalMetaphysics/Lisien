@@ -44,21 +44,8 @@ class Portal(Edge, RuleFollower):
 
 	"""
 
-	__slots__ = (
-		"character",
-		"orig",
-		"dest",
-		"origin",
-		"destination",
-		"_rulebook",
-		"_real_rule_mapping",
-	)
+	__slots__ = ()
 	no_unwrap = True
-
-	def __init__(self, graph: AbstractCharacter, orig: Key, dest: Key):
-		super().__init__(graph, orig, dest)
-		self.origin = graph.node[orig]
-		self.destination = graph.node[dest]
 
 	@property
 	def _cache(self):
