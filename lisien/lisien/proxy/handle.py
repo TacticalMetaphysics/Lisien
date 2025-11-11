@@ -515,7 +515,7 @@ class EngineHandle:
 		):
 			# This branch avoids unpacking and re-packing the delta
 			slightly: SlightlyPackedDeltaType = self._real._get_slow_delta(
-				(branch_from, turn_from, tick_from), self._real.time
+				(branch_from, turn_from, tick_from), tuple(self._real.time)
 			)
 			mostly = {}
 			if UNIVERSAL in slightly:
