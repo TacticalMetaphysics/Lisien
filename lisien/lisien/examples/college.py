@@ -214,9 +214,7 @@ def install(eng):
 				# Students' nodes are their brain cells.
 				# They are useless if drunk or slow, but recover from both conditions a bit every hour.
 				for k in range(0, 100):
-					cell = student.new_node(
-						"cell{}".format(k), drunk=0, slow=0
-					)
+					student.add_node("cell{}".format(k), drunk=0, slow=0)
 					#  ``new_node`` is just an alias for ``new_place``;
 					#  perhaps more logical when the places don't really
 					#  represent potential locations

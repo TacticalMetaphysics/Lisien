@@ -12,19 +12,14 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import tempfile
-from shutil import rmtree
 from typing import Literal
 
 import pytest
 
 from lisien.engine import Engine
-from lisien.facade import FacadeThing, FacadePlace
 from lisien.tests.data import CHARACTER_UPDATES
 from lisien.types import (
 	NodeName,
-	Node,
-	AbstractThing,
 	AbstractCharacter,
 	Stat,
 	Value,

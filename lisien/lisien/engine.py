@@ -36,7 +36,7 @@ from copy import copy
 from functools import partial, wraps, cached_property
 from hashlib import blake2b
 from multiprocessing import get_all_start_methods
-from io import TextIOWrapper, IOBase
+from io import TextIOWrapper
 from itertools import chain, pairwise
 from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
 from operator import itemgetter, lt
@@ -134,7 +134,6 @@ from .types import (
 	DiGraph,
 	EdgesDict,
 	EdgeValDict,
-	EternalKey,
 	EntityKey,
 	FakeFuture,
 	GraphEdgesKeyframe,
@@ -181,6 +180,7 @@ from .types import (
 	QueryResultEndTurn,
 	QueryResultMidTurn,
 	CombinedQueryResult,
+	TimeSignal,
 )
 from .util import (
 	ACTIONS,
@@ -2316,7 +2316,6 @@ class Engine(AbstractEngine, Executor):
 				self._rando.seed(random_seed)
 			rando_state = self._rando.getstate()
 			if self._oturn == self._otick == 0:
-				now = tuple(self.time)
 				self._universal_cache.store(
 					"rando_state",
 					self.branch,
@@ -4628,7 +4627,6 @@ class Engine(AbstractEngine, Executor):
 		tick_now = tick
 		latest_past_keyframe: Optional[Time] = None
 		earliest_future_keyframe: Optional[Time] = None
-		branch_parents = self._branch_parents
 		cache = self._keyframes_times if loading else self._keyframes_loaded
 		for branch, turn, tick in self._iter_keyframes(
 			branch_now, turn_now, tick_now, loaded=not loading
@@ -7981,7 +7979,7 @@ class Engine(AbstractEngine, Executor):
 		try:
 			from lxml.etree import ElementTree, Element
 		except ModuleNotFoundError:
-			from xml.etree.ElementTree import ElementTree, Element
+			from xml.etree.ElementTree import Element
 
 		if name is None and self._prefix:
 			name = os.path.basename(self._prefix)

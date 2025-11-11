@@ -24,11 +24,9 @@ from functools import cached_property
 from operator import attrgetter
 from threading import RLock
 from typing import (
-	Any,
 	Mapping,
 	MutableMapping,
 	MutableSequence,
-	Type,
 	TYPE_CHECKING,
 	Literal,
 	ClassVar,
@@ -1235,7 +1233,6 @@ class CharacterFacade(AbstractCharacter):
 		realthing = realchar.thing
 		realplace = realchar.place
 		realport = realchar.portal
-		realeng = self.engine._real
 		for k, v in self.stat._patch.items():
 			if v is ...:
 				del realstat[k]
