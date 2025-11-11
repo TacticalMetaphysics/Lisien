@@ -38,7 +38,7 @@ version.filename = %(source.dir)s/elide/pyproject.toml
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,blinker,sqlalchemy,typing_extensions,tblib,pygments,lisien,elide,androidstorage4kivy,annotated-types,astor,android,pyjnius,python-osc
+requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,blinker,sqlalchemy,typing_extensions,tblib,pygments,lisien,elide,androidstorage4kivy,annotated-types,astor,android,pyjnius,python-osc,reslot,u-msgpack-python
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
