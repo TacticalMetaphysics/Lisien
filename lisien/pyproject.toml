@@ -33,7 +33,7 @@ dependencies = [
 	"sqlalchemy~=2.0",
 	"numpy~=2.3.4",
 	"tblib~=3.2.0",
-	"parquetdb @ https://github.com/lllangWV/ParquetDB",
+	"parquetdb @ git+https://github.com/lllangWV/ParquetDB",
 	"annotated-types~=0.7.0",
 	"lxml~=6.0",
 ]
