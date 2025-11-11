@@ -76,6 +76,7 @@ def test_play(screen_test_state, elide_app):
 	idle_until(lambda: screen.boardview, 100, "screen never got boardview")
 	motion = UnitTestTouch(*playbut.center)
 	motion.touch_down()
+	advance_frames(5)
 	motion.touch_up()
 	idle_until(
 		lambda: int(turnfield.hint_text) == 3,
