@@ -622,6 +622,11 @@ class FacadePortalMapping(FacadeEntityMapping, ABC):
 			ret = nuret
 		return ret
 
+	def _make(self, k, v):
+		ret = self.cls(self.character, k)
+		ret.update(v)
+		return ret
+
 
 class FacadePortal(FacadeEntity):
 	"""Lightweight analogue of Portal for Facade use."""
