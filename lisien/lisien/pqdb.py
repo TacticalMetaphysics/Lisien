@@ -47,6 +47,7 @@ from .db import (
 )
 from .exc import KeyframeError
 from .types import (
+	__dict__ as types_dict,
 	Branch,
 	Turn,
 	Tick,
@@ -153,7 +154,9 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				argspec = inspect.getfullargspec(serializer)
 				serialized_tuple_type = argspec.annotations["return"]
 				if isinstance(serialized_tuple_type, str):
-					serialized_tuple_type = eval(serialized_tuple_type)
+					serialized_tuple_type = eval(
+						serialized_tuple_type, dict(types_dict)
+					)
 				columns = ret[table] = []
 				for column, serialized_type in zip(
 					argspec.args[1:], argeval(serialized_tuple_type)
