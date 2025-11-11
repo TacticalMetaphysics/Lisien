@@ -30,6 +30,7 @@ from typing import (
 	Iterator,
 	Optional,
 	Any,
+	TypeAliasType,
 )
 
 import pyarrow as pa
@@ -118,6 +119,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			import pyarrow as pa
 
 			def origif(typ):
+				if isinstance(typ, TypeAliasType):
+					typ = typ.__value__
 				if hasattr(typ, "evaluate_value"):
 					typ = typ.evaluate_value()
 				if hasattr(typ, "__supertype__"):
@@ -130,6 +133,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			def argeval(typ: type) -> tuple[type, ...]:
 				if hasattr(typ, "evaluate_value"):
 					typ = typ.evaluate_value()
+				if isinstance(typ, TypeAliasType):
+					typ = typ.__value__
 				return get_args(typ)
 
 			def original(typ):
