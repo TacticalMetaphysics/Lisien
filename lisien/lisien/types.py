@@ -231,6 +231,23 @@ Branch = NewType("Branch", str)
 Turn = NewType("Turn", Annotated[int, Ge(0)])
 Tick = NewType("Tick", Annotated[int, Ge(0)])
 type Time = tuple[Branch, Turn, Tick]
+
+
+def validate_time(time: Time) -> None:
+	if not isinstance(time, tuple) or len(time) != 3:
+		raise TypeError("Invalid time", time)
+	if not isinstance(time[0], str):
+		raise TypeError("Invalid branch", time[0])
+	if not isinstance(time[1], int):
+		raise TypeError("Invalid turn", time[1])
+	if not isinstance(time[2], int):
+		raise TypeError("Invalid tick", time[2])
+	if time[1] < 0:
+		raise ValueError("Negative turn", time[1])
+	if time[2] < 0:
+		raise ValueError("Negative tick", time[2])
+
+
 type LinearTime = tuple[Turn, Tick]
 type TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", Annotated[int, Ge(0)])

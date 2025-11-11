@@ -161,6 +161,7 @@ from .types import (
 	StatDict,
 	Tick,
 	Time,
+	validate_time,
 	Turn,
 	UniversalKey,
 	Value,
@@ -5673,6 +5674,8 @@ class Engine(AbstractEngine, Executor):
 	def _get_slow_delta(
 		self, btt_from: Time, btt_to: Time
 	) -> SlightlyPackedDeltaType:
+		for time in (btt_from, btt_to):
+			validate_time(time)
 		import numpy as np
 
 		def newgraph():
