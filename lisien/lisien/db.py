@@ -4417,7 +4417,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _character_portal_rulebook(
 		self,
 	) -> dict[Branch, AssignmentTimeDict[tuple[CharName, RulebookName]]]:
-		return PickierDefaultDict(int, AssignmentTimeDict)
+		return PickierDefaultDict(str, AssignmentTimeDict)
 
 	@cached_property
 	def _node_rules_handled(
