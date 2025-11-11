@@ -4146,22 +4146,28 @@ class CombinedQueryResult(QueryResult):
 		self._right = right
 		self._oper = oper
 
-	def _genset(self):
+	def _generate(self):
 		if not hasattr(self, "_set"):
 			self._set = self._oper(set(self._left), set(self._right))
 
 	def __iter__(self):
-		self._genset()
+		self._generate()
 		return iter(self._set)
 
 	def __len__(self):
-		self._genset()
+		self._generate()
 		return len(self._set)
 
 	def __contains__(self, item):
 		if hasattr(self, "_set"):
 			return item in self._set
 		return self._oper(item in self._left, item in self._right)
+
+	def _first(self):
+		return self._left._first()
+
+	def _last(self):
+		return self._right._last()
 
 
 def _mungeside(side):
