@@ -3622,6 +3622,8 @@ sort_set.memo = SizedDict()
 def root_type(t: type) -> type | tuple[type, ...]:
 	if hasattr(t, "evaluate_value"):
 		t = t.evaluate_value()
+	if hasattr(t, "__value__"):
+		t = t.__value__
 	if t is Key or t is Value:
 		return t
 	elif t is Turn or t is Tick or t is Plan or t is RuleNeighborhood:
