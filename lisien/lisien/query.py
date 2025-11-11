@@ -50,6 +50,7 @@ from .types import (
 	GeQuery,
 	LeQuery,
 	intersect2,
+	GraphMapping,
 )
 
 
@@ -370,9 +371,9 @@ def _make_side_sel(
 	from .node import Place, Thing
 	from .portal import Portal
 
-	if isinstance(entity, AbstractCharacter):
+	if isinstance(entity, GraphMapping):
 		return _make_graph_val_select(
-			meta, pack(entity.name), pack(stat), branches, mid_turn
+			meta, pack(entity.character.name), pack(stat), branches, mid_turn
 		)
 	elif isinstance(entity, Place):
 		return _make_node_val_select(
