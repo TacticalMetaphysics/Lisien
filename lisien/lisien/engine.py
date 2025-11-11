@@ -33,7 +33,7 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from copy import copy
-from functools import cached_property, partial, wraps
+from functools import partial, wraps, cached_property
 from hashlib import blake2b
 from multiprocessing import get_all_start_methods
 from io import TextIOWrapper, IOBase
@@ -71,7 +71,9 @@ from .cache import (
 	EdgesCache,
 	EdgeValCache,
 	EntitylessCache,
-	FuncListCache,
+	TriggerListCache,
+	PrereqListCache,
+	ActionListCache,
 	GraphCache,
 	GraphValCache,
 	NeighborhoodsCache,
@@ -107,7 +109,6 @@ from .db import (
 	NullDatabaseConnector,
 )
 from .exc import (
-	ExceptionGroup,
 	GraphNameError,
 	HistoricKeyError,
 	KeyframeError,
@@ -143,7 +144,7 @@ from .types import (
 	GraphValKeyframe,
 	Key,
 	Keyframe,
-	KeyframeTuple,
+	KeyframeGraphRowType,
 	LinearTime,
 	NodeName,
 	NodesDict,
@@ -160,6 +161,7 @@ from .types import (
 	StatDict,
 	Tick,
 	Time,
+	validate_time,
 	Turn,
 	UniversalKey,
 	Value,
@@ -261,7 +263,7 @@ class PlanningContext(ContextDecorator):
 	def __init__(self, orm: "Engine", reset=True):
 		self.orm = orm
 		if reset:
-			self.reset = orm._btt()
+			self.reset = tuple(orm.time)
 		else:
 			self.reset = None
 
@@ -270,7 +272,7 @@ class PlanningContext(ContextDecorator):
 		if orm._planning:
 			raise ValueError("Already planning")
 		orm._planning = True
-		branch, turn, tick = orm._btt()
+		branch, turn, tick = orm.time
 		self.id = myid = orm._last_plan = orm._last_plan + 1
 		self.forward = orm._forward
 		if orm._forward:
@@ -316,7 +318,7 @@ class NextTurn(Signal):
 			engine._update_all_worker_process_states(
 				stores_to_reimport=stores_to_reimport
 			)
-		start_branch, start_turn, start_tick = engine._btt()
+		start_branch, start_turn, start_tick = engine.time
 		latest_turn = engine._get_last_completed_turn(start_branch)
 		if latest_turn is None or start_turn == latest_turn:
 			# Pre-emptively nudge the loadedness and branch tracking,
@@ -363,7 +365,7 @@ class NextTurn(Signal):
 					if isinstance(res, tuple) and res[0] == "stop":
 						engine.universal["last_result"] = res
 						engine.universal["last_result_idx"] = 0
-						branch, turn, tick = engine._btt()
+						branch, turn, tick = engine.time
 						self.send(engine, branch=branch, turn=turn, tick=tick)
 						return list(res), engine._get_branch_delta(
 							branch=start_branch,
@@ -584,7 +586,7 @@ class Engine(AbstractEngine, Executor):
 	portal_cls = edge_cls = Portal
 	entity_cls = char_cls | thing_cls | place_cls | portal_cls
 	illegal_node_names = {"nodes", "node_val", "edges", "edge_val", "things"}
-	time = TimeSignalDescriptor()
+	time: tuple[Branch, Turn, Tick] = TimeSignalDescriptor()
 	trigger: FunctionStore
 	prereq: FunctionStore
 	action: FunctionStore
@@ -592,7 +594,7 @@ class Engine(AbstractEngine, Executor):
 	method: FunctionStore
 
 	@property
-	def eternal(self) -> dict[EternalKey, Value]:
+	def eternal(self):
 		return self.query.eternal
 
 	@property
@@ -606,7 +608,7 @@ class Engine(AbstractEngine, Executor):
 			raise TypeError("branch must be str")
 		if self._planning:
 			raise ValueError("Don't change branches while planning")
-		curbranch, curturn, curtick = self._btt()
+		curbranch, curturn, curtick = self.time
 		if curbranch == v:
 			return
 		# make sure I'll end up within the revision range of the
@@ -628,7 +630,7 @@ class Engine(AbstractEngine, Executor):
 					self.turn,
 					self.tick,
 				)
-		then = self._btt()
+		then = tuple(self.time)
 		branch_is_new = v not in self.branches()
 		if branch_is_new:
 			# assumes the present turn in the parent branch has
@@ -645,7 +647,7 @@ class Engine(AbstractEngine, Executor):
 			return
 		self.load_at(v, curturn, tick)
 		self.eternal["branch"] = v
-		self.time.send(self.time, then=then, now=self._btt())
+		self.time.send(self.time, then=then, now=tuple(self.time))
 
 	@property
 	def trunk(self):
@@ -660,9 +662,9 @@ class Engine(AbstractEngine, Executor):
 			and self.branch_parent(branch) is not None
 		):
 			raise AttributeError("Not a trunk branch")
-		then = self._btt()
+		then = tuple(self.time)
 		self.query.eternal["trunk"] = self.branch = branch
-		self.time.send(self, then=then, now=self._btt())
+		self.time.send(self, then=then, now=tuple(self.time))
 
 	@property
 	def turn(self) -> Turn:
@@ -701,14 +703,14 @@ class Engine(AbstractEngine, Executor):
 			tick = self._turn_end[branch, v]
 		self.load_at(branch, v, tick)
 		self._extend_branch(branch, v, tick)
-		then = self._btt()
+		then = tuple(self.time)
 		self._otick = tick
 		self._oturn = v
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
 		self.eternal["turn"] = v
-		self.time.send(self, then=then, now=self._btt())
+		self.time.send(self, then=then, now=tuple(self.time))
 
 	@property
 	def tick(self) -> Tick:
@@ -776,7 +778,7 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def _nbtt_stuff(self):
 		return (
-			self._btt,
+			self.time,
 			self._turn_end_plan,
 			self._turn_end,
 			self._plan_ticks,
@@ -790,7 +792,7 @@ class Engine(AbstractEngine, Executor):
 		Callable[[tuple[CharName, NodeName, Branch, Turn, Tick]], Any],
 		Callable[[], Time],
 	]:
-		return (self._nodes_cache._base_retrieve, self._btt)
+		return (self._nodes_cache._base_retrieve, self.time)
 
 	@cached_property
 	def _exist_node_stuff(
@@ -812,7 +814,7 @@ class Engine(AbstractEngine, Executor):
 		],
 		Callable[[], Time],
 	]:
-		return (self._edges_cache._base_retrieve, self._btt)
+		return (self._edges_cache._base_retrieve, self.time)
 
 	@cached_property
 	def _exist_edge_stuff(
@@ -845,13 +847,13 @@ class Engine(AbstractEngine, Executor):
 	) -> tuple[
 		SizedDict,
 		Callable[[tuple], Any],
-		Callable[[], tuple[Branch, Turn, Tick]],
+		TimeSignal,
 		Callable[[Character, NodeName], Thing | Place],
 	]:
 		return (
 			self._node_objs,
 			self._nodes_cache._base_retrieve,
-			self._btt,
+			self.time,
 			self._make_node,
 		)
 
@@ -1011,16 +1013,16 @@ class Engine(AbstractEngine, Executor):
 		return PortalsRulebooksCache(self, name="portals rulebooks cache")
 
 	@cached_property
-	def _triggers_cache(self) -> FuncListCache:
-		return FuncListCache(self, name="triggers cache")
+	def _triggers_cache(self) -> TriggerListCache:
+		return TriggerListCache(self, name="triggers cache")
 
 	@cached_property
-	def _prereqs_cache(self) -> FuncListCache:
-		return FuncListCache(self, name="prereqs cache")
+	def _prereqs_cache(self) -> PrereqListCache:
+		return PrereqListCache(self, name="prereqs cache")
 
 	@cached_property
-	def _actions_cache(self) -> FuncListCache:
-		return FuncListCache(self, name="actions cache")
+	def _actions_cache(self) -> ActionListCache:
+		return ActionListCache(self, name="actions cache")
 
 	@cached_property
 	def _neighborhoods_cache(self) -> NeighborhoodsCache:
@@ -1140,14 +1142,12 @@ class Engine(AbstractEngine, Executor):
 	def character(self) -> CharacterMapping:
 		return CharacterMapping(self)
 
-	def _btt(self) -> Time:
-		"""Return the branch, turn, and tick."""
-		return Branch(self._obranch), Turn(self._oturn), Tick(self._otick)
-
 	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick):
+		"""Override the current time, skipping all integrity checks"""
 		(self._obranch, self._oturn, self._otick) = (branch, turn, tick)
 
 	def _time_warp(self, branch: Branch, turn: Turn, tick: Tick):
+		"""Override the current time, in database too, skipping all integrity checks"""
 		self._obranch = self.eternal["branch"] = branch
 		self._oturn = self.eternal["turn"] = turn
 		self._otick = self.eternal["tick"] = tick
@@ -1169,7 +1169,7 @@ class Engine(AbstractEngine, Executor):
 			plan_ticks,
 			time_plan,
 		) = self._nbtt_stuff
-		branch, turn, tick = btt()
+		branch, turn, tick = btt
 		branch_turn = (branch, turn)
 		tick += 1
 		if branch_turn in turn_end_plan and tick <= turn_end_plan[branch_turn]:
@@ -1233,9 +1233,9 @@ class Engine(AbstractEngine, Executor):
 		else:
 			loaded[branch] = (turn, tick, turn, tick)
 		self._extend_branch(branch, turn, tick)
-		then = self._btt()
+		then = tuple(self.time)
 		self._otick = tick
-		self.time.send(self, then=then, now=self._btt())
+		self.time.send(self, then=then, now=tuple(self.time))
 		return branch, turn, tick
 
 	def __getattr__(self, item):
@@ -1313,7 +1313,7 @@ class Engine(AbstractEngine, Executor):
 	def _get_node(
 		self, graph: CharName | Character, node: NodeName
 	) -> place_cls | thing_cls:
-		node_objs, retrieve, btt, make_node = self._get_node_stuff
+		node_objs, retrieve, time, make_node = self._get_node_stuff
 		if hasattr(graph, "name"):
 			graphn = graph.name
 		else:
@@ -1326,7 +1326,7 @@ class Engine(AbstractEngine, Executor):
 				return ret
 			else:
 				del node_objs[key]
-		ex = retrieve((graphn, node, *btt()))
+		ex = retrieve((graphn, node, *time))
 		if isinstance(ex, Exception):
 			raise ex
 		if not ex:
@@ -1337,7 +1337,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _get_edge(
 		self, graph: Character | CharName, orig: NodeName, dest: NodeName
-	):
+	) -> portal_cls:
 		edge_objs, edge_exists, make_edge = self._get_edge_stuff
 		if type(graph) is str:
 			graphn = graph
@@ -2298,29 +2298,25 @@ class Engine(AbstractEngine, Executor):
 		self._load_plans()
 		self._load_rules_handled()
 		self._turns_completed_d.update(self.query.turns_completed_dump())
-		self._rules_cache = {
-			name: Rule(self, name, create=False)
-			for name in self.query.rules_dump()
-		}
 		self._init_random(random_seed)
 		with garbage():
-			self._load(*self._read_at(*self._btt()))
+			self._load(*self._read_at(*self.time))
 		self.query.snap_keyframe = self.snap_keyframe
 		self.query.kf_interval_override = self._detect_kf_interval_override
 		if not self._keyframes_times:
-			self._snap_keyframe_de_novo(*self._btt())
+			self._snap_keyframe_de_novo(*self.time)
 
 	def _init_random(self, random_seed: int | None):
 		self._rando = Random()
 		try:
-			rando_state = self.query.universal_get("rando_state", *self._btt())
+			rando_state = self.query.universal_get("rando_state", *self.time)
 			self._rando.setstate(rando_state)
 		except KeyError:
 			if random_seed is not None:
 				self._rando.seed(random_seed)
 			rando_state = self._rando.getstate()
 			if self._oturn == self._otick == 0:
-				now = self._btt()
+				now = tuple(self.time)
 				self._universal_cache.store(
 					"rando_state",
 					self.branch,
@@ -2617,7 +2613,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _setup_fut_manager(self, workers: int):
 		self._workers = workers
-		self._worker_updated_btts: list[Time] = [self._btt()] * workers
+		self._worker_updated_btts: list[Time] = [tuple(self.time)] * workers
 		self._uid_to_fut: dict[int, Future] = {}
 		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
 		self._how_many_futs_running = 0
@@ -4158,7 +4154,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _node_exists(self, character: CharName, node: NodeName) -> bool:
 		retrieve, btt = self._node_exists_stuff
-		args = (character, node) + btt()
+		args = (character, node, *btt)
 		retrieved = retrieve(args)
 		return retrieved and not isinstance(retrieved, Exception)
 
@@ -4190,16 +4186,16 @@ class Engine(AbstractEngine, Executor):
 		self, character: CharName, orig: NodeName, dest: NodeName
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
-		args = (character, orig, dest, *btt())
+		args = (character, orig, dest, *btt)
 		retrieved = retrieve(args)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
 	def _exist_edge(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		exist: bool = True,
 		*,
 		now: Optional[Time] = None,
@@ -4419,7 +4415,7 @@ class Engine(AbstractEngine, Executor):
 		):
 			return
 		# find the slices of time that need to stay loaded
-		branch, turn, tick = self._btt()
+		branch, turn, tick = self.time
 		iter_parent_btt = self._iter_parent_btt
 		kfd = self._keyframes_dict
 		if not kfd:
@@ -4686,7 +4682,7 @@ class Engine(AbstractEngine, Executor):
 		memory.
 
 		"""
-		branch, turn, tick = self._btt()
+		branch, turn, tick = self.time
 		self.debug("Snapping keyframe at %s, %d, %d", branch, turn, tick)
 		if (branch, turn, tick) in self._keyframes_times:
 			if silent:
@@ -5164,18 +5160,13 @@ class Engine(AbstractEngine, Executor):
 			sleep(0.001)
 
 	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
-		if (
-			not hasattr(self, "_worker_processes")
-			and not hasattr(self, "_worker_interpreters")
-			and not hasattr(self, "_osc_serv_thread")
-		):
-			return
-		if cancel_futures:
-			for fut in self._uid_to_fut.values():
-				fut.cancel()
-		if wait:
-			futwait(self._uid_to_fut.values())
-		self._uid_to_fut = {}
+		if hasattr(self, "_uid_to_fut"):
+			if cancel_futures:
+				for fut in self._uid_to_fut.values():
+					fut.cancel()
+			if wait:
+				futwait(self._uid_to_fut.values())
+			self._uid_to_fut.clear()
 		self._stop_managing_futs = True
 		self._stop_sync_log = True
 
@@ -5207,7 +5198,7 @@ class Engine(AbstractEngine, Executor):
 							i,
 							proc.exitcode,
 						)
-					logt.join()
+					logt.join(timeout=SUBPROCESS_TIMEOUT)
 					proc.close()
 					pipein.close()
 					pipeout.close()
@@ -5227,8 +5218,8 @@ class Engine(AbstractEngine, Executor):
 				with lock:
 					inq.put(b"shutdown")
 					logq.put(b"shutdown")
-					logt.join()
-					thread.join()
+					logt.join(timeout=SUBPROCESS_TIMEOUT)
+					thread.join(timeout=SUBPROCESS_TIMEOUT)
 					if terp.is_running():
 						terp.close()
 		elif hasattr(self, "_worker_threads"):
@@ -5306,7 +5297,7 @@ class Engine(AbstractEngine, Executor):
 				"_upd_from_game_start",
 				(
 					None,
-					*self._btt(),
+					*self.time,
 					(
 						self.snap_keyframe(update_worker_processes=False),
 						dict(self.eternal.items()),
@@ -5401,11 +5392,15 @@ class Engine(AbstractEngine, Executor):
 		self,
 		name: CharName,
 		type_s: str = "DiGraph",
-		data: CharacterFacade | Graph | nx.Graph | dict | KeyframeTuple = None,
+		data: CharacterFacade
+		| Graph
+		| nx.Graph
+		| dict
+		| KeyframeGraphRowType = None,
 	) -> None:
 		if name in ILLEGAL_CHARACTER_NAMES:
 			raise GraphNameError("Illegal name")
-		branch, turn, tick = self._btt()
+		branch, turn, tick = self.time
 		if (turn, tick) != (0, 0):
 			branch, turn, tick = self._nbtt()
 		for rbcache, rbname in [
@@ -5674,6 +5669,8 @@ class Engine(AbstractEngine, Executor):
 	def _get_slow_delta(
 		self, btt_from: Time, btt_to: Time
 	) -> SlightlyPackedDeltaType:
+		for time in (btt_from, btt_to):
+			validate_time(time)
 		import numpy as np
 
 		def newgraph():
@@ -5699,7 +5696,7 @@ class Engine(AbstractEngine, Executor):
 			RULEBOOK: PickyDefaultDict(bytes),
 		}
 		pack = self.pack
-		now = self._btt()
+		now = tuple(self.time)
 		self._set_btt(*btt_from)
 		kf_from = self.snap_keyframe()
 		self._set_btt(*btt_to)
@@ -5999,7 +5996,7 @@ class Engine(AbstractEngine, Executor):
 			raise RuntimeError("Already closed")
 		if (
 			self._keyframe_on_close
-			and self._btt() not in self._keyframes_times
+			and tuple(self.time) not in self._keyframes_times
 		):
 			if hasattr(self, "_validate_final_keyframe"):
 				self._validate_final_keyframe(
@@ -6193,7 +6190,7 @@ class Engine(AbstractEngine, Executor):
 			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
 			if (
 				not clobber
-				and (branch_from, turn_from, tick_from) == self._btt()
+				and (branch_from, turn_from, tick_from) == self.time
 			):
 				continue
 			input = self._worker_inputs[i]
@@ -6269,7 +6266,7 @@ class Engine(AbstractEngine, Executor):
 				)
 
 				put(argbytes)
-			self._worker_updated_btts[i] = self._btt()
+			self._worker_updated_btts[i] = tuple(self.time)
 			self.debug(
 				"Updated all worker process states at "
 				+ repr(self._worker_updated_btts[i])
@@ -6279,7 +6276,7 @@ class Engine(AbstractEngine, Executor):
 	@world_locked
 	def _update_worker_process_state(self, i, lock=True):
 		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
-		if (branch_from, turn_from, tick_from) == self._btt():
+		if (branch_from, turn_from, tick_from) == self.time:
 			return
 		old_eternal = self._worker_last_eternal
 		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
@@ -6316,10 +6313,10 @@ class Engine(AbstractEngine, Executor):
 		if lock:
 			with self._worker_locks[i]:
 				put(argbytes)
-				self._worker_updated_btts[i] = self._btt()
+				self._worker_updated_btts[i] = tuple(self.time)
 		else:
 			put(argbytes)
-			self._worker_updated_btts[i] = self._btt()
+			self._worker_updated_btts[i] = tuple(self.time)
 		self.debug(f"Updated worker {i} at {self._worker_updated_btts[i]}")
 
 	def _changed(self, charn: CharName, entity: tuple) -> bool:
@@ -6335,7 +6332,7 @@ class Engine(AbstractEngine, Executor):
 				*entity,
 				0,
 			)
-		branch, turn, _ = self._btt()
+		branch, turn, _ = self.time
 		turn -= 1
 		if turn <= self.branch_start_turn():
 			branch = self.branch_parent(branch)
@@ -6413,45 +6410,46 @@ class Engine(AbstractEngine, Executor):
 		mark_handled(self.tick)
 		return actres
 
+	@world_locked
 	def _get_place_neighbors(
 		self, charn: CharName, name: NodeName
 	) -> set[Key]:
 		seen: set[Key] = set()
-		for succ in self._edges_cache.iter_successors(
-			charn, name, *self._btt()
-		):
+		for succ in self._edges_cache.iter_successors(charn, name, *self.time):
 			seen.add(succ)
 		for pred in self._edges_cache.iter_predecessors(
-			charn, name, *self._btt()
+			charn, name, *self.time
 		):
 			seen.add(pred)
 		return seen
 
+	@world_locked
 	def _get_place_contents(self, charn: CharName, name: NodeName) -> set[Key]:
 		try:
-			return self._node_contents_cache.retrieve(
-				charn, name, *self._btt()
-			)
+			return self._node_contents_cache.retrieve(charn, name, *self.time)
 		except KeyError:
 			return set()
 
+	@world_locked
 	def _iter_place_portals(
 		self, charn: CharName, name: NodeName
 	) -> Iterator[tuple[Key, Key]]:
-		now = self._btt()
+		now = tuple(self.time)
 		for dest in self._edges_cache.iter_successors(charn, name, *now):
 			yield (name, dest)
 		for orig in self._edges_cache.iter_predecessors(charn, name, *now):
 			yield (orig, name)
 
+	@world_locked
 	def _get_thing_location_tup(
 		self, charn: CharName, name: NodeName
 	) -> tuple[Key, Key] | ():
 		try:
-			return (self._things_cache.retrieve(charn, name, *self._btt()),)
+			return (self._things_cache.retrieve(charn, name, *self.time),)
 		except KeyError:
 			return ()
 
+	@world_locked
 	def _get_neighbors(
 		self,
 		entity: place_cls | thing_cls | portal_cls,
@@ -6465,7 +6463,7 @@ class Engine(AbstractEngine, Executor):
 
 		"""
 		charn = entity.character.name
-		btt = self._btt()
+		btt = tuple(self.time)
 
 		if neighborhood is None:
 			return None
@@ -6554,7 +6552,7 @@ class Engine(AbstractEngine, Executor):
 		if neighborhood is None:
 			return None
 
-		branch_now, turn_now, tick_now = self._btt()
+		branch_now, turn_now, tick_now = self.time
 		if turn_now <= 1:
 			# everything's "created" at the start of the game,
 			# and therefore, there's been a "change" to the neighborhood
@@ -6570,6 +6568,7 @@ class Engine(AbstractEngine, Executor):
 			return None
 		return this_turn_neighbors
 
+	@world_locked
 	def _get_thing(self, graphn: CharName, thingn: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, thingn)
@@ -6577,6 +6576,7 @@ class Engine(AbstractEngine, Executor):
 			node_objs[key] = self.thing_cls(self.character[graphn], thingn)
 		return node_objs[key]
 
+	@world_locked
 	def _get_place(self, graphn: CharName, placen: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, placen)
@@ -6595,7 +6595,7 @@ class Engine(AbstractEngine, Executor):
 	]
 
 	def _eval_triggers(self) -> RulesTodoType:
-		branch, turn, tick = self._btt()
+		branch, turn, tick = self.time
 		charmap = self.character
 		rulemap = self.rule
 		todo: dict[
@@ -7180,7 +7180,7 @@ class Engine(AbstractEngine, Executor):
 		if self.branch != self.trunk or self.turn != 0 or self.tick != 0:
 			self._nbtt()
 		self._init_graph(name, "DiGraph", data)
-		if self._btt() not in self._keyframes_times:
+		if tuple(self.time) not in self._keyframes_times:
 			self.snap_keyframe(silent=True, update_worker_processes=False)
 		if hasattr(self, "_worker_processes") or hasattr(
 			self, "_worker_interpreters"
@@ -7216,9 +7216,7 @@ class Engine(AbstractEngine, Executor):
 			self._call_every_worker("_del_character", name)
 
 	def _is_thing(self, character: CharName, node: NodeName) -> bool:
-		return self._things_cache.contains_entity(
-			character, node, *self._btt()
-		)
+		return self._things_cache.contains_entity(character, node, *self.time)
 
 	@world_locked
 	def _set_thing_loc(
@@ -7280,7 +7278,7 @@ class Engine(AbstractEngine, Executor):
 			except KeyError:
 				rbs[rbname] = (tuple(), 0.0)
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
-		rulenames = list(self._rules_cache)
+		rulenames = list(self.rule)
 		trigs = {}
 		preqs = {}
 		acts = {}
@@ -7528,6 +7526,10 @@ class Engine(AbstractEngine, Executor):
 			graph, branch, turn, tick, node_rb_kf
 		)
 		self._things_cache.set_keyframe(graph, branch, turn, tick, locs_kf)
+		assert (graph,) in self._things_cache.keyframe
+		assert branch in self._things_cache.keyframe[graph,]
+		assert turn in self._things_cache.keyframe[graph,][branch]
+		assert tick in self._things_cache.keyframe[graph,][branch][turn]
 		self._node_contents_cache.set_keyframe(
 			graph,
 			branch,
@@ -7603,12 +7605,6 @@ class Engine(AbstractEngine, Executor):
 					turns[turn] = {tick}
 			else:
 				self._keyframes_dict[branch] = {turn: {tick}}
-		assert (
-			(graph,) in self._things_cache.keyframe
-			and branch in self._things_cache.keyframe[graph,]
-			and turn in self._things_cache.keyframe[graph,][branch]
-			and tick in self._things_cache.keyframe[graph,][branch][turn]
-		)
 
 	def flush(self) -> None:
 		"""Write pending changes to disk.
@@ -7791,9 +7787,7 @@ class Engine(AbstractEngine, Executor):
 				return set()
 
 	def _node_contents(self, character: CharName, node: NodeName) -> set:
-		return self._node_contents_cache.retrieve(
-			character, node, *self._btt()
-		)
+		return self._node_contents_cache.retrieve(character, node, *self.time)
 
 	def apply_choices(
 		self,

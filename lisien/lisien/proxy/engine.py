@@ -94,8 +94,8 @@ from ..types import (
 	StatDict,
 	DeltaDict,
 	FuncStoreName,
-	_Key,
-	_Value,
+	KeyHint,
+	ValueHint,
 	MsgpackExtensionType,
 	AbstractBookmarkMapping,
 	AbstractEngine,
@@ -124,7 +124,7 @@ class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
 	def __call__(self, key: Key) -> None:
 		self.data[key] = self.engine.handle("set_bookmark", key=key)
 
-	def __setitem__(self, key: _Key, value: Time):
+	def __setitem__(self, key: KeyHint, value: Time):
 		if not (
 			isinstance(value, tuple)
 			and len(tuple) == 3
@@ -167,7 +167,7 @@ class EngineProxy(AbstractEngine):
 		self.close()
 
 	def _get_node(
-		self, char: AbstractCharacter | _Key, node: NodeName
+		self, char: AbstractCharacter | KeyHint, node: NodeName
 	) -> Node:
 		return self.character[char].node[node]
 
@@ -867,28 +867,15 @@ class EngineProxy(AbstractEngine):
 		self._things_cache = StructuredDefaultDict(1, ThingProxy)
 		self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
 		self._character_rulebooks_cache = StructuredDefaultDict(
-			1,
-			Key,
-			kwargs_munger=lambda inst, k: {
-				"engine": self,
-				"bookname": (inst.key, k),
-			},
+			1, RulebookName, args_munger=lambda inst, k: ((inst.key, k),)
 		)
 		self._char_node_rulebooks_cache = StructuredDefaultDict(
-			1,
-			Key,
-			kwargs_munger=lambda inst, k: {
-				"engine": self,
-				"bookname": (inst.key, k),
-			},
+			1, RulebookName, args_munger=lambda inst, k: ((inst.key, k),)
 		)
 		self._char_port_rulebooks_cache = StructuredDefaultDict(
 			2,
-			Key,
-			kwargs_munger=lambda inst, k: {
-				"engine": self,
-				"bookname": (inst.parent.key, inst.key, k),
-			},
+			RulebookName,
+			args_munger=lambda inst, k: ((inst.parent.key, inst.key, k),),
 		)
 		self._character_portals_cache = PortalObjCache()
 		self._character_units_cache = PickyDefaultDict(dict)
@@ -1007,7 +994,7 @@ class EngineProxy(AbstractEngine):
 		self.method._locl = pickle.loads(replacement)
 
 	def send(
-		self, obj: _Value, blocking: bool = True, timeout: int | float = 1
+		self, obj: ValueHint, blocking: bool = True, timeout: int | float = 1
 	) -> None:
 		self.send_bytes(self.pack(obj), blocking=blocking, timeout=timeout)
 
@@ -1359,7 +1346,7 @@ class EngineProxy(AbstractEngine):
 
 	def add_character(
 		self,
-		char: _Key,
+		char: KeyHint,
 		data: CharDelta | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
@@ -1374,7 +1361,7 @@ class EngineProxy(AbstractEngine):
 
 	def new_character(
 		self,
-		char: _Key,
+		char: KeyHint,
 		data: CharDelta | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
@@ -1384,7 +1371,7 @@ class EngineProxy(AbstractEngine):
 		self.add_character(char, data, layout, node, edge, **attr)
 		return self._char_cache[char]
 
-	def _del_character(self, char: _Key) -> None:
+	def _del_character(self, char: KeyHint) -> None:
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		del self._char_cache[char]
@@ -1397,7 +1384,7 @@ class EngineProxy(AbstractEngine):
 		self._character_portals_cache.delete_char(char)
 		self.handle(command="del_character", char=char, branching=True)
 
-	def del_character(self, char: _Key) -> None:
+	def del_character(self, char: KeyHint) -> None:
 		if self._worker and not getattr(self, "_mutable_worker", False):
 			raise WorkerProcessReadOnlyError(
 				"tried to change world state in a worker process"
@@ -1406,7 +1393,7 @@ class EngineProxy(AbstractEngine):
 
 	del_graph = del_character
 
-	def del_node(self, char: _Key, node: _Key) -> None:
+	def del_node(self, char: KeyHint, node: KeyHint) -> None:
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		if (
@@ -1438,7 +1425,7 @@ class EngineProxy(AbstractEngine):
 				del nv[char]
 		self.handle(command="del_node", char=char, node=node, branching=True)
 
-	def del_portal(self, char: _Key, orig: _Key, dest: _Key) -> None:
+	def del_portal(self, char: KeyHint, orig: KeyHint, dest: KeyHint) -> None:
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		self._character_portals_cache.delete(char, orig, dest)
@@ -1473,7 +1460,7 @@ class EngineProxy(AbstractEngine):
 		self.closed = True
 
 	def _node_contents(
-		self, character: _Key, node: NodeName
+		self, character: KeyHint, node: NodeName
 	) -> Iterator[NodeName]:
 		# very slow. do better
 		for thing in self.character[character].thing.values():
@@ -1686,16 +1673,16 @@ class CharacterMapProxy(MutableMapping, Signal):
 	def __iter__(self) -> Iterator[CharName]:
 		return iter(self.engine._char_cache.keys())
 
-	def __contains__(self, k: _Key):
+	def __contains__(self, k: KeyHint):
 		return k in self.engine._char_cache
 
 	def __len__(self):
 		return len(self.engine._char_cache)
 
-	def __getitem__(self, k: _Key) -> CharacterProxy:
+	def __getitem__(self, k: KeyHint) -> CharacterProxy:
 		return self.engine._char_cache[k]
 
-	def __setitem__(self, k: _Key, v: CharDelta):
+	def __setitem__(self, k: KeyHint, v: CharDelta):
 		self._worker_check()
 		self.engine.handle(
 			command="set_character", char=k, data=v, branching=True
@@ -1703,7 +1690,7 @@ class CharacterMapProxy(MutableMapping, Signal):
 		self.engine._char_cache[k] = CharacterProxy(self.engine, k)
 		self.send(self, key=k, val=v)
 
-	def __delitem__(self, k: _Key):
+	def __delitem__(self, k: KeyHint):
 		self._worker_check()
 		self.engine.handle(command="del_character", char=k, branching=True)
 		for graph, characters in self.engine._unit_characters_cache.items():
@@ -1822,7 +1809,7 @@ class EternalVarProxy(MutableMapping):
 	def __init__(self, engine_proxy):
 		self.engine = engine_proxy
 
-	def __contains__(self, k: _Key):
+	def __contains__(self, k: KeyHint):
 		return k in self._cache
 
 	def __iter__(self):
@@ -1831,15 +1818,15 @@ class EternalVarProxy(MutableMapping):
 	def __len__(self):
 		return len(self._cache)
 
-	def __getitem__(self, k: _Key):
+	def __getitem__(self, k: KeyHint):
 		return self._cache[k]
 
-	def __setitem__(self, k: _Key, v: _Value):
+	def __setitem__(self, k: KeyHint, v: ValueHint):
 		self._worker_check()
 		self._cache[k] = v
 		self.engine.handle("set_eternal", k=k, v=v)
 
-	def __delitem__(self, k: _Key):
+	def __delitem__(self, k: KeyHint):
 		self._worker_check()
 		del self._cache[k]
 		self.engine.handle(command="del_eternal", k=k)
@@ -1870,16 +1857,16 @@ class GlobalVarProxy(MutableMapping, Signal):
 	def __len__(self):
 		return len(self._cache)
 
-	def __getitem__(self, k: _Key):
+	def __getitem__(self, k: KeyHint):
 		return self._cache[k]
 
-	def __setitem__(self, k: _Key, v: _Value):
+	def __setitem__(self, k: KeyHint, v: ValueHint):
 		self._worker_check()
 		self._cache[k] = v
 		self.engine.handle("set_universal", k=k, v=v, branching=True)
 		self.send(self, key=k, value=v)
 
-	def __delitem__(self, k: _Key):
+	def __delitem__(self, k: KeyHint):
 		self._worker_check()
 		del self._cache[k]
 		self.engine.handle("del_universal", k=k, branching=True)

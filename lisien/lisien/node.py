@@ -23,18 +23,20 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Set, ValuesView
 from copy import deepcopy
+from functools import cached_property
 from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 
 from networkx import shortest_path, shortest_path_length
 
 import lisien.types
+from reslot import reslot
 
 from . import rule
 from .exc import AmbiguousLeaderError
 from .facade import EngineFacade, FacadePlace, FacadeThing
 from .rule import RuleMapping
 from .types import (
-	_Key,
+	KeyHint,
 	CharName,
 	Key,
 	NodeName,
@@ -43,11 +45,10 @@ from .types import (
 	Time,
 	Turn,
 	Value,
+	ValueHint,
 	AbstractThing,
-	getatt,
-	EntityStatAlias,
 )
-from .util import unwrap
+from .util import unwrap, getatt
 
 if TYPE_CHECKING:
 	from .character import Character
@@ -77,7 +78,7 @@ class LeaderMapping(Mapping):
 	def _user_names(self) -> frozenset[CharName]:
 		try:
 			return self.engine._unitness_cache.leader_cache.retrieve(
-				self.node.character.name, self.node.name, *self.engine._btt()
+				self.node.character.name, self.node.name, *self.engine.time
 			)
 		except KeyError:
 			return frozenset()
@@ -94,18 +95,18 @@ class LeaderMapping(Mapping):
 			raise AmbiguousLeaderError(
 				"No leaders, or more than one",
 				self.node.name,
-				*self.engine._btt(),
+				*self.engine.time,
 				user_names,
 			)
-		user_name = next(iter(user_names))
+		user_name = CharName(next(iter(user_names)))
 		return self.engine.character[user_name]
 
 	def __iter__(self) -> Iterator[CharName]:
 		yield from self._user_names()
 
-	def __contains__(self, item: CharName) -> bool:
+	def __contains__(self, item: KeyHint) -> bool:
 		return item in self.engine._unitness_cache.leader_cache.retrieve(
-			self.node.character.name, self.node.name, *self.engine._btt()
+			self.node.character.name, self.node.name, *self.engine.time
 		)
 
 	def __len__(self) -> int:
@@ -116,7 +117,7 @@ class LeaderMapping(Mapping):
 			return True
 		return False
 
-	def __getitem__(self, k: lisien._Key) -> "Character":
+	def __getitem__(self, k: KeyHint) -> Character:
 		ret = self.engine.character[k]
 		node = self.node
 		charn = node.character.name
@@ -125,15 +126,17 @@ class LeaderMapping(Mapping):
 		if charn not in avatar or nn not in avatar[charn]:
 			raise KeyError(
 				"{} not used by {}".format(self.node.name, k),
-				self.engine._btt(),
+				self.engine.time,
 			)
 		return ret
 
 
 class NodeContentValues(ValuesView):
-	_mapping: "NodeContent"
+	__slots__ = ()
 
-	def __iter__(self) -> Iterator["Thing"]:
+	_mapping: NodeContent
+
+	def __iter__(self) -> Iterator[Thing]:
 		node = self._mapping.node
 		nodem = node.character.node
 		try:
@@ -163,7 +166,7 @@ class NodeContent(Mapping):
 			it = self.node.engine._node_contents_cache.retrieve(
 				self.node.character.name,
 				self.node.name,
-				*self.node.engine._btt(),
+				*self.node.engine.time,
 			)
 		except KeyError:
 			return
@@ -175,19 +178,19 @@ class NodeContent(Mapping):
 				self.node.engine._node_contents_cache.retrieve(
 					self.node.character.name,
 					self.node.name,
-					*self.node.engine._btt(),
+					*self.node.engine.time,
 				)
 			)
 		except KeyError:
 			return 0
 
-	def __contains__(self, item: _Key) -> bool:
+	def __contains__(self, item: KeyHint) -> bool:
 		try:
 			return self.node.character.thing[item].location == self.node
 		except KeyError:
 			return False
 
-	def __getitem__(self, item: _Key) -> "Thing":
+	def __getitem__(self, item: KeyHint) -> "Thing":
 		if item not in self:
 			raise KeyError
 		return self.node.character.thing[item]
@@ -197,6 +200,7 @@ class NodeContent(Mapping):
 
 
 class DestsValues(ValuesView):
+	__slots__ = ()
 	_mapping: "Dests"
 
 	def __contains__(self, item: "Portal") -> bool:
@@ -212,11 +216,11 @@ class Dests(Mapping):
 		character = node.character
 		engine = node.engine
 		self._pn = (character.portal, name)
-		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
+		self._ecnb = (engine._edges_cache, character.name, name, engine.time)
 
 	def __iter__(self) -> Iterator[NodeName]:
 		edges_cache, charname, name, btt = self._ecnb
-		for succ in edges_cache.iter_successors(charname, name, *btt()):
+		for succ in edges_cache.iter_successors(charname, name, *btt):
 			if succ in self:
 				yield succ
 
@@ -226,11 +230,11 @@ class Dests(Mapping):
 			pass
 		return n
 
-	def __contains__(self, item: _Key) -> bool:
+	def __contains__(self, item: KeyHint) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.has_successor(charname, name, item, *btt())
+		return edges_cache.has_successor(charname, name, item, *btt)
 
-	def __getitem__(self, item: _Key) -> "Portal":
+	def __getitem__(self, item: KeyHint) -> "Portal":
 		portal, name = self._pn
 		return portal[name][item]
 
@@ -239,39 +243,54 @@ class Dests(Mapping):
 
 
 class OrigsValues(ValuesView):
-	_mapping: "Origs"
+	__slots__ = ()
+	_mapping: Origs
 
-	def __contains__(self, item: "Portal") -> bool:
+	def __contains__(self, item: Portal) -> bool:
 		_, name = self._mapping._pn
 		return item.destination.name == name
 
 
 class Origs(Mapping):
-	__slots__ = ("_pn", "_ecnb")
-
 	def __init__(self, node: Node) -> None:
-		name = node.name
-		character = node.character
-		engine = node.engine
-		self._pn = (character.portal, name)
-		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
+		self.node = node
+
+	@cached_property
+	def character(self):
+		return self.node.character
+
+	@cached_property
+	def engine(self):
+		return self.node.engine
+
+	@cached_property
+	def _pn(self):
+		return self.character.portal, self.node.name
+
+	@cached_property
+	def _ecnb(self):
+		return (
+			self.engine._edges_cache,
+			self.character.name,
+			self.node.name,
+			self.engine.time,
+		)
 
 	def __iter__(self) -> Iterator[NodeName]:
 		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.iter_predecessors(charname, name, *btt())
+		return edges_cache.iter_predecessors(charname, name, *btt)
 
-	def __contains__(self, item: _Key) -> bool:
+	def __contains__(self, item: KeyHint) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.has_predecessor(charname, name, item, *btt())
+		return edges_cache.has_predecessor(charname, name, item, *btt)
 
 	def __len__(self) -> int:
-		edges_cache, charname, name, btt = self._ecnb
 		n = 0
 		for n, _ in enumerate(self, start=1):
 			pass
 		return n
 
-	def __getitem__(self, item: _Key) -> "Node":
+	def __getitem__(self, item: KeyHint) -> Node:
 		if item not in self:
 			raise KeyError
 		portal, name = self._pn
@@ -281,29 +300,43 @@ class Origs(Mapping):
 		return OrigsValues(self)
 
 
+@reslot
 class Portals(Set):
-	__slots__ = ("_pn", "_pecnb")
+	__slots__ = ("node", "__dict__")
 
 	def __init__(self, node: Node) -> None:
-		name = node.name
-		character = node.character
-		engine = node.engine
-		self._pn = (character.portal, name)
-		self._pecnb = (
+		self.node = node
+
+	@cached_property
+	def character(self):
+		return self.node.character
+
+	@cached_property
+	def engine(self):
+		return self.node.engine
+
+	@cached_property
+	def _pn(self):
+		return self.node.character.portal, self.node.name
+
+	@cached_property
+	def _pecnb(self):
+		engine = self.node.engine
+		character = self.node.character
+		return (
 			engine._get_edge,
 			engine._edges_cache,
 			character,
 			character.name,
-			name,
-			engine._btt,
+			self.node.name,
+			engine.time,
 		)
 
-	def __contains__(self, x: _Key) -> bool:
-		_, edges_cache, _, charname, name, btt_f = self._pecnb
-		btt = btt_f()
+	def __contains__(self, x: KeyHint) -> bool:
+		_, edges_cache, _, charname, name, time = self._pecnb
 		return edges_cache.has_predecessor(
-			charname, name, x, *btt
-		) or edges_cache.has_successor(charname, name, x, *btt)
+			charname, name, x, *time
+		) or edges_cache.has_successor(charname, name, x, *time)
 
 	def __len__(self) -> int:
 		_, edges_cache, _, charname, name, btt_f = self._pecnb
@@ -329,35 +362,45 @@ class Portals(Set):
 
 
 class NeighborValues(ValuesView):
-	_mapping: "NeighborMapping"
+	_mapping: NeighborMapping
 
 	def __contains__(self, item: Node) -> bool:
 		return item.name in self._mapping
 
 
+@reslot
 class NeighborMapping(Mapping):
-	__slots__ = ("_nn", "_ecnb")
+	__slots__ = ("node", "__dict__")
 
-	def __init__(self, node: "Node") -> None:
-		name = node.name
-		character = node.character
-		engine = node.engine
-		self._nn = (character.node, name)
-		self._ecnb = (engine._edges_cache, character.name, name, engine._btt)
+	def __init__(self, node: Node) -> None:
+		self.node = node
+
+	@cached_property
+	def _nn(self):
+		return (self.node.character.node, self.node.name)
+
+	@cached_property
+	def _ecnb(self):
+		return (
+			self.node.engine._edges_cache,
+			self.node.character.name,
+			self.node.name,
+			self.node.engine.time,
+		)
 
 	def __iter__(self) -> Iterator[NodeName]:
 		edges_cache, charname, name, btt = self._ecnb
 		seen = set()
-		for succ in edges_cache.iter_successors(charname, name, *btt()):
+		for succ in edges_cache.iter_successors(charname, name, *btt):
 			yield succ
 			seen.add(succ)
-		for pred in edges_cache.iter_predecessors(charname, name, *btt()):
+		for pred in edges_cache.iter_predecessors(charname, name, *btt):
 			if pred in seen:
 				continue
 			yield pred
 			seen.add(pred)
 
-	def __contains__(self, item: _Key) -> bool:
+	def __contains__(self, item: KeyHint | NodeName) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_predecessor(
 			charname, name, item, *btt()
@@ -366,7 +409,7 @@ class NeighborMapping(Mapping):
 	def __len__(self) -> int:
 		return len(set(iter(self)))
 
-	def __getitem__(self, item: _Key) -> "Node":
+	def __getitem__(self, item: KeyHint) -> Node:
 		node, name = self._nn
 		if item not in self:
 			raise KeyError(f"{item} is not a neighbor of {name}")
@@ -387,18 +430,17 @@ class Node(lisien.types.Node, rule.RuleFollower):
 
 	"""
 
-	__slots__ = ("_real_rule_mapping",)
-	character = getatt("graph")
+	__slots__ = ()
 	no_unwrap = True
 	_extra_keys = {
 		"name",
 	}
 
 	def _get_rule_mapping(self) -> RuleMapping:
-		return rule.RuleMapping(self.db, self.rulebook)
+		return rule.RuleMapping(self.engine, self.rulebook)
 
 	def _get_rulebook_name(self) -> RulebookName:
-		now = self.engine._btt()
+		now = tuple(self.engine.time)
 		try:
 			return self.engine._nodes_rulebooks_cache.retrieve(
 				self.character.name, self.name, *now
@@ -421,9 +463,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		node = self.name
 		cache = self.engine._nodes_rulebooks_cache
 		try:
-			if rulebook == cache.retrieve(
-				character, node, *self.engine._btt()
-			):
+			if rulebook == cache.retrieve(character, node, *self.engine.time):
 				return
 		except KeyError:
 			pass
@@ -435,7 +475,6 @@ class Node(lisien.types.Node, rule.RuleFollower):
 
 	successor = succ = adj = edge = getatt("portal")
 	predecessor = pred = getatt("preportal")
-	engine: Engine = getatt("db")
 
 	@property
 	def leader(self) -> LeaderMapping:
@@ -444,10 +483,6 @@ class Node(lisien.types.Node, rule.RuleFollower):
 
 	def leaders(self) -> ValuesView[Character]:
 		return self.leader.values()
-
-	def __init__(self, character: "Character", name: NodeName):
-		super().__init__(character, name)
-		self.db = getattr(character, "engine", character.db)
 
 	@property
 	def neighbor(self) -> NeighborMapping:
@@ -493,19 +528,21 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		for key in super().__iter__():
 			del self[key]
 
-	def __contains__(self, k: _Key):
+	def __contains__(self, k: Key | KeyHint):
 		"""Handle extra keys, then delegate."""
 		return k in self._extra_keys or super().__contains__(k)
 
 	def __setitem__(
-		self, k: _Key | Literal["rulebook"], v: Value | RulebookName
+		self,
+		k: Key | KeyHint | Literal["rulebook"],
+		v: Value | ValueHint | RulebookName,
 	):
 		if k == "rulebook":
 			self._set_rulebook_name(v)
 		else:
 			super().__setitem__(k, v)
 
-	def __delitem__(self, k: Stat):
+	def __delitem__(self, k: KeyHint | Stat):
 		super().__delitem__(k)
 
 	def successors(self) -> Iterator[Node]:
@@ -531,7 +568,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 			raise ValueError("{} not in {}".format(dest, self.character.name))
 
 	def shortest_path_length(
-		self, dest: _Key | Node, weight: Stat | None = None
+		self, dest: KeyHint | NodeName | Node, weight: Stat | None = None
 	) -> int:
 		"""Return the length of the path from me to ``dest``.
 
@@ -545,7 +582,9 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		)
 
 	def shortest_path(
-		self, dest: _Key | Node, weight: Stat | None = None
+		self,
+		dest: KeyHint | NodeName | Node,
+		weight: KeyHint | Stat | None = None,
 	) -> List[Key]:
 		"""Return a list of node names leading from me to ``dest``.
 
@@ -558,7 +597,9 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		)
 
 	def path_exists(
-		self, dest: _Key | Node, weight: Stat | None = None
+		self,
+		dest: KeyHint | NodeName | Node,
+		weight: KeyHint | Stat | None = None,
 	) -> bool:
 		"""Return whether there is a path leading from me to ``dest``.
 
@@ -636,20 +677,13 @@ class Place(Node):
 
 	"""
 
-	__slots__ = (
-		"graph",
-		"db",
-		"node",
-		"_rulebook",
-		"_rulebooks",
-		"_real_rule_mapping",
-	)
+	__slots__ = ()
 
 	extrakeys = {
 		"name",
 	}
 
-	def __getitem__(self, key: Stat):
+	def __getitem__(self, key: KeyHint | Stat):
 		if key == "name":
 			return self.name
 		return super().__getitem__(key)
@@ -662,7 +696,7 @@ class Place(Node):
 	def _validate_node_type(self) -> bool:
 		try:
 			self.engine._things_cache.retrieve(
-				self.character.name, self.name, *self.engine._btt()
+				self.character.name, self.name, *self.engine.time
 			)
 			return False
 		except:
@@ -698,14 +732,7 @@ class Thing(Node, AbstractThing):
 
 	"""
 
-	__slots__ = (
-		"graph",
-		"db",
-		"node",
-		"_rulebook",
-		"_rulebooks",
-		"_real_rule_mapping",
-	)
+	__slots__ = ()
 
 	_extra_keys = {"name", "location"}
 
@@ -714,7 +741,7 @@ class Thing(Node, AbstractThing):
 
 	def _getloc(self) -> NodeName | None:
 		ret = self.engine._things_cache._base_retrieve(
-			(self.character.name, self.name, *self.engine._btt())
+			(self.character.name, self.name, *self.engine.time)
 		)
 		if ret is ... or isinstance(ret, Exception):
 			return None
@@ -740,15 +767,13 @@ class Thing(Node, AbstractThing):
 	def _set_loc(self, loc: Optional[NodeName]) -> None:
 		self.engine._set_thing_loc(self.character.name, self.name, loc)
 
-	def __getitem__(
-		self, item: Stat | Literal["location"]
-	) -> Value | NodeName:
+	def __getitem__(self, item: KeyHint | Stat) -> Value | NodeName:
 		if item == "location":
 			return self._getloc()
 		return super().__getitem__(item)
 
 	def __setitem__(
-		self, key: Stat | Literal["location"], value: Value | NodeName
+		self, key: KeyHint | Stat, value: ValueHint | Value | NodeName
 	):
 		"""Set ``key``=``value`` for the present game-time."""
 		if key == "name":

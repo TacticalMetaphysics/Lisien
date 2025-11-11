@@ -33,15 +33,10 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import chain, zip_longest
-from typing import TYPE_CHECKING, Any, Callable, Hashable, Set
-
-from blinker import Signal
-
-if TYPE_CHECKING:
-	from .types import AbstractCharacter
+from typing import Any, Callable, Hashable, Set
 
 
-class OrderlySet(set):
+class OrderlySet[_K](set[_K]):
 	"""A set with deterministic order of iteration
 
 	Order is not regarded as significant for the purposes of equality.
@@ -318,11 +313,6 @@ class OrderlyFrozenSet(frozenset):
 		)
 
 
-class SpecialMapping(Mapping, Signal, ABC):
-	@abstractmethod
-	def __init__(self, character: AbstractCharacter): ...
-
-
 class MutableWrapper(ABC):
 	__slots__ = ()
 
@@ -346,16 +336,17 @@ class MutableWrapper(ABC):
 		return str(self._getter())
 
 	@abstractmethod
-	def _copy(self):
+	def __copy__(self):
 		raise NotImplementedError
 
-	@abstractmethod
-	def _set(self, v):
-		raise NotImplementedError
+	def copy(self):
+		return self.__copy__()
 
 	@abstractmethod
-	def unwrap(self):
-		raise NotImplementedError
+	def _set(self, v): ...
+
+	@abstractmethod
+	def unwrap(self): ...
 
 
 Iterable.register(MutableWrapper)
@@ -367,7 +358,7 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 	__slots__ = ()
 
 	def _subset(self, k, v):
-		new = self._copy()
+		new = self.__copy__()
 		new[k] = v
 		self._set(new)
 
@@ -388,17 +379,17 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 		return ret
 
 	def __setitem__(self, key, value):
-		me = self._copy()
+		me = self.__copy__()
 		me[key] = value
 		self._set(me)
 
 	def __delitem__(self, key):
-		me = self._copy()
+		me = self.__copy__()
 		del me[key]
 		self._set(me)
 
 
-class MutableMappingUnwrapper(MutableMapping, ABC):
+class MappingUnwrapperMixin(ABC):
 	__slots__ = ()
 
 	def __eq__(self, other):
@@ -423,15 +414,16 @@ class MutableMappingUnwrapper(MutableMapping, ABC):
 	def __repr__(self):
 		return f"<{type(self).__name__} {unwrap_items(self.items())}>"
 
-
-class MutableMappingWrapper(
-	MutableWrapperDictList, MutableMappingUnwrapper, ABC
-):
-	def __eq__(self, other):
-		return MutableMappingUnwrapper.__eq__(self, other)
-
 	def unwrap(self):
 		return unwrap_items(self.items())
+
+
+class MutableMappingUnwrapper(MutableMapping, MappingUnwrapperMixin, ABC): ...
+
+
+class MutableMappingWrapper(
+	MutableWrapperDictList, MutableMappingUnwrapper, MappingUnwrapperMixin, ABC
+): ...
 
 
 class SubDictWrapper(MutableMappingWrapper, dict):
@@ -444,7 +436,7 @@ class SubDictWrapper(MutableMappingWrapper, dict):
 		self._getter = getter
 		self._set = setter
 
-	def _copy(self):
+	def __copy__(self):
 		return dict(self._getter())
 
 	def _subset(self, k, v):
@@ -484,46 +476,49 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		self._getter = getter
 		self._set = setter
 
-	def _copy(self):
+	def __copy__(self):
 		return list(self._getter())
 
 	def insert(self, index, object):
-		me = self._copy()
+		me = self.__copy__()
 		me.insert(index, object)
 		self._set(me)
 
 	def append(self, object):
-		me = self._copy()
+		me = self.__copy__()
 		me.append(object)
 		self._set(me)
 
+	def unwrap(self):
+		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
-class MutableWrapperSet(MutableWrapper, set):
+
+class MutableWrapperSet(MutableWrapper, ABC, set):
 	__slots__ = ()
 	_getter: Callable
 	_set: Callable
 
-	def _copy(self):
+	def __copy__(self):
 		return OrderlySet(self._getter())
 
 	def pop(self):
-		me = self._copy()
+		me = self.__copy__()
 		yours = me.pop()
 		self._set(me)
 		return yours
 
 	def discard(self, element):
-		me = self._copy()
+		me = self.__copy__()
 		me.discard(element)
 		self._set(me)
 
 	def remove(self, element):
-		me = self._copy()
+		me = self.__copy__()
 		me.remove(element)
 		self._set(me)
 
 	def add(self, element):
-		me = self._copy()
+		me = self.__copy__()
 		me.add(element)
 		self._set(me)
 
@@ -544,22 +539,22 @@ class MutableWrapperSet(MutableWrapper, set):
 		return f"<{type(self).__name__} containing {set(self._getter())}>"
 
 	def __ior__(self, it):
-		me = self._copy()
+		me = self.__copy__()
 		me |= it
 		self._set(me)
 
 	def __iand__(self, it):
-		me = self._copy()
+		me = self.__copy__()
 		me &= it
 		self._set(me)
 
 	def __ixor__(self, it):
-		me = self._copy()
+		me = self.__copy__()
 		me ^= it
 		self._set(me)
 
 	def __isub__(self, it):
-		me = self._copy()
+		me = self.__copy__()
 		me -= it
 		self._set(me)
 
@@ -635,11 +630,17 @@ class DictWrapper(MutableMappingWrapper, dict):
 		self._outer = outer
 		self._key = key
 
-	def _copy(self):
+	def __copy__(self):
 		return dict(self._getter())
 
 	def _set(self, v):
 		self._outer[self._key] = v
+
+	def unwrap(self):
+		return {
+			k: v.unwrap() if hasattr(v, "unwrap") else v
+			for (k, v) in self.items()
+		}
 
 
 class ListWrapper(MutableWrapperDictList, MutableSequence):
@@ -672,19 +673,19 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 		else:
 			return True
 
-	def _copy(self):
+	def __copy__(self):
 		return list(self._getter())
 
 	def _set(self, v):
 		self._outer[self._key] = v
 
 	def insert(self, i, v):
-		new = self._copy()
+		new = self.__copy__()
 		new.insert(i, v)
 		self._set(new)
 
 	def append(self, v):
-		new = self._copy()
+		new = self.__copy__()
 		new.append(v)
 		self._set(new)
 

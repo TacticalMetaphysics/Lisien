@@ -30,12 +30,12 @@ def test_character_dot_rule(engine):
 		char.stat["run"] = True
 
 	eng.next_turn()
-	btt = eng._btt()
+	btt = tuple(eng.time)
 	assert char.stat["run"]
 	eng.time = "trunk", 0, 0
 	assert "run" not in char.stat
 	eng.next_turn()
-	assert btt == eng._btt()
+	assert btt == eng.time
 	assert char.stat["run"]
 
 
@@ -52,12 +52,12 @@ def test_unit_dot_rule(engine):
 		av["run"] = True
 
 	engine.next_turn()
-	btt = engine._btt()
+	btt = tuple(engine.time)
 	assert av["run"]
 	engine.time = "trunk", 0, starttick
 	assert "run" not in av
 	engine.next_turn()
-	assert btt == engine._btt()
+	assert btt == engine.time
 	assert av["run"]
 
 
@@ -73,12 +73,12 @@ def test_thing_dot_rule(engine):
 		thing["run"] = True
 
 	engine.next_turn()
-	btt = engine._btt()
+	btt = tuple(engine.time)
 	assert thing["run"]
 	engine.time = "trunk", 0, starttick
 	assert "run" not in thing
 	engine.next_turn()
-	assert btt == engine._btt()
+	assert btt == engine.time
 	assert thing["run"]
 
 
@@ -93,12 +93,12 @@ def test_place_dot_rule(engine):
 		plac["run"] = True
 
 	engine.next_turn()
-	btt = engine._btt()
+	btt = tuple(engine.time)
 	assert place["run"]
 	engine.time = "trunk", 0, starttick
 	assert "run" not in place
 	engine.next_turn()
-	assert btt == engine._btt()
+	assert btt == engine.time
 	assert place["run"]
 
 
@@ -115,12 +115,12 @@ def test_portal_dot_rule(engine):
 		portl["run"] = True
 
 	engine.next_turn()
-	btt = engine._btt()
+	btt = tuple(engine.time)
 	assert port["run"]
 	engine.time = "trunk", 0, starttick
 	assert "run" not in port
 	engine.next_turn()
-	assert btt == engine._btt()
+	assert btt == engine.time
 	assert port["run"]
 
 
@@ -140,14 +140,14 @@ def test_node_rule(engine):
 		thig["run"] = True
 
 	engine.next_turn()
-	btt = engine._btt()
+	btt = tuple(engine.time)
 	assert place["run"]
 	assert thing["run"]
 	engine.time = "trunk", 0, starttick
 	assert "run" not in place
 	assert "run" not in thing
 	engine.next_turn()
-	assert btt == engine._btt()
+	assert btt == engine.time
 	assert place["run"]
 	assert thing["run"]
 
@@ -165,12 +165,12 @@ def test_portal_rule(engine):
 		portl["run"] = True
 
 	engine.next_turn()
-	btt = engine._btt()
+	btt = tuple(engine.time)
 	assert port["run"]
 	engine.time = "trunk", 0, starttick
 	assert "run" not in port
 	engine.next_turn()
-	assert btt == engine._btt()
+	assert btt == engine.time
 	assert port["run"]
 
 

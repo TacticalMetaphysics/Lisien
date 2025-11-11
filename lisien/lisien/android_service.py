@@ -79,7 +79,7 @@ class CommandDispatcher:
 		def send_output_bytes(cmd, resp: bytes):
 			outq.put(
 				zlib.compress(
-					_finish_packing(hand.pack, cmd, *hand._real._btt(), resp)
+					_finish_packing(hand.pack, cmd, *hand._real.time, resp)
 				)
 			)
 

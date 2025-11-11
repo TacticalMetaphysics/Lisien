@@ -19,7 +19,7 @@ import os
 import sys
 from _operator import itemgetter
 from dataclasses import dataclass, KW_ONLY
-from functools import cached_property, partial
+from functools import partial, cached_property
 from typing import (
 	get_origin,
 	Annotated,
@@ -90,8 +90,14 @@ from .types import (
 	PortalRulesHandledRowType,
 	ThingRowType,
 	UnitRowType,
-	KeyframeTuple,
-	KeyframeExtensionTuple,
+	KeyframeGraphRowType,
+	KeyframeExtensionRowType,
+	TriggerRowType,
+	PrereqRowType,
+	ActionRowType,
+	RuleNeighborhoodRowType,
+	RuleBigRowType,
+	StatDict,
 )
 from .util import ELLIPSIS, EMPTY
 
@@ -112,12 +118,19 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			import pyarrow as pa
 
 			def origif(typ):
+				if hasattr(typ, "evaluate_value"):
+					typ = typ.evaluate_value()
 				if hasattr(typ, "__supertype__"):
 					return typ.__supertype__
 				ret = get_origin(typ)
 				if ret is Annotated:
 					return get_args(typ)[0]
 				return ret
+
+			def argeval(typ: type) -> tuple[type, ...]:
+				if hasattr(typ, "evaluate_value"):
+					typ = typ.evaluate_value()
+				return get_args(typ)
 
 			def original(typ):
 				prev = origif(typ)
@@ -144,11 +157,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					serialized_tuple_type = eval(serialized_tuple_type)
 				columns = ret[table] = []
 				for column, serialized_type in zip(
-					argspec.args[1:], get_args(serialized_tuple_type)
+					argspec.args[1:], argeval(serialized_tuple_type)
 				):
 					origin = original(serialized_type)
 					if origin is Union:
-						options = get_args(serialized_type)
+						options = argeval(serialized_type)
 						if len(options) != 2 or type(None) not in options:
 							raise TypeError(
 								"Too many options for union type",
@@ -160,7 +173,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 						else:
 							origin = options[0]
 					elif origin is Literal:
-						options = get_args(serialized_type)
+						options = argeval(serialized_type)
 						origin = type(options[0])
 						if not all(isinstance(opt, origin) for opt in options):
 							raise TypeError(
@@ -1120,22 +1133,22 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def rule_triggers_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[TriggerFuncName]]]:
+	) -> Iterator[TriggerRowType]:
 		return self._rule_dump("triggers")
 
 	def rule_prereqs_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[PrereqFuncName]]]:
+	) -> Iterator[PrereqRowType]:
 		return self._rule_dump("prereqs")
 
 	def rule_actions_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, RuleName, list[ActionFuncName]]]:
+	) -> Iterator[ActionRowType]:
 		return self._rule_dump("actions")
 
 	def rule_neighborhood_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleNeighborhood]]:
+	) -> Iterator[RuleNeighborhoodRowType]:
 		self._neighbors2set()
 		return iter(
 			sorted(
@@ -1152,7 +1165,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def rule_big_dump(
 		self,
-	) -> Iterator[tuple[RuleName, Branch, Turn, Tick, RuleBig]]:
+	) -> Iterator[RuleBigRowType]:
 		self._big2set()
 		return iter(
 			sorted(
@@ -1163,9 +1176,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def node_rulebook_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, CharName, NodeName, RulebookName]]:
+	) -> Iterator[NodeRulebookRowType]:
 		self._noderb2set()
-		unpack = self.unpack
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "node_rulebook"):
 			charn = CharName(unpack_key(d["character"]))
@@ -1176,11 +1188,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[
-		tuple[Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName]
-	]:
+	) -> Iterator[PortalRulebookRowType]:
 		self._portrb2set()
-		unpack = self.unpack
 		unpack_key = self.unpack_key
 		for d in self.call("dump", "portal_rulebook"):
 			charn = CharName(unpack_key(d["character"]))
@@ -1522,29 +1531,29 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		):
 			yield (
 				CharName(unpack_key(graph)),
-				NodeKeyframe(unpack(nodes)),
-				EdgeKeyframe(unpack(edges)),
-				GraphValKeyframe(unpack(graph_val)),
+				unpack(nodes),
+				unpack(edges),
+				unpack(graph_val),
 			)
 
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[KeyframeTuple]:
+	) -> Iterator[KeyframeGraphRowType]:
 		self._new_keyframes_graphs()
 		unpack = self.unpack
 		unpack_key = self.unpack_key
 		extract_time = self._extract_time
 		for d in self.call("dump", "keyframes_graphs"):
 			graph = CharName(unpack_key(d["graph"]))
-			nodes = NodeKeyframe(unpack(d["nodes"]))
-			edges = EdgeKeyframe(unpack(d["edges"]))
-			graph_val = CharDict(unpack(d["graph_val"]))
+			nodes: NodeKeyframe = unpack(d["nodes"])
+			edges: EdgeKeyframe = unpack(d["edges"])
+			graph_val: StatDict = unpack(d["graph_val"])
 			branch, turn, tick = extract_time(d)
 			yield branch, turn, tick, graph, nodes, edges, graph_val
 
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[KeyframeExtensionTuple]:
+	) -> Iterator[KeyframeExtensionRowType]:
 		self._new_keyframe_extensions()
 		extract_time = self._extract_time
 		for d in self.call("dump", "keyframe_extensions"):
