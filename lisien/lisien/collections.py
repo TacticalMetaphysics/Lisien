@@ -35,20 +35,23 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, TypeVar, Iterator
 
 import networkx as nx
 from blinker import Signal
 
 from .types import (
 	CharName,
-	_Key,
+	KeyHint,
 	AbstractEngine,
 	sort_set,
 	AbstractFunctionStore,
-	getatt,
+	ValueHint,
+	Stat,
+	Value,
+	UniversalKey,
 )
-from .util import dedent_source
+from .util import dedent_source, getatt
 from .wrap import wrapval
 
 if TYPE_CHECKING:
@@ -94,60 +97,60 @@ class LanguageDescriptor(AbstractLanguageDescriptor):
 			inst._current_language = lang
 
 
-class TamperEvidentDict(dict):
+class TamperEvidentDict[_K, _V](dict[_K, _V]):
 	tampered: bool
 
-	def __init__(self, data=()):
+	def __init__(self, data: list[tuple[_K, _V]] | dict[_K, _V] = ()):
 		self.tampered = False
 		super().__init__(data)
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: _K, value: _V) -> None:
 		self.tampered = True
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key):
+	def __delitem__(self, key: _K) -> None:
 		self.tampered = True
 		super().__delitem__(key)
 
 
-class ChangeTrackingDict(UserDict):
-	def __init__(self, data=()):
+class ChangeTrackingDict[_K, _V](UserDict[_K, _V]):
+	def __init__(self, data: list[tuple[_K, _V]] | dict[_K, _V] = ()):
 		self.changed = {}
 		super().__init__(data)
 
-	def apply_changes(self):
+	def apply_changes(self) -> None:
 		self.data.update(self.changed)
 		self.changed.clear()
 
-	def copy(self):
+	def copy(self) -> dict[_K, _V]:
 		ret = {}
 		ret.update(self.data)
 		ret.update(self.changed)
 		return ret
 
-	def clear(self):
+	def clear(self) -> None:
 		self.data.clear()
 		self.changed.clear()
 
-	def __contains__(self, item):
+	def __contains__(self, item: _K) -> bool:
 		return item in self.changed or item in self.data
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[_K]:
 		yield from self.changed
 		yield from self.data
 
-	def __len__(self):
+	def __len__(self) -> int:
 		return len(self.changed) + len(self.data)
 
-	def __getitem__(self, item):
+	def __getitem__(self, item: _K) -> _V:
 		if item in self.changed:
 			return self.changed[item]
 		return self.data[item]
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: _K, value: _V) -> None:
 		self.changed[key] = value
 
-	def __delitem__(self, key):
+	def __delitem__(self, key: _K) -> None:
 		if key in self.changed:
 			del self.changed[key]
 			if key in self.data:
@@ -156,7 +159,7 @@ class ChangeTrackingDict(UserDict):
 			del self.data[key]
 
 
-class StringStore(MutableMapping, Signal):
+class StringStore(MutableMapping[str, str], Signal):
 	language = LanguageDescriptor()
 	_store = "strings"
 
@@ -183,7 +186,7 @@ class StringStore(MutableMapping, Signal):
 			self._current_language = lang
 			self._switch_language(lang)
 
-	def _switch_language(self, lang):
+	def _switch_language(self, lang: str) -> None:
 		"""Write the current language to disk, and load the new one if available"""
 		if self._prefix is None:
 			if lang not in self._languages:
@@ -208,21 +211,21 @@ class StringStore(MutableMapping, Signal):
 				)
 			self._languages[self._current_language].tampered = False
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[str]:
 		return iter(self._languages[self._current_language])
 
-	def __len__(self):
+	def __len__(self) -> int:
 		return len(self._languages[self._current_language])
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: str) -> str:
 		return self._languages[self._current_language][k]
 
-	def __setitem__(self, k, v):
+	def __setitem__(self, k: str, v: str) -> None:
 		"""Set the value of a string for the current language."""
 		self._languages[self._current_language][k] = v
 		self.send(self, key=k, val=v)
 
-	def __delitem__(self, k):
+	def __delitem__(self, k: str) -> None:
 		"""Delete the string from the current language, and remove it from the
 		cache.
 
@@ -230,7 +233,7 @@ class StringStore(MutableMapping, Signal):
 		del self._languages[self._current_language][k]
 		self.send(self, key=k, val=None)
 
-	def lang_items(self, lang=None):
+	def lang_items(self, lang: str | None = None) -> Iterator[tuple[str, str]]:
 		"""Yield pairs of (id, string) for the given language."""
 		if (
 			self._prefix is not None
@@ -241,7 +244,7 @@ class StringStore(MutableMapping, Signal):
 				self._languages[lang] = TamperEvidentDict(json.load(inf))
 		yield from self._languages[lang or self._current_language].items()
 
-	def save(self, reimport=False):
+	def save(self, reimport: bool = False) -> None:
 		if self._prefix is None:
 			return
 		if not os.path.exists(self._prefix):
@@ -493,12 +496,12 @@ class UniversalMapping(MutableMapping, Signal):
 		self.engine = engine
 
 	def __iter__(self):
-		return self.engine._universal_cache.iter_keys(*self.engine._btt())
+		return self.engine._universal_cache.iter_keys(*self.engine.time)
 
 	def __len__(self):
-		return self.engine._universal_cache.count_keys(*self.engine._btt())
+		return self.engine._universal_cache.count_keys(*self.engine.time)
 
-	def __getitem__(self, k):
+	def __getitem__(self, k: KeyHint | UniversalKey):
 		"""Get the current value of this key"""
 		return wrapval(
 			self,
@@ -506,10 +509,10 @@ class UniversalMapping(MutableMapping, Signal):
 			self._get_cache_now(k),
 		)
 
-	def _get_cache_now(self, k):
-		return self.engine._universal_cache.retrieve(k, *self.engine._btt())
+	def _get_cache_now(self, k: UniversalKey):
+		return self.engine._universal_cache.retrieve(k, *self.engine.time)
 
-	def __setitem__(self, k, v):
+	def __setitem__(self, k: KeyHint | UniversalKey, v: ValueHint | Value):
 		"""Set k=v at the current branch and tick"""
 		try:
 			if v == self._get_cache_now(k):
@@ -521,10 +524,10 @@ class UniversalMapping(MutableMapping, Signal):
 		self.engine.query.universal_set(k, branch, turn, tick, v)
 		self.send(self, key=k, val=v)
 
-	def _set_cache_now(self, k, v):
-		self.engine._universal_cache.store(k, *self.engine._btt(), v)
+	def _set_cache_now(self, k: UniversalKey, v: Value):
+		self.engine._universal_cache.store(k, *self.engine.time, v)
 
-	def __delitem__(self, k):
+	def __delitem__(self, k: KeyHint | UniversalKey):
 		"""Unset this key for the present (branch, tick)"""
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._universal_cache.store(k, branch, turn, tick, ...)
@@ -550,15 +553,15 @@ class CharacterMapping(MutableMapping, Signal):
 		Signal.__init__(self)
 
 	def __iter__(self):
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine.time
 		return self.engine._graph_cache.iter_keys(branch, turn, tick)
 
 	def __len__(self):
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine.time
 		return self.engine._graph_cache.count_keys(branch, turn, tick)
 
-	def __contains__(self, item):
-		branch, turn, tick = self.engine._btt()
+	def __contains__(self, item: KeyHint | CharName) -> bool:
+		branch, turn, tick = self.engine.time
 		try:
 			return (
 				self.engine._graph_cache.retrieve(item, branch, turn, tick)
@@ -567,7 +570,7 @@ class CharacterMapping(MutableMapping, Signal):
 		except KeyError:
 			return False
 
-	def __getitem__(self, name: _Key) -> "Character":
+	def __getitem__(self, name: KeyHint | CharName) -> Character:
 		"""Return the named character, if it's been created.
 
 		Try to use the cache if possible.
@@ -590,7 +593,11 @@ class CharacterMapping(MutableMapping, Signal):
 			)
 		return ret
 
-	def __setitem__(self, name: CharName, value: dict | nx.Graph):
+	def __setitem__(
+		self,
+		name: KeyHint | CharName,
+		value: dict[KeyHint | Stat, ValueHint | Value] | nx.Graph,
+	):
 		"""Make a new character by the given name, and initialize its data to
 		the given value.
 
@@ -598,12 +605,16 @@ class CharacterMapping(MutableMapping, Signal):
 		self.engine._init_graph(name, "DiGraph", value)
 		self.send(self, key=name, val=self.engine.character[name])
 
-	def __delitem__(self, name: CharName):
+	def __delitem__(self, name: KeyHint | CharName):
 		self.engine.del_character(name)
 		self.send(self, key=name, val=None)
 
 
-class CompositeDict(MutableMapping, Signal):
+_K = TypeVar("_K")
+_V = TypeVar("_V")
+
+
+class CompositeDict[_K, _V](MutableMapping[_K, _V], Signal):
 	"""Combine two dictionaries into one"""
 
 	def __init__(self, d1, d2):

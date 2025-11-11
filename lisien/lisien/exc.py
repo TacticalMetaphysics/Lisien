@@ -16,17 +16,6 @@
 
 from __future__ import annotations
 
-import sys
-
-
-if sys.version_info.minor < 11:
-
-	class ExceptionGroup(Exception):
-		pass
-else:
-	# Just make it importable from here. Might not be necessary?
-	ExceptionGroup = ExceptionGroup
-
 
 class GraphNameError(KeyError):
 	"""For errors involving graphs' names"""
@@ -205,3 +194,7 @@ class BadTimeException(Exception):
 	But doesn't make sense now
 
 	"""
+
+
+class EntityCollisionError(ValueError):
+	"""For when there's a discrepancy between the kind of entity you're creating and the one by the same name"""

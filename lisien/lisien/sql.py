@@ -18,7 +18,7 @@ import inspect
 import sys
 from collections import OrderedDict
 from dataclasses import dataclass, field, KW_ONLY
-from functools import cached_property, partial, partialmethod
+from functools import partial, partialmethod, cached_property
 from queue import Queue
 from threading import Thread
 from typing import Union, Iterator, get_args
@@ -85,9 +85,10 @@ from .types import (
 	UnitRulesHandledRowType,
 	NodeRulesHandledRowType,
 	PortalRulesHandledRowType,
-	KeyframeTuple,
+	KeyframeGraphRowType,
 	StatDict,
-	KeyframeExtensionTuple,
+	KeyframeExtensionRowType,
+	BranchRowType,
 )
 
 meta = MetaData()
@@ -107,11 +108,15 @@ for table, serializer in Batch.serializers.items():
 	ret_annot = spec.annotations["return"]
 	if isinstance(ret_annot, str):
 		ret_annot = eval(ret_annot, types.__dict__)
+	if hasattr(ret_annot, "evaluate_value"):
+		ret_annot = ret_annot.evaluate_value()
 	columns = []
 	with_rowid = batch.key_len == 0
 	for n, (arg, ret_typ) in enumerate(
 		zip(spec.args[1:], get_args(ret_annot)), start=1
 	):
+		if hasattr(ret_typ, "evaluate_value"):
+			ret_typ = ret_typ.evaluate_value()
 		args = get_args(ret_typ)
 		nullable = type(None) in args
 		orig = root_type(ret_typ)
@@ -120,10 +125,20 @@ for table, serializer in Batch.serializers.items():
 				if orig is not None:
 					break
 			else:
-				raise TypeError("Too many types for column", arg, orig, table)
+				raise TypeError(
+					"Too many types for column", table, arg, orig, table
+				)
 		orig2 = root_type(orig)
+		if isinstance(orig2, tuple):
+			nullable = type(None) in orig2
+			for orig3 in orig2:
+				if orig3 is not None:
+					break
+			else:
+				raise TypeError("No actual type for column", table, arg, orig2)
+			orig2 = orig3
 		if orig2 not in py2sql:
-			raise TypeError("Unknown type for column", arg, orig, table)
+			raise TypeError("Unknown type for column", table, arg, orig)
 		col = Column(
 			arg,
 			py2sql[orig2],
@@ -504,6 +519,9 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 			for t in table.values():
 				key = ord_key = list(t.primary_key.c)
+				if not key:
+					key = ord_key = list(t.c)
+					assert all(isinstance(k, Column) for k in key)
 				r["create_" + t.name] = CreateTable(t)
 				r["truncate_" + t.name] = t.delete()
 				r[t.name + "_del"] = t.delete().where(
@@ -891,7 +909,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		for key, branch, turn, tick in self.call("bookmarks_dump"):
 			yield unpack(key), (branch, turn, tick)
 
-	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+	def keyframes_dump(self) -> Iterator[Time]:
 		self.flush()
 		return self.call("keyframes_dump")
 
@@ -921,7 +939,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[KeyframeTuple]:
+	) -> Iterator[KeyframeGraphRowType]:
 		self.flush()
 		unpack_key = self.unpack_key
 		for (
@@ -945,7 +963,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[KeyframeExtensionTuple]:
+	) -> Iterator[KeyframeExtensionRowType]:
 		self.flush()
 		for branch, turn, tick, universal, rule, rulebook in self.call(
 			"keyframe_extensions_dump"
@@ -1016,7 +1034,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 	def branches_dump(
 		self,
-	) -> Iterator[tuple[Branch, Branch, Turn, Tick, Turn, Tick]]:
+	) -> Iterator[BranchRowType]:
 		"""Return all the branch data in tuples of (branch, parent,
 		start_turn, start_tick, end_turn, end_tick).
 
@@ -1058,7 +1076,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			return Tick(0)
 		return self.unpack(v[0])
 
-	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
+	def turns_dump(self) -> Iterator[TurnRowType]:
 		self._turns2set()
 		return self.call("turns_dump")
 
@@ -1318,13 +1336,13 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			)
 		for orig, dest, key, turn, tick, value in it:
 			yield (
+				branch,
+				turn,
+				tick,
 				graph,
 				unpack(orig),
 				unpack(dest),
 				unpack(key),
-				branch,
-				turn,
-				tick,
 				unpack(value),
 			)
 

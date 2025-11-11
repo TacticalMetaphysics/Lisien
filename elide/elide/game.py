@@ -266,7 +266,7 @@ class GameApp(App):
 			install_modules=self.modules,
 			**self.engine_kwargs,
 		)
-		self.branch, self.turn, self.tick = self.engine._btt()
+		self.branch, self.turn, self.tick = self.engine.time
 		self.engine.time.connect(self._pull_time, weak=False)
 		self.screen_manager = ScreenManager(transition=NoTransition())
 		if hasattr(self, "inspector"):

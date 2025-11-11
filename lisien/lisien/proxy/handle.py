@@ -208,8 +208,9 @@ class EngineHandle:
 			new.do_game_start()
 		return new
 
-	def get_time(self):
-		return tuple(self._real.time)
+	def get_time(self) -> Time:
+		branch, turn, tick = self._real.time
+		return branch, turn, tick
 
 	def export(self, name: str | None, path: str | None, indent: bool):
 		return self._real.export(name, path, indent=indent)
@@ -388,9 +389,7 @@ class EngineHandle:
 	def next_turn(self) -> tuple[bytes, bytes]:
 		"""Simulate a turn. Return whatever result, as well as a delta"""
 		pack = self.pack
-		self.debug(
-			"calling next_turn at {}, {}, {}".format(*self._real._btt())
-		)
+		self.debug("calling next_turn at {}, {}, {}".format(*self._real.time))
 		ret, delta = self._real.next_turn()
 		slightly_packed_delta, packed_delta = self._pack_delta(delta)
 		return pack(ret), packed_delta
@@ -455,10 +454,10 @@ class EngineHandle:
 		return self._plan_ctx.__enter__()
 
 	def end_plan(self) -> tuple[None, DeltaDict]:
-		time_was = self._real._btt()
+		time_was = tuple(self._real.time)
 		self._plan_ctx.__exit__(None, None, None)
 		del self._plan_ctx
-		return None, self._real.get_delta(time_was, self._real._btt())
+		return None, self._real.get_delta(time_was, tuple(self._real.time))
 
 	@prepacked
 	def time_travel(
@@ -488,7 +487,7 @@ class EngineHandle:
 						tick_end,
 					)
 			self._real.load_at(branch, turn, tick)
-		branch_from, turn_from, tick_from = self._real._btt()
+		branch_from, turn_from, tick_from = self._real.time
 		if tick is None:
 			if (
 				branch,
@@ -516,7 +515,7 @@ class EngineHandle:
 		):
 			# This branch avoids unpacking and re-packing the delta
 			slightly: SlightlyPackedDeltaType = self._real._get_slow_delta(
-				(branch_from, turn_from, tick_from), self._real._btt()
+				(branch_from, turn_from, tick_from), tuple(self._real.time)
 			)
 			mostly = {}
 			if UNIVERSAL in slightly:
@@ -538,7 +537,7 @@ class EngineHandle:
 			return NONE, concat_d(mostly)
 		return NONE, self._pack_delta(
 			self._real.get_delta(
-				(branch_from, turn_from, tick_from), self._real._btt()
+				(branch_from, turn_from, tick_from), tuple(self._real.time)
 			)
 		)[1]
 
@@ -589,7 +588,7 @@ class EngineHandle:
 		self._real.close()
 
 	def get_btt(self) -> Time:
-		return self._real._btt()
+		return tuple(self._real.time)
 
 	def get_language(self) -> str:
 		return str(self._real.string.language)
@@ -654,7 +653,7 @@ class EngineHandle:
 
 	def _get_btt(self, btt: Time | None = None) -> Time:
 		if btt is None:
-			return self._real._btt()
+			return tuple(self._real.time)
 		return btt
 
 	def node_exists(self, char: CharName, node: NodeName) -> bool:
@@ -971,7 +970,7 @@ class EngineHandle:
 	def call_stored_function(
 		self, store: FuncStoreName, func: FuncName, args: tuple, kwargs: dict
 	) -> Any:
-		branch, turn, tick = self._real._btt()
+		branch, turn, tick = self._real.time
 		if store == "method":
 			args = (self._real,) + tuple(args)
 		store = getattr(self._real, store)
@@ -979,7 +978,7 @@ class EngineHandle:
 			raise ValueError("{} is not a function store".format(store))
 		callme = getattr(store, func)
 		res = callme(*args, **kwargs)
-		_, turn_now, tick_now = self._real._btt()
+		_, turn_now, tick_now = self._real.time
 		delta = self._real._get_branch_delta(
 			branch, turn, tick, turn_now, tick_now
 		)
@@ -992,7 +991,7 @@ class EngineHandle:
 		import_module(module).install(self._real)
 
 	def do_game_start(self):
-		branch, turn, tick = self._real._btt()
+		branch, turn, tick = self._real.time
 		self._real.game_start()
 		return [], self._real._get_branch_delta(
 			branch, turn, tick, self._real.turn, self._real.tick
@@ -1096,7 +1095,7 @@ class EngineHandle:
 		dict[PrereqFuncName, str],
 		dict[ActionFuncName, str],
 	]:
-		branch, turn, tick = self._real._btt()
+		branch, turn, tick = self._real.time
 		if (turn, tick) != (0, 0):
 			raise BadTimeException(
 				"You tried to start a game when it wasn't the start of time"

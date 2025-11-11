@@ -30,9 +30,9 @@ def test_resume(tmp_path, persistent_database, random_seed):
 	with Engine(**ekwargs) as eng:
 		install(eng)
 		eng.next_turn()
-		last_branch, last_turn, last_tick = eng._btt()
+		last_branch, last_turn, last_tick = eng.time
 	with Engine(**ekwargs) as eng:
-		assert eng._btt() == (last_branch, last_turn, last_tick)
+		assert eng.time == (last_branch, last_turn, last_tick)
 		curturn = eng.turn
 		eng.next_turn()
 		assert eng.turn == curturn + 1

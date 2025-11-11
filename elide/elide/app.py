@@ -18,7 +18,7 @@ import json
 import os
 import shutil
 from collections import defaultdict
-from functools import cached_property, partial
+from functools import partial, cached_property
 from threading import Thread
 from typing import Callable
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -215,7 +215,7 @@ class ElideApp(App):
 		if not hasattr(self, "engine"):
 			Clock.schedule_once(self._pull_time, 0)
 			return
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine.time
 		self.branch = branch
 		self.turn = turn
 		self.tick = tick

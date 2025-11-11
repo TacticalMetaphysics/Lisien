@@ -23,8 +23,8 @@ from .exc import HistoricKeyError
 from .facade import EngineFacade, FacadePortal
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .types import Edge, Key, Time, AbstractCharacter, getatt, EntityStatAlias
-from .util import unwrap
+from .types import Edge, Key, Time, AbstractCharacter, EntityStatAlias
+from .util import unwrap, getatt
 
 
 class RuleMapping(BaseRuleMapping):
@@ -44,23 +44,8 @@ class Portal(Edge, RuleFollower):
 
 	"""
 
-	__slots__ = (
-		"graph",
-		"orig",
-		"dest",
-		"origin",
-		"destination",
-		"_rulebook",
-		"_real_rule_mapping",
-	)
-	character = getatt("graph")
-	engine = getatt("db")
+	__slots__ = ()
 	no_unwrap = True
-
-	def __init__(self, graph: AbstractCharacter, orig: Key, dest: Key):
-		super().__init__(graph, orig, dest)
-		self.origin = graph.node[orig]
-		self.destination = graph.node[dest]
 
 	@property
 	def _cache(self):
@@ -89,7 +74,7 @@ class Portal(Edge, RuleFollower):
 		raise KeyError("{}->{} has no rulebook?".format(self.orig, self.dest))
 
 	def _get_rulebook_name(self):
-		btt = self.engine._btt()
+		btt = tuple(self.engine.time)
 		try:
 			return self.engine._portals_rulebooks_cache.retrieve(
 				self.character.name, self.orig, self.dest, *btt
@@ -107,7 +92,7 @@ class Portal(Edge, RuleFollower):
 		cache = self.engine._portals_rulebooks_cache
 		try:
 			if rulebook == cache.retrieve(
-				character, orig, dest, *self.engine._btt()
+				character, orig, dest, *self.engine.time
 			):
 				return
 		except KeyError:

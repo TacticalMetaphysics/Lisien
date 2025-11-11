@@ -1049,7 +1049,7 @@ class GraphBoard(RelativeLayout):
 		)
 
 	def nx_layout(self, spots, *args):
-		spots_only = self.character.facade()
+		spots_only = self.character.character()
 		for thing in list(spots_only.thing.keys()):
 			del spots_only.thing[thing]
 		for place in spots_only.place.keys() - set(
