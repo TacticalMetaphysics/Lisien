@@ -814,7 +814,7 @@ class EngineProxy(AbstractEngine):
 			self.method = FuncStoreProxy(self, "method", initial=method)
 			self.action = FuncStoreProxy(self, "action", initial=action)
 			self.prereq = FuncStoreProxy(self, "prereq", initial=prereq)
-			self.trigger = FuncStoreProxy(self, "trigger", initial=trigger)
+			self.trigger = TrigStoreProxy(self, "trigger", initial=trigger)
 			self.function = FuncStoreProxy(self, "function", initial=function)
 			self._rando = RandoProxy(self)
 			self.string = StringStoreProxy(self)
@@ -1655,11 +1655,20 @@ class FuncStoreProxy(AbstractFunctionStore, Signal):
 		del self._cache[func_name]
 
 	def get_source(self, func_name: str) -> str:
-		if func_name == "truth":
-			return "def truth(*args):\n\treturn True"
 		return self.engine.handle(
 			command="get_source", store=self._store, name=func_name
 		)
+
+
+class TrigStoreProxy(FuncStoreProxy):
+	def __init__(
+		self,
+		engine_proxy: EngineProxy,
+		store: FuncStoreName,
+		initial: dict[str, str] | None = None,
+	):
+		super().__init__(engine_proxy, store, initial)
+		self._cache["truth"] = FuncProxy(self, FuncName("truth"))
 
 
 class CharacterMapProxy(MutableMapping, Signal):
