@@ -263,6 +263,10 @@ def engy(tmp_path, execution, database, random_seed):
 	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
 	with make_test_engine(tmp_path, execution, database, random_seed) as eng:
 		yield eng
+	if hasattr(eng, "_worker_log_threads"):
+		for t in eng._worker_log_threads:
+			assert not t.is_alive()
+		assert not eng._fut_manager_thread.is_alive()
 
 
 @pytest.fixture(params=["local", "remote"])
@@ -295,6 +299,10 @@ def engine(
 			)
 		) as eng:
 			yield eng
+		if hasattr(eng, "_worker_log_threads"):
+			for t in eng._worker_log_threads:
+				assert not t.is_alive()
+			assert not eng._fut_manager_thread.is_alive()
 
 
 def proxyless_engine(tmp_path, serial_or_parallel, database_connector):
@@ -306,6 +314,10 @@ def proxyless_engine(tmp_path, serial_or_parallel, database_connector):
 		database=database_connector,
 	) as eng:
 		yield eng
+	if hasattr(eng, "_worker_log_threads"):
+		for t in eng._worker_log_threads:
+			assert not t.is_alive()
+		assert not eng._fut_manager_thread.is_alive()
 
 
 @pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
@@ -338,6 +350,10 @@ def sqleng(tmp_path, request, execution):
 			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 		) as eng:
 			yield eng
+	if hasattr(eng, "_worker_log_threads"):
+		for t in eng._worker_log_threads:
+			assert not t.is_alive()
+		assert not eng._fut_manager_thread.is_alive()
 
 
 @pytest.fixture(scope="function")
@@ -352,6 +368,10 @@ def serial_engine(tmp_path, persistent_database):
 		else None,
 	) as eng:
 		yield eng
+	if hasattr(eng, "_worker_log_threads"):
+		for t in eng._worker_log_threads:
+			assert not t.is_alive()
+		assert not eng._fut_manager_thread.is_alive()
 
 
 @pytest.fixture(scope="function")
@@ -364,6 +384,10 @@ def null_engine():
 		database=NullDatabaseConnector(),
 	) as eng:
 		yield eng
+	if hasattr(eng, "_worker_log_threads"):
+		for t in eng._worker_log_threads:
+			assert not t.is_alive()
+		assert not eng._fut_manager_thread.is_alive()
 
 
 @pytest.fixture(
@@ -392,11 +416,14 @@ def pytest_sessionfinish(session, exitstatus):
 	# From https://github.com/blacklanternsecurity/bbot/pull/1555
 	# Works around a bug in Python 3.10 I think?
 	import logging
+	import threading
 
 	loggers = list(logging.Logger.manager.loggerDict.values())
 	for logger in loggers:
 		handlers = getattr(logger, "handlers", [])
 		for handler in handlers:
 			logger.removeHandler(handler)
+
+	print("Remaining threads:", threading.enumerate())
 
 	yield
