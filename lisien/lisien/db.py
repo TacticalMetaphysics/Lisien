@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import inspect
 import os
-import sys
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections import UserDict, defaultdict, deque
@@ -255,6 +254,10 @@ class ConnectionLooper(ABC):
 	@abstractmethod
 	def close(self):
 		pass
+
+
+_ARGS = TypeVar("_ARGS")
+_RET = TypeVar("_RET")
 
 
 def mutexed(
@@ -3167,7 +3170,6 @@ class AbstractDatabaseConnector(ABC):
 		branch_now = Branch(branch_)
 
 		uncharacterized = ILLEGAL_CHARACTER_NAMES
-		turn: Turn
 		for turn_now, (ending_tick, plan_ending_tick) in sorted(
 			turn_ends.items()
 		):
@@ -3180,7 +3182,6 @@ class AbstractDatabaseConnector(ABC):
 				},
 			)
 			branch_el.append(turn_el)
-			tick: Tick
 			current_rule_el: Element | None = self._get_current_rule_el(data)
 			if current_rule_el is not None:
 				turn_el.append(current_rule_el)

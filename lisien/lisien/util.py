@@ -19,13 +19,11 @@ from __future__ import annotations
 import gc
 import sys
 from contextlib import contextmanager
-from dataclasses import dataclass
-from functools import wraps, partial
+from functools import wraps
 from pprint import pformat
 from textwrap import dedent
 from time import monotonic
-from types import GenericAlias
-from typing import Callable, Iterable, TypeVar, Any, Self
+from typing import Callable, Iterable, TypeVar
 
 try:
 	import msgpack._cmsgpack

@@ -2,7 +2,6 @@ import random
 
 import networkx as nx
 
-import lisien.db
 
 
 def install(eng, seed=None):

@@ -57,15 +57,10 @@ from .types import (
 	RulebookName,
 	RulebookPriority,
 	RuleName,
-	RuleNeighborhood,
-	RuleBig,
 	UniversalKeyframe,
 	RuleKeyframe,
 	RulebooksKeyframe,
 	RuleFuncName,
-	TriggerFuncName,
-	PrereqFuncName,
-	ActionFuncName,
 	NodeName,
 	GraphValRowType,
 	GraphTypeStr,
@@ -77,7 +72,6 @@ from .types import (
 	NodeKeyframe,
 	EdgeKeyframe,
 	GraphValKeyframe,
-	CharDict,
 	Value,
 	UniversalKey,
 	Stat,
@@ -254,7 +248,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				return ValueError("Not a Lisien database")
 			elif glob_d[SCHEMAVER_B] != SCHEMA_VERSION_B:
 				return ValueError(
-					f"Unsupported database schema version", glob_d[SCHEMAVER_B]
+					"Unsupported database schema version", glob_d[SCHEMAVER_B]
 				)
 			return glob_d
 
@@ -270,7 +264,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			self._get_db(table).create(data, schema=self._schema[table])
 
 		def keyframes_graphs_delete(self, data: list[dict]):
-			import pyarrow as pa
 			from pyarrow import compute as pc
 
 			db = self._get_db("keyframes")
@@ -801,8 +794,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 						f"{', '.join('='.join(pair) for pair in inst[2].items())})"
 						f"silenced, ParquetDBHolder got the exception: {repr(ex)}"
 					)
-				except:
-					msg = f"called {inst}; got exception {repr(ex)}"
+				except Exception as ex2:
+					grp = ExceptionGroup(
+						"Multiple exceptions in ParquetDB connector", [ex, ex2]
+					)
+					msg = f"While calling {inst[0]}: {grp}"
 				print(msg, file=sys.stderr)
 				sys.exit(msg)
 

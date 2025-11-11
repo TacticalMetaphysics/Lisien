@@ -65,11 +65,6 @@ from .types import (
 	CharName,
 	NodeKeyframe,
 	EdgeKeyframe,
-	GraphValKeyframe,
-	CharDict,
-	UniversalKeyframe,
-	RuleKeyframe,
-	RulebooksKeyframe,
 	Value,
 	GraphValRowType,
 	NodeRowType,
@@ -80,7 +75,6 @@ from .types import (
 	RulebookName,
 	RuleName,
 	root_type,
-	deannotate,
 	CharacterRulesHandledRowType,
 	UnitRulesHandledRowType,
 	NodeRulesHandledRowType,
@@ -610,12 +604,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				"character_portal_rulebook",
 			):
 				tab = table[name]
-				sel = select(
-					tab.c.character,
-					tab.c.turn,
-					tab.c.tick,
-					tab.c.rulebook,
-				)
 				r[f"{name}_delete"] = tab.delete().where(
 					and_(
 						tab.c.character == bindparam("character"),

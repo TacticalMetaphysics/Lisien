@@ -38,7 +38,6 @@ from ..types import (
 	RuleName,
 	RulebookPriority,
 	RulebookName,
-	RuleFuncName,
 )
 from ..wrap import DictWrapper, ListWrapper, SetWrapper
 
@@ -408,10 +407,9 @@ class RuleFollowerProxyDescriptor:
 			val = val.name
 		elif isinstance(val, RuleMapProxy):
 			if val.name in inst.engine._rulebooks_cache:
-				rb = inst.engine._rulebooks_cache[val.name]
 				val = val.name
 			else:
-				rb = inst.engine._rulebooks_cache[val.name] = RuleBookProxy(
+				inst.engine._rulebooks_cache[val.name] = RuleBookProxy(
 					inst.engine, val.name
 				)
 				val = val.name

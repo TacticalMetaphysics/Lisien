@@ -28,5 +28,5 @@ that exposes all functionality that proxies need in simple methods.
 
 """
 
-from .handle import EngineHandle
-from .manager import EngineProxyManager
+from .handle import EngineHandle as EngineHandle
+from .manager import EngineProxyManager as EngineProxyManager

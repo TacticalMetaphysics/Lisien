@@ -58,7 +58,6 @@ from typing import (
 	Optional,
 	KeysView,
 	Iterable,
-	Hashable,
 	Sequence,
 	get_origin,
 	get_args,
@@ -4205,9 +4204,7 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 	):
 		if branch is None:
 			return
-		parent = engine.branch_parent(branch)
 		turn_start, tick_start = engine._branch_start(branch)
-		turn_end, tick_end = engine._branch_end(branch)
 		for turn in range(turn_start, fork_turn + 1):
 			if oper(leftside(branch, turn), rightside(branch, turn)):
 				yield branch, turn

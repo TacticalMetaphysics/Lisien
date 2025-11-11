@@ -25,7 +25,6 @@ from ..db import (
 	AbstractDatabaseConnector,
 	PythonDatabaseConnector,
 )
-from ..facade import EngineFacade
 from ..pqdb import ParquetDatabaseConnector
 from ..sql import SQLAlchemyDatabaseConnector
 from ..engine import Engine

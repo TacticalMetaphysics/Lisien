@@ -41,7 +41,6 @@ from sqlalchemy import Table, and_, select, MetaData
 from sqlalchemy.sql.functions import func
 
 from .types import (
-	AbstractCharacter,
 	EntityStatAlias,
 	EqQuery,
 	NeQuery,

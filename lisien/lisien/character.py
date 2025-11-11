@@ -35,7 +35,7 @@ and their node in the physical world is a unit of it.
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from functools import cached_property
 from itertools import chain
 from types import MethodType
@@ -44,8 +44,6 @@ from typing import (
 	Callable,
 	Iterable,
 	Iterator,
-	MutableMapping,
-	Mapping,
 )
 
 import networkx as nx
@@ -63,7 +61,6 @@ from .types import (
 	CharName,
 	DiGraphPredecessorsMapping,
 	DiGraphSuccessorsMapping,
-	EdgeValDict,
 	GraphNodeMapping,
 	Key,
 	NodeName,
@@ -78,7 +75,6 @@ from .types import (
 	AbstractCharacter,
 	CharacterStatAlias,
 	UnitsAlias,
-	keyval,
 	Time,
 	CharacterMappingMixin,
 	Value,
@@ -623,10 +619,6 @@ class Character(AbstractCharacter, RuleFollower):
 
 		_book = "character_portal"
 		character: Character
-
-		def __init__(self, graph):
-			super().__init__(graph)
-			charn = graph.name
 
 		@cached_property
 		def _cporh(self):
