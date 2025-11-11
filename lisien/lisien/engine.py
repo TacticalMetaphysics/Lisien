@@ -5203,7 +5203,7 @@ class Engine(AbstractEngine, Executor):
 							i,
 							proc.exitcode,
 						)
-					logt.join()
+					logt.join(timeout=SUBPROCESS_TIMEOUT)
 					proc.close()
 					pipein.close()
 					pipeout.close()
@@ -5223,8 +5223,8 @@ class Engine(AbstractEngine, Executor):
 				with lock:
 					inq.put(b"shutdown")
 					logq.put(b"shutdown")
-					logt.join()
-					thread.join()
+					logt.join(timeout=SUBPROCESS_TIMEOUT)
+					thread.join(timeout=SUBPROCESS_TIMEOUT)
 					if terp.is_running():
 						terp.close()
 		elif hasattr(self, "_worker_threads"):
