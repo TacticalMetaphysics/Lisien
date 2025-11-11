@@ -5160,18 +5160,13 @@ class Engine(AbstractEngine, Executor):
 			sleep(0.001)
 
 	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
-		if (
-			not hasattr(self, "_worker_processes")
-			and not hasattr(self, "_worker_interpreters")
-			and not hasattr(self, "_osc_serv_thread")
-		):
-			return
-		if cancel_futures:
-			for fut in self._uid_to_fut.values():
-				fut.cancel()
-		if wait:
-			futwait(self._uid_to_fut.values())
-		self._uid_to_fut = {}
+		if hasattr(self, "_uid_to_fut"):
+			if cancel_futures:
+				for fut in self._uid_to_fut.values():
+					fut.cancel()
+			if wait:
+				futwait(self._uid_to_fut.values())
+			self._uid_to_fut.clear()
 		self._stop_managing_futs = True
 		self._stop_sync_log = True
 
