@@ -519,6 +519,9 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 			for t in table.values():
 				key = ord_key = list(t.primary_key.c)
+				if not key:
+					key = ord_key = list(t.c)
+					assert all(isinstance(k, Column) for k in key)
 				r["create_" + t.name] = CreateTable(t)
 				r["truncate_" + t.name] = t.delete()
 				r[t.name + "_del"] = t.delete().where(
