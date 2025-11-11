@@ -7,7 +7,7 @@ from kivy.tests.common import UnitTestTouch
 
 from lisien import Engine
 
-from .util import idle_until
+from .util import idle_until, advance_frames
 
 
 class MockStore:
