@@ -851,7 +851,7 @@ class CharacterFacade(AbstractCharacter):
 			Stat(Key(k)): Value(v) for (k, v) in kwargs.items()
 		}
 		stats["location"] = Value(location)
-		self.thing[name] = FacadeThing(self.thing, name, **stats)
+		self.thing[name] = FacadeThing(self, name, **stats)
 
 	def add_portal(self, orig, dest, **kwargs):
 		self.portal[orig][dest] = kwargs
