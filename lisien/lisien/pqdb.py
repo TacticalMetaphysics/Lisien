@@ -17,7 +17,7 @@ from __future__ import annotations
 import inspect
 import os
 import sys
-from _operator import itemgetter
+from operator import itemgetter
 from dataclasses import dataclass, KW_ONLY
 from functools import partial, cached_property
 from typing import (

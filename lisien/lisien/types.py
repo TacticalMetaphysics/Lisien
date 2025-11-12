@@ -18,7 +18,7 @@ import builtins
 import inspect
 import operator
 import os
-from _operator import (
+from operator import (
 	attrgetter,
 	add,
 	sub,
