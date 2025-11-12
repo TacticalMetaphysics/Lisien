@@ -2900,9 +2900,19 @@ class AbstractCharacter(DiGraph, ABC):
 
 	"""
 
-	no_unwrap = True
-	name: CharName
 	engine: AbstractEngine
+	name: CharName
+
+	no_unwrap = True
+
+	def __new__(
+		cls,
+		engine: AbstractEngine,
+		name: CharName,
+		*,
+		init_rulebooks: bool = False,
+	):
+		return super().__new__(cls, engine, name)
 
 	@staticmethod
 	def is_directed():
