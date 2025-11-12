@@ -2269,8 +2269,16 @@ class AbstractEngine(ABC):
 	@cached_property
 	def pack(self) -> Callable[[ValueHint], bytes]:
 		try:
-			import msgpack._cmsgpack
-			import msgpack
+			from msgpack import Packer
+
+			if Packer.__module__.endswith("cmsgpack"):
+				import msgpack
+			else:
+				import umsgpack
+
+				return partial(
+					umsgpack.packb, ext_handlers=self._umsgpack_pack_handlers
+				)
 		except ImportError:
 			import umsgpack
 
@@ -2552,14 +2560,16 @@ class AbstractEngine(ABC):
 		self,
 	) -> Callable[[bytes], ValueHint]:
 		try:
-			import msgpack._cmsgpack
 			import msgpack
-		except ImportError:
-			import umsgpack
 
-			return partial(
-				umsgpack.unpackb, ext_handlers=self._unpack_handlers
-			)
+			if not msgpack.unpackb.__module__.endswith("cmsgpack"):
+				from umsgpack import unpackb
+
+				return partial(unpackb, ext_handlers=self._unpack_handlers)
+		except ImportError:
+			from umsgpack import unpackb
+
+			return partial(unpackb, ext_handlers=self._unpack_handlers)
 
 		def unpack_handler(
 			code: MsgpackExtensionType, data: bytes
