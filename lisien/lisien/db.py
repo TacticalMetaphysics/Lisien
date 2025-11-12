@@ -3716,7 +3716,13 @@ class AbstractDatabaseConnector(ABC):
 		typ_str_ = el.get("type")
 		if typ_str_ is None:
 			raise TypeError("Missing graph type", el)
-		if typ_str_ not in get_args(GraphTypeStr.evaluate_value()):
+		if hasattr(GraphTypeStr, "evaluate_value"):
+			literal = GraphTypeStr.evaluate_value()
+		elif hasattr(GraphTypeStr, "__value__"):
+			literal = GraphTypeStr.__value__
+		else:
+			literal = GraphTypeStr
+		if typ_str_ not in get_args(literal):
 			raise TypeError("Unknown graph type", typ_str_)
 		typ_str: GraphTypeStr = typ_str_
 		self.graphs_insert(graph, branch, turn, tick, typ_str)
