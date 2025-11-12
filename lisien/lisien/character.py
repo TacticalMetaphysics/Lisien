@@ -268,6 +268,11 @@ class Character(AbstractCharacter, RuleFollower):
 	def __repr__(self):
 		return "{}.character[{}]".format(repr(self.engine), repr(self.name))
 
+	def __new__(
+		cls, engine: Engine, name: CharName, *, init_rulebooks: bool = False
+	):
+		return super().__new__(cls, engine, name)
+
 	def __init__(
 		self, engine: Engine, name: CharName, *, init_rulebooks: bool = False
 	):
