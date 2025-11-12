@@ -1657,6 +1657,9 @@ class DiGraph(networkx.DiGraph, ABC):
 			if k != "name"
 		}
 
+	def __new__(cls, engine: AbstractEngine, name: CharName):
+		return super().__new__(cls)
+
 	def __init__(
 		self, engine: AbstractEngine, name: CharName
 	):  # user shouldn't instantiate directly
