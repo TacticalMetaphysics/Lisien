@@ -5180,24 +5180,26 @@ class Engine(AbstractEngine, Executor):
 				)
 			):
 				with lock:
-					if not proc.is_alive():
-						continue
-					pipein.send_bytes(b"shutdown")
-					logq.put(b"shutdown")
-					proc.join(timeout=SUBPROCESS_TIMEOUT)
-					if proc.exitcode is None:
-						if KILL_SUBPROCESS:
-							os.kill(proc.pid, signal.SIGKILL)
-						else:
-							raise RuntimeError("Worker process didn't exit", i)
-					if not KILL_SUBPROCESS and proc.exitcode != 0:
-						raise RuntimeError(
-							"Worker process didn't exit normally",
-							i,
-							proc.exitcode,
-						)
-					logt.join(timeout=SUBPROCESS_TIMEOUT)
-					proc.close()
+					if proc.is_alive():
+						pipein.send_bytes(b"shutdown")
+						proc.join(timeout=SUBPROCESS_TIMEOUT)
+						if proc.exitcode is None:
+							if KILL_SUBPROCESS:
+								os.kill(proc.pid, signal.SIGKILL)
+							else:
+								raise RuntimeError(
+									"Worker process didn't exit", i
+								)
+						if not KILL_SUBPROCESS and proc.exitcode != 0:
+							raise RuntimeError(
+								"Worker process didn't exit normally",
+								i,
+								proc.exitcode,
+							)
+						proc.close()
+					if logt.is_alive():
+						logq.put(b"shutdown")
+						logt.join(timeout=SUBPROCESS_TIMEOUT)
 					pipein.close()
 					pipeout.close()
 			del self._worker_processes
