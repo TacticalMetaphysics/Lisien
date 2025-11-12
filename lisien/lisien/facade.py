@@ -888,10 +888,22 @@ class CharacterFacade(AbstractCharacter):
 			self.name, charn, noden, *self.engine.time, True
 		)
 
+	def __new__(
+		cls,
+		engine: EngineFacade | None = None,
+		character: AbstractCharacter | CharName | None = None,
+		*,
+		init_rulebooks: bool | None = None,
+	):
+		return super().__new__(
+			cls, engine, getattr(character, "name", character)
+		)
+
 	def __init__(
 		self,
 		engine: EngineFacade | None = None,
 		character: AbstractCharacter | CharName | None = None,
+		*,
 		init_rulebooks: bool | None = None,
 	):
 		super().__init__(engine, getattr(character, "name", character))
