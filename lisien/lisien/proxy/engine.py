@@ -50,7 +50,7 @@ try:
 	else:
 		import umsgpack as msgpack
 
-		Ext = msgpackExt
+		Ext = msgpack.Ext
 except ImportError:
 	import umsgpack as msgpack
 
