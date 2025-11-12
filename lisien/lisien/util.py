@@ -26,10 +26,14 @@ from time import monotonic
 from typing import Callable, Iterable, TypeVar
 
 try:
-	import msgpack._cmsgpack
 	import msgpack
 
-	C_MSGPACK = True
+	if msgpack.Packer.__module__.endswith("cmsgpack"):
+		C_MSGPACK = True
+	else:
+		import umsgpack as msgpack
+
+		C_MSGPACK = False
 except ImportError:
 	import umsgpack as msgpack
 

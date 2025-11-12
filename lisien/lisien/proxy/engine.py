@@ -43,10 +43,14 @@ import networkx as nx
 from blinker import Signal
 
 try:
-	import msgpack._cmsgpack
 	import msgpack
 
-	Ext = msgpack.ExtType
+	if msgpack.Packer.__module__.endswith("cmsgpack"):
+		Ext = msgpack.ExtType
+	else:
+		import umsgpack as msgpack
+
+		Ext = msgpackExt
 except ImportError:
 	import umsgpack as msgpack
 

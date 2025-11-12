@@ -171,7 +171,10 @@ class EngineHandle:
 	@classmethod
 	def from_archive(cls, b: bytes | dict, *, log_queue=None) -> EngineHandle:
 		try:
-			from msgpack._cmsgpack import unpackb
+			from msgpack import unpackb
+
+			if not unpackb.__module__.endswith("cmsgpack"):
+				from umsgpack import unpackb
 		except ImportError:
 			from umsgpack import unpackb
 

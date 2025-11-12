@@ -632,7 +632,12 @@ class EngineProxyManager:
 				case Sub.thread:
 					self._start_subthread(prefix, **kwargs)
 		try:
-			from msgpack._cmsgpack import packb
+			from msgpack import Packer
+
+			if Packer.__module__.endswith("cmsgpack"):
+				from msgpack import packb
+			else:
+				from umsgpack import packb
 		except ImportError:
 			from umsgpack import packb
 		if hasattr(self, "_proxy_out_pipe"):
