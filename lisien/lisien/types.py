@@ -14,17 +14,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.f
 from __future__ import annotations
 
+from collections import OrderedDict
+from concurrent.futures import Future
+
 import builtins
-import inspect
+import networkx as nx
 import operator
 import os
 from abc import ABC, abstractmethod
-from collections import OrderedDict
+from annotated_types import Ge, Le
+from blinker import Signal
 from collections.abc import Set
-from concurrent.futures import Future
 from enum import Enum
 from functools import cached_property, partial, wraps
 from itertools import chain
+from networkx import NetworkXError
 from operator import (
 	add,
 	attrgetter,
@@ -42,6 +46,8 @@ from operator import (
 	truediv,
 )
 from random import Random
+from tblib import Traceback
+from types import EllipsisType
 from types import FunctionType, GenericAlias, MethodType, ModuleType
 from typing import (
 	TYPE_CHECKING,
@@ -66,14 +72,7 @@ from typing import (
 	override,
 )
 
-import networkx as nx
-from annotated_types import Ge, Le
-from blinker import Signal
-from networkx import NetworkXError
 from reslot import reslot
-from tblib import Traceback
-from types import EllipsisType
-
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
 from .util import getatt
