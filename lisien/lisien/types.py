@@ -4033,7 +4033,7 @@ def sort_set(s: Set[_T]) -> list[_T]:
 	"""Return a sorted list of the contents of a set
 
 	This is intended to be used to iterate over world state, so it doesn't
-	support anything you can't use as a key in a dictionray.
+	support anything you can't use as a key in a dictionary.
 
 	Works by converting everything to bytes before comparison. Tuples get
 	their contents converted and concatenated.
