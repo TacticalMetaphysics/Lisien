@@ -3604,7 +3604,7 @@ class AbstractCharacter(DiGraph, ABC):
 			yield from o.values()
 
 
-class AbstractThing(MutableMapping, ABC):
+class AbstractThing(ABC):
 	character: AbstractCharacter
 	engine: AbstractEngine
 	name: NodeName
