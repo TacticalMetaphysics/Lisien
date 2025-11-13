@@ -33,12 +33,12 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from copy import copy
-from functools import partial, wraps, cached_property
+from functools import cached_property, partial, wraps
 from hashlib import blake2b
-from multiprocessing import get_all_start_methods
 from io import TextIOWrapper
 from itertools import chain, pairwise
 from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
+from multiprocessing import get_all_start_methods
 from operator import itemgetter, lt
 from os import PathLike
 from queue import Empty, SimpleQueue
@@ -62,7 +62,9 @@ from networkx import (
 
 from . import exc
 from .cache import (
+	ActionListCache,
 	BignessCache,
+	Cache,
 	CharacterPlaceRulesHandledCache,
 	CharacterPortalRulesHandledCache,
 	CharacterRulesHandledCache,
@@ -71,9 +73,6 @@ from .cache import (
 	EdgesCache,
 	EdgeValCache,
 	EntitylessCache,
-	TriggerListCache,
-	PrereqListCache,
-	ActionListCache,
 	GraphCache,
 	GraphValCache,
 	NeighborhoodsCache,
@@ -85,28 +84,29 @@ from .cache import (
 	PickyDefaultDict,
 	PortalRulesHandledCache,
 	PortalsRulebooksCache,
+	PrereqListCache,
 	RulebooksCache,
 	StructuredDefaultDict,
 	ThingsCache,
+	TriggerListCache,
 	TurnEndDict,
 	TurnEndPlanDict,
 	UnitnessCache,
 	UnitRulesHandledCache,
-	Cache,
 )
 from .character import Character
 from .collections import (
 	ChangeTrackingDict,
 	CharacterMapping,
 	FunctionStore,
-	TriggerStore,
 	StringStore,
+	TriggerStore,
 	UniversalMapping,
 )
 from .db import (
-	PythonDatabaseConnector,
 	AbstractDatabaseConnector,
 	NullDatabaseConnector,
+	PythonDatabaseConnector,
 )
 from .exc import (
 	GraphNameError,
@@ -118,23 +118,30 @@ from .exc import (
 from .facade import CharacterFacade, EngineFacade
 from .node import Place, Thing
 from .portal import Portal
+from .proxy.manager import Sub
 from .proxy.routine import worker_subprocess, worker_subthread
 from .proxy.worker_subinterpreter import worker_subinterpreter
-from .proxy.manager import Sub
-from .query import (
-	_make_side_sel,
-)
+from .query import _make_side_sel
 from .rule import AllRuleBooks, AllRules, Rule
 from .types import (
+	AbstractBookmarkMapping,
+	AbstractCharacter,
+	AbstractEngine,
 	Branch,
 	CharacterRulebookTypeStr,
+	CharacterStatAccessor,
 	CharDelta,
+	CharDict,
 	CharName,
+	CombinedQueryResult,
+	ComparisonQuery,
+	CompoundQuery,
 	DeltaDict,
 	DiGraph,
 	EdgesDict,
 	EdgeValDict,
 	EntityKey,
+	EntityStatAccessor,
 	FakeFuture,
 	GraphEdgesKeyframe,
 	GraphEdgeValKeyframe,
@@ -149,38 +156,29 @@ from .types import (
 	NodesDict,
 	NodeValDict,
 	Plan,
+	Query,
+	QueryResult,
+	QueryResultEndTurn,
+	QueryResultMidTurn,
 	RuleBig,
 	RulebookName,
 	RulebookPriority,
 	RuleFuncName,
 	RuleName,
 	RuleNeighborhood,
+	SizedDict,
 	SlightlyPackedDeltaType,
 	Stat,
 	StatDict,
 	Tick,
 	Time,
-	validate_time,
+	TimeSignal,
+	TimeSignalDescriptor,
 	Turn,
 	UniversalKey,
 	Value,
-	CharacterStatAccessor,
-	EntityStatAccessor,
-	SizedDict,
-	AbstractBookmarkMapping,
-	AbstractEngine,
-	AbstractCharacter,
-	TimeSignalDescriptor,
 	sort_set,
-	CharDict,
-	CompoundQuery,
-	ComparisonQuery,
-	Query,
-	QueryResult,
-	QueryResultEndTurn,
-	QueryResultMidTurn,
-	CombinedQueryResult,
-	TimeSignal,
+	validate_time,
 )
 from .util import (
 	ACTIONS,
@@ -214,7 +212,6 @@ from .window import (
 	update_window,
 )
 from .wrap import OrderlyFrozenSet, OrderlySet
-
 
 SUBPROCESS_TIMEOUT = 30
 if "LISIEN_SUBPROCESS_TIMEOUT" in os.environ:
@@ -2480,8 +2477,8 @@ class Engine(AbstractEngine, Executor):
 	def _start_worker_threads(
 		self, prefix: str | os.PathLike | None, workers: int
 	):
-		from threading import Thread
 		from queue import SimpleQueue
+		from threading import Thread
 
 		self._worker_last_eternal = dict(self.eternal.items())
 		initial_payload = self._get_worker_kf_payload()
@@ -7974,12 +7971,13 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	def to_etree(self, name: str | None = None) -> ElementTree:
-		from base64 import b64encode
 		import json
+		from base64 import b64encode
+
 		from .collections import GROUP_SEP, REC_SEP
 
 		try:
-			from lxml.etree import ElementTree, Element
+			from lxml.etree import Element, ElementTree
 		except ModuleNotFoundError:
 			from xml.etree.ElementTree import Element
 

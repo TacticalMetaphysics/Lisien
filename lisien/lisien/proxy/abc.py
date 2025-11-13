@@ -14,35 +14,35 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from functools import partial
 from typing import (
-	MutableMapping,
-	Hashable,
-	MutableSequence,
-	Literal,
-	Iterator,
 	TYPE_CHECKING,
+	Hashable,
+	Iterator,
+	Literal,
+	MutableMapping,
+	MutableSequence,
 	Optional,
 )
 
 from blinker import Signal
 
 from ..types import (
+	FuncName,
 	Key,
 	KeyHint,
+	RulebookName,
+	RulebookPriority,
+	RuleName,
+	RuleNeighborhood,
 	Value,
 	ValueHint,
-	FuncName,
-	RuleNeighborhood,
-	RuleName,
-	RulebookPriority,
-	RulebookName,
 )
 from ..wrap import DictWrapper, ListWrapper, SetWrapper
 
 if TYPE_CHECKING:
-	from .character import CharacterProxy, ThingProxy, PlaceProxy, PortalProxy
+	from .character import CharacterProxy, PlaceProxy, PortalProxy, ThingProxy
 	from .engine import EngineProxy, FuncStoreProxy, RuleMapProxyDescriptor
 
 

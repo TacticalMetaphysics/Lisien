@@ -14,8 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-import sys
 import logging
+import sys
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:

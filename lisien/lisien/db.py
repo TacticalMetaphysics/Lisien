@@ -21,50 +21,44 @@ from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections import UserDict, defaultdict, deque
 from contextlib import contextmanager
-from dataclasses import dataclass, KW_ONLY
-from functools import partial, wraps, partialmethod, cached_property
+from dataclasses import KW_ONLY, dataclass
+from functools import cached_property, partial, partialmethod, wraps
 from io import IOBase, StringIO
 from itertools import filterfalse, starmap
 from pathlib import Path
 from queue import Queue
 from threading import Lock, Thread
-from types import MethodType, FunctionType
+from types import FunctionType, MethodType
 from typing import (
+	TYPE_CHECKING,
 	Any,
 	Callable,
+	ClassVar,
 	Iterable,
 	Iterator,
 	Literal,
+	Mapping,
 	MutableMapping,
+	MutableSet,
 	Optional,
+	Set,
+	TypeVar,
 	get_args,
 	get_type_hints,
-	TYPE_CHECKING,
-	TypeVar,
-	ClassVar,
-	Set,
-	MutableSet,
-	Mapping,
 )
 
 import networkx as nx
 from tblib import Traceback
 
 if TYPE_CHECKING:
-	from xml.etree.ElementTree import (
-		ElementTree,
-		Element,
-		indent as indent_tree,
-		parse,
-	)
+	from xml.etree.ElementTree import Element, ElementTree
+	from xml.etree.ElementTree import indent as indent_tree
+	from xml.etree.ElementTree import parse
 else:
 	try:
-		from lxml.etree import (
-			ElementTree,
-			Element,
-			indent as indent_tree,
-			parse,
-		)
+		from lxml.etree import Element, ElementTree
+		from lxml.etree import indent as indent_tree
+		from lxml.etree import parse
 	except ImportError:
 		from xml.etree.ElementTree import (
 			ElementTree,
@@ -73,13 +67,19 @@ else:
 			parse,
 		)
 
-from .window import AssignmentTimeDict, WindowDict
 import lisien.types
+
+from .cache import PickierDefaultDict
+from .facade import EngineFacade
 from .types import (
+	AbstractEngine,
 	ActionFuncName,
 	ActionRowType,
+	AssignmentRowListType,
+	AssignmentRowType,
 	Branch,
 	BranchRowType,
+	CharacterRulesHandledRowType,
 	CharDict,
 	CharName,
 	CharRulebookRowType,
@@ -88,74 +88,66 @@ from .types import (
 	EdgeValRowType,
 	EternalKey,
 	FuncName,
+	GraphEdgeValKeyframe,
+	GraphNodeValKeyframe,
 	GraphRowType,
 	GraphTypeStr,
-	GraphNodeValKeyframe,
-	GraphEdgeValKeyframe,
 	GraphValKeyframe,
 	GraphValRowType,
 	Key,
-	KeyHint,
 	Keyframe,
+	KeyHint,
+	LoadedCharWindow,
+	LoadedDict,
 	NodeKeyframe,
 	NodeName,
 	NodeRowType,
 	NodeRulebookRowType,
+	NodeRulesHandledRowType,
 	NodeValRowType,
+	PackSignature,
 	Plan,
 	PortalRulebookRowType,
+	PortalRulesHandledRowType,
 	PrereqFuncName,
 	PrereqRowType,
-	AssignmentRowType,
-	AssignmentRowListType,
 	RuleBig,
 	RuleBigRowType,
-	RulebooksKeyframe,
-	RulesKeyframe,
 	RulebookName,
 	RulebookPriority,
 	RulebookRowType,
+	RulebooksKeyframe,
 	RuleFuncName,
 	RuleKeyframe,
 	RuleName,
 	RuleNeighborhood,
 	RuleNeighborhoodRowType,
 	RuleRowType,
+	RulesKeyframe,
 	Stat,
 	StatDict,
 	ThingRowType,
 	Tick,
 	Time,
 	TimeWindow,
-	TurnRowType,
 	TriggerFuncName,
 	TriggerRowType,
 	Turn,
+	TurnRowType,
 	UnitRowType,
+	UnitRulesHandledRowType,
 	UniversalKey,
 	UniversalKeyframe,
 	UniversalRowType,
-	ValueHint,
-	Value,
-	PackSignature,
 	UnpackSignature,
-	LoadedDict,
-	LoadedCharWindow,
-	CharacterRulesHandledRowType,
-	PortalRulesHandledRowType,
-	NodeRulesHandledRowType,
-	UnitRulesHandledRowType,
-	AbstractEngine,
-	sort_set,
+	Value,
+	ValueHint,
 	deannotate,
 	root_type,
+	sort_set,
 )
-from .cache import PickierDefaultDict
-from .facade import EngineFacade
-from .util import (
-	garbage,
-	ILLEGAL_CHARACTER_NAMES,
-)
+from .util import ILLEGAL_CHARACTER_NAMES, garbage
+from .window import AssignmentTimeDict, WindowDict
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 SCHEMAVER_B = b"\xb6_lisien_schema_version"

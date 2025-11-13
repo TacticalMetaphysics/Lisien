@@ -17,9 +17,9 @@ from functools import partial
 from itertools import product
 from tempfile import TemporaryDirectory
 
+from lisien.db import PythonDatabaseConnector
 from lisien.engine import Engine
 from lisien.tests.data import DATA_DIR
-from lisien.db import PythonDatabaseConnector
 
 RANDOM_SEED = 69105
 

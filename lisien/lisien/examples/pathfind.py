@@ -3,7 +3,6 @@ import random
 import networkx as nx
 
 
-
 def install(eng, seed=None):
 	if seed is not None:
 		random.seed(seed)

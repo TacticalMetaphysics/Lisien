@@ -27,18 +27,19 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 
 from networkx import shortest_path, shortest_path_length
+from reslot import reslot
 
 import lisien.types
-from reslot import reslot
 
 from . import rule
 from .exc import AmbiguousLeaderError
 from .facade import EngineFacade, FacadePlace, FacadeThing
 from .rule import RuleMapping
 from .types import (
-	KeyHint,
+	AbstractThing,
 	CharName,
 	Key,
+	KeyHint,
 	NodeName,
 	RulebookName,
 	Stat,
@@ -46,9 +47,8 @@ from .types import (
 	Turn,
 	Value,
 	ValueHint,
-	AbstractThing,
 )
-from .util import unwrap, getatt
+from .util import getatt, unwrap
 
 if TYPE_CHECKING:
 	from .character import Character

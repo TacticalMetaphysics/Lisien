@@ -1,22 +1,18 @@
 import os
 from functools import wraps
 from logging import getLogger
-from queue import SimpleQueue, Empty
+from queue import Empty, SimpleQueue
 from threading import Thread
 from typing import Any, Callable, TypeVar
 from unittest.mock import MagicMock
 
 from lisien import Engine
-from lisien.db import (
-	PythonDatabaseConnector,
-	NullDatabaseConnector,
-)
-from lisien.pqdb import ParquetDatabaseConnector
-from lisien.sql import SQLAlchemyDatabaseConnector
+from lisien.db import NullDatabaseConnector, PythonDatabaseConnector
 from lisien.facade import EngineFacade
+from lisien.pqdb import ParquetDatabaseConnector
 from lisien.proxy.engine import EngineProxy
 from lisien.proxy.manager import Sub
-
+from lisien.sql import SQLAlchemyDatabaseConnector
 
 _RETURNS = TypeVar("_RETURNS")
 

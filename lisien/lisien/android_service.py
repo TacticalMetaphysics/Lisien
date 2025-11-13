@@ -13,31 +13,27 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
-from logging import LogRecord
-
-from queue import SimpleQueue
-
-from itertools import pairwise
-
-from ast import literal_eval
-import random
-import sys
-from threading import Thread, Event
-from typing import Callable
 import os
 import pickle
+import random
+import sys
 import zlib
+from ast import literal_eval
+from itertools import pairwise
+from logging import LogRecord
+from queue import SimpleQueue
+from threading import Event, Thread
+from typing import Callable
 
 import tblib
 from kivy.logger import Logger
-from pythonosc.osc_tcp_server import BlockingOSCTCPServer
-from pythonosc.tcp_client import SimpleTCPClient
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_message_builder import OscMessageBuilder
+from pythonosc.osc_tcp_server import BlockingOSCTCPServer
+from pythonosc.tcp_client import SimpleTCPClient
 
-from lisien.proxy.routine import _engine_subroutine_step, _finish_packing
 from lisien.proxy.handle import EngineHandle
-
+from lisien.proxy.routine import _engine_subroutine_step, _finish_packing
 
 Logger.setLevel(0)
 Logger.debug("core: imported libs")
@@ -231,6 +227,7 @@ if __name__ == "__main__":
 	except BaseException as ex:
 		import traceback
 		from io import StringIO
+
 		from kivy.logger import Logger
 
 		bogus = StringIO()

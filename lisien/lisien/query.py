@@ -37,19 +37,19 @@ Other comparison operators like ``>`` and ``<`` work as well.
 
 from __future__ import annotations
 
-from sqlalchemy import Table, and_, select, MetaData
+from sqlalchemy import MetaData, Table, and_, select
 from sqlalchemy.sql.functions import func
 
 from .types import (
 	EntityStatAlias,
 	EqQuery,
-	NeQuery,
-	GtQuery,
-	LtQuery,
 	GeQuery,
-	LeQuery,
-	intersect2,
 	GraphMapping,
+	GtQuery,
+	LeQuery,
+	LtQuery,
+	NeQuery,
+	intersect2,
 )
 
 

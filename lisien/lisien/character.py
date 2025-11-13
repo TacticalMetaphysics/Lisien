@@ -39,12 +39,7 @@ from collections.abc import Mapping
 from functools import cached_property
 from itertools import chain
 from types import MethodType
-from typing import (
-	TYPE_CHECKING,
-	Callable,
-	Iterable,
-	Iterator,
-)
+from typing import TYPE_CHECKING, Callable, Iterable, Iterator
 
 import networkx as nx
 from blinker import Signal
@@ -57,32 +52,32 @@ from .rule import RuleBook
 from .rule import RuleFollower as BaseRuleFollower
 from .rule import RuleMapping
 from .types import (
+	AbstractCharacter,
+	BaseMutableCharacterMapping,
 	Branch,
+	CharacterMappingMixin,
+	CharacterStatAlias,
 	CharName,
 	DiGraphPredecessorsMapping,
 	DiGraphSuccessorsMapping,
 	GraphNodeMapping,
 	Key,
+	KeyHint,
 	NodeName,
 	RulebookName,
 	RulebookTypeStr,
 	Stat,
 	StatDict,
-	Tick,
-	Turn,
-	KeyHint,
-	ValueHint,
-	AbstractCharacter,
-	CharacterStatAlias,
-	UnitsAlias,
-	Time,
-	CharacterMappingMixin,
-	Value,
 	ThingDict,
+	Tick,
+	Time,
 	TimeSignal,
-	BaseMutableCharacterMapping,
+	Turn,
+	UnitsAlias,
+	Value,
+	ValueHint,
 )
-from .util import singleton_get, timer, unwrap, getatt
+from .util import getatt, singleton_get, timer, unwrap
 
 if TYPE_CHECKING:
 	from .engine import Engine

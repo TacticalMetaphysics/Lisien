@@ -33,14 +33,15 @@ from collections.abc import (
 )
 from dataclasses import dataclass, replace
 from enum import Enum
-from functools import partial, cached_property
+from functools import cached_property, partial
 from itertools import chain
 from operator import ge, itemgetter, le
 from threading import RLock
-from typing import Any, Callable, Iterable, Iterator, Union, TypeVar
+from typing import Any, Callable, Iterable, Iterator, TypeVar, Union
+
+from reslot import reslot
 
 from .exc import HistoricKeyError
-from reslot import reslot
 from .types import LinearTime, Tick, Turn, Value, ValueHint
 
 get0 = itemgetter(0)

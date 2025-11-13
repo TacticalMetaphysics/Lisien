@@ -16,12 +16,12 @@ from __future__ import annotations
 
 from functools import cached_property
 from typing import (
-	Optional,
-	MutableMapping,
+	TYPE_CHECKING,
+	Iterable,
 	Iterator,
 	Mapping,
-	Iterable,
-	TYPE_CHECKING,
+	MutableMapping,
+	Optional,
 )
 
 import networkx as nx
@@ -31,30 +31,31 @@ from lisien.exc import AmbiguousLeaderError
 from lisien.facade import CharacterFacade
 from lisien.node import Place, Thing
 from lisien.portal import Portal
-from lisien.types import (
-	Node,
-	Edge,
-	KeyHint,
-	ValueHint,
-	AbstractCharacter,
-	NodeName,
-	StatDict,
-	Key,
-	Value,
-	RulebookName,
-	Stat,
-	CharName,
-	Tick,
-	NodeValDict,
-	EdgeValDict,
-	CharDelta,
-)
-from ..util import getatt
 from lisien.proxy.abc import (
-	CachingProxy,
 	CachingEntityProxy,
+	CachingProxy,
 	RuleFollowerProxy,
 )
+from lisien.types import (
+	AbstractCharacter,
+	CharDelta,
+	CharName,
+	Edge,
+	EdgeValDict,
+	Key,
+	KeyHint,
+	Node,
+	NodeName,
+	NodeValDict,
+	RulebookName,
+	Stat,
+	StatDict,
+	Tick,
+	Value,
+	ValueHint,
+)
+
+from ..util import getatt
 
 if TYPE_CHECKING:
 	from .engine import EngineProxy

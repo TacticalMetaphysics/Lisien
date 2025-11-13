@@ -23,7 +23,7 @@ import random
 from collections import UserDict
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from functools import partial, cached_property
+from functools import cached_property, partial
 from inspect import getsource
 from random import Random
 from threading import Lock
@@ -31,12 +31,12 @@ from time import monotonic
 from types import MethodType
 from typing import (
 	Any,
-	Optional,
-	Literal,
-	Iterator,
-	MutableMapping,
-	Iterable,
 	Callable,
+	Iterable,
+	Iterator,
+	Literal,
+	MutableMapping,
+	Optional,
 )
 
 import networkx as nx
@@ -44,6 +44,7 @@ from blinker import Signal
 
 try:
 	import msgpack
+	import msgpack._cmsgpack
 
 	if msgpack.Packer.__module__.endswith("cmsgpack"):
 		Ext = msgpack.ExtType
@@ -56,69 +57,60 @@ except ImportError:
 
 	Ext = msgpack.Ext
 
-from .abc import (
-	FuncProxy,
-	FuncListProxy,
-	RuleProxy,
-	RuleBookProxy,
+from ..cache import PickyDefaultDict, StructuredDefaultDict
+from ..collections import (
+	AbstractLanguageDescriptor,
+	FunctionStore,
+	StringStore,
 )
-from .character import CharacterProxy, PlaceProxy, ThingProxy, PortalProxy
-
-from ..cache import StructuredDefaultDict, PickyDefaultDict
-from ..exc import (
-	WorkerProcessReadOnlyError,
-	OutOfTimelineError,
-)
+from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..types import (
-	CharName,
-	NodeName,
-	Node,
-	Branch,
-	Turn,
-	Tick,
-	Keyframe,
-	TriggerFuncName,
-	PrereqFuncName,
+	AbstractBookmarkMapping,
+	AbstractCharacter,
+	AbstractEngine,
+	AbstractFunctionStore,
 	ActionFuncName,
-	NodesDict,
-	NodeValDict,
-	Key,
+	Branch,
+	CharDelta,
+	CharName,
+	DeltaDict,
 	EdgesDict,
 	EdgeValDict,
-	Time,
 	EternalKey,
-	Value,
-	UniversalKey,
-	RuleName,
-	RuleNeighborhood,
+	FuncName,
+	FuncStoreName,
+	Key,
+	Keyframe,
+	KeyHint,
+	MsgpackExtensionType,
+	Node,
+	NodeName,
+	NodesDict,
+	NodeValDict,
+	PrereqFuncName,
 	RulebookName,
 	RulebookPriority,
-	FuncName,
-	CharDelta,
+	RuleName,
+	RuleNeighborhood,
 	StatDict,
-	DeltaDict,
-	FuncStoreName,
-	KeyHint,
-	ValueHint,
-	MsgpackExtensionType,
-	AbstractBookmarkMapping,
-	AbstractEngine,
-	AbstractCharacter,
+	Tick,
+	Time,
 	TimeSignalDescriptor,
-	AbstractFunctionStore,
+	TriggerFuncName,
+	Turn,
+	UniversalKey,
+	Value,
+	ValueHint,
 )
 from ..util import (
+	dedent_source,
 	format_call_sig,
 	msgpack_array_header,
 	msgpack_map_header,
-	dedent_source,
 )
 from ..wrap import UnwrappingDict
-from ..collections import (
-	FunctionStore,
-	StringStore,
-	AbstractLanguageDescriptor,
-)
+from .abc import FuncListProxy, FuncProxy, RuleBookProxy, RuleProxy
+from .character import CharacterProxy, PlaceProxy, PortalProxy, ThingProxy
 
 
 class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
