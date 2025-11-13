@@ -2100,34 +2100,14 @@ class DiGraph(nx.DiGraph, ABC):
 			if u in self.succ and v in self.succ[u]:
 				del self.succ[u][v]
 
+	@abstractmethod
 	def add_edge(
 		self,
 		u: NodeName | KeyHint,
 		v: NodeName | KeyHint,
-		attr_dict: dict[Stat | KeyHint, Value | ValueHint] | None = None,
-		**attr: dict[Stat | KeyHint, Value | ValueHint],
-	):
-		"""Version of add_edge that only writes to the database once"""
-		if attr_dict is None:
-			attr_dict = attr
-		else:
-			try:
-				attr_dict.update(attr)
-			except AttributeError:
-				raise NetworkXError(
-					"The attr_dict argument must be a dictionary."
-				)
-		if u not in self.node:
-			self.node[u] = {}
-		if v not in self.node:
-			self.node[v] = {}
-		if u in self.adj:
-			datadict = self.adj[u].get(v, {})
-		else:
-			self.adj[u] = {v: {}}
-			datadict = self.adj[u][v]
-		datadict.update(attr_dict)
-		self.succ[u][v] = datadict
+		attr_dict: dict[Stat, Value] | dict[KeyHint, ValueHint] | None = None,
+		**attr: dict[Stat, Value] | dict[KeyHint, ValueHint],
+	): ...
 
 	def add_edges_from(
 		self,
