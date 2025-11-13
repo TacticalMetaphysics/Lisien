@@ -1905,7 +1905,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 					True,
 				)
 				e = self._make_edge(orig)
-			realupd: dict[Stat, Value]
+			realupd: dict[Stat, Value] = {}
 			for k, v in value.items():
 				if not isinstance(k, Key):
 					raise TypeError("Invalid stat", k)
