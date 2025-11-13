@@ -1308,7 +1308,7 @@ class Engine(AbstractEngine, Executor):
 		return total_hash.digest()
 
 	def _get_node(
-		self, graph: CharName | Character, node: NodeName
+		self, graph: CharName | DiGraph, node: NodeName
 	) -> place_cls | thing_cls:
 		node_objs, retrieve, time, make_node = self._get_node_stuff
 		if hasattr(graph, "name"):
@@ -1333,7 +1333,7 @@ class Engine(AbstractEngine, Executor):
 		return ret
 
 	def _get_edge(
-		self, graph: Character | CharName, orig: NodeName, dest: NodeName
+		self, graph: DiGraph | CharName, orig: NodeName, dest: NodeName
 	) -> portal_cls:
 		edge_objs, edge_exists, make_edge = self._get_edge_stuff
 		if type(graph) is str:
@@ -2107,9 +2107,8 @@ class Engine(AbstractEngine, Executor):
 		self.commit_interval = commit_interval
 		self.schema = schema_cls(self)
 		# in case this is the first startup
-		self._obranch = Branch(trunk or "trunk")
-		self._oturn = Turn(0)
-		self._otick = Tick(0)
+		self._obranch = trunk or "trunk"
+		self._otick = self._oturn = 0
 		if logger is not None:
 			self._logger = logger
 		worker_handler = StreamHandler()
