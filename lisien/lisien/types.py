@@ -72,6 +72,7 @@ from blinker import Signal
 from networkx import NetworkXError
 from reslot import reslot
 from tblib import Traceback
+from types import EllipsisType
 
 from . import exc
 from .exc import TimeError, WorkerProcessReadOnlyError
@@ -80,7 +81,6 @@ from .wrap import (
 	DictWrapper,
 	ListWrapper,
 	MappingUnwrapperMixin,
-	OrderlySet,
 	SetWrapper,
 	unwrap_items,
 	wrapval,
@@ -93,66 +93,36 @@ if TYPE_CHECKING:
 	from .portal import Portal
 	from .rule import Rule, RuleBook
 
+
 type KeyHint = (
-	str | int | float | None | tuple["KeyHint", ...] | frozenset["KeyHint"]
+	str | int | float | None | tuple[KeyHint, ...] | frozenset[KeyHint]
 )
 
-
-def is_valid_key(obj: KeyHint) -> TypeGuard[Key]:
-	"""Is this an object that Lisien can serialize as a key?"""
-	return (
-		obj is None
-		or isinstance(obj, (str, int, float))
-		or (
-			isinstance(obj, (tuple, frozenset))
-			and all(is_valid_key(elem) for elem in obj)
-		)
-	)
-
-
-class _KeyMeta(type):
-	def __instancecheck__(self, instance) -> TypeGuard[Key]:
-		return is_valid_key(instance)
-
-	def __call__(self, obj: KeyHint) -> Key:
-		if is_valid_key(obj):
-			return obj
-		raise TypeError("Not a valid key", obj)
-
-	def __class_getitem__(cls, item):
-		return GenericAlias(cls, item)
-
-
-class Key(metaclass=_KeyMeta):
-	def __new__(cls, obj: KeyHint) -> Key:
-		if not is_valid_key(obj):
-			raise TypeError("Invalid key")
-		return obj
-
-
 type ValueHint = (
-	KeyHint
-	| dict[KeyHint, "ValueHint"]
-	| tuple["ValueHint", ...]
-	| list["ValueHint"]
-	| set["ValueHint"]
-	| frozenset["ValueHint"]
-	| DictWrapper
-	| ListWrapper
-	| SetWrapper
-	| Set["ValueHint"]
-	| OrderlySet["ValueHint"]
-	| Mapping[KeyHint, "ValueHint"]
-	| type(...)
+	str
+	| int
+	| float
+	| None
+	| EllipsisType
+	| dict[KeyHint, ValueHint]
+	| list[ValueHint]
+	| tuple[ValueHint, ...]
+	| set[ValueHint]
+	| frozenset[ValueHint]
 	| Callable
 )
 
 
-def is_valid_value(obj: ValueHint) -> TypeGuard[Value]:
+def is_valid_value(obj: Any) -> TypeGuard[Value]:
 	"""Is this an object that Lisien can serialize as a value?"""
 	return (
 		obj is ...
-		or is_valid_key(obj)
+		or obj is None
+		or isinstance(obj, (str, int, float))
+		or (
+			isinstance(obj, (list, tuple, set, frozenset))
+			and all(is_valid_value(elem) for elem in obj)
+		)
 		or isinstance(obj, Node)
 		or isinstance(obj, Edge)
 		or isinstance(obj, DiGraph)
@@ -190,7 +160,7 @@ def is_valid_value(obj: ValueHint) -> TypeGuard[Value]:
 			)
 		)
 		or (
-			inspect.isfunction(obj)
+			isinstance(obj, FunctionType)
 			and obj.__module__
 			in {"function", "method", "trigger", "prereq", "action"}
 		)
@@ -201,7 +171,8 @@ class _ValueMeta(type):
 	def __instancecheck__(self, instance) -> TypeGuard[Value]:
 		return is_valid_value(instance)
 
-	def __call__(self, obj: ValueHint) -> Value:
+	@staticmethod
+	def __call__(obj) -> Value:
 		if is_valid_value(obj):
 			return obj
 		raise TypeError("Not a valid value", obj)
@@ -214,6 +185,39 @@ class Value(metaclass=_ValueMeta):
 	def __new__(cls, obj: ValueHint) -> Value:
 		if not is_valid_value(obj):
 			raise TypeError("Invalid value")
+		return obj
+
+
+def is_valid_key(obj: KeyHint) -> TypeGuard[Key]:
+	"""Is this an object that Lisien can serialize as a key?"""
+	return (
+		obj is None
+		or isinstance(obj, (str, int, float))
+		or (
+			isinstance(obj, (tuple, frozenset))
+			and all(is_valid_key(elem) for elem in obj)
+		)
+	)
+
+
+class _KeyMeta(type):
+	def __instancecheck__(self, instance) -> TypeGuard[Key]:
+		return is_valid_key(instance)
+
+	@staticmethod
+	def __call__(obj: KeyHint) -> Key:
+		if is_valid_key(obj):
+			return obj
+		raise TypeError("Not a valid key", obj)
+
+	def __class_getitem__(cls, item):
+		return GenericAlias(cls, item)
+
+
+class Key(Value, metaclass=_KeyMeta):
+	def __new__(cls, obj: KeyHint) -> Key:
+		if not is_valid_key(obj):
+			raise TypeError("Invalid key")
 		return obj
 
 
