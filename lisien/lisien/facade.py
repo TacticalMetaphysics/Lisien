@@ -1684,7 +1684,7 @@ class EngineFacade(AbstractEngine):
 							realeng._graph_val_cache.store(
 								char, k, *now, v, loading=True
 							)
-							realeng.query.graph_val_set(char, k, *now, v)
+							realeng.db.graph_val_set(char, k, *now, v)
 						elif len(tup) == 4:
 							char, node, k, v = tup
 							now = realeng._nbtt()
@@ -1695,7 +1695,7 @@ class EngineFacade(AbstractEngine):
 									realeng._nodes_cache.store(
 										char, node, *now, False, loading=True
 									)
-									realeng.query.exist_node(
+									realeng.db.exist_node(
 										char, node, *now, False
 									)
 								elif k == "location":
@@ -1704,14 +1704,14 @@ class EngineFacade(AbstractEngine):
 									realeng._things_cache.store(
 										char, node, *now, v, loading=True
 									)
-									realeng.query.set_thing_loc(
+									realeng.db.set_thing_loc(
 										char, node, *now, v
 									)
 								else:
 									realeng._node_val_cache.store(
 										char, node, k, *now, v, loading=True
 									)
-									realeng.query.node_val_set(
+									realeng.db.node_val_set(
 										char, node, k, *now, v
 									)
 							elif k == "location":
@@ -1721,30 +1721,24 @@ class EngineFacade(AbstractEngine):
 									realeng._nodes_cache.store(
 										char, node, *now, True, loading=True
 									)
-									realeng.query.exist_node(
+									realeng.db.exist_node(
 										char, node, *now, True
 									)
 									now = realeng._nbtt()
 								realeng._things_cache.store(
 									char, node, *now, v, loading=True
 								)
-								realeng.query.set_thing_loc(
-									char, node, *now, v
-								)
+								realeng.db.set_thing_loc(char, node, *now, v)
 							else:
 								realeng._nodes_cache.store(
 									char, node, *now, True, loading=True
 								)
-								realeng.query.exist_node(
-									char, node, *now, True
-								)
+								realeng.db.exist_node(char, node, *now, True)
 								now = realeng._nbtt()
 								realeng._node_val_cache.store(
 									char, node, k, *now, v, loading=True
 								)
-								realeng.query.node_val_set(
-									char, node, k, *now, v
-								)
+								realeng.db.node_val_set(char, node, k, *now, v)
 						elif len(tup) == 5:
 							char, orig, dest, k, v = tup
 							now = realeng._nbtt()
@@ -1754,14 +1748,14 @@ class EngineFacade(AbstractEngine):
 								realeng._edges_cache.store(
 									char, orig, dest, *now, True, loading=True
 								)
-								realeng.query.exist_edge(
+								realeng.db.exist_edge(
 									char, orig, dest, *now, True
 								)
 								now = realeng._nbtt()
 							realeng._edge_val_cache.store(
 								char, orig, dest, k, *now, v, loading=True
 							)
-							realeng.query.edge_val_set(
+							realeng.db.edge_val_set(
 								char, orig, dest, k, *now, v
 							)
 						else:
