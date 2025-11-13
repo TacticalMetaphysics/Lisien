@@ -54,6 +54,7 @@ from typing import (
 	Annotated,
 	Any,
 	Callable,
+	ContextManager,
 	Iterable,
 	Iterator,
 	KeysView,
@@ -73,7 +74,7 @@ from typing import (
 
 from reslot import reslot
 from . import exc
-from .exc import TimeError, WorkerProcessReadOnlyError
+from .exc import TimeError, WorkerProcessReadOnlyError, TravelException
 from .util import getatt
 from .wrap import (
 	DictWrapper,
@@ -3189,6 +3190,9 @@ class AbstractEngine(ABC):
 		"""
 		return self.chance(pct / 100)
 
+	@abstractmethod
+	def plan(self) -> ContextManager: ...
+
 	betavariate = get_rando("_rando.betavariate")
 	choice = get_rando("_rando.choice")
 	expovariate = get_rando("_rando.expovariate")
@@ -3263,12 +3267,19 @@ class AbstractCharacter(DiGraph, ABC):
 	def add_nodes_from(self, seq: Iterable, **attrs):
 		self.add_places_from(seq, **attrs)
 
-	def new_place(self, name: KeyHint | NodeName, **kwargs):
+	def new_place(
+		self,
+		name: KeyHint | NodeName,
+		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
+	):
 		"""Add a Place and return it.
 
 		If there's already a Place by that name, put a number on the end.
 
 		"""
+		if not isinstance(name, Key):
+			raise TypeError("Invalid node name", name)
+		name = NodeName(name)
 		if name not in self.node:
 			self.add_place(name, **kwargs)
 			return self.place[name]
@@ -3280,7 +3291,11 @@ class AbstractCharacter(DiGraph, ABC):
 			return self.place[name]
 		raise KeyError("Already have a node named {}".format(name))
 
-	def new_node(self, name: KeyHint | NodeName, **kwargs):
+	def new_node(
+		self,
+		name: KeyHint | NodeName,
+		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
+	):
 		return self.new_place(name, **kwargs)
 
 	@abstractmethod
@@ -3294,14 +3309,21 @@ class AbstractCharacter(DiGraph, ABC):
 		pass
 
 	def new_thing(
-		self, name: KeyHint | NodeName, location: KeyHint | NodeName, **kwargs
+		self,
+		name: KeyHint | NodeName,
+		location: KeyHint | NodeName,
+		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
 		"""Add a Thing and return it.
 
 		If there's already a Thing by that name, put a number on the end.
 
 		"""
+		if not isinstance(name, Key):
+			raise TypeError("Invalid thing name", name)
 		name = NodeName(name)
+		if not isinstance(location, Key):
+			raise TypeError("Invalid location name", location)
 		location = NodeName(location)
 		if name not in self.node:
 			self.add_thing(name, location, **kwargs)
@@ -3325,33 +3347,52 @@ class AbstractCharacter(DiGraph, ABC):
 	def thing2place(self, thing: KeyHint | NodeName) -> None: ...
 
 	def remove_node(self, node: KeyHint | NodeName):
+		if not isinstance(node, Key):
+			raise TypeError("Invalid node", node)
+		node = NodeName(node)
 		if node in self.node:
 			self.node[node].delete()
 
 	def remove_nodes_from(self, nodes: Iterable[KeyHint | NodeName]):
 		for node in nodes:
+			if not isinstance(node, Key):
+				raise TypeError("Invalid node", node)
+			node = NodeName(node)
 			if node in self.node:
 				self.node[node].delete()
 
 	@abstractmethod
 	def add_portal(
-		self, orig: KeyHint | NodeName, dest: KeyHint | NodeName, **kwargs
+		self,
+		orig: KeyHint | NodeName,
+		dest: KeyHint | NodeName,
+		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
 		pass
 
 	def add_edge(
-		self, orig: KeyHint | NodeName, dest: KeyHint | NodeName, **kwargs
+		self,
+		orig: KeyHint | NodeName,
+		dest: KeyHint | NodeName,
+		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
 		self.add_portal(orig, dest, **kwargs)
 
 	def new_portal(
-		self, orig: KeyHint | NodeName, dest: KeyHint | NodeName, **kwargs
+		self,
+		orig: KeyHint | NodeName,
+		dest: KeyHint | NodeName,
+		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
 		self.add_portal(orig, dest, **kwargs)
 		return self.portal[orig][dest]
 
 	@abstractmethod
-	def add_portals_from(self, seq: Iterable, **attrs):
+	def add_portals_from(
+		self,
+		seq: Iterable,
+		**attrs: dict[Stat, Value] | dict[KeyHint, ValueHint],
+	):
 		pass
 
 	def add_edges_from(self, seq: Iterable, **attrs):
@@ -3367,6 +3408,12 @@ class AbstractCharacter(DiGraph, ABC):
 		self, seq: Iterable[tuple[KeyHint | NodeName, KeyHint | NodeName]]
 	):
 		for orig, dest in seq:
+			if not isinstance(orig, Key):
+				raise TypeError("Invalid node", orig)
+			orig = NodeName(orig)
+			if not isinstance(dest, Key):
+				raise TypeError("Invalid node", dest)
+			dest = NodeName(dest)
 			del self.portal[orig][dest]
 
 	def remove_edges_from(
@@ -3380,6 +3427,8 @@ class AbstractCharacter(DiGraph, ABC):
 
 	def remove_places_from(self, seq: Iterable[KeyHint | NodeName]):
 		for place in seq:
+			if not isinstance(place, Key):
+				raise TypeError("Invalid node", place)
 			self.remove_place(place)
 
 	@abstractmethod
@@ -3622,9 +3671,11 @@ class AbstractThing(ABC):
 
 	@location.setter
 	def location(self, v: KeyHint | Node | NodeName):
-		if hasattr(v, "name"):
+		if isinstance(v, Node):
 			v = v.name
-		self["location"] = v
+		elif not isinstance(v, Key):
+			raise TypeError("Invalid location", v)
+		self["location"] = NodeName(v)
 
 	def go_to_place(
 		self,
@@ -3640,10 +3691,12 @@ class AbstractThing(ABC):
 		Return the number of turns the travel will take.
 
 		"""
-		if hasattr(place, "name"):
+		if isinstance(place, Node):
 			placen = place.name
+		elif not isinstance(place, Key):
+			raise TypeError("Invalid node", place)
 		else:
-			placen = place
+			placen = NodeName(place)
 		curloc = self["location"]
 		orm = self.character.engine
 		turns = (
@@ -3661,7 +3714,7 @@ class AbstractThing(ABC):
 	def follow_path(
 		self,
 		path: list[KeyHint | NodeName],
-		weight: Optional[KeyHint | Stat] = None,
+		weight: KeyHint | Stat | EllipsisType = ...,
 		check: bool = True,
 	) -> int:
 		"""Go to several nodes in succession, deciding how long to
@@ -3680,12 +3733,19 @@ class AbstractThing(ABC):
 		if len(path) < 2:
 			raise ValueError("Paths need at least 2 nodes")
 		eng = self.character.engine
+		subpath: list[NodeName] = []
 		if check:
 			prevplace = path.pop(0)
+			if not isinstance(prevplace, Key):
+				raise TypeError("Invalid node", prevplace)
+			prevplace = NodeName(prevplace)
 			if prevplace != self["location"]:
 				raise ValueError("Path does not start at my present location")
-			subpath = [prevplace]
+			subpath.append(prevplace)
 			for place in path:
+				if not isinstance(place, Key):
+					raise TypeError("Invalid node", place)
+				place = NodeName(place)
 				if (
 					prevplace not in self.character.portal
 					or place not in self.character.portal[prevplace]
@@ -3700,18 +3760,22 @@ class AbstractThing(ABC):
 				subpath.append(place)
 				prevplace = place
 		else:
-			subpath = path.copy()
+			for node in path:
+				if not isinstance(node, Key):
+					raise TypeError("Invalid node", node)
+				subpath.append(NodeName(node))
 		turns_total = 0
 		prevsubplace = subpath.pop(0)
 		turn_incs = []
 		branch, turn, tick = eng.time
 		for subplace in subpath:
-			if weight is not None:
+			if weight is not ...:
 				turn_incs.append(
 					self.engine._edge_val_cache.retrieve(
 						self.character.name,
 						prevsubplace,
 						subplace,
+						weight,
 						branch,
 						turn,
 						tick,
@@ -3731,8 +3795,8 @@ class AbstractThing(ABC):
 	def travel_to(
 		self,
 		dest: Node | KeyHint,
-		weight: Optional[KeyHint] = None,
-		graph: nx.DiGraph = None,
+		weight: Stat | KeyHint | EllipsisType = ...,
+		graph: nx.DiGraph | EllipsisType = ...,
 	) -> int:
 		"""Find the shortest path to the given node from where I am
 		now, and follow it.
@@ -3755,11 +3819,29 @@ class AbstractThing(ABC):
 		Return value is the number of turns the travel will take.
 
 		"""
-		destn = dest.name if hasattr(dest, "name") else dest
+		if isinstance(dest, Node):
+			destn = dest.name
+		elif not isinstance(dest, Key):
+			raise TypeError("Invalid node", dest)
+		else:
+			destn = dest
 		if destn == self.location.name:
-			raise ValueError("I'm already there", self.name, destn)
-		graph = self.character if graph is None else graph
-		path = nx.shortest_path(graph, self["location"], destn, weight)
+			raise TravelException("I'm already there", self.name, destn)
+		if graph is ...:
+			graph = self.character
+		elif isinstance(graph, nx.DiGraph):
+			graph = graph
+		elif not isinstance(graph, Key):
+			raise TypeError("Invalid character name", graph)
+		else:
+			graph = self.engine.character[CharName(graph)]
+		orign: NodeName = self["location"]
+		if weight is ...:
+			path = nx.shortest_path(graph, orign, destn)
+		elif not isinstance(weight, str):  # networkx limitation
+			raise TypeError("Invalid weight", weight)
+		else:
+			path = nx.shortest_path(graph, orign, destn, weight)
 		return self.follow_path(path, weight)
 
 
