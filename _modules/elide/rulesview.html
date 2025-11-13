@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.rulesview &#8212; Lisien 0.22.5 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <title>elide.rulesview &#8212; Lisien 0.23.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=0e8f6b61"></script>
+    <script src="../../_static/documentation_options.js?v=2753bf86"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -45,32 +45,32 @@
 <span class="c1">#</span>
 <span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
-<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">inspect</span><span class="w"> </span><span class="kn">import</span> <span class="n">signature</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">attrgetter</span>
 
-<span class="kn">from</span> <span class="nn">kivy.app</span> <span class="kn">import</span> <span class="n">App</span>
-<span class="kn">from</span> <span class="nn">kivy.clock</span> <span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">triggered</span>
-<span class="kn">from</span> <span class="nn">kivy.logger</span> <span class="kn">import</span> <span class="n">Logger</span>
-<span class="kn">from</span> <span class="nn">kivy.properties</span> <span class="kn">import</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span> <span class="n">StringProperty</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.boxlayout</span> <span class="kn">import</span> <span class="n">BoxLayout</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.button</span> <span class="kn">import</span> <span class="n">Button</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.floatlayout</span> <span class="kn">import</span> <span class="n">FloatLayout</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.label</span> <span class="kn">import</span> <span class="n">Label</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.modalview</span> <span class="kn">import</span> <span class="n">ModalView</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.recycleview</span> <span class="kn">import</span> <span class="n">RecycleView</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.recycleview.views</span> <span class="kn">import</span> <span class="n">RecycleDataViewBehavior</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.screenmanager</span> <span class="kn">import</span> <span class="n">Screen</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.tabbedpanel</span> <span class="kn">import</span> <span class="n">TabbedPanel</span><span class="p">,</span> <span class="n">TabbedPanelItem</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.togglebutton</span> <span class="kn">import</span> <span class="n">ToggleButton</span>
-<span class="kn">from</span> <span class="nn">kivy.uix.widget</span> <span class="kn">import</span> <span class="n">Widget</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.app</span><span class="w"> </span><span class="kn">import</span> <span class="n">App</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.clock</span><span class="w"> </span><span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">triggered</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.properties</span><span class="w"> </span><span class="kn">import</span> <span class="n">NumericProperty</span><span class="p">,</span> <span class="n">ObjectProperty</span><span class="p">,</span> <span class="n">StringProperty</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.boxlayout</span><span class="w"> </span><span class="kn">import</span> <span class="n">BoxLayout</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.button</span><span class="w"> </span><span class="kn">import</span> <span class="n">Button</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.floatlayout</span><span class="w"> </span><span class="kn">import</span> <span class="n">FloatLayout</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.label</span><span class="w"> </span><span class="kn">import</span> <span class="n">Label</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.modalview</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModalView</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.recycleview</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecycleView</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.recycleview.views</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecycleDataViewBehavior</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.screenmanager</span><span class="w"> </span><span class="kn">import</span> <span class="n">Screen</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.tabbedpanel</span><span class="w"> </span><span class="kn">import</span> <span class="n">TabbedPanel</span><span class="p">,</span> <span class="n">TabbedPanelItem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.togglebutton</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToggleButton</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kivy.uix.widget</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
 
-<span class="kn">from</span> <span class="nn">.card</span> <span class="kn">import</span> <span class="n">Card</span><span class="p">,</span> <span class="n">DeckBuilderScrollBar</span><span class="p">,</span> <span class="n">DeckBuilderView</span>
-<span class="kn">from</span> <span class="nn">.stores</span> <span class="kn">import</span> <span class="n">FuncEditor</span>
-<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">devour</span><span class="p">,</span> <span class="n">load_kv</span><span class="p">,</span> <span class="n">logwrap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.card</span><span class="w"> </span><span class="kn">import</span> <span class="n">Card</span><span class="p">,</span> <span class="n">DeckBuilderScrollBar</span><span class="p">,</span> <span class="n">DeckBuilderView</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.stores</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuncEditor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">devour</span><span class="p">,</span> <span class="n">load_kv</span><span class="p">,</span> <span class="n">logwrap</span>
 
 
-<span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">trigger</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
 	<span class="k">return</span> <span class="n">triggered</span><span class="p">()(</span><span class="n">func</span><span class="p">)</span>
 
 
@@ -79,7 +79,7 @@
 
 <div class="viewcode-block" id="RuleButton">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RuleButton">[docs]</a>
-<span class="k">class</span> <span class="nc">RuleButton</span><span class="p">(</span><span class="n">ToggleButton</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleButton</span><span class="p">(</span><span class="n">ToggleButton</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A button to select a rule to edit&quot;&quot;&quot;</span>
 
 	<span class="n">rulesview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -89,7 +89,7 @@
 <div class="viewcode-block" id="RuleButton.on_state">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RuleButton.on_state">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RuleButton&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;If I&#39;m pressed, unpress all other buttons in the ruleslist&quot;&quot;&quot;</span>
 		<span class="c1"># This really ought to be done with the selection behavior</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span><span class="p">:</span>
@@ -103,7 +103,7 @@
 
 <div class="viewcode-block" id="RuleButtonBox">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RuleButtonBox">[docs]</a>
-<span class="k">class</span> <span class="nc">RuleButtonBox</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">,</span> <span class="n">RecycleDataViewBehavior</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleButtonBox</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">,</span> <span class="n">RecycleDataViewBehavior</span><span class="p">):</span>
 	<span class="n">rulesview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">ruleslist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">rule</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -111,14 +111,14 @@
 	<span class="n">index</span> <span class="o">=</span> <span class="n">NumericProperty</span><span class="p">()</span>
 
 	<span class="nd">@trigger</span>
-	<span class="k">def</span> <span class="nf">move_rule_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">move_rule_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ruleslist</span><span class="o">.</span><span class="n">rulebook</span><span class="o">.</span><span class="n">move_rule_back</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
 	<span class="nd">@trigger</span>
-	<span class="k">def</span> <span class="nf">move_rule_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">move_rule_down</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ruleslist</span><span class="o">.</span><span class="n">rulebook</span><span class="p">):</span>
 			<span class="k">return</span>
@@ -129,7 +129,7 @@
 
 <div class="viewcode-block" id="RulesList">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesList">[docs]</a>
-<span class="k">class</span> <span class="nc">RulesList</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RulesList</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A list of rules you might want to edit</span>
 
 <span class="sd">	Presented as buttons, which you can click to select one rule at a time.</span>
@@ -142,7 +142,7 @@
 <div class="viewcode-block" id="RulesList.on_rulebook">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesList.on_rulebook">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesList&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">on_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">on_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make sure to update when the rulebook changes&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span>
@@ -152,7 +152,7 @@
 
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesList&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">on_rulesview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">on_rulesview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulebook</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;RulesList: got rulesview before rulebook&quot;</span><span class="p">)</span>
 			<span class="k">return</span>
@@ -161,7 +161,7 @@
 <div class="viewcode-block" id="RulesList.redata">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesList.redata">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesList&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">redata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">redata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make my data represent what&#39;s in my rulebook right now&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rulesview</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
@@ -182,12 +182,12 @@
 
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesList&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">_trigger_redata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="o">**</span><span class="n">__</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_trigger_redata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="o">**</span><span class="n">__</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_scheduled_redata&quot;</span><span class="p">):</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">unschedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_redata</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_scheduled_redata</span> <span class="o">=</span> <span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">redata</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-	<span class="k">def</span> <span class="nf">iter_rule_buttons</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">iter_rule_buttons</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
 			<span class="k">return</span>
 		<span class="k">for</span> <span class="n">rules_box</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
@@ -197,7 +197,7 @@
 
 <div class="viewcode-block" id="RulesView">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView">[docs]</a>
-<span class="k">class</span> <span class="nc">RulesView</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RulesView</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;The view to edit a rule</span>
 
 <span class="sd">	Presents three tabs, one each for trigger, prereq, and action. Each has a</span>
@@ -211,13 +211,13 @@
 	<span class="n">rule</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">(</span><span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">engine</span>
 
 <div class="viewcode-block" id="RulesView.on_rule">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.on_rule">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">on_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">on_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make sure to update when the rule changes&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span>
@@ -225,7 +225,7 @@
 
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">_listen_to_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_listen_to_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">rule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">:</span>
 			<span class="n">rule</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_listen_to_rule</span><span class="p">)</span>
 			<span class="k">return</span>
@@ -236,11 +236,11 @@
 		<span class="k">if</span> <span class="s2">&quot;actions&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">pull_actions</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="nf">unbind_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">unbind_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="n">binds</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">_bindings</span>
 		<span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="s2">&quot;pos&quot;</span><span class="p">):</span>
 			<span class="k">for</span> <span class="n">uid</span> <span class="ow">in</span> <span class="n">devour</span><span class="p">(</span><span class="n">binds</span><span class="p">[</span><span class="s2">&quot;RulesView&quot;</span><span class="p">,</span> <span class="n">att</span><span class="p">]):</span>
@@ -254,7 +254,7 @@
 <div class="viewcode-block" id="RulesView.finalize">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.finalize">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Add my tabs&quot;&quot;&quot;</span>
 		<span class="k">assert</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_finalized&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> <span class="s2">&quot;Already finalized&quot;</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="p">:</span>
@@ -345,7 +345,7 @@
 
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">_edit_something</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">card</span><span class="p">:</span> <span class="n">Card</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_edit_something</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">card</span><span class="p">:</span> <span class="n">Card</span><span class="p">):</span>
 		<span class="n">what_store</span> <span class="o">=</span> <span class="n">card</span><span class="o">.</span><span class="n">ud</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
 		<span class="n">what_function</span> <span class="o">=</span> <span class="n">card</span><span class="o">.</span><span class="n">headline_text</span>
 		<span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EditButton: </span><span class="si">{</span><span class="n">what_store</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">what_function</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -355,7 +355,7 @@
 				<span class="n">size_hint_y</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">deletable</span><span class="o">=</span><span class="kc">False</span>
 			<span class="p">)</span>
 
-			<span class="k">def</span> <span class="nf">save_and_dismiss_modal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+			<span class="k">def</span><span class="w"> </span><span class="nf">save_and_dismiss_modal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
 				<span class="n">changed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule_func_editor</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 				<span class="n">Logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
 					<span class="sa">f</span><span class="s2">&quot;EditButton: </span><span class="si">{</span><span class="n">what_store</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">what_function</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;not &#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">changed</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2">changed&quot;</span>
@@ -398,7 +398,7 @@
 <div class="viewcode-block" id="RulesView.get_functions_cards">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.get_functions_cards">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">get_functions_cards</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">allfuncs</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">get_functions_cards</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">allfuncs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a pair of lists of Card widgets for used and unused functions.</span>
 
 <span class="sd">		:param what: a string: &#39;trigger&#39;, &#39;prereq&#39;, or &#39;action&#39;</span>
@@ -444,7 +444,7 @@
 <div class="viewcode-block" id="RulesView.set_functions">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.set_functions">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">set_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">allfuncs</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">set_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">allfuncs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Set the cards in the ``what`` builder to ``allfuncs``</span>
 
 <span class="sd">		:param what: a string, &#39;trigger&#39;, &#39;prereq&#39;, or &#39;action&#39;</span>
@@ -460,7 +460,7 @@
 
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">_pull_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_pull_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 		<span class="n">it</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inspect_func</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">what</span><span class="p">)</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">truth</span><span class="p">:</span>
 			<span class="n">it</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;truth&quot;</span><span class="p">,</span> <span class="n">it</span><span class="p">)</span>
@@ -469,7 +469,7 @@
 <div class="viewcode-block" id="RulesView.pull_triggers">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.pull_triggers">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">pull_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">pull_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Refresh the cards in the trigger builder&quot;&quot;&quot;</span>
 		<span class="n">binds</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">_bindings</span>
 		<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;RulesView&quot;</span><span class="p">,</span> <span class="s2">&quot;trigger&quot;</span><span class="p">,</span> <span class="s2">&quot;decks&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span>
@@ -492,7 +492,7 @@
 <div class="viewcode-block" id="RulesView.pull_prereqs">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.pull_prereqs">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">pull_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">pull_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Refresh the cards in the prereq builder&quot;&quot;&quot;</span>
 		<span class="n">binds</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">_bindings</span>
 		<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;RulesView&quot;</span><span class="p">,</span> <span class="s2">&quot;prereq&quot;</span><span class="p">,</span> <span class="s2">&quot;decks&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span>
@@ -517,7 +517,7 @@
 <div class="viewcode-block" id="RulesView.pull_actions">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.pull_actions">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">pull_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">pull_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Refresh the cards in the action builder&quot;&quot;&quot;</span>
 		<span class="n">binds</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">_bindings</span>
 		<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;RulesView&quot;</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">,</span> <span class="s2">&quot;decks&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span>
@@ -542,7 +542,7 @@
 <div class="viewcode-block" id="RulesView.inspect_func">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesView.inspect_func">[docs]</a>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">inspect_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namesrc</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">inspect_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namesrc</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Take a function&#39;s (name, sourcecode) and return a triple of (name, sourcecode, signature)&quot;&quot;&quot;</span>
 		<span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span> <span class="o">=</span> <span class="n">namesrc</span>
 		<span class="n">glbls</span> <span class="o">=</span> <span class="p">{}</span>
@@ -554,7 +554,7 @@
 
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">update_builders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">update_builders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="k">for</span> <span class="n">attrn</span> <span class="ow">in</span> <span class="s2">&quot;_trigger_builder&quot;</span><span class="p">,</span> <span class="s2">&quot;_prereq_builder&quot;</span><span class="p">,</span> <span class="s2">&quot;_action_builder&quot;</span><span class="p">:</span>
 			<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrn</span><span class="p">):</span>
 				<span class="n">dbg</span><span class="p">(</span><span class="s2">&quot;RulesView: no </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attrn</span><span class="p">))</span>
@@ -575,7 +575,7 @@
 	<span class="n">_trigger_update_builders</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">update_builders</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">_upd_unused</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_upd_unused</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Make sure to have exactly one copy of every valid function in the</span>
 <span class="sd">		&quot;unused&quot; pile on the right.</span>
 
@@ -603,25 +603,25 @@
 		<span class="n">binds</span><span class="p">[</span><span class="s2">&quot;RulesView&quot;</span><span class="p">,</span> <span class="s2">&quot;builder&quot;</span><span class="p">,</span> <span class="n">what</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;decks&quot;</span><span class="p">,</span> <span class="n">updtrig</span><span class="p">))</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">upd_unused_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">upd_unused_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_upd_unused</span><span class="p">(</span><span class="s2">&quot;action&quot;</span><span class="p">)</span>
 
 	<span class="n">_trigger_upd_unused_actions</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">upd_unused_actions</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">upd_unused_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">upd_unused_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_upd_unused</span><span class="p">(</span><span class="s2">&quot;trigger&quot;</span><span class="p">)</span>
 
 	<span class="n">_trigger_upd_unused_triggers</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">upd_unused_triggers</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">upd_unused_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">upd_unused_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_upd_unused</span><span class="p">(</span><span class="s2">&quot;prereq&quot;</span><span class="p">)</span>
 
 	<span class="n">_trigger_upd_unused_prereqs</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">upd_unused_prereqs</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">_push_funcs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_push_funcs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">:</span>
 			<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
 				<span class="s2">&quot;RulesView: not pushing </span><span class="si">{}</span><span class="s2"> for lack of rule&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">what</span><span class="p">)</span>
@@ -636,19 +636,19 @@
 			<span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">,</span> <span class="n">what</span> <span class="o">+</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="n">funcs</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">push_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">push_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_push_funcs</span><span class="p">(</span><span class="s2">&quot;action&quot;</span><span class="p">)</span>
 
 	<span class="n">_trigger_push_actions</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">push_actions</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">push_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">push_prereqs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_push_funcs</span><span class="p">(</span><span class="s2">&quot;prereq&quot;</span><span class="p">)</span>
 
 	<span class="n">_trigger_push_prereqs</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">push_prereqs</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesView&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">push_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">push_triggers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_push_funcs</span><span class="p">(</span><span class="s2">&quot;trigger&quot;</span><span class="p">)</span>
 
 	<span class="n">_trigger_push_triggers</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">(</span><span class="n">push_triggers</span><span class="p">)</span></div>
@@ -657,7 +657,7 @@
 
 <div class="viewcode-block" id="RulesBox">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesBox">[docs]</a>
-<span class="k">class</span> <span class="nc">RulesBox</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RulesBox</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A BoxLayout containing a RulesList and a RulesView</span>
 
 <span class="sd">	As well as an input for a new rule name; a button to add a new rule by that</span>
@@ -676,21 +676,21 @@
 	<span class="n">ruleslist</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">rulesview</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">_unbinders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unbind_all</span><span class="p">)</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">engine</span>
 
-	<span class="k">def</span> <span class="nf">unbind_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">unbind_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">binds</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">_bindings</span>
 		<span class="k">for</span> <span class="n">uid</span> <span class="ow">in</span> <span class="n">devour</span><span class="p">(</span><span class="n">binds</span><span class="p">[</span><span class="s2">&quot;RulesBox&quot;</span><span class="p">,</span> <span class="s2">&quot;ruleslist&quot;</span><span class="p">,</span> <span class="s2">&quot;children&quot;</span><span class="p">]):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">unbind_uid</span><span class="p">(</span><span class="s2">&quot;children&quot;</span><span class="p">,</span> <span class="n">uid</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesBox&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">on_ruleslist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">on_ruleslist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ruleslist</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_ruleslist</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
@@ -702,7 +702,7 @@
 		<span class="n">binds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fbind</span><span class="p">(</span><span class="s2">&quot;children&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upd_ruleslist_selection</span><span class="p">))</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesBox&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">new_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">new_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_rule_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">rule</span><span class="p">:</span>
 			<span class="c1"># TODO: feedback to say you already have such a rule</span>
 			<span class="k">return</span>
@@ -714,7 +714,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">rulename</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesBox&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">_upd_ruleslist_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_upd_ruleslist_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_new_rule_name&quot;</span><span class="p">):</span>
 			<span class="k">return</span>
 		<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ruleslist</span><span class="o">.</span><span class="n">iter_rule_buttons</span><span class="p">():</span>
@@ -727,7 +727,7 @@
 
 <div class="viewcode-block" id="RulesScreen">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.RulesScreen">[docs]</a>
-<span class="k">class</span> <span class="nc">RulesScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RulesScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Screen containing a RulesBox for one rulebook&quot;&quot;&quot;</span>
 
 	<span class="n">entity</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -737,35 +737,35 @@
 	<span class="n">box</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
 	<span class="nd">@property</span>
-	<span class="k">def</span> <span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span><span class="o">.</span><span class="n">engine</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
 		<span class="n">load_kv</span><span class="p">(</span><span class="s2">&quot;rulesview.kv&quot;</span><span class="p">)</span>
 		<span class="n">load_kv</span><span class="p">(</span><span class="s2">&quot;card.kv&quot;</span><span class="p">)</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kw</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;RulesScreen&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">new_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">new_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">new_rule</span><span class="p">()</span></div>
 
 
 
 <div class="viewcode-block" id="CharacterRulesScreen">
 <a class="viewcode-back" href="../../elide/index.html#elide.rulesview.CharacterRulesScreen">[docs]</a>
-<span class="k">class</span> <span class="nc">CharacterRulesScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CharacterRulesScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Screen with TabbedPanel for all the character-rulebooks&quot;&quot;&quot;</span>
 
 	<span class="n">character</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">toggle</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
-	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
 		<span class="n">load_kv</span><span class="p">(</span><span class="s2">&quot;rulesview.kv&quot;</span><span class="p">)</span>
 		<span class="n">load_kv</span><span class="p">(</span><span class="s2">&quot;card.kv&quot;</span><span class="p">)</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kw</span><span class="p">)</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharacterRulesScreen&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">_get_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rb</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_get_rulebook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rb</span><span class="p">):</span>
 		<span class="k">return</span> <span class="p">{</span>
 			<span class="s2">&quot;character&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">rulebook</span><span class="p">,</span>
 			<span class="s2">&quot;unit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">rulebook</span><span class="p">,</span>
@@ -775,7 +775,7 @@
 		<span class="p">}[</span><span class="n">rb</span><span class="p">]</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharacterRulesScreen&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_finalized&quot;</span><span class="p">):</span>
 			<span class="k">return</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">toggle</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">):</span>
@@ -803,7 +803,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_finalized</span> <span class="o">=</span> <span class="kc">True</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;CharacterRulesScreen&quot;</span><span class="p">)</span>
-	<span class="k">def</span> <span class="nf">on_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">on_character</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_finalized&quot;</span><span class="p">):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
 			<span class="k">return</span>
