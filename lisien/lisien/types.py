@@ -1346,7 +1346,7 @@ class AbstractSuccessors(GraphEdgeMapping, ABC):
 			self.character.add_node(dest)
 		branch, turn, tick = self.engine._nbtt()
 		self.engine.query.exist_edge(
-			self.character.name, orig, dest, 0, branch, turn, tick, True
+			self.character.name, orig, dest, branch, turn, tick, True
 		)
 		self.engine._edges_cache.store(
 			self.character.name, orig, dest, branch, turn, tick, True
@@ -1360,7 +1360,7 @@ class AbstractSuccessors(GraphEdgeMapping, ABC):
 		branch, turn, tick = self.engine._nbtt()
 		orig, dest = self._order_nodes(dest)
 		self.engine.query.exist_edge(
-			self.character.name, orig, dest, 0, branch, turn, tick, False
+			self.character.name, orig, dest, branch, turn, tick, False
 		)
 		self.engine._edges_cache.store(
 			self.character.name, orig, dest, branch, turn, tick, None
