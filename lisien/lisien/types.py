@@ -66,7 +66,6 @@ from typing import (
 	override,
 )
 
-import networkx
 import networkx as nx
 from annotated_types import Ge, Le
 from blinker import Signal
