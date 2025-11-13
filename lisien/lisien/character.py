@@ -53,9 +53,9 @@ from .rule import RuleFollower as BaseRuleFollower
 from .rule import RuleMapping
 from .types import (
 	AbstractCharacter,
-	BaseMutableCharacterMapping,
+	BaseMutableDiGraphMapping,
 	Branch,
-	CharacterMappingMixin,
+	DiGraphMappingMixin,
 	CharacterStatAlias,
 	CharName,
 	DiGraphPredecessorsMapping,
@@ -189,7 +189,7 @@ class RuleFollower(BaseRuleFollower):
 		)
 
 
-class MutableCharacterMapping(BaseMutableCharacterMapping, RuleFollower): ...
+class MutableCharacterMapping(BaseMutableDiGraphMapping, RuleFollower): ...
 
 
 class Character(AbstractCharacter, RuleFollower):
@@ -955,7 +955,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	pred_cls = PortalPredecessorsMapping
 
-	class UnitGraphMapping(Mapping, CharacterMappingMixin, RuleFollower):
+	class UnitGraphMapping(Mapping, DiGraphMappingMixin, RuleFollower):
 		"""A mapping of other characters in which one has a unit."""
 
 		class CharacterUnitMapping(Mapping):

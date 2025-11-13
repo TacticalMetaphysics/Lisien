@@ -563,10 +563,10 @@ type CharacterRulebookTypeStr = Literal[
 ]
 
 
-class CharacterMappingMixin(MappingUnwrapperMixin, ABC):
+class DiGraphMappingMixin(MappingUnwrapperMixin, ABC):
 	"""Common amenities for mappings in :class:`Character`"""
 
-	def __init__(self, character: Character):
+	def __init__(self, character: DiGraph):
 		super().__init__()
 		self.character = character
 
@@ -661,8 +661,8 @@ class AbstractEntityMapping[_K, _V](
 			raise TypeError("Invalid key", key)
 		self._get_cache_now(key)  # deliberately raise KeyError if unset
 		branch, turn, tick = self.engine._nbtt()
-		self._del_cache(Key(key), branch, turn, tick)
-		self._del_db(Key(key), branch, turn, tick)
+		self._del_cache(key, branch, turn, tick)
+		self._del_db(key, branch, turn, tick)
 
 
 @reslot
@@ -671,7 +671,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 
 	__slots__ = ("character", "__dict__")
 
-	def __init__(self, graph: Character):
+	def __init__(self, graph: DiGraph):
 		super().__init__()
 		self.character = graph
 
@@ -780,7 +780,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		branch, turn, tick = btt
 		return count_keys(graphn, branch, turn, tick)
 
-	def __getitem__(self, item: Key | KeyHint) -> Value | ValueHint | CharName:
+	def __getitem__(self, item: Key | KeyHint) -> Value:
 		if item == "name":
 			return self.character.name
 		return super().__getitem__(item)
@@ -1126,7 +1126,7 @@ class Edge(AbstractEntityMapping, ABC):
 		"__dict__",
 	)
 
-	def __init__(self, graph: Character, orig: NodeName, dest: NodeName):
+	def __init__(self, graph: DiGraph, orig: NodeName, dest: NodeName):
 		super().__init__()
 		self.character = graph
 		self.orig = orig
@@ -1301,10 +1301,10 @@ class Edge(AbstractEntityMapping, ABC):
 		store(graphn, orig, dest, key, branch, turn, tick, value)
 
 
-class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
+class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 	"""Mapping for nodes in a graph"""
 
-	def __init__(self, graph: AbstractCharacter):
+	def __init__(self, graph: DiGraph):
 		super().__init__()
 		self.character = graph
 
@@ -1322,8 +1322,6 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 				yield entity
 
 	def __eq__(self, other: Mapping[NodeName, Node]) -> bool:
-		from collections.abc import Mapping
-
 		if not isinstance(other, Mapping):
 			return NotImplemented
 		if self.keys() != other.keys():
@@ -1354,22 +1352,45 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 
 	def __getitem__(self, node: NodeName | KeyHint) -> Node:
 		"""If the node exists at present, return it, else throw KeyError"""
+		if not isinstance(node, Key):
+			raise TypeError("Invalid node", node)
+		node = NodeName(node)
 		if node not in self:
-			raise KeyError
+			raise KeyError("No node", node)
 		return self.engine._get_node(self.character, node)
 
 	def __setitem__(
 		self,
 		node: NodeName | KeyHint,
-		dikt: dict[
-			NodeName | KeyHint, dict[Stat | KeyHint, Value | ValueHint]
-		],
+		data: dict[NodeName, dict[Stat, Value]]
+		| dict[KeyHint, dict[KeyHint, ValueHint]],
 	) -> None:
 		"""Only accept dict-like values for assignment. These are taken to be
 		dicts of node attributes, and so, a new GraphNodeMapping.Node
 		is made with them, perhaps clearing out the one already there.
 
 		"""
+		if not isinstance(node, Key):
+			raise TypeError("Invalid node", node)
+		dikt: dict[NodeName, dict[Stat, Value]]
+		for node, stats in data.items():
+			if not isinstance(node, Key):
+				raise TypeError("Invalid node", node)
+			if not isinstance(stats, dict):
+				raise TypeError("Invalid stats", stats)
+			diikt = dikt.setdefault(NodeName(node), {})
+			for k, v in stats.items():
+				if not isinstance(k, Key):
+					raise TypeError("Invalid stat", k)
+				stat = Stat(k)
+				if v is ...:
+					raise ValueError(
+						"Lisien uses the ellipsis to indicate deleted items"
+					)
+				elif not isinstance(v, Value):
+					raise TypeError("Invalid value", v)
+				diikt[stat] = v
+		node = NodeName(node)
 		db = self.engine
 		graph = self.character
 		gname = graph.name
@@ -1383,6 +1404,7 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 		"""Indicate that the given node no longer exists"""
 		if not isinstance(node, Key):
 			raise TypeError("Invalid node name", node)
+		node = NodeName(node)
 		if node not in self:
 			raise KeyError("No such node")
 		for succ in self.character.adj[node]:
@@ -1438,7 +1460,7 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 	MutableMapping[_ORIG, _DEST],
 	Signal,
-	CharacterMappingMixin,
+	DiGraphMappingMixin,
 	ABC,
 ):
 	"""Provides an adjacency mapping and possibly a predecessor mapping
@@ -1518,7 +1540,7 @@ class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
 	def _make_edge(self, dest: NodeName) -> Edge:
 		return Edge(self.character, *self._order_nodes(dest))
 
-	def __getitem__(self, dest: KeyHint | NodeName):
+	def __getitem__(self, dest: KeyHint | NodeName) -> Edge:
 		"""Get the edge between my orig and the given node"""
 		if not isinstance(dest, Key):
 			raise TypeError("Invalid node", dest)
@@ -1691,7 +1713,7 @@ class GraphSuccessorsMapping(
 				else:
 					self[k].update(v)
 
-	def __getitem__(self, orig: KeyHint | NodeName):
+	def __getitem__(self, orig: KeyHint | NodeName) -> Successors:
 		if not isinstance(orig, Key):
 			raise TypeError("Invalid node", orig)
 		orig = NodeName(orig)
@@ -1915,7 +1937,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 					)
 				if not isinstance(v, Value):
 					raise TypeError("Invalid stat value", v)
-				realupd[Stat(k)] = Value(v)
+				realupd[Stat(k)] = v
 			e.update(value)
 			self.engine._edges_cache.store(
 				self.character.name, orig, self.dest, branch, turn, tick, True
@@ -1978,10 +2000,13 @@ class DiGraph(nx.DiGraph, ABC):
 	) -> dict[NodeName, dict[NodeName, dict[Stat, Value]]]:
 		ret = {}
 		ismul = self.is_multigraph()
+		orig: NodeName
 		for orig, dests in self.adj.items():
 			if orig not in ret:
 				ret[orig] = {}
 			origd = ret[orig]
+			dest: NodeName
+			edge: Edge
 			for dest, edge in dests.items():
 				if ismul:
 					if dest not in origd:
@@ -2020,7 +2045,7 @@ class DiGraph(nx.DiGraph, ABC):
 		return self._statmap
 
 	@graph.setter
-	def graph(self, v: dict[Stat | KeyHint, Value | ValueHint]):
+	def graph(self, v: dict[Stat, Value] | dict[KeyHint, ValueHint]):
 		if not hasattr(self, "_statmap"):
 			self._statmap = self.graph_map_cls(self)
 		self._statmap.clear()
@@ -2053,7 +2078,7 @@ class DiGraph(nx.DiGraph, ABC):
 		return self._pred
 
 	@property
-	def name(self):
+	def name(self) -> CharName:
 		return self._name
 
 	@name.setter
@@ -2165,12 +2190,20 @@ class DiGraph(nx.DiGraph, ABC):
 		self.node.clear()
 		self.graph.clear()
 
+	def adjlist_inner_dict_factory(self) -> dict[NodeName, dict[Stat, Value]]:
+		return {}
+
+	def node_dict_factory(self) -> dict[Stat, Value]:
+		return {}
+
 	def add_node(
 		self,
 		node_for_adding: KeyHint | NodeName,
-		**attr: dict[Stat | KeyHint, Value | ValueHint],
+		**attr: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
 		"""Version of add_node that minimizes writes"""
+		if not isinstance(node_for_adding, Key):
+			raise TypeError("Invalid node", node_for_adding)
 		node_for_adding = NodeName(node_for_adding)
 		if node_for_adding not in self._succ:
 			self._succ[node_for_adding] = self.adjlist_inner_dict_factory()
@@ -3001,9 +3034,7 @@ class AbstractEngine(ABC):
 		}
 
 	@abstractmethod
-	def _get_node(
-		self, char: AbstractCharacter | CharName, node: NodeName
-	) -> Node: ...
+	def _get_node(self, char: DiGraph | CharName, node: NodeName) -> Node: ...
 
 	def branches(self) -> KeysView:
 		return self._branches_d.keys()
@@ -3209,8 +3240,8 @@ class AbstractEngine(ABC):
 	weibullvariate = get_rando("_rando.weibullvariate")
 
 
-class BaseMutableCharacterMapping(
-	MutableMapping, Signal, CharacterMappingMixin, ABC
+class BaseMutableDiGraphMapping(
+	MutableMapping, Signal, DiGraphMappingMixin, ABC
 ): ...
 
 
@@ -3472,19 +3503,19 @@ class AbstractCharacter(DiGraph, ABC):
 	def __getitem__(self, k: KeyHint | NodeName):
 		return self.adj[k]
 
-	ThingMapping: type[BaseMutableCharacterMapping]
+	ThingMapping: type[BaseMutableDiGraphMapping]
 
 	@cached_property
 	def thing(self) -> ThingMapping:
 		return self.ThingMapping(self)
 
-	PlaceMapping: type[BaseMutableCharacterMapping]
+	PlaceMapping: type[BaseMutableDiGraphMapping]
 
 	@cached_property
 	def place(self) -> PlaceMapping:
 		return self.PlaceMapping(self)
 
-	ThingPlaceMapping: type[BaseMutableCharacterMapping]
+	ThingPlaceMapping: type[BaseMutableDiGraphMapping]
 
 	@cached_property
 	def _node(self) -> ThingPlaceMapping:
@@ -3493,7 +3524,7 @@ class AbstractCharacter(DiGraph, ABC):
 	node: ThingPlaceMapping = getatt("_node")
 	nodes: ThingPlaceMapping = getatt("_node")
 
-	PortalSuccessorsMapping: type[BaseMutableCharacterMapping]
+	PortalSuccessorsMapping: type[BaseMutableDiGraphMapping]
 
 	@cached_property
 	def _succ(self) -> PortalSuccessorsMapping:
@@ -3505,7 +3536,7 @@ class AbstractCharacter(DiGraph, ABC):
 	edge: PortalSuccessorsMapping = getatt("_succ")
 	_adj: PortalSuccessorsMapping = getatt("_succ")
 
-	PortalPredecessorsMapping: type[BaseMutableCharacterMapping]
+	PortalPredecessorsMapping: type[BaseMutableDiGraphMapping]
 
 	@cached_property
 	def _pred(self) -> PortalPredecessorsMapping:
@@ -3514,7 +3545,7 @@ class AbstractCharacter(DiGraph, ABC):
 	preportal: PortalPredecessorsMapping = getatt("_pred")
 	pred: PortalPredecessorsMapping = getatt("_pred")
 
-	UnitGraphMapping: type[BaseMutableCharacterMapping]
+	UnitGraphMapping: type[BaseMutableDiGraphMapping]
 
 	@cached_property
 	def unit(self) -> UnitGraphMapping:
