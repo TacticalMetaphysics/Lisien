@@ -3604,7 +3604,8 @@ class AbstractCharacter(DiGraph, ABC):
 		else:
 			assert type(g) is nx.Graph
 			for u, v, d in g.edges.data():
-				self.add_portal(renamed[u], renamed[v], symmetrical=True, **d)
+				self.add_portal(renamed[u], renamed[v], **d)
+				self.add_portal(renamed[v], renamed[u], **d)
 		return self
 
 	def become(self, g: AbstractCharacter) -> AbstractCharacter:
