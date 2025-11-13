@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from functools import wraps
 from logging import getLogger
@@ -13,6 +15,7 @@ from lisien.pqdb import ParquetDatabaseConnector
 from lisien.proxy.engine import EngineProxy
 from lisien.proxy.manager import Sub
 from lisien.sql import SQLAlchemyDatabaseConnector
+from lisien.types import LoadedDict
 
 _RETURNS = TypeVar("_RETURNS")
 
@@ -136,3 +139,28 @@ def make_test_engine_facade() -> EngineFacade:
 	fac.prereq = MagicMock()
 	fac.action = MagicMock()
 	return fac
+
+
+def hash_loaded_dict(data: LoadedDict) -> dict[str, dict[str, int] | int]:
+	def unlist(o):
+		if isinstance(o, (list, tuple)):
+			return tuple(map(unlist, o))
+		return o
+
+	hashes = {}
+	for k, v in data.items():
+		if isinstance(v, list):
+			the_hash = 0
+			for elem in v:
+				the_hash |= hash(tuple(map(unlist, elem)))
+			hashes[k] = the_hash
+		elif isinstance(v, dict):
+			hasheses = hashes[k] = {}
+			for k, v in v.items():
+				the_hash = 0
+				for elem in v:
+					the_hash |= hash(tuple(map(unlist, elem)))
+				hasheses[k] = the_hash
+		else:
+			raise TypeError("Invalid loaded dictionary")
+	return hashes

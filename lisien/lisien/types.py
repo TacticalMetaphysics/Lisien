@@ -4026,31 +4026,6 @@ class TimeSignalDescriptor:
 		)
 
 
-def hash_loaded_dict(data: LoadedDict) -> dict[str, dict[str, int] | int]:
-	def unlist(o):
-		if isinstance(o, (list, tuple)):
-			return tuple(map(unlist, o))
-		return o
-
-	hashes = {}
-	for k, v in data.items():
-		if isinstance(v, list):
-			the_hash = 0
-			for elem in v:
-				the_hash |= hash(tuple(map(unlist, elem)))
-			hashes[k] = the_hash
-		elif isinstance(v, dict):
-			hasheses = hashes[k] = {}
-			for k, v in v.items():
-				the_hash = 0
-				for elem in v:
-					the_hash |= hash(tuple(map(unlist, elem)))
-				hasheses[k] = the_hash
-		else:
-			raise TypeError("Invalid loaded dictionary")
-	return hashes
-
-
 _T = TypeVar("_T")
 
 
