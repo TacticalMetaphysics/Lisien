@@ -3629,7 +3629,7 @@ def sort_set(s: Set[_T]) -> list[_T]:
 		elif isinstance(v, int):
 			return v.to_bytes(8)
 		elif isinstance(v, float):
-			return b"".join(i.to_bytes() for i in v.as_integer_ratio())
+			return b"".join(i.to_bytes(8) for i in v.as_integer_ratio())
 		else:
 			raise TypeError(v)
 
