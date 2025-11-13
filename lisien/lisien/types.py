@@ -159,7 +159,7 @@ def is_valid_value(obj: Any) -> TypeGuard[Value]:
 			)
 		)
 		or (
-			isinstance(obj, FunctionType)
+			isinstance(obj, (FunctionType, MethodType))
 			and obj.__module__
 			in {"function", "method", "trigger", "prereq", "action"}
 		)
