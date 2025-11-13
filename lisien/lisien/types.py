@@ -199,7 +199,7 @@ def is_valid_key(obj: KeyHint) -> TypeGuard[Key]:
 	)
 
 
-class _KeyMeta(type):
+class _KeyMeta(_ValueMeta):
 	def __instancecheck__(self, instance) -> TypeGuard[Key]:
 		return is_valid_key(instance)
 
