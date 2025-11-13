@@ -2228,7 +2228,7 @@ class Engine(AbstractEngine, Executor):
 					)
 			else:
 				if not os.path.exists(prefix):
-					os.mkdir(prefix)
+					os.makedirs(prefix)
 				if not os.path.isdir(prefix):
 					raise FileExistsError("Need a directory")
 				if connect_string is None:
