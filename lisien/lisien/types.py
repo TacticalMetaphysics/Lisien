@@ -68,22 +68,6 @@ from typing import (
 
 import networkx
 import networkx as nx
-from _operator import (
-	add,
-	attrgetter,
-	eq,
-	floordiv,
-	ge,
-	gt,
-	le,
-	lt,
-	mod,
-	mul,
-	ne,
-	pow,
-	sub,
-	truediv,
-)
 from annotated_types import Ge, Le
 from blinker import Signal
 from networkx import NetworkXError
