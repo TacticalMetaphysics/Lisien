@@ -17,72 +17,72 @@ from __future__ import annotations
 import inspect
 import sys
 from collections import OrderedDict
-from dataclasses import dataclass, field, KW_ONLY
-from functools import partial, partialmethod, cached_property
+from dataclasses import KW_ONLY, dataclass, field
+from functools import cached_property, partial, partialmethod
 from queue import Queue
 from threading import Thread
-from typing import Union, Iterator, get_args
+from typing import Iterator, Union, get_args
 
 from sqlalchemy import (
-	create_engine,
-	Select,
-	bindparam,
-	and_,
-	or_,
-	Table,
-	MetaData,
 	BLOB,
+	BOOLEAN,
+	FLOAT,
 	INT,
 	TEXT,
-	BOOLEAN,
 	Column,
-	FLOAT,
-	select,
+	ColumnElement,
+	MetaData,
+	Select,
+	Table,
+	and_,
+	bindparam,
+	create_engine,
 	func,
 	null,
-	ColumnElement,
+	or_,
+	select,
 )
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.sql.ddl import CreateTable
 
+from . import types
 from .db import (
-	ThreadedDatabaseConnector,
-	ConnectionLooper,
-	SCHEMAVER_B,
 	SCHEMA_VERSION_B,
-	mutexed,
+	SCHEMAVER_B,
 	Batch,
+	ConnectionLooper,
 	GlobalKeyValueStore,
+	ThreadedDatabaseConnector,
+	mutexed,
 )
 from .exc import KeyframeError
-from . import types
 from .types import (
-	Key,
-	Time,
 	Branch,
-	Turn,
-	Tick,
+	BranchRowType,
+	CharacterRulesHandledRowType,
 	CharName,
-	NodeKeyframe,
 	EdgeKeyframe,
-	Value,
-	GraphValRowType,
-	NodeRowType,
-	NodeValRowType,
 	EdgeRowType,
 	EdgeValRowType,
+	GraphValRowType,
+	Key,
+	KeyframeExtensionRowType,
+	KeyframeGraphRowType,
+	NodeKeyframe,
 	NodeName,
+	NodeRowType,
+	NodeRulesHandledRowType,
+	NodeValRowType,
+	PortalRulesHandledRowType,
 	RulebookName,
 	RuleName,
-	root_type,
-	CharacterRulesHandledRowType,
-	UnitRulesHandledRowType,
-	NodeRulesHandledRowType,
-	PortalRulesHandledRowType,
-	KeyframeGraphRowType,
 	StatDict,
-	KeyframeExtensionRowType,
-	BranchRowType,
+	Tick,
+	Time,
+	Turn,
+	UnitRulesHandledRowType,
+	Value,
+	root_type,
 )
 
 meta = MetaData()

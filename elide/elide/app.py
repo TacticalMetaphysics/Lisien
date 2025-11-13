@@ -18,7 +18,7 @@ import json
 import os
 import shutil
 from collections import defaultdict
-from functools import partial, cached_property
+from functools import cached_property, partial
 from threading import Thread
 from typing import Callable
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -54,8 +54,8 @@ from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 from lisien.proxy.character import (
-	CharStatProxy,
 	CharacterProxy,
+	CharStatProxy,
 	PlaceProxy,
 	ThingProxy,
 )

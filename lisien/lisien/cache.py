@@ -19,7 +19,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict, deque
 from contextlib import contextmanager
-from functools import wraps, cached_property
+from functools import cached_property, wraps
 from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
@@ -29,10 +29,10 @@ from typing import (
 	Callable,
 	ClassVar,
 	Hashable,
+	Iterable,
 	Iterator,
 	Literal,
 	Optional,
-	Iterable,
 	Self,
 )
 
@@ -45,6 +45,7 @@ from .exc import (
 	TotalKeyError,
 )
 from .types import (
+	ActionFuncName,
 	Branch,
 	CharName,
 	EntityKey,
@@ -52,6 +53,7 @@ from .types import (
 	LinearTime,
 	NodeName,
 	Plan,
+	PrereqFuncName,
 	RuleBig,
 	RulebookName,
 	RulebookPriority,
@@ -61,18 +63,16 @@ from .types import (
 	Stat,
 	Tick,
 	Time,
+	TriggerFuncName,
 	Turn,
 	Value,
-	sort_set,
-	ActionFuncName,
-	PrereqFuncName,
-	TriggerFuncName,
 	root_type,
+	sort_set,
 )
 from .window import (
+	AssignmentTimeDict,
 	Direction,
 	EntikeySettingsTurnDict,
-	AssignmentTimeDict,
 	WindowDict,
 )
 

@@ -21,13 +21,10 @@ from functools import partial
 
 import pytest
 
-from ..db import (
-	AbstractDatabaseConnector,
-	PythonDatabaseConnector,
-)
+from ..db import AbstractDatabaseConnector, PythonDatabaseConnector
+from ..engine import Engine
 from ..pqdb import ParquetDatabaseConnector
 from ..sql import SQLAlchemyDatabaseConnector
-from ..engine import Engine
 from .data import DATA_DIR
 
 

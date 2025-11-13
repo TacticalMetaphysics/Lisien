@@ -18,64 +18,80 @@ import builtins
 import inspect
 import operator
 import os
-from operator import (
-	attrgetter,
-	add,
-	sub,
-	mul,
-	pow,
-	truediv,
-	floordiv,
-	mod,
-	ge,
-	gt,
-	le,
-	lt,
-	eq,
-	ne,
-)
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from collections.abc import Set
 from concurrent.futures import Future
 from enum import Enum
-from functools import wraps, partial, cached_property
+from functools import cached_property, partial, wraps
 from itertools import chain
+from operator import (
+	add,
+	attrgetter,
+	eq,
+	floordiv,
+	ge,
+	gt,
+	le,
+	lt,
+	mod,
+	mul,
+	ne,
+	pow,
+	sub,
+	truediv,
+)
 from random import Random
-from types import GenericAlias, ModuleType, FunctionType, MethodType
+from types import FunctionType, GenericAlias, MethodType, ModuleType
 from typing import (
 	TYPE_CHECKING,
 	Annotated,
 	Any,
 	Callable,
+	Iterable,
+	Iterator,
+	KeysView,
 	Literal,
+	Mapping,
 	MutableMapping,
 	NewType,
-	TypeGuard,
-	Iterator,
-	Mapping,
-	Type,
 	Optional,
-	KeysView,
-	Iterable,
 	Sequence,
-	get_origin,
-	get_args,
-	Union,
+	Type,
+	TypeGuard,
 	TypeVar,
+	Union,
+	get_args,
+	get_origin,
 	override,
 )
 
 import networkx
 import networkx as nx
+from _operator import (
+	add,
+	attrgetter,
+	eq,
+	floordiv,
+	ge,
+	gt,
+	le,
+	lt,
+	mod,
+	mul,
+	ne,
+	pow,
+	sub,
+	truediv,
+)
 from annotated_types import Ge, Le
 from blinker import Signal
 from networkx import NetworkXError
+from reslot import reslot
 from tblib import Traceback
 
 from . import exc
-from .exc import WorkerProcessReadOnlyError, TimeError
-from reslot import reslot
+from .exc import TimeError, WorkerProcessReadOnlyError
 from .util import getatt
 from .wrap import (
 	DictWrapper,
@@ -90,9 +106,9 @@ from .wrap import (
 if TYPE_CHECKING:
 	from .character import Character
 	from .engine import Engine
-	from .portal import Portal
 	from .node import Thing
-	from .rule import RuleBook, Rule
+	from .portal import Portal
+	from .rule import Rule, RuleBook
 
 type KeyHint = (
 	str | int | float | None | tuple["KeyHint", ...] | frozenset["KeyHint"]

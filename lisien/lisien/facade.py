@@ -14,7 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-
 import os
 import random
 from abc import ABC, abstractmethod
@@ -24,12 +23,12 @@ from functools import cached_property
 from operator import attrgetter
 from threading import RLock
 from typing import (
+	TYPE_CHECKING,
+	ClassVar,
+	Literal,
 	Mapping,
 	MutableMapping,
 	MutableSequence,
-	TYPE_CHECKING,
-	Literal,
-	ClassVar,
 )
 
 import networkx as nx
@@ -39,31 +38,27 @@ from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
 from .collections import CompositeDict, FunctionStore
 from .exc import NotInKeyframeError, TotalKeyError
 from .types import (
+	AbstractCharacter,
+	AbstractEngine,
+	AbstractThing,
+	Branch,
 	CharName,
 	DiGraph,
 	Edge,
 	Key,
+	KeyHint,
 	Node,
 	NodeName,
 	SignalDict,
-	AbstractEngine,
-	AbstractCharacter,
-	AbstractThing,
+	Stat,
+	Tick,
+	Time,
 	TimeSignalDescriptor,
 	Turn,
-	Branch,
-	Tick,
-	KeyHint,
-	Stat,
 	Value,
 	ValueHint,
-	Time,
 )
-from .util import (
-	print_call_sig,
-	timer,
-	getatt,
-)
+from .util import getatt, print_call_sig, timer
 from .wrap import MappingUnwrapperMixin
 
 if TYPE_CHECKING:

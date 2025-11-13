@@ -27,10 +27,11 @@ from typing import Any, Callable, Iterable, Optional
 import networkx as nx
 import tblib
 
-from ..exc import HistoricKeyError, OutOfTimelineError, BadTimeException
+from ..exc import BadTimeException, HistoricKeyError, OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
 from ..types import (
+	AbstractCharacter,
 	ActionFuncName,
 	Branch,
 	CharDelta,
@@ -60,7 +61,6 @@ from ..types import (
 	Turn,
 	UnitsDict,
 	Value,
-	AbstractCharacter,
 )
 from ..util import (
 	EDGE_VAL,
@@ -68,6 +68,7 @@ from ..util import (
 	ELLIPSIS,
 	EMPTY_MAPPING,
 	ETERNAL,
+	ILLEGAL_CHARACTER_NAMES,
 	NODE_VAL,
 	NODES,
 	NONE,
@@ -76,9 +77,8 @@ from ..util import (
 	RULES,
 	UNITS,
 	UNIVERSAL,
-	timer,
 	msgpack_map_header,
-	ILLEGAL_CHARACTER_NAMES,
+	timer,
 )
 
 SlightlyPackedDeltaType = dict[

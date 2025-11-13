@@ -22,23 +22,20 @@ from logging import getLogger
 import pytest
 
 from lisien import Engine
-from lisien.db import (
-	NullDatabaseConnector,
-	PythonDatabaseConnector,
-)
-from ..pqdb import ParquetDatabaseConnector
-from ..sql import SQLAlchemyDatabaseConnector
+from lisien.db import NullDatabaseConnector, PythonDatabaseConnector
 from lisien.proxy.handle import EngineHandle
 from lisien.proxy.manager import Sub
 
 from ..examples import college, kobold, sickle
+from ..pqdb import ParquetDatabaseConnector
 from ..proxy.engine import EngineProxy
 from ..proxy.manager import EngineProxyManager
+from ..sql import SQLAlchemyDatabaseConnector
 from . import data
 from .util import (
+	make_test_engine,
 	make_test_engine_facade,
 	make_test_engine_kwargs,
-	make_test_engine,
 )
 
 

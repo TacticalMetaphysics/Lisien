@@ -16,21 +16,21 @@ from __future__ import annotations
 
 import ast
 import json
-import time
-import zlib
-from enum import Enum
 import logging
 import os
 import pickle
 import sys
+import time
+import zlib
+from enum import Enum
 from threading import Thread
 from zipfile import ZipFile
 
 import tblib
 
+from ..types import Branch, EternalKey, Key, Tick, Turn, Value
 from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread
-from ..types import EternalKey, Value, Tick, Turn, Branch, Key
 
 
 class Sub(Enum):
@@ -350,8 +350,8 @@ class EngineProxyManager:
 				self._core_service.server_address,
 			)
 			return
-		from queue import SimpleQueue
 		import random
+		from queue import SimpleQueue
 
 		from android import autoclass
 		from pythonosc.dispatcher import Dispatcher

@@ -35,21 +35,21 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from hashlib import blake2b
 from inspect import getsource
-from typing import TYPE_CHECKING, Callable, TypeVar, Iterator
+from typing import TYPE_CHECKING, Callable, Iterator, TypeVar
 
 import networkx as nx
 from blinker import Signal
 
 from .types import (
+	AbstractEngine,
+	AbstractFunctionStore,
 	CharName,
 	KeyHint,
-	AbstractEngine,
-	sort_set,
-	AbstractFunctionStore,
-	ValueHint,
 	Stat,
-	Value,
 	UniversalKey,
+	Value,
+	ValueHint,
+	sort_set,
 )
 from .util import dedent_source, getatt
 from .wrap import wrapval

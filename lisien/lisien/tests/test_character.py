@@ -18,12 +18,7 @@ import pytest
 
 from lisien.engine import Engine
 from lisien.tests.data import CHARACTER_UPDATES
-from lisien.types import (
-	NodeName,
-	AbstractCharacter,
-	Stat,
-	Value,
-)
+from lisien.types import AbstractCharacter, NodeName, Stat, Value
 
 
 def set_in_mapping(mapp, stat, v):

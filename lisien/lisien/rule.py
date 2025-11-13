@@ -84,7 +84,7 @@ from abc import ABC, abstractmethod
 from ast import parse, unparse
 from collections import UserDict
 from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
-from functools import partial, cached_property
+from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
 
 from blinker import Signal
@@ -92,9 +92,11 @@ from blinker import Signal
 from .cache import FuncListCache
 from .collections import FunctionStore
 from .types import (
+	AbstractEngine,
 	ActionFuncName,
 	Branch,
 	Key,
+	KeyHint,
 	PrereqFuncName,
 	RuleBig,
 	RulebookName,
@@ -107,8 +109,6 @@ from .types import (
 	TriggerFuncName,
 	Turn,
 	Value,
-	KeyHint,
-	AbstractEngine,
 )
 from .util import dedent_source
 
