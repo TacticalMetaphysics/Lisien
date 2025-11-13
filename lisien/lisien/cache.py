@@ -1900,9 +1900,12 @@ class GraphValCache(Cache):
 		*,
 		forward: bool | None = None,
 	) -> Iterator[Stat]:
-		return self._iter_entities_or_keys(
+		for k in self._iter_entities_or_keys(
 			graph, branch, turn, tick, forward=forward
-		)
+		):
+			yield Stat(k)
+
+	iter_stats = iter_keys
 
 
 class NodesCache(Cache):

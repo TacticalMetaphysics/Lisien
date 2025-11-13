@@ -33,7 +33,7 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import chain, zip_longest
-from typing import Any, Callable, Hashable, Set
+from typing import Any, Callable, Hashable, Set, TypeVar
 
 
 class OrderlySet[_K](set[_K]):
@@ -603,7 +603,11 @@ class SubSetWrapper(MutableWrapperSet):
 		return OrderlySet(self._getter())
 
 
-def unwrap_items(it: Iterable[tuple[Any, Any]]) -> dict:
+_U = TypeVar("_U")
+_V = TypeVar("_V")
+
+
+def unwrap_items(it: Iterable[tuple[_U, _V]]) -> dict[_U, _V]:
 	ret = {}
 	for k, v in it:
 		if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):

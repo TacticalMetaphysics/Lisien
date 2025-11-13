@@ -2107,8 +2107,9 @@ class Engine(AbstractEngine, Executor):
 		self.commit_interval = commit_interval
 		self.schema = schema_cls(self)
 		# in case this is the first startup
-		self._obranch = trunk or "trunk"
-		self._otick = self._oturn = 0
+		self._obranch = Branch(trunk or "trunk")
+		self._oturn = Turn(0)
+		self._otick = Tick(0)
 		if logger is not None:
 			self._logger = logger
 		worker_handler = StreamHandler()
