@@ -838,6 +838,22 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	def unwrap(self) -> dict[Stat, Value]:
 		return unwrap_items(self.items())
 
+	def update(self, upd: dict[Stat, Value] | dict[KeyHint, ValueHint]):
+		realupd: dict[Stat, Value] = {}
+		for k, v in upd.items():
+			if not isinstance(k, Key):
+				raise TypeError("Invalid graph stat", k)
+			k = Stat(k)
+			if not isinstance(v, Value):
+				raise TypeError("Invalid stat value", v)
+			v = Value(v)
+			realupd[k] = v
+		for k, v in realupd.items():
+			if v is ...:
+				del self[k]
+			else:
+				self[k] = v
+
 	def __eq__(
 		self, other: Mapping[Stat | KeyHint, Value | ValueHint]
 	) -> bool:
