@@ -24,7 +24,7 @@ import os
 from abc import ABC, abstractmethod
 from annotated_types import Ge, Le
 from blinker import Signal
-from collections.abc import Set
+from collections.abc import Set, Sequence
 from enum import Enum
 from functools import cached_property, partial, wraps
 from itertools import chain
@@ -62,7 +62,6 @@ from typing import (
 	MutableMapping,
 	NewType,
 	Optional,
-	Sequence,
 	Type,
 	TypeGuard,
 	TypeVar,
@@ -108,7 +107,8 @@ type ValueHint = (
 	| tuple[ValueHint, ...]
 	| set[ValueHint]
 	| frozenset[ValueHint]
-	| Callable
+	| FunctionType
+	| MethodType
 )
 
 
@@ -574,7 +574,9 @@ class CharacterMappingMixin(MappingUnwrapperMixin, ABC):
 		return self.character.engine
 
 
-class AbstractEntityMapping(MutableMapping, MappingUnwrapperMixin, ABC):
+class AbstractEntityMapping[_K, _V](
+	MutableMapping[_K, _V], MappingUnwrapperMixin, ABC
+):
 	__slots__ = ()
 
 	engine: Engine
@@ -584,7 +586,7 @@ class AbstractEntityMapping(MutableMapping, MappingUnwrapperMixin, ABC):
 		self, key: Key, branch: Branch, turn: Turn, tick: Tick
 	) -> dict: ...
 
-	def _get_cache_now(self, key):
+	def _get_cache_now(self, key: Key):
 		return self._get_cache(key, *self.engine.time)
 
 	@abstractmethod
@@ -615,28 +617,35 @@ class AbstractEntityMapping(MutableMapping, MappingUnwrapperMixin, ABC):
 
 	def _del_db(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
 		"""Delete a key from the database (not the cache)."""
-		self._set_db(key, branch, turn, tick, ...)
+		self._set_db(key, branch, turn, tick, Value(...))
 
 	def _del_cache(self, key: Key, branch: Branch, turn: Turn, tick: Tick):
-		self._set_cache(key, branch, turn, tick, ...)
+		self._set_cache(key, branch, turn, tick, Value(...))
 
 	def __getitem__(self, key: Key | KeyHint):
 		"""If key is 'graph', return myself as a dict, else get the present
 		value of the key and return that
 
 		"""
-
+		if not isinstance(key, Key):
+			raise TypeError("Invalid key", key)
 		return wrapval(self, key, self._get_cache_now(key))
 
 	def __contains__(self, item: Key | KeyHint):
+		if not isinstance(item, Key):
+			raise TypeError("Invalid key", item)
 		return item == "name" or self._cache_contains(item, *self.engine.time)
 
 	def __setitem__(self, key: Key | KeyHint, value: Value | ValueHint):
 		"""Set key=value at the present branch and revision"""
+		if not isinstance(key, Key):
+			raise TypeError("Invalid key", key)
 		if value is ...:
 			raise ValueError(
 				"Lisien uses the ellipsis to indicate that a key's been deleted"
 			)
+		if not isinstance(value, Value):
+			raise TypeError("Invalid value", value)
 		try:
 			if self._get_cache_now(key) == value:
 				return
@@ -647,6 +656,8 @@ class AbstractEntityMapping(MutableMapping, MappingUnwrapperMixin, ABC):
 		self._set_db(key, branch, turn, tick, value)
 
 	def __delitem__(self, key: Key | KeyHint):
+		if not isinstance(key, Key):
+			raise TypeError("Invalid key", key)
 		self._get_cache_now(key)  # deliberately raise KeyError if unset
 		branch, turn, tick = self.engine._nbtt()
 		self._del_cache(Key(key), branch, turn, tick)
@@ -654,7 +665,7 @@ class AbstractEntityMapping(MutableMapping, MappingUnwrapperMixin, ABC):
 
 
 @reslot
-class GraphMapping(AbstractEntityMapping, ABC):
+class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	"""Mapping for graph attributes"""
 
 	__slots__ = ("character", "__dict__")
@@ -668,7 +679,13 @@ class GraphMapping(AbstractEntityMapping, ABC):
 		return self.character.engine
 
 	@cached_property
-	def _iter_stuff(self):
+	def _iter_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, Branch, Turn, Tick], Iterator[Stat]],
+		CharName,
+		Time,
+	]:
 		return (
 			self.engine._graph_val_cache.iter_keys,
 			self.character.name,
@@ -676,11 +693,22 @@ class GraphMapping(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _cache_contains_stuff(self):
+	def _cache_contains_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, Stat, Branch, Turn, Tick], bool],
+		CharName,
+	]:
 		return self.engine._graph_val_cache.contains_key, self.character.name
 
 	@cached_property
-	def _len_stuff(self):
+	def _len_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, Branch, Turn, Tick], int],
+		CharName,
+		Time,
+	]:
 		return (
 			self.engine._graph_val_cache.count_keys,
 			self.character.name,
@@ -691,25 +719,43 @@ class GraphMapping(AbstractEntityMapping, ABC):
 	def _get_stuff(
 		self,
 	) -> tuple[
-		Callable[[Key, Branch, Turn, Tick], Value],
-		TimeSignal,
+		Callable[[Stat, Branch, Turn, Tick], Value],
+		Time,
 	]:
 		return self._get_cache, self.engine.time
 
 	@cached_property
-	def _set_db_stuff(self):
+	def _set_db_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None],
+		CharName,
+	]:
 		return self.engine.query.graph_val_set, self.character.name
 
 	@cached_property
-	def _set_cache_stuff(self):
+	def _set_cache_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None], CharName
+	]:
 		return self.engine._graph_val_cache.store, self.character.name
 
 	@cached_property
-	def _del_db_stuff(self):
+	def _del_db_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None], CharName
+	]:
 		return self.engine.query.graph_val_set, self.character.name
 
 	@cached_property
-	def _get_cache_stuff(self):
+	def _get_cache_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, Stat, Branch, Turn, Tick], Value],
+		CharName,
+	]:
 		return (self.engine._graph_val_cache.retrieve, self.character.name)
 
 	def __iter__(self) -> Iterator[Stat]:
@@ -723,14 +769,15 @@ class GraphMapping(AbstractEntityMapping, ABC):
 		)
 
 	def _cache_contains(
-		self, key: Key, branch: Branch, turn: Turn, tick: Tick
+		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
 		contains_key, graphn = self._cache_contains_stuff
 		return contains_key(graphn, key, branch, turn, tick)
 
 	def __len__(self):
 		count_keys, graphn, btt = self._len_stuff
-		return 1 + count_keys(graphn, *btt)
+		branch, turn, tick = btt
+		return count_keys(graphn, branch, turn, tick)
 
 	def __getitem__(self, item: Key | KeyHint) -> Value | ValueHint | CharName:
 		if item == "name":
@@ -738,19 +785,19 @@ class GraphMapping(AbstractEntityMapping, ABC):
 		return super().__getitem__(item)
 
 	def __setitem__(
-		self, key: Key | KeyHint, value: Value | ValueHint
+		self, key: Stat | KeyHint, value: Value | ValueHint
 	) -> None:
 		if key == "name":
 			raise KeyError("name cannot be changed after creation")
 		super().__setitem__(key, value)
 
 	def _get_cache(
-		self, key: Key, branch: Branch, turn: Turn, tick: Tick
+		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
 		retrieve, graphn = self._get_cache_stuff
 		return retrieve(graphn, key, branch, turn, tick)
 
-	def _get(self, key: KeyHint) -> ValueHint:
+	def _get(self, key: Stat) -> Value:
 		get_cache, btt = self._get_stuff
 		return get_cache(key, *btt)
 
@@ -780,15 +827,14 @@ class GraphMapping(AbstractEntityMapping, ABC):
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		graph_val_set, graphn = self._del_db_stuff
-		graph_val_set(graphn, key, branch, turn, tick, ...)
+		graph_val_set(graphn, key, branch, turn, tick, Value(...))
 
-	def clear(self):
+	def clear(self) -> None:
 		keys = set(self.keys())
-		keys.remove("name")
 		for k in keys:
 			del self[k]
 
-	def unwrap(self):
+	def unwrap(self) -> dict[Stat, Value]:
 		return unwrap_items(self.items())
 
 	def __eq__(
@@ -827,11 +873,18 @@ class Node(AbstractEntityMapping, ABC):
 		return Value(super().__getitem__(item))
 
 	@cached_property
-	def engine(self):
+	def engine(self) -> AbstractEngine:
 		return self.character.engine
 
 	@cached_property
-	def _iter_stuff(self):
+	def _iter_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, Branch, Turn, Tick], Iterator[Key]],
+		CharName,
+		NodeName,
+		Time,
+	]:
 		return (
 			self.engine._node_val_cache.iter_keys,
 			self.character.name,
@@ -840,7 +893,13 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _cache_contains_stuff(self):
+	def _cache_contains_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick], bool],
+		CharName,
+		NodeName,
+	]:
 		return (
 			self.engine._node_val_cache.contains_key,
 			self.character.name,
@@ -848,7 +907,14 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _len_stuff(self):
+	def _len_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, NodeName, Branch, Turn, Tick], int],
+		CharName,
+		NodeName,
+		Time,
+	]:
 		return (
 			self.engine._node_val_cache.count_keys,
 			self.character.name,
@@ -857,7 +923,13 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _get_cache_stuff(self):
+	def _get_cache_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick], Value],
+		CharName,
+		NodeName,
+	]:
 		return (
 			self.engine._node_val_cache.retrieve,
 			self.character.name,
@@ -865,11 +937,23 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _set_db_stuff(self):
+	def _set_db_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick, Value], None],
+		CharName,
+		NodeName,
+	]:
 		return self.engine.query.node_val_set, self.character.name, self.name
 
 	@cached_property
-	def _set_cache_stuff(self):
+	def _set_cache_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick, Value], None],
+		CharName,
+		NodeName,
+	]:
 		return (
 			self.engine._node_val_cache.store,
 			self.character.name,
@@ -889,7 +973,8 @@ class Node(AbstractEntityMapping, ABC):
 
 	def __iter__(self):
 		iter_entity_keys, graphn, node, btt = self._iter_stuff
-		return iter_entity_keys(graphn, node, *btt)
+		branch, turn, tick = btt
+		return iter_entity_keys(graphn, node, branch, turn, tick)
 
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
@@ -903,7 +988,7 @@ class Node(AbstractEntityMapping, ABC):
 
 	def _get_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
-	) -> ValueHint:
+	) -> Value:
 		retrieve, graphn, node = self._get_cache_stuff
 		return retrieve(graphn, node, key, branch, turn, tick)
 
@@ -949,13 +1034,18 @@ class Node(AbstractEntityMapping, ABC):
 
 	def add_portal(
 		self,
-		other: Key | KeyHint | Node,
+		other: NodeName | KeyHint | Node,
 		**stats: dict[Stat | KeyHint, Value | ValueHint],
 	) -> None:
 		"""Connect a portal from here to another node"""
-		self.character.add_portal(
-			self.name, getattr(other, "name", other), **stats
-		)
+		if not isinstance(other, (Key, Node)):
+			raise TypeError("Invalid node", other)
+		name: NodeName
+		if isinstance(other, Node):
+			name = other.name
+		else:
+			name = NodeName(other)
+		self.character.add_portal(self.name, name, **stats)
 
 	def new_portal(
 		self,
@@ -963,14 +1053,19 @@ class Node(AbstractEntityMapping, ABC):
 		**stats: dict[Stat | KeyHint, Value | ValueHint],
 	) -> Portal:
 		"""Connect a portal from here to another node, and return it."""
-		return self.character.new_portal(
-			self.name, getattr(other, "name", other), **stats
-		)
+		if not isinstance(other, (Key, Node)):
+			raise TypeError("Invalid node", other)
+		name: NodeName
+		if isinstance(other, Node):
+			name = other.name
+		else:
+			name = NodeName(other)
+		return self.character.new_portal(self.name, name, **stats)
 
 	def add_thing(
 		self,
 		name: NodeName | KeyHint,
-		**stats: dict[Stat | KeyHint, Value | ValueHint],
+		**stats: dict[KeyHint, ValueHint] | dict[Stat, Value],
 	) -> None:
 		"""Make a new Thing here"""
 		self.character.add_thing(name, self.name, **stats)
@@ -978,7 +1073,7 @@ class Node(AbstractEntityMapping, ABC):
 	def new_thing(
 		self,
 		name: NodeName | KeyHint,
-		**stats: dict[Stat | KeyHint, Value | ValueHint],
+		**stats: dict[KeyHint, ValueHint] | dict[Stat, Value],
 	) -> Thing:
 		"""Create a new thing, located here, and return it."""
 		return self.character.new_thing(name, self.name, **stats)
@@ -991,7 +1086,9 @@ class Node(AbstractEntityMapping, ABC):
 		``self.engine.ticks_when``.
 
 		"""
-		return EntityStatAlias(entity=self, stat=Stat(Key(stat)))
+		if not isinstance(stat, Key):
+			raise TypeError("Invalid stat", stat)
+		return EntityStatAlias(entity=self, stat=Stat(stat))
 
 	@property
 	@abstractmethod
@@ -1043,7 +1140,17 @@ class Edge(AbstractEntityMapping, ABC):
 		return str(dict(self))
 
 	@cached_property
-	def _iter_stuff(self):
+	def _iter_stuff(
+		self,
+	) -> tuple[
+		Callable[
+			[CharName, NodeName, NodeName, Branch, Turn, Tick], Iterator[Stat]
+		],
+		CharName,
+		NodeName,
+		NodeName,
+		Time,
+	]:
 		return (
 			self.character.engine._edge_val_cache.iter_keys,
 			self.character.name,
@@ -1052,12 +1159,21 @@ class Edge(AbstractEntityMapping, ABC):
 			self.character.engine.time,
 		)
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[Stat]:
 		iter_entity_keys, graphn, orig, dest, btt = self._iter_stuff
 		return iter_entity_keys(graphn, orig, dest, *btt)
 
 	@cached_property
-	def _cache_contains_stuff(self):
+	def _cache_contains_stuff(
+		self,
+	) -> tuple[
+		Callable[
+			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick], bool
+		],
+		CharName,
+		NodeName,
+		NodeName,
+	]:
 		return (
 			self.character.engine._edge_val_cache.contains_key,
 			self.character.name,
@@ -1065,12 +1181,22 @@ class Edge(AbstractEntityMapping, ABC):
 			self.dest,
 		)
 
-	def _cache_contains(self, key, branch, turn, tick):
+	def _cache_contains(
+		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
+	) -> bool:
 		contains_key, graphn, orig, dest = self._cache_contains_stuff
 		return contains_key(graphn, orig, dest, key, branch, turn, tick)
 
 	@cached_property
-	def _len_stuff(self):
+	def _len_stuff(
+		self,
+	) -> tuple[
+		Callable[[CharName, NodeName, NodeName, Branch, Turn, Tick], int],
+		CharName,
+		NodeName,
+		NodeName,
+		Time,
+	]:
 		return (
 			self.character.engine.edge_val_cache.count_keys,
 			self.character.name,
@@ -1079,12 +1205,21 @@ class Edge(AbstractEntityMapping, ABC):
 			self.character.engine.time,
 		)
 
-	def __len__(self):
+	def __len__(self) -> int:
 		count_entity_keys, graphn, orig, dest, btt = self._len_stuff
 		return count_entity_keys(graphn, orig, dest, *btt)
 
 	@cached_property
-	def _get_cache_stuff(self):
+	def _get_cache_stuff(
+		self,
+	) -> tuple[
+		Callable[
+			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick], Value
+		],
+		CharName,
+		NodeName,
+		NodeName,
+	]:
 		return (
 			self.character.engine._edge_val_cache.retrieve,
 			self.character.name,
@@ -1092,12 +1227,24 @@ class Edge(AbstractEntityMapping, ABC):
 			self.dest,
 		)
 
-	def _get_cache(self, key, branch, turn, tick):
+	def _get_cache(
+		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
+	) -> Value:
 		retrieve, graphn, orig, dest = self._get_cache_stuff
 		return retrieve(graphn, orig, dest, key, branch, turn, tick)
 
 	@cached_property
-	def _set_db_stuff(self):
+	def _set_db_stuff(
+		self,
+	) -> tuple[
+		Callable[
+			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value],
+			None,
+		],
+		CharName,
+		NodeName,
+		NodeName,
+	]:
 		return (
 			self.character.engine.query.edge_val_set,
 			self.character.name,
@@ -1105,12 +1252,24 @@ class Edge(AbstractEntityMapping, ABC):
 			self.dest,
 		)
 
-	def _set_db(self, key, branch, turn, tick, value):
+	def _set_db(
+		self, key: Stat, branch: Branch, turn: Turn, tick: Tick, value: Value
+	) -> None:
 		edge_val_set, graphn, orig, dest = self._set_db_stuff
 		edge_val_set(graphn, orig, dest, key, branch, turn, tick, value)
 
 	@cached_property
-	def _set_cache_stuff(self):
+	def _set_cache_stuff(
+		self,
+	) -> tuple[
+		Callable[
+			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value],
+			None,
+		],
+		CharName,
+		NodeName,
+		NodeName,
+	]:
 		return (
 			self.character.engine._edge_val_cache.store,
 			self.character.name,
@@ -1118,7 +1277,9 @@ class Edge(AbstractEntityMapping, ABC):
 			self.dest,
 		)
 
-	def _set_cache(self, key, branch, turn, tick, value):
+	def _set_cache(
+		self, key: Stat, branch: Branch, turn: Turn, tick: Tick, value: Value
+	) -> None:
 		store, graphn, orig, dest = self._set_cache_stuff
 		store(graphn, orig, dest, key, branch, turn, tick, value)
 
@@ -1131,10 +1292,10 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 		self.character = graph
 
 	@cached_property
-	def engine(self):
+	def engine(self) -> AbstractEngine:
 		return self.character.engine
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[NodeName]:
 		"""Iterate over the names of the nodes"""
 		now = tuple(self.engine.time)
 		gn = self.character.name
@@ -1143,7 +1304,7 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 			if entity in self:
 				yield entity
 
-	def __eq__(self, other):
+	def __eq__(self, other: Mapping[NodeName, Node]) -> bool:
 		from collections.abc import Mapping
 
 		if not isinstance(other, Mapping):
@@ -1162,19 +1323,19 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 		else:
 			return True
 
-	def __contains__(self, node: NodeName | KeyHint):
+	def __contains__(self, node: NodeName | KeyHint) -> bool:
 		"""Return whether the node exists presently"""
 		return self.engine._nodes_cache.contains_entity(
 			self.character.name, node, *self.engine.time
 		)
 
-	def __len__(self):
+	def __len__(self) -> int:
 		"""How many nodes exist right now?"""
 		return self.engine._nodes_cache.count_entities(
 			self.character.name, *self.engine.time
 		)
 
-	def __getitem__(self, node: NodeName | KeyHint):
+	def __getitem__(self, node: NodeName | KeyHint) -> Node:
 		"""If the node exists at present, return it, else throw KeyError"""
 		if node not in self:
 			raise KeyError
@@ -1186,7 +1347,7 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 		dikt: dict[
 			NodeName | KeyHint, dict[Stat | KeyHint, Value | ValueHint]
 		],
-	):
+	) -> None:
 		"""Only accept dict-like values for assignment. These are taken to be
 		dicts of node attributes, and so, a new GraphNodeMapping.Node
 		is made with them, perhaps clearing out the one already there.
@@ -1201,8 +1362,10 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 		n.clear()
 		n.update(dikt)
 
-	def __delitem__(self, node: NodeName | KeyHint):
+	def __delitem__(self, node: NodeName | KeyHint) -> None:
 		"""Indicate that the given node no longer exists"""
+		if not isinstance(node, Key):
+			raise TypeError("Invalid node name", node)
 		if node not in self:
 			raise KeyError("No such node")
 		for succ in self.character.adj[node]:
@@ -1223,29 +1386,44 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 	def __repr__(self):
 		return f"<{self.__class__.__name__} containing {', '.join(map(repr, self.keys()))}>"
 
+	type _m_typ = dict[KeyHint, EllipsisType | dict[KeyHint, ValueHint]]
+
+	@staticmethod
+	def _combo(
+		m: _m_typ,
+		kwargs: _m_typ,
+	) -> Iterator[tuple[NodeName, Value]]:
+		for node, value in chain(m.items(), kwargs.items()):
+			if not isinstance(node, Key):
+				raise TypeError("Invalid node", node)
+			noded = NodeName(node)
+			if not isinstance(value, Value):
+				raise TypeError("Invalid value", value)
+			yield noded, value
+
 	def update(
 		self,
-		m: dict[
-			NodeName | KeyHint,
-			type(...) | dict[Stat | KeyHint, Value | KeyHint],
-		],
+		m: _m_typ,
 		/,
-		**kwargs: dict[
-			NodeName | KeyHint,
-			type(...) | dict[Stat | KeyHint, Value | KeyHint],
-		],
+		**kwargs: _m_typ,
 	):
-		for node, value in chain(m.items(), kwargs.items()):
-			node = NodeName(Key(node))
+		for node, value in self._combo(m, kwargs):
 			if value is ...:
 				del self[node]
+			elif not isinstance(value, dict):
+				raise TypeError("Invalid node update", value)
 			elif node not in self:
 				self[node] = value
 			else:
 				self[node].update(value)
 
 
-class GraphEdgeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
+class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
+	MutableMapping[_ORIG, _DEST],
+	Signal,
+	CharacterMappingMixin,
+	ABC,
+):
 	"""Provides an adjacency mapping and possibly a predecessor mapping
 	for a graph.
 
@@ -1284,14 +1462,13 @@ class GraphEdgeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 		return iter(self.character.node)
 
 
-class AbstractSuccessors(GraphEdgeMapping, ABC):
+class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
 	__slots__ = ("container", "orig", "_cache")
-	orig: NodeName
 
 	@abstractmethod
 	def _order_nodes(self, node: NodeName) -> tuple[NodeName, NodeName]: ...
 
-	def __init__(self, container, orig):
+	def __init__(self, container: GraphEdgeMapping, orig: NodeName):
 		"""Store container and node"""
 		super().__init__(container.character)
 		self.container = container
@@ -1307,7 +1484,9 @@ class AbstractSuccessors(GraphEdgeMapping, ABC):
 
 	def __contains__(self, dest: KeyHint | NodeName) -> bool:
 		"""Is there an edge leading to ``dest`` at the moment?"""
-		orig, dest = self._order_nodes(dest)
+		if not isinstance(dest, Key):
+			raise TypeError("Invalid node", dest)
+		orig, dest = self._order_nodes(NodeName(dest))
 		return self.engine._edges_cache.has_successor(
 			self.character.name, orig, dest, *self.engine.time
 		)
@@ -1324,6 +1503,9 @@ class AbstractSuccessors(GraphEdgeMapping, ABC):
 
 	def __getitem__(self, dest: KeyHint | NodeName):
 		"""Get the edge between my orig and the given node"""
+		if not isinstance(dest, Key):
+			raise TypeError("Invalid node", dest)
+		dest = NodeName(dest)
 		if dest not in self:
 			raise KeyError("No edge {}->{}".format(self.orig, dest))
 		orig, dest = self._order_nodes(dest)
@@ -1332,13 +1514,15 @@ class AbstractSuccessors(GraphEdgeMapping, ABC):
 	def __setitem__(
 		self,
 		dest: KeyHint | NodeName,
-		value: dict[Stat | KeyHint, Value | ValueHint],
+		value: dict[KeyHint, ValueHint] | dict[Stat, Value],
 	):
 		"""Set the edge between my orig and the given dest to the given
 		value, a mapping.
 
 		"""
-		real_dest = dest
+		if not isinstance(dest, Key):
+			raise TypeError("Invalid node", dest)
+		real_dest = dest = NodeName(dest)
 		orig, dest = self._order_nodes(dest)
 		if orig not in self.character.node:
 			self.character.add_node(orig)
@@ -1355,15 +1539,18 @@ class AbstractSuccessors(GraphEdgeMapping, ABC):
 		e.clear()
 		e.update(value)
 
-	def __delitem__(self, dest: KeyHint | NodeName):
+	def __delitem__(self, dest: KeyHint | NodeName) -> None:
 		"""Remove the edge between my orig and the given dest"""
+		if not isinstance(dest, Key):
+			raise TypeError("Invalid node", dest)
+		dest = NodeName(dest)
 		branch, turn, tick = self.engine._nbtt()
 		orig, dest = self._order_nodes(dest)
 		self.engine.query.exist_edge(
 			self.character.name, orig, dest, branch, turn, tick, False
 		)
 		self.engine._edges_cache.store(
-			self.character.name, orig, dest, branch, turn, tick, None
+			self.character.name, orig, dest, branch, turn, tick, False
 		)
 
 	def __repr__(self):
@@ -1377,8 +1564,74 @@ class AbstractSuccessors(GraphEdgeMapping, ABC):
 		for dest in list(self):
 			del self[dest]
 
+	def update(
+		self,
+		m: dict[
+			NodeName,
+			EllipsisType | dict[NodeName, EllipsisType | dict[Stat, Value]],
+		]
+		| dict[
+			KeyHint,
+			EllipsisType
+			| dict[KeyHint, EllipsisType | dict[KeyHint, ValueHint]],
+		],
+	) -> None:
+		realupd: dict[
+			NodeName,
+			EllipsisType | dict[NodeName, EllipsisType | dict[Stat, Value]],
+		] = {}
+		for k0, v0 in m.items():
+			if not isinstance(k0, Key):
+				raise TypeError("Invalid node", k0)
+			orig = NodeName(k0)  # could be dest if we're a pred map, whatev
+			if v0 is ...:
+				realupd[orig] = ...
+				continue
+			elif not isinstance(v0, dict):
+				raise TypeError("Invalid update dict", v0)
+			for k1, v1 in v0.items():
+				if not isinstance(k1, Key):
+					raise TypeError("Invalid node", k1)
+				dest = NodeName(k1)
+				if v1 is ...:
+					if orig in realupd:
+						realupd[orig][dest] = ...
+					else:
+						realupd[orig] = {dest: ...}
+					continue
+				elif not isinstance(v1, dict):
+					raise TypeError("Invalid edge stats", v1)
+				for k2, v2 in v1.items():
+					if not isinstance(k2, Key):
+						raise TypeError("Invalid stat", k2)
+					stat = Stat(k2)
+					if not isinstance(v2, Value):  # could be ..., that's fine
+						raise TypeError("Invalid stat value", v2)
+					if orig in realupd:
+						if dest in realupd[orig]:
+							realupd[orig][dest][stat] = v2
+						else:
+							realupd[orig][dest] = {stat: v2}
+					else:
+						realupd[orig] = {dest: {stat: v2}}
+		for orig, dests in realupd.items():
+			if dests is ...:
+				del self[orig]
+				continue
+			for dest, stats in dests.items():
+				if stats is ...:
+					del self[orig][dest]
+					continue
+				for stat, val in stats.items():
+					if val is ...:
+						del self[orig][dest][stat]
+						continue
+					self[orig][dest][stat] = val
 
-class GraphSuccessorsMapping(GraphEdgeMapping, ABC):
+
+class GraphSuccessorsMapping(
+	GraphEdgeMapping[NodeName, dict[NodeName, bool]], ABC
+):
 	"""Mapping for Successors (itself a MutableMapping)"""
 
 	__slots__ = ("graph",)
@@ -1392,7 +1645,39 @@ class GraphSuccessorsMapping(GraphEdgeMapping, ABC):
 			else:
 				return (self.orig, dest)
 
+		def update(
+			self,
+			m: dict[NodeName, EllipsisType | dict[Stat, Value]]
+			| dict[KeyHint, EllipsisType | dict[KeyHint, ValueHint]],
+		) -> None:
+			realupd: dict[NodeName, EllipsisType | dict[Stat, Value]] = {}
+			for k, v in m.items():
+				if not isinstance(k, Key):
+					raise TypeError("Invalid node", k)
+				k = NodeName(k)
+				if v is ...:
+					realupd[k] = ...
+					continue
+				elif not isinstance(v, dict):
+					raise TypeError("Invalid update dict", v)
+				realv: dict[Stat, Value] = {}
+				for k_, v_ in v.items():
+					if not isinstance(k_, Key):
+						raise TypeError("Invalid stat", k_)
+					if not isinstance(v_, Value):
+						raise TypeError("Invalid value", v_)
+					realv[Stat(k_)] = v_
+				realupd[k] = realv
+			for k, v in realupd.items():
+				if v is ...:
+					del self[k]
+				else:
+					self[k].update(v)
+
 	def __getitem__(self, orig: KeyHint | NodeName):
+		if not isinstance(orig, Key):
+			raise TypeError("Invalid node", orig)
+		orig = NodeName(orig)
 		if orig not in self._cache:
 			self._cache[orig] = self.Successors(self, orig)
 		return self._cache[orig]
@@ -1400,12 +1685,16 @@ class GraphSuccessorsMapping(GraphEdgeMapping, ABC):
 	def __setitem__(
 		self,
 		key: KeyHint | NodeName,
-		val: dict[NodeName | KeyHint, dict[Stat | KeyHint, Value | ValueHint]],
+		val: dict[KeyHint, dict[KeyHint, ValueHint]]
+		| dict[NodeName, dict[Stat, Value]],
 	):
 		"""Wipe out any edges presently emanating from orig and replace them
 		with those described by val
 
 		"""
+		if not isinstance(key, Key):
+			raise TypeError("Invalid node", key)
+		key = NodeName(key)
 		if key in self:
 			sucs = self[key]
 			sucs.clear()
@@ -1465,6 +1754,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 	__slots__ = ("graph",)
 
 	def __contains__(self, dest: KeyHint | NodeName) -> bool:
+		if not isinstance(dest, Key):
+			raise TypeError("Invalid node", dest)
+		dest = NodeName(dest)
 		for orig in self.engine._edges_cache.iter_predecessors(
 			self.character.name, dest, *self.engine.time
 		):
@@ -1482,6 +1774,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 		node
 
 		"""
+		if not isinstance(dest, Key):
+			raise TypeError("Invalid node", dest)
+		dest = NodeName(dest)
 		if dest not in self.character.node:
 			raise KeyError("No such node", dest)
 		if dest not in self._cache:
@@ -1491,17 +1786,24 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 	def __setitem__(
 		self,
 		key: KeyHint | NodeName,
-		val: dict[KeyHint | NodeName, dict[Stat | KeyHint, Value | ValueHint]],
+		val: dict[NodeName, EllipsisType | dict[Stat, Value]]
+		| dict[KeyHint, EllipsisType | dict[KeyHint, ValueHint]],
 	):
 		"""Interpret ``val`` as a mapping of edges that end at ``dest``"""
-		if key not in self._cache:
-			self._cache[key] = self.Predecessors(self, key)
+		if not isinstance(key, Key):
+			raise TypeError("Invalid node", key)
+		dest = NodeName(key)
+		if dest not in self._cache:
+			self._cache[dest] = self.Predecessors(self, dest)
 		preds = self._cache[key]
 		preds.clear()
 		preds.update(val)
 
 	def __delitem__(self, key: KeyHint | NodeName):
 		"""Delete all edges ending at ``dest``"""
+		if not isinstance(key, Key):
+			raise TypeError("Invalid node", key)
+		key = NodeName(key)
 		it = self[key]
 		it.clear()
 		del self._cache[key]
@@ -1533,6 +1835,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 
 		def __contains__(self, orig: NodeName | KeyHint) -> bool:
 			"""Is there an edge from ``orig`` at the moment?"""
+			if not isinstance(orig, Key):
+				raise TypeError("Invalid node", orig)
+			orig = NodeName(orig)
 			return self.engine._edges_cache.has_predecessor(
 				self.character.name, self.dest, orig, *self.engine.time
 			)
@@ -1549,6 +1854,9 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 
 		def __getitem__(self, orig: KeyHint | NodeName) -> Edge:
 			"""Get the edge from the given node to mine"""
+			if not isinstance(orig, Key):
+				raise TypeError("Invalid node", orig)
+			orig = NodeName(orig)
 			if orig not in self:
 				raise KeyError(orig)
 			return self.character.adj[orig][self.dest]
@@ -1556,12 +1864,15 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 		def __setitem__(
 			self,
 			orig: NodeName | KeyHint,
-			value: dict[Stat | KeyHint, Value | ValueHint],
+			value: dict[Stat, Value] | dict[KeyHint, ValueHint],
 		):
 			"""Use ``value`` as a mapping of edge attributes, set an edge from the
 			given node to mine.
 
 			"""
+			if not isinstance(orig, Key):
+				raise TypeError("Invalid node", orig)
+			orig = NodeName(orig)
 			branch, turn, tick = self.engine._nbtt()
 			try:
 				e = self[orig]
@@ -1577,6 +1888,17 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 					True,
 				)
 				e = self._make_edge(orig)
+			realupd: dict[Stat, Value]
+			for k, v in value.items():
+				if not isinstance(k, Key):
+					raise TypeError("Invalid stat", k)
+				if v is ...:
+					raise ValueError(
+						"Lisien uses the ellipsis to indicate deleted items"
+					)
+				if not isinstance(v, Value):
+					raise TypeError("Invalid stat value", v)
+				realupd[Stat(k)] = Value(v)
 			e.update(value)
 			self.engine._edges_cache.store(
 				self.character.name, orig, self.dest, branch, turn, tick, True
@@ -1584,16 +1906,19 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 
 		def __delitem__(self, orig: NodeName | KeyHint):
 			"""Unset the existence of the edge from the given node to mine"""
+			if not isinstance(orig, Key):
+				raise TypeError("Invalid node", orig)
+			orig = NodeName(orig)
 			branch, turn, tick = self.engine._nbtt()
 			self.engine.query.exist_edge(
 				self.character.name, orig, self.dest, branch, turn, tick, False
 			)
 			self.engine._edges_cache.store(
-				self.character.name, orig, self.dest, branch, turn, tick, None
+				self.character.name, orig, self.dest, branch, turn, tick, False
 			)
 
 
-def unwrapped_dict(d):
+def unwrapped_dict(d) -> dict:
 	ret = {}
 	for k, v in d.items():
 		if hasattr(v, "unwrap") and not getattr(v, "no_unwrap", False):
@@ -3487,10 +3812,20 @@ class TimeSignal(
 
 	def __setitem__(self, i: str | int, v: str | int) -> None:
 		if i in ("branch", 0):
+			if not isinstance(v, str):
+				raise TypeError("Invalid branch", v)
 			self.engine.branch = Branch(v)
 		elif i in ("turn", 1):
+			if not isinstance(v, int):
+				raise TypeError("Invalid turn", v)
+			if v < 0:
+				raise ValueError("Negative turn", v)
 			self.engine.turn = Turn(v)
 		elif i in ("tick", 2):
+			if not isinstance(v, int):
+				raise TypeError("Invalid tick", v)
+			if v < 0:
+				raise ValueError("Negative tick", v)
 			self.engine.tick = Tick(v)
 		else:
 			exctyp = KeyError if isinstance(i, str) else IndexError

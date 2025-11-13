@@ -1359,7 +1359,7 @@ class AbstractDatabaseConnector(ABC):
 		self,
 		graph: CharName,
 		node: NodeName,
-		key: Key,
+		key: Stat,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -1374,7 +1374,7 @@ class AbstractDatabaseConnector(ABC):
 		graph: CharName,
 		orig: NodeName,
 		dest: NodeName,
-		key: Key,
+		key: Stat,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -1492,7 +1492,7 @@ class AbstractDatabaseConnector(ABC):
 	def graph_val_set(
 		self,
 		graph: CharName,
-		key: Key,
+		key: Stat,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
@@ -1551,7 +1551,7 @@ class AbstractDatabaseConnector(ABC):
 	def global_set(self, key: EternalKey, value: Value):
 		self._eternal2set.append((key, value))
 
-	def global_del(self, key: Key) -> None:
+	def global_del(self, key: EternalKey) -> None:
 		self._eternal2set.append((key, ...))
 
 	def set_branch(

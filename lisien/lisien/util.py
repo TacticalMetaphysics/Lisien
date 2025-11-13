@@ -23,7 +23,7 @@ from functools import wraps
 from pprint import pformat
 from textwrap import dedent
 from time import monotonic
-from typing import Callable, Iterable, TypeVar
+from typing import Callable, Iterable, TypeVar, Protocol
 
 try:
 	import msgpack
@@ -202,9 +202,14 @@ def garbage(arg: Callable | None = None, collect: bool = False):
 
 _U = TypeVar("_U")
 _V = TypeVar("_V")
+_W = TypeVar("_W")
 
 
-def world_locked(fn: Callable[[_U, ...], _V]) -> Callable[[_U, ...], _V]:
+class Lockable[_U, _V, _W](Protocol):
+	def __call__(self, *_U, **_V) -> _W: ...
+
+
+def world_locked(fn: Lockable[_U, _V, _W]) -> Lockable[_U, _V, _W]:
 	"""Decorator for functions that alter the world state
 
 	They will hold a reentrant lock, preventing more than one function
@@ -218,9 +223,6 @@ def world_locked(fn: Callable[[_U, ...], _V]) -> Callable[[_U, ...], _V]:
 			return fn(*args, **kwargs)
 
 	return lockedy
-
-
-_W = TypeVar("_W")
 
 
 def unwrap(v: _W) -> _W:
