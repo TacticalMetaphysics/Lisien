@@ -3893,7 +3893,7 @@ class TimeSignal(
 
 	@property
 	def engine(self):
-		return super().__getitem__(0)
+		return tuple.__getitem__(self, 0)
 
 	def __iter__(self):
 		yield self.engine.branch
