@@ -1711,7 +1711,11 @@ class GraphSuccessorsMapping(
 				if v is ...:
 					del self[k]
 				else:
-					self[k].update(v)
+					for k2, v2 in v.items():
+						if v2 is ...:
+							del self[k][k2]
+						else:
+							self[k][k2] = v2
 
 	def __getitem__(self, orig: KeyHint | NodeName) -> Successors:
 		if not isinstance(orig, Key):
