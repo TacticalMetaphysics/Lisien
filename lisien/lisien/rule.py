@@ -229,7 +229,7 @@ class TriggerList(RuleFuncList[TriggerFuncName]):
 	def _setter(
 		self,
 	) -> Callable[[RuleName, Branch, Turn, Tick, list[TriggerFuncName]], None]:
-		return self.rule.engine.query.set_rule_triggers
+		return self.rule.engine.db.set_rule_triggers
 
 
 class PrereqList(RuleFuncList[PrereqFuncName]):
@@ -247,7 +247,7 @@ class PrereqList(RuleFuncList[PrereqFuncName]):
 	def _setter(
 		self,
 	) -> Callable[[RuleName, Branch, Turn, Tick, list[PrereqFuncName]], None]:
-		return self.rule.engine.query.set_rule_prereqs
+		return self.rule.engine.db.set_rule_prereqs
 
 
 class ActionList(RuleFuncList[ActionFuncName]):
@@ -265,7 +265,7 @@ class ActionList(RuleFuncList[ActionFuncName]):
 	def _setter(
 		self,
 	) -> Callable[[RuleName, Branch, Turn, Tick, list[ActionFuncName]], None]:
-		return self.rule.engine.query.set_rule_actions
+		return self.rule.engine.db.set_rule_actions
 
 
 class RuleFuncListDescriptor:
@@ -350,7 +350,7 @@ class Rule:
 		self.engine._neighborhoods_cache.store(
 			Key(self.name), *btt, Value(neighbors)
 		)
-		self.engine.query.set_rule_neighborhood(self.name, *btt, neighbors)
+		self.engine.db.set_rule_neighborhood(self.name, *btt, neighbors)
 
 	@property
 	def big(self) -> RuleBig:
@@ -377,7 +377,7 @@ class Rule:
 			pass
 		btt = self.engine._nbtt()
 		self.engine._rule_bigness_cache.store(Key(self.name), *btt, Value(big))
-		self.engine.query.set_rule_big(self.name, *btt, big)
+		self.engine.db.set_rule_big(self.name, *btt, big)
 
 	def __init__(
 		self,
@@ -420,7 +420,7 @@ class Rule:
 			triggers = list(self._fun_names_iter("trigger", triggers or []))
 			prereqs = list(self._fun_names_iter("prereq", prereqs or []))
 			actions = list(self._fun_names_iter("action", actions or []))
-			self.engine.query.create_rule(
+			self.engine.db.create_rule(
 				name,
 				branch,
 				turn,
@@ -635,7 +635,7 @@ class RuleBook(MutableSequence[Rule], Signal):
 		branch, turn, tick = self.engine._nbtt()
 		cache, _ = self._get_cache(branch, turn, tick)
 		self._set_cache(branch, turn, tick, (cache, v))
-		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache, v)
+		self.engine.db.set_rulebook(self.name, branch, turn, tick, cache, v)
 
 	def __contains__(self, v: RuleName | Rule) -> bool:
 		return getattr(v, "name", v) in self._get_cache(*self.engine.time)[0]
@@ -680,9 +680,7 @@ class RuleBook(MutableSequence[Rule], Signal):
 				cache.append(v)
 			prio = RulebookPriority(0.0)
 			self._set_cache(branch, turn, tick, (cache, prio))
-		self.engine.query.set_rulebook(
-			self.name, branch, turn, tick, cache, prio
-		)
+		self.engine.db.set_rulebook(self.name, branch, turn, tick, cache, prio)
 		self.engine.rulebook.send(self, i=i, v=v)
 		self.send(self, i=i, v=v)
 
@@ -700,9 +698,7 @@ class RuleBook(MutableSequence[Rule], Signal):
 			cache = [v]
 			prio = RulebookPriority(0.0)
 		self._set_cache(branch, turn, tick, (cache, prio))
-		self.engine.query.set_rulebook(
-			self.name, branch, turn, tick, cache, prio
-		)
+		self.engine.db.set_rulebook(self.name, branch, turn, tick, cache, prio)
 		self.engine.rulebook.send(self, i=i, v=v)
 		self.send(self, i=i, v=v)
 
@@ -726,9 +722,7 @@ class RuleBook(MutableSequence[Rule], Signal):
 		except KeyError:
 			raise IndexError
 		del cache[i]
-		self.engine.query.set_rulebook(
-			self.name, branch, turn, tick, cache, prio
-		)
+		self.engine.db.set_rulebook(self.name, branch, turn, tick, cache, prio)
 		self._set_cache(branch, turn, tick, (cache, prio))
 		self.engine.rulebook.send(self, i=i, v=None)
 		self.send(self, i=i, v=None)
@@ -970,7 +964,7 @@ class AllRules(UserDict[RuleName, Rule], Signal):
 			self,
 			(
 				(name, Rule(engine, name, create=False))
-				for name in engine.query.rules_dump()
+				for name in engine.db.rules_dump()
 			),
 		)
 

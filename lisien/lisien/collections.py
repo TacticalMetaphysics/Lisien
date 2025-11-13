@@ -521,7 +521,7 @@ class UniversalMapping(MutableMapping, Signal):
 			pass
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._universal_cache.store(k, branch, turn, tick, v)
-		self.engine.query.universal_set(k, branch, turn, tick, v)
+		self.engine.db.universal_set(k, branch, turn, tick, v)
 		self.send(self, key=k, val=v)
 
 	def _set_cache_now(self, k: UniversalKey, v: Value):
@@ -531,7 +531,7 @@ class UniversalMapping(MutableMapping, Signal):
 		"""Unset this key for the present (branch, tick)"""
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._universal_cache.store(k, branch, turn, tick, ...)
-		self.engine.query.universal_del(k, branch, turn, tick)
+		self.engine.db.universal_del(k, branch, turn, tick)
 		self.send(self, key=k, val=...)
 
 

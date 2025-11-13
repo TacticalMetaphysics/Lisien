@@ -87,6 +87,7 @@ from .wrap import (
 
 if TYPE_CHECKING:
 	from .character import Character
+	from .db import AbstractDatabaseConnector
 	from .engine import Engine
 	from .node import Thing
 	from .portal import Portal
@@ -732,7 +733,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None],
 		CharName,
 	]:
-		return self.engine.query.graph_val_set, self.character.name
+		return self.engine.db.graph_val_set, self.character.name
 
 	@cached_property
 	def _set_cache_stuff(
@@ -748,7 +749,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	) -> tuple[
 		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None], CharName
 	]:
-		return self.engine.query.graph_val_set, self.character.name
+		return self.engine.db.graph_val_set, self.character.name
 
 	@cached_property
 	def _get_cache_stuff(
@@ -961,7 +962,7 @@ class Node(AbstractEntityMapping, ABC):
 		CharName,
 		NodeName,
 	]:
-		return self.engine.query.node_val_set, self.character.name, self.name
+		return self.engine.db.node_val_set, self.character.name, self.name
 
 	@cached_property
 	def _set_cache_stuff(
@@ -1263,7 +1264,7 @@ class Edge(AbstractEntityMapping, ABC):
 		NodeName,
 	]:
 		return (
-			self.character.engine.query.edge_val_set,
+			self.character.engine.db.edge_val_set,
 			self.character.name,
 			self.orig,
 			self.dest,
@@ -1412,7 +1413,7 @@ class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 		for pred in self.character.pred[node]:
 			del self.character.pred[node][pred]
 		branch, turn, tick = self.engine._nbtt()
-		self.engine.query.exist_node(
+		self.engine.db.exist_node(
 			self.character.name, node, branch, turn, tick, False
 		)
 		self.engine._nodes_cache.store(
@@ -1568,7 +1569,7 @@ class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
 		if dest not in self.character.node:
 			self.character.add_node(dest)
 		branch, turn, tick = self.engine._nbtt()
-		self.engine.query.exist_edge(
+		self.engine.db.exist_edge(
 			self.character.name, orig, dest, branch, turn, tick, True
 		)
 		self.engine._edges_cache.store(
@@ -1585,7 +1586,7 @@ class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
 		dest = NodeName(dest)
 		branch, turn, tick = self.engine._nbtt()
 		orig, dest = self._order_nodes(dest)
-		self.engine.query.exist_edge(
+		self.engine.db.exist_edge(
 			self.character.name, orig, dest, branch, turn, tick, False
 		)
 		self.engine._edges_cache.store(
@@ -1921,7 +1922,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 				e = self[orig]
 				e.clear()
 			except KeyError:
-				self.engine.query.exist_edge(
+				self.engine.db.exist_edge(
 					self.character.name,
 					orig,
 					self.dest,
@@ -1953,7 +1954,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 				raise TypeError("Invalid node", orig)
 			orig = NodeName(orig)
 			branch, turn, tick = self.engine._nbtt()
-			self.engine.query.exist_edge(
+			self.engine.db.exist_edge(
 				self.character.name, orig, self.dest, branch, turn, tick, False
 			)
 			self.engine._edges_cache.store(
@@ -2569,6 +2570,7 @@ class AbstractEngine(ABC):
 	universal: MutableMapping[KeyHint | UniversalKey, ValueHint]
 	rulebook: MutableMapping[KeyHint | RulebookName, "RuleBook"]
 	rule: MutableMapping[KeyHint | RuleName, "Rule"]
+	db: AbstractDatabaseConnector
 	trunk: Branch
 	branch: Branch
 	turn: Turn
