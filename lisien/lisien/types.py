@@ -3712,7 +3712,6 @@ class AbstractThing(ABC):
 						self.character.name,
 						prevsubplace,
 						subplace,
-						0,
 						branch,
 						turn,
 						tick,
