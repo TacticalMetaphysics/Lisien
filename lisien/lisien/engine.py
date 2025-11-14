@@ -2198,7 +2198,7 @@ class Engine(AbstractEngine, Executor):
 		if isinstance(trigger, ModuleType):
 			self.trigger = trigger
 		elif prefix is None:
-			self.trigger = FunctionStore(None, module="trigger")
+			self.trigger = TriggerStore(None, module="trigger")
 		else:
 			trigfn = os.path.join(prefix, "trigger.py")
 			if clear and os.path.exists(trigfn):
