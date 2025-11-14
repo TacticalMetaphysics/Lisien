@@ -2206,6 +2206,8 @@ class Engine(AbstractEngine, Executor):
 			self.trigger = TriggerStore(trigfn, module="trigger")
 		if isinstance(prereq, ModuleType):
 			self.prereq = prereq
+		elif prefix is None:
+			self.prereq = PrereqStore(None, module="prereq")
 		else:
 			preqfn = os.path.join(prefix, "prereq.py")
 			if clear and os.path.exists(preqfn):
@@ -2213,6 +2215,8 @@ class Engine(AbstractEngine, Executor):
 			self.prereq = PrereqStore(preqfn, module="prereq")
 		if isinstance(action, ModuleType):
 			self.action = action
+		elif prefix is None:
+			self.action = ActionStore(None, module="action")
 		else:
 			actfn = os.path.join(prefix, "action.py")
 			if clear and os.path.exists(actfn):
