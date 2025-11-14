@@ -252,7 +252,25 @@ def validate_time(time: Time) -> None:
 		raise ValueError("Negative tick", time[2])
 
 
-type LinearTime = tuple[Turn, Tick]
+class LinearTime(tuple[Turn, Tick]):
+	def __new__(
+		cls, tup: tuple[Turn, Tick] | Turn, tick: Tick | None = None
+	) -> LinearTime:
+		if tick is not None:
+			if not isinstance(tick, int):
+				raise TypeError("Invalid tick", tick)
+			turn: Turn = tup
+			if not isinstance(turn, int):
+				raise TypeError("Invalid turn", turn)
+			return tuple.__new__(cls, (turn, tick))
+		turn, tick = tup
+		if not isinstance(turn, int):
+			raise TypeError("Invalid turn")
+		if not isinstance(tick, int):
+			raise TypeError("Invalid tick")
+		return tuple.__new__(cls, tup)
+
+
 type TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", Annotated[int, Ge(0)])
 CharName = NewType("CharName", Key)
@@ -3049,13 +3067,13 @@ class AbstractEngine(ABC):
 		if branch is None:
 			branch = self.branch
 		_, turn, tick, _, _ = self._branches_d[branch]
-		return turn, tick
+		return LinearTime(turn, tick)
 
 	def _branch_end(self, branch: Branch | None = None) -> LinearTime:
 		if branch is None:
 			branch = self.branch
 		_, _, _, turn, tick = self._branches_d[branch]
-		return turn, tick
+		return LinearTime(turn, tick)
 
 	@abstractmethod
 	def _start_branch(
