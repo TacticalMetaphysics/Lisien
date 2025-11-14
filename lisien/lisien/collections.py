@@ -350,7 +350,7 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 		elif self._need_save:
 			self.save()
 			return getattr(self._module, k)
-		elif self._module:
+		elif hasattr(self._module, k):
 			return getattr(self._module, k)
 		else:
 			raise AttributeError("No attribute ", k)
