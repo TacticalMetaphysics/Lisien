@@ -261,7 +261,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 			return ParquetDB(
 				os.path.join(self.connector.path, table),
-				self._get_schema(table),
+				schema=self._get_schema(table),
 			)
 
 		def insert(self, table: str, data: list) -> None:
