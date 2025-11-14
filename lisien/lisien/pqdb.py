@@ -259,10 +259,14 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		def _get_db(self, table: str):
 			from parquetdb import ParquetDB
 
-			return ParquetDB(
-				os.path.join(self.connector.path, table),
-				schema=self._get_schema(table),
-			)
+			table_path = os.path.join(self.connector.path, table)
+			try:
+				return ParquetDB(
+					table_path,
+					schema=self._get_schema(table),
+				)
+			except TypeError:  # old parquetdb
+				return ParquetDB(table_path)
 
 		def insert(self, table: str, data: list) -> None:
 			self._get_db(table).create(data, schema=self._schema[table])
