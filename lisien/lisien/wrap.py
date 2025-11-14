@@ -428,10 +428,12 @@ class MutableMappingWrapper(
 
 class SubDictWrapper(MutableMappingWrapper, MappingUnwrapperMixin, dict):
 	__slots__ = ("_getter", "_set")
-	_getter: Callable
-	_set: Callable
+	_getter: Callable[[], dict]
+	_set: Callable[[dict], None]
 
-	def __init__(self, getter, setter):
+	def __init__(
+		self, getter: Callable[[], dict], setter: Callable[[dict], None]
+	):
 		super().__init__()
 		self._getter = getter
 		self._set = setter
@@ -468,10 +470,12 @@ class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
 
 class SubListWrapper(MutableSequenceWrapper, list):
 	__slots__ = ("_getter", "_set")
-	_getter: Callable
-	_set: Callable
+	_getter: Callable[[], list]
+	_set: Callable[[list], None]
 
-	def __init__(self, getter, setter):
+	def __init__(
+		self, getter: Callable[[], list], setter: Callable[[list], None]
+	):
 		super().__init__()
 		self._getter = getter
 		self._set = setter
@@ -495,8 +499,8 @@ class SubListWrapper(MutableSequenceWrapper, list):
 
 class MutableWrapperSet(MutableWrapper, ABC, set):
 	__slots__ = ()
-	_getter: Callable
-	_set: Callable
+	_getter: Callable[[], set]
+	_set: Callable[[set], None]
 
 	def __copy__(self):
 		return OrderlySet(self._getter())
@@ -591,10 +595,12 @@ class MutableWrapperSet(MutableWrapper, ABC, set):
 
 class SubSetWrapper(MutableWrapperSet):
 	__slots__ = ("_getter", "_set")
-	_getter: Callable
-	_set: Callable
+	_getter: Callable[[], set]
+	_set: Callable[[set], None]
 
-	def __init__(self, getter, setter):
+	def __init__(
+		self, getter: Callable[[], set], setter: Callable[[set], None]
+	):
 		super().__init__()
 		self._getter = getter
 		self._set = setter
