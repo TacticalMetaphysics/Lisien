@@ -266,7 +266,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					schema=self._get_schema(table),
 				)
 			except TypeError:  # old parquetdb
-				return ParquetDB(table_path)
+				return ParquetDB(table_path, initial_fields=self.schema[table])
 
 		def insert(self, table: str, data: list) -> None:
 			self._get_db(table).create(data, schema=self._schema[table])
