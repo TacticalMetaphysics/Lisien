@@ -426,7 +426,7 @@ class MutableMappingWrapper(
 ): ...
 
 
-class SubDictWrapper(MutableMappingWrapper, dict):
+class SubDictWrapper(MutableMappingWrapper, MappingUnwrapperMixin, dict):
 	__slots__ = ("_getter", "_set")
 	_getter: Callable
 	_set: Callable
