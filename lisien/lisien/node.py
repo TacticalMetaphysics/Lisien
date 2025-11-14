@@ -432,7 +432,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 
 	"""
 
-	__slots__ = ()
+	__slots__ = ("_rulebook",)
 	no_unwrap = True
 	_extra_keys = {
 		"name",

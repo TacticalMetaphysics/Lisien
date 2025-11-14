@@ -43,7 +43,7 @@ class Portal(Edge, RuleFollower):
 
 	"""
 
-	__slots__ = ()
+	__slots__ = ("_rulebook",)
 	no_unwrap = True
 
 	@property
