@@ -4111,7 +4111,7 @@ def root_type(t: type) -> type | tuple[type, ...]:
 		return t
 	elif t is Literal:
 		return t
-	elif issubclass(t, dict):
+	elif isinstance(t, type) and issubclass(t, dict):
 		return dict
 	return t
 
