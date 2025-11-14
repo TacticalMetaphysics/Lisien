@@ -982,7 +982,7 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 	def iter_times(self) -> Iterator[LinearTime]:
 		for turn, tick_set in self.items():
 			for tick in tick_set:
-				yield turn, tick
+				yield LinearTime(turn, tick)
 
 
 @reslot

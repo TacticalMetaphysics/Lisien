@@ -1443,7 +1443,9 @@ class Engine(AbstractEngine, Executor):
 		for branch in plan_ticks:
 			plan_times = plan_ticks[branch].iter_times()
 			for start_turn, start_tick in plan_times:
-				if self._branch_end(branch) < (start_turn, start_tick):
+				if self._branch_end(branch) < LinearTime(
+					start_turn, start_tick
+				):
 					break
 			else:
 				continue
