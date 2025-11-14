@@ -64,6 +64,7 @@ from typing import (
 	NewType,
 	Optional,
 	Type,
+	TypedDict,
 	TypeGuard,
 	TypeVar,
 	Union,
@@ -278,12 +279,13 @@ def rulename(s: str) -> RuleName:
 
 type RuleNeighborhood = Annotated[int, Ge(0)] | None
 RuleBig = NewType("RuleBig", bool)
-type RuleFunc = Callable[[Any], bool]
+RuleFunc = NewType("RuleFunc", FunctionType)
 FuncName = NewType("FuncName", str)
 type FuncStoreName = Literal[
 	"trigger", "prereq", "action", "function", "method"
 ]
 TriggerFuncName = NewType("TriggerFuncName", FuncName)
+TriggerFunc = NewType("TriggerFunc", RuleFunc)
 
 
 def trigfuncn(s: str) -> TriggerFuncName:
@@ -291,6 +293,7 @@ def trigfuncn(s: str) -> TriggerFuncName:
 
 
 PrereqFuncName = NewType("PrereqFuncName", FuncName)
+PrereqFunc = NewType("PrereqFunc", RuleFunc)
 
 
 def preqfuncn(s: str) -> PrereqFuncName:
@@ -298,6 +301,7 @@ def preqfuncn(s: str) -> PrereqFuncName:
 
 
 ActionFuncName = NewType("ActionFuncName", FuncName)
+ActionFunc = NewType("ActionFunc", RuleFunc)
 
 
 def actfuncn(s: str) -> ActionFuncName:
@@ -306,14 +310,16 @@ def actfuncn(s: str) -> ActionFuncName:
 
 type RuleFuncName = TriggerFuncName | PrereqFuncName | ActionFuncName
 type UniversalKeyframe = dict[UniversalKey, Value]
-type RuleKeyframe = dict[
-	Literal["triggers", "prereqs", "actions", "neighborhood", "big"],
-	list[TriggerFuncName]
-	| list[PrereqFuncName]
-	| list[ActionFuncName]
-	| RuleNeighborhood
-	| RuleBig,
-]
+
+
+class RuleKeyframe(TypedDict):
+	triggers: dict[RuleName, list[TriggerFuncName]]
+	prereqs: dict[RuleName, list[PrereqFuncName]]
+	actions: dict[RuleName, list[ActionFuncName]]
+	neighborhood: dict[RuleName, RuleNeighborhood]
+	big: dict[RuleName, RuleBig]
+
+
 type RulesKeyframe = dict[RuleName, RuleKeyframe]
 type RulebooksKeyframe = dict[
 	RulebookName, tuple[list[RuleName], RulebookPriority]
@@ -434,8 +440,10 @@ type UnitRulesHandledRowType = tuple[
 	RuleName,
 	Tick,
 ]
-type StatDict = dict[Stat | Literal["rulebook"], Value]
-type ThingDict = dict[Stat | Literal["rulebook", "location"], Value]
+type StatDict = dict[Stat | Literal["rulebook"], Value | RulebookName]
+type ThingDict = dict[
+	Stat | Literal["rulebook", "location"], Value | RulebookName
+]
 type CharDict = dict[
 	Stat
 	| Literal[
@@ -446,7 +454,7 @@ type CharDict = dict[
 		"character_place_rulebook",
 		"character_portal_rulebook",
 	],
-	Value,
+	Value | dict[CharName, dict[NodeName, bool]] | RulebookName,
 ]
 type GraphValKeyframe = dict[CharName, CharDict]
 type NodeValDict = dict[NodeName, StatDict]
@@ -509,34 +517,23 @@ type KeyframeGraphRowType = tuple[
 type KeyframeExtensionRowType = tuple[
 	Branch, Turn, Tick, UniversalKeyframe, RuleKeyframe, RulebooksKeyframe
 ]
-type Keyframe = dict[
-	Literal[
-		"universal",
-		"triggers",
-		"prereqs",
-		"actions",
-		"neighborhood",
-		"big",
-		"rulebook",
-		"nodes",
-		"edges",
-		"node_val",
-		"edge_val",
-		"graph_val",
-	],
-	GraphValKeyframe
-	| GraphNodesKeyframe
-	| GraphNodeValKeyframe
-	| GraphEdgesKeyframe
-	| GraphEdgeValKeyframe
-	| dict[UniversalKey, Value]
-	| dict[RuleName, list[TriggerFuncName]]
-	| dict[RuleName, list[PrereqFuncName]]
-	| dict[RuleName, list[ActionFuncName]]
-	| dict[RuleName, RuleNeighborhood]
-	| dict[RuleName, RuleBig]
-	| dict[RulebookName, tuple[list[RuleName], RulebookPriority]],
-]
+
+
+class Keyframe(TypedDict):
+	universal: dict[UniversalKey, Value]
+	triggers: dict[RuleName, list[TriggerFuncName]]
+	prereqs: dict[RuleName, list[PrereqFuncName]]
+	actions: dict[RuleName, list[ActionFuncName]]
+	neighborhood: dict[RuleName, RuleNeighborhood]
+	big: dict[RuleName, RuleBig]
+	rulebook: dict[RulebookName, tuple[list[RuleName], RulebookPriority]]
+	graph_val: GraphValKeyframe
+	node_val: GraphNodeValKeyframe
+	edge_val: GraphEdgeValKeyframe
+	nodes: GraphNodesKeyframe
+	edges: GraphEdgesKeyframe
+
+
 type SlightlyPackedDeltaType = dict[
 	bytes,
 	dict[
@@ -580,8 +577,6 @@ class AbstractEntityMapping[_K, _V](
 	MutableMapping[_K, _V], MappingUnwrapperMixin, ABC
 ):
 	__slots__ = ()
-
-	engine: Engine
 
 	@abstractmethod
 	def _get_cache(
@@ -898,7 +893,7 @@ class Node(AbstractEntityMapping, ABC):
 	def _iter_stuff(
 		self,
 	) -> tuple[
-		Callable[[CharName, Branch, Turn, Tick], Iterator[Key]],
+		Callable[[CharName, NodeName, Branch, Turn, Tick], Iterator[Key]],
 		CharName,
 		NodeName,
 		Time,
@@ -3042,7 +3037,7 @@ class AbstractEngine(ABC):
 	@abstractmethod
 	def _get_node(self, char: DiGraph | CharName, node: NodeName) -> Node: ...
 
-	def branches(self) -> KeysView:
+	def branches(self) -> KeysView[Branch]:
 		return self._branches_d.keys()
 
 	def branch_parent(self, branch: Branch | None) -> Branch | None:
@@ -4076,8 +4071,6 @@ def root_type(t: type) -> type | tuple[type, ...]:
 		t = t.__value__
 	if t is Key or t is Value:
 		return t
-	elif t is Turn or t is Tick or t is Plan or t is RuleNeighborhood:
-		return int
 	elif hasattr(t, "__supertype__"):
 		return root_type(t.__supertype__)
 	elif hasattr(t, "__origin__"):
@@ -4095,6 +4088,13 @@ def root_type(t: type) -> type | tuple[type, ...]:
 		elif ret is Union:
 			return tuple(map(root_type, get_args(t)))
 		return ret
+	elif isinstance(t, tuple):
+		assert all(isinstance(tt, type) for tt in t)
+		return t
+	elif t is Literal:
+		return t
+	elif issubclass(t, dict):
+		return dict
 	return t
 
 
@@ -4130,7 +4130,7 @@ def deannotate(annotation: str) -> Iterator[type]:
 		yield typ
 
 
-class AbstractFunctionStore(ABC):
+class AbstractFunctionStore[_K: str, _V: FunctionType | MethodType](ABC):
 	@abstractmethod
 	def save(self, reimport: bool = True) -> None: ...
 
@@ -4140,14 +4140,10 @@ class AbstractFunctionStore(ABC):
 	@abstractmethod
 	def iterplain(self) -> Iterator[tuple[str, str]]: ...
 
-	def store_source(self, v: str, name: str | None = None) -> None: ...
+	def store_source(self, v: str, name: _K | None = None) -> None: ...
 
 	@abstractmethod
-	def get_source(self, name: str) -> str: ...
-
-	@staticmethod
-	def truth(*args):
-		return True
+	def get_source(self, name: _K) -> str: ...
 
 
 class StatAlias:
