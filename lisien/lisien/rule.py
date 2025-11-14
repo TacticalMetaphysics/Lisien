@@ -861,7 +861,7 @@ class RuleFollower(ABC):
 
 	"""
 
-	__slots__ = ()
+	__slots__ = ("_rulebook",)
 	engine: AbstractEngine
 	_rulebook: RuleBook
 
