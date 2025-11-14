@@ -21,6 +21,8 @@ have a lot in common.
 
 from __future__ import annotations
 
+from abc import ABC
+
 from collections.abc import Mapping, Set, ValuesView
 from copy import deepcopy
 from functools import cached_property
@@ -454,9 +456,6 @@ class Node(lisien.types.Node, rule.RuleFollower):
 				self.character.name, self.name, *now, ret
 			)
 			return ret
-
-	def _get_rulebook(self) -> rule.RuleBook:
-		return rule.RuleBook(self.engine, self._get_rulebook_name())
 
 	def _set_rulebook_name(self, rulebook: RulebookName) -> None:
 		character = self.character.name

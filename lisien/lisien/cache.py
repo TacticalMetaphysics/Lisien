@@ -4773,9 +4773,12 @@ class ThingsCache(Cache):
 		*,
 		search: bool = False,
 	) -> NodeName:
-		return self._retrieve(
+		retr = self._retrieve(
 			character, thing, branch, turn, tick, search=search
 		)
+		if not isinstance(retr, Key):
+			raise TypeError("Stored invalid location for thing", thing, retr)
+		return NodeName(retr)
 
 	def turn_before(
 		self, character: CharName, thing: NodeName, branch: Branch, turn: Turn

@@ -24,6 +24,8 @@ for changes using the ``connect(..)`` method.
 
 from __future__ import annotations
 
+from types import FunctionType, MethodType
+
 import ast
 import importlib.util
 import json
@@ -50,6 +52,12 @@ from .types import (
 	Value,
 	ValueHint,
 	sort_set,
+	TriggerFuncName,
+	TriggerFunc,
+	PrereqFuncName,
+	PrereqFunc,
+	ActionFunc,
+	ActionFuncName,
 )
 from .util import dedent_source, getatt
 from .wrap import wrapval
@@ -282,7 +290,9 @@ class StringStore(MutableMapping[str, str], Signal):
 		return the_hash.digest()
 
 
-class FunctionStore(AbstractFunctionStore, Signal):
+class FunctionStore[_K: str, _T: FunctionType | MethodType](
+	AbstractFunctionStore[_K, _T], Signal
+):
 	"""A module-like object that lets you alter its code and save your changes.
 
 	Instantiate it with a path to a file that you want to keep the code in.
@@ -295,6 +305,8 @@ class FunctionStore(AbstractFunctionStore, Signal):
 	the function itself.
 
 	"""
+
+	_filename: str | None
 
 	def __init__(
 		self, filename: str | None, initial: dict = None, module: str = None
@@ -471,7 +483,7 @@ class FunctionStore(AbstractFunctionStore, Signal):
 		self._locl, self._ast, self._ast_idx = state
 
 
-class TriggerStore(FunctionStore):
+class TriggerStore(FunctionStore[TriggerFuncName, TriggerFunc]):
 	def get_source(self, name: str) -> str:
 		if name == "truth":
 			return "def truth(*args):\n\treturn True"
@@ -480,6 +492,12 @@ class TriggerStore(FunctionStore):
 	@staticmethod
 	def truth(*args):
 		return True
+
+
+class PrereqStore(FunctionStore[PrereqFuncName, PrereqFunc]): ...
+
+
+class ActionStore(FunctionStore[ActionFuncName, ActionFunc]): ...
 
 
 class UniversalMapping(MutableMapping, Signal):
