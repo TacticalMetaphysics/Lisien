@@ -14,6 +14,11 @@ pyclean --version
 wine git --version
 buildozer --version
 ls ~/lisien_windows
+if [ ! -z "$(git clean -n)" ]; then
+  echo "Debris in the repository."
+  git clean -n
+  exit 1
+fi
 isort lisien
 isort elide
 ruff format lisien
