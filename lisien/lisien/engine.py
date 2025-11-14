@@ -2247,7 +2247,7 @@ class Engine(AbstractEngine, Executor):
 		clear: bool,
 		database: AbstractDatabaseConnector | None,
 	):
-		if not hasattr(self, "query"):
+		if not hasattr(self, "db"):
 			if database:
 				self.db = database
 			elif prefix is None:
