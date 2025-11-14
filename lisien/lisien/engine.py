@@ -3027,21 +3027,6 @@ class Engine(AbstractEngine, Executor):
 		if with_fork_points:
 			yield b1, r1, t1
 
-	def _has_graph(self, graph, branch=None, turn=None, tick=None):
-		if branch is None:
-			branch = self.branch
-		if turn is None:
-			turn = self.turn
-		if tick is None:
-			tick = self.tick
-		try:
-			return (
-				self._graph_cache.retrieve(graph, branch, turn, tick)
-				!= "Deleted"
-			)
-		except KeyError:
-			return False
-
 	def _get_kf(
 		self,
 		branch: Branch,
