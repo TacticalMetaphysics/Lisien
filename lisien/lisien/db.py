@@ -5063,11 +5063,11 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> Iterator[tuple[CharName, NodeKeyframe, EdgeKeyframe, StatDict]]:
 		with self._lock:
-			for g, (nkf, ekf, gvkf) in (
-				self._keyframes_graphs[branch]
-				.retrieve_exact(turn, tick)
-				.items()
-			):
+			try:
+				kf = self._keyframes_graphs[branch].retrieve_exact(turn, tick)
+			except KeyError:
+				return
+			for g, (nkf, ekf, gvkf) in kf.items():
 				yield g, nkf, ekf, gvkf
 
 	def keyframes_graphs_dump(
