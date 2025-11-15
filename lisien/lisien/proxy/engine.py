@@ -61,6 +61,7 @@ from ..cache import PickyDefaultDict, StructuredDefaultDict
 from ..collections import (
 	AbstractLanguageDescriptor,
 	FunctionStore,
+	TriggerStore,
 	StringStore,
 )
 from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
@@ -848,7 +849,7 @@ class EngineProxy(AbstractEngine):
 				trigger = {"truth": "def truth(obj):\n\treturn True"}
 			elif "truth" not in trigger:
 				trigger["truth"] = "def truth(obj):\n\treturn True"
-			self.trigger = FunctionStore(
+			self.trigger = TriggerStore(
 				os.path.join(prefix, "trigger.py") if prefix else None,
 				initial=trigger,
 			)
