@@ -22,6 +22,7 @@ from __future__ import annotations
 from importlib import import_module
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match
+from types import EllipsisType
 from typing import Any, Callable, Iterable, Optional
 
 import networkx as nx
@@ -732,8 +733,8 @@ class EngineHandle:
 		char: CharName,
 		thing: NodeName,
 		dest: NodeName,
-		weight: Stat | None = None,
-		graph: nx.DiGraph | None = None,
+		weight: Stat | EllipsisType = ...,
+		graph: nx.DiGraph | EllipsisType = ...,
 	) -> int:
 		"""Make something find a path to ``dest`` and follow it.
 
