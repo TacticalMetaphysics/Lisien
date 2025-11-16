@@ -12,24 +12,28 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import os
+import shutil
 from time import monotonic
 
-import networkx as nx
 import pytest
 
-from lisien import Engine
 from lisien.proxy.manager import EngineProxyManager
+from .data import DATA_DIR
+
+
+@pytest.fixture
+def big_grid(tmp_path):
+	shutil.unpack_archive(os.path.join(DATA_DIR, "pathfind.tar.gz"), tmp_path)
+	yield tmp_path
 
 
 @pytest.mark.parquetdb
-def test_follow_path(tmp_path):
-	big_grid = nx.grid_2d_graph(100, 100)
-	big_grid.add_node("them", location=(0, 0))
-	straightly = nx.shortest_path(big_grid, (0, 0), (99, 99))
-	with Engine(tmp_path) as eng:
-		eng.add_character("grid", big_grid)
-	with EngineProxyManager(tmp_path, workers=0) as prox:
-		them = prox.character["grid"].thing["them"]
+def test_follow_path(big_grid):
+	with EngineProxyManager(big_grid, workers=0) as prox:
+		grid = prox.character["grid"]
+		them = grid.thing["them"]
+		straightly = grid.stat["straightly"]
 		start = monotonic()
 		them.follow_path(straightly)
 		elapsed = monotonic() - start
