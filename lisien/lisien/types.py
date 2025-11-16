@@ -3742,7 +3742,7 @@ class AbstractThing(ABC):
 	def go_to_place(
 		self,
 		place: KeyHint | Node | NodeName,
-		weight: Optional[KeyHint | Stat] = None,
+		weight: KeyHint | Stat | EllipsisType = ...,
 	) -> int:
 		"""Assuming I'm in a node that has a :class:`Portal` direct
 		to the given node, schedule myself to travel to the
@@ -3763,10 +3763,8 @@ class AbstractThing(ABC):
 		orm = self.character.engine
 		turns = (
 			1
-			if weight is None
-			else self.engine._portal_objs[
-				(self.character.name, curloc, place)
-			].get(weight, 1)
+			if weight is ...
+			else self.character.portal[curloc][placen][weight]
 		)
 		with self.engine.plan():
 			orm.turn += turns

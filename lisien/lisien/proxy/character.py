@@ -469,8 +469,8 @@ class ThingProxy(NodeProxy):
 	def travel_to(
 		self,
 		dest: NodeProxy,
-		weight: Optional[Stat] = None,
-		graph: Optional[CharName] = None,
+		weight: KeyHint | Stat | EllipsisType = ...,
+		graph: KeyHint | CharName | EllipsisType = ...,
 	):
 		self._worker_check()
 		if hasattr(dest, "name"):
@@ -490,8 +490,8 @@ class ThingProxy(NodeProxy):
 		self,
 		dest: NodeProxy,
 		arrival_tick: Tick,
-		weight: Optional[Key] = None,
-		graph: Optional[CharName] = None,
+		weight: KeyHint | Stat | EllipsisType = ...,
+		graph: KeyHint | CharName | EllipsisType = ...,
 	):
 		self._worker_check()
 		if hasattr(dest, "name"):
