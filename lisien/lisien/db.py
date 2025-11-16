@@ -4636,8 +4636,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		rbs = self._rulebooks
 		if branch in rbs:
 			rbb = rbs[branch]
-			for turn, tick in rbb.iter_times(
-				(turn_from, tick_from), (turn_to, tick_to)
+			for turn, tick in list(
+				rbb.iter_times((turn_from, tick_from), (turn_to, tick_to))
 			):
 				rulebook, rules, prio = rbb.retrieve_exact(turn, tick)
 				rulebooks.append(
@@ -4645,8 +4645,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				)
 		if branch in self._graphs:
 			turns = self._graphs[branch]
-			for turn, tick in turns.iter_times(
-				(turn_from, tick_from), (turn_to, tick_to)
+			for turn, tick in list(
+				turns.iter_times((turn_from, tick_from), (turn_to, tick_to))
 			):
 				d = turns.retrieve_exact(turn, tick)
 				graphs.extend(
@@ -4655,8 +4655,8 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 				)
 		if branch in self._universals:
 			turns = self._universals[branch]
-			for turn, tick in turns.iter_times(
-				(turn_from, tick_from), (turn_to, tick_to)
+			for turn, tick in list(
+				turns.iter_times((turn_from, tick_from), (turn_to, tick_to))
 			):
 				k, v = turns.retrieve_exact(turn, tick)
 				universals.append((branch, turn, tick, k, v))
@@ -4668,8 +4668,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			(rule_big, self._rule_big),
 		]:
 			if branch in my_table:
-				for turn, tick in my_table[branch].iter_times(
-					(turn_from, tick_from), (turn_to, tick_to)
+				for turn, tick in list(
+					my_table[branch].iter_times(
+						(turn_from, tick_from), (turn_to, tick_to)
+					)
 				):
 					rule, the_datum = my_table[branch].retrieve_exact(
 						turn, tick
@@ -4697,8 +4699,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			if branch not in my_table:
 				continue
 			assignments = my_table[branch]
-			for r, t in assignments.iter_times(
-				(turn_from, tick_from), (turn_to, tick_to)
+			for r, t in list(
+				assignments.iter_times(
+					(turn_from, tick_from), (turn_to, tick_to)
+				)
 			):
 				row: AssignmentRowType = assignments.retrieve_exact(r, t)
 				g: CharName = row[0]
