@@ -2670,7 +2670,22 @@ class AbstractEngine(ABC):
 				MsgpackExtensionType.set.value, packer(list(s))
 			)
 
+		from .wrap import (
+			ListWrapper,
+			DictWrapper,
+			SetWrapper,
+			SubListWrapper,
+			SubDictWrapper,
+			SubSetWrapper,
+		)
+
 		handlers = {
+			ListWrapper: lambda obj: obj.unwrap(),
+			DictWrapper: lambda obj: obj.unwrap(),
+			SetWrapper: lambda obj: obj.unwrap(),
+			SubListWrapper: lambda obj: obj.unwrap(),
+			SubDictWrapper: lambda obj: obj.unwrap(),
+			SubSetWrapper: lambda obj: obj.unwrap(),
 			type(...): lambda _: msgpack.ExtType(
 				MsgpackExtensionType.ellipsis.value, b""
 			),
