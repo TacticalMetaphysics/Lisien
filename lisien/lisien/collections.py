@@ -24,6 +24,12 @@ for changes using the ``connect(..)`` method.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from dataclasses import dataclass
+from functools import cached_property
+
+import base64
+
 from types import FunctionType, MethodType
 
 import ast
@@ -290,6 +296,786 @@ class StringStore(MutableMapping[str, str], Signal):
 		return the_hash.digest()
 
 
+@dataclass
+class CodeHasher(ast.NodeVisitor):
+	# What if users want to subclass Place or whatever, and use type
+	# annotations to decide what rules to run on which of their subclasses?
+	# Well, that's too complicated.
+
+	_indent: int = 0
+	_updated: bool = False
+
+	@cached_property
+	def _blake2b(self):
+		return blake2b()
+
+	@cached_property
+	def pack(self):
+		from .facade import EngineFacade
+
+		return EngineFacade(None).pack
+
+	def update(self, data: bytes) -> None:
+		self._blake2b.update(data)
+		self._updated = True
+
+	def visit(self, node):
+		if self._indent > 0:
+			self.update(b"\t" * self._indent)
+		super().visit(node)
+
+	@contextmanager
+	def block(self, extra: bytes = b""):
+		self.update(b":")
+		if extra:
+			self.update(extra)
+		self._indent += 1
+		yield
+		self._indent -= 1
+
+	def traverse(self, node: ast.AST | list[ast.stmt]):
+		if isinstance(node, list):
+			for item in node:
+				self.traverse(item)
+		else:
+			super().visit(node)
+
+	def visit_Constant(self, node: ast.Constant) -> None:
+		v = node.value
+		if isinstance(v, tuple):
+			with self.delimit(b"(", b")"):
+				self.items_view(self._write_constant, v)
+		elif v is ...:
+			self.update(b"...")
+		else:
+			self._write_constant(v)
+
+	def maybe_semicolon(self):
+		if self._updated:
+			self.update(b";")
+
+	def maybe_newline(self):
+		if self._updated:
+			self.update(b"\n")
+
+	def fill(self, text: bytes = b"", allow_semicolon: bool = True):
+		if self._indent == 0 and allow_semicolon:
+			self.maybe_semicolon()
+			self.update(text)
+		else:
+			self.maybe_newline()
+			self.update(b"\t" * self._indent + text)
+
+	def visit_FunctionDef(self, node):
+		for decorator in node.decorator_list:
+			self.update(b"@")
+			self.hash_expr(decorator)
+		self.update(b"def ")
+		self.update(node.name.encode())
+		with self.delimit(b"(", b")"):
+			self.traverse(node.args)
+		# we don't care about annotations
+		with self.block():
+			self.traverse(node.body)
+
+	def visit_AsyncFunctionDef(self, node):
+		raise TypeError("Lisien isn't an event loop")
+
+	def visit_comprehension(self, node: ast.comprehension) -> None:
+		if node.is_async:
+			raise TypeError("Async not supported", node)
+		self.update(b" for ")
+		self.traverse(node.target)
+		for iffy in node.ifs:
+			self.update(b" if ")
+			self.traverse(iffy)
+
+	def visit_Name(self, node: ast.Name) -> None:
+		self.update(node.id.encode())
+
+	boolops = {"And": b"and", "Or": b"or"}
+
+	def visit_BoolOp(self, node):
+		with self.parens():
+			for c in node.values:
+				self.visit(c)
+				self.update(self.boolops[node.op.__class__.__name__])
+
+	def visit_NamedExpr(self, node):
+		with self.parens():
+			self.traverse(node.target)
+			self.update(b" := ")
+			self.traverse(node.value)
+
+	binop = {
+		"Add": b"+",
+		"Sub": b"-",
+		"Mult": b"*",
+		"MatMult": b"@",
+		"Div": b"/",
+		"Mod": b"%",
+		"LShift": b"<<",
+		"RShift": b">>",
+		"BitOr": b"|",
+		"BitXor": b"^",
+		"BitAnd": b"&",
+		"FloorDiv": b"//",
+		"Pow": b"**",
+	}
+
+	def visit_BinOp(self, node):
+		opstr = self.binop[node.op.__class__.__name__]
+		with self.parens():
+			self.traverse(node.left)
+			self.update(b" " + opstr + b" ")
+			self.traverse(node.right)
+
+	cmpops = {
+		"Eq": b"==",
+		"NotEq": b"!=",
+		"Lt": b"<",
+		"LtE": b"<=",
+		"Gt": b">",
+		"GtE": b"b>=",
+		"Is": b"is",
+		"IsNot": b"is not",
+		"In": b"in",
+		"NotIn": b"not in",
+	}
+
+	@contextmanager
+	def parens(self):
+		self.update(b"(")
+		yield
+		self.update(b")")
+
+	def visit_Compare(self, node):
+		with self.parens():
+			self.traverse(node.left)
+			for o, e in zip(node.ops, node.comparators):
+				self.update(b" " + self.cmpops[o.__class__.__name__] + b" ")
+
+	unop = {"Invert": b"~", "Not": b"not ", "UAdd": b"+", "USub": b"-"}
+
+	def visit_UnaryOp(self, node):
+		opstr = self.unop[node.op.__class__.__name__]
+		with self.parens():
+			self.update(opstr)
+			self.traverse(node.operand)
+
+	def visit_Lambda(self, node):
+		self.update(b"lambda ")
+		for arg in node.args.posonlyargs:
+			self.update(arg.arg.encode())
+			self.update(b",")
+		self.update(b": ")
+		self.traverse(node.body)
+
+	def visit_IfExp(self, node):
+		with self.parens():
+			self.traverse(node.body)
+			self.update(b" if ")
+			self.traverse(node.test)
+			self.update(b" else ")
+			self.traverse(node.orelse)
+
+	def visit_If(self, node):
+		self.fill(b"if ", allow_semicolon=False)
+		self.traverse(node.test)
+		with self.block():
+			self.traverse(node.body)
+		while (
+			node.orelse
+			and len(node.orelse) == 1
+			and isinstance(node.orelse[0], ast.If)
+		):
+			node = node.orelse[0]
+			self.fill(b"elif ", allow_semicolon=False)
+			self.traverse(node.test)
+			with self.block():
+				self.traverse(node.body)
+		if node.orelse:
+			self.fill(b"else", allow_semicolon=False)
+			with self.block():
+				self.traverse(node.orelse)
+
+	@contextmanager
+	def delimit(self, left: bytes, right: bytes):
+		self.update(left)
+		yield
+		self.update(right)
+
+	def visit_Dict(self, node):
+		with self.delimit(b"{", b"}"):
+			for k, v in zip(node.keys, node.values):
+				if k is None:
+					self.update(b"**")
+					self.hash_expr(v)
+				else:
+					self.hash_expr(k)
+					self.update(b": ")
+					self.hash_expr(v)
+				self.update(b", ")
+
+	def interleave(self, inter, f, seq):
+		"""Call f on each item in seq, calling inter() in between."""
+		seq = iter(seq)
+		try:
+			f(next(seq))
+		except StopIteration:
+			pass
+		else:
+			for x in seq:
+				inter()
+				f(x)
+
+	def visit_Import(self, node):
+		self.fill(b"import ")
+		self.interleave(lambda: self.update(b", "), self.traverse, node.names)
+
+	def visit_ImportFrom(self, node):
+		self.fill(b"from ")
+		self.update(b"." * (node.level or 0))
+		if node.module:
+			self.update(node.module.encode())
+
+	def visit_Set(self, node):
+		if node.elts:
+			with self.delimit(b"{", b"}"):
+				self.interleave(
+					lambda: self.update(b", "), self.traverse, node.elts
+				)
+		else:
+			self.update(b"{*()}")
+
+	def visit_ListComp(self, node):
+		with self.delimit(b"[", b"]"):
+			self.traverse(node.elt)
+			for gen in node.generators:
+				self.traverse(gen)
+
+	def visit_GeneratorExp(self, node):
+		with self.delimit(b"(", b")"):
+			self.traverse(node.elt)
+			for gen in node.generators:
+				self.traverse(gen)
+
+	def visit_SetComp(self, node):
+		with self.delimit(b"{", b"}"):
+			self.traverse(node.elt)
+			for gen in node.generators:
+				self.traverse(gen)
+
+	def visit_DictComp(self, node):
+		with self.delimit(b"{", b"}"):
+			self.traverse(node.key)
+			self.update(b": ")
+			self.traverse(node.value)
+			for gen in node.generators:
+				self.traverse(gen)
+
+	def visit_Call(self, node):
+		self.traverse(node.func)
+		with self.delimit(b"(", b")"):
+			self.interleave(
+				lambda: self.update(b", "), self.traverse, node.args
+			)
+			self.interleave(
+				lambda: self.update(b", "), self.traverse, node.keywords
+			)
+
+	def visit_Subscript(self, node):
+		self.traverse(node.value)
+		with self.delimit(b"[", b"]"):
+			if isinstance(node.slice, ast.Tuple) and node.slice.elts:
+				self.items_view(self.traverse, node.slice.elts)
+			else:
+				self.traverse(node.slice)
+
+	def items_view(
+		self, traverser: Callable[[ast.AST], None], items: list[ast.AST]
+	):
+		if len(items) == 1:
+			traverser(items[0])
+			self.update(b",")
+		else:
+			self.interleave(lambda: self.update(b", "), traverser, items)
+
+	def visit_Starred(self, node):
+		self.update(b"*")
+		self.traverse(node.value)
+
+	def visit_Ellipsis(self, node):
+		self.update(b"...")
+
+	def visit_Slice(self, node):
+		if node.lower:
+			self.traverse(node.lower)
+		self.update(b":")
+		if node.upper:
+			self.traverse(node.upper)
+		if node.step:
+			self.update(b":")
+			self.traverse(node.step)
+
+	def visit_Match(self, node):
+		self.fill(b"match ", allow_semicolon=False)
+		self.traverse(node.subject)
+		with self.block():
+			for case in node.cases:
+				self.traverse(case)
+
+	def visit_arg(self, node):
+		self.update(node.arg.encode())
+
+	def visit_arguments(self, node):
+		first = True
+		all_args = node.posonlyargs + node.args
+		defaults = [None] * (
+			len(all_args) - len(node.defaults)
+		) + node.defaults
+		for i, (a, d) in enumerate(zip(all_args, defaults), 1):
+			if first:
+				first = False
+			else:
+				self.update(b", ")
+			self.traverse(a)
+			if d:
+				self.update(b"=")
+				self.traverse(d)
+			if i == len(node.posonlyargs):
+				self.update(b", /")
+		if node.vararg or node.kwonlyargs:
+			if first:
+				first = False
+			else:
+				self.update(b", ")
+			self.update(b"*")
+			if node.vararg:
+				self.update(node.vararg.arg.encode())
+		if node.kwonlyargs:
+			for a, d in zip(node.kwonlyargs, node.kw_defaults):
+				self.update(b", ")
+				self.traverse(a)
+				if d:
+					self.update(b"=")
+					self.traverse(d)
+		if node.kwarg:
+			if first:
+				first = False
+			else:
+				self.update(b", ")
+			self.update(b"**" + node.kwarg.arg.encode())
+
+	def visit_keyword(self, node):
+		if node.arg is None:
+			self.update(b"**")
+		else:
+			self.update(node.arg.encode())
+			self.update(b"=")
+		self.traverse(node.value)
+
+	def visit_alias(self, node):
+		self.update(node.name.encode())
+		if node.asname:
+			self.update(b" as " + node.asname.encode())
+
+	def visit_withitem(self, node):
+		self.traverse(node.context_expr)
+		if node.optional_vars:
+			self.update(b" as ")
+			self.traverse(node.optional_vars)
+
+	def visit_match_case(self, node):
+		self.fill(b"case ", allow_semicolon=False)
+		self.traverse(node.pattern)
+		if node.guard:
+			self.update(b" if ")
+			self.traverse(node.guard)
+		with self.block():
+			self.traverse(node.body)
+
+	def visit_MatchValue(self, node):
+		self.traverse(node.value)
+
+	def _write_constant(self, value):
+		self.update(repr(value).encode())
+
+	def visit_MatchSingleton(self, node):
+		self._write_constant(node.value)
+
+	def visit_MatchSequence(self, node):
+		with self.delimit(b"[", b"]"):
+			self.interleave(
+				lambda: self.update(b", "), self.traverse, node.patterns
+			)
+
+	def visit_MatchStar(self, node):
+		name = node.name
+		if name is None:
+			name = b"_"
+		self.update(b"*")
+		self.update(name.encode())
+
+	def visit_MatchMapping(self, node):
+		def upd_key_pattern_pair(pair):
+			k, p = pair
+			self.traverse(k)
+			self.update(b": ")
+			self.traverse(p)
+
+		with self.delimit(b"{", b"}"):
+			keys = node.keys
+			self.interleave(
+				lambda: self.update(b", "),
+				upd_key_pattern_pair,
+				zip(keys, node.patterns, strict=True),
+			)
+			rest = node.rest
+			if rest is not None:
+				if keys:
+					self.update(b", ")
+				self.update(b"**")
+				self.update(rest.encode())
+
+	def visit_MatchClass(self, node):
+		self.traverse(node.cls)
+		with self.delimit(b"(", b")"):
+			pats = node.patterns
+			self.interleave(lambda: self.update(b", "), self.traverse, pats)
+		attrs = node.kwd_attrs
+		if attrs:
+
+			def upd_attr_pat(pair):
+				attr, pat = pair
+				self.update(attr.encode())
+				self.update(b"=")
+				self.traverse(pat)
+
+			if pats:
+				self.update(b", ")
+			self.interleave(
+				lambda: self.update(b", "),
+				upd_attr_pat,
+				zip(attrs, node.kwd_patterns, strict=True),
+			)
+
+	def visit_MatchAs(self, node):
+		name = node.name
+		pattern = node.pattern
+		if name is None:
+			self.update(b"_")
+		elif pattern is None:
+			self.update(node.name.encode())
+		else:
+			with self.parens():
+				self.traverse(pattern)
+				self.update(b" as ")
+				self.update(node.name.encode())
+
+	def visit_MatchOr(self, node):
+		with self.parens():
+			self.interleave(
+				lambda: self.update(b" | "), self.traverse, node.patterns
+			)
+
+	def visit_FunctionType(self, node):
+		"""Since this is a function signature, rather than a real function, ignore it
+
+		The purpose of these hashes is to tell if you have the code needed to load
+		a game. Empty signatures don't matter.
+
+		"""
+		pass
+
+	def visit_Expr(self, node):
+		self.fill()
+		self.traverse(node.value)
+
+	def visit_Assign(self, node):
+		self.fill()
+		for target in node.targets:
+			self.traverse(target)
+			self.update(b" = ")
+		self.traverse(node.value)
+
+	def visit_AugAssign(self, node):
+		self.fill()
+		self.traverse(node.target)
+		self.update(b" ")
+		self.update(self.binop[node.op.__class__.__name__])
+		self.update(b"= ")
+		self.traverse(node.value)
+
+	def visit_AnnAssign(self, node):
+		if node.value is None:  # rather than ast.Constant *representing* None
+			return
+		self.fill()
+		with self.delimit(b"(", b")"):
+			self.traverse(node.target)
+		self.update(b" = ")
+		self.traverse(node.value)
+
+	def visit_Return(self, node):
+		self.fill(b"return")
+		if node.value:
+			self.update(b" ")
+			self.traverse(node.value)
+
+	def visit_Pass(self, node):
+		return
+
+	def visit_Break(self, node):
+		self.fill(b"break")
+
+	def visit_Continue(self, node):
+		self.fill(b"continue")
+
+	def visit_Delete(self, node):
+		self.fill(b"del ")
+		self.interleave(
+			lambda: self.update(b", "), self.traverse, node.targets
+		)
+
+	def visit_Assert(self, node):
+		return
+
+	def visit_Global(self, node):
+		self.fill(b"global ")
+		self.interleave(lambda: self.update(b", "), self.write, node.names)
+
+	def visit_Nonlocal(self, node):
+		self.fill(b"nonlocal ")
+		self.interleave(lambda: self.update(b", "), self.write, node.names)
+
+	def write(self, s: str) -> None:
+		self.update(s.encode())
+
+	def visit_Await(self, node):
+		raise TypeError("Lisien isn't an event loop")
+
+	def visit_Yield(self, node):
+		with self.parens():
+			self.update(b"yield")
+			if node.value:
+				self.update(b" ")
+				self.traverse(node.value)
+
+	def visit_YieldFrom(self, node):
+		with self.parens():
+			self.update(b"yield from ")
+			self.traverse(node.value)
+
+	def visit_Raise(self, node):
+		self.fill(b"raise")
+		if not node.exc:
+			return
+		self.update(b" ")
+		self.traverse(node.exc)
+		if node.cause:
+			self.update(b" from ")
+			self.traverse(node.cause)
+
+	def _visit_try(self, node):
+		self.fill(b"try", allow_semicolon=False)
+		with self.block():
+			self.traverse(node.body)
+		for ex in node.handlers:
+			self.traverse(ex)
+		if node.orelse:
+			self.fill(b"else", allow_semicolon=False)
+		if node.finalbody:
+			self.fill(b"finally", allow_semicolon=False)
+			with self.block():
+				self.traverse(node.finalbody)
+
+	@cached_property
+	def _in_try_star(self):
+		return False
+
+	def visit_Try(self, node):
+		prev_in_try_star = self._in_try_star
+		try:
+			self._in_try_star = False
+			self._visit_try(node)
+		finally:
+			self._in_try_star = prev_in_try_star
+
+	def visit_TryStar(self, node):
+		prev_in_try_star = self._in_try_star
+		try:
+			self._in_try_star = True
+			self._visit_try(node)
+		finally:
+			self._in_try_star = prev_in_try_star
+
+	def visit_ExceptHandler(self, node):
+		self.fill(
+			b"except*" if self._in_try_star else b"except",
+			allow_semicolon=False,
+		)
+		if node.type:
+			self.update(b" ")
+			self.traverse(node.type)
+		if node.name:
+			self.update(b" as ")
+			self.write(node.name)
+		with self.block():
+			self.traverse(node.body)
+
+	def visit_ClassDef(self, node):
+		self.maybe_newline()
+		for deco in node.decorator_list:
+			self.fill(b"@", allow_semicolon=False)
+			self.traverse(deco)
+		self.fill(b"class " + node.name.encode(), allow_semicolon=False)
+		# we don't care about type parameters
+		with self.delimit_if(
+			b"(", b")", condition=node.bases or node.keywords
+		):
+			self.interleave(
+				lambda: self.update(b", "), self.traverse, node.bases
+			)
+			self.interleave(
+				lambda: self.update(b", "), self.traverse, node.keywords
+			)
+		with self.block():
+			# we don't care about docstrings
+			self.traverse(node.body)
+
+	def visit_For(self, node):
+		self.fill(b"for ", allow_semicolon=False)
+		self.traverse(node.target)
+		self.update(b" in ")
+		self.traverse(node.iter)
+		with self.block():  # we don't care about type comments
+			self.traverse(node.body)
+		if node.orelse:
+			self.fill(b"else", allow_semicolon=False)
+			with self.block():
+				self.traverse(node.orelse)
+
+	def visit_AsyncFor(self, node):
+		raise TypeError("Lisien isn't an event loop")
+
+	def visit_While(self, node):
+		self.fill(b"while ", allow_semicolon=False)
+		self.traverse(node.test)
+		with self.block():
+			self.traverse(node.body)
+		if node.orelse:
+			self.fill(b"else", allow_semicolon=False)
+			with self.block():
+				self.traverse(node.orelse)
+
+	def visit_With(self, node):
+		self.fill(b"with ", allow_semicolon=False)
+		self.interleave(lambda: self.update(b", "), self.traverse, node.items)
+		with self.block():  # we don't care about type comments
+			self.traverse(node.body)
+
+	def visit_AsyncWith(self, node):
+		raise TypeError("Lisien isn't an event loop")
+
+	def _write_ftstring_inner(self, node, is_format_spec=False):
+		if isinstance(node, ast.JoinedStr):
+			for value in node.values:
+				self._write_ftstring_inner(
+					value, is_format_spec=is_format_spec
+				)
+		elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+			value = node.value.replace("{", "{{").replace("}", "}}")
+
+			if is_format_spec:
+				value = value.replace("\\", "\\\\")
+				value = value.replace("'", "\\'")
+				value = value.replace('"', '\\"')
+				value = value.replace("\n", "\\n")
+			self.write(value)
+		elif isinstance(node, ast.FormattedValue):
+			self.visit_FormattedValue(node)
+		elif isinstance(node, ast.Interpolation):
+			self.visit_Interpolation(node)
+		else:
+			raise ValueError("Unexpected node inside JoinedStr", node)
+
+	def _write_ftstring(self, values, prefix):
+		self.write(prefix)
+		for value in values:
+			self._write_ftstring_inner(value)
+
+	def visit_JoinedStr(self, node):
+		self._write_ftstring(node.values, "f")
+
+	def visit_TemplateStr(self, node):
+		self._write_ftstring(node.values, "t")
+
+	def _write_interpolation(self, node, is_interpolation=False):
+		with self.delimit(b"{", b"}"):
+			if is_interpolation:
+				expr = node.str
+			else:
+				self.visit(node.value)
+				return
+			self.write(expr)
+			if node.conversion != -1:
+				self.update(b"!")
+				self.update(node.conversion.to_bytes())
+			if node.format_spec:
+				self.update(b":")
+				self._write_fstring_inner(
+					node.format_spec, is_format_spec=True
+				)
+
+	def visit_FormattedValue(self, node):
+		self._write_interpolation(node)
+
+	def visit_Interpolation(self, node):
+		self._write_interpolation(node, is_interpolation=True)
+
+	def visit_List(self, node):
+		with self.delimit(b"[", b"]"):
+			self.interleave(
+				lambda: self.update(b", "), self.traverse, node.elts
+			)
+
+	def visit_TypeVar(self, node):
+		return
+
+	def visit_TypeVarTuple(self, node):
+		return
+
+	def visit_ParamSpec(self, node):
+		return
+
+	def visit_TypeAlias(self, node):
+		return
+
+	def visit_Tuple(self, node):
+		with self.delimit(b"(", b")"):
+			self.items_view(self.traverse, node.elts)
+
+	def visit_Attribute(self, node):
+		self.traverse(node.value)
+		if isinstance(node.value, ast.Constant) and isinstance(
+			node.value.value, int
+		):
+			self.update(b" ")
+		self.update(b".")
+		self.write(node.attr)
+
+	def digest(self) -> bytes:
+		return self._blake2b.digest()
+
+	def hexdigest(self) -> str:
+		return self._blake2b.hexdigest()
+
+	def b64digest(self) -> str:
+		digest = self.digest()
+		encoded = base64.standard_b64encode(digest)
+		return encoded.decode()
+
+
 class FunctionStore[_K: str, _T: FunctionType | MethodType](
 	AbstractFunctionStore[_K, _T], Signal
 ):
@@ -463,18 +1249,27 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 	def get_source(self, name: str) -> str:
 		return ast.unparse(self._ast.body[self._ast_idx[name]])
 
-	def blake2b(self) -> bytes:
-		"""Return the blake2b hash digest of the code stored here"""
-		hashed = blake2b()
+	def blake2b(self) -> str:
+		"""Return the blake2b hash digest of the code stored here
+
+		Neither formatting nor type annotations are considered significant for
+		the purposes of this hash.
+
+		The hash is returned in a base64 string.
+
+		"""
+		hasher = CodeHasher()
 		todo = dict(self._ast_idx)
-		stripped_ast = deepcopy(self._ast.body)
+		# stripped_ast = deepcopy(self._ast.body)
 		# astor.strip_tree(stripped_ast)
 		for k in sort_set(todo.keys()):
-			hashed.update(k.encode())
-			hashed.update(GROUP_SEP)
-			hashed.update(ast.unparse(stripped_ast[todo[k]]).encode())
-			hashed.update(REC_SEP)
-		return hashed.digest()
+			funcdef = self._ast.body[todo[k]]
+			if not isinstance(funcdef, ast.FunctionDef):
+				raise TypeError(
+					"Only store function defs in FunctionStore", funcdef
+				)
+			hasher.visit(funcdef)
+		return hasher.b64digest()
 
 	def __getstate__(self):
 		return self._locl, self._ast, self._ast_idx
