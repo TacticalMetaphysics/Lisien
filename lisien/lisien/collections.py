@@ -304,6 +304,7 @@ class CodeHasher(ast.NodeVisitor):
 
 	_indent: int = 0
 	_updated: bool = False
+	_in_try_star: bool = False
 
 	@cached_property
 	def _blake2b(self):
@@ -888,10 +889,6 @@ class CodeHasher(ast.NodeVisitor):
 			self.fill(b"finally", allow_semicolon=False)
 			with self.block():
 				self.traverse(node.finalbody)
-
-	@cached_property
-	def _in_try_star(self):
-		return False
 
 	def visit_Try(self, node):
 		prev_in_try_star = self._in_try_star
