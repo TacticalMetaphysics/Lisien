@@ -715,14 +715,18 @@ class EngineHandle:
 		char: CharName,
 		thing: NodeName,
 		path: list[NodeName],
-		weight: Stat,
+		weight: Stat | EllipsisType,
 	) -> int:
 		return (
 			self._real.character[char].thing[thing].follow_path(path, weight)
 		)
 
 	def thing_go_to_place(
-		self, char: CharName, thing: NodeName, place: NodeName, weight: Stat
+		self,
+		char: CharName,
+		thing: NodeName,
+		place: NodeName,
+		weight: Stat | EllipsisType,
 	) -> int:
 		return (
 			self._real.character[char].thing[thing].go_to_place(place, weight)
