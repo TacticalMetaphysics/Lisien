@@ -2646,7 +2646,7 @@ class AbstractEngine(ABC):
 		return self.is_ancestor_of(parent, self.branch_parent(child))
 
 	@cached_property
-	def pack(self) -> Callable[[ValueHint], bytes]:
+	def pack(self) -> Callable[[ValueHint | Value], bytes]:
 		try:
 			from msgpack import Packer
 
@@ -2937,7 +2937,7 @@ class AbstractEngine(ABC):
 	@cached_property
 	def unpack(
 		self,
-	) -> Callable[[bytes], ValueHint]:
+	) -> Callable[[bytes], Value]:
 		try:
 			import msgpack
 

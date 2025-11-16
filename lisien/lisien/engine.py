@@ -8082,7 +8082,7 @@ class Engine(AbstractEngine, Executor):
 					srchash = FunctionStore(
 						os.path.join(self._prefix, modpy)
 					).blake2b()
-					lisien_el.set(modname, b64encode(srchash).decode("utf-8"))
+					lisien_el.set(modname, srchash)
 			strings_dir = os.path.join(self._prefix, "strings")
 			if (
 				"strings" in ls
