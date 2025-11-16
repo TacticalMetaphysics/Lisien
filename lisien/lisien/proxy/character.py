@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from functools import cached_property
+from types import EllipsisType
 from typing import (
 	TYPE_CHECKING,
 	Iterable,
@@ -439,7 +440,9 @@ class ThingProxy(NodeProxy):
 			self._charname, self.name, self._location, id(self)
 		)
 
-	def follow_path(self, path: list[NodeName], weight: Optional[Stat] = None):
+	def follow_path(
+		self, path: list[NodeName], weight: Stat | EllipsisType = ...
+	):
 		self._worker_check()
 		self.engine.handle(
 			command="thing_follow_path",
@@ -450,7 +453,7 @@ class ThingProxy(NodeProxy):
 		)
 
 	def go_to_place(
-		self, place: NodeProxy | NodeName, weight: Optional[Stat] = None
+		self, place: NodeProxy | NodeName, weight: Stat | EllipsisType = ...
 	):
 		self._worker_check()
 		if hasattr(place, "name"):
