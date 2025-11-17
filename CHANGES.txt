@@ -1,3 +1,16 @@
+== 0.23.1 | 2025-11-16 ==
+* Fixed an inconsistency in instantiating ParquetDB that was probably preventing
+  Elide from launching for anybody who wasn't running the unreleased main
+  branch of ParquetDB. Sorry!
+* Fixed creating and deleting edges on the database
+* Fixed some crashes when trying to make Thing objects travel
+* More type safety
+* The database connector is now the `db` property of the `Engine` object
+  (formerly the `query` property)
+* The hashes in XML exports no longer vary depending on docstrings, formatting,
+  or type annotations. They're not used for anything yet; at some point,
+  the import feature will check the hashes to make sure you have compatible code.
+
 == 0.23.0 | 2025-11-13 ==
 * Added support for subinterpreter-based parallelism on Python 3.14, which is
   now the version used for Android.

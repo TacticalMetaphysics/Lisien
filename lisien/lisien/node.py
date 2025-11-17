@@ -22,7 +22,6 @@ have a lot in common.
 from __future__ import annotations
 
 from abc import ABC
-
 from collections.abc import Mapping, Set, ValuesView
 from copy import deepcopy
 from functools import cached_property

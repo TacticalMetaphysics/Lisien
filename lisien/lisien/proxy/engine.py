@@ -61,8 +61,8 @@ from ..cache import PickyDefaultDict, StructuredDefaultDict
 from ..collections import (
 	AbstractLanguageDescriptor,
 	FunctionStore,
-	TriggerStore,
 	StringStore,
+	TriggerStore,
 )
 from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..types import (

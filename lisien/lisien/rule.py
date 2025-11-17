@@ -81,7 +81,6 @@ the function's name.
 from __future__ import annotations
 
 import sys
-
 from abc import ABC, abstractmethod
 from ast import parse, unparse
 from collections import UserDict
@@ -95,10 +94,12 @@ from .cache import FuncListCache
 from .collections import FunctionStore
 from .types import (
 	AbstractEngine,
+	ActionFunc,
 	ActionFuncName,
 	Branch,
 	Key,
 	KeyHint,
+	PrereqFunc,
 	PrereqFuncName,
 	RuleBig,
 	RulebookName,
@@ -108,12 +109,10 @@ from .types import (
 	RuleName,
 	RuleNeighborhood,
 	Tick,
+	TriggerFunc,
 	TriggerFuncName,
 	Turn,
 	Value,
-	TriggerFunc,
-	PrereqFunc,
-	ActionFunc,
 )
 from .util import dedent_source
 

@@ -24,15 +24,8 @@ for changes using the ``connect(..)`` method.
 
 from __future__ import annotations
 
-from contextlib import contextmanager
-from dataclasses import dataclass
-from functools import cached_property
-
-import base64
-
-from types import FunctionType, MethodType
-
 import ast
+import base64
 import importlib.util
 import json
 import os
@@ -40,9 +33,13 @@ import sys
 from abc import ABC, abstractmethod
 from collections import UserDict
 from collections.abc import MutableMapping
+from contextlib import contextmanager
 from copy import deepcopy
+from dataclasses import dataclass
+from functools import cached_property
 from hashlib import blake2b
 from inspect import getsource
+from types import FunctionType, MethodType
 from typing import TYPE_CHECKING, Callable, Iterator, TypeVar
 
 import networkx as nx
@@ -51,19 +48,19 @@ from blinker import Signal
 from .types import (
 	AbstractEngine,
 	AbstractFunctionStore,
+	ActionFunc,
+	ActionFuncName,
 	CharName,
 	KeyHint,
+	PrereqFunc,
+	PrereqFuncName,
 	Stat,
+	TriggerFunc,
+	TriggerFuncName,
 	UniversalKey,
 	Value,
 	ValueHint,
 	sort_set,
-	TriggerFuncName,
-	TriggerFunc,
-	PrereqFuncName,
-	PrereqFunc,
-	ActionFunc,
-	ActionFuncName,
 )
 from .util import dedent_source, getatt
 from .wrap import wrapval

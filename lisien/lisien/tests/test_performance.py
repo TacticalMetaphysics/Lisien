@@ -19,6 +19,7 @@ from time import monotonic
 import pytest
 
 from lisien.proxy.manager import EngineProxyManager
+
 from .data import DATA_DIR
 
 
