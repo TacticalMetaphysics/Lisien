@@ -23,7 +23,7 @@ from functools import wraps
 from pprint import pformat
 from textwrap import dedent
 from time import monotonic
-from typing import Callable, Iterable, TypeVar, Protocol
+from typing import Callable, Iterable, Protocol, TypeVar
 
 try:
 	import msgpack
