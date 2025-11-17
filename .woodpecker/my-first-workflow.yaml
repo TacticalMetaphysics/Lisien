@@ -1,0 +1,11 @@
+when:
+	- event: push
+		branch: main
+
+steps:
+	- name: headless
+		image: python:3.14
+		commands:
+			- python -V
+			- python -m pip install tox
+			- tox -c lisien/tox.ini
