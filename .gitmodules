@@ -1,4 +1,4 @@
 [submodule "docs"]
 	path = docs
-	url = git@codeberg.org:clayote/Lisien.git
+	url = https://codeberg.org/clayote/Lisien.git
 	branch = pages
