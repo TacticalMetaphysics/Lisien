@@ -125,15 +125,6 @@ Menu for selecting which Character to work on
 .. automodule:: elide.charsview
    :members:
 
-********
- dialog
-********
-
-Simple data-driven UI interactions
-
-.. automodule:: elide.dialog
-   :members:
-
 ******
  menu
 ******
