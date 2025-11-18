@@ -90,7 +90,6 @@ from .cache import (
 	NodesCache,
 	NodesRulebooksCache,
 	NodeValCache,
-	PickyDefaultDict,
 	PortalRulesHandledCache,
 	PortalsRulebooksCache,
 	PrereqListCache,
@@ -195,6 +194,7 @@ from .types import (
 	Value,
 	sort_set,
 	validate_time,
+	PickyDefaultDict,
 )
 from .util import (
 	ACTIONS,
@@ -1154,6 +1154,13 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def character(self) -> CharacterMapping:
 		return CharacterMapping(self)
+
+	@contextmanager
+	def wayback(self):
+		"""Return to the time at the start of the context once it's done"""
+		now = tuple(self.time)
+		yield
+		self.time = now
 
 	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick):
 		"""Override the current time, skipping all integrity checks"""
@@ -2249,6 +2256,8 @@ class Engine(AbstractEngine, Executor):
 	):
 		if not hasattr(self, "db"):
 			if database:
+				if not isinstance(database, AbstractDatabaseConnector):
+					raise TypeError("Invalid database connector", database)
 				self.db = database
 			elif prefix is None:
 				if connect_string is None:
@@ -2337,6 +2346,10 @@ class Engine(AbstractEngine, Executor):
 		self._init_random(random_seed)
 		with garbage():
 			self._load(*self._read_at(*self.time))
+		if hasattr(self, "_validate_initial_keyframe_load"):
+			self._validate_initial_keyframe_load(
+				self._get_keyframe(*self._build_keyframe_window(*self.time)[0])
+			)
 		self.db.snap_keyframe = self.snap_keyframe
 		self.db.kf_interval_override = self._detect_kf_interval_override
 		if not self._keyframes_times:
@@ -4923,12 +4936,7 @@ class Engine(AbstractEngine, Executor):
 		loaded: dict,
 	):
 		if latest_past_keyframe:
-			if hasattr(self, "_validate_initial_keyframe_load"):
-				self._validate_initial_keyframe_load(
-					self._get_keyframe(*latest_past_keyframe)
-				)
-			else:
-				self._get_keyframe(*latest_past_keyframe, silent=True)
+			self._get_keyframe(*latest_past_keyframe, silent=True)
 
 		if universals := loaded.pop("universals", ()):
 			self._universal_cache.load(

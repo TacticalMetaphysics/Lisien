@@ -50,44 +50,18 @@ def test_college_nodb(serial_or_parallel):
 
 @pytest.mark.slow
 def test_college_premade(
-	tmp_path, database_connector_part, serial_or_parallel
+	tmp_path, database_connector_part, serial_or_parallel, college10
 ):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
-
-	def validate_final_keyframe(kf: Keyframe):
-		node_val: GraphNodeValKeyframe = kf["node_val"]
-		phys_node_val = node_val["physical"]
-		graph_val: GraphValKeyframe = kf["graph_val"]
-		assert "student_body" in graph_val
-		assert "units" in graph_val["student_body"]
-		assert "physical" in graph_val["student_body"]["units"]
-		for unit in graph_val["student_body"]["units"]["physical"]:
-			assert unit in phys_node_val
-			assert "location" in phys_node_val[unit]
-
 	kwargs = {}
 	if serial_or_parallel == "serial":
 		kwargs["workers"] = 0
 	else:
 		kwargs["workers"] = 2
 		kwargs["sub_mode"] = Sub(serial_or_parallel)
-
-	with Engine(tmp_path, **kwargs, database=database_connector_part()) as eng:
-		eng._validate_final_keyframe = validate_final_keyframe
-		college.install(eng)
-		for i in range(10):
-			eng.next_turn()
-	with (
-		patch(
-			"lisien.Engine._validate_initial_keyframe_load",
-			staticmethod(validate_final_keyframe),
-			create=True,
-		),
-		Engine(tmp_path, **kwargs, database=database_connector_part()) as eng,
-	):
-		for i in range(10):
-			eng.next_turn()
+	for i in range(10):
+		college10.next_turn()
 
 
 def test_kobold(engy):

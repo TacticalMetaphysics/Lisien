@@ -42,7 +42,15 @@ from typing import Any, Callable, Iterable, Iterator, TypeVar, Union
 from reslot import reslot
 
 from .exc import HistoricKeyError
-from .types import LinearTime, Tick, Turn, Value, ValueHint
+from .types import (
+	LinearTime,
+	Tick,
+	Turn,
+	Value,
+	ValueHint,
+	Branch,
+	PickierDefaultDict,
+)
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
