@@ -4090,7 +4090,7 @@ def sort_set(s: Set[_T]) -> list[_T]:
 			raise TypeError(v)
 
 	if not isinstance(s, Set):
-		raise TypeError("sets only")
+		raise TypeError("sets only", type(s))
 	s = frozenset(s)
 	if s not in sort_set.memo:
 		sort_set.memo[s] = sorted(s, key=sort_set_key)
