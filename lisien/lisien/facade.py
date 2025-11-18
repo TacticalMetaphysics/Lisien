@@ -1230,7 +1230,7 @@ class CharacterFacade(AbstractCharacter):
 						toshow[k] = v
 			return f"<StatMapping {toshow}>"
 
-	stat_map_cls = StatMapping
+	stat_map_cls = graph_map_cls = StatMapping
 
 	def apply(self):
 		"""Do all my changes for real in a batch"""
