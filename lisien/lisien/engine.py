@@ -2282,10 +2282,8 @@ class Engine(AbstractEngine, Executor):
 						clear=clear,
 					)
 
-		if not hasattr(self.db, "pack"):
-			self.db.pack = self.pack
-		if not hasattr(self.db, "unpack"):
-			self.db.unpack = self.unpack
+		self.db.pack = self.pack
+		self.db.unpack = self.unpack
 		self.db.keyframe_interval = keyframe_interval
 		self._load_keyframe_times()
 		if main_branch is not None:
