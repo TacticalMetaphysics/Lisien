@@ -8158,13 +8158,8 @@ class Engine(AbstractEngine, Executor):
 			name = os.path.basename(path).removesuffix(".lisien")
 		self.commit()
 		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
-			if self._prefix is not None:
-				with zf.open("world.xml", "w") as f:
-					self.db.write_xml(f, name, indent)
-			else:
-				self.error(
-					"No database to export from, so the exported world.xml will be empty"
-				)
+			with zf.open("world.xml", "w") as f:
+				self.db.write_xml(f, name, indent)
 			if isinstance(self.string, StringStore):
 				self.string.save()
 				if self.string._prefix is None:
