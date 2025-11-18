@@ -1156,6 +1156,8 @@ class CharacterFacade(AbstractCharacter):
 			return d
 
 		def __iter__(self):
+			if not self.character.character:
+				return iter(self._patch)
 			seen = set()
 			if hasattr(self.character.character, "graph"):
 				for k in self.character.character.graph:
