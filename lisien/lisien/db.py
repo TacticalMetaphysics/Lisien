@@ -41,6 +41,7 @@ from typing import (
 	MutableMapping,
 	MutableSet,
 	Optional,
+	Self,
 	Set,
 	TypeVar,
 	get_args,
@@ -570,7 +571,7 @@ class AbstractDatabaseConnector(ABC):
 	_: KW_ONLY
 	kf_interval_override: Callable[[], bool | None] = lambda _: None
 	keyframe_interval: int | None = 1000
-	snap_keyframe: Callable[[], None] = lambda: None
+	snap_keyframe: Callable[[Self], None] = lambda self: None
 
 	@cached_property
 	def engine(self) -> AbstractEngine:
