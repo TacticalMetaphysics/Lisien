@@ -924,17 +924,7 @@ class CharacterFacade(AbstractCharacter):
 			self._name = character
 			self.character = None
 
-		self._stat_map = self.StatMapping(self)
 		self._rb_patch = {}
-
-	@property
-	def graph(self):
-		return self._stat_map
-
-	@graph.setter
-	def graph(self, v):
-		self._stat_map.clear()
-		self._stat_map.update(v)
 
 	def portals(self):
 		for ds in self.portal.values():
@@ -1237,6 +1227,8 @@ class CharacterFacade(AbstractCharacter):
 							v = v.unwrap()
 						toshow[k] = v
 			return f"<StatMapping {toshow}>"
+
+	stat_map_cls = StatMapping
 
 	def apply(self):
 		"""Do all my changes for real in a batch"""
