@@ -7729,6 +7729,8 @@ class Engine(AbstractEngine, Executor):
 		self.eternal["tick"] = self.tick
 		self.flush()
 		self.db.commit()
+		if hasattr(self.db, "tree"):
+			del self.db.tree
 		if unload:
 			self.unload()
 
