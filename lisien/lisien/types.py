@@ -4874,6 +4874,7 @@ class PickyDefaultDict[_K, _V](dict[_K, _V]):
 			[Self, _K], dict[_K, _V]
 		] = _default_kwargs_munger,
 	):
+		typ = getattr(typ, "__supertype__", typ)
 		if not isinstance(typ, type):
 			raise TypeError("types only", type(typ))
 		self._lock = RLock()
@@ -4916,6 +4917,7 @@ class PickierDefaultDict[_K, _V](PickyDefaultDict[_K, _V]):
 			[Self, _K], dict[_K, _V]
 		] = _default_kwargs_munger,
 	):
+		key_type = getattr(key_type, "__supertype__", key_type)
 		if not isinstance(key_type, type):
 			raise TypeError("types only", type(key_type))
 		self.key_type = key_type
