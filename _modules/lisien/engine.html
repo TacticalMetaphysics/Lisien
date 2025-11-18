@@ -123,7 +123,6 @@
 	<span class="n">NodesCache</span><span class="p">,</span>
 	<span class="n">NodesRulebooksCache</span><span class="p">,</span>
 	<span class="n">NodeValCache</span><span class="p">,</span>
-	<span class="n">PickyDefaultDict</span><span class="p">,</span>
 	<span class="n">PortalRulesHandledCache</span><span class="p">,</span>
 	<span class="n">PortalsRulebooksCache</span><span class="p">,</span>
 	<span class="n">PrereqListCache</span><span class="p">,</span>
@@ -228,6 +227,7 @@
 	<span class="n">Value</span><span class="p">,</span>
 	<span class="n">sort_set</span><span class="p">,</span>
 	<span class="n">validate_time</span><span class="p">,</span>
+	<span class="n">PickyDefaultDict</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.util</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 	<span class="n">ACTIONS</span><span class="p">,</span>
@@ -1189,6 +1189,13 @@
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">character</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CharacterMapping</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">CharacterMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+	<span class="nd">@contextmanager</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">wayback</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return to the time at the start of the context once it&#39;s done&quot;&quot;&quot;</span>
+		<span class="n">now</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+		<span class="k">yield</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">now</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">_set_btt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch</span><span class="p">:</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">:</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="n">Tick</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Override the current time, skipping all integrity checks&quot;&quot;&quot;</span>
@@ -2296,6 +2303,8 @@
 	<span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;db&quot;</span><span class="p">):</span>
 			<span class="k">if</span> <span class="n">database</span><span class="p">:</span>
+				<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">database</span><span class="p">,</span> <span class="n">AbstractDatabaseConnector</span><span class="p">):</span>
+					<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid database connector&quot;</span><span class="p">,</span> <span class="n">database</span><span class="p">)</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">database</span>
 			<span class="k">elif</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 				<span class="k">if</span> <span class="n">connect_string</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -2329,10 +2338,8 @@
 						<span class="n">clear</span><span class="o">=</span><span class="n">clear</span><span class="p">,</span>
 					<span class="p">)</span>
 
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">,</span> <span class="s2">&quot;pack&quot;</span><span class="p">):</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">pack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">,</span> <span class="s2">&quot;unpack&quot;</span><span class="p">):</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">unpack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">pack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">unpack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">keyframe_interval</span> <span class="o">=</span> <span class="n">keyframe_interval</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_load_keyframe_times</span><span class="p">()</span>
 		<span class="k">if</span> <span class="n">main_branch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -2386,6 +2393,10 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_init_random</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span>
 		<span class="k">with</span> <span class="n">garbage</span><span class="p">():</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_load</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_read_at</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">))</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_validate_initial_keyframe_load&quot;</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_validate_initial_keyframe_load</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_get_keyframe</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_build_keyframe_window</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+			<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">snap_keyframe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">snap_keyframe</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">kf_interval_override</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detect_kf_interval_override</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyframes_times</span><span class="p">:</span>
@@ -4978,12 +4989,7 @@
 		<span class="n">loaded</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
 	<span class="p">):</span>
 		<span class="k">if</span> <span class="n">latest_past_keyframe</span><span class="p">:</span>
-			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_validate_initial_keyframe_load&quot;</span><span class="p">):</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_validate_initial_keyframe_load</span><span class="p">(</span>
-					<span class="bp">self</span><span class="o">.</span><span class="n">_get_keyframe</span><span class="p">(</span><span class="o">*</span><span class="n">latest_past_keyframe</span><span class="p">)</span>
-				<span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">_get_keyframe</span><span class="p">(</span><span class="o">*</span><span class="n">latest_past_keyframe</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_get_keyframe</span><span class="p">(</span><span class="o">*</span><span class="n">latest_past_keyframe</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 		<span class="k">if</span> <span class="n">universals</span> <span class="o">:=</span> <span class="n">loaded</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;universals&quot;</span><span class="p">,</span> <span class="p">()):</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
@@ -7802,6 +7808,8 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">eternal</span><span class="p">[</span><span class="s2">&quot;tick&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">,</span> <span class="s2">&quot;tree&quot;</span><span class="p">):</span>
+			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">tree</span>
 		<span class="k">if</span> <span class="n">unload</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">unload</span><span class="p">()</span></div>
 
@@ -8238,13 +8246,8 @@
 			<span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s2">&quot;.lisien&quot;</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 		<span class="k">with</span> <span class="n">ZipFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">ZIP_DEFLATED</span><span class="p">)</span> <span class="k">as</span> <span class="n">zf</span><span class="p">:</span>
-			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-				<span class="k">with</span> <span class="n">zf</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;world.xml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-					<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">write_xml</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">indent</span><span class="p">)</span>
-			<span class="k">else</span><span class="p">:</span>
-				<span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-					<span class="s2">&quot;No database to export from, so the exported world.xml will be empty&quot;</span>
-				<span class="p">)</span>
+			<span class="k">with</span> <span class="n">zf</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;world.xml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">write_xml</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">indent</span><span class="p">)</span>
 			<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">StringStore</span><span class="p">):</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 				<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">_prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

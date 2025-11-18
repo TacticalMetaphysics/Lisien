@@ -686,6 +686,11 @@ the abilities to follow rules; to be connected by portals; and to
 contain things.</p>
 <p>This is truthy if it exists, falsy if it’s been deleted.</p>
 <dl class="py property">
+<dt class="sig sig-object py" id="lisien.node.Node.leader">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">leader</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LeaderMapping</span></em><a class="headerlink" href="#lisien.node.Node.leader" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="lisien.node.Node.portal">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">portal</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dests</span></em><a class="headerlink" href="#lisien.node.Node.portal" title="Link to this definition">¶</a></dt>
 <dd><p>A mapping of portals leading out from this node.</p>
@@ -974,6 +979,9 @@ value. To find out, construct a historical query and pass it to
 <p>You’ll get the turns when <code class="docutils literal notranslate"><span class="pre">that</span></code> was <code class="docutils literal notranslate"><span class="pre">there</span></code>.</p>
 <p>Other comparison operators like <code class="docutils literal notranslate"><span class="pre">&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;</span></code> work as well.</p>
 </section>
+<section id="module-lisien.types">
+<span id="types"></span><h1>types<a class="headerlink" href="#module-lisien.types" title="Link to this heading">¶</a></h1>
+</section>
 <section id="module-lisien.collections">
 <span id="collections"></span><h1>collections<a class="headerlink" href="#module-lisien.collections" title="Link to this heading">¶</a></h1>
 <p>Common classes for collections in lisien</p>
@@ -1099,6 +1107,7 @@ the function itself.</p>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#module-lisien.node">node</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#lisien.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#lisien.node.Node.leader"><code class="docutils literal notranslate"><span class="pre">Node.leader</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#lisien.node.Node.portal"><code class="docutils literal notranslate"><span class="pre">Node.portal</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#lisien.node.Node.preportal"><code class="docutils literal notranslate"><span class="pre">Node.preportal</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#lisien.node.Node.content"><code class="docutils literal notranslate"><span class="pre">Node.content</span></code></a></li>
@@ -1142,6 +1151,7 @@ the function itself.</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#module-lisien.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#module-lisien.types">types</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#module-lisien.collections">collections</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#lisien.collections.StringStore"><code class="docutils literal notranslate"><span class="pre">StringStore</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#lisien.collections.FunctionStore"><code class="docutils literal notranslate"><span class="pre">FunctionStore</span></code></a></li>
