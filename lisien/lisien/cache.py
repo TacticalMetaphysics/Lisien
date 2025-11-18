@@ -1720,12 +1720,50 @@ class Cache:
 		seek back and forth like a tape head.
 
 		"""
+		from .character import Character
+		from .node import Place, Thing
+		from .portal import Portal
+		from .facade import FacadeEntity, CharacterFacade, FacadePortal
+
 		ret = self._base_retrieve(args, search=search)
 		if ret is ...:
 			raise HistoricKeyError("Set, then deleted", deleted=True)
 		elif isinstance(ret, Exception):
 			ret.args = (*ret.args, args)
 			raise ret
+		elif isinstance(ret, CharacterFacade):
+			ret.engine._real = self.engine
+			try:
+				return self.engine.character[ret.name]
+			except KeyError:
+				return Character(self.engine, ret.name, init_rulebooks=False)
+		elif isinstance(ret, FacadeEntity):
+			ret.character.engine._real = self.engine
+			try:
+				ret.character.character = self.engine.character[
+					ret.character.name
+				]
+				return ret._real
+			except (KeyError, AttributeError):
+				if ret.character.name in self.engine.character:
+					character = self.engine.character[ret.character.name]
+				else:
+					character = Character(
+						self.engine, ret.character.name, init_rulebooks=False
+					)
+				if isinstance(ret, FacadePortal):
+					try:
+						return character.portal[ret.orig][ret.dest]
+					except KeyError:
+						return Portal(character, ret.orig, ret.dest)
+				else:
+					try:
+						return character.node[ret.name]
+					except KeyError:
+						if "location" in ret:
+							return Thing(character, ret.name, ret["location"])
+						else:
+							return Place(character, ret.name)
 		return ret
 
 	def _iter_entities_or_keys(
