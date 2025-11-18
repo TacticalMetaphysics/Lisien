@@ -14,7 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import resource
-import shutil
 import sys
 from functools import partial
 from logging import getLogger
@@ -22,7 +21,10 @@ from logging import getLogger
 import pytest
 
 from lisien import Engine
-from lisien.db import NullDatabaseConnector, PythonDatabaseConnector
+from lisien.db import (
+	NullDatabaseConnector,
+	PythonDatabaseConnector,
+)
 from lisien.proxy.handle import EngineHandle
 from lisien.proxy.manager import Sub
 
@@ -36,6 +38,8 @@ from .util import (
 	make_test_engine,
 	make_test_engine_facade,
 	make_test_engine_kwargs,
+	get_database_connector_part,
+	college_engine,
 )
 
 
@@ -219,20 +223,7 @@ def persistent_database(request):
 
 @pytest.fixture
 def database_connector_part(tmp_path, non_null_database):
-	match non_null_database:
-		case "python":
-			real_connector = PythonDatabaseConnector()
-			return lambda: real_connector
-		case "sqlite":
-			return partial(
-				SQLAlchemyDatabaseConnector,
-				f"sqlite:///{tmp_path}/world.sqlite3",
-			)
-		case "parquetdb":
-			return partial(
-				ParquetDatabaseConnector, os.path.join(tmp_path, "world")
-			)
-	raise RuntimeError("Unknown database", non_null_database)
+	return get_database_connector_part(tmp_path, non_null_database)
 
 
 @pytest.fixture
@@ -278,7 +269,7 @@ def engine(
 	tmp_path,
 	serial_or_parallel,
 	local_or_remote,
-	non_null_database,
+	database_connector_part,
 	random_seed,
 ):
 	"""Engine or EngineProxy with a subprocess"""
@@ -286,7 +277,10 @@ def engine(
 		procman = EngineProxyManager()
 		with procman.start(
 			**make_test_engine_kwargs(
-				tmp_path, serial_or_parallel, non_null_database, random_seed
+				tmp_path,
+				serial_or_parallel,
+				database_connector_part,
+				random_seed,
 			)
 		) as proxy:
 			yield proxy
@@ -294,7 +288,10 @@ def engine(
 	else:
 		with Engine(
 			**make_test_engine_kwargs(
-				tmp_path, serial_or_parallel, non_null_database, random_seed
+				tmp_path,
+				serial_or_parallel,
+				database_connector_part,
+				random_seed,
 			)
 		) as eng:
 			yield eng
@@ -389,22 +386,24 @@ def null_engine():
 		assert not eng._fut_manager_thread.is_alive()
 
 
-@pytest.fixture(
-	scope="function", params=[pytest.param("sqlite", marks=pytest.mark.sqlite)]
-)
-def college24_premade(tmp_path, request):
-	shutil.unpack_archive(
-		os.path.join(
-			os.path.abspath(os.path.dirname(__file__)),
-			"data",
-			"college24_premade.tar.xz",
-		),
+@pytest.fixture
+def college10(tmp_path, serial_or_parallel, database_connector_part):
+	with college_engine(
+		"college10.lisien",
 		tmp_path,
-	)
-	with Engine(
+		serial_or_parallel,
+		database_connector_part,
+	) as eng:
+		yield eng
+
+
+@pytest.fixture
+def college24(tmp_path, serial_or_parallel, database_connector_part):
+	with college_engine(
+		"college24.lisien",
 		tmp_path,
-		workers=0,
-		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+		serial_or_parallel,
+		database_connector_part,
 	) as eng:
 		yield eng
 

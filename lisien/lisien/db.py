@@ -70,7 +70,6 @@ else:
 
 import lisien.types
 
-from .cache import PickierDefaultDict
 from .facade import EngineFacade
 from .types import (
 	AbstractEngine,
@@ -146,6 +145,7 @@ from .types import (
 	deannotate,
 	root_type,
 	sort_set,
+	PickierDefaultDict,
 )
 from .util import ILLEGAL_CHARACTER_NAMES, garbage
 from .window import (

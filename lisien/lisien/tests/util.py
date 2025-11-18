@@ -1,21 +1,34 @@
 from __future__ import annotations
 
 import os
-from functools import wraps
+from contextlib import contextmanager
+from functools import wraps, partial
+from itertools import product
 from logging import getLogger
+from os import PathLike
 from queue import Empty, SimpleQueue
 from threading import Thread
-from typing import Any, Callable, TypeVar
-from unittest.mock import MagicMock
+from typing import Any, Callable, TypeVar, Literal
+from unittest.mock import MagicMock, patch
 
 from lisien import Engine
-from lisien.db import NullDatabaseConnector, PythonDatabaseConnector
+from lisien.db import (
+	NullDatabaseConnector,
+	PythonDatabaseConnector,
+	AbstractDatabaseConnector,
+)
 from lisien.facade import EngineFacade
 from lisien.pqdb import ParquetDatabaseConnector
 from lisien.proxy.engine import EngineProxy
 from lisien.proxy.manager import Sub
 from lisien.sql import SQLAlchemyDatabaseConnector
-from lisien.types import LoadedDict
+from lisien.tests.data import DATA_DIR
+from lisien.types import (
+	LoadedDict,
+	Keyframe,
+	GraphNodeValKeyframe,
+	GraphValKeyframe,
+)
 
 _RETURNS = TypeVar("_RETURNS")
 
@@ -164,3 +177,73 @@ def hash_loaded_dict(data: LoadedDict) -> dict[str, dict[str, int] | int]:
 		else:
 			raise TypeError("Invalid loaded dictionary")
 	return hashes
+
+
+def get_database_connector_part(
+	tmp_path: str | PathLike, s: Literal["python", "sqlite", "parquetdb"]
+):
+	def get_python_connector():
+		if not hasattr(get_database_connector_part, "_pyconnector"):
+			get_database_connector_part._pyconnector = (
+				PythonDatabaseConnector()
+			)
+		pyconnector = get_database_connector_part._pyconnector
+		pyconnector._plan_times = {}
+		return pyconnector
+
+	match s:
+		case "python":
+			return get_python_connector
+		case "sqlite":
+			return partial(
+				SQLAlchemyDatabaseConnector,
+				f"sqlite:///{tmp_path}/world.sqlite3",
+			)
+		case "parquetdb":
+			return partial(
+				ParquetDatabaseConnector, os.path.join(tmp_path, "world")
+			)
+
+
+@contextmanager
+def college_engine(
+	archive_fn: str,
+	tmp_path: str | PathLike,
+	serial_or_parallel: str,
+	database_connector_part: Callable[[], AbstractDatabaseConnector],
+):
+	def validate_final_keyframe(kf: Keyframe):
+		node_val: GraphNodeValKeyframe = kf["node_val"]
+		phys_node_val = node_val["physical"]
+		graph_val: GraphValKeyframe = kf["graph_val"]
+		assert "student_body" in graph_val
+		assert "units" in graph_val["student_body"]
+		assert "physical" in graph_val["student_body"]["units"]
+		for unit in graph_val["student_body"]["units"]["physical"]:
+			assert unit in phys_node_val
+			assert "location" in phys_node_val[unit]
+		for key, dorm, room, student in product(
+			["graph_val", "node_val", "edge_val"],
+			[0, 1],
+			[0, 1],
+			[0, 1],
+		):
+			assert f"dorm{dorm}room{room}student{student}" in kf[key]
+
+	with (
+		patch(
+			"lisien.Engine._validate_initial_keyframe_load",
+			staticmethod(validate_final_keyframe),
+			create=True,
+		),
+		Engine.from_archive(
+			os.path.join(DATA_DIR, archive_fn),
+			tmp_path,
+			workers=0 if serial_or_parallel == "serial" else 2,
+			sub_mode=None
+			if serial_or_parallel == "serial"
+			else Sub(serial_or_parallel),
+			database=database_connector_part(),
+		) as eng,
+	):
+		yield eng

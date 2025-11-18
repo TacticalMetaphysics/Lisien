@@ -19,24 +19,37 @@ import tempfile
 from lisien.engine import Engine
 from lisien.examples.college import install
 
-outpath = os.path.join(
-	os.path.abspath(os.path.dirname(__file__)), "college24_premade.tar.xz"
-)
-if os.path.exists(outpath):
-	os.remove(outpath)
-with tempfile.TemporaryDirectory() as directory:
+
+def main():
+	outpath = os.path.join(
+		os.path.abspath(os.path.dirname(__file__)),
+		"data",
+		"college{}.lisien",
+	)
+	if os.path.exists(outpath):
+		os.remove(outpath)
 	with Engine(
-		directory,
+		None,
 		workers=0,
+		keyframe_interval=1,
 		keep_rules_journal=False,
-		commit_interval=1,
-		connect_string=f"sqlite:///{directory}/world.sqlite3",
+		random_seed=69105,
 	) as eng:
 		install(eng)
-		for i in range(24):
+		for i in range(10):
 			print(i)
 			eng.next_turn()
-		print("Done simulating.")
-	print("Compressing...")
-	shutil.make_archive(outpath[:-7], "xztar", directory, ".")
-print("All done")
+		exto = outpath.format("10")
+		print("Done simulating the 10 turn case. Exporting to " + exto)
+		eng.export(path=exto)
+		for i in range(10, 24):
+			print(i)
+			eng.next_turn()
+		exto = outpath.format("24")
+		print("Done simulating 24 turns. Exporting to " + exto)
+		eng.export(path=exto)
+	print("All done")
+
+
+if __name__ == "__main__":
+	main()
