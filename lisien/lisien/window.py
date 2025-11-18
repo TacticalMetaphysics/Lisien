@@ -997,7 +997,7 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 		if turn in self:
 			ticks = self[turn]
 			if tick in ticks:
-				raise KeyError("Already present")
+				raise KeyError("Already present", turn, tick)
 			before = []
 			while ticks:
 				after = ticks.pop(0)
