@@ -297,7 +297,11 @@
 
 .. automodule:: lisien.query
 
-   .. autoclass:: QueryResult
+#######
+ types
+#######
+
+.. automodule:: lisien.types
 
 ##############
  collections
