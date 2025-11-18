@@ -148,7 +148,12 @@ from .types import (
 	sort_set,
 )
 from .util import ILLEGAL_CHARACTER_NAMES, garbage
-from .window import AssignmentTimeDict, WindowDict
+from .window import (
+	AssignmentTimeDict,
+	WindowDict,
+	BranchingTimeListDict,
+	LinearTimeListDict,
+)
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 SCHEMAVER_B = b"\xb6_lisien_schema_version"
@@ -707,9 +712,9 @@ class AbstractDatabaseConnector(ABC):
 
 	@batched("plan_ticks", inc_rec_counter=False)
 	def _planticks2set(
-		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
 	) -> tuple[Plan, Branch, Turn, Tick]:
-		return plan_id, branch, turn, tick
+		return plan, branch, turn, tick
 
 	@batched("bookmarks", key_len=1, inc_rec_counter=False)
 	def _bookmarks2set(
@@ -1386,9 +1391,9 @@ class AbstractDatabaseConnector(ABC):
 		)
 
 	def plans_insert(
-		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
-		self._planticks2set.append((plan_id, branch, turn, tick))
+		self._planticks2set.append((plan, branch, turn, tick))
 
 	def plans_insert_many(
 		self, many: list[tuple[Plan, Branch, Turn, Tick]]
@@ -2320,6 +2325,10 @@ class AbstractDatabaseConnector(ABC):
 				raise TypeError("Bad loaded dictionary", v)
 		return dict(ret)
 
+	@cached_property
+	def _plan_ticks(self) -> dict[Plan, BranchingTimeListDict]:
+		return PickierDefaultDict(int, BranchingTimeListDict)
+
 	def to_etree(self, name: str) -> ElementTree:
 		root = self.tree.getroot()
 		self.commit()
@@ -2338,19 +2347,6 @@ class AbstractDatabaseConnector(ABC):
 			el = Element("dict-item", key=repr(k))
 			root.append(el)
 			el.append(self._value_to_xml_el(eternals[k]))
-		plan_ticks: dict[Branch, dict[Turn, dict[Plan, set[Tick]]]] = {}
-		for plan, branch, turn, tick in self.plan_ticks_dump():
-			if branch in plan_ticks:
-				if turn in plan_ticks[branch]:
-					if plan in plan_ticks[branch][turn]:
-						plan_ticks[branch][turn][plan].add(tick)
-					else:
-						plan_ticks[branch][turn][plan] = {tick}
-				else:
-					plan_ticks[branch][turn] = {plan: {tick}}
-			else:
-				plan_ticks[branch] = {turn: {plan: {tick}}}
-		self._plan_ticks = plan_ticks
 		trunks = set()
 		branches_d = {}
 		branch_descendants = {}
@@ -2809,10 +2805,13 @@ class AbstractDatabaseConnector(ABC):
 		self, el: Element, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		plans = []
-		if branch in self._plan_ticks and turn in self._plan_ticks[branch]:
-			for plan, ticks in self._plan_ticks[branch][turn].items():
-				if tick in ticks:
-					plans.append(plan)
+		for plan, branches in self._plan_ticks.items():
+			if branch in branches:
+				turns = branches[branch]
+				if turn in turns:
+					ticks = turns[turn]
+					if tick in ticks:
+						plans.append(plan)
 		if plans:
 			el.set("plans", ",".join(map(str, plans)))
 
@@ -4159,6 +4158,11 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _bookmarks(self) -> dict[Key, Time]:
 		return {}
 
+	def _plan_ticks_insert_rec(
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
+	):
+		self._plan_ticks[plan][branch].insert_time(turn, tick)
+
 	@cached_property
 	def _keyframe_extensions(
 		self,
@@ -4297,10 +4301,6 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		AssignmentTimeDict[tuple[CharName, NodeName, NodeName, Stat, Value]],
 	]:
 		return defaultdict(AssignmentTimeDict)
-
-	@cached_property
-	def _plan_ticks(self) -> set[tuple[Plan, Branch, Turn, Tick]]:
-		return set()
 
 	@cached_property
 	def _universals(
@@ -5052,8 +5052,14 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		with self._lock:
-			for plan_tup in sort_set(self._plan_ticks):
-				yield plan_tup
+			plan_ticks = self._plan_ticks
+			for plan in sorted(self._plan_ticks.keys()):
+				branches = plan_ticks[plan]
+				for branch in sorted(branches.keys()):
+					turns = branches[branch]
+					for turn in sorted(turns):
+						for tick in turns[turn]:
+							yield plan, branch, turn, tick
 
 	commit = close = AbstractDatabaseConnector.flush
 
