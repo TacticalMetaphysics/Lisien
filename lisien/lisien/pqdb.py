@@ -1524,7 +1524,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		self._planticks2set()
 		for d in self.call("dump", "plan_ticks"):
-			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
+			yield d["plan"], d["branch"], d["turn"], d["tick"]
 
 	def get_all_keyframe_graphs(
 		self, branch: Branch, turn: Turn, tick: Tick
