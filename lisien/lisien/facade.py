@@ -753,12 +753,9 @@ class CharacterFacade(AbstractCharacter):
 				ports[o] = {}
 			for d in self.portal[o]:
 				ports[o][d] = dict(self.portal[o][d])
-		things = {k: dict(v) for (k, v) in self.thing.items()}
-		places = {k: dict(v) for (k, v) in self.place.items()}
-		stats = {
-			k: v.unwrap() if hasattr(v, "unwrap") else v
-			for (k, v) in self.graph.items()
-		}
+		things = self.thing.unwrap()
+		places = self.place.unwrap()
+		stats = self.graph.unwrap()
 		return things, places, ports, stats
 
 	def __setstate__(self, state):
