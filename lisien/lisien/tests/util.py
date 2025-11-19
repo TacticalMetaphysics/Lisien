@@ -210,7 +210,7 @@ def college_engine(
 	archive_fn: str,
 	tmp_path: str | PathLike,
 	serial_or_parallel: str,
-	database_connector_part: Callable[[], AbstractDatabaseConnector],
+	database_connector: AbstractDatabaseConnector,
 ):
 	def validate_final_keyframe(kf: Keyframe):
 		node_val: GraphNodeValKeyframe = kf["node_val"]
@@ -243,7 +243,7 @@ def college_engine(
 			sub_mode=None
 			if serial_or_parallel == "serial"
 			else Sub(serial_or_parallel),
-			database=database_connector_part(),
+			database=database_connector,
 		) as eng,
 	):
 		yield eng
