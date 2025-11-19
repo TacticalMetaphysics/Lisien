@@ -989,16 +989,14 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 			raise TypeError("Dict of ints only", data)
 		else:
 			it = iter(())
-		for turn, tick in it:
-			if not isinstance(turn, int) or turn < 0:
-				raise TypeError("Invalid turn", turn)
-			if isinstance(tick, list):
-				for tic in tick:
-					if not isinstance(tic, int) or tic < 0:
-						raise TypeError("Invalid tick", tic)
-			else:
-				if not isinstance(tick, int) or tick < 0:
-					raise TypeError("Invalid tick", tick)
+		for turn, ticks in it:
+			if not isinstance(turn, int):
+				raise TypeError("int keys only", turn)
+			if not isinstance(ticks, list):
+				raise TypeError("Lists of ints only", ticks)
+			for tick in ticks:
+				if not isinstance(tick, int):
+					raise TypeError("Lists of ints only", tick)
 		super().__init__(data)
 
 	def __getitem__(self, rev: Turn) -> list[Tick]:
