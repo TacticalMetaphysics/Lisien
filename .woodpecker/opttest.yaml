@@ -9,3 +9,9 @@ steps:
       - python -V
       - python -m pip install tox
       - tox -c lisien/tox.ini -e py312
+  - name: slow_headless3.12
+    image: python:3.12
+    commands:
+      - python -V
+      - python -m pip install tox
+      - tox -c lisien/tox_slow.ini -e py312
