@@ -1023,7 +1023,7 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 					self[turn] = before + [tick, after] + ticks
 					return
 				before.append(after)
-			raise RuntimeError("Can't happen")
+			before.append(tick)
 		else:
 			self[turn] = [tick]
 
