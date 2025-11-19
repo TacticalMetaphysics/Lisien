@@ -1394,11 +1394,22 @@ class AbstractDatabaseConnector(ABC):
 		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		self._planticks2set.append((plan, branch, turn, tick))
+		self._upd_plan_times(plan, branch, turn, tick)
+
+	def _upd_plan_times(
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
+	):
+		if plan in self._plan_times:
+			self._plan_times[plan].add((branch, turn, tick))
+		else:
+			self._plan_times[plan] = {(branch, turn, tick)}
 
 	def plans_insert_many(
 		self, many: list[tuple[Plan, Branch, Turn, Tick]]
 	) -> None:
 		self._planticks2set.extend(many)
+		for tup in many:
+			self._upd_plan_times(*tup)
 
 	@garbage
 	def flush(self):
