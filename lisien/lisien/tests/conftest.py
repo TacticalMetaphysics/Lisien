@@ -387,23 +387,23 @@ def null_engine():
 
 
 @pytest.fixture
-def college10(tmp_path, serial_or_parallel, database_connector_part):
+def college10(tmp_path, serial_or_parallel, database_connector):
 	with college_engine(
 		"college10.lisien",
 		tmp_path,
 		serial_or_parallel,
-		database_connector_part,
+		database_connector,
 	) as eng:
 		yield eng
 
 
 @pytest.fixture
-def college24(tmp_path, serial_or_parallel, database_connector_part):
+def college24(tmp_path, serial_or_parallel, database_connector):
 	with college_engine(
 		"college24.lisien",
 		tmp_path,
 		serial_or_parallel,
-		database_connector_part,
+		database_connector,
 	) as eng:
 		yield eng
 
