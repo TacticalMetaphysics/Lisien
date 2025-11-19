@@ -4199,7 +4199,9 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _plan_ticks_insert_rec(
 		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
 	):
-		self._plan_ticks[plan][branch].insert_time(turn, tick)
+		b = self._plan_ticks[plan][branch]
+		if turn not in b or tick not in b[turn]:
+			b.insert_time(turn, tick)
 
 	@cached_property
 	def _keyframe_extensions(
