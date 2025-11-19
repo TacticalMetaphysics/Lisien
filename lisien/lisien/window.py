@@ -977,8 +977,7 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 	def __init__(
 		self,
 		data: dict[Turn, list[Tick]]
-		| list[tuple[Turn, Tick]]
-		| dict[Turn, Tick]
+		| list[tuple[Turn, list[Tick]]]
 		| None = None,
 	) -> None:
 		if isinstance(data, dict):
