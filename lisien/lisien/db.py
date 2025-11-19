@@ -1395,6 +1395,22 @@ class AbstractDatabaseConnector(ABC):
 	) -> None:
 		self._planticks2set.append((plan, branch, turn, tick))
 		self._upd_plan_times(plan, branch, turn, tick)
+		self._upd_plan_ticks(plan, branch, turn, tick)
+
+	def _upd_plan_ticks(
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
+	):
+		if plan in self._plan_ticks:
+			if branch in self._plan_ticks[plan]:
+				self._plan_ticks[plan][branch].insert_time(turn, tick)
+			else:
+				self._plan_ticks[plan][branch] = LinearTimeListDict(
+					{turn: [tick]}
+				)
+		else:
+			self._plan_ticks[plan] = BranchingTimeListDict(
+				{branch: {turn: [tick]}}
+			)
 
 	def _upd_plan_times(
 		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
@@ -1410,6 +1426,7 @@ class AbstractDatabaseConnector(ABC):
 		self._planticks2set.extend(many)
 		for tup in many:
 			self._upd_plan_times(*tup)
+			self._upd_plan_ticks(*tup)
 
 	@garbage
 	def flush(self):
