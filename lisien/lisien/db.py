@@ -4154,6 +4154,20 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	"""
 
+	def is_empty(self) -> bool:
+		for att in dir(self):
+			if att.startswith("__"):
+				continue
+			try:
+				val = getattr(self, att)
+			except AttributeError:
+				continue
+			if isinstance(val, dict) or isinstance(val, set):
+				if val:
+					print(f"{att} is nonempty")
+					return False
+		return True
+
 	@cached_property
 	def _bookmarks(self) -> dict[Key, Time]:
 		return {}
