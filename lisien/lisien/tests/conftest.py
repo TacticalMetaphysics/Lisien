@@ -242,8 +242,23 @@ def persistent_database_connector_part(tmp_path, persistent_database):
 
 
 @pytest.fixture(scope="function")
-def database_connector(database_connector_part):
-	return database_connector_part()
+def database_connector(tmp_path, non_null_database):
+	match non_null_database:
+		case "python":
+			connector = PythonDatabaseConnector()
+		case "sqlite":
+			connector = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{tmp_path}/world.sqlite3"
+			)
+		case "parquetdb":
+			connector = ParquetDatabaseConnector(
+				os.path.join(tmp_path, "world")
+			)
+		case _:
+			raise ValueError("Unknown database", non_null_database)
+	if hasattr(connector, "is_empty"):
+		assert connector.is_empty()
+	return connector
 
 
 @pytest.fixture(
