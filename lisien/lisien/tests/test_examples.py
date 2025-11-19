@@ -49,9 +49,7 @@ def test_college_nodb(serial_or_parallel):
 
 
 @pytest.mark.slow
-def test_college_premade(
-	tmp_path, database_connector_part, serial_or_parallel, college10
-):
+def test_college_premade(tmp_path, serial_or_parallel, college10):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
 	kwargs = {}
