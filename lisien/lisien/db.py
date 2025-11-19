@@ -2816,13 +2816,9 @@ class AbstractDatabaseConnector(ABC):
 		self, el: Element, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		plans = []
-		for plan, branches in self._plan_ticks.items():
-			if branch in branches:
-				turns = branches[branch]
-				if turn in turns:
-					ticks = turns[turn]
-					if tick in ticks:
-						plans.append(plan)
+		for plan, times in self._plan_times.items():
+			if (branch, turn, tick) in times:
+				plans.append(plan)
 		if plans:
 			el.set("plans", ",".join(map(str, plans)))
 
