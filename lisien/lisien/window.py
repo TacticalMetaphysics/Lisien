@@ -981,12 +981,12 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 		| dict[Turn, Tick]
 		| None = None,
 	) -> None:
-		super().__init__(data)
-		for turn, tick in self:
+		for turn, tick in data.items():
 			if not isinstance(turn, int) or turn < 0:
 				raise TypeError("Invalid turn", turn)
 			if not isinstance(tick, int) or tick < 0:
 				raise TypeError("Invalid tick", tick)
+		super().__init__(data)
 
 	def __getitem__(self, rev: Turn) -> list[Tick]:
 		if rev in self:
