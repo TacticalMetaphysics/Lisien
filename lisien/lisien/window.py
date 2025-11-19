@@ -976,7 +976,7 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 
 	def __init__(
 		self,
-		data: dict[Turn, list[Tick]]
+		data: Mapping[Turn, list[Tick]]
 		| list[tuple[Turn, list[Tick]]]
 		| None = None,
 	) -> None:
@@ -1055,7 +1055,7 @@ class BranchingTimeListDict(PickierDefaultDict[Branch, LinearTimeListDict]):
 			return v
 
 	def __setitem__(self, branch: Branch, value: LinearTimeListDict) -> None:
-		if not isinstance(value, dict):
+		if not isinstance(value, Mapping):
 			raise TypeError("Can't make LinearTimeListDict out of this", value)
 		if not isinstance(value, LinearTimeListDict):
 			value = LinearTimeListDict(value)  # may raise TypeError. Ok.
