@@ -335,6 +335,29 @@ def executor(
 		assert not ex._fut_manager_thread.is_alive()
 
 
+@pytest.fixture(scope="session")
+def serial_or_executor(
+	serial_or_parallel, process_executor, thread_executor, interpreter_executor
+):
+	ex = None
+	match serial_or_parallel:
+		case "process":
+			ex = process_executor
+		case "thread":
+			ex = thread_executor
+		case "interpreter":
+			ex = interpreter_executor
+		case _:
+			ex = None
+	yield ex
+	if ex is None:
+		return
+	if hasattr(ex, "_worker_log_threads"):
+		for t in ex._worker_log_threads:
+			assert not t.is_alive()
+		assert not ex._fut_manager_thread.is_alive()
+
+
 @pytest.fixture(
 	scope="function",
 )
@@ -362,7 +385,7 @@ def engine(
 	local_or_remote,
 	database_connector_part,
 	random_seed,
-	executor,
+	serial_or_executor,
 ):
 	"""Engine or EngineProxy with a subprocess"""
 	if local_or_remote == "remote":
@@ -373,7 +396,7 @@ def engine(
 				serial_or_parallel,
 				database_connector_part,
 				random_seed,
-				executor=executor,
+				executor=serial_or_executor,
 			)
 		) as proxy:
 			yield proxy
@@ -385,7 +408,7 @@ def engine(
 				serial_or_parallel,
 				database_connector_part,
 				random_seed,
-				executor=executor,
+				executor=serial_or_executor,
 			)
 		) as eng:
 			yield eng
