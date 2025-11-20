@@ -770,7 +770,9 @@ class LisienThreadExecutor(LisienExecutor):
 		):
 			with lock:
 				inq.put(b"shutdown")
-				logq.put(b"shutdown")
+				if logt.is_alive():
+					logq.put(b"shutdown")
+					logt.join()
 				thread.join()
 
 
@@ -997,8 +999,9 @@ class LisienInterpreterExecutor(LisienExecutor):
 		):
 			with lock:
 				inq.put(b"shutdown")
-				logq.put(b"shutdown")
-				logt.join(timeout=SUBPROCESS_TIMEOUT)
+				if logt.is_alive():
+					logq.put(b"shutdown")
+					logt.join(timeout=SUBPROCESS_TIMEOUT)
 				thread.join(timeout=SUBPROCESS_TIMEOUT)
 				if terp.is_running():
 					terp.close()
@@ -8135,6 +8138,7 @@ class Engine(AbstractEngine, Executor):
 		workers: Optional[int] = None,
 		sub_mode: Sub | None = None,
 		database: AbstractDatabaseConnector | None = None,
+		executor: LisienExecutor | None = None,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
 
@@ -8192,6 +8196,7 @@ class Engine(AbstractEngine, Executor):
 			workers=workers,
 			sub_mode=sub_mode,
 			database=database,
+			executor=executor,
 		)
 
 	def to_etree(self, name: str | None = None) -> ElementTree:
