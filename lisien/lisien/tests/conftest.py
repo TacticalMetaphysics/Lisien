@@ -20,7 +20,12 @@ from logging import getLogger
 
 import pytest
 
-from lisien import Engine
+from lisien.engine import (
+	Engine,
+	LisienProcessExecutor,
+	LisienInterpreterExecutor,
+	LisienThreadExecutor,
+)
 from lisien.db import (
 	NullDatabaseConnector,
 	PythonDatabaseConnector,
@@ -40,6 +45,7 @@ from .util import (
 	make_test_engine_kwargs,
 	get_database_connector_part,
 	college_engine,
+	restart_executor,
 )
 
 
@@ -173,11 +179,12 @@ KINDS_OF_PARALLEL = [
 
 
 @pytest.fixture(
+	scope="session",
 	params=[
 		pytest.param("proxy", marks=pytest.mark.proxy),
 		"serial",
 		*KINDS_OF_PARALLEL,
-	]
+	],
 )
 def execution(request):
 	return request.param
@@ -261,12 +268,77 @@ def database_connector(tmp_path, non_null_database):
 	return connector
 
 
+@pytest.fixture(scope="session")
+def process_executor():
+	with LisienProcessExecutor(
+		None,
+		getLogger("lisien"),
+		("trunk", 0, 0),
+		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "branch"},
+		{"trunk": (None, 0, 0, 0, 0)},
+		2,
+	) as x:
+		yield x
+
+
+@pytest.fixture(scope="session")
+def thread_executor():
+	with LisienThreadExecutor(
+		None,
+		getLogger("lisien"),
+		("trunk", 0, 0),
+		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "branch"},
+		{"trunk": (None, 0, 0, 0, 0)},
+		2,
+	) as x:
+		yield x
+
+
+@pytest.fixture(scope="session")
+def interpreter_executor():
+	if sys.version_info.minor < 14:
+		yield None
+		return
+	with LisienInterpreterExecutor(
+		None,
+		getLogger("lisien"),
+		("trunk", 0, 0),
+		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "branch"},
+		{"trunk": (None, 0, 0, 0, 0)},
+		2,
+	) as x:
+		yield x
+
+
+@pytest.fixture(scope="session")
+def executor(
+	execution, process_executor, thread_executor, interpreter_executor
+):
+	match execution:
+		case "process":
+			return process_executor
+		case "thread":
+			return thread_executor
+		case "interpreter":
+			return interpreter_executor
+		case _:
+			return None
+
+
+@pytest.fixture
+def restarted_executor(tmp_path, random_seed, executor):
+	restart_executor(executor, tmp_path, random_seed)
+	yield executor
+
+
 @pytest.fixture(
 	scope="function",
 )
-def engy(tmp_path, execution, database, random_seed):
+def engy(tmp_path, execution, database, random_seed, executor):
 	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
-	with make_test_engine(tmp_path, execution, database, random_seed) as eng:
+	with make_test_engine(
+		tmp_path, execution, database, random_seed, executor=executor
+	) as eng:
 		yield eng
 	if hasattr(eng, "_worker_log_threads"):
 		for t in eng._worker_log_threads:
@@ -286,6 +358,7 @@ def engine(
 	local_or_remote,
 	database_connector_part,
 	random_seed,
+	restarted_executor,
 ):
 	"""Engine or EngineProxy with a subprocess"""
 	if local_or_remote == "remote":
@@ -307,6 +380,7 @@ def engine(
 				serial_or_parallel,
 				database_connector_part,
 				random_seed,
+				executor=restarted_executor,
 			)
 		) as eng:
 			yield eng
@@ -316,13 +390,40 @@ def engine(
 			assert not eng._fut_manager_thread.is_alive()
 
 
-def proxyless_engine(tmp_path, serial_or_parallel, database_connector):
+@pytest.fixture
+def no_proxy_executor(
+	tmp_path,
+	serial_or_parallel,
+	random_seed,
+	thread_executor,
+	process_executor,
+	interpreter_executor,
+):
+	match serial_or_parallel:
+		case "serial":
+			yield None
+		case "thread":
+			restart_executor(thread_executor, tmp_path, random_seed)
+			yield thread_executor
+		case "process":
+			restart_executor(process_executor, tmp_path, random_seed)
+			yield process_executor
+		case "interpreter":
+			restart_executor(interpreter_executor, tmp_path, random_seed)
+			yield interpreter_executor
+
+
+def proxyless_engine(
+	tmp_path, serial_or_parallel, database_connector, no_proxy_executor
+):
+	executor = None
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
 		workers=0 if serial_or_parallel == "serial" else 2,
 		database=database_connector,
+		executor=no_proxy_executor,
 	) as eng:
 		yield eng
 	if hasattr(eng, "_worker_log_threads"):
@@ -332,7 +433,7 @@ def proxyless_engine(tmp_path, serial_or_parallel, database_connector):
 
 
 @pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
-def sqleng(tmp_path, request, execution):
+def sqleng(tmp_path, request, execution, restarted_executor):
 	if execution == "proxy":
 		eng = EngineProxy(
 			None,
@@ -359,6 +460,7 @@ def sqleng(tmp_path, request, execution):
 			workers=0 if execution == "serial" else 2,
 			sub_mode=Sub(execution) if execution != "serial" else None,
 			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+			executor=restarted_executor,
 		) as eng:
 			yield eng
 	if hasattr(eng, "_worker_log_threads"):
@@ -402,23 +504,35 @@ def null_engine():
 
 
 @pytest.fixture
-def college10(tmp_path, serial_or_parallel, database_connector):
+def college10(
+	tmp_path,
+	serial_or_parallel,
+	database_connector,
+	no_proxy_executor,
+):
 	with college_engine(
 		"college10.lisien",
 		tmp_path,
 		serial_or_parallel,
 		database_connector,
+		executor=no_proxy_executor,
 	) as eng:
 		yield eng
 
 
 @pytest.fixture
-def college24(tmp_path, serial_or_parallel, database_connector):
+def college24(
+	tmp_path,
+	serial_or_parallel,
+	database_connector,
+	no_proxy_executor,
+):
 	with college_engine(
 		"college24.lisien",
 		tmp_path,
 		serial_or_parallel,
 		database_connector,
+		executor=no_proxy_executor,
 	) as eng:
 		yield eng
 
