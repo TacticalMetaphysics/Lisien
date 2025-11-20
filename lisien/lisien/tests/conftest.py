@@ -276,7 +276,7 @@ def process_executor():
 		None,
 		getLogger("lisien"),
 		("trunk", 0, 0),
-		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "branch"},
+		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
 		{"trunk": (None, 0, 0, 0, 0)},
 		2,
 	) as x:
@@ -289,7 +289,7 @@ def thread_executor():
 		None,
 		getLogger("lisien"),
 		("trunk", 0, 0),
-		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "branch"},
+		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
 		{"trunk": (None, 0, 0, 0, 0)},
 		2,
 	) as x:
@@ -305,7 +305,7 @@ def interpreter_executor():
 		None,
 		getLogger("lisien"),
 		("trunk", 0, 0),
-		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "branch"},
+		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
 		{"trunk": (None, 0, 0, 0, 0)},
 		2,
 	) as x:
