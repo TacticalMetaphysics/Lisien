@@ -2685,7 +2685,7 @@ class Engine(AbstractEngine, Executor):
 				self.pack("_restart"),
 				self.pack(
 					[
-						prefix,
+						str(prefix),
 						tuple(self.time),
 						dict(self.eternal),
 						dict(self._branches_d),
