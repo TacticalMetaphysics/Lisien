@@ -25,6 +25,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from functools import cached_property, partial
 from inspect import getsource
+from os import PathLike
 from random import Random
 from threading import Lock
 from time import monotonic

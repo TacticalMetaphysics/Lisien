@@ -8,8 +8,9 @@ from logging import getLogger
 from os import PathLike
 from queue import Empty, SimpleQueue
 from threading import Thread
-from typing import Any, Callable, TypeVar, Literal
+from typing import Any, Callable, TypeVar, Literal, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
+from umsgpack import packb
 
 from lisien import Engine
 from lisien.db import (
@@ -29,6 +30,9 @@ from lisien.types import (
 	GraphNodeValKeyframe,
 	GraphValKeyframe,
 )
+
+if TYPE_CHECKING:
+	from ..engine import LisienExecutor
 
 _RETURNS = TypeVar("_RETURNS")
 
@@ -81,6 +85,7 @@ def make_test_engine_kwargs(
 	database,
 	random_seed,
 	enforce_end_of_time=False,
+	**kw_args,
 ):
 	kwargs = {
 		"random_seed": random_seed,
@@ -94,11 +99,42 @@ def make_test_engine_kwargs(
 	elif execution != "proxy":
 		kwargs["workers"] = 2
 		kwargs["sub_mode"] = Sub(execution)
+	kwargs.update(**kw_args)
 	return kwargs
 
 
-def make_test_engine(path, execution, database, random_seed):
+def restart_executor(
+	executor: LisienExecutor, prefix: str | PathLike | None, random_seed: int
+):
+	if isinstance(prefix, PathLike):
+		prefix = str(prefix)
+	executor.call_every_worker(
+		packb("_restart"),
+		packb(
+			[
+				prefix,
+				("trunk", 0, 0),
+				{"language": "eng"},
+				{"trunk": (None, 0, 0, 0, 0)},
+				random_seed,
+			]
+		),
+		packb({}),
+	)
+
+
+def make_test_engine(
+	path,
+	execution,
+	database,
+	random_seed,
+	executor: LisienExecutor | None = None,
+	**kw_args,
+):
+	if executor is not None:
+		restart_executor(executor, path, random_seed)
 	kwargs = {"random_seed": random_seed}
+	kwargs.update(**kw_args)
 	if execution == "proxy":
 		eng = EngineProxy(
 			None,
@@ -211,6 +247,7 @@ def college_engine(
 	tmp_path: str | PathLike,
 	serial_or_parallel: str,
 	database_connector: AbstractDatabaseConnector,
+	**kwargs,
 ):
 	def validate_final_keyframe(kf: Keyframe):
 		node_val: GraphNodeValKeyframe = kf["node_val"]
@@ -244,6 +281,7 @@ def college_engine(
 			if serial_or_parallel == "serial"
 			else Sub(serial_or_parallel),
 			database=database_connector,
+			**kwargs,
 		) as eng,
 	):
 		yield eng
