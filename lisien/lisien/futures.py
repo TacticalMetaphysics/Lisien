@@ -591,6 +591,10 @@ class LisienExecutorProxy(LisienExecutor):
 			self._pipe_there.send(("_get_worker_output_bytes", (i,), {}))
 			return self._pipe_there.recv()
 
+	@property
+	def _worker_locks(self):
+		return self._real._worker_locks
+
 	def __getstate__(self):
 		return self._pipe_there
 
