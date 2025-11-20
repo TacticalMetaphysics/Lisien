@@ -931,6 +931,7 @@ class LisienInterpreterExecutor(LisienExecutor):
 			logthread = Thread(
 				target=self._sync_log_forever, args=(logger, logq), daemon=True
 			)
+			logthread.start()
 			wlt.append(logthread)
 			input.put(b"shutdown")
 			terp_args = (
