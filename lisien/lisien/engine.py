@@ -1096,7 +1096,9 @@ class Engine(AbstractEngine, Executor):
 		free-threaded build of Python, or the threads do their work in a
 		library like Numpy that releases Python's Global Interpreter Lock.
 	:param executor: a :class:`LisienExecutor` instance we'll use to do
-		work in parallel. We'll make our own if one isn't supplied.
+		work in parallel. We'll make our own if one isn't supplied. Note that
+		:class:`LisienExecutor` is stateful, and may not be used by multiple
+		:class:`Engine` instances at once.
 	:param database: The database connector to use. If left ``None``,
 		Lisien will construct a database connector based on the other arguments:
 		SQLAlchemy if a ``connect_string`` is provided; if not, but a
@@ -2679,6 +2681,22 @@ class Engine(AbstractEngine, Executor):
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
 		if executor:
+			executor.call_every_worker(
+				self.pack("_restart"),
+				self.pack(
+					[
+						prefix,
+						tuple(self.time),
+						dict(self.eternal),
+						dict(self._branches_d),
+						random_seed,
+					]
+				),
+				self.pack({}),
+			)
+			initial_payload = self._get_worker_kf_payload()
+			for i in range(executor.workers):
+				executor._send_worker_input_bytes(i, initial_payload)
 			self._executor = executor
 			self._shutdown_executor = False
 		if workers != 0 and not executor:
