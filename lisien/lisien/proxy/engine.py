@@ -885,6 +885,51 @@ class EngineProxy(AbstractEngine):
 		self._install_modules = install_modules
 		self.debug("EngineProxy: finished core __init__")
 
+	@property
+	def _caches(self):
+		return [
+			self._node_stat_cache,
+			self._portal_stat_cache,
+			self._char_stat_cache,
+			self._things_cache,
+			self._character_places_cache,
+			self._character_rulebooks_cache,
+			self._char_node_rulebooks_cache,
+			self._char_port_rulebooks_cache,
+			self._character_portals_cache,
+			self._character_units_cache,
+			self._unit_characters_cache,
+			self._rule_obj_cache,
+			self._rulebook_obj_cache,
+			self._char_cache,
+		]
+
+	def _restart(
+		self,
+		prefix: str | PathLike | None,
+		time: Time,
+		eternal: dict[EternalKey, Value],
+		branches: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
+		random_seed: int,
+	):
+		if self._worker:
+			filez = os.listdir(prefix)
+			for fs in ["function", "method", "trigger", "prereq", "action"]:
+				py = fs + ".py"
+				if py in filez:
+					store = getattr(self, fs)
+					if prefix:
+						store._filename = os.path.join(prefix, py)
+						store.reimport()
+					else:
+						store._cache = {}
+		for cache in self._caches:
+			cache.clear()
+		self._eternal_cache = dict(eternal)
+		self._branches_d = dict(branches)
+		self._rando.seed(random_seed)
+		(self._branch, self._turn, self._tick) = time
+
 	def _init_pull_from_core(self):
 		self.debug("EngineProxy: Getting time...")
 		received = self.recv()
