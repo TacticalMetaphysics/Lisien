@@ -32,7 +32,7 @@ from lisien.types import (
 )
 
 if TYPE_CHECKING:
-	from ..engine import LisienExecutor
+	from ..futures import LisienExecutor
 
 _RETURNS = TypeVar("_RETURNS")
 

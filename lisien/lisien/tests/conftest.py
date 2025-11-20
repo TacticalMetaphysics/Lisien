@@ -22,9 +22,11 @@ import pytest
 
 from lisien.engine import (
 	Engine,
+)
+from ..futures import (
+	LisienThreadExecutor,
 	LisienProcessExecutor,
 	LisienInterpreterExecutor,
-	LisienThreadExecutor,
 )
 from lisien.db import (
 	NullDatabaseConnector,
