@@ -325,12 +325,6 @@ def executor(
 			return None
 
 
-@pytest.fixture
-def restarted_executor(tmp_path, random_seed, executor):
-	restart_executor(executor, tmp_path, random_seed)
-	yield executor
-
-
 @pytest.fixture(
 	scope="function",
 )
@@ -358,7 +352,7 @@ def engine(
 	local_or_remote,
 	database_connector_part,
 	random_seed,
-	restarted_executor,
+	executor,
 ):
 	"""Engine or EngineProxy with a subprocess"""
 	if local_or_remote == "remote":
@@ -380,7 +374,7 @@ def engine(
 				serial_or_parallel,
 				database_connector_part,
 				random_seed,
-				executor=restarted_executor,
+				executor=executor,
 			)
 		) as eng:
 			yield eng
@@ -433,7 +427,7 @@ def proxyless_engine(
 
 
 @pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
-def sqleng(tmp_path, request, execution, restarted_executor):
+def sqleng(tmp_path, request, execution, executor):
 	if execution == "proxy":
 		eng = EngineProxy(
 			None,
@@ -460,7 +454,7 @@ def sqleng(tmp_path, request, execution, restarted_executor):
 			workers=0 if execution == "serial" else 2,
 			sub_mode=Sub(execution) if execution != "serial" else None,
 			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
-			executor=restarted_executor,
+			executor=executor,
 		) as eng:
 			yield eng
 	if hasattr(eng, "_worker_log_threads"):
