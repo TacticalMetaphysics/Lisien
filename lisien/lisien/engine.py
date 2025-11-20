@@ -2705,6 +2705,9 @@ class Engine(AbstractEngine, Executor):
 			self._executor = executor
 			self._shutdown_executor = False
 		elif workers != 0:
+			for store in self.stores:
+				if hasattr(store, "save"):
+					store.save(reimport=False)
 			self._shutdown_executor = True
 			connect_reimporters = False
 			initial_payload = self._get_worker_kf_payload()
@@ -2718,15 +2721,9 @@ class Engine(AbstractEngine, Executor):
 			)
 			match sub_mode:
 				case Sub.interpreter if sys.version_info[1] >= 14:
-					for store in self.stores:
-						if hasattr(store, "save"):
-							store.save(reimport=False)
 					self._executor = LisienInterpreterExecutor(*executor_args)
 					connect_reimporters = True
 				case Sub.process:
-					for store in self.stores:
-						if hasattr(store, "save"):
-							store.save(reimport=False)
 					self._executor = LisienProcessExecutor(*executor_args)
 					connect_reimporters = True
 				case Sub.thread:
@@ -2734,18 +2731,18 @@ class Engine(AbstractEngine, Executor):
 				case None:
 					if sys.version_info[1] >= 14:
 						try:
-							self._start_worker_interpreters(prefix, workers)
-							self.debug(
-								f"started {workers} worker interpreters successfully"
+							self._executor = LisienInterpreterExecutor(
+								*executor_args
 							)
-							self.debug("engine ready")
+							connect_reimporters = True
 							return
 						except ModuleNotFoundError:
 							pass
 					if get_all_start_methods():
-						self._start_worker_processes(prefix, workers)
+						self._executor = LisienProcessExecutor(*executor_args)
+						connect_reimporters = True
 					else:
-						self._start_worker_threads(prefix, workers)
+						self._executor = LisienThreadExecutor(*executor_args)
 			self._executor.lock.acquire()
 			for i in range(workers):
 				self._executor._send_worker_input_bytes(i, initial_payload)
