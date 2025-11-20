@@ -2676,7 +2676,9 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid = 0
 		if executor:
 			self._executor = executor
+			self._shutdown_executor = False
 		if workers != 0 and not executor:
+			self._shutdown_executor = True
 			connect_reimporters = False
 			initial_payload = self._get_worker_kf_payload()
 			executor_args = (
@@ -6484,7 +6486,7 @@ class Engine(AbstractEngine, Executor):
 	def shutdown(
 		self, wait: bool = True, *, cancel_futures: bool = False
 	) -> None:
-		if hasattr(self, "_executor"):
+		if hasattr(self, "_executor") and self._shutdown_executor:
 			self._executor.shutdown(wait, cancel_futures=cancel_futures)
 			del self._executor
 
