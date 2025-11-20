@@ -316,15 +316,23 @@ def interpreter_executor():
 def executor(
 	execution, process_executor, thread_executor, interpreter_executor
 ):
+	ex = None
 	match execution:
 		case "process":
-			return process_executor
+			ex = process_executor
 		case "thread":
-			return thread_executor
+			ex = thread_executor
 		case "interpreter":
-			return interpreter_executor
+			ex = interpreter_executor
 		case _:
-			return None
+			ex = None
+	yield ex
+	if ex is None:
+		return
+	if hasattr(ex, "_worker_log_threads"):
+		for t in ex._worker_log_threads:
+			assert not t.is_alive()
+		assert not ex._fut_manager_thread.is_alive()
 
 
 @pytest.fixture(
@@ -381,10 +389,6 @@ def engine(
 			)
 		) as eng:
 			yield eng
-		if hasattr(eng, "_worker_log_threads"):
-			for t in eng._worker_log_threads:
-				assert not t.is_alive()
-			assert not eng._fut_manager_thread.is_alive()
 
 
 @pytest.fixture
