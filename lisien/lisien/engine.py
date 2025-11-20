@@ -37,7 +37,14 @@ from functools import cached_property, partial, wraps
 from hashlib import blake2b
 from io import TextIOWrapper
 from itertools import chain, pairwise
-from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
+from logging import (
+	DEBUG,
+	Formatter,
+	getLogger,
+	Logger,
+	LogRecord,
+	StreamHandler,
+)
 from multiprocessing import get_all_start_methods
 from operator import itemgetter, lt
 from os import PathLike
@@ -68,6 +75,7 @@ from networkx import (
 	from_dict_of_lists,
 	spring_layout,
 )
+from sqlalchemy import Connection
 
 from . import exc
 from .cache import (
@@ -195,6 +203,7 @@ from .types import (
 	sort_set,
 	validate_time,
 	PickyDefaultDict,
+	EternalKey,
 )
 from .util import (
 	ACTIONS,
@@ -220,6 +229,7 @@ from .util import (
 	normalize_layout,
 	timer,
 	world_locked,
+	msgpack_array_header,
 )
 from .window import (
 	LinearTimeListDict,
@@ -500,6 +510,506 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 			self[key] = tuple(self.eng.time)
 
 
+class LisienExecutor(Executor, ABC):
+	"""Lisien's paralellism
+
+	Starts workers in threads, processes, or interpreters, as needed.
+
+	Usually, you don't want to instantiate these directly -- :class:`Engine`
+	will do it for you -- but if you want many :class:`Engine` to share
+	the same pool of workers, you can pass the same :class:`LisienExecutor`
+	into each.
+
+	"""
+
+	_worker_inputs: list[SimpleQueue] | list[Connection]
+	_worker_locks: list[Lock]
+	_worker_log_queues: list[SimpleQueue]
+	_worker_log_threads: list[Thread]
+	_futs_to_start: SimpleQueue[Future]
+	workers: int
+	logger: Logger
+
+	@abstractmethod
+	def __init__(
+		self,
+		prefix: str | os.PathLike | None,
+		logger: Logger,
+		time: Time,
+		eternal: dict[EternalKey, Value],
+		branches: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
+		initial_payload: bytes,
+		workers: int,
+	): ...
+
+	@cached_property
+	def _top_uid(self) -> int:
+		return 0
+
+	@property
+	def uid(self):
+		ret = self._top_uid
+		self._top_uid += 1
+		return ret
+
+	def _setup_fut_manager(self, time: Time, workers: int):
+		self.workers = workers
+		self._worker_updated_btts: list[Time] = [time] * workers
+		self._uid_to_fut: dict[int, Future] = {}
+		self._futs_to_start = SimpleQueue()
+		self._how_many_futs_running = 0
+		self._fut_manager_thread = Thread(
+			target=self._manage_futs, daemon=True
+		)
+		self._fut_manager_thread.start()
+
+	def _manage_futs(self):
+		if hasattr(self, "_stop_managing_futs"):
+			del self._stop_managing_futs
+		while not (
+			hasattr(self, "_closed") or hasattr(self, "_stop_managing_futs")
+		):
+			while self._how_many_futs_running < self.workers:
+				try:
+					fut = self._futs_to_start.get()
+					if fut == b"shutdown":
+						return
+				except Empty:
+					break
+				if not fut.running() and fut.set_running_or_notify_cancel():
+					if hasattr(fut, "_t"):
+						fut._t.start()
+					else:
+						raise RuntimeError("No thread to start", fut)
+					self._how_many_futs_running += 1
+			sleep(0.001)
+
+	def _sync_log_forever(
+		self, logger: Logger, q: SimpleQueue[LogRecord]
+	) -> None:
+		if hasattr(self, "_stop_sync_log"):
+			del self._stop_sync_log
+		while not hasattr(self, "_closed") and not hasattr(
+			self, "_stop_sync_log"
+		):
+			recs: list[LogRecord] = []
+			while True:
+				try:
+					rec = q.get()
+					if rec == b"shutdown":
+						for rec in recs:
+							logger.handle(rec)
+						return
+					recs.append(rec)
+				except Empty:
+					break
+			for rec in recs:
+				self.logger.handle(rec)
+			sleep(0.5)
+
+	@abstractmethod
+	def shutdown(
+		self, wait: bool = True, *, cancel_futures: bool = False
+	) -> None:
+		if cancel_futures:
+			for fut in self._uid_to_fut.values():
+				fut.cancel()
+		if wait:
+			futwait(self._uid_to_fut.values())
+		self._uid_to_fut.clear()
+		self._stop_managing_futs = True
+		self._stop_sync_log = True
+		if hasattr(self, "_fut_manager_thread"):
+			self._futs_to_start.put(b"shutdown")
+			self._fut_manager_thread.join()
+
+	@contextmanager
+	def _all_worker_locks_ctx(self):
+		for lock in self._worker_locks:
+			lock.acquire()
+		yield
+		for lock in self._worker_locks:
+			lock.release()
+
+	@abstractmethod
+	def _send_worker_input_bytes(self, i: int, input: bytes) -> None: ...
+
+	@abstractmethod
+	def _get_worker_output_bytes(self, i: int) -> bytes: ...
+
+	@staticmethod
+	def _all_worker_locks(fn):
+		@wraps(fn)
+		def call_with_all_worker_locks(self, *args, **kwargs):
+			with self._all_worker_locks_ctx():
+				return fn(self, *args, **kwargs)
+
+		return call_with_all_worker_locks
+
+	@_all_worker_locks
+	def call_every_worker(
+		self,
+		methodbytes: bytes,
+		argbytes: bytes,
+		kwargbytes: bytes,
+		*,
+		uid: int | None = None,
+	) -> list[bytes]:
+		if uid is None:
+			uid = self.uid
+		ret = []
+		uids = []
+		n = self.workers
+		for _ in range(n):
+			uids.append(uid)
+			uidbytes = uid.to_bytes(8, "little")
+			i = uid % n
+			self._send_worker_input_bytes(
+				i,
+				uidbytes
+				+ msgpack_array_header(3)
+				+ methodbytes
+				+ argbytes
+				+ kwargbytes,
+			)
+		for uid in uids:
+			i = uid % n
+			outbytes: bytes = self._get_worker_output_bytes(i)
+			got_uid = int.from_bytes(outbytes[:8], "little")
+			assert got_uid == uid
+			retbytes = outbytes[8:]
+			ret.append(retbytes)
+		return ret
+
+
+class LisienThreadExecutor(LisienExecutor):
+	def __init__(
+		self,
+		prefix: str | os.PathLike | None,
+		logger: Logger,
+		time: Time,
+		eternal_d: dict[EternalKey, Value],
+		branches_d: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
+		initial_payload: bytes,
+		workers: int,
+	):
+		from queue import SimpleQueue
+		from threading import Thread
+
+		self.logger = logger
+
+		self._worker_last_eternal = dict(eternal_d)
+
+		self._worker_threads: list[Thread] = []
+		wt = self._worker_threads
+		self._worker_inputs: list[SimpleQueue[bytes]] = []
+		self._worker_outputs: list[SimpleQueue[bytes]] = []
+		wi = self._worker_inputs
+		wo = self._worker_outputs
+		self._worker_locks: list[Lock] = []
+		wlk = self._worker_locks
+		self._worker_log_queues: list[SimpleQueue] = []
+		wl = self._worker_log_queues
+		self._worker_log_threads: list[Thread] = []
+		wlt = self._worker_log_threads
+
+		for i in range(workers):
+			inq = SimpleQueue()
+			outq = SimpleQueue()
+			logq = SimpleQueue()
+			logthread = Thread(
+				target=self._sync_log_forever, args=(logger, logq), daemon=True
+			)
+			thred = Thread(
+				target=worker_subthread,
+				name=f"lisien worker {i}",
+				args=(
+					i,
+					prefix,
+					dict(branches_d),
+					dict(eternal_d),
+					inq,
+					outq,
+					logq,
+				),
+			)
+			wi.append(inq)
+			wo.append(outq)
+			wl.append(logq)
+			wlk.append(Lock())
+			wlt.append(logthread)
+			wt.append(thred)
+			logthread.start()
+			thred.start()
+			with wlk[-1]:
+				inq.put(b"echoImReady")
+				if (echoed := outq.get(timeout=5.0)) != b"ImReady":
+					raise RuntimeError(
+						f"Got garbled output from worker {i}", echoed
+					)
+				inq.put(initial_payload)
+
+		self._setup_fut_manager(time, workers)
+
+	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
+		self._worker_inputs[i].put(input)
+
+	def _get_worker_output_bytes(self, i: int) -> bytes:
+		return self._worker_outputs[i].get()
+
+	def shutdown(
+		self, wait: bool = True, *, cancel_futures: bool = False
+	) -> None:
+		super().shutdown(wait, cancel_futures=cancel_futures)
+		for i, (lock, inq, outq, thread, logq, logt) in enumerate(
+			zip(
+				self._worker_locks,
+				self._worker_inputs,
+				self._worker_outputs,
+				self._worker_threads,
+				self._worker_log_queues,
+				self._worker_log_threads,
+			)
+		):
+			with lock:
+				inq.put(b"shutdown")
+				logq.put(b"shutdown")
+				thread.join()
+
+
+class LisienProcessExecutor(LisienExecutor):
+	def __init__(
+		self,
+		prefix: str | os.PathLike | None,
+		logger: Logger,
+		time: Time,
+		eternal: dict[EternalKey, Value],
+		branches: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
+		initial_payload: bytes,
+		workers: int,
+	):
+		from multiprocessing import get_context
+		from multiprocessing.connection import Connection
+		from multiprocessing.process import BaseProcess
+
+		self._worker_last_eternal = dict(eternal.items())
+
+		self._worker_processes: list[BaseProcess] = []
+		wp = self._worker_processes
+		self._mp_ctx = ctx = get_context("spawn")
+		self._worker_inputs: list[Connection] = []
+		wi = self._worker_inputs
+		self._worker_outputs: list[Connection] = []
+		wo = self._worker_outputs
+		wlk = self._worker_locks = []
+		wl = self._worker_log_queues = []
+		wlt = self._worker_log_threads = []
+		for i in range(workers):
+			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
+			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
+			logq = ctx.SimpleQueue()
+			logthread = Thread(
+				target=self._sync_log_forever, args=(logger, logq), daemon=True
+			)
+			proc = ctx.Process(
+				target=worker_subprocess,
+				args=(
+					i,
+					prefix,
+					dict(branches),
+					dict(eternal),
+					inpipe_there,
+					outpipe_there,
+					logq,
+				),
+			)
+			wi.append(inpipe_here)
+			wo.append(outpipe_here)
+			wl.append(logq)
+			wlk.append(Lock())
+			wlt.append(logthread)
+			wp.append(proc)
+			logthread.start()
+			proc.start()
+			with wlk[-1]:
+				inpipe_here.send_bytes(b"echoImReady")
+				if not outpipe_here.poll(5.0):
+					raise TimeoutError(
+						f"Couldn't connect to worker process {i} in 5s"
+					)
+				if (received := outpipe_here.recv_bytes()) != b"ImReady":
+					raise RuntimeError(
+						f"Got garbled output from worker process {i}", received
+					)
+				inpipe_here.send_bytes(initial_payload)
+		self._setup_fut_manager(time, workers)
+
+	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
+		self._worker_inputs[i].send_bytes(input)
+
+	def _get_worker_output_bytes(self, i: int) -> bytes:
+		return self._worker_outputs[i].recv_bytes()
+
+	def shutdown(
+		self, wait: bool = True, *, cancel_futures: bool = False
+	) -> None:
+		super().shutdown(wait, cancel_futures=cancel_futures)
+		for i, (lock, pipein, pipeout, proc, logq, logt) in enumerate(
+			zip(
+				self._worker_locks,
+				self._worker_inputs,
+				self._worker_outputs,
+				self._worker_processes,
+				self._worker_log_queues,
+				self._worker_log_threads,
+			)
+		):
+			with lock:
+				if proc.is_alive():
+					pipein.send_bytes(b"shutdown")
+					proc.join(timeout=SUBPROCESS_TIMEOUT)
+					if proc.exitcode is None:
+						if KILL_SUBPROCESS:
+							os.kill(proc.pid, signal.SIGKILL)
+						else:
+							raise RuntimeError("Worker process didn't exit", i)
+					if not KILL_SUBPROCESS and proc.exitcode != 0:
+						raise RuntimeError(
+							"Worker process didn't exit normally",
+							i,
+							proc.exitcode,
+						)
+					proc.close()
+				if logt.is_alive():
+					logq.put(b"shutdown")
+					logt.join(timeout=SUBPROCESS_TIMEOUT)
+				pipein.close()
+				pipeout.close()
+		del self._worker_processes
+
+
+class LisienInterpreterExecutor(LisienExecutor):
+	def __init__(
+		self,
+		prefix: str | os.PathLike | None,
+		logger: Logger,
+		time: Time,
+		eternal_d: dict[EternalKey, Value],
+		branches_d: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
+		initial_payload: bytes,
+		workers: int,
+	) -> None:
+		logger.debug(f"starting {workers} worker interpreters")
+		from concurrent.interpreters import (
+			Interpreter,
+			Queue,
+			create,
+			create_queue,
+		)
+
+		self.logger = logger
+		self._worker_interpreters: list[Interpreter] = []
+		wint = self._worker_interpreters
+		self._worker_inputs: list[SimpleQueue] = []
+		wi = self._worker_inputs
+		self._worker_outputs: list[SimpleQueue] = []
+		wo = self._worker_outputs
+		self._worker_threads: list[Thread] = []
+		wt = self._worker_threads
+		self._worker_locks = []
+		wlk = self._worker_locks
+		self._worker_log_queues = []
+		wlq = self._worker_log_queues
+		self._worker_log_threads = []
+		wlt = self._worker_log_threads
+		i = None
+		for i in range(workers):
+			input = create_queue()
+			output = create_queue()
+			logq = create_queue()
+			terp: Interpreter = create()
+			wi.append(input)
+			wo.append(output)
+			wlq.append(logq)
+			lock = Lock()
+			wlk.append(lock)
+			wint.append(terp)
+			logthread = Thread(
+				target=self._sync_log_forever, args=(logger, logq), daemon=True
+			)
+			wlt.append(logthread)
+			input.put(b"shutdown")
+			terp_args = (
+				worker_subinterpreter,
+				i,
+				prefix,
+				branches_d,
+				eternal_d,
+				input,
+				output,
+				logq,
+			)
+			terp_kwargs = {
+				"function": None,
+				"method": None,
+				"trigger": None,
+				"prereq": None,
+				"action": None,
+			}
+			terp.call(
+				*terp_args, **terp_kwargs
+			)  # check that we can run the subthread
+			if (echoed := output.get(timeout=5.0)) != b"done":
+				raise RuntimeError(
+					f"Got garbled output from worker terp {i}", echoed
+				)
+			wt.append(terp.call_in_thread(*terp_args, **terp_kwargs))
+			with lock:
+				input.put(b"echoImReady")
+				if (echoed := output.get(timeout=5.0)) != b"ImReady":
+					raise RuntimeError(
+						f"Got garbled output from worker terp {i}", echoed
+					)
+				input.put(initial_payload)
+		if not i:
+			raise RuntimeError("No workers?", i)
+		logger.debug(f"all {i + 1} worker interpreters have started")
+		logger.debug(
+			"connected function stores to reimporters; setting up fut_manager"
+		)
+		self._setup_fut_manager(time, workers)
+		logger.debug("fut_manager started")
+
+	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
+		self._worker_inputs[i].put(input)
+
+	def _get_worker_output_bytes(self, i: int) -> bytes:
+		return self._worker_outputs[i].get()
+
+	def shutdown(
+		self, wait: bool = True, *, cancel_futures: bool = False
+	) -> None:
+		super().shutdown(wait, cancel_futures=cancel_futures)
+		for i, (lock, inq, outq, thread, terp, logq, logt) in enumerate(
+			zip(
+				self._worker_locks,
+				self._worker_inputs,
+				self._worker_outputs,
+				self._worker_threads,
+				self._worker_interpreters,
+				self._worker_log_queues,
+				self._worker_log_threads,
+			)
+		):
+			with lock:
+				inq.put(b"shutdown")
+				logq.put(b"shutdown")
+				logt.join(timeout=SUBPROCESS_TIMEOUT)
+				thread.join(timeout=SUBPROCESS_TIMEOUT)
+				if terp.is_running():
+					terp.close()
+
+
 class Engine(AbstractEngine, Executor):
 	"""Lisien, the Life Simulator Engine.
 
@@ -579,13 +1089,17 @@ class Engine(AbstractEngine, Executor):
 		effects. If you don't want this, instead use ``workers=1``,
 		which *does* disable parallelism in the case of trigger functions.
 	:param sub_mode: What kind of parallelism to use. Options are
-		``"subprocess"``, ``"subinterpreter"``, and ``"subthread"``. Defaults
-		to ``"subinterpreter"``, which only works on Python 3.14 or above,
-		so ``"subprocess"`` if it's unavailable, or, if we can't launch
+		``"process"``, ``"interpreter"``, and ``"thread"``. Defaults
+		to ``"interpreter"``, which only works on Python 3.14 or above,
+		so ``"process"`` if it's unavailable, or, if we can't launch
 		processes (perhaps because we're on Android or in a web browser),
-		``"subthread"``. Irrelevant when ``workers=0``. ``"subthread"`` won't
-		have any performance benefits, unless work done in a thread releases
-		the Global Interpreter Lock.
+		``"thread"``. Irrelevant when ``workers=0``, and ignored if ``executor``
+		is supplied; we'll use whatever parallelism the ``executor`` does.
+		``"thread"`` only has performance benefits if you're using a
+		free-threaded build of Python, or the threads do their work in a
+		library like Numpy that releases Python's Global Interpreter Lock.
+	:param executor: a :class:`LisienExecutor` instance we'll use to do
+		work in parallel. We'll make our own if one isn't supplied.
 	:param database: The database connector to use. If left ``None``,
 		Lisien will construct a database connector based on the other arguments:
 		SQLAlchemy if a ``connect_string`` is provided; if not, but a
@@ -2115,6 +2629,7 @@ class Engine(AbstractEngine, Executor):
 		logger: Optional[Logger] = None,
 		workers: Optional[int] = None,
 		sub_mode: Sub | None = None,
+		executor: LisienExecutor | None = None,
 		database: AbstractDatabaseConnector | None = None,
 	):
 		if workers is None:
@@ -2137,6 +2652,8 @@ class Engine(AbstractEngine, Executor):
 		self._otick = Tick(0)
 		if logger is not None:
 			self._logger = logger
+		else:
+			self._logger = getLogger("lisien")
 		worker_handler = StreamHandler()
 		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
 		worker_handler.setLevel(DEBUG)
@@ -2164,17 +2681,34 @@ class Engine(AbstractEngine, Executor):
 			)
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
-		if workers != 0:
+		if executor:
+			self._executor = executor
+		if workers != 0 and not executor:
+			connect_reimporters = False
+			executor_args = (
+				prefix,
+				self._logger,
+				tuple(self.time),
+				dict(self.eternal),
+				dict(self._branches_d),
+				self._get_worker_kf_payload(),
+				workers,
+			)
 			match sub_mode:
 				case Sub.interpreter if sys.version_info[1] >= 14:
-					self._start_worker_interpreters(prefix, workers)
-					self.debug(
-						f"started {workers} worker interpreters successfully"
-					)
+					for store in self.stores:
+						if hasattr(store, "save"):
+							store.save(reimport=False)
+					self._executor = LisienInterpreterExecutor(*executor_args)
+					connect_reimporters = True
 				case Sub.process:
-					self._start_worker_processes(prefix, workers)
+					for store in self.stores:
+						if hasattr(store, "save"):
+							store.save(reimport=False)
+					self._executor = LisienProcessExecutor(*executor_args)
+					connect_reimporters = True
 				case Sub.thread:
-					self._start_worker_threads(prefix, workers)
+					self._executor = LisienThreadExecutor(*executor_args)
 				case None:
 					if sys.version_info[1] >= 14:
 						try:
@@ -2190,6 +2724,15 @@ class Engine(AbstractEngine, Executor):
 						self._start_worker_processes(prefix, workers)
 					else:
 						self._start_worker_threads(prefix, workers)
+			if connect_reimporters:
+				if hasattr(self.trigger, "connect"):
+					self.trigger.connect(self._reimport_trigger_functions)
+				if hasattr(self.function, "connect"):
+					self.function.connect(self._reimport_worker_functions)
+				if hasattr(self.method, "connect"):
+					self.method.connect(self._reimport_worker_methods)
+
+			self.debug(f"started {workers} worker interpreters successfully")
 		self.debug("engine ready")
 
 	def _init_func_stores(
@@ -2412,263 +2955,6 @@ class Engine(AbstractEngine, Executor):
 				string_prefix,
 				self.eternal.setdefault("language", "eng"),
 			)
-
-	def _sync_log_forever(self, q: SimpleQueue[LogRecord]) -> None:
-		while not hasattr(self, "_closed") and not hasattr(
-			self, "_stop_sync_log"
-		):
-			recs: list[LogRecord] = []
-			while True:
-				try:
-					rec = q.get()
-					if rec == b"shutdown":
-						for rec in recs:
-							self.logger.handle(rec)
-						return
-					recs.append(rec)
-				except Empty:
-					break
-			for rec in recs:
-				self.logger.handle(rec)
-			sleep(0.5)
-
-	def _start_worker_interpreters(
-		self, prefix: str | os.PathLike | None, workers: int
-	) -> None:
-		self.debug(f"starting {workers} worker interpreters")
-		from concurrent.interpreters import (
-			Interpreter,
-			Queue,
-			create,
-			create_queue,
-		)
-
-		for store in self.stores:
-			if hasattr(store, "save"):
-				store.save(reimport=False)
-
-		self._worker_last_eternal = eternal_d = dict(self.eternal.items())
-		branches_d = dict(self._branches_d)
-		initial_payload = self._get_worker_kf_payload()
-		self._worker_interpreters: list[Interpreter] = []
-		wint = self._worker_interpreters
-		self._worker_inputs: list[Queue] = []
-		wi = self._worker_inputs
-		self._worker_outputs: list[Queue] = []
-		wo = self._worker_outputs
-		self._worker_threads: list[Thread] = []
-		wt = self._worker_threads
-		self._worker_locks: list[Lock] = []
-		wlk = self._worker_locks
-		self._worker_log_queues: list[Queue] = []
-		wlq = self._worker_log_queues
-		self._worker_log_threads: list[Thread] = []
-		wlt = self._worker_log_threads
-		for i in range(workers):
-			input = create_queue()
-			output = create_queue()
-			logq = create_queue()
-			logthread = Thread(
-				target=self._sync_log_forever, args=(logq,), daemon=True
-			)
-			logthread.start()
-			terp: Interpreter = create()
-			wi.append(input)
-			wo.append(output)
-			wlq.append(logq)
-			lock = Lock()
-			wlk.append(lock)
-			wlt.append(logthread)
-			wint.append(terp)
-			input.put(b"shutdown")
-			terp_args = (
-				worker_subinterpreter,
-				i,
-				prefix,
-				branches_d,
-				eternal_d,
-				input,
-				output,
-				logq,
-			)
-			terp_kwargs = {
-				"function": None,
-				"method": None,
-				"trigger": None,
-				"prereq": None,
-				"action": None,
-			}
-			terp.call(
-				*terp_args, **terp_kwargs
-			)  # check that we can run the subthread
-			if (echoed := output.get(timeout=5.0)) != b"done":
-				raise RuntimeError(
-					f"Got garbled output from worker terp {i}", echoed
-				)
-			wt.append(terp.call_in_thread(*terp_args, **terp_kwargs))
-			with lock:
-				input.put(b"echoImReady")
-				if (echoed := output.get(timeout=5.0)) != b"ImReady":
-					raise RuntimeError(
-						f"Got garbled output from worker terp {i}", echoed
-					)
-				input.put(initial_payload)
-		self.debug(f"all {i + 1} worker interpreters have started")
-		if hasattr(self.trigger, "connect"):
-			self.trigger.connect(self._reimport_trigger_functions)
-		if hasattr(self.function, "connect"):
-			self.function.connect(self._reimport_worker_functions)
-		if hasattr(self.method, "connect"):
-			self.method.connect(self._reimport_worker_methods)
-		self.debug(
-			"connected function stores to reimporters; setting up fut_manager"
-		)
-		self._setup_fut_manager(workers)
-		self.debug("fut_manager started")
-
-	def _start_worker_threads(
-		self, prefix: str | os.PathLike | None, workers: int
-	):
-		from queue import SimpleQueue
-		from threading import Thread
-
-		self._worker_last_eternal = dict(self.eternal.items())
-		initial_payload = self._get_worker_kf_payload()
-
-		self._worker_threads: list[Thread] = []
-		wt = self._worker_threads
-		self._worker_inputs: list[SimpleQueue[bytes]] = []
-		self._worker_outputs: list[SimpleQueue[bytes]] = []
-		wi = self._worker_inputs
-		wo = self._worker_outputs
-		self._worker_locks: list[Lock] = []
-		wlk = self._worker_locks
-		self._worker_log_queues: list[SimpleQueue] = []
-		wl = self._worker_log_queues
-		self._worker_log_threads: list[Thread] = []
-		wlt = self._worker_log_threads
-
-		for i in range(workers):
-			inq = SimpleQueue()
-			outq = SimpleQueue()
-			logq = SimpleQueue()
-			logthread = Thread(
-				target=self._sync_log_forever, args=(logq,), daemon=True
-			)
-			thred = Thread(
-				target=worker_subthread,
-				name=f"lisien worker {i}",
-				args=(
-					i,
-					prefix,
-					dict(self._branches_d),
-					dict(self.eternal),
-					inq,
-					outq,
-					logq,
-				),
-			)
-			wi.append(inq)
-			wo.append(outq)
-			wl.append(logq)
-			wlk.append(Lock())
-			wlt.append(logthread)
-			wt.append(thred)
-			logthread.start()
-			thred.start()
-			with wlk[-1]:
-				inq.put(b"echoImReady")
-				if (echoed := outq.get(timeout=5.0)) != b"ImReady":
-					raise RuntimeError(
-						f"Got garbled output from worker {i}", echoed
-					)
-				inq.put(initial_payload)
-
-		self._setup_fut_manager(workers)
-
-	def _start_worker_processes(
-		self, prefix: str | os.PathLike | None, workers: int
-	):
-		from multiprocessing import get_context
-		from multiprocessing.connection import Connection
-		from multiprocessing.process import BaseProcess
-
-		for store in self.stores:
-			if hasattr(store, "save"):
-				store.save(reimport=False)
-
-		self._worker_last_eternal = dict(self.eternal.items())
-		initial_payload = self._get_worker_kf_payload()
-
-		self._worker_processes: list[BaseProcess] = []
-		wp = self._worker_processes
-		self._mp_ctx = ctx = get_context("spawn")
-		self._worker_inputs: list[Connection] = []
-		wi = self._worker_inputs
-		self._worker_outputs: list[Connection] = []
-		wo = self._worker_outputs
-		self._worker_locks: list[Lock] = []
-		wlk = self._worker_locks
-		self._worker_log_queues: list[SimpleQueue] = []
-		wl = self._worker_log_queues
-		self._worker_log_threads: list[Thread] = []
-		wlt = self._worker_log_threads
-		for i in range(workers):
-			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
-			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
-			logq = ctx.SimpleQueue()
-			logthread = Thread(
-				target=self._sync_log_forever, args=(logq,), daemon=True
-			)
-			proc = ctx.Process(
-				target=worker_subprocess,
-				args=(
-					i,
-					prefix,
-					dict(self._branches_d),
-					dict(self.eternal),
-					inpipe_there,
-					outpipe_there,
-					logq,
-				),
-			)
-			wi.append(inpipe_here)
-			wo.append(outpipe_here)
-			wl.append(logq)
-			wlk.append(Lock())
-			wlt.append(logthread)
-			wp.append(proc)
-			logthread.start()
-			proc.start()
-			with wlk[-1]:
-				inpipe_here.send_bytes(b"echoImReady")
-				if not outpipe_here.poll(5.0):
-					raise TimeoutError(
-						f"Couldn't connect to worker process {i} in 5s"
-					)
-				if (received := outpipe_here.recv_bytes()) != b"ImReady":
-					raise RuntimeError(
-						f"Got garbled output from worker process {i}", received
-					)
-				inpipe_here.send_bytes(initial_payload)
-		if hasattr(self.trigger, "connect"):
-			self.trigger.connect(self._reimport_trigger_functions)
-		if hasattr(self.function, "connect"):
-			self.function.connect(self._reimport_worker_functions)
-		if hasattr(self.method, "connect"):
-			self.method.connect(self._reimport_worker_methods)
-		self._setup_fut_manager(workers)
-
-	def _setup_fut_manager(self, workers: int):
-		self._workers = workers
-		self._worker_updated_btts: list[Time] = [tuple(self.time)] * workers
-		self._uid_to_fut: dict[int, Future] = {}
-		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
-		self._how_many_futs_running = 0
-		self._fut_manager_thread = Thread(
-			target=self._manage_futs, daemon=True
-		)
-		self._fut_manager_thread.start()
 
 	def _start_branch(
 		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick
@@ -5218,108 +5504,6 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid += 1
 		return ret
 
-	def _manage_futs(self):
-		while not (
-			hasattr(self, "_closed") or hasattr(self, "_stop_managing_futs")
-		):
-			while self._how_many_futs_running < self._workers:
-				try:
-					fut = self._futs_to_start.get()
-					if fut == b"shutdown":
-						return
-				except Empty:
-					break
-				if not fut.running() and fut.set_running_or_notify_cancel():
-					fut._t.start()
-					self._how_many_futs_running += 1
-			sleep(0.001)
-
-	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
-		if hasattr(self, "_uid_to_fut"):
-			if cancel_futures:
-				for fut in self._uid_to_fut.values():
-					fut.cancel()
-			if wait:
-				futwait(self._uid_to_fut.values())
-			self._uid_to_fut.clear()
-		self._stop_managing_futs = True
-		self._stop_sync_log = True
-
-		if hasattr(self, "_worker_processes"):
-			for i, (lock, pipein, pipeout, proc, logq, logt) in enumerate(
-				zip(
-					self._worker_locks,
-					self._worker_inputs,
-					self._worker_outputs,
-					self._worker_processes,
-					self._worker_log_queues,
-					self._worker_log_threads,
-				)
-			):
-				with lock:
-					if proc.is_alive():
-						pipein.send_bytes(b"shutdown")
-						proc.join(timeout=SUBPROCESS_TIMEOUT)
-						if proc.exitcode is None:
-							if KILL_SUBPROCESS:
-								os.kill(proc.pid, signal.SIGKILL)
-							else:
-								raise RuntimeError(
-									"Worker process didn't exit", i
-								)
-						if not KILL_SUBPROCESS and proc.exitcode != 0:
-							raise RuntimeError(
-								"Worker process didn't exit normally",
-								i,
-								proc.exitcode,
-							)
-						proc.close()
-					if logt.is_alive():
-						logq.put(b"shutdown")
-						logt.join(timeout=SUBPROCESS_TIMEOUT)
-					pipein.close()
-					pipeout.close()
-			del self._worker_processes
-		elif hasattr(self, "_worker_interpreters"):
-			for i, (lock, inq, outq, thread, terp, logq, logt) in enumerate(
-				zip(
-					self._worker_locks,
-					self._worker_inputs,
-					self._worker_outputs,
-					self._worker_threads,
-					self._worker_interpreters,
-					self._worker_log_queues,
-					self._worker_log_threads,
-				)
-			):
-				with lock:
-					inq.put(b"shutdown")
-					logq.put(b"shutdown")
-					logt.join(timeout=SUBPROCESS_TIMEOUT)
-					thread.join(timeout=SUBPROCESS_TIMEOUT)
-					if terp.is_running():
-						terp.close()
-		elif hasattr(self, "_worker_threads"):
-			for i, (lock, inq, outq, thread, logq, logt) in enumerate(
-				zip(
-					self._worker_locks,
-					self._worker_inputs,
-					self._worker_outputs,
-					self._worker_threads,
-					self._worker_log_queues,
-					self._worker_log_threads,
-				)
-			):
-				with lock:
-					inq.put(b"shutdown")
-					logq.put(b"shutdown")
-					thread.join()
-		if hasattr(self, "_fut_manager_thread"):
-			self._futs_to_start.put(b"shutdown")
-			self._fut_manager_thread.join()
-		del self._stop_managing_futs
-		del self._stop_sync_log
-
 	def _detect_kf_interval_override(self):
 		if self._planning:
 			return True
@@ -5393,23 +5577,6 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid += 1
 		return self._call_in_worker(uid, method, *args, **kwargs)
 
-	@contextmanager
-	def _all_worker_locks_ctx(self):
-		for lock in self._worker_locks:
-			lock.acquire()
-		yield
-		for lock in self._worker_locks:
-			lock.release()
-
-	@staticmethod
-	def _all_worker_locks(fn):
-		@wraps(fn)
-		def call_with_all_worker_locks(self, *args, **kwargs):
-			with self._all_worker_locks_ctx():
-				return fn(self, *args, **kwargs)
-
-		return call_with_all_worker_locks
-
 	@staticmethod
 	def _all_code_stores_saved(fn):
 		@wraps(fn)
@@ -5428,43 +5595,12 @@ class Engine(AbstractEngine, Executor):
 		return save_all_code_stores_and_call
 
 	@_all_code_stores_saved
-	@_all_worker_locks
 	def _call_every_worker(self, method: str, *args, **kwargs):
-		ret = []
-		uids = []
-		if hasattr(self, "_worker_processes"):
-			n = len(self._worker_processes)
-		elif hasattr(self, "_worker_interpreters"):
-			n = len(self._worker_interpreters)
-		elif hasattr(self, "_worker_threads"):
-			n = len(self._worker_threads)
-		else:
-			raise RuntimeError("No workers")
-		for _ in range(n):
-			uids.append(self._top_uid)
-			uidbytes = self._top_uid.to_bytes(8, "little")
-			argbytes = self.pack((method, args, kwargs))
-			i = self._top_uid % n
-			self._top_uid += 1
-			input = self._worker_inputs[i]
-			if hasattr(input, "send_bytes"):
-				input.send_bytes(uidbytes + argbytes)
-			else:
-				input.put(uidbytes + argbytes)
-		for uid in uids:
-			i = uid % n
-			output = self._worker_outputs[i]
-			if hasattr(output, "recv_bytes"):
-				outbytes: bytes = output.recv_bytes()
-			else:
-				outbytes: bytes = output.get()
-			got_uid = int.from_bytes(outbytes[:8], "little")
-			assert got_uid == uid
-			retval = self.unpack(outbytes[8:])
-			if isinstance(retval, Exception):
-				raise retval
-			ret.append(retval)
-		return ret
+		if not hasattr(self, "_executor"):
+			raise RuntimeError("Not parallel")
+		self._executor.call_every_worker(
+			self.pack(method), self.pack(args), self.pack(kwargs)
+		)
 
 	@world_locked
 	def _init_graph(
@@ -6247,10 +6383,11 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	@world_locked
-	@_all_worker_locks
 	def _update_all_worker_process_states(
 		self, clobber: bool = False, stores_to_reimport: set[str] | None = None
 	):
+		if not hasattr(self, "_executor"):
+			raise RuntimeError("Not parallel")
 		stores_to_reimport = stores_to_reimport or set()
 		for store in self.stores:
 			if getattr(store, "_need_save", None):
@@ -6261,12 +6398,7 @@ class Engine(AbstractEngine, Executor):
 					store.save()
 		kf_payload = None
 		deltas = {}
-		if hasattr(self, "_worker_processes"):
-			n = len(self._worker_processes)
-		elif hasattr(self, "_worker_interpreters"):
-			n = len(self._worker_interpreters)
-		else:
-			raise RuntimeError("No workers")
+		n = self._executor.workers
 		for i in range(n):
 			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
 			if (
@@ -6353,6 +6485,13 @@ class Engine(AbstractEngine, Executor):
 				+ repr(self._worker_updated_btts[i])
 				+ f" ({len(deltas)} distinct deltas)"
 			)
+
+	def shutdown(
+		self, wait: bool = True, *, cancel_futures: bool = False
+	) -> None:
+		if hasattr(self, "_executor"):
+			self._executor.shutdown(wait, cancel_futures=cancel_futures)
+			del self._executor
 
 	@world_locked
 	def _update_worker_process_state(self, i, lock=True):
