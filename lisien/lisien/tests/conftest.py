@@ -24,9 +24,9 @@ from lisien.engine import (
 	Engine,
 )
 from ..futures import (
-	LisienThreadExecutor,
-	LisienProcessExecutor,
-	LisienInterpreterExecutor,
+	LisienThreadExecutorProxy,
+	LisienProcessExecutorProxy,
+	LisienInterpreterExecutorProxy,
 )
 from lisien.db import (
 	NullDatabaseConnector,
@@ -272,7 +272,7 @@ def database_connector(tmp_path, non_null_database):
 
 @pytest.fixture(scope="session")
 def process_executor():
-	with LisienProcessExecutor(
+	with LisienProcessExecutorProxy(
 		None,
 		getLogger("lisien"),
 		("trunk", 0, 0),
@@ -285,7 +285,7 @@ def process_executor():
 
 @pytest.fixture(scope="session")
 def thread_executor():
-	with LisienThreadExecutor(
+	with LisienThreadExecutorProxy(
 		None,
 		getLogger("lisien"),
 		("trunk", 0, 0),
@@ -301,7 +301,7 @@ def interpreter_executor():
 	if sys.version_info.minor < 14:
 		yield None
 		return
-	with LisienInterpreterExecutor(
+	with LisienInterpreterExecutorProxy(
 		None,
 		getLogger("lisien"),
 		("trunk", 0, 0),
@@ -365,6 +365,7 @@ def engine(
 				serial_or_parallel,
 				database_connector_part,
 				random_seed,
+				executor=executor,
 			)
 		) as proxy:
 			yield proxy
