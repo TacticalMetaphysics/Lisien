@@ -542,6 +542,10 @@ class LisienExecutor(Executor, ABC):
 	): ...
 
 	@cached_property
+	def lock(self) -> Lock:
+		return Lock()
+
+	@cached_property
 	def _top_uid(self) -> int:
 		return 0
 
@@ -2681,6 +2685,7 @@ class Engine(AbstractEngine, Executor):
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
 		if executor:
+			executor.lock.acquire()
 			executor.call_every_worker(
 				self.pack("_restart"),
 				self.pack(
@@ -2699,7 +2704,7 @@ class Engine(AbstractEngine, Executor):
 				executor._send_worker_input_bytes(i, initial_payload)
 			self._executor = executor
 			self._shutdown_executor = False
-		if workers != 0 and not executor:
+		elif workers != 0:
 			self._shutdown_executor = True
 			connect_reimporters = False
 			initial_payload = self._get_worker_kf_payload()
@@ -2741,6 +2746,7 @@ class Engine(AbstractEngine, Executor):
 						self._start_worker_processes(prefix, workers)
 					else:
 						self._start_worker_threads(prefix, workers)
+			self._executor.lock.acquire()
 			for i in range(workers):
 				self._executor._send_worker_input_bytes(i, initial_payload)
 			if connect_reimporters:
@@ -6256,6 +6262,8 @@ class Engine(AbstractEngine, Executor):
 			if hasattr(cache, "clear"):
 				cache.clear()
 		gc.collect()
+		if hasattr(self, "_executor"):
+			self._executor.lock.release()
 		self._closed = True
 
 	def __enter__(self):
