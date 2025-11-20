@@ -7,6 +7,7 @@ from concurrent.futures import Executor, Future, wait as futwait
 from contextlib import contextmanager
 from functools import cached_property, wraps
 from logging import Logger, LogRecord
+from multiprocessing import Pipe
 from queue import SimpleQueue, Empty
 from threading import Lock, Thread
 from time import sleep
@@ -529,3 +530,84 @@ class LisienInterpreterExecutor(LisienExecutor):
 				thread.join(timeout=SUBPROCESS_TIMEOUT)
 				if terp.is_running():
 					terp.close()
+
+
+class LisienExecutorProxy(LisienExecutor):
+	"""A :class:`LisienExecutor` that can itself be shared between processes"""
+
+	executor_class: type[LisienExecutor]
+
+	def __init__(
+		self,
+		prefix: str | os.PathLike | None,
+		logger: Logger,
+		time: Time,
+		eternal: dict[EternalKey, Value],
+		branches: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
+		workers: int,
+	):
+		self._real = self.executor_class(
+			prefix, logger, time, eternal, branches, workers
+		)
+		self._pipe_here, self._pipe_there = Pipe()
+		self._listen_thread = Thread(target=self._listen_here)
+		self._listen_thread.start()
+
+	def _listen_here(self):
+		while not hasattr(self, "_shutdown"):
+			inst, args, kwargs = self._pipe_here.recv()
+			getattr(self, inst)(*args, **kwargs)
+
+	def _listen_there(self):
+		while not hasattr(self, "_shutdown"):
+			inst, args, kwargs = self._pipe_there.recv()
+			getattr(self, inst)(*args, **kwargs)
+
+	def shutdown(
+		self, wait: bool = True, *, cancel_futures: bool = False
+	) -> None:
+		self._shutdown = True
+		if hasattr(self, "_real"):
+			self._real.shutdown(wait, cancel_futures=cancel_futures)
+			if wait:
+				self._pipe_here.send_bytes(b"shutdown")
+		else:
+			self._pipe_there.send(
+				("shutdown", (wait,), {"cancel_futures": cancel_futures})
+			)
+			if wait:
+				assert self._pipe_there.recv_bytes() == b"shutdown"
+
+	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
+		if hasattr(self, "_real"):
+			self._real._send_worker_input_bytes(i, input)
+		else:
+			self._pipe_there.send(("_send_worker_input_bytes", (i, input), {}))
+
+	def _get_worker_output_bytes(self, i: int) -> bytes:
+		if hasattr(self, "_real"):
+			return self._real._get_worker_output_bytes(i)
+		else:
+			self._pipe_there.send(("_get_worker_output_bytes", (i,), {}))
+			return self._pipe_there.recv()
+
+	def __getstate__(self):
+		return self._pipe_there
+
+	def __setstate__(self, state):
+		assert not hasattr(self, "_listen_thread")
+		self._pipe_there = state
+		self._listen_thread = Thread(target=self._listen_there)
+		self._listen_thread.start()
+
+
+class LisienThreadExecutorProxy(LisienExecutorProxy):
+	executor_class = LisienThreadExecutor
+
+
+class LisienProcessExecutorProxy(LisienExecutorProxy):
+	executor_class = LisienProcessExecutor
+
+
+class LisienInterpreterExecutorProxy(LisienExecutorProxy):
+	executor_class = LisienInterpreterExecutor
