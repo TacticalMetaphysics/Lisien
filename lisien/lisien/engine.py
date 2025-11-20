@@ -538,7 +538,6 @@ class LisienExecutor(Executor, ABC):
 		time: Time,
 		eternal: dict[EternalKey, Value],
 		branches: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
-		initial_payload: bytes,
 		workers: int,
 	): ...
 
@@ -690,7 +689,6 @@ class LisienThreadExecutor(LisienExecutor):
 		time: Time,
 		eternal_d: dict[EternalKey, Value],
 		branches_d: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
-		initial_payload: bytes,
 		workers: int,
 	):
 		from queue import SimpleQueue
@@ -747,7 +745,6 @@ class LisienThreadExecutor(LisienExecutor):
 					raise RuntimeError(
 						f"Got garbled output from worker {i}", echoed
 					)
-				inq.put(initial_payload)
 
 		self._setup_fut_manager(time, workers)
 
@@ -785,7 +782,6 @@ class LisienProcessExecutor(LisienExecutor):
 		time: Time,
 		eternal: dict[EternalKey, Value],
 		branches: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
-		initial_payload: bytes,
 		workers: int,
 	):
 		from multiprocessing import get_context
@@ -841,7 +837,6 @@ class LisienProcessExecutor(LisienExecutor):
 					raise RuntimeError(
 						f"Got garbled output from worker process {i}", received
 					)
-				inpipe_here.send_bytes(initial_payload)
 		self._setup_fut_manager(time, workers)
 
 	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
@@ -896,7 +891,6 @@ class LisienInterpreterExecutor(LisienExecutor):
 		time: Time,
 		eternal_d: dict[EternalKey, Value],
 		branches_d: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
-		initial_payload: bytes,
 		workers: int,
 	) -> None:
 		logger.debug(f"starting {workers} worker interpreters")
@@ -970,7 +964,6 @@ class LisienInterpreterExecutor(LisienExecutor):
 					raise RuntimeError(
 						f"Got garbled output from worker terp {i}", echoed
 					)
-				input.put(initial_payload)
 		if not i:
 			raise RuntimeError("No workers?", i)
 		logger.debug(f"all {i + 1} worker interpreters have started")
@@ -2685,13 +2678,13 @@ class Engine(AbstractEngine, Executor):
 			self._executor = executor
 		if workers != 0 and not executor:
 			connect_reimporters = False
+			initial_payload = self._get_worker_kf_payload()
 			executor_args = (
 				prefix,
 				self._logger,
 				tuple(self.time),
 				dict(self.eternal),
 				dict(self._branches_d),
-				self._get_worker_kf_payload(),
 				workers,
 			)
 			match sub_mode:
@@ -2724,6 +2717,8 @@ class Engine(AbstractEngine, Executor):
 						self._start_worker_processes(prefix, workers)
 					else:
 						self._start_worker_threads(prefix, workers)
+			for i in range(workers):
+				self._executor._send_worker_input_bytes(i, initial_payload)
 			if connect_reimporters:
 				if hasattr(self.trigger, "connect"):
 					self.trigger.connect(self._reimport_trigger_functions)
