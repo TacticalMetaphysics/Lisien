@@ -183,7 +183,9 @@ def test_set(tmp_path, random_seed):
 	assert 4 in wd
 	assert wd[4] == {"spam": "eggs"}
 	assert 5 not in wd
-	with make_test_engine(tmp_path, "serial", "sqlite", random_seed) as orm:
+	with make_test_engine(
+		tmp_path, "serial", "sqlite", random_seed, workers=0
+	) as orm:
 		g = orm.new_character("g")
 		g.node[5] = {"ham": {"spam": "beans"}}
 		wd[5] = g.node[5]["ham"]
