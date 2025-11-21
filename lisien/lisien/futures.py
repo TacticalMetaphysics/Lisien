@@ -546,35 +546,29 @@ class LisienExecutorProxy(LisienExecutor):
 			prefix, logger, time, eternal, branches, workers
 		)
 		self._pipe_here, self._pipe_there = Pipe()
-		self._listen_thread = Thread(target=self._listen_here)
+		self._listen_thread = Thread(target=self._listen_here, daemon=True)
 		self._listen_thread.start()
 
 	def _listen_here(self):
-		while not hasattr(self, "_shutdown"):
+		inst = None
+		while inst != "shutdown":
 			inst, args, kwargs = self._pipe_here.recv()
 			getattr(self, inst)(*args, **kwargs)
 
 	def _listen_there(self):
-		while not hasattr(self, "_shutdown"):
+		inst = None
+		while inst != "shutdown":
 			inst, args, kwargs = self._pipe_there.recv()
 			getattr(self, inst)(*args, **kwargs)
 
 	def shutdown(
 		self, wait: bool = True, *, cancel_futures: bool = False
 	) -> None:
-		self._shutdown = True
 		if hasattr(self, "_real"):
 			self._real.shutdown(wait, cancel_futures=cancel_futures)
-			if wait:
-				self._pipe_here.send_bytes(b"shutdown")
-				self._listen_thread.join()
-		else:
-			self._pipe_there.send(
+			self._pipe_here.send(
 				("shutdown", (wait,), {"cancel_futures": cancel_futures})
 			)
-			if wait:
-				assert self._pipe_there.recv_bytes() == b"shutdown"
-				self._listen_thread.join()
 
 	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
 		if hasattr(self, "_real"):
