@@ -31,6 +31,6 @@ for _, target in tmpdirs:
 		if red == "aoeu":
 			print(target)
 			exit()
-	except PermissionError:
+	except (OSError, PermissionError):
 		continue
 print(tempfile.gettempdir())
