@@ -592,12 +592,29 @@ class LisienExecutorProxy(LisienExecutor):
 			return self._pipe_there.recv()
 
 	@property
-	def _worker_locks(self):
-		return self._real._worker_locks
-
-	@property
 	def workers(self):
 		return self._real.workers
+
+	def call_every_worker(
+		self,
+		methodbytes: bytes,
+		argbytes: bytes,
+		kwargbytes: bytes,
+		*,
+		uid: int | None = None,
+	) -> list[bytes]:
+		if hasattr(self, "_real"):
+			return self._real.call_every_worker(
+				methodbytes, argbytes, kwargbytes, uid=uid
+			)
+		self._pipe_there.send(
+			(
+				"call_every_worker",
+				(methodbytes, argbytes, kwargbytes),
+				{"uid": uid},
+			)
+		)
+		return self._pipe_there.recv()
 
 	def __getstate__(self):
 		return self._pipe_there
