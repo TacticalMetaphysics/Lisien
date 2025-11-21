@@ -595,6 +595,10 @@ class LisienExecutorProxy(LisienExecutor):
 	def _worker_locks(self):
 		return self._real._worker_locks
 
+	@property
+	def workers(self):
+		return self._real.workers
+
 	def __getstate__(self):
 		return self._pipe_there
 
