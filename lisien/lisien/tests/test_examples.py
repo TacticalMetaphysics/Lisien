@@ -103,7 +103,7 @@ def test_wolfsheep(tmp_path, database_connector_part, serial_or_executor):
 	with Engine(
 		tmp_path,
 		random_seed=69105,
-		workers=0 if executor is None else 2,
+		workers=0 if serial_or_executor is None else 2,
 		executor=serial_or_executor,
 		database=database_connector_part(),
 	) as engy:
