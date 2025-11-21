@@ -181,12 +181,11 @@ def test_windows_intersection():
 
 
 @pytest.fixture
-def qryeng(request, tmp_path, execution):
+def qryeng(request, tmp_path):
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
-		workers=0 if execution == "serial" else 2,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
 		yield eng
