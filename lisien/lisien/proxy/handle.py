@@ -193,7 +193,7 @@ class EngineHandle:
 			logger = kwargs["logger"] = Logger("lisien")
 			handler = EngineHandleLogHandler(0, log_queue)
 			logger.addHandler(handler)
-		do_game_start = kwargs.pop("do_game_start")
+		do_game_start = kwargs.pop("do_game_start", False)
 
 		new = cls.__new__(cls)
 		new._real = Engine.from_archive(
