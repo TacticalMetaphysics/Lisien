@@ -70,8 +70,7 @@ class LisienExecutor(Executor, ABC):
 	def _top_uid(self) -> int:
 		return 0
 
-	@property
-	def uid(self):
+	def get_uid(self):
 		ret = self._top_uid
 		self._top_uid += 1
 		return ret
@@ -181,7 +180,7 @@ class LisienExecutor(Executor, ABC):
 		uids = []
 		n = self.workers
 		for _ in range(n):
-			uid = self.uid
+			uid = self.get_uid()
 			uids.append(uid)
 			uidbytes = uid.to_bytes(8, "little")
 			i = uid % n
