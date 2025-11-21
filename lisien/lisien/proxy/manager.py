@@ -644,14 +644,22 @@ class EngineProxyManager:
 			self._proxy_out_pipe.send_bytes(
 				b"from_archive"
 				+ packb(
-					{"archive_path": archive_path, "prefix": prefix, **kwargs}
+					{
+						"archive_path": str(archive_path),
+						"prefix": str(prefix),
+						**kwargs,
+					}
 				)
 			)
 		else:
 			self._output_queue.put(
 				b"from_archive"
 				+ packb(
-					{"archive_path": archive_path, "prefix": prefix, **kwargs}
+					{
+						"archive_path": str(archive_path),
+						"prefix": str(prefix),
+						**kwargs,
+					}
 				),
 			)
 		self._make_proxy(prefix, game_source_code=game_code, **kwargs)
