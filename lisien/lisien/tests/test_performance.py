@@ -25,8 +25,8 @@ from .data import DATA_DIR
 
 @pytest.mark.parquetdb
 def test_follow_path(tmp_path):
-	proxman = EngineProxyManager(tmp_path)
 	with (
+		EngineProxyManager(tmp_path) as proxman,
 		proxman.load_archive(
 			os.path.join(DATA_DIR, "big_grid.lisien"), tmp_path, workers=0
 		) as prox,
