@@ -567,12 +567,14 @@ class LisienExecutorProxy(LisienExecutor):
 			self._real.shutdown(wait, cancel_futures=cancel_futures)
 			if wait:
 				self._pipe_here.send_bytes(b"shutdown")
+				self._listen_thread.join()
 		else:
 			self._pipe_there.send(
 				("shutdown", (wait,), {"cancel_futures": cancel_futures})
 			)
 			if wait:
 				assert self._pipe_there.recv_bytes() == b"shutdown"
+				self._listen_thread.join()
 
 	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
 		if hasattr(self, "_real"):
