@@ -5,23 +5,31 @@ import tempfile
 
 diskfree = (
 	subprocess.Popen(
-		["df", "-t", "tmpfs", "--output=target"], stdout=subprocess.PIPE
+		["df", "-t", "tmpfs", "--output=avail,target"], stdout=subprocess.PIPE
 	)
 	.communicate()[0]
 	.decode()
 )
-for line in diskfree.split():
-	if not os.path.exists(line):
+tmpdirs = []
+for line in diskfree.split("\n"):
+	try:
+		avail, target = line.split()
+	except ValueError:
+		continue
+	tmpdirs.append((int(avail), str(target)))
+tmpdirs.sort(reverse=True)
+for _, target in tmpdirs:
+	if not os.path.exists(target):
 		continue
 	try:
 		works = False
-		fn = os.path.join(line, "test.txt")
+		fn = os.path.join(target, "test.txt")
 		with open(fn, "wt") as testfile:
 			testfile.write("aoeu")
 		with open(fn, "rt") as testfile:
 			red = testfile.read()
 		if red == "aoeu":
-			print(line)
+			print(target)
 			exit()
 	except PermissionError:
 		continue
