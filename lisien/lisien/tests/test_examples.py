@@ -154,8 +154,13 @@ def test_wolfsheep(tmp_path, database_connector_part, serial_or_parallel):
 
 @pytest.mark.slow
 @pytest.mark.parallel
-def test_pathfind():
-	with Engine(None, flush_interval=None, commit_interval=None) as eng:
+def test_pathfind(process_executor):
+	with Engine(
+		None,
+		flush_interval=None,
+		commit_interval=None,
+		executor=process_executor,
+	) as eng:
 		pathfind.install(eng, 69105)
 		locs = [
 			thing.location.name
