@@ -23,15 +23,14 @@ from lisien.proxy.manager import EngineProxyManager
 from .data import DATA_DIR
 
 
-@pytest.fixture
-def big_grid(tmp_path):
-	shutil.unpack_archive(os.path.join(DATA_DIR, "pathfind.tar.gz"), tmp_path)
-	yield tmp_path
-
-
 @pytest.mark.parquetdb
-def test_follow_path(big_grid):
-	with EngineProxyManager(big_grid, workers=0) as prox:
+def test_follow_path(tmp_path):
+	proxman = EngineProxyManager(tmp_path)
+	with (
+		proxman.load_archive(
+			os.path.join(DATA_DIR, "big_grid.lisien"), tmp_path, workers=0
+		) as prox,
+	):
 		grid = prox.character["grid"]
 		them = grid.thing["them"]
 		straightly = grid.stat["straightly"]
