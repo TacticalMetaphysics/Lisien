@@ -596,18 +596,16 @@ class LisienExecutorProxy(LisienExecutor):
 		methodbytes: bytes,
 		argbytes: bytes,
 		kwargbytes: bytes,
-		*,
-		uid: int | None = None,
 	) -> list[bytes]:
 		if hasattr(self, "_real"):
 			return self._real.call_every_worker(
-				methodbytes, argbytes, kwargbytes, uid=uid
+				methodbytes, argbytes, kwargbytes
 			)
 		self._pipe_there.send(
 			(
 				"call_every_worker",
 				(methodbytes, argbytes, kwargbytes),
-				{"uid": uid},
+				{},
 			)
 		)
 		return self._pipe_there.recv()
