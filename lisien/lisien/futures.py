@@ -176,15 +176,12 @@ class LisienExecutor(Executor, ABC):
 		methodbytes: bytes,
 		argbytes: bytes,
 		kwargbytes: bytes,
-		*,
-		uid: int | None = None,
 	) -> list[bytes]:
-		if uid is None:
-			uid = self.uid
 		ret = []
 		uids = []
 		n = self.workers
 		for _ in range(n):
+			uid = self.uid
 			uids.append(uid)
 			uidbytes = uid.to_bytes(8, "little")
 			i = uid % n
