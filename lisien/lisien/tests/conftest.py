@@ -192,7 +192,7 @@ def execution(request):
 	return request.param
 
 
-@pytest.fixture(params=["serial", *KINDS_OF_PARALLEL])
+@pytest.fixture(scope="session", params=["serial", *KINDS_OF_PARALLEL])
 def serial_or_parallel(request):
 	return request.param
 
