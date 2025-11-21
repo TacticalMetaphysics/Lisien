@@ -22,7 +22,6 @@ for _, target in tmpdirs:
 	if not os.path.exists(target):
 		continue
 	try:
-		works = False
 		fn = os.path.join(target, "test.txt")
 		with open(fn, "wt") as testfile:
 			testfile.write("aoeu")
