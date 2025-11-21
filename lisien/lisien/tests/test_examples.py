@@ -35,13 +35,11 @@ pytestmark = [pytest.mark.big]
 
 
 @pytest.mark.slow
-def test_college_nodb(serial_or_parallel):
-	kwargs = {}
-	if serial_or_parallel == "serial":
-		kwargs["workers"] = 0
-	else:
-		kwargs["workers"] = 2
-		kwargs["sub_mode"] = Sub(serial_or_parallel)
+def test_college_nodb(serial_or_executor):
+	kwargs = {
+		"executor": serial_or_executor,
+		"workers": 0 if serial_or_executor is None else 2,
+	}
 	with Engine(None, **kwargs, database=NullDatabaseConnector()) as eng:
 		college.install(eng)
 		for i in range(10):
@@ -49,15 +47,9 @@ def test_college_nodb(serial_or_parallel):
 
 
 @pytest.mark.slow
-def test_college_premade(tmp_path, serial_or_parallel, college10):
+def test_college_premade(tmp_path, college10):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
-	kwargs = {}
-	if serial_or_parallel == "serial":
-		kwargs["workers"] = 0
-	else:
-		kwargs["workers"] = 2
-		kwargs["sub_mode"] = Sub(serial_or_parallel)
 	for i in range(10):
 		college10.next_turn()
 
@@ -107,12 +99,12 @@ def test_sickle(engy):
 
 
 @pytest.mark.slow
-def test_wolfsheep(tmp_path, database_connector_part, serial_or_parallel):
-	workers = 0 if serial_or_parallel == "serial" else 2
+def test_wolfsheep(tmp_path, database_connector_part, serial_or_executor):
 	with Engine(
 		tmp_path,
 		random_seed=69105,
-		workers=workers,
+		workers=0 if executor is None else 2,
+		executor=serial_or_executor,
 		database=database_connector_part(),
 	) as engy:
 		wolfsheep.install(engy, seed=69105)
