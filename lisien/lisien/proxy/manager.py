@@ -649,10 +649,10 @@ class EngineProxyManager:
 			)
 		else:
 			self._output_queue.put(
-				(
-					"from_archive",
-					{"archive_path": archive_path, "prefix": prefix, **kwargs},
-				)
+				b"from_archive"
+				+ packb(
+					{"archive_path": archive_path, "prefix": prefix, **kwargs}
+				),
 			)
 		self._make_proxy(prefix, game_source_code=game_code, **kwargs)
 		self.engine_proxy._init_pull_from_core()
