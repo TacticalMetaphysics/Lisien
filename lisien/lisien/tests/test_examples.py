@@ -100,10 +100,11 @@ def test_sickle(engy):
 
 @pytest.mark.slow
 def test_wolfsheep(tmp_path, database_connector_part, serial_or_executor):
+	workers = 0 if serial_or_executor is None else 2
 	with Engine(
 		tmp_path,
 		random_seed=69105,
-		workers=0 if serial_or_executor is None else 2,
+		workers=workers,
 		executor=serial_or_executor,
 		database=database_connector_part(),
 	) as engy:
