@@ -111,7 +111,9 @@ def random_seed():
 		"sickle",
 	],
 )
-def handle_initialized(request, tmp_path, database, random_seed):
+def handle_initialized(
+	request, tmp_path, database, random_seed, serial_or_executor
+):
 	if request.param == "kobold":
 		install = partial(
 			kobold.inittest, shrubberies=20, kobold_sprint_chance=0.9
@@ -131,7 +133,11 @@ def handle_initialized(request, tmp_path, database, random_seed):
 			assert database == "python"
 			connector = PythonDatabaseConnector()
 		ret = EngineHandle(
-			None, workers=0, random_seed=random_seed, database=connector
+			None,
+			workers=0 if serial_or_executor is None else 2,
+			executor=serial_or_executor,
+			random_seed=random_seed,
+			database=connector,
 		)
 		install(ret._real)
 		ret.keyframe = keyframe
@@ -149,7 +155,8 @@ def handle_initialized(request, tmp_path, database, random_seed):
 		install(eng)
 	ret = EngineHandle(
 		tmp_path,
-		workers=0,
+		workers=0 if serial_or_executor is None else 2,
+		executor=serial_or_executor,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
 		else None,
