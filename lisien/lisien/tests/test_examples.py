@@ -129,6 +129,7 @@ def test_wolfsheep(tmp_path, database_connector_part, serial_or_executor):
 		tmp_path,
 		random_seed=69105,
 		workers=workers,
+		executor=serial_or_executor,
 		database=database_connector_part(),
 	)
 	try:
