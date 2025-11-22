@@ -3,12 +3,6 @@ when:
     branch: opttest
 
 steps:
-  - name: headless3.12
-    image: python:3.12
-    commands:
-      - python -V
-      - python -m pip install tox
-      - env TMPDIR=$(python find_ramdisk.py) tox -c lisien/tox.ini -e py312
   - name: slow_headless3.12
     image: python:3.12
     commands:
