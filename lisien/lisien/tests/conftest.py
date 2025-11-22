@@ -239,7 +239,9 @@ def persistent_database(request):
 
 @pytest.fixture
 def database_connector_part(tmp_path, non_null_database):
-	return get_database_connector_part(tmp_path, non_null_database)
+	yield get_database_connector_part(tmp_path, non_null_database)
+	if hasattr(get_database_connector_part, "_pyconnector"):
+		del get_database_connector_part._pyconnector
 
 
 @pytest.fixture
