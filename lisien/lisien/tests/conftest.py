@@ -541,14 +541,14 @@ def college10(
 	tmp_path,
 	serial_or_parallel,
 	database_connector,
-	no_proxy_executor,
+	serial_or_executor,
 ):
 	with college_engine(
 		"college10.lisien",
 		tmp_path,
 		serial_or_parallel,
 		database_connector,
-		executor=no_proxy_executor,
+		executor=serial_or_executor,
 	) as eng:
 		yield eng
 
@@ -558,14 +558,14 @@ def college24(
 	tmp_path,
 	serial_or_parallel,
 	database_connector,
-	no_proxy_executor,
+	serial_or_executor,
 ):
 	with college_engine(
 		"college24.lisien",
 		tmp_path,
 		serial_or_parallel,
 		database_connector,
-		executor=no_proxy_executor,
+		executor=serial_or_executor,
 	) as eng:
 		yield eng
 
