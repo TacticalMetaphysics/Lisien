@@ -260,6 +260,8 @@ def validate_time(time: Time) -> None:
 
 
 class LinearTime(tuple[Turn, Tick]):
+	__slots__ = ()
+
 	def __new__(
 		cls, tup: tuple[Turn, Tick] | Turn, tick: Tick | None = None
 	) -> LinearTime:
