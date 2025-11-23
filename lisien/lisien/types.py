@@ -306,6 +306,7 @@ def rulename(s: str) -> RuleName:
 
 type RuleNeighborhood = Annotated[int, Ge(0)] | None
 RuleBig = NewType("RuleBig", bool)
+RuleAttStr = Literal["triggers", "prereqs", "actions", "neighborhood", "big"]
 RuleFunc = NewType("RuleFunc", FunctionType)
 FuncName = NewType("FuncName", str)
 type FuncStoreName = Literal[
@@ -531,6 +532,56 @@ type CharDelta = dict[
 type DeltaDict = dict[
 	CharName,
 	CharDelta | None,
+]
+
+
+class CharacterTimeSliceDict(TypedDict):
+	graph_val: dict[Turn, list[tuple[Tick, Stat, Value]]]
+	nodes: dict[Turn, list[tuple[Tick, NodeName, bool]]]
+	node_val: dict[
+		Turn, list[tuple[Tick, NodeName, Stat | Literal["rulebook"], Value]]
+	]
+	edges: dict[Turn, list[tuple[Tick, NodeName, NodeName, bool]]]
+	edge_val: dict[
+		Turn,
+		list[
+			tuple[Tick, NodeName, NodeName, Stat | Literal["rulebook"], Value]
+		],
+	]
+	units: dict[CharName, dict[Turn, list[tuple[Tick, NodeName, bool]]]]
+	character_rulebook: dict[Turn, list[tuple[Tick, RulebookName]]]
+	unit_rulebook: dict[Turn, list[tuple[Tick, RulebookName]]]
+	character_thing_rulebook: dict[Turn, list[tuple[Tick, RulebookName]]]
+	character_place_rulebook: dict[Turn, list[tuple[Tick, RulebookName]]]
+	character_portal_rulebook: dict[Turn, list[tuple[Tick, RulebookName]]]
+
+
+type UniversalTimeSliceDict = dict[
+	Turn, list[tuple[Tick, UniversalKey, Value]]
+]
+type RulebooksTimeSliceDict = dict[
+	RulebookName, dict[Turn, list[tuple[Tick, list[RuleName]]]]
+]
+
+
+class RuleTimeSliceDict(TypedDict, total=False):
+	triggers: dict[Turn, list[tuple[Tick, list[TriggerFuncName]]]]
+	prereqs: dict[Turn, list[tuple[Tick, list[PrereqFuncName]]]]
+	actions: dict[Turn, list[tuple[Tick, list[ActionFuncName]]]]
+	neighborhood: dict[Turn, list[tuple[Tick, RuleNeighborhood]]]
+	big: dict[Turn, list[tuple[Tick, RuleBig]]]
+
+
+type GraphsTimeSliceDict = dict[
+	Turn, list[tuple[Tick, CharName, GraphTypeStr]]
+]
+type TimeSliceDict = dict[
+	CharName | Literal["universal", "rulebooks", "rules", "graphs"],
+	CharacterTimeSliceDict
+	| UniversalTimeSliceDict
+	| RulebooksTimeSliceDict
+	| dict[RuleName, RuleTimeSliceDict]
+	| GraphsTimeSliceDict,
 ]
 type KeyframeGraphRowType = tuple[
 	Branch,
