@@ -85,6 +85,10 @@ class FacadeEntity(
 	def _patch(self) -> dict[Stat | Literal["rulebook"], Value | type(...)]:
 		return {}
 
+	@cached_property
+	def engine(self):
+		return self.character.engine
+
 	@property
 	def rulebook(self):
 		if "rulebook" in self._patch:
