@@ -49,7 +49,7 @@ from operator import itemgetter, lt
 from os import PathLike
 from random import Random
 from threading import RLock, Thread
-from types import FunctionType, MethodType, ModuleType
+from types import FunctionType, MethodType, ModuleType, EllipsisType
 from typing import (
 	Any,
 	Callable,
@@ -181,6 +181,7 @@ from .types import (
 	QueryResult,
 	QueryResultEndTurn,
 	QueryResultMidTurn,
+	RuleAttStr,
 	RuleBig,
 	RulebookName,
 	RulebookPriority,
@@ -193,6 +194,7 @@ from .types import (
 	StatDict,
 	Tick,
 	Time,
+	TimeSliceDict,
 	TimeSignal,
 	TimeSignalDescriptor,
 	TriggerFuncName,
@@ -202,6 +204,12 @@ from .types import (
 	sort_set,
 	validate_time,
 	PickyDefaultDict,
+	CharacterTimeSliceDict,
+	GraphTypeStr,
+	RulebooksTimeSliceDict,
+	RuleTimeSliceDict,
+	UniversalTimeSliceDict,
+	GraphsTimeSliceDict,
 )
 from .util import (
 	ACTIONS,
@@ -1630,6 +1638,543 @@ class Engine(AbstractEngine, Executor):
 				):
 					return
 				delta[graph] = {}
+
+	def get_time_slice(
+		self,
+		branch: Branch,
+		time_from: LinearTime | tuple[int, int],
+		time_to: LinearTime | tuple[int, int],
+	) -> TimeSliceDict:
+		"""Get a dictionary listing the changes that happened to the world."""
+		turn_from, tick_from = time_from
+		turn_to, tick_to = time_to
+		if not isinstance(branch, str):
+			raise TypeError("non-string branch", branch)
+		for arg in (turn_from, tick_from, turn_to, tick_to):
+			if not isinstance(arg, int):
+				raise TypeError("non-int turn or tick", arg)
+			if arg < 0:
+				raise ValueError("negative turn or tick", arg)
+		time_from = LinearTime(turn_from, tick_from)
+		time_to = LinearTime(turn_to, tick_to)
+		branch = Branch(branch)
+
+		def put_char_something(
+			time_slice: TimeSliceDict,
+			char: CharName,
+			key: Literal[
+				"nodes", "edges", "graph_val", "node_val", "edge_val"
+			],
+			turn: Turn,
+			something: tuple[Tick, Stat, Value]
+			| tuple[Tick, NodeName, bool]
+			| tuple[Tick, NodeName, Stat | Literal["rulebook"], Value]
+			| tuple[Tick, NodeName, Literal["location"], NodeName]
+			| tuple[Tick, NodeName, NodeName, bool]
+			| tuple[
+				Tick, NodeName, NodeName, Stat | Literal["rulebook"], Value
+			],
+		) -> None:
+			if char in time_slice:
+				sliced: CharacterTimeSliceDict = time_slice[char]
+				if key in sliced:
+					if turn in sliced[key]:
+						sliced[key][turn].append(something)
+					else:
+						sliced[key][turn] = [something]
+				else:
+					sliced[key] = {turn: [something]}
+			else:
+				char_time_slice = CharacterTimeSliceDict()
+				char_time_slice[key] = {turn: [something]}
+				time_slice[char] = char_time_slice
+
+		def put_graph(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			_: None,
+			graph: CharName,
+			value: Literal["DiGraph", "Deleted", ..., None],
+		) -> None:
+			"""Indicate in the time slice that the graph was deleted or not"""
+			val: Literal["DiGraph", "Deleted"]
+			if value in (..., None, "Deleted"):
+				val = "Deleted"
+			elif value != "DiGraph":
+				raise ValueError("Unknown graph type", val)
+			else:
+				val = "DiGraph"
+			if "graphs" in time_slice:
+				sliced: GraphsTimeSliceDict = time_slice["graphs"]
+				if turn in sliced:
+					sliced[turn].append((tick, graph, val))
+				else:
+					sliced[turn] = [(tick, graph, val)]
+			else:
+				time_slice["graphs"] = {turn: [(tick, graph, val)]}
+
+		def put_graph_val(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			graph: CharName,
+			key: Stat,
+			value: Value,
+		) -> None:
+			put_char_something(
+				time_slice, graph, "graph_val", turn, (tick, key, value)
+			)
+
+		def put_character_rulebook(
+			time_slice: TimeSliceDict,
+			rulebook_type: CharacterRulebookTypeStr,
+			turn: Turn,
+			tick: Tick,
+			graph: CharName,
+			rulebook: RulebookName,
+		) -> None:
+			if graph in time_slice:
+				char_time_slice: CharacterTimeSliceDict = time_slice[graph]
+				if rulebook_type in char_time_slice:
+					if turn in char_time_slice[rulebook_type]:
+						char_time_slice[rulebook_type][turn].append(
+							(tick, rulebook)
+						)
+					else:
+						char_time_slice[rulebook_type][turn] = [
+							(tick, rulebook)
+						]
+				else:
+					char_time_slice[rulebook_type] = {turn: [(tick, rulebook)]}
+			else:
+				char_time_slice = CharacterTimeSliceDict()
+				char_time_slice[rulebook_type] = {turn: [(tick, rulebook)]}
+				time_slice[graph] = char_time_slice
+
+		def put_node(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			graph: CharName,
+			node: NodeName,
+			exists: bool | None | EllipsisType,
+		) -> None:
+			exists: bool = exists is not None and exists is not ... and exists
+			put_char_something(
+				time_slice, graph, "nodes", turn, (tick, node, exists)
+			)
+
+		def put_node_val(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			graph: CharName,
+			node: NodeName,
+			key: Stat,
+			value: Value,
+		) -> None:
+			put_char_something(
+				time_slice, graph, "node_val", turn, (tick, node, key, value)
+			)
+
+		def put_node_rulebook(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			graph: CharName,
+			node: NodeName,
+			rulebook: RulebookName,
+		) -> None:
+			put_char_something(
+				time_slice,
+				graph,
+				"node_val",
+				turn,
+				(tick, node, "rulebook", rulebook),
+			)
+
+		def put_edge(
+			time_slice: TimeSliceDict,
+			_: Callable[[], bool],
+			turn: Turn,
+			tick: Tick,
+			graph: CharName,
+			orig: NodeName,
+			dest: NodeName,
+			exists: bool | None | EllipsisType,
+		) -> None:
+			exists: bool = exists is not None and exists is not ... and exists
+			put_char_something(
+				time_slice,
+				graph,
+				"edges",
+				turn,
+				(tick, orig, dest, exists),
+			)
+
+		def put_edge_val(
+			time_slice: TimeSliceDict,
+			_: Callable[[], bool],
+			turn: Turn,
+			tick: Tick,
+			graph: CharName,
+			orig: NodeName,
+			dest: NodeName,
+			key: Stat,
+			value: Value,
+		) -> None:
+			put_char_something(
+				time_slice,
+				graph,
+				"edge_val",
+				turn,
+				(tick, orig, dest, key, value),
+			)
+
+		def put_portal_rulebook(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			graph: CharName,
+			orig: NodeName,
+			dest: NodeName,
+			rulebook: RulebookName,
+		):
+			put_char_something(
+				time_slice,
+				graph,
+				"edge_val",
+				turn,
+				(tick, orig, dest, "rulebook", rulebook),
+			)
+
+		def put_universal(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			_: None,
+			key: UniversalKey,
+			value: Value,
+		) -> None:
+			if "universal" in time_slice:
+				universal_d: UniversalTimeSliceDict = time_slice["universal"]
+				if turn in universal_d:
+					universal_d[turn].append((tick, key, value))
+				else:
+					universal_d[turn] = [(tick, key, value)]
+			else:
+				universal_d: UniversalTimeSliceDict = {
+					turn: [(tick, key, value)]
+				}
+				time_slice["universal"] = universal_d
+
+		def put_unit(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			char: CharName,
+			graph: CharName,
+			node: NodeName,
+			is_unit: bool,
+		) -> None:
+			if char in time_slice:
+				char_slice: CharacterTimeSliceDict = time_slice[char]
+				if "units" in char_slice:
+					units_d = char_slice["units"]
+					if graph in units_d:
+						graph_turns = units_d[graph]
+						if turn in graph_turns:
+							graph_turns[turn].append((tick, node, is_unit))
+						else:
+							graph_turns[turn] = [(tick, node, is_unit)]
+					else:
+						units_d[graph] = {turn: [(tick, node, is_unit)]}
+				else:
+					char_slice["units"] = {
+						graph: {turn: [(tick, node, is_unit)]}
+					}
+			else:
+				char_slice = CharacterTimeSliceDict()
+				char_slice["units"] = {graph: {turn: [(tick, node, is_unit)]}}
+				time_slice[char] = char_slice
+
+		def put_thing(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			char: CharName,
+			thing: NodeName,
+			location: NodeName,
+		) -> None:
+			put_char_something(
+				time_slice,
+				char,
+				"node_val",
+				turn,
+				(tick, thing, "location", location),
+			)
+
+		def put_rulebook(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			_: None,
+			rulebook: RulebookName,
+			rules: list[RuleName],
+		) -> None:
+			if "rulebooks" in time_slice:
+				rulebook_d: RulebooksTimeSliceDict = time_slice["rulebooks"]
+				if rulebook in rulebook_d:
+					if turn in rulebook_d[rulebook]:
+						rulebook_d[rulebook][turn].append((tick, list(rules)))
+					else:
+						rulebook_d[rulebook][turn] = [(tick, list(rules))]
+				else:
+					rulebook_d[rulebook] = {turn: [(tick, list(rules))]}
+			else:
+				rulebook_d: RulebooksTimeSliceDict = {
+					rulebook: {turn: [(tick, list(rules))]}
+				}
+				time_slice["rulebooks"] = rulebook_d
+
+		type RuleSomethingType = (
+			tuple[Tick, list[TriggerFuncName]]
+			| tuple[Tick, list[PrereqFuncName]]
+			| tuple[Tick, list[ActionFuncName]]
+			| tuple[Tick, RuleNeighborhood]
+			| tuple[Tick, RuleBig]
+		)
+
+		def put_rule_something(
+			time_slice: TimeSliceDict,
+			rule: RuleName,
+			key: RuleAttStr,
+			turn: Turn,
+			something: RuleSomethingType,
+		) -> None:
+			def put_something(
+				rule_time_slice: RuleTimeSliceDict,
+				key: RuleAttStr,
+				turn: Turn,
+				something: RuleSomethingType,
+			):
+				if key in rule_time_slice:
+					if turn in rule_time_slice[key]:
+						rule_time_slice[key][turn].append(something)
+					else:
+						rule_time_slice[key][turn] = [something]
+				else:
+					rule_time_slice[key] = {turn: [something]}
+
+			if "rules" in time_slice:
+				rules_time_slices: dict[RuleName, RuleTimeSliceDict] = (
+					time_slice["rules"]
+				)
+				if rule in rules_time_slices:
+					rule_time_slice: RuleTimeSliceDict = rules_time_slices[
+						rule
+					]
+					put_something(rule_time_slice, key, turn, something)
+				else:
+					rule_time_slice = RuleTimeSliceDict()
+					rule_time_slice[key] = {turn: [something]}
+					rules_time_slices[rule] = rule_time_slice
+			else:
+				rule_time_slice = RuleTimeSliceDict()
+				rule_time_slice[key] = {turn: [something]}
+				time_slice["rules"] = {rule: rule_time_slice}
+
+		def put_rule_funcs(
+			time_slice: TimeSliceDict,
+			key: Literal["triggers", "prereqs", "actions"],
+			turn: Turn,
+			tick: Tick,
+			_: None,
+			rule: RuleName,
+			funcs: list[TriggerFuncName]
+			| list[PrereqFuncName]
+			| list[ActionFuncName],
+		) -> None:
+			put_rule_something(
+				time_slice, rule, key, turn, (tick, list(funcs))
+			)
+
+		def put_neighborhood(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			_: None,
+			rule: RuleName,
+			neighborhood: RuleNeighborhood,
+		):
+			if neighborhood is not None:
+				if not isinstance(neighborhood, int):
+					raise TypeError(
+						"Neighborhood must be int or None", neighborhood
+					)
+				if neighborhood < 0:
+					raise ValueError(
+						"Neighborhood must not be negative", neighborhood
+					)
+			put_rule_something(
+				time_slice, rule, "neighborhood", turn, (tick, neighborhood)
+			)
+
+		def put_big(
+			time_slice: TimeSliceDict,
+			turn: Turn,
+			tick: Tick,
+			_: None,
+			rule: RuleName,
+			big: RuleBig,
+		):
+			if not isinstance(big, bool):
+				raise TypeError("big must be boolean", big)
+			put_rule_something(time_slice, rule, "big", turn, (tick, big))
+
+		if time_from < time_to:
+			updater = partial(
+				update_window, turn_from, tick_from, turn_to, tick_to
+			)
+			attribute = "settings"
+		elif time_from == time_to:
+			return {}
+		else:
+			updater = partial(
+				update_backward_window, turn_from, tick_from, turn_to, tick_to
+			)
+			attribute = "presettings"
+
+		time_slice: TimeSliceDict = {}
+
+		graphs_branches = getattr(self._graph_cache, attribute)
+		if branch in graphs_branches:
+			updater(partial(put_graph, time_slice), graphs_branches[branch])
+		graph_val_branches = getattr(self._graph_val_cache, attribute)
+		if branch in graph_val_branches:
+			updater(
+				partial(put_graph_val, time_slice), graph_val_branches[branch]
+			)
+		nodes_branches = getattr(self._nodes_cache, attribute)
+		if branch in nodes_branches:
+			updater(partial(put_node, time_slice), nodes_branches[branch])
+		node_val_branches = getattr(self._node_val_cache, attribute)
+		if branch in node_val_branches:
+			updater(
+				partial(put_node_val, time_slice), node_val_branches[branch]
+			)
+		edges_branches = getattr(self._edges_cache, attribute)
+		if branch in edges_branches:
+			updater(partial(put_edge, time_slice), edges_branches[branch])
+		edge_val_branches = getattr(self._edge_val_cache, attribute)
+		if branch in edge_val_branches:
+			updater(
+				partial(put_edge_val, time_slice), edge_val_branches[branch]
+			)
+		universal_branches = getattr(self._universal_cache, attribute)
+		if branch in universal_branches:
+			updater(
+				partial(put_universal, time_slice), universal_branches[branch]
+			)
+		units_branches = getattr(self._unitness_cache, attribute)
+		if branch in units_branches:
+			updater(partial(put_unit, time_slice), units_branches[branch])
+		things_branches = getattr(self._things_cache, attribute)
+		if branch in things_branches:
+			updater(partial(put_thing, time_slice), things_branches[branch])
+		rulebook_branches = getattr(self._rulebooks_cache, attribute)
+		if branch in rulebook_branches:
+			updater(
+				partial(put_rulebook, time_slice), rulebook_branches[branch]
+			)
+		triggers_branches = getattr(self._triggers_cache, attribute)
+		if branch in triggers_branches:
+			updater(partial(put_rule_funcs, time_slice, "triggers"))
+		prereqs_branches = getattr(self._prereqs_cache, attribute)
+		if branch in prereqs_branches:
+			updater(
+				partial(put_rule_funcs, time_slice, "prereqs"),
+				prereqs_branches[branch],
+			)
+		actions_branches = getattr(self._actions_cache, attribute)
+		if branch in actions_branches:
+			updater(
+				partial(put_rule_funcs, time_slice, "actions"),
+				actions_branches[branch],
+			)
+		neighborhood_branches = getattr(self._neighborhoods_cache, attribute)
+		if branch in neighborhood_branches:
+			updater(
+				partial(put_neighborhood, time_slice),
+				neighborhood_branches[branch],
+			)
+		big_branches = getattr(self._rule_bigness_cache, attribute)
+		if branch in big_branches:
+			updater(partial(put_big, time_slice), big_branches[branch])
+		char_rb_branches = getattr(self._characters_rulebooks_cache, attribute)
+		if branch in char_rb_branches:
+			updater(
+				partial(
+					put_character_rulebook, time_slice, "character_rulebook"
+				),
+				char_rb_branches[branch],
+			)
+		unit_rb_branches = getattr(self._units_rulebooks_cache, attribute)
+		if branch in unit_rb_branches:
+			updater(
+				partial(put_character_rulebook, time_slice, "unit_rulebook"),
+				unit_rb_branches,
+			)
+		char_thing_rb_branches = getattr(
+			self._characters_things_rulebooks_cache, attribute
+		)
+		if branch in char_thing_rb_branches:
+			updater(
+				partial(
+					put_character_rulebook,
+					time_slice,
+					"character_thing_rulebook",
+				),
+				char_thing_rb_branches[branch],
+			)
+		char_place_rb_branches = getattr(
+			self._characters_places_rulebooks_cache, attribute
+		)
+		if branch in char_place_rb_branches:
+			updater(
+				partial(
+					put_character_rulebook,
+					time_slice,
+					"character_place_rulebook",
+				),
+				char_place_rb_branches[branch],
+			)
+		char_portal_rb_branches = getattr(
+			self._characters_portals_rulebooks_cache, attribute
+		)
+		if branch in char_portal_rb_branches:
+			updater(
+				partial(
+					put_character_rulebook,
+					time_slice,
+					"character_portal_rulebook",
+				),
+				char_portal_rb_branches[branch],
+			)
+		node_rb_branches = getattr(self._nodes_rulebooks_cache, attribute)
+		if branch in node_rb_branches:
+			updater(
+				partial(put_node_rulebook, time_slice),
+				node_rb_branches[branch],
+			)
+		edge_rb_branches = getattr(self._portals_rulebooks_cache, attribute)
+		if branch in edge_rb_branches:
+			updater(
+				partial(put_portal_rulebook, time_slice),
+				edge_rb_branches[branch],
+			)
+		return time_slice
 
 	def _get_branch_delta(
 		self,
@@ -5245,9 +5790,9 @@ class Engine(AbstractEngine, Executor):
 	) -> bool:
 		"""Return whether the changes between these turns are numerous enough that you might as well use the slow delta
 
-		Somewhat imprecise.
+				Somewhat imprecise.
 
-		"""
+		:"""
 		kfint = self.db.keyframe_interval
 		if kfint is None:
 			return False
