@@ -1027,7 +1027,7 @@ class CharacterFacade(AbstractCharacter):
 			return Thing
 
 		def _make(self, k, v):
-			return self.cls(self.character, k, location=v)
+			return self.cls(self.character, k, location=v["location"])
 
 		def _get_inner_map(self):
 			try:
