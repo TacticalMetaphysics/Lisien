@@ -111,9 +111,7 @@ def random_seed():
 		"sickle",
 	],
 )
-def handle_initialized(
-	request, tmp_path, database, random_seed, serial_or_executor
-):
+def handle_initialized(request, tmp_path, database, random_seed):
 	if request.param == "kobold":
 		from lisien.examples.kobold import inittest
 
@@ -136,8 +134,7 @@ def handle_initialized(
 			connector = PythonDatabaseConnector()
 		ret = EngineHandle(
 			None,
-			workers=0 if serial_or_executor is None else 2,
-			executor=serial_or_executor,
+			workers=0,
 			random_seed=random_seed,
 			database=connector,
 		)
@@ -157,8 +154,7 @@ def handle_initialized(
 		install(eng)
 	ret = EngineHandle(
 		tmp_path,
-		workers=0 if serial_or_executor is None else 2,
-		executor=serial_or_executor,
+		workers=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
 		else None,
