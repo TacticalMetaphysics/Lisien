@@ -4738,7 +4738,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		if rulebooks := loaded.pop("rulebooks", ()):
 			self._rulebooks_cache.load(
-				(rb, b, r, t, rs, prio)
+				(rb, b, r, t, (rs, prio))
 				for (b, r, t, rb, rs, prio) in rulebooks
 			)
 		if rule_triggers := loaded.pop("rule_triggers", ()):
