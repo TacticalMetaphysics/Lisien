@@ -264,19 +264,19 @@ class LinearTime(tuple[Turn, Tick]):
 
 	def __new__(
 		cls, tup: tuple[Turn, Tick] | Turn, tick: Tick | None = None
-	) -> LinearTime:
-		if tick is not None:
-			if not isinstance(tick, int):
-				raise TypeError("Invalid tick", tick)
-			turn: Turn = tup
-			if not isinstance(turn, int):
-				raise TypeError("Invalid turn", turn)
-			return tuple.__new__(cls, (turn, tick))
-		turn, tick = tup
+	) -> tuple:
+		if tick is None:
+			turn, tick = tup
+		else:
+			turn = tup
 		if not isinstance(turn, int):
-			raise TypeError("Invalid turn")
+			raise TypeError("Invalid turn", turn)
+		if turn < 0:
+			raise ValueError("Negative turn", turn)
 		if not isinstance(tick, int):
-			raise TypeError("Invalid tick")
+			raise TypeError("Invalid tick", tick)
+		if tick < 0:
+			raise ValueError("Negative tick", tick)
 		return tuple.__new__(cls, tup)
 
 
