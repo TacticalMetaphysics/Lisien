@@ -24,11 +24,10 @@ from lisien.examples import (
 	kobold,
 	pathfind,
 	polygons,
-	sickle,
-	wolfsheep,
 )
 from lisien.proxy.handle import EngineHandle
 from lisien.proxy.manager import Sub
+from lisien.tests.data import DATA_DIR
 from lisien.types import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
 
 pytestmark = [pytest.mark.big]
@@ -92,42 +91,51 @@ def test_char_stat_startup(tmp_path, database_connector_part):
 		assert "max_sameness" in eng.character["triangle"].stat
 
 
-def test_sickle(engy):
-	sickle.install(engy)
+def test_sickle(sickle):
 	for i in range(50):
-		engy.next_turn()
+		sickle.next_turn()
 
 
 @pytest.mark.slow
-def test_wolfsheep(tmp_path, database_connector_part, serial_or_executor):
+def test_wolfsheep(
+	tmp_path,
+	serial_or_executor,
+	database_connector_part,
+	random_seed,
+):
 	workers = 0 if serial_or_executor is None else 2
-	with Engine(
+	with Engine.from_archive(
+		DATA_DIR + "/wolfsheep.lisien",
 		tmp_path,
-		random_seed=69105,
 		workers=workers,
-		executor=serial_or_executor,
+		random_seed=random_seed,
 		database=database_connector_part(),
-	) as engy:
-		wolfsheep.install(engy, seed=69105)
-		for i in range(10):
-			engy.next_turn()
-		engy.turn = 5
-		engy.branch = "lol"
-		engy.universal["haha"] = "lol"
+		executor=serial_or_executor,
+	) as engine:
+		sheep = engine.character["sheep"]
+		physical = engine.character["physical"]
+		initial_locations = [unit.location.name for unit in sheep.units()]
+		initial_bare_places = list(physical.stat["bare_places"])
+		assert initial_locations
+		for _ in range(10):
+			engine.next_turn()
+		assert [
+			unit.location.name for unit in sheep.units()
+		] != initial_locations
+		assert physical.stat["bare_places"] != initial_bare_places
+		engine.turn = 5
+		engine.branch = "lol"
+		engine.universal["haha"] = "lol"
 		for i in range(5):
 			print(i + 5)
-			engy.next_turn()
-		engy.turn = 5
-		engy.branch = "omg"
-		sheep = engy.character["sheep"]
-		initial_locations = [unit.location.name for unit in sheep.units()]
-		assert initial_locations
-		initial_bare_places = list(
-			engy.character["physical"].stat["bare_places"]
-		)
+			engine.next_turn()
+		engine.turn = 5
+		engine.branch = "omg"
+		final_locations = [unit.location.name for unit in sheep.units()]
+		final_bare_places = list(physical.stat["bare_places"])
+		assert initial_bare_places
 	hand = EngineHandle(
 		tmp_path,
-		random_seed=69105,
 		workers=workers,
 		executor=serial_or_executor,
 		database=database_connector_part(),
@@ -137,10 +145,10 @@ def test_wolfsheep(tmp_path, database_connector_part, serial_or_executor):
 		assert [
 			unit.location.name
 			for unit in hand._real.character["sheep"].units()
-		] != initial_locations
+		] != final_locations
 		assert (
 			hand._real.character["physical"].stat["bare_places"]
-			!= initial_bare_places
+			!= final_bare_places
 		)
 	finally:
 		hand.close()
@@ -148,25 +156,18 @@ def test_wolfsheep(tmp_path, database_connector_part, serial_or_executor):
 
 @pytest.mark.slow
 @pytest.mark.parallel
-def test_pathfind(process_executor):
-	with Engine(
-		None,
-		flush_interval=None,
-		commit_interval=None,
-		executor=process_executor,
-	) as eng:
-		pathfind.install(eng, 69105)
-		locs = [
-			thing.location.name
-			for thing in sorted(
-				eng.character["physical"].thing.values(), key=lambda t: t.name
-			)
-		]
-		for i in range(10):
-			eng.next_turn()
-		assert locs != [
-			thing.location.name
-			for thing in sorted(
-				eng.character["physical"].thing.values(), key=lambda t: t.name
-			)
-		]
+def test_pathfind(pathfind):
+	locs = [
+		thing.location.name
+		for thing in sorted(
+			pathfind.character["physical"].thing.values(), key=lambda t: t.name
+		)
+	]
+	for i in range(10):
+		pathfind.next_turn()
+	assert locs != [
+		thing.location.name
+		for thing in sorted(
+			pathfind.character["physical"].thing.values(), key=lambda t: t.name
+		)
+	]

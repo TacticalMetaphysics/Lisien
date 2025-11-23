@@ -34,6 +34,7 @@ from typing import (
 	Any,
 	Callable,
 	ClassVar,
+	IO,
 	Iterable,
 	Iterator,
 	Literal,
@@ -2505,7 +2506,7 @@ class AbstractDatabaseConnector(ABC):
 
 	def to_xml(
 		self,
-		xml_file_path: str | os.PathLike | IOBase,
+		xml_file_path: str | os.PathLike | IO[str | bytes],
 		indent: bool = True,
 		name: str | None = None,
 	) -> None:
@@ -2802,7 +2803,7 @@ class AbstractDatabaseConnector(ABC):
 
 	def write_xml(
 		self,
-		file: str | os.PathLike | IOBase,
+		file: str | os.PathLike | IO[str | bytes],
 		name: str | None = None,
 		indent: bool = True,
 	) -> None:
@@ -4152,7 +4153,7 @@ class AbstractDatabaseConnector(ABC):
 				self.eternal[k] = v
 		self.commit()
 
-	def load_xml(self, xml_or_file_path: str | os.PathLike | IOBase):
+	def load_xml(self, xml_or_file_path: str | os.PathLike | IO[str | bytes]):
 		"""Restore data from an XML export
 
 		Supports a string with the XML in it, a path to an XML file, or
