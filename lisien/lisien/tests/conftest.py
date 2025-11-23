@@ -23,6 +23,7 @@ import pytest
 from lisien.engine import (
 	Engine,
 )
+from .data import DATA_DIR
 from ..futures import (
 	LisienThreadExecutorProxy,
 	LisienProcessExecutorProxy,
@@ -35,7 +36,6 @@ from lisien.db import (
 from lisien.proxy.handle import EngineHandle
 from lisien.proxy.manager import Sub
 
-from ..examples import college, kobold, sickle
 from ..pqdb import ParquetDatabaseConnector
 from ..proxy.engine import EngineProxy
 from ..proxy.manager import EngineProxyManager
@@ -115,16 +115,18 @@ def handle_initialized(
 	request, tmp_path, database, random_seed, serial_or_executor
 ):
 	if request.param == "kobold":
-		install = partial(
-			kobold.inittest, shrubberies=20, kobold_sprint_chance=0.9
-		)
+		from lisien.examples.kobold import inittest
+
+		install = partial(inittest, shrubberies=20, kobold_sprint_chance=0.9)
 		keyframe = {0: data.KOBOLD_KEYFRAME_0, 1: data.KOBOLD_KEYFRAME_1}
 	elif request.param == "college":
-		install = college.install
+		from lisien.examples.college import install
+
 		keyframe = {0: data.COLLEGE_KEYFRAME_0, 1: data.COLLEGE_KEYFRAME_1}
 	else:
 		assert request.param == "sickle"
-		install = sickle.install
+		from lisien.examples.sickle import install
+
 		keyframe = {0: data.SICKLE_KEYFRAME_0, 1: data.SICKLE_KEYFRAME_1}
 	if database in {"nodb", "python"}:
 		if database == "nodb":
@@ -259,6 +261,11 @@ def persistent_database_connector_part(tmp_path, persistent_database):
 	raise RuntimeError("Unknown database", persistent_database)
 
 
+@pytest.fixture
+def persistent_database_connector(persistent_database_connector_part):
+	yield persistent_database_connector_part()
+
+
 @pytest.fixture(scope="function")
 def database_connector(tmp_path, non_null_database):
 	match non_null_database:
@@ -365,6 +372,19 @@ def serial_or_executor(
 		for t in ex._worker_log_threads:
 			assert not t.is_alive()
 		assert not ex._fut_manager_thread.is_alive()
+
+
+@pytest.fixture(scope="session", params=KINDS_OF_PARALLEL)
+def parallel_executor(
+	request, process_executor, thread_executor, interpreter_executor
+):
+	match request.param:
+		case "thread":
+			yield interpreter_executor
+		case "process":
+			yield process_executor
+		case "interpreter":
+			yield interpreter_executor
 
 
 @pytest.fixture(
@@ -566,6 +586,48 @@ def college24(
 		serial_or_parallel,
 		database_connector,
 		executor=serial_or_executor,
+	) as eng:
+		yield eng
+
+
+@pytest.fixture
+def sickle(tmp_path, database_connector, serial_or_executor):
+	with Engine.from_archive(
+		os.path.join(DATA_DIR, "sickle.lisien"),
+		tmp_path,
+		workers=2 if serial_or_executor else 0,
+		database=database_connector,
+		executor=serial_or_executor,
+	) as eng:
+		yield eng
+
+
+@pytest.fixture
+def wolfsheep(tmp_path, database_connector_part, serial_or_executor):
+	connector = database_connector_part()
+	with Engine.from_archive(
+		os.path.join(
+			DATA_DIR,
+			"wolfsheep.lisien",
+		),
+		tmp_path
+		if not isinstance(connector, PythonDatabaseConnector)
+		else None,
+		workers=2 if serial_or_executor else 0,
+		database=connector,
+		executor=serial_or_executor,
+	) as eng:
+		yield eng
+
+
+@pytest.fixture
+def pathfind(tmp_path, persistent_database_connector, parallel_executor):
+	with Engine.from_archive(
+		os.path.join(DATA_DIR, "pathfind.lisien"),
+		tmp_path,
+		workers=2,
+		database=persistent_database_connector,
+		executor=parallel_executor,
 	) as eng:
 		yield eng
 
