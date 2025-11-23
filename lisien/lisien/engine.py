@@ -7650,37 +7650,28 @@ class Engine(AbstractEngine, Executor):
 		executor: LisienExecutor | None = None,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
-
-		shutil.unpack_archive(archive_path, prefix, "zip")
-		extracted = os.listdir(prefix)
 		if database is None:
 			if prefix:
-				if "world.sqlite3" in extracted:
+				try:
+					from .pqdb import ParquetDatabaseConnector
+
+					pq_path = os.path.join(prefix, "world")
+					os.makedirs(pq_path, exist_ok=True)
+					database = ParquetDatabaseConnector(pq_path)
+				except ImportError:
 					from .sql import SQLAlchemyDatabaseConnector
 
 					database = SQLAlchemyDatabaseConnector(
 						f"sqlite:///{prefix}/world.sqlite3"
 					)
-				else:
-					try:
-						from .pqdb import ParquetDatabaseConnector
-
-						pq_path = os.path.join(prefix, "world")
-						os.makedirs(pq_path, exist_ok=True)
-						database = ParquetDatabaseConnector(pq_path)
-					except ImportError:
-						from .sql import SQLAlchemyDatabaseConnector
-
-						database = SQLAlchemyDatabaseConnector(
-							f"sqlite:///{prefix}/world.sqlite3"
-						)
 			else:
 				database = PythonDatabaseConnector()
-		if "world.xml" in extracted:
-			fake = EngineFacade(None)
-			(database.pack, database.unpack) = (fake.pack, fake.unpack)
-			xml_path = os.path.join(prefix, "world.xml")
-			database.load_xml(xml_path)
+		fake = EngineFacade(None)
+		(database.pack, database.unpack) = (fake.pack, fake.unpack)
+		with ZipFile(archive_path, "r") as zf:
+			database.load_xml(zf.open("world.xml"))
+			for fn in set(zf.namelist()) - {"world.xml"}:
+				zf.extract(fn, prefix)
 		return Engine(
 			prefix,
 			string=string,
