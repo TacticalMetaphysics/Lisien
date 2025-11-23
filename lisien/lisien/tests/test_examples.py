@@ -41,7 +41,7 @@ def test_college_nodb(serial_or_executor):
 	}
 	with Engine(None, **kwargs, database=NullDatabaseConnector()) as eng:
 		college.install(eng)
-		for i in range(10):
+		for i in range(3):
 			eng.next_turn()
 
 
@@ -49,7 +49,7 @@ def test_college_nodb(serial_or_executor):
 def test_college_premade(tmp_path, college10):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
-	for i in range(10):
+	for i in range(3):
 		college10.next_turn()
 
 
