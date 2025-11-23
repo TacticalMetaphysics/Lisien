@@ -1803,8 +1803,8 @@ class Engine(AbstractEngine, Executor):
 			if not isinstance(arg, int):
 				raise TypeError("turn and tick must be int")
 		self.load_between(branch, turn_from, tick_from, turn_to, tick_to)
-		a: LinearTime = turn_from, tick_from
-		b: LinearTime = turn_to, tick_to
+		a = LinearTime(turn_from, tick_from)
+		b = LinearTime(turn_to, tick_to)
 		if a == b:
 			return {}
 		delta = {}
