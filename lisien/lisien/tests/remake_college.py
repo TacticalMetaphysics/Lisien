@@ -31,7 +31,7 @@ def main():
 	with Engine(
 		None,
 		workers=0,
-		keyframe_interval=1,
+		keyframe_interval=None,
 		keep_rules_journal=False,
 		random_seed=69105,
 	) as eng:
