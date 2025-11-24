@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import os
+import pickle
+import shutil
+import tempfile
 from contextlib import contextmanager
 from functools import wraps, partial
 from itertools import product
@@ -8,7 +11,7 @@ from logging import getLogger
 from os import PathLike
 from queue import Empty, SimpleQueue
 from threading import Thread
-from typing import Any, Callable, TypeVar, Literal, TYPE_CHECKING
+from typing import Any, Callable, TypeVar, Literal, TYPE_CHECKING, Iterator
 from unittest.mock import MagicMock, patch
 from umsgpack import packb
 
@@ -284,4 +287,58 @@ def college_engine(
 			**kwargs,
 		) as eng,
 	):
+		yield eng
+
+
+@contextmanager
+def tar_cache(
+	name: str, non_null_database: str, make_engine: Callable | None = None
+) -> Iterator[str]:
+	with tempfile.TemporaryDirectory() as tmpdir:
+		gamedir = os.path.join(tmpdir, name)
+		os.makedirs(gamedir, exist_ok=True)
+		if non_null_database == "sqlite":
+			connector = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{gamedir}/world.sqlite3"
+			)
+		elif non_null_database == "parquetdb":
+			connector = ParquetDatabaseConnector(
+				os.path.join(gamedir, "world")
+			)
+		else:
+			assert non_null_database == "python"
+			connector = PythonDatabaseConnector()
+		if make_engine:
+			with make_engine(f"{name}.lisien", gamedir, "serial", connector):
+				pass
+		else:
+			Engine.from_archive(
+				os.path.join(DATA_DIR, f"{name}.lisien"),
+				gamedir,
+				workers=0,
+				database=connector,
+			).close()
+		if non_null_database == "python":
+			with open(os.path.join(gamedir, "database.pkl"), "wb") as f:
+				pickle.dump(connector, f)
+		yield shutil.make_archive(name, "tar", gamedir)
+
+
+@contextmanager
+def untar_cache(
+	tar_path: str,
+	tmp_path: str | os.PathLike,
+	database_connector: AbstractDatabaseConnector,
+	serial_or_executor: LisienExecutor | None,
+) -> Iterator[Engine]:
+	shutil.unpack_archive(tar_path, tmp_path, "tar")
+	if isinstance(database_connector, PythonDatabaseConnector):
+		with open(os.path.join(tmp_path, "database.pkl"), "rb") as f:
+			database_connector = pickle.load(f)
+	with Engine(
+		tmp_path,
+		workers=0,  # in case serial_or_executor is None
+		database=database_connector,
+		executor=serial_or_executor,
+	) as eng:
 		yield eng

@@ -48,6 +48,8 @@ from .util import (
 	get_database_connector_part,
 	college_engine,
 	restart_executor,
+	tar_cache,
+	untar_cache,
 )
 
 
@@ -215,21 +217,23 @@ def database(request):
 
 
 @pytest.fixture(
+	scope="session",
 	params=[
 		pytest.param("python"),
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
-	]
+	],
 )
 def non_null_database(request):
 	return request.param
 
 
 @pytest.fixture(
+	scope="session",
 	params=[
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
-	]
+	],
 )
 def persistent_database(request):
 	return request.param
@@ -552,78 +556,84 @@ def null_engine():
 		assert not eng._fut_manager_thread.is_alive()
 
 
+@pytest.fixture(scope="session")
+def college10_tar(non_null_database):
+	with tar_cache("college10", non_null_database, college_engine) as path:
+		yield path
+
+
 @pytest.fixture
 def college10(
+	college10_tar,
 	tmp_path,
 	serial_or_parallel,
 	database_connector,
 	serial_or_executor,
 ):
-	with college_engine(
-		"college10.lisien",
-		tmp_path,
-		serial_or_parallel,
-		database_connector,
-		executor=serial_or_executor,
+	with untar_cache(
+		college10_tar, tmp_path, database_connector, serial_or_executor
 	) as eng:
 		yield eng
+
+
+@pytest.fixture(scope="session")
+def college24_tar(non_null_database):
+	with tar_cache("college24", non_null_database, college_engine) as path:
+		yield path
 
 
 @pytest.fixture
 def college24(
+	college24_tar,
 	tmp_path,
 	serial_or_parallel,
 	database_connector,
 	serial_or_executor,
 ):
-	with college_engine(
-		"college24.lisien",
-		tmp_path,
-		serial_or_parallel,
-		database_connector,
-		executor=serial_or_executor,
+	with untar_cache(
+		college24_tar, tmp_path, database_connector, serial_or_executor
 	) as eng:
 		yield eng
 
 
+@pytest.fixture(scope="session")
+def sickle_tar(non_null_database):
+	with tar_cache("sickle", non_null_database) as path:
+		yield path
+
+
 @pytest.fixture
-def sickle(tmp_path, database_connector, serial_or_executor):
-	with Engine.from_archive(
-		os.path.join(DATA_DIR, "sickle.lisien"),
-		tmp_path,
-		workers=2 if serial_or_executor else 0,
-		database=database_connector,
-		executor=serial_or_executor,
+def sickle(sickle_tar, tmp_path, database_connector, serial_or_executor):
+	with untar_cache(
+		sickle_tar, tmp_path, database_connector, serial_or_executor
 	) as eng:
 		yield eng
 
 
+@pytest.fixture(scope="session")
+def wolfsheep_tar(non_null_database):
+	with tar_cache("wolfsheep", non_null_database) as path:
+		yield path
+
+
 @pytest.fixture
-def wolfsheep(tmp_path, database_connector_part, serial_or_executor):
-	connector = database_connector_part()
-	with Engine.from_archive(
-		os.path.join(
-			DATA_DIR,
-			"wolfsheep.lisien",
-		),
-		tmp_path
-		if not isinstance(connector, PythonDatabaseConnector)
-		else None,
-		workers=2 if serial_or_executor else 0,
-		database=connector,
-		executor=serial_or_executor,
+def wolfsheep(wolfsheep_tar, tmp_path, database_connector, serial_or_executor):
+	with untar_cache(
+		wolfsheep_tar, tmp_path, database_connector, serial_or_executor
 	) as eng:
 		yield eng
 
 
+@pytest.fixture(scope="session")
+def pathfind_tar(non_null_database):
+	with tar_cache("pathfind", non_null_database) as path:
+		yield path
+
+
 @pytest.fixture
-def pathfind(tmp_path, persistent_database_connector, parallel_executor):
-	with Engine.from_archive(
-		os.path.join(DATA_DIR, "pathfind.lisien"),
-		tmp_path,
-		workers=2,
-		database=persistent_database_connector,
-		executor=parallel_executor,
+def pathfind(pathfind_tar, tmp_path, database_connector, parallel_executor):
+	with untar_cache(
+		pathfind_tar, tmp_path, database_connector, parallel_executor
 	) as eng:
 		yield eng
 
