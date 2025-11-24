@@ -5109,7 +5109,18 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			except KeyError:
 				return
 			for g, (nkf, ekf, gvkf) in kf.items():
-				yield g, nkf, ekf, gvkf
+				yield (
+					g,
+					{node: stats.copy() for (node, stats) in nkf.items()},
+					{
+						orig: {
+							dest: stats.copy()
+							for (dest, stats) in dests.items()
+						}
+						for (orig, dests) in ekf.items()
+					},
+					gvkf.copy(),
+				)
 
 	def keyframes_graphs_dump(
 		self,
