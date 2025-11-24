@@ -656,6 +656,19 @@ class AbstractDatabaseConnector(ABC):
 			for table in Batch.cached_properties
 		}
 
+	def __getstate__(self):
+		return self.dump_everything()
+
+	def load_everything(self, state: dict[str, list[tuple]]):
+		for table, data in state.items():
+			prop = Batch.cached_properties[table]
+			batch = getattr(self, prop.attrname)
+			batch.extend(data)
+		self.flush()
+
+	def __setstate__(self, state: dict[str, list[tuple]]):
+		self.load_everything(state)
+
 	@batched(
 		"global",
 		key_len=1,
