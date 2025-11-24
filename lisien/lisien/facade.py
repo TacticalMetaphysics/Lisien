@@ -760,12 +760,13 @@ class CharacterFacade(AbstractCharacter):
 		things = self.thing.unwrap()
 		places = self.place.unwrap()
 		stats = self.graph.unwrap()
-		return things, places, ports, stats
+		return self._name, things, places, ports, stats
 
 	def __setstate__(self, state):
 		self.character = None
 		self.graph = self.StatMapping(self)
 		(
+			self._name,
 			self.thing._patch,
 			self.place._patch,
 			self.portal._patch,
