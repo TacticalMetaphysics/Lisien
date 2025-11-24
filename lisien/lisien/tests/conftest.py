@@ -636,6 +636,15 @@ def pathfind(pathfind_tar, tmp_path, database_connector, parallel_executor):
 		yield eng
 
 
+def pytest_collection_modifyitems(items):
+	for item in items:
+		fixturenames = getattr(item, "fixturenames", ())
+		if "college10" in fixturenames or "college24" in fixturenames:
+			item.add_marker("college")
+		for fixturename in fixturenames:
+			item.add_marker(fixturename)
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_sessionfinish(session, exitstatus):
 	# Remove handlers from all loggers to prevent logging errors on exit
