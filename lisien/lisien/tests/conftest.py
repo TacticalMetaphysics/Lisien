@@ -23,7 +23,6 @@ import pytest
 from lisien.engine import (
 	Engine,
 )
-from .data import DATA_DIR
 from ..futures import (
 	LisienThreadExecutorProxy,
 	LisienProcessExecutorProxy,
@@ -469,7 +468,6 @@ def no_proxy_executor(
 def proxyless_engine(
 	tmp_path, serial_or_parallel, database_connector, no_proxy_executor
 ):
-	executor = None
 	with Engine(
 		tmp_path,
 		random_seed=69105,
