@@ -649,9 +649,15 @@ class AbstractDatabaseConnector(ABC):
 
 		"""
 		self.flush()
+
+		def entuple(rec):
+			if isinstance(rec, str):
+				return (rec,)
+			return tuple(rec)
+
 		return {
 			table: sorted(
-				map(tuple, getattr(self, f"{table}_dump")()), key=self.pack
+				map(entuple, getattr(self, f"{table}_dump")()), key=self.pack
 			)
 			for table in Batch.cached_properties
 		}
