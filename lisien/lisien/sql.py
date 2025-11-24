@@ -83,6 +83,9 @@ from .types import (
 	UnitRulesHandledRowType,
 	Value,
 	root_type,
+	CharRulebookRowType,
+	ThingRowType,
+	UnitRowType,
 )
 
 meta = MetaData()
@@ -1504,13 +1507,19 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				unpack(rulebook),
 			)
 
-	def _charactery_rulebook_dump(self, qry):
+	def _charactery_rulebook_dump(self, qry) -> Iterator[CharRulebookRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack = self.unpack_key
 		for branch, turn, tick, character, rulebook in self.call(
 			qry + "_rulebook_dump"
 		):
-			yield unpack(character), branch, turn, tick, unpack(rulebook)
+			yield (
+				branch,
+				turn,
+				tick,
+				CharName(unpack(character)),
+				RulebookName(unpack(rulebook)),
+			)
 
 	character_rulebook_dump = partialmethod(
 		_charactery_rulebook_dump, "character"

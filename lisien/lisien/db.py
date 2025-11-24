@@ -108,6 +108,7 @@ from .types import (
 	NodeValRowType,
 	PackSignature,
 	Plan,
+	PlanTicksRowType,
 	PortalRulebookRowType,
 	PortalRulesHandledRowType,
 	PrereqFuncName,
@@ -147,6 +148,8 @@ from .types import (
 	root_type,
 	sort_set,
 	PickierDefaultDict,
+	KeyframeExtensionRowType,
+	KeyframeGraphRowType,
 )
 from .util import ILLEGAL_CHARACTER_NAMES, garbage
 from .window import (
@@ -1587,7 +1590,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def global_dump(self) -> Iterator[tuple[Key, Value]]:
+	def global_dump(self) -> Iterator[tuple[EternalKey, Value]]:
 		pass
 
 	@abstractmethod
@@ -1668,7 +1671,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
+	def plan_ticks_dump(self) -> Iterator[PlanTicksRowType]:
 		pass
 
 	@abstractmethod
@@ -1784,31 +1787,12 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			Branch,
-			Turn,
-			Tick,
-			NodeKeyframe,
-			EdgeKeyframe,
-			StatDict,
-		]
-	]: ...
+	) -> Iterator[KeyframeGraphRowType]: ...
 
 	@abstractmethod
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			Tick,
-			UniversalKeyframe,
-			RuleKeyframe,
-			RulebooksKeyframe,
-		]
-	]: ...
+	) -> Iterator[KeyframeExtensionRowType]: ...
 
 	@abstractmethod
 	def universals_dump(
@@ -1819,7 +1803,7 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def rulebooks_dump(
 		self,
-	) -> Iterator[tuple[RulebookRowType]]:
+	) -> Iterator[RulebookRowType]:
 		pass
 
 	@abstractmethod
@@ -1864,7 +1848,7 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[PortalRulebookRowType]]:
+	) -> Iterator[PortalRulebookRowType]:
 		pass
 
 	@abstractmethod
@@ -4928,7 +4912,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]:
 		return self._keyframe_extensions[branch].retrieve_exact(turn, tick)
 
-	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+	def keyframes_dump(self) -> Iterator[Time]:
 		with self._lock:
 			yield from sorted(self._keyframes)
 
@@ -5143,17 +5127,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			Branch,
-			Turn,
-			Tick,
-			NodeKeyframe,
-			EdgeKeyframe,
-			StatDict,
-		]
-	]:
+	) -> Iterator[KeyframeGraphRowType]:
 		kfg = self._keyframes_graphs
 		with self._lock:
 			for branch in sort_set(kfg.keys()):
@@ -5162,20 +5136,11 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 					d = kfgb.retrieve_exact(turn, tick)
 					for g in sort_set(d.keys()):
 						nkf, ekf, gkf = d[g]
-						yield g, branch, turn, tick, nkf, ekf, gkf
+						yield branch, turn, tick, g, nkf, ekf, gkf
 
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			Tick,
-			UniversalKeyframe,
-			RuleKeyframe,
-			RulebooksKeyframe,
-		]
-	]:
+	) -> Iterator[KeyframeExtensionRowType]:
 		for (branch, turn, tick), (ukf, rkf, rbkf) in self._chron_dump(
 			self._keyframe_extensions
 		):
@@ -5194,16 +5159,14 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def rulebooks_dump(
 		self,
-	) -> Iterator[
-		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
-	]:
+	) -> Iterator[RulebookRowType]:
 		with self._lock:
 			for branch in sorted(self._rulebooks.keys()):
 				for turn, tick in self._rulebooks[branch].iter_times():
 					rb, rs, prio = self._rulebooks[branch].retrieve_exact(
 						turn, tick
 					)
-					yield rb, branch, turn, tick, (rs.copy(), prio)
+					yield branch, turn, tick, rb, rs.copy(), prio
 
 	def rules_dump(self) -> Iterator[RuleName]:
 		with self._lock:
@@ -6437,7 +6400,7 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		if not isinstance(node_kf, dict):
 			raise TypeError("Invalid node keyframe", node_kf)
 		return {
-			NodeName(k): {Stat(kk): Value(vv) for (kk, vv) in v.items()}
+			NodeName(Key(k)): {Stat(kk): Value(vv) for (kk, vv) in v.items()}
 			for (k, v) in node_kf.items()
 		}
 
@@ -6447,9 +6410,10 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 			raise TypeError("Invalid edge keyframe", unpacked)
 		try:
 			return {
-				NodeName(orig): {
-					NodeName(dest): {
-						Stat(key): Value(val) for (key, val) in stats.items()
+				NodeName(Key(orig)): {
+					NodeName(Key(dest)): {
+						Stat(Key(key)): Value(val)
+						for (key, val) in stats.items()
 					}
 					for (dest, stats) in dests.items()
 				}
@@ -6458,11 +6422,23 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		except TypeError as ex:
 			raise TypeError(*ex.args, unpacked) from ex
 
-	def _unpack_graph_val_keyframe(self, graph_val_packed: bytes) -> StatDict:
+	def _unpack_graph_val_keyframe(self, graph_val_packed: bytes) -> CharDict:
 		unpacked = self.unpack(graph_val_packed)
 		if not isinstance(unpacked, dict):
 			raise TypeError("Invalid graph stat keyframe", unpacked)
-		return {Stat(k): Value(v) for (k, v) in unpacked.items()}
+		rulebooks = {
+			"character_rulebook",
+			"unit_rulebook",
+			"character_thing_rulebook",
+			"character_place_rulebook",
+			"character_portal_rulebook",
+		}
+		return {
+			k if k in rulebooks else Stat(Key(k)): RulebookName(v)
+			if k in rulebooks
+			else Value(v)
+			for (k, v) in unpacked.items()
+		}
 
 	def _unpack_universal_keyframe(
 		self, universal_packed: bytes
@@ -6470,7 +6446,7 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		unpacked = self.unpack(universal_packed)
 		if not isinstance(unpacked, dict):
 			raise TypeError("Invalid universal keyframe", unpacked)
-		return {UniversalKey(k): Value(v) for (k, v) in unpacked.items()}
+		return {UniversalKey(Key(k)): Value(v) for (k, v) in unpacked.items()}
 
 	def _unpack_rules_keyframe(self, rule_packed: bytes) -> RulesKeyframe:
 		def make_rule_keyframe(v: dict) -> RuleKeyframe:

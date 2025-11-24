@@ -280,6 +280,7 @@ class LinearTime(tuple[Turn, Tick]):
 
 type TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
 Plan = NewType("Plan", Annotated[int, Ge(0)])
+type PlanTicksRowType = tuple[Plan, Branch, Turn, Tick]
 CharName = NewType("CharName", Key)
 NodeName = NewType("NodeName", Key)
 
@@ -537,10 +538,10 @@ type KeyframeGraphRowType = tuple[
 	CharName,
 	NodeKeyframe,
 	EdgeKeyframe,
-	StatDict,
+	CharDict,
 ]
 type KeyframeExtensionRowType = tuple[
-	Branch, Turn, Tick, UniversalKeyframe, RuleKeyframe, RulebooksKeyframe
+	Branch, Turn, Tick, UniversalKeyframe, RulesKeyframe, RulebooksKeyframe
 ]
 
 
