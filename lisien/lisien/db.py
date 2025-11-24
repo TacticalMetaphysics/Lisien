@@ -2507,20 +2507,6 @@ class AbstractDatabaseConnector(ABC):
 			recurse_branch(trunk)
 		return self.tree
 
-	def to_xml(
-		self,
-		xml_file_path: str | os.PathLike | IO[str | bytes],
-		indent: bool = True,
-		name: str | None = None,
-	) -> None:
-		if not isinstance(xml_file_path, (os.PathLike, IOBase)):
-			xml_file_path = Path(xml_file_path)
-
-		tree = self.to_etree(name)
-		if indent:
-			indent_tree(tree)
-		tree.write(xml_file_path, encoding="utf-8")
-
 	@classmethod
 	def _value_to_xml_el(cls, value: Value | dict[Key, Value]) -> Element:
 		if value is ...:
