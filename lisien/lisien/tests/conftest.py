@@ -575,9 +575,39 @@ def college10(
 
 
 @pytest.fixture(scope="session")
-def college24_tar(non_null_database):
-	with tar_cache("college24", non_null_database, college_engine) as path:
+def college24_sql_tar():
+	with tar_cache("college24", "sqlite", college_engine) as path:
 		yield path
+
+
+@pytest.fixture(scope="session")
+def college24_pqdb_tar():
+	with tar_cache("college24", "parquetdb", college_engine) as path:
+		yield path
+
+
+@pytest.fixture(scope="session")
+def college24_python_tar():
+	with tar_cache("college24", "python", college_engine) as path:
+		yield path
+
+
+@pytest.fixture(scope="session")
+def college24_tar(
+	non_null_database,
+	college24_python_tar,
+	college24_sql_tar,
+	college24_pqdb_tar,
+):
+	match non_null_database:
+		case "python":
+			yield college24_python_tar
+		case "parquetdb":
+			yield college24_pqdb_tar
+		case "sqlite":
+			yield college24_sql_tar
+		case _:
+			raise RuntimeError("Database not supported", non_null_database)
 
 
 @pytest.fixture
