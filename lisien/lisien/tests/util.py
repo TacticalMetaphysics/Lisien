@@ -321,7 +321,9 @@ def tar_cache(
 		if non_null_database == "python":
 			with open(os.path.join(gamedir, "database.pkl"), "wb") as f:
 				pickle.dump(connector, f)
-		archive_name = shutil.make_archive(name, "tar", gamedir)
+		archive_name = shutil.make_archive(
+			f"{name}_{non_null_database}", "tar", gamedir
+		)
 		yield archive_name
 		os.remove(archive_name)
 
