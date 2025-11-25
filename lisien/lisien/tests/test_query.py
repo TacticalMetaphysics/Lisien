@@ -32,7 +32,7 @@ def college24_sql(tmp_path):
 		"college24.lisien",
 		tmp_path,
 		"serial",
-		SQLAlchemyDatabaseConnector,
+		SQLAlchemyDatabaseConnector(),
 	) as eng:
 		yield eng
 
