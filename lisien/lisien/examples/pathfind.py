@@ -2,11 +2,14 @@ import random
 
 import networkx as nx
 
+WIDTH = 25
+HEIGHT = 25
+
 
 def install(eng, seed=None):
 	if seed is not None:
 		random.seed(seed)
-	grid: nx.Graph = nx.grid_2d_graph(100, 100)
+	grid: nx.Graph = nx.grid_2d_graph(WIDTH, HEIGHT)
 
 	for node in list(grid):
 		if random.random() < 0.1:
@@ -23,12 +26,12 @@ def install(eng, seed=None):
 		from networkx.algorithms import astar_path
 
 		x, y = node.location.name
-		destx = 100 - int(x)
-		desty = 100 - int(y)
+		destx = WIDTH - int(x)
+		desty = HEIGHT - int(y)
 		while (destx, desty) not in node.character.place:
-			if destx < 99:
+			if destx < WIDTH - 1:
 				destx += 1
-			elif desty < 99:
+			elif desty < HEIGHT - 1:
 				destx = 0
 				desty += 1
 			else:
