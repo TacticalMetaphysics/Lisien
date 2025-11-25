@@ -18,7 +18,7 @@ from functools import reduce
 
 import pytest
 
-from .util import college_engine
+from .util import college_engine, untar_cache
 from .. import Engine
 from ..query import windows_intersection
 from ..sql import SQLAlchemyDatabaseConnector
@@ -27,12 +27,9 @@ pytestmark = [pytest.mark.slow, pytest.mark.big]
 
 
 @pytest.fixture
-def college24_sql(tmp_path):
-	with college_engine(
-		"college24.lisien",
-		tmp_path,
-		"serial",
-		SQLAlchemyDatabaseConnector(),
+def college24_sql(tmp_path, college24_sql_tar):
+	with untar_cache(
+		college24_sql_tar, tmp_path, SQLAlchemyDatabaseConnector(), None
 	) as eng:
 		yield eng
 
