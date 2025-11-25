@@ -1659,7 +1659,12 @@ class Cache:
 		from .character import Character
 		from .node import Place, Thing
 		from .portal import Portal
-		from .facade import FacadeEntity, CharacterFacade, FacadePortal
+		from .facade import (
+			FacadeEntity,
+			CharacterFacade,
+			EngineFacade,
+			FacadePortal,
+		)
 
 		ret = self._base_retrieve(args, search=search)
 		if ret is ...:
@@ -1668,7 +1673,10 @@ class Cache:
 			ret.args = (*ret.args, args)
 			raise ret
 		elif isinstance(ret, CharacterFacade):
-			ret.engine._real = self.engine
+			if hasattr(ret, "engine"):
+				ret.engine._real = self.engine
+			else:
+				ret.engine = EngineFacade(self.engine)
 			try:
 				return self.engine.character[ret.name]
 			except KeyError:
