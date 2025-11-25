@@ -16,10 +16,10 @@
 attending classes and teaching or learning, as appropriate.
 
 Learning is modeled in a way similar to the game Kudos 2: each
-student has 100 "brain cells," and the teacher sends an experience
+student has 10 "brain cells," and the teacher sends an experience
 point to each, once per lesson. If the brain cell is awake and
 alert, the student receives the experience point and puts it toward
-leveling-up. Otherwise it's wasted.
+leveling-up. Otherwise, it's wasted.
 
 Some students are slow and some are drunkards. These students will
 randomly show up late (brain cells become useless in proportion to
@@ -103,7 +103,7 @@ def install(eng):
 	def drink(character):
 		braincells = list(character.node.values())
 		character.engine.shuffle(braincells)
-		for i in range(0, character.engine.randrange(1, 20)):
+		for i in range(0, character.engine.randrange(1, 5)):
 			braincells.pop()["drunk"] += 12
 
 	@drink.trigger
@@ -119,7 +119,7 @@ def install(eng):
 	def sloth(character):
 		braincells = list(character.node.values())
 		character.engine.shuffle(braincells)
-		for i in range(0, character.engine.randrange(1, 20)):
+		for i in range(0, character.engine.randrange(1, 5)):
 			braincells.pop()["slow"] += 1
 
 	@sloth.trigger
@@ -213,7 +213,7 @@ def install(eng):
 					student_body.stat["characters"].append(student)
 				# Students' nodes are their brain cells.
 				# They are useless if drunk or slow, but recover from both conditions a bit every hour.
-				for k in range(0, 100):
+				for k in range(0, 10):
 					student.add_node("cell{}".format(k), drunk=0, slow=0)
 					#  ``new_node`` is just an alias for ``new_place``;
 					#  perhaps more logical when the places don't really
