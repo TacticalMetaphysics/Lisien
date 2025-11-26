@@ -1283,12 +1283,71 @@ class CharacterFacade(AbstractCharacter):
 		self.portal._patch = {}
 
 
+class EternalFacade(MutableMapping):
+	def __init__(self, engine: EngineFacade):
+		self.engine = engine
+		self._patch = {}
+
+	def __setitem__(self, key, value, /):
+		self._patch[key] = value
+
+	def __delitem__(self, key, /):
+		real = getattr(self.engine, "_real", None)
+		if real:
+			if key not in real.eternal:
+				raise KeyError("Key not set in underlying engine", key)
+			self._patch[key] = ...
+		else:
+			del self._patch[key]
+
+	def __getitem__(self, key, /):
+		if key in self._patch:
+			value = self._patch[key]
+			if value is ...:
+				raise KeyError("Value has been masked", key)
+			return value
+		real = getattr(self.engine, "_real", None)
+		if not real:
+			raise KeyError(
+				"Value never set, and no underlying engine to find it in"
+			)
+		return real.eternal[key]
+
+	def __len__(self):
+		real = getattr(self.engine, "_real", None)
+		if real:
+			n = len(real.eternal)
+			for key, value in self._patch.items():
+				if value is ...:
+					if key in real.eternal:
+						n -= 1
+				elif key not in real.eternal:
+					n += 1
+			return n
+		else:
+			return len(self._patch)
+
+	def __iter__(self):
+		real = getattr(self.engine, "_real", None)
+		patch = self._patch
+		if real:
+			for k in real.eternal:
+				if k not in patch or patch[k] is not ...:
+					yield k
+		else:
+			yield from patch.keys()
+
+
 class EngineFacade(AbstractEngine):
 	char_cls = CharacterFacade
 	thing_cls = FacadeThing
 	place_cls = FacadePlace
 	portal_cls = FacadePortal
 	time: Time = TimeSignalDescriptor()
+
+	@cached_property
+	def eternal(self):
+		return EternalFacade(self)
 
 	@cached_property
 	def function(self):
