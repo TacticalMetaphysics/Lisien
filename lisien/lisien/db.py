@@ -678,6 +678,12 @@ class AbstractDatabaseConnector(ABC):
 	def __setstate__(self, state: dict[str, list[tuple]]):
 		self.load_everything(state)
 
+	def __enter__(self) -> AbstractDatabaseConnector:
+		return self
+
+	def __exit__(self) -> None:
+		self.close()
+
 	@batched(
 		"global",
 		key_len=1,
