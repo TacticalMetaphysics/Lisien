@@ -332,10 +332,11 @@ def tar_cache(
 def untar_cache(
 	tar_path: str,
 	tmp_path: str | os.PathLike,
-	database_connector: AbstractDatabaseConnector,
+	database_connector_part: Callable[[], AbstractDatabaseConnector],
 	serial_or_executor: LisienExecutor | None,
 ) -> Iterator[Engine]:
 	shutil.unpack_archive(tar_path, tmp_path, "tar")
+	database_connector = database_connector_part()
 	if isinstance(database_connector, PythonDatabaseConnector):
 		with open(os.path.join(tmp_path, "database.pkl"), "rb") as f:
 			database_connector = pickle.load(f)
