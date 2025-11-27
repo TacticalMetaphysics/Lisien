@@ -565,11 +565,11 @@ def college10(
 	college10_tar,
 	tmp_path,
 	serial_or_parallel,
-	database_connector,
+	database_connector_part,
 	serial_or_executor,
 ):
 	with untar_cache(
-		college10_tar, tmp_path, database_connector, serial_or_executor
+		college10_tar, tmp_path, database_connector_part, serial_or_executor
 	) as eng:
 		yield eng
 
@@ -615,11 +615,11 @@ def college24(
 	college24_tar,
 	tmp_path,
 	serial_or_parallel,
-	database_connector,
+	database_connector_part,
 	serial_or_executor,
 ):
 	with untar_cache(
-		college24_tar, tmp_path, database_connector, serial_or_executor
+		college24_tar, tmp_path, database_connector_part, serial_or_executor
 	) as eng:
 		yield eng
 
@@ -631,9 +631,9 @@ def sickle_tar(non_null_database):
 
 
 @pytest.fixture
-def sickle(sickle_tar, tmp_path, database_connector, serial_or_executor):
+def sickle(sickle_tar, tmp_path, database_connector_part, serial_or_executor):
 	with untar_cache(
-		sickle_tar, tmp_path, database_connector, serial_or_executor
+		sickle_tar, tmp_path, database_connector_part, serial_or_executor
 	) as eng:
 		yield eng
 
@@ -645,9 +645,11 @@ def wolfsheep_tar(non_null_database):
 
 
 @pytest.fixture
-def wolfsheep(wolfsheep_tar, tmp_path, database_connector, serial_or_executor):
+def wolfsheep(
+	wolfsheep_tar, tmp_path, database_connector_part, serial_or_executor
+):
 	with untar_cache(
-		wolfsheep_tar, tmp_path, database_connector, serial_or_executor
+		wolfsheep_tar, tmp_path, database_connector_part, serial_or_executor
 	) as eng:
 		yield eng
 
@@ -659,9 +661,11 @@ def pathfind_tar(non_null_database):
 
 
 @pytest.fixture
-def pathfind(pathfind_tar, tmp_path, database_connector, parallel_executor):
+def pathfind(
+	pathfind_tar, tmp_path, database_connector_part, parallel_executor
+):
 	with untar_cache(
-		pathfind_tar, tmp_path, database_connector, parallel_executor
+		pathfind_tar, tmp_path, database_connector_part, parallel_executor
 	) as eng:
 		yield eng
 

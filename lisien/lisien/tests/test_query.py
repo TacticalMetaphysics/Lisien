@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from collections import defaultdict
-from functools import reduce
+from functools import reduce, partial
 
 import pytest
 
@@ -29,7 +29,12 @@ pytestmark = [pytest.mark.slow, pytest.mark.big]
 @pytest.fixture
 def college24_sql(tmp_path, college24_sql_tar):
 	with untar_cache(
-		college24_sql_tar, tmp_path, SQLAlchemyDatabaseConnector(), None
+		college24_sql_tar,
+		tmp_path,
+		partial(
+			SQLAlchemyDatabaseConnector, f"sqlite:///{tmp_path}/world.sqlite3"
+		),
+		None,
 	) as eng:
 		yield eng
 
