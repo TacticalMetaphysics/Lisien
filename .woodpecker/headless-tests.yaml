@@ -11,7 +11,7 @@ matrix:
     - 3.14
 
 steps:
-  - name: headless${PYTHON_VERSION}
+  - name: headless_${PYTHON_VERSION}
     image: python:${PYTHON_VERSION}
     commands:
       - TMPDIR=$(python find_ramdisk.py)
