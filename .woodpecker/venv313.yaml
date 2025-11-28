@@ -1,0 +1,8 @@
+steps:
+  - name: venv3.13
+    image: python:3.13
+    commands:
+      - python -m venv .venv313
+      - source .venv313/bin/activate
+      - python -m pip install --upgrade pip
+      - python -m pip install tox

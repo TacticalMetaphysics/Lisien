@@ -13,3 +13,6 @@ steps:
     commands:
       - source .venv312/bin/activate
       - tox -c lisien/tox_big.ini -e py312
+
+depends_on:
+  - venv312
