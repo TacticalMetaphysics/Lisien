@@ -8,7 +8,7 @@ steps:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
-      - source .venv312/bin/activate
+      - . .venv312/bin/activate
       - tox -c lisien/tox.ini -e py312
   - name: headless3.13
     image: python:3.13
@@ -16,7 +16,7 @@ steps:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
-      - source .venv313/bin/activate
+      - . .venv313/bin/activate
       - tox -c lisien/tox.ini -e py313
   - name: headless3.14
     image: python:3.14
@@ -24,7 +24,7 @@ steps:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
-      - source .venv314/bin/activate
+      - . .venv314/bin/activate
       - tox -c lisien/tox.ini -e py314
 
 depends_on:

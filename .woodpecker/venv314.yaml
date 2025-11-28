@@ -3,6 +3,6 @@ steps:
     image: python:3.14
     commands:
       - python -m venv .venv314
-      - source .venv314/bin/activate
+      - . .venv314/bin/activate
       - python -m pip install --upgrade pip
       - python -m pip install tox
