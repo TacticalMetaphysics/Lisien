@@ -13,30 +13,29 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
-import shutil
-import tempfile
 
 from lisien.engine import Engine
-from lisien.examples.college import install
+from lisien.examples.sickle import install
 
-outpath = os.path.join(
-	os.path.abspath(os.path.dirname(__file__)), "college24_premade.tar.xz"
-)
-if os.path.exists(outpath):
-	os.remove(outpath)
-with tempfile.TemporaryDirectory() as directory:
+
+def main():
+	outpath = os.path.join(
+		os.path.abspath(os.path.dirname(__file__)), "data", "sickle.lisien"
+	)
+	if os.path.exists(outpath):
+		os.remove(outpath)
 	with Engine(
-		directory,
+		None,
 		workers=0,
+		keyframe_interval=None,
 		keep_rules_journal=False,
-		commit_interval=1,
-		connect_string=f"sqlite:///{directory}/world.sqlite3",
+		random_seed=69105,
 	) as eng:
 		install(eng)
-		for i in range(24):
-			print(i)
-			eng.next_turn()
-		print("Done simulating.")
-	print("Compressing...")
-	shutil.make_archive(outpath[:-7], "xztar", directory, ".")
-print("All done")
+		print("Installed. Exporting to", outpath)
+		eng.export(path=outpath)
+	print("All done")
+
+
+if __name__ == "__main__":
+	main()

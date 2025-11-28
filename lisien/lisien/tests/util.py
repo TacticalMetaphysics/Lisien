@@ -1,21 +1,41 @@
 from __future__ import annotations
 
 import os
-from functools import wraps
+import pickle
+import shutil
+import tempfile
+from contextlib import contextmanager
+from functools import wraps, partial
+from itertools import product
 from logging import getLogger
+from os import PathLike
 from queue import Empty, SimpleQueue
 from threading import Thread
-from typing import Any, Callable, TypeVar
-from unittest.mock import MagicMock
+from typing import Any, Callable, TypeVar, Literal, TYPE_CHECKING, Iterator
+from unittest.mock import MagicMock, patch
+from umsgpack import packb
 
 from lisien import Engine
-from lisien.db import NullDatabaseConnector, PythonDatabaseConnector
+from lisien.db import (
+	NullDatabaseConnector,
+	PythonDatabaseConnector,
+	AbstractDatabaseConnector,
+)
 from lisien.facade import EngineFacade
 from lisien.pqdb import ParquetDatabaseConnector
 from lisien.proxy.engine import EngineProxy
 from lisien.proxy.manager import Sub
 from lisien.sql import SQLAlchemyDatabaseConnector
-from lisien.types import LoadedDict
+from lisien.tests.data import DATA_DIR
+from lisien.types import (
+	LoadedDict,
+	Keyframe,
+	GraphNodeValKeyframe,
+	GraphValKeyframe,
+)
+
+if TYPE_CHECKING:
+	from ..futures import LisienExecutor
 
 _RETURNS = TypeVar("_RETURNS")
 
@@ -68,6 +88,7 @@ def make_test_engine_kwargs(
 	database,
 	random_seed,
 	enforce_end_of_time=False,
+	**kw_args,
 ):
 	kwargs = {
 		"random_seed": random_seed,
@@ -81,11 +102,42 @@ def make_test_engine_kwargs(
 	elif execution != "proxy":
 		kwargs["workers"] = 2
 		kwargs["sub_mode"] = Sub(execution)
+	kwargs.update(**kw_args)
 	return kwargs
 
 
-def make_test_engine(path, execution, database, random_seed):
+def restart_executor(
+	executor: LisienExecutor, prefix: str | PathLike | None, random_seed: int
+):
+	if isinstance(prefix, PathLike):
+		prefix = str(prefix)
+	executor.call_every_worker(
+		packb("_restart"),
+		packb(
+			[
+				prefix,
+				("trunk", 0, 0),
+				{"language": "eng"},
+				{"trunk": (None, 0, 0, 0, 0)},
+				random_seed,
+			]
+		),
+		packb({}),
+	)
+
+
+def make_test_engine(
+	path,
+	execution,
+	database,
+	random_seed,
+	executor: LisienExecutor | None = None,
+	**kw_args,
+):
+	if executor is not None:
+		restart_executor(executor, path, random_seed)
 	kwargs = {"random_seed": random_seed}
+	kwargs.update(**kw_args)
 	if execution == "proxy":
 		eng = EngineProxy(
 			None,
@@ -164,3 +216,134 @@ def hash_loaded_dict(data: LoadedDict) -> dict[str, dict[str, int] | int]:
 		else:
 			raise TypeError("Invalid loaded dictionary")
 	return hashes
+
+
+def get_database_connector_part(
+	tmp_path: str | PathLike, s: Literal["python", "sqlite", "parquetdb"]
+):
+	def get_python_connector():
+		if not hasattr(get_database_connector_part, "_pyconnector"):
+			get_database_connector_part._pyconnector = (
+				PythonDatabaseConnector()
+			)
+		pyconnector = get_database_connector_part._pyconnector
+		pyconnector._plan_times = {}
+		return pyconnector
+
+	match s:
+		case "python":
+			return get_python_connector
+		case "sqlite":
+			return partial(
+				SQLAlchemyDatabaseConnector,
+				f"sqlite:///{tmp_path}/world.sqlite3",
+			)
+		case "parquetdb":
+			return partial(
+				ParquetDatabaseConnector, os.path.join(tmp_path, "world")
+			)
+
+
+@contextmanager
+def college_engine(
+	archive_fn: str,
+	tmp_path: str | PathLike,
+	serial_or_parallel: str,
+	database_connector: AbstractDatabaseConnector,
+	**kwargs,
+):
+	def validate_final_keyframe(kf: Keyframe):
+		node_val: GraphNodeValKeyframe = kf["node_val"]
+		phys_node_val = node_val["physical"]
+		graph_val: GraphValKeyframe = kf["graph_val"]
+		assert "student_body" in graph_val
+		assert "units" in graph_val["student_body"]
+		assert "physical" in graph_val["student_body"]["units"]
+		for unit in graph_val["student_body"]["units"]["physical"]:
+			assert unit in phys_node_val
+			assert "location" in phys_node_val[unit]
+		for key, dorm, room, student in product(
+			["graph_val", "node_val", "edge_val"],
+			[0, 1],
+			[0, 1],
+			[0, 1],
+		):
+			assert f"dorm{dorm}room{room}student{student}" in kf[key]
+
+	with (
+		patch(
+			"lisien.Engine._validate_initial_keyframe_load",
+			staticmethod(validate_final_keyframe),
+			create=True,
+		),
+		Engine.from_archive(
+			os.path.join(DATA_DIR, archive_fn),
+			tmp_path,
+			workers=0 if serial_or_parallel == "serial" else 2,
+			sub_mode=None
+			if serial_or_parallel == "serial"
+			else Sub(serial_or_parallel),
+			database=database_connector,
+			**kwargs,
+		) as eng,
+	):
+		yield eng
+
+
+@contextmanager
+def tar_cache(
+	name: str, non_null_database: str, make_engine: Callable | None = None
+) -> Iterator[str]:
+	with tempfile.TemporaryDirectory() as tmpdir:
+		gamedir = os.path.join(tmpdir, name)
+		os.makedirs(gamedir, exist_ok=True)
+		if non_null_database == "sqlite":
+			connector = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{gamedir}/world.sqlite3"
+			)
+		elif non_null_database == "parquetdb":
+			connector = ParquetDatabaseConnector(
+				os.path.join(gamedir, "world")
+			)
+		else:
+			assert non_null_database == "python"
+			connector = PythonDatabaseConnector()
+		if make_engine:
+			with make_engine(f"{name}.lisien", gamedir, "serial", connector):
+				pass
+		else:
+			Engine.from_archive(
+				os.path.join(DATA_DIR, f"{name}.lisien"),
+				gamedir,
+				workers=0,
+				database=connector,
+			).close()
+		if non_null_database == "python":
+			with open(os.path.join(gamedir, "database.pkl"), "wb") as f:
+				pickle.dump(connector, f)
+		archive_name = shutil.make_archive(
+			f"{name}_{non_null_database}", "tar", gamedir
+		)
+		yield archive_name
+		os.remove(archive_name)
+
+
+@contextmanager
+def untar_cache(
+	tar_path: str,
+	tmp_path: str | os.PathLike,
+	database_connector_part: Callable[[], AbstractDatabaseConnector],
+	serial_or_executor: LisienExecutor | None,
+) -> Iterator[Engine]:
+	shutil.unpack_archive(tar_path, tmp_path, "tar")
+	database_connector = database_connector_part()
+	if isinstance(database_connector, PythonDatabaseConnector):
+		with open(os.path.join(tmp_path, "database.pkl"), "rb") as f:
+			database_connector = pickle.load(f)
+	with Engine(
+		tmp_path,
+		workers=0,  # in case serial_or_executor is None
+		database=database_connector,
+		executor=serial_or_executor,
+	) as eng:
+		yield eng

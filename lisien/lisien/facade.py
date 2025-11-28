@@ -85,6 +85,10 @@ class FacadeEntity(
 	def _patch(self) -> dict[Stat | Literal["rulebook"], Value | type(...)]:
 		return {}
 
+	@cached_property
+	def engine(self):
+		return self.character.engine
+
 	@property
 	def rulebook(self):
 		if "rulebook" in self._patch:
@@ -753,18 +757,16 @@ class CharacterFacade(AbstractCharacter):
 				ports[o] = {}
 			for d in self.portal[o]:
 				ports[o][d] = dict(self.portal[o][d])
-		things = {k: dict(v) for (k, v) in self.thing.items()}
-		places = {k: dict(v) for (k, v) in self.place.items()}
-		stats = {
-			k: v.unwrap() if hasattr(v, "unwrap") else v
-			for (k, v) in self.graph.items()
-		}
-		return things, places, ports, stats
+		things = self.thing.unwrap()
+		places = self.place.unwrap()
+		stats = self.graph.unwrap()
+		return self._name, things, places, ports, stats
 
 	def __setstate__(self, state):
 		self.character = None
 		self.graph = self.StatMapping(self)
 		(
+			self._name,
 			self.thing._patch,
 			self.place._patch,
 			self.portal._patch,
@@ -924,17 +926,7 @@ class CharacterFacade(AbstractCharacter):
 			self._name = character
 			self.character = None
 
-		self._stat_map = self.StatMapping(self)
 		self._rb_patch = {}
-
-	@property
-	def graph(self):
-		return self._stat_map
-
-	@graph.setter
-	def graph(self, v):
-		self._stat_map.clear()
-		self._stat_map.update(v)
 
 	def portals(self):
 		for ds in self.portal.values():
@@ -1040,7 +1032,7 @@ class CharacterFacade(AbstractCharacter):
 			return Thing
 
 		def _make(self, k, v):
-			return self.cls(self.character, k, location=v)
+			return self.cls(self.character, k, location=v["location"])
 
 		def _get_inner_map(self):
 			try:
@@ -1166,6 +1158,8 @@ class CharacterFacade(AbstractCharacter):
 			return d
 
 		def __iter__(self):
+			if not self.character.character:
+				return iter(self._patch)
 			seen = set()
 			if hasattr(self.character.character, "graph"):
 				for k in self.character.character.graph:
@@ -1238,6 +1232,8 @@ class CharacterFacade(AbstractCharacter):
 						toshow[k] = v
 			return f"<StatMapping {toshow}>"
 
+	stat_map_cls = graph_map_cls = StatMapping
+
 	def apply(self):
 		"""Do all my changes for real in a batch"""
 		realchar = self.character
@@ -1287,12 +1283,71 @@ class CharacterFacade(AbstractCharacter):
 		self.portal._patch = {}
 
 
+class EternalFacade(MutableMapping):
+	def __init__(self, engine: EngineFacade):
+		self.engine = engine
+		self._patch = {}
+
+	def __setitem__(self, key, value, /):
+		self._patch[key] = value
+
+	def __delitem__(self, key, /):
+		real = getattr(self.engine, "_real", None)
+		if real:
+			if key not in real.eternal:
+				raise KeyError("Key not set in underlying engine", key)
+			self._patch[key] = ...
+		else:
+			del self._patch[key]
+
+	def __getitem__(self, key, /):
+		if key in self._patch:
+			value = self._patch[key]
+			if value is ...:
+				raise KeyError("Value has been masked", key)
+			return value
+		real = getattr(self.engine, "_real", None)
+		if not real:
+			raise KeyError(
+				"Value never set, and no underlying engine to find it in"
+			)
+		return real.eternal[key]
+
+	def __len__(self):
+		real = getattr(self.engine, "_real", None)
+		if real:
+			n = len(real.eternal)
+			for key, value in self._patch.items():
+				if value is ...:
+					if key in real.eternal:
+						n -= 1
+				elif key not in real.eternal:
+					n += 1
+			return n
+		else:
+			return len(self._patch)
+
+	def __iter__(self):
+		real = getattr(self.engine, "_real", None)
+		patch = self._patch
+		if real:
+			for k in real.eternal:
+				if k not in patch or patch[k] is not ...:
+					yield k
+		else:
+			yield from patch.keys()
+
+
 class EngineFacade(AbstractEngine):
 	char_cls = CharacterFacade
 	thing_cls = FacadeThing
 	place_cls = FacadePlace
 	portal_cls = FacadePortal
 	time: Time = TimeSignalDescriptor()
+
+	@cached_property
+	def eternal(self):
+		return EternalFacade(self)
 
 	@cached_property
 	def function(self):

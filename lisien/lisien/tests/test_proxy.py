@@ -89,8 +89,8 @@ def test_fast_delta(handle_initialized):
 	assert fastd3 == slowd3, "Fast delta differs from slow delta"
 
 
-def test_serialize_deleted(college24_premade):
-	eng = college24_premade
+def test_serialize_deleted(college24):
+	eng = college24
 	d0r0s0 = eng.character["dorm0room0student0"]
 	roommate = d0r0s0.stat["roommate"]
 	del eng.character[roommate.name]

@@ -1127,6 +1127,8 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 	def __getattr__(self, k):
 		if k in self._locl:
 			return self._locl[k]
+		elif k in dir(self):
+			return self.__getattribute__(k)
 		elif self._need_save:
 			self.save()
 			return getattr(self._module, k)

@@ -22,6 +22,8 @@ as you ran this script from.
 
 import networkx as nx
 
+from lisien.types import sort_set
+
 
 def inittest(
 	engine,
@@ -44,7 +46,7 @@ def inittest(
 	dwarf["seen_kobold"] = False
 	dwarf["_image_paths"] = ["atlas://rltiles/base.atlas/dwarf_m"]
 	# randomly place the shrubberies and add their locations to shrub_places
-	locs = list(phys.place.keys())
+	locs = sort_set(phys.place.keys())
 	engine.shuffle(locs)
 	shrub_places = []
 	while len(shrub_places) < shrubberies:

@@ -13,30 +13,29 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
-import shutil
-from time import monotonic
 
-import pytest
-
-from lisien.proxy.manager import EngineProxyManager
-
-from .data import DATA_DIR
+from lisien.engine import Engine
+from lisien.examples.wolfsheep import install
 
 
-@pytest.mark.parquetdb
-def test_follow_path(tmp_path):
-	with (
-		EngineProxyManager(tmp_path) as proxman,
-		proxman.load_archive(
-			os.path.join(DATA_DIR, "big_grid.lisien"), tmp_path, workers=0
-		) as prox,
-	):
-		grid = prox.character["grid"]
-		them = grid.thing["them"]
-		straightly = grid.stat["straightly"]
-		start = monotonic()
-		them.follow_path(straightly)
-		elapsed = monotonic() - start
-		assert elapsed < 20, (
-			f"Took too long to follow a path of length {len(straightly)}: {elapsed:.2} seconds"
-		)
+def main(random_seed=69105):
+	outpath = os.path.join(
+		os.path.abspath(os.path.dirname(__file__)), "data", "wolfsheep.lisien"
+	)
+	if os.path.exists(outpath):
+		os.remove(outpath)
+	with Engine(
+		None,
+		workers=0,
+		keyframe_interval=None,
+		keep_rules_journal=False,
+		random_seed=random_seed,
+	) as eng:
+		install(eng)
+		print("Installed. Exporting to", outpath)
+		eng.export(path=outpath)
+	print("All done")
+
+
+if __name__ == "__main__":
+	main()

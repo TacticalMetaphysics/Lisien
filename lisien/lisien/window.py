@@ -42,7 +42,15 @@ from typing import Any, Callable, Iterable, Iterator, TypeVar, Union
 from reslot import reslot
 
 from .exc import HistoricKeyError
-from .types import LinearTime, Tick, Turn, Value, ValueHint
+from .types import (
+	LinearTime,
+	Tick,
+	Turn,
+	Value,
+	ValueHint,
+	Branch,
+	PickierDefaultDict,
+)
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
@@ -966,6 +974,30 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 	__slots__ = ()
 
+	def __init__(
+		self,
+		data: Mapping[Turn, list[Tick]]
+		| list[tuple[Turn, list[Tick]]]
+		| None = None,
+	) -> None:
+		if isinstance(data, dict):
+			it = data.items()
+		elif isinstance(data, list):
+			it = iter(data)
+		elif data is not None:
+			raise TypeError("Dict of ints only", data)
+		else:
+			it = iter(())
+		for turn, ticks in it:
+			if not isinstance(turn, int):
+				raise TypeError("int keys only", turn)
+			if not isinstance(ticks, list):
+				raise TypeError("Lists of ints only", ticks)
+			for tick in ticks:
+				if not isinstance(tick, int):
+					raise TypeError("Lists of ints only", tick)
+		super().__init__(data)
+
 	def __getitem__(self, rev: Turn) -> list[Tick]:
 		if rev in self:
 			return super().__getitem__(rev).copy()
@@ -979,10 +1011,55 @@ class LinearTimeListDict(WindowDict[Turn, list[Tick]]):
 			raise TypeError("lists of ticks only")
 		super().__setitem__(rev, sorted(set(value)))
 
+	def insert_time(self, turn: Turn, tick: Tick):
+		if turn in self:
+			ticks = self[turn]
+			if tick in ticks:
+				raise KeyError("Already present", turn, tick)
+			before = []
+			while ticks:
+				after = ticks.pop(0)
+				if after > tick:
+					self[turn] = before + [tick, after] + ticks
+					return
+				before.append(after)
+			before.append(tick)
+		else:
+			self[turn] = [tick]
+
 	def iter_times(self) -> Iterator[LinearTime]:
 		for turn, tick_set in self.items():
 			for tick in tick_set:
 				yield LinearTime(turn, tick)
+
+
+class BranchingTimeListDict(PickierDefaultDict[Branch, LinearTimeListDict]):
+	__slots__ = ()
+
+	def __init__(
+		self, data: dict[Branch, dict[Turn, list[Tick]]] | None = None
+	):
+		super().__init__(str, LinearTimeListDict)
+		if data is not None:
+			if not isinstance(data, dict):
+				raise TypeError("dict only", data)
+			for branch, turns in data.items():
+				self[branch] = LinearTimeListDict(turns)
+
+	def __getitem__(self, branch: Branch) -> LinearTimeListDict:
+		if branch in self:
+			return super().__getitem__(branch)
+		else:
+			v = LinearTimeListDict()
+			super().__setitem__(branch, v)
+			return v
+
+	def __setitem__(self, branch: Branch, value: LinearTimeListDict) -> None:
+		if not isinstance(value, Mapping):
+			raise TypeError("Can't make LinearTimeListDict out of this", value)
+		if not isinstance(value, LinearTimeListDict):
+			value = LinearTimeListDict(value)  # may raise TypeError. Ok.
+		super().__setitem__(branch, value)
 
 
 @reslot

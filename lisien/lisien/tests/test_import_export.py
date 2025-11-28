@@ -132,7 +132,7 @@ def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
 			db1 = ParquetDatabaseConnector(os.path.join(prefix1, "world"))
 			db2 = ParquetDatabaseConnector(os.path.join(prefix2, "world"))
 		case _:
-			raise RuntimeError("Unknown database", non_null_database)
+			raise RuntimeError("Unknown database", database_connector_part)
 	if exported.endswith("kobold.lisien"):
 		from lisien.examples.kobold import inittest as install
 	elif exported.endswith("wolfsheep.lisien"):

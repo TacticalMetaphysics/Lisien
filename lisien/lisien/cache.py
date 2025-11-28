@@ -66,8 +66,10 @@ from .types import (
 	TriggerFuncName,
 	Turn,
 	Value,
-	root_type,
 	sort_set,
+	_default_args_munger,
+	_default_kwargs_munger,
+	PickyDefaultDict,
 )
 from .window import (
 	AssignmentTimeDict,
@@ -93,72 +95,6 @@ class SizedDict[_K, _V](OrderedDict[_K, _V]):
 			while len(self) > self._n:
 				self.popitem(last=False)
 			super().__setitem__(key, value)
-
-
-def _default_args_munger(self, k):
-	"""By default, `PickyDefaultDict`'s ``type`` takes no positional arguments."""
-	return tuple()
-
-
-def _default_kwargs_munger(self, k):
-	"""By default, `PickyDefaultDict`'s ``type`` takes no keyword arguments."""
-	return {}
-
-
-class PickyDefaultDict[_K, _V](dict[_K, _V]):
-	"""A ``defaultdict`` alternative that requires values of a specific type.
-
-	Pass some type object (such as a class) to the constructor to
-	specify what type to use by default, which is the only type I will
-	accept.
-
-	Default values are constructed with no arguments by default;
-	supply ``args_munger`` and/or ``kwargs_munger`` to override this.
-	They take arguments ``self`` and the unused key being looked up.
-
-	"""
-
-	__slots__ = [
-		"type",
-		"args_munger",
-		"kwargs_munger",
-		"parent",
-		"key",
-		"_lock",
-	]
-
-	def __init__(
-		self,
-		type: type,
-		args_munger: Callable[
-			[Self, _K], tuple[_K, ...]
-		] = _default_args_munger,
-		kwargs_munger: Callable[
-			[Self, _K], dict[_K, _V]
-		] = _default_kwargs_munger,
-	):
-		self._lock = RLock()
-		self.type = type
-		self.args_munger = args_munger
-		self.kwargs_munger = kwargs_munger
-
-	def __getitem__(self, k):
-		with self._lock:
-			if k in self:
-				return super(PickyDefaultDict, self).__getitem__(k)
-			ret = self[k] = self.type(
-				*self.args_munger(self, k), **self.kwargs_munger(self, k)
-			)
-			return ret
-
-	def _create(self, v):
-		return self.type(v)
-
-	def __setitem__(self, k, v):
-		with self._lock:
-			if not isinstance(v, root_type(self.type)):
-				v = self._create(v)
-			super(PickyDefaultDict, self).__setitem__(k, v)
 
 
 class StructuredDefaultDict[_K, _V](dict[_K, _V]):
@@ -1720,12 +1656,58 @@ class Cache:
 		seek back and forth like a tape head.
 
 		"""
+		from .character import Character
+		from .node import Place, Thing
+		from .portal import Portal
+		from .facade import (
+			FacadeEntity,
+			CharacterFacade,
+			EngineFacade,
+			FacadePortal,
+		)
+
 		ret = self._base_retrieve(args, search=search)
 		if ret is ...:
 			raise HistoricKeyError("Set, then deleted", deleted=True)
 		elif isinstance(ret, Exception):
 			ret.args = (*ret.args, args)
 			raise ret
+		elif isinstance(ret, CharacterFacade):
+			if hasattr(ret, "engine"):
+				ret.engine._real = self.engine
+			else:
+				ret.engine = EngineFacade(self.engine)
+			try:
+				return self.engine.character[ret.name]
+			except KeyError:
+				return Character(self.engine, ret.name, init_rulebooks=False)
+		elif isinstance(ret, FacadeEntity):
+			ret.character.engine._real = self.engine
+			try:
+				ret.character.character = self.engine.character[
+					ret.character.name
+				]
+				return ret._real
+			except (KeyError, AttributeError):
+				if ret.character.name in self.engine.character:
+					character = self.engine.character[ret.character.name]
+				else:
+					character = Character(
+						self.engine, ret.character.name, init_rulebooks=False
+					)
+				if isinstance(ret, FacadePortal):
+					try:
+						return character.portal[ret.orig][ret.dest]
+					except KeyError:
+						return Portal(character, ret.orig, ret.dest)
+				else:
+					try:
+						return character.node[ret.name]
+					except KeyError:
+						if "location" in ret:
+							return Thing(character, ret.name, ret["location"])
+						else:
+							return Place(character, ret.name)
 		return ret
 
 	def _iter_entities_or_keys(
@@ -5054,28 +5036,3 @@ class NodeContentsCache(Cache):
 		keyframe: dict[NodeName, frozenset[NodeName]],
 	) -> None:
 		self._set_keyframe((graph,), branch, turn, tick, keyframe)
-
-
-class PickierDefaultDict[_K, _V](PickyDefaultDict[_K, _V]):
-	"""So picky, even the keys need to be a certain type"""
-
-	__slots__ = ("key_type",)
-
-	def __init__(
-		self,
-		key_type: type,
-		value_type: type,
-		args_munger: Callable[
-			[Self, _K], tuple[_K, ...]
-		] = _default_args_munger,
-		kwargs_munger: Callable[
-			[Self, _K], dict[_K, _V]
-		] = _default_kwargs_munger,
-	):
-		self.key_type = key_type
-		super().__init__(value_type, args_munger, kwargs_munger)
-
-	def __setitem__(self, key: _K, value: _V):
-		if not isinstance(key, self.key_type):
-			raise TypeError("Wrong type of key", key, self.key_type)
-		super().__setitem__(key, value)
