@@ -1,6 +1,5 @@
 when:
-  - event: push
-    branch: main
+  - branch: main
 
 steps:
   - name: headless3.12
