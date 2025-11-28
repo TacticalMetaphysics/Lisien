@@ -33,7 +33,7 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import chain, zip_longest
-from typing import Any, Callable, Hashable, Set, TypeVar
+from typing import Any, Callable, Hashable, Set, TypeVar, KeysView, ItemsView
 
 from attrs import define
 
@@ -315,10 +315,9 @@ class OrderlyFrozenSet(frozenset):
 		)
 
 
+@define
 class MutableWrapper(ABC):
 	__slots__ = ()
-
-	_getter: Callable[[], list | dict]
 
 	def __iter__(self):
 		return iter(self._getter())
@@ -329,11 +328,6 @@ class MutableWrapper(ABC):
 	def __contains__(self, item):
 		return item in self._getter()
 
-	def __repr__(self):
-		return "<{} instance at {}, wrapping {}>".format(
-			self.__class__.__name__, id(self), self._getter()
-		)
-
 	def __str__(self):
 		return str(self._getter())
 
@@ -343,6 +337,9 @@ class MutableWrapper(ABC):
 
 	def copy(self):
 		return self.__copy__()
+
+	@abstractmethod
+	def _getter(self): ...
 
 	@abstractmethod
 	def _set(self, v): ...
@@ -393,6 +390,15 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 
 class MappingUnwrapperMixin(ABC):
 	__slots__ = ()
+
+	@abstractmethod
+	def keys(self) -> KeysView: ...
+
+	@abstractmethod
+	def items(self) -> ItemsView: ...
+
+	@abstractmethod
+	def __getitem__(self, item): ...
 
 	def __eq__(self, other):
 		if self is other:
@@ -491,10 +497,9 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
 
+@define(order=False)
 class MutableWrapperSet(MutableWrapper, ABC, set):
 	__slots__ = ()
-	_getter: Callable[[], set]
-	_set: Callable[[set], None]
 
 	def __copy__(self):
 		return OrderlySet(self._getter())
@@ -532,9 +537,6 @@ class MutableWrapperSet(MutableWrapper, ABC, set):
 
 	def clear(self):
 		self._set(OrderlySet())
-
-	def __repr__(self):
-		return f"<{type(self).__name__} containing {set(self._getter())}>"
 
 	def __ior__(self, it):
 		me = self.__copy__()
@@ -587,17 +589,11 @@ class MutableWrapperSet(MutableWrapper, ABC, set):
 		return self._getter().isdisjoint(other)
 
 
+@define
 class SubSetWrapper(MutableWrapperSet):
-	__slots__ = ("_getter", "_set")
+	__slots__ = ()
 	_getter: Callable[[], set]
 	_set: Callable[[set], None]
-
-	def __init__(
-		self, getter: Callable[[], set], setter: Callable[[set], None]
-	):
-		super().__init__()
-		self._getter = getter
-		self._set = setter
 
 	def _copy(self):
 		return OrderlySet(self._getter())
