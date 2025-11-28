@@ -1428,6 +1428,7 @@ class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 				self[node].update(value)
 
 
+@define(eq=False)
 class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 	MutableMapping[_ORIG, _DEST],
 	Signal,
@@ -1439,15 +1440,11 @@ class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 
 	"""
 
-	__slots__ = ("character", "_cache")
+	character: Character
 
-	character: DiGraph
-	engine: Engine = getatt("character.engine")
-
-	def __init__(self, graph: DiGraph):
-		super().__init__(graph)
-		self.character = graph
-		self._cache = {}
+	@cached_property
+	def engine(self):
+		return self.character.engine
 
 	def __eq__(self, other: Mapping):
 		"""Compare dictified versions of the edge mappings within me.
