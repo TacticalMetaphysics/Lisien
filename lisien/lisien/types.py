@@ -76,6 +76,7 @@ from typing import (
 
 import networkx as nx
 from annotated_types import Ge, Le
+from attrs import define
 from blinker import Signal
 from networkx import NetworkXError
 from reslot import reslot
@@ -587,15 +588,16 @@ type CharacterRulebookTypeStr = Literal[
 ]
 
 
+@define
 class DiGraphMappingMixin(MappingUnwrapperMixin, ABC):
 	"""Common amenities for mappings in :class:`Character`"""
 
-	def __init__(self, character: DiGraph):
-		super().__init__()
-		self.character = character
+	__slots__ = ()
+
+	character: DiGraph
 
 	@cached_property
-	def engine(self) -> Engine:
+	def engine(self) -> AbstractEngine:
 		return self.character.engine
 
 

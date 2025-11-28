@@ -26,7 +26,7 @@ classifiers = [
 	"Development Status :: 3 - Alpha"
 ]
 dependencies = [
-	"reslot~=0.10",
+	"attrs~=25.4.0",
 	"blinker~=1.4",
 	"msgpack~=1.1.0",
 	"u-msgpack-python~=2.8.0",
