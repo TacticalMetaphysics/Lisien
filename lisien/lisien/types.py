@@ -1275,15 +1275,15 @@ class Edge(AbstractEntityMapping, ABC):
 		store(graphn, orig, dest, key, branch, turn, tick, value)
 
 
+@define(eq=False)
 class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 	"""Mapping for nodes in a graph"""
 
-	def __init__(self, graph: DiGraph):
-		super().__init__()
-		self.character = graph
+	__slots__ = ()
+	character: Character
 
 	@cached_property
-	def engine(self) -> AbstractEngine:
+	def engine(self) -> Engine:
 		return self.character.engine
 
 	def __iter__(self) -> Iterator[NodeName]:
@@ -1346,7 +1346,7 @@ class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 		"""
 		if not isinstance(node, Key):
 			raise TypeError("Invalid node", node)
-		dikt: dict[NodeName, dict[Stat, Value]]
+		dikt: dict[NodeName, dict[Stat, Value]] = {}
 		for node, stats in data.items():
 			if not isinstance(node, Key):
 				raise TypeError("Invalid node", node)
@@ -1395,9 +1395,6 @@ class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 		key = (self.character.name, node)
 		if node in self.engine._node_objs:
 			del self.engine._node_objs[key]
-
-	def __repr__(self):
-		return f"<{self.__class__.__name__} containing {', '.join(map(repr, self.keys()))}>"
 
 	type _m_typ = dict[KeyHint, EllipsisType | dict[KeyHint, ValueHint]]
 
