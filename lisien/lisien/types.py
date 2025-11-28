@@ -909,7 +909,7 @@ class Node(AbstractEntityMapping, ABC):
 		return Value(super().__getitem__(item))
 
 	@cached_property
-	def engine(self) -> AbstractEngine:
+	def engine(self):
 		return self.character.engine
 
 	@cached_property
