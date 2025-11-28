@@ -21,3 +21,8 @@ steps:
       - python -V
       - python -m pip install tox
       - tox -c lisien/tox.ini -e py314
+
+depends_on:
+  - venv312
+  - venv313
+  - venv314
