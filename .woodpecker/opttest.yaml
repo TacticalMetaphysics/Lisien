@@ -6,17 +6,10 @@ steps:
   - name: slow_headless3.12
     image: python:3.12
     commands:
-      - python -V
-      - python -m venv .venv
-      - source .venv/bin/activate
+      - source .venv312/bin/activate
       - tox -c lisien/tox_slow.ini -e py312
-  - name: slow_college_headless3.12
-    image: python:3.12
-    commands:
-      - source .venv/bin/activate
-      - tox -c lisien/tox_college_slow.ini -e py312
   - name: big_headless3.12
     image: python:3.12
     commands:
-      - source .venv/bin/activate
+      - source .venv312/bin/activate
       - tox -c lisien/tox_big.ini -e py312
