@@ -643,6 +643,7 @@ class DictWrapper(MutableMappingWrapper, dict):
 		}
 
 
+@define(eq=False)
 class ListWrapper(MutableWrapperDictList, MutableSequence):
 	"""A list synchronized with a serialized field.
 
@@ -651,12 +652,11 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 
 	"""
 
-	__slots__ = ("_getter", "_outer", "_key")
+	__slots__ = ()
 
-	def __init__(self, getter, outer, key):
-		self._outer = outer
-		self._key = key
-		self._getter = getter
+	_getter: Callable[[], list]
+	_outer: MutableMapping
+	_key: Hashable
 
 	def __eq__(self, other):
 		if self is other:
