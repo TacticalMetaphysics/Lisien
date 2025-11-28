@@ -446,6 +446,8 @@ class SubDictWrapper(MutableMappingWrapper, MappingUnwrapperMixin, dict):
 
 
 class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
+	__slots__ = ()
+
 	def __eq__(self, other):
 		if self is other:
 			return True
@@ -466,17 +468,11 @@ class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
 		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
 
+@define
 class SubListWrapper(MutableSequenceWrapper, list):
-	__slots__ = ("_getter", "_set")
+	__slots__ = ()
 	_getter: Callable[[], list]
 	_set: Callable[[list], None]
-
-	def __init__(
-		self, getter: Callable[[], list], setter: Callable[[list], None]
-	):
-		super().__init__()
-		self._getter = getter
-		self._set = setter
 
 	def __copy__(self):
 		return list(self._getter())
