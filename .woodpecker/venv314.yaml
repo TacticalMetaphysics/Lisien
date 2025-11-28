@@ -1,8 +1,0 @@
-steps:
-  - name: venv3.14
-    image: python:3.14
-    commands:
-      - python -m venv .venv314
-      - . .venv314/bin/activate
-      - python -m pip install --upgrade pip
-      - python -m pip install tox

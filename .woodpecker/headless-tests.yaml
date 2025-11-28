@@ -8,7 +8,10 @@ steps:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
+      - python -m venv .venv312
       - . .venv312/bin/activate
+      - python -m pip install --upgrade pip
+      - python -m pip install tox
       - tox -c lisien/tox.ini -e py312
   - name: headless3.13
     image: python:3.13
@@ -16,7 +19,10 @@ steps:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
+      - python -m venv .venv313
       - . .venv313/bin/activate
+      - python -m pip install --upgrade pip
+      - python -m pip install tox
       - tox -c lisien/tox.ini -e py313
   - name: headless3.14
     image: python:3.14
@@ -24,10 +30,8 @@ steps:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
+      - python -m venv .venv314
       - . .venv314/bin/activate
+      - python -m pip install --upgrade pip
+      - python -m pip install tox
       - tox -c lisien/tox.ini -e py314
-
-depends_on:
-  - venv312
-  - venv313
-  - venv314
