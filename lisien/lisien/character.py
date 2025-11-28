@@ -39,7 +39,7 @@ from collections.abc import Mapping
 from functools import cached_property
 from itertools import chain
 from types import MethodType
-from typing import TYPE_CHECKING, Callable, Iterable, Iterator
+from typing import TYPE_CHECKING, Callable, Iterable, Iterator, ClassVar
 
 import networkx as nx
 from blinker import Signal
@@ -144,9 +144,13 @@ class CharRuleMapping(RuleMapping):
 class RuleFollower(BaseRuleFollower):
 	"""Mixin class. Has a rulebook, which you can get a RuleMapping into."""
 
+	__slots__ = ()
 	character: Character
-	engine: Engine
-	_book: RulebookTypeStr
+	_book: ClassVar[RulebookTypeStr]
+
+	@cached_property
+	def engine(self) -> Engine:
+		return self.character.engine
 
 	def _get_rule_mapping(self):
 		return CharRuleMapping(self.character, self.rulebook, self._book)
