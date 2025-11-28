@@ -86,7 +86,15 @@ from ast import parse, unparse
 from collections import UserDict
 from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
+from typing import (
+	TYPE_CHECKING,
+	Any,
+	Callable,
+	Iterator,
+	Literal,
+	Optional,
+	ClassVar,
+)
 
 from blinker import Signal
 
@@ -910,8 +918,11 @@ class RuleFollower(ABC):
 	"""
 
 	__slots__ = ()
-	engine: AbstractEngine
-	_rulebook: RuleBook
+	_rulebook: ClassVar[RuleBook]
+
+	@property
+	@abstractmethod
+	def engine(self) -> AbstractEngine: ...
 
 	@cached_property
 	def rule(self) -> RuleMapping:
