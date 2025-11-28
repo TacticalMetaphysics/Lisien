@@ -34,6 +34,7 @@ from typing import (
 	Any,
 	Callable,
 	ClassVar,
+	IO,
 	Iterable,
 	Iterator,
 	Literal,
@@ -41,6 +42,7 @@ from typing import (
 	MutableMapping,
 	MutableSet,
 	Optional,
+	Self,
 	Set,
 	TypeVar,
 	get_args,
@@ -69,7 +71,6 @@ else:
 
 import lisien.types
 
-from .cache import PickierDefaultDict
 from .facade import EngineFacade
 from .types import (
 	AbstractEngine,
@@ -107,6 +108,7 @@ from .types import (
 	NodeValRowType,
 	PackSignature,
 	Plan,
+	PlanTicksRowType,
 	PortalRulebookRowType,
 	PortalRulesHandledRowType,
 	PrereqFuncName,
@@ -145,9 +147,17 @@ from .types import (
 	deannotate,
 	root_type,
 	sort_set,
+	PickierDefaultDict,
+	KeyframeExtensionRowType,
+	KeyframeGraphRowType,
 )
 from .util import ILLEGAL_CHARACTER_NAMES, garbage
-from .window import AssignmentTimeDict, WindowDict
+from .window import (
+	AssignmentTimeDict,
+	WindowDict,
+	BranchingTimeListDict,
+	LinearTimeListDict,
+)
 from .wrap import DictWrapper, ListWrapper, SetWrapper
 
 SCHEMAVER_B = b"\xb6_lisien_schema_version"
@@ -570,7 +580,7 @@ class AbstractDatabaseConnector(ABC):
 	_: KW_ONLY
 	kf_interval_override: Callable[[], bool | None] = lambda _: None
 	keyframe_interval: int | None = 1000
-	snap_keyframe: Callable[[], None] = lambda: None
+	snap_keyframe: Callable[[Self], None] = lambda self: None
 
 	@cached_property
 	def engine(self) -> AbstractEngine:
@@ -642,12 +652,37 @@ class AbstractDatabaseConnector(ABC):
 
 		"""
 		self.flush()
+
+		def entuple(rec):
+			if isinstance(rec, str):
+				return (rec,)
+			return tuple(rec)
+
 		return {
 			table: sorted(
-				map(tuple, getattr(self, f"{table}_dump")()), key=self.pack
+				map(entuple, getattr(self, f"{table}_dump")()), key=self.pack
 			)
 			for table in Batch.cached_properties
 		}
+
+	def __getstate__(self):
+		return self.dump_everything()
+
+	def load_everything(self, state: dict[str, list[tuple]]):
+		for table, data in state.items():
+			prop = Batch.cached_properties[table]
+			batch = getattr(self, prop.attrname)
+			batch.extend(data)
+		self.flush()
+
+	def __setstate__(self, state: dict[str, list[tuple]]):
+		self.load_everything(state)
+
+	def __enter__(self) -> AbstractDatabaseConnector:
+		return self
+
+	def __exit__(self) -> None:
+		self.close()
 
 	@batched(
 		"global",
@@ -706,9 +741,9 @@ class AbstractDatabaseConnector(ABC):
 
 	@batched("plan_ticks", inc_rec_counter=False)
 	def _planticks2set(
-		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
 	) -> tuple[Plan, Branch, Turn, Tick]:
-		return plan_id, branch, turn, tick
+		return plan, branch, turn, tick
 
 	@batched("bookmarks", key_len=1, inc_rec_counter=False)
 	def _bookmarks2set(
@@ -1385,14 +1420,42 @@ class AbstractDatabaseConnector(ABC):
 		)
 
 	def plans_insert(
-		self, plan_id: Plan, branch: Branch, turn: Turn, tick: Tick
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
-		self._planticks2set.append((plan_id, branch, turn, tick))
+		self._planticks2set.append((plan, branch, turn, tick))
+		self._upd_plan_times(plan, branch, turn, tick)
+		self._upd_plan_ticks(plan, branch, turn, tick)
+
+	def _upd_plan_ticks(
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
+	):
+		if plan in self._plan_ticks:
+			if branch in self._plan_ticks[plan]:
+				self._plan_ticks[plan][branch].insert_time(turn, tick)
+			else:
+				self._plan_ticks[plan][branch] = LinearTimeListDict(
+					{turn: [tick]}
+				)
+		else:
+			self._plan_ticks[plan] = BranchingTimeListDict(
+				{branch: {turn: [tick]}}
+			)
+
+	def _upd_plan_times(
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
+	):
+		if plan in self._plan_times:
+			self._plan_times[plan].add((branch, turn, tick))
+		else:
+			self._plan_times[plan] = {(branch, turn, tick)}
 
 	def plans_insert_many(
 		self, many: list[tuple[Plan, Branch, Turn, Tick]]
 	) -> None:
 		self._planticks2set.extend(many)
+		for tup in many:
+			self._upd_plan_times(*tup)
+			self._upd_plan_ticks(*tup)
 
 	@garbage
 	def flush(self):
@@ -1533,7 +1596,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def global_dump(self) -> Iterator[tuple[Key, Value]]:
+	def global_dump(self) -> Iterator[tuple[EternalKey, Value]]:
 		pass
 
 	@abstractmethod
@@ -1614,7 +1677,7 @@ class AbstractDatabaseConnector(ABC):
 		pass
 
 	@abstractmethod
-	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
+	def plan_ticks_dump(self) -> Iterator[PlanTicksRowType]:
 		pass
 
 	@abstractmethod
@@ -1730,31 +1793,12 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			Branch,
-			Turn,
-			Tick,
-			NodeKeyframe,
-			EdgeKeyframe,
-			StatDict,
-		]
-	]: ...
+	) -> Iterator[KeyframeGraphRowType]: ...
 
 	@abstractmethod
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			Tick,
-			UniversalKeyframe,
-			RuleKeyframe,
-			RulebooksKeyframe,
-		]
-	]: ...
+	) -> Iterator[KeyframeExtensionRowType]: ...
 
 	@abstractmethod
 	def universals_dump(
@@ -1765,7 +1809,7 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def rulebooks_dump(
 		self,
-	) -> Iterator[tuple[RulebookRowType]]:
+	) -> Iterator[RulebookRowType]:
 		pass
 
 	@abstractmethod
@@ -1810,7 +1854,7 @@ class AbstractDatabaseConnector(ABC):
 	@abstractmethod
 	def portal_rulebook_dump(
 		self,
-	) -> Iterator[tuple[PortalRulebookRowType]]:
+	) -> Iterator[PortalRulebookRowType]:
 		pass
 
 	@abstractmethod
@@ -2319,6 +2363,10 @@ class AbstractDatabaseConnector(ABC):
 				raise TypeError("Bad loaded dictionary", v)
 		return dict(ret)
 
+	@cached_property
+	def _plan_ticks(self) -> dict[Plan, BranchingTimeListDict]:
+		return PickierDefaultDict(int, BranchingTimeListDict)
+
 	def to_etree(self, name: str) -> ElementTree:
 		root = self.tree.getroot()
 		self.commit()
@@ -2337,19 +2385,6 @@ class AbstractDatabaseConnector(ABC):
 			el = Element("dict-item", key=repr(k))
 			root.append(el)
 			el.append(self._value_to_xml_el(eternals[k]))
-		plan_ticks: dict[Branch, dict[Turn, dict[Plan, set[Tick]]]] = {}
-		for plan, branch, turn, tick in self.plan_ticks_dump():
-			if branch in plan_ticks:
-				if turn in plan_ticks[branch]:
-					if plan in plan_ticks[branch][turn]:
-						plan_ticks[branch][turn][plan].add(tick)
-					else:
-						plan_ticks[branch][turn][plan] = {tick}
-				else:
-					plan_ticks[branch][turn] = {plan: {tick}}
-			else:
-				plan_ticks[branch] = {turn: {plan: {tick}}}
-		self._plan_ticks = plan_ticks
 		trunks = set()
 		branches_d = {}
 		branch_descendants = {}
@@ -2477,20 +2512,6 @@ class AbstractDatabaseConnector(ABC):
 		for trunk in trunks:
 			recurse_branch(trunk)
 		return self.tree
-
-	def to_xml(
-		self,
-		xml_file_path: str | os.PathLike | IOBase,
-		indent: bool = True,
-		name: str | None = None,
-	) -> None:
-		if not isinstance(xml_file_path, (os.PathLike, IOBase)):
-			xml_file_path = Path(xml_file_path)
-
-		tree = self.to_etree(name)
-		if indent:
-			indent_tree(tree)
-		tree.write(xml_file_path, encoding="utf-8")
 
 	@classmethod
 	def _value_to_xml_el(cls, value: Value | dict[Key, Value]) -> Element:
@@ -2777,7 +2798,7 @@ class AbstractDatabaseConnector(ABC):
 
 	def write_xml(
 		self,
-		file: str | os.PathLike | IOBase,
+		file: str | os.PathLike | IO[str | bytes],
 		name: str | None = None,
 		indent: bool = True,
 	) -> None:
@@ -2808,10 +2829,9 @@ class AbstractDatabaseConnector(ABC):
 		self, el: Element, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
 		plans = []
-		if branch in self._plan_ticks and turn in self._plan_ticks[branch]:
-			for plan, ticks in self._plan_ticks[branch][turn].items():
-				if tick in ticks:
-					plans.append(plan)
+		for plan, times in self._plan_times.items():
+			if (branch, turn, tick) in times:
+				plans.append(plan)
 		if plans:
 			el.set("plans", ",".join(map(str, plans)))
 
@@ -4128,7 +4148,7 @@ class AbstractDatabaseConnector(ABC):
 				self.eternal[k] = v
 		self.commit()
 
-	def load_xml(self, xml_or_file_path: str | os.PathLike | IOBase):
+	def load_xml(self, xml_or_file_path: str | os.PathLike | IO[str | bytes]):
 		"""Restore data from an XML export
 
 		Supports a string with the XML in it, a path to an XML file, or
@@ -4154,9 +4174,30 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	"""
 
+	def is_empty(self) -> bool:
+		for att in dir(self):
+			if att.startswith("__"):
+				continue
+			try:
+				val = getattr(self, att)
+			except AttributeError:
+				continue
+			if isinstance(val, dict) or isinstance(val, set):
+				if val:
+					print(f"{att} is nonempty")
+					return False
+		return True
+
 	@cached_property
 	def _bookmarks(self) -> dict[Key, Time]:
 		return {}
+
+	def _plan_ticks_insert_rec(
+		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
+	):
+		b = self._plan_ticks[plan][branch]
+		if turn not in b or tick not in b[turn]:
+			b.insert_time(turn, tick)
 
 	@cached_property
 	def _keyframe_extensions(
@@ -4296,10 +4337,6 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 		AssignmentTimeDict[tuple[CharName, NodeName, NodeName, Stat, Value]],
 	]:
 		return defaultdict(AssignmentTimeDict)
-
-	@cached_property
-	def _plan_ticks(self) -> set[tuple[Plan, Branch, Turn, Tick]]:
-		return set()
 
 	@cached_property
 	def _universals(
@@ -4867,7 +4904,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]:
 		return self._keyframe_extensions[branch].retrieve_exact(turn, tick)
 
-	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+	def keyframes_dump(self) -> Iterator[Time]:
 		with self._lock:
 			yield from sorted(self._keyframes)
 
@@ -5051,8 +5088,14 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		with self._lock:
-			for plan_tup in sort_set(self._plan_ticks):
-				yield plan_tup
+			plan_ticks = self._plan_ticks
+			for plan in sorted(self._plan_ticks.keys()):
+				branches = plan_ticks[plan]
+				for branch in sorted(branches.keys()):
+					turns = branches[branch]
+					for turn in sorted(turns):
+						for tick in turns[turn]:
+							yield plan, branch, turn, tick
 
 	commit = close = AbstractDatabaseConnector.flush
 
@@ -5072,21 +5115,22 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			except KeyError:
 				return
 			for g, (nkf, ekf, gvkf) in kf.items():
-				yield g, nkf, ekf, gvkf
+				yield (
+					g,
+					{node: stats.copy() for (node, stats) in nkf.items()},
+					{
+						orig: {
+							dest: stats.copy()
+							for (dest, stats) in dests.items()
+						}
+						for (orig, dests) in ekf.items()
+					},
+					gvkf.copy(),
+				)
 
 	def keyframes_graphs_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			CharName,
-			Branch,
-			Turn,
-			Tick,
-			NodeKeyframe,
-			EdgeKeyframe,
-			StatDict,
-		]
-	]:
+	) -> Iterator[KeyframeGraphRowType]:
 		kfg = self._keyframes_graphs
 		with self._lock:
 			for branch in sort_set(kfg.keys()):
@@ -5095,20 +5139,11 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 					d = kfgb.retrieve_exact(turn, tick)
 					for g in sort_set(d.keys()):
 						nkf, ekf, gkf = d[g]
-						yield g, branch, turn, tick, nkf, ekf, gkf
+						yield branch, turn, tick, g, nkf, ekf, gkf
 
 	def keyframe_extensions_dump(
 		self,
-	) -> Iterator[
-		tuple[
-			Branch,
-			Turn,
-			Tick,
-			UniversalKeyframe,
-			RuleKeyframe,
-			RulebooksKeyframe,
-		]
-	]:
+	) -> Iterator[KeyframeExtensionRowType]:
 		for (branch, turn, tick), (ukf, rkf, rbkf) in self._chron_dump(
 			self._keyframe_extensions
 		):
@@ -5127,16 +5162,14 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def rulebooks_dump(
 		self,
-	) -> Iterator[
-		tuple[RulebookName, Branch, Turn, Tick, tuple[list[RuleName], float]]
-	]:
+	) -> Iterator[RulebookRowType]:
 		with self._lock:
 			for branch in sorted(self._rulebooks.keys()):
 				for turn, tick in self._rulebooks[branch].iter_times():
 					rb, rs, prio = self._rulebooks[branch].retrieve_exact(
 						turn, tick
 					)
-					yield rb, branch, turn, tick, (rs.copy(), prio)
+					yield branch, turn, tick, rb, rs.copy(), prio
 
 	def rules_dump(self) -> Iterator[RuleName]:
 		with self._lock:
@@ -6370,7 +6403,7 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		if not isinstance(node_kf, dict):
 			raise TypeError("Invalid node keyframe", node_kf)
 		return {
-			NodeName(k): {Stat(kk): Value(vv) for (kk, vv) in v.items()}
+			NodeName(Key(k)): {Stat(kk): Value(vv) for (kk, vv) in v.items()}
 			for (k, v) in node_kf.items()
 		}
 
@@ -6380,9 +6413,10 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 			raise TypeError("Invalid edge keyframe", unpacked)
 		try:
 			return {
-				NodeName(orig): {
-					NodeName(dest): {
-						Stat(key): Value(val) for (key, val) in stats.items()
+				NodeName(Key(orig)): {
+					NodeName(Key(dest)): {
+						Stat(Key(key)): Value(val)
+						for (key, val) in stats.items()
 					}
 					for (dest, stats) in dests.items()
 				}
@@ -6391,11 +6425,23 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		except TypeError as ex:
 			raise TypeError(*ex.args, unpacked) from ex
 
-	def _unpack_graph_val_keyframe(self, graph_val_packed: bytes) -> StatDict:
+	def _unpack_graph_val_keyframe(self, graph_val_packed: bytes) -> CharDict:
 		unpacked = self.unpack(graph_val_packed)
 		if not isinstance(unpacked, dict):
 			raise TypeError("Invalid graph stat keyframe", unpacked)
-		return {Stat(k): Value(v) for (k, v) in unpacked.items()}
+		rulebooks = {
+			"character_rulebook",
+			"unit_rulebook",
+			"character_thing_rulebook",
+			"character_place_rulebook",
+			"character_portal_rulebook",
+		}
+		return {
+			k if k in rulebooks else Stat(Key(k)): RulebookName(v)
+			if k in rulebooks
+			else Value(v)
+			for (k, v) in unpacked.items()
+		}
 
 	def _unpack_universal_keyframe(
 		self, universal_packed: bytes
@@ -6403,7 +6449,7 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		unpacked = self.unpack(universal_packed)
 		if not isinstance(unpacked, dict):
 			raise TypeError("Invalid universal keyframe", unpacked)
-		return {UniversalKey(k): Value(v) for (k, v) in unpacked.items()}
+		return {UniversalKey(Key(k)): Value(v) for (k, v) in unpacked.items()}
 
 	def _unpack_rules_keyframe(self, rule_packed: bytes) -> RulesKeyframe:
 		def make_rule_keyframe(v: dict) -> RuleKeyframe:

@@ -25,7 +25,6 @@ import io
 import os
 import pickle
 import shutil
-import signal
 import sys
 from abc import ABC, abstractmethod
 from collections import UserDict, defaultdict
@@ -37,14 +36,19 @@ from functools import cached_property, partial, wraps
 from hashlib import blake2b
 from io import TextIOWrapper
 from itertools import chain, pairwise
-from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
+from logging import (
+	DEBUG,
+	Formatter,
+	getLogger,
+	Logger,
+	LogRecord,
+	StreamHandler,
+)
 from multiprocessing import get_all_start_methods
 from operator import itemgetter, lt
 from os import PathLike
-from queue import Empty, SimpleQueue
 from random import Random
-from threading import Lock, RLock, Thread
-from time import sleep
+from threading import RLock, Thread
 from types import FunctionType, MethodType, ModuleType
 from typing import (
 	Any,
@@ -90,7 +94,6 @@ from .cache import (
 	NodesCache,
 	NodesRulebooksCache,
 	NodeValCache,
-	PickyDefaultDict,
 	PortalRulesHandledCache,
 	PortalsRulebooksCache,
 	PrereqListCache,
@@ -127,11 +130,15 @@ from .exc import (
 	RedundantRuleError,
 )
 from .facade import CharacterFacade, EngineFacade
+from .futures import (
+	LisienExecutor,
+	LisienThreadExecutor,
+	LisienProcessExecutor,
+	LisienInterpreterExecutor,
+)
 from .node import Place, Thing
 from .portal import Portal
 from .proxy.manager import Sub
-from .proxy.routine import worker_subprocess, worker_subthread
-from .proxy.worker_subinterpreter import worker_subinterpreter
 from .query import _make_side_sel
 from .rule import AllRuleBooks, AllRules, Rule
 from .types import (
@@ -143,7 +150,6 @@ from .types import (
 	CharacterRulebookTypeStr,
 	CharacterStatAccessor,
 	CharDelta,
-	CharDict,
 	CharName,
 	CombinedQueryResult,
 	ComparisonQuery,
@@ -195,6 +201,7 @@ from .types import (
 	Value,
 	sort_set,
 	validate_time,
+	PickyDefaultDict,
 )
 from .util import (
 	ACTIONS,
@@ -228,16 +235,6 @@ from .window import (
 	update_window,
 )
 from .wrap import OrderlyFrozenSet, OrderlySet
-
-SUBPROCESS_TIMEOUT = 30
-if "LISIEN_SUBPROCESS_TIMEOUT" in os.environ:
-	try:
-		SUBPROCESS_TIMEOUT = int(os.environ["LISIEN_SUBPROCESS_TIMEOUT"])
-	except ValueError:
-		SUBPROCESS_TIMEOUT = None
-KILL_SUBPROCESS = False
-if "LISIEN_KILL_SUBPROCESS" in os.environ:
-	KILL_SUBPROCESS = bool(os.environ["LISIEN_KILL_SUBPROCESS"])
 
 
 class InnerStopIteration(StopIteration):
@@ -579,13 +576,19 @@ class Engine(AbstractEngine, Executor):
 		effects. If you don't want this, instead use ``workers=1``,
 		which *does* disable parallelism in the case of trigger functions.
 	:param sub_mode: What kind of parallelism to use. Options are
-		``"subprocess"``, ``"subinterpreter"``, and ``"subthread"``. Defaults
-		to ``"subinterpreter"``, which only works on Python 3.14 or above,
-		so ``"subprocess"`` if it's unavailable, or, if we can't launch
+		``"process"``, ``"interpreter"``, and ``"thread"``. Defaults
+		to ``"interpreter"``, which only works on Python 3.14 or above,
+		so ``"process"`` if it's unavailable, or, if we can't launch
 		processes (perhaps because we're on Android or in a web browser),
-		``"subthread"``. Irrelevant when ``workers=0``. ``"subthread"`` won't
-		have any performance benefits, unless work done in a thread releases
-		the Global Interpreter Lock.
+		``"thread"``. Irrelevant when ``workers=0``, and ignored if ``executor``
+		is supplied; we'll use whatever parallelism the ``executor`` does.
+		``"thread"`` only has performance benefits if you're using a
+		free-threaded build of Python, or the threads do their work in a
+		library like Numpy that releases Python's Global Interpreter Lock.
+	:param executor: a :class:`LisienExecutor` instance we'll use to do
+		work in parallel. We'll make our own if one isn't supplied. Note that
+		:class:`LisienExecutor` is stateful, and may not be used by multiple
+		:class:`Engine` instances at once.
 	:param database: The database connector to use. If left ``None``,
 		Lisien will construct a database connector based on the other arguments:
 		SQLAlchemy if a ``connect_string`` is provided; if not, but a
@@ -1154,6 +1157,13 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def character(self) -> CharacterMapping:
 		return CharacterMapping(self)
+
+	@contextmanager
+	def wayback(self):
+		"""Return to the time at the start of the context once it's done"""
+		now = tuple(self.time)
+		yield
+		self.time = now
 
 	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick):
 		"""Override the current time, skipping all integrity checks"""
@@ -2108,6 +2118,7 @@ class Engine(AbstractEngine, Executor):
 		logger: Optional[Logger] = None,
 		workers: Optional[int] = None,
 		sub_mode: Sub | None = None,
+		executor: LisienExecutor | None = None,
 		database: AbstractDatabaseConnector | None = None,
 	):
 		if workers is None:
@@ -2130,6 +2141,8 @@ class Engine(AbstractEngine, Executor):
 		self._otick = Tick(0)
 		if logger is not None:
 			self._logger = logger
+		else:
+			self._logger = getLogger("lisien")
 		worker_handler = StreamHandler()
 		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
 		worker_handler.setLevel(DEBUG)
@@ -2157,32 +2170,77 @@ class Engine(AbstractEngine, Executor):
 			)
 		self._init_string(prefix, string, clear)
 		self._top_uid = 0
-		if workers != 0:
+		if executor:
+			executor.lock.acquire()
+			executor.call_every_worker(
+				self.pack("_restart"),
+				self.pack(
+					[
+						str(prefix),
+						tuple(self.time),
+						dict(self.eternal),
+						dict(self._branches_d),
+						random_seed,
+					]
+				),
+				self.pack({}),
+			)
+			initial_payload = self._get_worker_kf_payload()
+			for i in range(executor.workers):
+				executor._send_worker_input_bytes(i, initial_payload)
+			self._executor = executor
+			self._shutdown_executor = False
+		elif workers != 0:
+			for store in self.stores:
+				if hasattr(store, "save"):
+					store.save(reimport=False)
+			self._shutdown_executor = True
+			connect_reimporters = False
+			initial_payload = self._get_worker_kf_payload()
+			executor_args = (
+				prefix,
+				self._logger,
+				tuple(self.time),
+				dict(self.eternal),
+				dict(self._branches_d),
+				workers,
+			)
 			match sub_mode:
 				case Sub.interpreter if sys.version_info[1] >= 14:
-					self._start_worker_interpreters(prefix, workers)
-					self.debug(
-						f"started {workers} worker interpreters successfully"
-					)
+					self._executor = LisienInterpreterExecutor(*executor_args)
+					connect_reimporters = True
 				case Sub.process:
-					self._start_worker_processes(prefix, workers)
+					self._executor = LisienProcessExecutor(*executor_args)
+					connect_reimporters = True
 				case Sub.thread:
-					self._start_worker_threads(prefix, workers)
+					self._executor = LisienThreadExecutor(*executor_args)
 				case None:
 					if sys.version_info[1] >= 14:
 						try:
-							self._start_worker_interpreters(prefix, workers)
-							self.debug(
-								f"started {workers} worker interpreters successfully"
+							self._executor = LisienInterpreterExecutor(
+								*executor_args
 							)
-							self.debug("engine ready")
+							connect_reimporters = True
 							return
 						except ModuleNotFoundError:
 							pass
 					if get_all_start_methods():
-						self._start_worker_processes(prefix, workers)
+						self._executor = LisienProcessExecutor(*executor_args)
+						connect_reimporters = True
 					else:
-						self._start_worker_threads(prefix, workers)
+						self._executor = LisienThreadExecutor(*executor_args)
+			self._executor.lock.acquire()
+			for i in range(workers):
+				self._executor._send_worker_input_bytes(i, initial_payload)
+			if connect_reimporters:
+				if hasattr(self.trigger, "connect"):
+					self.trigger.connect(self._reimport_trigger_functions)
+				if hasattr(self.function, "connect"):
+					self.function.connect(self._reimport_worker_functions)
+				if hasattr(self.method, "connect"):
+					self.method.connect(self._reimport_worker_methods)
+
+			self.debug(f"started {workers} worker interpreters successfully")
 		self.debug("engine ready")
 
 	def _init_func_stores(
@@ -2249,6 +2307,8 @@ class Engine(AbstractEngine, Executor):
 	):
 		if not hasattr(self, "db"):
 			if database:
+				if not isinstance(database, AbstractDatabaseConnector):
+					raise TypeError("Invalid database connector", database)
 				self.db = database
 			elif prefix is None:
 				if connect_string is None:
@@ -2282,10 +2342,8 @@ class Engine(AbstractEngine, Executor):
 						clear=clear,
 					)
 
-		if not hasattr(self.db, "pack"):
-			self.db.pack = self.pack
-		if not hasattr(self.db, "unpack"):
-			self.db.unpack = self.unpack
+		self.db.pack = self.pack
+		self.db.unpack = self.unpack
 		self.db.keyframe_interval = keyframe_interval
 		self._load_keyframe_times()
 		if main_branch is not None:
@@ -2339,6 +2397,10 @@ class Engine(AbstractEngine, Executor):
 		self._init_random(random_seed)
 		with garbage():
 			self._load(*self._read_at(*self.time))
+		if hasattr(self, "_validate_initial_keyframe_load"):
+			self._validate_initial_keyframe_load(
+				self._get_keyframe(*self._build_keyframe_window(*self.time)[0])
+			)
 		self.db.snap_keyframe = self.snap_keyframe
 		self.db.kf_interval_override = self._detect_kf_interval_override
 		if not self._keyframes_times:
@@ -2401,263 +2463,6 @@ class Engine(AbstractEngine, Executor):
 				string_prefix,
 				self.eternal.setdefault("language", "eng"),
 			)
-
-	def _sync_log_forever(self, q: SimpleQueue[LogRecord]) -> None:
-		while not hasattr(self, "_closed") and not hasattr(
-			self, "_stop_sync_log"
-		):
-			recs: list[LogRecord] = []
-			while True:
-				try:
-					rec = q.get()
-					if rec == b"shutdown":
-						for rec in recs:
-							self.logger.handle(rec)
-						return
-					recs.append(rec)
-				except Empty:
-					break
-			for rec in recs:
-				self.logger.handle(rec)
-			sleep(0.5)
-
-	def _start_worker_interpreters(
-		self, prefix: str | os.PathLike | None, workers: int
-	) -> None:
-		self.debug(f"starting {workers} worker interpreters")
-		from concurrent.interpreters import (
-			Interpreter,
-			Queue,
-			create,
-			create_queue,
-		)
-
-		for store in self.stores:
-			if hasattr(store, "save"):
-				store.save(reimport=False)
-
-		self._worker_last_eternal = eternal_d = dict(self.eternal.items())
-		branches_d = dict(self._branches_d)
-		initial_payload = self._get_worker_kf_payload()
-		self._worker_interpreters: list[Interpreter] = []
-		wint = self._worker_interpreters
-		self._worker_inputs: list[Queue] = []
-		wi = self._worker_inputs
-		self._worker_outputs: list[Queue] = []
-		wo = self._worker_outputs
-		self._worker_threads: list[Thread] = []
-		wt = self._worker_threads
-		self._worker_locks: list[Lock] = []
-		wlk = self._worker_locks
-		self._worker_log_queues: list[Queue] = []
-		wlq = self._worker_log_queues
-		self._worker_log_threads: list[Thread] = []
-		wlt = self._worker_log_threads
-		for i in range(workers):
-			input = create_queue()
-			output = create_queue()
-			logq = create_queue()
-			logthread = Thread(
-				target=self._sync_log_forever, args=(logq,), daemon=True
-			)
-			logthread.start()
-			terp: Interpreter = create()
-			wi.append(input)
-			wo.append(output)
-			wlq.append(logq)
-			lock = Lock()
-			wlk.append(lock)
-			wlt.append(logthread)
-			wint.append(terp)
-			input.put(b"shutdown")
-			terp_args = (
-				worker_subinterpreter,
-				i,
-				prefix,
-				branches_d,
-				eternal_d,
-				input,
-				output,
-				logq,
-			)
-			terp_kwargs = {
-				"function": None,
-				"method": None,
-				"trigger": None,
-				"prereq": None,
-				"action": None,
-			}
-			terp.call(
-				*terp_args, **terp_kwargs
-			)  # check that we can run the subthread
-			if (echoed := output.get(timeout=5.0)) != b"done":
-				raise RuntimeError(
-					f"Got garbled output from worker terp {i}", echoed
-				)
-			wt.append(terp.call_in_thread(*terp_args, **terp_kwargs))
-			with lock:
-				input.put(b"echoImReady")
-				if (echoed := output.get(timeout=5.0)) != b"ImReady":
-					raise RuntimeError(
-						f"Got garbled output from worker terp {i}", echoed
-					)
-				input.put(initial_payload)
-		self.debug(f"all {i + 1} worker interpreters have started")
-		if hasattr(self.trigger, "connect"):
-			self.trigger.connect(self._reimport_trigger_functions)
-		if hasattr(self.function, "connect"):
-			self.function.connect(self._reimport_worker_functions)
-		if hasattr(self.method, "connect"):
-			self.method.connect(self._reimport_worker_methods)
-		self.debug(
-			"connected function stores to reimporters; setting up fut_manager"
-		)
-		self._setup_fut_manager(workers)
-		self.debug("fut_manager started")
-
-	def _start_worker_threads(
-		self, prefix: str | os.PathLike | None, workers: int
-	):
-		from queue import SimpleQueue
-		from threading import Thread
-
-		self._worker_last_eternal = dict(self.eternal.items())
-		initial_payload = self._get_worker_kf_payload()
-
-		self._worker_threads: list[Thread] = []
-		wt = self._worker_threads
-		self._worker_inputs: list[SimpleQueue[bytes]] = []
-		self._worker_outputs: list[SimpleQueue[bytes]] = []
-		wi = self._worker_inputs
-		wo = self._worker_outputs
-		self._worker_locks: list[Lock] = []
-		wlk = self._worker_locks
-		self._worker_log_queues: list[SimpleQueue] = []
-		wl = self._worker_log_queues
-		self._worker_log_threads: list[Thread] = []
-		wlt = self._worker_log_threads
-
-		for i in range(workers):
-			inq = SimpleQueue()
-			outq = SimpleQueue()
-			logq = SimpleQueue()
-			logthread = Thread(
-				target=self._sync_log_forever, args=(logq,), daemon=True
-			)
-			thred = Thread(
-				target=worker_subthread,
-				name=f"lisien worker {i}",
-				args=(
-					i,
-					prefix,
-					dict(self._branches_d),
-					dict(self.eternal),
-					inq,
-					outq,
-					logq,
-				),
-			)
-			wi.append(inq)
-			wo.append(outq)
-			wl.append(logq)
-			wlk.append(Lock())
-			wlt.append(logthread)
-			wt.append(thred)
-			logthread.start()
-			thred.start()
-			with wlk[-1]:
-				inq.put(b"echoImReady")
-				if (echoed := outq.get(timeout=5.0)) != b"ImReady":
-					raise RuntimeError(
-						f"Got garbled output from worker {i}", echoed
-					)
-				inq.put(initial_payload)
-
-		self._setup_fut_manager(workers)
-
-	def _start_worker_processes(
-		self, prefix: str | os.PathLike | None, workers: int
-	):
-		from multiprocessing import get_context
-		from multiprocessing.connection import Connection
-		from multiprocessing.process import BaseProcess
-
-		for store in self.stores:
-			if hasattr(store, "save"):
-				store.save(reimport=False)
-
-		self._worker_last_eternal = dict(self.eternal.items())
-		initial_payload = self._get_worker_kf_payload()
-
-		self._worker_processes: list[BaseProcess] = []
-		wp = self._worker_processes
-		self._mp_ctx = ctx = get_context("spawn")
-		self._worker_inputs: list[Connection] = []
-		wi = self._worker_inputs
-		self._worker_outputs: list[Connection] = []
-		wo = self._worker_outputs
-		self._worker_locks: list[Lock] = []
-		wlk = self._worker_locks
-		self._worker_log_queues: list[SimpleQueue] = []
-		wl = self._worker_log_queues
-		self._worker_log_threads: list[Thread] = []
-		wlt = self._worker_log_threads
-		for i in range(workers):
-			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
-			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
-			logq = ctx.SimpleQueue()
-			logthread = Thread(
-				target=self._sync_log_forever, args=(logq,), daemon=True
-			)
-			proc = ctx.Process(
-				target=worker_subprocess,
-				args=(
-					i,
-					prefix,
-					dict(self._branches_d),
-					dict(self.eternal),
-					inpipe_there,
-					outpipe_there,
-					logq,
-				),
-			)
-			wi.append(inpipe_here)
-			wo.append(outpipe_here)
-			wl.append(logq)
-			wlk.append(Lock())
-			wlt.append(logthread)
-			wp.append(proc)
-			logthread.start()
-			proc.start()
-			with wlk[-1]:
-				inpipe_here.send_bytes(b"echoImReady")
-				if not outpipe_here.poll(5.0):
-					raise TimeoutError(
-						f"Couldn't connect to worker process {i} in 5s"
-					)
-				if (received := outpipe_here.recv_bytes()) != b"ImReady":
-					raise RuntimeError(
-						f"Got garbled output from worker process {i}", received
-					)
-				inpipe_here.send_bytes(initial_payload)
-		if hasattr(self.trigger, "connect"):
-			self.trigger.connect(self._reimport_trigger_functions)
-		if hasattr(self.function, "connect"):
-			self.function.connect(self._reimport_worker_functions)
-		if hasattr(self.method, "connect"):
-			self.method.connect(self._reimport_worker_methods)
-		self._setup_fut_manager(workers)
-
-	def _setup_fut_manager(self, workers: int):
-		self._workers = workers
-		self._worker_updated_btts: list[Time] = [tuple(self.time)] * workers
-		self._uid_to_fut: dict[int, Future] = {}
-		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
-		self._how_many_futs_running = 0
-		self._fut_manager_thread = Thread(
-			target=self._manage_futs, daemon=True
-		)
-		self._fut_manager_thread.start()
 
 	def _start_branch(
 		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick
@@ -4925,12 +4730,7 @@ class Engine(AbstractEngine, Executor):
 		loaded: dict,
 	):
 		if latest_past_keyframe:
-			if hasattr(self, "_validate_initial_keyframe_load"):
-				self._validate_initial_keyframe_load(
-					self._get_keyframe(*latest_past_keyframe)
-				)
-			else:
-				self._get_keyframe(*latest_past_keyframe, silent=True)
+			self._get_keyframe(*latest_past_keyframe, silent=True)
 
 		if universals := loaded.pop("universals", ()):
 			self._universal_cache.load(
@@ -4938,7 +4738,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		if rulebooks := loaded.pop("rulebooks", ()):
 			self._rulebooks_cache.load(
-				(rb, b, r, t, rs, prio)
+				(rb, b, r, t, (rs, prio))
 				for (b, r, t, rb, rs, prio) in rulebooks
 			)
 		if rule_triggers := loaded.pop("rule_triggers", ()):
@@ -5212,108 +5012,6 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid += 1
 		return ret
 
-	def _manage_futs(self):
-		while not (
-			hasattr(self, "_closed") or hasattr(self, "_stop_managing_futs")
-		):
-			while self._how_many_futs_running < self._workers:
-				try:
-					fut = self._futs_to_start.get()
-					if fut == b"shutdown":
-						return
-				except Empty:
-					break
-				if not fut.running() and fut.set_running_or_notify_cancel():
-					fut._t.start()
-					self._how_many_futs_running += 1
-			sleep(0.001)
-
-	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
-		if hasattr(self, "_uid_to_fut"):
-			if cancel_futures:
-				for fut in self._uid_to_fut.values():
-					fut.cancel()
-			if wait:
-				futwait(self._uid_to_fut.values())
-			self._uid_to_fut.clear()
-		self._stop_managing_futs = True
-		self._stop_sync_log = True
-
-		if hasattr(self, "_worker_processes"):
-			for i, (lock, pipein, pipeout, proc, logq, logt) in enumerate(
-				zip(
-					self._worker_locks,
-					self._worker_inputs,
-					self._worker_outputs,
-					self._worker_processes,
-					self._worker_log_queues,
-					self._worker_log_threads,
-				)
-			):
-				with lock:
-					if proc.is_alive():
-						pipein.send_bytes(b"shutdown")
-						proc.join(timeout=SUBPROCESS_TIMEOUT)
-						if proc.exitcode is None:
-							if KILL_SUBPROCESS:
-								os.kill(proc.pid, signal.SIGKILL)
-							else:
-								raise RuntimeError(
-									"Worker process didn't exit", i
-								)
-						if not KILL_SUBPROCESS and proc.exitcode != 0:
-							raise RuntimeError(
-								"Worker process didn't exit normally",
-								i,
-								proc.exitcode,
-							)
-						proc.close()
-					if logt.is_alive():
-						logq.put(b"shutdown")
-						logt.join(timeout=SUBPROCESS_TIMEOUT)
-					pipein.close()
-					pipeout.close()
-			del self._worker_processes
-		elif hasattr(self, "_worker_interpreters"):
-			for i, (lock, inq, outq, thread, terp, logq, logt) in enumerate(
-				zip(
-					self._worker_locks,
-					self._worker_inputs,
-					self._worker_outputs,
-					self._worker_threads,
-					self._worker_interpreters,
-					self._worker_log_queues,
-					self._worker_log_threads,
-				)
-			):
-				with lock:
-					inq.put(b"shutdown")
-					logq.put(b"shutdown")
-					logt.join(timeout=SUBPROCESS_TIMEOUT)
-					thread.join(timeout=SUBPROCESS_TIMEOUT)
-					if terp.is_running():
-						terp.close()
-		elif hasattr(self, "_worker_threads"):
-			for i, (lock, inq, outq, thread, logq, logt) in enumerate(
-				zip(
-					self._worker_locks,
-					self._worker_inputs,
-					self._worker_outputs,
-					self._worker_threads,
-					self._worker_log_queues,
-					self._worker_log_threads,
-				)
-			):
-				with lock:
-					inq.put(b"shutdown")
-					logq.put(b"shutdown")
-					thread.join()
-		if hasattr(self, "_fut_manager_thread"):
-			self._futs_to_start.put(b"shutdown")
-			self._fut_manager_thread.join()
-		del self._stop_managing_futs
-		del self._stop_sync_log
-
 	def _detect_kf_interval_override(self):
 		if self._planning:
 			return True
@@ -5387,23 +5085,6 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid += 1
 		return self._call_in_worker(uid, method, *args, **kwargs)
 
-	@contextmanager
-	def _all_worker_locks_ctx(self):
-		for lock in self._worker_locks:
-			lock.acquire()
-		yield
-		for lock in self._worker_locks:
-			lock.release()
-
-	@staticmethod
-	def _all_worker_locks(fn):
-		@wraps(fn)
-		def call_with_all_worker_locks(self, *args, **kwargs):
-			with self._all_worker_locks_ctx():
-				return fn(self, *args, **kwargs)
-
-		return call_with_all_worker_locks
-
 	@staticmethod
 	def _all_code_stores_saved(fn):
 		@wraps(fn)
@@ -5422,43 +5103,12 @@ class Engine(AbstractEngine, Executor):
 		return save_all_code_stores_and_call
 
 	@_all_code_stores_saved
-	@_all_worker_locks
 	def _call_every_worker(self, method: str, *args, **kwargs):
-		ret = []
-		uids = []
-		if hasattr(self, "_worker_processes"):
-			n = len(self._worker_processes)
-		elif hasattr(self, "_worker_interpreters"):
-			n = len(self._worker_interpreters)
-		elif hasattr(self, "_worker_threads"):
-			n = len(self._worker_threads)
-		else:
-			raise RuntimeError("No workers")
-		for _ in range(n):
-			uids.append(self._top_uid)
-			uidbytes = self._top_uid.to_bytes(8, "little")
-			argbytes = self.pack((method, args, kwargs))
-			i = self._top_uid % n
-			self._top_uid += 1
-			input = self._worker_inputs[i]
-			if hasattr(input, "send_bytes"):
-				input.send_bytes(uidbytes + argbytes)
-			else:
-				input.put(uidbytes + argbytes)
-		for uid in uids:
-			i = uid % n
-			output = self._worker_outputs[i]
-			if hasattr(output, "recv_bytes"):
-				outbytes: bytes = output.recv_bytes()
-			else:
-				outbytes: bytes = output.get()
-			got_uid = int.from_bytes(outbytes[:8], "little")
-			assert got_uid == uid
-			retval = self.unpack(outbytes[8:])
-			if isinstance(retval, Exception):
-				raise retval
-			ret.append(retval)
-		return ret
+		if not hasattr(self, "_executor"):
+			raise RuntimeError("Not parallel")
+		self._executor.call_every_worker(
+			self.pack(method), self.pack(args), self.pack(kwargs)
+		)
 
 	@world_locked
 	def _init_graph(
@@ -6095,6 +5745,8 @@ class Engine(AbstractEngine, Executor):
 			if hasattr(cache, "clear"):
 				cache.clear()
 		gc.collect()
+		if hasattr(self, "_executor"):
+			self._executor.lock.release()
 		self._closed = True
 
 	def __enter__(self):
@@ -6241,10 +5893,11 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	@world_locked
-	@_all_worker_locks
 	def _update_all_worker_process_states(
 		self, clobber: bool = False, stores_to_reimport: set[str] | None = None
 	):
+		if not hasattr(self, "_executor"):
+			raise RuntimeError("Not parallel")
 		stores_to_reimport = stores_to_reimport or set()
 		for store in self.stores:
 			if getattr(store, "_need_save", None):
@@ -6255,12 +5908,7 @@ class Engine(AbstractEngine, Executor):
 					store.save()
 		kf_payload = None
 		deltas = {}
-		if hasattr(self, "_worker_processes"):
-			n = len(self._worker_processes)
-		elif hasattr(self, "_worker_interpreters"):
-			n = len(self._worker_interpreters)
-		else:
-			raise RuntimeError("No workers")
+		n = self._executor.workers
 		for i in range(n):
 			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
 			if (
@@ -6347,6 +5995,13 @@ class Engine(AbstractEngine, Executor):
 				+ repr(self._worker_updated_btts[i])
 				+ f" ({len(deltas)} distinct deltas)"
 			)
+
+	def shutdown(
+		self, wait: bool = True, *, cancel_futures: bool = False
+	) -> None:
+		if hasattr(self, "_executor") and self._shutdown_executor:
+			self._executor.shutdown(wait, cancel_futures=cancel_futures)
+			del self._executor
 
 	@world_locked
 	def _update_worker_process_state(self, i, lock=True):
@@ -7729,6 +7384,8 @@ class Engine(AbstractEngine, Executor):
 		self.eternal["tick"] = self.tick
 		self.flush()
 		self.db.commit()
+		if hasattr(self.db, "tree"):
+			del self.db.tree
 		if unload:
 			self.unload()
 
@@ -7990,39 +7647,31 @@ class Engine(AbstractEngine, Executor):
 		workers: Optional[int] = None,
 		sub_mode: Sub | None = None,
 		database: AbstractDatabaseConnector | None = None,
+		executor: LisienExecutor | None = None,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
-
-		shutil.unpack_archive(archive_path, prefix, "zip")
-		extracted = os.listdir(prefix)
 		if database is None:
 			if prefix:
-				if "world.sqlite3" in extracted:
+				try:
+					from .pqdb import ParquetDatabaseConnector
+
+					pq_path = os.path.join(prefix, "world")
+					os.makedirs(pq_path, exist_ok=True)
+					database = ParquetDatabaseConnector(pq_path)
+				except ImportError:
 					from .sql import SQLAlchemyDatabaseConnector
 
 					database = SQLAlchemyDatabaseConnector(
 						f"sqlite:///{prefix}/world.sqlite3"
 					)
-				else:
-					try:
-						from .pqdb import ParquetDatabaseConnector
-
-						pq_path = os.path.join(prefix, "world")
-						os.makedirs(pq_path, exist_ok=True)
-						database = ParquetDatabaseConnector(pq_path)
-					except ImportError:
-						from .sql import SQLAlchemyDatabaseConnector
-
-						database = SQLAlchemyDatabaseConnector(
-							f"sqlite:///{prefix}/world.sqlite3"
-						)
 			else:
 				database = PythonDatabaseConnector()
-		if "world.xml" in extracted:
-			fake = EngineFacade(None)
-			(database.pack, database.unpack) = (fake.pack, fake.unpack)
-			xml_path = os.path.join(prefix, "world.xml")
-			database.load_xml(xml_path)
+		fake = EngineFacade(None)
+		(database.pack, database.unpack) = (fake.pack, fake.unpack)
+		with ZipFile(archive_path, "r") as zf:
+			database.load_xml(zf.open("world.xml"))
+			for fn in set(zf.namelist()) - {"world.xml"}:
+				zf.extract(fn, prefix)
 		return Engine(
 			prefix,
 			string=string,
@@ -8047,6 +7696,7 @@ class Engine(AbstractEngine, Executor):
 			workers=workers,
 			sub_mode=sub_mode,
 			database=database,
+			executor=executor,
 		)
 
 	def to_etree(self, name: str | None = None) -> ElementTree:
@@ -8158,13 +7808,8 @@ class Engine(AbstractEngine, Executor):
 			name = os.path.basename(path).removesuffix(".lisien")
 		self.commit()
 		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
-			if self._prefix is not None:
-				with zf.open("world.xml", "w") as f:
-					self.db.write_xml(f, name, indent)
-			else:
-				self.error(
-					"No database to export from, so the exported world.xml will be empty"
-				)
+			with zf.open("world.xml", "w") as f:
+				self.db.write_xml(f, name, indent)
 			if isinstance(self.string, StringStore):
 				self.string.save()
 				if self.string._prefix is None:

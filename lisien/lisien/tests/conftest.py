@@ -14,19 +14,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import resource
-import shutil
 import sys
 from functools import partial
 from logging import getLogger
 
 import pytest
 
-from lisien import Engine
-from lisien.db import NullDatabaseConnector, PythonDatabaseConnector
+from lisien.engine import (
+	Engine,
+)
+from ..futures import (
+	LisienThreadExecutorProxy,
+	LisienProcessExecutorProxy,
+	LisienInterpreterExecutorProxy,
+)
+from lisien.db import (
+	NullDatabaseConnector,
+	PythonDatabaseConnector,
+)
 from lisien.proxy.handle import EngineHandle
 from lisien.proxy.manager import Sub
 
-from ..examples import college, kobold, sickle
 from ..pqdb import ParquetDatabaseConnector
 from ..proxy.engine import EngineProxy
 from ..proxy.manager import EngineProxyManager
@@ -36,6 +44,11 @@ from .util import (
 	make_test_engine,
 	make_test_engine_facade,
 	make_test_engine_kwargs,
+	get_database_connector_part,
+	college_engine,
+	restart_executor,
+	tar_cache,
+	untar_cache,
 )
 
 
@@ -99,18 +112,20 @@ def random_seed():
 		"sickle",
 	],
 )
-def handle_initialized(request, tmp_path, database):
+def handle_initialized(request, tmp_path, database, random_seed):
 	if request.param == "kobold":
-		install = partial(
-			kobold.inittest, shrubberies=20, kobold_sprint_chance=0.9
-		)
+		from lisien.examples.kobold import inittest
+
+		install = partial(inittest, shrubberies=20, kobold_sprint_chance=0.9)
 		keyframe = {0: data.KOBOLD_KEYFRAME_0, 1: data.KOBOLD_KEYFRAME_1}
 	elif request.param == "college":
-		install = college.install
+		from lisien.examples.college import install
+
 		keyframe = {0: data.COLLEGE_KEYFRAME_0, 1: data.COLLEGE_KEYFRAME_1}
 	else:
 		assert request.param == "sickle"
-		install = sickle.install
+		from lisien.examples.sickle import install
+
 		keyframe = {0: data.SICKLE_KEYFRAME_0, 1: data.SICKLE_KEYFRAME_1}
 	if database in {"nodb", "python"}:
 		if database == "nodb":
@@ -119,7 +134,10 @@ def handle_initialized(request, tmp_path, database):
 			assert database == "python"
 			connector = PythonDatabaseConnector()
 		ret = EngineHandle(
-			None, workers=0, random_seed=69105, database=connector
+			None,
+			workers=0,
+			random_seed=random_seed,
+			database=connector,
 		)
 		install(ret._real)
 		ret.keyframe = keyframe
@@ -129,7 +147,7 @@ def handle_initialized(request, tmp_path, database):
 	with Engine(
 		tmp_path,
 		workers=0,
-		random_seed=69105,
+		random_seed=random_seed,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
 		else None,
@@ -169,17 +187,18 @@ KINDS_OF_PARALLEL = [
 
 
 @pytest.fixture(
+	scope="session",
 	params=[
 		pytest.param("proxy", marks=pytest.mark.proxy),
 		"serial",
 		*KINDS_OF_PARALLEL,
-	]
+	],
 )
 def execution(request):
 	return request.param
 
 
-@pytest.fixture(params=["serial", *KINDS_OF_PARALLEL])
+@pytest.fixture(scope="session", params=["serial", *KINDS_OF_PARALLEL])
 def serial_or_parallel(request):
 	return request.param
 
@@ -197,21 +216,23 @@ def database(request):
 
 
 @pytest.fixture(
+	scope="session",
 	params=[
 		pytest.param("python"),
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
-	]
+	],
 )
 def non_null_database(request):
 	return request.param
 
 
 @pytest.fixture(
+	scope="session",
 	params=[
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
-	]
+	],
 )
 def persistent_database(request):
 	return request.param
@@ -219,20 +240,9 @@ def persistent_database(request):
 
 @pytest.fixture
 def database_connector_part(tmp_path, non_null_database):
-	match non_null_database:
-		case "python":
-			real_connector = PythonDatabaseConnector()
-			return lambda: real_connector
-		case "sqlite":
-			return partial(
-				SQLAlchemyDatabaseConnector,
-				f"sqlite:///{tmp_path}/world.sqlite3",
-			)
-		case "parquetdb":
-			return partial(
-				ParquetDatabaseConnector, os.path.join(tmp_path, "world")
-			)
-	raise RuntimeError("Unknown database", non_null_database)
+	yield get_database_connector_part(tmp_path, non_null_database)
+	if hasattr(get_database_connector_part, "_pyconnector"):
+		del get_database_connector_part._pyconnector
 
 
 @pytest.fixture
@@ -250,17 +260,140 @@ def persistent_database_connector_part(tmp_path, persistent_database):
 	raise RuntimeError("Unknown database", persistent_database)
 
 
+@pytest.fixture
+def persistent_database_connector(persistent_database_connector_part):
+	yield persistent_database_connector_part()
+
+
 @pytest.fixture(scope="function")
-def database_connector(database_connector_part):
-	return database_connector_part()
+def database_connector(tmp_path, non_null_database):
+	match non_null_database:
+		case "python":
+			connector = PythonDatabaseConnector()
+		case "sqlite":
+			connector = SQLAlchemyDatabaseConnector(
+				f"sqlite:///{tmp_path}/world.sqlite3"
+			)
+		case "parquetdb":
+			connector = ParquetDatabaseConnector(
+				os.path.join(tmp_path, "world")
+			)
+		case _:
+			raise ValueError("Unknown database", non_null_database)
+	if hasattr(connector, "is_empty"):
+		assert connector.is_empty()
+	return connector
+
+
+@pytest.fixture(scope="session")
+def process_executor():
+	with LisienProcessExecutorProxy(
+		None,
+		getLogger("lisien"),
+		("trunk", 0, 0),
+		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
+		{"trunk": (None, 0, 0, 0, 0)},
+		2,
+	) as x:
+		yield x
+
+
+@pytest.fixture(scope="session")
+def thread_executor():
+	with LisienThreadExecutorProxy(
+		None,
+		getLogger("lisien"),
+		("trunk", 0, 0),
+		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
+		{"trunk": (None, 0, 0, 0, 0)},
+		2,
+	) as x:
+		yield x
+
+
+@pytest.fixture(scope="session")
+def interpreter_executor():
+	if sys.version_info.minor < 14:
+		yield None
+		return
+	with LisienInterpreterExecutorProxy(
+		None,
+		getLogger("lisien"),
+		("trunk", 0, 0),
+		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
+		{"trunk": (None, 0, 0, 0, 0)},
+		2,
+	) as x:
+		yield x
+
+
+@pytest.fixture(scope="session")
+def executor(
+	execution, process_executor, thread_executor, interpreter_executor
+):
+	ex = None
+	match execution:
+		case "process":
+			ex = process_executor
+		case "thread":
+			ex = thread_executor
+		case "interpreter":
+			ex = interpreter_executor
+		case _:
+			ex = None
+	yield ex
+	if ex is None:
+		return
+	if hasattr(ex, "_worker_log_threads"):
+		for t in ex._worker_log_threads:
+			assert not t.is_alive()
+		assert not ex._fut_manager_thread.is_alive()
+
+
+@pytest.fixture(scope="session")
+def serial_or_executor(
+	serial_or_parallel, process_executor, thread_executor, interpreter_executor
+):
+	ex = None
+	match serial_or_parallel:
+		case "process":
+			ex = process_executor
+		case "thread":
+			ex = thread_executor
+		case "interpreter":
+			ex = interpreter_executor
+		case _:
+			ex = None
+	yield ex
+	if ex is None:
+		return
+	if hasattr(ex, "_worker_log_threads"):
+		for t in ex._worker_log_threads:
+			assert not t.is_alive()
+		assert not ex._fut_manager_thread.is_alive()
+
+
+@pytest.fixture(scope="session", params=KINDS_OF_PARALLEL)
+def parallel_executor(
+	request, process_executor, thread_executor, interpreter_executor
+):
+	match request.param:
+		case "thread":
+			yield interpreter_executor
+		case "process":
+			yield process_executor
+		case "interpreter":
+			yield interpreter_executor
 
 
 @pytest.fixture(
 	scope="function",
 )
-def engy(tmp_path, execution, database, random_seed):
+def engy(tmp_path, execution, database, random_seed, executor):
 	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
-	with make_test_engine(tmp_path, execution, database, random_seed) as eng:
+	with make_test_engine(
+		tmp_path, execution, database, random_seed, executor=executor
+	) as eng:
 		yield eng
 	if hasattr(eng, "_worker_log_threads"):
 		for t in eng._worker_log_threads:
@@ -278,15 +411,20 @@ def engine(
 	tmp_path,
 	serial_or_parallel,
 	local_or_remote,
-	non_null_database,
+	database_connector_part,
 	random_seed,
+	serial_or_executor,
 ):
 	"""Engine or EngineProxy with a subprocess"""
 	if local_or_remote == "remote":
 		procman = EngineProxyManager()
 		with procman.start(
 			**make_test_engine_kwargs(
-				tmp_path, serial_or_parallel, non_null_database, random_seed
+				tmp_path,
+				serial_or_parallel,
+				database_connector_part,
+				random_seed,
+				executor=serial_or_executor,
 			)
 		) as proxy:
 			yield proxy
@@ -294,23 +432,49 @@ def engine(
 	else:
 		with Engine(
 			**make_test_engine_kwargs(
-				tmp_path, serial_or_parallel, non_null_database, random_seed
+				tmp_path,
+				serial_or_parallel,
+				database_connector_part,
+				random_seed,
+				executor=serial_or_executor,
 			)
 		) as eng:
 			yield eng
-		if hasattr(eng, "_worker_log_threads"):
-			for t in eng._worker_log_threads:
-				assert not t.is_alive()
-			assert not eng._fut_manager_thread.is_alive()
 
 
-def proxyless_engine(tmp_path, serial_or_parallel, database_connector):
+@pytest.fixture
+def no_proxy_executor(
+	tmp_path,
+	serial_or_parallel,
+	random_seed,
+	thread_executor,
+	process_executor,
+	interpreter_executor,
+):
+	match serial_or_parallel:
+		case "serial":
+			yield None
+		case "thread":
+			restart_executor(thread_executor, tmp_path, random_seed)
+			yield thread_executor
+		case "process":
+			restart_executor(process_executor, tmp_path, random_seed)
+			yield process_executor
+		case "interpreter":
+			restart_executor(interpreter_executor, tmp_path, random_seed)
+			yield interpreter_executor
+
+
+def proxyless_engine(
+	tmp_path, serial_or_parallel, database_connector, no_proxy_executor
+):
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
 		workers=0 if serial_or_parallel == "serial" else 2,
 		database=database_connector,
+		executor=no_proxy_executor,
 	) as eng:
 		yield eng
 	if hasattr(eng, "_worker_log_threads"):
@@ -320,7 +484,7 @@ def proxyless_engine(tmp_path, serial_or_parallel, database_connector):
 
 
 @pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
-def sqleng(tmp_path, request, execution):
+def sqleng(tmp_path, request, execution, executor):
 	if execution == "proxy":
 		eng = EngineProxy(
 			None,
@@ -347,6 +511,7 @@ def sqleng(tmp_path, request, execution):
 			workers=0 if execution == "serial" else 2,
 			sub_mode=Sub(execution) if execution != "serial" else None,
 			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+			executor=executor,
 		) as eng:
 			yield eng
 	if hasattr(eng, "_worker_log_threads"):
@@ -389,24 +554,129 @@ def null_engine():
 		assert not eng._fut_manager_thread.is_alive()
 
 
-@pytest.fixture(
-	scope="function", params=[pytest.param("sqlite", marks=pytest.mark.sqlite)]
-)
-def college24_premade(tmp_path, request):
-	shutil.unpack_archive(
-		os.path.join(
-			os.path.abspath(os.path.dirname(__file__)),
-			"data",
-			"college24_premade.tar.xz",
-		),
-		tmp_path,
-	)
-	with Engine(
-		tmp_path,
-		workers=0,
-		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+@pytest.fixture(scope="session")
+def college10_tar(non_null_database):
+	with tar_cache("college10", non_null_database, college_engine) as path:
+		yield path
+
+
+@pytest.fixture
+def college10(
+	college10_tar,
+	tmp_path,
+	serial_or_parallel,
+	database_connector_part,
+	serial_or_executor,
+):
+	with untar_cache(
+		college10_tar, tmp_path, database_connector_part, serial_or_executor
 	) as eng:
 		yield eng
+
+
+@pytest.fixture(scope="session")
+def college24_sql_tar():
+	with tar_cache("college24", "sqlite", college_engine) as path:
+		yield path
+
+
+@pytest.fixture(scope="session")
+def college24_pqdb_tar():
+	with tar_cache("college24", "parquetdb", college_engine) as path:
+		yield path
+
+
+@pytest.fixture(scope="session")
+def college24_python_tar():
+	with tar_cache("college24", "python", college_engine) as path:
+		yield path
+
+
+@pytest.fixture(scope="session")
+def college24_tar(
+	non_null_database,
+	college24_python_tar,
+	college24_sql_tar,
+	college24_pqdb_tar,
+):
+	match non_null_database:
+		case "python":
+			yield college24_python_tar
+		case "parquetdb":
+			yield college24_pqdb_tar
+		case "sqlite":
+			yield college24_sql_tar
+		case _:
+			raise RuntimeError("Database not supported", non_null_database)
+
+
+@pytest.fixture
+def college24(
+	college24_tar,
+	tmp_path,
+	serial_or_parallel,
+	database_connector_part,
+	serial_or_executor,
+):
+	with untar_cache(
+		college24_tar, tmp_path, database_connector_part, serial_or_executor
+	) as eng:
+		yield eng
+
+
+@pytest.fixture(scope="session")
+def sickle_tar(non_null_database):
+	with tar_cache("sickle", non_null_database) as path:
+		yield path
+
+
+@pytest.fixture
+def sickle(sickle_tar, tmp_path, database_connector_part, serial_or_executor):
+	with untar_cache(
+		sickle_tar, tmp_path, database_connector_part, serial_or_executor
+	) as eng:
+		yield eng
+
+
+@pytest.fixture(scope="session")
+def wolfsheep_tar(non_null_database):
+	with tar_cache("wolfsheep", non_null_database) as path:
+		yield path
+
+
+@pytest.fixture
+def wolfsheep(
+	wolfsheep_tar, tmp_path, database_connector_part, serial_or_executor
+):
+	with untar_cache(
+		wolfsheep_tar, tmp_path, database_connector_part, serial_or_executor
+	) as eng:
+		yield eng
+
+
+@pytest.fixture(scope="session")
+def pathfind_tar(non_null_database):
+	with tar_cache("pathfind", non_null_database) as path:
+		yield path
+
+
+@pytest.fixture
+def pathfind(
+	pathfind_tar, tmp_path, database_connector_part, parallel_executor
+):
+	with untar_cache(
+		pathfind_tar, tmp_path, database_connector_part, parallel_executor
+	) as eng:
+		yield eng
+
+
+def pytest_collection_modifyitems(items):
+	for item in items:
+		fixturenames = getattr(item, "fixturenames", ())
+		if "college10" in fixturenames or "college24" in fixturenames:
+			item.add_marker("college")
+		for fixturename in fixturenames:
+			item.add_marker(fixturename)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

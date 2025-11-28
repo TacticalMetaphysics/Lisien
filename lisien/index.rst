@@ -218,7 +218,7 @@
 
    .. autoclass:: lisien.node.Node
 
-      .. autoproperty:: user
+      .. autoproperty:: leader
 
       .. autoproperty:: portal
 
@@ -297,7 +297,11 @@
 
 .. automodule:: lisien.query
 
-   .. autoclass:: QueryResult
+#######
+ types
+#######
+
+.. automodule:: lisien.types
 
 ##############
  collections

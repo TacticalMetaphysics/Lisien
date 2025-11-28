@@ -94,6 +94,13 @@ from .types import (
 	UniversalKey,
 	UniversalKeyframe,
 	Value,
+	EternalKey,
+	TurnRowType,
+	UniversalRowType,
+	RulebookRowType,
+	NodeValDict,
+	EdgeValDict,
+	CharDict,
 )
 from .types import __dict__ as types_dict
 from .util import ELLIPSIS, EMPTY
@@ -931,7 +938,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		for key in self.call("global_keys"):
 			yield unpack(key)
 
-	def keyframes_dump(self) -> Iterator[tuple[Branch, Turn, Tick]]:
+	def keyframes_dump(self) -> Iterator[Time]:
 		self.flush()
 		for d in self.call("dump", "keyframes"):
 			yield d["branch"], d["turn"], d["tick"]
@@ -1023,11 +1030,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		except KeyError:
 			return ...
 
-	def global_dump(self) -> Iterator[tuple[Key, Value]]:
+	def global_dump(self) -> Iterator[tuple[EternalKey, Value]]:
 		unpack = self.unpack
 		unpack_key = self.unpack_key
 		yield from (
-			(unpack_key(d["key"]), unpack(d["value"]))
+			(EternalKey(unpack_key(d["key"])), unpack(d["value"]))
 			for d in self.call("dump", "global")
 		)
 
@@ -1058,9 +1065,14 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			raise TypeError("Invalid tick", v)
 		return Tick(v)
 
-	def turns_dump(self) -> Iterator[tuple[Branch, Turn, Tick, Tick]]:
+	def turns_dump(self) -> Iterator[TurnRowType]:
 		for d in self.call("dump", "turns"):
-			yield d["branch"], d["turn"], d["end_tick"], d["plan_end_tick"]
+			yield (
+				Branch(d["branch"]),
+				Turn(d["turn"]),
+				Tick(d["end_tick"]),
+				Tick(d["plan_end_tick"]),
+			)
 
 	def _extract_time(self, d: dict) -> Time:
 		branch = d["branch"]
@@ -1076,7 +1088,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def universals_dump(
 		self,
-	) -> Iterator[tuple[Branch, Turn, Tick, UniversalKey, Value]]:
+	) -> Iterator[UniversalRowType]:
 		self.flush()
 		unpack = self.unpack
 		unpack_key = self.unpack_key
@@ -1087,14 +1099,12 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				turn,
 				tick,
 				UniversalKey(unpack_key(d["key"])),
-				unpack(d["value"]),
+				Value(unpack(d["value"])),
 			)
 
 	def rulebooks_dump(
 		self,
-	) -> Iterator[
-		tuple[Branch, Turn, Tick, RulebookName, tuple[list[RuleName], float]]
-	]:
+	) -> Iterator[RulebookRowType]:
 		self.flush()
 		unpack = self.unpack
 		unpack_key = self.unpack_key
@@ -1113,8 +1123,9 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				branch,
 				turn,
 				tick,
-				unpack_key(d["rulebook"]),
-				(rules, priority),
+				RulebookName(unpack_key(d["rulebook"])),
+				rules.copy(),
+				RulebookPriority(priority),
 			)
 
 	def rules_dump(self) -> Iterator[RuleName]:
@@ -1524,39 +1535,35 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	def plan_ticks_dump(self) -> Iterator[tuple[Plan, Branch, Turn, Tick]]:
 		self._planticks2set()
 		for d in self.call("dump", "plan_ticks"):
-			yield d["plan_id"], d["branch"], d["turn"], d["tick"]
+			yield d["plan"], d["branch"], d["turn"], d["tick"]
 
 	def get_all_keyframe_graphs(
 		self, branch: Branch, turn: Turn, tick: Tick
-	) -> Iterator[
-		tuple[CharName, NodeKeyframe, EdgeKeyframe, GraphValKeyframe]
-	]:
+	) -> Iterator[tuple[CharName, NodeKeyframe, EdgeKeyframe, CharDict]]:
 		if (branch, turn, tick) not in self._all_keyframe_times:
 			raise KeyframeError(branch, turn, tick)
-		unpack = self.unpack
 		unpack_key = self.unpack_key
 		for graph, nodes, edges, graph_val in self.call(
 			"all_keyframe_graphs", branch, turn, tick
 		):
-			yield (
-				CharName(unpack_key(graph)),
-				unpack(nodes),
-				unpack(edges),
-				unpack(graph_val),
-			)
+			nkf: NodeKeyframe = self._unpack_node_keyframe(nodes)
+			ekf: EdgeKeyframe = self._unpack_edge_keyframe(edges)
+			gvkf: CharDict = self._unpack_graph_val_keyframe(graph_val)
+			yield CharName(unpack_key(graph)), nkf, ekf, gvkf
 
 	def keyframes_graphs_dump(
 		self,
 	) -> Iterator[KeyframeGraphRowType]:
 		self._new_keyframes_graphs()
-		unpack = self.unpack
 		unpack_key = self.unpack_key
 		extract_time = self._extract_time
 		for d in self.call("dump", "keyframes_graphs"):
 			graph = CharName(unpack_key(d["graph"]))
-			nodes: NodeKeyframe = unpack(d["nodes"])
-			edges: EdgeKeyframe = unpack(d["edges"])
-			graph_val: StatDict = unpack(d["graph_val"])
+			nodes: NodeKeyframe = self._unpack_node_keyframe(d["nodes"])
+			edges: EdgeKeyframe = self._unpack_edge_keyframe(d["edges"])
+			graph_val: CharDict = self._unpack_graph_val_keyframe(
+				d["graph_val"]
+			)
 			branch, turn, tick = extract_time(d)
 			yield branch, turn, tick, graph, nodes, edges, graph_val
 
