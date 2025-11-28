@@ -885,17 +885,15 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		return me == other
 
 
-@reslot
+@define(eq=False)
 class Node(AbstractEntityMapping, ABC):
-	__slots__ = ("character", "name", "__dict__")
+	__slots__ = ()
+
+	character: Character
+	name: NodeName
 
 	def _validate_node_type(self):
 		return True
-
-	def __init__(self, graph: Character, node: NodeName):
-		super().__init__()
-		self.character = graph
-		self.name = node
 
 	@override
 	def __getitem__(self, item: Literal["name"]) -> NodeName: ...
@@ -996,17 +994,6 @@ class Node(AbstractEntityMapping, ABC):
 			self.engine._node_val_cache.store,
 			self.character.name,
 			self.name,
-		)
-
-	def __repr__(self):
-		return "<{}(graph={}, name={})>".format(
-			self.__class__.__name__, repr(self.character), repr(self.name)
-		)
-
-	def __str__(self):
-		return (
-			f"Node of class {self.__class__.__name__} "
-			f"in graph {self.character.name} named {self.name}"
 		)
 
 	def __iter__(self):
