@@ -3,6 +3,13 @@ when:
     branch: opttest
 
 steps:
+  - name: venv
+    image: python:3.12
+    commands:
+      - python -m venv .venv312
+      - . .venv312/bin/activate
+      - python -m pip install --upgrade pip
+      - python -m pip install tox
   - name: slow_headless3.12
     image: python:3.12
     commands:
@@ -19,6 +26,3 @@ steps:
       - export TMPDIR
       - . .venv312/bin/activate
       - tox -c lisien/tox_big.ini -e py312
-
-depends_on:
-  - venv312
