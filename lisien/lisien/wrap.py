@@ -699,6 +699,7 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 		]
 
 
+@define
 class SetWrapper(MutableWrapperSet):
 	"""A set synchronized with a serialized field.
 
@@ -707,14 +708,10 @@ class SetWrapper(MutableWrapperSet):
 
 	"""
 
-	__slots__ = ("_getter", "_outer", "_key")
-	_getter: Callable
-
-	def __init__(self, getter, outer, key):
-		super().__init__()
-		self._getter = getter
-		self._outer = outer
-		self._key = key
+	__slots__ = ()
+	_getter: Callable[[], set]
+	_outer: MutableMapping
+	_key: Hashable
 
 	def _set(self, v):
 		self._outer[self._key] = v
