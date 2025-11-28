@@ -1123,22 +1123,15 @@ class Node(AbstractEntityMapping, ABC):
 	def leaders(self) -> Iterator[AbstractCharacter]: ...
 
 
-@reslot
+@define
 class Edge(AbstractEntityMapping, ABC):
 	"""Mapping for edge attributes"""
 
-	__slots__ = (
-		"character",
-		"orig",
-		"dest",
-		"__dict__",
-	)
+	__slots__ = ()
 
-	def __init__(self, graph: DiGraph, orig: NodeName, dest: NodeName):
-		super().__init__()
-		self.character = graph
-		self.orig = orig
-		self.dest = dest
+	character: Character
+	orig: NodeName
+	dest: NodeName
 
 	@cached_property
 	def origin(self) -> Node:
@@ -1151,15 +1144,6 @@ class Edge(AbstractEntityMapping, ABC):
 	@property
 	def engine(self):
 		return self.character.engine
-
-	def __repr__(self):
-		return "<{} in graph {} from {} to {} containing {}>".format(
-			self.__class__.__name__,
-			self.character.name,
-			self.orig,
-			self.dest,
-			dict(self),
-		)
 
 	def __str__(self):
 		return str(dict(self))
