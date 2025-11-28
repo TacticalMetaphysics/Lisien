@@ -885,7 +885,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		return me == other
 
 
-@define(eq=False)
+@define
 class Node(AbstractEntityMapping, ABC):
 	__slots__ = ()
 
@@ -1038,24 +1038,6 @@ class Node(AbstractEntityMapping, ABC):
 	) -> None:
 		store, graphn, node = self._set_cache_stuff
 		store(graphn, node, key, branch, turn, tick, value)
-
-	def __eq__(self, other: Node) -> bool:
-		if not hasattr(other, "keys") or not callable(other.keys):
-			return False
-		if not hasattr(other, "name"):
-			return False
-		if self.name != other.name:
-			return False
-		if not hasattr(other, "character"):
-			return False
-		if self.character.name != other.character.name:
-			return False
-		if self.keys() != other.keys():
-			return False
-		for key in self:
-			if self[key] != other[key]:
-				return False
-		return True
 
 	def add_portal(
 		self,
