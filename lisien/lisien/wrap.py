@@ -35,6 +35,8 @@ from functools import partial
 from itertools import chain, zip_longest
 from typing import Any, Callable, Hashable, Set, TypeVar
 
+from attrs import define
+
 
 class OrderlySet[_K](set[_K]):
 	"""A set with deterministic order of iteration
@@ -418,25 +420,21 @@ class MappingUnwrapperMixin(ABC):
 		return unwrap_items(self.items())
 
 
-class MutableMappingUnwrapper(MutableMapping, MappingUnwrapperMixin, ABC): ...
+class MutableMappingUnwrapper(MutableMapping, MappingUnwrapperMixin, ABC):
+	__slots__ = ()
 
 
 class MutableMappingWrapper(
 	MutableWrapperDictList, MutableMappingUnwrapper, MappingUnwrapperMixin, ABC
-): ...
+):
+	__slots__ = ()
 
 
+@define
 class SubDictWrapper(MutableMappingWrapper, MappingUnwrapperMixin, dict):
-	__slots__ = ("_getter", "_set")
+	__slots__ = ()
 	_getter: Callable[[], dict]
 	_set: Callable[[dict], None]
-
-	def __init__(
-		self, getter: Callable[[], dict], setter: Callable[[dict], None]
-	):
-		super().__init__()
-		self._getter = getter
-		self._set = setter
 
 	def __copy__(self):
 		return dict(self._getter())
