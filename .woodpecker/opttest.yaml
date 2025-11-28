@@ -6,11 +6,19 @@ steps:
   - name: slow_headless3.12
     image: python:3.12
     commands:
+      - TMPDIR=$(python find_ramdisk.py)
+      - echo "TMPDIR=$TMPDIR"
+      - export TMPDIR
+      - source .venv312/bin/activate
       - source .venv312/bin/activate
       - tox -c lisien/tox_slow.ini -e py312
   - name: big_headless3.12
     image: python:3.12
     commands:
+      - TMPDIR=$(python find_ramdisk.py)
+      - echo "TMPDIR=$TMPDIR"
+      - export TMPDIR
+      - source .venv312/bin/activate
       - source .venv312/bin/activate
       - tox -c lisien/tox_big.ini -e py312
 
