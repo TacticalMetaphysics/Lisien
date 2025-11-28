@@ -689,15 +689,12 @@ class AbstractEntityMapping[_K, _V](
 		self._del_db(key, branch, turn, tick)
 
 
-@reslot
+@define
 class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	"""Mapping for graph attributes"""
 
-	__slots__ = ("character", "__dict__")
-
-	def __init__(self, graph: DiGraph):
-		super().__init__()
-		self.character = graph
+	__slots__ = ()
+	character: DiGraph
 
 	@cached_property
 	def engine(self):
