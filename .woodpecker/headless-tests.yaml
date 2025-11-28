@@ -1,37 +1,23 @@
 when:
   - branch: main
 
+matrix:
+  PYTHON_VERSION:
+    - 3.12
+    - 3.13
+    - 3.14
+
 steps:
-  - name: headless3.12
-    image: python:3.12
+  - name: headless${PYTHON_VERSION}
+    image: python:${PYTHON_VERSION}
     commands:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
-      - python -m venv .venv312
-      - . .venv312/bin/activate
+      - python -m venv .venv
+      - . .venv/bin/activate
       - python -m pip install --upgrade pip
       - python -m pip install tox
-      - tox -c lisien/tox.ini -e py312
-  - name: headless3.13
-    image: python:3.13
-    commands:
-      - TMPDIR=$(python find_ramdisk.py)
-      - echo "TMPDIR=$TMPDIR"
-      - export TMPDIR
-      - python -m venv .venv313
-      - . .venv313/bin/activate
-      - python -m pip install --upgrade pip
-      - python -m pip install tox
-      - tox -c lisien/tox.ini -e py313
-  - name: headless3.14
-    image: python:3.14
-    commands:
-      - TMPDIR=$(python find_ramdisk.py)
-      - echo "TMPDIR=$TMPDIR"
-      - export TMPDIR
-      - python -m venv .venv314
-      - . .venv314/bin/activate
-      - python -m pip install --upgrade pip
-      - python -m pip install tox
-      - tox -c lisien/tox.ini -e py314
+      - TOXENV=$(echo ${PYTHON_VERSION} | sed -Ee 's/([0-9])\.([0-9]{2})/py\1\2/')
+      - echo "TOXENV=$TOXENV"
+      - tox -c lisien/tox.ini -e ${TOXENV}
