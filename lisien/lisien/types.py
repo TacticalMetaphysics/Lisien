@@ -1443,7 +1443,7 @@ class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 	character: Character
 
 	@cached_property
-	def engine(self):
+	def engine(self) -> Engine:
 		return self.character.engine
 
 	def __eq__(self, other: Mapping):
@@ -1469,17 +1469,29 @@ class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 		return iter(self.character.node)
 
 
-class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
-	__slots__ = ("container", "orig", "_cache")
+@define
+class AbstractSuccessors(
+	MutableMapping[NodeName, MutableMapping[NodeName, Edge]], ABC
+):
+	__slots__ = ()
+
+	container: GraphEdgeMapping
+	orig: NodeName
+
+	@cached_property
+	def character(self):
+		return self.container.character
+
+	@cached_property
+	def engine(self):
+		return self.container.character.engine
+
+	@cached_property
+	def _cache(self):
+		return {}
 
 	@abstractmethod
 	def _order_nodes(self, node: NodeName) -> tuple[NodeName, NodeName]: ...
-
-	def __init__(self, container: GraphEdgeMapping, orig: NodeName):
-		"""Store container and node"""
-		super().__init__(container.character)
-		self.container = container
-		self.orig = orig
 
 	def __iter__(self) -> Iterator[NodeName]:
 		"""Iterate over node IDs that have an edge with my orig"""
@@ -1560,12 +1572,6 @@ class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
 			self.character.name, orig, dest, branch, turn, tick, False
 		)
 
-	def __repr__(self):
-		cls = self.__class__
-		return "<{}.{} object containing {}>".format(
-			cls.__module__, cls.__name__, dict(self)
-		)
-
 	def clear(self) -> None:
 		"""Delete every edge with origin at my orig"""
 		for dest in list(self):
@@ -1636,15 +1642,23 @@ class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
 					self[orig][dest][stat] = val
 
 
+@define
 class GraphSuccessorsMapping(
 	GraphEdgeMapping[NodeName, dict[NodeName, bool]], ABC
 ):
 	"""Mapping for Successors (itself a MutableMapping)"""
 
-	__slots__ = ("graph",)
+	__slots__ = ()
 
+	character: Character
+
+	@define
 	class Successors(AbstractSuccessors):
-		__slots__ = ("graph", "container", "orig", "_cache")
+		__slots__ = ()
+
+		@cached_property
+		def _cache(self) -> dict[NodeName, Edge]:
+			return {}
 
 		def _order_nodes(self, dest: NodeName):
 			if dest < self.orig:
@@ -1684,6 +1698,10 @@ class GraphSuccessorsMapping(
 							del self[k][k2]
 						else:
 							self[k][k2] = v2
+
+	@cached_property
+	def _cache(self) -> dict[NodeName, Successors]:
+		return {}
 
 	def __getitem__(self, orig: KeyHint | NodeName) -> Successors:
 		if not isinstance(orig, Key):
@@ -1746,23 +1764,33 @@ class GraphSuccessorsMapping(
 		)
 
 
+@define
 class DiGraphSuccessorsMapping(GraphSuccessorsMapping, ABC):
-	__slots__ = ("graph",)
+	__slots__ = ()
 
+	@define
 	class Successors(AbstractSuccessors, ABC):
-		__slots__ = ("graph", "container", "orig", "_cache")
+		__slots__ = ()
 
 		def _order_nodes(self, dest: NodeName) -> tuple[NodeName, NodeName]:
 			return (self.orig, dest)
 
 
-class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
+@define
+class DiGraphPredecessorsMapping(
+	MutableMapping[NodeName, MutableMapping[NodeName, Edge]], ABC
+):
 	"""Mapping for Predecessors instances, which map to Edges that end at
 	the dest provided to this
 
 	"""
 
-	__slots__ = ("graph",)
+	__slots__ = ()
+	character: Character
+
+	@cached_property
+	def engine(self):
+		return self.character.engine
 
 	def __contains__(self, dest: KeyHint | NodeName) -> bool:
 		if not isinstance(dest, Key):
@@ -1825,16 +1853,22 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 	def __len__(self) -> int:
 		return len(self.character.node)
 
-	class Predecessors(GraphEdgeMapping):
+	@define
+	class Predecessors(MutableMapping[NodeName, Edge]):
 		"""Mapping of Edges that end at a particular node"""
 
-		__slots__ = ("character", "container", "dest")
+		__slots__ = ()
 
-		def __init__(self, container, dest: NodeName):
-			"""Store container and node ID"""
-			super().__init__(container.character)
-			self.container = container
-			self.dest = dest
+		container: DiGraphPredecessorsMapping
+		dest: NodeName
+
+		@cached_property
+		def character(self):
+			return self.container.character
+
+		@cached_property
+		def engine(self):
+			return self.container.character.engine
 
 		def __iter__(self) -> Iterator[NodeName]:
 			"""Iterate over the edges that exist at the present (branch, rev)"""
@@ -1927,6 +1961,10 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 			self.engine._edges_cache.store(
 				self.character.name, orig, self.dest, branch, turn, tick, False
 			)
+
+	@cached_property
+	def _cache(self) -> dict[NodeName, Predecessors]:
+		return {}
 
 
 def unwrapped_dict(d) -> dict:
