@@ -94,6 +94,8 @@ from typing import (
 	Literal,
 	Optional,
 	ClassVar,
+	Set,
+	ValuesView,
 )
 
 from blinker import Signal
@@ -911,63 +913,59 @@ class RuleMapping(MutableMapping[RuleName, Rule], Signal):
 		self.rulebook.priority = RulebookPriority(v)
 
 
+class RulebookDescriptor:
+	__slots__ = ()
+
+	def __get__(self, instance: RuleFollower, owner=None):
+		if instance is None:
+			return
+		return instance._get_rulebook()
+
+	def __set__(self, instance: RuleFollower, value: RuleBook | RulebookName):
+		if isinstance(value, RuleBook):
+			instance._set_rulebook_name(value.name)
+		else:
+			instance._set_rulebook_name(value)
+
+
 class RuleFollower(ABC):
 	"""Interface for that which has a rulebook associated, which you can
 	get a :class:`RuleMapping` into
 
 	"""
 
-	__slots__ = ("_rulebook",)
-	_rulebook: ClassVar[RuleBook]
+	__slots__ = ()
 
 	@property
 	@abstractmethod
 	def engine(self) -> AbstractEngine: ...
 
-	@cached_property
+	@property
 	def rule(self) -> RuleMapping:
 		return self._get_rule_mapping()
 
-	@property
-	def rulebook(self) -> RuleBook:
-		if not hasattr(self, "_rulebook"):
-			self._upd_rulebook()
-		return self._rulebook
-
-	@rulebook.setter
-	def rulebook(self, v: RuleBook | RulebookName | str):
-		n = v.name if isinstance(v, RuleBook) else v
-		try:
-			if n == self._get_rulebook_name():
-				return
-		except KeyError:
-			pass
-		self._set_rulebook_name(n)
-		self._upd_rulebook()
-
-	def _upd_rulebook(self):
-		self._rulebook = self._get_rulebook()
+	rulebook = RulebookDescriptor()
 
 	def _get_rulebook(self) -> RuleBook:
 		return self.engine.rulebook[self._get_rulebook_name()]
 
-	def rules(self) -> Iterator[Rule]:
+	def rules(self) -> ValuesView[Rule]:
 		if not hasattr(self, "engine"):
 			raise AttributeError("Need an engine before I can get rules")
-		return self._rule_mapping.values()
+		return self.rule.values()
 
 	@abstractmethod
-	def _get_rule_mapping(self):
+	def _get_rule_mapping(self) -> RuleMapping:
 		"""Get the :class:`RuleMapping` for my rulebook."""
 		raise NotImplementedError("_get_rule_mapping")
 
 	@abstractmethod
-	def _get_rulebook_name(self):
+	def _get_rulebook_name(self) -> RulebookName:
 		"""Get the name of my rulebook."""
 		raise NotImplementedError("_get_rulebook_name")
 
 	@abstractmethod
-	def _set_rulebook_name(self, n: RulebookName | str):
+	def _set_rulebook_name(self, n: RulebookName | KeyHint) -> None:
 		"""Tell the database that this is the name of the rulebook to use for
 		me.
 
