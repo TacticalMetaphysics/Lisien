@@ -551,7 +551,7 @@ class Character(AbstractCharacter, RuleFollower):
 			return get_node(character, k)
 
 		def __setitem__(self, k: KeyHint, v: Place | Mapping | dict):
-			self._placemap[k] = v
+			self.character.place[k] = v
 
 		@cached_property
 		def _delitem_stuff(
