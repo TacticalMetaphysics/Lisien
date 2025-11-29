@@ -26,8 +26,8 @@ from copy import deepcopy
 from functools import cached_property
 from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
 
+from attrs import define
 from networkx import shortest_path, shortest_path_length
-from reslot import reslot
 
 import lisien.types
 
@@ -56,6 +56,7 @@ if TYPE_CHECKING:
 	from .portal import Portal
 
 
+@define
 class LeaderMapping(Mapping):
 	"""A mapping of the characters that have a particular node as a unit.
 
@@ -67,13 +68,13 @@ class LeaderMapping(Mapping):
 
 	"""
 
-	__slots__ = ["node"]
+	__slots__ = ()
 
-	def __init__(self, node) -> None:
-		"""Store the node"""
-		self.node = node
+	node: Node
 
-	engine: "Engine" = getatt("node.engine")
+	@cached_property
+	def engine(self):
+		return self.node.character.engine
 
 	def _user_names(self) -> frozenset[CharName]:
 		try:
@@ -155,11 +156,10 @@ class NodeContentValues(ValuesView):
 			return False
 
 
+@define
 class NodeContent(Mapping):
-	__slots__ = ("node",)
-
-	def __init__(self, node: Node) -> None:
-		self.node = node
+	__slots__ = ()
+	node: Node
 
 	def __iter__(self) -> Iterator[NodeName]:
 		try:
@@ -208,15 +208,30 @@ class DestsValues(ValuesView):
 		return item.origin.name == name
 
 
+@define
 class Dests(Mapping):
-	__slots__ = ("_ecnb", "_pn")
+	node: Node
 
-	def __init__(self, node: Node) -> None:
-		name = node.name
-		character = node.character
-		engine = node.engine
-		self._pn = (character.portal, name)
-		self._ecnb = (engine._edges_cache, character.name, name, engine.time)
+	@cached_property
+	def character(self):
+		return self.node.character
+
+	@cached_property
+	def engine(self):
+		return self.node.character.engine
+
+	@cached_property
+	def _pn(self):
+		return self.character.portal, self.node.name
+
+	@cached_property
+	def _ecnb(self):
+		return (
+			self.engine._edges_cache,
+			self.character.name,
+			self.node.name,
+			self.engine.time,
+		)
 
 	def __iter__(self) -> Iterator[NodeName]:
 		edges_cache, charname, name, btt = self._ecnb
@@ -251,9 +266,11 @@ class OrigsValues(ValuesView):
 		return item.destination.name == name
 
 
+@define
 class Origs(Mapping):
-	def __init__(self, node: Node) -> None:
-		self.node = node
+	__slots__ = ()
+
+	node: Node
 
 	@cached_property
 	def character(self):
@@ -300,12 +317,11 @@ class Origs(Mapping):
 		return OrigsValues(self)
 
 
-@reslot
+@define
 class Portals(Set):
-	__slots__ = ("node", "__dict__")
+	__slots__ = ()
 
-	def __init__(self, node: Node) -> None:
-		self.node = node
+	node: Node
 
 	@cached_property
 	def character(self):
@@ -368,12 +384,11 @@ class NeighborValues(ValuesView):
 		return item.name in self._mapping
 
 
-@reslot
+@define
 class NeighborMapping(Mapping):
-	__slots__ = ("node", "__dict__")
+	__slots__ = ()
 
-	def __init__(self, node: Node) -> None:
-		self.node = node
+	node: Node
 
 	@cached_property
 	def _nn(self):
