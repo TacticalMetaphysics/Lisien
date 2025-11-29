@@ -24,7 +24,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Set, ValuesView
 from copy import deepcopy
 from functools import cached_property
-from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
+from typing import TYPE_CHECKING, Iterator, List, Literal, Optional, ClassVar
 
 from attrs import define
 from networkx import shortest_path, shortest_path_length
@@ -446,8 +446,8 @@ class Node(lisien.types.Node, rule.RuleFollower):
 	"""
 
 	__slots__ = ("_rulebook",)
-	no_unwrap = True
-	_extra_keys = {
+	no_unwrap: ClassVar[bool] = True
+	_extra_keys: ClassVar[set[str]] = {
 		"name",
 	}
 
@@ -729,6 +729,7 @@ def roerror(*args):
 	raise RuntimeError("Read-only")
 
 
+@define
 class Thing(Node, AbstractThing):
 	"""The sort of item that has a particular location at any given time.
 
@@ -742,7 +743,7 @@ class Thing(Node, AbstractThing):
 
 	__slots__ = ()
 
-	_extra_keys = {"name", "location"}
+	_extra_keys: ClassVar[set[str]] = {"name", "location"}
 
 	def _getname(self) -> NodeName:
 		return self.name
@@ -796,10 +797,6 @@ class Thing(Node, AbstractThing):
 		if key in self._extra_keys:
 			raise ValueError("Can't delete {}".format(key))
 		super().__delitem__(key)
-
-	def __repr__(self):
-		charn = self.character.name
-		return f"<{self.engine}.character[{charn}].thing[{self.name}]"
 
 	def facade(self) -> FacadeThing:
 		return FacadeThing(self.character.facade(), self.name)
