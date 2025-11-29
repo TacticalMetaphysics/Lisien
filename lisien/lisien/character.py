@@ -513,11 +513,6 @@ class Character(AbstractCharacter, RuleFollower):
 		def __delitem__(self, place: KeyHint):
 			self[place].delete()
 
-		def __repr__(self):
-			return "{}.character[{}].place".format(
-				repr(self.character.engine), repr(self.character.name)
-			)
-
 	@define
 	class ThingPlaceMapping(GraphNodeMapping):
 		"""GraphNodeMapping but for Place and Thing"""
