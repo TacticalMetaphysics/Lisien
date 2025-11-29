@@ -597,7 +597,7 @@ class CharacterMappingMixin(MappingUnwrapperMixin, ABC):
 	character: Character
 
 	@cached_property
-	def engine(self) -> AbstractEngine:
+	def engine(self) -> Engine:
 		return self.character.engine
 
 	@cached_property
