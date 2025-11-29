@@ -42,6 +42,7 @@ from types import MethodType
 from typing import TYPE_CHECKING, Callable, Iterable, Iterator, ClassVar
 
 import networkx as nx
+from attrs import define
 from blinker import Signal
 
 from .exc import WorldIntegrityError
@@ -613,6 +614,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	node_map_cls = ThingPlaceMapping
 
+	@define
 	class PortalSuccessorsMapping(DiGraphSuccessorsMapping, RuleFollower):
 		"""Mapping of nodes that have at least one outgoing edge.
 
@@ -621,8 +623,11 @@ class Character(AbstractCharacter, RuleFollower):
 
 		"""
 
-		_book = "character_portal"
-		character: Character
+		_book: ClassVar = "character_portal"
+
+		@cached_property
+		def _cache(self):
+			return {}
 
 		@cached_property
 		def _cporh(self):
@@ -786,11 +791,11 @@ class Character(AbstractCharacter, RuleFollower):
 								tick += 1
 			self.engine.tick = tick
 
+		@define
 		class Successors(DiGraphSuccessorsMapping.Successors):
 			"""Mapping for possible destinations from some node."""
 
-			character: Character
-			engine: Engine
+			__slots__ = ()
 
 			@cached_property
 			def _getitem_stuff(
