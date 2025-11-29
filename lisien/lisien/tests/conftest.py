@@ -675,8 +675,6 @@ def pytest_collection_modifyitems(items):
 		fixturenames = getattr(item, "fixturenames", ())
 		if "college10" in fixturenames or "college24" in fixturenames:
 			item.add_marker("college")
-		for fixturename in fixturenames:
-			item.add_marker(fixturename)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
