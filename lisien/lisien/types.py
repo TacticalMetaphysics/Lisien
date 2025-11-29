@@ -15,10 +15,12 @@
 from __future__ import annotations
 
 import builtins
+from contextlib import contextmanager
 import operator
 import os
+import weakref
 from abc import ABC, abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from collections.abc import Sequence, Set
 from concurrent.futures import Future
 from enum import Enum
@@ -72,14 +74,16 @@ from typing import (
 	get_origin,
 	override,
 	Self,
+	ClassVar,
+	Generator,
+	Coroutine,
 )
 
 import networkx as nx
 from annotated_types import Ge, Le
-from attrs import define
-from blinker import Signal
+from attrs import Factory, define, field
+from blinker import Signal, ANY
 from networkx import NetworkXError
-from reslot import reslot
 from tblib import Traceback
 
 from . import exc
@@ -1277,8 +1281,21 @@ class Edge(AbstractEntityMapping, ABC):
 class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 	"""Mapping for nodes in a graph"""
 
-	__slots__ = ()
 	character: Character
+	is_muted: bool = field(default=False)
+	receivers: dict[
+		Any, weakref.ref[Callable[..., Any]] | Callable[..., Any]
+	] = field(factory=dict)
+	_by_receiver: dict[Any, set] = field(
+		default=Factory(
+			lambda self: defaultdict(self.set_class), takes_self=True
+		)
+	)
+	_by_sender: dict[Any, set] = field(
+		default=Factory(
+			lambda self: defaultdict(self.set_class), takes_self=True
+		)
+	)
 
 	@cached_property
 	def engine(self) -> Engine:
@@ -3265,7 +3282,7 @@ class AbstractEngine(ABC):
 
 
 class BaseMutableCharacterMapping[_KT, _VT](
-	MutableMapping[_KT, _VT], Signal, CharacterMappingMixin, ABC
+	MutableMapping[_KT, _VT], CharacterMappingMixin, ABC
 ): ...
 
 
