@@ -681,6 +681,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		return self.engine._node_exists(self.character.name, self.name)
 
 
+@define
 class Place(Node):
 	"""The kind of node where a thing might ultimately be located.
 
@@ -699,11 +700,6 @@ class Place(Node):
 		if key == "name":
 			return self.name
 		return super().__getitem__(key)
-
-	def __repr__(self):
-		return "<{}.character[{}].place[{}]>".format(
-			repr(self.engine), self.character.name, self.name
-		)
 
 	def _validate_node_type(self) -> bool:
 		try:
