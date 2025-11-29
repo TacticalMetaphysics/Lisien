@@ -37,9 +37,9 @@ from functools import cached_property, partial
 from itertools import chain
 from operator import ge, itemgetter, le
 from threading import RLock
-from typing import Any, Callable, Iterable, Iterator, TypeVar, Union
+from typing import Any, Callable, Iterable, Iterator, TypeVar, Union, ClassVar
 
-from reslot import reslot
+from attrs import define
 
 from .exc import HistoricKeyError
 from .types import (
@@ -598,7 +598,7 @@ def _recurse(rev: _RK, revs: list[tuple[_RK, _RV]]) -> tuple[_RK, _RV]:
 		return _recurse(rev, after)
 
 
-@reslot
+@define(init=False)
 class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 	"""A dict that keeps every value that a variable has had over time.
 
@@ -621,7 +621,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 
 	"""
 
-	__slots__ = ("__dict__",)
+	__slots__ = ()
 
 	@cached_property
 	def _past(self) -> list[tuple[_K, _V]]:
@@ -1062,20 +1062,22 @@ class BranchingTimeListDict(PickierDefaultDict[Branch, LinearTimeListDict]):
 		super().__setitem__(branch, value)
 
 
-@reslot
+@define(init=False)
 class EntikeyWindowDict(WindowDict):
-	__slots__ = ("entikeys",)
+	__slots__ = ()
+
+	@cached_property
+	def entikeys(self):
+		return set()
 
 	def __init__(
 		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
 	) -> None:
 		if data:
 			if hasattr(data, "values") and callable(data.values):
-				self.entikeys = {value[:-2] for value in data.values()}
+				self.entikeys.update(value[:-2] for value in data.values())
 			else:
-				self.entikeys = {value[:-2] for value in data}
-		else:
-			self.entikeys = set()
+				self.entikeys.update(value[:-2] for value in data)
 		super().__init__(data)
 
 	def __setitem__(self, rev: int, v: tuple) -> None:
@@ -1091,7 +1093,7 @@ class EntikeyWindowDict(WindowDict):
 		self.entikeys.remove(entikey)
 
 
-@dataclass
+@define
 class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 	td: AssignmentTimeDict
 	time_from: LinearTime | None
@@ -1213,7 +1215,7 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 						yield trn, tck
 
 
-@reslot
+@define(init=False)
 class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 	"""A WindowDict that contains a span of time, indexed as turns and ticks
 
@@ -1225,7 +1227,7 @@ class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 
 	__slots__ = ()
 
-	cls: type[WindowDict[Turn, WindowDict[Tick, _VV]]] = WindowDict
+	cls: ClassVar[type[WindowDict]] = WindowDict
 
 	@cached_property
 	def _future(self) -> list[tuple[Turn, WindowDict[Tick, _VV]]]:
