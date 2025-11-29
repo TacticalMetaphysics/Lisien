@@ -39,12 +39,7 @@ class RuleMapping(BaseRuleMapping):
 
 @define
 class Portal(Edge, RuleFollower):
-	"""Connection between two nodes that :class:`lisien.node.Thing` travel along
-
-	lisien entities are truthy so long as they exist, falsy if they've
-	been deleted.
-
-	"""
+	"""Connection between two nodes that :class:`lisien.node.Thing` travel along"""
 
 	__slots__ = ("_rulebook",)
 	no_unwrap: ClassVar[bool] = True
