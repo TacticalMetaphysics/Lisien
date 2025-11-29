@@ -194,7 +194,9 @@ class RuleFollower(BaseRuleFollower):
 		)
 
 
-class MutableCharacterMapping(BaseMutableCharacterMapping, RuleFollower): ...
+class MutableCharacterMapping[_KT, _VT](
+	BaseMutableCharacterMapping[_KT, _VT], RuleFollower
+): ...
 
 
 class Character(AbstractCharacter, RuleFollower):
@@ -297,7 +299,7 @@ class Character(AbstractCharacter, RuleFollower):
 			cache.store(name, branch, turn, tick, rulebook_name)
 
 	@define
-	class ThingMapping(MutableCharacterMapping):
+	class ThingMapping(MutableCharacterMapping[NodeName, Thing]):
 		""":class:`Thing` objects that are in a :class:`Character`"""
 
 		_book: ClassVar = "character_thing"
@@ -305,13 +307,13 @@ class Character(AbstractCharacter, RuleFollower):
 		def _get_rulebook_cache(self):
 			return self.engine._characters_things_rulebooks_cache
 
-		def __iter__(self):
+		def __iter__(self) -> Iterator[NodeName]:
 			cache = self.engine._things_cache
 			char = self.name
 			branch, turn, tick = self.engine.time
 			return cache.iter_things(char, branch, turn, tick)
 
-		def __contains__(self, thing):
+		def __contains__(self, thing: NodeName | KeyHint) -> bool:
 			branch, turn, tick = self.engine.time
 			args = self.character.name, thing, branch, turn, tick
 			cache = self.engine._things_cache
@@ -322,7 +324,7 @@ class Character(AbstractCharacter, RuleFollower):
 				self.character.name, *self.engine.time
 			)
 
-		def __getitem__(self, thing: KeyHint):
+		def __getitem__(self, thing: NodeName | KeyHint) -> Thing:
 			if thing not in self:
 				raise KeyError("No such thing: {}".format(thing))
 			return self._make_thing(NodeName(Key(thing)))
@@ -339,7 +341,7 @@ class Character(AbstractCharacter, RuleFollower):
 				th = cache[(self.name, thing)] = Thing(self.character, thing)
 			return th
 
-		def __setitem__(self, thing: KeyHint, val: Mapping | dict):
+		def __setitem__(self, thing: NodeName | KeyHint, val: Mapping):
 			if not isinstance(val, Mapping):
 				raise TypeError("Things are made from Mappings")
 			if "location" not in val:
@@ -368,11 +370,11 @@ class Character(AbstractCharacter, RuleFollower):
 			th.clear()
 			th.update({k: v for (k, v) in val.items() if k != "location"})
 
-		def __delitem__(self, thing: KeyHint):
+		def __delitem__(self, thing: NodeName | KeyHint):
 			self[thing].delete()
 
 	@define
-	class PlaceMapping(MutableCharacterMapping):
+	class PlaceMapping(MutableCharacterMapping[NodeName, Place]):
 		""":class:`Place` objects that are in a :class:`Character`"""
 
 		_book: ClassVar = "character_place"
@@ -383,7 +385,7 @@ class Character(AbstractCharacter, RuleFollower):
 		def update(self, __m: dict, **kwargs) -> None:
 			self.character.node.update(__m, **kwargs)
 
-		def __iter__(self):
+		def __iter__(self) -> Iterator[NodeName]:
 			node_exists = self.engine._nodes_cache.node_exists
 			thing_exists = self.engine._things_cache.thing_exists
 			charn = self.character.name
@@ -402,7 +404,7 @@ class Character(AbstractCharacter, RuleFollower):
 				pass
 			return n
 
-		def __contains__(self, place: KeyHint) -> bool:
+		def __contains__(self, place: NodeName | KeyHint) -> bool:
 			branch, turn, tick = self.engine.time
 			charn = self.character.name
 			place = NodeName(Key(place))
@@ -412,7 +414,7 @@ class Character(AbstractCharacter, RuleFollower):
 				charn, place, branch, turn, tick
 			)
 
-		def __getitem__(self, place: KeyHint) -> Place:
+		def __getitem__(self, place: NodeName | KeyHint) -> Place:
 			branch, turn, tick = self.engine.time
 			charn = self.character.name
 			place = NodeName(Key(place))
@@ -430,7 +432,7 @@ class Character(AbstractCharacter, RuleFollower):
 				return ret
 			return cache[(charn, place)]
 
-		def __setitem__(self, place: KeyHint, v: Place | Mapping | dict):
+		def __setitem__(self, place: NodeName | KeyHint, v: Mapping):
 			charn = self.character.name
 			place = NodeName(Key(place))
 			self.engine._exist_node(charn, place, True)
@@ -441,29 +443,29 @@ class Character(AbstractCharacter, RuleFollower):
 				)
 			pl.update(v)
 
-		def __delitem__(self, place: KeyHint):
+		def __delitem__(self, place: NodeName | KeyHint):
 			self[place].delete()
 
 	@define
 	class ThingPlaceMapping(GraphNodeMapping):
 		"""GraphNodeMapping but for Place and Thing"""
 
-		def __contains__(self, k: KeyHint):
+		def __contains__(self, k: NodeName | KeyHint):
 			return self.engine._node_exists(
 				self.character.name, NodeName(Key(k))
 			)
 
-		def __getitem__(self, k: KeyHint) -> Thing | Place:
+		def __getitem__(self, k: NodeName | KeyHint) -> Thing | Place:
 			charn = self.character.name
 			k = NodeName(Key(k))
 			if not self.engine._node_exists(charn, k):
 				raise KeyError("No such node: " + str(k))
 			return self.engine._get_node(charn, k)
 
-		def __setitem__(self, k: KeyHint, v: Place | Mapping | dict):
+		def __setitem__(self, k: NodeName | KeyHint, v: Mapping):
 			self.character.place[k] = v
 
-		def __delitem__(self, k: KeyHint):
+		def __delitem__(self, k: NodeName | KeyHint):
 			charn = self.character.name
 			k = NodeName(Key(k))
 			if not self.engine._node_exists(charn, k):
@@ -654,8 +656,8 @@ class Character(AbstractCharacter, RuleFollower):
 
 			def __setitem__(
 				self,
-				dest: KeyHint,
-				value: Portal | Mapping | dict[KeyHint, ValueHint] | type(...),
+				dest: NodeName | KeyHint,
+				value: Mapping | type(...),
 			):
 				if value is ...:
 					del self[dest]
@@ -694,21 +696,22 @@ class Character(AbstractCharacter, RuleFollower):
 						charn, orig, dest, k, branch, turn, tick, v
 					)
 
-			def __delitem__(self, dest: KeyHint):
+			def __delitem__(self, dest: NodeName | KeyHint):
 				if dest not in self:
 					raise KeyError("No portal to {}".format(dest))
 				self[dest].delete()
 
 			def update(
 				self,
-				other: dict[KeyHint, dict[KeyHint, ValueHint]] | None = None,
+				other: Mapping[KeyHint, Mapping[KeyHint, ValueHint]]
+				| None = None,
 				**kwargs,
 			):
-				other: dict[NodeName, StatDict]
-				kwargs: dict[NodeName, StatDict]
+				kwargs: Mapping[NodeName, StatDict]
 				if other is None:
 					it = kwargs.items()
 				else:
+					other: Mapping[NodeName, StatDict]
 					it = chain(other.items(), kwargs.items())
 				for dest, vs in it:
 					self.character.add_edge(self.orig, dest, **vs)

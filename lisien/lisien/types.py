@@ -1648,7 +1648,7 @@ class AbstractSuccessors(
 
 @define
 class GraphSuccessorsMapping(
-	GraphEdgeMapping[NodeName, dict[NodeName, bool]], ABC
+	GraphEdgeMapping[NodeName, AbstractSuccessors], ABC
 ):
 	"""Mapping for Successors (itself a MutableMapping)"""
 
@@ -3270,8 +3270,8 @@ class AbstractEngine(ABC):
 	weibullvariate = get_rando("_rando.weibullvariate")
 
 
-class BaseMutableCharacterMapping(
-	MutableMapping, Signal, CharacterMappingMixin, ABC
+class BaseMutableCharacterMapping[_KT, _VT](
+	MutableMapping[_KT, _VT], Signal, CharacterMappingMixin, ABC
 ): ...
 
 
