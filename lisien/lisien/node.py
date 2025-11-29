@@ -434,6 +434,7 @@ class NeighborMapping(Mapping):
 		return NeighborValues(self)
 
 
+@define
 class Node(lisien.types.Node, rule.RuleFollower):
 	"""The fundamental graph component, which portals go between.
 
