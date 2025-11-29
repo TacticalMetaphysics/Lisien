@@ -522,7 +522,11 @@ class PortalProxy(CachingEntityProxy, RuleFollowerProxy):
 	def _apply_delta(self, delta):
 		for k, v in delta.items():
 			if k == "rulebook":
-				if v != self.rulebook.name:
+				if v is ...:
+					del self.engine._char_port_rulebooks_cache[self._charname][
+						self._origin
+					][self._destination]
+				elif v != self.rulebook.name:
 					self.engine._char_port_rulebooks_cache[self._charname][
 						self._origin
 					][self._destination] = v
