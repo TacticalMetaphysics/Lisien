@@ -17,7 +17,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any, Optional, ClassVar
+
+from attrs import define
 
 from .exc import HistoricKeyError
 from .facade import EngineFacade, FacadePortal
@@ -35,6 +37,7 @@ class RuleMapping(BaseRuleMapping):
 		self.portal = portal
 
 
+@define
 class Portal(Edge, RuleFollower):
 	"""Connection between two nodes that :class:`lisien.node.Thing` travel along
 
@@ -44,11 +47,11 @@ class Portal(Edge, RuleFollower):
 	"""
 
 	__slots__ = ("_rulebook",)
-	no_unwrap = True
+	no_unwrap: ClassVar[bool] = True
 
 	@property
 	def _cache(self):
-		return self.db._edge_val_cache[self.character.name][self.orig][
+		return self.engine._edge_val_cache[self.character.name][self.orig][
 			self.dest
 		]
 
@@ -119,15 +122,6 @@ class Portal(Edge, RuleFollower):
 		if key in ("origin", "destination", "character"):
 			raise KeyError("Can't change " + key)
 		super().__setitem__(key, value)
-
-	def __repr__(self):
-		"""Describe character, origin, and destination"""
-		return "<{}.character[{}].portal[{}][{}]>".format(
-			repr(self.engine),
-			repr(self["character"]),
-			repr(self["origin"]),
-			repr(self["destination"]),
-		)
 
 	def __bool__(self):
 		"""It means something that I exist, even if I have no data."""
