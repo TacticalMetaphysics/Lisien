@@ -54,11 +54,11 @@ from .rule import RuleFollower as BaseRuleFollower
 from .rule import RuleMapping
 from .types import (
 	AbstractCharacter,
-	BaseMutableDiGraphMapping,
+	BaseMutableCharacterMapping,
 	Branch,
 	CharacterStatAlias,
 	CharName,
-	DiGraphMappingMixin,
+	CharacterMappingMixin,
 	DiGraphPredecessorsMapping,
 	DiGraphSuccessorsMapping,
 	GraphNodeMapping,
@@ -194,7 +194,7 @@ class RuleFollower(BaseRuleFollower):
 		)
 
 
-class MutableCharacterMapping(BaseMutableDiGraphMapping, RuleFollower): ...
+class MutableCharacterMapping(BaseMutableCharacterMapping, RuleFollower): ...
 
 
 class Character(AbstractCharacter, RuleFollower):
@@ -296,21 +296,14 @@ class Character(AbstractCharacter, RuleFollower):
 			set_rb(name, branch, turn, tick, rulebook_name)
 			cache.store(name, branch, turn, tick, rulebook_name)
 
+	@define
 	class ThingMapping(MutableCharacterMapping):
 		""":class:`Thing` objects that are in a :class:`Character`"""
 
-		_book = "character_thing"
-
-		engine: Engine = getatt("character.engine")
-		name: CharName = getatt("character.name")
+		_book: ClassVar = "character_thing"
 
 		def _get_rulebook_cache(self):
 			return self.engine._characters_things_rulebooks_cache
-
-		def __init__(self, character: Character):
-			"""Store the character and initialize cache."""
-			super().__init__(character)
-			self.character = character
 
 		def __iter__(self):
 			cache = self.engine._things_cache
@@ -383,21 +376,17 @@ class Character(AbstractCharacter, RuleFollower):
 				repr(self.engine), repr(self.name)
 			)
 
+	@define
 	class PlaceMapping(MutableCharacterMapping):
 		""":class:`Place` objects that are in a :class:`Character`"""
 
-		_book = "character_place"
+		_book: ClassVar = "character_place"
 
 		def _get_rulebook_cache(self):
 			return self.engine._characters_places_rulebooks_cache
 
 		def update(self, __m: dict, **kwargs) -> None:
 			self.character.node.update(__m, **kwargs)
-
-		def __init__(self, character: Character):
-			super().__init__(character)
-			self.character = character
-			self.engine = character.engine
 
 		@cached_property
 		def _iter_stuff(
@@ -534,17 +523,9 @@ class Character(AbstractCharacter, RuleFollower):
 				repr(self.character.engine), repr(self.character.name)
 			)
 
+	@define
 	class ThingPlaceMapping(GraphNodeMapping):
 		"""GraphNodeMapping but for Place and Thing"""
-
-		name: CharName = getatt("character.name")
-
-		def __init__(self, character: Character):
-			"""Store the character."""
-			super().__init__(character)
-			Signal.__init__(self)
-			self.engine = character.engine
-			self._placemap = character.place
 
 		@cached_property
 		def _contains_stuff(
@@ -918,6 +899,7 @@ class Character(AbstractCharacter, RuleFollower):
 
 	adj_cls = PortalSuccessorsMapping
 
+	@define
 	class PortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollower):
 		"""Mapping of nodes that have at least one incoming edge.
 
@@ -926,20 +908,18 @@ class Character(AbstractCharacter, RuleFollower):
 
 		"""
 
-		_book = "character_portal"
+		_book: ClassVar = "character_portal"
 
-		def __init__(self, graph: Character):
-			super().__init__(graph)
-			self._cporc = graph.engine._characters_portals_rulebooks_cache
+		@cached_property
+		def _cporc(self):
+			return self.engine._characters_portals_rulebooks_cache
 
 		def _get_rulebook_cache(self):
 			return self._cporc
 
+		@define
 		class Predecessors(DiGraphPredecessorsMapping.Predecessors):
 			"""Mapping of possible origins from some destination."""
-
-			character: Character
-			engine: Engine
 
 			@cached_property
 			def _setitem_stuff(
@@ -964,62 +944,51 @@ class Character(AbstractCharacter, RuleFollower):
 
 	pred_cls = PortalPredecessorsMapping
 
-	class UnitGraphMapping(Mapping, DiGraphMappingMixin, RuleFollower):
+	@define
+	class UnitGraphMapping(Mapping, CharacterMappingMixin, RuleFollower):
 		"""A mapping of other characters in which one has a unit."""
 
+		@define
 		class CharacterUnitMapping(Mapping):
 			"""Mapping of units of one Character in another Character."""
 
-			def __init__(
-				self, outer: Character.UnitGraphMapping, graphn: CharName
-			):
-				"""Store this character and the name of the other one"""
-				self.character = outer.character
-				self.engine = engine = outer.engine
-				self.name = name = outer.name
-				self.graph = graphn
-				unitcache = engine._unitness_cache
-				btt = engine.time
-				self._iter_stuff = iter_stuff = (
-					unitcache.get_char_graph_units,
-					unitcache.contains_unit,
-					name,
-					graphn,
-					btt,
-				)
-				self._contains_stuff = (
-					unitcache._base_retrieve,
-					name,
-					graphn,
-					btt,
-				)
-				get_node = engine._get_node
-				self._getitem_stuff = iter_stuff + (
-					get_node,
-					graphn,
-					engine.character,
-				)
-				self._only_stuff = (
-					get_node,
-					engine.character,
-					graphn,
-					engine.time,
-				)
+			__slots__ = ()
 
-			def __iter__(self):
+			outer: Character.UnitGraphMapping
+			graph: CharName
+
+			@cached_property
+			def character(self):
+				return self.outer.character
+
+			@cached_property
+			def name(self):
+				return self.outer.character.name
+
+			@cached_property
+			def engine(self):
+				return self.outer.character.engine
+
+			def __iter__(self) -> Iterator[NodeName]:
 				"""Iterate over names of unit nodes"""
-				get_char_graph_avs, validate, name, graphn, btt = (
-					self._iter_stuff
-				)
-				for unit in get_char_graph_avs(name, graphn, *btt):
-					if validate(name, graphn, unit, *btt):
+				unitcache = self.outer.character.engine._unitness_cache
+				btt = tuple(self.outer.character.engine.time)
+				validate = unitcache.contains_unit
+				name = self.outer.character.name
+				graph = self.graph
+				for unit in unitcache.get_char_graph_units(name, graph, *btt):
+					if validate(name, graph, unit, *btt):
 						yield unit
 
-			def __contains__(self, av: KeyHint):
-				base_retrieve, name, graphn, btt = self._contains_stuff
+			def __contains__(self, unit: NodeName | KeyHint):
+				unitcache = self.outer.character.engine._unitness_cache
+				base_retrieve = unitcache._base_retrieve
+				name = self.outer.character.name
+				graphn = self.graph
+				btt = tuple(self.outer.character.engine.time)
 				return (
 					base_retrieve(
-						(name, graphn, av, *btt()),
+						(name, graphn, unit, *btt),
 						store_hint=False,
 						retrieve_hint=False,
 					)
@@ -1028,35 +997,36 @@ class Character(AbstractCharacter, RuleFollower):
 
 			def __len__(self):
 				"""Number of units of this character in that graph"""
-				get_char_graph_avs, validate, name, graphn, btt = (
-					self._iter_stuff
-				)
+				unitcache = self.outer.character.engine._unitness_cache
+				btt = tuple(self.outer.character.engine.time)
+				validate = unitcache.contains_unit
+				name = self.outer.character.name
+				graph = self.graph
 				n = 0
-				for that in get_char_graph_avs(name, graphn, *btt()):
-					if validate(name, graphn, that, *btt()):
+				for that in unitcache.get_char_graph_units(name, graph, *btt):
+					if validate(name, graph, that, *btt):
 						n += 1
 				return n
 
-			def __getitem__(self, av: KeyHint) -> Place | Thing:
-				(
-					get_char_graph_avs,
-					unitness_cache_has,
-					name,
-					graphn,
-					btt,
-					get_node,
-					graphn,
-					charmap,
-				) = self._getitem_stuff
-				if unitness_cache_has(name, graphn, av, *btt()):
-					return get_node(charmap[graphn], av)
-				raise KeyError("No unit: {}".format(av))
+			def __getitem__(self, unit: NodeName | KeyHint) -> Place | Thing:
+				unitcache = self.outer.character.engine._unitness_cache
+				btt = tuple(self.outer.character.engine.time)
+				name = self.outer.character.name
+				graph = self.graph
+				if unitcache.contains_unit(name, graph, unit, *btt):
+					return self.outer.character.engine._get_node(
+						self.outer.character.engine.character[graph], unit
+					)
+				raise KeyError("No unit: {}".format(unit))
 
 			@property
 			def only(self) -> Place | Thing:
 				"""If I have only one unit, return it; else error"""
-
-				get_node, charmap, graphn, btt = self._only_stuff
+				engine = self.outer.character.engine
+				get_node = engine._get_node
+				charmap = engine.character
+				graphn = self.graph
+				btt = tuple(engine.time)
 				mykey = singleton_get(self.keys())
 				if mykey is None:
 					raise AttributeError(
@@ -1074,11 +1044,6 @@ class Character(AbstractCharacter, RuleFollower):
 						*btt,
 					) from ex
 
-			def __repr__(self):
-				return "{}.character[{}].unit".format(
-					repr(self.engine), repr(self.name)
-				)
-
 		_book = "unit"
 
 		engine = getatt("character.engine")
@@ -1086,10 +1051,6 @@ class Character(AbstractCharacter, RuleFollower):
 
 		def _get_rulebook_cache(self):
 			return self.engine._units_rulebooks_cache
-
-		def __init__(self, char: Character):
-			"""Remember my character."""
-			self.character = char
 
 		@cached_property
 		def _char_unit_cache(self) -> dict[CharName, CharacterUnitMapping]:
