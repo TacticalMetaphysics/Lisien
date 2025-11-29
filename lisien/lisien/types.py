@@ -788,12 +788,6 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		iter_entity_keys, graphn, btt = self._iter_stuff
 		yield from iter_entity_keys(graphn, *btt)
 
-	def __repr__(self):
-		return (
-			f"<{self.__class__.__name__} for {self.character.name} "
-			f"containing {dict(unwrap_items(self.items()))}>"
-		)
-
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
