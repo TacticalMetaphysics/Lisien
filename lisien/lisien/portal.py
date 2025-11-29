@@ -139,7 +139,7 @@ class Portal(Edge, RuleFollower):
 
 	def facade(self) -> FacadePortal:
 		face = self.character.facade()
-		ret = FacadePortal(face.portal[self.orig], self.dest)
+		ret = FacadePortal(face, face.portal[self.orig], self.dest)
 		face.portal._patch = {self.orig: {self.dest: ret}}
 		return ret
 
