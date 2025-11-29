@@ -371,11 +371,6 @@ class Character(AbstractCharacter, RuleFollower):
 		def __delitem__(self, thing: KeyHint):
 			self[thing].delete()
 
-		def __repr__(self):
-			return "{}.character[{}].thing".format(
-				repr(self.engine), repr(self.name)
-			)
-
 	@define
 	class PlaceMapping(MutableCharacterMapping):
 		""":class:`Place` objects that are in a :class:`Character`"""
