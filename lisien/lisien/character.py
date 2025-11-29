@@ -383,33 +383,17 @@ class Character(AbstractCharacter, RuleFollower):
 		def update(self, __m: dict, **kwargs) -> None:
 			self.character.node.update(__m, **kwargs)
 
-		@cached_property
-		def _iter_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName, Branch, Turn, Tick], Iterator[NodeName]],
-			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
-			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
-			CharName,
-			Time,
-		]:
-			return (
-				self.engine._nodes_cache.iter_nodes,
-				self.engine._nodes_cache.node_exists,
-				self.engine._things_cache.thing_exists,
-				self.character.name,
-				self.engine.time,
-			)
-
 		def __iter__(self):
-			iter_nodes, nodes_contains, things_contains, charn, btt = (
-				self._iter_stuff
-			)
-			branch, turn, tick = btt
-			for node in iter_nodes(charn, branch, turn, tick):
-				if nodes_contains(
+			node_exists = self.engine._nodes_cache.node_exists
+			thing_exists = self.engine._things_cache.thing_exists
+			charn = self.character.name
+			branch, turn, tick = self.engine.time
+			for node in self.engine._nodes_cache.iter_nodes(
+				charn, branch, turn, tick
+			):
+				if node_exists(
 					charn, node, branch, turn, tick
-				) and not things_contains(charn, node, branch, turn, tick):
+				) and not thing_exists(charn, node, branch, turn, tick):
 					yield node
 
 		def __len__(self):
@@ -418,92 +402,39 @@ class Character(AbstractCharacter, RuleFollower):
 				pass
 			return n
 
-		@cached_property
-		def _contains_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
-			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
-			CharName,
-			Time,
-		]:
-			return (
-				self.engine._nodes_cache.node_exists,
-				self.engine._things_cache.thing_exists,
-				self.character.name,
-				self.engine.time,
-			)
-
 		def __contains__(self, place: KeyHint) -> bool:
-			nodes_contains, things_contains, charn, btt = self._contains_stuff
-			branch, turn, tick = btt
+			branch, turn, tick = self.engine.time
+			charn = self.character.name
 			place = NodeName(Key(place))
-			return nodes_contains(
+			return self.engine._nodes_cache.node_exists(
 				charn, place, branch, turn, tick
-			) and not things_contains(charn, place, branch, turn, tick)
-
-		@cached_property
-		def _get_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
-			Callable[[CharName, NodeName, Branch, Turn, Tick], bool],
-			CharName,
-			Time,
-			dict,
-			Character,
-		]:
-			return (
-				self.engine._nodes_cache.node_exists,
-				self.engine._things_cache.thing_exists,
-				self.character.name,
-				self.engine.time,
-				self.engine._node_objs,
-				self.character,
+			) and not self.engine._things_cache.thing_exists(
+				charn, place, branch, turn, tick
 			)
 
 		def __getitem__(self, place: KeyHint) -> Place:
-			(nodes_contains, things_contains, charn, btt, cache, character) = (
-				self._get_stuff
-			)
-			branch, turn, tick = btt
+			branch, turn, tick = self.engine.time
+			charn = self.character.name
 			place = NodeName(Key(place))
-			if not nodes_contains(
+			if not self.engine._nodes_cache.node_exists(
 				charn, place, branch, turn, tick
-			) or things_contains(charn, place, branch, turn, tick):
+			) or self.engine._things_cache.thing_exists(
+				charn, place, branch, turn, tick
+			):
 				raise KeyError("No such place: {}".format(place))
+			cache = self.engine._node_objs
 			if (charn, place) not in cache or not isinstance(
 				cache[(charn, place)], Place
 			):
-				ret = cache[(charn, place)] = Place(character, place)
+				ret = cache[(charn, place)] = Place(self.character, place)
 				return ret
 			return cache[(charn, place)]
 
-		@cached_property
-		def _set_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName, NodeName], bool],
-			Callable[[CharName, NodeName, bool], None],
-			Callable[[CharName, NodeName], Place | Thing],
-			CharName,
-			Character,
-		]:
-			return (
-				self.engine._node_exists,
-				self.engine._exist_node,
-				self.engine._get_node,
-				self.character.name,
-				self.character,
-			)
-
 		def __setitem__(self, place: KeyHint, v: Place | Mapping | dict):
-			(node_exists, exist_node, get_node, charn, character) = (
-				self._set_stuff
-			)
+			charn = self.character.name
 			place = NodeName(Key(place))
-			exist_node(charn, place, True)
-			pl = get_node(character, place)
+			self.engine._exist_node(charn, place, True)
+			pl = self.engine._get_node(charn, place)
 			if not isinstance(pl, Place):
 				raise KeyError(
 					"{} is a {}, not a place".format(place, type(pl).__name__)
@@ -517,71 +448,30 @@ class Character(AbstractCharacter, RuleFollower):
 	class ThingPlaceMapping(GraphNodeMapping):
 		"""GraphNodeMapping but for Place and Thing"""
 
-		@cached_property
-		def _contains_stuff(
-			self,
-		) -> tuple[Callable[[CharName, NodeName], bool], CharName]:
-			return self.engine._node_exists, self.character.name
-
 		def __contains__(self, k: KeyHint):
-			node_exists, charn = self._contains_stuff
-			return node_exists(charn, NodeName(Key(k)))
-
-		@cached_property
-		def _getitem_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName, NodeName], bool],
-			CharName,
-			Callable[[CharName | Character, NodeName], Place | Thing],
-			Character,
-		]:
-			return (
-				self.engine._node_exists,
-				self.character.name,
-				self.engine._get_node,
-				self.character,
+			return self.engine._node_exists(
+				self.character.name, NodeName(Key(k))
 			)
 
 		def __getitem__(self, k: KeyHint) -> Thing | Place:
-			node_exists, charn, get_node, character = self._getitem_stuff
+			charn = self.character.name
 			k = NodeName(Key(k))
-			if not node_exists(charn, k):
+			if not self.engine._node_exists(charn, k):
 				raise KeyError("No such node: " + str(k))
-			return get_node(character, k)
+			return self.engine._get_node(charn, k)
 
 		def __setitem__(self, k: KeyHint, v: Place | Mapping | dict):
 			self.character.place[k] = v
 
-		@cached_property
-		def _delitem_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName, NodeName], bool],
-			CharName,
-			Callable[[CharName, NodeName], bool],
-			MutableCharacterMapping,
-			MutableCharacterMapping,
-		]:
-			return (
-				self.engine._node_exists,
-				self.character.name,
-				self.engine._is_thing,
-				self.character.thing,
-				self.character.place,
-			)
-
 		def __delitem__(self, k: KeyHint):
-			(node_exists, charn, is_thing, thingmap, placemap) = (
-				self._delitem_stuff
-			)
+			charn = self.character.name
 			k = NodeName(Key(k))
-			if not node_exists(charn, k):
+			if not self.engine._node_exists(charn, k):
 				raise KeyError("No such node: " + str(k))
-			if is_thing(charn, k):
-				del thingmap[k]
+			if self.engine._is_thing(charn, k):
+				del self.character.thing[k]
 			else:
-				del placemap[k]
+				del self.character.place[k]
 
 	node_map_cls = ThingPlaceMapping
 
@@ -600,29 +490,14 @@ class Character(AbstractCharacter, RuleFollower):
 		def _cache(self):
 			return {}
 
-		@cached_property
-		def _cporh(self):
+		def _get_rulebook_cache(self):
 			return self.character.engine._characters_portals_rulebooks_cache
 
-		@cached_property
-		def _getitem_stuff(self):
-			return (
-				self.character.engine._node_exists,
-				self.character.name,
-				self._cache,
-			)
-
-		@cached_property
-		def _setitem_stuff(self):
-			return (self._cache, self.Successors)
-
-		def _get_rulebook_cache(self):
-			return self._cporh
-
 		def __getitem__(self, orig: KeyHint) -> Successors:
-			node_exists, charn, cache = self._getitem_stuff
+			charn = self.character.name
 			orig = NodeName(Key(orig))
-			if node_exists(charn, orig):
+			if self.engine._node_exists(charn, orig):
+				cache = self._cache
 				if orig not in cache:
 					cache[orig] = self.Successors(self, orig)
 				return cache[orig]
@@ -768,73 +643,14 @@ class Character(AbstractCharacter, RuleFollower):
 
 			__slots__ = ()
 
-			@cached_property
-			def _getitem_stuff(
-				self,
-			) -> tuple[
-				Callable[[Character | CharName, NodeName, NodeName], Portal],
-				Character,
-				NodeName,
-			]:
-				return self.engine._get_edge, self.character, self.orig
-
-			@cached_property
-			def _setitem_stuff(
-				self,
-			) -> tuple[
-				Callable[[CharName, NodeName, NodeName], bool],
-				Callable[[CharName, NodeName, NodeName, bool], None],
-				CharName,
-				NodeName,
-				Callable[[Character | CharName, NodeName, NodeName], Portal],
-				Character,
-				Callable[
-					[
-						CharName,
-						NodeName,
-						NodeName,
-						Key,
-						Branch,
-						Turn,
-						Tick,
-						Value,
-					],
-					None,
-				],
-				Callable[
-					[
-						CharName,
-						NodeName,
-						NodeName,
-						Stat,
-						Branch,
-						Turn,
-						Tick,
-						Value,
-					],
-					None,
-				],
-				Callable[[], Time],
-			]:
-				engine = self.engine
-				graph = self.character
-				return (
-					engine._edge_exists,
-					engine._exist_edge,
-					graph.name,
-					self.orig,
-					engine._get_edge,
-					graph,
-					engine.db.edge_val_set,
-					engine._edge_val_cache.store,
-					engine._nbtt,
-				)
-
 			def __getitem__(self, dest: KeyHint) -> Portal:
-				get_edge, graph, orig = self._getitem_stuff
 				if dest in self:
-					return get_edge(graph, orig, NodeName(Key(dest)))
-				raise KeyError("No such portal", graph, orig, dest)
+					return self.engine._get_edge(
+						self.character, self.orig, NodeName(Key(dest))
+					)
+				raise KeyError(
+					"No such portal", self.character.name, self.orig, dest
+				)
 
 			def __setitem__(
 				self,
@@ -844,17 +660,27 @@ class Character(AbstractCharacter, RuleFollower):
 				if value is ...:
 					del self[dest]
 					return
+				engine = self.engine
+				graph = self.character
 				(
 					edge_exists,
 					exist_edge,
 					charn,
 					orig,
 					get_edge,
-					graph,
 					db_edge_val_set,
 					edge_val_cache_store,
 					nbtt,
-				) = self._setitem_stuff
+				) = (
+					engine._edge_exists,
+					engine._exist_edge,
+					graph.name,
+					self.orig,
+					engine._get_edge,
+					engine.db.edge_val_set,
+					engine._edge_val_cache.store,
+					engine._nbtt,
+				)
 				dest = NodeName(Key(dest))
 				exist_edge(charn, orig, dest, True)
 				for k, v in value.items():
@@ -900,35 +726,23 @@ class Character(AbstractCharacter, RuleFollower):
 
 		_book: ClassVar = "character_portal"
 
-		@cached_property
-		def _cporc(self):
-			return self.engine._characters_portals_rulebooks_cache
-
 		def _get_rulebook_cache(self):
-			return self._cporc
+			return self.engine._characters_portals_rulebooks_cache
 
 		@define
 		class Predecessors(DiGraphPredecessorsMapping.Predecessors):
 			"""Mapping of possible origins from some destination."""
 
-			@cached_property
-			def _setitem_stuff(
-				self,
-			) -> tuple[Character, CharName, NodeName, dict]:
-				return (
-					self.character,
-					self.character.name,
-					self.dest,
-					self.engine._edge_objs,
-				)
-
 			def __setitem__(self, orig: NodeName, value: StatDict):
-				graph, graph_name, dest, portal_objs = self._setitem_stuff
-				key = (graph_name, orig, dest)
+				character = self.character
+				charn = character.name
+				dest = self.dest
+				key = (charn, orig, dest)
+				portal_objs = self.engine._edge_objs
 				if key not in portal_objs:
-					portal_objs[key] = Portal(graph, orig, dest)
+					portal_objs[key] = Portal(character, orig, dest)
 				p = portal_objs[key]
-				p.engine._exist_edge(graph_name, orig, dest)
+				p.engine._exist_edge(charn, orig, dest)
 				p.clear()
 				p.update(value)
 
@@ -1046,20 +860,6 @@ class Character(AbstractCharacter, RuleFollower):
 		def _char_unit_cache(self) -> dict[CharName, CharacterUnitMapping]:
 			return {}
 
-		@cached_property
-		def _iter_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName, Branch, Turn, Tick], Iterator[CharName]],
-			CharName,
-			TimeSignal,
-		]:
-			return (
-				self.engine._unitness_cache.iter_char_graphs,
-				self.character.name,
-				self.engine.time,
-			)
-
 		def __call__(self, unit: Place | Thing):
 			"""Add the unit
 
@@ -1070,29 +870,17 @@ class Character(AbstractCharacter, RuleFollower):
 
 		def __iter__(self):
 			"""Iterate over graphs with unit nodes in them"""
-			get_char_graphs, charn, btt = self._iter_stuff
-			branch, turn, tick = btt
+			get_char_graphs = self.engine._unitness_cache.iter_char_graphs
+			charn = self.character.name
+			branch, turn, tick = self.engine.time
 			for graph in get_char_graphs(charn, branch, turn, tick):
 				if graph in self:
 					yield graph
 
-		@cached_property
-		def _contains_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName, CharName, Branch, Turn, Tick], bool],
-			CharName,
-			TimeSignal,
-		]:
-			return (
-				self.engine._unitness_cache.dict_cache.contains_graph,
-				self.character.name,
-				self.engine.time,
-			)
-
 		def __contains__(self, k: KeyHint | CharName):
-			retrieve, charn, btt = self._contains_stuff
-			got = retrieve(charn, CharName(Key(k)), *btt)
+			got = self.engine._unitness_cache.dict_cache.contains_graph(
+				self.character.name, CharName(Key(k)), *self.engine.time
+			)
 			return got is not ... and not isinstance(got, Exception)
 
 		def __len__(self):
@@ -1112,59 +900,23 @@ class Character(AbstractCharacter, RuleFollower):
 		def __getitem__(self, g):
 			return self._get_char_unit_cache(g)
 
-		@cached_property
-		def _node_stuff(
-			self,
-		) -> tuple[
-			Callable[[CharName], CharacterUnitMapping],
-			Callable[[CharName], CharName],
-			CharName,
-			TimeSignal,
-		]:
-			return (
-				self._get_char_unit_cache,
-				self.engine._unitness_cache.get_char_only_graph,
-				self.character.name,
-				self.engine.time,
-			)
-
 		@property
-		def node(self) -> dict[NodeName, Place | Thing]:
+		def node(self) -> Mapping[NodeName, Place | Thing]:
 			"""If I have units in only one graph, return a map of them
 
 			Otherwise, raise AttributeError.
 
 			"""
-			get_char_av_cache: MethodType
-			get_char_av_cache, get_char_only_graph, charn, btt = (
-				self._node_stuff
-			)
 			try:
-				return get_char_av_cache(get_char_only_graph(charn, *btt))
+				return self._get_char_unit_cache(
+					self.engine._unitness_cache.get_char_only_graph(
+						self.character.name, *self.engine.time
+					)
+				)
 			except KeyError:
 				raise AttributeError(
 					"I have no unit, or I have units in many graphs"
 				)
-
-		@cached_property
-		def _only_stuff(
-			self,
-		) -> tuple[
-			Callable[
-				[CharName, Branch, Turn, Tick], tuple[CharName, NodeName]
-			],
-			CharName,
-			TimeSignal,
-			Callable[[Character | CharName, NodeName], Thing | Place | None],
-			Mapping[CharName, Character],
-		]:
-			return (
-				self.engine._unitness_cache.get_char_only_unit,
-				self.character.name,
-				self.engine.time,
-				self.engine._get_node,
-				self.engine.character,
-			)
 
 		@property
 		def only(self) -> Place | Thing:
@@ -1173,10 +925,11 @@ class Character(AbstractCharacter, RuleFollower):
 			Otherwise, raise AttributeError.
 
 			"""
-			get_char_only_av, charn, btt, get_node, charmap = self._only_stuff
 			try:
-				charn, noden = get_char_only_av(charn, *btt)
-				return get_node(charmap[charn], noden)
+				charn, noden = self.engine._unitness_cache.get_char_only_unit(
+					self.character.name, *self.engine.time
+				)
+				return self.engine._get_node(charn, noden)
 			except (KeyError, TypeError):
 				raise AttributeError("I have no unit, or more than one unit")
 
