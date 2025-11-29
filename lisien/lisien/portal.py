@@ -129,7 +129,7 @@ class Portal(Edge, RuleFollower):
 	def reciprocal(self) -> "Portal":
 		"""If there's another Portal connecting the same origin and
 		destination that I do, but going the opposite way, return
-		it. Else raise KeyError.
+		it. Else raise ``AttributeError``.
 
 		"""
 		try:
