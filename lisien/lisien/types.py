@@ -92,7 +92,7 @@ from .util import getatt
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
-	MappingUnwrapperMixin,
+	MappingUnwrapper,
 	SetWrapper,
 	unwrap_items,
 	wrapval,
@@ -593,7 +593,7 @@ type CharacterRulebookTypeStr = Literal[
 
 
 @define
-class CharacterMappingMixin(MappingUnwrapperMixin, ABC):
+class CharacterMappingMixin(MappingUnwrapper, ABC):
 	"""Common amenities for mappings in :class:`Character`"""
 
 	__slots__ = ()
@@ -610,7 +610,7 @@ class CharacterMappingMixin(MappingUnwrapperMixin, ABC):
 
 
 class AbstractEntityMapping[_K, _V](
-	MutableMapping[_K, _V], MappingUnwrapperMixin, ABC
+	MutableMapping[_K, _V], MappingUnwrapper, ABC
 ):
 	__slots__ = ()
 

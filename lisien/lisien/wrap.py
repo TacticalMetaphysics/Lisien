@@ -388,17 +388,8 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 		self._set(me)
 
 
-class MappingUnwrapperMixin(ABC):
+class MappingUnwrapper(ABC):
 	__slots__ = ()
-
-	@abstractmethod
-	def keys(self) -> KeysView: ...
-
-	@abstractmethod
-	def items(self) -> ItemsView: ...
-
-	@abstractmethod
-	def __getitem__(self, item): ...
 
 	def __eq__(self, other):
 		if self is other:
@@ -426,18 +417,18 @@ class MappingUnwrapperMixin(ABC):
 		return unwrap_items(self.items())
 
 
-class MutableMappingUnwrapper(MutableMapping, MappingUnwrapperMixin, ABC):
+class MutableMappingUnwrapper(MutableMapping, MappingUnwrapper, ABC):
 	__slots__ = ()
 
 
 class MutableMappingWrapper(
-	MutableWrapperDictList, MutableMappingUnwrapper, MappingUnwrapperMixin, ABC
+	MutableWrapperDictList, MutableMappingUnwrapper, MappingUnwrapper, ABC
 ):
 	__slots__ = ()
 
 
 @define
-class SubDictWrapper(MutableMappingWrapper, MappingUnwrapperMixin, dict):
+class SubDictWrapper(MutableMappingWrapper, MappingUnwrapper, dict):
 	__slots__ = ()
 	_getter: Callable[[], dict]
 	_set: Callable[[dict], None]
