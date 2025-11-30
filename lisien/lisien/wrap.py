@@ -242,7 +242,7 @@ class OrderlySet[_K](set[_K]):
 		return super().isdisjoint(other)
 
 
-class OrderlyFrozenSet(frozenset):
+class OrderlyFrozenSet[_K](frozenset[_K]):
 	"""A frozenset with deterministic order of iteration
 
 	Order is not considered significant for the purpose of determining
