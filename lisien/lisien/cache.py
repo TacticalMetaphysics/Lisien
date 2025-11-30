@@ -3012,6 +3012,23 @@ class RuleAttribCache[_T](InitializedCache, ABC):
 			contra=contra,
 		)
 
+	def iter_keys(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[RuleName]:
+		for rule in self._iter_entities_or_keys(
+			branch, turn, tick, forward=forward
+		):
+			if not isinstance(rule, str):
+				raise TypeError("Invalid rule name", rule)
+			yield RuleName(rule)
+
+	iter_rules = iter_keys
+
 
 class FuncListCache[_T: RuleFuncName](RuleAttribCache[_T], ABC):
 	functype: ClassVar[type]
@@ -3060,23 +3077,6 @@ class FuncListCache[_T: RuleFuncName](RuleAttribCache[_T], ABC):
 			loading=loading,
 			contra=contra,
 		)
-
-	def iter_keys(
-		self,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		*,
-		forward: bool | None = None,
-	) -> Iterator[RuleName]:
-		for rule in self._iter_entities_or_keys(
-			branch, turn, tick, forward=forward
-		):
-			if not isinstance(rule, str):
-				raise TypeError("Invalid rule name", rule)
-			yield RuleName(rule)
-
-	iter_rules = iter_keys
 
 	def contains_rule(
 		self,
