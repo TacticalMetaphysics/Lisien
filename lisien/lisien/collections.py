@@ -14,9 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Common classes for collections in lisien
 
-Notably includes wrappers for mutable objects, allowing them to be stored in
-the database. These simply store the new value.
-
 Most of these are subclasses of :class:`blinker.Signal`, so you can listen
 for changes using the ``connect(..)`` method.
 
