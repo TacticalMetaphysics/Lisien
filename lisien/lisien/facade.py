@@ -545,6 +545,7 @@ Node.register(FacadeNode)
 
 
 class FacadeThing(AbstractThing, FacadeNode):
+	__slots__ = ()
 	character: CharacterFacade
 
 	def __init__(

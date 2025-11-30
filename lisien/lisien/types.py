@@ -3730,9 +3730,13 @@ class AbstractCharacter(DiGraph, ABC):
 
 
 class AbstractThing(ABC):
+	__slots__ = ()
 	character: AbstractCharacter
-	engine: AbstractEngine
 	name: NodeName
+
+	@property
+	def engine(self) -> AbstractEngine:
+		return self.character.engine
 
 	@property
 	def location(self) -> Node:
