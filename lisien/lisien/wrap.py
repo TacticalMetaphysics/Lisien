@@ -23,18 +23,16 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import (
-	Container,
 	Iterable,
 	Mapping,
 	MutableMapping,
 	MutableSequence,
 	Sequence,
-	Sized,
 	Collection,
 )
 from functools import partial
 from itertools import chain, zip_longest
-from typing import Any, Callable, Hashable, Set, TypeVar, KeysView, ItemsView
+from typing import Callable, Hashable, Set, TypeVar
 
 from attrs import define
 
