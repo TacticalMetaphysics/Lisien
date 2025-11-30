@@ -30,6 +30,7 @@ from collections.abc import (
 	MutableSequence,
 	Sequence,
 	Sized,
+	Collection,
 )
 from functools import partial
 from itertools import chain, zip_longest
@@ -316,7 +317,7 @@ class OrderlyFrozenSet(frozenset):
 
 
 @define(eq=False)
-class MutableWrapper(ABC):
+class MutableWrapper(Collection, ABC):
 	__slots__ = ()
 
 	def __iter__(self):
@@ -346,11 +347,6 @@ class MutableWrapper(ABC):
 
 	@abstractmethod
 	def unwrap(self): ...
-
-
-Iterable.register(MutableWrapper)
-Sized.register(MutableWrapper)
-Container.register(MutableWrapper)
 
 
 class MutableWrapperDictList(MutableWrapper, ABC):
