@@ -1974,7 +1974,7 @@ class GraphValCache(Cache[CharName, Stat, Value, dict]):
 	iter_stats = iter_keys
 
 
-class NodesCache(Cache[CharName, NodeName, bool, dict]):
+class NodesCache(Cache[CharName, NodeName, bool, dict[NodeName, bool]]):
 	"""A cache for remembering whether nodes exist at a given time."""
 
 	__slots__ = ()

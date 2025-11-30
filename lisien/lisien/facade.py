@@ -34,7 +34,15 @@ from typing import (
 import networkx as nx
 from blinker import Signal
 
-from .cache import Cache, TurnEndDict, TurnEndPlanDict, UnitnessCache
+from .cache import (
+	Cache,
+	TurnEndDict,
+	TurnEndPlanDict,
+	UnitnessCache,
+	NodesCache,
+	ThingsCache,
+	LeaderSetCache,
+)
 from .collections import CompositeDict, FunctionStore
 from .exc import NotInKeyframeError, TotalKeyError
 from .types import (
@@ -1454,7 +1462,9 @@ class EngineFacade(AbstractEngine):
 				pat.apply()
 			self._patch = {}
 
-	class FacadeCache(Cache):
+	class FacadeCache[*_PARENT, _ENTITY, _KEY, _VALUE, _KEYFRAME](
+		Cache[*_PARENT, _ENTITY, _KEY, _VALUE, _KEYFRAME]
+	):
 		def __init__(self, cache, name):
 			self._created = cache.engine.time
 			super().__init__(cache.engine, name)
@@ -1484,14 +1494,44 @@ class EngineFacade(AbstractEngine):
 			)
 			return frozenset((kc | added) - deleted)
 
-	class FacadeUnitnessCache(FacadeCache, UnitnessCache):
+	class FacadeNodesCache(
+		FacadeCache[CharName, NodeName, bool, dict[NodeName, bool]],
+		NodesCache,
+	): ...
+
+	class FacadeThingsCache(
+		FacadeCache[CharName, NodeName, NodeName, dict[NodeName, NodeName]],
+		ThingsCache,
+	): ...
+
+	class FacadeUnitnessCache(
+		FacadeCache[
+			CharName,
+			CharName,
+			NodeName,
+			bool,
+			dict[CharName, dict[NodeName, bool]],
+		],
+		UnitnessCache,
+	):
 		def __init__(self, cache):
 			self._created = cache.engine.time
 			UnitnessCache.__init__(self, cache.engine, "unitness_cache")
-			self.user_cache = EngineFacade.FacadeCache(
-				cache.leader_cache, "user_cache"
+			self.user_cache = EngineFacade.FacadeLeaderCache(
+				cache.leader_cache, "leader_cache"
 			)
 			self._real = cache
+
+	class FacadeLeaderCache(
+		FacadeCache[
+			CharName,
+			NodeName,
+			CharName,
+			bool,
+			dict[NodeName, frozenset[CharName]],
+		],
+		LeaderSetCache,
+	): ...
 
 	def __init__(self, real: AbstractEngine | None, mock=False):
 		assert not isinstance(real, EngineFacade)
@@ -1562,10 +1602,10 @@ class EngineFacade(AbstractEngine):
 			if not hasattr(real, "is_proxy"):
 				self._turn_end.update(real._turn_end)
 				self._turn_end_plan.update(real._turn_end_plan)
-				self._nodes_cache = self.FacadeCache(
+				self._nodes_cache = self.FacadeNodesCache(
 					real._nodes_cache, "nodes_cache"
 				)
-				self._things_cache = self.FacadeCache(
+				self._things_cache = self.FacadeThingsCache(
 					real._things_cache, "things_cache"
 				)
 				self._unitness_cache = self.FacadeUnitnessCache(
