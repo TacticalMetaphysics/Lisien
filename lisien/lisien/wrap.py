@@ -478,7 +478,7 @@ class SubListWrapper(MutableSequenceWrapper, list):
 		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
 
-@define(order=False)
+@define(order=False, eq=False)
 class MutableWrapperSet(MutableWrapper, ABC, set):
 	__slots__ = ()
 
@@ -570,7 +570,7 @@ class MutableWrapperSet(MutableWrapper, ABC, set):
 		return self._getter().isdisjoint(other)
 
 
-@define
+@define(eq=False)
 class SubSetWrapper(MutableWrapperSet):
 	__slots__ = ()
 	_getter: Callable[[], set]
