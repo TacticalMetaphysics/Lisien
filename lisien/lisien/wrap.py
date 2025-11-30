@@ -413,7 +413,7 @@ class MappingUnwrapper(ABC):
 
 @define(eq=False)
 class MutableMappingWrapper(
-	MutableWrapperDictList, MappingUnwrapper, MutableMapping, ABC
+	MappingUnwrapper, MutableWrapperDictList, MutableMapping, ABC
 ):
 	__slots__ = ()
 
