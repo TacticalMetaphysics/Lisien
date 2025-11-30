@@ -4934,3 +4934,100 @@ class PickierDefaultDict[_K, _V](PickyDefaultDict[_K, _V]):
 		if not isinstance(key, self.key_type):
 			raise TypeError("Wrong type of key", key, self.key_type)
 		super().__setitem__(key, value)
+
+
+class StructuredDefaultDict[_K, _V](dict[_K, _V]):
+	"""A `defaultdict`-like class with values stored at a specific depth.
+
+	Requires an integer to tell it how many layers deep to go.
+	The innermost layer will be ``PickyDefaultDict``, which will take the
+	``type``, ``args_munger``, and ``kwargs_munger`` arguments supplied
+	to my constructor.
+
+	"""
+
+	__slots__ = (
+		"layer",
+		"type",
+		"args_munger",
+		"kwargs_munger",
+		"parent",
+		"key",
+		"_stuff",
+		"_lock",
+		"gettest",
+		"settest",
+	)
+
+	def __init__(
+		self,
+		layers: int,
+		type: type = None,
+		args_munger: Callable[
+			[Self, _K], tuple[_K, ...]
+		] = _default_args_munger,
+		kwargs_munger: Callable[
+			[Self, _K], dict[_K, _V]
+		] = _default_kwargs_munger,
+		gettest: Callable[[_K], None] = lambda k: None,
+		settest: Callable[[_K, _V], None] = lambda k, v: None,
+	):
+		if layers < 1:
+			raise ValueError("Not enough layers")
+		self._lock = RLock()
+		self.layer = layers
+		self.type = type
+		self.args_munger = args_munger
+		self.kwargs_munger = kwargs_munger
+		self._stuff = (layers, type, args_munger, kwargs_munger)
+		self.gettest = gettest
+		self.settest = settest
+
+	def __getitem__(self, k: _K) -> _V:
+		with self._lock:
+			self.gettest(k)
+			if k in self:
+				return dict.__getitem__(self, k)
+			layer, typ, args_munger, kwargs_munger = self._stuff
+			if layer == 1:
+				if typ is None:
+					ret = {}
+				else:
+					ret = PickyDefaultDict(typ, args_munger, kwargs_munger)
+					ret.parent = self
+					ret.key = k
+			elif layer < 1:
+				raise ValueError("Invalid layer")
+			else:
+				ret = StructuredDefaultDict(
+					layer - 1, typ, args_munger, kwargs_munger
+				)
+				ret.parent = self
+				ret.key = k
+			dict.__setitem__(self, k, ret)
+			return ret
+
+	def __setitem__(self, k: _K, v: _V) -> None:
+		with self._lock:
+			self.settest(k, v)
+			if type(v) is StructuredDefaultDict:
+				layer, typ, args_munger, kwargs_munger = self._stuff
+				if (
+					v.layer == layer - 1
+					and (typ is None or v.type is typ)
+					and v.args_munger is args_munger
+					and v.kwargs_munger is kwargs_munger
+				):
+					super().__setitem__(k, v)
+					return
+			elif type(v) is PickyDefaultDict:
+				layer, typ, args_munger, kwargs_munger = self._stuff
+				if (
+					layer == 1
+					and v.type is typ
+					and v.args_munger is args_munger
+					and v.kwargs_munger is kwargs_munger
+				):
+					super().__setitem__(k, v)
+					return
+			raise TypeError("Can't set layer {}".format(self.layer))
