@@ -6938,7 +6938,7 @@ class Engine(AbstractEngine, Executor):
 			for stat in set(graph.graph) - {"name", "units"}:
 				self._graph_val_cache.store(name, stat, *now, None)
 				self.db.graph_val_set(name, stat, *now, None)
-			self._graph_cache.store(name, *now, ...)
+			self._graph_cache.store(name, *now, "Deleted")
 			self.db.graphs_insert(name, *now, "Deleted")
 			self._graph_cache.keycache.clear()
 		if hasattr(self, "_worker_processes") or hasattr(

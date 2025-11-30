@@ -2878,8 +2878,8 @@ class GraphCache(
 	Cache[
 		None,
 		CharName,
-		Literal["DiGraph", None],
-		dict[CharName, Literal["DiGraph", None]],
+		Literal["DiGraph", "Deleted"],
+		dict[CharName, Literal["DiGraph", "Deleted"]],
 	]
 ):
 	overwrite_journal = True
@@ -2891,13 +2891,15 @@ class GraphCache(
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		type: Literal["DiGraph", None],
+		type: Literal["DiGraph", "Deleted"],
 		*,
 		planning: bool | None = None,
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
 	) -> None:
+		if type not in ("DiGraph", "Deleted"):
+			raise ValueError("Unknown graph type", type)
 		self._store(
 			None,
 			graph,
@@ -2919,9 +2921,9 @@ class GraphCache(
 		tick: Tick,
 		*,
 		search: bool = False,
-	) -> Literal["DiGraph", None]:
+	) -> Literal["DiGraph", "Deleted"]:
 		ret = self._retrieve(None, graph, branch, turn, tick, search=search)
-		if ret is not None and ret != "DiGraph":
+		if ret not in ("DiGraph", "Deleted"):
 			raise ValueError("Illegal graph type was stored", ret)
 		return ret
 
@@ -2952,7 +2954,7 @@ class GraphCache(
 
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
-	) -> dict[CharName, Literal["DiGraph", None]]:
+	) -> dict[CharName, Literal["DiGraph", "Deleted"]]:
 		ret = self._get_keyframe((Key(None),), branch, turn, tick)
 		if copy:
 			ret = ret.copy()
@@ -2963,7 +2965,7 @@ class GraphCache(
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict[CharName, Literal["DiGraph", None]],
+		keyframe: dict[CharName, Literal["DiGraph", "Deleted"]],
 	) -> None:
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
