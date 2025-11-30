@@ -277,7 +277,6 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 ):
 	"""A data store that's useful for tracking graph revisions."""
 
-	name: str
 	initial_value = ...
 
 	@abstractmethod
@@ -312,10 +311,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		self, *args: tuple[*_PARENT, _ENTITY, Branch, Turn, Tick, _KEYFRAME]
 	) -> None: ...
 
-	def __init__(
-		self, db: "engine.Engine", name: str, keyframe_dict: dict | None = None
-	):
-		self.name = name
+	def __init__(self, db: "engine.Engine", keyframe_dict: dict | None = None):
 		self.engine = db
 		self._keyframe_dict = keyframe_dict
 
@@ -2283,10 +2279,9 @@ class EdgesCache(
 	def __init__(
 		self,
 		db: "engine.Engine",
-		name: str,
 		keyframe_dict: Optional[dict] = None,
 	):
-		super().__init__(db, name, keyframe_dict)
+		super().__init__(db, keyframe_dict)
 		self.origcache: dict[
 			tuple[CharName, NodeName], AssignmentTimeDict[NodeName]
 		] = PickyDefaultDict(AssignmentTimeDict)
@@ -3447,6 +3442,12 @@ class CharactersRulebooksCache(
 ):
 	overwrite_journal = True
 
+	def __init__(
+		self, db: "engine.Engine", name: str, keyframe_dict: dict | None = None
+	):
+		self.name = name
+		super().__init__(db, keyframe_dict)
+
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
 	):
@@ -3956,14 +3957,13 @@ class UnitnessCache(
 	def __init__(
 		self,
 		db: "engine.Engine",
-		name: str,
 		keyframe_dict: dict[
 			CharName, dict[CharName, dict[NodeName, bool]]
 		] = None,
 	):
-		super().__init__(db, name, keyframe_dict)
-		self.leader_cache = LeaderSetCache(db, "user cache")
-		self.dict_cache = UnitDictCache(db, "unit dict cache")
+		super().__init__(db, keyframe_dict)
+		self.leader_cache = LeaderSetCache(db)
+		self.dict_cache = UnitDictCache(db)
 
 	@contextmanager
 	def overwriting(self):
@@ -4233,10 +4233,9 @@ class RulesHandledCache[*_ENTITY](ABC):
 		],
 	]
 
-	def __init__(self, engine: "engine.Engine", name: str):
+	def __init__(self, engine: "engine.Engine"):
 		self.lock = RLock()
 		self.engine = engine
-		self.name = name
 		self.handled = {}
 		self.handled_deep = PickyDefaultDict(AssignmentTimeDict)
 
@@ -4829,10 +4828,9 @@ class ThingsCache(
 	def __init__(
 		self,
 		db: "engine.Engine",
-		name: str,
 		keyframe_dict: dict[CharName, dict[NodeName, NodeName]] | None = None,
 	):
-		super().__init__(db, name, keyframe_dict)
+		super().__init__(db, keyframe_dict)
 		self._make_node = db.thing_cls
 
 	def _slow_iter_contents(
@@ -5125,11 +5123,10 @@ class NodeContentsCache(
 	def __init__(
 		self,
 		db: "engine.Engine",
-		name: str,
 		keyframe_dict: dict[CharName, dict[NodeName, frozenset[NodeName]]]
 		| None = None,
 	):
-		super().__init__(db, name, keyframe_dict)
+		super().__init__(db, keyframe_dict)
 		self.loc_settings = StructuredDefaultDict(1, AssignmentTimeDict)
 
 	def delete_plan(self, plan: Plan) -> None:
