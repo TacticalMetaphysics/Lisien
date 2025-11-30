@@ -98,6 +98,7 @@ from typing import (
 	ValuesView,
 )
 
+from attrs import define
 from blinker import Signal
 
 from .cache import FuncListCache
@@ -123,6 +124,7 @@ from .types import (
 	TriggerFuncName,
 	Turn,
 	Value,
+	AttrSignal,
 )
 from .util import dedent_source
 
@@ -135,24 +137,30 @@ def roundtrip_dedent(source):
 	return unparse(parse(dedent_source(source)))
 
 
+@define
 class RuleFuncList[_K: RuleFuncName, _T: RuleFunc](
-	MutableSequence[_T], Signal, ABC
+	MutableSequence[_T], AttrSignal, ABC
 ):
 	"""Abstract class for lists of functions like trigger, prereq, action"""
 
-	__slots__ = ["rule"]
-	_funcstore: FunctionStore
-	_cache: FuncListCache
-	_setter: Callable[[RuleName, Branch, Turn, Tick, list[RuleFuncName]], None]
+	__slots__ = ()
+	rule: Rule
 
-	def __init__(self, rule: Rule):
-		super().__init__()
-		self.rule = rule
+	@cached_property
+	@abstractmethod
+	def _funcstore(self) -> FunctionStore: ...
 
-	def __repr__(self):
-		return f"<class 'lisien.rule.{self.__class__.__name__}' [{', '.join(self._get())}]>"
+	@cached_property
+	@abstractmethod
+	def _cache(self) -> FuncListCache: ...
 
-	def _nominate(self, v: _T | str | RuleFuncName) -> _K:
+	@cached_property
+	@abstractmethod
+	def _setter(
+		self,
+	) -> Callable[[RuleName, Branch, Turn, Tick, list[_K]], None]: ...
+
+	def _nominate(self, v: _T | str | _K) -> _K:
 		if callable(v):
 			self._funcstore(v)
 			return v.__name__
@@ -232,6 +240,7 @@ class RuleFuncList[_K: RuleFuncName, _T: RuleFunc](
 		return super().index(x, start, end)
 
 
+@define
 class TriggerList(RuleFuncList[TriggerFuncName, TriggerFunc]):
 	"""A list of trigger functions for rules"""
 
@@ -250,6 +259,7 @@ class TriggerList(RuleFuncList[TriggerFuncName, TriggerFunc]):
 		return self.rule.engine.db.set_rule_triggers
 
 
+@define
 class PrereqList(RuleFuncList[PrereqFuncName, PrereqFunc]):
 	"""A list of prereq functions for rules"""
 
@@ -268,6 +278,7 @@ class PrereqList(RuleFuncList[PrereqFuncName, PrereqFunc]):
 		return self.rule.engine.db.set_rule_prereqs
 
 
+@define
 class ActionList(RuleFuncList[ActionFuncName, ActionFunc]):
 	"""A list of action functions for rules"""
 
