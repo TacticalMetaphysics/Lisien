@@ -2893,6 +2893,16 @@ class RulebooksCache(Cache):
 		loading: bool = False,
 		contra: bool | None = None,
 	) -> None:
+		rules, priority = rules_prio
+		if not isinstance(rules, list):
+			raise TypeError("Not a rules list", rules)
+		if not isinstance(priority, float):
+			raise TypeError(
+				f"Priorities are floats, not {type(priority)}", priority
+			)
+		for rule in rules:
+			if not isinstance(rule, str):
+				raise TypeError("Rule names must be strings", rule)
 		self._store(
 			None,
 			rulebook,
@@ -2918,7 +2928,16 @@ class RulebooksCache(Cache):
 		rules, prio = self._retrieve(
 			None, rulebook, branch, turn, tick, search=search
 		)
-		return list(rules), prio
+		if not isinstance(rules, list):
+			raise TypeError("Invalid rules list was stored", rules)
+		if not isinstance(prio, float):
+			raise TypeError("Invalid rulebook priority was stored", prio)
+		ruled = []
+		for rule in rules:
+			if not isinstance(rule, str):
+				raise TypeError("Invalid rule name was stored", rule)
+			ruled.append(RuleName(rule))
+		return ruled, RulebookPriority(prio)
 
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, copy: bool = True
@@ -2947,9 +2966,12 @@ class RulebooksCache(Cache):
 		*,
 		forward: bool | None = None,
 	) -> Iterator[RulebookName]:
-		return self._iter_entities_or_keys(
+		for rb_name in self._iter_entities_or_keys(
 			None, branch, turn, tick, forward=forward
-		)
+		):
+			if not isinstance(rb_name, Key):
+				raise TypeError("Invalid rulebook name was stored", rb_name)
+			yield RulebookName(rb_name)
 
 
 class RuleAttribCache[_T](InitializedCache, ABC):
@@ -3272,6 +3294,8 @@ class NodesRulebooksCache(InitializedCache):
 		loading: bool = False,
 		contra: bool | None = None,
 	) -> None:
+		if not isinstance(rulebook, Key):
+			raise TypeError("Invalid rulebook name", rulebook)
 		self._store(
 			graph,
 			node,
@@ -3295,7 +3319,12 @@ class NodesRulebooksCache(InitializedCache):
 		*,
 		search: bool = False,
 	) -> RulebookName:
-		return self._retrieve(graph, node, branch, turn, tick, search=search)
+		ret = self._retrieve(graph, node, branch, turn, tick, search=search)
+		if not isinstance(ret, Key):
+			raise TypeError(
+				"Invalid rulebook name was stored", graph, node, ret
+			)
+		return RulebookName(ret)
 
 
 class CharactersRulebooksCache(InitializedCache):
@@ -3332,6 +3361,8 @@ class CharactersRulebooksCache(InitializedCache):
 		loading: bool = False,
 		contra: bool = None,
 	) -> None:
+		if not isinstance(rulebook, Key):
+			raise TypeError("Invalid rulebook name", rulebook)
 		self._store(
 			None,
 			character,
@@ -3354,9 +3385,12 @@ class CharactersRulebooksCache(InitializedCache):
 		*,
 		search: bool = False,
 	) -> RulebookName:
-		return self._retrieve(
+		ret = self._retrieve(
 			None, character, branch, turn, tick, search=search
 		)
+		if not isinstance(ret, Key):
+			raise TypeError("Invalid rulebook name was stored", character, ret)
+		return RulebookName(ret)
 
 
 class PortalsRulebooksCache(InitializedCache):
@@ -3374,6 +3408,8 @@ class PortalsRulebooksCache(InitializedCache):
 		loading: bool = False,
 		contra: Optional[bool] = None,
 	) -> None:
+		if not isinstance(rb, Key):
+			raise TypeError("Invalid rulebook name", rb)
 		try:
 			destrbs = self.retrieve_successors(char, orig, branch, turn, tick)
 			destrbs[dest] = rb
@@ -3418,9 +3454,14 @@ class PortalsRulebooksCache(InitializedCache):
 		*,
 		search: bool = False,
 	) -> RulebookName:
-		return self._retrieve(
+		ret = self._retrieve(
 			char, orig, dest, branch, turn, tick, search=search
 		)
+		if not isinstance(ret, Key):
+			raise TypeError(
+				"Invalid rulebook name was stored", char, orig, dest, ret
+			)
+		return RulebookName(ret)
 
 	def retrieve_successors(
 		self,
@@ -3432,7 +3473,14 @@ class PortalsRulebooksCache(InitializedCache):
 		*,
 		search: bool = False,
 	) -> dict[NodeName, RulebookName]:
-		return self._retrieve(char, orig, branch, turn, tick, search=search)
+		ret = self._retrieve(char, orig, branch, turn, tick, search=search)
+		if not isinstance(ret, dict):
+			raise TypeError(
+				"Invalid successors dict was stored", char, orig, ret
+			)
+		return {
+			NodeName(Key(k)): RulebookName(Key(v)) for (k, v) in ret.items()
+		}
 
 	def get_keyframe(
 		self,
@@ -3472,9 +3520,12 @@ class PortalsRulebooksCache(InitializedCache):
 		*,
 		forward: bool | None = None,
 	) -> Iterator[NodeName]:
-		return self._iter_entities_or_keys(
+		for dest in self._iter_entities_or_keys(
 			graph, branch, turn, tick, forward=forward
-		)
+		):
+			if not isinstance(dest, Key):
+				raise TypeError("Invalid destination", dest)
+			yield NodeName(dest)
 
 	def set_keyframe(
 		self,
@@ -3602,22 +3653,31 @@ class UnitDictCache(Cache):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		d: dict[NodeName, bool],
+		d: dict[NodeName, bool | type(...) | None],
 		*,
 		planning: bool | None = None,
 		forward: bool | None = None,
 		loading: bool = False,
 		contra: bool | None = None,
 	):
+		store: dict[NodeName, bool] = {}
 		for node, is_unit in d.items():
-			d[node] = bool(is_unit)
+			if not isinstance(node, Key):
+				raise TypeError("Invalid node name", node)
+			if isinstance(is_unit, bool):
+				store[node] = is_unit
+			if is_unit is None or is_unit is ...:
+				store[node] = False
+			raise TypeError(
+				f"Unitness should be Boolean, not {type(is_unit)}", is_unit
+			)
 		self._store(
 			character,
 			graph,
 			branch,
 			turn,
 			tick,
-			d,
+			store,
 			planning=planning,
 			forward=forward,
 			loading=loading,
@@ -3633,9 +3693,14 @@ class UnitDictCache(Cache):
 		*,
 		forward: bool | None = None,
 	) -> Iterator[CharName]:
-		return self._iter_entities_or_keys(
+		for c in self._iter_entities_or_keys(
 			character, branch, turn, tick, forward=forward
-		)
+		):
+			if not isinstance(c, Key):
+				raise TypeError(
+					"Invalid character name was stored", character, c
+				)
+			yield CharName(c)
 
 	def count_entities(
 		self,
@@ -3659,9 +3724,19 @@ class UnitDictCache(Cache):
 		tick: Tick,
 		search: bool = False,
 	) -> dict[NodeName, bool]:
-		return self._retrieve(
+		ret = self._retrieve(
 			character, graph, branch, turn, tick, search=search
 		)
+		if not isinstance(ret, dict):
+			raise TypeError("Invalid unit dict was stored", ret)
+		retrieved = {}
+		for n, x in ret.items():
+			if not isinstance(n, Key):
+				raise TypeError("Invalid node name was stored", n)
+			if not isinstance(x, bool):
+				raise TypeError("A non-boolean was stored for unitness", x)
+			retrieved[NodeName(n)] = x
+		return retrieved
 
 	def contains_graph(
 		self,
@@ -3688,9 +3763,12 @@ class UnitDictCache(Cache):
 		*,
 		forward: bool | None = None,
 	) -> Iterator[CharName]:
-		return self._iter_entities_or_keys(
+		for c in self._iter_entities_or_keys(
 			character, branch, turn, tick, forward=forward
-		)
+		):
+			if not isinstance(c, Key):
+				raise TypeError("Invalid character name was stored", c)
+			yield CharName(c)
 
 	iter_keys = iter_graphs
 
