@@ -404,9 +404,6 @@ class MappingUnwrapper[_K, _V](Mapping[_K, _V], ABC):
 		else:
 			return True
 
-	def __repr__(self):
-		return f"<{type(self).__name__} {unwrap_items(self.items())}>"
-
 	def unwrap(self):
 		return unwrap_items(self.items())
 
