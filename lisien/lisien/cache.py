@@ -54,6 +54,7 @@ from .types import (
 	EntityKey,
 	Key,
 	LinearTime,
+	UniversalKey,
 	NodeName,
 	Plan,
 	PrereqFuncName,
@@ -2798,16 +2799,16 @@ class EdgeValCache(
 				)
 
 
-class EntitylessCache[_ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
-	Cache[_ENTITY, _KEY, _VALUE, _KEYFRAME]
+class UniversalCache(
+	Cache[None, UniversalKey, Value, dict[UniversalKey, Value]]
 ):
 	def store(
 		self,
-		key: _KEY,
+		key: UniversalKey,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		value: _VALUE,
+		value: Value,
 		*,
 		planning: Optional[bool] = None,
 		forward: Optional[bool] = None,
@@ -2829,14 +2830,18 @@ class EntitylessCache[_ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, copy: bool = True
-	) -> _KEYFRAME:
+	) -> dict[UniversalKey, Value]:
 		ret = self._get_keyframe((Key(None),), branch, turn, tick)
 		if copy:
 			ret = ret.copy()
 		return ret
 
 	def set_keyframe(
-		self, branch: Branch, turn: Turn, tick: Tick, keyframe: _KEYFRAME
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		keyframe: dict[UniversalKey, Value],
 	) -> None:
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
@@ -2847,25 +2852,25 @@ class EntitylessCache[_ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		tick: Tick,
 		*,
 		forward: Optional[bool] = None,
-	) -> Iterator[_KEY]:
+	) -> Iterator[UniversalKey]:
 		return self._iter_entities_or_keys(
 			None, branch, turn, tick, forward=forward
 		)
 
 	def contains_key(
-		self, ke: _KEY, branch: Branch, turn: Turn, tick: Tick
+		self, ke: UniversalKey, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
 		return self._contains_entity_or_key(None, ke, branch, turn, tick)
 
 	def retrieve(
 		self,
-		key: _KEY,
+		key: UniversalKey,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		*,
 		search: bool = False,
-	) -> _VALUE:
+	) -> Value:
 		return self._retrieve(None, key, branch, turn, tick, search=search)
 
 
