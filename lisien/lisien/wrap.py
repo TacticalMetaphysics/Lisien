@@ -417,8 +417,8 @@ class MutableMappingWrapper(
 	__slots__ = ()
 
 
-@define
-class SubDictWrapper(MutableMappingWrapper, MappingUnwrapper, dict):
+@define(eq=False)
+class SubDictWrapper(MutableMappingWrapper, dict):
 	__slots__ = ()
 	_getter: Callable[[], dict]
 	_set: Callable[[dict], None]
