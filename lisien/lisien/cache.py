@@ -2952,9 +2952,7 @@ class RulebooksCache(Cache):
 		)
 
 
-class FuncListCache(InitializedCache, ABC):
-	functype: ClassVar[type]
-
+class RuleAttribCache[_T](InitializedCache, ABC):
 	@abstractmethod
 	def retrieve(
 		self,
@@ -2964,7 +2962,51 @@ class FuncListCache(InitializedCache, ABC):
 		tick: Tick,
 		*,
 		search: bool = False,
-	) -> list[RuleFuncName]: ...
+	) -> _T: ...
+
+	def store(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		attrib: _T,
+		*,
+		planning: bool | None = None,
+		forward: bool | None = None,
+		loading: bool = False,
+		contra: bool | None = None,
+	) -> None:
+		self._store(
+			None,
+			rule,
+			branch,
+			turn,
+			tick,
+			attrib,
+			planning=planning,
+			forward=forward,
+			loading=loading,
+			contra=contra,
+		)
+
+
+class FuncListCache[_T: RuleFuncName](RuleAttribCache[_T], ABC):
+	functype: ClassVar[type]
+
+	def retrieve(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> list[_T]:
+		ret = self._retrieve(None, rule, branch, turn, tick, search=search)
+		if not isinstance(ret, list):
+			raise TypeError("Invalid rule function list", type(ret), ret)
+		return [self.functype(func) for func in ret]
 
 	def store(
 		self,
@@ -2979,6 +3021,11 @@ class FuncListCache(InitializedCache, ABC):
 		loading: bool = False,
 		contra: bool | None = None,
 	) -> None:
+		if not isinstance(funcs, list):
+			raise TypeError("Not a rule function list", funcs)
+		for func in funcs:
+			if not isinstance(func, str):
+				raise TypeError("Not a valid rule function name", func)
 		self._store(
 			None,
 			rule,
@@ -3044,55 +3091,19 @@ class FuncListCache(InitializedCache, ABC):
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
 
-class TriggerListCache(FuncListCache):
-	def retrieve(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		*,
-		search: bool = False,
-	) -> list[TriggerFuncName]:
-		ret = self._retrieve(None, rule, branch, turn, tick, search=search)
-		if not isinstance(ret, list):
-			raise TypeError("Invalid trigger func list", type(ret), ret)
-		return [TriggerFuncName(it) for it in ret]
+class TriggerListCache(FuncListCache[TriggerFuncName]):
+	functype = TriggerFuncName
 
 
-class PrereqListCache(FuncListCache):
-	def retrieve(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		*,
-		search: bool = False,
-	) -> list[PrereqFuncName]:
-		ret = self._retrieve(None, rule, branch, turn, tick, search=search)
-		if not isinstance(ret, list):
-			raise TypeError("Invalid prereq func list", type(ret), ret)
-		return [PrereqFuncName(it) for it in ret]
+class PrereqListCache(FuncListCache[PrereqFuncName]):
+	functype = PrereqFuncName
 
 
-class ActionListCache(FuncListCache):
-	def retrieve(
-		self,
-		rule: RuleName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		*,
-		search: bool = False,
-	) -> list[ActionFuncName]:
-		ret = self._retrieve(None, rule, branch, turn, tick, search=search)
-		if not isinstance(ret, list):
-			raise TypeError("Invalid action func list", type(ret), ret)
-		return [ActionFuncName(it) for it in ret]
+class ActionListCache(FuncListCache[ActionFuncName]):
+	functype = ActionFuncName
 
 
-class NeighborhoodsCache(InitializedCache):
+class NeighborhoodsCache(RuleAttribCache[RuleNeighborhood]):
 	initial_value = None
 
 	def store(
@@ -3108,6 +3119,10 @@ class NeighborhoodsCache(InitializedCache):
 		loading: bool = False,
 		contra: bool | None = None,
 	):
+		if neighborhood is not None and not isinstance(neighborhood, int):
+			raise TypeError("Invalid neighborhood", neighborhood)
+		elif neighborhood < 0:
+			raise ValueError("Neighborhoods can't be negative", neighborhood)
 		self._store(
 			Key(None),
 			rule,
@@ -3130,7 +3145,12 @@ class NeighborhoodsCache(InitializedCache):
 		*,
 		search: bool = False,
 	) -> RuleNeighborhood:
-		return self._retrieve(None, rule, branch, turn, tick, search=search)
+		ret = self._retrieve(None, rule, branch, turn, tick, search=search)
+		if ret is not None and not isinstance(ret, int):
+			raise TypeError("Invalid neighborhood cached", rule, ret)
+		elif ret < 0:
+			raise ValueError("Negative neighborhood cached", rule, ret)
+		return ret
 
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
@@ -3166,6 +3186,8 @@ class BignessCache(InitializedCache):
 		loading: bool = False,
 		contra: bool | None = None,
 	) -> None:
+		if not isinstance(big, bool):
+			raise TypeError("big must be boolean", big)
 		self._store(
 			None,
 			rule,
@@ -3188,7 +3210,10 @@ class BignessCache(InitializedCache):
 		*,
 		search: bool = False,
 	) -> RuleBig:
-		return self._retrieve(None, rule, branch, turn, tick, search=search)
+		ret = self._retrieve(None, rule, branch, turn, tick, search=search)
+		if not isinstance(ret, bool):
+			raise TypeError("Non-boolean value cached for rule.big", rule, ret)
+		return RuleBig(ret)
 
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
