@@ -610,7 +610,7 @@ class CharacterMappingMixin(MappingUnwrapper, ABC):
 
 
 class AbstractEntityMapping[_K, _V](
-	MutableMapping[_K, _V], MappingUnwrapper, ABC
+	MappingUnwrapper, MutableMapping[_K, _V], ABC
 ):
 	__slots__ = ()
 
