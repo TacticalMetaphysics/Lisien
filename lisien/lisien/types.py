@@ -4849,7 +4849,46 @@ def _default_kwargs_munger(self, k):
 	return {}
 
 
-class PickyDefaultDict[_K, _V](dict[_K, _V]):
+@define
+class AbstractPickyDefaultDict[_K, _V](dict[_K, _V]):
+	__slots__ = ()
+
+	@property
+	@abstractmethod
+	def value_type(self) -> type: ...
+
+	def args_munger(self, key: _K) -> tuple[_K, ...]:
+		return tuple()
+
+	def kwargs_munger(self, key: _K) -> dict[_K, _V]:
+		return {}
+
+	@cached_property
+	def _lock(self):
+		return RLock()
+
+	def __getitem__(self, k):
+		with self._lock:
+			if k in self:
+				return super().__getitem__(k)
+			ret = self[k] = self.value_type(
+				*self.args_munger(self, k), **self.kwargs_munger(self, k)
+			)
+			return ret
+
+	def __setitem__(self, k, v):
+		with self._lock:
+			if not isinstance(v, root_type(self.value_type)):
+				v = self.value_type(v)
+			super().__setitem__(k, v)
+
+
+def convert_subtype(subtyp: type) -> type:
+	return getattr(subtyp, "__supertype__", subtyp)
+
+
+@define
+class PickyDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 	"""A ``defaultdict`` alternative that requires values of a specific type.
 
 	Pass some type object (such as a class) to the constructor to
@@ -4862,73 +4901,25 @@ class PickyDefaultDict[_K, _V](dict[_K, _V]):
 
 	"""
 
-	__slots__ = [
-		"type",
-		"args_munger",
-		"kwargs_munger",
-		"parent",
-		"key",
-		"_lock",
-	]
-
-	def __init__(
-		self,
-		typ: type,
-		args_munger: Callable[
-			[Self, _K], tuple[_K, ...]
-		] = _default_args_munger,
-		kwargs_munger: Callable[
-			[Self, _K], dict[_K, _V]
-		] = _default_kwargs_munger,
-	):
-		typ = getattr(typ, "__supertype__", typ)
-		if not isinstance(typ, type):
-			raise TypeError("types only", type(typ))
-		self._lock = RLock()
-		self.type = typ
-		self.args_munger = args_munger
-		self.kwargs_munger = kwargs_munger
-
-	def __getitem__(self, k):
-		with self._lock:
-			if k in self:
-				return super(PickyDefaultDict, self).__getitem__(k)
-			ret = self[k] = self.type(
-				*self.args_munger(self, k), **self.kwargs_munger(self, k)
-			)
-			return ret
-
-	def _create(self, v):
-		return self.type(v)
-
-	def __setitem__(self, k, v):
-		with self._lock:
-			if not isinstance(v, root_type(self.type)):
-				v = self._create(v)
-			super(PickyDefaultDict, self).__setitem__(k, v)
+	__slots__ = ()
+	value_type: type[_V] = field(converter=convert_subtype)
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	parent: dict | None = None
+	key: _K | None = None
 
 
-class PickierDefaultDict[_K, _V](PickyDefaultDict[_K, _V]):
+@define
+class PickierDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 	"""So picky, even the keys need to be a certain type"""
 
-	__slots__ = ("key_type",)
-
-	def __init__(
-		self,
-		key_type: type,
-		value_type: type,
-		args_munger: Callable[
-			[Self, _K], tuple[_K, ...]
-		] = _default_args_munger,
-		kwargs_munger: Callable[
-			[Self, _K], dict[_K, _V]
-		] = _default_kwargs_munger,
-	):
-		key_type = getattr(key_type, "__supertype__", key_type)
-		if not isinstance(key_type, type):
-			raise TypeError("types only", type(key_type))
-		self.key_type = key_type
-		super().__init__(value_type, args_munger, kwargs_munger)
+	__slots__ = ()
+	key_type: type[_K] = field(converter=convert_subtype)
+	value_type: type[_V] = field(converter=convert_subtype)
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	parent: dict | None = None
+	key: _K | None = None
 
 	def __setitem__(self, key: _K, value: _V):
 		if not isinstance(key, self.key_type):
@@ -5007,7 +4998,7 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 				layer, typ, args_munger, kwargs_munger = self._stuff
 				if (
 					layer == 1
-					and v.type is typ
+					and v.value_type is typ
 					and v.args_munger is args_munger
 					and v.kwargs_munger is kwargs_munger
 				):
