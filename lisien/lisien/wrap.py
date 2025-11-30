@@ -681,7 +681,7 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 		]
 
 
-@define
+@define(eq=False)
 class SetWrapper(MutableWrapperSet):
 	"""A set synchronized with a serialized field.
 
