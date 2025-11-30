@@ -429,11 +429,6 @@ class Rule:
 		big: RuleBig = RuleBig(False),
 		create: bool = True,
 	):
-		"""Store the engine and my name, make myself a record in the database
-		if needed, and instantiate one FunList each for my triggers,
-		actions, and prereqs.
-
-		"""
 		self.engine = engine
 		name = RuleName(name)
 		self.name = name
