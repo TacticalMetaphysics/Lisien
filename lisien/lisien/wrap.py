@@ -347,15 +347,17 @@ class MutableWrapper(Collection, ABC):
 	def unwrap(self): ...
 
 
-class MutableWrapperDictList(MutableWrapper, ABC):
+class MutableWrapperDictList[_K, _V](MutableWrapper, ABC):
 	__slots__ = ()
 
-	def _subset(self, k, v):
+	def _subset(self, k: _K, v: _V) -> None:
 		new = self.__copy__()
 		new[k] = v
 		self._set(new)
 
-	def __getitem__(self, k):
+	def __getitem__(
+		self, k: _K
+	) -> _V | SubDictWrapper[_K, _V] | SubListWrapper[_V] | SubSetWrapper[_V]:
 		ret = self._getter()[k]
 		if isinstance(ret, dict):
 			return SubDictWrapper(
@@ -371,12 +373,12 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 			)
 		return ret
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: _K, value: _V) -> None:
 		me = self.__copy__()
 		me[key] = value
 		self._set(me)
 
-	def __delitem__(self, key):
+	def __delitem__(self, key: _K) -> None:
 		me = self.__copy__()
 		del me[key]
 		self._set(me)
@@ -411,7 +413,7 @@ class MappingUnwrapper[_K, _V](Mapping[_K, _V], ABC):
 @define(eq=False)
 class MutableMappingWrapper[_K, _V](
 	MappingUnwrapper[_K, _V],
-	MutableWrapperDictList,
+	MutableWrapperDictList[_K, _V],
 	MutableMapping[_K, _V],
 	ABC,
 ):
@@ -419,21 +421,23 @@ class MutableMappingWrapper[_K, _V](
 
 
 @define(eq=False)
-class SubDictWrapper(MutableMappingWrapper, dict):
+class SubDictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 	__slots__ = ()
-	_getter: Callable[[], dict]
-	_set: Callable[[dict], None]
+	_getter: Callable[[], dict[_K, _V]]
+	_set: Callable[[dict[_K, _V]], None]
 
 	def __copy__(self):
 		return dict(self._getter())
 
-	def _subset(self, k, v):
+	def _subset(self, k: _K, v: _V) -> None:
 		new = dict(self._getter())
 		new[k] = v
 		self._set(new)
 
 
-class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
+class MutableSequenceWrapper[_T](
+	MutableWrapperDictList[int, _T], MutableSequence[_T], ABC
+):
 	__slots__ = ()
 
 	def __eq__(self, other):
@@ -457,7 +461,7 @@ class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
 
 
 @define(eq=False)
-class SubListWrapper(MutableSequenceWrapper, list):
+class SubListWrapper[_T](MutableSequenceWrapper[_T], list[_T]):
 	__slots__ = ()
 	_getter: Callable[[], list]
 	_set: Callable[[list], None]
@@ -480,7 +484,7 @@ class SubListWrapper(MutableSequenceWrapper, list):
 
 
 @define(order=False, eq=False)
-class MutableWrapperSet(MutableWrapper, ABC, set):
+class MutableWrapperSet[_T](MutableWrapper, ABC, set[_T]):
 	__slots__ = ()
 
 	def __copy__(self):
@@ -572,10 +576,10 @@ class MutableWrapperSet(MutableWrapper, ABC, set):
 
 
 @define(eq=False)
-class SubSetWrapper(MutableWrapperSet):
+class SubSetWrapper[_T](MutableWrapperSet[_T]):
 	__slots__ = ()
-	_getter: Callable[[], set]
-	_set: Callable[[set], None]
+	_getter: Callable[[], set[_T]]
+	_set: Callable[[set[_T]], None]
 
 	def _copy(self):
 		return OrderlySet(self._getter())
@@ -623,7 +627,7 @@ class DictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 
 
 @define(eq=False)
-class ListWrapper[_T](MutableWrapperDictList, MutableSequence[_T]):
+class ListWrapper[_T](MutableWrapperDictList[int, _T], MutableSequence[_T]):
 	"""A list synchronized with a serialized field.
 
 	This is meant to be used in Lisien entities (graph, node, or
