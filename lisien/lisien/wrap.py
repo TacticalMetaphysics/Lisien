@@ -382,7 +382,7 @@ class MutableWrapperDictList(MutableWrapper, ABC):
 		self._set(me)
 
 
-class MappingUnwrapper(ABC):
+class MappingUnwrapper[_K, _V](Mapping[_K, _V], ABC):
 	__slots__ = ()
 
 	def __eq__(self, other):
@@ -412,8 +412,11 @@ class MappingUnwrapper(ABC):
 
 
 @define(eq=False)
-class MutableMappingWrapper(
-	MappingUnwrapper, MutableWrapperDictList, MutableMapping, ABC
+class MutableMappingWrapper[_K, _V](
+	MappingUnwrapper[_K, _V],
+	MutableWrapperDictList,
+	MutableMapping[_K, _V],
+	ABC,
 ):
 	__slots__ = ()
 

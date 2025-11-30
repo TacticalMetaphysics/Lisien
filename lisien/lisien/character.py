@@ -752,7 +752,9 @@ class Character(AbstractCharacter, RuleFollower):
 	pred_cls = PortalPredecessorsMapping
 
 	@define
-	class UnitGraphMapping(Mapping, CharacterMapping, RuleFollower):
+	class UnitGraphMapping(
+		CharacterMapping[CharName, Mapping[NodeName, Node]], RuleFollower
+	):
 		"""A mapping of other characters in which one has a unit."""
 
 		@define

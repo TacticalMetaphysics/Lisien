@@ -593,7 +593,7 @@ type CharacterRulebookTypeStr = Literal[
 
 
 @define(eq=False)
-class CharacterMapping(MappingUnwrapper, ABC):
+class CharacterMapping[_K, _V](MappingUnwrapper[_K, _V], ABC):
 	"""Common amenities for mappings in :class:`Character`"""
 
 	__slots__ = ()
