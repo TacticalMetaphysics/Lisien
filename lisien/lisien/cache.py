@@ -1452,7 +1452,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		settings_turns = settings[branch]
 		presettings_turns = presettings[branch]
 		prev = base_retrieve(
-			(entity, key, branch, turn, tick), store_hint=False
+			(*parent, entity, key, branch, turn, tick), store_hint=False
 		)
 		if isinstance(prev, KeyError):
 			prev = self.initial_value
