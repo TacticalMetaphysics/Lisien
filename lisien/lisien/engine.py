@@ -934,53 +934,53 @@ class Engine(AbstractEngine, Executor):
 
 	@cached_property
 	def _graph_cache(self) -> GraphCache:
-		return GraphCache(self, name="graph cache")
+		return GraphCache(self)
 
 	@cached_property
 	def _graph_val_cache(self) -> GraphValCache:
-		ret = GraphValCache(self, name="graph val cache")
+		ret = GraphValCache(self)
 		ret.setdb = self.db.graph_val_set
 		ret.deldb = self.db.graph_val_del_time
 		return ret
 
 	@cached_property
 	def _nodes_cache(self) -> NodesCache:
-		ret = NodesCache(self, name="nodes cache")
+		ret = NodesCache(self)
 		ret.setdb = self.db.exist_node
 		ret.deldb = self.db.nodes_del_time
 		return ret
 
 	@cached_property
 	def _edges_cache(self) -> EdgesCache:
-		ret = EdgesCache(self, name="edges cache")
+		ret = EdgesCache(self)
 		ret.setdb = self.db.exist_edge
 		ret.deldb = self.db.edges_del_time
 		return ret
 
 	@cached_property
 	def _node_val_cache(self) -> NodeValCache:
-		ret = NodeValCache(self, name="node val cache")
+		ret = NodeValCache(self)
 		ret.setdb = self.db.node_val_set
 		ret.deldb = self.db.node_val_del_time
 		return ret
 
 	@cached_property
 	def _edge_val_cache(self) -> EdgeValCache:
-		ret = EdgeValCache(self, name="edge val cache")
+		ret = EdgeValCache(self)
 		ret.setdb = self.db.edge_val_set
 		ret.deldb = self.db.edge_val_del_time
 		return ret
 
 	@cached_property
 	def _things_cache(self) -> ThingsCache:
-		ret = ThingsCache(self, name="things cache")
+		ret = ThingsCache(self)
 		ret.setdb = self.db.set_thing_loc
 		ret.deldb = self.db.things_del_time
 		return ret
 
 	@cached_property
 	def _node_contents_cache(self) -> NodeContentsCache:
-		return NodeContentsCache(self, name="node contents cache")
+		return NodeContentsCache(self)
 
 	@cached_property
 	def _neighbors_cache(self) -> SizedDict:
@@ -988,13 +988,13 @@ class Engine(AbstractEngine, Executor):
 
 	@cached_property
 	def _universal_cache(self) -> UniversalCache:
-		ret = UniversalCache(self, name="universal cache")
+		ret = UniversalCache(self)
 		ret.setdb = self.db.universal_set
 		return ret
 
 	@cached_property
 	def _rulebooks_cache(self) -> RulebooksCache:
-		ret = RulebooksCache(self, name="rulebooks cache")
+		ret = RulebooksCache(self)
 		ret.setdb = self.db.rulebook_set
 		return ret
 
@@ -1022,77 +1022,69 @@ class Engine(AbstractEngine, Executor):
 
 	@cached_property
 	def _nodes_rulebooks_cache(self) -> NodesRulebooksCache:
-		return NodesRulebooksCache(self, name="nodes rulebooks cache")
+		return NodesRulebooksCache(self)
 
 	@cached_property
 	def _portals_rulebooks_cache(self) -> PortalsRulebooksCache:
-		return PortalsRulebooksCache(self, name="portals rulebooks cache")
+		return PortalsRulebooksCache(self)
 
 	@cached_property
 	def _triggers_cache(self) -> TriggerListCache:
-		return TriggerListCache(self, name="triggers cache")
+		return TriggerListCache(self)
 
 	@cached_property
 	def _prereqs_cache(self) -> PrereqListCache:
-		return PrereqListCache(self, name="prereqs cache")
+		return PrereqListCache(self)
 
 	@cached_property
 	def _actions_cache(self) -> ActionListCache:
-		return ActionListCache(self, name="actions cache")
+		return ActionListCache(self)
 
 	@cached_property
 	def _neighborhoods_cache(self) -> NeighborhoodsCache:
-		return NeighborhoodsCache(self, name="neighborhoods cache")
+		return NeighborhoodsCache(self)
 
 	@cached_property
 	def _rule_bigness_cache(self) -> BignessCache:
-		return BignessCache(self, name="rule bigness cache")
+		return BignessCache(self)
 
 	@cached_property
 	def _node_rules_handled_cache(self) -> NodeRulesHandledCache:
-		return NodeRulesHandledCache(self, name="node rules handled cache")
+		return NodeRulesHandledCache(self)
 
 	@cached_property
 	def _portal_rules_handled_cache(self) -> PortalRulesHandledCache:
-		return PortalRulesHandledCache(self, name="portal rules handled cache")
+		return PortalRulesHandledCache(self)
 
 	@cached_property
 	def _character_rules_handled_cache(self) -> CharacterRulesHandledCache:
-		return CharacterRulesHandledCache(
-			self, name="character rules handled cache"
-		)
+		return CharacterRulesHandledCache(self)
 
 	@cached_property
 	def _unit_rules_handled_cache(self) -> UnitRulesHandledCache:
-		return UnitRulesHandledCache(self, name="unit rules handled cache")
+		return UnitRulesHandledCache(self)
 
 	@cached_property
 	def _character_thing_rules_handled_cache(
 		self,
 	) -> CharacterThingRulesHandledCache:
-		return CharacterThingRulesHandledCache(
-			self, name="character thing rules handled cache"
-		)
+		return CharacterThingRulesHandledCache(self)
 
 	@cached_property
 	def _character_place_rules_handled_cache(
 		self,
 	) -> CharacterPlaceRulesHandledCache:
-		return CharacterPlaceRulesHandledCache(
-			self, name="character place rules handled cache"
-		)
+		return CharacterPlaceRulesHandledCache(self)
 
 	@cached_property
 	def _character_portal_rules_handled_cache(
 		self,
 	) -> CharacterPortalRulesHandledCache:
-		return CharacterPortalRulesHandledCache(
-			self, name="character portal rules handled cache"
-		)
+		return CharacterPortalRulesHandledCache(self)
 
 	@cached_property
 	def _unitness_cache(self) -> UnitnessCache:
-		return UnitnessCache(self, name="unitness cache")
+		return UnitnessCache(self)
 
 	@cached_property
 	def _turns_completed_d(self) -> dict[Branch, Turn]:
