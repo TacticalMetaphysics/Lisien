@@ -81,7 +81,7 @@ from typing import (
 
 import networkx as nx
 from annotated_types import Ge, Le
-from attrs import Factory, define, field
+from attrs import Factory, define, field, validators
 from blinker import Signal, ANY
 from networkx import NetworkXError
 from tblib import Traceback
@@ -4936,6 +4936,7 @@ class PickierDefaultDict[_K, _V](PickyDefaultDict[_K, _V]):
 		super().__setitem__(key, value)
 
 
+@define
 class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 	"""A `defaultdict`-like class with values stored at a specific depth.
 
@@ -4946,42 +4947,24 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 
 	"""
 
-	__slots__ = (
-		"layer",
-		"type",
-		"args_munger",
-		"kwargs_munger",
-		"parent",
-		"key",
-		"_stuff",
-		"_lock",
-		"gettest",
-		"settest",
-	)
+	__slots__ = ()
 
-	def __init__(
-		self,
-		layers: int,
-		type: type = None,
-		args_munger: Callable[
-			[Self, _K], tuple[_K, ...]
-		] = _default_args_munger,
-		kwargs_munger: Callable[
-			[Self, _K], dict[_K, _V]
-		] = _default_kwargs_munger,
-		gettest: Callable[[_K], None] = lambda k: None,
-		settest: Callable[[_K, _V], None] = lambda k, v: None,
-	):
-		if layers < 1:
-			raise ValueError("Not enough layers")
-		self._lock = RLock()
-		self.layer = layers
-		self.type = type
-		self.args_munger = args_munger
-		self.kwargs_munger = kwargs_munger
-		self._stuff = (layers, type, args_munger, kwargs_munger)
-		self.gettest = gettest
-		self.settest = settest
+	layer: int = field(validator=validators.ge(1))
+	type: type | None = None
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	gettest: Callable[[_K], None] = lambda k: None
+	settest: Callable[[_K, _V], None] = lambda k, v: None
+	parent: StructuredDefaultDict | None = None
+	key: _K | None = None
+
+	@cached_property
+	def _lock(self):
+		return RLock()
+
+	@cached_property
+	def _stuff(self):
+		return self.layer, self.type, self.args_munger, self.kwargs_munger
 
 	def __getitem__(self, k: _K) -> _V:
 		with self._lock:
