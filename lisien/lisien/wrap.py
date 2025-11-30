@@ -315,7 +315,7 @@ class OrderlyFrozenSet(frozenset):
 		)
 
 
-@define
+@define(eq=False)
 class MutableWrapper(ABC):
 	__slots__ = ()
 
