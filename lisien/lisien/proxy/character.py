@@ -1483,16 +1483,20 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 							dest
 						] = rulebook
 		ruc = self.engine._character_rulebooks_cache[name]
-		if "character_rulebook" in delta:
-			ruc["character"] = delta.pop("character_rulebook")
-		if "unit_rulebook" in delta:
-			ruc["unit"] = delta.pop("unit_rulebook")
-		if "character_thing_rulebook" in delta:
-			ruc["thing"] = delta.pop("character_thing_rulebook")
-		if "character_place_rulebook" in delta:
-			ruc["place"] = delta.pop("character_place_rulebook")
-		if "character_portal_rulebook" in delta:
-			ruc["portal"] = delta.pop("character_portal_rulebook")
+		for delt_key, ruc_key in [
+			("character_rulebook", "character"),
+			("unit_rulebook", "unit"),
+			("character_thing_rulebook", "thing"),
+			("character_place_rulebook", "place"),
+			("character_portal_rulebook", "portal"),
+		]:
+			if delt_key in delta:
+				rb = delta.pop(delt_key)
+				if rb is ...:
+					if ruc_key in ruc:
+						del ruc[ruc_key]
+				else:
+					ruc[ruc_key] = rb
 		units = delta.pop("units", {})
 		unit_graphs = self.engine._character_units_cache[self.name]
 		for unit_graph in units:

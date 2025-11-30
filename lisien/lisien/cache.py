@@ -458,11 +458,20 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 			self.keycache,
 		)
 
+	def _retrieve_for_journal(
+		self,
+		args,
+		store_hint: bool = False,
+		retrieve_hint: bool = False,
+		search: bool = False,
+	):
+		return self._base_retrieve(args, store_hint, retrieve_hint, search)
+
 	@cached_property
 	def _store_journal_stuff(
 		self,
 	):
-		return (self.settings, self.presettings, self._base_retrieve)
+		return (self.settings, self.presettings, self._retrieve_for_journal)
 
 	def clear(self):
 		with self._lock:
@@ -2970,44 +2979,6 @@ class GraphCache(
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
 
-class InitializedCache[*_PARENT, _ENTITY, _KEY, _VALUE, _KEYFRAME](
-	Cache[*_PARENT, _ENTITY, _KEY, _VALUE, _KEYFRAME]
-):
-	__slots__ = ()
-
-	def _retrieve_for_journal(self, args):
-		return self._retrieve(*args[:-1])
-
-	def _store_journal(self, *args):
-		entity: _ENTITY
-		key: _KEY
-		branch: Branch
-		turn: Turn
-		tick: Tick
-		value: _VALUE
-		entity, key, branch, turn, tick, value = args[-6:]
-		parent: tuple[*_PARENT] = args[:-6]
-		settings_turns = self.settings[branch]
-		presettings_turns = self.presettings[branch]
-		try:
-			prev = self._retrieve_for_journal(args)
-		except KeyError:
-			prev = self.initial_value
-		if prev == value:
-			return  # not much point reporting on a non-change in a diff
-		if turn in settings_turns.future(turn, include_same_rev=True):
-			assert (
-				turn in presettings_turns or turn in presettings_turns.future()
-			)
-			setticks = settings_turns[turn]
-			presetticks = presettings_turns[turn]
-			presetticks[tick] = parent + (entity, key, prev)
-			setticks[tick] = parent + (entity, key, value)
-		else:
-			presettings_turns[turn] = {tick: parent + (entity, key, prev)}
-			settings_turns[turn] = {tick: parent + (entity, key, value)}
-
-
 class RulebooksCache(
 	Cache[
 		None,
@@ -3111,8 +3082,10 @@ class RulebooksCache(
 
 
 class RuleAttribCache[_T](
-	InitializedCache[None, RulebookName, _T, dict[RulebookName, _T]], ABC
+	Cache[None, RulebookName, _T, dict[RulebookName, _T]], ABC
 ):
+	overwrite_journal = True
+
 	@abstractmethod
 	def retrieve(
 		self,
@@ -3394,10 +3367,10 @@ class BignessCache(RuleAttribCache[RuleBig]):
 
 
 class NodesRulebooksCache(
-	InitializedCache[
-		CharName, NodeName, RulebookName, dict[NodeName, RulebookName]
-	]
+	Cache[CharName, NodeName, RulebookName, dict[NodeName, RulebookName]]
 ):
+	overwrite_journal = True
+
 	def get_keyframe(
 		self,
 		graph: CharName,
@@ -3470,12 +3443,9 @@ class NodesRulebooksCache(
 
 
 class CharactersRulebooksCache(
-	InitializedCache[
-		None, CharName, RulebookName, dict[CharName, RulebookName]
-	]
+	Cache[None, CharName, RulebookName, dict[CharName, RulebookName]]
 ):
-	def _retrieve_for_journal(self, args):
-		return self.retrieve(*args[1:-1])
+	overwrite_journal = True
 
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
@@ -3540,7 +3510,7 @@ class CharactersRulebooksCache(
 
 
 class PortalsRulebooksCache(
-	InitializedCache[
+	Cache[
 		CharName,
 		NodeName,
 		NodeName,
@@ -3548,6 +3518,8 @@ class PortalsRulebooksCache(
 		dict[NodeName, dict[NodeName, RulebookName]],
 	]
 ):
+	overwrite_journal = True
+
 	def store(
 		self,
 		char: CharName,
