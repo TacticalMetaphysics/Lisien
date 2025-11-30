@@ -39,7 +39,14 @@ from collections.abc import Mapping
 from functools import cached_property
 from itertools import chain
 from types import MethodType
-from typing import TYPE_CHECKING, Callable, Iterable, Iterator, ClassVar
+from typing import (
+	TYPE_CHECKING,
+	Callable,
+	Iterable,
+	Iterator,
+	ClassVar,
+	Literal,
+)
 
 import networkx as nx
 from attrs import define
@@ -758,7 +765,7 @@ class Character(AbstractCharacter, RuleFollower):
 		"""A mapping of other characters in which one has a unit."""
 
 		@define
-		class CharacterUnitMapping(Mapping):
+		class CharacterUnitMapping(Mapping[NodeName, Place | Thing]):
 			"""Mapping of units of one Character in another Character."""
 
 			__slots__ = ()
@@ -895,7 +902,7 @@ class Character(AbstractCharacter, RuleFollower):
 				pass
 			return n
 
-		def _get_char_unit_cache(self, g: CharName):
+		def _get_char_unit_cache(self, g: CharName) -> CharacterUnitMapping:
 			if g not in self:
 				raise KeyError
 			if g not in self._char_unit_cache:
@@ -1233,7 +1240,9 @@ class Character(AbstractCharacter, RuleFollower):
 		)
 		self.engine.db.unit_set(self.name, g, n, branch, turn, tick, False)
 
-	def historical(self, key: KeyHint) -> UnitsAlias | CharacterStatAlias:
+	def historical(
+		self, key: Stat | KeyHint | Literal["units"]
+	) -> UnitsAlias | CharacterStatAlias:
 		"""Get a historical view on the given stat
 
 		This functions like the value of the stat, but changes
