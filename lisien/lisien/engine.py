@@ -98,7 +98,6 @@ from .cache import (
 	PortalsRulebooksCache,
 	PrereqListCache,
 	RulebooksCache,
-	StructuredDefaultDict,
 	ThingsCache,
 	TriggerListCache,
 	TurnEndDict,
@@ -202,6 +201,7 @@ from .types import (
 	sort_set,
 	validate_time,
 	PickyDefaultDict,
+	StructuredDefaultDict,
 )
 from .util import (
 	ACTIONS,

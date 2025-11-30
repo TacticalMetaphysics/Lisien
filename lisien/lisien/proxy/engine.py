@@ -58,7 +58,6 @@ except ImportError:
 
 	Ext = msgpack.Ext
 
-from ..cache import StructuredDefaultDict
 from ..collections import (
 	AbstractLanguageDescriptor,
 	FunctionStore,
@@ -104,6 +103,7 @@ from ..types import (
 	Value,
 	ValueHint,
 	PickyDefaultDict,
+	StructuredDefaultDict,
 )
 from ..util import (
 	dedent_source,
