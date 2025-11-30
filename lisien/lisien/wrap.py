@@ -32,7 +32,7 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import chain, zip_longest
-from typing import Callable, Hashable, Set, TypeVar
+from typing import Callable, Hashable, Set, TypeVar, Any
 
 from attrs import define
 
@@ -595,7 +595,8 @@ def unwrap_items(it: Iterable[tuple[_U, _V]]) -> dict[_U, _V]:
 	return ret
 
 
-class DictWrapper(MutableMappingWrapper, dict):
+@define(eq=False)
+class DictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 	"""A dictionary synchronized with a serialized field.
 
 	This is meant to be used in Lisien entities (graph, node, or
@@ -603,14 +604,10 @@ class DictWrapper(MutableMappingWrapper, dict):
 
 	"""
 
-	__slots__ = ("_getter", "_outer", "_key")
-	_getter: Callable
-
-	def __init__(self, getter, outer, key):
-		super().__init__()
-		self._getter = getter
-		self._outer = outer
-		self._key = key
+	__slots__ = ()
+	_getter: Callable[[], dict[_K, _V]]
+	_outer: MutableMapping[_K, _V]
+	_key: _K
 
 	def __copy__(self):
 		return dict(self._getter())
