@@ -59,7 +59,7 @@ from .types import (
 	ValueHint,
 )
 from .util import getatt, print_call_sig, timer
-from .wrap import MappingUnwrapperMixin
+from .wrap import MappingUnwrapper
 
 if TYPE_CHECKING:
 	from .engine import Engine
@@ -171,7 +171,7 @@ getname = attrgetter("name")
 
 
 class FacadeEntityMapping[_NAME: Key, _CLS: Node | Edge | DiGraph](
-	MutableMapping[_NAME, _CLS], Signal, MappingUnwrapperMixin, ABC
+	MutableMapping[_NAME, _CLS], Signal, MappingUnwrapper, ABC
 ):
 	"""Mapping that contains entities in a Facade.
 
@@ -1138,7 +1138,7 @@ class CharacterFacade(AbstractCharacter):
 	def pred(self) -> PortalPredecessorsMapping:
 		return self.PortalPredecessorsMapping(self)
 
-	class StatMapping(MutableMapping, Signal, MappingUnwrapperMixin):
+	class StatMapping(MutableMapping, Signal, MappingUnwrapper):
 		def __init__(self, character):
 			super().__init__()
 			self.character = character
