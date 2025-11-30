@@ -166,7 +166,7 @@ def is_valid_value(obj: Any) -> TypeGuard[Value]:
 				and is_valid_value(v)
 				for orig in obj.adj
 				for dest in obj.adj[orig]
-				for (k, v, *_) in obj.adj[orig][dest]
+				for (k, v) in obj.adj[orig][dest].items()
 			)
 		)
 		or (
