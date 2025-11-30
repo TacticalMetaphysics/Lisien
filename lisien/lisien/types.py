@@ -593,7 +593,7 @@ type CharacterRulebookTypeStr = Literal[
 
 
 @define
-class CharacterMappingMixin(MappingUnwrapper, ABC):
+class CharacterMapping(MappingUnwrapper, ABC):
 	"""Common amenities for mappings in :class:`Character`"""
 
 	__slots__ = ()
@@ -1278,7 +1278,7 @@ class Edge(AbstractEntityMapping, ABC):
 
 
 @define(eq=False)
-class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
+class GraphNodeMapping(MutableMapping, Signal, CharacterMapping, ABC):
 	"""Mapping for nodes in a graph"""
 
 	character: Character
@@ -1447,7 +1447,7 @@ class GraphNodeMapping(MutableMapping, Signal, CharacterMappingMixin, ABC):
 class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 	MutableMapping[_ORIG, _DEST],
 	Signal,
-	CharacterMappingMixin,
+	CharacterMapping,
 	ABC,
 ):
 	"""Provides an adjacency mapping and possibly a predecessor mapping
@@ -3282,7 +3282,7 @@ class AbstractEngine(ABC):
 
 
 class BaseMutableCharacterMapping[_KT, _VT](
-	MutableMapping[_KT, _VT], CharacterMappingMixin, ABC
+	MutableMapping[_KT, _VT], CharacterMapping, ABC
 ): ...
 
 
