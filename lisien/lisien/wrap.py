@@ -484,7 +484,7 @@ class SubListWrapper[_T](MutableSequenceWrapper[_T], list[_T]):
 
 
 @define(order=False, eq=False)
-class MutableWrapperSet[_T](MutableWrapper, ABC, set[_T]):
+class MutableWrapperSet[_T](MutableWrapper, OrderlySet[_T], ABC):
 	__slots__ = ()
 
 	def __copy__(self):
