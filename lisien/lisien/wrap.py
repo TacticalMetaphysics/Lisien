@@ -411,6 +411,7 @@ class MappingUnwrapper(ABC):
 		return unwrap_items(self.items())
 
 
+@define(eq=False)
 class MutableMappingWrapper(
 	MutableWrapperDictList, MappingUnwrapper, MutableMapping, ABC
 ):
