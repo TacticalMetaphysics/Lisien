@@ -623,7 +623,7 @@ class DictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 
 
 @define(eq=False)
-class ListWrapper(MutableWrapperDictList, MutableSequence):
+class ListWrapper[_T](MutableWrapperDictList, MutableSequence[_T]):
 	"""A list synchronized with a serialized field.
 
 	This is meant to be used in Lisien entities (graph, node, or
@@ -633,7 +633,7 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 
 	__slots__ = ()
 
-	_getter: Callable[[], list]
+	_getter: Callable[[], list[_T]]
 	_outer: MutableMapping
 	_key: Hashable
 
@@ -679,7 +679,7 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 
 
 @define(eq=False)
-class SetWrapper(MutableWrapperSet):
+class SetWrapper[_T](MutableWrapperSet[_T]):
 	"""A set synchronized with a serialized field.
 
 	This is meant to be used in Lisien entities (graph, node, or
@@ -696,7 +696,7 @@ class SetWrapper(MutableWrapperSet):
 		self._outer[self._key] = v
 
 
-class UnwrappingDict(dict):
+class UnwrappingDict[_K, _V](dict[_K, _V]):
 	"""Dict that stores the data from the wrapper classes
 
 	Won't store those objects themselves.
