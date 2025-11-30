@@ -171,7 +171,7 @@ getname = attrgetter("name")
 
 
 class FacadeEntityMapping[_NAME: Key, _CLS: Node | Edge | DiGraph](
-	MutableMapping[_NAME, _CLS], Signal, MappingUnwrapper, ABC
+	MappingUnwrapper[_NAME, _CLS], MutableMapping[_NAME, _CLS], Signal, ABC
 ):
 	"""Mapping that contains entities in a Facade.
 
@@ -1138,7 +1138,9 @@ class CharacterFacade(AbstractCharacter):
 	def pred(self) -> PortalPredecessorsMapping:
 		return self.PortalPredecessorsMapping(self)
 
-	class StatMapping(MutableMapping, Signal, MappingUnwrapper):
+	class StatMapping(
+		MappingUnwrapper[Stat, Value], MutableMapping[Stat, Value], Signal
+	):
 		def __init__(self, character):
 			super().__init__()
 			self.character = character
