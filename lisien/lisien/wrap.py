@@ -417,12 +417,8 @@ class MappingUnwrapper(ABC):
 		return unwrap_items(self.items())
 
 
-class MutableMappingUnwrapper(MutableMapping, MappingUnwrapper, ABC):
-	__slots__ = ()
-
-
 class MutableMappingWrapper(
-	MutableWrapperDictList, MutableMappingUnwrapper, MappingUnwrapper, ABC
+	MutableWrapperDictList, MappingUnwrapper, MutableMapping, ABC
 ):
 	__slots__ = ()
 
