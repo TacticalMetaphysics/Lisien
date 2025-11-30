@@ -2999,8 +2999,13 @@ class FuncListCache(InitializedCache, ABC):
 		tick: Tick,
 		*,
 		forward: bool | None = None,
-	) -> Iterator[Key]:
-		return self._iter_entities_or_keys(branch, turn, tick, forward=forward)
+	) -> Iterator[RuleName]:
+		for rule in self._iter_entities_or_keys(
+			branch, turn, tick, forward=forward
+		):
+			if not isinstance(rule, str):
+				raise TypeError("Invalid rule name", rule)
+			yield RuleName(rule)
 
 	iter_rules = iter_keys
 
