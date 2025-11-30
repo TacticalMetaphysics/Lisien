@@ -277,7 +277,6 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 	"""A data store that's useful for tracking graph revisions."""
 
 	name: str
-	set_keyframe: Callable
 	initial_value = ...
 
 	@abstractmethod
@@ -1859,7 +1858,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		)
 
 
-class GraphValCache(Cache[CharName, Stat, Value, dict]):
+class GraphValCache(Cache[CharName, Stat, Value, dict[Stat, Value]]):
 	def get_keyframe(
 		self,
 		graph: CharName,
@@ -2128,7 +2127,9 @@ class NodesCache(Cache[CharName, NodeName, bool, dict[NodeName, bool]]):
 		self._set_keyframe((graph,), branch, turn, tick, keyframe)
 
 
-class NodeValCache(Cache[CharName, NodeName, Stat, Value, dict]):
+class NodeValCache(
+	Cache[CharName, NodeName, Stat, Value, dict[NodeName, dict[Stat, Value]]]
+):
 	def get_keyframe(
 		self,
 		graph: CharName,
@@ -2661,7 +2662,16 @@ class EdgesCache(
 		)
 
 
-class EdgeValCache(Cache[CharName, NodeName, NodeName, Stat, Value]):
+class EdgeValCache(
+	Cache[
+		CharName,
+		NodeName,
+		NodeName,
+		Stat,
+		Value,
+		dict[NodeName, dict[NodeName, dict[Stat, Value]]],
+	]
+):
 	def store(
 		self,
 		graph: CharName,
@@ -2791,8 +2801,6 @@ class EdgeValCache(Cache[CharName, NodeName, NodeName, Stat, Value]):
 class EntitylessCache[_ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 	Cache[_ENTITY, _KEY, _VALUE, _KEYFRAME]
 ):
-	__slots__ = ()
-
 	def store(
 		self,
 		key: _KEY,
