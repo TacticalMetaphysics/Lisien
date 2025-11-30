@@ -32,7 +32,7 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import chain, zip_longest
-from typing import Callable, Hashable, Set, TypeVar, Any
+from typing import Callable, Hashable, Set, TypeVar
 
 from attrs import define
 
@@ -463,55 +463,58 @@ class MutableSequenceWrapper[_T](
 @define(eq=False)
 class SubListWrapper[_T](MutableSequenceWrapper[_T], list[_T]):
 	__slots__ = ()
-	_getter: Callable[[], list]
-	_set: Callable[[list], None]
+	_getter: Callable[[], list[_T]]
+	_set: Callable[[list[_T]], None]
 
-	def __copy__(self):
+	def __copy__(self) -> list[_T]:
 		return list(self._getter())
 
-	def insert(self, index, object):
+	def insert(self, index: int, object) -> None:
 		me = self.__copy__()
 		me.insert(index, object)
 		self._set(me)
 
-	def append(self, object):
+	def append(self, object) -> None:
 		me = self.__copy__()
 		me.append(object)
 		self._set(me)
 
-	def unwrap(self):
+	def unwrap(self) -> list[_T]:
 		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
+
+
+_U = TypeVar("_U")
 
 
 @define(order=False, eq=False)
 class MutableWrapperSet[_T](MutableWrapper, OrderlySet[_T], ABC):
 	__slots__ = ()
 
-	def __copy__(self):
+	def __copy__(self) -> OrderlySet[_T]:
 		return OrderlySet(self._getter())
 
-	def pop(self):
+	def pop(self) -> _T:
 		me = self.__copy__()
 		yours = me.pop()
 		self._set(me)
 		return yours
 
-	def discard(self, element):
+	def discard(self, element: _T) -> None:
 		me = self.__copy__()
 		me.discard(element)
 		self._set(me)
 
-	def remove(self, element):
+	def remove(self, element: _T) -> None:
 		me = self.__copy__()
 		me.remove(element)
 		self._set(me)
 
-	def add(self, element):
+	def add(self, element: _T) -> None:
 		me = self.__copy__()
 		me.add(element)
 		self._set(me)
 
-	def unwrap(self):
+	def unwrap(self) -> OrderlySet[_T]:
 		"""Deep copy myself as a set, all contents unwrapped"""
 		unwrapped = OrderlySet()
 		for v in self:
@@ -521,57 +524,57 @@ class MutableWrapperSet[_T](MutableWrapper, OrderlySet[_T], ABC):
 				unwrapped.add(v)
 		return unwrapped
 
-	def clear(self):
+	def clear(self) -> None:
 		self._set(OrderlySet())
 
-	def __ior__(self, it):
+	def __ior__(self, it: Set) -> None:
 		me = self.__copy__()
 		me |= it
 		self._set(me)
 
-	def __iand__(self, it):
+	def __iand__(self, it: Set) -> None:
 		me = self.__copy__()
 		me &= it
 		self._set(me)
 
-	def __ixor__(self, it):
+	def __ixor__(self, it: Set) -> None:
 		me = self.__copy__()
 		me ^= it
 		self._set(me)
 
-	def __isub__(self, it):
+	def __isub__(self, it: Set) -> None:
 		me = self.__copy__()
 		me -= it
 		self._set(me)
 
-	def __le__(self, other):
+	def __le__(self, other: Set) -> bool:
 		return self._getter() <= other
 
-	def __lt__(self, other):
+	def __lt__(self, other: Set) -> bool:
 		return self._getter() < other
 
-	def __gt__(self, other):
+	def __gt__(self, other: Set) -> bool:
 		return self._getter() > other
 
-	def __ge__(self, other):
+	def __ge__(self, other: Set) -> bool:
 		return self._getter() >= other
 
-	def __and__(self, other):
+	def __and__(self, other: Set[_U]) -> OrderlySet[_T | _U]:
 		return OrderlySet(self._getter() & other)
 
-	def __or__(self, other):
+	def __or__(self, other: Set[_U]) -> OrderlySet[_T | _U]:
 		return OrderlySet(self._getter() | other)
 
-	def __sub__(self, other):
+	def __sub__(self, other: Set) -> OrderlySet[_T]:
 		return OrderlySet(self._getter() - other)
 
-	def __xor__(self, other):
+	def __xor__(self, other: Set[_U]) -> OrderlySet[_T | _U]:
 		return OrderlySet(self._getter() ^ other)
 
-	def __eq__(self, other):
+	def __eq__(self, other: Set) -> bool:
 		return self._getter() == other
 
-	def isdisjoint(self, other):
+	def isdisjoint(self, other: Set) -> bool:
 		return self._getter().isdisjoint(other)
 
 
@@ -581,11 +584,10 @@ class SubSetWrapper[_T](MutableWrapperSet[_T]):
 	_getter: Callable[[], set[_T]]
 	_set: Callable[[set[_T]], None]
 
-	def _copy(self):
+	def _copy(self) -> OrderlySet[_T]:
 		return OrderlySet(self._getter())
 
 
-_U = TypeVar("_U")
 _V = TypeVar("_V")
 
 
@@ -641,7 +643,7 @@ class ListWrapper[_T](MutableWrapperDictList[int, _T], MutableSequence[_T]):
 	_outer: MutableMapping
 	_key: Hashable
 
-	def __eq__(self, other):
+	def __eq__(self, other: Sequence) -> bool:
 		if self is other:
 			return True
 		if not isinstance(other, Sequence):
@@ -656,23 +658,23 @@ class ListWrapper[_T](MutableWrapperDictList[int, _T], MutableSequence[_T]):
 		else:
 			return True
 
-	def __copy__(self):
+	def __copy__(self) -> list[_T]:
 		return list(self._getter())
 
-	def _set(self, v):
+	def _set(self, v: list[_T]) -> None:
 		self._outer[self._key] = v
 
-	def insert(self, i, v):
+	def insert(self, i: int, v: _T) -> None:
 		new = self.__copy__()
 		new.insert(i, v)
 		self._set(new)
 
-	def append(self, v):
+	def append(self, v: _T) -> None:
 		new = self.__copy__()
 		new.append(v)
 		self._set(new)
 
-	def unwrap(self):
+	def unwrap(self) -> list[_T]:
 		"""Deep copy myself as a list, with all contents unwrapped"""
 		return [
 			v.unwrap()
@@ -696,7 +698,7 @@ class SetWrapper[_T](MutableWrapperSet[_T]):
 	_outer: MutableMapping
 	_key: Hashable
 
-	def _set(self, v):
+	def _set(self, v: Set[_T]) -> None:
 		self._outer[self._key] = v
 
 
@@ -707,7 +709,7 @@ class UnwrappingDict[_K, _V](dict[_K, _V]):
 
 	"""
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: _K, value: _V) -> None:
 		if isinstance(value, MutableWrapper):
 			value = value.unwrap()
 		super(UnwrappingDict, self).__setitem__(key, value)
