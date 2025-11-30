@@ -1278,7 +1278,9 @@ class Edge(AbstractEntityMapping, ABC):
 
 
 @define(eq=False)
-class GraphNodeMapping(MutableMapping, Signal, CharacterMapping, ABC):
+class GraphNodeMapping[_K, _V](
+	CharacterMapping[_K, _V], MutableMapping[_K, _V], Signal, ABC
+):
 	"""Mapping for nodes in a graph"""
 
 	character: Character
