@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import builtins
-from contextlib import contextmanager
 import operator
 import os
 import weakref
@@ -74,9 +73,6 @@ from typing import (
 	get_origin,
 	override,
 	Self,
-	ClassVar,
-	Generator,
-	Coroutine,
 )
 
 import networkx as nx
@@ -2360,7 +2356,7 @@ class get_rando:
 		return remembering_rando_state
 
 
-class SignalDict(Signal, dict):
+class SignalDict[_K, _V](Signal, dict[_K, _V]):
 	def __setitem__(self, __key, __value):
 		super().__setitem__(__key, __value)
 		self.send(self, key=__key, value=__value)
@@ -2552,7 +2548,7 @@ class EntityStatAccessor(EntityAccessor):
 		return self.entity[self.stat]
 
 
-class SizedDict(OrderedDict):
+class SizedDict[_K, _V](OrderedDict[_K, _V]):
 	"""A dictionary that discards old entries when it gets too big."""
 
 	def __init__(self, max_entries: Annotated[int, Ge(0)] = 1000):
@@ -2573,7 +2569,7 @@ class FakeFuture(Future):
 		self.set_result(func(*args, **kwargs))
 
 
-class AbstractBookmarkMapping(MutableMapping, Callable):
+class AbstractBookmarkMapping(MutableMapping[KeyHint, Time], Callable):
 	@abstractmethod
 	def __call__(self, key: KeyHint) -> None: ...
 
