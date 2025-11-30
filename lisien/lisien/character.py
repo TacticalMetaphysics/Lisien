@@ -38,7 +38,6 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from functools import cached_property
 from itertools import chain
-from types import MethodType
 from typing import (
 	TYPE_CHECKING,
 	Callable,
@@ -50,7 +49,6 @@ from typing import (
 
 import networkx as nx
 from attrs import define
-from blinker import Signal
 
 from .exc import WorldIntegrityError
 from .facade import CharacterFacade, EngineFacade
@@ -78,8 +76,6 @@ from .types import (
 	StatDict,
 	ThingDict,
 	Tick,
-	Time,
-	TimeSignal,
 	Turn,
 	UnitsAlias,
 	Value,
