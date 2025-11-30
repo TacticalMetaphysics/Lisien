@@ -455,7 +455,7 @@ class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
 		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
 
-@define
+@define(eq=False)
 class SubListWrapper(MutableSequenceWrapper, list):
 	__slots__ = ()
 	_getter: Callable[[], list]
