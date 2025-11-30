@@ -567,26 +567,6 @@ class Cache:
 				if branch in childbranch:
 					branch2do.extend(childbranch[branch])
 
-	def _valcache_lookup(
-		self, cache: dict, branch: Branch, turn: Turn, tick: Tick
-	):
-		"""Return the value at the given time in ``cache``"""
-		for b, r, t in self.engine._iter_parent_btt(branch, turn, tick):
-			if b in cache:
-				if r in cache[b] and cache[b][r].rev_gettable(t):
-					try:
-						return cache[b][r][t]
-					except HistoricKeyError as ex:
-						if ex.deleted:
-							raise
-				elif cache[b].rev_gettable(r - 1):
-					cbr = cache[b][r - 1]
-					try:
-						return cbr.final()
-					except HistoricKeyError as ex:
-						if ex.deleted:
-							raise
-
 	def _get_keycachelike(
 		self,
 		keycache: dict,
@@ -1054,36 +1034,6 @@ class Cache:
 			self_time_entity[branch, turn, tick] = parent, entity, key
 			if not loading:
 				update_keycache(*args, forward=forward)
-
-	def remove_character(self, character):
-		(
-			lock,
-			time_entity,
-			parents,
-			branches,
-			keys,
-			settings,
-			presettings,
-			remove_keycache,
-			keycache,
-		) = self._remove_stuff
-		todel = {
-			(branch, turn, tick, parent, entity, key)
-			for (
-				(branch, turn, tick),
-				(parent, entity, key),
-			) in time_entity.items()
-			if (parent and parent[0] == character)
-			or (not parent and entity == character)
-		}
-		todel_shallow = {k for k in self.shallowest if k[0] == character}
-		with lock:
-			for k in todel_shallow:
-				del self.shallowest[k]
-			for branch, turn, tick, parent, entity, key in todel:
-				self._remove_btt_parentikey(
-					branch, turn, tick, parent, entity, key
-				)
 
 	def remove_branch(self, branch: str):
 		(
@@ -3904,20 +3854,6 @@ class UnitnessCache(Cache):
 		self.dict_cache.set_keyframe(character, branch, turn, tick, keyframe)
 		for graph, kf in keyframe.items():
 			self._set_keyframe((character, graph), branch, turn, tick, kf)
-
-	def get_keyframe(
-		self,
-		character: CharName,
-		graph: CharName,
-		branch: Branch,
-		turn: Turn,
-		tick: Tick,
-		copy: bool = True,
-	) -> dict[NodeName, bool]:
-		ret = self._get_keyframe((character, graph), branch, turn, tick)
-		if copy:
-			ret = ret.copy()
-		return ret
 
 	def contains_graph(
 		self,
