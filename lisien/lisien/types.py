@@ -1277,27 +1277,32 @@ class Edge(AbstractEntityMapping, ABC):
 		store(graphn, orig, dest, key, branch, turn, tick, value)
 
 
-@define(eq=False)
-class GraphNodeMapping[_K, _V](
-	CharacterMapping[_K, _V], MutableMapping[_K, _V], Signal, ABC
-):
-	"""Mapping for nodes in a graph"""
-
-	character: Character
-	is_muted: bool = field(default=False)
+class AttrSignal(Signal):
+	is_muted: bool = field(default=False, kw_only=True)
 	receivers: dict[
 		Any, weakref.ref[Callable[..., Any]] | Callable[..., Any]
-	] = field(factory=dict)
+	] = field(factory=dict, kw_only=True)
 	_by_receiver: dict[Any, set] = field(
 		default=Factory(
 			lambda self: defaultdict(self.set_class), takes_self=True
-		)
+		),
+		kw_only=True,
 	)
 	_by_sender: dict[Any, set] = field(
 		default=Factory(
 			lambda self: defaultdict(self.set_class), takes_self=True
-		)
+		),
+		kw_only=True,
 	)
+
+
+@define(eq=False)
+class GraphNodeMapping[_K, _V](
+	CharacterMapping[_K, _V], MutableMapping[_K, _V], AttrSignal, ABC
+):
+	"""Mapping for nodes in a graph"""
+
+	character: Character
 
 	@cached_property
 	def engine(self) -> Engine:
