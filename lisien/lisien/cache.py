@@ -2952,8 +2952,19 @@ class RulebooksCache(Cache):
 		)
 
 
-class FuncListCache(InitializedCache):
+class FuncListCache(InitializedCache, ABC):
 	functype: ClassVar[type]
+
+	@abstractmethod
+	def retrieve(
+		self,
+		rule: RuleName,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		search: bool = False,
+	) -> list[RuleFuncName]: ...
 
 	def store(
 		self,
@@ -3031,14 +3042,14 @@ class FuncListCache(InitializedCache):
 class TriggerListCache(FuncListCache):
 	def retrieve(
 		self,
-		rulebook: RuleName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		*,
 		search: bool = False,
 	) -> list[TriggerFuncName]:
-		ret = self._retrieve(None, rulebook, branch, turn, tick, search=search)
+		ret = self._retrieve(None, rule, branch, turn, tick, search=search)
 		if not isinstance(ret, list):
 			raise TypeError("Invalid trigger func list", type(ret), ret)
 		return [TriggerFuncName(it) for it in ret]
@@ -3047,14 +3058,14 @@ class TriggerListCache(FuncListCache):
 class PrereqListCache(FuncListCache):
 	def retrieve(
 		self,
-		rulebook: RuleName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		*,
 		search: bool = False,
 	) -> list[PrereqFuncName]:
-		ret = self._retrieve(None, rulebook, branch, turn, tick, search=search)
+		ret = self._retrieve(None, rule, branch, turn, tick, search=search)
 		if not isinstance(ret, list):
 			raise TypeError("Invalid prereq func list", type(ret), ret)
 		return [PrereqFuncName(it) for it in ret]
@@ -3063,14 +3074,14 @@ class PrereqListCache(FuncListCache):
 class ActionListCache(FuncListCache):
 	def retrieve(
 		self,
-		rulebook: RuleName,
+		rule: RuleName,
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
 		*,
 		search: bool = False,
 	) -> list[ActionFuncName]:
-		ret = self._retrieve(None, rulebook, branch, turn, tick, search=search)
+		ret = self._retrieve(None, rule, branch, turn, tick, search=search)
 		if not isinstance(ret, list):
 			raise TypeError("Invalid action func list", type(ret), ret)
 		return [ActionFuncName(it) for it in ret]
