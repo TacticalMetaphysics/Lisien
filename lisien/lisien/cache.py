@@ -2981,6 +2981,18 @@ class FuncListCache(InitializedCache):
 			contra=contra,
 		)
 
+	def iter_keys(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		*,
+		forward: bool | None = None,
+	) -> Iterator[Key]:
+		return self._iter_entities_or_keys(branch, turn, tick, forward=forward)
+
+	iter_rules = iter_keys
+
 	def contains_rule(
 		self,
 		rulebook: RuleName,
