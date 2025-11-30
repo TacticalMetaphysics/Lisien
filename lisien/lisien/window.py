@@ -769,7 +769,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 			return False
 		return rev >= beg
 
-	def rev_before(self, rev: _K, search=False) -> int | None:
+	def rev_before(self, rev: _K, search=False) -> _K | None:
 		"""Return the latest past rev on which the value changed.
 
 		If it changed on this exact rev, return the rev.
@@ -788,7 +788,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 				else:
 					return None
 
-	def rev_after(self, rev: _K) -> int | None:
+	def rev_after(self, rev: _K) -> _K | None:
 		"""Return the earliest future rev on which the value will change."""
 		with self._lock:
 			self._seek(rev)
@@ -797,7 +797,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 			else:
 				return None
 
-	def initial(self) -> _K:
+	def initial(self) -> _V:
 		"""Return the earliest value we have"""
 		with self._lock:
 			if self._past:
@@ -806,7 +806,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 				return self._future[-1][1]
 			raise KeyError("No data")
 
-	def final(self) -> _K:
+	def final(self) -> _V:
 		"""Return the latest value we have"""
 		with self._lock:
 			if self._future:
@@ -1251,6 +1251,9 @@ class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 					data[k] = self.cls(v)
 		super().__init__(data)
 
+	def __getitem__(self, turn: Turn) -> WindowDict[Tick, _VV]:
+		return super().__getitem__(turn)
+
 	def __setitem__(self, turn: Turn, value: cls | dict) -> None:
 		if not isinstance(value, self.cls):
 			value = self.cls(value)
@@ -1319,6 +1322,6 @@ class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 		return SettingsTimes(self, time_from, time_to, reverse)
 
 
-class EntikeySettingsTurnDict(AssignmentTimeDict):
+class EntikeySettingsTurnDict[_T](AssignmentTimeDict[_T]):
 	__slots__ = ()
 	cls = EntikeyWindowDict
