@@ -85,7 +85,7 @@ from .cache import (
 	CharacterThingRulesHandledCache,
 	EdgesCache,
 	EdgeValCache,
-	EntitylessCache,
+	UniversalCache,
 	GraphCache,
 	GraphValCache,
 	NeighborhoodsCache,
@@ -987,8 +987,8 @@ class Engine(AbstractEngine, Executor):
 		return SizedDict()
 
 	@cached_property
-	def _universal_cache(self) -> EntitylessCache:
-		ret = EntitylessCache(self, name="universal cache")
+	def _universal_cache(self) -> UniversalCache:
+		ret = UniversalCache(self, name="universal cache")
 		ret.setdb = self.db.universal_set
 		return ret
 
