@@ -58,7 +58,7 @@ from .types import (
 	Branch,
 	CharacterStatAlias,
 	CharName,
-	CharacterMappingMixin,
+	CharacterMapping,
 	DiGraphPredecessorsMapping,
 	DiGraphSuccessorsMapping,
 	GraphNodeMapping,
@@ -752,7 +752,7 @@ class Character(AbstractCharacter, RuleFollower):
 	pred_cls = PortalPredecessorsMapping
 
 	@define
-	class UnitGraphMapping(Mapping, CharacterMappingMixin, RuleFollower):
+	class UnitGraphMapping(Mapping, CharacterMapping, RuleFollower):
 		"""A mapping of other characters in which one has a unit."""
 
 		@define
