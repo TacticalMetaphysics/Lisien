@@ -592,7 +592,7 @@ type CharacterRulebookTypeStr = Literal[
 ]
 
 
-@define
+@define(eq=False)
 class CharacterMapping(MappingUnwrapper, ABC):
 	"""Common amenities for mappings in :class:`Character`"""
 
