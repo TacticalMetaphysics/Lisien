@@ -504,6 +504,8 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 class Engine(AbstractEngine, Executor):
 	"""Lisien, the Life Simulator Engine."""
 
+	is_proxy: ClassVar = False
+
 	@staticmethod
 	def _convert_prefix(prefix):
 		if prefix is None:
@@ -5787,28 +5789,6 @@ class Engine(AbstractEngine, Executor):
 		if hasattr(self, "_executor"):
 			self._executor.lock.release()
 		self._closed = True
-
-	def __enter__(self):
-		"""Return myself. For compatibility with ``with`` semantics."""
-		return self
-
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		try:
-			super().__exit__(exc_type, exc_val, exc_tb)
-			self.close()
-		except Exception as ex:
-			if exc_val:
-				raise ExceptionGroup(
-					"Multiple exceptions during lisien.Engine.__exit__",
-					(
-						ex,
-						exc_val,
-					),
-				)
-			raise
-		finally:
-			if exc_val:
-				raise exc_val
 
 	def _handled_char(
 		self,

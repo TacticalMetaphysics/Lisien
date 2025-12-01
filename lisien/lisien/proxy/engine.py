@@ -33,6 +33,7 @@ from types import MethodType
 from typing import (
 	Any,
 	Callable,
+	ClassVar,
 	Iterable,
 	Iterator,
 	Literal,
@@ -142,7 +143,9 @@ class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
 		del self.data[key]
 
 
-EngineProxyCallback = Callable[[str, Branch, Turn, Tick, Value], Any]
+EngineProxyCallback = Callable[
+	[str, Branch, Turn, Tick, tuple[ValueHint, ...]], Any
+]
 
 
 class EngineProxy(AbstractEngine):
@@ -153,18 +156,11 @@ class EngineProxy(AbstractEngine):
 
 	"""
 
-	char_cls = CharacterProxy
-	thing_cls = ThingProxy
-	place_cls = PlaceProxy
-	portal_cls = PortalProxy
-	time = TimeSignalDescriptor()
-	is_proxy = True
-
-	def __enter__(self):
-		return self
-
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.close()
+	char_cls: ClassVar = CharacterProxy
+	thing_cls: ClassVar = ThingProxy
+	place_cls: ClassVar = PlaceProxy
+	portal_cls: ClassVar = PortalProxy
+	is_proxy: ClassVar = True
 
 	def _get_node(
 		self, char: AbstractCharacter | KeyHint, node: NodeName
@@ -282,6 +278,7 @@ class EngineProxy(AbstractEngine):
 			raise ValueError("Need name or path")
 		return self.handle("export", name=name, path=path, indent=indent)
 
+	@classmethod
 	def from_archive(
 		cls,
 		path: str | os.PathLike,
@@ -312,7 +309,14 @@ class EngineProxy(AbstractEngine):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		result: tuple,
+		result: Value[
+			tuple[
+				Keyframe,
+				dict[EternalKey, Value],
+				dict[FuncStoreName, dict[str, str]],
+				dict[FuncStoreName, bytes],
+			]
+		],
 	):
 		(start_kf, eternal, plainstored, pklstored) = result
 		self._initialized = False
