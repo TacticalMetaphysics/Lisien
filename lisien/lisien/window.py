@@ -880,13 +880,34 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 	) -> None:
 		if data and kwargs:
 			if isinstance(data, dict):
+				for k in data.keys() | kwargs.keys():
+					if not isinstance(k, int):
+						raise TypeError("Integer keys only", k)
 				data = chain(iter(data.items()), iter(kwargs.items()))
 			else:
+				for k, _ in data:
+					if not isinstance(k, int):
+						raise TypeError("Integer keys only", k)
+				for k in kwargs.keys():
+					if not isinstance(k, int):
+						raise TypeError("Integer keys only", k)
 				data = chain(iter(data), iter(kwargs.items()))
 		elif kwargs:
+			for k in kwargs.keys():
+				if not isinstance(k, int):
+					raise TypeError("Integer keys only", k)
 			data = iter(kwargs.items())
 		elif data:
-			data = iter(data)
+			if isinstance(data, dict):
+				for k in data.keys():
+					if not isinstance(k, int):
+						raise TypeError("Integer keys only", k)
+				data = iter(data.items())
+			else:
+				for k, _ in data:
+					if not isinstance(k, int):
+						raise TypeError("Integer keys only", k)
+				data = iter(data)
 		with self._lock:
 			if data:
 				self._past.extend(data)
