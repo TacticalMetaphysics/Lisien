@@ -876,15 +876,19 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 			return empty
 
 	def __init__(
-		self, data: list[tuple[_K, _V]] | dict[_K, _V] | None = None
+		self, data: list[tuple[_K, _V]] | dict[_K, _V] | None = None, **kwargs
 	) -> None:
-		with self._lock:
-			if not data:
-				pass
-			elif isinstance(data, Mapping):
-				self._past.extend(data.items())
+		if data and kwargs:
+			if isinstance(data, dict):
+				data = chain(iter(data.items()), iter(kwargs.items()))
 			else:
-				# assume it's an orderable sequence of pairs
+				data = chain(iter(data), iter(kwargs.items()))
+		elif kwargs:
+			data = iter(kwargs.items())
+		elif data:
+			data = iter(data)
+		with self._lock:
+			if data:
 				self._past.extend(data)
 			self._past.sort()
 			self._keys.update(map(get0, self._past))
