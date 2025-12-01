@@ -1014,7 +1014,15 @@ class Engine(AbstractEngine, Executor):
 		functions operate on bare Lisien objects, and can therefore have side
 		effects. If you don't want this, instead use ``workers=1``,
 		which *does* disable parallelism in the case of trigger functions."""
-	sub_mode: Sub | None = field(kw_only=True, default=None)
+
+	@staticmethod
+	def _convert_sub_mode(sub_mode):
+		if sub_mode is not None:
+			return Sub(sub_mode)
+
+	sub_mode: Sub | None = field(
+		kw_only=True, default=None, converter=_convert_sub_mode
+	)
 	"""What kind of parallelism to use. Options are
 		``"process"``, ``"interpreter"``, and ``"thread"``. Defaults
 		to ``"interpreter"``, which only works on Python 3.14 or above,
