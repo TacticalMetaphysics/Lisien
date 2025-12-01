@@ -27,7 +27,6 @@ import importlib.util
 import json
 import os
 import sys
-from abc import ABC, abstractmethod
 from collections import UserDict
 from collections.abc import MutableMapping
 from contextlib import contextmanager
@@ -37,7 +36,7 @@ from functools import cached_property
 from hashlib import blake2b
 from inspect import getsource
 from types import FunctionType, MethodType
-from typing import TYPE_CHECKING, Callable, Iterator, TypeVar
+from typing import TYPE_CHECKING, Callable, Iterator, TypeVar, ClassVar
 
 import networkx as nx
 from blinker import Signal
@@ -58,6 +57,8 @@ from .types import (
 	Value,
 	ValueHint,
 	sort_set,
+	AbstractLanguageDescriptor,
+	AbstractStringStore,
 )
 from .util import dedent_source, getatt
 from .wrap import wrapval
@@ -71,23 +72,6 @@ if TYPE_CHECKING:
 # per Unicode 1.1
 GROUP_SEP = chr(0x241D).encode()
 REC_SEP = chr(0x241E).encode()
-
-
-class AbstractLanguageDescriptor(Signal, ABC):
-	@abstractmethod
-	def _get_language(self, inst: StringStore) -> str:
-		pass
-
-	@abstractmethod
-	def _set_language(self, inst: StringStore, val: str) -> None:
-		pass
-
-	def __get__(self, instance: StringStore, owner=None):
-		return self._get_language(instance)
-
-	def __set__(self, inst: StringStore, val: str):
-		self._set_language(inst, val)
-		self.send(inst, language=val)
 
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
@@ -167,9 +151,9 @@ class ChangeTrackingDict[_K, _V](UserDict[_K, _V]):
 			del self.data[key]
 
 
-class StringStore(MutableMapping[str, str], Signal):
-	language = LanguageDescriptor()
-	_store = "strings"
+class StringStore(AbstractStringStore, Signal):
+	language: ClassVar = LanguageDescriptor()
+	_store: ClassVar = "strings"
 
 	def __init__(
 		self,
@@ -1150,13 +1134,16 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 				)
 			func = holder[k]
 		outdented = dedent_source(source)
-		expr = ast.parse(outdented)
-		expr.body[0].name = k
+		expr: ast.Module = ast.parse(outdented)
+		funcdef: ast.FunctionDef = expr.body[0]
+		if not isinstance(funcdef, ast.FunctionDef):
+			raise TypeError("Not a function definition", outdented)
+		funcdef.name = k
 		if k in self._ast_idx:
-			self._ast.body[self._ast_idx[k]] = expr
+			self._ast.body[self._ast_idx[k]] = expr.body[0]
 		else:
 			self._ast_idx[k] = len(self._ast.body)
-			self._ast.body.append(expr)
+			self._ast.body.append(funcdef)
 		if self._filename is not None:
 			self._need_save = True
 		if isinstance(self._module, str):
@@ -1327,7 +1314,7 @@ class UniversalMapping(MutableMapping, Signal):
 			pass
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._universal_cache.store(k, branch, turn, tick, v)
-		self.engine.db.universal_set(k, branch, turn, tick, v)
+		self.engine.database.universal_set(k, branch, turn, tick, v)
 		self.send(self, key=k, val=v)
 
 	def _set_cache_now(self, k: UniversalKey, v: Value):
@@ -1337,7 +1324,7 @@ class UniversalMapping(MutableMapping, Signal):
 		"""Unset this key for the present (branch, tick)"""
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._universal_cache.store(k, branch, turn, tick, ...)
-		self.engine.db.universal_del(k, branch, turn, tick)
+		self.engine.database.universal_del(k, branch, turn, tick)
 		self.send(self, key=k, val=...)
 
 

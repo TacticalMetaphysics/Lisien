@@ -176,8 +176,8 @@ def compare_engines_world_state(
 ):
 	test_engine.commit()
 	correct_engine.commit()
-	test_engine = getattr(test_engine, "db", test_engine)
-	correct_engine = getattr(correct_engine, "db", test_engine)
+	test_engine = getattr(test_engine, "database", test_engine)
+	correct_engine = getattr(correct_engine, "database", test_engine)
 	test_dump = test_engine.dump_everything()
 	correct_dump = correct_engine.dump_everything()
 	assert test_dump.keys() == correct_dump.keys()

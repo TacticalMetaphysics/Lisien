@@ -13,7 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from lisien import Engine
-from lisien.collections import FunctionStore, StringStore
+from lisien.collections import (
+	FunctionStore,
+	StringStore,
+	TriggerStore,
+	PrereqStore,
+	ActionStore,
+)
 
 
 def test_single_plan(serial_engine):
@@ -215,9 +221,9 @@ def test_save_load_plan(tmp_path, persistent_database_connector_part):
 		workers=0,
 		function=FunctionStore(None),
 		method=FunctionStore(None),
-		trigger=FunctionStore(None),
-		prereq=FunctionStore(None),
-		action=FunctionStore(None),
+		trigger=TriggerStore(None),
+		prereq=PrereqStore(None),
+		action=ActionStore(None),
 		string=StringStore({"language": "eng"}, None),
 		database=persistent_database_connector_part(),
 	) as orm:

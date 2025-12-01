@@ -179,7 +179,7 @@ class RuleFollower(BaseRuleFollower):
 		branch, turn, tick = self.engine._nbtt()
 		set_rb: Callable[
 			[CharName, Branch, Turn, Tick, RulebookName], None
-		] = getattr(self.engine.db, f"set_{self._book}_rulebook")
+		] = getattr(self.engine.database, f"set_{self._book}_rulebook")
 		set_rb(
 			self.character.name,
 			branch,
@@ -297,7 +297,7 @@ class Character(AbstractCharacter, RuleFollower):
 			rulebook_name = RulebookName(Key((rulebook, name)))
 			set_rb: Callable[
 				[CharName, Branch, Turn, Tick, RulebookName], None
-			] = getattr(engine.db, f"set_{rulebook}")
+			] = getattr(engine.database, f"set_{rulebook}")
 			set_rb(name, branch, turn, tick, rulebook_name)
 			cache.store(name, branch, turn, tick, rulebook_name)
 
@@ -358,10 +358,10 @@ class Character(AbstractCharacter, RuleFollower):
 			self.engine._things_cache.store(
 				self.character.name, thing, branch, turn, tick, val["location"]
 			)
-			self.engine.db.exist_node(
+			self.engine.database.exist_node(
 				self.character.name, thing, branch, turn, tick, True
 			)
-			self.engine.db.set_thing_loc(
+			self.engine.database.set_thing_loc(
 				self.character.name,
 				thing,
 				branch,
@@ -531,8 +531,8 @@ class Character(AbstractCharacter, RuleFollower):
 			planning = engine._planning
 			forward = engine._forward
 			branch, turn, start_tick = engine.time
-			exist_edge = engine.db.exist_edge
-			edge_val_set = engine.db.edge_val_set
+			exist_edge = engine.database.exist_edge
+			edge_val_set = engine.database.edge_val_set
 			store_edge = engine._edges_cache.store
 			store_edge_val = engine._edge_val_cache.store
 			iter_edge_keys = engine._edge_val_cache._iter_entities_or_keys
@@ -682,7 +682,7 @@ class Character(AbstractCharacter, RuleFollower):
 					graph.name,
 					self.orig,
 					engine._get_edge,
-					engine.db.edge_val_set,
+					engine.database.edge_val_set,
 					engine._edge_val_cache.store,
 					engine._nbtt,
 				)
@@ -1096,7 +1096,7 @@ class Character(AbstractCharacter, RuleFollower):
 		self.engine._edges_cache.store(
 			self.name, origin, destination, branch, turn, tick, True
 		)
-		self.engine.db.exist_edge(
+		self.engine.database.exist_edge(
 			self.name, origin, destination, branch, turn, tick, True
 		)
 		for k, v in kwargs.items():
@@ -1108,14 +1108,14 @@ class Character(AbstractCharacter, RuleFollower):
 				self.engine._portals_rulebooks_cache.store(
 					self.name, origin, destination, branch, turn, tick, v
 				)
-				self.engine.db.set_portal_rulebook(
+				self.engine.database.set_portal_rulebook(
 					self.name, origin, destination, branch, turn, tick, v
 				)
 				continue
 			self.engine._edge_val_cache.store(
 				self.name, origin, destination, k, branch, turn, tick, v
 			)
-			self.engine.db.edge_val_set(
+			self.engine.database.edge_val_set(
 				self.name, origin, destination, k, branch, turn, tick, v
 			)
 
@@ -1206,7 +1206,9 @@ class Character(AbstractCharacter, RuleFollower):
 		self.engine._unitness_cache.store(
 			self.name, g, n, branch, turn, tick, True
 		)
-		self.engine.db.unit_set(self.name, g, n, branch, turn, tick, True)
+		self.engine.database.unit_set(
+			self.name, g, n, branch, turn, tick, True
+		)
 
 	def remove_unit(
 		self,
@@ -1234,7 +1236,9 @@ class Character(AbstractCharacter, RuleFollower):
 		self.engine._unitness_cache.store(
 			self.name, g, n, branch, turn, tick, False
 		)
-		self.engine.db.unit_set(self.name, g, n, branch, turn, tick, False)
+		self.engine.database.unit_set(
+			self.name, g, n, branch, turn, tick, False
+		)
 
 	def historical(
 		self, key: Stat | KeyHint | Literal["units"]

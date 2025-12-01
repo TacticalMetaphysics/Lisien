@@ -17,10 +17,12 @@ from __future__ import annotations
 import os
 import random
 from abc import ABC, abstractmethod
-from collections import defaultdict
+from collections import defaultdict, UserDict
 from contextlib import contextmanager
 from functools import cached_property
+from logging import Logger
 from operator import attrgetter
+from random import Random
 from threading import RLock
 from typing import (
 	TYPE_CHECKING,
@@ -29,6 +31,8 @@ from typing import (
 	Mapping,
 	MutableMapping,
 	MutableSequence,
+	Type,
+	Optional,
 )
 
 import networkx as nx
@@ -65,6 +69,11 @@ from .types import (
 	Turn,
 	Value,
 	ValueHint,
+	RuleName,
+	RulebookName,
+	UniversalKey,
+	AbstractBookmarkMapping,
+	validate_time,
 )
 from .util import getatt, print_call_sig, timer
 from .wrap import MappingUnwrapper
@@ -1534,6 +1543,97 @@ class EngineFacade(AbstractEngine):
 		LeaderSetCache,
 	): ...
 
+	class FacadeBookmarkMapping(AbstractBookmarkMapping, UserDict):
+		def __init__(self, engine: EngineFacade):
+			self.engine = engine
+			super().__init__()
+
+		def __call__(self, key: KeyHint) -> None:
+			self.data[key] = tuple(self.engine.time)
+
+		def __setitem__(self, key, value, /):
+			validate_time(value)
+			self.data[key] = value
+
+		def __delitem__(self, key, /):
+			del self.data[key]
+
+		def __getitem__(self, key, /):
+			return self.data[key]
+
+		def __len__(self):
+			return len(self.data)
+
+		def __iter__(self):
+			return iter(self.data)
+
+	@property
+	def bookmark(self) -> AbstractBookmarkMapping:
+		return self.FacadeBookmarkMapping(self)
+
+	@cached_property
+	def character(self) -> Mapping[KeyHint | CharName, Type[char_cls]]:
+		return self.FacadeCharacterMapping(self)
+
+	@property
+	def universal(self) -> MutableMapping[KeyHint | UniversalKey, ValueHint]:
+		return self.FacadeUniversalMapping(self._real)
+
+	@property
+	def rulebook(self) -> MutableMapping[KeyHint | RulebookName, "RuleBook"]:
+		return {}
+
+	@property
+	def rule(self) -> MutableMapping[KeyHint | RuleName, "Rule"]:
+		return {}
+
+	@property
+	def trunk(self) -> Branch:
+		return self._real.trunk
+
+	@property
+	def branch(self) -> Branch:
+		return Branch(self._obranch)
+
+	@property
+	def turn(self) -> Turn:
+		return Turn(self._oturn)
+
+	@property
+	def tick(self) -> Tick:
+		return Tick(self._otick)
+
+	@property
+	def _branches_d(
+		self,
+	) -> dict[Branch, tuple[Optional[Branch], Turn, Tick, Turn, Tick]]:
+		if self._real:
+			return self._real._branches_d
+		if not hasattr(self, "_branches_d_"):
+			self._branches_d_ = {
+				Branch("trunk"): (None, Turn(0), Tick(0), Turn(0), Tick(0))
+			}
+		return self._branches_d_
+
+	@cached_property
+	def _rando(self) -> Random:
+		return Random()
+
+	@cached_property
+	def logger(self) -> Logger:
+		if self._real:
+			return self._real.logger
+		elif self._mockup:
+			import sys
+
+			if "kivy" in sys.modules:
+				from kivy.logger import Logger
+
+				return Logger
+		from logging import getLogger
+
+		return getLogger("lisien")
+
 	def __init__(self, real: AbstractEngine | None, mock=False):
 		assert not isinstance(real, EngineFacade)
 		self._mockup = mock
@@ -1569,35 +1669,14 @@ class EngineFacade(AbstractEngine):
 			self.string = StringStore({}, None)
 			for mockery in ("submit", "load_at"):
 				setattr(self, mockery, MagicMock())
-			if "kivy" in sys.modules:
-				from kivy.logger import Logger
-
-				logger = Logger
-			else:
-				from logging import getLogger
-
-				logger = getLogger("lisien")
-			for loggish in (
-				"log",
-				"debug",
-				"info",
-				"warning",
-				"error",
-				"critical",
-			):
-				setattr(self, loggish, getattr(logger, loggish))
 		self.closed = False
 		self._real = real
 		self._planning = False
 		self._planned = defaultdict(lambda: defaultdict(list))
-		self.character = self.FacadeCharacterMapping(self)
-		self.universal = self.FacadeUniversalMapping(real)
-		self._rando = random.Random()
 		self.world_lock = RLock()
 		if real is not None:
 			self._rando.setstate(real._rando.getstate())
-			self.branch, self.turn, self.tick = real.time
-			self._branches_d = real._branches_d.copy()
+			self._obranch, self._oturn, self._otick = real.time
 			self._turn_end = TurnEndDict(self)
 			self._turn_end_plan = TurnEndPlanDict(self)
 			if not hasattr(real, "is_proxy"):
@@ -1613,19 +1692,18 @@ class EngineFacade(AbstractEngine):
 					real._unitness_cache
 				)
 		else:
-			self._branches_d = {
-				"trunk": (
-					None,
-					0,
-					0,
-					0,
-					0,
-				)
-			}
+			self._branches_d.clear()
+			self._branches_d[Branch("trunk")] = (
+				None,
+				Turn(0),
+				Tick(0),
+				Turn(0),
+				Tick(0),
+			)
 			self._turn_end_plan = {}
-			self.branch = "trunk"
-			self.turn = 0
-			self.tick = 0
+			self._obranch = "trunk"
+			self._oturn = 0
+			self._otick = 0
 
 	def handle(self, *args, **kwargs):
 		print_call_sig("handle", *args, **kwargs)
@@ -1782,7 +1860,7 @@ class EngineFacade(AbstractEngine):
 							realeng._graph_val_cache.store(
 								char, k, *now, v, loading=True
 							)
-							realeng.db.graph_val_set(char, k, *now, v)
+							realeng.database.graph_val_set(char, k, *now, v)
 						elif len(tup) == 4:
 							char, node, k, v = tup
 							now = realeng._nbtt()
@@ -1793,7 +1871,7 @@ class EngineFacade(AbstractEngine):
 									realeng._nodes_cache.store(
 										char, node, *now, False, loading=True
 									)
-									realeng.db.exist_node(
+									realeng.database.exist_node(
 										char, node, *now, False
 									)
 								elif k == "location":
@@ -1802,14 +1880,14 @@ class EngineFacade(AbstractEngine):
 									realeng._things_cache.store(
 										char, node, *now, v, loading=True
 									)
-									realeng.db.set_thing_loc(
+									realeng.database.set_thing_loc(
 										char, node, *now, v
 									)
 								else:
 									realeng._node_val_cache.store(
 										char, node, k, *now, v, loading=True
 									)
-									realeng.db.node_val_set(
+									realeng.database.node_val_set(
 										char, node, k, *now, v
 									)
 							elif k == "location":
@@ -1819,24 +1897,30 @@ class EngineFacade(AbstractEngine):
 									realeng._nodes_cache.store(
 										char, node, *now, True, loading=True
 									)
-									realeng.db.exist_node(
+									realeng.database.exist_node(
 										char, node, *now, True
 									)
 									now = realeng._nbtt()
 								realeng._things_cache.store(
 									char, node, *now, v, loading=True
 								)
-								realeng.db.set_thing_loc(char, node, *now, v)
+								realeng.database.set_thing_loc(
+									char, node, *now, v
+								)
 							else:
 								realeng._nodes_cache.store(
 									char, node, *now, True, loading=True
 								)
-								realeng.db.exist_node(char, node, *now, True)
+								realeng.database.exist_node(
+									char, node, *now, True
+								)
 								now = realeng._nbtt()
 								realeng._node_val_cache.store(
 									char, node, k, *now, v, loading=True
 								)
-								realeng.db.node_val_set(char, node, k, *now, v)
+								realeng.database.node_val_set(
+									char, node, k, *now, v
+								)
 						elif len(tup) == 5:
 							char, orig, dest, k, v = tup
 							now = realeng._nbtt()
@@ -1846,14 +1930,14 @@ class EngineFacade(AbstractEngine):
 								realeng._edges_cache.store(
 									char, orig, dest, *now, True, loading=True
 								)
-								realeng.db.exist_edge(
+								realeng.database.exist_edge(
 									char, orig, dest, *now, True
 								)
 								now = realeng._nbtt()
 							realeng._edge_val_cache.store(
 								char, orig, dest, k, *now, v, loading=True
 							)
-							realeng.db.edge_val_set(
+							realeng.database.edge_val_set(
 								char, orig, dest, k, *now, v
 							)
 						else:

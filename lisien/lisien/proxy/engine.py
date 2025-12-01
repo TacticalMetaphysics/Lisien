@@ -59,7 +59,6 @@ except ImportError:
 	Ext = msgpack.Ext
 
 from ..collections import (
-	AbstractLanguageDescriptor,
 	FunctionStore,
 	StringStore,
 	TriggerStore,
@@ -104,6 +103,7 @@ from ..types import (
 	ValueHint,
 	PickyDefaultDict,
 	StructuredDefaultDict,
+	AbstractLanguageDescriptor,
 )
 from ..util import (
 	dedent_source,
@@ -707,6 +707,46 @@ class EngineProxy(AbstractEngine):
 	def _btt(self) -> Time:
 		return self._branch, self._turn, self._tick
 
+	@cached_property
+	def character(self):
+		return CharacterMapProxy(self)
+
+	@cached_property
+	def _branches_d(
+		self,
+	) -> dict[Branch, tuple[Optional[Branch], Turn, Tick, Turn, Tick]]:
+		return {}
+
+	@cached_property
+	def eternal(self) -> MutableMapping[KeyHint | EternalKey, ValueHint]:
+		return EternalVarProxy(self)
+
+	@cached_property
+	def universal(
+		self,
+	) -> MutableMapping[KeyHint | UniversalKey, ValueHint]:
+		return GlobalVarProxy(self)
+
+	@cached_property
+	def rulebook(self):
+		return AllRuleBooksProxy(self)
+
+	@cached_property
+	def rule(self):
+		return AllRulesProxy(self)
+
+	@property
+	def logger(self):
+		return self._logger
+
+	@cached_property
+	def _rando(self):
+		return RandoProxy(self)
+
+	@cached_property
+	def string(self):
+		return StringStoreProxy(self)
+
 	def __init__(
 		self,
 		get_input_bytes: Callable[[], bytes],
@@ -752,9 +792,7 @@ class EngineProxy(AbstractEngine):
 		self._rulebooks_cache: dict[
 			RulebookName, tuple[list[RuleName], RulebookPriority]
 		] = {}
-		self._branches_d: dict[
-			Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
-		] = branches
+		self._branches_d.update(branches)
 		self._planning: bool = False
 		if replay_file is not None:
 			if not isinstance(replay_file, io.TextIOBase):
@@ -801,12 +839,7 @@ class EngineProxy(AbstractEngine):
 		self._pipe_in_lock = Lock()
 		self._round_trip_lock = Lock()
 		self._commit_lock = Lock()
-		self.logger = logger
-		self.character = self.graph = CharacterMapProxy(self)
-		self.eternal = EternalVarProxy(self)
-		self.universal = GlobalVarProxy(self)
-		self.rulebook = AllRuleBooksProxy(self)
-		self.rule = AllRulesProxy(self)
+		self._logger = logger
 		if worker_index is None:
 			self.logger.debug("EngineProxy: starting proxy to core")
 			self._worker = False
@@ -817,7 +850,6 @@ class EngineProxy(AbstractEngine):
 			self.trigger = TrigStoreProxy(self, "trigger", initial=trigger)
 			self.function = FuncStoreProxy(self, "function", initial=function)
 			self._rando = RandoProxy(self)
-			self.string = StringStoreProxy(self)
 			if strings is not None:
 				self.string._cache = strings
 		else:
@@ -985,6 +1017,10 @@ class EngineProxy(AbstractEngine):
 		return "<lisien.proxy.EngineProxy>"
 
 	def __getattr__(self, item):
+		try:
+			return super().__getattr__(item)
+		except AttributeError:
+			pass
 		method = super().__getattribute__("method")
 		try:
 			meth = method.__getattr__(item)

@@ -405,7 +405,7 @@ class EngineHandle:
 		return self._real._get_slow_delta(btt_from, btt_to)
 
 	def bookmarks_dump(self) -> list[tuple[Key, Time]]:
-		return list(self._real.db.bookmarks_dump())
+		return list(self._real.database.bookmarks_dump())
 
 	def set_bookmark(self, key: Key, time: Time | None = None) -> Time:
 		if time is None:
@@ -476,7 +476,7 @@ class EngineHandle:
 
 		"""
 		if branch in self._real.branches():
-			if self._real._enforce_end_of_time:
+			if self._real.enforce_end_of_time:
 				turn_end, tick_end = self._real._branch_end(branch)
 				if (tick is None and turn > turn_end) or (
 					tick is not None and (turn, tick) > (turn_end, tick_end)

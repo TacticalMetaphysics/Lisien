@@ -79,7 +79,7 @@ class Portal(Edge, RuleFollower):
 		except KeyError:
 			ret = (self.character.name, self.orig, self.dest)
 			self.engine._portals_rulebooks_cache.store(*ret, *btt, ret)
-			self.engine.db.set_portal_rulebook(*ret, *btt, ret)
+			self.engine.database.set_portal_rulebook(*ret, *btt, ret)
 			return ret
 
 	def _set_rulebook_name(self, rulebook):
@@ -96,7 +96,7 @@ class Portal(Edge, RuleFollower):
 			pass
 		branch, turn, tick = self.engine._nbtt()
 		cache.store(character, orig, dest, branch, turn, tick, rulebook)
-		self.engine.db.set_portal_rulebook(
+		self.engine.database.set_portal_rulebook(
 			character, orig, dest, branch, turn, tick, rulebook
 		)
 

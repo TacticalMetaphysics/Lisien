@@ -86,7 +86,7 @@ def sub_mode(request):
 @pytest.fixture(scope="function")
 def handle(tmp_path):
 	hand = EngineHandle(
-		tmp_path,
+		prefix=tmp_path,
 		random_seed=69105,
 		workers=0,
 	)
@@ -145,7 +145,7 @@ def handle_initialized(request, tmp_path, database, random_seed):
 		ret.close()
 		return
 	with Engine(
-		tmp_path,
+		prefix=tmp_path,
 		workers=0,
 		random_seed=random_seed,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
@@ -154,7 +154,7 @@ def handle_initialized(request, tmp_path, database, random_seed):
 	) as eng:
 		install(eng)
 	ret = EngineHandle(
-		tmp_path,
+		prefix=tmp_path,
 		workers=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
@@ -541,7 +541,6 @@ def serial_engine(tmp_path, persistent_database):
 @pytest.fixture(scope="function")
 def null_engine():
 	with Engine(
-		None,
 		random_seed=69105,
 		enforce_end_of_time=False,
 		workers=0,

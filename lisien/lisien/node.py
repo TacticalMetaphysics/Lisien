@@ -466,7 +466,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 			self.engine._nodes_rulebooks_cache.store(
 				self.character.name, self.name, *now, ret
 			)
-			self.engine.db.set_node_rulebook(
+			self.engine.database.set_node_rulebook(
 				self.character.name, self.name, *now, ret
 			)
 			return ret
@@ -482,7 +482,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 			pass
 		branch, turn, tick = self.engine._nbtt()
 		cache.store(character, node, branch, turn, tick, rulebook)
-		self.engine.db.set_node_rulebook(
+		self.engine.database.set_node_rulebook(
 			character, node, branch, turn, tick, rulebook
 		)
 
@@ -665,14 +665,14 @@ class Node(lisien.types.Node, rule.RuleFollower):
 					now = engine._nbtt()
 			for username in list(self.leader):
 				engine._unitness_cache.store(username, g, n, *now, False)
-				engine.db.unit_set(username, g, n, *now, False)
+				engine.database.unit_set(username, g, n, *now, False)
 			for k in self:
 				assert k != "name"
 				if k != "location":
 					self._del_cache(k, *now)
 					self._del_db(k, *now)
 			engine._nodes_cache.store(g, n, *now, False)
-			engine.db.exist_node(g, n, *now, False)
+			engine.database.exist_node(g, n, *now, False)
 			self.character.node.send(
 				self.character.node, key=self.name, val=None
 			)
@@ -825,7 +825,7 @@ class Thing(Node, AbstractThing):
 			self.engine._things_cache.store(
 				self.character.name, self.name, *now, ...
 			)
-			self.engine.db.set_thing_loc(
+			self.engine.database.set_thing_loc(
 				self.character.name, self.name, *now, ...
 			)
 			return now

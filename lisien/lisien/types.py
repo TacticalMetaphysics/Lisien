@@ -25,6 +25,7 @@ from concurrent.futures import Future
 from enum import Enum
 from functools import cached_property, partial, wraps
 from itertools import chain
+from logging import Logger
 from operator import (
 	add,
 	attrgetter,
@@ -73,6 +74,7 @@ from typing import (
 	get_origin,
 	override,
 	Self,
+	ClassVar,
 )
 
 import networkx as nx
@@ -757,7 +759,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None],
 		CharName,
 	]:
-		return self.engine.db.graph_val_set, self.character.name
+		return self.engine.database.graph_val_set, self.character.name
 
 	@cached_property
 	def _set_cache_stuff(
@@ -773,7 +775,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	) -> tuple[
 		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None], CharName
 	]:
-		return self.engine.db.graph_val_set, self.character.name
+		return self.engine.database.graph_val_set, self.character.name
 
 	@cached_property
 	def _get_cache_stuff(
@@ -978,7 +980,11 @@ class Node(AbstractEntityMapping, ABC):
 		CharName,
 		NodeName,
 	]:
-		return self.engine.db.node_val_set, self.character.name, self.name
+		return (
+			self.engine.database.node_val_set,
+			self.character.name,
+			self.name,
+		)
 
 	@cached_property
 	def _set_cache_stuff(
@@ -1235,7 +1241,7 @@ class Edge(AbstractEntityMapping, ABC):
 		NodeName,
 	]:
 		return (
-			self.character.engine.db.edge_val_set,
+			self.character.engine.database.edge_val_set,
 			self.character.name,
 			self.orig,
 			self.dest,
@@ -1404,7 +1410,7 @@ class GraphNodeMapping[_K, _V](
 		for pred in self.character.pred[node]:
 			del self.character.pred[node][pred]
 		branch, turn, tick = self.engine._nbtt()
-		self.engine.db.exist_node(
+		self.engine.database.exist_node(
 			self.character.name, node, branch, turn, tick, False
 		)
 		self.engine._nodes_cache.store(
@@ -1566,7 +1572,7 @@ class AbstractSuccessors(
 		if dest not in self.character.node:
 			self.character.add_node(dest)
 		branch, turn, tick = self.engine._nbtt()
-		self.engine.db.exist_edge(
+		self.engine.database.exist_edge(
 			self.character.name, orig, dest, branch, turn, tick, True
 		)
 		self.engine._edges_cache.store(
@@ -1583,7 +1589,7 @@ class AbstractSuccessors(
 		dest = NodeName(dest)
 		branch, turn, tick = self.engine._nbtt()
 		orig, dest = self._order_nodes(dest)
-		self.engine.db.exist_edge(
+		self.engine.database.exist_edge(
 			self.character.name, orig, dest, branch, turn, tick, False
 		)
 		self.engine._edges_cache.store(
@@ -1941,7 +1947,7 @@ class DiGraphPredecessorsMapping(
 				e = self[orig]
 				e.clear()
 			except KeyError:
-				self.engine.db.exist_edge(
+				self.engine.database.exist_edge(
 					self.character.name,
 					orig,
 					self.dest,
@@ -1973,7 +1979,7 @@ class DiGraphPredecessorsMapping(
 				raise TypeError("Invalid node", orig)
 			orig = NodeName(orig)
 			branch, turn, tick = self.engine._nbtt()
-			self.engine.db.exist_edge(
+			self.engine.database.exist_edge(
 				self.character.name, orig, self.dest, branch, turn, tick, False
 			)
 			self.engine._edges_cache.store(
@@ -2577,6 +2583,168 @@ class AbstractBookmarkMapping(MutableMapping[KeyHint, Time], Callable):
 _SEQT = TypeVar("_SEQT", bound=Sequence[ValueHint])
 
 
+class TimeSignal(
+	tuple[Branch, Turn, Tick], Signal, Sequence[Branch | Turn | Tick]
+):
+	"""Like a tuple of the present ``(branch, turn, tick)`` that follows sim-time.
+
+	This is a ``Signal``. To set a function to be called whenever the
+	time changes, pass it to my ``connect`` method.
+
+	This always refers to the present game time. It will change when
+	simulation occurs. If you don't want that, convert it to a tuple, or unpack
+	it like: ``branch, turn, tick = engine.time``
+
+	"""
+
+	@property
+	def engine(self):
+		return tuple.__getitem__(self, 0)
+
+	def __iter__(self):
+		yield self.engine.branch
+		yield self.engine.turn
+		yield self.engine.tick
+
+	def __len__(self):
+		return 3
+
+	def __hash__(self):
+		raise TypeError(
+			"TimeSignal is mutable, not hashable. Convert it to a tuple."
+		)
+
+	def __call__(self) -> tuple[Branch, Turn, Tick]:
+		return self.engine.branch, self.engine.turn, self.engine.tick
+
+	def __getitem__(self, i: str | int) -> Branch | Turn | Tick:
+		if i in ("branch", 0):
+			return self.engine.branch
+		if i in ("turn", 1):
+			return self.engine.turn
+		if i in ("tick", 2):
+			return self.engine.tick
+		if isinstance(i, int):
+			raise IndexError(i)
+		else:
+			raise KeyError(i)
+
+	@property
+	def branch(self):
+		return self.engine.branch
+
+	@property
+	def turn(self):
+		return self.engine.turn
+
+	@property
+	def tick(self):
+		return self.engine.tick
+
+	def __setitem__(self, i: str | int, v: str | int) -> None:
+		if i in ("branch", 0):
+			if not isinstance(v, str):
+				raise TypeError("Invalid branch", v)
+			self.engine.branch = Branch(v)
+		elif i in ("turn", 1):
+			if not isinstance(v, int):
+				raise TypeError("Invalid turn", v)
+			if v < 0:
+				raise ValueError("Negative turn", v)
+			self.engine.turn = Turn(v)
+		elif i in ("tick", 2):
+			if not isinstance(v, int):
+				raise TypeError("Invalid tick", v)
+			if v < 0:
+				raise ValueError("Negative tick", v)
+			self.engine.tick = Tick(v)
+		else:
+			exctyp = KeyError if isinstance(i, str) else IndexError
+			raise exctyp(i)
+
+	def __str__(self):
+		return str(tuple(self))
+
+	def __eq__(self, other):
+		return tuple(self) == other
+
+	def __ne__(self, other):
+		return tuple(self) != other
+
+	def __gt__(self, other):
+		return tuple(self) > other
+
+	def __ge__(self, other):
+		return tuple(self) >= other
+
+	def __lt__(self, other):
+		return tuple(self) < other
+
+	def __le__(self, other):
+		return tuple(self) <= other
+
+
+class TimeSignalDescriptor:
+	__doc__ = TimeSignal.__doc__
+
+	def __get__(self, inst, cls) -> TimeSignal:
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal((inst,))
+		return inst._time_signal
+
+	def __set__(self, inst: AbstractEngine, val: Time):
+		if getattr(inst, "_worker", False):
+			raise WorkerProcessReadOnlyError(
+				"Tried to change the world state in a worker process"
+			)
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal((inst,))
+		sig = inst._time_signal
+		branch_then, turn_then, tick_then = inst.time
+		branch_now, turn_now, tick_now = val
+		if (branch_then, turn_then, tick_then) == (
+			branch_now,
+			turn_now,
+			tick_now,
+		):
+			return
+		e = inst
+		# enforce the arrow of time, if it's in effect
+		if (
+			hasattr(e, "_forward")
+			and e._forward
+			and hasattr(e, "_planning")
+			and not e._planning
+		):
+			if branch_now != branch_then:
+				raise TimeError("Can't change branches in a forward context")
+			if turn_now < turn_then:
+				raise TimeError(
+					"Can't time travel backward in a forward context"
+				)
+			if turn_now > turn_then + 1:
+				raise TimeError("Can't skip turns in a forward context")
+		# make sure I'll end up within the revision range of the
+		# destination branch
+
+		if branch_now in e.branches():
+			e._extend_branch(branch_now, turn_now, tick_now)
+			e.load_at(branch_now, turn_now, tick_now)
+		else:
+			e._start_branch(branch_then, branch_now, turn_now, tick_now)
+		e._time_warp(branch_now, turn_now, tick_now)
+		sig.send(
+			e,
+			branch_then=branch_then,
+			turn_then=turn_then,
+			tick_then=tick_then,
+			branch_now=branch_now,
+			turn_now=turn_now,
+			tick_now=tick_now,
+		)
+
+
+@define
 class AbstractEngine(ABC):
 	"""Parent class to the real Engine as well as EngineProxy.
 
@@ -2584,39 +2752,92 @@ class AbstractEngine(ABC):
 
 	"""
 
-	thing_cls: type
-	place_cls: type
-	portal_cls: type
-	char_cls: type
-	character: Mapping[KeyHint | CharName, Type[char_cls]]
-	eternal: MutableMapping[KeyHint | EternalKey, ValueHint]
-	universal: MutableMapping[KeyHint | UniversalKey, ValueHint]
-	rulebook: MutableMapping[KeyHint | RulebookName, "RuleBook"]
-	rule: MutableMapping[KeyHint | RuleName, "Rule"]
-	db: AbstractDatabaseConnector
-	trunk: Branch
-	branch: Branch
-	turn: Turn
-	tick: Tick
-	time: Time
-	function: ModuleType | AbstractFunctionStore
-	method: ModuleType | AbstractFunctionStore
-	trigger: ModuleType | AbstractFunctionStore
-	prereq: ModuleType | AbstractFunctionStore
-	action: ModuleType | AbstractFunctionStore
-	bookmark: AbstractBookmarkMapping
-	_rando: Random
-	_branches_d: dict[
-		Optional[Branch], tuple[Optional[Branch], Turn, Tick, Turn, Tick]
-	]
+	thing_cls: ClassVar[type[AbstractThing]]
+	place_cls: ClassVar[type[Node]]
+	portal_cls: ClassVar[type[Edge]]
+	char_cls: ClassVar[type[AbstractCharacter]]
+	time: ClassVar = TimeSignalDescriptor()
+	illegal_node_names: ClassVar = {
+		"nodes",
+		"node_val",
+		"edges",
+		"edge_val",
+		"things",
+	}
 
-	@cached_property
-	def logger(self):
-		if hasattr(self, "_logger"):
-			return self._logger
-		from logging import getLogger
+	@property
+	@abstractmethod
+	def bookmark(self) -> AbstractBookmarkMapping: ...
 
-		return getLogger("lisien")
+	@property
+	@abstractmethod
+	def character(self) -> Mapping[KeyHint | CharName, Type[char_cls]]: ...
+
+	@property
+	@abstractmethod
+	def eternal(self) -> MutableMapping[KeyHint | EternalKey, ValueHint]: ...
+
+	@property
+	@abstractmethod
+	def universal(
+		self,
+	) -> MutableMapping[KeyHint | UniversalKey, ValueHint]: ...
+
+	@property
+	@abstractmethod
+	def rulebook(
+		self,
+	) -> MutableMapping[KeyHint | RulebookName, "RuleBook"]: ...
+
+	@property
+	@abstractmethod
+	def rule(self) -> MutableMapping[KeyHint | RuleName, "Rule"]: ...
+
+	@property
+	@abstractmethod
+	def trunk(self) -> Branch: ...
+
+	@trunk.setter
+	@abstractmethod
+	def trunk(self, branch: str | Branch) -> None: ...
+
+	@property
+	@abstractmethod
+	def branch(self) -> Branch: ...
+
+	@branch.setter
+	@abstractmethod
+	def branch(self, branch: str | Branch) -> None: ...
+
+	@property
+	@abstractmethod
+	def turn(self) -> Turn: ...
+
+	@turn.setter
+	@abstractmethod
+	def turn(self, turn: int | Turn): ...
+
+	@property
+	@abstractmethod
+	def tick(self) -> Tick: ...
+
+	@tick.setter
+	@abstractmethod
+	def tick(self, tick: int | Tick) -> None: ...
+
+	@property
+	@abstractmethod
+	def _rando(self) -> Random: ...
+
+	@property
+	@abstractmethod
+	def _branches_d(
+		self,
+	) -> dict[Branch, tuple[Optional[Branch], Turn, Tick, Turn, Tick]]: ...
+
+	@property
+	@abstractmethod
+	def logger(self) -> Logger: ...
 
 	def log(self, level, msg, *args, **kwargs):
 		self.logger.log(level, msg, *args, **kwargs)
@@ -3919,155 +4140,6 @@ class AbstractThing(ABC):
 		return self.follow_path(path, weight)
 
 
-class TimeSignal(
-	tuple[Branch, Turn, Tick], Signal, Sequence[Branch | Turn | Tick]
-):
-	"""Like a tuple of the present ``(branch, turn, tick)`` that follows sim-time.
-
-	This is a ``Signal``. To set a function to be called whenever the
-	time changes, pass it to my ``connect`` method.
-
-	This always refers to the present game time. It will change when
-	simulation occurs. If you don't want that, convert it to a tuple, or unpack
-	it like: ``branch, turn, tick = engine.time``
-
-	"""
-
-	@property
-	def engine(self):
-		return tuple.__getitem__(self, 0)
-
-	def __iter__(self):
-		yield self.engine.branch
-		yield self.engine.turn
-		yield self.engine.tick
-
-	def __len__(self):
-		return 3
-
-	def __hash__(self):
-		raise TypeError(
-			"TimeSignal is mutable, not hashable. Convert it to a tuple."
-		)
-
-	def __call__(self) -> tuple[Branch, Turn, Tick]:
-		return self.engine.branch, self.engine.turn, self.engine.tick
-
-	def __getitem__(self, i: str | int) -> Branch | Turn | Tick:
-		if i in ("branch", 0):
-			return self.engine.branch
-		if i in ("turn", 1):
-			return self.engine.turn
-		if i in ("tick", 2):
-			return self.engine.tick
-		if isinstance(i, int):
-			raise IndexError(i)
-		else:
-			raise KeyError(i)
-
-	def __setitem__(self, i: str | int, v: str | int) -> None:
-		if i in ("branch", 0):
-			if not isinstance(v, str):
-				raise TypeError("Invalid branch", v)
-			self.engine.branch = Branch(v)
-		elif i in ("turn", 1):
-			if not isinstance(v, int):
-				raise TypeError("Invalid turn", v)
-			if v < 0:
-				raise ValueError("Negative turn", v)
-			self.engine.turn = Turn(v)
-		elif i in ("tick", 2):
-			if not isinstance(v, int):
-				raise TypeError("Invalid tick", v)
-			if v < 0:
-				raise ValueError("Negative tick", v)
-			self.engine.tick = Tick(v)
-		else:
-			exctyp = KeyError if isinstance(i, str) else IndexError
-			raise exctyp(i)
-
-	def __str__(self):
-		return str(tuple(self))
-
-	def __eq__(self, other):
-		return tuple(self) == other
-
-	def __ne__(self, other):
-		return tuple(self) != other
-
-	def __gt__(self, other):
-		return tuple(self) > other
-
-	def __ge__(self, other):
-		return tuple(self) >= other
-
-	def __lt__(self, other):
-		return tuple(self) < other
-
-	def __le__(self, other):
-		return tuple(self) <= other
-
-
-class TimeSignalDescriptor:
-	__doc__ = TimeSignal.__doc__
-
-	def __get__(self, inst, cls) -> TimeSignal:
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal((inst,))
-		return inst._time_signal
-
-	def __set__(self, inst: AbstractEngine, val: Time):
-		if getattr(inst, "_worker", False):
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal((inst,))
-		sig = inst._time_signal
-		branch_then, turn_then, tick_then = inst.time
-		branch_now, turn_now, tick_now = val
-		if (branch_then, turn_then, tick_then) == (
-			branch_now,
-			turn_now,
-			tick_now,
-		):
-			return
-		e = inst
-		# enforce the arrow of time, if it's in effect
-		if (
-			hasattr(e, "_forward")
-			and e._forward
-			and hasattr(e, "_planning")
-			and not e._planning
-		):
-			if branch_now != branch_then:
-				raise TimeError("Can't change branches in a forward context")
-			if turn_now < turn_then:
-				raise TimeError(
-					"Can't time travel backward in a forward context"
-				)
-			if turn_now > turn_then + 1:
-				raise TimeError("Can't skip turns in a forward context")
-		# make sure I'll end up within the revision range of the
-		# destination branch
-
-		if branch_now in e.branches():
-			e._extend_branch(branch_now, turn_now, tick_now)
-			e.load_at(branch_now, turn_now, tick_now)
-		else:
-			e._start_branch(branch_then, branch_now, turn_now, tick_now)
-		e._time_warp(branch_now, turn_now, tick_now)
-		sig.send(
-			e,
-			branch_then=branch_then,
-			turn_then=turn_then,
-			tick_then=tick_then,
-			branch_now=branch_now,
-			turn_now=turn_now,
-			tick_now=tick_now,
-		)
-
-
 _T = TypeVar("_T")
 
 
@@ -4173,6 +4245,24 @@ def deannotate(annotation: str) -> Iterator[type]:
 		yield from typ
 	else:
 		yield typ
+
+
+class AbstractStringStore(MutableMapping[str, str], ABC):
+	language: ClassVar[AbstractLanguageDescriptor]
+
+	@abstractmethod
+	def save(self, reimport: bool = False) -> None: ...
+
+	@abstractmethod
+	def _switch_language(self, lang: str) -> None: ...
+
+	@abstractmethod
+	def lang_items(
+		self, lang: str | None = None
+	) -> Iterator[tuple[str, str]]: ...
+
+	@abstractmethod
+	def blake2b(self) -> bytes: ...
 
 
 class AbstractFunctionStore[_K: str, _V: FunctionType | MethodType](ABC):
@@ -5005,3 +5095,20 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 					super().__setitem__(k, v)
 					return
 			raise TypeError("Can't set layer {}".format(self.layer))
+
+
+class AbstractLanguageDescriptor(Signal, ABC):
+	@abstractmethod
+	def _get_language(self, inst: AbstractStringStore) -> str:
+		pass
+
+	@abstractmethod
+	def _set_language(self, inst: AbstractStringStore, val: str) -> None:
+		pass
+
+	def __get__(self, instance: AbstractStringStore, owner=None):
+		return self._get_language(instance)
+
+	def __set__(self, inst: AbstractStringStore, val: str):
+		self._set_language(inst, val)
+		self.send(inst, language=val)
