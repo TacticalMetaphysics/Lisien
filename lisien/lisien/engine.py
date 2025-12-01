@@ -1074,7 +1074,7 @@ class Engine(AbstractEngine, Executor):
 			self._shutdown_executor = True
 			executor_args = (
 				self._prefix,
-				self._logger,
+				self.logger,
 				tuple(self.time),
 				dict(self.eternal),
 				dict(self._branches_d),
