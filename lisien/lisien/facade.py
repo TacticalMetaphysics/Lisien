@@ -1572,19 +1572,21 @@ class EngineFacade(AbstractEngine):
 		return self.FacadeBookmarkMapping(self)
 
 	@cached_property
-	def character(self) -> Mapping[KeyHint | CharName, Type[char_cls]]:
+	def character(self):
 		return self.FacadeCharacterMapping(self)
 
 	@property
-	def universal(self) -> MutableMapping[KeyHint | UniversalKey, ValueHint]:
+	def universal(self):
 		return self.FacadeUniversalMapping(self._real)
 
 	@property
-	def rulebook(self) -> MutableMapping[KeyHint | RulebookName, "RuleBook"]:
+	def rulebook(
+		self,
+	) -> MutableMapping[KeyHint | RulebookName, FacadeRulebook]:
 		return {}
 
 	@property
-	def rule(self) -> MutableMapping[KeyHint | RuleName, "Rule"]:
+	def rule(self) -> MutableMapping[KeyHint | RuleName, FacadeRule]:
 		return {}
 
 	@property
@@ -1679,7 +1681,7 @@ class EngineFacade(AbstractEngine):
 			self._obranch, self._oturn, self._otick = real.time
 			self._turn_end = TurnEndDict(self)
 			self._turn_end_plan = TurnEndPlanDict(self)
-			if not hasattr(real, "is_proxy"):
+			if not real.is_proxy:
 				self._turn_end.update(real._turn_end)
 				self._turn_end_plan.update(real._turn_end_plan)
 				self._nodes_cache = self.FacadeNodesCache(
@@ -1824,6 +1826,7 @@ class EngineFacade(AbstractEngine):
 			char.adj.update(edge)
 
 	def apply(self):
+		"""Do all my batched changes on the underlying real engine."""
 		if self._real is None:
 			raise TypeError("Can't apply changes to nothing")
 		from lisien import Engine
@@ -1944,3 +1947,6 @@ class EngineFacade(AbstractEngine):
 							raise TypeError(
 								"Not a valid change for a plan", tup
 							)
+
+	def close(self):
+		self.apply()

@@ -2764,6 +2764,30 @@ class AbstractEngine(ABC):
 		"edge_val",
 		"things",
 	}
+	is_proxy: ClassVar[bool]
+
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		try:
+			self.close()
+		except Exception as ex:
+			if exc_val:
+				raise ExceptionGroup(
+					"Multiple exceptions during lisien.Engine.__exit__",
+					(
+						ex,
+						exc_val,
+					),
+				)
+			raise
+		finally:
+			if exc_val:
+				raise exc_val
+
+	@abstractmethod
+	def close(self) -> None: ...
 
 	@property
 	@abstractmethod
