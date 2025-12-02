@@ -4003,6 +4003,49 @@ class AbstractDatabaseConnector(ABC):
 					tick,
 				)
 
+	@cached_property
+	def _element_dispatch_table(self):
+		return {
+			tag: getattr(self, f"_{tag.replace('-', '_')}_rec")
+			for tag in (
+				(
+					"keyframe",
+					"universal",
+					"rule-triggers",
+					"rule-prereqs",
+					"rule-actions",
+					"rule-neighborhood",
+					"rule-big",
+					"rulebook",
+					"graph",
+					"graph-val",
+					"node",
+					"node-val",
+					"edge",
+					"edge-val",
+					"location",
+					"unit",
+				)
+				+ tuple(
+					f"{what}-rulebook"
+					for what in (
+						"character",
+						"unit",
+						"character-thing",
+						"character-place",
+						"character-portal",
+						"node",
+						"portal",
+					)
+				)
+			)
+		}
+
+	def _dispatch_element(
+		self, branch_el: Element, turn_el: Element, elem: Element
+	) -> None:
+		self._element_dispatch_table[elem.tag](branch_el, turn_el, elem)
+
 	def load_etree(
 		self,
 		tree: ElementTree,
@@ -4066,18 +4109,14 @@ class AbstractDatabaseConnector(ABC):
 						for elem in turn_el:
 							if elem.tag == "rule":
 								self._rule(branch_el, turn_el, elem)
-								for ellem in elem:
-									getattr(
-										self,
-										"_"
-										+ ellem.tag.replace("-", "_")
-										+ "_rec",
-									)(branch_el, turn_el, ellem)
+								for element in elem:
+									self._dispatch_element(
+										branch_el, turn_el, element
+									)
 							else:
-								getattr(
-									self,
-									"_" + elem.tag.replace("-", "_") + "_rec",
-								)(branch_el, turn_el, elem)
+								self._dispatch_element(
+									branch_el, turn_el, elem
+								)
 				known_rules = (
 					self._known_triggers.keys()
 					| self._known_prereqs.keys()
