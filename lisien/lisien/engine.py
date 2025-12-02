@@ -505,6 +505,10 @@ class Engine(AbstractEngine, Executor):
 	"""Lisien, the Life Simulator Engine."""
 
 	is_proxy: ClassVar = False
+	_planning: bool = field(init=False, default=False)
+	_forward: bool = field(init=False, default=False)
+	_no_kc: bool = field(init=False, default=False)
+	_top_uid: int = field(init=False, default=0)
 
 	@staticmethod
 	def _convert_prefix(prefix):
@@ -1124,10 +1128,6 @@ class Engine(AbstractEngine, Executor):
 		work in parallel. We'll make our own if one isn't supplied. Note that
 		:class:`LisienExecutor` is stateful, and must not be used by multiple
 		:class:`Engine` instances at once."""
-	_planning: bool = field(init=False, default=False)
-	_forward: bool = field(init=False, default=False)
-	_no_kc: bool = field(init=False, default=False)
-	_top_uid: int = field(init=False, default=0)
 
 	char_cls: ClassVar = Character
 	thing_cls: ClassVar = Thing
