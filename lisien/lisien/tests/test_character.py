@@ -188,9 +188,9 @@ def test_facade_creation(tmp_path, char_data):
 
 # TODO parametrize bunch of characters
 @pytest.fixture(scope="function", params=CHARACTER_UPDATES)
-def character_updates(request, sqleng):
+def character_updates(request, engine):
 	name, data, stat, nodestat, statup, nodeup, edgeup = request.param
-	char = sqleng.new_character(name, data, **stat)
+	char = engine.new_character(name, data, **stat)
 	update_char(char, nodes=nodestat)
 	yield char, statup, nodeup, edgeup
 
