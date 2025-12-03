@@ -214,6 +214,12 @@ class GlobalKeyValueStore(UserDict):
 		super().__delitem__(k)
 		self.qe.global_del(k)
 
+	def __copy__(self) -> dict[EternalKey, Value]:
+		return {
+			EternalKey(k): Value(v.unwrap() if hasattr(v, "unwrap") else v)
+			for (k, v) in self.items()
+		}
+
 
 @dataclass
 class ConnectionLooper(ABC):

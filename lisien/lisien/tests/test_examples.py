@@ -101,14 +101,12 @@ def test_wolfsheep(
 	tmp_path,
 	serial_or_executor,
 	database_connector_part,
-	random_seed,
 ):
 	workers = 0 if serial_or_executor is None else 2
 	with Engine.from_archive(
 		DATA_DIR + "/wolfsheep.lisien",
 		tmp_path,
 		workers=workers,
-		random_seed=random_seed,
 		database=database_connector_part(),
 		executor=serial_or_executor,
 	) as engine:
