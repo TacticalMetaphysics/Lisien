@@ -179,7 +179,7 @@ def test_set(tmp_path, random_seed):
 	wd[0] = "off"
 	assert wd[0] == "off"
 	assert 4 not in wd
-	wd[4] = WindowDict({"spam": "eggs"})
+	wd[4] = {"spam": "eggs"}
 	assert 4 in wd
 	assert wd[4] == {"spam": "eggs"}
 	assert 5 not in wd
