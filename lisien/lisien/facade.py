@@ -1597,13 +1597,25 @@ class EngineFacade(AbstractEngine):
 	def branch(self) -> Branch:
 		return Branch(self._obranch)
 
+	@branch.setter
+	def branch(self, branch: str | Branch) -> None:
+		self._obranch = Branch(branch)
+
 	@property
 	def turn(self) -> Turn:
 		return Turn(self._oturn)
 
+	@turn.setter
+	def turn(self, turn: int | Turn) -> None:
+		self._oturn = Turn(turn)
+
 	@property
 	def tick(self) -> Tick:
 		return Tick(self._otick)
+
+	@tick.setter
+	def tick(self, tick: int | Tick) -> None:
+		self._otick = tick
 
 	@property
 	def _branches_d(
