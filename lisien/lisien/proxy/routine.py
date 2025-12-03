@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from os import PathLike
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
@@ -29,9 +30,10 @@ from lisien.proxy.engine import EngineProxy, WorkerLogHandler, _finish_packing
 
 def worker_subroutine(
 	i: int,
-	prefix: str,
+	prefix: PathLike[str],
 	branches: dict,
 	eternal: dict,
+	random_seed: int | None,
 	get_input_bytes: Callable[[], bytes],
 	send_output_bytes: Callable[[bytes], None],
 	logq: Queue,
@@ -52,7 +54,8 @@ def worker_subroutine(
 		prefix=prefix,
 		worker_index=i,
 		eternal=eternal,
-		branches=branches,
+		branches_d=branches,
+		random_seed=random_seed,
 		function=function,
 		method=method,
 		trigger=trigger,
@@ -61,7 +64,6 @@ def worker_subroutine(
 	)
 	pack = eng.pack
 	unpack = eng.unpack
-	eng._initialized = False
 
 	while True:
 		inst = get_input_bytes()
@@ -98,6 +100,7 @@ def worker_subprocess(
 	prefix: str,
 	branches: dict,
 	eternal: dict,
+	random_seed: int | None,
 	in_pipe: Connection,
 	out_pipe: Connection,
 	logq: Queue,
@@ -113,6 +116,7 @@ def worker_subprocess(
 		prefix,
 		branches,
 		eternal,
+		random_seed,
 		in_pipe.recv_bytes,
 		out_pipe.send_bytes,
 		logq,
@@ -126,9 +130,10 @@ def worker_subprocess(
 
 def worker_subthread(
 	i: int,
-	prefix: str,
+	prefix: PathLike[str],
 	branches: dict,
 	eternal: dict,
+	random_seed: int | None,
 	in_queue: Queue,
 	out_queue: Queue,
 	logq: Queue,
@@ -144,6 +149,7 @@ def worker_subthread(
 		prefix,
 		branches,
 		eternal,
+		random_seed,
 		in_queue.get,
 		out_queue.put,
 		logq,

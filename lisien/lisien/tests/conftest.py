@@ -286,7 +286,7 @@ def database_connector(tmp_path, non_null_database):
 
 
 @pytest.fixture(scope="session")
-def process_executor():
+def process_executor(random_seed):
 	with LisienProcessExecutorProxy(
 		None,
 		getLogger("lisien"),
@@ -294,12 +294,13 @@ def process_executor():
 		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
 		{"trunk": (None, 0, 0, 0, 0)},
 		2,
+		random_seed=random_seed,
 	) as x:
 		yield x
 
 
 @pytest.fixture(scope="session")
-def thread_executor():
+def thread_executor(random_seed):
 	with LisienThreadExecutorProxy(
 		None,
 		getLogger("lisien"),
@@ -307,12 +308,13 @@ def thread_executor():
 		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
 		{"trunk": (None, 0, 0, 0, 0)},
 		2,
+		random_seed=random_seed,
 	) as x:
 		yield x
 
 
 @pytest.fixture(scope="session")
-def interpreter_executor():
+def interpreter_executor(random_seed):
 	if sys.version_info.minor < 14:
 		yield None
 		return
@@ -323,6 +325,7 @@ def interpreter_executor():
 		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
 		{"trunk": (None, 0, 0, 0, 0)},
 		2,
+		random_seed=random_seed,
 	) as x:
 		yield x
 
@@ -493,7 +496,7 @@ def sqleng(tmp_path, request, execution, executor):
 			prefix=tmp_path,
 			worker_index=0,
 			eternal={"language": "eng"},
-			branches={},
+			branches_d={"trunk": (None, 0, 0, 0, 0)},
 		)
 		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
 			"trunk",

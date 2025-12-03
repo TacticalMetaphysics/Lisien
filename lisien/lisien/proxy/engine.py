@@ -19,9 +19,7 @@ import io
 import logging
 import os
 import pickle
-import random
 from collections import UserDict
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from functools import cached_property, partial
 from inspect import getsource
@@ -39,8 +37,11 @@ from typing import (
 	Literal,
 	MutableMapping,
 	Optional,
+	Protocol,
+	IO,
 )
 
+from attrs import Converter, define, field
 import networkx as nx
 from blinker import Signal
 
@@ -83,6 +84,7 @@ from ..types import (
 	Key,
 	Keyframe,
 	KeyHint,
+	LinearTime,
 	MsgpackExtensionType,
 	Node,
 	NodeName,
@@ -105,6 +107,8 @@ from ..types import (
 	PickyDefaultDict,
 	StructuredDefaultDict,
 	AbstractLanguageDescriptor,
+	Stat,
+	CharacterRulebookTypeStr,
 )
 from ..util import (
 	dedent_source,
@@ -148,6 +152,11 @@ EngineProxyCallback = Callable[
 ]
 
 
+class SubmitProtocol(Protocol):
+	def __call__(self, fn, /, *args, **kwargs): ...
+
+
+@define
 class EngineProxy(AbstractEngine):
 	"""An engine-like object for controlling a lisien process
 
@@ -161,6 +170,283 @@ class EngineProxy(AbstractEngine):
 	place_cls: ClassVar = PlaceProxy
 	portal_cls: ClassVar = PortalProxy
 	is_proxy: ClassVar = True
+	_branch: Branch = field(
+		init=False, default=Branch("trunk"), converter=Branch
+	)
+	_turn: Turn = field(init=False, default=Turn(0), converter=Turn)
+	_tick: Tick = field(init=False, default=Tick(0), converter=Tick)
+	_mutable_worker: bool = field(init=False, default=False)
+	_get_input_bytes: Callable[[], bytes] | None
+	_send_output_bytes: Callable[[bytes], None] | None
+	logger: logging.Logger
+	prefix: os.PathLike[str] | None = None
+	_install_modules: Iterable[str] = ()
+	_eternal: dict[EternalKey, Value] = field(
+		factory=lambda: {"language": "eng"}
+	)
+	_random_seed: int | None = None
+	enforce_end_of_time: bool = True
+	_universal: dict[UniversalKey, Value] = field(factory=lambda: {})
+	_branches_d: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]] = (
+		field(
+			factory=lambda: {
+				Branch("trunk"): (None, Turn(0), Tick(0), Turn(0), Tick(0))
+			},
+		)
+	)
+	i: int | None = field(alias="worker_index", default=None)
+
+	@property
+	def _worker(self) -> bool:
+		return self.i is not None
+
+	@staticmethod
+	def _convert_func_store_proxy(store_name, src_d, self):
+		if self.i is None:
+			return FuncStoreProxy(self, store_name, initial=src_d)
+		else:
+			return FunctionStore(
+				str(os.path.join(self.prefix, store_name + ".py"))
+				if self.prefix
+				else None,
+				initial=src_d,
+			)
+
+	function: FuncStoreProxy | FunctionStore = field(
+		converter=Converter(
+			partial(_convert_func_store_proxy, "function"), takes_self=True
+		),
+		default=None,
+	)
+	method: FuncStoreProxy | FunctionStore = field(
+		converter=Converter(
+			partial(_convert_func_store_proxy, "method"), takes_self=True
+		),
+		default=None,
+	)
+	action: FuncStoreProxy | FunctionStore = field(
+		converter=Converter(
+			partial(_convert_func_store_proxy, "action"), takes_self=True
+		),
+		default=None,
+	)
+	prereq: FuncStoreProxy | FunctionStore = field(
+		converter=Converter(
+			partial(_convert_func_store_proxy, "prereq"), takes_self=True
+		),
+		default=None,
+	)
+
+	@staticmethod
+	def _convert_trig_store_proxy(src_d, self):
+		if src_d is None:
+			src_d = {"truth": "def truth(obj):\n\treturn True"}
+		elif "truth" not in src_d:
+			src_d["truth"] = "def truth(obj):\n\treturn True"
+		if self.i is None:
+			return TrigStoreProxy(self, "trigger", initial=src_d)
+		else:
+			return TriggerStore(
+				str(os.path.join(self.prefix, "trigger.py"))
+				if self.prefix
+				else None,
+				initial=src_d,
+			)
+
+	trigger: TrigStoreProxy | TriggerStore = field(
+		converter=Converter(_convert_trig_store_proxy, takes_self=True),
+		default=None,
+	)
+
+	@staticmethod
+	def _validate_strings(self, attr, val):
+		if val is None:
+			return True
+		self.string._cache = val
+
+	_strings: dict[str, str] | None = field(
+		validator=_validate_strings, default=None
+	)
+
+	_planning: bool = field(alias="_planning", init=False, default=False)
+	_initialized: bool = field(alias="_initialized", init=False, default=False)
+	_forward: bool = field(alias="_forward", init=False, default=False)
+	closed: bool = field(init=False, default=False)
+
+	@staticmethod
+	def _convert_replay_file(replay_file, self):
+		if replay_file is None:
+			return None
+		if not isinstance(replay_file, io.TextIOBase):
+			if os.path.exists(replay_file):
+				with open(replay_file, "rt") as rf:
+					return rf.read().replace(
+						"<lisien.proxy.EngineProxy>", "eng"
+					)
+			else:
+				return open(replay_file, "wt")
+		elif hasattr(replay_file, "mode"):
+			if "w" in replay_file.mode or "a" in replay_file.mode:
+				return replay_file
+			elif "r" in replay_file.mode:
+				return replay_file.read().replace(
+					"<lisien.proxy.EngineProxy>", "eng"
+				)
+			else:
+				self.error(
+					"Can't open replay file, mode " + repr(replay_file.mode)
+				)
+				return None
+		else:
+			txt = replay_file.read()
+			if not txt:
+				self.warning("Recording replay to an io object with no mode")
+				return replay_file
+			else:
+				return txt.replace("<lisien.proxy.EngineProxy>", "eng")
+
+	replay_file: os.PathLike[str] | IO[str] | None = field(
+		default=None,
+		converter=Converter(_convert_replay_file, takes_self=True),
+	)
+
+	@cached_property
+	def next_turn(self):
+		if self.i and not getattr(self, "_mutable_worker", False):
+
+			def no_next_turn():
+				raise WorkerProcessReadOnlyError(
+					"Can't advance time in a worker process"
+				)
+
+			return no_next_turn
+		return NextTurnProxy(self)
+
+	@cached_property
+	def _pipe_out_lock(self):
+		return Lock()
+
+	@cached_property
+	def _pipe_in_lock(self):
+		return Lock()
+
+	@cached_property
+	def _round_trip_lock(self):
+		return Lock()
+
+	@cached_property
+	def _commit_lock(self):
+		return Lock()
+
+	@cached_property
+	def _rules_cache(
+		self,
+	) -> dict[
+		RuleName,
+		dict[
+			Literal["triggers", "prereqs", "actions"],
+			list[TriggerFuncName]
+			| list[PrereqFuncName]
+			| list[ActionFuncName],
+		],
+	]:
+		return {}
+
+	@cached_property
+	def _neighborhood_cache(self) -> dict[RuleName, RuleNeighborhood]:
+		return {}
+
+	@cached_property
+	def _rulebooks_cache(
+		self,
+	) -> dict[RulebookName, tuple[list[RuleName], RulebookPriority]]:
+		return {}
+
+	@cached_property
+	def _character_rulebooks_cache(
+		self,
+	) -> dict[
+		CharName,
+		dict[
+			Literal["character", "unit", "thing", "place", "portal"],
+			RulebookName,
+		],
+	]:
+		return StructuredDefaultDict(
+			1, RulebookName, args_munger=lambda inst, k: ((inst.key, k),)
+		)
+
+	@cached_property
+	def _char_node_rulebooks_cache(
+		self,
+	) -> dict[CharName, dict[NodeName, RulebookName]]:
+		return StructuredDefaultDict(
+			1, RulebookName, args_munger=lambda inst, k: ((inst.key, k),)
+		)
+
+	@cached_property
+	def _char_port_rulebooks_cache(
+		self,
+	) -> dict[CharName, dict[NodeName, dict[NodeName, RulebookName]]]:
+		return StructuredDefaultDict(
+			2,
+			RulebookName,
+			args_munger=lambda inst, k: ((inst.parent.key, inst.key, k),),
+		)
+
+	@cached_property
+	def _things_cache(self) -> dict[CharName, dict[NodeName, ThingProxy]]:
+		return StructuredDefaultDict(1, ThingProxy)
+
+	@cached_property
+	def _character_places_cache(
+		self,
+	) -> dict[CharName, dict[NodeName, PlaceProxy]]:
+		return StructuredDefaultDict(1, PlaceProxy)
+
+	@cached_property
+	def _character_portals_cache(self) -> PortalObjCache:
+		return PortalObjCache()
+
+	@cached_property
+	def _char_cache(self) -> dict[CharName, CharacterProxy]:
+		return {}
+
+	@cached_property
+	def _character_units_cache(
+		self,
+	) -> dict[CharName, dict[CharName, set[NodeName]]]:
+		return StructuredDefaultDict(1, set)
+
+	@cached_property
+	def _unit_characters_cache(
+		self,
+	) -> dict[CharName, dict[NodeName, set[CharName]]]:
+		return StructuredDefaultDict(1, set)
+
+	@cached_property
+	def _char_stat_cache(self) -> dict[CharName, dict[Stat, Value]]:
+		return PickyDefaultDict(UnwrappingDict)
+
+	@cached_property
+	def _node_stat_cache(
+		self,
+	) -> dict[CharName, dict[NodeName, dict[Stat, Value]]]:
+		return StructuredDefaultDict(1, UnwrappingDict)
+
+	@cached_property
+	def _portal_stat_cache(
+		self,
+	) -> dict[CharName, dict[NodeName, dict[NodeName, dict[Stat, Value]]]]:
+		return StructuredDefaultDict(2, UnwrappingDict)
+
+	@cached_property
+	def _rule_obj_cache(self) -> dict[RuleName, RuleProxy]:
+		return {}
+
+	@cached_property
+	def _rulebook_obj_cache(self) -> dict[RuleName, RuleBookProxy]:
+		return {}
 
 	def _get_node(
 		self, char: AbstractCharacter | KeyHint, node: NodeName
@@ -197,7 +483,9 @@ class EngineProxy(AbstractEngine):
 			parent
 		]
 		if not (
-			(start_turn, start_tick) <= (turn, tick) <= (end_turn, end_tick)
+			LinearTime(start_turn, start_tick)
+			<= LinearTime(turn, tick)
+			<= LinearTime(end_turn, end_tick)
 		):
 			raise OutOfTimelineError(
 				"The parent branch does not cover that time",
@@ -214,11 +502,11 @@ class EngineProxy(AbstractEngine):
 		parent, start_turn, start_tick, end_turn, end_tick = self._branches_d[
 			branch
 		]
-		if (turn, tick) < (start_turn, start_tick):
+		if LinearTime(turn, tick) < LinearTime(start_turn, start_tick):
 			raise OutOfTimelineError(
 				"Can't extend branch backwards", branch, turn, tick
 			)
-		if (turn, tick) < (end_turn, end_tick):
+		if LinearTime(turn, tick) < LinearTime(end_turn, end_tick):
 			return
 		if not self._planning:
 			self._branches_d[branch] = (
@@ -229,21 +517,27 @@ class EngineProxy(AbstractEngine):
 				tick,
 			)
 
-	def load_at(self, branch: str, turn: int, tick: int) -> None:
+	def load_at(
+		self, branch: str | Branch, turn: int | Turn, tick: int | Tick
+	) -> None:
 		self.handle("load_at", branch=branch, turn=turn, tick=tick)
 
-	def branch_end(self, branch: Optional[str] = None):
+	def branch_end(self, branch: str | Branch | None = None):
 		return self.handle("branch_end", branch=branch)
 
 	def turn_end(
-		self, branch: Optional[str] = None, turn: Optional[int] = None
+		self,
+		branch: str | Branch | None = None,
+		turn: int | Turn | None = None,
 	) -> Tick:
 		if self._worker:
 			raise NotImplementedError("Need to cache turn ends in workers")
 		return self.handle("turn_end", branch=branch, turn=turn)
 
 	def turn_end_plan(
-		self, branch: Optional[str] = None, turn: Optional[int] = None
+		self,
+		branch: str | Branch | None = None,
+		turn: int | Turn | None = None,
 	) -> Tick:
 		if self._worker:
 			raise NotImplementedError("Need to cache plans in workers")
@@ -254,7 +548,7 @@ class EngineProxy(AbstractEngine):
 		return self.handle("main_branch")
 
 	@trunk.setter
-	def trunk(self, branch: Branch) -> None:
+	def trunk(self, branch: str | Branch) -> None:
 		self._worker_check()
 		if self.branch != self.trunk or self.turn != 0 or self._tick != 0:
 			raise AttributeError("Go to the start of time first")
@@ -320,7 +614,7 @@ class EngineProxy(AbstractEngine):
 	):
 		(start_kf, eternal, plainstored, pklstored) = result
 		self._initialized = False
-		self._eternal_cache = eternal
+		self._eternal = eternal
 		for name, store in [
 			("function", self.function),
 			("method", self.method),
@@ -378,9 +672,9 @@ class EngineProxy(AbstractEngine):
 		if result is None:
 			self.debug("EngineProxy: empty keyframe; clearing caches")
 			self._char_cache.clear()
-			self._universal_cache.clear()
+			self._universal.clear()
 			return
-		self._universal_cache = result["universal"]
+		self._universal = result["universal"]
 		self._rules_cache.clear()
 		rc = self._rules_cache
 		triggers: list[TriggerFuncName]
@@ -496,32 +790,41 @@ class EngineProxy(AbstractEngine):
 		):
 			chars[graph] = CharacterProxy(self, graph)
 		self.debug(f"EngineProxy: {len(chars)} characters in this keyframe...")
-		for graph, stats in result["graph_val"].items():
-			if "character_rulebook" in stats:
+		graph: CharName
+		graph_stats: dict[
+			Stat | CharacterRulebookTypeStr | Literal["units"],
+			Value | dict[CharName, dict[NodeName, bool]] | RulebookName,
+		]
+		for graph, graph_stats in result["graph_val"].items():
+			if "character_rulebook" in graph_stats:
 				self._character_rulebooks_cache[graph]["character"] = (
-					stats.pop("character_rulebook")
+					graph_stats.pop("character_rulebook")
 				)
-			if "unit_rulebook" in stats:
-				self._character_rulebooks_cache[graph]["unit"] = stats.pop(
-					"unit_rulebook"
+			if "unit_rulebook" in graph_stats:
+				self._character_rulebooks_cache[graph]["unit"] = (
+					graph_stats.pop("unit_rulebook")
 				)
-			if "character_thing_rulebook" in stats:
-				self._character_rulebooks_cache[graph]["thing"] = stats.pop(
-					"character_thing_rulebook"
+			if "character_thing_rulebook" in graph_stats:
+				self._character_rulebooks_cache[graph]["thing"] = (
+					graph_stats.pop("character_thing_rulebook")
 				)
-			if "character_place_rulebook" in stats:
-				self._character_rulebooks_cache[graph]["place"] = stats.pop(
-					"character_place_rulebook"
+			if "character_place_rulebook" in graph_stats:
+				self._character_rulebooks_cache[graph]["place"] = (
+					graph_stats.pop("character_place_rulebook")
 				)
-			if "character_portal_rulebook" in stats:
-				self._character_rulebooks_cache[graph]["portal"] = stats.pop(
-					"character_portal_rulebook"
+			if "character_portal_rulebook" in graph_stats:
+				self._character_rulebooks_cache[graph]["portal"] = (
+					graph_stats.pop("character_portal_rulebook")
 				)
-			if "units" in stats:
-				self._character_units_cache[graph] = stats.pop("units")
+			if "units" in graph_stats:
+				for char, units in graph_stats.pop("units").items():
+					self._character_units_cache[graph][char] = set(
+						units.keys()
+					)
 			else:
-				self._character_units_cache[graph] = {}
-			self._char_stat_cache[graph] = stats
+				del self._character_units_cache[graph]
+			graph_stats: dict[Stat, Value]
+			self._char_stat_cache[graph] = graph_stats
 			self.debug(f"EngineProxy: got keyframed stats for {graph}...")
 		nodes_to_delete = {
 			(char, node)
@@ -558,18 +861,19 @@ class EngineProxy(AbstractEngine):
 				f"EngineProxy: Updating node stats for character {char} "
 				"from a keyframe..."
 			)
-			nodestats: NodeValDict
-			for node, stats in nodestats.items():
-				if "location" in stats:
+			node: NodeName
+			node_stats: dict[Stat | Literal["location"], Value | NodeName]
+			for node, node_stats in nodestats.items():
+				if "location" in node_stats:
 					if char not in things or node not in things[char]:
 						things[char][node] = ThingProxy(
 							chars[char],
 							node,
-							NodeName(Key(stats.pop("location"))),
+							NodeName(node_stats.pop("location")),
 						)
 					else:
 						things[char][node]._location = NodeName(
-							Key(stats.pop("location"))
+							node_stats.pop("location")
 						)
 					if char in places and node in places[char]:
 						del places[char][node]
@@ -578,7 +882,8 @@ class EngineProxy(AbstractEngine):
 						places[char][node] = PlaceProxy(chars[char], node)
 					if char in things and node in things[char]:
 						del things[char][node]
-				self._node_stat_cache[char][node] = stats
+				node_stats: dict[Stat, Value]
+				self._node_stat_cache[char][node] = node_stats
 		edges_to_delete = {
 			(char, orig, dest)
 			for char in portals.successors
@@ -618,8 +923,8 @@ class EngineProxy(AbstractEngine):
 			)
 			origs: EdgeValDict
 			for orig, dests in origs.items():
-				for dest, stats in dests.items():
-					self._portal_stat_cache[char][orig][dest] = stats
+				for dest, port_stats in dests.items():
+					self._portal_stat_cache[char][orig][dest] = port_stats
 
 	def _pull_kf_now(self, *args, **kwargs):
 		self._replace_state_with_kf(self.handle("snap_keyframe"))
@@ -649,7 +954,7 @@ class EngineProxy(AbstractEngine):
 		v = Turn(v)
 		turn_end, tick_end = self._branch_end()
 		if (
-			self._enforce_end_of_time
+			self.enforce_end_of_time
 			and not self._planning
 			and (v, self.tick) > (turn_end, tick_end)
 		):
@@ -684,7 +989,7 @@ class EngineProxy(AbstractEngine):
 		if v == self.tick:
 			return
 		v = Tick(v)
-		if self._enforce_end_of_time:
+		if self.enforce_end_of_time:
 			if self._planning:
 				end_turn, end_tick = self.handle(
 					"branch_end_plan_turn_and_tick"
@@ -716,12 +1021,6 @@ class EngineProxy(AbstractEngine):
 		return CharacterMapProxy(self)
 
 	@cached_property
-	def _branches_d(
-		self,
-	) -> dict[Branch, tuple[Optional[Branch], Turn, Tick, Turn, Tick]]:
-		return {}
-
-	@cached_property
 	def eternal(self) -> MutableMapping[KeyHint | EternalKey, ValueHint]:
 		return EternalVarProxy(self)
 
@@ -745,182 +1044,14 @@ class EngineProxy(AbstractEngine):
 
 	@cached_property
 	def _rando(self):
-		return RandoProxy(self)
+		if self._worker:
+			return Random(seed=self._random_seed)
+		else:
+			return RandoProxy(self, seed=self._random_seed)
 
 	@cached_property
 	def string(self):
 		return StringStoreProxy(self)
-
-	def __init__(
-		self,
-		get_input_bytes: Callable[[], bytes],
-		send_output_bytes: Callable[[bytes], None],
-		logger: logging.Logger,
-		install_modules=(),
-		submit_func: callable = None,
-		threads: int = None,
-		prefix: str | os.PathLike = None,
-		worker_index: int = None,
-		replay_file: str | os.PathLike | io.TextIOBase = None,
-		eternal: dict = None,
-		universal: dict = None,
-		branches: dict = None,
-		function: dict = None,
-		method: dict = None,
-		trigger: dict = None,
-		prereq: dict = None,
-		action: dict = None,
-		strings: dict = None,
-		enforce_end_of_time: bool = True,
-	):
-		if eternal is None:
-			eternal = {"language": "eng"}
-		if universal is None:
-			universal = {"rando_state": random.getstate()}
-		if branches is None:
-			branches = {"trunk": (None, 0, 0, 0, 0)}
-		self._planning: bool = False
-		self._enforce_end_of_time: bool = enforce_end_of_time
-		self._eternal_cache: dict[EternalKey, Value] = eternal
-		self._universal_cache: dict[UniversalKey, Value] = universal
-		self._rules_cache: dict[
-			RuleName,
-			dict[
-				Literal["triggers", "prereqs", "actions"],
-				list[TriggerFuncName]
-				| list[PrereqFuncName]
-				| list[ActionFuncName],
-			],
-		] = {}
-		self._neighborhood_cache: dict[RuleName, RuleNeighborhood] = {}
-		self._rulebooks_cache: dict[
-			RulebookName, tuple[list[RuleName], RulebookPriority]
-		] = {}
-		self._branches_d.update(branches)
-		self._planning: bool = False
-		if replay_file is not None:
-			if not isinstance(replay_file, io.TextIOBase):
-				if os.path.exists(replay_file):
-					with open(replay_file, "rt") as rf:
-						self._replay_txt = rf.read().replace(
-							"<lisien.proxy.EngineProxy>", "eng"
-						)
-				else:
-					self._replay_file = open(replay_file, "wt")
-			elif hasattr(replay_file, "mode"):
-				if "w" in replay_file.mode or "a" in replay_file.mode:
-					self._replay_file = replay_file
-				elif "r" in replay_file.mode:
-					self._replay_txt = replay_file.read().replace(
-						"<lisien.proxy.EngineProxy>", "eng"
-					)
-				else:
-					self.error(
-						"Can't open replay file, mode "
-						+ repr(replay_file.mode)
-					)
-			else:
-				txt = replay_file.read()
-				if not txt:
-					self._replay_file = replay_file
-					self.warning(
-						"Recording replay to an io object with no mode"
-					)
-				else:
-					self._replay_txt = txt.replace(
-						"<lisien.proxy.EngineProxy>", "eng"
-					)
-		self.i: int | None = worker_index
-		self.closed: bool = False
-		if submit_func:
-			self._submit = submit_func
-		else:
-			self._threadpool = ThreadPoolExecutor(threads)
-			self._submit = self._threadpool.submit
-		self._send_output_bytes = send_output_bytes
-		self._pipe_out_lock = Lock()
-		self._get_input_bytes = get_input_bytes
-		self._pipe_in_lock = Lock()
-		self._round_trip_lock = Lock()
-		self._commit_lock = Lock()
-		self._logger = logger
-		if worker_index is None:
-			self.logger.debug("EngineProxy: starting proxy to core")
-			self._worker = False
-			self.next_turn = NextTurnProxy(self)
-			self.method = FuncStoreProxy(self, "method", initial=method)
-			self.action = FuncStoreProxy(self, "action", initial=action)
-			self.prereq = FuncStoreProxy(self, "prereq", initial=prereq)
-			self.trigger = TrigStoreProxy(self, "trigger", initial=trigger)
-			self.function = FuncStoreProxy(self, "function", initial=function)
-			self._rando = RandoProxy(self)
-			if strings is not None:
-				self.string._cache = strings
-		else:
-			self.debug("EngineProxy: starting worker %d" % worker_index)
-			self._worker = True
-			self._worker_idx = worker_index
-			if getattr(self, "_mutable_worker", False):
-
-				def next_turn():
-					raise WorkerProcessReadOnlyError(
-						"Can't advance time in a worker process"
-					)
-
-				self.next_turn = next_turn
-			else:
-				self._rando = Random()
-				self.next_turn = lambda: None
-			self.method = FunctionStore(
-				os.path.join(prefix, "method.py") if prefix else None,
-				initial=method,
-			)
-			self.action = FunctionStore(
-				os.path.join(prefix, "action.py") if prefix else None,
-				initial=action,
-			)
-			self.prereq = FunctionStore(
-				os.path.join(prefix, "prereq.py") if prefix else None,
-				initial=prereq,
-			)
-			if trigger is None:
-				trigger = {"truth": "def truth(obj):\n\treturn True"}
-			elif "truth" not in trigger:
-				trigger["truth"] = "def truth(obj):\n\treturn True"
-			self.trigger = TriggerStore(
-				os.path.join(prefix, "trigger.py") if prefix else None,
-				initial=trigger,
-			)
-			self.function = FunctionStore(
-				os.path.join(prefix, "function.py") if prefix else None,
-				initial=function,
-			)
-			self.string = StringStore(self, prefix)
-
-		self._node_stat_cache = StructuredDefaultDict(1, UnwrappingDict)
-		self._portal_stat_cache = StructuredDefaultDict(2, UnwrappingDict)
-		self._char_stat_cache = PickyDefaultDict(UnwrappingDict)
-		self._things_cache = StructuredDefaultDict(1, ThingProxy)
-		self._character_places_cache = StructuredDefaultDict(1, PlaceProxy)
-		self._character_rulebooks_cache = StructuredDefaultDict(
-			1, RulebookName, args_munger=lambda inst, k: ((inst.key, k),)
-		)
-		self._char_node_rulebooks_cache = StructuredDefaultDict(
-			1, RulebookName, args_munger=lambda inst, k: ((inst.key, k),)
-		)
-		self._char_port_rulebooks_cache = StructuredDefaultDict(
-			2,
-			RulebookName,
-			args_munger=lambda inst, k: ((inst.parent.key, inst.key, k),),
-		)
-		self._character_portals_cache = PortalObjCache()
-		self._character_units_cache = PickyDefaultDict(dict)
-		self._unit_characters_cache = PickyDefaultDict(dict)
-		self._rule_obj_cache = {}
-		self._rulebook_obj_cache = {}
-		self._char_cache = {}
-		self._install_modules = install_modules
-		self.debug("EngineProxy: finished core __init__")
 
 	@property
 	def _caches(self):
@@ -943,11 +1074,11 @@ class EngineProxy(AbstractEngine):
 
 	def _restart(
 		self,
-		prefix: str | PathLike | None,
+		prefix: PathLike[str] | None,
 		time: Time,
 		eternal: dict[EternalKey, Value],
 		branches: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
-		random_seed: int,
+		rando: int | tuple | None,
 	):
 		if self._worker:
 			filez = os.listdir(prefix)
@@ -962,9 +1093,12 @@ class EngineProxy(AbstractEngine):
 						store._cache = {}
 		for cache in self._caches:
 			cache.clear()
-		self._eternal_cache = dict(eternal)
+		self._eternal = dict(eternal)
 		self._branches_d = dict(branches)
-		self._rando.seed(random_seed)
+		if isinstance(rando, tuple):
+			self._rando.setstate(rando)
+		else:
+			self._rando.seed(rando)
 		(self._branch, self._turn, self._tick) = time
 
 	def _init_pull_from_core(self):
@@ -1026,16 +1160,7 @@ class EngineProxy(AbstractEngine):
 		except AttributeError:
 			pass
 		method = super().__getattribute__("method")
-		try:
-			meth = method.__getattr__(item)
-		except AttributeError:
-			try:
-				meth = method.__getattr__(item)
-			except AttributeError:
-				raise AttributeError(
-					"lisien.proxy.EngineProxy does not have the attribute",
-					item,
-				)
+		meth = method.__getattr__(item)
 		return MethodType(meth, self)
 
 	def _reimport_triggers(self) -> None:
@@ -1899,7 +2024,7 @@ class StringStoreProxy(Signal):
 class EternalVarProxy(MutableMapping):
 	@property
 	def _cache(self):
-		return self.engine._eternal_cache
+		return self.engine._eternal
 
 	def _worker_check(self):
 		self.engine._worker_check()
@@ -1940,7 +2065,7 @@ class EternalVarProxy(MutableMapping):
 class GlobalVarProxy(MutableMapping, Signal):
 	@property
 	def _cache(self):
-		return self.engine._universal_cache
+		return self.engine._universal
 
 	def _worker_check(self):
 		self.engine._worker_check()

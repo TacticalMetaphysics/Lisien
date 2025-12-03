@@ -2757,6 +2757,7 @@ class AbstractEngine(ABC):
 	portal_cls: ClassVar[type[Edge]]
 	char_cls: ClassVar[type[AbstractCharacter]]
 	time: ClassVar = TimeSignalDescriptor()
+	_time_signal: TimeSignal = field(init=False)
 	illegal_node_names: ClassVar = {
 		"nodes",
 		"node_val",
@@ -5055,7 +5056,7 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 	__slots__ = ()
 
 	layer: int = field(validator=validators.ge(1))
-	type: type | None = None
+	type: type = type(None)
 	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
 	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
 	gettest: Callable[[_K], None] = lambda k: None
@@ -5078,7 +5079,7 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 				return dict.__getitem__(self, k)
 			layer, typ, args_munger, kwargs_munger = self._stuff
 			if layer == 1:
-				if typ is None:
+				if typ is type(None):
 					ret = {}
 				else:
 					ret = PickyDefaultDict(typ, args_munger, kwargs_munger)
@@ -5102,7 +5103,7 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 				layer, typ, args_munger, kwargs_munger = self._stuff
 				if (
 					v.layer == layer - 1
-					and (typ is None or v.type is typ)
+					and (typ is type(None) or v.type is typ)
 					and v.args_munger is args_munger
 					and v.kwargs_munger is kwargs_munger
 				):

@@ -1055,29 +1055,19 @@ class Engine(AbstractEngine, Executor):
 		kw_only=True, converter=_convert_logger, default=None
 	)
 	"""Logger object that we'll write records to."""
+	_shutdown_executor: bool = field(init=False, default=False)
 
 	@staticmethod
 	def _convert_executor(
 		executor: LisienExecutor | None, self
 	) -> LisienExecutor | None:
 		if executor:
-			executor.call_every_worker(
-				self.pack("_restart"),
-				self.pack(
-					[
-						str(self._prefix),
-						tuple(self.time),
-						dict(self.eternal),
-						dict(self._branches_d),
-						self.random_seed,
-					]
-				),
-				self.pack({}),
-			)
-			initial_payload = self._get_worker_kf_payload()
-			for i in range(executor.workers):
-				executor._send_worker_input_bytes(i, initial_payload)
 			self._shutdown_executor = False
+			executor.prefix = self._prefix
+			executor.logger = self.logger
+			branch, turn, tick = self.time
+			executor.time = branch, turn, tick
+			executor.eternal = self.eternal.copy()
 			return executor
 		elif self.workers > 0:
 			for store in self.stores:
@@ -1091,6 +1081,7 @@ class Engine(AbstractEngine, Executor):
 				dict(self.eternal),
 				dict(self._branches_d),
 				self.workers,
+				self.universal.get("rando_state", self.random_seed),
 			)
 			match self.sub_mode:
 				case Sub.interpreter if sys.version_info[1] >= 14:
@@ -1113,12 +1104,13 @@ class Engine(AbstractEngine, Executor):
 	def _validate_executor(self, attribute, executor: LisienExecutor | None):
 		if executor:
 			executor.lock.acquire()
+			executor.restart(self._get_worker_kf_payload)
 		elif self.workers > 0:
 			raise RuntimeError(
 				f"Didn't start an executor, though {self.workers} workers were requested"
 			)
 
-	executor: LisienExecutor = field(
+	executor: LisienExecutor | None = field(
 		kw_only=True,
 		default=None,
 		converter=Converter(_convert_executor, takes_self=True),
@@ -5779,8 +5771,8 @@ class Engine(AbstractEngine, Executor):
 			if hasattr(cache, "clear"):
 				cache.clear()
 		gc.collect()
-		if hasattr(self, "_executor"):
-			self._executor.lock.release()
+		if getattr(self, "executor", None):
+			self.executor.lock.release()
 		self._closed = True
 
 	def _handled_char(
@@ -6011,9 +6003,9 @@ class Engine(AbstractEngine, Executor):
 	def shutdown(
 		self, wait: bool = True, *, cancel_futures: bool = False
 	) -> None:
-		if hasattr(self, "_executor") and self._shutdown_executor:
-			self._executor.shutdown(wait, cancel_futures=cancel_futures)
-			del self._executor
+		if self.executor and self._shutdown_executor:
+			self.executor.shutdown(wait, cancel_futures=cancel_futures)
+			del self.executor
 
 	@world_locked
 	def _update_worker_process_state(self, i, lock=True):
