@@ -3275,21 +3275,6 @@ class Engine(AbstractEngine, Executor):
 		kf["rulebook"] = self._rulebooks_cache.get_keyframe(branch, turn, tick)
 		return kf
 
-	def _load_keyframe_times(self) -> None:
-		keyframes_dict = self._keyframes_dict
-		keyframes_times = self._keyframes_times
-		q = self.database
-		for branch, turn, tick in q.keyframes_dump():
-			if branch not in keyframes_dict:
-				keyframes_dict[branch] = {turn: {tick}}
-			else:
-				keyframes_dict_branch = keyframes_dict[branch]
-				if turn not in keyframes_dict_branch:
-					keyframes_dict_branch[turn] = {tick}
-				else:
-					keyframes_dict_branch[turn].add(tick)
-			keyframes_times.add((branch, turn, tick))
-
 	def _load_plans(self) -> None:
 		q = self.database
 
