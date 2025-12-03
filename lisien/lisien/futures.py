@@ -562,8 +562,6 @@ class LisienInterpreterExecutor(LisienExecutor):
 					raise RuntimeError(
 						f"Got garbled output from worker terp {i}", echoed
 					)
-		if not i:
-			raise RuntimeError("No workers?", i)
 
 	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
 		self._worker_inputs[i].put(input)
