@@ -262,7 +262,9 @@ class EngineProxyManager:
 			self.engine_proxy.close()
 			self.engine_proxy.send_bytes(b"shutdown")
 			if hasattr(self, "_p"):
-				self._p.join(timeout=1)
+				self._p.join(timeout=5.0)
+				if self._p.is_alive():
+					raise TimeoutError("Couldn't join process")
 			del self.engine_proxy
 		if hasattr(self, "_client"):
 			while not self._output_queue.empty():
@@ -273,11 +275,11 @@ class EngineProxyManager:
 			self._logq.put(b"shutdown")
 			self._log_thread.join()
 		if hasattr(self, "_t"):
-			self._t.join(timeout=1.0)
+			self._t.join(timeout=5.0)
 			if self._t.is_alive():
 				raise TimeoutError("Couldn't join thread")
 		if hasattr(self, "_terp_thread") and self._terp_thread.is_alive():
-			self._terp_thread.join(timeout=1.0)
+			self._terp_thread.join(timeout=5.0)
 			if self._terp_thread.is_alive():
 				raise TimeoutError("Couldn't join interpreter thread")
 		self.logger.debug("EngineProxyManager: shutdown")
