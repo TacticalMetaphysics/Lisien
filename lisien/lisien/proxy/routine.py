@@ -228,7 +228,6 @@ def engine_subroutine(
 			engine_handle = EngineHandle.from_archive(
 				recvd.removeprefix(b"from_archive"), log_queue=log_queue
 			)
-			send_output("get_btt", engine_handle.get_btt())
 			continue
 		if engine_handle is None:
 			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
