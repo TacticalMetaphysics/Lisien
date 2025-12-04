@@ -103,6 +103,10 @@ class EngineProxyManager:
 			prefix = kwargs.pop("prefix")
 		else:
 			raise RuntimeError("No prefix")
+		if hasattr(self, "_proxy_out_pipe"):
+			self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
+		else:
+			self._output_queue.put(b"echoReadyToMakeProxy")
 		self._make_proxy(prefix, **kwargs)
 		if hasattr(self, "_proxy_out_pipe"):
 			self._proxy_out_pipe.send_bytes(GET_TIME)
@@ -536,6 +540,14 @@ class EngineProxyManager:
 		game_strings: dict[str, str] | None = None,
 		**kwargs,
 	):
+		if hasattr(self, "_input_queue"):
+			if (got := self._input_queue.get()) != b"ReadyToMakeProxy":
+				raise RuntimeError("Subthtread isn't ready", got)
+		else:
+			if (
+				got := self._proxy_in_pipe.recv_bytes()
+			) != b"ReadyToMakeProxy":
+				raise RuntimeError("Subprocess isn't ready", got)
 		branches_d, eternal_d = self._initialize_proxy_db(prefix, **kwargs)
 		if game_source_code is None:
 			game_source_code = {}
@@ -664,6 +676,7 @@ class EngineProxyManager:
 					}
 				),
 			)
+		self._output_queue.put(b"echoReadyToMakeProxy")
 		self._make_proxy(prefix, game_source_code=game_code, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
