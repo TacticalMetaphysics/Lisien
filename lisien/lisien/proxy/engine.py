@@ -1045,7 +1045,7 @@ class EngineProxy(AbstractEngine):
 	@cached_property
 	def _rando(self):
 		if self._worker:
-			return Random(seed=self._random_seed)
+			return Random(self._random_seed)
 		else:
 			return RandoProxy(self, seed=self._random_seed)
 
