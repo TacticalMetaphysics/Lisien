@@ -542,7 +542,7 @@ class EngineProxyManager:
 	):
 		if hasattr(self, "_input_queue"):
 			if (got := self._input_queue.get()) != b"ReadyToMakeProxy":
-				raise RuntimeError("Subthtread isn't ready", got)
+				raise RuntimeError("Subthread isn't ready", got)
 		else:
 			if (
 				got := self._proxy_in_pipe.recv_bytes()
