@@ -106,26 +106,6 @@ def make_test_engine_kwargs(
 	return kwargs
 
 
-def restart_executor(
-	executor: LisienExecutor, prefix: str | PathLike | None, random_seed: int
-):
-	if isinstance(prefix, PathLike):
-		prefix = str(prefix)
-	executor.call_every_worker(
-		packb("_restart"),
-		packb(
-			[
-				prefix,
-				("trunk", 0, 0),
-				{"language": "eng"},
-				{"trunk": (None, 0, 0, 0, 0)},
-				random_seed,
-			]
-		),
-		packb({}),
-	)
-
-
 def make_test_engine(
 	path,
 	execution,
@@ -135,7 +115,7 @@ def make_test_engine(
 	**kw_args,
 ):
 	if executor is not None:
-		restart_executor(executor, path, random_seed)
+		executor.restart()
 	kwargs = {"random_seed": random_seed}
 	kwargs.update(**kw_args)
 	if execution == "proxy":
