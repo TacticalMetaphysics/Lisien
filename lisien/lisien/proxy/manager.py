@@ -39,9 +39,6 @@ class Sub(Enum):
 	thread = "thread"
 
 
-GET_TIME = b"\x81\xa7command\xa8get_time"
-
-
 class EngineProxyManager:
 	"""Container for a Lisien proxy and a logger for it
 
@@ -104,10 +101,6 @@ class EngineProxyManager:
 		else:
 			raise RuntimeError("No prefix")
 		self._make_proxy(prefix, **kwargs)
-		if hasattr(self, "_proxy_out_pipe"):
-			self._proxy_out_pipe.send_bytes(GET_TIME)
-		else:
-			self._output_queue.put(GET_TIME)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
