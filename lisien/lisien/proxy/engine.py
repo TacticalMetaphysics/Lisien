@@ -1103,6 +1103,7 @@ class EngineProxy(AbstractEngine):
 
 	def _init_pull_from_core(self):
 		self.debug("EngineProxy: Getting time...")
+		self.send_bytes(GET_TIME)
 		received = self.recv()
 		self.debug(
 			f"EngineProxy: Got time: {received}. Pulling initial keyframe..."
@@ -2262,3 +2263,6 @@ class WorkerLogHandler(logging.Handler):
 	def emit(self, record):
 		record.worker_idx = self._i
 		self._logq.put(record)
+
+
+GET_TIME = b"\x81\xa7command\xa8get_time"
