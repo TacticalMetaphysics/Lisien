@@ -46,7 +46,6 @@ from .util import (
 	make_test_engine_kwargs,
 	get_database_connector_part,
 	college_engine,
-	restart_executor,
 	tar_cache,
 	untar_cache,
 )
@@ -458,13 +457,13 @@ def no_proxy_executor(
 		case "serial":
 			yield None
 		case "thread":
-			restart_executor(thread_executor, tmp_path, random_seed)
+			thread_executor.restart()
 			yield thread_executor
 		case "process":
-			restart_executor(process_executor, tmp_path, random_seed)
+			process_executor.restart()
 			yield process_executor
 		case "interpreter":
-			restart_executor(interpreter_executor, tmp_path, random_seed)
+			interpreter_executor.restart()
 			yield interpreter_executor
 
 
