@@ -1152,9 +1152,6 @@ class EngineProxy(AbstractEngine):
 					self.handle(method, *args, **kwargs)
 		self.debug("EngineProxy: Initial pull from core completed.")
 
-	def __repr__(self):
-		return "<lisien.proxy.EngineProxy>"
-
 	def __getattr__(self, item):
 		try:
 			return super().__getattr__(item)
