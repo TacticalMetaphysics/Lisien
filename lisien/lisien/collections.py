@@ -35,6 +35,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from hashlib import blake2b
 from inspect import getsource
+from pathlib import Path
 from types import FunctionType, MethodType
 from typing import TYPE_CHECKING, Callable, Iterator, TypeVar, ClassVar
 
@@ -158,7 +159,7 @@ class StringStore(AbstractStringStore, Signal):
 	def __init__(
 		self,
 		engine_or_string_dict: AbstractEngine | dict,
-		prefix: str | None,
+		prefix: Path | os.PathLike[str] | None,
 		lang="eng",
 	):
 		super().__init__()
@@ -172,6 +173,10 @@ class StringStore(AbstractStringStore, Signal):
 			else:
 				self._languages = {lang: engine_or_string_dict}
 		else:
+			if prefix is not None:
+				prefix = Path(prefix)
+			if not prefix.is_dir():
+				raise NotADirectoryError("Prefix is not a directory", prefix)
 			self.engine = engine_or_string_dict
 			self._languages = {lang: TamperEvidentDict()}
 			self._prefix = prefix
@@ -185,14 +190,14 @@ class StringStore(AbstractStringStore, Signal):
 				self._languages[lang] = TamperEvidentDict()
 			return
 		try:
-			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
+			with open(self._prefix.joinpath(lang + ".json"), "r") as inf:
 				self._languages[lang] = TamperEvidentDict(json.load(inf))
 		except FileNotFoundError:
 			self._languages[lang] = TamperEvidentDict()
 		assert self._current_language in self._languages
 		if getattr(self._languages[self._current_language], "tampered", False):
 			with open(
-				os.path.join(self._prefix, self._current_language + ".json"),
+				self._prefix.joinpath(self._current_language + ".json"),
 				"w",
 			) as outf:
 				json.dump(
@@ -232,20 +237,20 @@ class StringStore(AbstractStringStore, Signal):
 			and lang is not None
 			and self._current_language != lang
 		):
-			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
+			with open(self._prefix.joinpath(lang + ".json"), "r") as inf:
 				self._languages[lang] = TamperEvidentDict(json.load(inf))
 		yield from self._languages[lang or self._current_language].items()
 
 	def save(self, reimport: bool = False) -> None:
 		if self._prefix is None:
 			return
-		if not os.path.exists(self._prefix):
-			os.mkdir(self._prefix)
+		if not self._prefix.exists():
+			self._prefix.mkdir()
 		for lang, d in self._languages.items():
 			if not d.tampered:
 				continue
 			with open(
-				os.path.join(self._prefix, lang + ".json"),
+				self._prefix.joinpath(lang + ".json"),
 				"w",
 			) as outf:
 				json.dump(
@@ -257,7 +262,7 @@ class StringStore(AbstractStringStore, Signal):
 			d.tampered = False
 		if reimport:
 			with open(
-				os.path.join(self._prefix, self._current_language + ".json"),
+				self._prefix.joinpath(self._current_language + ".json"),
 				"r",
 			) as inf:
 				self._languages[self._current_language] = TamperEvidentDict(
@@ -1067,10 +1072,13 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 
 	"""
 
-	_filename: str | None
+	_filename: Path | None
 
 	def __init__(
-		self, filename: str | None, initial: dict = None, module: str = None
+		self,
+		filename: os.PathLike[str] | None,
+		initial: dict = None,
+		module: str = None,
 	):
 		if initial is None:
 			initial = {}
@@ -1083,12 +1091,13 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 			self._need_save = False
 			self._locl = initial
 		else:
-			if not filename.endswith(".py"):
+			file = Path(filename)
+			if not file.name.endswith(".py"):
 				raise ValueError(
 					"FunctionStore can only work with pure Python source code"
 				)
-			self._filename = os.path.abspath(os.path.realpath(filename))
-			self._store = os.path.basename(self._filename).removesuffix(".py")
+			self._filename = file.resolve().absolute()
+			self._store = file.name.removesuffix(".py")
 			try:
 				self.reimport()
 			except (FileNotFoundError, ModuleNotFoundError):

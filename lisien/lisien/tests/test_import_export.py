@@ -56,7 +56,7 @@ def engine_and_exported_xml(
 	tmp_path, random_seed, persistent_database, request, turns
 ):
 	install = get_install_func(request.param, random_seed)
-	prefix = os.path.join(tmp_path, "game")
+	prefix = tmp_path.joinpath("game")
 	with Engine(
 		prefix,
 		workers=0,
@@ -69,11 +69,11 @@ def engine_and_exported_xml(
 		install(eng)
 		for _ in range(turns):
 			eng.next_turn()
-		yield eng, str(os.path.join(DATA_DIR, request.param + f"_{turns}.xml"))
+		yield eng, DATA_DIR.joinpath(request.param + f"_{turns}.xml")
 
 
 def test_export_db(tmp_path, engine_and_exported_xml):
-	test_xml = os.path.join(tmp_path, "test.xml")
+	test_xml = tmp_path.joinpath("test.xml")
 	eng, outpath = engine_and_exported_xml
 	eng.to_xml(test_xml, name="test_export")
 
@@ -98,7 +98,7 @@ def exported(
 	tmp_path, random_seed, persistent_database_connector_part, request, turns
 ):
 	install = get_install_func(request.param, random_seed)
-	prefix = os.path.join(tmp_path, "game")
+	prefix = tmp_path.joinpath("game")
 	with Engine(
 		prefix,
 		workers=0,
@@ -121,10 +121,10 @@ def test_round_trip(
 	random_seed,
 	turns,
 ):
-	prefix1 = os.path.join(tmp_path, "game")
-	os.makedirs(prefix1, exist_ok=True)
-	prefix2 = os.path.join(tmp_path, "game2")
-	os.makedirs(prefix2, exist_ok=True)
+	prefix1 = tmp_path.joinpath("game")
+	prefix1.mkdir(parents=True, exist_ok=True)
+	prefix2 = tmp_path.joinpath("game2")
+	prefix2.mkdir(parents=True, exist_ok=True)
 	db1 = persistent_database_connector_part()
 	match non_null_database:
 		case "python":
@@ -134,16 +134,16 @@ def test_round_trip(
 				f"sqlite:///{prefix2}/world.sqlite3"
 			)
 		case "parquetdb":
-			db2 = ParquetDatabaseConnector(os.path.join(prefix2, "world"))
+			db2 = ParquetDatabaseConnector(prefix2.joinpath("world"))
 		case _:
 			raise RuntimeError("Unknown database", database_connector_part)
-	if exported.endswith("kobold.lisien"):
+	if exported.name.endswith("kobold.lisien"):
 		from lisien.examples.kobold import inittest as install
-	elif exported.endswith("wolfsheep.lisien"):
+	elif exported.name.endswith("wolfsheep.lisien"):
 		from lisien.examples.wolfsheep import install
 
 		install = partial(install, seed=random_seed)
-	elif exported.endswith("polygons.lisien"):
+	elif exported.name.endswith("polygons.lisien"):
 		from lisien.examples.polygons import install
 	else:
 		raise pytest.fail(f"Unknown export: {exported}")

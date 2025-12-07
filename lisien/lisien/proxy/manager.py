@@ -23,6 +23,7 @@ import sys
 import time
 import zlib
 from enum import Enum
+from pathlib import Path
 from threading import Thread
 from zipfile import ZipFile
 
@@ -100,6 +101,8 @@ class EngineProxyManager:
 			prefix = kwargs.pop("prefix")
 		else:
 			raise RuntimeError("No prefix")
+		if prefix is not None:
+			prefix = Path(prefix)
 		self._make_proxy(prefix, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
@@ -139,7 +142,7 @@ class EngineProxyManager:
 		)
 
 	def _initialize_proxy_db(
-		self, prefix, **kwargs
+		self, prefix: Path | None, **kwargs
 	) -> tuple[
 		dict[Branch, tuple[Branch, Turn, Tick, Turn, Tick]],
 		dict[EternalKey, Value],
@@ -207,10 +210,10 @@ class EngineProxyManager:
 		else:
 			from parquetdb import ParquetDB
 
-			pqdb_prefix = os.path.join(prefix, "world")
+			pqdb_prefix = prefix.joinpath("world")
 
 			for d in (
-				ParquetDB(f"{pqdb_prefix}/branches")
+				ParquetDB(pqdb_prefix.joinpath("branches"))
 				.read(
 					columns=[
 						"branch",
@@ -522,7 +525,7 @@ class EngineProxyManager:
 
 	def _make_proxy(
 		self,
-		prefix,
+		prefix: Path | None,
 		install_modules=(),
 		enforce_end_of_time=False,
 		game_source_code: dict[str, str] | None = None,
@@ -543,6 +546,7 @@ class EngineProxyManager:
 		if game_source_code is None:
 			game_source_code = {}
 			if prefix is not None:
+				prefix = Path(prefix)
 				for store in (
 					"function",
 					"method",
@@ -550,8 +554,8 @@ class EngineProxyManager:
 					"prereq",
 					"action",
 				):
-					pyfile = os.path.join(prefix, store + ".py")
-					if os.path.exists(pyfile) and os.stat(pyfile).st_size:
+					pyfile = prefix.joinpath(store + ".py")
+					if pyfile.exists() and pyfile.stat().st_size:
 						code = game_source_code[store] = {}
 						with open(pyfile, "rt") as inf:
 							parsed = ast.parse(inf.read(), pyfile)
@@ -559,10 +563,10 @@ class EngineProxyManager:
 						for funk in parsed.body:
 							code[funk.name] = ast.unparse(funk)
 		if game_strings is None:
-			if prefix and os.path.isdir(os.path.join(prefix, "strings")):
+			if prefix and prefix.joinpath("strings").is_dir():
 				lang = eternal_d.get(EternalKey(Key("language")), "eng")
-				jsonpath = os.path.join(prefix, "strings", str(lang) + ".json")
-				if os.path.isfile(jsonpath):
+				jsonpath = prefix.joinpath("strings", str(lang) + ".json")
+				if jsonpath.is_file():
 					with open(jsonpath) as inf:
 						game_strings = json.load(inf)
 

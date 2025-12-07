@@ -17,12 +17,12 @@ from __future__ import annotations
 import inspect
 import sys
 from collections import OrderedDict
-from dataclasses import KW_ONLY, dataclass, field
 from functools import cached_property, partial, partialmethod
 from queue import Queue
 from threading import Thread
 from typing import Iterator, Union, get_args
 
+from attrs import define, field
 from sqlalchemy import (
 	BLOB,
 	BOOLEAN,
@@ -31,9 +31,12 @@ from sqlalchemy import (
 	TEXT,
 	Column,
 	ColumnElement,
+	Connection,
+	Engine,
 	MetaData,
 	Select,
 	Table,
+	Transaction,
 	and_,
 	bindparam,
 	create_engine,
@@ -148,16 +151,18 @@ for table, serializer in Batch.serializers.items():
 	Table(table, meta, *columns, sqlite_with_rowid=with_rowid)
 
 
-@dataclass
+@define
 class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	connect_string: str = "sqlite:///:memory:"
-	connect_args: dict[str, str] = field(default_factory=dict)
-	_: KW_ONLY
-	clear: bool = False
+	connect_args: dict[str, str] = field(factory=dict)
+	clear: bool = field(default=False, kw_only=True)
 
-	@dataclass
+	@define
 	class Looper(ConnectionLooper):
 		connector: SQLAlchemyDatabaseConnector
+		engine: Engine = field(init=False)
+		connection: Connection = field(init=False)
+		transaction: Transaction = field(init=False)
 
 		@cached_property
 		def dbstring(self) -> str:
@@ -1366,7 +1371,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		self._t.join()
 
 	def _init_db(self) -> dict:
-		if hasattr(self, "_initialized"):
+		if self._initialized:
 			raise RuntimeError("Tried to initialize database twice")
 		self._initialized = True
 		with self.mutex():

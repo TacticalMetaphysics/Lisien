@@ -42,6 +42,7 @@ from operator import (
 	sub,
 	truediv,
 )
+from pathlib import Path
 from random import Random
 from threading import RLock
 from types import (
@@ -3414,16 +3415,16 @@ class AbstractEngine(ABC):
 	def export(
 		self,
 		name: str | None,
-		path: str | os.PathLike | None = None,
+		path: Path | os.PathLike[str] | None = None,
 		indent: bool = True,
-	) -> str | os.PathLike: ...
+	) -> Path: ...
 
 	@classmethod
 	@abstractmethod
 	def from_archive(
 		cls,
-		path: str | os.PathLike,
-		prefix: str | os.PathLike | None = ".",
+		path: Path | os.PathLike[str],
+		prefix: Path | os.PathLike[str] | None = ".",
 		**kwargs,
 	) -> AbstractEngine: ...
 
