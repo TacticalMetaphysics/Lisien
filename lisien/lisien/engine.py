@@ -527,7 +527,7 @@ class Engine(AbstractEngine, Executor):
 		if not prefix.is_dir():
 			raise NotADirectoryError(f"Prefix is not a directory: {prefix}")
 
-	_prefix: Path | None = field(
+	_prefix: Path | PathLike[str] | None = field(
 		default=None,
 		converter=_convert_prefix,
 		validator=_validate_prefix,
