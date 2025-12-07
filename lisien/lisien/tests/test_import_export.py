@@ -23,6 +23,7 @@ import pytest
 
 from ..db import AbstractDatabaseConnector, PythonDatabaseConnector
 from ..engine import Engine
+from ..facade import EngineFacade
 from ..pqdb import ParquetDatabaseConnector
 from ..sql import SQLAlchemyDatabaseConnector
 from .data import DATA_DIR
@@ -184,11 +185,16 @@ def compare_engines_world_state(
 	test_dump = test_engine.dump_everything()
 	correct_dump = correct_engine.dump_everything()
 	assert test_dump.keys() == correct_dump.keys()
+	# PythonDatabaseConnector doesn't really serialize its data, meaning
+	# it sorts differently. So, for testing, use our own serializer.
+	fake = EngineFacade(None, mock=True)
 	for k, test_data in test_dump.items():
 		if k.endswith("rules_handled"):
 			continue
 		correct_data = correct_dump[k]
 		print(k)
+		test_data.sort(key=fake.pack)
+		correct_data.sort(key=fake.pack)
 		assert correct_data == test_data, f"{k} tables differ"
 
 
