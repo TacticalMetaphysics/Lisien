@@ -30,6 +30,7 @@ from attrs import define
 from networkx import shortest_path, shortest_path_length
 
 import lisien.types
+from lisien.types import Edge
 
 from . import rule
 from .exc import AmbiguousLeaderError
@@ -297,7 +298,7 @@ class Origs(Mapping):
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.iter_predecessors(charname, name, *btt)
 
-	def __contains__(self, item: KeyHint) -> bool:
+	def __contains__(self, item: KeyHint | NodeName) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_predecessor(charname, name, item, *btt)
 
@@ -307,7 +308,7 @@ class Origs(Mapping):
 			pass
 		return n
 
-	def __getitem__(self, item: KeyHint) -> Node:
+	def __getitem__(self, item: KeyHint) -> Edge:
 		if item not in self:
 			raise KeyError
 		portal, name = self._pn
@@ -348,7 +349,7 @@ class Portals(Set):
 			engine.time,
 		)
 
-	def __contains__(self, x: KeyHint) -> bool:
+	def __contains__(self, x: KeyHint | NodeName) -> bool:
 		_, edges_cache, _, charname, name, time = self._pecnb
 		return edges_cache.has_predecessor(
 			charname, name, x, *time
@@ -522,6 +523,9 @@ class Node(lisien.types.Node, rule.RuleFollower):
 
 		"""
 		return Origs(self)
+
+	def preportals(self) -> ValuesView[Origs]:
+		return self.preportal.values()
 
 	def portals(self) -> Portals:
 		"""A set-like object of portals connected to this node."""
