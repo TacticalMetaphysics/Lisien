@@ -665,8 +665,8 @@ class AbstractDatabaseConnector(ABC):
 			return tuple(rec)
 
 		return {
-			table: sorted(
-				map(entuple, getattr(self, f"{table}_dump")()), key=self.pack
+			table: list(
+				map(entuple, getattr(self, f"{table}_dump")()),
 			)
 			for table in Batch.cached_properties
 		}
