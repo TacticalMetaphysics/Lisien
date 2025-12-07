@@ -19,11 +19,12 @@ import random
 from abc import ABC, abstractmethod
 from collections import defaultdict, UserDict
 from contextlib import contextmanager
-from functools import cached_property
+from functools import cached_property, partial
 from logging import Logger
 from operator import attrgetter
 from random import Random
 from threading import RLock
+from types import FunctionType, MethodType
 from typing import (
 	TYPE_CHECKING,
 	ClassVar,
@@ -34,8 +35,11 @@ from typing import (
 	Type,
 	Optional,
 )
+from unittest.mock import MagicMock
 
 import networkx as nx
+from attr import Converter, Factory
+from attrs import define, field
 from blinker import Signal
 
 from .cache import (
@@ -47,7 +51,12 @@ from .cache import (
 	ThingsCache,
 	LeaderSetCache,
 )
-from .collections import CompositeDict, FunctionStore
+from .collections import (
+	CompositeDict,
+	FunctionStore,
+	StringStore,
+	TriggerStore,
+)
 from .exc import NotInKeyframeError, TotalKeyError
 from .types import (
 	AbstractCharacter,
@@ -258,7 +267,7 @@ class FacadeEntityMapping[_NAME: Key, _CLS: Node | Edge | DiGraph](
 		return n
 
 	def __getitem__(self, k: _NAME) -> _CLS:
-		if k not in self and not self.engine._mockup:
+		if k not in self and not self.engine._mock:
 			raise KeyError(k)
 		if k not in self._patch:
 			inner = self._get_inner_map()
@@ -571,6 +580,13 @@ class FacadeThing(AbstractThing, FacadeNode):
 	def _get_real(self, name):
 		return self.character.character.thing[name]
 
+	def to_place(self) -> FacadePlace:
+		ret = self.character.place._patch[self.name] = FacadePlace(
+			self.character, self.name
+		)
+		self.character.thing._patch[self.name] = ...
+		return ret
+
 	@property
 	def location(self):
 		return self.character.node[self["location"]]
@@ -598,6 +614,13 @@ class FacadePlace(FacadeNode):
 			raise AttributeError(
 				"No real Place", self.character.name, self.name
 			) from ex
+
+	def to_thing(self, location: NodeName) -> FacadeThing:
+		self.character.place._patch[self.name] = ...
+		ret = self.character.thing._patch[self.name] = FacadeThing(
+			self.character, self.name, location
+		)
+		return ret
 
 	def new_thing(
 		self,
@@ -765,31 +788,34 @@ class FacadePortalPredecessors(FacadePortalSubMapping):
 			return {}
 
 
+@define
 class CharacterFacade(AbstractCharacter):
 	engine: EngineFacade
+	_name: CharName
 
-	def __getstate__(self):
-		ports = {}
-		for o in self.portal:
-			if o not in ports:
-				ports[o] = {}
-			for d in self.portal[o]:
-				ports[o][d] = dict(self.portal[o][d])
-		things = self.thing.unwrap()
-		places = self.place.unwrap()
-		stats = self.graph.unwrap()
-		return self._name, things, places, ports, stats
+	_rb_patch: dict = field(init=False, factory=dict)
 
-	def __setstate__(self, state):
-		self.character = None
-		self.graph = self.StatMapping(self)
+	@property
+	def character(self):
+		if engine := getattr(self.engine, "_real", None):
+			return engine.character[self._name]
+		return None
+
+	def __copy__(self):
+		ret = CharacterFacade(engine=self.engine, name=self.name)
+		ret.graph = self.StatMapping(ret)
 		(
-			self._name,
-			self.thing._patch,
-			self.place._patch,
-			self.portal._patch,
-			self.graph._patch,
-		) = state
+			ret.thing._patch,
+			ret.place._patch,
+			ret.portal._patch,
+			ret.graph._patch,
+		) = (
+			self.thing.unwrap(),
+			self.place.unwrap(),
+			self.portal.unwrap(),
+			self.graph.unwrap(),
+		)
+		return ret
 
 	def add_places_from(self, seq, **attrs):
 		for place in seq:
@@ -903,49 +929,6 @@ class CharacterFacade(AbstractCharacter):
 			self.name, charn, noden, *self.engine.time, True
 		)
 
-	def __new__(
-		cls,
-		engine: EngineFacade | None = None,
-		character: AbstractCharacter | CharName | None = None,
-		*,
-		init_rulebooks: bool | None = None,
-	):
-		return super().__new__(
-			cls, engine, getattr(character, "name", character)
-		)
-
-	def __init__(
-		self,
-		engine: EngineFacade | None = None,
-		character: AbstractCharacter | CharName | None = None,
-		*,
-		init_rulebooks: bool | None = None,
-	):
-		super().__init__(engine, getattr(character, "name", character))
-		if engine is None:
-			engine = self.engine = EngineFacade(
-				getattr(character, "engine", None)
-			)
-		elif isinstance(engine, EngineFacade):
-			self.engine = engine
-		else:
-			raise TypeError(
-				"Can't instantiate CharacterFacade with this for an engine",
-				engine,
-			)
-		if isinstance(character, AbstractCharacter):
-			self.character = character
-			if hasattr(character, "name"):
-				engine.character._patch[character.name] = self
-				self._name = character.name
-			else:
-				self._name = character
-		else:
-			self._name = character
-			self.character = None
-
-		self._rb_patch = {}
-
 	def portals(self):
 		for ds in self.portal.values():
 			yield from ds.values()
@@ -986,7 +969,7 @@ class CharacterFacade(AbstractCharacter):
 			def __getitem__(self, item: NodeName | KeyHint):
 				item = NodeName(item)
 				if item not in self:
-					if not self.character.engine._mockup:
+					if not self.character.engine._mock:
 						raise KeyError(
 							"Not a unit of this character in this graph",
 							item,
@@ -1358,36 +1341,171 @@ class EternalFacade(MutableMapping):
 			yield from patch.keys()
 
 
+@define
 class EngineFacade(AbstractEngine):
-	char_cls = CharacterFacade
-	thing_cls = FacadeThing
-	place_cls = FacadePlace
-	portal_cls = FacadePortal
-	time: Time = TimeSignalDescriptor()
+	_real: AbstractEngine | None = field(alias="real")
+	_mock: bool = field(alias="mock", default=False)
+	_planning = field(default=False, init=False)
+	_planned = field(
+		factory=partial(defaultdict, partial(defaultdict, list)), init=False
+	)
+
+	@staticmethod
+	def _validate_branches_d(self, attr, branches_d):
+		if self._real and hasattr(self._real, "_branches_d"):
+			branches_d.update(self._real._branches_d)
+
+	_branches_d: dict[
+		Branch, tuple[Optional[Branch], Turn, Tick, Turn, Tick]
+	] = field(
+		factory=lambda: {
+			Branch("trunk"): (None, Turn(0), Tick(0), Turn(0), Tick(0))
+		},
+		validator=_validate_branches_d,
+		init=False,
+	)
+
+	@staticmethod
+	def _validate_turn_end(self, attr, turn_end):
+		if self._real and not self._real.is_proxy:
+			turn_end.update(self._real._turn_end)
+
+	_turn_end: TurnEndDict = field(
+		default=Factory(TurnEndDict, takes_self=True),
+		validator=_validate_turn_end,
+		init=False,
+	)
+
+	@staticmethod
+	def _validate_turn_end_plan(self, attr, turn_end_plan):
+		if self._real and not self._real.is_proxy:
+			turn_end_plan.update(self._real._turn_end_plan)
+
+	_turn_end_plan = field(
+		default=Factory(TurnEndPlanDict, takes_self=True), init=False
+	)
+
+	@staticmethod
+	def _get_branch(self) -> Branch:
+		try:
+			return self._real.branch
+		except AttributeError:
+			return Branch("trunk")
+
+	_obranch: Branch = field(
+		default=Factory(_get_branch, takes_self=True), init=False
+	)
+
+	@staticmethod
+	def _get_turn(self) -> Turn:
+		try:
+			return self._real.turn
+		except AttributeError:
+			return Turn(0)
+
+	_oturn: Turn = field(
+		default=Factory(_get_turn, takes_self=True), init=False
+	)
+
+	@staticmethod
+	def _get_tick(self) -> Tick:
+		try:
+			return self._real.tick
+		except AttributeError:
+			return Tick(0)
+
+	_otick: Tick = field(
+		default=Factory(_get_tick, takes_self=True), init=False
+	)
+	closed: bool = field(default=False, init=False)
+
+	char_cls: ClassVar = CharacterFacade
+	thing_cls: ClassVar = FacadeThing
+	place_cls: ClassVar = FacadePlace
+	portal_cls: ClassVar = FacadePortal
+	time: ClassVar = TimeSignalDescriptor()
+
+	def _function_store_creator(self, attr: str) -> FunctionStore:
+		if self._mock:
+			return FunctionStore(None, module=attr)
+		try:
+			return getattr(self._real, attr)
+		except AttributeError:
+			return FunctionStore(None, module=attr)
+
+	@cached_property
+	def submit(self):
+		if self._mock:
+			return MagicMock()
+		return self._real.submit
+
+	@cached_property
+	def load_at(self):
+		if self._mock:
+			return MagicMock()
+		return self._real.load_at
+
+	@cached_property
+	def function(self) -> FunctionStore[str, FunctionType]:
+		return self._function_store_creator("function")
+
+	@cached_property
+	def method(self) -> FunctionStore[str, MethodType]:
+		return self._function_store_creator("method")
+
+	@cached_property
+	def trigger(self) -> TriggerStore:
+		if self._mock:
+			return TriggerStore(None, module="trigger")
+		try:
+			return self._real.trigger
+		except AttributeError:
+			return TriggerStore(None, module="trigger")
+
+	@cached_property
+	def prereq(self) -> FunctionStore[str, FunctionType]:
+		return self._function_store_creator("prereq")
+
+	@cached_property
+	def action(self) -> FunctionStore[str, FunctionType]:
+		return self._function_store_creator("action")
+
+	@cached_property
+	def string(self) -> StringStore:
+		try:
+			return self._real.string
+		except AttributeError:
+			return StringStore({}, None)
+
+	@cached_property
+	def _nodes_cache(self) -> FacadeNodesCache | None:
+		if self._real and hasattr(self._real, "_nodes_cache"):
+			return self.FacadeNodesCache(
+				self._real._nodes_cache, "nodes_cache"
+			)
+		return None
+
+	@cached_property
+	def _unitness_cache(self) -> FacadeUnitnessCache | None:
+		if self._real and hasattr(self._real, "_unitness_cache"):
+			return self.FacadeUnitnessCache(self._real._unitness_cache)
+		return None
+
+	@cached_property
+	def _things_cache(self) -> FacadeThingsCache | None:
+		if self._real and hasattr(self._real, "_things_cache"):
+			return self.FacadeThingsCache(
+				self._real._things_cache, "things_cache"
+			)
+		return None
+
+	@cached_property
+	def world_lock(self):
+		return RLock()
 
 	@cached_property
 	def eternal(self):
 		return EternalFacade(self)
-
-	@cached_property
-	def function(self):
-		return FunctionStore(None)
-
-	@cached_property
-	def method(self):
-		return FunctionStore(None)
-
-	@cached_property
-	def trigger(self):
-		return FunctionStore(None)
-
-	@cached_property
-	def prereq(self):
-		return FunctionStore(None)
-
-	@cached_property
-	def action(self):
-		return FunctionStore(None)
 
 	class FacadeUniversalMapping(Signal, MutableMapping):
 		def __init__(self, engine: AbstractEngine):
@@ -1453,9 +1571,11 @@ class EngineFacade(AbstractEngine):
 				raise KeyError("No character", key)
 			if key not in self._patch:
 				if realeng:
-					fac = CharacterFacade(self.engine, realeng.character[key])
-				elif self.engine._mockup:
-					fac = CharacterFacade(self.engine, key)
+					if key not in realeng.character:
+						raise KeyError("No such character", key)
+					fac = CharacterFacade(engine=self.engine, name=key)
+				elif self.engine._mock:
+					fac = CharacterFacade(engine=self.engine, name=key)
 				else:
 					raise KeyError("No character", key)
 				self._patch[key] = fac
@@ -1629,15 +1749,19 @@ class EngineFacade(AbstractEngine):
 			}
 		return self._branches_d_
 
-	@cached_property
-	def _rando(self) -> Random:
-		return Random()
+	def _validate_random(self, attr, rando):
+		if self._real:
+			rando.setstate(self._real._rando.getstate())
+
+	_rando: Random = field(
+		factory=Random, validator=_validate_random, init=False
+	)
 
 	@cached_property
 	def logger(self) -> Logger:
 		if self._real:
 			return self._real.logger
-		elif self._mockup:
+		elif self._mock:
 			import sys
 
 			if "kivy" in sys.modules:
@@ -1647,77 +1771,6 @@ class EngineFacade(AbstractEngine):
 		from logging import getLogger
 
 		return getLogger("lisien")
-
-	def __init__(self, real: AbstractEngine | None, mock=False):
-		assert not isinstance(real, EngineFacade)
-		self._mockup = mock
-		if real is not None:
-			for alias in (
-				"submit",
-				"load_at",
-				"function",
-				"method",
-				"trigger",
-				"prereq",
-				"action",
-				"string",
-				"log",
-				"debug",
-				"info",
-				"warning",
-				"error",
-				"critical",
-			):
-				try:
-					setattr(self, alias, getattr(real, alias))
-				except AttributeError:
-					print(f"{alias} not implemented on {type(real)}")
-		elif mock:
-			import sys
-			from unittest.mock import MagicMock
-
-			from .collections import FunctionStore, StringStore
-
-			for funcs in ("function", "method", "trigger", "prereq", "action"):
-				setattr(self, funcs, FunctionStore(None))
-			self.string = StringStore({}, None)
-			for mockery in ("submit", "load_at"):
-				setattr(self, mockery, MagicMock())
-		self.closed = False
-		self._real = real
-		self._planning = False
-		self._planned = defaultdict(lambda: defaultdict(list))
-		self.world_lock = RLock()
-		if real is not None:
-			self._rando.setstate(real._rando.getstate())
-			self._obranch, self._oturn, self._otick = real.time
-			self._turn_end = TurnEndDict(self)
-			self._turn_end_plan = TurnEndPlanDict(self)
-			if not real.is_proxy:
-				self._turn_end.update(real._turn_end)
-				self._turn_end_plan.update(real._turn_end_plan)
-				self._nodes_cache = self.FacadeNodesCache(
-					real._nodes_cache, "nodes_cache"
-				)
-				self._things_cache = self.FacadeThingsCache(
-					real._things_cache, "things_cache"
-				)
-				self._unitness_cache = self.FacadeUnitnessCache(
-					real._unitness_cache
-				)
-		else:
-			self._branches_d.clear()
-			self._branches_d[Branch("trunk")] = (
-				None,
-				Turn(0),
-				Tick(0),
-				Turn(0),
-				Tick(0),
-			)
-			self._turn_end_plan = {}
-			self._obranch = "trunk"
-			self._oturn = 0
-			self._otick = 0
 
 	def handle(self, *args, **kwargs):
 		print_call_sig("handle", *args, **kwargs)

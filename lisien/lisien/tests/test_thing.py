@@ -40,7 +40,7 @@ def test_future_contents(something):
 	somewhere = something.location
 	with engine.plan():
 		engine.turn = 1
-		something.location = None
+		something.to_place()
 		engine.turn = 2
 		somebody = somewhere.new_thing("somebody")
 		engine.turn = 0

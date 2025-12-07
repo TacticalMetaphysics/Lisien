@@ -7197,7 +7197,9 @@ class Engine(AbstractEngine, Executor):
 			orig: {dest: val.copy() for (dest, val) in dests.items()}
 			for (orig, dests) in edges.items()
 		}
-		combined_graph_val = {k: copy(v) for (k, v) in graph_val.items()}
+		combined_graph_val = {}
+		for k, v in graph_val.items():
+			combined_graph_val[k] = copy(v)
 		for rb_kf_type, rb_kf_cache in [
 			("character_rulebook", self._characters_rulebooks_cache),
 			("unit_rulebook", self._units_rulebooks_cache),
