@@ -112,24 +112,27 @@ def exported(
 	yield archive_name
 
 
-def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
+def test_round_trip(
+	tmp_path,
+	exported,
+	persistent_database_connector_part,
+	non_null_database,
+	random_seed,
+	turns,
+):
 	prefix1 = os.path.join(tmp_path, "game")
 	os.makedirs(prefix1, exist_ok=True)
 	prefix2 = os.path.join(tmp_path, "game2")
 	os.makedirs(prefix2, exist_ok=True)
+	db1 = persistent_database_connector_part()
 	match non_null_database:
 		case "python":
-			db1 = PythonDatabaseConnector()
 			db2 = PythonDatabaseConnector()
 		case "sqlite":
-			db1 = SQLAlchemyDatabaseConnector(
-				f"sqlite:///{prefix1}/world.sqlite3"
-			)
 			db2 = SQLAlchemyDatabaseConnector(
 				f"sqlite:///{prefix2}/world.sqlite3"
 			)
 		case "parquetdb":
-			db1 = ParquetDatabaseConnector(os.path.join(prefix1, "world"))
 			db2 = ParquetDatabaseConnector(os.path.join(prefix2, "world"))
 		case _:
 			raise RuntimeError("Unknown database", database_connector_part)
