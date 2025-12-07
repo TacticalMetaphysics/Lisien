@@ -732,6 +732,16 @@ class Place(Node):
 			me[k] = deepcopy(unwrap(v), memo)
 		return me
 
+	def to_thing(self, location: NodeName) -> Thing:
+		branch, turn, tick = self.engine._nbtt()
+		self.engine._things_cache.store(
+			self.character.name, self.name, branch, turn, tick, location
+		)
+		self.engine.database.set_thing_loc(
+			self.character.name, self.name, branch, turn, tick, location
+		)
+		return self.character.thing[self.name]
+
 
 def roerror(*args):
 	raise RuntimeError("Read-only")
@@ -808,6 +818,10 @@ class Thing(Node, AbstractThing):
 		if key in self._extra_keys:
 			raise ValueError("Can't delete {}".format(key))
 		super().__delitem__(key)
+
+	def to_place(self) -> Place:
+		self._set_loc(...)
+		return self.character.place[self.name]
 
 	def facade(self) -> FacadeThing:
 		return FacadeThing(self.character.facade(), self.name)

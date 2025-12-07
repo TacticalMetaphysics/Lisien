@@ -1304,7 +1304,7 @@ class GraphNodeMapping[_K, _V](
 ):
 	"""Mapping for nodes in a graph"""
 
-	character: Character
+	character: DiGraph
 
 	@cached_property
 	def engine(self) -> Engine:
@@ -2007,19 +2007,15 @@ class DiGraph(nx.DiGraph, ABC):
 
 	"""
 
-	adj_cls = DiGraphSuccessorsMapping
-	pred_cls = DiGraphPredecessorsMapping
-	graph_map_cls = GraphMapping
-	node_map_cls = GraphNodeMapping
-	_statmap: graph_map_cls
-	_nodemap: node_map_cls
-	_adjmap: adj_cls
-	_predmap: pred_cls
+	adj_cls: ClassVar = DiGraphSuccessorsMapping
+	pred_cls: ClassVar = DiGraphPredecessorsMapping
+	graph_map_cls: ClassVar = GraphMapping
+	node_map_cls: ClassVar = GraphNodeMapping
 
-	def __repr__(self):
-		return "<{} object named {} containing {} nodes, {} edges>".format(
-			self.__class__, self.name, len(self.nodes), len(self.edges)
-		)
+	def __new__(
+		cls, engine: AbstractEngine | None = None, name: CharName | None = None
+	):
+		return super().__new__(cls)
 
 	def _nodes_state(self) -> dict[NodeName, dict[Stat, Value]]:
 		return {
@@ -2060,28 +2056,19 @@ class DiGraph(nx.DiGraph, ABC):
 			if k != "name"
 		}
 
-	def __new__(cls, engine: AbstractEngine, name: CharName):
-		return super().__new__(cls)
-
-	def __init__(
-		self, engine: AbstractEngine, name: CharName
-	):  # user shouldn't instantiate directly
-		self._name = name
-		self.engine = engine
-
 	def __bool__(self):
 		return self._name in self.engine._graph_objs
 
+	@cached_property
+	def _statmap(self):
+		return self.graph_map_cls(self)
+
 	@property
 	def graph(self) -> graph_map_cls:
-		if not hasattr(self, "_statmap"):
-			self._statmap = self.graph_map_cls(self)
 		return self._statmap
 
 	@graph.setter
 	def graph(self, v: dict[Stat, Value] | dict[KeyHint, ValueHint]):
-		if not hasattr(self, "_statmap"):
-			self._statmap = self.graph_map_cls(self)
 		self._statmap.clear()
 		self._statmap.update(v)
 
@@ -2757,7 +2744,14 @@ class AbstractEngine(ABC):
 	portal_cls: ClassVar[type[Edge]]
 	char_cls: ClassVar[type[AbstractCharacter]]
 	time: ClassVar = TimeSignalDescriptor()
-	_time_signal: TimeSignal = field(init=False)
+
+	@staticmethod
+	def _make_time_signal(self):
+		return TimeSignal((self,))
+
+	_time_signal: TimeSignal = field(
+		init=False, default=Factory(_make_time_signal, takes_self=True)
+	)
 	illegal_node_names: ClassVar = {
 		"nodes",
 		"node_val",
@@ -3535,6 +3529,7 @@ class BaseMutableCharacterMapping[_KT, _VT](
 ): ...
 
 
+@define
 class AbstractCharacter(DiGraph, ABC):
 	"""The Character API, with all requisite mappings and graph generators.
 
@@ -3549,18 +3544,13 @@ class AbstractCharacter(DiGraph, ABC):
 	"""
 
 	engine: AbstractEngine
-	name: CharName
+	_name: CharName
 
-	no_unwrap = True
+	no_unwrap: ClassVar = True
 
-	def __new__(
-		cls,
-		engine: AbstractEngine,
-		name: CharName,
-		*,
-		init_rulebooks: bool = False,
-	):
-		return super().__new__(cls, engine, name)
+	@property
+	def name(self):
+		return self._name
 
 	@staticmethod
 	def is_directed():
@@ -3772,9 +3762,6 @@ class AbstractCharacter(DiGraph, ABC):
 	) -> None:
 		pass
 
-	def __eq__(self, other: AbstractCharacter):
-		return isinstance(other, AbstractCharacter) and self.name == other.name
-
 	def __iter__(self):
 		return iter(self.node)
 
@@ -3793,55 +3780,77 @@ class AbstractCharacter(DiGraph, ABC):
 	def __getitem__(self, k: KeyHint | NodeName):
 		return self.adj[k]
 
-	ThingMapping: type[BaseMutableCharacterMapping]
+	ThingMapping: ClassVar[type[BaseMutableCharacterMapping]]
 
 	@cached_property
 	def thing(self) -> ThingMapping:
 		return self.ThingMapping(self)
 
-	PlaceMapping: type[BaseMutableCharacterMapping]
+	PlaceMapping: ClassVar[type[BaseMutableCharacterMapping]]
 
 	@cached_property
 	def place(self) -> PlaceMapping:
 		return self.PlaceMapping(self)
 
-	ThingPlaceMapping: type[BaseMutableCharacterMapping]
+	ThingPlaceMapping: ClassVar[type[BaseMutableCharacterMapping]]
 
 	@cached_property
 	def _node(self) -> ThingPlaceMapping:
 		return self.ThingPlaceMapping(self)
 
-	node: ThingPlaceMapping = getatt("_node")
-	nodes: ThingPlaceMapping = getatt("_node")
+	@property
+	def node(self):
+		return self._node
 
-	PortalSuccessorsMapping: type[BaseMutableCharacterMapping]
+	@property
+	def nodes(self):
+		return self._node
+
+	PortalSuccessorsMapping: ClassVar[type[BaseMutableCharacterMapping]]
 
 	@cached_property
 	def _succ(self) -> PortalSuccessorsMapping:
 		return self.PortalSuccessorsMapping(self)
 
-	portal: PortalSuccessorsMapping = getatt("_succ")
-	adj: PortalSuccessorsMapping = getatt("_succ")
-	succ: PortalSuccessorsMapping = getatt("_succ")
-	edge: PortalSuccessorsMapping = getatt("_succ")
-	_adj: PortalSuccessorsMapping = getatt("_succ")
+	@property
+	def portal(self):
+		return self._succ
 
-	PortalPredecessorsMapping: type[BaseMutableCharacterMapping]
+	@property
+	def _adj(self):
+		return self._succ
+
+	@property
+	def adj(self):
+		return self._succ
+
+	@property
+	def edge(self):
+		return self._succ
+
+	PortalPredecessorsMapping: ClassVar[type[BaseMutableCharacterMapping]]
 
 	@cached_property
 	def _pred(self) -> PortalPredecessorsMapping:
 		return self.PortalPredecessorsMapping(self)
 
-	preportal: PortalPredecessorsMapping = getatt("_pred")
-	pred: PortalPredecessorsMapping = getatt("_pred")
+	@property
+	def preportal(self):
+		return self._pred
 
-	UnitGraphMapping: type[BaseMutableCharacterMapping]
+	@property
+	def pred(self):
+		return self._pred
+
+	UnitGraphMapping: ClassVar[type[BaseMutableCharacterMapping]]
 
 	@cached_property
 	def unit(self) -> UnitGraphMapping:
 		return self.UnitGraphMapping(self)
 
-	stat: GraphMapping = getatt("graph")
+	@property
+	def stat(self):
+		return self.graph
 
 	def units(self):
 		for units in self.unit.values():
@@ -3998,6 +4007,9 @@ class AbstractThing(ABC):
 		elif not isinstance(v, Key):
 			raise TypeError("Invalid location", v)
 		self["location"] = NodeName(v)
+
+	@abstractmethod
+	def to_place(self) -> Node: ...
 
 	def go_to_place(
 		self,

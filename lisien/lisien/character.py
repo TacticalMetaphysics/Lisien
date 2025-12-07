@@ -949,7 +949,9 @@ class Character(AbstractCharacter, RuleFollower):
 		time travel. This makes it much speedier to work with.
 
 		"""
-		return CharacterFacade(character=self)
+		return CharacterFacade(
+			engine=EngineFacade(self.engine), name=self.name
+		)
 
 	def __copy__(self) -> CharacterFacade:
 		return self.facade()
