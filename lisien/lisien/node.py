@@ -774,7 +774,7 @@ class Thing(Node, AbstractThing):
 		else:
 			raise ValueError("Couldn't find arrival time")
 
-	def _set_loc(self, loc: Optional[NodeName]) -> None:
+	def _set_loc(self, loc: NodeName | type(...)) -> None:
 		self.engine._set_thing_loc(self.character.name, self.name, loc)
 
 	def __getitem__(self, item: KeyHint | Stat) -> Value | NodeName:
