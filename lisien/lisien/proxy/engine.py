@@ -24,6 +24,7 @@ from contextlib import contextmanager
 from functools import cached_property, partial
 from inspect import getsource
 from os import PathLike
+from pathlib import Path
 from random import Random
 from threading import Lock
 from time import monotonic
@@ -206,7 +207,7 @@ class EngineProxy(AbstractEngine):
 			return FuncStoreProxy(self, store_name, initial=src_d)
 		else:
 			return FunctionStore(
-				str(os.path.join(self.prefix, store_name + ".py"))
+				self.prefix.joinpath(store_name + ".py")
 				if self.prefix
 				else None,
 				initial=src_d,
@@ -238,7 +239,7 @@ class EngineProxy(AbstractEngine):
 	)
 
 	@staticmethod
-	def _convert_trig_store_proxy(src_d, self):
+	def _convert_trig_store_proxy(src_d: dict[str, str] | None, self):
 		if src_d is None:
 			src_d = {"truth": "def truth(obj):\n\treturn True"}
 		elif "truth" not in src_d:
@@ -247,9 +248,7 @@ class EngineProxy(AbstractEngine):
 			return TrigStoreProxy(self, "trigger", initial=src_d)
 		else:
 			return TriggerStore(
-				str(os.path.join(self.prefix, "trigger.py"))
-				if self.prefix
-				else None,
+				self.prefix.joinpath("trigger.py") if self.prefix else None,
 				initial=src_d,
 			)
 
@@ -274,11 +273,14 @@ class EngineProxy(AbstractEngine):
 	closed: bool = field(init=False, default=False)
 
 	@staticmethod
-	def _convert_replay_file(replay_file, self):
+	def _convert_replay_file(
+		replay_file: Path | os.PathLike[str] | IO[str], self
+	):
 		if replay_file is None:
 			return None
 		if not isinstance(replay_file, io.TextIOBase):
-			if os.path.exists(replay_file):
+			replay_file = Path(replay_file)
+			if replay_file.exists():
 				with open(replay_file, "rt") as rf:
 					return rf.read().replace(
 						"<lisien.proxy.EngineProxy>", "eng"
@@ -305,7 +307,7 @@ class EngineProxy(AbstractEngine):
 			else:
 				return txt.replace("<lisien.proxy.EngineProxy>", "eng")
 
-	replay_file: os.PathLike[str] | IO[str] | None = field(
+	replay_file: str | None = field(
 		default=None,
 		converter=Converter(_convert_replay_file, takes_self=True),
 	)
@@ -1074,12 +1076,14 @@ class EngineProxy(AbstractEngine):
 
 	def _restart(
 		self,
-		prefix: PathLike[str] | None,
+		prefix: Path | PathLike[str] | None,
 		time: Time,
 		eternal: dict[EternalKey, Value],
 		branches: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]],
 		rando: int | tuple | None,
 	):
+		if prefix is not None:
+			prefix = Path(prefix)
 		if self._worker:
 			filez = os.listdir(prefix)
 			for fs in ["function", "method", "trigger", "prereq", "action"]:
@@ -1087,7 +1091,7 @@ class EngineProxy(AbstractEngine):
 				if py in filez:
 					store = getattr(self, fs)
 					if prefix:
-						store._filename = os.path.join(prefix, py)
+						store._filename = prefix.joinpath(py)
 						store.reimport()
 					else:
 						store._cache = {}

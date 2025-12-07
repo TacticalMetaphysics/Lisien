@@ -61,6 +61,7 @@ from typing import (
 	Type,
 	TypeGuard,
 	ClassVar,
+	IO,
 )
 from xml.etree.ElementTree import ElementTree
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -511,11 +512,12 @@ class Engine(AbstractEngine, Executor):
 	_top_uid: int = field(init=False, default=0)
 
 	@staticmethod
-	def _convert_prefix(prefix):
+	def _convert_prefix(prefix: Path | PathLike[str] | None):
 		if prefix is None:
 			return None
-		os.makedirs(prefix, exist_ok=True)
-		return Path(prefix)
+		ret = Path(prefix)
+		ret.mkdir(parents=True, exist_ok=True)
+		return ret
 
 	def _validate_prefix(self, attr, prefix):
 		if prefix is None:
@@ -527,7 +529,7 @@ class Engine(AbstractEngine, Executor):
 		if not prefix.is_dir():
 			raise NotADirectoryError(f"Prefix is not a directory: {prefix}")
 
-	_prefix: Path | PathLike[str] | None = field(
+	_prefix: Path | None = field(
 		default=None,
 		converter=_convert_prefix,
 		validator=_validate_prefix,
@@ -553,10 +555,9 @@ class Engine(AbstractEngine, Executor):
 			return store_type(None, module=module_s)
 		else:
 			assert self._prefix.exists()
-			assert os.path.exists(self._prefix)
-			py_fn = os.path.join(self._prefix, module_s + ".py")
-			if self.clear and os.path.exists(py_fn):
-				os.remove(py_fn)
+			py_fn: Path = self._prefix.joinpath(module_s + ".py")
+			if self.clear and py_fn.exists():
+				py_fn.unlink()
 			return store_type(py_fn, module=module_s)
 
 	function: ModuleType | FunctionStore = field(
@@ -668,7 +669,7 @@ class Engine(AbstractEngine, Executor):
 					from .pqdb import ParquetDatabaseConnector
 
 					database = ParquetDatabaseConnector(
-						os.path.join(self._prefix, "world"), clear=self.clear
+						self._prefix.joinpath("world"), clear=self.clear
 					)
 				else:
 					from .sql import SQLAlchemyDatabaseConnector
@@ -968,10 +969,10 @@ class Engine(AbstractEngine, Executor):
 				self, None, self.eternal.setdefault("language", "eng")
 			)
 		else:
-			string_prefix = os.path.join(self._prefix, "strings")
-			if self.clear and os.path.isdir(string_prefix):
+			string_prefix: Path = self._prefix.joinpath("strings")
+			if self.clear and string_prefix.is_dir():
 				shutil.rmtree(string_prefix)
-			os.makedirs(string_prefix, exist_ok=True)
+			string_prefix.mkdir(parents=True, exist_ok=True)
 			return StringStore(
 				self,
 				string_prefix,
@@ -7618,7 +7619,7 @@ class Engine(AbstractEngine, Executor):
 		import importlib.util
 
 		loader = importlib.machinery.SourceFileLoader(
-			"game_start", os.path.join(self._prefix, "game_start.py")
+			"game_start", self._prefix.joinpath("game_start.py")
 		)
 		spec = importlib.util.spec_from_loader("game_start", loader)
 		game_start = importlib.util.module_from_spec(spec)
@@ -7628,8 +7629,8 @@ class Engine(AbstractEngine, Executor):
 	@classmethod
 	def from_archive(
 		cls,
-		archive_path: str | os.PathLike,
-		prefix: str | os.PathLike = ".",
+		archive_path: os.PathLike[str] | Path,
+		prefix: os.PathLike[str] | Path = ".",
 		*,
 		string: StringStore | dict | None = None,
 		trigger: FunctionStore | ModuleType | None = None,
@@ -7658,10 +7659,11 @@ class Engine(AbstractEngine, Executor):
 		"""Make a new Lisien engine out of an archive exported from another engine"""
 		if database is None:
 			if prefix:
+				prefix = Path(prefix)
 				try:
 					from .pqdb import ParquetDatabaseConnector
 
-					pq_path = os.path.join(prefix, "world")
+					pq_path = prefix.joinpath("world")
 					os.makedirs(pq_path, exist_ok=True)
 					database = ParquetDatabaseConnector(pq_path)
 				except ImportError:
@@ -7717,7 +7719,7 @@ class Engine(AbstractEngine, Executor):
 			from xml.etree.ElementTree import Element
 
 		if name is None and self._prefix:
-			name = os.path.basename(self._prefix)
+			name = self._prefix.name
 		self.commit()
 		game_history: ElementTree = self.database.to_etree(name)
 		lisien_el = game_history.getroot()
@@ -7736,21 +7738,22 @@ class Engine(AbstractEngine, Executor):
 				funcstore = getattr(self, modname)
 				if hasattr(funcstore, "blake2b"):
 					lisien_el.set(modname, funcstore.blake2b())
-			strings_dir = os.path.join(self._prefix, "strings")
+			strings_dir = self._prefix.joinpath("strings")
 			if (
 				"strings" in ls
-				and os.path.isdir(strings_dir)
-				and (langfiles := os.listdir(strings_dir))
+				and strings_dir.is_dir()
+				and (langfiles := list(strings_dir.iterdir()))
 			):
-				for fn in langfiles:
+				for file in langfiles:
 					langhash = blake2b()
-					with open(os.path.join(strings_dir, fn), "rb") as inf:
+					with open(strings_dir.joinpath(file), "rb") as inf:
 						langlines = json.load(inf)
 					for k in sort_set(langlines.keys()):
 						langhash.update(k.encode())
 						langhash.update(GROUP_SEP)
 						langhash.update(langlines[k].encode())
 						langhash.update(REC_SEP)
+					fn = file.name
 					if len(fn) > 5 and fn[-5:] == ".json":
 						fn = fn[:-5]
 					lisien_el.append(
@@ -7766,7 +7769,7 @@ class Engine(AbstractEngine, Executor):
 
 	def to_xml(
 		self,
-		xml_file_path: str | os.PathLike | io.IOBase | None = None,
+		xml_file_path: PathLike[str] | IO[str | bytes] | None = None,
 		indent: bool = True,
 		name: str | None = None,
 	) -> str | None:
@@ -7780,8 +7783,10 @@ class Engine(AbstractEngine, Executor):
 			name will be used, with the ``.xml`` suffix removed.
 
 		"""
+		if xml_file_path is not None:
+			xml_file_path = Path(xml_file_path)
 		if name is None and xml_file_path and not self._prefix:
-			name = os.path.basename(xml_file_path)
+			name = xml_file_path.name
 		tree = self.to_etree(name)
 		if indent:
 			try:
@@ -7798,17 +7803,19 @@ class Engine(AbstractEngine, Executor):
 	def export(
 		self,
 		name: str | None = None,
-		path: str | os.PathLike | None = None,
+		path: Path | PathLike[str] | None = None,
 		indent: bool = True,
-	) -> str | os.PathLike:
+	) -> Path:
 		if path is None:
 			if name is None:
 				raise ValueError(
 					"Need a path to export to, or at least a name"
 				)
-			path = os.path.join(os.getcwd(), f"{name}.lisien")
-		elif name is None:
-			name = os.path.basename(path).removesuffix(".lisien")
+			path = Path(".").joinpath(f"{name}.lisien")
+		else:
+			path = Path(path)
+			if name is None:
+				name = path.name.removesuffix(".lisien")
 		self.commit()
 		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
 			with zf.open("world.xml", "w") as f:
@@ -7823,13 +7830,13 @@ class Engine(AbstractEngine, Executor):
 							dict(self.string.items()), io.TextIOWrapper(outf)
 						)
 				else:
-					for lang in os.listdir(self.string._prefix):
+					for lang in self.string._prefix.iterdir():
 						with (
 							open(
-								os.path.join(self.string._prefix, lang), "rb"
+								self.string._prefix.joinpath(lang.name), "rb"
 							) as inf,
 							zf.open(
-								os.path.join("strings", lang), "w"
+								os.path.join("strings", lang.name), "w"
 							) as outf,
 						):
 							outf.writelines(inf)
@@ -7857,9 +7864,10 @@ class Engine(AbstractEngine, Executor):
 						for _, function in store.iterplain():
 							outf.write(function + "\n\n")
 				elif hasattr(store, "__file__"):
+					file = Path(store.__file__)
 					with (
-						open(store.__file__, "rb") as inf,
-						zf.open(os.path.basename(store.__file__), "w") as outf,
+						open(file, "rb") as inf,
+						zf.open(file.name, "w") as outf,
 					):
 						outf.writelines(inf)
 				else:

@@ -49,6 +49,8 @@ from typing import (
 	get_type_hints,
 )
 
+from attr import Factory
+from attrs import define, field
 import networkx as nx
 from tblib import Traceback
 
@@ -221,9 +223,15 @@ class GlobalKeyValueStore(UserDict):
 		}
 
 
-@dataclass
+@define
 class ConnectionLooper(ABC):
 	connector: AbstractDatabaseConnector
+	_initialized: bool = field(init=False, default=False)
+	existence_lock: Lock = field(init=False, factory=Lock)
+
+	@existence_lock.validator
+	def _validate_existence_lock(self, attr, lock: Lock):
+		lock.acquire()
 
 	@cached_property
 	def inq(self) -> Queue:
@@ -235,10 +243,6 @@ class ConnectionLooper(ABC):
 
 	@cached_property
 	def lock(self):
-		return Lock()
-
-	@cached_property
-	def existence_lock(self):
 		return Lock()
 
 	@cached_property
@@ -582,11 +586,22 @@ def batched(
 	)
 
 
+@define
 class AbstractDatabaseConnector(ABC):
-	_: KW_ONLY
-	kf_interval_override: Callable[[], bool | None] = lambda _: None
-	keyframe_interval: int | None = 1000
-	snap_keyframe: Callable[[Self], None] = lambda self: None
+	kf_interval_override: Callable[[], bool | None] = field(
+		default=lambda: None, kw_only=True
+	)
+	keyframe_interval: int | None = field(default=1000, kw_only=True)
+	snap_keyframe: Callable[[Self], None] = field(
+		default=lambda: None, kw_only=True
+	)
+	_initialized: bool = field(init=False, default=False)
+
+	@abstractmethod
+	def _pack(self, obj: ValueHint | Value) -> bytes: ...
+
+	@abstractmethod
+	def _unpack(self, b: bytes) -> Value: ...
 
 	@cached_property
 	def engine(self) -> AbstractEngine:
@@ -637,7 +652,7 @@ class AbstractDatabaseConnector(ABC):
 	@pack.setter
 	def pack(self, v: PackSignature) -> None:
 		self._pack = v
-		if hasattr(self, "_unpack") and not hasattr(self, "_initialized"):
+		if hasattr(self, "_unpack") and not self._initialized:
 			self._init_db()
 
 	@property
@@ -647,7 +662,7 @@ class AbstractDatabaseConnector(ABC):
 	@unpack.setter
 	def unpack(self, v: UnpackSignature) -> None:
 		self._unpack = v
-		if hasattr(self, "_pack") and not hasattr(self, "_initialized"):
+		if hasattr(self, "_pack") and not self._initialized:
 			self._init_db()
 
 	def dump_everything(self) -> dict[str, list[tuple]]:
@@ -4206,7 +4221,7 @@ class AbstractDatabaseConnector(ABC):
 _T = TypeVar("_T")
 
 
-@dataclass
+@define
 class PythonDatabaseConnector(AbstractDatabaseConnector):
 	"""Database connector that holds all data in memory
 
@@ -4218,6 +4233,12 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	an environment that lacks threading, such as WASI.
 
 	"""
+
+	def _pack(self, obj):
+		return obj
+
+	def _unpack(self, obj):
+		return obj
 
 	def is_empty(self) -> bool:
 		for att in dir(self):
@@ -6297,12 +6318,22 @@ def window_getter(
 window_getter.tables = {}
 
 
+@define
 class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	Looper: ClassVar[type[ConnectionLooper]]
 	clear: bool
+	_pack: PackSignature = field(init=False)
+	_unpack: UnpackSignature = field(init=False)
 
-	def __post_init__(self):
-		self._t = Thread(target=self._looper.run)
+	def _make_thread(self):
+		return Thread(target=self._looper.run)
+
+	_t: Thread = field(
+		init=False, default=Factory(_make_thread, takes_self=True)
+	)
+	_initialized: bool = field(init=False, default=False)
+
+	def __attrs_post_init__(self):
 		self._t.start()
 		if self.clear:
 			self.truncate_all()

@@ -15,11 +15,9 @@
 from __future__ import annotations
 
 import inspect
-import os
 import sys
-from dataclasses import KW_ONLY, dataclass
 from functools import cached_property, partial
-from operator import itemgetter
+from pathlib import Path
 from typing import (
 	Annotated,
 	Any,
@@ -33,8 +31,9 @@ from typing import (
 	get_origin,
 )
 
+from attrs import define, field
 import pyarrow as pa
-from _operator import itemgetter
+from operator import itemgetter
 from pyarrow import compute as pc
 
 from .db import (
@@ -106,16 +105,14 @@ from .types import __dict__ as types_dict
 from .util import ELLIPSIS, EMPTY
 
 
-@dataclass
+@define
 class ParquetDatabaseConnector(ThreadedDatabaseConnector):
-	path: str
-	_: KW_ONLY
-	clear: bool = False
+	path: Path = field(converter=Path)
+	clear: bool = field(default=False, kw_only=True)
 
-	@dataclass
+	@define
 	class Looper(ConnectionLooper):
-		def __post_init__(self):
-			self.existence_lock.acquire(timeout=1)
+		connector: ParquetDatabaseConnector = field()
 
 		@cached_property
 		def schema(self):
@@ -235,7 +232,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			self.existence_lock.release()
 
 		def initdb(self):
-			if hasattr(self, "_initialized"):
+			if self._initialized:
 				return RuntimeError("Already initialized the database")
 			self._initialized = True
 			initial = self.initial
@@ -266,7 +263,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		def _get_db(self, table: str):
 			from parquetdb import ParquetDB
 
-			table_path = os.path.join(self.connector.path, table)
+			table_path = self.connector.path.joinpath(table)
 			try:
 				return ParquetDB(
 					table_path,
@@ -1593,7 +1590,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		self.call("commit")
 
 	def _init_db(self) -> dict:
-		if hasattr(self, "_initialized"):
+		if self._initialized:
 			raise RuntimeError("Initialized the database twice")
 		ret = self.call("initdb")
 		if isinstance(ret, Exception):
