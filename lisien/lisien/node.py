@@ -697,6 +697,9 @@ class Place(Node):
 		"name",
 	}
 
+	def __bool__(self):
+		return self.name in self.character.place
+
 	def __getitem__(self, key: KeyHint | Stat):
 		if key == "name":
 			return self.name
@@ -776,6 +779,9 @@ class Thing(Node, AbstractThing):
 
 	def _set_loc(self, loc: NodeName | type(...)) -> None:
 		self.engine._set_thing_loc(self.character.name, self.name, loc)
+
+	def __bool__(self):
+		return self.name in self.character.thing
 
 	def __getitem__(self, item: KeyHint | Stat) -> Value | NodeName:
 		if item == "location":
