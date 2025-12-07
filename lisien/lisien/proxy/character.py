@@ -408,12 +408,19 @@ class ThingProxy(NodeProxy):
 				self.character.thing.send(self, key=k, value=v)
 				self.character.node.send(self, key=k, value=v)
 
-	def _set_location(self, v: NodeName | None):
-		if v is None:
+	def _set_location(self, v: NodeName | type(...)):
+		if v is ...:
 			del self.engine._things_cache[self.character.name][self.name]
 			self.engine._character_places_cache[self.character.name][
 				self.name
 			] = PlaceProxy(self.character, self.name, **self._cache)
+			self.engine.handle(
+				command="thing2place",
+				char=self.character.name,
+				thing=self.name,
+				branching=True,
+			)
+			return
 		self._location = v
 		self.engine.handle(
 			command="set_thing_location",

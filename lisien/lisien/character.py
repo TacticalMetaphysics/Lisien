@@ -1062,7 +1062,7 @@ class Character(AbstractCharacter, RuleFollower):
 	def thing2place(self, name: KeyHint | NodeName) -> None:
 		"""Unset a Thing's location, and thus turn it into a Place."""
 		name = NodeName(Key(name))
-		self.engine._set_thing_loc(self.name, name, None)
+		self.engine._set_thing_loc(self.name, name, ...)
 		if (self.name, name) in self.engine._node_objs:
 			thing = self.engine._node_objs[self.name, name]
 			place = Place(self, name)
