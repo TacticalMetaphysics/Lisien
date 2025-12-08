@@ -127,7 +127,6 @@ from .types import (
 	RuleNeighborhood,
 	RuleNeighborhoodRowType,
 	RuleRowType,
-	RulesKeyframe,
 	Stat,
 	StatDict,
 	ThingRowType,
