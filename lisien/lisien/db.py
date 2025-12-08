@@ -6506,28 +6506,39 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 			raise TypeError("Invalid universal keyframe", unpacked)
 		return {UniversalKey(Key(k)): Value(v) for (k, v) in unpacked.items()}
 
-	def _unpack_rules_keyframe(self, rule_packed: bytes) -> RulesKeyframe:
-		def make_rule_keyframe(v: dict) -> RuleKeyframe:
-			return {
-				"triggers": [
-					TriggerFuncName(trig) for trig in v.get("triggers", ())
-				],
-				"prereqs": [
-					PrereqFuncName(preq) for preq in v.get("prereqs", ())
-				],
-				"actions": [
-					ActionFuncName(act) for act in v.get("actions", ())
-				],
-				"neighborhood": v["neighborhood"]
-				if "neighborhood" in v and v["neighborhood"] is not None
-				else None,
-				"big": RuleBig(bool(v.get("big"))),
-			}
-
+	def _unpack_rules_keyframe(self, rule_packed: bytes) -> RuleKeyframe:
 		unpacked = self.unpack(rule_packed)
 		if not isinstance(unpacked, dict):
 			raise TypeError("Invalid rule keyframe", unpacked)
-		return {rule: make_rule_keyframe(v) for (rule, v) in unpacked.items()}
+		neighborhood_d: dict[RuleName, RuleNeighborhood] = unpacked[
+			"neighborhood"
+		]
+		if not isinstance(neighborhood_d, dict):
+			raise TypeError("Invalid neighborhood dict")
+		for k, v in neighborhood_d.items():
+			if not isinstance(k, str):
+				raise TypeError("Invalid rule name", k)
+			if not isinstance(v, (int, type(None))):
+				raise TypeError("Invalid neighborhood", v)
+		return {
+			"triggers": {
+				RuleName(rule): [TriggerFuncName(trig) for trig in trigs]
+				for (rule, trigs) in unpacked["triggers"].items()
+			},
+			"prereqs": {
+				RuleName(rule): [PrereqFuncName(preq) for preq in preqs]
+				for (rule, preqs) in unpacked["prereqs"].items()
+			},
+			"actions": {
+				RuleName(rule): [ActionFuncName(act) for act in acts]
+				for (rule, acts) in unpacked["actions"].items()
+			},
+			"neighborhood": neighborhood_d,
+			"big": {
+				RuleName(rule): RuleBig(big)
+				for (rule, big) in unpacked["big"].items()
+			},
+		}
 
 	def _unpack_rulebooks_keyframe(
 		self, rulebook_packed: bytes
