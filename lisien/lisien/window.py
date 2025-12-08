@@ -1240,7 +1240,7 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 						yield trn, tck
 
 
-@define(init=False)
+@define(init=False, repr=False)
 class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 	"""A WindowDict that contains a span of time, indexed as turns and ticks
 
@@ -1275,6 +1275,9 @@ class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 				if not isinstance(v, self.cls):
 					data[k] = self.cls(v)
 		super().__init__(data)
+
+	def __repr__(self):
+		return f"<AssignmentTimeDict({dict(self.items())})>"
 
 	def __getitem__(self, turn: Turn) -> WindowDict[Tick, _VV]:
 		return super().__getitem__(turn)
