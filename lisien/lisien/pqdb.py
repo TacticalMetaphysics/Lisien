@@ -1144,7 +1144,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			):
 				raise TypeError("Invalid func list", an_rule)
 			funx: list[RuleFuncName] = an_rule
-			unpacked[d["rule"], d["branch"], d["turn"], d["tick"]] = funx
+			unpacked[d["branch"], d["turn"], d["tick"], d["rule"]] = funx
 		for branch, turn, tick, rule in sorted(unpacked):
 			yield branch, turn, tick, rule, unpacked[branch, turn, tick, rule]
 
@@ -1170,10 +1170,10 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		return iter(
 			sorted(
 				(
-					d["rule"],
 					d["branch"],
 					d["turn"],
 					d["tick"],
+					d["rule"],
 					d["neighborhood"],
 				)
 				for d in self.call("dump", "rule_neighborhood")
@@ -1186,7 +1186,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		self._big2set()
 		return iter(
 			sorted(
-				(d["rule"], d["branch"], d["turn"], d["tick"], d["big"])
+				(d["branch"], d["turn"], d["tick"], d["rule"], d["big"])
 				for d in self.call("dump", "rule_big")
 			)
 		)
