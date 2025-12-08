@@ -921,7 +921,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 			if self._past:
 				yield from map(get0, self._past)
 			if self._future:
-				yield from map(get0, self._future)
+				yield from map(get0, reversed(self._future))
 
 	def __contains__(self, item: _K) -> bool:
 		with self._lock:
