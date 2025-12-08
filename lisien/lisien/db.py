@@ -4018,39 +4018,29 @@ class AbstractDatabaseConnector(ABC):
 	@cached_property
 	def _element_dispatch_table(self):
 		return {
-			tag: getattr(self, f"_{tag.replace('-', '_')}_rec")
-			for tag in (
-				(
-					"keyframe",
-					"universal",
-					"rule-triggers",
-					"rule-prereqs",
-					"rule-actions",
-					"rule-neighborhood",
-					"rule-big",
-					"rulebook",
-					"graph",
-					"graph-val",
-					"node",
-					"node-val",
-					"edge",
-					"edge-val",
-					"location",
-					"unit",
-				)
-				+ tuple(
-					f"{what}-rulebook"
-					for what in (
-						"character",
-						"unit",
-						"character-thing",
-						"character-place",
-						"character-portal",
-						"node",
-						"portal",
-					)
-				)
-			)
+			"keyframe": self._keyframe_rec,
+			"universal": self._universal_rec,
+			"rule-triggers": self._rule_triggers_rec,
+			"rule-prereqs": self._rule_prereqs_rec,
+			"rule-actions": self._rule_actions_rec,
+			"rule-neighborhood": self._rule_neighborhood_rec,
+			"rule-big": self._rule_big_rec,
+			"rulebook": self._rulebook_rec,
+			"graph": self._graph_rec,
+			"graph-val": self._graph_val_rec,
+			"node": self._node_rec,
+			"node-val": self._node_val_rec,
+			"edge": self._edge_rec,
+			"edge-val": self._edge_val_rec,
+			"location": self._location_rec,
+			"unit": self._unit_rec,
+			"character-rulebook": self._character_rulebook_rec,
+			"unit-rulebook": self._unit_rulebook_rec,
+			"character-thing-rulebook": self._character_thing_rulebook_rec,
+			"character-place-rulebook": self._character_place_rulebook_rec,
+			"character-portal-rulebook": self._character_portal_rulebook_rec,
+			"node-rulebook": self._node_rulebook_rec,
+			"portal-rulebook": self._portal_rulebook_rec,
 		}
 
 	def _dispatch_element(
