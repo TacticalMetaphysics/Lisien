@@ -3317,7 +3317,7 @@ class AbstractDatabaseConnector(ABC):
 			AssignmentTimeDict[list[TriggerFuncName]],
 		],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _known_prereqs(
@@ -3329,7 +3329,7 @@ class AbstractDatabaseConnector(ABC):
 			AssignmentTimeDict[list[PrereqFuncName]],
 		],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _known_actions(
@@ -3341,7 +3341,7 @@ class AbstractDatabaseConnector(ABC):
 			AssignmentTimeDict[list[ActionFuncName]],
 		],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _known_neighborhoods(
@@ -3353,7 +3353,7 @@ class AbstractDatabaseConnector(ABC):
 			AssignmentTimeDict[RuleNeighborhood],
 		],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _known_big(
@@ -3362,7 +3362,7 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[Branch, AssignmentTimeDict[RuleBig]],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _plan_times(self) -> dict[Plan, set[Time]]:
@@ -3676,16 +3676,7 @@ class AbstractDatabaseConnector(ABC):
 			d = self._known_big
 		else:
 			raise ValueError(what)
-		if rule in d:
-			if branch in d[rule]:
-				if turn in d[rule][branch]:
-					d[rule][branch][turn][tick] = datum
-				else:
-					d[rule][branch][turn] = {tick: datum}
-			else:
-				d[rule][branch] = AssignmentTimeDict({turn: {tick: datum}})
-		else:
-			d[rule] = {branch: AssignmentTimeDict({turn: {tick: datum}})}
+		d[rule][branch].store_at(turn, tick, datum)
 
 	_rule_triggers_rec = partialmethod(_rule_func_list, "triggers")
 	_rule_prereqs_rec = partialmethod(_rule_func_list, "prereqs")
