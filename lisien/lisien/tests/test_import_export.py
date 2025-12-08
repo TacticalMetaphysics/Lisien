@@ -98,9 +98,8 @@ def exported(
 	tmp_path, random_seed, persistent_database_connector_part, request, turns
 ):
 	install = get_install_func(request.param, random_seed)
-	prefix = tmp_path.joinpath("game")
 	with Engine(
-		prefix,
+		tmp_path,
 		workers=0,
 		random_seed=random_seed,
 		keyframe_on_close=False,
@@ -119,10 +118,7 @@ def test_round_trip(
 	persistent_database_connector_part,
 	non_null_database,
 	random_seed,
-	turns,
 ):
-	prefix1 = tmp_path.joinpath("game")
-	prefix1.mkdir(parents=True, exist_ok=True)
 	prefix2 = tmp_path.joinpath("game2")
 	prefix2.mkdir(parents=True, exist_ok=True)
 	db1 = persistent_database_connector_part()
@@ -136,42 +132,28 @@ def test_round_trip(
 		case "parquetdb":
 			db2 = ParquetDatabaseConnector(prefix2.joinpath("world"))
 		case _:
-			raise RuntimeError("Unknown database", database_connector_part)
-	if exported.name.endswith("kobold.lisien"):
-		from lisien.examples.kobold import inittest as install
-	elif exported.name.endswith("wolfsheep.lisien"):
-		from lisien.examples.wolfsheep import install
-
-		install = partial(install, seed=random_seed)
-	elif exported.name.endswith("polygons.lisien"):
-		from lisien.examples.polygons import install
-	else:
-		raise pytest.fail(f"Unknown export: {exported}")
+			raise RuntimeError("Unknown database", non_null_database)
 	with (
-		Engine.from_archive(
-			exported,
-			prefix1,
+		Engine(
+			tmp_path,
 			workers=0,
 			database=db1,
 			keyframe_on_close=False,
 		) as eng1,
-		Engine(
+		Engine.from_archive(
+			exported,
 			prefix2,
 			workers=0,
 			database=db2,
 			keyframe_on_close=False,
-			random_seed=random_seed,
 		) as eng2,
 	):
-		install(eng2)
-		for _ in range(turns):
-			eng2.next_turn()
 		compare_engines_world_state(eng1, eng2)
 	db1.close()
 	db2.close()
 
-	compare_stored_strings(prefix2, prefix1)
-	compare_stored_python_code(prefix2, prefix1)
+	compare_stored_strings(prefix2, tmp_path)
+	compare_stored_python_code(prefix2, tmp_path)
 
 
 def compare_engines_world_state(
