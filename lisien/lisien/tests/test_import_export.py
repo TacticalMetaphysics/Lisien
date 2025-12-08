@@ -181,7 +181,7 @@ def compare_engines_world_state(
 
 
 def compare_stored_strings(
-	correct_prefix: str | os.PathLike, test_prefix: str | os.PathLike
+	correct_prefix: os.PathLike[str], test_prefix: os.PathLike[str]
 ):
 	langs = os.listdir(os.path.join(test_prefix, "strings"))
 	assert langs == os.listdir(os.path.join(correct_prefix, "strings")), (
@@ -198,7 +198,7 @@ def compare_stored_strings(
 
 
 def compare_stored_python_code(
-	correct_prefix: str | os.PathLike, test_prefix: str | os.PathLike
+	correct_prefix: os.PathLike[str], test_prefix: os.PathLike[str]
 ):
 	test_ls = os.listdir(test_prefix)
 	correct_ls = os.listdir(correct_prefix)
