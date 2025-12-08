@@ -4180,16 +4180,14 @@ class AbstractDatabaseConnector(ABC):
 					),
 					(self._known_big, self.set_rule_big),
 				]:
-					for rule in mapp:
-						for branch in mapp[rule]:
-							for turn in mapp[rule][branch]:
+					for rule, branches in mapp.items():
+						for branch, assignments in branches.items():
+							for turn, tick in assignments.iter_times():
 								# Turn and tick are guaranteed to be in
 								# chronological order here, because that's what
 								# an AssignmentTimeDict does.
-								for tick, datum in mapp[rule][branch][
-									turn
-								].items():
-									setter(rule, branch, turn, tick, datum)
+								datum = assignments.retrieve_exact(turn, tick)
+								setter(rule, branch, turn, tick, datum)
 				for plan, times in self._plan_times.items():
 					for branch, turn, tick in times:
 						self.plans_insert(plan, branch, turn, tick)
