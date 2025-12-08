@@ -3314,7 +3314,7 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			AssignmentTimeDict[Turn, WindowDict[Tick, list[TriggerFuncName]]],
+			AssignmentTimeDict[list[TriggerFuncName]],
 		],
 	]:
 		return {}
@@ -3326,7 +3326,7 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			AssignmentTimeDict[Turn, WindowDict[Tick, list[PrereqFuncName]]],
+			AssignmentTimeDict[list[PrereqFuncName]],
 		],
 	]:
 		return {}
@@ -3338,7 +3338,7 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			AssignmentTimeDict[Turn, WindowDict[Tick, list[ActionFuncName]]],
+			AssignmentTimeDict[list[ActionFuncName]],
 		],
 	]:
 		return {}
@@ -3350,7 +3350,7 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			AssignmentTimeDict[Turn, WindowDict[Tick, RuleNeighborhood]],
+			AssignmentTimeDict[RuleNeighborhood],
 		],
 	]:
 		return {}
@@ -3360,7 +3360,7 @@ class AbstractDatabaseConnector(ABC):
 		self,
 	) -> dict[
 		RuleName,
-		dict[Branch, AssignmentTimeDict[Turn, WindowDict[Tick, RuleBig]]],
+		dict[Branch, AssignmentTimeDict[RuleBig]],
 	]:
 		return {}
 
