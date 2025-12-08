@@ -350,7 +350,6 @@ class RuleKeyframe(TypedDict):
 	big: dict[RuleName, RuleBig]
 
 
-type RulesKeyframe = dict[RuleName, RuleKeyframe]
 type RulebooksKeyframe = dict[
 	RulebookName, tuple[list[RuleName], RulebookPriority]
 ]
@@ -545,7 +544,7 @@ type KeyframeGraphRowType = tuple[
 	CharDict,
 ]
 type KeyframeExtensionRowType = tuple[
-	Branch, Turn, Tick, UniversalKeyframe, RulesKeyframe, RulebooksKeyframe
+	Branch, Turn, Tick, UniversalKeyframe, RuleKeyframe, RulebooksKeyframe
 ]
 
 
