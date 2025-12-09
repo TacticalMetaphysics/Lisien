@@ -435,7 +435,7 @@ class NeighborMapping(Mapping):
 		return NeighborValues(self)
 
 
-@define
+@define(eq=False)
 class Node(lisien.types.Node, rule.RuleFollower):
 	"""The fundamental graph component, which portals go between.
 
@@ -686,7 +686,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		return self.engine._node_exists(self.character.name, self.name)
 
 
-@define
+@define(eq=False)
 class Place(Node):
 	"""The kind of node where a thing might ultimately be located.
 
@@ -747,7 +747,7 @@ def roerror(*args):
 	raise RuntimeError("Read-only")
 
 
-@define
+@define(eq=False)
 class Thing(Node, AbstractThing):
 	"""The sort of item that has a particular location at any given time.
 
