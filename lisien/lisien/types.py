@@ -695,7 +695,7 @@ class AbstractEntityMapping[_K, _V](
 		self._del_db(key, branch, turn, tick)
 
 
-@define
+@define(eq=False)
 class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	"""Mapping for graph attributes"""
 
@@ -885,7 +885,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		return me == other
 
 
-@define
+@define(eq=False)
 class Node(AbstractEntityMapping, ABC):
 	__slots__ = ()
 
@@ -1109,7 +1109,7 @@ class Node(AbstractEntityMapping, ABC):
 	def leaders(self) -> Iterator[AbstractCharacter]: ...
 
 
-@define
+@define(eq=False)
 class Edge(AbstractEntityMapping, ABC):
 	"""Mapping for edge attributes"""
 

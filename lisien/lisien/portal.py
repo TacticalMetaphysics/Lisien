@@ -37,7 +37,7 @@ class RuleMapping(BaseRuleMapping):
 		self.portal = portal
 
 
-@define
+@define(eq=False)
 class Portal(Edge, RuleFollower):
 	"""Connection between two nodes that :class:`lisien.node.Thing` travel along"""
 
