@@ -5472,6 +5472,12 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 
 	"""
 
+	def _pack(self, obj):
+		return obj
+
+	def _unpack(self, b):
+		return b
+
 	def echo(self, *args):
 		if len(args) == 1:
 			return args[0]
