@@ -545,6 +545,19 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		for key in super().__iter__():
 			del self[key]
 
+	def __eq__(self, other):
+		if self is other:
+			return True
+		if (
+			not hasattr(other, "character")
+			or not hasattr(other, "name")
+			or not hasattr(other.character, "name")
+			or self.character.name != other.character.name
+			or self.name != other.name
+		):
+			return False
+		return super().__eq__(other)
+
 	def __contains__(self, k: Key | KeyHint):
 		"""Handle extra keys, then delegate."""
 		return k in self._extra_keys or super().__contains__(k)
