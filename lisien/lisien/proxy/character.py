@@ -102,9 +102,9 @@ class ProxyLeaderMapping(Mapping):
 		raise AmbiguousLeaderError("No leaders, or more than one")
 
 	def _user_names(self):
-		return self.node.engine._unit_characters_cache[self.node.name][
-			self.node.name
-		]
+		return self.node.engine._unit_characters_cache[
+			self.node.character.name
+		][self.node.name]
 
 
 @Node.register
