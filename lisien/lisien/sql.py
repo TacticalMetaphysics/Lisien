@@ -1233,46 +1233,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				unpack(value),
 			)
 
-	def _iter_node_val(
-		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	) -> Iterator[NodeValRowType]:
-		if (turn_to is None) ^ (tick_to is None):
-			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._nodevals2set()
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			it = self.call(
-				"load_node_val_tick_to_end",
-				pack(graph),
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-			)
-		else:
-			it = self.call(
-				"load_node_val_tick_to_tick",
-				pack(graph),
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-				turn_to,
-				turn_to,
-				tick_to,
-			)
-		for node, key, turn, tick, value in it:
-			yield (
-				graph,
-				unpack(node),
-				unpack(key),
-				branch,
-				turn,
-				tick,
-				unpack(value),
-			)
-
 	def node_val_del_time(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
