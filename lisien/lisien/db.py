@@ -5463,7 +5463,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			yield from sort_set(self._bookmarks.items())
 
 
-@dataclass
+@define
 class NullDatabaseConnector(AbstractDatabaseConnector):
 	"""Database connector that does nothing, connects to no database
 
@@ -5471,12 +5471,6 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	you put into it, instead use :class:`PythonDatabaseConnector`.
 
 	"""
-
-	def _pack(self, obj):
-		return obj
-
-	def _unpack(self, b):
-		return b
 
 	def echo(self, *args):
 		if len(args) == 1:
