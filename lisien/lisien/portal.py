@@ -103,6 +103,21 @@ class Portal(Edge, RuleFollower):
 	def _get_rule_mapping(self):
 		return RuleMapping(self)
 
+	def __eq__(self, other):
+		if self is other:
+			return True
+		if (
+			not hasattr(other, "character")
+			or not hasattr(other.character, "name")
+			or self.character.name != other.character.name
+			or not hasattr(other, "dest")
+			or self.dest != other.dest
+			or not hasattr(other, "orig")
+			or self.orig != other.orig
+		):
+			return False
+		return super().__eq__(other)
+
 	def __getitem__(self, key):
 		if key == "origin":
 			return self.orig
