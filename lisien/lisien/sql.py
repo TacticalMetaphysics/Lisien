@@ -89,6 +89,24 @@ from .types import (
 	CharRulebookRowType,
 	ThingRowType,
 	UnitRowType,
+	UniversalRowType,
+	UniversalKey,
+	RulebookRowType,
+	RulebookPriority,
+	TriggerRowType,
+	TriggerFuncName,
+	PortalRulebookRowType,
+	NodeRulebookRowType,
+	RuleNeighborhood,
+	RuleNeighborhoodRowType,
+	ActionFuncName,
+	ActionRowType,
+	RuleBigRowType,
+	RuleBig,
+	PrereqFuncName,
+	PrereqRowType,
+	GraphRowType,
+	Stat,
 )
 
 meta = MetaData()
@@ -1082,15 +1100,16 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		"""Yield the entire contents of the graph_val table."""
 		self._graphvals2set()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, graph, key, value in self.call(
 			"graph_val_dump"
 		):
 			yield (
-				unpack(graph),
-				unpack(key),
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				Stat(unpack_key(key)),
 				unpack(value),
 			)
 
@@ -1132,11 +1151,19 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		):
 			yield unpack(graph), branch, turn, tick, typ
 
-	def graphs_dump(self):
+	def graphs_dump(self) -> Iterator[GraphRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, graph, typ in self.call("graphs_dump"):
-			yield unpack(graph), branch, turn, tick, typ
+			if not isinstance(typ, str) or typ not in ("DiGraph", "Deleted"):
+				raise TypeError("Invalid graph type", str)
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				typ,
+			)
 
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		super().nodes_del_time(branch, turn, tick)
@@ -1145,14 +1172,14 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		"""Dump the entire contents of the nodes table."""
 		self._nodes2set()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, graph, node, extant in self.call("nodes_dump"):
 			yield (
-				unpack(graph),
-				unpack(node),
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				NodeName(unpack_key(node)),
 				bool(extant),
 			)
 
@@ -1192,16 +1219,17 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		"""Yield the entire contents of the node_val table."""
 		self._nodevals2set()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, graph, node, key, value in self.call(
 			"node_val_dump"
 		):
 			yield (
-				unpack(graph),
-				unpack(node),
-				unpack(key),
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				NodeName(unpack_key(node)),
+				Stat(unpack_key(key)),
 				unpack(value),
 			)
 
@@ -1254,7 +1282,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		"""Dump the entire contents of the edges table."""
 		self._edges2set()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			graph,
 			orig,
@@ -1265,12 +1293,12 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			extant,
 		) in self.call("edges_dump"):
 			yield (
-				branch,
-				turn,
-				tick,
-				unpack(graph),
-				unpack(orig),
-				unpack(dest),
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				NodeName(unpack_key(orig)),
+				NodeName(unpack_key(dest)),
 				bool(extant),
 			)
 
@@ -1282,6 +1310,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		"""Yield the entire contents of the edge_val table."""
 		self._edgevals2set()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -1293,13 +1322,13 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			value,
 		) in self.call("edge_val_dump"):
 			yield (
-				unpack(graph),
-				unpack(orig),
-				unpack(dest),
-				unpack(key),
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				NodeName(unpack_key(orig)),
+				NodeName(unpack_key(dest)),
+				Stat(unpack_key(key)),
 				unpack(value),
 			)
 
@@ -1436,19 +1465,34 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			unpack(rulebook),
 		)
 
-	def universals_dump(self):
+	def universals_dump(self) -> Iterator[UniversalRowType]:
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, key, value in self.call("universals_dump"):
-			yield unpack(key), branch, turn, tick, unpack(value)
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				UniversalKey(unpack_key(key)),
+				unpack(value),
+			)
 
-	def rulebooks_dump(self):
+	def rulebooks_dump(self) -> Iterator[RulebookRowType]:
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, rulebook, rules, prio in self.call(
 			"rulebooks_dump"
 		):
-			yield unpack(rulebook), branch, turn, tick, (unpack(rules), prio)
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RulebookName(unpack_key(rulebook)),
+				list(map(RuleName, unpack(rules))),
+				RulebookPriority(prio),
+			)
 
 	def _rule_dump(self, typ):
 		self.flush()
@@ -1456,43 +1500,82 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		for branch, turn, tick, rule, lst in self.call(
 			"rule_{}_dump".format(typ)
 		):
-			yield rule, branch, turn, tick, unpack(lst)
+			yield branch, turn, tick, rule, unpack(lst)
 
-	def rule_triggers_dump(self):
-		return self._rule_dump("triggers")
+	def rule_triggers_dump(self) -> Iterator[TriggerRowType]:
+		for branch, turn, tick, rule, trigs in self._rule_dump("triggers"):
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				list(map(TriggerFuncName, trigs)),
+			)
 
-	def rule_prereqs_dump(self):
-		return self._rule_dump("prereqs")
+	def rule_prereqs_dump(self) -> Iterator[PrereqRowType]:
+		for branch, turn, tick, rule, preqs in self._rule_dump("prereqs"):
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				list(map(PrereqFuncName, preqs)),
+			)
 
-	def rule_actions_dump(self):
-		return self._rule_dump("actions")
+	def rule_actions_dump(self) -> Iterator[ActionRowType]:
+		for branch, turn, tick, rule, acts in self._rule_dump("actions"):
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				list(map(ActionFuncName, acts)),
+			)
 
-	def rule_neighborhood_dump(self):
+	def rule_neighborhood_dump(self) -> Iterator[RuleNeighborhoodRowType]:
 		self.flush()
-		return self.call("rule_neighborhood_dump")
+		for branch, turn, tick, rule, nbrs in self.call(
+			"rule_neighborhood_dump"
+		):
+			if nbrs is not None and not isinstance(nbrs, int):
+				raise TypeError("Invalid neighborhood", nbrs)
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				nbrs,
+			)
 
-	def rule_big_dump(self):
+	def rule_big_dump(self) -> Iterator[RuleBigRowType]:
 		self.flush()
-		return self.call("rule_big_dump")
+		for branch, turn, tick, rule, big in self.call("rule_big_dump"):
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				RuleBig(big),
+			)
 
-	def node_rulebook_dump(self):
+	def node_rulebook_dump(self) -> Iterator[NodeRulebookRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, character, node, rulebook in self.call(
 			"node_rulebook_dump"
 		):
 			yield (
-				unpack(character),
-				unpack(node),
-				branch,
-				turn,
-				tick,
-				unpack(rulebook),
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(node)),
+				RulebookName(unpack_key(rulebook)),
 			)
 
-	def portal_rulebook_dump(self):
+	def portal_rulebook_dump(self) -> Iterator[PortalRulebookRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -1503,13 +1586,13 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			rulebook,
 		) in self.call("portal_rulebook_dump"):
 			yield (
-				unpack(character),
-				unpack(orig),
-				unpack(dest),
-				branch,
-				turn,
-				tick,
-				unpack(rulebook),
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(orig)),
+				NodeName(unpack_key(dest)),
+				RulebookName(unpack_key(rulebook)),
 			)
 
 	def _charactery_rulebook_dump(self, qry) -> Iterator[CharRulebookRowType]:
