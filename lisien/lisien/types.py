@@ -2237,7 +2237,7 @@ type PackSignature = Callable[
 	[Key | KeyHint | EternalKey | UniversalKey | Stat | ValueHint | Value],
 	bytes,
 ]
-type UnpackSignature = Callable[[bytes], ValueHint]
+type UnpackSignature = Callable[[bytes], Value]
 type LoadedCharWindow = dict[
 	Literal[
 		"nodes",
