@@ -1096,7 +1096,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				turn,
 				tick,
 				UniversalKey(unpack_key(d["key"])),
-				Value(unpack(d["value"])),
+				unpack(d["value"]),
 			)
 
 	def rulebooks_dump(
