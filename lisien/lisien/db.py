@@ -685,8 +685,20 @@ class AbstractDatabaseConnector(ABC):
 			for table in Batch.cached_properties
 		}
 
-	def __getstate__(self):
-		return self.dump_everything()
+	def __getstate__(
+		self,
+	) -> tuple[
+		dict[str, list[tuple]],
+		bool,
+		int | None,
+		Callable[[], bool],
+	]:
+		return (
+			self.dump_everything(),
+			self._initialized,
+			self.keyframe_interval,
+			self.kf_interval_override,
+		)
 
 	def load_everything(self, state: dict[str, list[tuple]]):
 		for table, data in state.items():
@@ -695,8 +707,22 @@ class AbstractDatabaseConnector(ABC):
 			batch.extend(data)
 		self.flush()
 
-	def __setstate__(self, state: dict[str, list[tuple]]):
-		self.load_everything(state)
+	def __setstate__(
+		self,
+		state: tuple[
+			dict[str, list[tuple]],
+			bool,
+			int | None,
+			Callable[[], bool],
+		],
+	):
+		(
+			data,
+			self._initialized,
+			self.keyframe_interval,
+			self.kf_interval_override,
+		) = state
+		self.load_everything(data)
 
 	def __enter__(self) -> AbstractDatabaseConnector:
 		return self
@@ -4199,7 +4225,7 @@ class AbstractDatabaseConnector(ABC):
 _T = TypeVar("_T")
 
 
-@define
+@define(getstate_setstate=False)
 class PythonDatabaseConnector(AbstractDatabaseConnector):
 	"""Database connector that holds all data in memory
 
