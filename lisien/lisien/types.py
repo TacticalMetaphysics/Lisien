@@ -2013,7 +2013,11 @@ class DiGraph(nx.DiGraph, ABC):
 	node_map_cls: ClassVar = GraphNodeMapping
 
 	def __new__(
-		cls, engine: AbstractEngine | None = None, name: CharName | None = None
+		cls,
+		engine: AbstractEngine | None = None,
+		name: CharName | None = None,
+		*,
+		init_rulebooks: bool = False,
 	):
 		return super().__new__(cls)
 
@@ -3545,6 +3549,7 @@ class AbstractCharacter(DiGraph, ABC):
 
 	engine: AbstractEngine
 	_name: CharName
+	_init_rulebooks: bool = field(default=False, kw_only=True)
 
 	no_unwrap: ClassVar = True
 
