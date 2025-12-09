@@ -107,6 +107,7 @@ from .types import (
 	PrereqRowType,
 	GraphRowType,
 	Stat,
+	TurnRowType,
 )
 
 meta = MetaData()
