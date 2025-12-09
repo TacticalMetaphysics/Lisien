@@ -585,7 +585,11 @@ def batched(
 	)
 
 
-@define
+def _fake_pack_or_unpack(obj):
+	return obj
+
+
+@define(eq=False)
 class AbstractDatabaseConnector(ABC):
 	kf_interval_override: Callable[[], bool | None] = field(
 		default=lambda: None, kw_only=True
@@ -596,11 +600,9 @@ class AbstractDatabaseConnector(ABC):
 	)
 	_initialized: bool = field(init=False, default=False)
 
-	@abstractmethod
-	def _pack(self, obj: ValueHint | Value) -> bytes: ...
+	_pack: PackSignature = field(init=False, default=_fake_pack_or_unpack)
 
-	@abstractmethod
-	def _unpack(self, b: bytes) -> Value: ...
+	_unpack: UnpackSignature = field(init=False, default=_fake_pack_or_unpack)
 
 	@cached_property
 	def engine(self) -> AbstractEngine:
@@ -651,7 +653,7 @@ class AbstractDatabaseConnector(ABC):
 	@pack.setter
 	def pack(self, v: PackSignature) -> None:
 		self._pack = v
-		if hasattr(self, "_unpack") and not self._initialized:
+		if self._unpack is not _fake_pack_or_unpack and not self._initialized:
 			self._init_db()
 
 	@property
@@ -661,7 +663,7 @@ class AbstractDatabaseConnector(ABC):
 	@unpack.setter
 	def unpack(self, v: UnpackSignature) -> None:
 		self._unpack = v
-		if hasattr(self, "_pack") and not self._initialized:
+		if self._pack is not _fake_pack_or_unpack and not self._initialized:
 			self._init_db()
 
 	def dump_everything(self) -> dict[str, list[tuple]]:
@@ -4225,7 +4227,7 @@ class AbstractDatabaseConnector(ABC):
 _T = TypeVar("_T")
 
 
-@define(getstate_setstate=False)
+@define(getstate_setstate=False, eq=False)
 class PythonDatabaseConnector(AbstractDatabaseConnector):
 	"""Database connector that holds all data in memory
 
@@ -4237,12 +4239,6 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	an environment that lacks threading, such as WASI.
 
 	"""
-
-	def _pack(self, obj):
-		return obj
-
-	def _unpack(self, obj):
-		return obj
 
 	def is_empty(self) -> bool:
 		for att in dir(self):
@@ -4672,27 +4668,19 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	@property
 	def pack(self):
-		return self._pack
+		return _fake_pack_or_unpack
 
 	@pack.setter
 	def pack(self, v):
 		pass
 
-	@staticmethod
-	def _pack(a: _T) -> _T:
-		return a
-
 	@property
 	def unpack(self):
-		return self._unpack
+		return _fake_pack_or_unpack
 
 	@unpack.setter
 	def unpack(self, v):
 		pass
-
-	@staticmethod
-	def _unpack(a: _T) -> _T:
-		return a
 
 	def _load_window(
 		self,
@@ -5471,6 +5459,16 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	you put into it, instead use :class:`PythonDatabaseConnector`.
 
 	"""
+
+	def _default_pack(self, obj):
+		return obj
+
+	_pack = field(init=False, default=_default_pack)
+
+	def _default_unpack(self, b):
+		return b
+
+	_unpack = field(init=False, default=_default_unpack)
 
 	def echo(self, *args):
 		if len(args) == 1:
@@ -6326,8 +6324,6 @@ window_getter.tables = {}
 class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	Looper: ClassVar[type[ConnectionLooper]]
 	clear: bool
-	_pack: PackSignature = field(init=False)
-	_unpack: UnpackSignature = field(init=False)
 
 	def _make_thread(self):
 		return Thread(target=self._looper.run)
