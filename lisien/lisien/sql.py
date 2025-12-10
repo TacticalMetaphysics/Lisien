@@ -1071,9 +1071,10 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		"""Iterate over (key, value) pairs in the ``globals`` table."""
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		dumped = self.call("global_dump")
 		for k, v in dumped:
-			yield (unpack(k), unpack(v))
+			yield unpack_key(k), unpack(v)
 
 	def get_branch(self) -> Branch:
 		v = self.call("global_get", self.pack("branch"))[0]
