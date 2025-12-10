@@ -523,10 +523,10 @@ class Engine(AbstractEngine, Executor):
 		default=None,
 		converter=_convert_prefix,
 	)
-	"""Directory containing the simulation and its code. If
-		``None`` (the default), Lisien won't save any rules code to disk,
-		and won't save world data unless you supply :param connect_string:. Make
-		sure to call :meth:`export` when you're done."""
+	"""Directory containing the simulation and its code. If ``None`` (the 
+	default), Lisien won't save any rules code to disk, and won't save world 
+	data unless you supply :param connect_string:. Make sure to call 
+	:meth:`export` when you're done."""
 
 	@_prefix.validator
 	def _validate_prefix(self, attr, prefix):
@@ -540,8 +540,8 @@ class Engine(AbstractEngine, Executor):
 			raise NotADirectoryError(f"Prefix is not a directory: {prefix}")
 
 	clear: bool = field(default=False, kw_only=True)
-	"""Whether to delete *any and all* existing data
-		and code in ``prefix`` and the database. Use with caution!"""
+	"""Whether to delete *any and all* existing data and code in ``prefix`` 
+	and the database. Use with caution!"""
 
 	@staticmethod
 	def _convert_func_store(
@@ -569,9 +569,9 @@ class Engine(AbstractEngine, Executor):
 		),
 		default=None,
 	)
-	"""Module containing utility functions; if absent, we'll
-		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
-		file in the ``prefix``."""
+	"""Module containing utility functions; if absent, we'll use a 
+	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
+	the ``prefix``."""
 	method: ModuleType | FunctionStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -580,10 +580,9 @@ class Engine(AbstractEngine, Executor):
 		),
 		default=None,
 	)
-	"""Module containing functions taking this engine as
-		first argument. If absent, we'll
-		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
-		file in the ``prefix``."""
+	"""Module containing functions taking this engine as first argument. If 
+	absent, we'll use a :class:`lisien.collections.FunctionStore` to keep 
+	them in a .py file in the ``prefix``."""
 	trigger: ModuleType | TriggerStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -592,10 +591,10 @@ class Engine(AbstractEngine, Executor):
 		),
 		default=None,
 	)
-	"""Module containing trigger functions, taking a Lisien
-		entity and returning a boolean for whether to run a rule. If absent, we'll
-		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
-		file in the ``prefix``."""
+	"""Module containing trigger functions, taking a Lisien entity and 
+	returning a boolean for whether to run a rule. If absent, we'll use a 
+	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
+	the ``prefix``."""
 	prereq: ModuleType | FunctionStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -604,10 +603,10 @@ class Engine(AbstractEngine, Executor):
 		),
 		default=None,
 	)
-	"""Module containing prereq functions, taking a lisien entity and
-		returning a boolean for whether to permit a rule to run. If absent, we'll
-		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
-		file in the ``prefix``."""
+	"""Module containing prereq functions, taking a lisien entity and 
+	returning a boolean for whether to permit a rule to run. If absent, 
+	we'll use a :class:`lisien.collections.FunctionStore` to keep them in a 
+	.py file in the ``prefix``."""
 	action: ModuleType | FunctionStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -616,40 +615,39 @@ class Engine(AbstractEngine, Executor):
 		),
 		default=None,
 	)
-	"""Module containing action functions, taking a Lisien entity and
-		mutating it (and possibly the rest of the world). If absent, we'll
-		use a :class:`lisien.collections.FunctionStore` to keep them in a .py
-		file in the ``prefix``."""
+	"""Module containing action functions, taking a Lisien entity and 
+	mutating it (and possibly the rest of the world). If absent, we'll use a 
+	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
+	the ``prefix``."""
 	random_seed: int | None = field(kw_only=True, default=None)
-	"""A number to initialize the randomizer. Lisien saves
-		the state of the randomizer, so you only need to supply this when
-		starting a game for the first time."""
+	"""An integer to initialize the randomizer. Lisien saves the state of the 
+	randomizer, so you only need to supply this when starting a game for the 
+	first time."""
 	flush_interval: int | None = field(kw_only=True, default=None)
-	"""Lisien will put pending changes into the database
-		transaction every ``flush_interval`` turns. If ``None``, only flush
-		on commit. Default ``None``."""
+	"""Lisien will put pending changes into the database transaction every 
+	``flush_interval`` turns. If ``None``, only flush on commit. Default 
+	``None``."""
 	keyframe_interval: int | None = field(kw_only=True, default=1000)
-	"""How many records to let through before automatically
-		snapping a keyframe, default ``1000``. If ``None``, you'll need
-		to call ``snap_keyframe`` yourself."""
+	"""How many records to let through before automatically snapping a 
+	keyframe, default ``1000``. If ``None``, you'll need to call 
+	``snap_keyframe`` yourself."""
 	commit_interval: int | None = field(kw_only=True, default=None)
-	"""Lisien will commit changes to disk every
-		``commit_interval`` turns. If ``None`` (the default), only commit
-		on close or manual call to ``commit``."""
+	"""Lisien will commit changes to disk every ``commit_interval`` turns. If 
+	``None`` (the default), only commit on close or manual call to 
+	``commit``."""
 	keep_rules_journal: bool = field(kw_only=True, default=True)
-	"""Boolean; if ``True`` (the default), keep
-		information on the behavior of the rules engine in the database.
-		Makes the database rather large, but useful for debugging."""
+	"""Boolean; if ``True`` (the default), keep information on the behavior 
+	of the rules engine in the database. Makes the database rather large, 
+	but useful for debugging."""
 	connect_string: str | None = field(kw_only=True, default=None)
-	"""URL for a database to connect to. Leave
-		it as the default, ``None``, to use the ParquetDB database in the
-		``prefix``, if supplied. This uses SQLAlchemy's URL structure:
-		https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls"""
+	"""URL for a database to connect to. Leave it as the default, ``None``, 
+	to use the ParquetDB database in the ``prefix``, if supplied. This uses 
+	SQLAlchemy's URL structure: 
+	https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls"""
 	connect_args: dict[str, str] | None = field(kw_only=True, default=None)
-	"""Dictionary of keyword arguments for the
-		database connection. Only meaningful when combined with
-		``connect_string``. For details, see:
-		https://docs.sqlalchemy.org/en/20/core/engines.html#custom-dbapi-args"""
+	"""Dictionary of keyword arguments for the database connection. Only 
+	meaningful when combined with ``connect_string``. For details, see:
+	https://docs.sqlalchemy.org/en/20/core/engines.html#custom-dbapi-args"""
 
 	@staticmethod
 	def _convert_database(database, self):
@@ -689,6 +687,11 @@ class Engine(AbstractEngine, Executor):
 		default=None,
 		converter=Converter(_convert_database, takes_self=True),
 	)
+	"""The database connector to use. If left ``None``, Lisien will construct 
+	a database connector based on the other arguments: SQLAlchemy if a 
+	``connect_string`` is provided; if not, but a ``prefix`` is provided, 
+	then ParquetDB; or, if ``prefix`` is ``None``, then an in-memory 
+	database."""
 
 	@database.validator
 	@garbage
@@ -948,12 +951,6 @@ class Engine(AbstractEngine, Executor):
 			database.universal_set(key, branch, turn, tick, state)
 			self._universal_cache.store(key, branch, turn, tick, state)
 
-	"""The database connector to use. If left ``None``,
-		Lisien will construct a database connector based on the other arguments:
-		SQLAlchemy if a ``connect_string`` is provided; if not, but a
-		``prefix`` is provided, then ParquetDB; or, if ``prefix`` is ``None``,
-		then an in-memory database."""
-
 	@staticmethod
 	def _convert_string_store(string, self):
 		if isinstance(string, dict):
@@ -984,41 +981,38 @@ class Engine(AbstractEngine, Executor):
 		converter=Converter(_convert_string_store, takes_self=True),
 		default=None,
 	)
-	"""Dictionary of strings to be used in the game; if absent,
-		we'll use a :class:`lisien.collections.StringStore` to keep them in a
-		JSON file in the ``prefix``."""
+	"""Dictionary of strings to be used in the game; if absent, we'll use a 
+	:class:`lisien.collections.StringStore` to keep them in a JSON file in 
+	the ``prefix``."""
 	_trunk: str = field(kw_only=True, default="trunk")
-	"""The string name of the branch to start games from. Defaults
-		to "trunk" if not set in some prior session. You should only change
-		this if your game generated a new initial world state for a new
-		playthrough."""
+	"""The string name of the branch to start games from. Defaults to "trunk" 
+	if not set in some prior session. You should only change this if your 
+	game generated a new initial world state for a new playthrough."""
 
 	_schema: type[AbstractSchema] = field(
 		kw_only=True,
 		default=NullSchema,
 	)
-	"""A Schema class that determines which changes to allow to
-		the world; used when a player should not be able to change just
-		anything. Defaults to :class:`NullSchema`, which allows all changes."""
+	"""A :class:`Schema` class that determines which changes to allow to the 
+	world; used when a player should not be able to change just anything. 
+	Defaults to :class:`NullSchema`, which allows all changes."""
 	keyframe_on_close: bool = field(kw_only=True, default=True)
-	"""Whether to snap a keyframe when closing the
-		engine, default ``True``. This is usually what you want, as it will
-		make future startups faster, but could cause database bloat if
-		your game runs few turns per session."""
+	"""Whether to snap a keyframe when closing the engine, default ``True``. 
+	This is usually what you want, as it will make future startups faster, 
+	but could cause database bloat if your game runs few turns per session."""
 	enforce_end_of_time: bool = field(kw_only=True, default=True)
-	"""Whether to raise an exception when
-		time travelling to a point after the time that's been simulated.
-		Default ``True``. You normally want this, but it could cause problems
-		if you use something other than Lisien's rules engine for game
-		logic."""
+	"""Whether to raise an exception when time travelling to a point after 
+	the time that's been simulated. Default ``True``. You normally want this, 
+	but it could cause problems if you use something other than Lisien's 
+	rules engine for game logic."""
 	workers: int = field(kw_only=True, default=os.cpu_count())
-	"""How many processes, interpreters, or threads to use
-		as workers for parallel processing. By default, Lisien will
-		use as many subprocesses as we have CPU cores. When ``0``, parallel
-		processing is disabled. Note that ``workers=0`` implies that trigger
-		functions operate on bare Lisien objects, and can therefore have side
-		effects. If you don't want this, instead use ``workers=1``,
-		which *does* disable parallelism in the case of trigger functions."""
+	"""How many processes, interpreters, or threads to use as workers for 
+	parallel processing. By default, Lisien will use as many subprocesses as 
+	we have CPU cores. When ``0``, parallel processing is disabled. Note that 
+	``workers=0`` implies that trigger functions operate on bare Lisien 
+	objects, and can therefore have side effects. If you don't want this, 
+	instead use ``workers=1``, which *does* disable parallelism in the case 
+	of trigger functions."""
 
 	@staticmethod
 	def _convert_sub_mode(sub_mode):
@@ -1029,16 +1023,16 @@ class Engine(AbstractEngine, Executor):
 	sub_mode: Sub | None = field(
 		kw_only=True, default=None, converter=_convert_sub_mode
 	)
-	"""What kind of parallelism to use. Options are
-		``"process"``, ``"interpreter"``, and ``"thread"``. Defaults
-		to ``"interpreter"``, which only works on Python 3.14 or above,
-		so ``"process"`` if it's unavailable, or, if we can't launch
-		processes (perhaps because we're on Android or in a web browser),
-		``"thread"``. Irrelevant when ``workers=0``, and ignored if ``executor``
-		is supplied; we'll use whatever parallelism the ``executor`` does.
-		``"thread"`` only has performance benefits if you're using a
-		free-threaded build of Python, or the threads do their work in a
-		library like Numpy that releases Python's Global Interpreter Lock."""
+	"""What kind of parallelism to use. Options are ``"process"``, 
+	``"interpreter"``, and ``"thread"``. If left ``None``, defaults to 
+	``"interpreter"``, which only works on Python 3.14 or above, 
+	so ``"process"`` if it's unavailable, or, if we can't launch processes (
+	perhaps because we're on Android or in a web browser), ``"thread"``. 
+	Irrelevant when ``workers=0``, and ignored if ``executor`` is supplied; 
+	we'll use whatever parallelism the ``executor`` does. ``"thread"`` only 
+	has performance benefits if you're using a free-threaded build of Python, 
+	or the threads do their work in a library like Numpy that releases 
+	Python's Global Interpreter Lock."""
 
 	logger: Logger = field(
 		kw_only=True,
