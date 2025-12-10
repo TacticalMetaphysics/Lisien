@@ -912,11 +912,8 @@ class Engine(AbstractEngine, Executor):
 	def _init_load(self, attribute, database):
 		"""Load the current state of the game
 
-		It's treated as a validator because that means it runs *just after*
-		``database`` gets assigned to an attribute of the engine.
-
 		``snap_keyframe`` and ``kf_interval_override`` get assigned to the
-		database after that, because it's a bad idea to snap keyframes during
+		database after load, because it's a bad idea to snap keyframes during
 		the initial load.
 
 		"""
