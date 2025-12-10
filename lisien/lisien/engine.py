@@ -907,6 +907,13 @@ class Engine(AbstractEngine, Executor):
 		self._turns_completed_d.update(database.turns_completed_dump())
 		return database
 
+	database: AbstractDatabaseConnector = field(
+		kw_only=True,
+		default=None,
+		converter=Converter(_convert_database, takes_self=True),
+	)
+
+	@database.validator
 	@garbage
 	@world_locked
 	def _init_load(self, attribute, database):
@@ -940,12 +947,6 @@ class Engine(AbstractEngine, Executor):
 			database.universal_set(key, branch, turn, tick, state)
 			self._universal_cache.store(key, branch, turn, tick, state)
 
-	database: AbstractDatabaseConnector = field(
-		kw_only=True,
-		default=None,
-		converter=Converter(_convert_database, takes_self=True),
-		validator=_init_load,
-	)
 	"""The database connector to use. If left ``None``,
 		Lisien will construct a database connector based on the other arguments:
 		SQLAlchemy if a ``connect_string`` is provided; if not, but a
