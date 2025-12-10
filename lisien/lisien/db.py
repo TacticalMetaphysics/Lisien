@@ -4230,7 +4230,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	"""Database connector that holds all data in memory
 
 	You'll have to write it to disk yourself. Use the ``write_xml`` method
-	for that, or
+	for that.
 
 	This does not start any threads, unlike the connectors that really
 	connect to databases, making it an appropriate choice if running in
