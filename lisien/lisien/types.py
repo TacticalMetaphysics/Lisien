@@ -1284,16 +1284,20 @@ class AttrSignal(Signal):
 	receivers: dict[
 		Any, weakref.ref[Callable[..., Any]] | Callable[..., Any]
 	] = field(factory=dict, kw_only=True)
+
+	@staticmethod
+	def _make_defaultdict_set_class(self: AttrSignal):
+		return defaultdict(self.set_class)
+
+	_sender_receiver_factory = Factory(
+		_make_defaultdict_set_class, takes_self=True
+	)
 	_by_receiver: dict[Any, set] = field(
-		default=Factory(
-			lambda self: defaultdict(self.set_class), takes_self=True
-		),
+		default=_sender_receiver_factory,
 		kw_only=True,
 	)
 	_by_sender: dict[Any, set] = field(
-		default=Factory(
-			lambda self: defaultdict(self.set_class), takes_self=True
-		),
+		default=_sender_receiver_factory,
 		kw_only=True,
 	)
 
