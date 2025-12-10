@@ -175,8 +175,10 @@ class StringStore(AbstractStringStore, Signal):
 		else:
 			if prefix is not None:
 				prefix = Path(prefix)
-			if not prefix.is_dir():
-				raise NotADirectoryError("Prefix is not a directory", prefix)
+				if not prefix.is_dir():
+					raise NotADirectoryError(
+						"Prefix is not a directory", prefix
+					)
 			self.engine = engine_or_string_dict
 			self._languages = {lang: TamperEvidentDict()}
 			self._prefix = prefix
