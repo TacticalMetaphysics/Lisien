@@ -1193,7 +1193,7 @@ class Edge(AbstractEntityMapping, ABC):
 		Time,
 	]:
 		return (
-			self.character.engine.edge_val_cache.count_keys,
+			self.character.engine._edge_val_cache.count_keys,
 			self.character.name,
 			self.orig,
 			self.dest,
