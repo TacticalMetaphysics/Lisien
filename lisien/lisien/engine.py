@@ -519,7 +519,16 @@ class Engine(AbstractEngine, Executor):
 		ret.mkdir(parents=True, exist_ok=True)
 		return ret
 
-	@staticmethod
+	_prefix: Path | None = field(
+		default=None,
+		converter=_convert_prefix,
+	)
+	"""Directory containing the simulation and its code. If
+		``None`` (the default), Lisien won't save any rules code to disk,
+		and won't save world data unless you supply :param connect_string:. Make
+		sure to call :meth:`export` when you're done."""
+
+	@_prefix.validator
 	def _validate_prefix(self, attr, prefix):
 		if prefix is None:
 			return
@@ -530,15 +539,6 @@ class Engine(AbstractEngine, Executor):
 		if not prefix.is_dir():
 			raise NotADirectoryError(f"Prefix is not a directory: {prefix}")
 
-	_prefix: Path | None = field(
-		default=None,
-		converter=_convert_prefix,
-		validator=_validate_prefix,
-	)
-	"""Directory containing the simulation and its code. If
-		``None`` (the default), Lisien won't save any rules code to disk,
-		and won't save world data unless you supply :param connect_string:. Make
-		sure to call :meth:`export` when you're done."""
 	clear: bool = field(default=False, kw_only=True)
 	"""Whether to delete *any and all* existing data
 		and code in ``prefix`` and the database. Use with caution!"""
