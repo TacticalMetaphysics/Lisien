@@ -595,13 +595,11 @@ class AbstractDatabaseConnector(ABC):
 		default=lambda: None, kw_only=True
 	)
 	keyframe_interval: int | None = field(default=1000, kw_only=True)
-	snap_keyframe: Callable[[Self], None] = field(
+	snap_keyframe: Callable[[], None] = field(
 		default=lambda: None, kw_only=True
 	)
 	_initialized: bool = field(init=False, default=False)
-
 	_pack: PackSignature = field(init=False, default=_fake_pack_or_unpack)
-
 	_unpack: UnpackSignature = field(init=False, default=_fake_pack_or_unpack)
 
 	@cached_property
