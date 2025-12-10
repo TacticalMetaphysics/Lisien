@@ -1042,6 +1042,10 @@ class Engine(AbstractEngine, Executor):
 
 	@logger.validator
 	def _validate_logger(self, attr, logger):
+		if logger is None:
+			raise ValueError("Need a logger")
+		if not isinstance(logger, Logger):
+			raise TypeError("Not a logger", logger)
 		worker_handler = StreamHandler()
 		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
 		worker_handler.setLevel(DEBUG)
@@ -7644,6 +7648,8 @@ class Engine(AbstractEngine, Executor):
 			database.load_xml(zf.open("world.xml"))
 			for fn in set(zf.namelist()) - {"world.xml"}:
 				zf.extract(fn, prefix)
+		if logger is None:
+			logger = getLogger("lisien")
 		return cls(
 			prefix=Path(prefix),
 			string=string,
