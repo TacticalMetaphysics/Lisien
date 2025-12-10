@@ -1024,6 +1024,7 @@ class Engine(AbstractEngine, Executor):
 	def _convert_sub_mode(sub_mode):
 		if sub_mode is not None:
 			return Sub(sub_mode)
+		return None
 
 	sub_mode: Sub | None = field(
 		kw_only=True, default=None, converter=_convert_sub_mode
