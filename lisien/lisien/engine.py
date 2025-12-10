@@ -1040,16 +1040,9 @@ class Engine(AbstractEngine, Executor):
 		free-threaded build of Python, or the threads do their work in a
 		library like Numpy that releases Python's Global Interpreter Lock."""
 
-	@staticmethod
-	def _convert_logger(logger: Logger | None):
-		if logger is None:
-			from logging import getLogger
-
-			return getLogger("lisien")
-		return logger
-
 	logger: Logger = field(
-		kw_only=True, converter=_convert_logger, default=None
+		kw_only=True,
+		factory=partial(getLogger, "lisien"),
 	)
 	"""Logger object that we'll write records to."""
 
