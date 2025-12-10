@@ -615,7 +615,6 @@ def college24_tar(
 def college24(
 	college24_tar,
 	tmp_path,
-	serial_or_parallel,
 	database_connector_part,
 	serial_or_executor,
 ):
