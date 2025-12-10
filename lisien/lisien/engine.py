@@ -1106,6 +1106,7 @@ class Engine(AbstractEngine, Executor):
 						return LisienProcessExecutor(*executor_args)
 					else:
 						return LisienThreadExecutor(*executor_args)
+		return None
 
 	executor: LisienExecutor | None = field(
 		kw_only=True,
