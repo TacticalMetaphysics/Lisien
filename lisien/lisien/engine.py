@@ -1045,18 +1045,22 @@ class Engine(AbstractEngine, Executor):
 		if logger is None:
 			from logging import getLogger
 
-			logger = getLogger("lisien")
-		worker_handler = StreamHandler()
-		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
-		worker_handler.setLevel(DEBUG)
-		worker_handler.setFormatter(WorkerFormatter())
-		logger.addHandler(worker_handler)
+			return getLogger("lisien")
 		return logger
 
 	logger: Logger = field(
 		kw_only=True, converter=_convert_logger, default=None
 	)
 	"""Logger object that we'll write records to."""
+
+	@logger.validator
+	def _validate_logger(self, attr, logger):
+		worker_handler = StreamHandler()
+		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
+		worker_handler.setLevel(DEBUG)
+		worker_handler.setFormatter(WorkerFormatter())
+		logger.addHandler(worker_handler)
+
 	_shutdown_executor: bool = field(init=False, default=False)
 
 	@staticmethod
