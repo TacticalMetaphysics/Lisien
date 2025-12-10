@@ -682,6 +682,25 @@ class Engine(AbstractEngine, Executor):
 					)
 		database.pack = self.pack
 		database.unpack = self.unpack
+		return database
+
+	database: AbstractDatabaseConnector = field(
+		kw_only=True,
+		default=None,
+		converter=Converter(_convert_database, takes_self=True),
+	)
+
+	@database.validator
+	@garbage
+	@world_locked
+	def _init_load(self, attribute, database):
+		"""Load the current state of the game
+
+		``snap_keyframe`` and ``kf_interval_override`` get assigned to the
+		database after load, because it's a bad idea to snap keyframes during
+		the initial load.
+
+		"""
 		database.keyframe_interval = self.keyframe_interval
 		keyframes_dict = self._keyframes_dict
 		keyframes_times = self._keyframes_times
@@ -905,25 +924,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		##### Load turns completed
 		self._turns_completed_d.update(database.turns_completed_dump())
-		return database
-
-	database: AbstractDatabaseConnector = field(
-		kw_only=True,
-		default=None,
-		converter=Converter(_convert_database, takes_self=True),
-	)
-
-	@database.validator
-	@garbage
-	@world_locked
-	def _init_load(self, attribute, database):
-		"""Load the current state of the game
-
-		``snap_keyframe`` and ``kf_interval_override`` get assigned to the
-		database after load, because it's a bad idea to snap keyframes during
-		the initial load.
-
-		"""
+		##### Load actual game state
 		self._load(*self._read_at(*self.time))
 		database.snap_keyframe = self.snap_keyframe
 		database.kf_interval_override = self._detect_kf_interval_override
