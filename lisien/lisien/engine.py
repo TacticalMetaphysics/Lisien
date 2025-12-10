@@ -519,6 +519,7 @@ class Engine(AbstractEngine, Executor):
 		ret.mkdir(parents=True, exist_ok=True)
 		return ret
 
+	@staticmethod
 	def _validate_prefix(self, attr, prefix):
 		if prefix is None:
 			return
