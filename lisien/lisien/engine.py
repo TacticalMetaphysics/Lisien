@@ -1107,6 +1107,17 @@ class Engine(AbstractEngine, Executor):
 					else:
 						return LisienThreadExecutor(*executor_args)
 
+	executor: LisienExecutor | None = field(
+		kw_only=True,
+		default=None,
+		converter=Converter(_convert_executor, takes_self=True),
+	)
+	"""A :class:`LisienExecutor` instance we'll use to do
+		work in parallel. We'll make our own if one isn't supplied. Note that
+		:class:`LisienExecutor` is stateful, and must not be used by multiple
+		:class:`Engine` instances at once."""
+
+	@executor.validator
 	def _validate_executor(self, attribute, executor: LisienExecutor | None):
 		if executor:
 			executor.lock.acquire()
@@ -1115,17 +1126,6 @@ class Engine(AbstractEngine, Executor):
 			raise RuntimeError(
 				f"Didn't start an executor, though {self.workers} workers were requested"
 			)
-
-	executor: LisienExecutor | None = field(
-		kw_only=True,
-		default=None,
-		converter=Converter(_convert_executor, takes_self=True),
-		validator=_validate_executor,
-	)
-	"""A :class:`LisienExecutor` instance we'll use to do
-		work in parallel. We'll make our own if one isn't supplied. Note that
-		:class:`LisienExecutor` is stateful, and must not be used by multiple
-		:class:`Engine` instances at once."""
 
 	char_cls: ClassVar = Character
 	thing_cls: ClassVar = Thing
