@@ -1143,7 +1143,7 @@ class Engine(AbstractEngine, Executor):
 
 	@branch.setter
 	@world_locked
-	def branch(self, v: str):
+	def branch(self, v: str | Branch):
 		if not isinstance(v, str):
 			raise TypeError("branch must be str")
 		if self._planning:
@@ -1194,7 +1194,7 @@ class Engine(AbstractEngine, Executor):
 		return self.database.eternal["trunk"]
 
 	@trunk.setter
-	def trunk(self, branch: Branch) -> None:
+	def trunk(self, branch: str | Branch) -> None:
 		if self.branch != self.trunk or self.turn != 0 or self.tick != 0:
 			raise AttributeError("Go to the start of time first")
 		if (
@@ -1212,7 +1212,7 @@ class Engine(AbstractEngine, Executor):
 
 	@turn.setter
 	@world_locked
-	def turn(self, v: int):
+	def turn(self, v: int | Turn):
 		if not isinstance(v, int):
 			raise TypeError("Turns must be integers")
 		if v < 0:
@@ -1264,7 +1264,7 @@ class Engine(AbstractEngine, Executor):
 
 	@tick.setter
 	@world_locked
-	def tick(self, v: int):
+	def tick(self, v: int | Tick):
 		if not isinstance(v, int):
 			raise TypeError("Ticks must be integers")
 		if v < 0:
@@ -1340,49 +1340,20 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	@cached_property
-	def _node_exists_stuff(
-		self,
-	) -> tuple[
-		Callable[[tuple[CharName, NodeName, Branch, Turn, Tick]], Any],
-		Callable[[], Time],
-	]:
-		return (self._nodes_cache._base_retrieve, self.time)
+	def _node_exists_stuff(self):
+		return self._nodes_cache._base_retrieve, self.time
 
 	@cached_property
-	def _exist_node_stuff(
-		self,
-	) -> tuple[
-		Callable[[], Time],
-		Callable[[CharName, NodeName, Branch, Turn, Tick, bool], None],
-		Callable[[CharName, NodeName, Branch, Turn, Tick, Any], None],
-	]:
-		return (self._nbtt, self.database.exist_node, self._nodes_cache.store)
+	def _exist_node_stuff(self):
+		return self._nbtt, self.database.exist_node, self._nodes_cache.store
 
 	@cached_property
-	def _edge_exists_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[tuple[CharName, NodeName, NodeName, Branch, Turn, Tick]],
-			bool,
-		],
-		Callable[[], Time],
-	]:
-		return (self._edges_cache._base_retrieve, self.time)
+	def _edge_exists_stuff(self):
+		return self._edges_cache._base_retrieve, self.time
 
 	@cached_property
-	def _exist_edge_stuff(
-		self,
-	) -> tuple[
-		Callable[[], Time],
-		Callable[
-			[CharName, NodeName, NodeName, Branch, Turn, Tick, bool], None
-		],
-		Callable[
-			[CharName, NodeName, NodeName, Branch, Turn, Tick, Any], None
-		],
-	]:
-		return (self._nbtt, self.database.exist_edge, self._edges_cache.store)
+	def _exist_edge_stuff(self):
+		return self._nbtt, self.database.exist_edge, self._edges_cache.store
 
 	@cached_property
 	def _loaded(
