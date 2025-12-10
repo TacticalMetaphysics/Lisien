@@ -7598,7 +7598,7 @@ class Engine(AbstractEngine, Executor):
 	def from_archive(
 		cls,
 		archive_path: os.PathLike[str] | Path,
-		prefix: os.PathLike[str] | Path = ".",
+		prefix: os.PathLike[str] | Path | None = None,
 		*,
 		string: StringStore | dict | None = None,
 		trigger: FunctionStore | ModuleType | None = None,
@@ -7651,7 +7651,7 @@ class Engine(AbstractEngine, Executor):
 		if logger is None:
 			logger = getLogger("lisien")
 		return cls(
-			prefix=Path(prefix),
+			prefix=prefix,
 			string=string,
 			trigger=trigger,
 			prereq=prereq,
