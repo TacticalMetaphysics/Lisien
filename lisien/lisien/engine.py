@@ -1084,14 +1084,23 @@ class Engine(AbstractEngine, Executor):
 				if hasattr(store, "save"):
 					store.save(reimport=False)
 			self._shutdown_executor = True
+			time = (
+				Branch(self.eternal.get("branch", "trunk")),
+				Turn(self.eternal.get("turn", 0)),
+				Tick(self.eternal.get("tick", 0)),
+			)
+			try:
+				rando_state = self.database.universal_get("rando_state", *time)
+			except KeyError:
+				rando_state = self.random_seed
 			executor_args = (
 				self._prefix,
 				self.logger,
-				tuple(self.time),
+				time,
 				dict(self.eternal),
 				dict(self._branches_d),
 				self.workers,
-				self.universal.get("rando_state", self.random_seed),
+				rando_state,
 			)
 			match self.sub_mode:
 				case Sub.interpreter if sys.version_info[1] >= 14:
