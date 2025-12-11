@@ -156,7 +156,7 @@ def test_plan_vs_plan(serial_engine):
 	assert 1 in g1.adj[0]
 
 
-def test_save_load_plan(tmp_path, persistent_database_connector_part):
+def test_save_load_plan(tmp_path, database_connector_part):
 	with Engine(
 		tmp_path,
 		function=FunctionStore(None),
@@ -166,7 +166,7 @@ def test_save_load_plan(tmp_path, persistent_database_connector_part):
 		action=FunctionStore(None),
 		string={},
 		workers=0,
-		database=persistent_database_connector_part,
+		database=database_connector_part,
 	) as orm:
 		g1 = orm.new_character(1)
 		g2 = orm.new_character(2)
@@ -193,7 +193,7 @@ def test_save_load_plan(tmp_path, persistent_database_connector_part):
 		prereq=FunctionStore(None),
 		action=FunctionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		database=persistent_database_connector_part,
+		database=database_connector_part,
 	) as orm:
 		g1 = orm.character[1]
 		g2 = orm.character[2]
@@ -225,7 +225,7 @@ def test_save_load_plan(tmp_path, persistent_database_connector_part):
 		prereq=PrereqStore(None),
 		action=ActionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		database=persistent_database_connector_part,
+		database=database_connector_part,
 	) as orm:
 		orm.turn = 0
 		g1 = orm.character[1]

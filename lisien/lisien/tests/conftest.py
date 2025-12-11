@@ -16,6 +16,8 @@ import os
 import resource
 import sys
 from functools import partial
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from logging import getLogger
 
 import pytest
@@ -236,42 +238,120 @@ def persistent_database(request):
 	return request.param
 
 
+@pytest.fixture(scope="session")
+def reusable_python_database_connector():
+	yield PythonDatabaseConnector()
+
+
 @pytest.fixture
-def database_connector_part(tmp_path, non_null_database):
+def reusing_python_database_connector(reusable_python_database_connector):
+	db = reusable_python_database_connector
+	yield db
+	db.truncate_all()
+
+
+@pytest.fixture
+def reusing_python_database_connector_part(reusing_python_database_connector):
+	def pythondb(*_):
+		return reusing_python_database_connector
+
+	pythondb.is_python = True
+	yield pythondb
+
+
+@pytest.fixture(scope="session")
+def reusable_sqlalchemy_database_connector():
+	engine_facade = make_test_engine_facade()
+	yield SQLAlchemyDatabaseConnector(
+		engine_facade.pack, engine_facade.unpack, "sqlite:///:memory:"
+	)
+
+
+@pytest.fixture
+def reusing_sqlalchemy_database_connector(
+	reusable_sqlalchemy_database_connector,
+):
+	db = reusable_sqlalchemy_database_connector
+	yield db
+	db.truncate_all()
+
+
+@pytest.fixture
+def reusing_sqlalchemy_database_connector_part(
+	reusing_sqlalchemy_database_connector,
+):
+	def sqldb(pack, unpack, *_):
+		db = reusing_sqlalchemy_database_connector
+		db._pack = pack
+		db._unpack = unpack
+		return db
+
+	yield sqldb
+
+
+@pytest.fixture(scope="session")
+def reusable_parquetdb_database_connector():
+	engine_facade = make_test_engine_facade()
+	with TemporaryDirectory() as td:
+		yield ParquetDatabaseConnector(
+			engine_facade.pack, engine_facade.unpack, Path(td)
+		)
+
+
+@pytest.fixture
+def reusing_parquetdb_database_connector(
+	reusable_parquetdb_database_connector,
+):
+	db = reusable_parquetdb_database_connector
+	yield db
+	db.truncate_all()
+
+
+@pytest.fixture
+def reusing_parquetdb_database_connector_part(
+	reusing_parquetdb_database_connector,
+):
+	def pqdb(pack, unpack, *_):
+		db = reusing_parquetdb_database_connector
+		db._pack = pack
+		db._unpack = unpack
+		return db
+
+	yield pqdb
+
+
+@pytest.fixture
+def database_connector_part(
+	tmp_path,
+	non_null_database,
+	reusing_python_database_connector_part,
+	reusing_sqlalchemy_database_connector_part,
+	reusing_parquetdb_database_connector_part,
+):
 	match non_null_database:
 		case "python":
-			db = PythonDatabaseConnector()
-
-			def pythondb(*_):
-				return db
-
-			pythondb.is_python = True
-
-			yield pythondb
+			yield reusing_python_database_connector_part
 		case "sqlite":
-			yield partial(
-				SQLAlchemyDatabaseConnector,
-				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
-			)
+			yield reusing_sqlalchemy_database_connector_part
 		case "parquetdb":
-			yield partial(
-				ParquetDatabaseConnector, path=os.path.join(tmp_path, "world")
-			)
+			yield reusing_parquetdb_database_connector_part
 
 
 @pytest.fixture
-def persistent_database_connector_part(tmp_path, persistent_database):
-	match persistent_database:
+def database_connector_part2(
+	tmp_path,
+	non_null_database,
+	reusing_python_database_connector_part,
+	reusing_sqlalchemy_database_connector_part,
+	reusing_parquetdb_database_connector_part,
+):
+	match non_null_database:
+		case "python":
+			yield reusing_python_database_connector_part
 		case "sqlite":
-			return partial(
-				SQLAlchemyDatabaseConnector,
-				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
-			)
+			yield reusing_sqlalchemy_database_connector_part
 		case "parquetdb":
-			return partial(
-				ParquetDatabaseConnector, path=tmp_path.joinpath("world")
-			)
-	raise RuntimeError("Unknown database", persistent_database)
+			yield reusing_parquetdb_database_connector_part
 
 
 @pytest.fixture(scope="session")
