@@ -94,16 +94,14 @@ def test_export_db(tmp_path, engine_and_exported_xml):
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def exported(
-	tmp_path, random_seed, persistent_database_connector_part, request, turns
-):
+def exported(tmp_path, random_seed, database_connector_part, request, turns):
 	install = get_install_func(request.param, random_seed)
 	with Engine(
 		tmp_path,
 		workers=0,
 		random_seed=random_seed,
 		keyframe_on_close=False,
-		database=persistent_database_connector_part,
+		database=database_connector_part,
 	) as eng:
 		install(eng)
 		for _ in range(turns):
@@ -115,14 +113,14 @@ def exported(
 def test_round_trip(
 	tmp_path,
 	exported,
-	persistent_database_connector_part,
 	database_connector_part,
+	database_connector_part2,
 	random_seed,
 ):
 	prefix2 = tmp_path.joinpath("game2")
 	prefix2.mkdir(parents=True, exist_ok=True)
-	db1 = persistent_database_connector_part
-	db2 = database_connector_part
+	db1 = database_connector_part
+	db2 = database_connector_part2
 	with (
 		Engine(
 			tmp_path,
