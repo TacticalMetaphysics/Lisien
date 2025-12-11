@@ -591,16 +591,62 @@ def _fake_pack_or_unpack(obj):
 
 @define(eq=False)
 class AbstractDatabaseConnector(ABC):
+	"""The interface between Lisien and wherever it's storing its data
+
+	Currently, there are three implementations (and
+	:class:`NullDatabaseConnector`, which does nothing, suitable only for tests).
+	This module contains the concrete class :class:`PythonDatabaseConnector`,
+	which stores all of Lisien's data as ordinary Python objects, to be
+	exported via :meth:`to_xml` and later imported by :meth:`load_xml`.
+	You should probably use the :meth:`lisien.engine.Engine.export`
+	and :meth:`lisien.engine.Engine.from_archive` methods instead. Lisien's
+	XML files are very large, and don't contain the game's code, but the
+	archives produced by :meth:`lisien.engine.Engine.export` are compressed
+	well, and include the code.
+
+	To more conveniently persist the state of the game between play sessions,
+	the modules :mod:`lisien.sql` and :mod:`lisien.pqdb` implement connectors
+	for SQL and ParquetDB databases, respectively. It shouldn't be necessary
+	to import them directly, as :class:`lisien.engine.Engine` will select
+	the appropriate connector class itself.
+
+	"""
+
 	_pack: PackSignature
+	"""Function to pack Lisien's objects into bytes
+	
+	Normally the same as :py:meth:`lisien.engine.Engine.pack`.
+	
+	"""
 	_unpack: UnpackSignature
+	"""Function to unpack bytes into Lisien's objects
+	
+	Normally the same as :py:meth:`lisien.engine.Engine.unpack`.
+	
+	"""
 	clear: bool = field(kw_only=True, default=False)
+	"""Whether to delete everything immediately"""
 	kf_interval_override: Callable[[], bool | None] = field(
 		default=lambda: None, kw_only=True
 	)
+	"""Function to decide when not to respect :py:attr:`keyframe_interval`
+	
+	Before snapping a keyframe at an interval, we'll call
+	:py:attr:`kf_interval_override` with no arguments. If it returns ``True``,
+	we'll delay snapping that keyframe until :attr:`kf_interval_override`
+	returns ``False`` or ``None``.
+	
+	"""
 	keyframe_interval: int | None = field(default=1000, kw_only=True)
+	"""The number of records to be written between automatic keyframe snaps"""
 	snap_keyframe: Callable[[], None] = field(
 		default=lambda: None, kw_only=True
 	)
+	"""Function to snap keyframes
+	
+	Normally the same as :meth:`lisien.engine.Engine.snap_keyframe`.
+	
+	"""
 	_initialized: bool = field(init=False, default=False)
 	_kf_interval_overridden: bool = field(init=False, default=False)
 
