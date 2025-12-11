@@ -103,7 +103,7 @@ def exported(
 		workers=0,
 		random_seed=random_seed,
 		keyframe_on_close=False,
-		database=persistent_database_connector_part(),
+		database=persistent_database_connector_part,
 	) as eng:
 		install(eng)
 		for _ in range(turns):
@@ -116,23 +116,13 @@ def test_round_trip(
 	tmp_path,
 	exported,
 	persistent_database_connector_part,
-	non_null_database,
+	database_connector_part,
 	random_seed,
 ):
 	prefix2 = tmp_path.joinpath("game2")
 	prefix2.mkdir(parents=True, exist_ok=True)
-	db1 = persistent_database_connector_part()
-	match non_null_database:
-		case "python":
-			db2 = PythonDatabaseConnector()
-		case "sqlite":
-			db2 = SQLAlchemyDatabaseConnector(
-				f"sqlite:///{prefix2}/world.sqlite3"
-			)
-		case "parquetdb":
-			db2 = ParquetDatabaseConnector(prefix2.joinpath("world"))
-		case _:
-			raise RuntimeError("Unknown database", non_null_database)
+	db1 = persistent_database_connector_part
+	db2 = database_connector_part
 	with (
 		Engine(
 			tmp_path,
@@ -149,8 +139,6 @@ def test_round_trip(
 		) as eng2,
 	):
 		compare_engines_world_state(eng1, eng2)
-	db1.close()
-	db2.close()
 
 	compare_stored_strings(prefix2, tmp_path)
 	compare_stored_python_code(prefix2, tmp_path)

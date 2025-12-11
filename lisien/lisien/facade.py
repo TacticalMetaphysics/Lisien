@@ -1349,6 +1349,7 @@ class EngineFacade(AbstractEngine):
 	_planned = field(
 		factory=partial(defaultdict, partial(defaultdict, list)), init=False
 	)
+	_curplan: int = field(init=False, default=0)
 
 	@staticmethod
 	def _validate_branches_d(self, attr, branches_d):

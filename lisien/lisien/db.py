@@ -591,6 +591,9 @@ def _fake_pack_or_unpack(obj):
 
 @define(eq=False)
 class AbstractDatabaseConnector(ABC):
+	_pack: PackSignature
+	_unpack: UnpackSignature
+	clear: bool = field(kw_only=True, default=False)
 	kf_interval_override: Callable[[], bool | None] = field(
 		default=lambda: None, kw_only=True
 	)
@@ -599,8 +602,7 @@ class AbstractDatabaseConnector(ABC):
 		default=lambda: None, kw_only=True
 	)
 	_initialized: bool = field(init=False, default=False)
-	_pack: PackSignature = field(init=False, default=_fake_pack_or_unpack)
-	_unpack: UnpackSignature = field(init=False, default=_fake_pack_or_unpack)
+	_kf_interval_overridden: bool = field(init=False, default=False)
 
 	@cached_property
 	def engine(self) -> AbstractEngine:
@@ -648,21 +650,9 @@ class AbstractDatabaseConnector(ABC):
 	def pack(self) -> PackSignature:
 		return self._pack
 
-	@pack.setter
-	def pack(self, v: PackSignature) -> None:
-		self._pack = v
-		if self._unpack is not _fake_pack_or_unpack and not self._initialized:
-			self._init_db()
-
 	@property
 	def unpack(self) -> UnpackSignature:
 		return self._unpack
-
-	@unpack.setter
-	def unpack(self, v: UnpackSignature) -> None:
-		self._unpack = v
-		if self._pack is not _fake_pack_or_unpack and not self._initialized:
-			self._init_db()
 
 	def dump_everything(self) -> dict[str, list[tuple]]:
 		"""Return the whole database in a Python dictionary.
@@ -1732,10 +1722,6 @@ class AbstractDatabaseConnector(ABC):
 
 	@abstractmethod
 	def close(self) -> None:
-		pass
-
-	@abstractmethod
-	def _init_db(self) -> None:
 		pass
 
 	@abstractmethod
@@ -4238,6 +4224,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	"""
 
+	_pack = field(default=None)
+	_unpack = field(default=None)
+	is_python: ClassVar = True
+
 	def is_empty(self) -> bool:
 		for att in dir(self):
 			if att.startswith("__"):
@@ -4664,21 +4654,13 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _lock(self) -> Lock:
 		return Lock()
 
-	@property
-	def pack(self):
-		return _fake_pack_or_unpack
+	@staticmethod
+	def pack(obj):
+		return obj
 
-	@pack.setter
-	def pack(self, v):
-		pass
-
-	@property
-	def unpack(self):
-		return _fake_pack_or_unpack
-
-	@unpack.setter
-	def unpack(self, v):
-		pass
+	@staticmethod
+	def unpack(obj):
+		return obj
 
 	def _load_window(
 		self,
@@ -5155,9 +5137,6 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	commit = close = AbstractDatabaseConnector.flush
 
-	def _init_db(self) -> None:
-		pass
-
 	def truncate_all(self) -> None:
 		for table in Batch.cached_properties:
 			getattr(self, "_" + table).clear()
@@ -5458,15 +5437,8 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 
 	"""
 
-	def _default_pack(self, obj):
-		return obj
-
-	_pack = field(init=False, default=_default_pack)
-
-	def _default_unpack(self, b):
-		return b
-
-	_unpack = field(init=False, default=_default_unpack)
+	_pack = field(default=None)
+	_unpack = field(default=None)
 
 	def echo(self, *args):
 		if len(args) == 1:
@@ -6320,8 +6292,10 @@ window_getter.tables = {}
 
 @define
 class ThreadedDatabaseConnector(AbstractDatabaseConnector):
+	_pack: PackSignature
+	_unpack: UnpackSignature
+
 	Looper: ClassVar[type[ConnectionLooper]]
-	clear: bool
 
 	def _make_thread(self):
 		return Thread(target=self._looper.run)
@@ -6331,10 +6305,14 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	)
 	_initialized: bool = field(init=False, default=False)
 
-	def __attrs_post_init__(self):
-		self._t.start()
-		if self.clear:
-			self.truncate_all()
+	def close(self) -> None:
+		self._inq.put("close")
+		try:
+			self._looper.existence_lock.acquire(timeout=10)
+		except TimeoutError as ex:
+			raise TimeoutError("Couldn't close looper", *ex.args) from ex
+		self._looper.existence_lock.release()
+		self._t.join()
 
 	@contextmanager
 	def mutex(self):

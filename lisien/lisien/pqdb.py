@@ -100,6 +100,8 @@ from .types import (
 	NodeValDict,
 	EdgeValDict,
 	CharDict,
+	PackSignature,
+	UnpackSignature,
 )
 from .types import __dict__ as types_dict
 from .util import ELLIPSIS, EMPTY
@@ -107,8 +109,9 @@ from .util import ELLIPSIS, EMPTY
 
 @define
 class ParquetDatabaseConnector(ThreadedDatabaseConnector):
+	_pack: PackSignature
+	_unpack: UnpackSignature
 	path: Path = field(converter=Path)
-	clear: bool = field(default=False, kw_only=True)
 
 	@define
 	class Looper(ConnectionLooper):
@@ -1579,24 +1582,17 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	def truncate_all(self) -> None:
 		self.call("truncate_all")
 
-	def close(self) -> None:
-		self._inq.put("close")
-		self._looper.existence_lock.acquire()
-		self._looper.existence_lock.release()
-		self._t.join()
-
 	def commit(self) -> None:
 		self.flush()
 		self.call("commit")
 
-	def _init_db(self) -> dict:
+	def __attrs_post_init__(self):
 		if self._initialized:
 			raise RuntimeError("Initialized the database twice")
+		self._t.start()
 		ret = self.call("initdb")
 		if isinstance(ret, Exception):
 			raise ret
-		elif not isinstance(ret, dict):
-			raise TypeError("initdb didn't return a dictionary", ret)
 		unpack = self.unpack
 		self.eternal = GlobalKeyValueStore(
 			self, {unpack(k): unpack(v) for (k, v) in ret.items()}
@@ -1606,7 +1602,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		self._all_keyframe_times.clear()
 		self._all_keyframe_times.update(self.keyframes_dump())
 		self._initialized = True
-		return ret
 
 	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
 		return iter(self.call("bookmark_items"))
