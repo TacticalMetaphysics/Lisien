@@ -28,7 +28,7 @@ from itertools import filterfalse, starmap
 from pathlib import Path
 from queue import Queue
 from threading import Lock, Thread
-from types import FunctionType, MethodType
+from types import FunctionType, MethodType, EllipsisType
 from typing import (
 	TYPE_CHECKING,
 	Any,
@@ -53,6 +53,8 @@ from attr import Factory
 from attrs import define, field
 import networkx as nx
 from tblib import Traceback
+
+from lisien.types import AbstractCharacter, Value
 
 if TYPE_CHECKING:
 	from xml.etree.ElementTree import Element, ElementTree
@@ -650,13 +652,10 @@ class AbstractDatabaseConnector(ABC):
 	_initialized: bool = field(init=False, default=False)
 	_kf_interval_overridden: bool = field(init=False, default=False)
 
-	@cached_property
-	def engine(self) -> AbstractEngine:
-		return EngineFacade(None)
-
-	@cached_property
-	def tree(self) -> ElementTree:
-		return ElementTree(Element("lisien"))
+	engine: AbstractEngine = field(
+		init=False, factory=partial(EngineFacade, None)
+	)
+	tree: ElementTree = field(init=False, eq=False)
 
 	@cached_property
 	def _records(self) -> int:
@@ -2446,6 +2445,7 @@ class AbstractDatabaseConnector(ABC):
 		return PickierDefaultDict(int, BranchingTimeListDict)
 
 	def to_etree(self, name: str) -> ElementTree:
+		self.tree = ElementTree(Element("lisien"))
 		root = self.tree.getroot()
 		self.commit()
 		eternals = dict(self.eternal.items())
@@ -3425,7 +3425,7 @@ class AbstractDatabaseConnector(ABC):
 	def _plan_times(self) -> dict[Plan, set[Time]]:
 		return {}
 
-	def _element_to_value(self, el: Element) -> Value | ValueHint:
+	def _element_to_value(self, el: Element) -> Value | EllipsisType:
 		eng = self.engine
 		match el.tag:
 			case "Ellipsis":
@@ -3442,31 +3442,35 @@ class AbstractDatabaseConnector(ABC):
 				return Value(el.get("value") in {"T", "true"})
 			case "character":
 				name = CharName(literal_eval(el.get("name")))
-				return eng.character[name]
+				return Value(eng.character[name])
 			case "node":
 				char_name = CharName(literal_eval(el.get("character")))
 				place_name = NodeName(literal_eval(el.get("name")))
-				return eng.character[char_name].node[place_name]
+				return Value(eng.character[char_name].node[place_name])
 			case "portal":
 				char_name = CharName(literal_eval(el.get("character")))
 				orig = NodeName(literal_eval(el.get("origin")))
 				dest = NodeName(literal_eval(el.get("destination")))
-				return eng.character[char_name].portal[orig][dest]
+				return Value(eng.character[char_name].portal[orig][dest])
 			case "list":
-				return [self._element_to_value(listel) for listel in el]
+				return Value([self._element_to_value(listel) for listel in el])
 			case "tuple":
-				return tuple(self._element_to_value(tupel) for tupel in el)
+				return Value(
+					tuple(self._element_to_value(tupel) for tupel in el)
+				)
 			case "set":
-				return {self._element_to_value(setel) for setel in el}
+				return Value({self._element_to_value(setel) for setel in el})
 			case "frozenset":
-				return frozenset(self._element_to_value(setel) for setel in el)
+				return Value(
+					frozenset(self._element_to_value(setel) for setel in el)
+				)
 			case "dict":
 				ret = {}
 				for dict_item_el in el:
 					ret[literal_eval(dict_item_el.get("key"))] = (
 						self._element_to_value(dict_item_el[0])
 					)
-				return ret
+				return Value(ret)
 			case "exception":
 				raise NotImplementedError(
 					"Deserializing exceptions from XML not implemented"
