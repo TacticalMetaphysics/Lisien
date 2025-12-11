@@ -50,7 +50,6 @@ from types import (
 	FunctionType,
 	GenericAlias,
 	MethodType,
-	ModuleType,
 )
 from typing import (
 	TYPE_CHECKING,
@@ -81,13 +80,12 @@ from typing import (
 import networkx as nx
 from annotated_types import Ge, Le
 from attrs import Factory, define, field, validators
-from blinker import Signal, ANY
+from blinker import Signal
 from networkx import NetworkXError
 from tblib import Traceback
 
 from . import exc
 from .exc import TimeError, TravelException, WorkerProcessReadOnlyError
-from .util import getatt
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
@@ -889,7 +887,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 class Node(AbstractEntityMapping, ABC):
 	__slots__ = ()
 
-	character: Character
+	character: AbstractCharacter
 	name: NodeName
 
 	def _validate_node_type(self):
@@ -1115,7 +1113,7 @@ class Edge(AbstractEntityMapping, ABC):
 
 	__slots__ = ()
 
-	character: Character
+	character: AbstractCharacter
 	orig: NodeName
 	dest: NodeName
 
@@ -1468,7 +1466,7 @@ class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 
 	"""
 
-	character: Character
+	character: DiGraph
 
 	@cached_property
 	def engine(self) -> Engine:
@@ -1678,7 +1676,7 @@ class GraphSuccessorsMapping(
 
 	__slots__ = ()
 
-	character: Character
+	character: DiGraph
 
 	@define
 	class Successors(AbstractSuccessors):
@@ -1814,7 +1812,7 @@ class DiGraphPredecessorsMapping(
 	"""
 
 	__slots__ = ()
-	character: Character
+	character: DiGraph
 
 	@cached_property
 	def engine(self):
@@ -2798,7 +2796,7 @@ class AbstractEngine(ABC):
 
 	@property
 	@abstractmethod
-	def character(self) -> Mapping[KeyHint | CharName, Type[char_cls]]: ...
+	def character(self) -> Mapping[KeyHint | CharName, char_cls]: ...
 
 	@property
 	@abstractmethod
@@ -3789,33 +3787,41 @@ class AbstractCharacter(DiGraph, ABC):
 	def __getitem__(self, k: KeyHint | NodeName):
 		return self.adj[k]
 
-	ThingMapping: ClassVar[type[BaseMutableCharacterMapping]]
+	ThingMapping: ClassVar[type[BaseMutableCharacterMapping[NodeName, Node]]]
 
 	@cached_property
 	def thing(self) -> ThingMapping:
 		return self.ThingMapping(self)
 
-	PlaceMapping: ClassVar[type[BaseMutableCharacterMapping]]
+	PlaceMapping: ClassVar[type[BaseMutableCharacterMapping[NodeName, Node]]]
 
 	@cached_property
 	def place(self) -> PlaceMapping:
 		return self.PlaceMapping(self)
 
-	ThingPlaceMapping: ClassVar[type[BaseMutableCharacterMapping]]
+	ThingPlaceMapping: ClassVar[
+		type[BaseMutableCharacterMapping[NodeName, Node]]
+	]
 
 	@cached_property
 	def _node(self) -> ThingPlaceMapping:
 		return self.ThingPlaceMapping(self)
 
 	@property
-	def node(self):
+	def node(self) -> ThingPlaceMapping:
 		return self._node
 
 	@property
-	def nodes(self):
+	def nodes(self) -> ThingPlaceMapping:
 		return self._node
 
-	PortalSuccessorsMapping: ClassVar[type[BaseMutableCharacterMapping]]
+	PortalSuccessorsMapping: ClassVar[
+		type[
+			BaseMutableCharacterMapping[
+				NodeName, MutableMapping[NodeName, Edge]
+			]
+		]
+	]
 
 	@cached_property
 	def _succ(self) -> PortalSuccessorsMapping:
@@ -3837,7 +3843,13 @@ class AbstractCharacter(DiGraph, ABC):
 	def edge(self):
 		return self._succ
 
-	PortalPredecessorsMapping: ClassVar[type[BaseMutableCharacterMapping]]
+	PortalPredecessorsMapping: ClassVar[
+		type[
+			BaseMutableCharacterMapping[
+				NodeName, MutableMapping[NodeName, Edge]
+			]
+		]
+	]
 
 	@cached_property
 	def _pred(self) -> PortalPredecessorsMapping:
@@ -3851,7 +3863,13 @@ class AbstractCharacter(DiGraph, ABC):
 	def pred(self):
 		return self._pred
 
-	UnitGraphMapping: ClassVar[type[BaseMutableCharacterMapping]]
+	UnitGraphMapping: ClassVar[
+		type[
+			BaseMutableCharacterMapping[
+				CharName, MutableMapping[NodeName, Node]
+			]
+		]
+	]
 
 	@cached_property
 	def unit(self) -> UnitGraphMapping:
