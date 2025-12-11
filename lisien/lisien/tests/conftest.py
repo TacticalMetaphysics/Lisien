@@ -44,7 +44,6 @@ from .util import (
 	make_test_engine,
 	make_test_engine_facade,
 	make_test_engine_kwargs,
-	get_database_connector_part,
 	college_engine,
 	tar_cache,
 	untar_cache,
@@ -239,9 +238,25 @@ def persistent_database(request):
 
 @pytest.fixture
 def database_connector_part(tmp_path, non_null_database):
-	yield get_database_connector_part(tmp_path, non_null_database)
-	if hasattr(get_database_connector_part, "_pyconnector"):
-		del get_database_connector_part._pyconnector
+	match non_null_database:
+		case "python":
+			db = PythonDatabaseConnector()
+
+			def pythondb(*_):
+				return db
+
+			pythondb.is_python = True
+
+			yield pythondb
+		case "sqlite":
+			yield partial(
+				SQLAlchemyDatabaseConnector,
+				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+			)
+		case "parquetdb":
+			yield partial(
+				ParquetDatabaseConnector, path=os.path.join(tmp_path, "world")
+			)
 
 
 @pytest.fixture
@@ -250,18 +265,13 @@ def persistent_database_connector_part(tmp_path, persistent_database):
 		case "sqlite":
 			return partial(
 				SQLAlchemyDatabaseConnector,
-				f"sqlite:///{tmp_path}/world.sqlite3",
+				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 			)
 		case "parquetdb":
 			return partial(
-				ParquetDatabaseConnector, os.path.join(tmp_path, "world")
+				ParquetDatabaseConnector, path=tmp_path.joinpath("world")
 			)
 	raise RuntimeError("Unknown database", persistent_database)
-
-
-@pytest.fixture
-def persistent_database_connector(persistent_database_connector_part):
-	yield persistent_database_connector_part()
 
 
 @pytest.fixture(scope="function")
@@ -413,7 +423,7 @@ def engine(
 	tmp_path,
 	serial_or_parallel,
 	local_or_remote,
-	database_connector_part,
+	non_null_database,
 	random_seed,
 	serial_or_executor,
 ):
@@ -424,7 +434,7 @@ def engine(
 			**make_test_engine_kwargs(
 				tmp_path,
 				serial_or_parallel,
-				database_connector_part,
+				non_null_database,
 				random_seed,
 				executor=serial_or_executor,
 			)
@@ -436,7 +446,7 @@ def engine(
 			**make_test_engine_kwargs(
 				tmp_path,
 				serial_or_parallel,
-				database_connector_part,
+				non_null_database,
 				random_seed,
 				executor=serial_or_executor,
 			)

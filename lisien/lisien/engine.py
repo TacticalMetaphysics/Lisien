@@ -649,49 +649,61 @@ class Engine(AbstractEngine, Executor):
 	meaningful when combined with ``connect_string``. For details, see:
 	https://docs.sqlalchemy.org/en/20/core/engines.html#custom-dbapi-args"""
 
+	def _database_factory(self):
+		if self._prefix is None:
+			if self.connect_string is None:
+				return PythonDatabaseConnector()
+			else:
+				from .sql import SQLAlchemyDatabaseConnector
+
+				return SQLAlchemyDatabaseConnector(
+					self.pack,
+					self.unpack,
+					self.connect_string,
+					self.connect_args or {},
+					clear=self.clear,
+				)
+		else:
+			if self.connect_string is None:
+				from .pqdb import ParquetDatabaseConnector
+
+				return ParquetDatabaseConnector(
+					self.pack,
+					self.unpack,
+					self._prefix.joinpath("world"),
+					clear=self.clear,
+				)
+			else:
+				from .sql import SQLAlchemyDatabaseConnector
+
+				return SQLAlchemyDatabaseConnector(
+					self.pack,
+					self.unpack,
+					self.connect_string,
+					self.connect_args or {},
+					clear=self.clear,
+				)
+
 	@staticmethod
 	def _convert_database(database, self):
-		if database is None:
-			if self._prefix is None:
-				if self.connect_string is None:
-					database = PythonDatabaseConnector()
-				else:
-					from .sql import SQLAlchemyDatabaseConnector
-
-					database = SQLAlchemyDatabaseConnector(
-						self.connect_string,
-						self.connect_args or {},
-						clear=self.clear,
-					)
-			else:
-				if self.connect_string is None:
-					from .pqdb import ParquetDatabaseConnector
-
-					database = ParquetDatabaseConnector(
-						self._prefix.joinpath("world"), clear=self.clear
-					)
-				else:
-					from .sql import SQLAlchemyDatabaseConnector
-
-					database = SQLAlchemyDatabaseConnector(
-						self.connect_string,
-						self.connect_args or {},
-						clear=self.clear,
-					)
-		database.pack = self.pack
-		database.unpack = self.unpack
-		return database
+		if callable(database):
+			return database(self.pack, self.unpack)
+		elif database is None:
+			return self._database_factory()
+		else:
+			return database  # hope you know what you're doing
 
 	database: AbstractDatabaseConnector = field(
 		kw_only=True,
-		default=None,
+		default=Factory(_database_factory, takes_self=True),
 		converter=Converter(_convert_database, takes_self=True),
 	)
 	"""The database connector to use. If left ``None``, Lisien will construct 
 	a database connector based on the other arguments: SQLAlchemy if a 
 	``connect_string`` is provided; if not, but a ``prefix`` is provided, 
 	then ParquetDB; or, if ``prefix`` is ``None``, then an in-memory 
-	database."""
+	database. You may use the class of the connector, rather than an
+	instance."""
 
 	@database.validator
 	@garbage
@@ -955,7 +967,9 @@ class Engine(AbstractEngine, Executor):
 	def _convert_string_store(string, self):
 		if isinstance(string, dict):
 			return StringStore(
-				string, None, self.eternal.setdefault("language", "eng")
+				string,
+				None,
+				self.database.eternal.setdefault("language", "eng"),
 			)
 		elif isinstance(string, StringStore):
 			return string
@@ -963,7 +977,7 @@ class Engine(AbstractEngine, Executor):
 			raise TypeError(f"Can't make a StringStore out of {type(string)}")
 		elif self._prefix is None:
 			return StringStore(
-				self, None, self.eternal.setdefault("language", "eng")
+				self, None, self.database.eternal.setdefault("language", "eng")
 			)
 		else:
 			string_prefix: Path = self._prefix.joinpath("strings")
@@ -973,7 +987,7 @@ class Engine(AbstractEngine, Executor):
 			return StringStore(
 				self,
 				string_prefix,
-				self.eternal.setdefault("language", "eng"),
+				self.database.eternal.setdefault("language", "eng"),
 			)
 
 	string: dict[str, str] | StringStore = field(
@@ -1062,9 +1076,8 @@ class Engine(AbstractEngine, Executor):
 			self._shutdown_executor = False
 			executor.prefix = self._prefix
 			executor.logger = self.logger
-			branch, turn, tick = self.time
-			executor.time = branch, turn, tick
-			executor.eternal = self.eternal.copy()
+			executor.eternal = eternal = self.eternal.copy()
+			executor.time = eternal["branch"], eternal["turn"], eternal["tick"]
 			return executor
 		elif self.workers > 0:
 			for store in self.stores:
@@ -7627,27 +7640,41 @@ class Engine(AbstractEngine, Executor):
 		"""Make a new Lisien engine out of an archive exported from another engine"""
 		if database is None:
 			if prefix:
+				fake = EngineFacade(None)
 				prefix = Path(prefix)
 				try:
 					from .pqdb import ParquetDatabaseConnector
 
 					pq_path = prefix.joinpath("world")
-					os.makedirs(pq_path, exist_ok=True)
-					database = ParquetDatabaseConnector(pq_path)
+					pq_path.mkdir(parents=True, exist_ok=True)
+					import_database = database = ParquetDatabaseConnector(
+						fake.pack, fake.unpack, pq_path
+					)
 				except ImportError:
 					from .sql import SQLAlchemyDatabaseConnector
 
-					database = SQLAlchemyDatabaseConnector(
-						f"sqlite:///{prefix}/world.sqlite3"
+					import_database = database = SQLAlchemyDatabaseConnector(
+						fake.pack,
+						fake.unpack,
+						f"sqlite:///{prefix}/world.sqlite3",
 					)
 			else:
-				database = PythonDatabaseConnector()
-		fake = EngineFacade(None)
-		(database.pack, database.unpack) = (fake.pack, fake.unpack)
+				import_database = database = PythonDatabaseConnector()
+		elif callable(database):
+			fake = EngineFacade(None)
+			import_database = database(fake.pack, fake.unpack)
+			if not isinstance(import_database, AbstractDatabaseConnector):
+				raise TypeError("Not a database", import_database)
+		else:
+			raise TypeError("Not a database", database)
 		with ZipFile(archive_path, "r") as zf:
-			database.load_xml(zf.open("world.xml"))
+			import_database.load_xml(zf.open("world.xml"))
 			for fn in set(zf.namelist()) - {"world.xml"}:
 				zf.extract(fn, prefix)
+		if import_database is not database:
+			if hasattr(import_database, "_t"):
+				assert import_database._t.is_alive()
+			import_database.close()
 		if logger is None:
 			logger = getLogger("lisien")
 		return cls(

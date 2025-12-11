@@ -104,10 +104,10 @@ def test_wolfsheep(
 ):
 	workers = 0 if serial_or_executor is None else 2
 	with Engine.from_archive(
-		DATA_DIR + "/wolfsheep.lisien",
+		DATA_DIR.joinpath("wolfsheep.lisien"),
 		tmp_path,
 		workers=workers,
-		database=database_connector_part(),
+		database=database_connector_part,
 		executor=serial_or_executor,
 	) as engine:
 		sheep = engine.character["sheep"]
@@ -136,7 +136,7 @@ def test_wolfsheep(
 		tmp_path,
 		workers=workers,
 		executor=serial_or_executor,
-		database=database_connector_part(),
+		database=database_connector_part,
 	)
 	try:
 		hand.next_turn()

@@ -108,6 +108,8 @@ from .types import (
 	GraphRowType,
 	Stat,
 	TurnRowType,
+	PackSignature,
+	UnpackSignature,
 )
 
 meta = MetaData()
@@ -172,9 +174,10 @@ for table, serializer in Batch.serializers.items():
 
 @define
 class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
+	_pack: PackSignature
+	_unpack: UnpackSignature
 	connect_string: str = "sqlite:///:memory:"
 	connect_args: dict[str, str] = field(factory=dict)
-	clear: bool = field(default=False, kw_only=True)
 
 	@define
 	class Looper(ConnectionLooper):
@@ -846,12 +849,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			self.transaction.close()
 			self.connection.close()
 
-	def __post_init__(self):
-		self._t = Thread(target=self._looper.run)
-		self._t.start()
-		if self.clear:
-			self.truncate_all()
-
 	@mutexed
 	def call(self, string, *args, **kwargs):
 		self._inq.put(("one", string, args, kwargs))
@@ -1356,24 +1353,16 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		if (got := self.echo("committed")) != "committed":
 			raise RuntimeError("Failed commit", got)
 
-	def close(self):
-		"""Commit the transaction, then close the connection"""
-		self._inq.put("shutdown")
-		self._looper.existence_lock.acquire()
-		self._looper.existence_lock.release()
-		self._t.join()
-
-	def _init_db(self) -> dict:
+	def __attrs_post_init__(self):
 		if self._initialized:
 			raise RuntimeError("Tried to initialize database twice")
 		self._initialized = True
+		self._t.start()
 		with self.mutex():
 			self._inq.put("initdb")
 			got = self._outq.get()
 			if isinstance(got, Exception):
 				raise got
-			elif not isinstance(got, dict):
-				raise TypeError("initdb didn't return a dictionary", got)
 			globals = {
 				self.unpack(k): self.unpack(v) for (k, v) in got.items()
 			}
