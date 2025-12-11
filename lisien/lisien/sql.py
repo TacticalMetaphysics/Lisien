@@ -810,6 +810,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 						if not silent:
 							self.outq.put(o)
 						self.inq.task_done()
+					case "close":
+						return
 
 		def initdb(self) -> dict[bytes, bytes] | Exception:
 			"""Set up the database schema, both for allegedb and the special
