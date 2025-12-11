@@ -214,10 +214,8 @@ def compare_stored_python_code(
 @pytest.fixture
 def pqdb_connector_under_test(tmp_path, engine_facade):
 	test_world = os.path.join(tmp_path, "testworld")
-	connector = ParquetDatabaseConnector(test_world)
-	(connector.pack, connector.unpack) = (
-		engine_facade.pack,
-		engine_facade.unpack,
+	connector = ParquetDatabaseConnector(
+		engine_facade.pack, engine_facade.unpack, path=test_world
 	)
 	yield connector
 	connector.close()
@@ -226,10 +224,8 @@ def pqdb_connector_under_test(tmp_path, engine_facade):
 @pytest.fixture
 def pqdb_connector_correct(tmp_path, engine_facade):
 	correct_world = os.path.join(tmp_path, "world")
-	connector = ParquetDatabaseConnector(correct_world)
-	(connector.pack, connector.unpack) = (
-		engine_facade.pack,
-		engine_facade.unpack,
+	connector = ParquetDatabaseConnector(
+		engine_facade.pack, engine_facade.unpack, path=correct_world
 	)
 	yield connector
 	connector.close()
@@ -253,11 +249,9 @@ def test_import_parquetdb(
 def sql_connector_under_test(tmp_path, engine_facade):
 	test_world = os.path.join(tmp_path, "testworld.sqlite3")
 	connector = SQLAlchemyDatabaseConnector(
-		"sqlite:///" + test_world,
-	)
-	(connector.pack, connector.unpack) = (
 		engine_facade.pack,
 		engine_facade.unpack,
+		"sqlite:///" + test_world,
 	)
 	yield connector
 	connector.close()
@@ -267,11 +261,9 @@ def sql_connector_under_test(tmp_path, engine_facade):
 def sql_connector_correct(tmp_path, engine_facade):
 	correct_world = os.path.join(tmp_path, "world.sqlite3")
 	connector = SQLAlchemyDatabaseConnector(
-		"sqlite:///" + correct_world,
-	)
-	(connector.pack, connector.unpack) = (
 		engine_facade.pack,
 		engine_facade.unpack,
+		"sqlite:///" + correct_world,
 	)
 	yield connector
 	connector.close()
