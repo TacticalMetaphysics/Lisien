@@ -598,7 +598,7 @@ def _recurse(rev: _RK, revs: list[tuple[_RK, _RV]]) -> tuple[_RK, _RV]:
 
 
 @define(init=False, eq=False)
-class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
+class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 	"""A dict that keeps every value that a variable has had over time.
 
 	Look up a revision number in this dict, and it will give you the
