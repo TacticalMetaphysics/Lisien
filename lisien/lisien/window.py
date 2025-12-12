@@ -875,29 +875,10 @@ class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 			return empty
 
 	def __init__(
-		self, data: list[tuple[_K, _V]] | dict[_K, _V] | None = None, **kwargs
+		self, data: Sequence[tuple[_K, _V]] | Mapping[_K, _V] | None = None
 	) -> None:
-		if data and kwargs:
-			if isinstance(data, dict):
-				for k in data.keys() | kwargs.keys():
-					if not isinstance(k, int):
-						raise TypeError("Integer keys only", k)
-				data = chain(iter(data.items()), iter(kwargs.items()))
-			else:
-				for k, _ in data:
-					if not isinstance(k, int):
-						raise TypeError("Integer keys only", k)
-				for k in kwargs.keys():
-					if not isinstance(k, int):
-						raise TypeError("Integer keys only", k)
-				data = chain(iter(data), iter(kwargs.items()))
-		elif kwargs:
-			for k in kwargs.keys():
-				if not isinstance(k, int):
-					raise TypeError("Integer keys only", k)
-			data = iter(kwargs.items())
-		elif data:
-			if isinstance(data, dict):
+		if data:
+			if isinstance(data, Mapping):
 				for k in data.keys():
 					if not isinstance(k, int):
 						raise TypeError("Integer keys only", k)
