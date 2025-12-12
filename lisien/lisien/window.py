@@ -1208,14 +1208,16 @@ class SettingsTimes(Iterable[LinearTime]):
 					tick_to, include_same_rev=True
 				):
 					yield turn_to, tck
-			for trn, tcks in self.td.past(turn_to, include_same_rev=False):
+			for trn, tcks in self.td.past(
+				turn_to, include_same_rev=False
+			).items():
 				for tck in reversed(tcks):
 					yield trn, tck
 
 		elif time_to is None:
 			turn_from, tick_from = time_from
 			for trn, tcks in reversed(
-				self.td.future(turn_from, include_same_rev=True)
+				self.td.future(turn_from, include_same_rev=True).items()
 			):
 				if trn == turn_from:
 					for tck in reversed(
@@ -1228,7 +1230,9 @@ class SettingsTimes(Iterable[LinearTime]):
 		else:
 			turn_from, tick_from = time_from
 			turn_to, tick_to = time_to
-			for trn, tcks in self.td.past(turn_to, include_same_rev=True):
+			for trn, tcks in self.td.past(
+				turn_to, include_same_rev=True
+			).items():
 				if trn == turn_to:
 					for tck in tcks.past(tick_to, include_same_rev=True):
 						yield trn, tck
