@@ -36,7 +36,18 @@ from functools import cached_property, partial
 from itertools import chain
 from operator import ge, itemgetter, le
 from threading import RLock
-from typing import Any, Callable, Iterable, Iterator, TypeVar, Union, ClassVar
+from typing import (
+	Any,
+	Callable,
+	Iterable,
+	Iterator,
+	TypeVar,
+	Union,
+	ClassVar,
+	overload,
+	Sequence,
+	Protocol,
+)
 
 from attrs import define
 
@@ -60,12 +71,16 @@ class Direction(Enum):
 	BACKWARD = "backward"
 
 
+class UpdateFunctionProtocol(Protocol):
+	def __call__(self, turn: Turn, tick: Tick, *args) -> None: ...
+
+
 def update_window(
 	turn_from: Turn,
 	tick_from: Tick,
 	turn_to: Turn,
 	tick_to: Tick,
-	updfun: Callable[[Turn, Tick, ...], None],
+	updfun: UpdateFunctionProtocol,
 	branchd: AssignmentTimeDict,
 ):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
@@ -105,7 +120,7 @@ def update_backward_window(
 	tick_from: Tick,
 	turn_to: Turn,
 	tick_to: Tick,
-	updfun: Callable[[Turn, Tick, ...], None],
+	updfun: UpdateFunctionProtocol,
 	branchd: AssignmentTimeDict,
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
@@ -136,7 +151,7 @@ def update_backward_window(
 			updfun(turn_to, tick, *state)
 
 
-class WindowDictKeysView[_K: int](KeysView):
+class WindowDictKeysView[_K: int](KeysView[_K]):
 	"""Look through all the keys a WindowDict contains."""
 
 	_mapping: WindowDict[_K, ...]
@@ -658,7 +673,7 @@ class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 
 	def future(
 		self, rev: _K, include_same_rev: bool = False, copy: bool = False
-	) -> WindowDictFutureView:
+	) -> WindowDictFutureView[_K, _V]:
 		"""Return a Mapping of items after the given revision.
 
 		:param include_same_rev: Whether to include the specified revision in
@@ -684,7 +699,7 @@ class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 
 	def past(
 		self, rev: _K, include_same_rev: bool = True, copy: bool = False
-	) -> WindowDictPastView:
+	) -> WindowDictPastView[_K, _V]:
 		"""Return a Mapping of items at or before the given revision.
 
 		:param include_same_rev: Whether to include the specified revision in
@@ -712,7 +727,7 @@ class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 				lock = self._lock
 		return WindowDictPastView(past, lock)
 
-	def search(self, rev: _K) -> Any:
+	def search(self, rev: _K) -> _V:
 		"""Alternative access for far-away revisions
 
 		This uses a binary search, which is faster in the case of random
@@ -894,7 +909,7 @@ class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 			self._past.sort()
 			self._keys.update(map(get0, self._past))
 
-	def __iter__(self) -> Iterable[_K]:
+	def __iter__(self) -> Iterator[_K]:
 		if not self:
 			return
 		with self._lock:
@@ -911,7 +926,13 @@ class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 		with self._lock:
 			return len(self._keys)
 
-	def __getitem__(self, rev: _K | slice) -> Any:
+	@overload
+	def __getitem__(self, rev: slice, /) -> WindowDictSlice[_K, _V]: ...
+
+	@overload
+	def __getitem__(self, rev: _K, /) -> _V: ...
+
+	def __getitem__(self, rev, /):
 		if isinstance(rev, slice):
 			return WindowDictSlice(self, rev)
 		with self._lock:
@@ -1042,7 +1063,8 @@ class BranchingTimeListDict(PickierDefaultDict[Branch, LinearTimeListDict]):
 	__slots__ = ()
 
 	def __init__(
-		self, data: dict[Branch, dict[Turn, list[Tick]]] | None = None
+		self,
+		data: Mapping[Branch, Mapping[Turn, Sequence[Tick]]] | None = None,
 	):
 		super().__init__(str, LinearTimeListDict)
 		if data is not None:
@@ -1068,15 +1090,15 @@ class BranchingTimeListDict(PickierDefaultDict[Branch, LinearTimeListDict]):
 
 
 @define(init=False)
-class EntikeyWindowDict(WindowDict):
+class EntikeyWindowDict[_K: int, _V: tuple](WindowDict[_K, _V]):
 	__slots__ = ()
 
 	@cached_property
-	def entikeys(self):
+	def entikeys(self) -> set[_V]:
 		return set()
 
 	def __init__(
-		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
+		self, data: Sequence[tuple[_K, _V]] | Mapping[_K, _V] | None = None
 	) -> None:
 		if data:
 			if hasattr(data, "values") and callable(data.values):
@@ -1085,11 +1107,11 @@ class EntikeyWindowDict(WindowDict):
 				self.entikeys.update(value[:-2] for value in data)
 		super().__init__(data)
 
-	def __setitem__(self, rev: int, v: tuple) -> None:
+	def __setitem__(self, rev: _K, v: _V) -> None:
 		self.entikeys.add(v[:-2])
 		super().__setitem__(rev, v)
 
-	def __delitem__(self, rev: int) -> None:
+	def __delitem__(self, rev: _K) -> None:
 		entikey = self[rev][:-2]
 		super().__delitem__(rev)
 		for tup in self.values():
