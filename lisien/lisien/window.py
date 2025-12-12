@@ -1066,7 +1066,7 @@ class BranchingTimeListDict(PickierDefaultDict[Branch, LinearTimeListDict]):
 		self,
 		data: Mapping[Branch, Mapping[Turn, Sequence[Tick]]] | None = None,
 	):
-		super().__init__(str, LinearTimeListDict)
+		super().__init__(key_type=str, value_type=LinearTimeListDict)
 		if data is not None:
 			if not isinstance(data, dict):
 				raise TypeError("dict only", data)
