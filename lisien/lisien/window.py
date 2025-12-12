@@ -1118,7 +1118,7 @@ class EntikeyWindowDict(WindowDict):
 
 
 @define
-class SettingsTimes(Iterable[tuple[Turn, Tick]]):
+class SettingsTimes(Iterable[LinearTime]):
 	td: AssignmentTimeDict
 	time_from: LinearTime | None
 	time_to: LinearTime | None
