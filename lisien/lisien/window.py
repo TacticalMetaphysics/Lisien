@@ -1144,31 +1144,31 @@ class SettingsTimes(Iterable[LinearTime]):
 		if time_from is None and time_to is None:
 			for trn, tcks in self.td.items():
 				for tck in tcks:
-					yield trn, tck
+					yield LinearTime(trn, tck)
 		elif time_from is None:
 			turn_to, tick_to = time_to
 			for trn, tcks in self.td.items():
 				if trn >= turn_to:
 					break
 				for tck in tcks:
-					yield trn, tck
+					yield LinearTime(trn, tck)
 			if turn_to in self.td:
 				for tck in self.td[turn_to]:
 					if tck >= tick_to:
 						return
-					yield turn_to, tck
+					yield LinearTime(turn_to, tck)
 		elif time_to is None:
 			turn_from, tick_from = time_from
 			if turn_from in self.td:
 				for tck in self.td[turn_from].future(
 					tick_from, include_same_rev=True
 				):
-					yield turn_from, tck
+					yield LinearTime(turn_from, tck)
 			for trn, tcks in self.td.future(
 				turn_from, include_same_rev=False
 			).items():
 				for tck in tcks:
-					yield trn, tck
+					yield LinearTime(trn, tck)
 		else:
 			turn_from, tick_from = time_from
 			turn_to, tick_to = time_to
@@ -1180,7 +1180,7 @@ class SettingsTimes(Iterable[LinearTime]):
 				):
 					if tck > tick_to:
 						return
-					yield turn_to, tck
+					yield LinearTime(turn_to, tck)
 			else:
 				for trn in self.td.future(turn_from, include_same_rev=True):
 					if trn > turn_to:
@@ -1189,10 +1189,10 @@ class SettingsTimes(Iterable[LinearTime]):
 						for tck in reversed(
 							self.td[trn].past(tick_to, include_same_rev=True)
 						):
-							yield trn, tck
+							yield LinearTime(trn, tck)
 					else:
 						for tck in self.td[trn]:
-							yield trn, tck
+							yield LinearTime(trn, tck)
 
 	def iter_reverse(self) -> Iterator[LinearTime]:
 		time_from = self.time_from
@@ -1200,19 +1200,19 @@ class SettingsTimes(Iterable[LinearTime]):
 		if time_from is None and time_to is None:
 			for trn, tcks in reversed(self.td.items()):
 				for tck in reversed(tcks):
-					yield trn, tck
+					yield LinearTime(trn, tck)
 		elif time_from is None:
 			turn_to, tick_to = time_to
 			if turn_to in self.td:
 				for tck in self.td[turn_to].past(
 					tick_to, include_same_rev=True
 				):
-					yield turn_to, tck
+					yield LinearTime(turn_to, tck)
 			for trn, tcks in self.td.past(
 				turn_to, include_same_rev=False
 			).items():
 				for tck in reversed(tcks):
-					yield trn, tck
+					yield LinearTime(trn, tck)
 
 		elif time_to is None:
 			turn_from, tick_from = time_from
@@ -1223,10 +1223,10 @@ class SettingsTimes(Iterable[LinearTime]):
 					for tck in reversed(
 						tcks.future(tick_from, include_same_rev=True)
 					):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 				else:
 					for tck in reversed(tcks.keys()):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 		else:
 			turn_from, tick_from = time_from
 			turn_to, tick_to = time_to
@@ -1235,17 +1235,17 @@ class SettingsTimes(Iterable[LinearTime]):
 			).items():
 				if trn == turn_to:
 					for tck in tcks.past(tick_to, include_same_rev=True):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 				elif trn == turn_from:
 					for tck in reversed(
 						tcks.future(tick_from, include_same_rev=True)
 					):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 				elif trn < turn_from:
 					return
 				else:
 					for tck in reversed(tcks.keys()):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 
 
 @define(init=False, repr=False)
