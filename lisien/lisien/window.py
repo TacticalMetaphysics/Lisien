@@ -625,12 +625,12 @@ class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 
 	This supports slice notation to get all values in a given
 	time-frame. If you do not supply a step, you'll just get the
-	values, with no indication of when they're from exactly --
-	so explicitly supply a step of 1 to get the value at each point in
-	the slice, or use the ``future`` and ``past`` methods to get read-only
+	values, with no indication of exactly when they're from.
+	Specify a step of 1 to get the value at each point in
+	the slice, or use the :meth:`future` and :meth:`past` methods to get read-only
 	mappings of data relative to a particular revision.
 
-	Unlike slices of eg. lists, you can slice with a start greater than the stop
+	Unlike slices of e.g. lists, you can slice with a start greater than the stop
 	even if you don't supply a step. That will get you values in reverse order.
 
 	"""
