@@ -31,7 +31,6 @@ from collections.abc import (
 	MutableMapping,
 	ValuesView,
 )
-from dataclasses import dataclass, replace
 from enum import Enum
 from functools import cached_property, partial
 from itertools import chain
@@ -1132,7 +1131,12 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 			return self.iter_forward()
 
 	def __reversed__(self):
-		return replace(self, reverse=not self.reverse)
+		return SettingsTimes(
+			td=self.td,
+			time_from=self.time_from,
+			time_to=self.time_to,
+			reverse=not self.reverse,
+		)
 
 	def iter_forward(self) -> Iterator[LinearTime]:
 		time_from = self.time_from
