@@ -918,6 +918,15 @@ class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 			if self._future:
 				yield from map(get0, reversed(self._future))
 
+	def __reversed__(self) -> Iterator[_K]:
+		if not self:
+			return
+		with self._lock:
+			if self._future:
+				yield from map(get0, self._future)
+			if self._past:
+				yield from map(get0, reversed(self._past))
+
 	def __contains__(self, item: _K) -> bool:
 		with self._lock:
 			return item in self._keys
