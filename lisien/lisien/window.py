@@ -612,7 +612,7 @@ def _recurse(rev: _RK, revs: list[tuple[_RK, _RV]]) -> tuple[_RK, _RV]:
 		return _recurse(rev, after)
 
 
-@define(init=False, eq=False)
+@define(init=False, eq=False, repr=False)
 class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 	"""A dict that keeps every value that a variable has had over time.
 
