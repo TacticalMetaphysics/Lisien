@@ -65,9 +65,9 @@ def test_polygons(engy):
 		engy.next_turn()
 
 
-def test_char_stat_startup(tmp_path, database_connector_part):
+def test_char_stat_startup(tmp_path, reusing_database_connector_part):
 	with Engine(
-		tmp_path, workers=0, database=database_connector_part()
+		tmp_path, workers=0, database=reusing_database_connector_part()
 	) as eng:
 		eng.new_character("physical", nx.hexagonal_lattice_graph(20, 20))
 		tri = eng.new_character("triangle")
@@ -83,7 +83,7 @@ def test_char_stat_startup(tmp_path, database_connector_part):
 		assert "max_sameness" in tri.stat
 
 	with Engine(
-		tmp_path, workers=0, database=database_connector_part()
+		tmp_path, workers=0, database=reusing_database_connector_part()
 	) as eng:
 		assert "min_sameness" in eng.character["square"].stat
 		assert "max_sameness" in eng.character["square"].stat
@@ -100,14 +100,14 @@ def test_sickle(sickle):
 def test_wolfsheep(
 	tmp_path,
 	serial_or_executor,
-	database_connector_part,
+	reusing_database_connector_part,
 ):
 	workers = 0 if serial_or_executor is None else 2
 	with Engine.from_archive(
 		DATA_DIR.joinpath("wolfsheep.lisien"),
 		tmp_path,
 		workers=workers,
-		database=database_connector_part,
+		database=reusing_database_connector_part,
 		executor=serial_or_executor,
 	) as engine:
 		sheep = engine.character["sheep"]
@@ -136,7 +136,7 @@ def test_wolfsheep(
 		tmp_path,
 		workers=workers,
 		executor=serial_or_executor,
-		database=database_connector_part,
+		database=reusing_database_connector_part,
 	)
 	try:
 		hand.next_turn()

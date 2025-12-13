@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
+import pickle
 import resource
 import sys
 from functools import partial
@@ -321,7 +322,7 @@ def reusing_parquetdb_database_connector_part(
 
 
 @pytest.fixture
-def database_connector_part(
+def reusing_database_connector_part(
 	tmp_path,
 	non_null_database,
 	reusing_python_database_connector_part,
@@ -338,7 +339,34 @@ def database_connector_part(
 
 
 @pytest.fixture
-def database_connector_part2(
+def database_connector_part(tmp_path, non_null_database):
+	match non_null_database:
+		case "python":
+			try:
+				with open(tmp_path.joinpath("database.pkl"), "rb") as f:
+					pydb = pickle.load(f)
+				yield pydb
+			except FileNotFoundError:
+				db = PythonDatabaseConnector()
+
+				def part(*_):
+					return db
+
+				part.is_python = True
+				yield part
+		case "sqlite":
+			yield partial(
+				SQLAlchemyDatabaseConnector,
+				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+			)
+		case "parquetdb":
+			yield partial(
+				ParquetDatabaseConnector, path=tmp_path.joinpath("world")
+			)
+
+
+@pytest.fixture
+def reusing_database_connector_part2(
 	tmp_path,
 	non_null_database,
 	reusing_python_database_connector_part,
@@ -701,9 +729,14 @@ def sickle_tar(non_null_database):
 
 
 @pytest.fixture
-def sickle(sickle_tar, tmp_path, database_connector_part, serial_or_executor):
+def sickle(
+	sickle_tar, tmp_path, reusing_database_connector_part, serial_or_executor
+):
 	with untar_cache(
-		sickle_tar, tmp_path, database_connector_part, serial_or_executor
+		sickle_tar,
+		tmp_path,
+		reusing_database_connector_part,
+		serial_or_executor,
 	) as eng:
 		yield eng
 
@@ -716,10 +749,16 @@ def wolfsheep_tar(non_null_database):
 
 @pytest.fixture
 def wolfsheep(
-	wolfsheep_tar, tmp_path, database_connector_part, serial_or_executor
+	wolfsheep_tar,
+	tmp_path,
+	reusing_database_connector_part,
+	serial_or_executor,
 ):
 	with untar_cache(
-		wolfsheep_tar, tmp_path, database_connector_part, serial_or_executor
+		wolfsheep_tar,
+		tmp_path,
+		reusing_database_connector_part,
+		serial_or_executor,
 	) as eng:
 		yield eng
 
@@ -732,10 +771,13 @@ def pathfind_tar(non_null_database):
 
 @pytest.fixture
 def pathfind(
-	pathfind_tar, tmp_path, database_connector_part, parallel_executor
+	pathfind_tar, tmp_path, reusing_database_connector_part, parallel_executor
 ):
 	with untar_cache(
-		pathfind_tar, tmp_path, database_connector_part, parallel_executor
+		pathfind_tar,
+		tmp_path,
+		reusing_database_connector_part,
+		parallel_executor,
 	) as eng:
 		yield eng
 
