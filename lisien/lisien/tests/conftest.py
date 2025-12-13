@@ -256,7 +256,7 @@ def reusing_python_database_connector_part(reusing_python_database_connector):
 	def pythondb(*_):
 		return reusing_python_database_connector
 
-	pythondb.is_python = True
+	pythondb.is_python = pythondb.do_not_close = True
 	yield pythondb
 
 
@@ -286,6 +286,8 @@ def reusing_sqlalchemy_database_connector_part(
 		db._pack = pack
 		db._unpack = unpack
 		return db
+
+	sqldb.do_not_close = True
 
 	yield sqldb
 
@@ -317,6 +319,8 @@ def reusing_parquetdb_database_connector_part(
 		db._pack = pack
 		db._unpack = unpack
 		return db
+
+	pqdb.do_not_close = True
 
 	yield pqdb
 

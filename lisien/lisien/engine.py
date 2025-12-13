@@ -684,13 +684,18 @@ class Engine(AbstractEngine, Executor):
 					clear=self.clear,
 				)
 
+	_do_close_database: bool = field(init=False, default=True)
+
 	@staticmethod
 	def _convert_database(database, self):
 		if callable(database):
+			if hasattr(database, "do_not_close"):
+				self._do_close_database = False
 			return database(self.pack, self.unpack)
 		elif database is None:
 			return self._database_factory()
 		else:
+			self._do_close_database = False
 			return database  # hope you know what you're doing
 
 	database: AbstractDatabaseConnector = field(
@@ -5767,7 +5772,11 @@ class Engine(AbstractEngine, Executor):
 				del sys.modules[modname]
 		self.commit()
 		self.shutdown()
-		self.database.close()
+		if self._do_close_database:
+			print("closing database")
+			self.database.close()
+			print("database closed")
+		print("clearing caches")
 		for cache in self._caches:
 			if hasattr(cache, "clear"):
 				cache.clear()
