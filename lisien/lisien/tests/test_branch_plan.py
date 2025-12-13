@@ -232,7 +232,8 @@ def test_save_load_plan(tmp_path, database_connector_part):
 		g2 = orm.character[2]
 		assert 1 in g2.node
 		assert 2 in g2.node
-		assert 2 not in g1.edge[1]
+		assert 1 not in g1.node
+		assert 1 not in g1.edge
 		assert 2 not in g2.edge[1]
 		orm.turn = 1
 		assert 2 not in g1.node
