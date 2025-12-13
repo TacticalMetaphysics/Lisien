@@ -542,47 +542,6 @@ def engine(
 			yield eng
 
 
-@pytest.fixture
-def no_proxy_executor(
-	tmp_path,
-	serial_or_parallel,
-	random_seed,
-	thread_executor,
-	process_executor,
-	interpreter_executor,
-):
-	match serial_or_parallel:
-		case "serial":
-			yield None
-		case "thread":
-			thread_executor.restart()
-			yield thread_executor
-		case "process":
-			process_executor.restart()
-			yield process_executor
-		case "interpreter":
-			interpreter_executor.restart()
-			yield interpreter_executor
-
-
-def proxyless_engine(
-	tmp_path, serial_or_parallel, database_connector, no_proxy_executor
-):
-	with Engine(
-		tmp_path,
-		random_seed=69105,
-		enforce_end_of_time=False,
-		workers=0 if serial_or_parallel == "serial" else 2,
-		database=database_connector,
-		executor=no_proxy_executor,
-	) as eng:
-		yield eng
-	if hasattr(eng, "_worker_log_threads"):
-		for t in eng._worker_log_threads:
-			assert not t.is_alive()
-		assert not eng._fut_manager_thread.is_alive()
-
-
 @pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
 def sqleng(tmp_path, request, execution, executor):
 	if execution == "proxy":
