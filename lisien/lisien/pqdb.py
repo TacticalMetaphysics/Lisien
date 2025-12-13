@@ -18,6 +18,7 @@ import inspect
 import sys
 from functools import cached_property, partial
 from pathlib import Path
+from types import EllipsisType
 from typing import (
 	Annotated,
 	Any,
@@ -382,9 +383,9 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				db.delete(ids)
 
 		def dump(self, table: str) -> list:
-			data = (
-				self._get_db(table).read().sort_by(self._sort_columns(table))
-			)
+			data = self._get_db(table).read()
+			if data.num_rows > 0:
+				data = data.sort_by(self._sort_columns(table))
 			return data.to_pylist()
 
 		def rowcount(self, table: str) -> int:
@@ -562,7 +563,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 		def universal_get(
 			self, key: bytes, branch: Branch, turn: Turn, tick: Tick
-		) -> bytes | type(...):
+		) -> bytes | EllipsisType:
 			db = self._get_db("universals")
 			data = db.read(
 				filters=[
@@ -570,7 +571,12 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					pc.field("key") == key,
 					pc.field("turn") <= turn,
 				]
-			).sort_by([("turn", "descending"), ("tick", "descending")])
+			)
+			if data.num_rows == 0:
+				return ...
+			data = data.sort_by(
+				[("turn", "descending"), ("tick", "descending")]
+			)
 			for d in data.to_pylist():
 				if (d["turn"], d["tick"]) <= (turn, tick):
 					return d["value"]
