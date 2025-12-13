@@ -453,6 +453,7 @@ class LisienProcessExecutor(LisienExecutor):
 	) -> None:
 		super().shutdown(wait, cancel_futures=cancel_futures)
 		todo = (
+			list(range(len(self._worker_locks))),
 			self._worker_locks,
 			self._worker_inputs,
 			self._worker_outputs,
@@ -461,7 +462,7 @@ class LisienProcessExecutor(LisienExecutor):
 			self._worker_log_threads,
 		)
 		while any(todo):
-			(lock, pipein, pipeout, proc, logq, logt) = (
+			(i, lock, pipein, pipeout, proc, logq, logt) = (
 				some.pop() for some in todo
 			)
 			with lock:
