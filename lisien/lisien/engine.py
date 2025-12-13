@@ -1048,9 +1048,24 @@ class Engine(AbstractEngine, Executor):
 	or the threads do their work in a library like Numpy that releases 
 	Python's Global Interpreter Lock."""
 
+	@staticmethod
+	def _logger_factory() -> Logger:
+		logger = getLogger("lisien")
+		if not logger.handlers:
+			handler = StreamHandler()
+			handler.addFilter(lambda rec: not hasattr(rec, "worker_idx"))
+			handler.setLevel(DEBUG)
+			logger.addHandler(handler)
+			worker_handler = StreamHandler()
+			worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
+			worker_handler.setLevel(DEBUG)
+			worker_handler.setFormatter(WorkerFormatter())
+			logger.addHandler(worker_handler)
+		return logger
+
 	logger: Logger = field(
 		kw_only=True,
-		factory=partial(getLogger, "lisien"),
+		factory=_logger_factory,
 	)
 	"""Logger object that we'll write records to."""
 
@@ -1060,11 +1075,6 @@ class Engine(AbstractEngine, Executor):
 			raise ValueError("Need a logger")
 		if not isinstance(logger, Logger):
 			raise TypeError("Not a logger", logger)
-		worker_handler = StreamHandler()
-		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
-		worker_handler.setLevel(DEBUG)
-		worker_handler.setFormatter(WorkerFormatter())
-		logger.addHandler(worker_handler)
 
 	_shutdown_executor: bool = field(init=False, default=False)
 
