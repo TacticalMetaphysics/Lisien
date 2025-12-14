@@ -1,6 +1,8 @@
 blinker>=1.4,<2
 msgpack>=1.0.0
+u-msgpack-python~=2.8.0
 networkx>=2.4,<4
 sqlalchemy>=1.4,<3
+parquetdb~=1.0.0
 numpy>=1.19.5,<3
 tblib>=1.7.0,<2
