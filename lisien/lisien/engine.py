@@ -5771,6 +5771,7 @@ class Engine(AbstractEngine, Executor):
 			if hasattr(cache, "clear"):
 				cache.clear()
 		gc.collect()
+		self.database.close()
 		if getattr(self, "executor", None):
 			self.executor.lock.release()
 		self._closed = True
