@@ -257,10 +257,17 @@ class EngineProxyManager:
 		if hasattr(self, "engine_proxy"):
 			self.engine_proxy.close()
 			self.engine_proxy.send_bytes(b"shutdown")
+			if (
+				got := self.engine_proxy.recv_bytes(timeout=5.0)
+			) != b"shutdown":
+				raise RuntimeError(
+					"Subprocess didn't respond to shutdown signal", got
+				)
 			if hasattr(self, "_p"):
 				self._p.join(timeout=5.0)
-				if self._p.is_alive():
-					raise TimeoutError("Couldn't join process")
+				if self._p.exitcode is None:
+					raise TimeoutError("Couldn't join core process")
+				self._p.close()
 			del self.engine_proxy
 		if hasattr(self, "_client"):
 			while not self._output_queue.empty():
