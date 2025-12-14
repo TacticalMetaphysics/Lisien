@@ -100,7 +100,7 @@ class EngineProxyManager:
 		elif "prefix" in kwargs:
 			prefix = kwargs.pop("prefix")
 		else:
-			raise RuntimeError("No prefix")
+			prefix = None
 		if prefix is not None:
 			prefix = Path(prefix)
 		self._make_proxy(prefix, **kwargs)
