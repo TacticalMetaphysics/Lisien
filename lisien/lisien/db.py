@@ -6348,7 +6348,7 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	Looper: ClassVar[type[ConnectionLooper]]
 
 	def _make_thread(self):
-		return Thread(target=self._looper.run)
+		return Thread(target=self._looper.run, name="rundb")
 
 	_t: Thread = field(
 		init=False, default=Factory(_make_thread, takes_self=True)

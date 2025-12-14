@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 from os import PathLike
 from typing import TYPE_CHECKING, Callable
 
@@ -218,6 +219,15 @@ def engine_subroutine(
 	while True:
 		recvd = get_input_bytes()
 		if recvd == b"shutdown":
+			for th in threading.enumerate():
+				if th.name == "rundb":
+					raise RuntimeError("Still running a database thread")
+				if th.name == "MainThread":
+					continue
+				th.join(5.0)
+				if th.is_alive():
+					raise TimeoutError("Couldn't join thread", th)
+			send_output_bytes(b"shutdown")
 			return 0
 		if recvd.startswith(b"echo"):
 			send_output_bytes(recvd.removeprefix(b"echo"))
