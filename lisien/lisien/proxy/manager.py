@@ -268,6 +268,10 @@ class EngineProxyManager:
 				if self._p.exitcode is None:
 					raise TimeoutError("Couldn't join core process")
 				self._p.close()
+			if hasattr(self, "_t"):
+				self._t.join(timeout=5.0)
+				if self._t.is_alive():
+					raise TimeoutError("Couldn't join thread")
 			del self.engine_proxy
 		if hasattr(self, "_client"):
 			while not self._output_queue.empty():
@@ -277,10 +281,6 @@ class EngineProxyManager:
 		if hasattr(self, "_logq"):
 			self._logq.put(b"shutdown")
 			self._log_thread.join()
-		if hasattr(self, "_t"):
-			self._t.join(timeout=5.0)
-			if self._t.is_alive():
-				raise TimeoutError("Couldn't join thread")
 		if hasattr(self, "_terp_thread") and self._terp_thread.is_alive():
 			self._terp_thread.join(timeout=5.0)
 			if self._terp_thread.is_alive():
