@@ -281,10 +281,6 @@ class EngineProxyManager:
 		if hasattr(self, "_logq"):
 			self._logq.put(b"shutdown")
 			self._log_thread.join()
-		if hasattr(self, "_terp_thread") and self._terp_thread.is_alive():
-			self._terp_thread.join(timeout=5.0)
-			if self._terp_thread.is_alive():
-				raise TimeoutError("Couldn't join interpreter thread")
 		self.logger.debug("EngineProxyManager: shutdown")
 
 	def _config_logger(self, kwargs):
@@ -519,7 +515,7 @@ class EngineProxyManager:
 		self._logq: Queue = create_queue()
 
 		self._terp = create()
-		self._terp_thread = self._terp.call_in_thread(
+		self._t = self._terp.call_in_thread(
 			engine_subthread,
 			args or self._args,
 			self._kwargs | kwargs,
