@@ -239,109 +239,6 @@ def persistent_database(request):
 	return request.param
 
 
-@pytest.fixture(scope="session")
-def reusable_python_database_connector():
-	yield PythonDatabaseConnector()
-
-
-@pytest.fixture
-def reusing_python_database_connector(reusable_python_database_connector):
-	db = reusable_python_database_connector
-	yield db
-	db.truncate_all()
-
-
-@pytest.fixture
-def reusing_python_database_connector_part(reusing_python_database_connector):
-	def pythondb(*_):
-		return reusing_python_database_connector
-
-	pythondb.is_python = pythondb.do_not_close = True
-	yield pythondb
-
-
-@pytest.fixture(scope="session")
-def reusable_sqlalchemy_database_connector():
-	engine_facade = make_test_engine_facade()
-	yield SQLAlchemyDatabaseConnector(
-		engine_facade.pack, engine_facade.unpack, "sqlite:///:memory:"
-	)
-
-
-@pytest.fixture
-def reusing_sqlalchemy_database_connector(
-	reusable_sqlalchemy_database_connector,
-):
-	db = reusable_sqlalchemy_database_connector
-	yield db
-	db.truncate_all()
-
-
-@pytest.fixture
-def reusing_sqlalchemy_database_connector_part(
-	reusing_sqlalchemy_database_connector,
-):
-	def sqldb(pack, unpack, *_):
-		db = reusing_sqlalchemy_database_connector
-		db._pack = pack
-		db._unpack = unpack
-		return db
-
-	sqldb.do_not_close = True
-
-	yield sqldb
-
-
-@pytest.fixture(scope="session")
-def reusable_parquetdb_database_connector():
-	engine_facade = make_test_engine_facade()
-	with TemporaryDirectory() as td:
-		yield ParquetDatabaseConnector(
-			engine_facade.pack, engine_facade.unpack, Path(td)
-		)
-
-
-@pytest.fixture
-def reusing_parquetdb_database_connector(
-	reusable_parquetdb_database_connector,
-):
-	db = reusable_parquetdb_database_connector
-	yield db
-	db.truncate_all()
-
-
-@pytest.fixture
-def reusing_parquetdb_database_connector_part(
-	reusing_parquetdb_database_connector,
-):
-	def pqdb(pack, unpack, *_):
-		db = reusing_parquetdb_database_connector
-		db._pack = pack
-		db._unpack = unpack
-		return db
-
-	pqdb.do_not_close = True
-
-	yield pqdb
-
-
-@pytest.fixture
-def reusing_database_connector_part(
-	tmp_path,
-	non_null_database,
-	reusing_python_database_connector_part,
-	reusing_sqlalchemy_database_connector_part,
-	reusing_parquetdb_database_connector_part,
-):
-	match non_null_database:
-		case "python":
-			yield reusing_python_database_connector_part
-		case "sqlite":
-			yield reusing_sqlalchemy_database_connector_part
-		case "parquetdb":
-			yield reusing_parquetdb_database_connector_part
-
-
 @pytest.fixture
 def database_connector_part(tmp_path, non_null_database):
 	match non_null_database:
@@ -692,13 +589,11 @@ def sickle_tar(non_null_database):
 
 
 @pytest.fixture
-def sickle(
-	sickle_tar, tmp_path, reusing_database_connector_part, serial_or_executor
-):
+def sickle(sickle_tar, tmp_path, database_connector_part, serial_or_executor):
 	with untar_cache(
 		sickle_tar,
 		tmp_path,
-		reusing_database_connector_part,
+		database_connector_part,
 		serial_or_executor,
 	) as eng:
 		yield eng
@@ -714,13 +609,13 @@ def wolfsheep_tar(non_null_database):
 def wolfsheep(
 	wolfsheep_tar,
 	tmp_path,
-	reusing_database_connector_part,
+	database_connector_part,
 	serial_or_executor,
 ):
 	with untar_cache(
 		wolfsheep_tar,
 		tmp_path,
-		reusing_database_connector_part,
+		database_connector_part,
 		serial_or_executor,
 	) as eng:
 		yield eng
@@ -734,12 +629,12 @@ def pathfind_tar(non_null_database):
 
 @pytest.fixture
 def pathfind(
-	pathfind_tar, tmp_path, reusing_database_connector_part, parallel_executor
+	pathfind_tar, tmp_path, database_connector_part, parallel_executor
 ):
 	with untar_cache(
 		pathfind_tar,
 		tmp_path,
-		reusing_database_connector_part,
+		database_connector_part,
 		parallel_executor,
 	) as eng:
 		yield eng
