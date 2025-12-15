@@ -10,9 +10,9 @@ matrix:
     - 3.13
     - 3.14.0
   DATABASE:
-    - pydb
-    - parquetdb
+    - not parquetdb and not sqlite
     - sqlite
+    - parquetdb
 
 steps:
   - name: headless_${PYTHON_VERSION}
@@ -27,4 +27,7 @@ steps:
       - python -m pip install tox
       - TOX_ENV_LIST=$(echo "${PYTHON_VERSION}" | sed -Ee 's/([0-9])\.([0-9]{2}).*/py\1\2/')
       - echo "TOX_ENV_LIST=$TOX_ENV_LIST"
-      - tox run -c lisien/tox_${DATABASE}.ini -e $TOX_ENV_LIST
+      - PYTEST_KEYWORDS=not slow and not big and not subinterpreter and ${DATABASE}
+      - echo "PYTEST_KEYWORDS=$PYTEST_KEYWORDS"
+      - export PYTEST_KEYWORDS
+      - tox run -c lisien/tox.ini -e $TOX_ENV_LIST
