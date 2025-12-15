@@ -16,6 +16,7 @@ import os
 import pickle
 import resource
 import sys
+from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -239,9 +240,9 @@ def persistent_database(request):
 	return request.param
 
 
-@pytest.fixture
-def database_connector_part(tmp_path, non_null_database):
-	match non_null_database:
+@contextmanager
+def database_connector_partial(tmp_path, database):
+	match database:
 		case "python":
 			try:
 				with open(tmp_path.joinpath("database.pkl"), "rb") as f:
@@ -264,6 +265,16 @@ def database_connector_part(tmp_path, non_null_database):
 			yield partial(
 				ParquetDatabaseConnector, path=tmp_path.joinpath("world")
 			)
+
+
+@pytest.fixture
+def database_connector_part(tmp_path, non_null_database):
+	yield database_connector_partial(tmp_path, non_null_database)
+
+
+@pytest.fixture
+def database_connector_part2(tmp_path, non_null_database):
+	yield database_connector_partial(tmp_path, non_null_database)
 
 
 @pytest.fixture
