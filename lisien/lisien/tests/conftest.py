@@ -12,21 +12,15 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import os
 import pickle
 import resource
 import sys
-from contextlib import contextmanager
 from functools import partial
-from pathlib import Path
-from tempfile import TemporaryDirectory
 from logging import getLogger
 
 import pytest
 
-from lisien.engine import (
-	Engine,
-)
+from lisien.engine import Engine
 from ..futures import (
 	LisienThreadExecutorProxy,
 	LisienProcessExecutorProxy,
@@ -240,14 +234,13 @@ def persistent_database(request):
 	return request.param
 
 
-@contextmanager
 def database_connector_partial(tmp_path, database):
 	match database:
 		case "python":
 			try:
 				with open(tmp_path.joinpath("database.pkl"), "rb") as f:
 					pydb = pickle.load(f)
-				yield pydb
+				return pydb
 			except FileNotFoundError:
 				db = PythonDatabaseConnector()
 
@@ -255,28 +248,26 @@ def database_connector_partial(tmp_path, database):
 					return db
 
 				part.is_python = True
-				yield part
+				return part
 		case "sqlite":
-			yield partial(
+			return partial(
 				SQLAlchemyDatabaseConnector,
 				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 			)
 		case "parquetdb":
-			yield partial(
+			return partial(
 				ParquetDatabaseConnector, path=tmp_path.joinpath("world")
 			)
 
 
 @pytest.fixture
 def database_connector_part(tmp_path, non_null_database):
-	with database_connector_partial(tmp_path, non_null_database) as part:
-		yield part
+	return database_connector_partial(tmp_path, non_null_database)
 
 
 @pytest.fixture
 def database_connector_part2(tmp_path, non_null_database):
-	with database_connector_partial(tmp_path, non_null_database) as part:
-		yield part
+	return database_connector_partial(tmp_path, non_null_database)
 
 
 @pytest.fixture
