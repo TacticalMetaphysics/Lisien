@@ -269,12 +269,14 @@ def database_connector_partial(tmp_path, database):
 
 @pytest.fixture
 def database_connector_part(tmp_path, non_null_database):
-	yield database_connector_partial(tmp_path, non_null_database)
+	with database_connector_partial(tmp_path, non_null_database) as part:
+		yield part
 
 
 @pytest.fixture
 def database_connector_part2(tmp_path, non_null_database):
-	yield database_connector_partial(tmp_path, non_null_database)
+	with database_connector_partial(tmp_path, non_null_database) as part:
+		yield part
 
 
 @pytest.fixture
