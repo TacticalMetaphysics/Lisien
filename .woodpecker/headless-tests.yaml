@@ -8,7 +8,7 @@ matrix:
   PYTHON_VERSION:
     - 3.12
     - 3.13
-    - 3.14.0
+    - 3.14
   DATABASE:
     - not parquetdb and not sqlite
     - sqlite
