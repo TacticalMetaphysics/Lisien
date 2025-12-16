@@ -79,18 +79,20 @@ def test_export_db(tmp_path, engine_and_exported_xml):
 
 	if not filecmp.cmp(outpath, test_xml):
 		with (
-			open(test_xml, "rt") as testfile,
-			open(outpath, "rt") as goodfile,
+			test_xml.open("rt") as testfile,
+			outpath.open("rt") as goodfile,
 		):
 			differences = list(
 				difflib.unified_diff(
 					goodfile.readlines(),
 					testfile.readlines(),
-					test_xml,
-					outpath,
+					test_xml.name,
+					outpath.name,
 				)
 			)
-		assert filecmp.cmp(outpath, test_xml), "".join(differences)
+		assert filecmp.cmp(outpath.absolute(), test_xml.absolute()), "".join(
+			differences
+		)
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
