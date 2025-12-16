@@ -313,13 +313,20 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			self._get_db("keyframe_extensions").delete(filters=filters)
 
 		def delete(self, table: str, data: list[dict]):
-			from pyarrow import compute as pc
-
 			db = self._get_db(table)
+			as_is = db.read()
+			if as_is.num_rows == 0:
+				return
+			unwanted: pa.Table = as_is.schema.empty_table()
 			for datum in data:
-				db.delete(
-					filters=[pc.field(k) == v for (k, v) in datum.items()]
-				)
+				for k, v in datum.items():
+					expr = pc.field(k) == pc.scalar(v)
+					unwanted = pa.concat_tables([unwanted, as_is.filter(expr)])
+			if unwanted.num_rows == as_is.num_rows:
+				db.drop_dataset()
+			else:
+				to_del = as_is.join(unwanted, "id", "id", "inner")["id"]
+				db.delete(ids=to_del)
 
 		def all_keyframe_times(self):
 			return {
