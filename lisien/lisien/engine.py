@@ -1251,9 +1251,9 @@ class Engine(AbstractEngine, Executor):
 				self.branch,
 				self.turn,
 				self.tick,
-				self.branch,
+				turn_end,
+				tick_end,
 				v,
-				self.tick,
 			)
 		# enforce the arrow of time, if it's in effect
 		if self._forward and v < self._oturn:
