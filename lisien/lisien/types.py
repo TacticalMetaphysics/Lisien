@@ -2893,11 +2893,11 @@ class AbstractEngine(ABC):
 				packer(
 					[
 						exc.__class__.__name__,
+						exc.args,
 						Traceback(exc.__traceback__).to_dict()
 						if hasattr(exc, "__traceback__")
 						else None,
 					]
-					+ list(exc.args)
 				),
 			),
 		}
@@ -3038,13 +3038,11 @@ class AbstractEngine(ABC):
 			return blank
 
 		def unpack_exception(ext: bytes) -> Exception:
-			data: tuple[str, dict | None] = self.unpack(
-				getattr(ext, "data", ext)
-			)
-			if data[0] not in excs:
-				return Exception(*data)
-			ret = excs[data[0]](*data[2:])
-			if data[1] is not None:
+			exctyp, excargs, tb = self.unpack(getattr(ext, "data", ext))
+			if exctyp not in excs:
+				return Exception(exctyp, *data)
+			ret = exc[exctyp](*excargs)
+			if tb is not None:
 				ret.__traceback__ = Traceback.from_dict(data[1]).to_traceback()
 			return ret
 
