@@ -489,6 +489,18 @@ class EngineHandle:
 						turn_end,
 						tick_end,
 					)
+			if tick is None:
+				tick_ = self._real.turn_end(branch, turn)
+			else:
+				tick_ = tick
+			if LinearTime(turn, tick_) < self._real._branch_start(branch):
+				raise OutOfTimelineError(
+					"Not traveling to before the beginning of the branch",
+					branch,
+					turn,
+					tick,
+					*self._real._branch_start(branch),
+				)
 			self._real.load_at(branch, turn, tick)
 		branch_from, turn_from, tick_from = self._real.time
 		if tick is None:
