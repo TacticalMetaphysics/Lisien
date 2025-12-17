@@ -65,7 +65,6 @@ from typing import (
 	MutableMapping,
 	NewType,
 	Optional,
-	Type,
 	TypedDict,
 	TypeGuard,
 	TypeVar,
@@ -594,10 +593,10 @@ class CharacterMapping[_K, _V](MappingUnwrapper[_K, _V], ABC):
 
 	__slots__ = ()
 
-	character: Character
+	character: AbstractCharacter
 
 	@cached_property
-	def engine(self) -> Engine:
+	def engine(self) -> AbstractEngine:
 		return self.character.engine
 
 	@cached_property
@@ -865,7 +864,6 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 			k = Stat(k)
 			if not isinstance(v, Value):
 				raise TypeError("Invalid stat value", v)
-			v = Value(v)
 			realupd[k] = v
 		for k, v in realupd.items():
 			if v is ...:
@@ -1075,7 +1073,7 @@ class Edge(AbstractEntityMapping, ABC):
 
 	__slots__ = ()
 
-	character: AbstractCharacter
+	character: DiGraph
 	orig: NodeName
 	dest: NodeName
 
@@ -1268,8 +1266,7 @@ class GraphNodeMapping[_K, _V](
 	def __setitem__(
 		self,
 		node: NodeName | KeyHint,
-		data: dict[NodeName, dict[Stat, Value]]
-		| dict[KeyHint, dict[KeyHint, ValueHint]],
+		data: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	) -> None:
 		"""Only accept dict-like values for assignment. These are taken to be
 		dicts of node attributes, and so, a new GraphNodeMapping.Node
@@ -1361,7 +1358,10 @@ class GraphNodeMapping[_K, _V](
 
 
 @define(eq=False)
-class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
+class GraphEdgeMapping[
+	_ORIG: NodeName,
+	_DEST: MutableMapping[_DEST, Edge] | bool,
+](
 	MutableMapping[_ORIG, _DEST],
 	AttrSignal,
 	CharacterMapping,
@@ -1574,7 +1574,7 @@ class AbstractSuccessors(
 					self[orig][dest][stat] = val
 
 
-@define
+@define(repr=False)
 class GraphSuccessorsMapping(
 	GraphEdgeMapping[NodeName, AbstractSuccessors], ABC
 ):
@@ -2238,7 +2238,7 @@ class get_rando:
 	"""
 
 	__slots__ = ("_getter", "_wrapfun", "_instance")
-	_getter: Callable[[], Callable]
+	_getter: attrgetter
 
 	def __init__(self, attr, *attrs):
 		self._getter = attrgetter(attr, *attrs)
@@ -2344,7 +2344,7 @@ class EntityAccessor(ABC):
 	def __eq__(self, other):
 		return self() == other
 
-	def munge(self, munger: callable):
+	def munge(self, munger: Callable):
 		return EntityStatAccessor(
 			self.entity,
 			self.stat,
@@ -2395,7 +2395,7 @@ class EntityAccessor(ABC):
 		if self.current:
 			res = self._get_value_now()
 		else:
-			time_was = self.engine.time
+			time_was = tuple(self.engine.time)
 			self.engine.branch = branch or self.branch
 			self.engine.turn = turn if turn is not None else self.turn
 			if tick is not None:
@@ -2420,7 +2420,7 @@ class EntityAccessor(ABC):
 			try:
 				y = self._get_value_now()
 			except KeyError:
-				yield None
+				yield Value(None)
 				continue
 			if hasattr(y, "unwrap"):
 				y = y.unwrap()
@@ -3048,23 +3048,28 @@ class AbstractEngine(ABC):
 
 		def unpack_char(ext: bytes) -> char_cls:
 			charn = self.unpack(getattr(ext, "data", ext))
-			return char_cls(self, charn, init_rulebooks=False)
+			return char_cls(self, CharName(Key(charn)), init_rulebooks=False)
 
 		def unpack_place(ext: bytes) -> place_cls:
 			charn, placen = self.unpack(getattr(ext, "data", ext))
 			return place_cls(
-				char_cls(self, charn, init_rulebooks=False), placen
+				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
+				NodeName(Key(placen)),
 			)
 
 		def unpack_thing(ext: bytes) -> thing_cls:
 			charn, thingn = self.unpack(getattr(ext, "data", ext))
 			# Breaks if the thing hasn't been instantiated yet, not great
-			return self.character[charn].thing[thingn]
+			return self.character[CharName(Key(charn))].thing[
+				NodeName(Key(thingn))
+			]
 
 		def unpack_portal(ext: bytes) -> portal_cls:
 			charn, orign, destn = self.unpack(getattr(ext, "data", ext))
 			return portal_cls(
-				char_cls(self, charn, init_rulebooks=False), orign, destn
+				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
+				NodeName(Key(orign)),
+				NodeName(Key(destn)),
 			)
 
 		def unpack_seq(t: type[_SEQT], ext: bytes) -> _SEQT:
@@ -3793,7 +3798,7 @@ class AbstractCharacter(DiGraph, ABC):
 	def historical(self, stat: Stat):
 		return EntityStatAlias(entity=self.stat, stat=stat)
 
-	def do(self, func: Callable | str, *args, **kwargs) -> AbstractCharacter:
+	def do(self, func: Callable | str, *args, **kwargs) -> Self:
 		"""Apply the function to myself, and return myself.
 
 		Look up the function in the method store if needed. Pass it any
@@ -3807,7 +3812,7 @@ class AbstractCharacter(DiGraph, ABC):
 		func(self, *args, **kwargs)
 		return self
 
-	def copy_from(self, g: AbstractCharacter) -> AbstractCharacter:
+	def copy_from(self, g: AbstractCharacter) -> Self:
 		"""Copy all nodes and edges from the given graph into this.
 
 		Return myself.
@@ -3837,7 +3842,7 @@ class AbstractCharacter(DiGraph, ABC):
 				self.add_portal(renamed[v], renamed[u], **d)
 		return self
 
-	def become(self, g: AbstractCharacter) -> AbstractCharacter:
+	def become(self, g: AbstractCharacter) -> Self:
 		"""Erase all my nodes and edges. Replace them with a copy of the graph
 		provided.
 
@@ -3867,7 +3872,7 @@ class AbstractCharacter(DiGraph, ABC):
 		stat: Stat,
 		threshold: float = 0.5,
 		comparator: Callable | str = ge,
-	) -> AbstractCharacter:
+	) -> Self:
 		"""Delete nodes whose stat >= ``threshold`` (default 0.5).
 
 		Optional argument ``comparator`` will replace >= as the test
@@ -3888,7 +3893,7 @@ class AbstractCharacter(DiGraph, ABC):
 		stat: Stat,
 		threshold: float = 0.5,
 		comparator: Callable | str = ge,
-	):
+	) -> Self:
 		"""Delete portals whose stat >= ``threshold`` (default 0.5).
 
 		Optional argument ``comparator`` will replace >= as the test
@@ -4246,6 +4251,7 @@ class AbstractFunctionStore[_K: str, _V: FunctionType | MethodType](ABC):
 	@abstractmethod
 	def iterplain(self) -> Iterator[tuple[str, str]]: ...
 
+	@abstractmethod
 	def store_source(self, v: str, name: _K | None = None) -> None: ...
 
 	@abstractmethod
@@ -4433,6 +4439,9 @@ class QueryResult(Sequence, Set, ABC):
 		return self._list[item]
 
 	@abstractmethod
+	def __contains__(self, turn: int | Turn) -> bool: ...
+
+	@abstractmethod
 	def _generate(self): ...
 
 	@abstractmethod
@@ -4453,7 +4462,7 @@ class QueryResult(Sequence, Set, ABC):
 
 class QueryResultEndTurn(QueryResult):
 	def _generate(self):
-		spans = []
+		spans: list[tuple[int, int]] = []
 		left = []
 		right = []
 		for turn_from, turn_to, l_v, r_v in _yield_intersections(
@@ -4473,9 +4482,9 @@ class QueryResultEndTurn(QueryResult):
 		self._list = _list = []
 		append = _list.append
 		add = self._trues.add
-		for span, buul in zip(spans, bools):
+		for (start, stop), buul in zip(spans, bools):
 			if buul:
-				for turn in range(*span):
+				for turn in range(start, stop):
 					append(turn)
 					add(turn)
 
@@ -4751,7 +4760,7 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 		if branch is None:
 			return
 		turn_start, tick_start = engine._branch_start(branch)
-		for turn in range(turn_start, fork_turn + 1):
+		for turn in map(Turn, range(turn_start, fork_turn + 1)):
 			if oper(leftside(branch, turn), rightside(branch, turn)):
 				yield branch, turn
 
@@ -4768,12 +4777,12 @@ def slow_iter_btts_eval_cmp(qry, oper, start_branch=None, engine=None):
 		if branch is None:
 			return
 		turn_start = engine._branch_start(branch)[0]
-		for turn in range(turn_start, fork_turn + 1):
+		for turn in map(Turn, range(turn_start, fork_turn + 1)):
 			if turn == fork_turn:
 				local_turn_end = fork_tick
 			else:
 				local_turn_end = engine._turn_end_plan[branch, turn]
-			for tick in range(0, local_turn_end + 1):
+			for tick in map(Tick, range(0, local_turn_end + 1)):
 				try:
 					val = oper(
 						leftside(branch, turn, tick),
