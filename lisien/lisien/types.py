@@ -2682,7 +2682,7 @@ class AbstractEngine(ABC):
 		except Exception as ex:
 			if exc_val:
 				raise ExceptionGroup(
-					"Multiple exceptions during lisien.Engine.__exit__",
+					f"Multiple exceptions during {self.__class__.__name__}.__exit__",
 					(
 						ex,
 						exc_val,
