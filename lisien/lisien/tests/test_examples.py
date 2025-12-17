@@ -80,9 +80,7 @@ def test_char_stat_startup(tmp_path, database_connector_part):
 		tri.stat["max_sameness"] = 0.8
 		assert "max_sameness" in tri.stat
 
-	with Engine(
-		tmp_path, workers=0, database=reusing_database_connector_part()
-	) as eng:
+	with Engine(tmp_path, workers=0, database=database_connector_part) as eng:
 		assert "min_sameness" in eng.character["square"].stat
 		assert "max_sameness" in eng.character["square"].stat
 		assert "min_sameness" in eng.character["triangle"].stat
