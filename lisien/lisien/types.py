@@ -1363,7 +1363,7 @@ class GraphNodeMapping[_K, _V](
 @define(eq=False)
 class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 	MutableMapping[_ORIG, _DEST],
-	Signal,
+	AttrSignal,
 	CharacterMapping,
 	ABC,
 ):
