@@ -108,7 +108,7 @@ class ProxyLeaderMapping(Mapping):
 
 
 @Node.register
-@define
+@define(eq=False)
 class NodeProxy(CachingEntityProxy, RuleFollowerProxy, ABC):
 	name: NodeName
 
@@ -1273,6 +1273,7 @@ class UnitMapProxy(Mapping, RuleFollowerProxy, Signal):
 
 @define
 class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
+	engine: EngineProxy
 	adj_cls: ClassVar = CharSuccessorsMappingProxy
 	pred_cls: ClassVar = CharPredecessorsMappingProxy
 	graph_map_cls: ClassVar = CharStatProxy
