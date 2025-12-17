@@ -150,13 +150,6 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy, ABC):
 		)
 		self.engine._char_node_rulebooks_cache[self._charname][self.name] = rb
 
-	def __init__(self, character: CharacterProxy, nodename: NodeName, **stats):
-		self.engine = character.engine
-		self._charname = character.name
-		self.name = nodename
-		self._cache.update(stats)
-		super().__init__()
-
 	def __eq__(self, other: NodeProxy):
 		return (
 			isinstance(other, NodeProxy)
