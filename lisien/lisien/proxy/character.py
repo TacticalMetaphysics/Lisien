@@ -1521,9 +1521,8 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 			statdict=kwargs,
 			branching=True,
 		)
-		self.thing._cache[name] = thing = ThingProxy(
-			self, name, location, **kwargs
-		)
+		self.thing._cache[name] = thing = ThingProxy(self, name, location)
+		self.engine._node_stat_cache[self.name][name] = kwargs
 		self.thing.send(thing, key=None, value=True)
 		self.node.send(thing, key=None, value=True)
 
