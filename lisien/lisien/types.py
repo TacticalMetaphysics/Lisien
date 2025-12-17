@@ -911,14 +911,7 @@ class Node(AbstractEntityMapping, ABC):
 		return self.character.engine
 
 	@cached_property
-	def _iter_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Branch, Turn, Tick], Iterator[Key]],
-		CharName,
-		NodeName,
-		Time,
-	]:
+	def _iter_stuff(self):
 		return (
 			self.engine._node_val_cache.iter_keys,
 			self.character.name,
@@ -927,13 +920,7 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _cache_contains_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick], bool],
-		CharName,
-		NodeName,
-	]:
+	def _cache_contains_stuff(self):
 		return (
 			self.engine._node_val_cache.contains_key,
 			self.character.name,
@@ -941,14 +928,7 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _len_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Branch, Turn, Tick], int],
-		CharName,
-		NodeName,
-		Time,
-	]:
+	def _len_stuff(self):
 		return (
 			self.engine._node_val_cache.count_keys,
 			self.character.name,
@@ -957,13 +937,7 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _get_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick], Value],
-		CharName,
-		NodeName,
-	]:
+	def _get_cache_stuff(self):
 		return (
 			self.engine._node_val_cache.retrieve,
 			self.character.name,
@@ -971,13 +945,7 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _set_db_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick, Value], None],
-		CharName,
-		NodeName,
-	]:
+	def _set_db_stuff(self):
 		return (
 			self.engine.database.node_val_set,
 			self.character.name,
@@ -985,13 +953,7 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _set_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick, Value], None],
-		CharName,
-		NodeName,
-	]:
+	def _set_cache_stuff(self):
 		return (
 			self.engine._node_val_cache.store,
 			self.character.name,
@@ -1133,17 +1095,7 @@ class Edge(AbstractEntityMapping, ABC):
 		return str(dict(self))
 
 	@cached_property
-	def _iter_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Branch, Turn, Tick], Iterator[Stat]
-		],
-		CharName,
-		NodeName,
-		NodeName,
-		Time,
-	]:
+	def _iter_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.iter_keys,
 			self.character.name,
@@ -1157,16 +1109,7 @@ class Edge(AbstractEntityMapping, ABC):
 		return iter_entity_keys(graphn, orig, dest, *btt)
 
 	@cached_property
-	def _cache_contains_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick], bool
-		],
-		CharName,
-		NodeName,
-		NodeName,
-	]:
+	def _cache_contains_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.contains_key,
 			self.character.name,
@@ -1181,15 +1124,7 @@ class Edge(AbstractEntityMapping, ABC):
 		return contains_key(graphn, orig, dest, key, branch, turn, tick)
 
 	@cached_property
-	def _len_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, NodeName, Branch, Turn, Tick], int],
-		CharName,
-		NodeName,
-		NodeName,
-		Time,
-	]:
+	def _len_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.count_keys,
 			self.character.name,
@@ -1203,16 +1138,7 @@ class Edge(AbstractEntityMapping, ABC):
 		return count_entity_keys(graphn, orig, dest, *btt)
 
 	@cached_property
-	def _get_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick], Value
-		],
-		CharName,
-		NodeName,
-		NodeName,
-	]:
+	def _get_cache_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.retrieve,
 			self.character.name,
@@ -1227,17 +1153,7 @@ class Edge(AbstractEntityMapping, ABC):
 		return retrieve(graphn, orig, dest, key, branch, turn, tick)
 
 	@cached_property
-	def _set_db_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value],
-			None,
-		],
-		CharName,
-		NodeName,
-		NodeName,
-	]:
+	def _set_db_stuff(self):
 		return (
 			self.character.engine.database.edge_val_set,
 			self.character.name,
@@ -1252,17 +1168,7 @@ class Edge(AbstractEntityMapping, ABC):
 		edge_val_set(graphn, orig, dest, key, branch, turn, tick, value)
 
 	@cached_property
-	def _set_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value],
-			None,
-		],
-		CharName,
-		NodeName,
-		NodeName,
-	]:
+	def _set_cache_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.store,
 			self.character.name,
@@ -3535,7 +3441,7 @@ class BaseMutableCharacterMapping[_KT, _VT](
 ): ...
 
 
-@define
+@define(eq=False)
 class AbstractCharacter(DiGraph, ABC):
 	"""The Character API, with all requisite mappings and graph generators.
 
@@ -3774,6 +3680,9 @@ class AbstractCharacter(DiGraph, ABC):
 
 	def __len__(self):
 		return len(self.node)
+
+	def __eq__(self, other):
+		return isinstance(other, AbstractCharacter) and self.name == other.name
 
 	def __bool__(self):
 		try:

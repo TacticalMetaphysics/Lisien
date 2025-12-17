@@ -788,7 +788,7 @@ class FacadePortalPredecessors(FacadePortalSubMapping):
 			return {}
 
 
-@define
+@define(eq=False)
 class CharacterFacade(AbstractCharacter):
 	engine: EngineFacade
 	_name: CharName
