@@ -9,7 +9,7 @@ depends_on:
 
 steps:
   - name: headless_subinterpreter_3.14
-    image: python:3.14.0
+    image: python:3.14
     commands:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
