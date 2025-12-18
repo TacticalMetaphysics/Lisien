@@ -1796,6 +1796,10 @@ class FuncStoreProxy(AbstractFunctionStore, Signal):
 	def iterplain(self) -> Iterator[tuple[str, str]]:
 		return iter(self._cache.items())
 
+	def store_source(self, v: str, name: str | None = None) -> None:
+		self._cache[name] = v
+		self.engine.handle("store_source", v=v, name=name, store=self._store)
+
 	_cache: dict
 
 	def _worker_check(self):
