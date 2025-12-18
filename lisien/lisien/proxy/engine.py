@@ -1786,7 +1786,13 @@ class PortalObjCache:
 			del self.predecessors[char]
 
 
+@define
 class FuncStoreProxy(AbstractFunctionStore, Signal):
+	engine_proxy: EngineProxy
+	store: FuncStoreName
+	_cache: dict[str, str] = field(alias="initial", factory=dict)
+	_proxy_cache: dict = field(init=False, factory=dict)
+
 	def save(self, reimport: bool = True) -> None:
 		self.engine.handle("save_code", reimport=reimport)
 
@@ -1800,25 +1806,8 @@ class FuncStoreProxy(AbstractFunctionStore, Signal):
 		self._cache[name] = v
 		self.engine.handle("store_source", v=v, name=name, store=self._store)
 
-	_cache: dict
-
 	def _worker_check(self):
 		self.engine._worker_check()
-
-	def __init__(
-		self,
-		engine_proxy: EngineProxy,
-		store: FuncStoreName,
-		initial: dict[str, str] | None = None,
-	):
-		super().__init__()
-		self.engine = engine_proxy
-		self._store = store
-		if initial is None:
-			self._cache = {}
-		else:
-			self._cache = initial
-		self._proxy_cache = {}
 
 	def load(self):
 		self._cache = self.engine.handle("source_copy", store=self._store)
@@ -1876,14 +1865,9 @@ class FuncStoreProxy(AbstractFunctionStore, Signal):
 		)
 
 
+@define
 class TrigStoreProxy(FuncStoreProxy):
-	def __init__(
-		self,
-		engine_proxy: EngineProxy,
-		store: FuncStoreName,
-		initial: dict[str, str] | None = None,
-	):
-		super().__init__(engine_proxy, store, initial)
+	def __attrs_post_init__(self):
 		self._cache["truth"] = dedent_source(
 			"""
 		def truth(*args):
