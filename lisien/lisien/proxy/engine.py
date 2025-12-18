@@ -205,13 +205,13 @@ class EngineProxy(AbstractEngine):
 	@staticmethod
 	def _convert_func_store_proxy(store_name, src_d, self):
 		if self.i is None:
-			return FuncStoreProxy(self, store_name, initial=src_d)
+			return FuncStoreProxy(self, store_name, initial=src_d or {})
 		else:
 			return FunctionStore(
 				self.prefix.joinpath(store_name + ".py")
 				if self.prefix
 				else None,
-				initial=src_d,
+				initial=src_d or {},
 			)
 
 	function: FuncStoreProxy | FunctionStore = field(
@@ -1825,7 +1825,7 @@ class PortalObjCache:
 
 @define
 class FuncStoreProxy(AbstractFunctionStore, Signal):
-	engine_proxy: EngineProxy
+	engine: EngineProxy
 	store: FuncStoreName
 	_cache: dict[str, str] = field(alias="initial", factory=dict)
 	_proxy_cache: dict[FuncName, FuncProxy] = field(init=False, factory=dict)
@@ -1869,11 +1869,13 @@ class FuncStoreProxy(AbstractFunctionStore, Signal):
 		self._proxy_cache[funcname] = FuncProxy(self, funcname)
 
 	def __setattr__(self, func_name: str, func: Callable | str):
+		if func_name in ("_cache", "_proxy_cache"):
+			if not isinstance(func, dict):
+				raise TypeError("Invalid FuncStoreProxy cache", func)
+			return super().__setattr__(func_name, func)
 		if func_name in (
 			"engine",
-			"_store",
-			"_cache",
-			"_proxy_cache",
+			"store",
 			"receivers",
 			"_by_sender",
 			"_by_receiver",
