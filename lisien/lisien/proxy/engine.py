@@ -1915,36 +1915,37 @@ class TrigStoreProxy(FuncStoreProxy):
 		)
 
 
-class CharacterMapProxy(MutableMapping, Signal):
+@define
+class CharacterMapProxy(MutableMapping, AttrSignal):
+	engine: EngineProxy
+
 	def _worker_check(self):
 		self.engine._worker_check()
-
-	def __init__(self, engine_proxy: EngineProxy):
-		super().__init__()
-		self.engine = engine_proxy
 
 	def __iter__(self) -> Iterator[CharName]:
 		return iter(self.engine._char_cache.keys())
 
-	def __contains__(self, k: KeyHint):
+	def __contains__(self, k: KeyHint | CharName):
 		return k in self.engine._char_cache
 
 	def __len__(self):
 		return len(self.engine._char_cache)
 
-	def __getitem__(self, k: KeyHint) -> CharacterProxy:
+	def __getitem__(self, k: KeyHint | CharName) -> CharacterProxy:
 		return self.engine._char_cache[k]
 
-	def __setitem__(self, k: KeyHint, v: CharDelta):
+	def __setitem__(self, k: KeyHint | CharName, v: CharDelta):
 		self._worker_check()
+		k = CharName(Key(k))
 		self.engine.handle(
 			command="set_character", char=k, data=v, branching=True
 		)
 		self.engine._char_cache[k] = CharacterProxy(self.engine, k)
 		self.send(self, key=k, val=v)
 
-	def __delitem__(self, k: KeyHint):
+	def __delitem__(self, k: KeyHint | CharName):
 		self._worker_check()
+		k = CharName(Key(k))
 		self.engine.handle(command="del_character", char=k, branching=True)
 		for graph, characters in self.engine._unit_characters_cache.items():
 			if k in characters:
@@ -1995,15 +1996,12 @@ class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
 				inst.send(inst, key=k, string=v)
 
 
-class StringStoreProxy(Signal):
-	language = ProxyLanguageDescriptor()
+@define
+class StringStoreProxy(AttrSignal):
 	_cache: dict
-	_store = "strings"
-
-	def __init__(self, engine_proxy: EngineProxy):
-		self._cache = {}
-		super().__init__()
-		self.engine = engine_proxy
+	_language: str = "eng"
+	_store: ClassVar = "strings"
+	language: ClassVar = ProxyLanguageDescriptor()
 
 	def _worker_check(self):
 		self.engine._worker_check()
@@ -2051,36 +2049,39 @@ class StringStoreProxy(Signal):
 			)
 
 
+@define
 class EternalVarProxy(MutableMapping):
+	engine: EngineProxy
+
 	@property
-	def _cache(self):
+	def _cache(self) -> dict[EternalKey, Value]:
 		return self.engine._eternal
 
 	def _worker_check(self):
 		self.engine._worker_check()
 
-	def __init__(self, engine_proxy):
-		self.engine = engine_proxy
-
-	def __contains__(self, k: KeyHint):
+	def __contains__(self, k: KeyHint | EternalKey):
 		return k in self._cache
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[EternalKey]:
 		return iter(self._cache)
 
 	def __len__(self):
 		return len(self._cache)
 
-	def __getitem__(self, k: KeyHint):
-		return self._cache[k]
+	def __getitem__(self, k: KeyHint | EternalKey):
+		return self._cache[EternalKey(Key(k))]
 
-	def __setitem__(self, k: KeyHint, v: ValueHint):
+	def __setitem__(self, k: KeyHint | EternalKey, v: ValueHint | Value):
 		self._worker_check()
+		k = EternalKey(Key(k))
+		v = Value(v)
 		self._cache[k] = v
 		self.engine.handle("set_eternal", k=k, v=v)
 
-	def __delitem__(self, k: KeyHint):
+	def __delitem__(self, k: KeyHint | EternalKey):
 		self._worker_check()
+		k = EternalKey(Key(k))
 		del self._cache[k]
 		self.engine.handle(command="del_eternal", k=k)
 
@@ -2092,35 +2093,37 @@ class EternalVarProxy(MutableMapping):
 				self._cache[k] = v
 
 
-class GlobalVarProxy(MutableMapping, Signal):
+@define
+class GlobalVarProxy(MutableMapping, AttrSignal):
+	engine: EngineProxy
+
 	@property
-	def _cache(self):
+	def _cache(self) -> dict[UniversalKey, Value]:
 		return self.engine._universal
 
 	def _worker_check(self):
 		self.engine._worker_check()
 
-	def __init__(self, engine_proxy: EngineProxy):
-		super().__init__()
-		self.engine = engine_proxy
-
-	def __iter__(self):
+	def __iter__(self) -> Iterator[UniversalKey]:
 		return iter(self._cache)
 
 	def __len__(self):
 		return len(self._cache)
 
-	def __getitem__(self, k: KeyHint):
-		return self._cache[k]
+	def __getitem__(self, k: KeyHint | UniversalKey):
+		return self._cache[UniversalKey(Key(k))]
 
-	def __setitem__(self, k: KeyHint, v: ValueHint):
+	def __setitem__(self, k: KeyHint | UniversalKey, v: ValueHint | Value):
 		self._worker_check()
+		k = UniversalKey(Key(k))
+		v = Value(v)
 		self._cache[k] = v
 		self.engine.handle("set_universal", k=k, v=v, branching=True)
 		self.send(self, key=k, value=v)
 
-	def __delitem__(self, k: KeyHint):
+	def __delitem__(self, k: KeyHint | UniversalKey):
 		self._worker_check()
+		k = UniversalKey(Key(k))
 		del self._cache[k]
 		self.engine.handle("del_universal", k=k, branching=True)
 		self.send(self, key=k, value=...)
@@ -2137,25 +2140,28 @@ class GlobalVarProxy(MutableMapping, Signal):
 				self.send(self, key=k, value=v)
 
 
+@define
 class AllRuleBooksProxy(MutableMapping):
+	engine: EngineProxy
+	_objs: dict[RulebookName, RuleBookProxy] = field(init=False, factory=dict)
+
 	@property
-	def _cache(self):
+	def _cache(
+		self,
+	) -> dict[RulebookName, tuple[list[RuleName], RulebookPriority]]:
 		return self.engine._rulebooks_cache
 
-	def __init__(self, engine_proxy):
-		self.engine = engine_proxy
-		self._objs: dict[RulebookName, RuleBookProxy] = {}
-
-	def __iter__(self):
+	def __iter__(self) -> Iterator[RulebookName]:
 		yield from self._cache
 
 	def __len__(self):
 		return len(self._cache)
 
-	def __contains__(self, k: str):
+	def __contains__(self, k: str | RulebookName):
 		return k in self._cache
 
-	def __getitem__(self, k: str):
+	def __getitem__(self, k: KeyHint | RulebookName):
+		k = RulebookName(Key(k))
 		if k not in self:
 			self.engine.handle("new_empty_rulebook", rulebook=k)
 			no_rules: list[RuleName] = []
@@ -2167,9 +2173,10 @@ class AllRuleBooksProxy(MutableMapping):
 
 	def __setitem__(
 		self,
-		key: str,
+		key: KeyHint | RulebookName,
 		value: FuncListProxy | Iterable[RuleProxy | str | FuncProxy],
 	):
+		key = RulebookName(Key(key))
 		rules: list[RuleName] = []
 		for rule in value:
 			if isinstance(rule, str):
@@ -2183,22 +2190,33 @@ class AllRuleBooksProxy(MutableMapping):
 			rules.append(rule)
 		self.engine.handle("set_rulebook_rules", rulebook=key, rules=rules)
 
-	def __delitem__(self, key: str):
+	def __delitem__(self, key: KeyHint | RulebookName):
+		key = RulebookName(Key(key))
 		del self._cache[key]
 		self.engine.handle("del_rulebook", rulebook=key)
 
 
+@define
 class AllRulesProxy(MutableMapping):
+	engine: EngineProxy
+	_proxy_cache: dict[RuleName, RuleProxy] = field(init=False, factory=dict)
+
 	@property
-	def _cache(self):
+	def _cache(
+		self,
+	) -> dict[
+		RuleName,
+		dict[
+			Literal["triggers", "prereqs", "actions"],
+			list[TriggerFuncName]
+			| list[PrereqFuncName]
+			| list[ActionFuncName],
+		],
+	]:
 		return self.engine._rules_cache
 
 	def _worker_check(self):
 		self.engine._worker_check()
-
-	def __init__(self, engine_proxy: EngineProxy):
-		self.engine = engine_proxy
-		self._proxy_cache = {}
 
 	def __iter__(self):
 		return iter(self._cache)
@@ -2206,17 +2224,21 @@ class AllRulesProxy(MutableMapping):
 	def __len__(self):
 		return len(self._cache)
 
-	def __contains__(self, k: RuleName):
+	def __contains__(self, k: str | RuleName):
 		return k in self._cache
 
-	def __getitem__(self, k: str):
+	def __getitem__(self, k: str | RuleName):
+		k = RuleName(k)
 		if k not in self:
 			raise KeyError("No rule: {}".format(k))
 		if k not in self._proxy_cache:
 			self._proxy_cache[k] = RuleProxy(self.engine, k)
 		return self._proxy_cache[k]
 
-	def __setitem__(self, key: str, value: RuleProxy | FuncProxy | str):
+	def __setitem__(
+		self, key: str | RuleName, value: RuleProxy | FuncProxy | str
+	):
+		key = RuleName(key)
 		if isinstance(value, RuleProxy):
 			self._proxy_cache[key] = value
 		elif callable(value) or hasattr(self.engine.action, value):
@@ -2225,7 +2247,8 @@ class AllRulesProxy(MutableMapping):
 		else:
 			raise TypeError("Need RuleProxy or an action", type(value))
 
-	def __delitem__(self, key: str):
+	def __delitem__(self, key: str | RuleName):
+		key = RuleName(key)
 		self.engine.handle("del_rule", rule=key)
 		if key in self._proxy_cache:
 			del self._proxy_cache[key]
@@ -2247,8 +2270,9 @@ class AllRulesProxy(MutableMapping):
 			ret.neighborhood = neighborhood
 		return ret
 
-	def new_empty(self, k: str) -> RuleProxy:
+	def new_empty(self, k: str | RuleName) -> RuleProxy:
 		self._worker_check()
+		k = RuleName(k)
 		self.engine.handle(command="new_empty_rule", rule=k)
 		self._cache[k] = {"triggers": [], "prereqs": [], "actions": []}
 		self._proxy_cache[k] = RuleProxy(self.engine, k)
