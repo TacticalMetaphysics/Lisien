@@ -1824,7 +1824,7 @@ class PortalObjCache:
 
 
 @define
-class FuncStoreProxy(AbstractFunctionStore, Signal):
+class FuncStoreProxy(AbstractFunctionStore, AttrSignal):
 	engine: EngineProxy
 	_store: FuncStoreName
 	_cache: dict[str, str] = field(alias="initial", factory=dict)
