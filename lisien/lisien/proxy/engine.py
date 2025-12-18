@@ -1478,7 +1478,7 @@ class EngineProxy(AbstractEngine):
 		else:
 			self._save_and_reimport_all_code()
 		self._upd_caches(*args, **kwargs)
-		self._upd_time(*args, no_del=True, **kwargs)
+		self._upd_time(*args, **kwargs)
 
 	def _upd_and_cb(
 		self, *args, cb: EngineProxyCallback | None = None, **kwargs
