@@ -150,7 +150,7 @@ class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
 
 
 EngineProxyCallback = Callable[
-	[str, Branch, Turn, Tick, tuple[ValueHint, ...]], Any
+	[str, Branch, Turn, Tick, tuple[Value, ...]], Any
 ]
 
 
@@ -182,7 +182,7 @@ class EngineProxy(AbstractEngine):
 	_send_output_bytes: Callable[[bytes], None] | None
 	logger: logging.Logger
 	prefix: os.PathLike[str] | None = None
-	_install_modules: Iterable[str] = ()
+	_install_modules: list[str] | tuple[str] = ()
 	_eternal: dict[EternalKey, Value] = field(
 		factory=lambda: {"language": "eng"}
 	)
@@ -1157,7 +1157,7 @@ class EngineProxy(AbstractEngine):
 					self.handle(method, *args, **kwargs)
 		self.debug("EngineProxy: Initial pull from core completed.")
 
-	def __getattr__(self, item):
+	def __getattr__(self, item: str):
 		try:
 			return super().__getattr__(item)
 		except AttributeError:
@@ -1207,7 +1207,7 @@ class EngineProxy(AbstractEngine):
 		self.method._locl = pickle.loads(replacement)
 
 	def send(
-		self, obj: ValueHint, blocking: bool = True, timeout: int | float = 1
+		self, obj: Value, blocking: bool = True, timeout: int | float = 1
 	) -> None:
 		self.send_bytes(self.pack(obj), blocking=blocking, timeout=timeout)
 
@@ -1298,11 +1298,18 @@ class EngineProxy(AbstractEngine):
 			cb(command, branch, turn, tick, r)
 		return r
 
-	def _unpack_recv(self):
+	def _unpack_recv(self) -> Value:
 		ret = self.unpack(self.recv_bytes())
 		return ret
 
-	def _upd_caches(self, command, branch, turn, tick, result) -> None:
+	def _upd_caches(
+		self,
+		command: str,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		result: tuple[Value, ...],
+	) -> None:
 		result, deltas = result
 		self.eternal._update_cache(deltas.pop("eternal", {}))
 		self.universal._update_cache(deltas.pop("universal", {}))
@@ -1360,7 +1367,14 @@ class EngineProxy(AbstractEngine):
 		for char in to_delete & self._char_cache.keys():
 			del self._char_cache[char]
 
-	def _upd_time(self, command, branch, turn, tick, result, **kwargs) -> None:
+	def _upd_time(
+		self,
+		command: str,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		result: tuple[Value, ...],
+	) -> None:
 		then = self._btt()
 		self._branch = branch
 		self._turn = turn
@@ -1489,6 +1503,7 @@ class EngineProxy(AbstractEngine):
 				data = nx.from_dict_of_lists(data)
 			except nx.NetworkXException:
 				data = nx.from_dict_of_dicts(data)
+		data: nx.Graph
 		if data is not None:
 			if not isinstance(data, nx.Graph):
 				raise TypeError("Need dict or graph", type(data))
@@ -1559,7 +1574,7 @@ class EngineProxy(AbstractEngine):
 
 	def add_character(
 		self,
-		char: KeyHint,
+		char: KeyHint | CharName,
 		data: CharDelta | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
@@ -1570,11 +1585,13 @@ class EngineProxy(AbstractEngine):
 			raise WorkerProcessReadOnlyError(
 				"Tried to change world state in a worker process"
 			)
-		self._add_character(CharName(char), data, layout, node, edge, **attr)
+		self._add_character(
+			CharName(Key(char)), data, layout, node, edge, **attr
+		)
 
 	def new_character(
 		self,
-		char: KeyHint,
+		char: KeyHint | CharName,
 		data: CharDelta | None = None,
 		layout: bool = False,
 		node: NodeValDict | None = None,
@@ -1584,7 +1601,7 @@ class EngineProxy(AbstractEngine):
 		self.add_character(char, data, layout, node, edge, **attr)
 		return self._char_cache[char]
 
-	def _del_character(self, char: KeyHint) -> None:
+	def _del_character(self, char: CharName) -> None:
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		del self._char_cache[char]
@@ -1597,7 +1614,7 @@ class EngineProxy(AbstractEngine):
 		self._character_portals_cache.delete_char(char)
 		self.handle(command="del_character", char=char, branching=True)
 
-	def del_character(self, char: KeyHint) -> None:
+	def del_character(self, char: KeyHint | CharName) -> None:
 		if self._worker and not getattr(self, "_mutable_worker", False):
 			raise WorkerProcessReadOnlyError(
 				"tried to change world state in a worker process"
@@ -1606,7 +1623,11 @@ class EngineProxy(AbstractEngine):
 
 	del_graph = del_character
 
-	def del_node(self, char: KeyHint, node: KeyHint) -> None:
+	def del_node(
+		self, char: KeyHint | CharName, node: KeyHint | NodeName
+	) -> None:
+		char = CharName(Key(char))
+		node = NodeName(Key(node))
 		if char not in self._char_cache:
 			raise KeyError("No such character")
 		if (
@@ -1638,9 +1659,17 @@ class EngineProxy(AbstractEngine):
 				del nv[char]
 		self.handle(command="del_node", char=char, node=node, branching=True)
 
-	def del_portal(self, char: KeyHint, orig: KeyHint, dest: KeyHint) -> None:
+	def del_portal(
+		self,
+		char: KeyHint | CharName,
+		orig: KeyHint | NodeName,
+		dest: KeyHint | NodeName,
+	) -> None:
 		if char not in self._char_cache:
 			raise KeyError("No such character")
+		char = CharName(Key(char))
+		orig = NodeName(Key(orig))
+		dest = NodeName(Key(dest))
 		self._character_portals_cache.delete(char, orig, dest)
 		ev = self._portal_stat_cache
 		if char in ev and orig in ev[char] and dest in ev[char][orig]:
@@ -1661,7 +1690,15 @@ class EngineProxy(AbstractEngine):
 		self._commit_lock.acquire()
 		self.handle("commit", cb=self._release_commit_lock)
 
-	def _release_commit_lock(self, *, command, branch, turn, tick, result):
+	def _release_commit_lock(
+		self,
+		*,
+		command: str,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		result: tuple[ValueHint, ...],
+	):
 		self._commit_lock.release()
 
 	def close(self) -> None:
@@ -1791,7 +1828,7 @@ class FuncStoreProxy(AbstractFunctionStore, Signal):
 	engine_proxy: EngineProxy
 	store: FuncStoreName
 	_cache: dict[str, str] = field(alias="initial", factory=dict)
-	_proxy_cache: dict = field(init=False, factory=dict)
+	_proxy_cache: dict[FuncName, FuncProxy] = field(init=False, factory=dict)
 
 	def save(self, reimport: bool = True) -> None:
 		self.engine.handle("save_code", reimport=reimport)
@@ -1813,6 +1850,7 @@ class FuncStoreProxy(AbstractFunctionStore, Signal):
 		self._cache = self.engine.handle("source_copy", store=self._store)
 
 	def __getattr__(self, k: str) -> FuncProxy:
+		k = FuncName(k)
 		if k in super().__getattribute__("_cache"):
 			proxcache = super().__getattribute__("_proxy_cache")
 			if k not in proxcache:
