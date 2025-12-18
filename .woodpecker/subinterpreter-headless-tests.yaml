@@ -19,6 +19,6 @@ steps:
       - python -m pip install --upgrade pip
       - python -m pip install tox
       - PYTEST_KEYWORDS=subinterpreter
-      - echo "PYTEST_KEYWORDS=$PYTEST_KEYWORDS
+      - echo "PYTEST_KEYWORDS=$PYTEST_KEYWORDS"
       - export PYTEST_KEYWORDS
       - tox run -c lisien/tox_terp.ini
