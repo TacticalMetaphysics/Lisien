@@ -59,6 +59,10 @@ tester knew to look for it.
 ## Core
 
 * *Multiverse time travel*, rendering traditional save files obsolete.
+  Lisien remembers everything that ever happened while you were playing, and
+  will let you set the state of the game back to any earlier state whenever
+  you want, whether or not you remembered to "save your game". Alternate
+  branches of time are available.
 * Integration with [NetworkX](http://networkx.github.io) for
   convenient access to various *graph algorithms*, particularly
   pathfinding.
@@ -70,8 +74,9 @@ tester knew to look for it.
 
 ## IDE
 
-* *Instant replay*: go back to previous world states whenever you feel
-  like it, with minimal loading.
+* *Instant replay*: Time travel that works like the game is a video.
+  Rewind whenever you want, and play differently on a new branch of the
+  timestream.
 * *Rule constructor*: Build rules out of short functions representing
   triggers and actions.
 * *Rule stepper*: view the world state in the middle of a turn, just
