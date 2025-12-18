@@ -3041,9 +3041,9 @@ class AbstractEngine(ABC):
 			exctyp, excargs, tb = self.unpack(getattr(ext, "data", ext))
 			if exctyp not in excs:
 				return Exception(exctyp, *data)
-			ret = exc[exctyp](*excargs)
+			ret = getattr(exc, exctyp)(*excargs)
 			if tb is not None:
-				ret.__traceback__ = Traceback.from_dict(data[1]).to_traceback()
+				ret.__traceback__ = Traceback.from_dict(tb).to_traceback()
 			return ret
 
 		def unpack_char(ext: bytes) -> char_cls:
