@@ -1735,10 +1735,10 @@ class RandoProxy(Random):
 		return self._handle(cmd="call_randomizer", method="random")
 
 
+@define
 class PortalObjCache:
-	def __init__(self):
-		self.successors = {}
-		self.predecessors = {}
+	successors = field(init=False, factory=dict)
+	predecessors = field(init=False, factory=dict)
 
 	def store(
 		self, char: CharName, u: NodeName, v: NodeName, obj: PortalProxy
