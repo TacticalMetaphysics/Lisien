@@ -110,6 +110,7 @@ from ..types import (
 	AbstractLanguageDescriptor,
 	Stat,
 	CharacterRulebookTypeStr,
+	AttrSignal,
 )
 from ..util import (
 	dedent_source,
@@ -1680,10 +1681,9 @@ class EngineProxy(AbstractEngine):
 				yield thing.name
 
 
-class NextTurnProxy(Signal):
-	def __init__(self, engine: EngineProxy):
-		super().__init__()
-		self.engine = engine
+@define
+class NextTurnProxy(AttrSignal):
+	engine: EngineProxy
 
 	def __call__(
 		self, cb: Optional[callable] = None
