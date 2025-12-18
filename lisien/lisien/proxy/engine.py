@@ -1826,7 +1826,7 @@ class PortalObjCache:
 @define
 class FuncStoreProxy(AbstractFunctionStore, Signal):
 	engine: EngineProxy
-	store: FuncStoreName
+	_store: FuncStoreName
 	_cache: dict[str, str] = field(alias="initial", factory=dict)
 	_proxy_cache: dict[FuncName, FuncProxy] = field(init=False, factory=dict)
 
@@ -1875,7 +1875,7 @@ class FuncStoreProxy(AbstractFunctionStore, Signal):
 			return super().__setattr__(func_name, func)
 		if func_name in (
 			"engine",
-			"store",
+			"_store",
 			"receivers",
 			"_by_sender",
 			"_by_receiver",
