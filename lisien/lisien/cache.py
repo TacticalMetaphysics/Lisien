@@ -39,6 +39,8 @@ from typing import (
 	Protocol,
 )
 
+from attrs import define
+
 from . import engine
 from .collections import ChangeTrackingDict
 from .exc import (
@@ -101,18 +103,22 @@ class SizedDict[_K, _V](OrderedDict[_K, _V]):
 			super().__setitem__(key, value)
 
 
-class TurnEndDict(ChangeTrackingDict[tuple[Branch, Turn], Tick]):
-	"""Tick on which a (branch, turn) ends, not including any plans"""
-
+@define
+class AbstractTurnEndDict(ChangeTrackingDict[tuple[Branch, Turn], Tick]):
 	engine: "engine.Engine"
 
-	def __init__(self, engine):
-		self.engine = engine
-		super().__init__()
+	def __attrs_pre_init__(
+		self,
+		engine: "engine.Engine",
+		data: list[tuple[_K, _V]] | dict[_K, _V] = (),
+		/,
+		**kwargs,
+	):
+		super().__attrs_pre_init__(data, **kwargs)
 
 	@cached_property
-	def other_d(self) -> TurnEndPlanDict:
-		return self.engine._turn_end_plan
+	@abstractmethod
+	def other_d(self) -> AbstractTurnEndDict: ...
 
 	def __getitem__(self, item: tuple[Branch, Turn]) -> Tick:
 		if item not in self:
@@ -126,16 +132,22 @@ class TurnEndDict(ChangeTrackingDict[tuple[Branch, Turn], Tick]):
 				return ret
 		return super().__getitem__(item)
 
+
+class TurnEndDict(AbstractTurnEndDict):
+	"""Tick on which a (branch, turn) ends, not including any plans"""
+
+	@cached_property
+	def other_d(self) -> TurnEndPlanDict:
+		return self.engine._turn_end_plan
+
 	def __setitem__(self, key: tuple[Branch, Turn], value: Tick):
 		super().__setitem__(key, value)
 		if key not in self.other_d or self.other_d[key] < value:
 			self.other_d[key] = value
 
 
-class TurnEndPlanDict(TurnEndDict):
+class TurnEndPlanDict(AbstractTurnEndDict):
 	"""Tick on which a (branch, turn) ends, including plans"""
-
-	engine: "engine.Engine"
 
 	@cached_property
 	def other_d(self) -> TurnEndDict:

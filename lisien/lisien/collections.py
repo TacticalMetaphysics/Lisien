@@ -40,6 +40,7 @@ from types import FunctionType, MethodType
 from typing import TYPE_CHECKING, Callable, Iterator, TypeVar, ClassVar
 
 import networkx as nx
+from attrs import field, define
 from blinker import Signal
 
 from .types import (
@@ -106,10 +107,14 @@ class TamperEvidentDict[_K, _V](dict[_K, _V]):
 		super().__delitem__(key)
 
 
+@define
 class ChangeTrackingDict[_K, _V](UserDict[_K, _V]):
-	def __init__(self, data: list[tuple[_K, _V]] | dict[_K, _V] = ()):
-		self.changed = {}
-		super().__init__(data)
+	changed: dict[_K, _V] = field(init=False, factory=dict)
+
+	def __attrs_pre_init__(
+		self, data: list[tuple[_K, _V]] | dict[_K, _V] = (), /, **kwargs
+	):
+		super().__init__(data, **kwargs)
 
 	def apply_changes(self) -> None:
 		self.data.update(self.changed)
