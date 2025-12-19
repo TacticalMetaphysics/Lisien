@@ -315,22 +315,20 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 			"""
 			db = self._get_db(table)
-			as_is = db.read()
-			if as_is.num_rows == 0:
+			if db.is_empty():
 				return
-			unwanted = as_is.schema.empty_table()
-			selected = pa.table(as_is)
+			unwanted = pa.table([[]], schema=pa.schema([("id", pa.int64())]))
 			for datum in data:
+				exprs: list[pc.Expression] = []
 				for k, v in datum.items():
 					expr = pc.field(k) == pc.scalar(v)
-					selected = selected.filter(expr)
+					exprs.append(expr)
+				selected = db.read(filters=exprs, columns=["id"])
 				unwanted = pa.concat_tables([unwanted, selected])
-				selected = pa.table(as_is)
-			if unwanted.num_rows == as_is.num_rows:
+			if unwanted.num_rows == db.n_rows:
 				db.drop_dataset()
 			else:
-				to_del = as_is.join(unwanted, "id", "id", "inner")["id"]
-				db.delete(ids=to_del)
+				db.delete(ids=unwanted["id"])
 
 		def all_keyframe_times(self):
 			return {
