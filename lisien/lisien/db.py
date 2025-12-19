@@ -762,7 +762,7 @@ class AbstractDatabaseConnector(ABC):
 	def __enter__(self) -> AbstractDatabaseConnector:
 		return self
 
-	def __exit__(self) -> None:
+	def __exit__(self, exc_type, exc_val, exc_tb):
 		self.close()
 
 	@batched(
