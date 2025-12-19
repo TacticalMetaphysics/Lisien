@@ -1673,8 +1673,9 @@ class EngineFacade(AbstractEngine):
 			self.data[key] = tuple(self.engine.time)
 
 		def __setitem__(self, key, value, /):
-			validate_time(value)
-			self.data[key] = value
+			if len(value) != 3:
+				raise TypeError("Not a full time with a branch", value)
+			self.data[key] = validate_time(value)
 
 		def __delitem__(self, key, /):
 			del self.data[key]
