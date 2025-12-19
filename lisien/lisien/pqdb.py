@@ -17,6 +17,7 @@ from __future__ import annotations
 import inspect
 import sys
 from functools import cached_property, partial
+from operator import itemgetter
 from pathlib import Path
 from types import EllipsisType
 from typing import (
@@ -34,7 +35,6 @@ from typing import (
 
 from attrs import define, field
 import pyarrow as pa
-from operator import itemgetter
 from pyarrow import compute as pc
 
 from .db import (
@@ -58,7 +58,6 @@ from .types import (
 	EdgeValRowType,
 	GraphRowType,
 	GraphTypeStr,
-	GraphValKeyframe,
 	GraphValRowType,
 	Key,
 	KeyframeExtensionRowType,
@@ -83,7 +82,6 @@ from .types import (
 	RuleName,
 	RuleNeighborhoodRowType,
 	Stat,
-	StatDict,
 	ThingRowType,
 	Tick,
 	Time,
@@ -98,13 +96,11 @@ from .types import (
 	TurnRowType,
 	UniversalRowType,
 	RulebookRowType,
-	NodeValDict,
-	EdgeValDict,
 	CharDict,
 	PackSignature,
 	UnpackSignature,
+	__dict__ as types_dict,
 )
-from .types import __dict__ as types_dict
 from .util import ELLIPSIS, EMPTY
 
 
@@ -120,8 +116,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 		@cached_property
 		def schema(self):
-			import pyarrow as pa
-
 			def origif(typ):
 				if isinstance(typ, TypeAliasType):
 					typ = typ.__value__
@@ -346,8 +340,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					db.drop_dataset()
 
 		def del_units_after(self, many):
-			from pyarrow import compute as pc
-
 			db = self._get_db("units")
 			ids = []
 			for character, graph, node, branch, turn, tick in many:
@@ -410,8 +402,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		def set_bookmark(
 			self, key: bytes, branch: Branch, turn: Turn, tick: Tick
 		):
-			import pyarrow.compute as pc
-
 			db = self._get_db("bookmarks")
 			schema = self._get_schema("bookmarks")
 			try:
@@ -445,8 +435,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			)
 
 		def del_bookmark(self, key: bytes):
-			import pyarrow.compute as pc
-
 			self._get_db("bookmarks").delete(
 				filters=[pc.field("key") == pc.scalar(key)]
 			)
@@ -641,8 +629,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			return ELLIPSIS
 
 		def _get_schema(self, table) -> pa.schema:
-			import pyarrow as pa
-
 			if table in self._schema:
 				return self._schema[table]
 			ret = self._schema[table] = pa.schema(self.schema[table])
@@ -791,8 +777,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			rules: bytes,
 			priority: RulebookPriority,
 		) -> bool:
-			import pyarrow.compute as pc
-
 			db = self._get_db("rulebooks")
 			named_data = {
 				"rulebook": rulebook,
