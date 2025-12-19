@@ -317,11 +317,14 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			as_is = db.read()
 			if as_is.num_rows == 0:
 				return
-			unwanted: pa.Table = as_is.schema.empty_table()
+			unwanted = as_is.schema.empty_table()
+			selected = pa.table(as_is)
 			for datum in data:
 				for k, v in datum.items():
 					expr = pc.field(k) == pc.scalar(v)
-					unwanted = pa.concat_tables([unwanted, as_is.filter(expr)])
+					selected = selected.filter(expr)
+				unwanted = pa.concat_tables([unwanted, selected])
+				selected = pa.table(as_is)
 			if unwanted.num_rows == as_is.num_rows:
 				db.drop_dataset()
 			else:
