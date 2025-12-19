@@ -307,6 +307,13 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			self._get_db("keyframe_extensions").delete(filters=filters)
 
 		def delete(self, table: str, data: list[dict]):
+			"""Delete data from ``table`` matching the provided keys
+
+			The 1.0.1 release of ParquetDB
+			doesn't handle the case of deleting *all* data from a table
+			correctly. This works around that.
+
+			"""
 			db = self._get_db(table)
 			as_is = db.read()
 			if as_is.num_rows == 0:
