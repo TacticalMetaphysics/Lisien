@@ -5422,8 +5422,12 @@ class Engine(AbstractEngine, Executor):
 	def _get_slow_delta(
 		self, btt_from: Time, btt_to: Time
 	) -> SlightlyPackedDeltaType:
-		for time in (btt_from, btt_to):
-			validate_time(time)
+		btt_from = validate_time(btt_from)
+		if not isinstance(btt_from, Time):
+			raise TypeError("Not a full time with a branch", btt_from)
+		btt_to = validate_time(btt_to)
+		if not isinstance(btt_to, Time):
+			raise TypeError("Not a full time with a branch", btt_to)
 		import numpy as np
 
 		def newgraph():
