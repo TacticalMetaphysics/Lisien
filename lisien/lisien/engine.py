@@ -5182,6 +5182,9 @@ class Engine(AbstractEngine, Executor):
 			kf[name] = (rbname, name)
 			rbcache.set_keyframe(branch, turn, tick, kf)
 		self._graph_cache.store(name, branch, turn, tick, type_s)
+		# You need the following "meaningless" keyframe snap so that the keyframe
+		# you're making isn't missing everything apart from the characters.
+		# Don't delete it.
 		self.snap_keyframe(silent=True, update_worker_processes=False)
 		self.database.graphs_insert(name, branch, turn, tick, type_s)
 		self._extend_branch(branch, turn, tick)
