@@ -84,6 +84,7 @@ from attrs import Factory, define, field, validators
 from blinker import Signal
 from networkx import NetworkXError
 from tblib import Traceback
+from zict import LRU
 
 from . import exc
 from .exc import TimeError, TravelException, WorkerProcessReadOnlyError
@@ -2494,19 +2495,6 @@ class EntityStatAccessor(EntityAccessor):
 		return self.entity[self.stat]
 
 
-class SizedDict[_K, _V](OrderedDict[_K, _V]):
-	"""A dictionary that discards old entries when it gets too big."""
-
-	def __init__(self, max_entries: Annotated[int, Ge(0)] = 1000):
-		self._n = max_entries
-		super().__init__()
-
-	def __setitem__(self, key, value):
-		while len(self) > self._n:
-			self.popitem(last=False)
-		super().__setitem__(key, value)
-
-
 class FakeFuture(Future):
 	"""A 'Future' that calls its function immediately and sets the result"""
 
@@ -4195,7 +4183,7 @@ def sort_set(s: Set[_T]) -> list[_T]:
 	return sort_set.memo[s].copy()
 
 
-sort_set.memo = SizedDict()
+sort_set.memo = LRU(1000, {})
 
 
 def root_type(t: type) -> type | tuple[type, ...]:
