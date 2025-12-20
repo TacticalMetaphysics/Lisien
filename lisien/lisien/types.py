@@ -4155,7 +4155,9 @@ def sort_set(s: Set[_T]) -> list[_T]:
 	support anything you can't use as a key in a dictionary.
 
 	Works by converting everything to bytes before comparison. Tuples get
-	their contents converted and concatenated.
+	their contents converted and joined with 0x1e, the record separator.
+	Floats get converted to integer ratios, which are joined with 0x1f,
+	the unit separator.
 
 	This is memoized.
 
@@ -4165,13 +4167,13 @@ def sort_set(s: Set[_T]) -> list[_T]:
 		if isinstance(v, bytes):
 			return v
 		elif isinstance(v, tuple):
-			return b"".join(map(sort_set_key, v))
+			return b"\x1e".join(map(sort_set_key, v))
 		elif isinstance(v, str):
 			return v.encode()
 		elif isinstance(v, int):
 			return v.to_bytes(8)
 		elif isinstance(v, float):
-			return b"".join(i.to_bytes(8) for i in v.as_integer_ratio())
+			return b"\x1f".join(i.to_bytes(8) for i in v.as_integer_ratio())
 		else:
 			raise TypeError(v)
 
