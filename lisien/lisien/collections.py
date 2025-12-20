@@ -61,6 +61,7 @@ from .types import (
 	sort_set,
 	AbstractLanguageDescriptor,
 	AbstractStringStore,
+	AttrSignal,
 )
 from .util import dedent_source, getatt
 from .wrap import wrapval
@@ -1063,8 +1064,9 @@ class CodeHasher(ast.NodeVisitor):
 		return encoded.decode()
 
 
+@define(on_setattr=False, getstate_setstate=False)
 class FunctionStore[_K: str, _T: FunctionType | MethodType](
-	AbstractFunctionStore[_K, _T], Signal
+	AbstractFunctionStore[_K, _T], AttrSignal
 ):
 	"""A module-like object that lets you alter its code and save your changes.
 
@@ -1079,26 +1081,23 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 
 	"""
 
-	_filename: Path | None
+	@staticmethod
+	def _convert_filename(fn: Path | None):
+		if fn is None:
+			return None
+		return Path(fn)
 
-	def __init__(
-		self,
-		filename: os.PathLike[str] | None,
-		initial: dict = None,
-		module: str = None,
-	):
-		if initial is None:
-			initial = {}
-		super().__init__()
-		if filename is None:
-			self._filename = None
-			self._module = self.__name__ = module
+	_filename: Path | None = field(default=None, converter=_convert_filename)
+
+	@_filename.validator
+	def _validate_filename(self, _, file: Path | None):
+		if file is None:
+			if self._module is None:
+				self._module = self.__name__
 			self._ast = ast.Module(body=[], type_ignores=[])
 			self._ast_idx = {}
 			self._need_save = False
-			self._locl = initial
 		else:
-			file = Path(filename)
 			if not file.name.endswith(".py"):
 				raise ValueError(
 					"FunctionStore can only work with pure Python source code"
@@ -1108,14 +1107,19 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 			try:
 				self.reimport()
 			except (FileNotFoundError, ModuleNotFoundError):
-				self._module = module
 				self._ast = ast.Module(body=[], type_ignores=[])
 				self._ast_idx = {}
 				self.save()
-			self._need_save = False
-			self._locl = {}
-			for k, v in initial.items():
-				setattr(self, k, v)
+
+	_module: str | None = None
+	_locl: dict[_K, _T] = field(alias="initial", factory=dict)
+
+	@_locl.validator
+	def _validate_initial(self, _, initial: dict[_K, _T]):
+		for k, v in initial.values():
+			self._set_source(k, getsource(v), func=v)
+
+	_need_save: bool = field(init=False, default=False)
 
 	def __dir__(self):
 		yield from self._locl
@@ -1274,6 +1278,7 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 		self._locl, self._ast, self._ast_idx = state
 
 
+@define(on_setattr=False, getstate_setstate=False)
 class TriggerStore(FunctionStore[TriggerFuncName, TriggerFunc]):
 	def get_source(self, name: str) -> str:
 		if name == "truth":
@@ -1285,9 +1290,11 @@ class TriggerStore(FunctionStore[TriggerFuncName, TriggerFunc]):
 		return True
 
 
+@define(on_setattr=False, getstate_setstate=False)
 class PrereqStore(FunctionStore[PrereqFuncName, PrereqFunc]): ...
 
 
+@define(on_setattr=False, getstate_setstate=False)
 class ActionStore(FunctionStore[ActionFuncName, ActionFunc]): ...
 
 
