@@ -49,6 +49,7 @@ from types import (
 	EllipsisType,
 	FunctionType,
 	GenericAlias,
+	GetSetDescriptorType,
 	MethodType,
 )
 from typing import (
@@ -2695,7 +2696,7 @@ class AbstractEngine(ABC):
 	place_cls: ClassVar[type[Node]]
 	portal_cls: ClassVar[type[Edge]]
 	char_cls: ClassVar[type[AbstractCharacter]]
-	time: ClassVar = TimeSignalDescriptor()
+	time: ClassVar[GetSetDescriptorType] = TimeSignalDescriptor()
 
 	@staticmethod
 	def _make_time_signal(self):
