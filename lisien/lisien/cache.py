@@ -88,21 +88,6 @@ if TYPE_CHECKING:
 	from . import engine
 
 
-class SizedDict[_K, _V](OrderedDict[_K, _V]):
-	"""A dictionary that discards old entries when it gets too big."""
-
-	def __init__(self, max_entries: int = 1000):
-		self._n = max_entries
-		self._lock = RLock()
-		super().__init__()
-
-	def __setitem__(self, key, value):
-		with self._lock:
-			while len(self) > self._n:
-				self.popitem(last=False)
-			super().__setitem__(key, value)
-
-
 @define
 class AbstractTurnEndDict(ChangeTrackingDict[tuple[Branch, Turn], Tick]):
 	engine: "engine.Engine"
