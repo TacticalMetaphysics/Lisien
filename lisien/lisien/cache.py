@@ -4115,6 +4115,12 @@ class UnitnessCache(
 
 
 def oner(f: Callable[..., Iterator]) -> Callable[..., Iterator]:
+	"""Decorator to turn an iterator into a function that returns the only value
+
+	Raises RuntimeError if the iterator yields more than one value, or no values.
+
+	"""
+
 	@wraps(f)
 	def oned(*args, **kwargs):
 		already = set()
