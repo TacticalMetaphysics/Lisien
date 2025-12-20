@@ -1347,7 +1347,8 @@ class UniversalMapping(MutableMapping, AttrSignal):
 		self.send(self, key=k, val=...)
 
 
-class CharacterMapping(MutableMapping, Signal):
+@define(repr=False)
+class CharacterMapping(MutableMapping, AttrSignal):
 	"""A mapping by which to access :class:`Character` objects.
 
 	If a character already exists, you can always get its name here to
@@ -1358,11 +1359,10 @@ class CharacterMapping(MutableMapping, Signal):
 
 	"""
 
-	engine = getatt("orm")
+	engine: "engine.Engine"
 
-	def __init__(self, orm):
-		self.orm = orm
-		Signal.__init__(self)
+	def __repr__(self):
+		return f"<CharacterMapping containing {', '.join(self)}>"
 
 	def __iter__(self):
 		branch, turn, tick = self.engine.time
