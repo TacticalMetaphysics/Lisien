@@ -730,12 +730,18 @@ class SetWrapper[_T](MutableWrapperSet[_T]):
 	"""
 
 	__slots__ = ()
-	_getter: Callable[[], set]
+	_getter: Callable[[], set[_T]]
 	_outer: MutableMapping
 	_key: Hashable
 
+	def _get(self) -> set[_T]:
+		return self._getter()
+
 	def _set(self, v: Set[_T]) -> None:
 		self._outer[self._key] = v
+
+	def __copy__(self):
+		return set(self._getter())
 
 
 class UnwrappingDict[_K, _V](dict[_K, _V]):
