@@ -19,7 +19,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict, deque
 from contextlib import contextmanager
-from functools import cached_property, wraps
+from functools import cached_property, partial, wraps
 from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
@@ -39,7 +39,7 @@ from typing import (
 	Protocol,
 )
 
-from attrs import define
+from attrs import Factory, define, field
 
 from . import engine
 from .collections import ChangeTrackingDict
@@ -186,12 +186,30 @@ type CacheKeys[*_PARENT, _ENTITY, _KEY, _VALUE] = dict[
 ]
 
 
+@define
 class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 	ABC
 ):
 	"""A data store that's useful for tracking graph revisions."""
 
-	initial_value = ...
+	engine: "engine.Engine"
+	_keyframe_dict: dict | None = None
+
+	@staticmethod
+	def _dont_set_db(*args): ...
+
+	setdb: Callable[
+		[*_PARENT, _ENTITY, _KEY, Branch, Turn, Tick, _VALUE], None
+	] = field(init=False, default=_dont_set_db)
+
+	@staticmethod
+	def _dont_del_db(*args): ...
+
+	deldb: Callable[[*_PARENT, _ENTITY, _KEY, Branch, Turn, Tick], None] = (
+		field(init=False, default=_dont_del_db)
+	)
+	overwrite_journal: bool = field(init=False, default=False)
+	initial_value: ClassVar = ...
 
 	@abstractmethod
 	def store(
@@ -224,10 +242,6 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 	def set_keyframe(
 		self, *args: tuple[*_PARENT, _ENTITY, Branch, Turn, Tick, _KEYFRAME]
 	) -> None: ...
-
-	def __init__(self, db: "engine.Engine", keyframe_dict: dict | None = None):
-		self.engine = db
-		self._keyframe_dict = keyframe_dict
 
 	@cached_property
 	def parents(self):
@@ -1346,15 +1360,12 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 
 	@contextmanager
 	def overwriting(self):
-		if hasattr(self, "overwrite_journal"):
+		if self.overwrite_journal:
 			yield
 			return
 		self.overwrite_journal = True
 		yield
-		del self.overwrite_journal
-
-	def __repr__(self):
-		return f"<{type(self)} named {self.name} at {hex(id(self))}>"
+		self.overwrite_journal = False
 
 	def _store_journal(self, *args):
 		# overridden in lisien.cache.InitializedCache
@@ -1383,7 +1394,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 			setticks: WindowDict[
 				Tick, tuple[*_PARENT, _ENTITY, _KEY, _VALUE]
 			] = settings_turns[turn]
-			if not hasattr(self, "overwrite_journal") and tick in setticks:
+			if not self.overwrite_journal and tick in setticks:
 				raise KeyError(
 					"Already have journal entry", self.name, branch, turn, tick
 				)
@@ -1778,6 +1789,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		)
 
 
+@define
 class GraphValCache(Cache[CharName, Stat, Value, dict[Stat, Value]]):
 	def get_keyframe(
 		self,
@@ -1893,12 +1905,11 @@ class GraphValCache(Cache[CharName, Stat, Value, dict[Stat, Value]]):
 	iter_stats = iter_keys
 
 
+@define
 class NodesCache(Cache[CharName, NodeName, bool, dict[NodeName, bool]]):
 	"""A cache for remembering whether nodes exist at a given time."""
 
-	__slots__ = ()
-
-	initial_value = False
+	initial_value: ClassVar = False
 
 	def store(
 		self,
@@ -2047,6 +2058,7 @@ class NodesCache(Cache[CharName, NodeName, bool, dict[NodeName, bool]]):
 		self._set_keyframe((graph,), branch, turn, tick, keyframe)
 
 
+@define
 class NodeValCache(
 	Cache[CharName, NodeName, Stat, Value, dict[NodeName, dict[Stat, Value]]]
 ):
@@ -2165,6 +2177,7 @@ class NodeValCache(
 		)
 
 
+@define
 class EdgesCache(
 	Cache[
 		CharName,
@@ -2176,45 +2189,44 @@ class EdgesCache(
 ):
 	"""A cache for remembering whether edges exist at a given time."""
 
-	__slots__ = (
-		"origcache",
-		"predecessors",
-		"_origcache_lru",
-		"_get_origcache_stuff",
-		"_additional_store_stuff",
+	origcache: dict[
+		tuple[CharName, NodeName], AssignmentTimeDict[NodeName]
+	] = field(
+		init=False, factory=partial(PickyDefaultDict, AssignmentTimeDict)
+	)
+	predecessors: dict[
+		tuple[CharName],
+		dict[
+			NodeName,
+			dict[NodeName, dict[Branch, AssignmentTimeDict[bool]]],
+		],
+	] = field(
+		init=False,
+		factory=partial(StructuredDefaultDict, 3, AssignmentTimeDict),
+	)
+	_origcache_lru: KeyCache[CharName, NodeName, NodeName] = field(
+		init=False, factory=OrderedDict
 	)
 
-	initial_value = False
+	initial_value: ClassVar = False
 
 	@property
 	def successors(self):
 		return self.parents
 
-	def __init__(
-		self,
-		db: "engine.Engine",
-		keyframe_dict: Optional[dict] = None,
-	):
-		super().__init__(db, keyframe_dict)
-		self.origcache: dict[
-			tuple[CharName, NodeName], AssignmentTimeDict[NodeName]
-		] = PickyDefaultDict(AssignmentTimeDict)
-		self.predecessors: dict[
-			tuple[CharName],
-			dict[
-				NodeName,
-				dict[NodeName, dict[Branch, AssignmentTimeDict[bool]]],
-			],
-		] = StructuredDefaultDict(3, AssignmentTimeDict)
-		self._origcache_lru = OrderedDict()
-		self._get_origcache_stuff = (
+	@cached_property
+	def _get_origcache_stuff(self):
+		return (
 			self.origcache,
 			self._origcache_lru,
 			self._get_keycachelike,
 			self.predecessors,
 			self._adds_dels_predecessors,
 		)
-		self._additional_store_stuff = (
+
+	@cached_property
+	def _additional_store_stuff(self):
+		return (
 			self.engine,
 			self.predecessors,
 			self.successors,
@@ -2581,6 +2593,7 @@ class EdgesCache(
 		)
 
 
+@define
 class EdgeValCache(
 	Cache[
 		CharName,
@@ -2717,6 +2730,7 @@ class EdgeValCache(
 				)
 
 
+@define
 class UniversalCache(
 	Cache[None, UniversalKey, Value, dict[UniversalKey, Value]]
 ):
@@ -2792,6 +2806,7 @@ class UniversalCache(
 		return self._retrieve(None, key, branch, turn, tick, search=search)
 
 
+@define
 class GraphCache(
 	Cache[
 		None,
@@ -2800,8 +2815,7 @@ class GraphCache(
 		dict[CharName, Literal["DiGraph", "Deleted"]],
 	]
 ):
-	overwrite_journal = True
-	initial_value = None
+	initial_value: ClassVar = None
 
 	def store(
 		self,
@@ -2888,6 +2902,7 @@ class GraphCache(
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
 
+@define
 class RulebooksCache(
 	Cache[
 		None,
@@ -2990,10 +3005,11 @@ class RulebooksCache(
 			yield RulebookName(rb_name)
 
 
+@define
 class RuleAttribCache[_T](
 	Cache[None, RulebookName, _T, dict[RulebookName, _T]], ABC
 ):
-	overwrite_journal = True
+	overwrite_journal: bool = field(init=False, default=True)
 
 	@abstractmethod
 	def retrieve(
@@ -3050,6 +3066,7 @@ class RuleAttribCache[_T](
 	iter_rules = iter_keys
 
 
+@define
 class FuncListCache[_T: RuleFuncName](RuleAttribCache[_T], ABC):
 	functype: ClassVar[type]
 
@@ -3133,20 +3150,24 @@ class FuncListCache[_T: RuleFuncName](RuleAttribCache[_T], ABC):
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
 
+@define
 class TriggerListCache(FuncListCache[TriggerFuncName]):
-	functype = TriggerFuncName
+	functype: ClassVar = TriggerFuncName
 
 
+@define
 class PrereqListCache(FuncListCache[PrereqFuncName]):
-	functype = PrereqFuncName
+	functype: ClassVar = PrereqFuncName
 
 
+@define
 class ActionListCache(FuncListCache[ActionFuncName]):
-	functype = ActionFuncName
+	functype: ClassVar = ActionFuncName
 
 
+@define
 class NeighborhoodsCache(RuleAttribCache[RuleNeighborhood]):
-	initial_value = None
+	initial_value: ClassVar = None
 
 	def store(
 		self,
@@ -3212,8 +3233,9 @@ class NeighborhoodsCache(RuleAttribCache[RuleNeighborhood]):
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
 
+@define
 class BignessCache(RuleAttribCache[RuleBig]):
-	initial_value = False
+	initial_value: ClassVar = False
 
 	def store(
 		self,
@@ -3275,10 +3297,11 @@ class BignessCache(RuleAttribCache[RuleBig]):
 		self._set_keyframe((Key(None),), branch, turn, tick, keyframe)
 
 
+@define
 class NodesRulebooksCache(
 	Cache[CharName, NodeName, RulebookName, dict[NodeName, RulebookName]]
 ):
-	overwrite_journal = True
+	overwrite_journal: bool = field(init=False, default=True)
 
 	def get_keyframe(
 		self,
@@ -3351,17 +3374,10 @@ class NodesRulebooksCache(
 		return RulebookName(ret)
 
 
+@define
 class CharactersRulebooksCache(
 	Cache[None, CharName, RulebookName, dict[CharName, RulebookName]]
 ):
-	overwrite_journal = True
-
-	def __init__(
-		self, db: "engine.Engine", name: str, keyframe_dict: dict | None = None
-	):
-		self.name = name
-		super().__init__(db, keyframe_dict)
-
 	def get_keyframe(
 		self, branch: Branch, turn: Turn, tick: Tick, *, copy: bool = True
 	):
@@ -3424,6 +3440,7 @@ class CharactersRulebooksCache(
 		return RulebookName(ret)
 
 
+@define
 class PortalsRulebooksCache(
 	Cache[
 		CharName,
@@ -3433,8 +3450,6 @@ class PortalsRulebooksCache(
 		dict[NodeName, dict[NodeName, RulebookName]],
 	]
 ):
-	overwrite_journal = True
-
 	def store(
 		self,
 		char: CharName,
@@ -3592,6 +3607,7 @@ class PortalsRulebooksCache(
 				self._set_keyframe((graph, orig), branch, turn, tick, subkf)
 
 
+@define
 class LeaderSetCache(
 	Cache[
 		CharName, NodeName, CharName, bool, dict[NodeName, frozenset[CharName]]
@@ -3690,6 +3706,7 @@ class LeaderSetCache(
 		super().alias_keyframe(branch_from, branch_to, turn, tick, default)
 
 
+@define
 class UnitDictCache(
 	Cache[
 		CharName,
@@ -3851,6 +3868,7 @@ class UnitDictCache(
 		self._set_keyframe((character,), branch, turn, tick, keyframe)
 
 
+@define
 class UnitnessCache(
 	Cache[
 		CharName,
@@ -3862,32 +3880,29 @@ class UnitnessCache(
 ):
 	"""A cache for remembering when a node is a unit of a character."""
 
-	initial_value = False
+	initial_value: ClassVar = False
+
+	@cached_property
+	def leader_cache(self) -> LeaderSetCache:
+		return LeaderSetCache(self.engine)
+
+	@cached_property
+	def dict_cache(self) -> UnitDictCache:
+		return UnitDictCache(self.engine)
 
 	@staticmethod
 	def _count_as_deleted(obj):
 		return not obj
 
-	def __init__(
-		self,
-		db: "engine.Engine",
-		keyframe_dict: dict[
-			CharName, dict[CharName, dict[NodeName, bool]]
-		] = None,
-	):
-		super().__init__(db, keyframe_dict)
-		self.leader_cache = LeaderSetCache(db)
-		self.dict_cache = UnitDictCache(db)
-
 	@contextmanager
 	def overwriting(self):
-		if hasattr(self, "overwrite_journal"):
+		if self.overwrite_journal:
 			yield
 			return
 		self.overwrite_journal = True
 		with self.leader_cache.overwriting(), self.dict_cache.overwriting():
 			yield
-		del self.overwrite_journal
+		self.overwrite_journal = False
 
 	def store(
 		self,
@@ -4133,11 +4148,14 @@ def oner(f: Callable[..., Iterator]) -> Callable[..., Iterator]:
 	return oned
 
 
+@define
 class RulesHandledCache[*_ENTITY](ABC):
+	engine: "engine.Engine"
+	lock: RLock = field(init=False, factory=RLock)
 	handled: dict[
 		tuple[*_ENTITY, RulebookName, Branch, Turn],
 		set[RuleName],
-	]
+	] = field(init=False, factory=dict)
 	handled_deep: dict[
 		Branch,
 		AssignmentTimeDict[
@@ -4151,15 +4169,12 @@ class RulesHandledCache[*_ENTITY](ABC):
 				],
 			],
 		],
-	]
+	] = field(
+		init=False, factory=partial(PickyDefaultDict, AssignmentTimeDict)
+	)
 
-	def __init__(self, engine: "engine.Engine"):
-		self.lock = RLock()
-		self.engine = engine
-		self.handled = {}
-		self.handled_deep = PickyDefaultDict(AssignmentTimeDict)
-
-	def __init_subclass__(cls, **kwargs):
+	@classmethod
+	def __attrs_init_subclass__(cls):
 		iter_unhandled_rules = getattr(cls, "iter_unhandled_rules")
 		setattr(cls, "iter_unhandled_rules", oner(iter_unhandled_rules))
 
@@ -4356,6 +4371,7 @@ class RulesHandledCache[*_ENTITY](ABC):
 		return self.handled[key]
 
 
+@define
 class CharacterRulesHandledCache(RulesHandledCache[CharName]):
 	def get_rulebook(
 		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
@@ -4394,6 +4410,7 @@ class CharacterRulesHandledCache(RulesHandledCache[CharName]):
 		return super().was_handled(branch, turn, rulebook, rule, (character,))
 
 
+@define
 class UnitRulesHandledCache(RulesHandledCache[CharName, CharName, NodeName]):
 	def get_rulebook(
 		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
@@ -4453,6 +4470,7 @@ class UnitRulesHandledCache(RulesHandledCache[CharName, CharName, NodeName]):
 		)
 
 
+@define
 class CharacterThingRulesHandledCache(RulesHandledCache[CharName, NodeName]):
 	def get_rulebook(
 		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
@@ -4502,6 +4520,7 @@ class CharacterThingRulesHandledCache(RulesHandledCache[CharName, NodeName]):
 		)
 
 
+@define
 class CharacterPlaceRulesHandledCache(RulesHandledCache[CharName, NodeName]):
 	def get_rulebook(
 		self, character: CharName, branch: Branch, turn: Turn, tick: Tick
@@ -4547,6 +4566,7 @@ class CharacterPlaceRulesHandledCache(RulesHandledCache[CharName, NodeName]):
 		)
 
 
+@define
 class CharacterPortalRulesHandledCache(
 	RulesHandledCache[CharName, NodeName, NodeName]
 ):
@@ -4603,10 +4623,11 @@ class CharacterPortalRulesHandledCache(
 		)
 
 
+@define
 class NodeRulesHandledCache(RulesHandledCache[CharName, NodeName]):
 	handled: dict[
 		tuple[CharName, NodeName, RulebookName, Branch, Turn], set[RuleName]
-	]
+	] = field(init=False, factory=dict)
 
 	def get_rulebook(
 		self,
@@ -4659,11 +4680,12 @@ class NodeRulesHandledCache(RulesHandledCache[CharName, NodeName]):
 		)
 
 
+@define
 class PortalRulesHandledCache(RulesHandledCache[CharName, NodeName, NodeName]):
 	handled: dict[
 		tuple[CharName, NodeName, NodeName, RulebookName, Branch, Turn],
 		set[RuleName],
-	]
+	] = field(init=False, factory=dict)
 
 	def get_rulebook(
 		self,
@@ -4742,16 +4764,12 @@ class PortalRulesHandledCache(RulesHandledCache[CharName, NodeName, NodeName]):
 		)
 
 
+@define
 class ThingsCache(
 	Cache[CharName, NodeName, NodeName, dict[NodeName, NodeName]]
 ):
-	def __init__(
-		self,
-		db: "engine.Engine",
-		keyframe_dict: dict[CharName, dict[NodeName, NodeName]] | None = None,
-	):
-		super().__init__(db, keyframe_dict)
-		self._make_node = db.thing_cls
+	def _make_node(self, *args, **kwargs):
+		return self.engine.thing_cls(*args, **kwargs)
 
 	def _slow_iter_contents(
 		self,
@@ -5030,6 +5048,7 @@ class ThingsCache(
 		)
 
 
+@define
 class NodeContentsCache(
 	Cache[
 		CharName,
@@ -5038,16 +5057,11 @@ class NodeContentsCache(
 		dict[NodeName, frozenset[NodeName]],
 	]
 ):
-	overwrite_journal = True
-
-	def __init__(
-		self,
-		db: "engine.Engine",
-		keyframe_dict: dict[CharName, dict[NodeName, frozenset[NodeName]]]
-		| None = None,
-	):
-		super().__init__(db, keyframe_dict)
-		self.loc_settings = StructuredDefaultDict(1, AssignmentTimeDict)
+	overwrite_journal: bool = field(init=False, default=True)
+	loc_settings = field(
+		init=False,
+		factory=partial(StructuredDefaultDict, 1, AssignmentTimeDict),
+	)
 
 	def delete_plan(self, plan: Plan) -> None:
 		plan_ticks = self.engine._plan_ticks[plan]
