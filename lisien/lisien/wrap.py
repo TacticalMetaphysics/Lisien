@@ -72,9 +72,9 @@ class OrderlySet[_K](set[_K]):
 			ret &= s
 		return OrderlySet(ret)
 
-	def intersection_update(self, *s):
+	def intersection_update(self, *sets):
 		for k in list(self._data.keys()):
-			if k not in s:
+			if not any(k in s for s in sets):
 				del self._data[k]
 
 	def issubset(self, __s):
