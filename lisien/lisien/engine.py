@@ -76,12 +76,12 @@ from networkx import (
 	from_dict_of_lists,
 	spring_layout,
 )
+from zict import LRU
 
 from . import exc
 from .cache import (
 	ActionListCache,
 	BignessCache,
-	Cache,
 	CharacterPlaceRulesHandledCache,
 	CharacterPortalRulesHandledCache,
 	CharacterRulesHandledCache,
@@ -190,14 +190,12 @@ from .types import (
 	RuleFuncName,
 	RuleName,
 	RuleNeighborhood,
-	SizedDict,
 	SlightlyPackedDeltaType,
 	Stat,
 	StatDict,
 	Tick,
 	Time,
 	TimeSignal,
-	TimeSignalDescriptor,
 	TriggerFuncName,
 	Turn,
 	UniversalKey,
@@ -1151,6 +1149,62 @@ class Engine(AbstractEngine, Executor):
 				f"Didn't start an executor, though {self.workers} workers were requested"
 			)
 
+	cache_neighbors: int = field(default=1000)
+	"""Number of nodes to cache the neighbors of"""
+
+	@cache_neighbors.validator
+	def _change_neighbors_cache_size(self, _, val):
+		if not isinstance(val, int):
+			raise TypeError("Integers only", val)
+		if val < 0:
+			raise ValueError("No negatives", val)
+		self._neighbors_cache.n = val
+
+	cache_nodes: int = field(default=1000)
+	"""Number of node objects to cache
+	
+	They may be either :class:`lisien.node.Thing` or :class:`lisien.node.Place`.
+	
+	"""
+
+	@cache_nodes.validator
+	def _change_nodes_cache_size(self, _, val):
+		if not isinstance(val, int):
+			raise TypeError("Integers only", val)
+		if val < 0:
+			raise ValueError("No negatives", val)
+		self._node_objs.n = val
+
+	cache_portals: int = field(default=1000)
+	"""Number of portal objects to cache"""
+
+	@cache_portals.validator
+	def _change_portals_cache_size(self, _, val):
+		if not isinstance(val, int):
+			raise TypeError("Integers only", val)
+		if val < 0:
+			raise ValueError("No negatives", val)
+		self._edge_objs.n = val
+
+	cache_key_sets: int = field(default=1000)
+	"""Number of sorted key sets to cache
+	
+	When iterating over a stored set of keys--for instance, the set of rules
+	assigned to some entity--Lisien always iterates in the same order.
+	That means it has to sort a lot, which may take a long time. It caches
+	the results of those sorting operations. :attr:`cache_key_sets` controls
+	how big that cache is.
+	
+	"""
+
+	@cache_key_sets.validator
+	def _change_key_sets_cache_size(self, _, val):
+		if not isinstance(val, int):
+			raise TypeError("Integers only", val)
+		if val < 0:
+			raise ValueError("No negatives", val)
+		sort_set.memo.n = val
+
 	char_cls: ClassVar = Character
 	thing_cls: ClassVar = Thing
 	place_cls: ClassVar = Place
@@ -1340,12 +1394,12 @@ class Engine(AbstractEngine, Executor):
 		return Random()
 
 	@cached_property
-	def _node_objs(self) -> SizedDict:
-		return SizedDict()
+	def _node_objs(self) -> LRU:
+		return LRU(self.cache_nodes, {})
 
 	@cached_property
-	def _edge_objs(self) -> SizedDict:
-		return SizedDict()
+	def _edge_objs(self) -> LRU:
+		return LRU(self.cache_portals, {})
 
 	@cached_property
 	def _nbtt_stuff(self):
@@ -1387,12 +1441,7 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def _get_node_stuff(
 		self,
-	) -> tuple[
-		SizedDict,
-		Callable[[tuple], Any],
-		TimeSignal,
-		Callable[[Character, NodeName], Thing | Place],
-	]:
+	):
 		return (
 			self._node_objs,
 			self._nodes_cache._base_retrieve,
@@ -1403,11 +1452,7 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def _get_edge_stuff(
 		self,
-	) -> tuple[
-		SizedDict,
-		Callable[[CharName, NodeName, NodeName], bool],
-		Callable[[Character, NodeName, NodeName], Portal],
-	]:
+	):
 		return self._edge_objs, self._edge_exists, self._make_edge
 
 	@cached_property
@@ -1510,8 +1555,8 @@ class Engine(AbstractEngine, Executor):
 		return NodeContentsCache(self)
 
 	@cached_property
-	def _neighbors_cache(self) -> SizedDict:
-		return SizedDict()
+	def _neighbors_cache(self) -> LRU:
+		return LRU(self.cache_neighbors, {})
 
 	@cached_property
 	def _universal_cache(self) -> UniversalCache:
