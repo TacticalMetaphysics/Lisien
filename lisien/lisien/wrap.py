@@ -29,223 +29,363 @@ from collections.abc import (
 	MutableSequence,
 	Sequence,
 	Collection,
+	Container,
+	MutableSet,
+	Set,
 )
 from functools import partial
-from itertools import chain, zip_longest
-from typing import Callable, Hashable, Set, TypeVar
+from itertools import chain, zip_longest, filterfalse
+from typing import Callable, Hashable, TypeVar, ClassVar, Self, Iterator
 
-from attrs import define
+from attrs import define, field
 
 
-class OrderlySet[_K](set[_K]):
+@define(weakref_slot=False, repr=False, eq=False)
+class AbstractOrderlySet[_K](Set[_K]):
+	@abstractmethod
+	def _get(self) -> tuple[_K]: ...
+
+	@abstractmethod
+	def _set(self, data: tuple[_K]) -> None: ...
+
+	def __contains__(self, x) -> bool:
+		return x in self._get()
+
+	def __len__(self) -> int:
+		return len(self._get())
+
+	def __iter__(self) -> Iterator[_K]:
+		return iter(self._get())
+
+	def copy(self) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(self._get())
+
+	def __copy__(self) -> OrderlyFrozenSet[_K]:
+		return self.copy()
+
+	def __eq__(self, other) -> bool:
+		return frozenset(self._get()) == other
+
+	def __ne__(self, other) -> bool:
+		return frozenset(self._get()) != other
+
+	def __le__(self, other) -> bool:
+		return frozenset(self._get()) <= other
+
+	def __lt__(self, other) -> bool:
+		return frozenset(self._get()) < other
+
+	def __gt__(self, other) -> bool:
+		return frozenset(self._get()) > other
+
+	def __ge__(self, other) -> bool:
+		return frozenset(self._get()) >= other
+
+	def __and__(self, other) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(filter(other.__contains__, self._get()))
+
+	def __or__(self, other) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(chain(self, other))
+
+	def __sub__(self, other) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(filterfalse(other.__contains__, self._get()))
+
+	def __xor__(self, other) -> OrderlyFrozenSet[_K]:
+		this = self._get()
+		that = frozenset(this)
+		excluded = that ^ other
+		return OrderlyFrozenSet(
+			filter(excluded.__contains__, chain(this, other))
+		)
+
+	def difference(self, *others) -> OrderlyFrozenSet[_K]:
+		this = self._get()
+		that = set(this)
+		for it in others:
+			that.difference_update(it)
+		return OrderlyFrozenSet(filter(that.__contains__, this))
+
+	def intersection(self, *others) -> OrderlyFrozenSet[_K]:
+		this = self._get()
+		that = set(this)
+		for it in others:
+			that.intersection_update(it)
+		return OrderlyFrozenSet(filter(that.__contains__, this))
+
+	def issubset(self, other) -> bool:
+		for k in self._get():
+			if k not in other:
+				return False
+		return True
+
+	def issuperset(self, other) -> bool:
+		this = self._get()
+		for k in other:
+			if k not in this:
+				return False
+		return True
+
+	def symmetric_difference(self, other, /) -> OrderlyFrozenSet[_K]:
+		this = self._get()
+		if not isinstance(other, Container):
+			other = set(other)
+		return OrderlyFrozenSet(filter(other.__contains__, this))
+
+	def union(self, *others) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(chain(self._get(), *others))
+
+	def isdisjoint(self, other) -> bool:
+		return set(self._get()).isdisjoint(other)
+
+	def __repr__(self) -> str:
+		return frozenset.__repr__(self)
+
+
+@define(weakref_slot=False, repr=False, eq=False)
+class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 	"""A set with deterministic order of iteration
 
 	Order is not regarded as significant for the purposes of equality.
 
 	"""
 
-	def __init__(self, data: Iterable[Hashable] = ()):
-		super().__init__()
-		self._data = {}
-		for k in data:
-			self._data[k] = True
+	@abstractmethod
+	def _get(self) -> dict[_K, bool]: ...
 
-	def copy(self):
-		return OrderlySet(self._data.copy())
+	@abstractmethod
+	def _set(self, data: dict[_K, bool]) -> None: ...
 
-	def difference(self, *s):
-		dat = self._data.copy()
-		for subtracted in dat.keys() - s:
-			del dat[subtracted]
-		ret = OrderlySet()
-		ret._data = dat
-		return ret
-
-	def difference_update(self, *s):
-		for k in s:
-			if k in self._data:
-				del self._data[k]
-
-	def intersection(self, *sets):
-		ret = self._data.copy()
-		for s in sets:
-			ret &= s
-		return OrderlySet(ret)
-
-	def intersection_update(self, *sets):
-		for k in list(self._data.keys()):
-			if not any(k in s for s in sets):
-				del self._data[k]
-
-	def issubset(self, __s):
-		if not isinstance(__s, Set):
-			__s = set(__s)
-		return self._data.keys() <= __s
-
-	def issuperset(self, __s):
-		if not isinstance(__s, Set):
-			__s = set(__s)
-		return self._data.keys() >= __s
-
-	def symmetric_difference(self, __s):
-		if not isinstance(__s, Set):
-			__s = set(__s)
-		return OrderlySet(self._data.keys() ^ __s)
-
-	def symmetric_difference_update(self, __s):
-		if not isinstance(__s, Set):
-			__s = set(__s)
-		self._data = {k: True for k in self._data.keys() ^ __s}
-
-	def union(self, *s):
-		for k in s:
-			self._data[k] = True
-
-	def __repr__(self):
-		return repr(set(self))
-
-	def __iter__(self):
-		return iter(self._data.keys())
-
-	def __len__(self):
-		return len(self._data)
-
-	def __contains__(self, item):
-		return item in self._data
-
-	def __eq__(self, other):
-		if not isinstance(other, Set):
-			return False
-		if len(self) != len(other):
-			return False
-		return self._data.keys() == other
-
-	def __ne__(self, other):
-		if not isinstance(other, Set):
-			return True
-		return self._data.keys() != other
-
-	def __isub__(self, it):
-		for item in it:
-			self.discard(item)
-
-	def __ixor__(self, it):
-		for item in list(self):
-			if item in it:
-				self.remove(item)
-		for item in it:
-			if item in self:
-				self.remove(item)
-			else:
-				self.add(item)
-
-	def __iand__(self, it):
-		for item in list(self):
-			if item not in it:
-				self.remove(item)
-
-	def __ior__(self, it):
-		self.update(it)
-
-	def remove(self, value):
-		del self._data[value]
-
-	def pop(self):
-		k, _ = self._data.popitem()
-		return k
-
-	def clear(self):
-		self._data.clear()
-
-	def add(self, item):
-		self._data[item] = True
+	def add(self, item: Hashable) -> None:
+		this = self._get()
+		this[item] = True
+		self._set(this)
 
 	def discard(self, value):
-		if value in self._data:
-			del self._data[value]
+		this = self._get()
+		if value in this:
+			del this[value]
+		self._set(this)
 
-	def update(self, it):
-		for item in it:
-			self.add(item)
+	def remove(self, value):
+		this = self._get()
+		del this[value]
+		self._set(this)
+
+	def pop(self) -> _K:
+		this = self._get()
+		k, _ = this.popitem()
+		return k
+
+	def clear(self) -> None:
+		self._set({})
+
+	def copy(self):
+		return OrderlySet(self._get())
 
 	def __copy__(self):
 		return self.copy()
 
-	def __le__(self, other):
+	def difference(self, *others) -> OrderlySet[_K]:
+		this = self._get()
+		that = set(this)
+		for it in others:
+			that.difference_update(it)
+		return OrderlySet(filter(that.__contains__, this.keys()))
+
+	def difference_update(self, *others) -> None:
+		this = self._get()
+		that = set(this)
+		for it in others:
+			that.difference_update(it)
+		self._set(dict.fromkeys(filter(that.__contains__, this.keys()), True))
+
+	def intersection(self, *others) -> OrderlySet[_K]:
+		this = self._get()
+		that = set(this)
+		for it in others:
+			that.intersection_update(it)
+		return OrderlySet(filter(that.__contains__, this.keys()))
+
+	def intersection_update(self, *others) -> None:
+		this = self._get()
+		that = set(this)
+		for it in others:
+			that.intersection_update(it)
+		self._set(dict.fromkeys(filter(that.__contains__, this.keys()), True))
+
+	def issubset(self, __s) -> bool:
+		this = self._get()
+		if isinstance(__s, Set):
+			return this.keys() <= __s
+		for k in this:
+			if k not in __s:
+				return False
+		return True
+
+	def issuperset(self, __s) -> bool:
+		this = self._get()
+		if isinstance(__s, Set):
+			return this.keys() >= __s
+		for k in __s:
+			if k not in this:
+				return False
+		return True
+
+	def symmetric_difference(self, s, /) -> OrderlySet[_K]:
+		this = self._get()
+		if not isinstance(s, Container):
+			s = set(s)
+		elif not isinstance(s, Set):
+			return OrderlySet(filter(s.__contains__, this))
+		that = this.keys() ^ s
+		return OrderlySet(filter(that.__contains__, this))
+
+	def symmetric_difference_update(self, s, /):
+		this = self._get()
+		if not isinstance(s, Container):
+			s = set(s)
+		elif not isinstance(s, Set):
+			return self._set(dict.fromkeys(filter(s.__contains__, this), True))
+		that = this.keys() ^ s
+		self._set(dict.fromkeys(filter(that.__contains, this), True))
+
+	def union(self, *others) -> OrderlySet[_K]:
+		return OrderlySet(chain(self._get(), *others))
+
+	def update(self, *others) -> None:
+		this = self._get()
+		this.update(dict.fromkeys(chain(others), True))
+		self._set(this)
+
+	def isdisjoint(self, other) -> bool:
+		this = self._get().keys()
+		if isinstance(other, AbstractOrderlyMutableSet):
+			return this.isdisjoint(other._get().keys())
+		return this.isdisjoint(other)
+
+	def __repr__(self) -> str:
+		return set.__repr__(self)
+
+	def __iter__(self) -> Iterator[_K]:
+		return iter(self._get())
+
+	def __len__(self) -> int:
+		return len(self._get())
+
+	def __contains__(self, item) -> bool:
+		return item in self._get()
+
+	def __eq__(self, other) -> bool:
 		if not isinstance(other, Set):
+			return NotImplemented
+		this = self._get()
+		if len(this) != len(other):
 			return False
-		if isinstance(other, OrderlySet):
-			return self._data.keys() <= other._data.keys()
-		return self._data.keys() <= other
+		return this.keys() == other
 
-	def __lt__(self, other):
+	def __ne__(self, other) -> bool:
 		if not isinstance(other, Set):
-			return False
-		if isinstance(other, OrderlySet):
-			return self._data.keys() < other._data.keys()
-		return self._data.keys() < other
+			return NotImplemented
+		return self._get().keys() != other
 
-	def __gt__(self, other):
+	def __isub__(self, other) -> Self:
+		this = self._get()
+		that = this.keys() - other
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
+		return self
+
+	def __ixor__(self, other) -> Self:
+		this = self._get()
+		that = this.keys() ^ other
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
+		return self
+
+	def __iand__(self, other) -> Self:
+		this = self._get()
+		that = this.keys() & other
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
+		return self
+
+	def __ior__(self, other) -> Self:
+		self.update(other)
+		return self
+
+	def __le__(self, other) -> bool:
 		if not isinstance(other, Set):
-			return False
-		if isinstance(other, OrderlySet):
-			return self._data.keys() > other._data.keys()
-		return self._data.keys() > other
+			return NotImplemented
+		if isinstance(other, AbstractOrderlyMutableSet):
+			return self._get() <= other._get()
+		return self._get().keys() <= other
 
-	def __ge__(self, other):
+	def __lt__(self, other) -> bool:
 		if not isinstance(other, Set):
-			return False
-		if isinstance(other, OrderlySet):
-			return self._data.keys() >= other._data.keys()
-		return self._data.keys() >= other
+			return NotImplemented
+		if isinstance(other, AbstractOrderlyMutableSet):
+			return self._get() < other._get()
+		return self._get().keys() < other
 
-	def __and__(self, other):
-		if isinstance(other, Set):
-			if isinstance(other, OrderlySet):
-				other = other._data.keys()
-			intersection = self._data.keys() & other
-			return OrderlySet(
-				datum for datum in self._data.keys() if datum in intersection
-			)
-		return OrderlySet(
-			datum for datum in self._data.keys() if datum in other
-		)
+	def __gt__(self, other) -> bool:
+		if not isinstance(other, Set):
+			return NotImplemented
+		if isinstance(other, AbstractOrderlyMutableSet):
+			return self._get() > other._get()
+		return self._get().keys() > other
 
-	def __or__(self, other):
+	def __ge__(self, other) -> bool:
+		if not isinstance(other, Set):
+			return NotImplemented
+		if isinstance(other, AbstractOrderlyMutableSet):
+			return self._get() >= other._get()
+		return self._get().keys() >= other
+
+	def __and__(self, other) -> OrderlySet[_K]:
+		return OrderlySet(filter(other.__contains__, self._get()))
+
+	def __or__(self, other) -> OrderlySet[_K]:
 		if isinstance(other, OrderlySet):
 			ret = OrderlySet()
 			ret._data = {**self._data, **other._data}
 			return ret
 		return OrderlySet(chain(self, other))
 
-	def __sub__(self, other):
-		return OrderlySet(k for k in self if k not in other)
+	def __sub__(self, other) -> OrderlySet[_K]:
+		return OrderlySet(filterfalse(other.__contains__, self._get()))
 
-	def __xor__(self, other):
-		if isinstance(other, Set):
-			if isinstance(other, OrderlySet):
-				other = other._data.keys()
-			split = self._data.keys() ^ other
-			return OrderlySet(
-				chain(
-					(k for k in self._data if k in split),
-					(k for k in other if k in split),
-				)
-			)
-		return OrderlySet(
-			chain(
-				(k for k in self if k not in other),
-				(k for k in other if k not in self),
-			)
-		)
-
-	def isdisjoint(self, other):
+	def __xor__(self, other) -> OrderlySet[_K]:
 		if isinstance(other, OrderlySet):
-			return self._data.keys().isdisjoint(other._data.keys())
-		return super().isdisjoint(other)
+			this = self._get().keys()
+			that = other._get().keys()
+			excluded = this ^ that
+			return OrderlySet(filter(excluded.__contains__, chain(this, that)))
+		elif isinstance(other, Set):
+			this = self._get().keys()
+			excluded = this ^ other
+			return OrderlySet(
+				filter(excluded.__contains__, chain(this, other))
+			)
+		this = self._get().keys()
+		that = set(other)
+		excluded = this ^ that
+		return OrderlySet(filter(excluded.__contains__, chain(this, that)))
 
 
-class OrderlyFrozenSet[_K](frozenset[_K]):
+@define(weakref_slot=False, eq=False, repr=False)
+class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
+	@staticmethod
+	def _convert_data(data: Iterable[_K]) -> dict[_K, bool]:
+		return dict.fromkeys(data, True)
+
+	_data: dict[_K, bool] = field(converter=_convert_data, default=())
+
+	def _get(self) -> dict[_K, bool]:
+		return self._data
+
+	def _set(self, data: dict[_K, bool]):
+		self._data = data
+
+
+@define(weakref_slot=False, eq=False, repr=False)
+class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 	"""A frozenset with deterministic order of iteration
 
 	Order is not considered significant for the purpose of determining
@@ -253,85 +393,31 @@ class OrderlyFrozenSet[_K](frozenset[_K]):
 
 	"""
 
-	def __init__(self, data):
-		self._data = tuple(data)
-		super().__init__(data)
+	@staticmethod
+	def _convert_data(data: Iterable[_K]) -> tuple[_K, ...]:
+		return tuple(data)
 
-	def __iter__(self):
-		return iter(self._data)
+	_data: tuple[_K, ...] = field(converter=_convert_data, default=())
 
 	def __repr__(self):
 		return repr(frozenset(self))
 
-	def copy(self):
-		return OrderlyFrozenSet(self._data)
-
-	def difference(self, *s):
-		diffed = super().difference(s)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in diffed
-		)
-
-	def intersection(self, *s):
-		intersected = super().intersection(s)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in intersected
-		)
-
-	def union(self, *s):
-		unified = super().union(*s)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in unified
-		)
-
-	def __xor__(self, __value):
-		return OrderlyFrozenSet(
-			*(datum for datum in self._data if datum not in __value),
-			*(datum for datum in __value if datum not in self),
-		)
-
-	def __and__(self, __value):
-		intersected = super().__and__(__value)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in intersected
-		)
-
-	def __or__(self, __value):
-		return OrderlyFrozenSet(
-			(
-				*self._data,
-				*(datum for datum in __value if datum not in self),
-			)
-		)
-
-	def __sub__(self, __value):
-		subtracted = super().__sub__(__value)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in subtracted
-		)
-
-	def symmetric_difference(self, __s):
-		return OrderlyFrozenSet(
-			*(datum for datum in self._data if datum not in __s),
-			*(datum for datum in __s if datum not in self),
-		)
-
 
 @define(eq=False)
-class MutableWrapper(Collection, ABC):
+class MutableWrapper[_K: Hashable, _V](Collection, ABC):
 	__slots__ = ()
 
 	def __iter__(self):
-		return iter(self._getter())
+		return iter(self._get())
 
 	def __len__(self):
-		return len(self._getter())
+		return len(self._get())
 
 	def __contains__(self, item):
-		return item in self._getter()
+		return item in self._get()
 
 	def __str__(self):
-		return str(self._getter())
+		return str(self._get())
 
 	@abstractmethod
 	def __copy__(self):
@@ -341,16 +427,22 @@ class MutableWrapper(Collection, ABC):
 		return self.__copy__()
 
 	@abstractmethod
-	def _getter(self): ...
+	def _get(
+		self,
+	) -> MutableMapping[_K, _V] | MutableSequence[_V] | MutableSet[_K]: ...
 
 	@abstractmethod
-	def _set(self, v): ...
+	def _set(
+		self, v: MutableMapping[_K, _V] | MutableSequence[_V] | MutableSet[_K]
+	): ...
 
 	@abstractmethod
-	def unwrap(self): ...
+	def unwrap(
+		self,
+	) -> MutableMapping[_K, _V] | MutableSequence[_V] | MutableSet[_K]: ...
 
 
-class MutableWrapperDictList[_K, _V](MutableWrapper, ABC):
+class MutableWrapperDictList[_K, _V](MutableWrapper[_K, _V], ABC):
 	__slots__ = ()
 
 	def _subset(self, k: _K, v: _V) -> None:
@@ -361,18 +453,18 @@ class MutableWrapperDictList[_K, _V](MutableWrapper, ABC):
 	def __getitem__(
 		self, k: _K
 	) -> _V | SubDictWrapper[_K, _V] | SubListWrapper[_V] | SubSetWrapper[_V]:
-		ret = self._getter()[k]
+		ret = self._get()[k]
 		if isinstance(ret, dict):
 			return SubDictWrapper(
-				lambda: self._getter()[k], partial(self._subset, k)
+				lambda: self._get()[k], partial(self._subset, k)
 			)
 		if isinstance(ret, list):
 			return SubListWrapper(
-				lambda: self._getter()[k], partial(self._subset, k)
+				lambda: self._get()[k], partial(self._subset, k)
 			)
 		if isinstance(ret, set):
 			return SubSetWrapper(
-				lambda: self._getter()[k], partial(self._subset, k)
+				lambda: self._get()[k], partial(self._subset, k)
 			)
 		return ret
 
@@ -427,13 +519,19 @@ class MutableMappingWrapper[_K, _V](
 class SubDictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 	__slots__ = ()
 	_getter: Callable[[], dict[_K, _V]]
-	_set: Callable[[dict[_K, _V]], None]
+	_setter: Callable[[dict[_K, _V]], None]
+
+	def _get(self) -> dict[_K, _V]:
+		return self._getter()
+
+	def _set(self, v: dict[_K, _V]):
+		self._setter(v)
 
 	def __copy__(self):
-		return dict(self._getter())
+		return dict(self._get())
 
 	def _subset(self, k: _K, v: _V) -> None:
-		new = dict(self._getter())
+		new = dict(self._get())
 		new[k] = v
 		self._set(new)
 
@@ -467,10 +565,16 @@ class MutableSequenceWrapper[_T](
 class SubListWrapper[_T](MutableSequenceWrapper[_T], list[_T]):
 	__slots__ = ()
 	_getter: Callable[[], list[_T]]
-	_set: Callable[[list[_T]], None]
+	_setter: Callable[[list[_T]], None]
+
+	def _get(self) -> list[_T]:
+		return self._getter()
+
+	def _set(self, v: list[_T]) -> None:
+		self._setter(v)
 
 	def __copy__(self) -> list[_T]:
-		return list(self._getter())
+		return list(self._get())
 
 	def insert(self, index: int, object) -> None:
 		me = self.__copy__()
@@ -486,37 +590,10 @@ class SubListWrapper[_T](MutableSequenceWrapper[_T], list[_T]):
 		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
 
-_U = TypeVar("_U")
-
-
 @define(order=False, eq=False)
-class MutableWrapperSet[_T](MutableWrapper, OrderlySet[_T], ABC):
-	__slots__ = ()
-
-	def __copy__(self) -> OrderlySet[_T]:
-		return OrderlySet(self._getter())
-
-	def pop(self) -> _T:
-		me = self.__copy__()
-		yours = me.pop()
-		self._set(me)
-		return yours
-
-	def discard(self, element: _T) -> None:
-		me = self.__copy__()
-		me.discard(element)
-		self._set(me)
-
-	def remove(self, element: _T) -> None:
-		me = self.__copy__()
-		me.remove(element)
-		self._set(me)
-
-	def add(self, element: _T) -> None:
-		me = self.__copy__()
-		me.add(element)
-		self._set(me)
-
+class MutableWrapperSet[_T](
+	MutableWrapper, AbstractOrderlyMutableSet[_T], ABC
+):
 	def unwrap(self) -> OrderlySet[_T]:
 		"""Deep copy myself as a set, all contents unwrapped"""
 		unwrapped = OrderlySet()
@@ -530,67 +607,23 @@ class MutableWrapperSet[_T](MutableWrapper, OrderlySet[_T], ABC):
 	def clear(self) -> None:
 		self._set(OrderlySet())
 
-	def __ior__(self, it: Set) -> None:
-		me = self.__copy__()
-		me |= it
-		self._set(me)
-
-	def __iand__(self, it: Set) -> None:
-		me = self.__copy__()
-		me &= it
-		self._set(me)
-
-	def __ixor__(self, it: Set) -> None:
-		me = self.__copy__()
-		me ^= it
-		self._set(me)
-
-	def __isub__(self, it: Set) -> None:
-		me = self.__copy__()
-		me -= it
-		self._set(me)
-
-	def __le__(self, other: Set) -> bool:
-		return self._getter() <= other
-
-	def __lt__(self, other: Set) -> bool:
-		return self._getter() < other
-
-	def __gt__(self, other: Set) -> bool:
-		return self._getter() > other
-
-	def __ge__(self, other: Set) -> bool:
-		return self._getter() >= other
-
-	def __and__(self, other: Set[_U]) -> OrderlySet[_T | _U]:
-		return OrderlySet(self._getter() & other)
-
-	def __or__(self, other: Set[_U]) -> OrderlySet[_T | _U]:
-		return OrderlySet(self._getter() | other)
-
-	def __sub__(self, other: Set) -> OrderlySet[_T]:
-		return OrderlySet(self._getter() - other)
-
-	def __xor__(self, other: Set[_U]) -> OrderlySet[_T | _U]:
-		return OrderlySet(self._getter() ^ other)
-
-	def __eq__(self, other: Set) -> bool:
-		return self._getter() == other
-
-	def isdisjoint(self, other: Set) -> bool:
-		return self._getter().isdisjoint(other)
-
 
 @define(eq=False)
 class SubSetWrapper[_T](MutableWrapperSet[_T]):
-	__slots__ = ()
-	_getter: Callable[[], set[_T]]
-	_set: Callable[[set[_T]], None]
+	_getter: Callable[[], MutableSet[_T]]
+	_setter: Callable[[MutableSet[_T]], None]
 
-	def _copy(self) -> OrderlySet[_T]:
-		return OrderlySet(self._getter())
+	def _get(self) -> MutableSet[_T]:
+		return self._getter()
+
+	def _set(self, v: MutableSet[_T]):
+		self._setter(v)
+
+	def __copy__(self):
+		return OrderlySet(self._get())
 
 
+_U = TypeVar("_U")
 _V = TypeVar("_V")
 
 
