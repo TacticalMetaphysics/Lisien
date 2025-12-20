@@ -66,8 +66,11 @@ class OrderlySet[_K](set[_K]):
 			if k in self._data:
 				del self._data[k]
 
-	def intersection(self, *s):
-		return OrderlySet(self._data.keys() & s)
+	def intersection(self, *sets):
+		ret = self._data.copy()
+		for s in sets:
+			ret &= s
+		return OrderlySet(ret)
 
 	def intersection_update(self, *s):
 		for k in list(self._data.keys()):
