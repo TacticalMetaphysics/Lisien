@@ -654,6 +654,11 @@ class DictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 	def __copy__(self):
 		return dict(self._getter())
 
+	def _get(
+		self,
+	) -> dict[_K, _V]:
+		return self._getter()
+
 	def _set(self, v):
 		self._outer[self._key] = v
 
@@ -696,6 +701,11 @@ class ListWrapper[_T](MutableWrapperDictList[int, _T], MutableSequence[_T]):
 
 	def __copy__(self) -> list[_T]:
 		return list(self._getter())
+
+	def _get(
+		self,
+	) -> list[_T]:
+		return self._getter()
 
 	def _set(self, v: list[_T]) -> None:
 		self._outer[self._key] = v
