@@ -1298,18 +1298,14 @@ class PrereqStore(FunctionStore[PrereqFuncName, PrereqFunc]): ...
 class ActionStore(FunctionStore[ActionFuncName, ActionFunc]): ...
 
 
-class UniversalMapping(MutableMapping, Signal):
+@define(repr=False)
+class UniversalMapping(MutableMapping, AttrSignal):
 	"""Mapping for variables that are global but which I keep history for"""
 
-	__slots__ = ["engine"]
+	engine: "engine.Engine"
 
-	def __init__(self, engine):
-		"""Store the engine and initialize my private dictionary of
-		listeners.
-
-		"""
-		super().__init__()
-		self.engine = engine
+	def __repr__(self):
+		return f"<{self.__class__.__name__} containing {dict(self)}>"
 
 	def __iter__(self):
 		return self.engine._universal_cache.iter_keys(*self.engine.time)
