@@ -4254,6 +4254,7 @@ def deannotate(annotation: str) -> Iterator[type]:
 		yield typ
 
 
+@define
 class AbstractStringStore(MutableMapping[str, str], ABC):
 	language: ClassVar[AbstractLanguageDescriptor]
 
@@ -4272,6 +4273,7 @@ class AbstractStringStore(MutableMapping[str, str], ABC):
 	def blake2b(self) -> bytes: ...
 
 
+@define
 class AbstractFunctionStore[_K: str, _V: FunctionType | MethodType](ABC):
 	@abstractmethod
 	def save(self, reimport: bool = True) -> None: ...
