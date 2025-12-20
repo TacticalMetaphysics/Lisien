@@ -1340,12 +1340,6 @@ class Engine(AbstractEngine, Executor):
 		return Random()
 
 	@cached_property
-	def _branches_d(
-		self,
-	) -> dict[Branch, tuple[Optional[Branch], Turn, Tick, Turn, Tick]]:
-		return {Branch("trunk"): (None, Turn(0), Tick(0), Turn(0), Tick(0))}
-
-	@cached_property
 	def _node_objs(self) -> SizedDict:
 		return SizedDict()
 
