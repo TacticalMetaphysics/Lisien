@@ -1116,8 +1116,13 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 
 	@_locl.validator
 	def _validate_initial(self, _, initial: dict[_K, _T]):
-		for k, v in initial.values():
-			self._set_source(k, getsource(v), func=v)
+		for k, v in initial.items():
+			if not isinstance(v, str):
+				func = v
+				v = getsource(v)
+			else:
+				func = None
+			self._set_source(k, v, func=func)
 
 	_need_save: bool = field(init=False, default=False)
 
