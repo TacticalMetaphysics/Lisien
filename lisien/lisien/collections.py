@@ -1131,14 +1131,15 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 		yield from super().__dir__()
 
 	def __getattr__(self, k):
-		if k in self._locl:
+		if k == "__name__" and isinstance(self._module, str):
+			return self._module
+		elif k in self._locl:
 			return self._locl[k]
 		elif k in dir(self):
 			return self.__getattribute__(k)
-		elif self._need_save:
+		if self._need_save:
 			self.save()
-			return getattr(self._module, k)
-		elif hasattr(self._module, k):
+		if hasattr(self._module, k):
 			return getattr(self._module, k)
 		else:
 			raise AttributeError("No attribute ", k)
