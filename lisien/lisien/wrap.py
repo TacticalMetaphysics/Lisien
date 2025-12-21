@@ -43,10 +43,10 @@ from attrs import define, field
 @define(weakref_slot=False, repr=False, eq=False)
 class AbstractOrderlySet[_K](Set[_K]):
 	@abstractmethod
-	def _get(self) -> tuple[_K]: ...
+	def _get(self) -> tuple[_K, ...]: ...
 
 	@abstractmethod
-	def _set(self, data: tuple[_K]) -> None: ...
+	def _set(self, data: tuple[_K, ...]) -> None: ...
 
 	def __contains__(self, x) -> bool:
 		return x in self._get()
@@ -401,6 +401,12 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 
 	def __repr__(self):
 		return repr(frozenset(self))
+
+	def _get(self) -> tuple[_K, ...]:
+		return self._data
+
+	def _set(self, data: tuple[_K, ...]) -> None:
+		raise TypeError("Tried to set data of a frozen set", self, data)
 
 
 @define(eq=False)
