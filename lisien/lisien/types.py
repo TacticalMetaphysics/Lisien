@@ -93,6 +93,8 @@ from .wrap import (
 	ListWrapper,
 	MappingUnwrapper,
 	SetWrapper,
+	OrderlySet,
+	OrderlyFrozenSet,
 	unwrap_items,
 	wrapval,
 )
@@ -3122,9 +3124,9 @@ class AbstractEngine(ABC):
 			MsgpackExtensionType.portal.value: unpack_portal,
 			MsgpackExtensionType.tuple.value: partial(unpack_seq, tuple),
 			MsgpackExtensionType.frozenset.value: partial(
-				unpack_seq, frozenset
+				unpack_seq, OrderlyFrozenSet
 			),
-			MsgpackExtensionType.set.value: partial(unpack_seq, set),
+			MsgpackExtensionType.set.value: partial(unpack_seq, OrderlySet),
 			MsgpackExtensionType.function.value: partial(
 				unpack_func, self.function
 			),

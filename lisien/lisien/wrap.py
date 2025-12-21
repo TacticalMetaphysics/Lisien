@@ -186,53 +186,53 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 		return self.copy()
 
 	def difference(self, *others) -> OrderlySet[_K]:
-		this = self._get()
+		this = self._this_keys()
 		that = set(this)
 		for it in others:
 			that.difference_update(it)
-		return OrderlySet(filter(that.__contains__, this.keys()))
+		return OrderlySet(filter(that.__contains__, this))
 
 	def difference_update(self, *others) -> None:
-		this = self._get()
+		this = self._this_keys()
 		that = set(this)
 		for it in others:
 			that.difference_update(it)
-		self._set(dict.fromkeys(filter(that.__contains__, this.keys()), True))
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 
 	def intersection(self, *others) -> OrderlySet[_K]:
-		this = self._get()
+		this = self._this_keys()
 		that = set(this)
 		for it in others:
 			that.intersection_update(it)
-		return OrderlySet(filter(that.__contains__, this.keys()))
+		return OrderlySet(filter(that.__contains__, this))
 
 	def intersection_update(self, *others) -> None:
-		this = self._get()
+		this = self._this_keys()
 		that = set(this)
 		for it in others:
 			that.intersection_update(it)
-		self._set(dict.fromkeys(filter(that.__contains__, this.keys()), True))
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 
 	def issubset(self, __s) -> bool:
-		this = self._get()
+		this = self._this_keys()
 		if isinstance(__s, Set):
-			return this.keys() <= __s
+			return this <= __s
 		for k in this:
 			if k not in __s:
 				return False
 		return True
 
 	def issuperset(self, __s) -> bool:
-		this = self._get()
+		this = self._this_keys()
 		if isinstance(__s, Set):
-			return this.keys() >= __s
+			return this >= __s
 		for k in __s:
 			if k not in this:
 				return False
 		return True
 
 	def symmetric_difference(self, s, /) -> OrderlySet[_K]:
-		this = self._get()
+		this = self._this_keys()
 		if not isinstance(s, Container):
 			s = set(s)
 		elif not isinstance(s, Set):
@@ -241,12 +241,12 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 		return OrderlySet(filter(that.__contains__, this))
 
 	def symmetric_difference_update(self, s, /):
-		this = self._get()
+		this = self._this_keys()
 		if not isinstance(s, Container):
 			s = set(s)
 		elif not isinstance(s, Set):
 			return self._set(dict.fromkeys(filter(s.__contains__, this), True))
-		that = this.keys() ^ s
+		that = this ^ s
 		self._set(dict.fromkeys(filter(that.__contains, this), True))
 
 	def union(self, *others) -> OrderlySet[_K]:
@@ -258,7 +258,7 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 		self._set(this)
 
 	def isdisjoint(self, other) -> bool:
-		this = self._get().keys()
+		this = self._this_keys()
 		if isinstance(other, AbstractOrderlyMutableSet):
 			return this.isdisjoint(other._get().keys())
 		return this.isdisjoint(other)
@@ -275,18 +275,27 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 	def __contains__(self, item) -> bool:
 		return item in self._get()
 
+	def _this_keys(self) -> Set[_K]:
+		this = self._get()
+		if hasattr(this, "keys"):
+			return this.keys()
+		if not isinstance(this, set):
+			raise TypeError("Not a set", this)
+		return this
+
 	def __eq__(self, other) -> bool:
 		if not isinstance(other, Set):
 			return NotImplemented
-		this = self._get()
+		this = self._this_keys()
 		if len(this) != len(other):
 			return False
-		return this.keys() == other
+		return this == other
 
 	def __ne__(self, other) -> bool:
 		if not isinstance(other, Set):
 			return NotImplemented
-		return self._get().keys() != other
+		this = self._this_keys()
+		return this != other
 
 	def __isub__(self, other) -> Self:
 		this = self._get()
@@ -295,14 +304,14 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 		return self
 
 	def __ixor__(self, other) -> Self:
-		this = self._get()
-		that = this.keys() ^ other
+		this = self._this_keys()
+		that = this ^ other
 		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 		return self
 
 	def __iand__(self, other) -> Self:
-		this = self._get()
-		that = this.keys() & other
+		this = self._this_keys()
+		that = this & other
 		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 		return self
 
@@ -314,38 +323,34 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 		if not isinstance(other, Set):
 			return NotImplemented
 		if isinstance(other, AbstractOrderlyMutableSet):
-			return self._get() <= other._get()
-		return self._get().keys() <= other
+			return self._this_keys() <= other._this_keys()
+		return self._this_keys() <= other
 
 	def __lt__(self, other) -> bool:
 		if not isinstance(other, Set):
 			return NotImplemented
 		if isinstance(other, AbstractOrderlyMutableSet):
-			return self._get() < other._get()
-		return self._get().keys() < other
+			return self._this_keys() < other._this_keys()
+		return self._this_keys() < other
 
 	def __gt__(self, other) -> bool:
 		if not isinstance(other, Set):
 			return NotImplemented
 		if isinstance(other, AbstractOrderlyMutableSet):
-			return self._get() > other._get()
-		return self._get().keys() > other
+			return self._this_keys() > other._this_keys()
+		return self._this_keys() > other
 
 	def __ge__(self, other) -> bool:
 		if not isinstance(other, Set):
 			return NotImplemented
 		if isinstance(other, AbstractOrderlyMutableSet):
-			return self._get() >= other._get()
-		return self._get().keys() >= other
+			return self._this_keys() >= other._this_keys()
+		return self._this_keys() >= other
 
 	def __and__(self, other) -> OrderlySet[_K]:
-		return OrderlySet(filter(other.__contains__, self._get()))
+		return OrderlySet(filter(other.__contains__, self._this_keys()))
 
 	def __or__(self, other) -> OrderlySet[_K]:
-		if isinstance(other, OrderlySet):
-			ret = OrderlySet()
-			ret._data = {**self._data, **other._data}
-			return ret
 		return OrderlySet(chain(self, other))
 
 	def __sub__(self, other) -> OrderlySet[_K]:
@@ -353,17 +358,17 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 
 	def __xor__(self, other) -> OrderlySet[_K]:
 		if isinstance(other, OrderlySet):
-			this = self._get().keys()
-			that = other._get().keys()
+			this = self._this_keys()
+			that = other._this_keys()
 			excluded = this ^ that
 			return OrderlySet(filter(excluded.__contains__, chain(this, that)))
 		elif isinstance(other, Set):
-			this = self._get().keys()
+			this = self._this_keys()
 			excluded = this ^ other
 			return OrderlySet(
 				filter(excluded.__contains__, chain(this, other))
 			)
-		this = self._get().keys()
+		this = self._this_keys()
 		that = set(other)
 		excluded = this ^ that
 		return OrderlySet(filter(excluded.__contains__, chain(this, that)))
@@ -746,18 +751,20 @@ class SetWrapper[_T](MutableWrapperSet[_T]):
 	"""
 
 	__slots__ = ()
-	_getter: Callable[[], set[_T]]
+	_getter: Callable[[], dict[_T, bool]]
 	_outer: MutableMapping
 	_key: Hashable
 
-	def _get(self) -> set[_T]:
+	def _get(self) -> dict[_T, bool]:
 		return self._getter()
 
-	def _set(self, v: Set[_T]) -> None:
-		self._outer[self._key] = v
+	def _set(self, v: dict[_T, bool]) -> None:
+		self._outer[self._key] = v.keys()
 
 	def __copy__(self):
-		return set(self._getter())
+		ret = OrderlySet()
+		ret._data = self._get()
+		return ret
 
 
 class UnwrappingDict[_K, _V](dict[_K, _V]):
