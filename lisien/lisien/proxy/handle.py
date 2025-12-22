@@ -490,10 +490,11 @@ class EngineHandle:
 						tick_end,
 					)
 			if tick is None:
-				tick_ = self._real.turn_end(branch, turn)
-			else:
-				tick_ = tick
-			if LinearTime(turn, tick_) < self._real._branch_start(branch):
+				if self._real._planning:
+					tick = self._real.turn_end_plan(branch, turn)
+				else:
+					tick = self._real.turn_end(branch, turn)
+			if LinearTime(turn, tick) < self._real._branch_start(branch):
 				raise OutOfTimelineError(
 					"Not traveling to before the beginning of the branch",
 					branch,
@@ -502,27 +503,16 @@ class EngineHandle:
 					*self._real._branch_start(branch),
 				)
 			self._real.load_at(branch, turn, tick)
+		elif tick is None:
+			tick = 0
 		branch_from, turn_from, tick_from = self._real.time
-		if tick is None:
-			if (
-				branch,
-				turn,
-				self._real.turn_end(branch, turn),
-			) == (
-				branch_from,
-				turn_from,
-				tick_from,
-			):
-				return NONE, EMPTY_MAPPING
-			self._real.time = (branch, turn, self._real.turn_end(branch, turn))
-		else:
-			if (branch, turn, tick) == (
-				branch_from,
-				turn_from,
-				tick_from,
-			):
-				return NONE, EMPTY_MAPPING
-			self._real.time = (branch, turn, tick)
+		if (branch, turn, tick) == (
+			branch_from,
+			turn_from,
+			tick_from,
+		):
+			return NONE, EMPTY_MAPPING
+		self._real.time = (branch, turn, tick)
 		if turn_from != turn and (
 			branch_from != branch
 			or None in (turn_from, turn)
