@@ -5460,10 +5460,10 @@ class Engine(AbstractEngine, Executor):
 		self, btt_from: Time, btt_to: Time
 	) -> SlightlyPackedDeltaType:
 		btt_from = validate_time(btt_from)
-		if not isinstance(btt_from, Time):
+		if len(btt_from) != 3:
 			raise TypeError("Not a full time with a branch", btt_from)
 		btt_to = validate_time(btt_to)
-		if not isinstance(btt_to, Time):
+		if len(btt_to) != 3:
 			raise TypeError("Not a full time with a branch", btt_to)
 		import numpy as np
 
