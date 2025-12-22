@@ -1092,7 +1092,7 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 	@_filename.validator
 	def _validate_filename(self, _, file: Path | None):
 		if file is None:
-			if self._module is None:
+			if self._module is None and hasattr(self, "__name__"):
 				self._module = self.__name__
 			self._ast = ast.Module(body=[], type_ignores=[])
 			self._ast_idx = {}
