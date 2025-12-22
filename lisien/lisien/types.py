@@ -289,7 +289,7 @@ def validate_time(time):
 				raise ValueError("Negative turn", time[1])
 			if time[2] < 0:
 				raise ValueError("Negative tick", time[2])
-			return Time(*time)
+			return time
 		case 2:
 			if not isinstance(time[0], int):
 				raise TypeError("Invalid turn", time[0])
