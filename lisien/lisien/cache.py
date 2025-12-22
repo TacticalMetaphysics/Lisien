@@ -1381,7 +1381,10 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 			] = settings_turns[turn]
 			if not self.overwrite_journal and tick in setticks:
 				raise KeyError(
-					"Already have journal entry", self.name, branch, turn, tick
+					"Already have journal entry",
+					branch,
+					turn,
+					tick,
 				)
 			# assert tick not in setticks
 			presetticks: WindowDict[
