@@ -66,6 +66,7 @@ from typing import (
 	MutableMapping,
 	NewType,
 	Optional,
+	Protocol,
 	TypedDict,
 	TypeGuard,
 	TypeVar,
@@ -250,31 +251,33 @@ Tick = NewType("Tick", Annotated[int, Ge(0)])
 type Time = tuple[Branch, Turn, Tick]
 
 
-@override
-def validate_time(time: Time) -> Time: ...
+class ValidateTimeProtocol(Protocol):
+	@override
+	@staticmethod
+	def __call__(time) -> Time: ...
+
+	@override
+	@staticmethod
+	def __call__(time: LinearTime) -> LinearTime: ...
+
+	@override
+	@staticmethod
+	def __call__(time: tuple[int, int]) -> LinearTime: ...
+
+	@override
+	@staticmethod
+	def __call__(time: tuple[str, int, int]) -> Time: ...
+
+	@override
+	@staticmethod
+	def __call__(time: tuple[Turn, Tick]) -> LinearTime: ...
+
+	@override
+	@staticmethod
+	def __call__(time: tuple[Branch, Turn, Tick]) -> Time: ...
 
 
-@override
-def validate_time(time: LinearTime) -> LinearTime: ...
-
-
-@override
-def validate_time(time: tuple[int, int]) -> LinearTime: ...
-
-
-@override
-def validate_time(time: tuple[str, int, int]) -> Time: ...
-
-
-@override
-def validate_time(time: tuple[Turn, Tick]) -> LinearTime: ...
-
-
-@override
-def validate_time(time: tuple[Branch, Turn, Tick]) -> Time: ...
-
-
-def validate_time(time):
+def _validate_time(time):
 	if not isinstance(time, tuple):
 		raise TypeError("Invalid time", time)
 	match len(time):
@@ -302,6 +305,9 @@ def validate_time(time):
 			return LinearTime(*Time)
 		case _:
 			raise TypeError("Invalid time", time)
+
+
+validate_time: ValidateTimeProtocol = _validate_time
 
 
 class LinearTime(tuple[Turn, Tick]):
