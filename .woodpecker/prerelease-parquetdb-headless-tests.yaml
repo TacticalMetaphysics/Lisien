@@ -31,4 +31,4 @@ steps:
       - PYTEST_KEYWORDS="not slow and not big and not subinterpreter and ${DATABASE}"
       - echo "PYTEST_KEYWORDS=$PYTEST_KEYWORDS"
       - export PYTEST_KEYWORDS
-      - tox run -c lisien/tox.ini -e $TOX_ENV_LIST
+      - tox run -c lisien/tox_prerelease_parquetdb.ini -e $TOX_ENV_LIST
