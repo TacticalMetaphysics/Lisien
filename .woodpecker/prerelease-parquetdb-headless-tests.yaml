@@ -5,7 +5,7 @@ when:
     repo: clayote/Lisien
 
 depends_on:
-  - headless-tests.yaml
+  - headless-tests
 
 matrix:
   PYTHON_VERSION:
