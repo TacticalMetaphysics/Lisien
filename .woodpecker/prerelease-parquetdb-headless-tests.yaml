@@ -16,7 +16,7 @@ matrix:
     - parquetdb
 
 steps:
-  - name: headless_${PYTHON_VERSION}
+  - name: prerelease_parquetdb_headless_${PYTHON_VERSION}
     image: python:${PYTHON_VERSION}
     commands:
       - TMPDIR=$(python find_ramdisk.py)
