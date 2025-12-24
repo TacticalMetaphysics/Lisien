@@ -4145,7 +4145,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			branch, turn, tick = nbtt()
 		store(character, orig, dest, branch, turn, tick, exist)
-		if (character, orig, dest) in self._edge_objs:
+		if not exist and (character, orig, dest) in self._edge_objs:
 			del self._edge_objs[character, orig, dest]
 		if exist:
 			self._portals_rulebooks_cache.store(
