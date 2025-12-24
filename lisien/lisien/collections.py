@@ -307,7 +307,8 @@ class StringStore(AbstractStringStore, AttrSignal):
 
 	def blake2b(self) -> bytes:
 		the_hash = blake2b()
-		for k, v in self.items():
+		for k in sort_set(self.keys()):
+			v = self[k]
 			the_hash.update(k.encode())
 			the_hash.update(GROUP_SEP)
 			the_hash.update(v.encode())
