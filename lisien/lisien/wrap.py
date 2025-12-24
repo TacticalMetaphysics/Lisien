@@ -389,8 +389,7 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 		self._data = data
 
 
-@define(weakref_slot=False, eq=False, repr=False)
-class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
+class OrderlyFrozenSet[_K](frozenset[_K], AbstractOrderlySet[_K]):
 	"""A frozenset with deterministic order of iteration
 
 	Order is not considered significant for the purpose of determining
@@ -398,11 +397,10 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 
 	"""
 
-	@staticmethod
-	def _convert_data(data: Iterable[_K]) -> tuple[_K, ...]:
-		return tuple(data)
+	_data: tuple[_K, ...]
 
-	_data: tuple[_K, ...] = field(converter=_convert_data, default=())
+	def __init__(self, data: Iterable[_K]):
+		self._data = tuple(data)
 
 	def __repr__(self):
 		return repr(frozenset(self))
