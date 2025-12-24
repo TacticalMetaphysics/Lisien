@@ -635,13 +635,13 @@ class SubSetWrapper[_T](MutableWrapperSet[_T]):
 	_setter: Callable[[MutableSet[_T]], None]
 
 	def _get(self) -> MutableSet[_T]:
-		return self._getter()
+		return self.__copy__()
 
 	def _set(self, v: MutableSet[_T]):
 		self._setter(v)
 
 	def __copy__(self):
-		return OrderlySet(self._get())
+		return OrderlySet(self._getter())
 
 
 _U = TypeVar("_U")
