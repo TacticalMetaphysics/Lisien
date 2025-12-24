@@ -83,6 +83,7 @@ from .window import (
 	EntikeySettingsTurnDict,
 	WindowDict,
 )
+from .wrap import OrderlyFrozenSet
 
 if TYPE_CHECKING:
 	from . import engine
@@ -148,7 +149,7 @@ class TurnEndPlanDict(AbstractTurnEndDict):
 
 type KeyCache[*_PARENT, _ENTITY, _KEY] = dict[
 	tuple[*_PARENT, _ENTITY, Branch],
-	AssignmentTimeDict[frozenset[_KEY]],
+	AssignmentTimeDict[OrderlyFrozenSet[_KEY]],
 ]
 
 
@@ -398,7 +399,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		"""Returns the approximate memory footprint an object and all of its contents.
 
 		Automatically finds the contents of the following builtin containers and
-		their subclasses:  tuple, list, deque, dict, set and frozenset.
+		their subclasses:  tuple, list, deque, dict, set and OrderlyFrozenSet.
 		To search other containers, add handlers to iterate over their contents:
 
 		    handlers = {SomeContainerClass: iter,
@@ -414,7 +415,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 			WindowDict: lambda d: [d._past, d._future, d._keys],
 			dict: lambda d: chain.from_iterable(d.items()),
 			set: iter,
-			frozenset: iter,
+			OrderlyFrozenSet: iter,
 			Cache: lambda o: [
 				o.branches,
 				o.settings,
@@ -580,14 +581,14 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		*,
 		forward: bool,
 	):
-		"""Try to retrieve a frozenset representing extant keys.
+		"""Try to retrieve a OrderlyFrozenSet representing extant keys.
 
 		If I can't, generate one, store it, and return it.
 
 		"""
 		keycache_key = parentity + (branch,)
-		keycache2: AssignmentTimeDict[frozenset[_KEY]] | None = None
-		keycache3: WindowDict[Tick, frozenset[_KEY]] | None = None
+		keycache2: AssignmentTimeDict[OrderlyFrozenSet[_KEY]] | None = None
+		keycache3: WindowDict[Tick, OrderlyFrozenSet[_KEY]] | None = None
 		if keycache_key in keycache:
 			keycache2 = keycache[keycache_key]
 			assert keycache2 is not None
@@ -626,7 +627,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 								.difference(deleted)
 							)
 						except KeyError:
-							ret = frozenset()
+							ret = OrderlyFrozenSet()
 						# assert ret == get_adds_dels(
 						# keys[parentity], branch, turn, tick)[0]  # slow
 						new_turn_kc = WindowDict()
@@ -665,7 +666,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 								if keycache2[turn_before].rev_gettable(tick):
 									keys_before = keycache2[turn_before][tick]
 								else:
-									keys_before = frozenset()
+									keys_before = OrderlyFrozenSet()
 							else:
 								tick_before = keycache2[turn_before].end
 								keys_before = keycache2[turn_before][
@@ -701,14 +702,14 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 						if turn in kfb:
 							kfbr = kfb[turn]
 							if tick in kfbr:
-								ret = frozenset(kfbr[tick].keys())
+								ret = OrderlyFrozenSet(kfbr[tick].keys())
 				if ret is None:
 					adds, _ = get_adds_dels(parentity, branch, turn, tick)
-					ret = frozenset(adds)
+					ret = OrderlyFrozenSet(adds)
 			elif stoptime == (branch, turn, tick):
 				try:
 					kf = self._get_keyframe(parentity, branch, turn, tick)
-					ret = frozenset(kf.keys())
+					ret = OrderlyFrozenSet(kf.keys())
 				except KeyframeError:
 					if tick == 0:
 						stoptime, _ = self.engine._build_keyframe_window(
@@ -722,7 +723,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 						)
 					if stoptime is None:
 						adds, _ = get_adds_dels(parentity, branch, turn, tick)
-						ret = frozenset(adds)
+						ret = OrderlyFrozenSet(adds)
 					else:
 						try:
 							kf = self._get_keyframe(parentity, *stoptime)
@@ -733,7 +734,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 								tick,
 								stoptime=stoptime,
 							)
-							ret = frozenset((kf.keys() | adds) - dels)
+							ret = OrderlyFrozenSet((kf.keys() | adds) - dels)
 						except KeyframeError:
 							# entity absent from keyframe, means it was created after that
 							adds, _ = get_adds_dels(
@@ -743,19 +744,19 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 								tick,
 								stoptime=stoptime,
 							)
-							ret = frozenset(adds)
+							ret = OrderlyFrozenSet(adds)
 			else:
 				try:
 					kf = self._get_keyframe(parentity, *stoptime)
 					adds, dels = get_adds_dels(
 						parentity, branch, turn, tick, stoptime=stoptime
 					)
-					ret = frozenset((kf.keys() | adds) - dels)
+					ret = OrderlyFrozenSet((kf.keys() | adds) - dels)
 				except KeyframeError:
 					adds, _ = get_adds_dels(
 						parentity, branch, turn, tick, stoptime=stoptime
 					)
-					ret = frozenset(adds)
+					ret = OrderlyFrozenSet(adds)
 			if keycache2:
 				if keycache3:
 					keycache3[tick] = ret
@@ -775,8 +776,8 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		tick: Tick,
 		*,
 		forward: bool,
-	) -> frozenset[_KEY]:
-		"""Get a frozenset of keys that exist in the entity at the moment.
+	) -> OrderlyFrozenSet[_KEY]:
+		"""Get a OrderlyFrozenSet of keys that exist in the entity at the moment.
 
 		With ``forward=True``, enable an optimization that copies old key sets
 		forward and updates them.
@@ -2417,7 +2418,7 @@ class EdgesCache(
 		tick: Tick,
 		*,
 		forward: bool,
-	) -> frozenset[NodeName]:
+	) -> OrderlyFrozenSet[NodeName]:
 		"""Return a set of origin nodes leading to ``dest``"""
 		(
 			origcache,
@@ -3598,7 +3599,11 @@ class PortalsRulebooksCache(
 @define
 class LeaderSetCache(
 	Cache[
-		CharName, NodeName, CharName, bool, dict[NodeName, frozenset[CharName]]
+		CharName,
+		NodeName,
+		CharName,
+		bool,
+		dict[NodeName, OrderlyFrozenSet[CharName]],
 	]
 ):
 	"""A cache for remembering what set of characters have certain nodes as units"""
@@ -3621,7 +3626,7 @@ class LeaderSetCache(
 		if forward is None:
 			forward = self.engine._forward
 		if is_unit:
-			users = frozenset([character])
+			users = OrderlyFrozenSet([character])
 			try:
 				users |= self.retrieve(
 					graph, node, branch, turn, tick, search=not forward
@@ -3634,7 +3639,7 @@ class LeaderSetCache(
 					graph, node, branch, turn, tick, search=not forward
 				)
 			except KeyError:
-				users = frozenset([])
+				users = OrderlyFrozenSet([])
 			users -= {character}
 		self._store(
 			graph,
@@ -3657,7 +3662,7 @@ class LeaderSetCache(
 		turn: Turn,
 		tick: Tick,
 		search: bool = False,
-	) -> frozenset[CharName]:
+	) -> OrderlyFrozenSet[CharName]:
 		return self._retrieve(graph, node, branch, turn, tick, search=search)
 
 	def get_keyframe(
@@ -3667,7 +3672,7 @@ class LeaderSetCache(
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> dict[NodeName, frozenset[CharName]]:
+	) -> dict[NodeName, OrderlyFrozenSet[CharName]]:
 		ret = self._get_keyframe((graph,), branch, turn, tick)
 		if copy:
 			ret = ret.copy()
@@ -3679,7 +3684,7 @@ class LeaderSetCache(
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict[NodeName, frozenset[CharName]],
+		keyframe: dict[NodeName, OrderlyFrozenSet[CharName]],
 	):
 		self._set_keyframe((graph,), branch, turn, tick, keyframe)
 
@@ -3689,7 +3694,7 @@ class LeaderSetCache(
 		branch_to: Branch,
 		turn: Turn,
 		tick: Tick,
-		default: Optional[frozenset] = None,
+		default: Optional[OrderlyFrozenSet] = None,
 	):
 		super().alias_keyframe(branch_from, branch_to, turn, tick, default)
 
@@ -4246,7 +4251,7 @@ class RulesHandledCache[*_ENTITY](ABC):
 		"""Returns the approximate memory footprint an object and all of its contents.
 
 		Automatically finds the contents of the following builtin containers and
-		their subclasses:  tuple, list, deque, dict, set and frozenset.
+		their subclasses:  tuple, list, deque, dict, set and OrderlyFrozenSet.
 		To search other containers, add handlers to iterate over their contents:
 
 		    handlers = {SomeContainerClass: iter,
@@ -4261,7 +4266,7 @@ class RulesHandledCache[*_ENTITY](ABC):
 			RulesHandledCache: lambda d: [d.mark_handled, d.handled_deep],
 			dict: lambda d: chain.from_iterable(d.items()),
 			set: iter,
-			frozenset: iter,
+			OrderlyFrozenSet: iter,
 			Cache: lambda o: [
 				o.branches,
 				o.settings,
@@ -4696,7 +4701,7 @@ class PortalRulesHandledCache(RulesHandledCache[CharName, NodeName, NodeName]):
 			self.engine.character.items(), key=itemgetter(0)
 		):
 			for orig_name in sort_set(
-				frozenset(
+				OrderlyFrozenSet(
 					self.engine._portals_rulebooks_cache.iter_keys(
 						character_name, branch, turn, tick
 					)
@@ -4792,7 +4797,7 @@ class ThingsCache(
 				search=True,
 			)
 		except KeyError:
-			return frozenset(
+			return OrderlyFrozenSet(
 				self._slow_iter_contents(
 					character, location, branch, turn, tick
 				)
@@ -4832,7 +4837,7 @@ class ThingsCache(
 			if loading:
 				return
 			node_contents_cache = self.engine._node_contents_cache
-			this = frozenset((thing,))
+			this = OrderlyFrozenSet((thing,))
 			# Cache the contents of nodes
 			todo = defaultdict(list)
 			if oldloc is not ...:
@@ -4841,7 +4846,7 @@ class ThingsCache(
 						character, oldloc, branch, turn, tick
 					)
 				except KeyError:
-					oldconts_orig = frozenset()
+					oldconts_orig = OrderlyFrozenSet()
 				todo[turn, tick].append(
 					(oldloc, oldconts_orig.difference(this))
 				)
@@ -5041,8 +5046,8 @@ class NodeContentsCache(
 	Cache[
 		CharName,
 		NodeName,
-		frozenset[NodeName],
-		dict[NodeName, frozenset[NodeName]],
+		OrderlyFrozenSet[NodeName],
+		dict[NodeName, OrderlyFrozenSet[NodeName]],
 	]
 ):
 	overwrite_journal: bool = field(init=False, default=True)
@@ -5074,7 +5079,7 @@ class NodeContentsCache(
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		contents: frozenset[NodeName],
+		contents: OrderlyFrozenSet[NodeName],
 		planning: bool = True,
 		forward: Optional[bool] = None,
 		loading: bool = False,
@@ -5105,7 +5110,7 @@ class NodeContentsCache(
 		turn: Turn,
 		tick: Tick,
 		search: bool = False,
-	) -> frozenset[NodeName]:
+	) -> OrderlyFrozenSet[NodeName]:
 		return self._retrieve(
 			character, node, branch, turn, tick, search=search
 		)
@@ -5209,7 +5214,7 @@ class NodeContentsCache(
 		turn: Turn,
 		tick: Tick,
 		copy: bool = True,
-	) -> dict[NodeName, frozenset[NodeName]]:
+	) -> dict[NodeName, OrderlyFrozenSet[NodeName]]:
 		ret = self._get_keyframe((graph,), branch, turn, tick)
 		if copy:
 			ret = ret.copy()
@@ -5221,6 +5226,6 @@ class NodeContentsCache(
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		keyframe: dict[NodeName, frozenset[NodeName]],
+		keyframe: dict[NodeName, OrderlyFrozenSet[NodeName]],
 	) -> None:
 		self._set_keyframe((graph,), branch, turn, tick, keyframe)
