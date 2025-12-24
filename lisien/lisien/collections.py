@@ -158,38 +158,66 @@ class ChangeTrackingDict[_K, _V](UserDict[_K, _V]):
 			del self.data[key]
 
 
-class StringStore(AbstractStringStore, Signal):
-	language: ClassVar = LanguageDescriptor()
-	_store: ClassVar = "strings"
+@define
+class StringStore(AbstractStringStore, AttrSignal):
+	engine: AbstractEngine | dict[str, str] = field()
 
-	def __init__(
+	@engine.validator
+	def _validate_engine(
 		self,
-		engine_or_string_dict: AbstractEngine | dict,
-		prefix: Path | os.PathLike[str] | None,
-		lang="eng",
+		_,
+		engine: AbstractEngine | dict[str, str] | dict[str, dict[str, str]],
 	):
-		super().__init__()
-		if isinstance(engine_or_string_dict, dict):
-			self._prefix = None
-			self._current_language = lang
-			if lang in engine_or_string_dict and isinstance(
-				engine_or_string_dict[lang], dict
-			):
-				self._languages = engine_or_string_dict
+		lang = self._current_language
+		if isinstance(engine, dict):
+			if lang in engine and isinstance(engine[lang], dict):
+				for k, v in engine[lang].items():
+					if not isinstance(k, str):
+						raise TypeError("String name must be string", k)
+					if not isinstance(v, str):
+						raise TypeError("StringStore only stores strings", v)
+				self._languages = engine
 			else:
-				self._languages = {lang: engine_or_string_dict}
-		else:
-			if prefix is not None:
-				prefix = Path(prefix)
-				if not prefix.is_dir():
-					raise NotADirectoryError(
-						"Prefix is not a directory", prefix
-					)
-			self.engine = engine_or_string_dict
+				self._languages = {lang: engine}
+		elif isinstance(engine, AbstractEngine):
 			self._languages = {lang: TamperEvidentDict()}
-			self._prefix = prefix
-			self._current_language = lang
 			self._switch_language(lang)
+		else:
+			raise TypeError(
+				"StringStore needs a Lisien engine or a dictionary of strings",
+				engine,
+			)
+
+	@staticmethod
+	def _convert_prefix(prefix: Path | os.PathLike[str] | None):
+		if prefix is None:
+			return None
+		elif isinstance(prefix, Path):
+			return prefix
+		else:
+			return Path(prefix)
+
+	_prefix: Path | None = field(converter=_convert_prefix, default=None)
+
+	@_prefix.validator
+	def _validate_prefix(self, _, prefix: Path | None):
+		if prefix is None:
+			return
+		if not prefix.is_dir():
+			raise NotADirectoryError(
+				"Strings prefix is not a directory", prefix
+			)
+
+	_current_language: str = field(default="eng")
+
+	@_current_language.validator
+	def _validate_language(self, _, lang: str):
+		if not isinstance(lang, str):
+			raise TypeError("Language code must be string", lang)
+
+	language: ClassVar = LanguageDescriptor()
+	_languages: dict[str, dict[str, str]] = field(init=False, factory=dict)
+	_store: ClassVar = "strings"
 
 	def _switch_language(self, lang: str) -> None:
 		"""Write the current language to disk, and load the new one if available"""
