@@ -31,7 +31,6 @@ from collections import UserDict
 from collections.abc import MutableMapping
 from contextlib import contextmanager
 from copy import deepcopy
-from dataclasses import dataclass
 from functools import cached_property
 from hashlib import blake2b
 from inspect import getsource
@@ -316,7 +315,7 @@ class StringStore(AbstractStringStore, AttrSignal):
 		return the_hash.digest()
 
 
-@dataclass
+@define
 class CodeHasher(ast.NodeVisitor):
 	# What if users want to subclass Place or whatever, and use type
 	# annotations to decide what rules to run on which of their subclasses?
