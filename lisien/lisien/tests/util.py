@@ -304,26 +304,12 @@ def untar_cache(
 	if hasattr(database_connector_part, "is_python"):
 		with open(os.path.join(tmp_path, "database.pkl"), "rb") as f:
 			database_connector = pickle.load(f)
-		with Engine(
-			tmp_path,
-			workers=0,
-			database=database_connector,
-			executor=serial_or_executor,
-		) as eng:
-			yield eng
-	elif hasattr(database_connector_part, "is_sqlite"):
-		with Engine(
-			tmp_path,
-			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
-			workers=0,
-			executor=serial_or_executor,
-		) as eng:
-			yield eng
 	else:
-		with Engine(
-			tmp_path,
-			workers=0,  # in case serial_or_executor is None
-			database=database_connector_part,
-			executor=serial_or_executor,
-		) as eng:
-			yield eng
+		database_connector = database_connector_part
+	with Engine(
+		tmp_path,
+		workers=0,  # in case serial_or_executor is None
+		database=database_connector,
+		executor=serial_or_executor,
+	) as eng:
+		yield eng
