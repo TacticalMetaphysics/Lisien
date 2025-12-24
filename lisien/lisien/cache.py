@@ -3474,19 +3474,20 @@ class PortalsRulebooksCache(
 		)
 		# The former will be overwritten in the journal (but not elsewhere)
 		# by the latter:
-		self._store(
-			char,
-			orig,
-			dest,
-			branch,
-			turn,
-			tick,
-			rb,
-			loading=loading,
-			contra=contra,
-			forward=forward,
-			planning=planning,
-		)
+		with self.overwriting():
+			self._store(
+				char,
+				orig,
+				dest,
+				branch,
+				turn,
+				tick,
+				rb,
+				loading=loading,
+				contra=contra,
+				forward=forward,
+				planning=planning,
+			)
 
 	def retrieve(
 		self,
