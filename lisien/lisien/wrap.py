@@ -634,11 +634,11 @@ class SubSetWrapper[_T](MutableWrapperSet[_T]):
 	_getter: Callable[[], MutableSet[_T]]
 	_setter: Callable[[MutableSet[_T]], None]
 
-	def _get(self) -> MutableSet[_T]:
-		return self.__copy__()
+	def _get(self) -> dict[_T, bool]:
+		return dict.fromkeys(self._getter())
 
-	def _set(self, v: MutableSet[_T]):
-		self._setter(v)
+	def _set(self, data: dict[_T, bool]):
+		self._setter(set(data.keys()))
 
 	def __copy__(self):
 		return OrderlySet(self._getter())
@@ -678,7 +678,7 @@ class DictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 	def _get(
 		self,
 	) -> dict[_K, _V]:
-		return self._getter()
+		return self.unwrap()
 
 	def _set(self, v):
 		self._outer[self._key] = v
@@ -686,7 +686,7 @@ class DictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 	def unwrap(self):
 		return {
 			k: v.unwrap() if hasattr(v, "unwrap") else v
-			for (k, v) in self.items()
+			for (k, v) in self._getter().items()
 		}
 
 
