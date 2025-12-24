@@ -19,10 +19,8 @@ from functools import partial
 from logging import getLogger
 
 import pytest
-from sqlalchemy import create_engine
 
 from lisien.engine import Engine
-from ..facade import EngineFacade
 from ..futures import (
 	LisienThreadExecutorProxy,
 	LisienProcessExecutorProxy,
@@ -236,54 +234,7 @@ def persistent_database(request):
 	return request.param
 
 
-@pytest.fixture(scope="session")
-def reusable_sqlite_connector():
-	fake_engine = EngineFacade(None)
-	with SQLAlchemyDatabaseConnector(
-		fake_engine.pack, fake_engine.unpack
-	) as conn:
-		yield conn
-
-
-@pytest.fixture(scope="session")
-def reusable_sqlite_connector2():
-	fake_engine = EngineFacade(None)
-	with SQLAlchemyDatabaseConnector(
-		fake_engine.pack, fake_engine.unpack
-	) as conn:
-		yield conn
-
-
-def reuse_sqlite_connector(
-	reusable_sqlite_connector: SQLAlchemyDatabaseConnector,
-	pack,
-	unpack,
-):
-	reusable_sqlite_connector._pack = pack
-	reusable_sqlite_connector._unpack = unpack
-	return reusable_sqlite_connector
-
-
-@pytest.fixture(scope="function")
-def reusing_sqlite_connector_partial(reusable_sqlite_connector):
-	it = partial(reuse_sqlite_connector, reusable_sqlite_connector)
-	it.is_sqlite = True
-	yield it
-	assert reusable_sqlite_connector.connect_string == "sqlite:///:memory:"
-	reusable_sqlite_connector.truncate_all()
-
-
-@pytest.fixture(scope="function")
-def reusing_sqlite_connector_partial2(reusable_sqlite_connector2):
-	it = partial(reuse_sqlite_connector, reusable_sqlite_connector2)
-	it.is_sqlite = True
-	yield it
-	reusable_sqlite_connector2.truncate_all()
-
-
-def database_connector_partial(
-	tmp_path, database, reusing_sqlite_connector_partial
-):
+def database_connector_partial(tmp_path, database):
 	match database:
 		case "python":
 			try:
@@ -299,7 +250,10 @@ def database_connector_partial(
 				part.is_python = True
 				return part
 		case "sqlite":
-			return reusing_sqlite_connector_partial
+			return partial(
+				SQLAlchemyDatabaseConnector,
+				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+			)
 		case "parquetdb":
 			return partial(
 				ParquetDatabaseConnector, path=tmp_path.joinpath("world")
@@ -307,21 +261,30 @@ def database_connector_partial(
 
 
 @pytest.fixture
-def database_connector_part(
-	tmp_path, non_null_database, reusing_sqlite_connector_partial
-):
-	return database_connector_partial(
-		tmp_path, non_null_database, reusing_sqlite_connector_partial
-	)
+def database_connector_part(tmp_path, non_null_database):
+	return database_connector_partial(tmp_path, non_null_database)
 
 
 @pytest.fixture
-def database_connector_part2(
-	tmp_path, non_null_database, reusing_sqlite_connector_partial2
+def database_connector_part2(tmp_path, non_null_database):
+	return database_connector_partial(tmp_path, non_null_database)
+
+
+@pytest.fixture
+def reusing_database_connector_part2(
+	tmp_path,
+	non_null_database,
+	reusing_python_database_connector_part,
+	reusing_sqlalchemy_database_connector_part,
+	reusing_parquetdb_database_connector_part,
 ):
-	return database_connector_partial(
-		tmp_path, non_null_database, reusing_sqlite_connector_partial2
-	)
+	match non_null_database:
+		case "python":
+			yield reusing_python_database_connector_part
+		case "sqlite":
+			yield reusing_sqlalchemy_database_connector_part
+		case "parquetdb":
+			yield reusing_parquetdb_database_connector_part
 
 
 @pytest.fixture(scope="session")
