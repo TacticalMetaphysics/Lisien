@@ -638,7 +638,7 @@ class SubSetWrapper[_T](MutableWrapperSet[_T]):
 		return dict.fromkeys(self._getter())
 
 	def _set(self, data: dict[_T, bool]):
-		self._setter(set(data.keys()))
+		self._setter(OrderlySet(data.keys()))
 
 	def __copy__(self):
 		return OrderlySet(self._getter())
@@ -769,7 +769,7 @@ class SetWrapper[_T](MutableWrapperSet[_T]):
 		return dict.fromkeys(self._getter())
 
 	def _set(self, v: dict[_T, bool]) -> None:
-		self._outer[self._key] = set(v.keys())
+		self._outer[self._key] = OrderlySet(v.keys())
 
 	def __copy__(self):
 		ret = OrderlySet()
