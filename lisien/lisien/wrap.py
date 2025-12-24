@@ -601,7 +601,7 @@ class SubListWrapper[_T](MutableSequenceWrapper[_T], list[_T]):
 		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
 
-@define(order=False, eq=False)
+@define(order=False, eq=False, repr=False)
 class MutableWrapperSet[_T](
 	MutableWrapper, AbstractOrderlyMutableSet[_T], ABC
 ):
@@ -618,8 +618,18 @@ class MutableWrapperSet[_T](
 	def clear(self) -> None:
 		self._set(OrderlySet())
 
+	def __repr__(self):
+		strs = map(repr, self)
+		return (
+			"<"
+			+ self.__class__.__name__
+			+ " containing {"
+			+ ", ".join(strs)
+			+ "}>"
+		)
 
-@define(eq=False)
+
+@define(eq=False, repr=False)
 class SubSetWrapper[_T](MutableWrapperSet[_T]):
 	_getter: Callable[[], MutableSet[_T]]
 	_setter: Callable[[MutableSet[_T]], None]
@@ -741,7 +751,7 @@ class ListWrapper[_T](MutableWrapperDictList[int, _T], MutableSequence[_T]):
 		]
 
 
-@define(eq=False)
+@define(eq=False, repr=False)
 class SetWrapper[_T](MutableWrapperSet[_T]):
 	"""A set synchronized with a serialized field.
 
