@@ -761,15 +761,15 @@ class SetWrapper[_T](MutableWrapperSet[_T]):
 	"""
 
 	__slots__ = ()
-	_getter: Callable[[], dict[_T, bool]]
+	_getter: Callable[[], MutableSet[_T]]
 	_outer: MutableMapping
 	_key: Hashable
 
 	def _get(self) -> dict[_T, bool]:
-		return self._getter()
+		return dict.fromkeys(self._getter())
 
 	def _set(self, v: dict[_T, bool]) -> None:
-		self._outer[self._key] = v.keys()
+		self._outer[self._key] = set(v.keys())
 
 	def __copy__(self):
 		ret = OrderlySet()
