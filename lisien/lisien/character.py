@@ -748,7 +748,8 @@ class Character(AbstractCharacter, RuleFollower):
 				if key not in portal_objs:
 					portal_objs[key] = Portal(character, orig, dest)
 				p = portal_objs[key]
-				p.engine._exist_edge(charn, orig, dest)
+				if not p.engine._edge_exists(charn, orig, dest):
+					p.engine._exist_edge(charn, orig, dest)
 				p.clear()
 				p.update(value)
 
