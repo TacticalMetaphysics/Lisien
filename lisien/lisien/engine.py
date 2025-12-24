@@ -5218,7 +5218,11 @@ class Engine(AbstractEngine, Executor):
 						kf[ch] = (rbname, ch)
 			kf[name] = (rbname, name)
 			rbcache.set_keyframe(branch, turn, tick, kf)
-		self._graph_cache.store(name, branch, turn, tick, type_s)
+		if (turn, tick) == (0, 0):
+			with self._graph_cache.overwriting():
+				self._graph_cache.store(name, branch, turn, tick, type_s)
+		else:
+			self._graph_cache.store(name, branch, turn, tick, type_s)
 		# You need the following "meaningless" keyframe snap so that the keyframe
 		# you're making isn't missing everything apart from the characters.
 		# Don't delete it.
