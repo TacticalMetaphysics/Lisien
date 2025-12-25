@@ -48,12 +48,6 @@ class AbstractOrderlySet[_K](Set[_K]):
 	@abstractmethod
 	def _set(self, data: tuple[_K, ...]) -> None: ...
 
-	def __contains__(self, x) -> bool:
-		return x in self._get()
-
-	def __len__(self) -> int:
-		return len(self._get())
-
 	def __iter__(self) -> Iterator[_K]:
 		return iter(self._get())
 
@@ -374,13 +368,12 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 		return OrderlySet(filter(excluded.__contains__, chain(this, that)))
 
 
-@define(weakref_slot=False, eq=False, repr=False)
 class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
-	@staticmethod
-	def _convert_data(data: Iterable[_K]) -> dict[_K, bool]:
-		return dict.fromkeys(data, True)
+	__slots__ = ("_data",)
+	_data: dict[_K, bool]
 
-	_data: dict[_K, bool] = field(converter=_convert_data, default=())
+	def __init__(self, data: Iterable[_K] = ()):
+		self._data = dict.fromkeys(data)
 
 	def _get(self) -> dict[_K, bool]:
 		return self._data
