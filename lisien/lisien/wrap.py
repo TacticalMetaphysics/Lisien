@@ -389,7 +389,7 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 		self._data = data
 
 
-class OrderlyFrozenSet[_K](frozenset[_K], AbstractOrderlySet[_K]):
+class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 	"""A frozenset with deterministic order of iteration
 
 	Order is not considered significant for the purpose of determining
