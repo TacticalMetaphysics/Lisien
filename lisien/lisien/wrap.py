@@ -399,7 +399,7 @@ class OrderlyFrozenSet[_K](frozenset[_K], AbstractOrderlySet[_K]):
 
 	_data: tuple[_K, ...]
 
-	def __init__(self, data: Iterable[_K]):
+	def __init__(self, data: Iterable[_K] = ()):
 		self._data = tuple(data)
 
 	def __repr__(self):
