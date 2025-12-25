@@ -41,7 +41,6 @@ from attrs import define, field
 from more_itertools import unique_everseen
 
 
-@define(weakref_slot=False, repr=False, eq=False)
 class AbstractOrderlySet[_K](Set[_K]):
 	@abstractmethod
 	def _get(self) -> tuple[_K, ...]: ...
@@ -370,8 +369,11 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 	__slots__ = ("_data",)
 	_data: dict[_K, bool]
 
-	def __init__(self, data: Iterable[_K] = ()):
-		self._data = dict.fromkeys(data)
+	def __new__(cls, data: Iterable[_K]):
+		data = dict.fromkeys(data)
+		me = set.__new__(cls, data.keys())
+		me._data = data
+		return me
 
 	def _get(self) -> dict[_K, bool]:
 		return self._data
@@ -390,8 +392,11 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 
 	_data: tuple[_K, ...]
 
-	def __init__(self, data: Iterable[_K] = ()):
-		self._data = tuple(unique_everseen(data))
+	def __new__(cls, data):
+		data = tuple(unique_everseen(data))
+		me = frozenset.__new__(cls, data)
+		me._data = data
+		return me
 
 	def __repr__(self):
 		return repr(frozenset(self))
