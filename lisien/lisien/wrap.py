@@ -51,6 +51,9 @@ class AbstractOrderlySet[_K](Set[_K]):
 	def __iter__(self) -> Iterator[_K]:
 		return iter(self._get())
 
+	def __len__(self) -> int:
+		return len(self._get())
+
 	def copy(self) -> OrderlyFrozenSet[_K]:
 		return OrderlyFrozenSet(self._get())
 
@@ -262,12 +265,6 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 
 	def __iter__(self) -> Iterator[_K]:
 		return iter(self._get())
-
-	def __len__(self) -> int:
-		return len(self._get())
-
-	def __contains__(self, item) -> bool:
-		return item in self._get()
 
 	def _this_keys(self) -> Set[_K]:
 		this = self._get()
