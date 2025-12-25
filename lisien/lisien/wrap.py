@@ -390,6 +390,8 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 
 	"""
 
+	__slots__ = ("_data",)
+
 	_data: tuple[_K, ...]
 
 	def __new__(cls, data: Iterable[_K] = ()):
