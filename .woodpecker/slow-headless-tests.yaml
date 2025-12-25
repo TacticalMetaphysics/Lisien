@@ -23,10 +23,6 @@ steps:
       - python -m venv .venv${PYTHON_VERSION}
       - . .venv${PYTHON_VERSION}/bin/activate
       - python -m pip install --upgrade pip
-      - python -m pip install tox
-      - TOX_ENV_LIST=$(echo "${PYTHON_VERSION}" | sed -Ee 's/([0-9])\.([0-9]{2}).*/py\1\2/')
-      - echo "TOX_ENV_LIST=$TOX_ENV_LIST"
-      - PYTEST_KEYWORDS=slow
-      - echo "PYTEST_KEYWORDS=$PYTEST_KEYWORDS
-      - export PYTEST_KEYWORDS
-      - tox run -c lisien/tox_slow.ini -e $TOX_ENV_LIST
+      - python -m pip install pytest
+      - python -m pip install lisien/
+      - python -m pytest -vvx -k 'slow or big' --pyargs lisien.tests
