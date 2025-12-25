@@ -369,7 +369,7 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 	__slots__ = ("_data",)
 	_data: dict[_K, bool]
 
-	def __new__(cls, data: Iterable[_K]):
+	def __new__(cls, data: Iterable[_K] = ()):
 		data = dict.fromkeys(data)
 		me = set.__new__(cls, data.keys())
 		me._data = data
@@ -392,7 +392,7 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 
 	_data: tuple[_K, ...]
 
-	def __new__(cls, data):
+	def __new__(cls, data: Iterable[_K] = ()):
 		data = tuple(unique_everseen(data))
 		me = frozenset.__new__(cls, data)
 		me._data = data
