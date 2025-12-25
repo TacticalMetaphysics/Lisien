@@ -26,4 +26,4 @@ steps:
       - python -m pip install --upgrade pip
       - python -m pip install lisien/
       - python -m pip install pytest
-      - pytest -vvx -k "not slow and not big and not subinterpreter and ${DATABASE}" --pyargs lisien.tests
+      - pytest -vvx -k "not slow and not big and not subinterpreter and ${DATABASE}" lisien/lisien/tests
