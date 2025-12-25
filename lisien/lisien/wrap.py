@@ -375,6 +375,9 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 		me._data = data
 		return me
 
+	def __init__(self, data: Iterable[_K] = ()):
+		super().__init__()
+
 	def _get(self) -> dict[_K, bool]:
 		return self._data
 
@@ -399,6 +402,9 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 		me = frozenset.__new__(cls, data)
 		me._data = data
 		return me
+
+	def __init__(self, data: Iterable[_K] = ()):
+		super().__init__()
 
 	def __repr__(self):
 		return repr(frozenset(self))
