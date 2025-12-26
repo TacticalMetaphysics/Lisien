@@ -60,24 +60,6 @@ class AbstractOrderlySet[_K](Set[_K]):
 	def __copy__(self) -> OrderlyFrozenSet[_K]:
 		return self.copy()
 
-	def __eq__(self, other) -> bool:
-		return frozenset(self._get()) == other
-
-	def __ne__(self, other) -> bool:
-		return frozenset(self._get()) != other
-
-	def __le__(self, other) -> bool:
-		return frozenset(self._get()) <= other
-
-	def __lt__(self, other) -> bool:
-		return frozenset(self._get()) < other
-
-	def __gt__(self, other) -> bool:
-		return frozenset(self._get()) > other
-
-	def __ge__(self, other) -> bool:
-		return frozenset(self._get()) >= other
-
 	def __and__(self, other) -> OrderlyFrozenSet[_K]:
 		return OrderlyFrozenSet(filter(other.__contains__, self._get()))
 
@@ -182,6 +164,24 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 	def __copy__(self):
 		return self.copy()
 
+	def __eq__(self, other) -> bool:
+		return self._this_keys() == other
+
+	def __ne__(self, other) -> bool:
+		return self._this_keys() != other
+
+	def __le__(self, other) -> bool:
+		return self._this_keys() <= other
+
+	def __lt__(self, other) -> bool:
+		return self._this_keys() < other
+
+	def __gt__(self, other) -> bool:
+		return self._this_keys() > other
+
+	def __ge__(self, other) -> bool:
+		return self._this_keys() >= other
+
 	def difference(self, *others) -> OrderlySet[_K]:
 		this = self._this_keys()
 		that = set(this)
@@ -272,21 +272,6 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 			return this.keys()
 		if not isinstance(this, set):
 			raise TypeError("Not a set", this)
-		return this
-
-	def __eq__(self, other) -> bool:
-		if not isinstance(other, Set):
-			return NotImplemented
-		this = self._this_keys()
-		if len(this) != len(other):
-			return False
-		return this == other
-
-	def __ne__(self, other) -> bool:
-		if not isinstance(other, Set):
-			return NotImplemented
-		this = self._this_keys()
-		return this != other
 
 	def __isub__(self, other) -> Self:
 		this = self._get()
@@ -309,34 +294,6 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 	def __ior__(self, other) -> Self:
 		self.update(other)
 		return self
-
-	def __le__(self, other) -> bool:
-		if not isinstance(other, Set):
-			return NotImplemented
-		if isinstance(other, AbstractOrderlyMutableSet):
-			return self._this_keys() <= other._this_keys()
-		return self._this_keys() <= other
-
-	def __lt__(self, other) -> bool:
-		if not isinstance(other, Set):
-			return NotImplemented
-		if isinstance(other, AbstractOrderlyMutableSet):
-			return self._this_keys() < other._this_keys()
-		return self._this_keys() < other
-
-	def __gt__(self, other) -> bool:
-		if not isinstance(other, Set):
-			return NotImplemented
-		if isinstance(other, AbstractOrderlyMutableSet):
-			return self._this_keys() > other._this_keys()
-		return self._this_keys() > other
-
-	def __ge__(self, other) -> bool:
-		if not isinstance(other, Set):
-			return NotImplemented
-		if isinstance(other, AbstractOrderlyMutableSet):
-			return self._this_keys() >= other._this_keys()
-		return self._this_keys() >= other
 
 	def __and__(self, other) -> OrderlySet[_K]:
 		return OrderlySet(filter(other.__contains__, self._this_keys()))
