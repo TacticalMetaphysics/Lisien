@@ -17,6 +17,7 @@ matrix:
 steps:
   - name: headless_${PYTHON_VERSION}
     image: python:${PYTHON_VERSION}
+    pull: true
     commands:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
