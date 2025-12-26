@@ -14,9 +14,13 @@ matrix:
     - sqlite
     - parquetdb
 
+variables:
+  - &python_image python:${PYTHON_VERSION}
+  - &headless_name headless_${PYTHON_VERSION}
+
 steps:
-  - name: headless_${PYTHON_VERSION}
-    image: python:${PYTHON_VERSION}
+  - name: *headless_name
+    image: *python_image
     pull: true
     commands:
       - TMPDIR=$(python find_ramdisk.py)
