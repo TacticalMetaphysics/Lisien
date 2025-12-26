@@ -272,6 +272,7 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 			return this.keys()
 		if not isinstance(this, set):
 			raise TypeError("Not a set", this)
+		return this
 
 	def __isub__(self, other) -> Self:
 		this = self._get()
