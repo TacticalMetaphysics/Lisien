@@ -409,6 +409,9 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 	def __repr__(self):
 		return repr(frozenset(self))
 
+	def __contains__(self, item: _K) -> bool:
+		return frozenset.__contains__(self, item)
+
 	def _get(self) -> tuple[_K, ...]:
 		return self._data
 
