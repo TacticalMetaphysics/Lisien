@@ -275,7 +275,7 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 		return this
 
 	def __isub__(self, other) -> Self:
-		this = self._get()
+		this = self._this_keys()
 		that = this.keys() - other
 		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 		return self
