@@ -324,6 +324,15 @@ class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
 
 
 class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
+	"""A set with deterministic order of iteration
+
+	Iterates in insertion order.
+
+	Order is not considered significant for the purpose of determining
+	equality.
+
+	"""
+
 	__slots__ = ("_data",)
 	_data: dict[_K, bool]
 
@@ -345,6 +354,9 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 
 class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 	"""A frozenset with deterministic order of iteration
+
+	Iterates in the same order as the data it was constructed with.
+	(Repeated elements are discarded.)
 
 	Order is not considered significant for the purpose of determining
 	equality.
