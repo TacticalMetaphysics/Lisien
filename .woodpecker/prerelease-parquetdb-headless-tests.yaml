@@ -15,9 +15,13 @@ matrix:
   DATABASE:
     - parquetdb
 
+variables:
+  - &python_image python:${PYTHON_VERSION}
+  - &headless_name prerelease_parquetdb_headless_${PYTHON_VERSION}
+
 steps:
-  - name: prerelease_parquetdb_headless_${PYTHON_VERSION}
-    image: python:${PYTHON_VERSION}
+  - name: *headless_name
+    image: *python_image
     commands:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
