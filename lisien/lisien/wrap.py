@@ -33,12 +33,22 @@ from collections.abc import (
 	MutableSet,
 	Set,
 )
-from functools import partial
+from functools import partial, wraps
 from itertools import chain, zip_longest, filterfalse
+from threading import RLock
 from typing import Callable, Hashable, TypeVar, Self, Iterator
 
-from attrs import define
+from attrs import define, field
 from more_itertools import unique_everseen
+
+
+def rlocked(f):
+	@wraps(f)
+	def locked(self, *args, **kwargs):
+		with self._lock:
+			return f(self, *args, **kwargs)
+
+	return locked
 
 
 class AbstractOrderlySet[_K](Set[_K]):
@@ -50,48 +60,63 @@ class AbstractOrderlySet[_K](Set[_K]):
 	@abstractmethod
 	def _set(self, data: tuple[_K, ...]) -> None: ...
 
+	@rlocked
 	def __iter__(self) -> Iterator[_K]:
-		return iter(self._get())
+		for what in self._get():
+			yield what
 
+	@rlocked
 	def __len__(self) -> int:
 		return len(self._get())
 
+	@rlocked
 	def __contains__(self, item):
 		return item in self._get()
 
+	@rlocked
 	def __eq__(self, other):
 		return frozenset(self._get()) == other
 
+	@rlocked
 	def __ne__(self, other):
 		return frozenset(self._get()) != other
 
+	@rlocked
 	def __gt__(self, other):
 		return frozenset(self._get()) > other
 
+	@rlocked
 	def __ge__(self, other):
 		return frozenset(self._get()) >= other
 
+	@rlocked
 	def __lt__(self, other):
 		return frozenset(self._get()) < other
 
+	@rlocked
 	def __le__(self, other):
 		return frozenset(self._get()) <= other
 
+	@rlocked
 	def copy(self) -> OrderlyFrozenSet[_K]:
 		return OrderlyFrozenSet(self._get())
 
 	def __copy__(self) -> OrderlyFrozenSet[_K]:
 		return self.copy()
 
+	@rlocked
 	def __and__(self, other) -> OrderlyFrozenSet[_K]:
 		return OrderlyFrozenSet(filter(other.__contains__, self._get()))
 
+	@rlocked
 	def __or__(self, other) -> OrderlyFrozenSet[_K]:
 		return OrderlyFrozenSet(chain(self, other))
 
+	@rlocked
 	def __sub__(self, other) -> OrderlyFrozenSet[_K]:
 		return OrderlyFrozenSet(filterfalse(other.__contains__, self._get()))
 
+	@rlocked
 	def __xor__(self, other) -> OrderlyFrozenSet[_K]:
 		this = self._get()
 		that = frozenset(this)
@@ -100,6 +125,7 @@ class AbstractOrderlySet[_K](Set[_K]):
 			filter(excluded.__contains__, chain(this, other))
 		)
 
+	@rlocked
 	def difference(self, *others) -> OrderlyFrozenSet[_K]:
 		this = self._get()
 		that = set(this)
@@ -108,6 +134,7 @@ class AbstractOrderlySet[_K](Set[_K]):
 				that.discard(what)
 		return OrderlyFrozenSet(filter(that.__contains__, this))
 
+	@rlocked
 	def intersection(self, *others) -> OrderlyFrozenSet[_K]:
 		this = self._get()
 		that = set(this)
@@ -115,12 +142,14 @@ class AbstractOrderlySet[_K](Set[_K]):
 			that.intersection_update(it)
 		return OrderlyFrozenSet(filter(that.__contains__, this))
 
+	@rlocked
 	def issubset(self, other) -> bool:
 		for k in self._get():
 			if k not in other:
 				return False
 		return True
 
+	@rlocked
 	def issuperset(self, other) -> bool:
 		this = self._get()
 		for k in other:
@@ -128,15 +157,18 @@ class AbstractOrderlySet[_K](Set[_K]):
 				return False
 		return True
 
+	@rlocked
 	def symmetric_difference(self, other, /) -> OrderlyFrozenSet[_K]:
 		this = self._get()
 		if not isinstance(other, Container):
 			other = set(other)
 		return OrderlyFrozenSet(filter(other.__contains__, this))
 
+	@rlocked
 	def union(self, *others) -> OrderlyFrozenSet[_K]:
 		return OrderlyFrozenSet(chain(self._get(), *others))
 
+	@rlocked
 	def isdisjoint(self, other) -> bool:
 		return set(self._get()).isdisjoint(other)
 
@@ -156,54 +188,67 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 	@abstractmethod
 	def _set(self, data: dict[_K, bool]) -> None: ...
 
+	@rlocked
 	def add(self, item: Hashable) -> None:
 		this = self._get()
 		this[item] = True
 		self._set(this)
 
+	@rlocked
 	def discard(self, value):
 		this = self._get()
 		if value in this:
 			del this[value]
 		self._set(this)
 
+	@rlocked
 	def remove(self, value):
 		this = self._get()
 		del this[value]
 		self._set(this)
 
+	@rlocked
 	def pop(self) -> _K:
 		this = self._get()
 		k, _ = this.popitem()
 		return k
 
+	@rlocked
 	def clear(self) -> None:
 		self._set({})
 
+	@rlocked
 	def copy(self):
 		return OrderlySet(self._get())
 
 	def __copy__(self):
 		return self.copy()
 
+	@rlocked
 	def __eq__(self, other) -> bool:
 		return self._this_keys() == other
 
+	@rlocked
 	def __ne__(self, other) -> bool:
 		return self._this_keys() != other
 
+	@rlocked
 	def __le__(self, other) -> bool:
 		return self._this_keys() <= other
 
+	@rlocked
 	def __lt__(self, other) -> bool:
 		return self._this_keys() < other
 
+	@rlocked
 	def __gt__(self, other) -> bool:
 		return self._this_keys() > other
 
+	@rlocked
 	def __ge__(self, other) -> bool:
 		return self._this_keys() >= other
 
+	@rlocked
 	def difference(self, *others) -> OrderlySet[_K]:
 		this = self._this_keys()
 		that = set(this)
@@ -212,6 +257,7 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 				that.discard(what)
 		return OrderlySet(filter(that.__contains__, this))
 
+	@rlocked
 	def difference_update(self, *others) -> None:
 		this = self._this_keys()
 		that = set(this)
@@ -219,6 +265,7 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 			that.difference_update(it)
 		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 
+	@rlocked
 	def intersection(self, *others) -> OrderlySet[_K]:
 		this = self._this_keys()
 		that = set(this)
@@ -226,6 +273,7 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 			that.intersection_update(it)
 		return OrderlySet(filter(that.__contains__, this))
 
+	@rlocked
 	def intersection_update(self, *others) -> None:
 		this = self._this_keys()
 		that = set(this)
@@ -233,6 +281,7 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 			that.intersection_update(it)
 		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 
+	@rlocked
 	def issubset(self, __s) -> bool:
 		this = self._this_keys()
 		if isinstance(__s, Set):
@@ -242,6 +291,7 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 				return False
 		return True
 
+	@rlocked
 	def issuperset(self, __s) -> bool:
 		this = self._this_keys()
 		if isinstance(__s, Set):
@@ -251,6 +301,7 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 				return False
 		return True
 
+	@rlocked
 	def symmetric_difference(self, s, /) -> OrderlySet[_K]:
 		this = self._this_keys()
 		if not isinstance(s, Container):
@@ -260,6 +311,7 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 		that = this.keys() ^ s
 		return OrderlySet(filter(that.__contains__, this))
 
+	@rlocked
 	def symmetric_difference_update(self, s, /):
 		this = self._this_keys()
 		if not isinstance(s, Container):
@@ -269,22 +321,27 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 		that = this ^ s
 		self._set(dict.fromkeys(filter(that.__contains, this), True))
 
+	@rlocked
 	def union(self, *others) -> OrderlySet[_K]:
 		return OrderlySet(chain(self._get(), *others))
 
+	@rlocked
 	def update(self, *others) -> None:
 		this = self._get()
 		this.update(dict.fromkeys(chain(others), True))
 		self._set(this)
 
+	@rlocked
 	def isdisjoint(self, other) -> bool:
 		this = self._this_keys()
 		if isinstance(other, AbstractOrderlyMutableSet):
 			return this.isdisjoint(other._get().keys())
 		return this.isdisjoint(other)
 
+	@rlocked
 	def __iter__(self) -> Iterator[_K]:
-		return iter(self._get())
+		for what in self._get():
+			yield what
 
 	def _this_keys(self) -> Set[_K]:
 		this = self._get()
@@ -294,37 +351,45 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 			raise TypeError("Not a set", this)
 		return this
 
+	@rlocked
 	def __isub__(self, other) -> Self:
 		this = self._this_keys()
 		that = this.keys() - other
 		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 		return self
 
+	@rlocked
 	def __ixor__(self, other) -> Self:
 		this = self._this_keys()
 		that = this ^ other
 		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 		return self
 
+	@rlocked
 	def __iand__(self, other) -> Self:
 		this = self._this_keys()
 		that = this & other
 		self._set(dict.fromkeys(filter(that.__contains__, this), True))
 		return self
 
+	@rlocked
 	def __ior__(self, other) -> Self:
 		self.update(other)
 		return self
 
+	@rlocked
 	def __and__(self, other) -> OrderlySet[_K]:
 		return OrderlySet(filter(other.__contains__, self._this_keys()))
 
+	@rlocked
 	def __or__(self, other) -> OrderlySet[_K]:
 		return OrderlySet(chain(self, other))
 
+	@rlocked
 	def __sub__(self, other) -> OrderlySet[_K]:
 		return OrderlySet(filterfalse(other.__contains__, self._get()))
 
+	@rlocked
 	def __xor__(self, other) -> OrderlySet[_K]:
 		if isinstance(other, OrderlySet):
 			this = self._this_keys()
@@ -343,7 +408,7 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 		return OrderlySet(filter(excluded.__contains__, chain(this, that)))
 
 
-class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
+class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set[_K]):
 	"""A set with deterministic order of iteration
 
 	Iterates in insertion order.
@@ -353,13 +418,15 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 
 	"""
 
-	__slots__ = ("_data",)
+	__slots__ = ("_data", "_lock")
+
 	_data: dict[_K, bool]
 
 	def __new__(cls, data: Iterable[_K] = ()):
 		data = dict.fromkeys(data)
 		me = set.__new__(cls, data)
 		me._data = data
+		me._lock = RLock()
 		return me
 
 	def __init__(self, data: Iterable[_K] = ()):
@@ -386,7 +453,7 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset):
 
 	"""
 
-	__slots__ = ("_data",)
+	__slots__ = ("_data", "_lock")
 
 	_data: tuple[_K, ...]
 
@@ -394,6 +461,7 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset):
 		data = tuple(unique_everseen(data))
 		me = frozenset.__new__(cls, data)
 		me._data = data
+		me._lock = RLock()
 		return me
 
 	def __init__(self, data: Iterable[_K] = ()):
@@ -521,7 +589,7 @@ class MutableMappingWrapper[_K, _V](
 
 @define(eq=False)
 class SubDictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
-	__slots__ = ()
+	__slots__ = ("_rlock",)
 	_getter: Callable[[], dict[_K, _V]]
 	_setter: Callable[[dict[_K, _V]], None]
 
@@ -567,7 +635,6 @@ class MutableSequenceWrapper[_T](
 
 @define(eq=False)
 class SubListWrapper[_T](MutableSequenceWrapper[_T], list[_T]):
-	__slots__ = ()
 	_getter: Callable[[], list[_T]]
 	_setter: Callable[[list[_T]], None]
 
@@ -623,10 +690,16 @@ class MutableWrapperSet[_T](
 		)
 
 
-@define(eq=False, order=False, repr=False)
 class SubSetWrapper[_T](MutableWrapperSet[_T]):
+	__slots__ = ("_rlock",)
 	_getter: Callable[[], MutableSet[_T]]
 	_setter: Callable[[MutableSet[_T]], None]
+
+	@property
+	def _lock(self) -> RLock:
+		if not hasattr(self, "_rlock"):
+			self._rlock = RLock()
+		return self._rlock
 
 	def _get(self) -> dict[_T, bool]:
 		return dict.fromkeys(self._getter())
@@ -754,10 +827,16 @@ class SetWrapper[_T](MutableWrapperSet[_T]):
 
 	"""
 
-	__slots__ = ()
+	__slots__ = ("_rlock",)
 	_getter: Callable[[], MutableSet[_T]]
 	_outer: MutableMapping
 	_key: Hashable
+
+	@property
+	def _lock(self) -> RLock:
+		if not hasattr(self, "_rlock"):
+			self._rlock = RLock()
+		return self._rlock
 
 	def _get(self) -> dict[_T, bool]:
 		return dict.fromkeys(self._getter())
