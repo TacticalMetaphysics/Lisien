@@ -35,13 +35,14 @@ from collections.abc import (
 )
 from functools import partial
 from itertools import chain, zip_longest, filterfalse
-from typing import Callable, Hashable, TypeVar, ClassVar, Self, Iterator
+from typing import Callable, Hashable, TypeVar, Self, Iterator
 
-from attrs import define, field
-from more_itertools import unique_everseen
+from attrs import define
 
 
 class AbstractOrderlySet[_K](Set[_K]):
+	__slots__ = ()
+
 	@abstractmethod
 	def _get(self) -> tuple[_K, ...]: ...
 
@@ -53,6 +54,27 @@ class AbstractOrderlySet[_K](Set[_K]):
 
 	def __len__(self) -> int:
 		return len(self._get())
+
+	def __contains__(self, item):
+		return item in self._get()
+
+	def __eq__(self, other):
+		return frozenset(self._get()) == other
+
+	def __ne__(self, other):
+		return frozenset(self._get()) != other
+
+	def __gt__(self, other):
+		return frozenset(self._get()) > other
+
+	def __ge__(self, other):
+		return frozenset(self._get()) >= other
+
+	def __lt__(self, other):
+		return frozenset(self._get()) < other
+
+	def __le__(self, other):
+		return frozenset(self._get()) <= other
 
 	def copy(self) -> OrderlyFrozenSet[_K]:
 		return OrderlyFrozenSet(self._get())
@@ -120,13 +142,14 @@ class AbstractOrderlySet[_K](Set[_K]):
 		return frozenset.__repr__(self)
 
 
-@define(weakref_slot=False, repr=False, eq=False)
-class AbstractOrderlyMutableSet[_K](MutableSet[_K]):
+class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 	"""A set with deterministic order of iteration
 
 	Order is not regarded as significant for the purposes of equality.
 
 	"""
+
+	__slots__ = ()
 
 	@abstractmethod
 	def _get(self) -> dict[_K, bool]: ...
@@ -337,13 +360,14 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 	_data: dict[_K, bool]
 
 	def __new__(cls, data: Iterable[_K] = ()):
-		data = dict.fromkeys(data)
-		me = set.__new__(cls, data.keys())
-		me._data = data
-		return me
+		return set.__new__(cls)
 
 	def __init__(self, data: Iterable[_K] = ()):
 		super().__init__()
+		self._data = dict.fromkeys(data)
+
+	def __repr__(self):
+		return f"OrderlySet({list(self._data)})"
 
 	def _get(self) -> dict[_K, bool]:
 		return self._data
@@ -352,7 +376,7 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 		self._data = data
 
 
-class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
+class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset):
 	"""A frozenset with deterministic order of iteration
 
 	Iterates in the same order as the data it was constructed with.
@@ -368,19 +392,14 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset[_K]):
 	_data: tuple[_K, ...]
 
 	def __new__(cls, data: Iterable[_K] = ()):
-		data = tuple(unique_everseen(data))
-		me = frozenset.__new__(cls, data)
-		me._data = data
-		return me
+		return frozenset.__new__(cls)
 
 	def __init__(self, data: Iterable[_K] = ()):
 		super().__init__()
+		self._data = tuple(data)
 
 	def __repr__(self):
-		return repr(frozenset(self))
-
-	def __contains__(self, item: _K) -> bool:
-		return frozenset.__contains__(self, item)
+		return f"OrderlyFrozenSet({self._data})"
 
 	def _get(self) -> tuple[_K, ...]:
 		return self._data
