@@ -439,6 +439,8 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set[_K]):
 		return self._data
 
 	def _set(self, data: dict[_K, bool]):
+		set.clear(self)
+		set.update(self, data)
 		self._data = data
 
 
