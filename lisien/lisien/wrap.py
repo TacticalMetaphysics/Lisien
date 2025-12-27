@@ -777,6 +777,8 @@ class UnwrappingDict[_K, _V](dict[_K, _V]):
 
 	"""
 
+	__slots__ = ()
+
 	def __setitem__(self, key: _K, value: _V) -> None:
 		if isinstance(value, MutableWrapper):
 			value = value.unwrap()
