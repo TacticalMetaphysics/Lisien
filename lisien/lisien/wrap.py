@@ -283,9 +283,6 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 			return this.isdisjoint(other._get().keys())
 		return this.isdisjoint(other)
 
-	def __repr__(self) -> str:
-		return set.__repr__(self)
-
 	def __iter__(self) -> Iterator[_K]:
 		return iter(self._get())
 
