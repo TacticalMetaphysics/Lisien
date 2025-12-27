@@ -691,17 +691,11 @@ class MutableWrapperSet[_T](
 			+ "}>"
 		)
 
-
+@define(repr=False, eq=False, order=False)
 class SubSetWrapper[_T](MutableWrapperSet[_T]):
-	__slots__ = ("_rlock",)
 	_getter: Callable[[], MutableSet[_T]]
 	_setter: Callable[[MutableSet[_T]], None]
-
-	@property
-	def _lock(self) -> RLock:
-		if not hasattr(self, "_rlock"):
-			self._rlock = RLock()
-		return self._rlock
+	_lock: RLock = field(init=False, factory=RLock)
 
 	def _get(self) -> dict[_T, bool]:
 		return dict.fromkeys(self._getter())
@@ -829,16 +823,10 @@ class SetWrapper[_T](MutableWrapperSet[_T]):
 
 	"""
 
-	__slots__ = ("_rlock",)
 	_getter: Callable[[], MutableSet[_T]]
 	_outer: MutableMapping
 	_key: Hashable
-
-	@property
-	def _lock(self) -> RLock:
-		if not hasattr(self, "_rlock"):
-			self._rlock = RLock()
-		return self._rlock
+	_lock: RLock = field(init=False, factory=RLock)
 
 	def _get(self) -> dict[_T, bool]:
 		return dict.fromkeys(self._getter())
