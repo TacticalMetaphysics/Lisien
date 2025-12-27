@@ -104,7 +104,8 @@ class AbstractOrderlySet[_K](Set[_K]):
 		this = self._get()
 		that = set(this)
 		for it in others:
-			that.difference_update(it)
+			for what in it:
+				that.discard(what)
 		return OrderlyFrozenSet(filter(that.__contains__, this))
 
 	def intersection(self, *others) -> OrderlyFrozenSet[_K]:
@@ -210,7 +211,8 @@ class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 		this = self._this_keys()
 		that = set(this)
 		for it in others:
-			that.difference_update(it)
+			for what in it:
+				that.discard(what)
 		return OrderlySet(filter(that.__contains__, this))
 
 	def difference_update(self, *others) -> None:
@@ -361,11 +363,13 @@ class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set):
 	_data: dict[_K, bool]
 
 	def __new__(cls, data: Iterable[_K] = ()):
-		return set.__new__(cls)
+		data = dict.fromkeys(data)
+		me = set.__new__(cls, data)
+		me._data = data
+		return me
 
 	def __init__(self, data: Iterable[_K] = ()):
 		super().__init__()
-		self._data = dict.fromkeys(data)
 
 	def __repr__(self):
 		return f"OrderlySet({list(self._data)})"
@@ -393,11 +397,13 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset):
 	_data: tuple[_K, ...]
 
 	def __new__(cls, data: Iterable[_K] = ()):
-		return frozenset.__new__(cls)
+		data = tuple(unique_everseen(data))
+		me = frozenset.__new__(cls, data)
+		me._data = data
+		return me
 
 	def __init__(self, data: Iterable[_K] = ()):
 		super().__init__()
-		self._data = tuple(unique_everseen(data))
 
 	def __repr__(self):
 		return f"OrderlyFrozenSet({self._data})"
