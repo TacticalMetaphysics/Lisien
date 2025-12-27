@@ -140,9 +140,6 @@ class AbstractOrderlySet[_K](Set[_K]):
 	def isdisjoint(self, other) -> bool:
 		return set(self._get()).isdisjoint(other)
 
-	def __repr__(self) -> str:
-		return frozenset.__repr__(self)
-
 
 class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 	"""A set with deterministic order of iteration
