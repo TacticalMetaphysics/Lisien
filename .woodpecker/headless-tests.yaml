@@ -13,11 +13,11 @@ matrix:
     - not parquetdb and not sqlite
     - sqlite
     - parquetdb
+    - prerelease-parquetdb
 
 variables:
   - &python_image python:${PYTHON_VERSION}
   - &headless_name headless_${PYTHON_VERSION}
-  - &parquetdb_headless_name prerelease_parquetdb_headless_${PYTHON_VERSION}
   - &slow_headless_name slow_headless_${PYTHON_VERSION}
 
 steps:
@@ -33,20 +33,15 @@ steps:
       - python -m pip install --upgrade pip
       - python -m pip install lisien/
       - python -m pip install pytest
-      - pytest -vvx -k "not slow and not big and ${DATABASE}" lisien/lisien/tests
-  - name: *parquetdb_headless_name
-    image: *python_image
-    commands:
-      - TMPDIR=$(python find_ramdisk.py)
-      - echo "TMPDIR=$TMPDIR"
-      - export TMPDIR
-      - python -m venv .venv
-      - . .venv/bin/activate
-      - python -m pip install --upgrade pip
+      - if [ "${DATABASE}" == 'prerelease-parquetdb' ]; then
+      - DATABASE=parquetdb
+      - export DATABASE
       - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
-      - python -m pip install lisien/
-      - python -m pip install pytest
-      - pytest -vvx -k "not slow and not big and ${DATABASE}" lisien/lisien/tests
+      - else
+      - DATABASE="${DATABASE}"
+      - export DATABASE
+      - fi
+      - pytest -vvx -k "not slow and not big and $DATABASE" lisien/lisien/tests
   - name: *slow_headless_name
     image: *python_image
     commands:
