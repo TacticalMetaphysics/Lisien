@@ -38,6 +38,7 @@ from itertools import chain, zip_longest, filterfalse
 from typing import Callable, Hashable, TypeVar, Self, Iterator
 
 from attrs import define
+from more_itertools import unique_everseen
 
 
 class AbstractOrderlySet[_K](Set[_K]):
@@ -396,7 +397,7 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset):
 
 	def __init__(self, data: Iterable[_K] = ()):
 		super().__init__()
-		self._data = tuple(data)
+		self._data = tuple(unique_everseen(data))
 
 	def __repr__(self):
 		return f"OrderlyFrozenSet({self._data})"
