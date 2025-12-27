@@ -622,7 +622,7 @@ class MutableWrapperSet[_T](
 		)
 
 
-@define(eq=False, repr=False)
+@define(eq=False, order=False, repr=False)
 class SubSetWrapper[_T](MutableWrapperSet[_T]):
 	_getter: Callable[[], MutableSet[_T]]
 	_setter: Callable[[MutableSet[_T]], None]
@@ -651,7 +651,7 @@ def unwrap_items(it: Iterable[tuple[_U, _V]]) -> dict[_U, _V]:
 	return ret
 
 
-@define(eq=False)
+@define(eq=False, order=False)
 class DictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 	"""A dictionary synchronized with a serialized field.
 
@@ -744,7 +744,7 @@ class ListWrapper[_T](MutableWrapperDictList[int, _T], MutableSequence[_T]):
 		]
 
 
-@define(eq=False, repr=False)
+@define(eq=False, order=False, repr=False)
 class SetWrapper[_T](MutableWrapperSet[_T]):
 	"""A set synchronized with a serialized field.
 
