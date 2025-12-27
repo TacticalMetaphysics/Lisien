@@ -408,7 +408,6 @@ class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset):
 		raise TypeError("Tried to set data of a frozen set", self, data)
 
 
-@define(eq=False)
 class MutableWrapper[_K: Hashable, _V](Collection, ABC):
 	__slots__ = ()
 
@@ -510,7 +509,6 @@ class MappingUnwrapper[_K, _V](Mapping[_K, _V], ABC):
 		return unwrap_items(self.items())
 
 
-@define(eq=False)
 class MutableMappingWrapper[_K, _V](
 	MappingUnwrapper[_K, _V],
 	MutableWrapperDictList[_K, _V],
@@ -595,10 +593,11 @@ class SubListWrapper[_T](MutableSequenceWrapper[_T], list[_T]):
 		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
 
-@define(order=False, eq=False, repr=False)
 class MutableWrapperSet[_T](
 	MutableWrapper, AbstractOrderlyMutableSet[_T], ABC
 ):
+	__slots__ = ()
+
 	def unwrap(self) -> OrderlySet[_T]:
 		"""Deep copy myself as a set, all contents unwrapped"""
 		unwrapped = OrderlySet()
