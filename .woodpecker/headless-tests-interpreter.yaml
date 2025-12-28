@@ -5,9 +5,6 @@ when:
     repo: clayote/Lisien
 
 matrix:
-  PYTHON_VERSION:
-    - 3.12
-    - 3.13
   DATABASE:
     - not parquetdb and not sqlite
     - sqlite
@@ -16,12 +13,13 @@ matrix:
   EXECUTION:
     - thread
     - process
-    - not thread and not process
+    - interpreter
+    - not thread and not process and not interpreter
 
 variables:
-  - &python_image python:${PYTHON_VERSION}
-  - &headless_name headless_${PYTHON_VERSION}
-  - &slow_headless_name slow_headless_${PYTHON_VERSION}
+  - &python_image python:3.14
+  - &headless_name headless_3.14
+  - &slow_headless_name slow_headless_3.14
 
 steps:
   - name: *headless_name
