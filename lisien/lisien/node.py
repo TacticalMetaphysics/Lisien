@@ -53,7 +53,6 @@ from .util import getatt, unwrap
 
 if TYPE_CHECKING:
 	from .character import Character
-	from .engine import Engine
 	from .portal import Portal
 
 

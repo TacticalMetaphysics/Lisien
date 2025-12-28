@@ -24,22 +24,16 @@ from itertools import chain, pairwise
 from operator import itemgetter
 from sys import getsizeof, stderr
 from threading import RLock
-from types import GenericAlias
 from typing import (
 	TYPE_CHECKING,
 	Callable,
 	ClassVar,
-	Hashable,
 	Iterable,
-	Iterator,
 	Literal,
-	Optional,
-	Self,
-	TypeVar,
 	Protocol,
 )
 
-from attrs import Factory, define, field
+from attrs import define, field
 
 from . import engine
 from .collections import ChangeTrackingDict
@@ -53,17 +47,12 @@ from .types import (
 	ActionFuncName,
 	Branch,
 	CharName,
-	EntityKey,
 	Key,
 	LinearTime,
-	UniversalKey,
 	NodeName,
-	Plan,
-	PrereqFuncName,
 	RuleBig,
 	RulebookName,
 	RulebookPriority,
-	RuleFuncName,
 	RuleName,
 	RuleNeighborhood,
 	Stat,
@@ -71,11 +60,12 @@ from .types import (
 	Time,
 	TriggerFuncName,
 	Turn,
+	UniversalKey,
 	Value,
-	sort_set,
 	PickyDefaultDict,
-	Keyframe,
+	PrereqFuncName,
 	StructuredDefaultDict,
+	sort_set,
 )
 from .window import (
 	AssignmentTimeDict,
