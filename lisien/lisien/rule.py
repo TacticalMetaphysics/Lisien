@@ -84,17 +84,14 @@ import sys
 from abc import ABC, abstractmethod
 from ast import parse, unparse
 from collections import UserDict
-from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
+from collections.abc import Iterable, MutableMapping, MutableSequence
 from functools import cached_property, partial
 from typing import (
 	TYPE_CHECKING,
 	Any,
 	Callable,
 	Iterator,
-	Literal,
 	Optional,
-	ClassVar,
-	Set,
 	ValuesView,
 )
 
@@ -123,7 +120,6 @@ from .types import (
 	TriggerFunc,
 	TriggerFuncName,
 	Turn,
-	Value,
 	AttrSignal,
 )
 from .util import dedent_source

@@ -27,8 +27,7 @@ from threading import Lock, Thread
 from time import sleep
 from typing import ClassVar, Callable
 
-from attr import Factory
-from attrs import define, field
+from attrs import Factory, define, field
 from sqlalchemy import Connection
 
 from lisien.proxy.routine import worker_subthread, worker_subprocess

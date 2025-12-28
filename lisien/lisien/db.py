@@ -21,7 +21,6 @@ from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections import UserDict, defaultdict, deque
 from contextlib import contextmanager
-from dataclasses import KW_ONLY, dataclass
 from functools import cached_property, partial, partialmethod, wraps
 from io import IOBase, StringIO
 from itertools import filterfalse, starmap
@@ -42,7 +41,6 @@ from typing import (
 	MutableMapping,
 	MutableSet,
 	Optional,
-	Self,
 	Set,
 	TypeVar,
 	get_args,
@@ -53,8 +51,6 @@ from attr import Factory
 from attrs import define, field
 import networkx as nx
 from tblib import Traceback
-
-from lisien.types import AbstractCharacter, Value
 
 if TYPE_CHECKING:
 	from xml.etree.ElementTree import Element, ElementTree
@@ -157,7 +153,6 @@ from .types import (
 from .util import ILLEGAL_CHARACTER_NAMES, garbage
 from .window import (
 	AssignmentTimeDict,
-	WindowDict,
 	BranchingTimeListDict,
 	LinearTimeListDict,
 )

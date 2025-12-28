@@ -19,7 +19,6 @@ import sys
 from collections import OrderedDict
 from functools import cached_property, partial, partialmethod
 from queue import Queue
-from threading import Thread
 from typing import Iterator, Union, get_args
 
 from attrs import define, field
@@ -97,7 +96,6 @@ from .types import (
 	TriggerFuncName,
 	PortalRulebookRowType,
 	NodeRulebookRowType,
-	RuleNeighborhood,
 	RuleNeighborhoodRowType,
 	ActionFuncName,
 	ActionRowType,
