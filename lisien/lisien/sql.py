@@ -176,8 +176,24 @@ for table, serializer in Batch.serializers.items():
 class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	_pack: PackSignature
 	_unpack: UnpackSignature
-	connect_string: str = "sqlite:///:memory:"
+	connect_string: str = field(default="sqlite:///:memory:")
+
+	@connect_string.validator
+	def _validate_connect_string(self, _, val):
+		if not isinstance(val, str):
+			raise TypeError("Invalid connect_string", val)
+
 	connect_args: dict[str, str] = field(factory=dict)
+
+	@connect_args.validator
+	def _validate_connect_args(self, _, val):
+		if not isinstance(val, dict):
+			raise TypeError("Invalid connect_args", val)
+		for k, v in val.items():
+			if not isinstance(k, str):
+				raise TypeError("Invalid argument name", k)
+			if not isinstance(v, str):
+				raise TypeError("Invalid argument value", v)
 
 	@define
 	class Looper(ConnectionLooper):
