@@ -33,7 +33,7 @@ steps:
       - python -m pip install --upgrade pip
       - python -m pip install lisien/
       - python -m pip install pytest
-      - if [ "${DATABASE}" == 'prerelease-parquetdb' ]; then
+      - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
       - export DATABASE
       - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
