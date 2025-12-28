@@ -53,4 +53,12 @@ steps:
       - python -m pip install --upgrade pip
       - python -m pip install pytest
       - python -m pip install lisien/
-      - python -m pytest -vvx -k 'slow or big' lisien/lisien/tests
+      - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
+      - DATABASE=parquetdb
+      - export DATABASE
+      - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
+      - else
+      - DATABASE="${DATABASE}"
+      - export DATABASE
+      - fi
+      - python -m pytest -vvx -k "slow or big and $DATABASE" lisien/lisien/tests
