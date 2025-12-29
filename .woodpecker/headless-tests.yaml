@@ -44,7 +44,9 @@ steps:
       - DATABASE="${DATABASE}"
       - export DATABASE
       - fi
-      - pytest -vvx -k "not slow and not big and $DATABASE and ${EXECUTION}" lisien/lisien/tests
+      - PYTEST_MARKS="not slow and not big and $DATABASE and ${EXECUTION}"
+      - echo "will run $PYTEST_MARKS"
+      - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
   - name: *slow_headless_name
     image: *python_image
     commands:
@@ -64,4 +66,6 @@ steps:
       - DATABASE="${DATABASE}"
       - export DATABASE
       - fi
-      - python -m pytest -vvx -k "slow or big and $DATABASE and ${EXECUTION}" lisien/lisien/tests
+      - PYTEST_MARKS="slow or big and $DATABASE and ${EXECUTION}"
+      - echo "will run $PYTEST_MARKS"
+      - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
