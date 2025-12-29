@@ -1118,6 +1118,10 @@ class CharStatProxy(CachingEntityProxy, AttrSignal):
 	def _cache(self):
 		return self.engine._char_stat_cache[self.name]
 
+	@property
+	def exists(self) -> bool:
+		return self.name in self.engine._char_cache
+
 	def __eq__(self, other: dict):
 		if not hasattr(other, "keys") or not callable(other.keys):
 			return False
