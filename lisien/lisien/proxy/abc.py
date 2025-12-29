@@ -58,13 +58,6 @@ class CachingProxy(MutableMapping, Signal, ABC):
 	def _worker_check(self):
 		self.engine._worker_check()
 
-	def __init__(self):
-		super().__init__()
-		self.exists = True
-
-	def __bool__(self):
-		return bool(self.exists)
-
 	def __iter__(self):
 		yield from self._cache
 

@@ -132,6 +132,9 @@ class NodeProxy(CachingEntityProxy, RuleFollowerProxy, ABC):
 	def _cache(self):
 		return self.engine._node_stat_cache[self._charname][self.name]
 
+	def __bool__(self):
+		return self.name in self.engine._node_stat_cache[self._charname]
+
 	def _get_default_rulebook_name(self):
 		return self._charname, self.name
 
@@ -581,6 +584,16 @@ class PortalProxy(CachingEntityProxy, RuleFollowerProxy):
 		return self.engine._portal_stat_cache[self.name][self._origin][
 			self._destination
 		]
+
+	def __bool__(self):
+		cache = self.engine._portal_stat_cache
+		if self.name not in cache:
+			return False
+		cache = cache[self.name]
+		if self._origin not in cache:
+			return False
+		cache = cache[self._origin]
+		return self._destination in cache
 
 	@property
 	def graph(self) -> CharacterProxy:
@@ -1119,8 +1132,7 @@ class CharStatProxy(CachingEntityProxy, AttrSignal):
 	def _cache(self):
 		return self.engine._char_stat_cache[self.name]
 
-	@property
-	def exists(self) -> bool:
+	def __bool__(self):
 		return self.name in self.engine._char_cache
 
 	def __eq__(self, other: dict):
